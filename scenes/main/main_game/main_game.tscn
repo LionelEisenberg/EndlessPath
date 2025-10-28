@@ -1,6 +1,159 @@
-[gd_scene load_steps=2 format=3 uid="uid://dyrsbe5x01lgo"]
+[gd_scene load_steps=5 format=3 uid="uid://dyrsbe5x01lgo"]
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
+[ext_resource type="PackedScene" uid="uid://hcmv6b2gg6ho" path="res://scenes/ui/tab_switching_bar/tab_switching_bar.tscn" id="2_sp8i7"]
+[ext_resource type="Script" uid="uid://crhpt71r2msjd" path="res://scenes/ui/tab_switching_bar/tab_switching_bar.gd" id="3_5uni4"]
+[ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
 
 [node name="MainGame" type="Node2D"]
 script = ExtResource("1_2bvax")
+
+[node name="MainVBox" type="VBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1920.0
+offset_bottom = 1080.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainViewContainer" type="Panel" parent="MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ZoneView" type="Control" parent="MainVBox/MainViewContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="MainVBox/MainViewContainer/ZoneView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+text = "ZONE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CyclingView" type="Control" parent="MainVBox/MainViewContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="MainVBox/MainViewContainer/CyclingView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+text = "CYCLING
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ScriptingView" type="Control" parent="MainVBox/MainViewContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="MainVBox/MainViewContainer/ScriptingView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+text = "SCRIPTING"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ElixirMakingView" type="Control" parent="MainVBox/MainViewContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="MainVBox/MainViewContainer/ElixirMakingView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+text = "ELIXIR MAKING
+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SoulSmithingView" type="Control" parent="MainVBox/MainViewContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="MainVBox/MainViewContainer/SoulSmithingView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+text = "SOULSMITHING"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AdventuringView" type="Control" parent="MainVBox/MainViewContainer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="MainVBox/MainViewContainer/AdventuringView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+text = "ADVENTURING"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TabSwitchingBar" parent="MainVBox" instance=ExtResource("2_sp8i7")]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.2
+script = ExtResource("3_5uni4")
+
+[node name="SaveTimer" type="Timer" parent="."]
+script = ExtResource("4_11so6")

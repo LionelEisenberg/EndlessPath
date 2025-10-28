@@ -1,0 +1,108 @@
+[gd_scene load_steps=4 format=3 uid="uid://hcmv6b2gg6ho"]
+
+[ext_resource type="StyleBox" uid="uid://df18bguuqccgw" path="res://assets/styleboxes/tab_switching_bar_default.tres" id="1_6shaw"]
+[ext_resource type="FontFile" uid="uid://bbpcahvpcehyl" path="res://assets/fonts/main_font.ttf" id="2_5ntvh"]
+[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="3_kc0kd"]
+
+[node name="TabSwitchingBar" type="HBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftSettingsContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.25
+theme_override_styles/panel = ExtResource("1_6shaw")
+
+[node name="MarginContainer" type="MarginContainer" parent="LeftSettingsContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 8
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 20
+
+[node name="SettingsButton" type="Button" parent="LeftSettingsContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 8
+theme_override_fonts/font = ExtResource("2_5ntvh")
+theme_override_font_sizes/font_size = 20
+text = "SETTINGS"
+
+[node name="MainButtonContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = ExtResource("1_6shaw")
+
+[node name="HBoxButtonContainer" type="HBoxContainer" parent="MainButtonContainer"]
+layout_mode = 2
+
+[node name="ZoneMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ZoneTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/ZoneMarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("3_kc0kd")
+
+[node name="CyclingMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CyclingTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/CyclingMarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("3_kc0kd")
+
+[node name="ScriptingMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ScriptingTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/ScriptingMarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("3_kc0kd")
+
+[node name="ElixirMakingMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ElixirMakingTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/ElixirMakingMarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("3_kc0kd")
+
+[node name="SoulsmithingMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SoulsmithingTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/SoulsmithingMarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("3_kc0kd")
+
+[node name="AdventuringMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AdventuringTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/AdventuringMarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("3_kc0kd")
+
+[node name="RightContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.25
+theme_override_styles/panel = ExtResource("1_6shaw")

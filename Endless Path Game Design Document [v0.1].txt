@@ -1,0 +1,130 @@
+﻿Endless Path Game Design Document [v0.1]
+Version: 0.1 (Initial Draft)
+Date: October 26, 2025
+Design Goals
+* Create an engaging idle/incremental game with active mini-game elements.
+* Thematically immerse the player in a Wuxia cultivation setting inspired by the Cradle series.
+* Employ a layered game design, introducing new mechanics sequentially like Unnamed Space Idle, where each layer interacts with and builds upon previous ones.
+* Provide satisfying short-term active gameplay loops (mini-games) and long-term passive progression (cultivation advancement).
+* Focus on a single-player experience with a clear sense of progression and power scaling.
+Core Concept
+
+
+Endless Path is an incremental idle game blended with active mini-games, simulating the journey of a sacred artist cultivating their power. Players start at the Foundation stage, engaging in a "Cycling" mini-game to generate Madra and increase Core Density. As they advance through cultivation stages (Copper, Iron, Jade, etc.), they unlock new, distinct gameplay systems represented as tabs: Scripting (creating short-term buffs via calligraphy), Elixir Making (creating long-term buffs via potion crafting), Adventuring (exploring node-based maps and engaging in real-time combat for resources), and Soulsmithing (crafting gear via assembly puzzles). Each system feeds into the others, creating interconnected loops that drive overall progression. The game features a world map for exploration and resource gathering (Foraging), adding another layer to the core loop.
+Genre
+* Primary: Incremental / Idle Game
+* Secondary: Mini-game Collection, Simulation (Cultivation), Light RPG (Combat/Gear)
+Target Platform
+* Initial: PC (Windows, Mac, Linux via Godot export), potentially Web build
+* Focus: Itch.io / Steam release
+Core Gameplay Loop
+
+
+The core loop evolves as new systems unlock:
+1. Foundation Stage:
+   * Forage (Idle Action on Map) -> Gather Tier 0 Resources (Herbs, Stone, Paper).
+   * Cycle (Active Mini-game) -> Generate Madra & Core Density XP.
+   * Spend Madra & Reach Core Density Threshold -> Breakthrough.
+2. Copper Stage:
+   * (Foundation Loop continues)
+   * Use Tier 0 Resources + Madra in Scripting (Active Mini-game) -> Create short-term Buffs.
+   * Use Tier 0 Resources + Madra in Elixir Making (Active Mini-game) -> Create long-term Buffs.
+   * (Progression toward Iron)
+3. Iron Stage:
+   * (Copper Loop continues)
+   * Use Buffs + Engage in Adventuring (Node-based exploration + Real-time Combat) -> Gather Sacred Resources (Remnants, Parts) & Manuals (Scripts, Recipes, Schematics).
+   * Use Tier 0 + Sacred Resources + Madra in Soulsmithing (Active Mini-game) -> Create Gear & Trinkets.
+   * Gear improves Adventuring and potentially other systems.
+   * (Progression toward Jade)
+4. Repeat & Scale: Use outputs from later systems to enhance earlier ones (e.g., Gear boosts Cycling, Scripts boost Adventuring), driving advancement and unlocking new Map Zones and higher tiers of all activities.
+Key Mechanics
+* Cultivation Progression:
+   * Madra: Primary spendable currency, generated mainly by Cycling. Used for crafting, scripting, advancement costs.
+   * Core Density: Stage-specific level (0-100), increased via Cycling mini-game clicks. Reaching 100% enables a Breakthrough attempt.
+   * Breakthrough: Requires meeting Madra/Density thresholds and completing a "Tribulation" mini-game.
+   * Tribulation Mini-game: An intense, pathless Cycling challenge. The player must follow a randomly-moving Madra-orb with their mouse with high accuracy for a set time, or they fail the breakthrough.
+* Map System:
+   * A 3D Hex-grid planet view. Clicking a hex (Zone) opens a side panel.
+   * Zone Panel: Displays info, allows interaction via buttons ([Forage], [Adventure Location], [Merchant], [Story]).
+   * Zone Unlocks: Gated by defeating Zone Bosses, which require specific cultivation stages.
+* Foraging:
+   * An idle action toggled via a single [Toggle Foraging ON/OFF] button in the Zone Panel.
+   * Passively generates Tier 0 crafting resources (Herbs, Stone, Paper) over time at a small, continuous Madra cost. Zone determines available resources.
+* Cycling:
+   * An active 2-part mini-game on a body diagram:
+   * Mouse-Following: Following a Path2D generates Madra.
+   * Rhythm-Clicks: Clicking "inflection points" at the right time generates Core Density XP.
+   * Different "Cycling Techniques" (unlocked later) will change the path and rewards.
+* Scripting:
+   * Active mini-game: "Calligraphy" - trace characters with the mouse.
+   * Skill: Stroke order and accuracy determine the script's quality (e.g., Basic, Quality, Pristine), affecting its power or duration.
+   * Requires Paper, Ink (from Foraging) + Madra.
+   * Produces consumable Scripts for short-duration, stackable buffs (e.g., Auto-Cycle Script).
+* Elixir Making:
+   * Active mini-game: Multi-stage crafting process with stations like [Purification] (rapid-click), [Power Infusion] (mouse-follow), and [Stabilization] (timed-click).
+   * Requires Herbs/Ingredients (from Foraging/Adventuring) + Madra.
+   * Produces consumable Elixirs for long-duration buffs (e.g., +10% Core Density XP).
+* Adventuring:
+   * Unlocked at Iron stage (along with the Iron Body tree).
+   * Exploration: A node-based grid map (Poke Rogue style) where the player can move freely (up/down/left/right) to revealed nodes.
+   * Node Types: [Combat], [Elite Combat], [Treasure Chest], [Final Boss], and [Madra Well].
+   * Provides Sacred Resources (Remnants, Beast Parts) and Manuals/Recipes/Schematics.
+* Combat:
+   * Real-time system inspired by Biotomata. Fixed HP and regenerating AP (Ability Point) pools.
+   * No basic attack.
+   * A "Cycle" skill (Tap, 0-cost): For 5s, AP regenerates quickly, but all other skills are disabled.
+   * Players use learned Sacred Techniques (cost AP, have cooldowns).
+   * Starter Skills:
+      1. [Flowing Strike]: Low AP cost, Low Cooldown. Reliable, low-damage attack.
+      2. [Stand your Ground]: Medium AP cost. A 10-second defensive buff.
+      3. [Empty Palm]: High AP cost, High Cooldown. High damage, and increases enemy cooldowns by 1.5s.
+   * New skills are unlocked via the Iron Body Tree and Main Advancement Tree.
+* Soulsmithing:
+   * Unlocked at Iron.
+   * Active mini-game: "The Assembly Puzzle." The player fits abstract, colored, Tetris-like "Remnant Part" shapes into a "Schematic" grid.
+   * Complexity will increase (e.g., color-coding, harder shapes) at higher tiers.
+   * Requires Stone (Foraging) + Sacred Resources (Adventuring) + Madra.
+   * Produces Gear (Weapons/Armor) and Trinkets (Rings/Amulets) that provide stats for Adventuring and bonuses for other systems (e.g., Parasite Ring for Cycling).
+* Resources:
+   * Tier 0: Basic Herbs, Stone, Paper, Ink (from Foraging).
+   * Sacred: Remnants, Beast Parts (from Adventuring).
+   * Knowledge: Manuals, Recipes, Schematics (from Adventuring, Merchants, Advancement).
+   * Fame: Secondary resource from Adventuring (potential future use for Sects/high-level advancement).
+Visual Style
+* Overall: Cartoonish Pixel Art, similar aesthetic to Fusion Forge.
+* UI: Clean, tab-based interface. The Map view will feature a 3D hex planet. Zone interactions via a 2D side panel.
+* Gameplay:
+   * Cycling: Body outline with Madra paths.
+   * Scripting: Tracing glowing characters on parchment.
+   * Elixir Making: 2D stations with ingredients/tools.
+   * Adventuring: Node-based map; simple combat UI (HP/AP bars, skill icons).
+   * Soulsmithing: Schematic grid with abstract Tetris-like pieces.
+   * Cultivation stage visually represented (e.g., badges/auras).
+Audio Design
+* Music: Thematic background track.
+* SFX: Need distinct sounds for:
+   * Cycling (following, clicking, perfect click)
+   * Mini-game success/failure (Scripting, Elixirs, Soulsmithing)
+   * Combat (Skill usage, hits, enemy defeat, AP regen)
+   * UI Interactions (Button clicks, tab switching)
+   * Resource Gain (Foraging ticks, collecting items)
+   * Breakthrough/Tribulation (success/failure, charging)
+* Priority: Lower priority for MVP, but essential SFX for core actions should be included eventually.
+Technology
+* Engine: Godot Engine (latest stable version, e.g., 4.x)
+* Language: GDScript
+MVP Goals
+* Implement Core Systems up to the Iron stage:
+   * Foundation: Map (1 zone), Foraging (idle, 1 action), Cycling (mini-game), Core Density/Madra tracking, Breakthrough/Tribulation mechanic (v1).
+   * Copper: Scripting (mini-game, 1-2 basic scripts like Auto-Cycle), Elixir Making (mini-game, 1-2 basic elixirs).
+   * Iron: Adventuring (1 location, node map, basic combat with 3 starting skills), Iron Body Tree (basic passives/skill unlocks), Soulsmithing (mini-game, 1-2 basic gear schematics).
+* Functional UI: Tabs for each system, basic Map interface, resource displays.
+* Core Progression: Ability to advance from Foundation to Iron.
+* Basic placeholder visuals and SFX sufficient for testing the loop.
+Future Ideas / Stretch Goals
+* Jade Stage & Beyond: Introduce Paths (typed Madra affecting abilities/crafting), more complex Zones/Adventures, advanced Soulsmithing/Elixir recipes (e.g., color-coded pieces), Sage/Herald mechanics.
+* Automation: Introduce higher-level Scripts or mechanics to automate Elixir Making, Soulsmithing, and potentially parts of Adventuring, following the Unnamed Space Idle philosophy.
+* Sect System: Allow players to build/manage a sect, potentially recruiting disciples (tying into the "Fame" resource).
+* Prestige Layers: Implement Disciple Takeover (1st layer, based on Core level) and Ascension (2nd layer) mechanics.
+* Narrative: Develop the story elements introduced in Foundation.
+* Polish: Enhanced VFX, SFX, UI polish, tutorials.
