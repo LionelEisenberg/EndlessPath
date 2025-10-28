@@ -22,7 +22,7 @@ enum AdvancementStage { FOUNDATION, COPPER, IRON, JADE, SILVER }
 # UNLOCK MANAGER
 #-----------------------------------------------------------------------------
 
-@export var unlocked_game_systems: Array = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
+@export var unlocked_game_systems: Array[UnlockManager.GameSystem] = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
 
 func _to_string() -> String:
 	return "SaveGameData(Madra: %f, Gold: %f, CoreDensityXP: %f, CoreDensityLevel: %f, AdvancementStage: %s, UnlockedGameSystems: %s)" % [

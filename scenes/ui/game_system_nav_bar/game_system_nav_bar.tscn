@@ -1,21 +1,23 @@
-[gd_scene load_steps=4 format=3 uid="uid://hcmv6b2gg6ho"]
+[gd_scene load_steps=5 format=3 uid="uid://hcmv6b2gg6ho"]
 
-[ext_resource type="StyleBox" uid="uid://df18bguuqccgw" path="res://assets/styleboxes/tab_switching_bar_default.tres" id="1_6shaw"]
+[ext_resource type="StyleBox" uid="uid://d24w6wc2gekat" path="res://assets/styleboxes/game_system_nav_bar_default.tres" id="1_8rx2v"]
+[ext_resource type="Script" uid="uid://cfx2cxt0kmygt" path="res://scenes/ui/game_system_nav_bar/game_system_nav_bar.gd" id="1_yf5de"]
 [ext_resource type="FontFile" uid="uid://bbpcahvpcehyl" path="res://assets/fonts/main_font.ttf" id="2_5ntvh"]
 [ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="3_kc0kd"]
 
-[node name="TabSwitchingBar" type="HBoxContainer"]
+[node name="GameSystemNavBar" type="HBoxContainer"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_yf5de")
 
 [node name="LeftSettingsContainer" type="PanelContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.25
-theme_override_styles/panel = ExtResource("1_6shaw")
+theme_override_styles/panel = ExtResource("1_8rx2v")
 
 [node name="MarginContainer" type="MarginContainer" parent="LeftSettingsContainer"]
 layout_mode = 2
@@ -36,7 +38,7 @@ text = "SETTINGS"
 [node name="MainButtonContainer" type="PanelContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = ExtResource("1_6shaw")
+theme_override_styles/panel = ExtResource("1_8rx2v")
 
 [node name="HBoxButtonContainer" type="HBoxContainer" parent="MainButtonContainer"]
 layout_mode = 2
@@ -46,6 +48,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="ZoneTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/ZoneMarginContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -56,6 +59,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="CyclingTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/CyclingMarginContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -66,6 +70,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="ScriptingTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/ScriptingMarginContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -76,6 +81,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="ElixirMakingTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/ElixirMakingMarginContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -86,6 +92,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="SoulsmithingTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/SoulsmithingMarginContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -96,6 +103,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="AdventuringTextureButton" type="TextureButton" parent="MainButtonContainer/HBoxButtonContainer/AdventuringMarginContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
@@ -105,4 +113,4 @@ texture_normal = ExtResource("3_kc0kd")
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 0.25
-theme_override_styles/panel = ExtResource("1_6shaw")
+theme_override_styles/panel = ExtResource("1_8rx2v")
