@@ -2,14 +2,9 @@ class_name CyclingTechnique
 extends Node2D
 
 #-----------------------------------------------------------------------------
-# SIGNALS
-#-----------------------------------------------------------------------------
-signal madra_gained(amount: float)
-signal core_density_gained(amount: float)
-
-#-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
+
 @onready var core_button: Button = $StartCyclingButton
 @onready var path_2d: Path2D = $CyclingPath2D
 @onready var path_follow_2d: PathFollow2D = %PathFollow2D
@@ -21,7 +16,8 @@ signal core_density_gained(amount: float)
 #-----------------------------------------------------------------------------
 var movement_tween: Tween
 
-@export var technique_data_input: CyclingTechniqueData = preload("res://resources/game_systems/cycling/foundation_cycling_technique/foundation_cycling_technique.tres")
+@export var technique_data_input: CyclingTechniqueData = null
+
 #-----------------------------------------------------------------------------
 # TECHNIQUE DATA
 #-----------------------------------------------------------------------------
@@ -207,7 +203,7 @@ func _on_cycle_finished() -> void:
 	
 	# Award accumulated madra at the end of the cycle
 	if accumulated_madra > 0:
-		madra_gained.emit(accumulated_madra)
+		ResourceManager.add_madra(accumulated_madra)
 	
 	# Hide all zones
 	for zone in cycling_zones:
@@ -357,7 +353,7 @@ func _handle_zone_click(zone: CyclingZone, zone_data_item: CyclingZoneData) -> v
 	})
 	
 	# Emit signal and mark zone as used
-	core_density_gained.emit(xp_reward)
+	CultivationManager.add_core_density_xp(xp_reward)
 	zone.mark_as_used()
 
 #-----------------------------------------------------------------------------

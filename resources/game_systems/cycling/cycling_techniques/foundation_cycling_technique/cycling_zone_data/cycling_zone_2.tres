@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CyclingZoneData" load_steps=2 format=3 uid="uid://2vrqne5ktvv"]
 
-[ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://resources/game_systems/cycling/cycling_zone_data.gd" id="1_bo6w2"]
+[ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://resources/game_systems/cycling/cycling_techniques/cycling_zone_data.gd" id="1_bo6w2"]
 
 [resource]
 script = ExtResource("1_bo6w2")

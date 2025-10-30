@@ -7,7 +7,6 @@ extends Node
 #-----------------------------------------------------------------------------
 signal madra_changed(new_amount: float)
 signal gold_changed(new_amount: float)
-signal resource_changed(resource_type: String, new_amount: float)
 
 #-----------------------------------------------------------------------------
 # ENUMS & CONSTANTS
@@ -41,6 +40,9 @@ func _ready() -> void:
 		_update_resources()
 	else:
 		printerr("CRITICAL - ResourceManager: Could not get save_game_data from PersistenceManager on ready!")
+	
+	if not CultivationManager:
+		printerr("CRITICAL - ResourceManager: CultivationManager is missing!")
 
 func _update_resources() -> void:
 	if live_save_data == null:
@@ -56,7 +58,12 @@ func _update_resources() -> void:
 #-----------------------------------------------------------------------------
 
 func add_madra(amount: float) -> void:
-	live_save_data.madra += amount
+	var level = CultivationManager.get_core_density_level()
+	var stage_res = CultivationManager._get_current_stage_resource()
+	var max_madra = stage_res.get_max_madra(level) if stage_res else 0.0
+
+	# Cap madra value within [0, max_madra]
+	live_save_data.madra = clamp(live_save_data.madra + amount, 0.0, max_madra)
 	madra_changed.emit(live_save_data.madra)
 
 func spend_madra(amount: float) -> bool:
@@ -90,7 +97,7 @@ func spend_gold(amount: float) -> bool:
 		gold_changed.emit(live_save_data.gold)
 		return true
 	return false
-    
+	
 func set_gold(amount: float) -> void:
 	live_save_data.set("gold", max(0.0, amount))
 	gold_changed.emit(live_save_data.gold)

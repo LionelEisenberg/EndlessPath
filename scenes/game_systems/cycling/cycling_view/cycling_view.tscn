@@ -1,8 +1,12 @@
-[gd_scene load_steps=4 format=3 uid="uid://b1rl1n8ceijc8"]
+[gd_scene load_steps=8 format=3 uid="uid://b1rl1n8ceijc8"]
 
-[ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/ui_images/u3BJ1Y.jpg" id="1_7k2lx"]
+[ext_resource type="Script" uid="uid://dyha47vkmqg5o" path="res://scenes/game_systems/cycling/cycling_view/cycling_view.gd" id="1_ob5ct"]
 [ext_resource type="Texture2D" uid="uid://751ki710lw0j" path="res://assets/ui_images/depositphotos_227064858-stock-illustration-man-pose-lotus-yoga-pose.webp" id="2_4q44n"]
+[ext_resource type="Texture2D" uid="uid://c55sivop7x7we" path="res://assets/ui_images/qpBKL4.jpg" id="2_vx840"]
 [ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/game_systems/cycling/cycling_technique/cycling_technique.tscn" id="3_hypg5"]
+[ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/game_systems/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]
+[ext_resource type="PackedScene" uid="uid://86cemqoesomd" path="res://scenes/game_systems/cycling/cycling_technique_selector/cycling_technique_selector.tscn" id="6_vx840"]
+[ext_resource type="Resource" uid="uid://de6qv3bad4yop" path="res://resources/game_systems/cycling/cycling_techniques/cycling_technique_list.tres" id="7_uk6eo"]
 
 [node name="CyclingView" type="Control"]
 layout_mode = 3
@@ -16,38 +20,47 @@ grow_vertical = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 mouse_filter = 2
+script = ExtResource("1_ob5ct")
 
 [node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -1246.0
-offset_top = -703.0
-offset_right = 1314.0
-offset_bottom = 737.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("1_7k2lx")
-expand_mode = 1
+texture = ExtResource("2_vx840")
 
-[node name="ColorRect" type="TextureRect" parent="TextureRect"]
+[node name="CyclingBackground" type="TextureRect" parent="TextureRect"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = -320.0
-offset_right = 320.0
-offset_bottom = 320.0
+offset_left = -757.0
+offset_top = -347.0
+offset_right = -117.0
+offset_bottom = 293.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("2_4q44n")
 
-[node name="CyclingTechnique" parent="TextureRect/ColorRect" instance=ExtResource("3_hypg5")]
+[node name="CyclingTechnique" parent="TextureRect/CyclingBackground" instance=ExtResource("3_hypg5")]
+unique_name_in_owner = true
+
+[node name="CyclingResourcePanel" parent="TextureRect" instance=ExtResource("4_3nchs")]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 1071.0
+offset_top = 196.0
+offset_right = -174.0
+offset_bottom = -250.0
+
+[node name="CyclingTechniqueSelector" parent="TextureRect" instance=ExtResource("6_vx840")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+cycling_technique_list = ExtResource("7_uk6eo")

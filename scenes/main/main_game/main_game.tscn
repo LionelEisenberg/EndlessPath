@@ -8,8 +8,9 @@
 
 [node name="MainGame" type="Node2D"]
 script = ExtResource("1_2bvax")
+reset_save_data = true
 
-[node name="MainVBox" type="VBoxContainer" parent="."]
+[node name="MainView" type="VBoxContainer" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -20,12 +21,12 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_11so6")
 
-[node name="MainViewContainer" type="Panel" parent="MainVBox"]
+[node name="MainViewContainer" type="Panel" parent="MainView"]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="ZoneView" type="Control" parent="MainVBox/MainViewContainer"]
+[node name="ZoneView" type="Control" parent="MainView/MainViewContainer"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -35,7 +36,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Label" type="Label" parent="MainVBox/MainViewContainer/ZoneView"]
+[node name="Label" type="Label" parent="MainView/MainViewContainer/ZoneView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -47,10 +48,15 @@ text = "ZONE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CyclingView" parent="MainVBox/MainViewContainer" instance=ExtResource("3_7ijcf")]
+[node name="CyclingView" parent="MainView/MainViewContainer" instance=ExtResource("3_7ijcf")]
 layout_mode = 1
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
 
-[node name="ScriptingView" type="Control" parent="MainVBox/MainViewContainer"]
+[node name="ScriptingView" type="Control" parent="MainView/MainViewContainer"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -60,7 +66,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Label" type="Label" parent="MainVBox/MainViewContainer/ScriptingView"]
+[node name="Label" type="Label" parent="MainView/MainViewContainer/ScriptingView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -72,7 +78,7 @@ text = "SCRIPTING"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ElixirMakingView" type="Control" parent="MainVBox/MainViewContainer"]
+[node name="ElixirMakingView" type="Control" parent="MainView/MainViewContainer"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -82,7 +88,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Label" type="Label" parent="MainVBox/MainViewContainer/ElixirMakingView"]
+[node name="Label" type="Label" parent="MainView/MainViewContainer/ElixirMakingView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -95,7 +101,7 @@ text = "ELIXIR MAKING
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SoulSmithingView" type="Control" parent="MainVBox/MainViewContainer"]
+[node name="SoulSmithingView" type="Control" parent="MainView/MainViewContainer"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -105,7 +111,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Label" type="Label" parent="MainVBox/MainViewContainer/SoulSmithingView"]
+[node name="Label" type="Label" parent="MainView/MainViewContainer/SoulSmithingView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -117,7 +123,7 @@ text = "SOULSMITHING"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="AdventuringView" type="Control" parent="MainVBox/MainViewContainer"]
+[node name="AdventuringView" type="Control" parent="MainView/MainViewContainer"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -127,7 +133,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Label" type="Label" parent="MainVBox/MainViewContainer/AdventuringView"]
+[node name="Label" type="Label" parent="MainView/MainViewContainer/AdventuringView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -139,11 +145,12 @@ text = "ADVENTURING"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="GameSystemNavBar" parent="MainVBox" instance=ExtResource("2_sp8i7")]
+[node name="GameSystemNavBar" parent="MainView" instance=ExtResource("2_sp8i7")]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.2
 mouse_filter = 2
 
 [node name="SaveTimer" type="Timer" parent="."]
+autostart = true
 script = ExtResource("4_11so6")

@@ -1,0 +1,157 @@
+[gd_scene load_steps=5 format=3 uid="uid://b2c0qwss02xti"]
+
+[ext_resource type="Script" uid="uid://bysux6fx02amd" path="res://scenes/game_systems/cycling/cycling_resource_panel/cycling_resource_panel.gd" id="1_4xbm7"]
+[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="1_6xgn2"]
+[ext_resource type="Texture2D" uid="uid://d1dporgncb78s" path="res://assets/ui_images/vecteezy_geometric-design-element_21048718_128x128_dark.png" id="2_jblo1"]
+[ext_resource type="Texture2D" uid="uid://bconow6rro58n" path="res://assets/ui_images/vecteezy_geometric-design-element_21048718_128x128.png" id="3_4xbm7"]
+
+[node name="CyclingResourcePanel" type="MarginContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_4xbm7")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="MadraSection" type="MarginContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/MadraSection"]
+layout_mode = 2
+
+[node name="MadraCircleProgressBar" type="TextureProgressBar" parent="VBoxContainer/MadraSection/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+texture_under = ExtResource("1_6xgn2")
+texture_over = ExtResource("1_6xgn2")
+texture_progress = ExtResource("1_6xgn2")
+
+[node name="MadraStats" type="VBoxContainer" parent="VBoxContainer/MadraSection/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 2
+size_flags_vertical = 4
+
+[node name="MadraAmountLabel" type="Label" parent="VBoxContainer/MadraSection/HBoxContainer/MadraStats"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+text = "Madra: 1000/1200
+"
+vertical_alignment = 1
+
+[node name="MadraGenerationRateLabel" type="Label" parent="VBoxContainer/MadraSection/HBoxContainer/MadraStats"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+text = "MadraRateLabel +2.5/s"
+vertical_alignment = 1
+
+[node name="CoreDensitySection" type="MarginContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/CoreDensitySection"]
+layout_mode = 2
+
+[node name="DensityLevelBackground" type="TextureRect" parent="VBoxContainer/CoreDensitySection/HBoxContainer"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+texture = ExtResource("2_jblo1")
+
+[node name="CoreDensitySprite" type="Sprite2D" parent="VBoxContainer/CoreDensitySection/HBoxContainer/DensityLevelBackground"]
+unique_name_in_owner = true
+position = Vector2(64, 64)
+scale = Vector2(0.01, 0.01)
+texture = ExtResource("3_4xbm7")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/CoreDensitySection/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 2
+size_flags_vertical = 4
+
+[node name="CoreDensityLevelLabel" type="Label" parent="VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+text = "Level: 14"
+vertical_alignment = 1
+
+[node name="CoreDensityXPProgressBar" type="ProgressBar" parent="VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+value = 60.0
+rounded = true
+
+[node name="CoreDensityXPLabel" type="Label" parent="VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+text = "XP: 60 / 100"
+vertical_alignment = 1
+
+[node name="StageSection" type="MarginContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/StageSection"]
+layout_mode = 2
+
+[node name="CultivationStageLabel" type="Label" parent="VBoxContainer/StageSection/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 0
+text = "Madra: 1000/1200
+"
+vertical_alignment = 1
+
+[node name="NextCultivationStageLabel" type="Label" parent="VBoxContainer/StageSection/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 0
+text = "MadraRateLabel +2.5/s"
+vertical_alignment = 1
+
+[node name="TechniqueSection" type="MarginContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TechniqueSection"]
+layout_mode = 2
+
+[node name="TechniqueNameLabel" type="Label" parent="VBoxContainer/TechniqueSection/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 2
+text = "XP: 60 / 100"
+vertical_alignment = 1
+
+[node name="TechniqueStatsLabel" type="Label" parent="VBoxContainer/TechniqueSection/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 2
+text = "Madra: 1000/1200
+"
+vertical_alignment = 1
+
+[node name="OpenTechniqueSelectorButton" type="Button" parent="VBoxContainer/TechniqueSection/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+text = "Change Technique
+"
