@@ -1,9 +1,10 @@
-[gd_scene load_steps=9 format=3 uid="uid://cnbav6qrqwcux"]
+[gd_scene load_steps=10 format=3 uid="uid://cnbav6qrqwcux"]
 
 [ext_resource type="Script" uid="uid://d0rpldjw3ymsn" path="res://scenes/game_systems/cycling/cycling_technique/cycling_technique.gd" id="1_j38ga"]
 [ext_resource type="Curve2D" uid="uid://cnw51jn84jbvi" path="res://new_curve_2d.tres" id="1_la7m7"]
-[ext_resource type="Resource" uid="uid://jtu2awyodaem" path="res://resources/game_systems/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres" id="2_j38ga"]
+[ext_resource type="Resource" uid="uid://jtu2awyodaem" path="res://resources/game_systems/cycling/cycling_techniques/test_foundation_cycling_technique/test_foundation_cycling_technique.tres" id="2_j38ga"]
 [ext_resource type="Texture2D" uid="uid://dm58rs33ces5o" path="res://assets/sprites/Rasengan-PNG-HD.png" id="2_sxf01"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="3_bloew"]
 
 [sub_resource type="Animation" id="Animation_j38ga"]
 length = 0.001
@@ -64,6 +65,16 @@ offset_left = 287.0
 offset_top = 399.0
 offset_right = 352.0
 offset_bottom = 460.0
+
+[node name="AutoCycleToggle" type="TextureButton" parent="."]
+offset_left = 288.0
+offset_top = 464.0
+offset_right = 352.0
+offset_bottom = 528.0
+toggle_mode = true
+texture_normal = ExtResource("3_bloew")
+texture_pressed = ExtResource("3_bloew")
+texture_focused = ExtResource("3_bloew")
 
 [node name="CyclingPath2D" type="Path2D" parent="."]
 curve = ExtResource("1_la7m7")

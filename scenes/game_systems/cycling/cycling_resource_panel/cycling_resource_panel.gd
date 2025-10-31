@@ -29,8 +29,9 @@ signal open_technique_selector
 # STATE
 #-----------------------------------------------------------------------------
 var current_technique_data: CyclingTechniqueData = null
-var madra_rate: float = 0.0  # Current madra generation rate
 var is_cycling: bool = false
+var last_madra_per_second: float = 0.0  # Madra per second from last completed cycle
+var last_madra_per_cycle: float = 0.0  # Madra per cycle from last completed cycle
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -78,14 +79,24 @@ func set_technique_data(technique: CyclingTechniqueData):
 	current_technique_data = technique
 	update_technique_info()
 
-func set_cycling_state(cycling: bool):
-	"""Update cycling state for rate calculations"""
-	is_cycling = cycling
+func on_cycling_started():
+	"""Handle cycling started signal"""
+	is_cycling = true
 	update_madra_rate()
 
-func set_madra_rate(rate: float):
-	"""Set the current madra generation rate"""
-	madra_rate = rate
+func on_cycle_completed(madra_earned: float, mouse_accuracy: float):
+	"""Handle cycle completed signal and calculate madra per second"""
+	is_cycling = false
+	
+	# Store madra per cycle from last cycle
+	last_madra_per_cycle = madra_earned
+	
+	# Calculate madra per second from last cycle
+	if current_technique_data and current_technique_data.cycle_duration > 0:
+		last_madra_per_second = madra_earned / current_technique_data.cycle_duration
+	else:
+		last_madra_per_second = 0.0
+	
 	update_madra_rate()
 
 #-----------------------------------------------------------------------------
@@ -116,12 +127,16 @@ func update_madra_display():
 	update_madra_rate()
 
 func update_madra_rate():
-	"""Update madra rate display"""
-	if is_cycling and madra_rate > 0:
-		madra_generation_rate_label.text = "+%.1f/s" % madra_rate
+	"""Update madra rate display using last cycle's madra per second and per cycle"""
+	var display_text = "+%.1f/s\n%.1f/cycle" % [last_madra_per_second, last_madra_per_cycle]
+	
+	if is_cycling:
+		# Show last cycle's rate while cycling
+		madra_generation_rate_label.text = display_text
 		madra_generation_rate_label.modulate = Color(0.0, 1.0, 0.0)  # Green
 	else:
-		madra_generation_rate_label.text = "+0.0/s"
+		# Show last cycle's rate
+		madra_generation_rate_label.text = display_text
 		madra_generation_rate_label.modulate = Color(0.7, 0.7, 0.7)  # Gray
 
 func update_core_density():
@@ -170,7 +185,7 @@ func update_technique_info():
 		return
 	technique_name_label.text = "Technique: %s" % current_technique_data.technique_name
 	# Show all stats available in the resource data
-	var msg = "⚡ Madra: +%.1f/s" % current_technique_data.base_madra_per_second
+	var msg = "⚡ Madra: %.1f/cycle" % current_technique_data.base_madra_per_cycle
 	technique_stats_label.text = msg
 
 #-----------------------------------------------------------------------------

@@ -24,6 +24,12 @@ enum AdvancementStage { FOUNDATION, COPPER, IRON, JADE, SILVER }
 
 @export var unlocked_game_systems: Array[UnlockManager.GameSystem] = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
 
+#-----------------------------------------------------------------------------
+# CURRENT STATE (Player's current equipment/configuration)
+#-----------------------------------------------------------------------------
+
+@export var current_cycling_technique_name: String = "Foundation Technique"
+
 func _to_string() -> String:
 	return "SaveGameData(Madra: %f, Gold: %f, CoreDensityXP: %f, CoreDensityLevel: %f, AdvancementStage: %s, UnlockedGameSystems: %s)" % [
 		madra,
@@ -46,3 +52,6 @@ func _reset_state() -> void:
 
 	# Unlock Manager, default to Zone and Cycling unlocked
 	unlocked_game_systems = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
+	
+	# Current State
+	current_cycling_technique_name = "Foundation Technique"

@@ -6,6 +6,7 @@ extends Node2D
 #-----------------------------------------------------------------------------
 
 @onready var core_button: Button = $StartCyclingButton
+@onready var auto_cycle_toggle: TextureButton = $AutoCycleToggle
 @onready var path_2d: Path2D = $CyclingPath2D
 @onready var path_follow_2d: PathFollow2D = %PathFollow2D
 @onready var madra_ball: Area2D = %MadraBall
@@ -26,6 +27,12 @@ var cycling_zones: Array[CyclingZone] = []
 var zone_data: Array[CyclingZoneData] = []
 
 #-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+signal cycling_started
+signal cycle_completed(madra_earned: float, mouse_accuracy: float)
+
+#-----------------------------------------------------------------------------
 # STATE TRACKING
 #-----------------------------------------------------------------------------
 enum CycleState { IDLE, CYCLING, COMPLETE }
@@ -37,7 +44,6 @@ var active_zone: CyclingZone = null
 #-----------------------------------------------------------------------------
 var last_mouse_position: Vector2
 var mouse_tracking_accuracy: float = 0.0
-var accumulated_madra: float = 0.0
 var cycle_start_time: float = 0.0
 var time_mouse_in_ball: float = 0.0  # Total time mouse was inside ball
 var elapsed_cycle_time: float = 0.0  # Elapsed time during current cycle
@@ -86,6 +92,10 @@ func setup(data: CyclingTechniqueData) -> void:
 	
 	# Initialize state
 	current_state = CycleState.IDLE
+
+func set_technique_data(data: CyclingTechniqueData):
+	"""Set the current technique data and update display"""
+	setup(data)
 
 func _update_path_line() -> void:
 	"""Update the Line2D to follow the Path2D curve"""
@@ -159,6 +169,9 @@ func _create_cycling_zones() -> void:
 #-----------------------------------------------------------------------------
 
 func _on_core_button_pressed() -> void:
+	_start_cycle()
+	
+func _start_cycle() -> void:
 	"""Start a new cycling cycle"""
 	if current_state != CycleState.IDLE:
 		return
@@ -166,7 +179,6 @@ func _on_core_button_pressed() -> void:
 	current_state = CycleState.CYCLING
 	
 	# Reset tracking variables for new cycle
-	accumulated_madra = 0.0
 	cycle_start_time = Time.get_ticks_msec() / 1000.0
 	click_timings.clear()  # Clear previous cycle's timing data
 	time_mouse_in_ball = 0.0  # Reset mouse tracking time
@@ -179,6 +191,9 @@ func _on_core_button_pressed() -> void:
 	
 	# Reset ball position
 	path_follow_2d.progress_ratio = 0.0
+	
+	# Emit cycling started signal
+	cycling_started.emit()
 	
 	# Create and start the tween animation
 	_start_cycling_animation()
@@ -201,20 +216,37 @@ func _on_cycle_finished() -> void:
 	"""Called when the ball completes one full cycle"""
 	current_state = CycleState.COMPLETE
 	
-	# Award accumulated madra at the end of the cycle
-	if accumulated_madra > 0:
-		ResourceManager.add_madra(accumulated_madra)
+	# Calculate final mouse tracking accuracy
+	var final_mouse_accuracy = mouse_tracking_accuracy
+	
+	# Calculate madra earned: base_madra_per_cycle * mouse_tracking_accuracy (0.0 to 1.0)
+	# This means perfect mouse tracking (1.0) gives 100% of base madra, poor tracking gives less
+	var madra_earned = 0.0
+	if technique_data:
+		madra_earned = technique_data.base_madra_per_cycle * final_mouse_accuracy
+		madra_earned = max(0.0, madra_earned)  # Ensure non-negative
+		
+		# Award madra to player
+		if madra_earned > 0:
+			ResourceManager.add_madra(madra_earned)
+	
+	# Emit cycle completed signal with madra earned and accuracy
+	cycle_completed.emit(madra_earned, final_mouse_accuracy)
 	
 	# Hide all zones
 	for zone in cycling_zones:
 		zone.hide_zone()
 	
 	# Print cycle statistics
-	_print_cycle_stats()
+	_print_cycle_stats(madra_earned)
 	
 	current_state = CycleState.IDLE
+	
+	if auto_cycle_toggle.button_pressed:
+		_start_cycle()
 
-func _print_cycle_stats() -> void:
+
+func _print_cycle_stats(madra_earned: float) -> void:
 	"""Print comprehensive statistics for the completed cycle"""
 	var cycle_duration = technique_data.cycle_duration if technique_data else 0.0
 	var cycle_end_time = Time.get_ticks_msec() / 1000.0
@@ -253,7 +285,7 @@ func _print_cycle_stats() -> void:
 	
 	print("=== CYCLE COMPLETE ===")
 	print("Duration: %.2fs (Target: %.2fs)" % [actual_duration, cycle_duration])
-	print("Madra Gained: %.2f" % accumulated_madra)
+	print("Madra Gained: %.2f (Mouse Accuracy: %.1f%%)" % [madra_earned, avg_tracking_accuracy])
 	print("Zones Hit: %d/%d (%.1f%%)" % [zones_hit, total_zones, accuracy_percentage])
 	print("Mouse Tracking Accuracy: %.1f%%" % avg_tracking_accuracy)
 	print("Technique: %s" % (technique_data.technique_name if technique_data else "Unknown"))
@@ -380,8 +412,8 @@ func _spawn_floating_text(text: String, color: Color, position: Vector2) -> void
 #-----------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
-	"""Handle continuous madra accumulation based on mouse tracking"""
-	if current_state != CycleState.CYCLING or not technique_data:
+	"""Track mouse accuracy during cycling (madra calculated at cycle end)"""
+	if current_state != CycleState.CYCLING:
 		return
 		
 	# Track elapsed cycle time
@@ -394,15 +426,11 @@ func _process(delta: float) -> void:
 	if mouse_inside_ball:
 		time_mouse_in_ball += delta
 	
-	# Calculate current mouse tracking accuracy (percentage of time inside ball)
+	# Calculate current mouse tracking accuracy (ratio of time inside ball, 0.0 to 1.0)
 	if elapsed_cycle_time > 0.0:
 		mouse_tracking_accuracy = time_mouse_in_ball / elapsed_cycle_time
 	else:
 		mouse_tracking_accuracy = 0.0
-	
-	# Accumulate madra based on current mouse state (don't emit yet)
-	var madra_amount = technique_data.base_madra_per_second * (1.0 if mouse_inside_ball else 0.0) * delta
-	accumulated_madra += madra_amount
 
 func is_mouse_in_madra_ball() -> bool:
 	"""Check if the mouse cursor is inside the MadraBall's collision shape"""

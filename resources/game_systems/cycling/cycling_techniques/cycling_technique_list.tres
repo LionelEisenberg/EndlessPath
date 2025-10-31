@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="CyclingTechniqueList" load_steps=4 format=3 uid="uid://de6qv3bad4yop"]
+[gd_resource type="Resource" script_class="CyclingTechniqueList" load_steps=5 format=3 uid="uid://de6qv3bad4yop"]
 
 [ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://resources/game_systems/cycling/cycling_techniques/cycling_technique_data.gd" id="1_8648x"]
-[ext_resource type="Resource" uid="uid://jtu2awyodaem" path="res://resources/game_systems/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres" id="2_kun6k"]
+[ext_resource type="Resource" uid="uid://bamglfy16qig4" path="res://resources/game_systems/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres" id="2_kun6k"]
 [ext_resource type="Script" uid="uid://6ngdap4msfww" path="res://resources/game_systems/cycling/cycling_techniques/cycling_technique_list.gd" id="2_u5idy"]
+[ext_resource type="Resource" uid="uid://jtu2awyodaem" path="res://resources/game_systems/cycling/cycling_techniques/test_foundation_cycling_technique/test_foundation_cycling_technique.tres" id="3_kun6k"]
 
 [resource]
 script = ExtResource("2_u5idy")
-cycling_techniques = Array[ExtResource("1_8648x")]([ExtResource("2_kun6k")])
+cycling_techniques = Array[ExtResource("1_8648x")]([ExtResource("2_kun6k"), ExtResource("3_kun6k")])
 metadata/_custom_type_script = "uid://6ngdap4msfww"
