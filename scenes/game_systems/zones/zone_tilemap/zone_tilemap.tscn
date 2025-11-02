@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3 uid="uid://dqgp2io5bypix"]
+
+[ext_resource type="Script" uid="uid://c5lot07xnx3cl" path="res://scenes/game_systems/zones/zone_tilemap/zone_tilemap.gd" id="1_w46j4"]
+[ext_resource type="TileSet" uid="uid://brm40hxx3wp8n" path="res://scenes/game_systems/zones/zone_tilemap/horizontal_tile_set.tres" id="2_v6of8"]
+[ext_resource type="Script" uid="uid://bkj2va62oso7m" path="res://scenes/game_systems/zones/zone_tilemap/tile_map_layer.gd" id="3_q6nfb"]
+[ext_resource type="Script" uid="uid://bu31v4go8aq83" path="res://scenes/game_systems/zones/zone_tilemap/camera_2d.gd" id="4_v6of8"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dgoib"]
+size = Vector2(38, 38)
+
+[node name="ZoneTilemap" type="Node2D"]
+script = ExtResource("1_w46j4")
+
+[node name="TileMapLayer" type="TileMapLayer" parent="."]
+position = Vector2(-82, -95)
+tile_set = ExtResource("2_v6of8")
+script = ExtResource("3_q6nfb")
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
+position = Vector2(-1, 0)
+metadata/_edit_group_ = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_dgoib")
+
+[node name="ColorRect" type="ColorRect" parent="CharacterBody2D"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.5
+offset_right = 20.0
+offset_bottom = 20.5
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.273873, 0.273873, 0.273873, 1)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("4_v6of8")

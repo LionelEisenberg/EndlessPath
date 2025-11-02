@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ZoneDataList" load_steps=5 format=3 uid="uid://c0bxedcjhukmj"]
+
+[ext_resource type="Script" uid="uid://c5epbqkfc8yys" path="res://resources/game_systems/zones/zone_data/zone_data_list.gd" id="1_qce4v"]
+[ext_resource type="Script" uid="uid://culb0p88pnexb" path="res://resources/game_systems/zones/zone_data/zone_data.gd" id="2_78316"]
+[ext_resource type="Resource" uid="uid://bh1wsc1wrvc80" path="res://resources/game_systems/zones/spirit_valley_zone/spirit_valley_zone.tres" id="3_jofii"]
+[ext_resource type="Resource" uid="uid://qkphbmj5rob4" path="res://resources/game_systems/zones/test_zone/test_zone.tres" id="4_78316"]
+
+[resource]
+script = ExtResource("1_qce4v")
+list = Array[ExtResource("2_78316")]([ExtResource("3_jofii"), ExtResource("4_78316")])
+metadata/_custom_type_script = "uid://c5epbqkfc8yys"

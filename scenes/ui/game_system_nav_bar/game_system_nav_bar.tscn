@@ -3,7 +3,7 @@
 [ext_resource type="StyleBox" uid="uid://d24w6wc2gekat" path="res://assets/styleboxes/game_system_nav_bar_default.tres" id="1_8rx2v"]
 [ext_resource type="Script" uid="uid://cfx2cxt0kmygt" path="res://scenes/ui/game_system_nav_bar/game_system_nav_bar.gd" id="1_yf5de"]
 [ext_resource type="FontFile" uid="uid://bbpcahvpcehyl" path="res://assets/fonts/main_font.ttf" id="2_5ntvh"]
-[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="3_kc0kd"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="4_yf5de"]
 
 [node name="GameSystemNavBar" type="HBoxContainer"]
 anchors_preset = 15
@@ -52,7 +52,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("3_kc0kd")
+texture_normal = ExtResource("4_yf5de")
 
 [node name="CyclingMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
 layout_mode = 2
@@ -63,7 +63,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("3_kc0kd")
+texture_normal = ExtResource("4_yf5de")
 
 [node name="ScriptingMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
 layout_mode = 2
@@ -74,7 +74,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("3_kc0kd")
+texture_normal = ExtResource("4_yf5de")
 
 [node name="ElixirMakingMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
 layout_mode = 2
@@ -85,7 +85,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("3_kc0kd")
+texture_normal = ExtResource("4_yf5de")
 
 [node name="SoulsmithingMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
 layout_mode = 2
@@ -96,7 +96,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("3_kc0kd")
+texture_normal = ExtResource("4_yf5de")
 
 [node name="AdventuringMarginContainer" type="MarginContainer" parent="MainButtonContainer/HBoxButtonContainer"]
 layout_mode = 2
@@ -107,7 +107,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("3_kc0kd")
+texture_normal = ExtResource("4_yf5de")
 
 [node name="RightContainer" type="PanelContainer" parent="."]
 layout_mode = 2

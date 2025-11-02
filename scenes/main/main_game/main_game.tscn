@@ -148,7 +148,7 @@ vertical_alignment = 1
 [node name="GameSystemNavBar" parent="MainView" instance=ExtResource("2_sp8i7")]
 layout_mode = 2
 size_flags_vertical = 3
-size_flags_stretch_ratio = 0.2
+size_flags_stretch_ratio = 0.1
 mouse_filter = 2
 
 [node name="SaveTimer" type="Timer" parent="."]

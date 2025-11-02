@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=5 format=3 uid="uid://bh1wsc1wrvc80"]
+
+[ext_resource type="Script" uid="uid://cv640mljv33xk" path="res://resources/game_systems/zones/zone_action_data/zone_action_data.gd" id="1_44d63"]
+[ext_resource type="Script" uid="uid://culb0p88pnexb" path="res://resources/game_systems/zones/zone_data/zone_data.gd" id="1_henou"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="2_ym136"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://resources/game_systems/unlocks/unlock_condition_data.gd" id="4_gfpen"]
+
+[resource]
+script = ExtResource("1_henou")
+zone_name = "Spirit Valley"
+zone_id = "SpiritValley"
+description = "Heart of the world"
+icon = ExtResource("2_ym136")
+metadata/_custom_type_script = "uid://culb0p88pnexb"

@@ -1,0 +1,32 @@
+class_name ZoneActionData
+extends Resource
+
+enum ActionType {
+	FORAGE,
+	DUNGEON,
+	NPC_DIALOGUE,
+	MERCHANT,
+	TRAIN_STATS,
+	CYCLING_ROOM,
+	ZONE_EVENT,  # Story/scripted events
+	QUEST_GIVER
+}
+
+@export var action_id: String = ""
+@export var action_name: String = ""
+@export var action_type: ActionType = ActionType.FORAGE
+@export var description: String = ""
+@export var icon: Texture2D
+@export var unlock_conditions: Array[UnlockConditionData] = []
+@export var requirements: Dictionary = {}  # Cost/requirements (madra, gold, items)
+@export var max_completions: int = 0  # 0 = unlimited, 1 = one-time, N = can be completed N times
+
+func evaluate_unlock_conditions() -> bool:
+	if unlock_conditions.is_empty():
+		return true
+	
+	for condition in unlock_conditions:
+		if not condition.evaluate():
+			return false
+	
+	return true

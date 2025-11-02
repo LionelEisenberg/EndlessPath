@@ -1,8 +1,6 @@
 class_name SaveGameData
 extends Resource
 
-enum AdvancementStage { FOUNDATION, COPPER, IRON, JADE, SILVER }
-
 #-----------------------------------------------------------------------------
 # RESOURCE MANAGER
 #-----------------------------------------------------------------------------
@@ -17,12 +15,14 @@ enum AdvancementStage { FOUNDATION, COPPER, IRON, JADE, SILVER }
 @export var core_density_xp : float = 0.0 
 @export var core_density_level : float = 0.0
 @export var current_advancement_stage : CultivationManager.AdvancementStage = CultivationManager.AdvancementStage.FOUNDATION
+@export var current_selected_zone_id: String = ""
 
 #-----------------------------------------------------------------------------
 # UNLOCK MANAGER
 #-----------------------------------------------------------------------------
 
 @export var unlocked_game_systems: Array[UnlockManager.GameSystem] = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
+@export var achieved_unlock_conditions: Array[String] = []  # Condition IDs that have been achieved
 
 #-----------------------------------------------------------------------------
 # CURRENT STATE (Player's current equipment/configuration)
@@ -52,6 +52,7 @@ func _reset_state() -> void:
 
 	# Unlock Manager, default to Zone and Cycling unlocked
 	unlocked_game_systems = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
+	achieved_unlock_conditions = []
 	
 	# Current State
 	current_cycling_technique_name = "Foundation Technique"

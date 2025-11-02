@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ZoneActionData" load_steps=4 format=3 uid="uid://c2mees78e3hww"]
+
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="1_28re3"]
+[ext_resource type="Script" uid="uid://cv640mljv33xk" path="res://resources/game_systems/zones/zone_action_data/zone_action_data.gd" id="1_wxn23"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://resources/game_systems/unlocks/unlock_condition_data.gd" id="2_28re3"]
+
+[resource]
+script = ExtResource("1_wxn23")
+action_id = "BaseCycling"
+action_name = "Bedroom"
+action_type = 5
+description = "Cycle in your Room, Increase your Madra and up your Core Density!"
+icon = ExtResource("1_28re3")
+metadata/_custom_type_script = "uid://cv640mljv33xk"
