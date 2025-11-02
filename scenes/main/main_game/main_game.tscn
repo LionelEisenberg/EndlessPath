@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3 uid="uid://dyrsbe5x01lgo"]
+[gd_scene load_steps=7 format=3 uid="uid://dyrsbe5x01lgo"]
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
 [ext_resource type="PackedScene" uid="uid://hcmv6b2gg6ho" path="res://scenes/ui/game_system_nav_bar/game_system_nav_bar.tscn" id="2_sp8i7"]
+[ext_resource type="PackedScene" uid="uid://dqgp2io5bypix" path="res://scenes/game_systems/zones/zone_tilemap/zone_tilemap.tscn" id="3_1i3v0"]
 [ext_resource type="PackedScene" uid="uid://b1rl1n8ceijc8" path="res://scenes/game_systems/cycling/cycling_view/cycling_view.tscn" id="3_7ijcf"]
 [ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
 
@@ -27,28 +28,37 @@ size_flags_vertical = 3
 mouse_filter = 2
 
 [node name="ZoneView" type="Control" parent="MainView/MainViewContainer"]
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 
-[node name="Label" type="Label" parent="MainView/MainViewContainer/ZoneView"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MainView/MainViewContainer/ZoneView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_horizontal = 4
-text = "ZONE"
-horizontal_alignment = 1
-vertical_alignment = 1
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/MainViewContainer/ZoneView/HBoxContainer"]
+layout_mode = 2
+
+[node name="SubViewport" type="SubViewport" parent="MainView/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
+handle_input_locally = false
+size = Vector2i(1184, 978)
+render_target_update_mode = 4
+
+[node name="ZoneTilemap" parent="MainView/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]
+
+[node name="Panel" type="Panel" parent="MainView/MainViewContainer/ZoneView/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="CyclingView" parent="MainView/MainViewContainer" instance=ExtResource("3_7ijcf")]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_left = 0.0
