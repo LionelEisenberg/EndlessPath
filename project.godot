@@ -22,6 +22,7 @@ CultivationManager="*res://singletons/cultivation_manager/cultivation_manager.gd
 UnlockManager="*res://singletons/unlock_manager/unlock_manager.gd"
 ResourceManager="*res://singletons/resource_manager/resource_manager.gd"
 ZoneManager="*res://singletons/zone_manager/zone_manager.gd"
+ActionManager="*res://singletons/action_manager/action_manager.gd"
 
 [display]
 

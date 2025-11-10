@@ -11,6 +11,8 @@ var current_cycling_technique_data: CyclingTechniqueData = null
 var technique_list: CyclingTechniqueList = preload("res://resources/game_systems/cycling/cycling_techniques/cycling_technique_list.tres")
 var foundation_technique: CyclingTechniqueData = technique_list.cycling_techniques[0]
 
+var cycling_action_data: CyclingActionData = null
+
 func _ready():
 	# Connect the signal passively to both subnodes' setter methods using Callable
 	current_technique_changed.connect(cycling_technique_node.set_technique_data)
@@ -26,13 +28,16 @@ func _ready():
 	# Load saved technique or use default
 	_load_saved_technique()
 
-func set_current_technique(data: CyclingTechniqueData):
-	current_cycling_technique_data = data
-	current_technique_changed.emit(data)
-	_save_current_technique(data)
+func initialize_cycling_action_data(action_data: CyclingActionData):
+	cycling_action_data = action_data
 
-func _on_technique_change_request(data: CyclingTechniqueData):
-	set_current_technique(data)
+func set_current_technique(technique_data: CyclingTechniqueData):
+	current_cycling_technique_data = technique_data
+	current_technique_changed.emit(technique_data)
+	_save_current_technique(technique_data)
+
+func _on_technique_change_request(technique_data: CyclingTechniqueData):
+	set_current_technique(technique_data)
 	cycling_technique_selector.close_selector()
 
 func _on_open_technique_selector():
@@ -65,11 +70,11 @@ func _load_saved_technique():
 		# Technique not found in list, use default
 		set_current_technique(foundation_technique)
 
-func _save_current_technique(data: CyclingTechniqueData):
+func _save_current_technique(technique_data: CyclingTechniqueData):
 	"""Save the current technique name to SaveGameData"""
 	if not PersistenceManager or not PersistenceManager.save_game_data:
 		return
 	
-	if data and data.technique_name:
-		PersistenceManager.save_game_data.current_cycling_technique_name = data.technique_name
+	if technique_data and technique_data.technique_name:
+		PersistenceManager.save_game_data.current_cycling_technique_name = technique_data.technique_name
 	

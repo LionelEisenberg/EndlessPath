@@ -7,7 +7,7 @@ enum ActionType {
 	NPC_DIALOGUE,
 	MERCHANT,
 	TRAIN_STATS,
-	CYCLING_ROOM,
+	CYCLING,
 	ZONE_EVENT,  # Story/scripted events
 	QUEST_GIVER
 }
@@ -20,13 +20,3 @@ enum ActionType {
 @export var unlock_conditions: Array[UnlockConditionData] = []
 @export var requirements: Dictionary = {}  # Cost/requirements (madra, gold, items)
 @export var max_completions: int = 0  # 0 = unlimited, 1 = one-time, N = can be completed N times
-
-func evaluate_unlock_conditions() -> bool:
-	if unlock_conditions.is_empty():
-		return true
-	
-	for condition in unlock_conditions:
-		if not condition.evaluate():
-			return false
-	
-	return true

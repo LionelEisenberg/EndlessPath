@@ -1,0 +1,63 @@
+[gd_scene load_steps=2 format=3 uid="uid://bfqx2ov3bib3u"]
+
+[ext_resource type="Script" uid="uid://c1016g1006mjr" path="res://scenes/game_systems/zones/zone_info_panel/zone_info_panel.gd" id="1_rt5e4"]
+
+[node name="ZoneInfoPanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+script = ExtResource("1_rt5e4")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="ZoneInfoContent" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/ZoneInfoContent"]
+layout_mode = 2
+
+[node name="ZoneHeaderSection" type="VBoxContainer" parent="MarginContainer/ZoneInfoContent/PanelContainer"]
+layout_mode = 2
+
+[node name="ZoneTitle" type="Label" parent="MarginContainer/ZoneInfoContent/PanelContainer/ZoneHeaderSection"]
+layout_mode = 2
+text = "Sacred Valley"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/ZoneInfoContent/PanelContainer/ZoneHeaderSection"]
+layout_mode = 2
+
+[node name="ZoneDescription" type="Label" parent="MarginContainer/ZoneInfoContent/PanelContainer/ZoneHeaderSection"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud"
+autowrap_mode = 2
+
+[node name="ActionsSection" type="VBoxContainer" parent="MarginContainer/ZoneInfoContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionsHeader" type="Label" parent="MarginContainer/ZoneInfoContent/ActionsSection"]
+layout_mode = 2
+text = "Actions Section"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/ZoneInfoContent/ActionsSection"]
+layout_mode = 2
+
+[node name="ActionsScrollContainer" type="ScrollContainer" parent="MarginContainer/ZoneInfoContent/ActionsSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionsContent" type="VBoxContainer" parent="MarginContainer/ZoneInfoContent/ActionsSection/ActionsScrollContainer"]
+unique_name_in_owner = true
+z_index = 1
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3

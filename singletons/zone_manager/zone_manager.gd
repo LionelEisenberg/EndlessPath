@@ -54,8 +54,7 @@ func get_current_zone() -> ZoneData:
 # Set current selected zone
 func set_current_zone(zone_data: ZoneData) -> void:
 	"""Sets the current selected zone and updates SaveGameData. Emits zone_changed signal."""
-	live_save_data.current_selected_zone_id = zone_data.zone_id
-	zone_changed.emit(zone_data)
+	set_current_zone_by_id(zone_data.zone_id)
 
 func set_current_zone_by_id(zone_id: String) -> void:
 	"""Sets the current selected zone by zone_id. Emits zone_changed signal."""
