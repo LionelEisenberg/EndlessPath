@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MaterialDefinitionData" load_steps=3 format=3 uid="uid://cg35r8cxnas0l"]
+
+[ext_resource type="Script" uid="uid://b3bb03ghqbiu5" path="res://scripts/resource_definitions/items/material_definition_data.gd" id="1_6uwof"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="1_km1im"]
+
+[resource]
+script = ExtResource("1_6uwof")
+source_zone_ids = Array[String](["SpiritValley"])
+item_id = "SpiritFern"
+item_name = "Spirit Fern"
+description = "Spirit Fern Description"
+icon = ExtResource("1_km1im")
+metadata/_custom_type_script = "uid://b3bb03ghqbiu5"

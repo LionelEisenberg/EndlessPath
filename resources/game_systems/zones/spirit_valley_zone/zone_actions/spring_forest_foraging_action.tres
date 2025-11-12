@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ForageActionData" load_steps=7 format=3 uid="uid://bpiixpcykyiti"]
+
+[ext_resource type="Script" uid="uid://ihtwh7majrrr" path="res://scripts/resource_definitions/game_systems/zones/zone_action_data/forage_action_data/forage_resource_data.gd" id="1_0k3ag"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="2_3coob"]
+[ext_resource type="Resource" uid="uid://co48qrubd7qnb" path="res://resources/game_systems/zones/spirit_valley_zone/zone_actions/forage_resource_data/dewdrop_tear_forage_resource.tres" id="2_a7ewm"]
+[ext_resource type="Script" uid="uid://mjp0u2yt3hkr" path="res://scripts/resource_definitions/game_systems/zones/zone_action_data/forage_action_data/forage_action_data.gd" id="3_a7ewm"]
+[ext_resource type="Resource" uid="uid://dcx6ctolhbq0k" path="res://resources/game_systems/zones/spirit_valley_zone/zone_actions/forage_resource_data/spirit_fern_forage_resource.tres" id="3_q34no"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/game_systems/unlocks/unlock_condition_data.gd" id="4_q34no"]
+
+[resource]
+script = ExtResource("3_a7ewm")
+forage_resources = Array[ExtResource("1_0k3ag")]([ExtResource("2_a7ewm"), ExtResource("3_q34no")])
+action_id = "SprintForestForaging"
+action_name = "Spring Forest Foraging"
+description = "Go to the Spring Forest and Forage some materials"
+icon = ExtResource("2_3coob")
+metadata/_custom_type_script = "uid://mjp0u2yt3hkr"

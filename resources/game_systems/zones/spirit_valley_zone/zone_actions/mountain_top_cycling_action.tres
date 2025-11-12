@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CyclingActionData" load_steps=4 format=3 uid="uid://bdkkbh7a5g70o"]
+
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="1_iqt7i"]
+[ext_resource type="Script" uid="uid://q70uw6l2p5qw" path="res://scripts/resource_definitions/game_systems/zones/zone_action_data/cycling_action_data/cycling_action_data.gd" id="2_mb7p0"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/game_systems/unlocks/unlock_condition_data.gd" id="3_744xw"]
+
+[resource]
+script = ExtResource("2_mb7p0")
+madra_multiplier = 2.0
+action_id = "MountainTop"
+action_name = "Mountain Top"
+action_type = 5
+description = "Climb to the mountain top to cycle"
+icon = ExtResource("1_iqt7i")
+metadata/_custom_type_script = "uid://q70uw6l2p5qw"

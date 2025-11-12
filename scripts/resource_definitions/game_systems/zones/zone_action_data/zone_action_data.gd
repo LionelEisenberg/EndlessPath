@@ -20,3 +20,16 @@ enum ActionType {
 @export var unlock_conditions: Array[UnlockConditionData] = []
 @export var requirements: Dictionary = {}  # Cost/requirements (madra, gold, items)
 @export var max_completions: int = 0  # 0 = unlimited, 1 = one-time, N = can be completed N times
+
+## toString function
+func _to_string() -> String:
+	return "ZoneActionData(action_id: %s, action_name: %s, action_type: %s, description: %s, icon: %s, unlock_conditions: %s, requirements: %s, max_completions: %s)" % [
+		action_id,
+		action_name,
+		action_type,
+		description,
+		icon,
+		unlock_conditions,
+		requirements,
+		max_completions
+	]

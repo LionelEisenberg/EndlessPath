@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AdvancementStageResource" load_steps=2 format=3 uid="uid://xg1ddackcqj8"]
 
-[ext_resource type="Script" uid="uid://civ7jgpmmaoro" path="res://resources/game_systems/cycling/advancement_stages/advancement_stage.gd" id="1_u1vlc"]
+[ext_resource type="Script" uid="uid://civ7jgpmmaoro" path="res://scripts/resource_definitions/game_systems/cycling/advancement_stage/advancement_stage.gd" id="1_u1vlc"]
 
 [resource]
 script = ExtResource("1_u1vlc")

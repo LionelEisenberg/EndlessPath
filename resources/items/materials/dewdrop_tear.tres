@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MaterialDefinitionData" load_steps=3 format=3 uid="uid://cr10k1108cnup"]
+
+[ext_resource type="Script" uid="uid://b3bb03ghqbiu5" path="res://scripts/resource_definitions/items/material_definition_data.gd" id="1_ehedu"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="1_rl130"]
+
+[resource]
+script = ExtResource("1_ehedu")
+source_zone_ids = Array[String](["SpiritValley"])
+item_id = "DewdropTear"
+item_name = "Dewdrop Tear"
+description = "Dewdrop Tear Description"
+icon = ExtResource("1_rl130")
+metadata/_custom_type_script = "uid://b3bb03ghqbiu5"

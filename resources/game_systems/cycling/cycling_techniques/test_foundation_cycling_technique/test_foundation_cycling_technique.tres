@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="CyclingTechniqueData" load_steps=4 format=3 uid="uid://jtu2awyodaem"]
 
-[ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://resources/game_systems/cycling/cycling_techniques/cycling_zone_data.gd" id="1_3tspc"]
+[ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://scripts/resource_definitions/game_systems/cycling/cycling_technique/cycling_zone_data.gd" id="1_3tspc"]
 [ext_resource type="Curve2D" uid="uid://cnw51jn84jbvi" path="res://new_curve_2d.tres" id="5_snhs0"]
-[ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://resources/game_systems/cycling/cycling_techniques/cycling_technique_data.gd" id="6_anl3h"]
+[ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://scripts/resource_definitions/game_systems/cycling/cycling_technique/cycling_technique_data.gd" id="6_anl3h"]
 
 [resource]
 script = ExtResource("6_anl3h")
