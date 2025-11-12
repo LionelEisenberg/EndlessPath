@@ -1,29 +1,40 @@
-extends VBoxContainer
+extends Control
 
 # The paths are now one level deeper, inside MainViewContainer
-@onready var view_container = $MainViewContainer 
-@onready var nav_bar = $GameSystemNavBar
+@onready var view_container = %MainViewContainer 
+@onready var nav_bar = %GameSystemNavBar
+@onready var inventory_view = %InventoryView
 
 # This dictionary maps the GameSystem enum to its corresponding View node
 var system_views: Dictionary = {}
 
 func _ready():
 	system_views = {
-		UnlockManager.GameSystem.ZONE: $MainViewContainer/ZoneView,
-		UnlockManager.GameSystem.CYCLING: $MainViewContainer/CyclingView,
-		UnlockManager.GameSystem.SCRIPTING: $MainViewContainer/ScriptingView,
-		UnlockManager.GameSystem.ELIXIR_MAKING: $MainViewContainer/ElixirMakingView,
-		UnlockManager.GameSystem.SOULSMITHING: $MainViewContainer/SoulSmithingView,
-		UnlockManager.GameSystem.ADVENTURING: $MainViewContainer/AdventuringView
+		UnlockManager.GameSystem.ZONE: %MainViewContainer/ZoneView,
+		UnlockManager.GameSystem.CYCLING: %MainViewContainer/CyclingView,
+		UnlockManager.GameSystem.SCRIPTING: %MainViewContainer/ScriptingView,
+		UnlockManager.GameSystem.ELIXIR_MAKING: %MainViewContainer/ElixirMakingView,
+		UnlockManager.GameSystem.SOULSMITHING: %MainViewContainer/SoulSmithingView,
+		UnlockManager.GameSystem.ADVENTURING: %MainViewContainer/AdventuringView
 	}
 
 	nav_bar.system_selected.connect(_on_system_selected)
+	nav_bar.open_inventory.connect(_on_open_inventory)
+	inventory_view.close_inventory.connect(_on_close_inventory)
 	_on_system_selected(UnlockManager.GameSystem.ZONE)
 
 
 ## This is the function that does the view switching.
 func _on_system_selected(system: UnlockManager.GameSystem):
 	show_system(system)
+
+## Show inventory
+func _on_open_inventory() -> void:
+	inventory_view.visible = true
+
+## Hide inventory
+func _on_close_inventory() -> void:
+	inventory_view.visible = false
 
 func initalize_system_with_action(system: UnlockManager.GameSystem, zone_action_data: ZoneActionData):
 	match system:

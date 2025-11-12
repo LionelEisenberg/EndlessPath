@@ -12,8 +12,8 @@ func _ready():
 	modulate.a = 0.0  # Start invisible
 	set_process(false)
 
+## Display floating text at specified position.
 func show_text(text: String, color: Color, pos: Vector2) -> void:
-	"""Display floating text at specified position"""
 	label.text = text
 	label.add_theme_color_override("font_color", color)
 	
@@ -26,8 +26,8 @@ func show_text(text: String, color: Color, pos: Vector2) -> void:
 	# Start animation
 	_start_floating_animation()
 
+## Animate the text floating upward and fading out.
 func _start_floating_animation() -> void:
-	"""Animate the text floating upward and fading out"""
 	if tween:
 		tween.kill()
 	
@@ -45,6 +45,6 @@ func _start_floating_animation() -> void:
 	# Clean up when done
 	tween.finished.connect(_on_animation_finished)
 
+## Called when animation completes.
 func _on_animation_finished() -> void:
-	"""Called when animation completes"""
 	queue_free()

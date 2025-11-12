@@ -36,7 +36,7 @@ offset_right = 20.0
 offset_bottom = 20.5
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.273873, 0.273873, 0.273873, 1)
+color = Color(0.2647512, 0.22505471, 0.49582654, 1)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 script = ExtResource("4_v6of8")

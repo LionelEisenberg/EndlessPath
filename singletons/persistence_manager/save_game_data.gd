@@ -9,6 +9,13 @@ extends Resource
 @export var gold : float = 0.0
 
 #-----------------------------------------------------------------------------
+# INVENTORY MANAGER
+#-----------------------------------------------------------------------------
+
+# Key is the item instance id, value is the item instance data
+@export var inventory : InventoryData = InventoryData.new()
+
+#-----------------------------------------------------------------------------
 # CULTIVATION MANAGER
 #-----------------------------------------------------------------------------
 
@@ -70,5 +77,9 @@ func _reset_state() -> void:
 	# Zone Manager
 	current_selected_zone_id = ""
 	
+	# Inventory Manager
+	inventory = InventoryData.new()
+	
 	# Current State
 	current_cycling_technique_name = "Foundation Technique"
+	

@@ -21,9 +21,8 @@ theme_override_styles/panel = ExtResource("1_8rx2v")
 
 [node name="MarginContainer" type="MarginContainer" parent="LeftSettingsContainer"]
 layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 8
 theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = 20
 
@@ -34,6 +33,13 @@ size_flags_vertical = 8
 theme_override_fonts/font = ExtResource("2_5ntvh")
 theme_override_font_sizes/font_size = 20
 text = "SETTINGS"
+
+[node name="InventoryButton" type="Button" parent="LeftSettingsContainer/MarginContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+text = "INVENTORY"
 
 [node name="MainButtonContainer" type="PanelContainer" parent="."]
 layout_mode = 2

@@ -43,8 +43,8 @@ func _on_technique_change_request(technique_data: CyclingTechniqueData):
 func _on_open_technique_selector():
 	cycling_technique_selector.open_selector(current_cycling_technique_data)
 
+## Load the saved technique from SaveGameData by looking up name in technique list.
 func _load_saved_technique():
-	"""Load the saved technique from SaveGameData by looking up name in technique list"""
 	if not PersistenceManager or not PersistenceManager.save_game_data:
 		# Fallback to foundation technique if no save data
 		set_current_technique(foundation_technique)
@@ -70,8 +70,8 @@ func _load_saved_technique():
 		# Technique not found in list, use default
 		set_current_technique(foundation_technique)
 
+## Save the current technique name to SaveGameData.
 func _save_current_technique(technique_data: CyclingTechniqueData):
-	"""Save the current technique name to SaveGameData"""
 	if not PersistenceManager or not PersistenceManager.save_game_data:
 		return
 	

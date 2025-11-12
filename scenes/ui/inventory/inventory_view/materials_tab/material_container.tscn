@@ -1,0 +1,46 @@
+[gd_scene load_steps=3 format=3 uid="uid://c5wiepsq2qinv"]
+
+[ext_resource type="Script" uid="uid://dq63s3q5tddkb" path="res://scenes/ui/inventory/inventory_view/materials_tab/material_container.gd" id="1_cd4sy"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="2_dvc7y"]
+
+[node name="MaterialContainer" type="MarginContainer"]
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+script = ExtResource("1_cd4sy")
+
+[node name="MaterialPanelContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 2
+
+[node name="InnerMarginContainer" type="MarginContainer" parent="MaterialPanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MaterialPanelContainer/InnerMarginContainer"]
+layout_mode = 2
+
+[node name="MaterialIcon" type="TextureRect" parent="MaterialPanelContainer/InnerMarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+texture = ExtResource("2_dvc7y")
+stretch_mode = 5
+
+[node name="MaterialName" type="Label" parent="MaterialPanelContainer/InnerMarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+text = "MATERIAL:"
+
+[node name="MaterialQuantity" type="Label" parent="MaterialPanelContainer/InnerMarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+text = "20"

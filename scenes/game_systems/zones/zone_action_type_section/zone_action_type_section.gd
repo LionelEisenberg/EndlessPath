@@ -8,7 +8,7 @@ extends VBoxContainer
 @onready var action_type_header_label: Label = %ActionTypeHeaderLabel
 
 func _ready() -> void:
-	if action_type and zone_action_data_list:
+	if zone_action_data_list:
 		if button_section:
 			for child in button_section.get_children():
 				child.queue_free()
@@ -20,7 +20,6 @@ func populate_actions(type: ZoneActionData.ActionType, action_list: Array[ZoneAc
 		if action.action_type == type: 
 			var new_action_button = zone_action_button_scene.instantiate()
 			new_action_button.setup_action(action)
-			new_action_button.action_selected.connect(_on_action_selected)
 			button_section.add_child(new_action_button)
 			
 func populate_header(type: ZoneActionData.ActionType):
@@ -29,7 +28,3 @@ func populate_header(type: ZoneActionData.ActionType):
 			action_type_header_label.text = "FORAGING ACTIONS"
 		ZoneActionData.ActionType.CYCLING:
 			action_type_header_label.text = "CYCLING ACTIONS"
-
-func _on_action_selected(action_data: ZoneActionData) -> void:
-	if ActionManager:
-		ActionManager.execute_action(action_data)

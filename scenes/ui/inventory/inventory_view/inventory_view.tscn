@@ -1,0 +1,33 @@
+[gd_scene load_steps=3 format=3 uid="uid://sra4pqjmj11a"]
+
+[ext_resource type="Script" uid="uid://bxs3eblygn8oo" path="res://scenes/ui/inventory/inventory_view/inventory_view.gd" id="1_43eln"]
+[ext_resource type="PackedScene" uid="uid://dkcvw114ohasw" path="res://scenes/ui/inventory/inventory_view/materials_tab/materials_tab.tscn" id="2_ovuek"]
+
+[node name="InventoryView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_43eln")
+
+[node name="MainMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 100
+theme_override_constants/margin_top = 100
+theme_override_constants/margin_right = 100
+theme_override_constants/margin_bottom = 100
+
+[node name="TabContainer" type="TabContainer" parent="MainMargin"]
+layout_mode = 2
+current_tab = 0
+
+[node name="MaterialsTab" parent="MainMargin/TabContainer" instance=ExtResource("2_ovuek")]
+unique_name_in_owner = true
+layout_mode = 2

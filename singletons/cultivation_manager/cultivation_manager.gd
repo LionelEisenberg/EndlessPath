@@ -55,8 +55,8 @@ func _update_resources() -> void:
 #-----------------------------------------------------------------------------
 # PUBLIC LOGIC FUNCTIONS
 #-----------------------------------------------------------------------------
+## Add XP to core density and handle level progression.
 func add_core_density_xp(amount: float):
-	"""Add XP to core density and handle level progression"""
 	if live_save_data == null:
 		printerr("CultivationManager: Cannot add XP - live_save_data is null")
 		return

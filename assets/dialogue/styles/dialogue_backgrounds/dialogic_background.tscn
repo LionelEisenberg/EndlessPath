@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3 uid="uid://dueoslbbduivu"]
+
+[ext_resource type="Script" uid="uid://hfi5ohgx2fu0" path="res://assets/dialogue/styles/dialogue_backgrounds/custom_background_layer.gd" id="1_custom"]
+[ext_resource type="Script" uid="uid://oxcjhq2817c7" path="res://addons/dialogic/Modules/Background/node_background_holder.gd" id="2_holder"]
+
+[node name="BackgroundLayer" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_custom")
+
+[node name="DialogicNode_BackgroundHolder" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.1764706, 0.1764706, 0.1764706, 0.827451)
+script = ExtResource("2_holder")

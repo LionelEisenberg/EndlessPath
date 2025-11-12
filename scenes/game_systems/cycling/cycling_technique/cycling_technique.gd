@@ -75,8 +75,8 @@ func _ready():
 	# We'll handle this in _input() to detect clicks on any zone
 	setup(technique_data_input)
 
+## Initialize the technique with the provided data.
 func setup(data: CyclingTechniqueData) -> void:
-	"""Initialize the technique with the provided data"""
 	technique_data = data
 	
 	# Apply the path curve
@@ -93,12 +93,12 @@ func setup(data: CyclingTechniqueData) -> void:
 	# Initialize state
 	current_state = CycleState.IDLE
 
+## Set the current technique data and update display.
 func set_technique_data(data: CyclingTechniqueData):
-	"""Set the current technique data and update display"""
 	setup(data)
 
+## Update the Line2D to follow the Path2D curve.
 func _update_path_line() -> void:
-	"""Update the Line2D to follow the Path2D curve"""
 	if not path_2d.curve or not path_line:
 		return
 		
@@ -118,8 +118,8 @@ func _update_path_line() -> void:
 	path_line.width = 3.0
 	path_line.default_color = Color(0.8, 0.8, 1.0, 0.7)  # Light blue with transparency
 
+## Create cycling zones using the CyclingZone scene based on technique data.
 func _create_cycling_zones() -> void:
-	"""Create cycling zones using the CyclingZone scene based on technique data"""
 	# Clear existing zones
 	for zone in cycling_zones:
 		if is_instance_valid(zone):
@@ -171,8 +171,8 @@ func _create_cycling_zones() -> void:
 func _on_core_button_pressed() -> void:
 	_start_cycle()
 	
+## Start a new cycling cycle.
 func _start_cycle() -> void:
-	"""Start a new cycling cycle"""
 	if current_state != CycleState.IDLE:
 		return
 		
@@ -198,8 +198,8 @@ func _start_cycle() -> void:
 	# Create and start the tween animation
 	_start_cycling_animation()
 
+## Create and start the cycling animation tween.
 func _start_cycling_animation() -> void:
-	"""Create and start the cycling animation tween"""
 	if not technique_data:
 		return
 		
@@ -212,8 +212,8 @@ func _start_cycling_animation() -> void:
 	movement_tween.tween_property(path_follow_2d, "progress_ratio", 1.0, technique_data.cycle_duration)
 	movement_tween.finished.connect(_on_cycle_finished)
 
+## Called when the ball completes one full cycle.
 func _on_cycle_finished() -> void:
-	"""Called when the ball completes one full cycle"""
 	current_state = CycleState.COMPLETE
 	
 	# Calculate final mouse tracking accuracy
@@ -246,8 +246,8 @@ func _on_cycle_finished() -> void:
 		_start_cycle()
 
 
+## Print comprehensive statistics for the completed cycle.
 func _print_cycle_stats(madra_earned: float) -> void:
-	"""Print comprehensive statistics for the completed cycle"""
 	var cycle_duration = technique_data.cycle_duration if technique_data else 0.0
 	var cycle_end_time = Time.get_ticks_msec() / 1000.0
 	var actual_duration = cycle_end_time - cycle_start_time
@@ -312,22 +312,22 @@ func _print_cycle_stats(madra_earned: float) -> void:
 	print("=============================")
 	print("=====================")
 
+## Called when the madra ball enters a cycling zone.
 func _on_madra_ball_area_entered(area: Area2D) -> void:
-	"""Called when the madra ball enters a cycling zone"""
 	if area in cycling_zones and current_state == CycleState.CYCLING:
 		active_zone = area as CyclingZone
 		# Make the zone glow brighter
 		_highlight_zone(active_zone, true)
 
+## Called when the madra ball exits a cycling zone.
 func _on_madra_ball_area_exited(area: Area2D) -> void:
-	"""Called when the madra ball exits a cycling zone"""
 	if area == active_zone:
 		# Return zone to normal brightness
 		_highlight_zone(active_zone, false)
 		active_zone = null
 
+## Handle clicking on a zone.
 func _on_zone_clicked(zone: CyclingZone, zone_data_item: CyclingZoneData) -> void:
-	"""Handle clicking on a zone"""
 	if zone == active_zone and not zone.is_used and current_state == CycleState.CYCLING:
 		_handle_zone_click(zone, zone_data_item)
 
@@ -335,8 +335,8 @@ func _on_zone_clicked(zone: CyclingZone, zone_data_item: CyclingZoneData) -> voi
 # ZONE INTERACTION
 #-----------------------------------------------------------------------------
 
+## Process a successful zone click and award XP.
 func _handle_zone_click(zone: CyclingZone, zone_data_item: CyclingZoneData) -> void:
-	"""Process a successful zone click and award XP"""
 	# Calculate timing accuracy based on ball position within the zone
 	var ball_position = madra_ball.global_position
 	var zone_center = zone.global_position
@@ -392,27 +392,27 @@ func _handle_zone_click(zone: CyclingZone, zone_data_item: CyclingZoneData) -> v
 # VISUAL FEEDBACK
 #-----------------------------------------------------------------------------
 
+## Make a zone glow brighter or return to normal.
 func _highlight_zone(zone: CyclingZone, highlight: bool) -> void:
-	"""Make a zone glow brighter or return to normal"""
 	zone.set_active(highlight)
 
+## Flash a zone with a specific color.
 func _flash_zone(zone: CyclingZone, color: Color) -> void:
-	"""Flash a zone with a specific color"""
 	zone.flash_zone(color)
 
-func _spawn_floating_text(text: String, color: Color, position: Vector2) -> void:
-	"""Spawn a floating text at the specified position"""
+## Spawn a floating text at the specified position.
+func _spawn_floating_text(text: String, color: Color, text_position: Vector2) -> void:
 	var floating_text = floating_text_scene.instantiate() as FloatingText
 	if floating_text:
 		get_tree().current_scene.add_child(floating_text)
-		floating_text.show_text(text, color, position)
+		floating_text.show_text(text, color, text_position)
 
 #-----------------------------------------------------------------------------
 # MADRA GENERATION
 #-----------------------------------------------------------------------------
 
+## Track mouse accuracy during cycling (madra calculated at cycle end).
 func _process(delta: float) -> void:
-	"""Track mouse accuracy during cycling (madra calculated at cycle end)"""
 	if current_state != CycleState.CYCLING:
 		return
 		
@@ -432,8 +432,8 @@ func _process(delta: float) -> void:
 	else:
 		mouse_tracking_accuracy = 0.0
 
+## Check if the mouse cursor is inside the MadraBall's collision shape.
 func is_mouse_in_madra_ball() -> bool:
-	"""Check if the mouse cursor is inside the MadraBall's collision shape"""
 	if not madra_ball:
 		return false
 	

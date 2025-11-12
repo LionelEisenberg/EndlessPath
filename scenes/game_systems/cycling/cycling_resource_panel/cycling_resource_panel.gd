@@ -49,8 +49,8 @@ func _ready():
 	connect_signals()
 	update_all_displays()
 
+## Initialize UI elements with proper styling.
 func setup_ui():
-	"""Initialize UI elements with proper styling"""
 	# Setup circular progress bar
 	madra_circle_progress.radial_fill_degrees = 360
 	madra_circle_progress.fill_mode = TextureProgressBar.FILL_CLOCKWISE
@@ -61,8 +61,8 @@ func setup_ui():
 	# Setup button
 	open_technique_selector_button.pressed.connect(_on_open_technique_selector)
 
+## Connect to singleton signals for live updates.
 func connect_signals():
-	"""Connect to singleton signals for live updates"""
 	if ResourceManager:
 		ResourceManager.madra_changed.connect(_on_madra_changed)
 	
@@ -74,18 +74,18 @@ func connect_signals():
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
+## Set the current technique data and update display.
 func set_technique_data(technique: CyclingTechniqueData):
-	"""Set the current technique data and update display"""
 	current_technique_data = technique
 	update_technique_info()
 
+## Handle cycling started signal.
 func on_cycling_started():
-	"""Handle cycling started signal"""
 	is_cycling = true
 	update_madra_rate()
 
-func on_cycle_completed(madra_earned: float, mouse_accuracy: float):
-	"""Handle cycle completed signal and calculate madra per second"""
+## Handle cycle completed signal and calculate madra per second.
+func on_cycle_completed(madra_earned: float, _mouse_accuracy: float):
 	is_cycling = false
 	
 	# Store madra per cycle from last cycle
@@ -103,15 +103,15 @@ func on_cycle_completed(madra_earned: float, mouse_accuracy: float):
 # UPDATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
+## Update all display elements.
 func update_all_displays():
-	"""Update all display elements"""
 	update_madra_display()
 	update_core_density()
 	update_stage()
 	update_technique_info()
 
+## Update madra section with current values.
 func update_madra_display():
-	"""Update madra section with current values"""
 
 	var current_madra = ResourceManager.get_madra()
 	var level = CultivationManager.get_core_density_level()
@@ -126,8 +126,8 @@ func update_madra_display():
 	madra_amount_label.text = "Madra: %d / %d" % [int(current_madra), int(max_madra)]
 	update_madra_rate()
 
+## Update madra rate display using last cycle's madra per second and per cycle.
 func update_madra_rate():
-	"""Update madra rate display using last cycle's madra per second and per cycle"""
 	var display_text = "+%.1f/s\n%.1f/cycle" % [last_madra_per_second, last_madra_per_cycle]
 	
 	if is_cycling:
@@ -139,8 +139,8 @@ func update_madra_rate():
 		madra_generation_rate_label.text = display_text
 		madra_generation_rate_label.modulate = Color(0.7, 0.7, 0.7)  # Gray
 
+## Update core density section with current values.
 func update_core_density():
-	"""Update core density section with current values"""
 	if not CultivationManager:
 		return
 	
@@ -160,8 +160,8 @@ func update_core_density():
 	var normalized = clamp(level / 100.0, 0.0, 1.0)
 	core_density_sprite.scale = Vector2(normalized, normalized)
 
+## Update cultivation stage display.
 func update_stage():
-	"""Update cultivation stage display"""
 	if not CultivationManager:
 		return
 	var stage_res = CultivationManager._get_current_stage_resource()
@@ -177,8 +177,8 @@ func update_stage():
 	if next_cultivation_stage_label:
 		next_cultivation_stage_label.text = next_stage_label_text
 
+## Update technique information section.
 func update_technique_info():
-	"""Update technique information section"""
 	if not current_technique_data:
 		technique_name_label.text = "Technique: None"
 		technique_stats_label.text = "⚡ Madra: +0.0/s | ⭐ XP: 0/click"
@@ -192,8 +192,8 @@ func update_technique_info():
 # HELPER FUNCTIONS
 #-----------------------------------------------------------------------------
 
+## Get the name of the next cultivation stage.
 func get_next_stage_name() -> String:
-	"""Get the name of the next cultivation stage"""
 	if not CultivationManager:
 		return "Unknown"
 	
@@ -209,18 +209,18 @@ func get_next_stage_name() -> String:
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
-func _on_madra_changed(new_amount: float):
-	"""Handle madra changes from ResourceManager"""
+## Handle madra changes from ResourceManager.
+func _on_madra_changed(_new_amount: float):
 	update_madra_display()
 
-func _on_core_density_updated(xp: float, level: float):
-	"""Handle core density updates from CultivationManager"""
+## Handle core density updates from CultivationManager.
+func _on_core_density_updated(_xp: float, _level: float):
 	update_core_density()
 
-func _on_stage_changed(new_stage):
-	"""Handle cultivation stage changes"""
+## Handle cultivation stage changes.
+func _on_stage_changed(_new_stage):
 	update_stage()
 
+## Handle change technique button press.
 func _on_open_technique_selector():
-	"""Handle change technique button press"""
 	open_technique_selector.emit()
