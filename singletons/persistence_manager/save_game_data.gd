@@ -28,7 +28,13 @@ extends Resource
 #-----------------------------------------------------------------------------
 
 @export var unlocked_game_systems: Array[UnlockManager.GameSystem] = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
-@export var achieved_unlock_conditions: Array[String] = []  # Condition IDs that have been achieved
+@export var unlock_progression: UnlockProgressionData = UnlockProgressionData.new()
+
+#-----------------------------------------------------------------------------
+# EVENT MANAGER
+#-----------------------------------------------------------------------------
+
+@export var event_progression: EventProgressionData = EventProgressionData.new()
 
 #-----------------------------------------------------------------------------
 # ZONE MANAGER
@@ -73,6 +79,10 @@ func _reset_state() -> void:
 	# Unlock Manager, default to Zone and Cycling unlocked
 	unlocked_game_systems = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
 	achieved_unlock_conditions = []
+	unlock_progression = UnlockProgressionData.new()
+	
+	# Event Manager
+	event_progression = EventProgressionData.new()
 	
 	# Zone Manager
 	current_selected_zone_id = ""
