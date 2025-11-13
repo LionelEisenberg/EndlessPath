@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" load_steps=2 format=3 uid="uid://2ojw7sl0d3lp"]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/game_systems/unlocks/unlock_condition_data.gd" id="1_0j3x6"]
+
+[resource]
+script = ExtResource("1_0j3x6")
+condition_id = "initial_spirit_valley_dialogue_1"
+condition_type = 4
+target_value = "initial_spirit_valley_dialogue_1"
+comparison_op = ""
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"

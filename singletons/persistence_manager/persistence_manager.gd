@@ -34,3 +34,6 @@ func is_base_game_save() -> bool:
 			return false
 	
 	return true
+
+func get_event_progression() -> EventProgressionData:
+	return save_game_data.event_progression

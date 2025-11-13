@@ -78,7 +78,6 @@ func _reset_state() -> void:
 
 	# Unlock Manager, default to Zone and Cycling unlocked
 	unlocked_game_systems = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
-	achieved_unlock_conditions = []
 	unlock_progression = UnlockProgressionData.new()
 	
 	# Event Manager

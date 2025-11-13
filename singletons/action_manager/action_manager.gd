@@ -68,6 +68,11 @@ func _execute_action(action_data: ZoneActionData) -> void:
 				printerr("ActionManager: Forage action data is not a ForageActionData: %s" % action_data.action_name)
 		ZoneActionData.ActionType.CYCLING:
 			_execute_cycling_action(action_data)
+		ZoneActionData.ActionType.NPC_DIALOGUE:
+			if action_data is NpcDialogueActionData:
+				_execute_dialogue_action(action_data as NpcDialogueActionData)
+			else:
+				printerr("ActionManager: Dialogue action data is not NpcDialogueActionData")
 		_:
 			printerr("ActionManager: Unknown action type: %s" % action_data.action_type)
 
@@ -142,6 +147,21 @@ func _execute_cycling_action(action_data: ZoneActionData) -> void:
 	else:
 		printerr("ActionManager: Could not find MainView for cycling action")
 
+## Handle dialogue action - show dialogue.
+func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
+	print("ActionManager: Executing dialogue action: %s" % action_data.action_name)
+	
+	if not DialogueManager:
+		printerr("ActionManager: DialogueManager is not initialized")
+		return
+	
+	DialogueManager.dialogue_ended.connect(
+		_stop_dialogue_action.bind(action_data), 
+		CONNECT_ONE_SHOT
+	)
+
+	DialogueManager.start_timeline(action_data.dialogue_timeline_name)
+
 ## Attempt to fetch the main view node from the scene tree.
 func _get_main_view() -> Node:
 	if get_tree():
@@ -163,6 +183,28 @@ func _stop_forage_action() -> void:
 ## Handle cycling action - stop cycling.
 func _stop_cycling_action() -> void:
 	print("ActionManager: Stopping cycling action")
+
+## Handle dialogue action - stop dialogue.
+func _stop_dialogue_action(action_data: NpcDialogueActionData) -> void:
+	print("ActionManager: Dialogue completed, processing effects for: %s" % action_data.action_name)
+	
+	if not EventManager:
+		printerr("ActionManager: EventManager not found. Cannot process effects.")
+		return
+
+	for effect in action_data.effects:
+		match effect.effect_type:
+			EffectData.EffectType.TRIGGER_EVENT:
+				effect = effect as TriggerEventEffectData
+				var event_id = effect.event_id
+				if event_id:
+					print("ActionManager: Triggering event: %s" % event_id)
+					EventManager.trigger_event(event_id)
+				else:
+					printerr("ActionManager: TRIGGER_EVENT effect has no 'event_id' in effect_data")
+					
+			EffectData.EffectType.AWARD_RESOURCE:
+				pass
 
 #-----------------------------------------------------------------------------
 # CURRENT ACTION MANAGEMENT

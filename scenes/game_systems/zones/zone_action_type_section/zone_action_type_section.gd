@@ -28,3 +28,5 @@ func populate_header(type: ZoneActionData.ActionType):
 			action_type_header_label.text = "FORAGING ACTIONS"
 		ZoneActionData.ActionType.CYCLING:
 			action_type_header_label.text = "CYCLING ACTIONS"
+		ZoneActionData.ActionType.NPC_DIALOGUE:
+			action_type_header_label.text = "DIALOGUE ACTIONS"

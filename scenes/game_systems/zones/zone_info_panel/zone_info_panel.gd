@@ -25,10 +25,10 @@ func setup_zone_actions() -> void:
 			child.queue_free()
 	
 	for action_type in ZoneActionData.ActionType.values():
-		for action_data in current_zone_data.available_actions:
+		for action_data in current_zone_data.all_actions:
 			if action_data.action_type == action_type:
 				var new_zone_action_type_section = zone_action_type_section_scene.instantiate()
 				new_zone_action_type_section.action_type = action_type
-				new_zone_action_type_section.zone_action_data_list = current_zone_data.available_actions
+				new_zone_action_type_section.zone_action_data_list = current_zone_data.all_actions
 				actions_content_vbox.add_child(new_zone_action_type_section)
 				break
