@@ -7,6 +7,9 @@ extends Node
 # Zone selection signals
 signal zone_changed(zone_data: ZoneData)
 
+# Zone Action Completed signals
+signal action_completed
+
 #-----------------------------------------------------------------------------
 # VARIABLES
 #-----------------------------------------------------------------------------
@@ -54,12 +57,52 @@ func set_current_zone_by_id(zone_id: String) -> void:
 #-----------------------------------------------------------------------------
 
 ## Returns ZoneProgressionData for the given zone, creating it if it doesn't exist.
-func get_zone_progression(zone_id: String) -> ZoneProgressionData:
+func get_zone_progression(zone_id: String = get_current_zone().zone_id) -> ZoneProgressionData:
 	return live_save_data.get_zone_progression_data(zone_id)
 
-## Creates and initializes ZoneProgressionData for a zone with initial unlocked actions.
-func initialize_zone_progression(_zone_id: String) -> void:
-	return
+## Increments the completion count for the given action in the ZoneProgressionData.
+func increment_zone_progression_for_action(action_id: String, zone_id: String = get_current_zone().zone_id, quantity = 1) -> void:
+	var _num_completions_for_action = live_save_data.increment_zone_progression_for_action(action_id, zone_id, quantity)
+	action_completed.emit(action_id)
+
+#-----------------------------------------------------------------------------
+# ACTION PUBLIC FUNCTIONS
+#-----------------------------------------------------------------------------
+
+## Returns a list of actions that are both unlocked and not completed for the given zone.
+## Checks action unlock_conditions and compares max_completions with action_completion_count.
+func get_available_actions(zone_id: String = get_current_zone().zone_id) -> Array[ZoneActionData]:
+	var zone_data = get_zone_by_id(zone_id)
+	if zone_data == null:
+		printerr("ZoneManager: Zone not found: %s" % zone_id)
+		return []
+	
+	# Check if zone itself is unlocked
+	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
+		return []
+	
+	# Get zone progression data
+	var zone_progression = get_zone_progression(zone_id)
+	
+	# Filter actions that are unlocked and not completed
+	var available_actions: Array[ZoneActionData] = []
+	
+	for action in zone_data.all_actions:
+		# Check if action is unlocked
+		if not UnlockManager.are_unlock_conditions_met(action.unlock_conditions):
+			continue
+		
+		# Check if action is not completed
+		var completion_count = zone_progression.action_completion_count.get(action.action_id, 0)
+		
+		# If max_completions == 0, action is unlimited (always available)
+		# Otherwise, check if completion_count < max_completions
+		if action.max_completions == 0 or completion_count < action.max_completions:
+			available_actions.append(action)
+	
+	return available_actions
+
+
 
 #-----------------------------------------------------------------------------
 # ZONE DATA QUERYING

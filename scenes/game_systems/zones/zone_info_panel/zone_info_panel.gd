@@ -8,8 +8,16 @@ extends PanelContainer
 func _ready() -> void:
 	if ZoneManager:
 		ZoneManager.zone_changed.connect(_on_zone_changed)
+		ZoneManager.action_completed.connect(_on_action_completed)
 		current_zone_data = ZoneManager.get_current_zone()
-	
+	else:
+		printerr("ZoneInfoPanel: ZoneManager is not initialized")
+
+	if UnlockManager:
+		UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
+	else:
+		printerr("ZoneInfoPanel: UnlockManager is not initialized")
+
 	if current_zone_data:
 		setup_zone_actions()
 	
@@ -18,17 +26,25 @@ func _on_zone_changed(zone_data: ZoneData) -> void:
 	if zone_data != current_zone_data:
 		current_zone_data = zone_data
 		setup_zone_actions()
-	
+
+func _on_action_completed(_args = null) -> void:
+	setup_zone_actions()
+
+func _on_condition_unlocked(_args = null) -> void:
+	setup_zone_actions()
+
 func setup_zone_actions() -> void:
 	if actions_content_vbox:
 		for child in actions_content_vbox.get_children():
 			child.queue_free()
 	
+	var available_actions : Array[ZoneActionData] = ZoneManager.get_available_actions()
+	
 	for action_type in ZoneActionData.ActionType.values():
-		for action_data in current_zone_data.all_actions:
+		for action_data in available_actions:
 			if action_data.action_type == action_type:
 				var new_zone_action_type_section = zone_action_type_section_scene.instantiate()
 				new_zone_action_type_section.action_type = action_type
-				new_zone_action_type_section.zone_action_data_list = current_zone_data.all_actions
+				new_zone_action_type_section.zone_action_data_list = available_actions
 				actions_content_vbox.add_child(new_zone_action_type_section)
 				break

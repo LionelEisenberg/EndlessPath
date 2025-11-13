@@ -15,5 +15,5 @@ zone_name = "Spirit Valley"
 zone_id = "SpiritValley"
 description = "Heart of the world"
 icon = ExtResource("2_ym136")
-available_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_4l7yp"), ExtResource("2_8fv6p"), ExtResource("3_4l7yp"), ExtResource("4_8fv6p")])
+all_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_8fv6p"), ExtResource("2_4l7yp"), ExtResource("4_8fv6p"), ExtResource("3_4l7yp")])
 metadata/_custom_type_script = "uid://culb0p88pnexb"

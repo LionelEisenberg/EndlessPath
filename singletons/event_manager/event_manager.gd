@@ -18,6 +18,7 @@ var live_save_data: SaveGameData
 
 func _ready() -> void:
 	live_save_data = PersistenceManager.save_game_data
+	PersistenceManager.save_data_reset.connect(func(): live_save_data = PersistenceManager.save_game_data)
 
 #-----------------------------------------------------------------------------
 # EVENT MANAGEMENT

@@ -47,8 +47,20 @@ func get_zone_progression_data(zone_id: String) -> ZoneProgressionData:
 	if zone_id in zone_progression_data:
 		return zone_progression_data[zone_id]
 	else:
-		return ZoneProgressionData.new()
+		var new_zone_progression = ZoneProgressionData.new()
+		new_zone_progression.zone_id = zone_id
+		zone_progression_data[zone_id] = new_zone_progression
+		return zone_progression_data[zone_id]
 
+func increment_zone_progression_for_action(action_id: String, zone_id: String, quantity: int) -> int:
+	if not zone_id in zone_progression_data:
+		var new_zone_progression = ZoneProgressionData.new()
+		new_zone_progression.zone_id = zone_id
+		zone_progression_data[zone_id] = new_zone_progression
+	
+	zone_progression_data[zone_id].action_completion_count.set(action_id, zone_progression_data[zone_id].action_completion_count.get(action_id, 0) + quantity)
+	return zone_progression_data[zone_id].action_completion_count[action_id]
+	
 #-----------------------------------------------------------------------------
 # CURRENT STATE (Player's current equipment/configuration)
 #-----------------------------------------------------------------------------
@@ -56,15 +68,36 @@ func get_zone_progression_data(zone_id: String) -> ZoneProgressionData:
 @export var current_cycling_technique_name: String = "Foundation Technique"
 
 func _to_string() -> String:
-	return "SaveGameData(Madra: %f, Gold: %f, CoreDensityXP: %f, CoreDensityLevel: %f, AdvancementStage: %s, UnlockedGameSystems: %s, SelectedZone: %s)" % [
-		madra,
-		gold,
-		core_density_xp,
-		core_density_level,
-		CultivationManager.get_advancement_stage_name(current_advancement_stage),
-		str(unlocked_game_systems),
-		current_selected_zone_id
-	]
+	var zone_progression_data_str := ""
+	if typeof(zone_progression_data) == TYPE_DICTIONARY:
+		var progression_strings := []
+		for zone_id in zone_progression_data.keys():
+			var progression : ZoneProgressionData = zone_progression_data[zone_id]
+			var progression_summary := ""
+			if progression:
+				progression_summary = "Completions: %s" % (str(progression.action_completion_count) if "action_completion_count" in progression else "N/A")
+			else:
+				progression_summary = "None"
+			progression_strings.append("%s: [%s]" % [zone_id, progression_summary])
+		zone_progression_data_str = "{%s}" % ", ".join(progression_strings)
+	else:
+		zone_progression_data_str = "N/A"
+
+	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CurrentCyclingTechnique: %s\n)" % [
+			madra,
+			gold,
+			core_density_xp,
+			core_density_level,
+			CultivationManager.get_advancement_stage_name(current_advancement_stage),
+			str(unlocked_game_systems),
+			str(unlock_progression),
+			str(event_progression),
+			current_selected_zone_id,
+			zone_progression_data_str,
+			inventory.items.size() if inventory and inventory.has_method("items") else 0,
+			current_cycling_technique_name
+		]
+
 
 func _reset_state() -> void:
 	# Resource Manager
@@ -84,6 +117,7 @@ func _reset_state() -> void:
 	event_progression = EventProgressionData.new()
 	
 	# Zone Manager
+	zone_progression_data = {}
 	current_selected_zone_id = ""
 	
 	# Inventory Manager

@@ -31,6 +31,7 @@ func _ready() -> void:
 	if PersistenceManager and PersistenceManager.save_game_data:
 		live_save_data = PersistenceManager.save_game_data
 		PersistenceManager.save_data_reset.connect(_initialize_from_save)
+		
 		if live_save_data.unlock_progression == null:
 			printerr("CRITICAL - UnlockManager: Could not get UnlockProgressionData from PersistenceManager!")
 			live_save_data.unlock_progression = UnlockProgressionData.new()
@@ -43,7 +44,9 @@ func _ready() -> void:
 	_connect_unlock_signals()
 
 func _initialize_from_save() -> void:
+	live_save_data = PersistenceManager.save_game_data
 	game_systems_updated.emit(live_save_data.unlocked_game_systems)
+	condition_unlocked.emit()
 
 func _connect_unlock_signals() -> void:
 	# Connect to EventManager signals

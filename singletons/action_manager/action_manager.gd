@@ -79,13 +79,18 @@ func _execute_action(action_data: ZoneActionData) -> void:
 ## Stop executing the current action.
 func _stop_executing_current_action() -> void:
 	if current_action:
+		ZoneManager.increment_zone_progression_for_action(current_action.action_id)
+
 		match current_action.action_type:
 			ZoneActionData.ActionType.FORAGE:
 				_stop_forage_action()
 			ZoneActionData.ActionType.CYCLING:
 				_stop_cycling_action()
+			ZoneActionData.ActionType.NPC_DIALOGUE:
+				_stop_dialogue_action()
 			_:
 				printerr("ActionManager: Unknown action type: %s" % current_action.action_type)
+	
 
 #-----------------------------------------------------------------------------
 # ACTION EXECUTION HANDLERS
@@ -156,7 +161,7 @@ func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 		return
 	
 	DialogueManager.dialogue_ended.connect(
-		_stop_dialogue_action.bind(action_data), 
+		_stop_executing_current_action, 
 		CONNECT_ONE_SHOT
 	)
 
@@ -185,14 +190,14 @@ func _stop_cycling_action() -> void:
 	print("ActionManager: Stopping cycling action")
 
 ## Handle dialogue action - stop dialogue.
-func _stop_dialogue_action(action_data: NpcDialogueActionData) -> void:
-	print("ActionManager: Dialogue completed, processing effects for: %s" % action_data.action_name)
+func _stop_dialogue_action() -> void:
+	print("ActionManager: Dialogue completed, processing effects for: %s" % current_action.action_name)
 	
 	if not EventManager:
 		printerr("ActionManager: EventManager not found. Cannot process effects.")
 		return
 
-	for effect in action_data.effects:
+	for effect in current_action.effects:
 		match effect.effect_type:
 			EffectData.EffectType.TRIGGER_EVENT:
 				effect = effect as TriggerEventEffectData

@@ -44,6 +44,7 @@ func _ready() -> void:
 		printerr("CRITICAL - CultivationManager: Could not get save_game_data from PersistenceManager on ready!")
 
 func _update_resources() -> void:
+	live_save_data = PersistenceManager.save_game_data
 	if live_save_data == null:
 		printerr("CRITICAL - CultivationManager: live_save_data is null in _update_resources!")
 		return

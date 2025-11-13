@@ -11,7 +11,7 @@ signal inventory_changed(inventory: InventoryData)
 # STATE
 #-----------------------------------------------------------------------------
 
-@onready var live_save_data: SaveGameData = PersistenceManager.save_game_data
+var live_save_data: SaveGameData
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -21,6 +21,9 @@ func _ready() -> void:
 	if not PersistenceManager or not PersistenceManager.save_game_data:
 		printerr("InventoryManager: PersistenceManager or save data missing on ready()")
 		return
+	else:
+		live_save_data = PersistenceManager.save_game_data
+		PersistenceManager.save_data_reset.connect(func(): live_save_data = PersistenceManager.save_game_data)
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
