@@ -72,11 +72,6 @@ size_flags_vertical = 3
 [node name="CyclingView" parent="MainView/VBoxContainer/MainViewContainer" instance=ExtResource("3_7ijcf")]
 visible = false
 layout_mode = 1
-anchors_preset = 15
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 1.0
-anchor_bottom = 1.0
 
 [node name="ScriptingView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
 visible = false
