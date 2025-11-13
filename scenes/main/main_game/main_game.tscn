@@ -59,7 +59,7 @@ layout_mode = 2
 
 [node name="SubViewport" type="SubViewport" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(1184, 978)
+size = Vector2i(1182, 978)
 render_target_update_mode = 4
 
 [node name="ZoneTilemap" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]

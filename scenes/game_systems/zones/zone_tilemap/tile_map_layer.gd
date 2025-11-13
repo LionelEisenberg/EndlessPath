@@ -2,14 +2,18 @@ extends TileMapLayer
 
 signal zone_tile_clicked(tile_coord: Vector2i)
 
-const MAIN_ATLAS_ID = 1
+const UNLOCKED_ATLAS_ID = 0
+const LOCKED_ATLAS_ID = 1
 
-func set_cell_to_variant(id : int, cell : Vector2i):
-	set_cell(cell, MAIN_ATLAS_ID, Vector2i(0,0), id)
+func set_unlocked_cell_to_variant(id : int, cell : Vector2i):
+	set_cell(cell, UNLOCKED_ATLAS_ID, Vector2i(0,0), id)
+
+func set_locked_cell_to_variant(id : int, cell : Vector2i):
+	set_cell(cell, LOCKED_ATLAS_ID, Vector2i(0,0), id)
 
 func clear_cells():
 	for pos in get_used_cells():
-		set_cell(pos, MAIN_ATLAS_ID, Vector2i(0,0))
+		set_cell(pos, UNLOCKED_ATLAS_ID, Vector2i(0,0))
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:

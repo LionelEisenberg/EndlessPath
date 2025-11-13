@@ -2,12 +2,20 @@ extends Node
 
 signal save_data_reset
 
+@export var reset_save_data : bool = true
+
 var save_game_data : SaveGameData
 
 const SAVE_PATH : String = "user://save.tres"
 
 func _ready() -> void:
 	load_data()
+	if reset_save_data:
+		load_new_save_data()
+
+	if not save_game_data.verify():
+		printerr("CRITICAL - PersistenceManager: SaveGameData is invalid. Resetting to default.")
+		load_new_save_data()
 
 func load_new_save_data() -> void:
 	save_game_data.reset_state()
@@ -34,6 +42,3 @@ func is_base_game_save() -> bool:
 			return false
 	
 	return true
-
-func get_event_progression() -> EventProgressionData:
-	return save_game_data.event_progression

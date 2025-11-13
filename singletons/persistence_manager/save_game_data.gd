@@ -39,6 +39,7 @@ extends Resource
 #-----------------------------------------------------------------------------
 # ZONE MANAGER
 #-----------------------------------------------------------------------------
+
 @export var current_selected_zone_id: String = ""
 @export var zone_progression_data: Dictionary[String, ZoneProgressionData] = {}
 
@@ -60,7 +61,10 @@ func increment_zone_progression_for_action(action_id: String, zone_id: String, q
 	
 	zone_progression_data[zone_id].action_completion_count.set(action_id, zone_progression_data[zone_id].action_completion_count.get(action_id, 0) + quantity)
 	return zone_progression_data[zone_id].action_completion_count[action_id]
-	
+
+func _verify_current_selected_zone_id() -> bool:
+	return current_selected_zone_id == "" or ZoneManager.has_zone(current_selected_zone_id)
+
 #-----------------------------------------------------------------------------
 # CURRENT STATE (Player's current equipment/configuration)
 #-----------------------------------------------------------------------------
@@ -98,6 +102,12 @@ func _to_string() -> String:
 			current_cycling_technique_name
 		]
 
+#-----------------------------------------------------------------------------
+# STATE FUNCTIONS AND VERIFICATION
+#-----------------------------------------------------------------------------
+
+func verify() -> bool:
+	return _verify_current_selected_zone_id()
 
 func _reset_state() -> void:
 	# Resource Manager

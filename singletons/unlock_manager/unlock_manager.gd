@@ -46,7 +46,7 @@ func _ready() -> void:
 func _initialize_from_save() -> void:
 	live_save_data = PersistenceManager.save_game_data
 	game_systems_updated.emit(live_save_data.unlocked_game_systems)
-	condition_unlocked.emit()
+	condition_unlocked.emit("")
 
 func _connect_unlock_signals() -> void:
 	# Connect to EventManager signals
