@@ -19,7 +19,6 @@ func close_selector() -> void:
 	self.visible = false
 
 func open_selector(data: CyclingTechniqueData) -> void:
-	grab_focus()
 	self.visible = true
 	selected_technique_data = data
 	info_panel.setup(selected_technique_data)

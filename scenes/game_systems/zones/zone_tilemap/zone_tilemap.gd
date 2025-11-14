@@ -18,7 +18,7 @@ func _ready():
 	
 	set_all_zones_in_tile_map()
 	update_zone_tile_state(selected_zone)
-	_move_character_to(selected_zone.tilemap_location)
+	_move_character_to_tile_coord(selected_zone.tilemap_location)
 
 	# Connect to tile map layer for zone selection
 	if tile_map.has_signal("zone_tile_clicked"):
@@ -91,13 +91,19 @@ func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 		zone_selected.emit(zone_data, tile_coord)
 		update_zone_tile_state(zone_data)
 	
-	_move_character_to(tile_coord)
+	_move_character_to_tile_coord(tile_coord)
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	set_all_zones_in_tile_map()
 
-func _move_character_to(tile_coord: Vector2i) -> void:
-	character_body.global_position = tile_map.map_to_local(tile_coord) + tile_map.position
+func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
+	_move_character_to_position(tile_map.map_to_local(tile_coord) + tile_map.position)
+
+func _move_character_to_position(new_position: Vector2) -> void:
+	## Move the character to the new position over 0.2 seconds
+	var tween : Tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(character_body, "global_position", new_position, 0.2)
+	tween.play()
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -107,7 +113,7 @@ func _on_start_foraging() -> void:
 	_character_move_to_new_foraging_location()
 
 func _on_stop_foraging() -> void:
-	_move_character_to(selected_zone.tilemap_location)
+	_move_character_to_tile_coord(selected_zone.tilemap_location)
 
 func _on_foraging_completed(item_amount: int, item_definition: ItemDefinitionData) -> void:
 	_show_foraging_completion_floating_text(item_amount, item_definition)
@@ -121,12 +127,10 @@ func _character_move_to_new_foraging_location() -> void:
 	random_local_pos.x += randf_range(-margin, margin)
 	random_local_pos.y += randf_range(-margin, margin)
 	
-	character_body.position = random_local_pos
+	_move_character_to_position(random_local_pos)
 
 func _show_foraging_completion_floating_text(item_amount: int, item_definition: ItemDefinitionData) -> void:
-	print("granted %d of %s" % [item_amount, item_definition])
 	var floating_text = floating_text_scene.instantiate() as FloatingText
 	if floating_text:
 		get_tree().current_scene.add_child(floating_text)
 		floating_text.show_text("%d of %s" % [item_amount, item_definition.item_name], Color.WHITE, Vector2i(250, 250))
-		print(InventoryManager.get_inventory())

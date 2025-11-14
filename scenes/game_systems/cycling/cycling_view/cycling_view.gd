@@ -1,5 +1,6 @@
 extends Control
 
+signal close_cycling_view(action_data: CyclingActionData)
 signal current_technique_changed(data)
 
 @onready var cycling_technique_node = %CyclingTechnique
@@ -27,6 +28,11 @@ func _ready():
 
 	# Load saved technique or use default
 	_load_saved_technique()
+
+func _input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("close_cycling_view"):
+		ActionManager.stop_action()
+		close_cycling_view.emit(cycling_action_data)
 
 func initialize_cycling_action_data(action_data: CyclingActionData):
 	cycling_action_data = action_data

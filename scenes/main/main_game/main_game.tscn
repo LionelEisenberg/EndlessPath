@@ -2,12 +2,12 @@
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
-[ext_resource type="PackedScene" uid="uid://hcmv6b2gg6ho" path="res://scenes/ui/game_system_nav_bar/game_system_nav_bar.tscn" id="2_sp8i7"]
 [ext_resource type="PackedScene" uid="uid://dqgp2io5bypix" path="res://scenes/game_systems/zones/zone_tilemap/zone_tilemap.tscn" id="3_1i3v0"]
 [ext_resource type="PackedScene" uid="uid://b1rl1n8ceijc8" path="res://scenes/game_systems/cycling/cycling_view/cycling_view.tscn" id="3_7ijcf"]
 [ext_resource type="PackedScene" uid="uid://sra4pqjmj11a" path="res://scenes/ui/inventory/inventory_view/inventory_view.tscn" id="3_k2uxu"]
 [ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
 [ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/game_systems/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="5_k2uxu"]
 
 [node name="MainGame" type="Node2D"]
 script = ExtResource("1_2bvax")
@@ -59,119 +59,69 @@ layout_mode = 2
 
 [node name="SubViewport" type="SubViewport" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
 handle_input_locally = false
-size = Vector2i(1182, 978)
+size = Vector2i(1182, 1080)
 render_target_update_mode = 4
 
 [node name="ZoneTilemap" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]
 
-[node name="ZoneInfoPanel" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer" instance=ExtResource("4_tvvcy")]
+[node name="VBoxContainer" type="VBoxContainer" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ZoneInfoPanel" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/VBoxContainer" instance=ExtResource("4_tvvcy")]
 custom_minimum_size = Vector2(200, 80)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="CyclingView" parent="MainView/VBoxContainer/MainViewContainer" instance=ExtResource("3_7ijcf")]
-visible = false
-layout_mode = 1
-
-[node name="ScriptingView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="MainView/VBoxContainer/MainViewContainer/ScriptingView"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 4
-text = "SCRIPTING"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ElixirMakingView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="MainView/VBoxContainer/MainViewContainer/ElixirMakingView"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 4
-text = "ELIXIR MAKING
-"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="SoulSmithingView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="MainView/VBoxContainer/MainViewContainer/SoulSmithingView"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 4
-text = "SOULSMITHING"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="AdventuringView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Label" type="Label" parent="MainView/VBoxContainer/MainViewContainer/AdventuringView"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 4
-text = "ADVENTURING"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="GameSystemNavBar" parent="MainView/VBoxContainer" instance=ExtResource("2_sp8i7")]
-unique_name_in_owner = true
+[node name="HBoxContainer" type="HBoxContainer" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.1
-mouse_filter = 2
+
+[node name="InventoryButton" type="TextureButton" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+texture_normal = ExtResource("5_k2uxu")
+
+[node name="TextureButton2" type="TextureButton" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+texture_normal = ExtResource("5_k2uxu")
+
+[node name="TextureButton3" type="TextureButton" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+texture_normal = ExtResource("5_k2uxu")
+
+[node name="TextureButton4" type="TextureButton" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+texture_normal = ExtResource("5_k2uxu")
+
+[node name="GreyBackground" type="Panel" parent="MainView"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="InventoryView" parent="MainView" instance=ExtResource("3_k2uxu")]
 unique_name_in_owner = true
 visible = false
+layout_mode = 1
+
+[node name="CyclingView" parent="MainView" instance=ExtResource("3_7ijcf")]
+unique_name_in_owner = true
+visible = false
+z_index = 2
 layout_mode = 1
 
 [node name="SaveTimer" type="Timer" parent="."]

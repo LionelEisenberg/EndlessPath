@@ -21,3 +21,4 @@ func _input(event: InputEvent) -> void:
 		# Only emit if there's actually a tile at this location
 		if get_cell_source_id(tile_coord) != -1:
 			zone_tile_clicked.emit(tile_coord)
+	

@@ -51,21 +51,21 @@ func _initialize_from_save() -> void:
 func _connect_unlock_signals() -> void:
 	# Connect to EventManager signals
 	if EventManager:
-		EventManager.event_triggered.connect(_evaluate_all_conditions)
+		EventManager.event_triggered.connect(_evaluate_all_conditions.unbind(1))
 	else:
 		printerr("CRITICAL - UnlockManager: EventManager is missing!")
 
 	# Connect to CultivationManager signals
 	if CultivationManager:
-		CultivationManager.advancement_stage_changed.connect(_evaluate_all_conditions)
-		CultivationManager.core_density_level_updated.connect(_evaluate_all_conditions)
+		CultivationManager.advancement_stage_changed.connect(_evaluate_all_conditions.unbind(1))
+		CultivationManager.core_density_level_updated.connect(_evaluate_all_conditions.unbind(2))
 	else:
 		printerr("CRITICAL - UnlockManager: CultivationManager is missing!")
 	
 	# Connect to ResourceManager signals
 	if ResourceManager:
-		ResourceManager.madra_changed.connect(_evaluate_all_conditions)
-		ResourceManager.gold_changed.connect(_evaluate_all_conditions)
+		ResourceManager.madra_changed.connect(_evaluate_all_conditions.unbind(1))
+		ResourceManager.gold_changed.connect(_evaluate_all_conditions.unbind(1))
 	else:
 		printerr("CRITICAL - UnlockManager: ResourceManager is missing!")
 
@@ -96,7 +96,7 @@ func get_achieved_conditions() -> Array[String]:
 #-----------------------------------------------------------------------------
 
 ## Called by any signal that changes game state.
-func _evaluate_all_conditions(_args = null) -> void:
+func _evaluate_all_conditions() -> void:
 	if unlock_condition_list == null:
 		printerr("UnlockManager: 'unlock_condition_list' is not set. Assign it in the editor.")
 		return

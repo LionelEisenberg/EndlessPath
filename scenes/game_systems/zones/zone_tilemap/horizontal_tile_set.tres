@@ -1,7 +1,10 @@
-[gd_resource type="TileSet" load_steps=5 format=3 uid="uid://brm40hxx3wp8n"]
+[gd_resource type="TileSet" load_steps=11 format=3 uid="uid://brm40hxx3wp8n"]
 
 [ext_resource type="Texture2D" uid="uid://dbs7q3rxlog0j" path="res://scenes/game_systems/zones/zone_tilemap/tile_horizontal_locked.png" id="1_tdym5"]
 [ext_resource type="Texture2D" uid="uid://nnhoojvpoehu" path="res://scenes/game_systems/zones/zone_tilemap/tile_horizontal.png" id="1_wke2x"]
+[ext_resource type="Texture2D" uid="uid://d3ckwk27frhp7" path="res://assets/ui_images/tile_bacground.png" id="3_mh3wn"]
+[ext_resource type="Texture2D" uid="uid://be28fiyaaqj0j" path="res://assets/ui_images/test_2.png" id="4_cbtol"]
+[ext_resource type="Texture2D" uid="uid://dfykm4678wyrs" path="res://assets/ui_images/test3.png" id="5_5gtd8"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nwvq3"]
 texture = ExtResource("1_wke2x")
@@ -20,6 +23,21 @@ texture = ExtResource("1_tdym5")
 texture_region_size = Vector2i(164, 190)
 0:0/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cbtol"]
+texture = ExtResource("3_mh3wn")
+texture_region_size = Vector2i(164, 190)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5gtd8"]
+texture = ExtResource("4_cbtol")
+texture_region_size = Vector2i(164, 190)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ms7tv"]
+texture = ExtResource("5_5gtd8")
+texture_region_size = Vector2i(164, 190)
+0:0/0 = 0
+
 [resource]
 resource_name = "Horizontal"
 tile_shape = 3
@@ -32,3 +50,6 @@ custom_data_layer_2/name = "color"
 custom_data_layer_2/type = 21
 sources/0 = SubResource("TileSetAtlasSource_nwvq3")
 sources/1 = SubResource("TileSetAtlasSource_mh3wn")
+sources/2 = SubResource("TileSetAtlasSource_cbtol")
+sources/3 = SubResource("TileSetAtlasSource_5gtd8")
+sources/4 = SubResource("TileSetAtlasSource_ms7tv")

@@ -1,55 +1,77 @@
 extends Control
 
-# The paths are now one level deeper, inside MainViewContainer
-@onready var view_container = %MainViewContainer 
-@onready var nav_bar = %GameSystemNavBar
-@onready var inventory_view = %InventoryView
+## Main Views
+@onready var main_view_container : Panel = %MainViewContainer
+@onready var inventory_view : Control = %InventoryView
+@onready var cycling_view : Control = %CyclingView
+@onready var grey_background : Panel = %GreyBackground
 
-# This dictionary maps the GameSystem enum to its corresponding View node
-var system_views: Dictionary = {}
+## Buttons
+@onready var inventory_button : TextureButton = %InventoryButton
+
+enum State {
+	ZONE_VIEW,
+	CYCLING_VIEW,
+	INVENTORY_VIEW
+}
+
+var current_state: State = State.ZONE_VIEW
 
 func _ready():
-	system_views = {
-		UnlockManager.GameSystem.ZONE: %MainViewContainer/ZoneView,
-		UnlockManager.GameSystem.CYCLING: %MainViewContainer/CyclingView,
-		UnlockManager.GameSystem.SCRIPTING: %MainViewContainer/ScriptingView,
-		UnlockManager.GameSystem.ELIXIR_MAKING: %MainViewContainer/ElixirMakingView,
-		UnlockManager.GameSystem.SOULSMITHING: %MainViewContainer/SoulSmithingView,
-		UnlockManager.GameSystem.ADVENTURING: %MainViewContainer/AdventuringView
-	}
+	# Initialize view visibility based on initial state
+	_update_view_visibility()
 
-	nav_bar.system_selected.connect(_on_system_selected)
-	nav_bar.open_inventory.connect(_on_open_inventory)
-	inventory_view.close_inventory.connect(_on_close_inventory)
-	_on_system_selected(UnlockManager.GameSystem.ZONE)
+	# Connect to inventory view signals
+	inventory_view.open_inventory.connect(show_inventory_view)
+	inventory_view.close_inventory.connect(show_zone_view)
+	
+	# Connect to cycling_view_signals
+	cycling_view.close_cycling_view.connect(show_zone_view.unbind(1))
+	
+	# Connect buttons
+	inventory_button.pressed.connect(show_inventory_view)
 
+#-----------------------------------------------------------------------------
+# PUBLIC FUNCTIONS
+#-----------------------------------------------------------------------------
 
-## This is the function that does the view switching.
-func _on_system_selected(system: UnlockManager.GameSystem):
-	show_system(system)
+func show_and_initialize_action_popup(zone_action_data: ZoneActionData):
+	match zone_action_data.action_type:
+		ZoneActionData.ActionType.CYCLING:
+			cycling_view.initialize_cycling_action_data(zone_action_data)
+			_set_state(State.CYCLING_VIEW)
+		_:
+			# For other action types, keep showing zone view for now
+			_set_state(State.ZONE_VIEW)
 
-## Show inventory
-func _on_open_inventory() -> void:
-	inventory_view.visible = true
+func show_inventory_view():
+	_set_state(State.INVENTORY_VIEW)
 
-## Hide inventory
-func _on_close_inventory() -> void:
-	inventory_view.visible = false
+func show_zone_view():
+	_set_state(State.ZONE_VIEW)
 
-func initalize_system_with_action(system: UnlockManager.GameSystem, zone_action_data: ZoneActionData):
-	match system:
-		UnlockManager.GameSystem.CYCLING:
-			if system_views.has(system):
-				if system_views[system].has_method("initialize_cycling"):
-					system_views[system].initialize_cycling(zone_action_data)
+#-----------------------------------------------------------------------------
+# PRIVATE FUNCTIONS
+#-----------------------------------------------------------------------------
 
-func show_system(system: UnlockManager.GameSystem):
-	# Ensure the system_enum is valid
-	if not system_views.has(system):
-		printerr("MainGame: No view found for system: %s" % system)
+func _set_state(new_state: State) -> void:
+	if current_state == new_state:
 		return
+	
+	current_state = new_state
+	_update_view_visibility()
 
-	for view in system_views.values():
-		view.visible = false
-		
-	system_views[system].visible = true
+func _update_view_visibility() -> void:
+	match current_state:
+		State.ZONE_VIEW:
+			grey_background.visible = false
+			cycling_view.visible = false
+			inventory_view.visible = false
+		State.CYCLING_VIEW:
+			grey_background.visible = true
+			cycling_view.visible = true
+			inventory_view.visible = false
+		State.INVENTORY_VIEW:
+			grey_background.visible = true
+			cycling_view.visible = false
+			inventory_view.visible = true

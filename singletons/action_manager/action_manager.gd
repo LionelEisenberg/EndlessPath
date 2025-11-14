@@ -143,12 +143,8 @@ func _execute_cycling_action(action_data: ZoneActionData) -> void:
 	var main_view = _get_main_view()
 	
 	if main_view:
-		# Call initalize_system_with_action to do any needed setup for cycling
-		if main_view.has_method("initalize_system_with_action"):
-			main_view.initalize_system_with_action(UnlockManager.GameSystem.CYCLING, action_data)
-		# Also call show_system to switch views
-		if main_view.has_method("show_system"):
-			main_view.show_system(UnlockManager.GameSystem.CYCLING)
+		if main_view.has_method("show_and_initialize_action_popup"):
+			main_view.show_and_initialize_action_popup(action_data)
 	else:
 		printerr("ActionManager: Could not find MainView for cycling action")
 
@@ -161,7 +157,7 @@ func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 		return
 	
 	DialogueManager.dialogue_ended.connect(
-		_stop_executing_current_action, 
+		stop_action, 
 		CONNECT_ONE_SHOT
 	)
 
