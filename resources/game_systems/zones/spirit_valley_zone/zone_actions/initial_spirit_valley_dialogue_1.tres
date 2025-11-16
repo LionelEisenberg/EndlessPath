@@ -1,10 +1,9 @@
-[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=7 format=3 uid="uid://c36o44atngp5e"]
+[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=6 format=3 uid="uid://c36o44atngp5e"]
 
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/game_systems/actions/effects/effect_data.gd" id="1_uronj"]
 [ext_resource type="Script" uid="uid://10xqk22j564o" path="res://scripts/resource_definitions/game_systems/zones/zone_action_data/npc_dialogue_action_data/npc_dialogue_action_data.gd" id="2_nm6h2"]
 [ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/game_systems/actions/effects/trigger_event_effect_data.gd" id="2_ur7gj"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/game_systems/unlocks/unlock_condition_data.gd" id="3_ur7gj"]
-[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="3_wlafu"]
 
 [sub_resource type="Resource" id="Resource_wlafu"]
 script = ExtResource("2_ur7gj")
@@ -20,6 +19,5 @@ action_id = "initial_spirit_valley_dialogue_1"
 action_name = "Talk to the Wisened Dirt Eel"
 action_type = 2
 description = "Talk to the Wisened Dirt Eel"
-icon = ExtResource("3_wlafu")
 max_completions = 1
 metadata/_custom_type_script = "uid://10xqk22j564o"

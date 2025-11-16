@@ -22,6 +22,7 @@ texture_region_size = Vector2i(164, 190)
 texture = ExtResource("1_tdym5")
 texture_region_size = Vector2i(164, 190)
 0:0/0 = 0
+0:0/0/modulate = Color(1, 1, 0.41960785, 1)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_cbtol"]
 texture = ExtResource("3_mh3wn")

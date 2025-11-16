@@ -96,6 +96,12 @@ func setup(data: CyclingTechniqueData) -> void:
 	# Set Madra Ball Position
 	path_follow_2d.progress_ratio = 0.0
 
+## Stop the cycling animation.
+func stop_cycling() -> void:
+	if current_state == CycleState.CYCLING and movement_tween:
+		movement_tween.kill()
+		current_state = CycleState.IDLE
+
 ## Set the current technique data and update display.
 func set_technique_data(data: CyclingTechniqueData):
 	setup(data)

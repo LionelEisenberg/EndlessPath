@@ -19,7 +19,7 @@
 &"portraits": {
 "NormalPortrait": {
 "export_overrides": {
-"image": "\"res://assets/dialogue/characters/wisened_dirt_eel.png\""
+"image": "\"res://assets/dialogue/characters/wisened_dirt_eel/wisened_dirt_eel.png\""
 },
 "ignore_char_scale": false,
 "mirror": false,

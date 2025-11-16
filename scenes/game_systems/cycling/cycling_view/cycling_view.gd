@@ -26,6 +26,9 @@ func _ready():
 	cycling_resource_panel_node.open_technique_selector.connect(_on_open_technique_selector)
 	cycling_technique_selector.technique_change_request.connect(_on_technique_change_request)
 
+	# Connect ActionManager signals
+	ActionManager.stop_cycling.connect(_on_stop_cycling)
+
 	# Load saved technique or use default
 	_load_saved_technique()
 
@@ -33,6 +36,9 @@ func _input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("close_cycling_view"):
 		ActionManager.stop_action()
 		close_cycling_view.emit(cycling_action_data)
+
+func _on_stop_cycling():
+	cycling_technique_node.stop_cycling()
 
 func initialize_cycling_action_data(action_data: CyclingActionData):
 	cycling_action_data = action_data

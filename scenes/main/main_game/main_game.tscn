@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://dyrsbe5x01lgo"]
+[gd_scene load_steps=10 format=3 uid="uid://dyrsbe5x01lgo"]
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
-[ext_resource type="PackedScene" uid="uid://dqgp2io5bypix" path="res://scenes/game_systems/zones/zone_tilemap/zone_tilemap.tscn" id="3_1i3v0"]
+[ext_resource type="PackedScene" uid="uid://dykb4ugtithxu" path="res://scenes/game_systems/zones/zone_tilemap/zone_tilemap.tscn" id="3_1i3v0"]
 [ext_resource type="PackedScene" uid="uid://b1rl1n8ceijc8" path="res://scenes/game_systems/cycling/cycling_view/cycling_view.tscn" id="3_7ijcf"]
 [ext_resource type="PackedScene" uid="uid://sra4pqjmj11a" path="res://scenes/ui/inventory/inventory_view/inventory_view.tscn" id="3_k2uxu"]
+[ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/ui_images/u3BJ1Y.jpg" id="3_yssfv"]
 [ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
 [ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/game_systems/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]
 [ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="5_k2uxu"]
@@ -55,11 +56,19 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer"]
+clip_contents = true
 layout_mode = 2
 
+[node name="Sprite2D" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
+z_index = -1
+position = Vector2(699.5, 541.5)
+scale = Vector2(0.57070315, 0.7756945)
+texture = ExtResource("3_yssfv")
+
 [node name="SubViewport" type="SubViewport" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
+transparent_bg = true
 handle_input_locally = false
-size = Vector2i(1182, 1080)
+size = Vector2i(1382, 1080)
 render_target_update_mode = 4
 
 [node name="ZoneTilemap" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]
@@ -127,3 +136,5 @@ layout_mode = 1
 [node name="SaveTimer" type="Timer" parent="."]
 autostart = true
 script = ExtResource("4_11so6")
+
+[editable path="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer/SubViewport/ZoneTilemap"]

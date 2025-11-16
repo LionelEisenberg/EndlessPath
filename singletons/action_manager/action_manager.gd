@@ -14,6 +14,9 @@ signal foraging_completed(item_amount: int, item_definition: ItemDefinitionData)
 signal stop_foraging()
 signal start_foraging()
 
+## cycling signals
+signal stop_cycling()
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -184,6 +187,7 @@ func _stop_forage_action() -> void:
 ## Handle cycling action - stop cycling.
 func _stop_cycling_action() -> void:
 	print("ActionManager: Stopping cycling action")
+	stop_cycling.emit()
 
 ## Handle dialogue action - stop dialogue.
 func _stop_dialogue_action() -> void:

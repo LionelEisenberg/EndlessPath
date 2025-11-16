@@ -31,7 +31,7 @@ DialogueManager="*res://singletons/dialogue_manager/dialogue_manager.gd"
 [dialogic]
 
 directories/dch_directory={
-"wisened_dirt_eel": "res://assets/dialogue/characters/wisened_dirt_eel.dch"
+"wisened_dirt_eel": "res://assets/dialogue/characters/wisened_dirt_eel/wisened_dirt_eel.dch"
 }
 directories/dtl_directory={
 "spirit_valley": "res://assets/dialogue/timelines/spirit_valley.dtl"
