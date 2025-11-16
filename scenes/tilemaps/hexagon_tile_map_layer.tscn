@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=4 uid="uid://d3givt02dwnlp"]
+
+[ext_resource type="TileSet" uid="uid://brm40hxx3wp8n" path="res://scenes/game_systems/zones/zone_tilemap/zone_tilemap_tileset.tres" id="1_8xswh"]
+[ext_resource type="Script" uid="uid://qscq7dtmesw6" path="res://scenes/tilemaps/hexagon_tile_map_layer.gd" id="2_gt0uv"]
+
+[node name="HexagonTileMapLayer" type="TileMapLayer"]
+tile_map_data = PackedByteArray("AAD/////AAAAAAAAAQD//wAAAAAAAAAAAQAAAAAAAAAAAAAAAQD//wEAAAAAAAAAAAABAAAAAAAAAAAAAAABAP//AAAAAAAAAAACAAAAAAAAAAAAAAABAAEAAAAAAAAAAAABAP7/AAAAAAAAAAAAAP3/AAAAAAAAAAAAAP7/AAAAAAAAAAAAAAIAAAAAAAAAAAABAAIAAAAAAAAAAAAAAAMAAAAAAAAAAAA=")
+tile_set = ExtResource("1_8xswh")
+script = ExtResource("2_gt0uv")
+debug_mode = 1
+metadata/_custom_type_script = "uid://buj6ft1vvdf2f"

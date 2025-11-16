@@ -1,16 +1,26 @@
-[gd_scene load_steps=3 format=4 uid="uid://bvgyusvjgbnbx"]
+[gd_scene load_steps=6 format=3 uid="uid://bvgyusvjgbnbx"]
 
-[ext_resource type="PackedScene" uid="uid://0hk7skv7ab0c" path="res://scenes/tilemaps/tile_map_layer.tscn" id="1_4pw8h"]
+[ext_resource type="PackedScene" uid="uid://d3givt02dwnlp" path="res://scenes/tilemaps/hexagon_tile_map_layer.tscn" id="1_4pw8h"]
+[ext_resource type="Script" uid="uid://w7rvakxl1g1t" path="res://scenes/game_systems/adventure/adventure_tilemap/adventure_tilemap.gd" id="1_b7v0o"]
 [ext_resource type="PackedScene" uid="uid://eomevugae50m" path="res://scenes/characters/main_character/character_body_2d.tscn" id="2_b7v0o"]
+[ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="4_yfmtn"]
+[ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="4_ywsim"]
 
 [node name="AdventureTilemap" type="Node2D"]
+script = ExtResource("1_b7v0o")
 
-[node name="TileMapLayer" parent="." instance=ExtResource("1_4pw8h")]
+[node name="HexagonTileMapLayer" parent="." instance=ExtResource("1_4pw8h")]
 unique_name_in_owner = true
 position = Vector2(-82, -95)
-tile_map_data = PackedByteArray("AAD/////AAAAAAAAAAAAAP7/AAAAAAAAAAAAAP3/AAAAAAAAAAABAP7/AAAAAAAAAAABAP//AAAAAAAAAAABAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAACAP//AAAAAAAAAAADAP//AAAAAAAAAAAEAP7/AAAAAAAAAAD+////AAAAAAAAAAD+//7/AAAAAAAAAAD9//7/AAAAAAAAAAD8//3/AAAAAAAAAAD8////AAAAAAAAAAA=")
+tile_map_data = PackedByteArray()
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("2_b7v0o")]
 unique_name_in_owner = true
+z_index = 1
+is_debug_mode = false
 
 [node name="Camera2D" type="Camera2D" parent="CharacterBody2D"]
+
+[node name="CameraClampController" parent="CharacterBody2D/Camera2D" instance=ExtResource("4_yfmtn")]
+
+[node name="CameraZoomController" parent="CharacterBody2D/Camera2D" instance=ExtResource("4_ywsim")]

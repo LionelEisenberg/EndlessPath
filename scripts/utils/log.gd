@@ -114,45 +114,45 @@ func _log_message(message: String, log_message_error: bool) -> void:
 	message = _format_log_message(message.trim_suffix('\n'), event)
 	_add_message_to_file(message, event)
 
-static func info(message: String) -> void:
+static func info(message: Variant) -> void:
 	if not _is_valid:
 		return
 	var event := Event.INFO
-	message = _format_log_message(message, event)
-	_add_message_to_file(message, event)
+	var msg_str := _format_log_message(str(message), event)
+	_add_message_to_file(msg_str, event)
 	if _should_print_event(event):
-		_print_event(message, event)
+		_print_event(msg_str, event)
 
-static func warn(message: String) -> void:
+static func warn(message: Variant) -> void:
 	if not _is_valid:
 		return
 	var event := Event.WARN
-	message = _format_log_message(message, event)
-	_add_message_to_file(message, event)
+	var msg_str := _format_log_message(str(message), event)
+	_add_message_to_file(msg_str, event)
 	if _should_print_event(event):
-		_print_event(message, event)
+		_print_event(msg_str, event)
 
-static func error(message: String) -> void:
+static func error(message: Variant) -> void:
 	if not _is_valid:
 		return
 	var event := Event.ERROR
-	message = _format_log_message(message, event)
+	var msg_str := _format_log_message(str(message), event)
 	var script_backtraces := Engine.capture_script_backtraces()
-	message += '\n' + _get_gdscript_backtrace(script_backtraces)
-	_add_message_to_file(message, event)
+	msg_str += '\n' + _get_gdscript_backtrace(script_backtraces)
+	_add_message_to_file(msg_str, event)
 	if _should_print_event(event):
-		_print_event(message, event)
+		_print_event(msg_str, event)
 
-static func critical(message: String) -> void:
+static func critical(message: Variant) -> void:
 	if not _is_valid:
 		return
 	var event := Event.CRITICAL
-	message = _format_log_message(message, event)
+	var msg_str := _format_log_message(str(message), event)
 	var script_backtraces := Engine.capture_script_backtraces()
-	message += '\n' + _get_gdscript_backtrace(script_backtraces)
-	_add_message_to_file(message, event)
+	msg_str += '\n' + _get_gdscript_backtrace(script_backtraces)
+	_add_message_to_file(msg_str, event)
 	if _should_print_event(event):
-		_print_event(message, event)
+		_print_event(msg_str, event)
 
 static func force_flush() -> void:
 	_add_message_to_file("", Event.FORCE_FLUSH)
