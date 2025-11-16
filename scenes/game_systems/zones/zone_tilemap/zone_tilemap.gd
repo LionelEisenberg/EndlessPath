@@ -2,8 +2,8 @@ extends Node2D
 
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
-@onready var tile_map: TileMapLayer = $TileMapLayer
-@onready var character_body: CharacterBody2D = $CharacterBody2D
+@onready var tile_map: TileMapLayer = %TileMapLayer
+@onready var character_body: CharacterBody2D = %CharacterBody2D
 
 var floating_text_scene : PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
 

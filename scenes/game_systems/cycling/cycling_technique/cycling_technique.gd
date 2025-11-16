@@ -92,6 +92,9 @@ func setup(data: CyclingTechniqueData) -> void:
 	
 	# Initialize state
 	current_state = CycleState.IDLE
+	
+	# Set Madra Ball Position
+	path_follow_2d.progress_ratio = 0.0
 
 ## Set the current technique data and update display.
 func set_technique_data(data: CyclingTechniqueData):
