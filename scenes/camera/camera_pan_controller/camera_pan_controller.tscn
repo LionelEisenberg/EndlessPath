@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://lt845ceb1dib"]
+
+[ext_resource type="Script" uid="uid://cx8gw0623vc72" path="res://scenes/camera/camera_pan_controller/camera_pan_controller.gd" id="1_5upr1"]
+
+[node name="CameraPanController" type="Node"]
+script = ExtResource("1_5upr1")

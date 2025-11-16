@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cs1ystg6v3d2d"]
+
+[ext_resource type="Script" uid="uid://dbhuvhan5jvj0" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.gd" id="1_e7p15"]
+
+[node name="CameraZoomController" type="Node"]
+script = ExtResource("1_e7p15")
