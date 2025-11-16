@@ -14,13 +14,13 @@ func _ready() -> void:
 		load_new_save_data()
 
 	if not save_game_data.verify():
-		printerr("CRITICAL - PersistenceManager: SaveGameData is invalid. Resetting to default.")
+		Log.critical("PersistenceManager: SaveGameData is invalid. Resetting to default.")
 		load_new_save_data()
 
 func load_new_save_data() -> void:
 	save_game_data.reset_state()
 	if save_data() != Error.OK:
-		print("PersistenceManager: Error saving data.")
+		Log.critical("PersistenceManager: Error saving data.")
 	save_data_reset.emit()
 
 func save_data() -> Error :
@@ -30,13 +30,13 @@ func load_data() -> void :
 	if not ResourceLoader.exists(SAVE_PATH) : 
 		save_game_data = SaveGameData.new()
 		save_data()
-		print("PersistenceManager: No save file found. Initialized with default SaveGameData.")
+		Log.info("PersistenceManager: No save file found. Initialized with default SaveGameData.")
 	save_game_data = ResourceLoader.load(SAVE_PATH)
 	
 	if not save_game_data:
 		save_game_data = SaveGameData.new()
 		save_data()
-		print("PersistenceManager: SaveGameData is Null. Error needs to be investigated")
+		Log.warn("PersistenceManager: SaveGameData is Null. Error needs to be investigated")
 
 
 func is_base_game_save() -> bool:

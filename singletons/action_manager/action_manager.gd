@@ -11,11 +11,16 @@ signal current_action_changed(action_data)
 
 ## foraging signals
 signal foraging_completed(item_amount: int, item_definition: ItemDefinitionData)
+signal start_foraging(action_data: ForageActionData)
 signal stop_foraging()
-signal start_foraging()
 
 ## cycling signals
+signal start_cycling(action_data: CyclingActionData)
 signal stop_cycling()
+
+## adventure signals
+signal start_adventure(action_data: AdventureActionData)
+signal stop_adventure()
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -32,7 +37,7 @@ func _ready() -> void:
 	if ZoneManager:
 		ZoneManager.zone_changed.connect(_on_zone_changed)
 	else:
-		printerr("ActionManager: ZoneManager is not found")
+		Log.critical("ActionManager: ZoneManager is not found")
 
 func _on_zone_changed(_zone_data : ZoneData) -> void:
 	stop_action()
@@ -44,7 +49,7 @@ func _on_zone_changed(_zone_data : ZoneData) -> void:
 ## Select an action to execute.
 func select_action(action_data: ZoneActionData) -> void:
 	if not action_data:
-		printerr("ActionManager: select_action called with null action_data")
+		Log.error("ActionManager: select_action called with null action_data")
 		return
 
 	_stop_executing_current_action()
@@ -68,16 +73,24 @@ func _execute_action(action_data: ZoneActionData) -> void:
 			if action_data is ForageActionData:
 				_execute_forage_action(action_data as ForageActionData)
 			else:
-				printerr("ActionManager: Forage action data is not a ForageActionData: %s" % action_data.action_name)
+				Log.error("ActionManager: Forage action data is not a ForageActionData: %s" % action_data.action_name)
+		ZoneActionData.ActionType.ADVENTURE:
+			if action_data is AdventureActionData:
+				_execute_adventure_action(action_data as AdventureActionData)
+			else:
+				Log.error("ActionManager: Adventure action data is not an AdventureActionData: %s" % action_data.action_name)
 		ZoneActionData.ActionType.CYCLING:
-			_execute_cycling_action(action_data)
+			if action_data is CyclingActionData:
+				_execute_cycling_action(action_data as CyclingActionData)
+			else:
+				Log.error("ActionManager: Cycling action data is not a CyclingActionData: %s" % action_data.action_name)
 		ZoneActionData.ActionType.NPC_DIALOGUE:
 			if action_data is NpcDialogueActionData:
 				_execute_dialogue_action(action_data as NpcDialogueActionData)
 			else:
-				printerr("ActionManager: Dialogue action data is not NpcDialogueActionData")
+				Log.error("ActionManager: Dialogue action data is not NpcDialogueActionData")
 		_:
-			printerr("ActionManager: Unknown action type: %s" % action_data.action_type)
+			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
 ## Stop executing the current action.
 func _stop_executing_current_action() -> void:
@@ -87,12 +100,14 @@ func _stop_executing_current_action() -> void:
 		match current_action.action_type:
 			ZoneActionData.ActionType.FORAGE:
 				_stop_forage_action()
+			ZoneActionData.ActionType.ADVENTURE:
+				_stop_adventure_action()
 			ZoneActionData.ActionType.CYCLING:
 				_stop_cycling_action()
 			ZoneActionData.ActionType.NPC_DIALOGUE:
 				_stop_dialogue_action()
 			_:
-				printerr("ActionManager: Unknown action type: %s" % current_action.action_type)
+				Log.error("ActionManager: Unknown action type: %s" % current_action.action_type)
 	
 
 #-----------------------------------------------------------------------------
@@ -101,7 +116,7 @@ func _stop_executing_current_action() -> void:
 
 ## Handle forage action - toggle foraging for zone.
 func _execute_forage_action(action_data: ForageActionData) -> void:
-	print("ActionManager: Executing foraging action: %s" % action_data.action_name)
+	Log.info("ActionManager: Executing foraging action: %s" % action_data.action_name)
 	start_foraging.emit()
 	
 	action_timer.name = "ForageTimer"
@@ -135,28 +150,27 @@ func _award_item(item_amount: int, item_definition: ItemDefinitionData) -> void:
 		return
 	
 	if not InventoryManager:
-		printerr("ActionManager: InventoryManager not available, cannot award item")
+		Log.critical("ActionManager: InventoryManager not available, cannot award item")
 		return
 	
 	InventoryManager.award_items(item_definition, item_amount)
 
+## Handle adventure action - switch to adventure view.
+func _execute_adventure_action(action_data: AdventureActionData) -> void:
+	Log.info("ActionManager: Executing adventure action: %s" % action_data.action_name)
+	start_adventure.emit(action_data)
+
 ## Handle cycling action - switch to cycling view.
-func _execute_cycling_action(action_data: ZoneActionData) -> void:
-	print("ActionManager: Executing cycling action: %s" % action_data.action_name)
-	var main_view = _get_main_view()
-	
-	if main_view:
-		if main_view.has_method("show_and_initialize_action_popup"):
-			main_view.show_and_initialize_action_popup(action_data)
-	else:
-		printerr("ActionManager: Could not find MainView for cycling action")
+func _execute_cycling_action(action_data: CyclingActionData) -> void:
+	Log.info("ActionManager: Executing cycling action: %s" % action_data.action_name)
+	start_cycling.emit(action_data)
 
 ## Handle dialogue action - show dialogue.
 func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
-	print("ActionManager: Executing dialogue action: %s" % action_data.action_name)
+	Log.info("ActionManager: Executing dialogue action: %s" % action_data.action_name)
 	
 	if not DialogueManager:
-		printerr("ActionManager: DialogueManager is not initialized")
+		Log.critical("ActionManager: DialogueManager is not initialized")
 		return
 	
 	DialogueManager.dialogue_ended.connect(
@@ -166,35 +180,33 @@ func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 
 	DialogueManager.start_timeline(action_data.dialogue_timeline_name)
 
-## Attempt to fetch the main view node from the scene tree.
-func _get_main_view() -> Node:
-	if get_tree():
-		return get_node("/root/MainGame/MainView")
-	else:
-		return null
-
 #-----------------------------------------------------------------------------
 # ACTION STOP EXECUTION HANDLERS
 #-----------------------------------------------------------------------------
 
 ## Handle forage action - stop foraging.
 func _stop_forage_action() -> void:
-	print("ActionManager: Stopping foraging action")
+	Log.info("ActionManager: Stopping foraging action")
 	stop_foraging.emit()
 	remove_child(action_timer)
 	action_timer = Timer.new()
 
+## Handle adventure action - stop adventure.
+func _stop_adventure_action() -> void:
+	Log.info("ActionManager: Stopping adventure action")
+	stop_adventure.emit()
+
 ## Handle cycling action - stop cycling.
 func _stop_cycling_action() -> void:
-	print("ActionManager: Stopping cycling action")
+	Log.info("ActionManager: Stopping cycling action")
 	stop_cycling.emit()
 
 ## Handle dialogue action - stop dialogue.
 func _stop_dialogue_action() -> void:
-	print("ActionManager: Dialogue completed, processing effects for: %s" % current_action.action_name)
+	Log.info("ActionManager: Dialogue completed, processing effects for: %s" % current_action.action_name)
 	
 	if not EventManager:
-		printerr("ActionManager: EventManager not found. Cannot process effects.")
+		Log.error("ActionManager: EventManager not found. Cannot process effects.")
 		return
 
 	for effect in current_action.effects:
@@ -203,10 +215,10 @@ func _stop_dialogue_action() -> void:
 				effect = effect as TriggerEventEffectData
 				var event_id = effect.event_id
 				if event_id:
-					print("ActionManager: Triggering event: %s" % event_id)
+					Log.info("ActionManager: Triggering event: %s" % event_id)
 					EventManager.trigger_event(event_id)
 				else:
-					printerr("ActionManager: TRIGGER_EVENT effect has no 'event_id' in effect_data")
+					Log.error("ActionManager: TRIGGER_EVENT effect has no 'event_id' in effect_data")
 					
 			EffectData.EffectType.AWARD_RESOURCE:
 				pass

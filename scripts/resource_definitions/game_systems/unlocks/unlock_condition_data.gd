@@ -32,24 +32,24 @@ func evaluate() -> bool:
 		
 		ConditionType.ZONE_UNLOCKED:
 			# Will be implemented in ZoneManager
-			printerr("UnlockConditionData: ZONE_UNLOCKED not yet implemented")
+			Log.warn("UnlockConditionData: ZONE_UNLOCKED not yet implemented")
 			return false
 		
 		ConditionType.ADVENTURE_COMPLETED:
 			# Will be implemented in AdventureManager
-			printerr("UnlockConditionData: ADVENTURE_COMPLETED not yet implemented")
+			Log.warn("UnlockConditionData: ADVENTURE_COMPLETED not yet implemented")
 			return false
 		
 		ConditionType.EVENT_TRIGGERED:
 			if not EventManager:
-				printerr("UnlockConditionData: EventManager is not initialized")
+				Log.error("UnlockConditionData: EventManager is not initialized")
 				return false
 			else:
 				return EventManager.has_event_triggered(target_value)
 		
 		ConditionType.ITEM_OWNED:
 			# Will be implemented in InventoryManager
-			printerr("UnlockConditionData: ITEM_OWNED not yet implemented")
+			Log.warn("UnlockConditionData: ITEM_OWNED not yet implemented")
 			return false
 		
 		ConditionType.RESOURCE_AMOUNT:
@@ -63,13 +63,8 @@ func evaluate() -> bool:
 		
 		ConditionType.STAT_VALUE:
 			# Will be implemented in AdventureManager
-			printerr("UnlockConditionData: STAT_VALUE not yet implemented")
+			Log.warn("UnlockConditionData: STAT_VALUE not yet implemented")
 			return false
-		
-		ConditionType.GAME_SYSTEM_UNLOCKED:
-			var system = UnlockManager.GameSystem.get(target_value)
-			return UnlockManager.is_game_system_unlocked(system)
-	
 	return false
 
 

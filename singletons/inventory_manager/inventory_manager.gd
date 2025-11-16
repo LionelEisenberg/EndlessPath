@@ -19,7 +19,7 @@ var live_save_data: SaveGameData
 
 func _ready() -> void:
 	if not PersistenceManager or not PersistenceManager.save_game_data:
-		printerr("InventoryManager: PersistenceManager or save data missing on ready()")
+		Log.critical("InventoryManager: PersistenceManager or save data missing on ready()")
 		return
 	else:
 		live_save_data = PersistenceManager.save_game_data
@@ -41,9 +41,9 @@ func award_items(item: ItemDefinitionData, quantity: int) -> void:
 			if item is MaterialDefinitionData:
 				_award_material(item as MaterialDefinitionData, quantity)
 			else:
-				printerr("InventoryManager: Item type not supported: %s" % item.item_type)
+				Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
 		_:
-			printerr("InventoryManager: Item type not supported: %s" % item.item_type)
+			Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
 
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS

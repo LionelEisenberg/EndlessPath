@@ -33,10 +33,10 @@ func _ready() -> void:
 		PersistenceManager.save_data_reset.connect(_initialize_from_save)
 		
 		if live_save_data.unlock_progression == null:
-			printerr("CRITICAL - UnlockManager: Could not get UnlockProgressionData from PersistenceManager!")
+			Log.critical("UnlockManager: Could not get UnlockProgressionData from PersistenceManager!")
 			live_save_data.unlock_progression = UnlockProgressionData.new()
 	else:
-		printerr("CRITICAL - UnlockManager: Could not get save_game_data from PersistenceManager on ready!")
+		Log.critical("UnlockManager: Could not get save_game_data from PersistenceManager on ready!")
 		return
 	
 	# Connect to existing signals to check for unlock conditions
@@ -53,21 +53,21 @@ func _connect_unlock_signals() -> void:
 	if EventManager:
 		EventManager.event_triggered.connect(_evaluate_all_conditions.unbind(1))
 	else:
-		printerr("CRITICAL - UnlockManager: EventManager is missing!")
+		Log.critical("UnlockManager: EventManager is missing!")
 
 	# Connect to CultivationManager signals
 	if CultivationManager:
 		CultivationManager.advancement_stage_changed.connect(_evaluate_all_conditions.unbind(1))
 		CultivationManager.core_density_level_updated.connect(_evaluate_all_conditions.unbind(2))
 	else:
-		printerr("CRITICAL - UnlockManager: CultivationManager is missing!")
+		Log.critical("UnlockManager: CultivationManager is missing!")
 	
 	# Connect to ResourceManager signals
 	if ResourceManager:
 		ResourceManager.madra_changed.connect(_evaluate_all_conditions.unbind(1))
 		ResourceManager.gold_changed.connect(_evaluate_all_conditions.unbind(1))
 	else:
-		printerr("CRITICAL - UnlockManager: ResourceManager is missing!")
+		Log.critical("UnlockManager: ResourceManager is missing!")
 
 #-----------------------------------------------------------------------------
 # PUBLIC UNLOCK MANAGEMENT FUNCTIONS
@@ -98,7 +98,7 @@ func get_achieved_conditions() -> Array[String]:
 ## Called by any signal that changes game state.
 func _evaluate_all_conditions() -> void:
 	if unlock_condition_list == null:
-		printerr("UnlockManager: 'unlock_condition_list' is not set. Assign it in the editor.")
+		Log.error("UnlockManager: 'unlock_condition_list' is not set. Assign it in the editor.")
 		return
 
 	for condition in unlock_condition_list.list:
@@ -114,7 +114,7 @@ func _unlock_condition(condition_id: String) -> void:
 		live_save_data.unlock_progression.unlocked_condition_ids.append(condition_id)
 		condition_unlocked.emit(condition_id)
 
-		print("UnlockManager: Condition permanently unlocked: %s" % condition_id)
+		Log.info("UnlockManager: Condition permanently unlocked: %s" % condition_id)
 
 #-----------------------------------------------------------------------------
 # GAME SYSTEM UNLOCK FUNCTIONS

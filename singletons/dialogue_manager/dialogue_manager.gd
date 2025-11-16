@@ -11,7 +11,7 @@ func _ready() -> void:
 	if Dialogic:
 		Dialogic.timeline_ended.connect(_on_timeline_ended)
 	else:
-		printerr("DialogueManager: Dialogic not available")
+		Log.critical("DialogueManager: Dialogic not available")
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -19,7 +19,7 @@ func _ready() -> void:
 
 ## Start a Dialogic timeline by timeline name/ID.
 func start_timeline(timeline_name: String) -> void:
-	print("DialogueManager: Starting timeline: %s" % timeline_name)
+	Log.info("DialogueManager: Starting timeline: %s" % timeline_name)
 	
 	Dialogic.start(timeline_name)
 	get_viewport().set_input_as_handled()
@@ -32,7 +32,7 @@ func start_timeline(timeline_name: String) -> void:
 #-----------------------------------------------------------------------------
 
 func _on_timeline_ended() -> void:
-	print("DialogueManager: Timeline ended")
+	Log.info("DialogueManager: Timeline ended")
 	
 	dialogue_ended.emit()
 	current_timeline_name = ""

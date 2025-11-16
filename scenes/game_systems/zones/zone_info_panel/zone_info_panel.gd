@@ -13,12 +13,12 @@ func _ready() -> void:
 		ZoneManager.action_completed.connect(_on_action_completed)
 		current_zone_data = ZoneManager.get_current_zone()
 	else:
-		printerr("ZoneInfoPanel: ZoneManager is not initialized")
+		Log.critical("ZoneInfoPanel: ZoneManager is not initialized")
 
 	if UnlockManager:
 		UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	else:
-		printerr("ZoneInfoPanel: UnlockManager is not initialized")
+		Log.critical("ZoneInfoPanel: UnlockManager is not initialized")
 
 	if current_zone_data:
 		setup_zone_actions()

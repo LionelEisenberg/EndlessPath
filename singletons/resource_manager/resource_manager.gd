@@ -39,15 +39,15 @@ func _ready() -> void:
 		PersistenceManager.save_data_reset.connect(_update_resources)
 		_update_resources()
 	else:
-		printerr("CRITICAL - ResourceManager: Could not get save_game_data from PersistenceManager on ready!")
+		Log.critical("ResourceManager: Could not get save_game_data from PersistenceManager on ready!")
 	
 	if not CultivationManager:
-		printerr("CRITICAL - ResourceManager: CultivationManager is missing!")
+		Log.critical("ResourceManager: CultivationManager is missing!")
 
 func _update_resources() -> void:
 	live_save_data = PersistenceManager.save_game_data
 	if live_save_data == null:
-		printerr("CRITICAL - ResourceManager: live_save_data is null in _update_resources!")
+		Log.critical("ResourceManager: live_save_data is null in _update_resources!")
 		return
 	
 	# Emit signals to update UI

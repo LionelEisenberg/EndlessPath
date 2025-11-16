@@ -36,13 +36,13 @@ func _ready():
 		ActionManager.stop_foraging.connect(_on_stop_foraging)
 		ActionManager.foraging_completed.connect(_on_foraging_completed)
 	else:
-		printerr("CRITICAL - ZoneTilemap: ActionManager is not loaded!")
+		Log.critical("ZoneTilemap: ActionManager is not loaded!")
 	
 	# Connect to UnlockManager signals
 	if UnlockManager:
 		UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	else:
-		printerr("CRITICAL - ZoneTilemap: UnlockManager is not loaded!")
+		Log.critical("ZoneTilemap: UnlockManager is not loaded!")
 
 ## Set all zones in the tile_map
 func set_all_zones_in_tile_map() -> void:
@@ -116,7 +116,7 @@ func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[
 ## Called when a tile is clicked on the tile map.
 func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 	var zone_data = get_zone_at_tile(tile_coord)
-	print(tile_coord)
+	Log.info("ZoneTilemap: Zone tile clicked: %s" % tile_coord)
 	if not zone_data: 
 		return
 	

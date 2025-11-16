@@ -138,7 +138,7 @@ func _create_cycling_zones() -> void:
 	
 	# Check if the scene is loaded properly
 	if not cycling_zone_scene:
-		printerr("CyclingTechnique: cycling_zone_scene is null! Check the preload path.")
+		Log.critical("CyclingTechnique: cycling_zone_scene is null! Check the preload path.")
 		return
 	
 	# Create zones for each zone data
@@ -148,13 +148,13 @@ func _create_cycling_zones() -> void:
 		# Instantiate the CyclingZone scene
 		var zone = cycling_zone_scene.instantiate()
 		if not zone:
-			printerr("CyclingTechnique: Failed to instantiate cycling zone scene!")
+			Log.error("CyclingTechnique: Failed to instantiate cycling zone scene!")
 			continue
 			
 		# Cast to CyclingZone and verify
 		var cycling_zone = zone as CyclingZone
 		if not cycling_zone:
-			printerr("CyclingTechnique: Instantiated object is not a CyclingZone! Check scene script.")
+			Log.error("CyclingTechnique: Instantiated object is not a CyclingZone! Check scene script.")
 			zone.queue_free()
 			continue
 			
@@ -293,34 +293,35 @@ func _print_cycle_stats(madra_earned: float) -> void:
 	
 	var avg_timing_accuracy = total_timing_accuracy / click_timings.size() if click_timings.size() > 0 else 0.0
 	
-	print("=== CYCLE COMPLETE ===")
-	print("Duration: %.2fs (Target: %.2fs)" % [actual_duration, cycle_duration])
-	print("Madra Gained: %.2f (Mouse Accuracy: %.1f%%)" % [madra_earned, avg_tracking_accuracy])
-	print("Zones Hit: %d/%d (%.1f%%)" % [zones_hit, total_zones, accuracy_percentage])
-	print("Mouse Tracking Accuracy: %.1f%%" % avg_tracking_accuracy)
-	print("Technique: %s" % (technique_data.technique_name if technique_data else "Unknown"))
-	print("")
-	print("--- CLICK TIMING BREAKDOWN ---")
+	var cycle_summary = "=== CYCLE COMPLETE ===\n"
+	cycle_summary += "Duration: %.2fs (Target: %.2fs)\n" % [actual_duration, cycle_duration]
+	cycle_summary += "Madra Gained: %.2f (Mouse Accuracy: %.1f%%)\n" % [madra_earned, avg_tracking_accuracy]
+	cycle_summary += "Zones Hit: %d/%d (%.1f%%)\n" % [zones_hit, total_zones, accuracy_percentage]
+	cycle_summary += "Mouse Tracking Accuracy: %.1f%%\n" % avg_tracking_accuracy
+	cycle_summary += "Technique: %s\n" % (technique_data.technique_name if technique_data else "Unknown")
+	cycle_summary += "\n--- CLICK TIMING BREAKDOWN ---\n"
+	
 	if click_timings.size() > 0:
-		print("Average Timing Accuracy: %.1f%%" % avg_timing_accuracy)
-		print("Perfect Clicks: %d" % perfect_clicks)
-		print("Good Clicks: %d" % good_clicks)
-		print("OK Clicks: %d" % ok_clicks)
-		print("")
-		print("Individual Click Details:")
+		cycle_summary += "Average Timing Accuracy: %.1f%%\n" % avg_timing_accuracy
+		cycle_summary += "Perfect Clicks: %d\n" % perfect_clicks
+		cycle_summary += "Good Clicks: %d\n" % good_clicks
+		cycle_summary += "OK Clicks: %d\n" % ok_clicks
+		cycle_summary += "\nIndividual Click Details:\n"
 		for i in range(click_timings.size()):
 			var click = click_timings[i]
-			print("  %d. %s: %.1f%% accuracy (%s) - %d XP" % [
+			cycle_summary += "  %d. %s: %.1f%% accuracy (%s) - %d XP\n" % [
 				i + 1, 
 				click.zone_name, 
 				click.timing_accuracy, 
 				click.timing_quality, 
 				click.xp_reward
-			])
+			]
 	else:
-		print("No successful clicks recorded")
-	print("=============================")
-	print("=====================")
+		cycle_summary += "No successful clicks recorded\n"
+	cycle_summary += "=============================\n"
+	cycle_summary += "====================="
+	
+	Log.info(cycle_summary)
 
 ## Called when the madra ball enters a cycling zone.
 func _on_madra_ball_area_entered(area: Area2D) -> void:

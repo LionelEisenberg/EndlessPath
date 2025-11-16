@@ -41,12 +41,12 @@ func _ready() -> void:
 		PersistenceManager.save_data_reset.connect(_update_resources)
 		_update_resources()
 	else:
-		printerr("CRITICAL - CultivationManager: Could not get save_game_data from PersistenceManager on ready!")
+		Log.critical("CultivationManager: Could not get save_game_data from PersistenceManager on ready!")
 
 func _update_resources() -> void:
 	live_save_data = PersistenceManager.save_game_data
 	if live_save_data == null:
-		printerr("CRITICAL - CultivationManager: live_save_data is null in _update_resources!")
+		Log.critical("CultivationManager: live_save_data is null in _update_resources!")
 		return
 	
 	core_density_xp_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
@@ -59,7 +59,7 @@ func _update_resources() -> void:
 ## Add XP to core density and handle level progression.
 func add_core_density_xp(amount: float):
 	if live_save_data == null:
-		printerr("CultivationManager: Cannot add XP - live_save_data is null")
+		Log.error("CultivationManager: Cannot add XP - live_save_data is null")
 		return
 	
 	# Add XP to current amount

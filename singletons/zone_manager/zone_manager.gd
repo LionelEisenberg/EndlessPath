@@ -27,7 +27,7 @@ func _ready() -> void:
 		live_save_data = PersistenceManager.save_game_data
 		PersistenceManager.save_data_reset.connect(_initialize_from_save)
 	else:
-		printerr("CRITICAL - ZoneManager: Could not get save_game_data from PersistenceManager on ready!")
+		Log.critical("ZoneManager: Could not get save_game_data from PersistenceManager on ready!")
 		return
 
 func _initialize_from_save() -> void:
@@ -80,7 +80,7 @@ func increment_zone_progression_for_action(action_id: String, zone_id: String = 
 func get_available_actions(zone_id: String = get_current_zone().zone_id) -> Array[ZoneActionData]:
 	var zone_data = get_zone_by_id(zone_id)
 	if zone_data == null:
-		printerr("ZoneManager: Zone not found: %s" % zone_id)
+		Log.error("ZoneManager: Zone not found: %s" % zone_id)
 		return []
 	
 	# Check if zone itself is unlocked

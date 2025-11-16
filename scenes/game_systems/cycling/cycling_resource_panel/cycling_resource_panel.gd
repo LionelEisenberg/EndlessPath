@@ -39,10 +39,10 @@ var last_madra_per_cycle: float = 0.0  # Madra per cycle from last completed cyc
 
 func _ready():
 	if not ResourceManager:
-		push_error("Critical - update_madra_display: ResourceManager is missing!")
+		Log.critical("CyclingResourcePanel: ResourceManager is missing!")
 		return
 	if not CultivationManager:
-		push_error("Critical - update_madra_display: CultivationManager is missing!")
+		Log.critical("CyclingResourcePanel: CultivationManager is missing!")
 		return
 
 	setup_ui()
