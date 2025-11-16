@@ -6,5 +6,3 @@ extends Node2D
 func _ready() -> void:
 	# Set the log print level
 	Log.set_print_level(log_print_level)
-	
-	Log.info("hi")

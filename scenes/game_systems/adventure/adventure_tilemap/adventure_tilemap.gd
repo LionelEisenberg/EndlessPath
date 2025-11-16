@@ -14,6 +14,7 @@ func _ready() -> void:
 
 func start_adventure(action_data: AdventureActionData) -> void:
 	Log.info("AdventureTilemap: Starting adventure: %s" % action_data.action_name)
+	
 
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")
