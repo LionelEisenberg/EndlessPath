@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="AdventureData" load_steps=2 format=3 uid="uid://b2erw55qd1wh7"]
+
+[ext_resource type="Script" uid="uid://b4nlsemiwg2h6" path="res://scripts/resource_definitions/game_systems/adventure/adventure_data.gd" id="1_3qutp"]
+
+[resource]
+script = ExtResource("1_3qutp")
+metadata/_custom_type_script = "uid://b4nlsemiwg2h6"

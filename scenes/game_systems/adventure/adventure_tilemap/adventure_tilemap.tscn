@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=4 uid="uid://bvgyusvjgbnbx"]
+
+[ext_resource type="PackedScene" uid="uid://0hk7skv7ab0c" path="res://scenes/tilemaps/tile_map_layer.tscn" id="1_4pw8h"]
+[ext_resource type="PackedScene" uid="uid://eomevugae50m" path="res://scenes/characters/main_character/character_body_2d.tscn" id="2_b7v0o"]
+
+[node name="AdventureTilemap" type="Node2D"]
+
+[node name="TileMapLayer" parent="." instance=ExtResource("1_4pw8h")]
+position = Vector2(-82, -95)
+tile_map_data = PackedByteArray("AAD/////AAAAAAAAAAAAAP7/AAAAAAAAAAAAAP3/AAAAAAAAAAABAP7/AAAAAAAAAAABAP//AAAAAAAAAAABAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAACAP//AAAAAAAAAAADAP//AAAAAAAAAAAEAP7/AAAAAAAAAAD+////AAAAAAAAAAD+//7/AAAAAAAAAAD9//7/AAAAAAAAAAD8//3/AAAAAAAAAAD8////AAAAAAAAAAA=")
+
+[node name="CharacterBody2D" parent="." instance=ExtResource("2_b7v0o")]
+
+[node name="Camera2D" type="Camera2D" parent="CharacterBody2D"]

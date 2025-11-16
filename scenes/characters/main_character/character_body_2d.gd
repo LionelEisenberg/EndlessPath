@@ -28,55 +28,46 @@ func _unhandled_input(event: InputEvent) -> void:
 			var click_position = get_global_mouse_position()
 			move_to_position(click_position, move_speed if move_speed > 0 else 200.0)
 
-
+## Moves the character to the given position at the specified speed.
+## Automatically plays the appropriate walk animation based on direction.
 func move_to_position(new_position: Vector2, speed: float) -> void:
-	"""
-	Moves the character to the given position at the specified speed.
-	Automatically plays the appropriate walk animation based on direction.
-	"""
 	target_position = new_position
 	move_speed = speed
 	is_moving = true
-	
+
 	# Determine and play the appropriate walk animation
 	_play_directional_animation()
 
-
+## Updates the character's position each frame during movement.
 func _update_movement() -> void:
-	"""
-	Updates the character's position each frame during movement.
-	"""
 	var direction = (target_position - global_position).normalized()
 	var distance = global_position.distance_to(target_position)
-	
+
 	# Check if we've reached the target
 	if distance <= movement_threshold:
 		global_position = target_position
 		_stop_movement()
 		return
-	
+
 	# Move towards the target
 	velocity = direction * move_speed
 	move_and_slide()
 
-
+## Plays the walk animation that corresponds to the movement direction.
+## Supports all 8 cardinal directions (N, NE, E, SE, S, SW, W, NW).
 func _play_directional_animation() -> void:
-	"""
-	Plays the walk animation that corresponds to the movement direction.
-	Supports all 8 cardinal directions (N, NE, E, SE, S, SW, W, NW).
-	"""
 	if not is_moving:
 		return
-	
+
 	var direction = (target_position - global_position).normalized()
-	
+
 	# Calculate the angle in degrees (0 = right, 90 = down, 180 = left, 270 = up)
 	var angle = rad_to_deg(direction.angle())
-	
+
 	# Normalize angle to 0-360 range
 	if angle < 0:
 		angle += 360
-	
+
 	# Determine which animation to play based on angle
 	# Each direction gets a 45-degree slice
 	if angle >= 337.5 or angle < 22.5:
@@ -104,12 +95,8 @@ func _play_directional_animation() -> void:
 		# Northeast (Up-Right)
 		animation_player.play("walk_up_right")
 
-
+## Stops the character's movement and animation.
 func _stop_movement() -> void:
-	"""
-	Stops the character's movement and animation.
-	"""
-	print("stopped_movement")
 	is_moving = false
 	velocity = Vector2.ZERO
 	animation_player.play("RESET")

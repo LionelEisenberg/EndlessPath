@@ -1,7 +1,8 @@
 extends Control
 
 ## Main Views
-@onready var main_view_container : Panel = %MainViewContainer
+@onready var zone_view : Control = %ZoneView
+@onready var adventure_view : Control = %AdventureView
 @onready var inventory_view : Control = %InventoryView
 @onready var cycling_view : Control = %CyclingView
 @onready var grey_background : Panel = %GreyBackground
@@ -11,6 +12,7 @@ extends Control
 
 enum State {
 	ZONE_VIEW,
+	ADVENTURE_VIEW,
 	CYCLING_VIEW,
 	INVENTORY_VIEW
 }
@@ -25,8 +27,15 @@ func _ready():
 	inventory_view.open_inventory.connect(show_inventory_view)
 	inventory_view.close_inventory.connect(show_zone_view)
 	
-	# Connect to cycling_view_signals
-	cycling_view.close_cycling_view.connect(show_zone_view.unbind(1))
+	# Connect to ActionManager
+	if ActionManager:
+		# Cycling
+		ActionManager.start_cycling.connect(show_and_initialize_action_popup)
+		ActionManager.stop_cycling.connect(show_zone_view)
+		
+		# Adventure
+		ActionManager.start_adventure.connect(show_adventure_view.unbind(1))
+		ActionManager.stop_adventure.connect(show_zone_view)
 	
 	# Connect buttons
 	inventory_button.pressed.connect(show_inventory_view)
@@ -50,6 +59,10 @@ func show_inventory_view():
 func show_zone_view():
 	_set_state(State.ZONE_VIEW)
 
+func show_adventure_view():
+	_set_state(State.ADVENTURE_VIEW)
+	
+
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
@@ -64,6 +77,14 @@ func _set_state(new_state: State) -> void:
 func _update_view_visibility() -> void:
 	match current_state:
 		State.ZONE_VIEW:
+			zone_view.visible = true
+			adventure_view.visible = false
+			grey_background.visible = false
+			cycling_view.visible = false
+			inventory_view.visible = false
+		State.ADVENTURE_VIEW:
+			zone_view.visible = false
+			adventure_view.visible = true
 			grey_background.visible = false
 			cycling_view.visible = false
 			inventory_view.visible = false

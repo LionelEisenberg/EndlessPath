@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("2_mb7p0")
 madra_multiplier = 2.0
-action_id = "MountainTop"
+action_id = "mountain_top_cycling_action"
 action_name = "Mountain Top"
 action_type = 5
 description = "Climb to the mountain top to cycle"

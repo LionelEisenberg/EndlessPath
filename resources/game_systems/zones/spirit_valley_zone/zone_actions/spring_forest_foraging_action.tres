@@ -10,7 +10,7 @@
 [resource]
 script = ExtResource("3_a7ewm")
 forage_resources = Array[ExtResource("1_0k3ag")]([ExtResource("2_a7ewm"), ExtResource("3_q34no")])
-action_id = "SprintForestForaging"
+action_id = "sprint_forest_foraging_action"
 action_name = "Spring Forest Foraging"
 description = "Go to the Spring Forest and Forage some materials"
 unlock_conditions = Array[ExtResource("4_q34no")]([ExtResource("7_q34no")])

@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("1_ptrbs")
-action_id = "CyclingRoom"
+action_id = "basic_room_cycling_action"
 action_name = "Cycling Room"
 action_type = 5
 description = "Cycle in your Room"

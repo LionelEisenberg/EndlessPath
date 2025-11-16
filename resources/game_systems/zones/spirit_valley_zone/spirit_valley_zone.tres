@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ZoneData" load_steps=9 format=3 uid="uid://bh1wsc1wrvc80"]
+[gd_resource type="Resource" script_class="ZoneData" load_steps=10 format=3 uid="uid://bh1wsc1wrvc80"]
 
 [ext_resource type="Script" uid="uid://cv640mljv33xk" path="res://scripts/resource_definitions/game_systems/zones/zone_action_data/zone_action_data.gd" id="1_gfpen"]
 [ext_resource type="Resource" uid="uid://c36o44atngp5e" path="res://resources/game_systems/zones/spirit_valley_zone/zone_actions/initial_spirit_valley_dialogue_1.tres" id="2_4l7yp"]
@@ -8,6 +8,7 @@
 [ext_resource type="Resource" uid="uid://bdkkbh7a5g70o" path="res://resources/game_systems/zones/spirit_valley_zone/zone_actions/mountain_top_cycling_action.tres" id="4_8fv6p"]
 [ext_resource type="Script" uid="uid://culb0p88pnexb" path="res://scripts/resource_definitions/game_systems/zones/zone_data/zone_data.gd" id="5_owjyk"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/game_systems/unlocks/unlock_condition_data.gd" id="6_4wd7e"]
+[ext_resource type="Resource" uid="uid://bbpx8ls6tj2u" path="res://resources/game_systems/zones/spirit_valley_zone/zone_actions/test_adventure_action_data.tres" id="6_owjyk"]
 
 [resource]
 script = ExtResource("5_owjyk")
@@ -15,5 +16,5 @@ zone_name = "Spirit Valley"
 zone_id = "SpiritValley"
 description = "Heart of the world"
 icon = ExtResource("2_ym136")
-all_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_8fv6p"), ExtResource("2_4l7yp"), ExtResource("4_8fv6p"), ExtResource("3_4l7yp")])
+all_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_8fv6p"), ExtResource("2_4l7yp"), ExtResource("4_8fv6p"), ExtResource("3_4l7yp"), ExtResource("6_owjyk")])
 metadata/_custom_type_script = "uid://culb0p88pnexb"

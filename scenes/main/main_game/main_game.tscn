@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://dyrsbe5x01lgo"]
+[gd_scene load_steps=12 format=3 uid="uid://dyrsbe5x01lgo"]
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
@@ -9,6 +9,8 @@
 [ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
 [ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/game_systems/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]
 [ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="5_k2uxu"]
+[ext_resource type="PackedScene" uid="uid://bvgyusvjgbnbx" path="res://scenes/game_systems/adventure/adventure_tilemap/adventure_tilemap.tscn" id="7_up6bt"]
+[ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="8_wwigy"]
 
 [node name="MainGame" type="Node2D"]
 script = ExtResource("1_2bvax")
@@ -40,6 +42,7 @@ size_flags_vertical = 3
 mouse_filter = 2
 
 [node name="ZoneView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -59,7 +62,7 @@ grow_vertical = 2
 clip_contents = true
 layout_mode = 2
 
-[node name="Sprite2D" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
+[node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
 z_index = -1
 position = Vector2(699.5, 541.5)
 scale = Vector2(0.57070315, 0.7756945)
@@ -112,6 +115,47 @@ size_flags_horizontal = 6
 size_flags_vertical = 4
 texture_normal = ExtResource("5_k2uxu")
 
+[node name="AdventureView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1880.0
+offset_bottom = 1040.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer"]
+clip_contents = true
+layout_mode = 2
+
+[node name="AdventureTilemapBackground" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer/SubViewportContainer"]
+z_index = -1
+position = Vector2(699.5, 541.5)
+scale = Vector2(0.57070315, 0.7756945)
+texture = ExtResource("3_yssfv")
+
+[node name="SubViewport" type="SubViewport" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer/SubViewportContainer"]
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1382, 1080)
+render_target_update_mode = 0
+
+[node name="AdventureTilemap" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("7_up6bt")]
+
+[node name="PanelContainer" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = ExtResource("8_wwigy")
+
 [node name="GreyBackground" type="Panel" parent="MainView"]
 unique_name_in_owner = true
 visible = false
@@ -136,5 +180,3 @@ layout_mode = 1
 [node name="SaveTimer" type="Timer" parent="."]
 autostart = true
 script = ExtResource("4_11so6")
-
-[editable path="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer/SubViewport/ZoneTilemap"]

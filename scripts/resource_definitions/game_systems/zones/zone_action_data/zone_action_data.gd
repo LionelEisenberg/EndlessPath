@@ -3,7 +3,7 @@ extends Resource
 
 enum ActionType {
 	FORAGE,
-	DUNGEON,
+	ADVENTURE,
 	NPC_DIALOGUE,
 	MERCHANT,
 	TRAIN_STATS,
