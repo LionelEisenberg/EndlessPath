@@ -32,6 +32,12 @@ func load_data() -> void :
 		save_data()
 		print("PersistenceManager: No save file found. Initialized with default SaveGameData.")
 	save_game_data = ResourceLoader.load(SAVE_PATH)
+	
+	if not save_game_data:
+		save_game_data = SaveGameData.new()
+		save_data()
+		print("PersistenceManager: SaveGameData is Null. Error needs to be investigated")
+
 
 func is_base_game_save() -> bool:
 	var _base_game_save = SaveGameData.new()
