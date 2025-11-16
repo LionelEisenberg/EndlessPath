@@ -2,8 +2,8 @@ extends Camera2D
 
 var is_camera_panning: bool = false
 
-const ZOOM_MIN = 0.35
-const ZOOM_MAX = 1.5
+const ZOOM_MIN = 0.5
+const ZOOM_MAX = 1.35
 const ZOOM_SPEED = 10
 
 # Camera boundary limits for panning

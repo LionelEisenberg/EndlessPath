@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bpbehk6ko2uu3"
-path="res://.godot/imported/Small-8-Direction-Characters_by_AxulArt.png-a114eeb6d008d1dabf62bba94e88b6d8.ctex"
+uid="uid://d2t6xf4mpux8w"
+path="res://.godot/imported/cycling_background_with_border.png-5f72a5c5c7aac322604709d083ab2a12.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spritesheets/Small-8-Direction-Characters_by_AxulArt.png"
-dest_files=["res://.godot/imported/Small-8-Direction-Characters_by_AxulArt.png-a114eeb6d008d1dabf62bba94e88b6d8.ctex"]
+source_file="res://assets/sprites/cycling/backgrounds/cycling_background_with_border.png"
+dest_files=["res://.godot/imported/cycling_background_with_border.png-5f72a5c5c7aac322604709d083ab2a12.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bbn6hk14w8msd"
-path="res://.godot/imported/the-red-chinese-pattern-texture-background-free-photo.jpg-b1f0300ad009b123615d8a55e0e72500.ctex"
+uid="uid://b7a4s04x21evb"
+path="res://.godot/imported/spirit_valley_background.jpg-943b1963e15bb47c0bf974effc56fdc4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/the-red-chinese-pattern-texture-background-free-photo.jpg"
-dest_files=["res://.godot/imported/the-red-chinese-pattern-texture-background-free-photo.jpg-b1f0300ad009b123615d8a55e0e72500.ctex"]
+source_file="res://assets/sprites/zones/backgrounds/spirit_valley_background.jpg"
+dest_files=["res://.godot/imported/spirit_valley_background.jpg-943b1963e15bb47c0bf974effc56fdc4.ctex"]
 
 [params]
 

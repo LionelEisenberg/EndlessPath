@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cxh4n776wwigy"
-path="res://.godot/imported/button_3.png-ade4778ce9fc9590fc058aeb81cc2295.ctex"
+uid="uid://751ki710lw0j"
+path="res://.godot/imported/Cycling_Technique_Background.webp-29735de0b7486e3539367439cce7c0c5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/button_3.png"
-dest_files=["res://.godot/imported/button_3.png-ade4778ce9fc9590fc058aeb81cc2295.ctex"]
+source_file="res://assets/sprites/cycling/Cycling_Technique_Background.webp"
+dest_files=["res://.godot/imported/Cycling_Technique_Background.webp-29735de0b7486e3539367439cce7c0c5.ctex"]
 
 [params]
 

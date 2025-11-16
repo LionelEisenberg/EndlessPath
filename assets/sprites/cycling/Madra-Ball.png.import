@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d2t6xf4mpux8w"
-path="res://.godot/imported/spirit_valley_background.png-4c1fddb3b14716bedf9049461181341d.ctex"
+uid="uid://dm58rs33ces5o"
+path="res://.godot/imported/Madra-Ball.png-429cdb5ab02fbdcac8f008402b6dae76.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/spirit_valley_background.png"
-dest_files=["res://.godot/imported/spirit_valley_background.png-4c1fddb3b14716bedf9049461181341d.ctex"]
+source_file="res://assets/sprites/cycling/Madra-Ball.png"
+dest_files=["res://.godot/imported/Madra-Ball.png-429cdb5ab02fbdcac8f008402b6dae76.ctex"]
 
 [params]
 

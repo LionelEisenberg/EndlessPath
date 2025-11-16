@@ -1,7 +1,7 @@
 [gd_scene load_steps=14 format=3 uid="uid://eomevugae50m"]
 
 [ext_resource type="Script" uid="uid://cot2oaolt25d7" path="res://scenes/characters/main_character/character_body_2d.gd" id="1_oymdk"]
-[ext_resource type="Texture2D" uid="uid://bpbehk6ko2uu3" path="res://assets/sprites/spritesheets/Small-8-Direction-Characters_by_AxulArt.png" id="1_vnxra"]
+[ext_resource type="Texture2D" uid="uid://bpbehk6ko2uu3" path="res://assets/spritesheets/Main-Character-8-Direction.png" id="1_vnxra"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_fy8xs"]
 radius = 8.0

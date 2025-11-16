@@ -1,8 +1,8 @@
 [gd_scene load_steps=9 format=3 uid="uid://b1rl1n8ceijc8"]
 
 [ext_resource type="Script" uid="uid://dyha47vkmqg5o" path="res://scenes/game_systems/cycling/cycling_view/cycling_view.gd" id="1_ob5ct"]
-[ext_resource type="Texture2D" uid="uid://751ki710lw0j" path="res://assets/ui_images/depositphotos_227064858-stock-illustration-man-pose-lotus-yoga-pose.webp" id="2_4q44n"]
-[ext_resource type="Texture2D" uid="uid://d2t6xf4mpux8w" path="res://assets/ui_images/spirit_valley_background.png" id="2_uk6eo"]
+[ext_resource type="Texture2D" uid="uid://751ki710lw0j" path="res://assets/sprites/cycling/Cycling_Technique_Background.webp" id="2_4q44n"]
+[ext_resource type="Texture2D" uid="uid://d2t6xf4mpux8w" path="res://assets/sprites/cycling/backgrounds/cycling_background_with_border.png" id="2_uk6eo"]
 [ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/game_systems/cycling/cycling_technique/cycling_technique.tscn" id="3_hypg5"]
 [ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/game_systems/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]
 [ext_resource type="PackedScene" uid="uid://86cemqoesomd" path="res://scenes/game_systems/cycling/cycling_technique_selector/cycling_technique_selector.tscn" id="6_vx840"]

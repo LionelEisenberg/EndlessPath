@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://751ki710lw0j"
-path="res://.godot/imported/depositphotos_227064858-stock-illustration-man-pose-lotus-yoga-pose.webp-52c5355d24bdd392ffdd7725b2afffc8.ctex"
+uid="uid://dbs7q3rxlog0j"
+path="res://.godot/imported/tile_horizontal_locked.png-d8d1f63eb2d0be5afd080a6e2d4a1cfd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/depositphotos_227064858-stock-illustration-man-pose-lotus-yoga-pose.webp"
-dest_files=["res://.godot/imported/depositphotos_227064858-stock-illustration-man-pose-lotus-yoga-pose.webp-52c5355d24bdd392ffdd7725b2afffc8.ctex"]
+source_file="res://assets/sprites/tilemap/tile_horizontal_locked.png"
+dest_files=["res://.godot/imported/tile_horizontal_locked.png-d8d1f63eb2d0be5afd080a6e2d4a1cfd.ctex"]
 
 [params]
 

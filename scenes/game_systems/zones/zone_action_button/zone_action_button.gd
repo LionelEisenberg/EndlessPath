@@ -5,9 +5,9 @@ signal action_selected(action_data: ZoneActionData)
 const hover_animation_duration : float = 0.2
 
 static var button_texture_list : Array[Texture2D] = [
-	load("res://assets/ui_images/button_1.png"), 
-	load("res://assets/ui_images/button_2.png"), 
-	load("res://assets/ui_images/button_3.png")
+	load("res://assets/ui_images/action_buttons/action_button_1.png"), 
+	load("res://assets/ui_images/action_buttons/action_button_2.png"), 
+	load("res://assets/ui_images/action_buttons/action_button_3.png")
 ]
 
 @export var action_data: ZoneActionData = null
