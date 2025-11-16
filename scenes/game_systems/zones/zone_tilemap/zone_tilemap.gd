@@ -40,11 +40,21 @@ func _ready():
 
 ## Set all zones in the tile_map
 func set_all_zones_in_tile_map() -> void:
-	for zone_data in ZoneManager.get_all_zones():
+	var zone_tiles: Array[Vector2i] = []
+	var all_zones = ZoneManager.get_all_zones()
+	
+	for zone_data in all_zones:
+		zone_tiles.append(zone_data.tilemap_location)
+	
+	for zone_data in all_zones:
 		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
 			tile_map.set_unlocked_cell_to_variant(_get_zone_variant(zone_data), zone_data.tilemap_location)
 		else:
 			tile_map.set_locked_cell_to_variant(0, zone_data.tilemap_location)
+	
+	for zone_data in all_zones:
+		_set_neighboring_tiles_transparent(zone_data.tilemap_location, zone_tiles)
+
 
 ## Returns the ZoneData at the given tile coordinate, or null if not found.
 func get_zone_at_tile(tile_coord: Vector2i) -> ZoneData:
@@ -78,9 +88,32 @@ func _get_zone_variant(zone_data: ZoneData) -> int:
 
 	return 1
 
+## Sets all neighboring tiles around a zone to transparent variant (4).
+## Does not overwrite tiles that are actual zone placements.
+func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[Vector2i]) -> void:
+	# Get all 8 neighboring tile coordinates
+	var neighbor_offsets = [
+		Vector2i(-1, -1), Vector2i(0, -1),  # Top row
+		Vector2i(-1, 0),                   Vector2i(1, 0),   # Middle row (left and right)
+		 Vector2i(0, 1),  Vector2i(1, 1)    # Bottom row
+	]
+	
+	for offset in neighbor_offsets:
+		var neighbor_tile = tile_coord + offset
+		
+		# Don't overwrite if this tile is an actual zone placement
+		if neighbor_tile in zone_tiles:
+			continue
+
+		tile_map.set_unlocked_cell_to_variant(3, neighbor_tile)
+
 ## Called when a tile is clicked on the tile map.
 func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 	var zone_data = get_zone_at_tile(tile_coord)
+	print(tile_coord)
+	if not zone_data: 
+		return
+	
 	if zone_data == selected_zone:
 		return
 	
@@ -100,10 +133,7 @@ func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
 	_move_character_to_position(tile_map.map_to_local(tile_coord) + tile_map.position)
 
 func _move_character_to_position(new_position: Vector2) -> void:
-	## Move the character to the new position over 0.2 seconds
-	var tween : Tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tween.tween_property(character_body, "global_position", new_position, 0.2)
-	tween.play()
+	character_body.move_to_position(new_position, 150.0)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
