@@ -84,16 +84,27 @@ func stop_adventure() -> void:
 	character_body.move_to_position(Vector2(0, 0), INSTANT_MOVE_SPEED)
 
 func _visit(coord: Vector3i) -> void:
-	_visited_tile_dictionary[coord] = true
-	_highlight_tile_dictionary.clear()
+	if _visited_tile_dictionary.has(coord):
+		_process_next_visitation()
+		return
 	
-	for c in _visited_tile_dictionary.keys():
-		for neighbour in full_map.cube_neighbors(c):
-			if neighbour in _encounter_tile_dictionary.keys() and neighbour not in _visited_tile_dictionary.keys():
-				_highlight_tile_dictionary[neighbour] = HighlightType.VISIBLE_NEIGHBOUR
-	
-	_update_visible_map()
-	_update_highlight_map()
+	if _encounter_tile_dictionary.has(coord):
+		var tile_encounter : AdventureEncounter = _encounter_tile_dictionary[coord]
+		
+		tile_encounter.process()
+		
+		if tile_encounter.is_blocking:
+			match tile_encounter.encounter_type:
+				AdventureEncounter.EncounterType.NPC_DIALOGUE:
+					DialogueManager.dialogue_ended.connect(
+						_on_encounter_completed.bind(coord),
+						CONNECT_ONE_SHOT
+					)
+				_:
+					Log.error("AdventureTilemap: Unknown encounter type: %s" % tile_encounter.encounter_type)
+					_on_encounter_completed(coord)
+		else:
+			_on_encounter_completed(coord)
 
 func _on_tile_clicked(coord: Vector2i) -> void:
 	Log.info("AdventureTilemap: Tile clicked: %s" % coord)
@@ -125,19 +136,31 @@ func _on_character_movement_completed() -> void:
 		_current_tile = reached_tile
 		Log.info("AdventureTilemap: Character reached tile: %s" % _current_tile)
 		
-		# Visit the tile if it hasn't been visited yet
-		var was_unvisited = not _visited_tile_dictionary.has(_current_tile)
-		if was_unvisited:
-			_visit(_current_tile)
-			
-			if _encounter_tile_dictionary.has(_current_tile):
-				var tile_encounter : AdventureEncounter = _encounter_tile_dictionary[_current_tile]
-				Log.info("AdventureTilemap: Tile has event: %s" % tile_encounter)
-				
-				
+		_visit(_current_tile)
+
+func _on_encounter_completed(coord: Vector3i) -> void:
+	# Process effects	
+	for completion_effect in _encounter_tile_dictionary[coord].completion_effects:
+		if completion_effect:
+			completion_effect.process()
+
+	# Mark as visited and update visuals
+	_mark_tile_visited(coord)
 	
-	# Process next tile in visitation queue
+	# Continue to next tile
 	_process_next_visitation()
+
+func _mark_tile_visited(coord: Vector3i) -> void:
+	_visited_tile_dictionary[coord] = true
+	_highlight_tile_dictionary.clear()
+	
+	for c in _visited_tile_dictionary.keys():
+		for neighbour in full_map.cube_neighbors(c):
+			if neighbour in _encounter_tile_dictionary.keys() and neighbour not in _visited_tile_dictionary.keys():
+				_highlight_tile_dictionary[neighbour] = HighlightType.VISIBLE_NEIGHBOUR
+	
+	_update_visible_map()
+	_update_highlight_map()
 
 ## Process the next tile in the visitation queue
 func _process_next_visitation() -> void:
@@ -175,7 +198,7 @@ func _update_visible_map() -> void:
 			visible_coords.append(highlight_coord)
 
 	for coord in visible_coords:
-		if _encounter_tile_dictionary[coord].encounter_id != "":
+		if not _encounter_tile_dictionary[coord] is NoOpEncounter:
 			visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, SPECIAL_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 		else:
 			visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, VISITED_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))

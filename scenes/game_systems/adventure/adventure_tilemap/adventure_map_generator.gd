@@ -30,7 +30,7 @@ func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 		Log.error("AdventureMapGenerator: Tile map is not set")
 		return {}
 	
-	all_map_tiles[Vector3i.ZERO] = AdventureEncounter.new() # Ensure origin is in the map
+	all_map_tiles[Vector3i.ZERO] = NoOpEncounter.new() # Ensure origin is in the map
 
 	_place_special_tiles()
 
@@ -77,7 +77,7 @@ func _place_special_tiles() -> void:
 					break # Tile is too close to another special tile
 			
 			if is_valid_sparse:
-				all_map_tiles[random_coord] = AdventureEncounter.new()
+				all_map_tiles[random_coord] = NoOpEncounter.new()
 				tile_placed = true
 				Log.info("AdventureMapGenerator: Placed special tile at %s after %s attempts" % [random_coord, attempts])
 
@@ -129,7 +129,7 @@ func _generate_mst_paths():
 		var path = tile_map.cube_linedraw(best_start_node, best_target_node)
 		for coord in path:
 			if not coord in all_map_tiles:
-				all_map_tiles[coord] = AdventureEncounter.new()
+				all_map_tiles[coord] = NoOpEncounter.new()
 
 		# Move the newly connected node from 'nodes_to_add' to 'nodes_in_tree'.
 		nodes_in_tree.append(best_target_node)

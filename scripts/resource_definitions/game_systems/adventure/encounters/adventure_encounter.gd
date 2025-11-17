@@ -1,9 +1,10 @@
+@abstract
 class_name AdventureEncounter
 extends Resource
 
 enum EncounterType {
 	NONE,           # No-op, just a tile
-	DIALOGUE,       # NPC dialogue
+	NPC_DIALOGUE,       # NPC dialogue
 }
 
 ## Unique identifier for this encounter (used for event tracking)
@@ -27,6 +28,8 @@ enum EncounterType {
 ## Effects to apply when encounter is completed
 @export var completion_effects: Array[EffectData] = []
 
+@abstract
+func process() -> void
 
 func _to_string() -> String:
 	var lines: Array[String] = []

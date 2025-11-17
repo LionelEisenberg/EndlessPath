@@ -1,6 +1,6 @@
 extends MarginContainer
 
-signal action_selected(action_data: ZoneActionData)
+#signal action_selected(action_data: ZoneActionData)
 
 # Animation constants
 const HOVER_ANIMATION_DURATION = 0.2

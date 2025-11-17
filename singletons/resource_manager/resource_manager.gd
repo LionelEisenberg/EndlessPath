@@ -55,6 +55,19 @@ func _update_resources() -> void:
 	gold_changed.emit(live_save_data.gold)
 
 #-----------------------------------------------------------------------------
+# GENERAL RESOURCE MANAGEMENT
+#-----------------------------------------------------------------------------
+
+func award_resource(resource_type: ResourceType, amount: float) -> void:
+	match resource_type:
+		ResourceType.MADRA:
+			add_madra(amount)
+		ResourceType.GOLD:
+			add_gold(amount)
+		_:
+			Log.error("ResourceManager: Unknown resource type: %s" % resource_type)
+
+#-----------------------------------------------------------------------------
 # MADRA MANAGEMENT
 #-----------------------------------------------------------------------------
 
