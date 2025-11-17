@@ -2,6 +2,16 @@ class_name CyclingResourcePanel
 extends MarginContainer
 
 #-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+# UI visual constants
+const INITIAL_CORE_SCALE = Vector2(0.5, 0.5)
+const MAX_CORE_DENSITY_LEVEL = 100.0
+const COLOR_CYCLING = Color(0.0, 1.0, 0.0)  # Green when actively cycling
+const COLOR_IDLE = Color(0.7, 0.7, 0.7)  # Gray when idle
+
+#-----------------------------------------------------------------------------
 # SIGNALS
 #-----------------------------------------------------------------------------
 signal open_technique_selector
@@ -56,7 +66,7 @@ func setup_ui():
 	madra_circle_progress.fill_mode = TextureProgressBar.FILL_CLOCKWISE
 	
 	# Setup core ball initial scale
-	core_density_sprite.scale = Vector2(0.5, 0.5)
+	core_density_sprite.scale = INITIAL_CORE_SCALE
 	
 	# Setup button
 	open_technique_selector_button.pressed.connect(_on_open_technique_selector)
@@ -133,11 +143,11 @@ func update_madra_rate():
 	if is_cycling:
 		# Show last cycle's rate while cycling
 		madra_generation_rate_label.text = display_text
-		madra_generation_rate_label.modulate = Color(0.0, 1.0, 0.0)  # Green
+		madra_generation_rate_label.modulate = COLOR_CYCLING
 	else:
 		# Show last cycle's rate
 		madra_generation_rate_label.text = display_text
-		madra_generation_rate_label.modulate = Color(0.7, 0.7, 0.7)  # Gray
+		madra_generation_rate_label.modulate = COLOR_IDLE
 
 ## Update core density section with current values.
 func update_core_density():
@@ -157,7 +167,7 @@ func update_core_density():
 	core_density_xp_label.text = "XP: %d / %d" % [int(xp), int(max_xp)]
 
 	# Update core sprite scale based on LEVEL (0-100 maps to 0-1.0 scale)
-	var normalized = clamp(level / 100.0, 0.0, 1.0)
+	var normalized = clamp(level / MAX_CORE_DENSITY_LEVEL, 0.0, 1.0)
 	core_density_sprite.scale = Vector2(normalized, normalized)
 
 ## Update cultivation stage display.

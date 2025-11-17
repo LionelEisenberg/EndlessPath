@@ -2,11 +2,26 @@ extends CharacterBody2D
 
 @export var is_debug_mode : bool = false
 
+# Movement constants
+const DEFAULT_MOVE_SPEED = 200.0
+const MOVEMENT_THRESHOLD = 5.0  # Distance at which we consider arrival
+
+# Animation angle boundaries (degrees) - for 8-directional movement
+const ANGLE_SLICE = 45.0  # 360 / 8 directions
+const ANGLE_EAST_MIN = 337.5
+const ANGLE_SOUTHEAST_MIN = 22.5
+const ANGLE_SOUTH_MIN = 67.5
+const ANGLE_SOUTHWEST_MIN = 112.5
+const ANGLE_WEST_MIN = 157.5
+const ANGLE_NORTHWEST_MIN = 202.5
+const ANGLE_NORTH_MIN = 247.5
+const ANGLE_NORTHEAST_MIN = 292.5
+const ANGLE_FULL_CIRCLE = 360.0
+
 # Movement variables
 var target_position: Vector2 = Vector2.ZERO
 var move_speed: float = 0.0
 var is_moving: bool = false
-var movement_threshold: float = 5.0  # Distance at which we consider arrival
 
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 
@@ -21,7 +36,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			# Get the global mouse position and move the character there
 			var click_position = get_global_mouse_position()
-			move_to_position(click_position, move_speed if move_speed > 0 else 200.0)
+			move_to_position(click_position, move_speed if move_speed > 0 else DEFAULT_MOVE_SPEED)
 
 ## Moves the character to the given position at the specified speed.
 ## Automatically plays the appropriate walk animation based on direction.
@@ -39,7 +54,7 @@ func _update_movement() -> void:
 	var distance = global_position.distance_to(target_position)
 
 	# Check if we've reached the target
-	if distance <= movement_threshold:
+	if distance <= MOVEMENT_THRESHOLD:
 		global_position = target_position
 		_stop_movement()
 		return
@@ -61,32 +76,32 @@ func _play_directional_animation() -> void:
 
 	# Normalize angle to 0-360 range
 	if angle < 0:
-		angle += 360
+		angle += ANGLE_FULL_CIRCLE
 
 	# Determine which animation to play based on angle
 	# Each direction gets a 45-degree slice
-	if angle >= 337.5 or angle < 22.5:
+	if angle >= ANGLE_EAST_MIN or angle < ANGLE_SOUTHEAST_MIN:
 		# East (Right)
 		animation_player.play("walk_right")
-	elif angle >= 22.5 and angle < 67.5:
+	elif angle >= ANGLE_SOUTHEAST_MIN and angle < ANGLE_SOUTH_MIN:
 		# Southeast (Down-Right)
 		animation_player.play("walk_down_right")
-	elif angle >= 67.5 and angle < 112.5:
+	elif angle >= ANGLE_SOUTH_MIN and angle < ANGLE_SOUTHWEST_MIN:
 		# South (Down)
 		animation_player.play("walk_down")
-	elif angle >= 112.5 and angle < 157.5:
+	elif angle >= ANGLE_SOUTHWEST_MIN and angle < ANGLE_WEST_MIN:
 		# Southwest (Down-Left)
 		animation_player.play("walk_down_left")
-	elif angle >= 157.5 and angle < 202.5:
+	elif angle >= ANGLE_WEST_MIN and angle < ANGLE_NORTHWEST_MIN:
 		# West (Left)
 		animation_player.play("walk_left")
-	elif angle >= 202.5 and angle < 247.5:
+	elif angle >= ANGLE_NORTHWEST_MIN and angle < ANGLE_NORTH_MIN:
 		# Northwest (Up-Left)
 		animation_player.play("walk_up_left")
-	elif angle >= 247.5 and angle < 292.5:
+	elif angle >= ANGLE_NORTH_MIN and angle < ANGLE_NORTHEAST_MIN:
 		# North (Up)
 		animation_player.play("walk_up")
-	elif angle >= 292.5 and angle < 337.5:
+	elif angle >= ANGLE_NORTHEAST_MIN and angle < ANGLE_EAST_MIN:
 		# Northeast (Up-Right)
 		animation_player.play("walk_up_right")
 

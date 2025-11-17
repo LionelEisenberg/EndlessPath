@@ -2,7 +2,13 @@ extends MarginContainer
 
 signal action_selected(action_data: ZoneActionData)
 
-const hover_animation_duration : float = 0.2
+# Animation constants
+const HOVER_ANIMATION_DURATION = 0.2
+const HOVER_SCALE_FACTOR = 0.05
+
+# Label color constants
+const LABEL_COLOR_NORMAL = Color(1, 1, 1)
+const LABEL_COLOR_HOVER = Color(0, 0, 0)
 
 static var button_texture_list : Array[Texture2D] = [
 	load("res://assets/ui_images/action_buttons/action_button_1.png"), 
@@ -39,31 +45,28 @@ func _on_mouse_entered():
 	pivot_offset = size / 2
 	if not is_current_action:
 		var hover_tween = create_tween()
-		hover_tween.parallel().tween_method(_set_shader_fill_amount, 0.0, 1.0, hover_animation_duration)
-		hover_tween.parallel().tween_method(_scale_container, 0.0, 1.0, hover_animation_duration)
-		hover_tween.parallel().tween_method(_set_label_color, 0.0, 1.0, hover_animation_duration)
+		hover_tween.parallel().tween_method(_set_shader_fill_amount, 0.0, 1.0, HOVER_ANIMATION_DURATION)
+		hover_tween.parallel().tween_method(_scale_container, 0.0, 1.0, HOVER_ANIMATION_DURATION)
+		hover_tween.parallel().tween_method(_set_label_color, 0.0, 1.0, HOVER_ANIMATION_DURATION)
 		hover_tween.play()
 
 func _on_mouse_exited():
 	if not is_current_action:
 		var hover_tween = create_tween()
-		hover_tween.parallel().tween_method(_set_shader_fill_amount, 1.0, 0.0, hover_animation_duration)
-		hover_tween.parallel().tween_method(_scale_container, 1.0, 0.0, hover_animation_duration)
-		hover_tween.parallel().tween_method(_set_label_color, 1.0, 0.0, hover_animation_duration)
+		hover_tween.parallel().tween_method(_set_shader_fill_amount, 1.0, 0.0, HOVER_ANIMATION_DURATION)
+		hover_tween.parallel().tween_method(_scale_container, 1.0, 0.0, HOVER_ANIMATION_DURATION)
+		hover_tween.parallel().tween_method(_set_label_color, 1.0, 0.0, HOVER_ANIMATION_DURATION)
 		hover_tween.play()
 
 func _set_shader_fill_amount(amount : float) -> void:
 	zone_action_button.material.set_shader_parameter("fill_amount", amount)
 
 func _set_label_color(amount: float) -> void:
-	var end_color = Color(0, 0, 0)
-	var start_color = Color(1, 1, 1)
-	var interpolated_color = start_color.lerp(end_color, amount)
+	var interpolated_color = LABEL_COLOR_NORMAL.lerp(LABEL_COLOR_HOVER, amount)
 	name_label.add_theme_color_override("font_color", interpolated_color)
 
 func _scale_container(r: float) -> void:
-	const scale_factor : float = 0.05
-	scale = Vector2(r * scale_factor + 1.0, r * scale_factor + 1.0)
+	scale = Vector2(r * HOVER_SCALE_FACTOR + 1.0, r * HOVER_SCALE_FACTOR + 1.0)
 
 func setup_action(data: ZoneActionData) -> void:
 	action_data = data

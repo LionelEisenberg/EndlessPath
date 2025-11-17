@@ -2,6 +2,20 @@ class_name CyclingTechnique
 extends Node2D
 
 #-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+# Timing quality thresholds (ratio of distance from center)
+const TIMING_PERFECT_THRESHOLD = 0.3
+const TIMING_GOOD_THRESHOLD = 0.7
+
+# Path rendering
+const MIN_PATH_POINTS = 50
+const PATH_POINT_SPACING = 10
+const PATH_LINE_WIDTH = 3.0
+const PATH_LINE_COLOR = Color(0.8, 0.8, 1.0, 0.7)
+
+#-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
@@ -117,7 +131,7 @@ func _update_path_line() -> void:
 	
 	# Sample points along the curve
 	var curve_length = path_2d.curve.get_baked_length()
-	var point_count = max(50, int(curve_length / 10))  # At least 50 points, or one per 10 units
+	var point_count = max(MIN_PATH_POINTS, int(curve_length / PATH_POINT_SPACING))
 	
 	for i in range(point_count + 1):
 		var ratio = float(i) / point_count
@@ -125,8 +139,8 @@ func _update_path_line() -> void:
 		path_line.add_point(point)
 	
 	# Set line properties for visual appeal
-	path_line.width = 3.0
-	path_line.default_color = Color(0.8, 0.8, 1.0, 0.7)  # Light blue with transparency
+	path_line.width = PATH_LINE_WIDTH
+	path_line.default_color = PATH_LINE_COLOR
 
 ## Create cycling zones using the CyclingZone scene based on technique data.
 func _create_cycling_zones() -> void:
@@ -365,12 +379,12 @@ func _handle_zone_click(zone: CyclingZone, zone_data_item: CyclingZoneData) -> v
 	var timing_quality: String
 	var xp_reward: int
 	var quality_color: Color
-	if timing_ratio < 0.3:  # Perfect timing
+	if timing_ratio < TIMING_PERFECT_THRESHOLD:  # Perfect timing
 		timing_quality = "PERFECT"
 		xp_reward = zone_data_item.perfect_xp
 		quality_color = Color.GOLD
 		_flash_zone(zone, Color.GOLD)
-	elif timing_ratio < 0.7:  # Good timing
+	elif timing_ratio < TIMING_GOOD_THRESHOLD:  # Good timing
 		timing_quality = "GOOD"
 		xp_reward = zone_data_item.good_xp
 		quality_color = Color.GREEN

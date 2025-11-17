@@ -1,6 +1,9 @@
 class_name AdventureMapGenerator
 extends Node
 
+# Generation constants
+const MAX_TILE_PLACEMENT_ATTEMPTS = 100
+
 var adventure_map_data : AdventureMapData
 var tile_map : HexagonTileMapLayer
 
@@ -43,13 +46,12 @@ func generate_adventure_map() -> Dictionary[Vector3i, AdventureTileEvent]:
 ## Places special tiles based on parameters
 func _place_special_tiles() -> void:
 	var special_tiles: Array[Vector3i] = []
-	var max_attempts_per_tile = 100 # Safety break
 
 	for i in adventure_map_data.num_special_tiles:
 		var attempts = 0
 		var tile_placed = false
 		
-		while not tile_placed and attempts < max_attempts_per_tile:
+		while not tile_placed and attempts < MAX_TILE_PLACEMENT_ATTEMPTS:
 			attempts += 1
 			
 			# 1. Pick a random coordinate
@@ -72,14 +74,14 @@ func _place_special_tiles() -> void:
 					is_valid_sparse = false
 					break # Tile is too close to another special tile
 			
-			if is_valid_sparse:
-				all_map_tiles[random_coord] = AdventureTileEvent.new()
-				tile_placed = true
-				Log.info("AdventureMapGenerator: Placed special tile at %s after %s attempts" % [random_coord, attempts])
+		if is_valid_sparse:
+			all_map_tiles[random_coord] = AdventureTileEvent.new()
+			tile_placed = true
+			Log.info("AdventureMapGenerator: Placed special tile at %s after %s attempts" % [random_coord, attempts])
 
-		if attempts >= max_attempts_per_tile:
-			Log.warn("AdventureMapGenerator: Could not place a special tile. Check map parameters.")
-			break
+	if attempts >= MAX_TILE_PLACEMENT_ATTEMPTS:
+		Log.warn("AdventureMapGenerator: Could not place a special tile. Check map parameters.")
+		break
 
 ## Generates a path network connecting all special tiles using Prim's MST algorithm.
 func _generate_mst_paths():

@@ -10,6 +10,10 @@ const LOCKED_SOURCE_ID = 1
 const BASE_LOCKED_VARIANT = 0
 const BASE_GHOST_VARIANT = 3
 
+# Movement and display constants
+const CHARACTER_MOVE_SPEED = 150.0
+const FORAGE_POSITION_MARGIN = 32
+const FLOATING_TEXT_OFFSET = Vector2i(250, 250)
 
 var floating_text_scene : PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
 
@@ -139,7 +143,7 @@ func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
 	_move_character_to_position(tile_map.map_to_local(tile_coord) + tile_map.position)
 
 func _move_character_to_position(new_position: Vector2) -> void:
-	character_body.move_to_position(new_position, 150.0)
+	character_body.move_to_position(new_position, CHARACTER_MOVE_SPEED)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -157,11 +161,10 @@ func _on_foraging_completed(item_amount: int, item_definition: ItemDefinitionDat
 
 func _character_move_to_new_foraging_location() -> void:
 	# Get a random global position within the tilemap, accounting for a margin
-	var margin := 32
 	var random_local_pos := tile_map.map_to_local(selected_zone.tilemap_location) + tile_map.position
 	
-	random_local_pos.x += randf_range(-margin, margin)
-	random_local_pos.y += randf_range(-margin, margin)
+	random_local_pos.x += randf_range(-FORAGE_POSITION_MARGIN, FORAGE_POSITION_MARGIN)
+	random_local_pos.y += randf_range(-FORAGE_POSITION_MARGIN, FORAGE_POSITION_MARGIN)
 	
 	_move_character_to_position(random_local_pos)
 
@@ -169,4 +172,4 @@ func _show_foraging_completion_floating_text(item_amount: int, item_definition: 
 	var floating_text = floating_text_scene.instantiate() as FloatingText
 	if floating_text:
 		get_tree().current_scene.add_child(floating_text)
-		floating_text.show_text("%d of %s" % [item_amount, item_definition.item_name], Color.WHITE, Vector2i(250, 250))
+		floating_text.show_text("%d of %s" % [item_amount, item_definition.item_name], Color.WHITE, FLOATING_TEXT_OFFSET)
