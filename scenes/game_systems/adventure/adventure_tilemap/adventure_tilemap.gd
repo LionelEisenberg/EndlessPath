@@ -28,7 +28,6 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	adventure_map_generator.set_adventure_map_data(current_adventure_action_data.adventure_data.map_data)
 	_adventure_tile_dictionary = adventure_map_generator.generate_adventure_map()
 	_draw_tiles()
-	tile_map._draw_debug()
 
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")

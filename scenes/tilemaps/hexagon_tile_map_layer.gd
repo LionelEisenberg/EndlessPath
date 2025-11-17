@@ -5,6 +5,7 @@ signal tile_clicked(tile_coord: Vector2i)
 
 func set_cell_with_source_and_variant(source_id : int, variant_id: int, cell_coords: Vector2) -> void:
 	set_cell(cell_coords, source_id, Vector2i(0, 0), variant_id)
+	_draw_debug()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
