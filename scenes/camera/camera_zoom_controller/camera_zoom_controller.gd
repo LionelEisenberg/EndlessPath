@@ -11,6 +11,7 @@ extends Node
 @export_group("Zoom Settings")
 @export var zoom_min: float = 0.5
 @export var zoom_max: float = 1.35
+@export var zoom_default: float = 0.65
 @export var zoom_speed: float = 10.0
 @export var zoom_step: float = 0.1  ## How much to zoom per wheel tick
 @export var enabled: bool = true
@@ -50,7 +51,7 @@ func _ready() -> void:
 		return
 	
 	camera = get_parent() as Camera2D
-	target_zoom = Vector2(zoom_max, zoom_max)
+	target_zoom = Vector2(zoom_default, zoom_default)
 
 func _process(delta: float) -> void:
 	if not enabled:
