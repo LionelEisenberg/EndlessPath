@@ -11,7 +11,20 @@
 [ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="5_k2uxu"]
 [ext_resource type="PackedScene" uid="uid://bvgyusvjgbnbx" path="res://scenes/game_systems/adventure/adventure_tilemap/adventure_tilemap.tscn" id="7_up6bt"]
 [ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="8_wwigy"]
-[ext_resource type="Script" uid="uid://w7rvakxl1g1t" path="res://scenes/game_systems/adventure/adventure_tilemap/adventure_tilemap.gd" id="8_y7khf"]
+
+[sub_resource type="GDScript" id="GDScript_wwigy"]
+script/source = "extends Button
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pressed.connect(func() : ActionManager.stop_action())
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+"
 
 [node name="MainGame" type="Node2D"]
 script = ExtResource("1_2bvax")
@@ -44,6 +57,7 @@ mouse_filter = 2
 
 [node name="ZoneView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -65,15 +79,15 @@ layout_mode = 2
 
 [node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
 z_index = -1
-position = Vector2(699.5, 541.5)
-scale = Vector2(0.57070315, 0.7756945)
+position = Vector2(963.49994, 555.49994)
+scale = Vector2(0.7769531, 0.7951389)
 texture = ExtResource("3_yssfv")
 
 [node name="SubViewport" type="SubViewport" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1382, 1080)
-render_target_update_mode = 4
+render_target_update_mode = 0
 
 [node name="ZoneTilemap" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]
 
@@ -118,45 +132,92 @@ texture_normal = ExtResource("5_k2uxu")
 
 [node name="AdventureView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
 unique_name_in_owner = true
-visible = false
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = 1880.0
-offset_bottom = 1040.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer"]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
 clip_contents = true
-layout_mode = 2
+layout_mode = 0
+offset_left = -2.0
+offset_right = 1918.0
+offset_bottom = 1080.0
 
-[node name="AdventureTilemapBackground" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer/SubViewportContainer"]
+[node name="AdventureTilemapBackground" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/SubViewportContainer"]
 z_index = -1
-position = Vector2(699.5, 541.5)
-scale = Vector2(0.57070315, 0.7756945)
+position = Vector2(963.49994, 555.49994)
+scale = Vector2(0.7769531, 0.7951389)
 texture = ExtResource("3_yssfv")
 
-[node name="SubViewport" type="SubViewport" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer/SubViewportContainer"]
+[node name="SubViewport" type="SubViewport" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/SubViewportContainer"]
 transparent_bg = true
 handle_input_locally = false
-size = Vector2i(1382, 1080)
-render_target_update_mode = 0
+size = Vector2i(1920, 1080)
+render_target_update_mode = 4
 
-[node name="AdventureTilemap" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("7_up6bt")]
-script = ExtResource("8_y7khf")
+[node name="AdventureTilemap" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/SubViewportContainer/SubViewport" instance=ExtResource("7_up6bt")]
 
-[node name="PanelContainer" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/HBoxContainer"]
-layout_mode = 2
+[node name="PanelContainer" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
+custom_minimum_size = Vector2(500, 175)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = 298.5
+offset_right = 250.0
+offset_bottom = 473.5
+grow_horizontal = 2
+grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = ExtResource("8_wwigy")
+
+[node name="Panel2" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
+custom_minimum_size = Vector2(350, 200)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 521.0
+offset_top = -240.0
+offset_right = 871.0
+offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("8_wwigy")
+
+[node name="Panel" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
+custom_minimum_size = Vector2(400, 200)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 496.0
+offset_top = -476.0
+offset_right = 896.0
+offset_bottom = -276.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("8_wwigy")
+
+[node name="Button" type="Button" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 1776.0
+offset_top = 936.0
+offset_right = 1840.0
+offset_bottom = 1000.0
+script = SubResource("GDScript_wwigy")
 
 [node name="GreyBackground" type="Panel" parent="MainView"]
 unique_name_in_owner = true

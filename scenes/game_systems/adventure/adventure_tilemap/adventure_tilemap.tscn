@@ -13,14 +13,16 @@ script = ExtResource("1_b7v0o")
 unique_name_in_owner = true
 position = Vector2(-82, -95)
 pathfinding_enabled = true
-debug_mode = 1
 
 [node name="AdventureVisibleMap" parent="." instance=ExtResource("1_4pw8h")]
 unique_name_in_owner = true
-position = Vector2(-82, -90)
+position = Vector2(-82, -95)
+pathfinding_enabled = true
 
 [node name="AdventureHighlightMap" parent="." instance=ExtResource("1_4pw8h")]
 unique_name_in_owner = true
+position = Vector2(-82, 95)
+pathfinding_enabled = true
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("2_b7v0o")]
 unique_name_in_owner = true
@@ -33,4 +35,6 @@ is_debug_mode = false
 
 [node name="CameraZoomController" parent="CharacterBody2D/Camera2D" instance=ExtResource("4_ywsim")]
 zoom_min = 0.3
-zoom_default = 0.5
+zoom_max = 1.5
+zoom_default = 1.5
+zoom_speed = 100.0
