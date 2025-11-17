@@ -6,14 +6,16 @@
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nwvq3"]
 texture = ExtResource("1_kcnis")
 texture_region_size = Vector2i(164, 190)
-0:0/next_alternative_id = 5
+0:0/next_alternative_id = 6
 0:0/0 = 0
 0:0/1 = 1
 0:0/1/modulate = Color(0.9647059, 0.8039216, 0.14901961, 1)
 0:0/2 = 2
 0:0/2/modulate = Color(0.6745098, 0.41960785, 0.14901961, 1)
 0:0/3 = 3
-0:0/3/modulate = Color(0.078431375, 0.078431375, 0.078431375, 0.9098039)
+0:0/3/modulate = Color(0, 0, 0, 0.8235294)
+0:0/5 = 5
+0:0/5/modulate = Color(1, 1, 1, 0)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mh3wn"]
 texture = ExtResource("2_6an1b")
