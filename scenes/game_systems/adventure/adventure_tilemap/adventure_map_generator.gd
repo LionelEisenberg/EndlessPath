@@ -74,14 +74,14 @@ func _place_special_tiles() -> void:
 					is_valid_sparse = false
 					break # Tile is too close to another special tile
 			
-		if is_valid_sparse:
-			all_map_tiles[random_coord] = AdventureTileEvent.new()
-			tile_placed = true
-			Log.info("AdventureMapGenerator: Placed special tile at %s after %s attempts" % [random_coord, attempts])
+			if is_valid_sparse:
+				all_map_tiles[random_coord] = AdventureTileEvent.new()
+				tile_placed = true
+				Log.info("AdventureMapGenerator: Placed special tile at %s after %s attempts" % [random_coord, attempts])
 
-	if attempts >= MAX_TILE_PLACEMENT_ATTEMPTS:
-		Log.warn("AdventureMapGenerator: Could not place a special tile. Check map parameters.")
-		break
+			if attempts >= MAX_TILE_PLACEMENT_ATTEMPTS:
+				Log.warn("AdventureMapGenerator: Could not place a special tile. Check map parameters.")
+				break
 
 ## Generates a path network connecting all special tiles using Prim's MST algorithm.
 func _generate_mst_paths():
