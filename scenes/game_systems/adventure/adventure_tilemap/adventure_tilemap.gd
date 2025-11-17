@@ -69,6 +69,7 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 		world_positions.append(world_pos)
 	
 	# Queue the movement path
+	character_body.clear_movement_queue()
 	if world_positions.size() > 0:
 		character_body.queue_movement_path(world_positions, CHARACTER_MOVE_SPEED)
 
