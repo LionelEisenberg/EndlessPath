@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+signal movement_completed  # Emitted when the character reaches their target
+
 @export var is_debug_mode : bool = false
 
 # Movement constants
@@ -23,13 +25,14 @@ var target_position: Vector2 = Vector2.ZERO
 var move_speed: float = 0.0
 var is_moving: bool = false
 
-@onready var animation_player: AnimationPlayer = $AnimationPlayer
+# Movement queue for pathfinding
+var movement_queue: Array[Vector2] = []
 
+@onready var animation_player: AnimationPlayer = $AnimationPlayer
 
 func _physics_process(_delta: float) -> void:
 	if is_moving:
 		_update_movement()
-
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_debug_mode and event is InputEventMouseButton:
@@ -40,7 +43,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Moves the character to the given position at the specified speed.
 ## Automatically plays the appropriate walk animation based on direction.
-func move_to_position(new_position: Vector2, speed: float) -> void:
+func move_to_position(new_position: Vector2, speed : float = DEFAULT_MOVE_SPEED) -> void:
 	target_position = new_position
 	move_speed = speed
 	is_moving = true
@@ -110,3 +113,32 @@ func _stop_movement() -> void:
 	is_moving = false
 	velocity = Vector2.ZERO
 	animation_player.play("RESET")
+	
+	# Emit completion signal
+	movement_completed.emit()
+	
+	# Check if there are more positions in the queue
+	if movement_queue.size() > 0:
+		var next_position = movement_queue.pop_front()
+		move_to_position(next_position, move_speed)
+
+## Queue multiple positions for the character to move through sequentially.
+func queue_movement_path(positions: Array[Vector2], speed: float = DEFAULT_MOVE_SPEED) -> void:
+	# Clear any existing queue
+	movement_queue.clear()
+	
+	# If already moving, add all positions to queue
+	if is_moving:
+		movement_queue.append_array(positions)
+	# Otherwise, start moving to the first position and queue the rest
+	elif positions.size() > 0:
+		var first_position = positions[0]
+		if positions.size() > 1:
+			movement_queue.append_array(positions.slice(1))
+		move_to_position(first_position, speed)
+
+## Clear the movement queue and stop moving.
+func clear_movement_queue() -> void:
+	movement_queue.clear()
+	if is_moving:
+		_stop_movement()

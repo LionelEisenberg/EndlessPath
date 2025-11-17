@@ -6,6 +6,7 @@ signal tile_clicked(tile_coord: Vector2i)
 func set_cell_with_source_and_variant(source_id : int, variant_id: int, cell_coords: Vector2) -> void:
 	set_cell(cell_coords, source_id, Vector2i(0, 0), variant_id)
 	_draw_debug()
+	pathfinding_generate_points()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -14,4 +15,15 @@ func _input(event: InputEvent) -> void:
 		# Only emit if there's actually a tile at this location
 		if get_cell_source_id(tile_coord) != -1:
 			tile_clicked.emit(tile_coord)
-			Log.info(cube_linedraw(Vector3i.ZERO, map_to_cube(tile_coord)))
+
+func cube_pathfind(from: Vector3i, to: Vector3i) -> Array[Vector3i]:
+	var from_id = pathfinding_get_point_id(cube_to_map(from))
+	var to_id = pathfinding_get_point_id(cube_to_map(to))
+	
+	var path = astar.get_id_path(from_id, to_id)
+	var cube_path : Array[Vector3i] = []
+	
+	for point_id in path:
+		cube_path.append(local_to_cube(astar.get_point_position(point_id)))
+	
+	return cube_path
