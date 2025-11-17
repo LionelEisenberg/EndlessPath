@@ -1,6 +1,6 @@
 extends Node2D
 
-@export var log_print_level: Log.Event = Log.Event.INFO
+@export var log_print_level: Log.Event = Log.Event.DEBUG
 
 
 func _ready() -> void:

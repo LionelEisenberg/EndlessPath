@@ -2,10 +2,14 @@ extends Node2D
 
 # Tilemap constants
 const FULL_MAP_TILE_SOURCE_ID = 0
-const FULL_MAP_TILE_VARIANT_ID = 3
 const VISIBLE_MAP_TILE_SOURCE_ID = 0
+const OVERLAY_MAP_TILE_SOURCE_ID = 2
+
+const FULL_MAP_TILE_VARIANT_ID = 3
 const VISITED_MAP_TILE_VARIANT_ID = 1
 const NOT_VISITED_MAP_TILE_VARIANT_ID = 2
+const OVERLAY_MAP_TILE_VARIANT_ID = 1
+
 const CHARACTER_MOVE_SPEED = 150.0
 const INSTANT_MOVE_SPEED = 10000.0
 
@@ -58,8 +62,6 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	# Initialize starting position
 	_current_tile = Vector3i.ZERO
 	_visit(_current_tile)
-	
-	_update_visible_map()
 
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")
@@ -75,7 +77,6 @@ func stop_adventure() -> void:
 	_current_tile = Vector3i.ZERO
 	
 	# Stop character movement
-	character_body.clear_movement_queue()
 	character_body.move_to_position(Vector2(0, 0), INSTANT_MOVE_SPEED)
 
 func _visit(coord: Vector3i) -> void:
@@ -86,14 +87,16 @@ func _visit(coord: Vector3i) -> void:
 		for neighbour in full_map.cube_neighbors(c):
 			if neighbour in _adventure_tile_dictionary.keys() and neighbour not in _visited_tile_dictionary.keys():
 				_highlight_tile_dictionary[neighbour] = 0
+	
+	_update_visible_map()
+	_update_highlight_map()
 
 func _on_tile_clicked(coord: Vector2i) -> void:
 	Log.info("AdventureTilemap: Tile clicked: %s" % coord)
 	
 	# Don't allow new clicks if we're already processing a visitation queue
 	if _visitation_queue.size() > 0:
-		Log.info("AdventureTilemap: Already processing a visitation queue, ignoring click")
-		return
+		_visitation_queue.clear()
 	
 	# Get the target tile in cube coordinates
 	var target_cube_coord = visible_map.map_to_cube(coord)
@@ -122,7 +125,6 @@ func _on_character_movement_completed() -> void:
 		var was_unvisited = not _visited_tile_dictionary.has(_current_tile)
 		if was_unvisited:
 			_visit(_current_tile)
-			_update_visible_map()
 			
 			# TODO: Trigger tile event/action here
 			if _adventure_tile_dictionary.has(_current_tile):
@@ -167,3 +169,8 @@ func _update_visible_map() -> void:
 
 	for coord in _highlight_tile_dictionary.keys():
 		visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, NOT_VISITED_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+
+func _update_highlight_map() -> void:
+	highlight_map.clear()
+	for coord in _highlight_tile_dictionary.keys():
+		highlight_map.set_cell_with_source_and_variant(OVERLAY_MAP_TILE_SOURCE_ID, OVERLAY_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))

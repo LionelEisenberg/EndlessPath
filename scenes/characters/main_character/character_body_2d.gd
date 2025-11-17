@@ -25,9 +25,6 @@ var target_position: Vector2 = Vector2.ZERO
 var move_speed: float = 0.0
 var is_moving: bool = false
 
-# Movement queue for pathfinding
-var movement_queue: Array[Vector2] = []
-
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 
 func _physics_process(_delta: float) -> void:
@@ -116,29 +113,12 @@ func _stop_movement() -> void:
 	
 	# Emit completion signal
 	movement_completed.emit()
-	
-	# Check if there are more positions in the queue
-	if movement_queue.size() > 0:
-		var next_position = movement_queue.pop_front()
-		move_to_position(next_position, move_speed)
 
-## Queue multiple positions for the character to move through sequentially.
-func queue_movement_path(positions: Array[Vector2], speed: float = DEFAULT_MOVE_SPEED) -> void:
-	# Clear any existing queue
-	movement_queue.clear()
-	
-	# If already moving, add all positions to queue
-	if is_moving:
-		movement_queue.append_array(positions)
-	# Otherwise, start moving to the first position and queue the rest
-	elif positions.size() > 0:
-		var first_position = positions[0]
-		if positions.size() > 1:
-			movement_queue.append_array(positions.slice(1))
-		move_to_position(first_position, speed)
-
-## Clear the movement queue and stop moving.
-func clear_movement_queue() -> void:
-	movement_queue.clear()
+## Stops any current movement immediately.
+func stop_moving() -> void:
 	if is_moving:
 		_stop_movement()
+
+## Legacy method for compatibility - now just calls stop_moving()
+func clear_movement_queue() -> void:
+	stop_moving()

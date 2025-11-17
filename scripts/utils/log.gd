@@ -2,6 +2,7 @@ class_name Log extends Logger
 
 enum Event {
 	INFO,
+	DEBUG,
 	WARN,
 	ERROR,
 	CRITICAL,
@@ -16,6 +17,7 @@ const _FLUSH_EVENTS: PackedInt32Array = [
 ]
 const EVENT_COLORS: Dictionary[Event, String] = {
 	Event.INFO: "lime_green",
+	Event.DEBUG: "purple",
 	Event.WARN: "gold",
 	Event.ERROR: "tomato",
 	Event.CRITICAL: "crimson",
@@ -118,6 +120,15 @@ static func info(message: Variant) -> void:
 	if not _is_valid:
 		return
 	var event := Event.INFO
+	var msg_str := _format_log_message(str(message), event)
+	_add_message_to_file(msg_str, event)
+	if _should_print_event(event):
+		_print_event(msg_str, event)
+
+static func debug(message: Variant) -> void:
+	if not _is_valid:
+		return
+	var event := Event.DEBUG
 	var msg_str := _format_log_message(str(message), event)
 	_add_message_to_file(msg_str, event)
 	if _should_print_event(event):

@@ -19,11 +19,6 @@ script/source = "extends Button
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	pressed.connect(func() : ActionManager.stop_action())
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 "
 
 [node name="MainGame" type="Node2D"]
@@ -160,7 +155,7 @@ render_target_update_mode = 4
 
 [node name="AdventureTilemap" parent="MainView/VBoxContainer/MainViewContainer/AdventureView/SubViewportContainer/SubViewport" instance=ExtResource("7_up6bt")]
 
-[node name="PanelContainer" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
+[node name="AbilitiesPanel" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
 custom_minimum_size = Vector2(500, 175)
 layout_mode = 1
 anchors_preset = 8
@@ -178,7 +173,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = ExtResource("8_wwigy")
 
-[node name="Panel2" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
+[node name="TileInfoPanel" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
 custom_minimum_size = Vector2(350, 200)
 layout_mode = 1
 anchors_preset = 8
@@ -194,7 +189,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = ExtResource("8_wwigy")
 
-[node name="Panel" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
+[node name="CharacterInfoPanel" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/AdventureView"]
 custom_minimum_size = Vector2(400, 200)
 layout_mode = 1
 anchors_preset = 8

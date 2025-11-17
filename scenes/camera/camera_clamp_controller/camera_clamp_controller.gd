@@ -28,9 +28,9 @@ func _get_camera_controllers() -> void:
 	for camera_controller in get_parent().get_children():
 		if camera_controller is CameraClampController:
 			continue
-		if camera_controller is CameraPanController:
+		elif camera_controller is CameraPanController:
 			camera_pan_controller = camera_controller
-		if camera_controller is CameraZoomController:
+		elif camera_controller is CameraZoomController:
 			camera_zoom_controller = camera_controller
 		else:
 			Log.warn("CameraClampController: Unable to assign controller %s" % camera_controller)
