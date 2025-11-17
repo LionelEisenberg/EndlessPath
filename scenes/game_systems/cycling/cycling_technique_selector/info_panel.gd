@@ -7,8 +7,6 @@ extends PanelContainer
 @onready var cycling_zones_info: Label = %CyclingZonesInfo
 @onready var change_technique_button: Button = %ChangeTechniqueButton
 
-func _ready() -> void:
-	pass
 
 func setup(data: CyclingTechniqueData) -> void:
 	technique_name_label.text = data.technique_name

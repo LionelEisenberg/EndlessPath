@@ -9,11 +9,6 @@ var is_moving: bool = false
 var movement_threshold: float = 5.0  # Distance at which we consider arrival
 
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
-@onready var sprite_2d: Sprite2D = $Sprite2D
-
-
-func _ready() -> void:
-	pass
 
 
 func _physics_process(_delta: float) -> void:
