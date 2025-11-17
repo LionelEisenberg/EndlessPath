@@ -8,7 +8,7 @@ extends ZoneActionData
 func _init():
 	call_deferred("ready")
 
-func ready():
+func ready() -> void:
 	assert(_verify_foraging_distribution())
 
 #-----------------------------------------------------------------------------
