@@ -37,7 +37,7 @@ var last_madra_per_cycle: float = 0.0  # Madra per cycle from last completed cyc
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-func _ready():
+func _ready() -> void:
 	if not ResourceManager:
 		Log.critical("CyclingResourcePanel: ResourceManager is missing!")
 		return

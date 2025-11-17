@@ -20,7 +20,7 @@ static var button_texture_list : Array[Texture2D] = [
 @onready var zone_action_button: TextureButton = %ZoneActionButton
 @onready var name_label: Label = %NameLabel
 
-func _ready():	
+func _ready() -> void:	
 	if ActionManager:
 		ActionManager.current_action_changed.connect(_on_current_action_changed)
 		is_current_action = ActionManager.get_current_action() == action_data

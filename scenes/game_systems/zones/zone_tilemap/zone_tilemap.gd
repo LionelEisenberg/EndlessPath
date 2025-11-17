@@ -19,7 +19,7 @@ var selected_zone: ZoneData:
 		selected_zone = value
 		ZoneManager.set_current_zone(value)
 
-func _ready():
+func _ready() -> void:
 	selected_zone = ZoneManager.get_current_zone()
 	
 	set_all_zones_in_tile_map()

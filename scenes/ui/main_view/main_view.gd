@@ -19,7 +19,7 @@ enum State {
 
 var current_state: State = State.ZONE_VIEW
 
-func _ready():
+func _ready() -> void:
 	# Initialize view visibility based on initial state
 	_update_view_visibility()
 

@@ -13,7 +13,7 @@ const COLOR_SELECTED := Color(0.3, 0.5, 1.0, 1.0)
 const COLOR_HOVER := Color(0.85, 0.85, 0.95, 1.0)
 const COLOR_NORMAL := Color(1.0, 1.0, 1.0, 1.0)
 
-func _ready():
+func _ready() -> void:
 	self.mouse_entered.connect(_on_mouse_entered)
 	self.mouse_exited.connect(_on_mouse_exited)
 

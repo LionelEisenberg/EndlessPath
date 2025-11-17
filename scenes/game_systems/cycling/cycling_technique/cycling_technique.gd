@@ -63,7 +63,7 @@ var floating_text_scene : PackedScene = preload("res://scenes/ui/floating_text/f
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-func _ready():
+func _ready() -> void:
 	# Connect core button to start cycling
 	core_button.pressed.connect(_on_core_button_pressed)
 	

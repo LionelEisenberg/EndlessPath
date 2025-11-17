@@ -5,7 +5,7 @@ extends MarginContainer
 
 var tween: Tween
 
-func _ready():
+func _ready() -> void:
 	# Initial setup
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_constant_override("font_size", 24)

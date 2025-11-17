@@ -13,7 +13,7 @@ var foundation_technique: CyclingTechniqueData = technique_list.cycling_techniqu
 
 var cycling_action_data: CyclingActionData = null
 
-func _ready():
+func _ready() -> void:
 	# Connect the signal passively to both subnodes' setter methods using Callable
 	current_technique_changed.connect(cycling_technique_node.set_technique_data)
 	current_technique_changed.connect(cycling_resource_panel_node.set_technique_data)
