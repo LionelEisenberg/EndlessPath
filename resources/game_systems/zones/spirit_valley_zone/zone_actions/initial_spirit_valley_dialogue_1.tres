@@ -1,20 +1,14 @@
-[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=6 format=3 uid="uid://c36o44atngp5e"]
+[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=5 format=3 uid="uid://c36o44atngp5e"]
 
-[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/game_systems/actions/effects/effect_data.gd" id="1_uronj"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/game_systems/effects/effect_data.gd" id="1_nm6h2"]
 [ext_resource type="Script" uid="uid://10xqk22j564o" path="res://scripts/resource_definitions/game_systems/zones/zone_action_data/npc_dialogue_action_data/npc_dialogue_action_data.gd" id="2_nm6h2"]
-[ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/game_systems/actions/effects/trigger_event_effect_data.gd" id="2_ur7gj"]
+[ext_resource type="Resource" uid="uid://c701iqcrdgc7x" path="res://resources/game_systems/effects/action_effects/initial_spirit_valley_dialogue_1_trigger_event_effect.tres" id="2_ur7gj"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/game_systems/unlocks/unlock_condition_data.gd" id="3_ur7gj"]
-
-[sub_resource type="Resource" id="Resource_wlafu"]
-script = ExtResource("2_ur7gj")
-event_id = "initial_spirit_valley_dialogue_1"
-effect_type = 1
-metadata/_custom_type_script = "uid://cc0ky7w2fsg10"
 
 [resource]
 script = ExtResource("2_nm6h2")
 dialogue_timeline_name = "spirit_valley"
-effects = Array[ExtResource("1_uronj")]([SubResource("Resource_wlafu")])
+effects = Array[ExtResource("1_nm6h2")]([ExtResource("2_ur7gj")])
 action_id = "initial_spirit_valley_dialogue_1"
 action_name = "Talk to the Wisened Dirt Eel"
 action_type = 2

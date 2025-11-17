@@ -15,10 +15,8 @@ script/source = "extends Camera2D
 script = ExtResource("1_w46j4")
 metadata/_edit_group_ = true
 
-[node name="HexagonTileMapLayer" parent="." instance=ExtResource("2_v6of8")]
+[node name="MainZoneTileMapLayer" parent="." instance=ExtResource("2_v6of8")]
 unique_name_in_owner = true
-position = Vector2(-82, -95)
-debug_mode = 1
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("4_q6nfb")]
 unique_name_in_owner = true

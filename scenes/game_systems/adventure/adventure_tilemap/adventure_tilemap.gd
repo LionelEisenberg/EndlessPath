@@ -22,7 +22,7 @@ var current_adventure_action_data : AdventureActionData = null
 var adventure_map_generator : AdventureMapGenerator
 
 ## Main data structure for the adventure tilemap, key is the cube coordinate, value is the adventure tile event
-var _adventure_tile_dictionary : Dictionary[Vector3i, AdventureTileEvent] = {}
+var _encounter_tile_dictionary : Dictionary[Vector3i, AdventureEncounter] = {}
 var _visited_tile_dictionary : Dictionary[Vector3i, bool] = {}
 var _highlight_tile_dictionary : Dictionary[Vector3i, int] = {}
 
@@ -55,7 +55,7 @@ func start_adventure(action_data: AdventureActionData) -> void:
 
 	# Generate the adventure_tile_dictionary
 	adventure_map_generator.set_adventure_map_data(current_adventure_action_data.adventure_data.map_data)
-	_adventure_tile_dictionary = adventure_map_generator.generate_adventure_map()
+	_encounter_tile_dictionary = adventure_map_generator.generate_adventure_map()
 	
 	_update_full_map()
 	
@@ -70,7 +70,7 @@ func stop_adventure() -> void:
 	full_map.clear()
 	visible_map.clear()
 	highlight_map.clear()
-	_adventure_tile_dictionary.clear()
+	_encounter_tile_dictionary.clear()
 	_visited_tile_dictionary.clear()
 	_highlight_tile_dictionary.clear()
 	_visitation_queue.clear()
@@ -85,7 +85,7 @@ func _visit(coord: Vector3i) -> void:
 	
 	for c in _visited_tile_dictionary.keys():
 		for neighbour in full_map.cube_neighbors(c):
-			if neighbour in _adventure_tile_dictionary.keys() and neighbour not in _visited_tile_dictionary.keys():
+			if neighbour in _encounter_tile_dictionary.keys() and neighbour not in _visited_tile_dictionary.keys():
 				_highlight_tile_dictionary[neighbour] = 0
 	
 	_update_visible_map()
@@ -127,8 +127,8 @@ func _on_character_movement_completed() -> void:
 			_visit(_current_tile)
 			
 			# TODO: Trigger tile event/action here
-			if _adventure_tile_dictionary.has(_current_tile):
-				var tile_event = _adventure_tile_dictionary[_current_tile]
+			if _encounter_tile_dictionary.has(_current_tile):
+				var tile_event = _encounter_tile_dictionary[_current_tile]
 				Log.info("AdventureTilemap: Tile has event: %s" % tile_event)
 				# Handle tile event logic here (combat, loot, dialogue, etc.)
 	
@@ -159,7 +159,7 @@ func _get_current_tile_from_character_position() -> Vector3i:
 
 func _update_full_map() -> void:
 	full_map.clear()
-	for coord in _adventure_tile_dictionary.keys():
+	for coord in _encounter_tile_dictionary.keys():
 		full_map.set_cell_with_source_and_variant(FULL_MAP_TILE_SOURCE_ID, FULL_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 
 func _update_visible_map() -> void:

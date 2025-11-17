@@ -1,7 +1,7 @@
 [gd_scene load_steps=10 format=4 uid="uid://sb5qw0ue2vc4"]
 
 [ext_resource type="Script" uid="uid://c5t8k8u70hsgr" path="res://addons/hexagon_tilemaplayer/demo/demo_manager.gd" id="1_5hvkt"]
-[ext_resource type="TileSet" uid="uid://brm40hxx3wp8n" path="res://addons/hexagon_tilemaplayer/demo/horizontal_tile_set.tres" id="2_2pem3"]
+[ext_resource type="TileSet" uid="uid://brm40hxx3wp8n" path="res://scenes/tilemaps/tilemap_tileset.tres" id="2_2pem3"]
 [ext_resource type="TileSet" uid="uid://l4anov1m1f53" path="res://addons/hexagon_tilemaplayer/demo/vertical_tile_set.tres" id="2_i68m5"]
 [ext_resource type="Script" uid="uid://dfjog7h4t2dnb" path="res://addons/hexagon_tilemaplayer/demo/demo_tilemap.gd" id="3_8d2kc"]
 [ext_resource type="Script" uid="uid://t5kjk00fsm7k" path="res://addons/hexagon_tilemaplayer/demo/camera_movement.gd" id="4_2pem3"]

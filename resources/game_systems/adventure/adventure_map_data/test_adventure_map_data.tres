@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AdventureMapData" load_steps=3 format=3 uid="uid://dkpf211m22hlr"]
 
-[ext_resource type="Script" uid="uid://bars7sna1emxp" path="res://scripts/resource_definitions/game_systems/adventure/events/adventure_tile_event.gd" id="1_lw4of"]
+[ext_resource type="Script" uid="uid://bars7sna1emxp" path="res://scripts/resource_definitions/game_systems/adventure/encounters/adventure_encounter.gd" id="1_lw4of"]
 [ext_resource type="Script" uid="uid://q3c2lkb1nl1i" path="res://scripts/resource_definitions/game_systems/adventure/map_data/adventure_map_data.gd" id="2_ljh5p"]
 
 [resource]

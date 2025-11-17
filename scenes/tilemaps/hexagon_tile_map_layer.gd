@@ -8,6 +8,12 @@ func set_cell_with_source_and_variant(source_id : int, variant_id: int, cell_coo
 	_draw_debug()
 	pathfinding_generate_points()
 
+func _ready() -> void:
+	if position != Vector2(-82, -95):
+		position.x = -82.0
+		position.y = -95.0
+		Log.warn("HexagonalTileMapLayer: TileMapLayer is not in the right position, it won't look right!")
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		var tile_coord = local_to_map(get_local_mouse_position())

@@ -7,7 +7,7 @@ const MAX_TILE_PLACEMENT_ATTEMPTS = 100
 var adventure_map_data : AdventureMapData
 var tile_map : HexagonTileMapLayer
 
-var all_map_tiles : Dictionary[Vector3i, AdventureTileEvent] = {} 
+var all_map_tiles : Dictionary[Vector3i, AdventureEncounter] = {} 
 
 func set_adventure_map_data(map_data : AdventureMapData) -> void:
 	adventure_map_data = map_data
@@ -21,7 +21,7 @@ func set_tile_map(tm: HexagonTileMapLayer):
 
 ## Generates the full set of tile coordinates for an adventure map.
 ## Returns an array of Vector3i (cube coordinates) for all generated tiles.
-func generate_adventure_map() -> Dictionary[Vector3i, AdventureTileEvent]:
+func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 	if not adventure_map_data:
 		Log.error("AdventureMapGenerator: Adventure map data is not set")
 		return {}
@@ -30,7 +30,7 @@ func generate_adventure_map() -> Dictionary[Vector3i, AdventureTileEvent]:
 		Log.error("AdventureMapGenerator: Tile map is not set")
 		return {}
 	
-	all_map_tiles[Vector3i.ZERO] = AdventureTileEvent.new() # Ensure origin is in the map
+	all_map_tiles[Vector3i.ZERO] = AdventureEncounter.new() # Ensure origin is in the map
 
 	_place_special_tiles()
 	
@@ -75,7 +75,7 @@ func _place_special_tiles() -> void:
 					break # Tile is too close to another special tile
 			
 			if is_valid_sparse:
-				all_map_tiles[random_coord] = AdventureTileEvent.new()
+				all_map_tiles[random_coord] = AdventureEncounter.new()
 				tile_placed = true
 				Log.info("AdventureMapGenerator: Placed special tile at %s after %s attempts" % [random_coord, attempts])
 
@@ -116,7 +116,7 @@ func _generate_mst_paths():
 		# We found the best path. Add it to the map.
 		var path = tile_map.cube_linedraw(best_start_node, best_target_node)
 		for coord in path:
-			all_map_tiles[coord] = AdventureTileEvent.new()
+			all_map_tiles[coord] = AdventureEncounter.new()
 
 		# Move the newly connected node from 'nodes_to_add' to 'nodes_in_tree'.
 		nodes_in_tree.append(best_target_node)

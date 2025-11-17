@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://cfl5ob57jkqfm"]
 
-[ext_resource type="TileSet" uid="uid://brm40hxx3wp8n" path="res://scenes/game_systems/zones/zone_tilemap/zone_tilemap_tileset.tres" id="1_stn03"]
+[ext_resource type="TileSet" uid="uid://brm40hxx3wp8n" path="res://scenes/tilemaps/tilemap_tileset.tres" id="1_stn03"]
 
 [sub_resource type="GDScript" id="GDScript_xsowp"]
 script/source = "extends TileMapLayer

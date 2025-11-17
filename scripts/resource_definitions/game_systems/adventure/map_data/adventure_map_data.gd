@@ -10,10 +10,10 @@ extends Resource
 # These are the actual events the generator will place on the map.
 
 # The event for the boss tile (guaranteed to be furthest away)
-@export var boss_event: AdventureTileEvent
+@export var boss_encounter: AdventureEncounter
 
 # An array of events to pick from for the other special tiles
-@export var special_event_pool: Array[AdventureTileEvent]
+@export var special_encounter_pool: Array[AdventureEncounter]
 
 # An array of events to pick from for the path tiles (e.g., combat)
-@export var path_event_pool: Array[AdventureTileEvent]
+@export var path_encounter_pool: Array[AdventureEncounter]
