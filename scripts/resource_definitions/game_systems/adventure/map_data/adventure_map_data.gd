@@ -5,7 +5,6 @@ extends Resource
 @export var num_special_tiles: int = 5
 @export var max_distance_from_start: int = 6
 @export var sparse_factor: int = 2
-@export var num_original_paths: int = 2
 
 ## Event "Pools"
 # These are the actual events the generator will place on the map.

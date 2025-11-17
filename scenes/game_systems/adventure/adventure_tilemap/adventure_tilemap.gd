@@ -6,6 +6,9 @@ extends Node2D
 var current_adventure_action_data : AdventureActionData = null
 var adventure_map_generator : AdventureMapGenerator
 
+## Main data structure for the adventure tilemap, key is the cube coordinate, value is the adventure tile event
+var _adventure_tile_dictionary : Dictionary[Vector3i, AdventureTileEvent] = {}
+
 func _ready() -> void:
 	if ActionManager:
 		ActionManager.start_adventure.connect(start_adventure)
@@ -21,21 +24,20 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	
 	current_adventure_action_data = action_data
 
+	# Generate the adventure_tile_dictionary
 	adventure_map_generator.set_adventure_map_data(current_adventure_action_data.adventure_data.map_data)
-	var points_dict = adventure_map_generator.generate_adventure_map()
-	
-	for point in points_dict.keys():
-		tile_map.set_cell_with_source_and_variant(0, 0, tile_map.cube_to_map(point))
+	_adventure_tile_dictionary = adventure_map_generator.generate_adventure_map()
+	_draw_tiles()
+	tile_map._draw_debug()
 
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")
 	current_adventure_action_data = null
 
-	# TODO: Clear the tilemap for the adventure and reset the character to the starting position
+	_adventure_tile_dictionary.clear()
+	tile_map.clear()
+	character_body.move_to_position(Vector2(0, 0), 10000)
 
-func _generate_adventure_tilemap() -> void:
-	pass
-
-func _clear_adventure_tilemap() -> void:
-	# TODO: Clear the tilemap for the adventure and reset the character to the starting position
-	pass
+func _draw_tiles() -> void:
+	for coord in _adventure_tile_dictionary.keys():
+		tile_map.set_cell_with_source_and_variant(0, 1, tile_map.cube_to_map(coord))

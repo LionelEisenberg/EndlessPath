@@ -14,7 +14,3 @@ func _input(event: InputEvent) -> void:
 		if get_cell_source_id(tile_coord) != -1:
 			tile_clicked.emit(tile_coord)
 			Log.info(cube_linedraw(Vector3i.ZERO, map_to_cube(tile_coord)))
-			for cube_coord in cube_linedraw(Vector3i.ZERO, map_to_cube(tile_coord)):
-				set_cell_with_source_and_variant(0, 0, cube_to_map(cube_coord))
-		else:
-			set_cell_with_source_and_variant(0, 0, tile_coord)

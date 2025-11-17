@@ -4,7 +4,7 @@ extends Node
 var adventure_map_data : AdventureMapData
 var tile_map : HexagonTileMapLayer
 
-var all_map_tiles : Dictionary[Vector3i, bool] = {} 
+var all_map_tiles : Dictionary[Vector3i, AdventureTileEvent] = {} 
 
 func set_adventure_map_data(map_data : AdventureMapData) -> void:
 	adventure_map_data = map_data
@@ -12,11 +12,13 @@ func set_adventure_map_data(map_data : AdventureMapData) -> void:
 func set_tile_map(tm: HexagonTileMapLayer):
 	tile_map = tm
 
-# --- Public API ---
+#-----------------------------------------------------------------------------
+# PUBLIC API
+#-----------------------------------------------------------------------------
 
 ## Generates the full set of tile coordinates for an adventure map.
 ## Returns an array of Vector3i (cube coordinates) for all generated tiles.
-func generate_adventure_map() -> Dictionary[Vector3i, bool]:
+func generate_adventure_map() -> Dictionary[Vector3i, AdventureTileEvent]:
 	if not adventure_map_data:
 		Log.error("AdventureMapGenerator: Adventure map data is not set")
 		return {}
@@ -24,58 +26,22 @@ func generate_adventure_map() -> Dictionary[Vector3i, bool]:
 	if not tile_map:
 		Log.error("AdventureMapGenerator: Tile map is not set")
 		return {}
-
-	# 1. Add the starting tile at the origin
-	all_map_tiles[Vector3i.ZERO] = true
-
-	# 2. Place all special tiles
-	var special_tile_coords: Array[Vector3i] = _place_special_tiles()
-	for coord in special_tile_coords:
-		all_map_tiles[coord] = true
-
-	if special_tile_coords.is_empty():
-		# No special tiles to pathfind to, just return the origin
-		return all_map_tiles
 	
-	# 3. Create Origin Paths
-	# Find the 'n' nearest special tiles to the origin
-	var nearest_to_origin = _find_n_nearest(
-		Vector3i.ZERO,
-		special_tile_coords,
-		adventure_map_data.num_original_paths
-	)
+	all_map_tiles[Vector3i.ZERO] = AdventureTileEvent.new() # Ensure origin is in the map
+
+	_place_special_tiles()
 	
-#
-	for target_coord in nearest_to_origin:
-		var path = tile_map.cube_linedraw(Vector3i.ZERO, target_coord)
-		for coord in path:
-			all_map_tiles[coord] = true
-
-	# 4. Create Inter-Special Paths (Nearest Neighbor Chaining)
-	for start_coord in special_tile_coords:
-		# Create a list of all *other* special tiles
-		var other_tiles = special_tile_coords.duplicate()
-		other_tiles.erase(start_coord)
-
-		if other_tiles.is_empty():
-			# This was the only special tile, nothing to connect to
-			continue
-
-		# Find the single closest neighbor
-		var target_coord = _find_nearest_neighbor(start_coord, other_tiles)
-		if target_coord != null:
-			var path = tile_map.cube_linedraw(start_coord, target_coord)
-			for coord in path:
-				all_map_tiles[coord] = true
-
-	# 5. Return the final list of unique coordinates
+	_generate_mst_paths()
+	
 	return all_map_tiles
 
 
-# --- Private Helper Functions ---
+#-----------------------------------------------------------------------------
+# PRIVATE HELPER FUNCTIONS
+#-----------------------------------------------------------------------------
 
 ## Places special tiles based on parameters
-func _place_special_tiles() -> Array[Vector3i]:
+func _place_special_tiles() -> void:
 	var special_tiles: Array[Vector3i] = []
 	var max_attempts_per_tile = 100 # Safety break
 
@@ -107,7 +73,7 @@ func _place_special_tiles() -> Array[Vector3i]:
 					break # Tile is too close to another special tile
 			
 			if is_valid_sparse:
-				special_tiles.append(random_coord)
+				all_map_tiles[random_coord] = AdventureTileEvent.new()
 				tile_placed = true
 				Log.info("AdventureMapGenerator: Placed special tile at %s after %s attempts" % [random_coord, attempts])
 
@@ -115,37 +81,41 @@ func _place_special_tiles() -> Array[Vector3i]:
 			Log.warn("AdventureMapGenerator: Could not place a special tile. Check map parameters.")
 			break
 
-	return special_tiles
-
-
-# Finds the N nearest coordinates to an origin point
-func _find_n_nearest(origin: Vector3i, points: Array[Vector3i], n: int) -> Array[Vector3i]:
-	var sorted_points = points.duplicate()
+## Generates a path network connecting all special tiles using Prim's MST algorithm.
+func _generate_mst_paths():
+	# A set of all nodes that are not yet part of the MST.
+	var nodes_to_add: Array[Vector3i] = all_map_tiles.keys().duplicate()
 	
-	# Create a custom sort function that captures the 'origin'
-	var sorter = func(a: Vector3i, b: Vector3i):
-		var dist_a = tile_map.cube_distance(origin, a)
-		var dist_b = tile_map.cube_distance(origin, b)
-		return dist_a < dist_b
-		
-	sorted_points.sort_custom(sorter)
-	
-	# Return the first 'n' elements
-	return sorted_points.slice(0, n)
+	# A set of all nodes that are already included in the MST.
+	# We start the tree from the origin.
+	var nodes_in_tree: Array[Vector3i] = [Vector3i.ZERO]
 
+	# Loop until all special tiles have been added to the tree.
+	while not nodes_to_add.is_empty():
+		var min_dist = INF
+		var best_start_node: Vector3i
+		var best_target_node: Vector3i
 
-## Finds the single nearest neighbor to an origin point from a list
-func _find_nearest_neighbor(origin: Vector3i, other_points: Array[Vector3i]) -> Vector3i:
-	if other_points.is_empty():
-		return origin
+		# Find the cheapest edge connecting the "tree" to a "non-tree" node.
+		for start_node in nodes_in_tree:
+			for target_node in nodes_to_add:
+				var dist = tile_map.cube_distance(start_node, target_node)
+				
+				if dist < min_dist:
+					min_dist = dist
+					best_start_node = start_node
+					best_target_node = target_node
 
-	var nearest_point = other_points[0]
-	var min_dist = tile_map.cube_distance(origin, nearest_point)
+		# If no path is found (e.g., isolated nodes, though this shouldn't happen),
+		# safety break.
+		if min_dist == INF:
+			break
 
-	for i in range(1, other_points.size()):
-		var dist = tile_map.cube_distance(origin, other_points[i])
-		if dist < min_dist:
-			min_dist = dist
-			nearest_point = other_points[i]
-			
-	return nearest_point
+		# We found the best path. Add it to the map.
+		var path = tile_map.cube_linedraw(best_start_node, best_target_node)
+		for coord in path:
+			all_map_tiles[coord] = AdventureTileEvent.new()
+
+		# Move the newly connected node from 'nodes_to_add' to 'nodes_in_tree'.
+		nodes_in_tree.append(best_target_node)
+		nodes_to_add.erase(best_target_node)
