@@ -6,12 +6,16 @@ const VISIBLE_MAP_TILE_SOURCE_ID = 0
 const OVERLAY_MAP_TILE_SOURCE_ID = 2
 
 const FULL_MAP_TILE_VARIANT_ID = 3
-const VISITED_MAP_TILE_VARIANT_ID = 1
-const NOT_VISITED_MAP_TILE_VARIANT_ID = 2
+const VISITED_MAP_TILE_VARIANT_ID = 0
+const SPECIAL_MAP_TILE_VARIANT_ID = 1
 const OVERLAY_MAP_TILE_VARIANT_ID = 1
 
 const CHARACTER_MOVE_SPEED = 150.0
 const INSTANT_MOVE_SPEED = 10000.0
+
+enum HighlightType {
+	VISIBLE_NEIGHBOUR
+}
 
 @onready var full_map: HexagonTileMapLayer = %AdventureFullMap
 @onready var visible_map: HexagonTileMapLayer = %AdventureVisibleMap
@@ -21,10 +25,10 @@ const INSTANT_MOVE_SPEED = 10000.0
 var current_adventure_action_data : AdventureActionData = null
 var adventure_map_generator : AdventureMapGenerator
 
-## Main data structure for the adventure tilemap, key is the cube coordinate, value is the adventure tile event
+## Main data structure for the adventure tilemap, key is the cube coordinate, value is the Adventure encounter
 var _encounter_tile_dictionary : Dictionary[Vector3i, AdventureEncounter] = {}
 var _visited_tile_dictionary : Dictionary[Vector3i, bool] = {}
-var _highlight_tile_dictionary : Dictionary[Vector3i, int] = {}
+var _highlight_tile_dictionary : Dictionary[Vector3i, HighlightType] = {}
 
 ## Visitation queue - tiles the character will visit in order
 var _visitation_queue : Array[Vector3i] = []
@@ -86,7 +90,7 @@ func _visit(coord: Vector3i) -> void:
 	for c in _visited_tile_dictionary.keys():
 		for neighbour in full_map.cube_neighbors(c):
 			if neighbour in _encounter_tile_dictionary.keys() and neighbour not in _visited_tile_dictionary.keys():
-				_highlight_tile_dictionary[neighbour] = 0
+				_highlight_tile_dictionary[neighbour] = HighlightType.VISIBLE_NEIGHBOUR
 	
 	_update_visible_map()
 	_update_highlight_map()
@@ -126,11 +130,11 @@ func _on_character_movement_completed() -> void:
 		if was_unvisited:
 			_visit(_current_tile)
 			
-			# TODO: Trigger tile event/action here
 			if _encounter_tile_dictionary.has(_current_tile):
-				var tile_event = _encounter_tile_dictionary[_current_tile]
-				Log.info("AdventureTilemap: Tile has event: %s" % tile_event)
-				# Handle tile event logic here (combat, loot, dialogue, etc.)
+				var tile_encounter : AdventureEncounter = _encounter_tile_dictionary[_current_tile]
+				Log.info("AdventureTilemap: Tile has event: %s" % tile_encounter)
+				
+				
 	
 	# Process next tile in visitation queue
 	_process_next_visitation()
@@ -164,11 +168,17 @@ func _update_full_map() -> void:
 
 func _update_visible_map() -> void:
 	visible_map.clear()
-	for coord in _visited_tile_dictionary.keys():
-		visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, VISITED_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+	
+	var visible_coords = _visited_tile_dictionary.keys()
+	for highlight_coord in _highlight_tile_dictionary.keys():
+		if _highlight_tile_dictionary[highlight_coord] == HighlightType.VISIBLE_NEIGHBOUR:
+			visible_coords.append(highlight_coord)
 
-	for coord in _highlight_tile_dictionary.keys():
-		visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, NOT_VISITED_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+	for coord in visible_coords:
+		if _encounter_tile_dictionary[coord].encounter_id != "":
+			visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, SPECIAL_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+		else:
+			visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, VISITED_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 
 func _update_highlight_map() -> void:
 	highlight_map.clear()

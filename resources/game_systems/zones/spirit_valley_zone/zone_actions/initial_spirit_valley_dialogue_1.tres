@@ -8,10 +8,10 @@
 [resource]
 script = ExtResource("2_nm6h2")
 dialogue_timeline_name = "spirit_valley"
-effects = Array[ExtResource("1_nm6h2")]([ExtResource("2_ur7gj")])
 action_id = "initial_spirit_valley_dialogue_1"
 action_name = "Talk to the Wisened Dirt Eel"
 action_type = 2
 description = "Talk to the Wisened Dirt Eel"
 max_completions = 1
+completion_effects = Array[ExtResource("1_nm6h2")]([ExtResource("2_ur7gj")])
 metadata/_custom_type_script = "uid://10xqk22j564o"

@@ -23,3 +23,23 @@ enum EncounterType {
 
 ## Max times this encounter can be completed at this tile position (0 = unlimited)
 @export var max_completion_count: int = 0
+
+## Effects to apply when encounter is completed
+@export var completion_effects: Array[EffectData] = []
+
+
+func _to_string() -> String:
+	var lines: Array[String] = []
+	lines.append("\nAdventureEncounter {")
+	lines.append("  ID: %s" % encounter_id)
+	lines.append("  Name: %s" % encounter_name)
+	lines.append("  Type: %s" % EncounterType.keys()[encounter_type])
+	lines.append("  Description: %s" % description)
+	lines.append("  Blocking: %s" % is_blocking)
+	lines.append("  Max Completions: %s" % ("Unlimited" if max_completion_count == 0 else str(max_completion_count)))
+	lines.append("  Completion Effects: %d effect(s)" % completion_effects.size())
+	for i in range(completion_effects.size()):
+		if completion_effects[i]:
+			lines.append("    [%d] %s" % [i, completion_effects[i]])
+	lines.append("}")
+	return "\n".join(lines)

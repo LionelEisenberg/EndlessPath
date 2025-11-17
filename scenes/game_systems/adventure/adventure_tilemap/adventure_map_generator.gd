@@ -33,6 +33,8 @@ func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 	all_map_tiles[Vector3i.ZERO] = AdventureEncounter.new() # Ensure origin is in the map
 
 	_place_special_tiles()
+
+	_assign_special_tiles()
 	
 	_generate_mst_paths()
 	
@@ -83,6 +85,16 @@ func _place_special_tiles() -> void:
 			Log.warn("AdventureMapGenerator: Could not place a special tile. Check map parameters.")
 			break
 
+func _assign_special_tiles() -> void:
+	if adventure_map_data.special_encounter_pool.is_empty():
+		Log.warn("AdventureMapGenerator: Can't Assign Encounters to special tiles as encounter pool is empty")
+		return
+
+	for coord in all_map_tiles.keys():
+		if coord == Vector3i.ZERO:
+			continue
+		all_map_tiles[coord] = adventure_map_data.special_encounter_pool[randi_range(0, adventure_map_data.special_encounter_pool.size() - 1)]
+
 ## Generates a path network connecting all special tiles using Prim's MST algorithm.
 func _generate_mst_paths():
 	# A set of all nodes that are not yet part of the MST.
@@ -116,7 +128,8 @@ func _generate_mst_paths():
 		# We found the best path. Add it to the map.
 		var path = tile_map.cube_linedraw(best_start_node, best_target_node)
 		for coord in path:
-			all_map_tiles[coord] = AdventureEncounter.new()
+			if not coord in all_map_tiles:
+				all_map_tiles[coord] = AdventureEncounter.new()
 
 		# Move the newly connected node from 'nodes_to_add' to 'nodes_in_tree'.
 		nodes_in_tree.append(best_target_node)

@@ -1,4 +1,4 @@
-class_name EffectData
+@abstract class_name EffectData
 extends Resource
 
 enum EffectType {
@@ -8,3 +8,9 @@ enum EffectType {
 }
 
 @export var effect_type: EffectType = EffectType.NONE
+
+@abstract 
+func process() -> void
+
+@abstract 
+func _to_string() -> String

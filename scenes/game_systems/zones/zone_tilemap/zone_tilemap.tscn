@@ -17,6 +17,7 @@ metadata/_edit_group_ = true
 
 [node name="MainZoneTileMapLayer" parent="." instance=ExtResource("2_v6of8")]
 unique_name_in_owner = true
+position = Vector2(-82, -95)
 
 [node name="CharacterBody2D" parent="." instance=ExtResource("4_q6nfb")]
 unique_name_in_owner = true

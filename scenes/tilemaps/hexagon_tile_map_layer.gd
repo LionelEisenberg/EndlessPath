@@ -10,8 +10,6 @@ func set_cell_with_source_and_variant(source_id : int, variant_id: int, cell_coo
 
 func _ready() -> void:
 	if position != Vector2(-82, -95):
-		position.x = -82.0
-		position.y = -95.0
 		Log.warn("HexagonalTileMapLayer: TileMapLayer is not in the right position, it won't look right!")
 
 func _input(event: InputEvent) -> void:

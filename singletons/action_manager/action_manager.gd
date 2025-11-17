@@ -205,23 +205,8 @@ func _stop_cycling_action() -> void:
 func _stop_dialogue_action() -> void:
 	Log.info("ActionManager: Dialogue completed, processing effects for: %s" % current_action.action_name)
 	
-	if not EventManager:
-		Log.error("ActionManager: EventManager not found. Cannot process effects.")
-		return
-
-	for effect in current_action.effects:
-		match effect.effect_type:
-			EffectData.EffectType.TRIGGER_EVENT:
-				effect = effect as TriggerEventEffectData
-				var event_id = effect.event_id
-				if event_id:
-					Log.info("ActionManager: Triggering event: %s" % event_id)
-					EventManager.trigger_event(event_id)
-				else:
-					Log.error("ActionManager: TRIGGER_EVENT effect has no 'event_id' in effect_data")
-					
-			EffectData.EffectType.AWARD_RESOURCE:
-				pass
+	for effect in current_action.completion_effects:
+		effect.process()
 
 #-----------------------------------------------------------------------------
 # CURRENT ACTION MANAGEMENT
