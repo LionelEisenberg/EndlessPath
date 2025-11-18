@@ -16,6 +16,7 @@ extends Control
 @onready var combat_view: Control = %CombatView
 
 @onready var character_info_panel: Panel = %CharacterInfoPanel
+@onready var player_resource_manager : CombatResourceManager = %PlayerResourceManager
 
 # TODO: DELETE AND UPDATE
 @onready var health_label = $CharacterInfoPanel/Label
@@ -26,24 +27,6 @@ extends Control
 # STATE VARIABLES
 #-----------------------------------------------------------------------------
 var current_encounter: AdventureEncounter = null
-
-var max_health: float = 100.0
-var current_health: float:
-	set(value):
-		current_health = value
-		_update_combat_resource_bars()
-
-var max_madra: float = 100.0
-var current_madra: float:
-	set(value):
-		current_madra = value
-		_update_combat_resource_bars()
-
-var max_stamina: float = 100.0
-var current_stamina: float:
-	set(value):
-		current_stamina = value
-		_update_combat_resource_bars()
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -82,7 +65,6 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	tilemap_view.visible = true
 	combat_view.visible = false
 
-
 ## Stop the current adventure and cleanup
 func stop_adventure() -> void:
 	Log.info("AdventureView: Stopping adventure")
@@ -93,7 +75,7 @@ func stop_adventure() -> void:
 #-----------------------------------------------------------------------------
 
 ## Transition from tilemap view to combat view
-func _on_start_combat(encounter: AdventureEncounter) -> void:
+func _on_start_combat(encounter: CombatEncounter) -> void:
 	if encounter == null:
 		Log.error("AdventureView: Cannot start combat with null encounter")
 		return
@@ -103,6 +85,9 @@ func _on_start_combat(encounter: AdventureEncounter) -> void:
 	combat_view.visible = true
 	
 	# Start the combat encounter
+	if combat:
+		combat.initialize_with_player_resource_manager(encounter, player_resource_manager)
+		combat.start()
 
 ## Transition from combat view back to tilemap view
 func _on_stop_combat(encounter: AdventureEncounter = null, successful: bool = false) -> void:
@@ -119,17 +104,14 @@ func _on_stop_combat(encounter: AdventureEncounter = null, successful: bool = fa
 
 ## Initialize resource values
 func _initialize_combat_resources() -> void:
-	max_health = CharacterManager.get_max_health()
-	current_health = max_health
-	max_madra = CharacterManager.get_max_madra()
-	current_madra = max_madra
-	max_stamina = CharacterManager.get_max_stamina()
-	current_stamina = max_stamina
-
+	player_resource_manager.health_changed.connect(_update_combat_resource_bars.unbind(1))
+	player_resource_manager.madra_changed.connect(_update_combat_resource_bars.unbind(1))
+	player_resource_manager.stamina_changed.connect(_update_combat_resource_bars.unbind(1))
+	
 	_update_combat_resource_bars()
 
 ## Update resource bars
 func _update_combat_resource_bars() -> void:
-	health_label.text = "Health: %s / %s" % [current_health, max_health]
-	madra_label.text = "Madra: %s / %s" % [current_madra, max_madra]
-	stamina_label.text = "Stamina: %s / %s" % [current_stamina, max_stamina]
+	health_label.text = "Health: %s / %s" % [player_resource_manager.current_health, player_resource_manager.max_health]
+	madra_label.text = "Madra: %s / %s" % [player_resource_manager.current_madra, player_resource_manager.max_madra]
+	stamina_label.text = "Stamina: %s / %s" % [player_resource_manager.current_stamina, player_resource_manager.max_stamina]

@@ -39,14 +39,12 @@ func _ready() -> void:
 	if PersistenceManager and PersistenceManager.save_game_data:
 		live_save_data = PersistenceManager.save_game_data
 		PersistenceManager.save_data_reset.connect(_update_resources)
-		Log.info("CharacterManager: Connected to PersistenceManager")
 		_update_resources()
 	else:
 		Log.critical("CharacterManager: Could not get save_game_data from PersistenceManager on ready!")
 
 func _update_resources() -> void:
 	Log.info("CharacterManager: Updating resources from save data")
-	
 	live_save_data = PersistenceManager.save_game_data
 	if live_save_data == null:
 		Log.critical("CharacterManager: live_save_data is null in _update_resources!")
@@ -120,34 +118,6 @@ func get_willpower() -> float:
 # DERIVED STATS (Calculated from attributes)
 #-----------------------------------------------------------------------------
 # These are basic stat calculations. Combat systems use these for their own logic.
-
-## Calculate maximum health based on Body attribute
-func get_max_health() -> float:
-	return 100.0 + (get_body() * 10.0)
-
-## Calculate maximum stamina based on Body attribute
-func get_max_stamina() -> float:
-	return 50.0 + (get_body() * 5.0)
-
-## Calculate maximum madra based on Foundation attribute
-func get_max_madra() -> float:
-	return 50.0 + (get_foundation() * 10.0)
-
-## Calculate accuracy chance based on Agility attribute (capped at 95%)
-func get_accuracy() -> float:
-	return min(0.95, 0.75 + (get_agility() * 0.01))
-
-## Calculate evasion chance based on Agility attribute (capped at 50%)
-func get_evasion() -> float:
-	return min(0.50, 0.05 + (get_agility() * 0.005))
-
-## Calculate cooldown multiplier based on Agility attribute (lower is better)
-func get_cooldown_multiplier() -> float:
-	return 1.0 / (1.0 + get_agility() * 0.02)
-
-## Calculate madra cost multiplier based on Control attribute (lower is better)
-func get_madra_cost_multiplier() -> float:
-	return 1.0 / (1.0 + get_control() * 0.03)
 
 #-----------------------------------------------------------------------------
 # BASE ATTRIBUTE MODIFICATION FUNCTIONS

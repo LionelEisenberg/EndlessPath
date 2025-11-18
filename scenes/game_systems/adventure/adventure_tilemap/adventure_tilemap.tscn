@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://bvgyusvjgbnbx"]
+[gd_scene load_steps=7 format=3 uid="uid://bvgyusvjgbnbx"]
 
 [ext_resource type="PackedScene" uid="uid://d3givt02dwnlp" path="res://scenes/tilemaps/hexagon_tile_map_layer.tscn" id="1_4pw8h"]
 [ext_resource type="Script" uid="uid://w7rvakxl1g1t" path="res://scenes/game_systems/adventure/adventure_tilemap/adventure_tilemap.gd" id="1_b7v0o"]
 [ext_resource type="PackedScene" uid="uid://eomevugae50m" path="res://scenes/characters/main_character/character_body_2d.tscn" id="2_b7v0o"]
 [ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="4_yfmtn"]
 [ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="4_ywsim"]
+[ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="6_aeorq"]
 
 [node name="AdventureTilemap" type="Node2D"]
 script = ExtResource("1_b7v0o")
@@ -38,3 +39,15 @@ zoom_min = 0.3
 zoom_max = 1.5
 zoom_default = 1.5
 zoom_speed = 100.0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="TileInfoPanel" type="Panel" parent="CanvasLayer"]
+z_index = 2
+custom_minimum_size = Vector2(350, 200)
+offset_left = 1481.0
+offset_top = 271.0
+offset_right = 1831.0
+offset_bottom = 471.0
+theme_override_styles/panel = ExtResource("6_aeorq")
