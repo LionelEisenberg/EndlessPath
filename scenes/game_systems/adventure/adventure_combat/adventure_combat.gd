@@ -1,0 +1,2 @@
+class_name AdventureCombat
+extends Node2D

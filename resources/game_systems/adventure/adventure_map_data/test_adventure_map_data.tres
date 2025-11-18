@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" uid="uid://bars7sna1emxp" path="res://scripts/resource_definitions/game_systems/adventure/encounters/adventure_encounter.gd" id="1_lw4of"]
 [ext_resource type="Script" uid="uid://q3c2lkb1nl1i" path="res://scripts/resource_definitions/game_systems/adventure/map_data/adventure_map_data.gd" id="2_ljh5p"]
-[ext_resource type="Resource" uid="uid://chhhiub3u1al8" path="res://resources/game_systems/adventure/adventure_encounters/test_adventure_map_dialogue_encounter.tres" id="3_ljh5p"]
+[ext_resource type="Resource" uid="uid://baq4lppcxj0uw" path="res://resources/game_systems/adventure/adventure_encounters/test_adventure_map_combat_encounter.tres" id="4_4qokv"]
 
 [resource]
 script = ExtResource("2_ljh5p")
-special_encounter_pool = Array[ExtResource("1_lw4of")]([ExtResource("3_ljh5p")])
+special_encounter_pool = Array[ExtResource("1_lw4of")]([ExtResource("4_4qokv")])
 metadata/_custom_type_script = "uid://q3c2lkb1nl1i"

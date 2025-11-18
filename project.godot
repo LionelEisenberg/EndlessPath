@@ -27,6 +27,7 @@ ActionManager="*res://singletons/action_manager/action_manager.gd"
 InventoryManager="*res://singletons/inventory_manager/inventory_manager.gd"
 Dialogic="*res://addons/dialogic/Core/DialogicGameHandler.gd"
 DialogueManager="*res://singletons/dialogue_manager/dialogue_manager.gd"
+CharacterManager="*res://singletons/character_manager/character_manager.gd"
 
 [dialogic]
 

@@ -1,0 +1,11 @@
+class_name CombatEncounter
+extends AdventureEncounter
+
+@export var enemy_pool : Array[String] = []
+
+func _init() -> void:
+	is_blocking = true
+	encounter_type = EncounterType.COMBAT
+
+func process() -> void:
+	Log.info("CombatEncounter: \"Processed\" Combat Encounter")

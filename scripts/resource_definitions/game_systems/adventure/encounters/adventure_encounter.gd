@@ -5,6 +5,7 @@ extends Resource
 enum EncounterType {
 	NONE,           # No-op, just a tile
 	NPC_DIALOGUE,       # NPC dialogue
+	COMBAT,
 }
 
 ## Unique identifier for this encounter (used for event tracking)

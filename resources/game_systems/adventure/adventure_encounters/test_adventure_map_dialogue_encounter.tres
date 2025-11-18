@@ -8,8 +8,8 @@
 [resource]
 script = ExtResource("1_nqgpu")
 dialogue_timeline_name = "spirit_valley"
-encounter_id = "test_encounter"
-encounter_name = "Test Encounter"
+encounter_id = "test_dialogue_encounter"
+encounter_name = "Test Encounter [DIALOGUE]"
 encounter_type = 1
 description = "THIS IS A TEST ENCOUNTER BABY"
 is_blocking = true

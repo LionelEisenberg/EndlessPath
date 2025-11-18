@@ -1,4 +1,8 @@
+class_name AdventureTilemap
 extends Node2D
+
+## Signals
+signal start_combat(encounter: CombatEncounter)
 
 # Tilemap constants
 const FULL_MAP_TILE_SOURCE_ID = 0
@@ -35,12 +39,6 @@ var _visitation_queue : Array[Vector3i] = []
 var _current_tile : Vector3i = Vector3i.ZERO
 
 func _ready() -> void:
-	if ActionManager:
-		ActionManager.start_adventure.connect(start_adventure)
-		ActionManager.stop_adventure.connect(stop_adventure)
-	else:
-		Log.critical("AdventureTilemap: ActionManager is missing!")
-	
 	if visible_map:
 		visible_map.tile_clicked.connect(_on_tile_clicked)
 	
@@ -54,7 +52,7 @@ func _ready() -> void:
 
 func start_adventure(action_data: AdventureActionData) -> void:
 	Log.info("AdventureTilemap: Starting adventure: %s" % action_data.action_name)
-	
+
 	current_adventure_action_data = action_data
 
 	# Generate the adventure_tile_dictionary
@@ -100,11 +98,20 @@ func _visit(coord: Vector3i) -> void:
 						_on_encounter_completed.bind(coord),
 						CONNECT_ONE_SHOT
 					)
+				AdventureEncounter.EncounterType.COMBAT:
+					_start_combat(tile_encounter)
 				_:
 					Log.error("AdventureTilemap: Unknown encounter type: %s" % tile_encounter.encounter_type)
 					_on_encounter_completed(coord)
 		else:
 			_on_encounter_completed(coord)
+
+
+func _start_combat(encounter: AdventureEncounter):
+	start_combat.emit(encounter)
+
+func _stop_combat(encounter: AdventureEncounter, successful: bool) -> void:
+	_on_encounter_completed(_current_tile)
 
 func _on_tile_clicked(coord: Vector2i) -> void:
 	Log.info("AdventureTilemap: Tile clicked: %s" % coord)

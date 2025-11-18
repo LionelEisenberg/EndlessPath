@@ -16,6 +16,12 @@ extends Resource
 @export var inventory : InventoryData = InventoryData.new()
 
 #-----------------------------------------------------------------------------
+# CHARACTER MANAGER
+#-----------------------------------------------------------------------------
+
+@export var character_attributes: CharacterAttributesData = CharacterAttributesData.new()
+
+#-----------------------------------------------------------------------------
 # CULTIVATION MANAGER
 #-----------------------------------------------------------------------------
 
@@ -87,7 +93,7 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CurrentCyclingTechnique: %s\n)" % [
+	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  CurrentCyclingTechnique: %s\n)" % [
 			madra,
 			gold,
 			core_density_xp,
@@ -99,8 +105,10 @@ func _to_string() -> String:
 			current_selected_zone_id,
 			zone_progression_data_str,
 			inventory.items.size() if inventory and inventory.has_method("items") else 0,
+			str(character_attributes) if character_attributes else "None",
 			current_cycling_technique_name
 		]
+
 
 #-----------------------------------------------------------------------------
 # STATE FUNCTIONS AND VERIFICATION
@@ -132,7 +140,10 @@ func _reset_state() -> void:
 	
 	# Inventory Manager
 	inventory = InventoryData.new()
-	
+
+	# Character Manager
+	character_attributes = CharacterAttributesData.new()
+
 	# Current State
 	current_cycling_technique_name = "Foundation Technique"
 	
