@@ -1,33 +1,58 @@
 class_name AdventureTilemap
 extends Node2D
 
-## Signals
+## AdventureTilemap
+## Manages the adventure map grid, tile visitation, character movement, and encounter triggers
+## Handles pathfinding, tile visibility, and encounter processing
+
+#-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
 signal start_combat(encounter: CombatEncounter)
 
-# Tilemap constants
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+# Tilemap tile source IDs
 const FULL_MAP_TILE_SOURCE_ID = 0
 const VISIBLE_MAP_TILE_SOURCE_ID = 0
 const OVERLAY_MAP_TILE_SOURCE_ID = 2
 
+# Tilemap tile variant IDs
 const FULL_MAP_TILE_VARIANT_ID = 3
 const VISITED_MAP_TILE_VARIANT_ID = 0
 const SPECIAL_MAP_TILE_VARIANT_ID = 1
 const OVERLAY_MAP_TILE_VARIANT_ID = 1
 
+# Character movement speeds
 const CHARACTER_MOVE_SPEED = 150.0
 const INSTANT_MOVE_SPEED = 10000.0
+
+#-----------------------------------------------------------------------------
+# ENUMS
+#-----------------------------------------------------------------------------
 
 enum HighlightType {
 	VISIBLE_NEIGHBOUR
 }
+
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
 
 @onready var full_map: HexagonTileMapLayer = %AdventureFullMap
 @onready var visible_map: HexagonTileMapLayer = %AdventureVisibleMap
 @onready var highlight_map: HexagonTileMapLayer = %AdventureHighlightMap
 @onready var character_body: CharacterBody2D = %CharacterBody2D
 
-var current_adventure_action_data : AdventureActionData = null
-var adventure_map_generator : AdventureMapGenerator
+#-----------------------------------------------------------------------------
+# STATE VARIABLES
+#-----------------------------------------------------------------------------
+
+var current_adventure_action_data: AdventureActionData = null
+var adventure_map_generator: AdventureMapGenerator
 
 ## Main data structure for the adventure tilemap, key is the cube coordinate, value is the Adventure encounter
 var _encounter_tile_dictionary : Dictionary[Vector3i, AdventureEncounter] = {}
@@ -38,17 +63,29 @@ var _highlight_tile_dictionary : Dictionary[Vector3i, HighlightType] = {}
 var _visitation_queue : Array[Vector3i] = []
 var _current_tile : Vector3i = Vector3i.ZERO
 
+#-----------------------------------------------------------------------------
+# INITIALIZATION
+#-----------------------------------------------------------------------------
+
 func _ready() -> void:
+	Log.info("AdventureTilemap: Initializing")
+	
 	if visible_map:
 		visible_map.tile_clicked.connect(_on_tile_clicked)
+	else:
+		Log.critical("AdventureTilemap: Visible map is missing!")
 	
 	if character_body:
 		character_body.movement_completed.connect(_on_character_movement_completed)
 	else:
 		Log.critical("AdventureTilemap: CharacterBody2D is missing!")
-		
+	
 	adventure_map_generator = AdventureMapGenerator.new()
 	adventure_map_generator.set_tile_map(full_map)
+
+#-----------------------------------------------------------------------------
+# PUBLIC METHODS
+#-----------------------------------------------------------------------------
 
 func start_adventure(action_data: AdventureActionData) -> void:
 	Log.info("AdventureTilemap: Starting adventure: %s" % action_data.action_name)
@@ -81,6 +118,22 @@ func stop_adventure() -> void:
 	# Stop character movement
 	character_body.move_to_position(Vector2(0, 0), INSTANT_MOVE_SPEED)
 
+func _start_combat(encounter: AdventureEncounter) -> void:
+	if encounter == null:
+		Log.error("AdventureTilemap: Cannot start combat with null encounter")
+		return
+	
+	Log.info("AdventureTilemap: Initiating combat encounter - %s" % encounter.encounter_name)
+	start_combat.emit(encounter)
+
+func _stop_combat(encounter: AdventureEncounter, successful: bool) -> void:
+	Log.info("AdventureTilemap: Combat ended - Success: %s" % successful)
+	_on_encounter_completed(_current_tile)
+
+#-----------------------------------------------------------------------------
+# PRIVATE METHODS
+#-----------------------------------------------------------------------------
+
 func _visit(coord: Vector3i) -> void:
 	if _visited_tile_dictionary.has(coord):
 		_process_next_visitation()
@@ -106,12 +159,6 @@ func _visit(coord: Vector3i) -> void:
 		else:
 			_on_encounter_completed(coord)
 
-
-func _start_combat(encounter: AdventureEncounter):
-	start_combat.emit(encounter)
-
-func _stop_combat(encounter: AdventureEncounter, successful: bool) -> void:
-	_on_encounter_completed(_current_tile)
 
 func _on_tile_clicked(coord: Vector2i) -> void:
 	Log.info("AdventureTilemap: Tile clicked: %s" % coord)

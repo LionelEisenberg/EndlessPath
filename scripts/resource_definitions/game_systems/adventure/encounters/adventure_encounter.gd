@@ -2,11 +2,23 @@
 class_name AdventureEncounter
 extends Resource
 
+## AdventureEncounter
+## Base class for all encounter types in adventure mode
+## Subclasses define specific encounter behaviors (dialogue, combat, etc.)
+
+#-----------------------------------------------------------------------------
+# ENUMS
+#-----------------------------------------------------------------------------
+
 enum EncounterType {
-	NONE,           # No-op, just a tile
-	NPC_DIALOGUE,       # NPC dialogue
-	COMBAT,
+	NONE,           ## No-op, just a tile with no interaction
+	NPC_DIALOGUE,   ## NPC dialogue encounter using Dialogic
+	COMBAT,         ## Combat encounter with enemies
 }
+
+#-----------------------------------------------------------------------------
+# EXPORTED PROPERTIES
+#-----------------------------------------------------------------------------
 
 ## Unique identifier for this encounter (used for event tracking)
 @export var encounter_id: String = ""
@@ -29,8 +41,17 @@ enum EncounterType {
 ## Effects to apply when encounter is completed
 @export var completion_effects: Array[EffectData] = []
 
+#-----------------------------------------------------------------------------
+# ABSTRACT METHODS
+#-----------------------------------------------------------------------------
+
+## Process this encounter - must be implemented by subclasses
 @abstract
 func process() -> void
+
+#-----------------------------------------------------------------------------
+# STRING REPRESENTATION
+#-----------------------------------------------------------------------------
 
 func _to_string() -> String:
 	var lines: Array[String] = []
