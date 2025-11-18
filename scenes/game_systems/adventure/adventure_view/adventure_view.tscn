@@ -27,6 +27,7 @@ script = ExtResource("1_176xw")
 
 [node name="PlayerResourceManager" parent="." instance=ExtResource("2_bl004")]
 unique_name_in_owner = true
+is_player = true
 
 [node name="TilemapView" type="Control" parent="."]
 unique_name_in_owner = true

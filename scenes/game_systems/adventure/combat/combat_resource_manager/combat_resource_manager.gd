@@ -2,12 +2,21 @@ class_name CombatResourceManager
 extends Node
 
 #-----------------------------------------------------------------------------
+# TYPE ALIASES
+#-----------------------------------------------------------------------------
+
+# Use the AttributeType from CharacterAttributesData
+const AttributeType = CharacterAttributesData.AttributeType
+
+#-----------------------------------------------------------------------------
 # CHARACTER ADVENTURE DATA REFERENCES
 #-----------------------------------------------------------------------------
 @export var character_attributes_data: CharacterAttributesData:
 	set(value):
 		character_attributes_data = value
-		_update_combat_resources()
+		_update_combat_max()
+
+@export var is_player : bool = false
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -39,18 +48,28 @@ var current_stamina: float:
 		current_stamina = value
 		stamina_changed.emit(current_stamina)
 
+#-----------------------------------------------------------------------------
+# INITIALIZATION
+#-----------------------------------------------------------------------------
+
 func _ready() -> void:
-	_update_combat_resources()
-
-func _update_combat_resources() -> void:
-	max_health = _get_max_health()
-	current_health = max_health
-
-	max_stamina = _get_max_stamina()
-	current_stamina = max_stamina
+	if is_player and character_attributes_data:
+		Log.warn("CombatResourceManager: is_player and character_attributes_data should never be set at the same time")
 	
-	max_madra = _get_max_madra()
+	if is_player:
+		var f  = func() : character_attributes_data = CharacterManager.get_total_attributes_data()
+		CharacterManager.base_attribute_changed.connect(f)
+		f.call()
+
+func _initialize_current_values() -> void:
+	current_health = max_health
+	current_stamina = max_stamina
 	current_madra = max_madra
+
+func _update_combat_max() -> void:
+	max_health = _get_max_health()
+	max_stamina = _get_max_stamina()	
+	max_madra = _get_max_madra()
 
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
@@ -58,21 +77,12 @@ func _update_combat_resources() -> void:
 
 ## Calculate maximum health based on Body attribute
 func _get_max_health() -> float:
-	var body = CharacterManager.get_body()
-	if character_attributes_data != null:
-		body = character_attributes_data.body
-	return 100.0 + (body * 10.0)
+	return 100.0 + (character_attributes_data.get_attribute(AttributeType.BODY) * 10.0)
 
 ## Calculate maximum stamina based on Body attribute
 func _get_max_stamina() -> float:
-	var body = CharacterManager.get_body()
-	if character_attributes_data != null:
-		body = character_attributes_data.body
-	return 50.0 + (body * 5.0)
+	return 50.0 + (character_attributes_data.get_attribute(AttributeType.BODY) * 5.0)
 
 ## Calculate maximum madra based on Foundation attribute
 func _get_max_madra() -> float:
-	var foundation = CharacterManager.get_foundation()
-	if character_attributes_data != null:
-		foundation = character_attributes_data.foundation
-	return 50.0 + (foundation * 10.0)
+	return 50.0 + (character_attributes_data.get_attribute(AttributeType.FOUNDATION) * 10.0)

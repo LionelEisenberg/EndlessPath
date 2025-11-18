@@ -34,6 +34,8 @@ func initialize_with_player_resource_manager(e: CombatEncounter, prm: CombatReso
 	self.encounter = e
 	self.player_resource_manager = prm
 
+
+
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------

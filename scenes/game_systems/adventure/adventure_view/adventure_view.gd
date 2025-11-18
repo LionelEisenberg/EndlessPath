@@ -104,6 +104,8 @@ func _on_stop_combat(encounter: AdventureEncounter = null, successful: bool = fa
 
 ## Initialize resource values
 func _initialize_combat_resources() -> void:
+	player_resource_manager._initialize_current_values()
+	
 	player_resource_manager.health_changed.connect(_update_combat_resource_bars.unbind(1))
 	player_resource_manager.madra_changed.connect(_update_combat_resource_bars.unbind(1))
 	player_resource_manager.stamina_changed.connect(_update_combat_resource_bars.unbind(1))

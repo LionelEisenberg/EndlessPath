@@ -32,13 +32,15 @@ enum AttributeType {
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-func _init() -> void:
-	# Initialize all attributes if empty
-	if attributes.is_empty():
-		for attr_type in AttributeType.values():
-			attributes[attr_type] = 10.0
-	
-	# Validate we have exactly 8 attributes
+func _init(strength: float = 10.0, body: float = 10.0, agility: float = 10.0, spirit: float = 10.0, foundation: float = 10.0, control: float = 10.0, resilience: float = 10.0, willpower: float = 10.0) -> void:
+	attributes[AttributeType.STRENGTH] = strength
+	attributes[AttributeType.BODY] = body
+	attributes[AttributeType.AGILITY] = agility
+	attributes[AttributeType.SPIRIT] = spirit
+	attributes[AttributeType.FOUNDATION] = foundation
+	attributes[AttributeType.CONTROL] = control
+	attributes[AttributeType.RESILIENCE] = resilience
+	attributes[AttributeType.WILLPOWER] = willpower
 	_validate_attributes()
 
 #-----------------------------------------------------------------------------

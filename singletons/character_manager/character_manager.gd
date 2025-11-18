@@ -20,6 +20,7 @@ static func get_attribute_display_name(attr_type: AttributeType) -> String:
 #-----------------------------------------------------------------------------
 # SIGNALS
 #-----------------------------------------------------------------------------
+
 signal base_attribute_changed(attribute_type: AttributeType, new_value: float)
 
 #-----------------------------------------------------------------------------
@@ -65,6 +66,18 @@ func _update_resources() -> void:
 # ATTRIBUTE GETTERS (Base + Bonuses)
 #-----------------------------------------------------------------------------
 # These return the total attribute value (base + bonuses from cultivation, equipment, etc.)
+
+func get_total_attributes_data() -> CharacterAttributesData:
+	return CharacterAttributesData.new(
+		get_strength(),
+		get_body(),
+		get_agility(),
+		get_spirit(),
+		get_foundation(),
+		get_control(),
+		get_resilience(),
+		get_willpower()
+	)
 
 ## Get total Strength (base + bonuses)
 func get_strength() -> float:
