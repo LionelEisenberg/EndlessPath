@@ -55,7 +55,7 @@ func _on_cooldown_started(duration: float) -> void:
 	# TODO: Show cooldown overlay/text
 
 func _on_cooldown_updated(time_left: float) -> void:
-	Log.debug("Cooldown updated for %s: %s" % [ability_instance.ability_data.ability_name, time_left])
+	pass
 
 func _on_cooldown_ready() -> void:
 	button.disabled = false

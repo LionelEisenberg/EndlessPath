@@ -78,7 +78,7 @@ func use_ability_instance(instance: CombatAbilityInstance, target: CombatantNode
 	
 	# Check Cooldown
 	if not instance.is_ready():
-		Log.debug("CombatAbilityManager: %s: Ability %s is on cooldown" % [combatant_data.character_name, instance.ability_data.ability_name])
+		Log.warn("CombatAbilityManager: %s: Ability %s is on cooldown" % [combatant_data.character_name, instance.ability_data.ability_name])
 		#ability_failed.emit("Ability on cooldown")
 		return false
 	

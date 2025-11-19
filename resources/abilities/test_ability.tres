@@ -17,5 +17,6 @@ ability_name = "ABILITY"
 description = "ABILITY"
 icon = ExtResource("2_cypmy")
 madra_cost = 10.0
+base_cooldown = 5.0
 effects = Array[ExtResource("1_5a03k")]([SubResource("Resource_pmaom")])
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
