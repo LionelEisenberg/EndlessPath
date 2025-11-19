@@ -82,10 +82,12 @@ func _on_start_combat(encounter: CombatEncounter) -> void:
 	# Start the combat encounter
 	if combat:
 		combat.initialize_with_player_resource_manager(encounter, player_resource_manager)
+		combat.trigger_combat_end.connect(_on_stop_combat.bind(encounter))
 		combat.start()
+		
 
 ## Transition from combat view back to tilemap view
-func _on_stop_combat(encounter: AdventureEncounter = null, successful: bool = false) -> void:
+func _on_stop_combat(successful: bool = false, encounter: AdventureEncounter = null) -> void:
 	Log.info("AdventureView: Transitioning from combat to tilemap - Success: %s" % successful)
 	tilemap_view.visible = true
 	combat_view.visible = false

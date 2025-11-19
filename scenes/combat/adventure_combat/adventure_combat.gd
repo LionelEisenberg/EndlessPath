@@ -9,6 +9,8 @@ extends Node2D
 # SIGNALS
 #-----------------------------------------------------------------------------
 
+signal trigger_combat_end(is_successful : bool)
+
 #-----------------------------------------------------------------------------
 # SCENES
 #-----------------------------------------------------------------------------
@@ -83,15 +85,17 @@ func _create_player_combatant() -> void:
 	player_data.character_name = "Player"
 	player_data.attributes = CharacterManager.get_total_attributes_data()
 	player_data.abilities = debug_abilities
+	# player_data.abilities = CharacterManager.get_abilities_data()
 	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
 	player_combatant.position = Vector2(400, 1000)
-	# player_data.abilities = CharacterManager.get_abilities_data()
 
 	# Connect signals BEFORE setup so we catch ability registration
 	player_combatant.ability_manager.ability_registered.connect(_on_ability_registered)
+	
+	# Connect player_resource_manager to the trigger_combat_end signal
+	player_resource_manager.health_changed.connect(_on_player_health_changed)
 
 	player_combatant.setup(player_data, player_resource_manager, true)
-	
 
 func _create_enemy_combatant() -> void:
 	var enemy_data : CombatantData = encounter.enemy_pool[0]
@@ -110,9 +114,25 @@ func _create_enemy_combatant() -> void:
 	enemy_combatant.add_child(ai)
 	ai.setup(enemy_combatant, player_combatant)
 	
+	# Connect player_resource_manager to the trigger_combat_end signal
+	enemy_combatant.resource_manager.health_changed.connect(_on_enemy_health_changed)
+	
 	# Setup CombatantInfoPanel
 	enemy_info_panel.setup(enemy_combatant.resource_manager)
 
+#-----------------------------------------------------------------------------
+# SIGNAL HANDLERS
+#-----------------------------------------------------------------------------
+
+func _on_player_health_changed(health: float) -> void:
+	if health <= 0.0:
+		Log.info("AdventureCombat: Player died")
+		trigger_combat_end.emit(false)
+
+func _on_enemy_health_changed(health: float) -> void:
+	if health <= 0.0:
+		Log.info("AdventureCombat: Enemy died")
+		trigger_combat_end.emit(true)
 
 #-----------------------------------------------------------------------------
 # UI HANDLERS

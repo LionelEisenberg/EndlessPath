@@ -26,7 +26,7 @@ enum AttributeType {
 # These are the persistent base attribute values that are saved.
 # Total attributes = base + bonuses from other systems (cultivation, equipment, etc.)
 
-@export var attributes: Dictionary = {}
+@export var attributes: Dictionary [AttributeType, float] = {}
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
