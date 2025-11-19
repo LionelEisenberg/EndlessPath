@@ -8,6 +8,7 @@
 script = ExtResource("1_5a03k")
 effect_name = "EFFECT"
 base_value = 1.0
+strength_scaling = 1.0
 metadata/_custom_type_script = "uid://bnd52oeyddekj"
 
 [resource]
