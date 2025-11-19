@@ -80,6 +80,8 @@ func _create_player_combatant() -> void:
 	player_data.character_name = "Player"
 	player_data.attributes = CharacterManager.get_total_attributes_data()
 	player_data.abilities = debug_abilities
+	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
+	player_combatant.position = Vector2(400, 1000)
 	# player_data.abilities = CharacterManager.get_abilities_data()
 
 	# Connect signals BEFORE setup so we catch ability registration
@@ -93,6 +95,7 @@ func _create_enemy_combatant() -> void:
 	
 	enemy_combatant = combatant_scene.instantiate()
 	enemy_combatant.name = "EnemyCombatant"
+	enemy_combatant.position = Vector2(1100, 300)
 	add_child(enemy_combatant)
 		
 	# Enemy gets a new internal resource manager created by setup()

@@ -129,7 +129,7 @@ func _generate_mst_paths():
 		var path = tile_map.cube_linedraw(best_start_node, best_target_node)
 		for coord in path:
 			if not coord in all_map_tiles:
-				all_map_tiles[coord] = NoOpEncounter.new()
+				all_map_tiles[coord] = adventure_map_data.special_encounter_pool[randi_range(0, adventure_map_data.special_encounter_pool.size() - 1)]
 
 		# Move the newly connected node from 'nodes_to_add' to 'nodes_in_tree'.
 		nodes_in_tree.append(best_target_node)

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=5 format=3 uid="uid://bogou33q4fhbt"]
+
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_5a03k"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="2_cypmy"]
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="3_8bdw6"]
+
+[sub_resource type="Resource" id="Resource_pmaom"]
+script = ExtResource("1_5a03k")
+effect_name = "EFFECT"
+base_value = 1.0
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[resource]
+script = ExtResource("3_8bdw6")
+ability_id = "test_ability"
+ability_name = "ABILITY"
+description = "ABILITY"
+icon = ExtResource("2_cypmy")
+madra_cost = 10.0
+effects = Array[ExtResource("1_5a03k")]([SubResource("Resource_pmaom")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

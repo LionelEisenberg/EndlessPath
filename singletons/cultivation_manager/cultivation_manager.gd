@@ -21,7 +21,7 @@ enum AdvancementStage {
 }
 
 @export var advancement_stage_resources: Array[AdvancementStageResource] = [
-	preload("res://resources/game_systems/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres")
+	preload("res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres")
 ]
 
 #-----------------------------------------------------------------------------

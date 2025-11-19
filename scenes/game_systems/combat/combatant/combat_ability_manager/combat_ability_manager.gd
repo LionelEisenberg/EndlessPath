@@ -40,7 +40,7 @@ func _create_ability_instance(ability_data: AbilityData) -> void:
 	abilities.append(instance)
 	
 	ability_registered.emit(instance)
-	Log.info("CombatAbilityManager: Created ability instance for " + ability_data.ability_name)
+	Log.info("CombatAbilityManager: %s: Registered ability %s" % [combatant_data.character_name, ability_data.ability_name])
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -68,6 +68,7 @@ func use_ability(index: int, target: CombatantNode) -> bool:
 
 func use_ability_instance(instance: CombatAbilityInstance, target: CombatantNode) -> bool:
 	if not instance in abilities:
+		Log.warn("CombatAbilityManager: %s: Ability instance %s not found" % [combatant_data.character_name, instance.ability_data.ability_name])
 		#ability_failed.emit("Ability instance not found")
 		return false
 		
@@ -77,11 +78,13 @@ func use_ability_instance(instance: CombatAbilityInstance, target: CombatantNode
 	
 	# Check Cooldown
 	if not instance.is_ready():
+		Log.debug("CombatAbilityManager: %s: Ability %s is on cooldown" % [combatant_data.character_name, instance.ability_data.ability_name])
 		#ability_failed.emit("Ability on cooldown")
 		return false
 	
 	# Check Resources
 	if not instance.ability_data.can_afford(resource_manager):
+		Log.warn("CombatAbilityManager: %s: Not enough resources for %s" % [combatant_data.character_name, instance.ability_data.ability_name])
 		#ability_failed.emit("Not enough resources")
 		return false
 		
@@ -89,6 +92,7 @@ func use_ability_instance(instance: CombatAbilityInstance, target: CombatantNode
 	instance.ability_data.consume_costs(resource_manager)
 	
 	# Use Ability
+	Log.info("CombatAbilityManager: %s: Used ability %s on %s" % [combatant_data.character_name, instance.ability_data.ability_name, target.name])
 	instance.use(target)
 	ability_used.emit(instance)
 	return true

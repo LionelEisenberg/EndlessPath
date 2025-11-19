@@ -8,7 +8,7 @@ signal current_technique_changed(data)
 
 var current_cycling_technique_data: CyclingTechniqueData = null
 
-var technique_list: CyclingTechniqueList = preload("res://resources/game_systems/cycling/cycling_techniques/cycling_technique_list.tres")
+var technique_list: CyclingTechniqueList = preload("res://resources/cycling/cycling_techniques/cycling_technique_list.tres")
 var foundation_technique: CyclingTechniqueData = technique_list.cycling_techniques[0]
 
 var cycling_action_data: CyclingActionData = null

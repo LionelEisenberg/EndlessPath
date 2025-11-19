@@ -1,31 +1,14 @@
-[gd_scene load_steps=9 format=3 uid="uid://blofb5opg1kdu"]
+[gd_scene load_steps=6 format=3 uid="uid://blofb5opg1kdu"]
 
 [ext_resource type="Script" uid="uid://b5570lugu0psn" path="res://scenes/game_systems/combat/adventure_combat/adventure_combat.gd" id="1_utfsu"]
 [ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="2_mvhgc"]
-[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/combat/abilities/ability_data.gd" id="2_qvnuk"]
-[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="3_vkkxw"]
-[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="4_ysix2"]
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_qvnuk"]
+[ext_resource type="Resource" uid="uid://bogou33q4fhbt" path="res://resources/abilities/test_ability.tres" id="3_qvnuk"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="6_ysix2"]
-
-[sub_resource type="Resource" id="Resource_pmaom"]
-script = ExtResource("3_vkkxw")
-effect_name = "EFFECT"
-base_value = 1.0
-metadata/_custom_type_script = "uid://bnd52oeyddekj"
-
-[sub_resource type="Resource" id="Resource_eqru7"]
-script = ExtResource("2_qvnuk")
-ability_id = "ABILITY"
-ability_name = "ABILITY"
-description = "ABILITY"
-icon = ExtResource("4_ysix2")
-madra_cost = 10.0
-effects = Array[ExtResource("3_vkkxw")]([SubResource("Resource_pmaom")])
-metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
 
 [node name="AdventureCombat" type="Node2D"]
 script = ExtResource("1_utfsu")
-debug_abilities = Array[ExtResource("2_qvnuk")]([SubResource("Resource_eqru7")])
+debug_abilities = Array[ExtResource("2_qvnuk")]([ExtResource("3_qvnuk")])
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

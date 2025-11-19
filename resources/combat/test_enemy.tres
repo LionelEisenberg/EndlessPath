@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CombatantData" load_steps=5 format=3 uid="uid://ctok24q1h2l1j"]
+
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="1_0jo2u"]
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="1_ahf2a"]
+[ext_resource type="Resource" uid="uid://bogou33q4fhbt" path="res://resources/abilities/test_ability.tres" id="2_5thm4"]
+[ext_resource type="Texture2D" uid="uid://3mr5xlmm5m1m" path="res://assets/sprites/combat/enemies/test_enemy_sprite.png" id="4_2licw"]
+
+[resource]
+script = ExtResource("1_0jo2u")
+character_name = "TestEnemy"
+abilities = Array[ExtResource("1_ahf2a")]([ExtResource("2_5thm4")])
+texture = ExtResource("4_2licw")
+metadata/_custom_type_script = "uid://hbo1w3358rom"

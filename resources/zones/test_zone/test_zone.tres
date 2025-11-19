@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ZoneData" load_steps=5 format=3 uid="uid://qkphbmj5rob4"]
+
+[ext_resource type="Script" uid="uid://cv640mljv33xk" path="res://scripts/resource_definitions/zones/zone_action_data/zone_action_data.gd" id="1_3wnqn"]
+[ext_resource type="Script" uid="uid://culb0p88pnexb" path="res://scripts/resource_definitions/zones/zone_data/zone_data.gd" id="2_0q1fc"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="3_ptkqb"]
+[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/initial_spirit_valley_dialogue_1.tres" id="4_0q1fc"]
+
+[resource]
+script = ExtResource("2_0q1fc")
+zone_name = "Test Zone"
+zone_id = "TestZone"
+description = "test zone"
+zone_unlock_conditions = Array[ExtResource("3_ptkqb")]([ExtResource("4_0q1fc")])
+tilemap_location = Vector2i(0, 1)
+metadata/_custom_type_script = "uid://culb0p88pnexb"

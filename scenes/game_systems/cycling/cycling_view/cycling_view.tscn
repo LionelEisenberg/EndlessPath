@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/game_systems/cycling/cycling_technique/cycling_technique.tscn" id="3_hypg5"]
 [ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/game_systems/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]
 [ext_resource type="PackedScene" uid="uid://86cemqoesomd" path="res://scenes/game_systems/cycling/cycling_technique_selector/cycling_technique_selector.tscn" id="6_vx840"]
-[ext_resource type="Resource" uid="uid://de6qv3bad4yop" path="res://resources/game_systems/cycling/cycling_techniques/cycling_technique_list.tres" id="7_uk6eo"]
+[ext_resource type="Resource" uid="uid://de6qv3bad4yop" path="res://resources/cycling/cycling_techniques/cycling_technique_list.tres" id="7_uk6eo"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uk6eo"]
 draw_center = false

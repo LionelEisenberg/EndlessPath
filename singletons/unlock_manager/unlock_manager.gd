@@ -23,7 +23,7 @@ signal condition_unlocked(condition_id: String)
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-@export var unlock_condition_list : UnlockConditionList = preload("res://resources/game_systems/unlocks/unlock_condition_list.tres")
+@export var unlock_condition_list : UnlockConditionList = preload("res://resources/unlocks/unlock_condition_list.tres")
 
 var live_save_data: SaveGameData = null
 

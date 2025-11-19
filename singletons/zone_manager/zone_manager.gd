@@ -14,7 +14,7 @@ signal action_completed
 # VARIABLES
 #-----------------------------------------------------------------------------
 
-@export var _all_zone_data: ZoneDataList = preload("res://resources/game_systems/zones/zone_data_list.tres")
+@export var _all_zone_data: ZoneDataList = preload("res://resources/zones/zone_data_list.tres")
 
 var live_save_data: SaveGameData = PersistenceManager.save_game_data
 
