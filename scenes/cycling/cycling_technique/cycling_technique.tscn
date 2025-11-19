@@ -1,0 +1,105 @@
+[gd_scene load_steps=10 format=3 uid="uid://cnbav6qrqwcux"]
+
+[ext_resource type="Script" uid="uid://d0rpldjw3ymsn" path="res://scenes/cycling/cycling_technique/cycling_technique.gd" id="1_j38ga"]
+[ext_resource type="Curve2D" uid="uid://cnw51jn84jbvi" path="res://new_curve_2d.tres" id="1_la7m7"]
+[ext_resource type="Resource" uid="uid://jtu2awyodaem" path="res://resources/cycling/cycling_techniques/test_foundation_cycling_technique/test_foundation_cycling_technique.tres" id="2_j38ga"]
+[ext_resource type="Texture2D" uid="uid://dm58rs33ces5o" path="res://assets/sprites/cycling/Madra-Ball.png" id="2_sxf01"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="3_bloew"]
+
+[sub_resource type="Animation" id="Animation_j38ga"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CyclingPath2D/PathFollow2D:progress_ratio")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_sxf01"]
+resource_name = "move_madra_ball"
+length = 5.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CyclingPath2D/PathFollow2D:progress_ratio")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_bloew"]
+_data = {
+&"RESET": SubResource("Animation_j38ga"),
+&"move_madra_ball": SubResource("Animation_sxf01")
+}
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_sxf01"]
+radius = 29.54656
+
+[node name="CyclingTechnique" type="Node2D"]
+script = ExtResource("1_j38ga")
+technique_data_input = ExtResource("2_j38ga")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_bloew")
+}
+
+[node name="PathLine" type="Line2D" parent="."]
+points = PackedVector2Array(320, 430, 330, 430, 342, 429, 352, 426, 358, 423, 364, 419, 377, 406, 386, 393, 389, 383, 391, 362, 394, 352, 395, 343, 398, 326, 401, 309, 403, 305, 404, 302, 407, 297, 410, 296, 413, 297, 416, 299, 417, 303, 424, 314, 427, 318, 431, 322, 434, 326, 437, 331, 439, 336, 443, 340, 447, 343, 452, 348, 458, 352, 461, 356, 464, 361, 468, 369, 469, 373, 471, 379, 475, 385, 479, 389, 482, 394, 486, 400, 489, 404, 492, 408, 495, 414, 498, 420, 500, 425, 504, 426, 511, 427, 513, 426, 516, 424, 518, 421, 519, 417, 519, 413, 519, 407, 517, 403, 514, 395, 511, 385, 508, 380, 503, 371, 500, 360, 496, 353, 492, 347, 487, 340, 481, 329, 476, 319, 470, 310, 463, 300, 458, 286, 457, 276, 455, 269, 454, 265, 454, 262, 453, 257, 450, 254, 447, 250, 444, 244, 439, 239, 432, 233, 423, 226, 415, 221, 408, 217, 398, 213, 391, 210, 383, 207, 373, 204, 366, 200, 358, 196, 353, 193, 348, 188, 346, 184, 344, 177, 343, 172, 344, 167, 345, 162, 346, 156, 347, 148, 349, 142, 354, 133, 355, 129, 357, 121, 361, 113, 364, 104, 364, 98, 364, 92, 364, 87, 364, 82, 363, 78, 361, 71, 358, 65, 355, 60, 349, 54, 342, 49, 333, 46, 324, 45, 315, 45, 305, 47, 295, 53, 287, 59, 281, 69, 278, 77, 276, 81, 275, 85, 274, 89, 274, 94, 275, 98, 277, 104, 278, 110, 280, 119, 282, 123, 285, 129, 288, 137, 290, 146, 293, 151, 296, 162, 296, 168, 295, 174, 294, 180, 292, 183, 289, 187, 285, 190, 278, 195, 268, 199, 259, 203, 247, 208, 235, 212, 228, 215, 221, 219, 212, 227, 205, 236, 199, 247, 193, 255, 186, 270, 182, 280, 179, 288, 175, 295, 171, 303, 166, 312, 161, 323, 157, 330, 153, 335, 148, 340, 143, 345, 138, 353, 135, 358, 130, 366, 127, 374, 123, 383, 122, 392, 121, 400, 119, 410, 119, 420, 120, 425, 123, 428, 126, 430, 130, 429, 136, 427, 139, 423, 144, 416, 147, 411, 149, 403, 154, 390, 160, 380, 169, 368, 174, 361, 188, 346, 200, 334, 208, 325, 214, 317, 223, 307, 228, 301, 236, 302, 240, 307, 243, 321, 244, 326, 246, 340, 246, 350, 248, 364, 250, 377, 254, 391, 259, 403, 264, 414, 270, 420, 280, 423, 296, 429, 308, 430, 320, 430)
+width = 2.0
+default_color = Color(1, 0, 0, 1)
+
+[node name="StartCyclingButton" type="Button" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 288.0
+offset_top = 399.0
+offset_right = 353.0
+offset_bottom = 460.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AutoCycleToggle" type="TextureButton" parent="."]
+offset_left = 288.0
+offset_top = 464.0
+offset_right = 352.0
+offset_bottom = 528.0
+toggle_mode = true
+texture_normal = ExtResource("3_bloew")
+texture_pressed = ExtResource("3_bloew")
+texture_focused = ExtResource("3_bloew")
+
+[node name="CyclingPath2D" type="Path2D" parent="."]
+curve = ExtResource("1_la7m7")
+
+[node name="PathFollow2D" type="PathFollow2D" parent="CyclingPath2D"]
+unique_name_in_owner = true
+position = Vector2(320, 430)
+rotation = 1.9557537
+rotates = false
+loop = false
+
+[node name="MadraBall" type="Area2D" parent="CyclingPath2D/PathFollow2D"]
+unique_name_in_owner = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CyclingPath2D/PathFollow2D/MadraBall"]
+scale = Vector2(1.0000001, 1.0000001)
+shape = SubResource("CircleShape2D_sxf01")
+
+[node name="MadraBallSprite" type="Sprite2D" parent="CyclingPath2D/PathFollow2D/MadraBall"]
+scale = Vector2(0.125, 0.125)
+texture = ExtResource("2_sxf01")

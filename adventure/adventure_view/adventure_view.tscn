@@ -1,0 +1,120 @@
+[gd_scene load_steps=8 format=3 uid="uid://dyo4bhgss8a1s"]
+
+[ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/sprites/zones/backgrounds/spirit_valley_background.jpg" id="1_3ls1s"]
+[ext_resource type="Script" path="res://adventure/adventure_view/adventure_view.gd" id="1_176xw"]
+[ext_resource type="PackedScene" uid="uid://c38pe482j5y0p" path="res://adventure/adventure_tilemap/adventure_tilemap.tscn" id="2_176xw"]
+[ext_resource type="PackedScene" uid="uid://dynrtyfrxtgfj" path="res://combat/combatant/combat_resource_manager/combat_resource_manager.tscn" id="2_bl004"]
+[ext_resource type="PackedScene" uid="uid://busvwi55fdx0o" path="res://combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
+[ext_resource type="PackedScene" uid="uid://dficfn4tx40qm" path="res://combat/combatant_info_panel.tscn" id="6_a8cog"]
+
+[sub_resource type="GDScript" id="GDScript_wwigy"]
+script/source = "extends Button
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pressed.connect(func() : ActionManager.stop_action())
+"
+
+[node name="AdventureView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_176xw")
+
+[node name="PlayerResourceManager" parent="." instance=ExtResource("2_bl004")]
+unique_name_in_owner = true
+is_player = true
+
+[node name="TilemapView" type="Control" parent="."]
+unique_name_in_owner = true
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="TilemapSubviewportContainer" type="SubViewportContainer" parent="TilemapView"]
+clip_contents = true
+layout_mode = 0
+offset_left = -2.0
+offset_right = 1918.0
+offset_bottom = 1080.0
+
+[node name="AdventureTilemapBackground" type="Sprite2D" parent="TilemapView/TilemapSubviewportContainer"]
+z_index = -1
+position = Vector2(963.49994, 555.49994)
+scale = Vector2(0.7769531, 0.7951389)
+texture = ExtResource("1_3ls1s")
+
+[node name="SubViewport" type="SubViewport" parent="TilemapView/TilemapSubviewportContainer"]
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1920, 1080)
+render_target_update_mode = 4
+
+[node name="AdventureTilemap" parent="TilemapView/TilemapSubviewportContainer/SubViewport" instance=ExtResource("2_176xw")]
+unique_name_in_owner = true
+
+[node name="CombatView" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="CombatSubviewportContainer" type="SubViewportContainer" parent="CombatView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1880.0
+offset_bottom = 1040.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CombatBackground" type="Sprite2D" parent="CombatView/CombatSubviewportContainer"]
+z_index = -1
+position = Vector2(963.49994, 555.49994)
+scale = Vector2(0.7769531, 0.7951389)
+texture = ExtResource("1_3ls1s")
+
+[node name="SubViewport" type="SubViewport" parent="CombatView/CombatSubviewportContainer"]
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1920, 1080)
+render_target_update_mode = 0
+
+[node name="AdventureCombat" parent="CombatView/CombatSubviewportContainer/SubViewport" instance=ExtResource("5_a8cog")]
+unique_name_in_owner = true
+
+[node name="PlayerInfoPanel" parent="." instance=ExtResource("6_a8cog")]
+unique_name_in_owner = true
+layout_mode = 0
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 1453.0
+offset_top = 55.0
+offset_right = 1853.0
+offset_bottom = 255.0
+grow_horizontal = 1
+grow_vertical = 1
+
+[node name="Button" type="Button" parent="."]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 1776.0
+offset_top = 936.0
+offset_right = 1840.0
+offset_bottom = 1000.0
+script = SubResource("GDScript_wwigy")
+
+[node name="Button2" type="Button" parent="."]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 1696.0
+offset_top = 935.0
+offset_right = 1760.0
+offset_bottom = 999.0

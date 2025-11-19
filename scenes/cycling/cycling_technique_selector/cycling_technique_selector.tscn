@@ -1,0 +1,144 @@
+[gd_scene load_steps=7 format=3 uid="uid://86cemqoesomd"]
+
+[ext_resource type="Script" uid="uid://cokwu41te4kd" path="res://scenes/cycling/cycling_technique_selector/cycling_technique_selector.gd" id="1_a084a"]
+[ext_resource type="PackedScene" uid="uid://drh25t5yg05ve" path="res://scenes/cycling/cycling_technique_selector/cycling_technique_slot.tscn" id="2_u6qub"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="3_u6qub"]
+[ext_resource type="Script" uid="uid://c1wuf3htdmryc" path="res://scenes/cycling/cycling_technique_selector/info_panel.gd" id="3_vwpen"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sgpme"]
+bg_color = Color(0.44705883, 0.34901962, 0.3372549, 1)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_yrkfe"]
+
+[node name="CyclingTechniqueSelector" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+mouse_filter = 1
+script = ExtResource("1_a084a")
+
+[node name="MarginBackgroundContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 400
+theme_override_constants/margin_top = 200
+theme_override_constants/margin_right = 400
+theme_override_constants/margin_bottom = 200
+
+[node name="PanelContainer" type="PanelContainer" parent="MarginBackgroundContainer"]
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_sgpme")
+
+[node name="MainSplitter" type="HBoxContainer" parent="MarginBackgroundContainer/PanelContainer"]
+layout_mode = 2
+
+[node name="InventoryPanel" type="PanelContainer" parent="MarginBackgroundContainer/PanelContainer/MainSplitter"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.7
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxEmpty_yrkfe")
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InventoryPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InventoryPanel/MarginContainer"]
+layout_mode = 2
+
+[node name="CyclingTechniqueGridContainer" type="GridContainer" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InventoryPanel/MarginContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 2
+
+[node name="CyclingTechniqueSlot" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InventoryPanel/MarginContainer/ScrollContainer/CyclingTechniqueGridContainer" instance=ExtResource("2_u6qub")]
+layout_mode = 2
+
+[node name="InfoPanel" type="PanelContainer" parent="MarginBackgroundContainer/PanelContainer/MainSplitter"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+theme_override_styles/panel = SubResource("StyleBoxEmpty_yrkfe")
+script = ExtResource("3_vwpen")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel"]
+layout_mode = 2
+
+[node name="TechniqueNameLabel" type="Label" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 6
+text = "TECHNIQUE NAME"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MadraRateLabel" type="Label" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 6
+text = "MADRA RATE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DurationLabel" type="Label" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 6
+text = "DURATION"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CyclingZonesHeader" type="Label" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 6
+text = "CYCLING ZONES"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CyclingZonesInfo" type="Label" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 6
+text = "Cycling ZONE INFO"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ChangeTechniqueButton" type="Button" parent="MarginBackgroundContainer/PanelContainer/MainSplitter/InfoPanel/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "CHANGE TECHNIQUE"
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginBackgroundContainer/PanelContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+
+[node name="CloseSelectorButton" type="TextureButton" parent="MarginBackgroundContainer/PanelContainer/MarginContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+mouse_filter = 1
+texture_normal = ExtResource("3_u6qub")
