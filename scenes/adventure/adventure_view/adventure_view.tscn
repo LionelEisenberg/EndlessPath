@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://bvgyusvjgbnbx" path="res://scenes/adventure/adventure_tilemap/adventure_tilemap.tscn" id="2_176xw"]
 [ext_resource type="PackedScene" uid="uid://dmknq0mniyrnn" path="res://scenes/combat/combatant/combat_resource_manager/combat_resource_manager.tscn" id="2_bl004"]
 [ext_resource type="PackedScene" uid="uid://blofb5opg1kdu" path="res://scenes/combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
-[ext_resource type="PackedScene" uid="uid://dficfn4tx40qm" path="res://combat/combatant_info_panel.tscn" id="6_a8cog"]
+[ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="6_a8cog"]
 
 [sub_resource type="GDScript" id="GDScript_wwigy"]
 script/source = "extends Button

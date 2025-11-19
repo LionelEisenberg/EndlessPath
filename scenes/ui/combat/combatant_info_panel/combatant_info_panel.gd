@@ -10,6 +10,8 @@ var resource_manager: CombatResourceManager
 func _ready() -> void:
 	pass # Replace with function body.
 
+func reset() -> void:
+	resource_manager = null
 
 func setup(p_resource_manager: CombatResourceManager) -> void:
 	resource_manager = p_resource_manager

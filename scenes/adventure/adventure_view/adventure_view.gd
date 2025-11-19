@@ -91,6 +91,7 @@ func _on_stop_combat(encounter: AdventureEncounter = null, successful: bool = fa
 	combat_view.visible = false
 	
 	# Notify the tilemap that combat has ended
+	combat.stop()
 	adventure_tilemap._stop_combat(encounter, successful)
 
 #-----------------------------------------------------------------------------

@@ -62,6 +62,14 @@ func start() -> void:
 
 	_create_combatants()
 
+func stop() -> void:
+	# Reset EnemyInfoPanel & AbilitiesPanel
+	ability_panel.reset()
+	enemy_info_panel.reset()
+	
+	player_combatant.queue_free()
+	enemy_combatant.queue_free()
+
 func _create_combatants() -> void:
 	_create_player_combatant()
 	_create_enemy_combatant()

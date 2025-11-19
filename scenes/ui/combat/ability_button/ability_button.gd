@@ -17,7 +17,9 @@ signal pressed
 
 var ability_instance: CombatAbilityInstance
 
-@onready var button: TextureButton = $Button
+@onready var button: TextureButton = %Button
+@onready var cooldown_progress_bar: TextureProgressBar = %CooldownProgressBar
+@onready var cooldown_label: Label = %CooldownLabel
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -26,6 +28,12 @@ var ability_instance: CombatAbilityInstance
 func _ready() -> void:
 	if button:
 		button.pressed.connect(_on_button_pressed)
+	
+	cooldown_label.visible = false
+	cooldown_progress_bar.visible = false
+	
+	cooldown_label.text = ""
+	cooldown_progress_bar.value = 0.0
 
 func setup(instance: CombatAbilityInstance) -> void:
 	ability_instance = instance
@@ -50,12 +58,23 @@ func setup(instance: CombatAbilityInstance) -> void:
 func _on_button_pressed() -> void:
 	pressed.emit()
 
-func _on_cooldown_started(duration: float) -> void:
+func _on_cooldown_started(_duration: float) -> void:
 	button.disabled = true
-	# TODO: Show cooldown overlay/text
+	_show_cooldown()
 
 func _on_cooldown_updated(time_left: float) -> void:
-	pass
+	_show_cooldown()
+	cooldown_label.text = "%.1f (s)" % time_left
+	cooldown_progress_bar.value = time_left / ability_instance.ability_data.base_cooldown
 
 func _on_cooldown_ready() -> void:
 	button.disabled = false
+	_hide_cooldown()
+
+func _show_cooldown() -> void:
+	cooldown_label.visible = true
+	cooldown_progress_bar.visible = true
+
+func _hide_cooldown() -> void:
+	cooldown_label.visible = false
+	cooldown_progress_bar.visible = false

@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://ixn71vt5dyqf"]
-
-[ext_resource type="Script" path="res://combat/combatant/combat_effect_manager/combat_effect_manager.gd" id="1_5td77"]
-
-[node name="CombatEffectProcessor" type="Node"]
-script = ExtResource("1_5td77")

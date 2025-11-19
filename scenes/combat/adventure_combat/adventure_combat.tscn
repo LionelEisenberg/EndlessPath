@@ -4,7 +4,7 @@
 [ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="2_mvhgc"]
 [ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_qvnuk"]
 [ext_resource type="Resource" uid="uid://bogou33q4fhbt" path="res://resources/abilities/test_ability.tres" id="3_qvnuk"]
-[ext_resource type="PackedScene" uid="uid://dficfn4tx40qm" path="res://combat/combatant_info_panel.tscn" id="4_vkkxw"]
+[ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="4_vkkxw"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="6_ysix2"]
 
 [node name="AdventureCombat" type="Node2D"]
