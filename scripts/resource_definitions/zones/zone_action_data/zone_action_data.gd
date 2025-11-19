@@ -20,7 +20,8 @@ enum ActionType {
 @export var unlock_conditions: Array[UnlockConditionData] = []
 @export var requirements: Dictionary = {}  # Cost/requirements (madra, gold, items)
 @export var max_completions: int = 0  # 0 = unlimited, 1 = one-time, N = can be completed N times
-@export var completion_effects: Array[EffectData] = []
+@export var success_effects: Array[EffectData] = []
+@export var failure_effects: Array[EffectData] = []
 
 
 ## toString function

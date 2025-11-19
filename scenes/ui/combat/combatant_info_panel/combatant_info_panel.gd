@@ -12,10 +12,6 @@ func _ready() -> void:
 
 func reset() -> void:
 	Log.info("CombatantInfoPanel: Resetting %s" % name)
-
-	resource_manager.health_changed.disconnect(update_labels)
-	resource_manager.madra_changed.disconnect(update_labels)
-	resource_manager.stamina_changed.disconnect(update_labels)
 	
 	resource_manager = null
 

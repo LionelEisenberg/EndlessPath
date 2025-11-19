@@ -99,7 +99,7 @@ func _on_stop_combat(successful: bool = false) -> void:
 	adventure_tilemap._stop_combat(successful)
 	
 	if not successful:
-		ActionManager.stop_action()
+		ActionManager.stop_action(successful)
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - Resource Management

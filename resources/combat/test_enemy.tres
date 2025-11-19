@@ -10,6 +10,7 @@
 [sub_resource type="Resource" id="Resource_581so"]
 script = ExtResource("2_2licw")
 effect_name = "EFFECT"
+base_value = 100.0
 strength_scaling = 1.0
 metadata/_custom_type_script = "uid://bnd52oeyddekj"
 

@@ -1,8 +1,17 @@
-[gd_resource type="Resource" script_class="AdventureActionData" load_steps=4 format=3 uid="uid://bbpx8ls6tj2u"]
+[gd_resource type="Resource" script_class="AdventureActionData" load_steps=8 format=3 uid="uid://bbpx8ls6tj2u"]
 
 [ext_resource type="Script" uid="uid://cmmqjph50wohc" path="res://scripts/resource_definitions/zones/zone_action_data/adventure_action_data/adventure_action_data.gd" id="1_bedlk"]
 [ext_resource type="Resource" uid="uid://b2erw55qd1wh7" path="res://resources/adventure/data/test_adventure_data.tres" id="1_v40qa"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_8ideb"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_v40qa"]
+[ext_resource type="Script" uid="uid://bfhl52eit3e13" path="res://scripts/resource_definitions/effects/award_resource_effect_data.gd" id="3_b4xoj"]
+[ext_resource type="Resource" uid="uid://vauqsrr78ccw" path="res://resources/effects/award_resource/award_madra_5_effect_data.tres" id="5_udarr"]
+
+[sub_resource type="Resource" id="Resource_nfwhf"]
+script = ExtResource("3_b4xoj")
+amount = 10.0
+effect_type = 2
+metadata/_custom_type_script = "uid://bfhl52eit3e13"
 
 [resource]
 script = ExtResource("1_bedlk")
@@ -11,4 +20,6 @@ action_id = "test_adventure_action_data"
 action_name = "Fight the Baddies!"
 action_type = 1
 description = "Come with me, Fight the Baddies"
+success_effects = Array[ExtResource("2_8ideb")]([ExtResource("5_udarr")])
+failure_effects = Array[ExtResource("2_8ideb")]([SubResource("Resource_nfwhf")])
 metadata/_custom_type_script = "uid://cmmqjph50wohc"

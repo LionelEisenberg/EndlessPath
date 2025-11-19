@@ -32,6 +32,7 @@ var enemy_combatant : CombatantNode
 #-----------------------------------------------------------------------------
 
 @export var debug_abilities: Array[AbilityData] = []
+@export var enable_ai: bool = true
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -111,8 +112,9 @@ func _create_enemy_combatant() -> void:
 	# Setup AI
 	var ai = SimpleEnemyAI.new()
 	ai.name = "EnemyAI"
-	enemy_combatant.add_child(ai)
-	ai.setup(enemy_combatant, player_combatant)
+	if enable_ai:
+		enemy_combatant.add_child(ai)
+		ai.setup(enemy_combatant, player_combatant)
 	
 	# Connect player_resource_manager to the trigger_combat_end signal
 	enemy_combatant.resource_manager.health_changed.connect(_on_enemy_health_changed)
