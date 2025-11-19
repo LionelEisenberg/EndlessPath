@@ -15,13 +15,8 @@ extends Control
 @onready var tilemap_view: Control = %TilemapView
 @onready var combat_view: Control = %CombatView
 
-@onready var character_info_panel: Panel = %CharacterInfoPanel
+@onready var player_info_panel: CombatantInfoPanel = %PlayerInfoPanel
 @onready var player_resource_manager : CombatResourceManager = %PlayerResourceManager
-
-# TODO: DELETE AND UPDATE
-@onready var health_label = $CharacterInfoPanel/Label
-@onready var madra_label = $CharacterInfoPanel/Label2
-@onready var stamina_label = $CharacterInfoPanel/Label3
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -105,15 +100,4 @@ func _on_stop_combat(encounter: AdventureEncounter = null, successful: bool = fa
 ## Initialize resource values
 func _initialize_combat_resources() -> void:
 	player_resource_manager._initialize_current_values()
-	
-	player_resource_manager.health_changed.connect(_update_combat_resource_bars.unbind(1))
-	player_resource_manager.madra_changed.connect(_update_combat_resource_bars.unbind(1))
-	player_resource_manager.stamina_changed.connect(_update_combat_resource_bars.unbind(1))
-	
-	_update_combat_resource_bars()
-
-## Update resource bars
-func _update_combat_resource_bars() -> void:
-	health_label.text = "Health: %s / %s" % [player_resource_manager.current_health, player_resource_manager.max_health]
-	madra_label.text = "Madra: %s / %s" % [player_resource_manager.current_madra, player_resource_manager.max_madra]
-	stamina_label.text = "Stamina: %s / %s" % [player_resource_manager.current_stamina, player_resource_manager.max_stamina]
+	player_info_panel.setup(player_resource_manager)

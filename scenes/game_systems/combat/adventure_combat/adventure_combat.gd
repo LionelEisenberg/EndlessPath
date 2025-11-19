@@ -36,6 +36,7 @@ var enemy_combatant : CombatantNode
 #-----------------------------------------------------------------------------
 
 @onready var ability_panel: Panel = %AbilitiesPanel
+@onready var enemy_info_panel : CombatantInfoPanel = %EnemyInfoPanel
 
 func _ready() -> void:
 	Log.info("AdventureCombat: Initialized")
@@ -100,6 +101,9 @@ func _create_enemy_combatant() -> void:
 	ai.name = "EnemyAI"
 	enemy_combatant.add_child(ai)
 	ai.setup(enemy_combatant, player_combatant)
+	
+	# Setup CombatantInfoPanel
+	enemy_info_panel.setup(enemy_combatant.resource_manager)
 
 
 #-----------------------------------------------------------------------------
