@@ -94,6 +94,13 @@ func _create_enemy_combatant() -> void:
 		
 	# Enemy gets a new internal resource manager created by setup()
 	enemy_combatant.setup(enemy_data, null, false)
+	
+	# Setup AI
+	var ai = SimpleEnemyAI.new()
+	ai.name = "EnemyAI"
+	enemy_combatant.add_child(ai)
+	ai.setup(enemy_combatant, player_combatant)
+
 
 #-----------------------------------------------------------------------------
 # UI HANDLERS
