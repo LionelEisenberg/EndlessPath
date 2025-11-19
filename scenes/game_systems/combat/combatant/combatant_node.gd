@@ -36,11 +36,7 @@ func setup(
 	data: CombatantData, 
 	external_resource_manager: CombatResourceManager = null, 
 	p_is_player: bool = false
-) -> void:
-	# Setup is_player / combattant data
-	if p_is_player and data:
-		Log.warn("CombatantNode: is_player and combatant_data should not be set at the same time.")
-	
+) -> void:	
 	is_player = p_is_player
 	combatant_data = data
 	
