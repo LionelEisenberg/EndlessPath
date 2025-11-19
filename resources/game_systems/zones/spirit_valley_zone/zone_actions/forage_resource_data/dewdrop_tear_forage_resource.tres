@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ForageResourceData" load_steps=3 format=3 uid="uid://co48qrubd7qnb"]
 
 [ext_resource type="Resource" uid="uid://cr10k1108cnup" path="res://resources/items/materials/dewdrop_tear.tres" id="1_dkl2m"]
-[ext_resource type="Script" uid="uid://ihtwh7majrrr" path="res://scripts/resource_definitions/game_systems/zones/zone_action_data/forage_action_data/forage_resource_data.gd" id="1_njnx3"]
+[ext_resource type="Script" uid="uid://ihtwh7majrrr" path="res://scripts/resource_definitions/zones/zone_action_data/forage_action_data/forage_resource_data.gd" id="1_njnx3"]
 
 [resource]
 script = ExtResource("1_njnx3")

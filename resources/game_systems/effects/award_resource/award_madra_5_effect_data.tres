@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="AwardResourceEffectData" load_steps=2 format=3 uid="uid://vauqsrr78ccw"]
 
-[ext_resource type="Script" uid="uid://bfhl52eit3e13" path="res://scripts/resource_definitions/game_systems/effects/award_resource_effect_data.gd" id="1_xoq16"]
+[ext_resource type="Script" uid="uid://bfhl52eit3e13" path="res://scripts/resource_definitions/effects/award_resource_effect_data.gd" id="1_xoq16"]
 
 [resource]
 script = ExtResource("1_xoq16")

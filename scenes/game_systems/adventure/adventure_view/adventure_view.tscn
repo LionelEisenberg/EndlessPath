@@ -3,9 +3,9 @@
 [ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/sprites/zones/backgrounds/spirit_valley_background.jpg" id="1_3ls1s"]
 [ext_resource type="Script" uid="uid://c2piaspfbnqfd" path="res://scenes/game_systems/adventure/adventure_view/adventure_view.gd" id="1_176xw"]
 [ext_resource type="PackedScene" uid="uid://bvgyusvjgbnbx" path="res://scenes/game_systems/adventure/adventure_tilemap/adventure_tilemap.tscn" id="2_176xw"]
-[ext_resource type="PackedScene" uid="uid://dmknq0mniyrnn" path="res://scenes/game_systems/adventure/combat/combat_resource_manager/combat_resource_manager.tscn" id="2_bl004"]
+[ext_resource type="PackedScene" uid="uid://dmknq0mniyrnn" path="res://scenes/game_systems/combat/combatant/combat_resource_manager/combat_resource_manager.tscn" id="2_bl004"]
 [ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="3_2xwr5"]
-[ext_resource type="PackedScene" uid="uid://blofb5opg1kdu" path="res://scenes/game_systems/adventure/combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
+[ext_resource type="PackedScene" uid="uid://blofb5opg1kdu" path="res://scenes/game_systems/combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
 
 [sub_resource type="GDScript" id="GDScript_wwigy"]
 script/source = "extends Button

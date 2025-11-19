@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=5 format=3 uid="uid://c36o44atngp5e"]
 
-[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/game_systems/effects/effect_data.gd" id="1_nm6h2"]
-[ext_resource type="Script" uid="uid://10xqk22j564o" path="res://scripts/resource_definitions/game_systems/zones/zone_action_data/npc_dialogue_action_data/npc_dialogue_action_data.gd" id="2_nm6h2"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="1_nm6h2"]
+[ext_resource type="Script" uid="uid://10xqk22j564o" path="res://scripts/resource_definitions/zones/zone_action_data/npc_dialogue_action_data/npc_dialogue_action_data.gd" id="2_nm6h2"]
 [ext_resource type="Resource" uid="uid://c701iqcrdgc7x" path="res://resources/game_systems/effects/trigger_event/initial_spirit_valley_dialogue_1_trigger_event_effect.tres" id="2_ur7gj"]
-[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/game_systems/unlocks/unlock_condition_data.gd" id="3_ur7gj"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="3_ur7gj"]
 
 [resource]
 script = ExtResource("2_nm6h2")

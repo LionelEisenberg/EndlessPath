@@ -1,16 +1,19 @@
-[gd_resource type="Resource" script_class="CombatEncounter" load_steps=4 format=3 uid="uid://baq4lppcxj0uw"]
+[gd_resource type="Resource" script_class="CombatEncounter" load_steps=6 format=3 uid="uid://baq4lppcxj0uw"]
 
-[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/game_systems/effects/effect_data.gd" id="1_qaxff"]
-[ext_resource type="Script" uid="uid://b1nvgpil6juaw" path="res://scripts/resource_definitions/game_systems/adventure/encounters/combat_encounter.gd" id="1_yjf48"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="1_2c5dk"]
 [ext_resource type="Resource" uid="uid://vauqsrr78ccw" path="res://resources/game_systems/effects/award_resource/award_madra_5_effect_data.tres" id="2_13onb"]
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="3_3w0ny"]
+[ext_resource type="Resource" uid="uid://ctok24q1h2l1j" path="res://resources/game_systems/combat/test_enemy.tres" id="4_bwrcg"]
+[ext_resource type="Script" uid="uid://b1nvgpil6juaw" path="res://scripts/resource_definitions/adventure/encounters/combat_encounter.gd" id="5_oxfa8"]
 
 [resource]
-script = ExtResource("1_yjf48")
+script = ExtResource("5_oxfa8")
+enemy_pool = Array[ExtResource("3_3w0ny")]([ExtResource("4_bwrcg")])
 encounter_id = "test_combat_encounter"
 encounter_name = "TEST ENCOUNTER [COMBAT]"
 encounter_type = 2
 description = "this is testy test"
 is_blocking = true
 max_completion_count = 1
-completion_effects = Array[ExtResource("1_qaxff")]([ExtResource("2_13onb")])
+completion_effects = Array[ExtResource("1_2c5dk")]([ExtResource("2_13onb")])
 metadata/_custom_type_script = "uid://b1nvgpil6juaw"

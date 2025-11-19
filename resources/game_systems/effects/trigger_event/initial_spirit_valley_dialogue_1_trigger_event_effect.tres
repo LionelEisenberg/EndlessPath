@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="TriggerEventEffectData" load_steps=2 format=3 uid="uid://c701iqcrdgc7x"]
 
-[ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/game_systems/effects/trigger_event_effect_data.gd" id="1_7d24d"]
+[ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="1_7d24d"]
 
 [resource]
 script = ExtResource("1_7d24d")

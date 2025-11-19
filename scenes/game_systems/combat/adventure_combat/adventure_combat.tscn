@@ -1,0 +1,57 @@
+[gd_scene load_steps=9 format=3 uid="uid://blofb5opg1kdu"]
+
+[ext_resource type="Script" uid="uid://b5570lugu0psn" path="res://scenes/game_systems/combat/adventure_combat/adventure_combat.gd" id="1_utfsu"]
+[ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="2_mvhgc"]
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/combat/abilities/ability_data.gd" id="2_qvnuk"]
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="3_vkkxw"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="4_ysix2"]
+[ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="6_ysix2"]
+
+[sub_resource type="Resource" id="Resource_pmaom"]
+script = ExtResource("3_vkkxw")
+effect_name = "EFFECT"
+base_value = 1.0
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[sub_resource type="Resource" id="Resource_eqru7"]
+script = ExtResource("2_qvnuk")
+ability_id = "ABILITY"
+ability_name = "ABILITY"
+description = "ABILITY"
+icon = ExtResource("4_ysix2")
+madra_cost = 10.0
+effects = Array[ExtResource("3_vkkxw")]([SubResource("Resource_pmaom")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
+
+[node name="AdventureCombat" type="Node2D"]
+script = ExtResource("1_utfsu")
+debug_abilities = Array[ExtResource("2_qvnuk")]([SubResource("Resource_eqru7")])
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="AbilitiesPanel" type="Panel" parent="CanvasLayer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(500, 175)
+offset_left = 1071.0
+offset_top = 800.0
+offset_right = 1571.0
+offset_bottom = 975.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = ExtResource("2_mvhgc")
+script = ExtResource("6_ysix2")
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/AbilitiesPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/AbilitiesPanel/MarginContainer"]
+layout_mode = 2

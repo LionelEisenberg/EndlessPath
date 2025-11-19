@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="CombatantData" load_steps=2 format=3 uid="uid://ctok24q1h2l1j"]
+
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="1_2elqj"]
+
+[resource]
+script = ExtResource("1_2elqj")
+metadata/_custom_type_script = "uid://hbo1w3358rom"

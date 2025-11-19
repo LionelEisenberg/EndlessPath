@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://dmknq0mniyrnn"]
-
-[ext_resource type="Script" uid="uid://d3jreujg4bvg7" path="res://scenes/game_systems/adventure/combat/combat_resource_manager/combat_resource_manager.gd" id="1_b0o40"]
-
-[node name="CombatResourceManager" type="Node"]
-script = ExtResource("1_b0o40")

@@ -1,7 +1,7 @@
 class_name CombatEncounter
 extends AdventureEncounter
 
-@export var enemy_pool : Array[String] = []
+@export var enemy_pool : Array[CombatantData] = []
 
 func _init() -> void:
 	is_blocking = true
