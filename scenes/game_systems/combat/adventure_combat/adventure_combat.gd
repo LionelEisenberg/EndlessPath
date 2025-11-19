@@ -31,12 +31,6 @@ var enemy_combatant : CombatantNode
 
 @export var debug_abilities: Array[AbilityData] = []
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		player_resource_manager.current_health -= 10
-		player_resource_manager.current_madra -= 10
-		player_resource_manager.current_stamina -= 10
-
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
