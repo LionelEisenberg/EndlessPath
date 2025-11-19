@@ -16,14 +16,20 @@ func reset() -> void:
 	resource_manager.health_changed.disconnect(update_labels)
 	resource_manager.madra_changed.disconnect(update_labels)
 	resource_manager.stamina_changed.disconnect(update_labels)
+	
 	resource_manager = null
 
 func setup(p_resource_manager: CombatResourceManager) -> void:
 	resource_manager = p_resource_manager
 	
-	resource_manager.health_changed.connect(update_labels.unbind(1))
-	resource_manager.madra_changed.connect(update_labels.unbind(1))
-	resource_manager.stamina_changed.connect(update_labels.unbind(1))
+	if not resource_manager.health_changed.is_connected(update_labels):
+		resource_manager.health_changed.connect(update_labels.unbind(1))
+	
+	if not resource_manager.madra_changed.is_connected(update_labels):
+		resource_manager.madra_changed.connect(update_labels.unbind(1))
+	
+	if not resource_manager.stamina_changed.is_connected(update_labels):
+		resource_manager.stamina_changed.connect(update_labels.unbind(1))
 	
 	update_labels()
 

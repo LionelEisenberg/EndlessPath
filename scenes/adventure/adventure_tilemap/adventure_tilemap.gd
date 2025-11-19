@@ -126,9 +126,11 @@ func _start_combat(encounter: AdventureEncounter) -> void:
 	Log.info("AdventureTilemap: Initiating combat encounter - %s" % encounter.encounter_name)
 	start_combat.emit(encounter)
 
-func _stop_combat(encounter: AdventureEncounter, successful: bool) -> void:
+func _stop_combat(successful: bool) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s" % successful)
-	_on_encounter_completed(_current_tile)
+	
+	if successful:
+		_on_encounter_completed(_current_tile)
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
