@@ -30,6 +30,9 @@ const OVERLAY_MAP_TILE_VARIANT_ID = 1
 const CHARACTER_MOVE_SPEED = 150.0
 const INSTANT_MOVE_SPEED = 10000.0
 
+# TODO: Calculate this dynamically based on terrain/stats instead of a constant
+const MOVEMENT_STAMINA_COST = 5.0
+
 #-----------------------------------------------------------------------------
 # ENUMS
 #-----------------------------------------------------------------------------
@@ -53,6 +56,7 @@ enum HighlightType {
 
 var current_adventure_action_data: AdventureActionData = null
 var adventure_map_generator: AdventureMapGenerator
+var player_resource_manager: CombatResourceManager = null
 
 ## Main data structure for the adventure tilemap, key is the cube coordinate, value is the Adventure encounter
 var _encounter_tile_dictionary : Dictionary[Vector3i, AdventureEncounter] = {}
@@ -87,10 +91,11 @@ func _ready() -> void:
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
-func start_adventure(action_data: AdventureActionData) -> void:
+func start_adventure(action_data: AdventureActionData, prm: CombatResourceManager) -> void:
 	Log.info("AdventureTilemap: Starting adventure: %s" % action_data.action_name)
 
 	current_adventure_action_data = action_data
+	player_resource_manager = prm
 
 	# Generate the adventure_tile_dictionary
 	adventure_map_generator.set_adventure_map_data(current_adventure_action_data.adventure_data.map_data)
@@ -114,6 +119,7 @@ func stop_adventure() -> void:
 	_highlight_tile_dictionary.clear()
 	_visitation_queue.clear()
 	_current_tile = Vector3i.ZERO
+	player_resource_manager = null
 	
 	# Stop character movement
 	character_body.move_to_position(Vector2(0, 0), INSTANT_MOVE_SPEED)
@@ -131,6 +137,13 @@ func _stop_combat(successful: bool) -> void:
 	
 	if successful:
 		_on_encounter_completed(_current_tile)
+		
+		# Check for Boss Success
+		if _encounter_tile_dictionary.has(_current_tile):
+			var encounter = _encounter_tile_dictionary[_current_tile]
+			if encounter is CombatEncounter and (encounter as CombatEncounter).is_boss:
+				Log.info("AdventureTilemap: Boss defeated! Adventure Successful.")
+				ActionManager.stop_action(true)
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
@@ -174,6 +187,13 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	
 	# Calculate the path using hexagonal line drawing
 	var path_cube_coords = visible_map.cube_pathfind(_current_tile, target_cube_coord)
+	
+	# Check stamina for the full path (approximation, actual deduction happens per step)
+	var total_cost = (path_cube_coords.size() - 1) * MOVEMENT_STAMINA_COST
+	if player_resource_manager and player_resource_manager.current_stamina < MOVEMENT_STAMINA_COST:
+		Log.info("AdventureTilemap: Not enough stamina to move!")
+		# TODO: Show UI feedback
+		return
 	
 	# Store as visitation queue (skip first tile as we're already there)
 	if path_cube_coords.size() > 1:
@@ -225,7 +245,18 @@ func _process_next_visitation() -> void:
 		return
 	
 	# Get next tile to visit
-	var next_tile = _visitation_queue.pop_front()
+	var next_tile = _visitation_queue[0] # Peek first
+	
+	# Check stamina before moving
+	if player_resource_manager:
+		if player_resource_manager.current_stamina >= MOVEMENT_STAMINA_COST:
+			player_resource_manager.current_stamina -= MOVEMENT_STAMINA_COST
+		else:
+			Log.info("AdventureTilemap: Out of stamina, stopping movement.")
+			_visitation_queue.clear()
+			return
+
+	_visitation_queue.pop_front() # Actually remove it
 	
 	# Convert to world position and move character
 	var map_coord = visible_map.cube_to_map(next_tile)

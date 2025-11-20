@@ -2,6 +2,7 @@ class_name CombatEncounter
 extends AdventureEncounter
 
 @export var enemy_pool : Array[CombatantData] = []
+@export var is_boss: bool = false
 
 func _init() -> void:
 	is_blocking = true
