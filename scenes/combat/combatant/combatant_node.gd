@@ -46,7 +46,7 @@ func setup(
 	else:
 		resource_manager = $CombatResourceManager
 		resource_manager.character_attributes_data = combatant_data.attributes
-		resource_manager._initialize_current_values()
+		resource_manager.initialize_current_values()
 	
 	ability_manager.setup(combatant_data, resource_manager)
 	effect_manager.setup(combatant_data, resource_manager)

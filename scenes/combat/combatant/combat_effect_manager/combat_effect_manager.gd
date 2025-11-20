@@ -36,9 +36,9 @@ func process_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 		CombatEffectData.EffectType.DAMAGE:
 			final_value = effect.calculate_damage(source_attributes, combatant_data.attributes)
 			Log.info("CombatEffectManager: %s Took %.1f damage from %s" % [combatant_data.character_name, final_value, effect.effect_name])
-			resource_manager.current_health -= final_value
+			resource_manager.apply_damage(final_value)
 			
 		CombatEffectData.EffectType.HEAL:
 			final_value = effect.calculate_value(source_attributes)
 			Log.info("CombatEffectManager: %s Healed %.1f from %s" % [combatant_data.character_name, final_value, effect.effect_name])
-			resource_manager.current_health += final_value
+			resource_manager.apply_healing(final_value)

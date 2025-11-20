@@ -48,6 +48,10 @@ func initialize_with_player_resource_manager(e: CombatEncounter, prm: CombatReso
 	self.encounter = e
 	self.player_resource_manager = prm
 
+	# Connect player_resource_manager to the trigger_combat_end signal
+	if not player_resource_manager.health_changed.is_connected(_on_player_health_changed):
+		player_resource_manager.health_changed.connect(_on_player_health_changed)
+
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
@@ -92,9 +96,6 @@ func _create_player_combatant() -> void:
 
 	# Connect signals BEFORE setup so we catch ability registration
 	player_combatant.ability_manager.ability_registered.connect(_on_ability_registered)
-	
-	# Connect player_resource_manager to the trigger_combat_end signal
-	player_resource_manager.health_changed.connect(_on_player_health_changed)
 
 	player_combatant.setup(player_data, player_resource_manager, true)
 
@@ -109,6 +110,9 @@ func _create_enemy_combatant() -> void:
 	# Enemy gets a new internal resource manager created by setup()
 	enemy_combatant.setup(enemy_data, null, false)
 	
+	# Setup CombatantInfoPanel
+	enemy_info_panel.setup(enemy_combatant.resource_manager)
+	
 	# Setup AI
 	var ai = SimpleEnemyAI.new()
 	ai.name = "EnemyAI"
@@ -119,8 +123,6 @@ func _create_enemy_combatant() -> void:
 	# Connect player_resource_manager to the trigger_combat_end signal
 	enemy_combatant.resource_manager.health_changed.connect(_on_enemy_health_changed)
 	
-	# Setup CombatantInfoPanel
-	enemy_info_panel.setup(enemy_combatant.resource_manager)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS

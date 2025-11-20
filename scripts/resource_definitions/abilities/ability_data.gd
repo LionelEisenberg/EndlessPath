@@ -100,9 +100,12 @@ func consume_costs(resource_manager: CombatResourceManager) -> bool:
 	if not can_afford(resource_manager):
 		return false
 	
-	resource_manager.current_health -= health_cost
-	resource_manager.current_madra -= madra_cost
-	resource_manager.current_stamina -= stamina_cost
+	if not is_equal_approx(health_cost, 0.0):
+		resource_manager.apply_damage(health_cost)
+	if not is_equal_approx(madra_cost, 0.0):
+		resource_manager.current_madra -= madra_cost
+	if not is_equal_approx(stamina_cost, 0.0):
+		resource_manager.current_stamina -= stamina_cost
 	
 	return true
 

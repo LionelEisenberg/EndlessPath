@@ -126,9 +126,6 @@ func _on_start_combat(encounter: CombatEncounter) -> void:
 		Log.error("AdventureView: Cannot start combat with null encounter")
 		return
 	
-	Log.info("AdventureView: Transitioning to combat view - %s" % encounter.encounter_name)
-	tilemap_view.visible = false
-	combat_view.visible = true
 	
 	# Start the combat encounter
 	if combat:
@@ -136,6 +133,10 @@ func _on_start_combat(encounter: CombatEncounter) -> void:
 		combat.start()
 		
 	is_in_combat = true
+	
+	Log.info("AdventureView: Transitioning to combat view - %s" % encounter.encounter_name)
+	tilemap_view.visible = false
+	combat_view.visible = true
 
 ## Transition from combat view back to tilemap view
 func _on_stop_combat(successful: bool = false) -> void:
@@ -159,7 +160,7 @@ func _on_stop_combat(successful: bool = false) -> void:
 
 ## Initialize resource values
 func _initialize_combat_resources() -> void:
-	player_resource_manager._initialize_current_values()
+	player_resource_manager.initialize_current_values()
 	player_info_panel.setup(player_resource_manager)
 
 func _on_adventure_timer_timeout() -> void:

@@ -1,9 +1,9 @@
 class_name CombatantInfoPanel
 extends Panel
 
-@onready var health_bar: TextureProgressBar = %HealthProgressBar
-@onready var madra_bar: TextureProgressBar = %MadraProgressBar
-@onready var stamina_bar: TextureProgressBar = %StaminaProgressBar
+@onready var health_bar: ResourceBar = %HealthProgressBar
+@onready var madra_bar: ResourceBar = %MadraProgressBar
+@onready var stamina_bar: ResourceBar = %StaminaProgressBar
 
 var resource_manager: CombatResourceManager
 
@@ -31,6 +31,6 @@ func setup(p_resource_manager: CombatResourceManager) -> void:
 
 func update_labels() -> void:
 	if resource_manager:
-		health_bar.value = resource_manager.current_health / resource_manager.max_health
-		madra_bar.value = resource_manager.current_madra / resource_manager.max_madra
-		stamina_bar.value = resource_manager.current_stamina / resource_manager.max_stamina
+		health_bar.update_values(resource_manager.current_health, resource_manager.max_health)
+		madra_bar.update_values(resource_manager.current_madra, resource_manager.max_madra)
+		stamina_bar.update_values(resource_manager.current_stamina, resource_manager.max_stamina)

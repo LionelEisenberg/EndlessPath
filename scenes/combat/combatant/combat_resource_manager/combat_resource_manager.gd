@@ -61,15 +61,27 @@ func _ready() -> void:
 		CharacterManager.base_attribute_changed.connect(f)
 		f.call()
 
-func _initialize_current_values() -> void:
-	current_health = max_health
-	current_stamina = max_stamina
-	current_madra = max_madra
-
 func _update_combat_max() -> void:
 	max_health = _get_max_health()
 	max_stamina = _get_max_stamina()	
 	max_madra = _get_max_madra()
+
+#-----------------------------------------------------------------------------
+# PUBLIC METHODS
+#-----------------------------------------------------------------------------
+
+func initialize_current_values() -> void:
+	current_health = max_health
+	current_stamina = max_stamina
+	current_madra = max_madra
+
+## Apply damage to current health
+func apply_damage(amount: float) -> void:
+	current_health = max(0.0, current_health - amount)
+
+## Apply healing to current health
+func apply_healing(amount: float) -> void:
+	current_health = min(max_health, current_health + amount)
 
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
