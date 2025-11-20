@@ -12,10 +12,15 @@ description: Comprehensive planning workflow for new features or complex changes
    - Check for any clarity problems in the prompt.
    - Read through the prompt and check for anything between brackets `[...]`; these are direct instructions to you.
 
-3. **Clarification**
+3. **Guidance and Discussion Phase**
+   - Engage in a thorough back-and-forth discussion regarding implementation approaches. This should be done in general to ensure alignment, but **ESPECIALLY** if the user is explicitly asking for guidance or opinions.
+   - Do not proceed to the formal planning phase until all options have been explored and the user is satisfied with the direction.
+   - Ensure all possible discussion points are exhausted before moving forward.
+
+4. **Clarification**
    - Before planning, ask input and questions to the user for them to clarify anything that seems off or ambiguous.
 
-4. **Develop Structured Plan**
+5. **Develop Structured Plan**
    - Come up with a structured plan which will have the following structure:
      1. **Introduction**: What is trying to be planned.
      2. **Logic Flow**: High-level logic flow.
@@ -24,10 +29,10 @@ description: Comprehensive planning workflow for new features or complex changes
      5. **Per-file Changes**: Specific changes required per file.
      6. **Potential Next Steps / Improvements**: Suggest how to improve things or what to work on next.
 
-5. **Constraint: No Implementation**
+6. **Constraint: No Implementation**
    - **DO NOT UNDER ANY CIRCUMSTANCE ACTUALLY IMPLEMENT THE IMPLEMENTATION PLAN** at this stage.
 
-6. **Implementation Strategy (Post-Approval)**
+7. **Implementation Strategy (Post-Approval)**
    - **Update Planning Doc**: Always update the planning document as you implement changes.
    - When you do implement (after plan approval), implement file by file starting with the lowest level structure.
    - **Approve review** before moving to the next file.
