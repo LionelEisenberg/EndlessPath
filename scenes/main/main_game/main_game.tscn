@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://dyrsbe5x01lgo"]
+[gd_scene load_steps=12 format=3 uid="uid://dyrsbe5x01lgo"]
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]
 [ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="5_k2uxu"]
 [ext_resource type="PackedScene" uid="uid://cwb0nnj7np102" path="res://scenes/adventure/adventure_view/adventure_view.tscn" id="7_up6bt"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_up6bt"]
 
 [node name="MainGame" type="Node2D"]
 script = ExtResource("1_2bvax")
@@ -40,10 +42,10 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_up6bt")
 
 [node name="ZoneView" type="Control" parent="MainView/VBoxContainer/MainViewContainer"]
 unique_name_in_owner = true
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -73,7 +75,7 @@ texture = ExtResource("3_yssfv")
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1382, 1080)
-render_target_update_mode = 0
+render_target_update_mode = 4
 
 [node name="ZoneTilemap" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]
 
@@ -118,6 +120,7 @@ texture_normal = ExtResource("5_k2uxu")
 
 [node name="AdventureView" parent="MainView/VBoxContainer/MainViewContainer" instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 
 [node name="GreyBackground" type="Panel" parent="MainView"]

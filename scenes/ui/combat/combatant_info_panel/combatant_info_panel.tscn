@@ -1,10 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://dsyj8icyn4ri1"]
+[gd_scene load_steps=6 format=3 uid="uid://dsyj8icyn4ri1"]
 
 [ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="1_tga55"]
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
+[ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_progress_bar.tscn" id="3_5xx5a"]
+[ext_resource type="Texture2D" uid="uid://bgymbkidnr3et" path="res://assets/asperite/ui/resource_bar/MadraFill.png" id="4_h1px1"]
+[ext_resource type="Texture2D" uid="uid://daujoefgcpmxk" path="res://assets/asperite/ui/resource_bar/StaminaFill.png" id="5_idpww"]
 
 [node name="CombatantInfoPanel" type="Panel"]
-custom_minimum_size = Vector2(400, 200)
+custom_minimum_size = Vector2(525, 200)
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -13,26 +16,41 @@ grow_vertical = 2
 theme_override_styles/panel = ExtResource("1_tga55")
 script = ExtResource("2_5xx5a")
 
-[node name="Label" type="Label" parent="."]
-layout_mode = 0
-offset_left = 32.0
-offset_top = 27.0
-offset_right = 72.0
-offset_bottom = 50.0
-text = "TEST"
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 100
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_bottom = 20
 
-[node name="Label2" type="Label" parent="."]
-layout_mode = 0
-offset_left = 30.0
-offset_top = 80.0
-offset_right = 70.0
-offset_bottom = 103.0
-text = "TEST"
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
 
-[node name="Label3" type="Label" parent="."]
-layout_mode = 0
-offset_left = 32.0
-offset_top = 139.0
-offset_right = 72.0
-offset_bottom = 162.0
-text = "TEST"
+[node name="HealthProgressBar" parent="MarginContainer/VBoxContainer" instance=ExtResource("3_5xx5a")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 80
+
+[node name="MadraProgressBar" parent="MarginContainer/VBoxContainer/MarginContainer" instance=ExtResource("3_5xx5a")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+texture_progress = ExtResource("4_h1px1")
+
+[node name="StaminaProgressBar" parent="MarginContainer/VBoxContainer" instance=ExtResource("3_5xx5a")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+texture_progress = ExtResource("5_idpww")

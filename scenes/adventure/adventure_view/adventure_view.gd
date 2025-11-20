@@ -27,6 +27,7 @@ extends Control
 var current_encounter: AdventureEncounter = null
 var current_action_data: AdventureActionData = null
 
+var is_in_combat: bool = false	# Whether the player is currently in combat
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -98,8 +99,9 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	adventure_tilemap.start_adventure(action_data, player_resource_manager)
 	
 	# Connect to the combat node
-	combat.trigger_combat_end.connect(_on_stop_combat)
-	
+	if not combat.trigger_combat_end.is_connected(_on_stop_combat):
+		combat.trigger_combat_end.connect(_on_stop_combat)
+
 	# Ensure we're showing the tilemap view
 	tilemap_view.visible = true
 	combat_view.visible = false
@@ -111,6 +113,8 @@ func stop_adventure() -> void:
 	adventure_timer.stop()
 	timer_label.visible = false
 	current_action_data = null
+	if is_in_combat:
+		_on_stop_combat()
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - View Management
@@ -131,6 +135,7 @@ func _on_start_combat(encounter: CombatEncounter) -> void:
 		combat.initialize_with_player_resource_manager(encounter, player_resource_manager)
 		combat.start()
 		
+	is_in_combat = true
 
 ## Transition from combat view back to tilemap view
 func _on_stop_combat(successful: bool = false) -> void:
@@ -142,8 +147,11 @@ func _on_stop_combat(successful: bool = false) -> void:
 	combat.stop()
 	adventure_tilemap._stop_combat(successful)
 	
-	if not successful:
-		ActionManager.stop_action(successful)
+	is_in_combat = false
+	
+	if current_action_data:
+		if not successful:
+			ActionManager.stop_action(successful)
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - Resource Management

@@ -45,9 +45,13 @@ layer = 2
 
 [node name="TileInfoPanel" type="Panel" parent="CanvasLayer"]
 z_index = 2
-custom_minimum_size = Vector2(350, 200)
-offset_left = 1481.0
-offset_top = 271.0
-offset_right = 1831.0
-offset_bottom = 471.0
+custom_minimum_size = Vector2(400, 500)
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -512.5
+offset_top = 270.0
+offset_right = -112.5
+offset_bottom = 770.0
+grow_horizontal = 0
 theme_override_styles/panel = ExtResource("6_aeorq")

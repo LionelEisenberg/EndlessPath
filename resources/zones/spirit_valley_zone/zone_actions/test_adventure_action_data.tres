@@ -16,6 +16,7 @@ metadata/_custom_type_script = "uid://bfhl52eit3e13"
 [resource]
 script = ExtResource("1_bedlk")
 adventure_data = ExtResource("1_v40qa")
+time_limit_seconds = 300
 action_id = "test_adventure_action_data"
 action_name = "Fight the Baddies!"
 action_type = 1

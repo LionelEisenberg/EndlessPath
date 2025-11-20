@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://cwb0nnj7np102"]
+[gd_scene load_steps=9 format=3 uid="uid://cwb0nnj7np102"]
 
 [ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/sprites/zones/backgrounds/spirit_valley_background.jpg" id="1_3ls1s"]
 [ext_resource type="Script" uid="uid://c2piaspfbnqfd" path="res://scenes/adventure/adventure_view/adventure_view.gd" id="1_176xw"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://dmknq0mniyrnn" path="res://scenes/combat/combatant/combat_resource_manager/combat_resource_manager.tscn" id="2_bl004"]
 [ext_resource type="PackedScene" uid="uid://blofb5opg1kdu" path="res://scenes/combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
 [ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="6_a8cog"]
+[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/asperite/character_profiles/base_player.png" id="7_4nakn"]
 
 [sub_resource type="GDScript" id="GDScript_wwigy"]
 script/source = "extends Button
@@ -31,6 +32,7 @@ is_player = true
 
 [node name="TilemapView" type="Control" parent="."]
 unique_name_in_owner = true
+visible = false
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
@@ -52,14 +54,13 @@ texture = ExtResource("1_3ls1s")
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1920, 1080)
-render_target_update_mode = 4
+render_target_update_mode = 0
 
 [node name="AdventureTilemap" parent="TilemapView/TilemapSubviewportContainer/SubViewport" instance=ExtResource("2_176xw")]
 unique_name_in_owner = true
 
 [node name="CombatView" type="Control" parent="."]
 unique_name_in_owner = true
-visible = false
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
@@ -76,15 +77,15 @@ grow_vertical = 2
 
 [node name="CombatBackground" type="Sprite2D" parent="CombatView/CombatSubviewportContainer"]
 z_index = -1
-position = Vector2(963.49994, 555.49994)
-scale = Vector2(0.7769531, 0.7951389)
+position = Vector2(959.99994, 540)
+scale = Vector2(0.74999994, 0.74999994)
 texture = ExtResource("1_3ls1s")
 
 [node name="SubViewport" type="SubViewport" parent="CombatView/CombatSubviewportContainer"]
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1920, 1080)
-render_target_update_mode = 0
+render_target_update_mode = 4
 
 [node name="AdventureCombat" parent="CombatView/CombatSubviewportContainer/SubViewport" instance=ExtResource("5_a8cog")]
 unique_name_in_owner = true
@@ -92,16 +93,24 @@ enable_ai = false
 
 [node name="PlayerInfoPanel" parent="." instance=ExtResource("6_a8cog")]
 unique_name_in_owner = true
-layout_mode = 0
-anchors_preset = 0
-anchor_right = 0.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
 anchor_bottom = 0.0
-offset_left = 1453.0
-offset_top = 55.0
-offset_right = 1853.0
-offset_bottom = 255.0
-grow_horizontal = 1
+offset_left = -575.0
+offset_top = 50.0
+offset_right = -50.0
+offset_bottom = 250.0
+grow_horizontal = 0
 grow_vertical = 1
+
+[node name="TextureRect" type="TextureRect" parent="PlayerInfoPanel"]
+layout_mode = 0
+offset_left = 25.0
+offset_top = 25.0
+offset_right = 175.0
+offset_bottom = 175.0
+texture = ExtResource("7_4nakn")
 
 [node name="Button" type="Button" parent="."]
 custom_minimum_size = Vector2(64, 64)
