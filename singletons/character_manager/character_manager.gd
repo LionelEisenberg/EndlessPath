@@ -69,7 +69,8 @@ func _update_resources() -> void:
 
 func get_total_attributes_data() -> CharacterAttributesData:
 	return CharacterAttributesData.new(
-		get_strength(),
+		# TODO DEBUG REMOVE
+		get_strength()+100,
 		get_body(),
 		get_agility(),
 		get_spirit(),

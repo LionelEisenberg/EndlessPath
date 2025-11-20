@@ -1,13 +1,38 @@
-[gd_resource type="Resource" script_class="CombatantData" load_steps=5 format=3 uid="uid://ctok24q1h2l1j"]
+[gd_resource type="Resource" script_class="CombatantData" load_steps=10 format=3 uid="uid://ctok24q1h2l1j"]
 
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="1_0jo2u"]
 [ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="1_ahf2a"]
-[ext_resource type="Resource" uid="uid://bogou33q4fhbt" path="res://resources/abilities/test_ability.tres" id="2_5thm4"]
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="2_2licw"]
+[ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="3_5thm4"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="3_64ce5"]
 [ext_resource type="Texture2D" uid="uid://3mr5xlmm5m1m" path="res://assets/sprites/combat/enemies/test_enemy_sprite.png" id="4_2licw"]
+
+[sub_resource type="Resource" id="Resource_581so"]
+script = ExtResource("2_2licw")
+effect_name = "EFFECT"
+base_value = 100.0
+strength_scaling = 1.0
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[sub_resource type="Resource" id="Resource_v1jgk"]
+script = ExtResource("1_ahf2a")
+ability_id = "test_ability"
+ability_name = "ABILITY"
+description = "ABILITY"
+icon = ExtResource("3_64ce5")
+madra_cost = 10.0
+base_cooldown = 5.0
+effects = Array[ExtResource("2_2licw")]([SubResource("Resource_581so")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
+
+[sub_resource type="Resource" id="Resource_2licw"]
+script = ExtResource("3_5thm4")
+metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
 
 [resource]
 script = ExtResource("1_0jo2u")
 character_name = "TestEnemy"
-abilities = Array[ExtResource("1_ahf2a")]([ExtResource("2_5thm4")])
+attributes = SubResource("Resource_2licw")
+abilities = Array[ExtResource("1_ahf2a")]([SubResource("Resource_v1jgk")])
 texture = ExtResource("4_2licw")
 metadata/_custom_type_script = "uid://hbo1w3358rom"

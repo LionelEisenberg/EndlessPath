@@ -18,10 +18,15 @@ extends Control
 @onready var player_info_panel: CombatantInfoPanel = %PlayerInfoPanel
 @onready var player_resource_manager : CombatResourceManager = %PlayerResourceManager
 
+@onready var adventure_timer: Timer = Timer.new()
+@onready var timer_label: Label = Label.new()
+
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
 #-----------------------------------------------------------------------------
 var current_encounter: AdventureEncounter = null
+var current_action_data: AdventureActionData = null
+
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -41,7 +46,36 @@ func _ready() -> void:
 		Log.error("AdventureView: AdventureTilemap reference is missing!")
 	
 	# TODO: Remove this temporary debug button
-	$Button2.pressed.connect(_on_stop_combat)
+	$Button2.pressed.connect(_on_stop_combat.bind(true))
+
+	# Setup Timer
+	adventure_timer.name = "AdventureTimer"
+	adventure_timer.one_shot = true
+	adventure_timer.timeout.connect(_on_adventure_timer_timeout)
+	add_child(adventure_timer)
+
+	# Setup Timer Label (Temporary UI)
+	timer_label.name = "TimerLabel"
+	timer_label.position = Vector2(50, 50)
+	timer_label.add_theme_font_size_override("font_size", 32)
+	add_child(timer_label)
+
+func _process(delta: float) -> void:
+	if current_action_data and not adventure_timer.is_stopped():
+		# Update Timer Label
+		var time_left = adventure_timer.time_left
+		var minutes = floor(time_left / 60)
+		var seconds = int(time_left) % 60
+		timer_label.text = "%02d:%02d" % [minutes, seconds]
+		
+		# Passive Stamina Regen
+		# Only regen if not in combat (combat view is hidden)
+		if tilemap_view.visible and player_resource_manager:
+			var regen_amount = 1.0 * current_action_data.stamina_regen_modifier * delta
+			player_resource_manager.current_stamina = min(
+				player_resource_manager.current_stamina + regen_amount, 
+				player_resource_manager.max_stamina
+			)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -50,11 +84,21 @@ func _ready() -> void:
 ## Start an adventure with the given action data
 func start_adventure(action_data: AdventureActionData) -> void:
 	Log.info("AdventureView: Starting adventure - %s" % action_data.action_name)
+	
+	current_action_data = action_data
 
 	# Initialize resource values
 	_initialize_combat_resources()
 	
-	adventure_tilemap.start_adventure(action_data)
+	# Start Timer
+	var time_limit = action_data.time_limit_seconds if action_data.time_limit_seconds > 0 else 10
+	adventure_timer.start(time_limit)
+	timer_label.visible = true
+	
+	adventure_tilemap.start_adventure(action_data, player_resource_manager)
+	
+	# Connect to the combat node
+	combat.trigger_combat_end.connect(_on_stop_combat)
 	
 	# Ensure we're showing the tilemap view
 	tilemap_view.visible = true
@@ -64,6 +108,9 @@ func start_adventure(action_data: AdventureActionData) -> void:
 func stop_adventure() -> void:
 	Log.info("AdventureView: Stopping adventure")
 	adventure_tilemap.stop_adventure()
+	adventure_timer.stop()
+	timer_label.visible = false
+	current_action_data = null
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - View Management
@@ -83,16 +130,20 @@ func _on_start_combat(encounter: CombatEncounter) -> void:
 	if combat:
 		combat.initialize_with_player_resource_manager(encounter, player_resource_manager)
 		combat.start()
+		
 
 ## Transition from combat view back to tilemap view
-func _on_stop_combat(encounter: AdventureEncounter = null, successful: bool = false) -> void:
+func _on_stop_combat(successful: bool = false) -> void:
 	Log.info("AdventureView: Transitioning from combat to tilemap - Success: %s" % successful)
 	tilemap_view.visible = true
 	combat_view.visible = false
 	
 	# Notify the tilemap that combat has ended
 	combat.stop()
-	adventure_tilemap._stop_combat(encounter, successful)
+	adventure_tilemap._stop_combat(successful)
+	
+	if not successful:
+		ActionManager.stop_action(successful)
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - Resource Management
@@ -102,3 +153,7 @@ func _on_stop_combat(encounter: AdventureEncounter = null, successful: bool = fa
 func _initialize_combat_resources() -> void:
 	player_resource_manager._initialize_current_values()
 	player_info_panel.setup(player_resource_manager)
+
+func _on_adventure_timer_timeout() -> void:
+	Log.info("AdventureView: Time limit reached!")
+	ActionManager.stop_action(false)

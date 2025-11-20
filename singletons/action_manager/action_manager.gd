@@ -57,8 +57,8 @@ func select_action(action_data: ZoneActionData) -> void:
 	_execute_action(action_data)
 
 ## Stop action
-func stop_action() -> void:
-	_stop_executing_current_action()
+func stop_action(successful: bool = true) -> void:
+	_stop_executing_current_action(successful)
 	clear_current_action()
 
 #-----------------------------------------------------------------------------
@@ -93,19 +93,19 @@ func _execute_action(action_data: ZoneActionData) -> void:
 			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
 ## Stop executing the current action.
-func _stop_executing_current_action() -> void:
+func _stop_executing_current_action(successful: bool = true) -> void:
 	if current_action:
 		ZoneManager.increment_zone_progression_for_action(current_action.action_id)
 
 		match current_action.action_type:
 			ZoneActionData.ActionType.FORAGE:
-				_stop_forage_action()
+				_stop_forage_action(successful)
 			ZoneActionData.ActionType.ADVENTURE:
-				_stop_adventure_action()
+				_stop_adventure_action(successful)
 			ZoneActionData.ActionType.CYCLING:
-				_stop_cycling_action()
+				_stop_cycling_action(successful)
 			ZoneActionData.ActionType.NPC_DIALOGUE:
-				_stop_dialogue_action()
+				_stop_dialogue_action(successful)
 			_:
 				Log.error("ActionManager: Unknown action type: %s" % current_action.action_type)
 	
@@ -185,27 +185,37 @@ func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 #-----------------------------------------------------------------------------
 
 ## Handle forage action - stop foraging.
-func _stop_forage_action() -> void:
+func _stop_forage_action(successful: bool) -> void:
 	Log.info("ActionManager: Stopping foraging action")
 	stop_foraging.emit()
 	remove_child(action_timer)
 	action_timer = Timer.new()
+	
+	_process_completion_effects(successful)
 
 ## Handle adventure action - stop adventure.
-func _stop_adventure_action() -> void:
+func _stop_adventure_action(successful: bool) -> void:
 	Log.info("ActionManager: Stopping adventure action")
 	stop_adventure.emit()
+	
+	_process_completion_effects(successful)
 
 ## Handle cycling action - stop cycling.
-func _stop_cycling_action() -> void:
+func _stop_cycling_action(successful: bool) -> void:
 	Log.info("ActionManager: Stopping cycling action")
 	stop_cycling.emit()
+	
+	_process_completion_effects(successful)
 
 ## Handle dialogue action - stop dialogue.
-func _stop_dialogue_action() -> void:
+func _stop_dialogue_action(successful: bool) -> void:
 	Log.info("ActionManager: Dialogue completed, processing effects for: %s" % current_action.action_name)
 	
-	for effect in current_action.completion_effects:
+	_process_completion_effects(successful)
+
+func _process_completion_effects(successful: bool) -> void:
+	var effects = current_action.success_effects if successful else current_action.failure_effects
+	for effect in effects:
 		effect.process()
 
 #-----------------------------------------------------------------------------

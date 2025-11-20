@@ -8,6 +8,8 @@ extends ZoneActionData
 @export var gold_multiplier: float = 1.0  # Multiplies the adventure's base gold reward
 @export var difficulty_modifier: float = 1.0  # Modifies encounter difficulty (1.0 = normal, 1.5 = 50% harder)
 @export var completion_time_modifier: float = 1.0  # Modifies how long the adventure takes
+@export var time_limit_seconds: int = 10 # Time limit for the adventure
+@export var stamina_regen_modifier: float = 1.0 # Modifier for passive stamina regen
 
 @export_group("Repeatable Settings")
 @export var cooldown_seconds: float = 0.0  # Cooldown before can repeat (0 = no cooldown)

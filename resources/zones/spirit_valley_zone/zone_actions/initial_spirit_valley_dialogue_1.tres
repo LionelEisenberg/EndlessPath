@@ -13,5 +13,5 @@ action_name = "Talk to the Wisened Dirt Eel"
 action_type = 2
 description = "Talk to the Wisened Dirt Eel"
 max_completions = 1
-completion_effects = Array[ExtResource("1_nm6h2")]([ExtResource("2_ur7gj")])
+success_effects = Array[ExtResource("1_nm6h2")]([ExtResource("2_ur7gj")])
 metadata/_custom_type_script = "uid://10xqk22j564o"
