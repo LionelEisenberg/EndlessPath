@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://eomevugae50m" path="res://scenes/characters/main_character/character_body_2d.tscn" id="2_b7v0o"]
 [ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="4_yfmtn"]
 [ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="4_ywsim"]
-[ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="6_aeorq"]
+[ext_resource type="PackedScene" uid="uid://b0qowk3rd0jft" path="res://scenes/adventure/adventure_tilemap/encounter_info_panel.tscn" id="6_10now"]
 
 [node name="AdventureTilemap" type="Node2D"]
 script = ExtResource("1_b7v0o")
@@ -43,15 +43,5 @@ zoom_speed = 100.0
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 layer = 2
 
-[node name="TileInfoPanel" type="Panel" parent="CanvasLayer"]
-z_index = 2
-custom_minimum_size = Vector2(400, 500)
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -512.5
-offset_top = 270.0
-offset_right = -112.5
-offset_bottom = 770.0
-grow_horizontal = 0
-theme_override_styles/panel = ExtResource("6_aeorq")
+[node name="EncounterInfoPanel" parent="CanvasLayer" instance=ExtResource("6_10now")]
+unique_name_in_owner = true

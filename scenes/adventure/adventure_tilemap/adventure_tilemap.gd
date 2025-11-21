@@ -9,7 +9,7 @@ extends Node2D
 # SIGNALS
 #-----------------------------------------------------------------------------
 
-signal start_combat(encounter: CombatEncounter)
+signal start_combat(choice: CombatChoice)
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -49,6 +49,7 @@ enum HighlightType {
 @onready var visible_map: HexagonTileMapLayer = %AdventureVisibleMap
 @onready var highlight_map: HexagonTileMapLayer = %AdventureHighlightMap
 @onready var character_body: CharacterBody2D = %CharacterBody2D
+@onready var encounter_info_panel: EncounterInfoPanel = %EncounterInfoPanel
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -66,6 +67,10 @@ var _highlight_tile_dictionary : Dictionary[Vector3i, HighlightType] = {}
 ## Visitation queue - tiles the character will visit in order
 var _visitation_queue : Array[Vector3i] = []
 var _current_tile : Vector3i = Vector3i.ZERO
+
+var _is_movement_locked: bool = false
+var _current_combat_choice: CombatChoice = null # Store for post-combat processing
+var _current_dialogue_choice: DialogueChoice = null # Store for post-dialogue processing
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -86,6 +91,10 @@ func _ready() -> void:
 	
 	adventure_map_generator = AdventureMapGenerator.new()
 	adventure_map_generator.set_tile_map(full_map)
+	
+	# Instantiate EncounterInfoPanel
+	encounter_info_panel.visible = false
+	encounter_info_panel.choice_selected.connect(_on_choice_selected)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -120,62 +129,107 @@ func stop_adventure() -> void:
 	_visitation_queue.clear()
 	_current_tile = Vector3i.ZERO
 	player_resource_manager = null
+	_is_movement_locked = false
+	encounter_info_panel.visible = false
 	
 	# Stop character movement
 	character_body.move_to_position(Vector2(0, 0), INSTANT_MOVE_SPEED)
-
-func _start_combat(encounter: AdventureEncounter) -> void:
-	if encounter == null:
-		Log.error("AdventureTilemap: Cannot start combat with null encounter")
-		return
-	
-	Log.info("AdventureTilemap: Initiating combat encounter - %s" % encounter.encounter_name)
-	start_combat.emit(encounter)
 
 func _stop_combat(successful: bool) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s" % successful)
 	
 	if successful:
-		_on_encounter_completed(_current_tile)
-		
-		# Check for Boss Success
-		if _encounter_tile_dictionary.has(_current_tile):
-			var encounter = _encounter_tile_dictionary[_current_tile]
-			if encounter is CombatEncounter and (encounter as CombatEncounter).is_boss:
+		if _current_combat_choice:
+			_apply_effects(_current_combat_choice.success_effects)
+			
+			if _current_combat_choice.is_boss:
 				Log.info("AdventureTilemap: Boss defeated! Adventure Successful.")
 				ActionManager.stop_action(true)
+				return
+
+		_complete_current_tile()
+	else:
+		if _current_combat_choice:
+			_apply_effects(_current_combat_choice.failure_effects)
+		# Usually failure means death/end of run, handled by ActionManager or PlayerResourceManager
+	
+	_current_combat_choice = null
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
 
 func _visit(coord: Vector3i) -> void:
-	if _visited_tile_dictionary.has(coord):
-		_process_next_visitation()
-		return
-	
+	# Always show the panel if there's an encounter
 	if _encounter_tile_dictionary.has(coord):
 		var tile_encounter : AdventureEncounter = _encounter_tile_dictionary[coord]
 		
-		tile_encounter.process()
-		
-		if tile_encounter.is_blocking:
-			match tile_encounter.encounter_type:
-				AdventureEncounter.EncounterType.NPC_DIALOGUE:
-					DialogueManager.dialogue_ended.connect(
-						_on_encounter_completed.bind(coord),
-						CONNECT_ONE_SHOT
-					)
-				AdventureEncounter.EncounterType.COMBAT:
-					_start_combat(tile_encounter)
-				_:
-					Log.error("AdventureTilemap: Unknown encounter type: %s" % tile_encounter.encounter_type)
-					_on_encounter_completed(coord)
-		else:
-			_on_encounter_completed(coord)
+		# Check for NoOpEncounter (or empty choices) and auto-complete
+		if tile_encounter is NoOpEncounter or tile_encounter.choices.is_empty():
+			Log.info("AdventureTilemap: Auto-completing NoOp/Empty encounter at %s" % coord)
+			_mark_tile_visited(coord)
+			if _visited_tile_dictionary.has(coord):
+				_process_next_visitation()
+			return
 
+		var is_completed = _visited_tile_dictionary.has(coord)
+		
+		encounter_info_panel.setup(tile_encounter, is_completed)
+		encounter_info_panel.visible = true
+		
+		if not is_completed:
+			_is_movement_locked = true
+			_visitation_queue.clear() # Stop any further queued movement
+	else:
+		encounter_info_panel.visible = false
+		
+	if _visited_tile_dictionary.has(coord):
+		_process_next_visitation()
+		return
+
+func _on_choice_selected(choice: EncounterChoice) -> void:
+	Log.info("AdventureTilemap: Choice selected: %s" % choice.label)
+	
+	if choice is CombatChoice:
+		_current_combat_choice = choice
+		start_combat.emit(choice)
+		# Combat view will take over. _stop_combat will be called when done.
+		
+	elif choice is DialogueChoice:
+		if DialogueManager:
+			_current_dialogue_choice = choice
+			DialogueManager.start_timeline(choice.timeline_name)
+			DialogueManager.dialogue_ended.connect(_on_dialogue_ended, CONNECT_ONE_SHOT)
+		else:
+			Log.error("AdventureTilemap: DialogueManager missing!")
+			
+	else:
+		# Standard choice (e.g. Loot, Leave)
+		_apply_effects(choice.success_effects)
+		_complete_current_tile()
+
+func _on_dialogue_ended(_resource: Resource = null) -> void:
+	Log.info("AdventureTilemap: Dialogue ended")
+	if _current_dialogue_choice:
+		_apply_effects(_current_dialogue_choice.success_effects)
+		_current_dialogue_choice = null
+	_complete_current_tile()
+
+func _complete_current_tile() -> void:
+	_is_movement_locked = false
+	encounter_info_panel.show_completed_state()
+	_mark_tile_visited(_current_tile)
+
+func _apply_effects(effects: Array[EffectData]) -> void:
+	for effect in effects:
+		if effect:
+			effect.process() # TODO: Pass context if needed (player, etc.)
 
 func _on_tile_clicked(coord: Vector2i) -> void:
+	if _is_movement_locked:
+		Log.info("AdventureTilemap: Movement locked. Complete the encounter first.")
+		return
+		
 	Log.info("AdventureTilemap: Tile clicked: %s" % coord)
 	
 	# Don't allow new clicks if we're already processing a visitation queue
@@ -213,18 +267,6 @@ func _on_character_movement_completed() -> void:
 		Log.info("AdventureTilemap: Character reached tile: %s" % _current_tile)
 		
 		_visit(_current_tile)
-
-func _on_encounter_completed(coord: Vector3i) -> void:
-	# Process effects	
-	for completion_effect in _encounter_tile_dictionary[coord].completion_effects:
-		if completion_effect:
-			completion_effect.process()
-
-	# Mark as visited and update visuals
-	_mark_tile_visited(coord)
-	
-	# Continue to next tile
-	_process_next_visitation()
 
 func _mark_tile_visited(coord: Vector3i) -> void:
 	_visited_tile_dictionary[coord] = true

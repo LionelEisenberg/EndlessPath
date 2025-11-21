@@ -22,7 +22,7 @@ var combatant_scene: PackedScene = preload("res://scenes/combat/combatant/combat
 #-----------------------------------------------------------------------------
 
 var player_resource_manager: CombatResourceManager = null
-var encounter: CombatEncounter = null
+var current_combat_choice: CombatChoice = null
 
 var player_combatant : CombatantNode
 var enemy_combatant : CombatantNode
@@ -44,8 +44,8 @@ var enemy_combatant : CombatantNode
 func _ready() -> void:
 	Log.info("AdventureCombat: Initialized")
 
-func initialize_with_player_resource_manager(e: CombatEncounter, prm: CombatResourceManager) -> void:
-	self.encounter = e
+func initialize_with_player_resource_manager(choice: CombatChoice, prm: CombatResourceManager) -> void:
+	self.current_combat_choice = choice
 	self.player_resource_manager = prm
 
 	# Connect player_resource_manager to the trigger_combat_end signal
@@ -59,8 +59,8 @@ func initialize_with_player_resource_manager(e: CombatEncounter, prm: CombatReso
 func start() -> void:
 	Log.info("AdventureCombat: Starting combat")
 	
-	if not encounter:
-		Log.error("AdventureCombat: No encounter set!")
+	if not current_combat_choice:
+		Log.error("AdventureCombat: No combat choice set!")
 		return
 		
 	if not player_resource_manager:
@@ -74,8 +74,10 @@ func stop() -> void:
 	ability_panel.reset()
 	enemy_info_panel.reset()
 	
-	player_combatant.queue_free()
-	enemy_combatant.queue_free()
+	if player_combatant:
+		player_combatant.queue_free()
+	if enemy_combatant:
+		enemy_combatant.queue_free()
 
 func _create_combatants() -> void:
 	_create_player_combatant()
@@ -100,7 +102,12 @@ func _create_player_combatant() -> void:
 	player_combatant.setup(player_data, player_resource_manager, true)
 
 func _create_enemy_combatant() -> void:
-	var enemy_data : CombatantData = encounter.enemy_pool[0]
+	if current_combat_choice.enemy_pool.is_empty():
+		Log.error("AdventureCombat: Enemy pool is empty!")
+		return
+
+	# TODO: Handle multiple enemies or random selection from pool
+	var enemy_data : CombatantData = current_combat_choice.enemy_pool[0]
 	
 	enemy_combatant = combatant_scene.instantiate()
 	enemy_combatant.name = "EnemyCombatant"
