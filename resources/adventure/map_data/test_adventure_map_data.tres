@@ -26,6 +26,9 @@ metadata/_custom_type_script = "uid://c1b11mq3a2qya"
 [sub_resource type="Resource" id="Resource_7x711"]
 script = ExtResource("1_let1d")
 encounter_id = "Fighting!"
+encounter_name = "Fight these bitches"
+description = "Fight these bitches"
+text_description_completed = "These bitches we're fought"
 choices = Array[ExtResource("3_16qle")]([SubResource("Resource_lq2sa"), SubResource("Resource_16qle")])
 metadata/_custom_type_script = "uid://bars7sna1emxp"
 

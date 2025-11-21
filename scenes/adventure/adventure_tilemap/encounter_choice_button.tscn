@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3 uid="uid://cbqt4f46cnfm3"]
+
+[ext_resource type="PackedScene" uid="uid://bqb2icn1bvv7m" path="res://scenes/ui/inkbrush_button/inkbrush_button.tscn" id="1_6ko83"]
+[ext_resource type="Script" uid="uid://je2hkp3atnt5" path="res://scenes/adventure/adventure_tilemap/encounter_choice_button.gd" id="2_script"]
+[ext_resource type="Shader" uid="uid://niw6ynp57ppk" path="res://assets/shaders/zone_action_button.gdshader" id="3_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_k86ii"]
+resource_local_to_scene = true
+shader = ExtResource("3_shader")
+shader_parameter/fill_amount = 0.3
+shader_parameter/fill_color = Vector4(1, 1, 1, 1)
+
+[node name="EncounterChoiceButton" type="MarginContainer"]
+custom_minimum_size = Vector2(380, 80)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -190.0
+offset_top = -50.0
+offset_right = 190.0
+offset_bottom = 30.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("2_script")
+
+[node name="InkbrushButton" parent="." instance=ExtResource("1_6ko83")]
+material = SubResource("ShaderMaterial_k86ii")
+layout_mode = 2
