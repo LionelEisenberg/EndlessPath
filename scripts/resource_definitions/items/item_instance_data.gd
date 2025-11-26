@@ -12,3 +12,6 @@ extends Resource
 
 ## Metadata hook for future RPG systems (enchantments, durability, etc.).
 @export var metadata: Dictionary = {}
+
+func _to_string() -> String:
+	return "ITEM_DEFINITION %s" % item_definition

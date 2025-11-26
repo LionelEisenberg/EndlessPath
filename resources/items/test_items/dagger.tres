@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemDefinitionData" load_steps=3 format=3 uid="uid://bwpoorfeekkiu"]
+
+[ext_resource type="Texture2D" uid="uid://n4bia46t2gbq" path="res://assets/asperite/inventory/dagger_icon.png" id="1_m84n8"]
+[ext_resource type="Script" uid="uid://cuag0kvf84qnl" path="res://scripts/resource_definitions/items/item_definition_data.gd" id="1_sitv2"]
+
+[resource]
+script = ExtResource("1_sitv2")
+item_id = "dagger"
+item_name = "Dagger"
+description = "Dagger!! StabStab"
+icon = ExtResource("1_m84n8")
+item_type = 2
+metadata/_custom_type_script = "uid://cuag0kvf84qnl"

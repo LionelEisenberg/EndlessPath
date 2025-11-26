@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://ceypk3nhatnfw"]
+
+[ext_resource type="Texture2D" uid="uid://ybg7h5mb8yh2" path="res://assets/asperite/inventory/inventory_slot/unocupied_inventory_slot.png" id="1_1p8kr"]
+[ext_resource type="Script" uid="uid://cblvkakbg24c2" path="res://scenes/ui/inventory/inventory_view/equipment_grid/inventory_slot/inventory_slot.gd" id="2_o0ktf"]
+
+[node name="InventorySlot" type="TextureRect"]
+texture = ExtResource("1_1p8kr")
+script = ExtResource("2_o0ktf")

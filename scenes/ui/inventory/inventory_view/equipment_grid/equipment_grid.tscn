@@ -1,0 +1,68 @@
+[gd_scene load_steps=9 format=3 uid="uid://u2naqgqaai45"]
+
+[ext_resource type="Script" uid="uid://d317jgqld3fkw" path="res://scenes/ui/inventory/inventory_view/equipment_grid/equipment_grid.gd" id="1_5kgqq"]
+[ext_resource type="Texture2D" uid="uid://x368xmilo0p" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_scroll..png" id="1_y2ewg"]
+[ext_resource type="Texture2D" uid="uid://cqbdw487scbtr" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_grabber.png" id="2_5kgqq"]
+[ext_resource type="PackedScene" uid="uid://ceypk3nhatnfw" path="res://scenes/ui/inventory/inventory_view/equipment_grid/inventory_slot/inventory_slot.tscn" id="4_nsg81"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_v70co"]
+texture = ExtResource("1_y2ewg")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ik22q"]
+texture = ExtResource("2_5kgqq")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ycsy7"]
+texture = ExtResource("2_5kgqq")
+axis_stretch_vertical = 1
+
+[sub_resource type="Theme" id="Theme_00gvd"]
+VScrollBar/styles/grabber = SubResource("StyleBoxTexture_ycsy7")
+
+[node name="EquipmentGrid" type="MarginContainer"]
+offset_right = 236.0
+offset_bottom = 220.0
+theme_override_constants/margin_left = 13
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 27
+script = ExtResource("1_5kgqq")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VScrollBar" type="VScrollBar" parent="MarginContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 0)
+layout_mode = 2
+size_flags_horizontal = 8
+theme_override_styles/scroll = SubResource("StyleBoxTexture_v70co")
+theme_override_styles/grabber = SubResource("StyleBoxTexture_ik22q")
+
+[node name="Grabber" type="TextureRect" parent="MarginContainer/VScrollBar"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -3.0
+offset_top = 3.0
+offset_right = 11.0
+offset_bottom = 18.0
+mouse_filter = 0
+texture = ExtResource("2_5kgqq")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme = SubResource("Theme_00gvd")
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="GridContainer" type="GridContainer" parent="ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 5
+
+[node name="InventorySlot" parent="ScrollContainer/GridContainer" instance=ExtResource("4_nsg81")]
+layout_mode = 2

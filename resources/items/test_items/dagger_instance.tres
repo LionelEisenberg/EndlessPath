@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ItemInstanceData" load_steps=3 format=3 uid="uid://b3wa1np06j06l"]
+
+[ext_resource type="Script" uid="uid://0ylfdso6kbua" path="res://scripts/resource_definitions/items/item_instance_data.gd" id="1_sb3yu"]
+[ext_resource type="Resource" uid="uid://bwpoorfeekkiu" path="res://resources/items/test_items/dagger.tres" id="1_w2oy1"]
+
+[resource]
+script = ExtResource("1_sb3yu")
+item_definition = ExtResource("1_w2oy1")
+metadata/_custom_type_script = "uid://0ylfdso6kbua"

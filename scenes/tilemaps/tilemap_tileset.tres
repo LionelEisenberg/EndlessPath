@@ -1,11 +1,13 @@
-[gd_resource type="TileSet" load_steps=9 format=3 uid="uid://brm40hxx3wp8n"]
+[gd_resource type="TileSet" load_steps=12 format=3 uid="uid://brm40hxx3wp8n"]
 
 [ext_resource type="Texture2D" uid="uid://nnhoojvpoehu" path="res://assets/sprites/tilemap/tile_horizontal.png" id="1_kcnis"]
 [ext_resource type="Texture2D" uid="uid://dbs7q3rxlog0j" path="res://assets/sprites/tilemap/tile_horizontal_locked.png" id="2_6an1b"]
 [ext_resource type="Texture2D" uid="uid://c1bjygb1vsq8j" path="res://assets/sprites/tilemap/tile_overlay.png" id="3_6an1b"]
-[ext_resource type="Texture2D" uid="uid://kqn7tvhkgvq8" path="res://assets/sprites/tilemap/tile_overlay_2.png" id="4_h4l5f"]
+[ext_resource type="Texture2D" uid="uid://buqtlh20eekpv" path="res://assets/asperite/zones/Boss.png" id="4_2d48m"]
+[ext_resource type="Texture2D" uid="uid://cl30pnpetes7" path="res://assets/asperite/zones/Combat.png" id="5_nmb5y"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nwvq3"]
+resource_name = "base_tile"
 texture = ExtResource("1_kcnis")
 texture_region_size = Vector2i(164, 190)
 0:0/next_alternative_id = 6
@@ -20,6 +22,7 @@ texture_region_size = Vector2i(164, 190)
 0:0/4/modulate = Color(1, 1, 1, 0)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mh3wn"]
+resource_name = "locked_tile"
 texture = ExtResource("2_6an1b")
 texture_region_size = Vector2i(164, 190)
 0:0/0 = 0
@@ -33,8 +36,18 @@ texture_region_size = Vector2i(164, 190)
 0:0/1 = 1
 0:0/1/modulate = Color(1, 0, 0, 0.92941177)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_00vm0"]
-texture = ExtResource("4_h4l5f")
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2re4u"]
+texture = ExtResource("4_2d48m")
+texture_region_size = Vector2i(164, 190)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6g2bo"]
+texture = ExtResource("5_nmb5y")
+texture_region_size = Vector2i(164, 190)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2d48m"]
+texture = ExtResource("1_kcnis")
 texture_region_size = Vector2i(164, 190)
 0:0/0 = 0
 
@@ -51,4 +64,6 @@ custom_data_layer_2/type = 21
 sources/0 = SubResource("TileSetAtlasSource_nwvq3")
 sources/1 = SubResource("TileSetAtlasSource_mh3wn")
 sources/2 = SubResource("TileSetAtlasSource_e5jnf")
-sources/3 = SubResource("TileSetAtlasSource_00vm0")
+sources/3 = SubResource("TileSetAtlasSource_2re4u")
+sources/4 = SubResource("TileSetAtlasSource_6g2bo")
+sources/5 = SubResource("TileSetAtlasSource_2d48m")
