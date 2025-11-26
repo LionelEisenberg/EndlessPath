@@ -5,6 +5,7 @@ enum EffectType {
 	NONE,
 	TRIGGER_EVENT,
 	AWARD_RESOURCE,
+	AWARD_ITEM,
 }
 
 @export var effect_type: EffectType = EffectType.NONE

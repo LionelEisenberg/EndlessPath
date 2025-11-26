@@ -19,7 +19,6 @@ const full_slot_textures : Array[Texture2D] = [
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02b.png"),
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02c.png"),
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02d.png")
-	
 ]
 
 var empty_texture = empty_slot_textures[randi() % empty_slot_textures.size()]

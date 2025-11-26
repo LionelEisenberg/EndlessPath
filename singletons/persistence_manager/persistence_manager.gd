@@ -2,7 +2,7 @@ extends Node
 
 signal save_data_reset
 
-@export var reset_save_data : bool = true
+@export var reset_save_data : bool = false
 
 var save_game_data : SaveGameData
 

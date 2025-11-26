@@ -8,6 +8,10 @@ signal open_inventory
 # Signal for closing the inventory
 signal close_inventory
 
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
 func _ready() -> void:
 	if InventoryManager:
 		## Handle inventory signals

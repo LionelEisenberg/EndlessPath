@@ -1,0 +1,98 @@
+[gd_scene load_steps=5 format=3 uid="uid://bywdjh8pmjuev"]
+
+[ext_resource type="Script" uid="uid://dtfuro5fu4nu3" path="res://scenes/ui/inventory/inventory_view/gear_selector/gear_selector.gd" id="1_3nnrq"]
+[ext_resource type="Texture2D" uid="uid://veonv7snu457" path="res://assets/asperite/inventory/equipment_tab/gear_selector/gear_selector_top_signage.png" id="1_f2oh5"]
+[ext_resource type="Texture2D" uid="uid://c3nawmnr7g0aj" path="res://assets/asperite/inventory/equipment_tab/gear_selector/gear_selector_portrait.png" id="2_3nnrq"]
+[ext_resource type="PackedScene" uid="uid://csm6jt2i1j477" path="res://scenes/ui/inventory/inventory_view/gear_selector/gear_slot.tscn" id="4_3nnrq"]
+
+[node name="GearSelector" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_3nnrq")
+
+[node name="Top Signage" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 434.0
+offset_top = 59.0
+offset_right = 558.0
+offset_bottom = 87.0
+texture = ExtResource("1_f2oh5")
+
+[node name="GearSelectorPortrait" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 442.0
+offset_top = 91.5
+offset_right = 550.0
+offset_bottom = 231.5
+texture = ExtResource("2_3nnrq")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 373.5
+offset_top = 84.0
+offset_right = 413.5
+offset_bottom = 192.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="HeadGearSlot" parent="VBoxContainer" instance=ExtResource("4_3nnrq")]
+layout_mode = 2
+
+[node name="ChestGearSlot" parent="VBoxContainer" instance=ExtResource("4_3nnrq")]
+layout_mode = 2
+slot_type = 1
+
+[node name="LegsGearSlot" parent="VBoxContainer" instance=ExtResource("4_3nnrq")]
+layout_mode = 2
+slot_type = 2
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 535.5
+offset_top = 84.0
+offset_right = 575.5
+offset_bottom = 192.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="MainWeaponGearSlot" parent="VBoxContainer2" instance=ExtResource("4_3nnrq")]
+layout_mode = 2
+slot_type = 4
+
+[node name="OffhandGearSlot" parent="VBoxContainer2" instance=ExtResource("4_3nnrq")]
+layout_mode = 2
+slot_type = 5
+
+[node name="FeetGearSlot" parent="VBoxContainer2" instance=ExtResource("4_3nnrq")]
+layout_mode = 2
+slot_type = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 462.0
+offset_top = 238.0
+offset_right = 530.0
+offset_bottom = 278.0
+theme_override_constants/separation = 12
+
+[node name="Accessory1GearSlot" parent="HBoxContainer" instance=ExtResource("4_3nnrq")]
+layout_mode = 2
+slot_type = 6
+
+[node name="Accessory2GearSlot" parent="HBoxContainer" instance=ExtResource("4_3nnrq")]
+layout_mode = 2
+slot_type = 7

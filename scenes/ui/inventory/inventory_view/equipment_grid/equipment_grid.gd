@@ -25,13 +25,13 @@ const NUM_INVENTORY_SLOTS = 50
 @onready var scroll_container : ScrollContainer = %ScrollContainer
 @onready var grid_container : GridContainer = %GridContainer
 
+signal slot_clicked(slot: InventorySlot, event: InputEvent)
+
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
 
-var dragged_item: Control = null
-var original_slot: InventorySlot = null
-var is_dragging: bool = false
+# Drag logic moved to InventoryView
 
 #-----------------------------------------------------------------------------
 # COMPONENTS
@@ -45,88 +45,51 @@ var inventory_slot_scene : PackedScene = preload("res://scenes/ui/inventory/inve
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	default_item_instance_data = load("res://resources/items/test_items/dagger_instance.tres")
 	scroll_container.get_v_scroll_bar().scrolling.connect(_on_scrolling)
-
-	_intialize_grid_container()
+	
+	if InventoryManager:
+		InventoryManager.inventory_changed.connect(_on_inventory_changed)
+		_update_grid(InventoryManager.get_inventory())
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
 #-----------------------------------------------------------------------------
 
-func _input(event: InputEvent) -> void:
-	if is_dragging and dragged_item:
-		if event is InputEventMouseMotion:
-			dragged_item.global_position = get_global_mouse_position() + POSITION_OFFSET
-		
-		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_drop_item(get_global_mouse_position())
-
 func _on_slot_clicked(slot: InventorySlot, event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if not is_dragging and slot.item_instance != null:
-			_pick_up_item(slot, event.global_position)
+	slot_clicked.emit(slot, event)
 
-func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
-	var item = slot.grab_item()
-	if item:
-		dragged_item = item
-		
-		is_dragging = true
-		original_slot = slot
-		
-		get_tree().root.add_child(dragged_item)
-		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
-		dragged_item.scale = Vector2(2.0, 2.0)
-		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE # Pass events through to slots below
-
-func _drop_item(global_mouse_pos: Vector2) -> void:
-	var target_slot = _get_slot_under_mouse(global_mouse_pos)
-	dragged_item.scale = Vector2(1.0, 1.0)
-	if target_slot and target_slot != original_slot:
-		if target_slot.item_instance == null:
-			# Drop into empty slot
-			target_slot.equip_item(dragged_item)
-		else:
-			# Swap
-			var target_item = target_slot.grab_item()
-			
-			target_slot.equip_item(dragged_item)
-			original_slot.equip_item(target_item)
-	else:
-		# Return to original slot
-		original_slot.equip_item(dragged_item)
-	
-	# Cleanup
-	dragged_item.z_index = 0
-	dragged_item.mouse_filter = Control.MOUSE_FILTER_PASS
-	dragged_item = null
-	original_slot = null
-	is_dragging = false
-
-func _get_slot_under_mouse(global_pos: Vector2) -> InventorySlot:
-	for slot in grid_container.get_children():
-		if slot is InventorySlot and slot.get_global_rect().has_point(global_pos):
-			return slot
-	return null
+func get_slots() -> Array[InventorySlot]:
+	var slots: Array[InventorySlot] = []
+	for child in grid_container.get_children():
+		if child is InventorySlot:
+			slots.append(child)
+	return slots
 
 #-----------------------------------------------------------------------------
 # SETUP FUNCTIONS
 #-----------------------------------------------------------------------------
 
-func _intialize_grid_container() -> void:
+func _on_inventory_changed(inventory: InventoryData) -> void:
+	_update_grid(inventory)
+
+func _update_grid(inventory: InventoryData) -> void:
+	# Clear existing slots
 	for slot in grid_container.get_children():
 		slot.queue_free()
+	
+	# Create slots for equipment
+	var equipment_dict = inventory.equipment
 	
 	for i in NUM_INVENTORY_SLOTS:
 		var slot = inventory_slot_scene.instantiate()
 		slot.clicked.connect(_on_slot_clicked)
 		grid_container.add_child(slot)
-		if randi() % 2 == 0:
-			if randi() % 2 == 0:
-				slot.setup(default_item_instance_data)
-			else:
-				slot.setup(load("res://resources/items/test_items/sword_instance.tres"))
+		
+		# Check if we have an item at this index
+		if equipment_dict.has(i):
+			slot.setup(equipment_dict[i])
+		else:
+			slot.setup(null)
 
 func _on_scrolling() -> void:
 	var page = scroll_container.get_v_scroll_bar().page
