@@ -1,12 +1,11 @@
-[gd_scene load_steps=21 format=3 uid="uid://sra4pqjmj11a"]
+[gd_scene load_steps=24 format=3 uid="uid://sra4pqjmj11a"]
 
 [ext_resource type="Script" uid="uid://bxs3eblygn8oo" path="res://scenes/ui/inventory/inventory_view/inventory_view.gd" id="1_43eln"]
 [ext_resource type="PackedScene" uid="uid://dkcvw114ohasw" path="res://scenes/ui/inventory/inventory_view/materials_tab/materials_tab.tscn" id="2_ovuek"]
 [ext_resource type="StyleBox" uid="uid://rnf7v74oajlq" path="res://assets/styleboxes/main_popup_style_box.tres" id="2_x28dr"]
 [ext_resource type="Texture2D" uid="uid://2en522dn0wvj" path="res://assets/asperite/inventory/book_background.png" id="4_ln5v6"]
-[ext_resource type="Texture2D" uid="uid://bvrjqlv1hvv23" path="res://assets/asperite/inventory/tab_switcher/chosen_button.png" id="5_nh17e"]
+[ext_resource type="Texture2D" uid="uid://c4hiwispu082d" path="res://assets/asperite/inventory/tab_switcher/tab_button_open.png" id="5_v70co"]
 [ext_resource type="Texture2D" uid="uid://qg3e62j1wpfi" path="res://assets/asperite/inventory/tab_switcher/bag_icon.png" id="6_2mkbp"]
-[ext_resource type="Texture2D" uid="uid://drq3t4pl3gsun" path="res://assets/asperite/inventory/tab_switcher/unchosen_button.png" id="7_31oyc"]
 [ext_resource type="Texture2D" uid="uid://3ceshn32wqax" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/tab_banner.png" id="8_midoe"]
 [ext_resource type="Script" uid="uid://o2cqmwaxwv01" path="res://scenes/ui/inventory/inventory_view/equipment_tab/equipment_tab.gd" id="8_qfdbg"]
 [ext_resource type="Texture2D" uid="uid://ba14l6y1itu7w" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/equipment_category.png" id="9_qedsu"]
@@ -17,6 +16,168 @@
 [ext_resource type="PackedScene" uid="uid://bywdjh8pmjuev" path="res://scenes/ui/inventory/inventory_view/gear_selector/gear_selector.tscn" id="14_xrgga"]
 [ext_resource type="Texture2D" uid="uid://73gi871a4dr7" path="res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Spritesheet_Select01a.png" id="16_v70co"]
 [ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/asperite/inventory/equipment_tab/gear_selector/item_description_background.png" id="17_00gvd"]
+
+[sub_resource type="Animation" id="Animation_ycsy7"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("MarginContainer:theme_override_constants/margin_left")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [null]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("MarginContainer:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("MarginContainer:theme_override_constants/margin_top")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [null]
+}
+
+[sub_resource type="Animation" id="Animation_ik22q"]
+resource_name = "CloseTabButton"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.20000002, 0.25, 0.3, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0, 1, 2, 3, 4, 5, 6, 7]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("MarginContainer:theme_override_constants/margin_left")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [null, 6, 13, 19, 25, 32, 38, 44, 50]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("MarginContainer:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.95, 0.95), Vector2(0.9, 0.9), Vector2(0.85, 0.85), Vector2(0.8, 0.8), Vector2(0.75, 0.75)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("MarginContainer:theme_override_constants/margin_top")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [null, 4, 8, 12, 13]
+}
+
+[sub_resource type="Animation" id="Animation_qfdbg"]
+resource_name = "OpenTabButton"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.20000002, 0.25, 0.3, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [0, 1, 2, 3, 4, 5, 6, 7]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("MarginContainer:theme_override_constants/margin_left")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [null, 6, 13, 19, 25, 32, 38, 44, 50]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("MarginContainer:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.95, 0.95), Vector2(0.9, 0.9), Vector2(0.85, 0.85), Vector2(0.8, 0.8), Vector2(0.75, 0.75)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("MarginContainer:theme_override_constants/margin_top")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [null, 2, 5, 8, 10]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_00gvd"]
+_data = {
+&"CloseTabButton": SubResource("Animation_ik22q"),
+&"OpenTabButton": SubResource("Animation_qfdbg"),
+&"RESET": SubResource("Animation_ycsy7")
+}
 
 [sub_resource type="Animation" id="Animation_835ns"]
 resource_name = "start_select"
@@ -113,40 +274,33 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="InventoryTabButton" type="TextureRect" parent="BookBackground/TabSwitcher"]
-layout_mode = 0
-offset_left = 20.0
-offset_top = 83.0
-offset_right = 92.0
-offset_bottom = 120.0
-texture = ExtResource("5_nh17e")
+[node name="EquipmentTabButton" type="Sprite2D" parent="BookBackground/TabSwitcher"]
+position = Vector2(55.5, 95)
+texture = ExtResource("5_v70co")
+hframes = 8
 
-[node name="MarginContainer" type="MarginContainer" parent="BookBackground/TabSwitcher/InventoryTabButton"]
-layout_mode = 1
+[node name="MarginContainer" type="MarginContainer" parent="BookBackground/TabSwitcher/EquipmentTabButton"]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -23.0
-offset_top = -13.5
-offset_right = 23.0
-offset_bottom = 12.5
+offset_left = -59.0
+offset_top = -31.5
+offset_right = -13.0
+offset_bottom = -5.5
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_right = 20
 
-[node name="TextureRect" type="TextureRect" parent="BookBackground/TabSwitcher/InventoryTabButton/MarginContainer"]
+[node name="Icon" type="TextureRect" parent="BookBackground/TabSwitcher/EquipmentTabButton/MarginContainer"]
 layout_mode = 2
 texture = ExtResource("6_2mkbp")
 
-[node name="InventoryTabButton2" type="TextureRect" parent="BookBackground/TabSwitcher"]
-layout_mode = 0
-offset_left = 20.0
-offset_top = 128.0
-offset_right = 48.0
-offset_bottom = 165.0
-texture = ExtResource("7_31oyc")
+[node name="AnimationPlayer" type="AnimationPlayer" parent="BookBackground/TabSwitcher/EquipmentTabButton"]
+libraries = {
+&"": SubResource("AnimationLibrary_00gvd")
+}
 
 [node name="EquipmentTab" type="Control" parent="BookBackground"]
 anchors_preset = 0
