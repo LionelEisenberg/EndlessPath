@@ -2,6 +2,8 @@ extends Control
 
 @onready var equipment_grid: Control = $EquipmentGrid
 @onready var gear_selector: Control = $GearSelector
+@onready var selector: Node2D = $Selector
+@onready var selector_anim: AnimationPlayer = $Selector/AnimationPlayer
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -11,6 +13,7 @@ var dragged_item: Control = null
 var original_slot: InventorySlot = null
 var is_dragging: bool = false
 const POSITION_OFFSET = Vector2(-35, -35)
+const SELECTOR_OFFSET = Vector2(28, 28)
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -18,8 +21,8 @@ const POSITION_OFFSET = Vector2(-35, -35)
 
 func _ready() -> void:
 	# Connect drag signals
-	equipment_grid.slot_clicked.connect(_on_slot_clicked)
-	gear_selector.slot_clicked.connect(_on_slot_clicked)
+	equipment_grid.slot_clicked.connect(_on_slot_input)
+	gear_selector.slot_clicked.connect(_on_slot_input)
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
@@ -37,10 +40,21 @@ func _input(event):
 # DRAG AND DROP
 #-----------------------------------------------------------------------------
 
-func _on_slot_clicked(slot: InventorySlot, event: InputEvent) -> void:
+func _on_slot_input(slot: InventorySlot, event: InputEvent) -> void:
+	if event is InputEventMouseMotion or (event is InputEventMouseButton and event.pressed):
+		_update_selector(slot)
+	
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if not is_dragging and slot.item_instance != null:
 			_pick_up_item(slot, event.global_position)
+
+func _update_selector(slot: InventorySlot) -> void:
+	selector.global_position = slot.global_position + SELECTOR_OFFSET
+	if not selector.visible:
+		selector.visible = true
+		selector_anim.play("start_select")
+	elif selector_anim.current_animation != "start_select":
+		selector_anim.play("start_select")
 
 func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 	var item = slot.grab_item()
