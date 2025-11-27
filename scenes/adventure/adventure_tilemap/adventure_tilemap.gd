@@ -243,7 +243,7 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	var path_cube_coords = visible_map.cube_pathfind(_current_tile, target_cube_coord)
 	
 	# Check stamina for the full path (approximation, actual deduction happens per step)
-	var total_cost = (path_cube_coords.size() - 1) * MOVEMENT_STAMINA_COST
+	var _total_cost = (path_cube_coords.size() - 1) * MOVEMENT_STAMINA_COST
 	if player_resource_manager and player_resource_manager.current_stamina < MOVEMENT_STAMINA_COST:
 		Log.info("AdventureTilemap: Not enough stamina to move!")
 		# TODO: Show UI feedback

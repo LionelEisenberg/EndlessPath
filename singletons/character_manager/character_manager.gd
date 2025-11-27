@@ -156,7 +156,7 @@ func add_base_attribute(attr_type: AttributeType, amount: float) -> void:
 #-----------------------------------------------------------------------------
 
 ## Calculate total bonuses for an attribute from equipment, buffs, etc.
-func _get_attribute_bonuses(attr_type: AttributeType) -> float:
+func _get_attribute_bonuses(_attr_type: AttributeType) -> float:
 	var total_bonus = 0.0
 	
 	# TODO: Add bonuses from equipment when inventory system is complete

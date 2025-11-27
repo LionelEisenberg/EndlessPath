@@ -130,7 +130,6 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 	_cleanup_drag()
 
 func _return_to_original() -> void:
-	Log.debug(dragged_item)
 	original_slot.equip_item(dragged_item)
 
 func _cleanup_drag() -> void:
