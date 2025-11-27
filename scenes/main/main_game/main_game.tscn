@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
 [ext_resource type="PackedScene" uid="uid://dykb4ugtithxu" path="res://scenes/zones/zone_tilemap/zone_tilemap.tscn" id="3_1i3v0"]
 [ext_resource type="PackedScene" uid="uid://b1rl1n8ceijc8" path="res://scenes/cycling/cycling_view/cycling_view.tscn" id="3_7ijcf"]
-[ext_resource type="PackedScene" uid="uid://sra4pqjmj11a" path="res://scenes/ui/inventory/inventory_view/inventory_view.tscn" id="3_k2uxu"]
+[ext_resource type="PackedScene" uid="uid://sra4pqjmj11a" path="res://scenes/inventory/inventory_view/inventory_view.tscn" id="3_k2uxu"]
 [ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/sprites/zones/backgrounds/spirit_valley_background.jpg" id="3_yssfv"]
 [ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
 [ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]

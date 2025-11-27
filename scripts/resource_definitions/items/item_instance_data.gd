@@ -15,3 +15,18 @@ extends Resource
 
 func _to_string() -> String:
 	return "ITEM_DEFINITION %s" % item_definition
+
+func _to_description_box() -> String:
+	if not item_definition:
+		return "No Item Definition"
+	
+	var text = ""
+			
+	# Specific Details from Definition
+	var effects = item_definition._get_item_effects()
+	if not effects.is_empty():
+		text += "\n"
+		for effect in effects:
+			text += "%s\n" % effect
+		
+	return text

@@ -1,0 +1,160 @@
+[gd_scene load_steps=8 format=3 uid="uid://dnkls2h5eaj10"]
+
+[ext_resource type="Texture2D" uid="uid://c4hiwispu082d" path="res://assets/asperite/inventory/tab_switcher/tab_button_open.png" id="1_qf55a"]
+[ext_resource type="Texture2D" uid="uid://qg3e62j1wpfi" path="res://assets/asperite/inventory/tab_switcher/bag_icon.png" id="2_ejei4"]
+[ext_resource type="Script" uid="uid://r0d5awro0gtx" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.gd" id="2_gxvos"]
+
+[sub_resource type="Animation" id="Animation_ycsy7"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("TabSprite/MarginContainer:theme_override_constants/margin_left")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [null]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("TabSprite/MarginContainer:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("TabSprite/MarginContainer:theme_override_constants/margin_top")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [null]
+}
+
+[sub_resource type="Animation" id="Animation_ik22q"]
+resource_name = "TabButtonAnimation"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("TabSprite/MarginContainer:theme_override_constants/margin_left")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [null, 6, 13, 19, 25, 32, 38, 44, 50]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("TabSprite/MarginContainer:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.95, 0.95), Vector2(0.9, 0.9), Vector2(0.85, 0.85), Vector2(0.8, 0.8), Vector2(0.75, 0.75)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("TabSprite/MarginContainer:theme_override_constants/margin_top")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [null, 4, 8, 12, 13]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("TabSprite:frame")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.20000002, 0.25, 0.3, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5, 6, 7]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_00gvd"]
+_data = {
+&"RESET": SubResource("Animation_ycsy7"),
+&"TabButtonAnimation": SubResource("Animation_ik22q")
+}
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ejei4"]
+
+[node name="TabButton" type="Control" groups=["InventoryTabButton"]]
+layout_mode = 3
+anchors_preset = 0
+size_flags_horizontal = 0
+script = ExtResource("2_gxvos")
+icon_texture = ExtResource("2_ejei4")
+metadata/_edit_group_ = true
+
+[node name="TabSprite" type="Sprite2D" parent="."]
+texture = ExtResource("1_qf55a")
+hframes = 8
+
+[node name="MarginContainer" type="MarginContainer" parent="TabSprite"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -59.0
+offset_top = -31.5
+offset_right = -13.0
+offset_bottom = -5.5
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+theme_override_constants/margin_right = 20
+
+[node name="Icon" type="TextureRect" parent="TabSprite/MarginContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+texture = ExtResource("2_ejei4")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_00gvd")
+}
+
+[node name="Button" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -36.0
+offset_top = -19.0
+offset_right = 36.0
+offset_bottom = 18.0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/normal_mirrored = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/pressed_mirrored = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/hover_mirrored = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/hover_pressed_mirrored = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/disabled_mirrored = SubResource("StyleBoxEmpty_ejei4")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_ejei4")

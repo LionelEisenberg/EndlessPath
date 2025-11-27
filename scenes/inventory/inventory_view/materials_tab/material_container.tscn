@@ -1,0 +1,64 @@
+[gd_scene load_steps=4 format=3 uid="uid://c5wiepsq2qinv"]
+
+[ext_resource type="Script" uid="uid://dq63s3q5tddkb" path="res://scenes/inventory/inventory_view/materials_tab/material_container.gd" id="1_cd4sy"]
+[ext_resource type="Texture2D" uid="uid://d3r3i72y3uk11" path="res://assets/asperite/inventory/materials_tab/material_container_chosen.png" id="2_gjfyx"]
+[ext_resource type="Texture2D" uid="uid://becqlf1lmdb1x" path="res://assets/Food_01.png" id="3_dvc7y"]
+
+[node name="MaterialContainer" type="MarginContainer"]
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+script = ExtResource("1_cd4sy")
+
+[node name="MaterialPanelContainer" type="TextureRect" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 2
+texture = ExtResource("2_gjfyx")
+
+[node name="InnerMarginContainer" type="MarginContainer" parent="MaterialPanelContainer"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -63.0
+offset_top = -11.5
+offset_right = 63.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MaterialPanelContainer/InnerMarginContainer"]
+layout_mode = 2
+
+[node name="MaterialIcon" type="TextureRect" parent="MaterialPanelContainer/InnerMarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+texture = ExtResource("3_dvc7y")
+
+[node name="MaterialName" type="Label" parent="MaterialPanelContainer/InnerMarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 14
+text = "MATERIAL:"
+
+[node name="MaterialQuantity" type="Label" parent="MaterialPanelContainer/InnerMarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 14
+text = "20"

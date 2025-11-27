@@ -26,3 +26,20 @@ func _to_string() -> String:
 		stack_size,
 		base_value
 	]
+
+func _get_item_type() -> String:
+	match item_type:
+		ItemType.MATERIAL:
+			return "Material"
+		ItemType.CONSUMABLE:
+			return "Consumable"
+		ItemType.EQUIPMENT:
+			return "Equipment"
+		ItemType.QUEST_ITEM:
+			return "Quest Item"
+		_:
+			Log.warn("ItemDefinitionData: item_type %s not recognized" % str(item_type))
+			return ""
+
+func _get_item_effects() -> Array[String]:
+	return []
