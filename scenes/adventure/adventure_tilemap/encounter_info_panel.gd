@@ -70,8 +70,5 @@ func _generate_choice_buttons(choices: Array[EncounterChoice]) -> void:
 			fill_color = Color.DARK_RED
 		var button = encounter_choice_button_scene.instantiate()
 		button.setup(choice.label, null, fill_color)
-		button.button_pressed.connect(_on_choice_button_pressed.bind(choice))
+		button.button_pressed.connect(choice_selected.emit.bind(choice))
 		choices_container.add_child(button)
-		
-func _on_choice_button_pressed(choice: EncounterChoice) -> void:
-	choice_selected.emit(choice)
