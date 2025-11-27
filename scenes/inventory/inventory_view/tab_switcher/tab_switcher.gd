@@ -12,7 +12,6 @@ var current_tab_index: int = 0
 
 func _ready() -> void:
 	for i in range(tab_buttons.size()):
-		print(tab_buttons[i])
 		tab_buttons[i].tab_opened.connect(_on_tab_button_opened.bind(tab_buttons[i]))
 		if i == 0:
 			tab_buttons[0].open()
