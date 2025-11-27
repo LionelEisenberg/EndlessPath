@@ -28,7 +28,7 @@ var current_encounter: AdventureEncounter = null
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var encounter_choice_button_scene : PackedScene = preload("res://scenes/adventure/adventure_tilemap/encounter_choice_button.tscn")
+@onready var encounter_choice_button_scene: PackedScene = preload("res://scenes/adventure/adventure_tilemap/encounter_choice_button.tscn")
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -70,8 +70,8 @@ func _generate_choice_buttons(choices: Array[EncounterChoice]) -> void:
 			fill_color = Color.DARK_RED
 		var button = encounter_choice_button_scene.instantiate()
 		button.setup(choice.label, null, fill_color)
+		button.button_pressed.connect(_on_choice_button_pressed.bind(choice))
 		choices_container.add_child(button)
 		
-
 func _on_choice_button_pressed(choice: EncounterChoice) -> void:
 	choice_selected.emit(choice)

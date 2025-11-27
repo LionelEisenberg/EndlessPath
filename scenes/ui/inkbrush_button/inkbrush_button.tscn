@@ -9,6 +9,7 @@
 resource_local_to_scene = true
 shader = ExtResource("1_ot0m7")
 shader_parameter/fill_amount = 0.3
+shader_parameter/fill_color = Vector4(1, 1, 1, 1)
 
 [node name="InkbrushButton" type="TextureButton"]
 material = SubResource("ShaderMaterial_lyyb7")
