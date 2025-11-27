@@ -10,8 +10,8 @@ signal close_inventory
 # LIFECYCLE
 #-----------------------------------------------------------------------------
 
-@onready var tab_switcher = $BookBackground/TabSwitcher
-@onready var tabs = [ $BookBackground/EquipmentTab, $BookBackground/MaterialsTab ]
+@onready var tab_switcher: Control = %TabSwitcher
+@onready var tabs: Array[Control] = [%EquipmentTab, %MaterialsTab]
 
 func _ready() -> void:
 	tab_switcher.tab_changed.connect(_on_tab_changed)

@@ -16,6 +16,7 @@ var active: bool = false
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
+## Initializes the AI with a combatant and a target.
 func setup(p_combatant: CombatantNode, p_target: CombatantNode) -> void:
 	combatant = p_combatant
 	target = p_target
@@ -36,7 +37,6 @@ func _try_cast_abilities() -> void:
 	# Iterate through all abilities and try to use them
 	# In a real AI, we would have priorities, logic, etc.
 	# Here we just cast the first available ability we find (or all of them if possible)
-	
 	var ability_count = combatant.ability_manager.get_ability_count()
 	
 	for i in range(ability_count):

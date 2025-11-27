@@ -43,9 +43,11 @@ func _process(_delta: float) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
+## Checks if the ability is ready to be used (not on cooldown).
 func is_ready() -> bool:
 	return cooldown_timer.is_stopped()
 
+## Uses the ability on the given target.
 func use(target: CombatantNode) -> void:
 	if not is_ready():
 		return

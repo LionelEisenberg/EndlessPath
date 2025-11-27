@@ -18,3 +18,4 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+unique_name_in_owner = true

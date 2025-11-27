@@ -1,8 +1,8 @@
 extends Control
 
-@onready var materials_vbox : VBoxContainer = %MaterialsVbox
+@onready var materials_vbox: VBoxContainer = %MaterialsVbox
 
-var material_container_scene : PackedScene = preload("res://scenes/inventory/inventory_view/materials_tab/material_container.tscn")
+var material_container_scene: PackedScene = preload("res://scenes/inventory/inventory_view/materials_tab/material_container.tscn")
 
 func _ready() -> void:
 	if InventoryManager:
@@ -12,7 +12,8 @@ func _ready() -> void:
 		## Initialize tabs
 		populate_materials_tab(InventoryManager.get_material_items())
 
-func populate_materials_tab(materials : Dictionary[MaterialDefinitionData, int]) -> void:	
+## Populates the tab with the given materials.
+func populate_materials_tab(materials: Dictionary[MaterialDefinitionData, int]) -> void:
 	# Clear the grid container
 	for child in materials_vbox.get_children():
 		child.queue_free()

@@ -20,6 +20,7 @@ var abilities: Array[CombatAbilityInstance] = []
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
+## Sets up the manager with data and resources.
 func setup(data: CombatantData, p_resource_manager: CombatResourceManager) -> void:
 	combatant_data = data
 	resource_manager = p_resource_manager
@@ -46,14 +47,17 @@ func _create_ability_instance(ability_data: AbilityData) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
+## Returns the number of abilities.
 func get_ability_count() -> int:
 	return abilities.size()
 
+## Returns the ability instance at the given index.
 func get_ability(index: int) -> CombatAbilityInstance:
 	if index >= 0 and index < abilities.size():
 		return abilities[index]
 	return null
 
+## Uses the ability at the given index on the target.
 func use_ability(index: int, target: CombatantNode) -> bool:
 	var instance = get_ability(index)
 
@@ -66,6 +70,7 @@ func use_ability(index: int, target: CombatantNode) -> bool:
 	
 	return true
 
+## Uses the specific ability instance on the target.
 func use_ability_instance(instance: CombatAbilityInstance, target: CombatantNode) -> bool:
 	if not instance in abilities:
 		Log.warn("CombatAbilityManager: %s: Ability instance %s not found" % [combatant_data.character_name, instance.ability_data.ability_name])

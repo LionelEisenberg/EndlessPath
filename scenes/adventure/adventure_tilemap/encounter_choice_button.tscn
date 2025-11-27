@@ -28,5 +28,6 @@ size_flags_vertical = 4
 script = ExtResource("2_script")
 
 [node name="InkbrushButton" parent="." instance=ExtResource("1_6ko83")]
+unique_name_in_owner = true
 material = SubResource("ShaderMaterial_k86ii")
 layout_mode = 2

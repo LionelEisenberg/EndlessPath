@@ -3,26 +3,26 @@ extends TextureRect
 
 signal clicked(slot: InventorySlot, event: InputEvent)
 
-@onready var item_instance_scene : PackedScene = preload("res://scenes/inventory/item_instance/item_instance.tscn")
+@onready var item_instance_scene: PackedScene = preload("res://scenes/inventory/item_instance/item_instance.tscn")
 
-var item_instance : ItemInstance = null
+var item_instance: ItemInstance = null
 
-const empty_slot_textures : Array[Texture2D] = [
+const empty_slot_textures: Array[Texture2D] = [
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot01a.png"),
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot01b.png"),
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot01c.png"),
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot01d.png")
 ]
 
-const full_slot_textures : Array[Texture2D] = [
+const full_slot_textures: Array[Texture2D] = [
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02a.png"),
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02b.png"),
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02c.png"),
 	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02d.png")
 ]
 
-var empty_texture = empty_slot_textures[randi() % empty_slot_textures.size()]
-var full_texture = full_slot_textures[randi() % full_slot_textures.size()]
+var empty_texture: Texture2D = empty_slot_textures[randi() % empty_slot_textures.size()]
+var full_texture: Texture2D = full_slot_textures[randi() % full_slot_textures.size()]
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -32,6 +32,7 @@ func _ready() -> void:
 func _on_gui_input(event: InputEvent) -> void:
 	clicked.emit(self, event)
 
+## Sets up the slot with the given item data.
 func setup(data: ItemInstanceData) -> void:
 	if item_instance != null:
 		if data == null:
@@ -50,6 +51,7 @@ func setup(data: ItemInstanceData) -> void:
 	
 	_update_slot()
 
+## Removes and returns the item instance from the slot.
 func grab_item() -> Control:
 	if item_instance == null:
 		return null
@@ -60,6 +62,7 @@ func grab_item() -> Control:
 	_update_slot()
 	return grabbed_instance
 
+## Places an item instance into the slot.
 func equip_item(instance: Control) -> void:
 	# If we already have an item, this should probably be handled by the caller (swap), 
 	# but for safety let's free it if it exists and wasn't grabbed.

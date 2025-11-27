@@ -20,10 +20,10 @@ const NUM_INVENTORY_SLOTS = 50
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-@onready var v_scroll_bar : VScrollBar = %VScrollBar
-@onready var grabber : TextureRect = %Grabber
-@onready var scroll_container : ScrollContainer = %ScrollContainer
-@onready var grid_container : GridContainer = %GridContainer
+@onready var v_scroll_bar: VScrollBar = %VScrollBar
+@onready var grabber: TextureRect = %Grabber
+@onready var scroll_container: ScrollContainer = %ScrollContainer
+@onready var grid_container: GridContainer = %GridContainer
 
 signal slot_clicked(slot: InventorySlot, event: InputEvent)
 
@@ -37,7 +37,7 @@ signal slot_clicked(slot: InventorySlot, event: InputEvent)
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-var inventory_slot_scene : PackedScene = preload("res://scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.tscn")
+var inventory_slot_scene: PackedScene = preload("res://scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.tscn")
 
 @export var default_item_instance_data = null
 #-----------------------------------------------------------------------------
@@ -58,6 +58,7 @@ func _ready() -> void:
 func _on_slot_clicked(slot: InventorySlot, event: InputEvent) -> void:
 	slot_clicked.emit(slot, event)
 
+## Returns all inventory slots in the grid.
 func get_slots() -> Array[InventorySlot]:
 	var slots: Array[InventorySlot] = []
 	for child in grid_container.get_children():

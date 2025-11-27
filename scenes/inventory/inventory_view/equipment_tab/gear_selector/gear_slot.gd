@@ -11,7 +11,7 @@ func _ready() -> void:
 	full_texture = GEAR_SLOT_TEXTURE
 	super._ready()
 
-# We might need a way to check if an item instance (Control) is valid for this slot
+## Checks if the item data is valid for this slot type.
 func is_valid_item(item_data: ItemInstanceData) -> bool:
 	if not item_data.item_definition is EquipmentDefinitionData:
 		Log.warn("GearSlot: Item is not an equipment definition")

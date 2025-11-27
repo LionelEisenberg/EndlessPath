@@ -6,6 +6,7 @@ extends TextureRect
 @onready var description_label: RichTextLabel = %DescriptionLabel
 @onready var effects_label: RichTextLabel = %EffectsLabel
 
+## Populates the description box with item data.
 func setup(item_instance_data: ItemInstanceData) -> void:
 	item_icon.texture = item_instance_data.item_definition.icon
 	item_name.text = item_instance_data.item_definition.item_name
@@ -16,6 +17,7 @@ func setup(item_instance_data: ItemInstanceData) -> void:
 	description_label.text = item_instance_data.item_definition.description
 	effects_label.text = "\n".join(item_instance_data.item_definition._get_item_effects())
 
+## Resets the description box to empty state.
 func reset() -> void:
 	item_icon.texture = null
 	item_name.text = ""

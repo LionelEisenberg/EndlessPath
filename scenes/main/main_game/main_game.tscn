@@ -140,6 +140,7 @@ layout_mode = 1
 
 [node name="CyclingView" parent="MainView" instance=ExtResource("3_7ijcf")]
 unique_name_in_owner = true
+visible = false
 z_index = 2
 layout_mode = 1
 

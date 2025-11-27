@@ -34,6 +34,7 @@ var current_encounter: AdventureEncounter = null
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
+## Sets up the panel with the given encounter.
 func setup(encounter: AdventureEncounter, is_completed: bool) -> void:
 	current_encounter = encounter
 	
@@ -46,6 +47,7 @@ func setup(encounter: AdventureEncounter, is_completed: bool) -> void:
 		_generate_choice_buttons(encounter.choices)
 		choices_container.visible = true
 
+## Updates the UI to show the completed state.
 func show_completed_state() -> void:
 	if current_encounter and current_encounter.text_description_completed != "":
 		description_label.text = current_encounter.text_description_completed

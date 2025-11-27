@@ -19,7 +19,7 @@ extends Node2D
 @onready var effect_manager: CombatEffectManager = %CombatEffectManager
 
 # Visuals
-@onready var sprite: Sprite2D = $Sprite2D
+@onready var sprite: Sprite2D = %Sprite2D
 
 # Data
 var combatant_data: CombatantData
@@ -32,11 +32,12 @@ var is_player: bool = false
 func _ready() -> void:
 	pass
 
+## Sets up the combatant with data and optional external resources.
 func setup(
-	data: CombatantData, 
-	external_resource_manager: CombatResourceManager = null, 
+	data: CombatantData,
+	external_resource_manager: CombatResourceManager = null,
 	p_is_player: bool = false
-) -> void:	
+) -> void:
 	is_player = p_is_player
 	combatant_data = data
 	
@@ -44,7 +45,7 @@ func setup(
 	if external_resource_manager:
 		resource_manager = external_resource_manager
 	else:
-		resource_manager = $CombatResourceManager
+		resource_manager = %CombatResourceManager
 		resource_manager.character_attributes_data = combatant_data.attributes
 		resource_manager.initialize_current_values()
 	

@@ -9,7 +9,7 @@ extends Node2D
 # SIGNALS
 #-----------------------------------------------------------------------------
 
-signal trigger_combat_end(is_successful : bool)
+signal trigger_combat_end(is_successful: bool)
 
 #-----------------------------------------------------------------------------
 # SCENES
@@ -24,8 +24,8 @@ var combatant_scene: PackedScene = preload("res://scenes/combat/combatant/combat
 var player_resource_manager: CombatResourceManager = null
 var current_combat_choice: CombatChoice = null
 
-var player_combatant : CombatantNode
-var enemy_combatant : CombatantNode
+var player_combatant: CombatantNode
+var enemy_combatant: CombatantNode
 
 #-----------------------------------------------------------------------------
 # TODO: DELETE DEBUG
@@ -39,11 +39,12 @@ var enemy_combatant : CombatantNode
 #-----------------------------------------------------------------------------
 
 @onready var ability_panel: Panel = %AbilitiesPanel
-@onready var enemy_info_panel : CombatantInfoPanel = %EnemyInfoPanel
+@onready var enemy_info_panel: CombatantInfoPanel = %EnemyInfoPanel
 
 func _ready() -> void:
 	Log.info("AdventureCombat: Initialized")
 
+## Initializes the combat with the chosen encounter and player resources.
 func initialize_with_player_resource_manager(choice: CombatChoice, prm: CombatResourceManager) -> void:
 	self.current_combat_choice = choice
 	self.player_resource_manager = prm
@@ -56,6 +57,7 @@ func initialize_with_player_resource_manager(choice: CombatChoice, prm: CombatRe
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
+## Starts the combat encounter.
 func start() -> void:
 	Log.info("AdventureCombat: Starting combat")
 	
@@ -69,6 +71,7 @@ func start() -> void:
 
 	_create_combatants()
 
+## Stops the combat and cleans up.
 func stop() -> void:
 	# Reset EnemyInfoPanel & AbilitiesPanel
 	ability_panel.reset()
@@ -78,6 +81,10 @@ func stop() -> void:
 		player_combatant.queue_free()
 	if enemy_combatant:
 		enemy_combatant.queue_free()
+
+#-----------------------------------------------------------------------------
+# PRIVATE METHODS
+#-----------------------------------------------------------------------------
 
 func _create_combatants() -> void:
 	_create_player_combatant()
@@ -107,7 +114,7 @@ func _create_enemy_combatant() -> void:
 		return
 
 	# TODO: Handle multiple enemies or random selection from pool
-	var enemy_data : CombatantData = current_combat_choice.enemy_pool[0]
+	var enemy_data: CombatantData = current_combat_choice.enemy_pool[0]
 	
 	enemy_combatant = combatant_scene.instantiate()
 	enemy_combatant.name = "EnemyCombatant"
@@ -149,7 +156,7 @@ func _on_enemy_health_changed(health: float) -> void:
 # UI HANDLERS
 #-----------------------------------------------------------------------------
 
-var ability_button_scene : PackedScene = preload("res://scenes/ui/combat/ability_button/ability_button.tscn")
+var ability_button_scene: PackedScene = preload("res://scenes/ui/combat/ability_button/ability_button.tscn")
 
 func _on_ability_registered(instance: CombatAbilityInstance) -> void:
 	if not ability_panel:

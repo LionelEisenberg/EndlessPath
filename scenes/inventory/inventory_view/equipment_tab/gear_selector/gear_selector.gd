@@ -30,5 +30,6 @@ func _update_slots(inventory: InventoryData) -> void:
 		var item_data = inventory.equipped_gear.get(slot.slot_type, null)
 		slot.setup(item_data)
 
+## Returns all gear slots managed by this selector.
 func get_slots() -> Array[GearSlot]:
 	return slots

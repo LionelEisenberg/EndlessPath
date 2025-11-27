@@ -15,6 +15,7 @@ var resource_manager: CombatResourceManager
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
+## Sets up the manager with data and resources.
 func setup(data: CombatantData, p_resource_manager: CombatResourceManager) -> void:
 	combatant_data = data
 	resource_manager = p_resource_manager
@@ -23,6 +24,7 @@ func setup(data: CombatantData, p_resource_manager: CombatResourceManager) -> vo
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
+## Processes an incoming effect from a source.
 func process_effect(effect: CombatEffectData, source_attributes: CharacterAttributesData) -> void:
 	if not resource_manager:
 		Log.error("CombatEffectManager: No resource manager set!")
