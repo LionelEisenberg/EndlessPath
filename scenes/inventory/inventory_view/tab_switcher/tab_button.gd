@@ -1,6 +1,6 @@
 extends Control
 
-@export var icon_texture : Texture2D
+@export var icon_texture: Texture2D
 @onready var icon = %Icon
 @onready var button = %Button
 

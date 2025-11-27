@@ -28,6 +28,7 @@ description: Comprehensive planning workflow for new features or complex changes
      4. **New Data Structures**: Low-code data definitions.
      5. **Per-file Changes**: Specific changes required per file.
      6. **Potential Next Steps / Improvements**: Suggest how to improve things or what to work on next.
+   - Never create a verification or walkthrough section, it is not needed
 
 6. **Constraint: No Implementation**
    - **DO NOT UNDER ANY CIRCUMSTANCE ACTUALLY IMPLEMENT THE IMPLEMENTATION PLAN** at this stage.
@@ -36,6 +37,7 @@ description: Comprehensive planning workflow for new features or complex changes
    - **Update Planning Doc**: Always update the planning document as you implement changes.
    - When you do implement (after plan approval), implement file by file starting with the lowest level structure.
    - **Approve review** before moving to the next file.
+   - Never create a verification or walkthrough section, it is not needed
    - **Post-Implementation Review**: Once a plan is considered implemented:
      - Update the doc to say it is implemented.
      - Run a code check to see if the actual implementation differed from the design.
