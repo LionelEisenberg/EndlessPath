@@ -8,8 +8,8 @@ extends MarginContainer
 # UI visual constants
 const INITIAL_CORE_SCALE = Vector2(0.5, 0.5)
 const MAX_CORE_DENSITY_LEVEL = 100.0
-const COLOR_CYCLING = Color(0.0, 1.0, 0.0)  # Green when actively cycling
-const COLOR_IDLE = Color(0.7, 0.7, 0.7)  # Gray when idle
+const COLOR_CYCLING = Color(0.0, 1.0, 0.0) # Green when actively cycling
+const COLOR_IDLE = Color(0.7, 0.7, 0.7) # Gray when idle
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -40,8 +40,8 @@ signal open_technique_selector
 #-----------------------------------------------------------------------------
 var current_technique_data: CyclingTechniqueData = null
 var is_cycling: bool = false
-var last_madra_per_second: float = 0.0  # Madra per second from last completed cycle
-var last_madra_per_cycle: float = 0.0  # Madra per cycle from last completed cycle
+var last_madra_per_second: float = 0.0 # Madra per second from last completed cycle
+var last_madra_per_cycle: float = 0.0 # Madra per cycle from last completed cycle
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -60,7 +60,7 @@ func _ready() -> void:
 	update_all_displays()
 
 ## Initialize UI elements with proper styling.
-func setup_ui():
+func setup_ui() -> void:
 	# Setup circular progress bar
 	madra_circle_progress.radial_fill_degrees = 360
 	madra_circle_progress.fill_mode = TextureProgressBar.FILL_CLOCKWISE
@@ -72,7 +72,7 @@ func setup_ui():
 	open_technique_selector_button.pressed.connect(_on_open_technique_selector)
 
 ## Connect to singleton signals for live updates.
-func connect_signals():
+func connect_signals() -> void:
 	if ResourceManager:
 		ResourceManager.madra_changed.connect(_on_madra_changed)
 	
@@ -85,17 +85,17 @@ func connect_signals():
 #-----------------------------------------------------------------------------
 
 ## Set the current technique data and update display.
-func set_technique_data(technique: CyclingTechniqueData):
+func set_technique_data(technique: CyclingTechniqueData) -> void:
 	current_technique_data = technique
 	update_technique_info()
 
 ## Handle cycling started signal.
-func on_cycling_started():
+func on_cycling_started() -> void:
 	is_cycling = true
 	update_madra_rate()
 
 ## Handle cycle completed signal and calculate madra per second.
-func on_cycle_completed(madra_earned: float, _mouse_accuracy: float):
+func on_cycle_completed(madra_earned: float, _mouse_accuracy: float) -> void:
 	is_cycling = false
 	
 	# Store madra per cycle from last cycle
@@ -114,15 +114,14 @@ func on_cycle_completed(madra_earned: float, _mouse_accuracy: float):
 #-----------------------------------------------------------------------------
 
 ## Update all display elements.
-func update_all_displays():
+func update_all_displays() -> void:
 	update_madra_display()
 	update_core_density()
 	update_stage()
 	update_technique_info()
 
 ## Update madra section with current values.
-func update_madra_display():
-
+func update_madra_display() -> void:
 	var current_madra = ResourceManager.get_madra()
 	var level = CultivationManager.get_core_density_level()
 	var stage_res = CultivationManager._get_current_stage_resource()
@@ -137,7 +136,7 @@ func update_madra_display():
 	update_madra_rate()
 
 ## Update madra rate display using last cycle's madra per second and per cycle.
-func update_madra_rate():
+func update_madra_rate() -> void:
 	var display_text = "+%.1f/s\n%.1f/cycle" % [last_madra_per_second, last_madra_per_cycle]
 	
 	if is_cycling:
@@ -150,7 +149,7 @@ func update_madra_rate():
 		madra_generation_rate_label.modulate = COLOR_IDLE
 
 ## Update core density section with current values.
-func update_core_density():
+func update_core_density() -> void:
 	if not CultivationManager:
 		return
 	
@@ -171,7 +170,7 @@ func update_core_density():
 	core_density_sprite.scale = Vector2(normalized, normalized)
 
 ## Update cultivation stage display.
-func update_stage():
+func update_stage() -> void:
 	if not CultivationManager:
 		return
 	var stage_res = CultivationManager._get_current_stage_resource()
@@ -188,7 +187,7 @@ func update_stage():
 		next_cultivation_stage_label.text = next_stage_label_text
 
 ## Update technique information section.
-func update_technique_info():
+func update_technique_info() -> void:
 	if not current_technique_data:
 		technique_name_label.text = "Technique: None"
 		technique_stats_label.text = "⚡ Madra: +0.0/s | ⭐ XP: 0/click"
@@ -220,17 +219,17 @@ func get_next_stage_name() -> String:
 #-----------------------------------------------------------------------------
 
 ## Handle madra changes from ResourceManager.
-func _on_madra_changed(_new_amount: float):
+func _on_madra_changed(_new_amount: float) -> void:
 	update_madra_display()
 
 ## Handle core density updates from CultivationManager.
-func _on_core_density_updated(_xp: float, _level: float):
+func _on_core_density_updated(_xp: float, _level: float) -> void:
 	update_core_density()
 
 ## Handle cultivation stage changes.
-func _on_stage_changed(_new_stage):
+func _on_stage_changed(_new_stage) -> void:
 	update_stage()
 
 ## Handle change technique button press.
-func _on_open_technique_selector():
+func _on_open_technique_selector() -> void:
 	open_technique_selector.emit()

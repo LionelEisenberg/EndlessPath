@@ -1,11 +1,11 @@
 extends PanelContainer
 
-@onready var current_zone_data : ZoneData = ZoneManager.get_current_zone()
-@onready var actions_content_vbox : VBoxContainer = %ActionsContent
-@onready var zone_title : RichTextLabel = %ZoneTitle
-@onready var zone_description : RichTextLabel = %ZoneDescription
+@onready var current_zone_data: ZoneData = ZoneManager.get_current_zone()
+@onready var actions_content_vbox: VBoxContainer = %ActionsContent
+@onready var zone_title: RichTextLabel = %ZoneTitle
+@onready var zone_description: RichTextLabel = %ZoneDescription
 
-@onready var zone_action_type_section_scene : PackedScene = preload("res://scenes/zones/zone_action_type_section/zone_action_type_section.tscn")
+@onready var zone_action_type_section_scene: PackedScene = preload("res://scenes/zones/zone_action_type_section/zone_action_type_section.tscn")
 
 func _ready() -> void:
 	if ZoneManager:
@@ -24,6 +24,7 @@ func _ready() -> void:
 		setup_zone_actions()
 		setup_zone_info()
 	
+## Sets up the zone information display.
 func setup_zone_info() -> void:
 	if current_zone_data:
 		zone_title.text = "Current Zone: " + current_zone_data.zone_name
@@ -41,12 +42,13 @@ func _on_action_completed(_args = null) -> void:
 func _on_condition_unlocked(_args = null) -> void:
 	setup_zone_actions()
 
+## Sets up the zone actions list.
 func setup_zone_actions() -> void:
 	if actions_content_vbox:
 		for child in actions_content_vbox.get_children():
 			child.queue_free()
 	
-	var available_actions : Array[ZoneActionData] = ZoneManager.get_available_actions()
+	var available_actions: Array[ZoneActionData] = ZoneManager.get_available_actions()
 	
 	for action_type in ZoneActionData.ActionType.values():
 		for action_data in available_actions:

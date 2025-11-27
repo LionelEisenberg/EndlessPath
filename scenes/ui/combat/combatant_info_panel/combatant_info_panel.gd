@@ -10,11 +10,13 @@ var resource_manager: CombatResourceManager
 func _ready() -> void:
 	pass # Replace with function body.
 
+## Resets the panel.
 func reset() -> void:
 	Log.info("CombatantInfoPanel: Resetting %s" % name)
 	
 	resource_manager = null
 
+## Sets up the panel with the given resource manager.
 func setup(p_resource_manager: CombatResourceManager) -> void:
 	resource_manager = p_resource_manager
 	
@@ -29,6 +31,7 @@ func setup(p_resource_manager: CombatResourceManager) -> void:
 	
 	update_labels()
 
+## Updates the labels with current resource values.
 func update_labels() -> void:
 	if resource_manager:
 		health_bar.update_values(resource_manager.current_health, resource_manager.max_health)

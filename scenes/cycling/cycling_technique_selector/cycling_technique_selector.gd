@@ -2,12 +2,12 @@ extends PanelContainer
 
 signal technique_change_request(data: CyclingTechniqueData)
 
-@onready var close_selector_button : TextureButton = %CloseSelectorButton
+@onready var close_selector_button: TextureButton = %CloseSelectorButton
 @onready var slots_container: GridContainer = %CyclingTechniqueGridContainer
-@onready var cycling_technique_slot_scene : PackedScene = preload("res://scenes/cycling/cycling_technique_selector/cycling_technique_slot.tscn")
+@onready var cycling_technique_slot_scene: PackedScene = preload("res://scenes/cycling/cycling_technique_selector/cycling_technique_slot.tscn")
 @onready var info_panel: PanelContainer = %InfoPanel
 
-@export var cycling_technique_list : CyclingTechniqueList = null
+@export var cycling_technique_list: CyclingTechniqueList = null
 
 var selected_technique_data: CyclingTechniqueData = null
 
@@ -15,9 +15,11 @@ func _ready() -> void:
 	close_selector_button.pressed.connect(close_selector)
 	setup()
 
+## Closes the selector.
 func close_selector() -> void:
 	self.visible = false
 
+## Opens the selector with the given technique data selected.
 func open_selector(data: CyclingTechniqueData) -> void:
 	self.visible = true
 	selected_technique_data = data
@@ -29,6 +31,7 @@ func open_selector(data: CyclingTechniqueData) -> void:
 		else:
 			slot.set_selected(false)
 
+## Sets up the selector with the technique list.
 func setup() -> void:
 	if not cycling_technique_list:
 		return

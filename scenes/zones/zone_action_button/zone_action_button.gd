@@ -10,7 +10,7 @@ extends MarginContainer
 
 @onready var zone_action_button: TextureButton = %ZoneActionButton
 
-func _ready() -> void:	
+func _ready() -> void:
 	if ActionManager:
 		ActionManager.current_action_changed.connect(_on_current_action_changed)
 		is_current_action = ActionManager.get_current_action() == action_data
@@ -20,6 +20,7 @@ func _ready() -> void:
 	
 	zone_action_button.pressed.connect(_on_button_pressed)
 
+## Sets up the action button with the given data.
 func setup_action(data: ZoneActionData) -> void:
 	action_data = data
 	

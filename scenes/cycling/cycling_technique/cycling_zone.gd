@@ -9,8 +9,8 @@ signal zone_clicked(zone: CyclingZone, zone_data: CyclingZoneData)
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
-@onready var collision_shape: CollisionShape2D = $CollisionShape2D
-@onready var zone_sprite: Sprite2D = $Sprite2D
+@onready var collision_shape: CollisionShape2D = %CollisionShape2D
+@onready var zone_sprite: Sprite2D = %Sprite2D
 
 #-----------------------------------------------------------------------------
 # ZONE DATA
@@ -61,20 +61,20 @@ func set_active(active: bool) -> void:
 	if is_used:
 		return
 	if active:
-		zone_sprite.modulate = Color(1.5, 1.5, 1.5, 1.0)  # Brighter
+		zone_sprite.modulate = Color(1.5, 1.5, 1.5, 1.0) # Brighter
 	else:
 		zone_sprite.modulate = Color.WHITE
 
 ## Mark this zone as used for the current cycle.
 func mark_as_used() -> void:
 	is_used = true
-	input_pickable = false  # Disable further clicks
-	zone_sprite.modulate = Color(0.5, 0.5, 0.5, 0.7)  # Dimmed
+	input_pickable = false # Disable further clicks
+	zone_sprite.modulate = Color(0.5, 0.5, 0.5, 0.7) # Dimmed
 
 ## Reset this zone for a new cycle.
 func reset_for_new_cycle() -> void:
 	is_used = false
-	input_pickable = true  # Re-enable input
+	input_pickable = true # Re-enable input
 	monitoring = true
 	zone_sprite.modulate = Color.WHITE
 	visible = false

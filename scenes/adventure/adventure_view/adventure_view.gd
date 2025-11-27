@@ -16,7 +16,7 @@ extends Control
 @onready var combat_view: Control = %CombatView
 
 @onready var player_info_panel: CombatantInfoPanel = %PlayerInfoPanel
-@onready var player_resource_manager : CombatResourceManager = %PlayerResourceManager
+@onready var player_resource_manager: CombatResourceManager = %PlayerResourceManager
 
 @onready var adventure_timer: Timer = Timer.new()
 @onready var timer_label: Label = Label.new()
@@ -27,7 +27,7 @@ extends Control
 var current_encounter: AdventureEncounter = null
 var current_action_data: AdventureActionData = null
 
-var is_in_combat: bool = false	# Whether the player is currently in combat
+var is_in_combat: bool = false # Whether the player is currently in combat
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -74,7 +74,7 @@ func _process(delta: float) -> void:
 		if tilemap_view.visible and player_resource_manager:
 			var regen_amount = 1.0 * current_action_data.stamina_regen_modifier * delta
 			player_resource_manager.current_stamina = min(
-				player_resource_manager.current_stamina + regen_amount, 
+				player_resource_manager.current_stamina + regen_amount,
 				player_resource_manager.max_stamina
 			)
 
@@ -146,7 +146,7 @@ func _on_stop_combat(successful: bool = false) -> void:
 	
 	# Notify the tilemap that combat has ended
 	combat.stop()
-	adventure_tilemap._stop_combat(successful)
+	adventure_tilemap.handle_combat_result(successful)
 	
 	is_in_combat = false
 	

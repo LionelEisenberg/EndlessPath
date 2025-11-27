@@ -8,6 +8,7 @@ extends PanelContainer
 @onready var change_technique_button: Button = %ChangeTechniqueButton
 
 
+## Populates the panel with technique data.
 func setup(data: CyclingTechniqueData) -> void:
 	technique_name_label.text = data.technique_name
 	madra_rate_label.text = "Madra/cycle: %.1f" % data.base_madra_per_cycle

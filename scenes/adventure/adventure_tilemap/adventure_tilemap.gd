@@ -60,13 +60,13 @@ var adventure_map_generator: AdventureMapGenerator
 var player_resource_manager: CombatResourceManager = null
 
 ## Main data structure for the adventure tilemap, key is the cube coordinate, value is the Adventure encounter
-var _encounter_tile_dictionary : Dictionary[Vector3i, AdventureEncounter] = {}
-var _visited_tile_dictionary : Dictionary[Vector3i, bool] = {}
-var _highlight_tile_dictionary : Dictionary[Vector3i, HighlightType] = {}
+var _encounter_tile_dictionary: Dictionary[Vector3i, AdventureEncounter] = {}
+var _visited_tile_dictionary: Dictionary[Vector3i, bool] = {}
+var _highlight_tile_dictionary: Dictionary[Vector3i, HighlightType] = {}
 
 ## Visitation queue - tiles the character will visit in order
-var _visitation_queue : Array[Vector3i] = []
-var _current_tile : Vector3i = Vector3i.ZERO
+var _visitation_queue: Array[Vector3i] = []
+var _current_tile: Vector3i = Vector3i.ZERO
 
 var _is_movement_locked: bool = false
 var _current_combat_choice: CombatChoice = null # Store for post-combat processing
@@ -100,6 +100,7 @@ func _ready() -> void:
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
+## Starts the adventure with the given action data and player resources.
 func start_adventure(action_data: AdventureActionData, prm: CombatResourceManager) -> void:
 	Log.info("AdventureTilemap: Starting adventure: %s" % action_data.action_name)
 
@@ -116,6 +117,7 @@ func start_adventure(action_data: AdventureActionData, prm: CombatResourceManage
 	_current_tile = Vector3i.ZERO
 	_visit(_current_tile)
 
+## Stops the current adventure and cleans up the map.
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")
 	
@@ -135,7 +137,8 @@ func stop_adventure() -> void:
 	# Stop character movement
 	character_body.move_to_position(Vector2(0, 0), INSTANT_MOVE_SPEED)
 
-func _stop_combat(successful: bool) -> void:
+## Handles the result of a combat encounter.
+func handle_combat_result(successful: bool) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s" % successful)
 	
 	if successful:
@@ -162,7 +165,7 @@ func _stop_combat(successful: bool) -> void:
 func _visit(coord: Vector3i) -> void:
 	# Always show the panel if there's an encounter
 	if _encounter_tile_dictionary.has(coord):
-		var tile_encounter : AdventureEncounter = _encounter_tile_dictionary[coord]
+		var tile_encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
 		
 		# Check for NoOpEncounter (or empty choices) and auto-complete
 		if tile_encounter is NoOpEncounter or tile_encounter.choices.is_empty():
@@ -251,7 +254,7 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	
 	# Store as visitation queue (skip first tile as we're already there)
 	if path_cube_coords.size() > 1:
-		_visitation_queue = path_cube_coords.slice(1)  # Skip current tile
+		_visitation_queue = path_cube_coords.slice(1) # Skip current tile
 		Log.info("AdventureTilemap: Created visitation queue with %d tiles" % _visitation_queue.size())
 		_process_next_visitation()
 	else:

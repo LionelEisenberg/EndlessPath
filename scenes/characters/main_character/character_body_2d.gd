@@ -1,15 +1,15 @@
 extends CharacterBody2D
 
-signal movement_completed  # Emitted when the character reaches their target
+signal movement_completed # Emitted when the character reaches their target
 
-@export var is_debug_mode : bool = false
+@export var is_debug_mode: bool = false
 
 # Movement constants
 const DEFAULT_MOVE_SPEED = 200.0
-const MOVEMENT_THRESHOLD = 5.0  # Distance at which we consider arrival
+const MOVEMENT_THRESHOLD = 5.0 # Distance at which we consider arrival
 
 # Animation angle boundaries (degrees) - for 8-directional movement
-const ANGLE_SLICE = 45.0  # 360 / 8 directions
+const ANGLE_SLICE = 45.0 # 360 / 8 directions
 const ANGLE_EAST_MIN = 337.5
 const ANGLE_SOUTHEAST_MIN = 22.5
 const ANGLE_SOUTH_MIN = 67.5
@@ -25,7 +25,7 @@ var target_position: Vector2 = Vector2.ZERO
 var move_speed: float = 0.0
 var is_moving: bool = false
 
-@onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var animation_player: AnimationPlayer = %AnimationPlayer
 
 func _physics_process(_delta: float) -> void:
 	if is_moving:
@@ -40,7 +40,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Moves the character to the given position at the specified speed.
 ## Automatically plays the appropriate walk animation based on direction.
-func move_to_position(new_position: Vector2, speed : float = DEFAULT_MOVE_SPEED) -> void:
+func move_to_position(new_position: Vector2, speed: float = DEFAULT_MOVE_SPEED) -> void:
 	target_position = new_position
 	move_speed = speed
 	is_moving = true

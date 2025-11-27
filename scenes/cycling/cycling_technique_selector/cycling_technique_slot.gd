@@ -17,12 +17,19 @@ func _ready() -> void:
 	self.mouse_entered.connect(_on_mouse_entered)
 	self.mouse_exited.connect(_on_mouse_exited)
 
-func setup(data: CyclingTechniqueData):
+## Sets up the slot with the given technique data.
+func setup(data: CyclingTechniqueData) -> void:
 	technique_data = data
 	_update_info()
-	set_selected(false)
+	_set_selected(false)
 
-func _update_info():
+## Sets the selected state of the slot.
+func _set_selected(selected: bool) -> void:
+	is_selected = selected
+	if panel_container:
+		panel_container.modulate = COLOR_SELECTED if selected else COLOR_NORMAL
+
+func _update_info() -> void:
 	if not info_label:
 		return
 	if technique_data == null:
@@ -33,19 +40,14 @@ func _update_info():
 	var duration := technique_data.cycle_duration
 	info_label.text = "[b]%s[/b]\nMadra/cycle: %.1f\nDuration: %.0f s" % [technique_name, madra_per_cycle, duration]
 
-func _gui_input(event):
+func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		slot_selected.emit(technique_data)
 
-func set_selected(selected: bool):
-	is_selected = selected
-	if panel_container:
-		panel_container.modulate = COLOR_SELECTED if selected else COLOR_NORMAL
-
-func _on_mouse_entered():
+func _on_mouse_entered() -> void:
 	if not is_selected and panel_container:
 		panel_container.modulate = COLOR_HOVER
 
-func _on_mouse_exited():
+func _on_mouse_exited() -> void:
 	if not is_selected and panel_container:
 		panel_container.modulate = COLOR_NORMAL

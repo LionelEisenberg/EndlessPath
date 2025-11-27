@@ -35,6 +35,7 @@ func _ready() -> void:
 	cooldown_label.text = ""
 	cooldown_progress_bar.value = 0.0
 
+## Sets up the button with the given ability instance.
 func setup(instance: CombatAbilityInstance) -> void:
 	ability_instance = instance
 	

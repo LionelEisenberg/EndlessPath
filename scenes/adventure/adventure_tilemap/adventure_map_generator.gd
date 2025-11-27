@@ -4,15 +4,17 @@ extends Node
 # Generation constants
 const MAX_TILE_PLACEMENT_ATTEMPTS = 100
 
-var adventure_map_data : AdventureMapData
-var tile_map : HexagonTileMapLayer
+var adventure_map_data: AdventureMapData
+var tile_map: HexagonTileMapLayer
 
-var all_map_tiles : Dictionary[Vector3i, AdventureEncounter] = {} 
+var all_map_tiles: Dictionary[Vector3i, AdventureEncounter] = {}
 
-func set_adventure_map_data(map_data : AdventureMapData) -> void:
+## Sets the map data used for generation.
+func set_adventure_map_data(map_data: AdventureMapData) -> void:
 	adventure_map_data = map_data
 
-func set_tile_map(tm: HexagonTileMapLayer):
+## Sets the tile map layer to be used.
+func set_tile_map(tm: HexagonTileMapLayer) -> void:
 	tile_map = tm
 
 #-----------------------------------------------------------------------------
@@ -96,7 +98,7 @@ func _assign_special_tiles() -> void:
 		all_map_tiles[coord] = adventure_map_data.special_encounter_pool[randi_range(0, adventure_map_data.special_encounter_pool.size() - 1)]
 
 ## Generates a path network connecting all special tiles using Prim's MST algorithm.
-func _generate_mst_paths():
+func _generate_mst_paths() -> void:
 	# A set of all nodes that are not yet part of the MST.
 	var nodes_to_add: Array[Vector3i] = all_map_tiles.keys().duplicate()
 	

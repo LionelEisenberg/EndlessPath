@@ -3,8 +3,8 @@ extends Control
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/ui/floating_text/floating_text.tscn")
 
-@export var progress : Texture2D
-@export var show_floating_text : bool = true
+@export var progress: Texture2D
+@export var show_floating_text: bool = true
 
 @onready var timer = %GhostTimer
 @onready var main_bar = %ResourceProgressBar
@@ -17,22 +17,23 @@ func _ready() -> void:
 	if not progress:
 		Log.error("ResourceBar: Progress texture is missing!")
 		return
-	setup_progress_bars()
-	setup_timer()
+	_setup_progress_bars()
+	_setup_timer()
 
-func setup_timer() -> void:
+func _setup_timer() -> void:
 	timer.wait_time = 0.5
 	timer.one_shot = true
 	if not timer.timeout.is_connected(_on_ghost_timer_timeout):
 		timer.timeout.connect(_on_ghost_timer_timeout)
 
-func setup_progress_bars() -> void:
+func _setup_progress_bars() -> void:
 	main_bar.texture_progress = progress
 	ghost_bar.texture_progress = progress
 	
 	# Ensure ghost bar is behind main bar (should be set in scene, but good to enforce)
 	ghost_bar.show_behind_parent = true
 
+## Updates the bar values.
 func update_values(new_current: float, new_max: float) -> void:
 	# Initialize if first run
 	if _current_value < 0:

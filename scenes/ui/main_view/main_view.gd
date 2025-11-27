@@ -1,14 +1,14 @@
 extends Control
 
 ## Main Views
-@onready var zone_view : Control = %ZoneView
-@onready var adventure_view : Control = %AdventureView
-@onready var inventory_view : Control = %InventoryView
-@onready var cycling_view : Control = %CyclingView
-@onready var grey_background : Panel = %GreyBackground
+@onready var zone_view: Control = %ZoneView
+@onready var adventure_view: Control = %AdventureView
+@onready var inventory_view: Control = %InventoryView
+@onready var cycling_view: Control = %CyclingView
+@onready var grey_background: Panel = %GreyBackground
 
 ## Buttons
-@onready var inventory_button : TextureButton = %InventoryButton
+@onready var inventory_button: TextureButton = %InventoryButton
 
 enum State {
 	ZONE_VIEW,
@@ -44,7 +44,8 @@ func _ready() -> void:
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-func show_and_initialize_action_popup(zone_action_data: ZoneActionData):
+## Shows and initializes the action popup with the given data.
+func show_and_initialize_action_popup(zone_action_data: ZoneActionData) -> void:
 	match zone_action_data.action_type:
 		ZoneActionData.ActionType.CYCLING:
 			cycling_view.initialize_cycling_action_data(zone_action_data)
@@ -53,13 +54,16 @@ func show_and_initialize_action_popup(zone_action_data: ZoneActionData):
 			# For other action types, keep showing zone view for now
 			_set_state(State.ZONE_VIEW)
 
-func show_inventory_view():
+## Shows the inventory view.
+func show_inventory_view() -> void:
 	_set_state(State.INVENTORY_VIEW)
 
-func show_zone_view():
+## Shows the zone view.
+func show_zone_view() -> void:
 	_set_state(State.ZONE_VIEW)
 
-func show_adventure_view():
+## Shows the adventure view.
+func show_adventure_view() -> void:
 	_set_state(State.ADVENTURE_VIEW)
 	
 

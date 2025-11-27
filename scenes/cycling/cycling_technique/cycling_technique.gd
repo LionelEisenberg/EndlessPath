@@ -19,12 +19,12 @@ const PATH_LINE_COLOR = Color(0.8, 0.8, 1.0, 0.7)
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var core_button: Button = $StartCyclingButton
-@onready var auto_cycle_toggle: TextureButton = $AutoCycleToggle
-@onready var path_2d: Path2D = $CyclingPath2D
+@onready var core_button: Button = %StartCyclingButton
+@onready var auto_cycle_toggle: TextureButton = %AutoCycleToggle
+@onready var path_2d: Path2D = %CyclingPath2D
 @onready var path_follow_2d: PathFollow2D = %PathFollow2D
 @onready var madra_ball: Area2D = %MadraBall
-@onready var path_line: Line2D = $PathLine
+@onready var path_line: Line2D = %PathLine
 
 #-----------------------------------------------------------------------------
 # TWEEN FOR ANIMATION
@@ -49,7 +49,7 @@ signal cycle_completed(madra_earned: float, mouse_accuracy: float)
 #-----------------------------------------------------------------------------
 # STATE TRACKING
 #-----------------------------------------------------------------------------
-enum CycleState { IDLE, CYCLING, COMPLETE }
+enum CycleState {IDLE, CYCLING, COMPLETE}
 var current_state: CycleState = CycleState.IDLE
 var active_zone: CyclingZone = null
 
@@ -59,19 +59,19 @@ var active_zone: CyclingZone = null
 var last_mouse_position: Vector2
 var mouse_tracking_accuracy: float = 0.0
 var cycle_start_time: float = 0.0
-var time_mouse_in_ball: float = 0.0  # Total time mouse was inside ball
-var elapsed_cycle_time: float = 0.0  # Elapsed time during current cycle
+var time_mouse_in_ball: float = 0.0 # Total time mouse was inside ball
+var elapsed_cycle_time: float = 0.0 # Elapsed time during current cycle
 
 #-----------------------------------------------------------------------------
 # CLICK TIMING TRACKING
 #-----------------------------------------------------------------------------
-var click_timings: Array[Dictionary] = []  # Store timing data for each click
+var click_timings: Array[Dictionary] = [] # Store timing data for each click
 
 #-----------------------------------------------------------------------------
 # PACKED SCENE REFERENCES
 #-----------------------------------------------------------------------------
-var cycling_zone_scene : PackedScene = preload("res://scenes/cycling/cycling_technique/cycling_zone.tscn")
-var floating_text_scene : PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
+var cycling_zone_scene: PackedScene = preload("res://scenes/cycling/cycling_technique/cycling_zone.tscn")
+var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -118,7 +118,7 @@ func stop_cycling() -> void:
 		path_follow_2d.progress_ratio = 0.0
 
 ## Set the current technique data and update display.
-func set_technique_data(data: CyclingTechniqueData):
+func set_technique_data(data: CyclingTechniqueData) -> void:
 	setup(data)
 
 ## Update the Line2D to follow the Path2D curve.
@@ -204,9 +204,9 @@ func _start_cycle() -> void:
 	
 	# Reset tracking variables for new cycle
 	cycle_start_time = Time.get_ticks_msec() / 1000.0
-	click_timings.clear()  # Clear previous cycle's timing data
-	time_mouse_in_ball = 0.0  # Reset mouse tracking time
-	elapsed_cycle_time = 0.0  # Reset elapsed cycle time
+	click_timings.clear() # Clear previous cycle's timing data
+	time_mouse_in_ball = 0.0 # Reset mouse tracking time
+	elapsed_cycle_time = 0.0 # Reset elapsed cycle time
 	
 	# Show all zones and reset them for new cycle
 	for zone in cycling_zones:
@@ -248,7 +248,7 @@ func _on_cycle_finished() -> void:
 	var madra_earned = 0.0
 	if technique_data:
 		madra_earned = technique_data.base_madra_per_cycle * final_mouse_accuracy
-		madra_earned = max(0.0, madra_earned)  # Ensure non-negative
+		madra_earned = max(0.0, madra_earned) # Ensure non-negative
 		
 		# Award madra to player
 		if madra_earned > 0:
@@ -324,10 +324,10 @@ func _print_cycle_stats(madra_earned: float) -> void:
 		for i in range(click_timings.size()):
 			var click = click_timings[i]
 			cycle_summary += "  %d. %s: %.1f%% accuracy (%s) - %d XP\n" % [
-				i + 1, 
-				click.zone_name, 
-				click.timing_accuracy, 
-				click.timing_quality, 
+				i + 1,
+				click.zone_name,
+				click.timing_accuracy,
+				click.timing_quality,
 				click.xp_reward
 			]
 	else:
@@ -379,17 +379,17 @@ func _handle_zone_click(zone: CyclingZone, zone_data_item: CyclingZoneData) -> v
 	var timing_quality: String
 	var xp_reward: int
 	var quality_color: Color
-	if timing_ratio < TIMING_PERFECT_THRESHOLD:  # Perfect timing
+	if timing_ratio < TIMING_PERFECT_THRESHOLD: # Perfect timing
 		timing_quality = "PERFECT"
 		xp_reward = zone_data_item.perfect_xp
 		quality_color = Color.GOLD
 		_flash_zone(zone, Color.GOLD)
-	elif timing_ratio < TIMING_GOOD_THRESHOLD:  # Good timing
+	elif timing_ratio < TIMING_GOOD_THRESHOLD: # Good timing
 		timing_quality = "GOOD"
 		xp_reward = zone_data_item.good_xp
 		quality_color = Color.GREEN
 		_flash_zone(zone, Color.GREEN)
-	else:  # OK timing
+	else: # OK timing
 		timing_quality = "OK"
 		xp_reward = zone_data_item.ok_xp
 		quality_color = Color.WHITE

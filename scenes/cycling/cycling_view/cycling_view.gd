@@ -35,26 +35,28 @@ func _input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("close_cycling_view"):
 		ActionManager.stop_action()
 
-func _on_stop_cycling():
+func _on_stop_cycling() -> void:
 	cycling_technique_node.stop_cycling()
 
-func initialize_cycling_action_data(action_data: CyclingActionData):
+## Initializes the view with action data.
+func initialize_cycling_action_data(action_data: CyclingActionData) -> void:
 	cycling_action_data = action_data
 
-func set_current_technique(technique_data: CyclingTechniqueData):
+## Sets the current technique.
+func set_current_technique(technique_data: CyclingTechniqueData) -> void:
 	current_cycling_technique_data = technique_data
 	current_technique_changed.emit(technique_data)
 	_save_current_technique(technique_data)
 
-func _on_technique_change_request(technique_data: CyclingTechniqueData):
+func _on_technique_change_request(technique_data: CyclingTechniqueData) -> void:
 	set_current_technique(technique_data)
 	cycling_technique_selector.close_selector()
 
-func _on_open_technique_selector():
+func _on_open_technique_selector() -> void:
 	cycling_technique_selector.open_selector(current_cycling_technique_data)
 
 ## Load the saved technique from SaveGameData by looking up name in technique list.
-func _load_saved_technique():
+func _load_saved_technique() -> void:
 	if not PersistenceManager or not PersistenceManager.save_game_data:
 		# Fallback to foundation technique if no save data
 		set_current_technique(foundation_technique)
@@ -81,10 +83,9 @@ func _load_saved_technique():
 		set_current_technique(foundation_technique)
 
 ## Save the current technique name to SaveGameData.
-func _save_current_technique(technique_data: CyclingTechniqueData):
+func _save_current_technique(technique_data: CyclingTechniqueData) -> void:
 	if not PersistenceManager or not PersistenceManager.save_game_data:
 		return
 	
 	if technique_data and technique_data.technique_name:
 		PersistenceManager.save_game_data.current_cycling_technique_name = technique_data.technique_name
-	
