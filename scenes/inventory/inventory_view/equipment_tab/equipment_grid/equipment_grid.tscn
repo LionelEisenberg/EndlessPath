@@ -1,9 +1,9 @@
 [gd_scene load_steps=9 format=3 uid="uid://u2naqgqaai45"]
 
-[ext_resource type="Script" uid="uid://d317jgqld3fkw" path="res://scenes/inventory/inventory_view/equipment_grid/equipment_grid.gd" id="1_5kgqq"]
+[ext_resource type="Script" uid="uid://d317jgqld3fkw" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.gd" id="1_5kgqq"]
 [ext_resource type="Texture2D" uid="uid://x368xmilo0p" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_scroll..png" id="1_y2ewg"]
 [ext_resource type="Texture2D" uid="uid://cqbdw487scbtr" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_grabber.png" id="2_5kgqq"]
-[ext_resource type="PackedScene" uid="uid://ceypk3nhatnfw" path="res://scenes/inventory/inventory_view/equipment_grid/inventory_slot/inventory_slot.tscn" id="4_nsg81"]
+[ext_resource type="PackedScene" uid="uid://ceypk3nhatnfw" path="res://scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.tscn" id="4_nsg81"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_v70co"]
 texture = ExtResource("1_y2ewg")

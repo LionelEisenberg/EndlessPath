@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://csm6jt2i1j477"]
 
 [ext_resource type="Texture2D" uid="uid://ham185gpg17y" path="res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot03a.png" id="1_bh1ob"]
-[ext_resource type="Script" uid="uid://ngxbtsiea242" path="res://scenes/inventory/inventory_view/gear_selector/gear_slot.gd" id="2_bh1ob"]
+[ext_resource type="Script" uid="uid://ngxbtsiea242" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_slot.gd" id="2_bh1ob"]
 
 [node name="GearSlot" type="TextureRect" groups=["GearSlots"]]
 size_flags_horizontal = 4

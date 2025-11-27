@@ -1,9 +1,9 @@
 [gd_scene load_steps=5 format=3 uid="uid://bywdjh8pmjuev"]
 
-[ext_resource type="Script" uid="uid://dtfuro5fu4nu3" path="res://scenes/inventory/inventory_view/gear_selector/gear_selector.gd" id="1_3nnrq"]
+[ext_resource type="Script" uid="uid://dtfuro5fu4nu3" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.gd" id="1_3nnrq"]
 [ext_resource type="Texture2D" uid="uid://veonv7snu457" path="res://assets/asperite/inventory/equipment_tab/gear_selector/gear_selector_top_signage.png" id="1_f2oh5"]
 [ext_resource type="Texture2D" uid="uid://c3nawmnr7g0aj" path="res://assets/asperite/inventory/equipment_tab/gear_selector/gear_selector_portrait.png" id="2_3nnrq"]
-[ext_resource type="PackedScene" uid="uid://csm6jt2i1j477" path="res://scenes/inventory/inventory_view/gear_selector/gear_slot.tscn" id="4_3nnrq"]
+[ext_resource type="PackedScene" uid="uid://csm6jt2i1j477" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_slot.tscn" id="4_3nnrq"]
 
 [node name="GearSelector" type="Control"]
 layout_mode = 3

@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3 uid="uid://sra4pqjmj11a"]
+[gd_scene load_steps=32 format=3 uid="uid://sra4pqjmj11a"]
 
 [ext_resource type="Script" uid="uid://bxs3eblygn8oo" path="res://scenes/inventory/inventory_view/inventory_view.gd" id="1_43eln"]
 [ext_resource type="PackedScene" uid="uid://dnkls2h5eaj10" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.tscn" id="3_eyvfv"]
@@ -11,13 +11,14 @@
 [ext_resource type="Texture2D" uid="uid://vggpdp1g004h" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/selection_arrow.png" id="10_fs5oo"]
 [ext_resource type="Texture2D" uid="uid://droy2byen4eel" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/selected_option.png" id="11_xrgga"]
 [ext_resource type="Texture2D" uid="uid://c7e4uc5k4i3hx" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/unselected_option.png" id="12_qfdbg"]
-[ext_resource type="PackedScene" uid="uid://u2naqgqaai45" path="res://scenes/inventory/inventory_view/equipment_grid/equipment_grid.tscn" id="13_qedsu"]
-[ext_resource type="PackedScene" uid="uid://bywdjh8pmjuev" path="res://scenes/inventory/inventory_view/gear_selector/gear_selector.tscn" id="14_xrgga"]
+[ext_resource type="PackedScene" uid="uid://u2naqgqaai45" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.tscn" id="13_qedsu"]
+[ext_resource type="PackedScene" uid="uid://bywdjh8pmjuev" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.tscn" id="14_xrgga"]
 [ext_resource type="Texture2D" uid="uid://73gi871a4dr7" path="res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Spritesheet_Select01a.png" id="16_v70co"]
 [ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/asperite/inventory/equipment_tab/gear_selector/item_description_background.png" id="17_00gvd"]
 [ext_resource type="Texture2D" uid="uid://irvbdl0pat88" path="res://assets/asperite/inventory/sword_icon.png" id="17_ik22q"]
 [ext_resource type="Script" uid="uid://bpyj8ugmi6t0t" path="res://scenes/inventory/inventory_view/item_description_box.gd" id="17_ycsy7"]
 [ext_resource type="Texture2D" uid="uid://lap02cxlbnp1" path="res://assets/asperite/inventory/equipment_tab/line.png" id="18_ycsy7"]
+[ext_resource type="PackedScene" uid="uid://bx475rcu42d08" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.tscn" id="19_wdr80"]
 [ext_resource type="Texture2D" uid="uid://3w4d3der8ula" path="res://assets/asperite/inventory/materials_tab/banner.png" id="20_qufb6"]
 [ext_resource type="Script" uid="uid://budyxvcrbpvo1" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.gd" id="21_26fxh"]
 [ext_resource type="Texture2D" uid="uid://x368xmilo0p" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_scroll..png" id="21_xb6h7"]
@@ -76,7 +77,6 @@ axis_stretch_vertical = 1
 VScrollBar/styles/grabber = SubResource("StyleBoxTexture_ycsy7")
 
 [node name="InventoryView" type="Control"]
-visible = false
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5
@@ -130,7 +130,6 @@ offset_bottom = 144.0
 icon_texture = ExtResource("4_0y30f")
 
 [node name="EquipmentTab" type="Control" parent="BookBackground"]
-visible = false
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
@@ -237,19 +236,19 @@ offset_bottom = 399.0
 unique_name_in_owner = true
 layout_mode = 0
 
-[node name="Selector" type="Node2D" parent="BookBackground/EquipmentTab"]
+[node name="SelectorSprite" type="Node2D" parent="BookBackground/EquipmentTab"]
 unique_name_in_owner = true
 top_level = true
 position = Vector2(27, 19)
 metadata/_edit_group_ = true
 
-[node name="SelectorSprite" type="Sprite2D" parent="BookBackground/EquipmentTab/Selector"]
+[node name="SelectorSprite" type="Sprite2D" parent="BookBackground/EquipmentTab/SelectorSprite"]
 scale = Vector2(2.2, 2.2)
 texture = ExtResource("16_v70co")
 hframes = 4
 frame = 3
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="BookBackground/EquipmentTab/Selector"]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="BookBackground/EquipmentTab/SelectorSprite"]
 unique_name_in_owner = true
 root_node = NodePath("../SelectorSprite")
 libraries = {
@@ -341,7 +340,16 @@ theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 text = "[color=red]Effects[/color]"
 
+[node name="TrashSlot" parent="BookBackground/EquipmentTab" instance=ExtResource("19_wdr80")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 400.0
+offset_top = 243.5
+offset_right = 429.0
+offset_bottom = 271.5
+
 [node name="MaterialsTab" type="Control" parent="BookBackground"]
+visible = false
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0

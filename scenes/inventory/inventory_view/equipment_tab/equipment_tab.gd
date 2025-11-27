@@ -2,9 +2,10 @@ extends Control
 
 @onready var equipment_grid: Control = %EquipmentGrid
 @onready var gear_selector: Control = %GearSelector
-@onready var selector: Node2D = %Selector
+@onready var selector_sprite: Node2D = %SelectorSprite
 @onready var selector_anim: AnimationPlayer = %AnimationPlayer
 @onready var item_description_box : TextureRect = %ItemDescriptionBox
+@onready var trash_slot : TrashSlot = %TrashSlot
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -24,6 +25,8 @@ func _ready() -> void:
 	# Connect drag signals
 	equipment_grid.slot_clicked.connect(_on_slot_input)
 	gear_selector.slot_clicked.connect(_on_slot_input)
+	
+	item_description_box.reset()
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
@@ -45,16 +48,18 @@ func _on_slot_input(slot: InventorySlot, event: InputEvent) -> void:
 	if event is InputEventMouseMotion or (event is InputEventMouseButton and event.pressed):
 		_update_selector(slot)
 		if slot.item_instance:
-			item_description_box._setup(slot.item_instance.item_instance_data)
+			item_description_box.setup(slot.item_instance.item_instance_data)
+		else:
+			item_description_box.reset()
 	
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if not is_dragging and slot.item_instance != null:
 			_pick_up_item(slot, event.global_position)
 
 func _update_selector(slot: InventorySlot) -> void:
-	selector.global_position = slot.global_position + SELECTOR_OFFSET
-	if not selector.visible:
-		selector.visible = true
+	selector_sprite.global_position = slot.global_position + SELECTOR_OFFSET
+	if not selector_sprite.visible:
+		selector_sprite.visible = true
 		selector_anim.play("start_select")
 	elif selector_anim.current_animation != "start_select":
 		selector_anim.play("start_select")

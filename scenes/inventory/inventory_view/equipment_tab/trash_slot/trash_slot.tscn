@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://bx475rcu42d08"]
+
+[ext_resource type="Texture2D" uid="uid://b733n4hem3lsc" path="res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot04a.png" id="1_8f1eq"]
+[ext_resource type="Script" uid="uid://d35ss1s455l8x" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.gd" id="1_76ana"]
+
+[node name="TrashSlot" type="TextureRect"]
+texture = ExtResource("1_8f1eq")
+script = ExtResource("1_76ana")
+metadata/_custom_type_script = "uid://cblvkakbg24c2"

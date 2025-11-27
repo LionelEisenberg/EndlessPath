@@ -37,7 +37,7 @@ signal slot_clicked(slot: InventorySlot, event: InputEvent)
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-var inventory_slot_scene : PackedScene = preload("res://scenes/inventory/inventory_view/equipment_grid/inventory_slot/inventory_slot.tscn")
+var inventory_slot_scene : PackedScene = preload("res://scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.tscn")
 
 @export var default_item_instance_data = null
 #-----------------------------------------------------------------------------
