@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="LootTable" load_steps=7 format=3 uid="uid://dwxmjysxlrtw2"]
+
+[ext_resource type="Script" uid="uid://bbayqmvvc4hvt" path="res://scripts/resource_definitions/loot/loot_table_entries.gd" id="1_78rif"]
+[ext_resource type="Resource" uid="uid://cr10k1108cnup" path="res://resources/items/materials/dewdrop_tear.tres" id="2_ypuo6"]
+[ext_resource type="Resource" uid="uid://cg35r8cxnas0l" path="res://resources/items/materials/spirit_fern.tres" id="3_sckvb"]
+[ext_resource type="Script" uid="uid://b0055qxx6pmno" path="res://scripts/resource_definitions/loot/loot_table.gd" id="4_0ps03"]
+
+[sub_resource type="Resource" id="Resource_tg7os"]
+script = ExtResource("1_78rif")
+item = ExtResource("2_ypuo6")
+max_quantity = 5
+metadata/_custom_type_script = "uid://bbayqmvvc4hvt"
+
+[sub_resource type="Resource" id="Resource_b3x74"]
+script = ExtResource("1_78rif")
+item = ExtResource("3_sckvb")
+min_quantity = 2
+max_quantity = 6
+metadata/_custom_type_script = "uid://bbayqmvvc4hvt"
+
+[resource]
+script = ExtResource("4_0ps03")
+entries = Array[ExtResource("1_78rif")]([SubResource("Resource_tg7os"), SubResource("Resource_b3x74")])
+metadata/_custom_type_script = "uid://b0055qxx6pmno"

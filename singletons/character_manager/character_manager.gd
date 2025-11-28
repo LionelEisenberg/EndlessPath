@@ -61,7 +61,6 @@ func _update_resources() -> void:
 	Log.info("CharacterManager: Updated %d attributes" % attributes_updated)
 
 
-
 #-----------------------------------------------------------------------------
 # ATTRIBUTE GETTERS (Base + Bonuses)
 #-----------------------------------------------------------------------------
@@ -70,7 +69,7 @@ func _update_resources() -> void:
 func get_total_attributes_data() -> CharacterAttributesData:
 	return CharacterAttributesData.new(
 		# TODO DEBUG REMOVE
-		get_strength()+100,
+		get_strength() + 100,
 		get_body(),
 		get_agility(),
 		get_spirit(),
@@ -132,6 +131,14 @@ func get_willpower() -> float:
 # DERIVED STATS (Calculated from attributes)
 #-----------------------------------------------------------------------------
 # These are basic stat calculations. Combat systems use these for their own logic.
+
+## Get the character's gold multiplier from stats/equipment/cultivation
+## Returns: float multiplier (1.0 = no bonus)
+## Future: Can be affected by luck stat, equipment bonuses, cultivation stage, etc.
+func get_gold_multiplier() -> float:
+	# TODO: Implement based on character stats/equipment/cultivation
+	# Example: return 1.0 + (get_attribute(AttributeType.LUCK) * 0.01)
+	return 1.0
 
 #-----------------------------------------------------------------------------
 # BASE ATTRIBUTE MODIFICATION FUNCTIONS

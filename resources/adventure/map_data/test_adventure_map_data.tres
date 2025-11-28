@@ -1,38 +1,10 @@
-[gd_resource type="Resource" script_class="AdventureMapData" load_steps=13 format=3 uid="uid://dkpf211m22hlr"]
+[gd_resource type="Resource" script_class="AdventureMapData" load_steps=4 format=3 uid="uid://dkpf211m22hlr"]
 
 [ext_resource type="Script" uid="uid://bars7sna1emxp" path="res://scripts/resource_definitions/adventure/adventure_encounter.gd" id="1_let1d"]
 [ext_resource type="Script" uid="uid://q3c2lkb1nl1i" path="res://scripts/resource_definitions/adventure/adventure_map_data.gd" id="2_pxc64"]
-[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/encounter_choice.gd" id="3_16qle"]
-[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="4_eda56"]
-[ext_resource type="Resource" uid="uid://ctok24q1h2l1j" path="res://resources/combat/test_enemy.tres" id="5_ppkhi"]
-[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="6_lbwo1"]
-[ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="7_jtv7s"]
-[ext_resource type="Resource" uid="uid://c701iqcrdgc7x" path="res://resources/effects/trigger_event/initial_spirit_valley_dialogue_1_trigger_event_effect.tres" id="8_7f10q"]
-[ext_resource type="Resource" uid="uid://vauqsrr78ccw" path="res://resources/effects/award_resource/award_madra_5_effect_data.tres" id="9_eda56"]
-
-[sub_resource type="Resource" id="Resource_lq2sa"]
-script = ExtResource("7_jtv7s")
-enemy_pool = Array[ExtResource("4_eda56")]([ExtResource("5_ppkhi")])
-label = "oops im fighty"
-success_effects = Array[ExtResource("6_lbwo1")]([ExtResource("8_7f10q")])
-metadata/_custom_type_script = "uid://cpq8eacgl1537"
-
-[sub_resource type="Resource" id="Resource_16qle"]
-script = ExtResource("3_16qle")
-label = "Leave bro"
-success_effects = Array[ExtResource("6_lbwo1")]([ExtResource("9_eda56")])
-metadata/_custom_type_script = "uid://c1b11mq3a2qya"
-
-[sub_resource type="Resource" id="Resource_7x711"]
-script = ExtResource("1_let1d")
-encounter_id = "Fighting!"
-encounter_name = "Fight these bitches"
-description = "Fight these bitches"
-text_description_completed = "These bitches we're fought"
-choices = Array[ExtResource("3_16qle")]([SubResource("Resource_lq2sa"), SubResource("Resource_16qle")])
-metadata/_custom_type_script = "uid://bars7sna1emxp"
+[ext_resource type="Resource" uid="uid://ba4cugrsd5v33" path="res://resources/adventure/encounters/test_combat_encounter.tres" id="3_let1d"]
 
 [resource]
 script = ExtResource("2_pxc64")
-special_encounter_pool = Array[ExtResource("1_let1d")]([SubResource("Resource_7x711")])
+special_encounter_pool = Array[ExtResource("1_let1d")]([ExtResource("3_let1d")])
 metadata/_custom_type_script = "uid://q3c2lkb1nl1i"

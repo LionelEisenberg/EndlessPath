@@ -35,4 +35,5 @@ character_name = "TestEnemy"
 attributes = SubResource("Resource_2licw")
 abilities = Array[ExtResource("1_ahf2a")]([SubResource("Resource_v1jgk")])
 texture = ExtResource("4_2licw")
+base_gold_drop = 10
 metadata/_custom_type_script = "uid://hbo1w3358rom"

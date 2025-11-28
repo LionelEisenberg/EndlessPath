@@ -138,10 +138,14 @@ func stop_adventure() -> void:
 	character_body.move_to_position(Vector2(0, 0), INSTANT_MOVE_SPEED)
 
 ## Handles the result of a combat encounter.
-func handle_combat_result(successful: bool) -> void:
-	Log.info("AdventureTilemap: Combat ended - Success: %s" % successful)
+func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
+	Log.info("AdventureTilemap: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
 	
 	if successful:
+		# Award gold alongside other effects
+		if gold_earned > 0:
+			ResourceManager.add_gold(gold_earned)
+		
 		if _current_combat_choice:
 			_apply_effects(_current_combat_choice.success_effects)
 			

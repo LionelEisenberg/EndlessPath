@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="ItemInstanceData" load_steps=3 format=3 uid="uid://cai1slkxghvc3"]
-
-[ext_resource type="Script" uid="uid://0ylfdso6kbua" path="res://scripts/resource_definitions/items/item_instance_data.gd" id="1_6xuef"]
-[ext_resource type="Resource" uid="uid://m26yluq3ufii" path="res://resources/items/test_items/sword.tres" id="1_w2xm3"]
-
-[resource]
-script = ExtResource("1_6xuef")
-item_definition = ExtResource("1_w2xm3")
-metadata/_custom_type_script = "uid://0ylfdso6kbua"

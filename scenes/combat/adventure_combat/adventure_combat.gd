@@ -9,7 +9,7 @@ extends Node2D
 # SIGNALS
 #-----------------------------------------------------------------------------
 
-signal trigger_combat_end(is_successful: bool)
+signal trigger_combat_end(is_successful: bool, gold_earned: int)
 
 #-----------------------------------------------------------------------------
 # SCENES
@@ -23,6 +23,7 @@ var combatant_scene: PackedScene = preload("res://scenes/combat/combatant/combat
 
 var player_resource_manager: CombatResourceManager = null
 var current_combat_choice: CombatChoice = null
+var current_adventure_action: AdventureActionData = null
 
 var player_combatant: CombatantNode
 var enemy_combatant: CombatantNode
@@ -44,10 +45,15 @@ var enemy_combatant: CombatantNode
 func _ready() -> void:
 	Log.info("AdventureCombat: Initialized")
 
-## Initializes the combat with the chosen encounter and player resources.
-func initialize_with_player_resource_manager(choice: CombatChoice, prm: CombatResourceManager) -> void:
+## Initializes the combat with the chosen encounter, player resources, and adventure context.
+func initialize_combat(
+	choice: CombatChoice,
+	prm: CombatResourceManager,
+	adventure_action: AdventureActionData
+) -> void:
 	self.current_combat_choice = choice
 	self.player_resource_manager = prm
+	self.current_adventure_action = adventure_action
 
 	# Connect player_resource_manager to the trigger_combat_end signal
 	if not player_resource_manager.health_changed.is_connected(_on_player_health_changed):
@@ -145,12 +151,41 @@ func _create_enemy_combatant() -> void:
 func _on_player_health_changed(health: float) -> void:
 	if health <= 0.0:
 		Log.info("AdventureCombat: Player died")
-		trigger_combat_end.emit(false)
+		trigger_combat_end.emit(false, 0) # No gold on defeat
 
 func _on_enemy_health_changed(health: float) -> void:
 	if health <= 0.0:
 		Log.info("AdventureCombat: Enemy died")
-		trigger_combat_end.emit(true)
+		var gold = _calculate_gold_reward()
+		trigger_combat_end.emit(true, gold)
+
+## Calculate gold reward using multi-factor formula
+func _calculate_gold_reward() -> int:
+	if not enemy_combatant or not current_combat_choice:
+		Log.warn("AdventureCombat: Cannot calculate gold - missing enemy or combat choice")
+		return 0
+	
+	# Get enemy data from combat choice
+	var enemy_data: CombatantData = current_combat_choice.enemy_pool[0] if not current_combat_choice.enemy_pool.is_empty() else null
+	if not enemy_data:
+		Log.warn("AdventureCombat: No enemy data in combat choice")
+		return 0
+	
+	# Get all multipliers
+	var base_gold: int = enemy_data.base_gold_drop
+	var combat_mult: float = current_combat_choice.gold_multiplier
+	var adventure_mult: float = current_adventure_action.gold_multiplier if current_adventure_action else 1.0
+	var char_mult: float = CharacterManager.get_gold_multiplier()
+	
+	# Calculate final gold
+	var final_gold: int = int(floor(base_gold * combat_mult * adventure_mult * char_mult))
+	
+	Log.info("AdventureCombat: Gold calculated - Base: %d, Combat×%.1f, Adv×%.1f, Char×%.1f = %d" % [
+		base_gold, combat_mult, adventure_mult, char_mult, final_gold
+	])
+	
+	return final_gold
+
 
 #-----------------------------------------------------------------------------
 # UI HANDLERS

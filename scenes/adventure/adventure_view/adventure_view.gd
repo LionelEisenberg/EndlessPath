@@ -129,7 +129,11 @@ func _on_start_combat(choice: CombatChoice) -> void:
 	
 	# Start the combat encounter
 	if combat:
-		combat.initialize_with_player_resource_manager(choice, player_resource_manager)
+		combat.initialize_combat(
+			choice,
+			player_resource_manager,
+			current_action_data # Pass adventure action data for gold multiplier
+		)
 		combat.start()
 		
 	is_in_combat = true
@@ -139,14 +143,15 @@ func _on_start_combat(choice: CombatChoice) -> void:
 	combat_view.visible = true
 
 ## Transition from combat view back to tilemap view
-func _on_stop_combat(successful: bool = false) -> void:
-	Log.info("AdventureView: Transitioning from combat to tilemap - Success: %s" % successful)
+func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
+	Log.info("AdventureView: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
+	
 	tilemap_view.visible = true
 	combat_view.visible = false
 	
-	# Notify the tilemap that combat has ended
+	# Notify the tilemap that combat has ended (tilemap handles reward processing)
 	combat.stop()
-	adventure_tilemap.handle_combat_result(successful)
+	adventure_tilemap.handle_combat_result(successful, gold_earned)
 	
 	is_in_combat = false
 	

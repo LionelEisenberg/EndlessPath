@@ -22,6 +22,9 @@ extends Resource
 @export var scale: float = 1.0
 @export var offset: Vector2 = Vector2.ZERO
 
+@export_group("Rewards")
+@export var base_gold_drop: int = 0 ## Base gold awarded on defeat
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------

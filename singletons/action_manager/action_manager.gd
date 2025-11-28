@@ -10,7 +10,7 @@ extends Node
 signal current_action_changed(action_data)
 
 ## foraging signals
-signal foraging_completed(item_amount: int, item_definition: ItemDefinitionData)
+signal foraging_completed(items: Dictionary) # Dictionary[ItemDefinitionData, int]
 signal start_foraging(action_data: ForageActionData)
 signal stop_foraging()
 
@@ -39,7 +39,7 @@ func _ready() -> void:
 	else:
 		Log.critical("ActionManager: ZoneManager is not found")
 
-func _on_zone_changed(_zone_data : ZoneData) -> void:
+func _on_zone_changed(_zone_data: ZoneData) -> void:
 	stop_action()
 
 #-----------------------------------------------------------------------------
@@ -126,34 +126,22 @@ func _execute_forage_action(action_data: ForageActionData) -> void:
 	action_timer.start()
 
 func _on_forage_timer_finished(action_data: ForageActionData) -> void:
-	var resource = _select_forage_resource(action_data.forage_resources)
-	var item_amount = 0
-	if resource:
-		item_amount = randi_range(resource.min_generation_amount, resource.max_generation_amount)
-		_award_item(item_amount, resource.item_definition)
-	
-	foraging_completed.emit(item_amount, resource.item_definition)
-
-func _select_forage_resource(resources: Array[ForageResourceData]) -> ForageResourceData:
-	if resources.is_empty():
-		return null
-	var roll := randf()
-	var cumulative := 0.0
-	for resource in resources:
-		cumulative += resource.drop_chance
-		if roll <= cumulative:
-			return resource
-	return null
-
-func _award_item(item_amount: int, item_definition: ItemDefinitionData) -> void:
-	if item_amount <= 0 or not item_definition:
+	if not action_data.loot_table:
+		Log.error("ActionManager: ForageActionData has no loot table")
 		return
 	
-	if not InventoryManager:
-		Log.critical("ActionManager: InventoryManager not available, cannot award item")
-		return
+	# Roll the loot table (independent drops)
+	var rolled_items: Dictionary = action_data.loot_table.roll_loot()
 	
-	InventoryManager.award_items(item_definition, item_amount)
+	# Award all rolled items
+	for item in rolled_items:
+		var quantity: int = rolled_items[item]
+		InventoryManager.award_items(item, quantity)
+		Log.info("ActionManager: Foraging awarded %s x%d" % [item.item_name, quantity])
+	
+	# Emit completion signal with the dictionary of items
+	foraging_completed.emit(rolled_items)
+
 
 ## Handle adventure action - switch to adventure view.
 func _execute_adventure_action(action_data: AdventureActionData) -> void:
@@ -174,7 +162,7 @@ func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 		return
 	
 	DialogueManager.dialogue_ended.connect(
-		stop_action, 
+		stop_action,
 		CONNECT_ONE_SHOT
 	)
 
