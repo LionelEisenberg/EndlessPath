@@ -15,7 +15,7 @@ const CHARACTER_MOVE_SPEED = 150.0
 const FORAGE_POSITION_MARGIN = 32
 const FLOATING_TEXT_OFFSET = Vector2i(250, 250)
 
-var floating_text_scene : PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
+var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
 
 ## variable that stores the tile the character is on
 var selected_zone: ZoneData:
@@ -103,9 +103,9 @@ func _get_zone_variant(zone_data: ZoneData) -> int:
 func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[Vector2i]) -> void:
 	# Get all 8 neighboring tile coordinates
 	var neighbor_offsets = [
-		Vector2i(-1, -1), Vector2i(0, -1),  # Top row
-		Vector2i(-1, 0),                   Vector2i(1, 0),   # Middle row (left and right)
-		Vector2i(0, 1),  Vector2i(1, 1)    # Bottom row
+		Vector2i(-1, -1), Vector2i(0, -1), # Top row
+		Vector2i(-1, 0), Vector2i(1, 0), # Middle row (left and right)
+		Vector2i(0, 1), Vector2i(1, 1) # Bottom row
 	]
 	
 	for offset in neighbor_offsets:
@@ -121,7 +121,7 @@ func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[
 func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 	var zone_data = get_zone_at_tile(tile_coord)
 	Log.info("ZoneTilemap: Zone tile clicked: %s" % tile_coord)
-	if not zone_data: 
+	if not zone_data:
 		return
 	
 	if zone_data == selected_zone:
@@ -155,8 +155,8 @@ func _on_start_foraging() -> void:
 func _on_stop_foraging() -> void:
 	_move_character_to_tile_coord(selected_zone.tilemap_location)
 
-func _on_foraging_completed(item_amount: int, item_definition: ItemDefinitionData) -> void:
-	_show_foraging_completion_floating_text(item_amount, item_definition)
+func _on_foraging_completed(items: Dictionary) -> void:
+	_show_foraging_completion_floating_text(items)
 	_character_move_to_new_foraging_location()
 
 func _character_move_to_new_foraging_location() -> void:
@@ -168,8 +168,19 @@ func _character_move_to_new_foraging_location() -> void:
 	
 	_move_character_to_position(random_local_pos)
 
-func _show_foraging_completion_floating_text(item_amount: int, item_definition: ItemDefinitionData) -> void:
+func _show_foraging_completion_floating_text(items: Dictionary) -> void:
+	if items.is_empty():
+		return
+	
 	var floating_text = floating_text_scene.instantiate() as FloatingText
 	if floating_text:
 		get_tree().current_scene.add_child(floating_text)
-		floating_text.show_text("%d of %s" % [item_amount, item_definition.item_name], Color.WHITE, FLOATING_TEXT_OFFSET)
+		
+		# Build a text string showing all items
+		var text_parts: Array[String] = []
+		for item in items:
+			var quantity: int = items[item]
+			text_parts.append("%d %s" % [quantity, item.item_name])
+		
+		var full_text = ", ".join(text_parts)
+		floating_text.show_text(full_text, Color.WHITE, FLOATING_TEXT_OFFSET)
