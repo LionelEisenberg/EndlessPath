@@ -10,13 +10,13 @@ extends Resource
 #-----------------------------------------------------------------------------
 
 enum AbilityType {
-	OFFENSIVE,      ## Damage-dealing abilities
+	OFFENSIVE, ## Damage-dealing abilities
 }
 
 enum TargetType {
-	SELF,                ## Only targets the caster
-	SINGLE_ENEMY,        ## One enemy
-	ALL_ALLIES,          ## All allies
+	SELF, ## Only targets the caster
+	SINGLE_ENEMY, ## One enemy
+	ALL_ALLIES, ## All allies
 }
 
 enum CostType {
@@ -24,7 +24,7 @@ enum CostType {
 	HEALTH,
 	MADRA,
 	STAMINA,
-	MIXED    ## Multiple resource costs
+	MIXED ## Multiple resource costs
 }
 
 #-----------------------------------------------------------------------------
@@ -46,8 +46,8 @@ enum CostType {
 @export var health_cost: float = 0.0
 @export var madra_cost: float = 0.0
 @export var stamina_cost: float = 0.0
-@export var base_cooldown : float = 0.0
-@export var cast_time: float = 0.0       ## Time in seconds to cast (0 = instant)
+@export var base_cooldown: float = 0.0
+@export var cast_time: float = 0.0 ## Time in seconds to cast (0 = instant)
 
 #-----------------------------------------------------------------------------
 # EFFECTS
@@ -80,32 +80,32 @@ func validate() -> bool:
 #-----------------------------------------------------------------------------
 
 ## Check if a character can afford this ability's costs
-func can_afford(resource_manager: CombatResourceManager) -> bool:
-	if resource_manager == null:
+func can_afford(vitals_manager: VitalsManager) -> bool:
+	if vitals_manager == null:
+		return false
+
+	if health_cost > 0 and vitals_manager.current_health < health_cost:
 		return false
 	
-	if health_cost > 0 and resource_manager.current_health < health_cost:
+	if madra_cost > 0 and vitals_manager.current_madra < madra_cost:
 		return false
 	
-	if madra_cost > 0 and resource_manager.current_madra < madra_cost:
-		return false
-	
-	if stamina_cost > 0 and resource_manager.current_stamina < stamina_cost:
+	if stamina_cost > 0 and vitals_manager.current_stamina < stamina_cost:
 		return false
 	
 	return true
 
 ## Consume the resources required for this ability
-func consume_costs(resource_manager: CombatResourceManager) -> bool:
-	if not can_afford(resource_manager):
+func consume_costs(vitals_manager: VitalsManager) -> bool:
+	if not can_afford(vitals_manager):
 		return false
 	
 	if not is_equal_approx(health_cost, 0.0):
-		resource_manager.apply_damage(health_cost)
+		vitals_manager.apply_damage(health_cost)
 	if not is_equal_approx(madra_cost, 0.0):
-		resource_manager.current_madra -= madra_cost
+		vitals_manager.current_madra -= madra_cost
 	if not is_equal_approx(stamina_cost, 0.0):
-		resource_manager.current_stamina -= stamina_cost
+		vitals_manager.current_stamina -= stamina_cost
 	
 	return true
 

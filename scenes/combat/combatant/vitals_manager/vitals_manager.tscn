@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dmknq0mniyrnn"]
+
+[ext_resource type="Script" path="res://scenes/combat/combatant/vitals_manager/vitals_manager.gd" id="1_b0o40"]
+
+[node name="VitalsManager" type="Node"]
+script = ExtResource("1_b0o40")

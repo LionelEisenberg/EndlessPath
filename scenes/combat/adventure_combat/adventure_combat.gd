@@ -21,7 +21,7 @@ var combatant_scene: PackedScene = preload("res://scenes/combat/combatant/combat
 # STATE VARIABLES
 #-----------------------------------------------------------------------------
 
-var player_resource_manager: CombatResourceManager = null
+var player_vitals_manager: VitalsManager = null
 var current_combat_choice: CombatChoice = null
 var current_adventure_action: AdventureActionData = null
 
@@ -48,16 +48,16 @@ func _ready() -> void:
 ## Initializes the combat with the chosen encounter, player resources, and adventure context.
 func initialize_combat(
 	choice: CombatChoice,
-	prm: CombatResourceManager,
+	prm: VitalsManager,
 	adventure_action: AdventureActionData
 ) -> void:
 	self.current_combat_choice = choice
-	self.player_resource_manager = prm
+	self.player_vitals_manager = prm
 	self.current_adventure_action = adventure_action
 
-	# Connect player_resource_manager to the trigger_combat_end signal
-	if not player_resource_manager.health_changed.is_connected(_on_player_health_changed):
-		player_resource_manager.health_changed.connect(_on_player_health_changed)
+	# Connect player_vitals_manager to the trigger_combat_end signal
+	if not player_vitals_manager.health_changed.is_connected(_on_player_health_changed):
+		player_vitals_manager.health_changed.connect(_on_player_health_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -71,7 +71,7 @@ func start() -> void:
 		Log.error("AdventureCombat: No combat choice set!")
 		return
 		
-	if not player_resource_manager:
+	if not player_vitals_manager:
 		Log.error("AdventureCombat: No player resource manager set!")
 		return
 
@@ -112,7 +112,7 @@ func _create_player_combatant() -> void:
 	# Connect signals BEFORE setup so we catch ability registration
 	player_combatant.ability_manager.ability_registered.connect(_on_ability_registered)
 
-	player_combatant.setup(player_data, player_resource_manager, true)
+	player_combatant.setup(player_data, player_vitals_manager, true)
 
 func _create_enemy_combatant() -> void:
 	if current_combat_choice.enemy_pool.is_empty():
@@ -131,7 +131,7 @@ func _create_enemy_combatant() -> void:
 	enemy_combatant.setup(enemy_data, null, false)
 	
 	# Setup CombatantInfoPanel
-	enemy_info_panel.setup(enemy_combatant.resource_manager)
+	enemy_info_panel.setup(enemy_combatant.vitals_manager)
 	
 	# Setup AI
 	var ai = SimpleEnemyAI.new()
@@ -141,7 +141,7 @@ func _create_enemy_combatant() -> void:
 		ai.setup(enemy_combatant, player_combatant)
 	
 	# Connect player_resource_manager to the trigger_combat_end signal
-	enemy_combatant.resource_manager.health_changed.connect(_on_enemy_health_changed)
+	enemy_combatant.vitals_manager.health_changed.connect(_on_enemy_health_changed)
 	
 
 #-----------------------------------------------------------------------------

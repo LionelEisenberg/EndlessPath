@@ -5,7 +5,7 @@ extends Panel
 @onready var madra_bar: ResourceBar = %MadraProgressBar
 @onready var stamina_bar: ResourceBar = %StaminaProgressBar
 
-var resource_manager: CombatResourceManager
+var vitals_manager: VitalsManager
 
 func _ready() -> void:
 	pass # Replace with function body.
@@ -14,26 +14,26 @@ func _ready() -> void:
 func reset() -> void:
 	Log.info("CombatantInfoPanel: Resetting %s" % name)
 	
-	resource_manager = null
+	vitals_manager = null
 
 ## Sets up the panel with the given resource manager.
-func setup(p_resource_manager: CombatResourceManager) -> void:
-	resource_manager = p_resource_manager
+func setup(p_vitals_manager: VitalsManager) -> void:
+	vitals_manager = p_vitals_manager
 	
-	if not resource_manager.health_changed.is_connected(update_labels):
-		resource_manager.health_changed.connect(update_labels.unbind(1))
+	if not vitals_manager.health_changed.is_connected(update_labels):
+		vitals_manager.health_changed.connect(update_labels.unbind(1))
 	
-	if not resource_manager.madra_changed.is_connected(update_labels):
-		resource_manager.madra_changed.connect(update_labels.unbind(1))
+	if not vitals_manager.madra_changed.is_connected(update_labels):
+		vitals_manager.madra_changed.connect(update_labels.unbind(1))
 	
-	if not resource_manager.stamina_changed.is_connected(update_labels):
-		resource_manager.stamina_changed.connect(update_labels.unbind(1))
+	if not vitals_manager.stamina_changed.is_connected(update_labels):
+		vitals_manager.stamina_changed.connect(update_labels.unbind(1))
 	
 	update_labels()
 
 ## Updates the labels with current resource values.
 func update_labels() -> void:
-	if resource_manager:
-		health_bar.update_values(resource_manager.current_health, resource_manager.max_health)
-		madra_bar.update_values(resource_manager.current_madra, resource_manager.max_madra)
-		stamina_bar.update_values(resource_manager.current_stamina, resource_manager.max_stamina)
+	if vitals_manager:
+		health_bar.update_values(vitals_manager.current_health, vitals_manager.max_health)
+		madra_bar.update_values(vitals_manager.current_madra, vitals_manager.max_madra)
+		stamina_bar.update_values(vitals_manager.current_stamina, vitals_manager.max_stamina)

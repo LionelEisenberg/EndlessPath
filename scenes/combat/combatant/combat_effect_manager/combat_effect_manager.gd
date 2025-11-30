@@ -9,16 +9,16 @@ extends Node
 #-----------------------------------------------------------------------------
 
 var combatant_data: CombatantData
-var resource_manager: CombatResourceManager
+var vitals_manager: VitalsManager
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
 ## Sets up the manager with data and resources.
-func setup(data: CombatantData, p_resource_manager: CombatResourceManager) -> void:
+func setup(data: CombatantData, p_vitals_manager: VitalsManager) -> void:
 	combatant_data = data
-	resource_manager = p_resource_manager
+	vitals_manager = p_vitals_manager
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -26,7 +26,7 @@ func setup(data: CombatantData, p_resource_manager: CombatResourceManager) -> vo
 
 ## Processes an incoming effect from a source.
 func process_effect(effect: CombatEffectData, source_attributes: CharacterAttributesData) -> void:
-	if not resource_manager:
+	if not vitals_manager:
 		Log.error("CombatEffectManager: No resource manager set!")
 		return
 		
@@ -38,9 +38,9 @@ func process_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 		CombatEffectData.EffectType.DAMAGE:
 			final_value = effect.calculate_damage(source_attributes, combatant_data.attributes)
 			Log.info("CombatEffectManager: %s Took %.1f damage from %s" % [combatant_data.character_name, final_value, effect.effect_name])
-			resource_manager.apply_damage(final_value)
+			vitals_manager.apply_damage(final_value)
 			
 		CombatEffectData.EffectType.HEAL:
 			final_value = effect.calculate_value(source_attributes)
 			Log.info("CombatEffectManager: %s Healed %.1f from %s" % [combatant_data.character_name, final_value, effect.effect_name])
-			resource_manager.apply_healing(final_value)
+			vitals_manager.apply_healing(final_value)

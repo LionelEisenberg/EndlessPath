@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://deffp3iesbl0n"]
-
-[ext_resource type="Script" path="res://scenes/game_systems/combat/combatant/combat_ability_manager/combat_abilitiy_instance.gd" id="1_4g268"]
-
-[node name="CombatAbilitiyInstance" type="Node"]
-script = ExtResource("1_4g268")

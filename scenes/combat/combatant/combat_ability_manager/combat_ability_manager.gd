@@ -13,7 +13,7 @@ signal ability_used(instance: CombatAbilityInstance, target: CombatantNode)
 #-----------------------------------------------------------------------------
 
 var combatant_data: CombatantData
-var resource_manager: CombatResourceManager
+var vitals_manager: VitalsManager
 var abilities: Array[CombatAbilityInstance] = []
 
 #-----------------------------------------------------------------------------
@@ -21,9 +21,9 @@ var abilities: Array[CombatAbilityInstance] = []
 #-----------------------------------------------------------------------------
 
 ## Sets up the manager with data and resources.
-func setup(data: CombatantData, p_resource_manager: CombatResourceManager) -> void:
+func setup(data: CombatantData, p_vitals_manager: VitalsManager) -> void:
 	combatant_data = data
-	resource_manager = p_resource_manager
+	vitals_manager = p_vitals_manager
 	
 	_clear_abilities()
 	
@@ -51,18 +51,18 @@ func _create_ability_instance(ability_data: AbilityData) -> void:
 func get_ability_count() -> int:
 	return abilities.size()
 
-## Returns the ability instance at the given index.
+## Returns the ability instance at the given index from the abilities array.
 func get_ability(index: int) -> CombatAbilityInstance:
 	if index >= 0 and index < abilities.size():
 		return abilities[index]
 	return null
 
-## Uses the ability at the given index on the target.
+## Uses the ability at the given index from the abilities array on the target.
 func use_ability(index: int, target: CombatantNode) -> bool:
 	var instance = get_ability(index)
 
 	# Consume Resources
-	instance.ability_data.consume_costs(resource_manager)
+	instance.ability_data.consume_costs(vitals_manager)
 	
 	# Use Ability
 	instance.use(target)
@@ -88,13 +88,13 @@ func use_ability_instance(instance: CombatAbilityInstance, target: CombatantNode
 		return false
 	
 	# Check Resources
-	if not instance.ability_data.can_afford(resource_manager):
+	if not instance.ability_data.can_afford(vitals_manager):
 		Log.warn("CombatAbilityManager: %s: Not enough resources for %s" % [combatant_data.character_name, instance.ability_data.ability_name])
 		#ability_failed.emit("Not enough resources")
 		return false
 		
 	# Consume Resources
-	instance.ability_data.consume_costs(resource_manager)
+	instance.ability_data.consume_costs(vitals_manager)
 	
 	# Use Ability
 	Log.info("CombatAbilityManager: %s: Used ability %s on %s" % [combatant_data.character_name, instance.ability_data.ability_name, target.name])

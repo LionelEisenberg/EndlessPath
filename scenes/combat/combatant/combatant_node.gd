@@ -14,7 +14,7 @@ extends Node2D
 #-----------------------------------------------------------------------------
 
 # We create these in code or get them from children if they exist
-@onready var resource_manager: CombatResourceManager = %CombatResourceManager
+@onready var vitals_manager: VitalsManager = %VitalsManager
 @onready var ability_manager: CombatAbilityManager = %CombatAbilityManager
 @onready var effect_manager: CombatEffectManager = %CombatEffectManager
 
@@ -35,22 +35,22 @@ func _ready() -> void:
 ## Sets up the combatant with data and optional external resources.
 func setup(
 	data: CombatantData,
-	external_resource_manager: CombatResourceManager = null,
+	external_vitals_manager: VitalsManager = null,
 	p_is_player: bool = false
 ) -> void:
 	is_player = p_is_player
 	combatant_data = data
 	
 	# Setup Managers - Resource, Ability, Effect
-	if external_resource_manager:
-		resource_manager = external_resource_manager
+	if external_vitals_manager:
+		vitals_manager = external_vitals_manager
 	else:
-		resource_manager = %CombatResourceManager
-		resource_manager.character_attributes_data = combatant_data.attributes
-		resource_manager.initialize_current_values()
+		vitals_manager = %VitalsManager
+		vitals_manager.character_attributes_data = combatant_data.attributes
+		vitals_manager.initialize_current_values()
 	
-	ability_manager.setup(combatant_data, resource_manager)
-	effect_manager.setup(combatant_data, resource_manager)
+	ability_manager.setup(combatant_data, vitals_manager)
+	effect_manager.setup(combatant_data, vitals_manager)
 
 	_update_visuals()
 

@@ -1,4 +1,4 @@
-class_name CombatResourceManager
+class_name VitalsManager
 extends Node
 
 #-----------------------------------------------------------------------------
@@ -16,7 +16,7 @@ const AttributeType = CharacterAttributesData.AttributeType
 		character_attributes_data = value
 		_update_combat_max()
 
-@export var is_player : bool = false
+@export var is_player: bool = false
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -54,16 +54,16 @@ var current_stamina: float:
 
 func _ready() -> void:
 	if is_player and character_attributes_data:
-		Log.warn("CombatResourceManager: is_player and character_attributes_data should never be set at the same time")
+		Log.warn("VitalsManager: is_player and character_attributes_data should never be set at the same time")
 	
 	if is_player:
-		var f  = func() : character_attributes_data = CharacterManager.get_total_attributes_data()
+		var f = func(): character_attributes_data = CharacterManager.get_total_attributes_data()
 		CharacterManager.base_attribute_changed.connect(f)
 		f.call()
 
 func _update_combat_max() -> void:
 	max_health = _get_max_health()
-	max_stamina = _get_max_stamina()	
+	max_stamina = _get_max_stamina()
 	max_madra = _get_max_madra()
 
 #-----------------------------------------------------------------------------

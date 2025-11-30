@@ -57,7 +57,7 @@ enum HighlightType {
 
 var current_adventure_action_data: AdventureActionData = null
 var adventure_map_generator: AdventureMapGenerator
-var player_resource_manager: CombatResourceManager = null
+var player_vitals_manager: VitalsManager = null
 
 ## Main data structure for the adventure tilemap, key is the cube coordinate, value is the Adventure encounter
 var _encounter_tile_dictionary: Dictionary[Vector3i, AdventureEncounter] = {}
@@ -101,11 +101,11 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Starts the adventure with the given action data and player resources.
-func start_adventure(action_data: AdventureActionData, prm: CombatResourceManager) -> void:
+func start_adventure(action_data: AdventureActionData, prm: VitalsManager) -> void:
 	Log.info("AdventureTilemap: Starting adventure: %s" % action_data.action_name)
 
 	current_adventure_action_data = action_data
-	player_resource_manager = prm
+	player_vitals_manager = prm
 
 	# Generate the adventure_tile_dictionary
 	adventure_map_generator.set_adventure_map_data(current_adventure_action_data.adventure_data.map_data)
@@ -130,7 +130,7 @@ func stop_adventure() -> void:
 	_highlight_tile_dictionary.clear()
 	_visitation_queue.clear()
 	_current_tile = Vector3i.ZERO
-	player_resource_manager = null
+	player_vitals_manager = null
 	_is_movement_locked = false
 	encounter_info_panel.visible = false
 	
@@ -251,7 +251,7 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	
 	# Check stamina for the full path (approximation, actual deduction happens per step)
 	var _total_cost = (path_cube_coords.size() - 1) * MOVEMENT_STAMINA_COST
-	if player_resource_manager and player_resource_manager.current_stamina < MOVEMENT_STAMINA_COST:
+	if player_vitals_manager and player_vitals_manager.current_stamina < MOVEMENT_STAMINA_COST:
 		Log.info("AdventureTilemap: Not enough stamina to move!")
 		# TODO: Show UI feedback
 		return
@@ -297,9 +297,9 @@ func _process_next_visitation() -> void:
 	var next_tile = _visitation_queue[0] # Peek first
 	
 	# Check stamina before moving
-	if player_resource_manager:
-		if player_resource_manager.current_stamina >= MOVEMENT_STAMINA_COST:
-			player_resource_manager.current_stamina -= MOVEMENT_STAMINA_COST
+	if player_vitals_manager:
+		if player_vitals_manager.current_stamina >= MOVEMENT_STAMINA_COST:
+			player_vitals_manager.current_stamina -= MOVEMENT_STAMINA_COST
 		else:
 			Log.info("AdventureTilemap: Out of stamina, stopping movement.")
 			_visitation_queue.clear()

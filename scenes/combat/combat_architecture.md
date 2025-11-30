@@ -48,7 +48,7 @@ Now the data structure are driving a lot of the logic in the combat system. Here
 ### Logic Flow
 
 -> AdventureView.start_adventure() gets called when ActionManager starts adventure 
--> Create new CombatResourceManager set from players total CharacterAttributesData fetched from CharacterManager -> Initialize AdventureCombat with CombatEncounter & player resource manager 
+-> Create new VitalsManager set from players total CharacterAttributesData fetched from CharacterManager -> Initialize AdventureCombat with CombatEncounter & player resource manager 
 -> AdventureCombat.start_combat() the player combatant with the player resource manager:
 	-> player combatant initialized with player resource manager (The passed Node is used directly)
 	-> ability manager setup with player CombatantData fetched from CharacterManager which includes CharacterAbilitiesData & CharacterAttributesData
@@ -75,7 +75,7 @@ sequenceDiagram
 	participant UI as AbilityButton
 	participant AM as CombatAbilityManager
 	participant AI as CombatAbilityInstance
-	participant RM as CombatResourceManager
+	participant RM as VitalsManager
 	participant Target as EnemyCombatant
 	participant EM as CombatEffectManager
 

@@ -8,10 +8,17 @@ extends Resource
 #-----------------------------------------------------------------------------
 # ENUMS
 #-----------------------------------------------------------------------------
-#
-#enum EncounterType {
-	#
-#}
+
+enum EncounterType {
+	COMBAT_REGULAR, # Implemented
+	COMBAT_AMBUSH, # Implemented
+	COMBAT_BOSS, # Implemented
+	COMBAT_ELITE, # Implemented
+	REST_SITE, # TODO: Implement
+	SHRINE, # TODO: Implement
+	TRAP, # TODO: Implement
+	NONE, # No encounter, no implementation needed
+}
 
 #-----------------------------------------------------------------------------
 # EXPORTED PROPERTIES
@@ -31,6 +38,9 @@ extends Resource
 
 ## List of choices available to the player
 @export var choices: Array[EncounterChoice] = []
+
+## Type of encounter
+@export var encounter_type: EncounterType = EncounterType.NONE
 
 #-----------------------------------------------------------------------------
 # STRING REPRESENTATION

@@ -16,7 +16,7 @@ extends Control
 @onready var combat_view: Control = %CombatView
 
 @onready var player_info_panel: CombatantInfoPanel = %PlayerInfoPanel
-@onready var player_resource_manager: CombatResourceManager = %PlayerResourceManager
+@onready var player_vitals_manager: VitalsManager = %PlayerVitalsManager
 
 @onready var adventure_timer: Timer = Timer.new()
 @onready var timer_label: Label = Label.new()
@@ -71,11 +71,11 @@ func _process(delta: float) -> void:
 		
 		# Passive Stamina Regen
 		# Only regen if not in combat (combat view is hidden)
-		if tilemap_view.visible and player_resource_manager:
+		if tilemap_view.visible and player_vitals_manager:
 			var regen_amount = 1.0 * current_action_data.stamina_regen_modifier * delta
-			player_resource_manager.current_stamina = min(
-				player_resource_manager.current_stamina + regen_amount,
-				player_resource_manager.max_stamina
+			player_vitals_manager.current_stamina = min(
+				player_vitals_manager.current_stamina + regen_amount,
+				player_vitals_manager.max_stamina
 			)
 
 #-----------------------------------------------------------------------------
@@ -96,7 +96,7 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	adventure_timer.start(time_limit)
 	timer_label.visible = true
 	
-	adventure_tilemap.start_adventure(action_data, player_resource_manager)
+	adventure_tilemap.start_adventure(action_data, player_vitals_manager)
 	
 	# Connect to the combat node
 	if not combat.trigger_combat_end.is_connected(_on_stop_combat):
@@ -131,7 +131,7 @@ func _on_start_combat(choice: CombatChoice) -> void:
 	if combat:
 		combat.initialize_combat(
 			choice,
-			player_resource_manager,
+			player_vitals_manager,
 			current_action_data # Pass adventure action data for gold multiplier
 		)
 		combat.start()
@@ -165,8 +165,8 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 
 ## Initialize resource values
 func _initialize_combat_resources() -> void:
-	player_resource_manager.initialize_current_values()
-	player_info_panel.setup(player_resource_manager)
+	player_vitals_manager.initialize_current_values()
+	player_info_panel.setup(player_vitals_manager)
 
 func _on_adventure_timer_timeout() -> void:
 	Log.info("AdventureView: Time limit reached!")
