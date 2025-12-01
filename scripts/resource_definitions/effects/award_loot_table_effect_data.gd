@@ -30,8 +30,6 @@ func process() -> void:
 		Log.error("AwardLootTableEffectData: Loot table is null!")
 		return
 	
-	Log.debug("AwardLootTableEffectData: Rolling loot table with %d entries" % loot_table.entries.size())
-	
 	# Roll the loot table
 	var rolled_items: Dictionary = loot_table.roll_loot()
 	

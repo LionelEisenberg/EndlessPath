@@ -69,9 +69,7 @@ func roll_loot() -> Dictionary:
 #-----------------------------------------------------------------------------
 
 ## Verify that all loot entries are valid
-func _verify_loot_table() -> bool:
-	Log.debug("LootTable: Verifying loot table with %d entries" % entries.size())
-	
+func _verify_loot_table() -> bool:	
 	var valid: bool = true
 	
 	for i in range(entries.size()):

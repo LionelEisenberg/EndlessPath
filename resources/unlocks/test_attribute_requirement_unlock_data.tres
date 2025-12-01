@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" load_steps=2 format=3 uid="uid://l11ly74pkjay"]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_lyh8n"]
+
+[resource]
+script = ExtResource("1_lyh8n")
+condition_id = "test_attribute_requirement_unlock_data"
+condition_type = 7
+target_value = 20.0
+optional_params = {
+"attribute_type": 1
+}
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"

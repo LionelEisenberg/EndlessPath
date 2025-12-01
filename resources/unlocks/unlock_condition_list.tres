@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="UnlockConditionList" load_steps=4 format=3 uid="uid://chaqu7ri6ewe1"]
+[gd_resource type="Resource" script_class="UnlockConditionList" load_steps=5 format=3 uid="uid://chaqu7ri6ewe1"]
 
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_aq0o0"]
 [ext_resource type="Script" uid="uid://dskgt7ri3i7p3" path="res://scripts/resource_definitions/unlocks/unlock_condition_list.gd" id="2_2uato"]
 [ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/initial_spirit_valley_dialogue_1.tres" id="2_tsp8q"]
+[ext_resource type="Resource" uid="uid://l11ly74pkjay" path="res://resources/unlocks/test_attribute_requirement_unlock_data.tres" id="3_pa8gf"]
 
 [resource]
 script = ExtResource("2_2uato")
-list = Array[ExtResource("1_aq0o0")]([ExtResource("2_tsp8q")])
+list = Array[ExtResource("1_aq0o0")]([ExtResource("2_tsp8q"), ExtResource("3_pa8gf")])
 metadata/_custom_type_script = "uid://dskgt7ri3i7p3"

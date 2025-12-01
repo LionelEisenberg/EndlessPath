@@ -64,7 +64,7 @@ func evaluate() -> bool:
 			return _compare_values(current_amount, target_value, comparison_op)
 		
 		ConditionType.ATTRIBUTE_VALUE:
-			var attribute_type: AttributeType = optional_params.get("attribute_type", AttributeType.BODY)
+			var attribute_type: AttributeType = optional_params.get("attribute_type", AttributeType.STRENGTH)
 			var current_value = CharacterManager.get_total_attributes_data().get_attribute(attribute_type)
 			return _compare_values(current_value, target_value, comparison_op)
 		
