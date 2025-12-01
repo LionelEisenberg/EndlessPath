@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AdventureEncounter" load_steps=7 format=3 uid="uid://dkmgxp77wu65n"]
+
+[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_qch76"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_66c7w"]
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="2_vb2lw"]
+[ext_resource type="Script" uid="uid://cesx0glx57xs4" path="res://scripts/resource_definitions/effects/change_vitals_effect_data.gd" id="3_jvvai"]
+
+[sub_resource type="Resource" id="Resource_dkv36"]
+script = ExtResource("3_jvvai")
+mana_change = 10.0
+metadata/_custom_type_script = "uid://cesx0glx57xs4"
+
+[sub_resource type="Resource" id="Resource_2n4vy"]
+script = ExtResource("1_qch76")
+label = "REST"
+success_effects = Array[ExtResource("2_66c7w")]([SubResource("Resource_dkv36")])
+metadata/_custom_type_script = "uid://c1b11mq3a2qya"
+
+[resource]
+script = ExtResource("2_vb2lw")
+choices = Array[ExtResource("1_qch76")]([SubResource("Resource_2n4vy")])
+metadata/_custom_type_script = "uid://cs335nesm7wfr"

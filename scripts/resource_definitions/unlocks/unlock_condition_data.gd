@@ -1,23 +1,25 @@
 class_name UnlockConditionData
 extends Resource
 
+const AttributeType = CharacterAttributesData.AttributeType
+
 enum ConditionType {
-	CULTIVATION_STAGE,      # Check advancement stage
-	CULTIVATION_LEVEL,      # Check core density level
-	ZONE_UNLOCKED,         # Check if zone is unlocked
-	ADVENTURE_COMPLETED,   # Check dungeon/adventure completion
-	EVENT_TRIGGERED,       # Check if event occurred
-	ITEM_OWNED,            # Check inventory for item
-	RESOURCE_AMOUNT,       # Check resource quantity (madra/gold)
-	STAT_VALUE,            # Check adventure stat value
-	GAME_SYSTEM_UNLOCKED   # Check if system is unlocked
+	CULTIVATION_STAGE, # Check advancement stage
+	CULTIVATION_LEVEL, # Check core density level
+	ZONE_UNLOCKED, # Check if zone is unlocked
+	ADVENTURE_COMPLETED, # Check dungeon/adventure completion
+	EVENT_TRIGGERED, # Check if event occurred
+	ITEM_OWNED, # Check inventory for item
+	RESOURCE_AMOUNT, # Check resource quantity (madra/gold)
+	ATTRIBUTE_VALUE, # Check attribute value
+	GAME_SYSTEM_UNLOCKED # Check if system is unlocked
 }
 
-@export var condition_id: String = ""  # Unique identifier for this condition
+@export var condition_id: String = "" # Unique identifier for this condition
 @export var condition_type: ConditionType = ConditionType.CULTIVATION_STAGE
-@export var target_value: Variant  # What to check against
-@export var comparison_op: String = ">="  # ">=", "==", "<=", etc.
-@export var optional_params: Dictionary = {}  # Type-specific params
+@export var target_value: Variant # What to check against
+@export var comparison_op: String = ">=" # ">=", "==", "<=", etc.
+@export var optional_params: Dictionary = {} # Type-specific params
 
 func evaluate() -> bool:
 	# Evaluates condition against current game state via manager queries
@@ -61,10 +63,16 @@ func evaluate() -> bool:
 				current_amount = ResourceManager.get_gold()
 			return _compare_values(current_amount, target_value, comparison_op)
 		
-		ConditionType.STAT_VALUE:
-			# Will be implemented in AdventureManager
-			Log.warn("UnlockConditionData: STAT_VALUE not yet implemented")
+		ConditionType.ATTRIBUTE_VALUE:
+			var attribute_type: AttributeType = optional_params.get("attribute_type", AttributeType.BODY)
+			var current_value = CharacterManager.get_total_attributes_data().get_attribute(attribute_type)
+			return _compare_values(current_value, target_value, comparison_op)
+		
+		ConditionType.GAME_SYSTEM_UNLOCKED:
+			# Will be implemented in SystemManager
+			Log.warn("UnlockConditionData: GAME_SYSTEM_UNLOCKED not yet implemented")
 			return false
+		
 	return false
 
 
@@ -72,9 +80,9 @@ func evaluate() -> bool:
 func _compare_values(a: Variant, b: Variant, op: String) -> bool:
 	match op:
 		">=": return a >= b
-		">":  return a > b
+		">": return a > b
 		"<=": return a <= b
-		"<":  return a < b
+		"<": return a < b
 		"==": return a == b
 		"!=": return a != b
 		_: return false

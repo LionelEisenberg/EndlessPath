@@ -21,7 +21,6 @@ var combatant_scene: PackedScene = preload("res://scenes/combat/combatant/combat
 # STATE VARIABLES
 #-----------------------------------------------------------------------------
 
-var player_vitals_manager: VitalsManager = null
 var current_combat_choice: CombatChoice = null
 var current_adventure_action: AdventureActionData = null
 
@@ -45,19 +44,17 @@ var enemy_combatant: CombatantNode
 func _ready() -> void:
 	Log.info("AdventureCombat: Initialized")
 
-## Initializes the combat with the chosen encounter, player resources, and adventure context.
+## Initializes the combat with the chosen encounter, and adventure context.
 func initialize_combat(
 	choice: CombatChoice,
-	prm: VitalsManager,
 	adventure_action: AdventureActionData
 ) -> void:
 	self.current_combat_choice = choice
-	self.player_vitals_manager = prm
 	self.current_adventure_action = adventure_action
 
-	# Connect player_vitals_manager to the trigger_combat_end signal
-	if not player_vitals_manager.health_changed.is_connected(_on_player_health_changed):
-		player_vitals_manager.health_changed.connect(_on_player_health_changed)
+	# Connect PlayerManager.vitals_manager to the trigger_combat_end signal
+	if not PlayerManager.vitals_manager.health_changed.is_connected(_on_player_health_changed):
+		PlayerManager.vitals_manager.health_changed.connect(_on_player_health_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -71,7 +68,7 @@ func start() -> void:
 		Log.error("AdventureCombat: No combat choice set!")
 		return
 		
-	if not player_vitals_manager:
+	if not PlayerManager.vitals_manager:
 		Log.error("AdventureCombat: No player resource manager set!")
 		return
 
@@ -112,7 +109,7 @@ func _create_player_combatant() -> void:
 	# Connect signals BEFORE setup so we catch ability registration
 	player_combatant.ability_manager.ability_registered.connect(_on_ability_registered)
 
-	player_combatant.setup(player_data, player_vitals_manager, true)
+	player_combatant.setup(player_data, PlayerManager.vitals_manager, true)
 
 func _create_enemy_combatant() -> void:
 	if current_combat_choice.enemy_pool.is_empty():

@@ -75,17 +75,39 @@ func initialize_current_values() -> void:
 	current_stamina = max_stamina
 	current_madra = max_madra
 
-## Apply damage to current health
-func apply_damage(amount: float) -> void:
-	current_health = max(0.0, current_health - amount)
+func apply_vitals_change(health_amount: float = 0.0, stamina_amount: float = 0.0, madra_amount: float = 0.0) -> void:
+	_apply_health_change(health_amount)
+	_apply_stamina_change(stamina_amount)
+	_apply_madra_change(madra_amount)
 
-## Apply healing to current health
-func apply_healing(amount: float) -> void:
-	current_health = min(max_health, current_health + amount)
 
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## Adds or subtracts health, clamping to 0 and max health
+func _apply_health_change(amount: float) -> void:
+	var new_health = min(max_health, max(0.0, current_health + amount))
+	if is_player:
+		if abs(current_health - new_health) > 1.0:
+			Log.info("VitalsManager: Health changed by %.1f from %.1f to %.1f" % [amount, current_health, new_health])
+	current_health = new_health
+
+## Adds or subtracts stamina, clamping to 0 and max stamina
+func _apply_stamina_change(amount: float) -> void:
+	var new_stamina = min(max_stamina, max(0.0, current_stamina + amount))
+	if is_player:
+		if abs(current_stamina - new_stamina) > 1.0:
+			Log.info("VitalsManager: Stamina changed by %.1f from %.1f to %.1f" % [amount, current_stamina, new_stamina])
+	current_stamina = new_stamina
+
+## Adds or subtracts madra, clamping to 0 and max madra
+func _apply_madra_change(amount: float) -> void:
+	var new_madra = min(max_madra, max(0.0, current_madra + amount))
+	if is_player:
+		if abs(current_madra - new_madra) > 1.0:
+			Log.info("VitalsManager: Madra changed by %.1f from %.1f to %.1f" % [amount, current_madra, new_madra])
+	current_madra = new_madra
 
 ## Calculate maximum health based on Body attribute
 func _get_max_health() -> float:

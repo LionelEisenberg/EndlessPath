@@ -1,10 +1,12 @@
-[gd_resource type="Resource" script_class="AdventureMapData" load_steps=4 format=3 uid="uid://dkpf211m22hlr"]
+[gd_resource type="Resource" script_class="AdventureMapData" load_steps=6 format=3 uid="uid://dkpf211m22hlr"]
 
-[ext_resource type="Script" uid="uid://bars7sna1emxp" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="1_let1d"]
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="1_let1d"]
 [ext_resource type="Script" uid="uid://q3c2lkb1nl1i" path="res://scripts/resource_definitions/adventure/adventure_map_data.gd" id="2_pxc64"]
 [ext_resource type="Resource" uid="uid://ba4cugrsd5v33" path="res://resources/adventure/encounters/test_combat_encounter.tres" id="3_let1d"]
+[ext_resource type="Resource" uid="uid://dkmgxp77wu65n" path="res://resources/adventure/encounters/test_rest_encounter.tres" id="4_pxc64"]
+[ext_resource type="Resource" uid="uid://cqi24qraplb6m" path="res://resources/adventure/encounters/test_trap_encounter.tres" id="5_tekm0"]
 
 [resource]
 script = ExtResource("2_pxc64")
-special_encounter_pool = Array[ExtResource("1_let1d")]([ExtResource("3_let1d")])
+special_encounter_pool = Array[ExtResource("1_let1d")]([ExtResource("3_let1d"), ExtResource("4_pxc64"), ExtResource("5_tekm0")])
 metadata/_custom_type_script = "uid://q3c2lkb1nl1i"

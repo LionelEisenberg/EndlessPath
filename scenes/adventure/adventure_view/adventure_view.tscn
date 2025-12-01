@@ -1,9 +1,8 @@
-[gd_scene load_steps=9 format=3 uid="uid://cwb0nnj7np102"]
+[gd_scene load_steps=8 format=3 uid="uid://cwb0nnj7np102"]
 
 [ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/sprites/zones/backgrounds/spirit_valley_background.jpg" id="1_3ls1s"]
 [ext_resource type="Script" uid="uid://c2piaspfbnqfd" path="res://scenes/adventure/adventure_view/adventure_view.gd" id="1_176xw"]
 [ext_resource type="PackedScene" uid="uid://bvgyusvjgbnbx" path="res://scenes/adventure/adventure_tilemap/adventure_tilemap.tscn" id="2_176xw"]
-[ext_resource type="PackedScene" uid="uid://dmknq0mniyrnn" path="res://scenes/combat/combatant/vitals_manager/vitals_manager.tscn" id="2_bl004"]
 [ext_resource type="PackedScene" uid="uid://blofb5opg1kdu" path="res://scenes/combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
 [ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="6_a8cog"]
 [ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/asperite/character_profiles/base_player.png" id="7_4nakn"]
@@ -25,10 +24,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_176xw")
-
-[node name="PlayerVitalsManager" parent="." instance=ExtResource("2_bl004")]
-unique_name_in_owner = true
-is_player = true
 
 [node name="TilemapView" type="Control" parent="."]
 unique_name_in_owner = true
