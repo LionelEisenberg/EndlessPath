@@ -54,7 +54,7 @@ window/stretch/mode="viewport"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/dialogic/plugin.cfg", "res://addons/hexagon_tilemaplayer/plugin.cfg", "res://addons/script-ide/plugin.cfg")
+enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg", "res://addons/dialogic/plugin.cfg", "res://addons/hexagon_tilemaplayer/plugin.cfg", "res://addons/script-ide/plugin.cfg")
 
 [file_customization]
 

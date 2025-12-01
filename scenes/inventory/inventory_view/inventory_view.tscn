@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://bxs3eblygn8oo" path="res://scenes/inventory/inventory_view/inventory_view.gd" id="1_43eln"]
 [ext_resource type="PackedScene" uid="uid://dnkls2h5eaj10" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.tscn" id="3_eyvfv"]
 [ext_resource type="Texture2D" uid="uid://becqlf1lmdb1x" path="res://assets/Food_01.png" id="4_0y30f"]
-[ext_resource type="Texture2D" uid="uid://2en522dn0wvj" path="res://assets/asperite/inventory/book_background.png" id="4_ln5v6"]
 [ext_resource type="Script" uid="uid://bevd783gr5t7m" path="res://scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd" id="4_tabsw"]
 [ext_resource type="Texture2D" uid="uid://3ceshn32wqax" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/tab_banner.png" id="8_midoe"]
 [ext_resource type="Script" uid="uid://o2cqmwaxwv01" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd" id="8_qfdbg"]
@@ -24,6 +23,8 @@
 [ext_resource type="Texture2D" uid="uid://x368xmilo0p" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_scroll..png" id="21_xb6h7"]
 [ext_resource type="Texture2D" uid="uid://cqbdw487scbtr" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_grabber.png" id="22_26fxh"]
 [ext_resource type="PackedScene" uid="uid://c5wiepsq2qinv" path="res://scenes/inventory/inventory_view/materials_tab/material_container.tscn" id="22_qufb6"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 
 [sub_resource type="Animation" id="Animation_a4bu5"]
 length = 0.001
@@ -101,7 +102,7 @@ offset_right = 350.0
 offset_bottom = 225.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("4_ln5v6")
+texture = SubResource("AtlasTexture_61p00")
 
 [node name="TabSwitcher" type="Control" parent="BookBackground"]
 unique_name_in_owner = true
