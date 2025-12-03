@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="AdventureEncounter" load_steps=9 format=3 uid="uid://b8d3dang80ohp"]
+
+[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_udic5"]
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="2_j3bre"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_kk31o"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="3_47elb"]
+[ext_resource type="Resource" uid="uid://cafgnbmro2vji" path="res://resources/zones/spirit_valley_zone/zone_actions/loot_table/test_loot_table_weapon.tres" id="4_y48db"]
+[ext_resource type="Script" uid="uid://w0sbaux5u040" path="res://scripts/resource_definitions/effects/award_loot_table_effect_data.gd" id="5_hltw1"]
+
+[sub_resource type="Resource" id="Resource_7athh"]
+script = ExtResource("5_hltw1")
+loot_table = ExtResource("4_y48db")
+metadata/_custom_type_script = "uid://w0sbaux5u040"
+
+[sub_resource type="Resource" id="Resource_l3j7f"]
+script = ExtResource("1_udic5")
+label = "TREASURE!"
+success_effects = Array[ExtResource("2_kk31o")]([SubResource("Resource_7athh")])
+metadata/_custom_type_script = "uid://c1b11mq3a2qya"
+
+[resource]
+script = ExtResource("2_j3bre")
+encounter_id = "Treasure!"
+encounter_name = "Treasure Encounter!"
+description = "Treasure Encounter!"
+text_description_completed = "Treasure Encountered!"
+choices = Array[ExtResource("1_udic5")]([SubResource("Resource_l3j7f")])
+metadata/_custom_type_script = "uid://cs335nesm7wfr"

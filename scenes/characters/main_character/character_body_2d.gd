@@ -118,7 +118,3 @@ func _stop_movement() -> void:
 func stop_moving() -> void:
 	if is_moving:
 		_stop_movement()
-
-## Legacy method for compatibility - now just calls stop_moving()
-func clear_movement_queue() -> void:
-	stop_moving()

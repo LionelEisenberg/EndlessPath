@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="AdventureEncounter" load_steps=13 format=3 uid="uid://ba4cugrsd5v33"]
+[gd_resource type="Resource" script_class="AdventureEncounter" load_steps=14 format=3 uid="uid://ba4cugrsd5v33"]
 
 [ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_v3vij"]
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_d8c11"]
 [ext_resource type="Resource" uid="uid://ctok24q1h2l1j" path="res://resources/combat/combatant_data/test_enemy.tres" id="3_d8c11"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="4_uup7q"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_a1abm"]
 [ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="5_hd1hl"]
 [ext_resource type="Resource" uid="uid://cafgnbmro2vji" path="res://resources/zones/spirit_valley_zone/zone_actions/loot_table/test_loot_table_weapon.tres" id="6_d8c11"]
 [ext_resource type="Script" uid="uid://w0sbaux5u040" path="res://scripts/resource_definitions/effects/award_loot_table_effect_data.gd" id="7_a1abm"]

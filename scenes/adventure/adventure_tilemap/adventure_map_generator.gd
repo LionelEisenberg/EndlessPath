@@ -9,6 +9,8 @@ var tile_map: HexagonTileMapLayer
 
 var all_map_tiles: Dictionary[Vector3i, AdventureEncounter] = {}
 
+var num_combats_in_map : int = 0
+
 ## Sets the map data used for generation.
 func set_adventure_map_data(map_data: AdventureMapData) -> void:
 	adventure_map_data = map_data
@@ -39,6 +41,8 @@ func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 	_assign_special_tiles()
 	
 	_generate_mst_paths()
+	
+	_assign_path_tiles()
 	
 	return all_map_tiles
 
@@ -92,10 +96,18 @@ func _assign_special_tiles() -> void:
 		Log.warn("AdventureMapGenerator: Can't Assign Encounters to special tiles as encounter pool is empty")
 		return
 
+	var furthest_node_coord = Vector3i.ZERO
+	var furthest_distance = 0
 	for coord in all_map_tiles.keys():
+		var distance_to_origin = tile_map.cube_distance(Vector3i.ZERO, coord)
+		if distance_to_origin >= furthest_distance:
+			furthest_node_coord = coord
+			furthest_distance = distance_to_origin
 		if coord == Vector3i.ZERO:
 			continue
 		all_map_tiles[coord] = adventure_map_data.special_encounter_pool[randi_range(0, adventure_map_data.special_encounter_pool.size() - 1)]
+
+	all_map_tiles[furthest_node_coord] = adventure_map_data.boss_encounter
 
 ## Generates a path network connecting all special tiles using Prim's MST algorithm.
 func _generate_mst_paths() -> void:
@@ -131,8 +143,23 @@ func _generate_mst_paths() -> void:
 		var path = tile_map.cube_linedraw(best_start_node, best_target_node)
 		for coord in path:
 			if not coord in all_map_tiles:
-				all_map_tiles[coord] = adventure_map_data.special_encounter_pool[randi_range(0, adventure_map_data.special_encounter_pool.size() - 1)]
+				all_map_tiles[coord] = NoOpEncounter.new()
 
 		# Move the newly connected node from 'nodes_to_add' to 'nodes_in_tree'.
 		nodes_in_tree.append(best_target_node)
 		nodes_to_add.erase(best_target_node)
+
+## Assigns path tiles according to the path encounter pools as well as the map data's number of combats
+## The logic here is there are num
+func _assign_path_tiles() -> void:
+	if adventure_map_data.path_encounter_pool.is_empty():
+		Log.warn("AdventureMapGenerator: Can't Assign Encounters to path tiles as encounter pool is empty")
+		return
+	
+	var num_path_encounters_left = adventure_map_data.num_path_encounters
+	while num_path_encounters_left != 0:
+		var tile_index = randi_range(1, all_map_tiles.values().size() - 1)
+		var path_encounter = all_map_tiles.values()[tile_index]
+		if path_encounter is NoOpEncounter:
+			all_map_tiles[all_map_tiles.keys()[tile_index]] = adventure_map_data.path_encounter_pool[randi_range(0, adventure_map_data.path_encounter_pool.size() - 1)]
+			num_path_encounters_left -= 1

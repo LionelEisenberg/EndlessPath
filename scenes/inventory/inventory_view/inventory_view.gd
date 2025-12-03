@@ -20,8 +20,16 @@ func _ready() -> void:
 	_on_tab_changed(0)
 
 func _on_tab_changed(index: int) -> void:
+	# Set all tabs to invisible, play animation, set tab to visible
 	for i in range(tabs.size()):
-		tabs[i].visible = (i == index)
+		tabs[i].visible = false
+	if ($BookBackground/AnimationPlayer as AnimationPlayer).animation_finished.has_connections():
+		$BookBackground/AnimationPlayer.animation_finished.disconnect(_on_animation_finished)
+	$BookBackground/AnimationPlayer.animation_finished.connect(_on_animation_finished.bind(index))
+	$BookBackground/AnimationPlayer.play("PageTurningAnimation")
+
+func _on_animation_finished(_args, index : int) -> void:
+	tabs[index].visible = true
 
 # Handle input for closing inventory
 func _input(event):

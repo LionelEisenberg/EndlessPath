@@ -1,6 +1,7 @@
-[gd_scene load_steps=32 format=3 uid="uid://sra4pqjmj11a"]
+[gd_scene load_steps=36 format=3 uid="uid://sra4pqjmj11a"]
 
 [ext_resource type="Script" uid="uid://bxs3eblygn8oo" path="res://scenes/inventory/inventory_view/inventory_view.gd" id="1_43eln"]
+[ext_resource type="Texture2D" uid="uid://2ht5lyu30god" path="res://assets/asperite/inventory/Sprite-0003-Sheet.png" id="2_wdr80"]
 [ext_resource type="PackedScene" uid="uid://dnkls2h5eaj10" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.tscn" id="3_eyvfv"]
 [ext_resource type="Texture2D" uid="uid://becqlf1lmdb1x" path="res://assets/Food_01.png" id="4_0y30f"]
 [ext_resource type="Script" uid="uid://bevd783gr5t7m" path="res://scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd" id="4_tabsw"]
@@ -25,6 +26,45 @@
 [ext_resource type="PackedScene" uid="uid://c5wiepsq2qinv" path="res://scenes/inventory/inventory_view/materials_tab/material_container.tscn" id="22_qufb6"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
+atlas = ExtResource("2_wdr80")
+region = Rect2(0, 0, 700, 450)
+
+[sub_resource type="Animation" id="Animation_wdr80"]
+resource_name = "PageTurningAnimation"
+length = 0.54
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:texture:region")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.06, 0.12, 0.18, 0.24, 0.3, 0.36, 0.42, 0.48, 0.54),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [Rect2(0, 0, 700, 450), Rect2(700, 0, 700, 450), Rect2(1400, 0, 700, 450), Rect2(2100, 0, 700, 450), Rect2(2800, 0, 700, 450), Rect2(3500, 0, 700, 450), Rect2(4200, 0, 700, 450), Rect2(4900, 0, 700, 450), Rect2(5600, 0, 700, 450), Rect2(6300, 0, 700, 450)]
+}
+
+[sub_resource type="Animation" id="Animation_cs4ju"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:texture:region")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Rect2(0, 0, 700, 450)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_1vqu0"]
+_data = {
+&"PageTurningAnimation": SubResource("Animation_wdr80"),
+&"RESET": SubResource("Animation_cs4ju")
+}
 
 [sub_resource type="Animation" id="Animation_a4bu5"]
 length = 0.001
@@ -103,6 +143,11 @@ offset_bottom = 225.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = SubResource("AtlasTexture_61p00")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="BookBackground"]
+libraries = {
+&"": SubResource("AnimationLibrary_1vqu0")
+}
 
 [node name="TabSwitcher" type="Control" parent="BookBackground"]
 unique_name_in_owner = true

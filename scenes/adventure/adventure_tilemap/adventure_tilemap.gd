@@ -16,15 +16,21 @@ signal start_combat(choice: CombatChoice)
 #-----------------------------------------------------------------------------
 
 # Tilemap tile source IDs
-const FULL_MAP_TILE_SOURCE_ID = 0
-const VISIBLE_MAP_TILE_SOURCE_ID = 0
-const OVERLAY_MAP_TILE_SOURCE_ID = 2
+const BASE_TILE_SOURCE_ID = 0
+const WHITE_TILE_VARIANT_ID = 0
+const YELLOW_TILE_VARIANT_ID = 1
+const ORANGE_TILE_VARIANT_ID = 2
+const HALF_TRANSPARENT_TILE_VARIANT_ID = 3
+const TRANSPARENT_TILE_VARIANT_ID = 4
 
-# Tilemap tile variant IDs
-const FULL_MAP_TILE_VARIANT_ID = 3
-const VISITED_MAP_TILE_VARIANT_ID = 0
-const SPECIAL_MAP_TILE_VARIANT_ID = 1
-const OVERLAY_MAP_TILE_VARIANT_ID = 1
+const CONTOUR_SOURCE_ID = 2
+const RED_CONTOUR_VARIANT_ID = 1
+
+const BOSS_OVERLAY_SOURCE_ID = 3
+const BOSS_OVERLAY_VARIANT_ID = 0
+
+const COMBAT_OVERLAY_SOURCE_ID = 4
+const COMBAT_OVERLAY_VARIANT_ID = 0
 
 # Character movement speeds
 const CHARACTER_MOVE_SPEED = 150.0
@@ -38,7 +44,7 @@ const MOVEMENT_STAMINA_COST = 5.0
 #-----------------------------------------------------------------------------
 
 enum HighlightType {
-	VISIBLE_NEIGHBOUR
+	VISIBLE_NEIGHBOUR,
 }
 
 #-----------------------------------------------------------------------------
@@ -119,6 +125,10 @@ func start_adventure(action_data: AdventureActionData) -> void:
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")
 	
+	# Stop character movement
+	character_body.stop_moving()
+	character_body.global_position = Vector2.ZERO
+	
 	current_adventure_action_data = null
 	full_map.clear()
 	visible_map.clear()
@@ -131,8 +141,6 @@ func stop_adventure() -> void:
 	_is_movement_locked = false
 	encounter_info_panel.visible = false
 	
-	# Stop character movement
-	character_body.move_to_position(Vector2(0, 0), INSTANT_MOVE_SPEED)
 
 ## Handles the result of a combat encounter.
 func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
@@ -320,10 +328,11 @@ func _get_current_tile_from_character_position() -> Vector3i:
 func _update_full_map() -> void:
 	full_map.clear()
 	for coord in _encounter_tile_dictionary.keys():
-		full_map.set_cell_with_source_and_variant(FULL_MAP_TILE_SOURCE_ID, FULL_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+		full_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, TRANSPARENT_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 
 func _update_visible_map() -> void:
 	visible_map.clear()
+	highlight_map.clear()
 	
 	var visible_coords = _visited_tile_dictionary.keys()
 	for highlight_coord in _highlight_tile_dictionary.keys():
@@ -332,11 +341,11 @@ func _update_visible_map() -> void:
 
 	for coord in visible_coords:
 		if not _encounter_tile_dictionary[coord] is NoOpEncounter:
-			visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, SPECIAL_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, YELLOW_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+			if _encounter_tile_dictionary[coord].encounter_type == AdventureEncounter.EncounterType.COMBAT_REGULAR:
+				highlight_map.set_cell_with_source_and_variant(COMBAT_OVERLAY_SOURCE_ID, COMBAT_OVERLAY_VARIANT_ID, full_map.cube_to_map(coord))
 		else:
-			visible_map.set_cell_with_source_and_variant(VISIBLE_MAP_TILE_SOURCE_ID, VISITED_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, WHITE_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 
 func _update_highlight_map() -> void:
-	highlight_map.clear()
-	for coord in _highlight_tile_dictionary.keys():
-		highlight_map.set_cell_with_source_and_variant(OVERLAY_MAP_TILE_SOURCE_ID, OVERLAY_MAP_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+	pass
