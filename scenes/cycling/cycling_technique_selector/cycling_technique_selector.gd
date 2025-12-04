@@ -27,9 +27,9 @@ func open_selector(data: CyclingTechniqueData) -> void:
 
 	for slot in slots_container.get_children():
 		if selected_technique_data:
-			slot.set_selected(slot.technique_data == selected_technique_data)
+			slot._set_selected(slot.technique_data == selected_technique_data)
 		else:
-			slot.set_selected(false)
+			slot._set_selected(false)
 
 ## Sets up the selector with the technique list.
 func setup() -> void:

@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3 uid="uid://dm4ramat461hf"]
+
+[ext_resource type="Shader" uid="uid://beyiyr5j5slip" path="res://assets/shaders/pulse_node.gdshader" id="1_v46om"]
+[ext_resource type="Script" uid="uid://d4btwvdep6a4j" path="res://scenes/tilemaps/pulse_node.gd" id="2_um3fc"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mmmsv"]
+shader = ExtResource("1_v46om")
+shader_parameter/speed = 4.00000018674012
+shader_parameter/tint_color = Color(1, 0.3647059, 1, 1)
+shader_parameter/min_alpha = 0.750000035625
+
+[node name="PulseNode" type="Line2D"]
+material = SubResource("ShaderMaterial_mmmsv")
+points = PackedVector2Array(-78, 45, -78, -46, 0, -91, 78, -46, 78, 45, 0, 90)
+closed = true
+sharp_limit = 10.0
+round_precision = 1
+script = ExtResource("2_um3fc")

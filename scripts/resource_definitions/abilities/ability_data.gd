@@ -19,14 +19,6 @@ enum TargetType {
 	ALL_ALLIES, ## All allies
 }
 
-enum CostType {
-	NONE,
-	HEALTH,
-	MADRA,
-	STAMINA,
-	MIXED ## Multiple resource costs
-}
-
 #-----------------------------------------------------------------------------
 # BASIC ABILITY INFO
 #-----------------------------------------------------------------------------

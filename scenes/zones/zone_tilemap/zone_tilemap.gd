@@ -4,6 +4,7 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
 @onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
 @onready var character_body: CharacterBody2D = %CharacterBody2D
+@onready var selected_zone_pulse_node: Line2D = %PulseNode
 
 const UNLOCKED_SOURCE_ID = 0
 const LOCKED_SOURCE_ID = 1
@@ -141,6 +142,7 @@ func _on_condition_unlocked(_condition_id: String) -> void:
 
 func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
 	_move_character_to_position(tile_map.map_to_local(tile_coord) + tile_map.position)
+	selected_zone_pulse_node.global_position = tile_map.map_to_local(tile_coord) + tile_map.position
 
 func _move_character_to_position(new_position: Vector2) -> void:
 	character_body.move_to_position(new_position, CHARACTER_MOVE_SPEED)

@@ -331,13 +331,22 @@ func _update_full_map() -> void:
 		full_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, TRANSPARENT_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 
 func _update_visible_map() -> void:
+	var pulse_node_scene : PackedScene = load("res://scenes/tilemaps/pulse_node.tscn")
 	visible_map.clear()
 	highlight_map.clear()
+	
+	for child in get_children():
+		if child is PulseNode:
+			child.queue_free()
 	
 	var visible_coords = _visited_tile_dictionary.keys()
 	for highlight_coord in _highlight_tile_dictionary.keys():
 		if _highlight_tile_dictionary[highlight_coord] == HighlightType.VISIBLE_NEIGHBOUR:
 			visible_coords.append(highlight_coord)
+			var pulse_node_instance = pulse_node_scene.instantiate()
+			pulse_node_instance.setup(8.0, Color("Dark Red"), 0.6)
+			pulse_node_instance.global_position = full_map.cube_to_local(highlight_coord) + full_map.position
+			add_child(pulse_node_instance)
 
 	for coord in visible_coords:
 		if not _encounter_tile_dictionary[coord] is NoOpEncounter:

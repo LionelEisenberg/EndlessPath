@@ -14,5 +14,6 @@ action_id = "test_adventure_action_data"
 action_name = "Fight the Baddies!"
 action_type = 1
 description = "Come with me, Fight the Baddies"
+costs = null
 success_effects = Array[ExtResource("2_8ideb")]([ExtResource("5_udarr")])
 metadata/_custom_type_script = "uid://cmmqjph50wohc"
