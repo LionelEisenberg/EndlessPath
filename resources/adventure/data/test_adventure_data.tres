@@ -1,12 +1,39 @@
-[gd_resource type="Resource" script_class="AdventureData" load_steps=3 format=3 uid="uid://b2erw55qd1wh7"]
+[gd_resource type="Resource" script_class="AdventureData" load_steps=14 format=3 uid="uid://b2erw55qd1wh7"]
 
 [ext_resource type="Script" uid="uid://b4nlsemiwg2h6" path="res://scripts/resource_definitions/adventure/adventure_data.gd" id="1_3qutp"]
-[ext_resource type="Resource" uid="uid://dkpf211m22hlr" path="res://resources/adventure/map_data/test_adventure_map_data.tres" id="1_hcne7"]
+[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_hfh2t"]
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="1_w5qhf"]
+[ext_resource type="Resource" uid="uid://cunuh1h4ilwty" path="res://resources/adventure/encounters/test_combat_encounter/choices/boss_combat_choice.tres" id="2_bqnnc"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="4_vjri6"]
+[ext_resource type="Resource" uid="uid://dkmgxp77wu65n" path="res://resources/adventure/encounters/test_rest_encounter.tres" id="4_wi3md"]
+[ext_resource type="Resource" uid="uid://cqi24qraplb6m" path="res://resources/adventure/encounters/test_trap_encounter.tres" id="5_4gfgt"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_u2hgr"]
+[ext_resource type="Resource" uid="uid://b8d3dang80ohp" path="res://resources/adventure/encounters/test_treasure_encounter.tres" id="6_6fb6b"]
+[ext_resource type="Resource" uid="uid://ba4cugrsd5v33" path="res://resources/adventure/encounters/test_combat_encounter/test_combat_encounter.tres" id="7_fakuk"]
+[ext_resource type="Resource" uid="uid://vauqsrr78ccw" path="res://resources/effects/award_resource/award_madra_5_effect_data.tres" id="9_50b1t"]
+
+[sub_resource type="Resource" id="Resource_16qle"]
+script = ExtResource("1_hfh2t")
+label = "Leave bro"
+success_effects = Array[ExtResource("4_vjri6")]([ExtResource("9_50b1t")])
+metadata/_custom_type_script = "uid://c1b11mq3a2qya"
+
+[sub_resource type="Resource" id="Resource_bpxxd"]
+script = ExtResource("1_w5qhf")
+encounter_id = "Fighting!"
+encounter_name = "Fight these bitches"
+description = "Fight these bitches"
+text_description_completed = "These bitches we're fought"
+choices = Array[ExtResource("1_hfh2t")]([ExtResource("2_bqnnc"), SubResource("Resource_16qle")])
+encounter_type = 0
 
 [resource]
 script = ExtResource("1_3qutp")
 adventure_id = "test_adventure_data"
 adventure_name = "Test Adventure Data"
 adventure_description = "Testing ADventuring Dataum"
-map_data = ExtResource("1_hcne7")
+num_path_encounters = 4
+boss_encounter = SubResource("Resource_bpxxd")
+special_encounter_pool = Array[ExtResource("1_w5qhf")]([ExtResource("4_wi3md"), ExtResource("5_4gfgt"), ExtResource("6_6fb6b")])
+path_encounter_pool = Array[ExtResource("1_w5qhf")]([ExtResource("7_fakuk")])
 metadata/_custom_type_script = "uid://b4nlsemiwg2h6"

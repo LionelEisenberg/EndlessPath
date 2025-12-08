@@ -40,10 +40,15 @@ func setup(instance: CombatAbilityInstance) -> void:
 	ability_instance = instance
 	
 	# Set Visuals
-	# button.text = instance.ability_data.ability_name # TextureButton doesn't have text property directly usually, but maybe custom? 
+	 #button.text = instance.ability_data.ability_name # TextureButton doesn't have text property directly usually, but maybe custom? 
 	# Assuming we rely on icon or tooltip for now since it's a TextureButton.
 	button.tooltip_text = instance.ability_data.ability_name
-
+	button.texture_normal = instance.ability_data.icon
+	button.texture_pressed = instance.ability_data.icon
+	button.texture_disabled = instance.ability_data.icon
+	button.texture_hover = instance.ability_data.icon
+	button.texture_focused = instance.ability_data.icon
+	
 	# Connect Signals
 	ability_instance.cooldown_started.connect(_on_cooldown_started)
 	ability_instance.cooldown_updated.connect(_on_cooldown_updated)

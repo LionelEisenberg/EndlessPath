@@ -31,7 +31,6 @@ var enemy_combatant: CombatantNode
 # TODO: DELETE DEBUG
 #-----------------------------------------------------------------------------
 
-@export var debug_abilities: Array[AbilityData] = []
 @export var enable_ai: bool = true
 
 #-----------------------------------------------------------------------------
@@ -101,8 +100,7 @@ func _create_player_combatant() -> void:
 	var player_data = CombatantData.new()
 	player_data.character_name = "Player"
 	player_data.attributes = CharacterManager.get_total_attributes_data()
-	player_data.abilities = debug_abilities
-	# player_data.abilities = CharacterManager.get_abilities_data()
+	player_data.abilities = CharacterManager.get_equipped_abilities()
 	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
 	player_combatant.position = Vector2(400, 1000)
 

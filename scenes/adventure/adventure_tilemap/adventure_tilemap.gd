@@ -112,7 +112,7 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	current_adventure_action_data = action_data
 
 	# Generate the adventure_tile_dictionary
-	adventure_map_generator.set_adventure_map_data(current_adventure_action_data.adventure_data.map_data)
+	adventure_map_generator.set_adventure_data(current_adventure_action_data.adventure_data)
 	_encounter_tile_dictionary = adventure_map_generator.generate_adventure_map()
 	
 	_update_full_map()
@@ -182,6 +182,7 @@ func _visit(coord: Vector3i) -> void:
 			_mark_tile_visited(coord)
 			if _visited_tile_dictionary.has(coord):
 				_process_next_visitation()
+			encounter_info_panel.visible = false
 			return
 
 		var is_completed = _visited_tile_dictionary.has(coord)
@@ -331,7 +332,7 @@ func _update_full_map() -> void:
 		full_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, TRANSPARENT_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 
 func _update_visible_map() -> void:
-	var pulse_node_scene : PackedScene = load("res://scenes/tilemaps/pulse_node.tscn")
+	var pulse_node_scene: PackedScene = load("res://scenes/tilemaps/pulse_node.tscn")
 	visible_map.clear()
 	highlight_map.clear()
 	

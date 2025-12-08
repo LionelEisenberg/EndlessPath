@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://b3s2vvqsi7stn"
+path="res://.godot/imported/empty_palm.aseprite-0709aea72911d10ab27c9b27ae954bfb.res"
+
+[deps]
+
+source_file="res://assets/asperite/abilities/empty_palm.aseprite"
+dest_files=["res://.godot/imported/empty_palm.aseprite-0709aea72911d10ab27c9b27ae954bfb.res"]
+
+[params]
+

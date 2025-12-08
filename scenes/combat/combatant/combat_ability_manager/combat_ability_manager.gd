@@ -57,40 +57,20 @@ func get_ability(index: int) -> CombatAbilityInstance:
 		return abilities[index]
 	return null
 
-## Uses the ability at the given index from the abilities array on the target.
-func use_ability(index: int, target: CombatantNode) -> bool:
-	var instance = get_ability(index)
-
-	# Consume Resources
-	instance.ability_data.consume_costs(vitals_manager)
-	
-	# Use Ability
-	instance.use(target)
-	ability_used.emit(instance)
-	
-	return true
-
 ## Uses the specific ability instance on the target.
 func use_ability_instance(instance: CombatAbilityInstance, target: CombatantNode) -> bool:
 	if not instance in abilities:
 		Log.warn("CombatAbilityManager: %s: Ability instance %s not found" % [combatant_data.character_name, instance.ability_data.ability_name])
-		#ability_failed.emit("Ability instance not found")
 		return false
-		
-	# We can reuse the logic by finding the index, or just duplicating the checks.
-	# Duplicating checks is safer if we want to support instances not in the list (though unlikely).
-	# Better: Reuse logic.
-	
+
 	# Check Cooldown
 	if not instance.is_ready():
 		Log.warn("CombatAbilityManager: %s: Ability %s is on cooldown" % [combatant_data.character_name, instance.ability_data.ability_name])
-		#ability_failed.emit("Ability on cooldown")
 		return false
 	
 	# Check Resources
 	if not instance.ability_data.can_afford(vitals_manager):
 		Log.warn("CombatAbilityManager: %s: Not enough resources for %s" % [combatant_data.character_name, instance.ability_data.ability_name])
-		#ability_failed.emit("Not enough resources")
 		return false
 		
 	# Consume Resources

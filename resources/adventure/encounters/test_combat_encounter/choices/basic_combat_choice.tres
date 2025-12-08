@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CombatChoice" load_steps=9 format=3 uid="uid://0dylt1dcrp5d"]
+
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="1_1qsu1"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_7frae"]
+[ext_resource type="Resource" uid="uid://ctok24q1h2l1j" path="res://resources/combat/combatant_data/test_enemy.tres" id="2_v6mht"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="3_16gh0"]
+[ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="4_v6mht"]
+[ext_resource type="Resource" uid="uid://cafgnbmro2vji" path="res://resources/zones/spirit_valley_zone/zone_actions/loot_table/test_loot_table_weapon.tres" id="6_kdbcc"]
+[ext_resource type="Script" uid="uid://w0sbaux5u040" path="res://scripts/resource_definitions/effects/award_loot_table_effect_data.gd" id="7_sefp3"]
+
+[sub_resource type="Resource" id="Resource_d8c11"]
+script = ExtResource("7_sefp3")
+loot_table = ExtResource("6_kdbcc")
+effect_type = 4
+metadata/_custom_type_script = "uid://w0sbaux5u040"
+
+[resource]
+script = ExtResource("4_v6mht")
+enemy_pool = Array[ExtResource("1_1qsu1")]([ExtResource("2_v6mht")])
+gold_multiplier = 1.5
+label = "oops im fighty"
+success_effects = Array[ExtResource("2_7frae")]([SubResource("Resource_d8c11")])
+metadata/_custom_type_script = "uid://cpq8eacgl1537"

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=5 format=3 uid="uid://dic54dwcx1ho4"]
+
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_a2brc"]
+[ext_resource type="Texture2D" uid="uid://444e1uf3hhc2" path="res://assets/sprites/abilities/basic_strike.png" id="2_ah3dt"]
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_dx6op"]
+
+[sub_resource type="Resource" id="Resource_dx6op"]
+script = ExtResource("1_a2brc")
+base_value = 12.0
+strength_scaling = 0.2
+body_scaling = 0.2
+agility_scaling = 0.2
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[resource]
+script = ExtResource("2_dx6op")
+ability_id = "basic_strike"
+ability_name = "Basic Strike"
+description = "Strike the enemy with a purely physical attack."
+icon = ExtResource("2_ah3dt")
+stamina_cost = 10.0
+base_cooldown = 4.0
+effects = Array[ExtResource("1_a2brc")]([SubResource("Resource_dx6op")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

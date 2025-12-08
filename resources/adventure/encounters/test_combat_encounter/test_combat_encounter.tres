@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="AdventureEncounter" load_steps=8 format=3 uid="uid://ba4cugrsd5v33"]
+
+[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_pvbjs"]
+[ext_resource type="Resource" uid="uid://0dylt1dcrp5d" path="res://resources/adventure/encounters/test_combat_encounter/choices/basic_combat_choice.tres" id="2_eexsk"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_fssw7"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="4_v175j"]
+[ext_resource type="Resource" uid="uid://vauqsrr78ccw" path="res://resources/effects/award_resource/award_madra_5_effect_data.tres" id="5_wyuav"]
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="6_h2hf4"]
+
+[sub_resource type="Resource" id="Resource_16qle"]
+script = ExtResource("1_pvbjs")
+label = "Leave bro"
+success_effects = Array[ExtResource("3_fssw7")]([ExtResource("5_wyuav")])
+metadata/_custom_type_script = "uid://c1b11mq3a2qya"
+
+[resource]
+script = ExtResource("6_h2hf4")
+encounter_id = "Fighting!"
+encounter_name = "Fight these bitches"
+description = "Fight these bitches"
+text_description_completed = "These bitches we're fought"
+choices = Array[ExtResource("1_pvbjs")]([ExtResource("2_eexsk"), SubResource("Resource_16qle")])
+encounter_type = 0

@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://b2unq6xnnoi50"]
+[gd_scene load_steps=5 format=3 uid="uid://b2unq6xnnoi50"]
 
 [ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="1_5wn5u"]
 [ext_resource type="Script" uid="uid://cxyss26viaqs" path="res://scenes/ui/combat/ability_button/ability_button.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://444e1uf3hhc2" path="res://assets/sprites/abilities/basic_strike.png" id="2_5eh1e"]
 [ext_resource type="Texture2D" uid="uid://d1x3cvkj0iga2" path="res://assets/ui_images/ability_button/ability_button_overlay.png" id="3_yhgbe"]
 
 [node name="AbilityButton" type="MarginContainer"]
@@ -23,7 +24,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-texture_normal = ExtResource("1_5wn5u")
+texture_normal = ExtResource("2_5eh1e")
 texture_pressed = ExtResource("1_5wn5u")
 texture_hover = ExtResource("1_5wn5u")
 texture_disabled = ExtResource("1_5wn5u")
@@ -46,15 +47,6 @@ texture_progress = ExtResource("3_yhgbe")
 [node name="CooldownLabel" type="Label" parent="Button/CooldownProgressBar"]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -11.5
-offset_right = 20.0
-offset_bottom = 11.5
-grow_horizontal = 2
-grow_vertical = 2
+offset_right = 40.0
+offset_bottom = 23.0
 text = "5.0s"

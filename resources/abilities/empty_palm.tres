@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=5 format=3 uid="uid://4ddominxr0ph"]
+
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_lurdt"]
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_34div"]
+[ext_resource type="Texture2D" uid="uid://djrbdgn6s8xmq" path="res://assets/asperite/abilities/empty_palm.png" id="2_gtwq6"]
+
+[sub_resource type="Resource" id="Resource_34div"]
+script = ExtResource("1_lurdt")
+base_value = 10.0
+agility_scaling = 0.3
+spirit_scaling = 1.0
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[resource]
+script = ExtResource("2_34div")
+ability_id = "empty_palm"
+ability_name = "Empty Palm"
+description = "Infuse a strike with Madra and push it through the enemy's core		"
+icon = ExtResource("2_gtwq6")
+madra_cost = 12.0
+stamina_cost = 3.0
+base_cooldown = 3.0
+effects = Array[ExtResource("1_lurdt")]([SubResource("Resource_34div")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

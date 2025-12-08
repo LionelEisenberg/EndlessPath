@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cnrn6a0qhvgw1"
+path="res://.godot/imported/enforce.aseprite-363c6b43e466b0ca16ea1312d1cb69c0.res"
+
+[deps]
+
+source_file="res://assets/asperite/abilities/enforce.aseprite"
+dest_files=["res://.godot/imported/enforce.aseprite-363c6b43e466b0ca16ea1312d1cb69c0.res"]
+
+[params]
+

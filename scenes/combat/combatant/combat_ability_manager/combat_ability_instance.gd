@@ -2,6 +2,12 @@ class_name CombatAbilityInstance
 extends Node
 
 #-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+const INITIAL_COOLDOWN: float = 1.5
+
+#-----------------------------------------------------------------------------
 # SIGNALS
 #-----------------------------------------------------------------------------
 
@@ -33,7 +39,7 @@ func _ready() -> void:
 	cooldown_timer.timeout.connect(_on_cooldown_timeout)
 	add_child(cooldown_timer)
 	cooldown_timer.wait_time = ability_data.base_cooldown
-	_start_cooldown()
+	_start_cooldown(INITIAL_COOLDOWN)
 
 func _process(_delta: float) -> void:
 	if not cooldown_timer.is_stopped():
@@ -55,7 +61,8 @@ func use(target: CombatantNode) -> void:
 	use_count += 1
 	
 	# Start Cooldown
-	_start_cooldown()
+	var cooldown = ability_data.base_cooldown
+	_start_cooldown(cooldown)
 	
 	# Apply Effects
 	for effect in ability_data.effects:
@@ -66,9 +73,9 @@ func use(target: CombatantNode) -> void:
 # INTERNAL LOGIC
 #-----------------------------------------------------------------------------
 
-func _start_cooldown():
+func _start_cooldown(cooldown: float):
 	if ability_data.base_cooldown > 0:
-		cooldown_timer.start(ability_data.base_cooldown)
+		cooldown_timer.start(cooldown)
 		cooldown_started.emit(ability_data.base_cooldown)
 
 func _on_cooldown_timeout() -> void:

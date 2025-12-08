@@ -15,7 +15,6 @@ extends ZoneActionData
 @export var cooldown_seconds: float = 0.0  # Cooldown before can repeat (0 = no cooldown)
 @export var daily_limit: int = 0  # Max times per day (0 = unlimited)
 
-
 func _init():
 	action_type = ZoneActionData.ActionType.ADVENTURE
 

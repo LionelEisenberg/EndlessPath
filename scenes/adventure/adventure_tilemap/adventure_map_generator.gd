@@ -4,16 +4,16 @@ extends Node
 # Generation constants
 const MAX_TILE_PLACEMENT_ATTEMPTS = 100
 
-var adventure_map_data: AdventureMapData
+var adventure_data: AdventureData
 var tile_map: HexagonTileMapLayer
 
 var all_map_tiles: Dictionary[Vector3i, AdventureEncounter] = {}
 
 var num_combats_in_map : int = 0
 
-## Sets the map data used for generation.
-func set_adventure_map_data(map_data: AdventureMapData) -> void:
-	adventure_map_data = map_data
+## Sets the adventure_data used for generation.
+func set_adventure_data(p_adventure_data: AdventureData) -> void:
+	adventure_data = p_adventure_data
 
 ## Sets the tile map layer to be used.
 func set_tile_map(tm: HexagonTileMapLayer) -> void:
@@ -26,8 +26,8 @@ func set_tile_map(tm: HexagonTileMapLayer) -> void:
 ## Generates the full set of tile coordinates for an adventure map.
 ## Returns an array of Vector3i (cube coordinates) for all generated tiles.
 func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
-	if not adventure_map_data:
-		Log.error("AdventureMapGenerator: Adventure map data is not set")
+	if not adventure_data:
+		Log.error("AdventureMapGenerator: Adventure data is not set")
 		return {}
 
 	if not tile_map:
@@ -55,7 +55,7 @@ func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 func _place_special_tiles() -> void:
 	var special_tiles: Array[Vector3i] = []
 
-	for i in adventure_map_data.num_special_tiles:
+	for i in adventure_data.num_special_tiles:
 		var attempts = 0
 		var tile_placed = false
 		
@@ -64,21 +64,21 @@ func _place_special_tiles() -> void:
 			
 			# 1. Pick a random coordinate
 			# We pick 'q' and 'r' and 's' is derived (-q-r)
-			var q = randi_range(-adventure_map_data.max_distance_from_start, adventure_map_data.max_distance_from_start)
-			var r = randi_range(-adventure_map_data.max_distance_from_start, adventure_map_data.max_distance_from_start)
+			var q = randi_range(-adventure_data.max_distance_from_start, adventure_data.max_distance_from_start)
+			var r = randi_range(-adventure_data.max_distance_from_start, adventure_data.max_distance_from_start)
 			var s = -q - r
 			var random_coord = Vector3i(q, r, s)
 
 			# 2. Check max distance
-			if tile_map.cube_distance(Vector3i.ZERO, random_coord) > adventure_map_data.max_distance_from_start:
+			if tile_map.cube_distance(Vector3i.ZERO, random_coord) > adventure_data.max_distance_from_start:
 				continue # Tile is too far from origin, try again
 
 			# 3. Check sparse factor (distance from *other* special tiles AND from origin)
 			var is_valid_sparse = true
-			if tile_map.cube_distance(Vector3i.ZERO, random_coord) < adventure_map_data.sparse_factor:
+			if tile_map.cube_distance(Vector3i.ZERO, random_coord) < adventure_data.sparse_factor:
 				is_valid_sparse = false
 			for existing_tile in special_tiles:
-				if tile_map.cube_distance(existing_tile, random_coord) < adventure_map_data.sparse_factor:
+				if tile_map.cube_distance(existing_tile, random_coord) < adventure_data.sparse_factor:
 					is_valid_sparse = false
 					break # Tile is too close to another special tile
 			
@@ -92,7 +92,7 @@ func _place_special_tiles() -> void:
 			break
 
 func _assign_special_tiles() -> void:
-	if adventure_map_data.special_encounter_pool.is_empty():
+	if adventure_data.special_encounter_pool.is_empty():
 		Log.warn("AdventureMapGenerator: Can't Assign Encounters to special tiles as encounter pool is empty")
 		return
 
@@ -105,9 +105,9 @@ func _assign_special_tiles() -> void:
 			furthest_distance = distance_to_origin
 		if coord == Vector3i.ZERO:
 			continue
-		all_map_tiles[coord] = adventure_map_data.special_encounter_pool[randi_range(0, adventure_map_data.special_encounter_pool.size() - 1)]
+		all_map_tiles[coord] = adventure_data.special_encounter_pool[randi_range(0, adventure_data.special_encounter_pool.size() - 1)]
 
-	all_map_tiles[furthest_node_coord] = adventure_map_data.boss_encounter
+	all_map_tiles[furthest_node_coord] = adventure_data.boss_encounter
 
 ## Generates a path network connecting all special tiles using Prim's MST algorithm.
 func _generate_mst_paths() -> void:
@@ -152,14 +152,14 @@ func _generate_mst_paths() -> void:
 ## Assigns path tiles according to the path encounter pools as well as the map data's number of combats
 ## The logic here is there are num
 func _assign_path_tiles() -> void:
-	if adventure_map_data.path_encounter_pool.is_empty():
+	if adventure_data.path_encounter_pool.is_empty():
 		Log.warn("AdventureMapGenerator: Can't Assign Encounters to path tiles as encounter pool is empty")
 		return
 	
-	var num_path_encounters_left = adventure_map_data.num_path_encounters
+	var num_path_encounters_left = adventure_data.num_path_encounters
 	while num_path_encounters_left != 0:
 		var tile_index = randi_range(1, all_map_tiles.values().size() - 1)
 		var path_encounter = all_map_tiles.values()[tile_index]
 		if path_encounter is NoOpEncounter:
-			all_map_tiles[all_map_tiles.keys()[tile_index]] = adventure_map_data.path_encounter_pool[randi_range(0, adventure_map_data.path_encounter_pool.size() - 1)]
+			all_map_tiles[all_map_tiles.keys()[tile_index]] = adventure_data.path_encounter_pool[randi_range(0, adventure_data.path_encounter_pool.size() - 1)]
 			num_path_encounters_left -= 1
