@@ -17,6 +17,7 @@ extends Node2D
 @onready var vitals_manager: VitalsManager = %VitalsManager
 @onready var ability_manager: CombatAbilityManager = %CombatAbilityManager
 @onready var effect_manager: CombatEffectManager = %CombatEffectManager
+@onready var buff_manager: CombatBuffManager = %CombatBuffManager
 
 # Visuals
 @onready var sprite: Sprite2D = %Sprite2D
@@ -49,8 +50,9 @@ func setup(
 		vitals_manager.character_attributes_data = combatant_data.attributes
 		vitals_manager.initialize_current_values()
 	
-	ability_manager.setup(combatant_data, vitals_manager)
-	effect_manager.setup(combatant_data, vitals_manager)
+	buff_manager.setup(self)
+	ability_manager.setup(self)
+	effect_manager.setup(self)
 
 	_update_visuals()
 

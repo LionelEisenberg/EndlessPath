@@ -20,7 +20,7 @@ signal cooldown_ready()
 #-----------------------------------------------------------------------------
 
 var ability_data: AbilityData
-var source_attributes: CharacterAttributesData
+var owner_combatant: CombatantNode
 var cooldown_timer: Timer
 var use_count: int = 0
 
@@ -28,9 +28,9 @@ var use_count: int = 0
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-func _init(data: AbilityData, attributes: CharacterAttributesData) -> void:
+func _init(data: AbilityData, p_owner: CombatantNode) -> void:
 	ability_data = data
-	source_attributes = attributes
+	owner_combatant = p_owner
 	name = "AbilityInstance_%s" % data.ability_name
 
 func _ready() -> void:
@@ -64,10 +64,18 @@ func use(target: CombatantNode) -> void:
 	var cooldown = ability_data.base_cooldown
 	_start_cooldown(cooldown)
 	
+	# Get modified attributes (with buff multipliers applied)
+	var modified_attributes = _get_modified_attributes()
+	
+	# Consume outgoing damage modifiers if this is an offensive ability
+	if ability_data.ability_type == AbilityData.AbilityType.OFFENSIVE:
+		if owner_combatant.buff_manager:
+			owner_combatant.buff_manager.consume_outgoing_modifier()
+	
 	# Apply Effects
 	for effect in ability_data.effects:
 		if target.has_method("receive_effect"):
-			target.receive_effect(effect, source_attributes)
+			target.receive_effect(effect, modified_attributes)
 
 #-----------------------------------------------------------------------------
 # INTERNAL LOGIC
@@ -80,3 +88,24 @@ func _start_cooldown(cooldown: float):
 
 func _on_cooldown_timeout() -> void:
 	cooldown_ready.emit()
+
+## Creates a modified copy of source_attributes with buff multipliers applied.
+func _get_modified_attributes() -> CharacterAttributesData:
+	var source_attributes = owner_combatant.combatant_data.attributes
+	if not owner_combatant.buff_manager:
+		return source_attributes
+	
+	# Create a new attributes data with modified values
+	var modified = CharacterAttributesData.new()
+	
+	for attr_type in CharacterAttributesData.AttributeType.values():
+		var base_value = source_attributes.get_attribute(attr_type)
+		var multiplier = owner_combatant.buff_manager.get_attribute_modifier(attr_type)
+		var final_value = base_value * multiplier
+		modified.attributes[attr_type] = final_value
+		
+		if multiplier != 1.0:
+			var attr_name = CharacterAttributesData.AttributeType.keys()[attr_type]
+			Log.info("CombatAbilityInstance: %s modified by %.2fx (%.1f -> %.1f)" % [attr_name, multiplier, base_value, final_value])
+	
+	return modified

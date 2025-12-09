@@ -12,22 +12,20 @@ signal ability_used(instance: CombatAbilityInstance, target: CombatantNode)
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-var combatant_data: CombatantData
-var vitals_manager: VitalsManager
+var owner_combatant: CombatantNode
 var abilities: Array[CombatAbilityInstance] = []
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-## Sets up the manager with data and resources.
-func setup(data: CombatantData, p_vitals_manager: VitalsManager) -> void:
-	combatant_data = data
-	vitals_manager = p_vitals_manager
+## Sets up the manager with owner combatant reference.
+func setup(p_owner: CombatantNode) -> void:
+	owner_combatant = p_owner
 	
 	_clear_abilities()
 	
-	for ability in combatant_data.abilities:
+	for ability in owner_combatant.combatant_data.abilities:
 		_create_ability_instance(ability)
 
 func _clear_abilities() -> void:
@@ -36,12 +34,12 @@ func _clear_abilities() -> void:
 	abilities.clear()
 
 func _create_ability_instance(ability_data: AbilityData) -> void:
-	var instance = CombatAbilityInstance.new(ability_data, combatant_data.attributes)
+	var instance = CombatAbilityInstance.new(ability_data, owner_combatant)
 	add_child(instance)
 	abilities.append(instance)
 	
 	ability_registered.emit(instance)
-	Log.info("CombatAbilityManager: %s: Registered ability %s" % [combatant_data.character_name, ability_data.ability_name])
+	Log.info("CombatAbilityManager: %s: Registered ability %s" % [owner_combatant.combatant_data.character_name, ability_data.ability_name])
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -58,26 +56,31 @@ func get_ability(index: int) -> CombatAbilityInstance:
 	return null
 
 ## Uses the specific ability instance on the target.
-func use_ability_instance(instance: CombatAbilityInstance, target: CombatantNode) -> bool:
+func use_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode) -> bool:
 	if not instance in abilities:
-		Log.warn("CombatAbilityManager: %s: Ability instance %s not found" % [combatant_data.character_name, instance.ability_data.ability_name])
+		Log.warn("CombatAbilityManager: %s: Ability instance %s not found" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name])
 		return false
 
 	# Check Cooldown
 	if not instance.is_ready():
-		Log.warn("CombatAbilityManager: %s: Ability %s is on cooldown" % [combatant_data.character_name, instance.ability_data.ability_name])
+		Log.warn("CombatAbilityManager: %s: Ability %s is on cooldown" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name])
 		return false
 	
 	# Check Resources
-	if not instance.ability_data.can_afford(vitals_manager):
-		Log.warn("CombatAbilityManager: %s: Not enough resources for %s" % [combatant_data.character_name, instance.ability_data.ability_name])
+	if not instance.ability_data.can_afford(owner_combatant.vitals_manager):
+		Log.warn("CombatAbilityManager: %s: Not enough resources for %s" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name])
 		return false
 		
 	# Consume Resources
-	instance.ability_data.consume_costs(vitals_manager)
+	instance.ability_data.consume_costs(owner_combatant.vitals_manager)
+	
+	# Determine actual target based on target type
+	var target = enemy
+	if instance.ability_data.target_type == AbilityData.TargetType.SELF:
+		target = owner_combatant
 	
 	# Use Ability
-	Log.info("CombatAbilityManager: %s: Used ability %s on %s" % [combatant_data.character_name, instance.ability_data.ability_name, target.name])
+	Log.info("CombatAbilityManager: %s: Used ability %s on %s" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name, target.name])
 	instance.use(target)
 	ability_used.emit(instance)
 	return true

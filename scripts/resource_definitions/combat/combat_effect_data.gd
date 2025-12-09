@@ -10,15 +10,16 @@ extends Resource
 #-----------------------------------------------------------------------------
 
 enum EffectType {
-	DAMAGE,             ## Deal damage to target
-	HEAL,               ## Restore health to target
+	DAMAGE, ## Deal damage to target
+	HEAL, ## Restore health to target
+	BUFF, ## Apply a buff or debuff
 }
 
 enum DamageType {
-	PHYSICAL,           ## Affected by physical defense/resilience
-	MADRA,              ## Affected by spiritual defense
-	TRUE,               ## Ignores defenses
-	MIXED               ## Combination of physical and madra
+	PHYSICAL, ## Affected by physical defense/resilience
+	MADRA, ## Affected by spiritual defense
+	TRUE, ## Ignores defenses
+	MIXED ## Combination of physical and madra
 }
 
 #-----------------------------------------------------------------------------

@@ -79,6 +79,12 @@ func stop() -> void:
 	ability_panel.reset()
 	enemy_info_panel.reset()
 	
+	# Clear all buffs before freeing combatants
+	if player_combatant and player_combatant.buff_manager:
+		player_combatant.buff_manager.clear_all_buffs()
+	if enemy_combatant and enemy_combatant.buff_manager:
+		enemy_combatant.buff_manager.clear_all_buffs()
+	
 	if player_combatant:
 		player_combatant.queue_free()
 	if enemy_combatant:

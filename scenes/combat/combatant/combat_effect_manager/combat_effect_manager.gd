@@ -8,17 +8,15 @@ extends Node
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-var combatant_data: CombatantData
-var vitals_manager: VitalsManager
+var owner_combatant: CombatantNode
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-## Sets up the manager with data and resources.
-func setup(data: CombatantData, p_vitals_manager: VitalsManager) -> void:
-	combatant_data = data
-	vitals_manager = p_vitals_manager
+## Sets up the manager with owner combatant reference.
+func setup(p_owner: CombatantNode) -> void:
+	owner_combatant = p_owner
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -26,7 +24,7 @@ func setup(data: CombatantData, p_vitals_manager: VitalsManager) -> void:
 
 ## Processes an incoming effect from a source.
 func process_effect(effect: CombatEffectData, source_attributes: CharacterAttributesData) -> void:
-	if not vitals_manager:
+	if not owner_combatant.vitals_manager:
 		Log.error("CombatEffectManager: No resource manager set!")
 		return
 		
@@ -36,11 +34,28 @@ func process_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 	
 	match effect.effect_type:
 		CombatEffectData.EffectType.DAMAGE:
-			final_value = effect.calculate_damage(source_attributes, combatant_data.attributes)
-			Log.info("CombatEffectManager: %s Took %.1f damage from %s" % [combatant_data.character_name, final_value, effect.effect_name])
-			vitals_manager.apply_vitals_change(-final_value, 0, 0)
+			final_value = effect.calculate_damage(source_attributes, owner_combatant.combatant_data.attributes)
+			
+			# Apply incoming damage modifier from buffs
+			if owner_combatant.buff_manager:
+				var damage_modifier = owner_combatant.buff_manager.get_incoming_damage_modifier()
+				if damage_modifier != 1.0:
+					Log.info("CombatEffectManager: Incoming damage modifier: %.2f" % damage_modifier)
+					final_value *= damage_modifier
+				owner_combatant.buff_manager.consume_incoming_modifier()
+			
+			Log.info("CombatEffectManager: %s Took %.1f damage from %s" % [owner_combatant.combatant_data.character_name, final_value, effect.effect_name])
+			owner_combatant.vitals_manager.apply_vitals_change(-final_value, 0, 0)
 			
 		CombatEffectData.EffectType.HEAL:
 			final_value = effect.calculate_value(source_attributes)
-			Log.info("CombatEffectManager: %s Healed %.1f from %s" % [combatant_data.character_name, final_value, effect.effect_name])
-			vitals_manager.apply_vitals_change(final_value, 0, 0)
+			Log.info("CombatEffectManager: %s Healed %.1f from %s" % [owner_combatant.combatant_data.character_name, final_value, effect.effect_name])
+			owner_combatant.vitals_manager.apply_vitals_change(final_value, 0, 0)
+		
+		CombatEffectData.EffectType.BUFF:
+			# Route to buff manager
+			if owner_combatant.buff_manager and effect is BuffEffectData:
+				var buff_effect := effect as BuffEffectData
+				owner_combatant.buff_manager.apply_buff(buff_effect)
+			else:
+				Log.error("CombatEffectManager: Cannot apply buff - missing buff_manager or invalid effect type")
