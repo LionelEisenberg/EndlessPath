@@ -14,6 +14,7 @@ extends Control
 
 var vitals_manager: VitalsManager
 var buff_manager: CombatBuffManager
+var ability_manager: CombatAbilityManager
 
 # Dictionary to map buff_id -> BuffIcon instance
 var active_buff_icons: Dictionary = {}
@@ -86,6 +87,14 @@ func setup_buffs(p_buff_manager: CombatBuffManager) -> void:
 				_on_buff_stacked(buff.buff_data.buff_id, buff.stack_count)
 	else:
 		buff_info_panel.visible = false
+
+func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
+	# Always clean up previous state/icons first
+	_cleanup_abilities()
+	
+	ability_manager = p_ability_manager
+	
+	pass
 
 #-----------------------------------------------------------------------------
 # VITALS UPDATES
@@ -160,3 +169,10 @@ func _cleanup_buffs() -> void:
 	for child in buff_container.get_children():
 		child.queue_free()
 	active_buff_icons.clear()
+
+#-----------------------------------------------------------------------------
+# ABILITY HANDLERS
+#-----------------------------------------------------------------------------
+
+func _cleanup_abilities() -> void:
+	pass

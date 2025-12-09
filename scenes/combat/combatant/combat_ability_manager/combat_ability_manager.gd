@@ -1,6 +1,22 @@
 class_name CombatAbilityManager
 extends Node
 
+## CombatAbilityManager
+##
+## Manages the abilities for a specific combatant.
+## Handles ability registration, resource checks, cooldown checks, and execution flow.
+##
+## ABILITY FLOW:
+## 1. External system (UI/AI) calls use_ability_instance(instance, target)
+## 2. Manager checks:
+##    - Is already casting? (Blocking)
+##    - Is ability on cooldown?
+##    - Are resources available?
+## 3. If checks pass:
+##    - Resources are consumed immediately.
+##    - Ability instance start_cast() is called.
+##    - Internal signals emitted.
+
 #-----------------------------------------------------------------------------
 # SIGNALS
 #-----------------------------------------------------------------------------
@@ -45,6 +61,13 @@ func _create_ability_instance(ability_data: AbilityData) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
+## Returns true if any ability is currently casting.
+func is_casting() -> bool:
+	for ability in abilities:
+		if ability.is_casting:
+			return true
+	return false
+
 ## Returns the number of abilities.
 func get_ability_count() -> int:
 	return abilities.size()
@@ -56,9 +79,15 @@ func get_ability(index: int) -> CombatAbilityInstance:
 	return null
 
 ## Uses the specific ability instance on the target.
+## Returns true if the request was accepted (checks passed and cast started).
 func use_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode) -> bool:
 	if not instance in abilities:
 		Log.warn("CombatAbilityManager: %s: Ability instance %s not found" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name])
+		return false
+
+	# Check Casting State (Global Lock)
+	if is_casting():
+		Log.warn("CombatAbilityManager: %s: Cannot use ability while casting" % [owner_combatant.combatant_data.character_name])
 		return false
 
 	# Check Cooldown
@@ -79,8 +108,12 @@ func use_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode)
 	if instance.ability_data.target_type == AbilityData.TargetType.SELF:
 		target = owner_combatant
 	
-	# Use Ability
-	Log.info("CombatAbilityManager: %s: Used ability %s on %s" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name, target.name])
-	instance.use(target)
-	ability_used.emit(instance)
+	# Start Cast
+	# Log info is handled inside start_cast if casting, or locally if instant? 
+	# Actually start_cast logs cast start. execute_ability logs execution. 
+	# We can log the "Attempt" here.
+	Log.info("CombatAbilityManager: %s: Triggering ability %s on %s" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name, target.name])
+	
+	instance.start_cast(target)
+	ability_used.emit(instance) # Emitted when usage is accepted/started
 	return true

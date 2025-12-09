@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://blofb5opg1kdu"]
 
 [ext_resource type="Script" uid="uid://b5570lugu0psn" path="res://scenes/combat/adventure_combat/adventure_combat.gd" id="1_utfsu"]
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="3_fxr42"]
+[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/border_2_panel_texture.tres" id="3_fxr42"]
 [ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="4_vkkxw"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="6_ysix2"]
 

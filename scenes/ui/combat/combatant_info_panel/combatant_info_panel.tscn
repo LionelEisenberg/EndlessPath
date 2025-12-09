@@ -1,7 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://dsyj8icyn4ri1"]
+[gd_scene load_steps=9 format=3 uid="uid://dsyj8icyn4ri1"]
 
 [ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="1_idpww"]
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
+[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/border_2_panel_texture.tres" id="2_l7ne6"]
 [ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.tscn" id="3_5xx5a"]
 [ext_resource type="PackedScene" uid="uid://dh41j1mmxl5w5" path="res://scenes/ui/combat/buff_icon/buff_icon.tscn" id="3_qovyy"]
 [ext_resource type="Texture2D" uid="uid://bgymbkidnr3et" path="res://assets/asperite/ui/resource_bar/MadraFill.png" id="4_h1px1"]
@@ -37,7 +38,7 @@ theme_override_constants/margin_right = 20
 [node name="BuffInfo" type="Panel" parent="VBoxContainer/MarginContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_styles/panel = ExtResource("1_idpww")
+theme_override_styles/panel = ExtResource("2_l7ne6")
 
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/MarginContainer/BuffInfo"]
 layout_mode = 0

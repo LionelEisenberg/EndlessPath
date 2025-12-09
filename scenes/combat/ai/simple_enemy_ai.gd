@@ -37,6 +37,10 @@ func _try_cast_abilities() -> void:
 	# Iterate through all abilities and try to use them
 	# In a real AI, we would have priorities, logic, etc.
 	# Here we just cast the first available ability we find (or all of them if possible)
+	# Check if we are already casting
+	if combatant.ability_manager.is_casting():
+		return
+
 	var ability_count = combatant.ability_manager.get_ability_count()
 	
 	for i in range(ability_count):
