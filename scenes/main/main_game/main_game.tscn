@@ -61,15 +61,15 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer"]
-clip_contents = true
-layout_mode = 2
-
-[node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
+[node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer"]
 z_index = -1
 position = Vector2(963.49994, 555.49994)
 scale = Vector2(0.7769531, 0.7951389)
 texture = ExtResource("3_yssfv")
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer"]
+clip_contents = true
+layout_mode = 2
 
 [node name="SubViewport" type="SubViewport" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/SubViewportContainer"]
 transparent_bg = true
@@ -89,6 +89,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/VBoxContainer"]
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.1
@@ -117,6 +118,9 @@ layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
 texture_normal = ExtResource("5_k2uxu")
+
+[node name="Panel" type="Panel" parent="MainView/VBoxContainer/MainViewContainer/ZoneView/HBoxContainer/VBoxContainer"]
+layout_mode = 2
 
 [node name="AdventureView" parent="MainView/VBoxContainer/MainViewContainer" instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true

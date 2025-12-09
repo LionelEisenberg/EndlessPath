@@ -66,6 +66,10 @@ folder_colors={
 "res://singletons/": "pink"
 }
 
+[gui]
+
+theme/custom="uid://c2sh6wq48x321"
+
 [input]
 
 dialogic_default_action={

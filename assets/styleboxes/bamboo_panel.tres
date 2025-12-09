@@ -1,0 +1,11 @@
+[gd_resource type="StyleBoxTexture" load_steps=2 format=3 uid="uid://d4monhhc8c602"]
+
+[ext_resource type="Texture2D" uid="uid://t42558tlpu22" path="res://assets/styleboxes/bamboo_panel_texture.png" id="1_8ahls"]
+
+[resource]
+texture = ExtResource("1_8ahls")
+texture_margin_left = 32.0
+texture_margin_top = 12.0
+texture_margin_right = 32.0
+texture_margin_bottom = 10.0
+axis_stretch_vertical = 1
