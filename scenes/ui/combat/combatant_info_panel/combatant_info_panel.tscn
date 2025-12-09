@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://dsyj8icyn4ri1"]
 
-[ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="1_tga55"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="1_idpww"]
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
 [ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.tscn" id="3_5xx5a"]
 [ext_resource type="Texture2D" uid="uid://bgymbkidnr3et" path="res://assets/asperite/ui/resource_bar/MadraFill.png" id="4_h1px1"]
@@ -14,7 +14,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = ExtResource("1_tga55")
+theme_override_styles/panel = ExtResource("1_idpww")
 script = ExtResource("2_5xx5a")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
@@ -24,25 +24,23 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 100
+theme_override_constants/margin_left = 150
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 30
 
 [node name="HealthProgressBar" parent="MarginContainer/VBoxContainer" instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
+size_flags_vertical = 4
 progress = ExtResource("6_l7ne6")
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/margin_left = 80
-
-[node name="MadraProgressBar" parent="MarginContainer/VBoxContainer/MarginContainer" instance=ExtResource("3_5xx5a")]
+[node name="MadraProgressBar" parent="MarginContainer/VBoxContainer" instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
@@ -52,5 +50,6 @@ progress = ExtResource("4_h1px1")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
+size_flags_vertical = 4
 progress = ExtResource("5_idpww")
 show_floating_text = false

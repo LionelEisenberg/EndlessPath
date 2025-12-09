@@ -9,6 +9,7 @@ const FLOATING_TEXT_SCENE = preload("res://scenes/ui/floating_text/floating_text
 @onready var timer = %GhostTimer
 @onready var main_bar = %ResourceProgressBar
 @onready var ghost_bar = %GhostProgressBar
+@onready var resource_bar_label = %ResourceBarLabel
 
 var _current_value: float = -1.0
 var _max_value: float = -1.0

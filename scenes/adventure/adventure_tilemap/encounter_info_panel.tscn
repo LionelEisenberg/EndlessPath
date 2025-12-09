@@ -1,10 +1,10 @@
 [gd_scene load_steps=4 format=3 uid="uid://b0qowk3rd0jft"]
 
-[ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="1_a3d6t"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="1_onfjm"]
 [ext_resource type="Script" uid="uid://c2ish7w866jih" path="res://scenes/adventure/adventure_tilemap/encounter_info_panel.gd" id="1_script"]
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_onfjm"]
-color = Color(0.60933006, 0.6093301, 0.60933006, 1)
+color = Color(0, 0.5137255, 0, 1)
 thickness = 3
 
 [node name="EncounterInfoPanel" type="Panel"]
@@ -15,7 +15,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = ExtResource("1_a3d6t")
+theme_override_styles/panel = ExtResource("1_onfjm")
 script = ExtResource("1_script")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
