@@ -5,6 +5,7 @@ const FLOATING_TEXT_SCENE = preload("res://scenes/ui/floating_text/floating_text
 
 @export var progress: Texture2D
 @export var show_floating_text: bool = true
+@export var label_prefix: String = "Resource"
 
 @onready var timer = %GhostTimer
 @onready var main_bar = %ResourceProgressBar
@@ -35,7 +36,13 @@ func _setup_progress_bars() -> void:
 	ghost_bar.show_behind_parent = true
 
 ## Updates the bar values.
-func update_values(new_current: float, new_max: float) -> void:
+## Updates the bar values.
+func update_values(new_current: float, new_max: float, regen_rate: float = 0.0) -> void:
+	if regen_rate == 0:
+		resource_bar_label.text = "%s: %.1f / %.1f" % [label_prefix, new_current, new_max]
+	else:
+		resource_bar_label.text = "%s: %.1f / %.1f (%.1f/s)" % [label_prefix, new_current, new_max, regen_rate]
+	
 	# Initialize if first run
 	if _current_value < 0:
 		_current_value = new_current

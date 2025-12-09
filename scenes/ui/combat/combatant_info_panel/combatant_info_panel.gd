@@ -8,7 +8,9 @@ extends Panel
 var vitals_manager: VitalsManager
 
 func _ready() -> void:
-	pass # Replace with function body.
+	health_bar.label_prefix = "Health"
+	madra_bar.label_prefix = "Madra"
+	stamina_bar.label_prefix = "Stamina"
 
 ## Resets the panel.
 func reset() -> void:
@@ -34,6 +36,6 @@ func setup(p_vitals_manager: VitalsManager) -> void:
 ## Updates the labels with current resource values.
 func update_labels() -> void:
 	if vitals_manager:
-		health_bar.update_values(vitals_manager.current_health, vitals_manager.max_health)
-		madra_bar.update_values(vitals_manager.current_madra, vitals_manager.max_madra)
-		stamina_bar.update_values(vitals_manager.current_stamina, vitals_manager.max_stamina)
+		health_bar.update_values(vitals_manager.current_health, vitals_manager.max_health, vitals_manager.health_regen)
+		madra_bar.update_values(vitals_manager.current_madra, vitals_manager.max_madra, vitals_manager.madra_regen)
+		stamina_bar.update_values(vitals_manager.current_stamina, vitals_manager.max_stamina, vitals_manager.stamina_regen)

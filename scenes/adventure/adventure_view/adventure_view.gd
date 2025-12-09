@@ -60,20 +60,13 @@ func _ready() -> void:
 	timer_label.add_theme_font_size_override("font_size", 32)
 	add_child(timer_label)
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if current_action_data and not adventure_timer.is_stopped():
 		# Update Timer Label
 		var time_left = adventure_timer.time_left
 		var minutes = floor(time_left / 60)
 		var seconds = int(time_left) % 60
 		timer_label.text = "%02d:%02d" % [minutes, seconds]
-		
-		# Passive Stamina Regen
-		# Only regen if not in combat (combat view is hidden)
-		# TODO: Move this either to the vitals manager itself or simply create a better function in the vitals manager for stamina change
-		if tilemap_view.visible and PlayerManager.vitals_manager:
-			var regen_amount = 1.0 * current_action_data.stamina_regen_modifier * delta
-			PlayerManager.vitals_manager.apply_vitals_change(0, regen_amount, 0)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -87,6 +80,10 @@ func start_adventure(action_data: AdventureActionData) -> void:
 
 	# Initialize resource values
 	_initialize_combat_resources()
+	
+	if PlayerManager.vitals_manager:
+		_update_stamina_regen(action_data.stamina_regen_modifier)
+
 	
 	# Start Timer
 	var time_limit = action_data.time_limit_seconds if action_data.time_limit_seconds > 0 else 10
@@ -110,6 +107,7 @@ func stop_adventure() -> void:
 	adventure_timer.stop()
 	timer_label.visible = false
 	current_action_data = null
+	_update_stamina_regen(0.0)
 	if is_in_combat:
 		_on_stop_combat()
 
@@ -163,6 +161,12 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 func _initialize_combat_resources() -> void:
 	PlayerManager.vitals_manager.initialize_current_values()
 	player_info_panel.setup(PlayerManager.vitals_manager)
+
+## Updates the stamina regeneration based on the given modifier
+## TODO: This will be expanded later to include more complex calculation logic
+func _update_stamina_regen(modifier: float) -> void:
+	if PlayerManager.vitals_manager:
+		PlayerManager.vitals_manager.stamina_regen = 1.0 * modifier
 
 func _on_adventure_timer_timeout() -> void:
 	Log.info("AdventureView: Time limit reached!")

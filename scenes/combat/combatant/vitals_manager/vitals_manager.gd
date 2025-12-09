@@ -31,22 +31,26 @@ signal stamina_changed(new_stamina: float)
 #-----------------------------------------------------------------------------
 
 var max_health: float = 100.0
+var health_regen: float = 0.0 # Amount per second
 var current_health: float:
 	set(value):
 		current_health = value
 		health_changed.emit(current_health)
 	
 var max_madra: float = 100.0
+var madra_regen: float = 0.0 # Amount per second
 var current_madra: float:
 	set(value):
 		current_madra = value
 		madra_changed.emit(current_madra)
 	
 var max_stamina: float = 100.0
+var stamina_regen: float = 0.0 # Amount per second
 var current_stamina: float:
 	set(value):
 		current_stamina = value
 		stamina_changed.emit(current_stamina)
+
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -60,6 +64,14 @@ func _ready() -> void:
 		var f = func(): character_attributes_data = CharacterManager.get_total_attributes_data()
 		CharacterManager.base_attribute_changed.connect(f)
 		f.call()
+
+func _process(delta: float) -> void:
+	if health_regen != 0:
+		_apply_health_change(health_regen * delta)
+	if stamina_regen != 0:
+		_apply_stamina_change(stamina_regen * delta)
+	if madra_regen != 0:
+		_apply_madra_change(madra_regen * delta)
 
 func _update_combat_max() -> void:
 	max_health = _get_max_health()
