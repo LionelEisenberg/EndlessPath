@@ -129,6 +129,9 @@ func _on_start_combat(choice: CombatChoice) -> void:
 			current_action_data # Pass adventure action data for gold multiplier
 		)
 		combat.start()
+		# Enable buffs visualization for player
+		if combat.player_combatant:
+			player_info_panel.setup_buffs(combat.player_combatant.buff_manager)
 		
 	is_in_combat = true
 	
@@ -160,7 +163,7 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 ## Initialize resource values
 func _initialize_combat_resources() -> void:
 	PlayerManager.vitals_manager.initialize_current_values()
-	player_info_panel.setup(PlayerManager.vitals_manager)
+	player_info_panel.setup_vitals(PlayerManager.vitals_manager)
 
 ## Updates the stamina regeneration based on the given modifier
 ## TODO: This will be expanded later to include more complex calculation logic
