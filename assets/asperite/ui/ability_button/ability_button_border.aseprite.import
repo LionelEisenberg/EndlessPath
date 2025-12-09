@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cx4c5m3ap0m8c"
+path="res://.godot/imported/ability_button_border.aseprite-faffa0aa6b4fad92b7705664dcd01fff.res"
+
+[deps]
+
+source_file="res://assets/asperite/ui/ability_button/ability_button_border.aseprite"
+dest_files=["res://.godot/imported/ability_button_border.aseprite-faffa0aa6b4fad92b7705664dcd01fff.res"]
+
+[params]
+

@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://b2unq6xnnoi50"]
+[gd_scene load_steps=6 format=3 uid="uid://b2unq6xnnoi50"]
 
 [ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="1_5wn5u"]
 [ext_resource type="Script" uid="uid://cxyss26viaqs" path="res://scenes/ui/combat/ability_button/ability_button.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://444e1uf3hhc2" path="res://assets/sprites/abilities/basic_strike.png" id="2_5eh1e"]
+[ext_resource type="Texture2D" uid="uid://v1vt6c8yg10y" path="res://assets/ui_images/ability_button/ability_button_border.png" id="2_nb55m"]
 [ext_resource type="Texture2D" uid="uid://d1x3cvkj0iga2" path="res://assets/ui_images/ability_button/ability_button_overlay.png" id="3_yhgbe"]
 
 [node name="AbilityButton" type="MarginContainer"]
@@ -19,9 +20,28 @@ theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 script = ExtResource("1_script")
 
-[node name="Button" type="TextureButton" parent="."]
-unique_name_in_owner = true
+[node name="BackgroundRect" type="TextureRect" parent="."]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("2_nb55m")
+
+[node name="Button" type="TextureButton" parent="BackgroundRect"]
+unique_name_in_owner = true
+z_index = 1
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+grow_horizontal = 2
+grow_vertical = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 texture_normal = ExtResource("2_5eh1e")
@@ -30,7 +50,7 @@ texture_hover = ExtResource("1_5wn5u")
 texture_disabled = ExtResource("1_5wn5u")
 texture_focused = ExtResource("1_5wn5u")
 
-[node name="CooldownProgressBar" type="TextureProgressBar" parent="Button"]
+[node name="CooldownProgressBar" type="TextureProgressBar" parent="BackgroundRect/Button"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -44,9 +64,14 @@ value = 0.66
 fill_mode = 5
 texture_progress = ExtResource("3_yhgbe")
 
-[node name="CooldownLabel" type="Label" parent="Button/CooldownProgressBar"]
+[node name="CooldownLabel" type="Label" parent="BackgroundRect/Button/CooldownProgressBar"]
 unique_name_in_owner = true
 layout_mode = 1
-offset_right = 40.0
+offset_left = 3.0
+offset_right = 43.0
 offset_bottom = 23.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
 text = "5.0s"

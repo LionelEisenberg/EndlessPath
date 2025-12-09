@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://bjbwit2fjuld2"
+path="res://.godot/imported/buff_icon_overlay.aseprite-d80c080e2e197ce4b568c30de4c3d3c6.res"
+
+[deps]
+
+source_file="res://assets/asperite/ui/buff_icon/buff_icon_overlay.aseprite"
+dest_files=["res://.godot/imported/buff_icon_overlay.aseprite-d80c080e2e197ce4b568c30de4c3d3c6.res"]
+
+[params]
+

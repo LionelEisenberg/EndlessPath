@@ -21,6 +21,7 @@ enum BuffType {
 #-----------------------------------------------------------------------------
 
 @export var buff_id: String = ""
+@export var buff_icon: Texture2D = null
 @export var duration: float = 5.0
 @export var buff_type: BuffType = BuffType.ATTRIBUTE_MODIFIER_MULTIPLICATIVE
 

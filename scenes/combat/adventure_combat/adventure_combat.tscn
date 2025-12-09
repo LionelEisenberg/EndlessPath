@@ -1,25 +1,14 @@
-[gd_scene load_steps=7 format=3 uid="uid://blofb5opg1kdu"]
+[gd_scene load_steps=5 format=3 uid="uid://blofb5opg1kdu"]
 
 [ext_resource type="Script" uid="uid://b5570lugu0psn" path="res://scenes/combat/adventure_combat/adventure_combat.gd" id="1_utfsu"]
-[ext_resource type="StyleBox" uid="uid://bm4l2r4borncc" path="res://assets/styleboxes/zone_info_panel_main.tres" id="2_mvhgc"]
-[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_qvnuk"]
-[ext_resource type="Resource" uid="uid://bogou33q4fhbt" path="res://resources/abilities/test_ability.tres" id="3_qvnuk"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="3_fxr42"]
 [ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="4_vkkxw"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="6_ysix2"]
 
 [node name="AdventureCombat" type="Node2D"]
 script = ExtResource("1_utfsu")
-debug_abilities = Array[ExtResource("2_qvnuk")]([ExtResource("3_qvnuk")])
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
-
-[node name="RichTextLabel" type="RichTextLabel" parent="CanvasLayer"]
-offset_left = 1577.0
-offset_top = 281.0
-offset_right = 1638.0
-offset_bottom = 352.0
-theme_override_font_sizes/normal_font_size = 48
-text = "VS"
 
 [node name="EnemyInfoPanel" parent="CanvasLayer" instance=ExtResource("4_vkkxw")]
 unique_name_in_owner = true
@@ -35,15 +24,20 @@ grow_vertical = 1
 
 [node name="AbilitiesPanel" type="Panel" parent="CanvasLayer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(500, 175)
-offset_left = 1071.0
-offset_top = 800.0
-offset_right = 1571.0
-offset_bottom = 975.0
+custom_minimum_size = Vector2(400, 125)
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 89.0
+offset_top = -184.0
+offset_right = 564.0
+offset_bottom = -59.0
+grow_vertical = 0
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_styles/panel = ExtResource("2_mvhgc")
+theme_override_styles/panel = ExtResource("3_fxr42")
 script = ExtResource("6_ysix2")
+metadata/_edit_group_ = true
 
 [node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/AbilitiesPanel"]
 layout_mode = 1
@@ -59,3 +53,5 @@ theme_override_constants/margin_bottom = 5
 
 [node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/AbilitiesPanel/MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = -15
+alignment = 1

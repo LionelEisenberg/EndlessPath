@@ -1,55 +1,113 @@
-[gd_scene load_steps=7 format=3 uid="uid://dsyj8icyn4ri1"]
+[gd_scene load_steps=8 format=3 uid="uid://dsyj8icyn4ri1"]
 
 [ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="1_idpww"]
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
 [ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.tscn" id="3_5xx5a"]
+[ext_resource type="PackedScene" uid="uid://dh41j1mmxl5w5" path="res://scenes/ui/combat/buff_icon/buff_icon.tscn" id="3_qovyy"]
 [ext_resource type="Texture2D" uid="uid://bgymbkidnr3et" path="res://assets/asperite/ui/resource_bar/MadraFill.png" id="4_h1px1"]
 [ext_resource type="Texture2D" uid="uid://daujoefgcpmxk" path="res://assets/asperite/ui/resource_bar/StaminaFill.png" id="5_idpww"]
 [ext_resource type="Texture2D" uid="uid://c7o5q6nwirf5n" path="res://assets/asperite/ui/resource_bar/HealthFill.png" id="6_l7ne6"]
 
-[node name="CombatantInfoPanel" type="Panel"]
+[node name="CombatantInfoPanel" type="Control"]
 custom_minimum_size = Vector2(525, 200)
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = ExtResource("1_idpww")
 script = ExtResource("2_5xx5a")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 150
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/separation = -4
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer"]
 layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
+
+[node name="BuffInfo" type="Panel" parent="VBoxContainer/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = ExtResource("1_idpww")
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/MarginContainer/BuffInfo"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 7
+
+[node name="BuffContainer" type="HBoxContainer" parent="VBoxContainer/MarginContainer/BuffInfo/MarginContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BuffIcon" parent="VBoxContainer/MarginContainer/BuffInfo/MarginContainer/BuffContainer" instance=ExtResource("3_qovyy")]
+layout_mode = 2
+
+[node name="VitalsInfo" type="Panel" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = ExtResource("1_idpww")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/VitalsInfo"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 100.0
+offset_top = -30.0
+offset_right = 100.0
+offset_bottom = 30.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
 size_flags_vertical = 4
 theme_override_constants/separation = 30
 
-[node name="HealthProgressBar" parent="MarginContainer/VBoxContainer" instance=ExtResource("3_5xx5a")]
+[node name="HealthProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 progress = ExtResource("6_l7ne6")
 
-[node name="MadraProgressBar" parent="MarginContainer/VBoxContainer" instance=ExtResource("3_5xx5a")]
+[node name="MadraProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 progress = ExtResource("4_h1px1")
 
-[node name="StaminaProgressBar" parent="MarginContainer/VBoxContainer" instance=ExtResource("3_5xx5a")]
+[node name="StaminaProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 progress = ExtResource("5_idpww")
 show_floating_text = false
+
+[node name="ProfileIconRect" type="TextureRect" parent="VBoxContainer/VitalsInfo"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 40.0
+offset_top = -75.0
+offset_right = 190.0
+offset_bottom = 75.0
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4

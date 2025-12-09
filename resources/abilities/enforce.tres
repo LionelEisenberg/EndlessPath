@@ -1,21 +1,22 @@
-[gd_resource type="Resource" script_class="AbilityData" load_steps=5 format=3 uid="uid://cdml8kjdgte7y"]
+[gd_resource type="Resource" script_class="AbilityData" load_steps=6 format=3 uid="uid://cdml8kjdgte7y"]
 
-[ext_resource type="Script" path="res://scripts/resource_definitions/combat/buff_effect_data.gd" id="1_buff"]
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_4mmr5"]
+[ext_resource type="Script" uid="uid://dp17ol31g6ph6" path="res://scripts/resource_definitions/combat/buff_effect_data.gd" id="1_buff"]
 [ext_resource type="Texture2D" uid="uid://dnpoxy5qdxcpa" path="res://assets/asperite/abilities/enforce.png" id="2_4mmr5"]
 [ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_5ah4k"]
 
 [sub_resource type="Resource" id="Resource_enforce_buff"]
 script = ExtResource("1_buff")
+buff_id = "enforce_str_spi"
+buff_icon = ExtResource("2_4mmr5")
+duration = 8.0
+attribute_modifiers = Dictionary[int, float]({
+0: 1.5,
+3: 1.5
+})
 effect_type = 2
 effect_name = "Enforce Buff"
 effect_description = "Enhances body and soul, multiplying STR and SPI."
-buff_id = "enforce_str_spi"
-duration = 8.0
-buff_type = 0
-attribute_modifiers = {
-0: 1.5,
-3: 1.5
-}
 
 [resource]
 script = ExtResource("2_5ah4k")
@@ -26,5 +27,5 @@ icon = ExtResource("2_4mmr5")
 target_type = 0
 madra_cost = 10.0
 base_cooldown = 30.0
-effects = Array[ExtResource("1_buff")]([SubResource("Resource_enforce_buff")])
+effects = Array[ExtResource("1_4mmr5")]([SubResource("Resource_enforce_buff")])
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
