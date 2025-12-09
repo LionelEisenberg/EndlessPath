@@ -110,9 +110,6 @@ func _create_player_combatant() -> void:
 	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
 	player_combatant.position = Vector2(400, 1000)
 
-	# Connect signals BEFORE setup so we catch ability registration
-	player_combatant.ability_manager.ability_registered.connect(_on_ability_registered)
-
 	player_combatant.setup(player_data, PlayerManager.vitals_manager, true)
 
 func _create_enemy_combatant() -> void:
@@ -130,10 +127,11 @@ func _create_enemy_combatant() -> void:
 		
 	# Enemy gets a new internal resource manager created by setup()
 	enemy_combatant.setup(enemy_data, null, false)
-	
+
 	# Setup CombatantInfoPanel
 	enemy_info_panel.setup_vitals(enemy_combatant.vitals_manager)
 	enemy_info_panel.setup_buffs(enemy_combatant.buff_manager)
+	enemy_info_panel.setup_abilities(enemy_combatant.ability_manager)
 	
 	# Setup AI
 	var ai = SimpleEnemyAI.new()
@@ -206,8 +204,8 @@ func _on_ability_registered(instance: CombatAbilityInstance) -> void:
 	button.pressed.connect(_on_ability_button_pressed.bind(instance))
 	Log.info("AdventureCombat: Added button for " + instance.ability_data.ability_name)
 
-func _on_ability_button_pressed(instance: CombatAbilityInstance) -> void:
-	# Find enemy target (simplification: assume first enemy found)
+func on_player_ability_selected(instance: CombatAbilityInstance) -> void:
+	# Player used an ability from their UI panel
 	if enemy_combatant:
 		player_combatant.ability_manager.use_ability_instance(instance, enemy_combatant)
 	else:

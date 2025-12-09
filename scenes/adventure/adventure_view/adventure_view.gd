@@ -129,9 +129,13 @@ func _on_start_combat(choice: CombatChoice) -> void:
 			current_action_data # Pass adventure action data for gold multiplier
 		)
 		combat.start()
-		# Enable buffs visualization for player
+		# Enable buffs and abilities for player
 		if combat.player_combatant:
 			player_info_panel.setup_buffs(combat.player_combatant.buff_manager)
+			player_info_panel.setup_abilities(combat.player_combatant.ability_manager)
+			
+			if not player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):
+				player_info_panel.ability_selected.connect(combat.on_player_ability_selected)
 		
 	is_in_combat = true
 	
@@ -142,6 +146,10 @@ func _on_start_combat(choice: CombatChoice) -> void:
 ## Transition from combat view back to tilemap view
 func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	Log.info("AdventureView: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
+	
+	# Disconnect player ability signal
+	if combat and player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):
+		player_info_panel.ability_selected.disconnect(combat.on_player_ability_selected)
 	
 	tilemap_view.visible = true
 	combat_view.visible = false

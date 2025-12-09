@@ -88,17 +88,18 @@ enable_ai = false
 
 [node name="PlayerInfoPanel" parent="." instance=ExtResource("6_a8cog")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(525, 225)
+custom_minimum_size = Vector2(525, 350)
 layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
 anchor_right = 0.0
 offset_left = 64.0
-offset_top = -355.0
+offset_top = -480.0
 offset_right = 589.0
-offset_bottom = -180.0
+offset_bottom = -130.0
 grow_horizontal = 1
 grow_vertical = 0
+rotation = -0.0036693101
 profile_texture = ExtResource("7_4nakn")
 
 [node name="Button" type="Button" parent="."]

@@ -9,8 +9,17 @@ extends Control
 @onready var stamina_bar: ResourceBar = %StaminaProgressBar
 
 # Buff References
-@onready var buff_info_panel: Control = $VBoxContainer/MarginContainer/BuffInfo
+@onready var buff_info_panel: Control = %BuffInfo
 @onready var buff_container: HBoxContainer = %BuffContainer
+
+# Ability References
+@onready var abilities_panel: AbilitiesPanel = %AbilitiesPanel
+
+#-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
+signal ability_selected(instance: CombatAbilityInstance)
 
 var vitals_manager: VitalsManager
 var buff_manager: CombatBuffManager
@@ -20,6 +29,7 @@ var ability_manager: CombatAbilityManager
 var active_buff_icons: Dictionary = {}
 
 var buff_icon_scene: PackedScene = preload("res://scenes/ui/combat/buff_icon/buff_icon.tscn")
+var ability_button_scene: PackedScene = preload("res://scenes/ui/combat/ability_button/ability_button.tscn")
 
 func _ready() -> void:
 	health_bar.label_prefix = "Health"
@@ -30,12 +40,17 @@ func _ready() -> void:
 	# Initially hide buff panel
 	if buff_info_panel:
 		buff_info_panel.visible = false
+	
+	# Initially hide ability panel
+	if abilities_panel:
+		abilities_panel.visible = false
 
 ## Resets the panel completely.
 func reset() -> void:
 	Log.info("CombatantInfoPanel: Resetting %s" % name)
 	vitals_manager = null
 	_cleanup_buffs()
+	_cleanup_abilities()
 
 #-----------------------------------------------------------------------------
 # SETUP METHODS
@@ -93,6 +108,18 @@ func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
 	_cleanup_abilities()
 	
 	ability_manager = p_ability_manager
+
+	if ability_manager:
+		abilities_panel.visible = true
+
+		# Auto-cleanup when manager is destroyed
+		ability_manager.tree_exiting.connect(_on_ability_manager_exiting)
+
+		# Load initial abilities if any
+		for ability_instance in ability_manager.abilities:
+			_register_ability(ability_instance)
+	else:
+		abilities_panel.visible = false
 	
 	pass
 
@@ -175,4 +202,23 @@ func _cleanup_buffs() -> void:
 #-----------------------------------------------------------------------------
 
 func _cleanup_abilities() -> void:
-	pass
+	abilities_panel.reset()
+
+func _on_ability_manager_exiting() -> void:
+	_cleanup_abilities()
+	abilities_panel.visible = false
+
+func _register_ability(instance: CombatAbilityInstance) -> void:
+	if not abilities_panel:
+		Log.warn("AdventureCombat: No ability_bar assigned!")
+		return
+		
+	var button = ability_button_scene.instantiate()
+	abilities_panel.add_button(button)
+	button.setup(instance)
+	button.pressed.connect(_on_ability_button_pressed.bind(instance))
+	Log.info("AdventureCombat: Added button for " + instance.ability_data.ability_name)
+
+func _on_ability_button_pressed(instance: CombatAbilityInstance) -> void:
+	# We just emit the signal, the parent/controller handles logic
+	ability_selected.emit(instance)

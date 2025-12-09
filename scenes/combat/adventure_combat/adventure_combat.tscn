@@ -1,9 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://blofb5opg1kdu"]
+[gd_scene load_steps=3 format=3 uid="uid://blofb5opg1kdu"]
 
 [ext_resource type="Script" uid="uid://b5570lugu0psn" path="res://scenes/combat/adventure_combat/adventure_combat.gd" id="1_utfsu"]
-[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/border_2_panel_texture.tres" id="3_fxr42"]
 [ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="4_vkkxw"]
-[ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="6_ysix2"]
 
 [node name="AdventureCombat" type="Node2D"]
 script = ExtResource("1_utfsu")
@@ -12,46 +10,13 @@ script = ExtResource("1_utfsu")
 
 [node name="EnemyInfoPanel" parent="CanvasLayer" instance=ExtResource("4_vkkxw")]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(525, 350)
 anchors_preset = 1
 anchor_left = 1.0
 anchor_bottom = 0.0
-offset_left = -575.0
-offset_top = 350.0
-offset_right = -50.0
-offset_bottom = 550.0
+offset_left = -1856.0
+offset_top = 150.0
+offset_right = -1331.0
+offset_bottom = 500.0
 grow_horizontal = 0
 grow_vertical = 1
-
-[node name="AbilitiesPanel" type="Panel" parent="CanvasLayer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(400, 125)
-anchors_preset = 2
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 89.0
-offset_top = -184.0
-offset_right = 564.0
-offset_bottom = -59.0
-grow_vertical = 0
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_styles/panel = ExtResource("3_fxr42")
-script = ExtResource("6_ysix2")
-metadata/_edit_group_ = true
-
-[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/AbilitiesPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
-
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/AbilitiesPanel/MarginContainer"]
-layout_mode = 2
-theme_override_constants/separation = -15
-alignment = 1
