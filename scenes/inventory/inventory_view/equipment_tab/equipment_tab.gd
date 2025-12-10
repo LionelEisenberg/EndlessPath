@@ -27,6 +27,7 @@ func _ready() -> void:
 	gear_selector.slot_clicked.connect(_on_slot_input)
 	
 	item_description_box.reset()
+	selector_sprite.visible = false
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
