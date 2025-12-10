@@ -70,7 +70,7 @@ func get_equipped_abilities() -> Array[AbilityData]:
 	equipped_abilities.append(load("res://resources/abilities/basic_strike.tres"))
 	equipped_abilities.append(load("res://resources/abilities/empty_palm.tres"))
 	equipped_abilities.append(load("res://resources/abilities/enforce.tres"))
-	equipped_abilities.append(load("res://resources/abilities/test_cast_ability.tres"))
+	equipped_abilities.append(load("res://resources/abilities/power_font.tres"))
 	return equipped_abilities
 
 #-----------------------------------------------------------------------------
