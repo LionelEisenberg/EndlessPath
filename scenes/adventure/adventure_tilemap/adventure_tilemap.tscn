@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://bvgyusvjgbnbx"]
+[gd_scene load_steps=7 format=3 uid="uid://bvgyusvjgbnbx"]
 
 [ext_resource type="PackedScene" uid="uid://d3givt02dwnlp" path="res://scenes/tilemaps/hexagon_tile_map_layer.tscn" id="1_4pw8h"]
 [ext_resource type="Script" uid="uid://w7rvakxl1g1t" path="res://scenes/adventure/adventure_tilemap/adventure_tilemap.gd" id="1_b7v0o"]
@@ -6,7 +6,6 @@
 [ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="4_yfmtn"]
 [ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="4_ywsim"]
 [ext_resource type="PackedScene" uid="uid://b0qowk3rd0jft" path="res://scenes/adventure/adventure_tilemap/encounter_info_panel.tscn" id="6_10now"]
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="7_ggpd1"]
 
 [node name="AdventureTilemap" type="Node2D"]
 script = ExtResource("1_b7v0o")
@@ -46,13 +45,13 @@ layer = 2
 
 [node name="EncounterInfoPanel" parent="CanvasLayer" instance=ExtResource("6_10now")]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(450, 600)
 anchors_preset = 1
 anchor_left = 1.0
 anchor_bottom = 0.0
-offset_left = -515.0
+offset_left = -1805.0
 offset_top = 270.0
-offset_right = -115.0
-offset_bottom = 770.0
+offset_right = -1355.0
+offset_bottom = 870.0
 grow_horizontal = 0
 grow_vertical = 1
-theme_override_styles/panel = ExtResource("7_ggpd1")
