@@ -1,0 +1,7 @@
+[gd_resource type="AtlasTexture" load_steps=2 format=3 uid="uid://31kb73rhhle2"]
+
+[ext_resource type="Texture2D" uid="uid://2ht5lyu30god" path="res://assets/asperite/inventory/page_turning_spritesheet.png" id="1_n6qck"]
+
+[resource]
+atlas = ExtResource("1_n6qck")
+region = Rect2(2800, 0, 700, 450)

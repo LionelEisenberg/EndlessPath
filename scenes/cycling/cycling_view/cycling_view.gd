@@ -1,10 +1,11 @@
+## Manages the cycling view, including technique selection and execution.
 extends Control
 
-signal current_technique_changed(data)
+signal current_technique_changed(technique_data: CyclingTechniqueData)
 
-@onready var cycling_technique_node = %CyclingTechnique
-@onready var cycling_resource_panel_node = %CyclingResourcePanel
-@onready var cycling_technique_selector = %CyclingTechniqueSelector
+@onready var cycling_technique_node: CyclingTechnique = %CyclingTechnique
+@onready var cycling_resource_panel_node: CyclingResourcePanel = %CyclingResourcePanel
+@onready var cycling_technique_selector: PanelContainer = %CyclingTechniqueSelector
 
 var current_cycling_technique_data: CyclingTechniqueData = null
 
@@ -30,10 +31,6 @@ func _ready() -> void:
 
 	# Load saved technique or use default
 	_load_saved_technique()
-
-func _input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("close_cycling_view"):
-		ActionManager.stop_action()
 
 func _on_stop_cycling() -> void:
 	cycling_technique_node.stop_cycling()

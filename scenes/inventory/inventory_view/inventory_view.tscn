@@ -1,9 +1,11 @@
-[gd_scene load_steps=36 format=3 uid="uid://sra4pqjmj11a"]
+[gd_scene load_steps=39 format=3 uid="uid://sra4pqjmj11a"]
 
 [ext_resource type="Script" uid="uid://bxs3eblygn8oo" path="res://scenes/inventory/inventory_view/inventory_view.gd" id="1_43eln"]
-[ext_resource type="Texture2D" uid="uid://2ht5lyu30god" path="res://assets/asperite/inventory/Sprite-0003-Sheet.png" id="2_wdr80"]
+[ext_resource type="Texture2D" uid="uid://2ht5lyu30god" path="res://assets/asperite/inventory/page_turning_spritesheet.png" id="2_wdr80"]
+[ext_resource type="Texture2D" uid="uid://31kb73rhhle2" path="res://scenes/inventory/inventory_view/book_textures/page_turning_atlas.tres" id="3_1vqu0"]
 [ext_resource type="PackedScene" uid="uid://dnkls2h5eaj10" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.tscn" id="3_eyvfv"]
 [ext_resource type="Texture2D" uid="uid://becqlf1lmdb1x" path="res://assets/Food_01.png" id="4_0y30f"]
+[ext_resource type="Texture2D" uid="uid://dsijtn48gwr22" path="res://scenes/inventory/inventory_view/book_textures/book_opening_atlas.tres" id="4_1vqu0"]
 [ext_resource type="Script" uid="uid://bevd783gr5t7m" path="res://scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd" id="4_tabsw"]
 [ext_resource type="Texture2D" uid="uid://3ceshn32wqax" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/tab_banner.png" id="8_midoe"]
 [ext_resource type="Script" uid="uid://o2cqmwaxwv01" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd" id="8_qfdbg"]
@@ -29,6 +31,34 @@
 atlas = ExtResource("2_wdr80")
 region = Rect2(0, 0, 700, 450)
 
+[sub_resource type="Animation" id="Animation_1vqu0"]
+resource_name = "BookClosingAnimation"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:texture:region")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.01, 0.06666667, 0.13333334, 0.2, 0.25),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 1,
+"values": [Rect2(0, 0, 700, 450), Rect2(700, 0, 700, 450), Rect2(1400, 0, 700, 450), Rect2(2100, 0, 700, 450), Rect2(2800, 0, 700, 450)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:texture")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.26666668),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [ExtResource("4_1vqu0"), ExtResource("4_1vqu0")]
+}
+
 [sub_resource type="Animation" id="Animation_wdr80"]
 resource_name = "PageTurningAnimation"
 length = 0.54
@@ -39,10 +69,22 @@ tracks/0/path = NodePath(".:texture:region")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.06, 0.12, 0.18, 0.24, 0.3, 0.36, 0.42, 0.48, 0.54),
+"times": PackedFloat32Array(0.01, 0.06, 0.12, 0.18, 0.24, 0.3, 0.36, 0.42, 0.48, 0.5333),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
 "update": 1,
 "values": [Rect2(0, 0, 700, 450), Rect2(700, 0, 700, 450), Rect2(1400, 0, 700, 450), Rect2(2100, 0, 700, 450), Rect2(2800, 0, 700, 450), Rect2(3500, 0, 700, 450), Rect2(4200, 0, 700, 450), Rect2(4900, 0, 700, 450), Rect2(5600, 0, 700, 450), Rect2(6300, 0, 700, 450)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:texture")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.54),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [ExtResource("3_1vqu0"), ExtResource("3_1vqu0")]
 }
 
 [sub_resource type="Animation" id="Animation_cs4ju"]
@@ -59,9 +101,22 @@ tracks/0/keys = {
 "update": 0,
 "values": [Rect2(0, 0, 700, 450)]
 }
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:texture")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [SubResource("AtlasTexture_61p00")]
+}
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_1vqu0"]
 _data = {
+&"BookClosingAnimation": SubResource("Animation_1vqu0"),
 &"PageTurningAnimation": SubResource("Animation_wdr80"),
 &"RESET": SubResource("Animation_cs4ju")
 }
@@ -144,12 +199,23 @@ grow_horizontal = 2
 grow_vertical = 2
 texture = SubResource("AtlasTexture_61p00")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="BookBackground"]
+[node name="BookAnimationPlayer" type="AnimationPlayer" parent="BookBackground"]
+unique_name_in_owner = true
 libraries = {
 &"": SubResource("AnimationLibrary_1vqu0")
 }
 
-[node name="TabSwitcher" type="Control" parent="BookBackground"]
+[node name="BookContent" type="Control" parent="BookBackground"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TabSwitcher" type="Control" parent="BookBackground/BookContent"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -159,7 +225,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4_tabsw")
 
-[node name="EquipmentTabButton" parent="BookBackground/TabSwitcher" instance=ExtResource("3_eyvfv")]
+[node name="EquipmentTabButton" parent="BookBackground/BookContent/TabSwitcher" instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -167,7 +233,7 @@ offset_top = 95.0
 offset_right = 55.5
 offset_bottom = 95.0
 
-[node name="MaterialsTabButton" parent="BookBackground/TabSwitcher" instance=ExtResource("3_eyvfv")]
+[node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -176,14 +242,14 @@ offset_right = 55.5
 offset_bottom = 144.0
 icon_texture = ExtResource("4_0y30f")
 
-[node name="EquipmentTab" type="Control" parent="BookBackground"]
+[node name="EquipmentTab" type="Control" parent="BookBackground/BookContent"]
 unique_name_in_owner = true
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("8_qfdbg")
 
-[node name="EquipmentTabBanner" type="TextureRect" parent="BookBackground/EquipmentTab"]
+[node name="EquipmentTabBanner" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab"]
 layout_mode = 0
 offset_left = 109.0
 offset_top = 63.0
@@ -191,12 +257,12 @@ offset_right = 305.0
 offset_bottom = 129.0
 texture = ExtResource("8_midoe")
 
-[node name="Selection" type="Control" parent="BookBackground/EquipmentTab"]
+[node name="Selection" type="Control" parent="BookBackground/BookContent/EquipmentTab"]
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="SelectionBanner" type="TextureRect" parent="BookBackground/EquipmentTab/Selection"]
+[node name="SelectionBanner" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection"]
 layout_mode = 0
 offset_left = 145.0
 offset_top = 130.0
@@ -204,7 +270,7 @@ offset_right = 269.0
 offset_bottom = 158.0
 texture = ExtResource("9_qedsu")
 
-[node name="RightArrow" type="TextureRect" parent="BookBackground/EquipmentTab/Selection"]
+[node name="RightArrow" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection"]
 layout_mode = 0
 offset_left = 272.5
 offset_top = 138.0
@@ -212,7 +278,7 @@ offset_right = 286.5
 offset_bottom = 151.0
 texture = ExtResource("10_fs5oo")
 
-[node name="LeftArrow" type="TextureRect" parent="BookBackground/EquipmentTab/Selection"]
+[node name="LeftArrow" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection"]
 layout_mode = 0
 offset_left = 127.0
 offset_top = 138.0
@@ -221,26 +287,26 @@ offset_bottom = 151.0
 texture = ExtResource("10_fs5oo")
 flip_h = true
 
-[node name="SelectionDots" type="Control" parent="BookBackground/EquipmentTab/Selection"]
+[node name="SelectionDots" type="Control" parent="BookBackground/BookContent/EquipmentTab/Selection"]
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/EquipmentTab/Selection/SelectionDots"]
+[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots"]
 layout_mode = 0
 offset_left = 152.5
 offset_top = 159.0
 offset_right = 260.5
 offset_bottom = 167.0
 
-[node name="Option1" type="TextureRect" parent="BookBackground/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option1" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
 texture = ExtResource("11_xrgga")
 stretch_mode = 2
 
-[node name="Option2" type="TextureRect" parent="BookBackground/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option2" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 6
@@ -248,7 +314,7 @@ size_flags_vertical = 4
 texture = ExtResource("12_qfdbg")
 stretch_mode = 2
 
-[node name="Option3" type="TextureRect" parent="BookBackground/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option3" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 6
@@ -256,7 +322,7 @@ size_flags_vertical = 4
 texture = ExtResource("12_qfdbg")
 stretch_mode = 2
 
-[node name="Option4" type="TextureRect" parent="BookBackground/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option4" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 6
@@ -264,7 +330,7 @@ size_flags_vertical = 4
 texture = ExtResource("12_qfdbg")
 stretch_mode = 2
 
-[node name="Option5" type="TextureRect" parent="BookBackground/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option5" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 6
@@ -272,7 +338,7 @@ size_flags_vertical = 4
 texture = ExtResource("12_qfdbg")
 stretch_mode = 2
 
-[node name="EquipmentGrid" parent="BookBackground/EquipmentTab" instance=ExtResource("13_qedsu")]
+[node name="EquipmentGrid" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("13_qedsu")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 82.0
@@ -280,30 +346,30 @@ offset_top = 179.0
 offset_right = 318.0
 offset_bottom = 399.0
 
-[node name="GearSelector" parent="BookBackground/EquipmentTab" instance=ExtResource("14_xrgga")]
+[node name="GearSelector" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("14_xrgga")]
 unique_name_in_owner = true
 layout_mode = 0
 
-[node name="SelectorSprite" type="Node2D" parent="BookBackground/EquipmentTab"]
+[node name="SelectorSprite" type="Node2D" parent="BookBackground/BookContent/EquipmentTab"]
 unique_name_in_owner = true
 top_level = true
 position = Vector2(27, 19)
 metadata/_edit_group_ = true
 
-[node name="SelectorSprite" type="Sprite2D" parent="BookBackground/EquipmentTab/SelectorSprite"]
+[node name="SelectorSprite" type="Sprite2D" parent="BookBackground/BookContent/EquipmentTab/SelectorSprite"]
 scale = Vector2(2.2, 2.2)
 texture = ExtResource("16_v70co")
 hframes = 4
 frame = 3
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="BookBackground/EquipmentTab/SelectorSprite"]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="BookBackground/BookContent/EquipmentTab/SelectorSprite"]
 unique_name_in_owner = true
 root_node = NodePath("../SelectorSprite")
 libraries = {
 &"": SubResource("AnimationLibrary_juskt")
 }
 
-[node name="ItemDescriptionBox" type="TextureRect" parent="BookBackground/EquipmentTab"]
+[node name="ItemDescriptionBox" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab"]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 386.0
@@ -314,7 +380,7 @@ scale = Vector2(0.5, 0.5)
 texture = ExtResource("17_00gvd")
 script = ExtResource("17_ycsy7")
 
-[node name="ItemIcon" type="TextureRect" parent="BookBackground/EquipmentTab/ItemDescriptionBox"]
+[node name="ItemIcon" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox"]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 336.0
@@ -326,7 +392,7 @@ size_flags_horizontal = 8
 size_flags_vertical = 0
 texture = ExtResource("17_ik22q")
 
-[node name="ScrollContainer" type="ScrollContainer" parent="BookBackground/EquipmentTab/ItemDescriptionBox"]
+[node name="ScrollContainer" type="ScrollContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -334,7 +400,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="BookBackground/EquipmentTab/ItemDescriptionBox/ScrollContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -343,34 +409,34 @@ theme_override_constants/margin_top = 7
 theme_override_constants/margin_right = 7
 theme_override_constants/margin_bottom = 7
 
-[node name="VBoxContainer" type="VBoxContainer" parent="BookBackground/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 1
 
-[node name="ItemName" type="Label" parent="BookBackground/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer"]
+[node name="ItemName" type="Label" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 20
 text = "ItemName"
 
-[node name="ItemType" type="Label" parent="BookBackground/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer"]
+[node name="ItemType" type="Label" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.37791893, 0.37791884, 0.37791875, 1)
 theme_override_font_sizes/font_size = 12
 text = "[ItemType - SubitemType]"
 
-[node name="TextureRect" type="TextureRect" parent="BookBackground/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer"]
+[node name="TextureRect" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 texture = ExtResource("18_ycsy7")
 stretch_mode = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="DescriptionLabel" type="RichTextLabel" parent="BookBackground/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="DescriptionLabel" type="RichTextLabel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -379,7 +445,7 @@ theme_override_font_sizes/normal_font_size = 11
 bbcode_enabled = true
 text = "[color=gray]Description...[/color]"
 
-[node name="EffectsLabel" type="RichTextLabel" parent="BookBackground/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="EffectsLabel" type="RichTextLabel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -388,7 +454,7 @@ theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 text = "[color=red]Effects[/color]"
 
-[node name="TrashSlot" parent="BookBackground/EquipmentTab" instance=ExtResource("19_wdr80")]
+[node name="TrashSlot" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("19_wdr80")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 400.0
@@ -396,7 +462,7 @@ offset_top = 243.5
 offset_right = 429.0
 offset_bottom = 271.5
 
-[node name="MaterialsTab" type="Control" parent="BookBackground"]
+[node name="MaterialsTab" type="Control" parent="BookBackground/BookContent"]
 unique_name_in_owner = true
 visible = false
 anchors_preset = 0
@@ -404,7 +470,7 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("21_26fxh")
 
-[node name="MaterialsTabBanner" type="TextureRect" parent="BookBackground/MaterialsTab"]
+[node name="MaterialsTabBanner" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab"]
 layout_mode = 0
 offset_left = 109.0
 offset_top = 63.0
@@ -412,12 +478,12 @@ offset_right = 305.0
 offset_bottom = 129.0
 texture = ExtResource("20_qufb6")
 
-[node name="Selection" type="Control" parent="BookBackground/MaterialsTab"]
+[node name="Selection" type="Control" parent="BookBackground/BookContent/MaterialsTab"]
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="SelectionBanner" type="TextureRect" parent="BookBackground/MaterialsTab/Selection"]
+[node name="SelectionBanner" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection"]
 layout_mode = 0
 offset_left = 145.0
 offset_top = 130.0
@@ -425,7 +491,7 @@ offset_right = 269.0
 offset_bottom = 158.0
 texture = ExtResource("9_qedsu")
 
-[node name="RightArrow" type="TextureRect" parent="BookBackground/MaterialsTab/Selection"]
+[node name="RightArrow" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection"]
 layout_mode = 0
 offset_left = 272.5
 offset_top = 138.0
@@ -433,7 +499,7 @@ offset_right = 286.5
 offset_bottom = 151.0
 texture = ExtResource("10_fs5oo")
 
-[node name="LeftArrow" type="TextureRect" parent="BookBackground/MaterialsTab/Selection"]
+[node name="LeftArrow" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection"]
 layout_mode = 0
 offset_left = 127.0
 offset_top = 138.0
@@ -442,26 +508,26 @@ offset_bottom = 151.0
 texture = ExtResource("10_fs5oo")
 flip_h = true
 
-[node name="SelectionDots" type="Control" parent="BookBackground/MaterialsTab/Selection"]
+[node name="SelectionDots" type="Control" parent="BookBackground/BookContent/MaterialsTab/Selection"]
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/MaterialsTab/Selection/SelectionDots"]
+[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots"]
 layout_mode = 0
 offset_left = 152.5
 offset_top = 159.0
 offset_right = 260.5
 offset_bottom = 167.0
 
-[node name="Option1" type="TextureRect" parent="BookBackground/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option1" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
 texture = ExtResource("11_xrgga")
 stretch_mode = 2
 
-[node name="Option2" type="TextureRect" parent="BookBackground/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option2" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 6
@@ -469,7 +535,7 @@ size_flags_vertical = 4
 texture = ExtResource("12_qfdbg")
 stretch_mode = 2
 
-[node name="Option3" type="TextureRect" parent="BookBackground/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option3" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 6
@@ -477,7 +543,7 @@ size_flags_vertical = 4
 texture = ExtResource("12_qfdbg")
 stretch_mode = 2
 
-[node name="Option4" type="TextureRect" parent="BookBackground/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option4" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 6
@@ -485,7 +551,7 @@ size_flags_vertical = 4
 texture = ExtResource("12_qfdbg")
 stretch_mode = 2
 
-[node name="Option5" type="TextureRect" parent="BookBackground/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
+[node name="Option5" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 6
@@ -493,19 +559,19 @@ size_flags_vertical = 4
 texture = ExtResource("12_qfdbg")
 stretch_mode = 2
 
-[node name="MaterialsGrid" type="MarginContainer" parent="BookBackground/MaterialsTab"]
+[node name="MaterialsGrid" type="MarginContainer" parent="BookBackground/BookContent/MaterialsTab"]
 layout_mode = 0
 offset_left = 82.5
 offset_top = 183.5
 offset_right = 310.5
 offset_bottom = 371.5
 
-[node name="MarginContainer" type="MarginContainer" parent="BookBackground/MaterialsTab/MaterialsGrid"]
+[node name="MarginContainer" type="MarginContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid"]
 layout_mode = 2
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="VScrollBar" type="VScrollBar" parent="BookBackground/MaterialsTab/MaterialsGrid/MarginContainer"]
+[node name="VScrollBar" type="VScrollBar" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/MarginContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(8, 0)
 layout_mode = 2
@@ -513,7 +579,7 @@ size_flags_horizontal = 8
 theme_override_styles/scroll = SubResource("StyleBoxTexture_v70co")
 theme_override_styles/grabber = SubResource("StyleBoxTexture_ik22q")
 
-[node name="Grabber" type="TextureRect" parent="BookBackground/MaterialsTab/MaterialsGrid/MarginContainer/VScrollBar"]
+[node name="Grabber" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/MarginContainer/VScrollBar"]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = -3.0
@@ -523,16 +589,16 @@ offset_bottom = 18.0
 mouse_filter = 0
 texture = ExtResource("22_26fxh")
 
-[node name="ScrollContainer" type="ScrollContainer" parent="BookBackground/MaterialsTab/MaterialsGrid"]
+[node name="ScrollContainer" type="ScrollContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid"]
 unique_name_in_owner = true
 layout_mode = 2
 theme = SubResource("Theme_00gvd")
 horizontal_scroll_mode = 0
 vertical_scroll_mode = 3
 
-[node name="MaterialsVbox" type="VBoxContainer" parent="BookBackground/MaterialsTab/MaterialsGrid/ScrollContainer"]
+[node name="MaterialsVbox" type="VBoxContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/ScrollContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="MaterialContainer" parent="BookBackground/MaterialsTab/MaterialsGrid/ScrollContainer/MaterialsVbox" instance=ExtResource("22_qufb6")]
+[node name="MaterialContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/ScrollContainer/MaterialsVbox" instance=ExtResource("22_qufb6")]
 layout_mode = 2

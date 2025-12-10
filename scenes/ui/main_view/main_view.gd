@@ -1,3 +1,7 @@
+## Main View Manager.
+##
+## Handles switching between different main views (Zone, Adventure, Inventory, Cycling) using a State Machine pattern.
+class_name MainView
 extends Control
 
 ## Main Views
@@ -10,93 +14,79 @@ extends Control
 ## Buttons
 @onready var inventory_button: TextureButton = %InventoryButton
 
-enum State {
-	ZONE_VIEW,
-	ADVENTURE_VIEW,
-	CYCLING_VIEW,
-	INVENTORY_VIEW
-}
+## State machine states
+@onready var zone_view_state: MainViewState = %MainViewStateMachine/ZoneViewState
+@onready var adventure_view_state: MainViewState = %MainViewStateMachine/AdventureViewState
+@onready var inventory_view_state: MainViewState = %MainViewStateMachine/InventoryViewState
+@onready var cycling_view_state: MainViewState = %MainViewStateMachine/CyclingViewState
 
-var current_state: State = State.ZONE_VIEW
+## State stack
+@onready var state_stack: Array[MainViewState] = []
+var base_current_state: MainViewState = null
 
 func _ready() -> void:
-	# Initialize view visibility based on initial state
-	_update_view_visibility()
+	zone_view_state.scene_root = self
+	adventure_view_state.scene_root = self
+	inventory_view_state.scene_root = self
+	cycling_view_state.scene_root = self
 
-	# Connect to inventory view signals
-	inventory_view.open_inventory.connect(show_inventory_view)
-	inventory_view.close_inventory.connect(show_zone_view)
+	# Initialize view visibility based on initial state
+	change_state(zone_view_state)
 	
 	# Connect to ActionManager
 	if ActionManager:
 		# Cycling
-		ActionManager.start_cycling.connect(show_and_initialize_action_popup)
-		ActionManager.stop_cycling.connect(show_zone_view)
+		ActionManager.start_cycling.connect(_stack_cycling.unbind(1))
+		ActionManager.stop_cycling.connect(pop_state)
 		
 		# Adventure
-		ActionManager.start_adventure.connect(show_adventure_view.unbind(1))
-		ActionManager.stop_adventure.connect(show_zone_view)
-	
-	# Connect buttons
-	inventory_button.pressed.connect(show_inventory_view)
+		ActionManager.start_adventure.connect(_switch_to_adventure.unbind(1))
+		ActionManager.stop_adventure.connect(change_state.bind(zone_view_state))
+
+func _unhandled_input(event: InputEvent) -> void:
+	var current_state: MainViewState = _get_current_state()
+	if current_state:
+		current_state.handle_input(event)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Shows and initializes the action popup with the given data.
-func show_and_initialize_action_popup(zone_action_data: ZoneActionData) -> void:
-	match zone_action_data.action_type:
-		ZoneActionData.ActionType.CYCLING:
-			cycling_view.initialize_cycling_action_data(zone_action_data)
-			_set_state(State.CYCLING_VIEW)
-		_:
-			# For other action types, keep showing zone view for now
-			_set_state(State.ZONE_VIEW)
+func _switch_to_adventure() -> void:
+	change_state(adventure_view_state)
 
-## Shows the inventory view.
-func show_inventory_view() -> void:
-	_set_state(State.INVENTORY_VIEW)
+func _stack_cycling() -> void:
+	push_state(cycling_view_state)
 
-## Shows the zone view.
-func show_zone_view() -> void:
-	_set_state(State.ZONE_VIEW)
+## Push a new state onto the stack.
+func push_state(state: MainViewState) -> void:
+	state_stack.append(state)
+	state.enter()
 
-## Shows the adventure view.
-func show_adventure_view() -> void:
-	_set_state(State.ADVENTURE_VIEW)
+## Pop the current state from the stack.
+func pop_state() -> void:
+	if state_stack.is_empty():
+		return
 	
+	state_stack.pop_back().exit()
+
+## Change the base state, clearing the stack.
+func change_state(new_state: MainViewState) -> void:
+	if base_current_state == new_state:
+		return
+	
+	state_stack.clear()
+	
+	if base_current_state:
+		base_current_state.exit()
+	base_current_state = new_state
+	base_current_state.enter()
 
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
-func _set_state(new_state: State) -> void:
-	if current_state == new_state:
-		return
-	
-	current_state = new_state
-	_update_view_visibility()
-
-func _update_view_visibility() -> void:
-	match current_state:
-		State.ZONE_VIEW:
-			zone_view.visible = true
-			adventure_view.visible = false
-			grey_background.visible = false
-			cycling_view.visible = false
-			inventory_view.visible = false
-		State.ADVENTURE_VIEW:
-			zone_view.visible = false
-			adventure_view.visible = true
-			grey_background.visible = false
-			cycling_view.visible = false
-			inventory_view.visible = false
-		State.CYCLING_VIEW:
-			grey_background.visible = true
-			cycling_view.visible = true
-			inventory_view.visible = false
-		State.INVENTORY_VIEW:
-			grey_background.visible = true
-			cycling_view.visible = false
-			inventory_view.visible = true
+func _get_current_state() -> MainViewState:
+	if not state_stack.is_empty():
+		return state_stack.back()
+	return base_current_state
