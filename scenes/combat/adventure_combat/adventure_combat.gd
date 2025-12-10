@@ -37,7 +37,6 @@ var enemy_combatant: CombatantNode
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-@onready var ability_panel: Panel = %AbilitiesPanel
 @onready var enemy_info_panel: CombatantInfoPanel = %EnemyInfoPanel
 
 func _ready() -> void:
@@ -76,7 +75,6 @@ func start() -> void:
 ## Stops the combat and cleans up.
 func stop() -> void:
 	# Reset EnemyInfoPanel & AbilitiesPanel
-	ability_panel.reset()
 	enemy_info_panel.reset()
 	
 	# Clear all buffs before freeing combatants
@@ -143,7 +141,6 @@ func _create_enemy_combatant() -> void:
 	# Connect player_resource_manager to the trigger_combat_end signal
 	enemy_combatant.vitals_manager.health_changed.connect(_on_enemy_health_changed)
 	
-
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
@@ -186,23 +183,9 @@ func _calculate_gold_reward() -> int:
 	
 	return final_gold
 
-
 #-----------------------------------------------------------------------------
 # UI HANDLERS
 #-----------------------------------------------------------------------------
-
-var ability_button_scene: PackedScene = preload("res://scenes/ui/combat/ability_button/ability_button.tscn")
-
-func _on_ability_registered(instance: CombatAbilityInstance) -> void:
-	if not ability_panel:
-		Log.warn("AdventureCombat: No ability_bar assigned!")
-		return
-		
-	var button = ability_button_scene.instantiate()
-	ability_panel.add_button(button)
-	button.setup(instance)
-	button.pressed.connect(_on_ability_button_pressed.bind(instance))
-	Log.info("AdventureCombat: Added button for " + instance.ability_data.ability_name)
 
 func on_player_ability_selected(instance: CombatAbilityInstance) -> void:
 	# Player used an ability from their UI panel

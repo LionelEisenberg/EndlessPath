@@ -50,7 +50,7 @@ func _try_cast_abilities() -> void:
 		if not ability.is_ready():
 			continue
 			
-		if not ability.ability_data.can_afford(combatant.resource_manager):
+		if not ability.ability_data.can_afford(combatant.vitals_manager):
 			continue
 			
 		# Try to use it

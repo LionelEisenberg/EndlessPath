@@ -84,7 +84,6 @@ render_target_update_mode = 4
 
 [node name="AdventureCombat" parent="CombatView/CombatSubviewportContainer/SubViewport" instance=ExtResource("5_a8cog")]
 unique_name_in_owner = true
-enable_ai = false
 
 [node name="PlayerInfoPanel" parent="." instance=ExtResource("6_a8cog")]
 unique_name_in_owner = true

@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://dsyj8icyn4ri1"]
+[gd_scene load_steps=12 format=3 uid="uid://dsyj8icyn4ri1"]
 
 [ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="1_idpww"]
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
@@ -9,6 +9,12 @@
 [ext_resource type="Texture2D" uid="uid://daujoefgcpmxk" path="res://assets/asperite/ui/resource_bar/StaminaFill.png" id="5_idpww"]
 [ext_resource type="Texture2D" uid="uid://c7o5q6nwirf5n" path="res://assets/asperite/ui/resource_bar/HealthFill.png" id="6_l7ne6"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="9_5cglh"]
+[ext_resource type="Texture2D" uid="uid://bldgrd4oo0vqe" path="res://assets/RPG_Item_Pack_Retro_Spritesheet.png" id="10_bvhaj"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xkkay"]
+atlas = ExtResource("10_bvhaj")
+region = Rect2(192, 384, 16, 16)
+filter_clip = true
 
 [node name="CombatantInfoPanel" type="Control"]
 custom_minimum_size = Vector2(525, 200)
@@ -143,7 +149,69 @@ theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer"]
+[node name="AbilitiesContainer" type="HBoxContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer"]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 theme_override_constants/separation = -15
 alignment = 1
+
+[node name="CastingIndicator" type="VBoxContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AbilityInformationMarginContainer" type="MarginContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer/CastingIndicator"]
+layout_mode = 2
+size_flags_vertical = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 10
+
+[node name="AbilityInformation" type="Label" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "Fireball"
+
+[node name="AbilityTypeIcon" type="TextureRect" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+texture = SubResource("AtlasTexture_xkkay")
+
+[node name="ProgressBarContainer" type="MarginContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer/CastingIndicator"]
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_right = 30
+
+[node name="ProgressBar" type="ProgressBar" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer/CastingIndicator/ProgressBarContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+size_flags_vertical = 3
+value = 50.0
+show_percentage = false
+
+[node name="CastTimer" type="Label" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer/CastingIndicator/ProgressBarContainer/ProgressBar"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "2.7 / 8.0s"
+horizontal_alignment = 1
+vertical_alignment = 1

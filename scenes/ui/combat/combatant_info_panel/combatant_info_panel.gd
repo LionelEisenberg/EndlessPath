@@ -29,7 +29,7 @@ var ability_manager: CombatAbilityManager
 var active_buff_icons: Dictionary = {}
 
 var buff_icon_scene: PackedScene = preload("res://scenes/ui/combat/buff_icon/buff_icon.tscn")
-var ability_button_scene: PackedScene = preload("res://scenes/ui/combat/ability_button/ability_button.tscn")
+
 
 func _ready() -> void:
 	health_bar.label_prefix = "Health"
@@ -111,6 +111,10 @@ func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
 
 	if ability_manager:
 		abilities_panel.visible = true
+
+		# Connect selection signal
+		if not abilities_panel.ability_selected.is_connected(_on_ability_selected):
+			abilities_panel.ability_selected.connect(_on_ability_selected)
 
 		# Auto-cleanup when manager is destroyed
 		ability_manager.tree_exiting.connect(_on_ability_manager_exiting)
@@ -202,7 +206,10 @@ func _cleanup_buffs() -> void:
 #-----------------------------------------------------------------------------
 
 func _cleanup_abilities() -> void:
-	abilities_panel.reset()
+	if abilities_panel:
+		abilities_panel.reset()
+		if abilities_panel.ability_selected.is_connected(_on_ability_selected):
+			abilities_panel.ability_selected.disconnect(_on_ability_selected)
 
 func _on_ability_manager_exiting() -> void:
 	_cleanup_abilities()
@@ -213,12 +220,8 @@ func _register_ability(instance: CombatAbilityInstance) -> void:
 		Log.warn("AdventureCombat: No ability_bar assigned!")
 		return
 		
-	var button = ability_button_scene.instantiate()
-	abilities_panel.add_button(button)
-	button.setup(instance)
-	button.pressed.connect(_on_ability_button_pressed.bind(instance))
-	Log.info("AdventureCombat: Added button for " + instance.ability_data.ability_name)
+	abilities_panel.register_ability(instance)
+	Log.info("AdventureCombat: Registered ability " + instance.ability_data.ability_name)
 
-func _on_ability_button_pressed(instance: CombatAbilityInstance) -> void:
-	# We just emit the signal, the parent/controller handles logic
+func _on_ability_selected(instance: CombatAbilityInstance) -> void:
 	ability_selected.emit(instance)
