@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2ht5lyu30god"
-path="res://.godot/imported/Sprite-0003-Sheet.png-d2a0cc3fb54c1bd513d58d2ec435b013.ctex"
+uid="uid://bl4374rlugdsq"
+path="res://.godot/imported/book_opening_spritesheet.png-9682cf8048c6a8231692802c359a2405.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/asperite/inventory/Sprite-0003-Sheet.png"
-dest_files=["res://.godot/imported/Sprite-0003-Sheet.png-d2a0cc3fb54c1bd513d58d2ec435b013.ctex"]
+source_file="res://assets/asperite/inventory/book_opening_spritesheet.png"
+dest_files=["res://.godot/imported/book_opening_spritesheet.png-9682cf8048c6a8231692802c359a2405.ctex"]
 
 [params]
 

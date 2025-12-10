@@ -4,3 +4,4 @@
 *.tscn.tmp
 *.tmp
 *.exe
+.agent/implementation_plan.md
