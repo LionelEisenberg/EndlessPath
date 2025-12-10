@@ -43,4 +43,4 @@ description: Workflow for committing changes to main with standardized messages 
    - Repeat steps 2-4 until `git status` shows no more modifications to be committed.
 
 6. **Push**
-   - Once all changes are committed, run: `git push origin main`, only after user confirmation.
+   - Once all changes are committed, run: `git push origin main`
