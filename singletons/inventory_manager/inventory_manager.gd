@@ -40,11 +40,15 @@ func award_items(item: ItemDefinitionData, quantity: int) -> void:
 		ItemDefinitionData.ItemType.MATERIAL:
 			if item is MaterialDefinitionData:
 				_award_material(item as MaterialDefinitionData, quantity)
+				if LogManager:
+					LogManager.log_message("[color=light_gray]Looted %dx %s[/color]" % [quantity, item.item_name])
 			else:
 				Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
 		ItemDefinitionData.ItemType.EQUIPMENT:
 			if item is EquipmentDefinitionData:
 				_award_equipment(item as EquipmentDefinitionData, quantity)
+				if LogManager:
+					LogManager.log_message("[color=purple]Looted %dx %s[/color]" % [quantity, item.item_name])
 			else:
 				Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
 		_:
@@ -162,7 +166,7 @@ func _add_to_first_available_slot(inventory: InventoryData, item: ItemInstanceDa
 	# Find first available slot index
 	# Assuming a max slot count, e.g., 50 from EquipmentGrid
 	# We should probably define this constant somewhere shared.
-	var max_slots = 50 
+	var max_slots = 50
 	
 	for i in max_slots:
 		if not inventory.equipment.has(i):

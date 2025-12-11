@@ -47,10 +47,20 @@ func process_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 			Log.info("CombatEffectManager: %s Took %.1f damage from %s" % [owner_combatant.combatant_data.character_name, final_value, effect.effect_name])
 			owner_combatant.vitals_manager.apply_vitals_change(-final_value, 0, 0)
 			
+			if LogManager:
+				# If player takes damage: Player (green) took damage (red)
+				# If enemy takes damage: Enemy (red) took damage (white/yellow?)
+				# Lets keep it simple:
+				# [b]Target[/b] took [color=red]X Damage[/color]
+				LogManager.log_message("[b]%s[/b] took [color=red]%d Damage[/color]" % [owner_combatant.combatant_data.character_name, int(final_value)])
+			
 		CombatEffectData.EffectType.HEAL:
 			final_value = effect.calculate_value(source_attributes)
 			Log.info("CombatEffectManager: %s Healed %.1f from %s" % [owner_combatant.combatant_data.character_name, final_value, effect.effect_name])
 			owner_combatant.vitals_manager.apply_vitals_change(final_value, 0, 0)
+			
+			if LogManager:
+				LogManager.log_message("[b]%s[/b] healed for [color=green]%d Health[/color]" % [owner_combatant.combatant_data.character_name, int(final_value)])
 		
 		CombatEffectData.EffectType.BUFF:
 			# Route to buff manager

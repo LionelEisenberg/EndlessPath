@@ -76,6 +76,9 @@ func _process(_delta: float) -> void:
 func start_adventure(action_data: AdventureActionData) -> void:
 	Log.info("AdventureView: Starting adventure - %s" % action_data.action_name)
 	
+	if LogManager:
+		LogManager.log_message("[color=cyan]Adventure Started: %s[/color]" % action_data.action_name)
+	
 	current_action_data = action_data
 
 	# Initialize resource values
@@ -99,10 +102,14 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	# Ensure we're showing the tilemap view
 	tilemap_view.visible = true
 	combat_view.visible = false
-
+	
 ## Stop the current adventure and cleanup
 func stop_adventure() -> void:
 	Log.info("AdventureView: Stopping adventure")
+	
+	if LogManager:
+		LogManager.log_message("[color=cyan]Adventure Ended[/color]")
+		
 	adventure_tilemap.stop_adventure()
 	adventure_timer.stop()
 	timer_label.visible = false
@@ -141,12 +148,21 @@ func _on_start_combat(choice: CombatChoice) -> void:
 	is_in_combat = true
 	
 	Log.info("AdventureView: Transitioning to combat view - %s" % choice.label)
+	if LogManager:
+		LogManager.log_message("[color=orange]Encounter: %s[/color]" % choice.label)
+		
 	tilemap_view.visible = false
 	combat_view.visible = true
 
 ## Transition from combat view back to tilemap view
 func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	Log.info("AdventureView: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
+	
+	if LogManager:
+		if successful:
+			LogManager.log_message("[color=green]Combat Victory![/color]")
+		else:
+			LogManager.log_message("[color=red]Combat Defeat...[/color]")
 	
 	# Disconnect player ability signal
 	if combat and player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):

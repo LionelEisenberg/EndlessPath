@@ -79,6 +79,9 @@ func add_madra(amount: float) -> void:
 	# Cap madra value within [0, max_madra]
 	live_save_data.madra = clamp(live_save_data.madra + amount, 0.0, max_madra)
 	madra_changed.emit(live_save_data.madra)
+	
+	if LogManager:
+		LogManager.log_message("[color=cyan]Gained %d Madra[/color]" % int(amount))
 
 func spend_madra(amount: float) -> bool:
 	if live_save_data.madra >= amount:
@@ -101,14 +104,21 @@ func can_afford_madra(amount: float) -> bool:
 # GOLD MANAGEMENT
 #-----------------------------------------------------------------------------
 
-func add_gold(amount: float) -> void:	
+func add_gold(amount: float) -> void:
 	live_save_data.gold += amount
 	gold_changed.emit(live_save_data.gold)
+	
+	if LogManager:
+		LogManager.log_message("[color=gold]Gained %d Gold[/color]" % int(amount))
 
 func spend_gold(amount: float) -> bool:
 	if live_save_data.gold >= amount:
 		live_save_data.gold -= amount
 		gold_changed.emit(live_save_data.gold)
+		
+		if LogManager:
+			LogManager.log_message("[color=gold]Spent %d Gold[/color]" % int(amount))
+			
 		return true
 	return false
 	
