@@ -49,9 +49,14 @@ size_flags_vertical = 3
 theme_override_styles/panel = ExtResource("2_l7ne6")
 
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BuffMarginContainer/BuffInfo"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_top = -26.0
+offset_right = 68.0
+offset_bottom = 26.0
+grow_vertical = 2
 theme_override_constants/margin_left = 15
 theme_override_constants/margin_top = 7
 theme_override_constants/margin_right = 15
@@ -84,7 +89,7 @@ grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-theme_override_constants/separation = 30
+theme_override_constants/separation = 40
 
 [node name="HealthProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
@@ -97,6 +102,7 @@ progress = ExtResource("6_l7ne6")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
+size_flags_vertical = 4
 progress = ExtResource("4_h1px1")
 
 [node name="StaminaProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" instance=ExtResource("3_5xx5a")]
@@ -151,13 +157,13 @@ theme_override_constants/margin_bottom = 5
 
 [node name="AbilitiesContainer" type="HBoxContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer"]
 unique_name_in_owner = true
-visible = false
 layout_mode = 2
 theme_override_constants/separation = -15
 alignment = 1
 
 [node name="CastingIndicator" type="VBoxContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 
 [node name="AbilityInformationMarginContainer" type="MarginContainer" parent="VBoxContainer/AbilityMarginContainer/AbilitiesPanel/MarginContainer/CastingIndicator"]

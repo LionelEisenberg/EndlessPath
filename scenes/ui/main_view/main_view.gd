@@ -11,9 +11,6 @@ extends Control
 @onready var cycling_view: Control = %CyclingView
 @onready var grey_background: Panel = %GreyBackground
 
-## Buttons
-@onready var inventory_button: TextureButton = %InventoryButton
-
 ## State machine states
 @onready var zone_view_state: MainViewState = %MainViewStateMachine/ZoneViewState
 @onready var adventure_view_state: MainViewState = %MainViewStateMachine/AdventureViewState

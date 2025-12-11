@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://dyrsbe5x01lgo"]
+[gd_scene load_steps=15 format=3 uid="uid://dyrsbe5x01lgo"]
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
@@ -11,7 +11,6 @@
 [ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]
 [ext_resource type="Script" uid="uid://b6v160h5lsx3" path="res://scenes/ui/main_view/states/cycling_view_state.gd" id="4_wyoa6"]
 [ext_resource type="Script" uid="uid://t6j7xu45pr3y" path="res://scenes/ui/main_view/states/inventory_view_state.gd" id="5_a5o3s"]
-[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="5_k2uxu"]
 [ext_resource type="Script" uid="uid://c6cvq5n61a2sw" path="res://scenes/ui/main_view/states/zone_view_state.gd" id="6_cp3p8"]
 [ext_resource type="PackedScene" uid="uid://cwb0nnj7np102" path="res://scenes/adventure/adventure_view/adventure_view.tscn" id="7_up6bt"]
 
@@ -93,40 +92,6 @@ size_flags_horizontal = 3
 custom_minimum_size = Vector2(200, 80)
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MainView/ZoneView/HBoxContainer/VBoxContainer"]
-visible = false
-layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.1
-
-[node name="InventoryButton" type="TextureButton" parent="MainView/ZoneView/HBoxContainer/VBoxContainer/HBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture_normal = ExtResource("5_k2uxu")
-
-[node name="TextureButton2" type="TextureButton" parent="MainView/ZoneView/HBoxContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture_normal = ExtResource("5_k2uxu")
-
-[node name="TextureButton3" type="TextureButton" parent="MainView/ZoneView/HBoxContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture_normal = ExtResource("5_k2uxu")
-
-[node name="TextureButton4" type="TextureButton" parent="MainView/ZoneView/HBoxContainer/VBoxContainer/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture_normal = ExtResource("5_k2uxu")
-
-[node name="Panel" type="Panel" parent="MainView/ZoneView/HBoxContainer/VBoxContainer"]
-layout_mode = 2
 
 [node name="AdventureView" parent="MainView" instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true

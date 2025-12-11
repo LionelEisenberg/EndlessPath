@@ -133,6 +133,7 @@ func _on_start_combat(choice: CombatChoice) -> void:
 		if combat.player_combatant:
 			player_info_panel.setup_buffs(combat.player_combatant.buff_manager)
 			player_info_panel.setup_abilities(combat.player_combatant.ability_manager)
+			player_info_panel.position = Vector2(200, 225)
 			
 			if not player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):
 				player_info_panel.ability_selected.connect(combat.on_player_ability_selected)
@@ -159,6 +160,8 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	adventure_tilemap.handle_combat_result(successful, gold_earned)
 	
 	is_in_combat = false
+	
+	player_info_panel.position = Vector2(50, 700)
 	
 	if current_action_data:
 		if not successful:
