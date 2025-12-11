@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://dyrsbe5x01lgo"]
+[gd_scene load_steps=16 format=3 uid="uid://dyrsbe5x01lgo"]
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://dykb4ugtithxu" path="res://scenes/zones/zone_tilemap/zone_tilemap.tscn" id="3_1i3v0"]
 [ext_resource type="PackedScene" uid="uid://b1rl1n8ceijc8" path="res://scenes/cycling/cycling_view/cycling_view.tscn" id="3_7ijcf"]
 [ext_resource type="PackedScene" uid="uid://sra4pqjmj11a" path="res://scenes/inventory/inventory_view/inventory_view.tscn" id="3_k2uxu"]
+[ext_resource type="PackedScene" uid="uid://b8q7j5y2k3m1n" path="res://scenes/ui/log_window/log_window.tscn" id="3_wyoa6"]
 [ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/sprites/zones/backgrounds/spirit_valley_background.jpg" id="3_yssfv"]
 [ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
 [ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]
@@ -33,6 +34,15 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_11so6")
 
+[node name="LogWindow" parent="MainView" instance=ExtResource("3_wyoa6")]
+unique_name_in_owner = true
+z_index = 1
+layout_mode = 1
+offset_left = 704.0
+offset_top = 780.0
+offset_right = -522.0
+offset_bottom = -84.0
+
 [node name="MainViewStateMachine" type="Node" parent="MainView"]
 unique_name_in_owner = true
 
@@ -58,45 +68,46 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MainView/ZoneView"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/ZoneView/HBoxContainer"]
+[node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/ZoneView"]
 z_index = -1
 position = Vector2(963.49994, 555.49994)
 scale = Vector2(0.7769531, 0.7951389)
 texture = ExtResource("3_yssfv")
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/ZoneView/HBoxContainer"]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/ZoneView"]
 clip_contents = true
-layout_mode = 2
+layout_mode = 0
+offset_right = 1382.0
+offset_bottom = 1080.0
 
-[node name="SubViewport" type="SubViewport" parent="MainView/ZoneView/HBoxContainer/SubViewportContainer"]
+[node name="SubViewport" type="SubViewport" parent="MainView/ZoneView/SubViewportContainer"]
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1382, 1080)
 render_target_update_mode = 4
 
-[node name="ZoneTilemap" parent="MainView/ZoneView/HBoxContainer/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]
+[node name="ZoneTilemap" parent="MainView/ZoneView/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MainView/ZoneView/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ZoneInfoPanel" parent="MainView/ZoneView/HBoxContainer/VBoxContainer" instance=ExtResource("4_tvvcy")]
+[node name="ZoneInfoPanel" parent="MainView/ZoneView" instance=ExtResource("4_tvvcy")]
 custom_minimum_size = Vector2(200, 80)
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = -545.0
+offset_top = -540.0
+offset_right = 9.0
+offset_bottom = 540.0
+grow_horizontal = 0
 size_flags_vertical = 3
 
 [node name="AdventureView" parent="MainView" instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
+offset_top = 1.0
+offset_bottom = 1.0
 
 [node name="GreyBackground" type="Panel" parent="MainView"]
 unique_name_in_owner = true
@@ -112,12 +123,13 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_up6bt")
 [node name="InventoryView" parent="MainView" instance=ExtResource("3_k2uxu")]
 unique_name_in_owner = true
 visible = false
+z_index = 3
 layout_mode = 1
 
 [node name="CyclingView" parent="MainView" instance=ExtResource("3_7ijcf")]
 unique_name_in_owner = true
 visible = false
-z_index = 2
+z_index = 3
 layout_mode = 1
 
 [node name="SaveTimer" type="Timer" parent="."]

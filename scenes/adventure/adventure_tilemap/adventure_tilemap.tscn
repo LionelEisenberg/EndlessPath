@@ -36,8 +36,8 @@ is_debug_mode = false
 
 [node name="CameraZoomController" parent="CharacterBody2D/Camera2D" instance=ExtResource("4_ywsim")]
 zoom_min = 0.3
-zoom_max = 1.5
-zoom_default = 1.5
+zoom_max = 1.3
+zoom_default = 1.0
 zoom_speed = 100.0
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]

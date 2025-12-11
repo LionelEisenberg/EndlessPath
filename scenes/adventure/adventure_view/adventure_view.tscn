@@ -27,16 +27,17 @@ script = ExtResource("1_176xw")
 
 [node name="TilemapView" type="Control" parent="."]
 unique_name_in_owner = true
-visible = false
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="TilemapSubviewportContainer" type="SubViewportContainer" parent="TilemapView"]
 clip_contents = true
 layout_mode = 0
-offset_left = -2.0
-offset_right = 1918.0
+offset_right = 1920.0
 offset_bottom = 1080.0
 
 [node name="AdventureTilemapBackground" type="Sprite2D" parent="TilemapView/TilemapSubviewportContainer"]
@@ -49,13 +50,14 @@ texture = ExtResource("1_3ls1s")
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1920, 1080)
-render_target_update_mode = 0
+render_target_update_mode = 4
 
 [node name="AdventureTilemap" parent="TilemapView/TilemapSubviewportContainer/SubViewport" instance=ExtResource("2_176xw")]
 unique_name_in_owner = true
 
 [node name="CombatView" type="Control" parent="."]
 unique_name_in_owner = true
+visible = false
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
@@ -72,15 +74,15 @@ grow_vertical = 2
 
 [node name="CombatBackground" type="Sprite2D" parent="CombatView/CombatSubviewportContainer"]
 z_index = -1
-position = Vector2(959.99994, 540)
-scale = Vector2(0.74999994, 0.74999994)
+position = Vector2(963.49994, 555.49994)
+scale = Vector2(0.7769531, 0.7951389)
 texture = ExtResource("1_3ls1s")
 
 [node name="SubViewport" type="SubViewport" parent="CombatView/CombatSubviewportContainer"]
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1920, 1080)
-render_target_update_mode = 4
+render_target_update_mode = 0
 
 [node name="AdventureCombat" parent="CombatView/CombatSubviewportContainer/SubViewport" instance=ExtResource("5_a8cog")]
 unique_name_in_owner = true
