@@ -5,8 +5,8 @@ extends MainViewState
 ## Called when entering this state.
 func enter() -> void:
 	scene_root.grey_background.visible = true
-	scene_root.inventory_view.visible = true
 	scene_root.inventory_view.animate_open()
+	scene_root.inventory_view.visible = true
 
 ## Called when exiting this state.
 func exit() -> void:
@@ -20,6 +20,7 @@ func handle_input(event: InputEvent) -> void:
 			scene_root.inventory_view.inventory_closed.connect(_on_inventory_animation_closed)
 		scene_root.inventory_view.animate_close()
 
+## Handle completion of closing animation to pop the state.
 func _on_inventory_animation_closed() -> void:
 	scene_root.pop_state()
 	scene_root.inventory_view.inventory_closed.disconnect(_on_inventory_animation_closed)

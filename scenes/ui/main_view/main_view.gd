@@ -1,8 +1,8 @@
+class_name MainView
+extends Control
 ## Main View Manager.
 ##
 ## Handles switching between different main views (Zone, Adventure, Inventory, Cycling) using a State Machine pattern.
-class_name MainView
-extends Control
 
 ## Main Views
 @onready var zone_view: Control = %ZoneView
@@ -52,9 +52,11 @@ func _unhandled_input(event: InputEvent) -> void:
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
+## Switch to adventure view state.
 func _switch_to_adventure() -> void:
 	change_state(adventure_view_state)
 
+## Push cycling view state onto the stack.
 func _stack_cycling() -> void:
 	push_state(cycling_view_state)
 
