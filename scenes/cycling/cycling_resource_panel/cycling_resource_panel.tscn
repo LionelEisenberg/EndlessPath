@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://b2c0qwss02xti"]
+[gd_scene load_steps=8 format=3 uid="uid://b2c0qwss02xti"]
 
 [ext_resource type="Script" uid="uid://bysux6fx02amd" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd" id="1_4xbm7"]
-[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="1_6xgn2"]
+[ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="2_0rw3m"]
 [ext_resource type="Texture2D" uid="uid://d1dporgncb78s" path="res://assets/ui_images/vecteezy_geometric-design-element_21048718_128x128_dark.png" id="2_jblo1"]
 [ext_resource type="Texture2D" uid="uid://bconow6rro58n" path="res://assets/ui_images/vecteezy_geometric-design-element_21048718_128x128.png" id="3_4xbm7"]
+[ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="3_hrwnf"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4xbm7"]
 bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
@@ -20,6 +21,28 @@ corner_radius_bottom_left = 5
 corner_detail = 12
 shadow_color = Color(0, 0, 0, 1)
 shadow_size = 4
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_rnaqj"]
+shader = ExtResource("2_0rw3m")
+shader_parameter/progress = 0.6450000306375
+shader_parameter/wave_amplitude = 0.02
+shader_parameter/wave_frequency = 5.0000002375
+shader_parameter/wave_speed = 4.00000019
+shader_parameter/wave_randomness_freq = 3.0000001392401203
+shader_parameter/wave_randomness_amp = 0.60000002524012
+shader_parameter/foam_thickness = 0.0050000002375
+shader_parameter/foam_color = Color(0.5, 0.65, 0.8, 1)
+shader_parameter/bg_color = Color(0.43, 0.43, 0.43, 0.2)
+shader_parameter/polar_center = Vector2(0.5, 0.5)
+shader_parameter/polar_zoom = 1.0
+shader_parameter/polar_repeat = 1.0
+shader_parameter/spin_rotation = 0.0
+shader_parameter/spin_speed = 20.0
+shader_parameter/swirl_col_primary = Color(0.702, 0.854, 1, 0.678)
+shader_parameter/swirl_col_secondary = Color(0.6, 0.75, 0.9, 1)
+shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
+shader_parameter/contrast = 2.0
+shader_parameter/spin_amount = 0.36
 
 [node name="CyclingResourcePanel" type="MarginContainer"]
 anchors_preset = 15
@@ -51,14 +74,13 @@ size_flags_vertical = 3
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MadraSection"]
 layout_mode = 2
 
-[node name="MadraCircleProgressBar" type="TextureProgressBar" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
+[node name="MadraCircle" type="TextureRect" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
 unique_name_in_owner = true
+material = SubResource("ShaderMaterial_rnaqj")
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
-texture_under = ExtResource("1_6xgn2")
-texture_over = ExtResource("1_6xgn2")
-texture_progress = ExtResource("1_6xgn2")
+texture = ExtResource("3_hrwnf")
 
 [node name="MadraStats" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
 layout_mode = 2
@@ -69,6 +91,7 @@ size_flags_vertical = 4
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
+theme_override_font_sizes/font_size = 28
 text = "Madra: 1000/1200
 "
 vertical_alignment = 1
@@ -77,6 +100,7 @@ vertical_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
+theme_override_font_sizes/font_size = 28
 text = "MadraRateLabel +2.5/s"
 vertical_alignment = 1
 
