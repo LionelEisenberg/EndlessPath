@@ -76,7 +76,7 @@ func _ready() -> void:
 	cast_timer.timeout.connect(_on_cast_timeout)
 	add_child(cast_timer)
 	
-	cooldown_timer.wait_time = ability_data.base_cooldown
+	cooldown_timer.wait_time = max(ability_data.base_cooldown, 0.001)
 	_start_cooldown(INITIAL_COOLDOWN)
 
 func _process(_delta: float) -> void:
@@ -140,7 +140,7 @@ func execute_ability(target: CombatantNode) -> void:
 # INTERNAL LOGIC
 #-----------------------------------------------------------------------------
 
-func _start_cooldown(cooldown: float):
+func _start_cooldown(cooldown: float) -> void:
 	if ability_data.base_cooldown > 0:
 		cooldown_timer.start(cooldown)
 		cooldown_started.emit(ability_data.base_cooldown)

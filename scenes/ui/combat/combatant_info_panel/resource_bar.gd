@@ -7,10 +7,10 @@ const FLOATING_TEXT_SCENE = preload("res://scenes/ui/floating_text/floating_text
 @export var show_floating_text: bool = true
 @export var label_prefix: String = "Resource"
 
-@onready var timer = %GhostTimer
-@onready var main_bar = %ResourceProgressBar
-@onready var ghost_bar = %GhostProgressBar
-@onready var resource_bar_label = %ResourceBarLabel
+@onready var timer: Timer = %GhostTimer
+@onready var main_bar: TextureProgressBar = %ResourceProgressBar
+@onready var ghost_bar: TextureProgressBar = %GhostProgressBar
+@onready var resource_bar_label: Label = %ResourceBarLabel
 
 var _current_value: float = -1.0
 var _max_value: float = -1.0
@@ -35,7 +35,6 @@ func _setup_progress_bars() -> void:
 	# Ensure ghost bar is behind main bar (should be set in scene, but good to enforce)
 	ghost_bar.show_behind_parent = true
 
-## Updates the bar values.
 ## Updates the bar values.
 func update_values(new_current: float, new_max: float, regen_rate: float = 0.0) -> void:
 	if regen_rate == 0:
@@ -88,4 +87,5 @@ func _spawn_floating_text(text: String, color: Color) -> void:
 	# Position slightly above the center of the bar
 	var center_pos = main_bar.global_position + main_bar.size / 2
 	center_pos.y -= 20 # Offset up
+	center_pos.x += 150
 	floating_text.show_text(text, color, center_pos)
