@@ -246,8 +246,8 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	Log.info("AdventureTilemap: Tile clicked: %s" % coord)
 	
 	# Don't allow new clicks if we're already processing a visitation queue
-	if _visitation_queue.size() > 0:
-		_visitation_queue.clear()
+	if _visitation_queue.size() > 0 or character_body.is_moving:
+		return
 	
 	# Get the target tile in cube coordinates
 	var target_cube_coord = visible_map.map_to_cube(coord)
