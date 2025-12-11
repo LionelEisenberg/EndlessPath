@@ -6,7 +6,6 @@ extends MarginContainer
 #-----------------------------------------------------------------------------
 
 # UI visual constants
-const INITIAL_CORE_SCALE = Vector2(0.5, 0.5)
 const MAX_CORE_DENSITY_LEVEL = 100.0
 const COLOR_CYCLING = Color(0.0, 1.0, 0.0) # Green when actively cycling
 const COLOR_IDLE = Color(0.7, 0.7, 0.7) # Gray when idle
@@ -19,11 +18,11 @@ signal open_technique_selector
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
-@onready var madra_circle_progress: TextureProgressBar = %MadraCircleProgressBar
+@onready var madra_circle_rect: TextureRect = %MadraCircle
 @onready var madra_amount_label: Label = %MadraAmountLabel
 @onready var madra_generation_rate_label: Label = %MadraGenerationRateLabel
 
-@onready var core_density_sprite: Sprite2D = %CoreDensitySprite
+@onready var core_density_rect: TextureRect = %CoreDensityRect
 @onready var core_density_level_label: Label = %CoreDensityLevelLabel
 @onready var core_density_xp_progress_bar: ProgressBar = %CoreDensityXPProgressBar
 @onready var core_density_xp_label: Label = %CoreDensityXPLabel
@@ -61,13 +60,6 @@ func _ready() -> void:
 
 ## Initialize UI elements with proper styling.
 func setup_ui() -> void:
-	# Setup circular progress bar
-	madra_circle_progress.radial_fill_degrees = 360
-	madra_circle_progress.fill_mode = TextureProgressBar.FILL_CLOCKWISE
-	
-	# Setup core ball initial scale
-	core_density_sprite.scale = INITIAL_CORE_SCALE
-	
 	# Setup button
 	open_technique_selector_button.pressed.connect(_on_open_technique_selector)
 
@@ -128,8 +120,8 @@ func update_madra_display() -> void:
 	var max_madra = stage_res.get_max_madra(level) if stage_res else 0.0
 
 	# Update progress bar (0-100%)
-	var progress = (current_madra / max_madra) * 100.0 if max_madra > 0 else 0.0
-	madra_circle_progress.value = progress
+	var progress = (current_madra / max_madra)
+	(madra_circle_rect.material as ShaderMaterial).set_shader_parameter("progress", progress)
 
 	# Update labels
 	madra_amount_label.text = "Madra: %d / %d" % [int(current_madra), int(max_madra)]
@@ -166,8 +158,7 @@ func update_core_density() -> void:
 	core_density_xp_label.text = "XP: %d / %d" % [int(xp), int(max_xp)]
 
 	# Update core sprite scale based on LEVEL (0-100 maps to 0-1.0 scale)
-	var normalized = clamp(level / MAX_CORE_DENSITY_LEVEL, 0.0, 1.0)
-	core_density_sprite.scale = Vector2(normalized, normalized)
+	(core_density_rect.material as ShaderMaterial).set_shader_parameter("progress", level / MAX_CORE_DENSITY_LEVEL)
 
 ## Update cultivation stage display.
 func update_stage() -> void:

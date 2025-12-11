@@ -115,7 +115,7 @@ void fragment() {
 
 	if (is_border_pixel(tex_color)) {
 		// Preserve original border color
-		COLOR = tex_color;
+		COLOR = vec4(1.0,1.0,1.0,1.0);
 	} else {
 		if (UV.y < current_level) {
 			// Empty part (above the wave)

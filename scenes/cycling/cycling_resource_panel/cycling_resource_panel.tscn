@@ -2,25 +2,9 @@
 
 [ext_resource type="Script" uid="uid://bysux6fx02amd" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd" id="1_4xbm7"]
 [ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="2_0rw3m"]
-[ext_resource type="Texture2D" uid="uid://d1dporgncb78s" path="res://assets/ui_images/vecteezy_geometric-design-element_21048718_128x128_dark.png" id="2_jblo1"]
-[ext_resource type="Texture2D" uid="uid://bconow6rro58n" path="res://assets/ui_images/vecteezy_geometric-design-element_21048718_128x128.png" id="3_4xbm7"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="2_p8dgl"]
 [ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="3_hrwnf"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4xbm7"]
-bg_color = Color(0.1254902, 0.1254902, 0.1254902, 1)
-border_width_left = 10
-border_width_top = 10
-border_width_right = 10
-border_width_bottom = 10
-border_color = Color(0.22352941, 0.22352941, 0.22352941, 1)
-border_blend = true
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-corner_detail = 12
-shadow_color = Color(0, 0, 0, 1)
-shadow_size = 4
+[ext_resource type="Shader" uid="uid://cnsig7e5ba7ln" path="res://assets/shaders/core_density_fill.gdshader" id="4_rnaqj"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rnaqj"]
 shader = ExtResource("2_0rw3m")
@@ -44,6 +28,26 @@ shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
 shader_parameter/contrast = 2.0
 shader_parameter/spin_amount = 0.36
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0rw3m"]
+shader = ExtResource("4_rnaqj")
+shader_parameter/progress = 0.46000002185
+shader_parameter/pulse_amplitude = 0.0050000002375
+shader_parameter/pulse_frequency = 1.0000000475
+shader_parameter/pulse_speed = 2.000000095
+shader_parameter/edge_thickness = 0.010000000475
+shader_parameter/edge_color = Color(1, 1, 1, 1)
+shader_parameter/bg_color = Color(0, 0, 0, 0.25882354)
+shader_parameter/polar_center = Vector2(0.5, 0.5)
+shader_parameter/polar_zoom = 1.0
+shader_parameter/polar_repeat = 1.0
+shader_parameter/spin_rotation = 0.0
+shader_parameter/spin_speed = 50.0
+shader_parameter/swirl_col_primary = Color(0.702, 0.854, 1, 0.678)
+shader_parameter/swirl_col_secondary = Color(0.6, 0.75, 0.9, 1)
+shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
+shader_parameter/contrast = 2.0
+shader_parameter/spin_amount = 1.5
+
 [node name="CyclingResourcePanel" type="MarginContainer"]
 anchors_preset = 15
 anchor_right = 1.0
@@ -55,26 +59,31 @@ script = ExtResource("1_4xbm7")
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_4xbm7")
+theme_override_styles/panel = ExtResource("2_p8dgl")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
-layout_mode = 2
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 30
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 30
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
 
-[node name="MadraSection" type="MarginContainer" parent="MarginContainer/VBoxContainer"]
+[node name="MadraSection" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MadraSection"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/MadraSection"]
 layout_mode = 2
 
-[node name="MadraCircle" type="TextureRect" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
+[node name="MadraCircle" type="TextureRect" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
 unique_name_in_owner = true
 material = SubResource("ShaderMaterial_rnaqj")
 layout_mode = 2
@@ -82,12 +91,12 @@ size_flags_horizontal = 6
 size_flags_vertical = 4
 texture = ExtResource("3_hrwnf")
 
-[node name="MadraStats" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
+[node name="MadraStats" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 2
 size_flags_vertical = 4
 
-[node name="MadraAmountLabel" type="Label" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer/MadraStats"]
+[node name="MadraAmountLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer/MadraStats"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
@@ -96,7 +105,7 @@ text = "Madra: 1000/1200
 "
 vertical_alignment = 1
 
-[node name="MadraGenerationRateLabel" type="Label" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer/MadraStats"]
+[node name="MadraGenerationRateLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer/MadraStats"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
@@ -104,59 +113,54 @@ theme_override_font_sizes/font_size = 28
 text = "MadraRateLabel +2.5/s"
 vertical_alignment = 1
 
-[node name="CoreDensitySection" type="MarginContainer" parent="MarginContainer/VBoxContainer"]
+[node name="CoreDensitySection" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/CoreDensitySection"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection"]
 layout_mode = 2
 
-[node name="DensityLevelBackground" type="TextureRect" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer"]
-custom_minimum_size = Vector2(128, 128)
+[node name="CoreDensityRect" type="TextureRect" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer"]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_0rw3m")
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
-texture = ExtResource("2_jblo1")
+texture = ExtResource("3_hrwnf")
 
-[node name="CoreDensitySprite" type="Sprite2D" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/DensityLevelBackground"]
-unique_name_in_owner = true
-position = Vector2(64, 64)
-scale = Vector2(0.01, 0.01)
-texture = ExtResource("3_4xbm7")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 2
 size_flags_vertical = 4
 
-[node name="CoreDensityLevelLabel" type="Label" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+[node name="CoreDensityLevelLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
 text = "Level: 14"
 vertical_alignment = 1
 
-[node name="CoreDensityXPProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+[node name="CoreDensityXPProgressBar" type="ProgressBar" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 value = 60.0
 rounded = true
 
-[node name="CoreDensityXPLabel" type="Label" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+[node name="CoreDensityXPLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
 text = "XP: 60 / 100"
 vertical_alignment = 1
 
-[node name="StageSection" type="MarginContainer" parent="MarginContainer/VBoxContainer"]
+[node name="StageSection" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/StageSection"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/StageSection"]
 layout_mode = 2
 
-[node name="CultivationStageLabel" type="Label" parent="MarginContainer/VBoxContainer/StageSection/HBoxContainer"]
+[node name="CultivationStageLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/StageSection/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 6
@@ -165,7 +169,7 @@ text = "Madra: 1000/1200
 "
 vertical_alignment = 1
 
-[node name="NextCultivationStageLabel" type="Label" parent="MarginContainer/VBoxContainer/StageSection/HBoxContainer"]
+[node name="NextCultivationStageLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/StageSection/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 6
@@ -173,14 +177,14 @@ size_flags_vertical = 0
 text = "MadraRateLabel +2.5/s"
 vertical_alignment = 1
 
-[node name="TechniqueSection" type="MarginContainer" parent="MarginContainer/VBoxContainer"]
+[node name="TechniqueSection" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TechniqueSection"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TechniqueSection"]
 layout_mode = 2
 
-[node name="TechniqueNameLabel" type="Label" parent="MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
+[node name="TechniqueNameLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -188,7 +192,7 @@ text = "XP: 60 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TechniqueStatsLabel" type="Label" parent="MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
+[node name="TechniqueStatsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -197,7 +201,7 @@ text = "Madra: 1000/1200
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="OpenTechniqueSelectorButton" type="Button" parent="MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
+[node name="OpenTechniqueSelectorButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
