@@ -17,8 +17,7 @@ extends Control
 
 @onready var player_info_panel: CombatantInfoPanel = %PlayerInfoPanel
 
-@onready var adventure_timer: Timer = Timer.new()
-@onready var timer_label: Label = Label.new()
+@onready var timer_panel: TimerPanel = %TimerPanel
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -49,24 +48,7 @@ func _ready() -> void:
 	$Button2.pressed.connect(_on_stop_combat.bind(true))
 
 	# Setup Timer
-	adventure_timer.name = "AdventureTimer"
-	adventure_timer.one_shot = true
-	adventure_timer.timeout.connect(_on_adventure_timer_timeout)
-	add_child(adventure_timer)
-
-	# Setup Timer Label (Temporary UI)
-	timer_label.name = "TimerLabel"
-	timer_label.position = Vector2(50, 50)
-	timer_label.add_theme_font_size_override("font_size", 32)
-	add_child(timer_label)
-
-func _process(_delta: float) -> void:
-	if current_action_data and not adventure_timer.is_stopped():
-		# Update Timer Label
-		var time_left = adventure_timer.time_left
-		var minutes = floor(time_left / 60)
-		var seconds = int(time_left) % 60
-		timer_label.text = "%02d:%02d" % [minutes, seconds]
+	timer_panel.timer.timeout.connect(_on_adventure_timer_timeout)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -90,8 +72,8 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	
 	# Start Timer
 	var time_limit = action_data.time_limit_seconds if action_data.time_limit_seconds > 0 else 10
-	adventure_timer.start(time_limit)
-	timer_label.visible = true
+	timer_panel.start(time_limit)
+	timer_panel.visible = true
 	
 	adventure_tilemap.start_adventure(action_data)
 	
@@ -111,8 +93,8 @@ func stop_adventure() -> void:
 		LogManager.log_message("[color=cyan]Adventure Ended[/color]")
 		
 	adventure_tilemap.stop_adventure()
-	adventure_timer.stop()
-	timer_label.visible = false
+	timer_panel.stop()
+	timer_panel.visible = false
 	current_action_data = null
 	_update_stamina_regen(0.0)
 	if is_in_combat:
