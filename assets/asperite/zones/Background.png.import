@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dntr2b6mikdg6"
-path="res://.godot/imported/Background.png-10348d9984072547dd123fbdbfa0337e.ctex"
+uid="uid://bstddxlrmklsy"
+path="res://.godot/imported/background.png-1b1fbeffc23caa32e09eaef17c540354.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/asperite/zones/Background.png"
-dest_files=["res://.godot/imported/Background.png-10348d9984072547dd123fbdbfa0337e.ctex"]
+source_file="res://assets/asperite/zones/background.png"
+dest_files=["res://.godot/imported/background.png-1b1fbeffc23caa32e09eaef17c540354.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b754ofe2jn7wa"
-path="res://.godot/imported/combat.png-d495a7aa37de3434b5452c7cf64e34e6.ctex"
+uid="uid://q5umgakd5yls"
+path="res://.godot/imported/unknown.png-6c6b2b259c06bdc2bbde52aa587905c5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/asperite/zones/combat.png"
-dest_files=["res://.godot/imported/combat.png-d495a7aa37de3434b5452c7cf64e34e6.ctex"]
+source_file="res://assets/asperite/zones/unknown.png"
+dest_files=["res://.godot/imported/unknown.png-6c6b2b259c06bdc2bbde52aa587905c5.ctex"]
 
 [params]
 

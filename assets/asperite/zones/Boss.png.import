@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://buqtlh20eekpv"
-path="res://.godot/imported/Boss.png-290ac9595e1c9b8affe42c5a5ce5d501.ctex"
+uid="uid://6h08ip6odlci"
+path="res://.godot/imported/boss.png-b7c163841e9d102176549f2b316a72af.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/asperite/zones/Boss.png"
-dest_files=["res://.godot/imported/Boss.png-290ac9595e1c9b8affe42c5a5ce5d501.ctex"]
+source_file="res://assets/asperite/zones/boss.png"
+dest_files=["res://.godot/imported/boss.png-b7c163841e9d102176549f2b316a72af.ctex"]
 
 [params]
 
