@@ -8,12 +8,12 @@ shader_type canvas_item;
 uniform float progress : hint_range(0.0, 1.0) = 0.5;
 
 // Pulse/Bob parameter
-uniform float pulse_amplitude : hint_range(0.0, 0.05) = 0.01;
-uniform float pulse_frequency : hint_range(0.0, 20.0) = 8.0;
+uniform float pulse_amplitude : hint_range(0.0, 0.05) = 0.005;
+uniform float pulse_frequency : hint_range(0.0, 20.0) = 1.0;
 uniform float pulse_speed : hint_range(0.0, 10.0) = 2.0;
 
 // Edge parameters
-uniform float edge_thickness : hint_range(0.0, 0.1) = 0.02;
+uniform float edge_thickness : hint_range(0.0, 0.1) = 0.01;
 uniform vec4 edge_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 
 // Colors (Base fill is handled by swirl colors now)
@@ -26,7 +26,7 @@ uniform float polar_zoom = 1.;
 uniform float polar_repeat = 1.;
 
 uniform highp float spin_rotation = 0.0;
-uniform highp float spin_speed = 4.0;
+uniform highp float spin_speed = 50.0;
 const vec2 OFFSET = vec2(0.0);
 uniform highp vec4 swirl_col_primary : source_color = vec4(0.702, 0.854, 1.0, 0.678); // Original Fill
 uniform highp vec4 swirl_col_secondary : source_color = vec4(0.6, 0.75, 0.9, 1.0); // Variation

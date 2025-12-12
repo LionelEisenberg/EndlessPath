@@ -18,11 +18,11 @@ signal open_technique_selector
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
-@onready var madra_circle_rect: TextureRect = %MadraCircle
+@onready var madra_circle_rect: ProgressShaderRect = %MadraCircle
 @onready var madra_amount_label: Label = %MadraAmountLabel
 @onready var madra_generation_rate_label: Label = %MadraGenerationRateLabel
 
-@onready var core_density_rect: TextureRect = %CoreDensityRect
+@onready var core_density_rect: ProgressShaderRect = %CoreDensityRect
 @onready var core_density_level_label: Label = %CoreDensityLevelLabel
 @onready var core_density_xp_progress_bar: ProgressBar = %CoreDensityXPProgressBar
 @onready var core_density_xp_label: Label = %CoreDensityXPLabel
@@ -121,7 +121,7 @@ func update_madra_display() -> void:
 
 	# Update progress bar (0-100%)
 	var progress = (current_madra / max_madra)
-	(madra_circle_rect.material as ShaderMaterial).set_shader_parameter("progress", progress)
+	madra_circle_rect.set_value(progress)
 
 	# Update labels
 	madra_amount_label.text = "Madra: %d / %d" % [int(current_madra), int(max_madra)]
@@ -158,7 +158,7 @@ func update_core_density() -> void:
 	core_density_xp_label.text = "XP: %d / %d" % [int(xp), int(max_xp)]
 
 	# Update core sprite scale based on LEVEL (0-100 maps to 0-1.0 scale)
-	(core_density_rect.material as ShaderMaterial).set_shader_parameter("progress", level / MAX_CORE_DENSITY_LEVEL)
+	core_density_rect.set_value(level / MAX_CORE_DENSITY_LEVEL)
 
 ## Update cultivation stage display.
 func update_stage() -> void:

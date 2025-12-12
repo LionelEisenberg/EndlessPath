@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://b2c0qwss02xti"]
+[gd_scene load_steps=9 format=3 uid="uid://b2c0qwss02xti"]
 
 [ext_resource type="Script" uid="uid://bysux6fx02amd" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd" id="1_4xbm7"]
 [ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="2_0rw3m"]
 [ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="2_p8dgl"]
 [ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="3_hrwnf"]
 [ext_resource type="Shader" uid="uid://cnsig7e5ba7ln" path="res://assets/shaders/core_density_fill.gdshader" id="4_rnaqj"]
+[ext_resource type="Script" uid="uid://chldnyvaer1hp" path="res://scenes/cycling/cycling_resource_panel/progress_shader_rect.gd" id="5_rnaqj"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rnaqj"]
 shader = ExtResource("2_0rw3m")
@@ -90,6 +91,7 @@ layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
 texture = ExtResource("3_hrwnf")
+script = ExtResource("5_rnaqj")
 
 [node name="MadraStats" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
 layout_mode = 2
@@ -127,6 +129,7 @@ layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
 texture = ExtResource("3_hrwnf")
+script = ExtResource("5_rnaqj")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer"]
 layout_mode = 2
