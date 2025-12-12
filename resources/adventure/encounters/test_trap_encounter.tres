@@ -31,4 +31,5 @@ metadata/_custom_type_script = "uid://c1b11mq3a2qya"
 [resource]
 script = ExtResource("2_7ksoi")
 choices = Array[ExtResource("1_cnrdd")]([SubResource("Resource_8sned"), SubResource("Resource_ilask")])
+encounter_type = 5
 metadata/_custom_type_script = "uid://cs335nesm7wfr"

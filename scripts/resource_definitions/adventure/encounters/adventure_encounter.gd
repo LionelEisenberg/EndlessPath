@@ -14,9 +14,9 @@ enum EncounterType {
 	COMBAT_AMBUSH, # Implemented
 	COMBAT_BOSS, # Implemented
 	COMBAT_ELITE, # Implemented
-	REST_SITE, # TODO: Implement
-	SHRINE, # TODO: Implement
-	TRAP, # TODO: Implement
+	REST_SITE, # Implemented
+	TRAP, # Implemented
+	TREASURE, # Implemented
 	NONE, # No encounter, no implementation needed
 }
 

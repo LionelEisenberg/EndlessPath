@@ -25,7 +25,7 @@ encounter_name = "Fight these bitches"
 description = "Fight these bitches"
 text_description_completed = "These bitches we're fought"
 choices = Array[ExtResource("1_hfh2t")]([ExtResource("2_bqnnc"), SubResource("Resource_16qle")])
-encounter_type = 0
+encounter_type = 2
 
 [resource]
 script = ExtResource("1_3qutp")

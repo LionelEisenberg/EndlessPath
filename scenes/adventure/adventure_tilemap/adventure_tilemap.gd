@@ -26,12 +26,6 @@ const TRANSPARENT_TILE_VARIANT_ID = 4
 const CONTOUR_SOURCE_ID = 2
 const RED_CONTOUR_VARIANT_ID = 1
 
-const BOSS_OVERLAY_SOURCE_ID = 3
-const BOSS_OVERLAY_VARIANT_ID = 0
-
-const COMBAT_OVERLAY_SOURCE_ID = 4
-const COMBAT_OVERLAY_VARIANT_ID = 0
-
 # Character movement speeds
 const CHARACTER_MOVE_SPEED = 150.0
 const INSTANT_MOVE_SPEED = 10000.0
@@ -291,7 +285,6 @@ func _mark_tile_visited(coord: Vector3i) -> void:
 				_highlight_tile_dictionary[neighbour] = HighlightType.VISIBLE_NEIGHBOUR
 	
 	_update_visible_map()
-	_update_highlight_map()
 
 ## Process the next tile in the visitation queue
 func _process_next_visitation() -> void:
@@ -352,10 +345,30 @@ func _update_visible_map() -> void:
 	for coord in visible_coords:
 		if not _encounter_tile_dictionary[coord] is NoOpEncounter:
 			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, YELLOW_TILE_VARIANT_ID, full_map.cube_to_map(coord))
-			if _encounter_tile_dictionary[coord].encounter_type == AdventureEncounter.EncounterType.COMBAT_REGULAR:
-				highlight_map.set_cell_with_source_and_variant(COMBAT_OVERLAY_SOURCE_ID, COMBAT_OVERLAY_VARIANT_ID, full_map.cube_to_map(coord))
+			
+			_update_cell_highlight(coord)
 		else:
 			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, WHITE_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 
-func _update_highlight_map() -> void:
-	pass
+func _update_cell_highlight(coord: Vector3i) -> void:
+	const BOSS_OVERLAY_SOURCE_ID = 3
+	const COMBAT_OVERLAY_SOURCE_ID = 4
+	const REST_OVERLAY_SOURCE_ID = 5
+	const TREASURE_OVERLAY_SOURCE_ID = 6
+	const UNKNOWN_OVERLAY_SOURCE_ID = 7
+	
+	match _encounter_tile_dictionary[coord].encounter_type:
+		AdventureEncounter.EncounterType.COMBAT_REGULAR:
+			highlight_map.set_cell_with_source_and_variant(COMBAT_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
+		AdventureEncounter.EncounterType.COMBAT_BOSS:
+			highlight_map.set_cell_with_source_and_variant(BOSS_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
+		AdventureEncounter.EncounterType.COMBAT_ELITE:
+			highlight_map.set_cell_with_source_and_variant(COMBAT_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
+		AdventureEncounter.EncounterType.COMBAT_AMBUSH:
+			highlight_map.set_cell_with_source_and_variant(COMBAT_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
+		AdventureEncounter.EncounterType.REST_SITE:
+			highlight_map.set_cell_with_source_and_variant(REST_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
+		AdventureEncounter.EncounterType.TREASURE:
+			highlight_map.set_cell_with_source_and_variant(TREASURE_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
+		_:
+			highlight_map.set_cell_with_source_and_variant(UNKNOWN_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))

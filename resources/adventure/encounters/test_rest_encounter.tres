@@ -20,4 +20,5 @@ metadata/_custom_type_script = "uid://c1b11mq3a2qya"
 [resource]
 script = ExtResource("2_vb2lw")
 choices = Array[ExtResource("1_qch76")]([SubResource("Resource_2n4vy")])
+encounter_type = 4
 metadata/_custom_type_script = "uid://cs335nesm7wfr"

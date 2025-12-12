@@ -25,4 +25,5 @@ encounter_name = "Treasure Encounter!"
 description = "Treasure Encounter!"
 text_description_completed = "Treasure Encountered!"
 choices = Array[ExtResource("1_udic5")]([SubResource("Resource_l3j7f")])
+encounter_type = 6
 metadata/_custom_type_script = "uid://cs335nesm7wfr"
