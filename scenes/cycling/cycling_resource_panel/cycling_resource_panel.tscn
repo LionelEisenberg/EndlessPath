@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bysux6fx02amd" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd" id="1_4xbm7"]
 [ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="2_0rw3m"]
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="2_p8dgl"]
+[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/border_2_panel_texture.tres" id="2_rnaqj"]
 [ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="3_hrwnf"]
 [ext_resource type="Shader" uid="uid://cnsig7e5ba7ln" path="res://assets/shaders/core_density_fill.gdshader" id="4_rnaqj"]
 [ext_resource type="Script" uid="uid://chldnyvaer1hp" path="res://scenes/cycling/cycling_resource_panel/progress_shader_rect.gd" id="5_rnaqj"]
@@ -60,7 +60,7 @@ script = ExtResource("1_4xbm7")
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 2
-theme_override_styles/panel = ExtResource("2_p8dgl")
+theme_override_styles/panel = ExtResource("2_rnaqj")
 
 [node name="MarginContainer" type="MarginContainer" parent="Panel"]
 layout_mode = 1

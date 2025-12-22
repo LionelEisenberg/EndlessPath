@@ -10,10 +10,12 @@ func _ready() -> void:
 ## Called when entering this state.
 func enter() -> void:
 	scene_root.cycling_view.visible = true
+	scene_root.grey_background.visible = true
 
 ## Called when exiting this state.
 func exit() -> void:
 	scene_root.cycling_view.visible = false
+	scene_root.grey_background.visible = false
 
 ## Handle input events in this state.
 func handle_input(event: InputEvent) -> void:

@@ -18,12 +18,13 @@ func _ready() -> void:
 	if not material is ShaderMaterial:
 		Log.error("ProgressShaderRect: Material is not a ShaderMaterial!")
 		return
-
-	if not (material as ShaderMaterial).shader.get_shader_uniform_list().has("progress"):
-		Log.error("ProgressShaderRect: Material shader does not have a 'progress' uniform!")
-		return
 	
-	current_value = target_value
+	for _uniform in (material as ShaderMaterial).shader.get_shader_uniform_list():
+		if _uniform["name"] == "progress":
+			current_value = target_value
+			return
+
+	Log.error("ProgressShaderRect: Material shader does not have a 'progress' uniform!")	
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:

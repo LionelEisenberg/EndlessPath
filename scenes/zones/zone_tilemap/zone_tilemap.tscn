@@ -71,6 +71,7 @@ scale = Vector2(2, 2)
 is_debug_mode = false
 
 [node name="Camera2D" type="Camera2D" parent="."]
+offset = Vector2(0, 150)
 script = SubResource("GDScript_w4xf3")
 
 [node name="CameraZoomController" parent="Camera2D" instance=ExtResource("5_q6nfb")]

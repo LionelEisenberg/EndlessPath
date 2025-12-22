@@ -21,10 +21,10 @@ func _ready() -> void:
 func setup(data: CyclingTechniqueData) -> void:
 	technique_data = data
 	_update_info()
-	_set_selected(false)
+	set_selected(false)
 
 ## Sets the selected state of the slot.
-func _set_selected(selected: bool) -> void:
+func set_selected(selected: bool) -> void:
 	is_selected = selected
 	if panel_container:
 		panel_container.modulate = COLOR_SELECTED if selected else COLOR_NORMAL

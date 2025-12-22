@@ -1,22 +1,12 @@
-[gd_scene load_steps=9 format=3 uid="uid://b1rl1n8ceijc8"]
+[gd_scene load_steps=8 format=3 uid="uid://b1rl1n8ceijc8"]
 
 [ext_resource type="Script" uid="uid://dyha47vkmqg5o" path="res://scenes/cycling/cycling_view/cycling_view.gd" id="1_ob5ct"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="2_0j2st"]
 [ext_resource type="Texture2D" uid="uid://751ki710lw0j" path="res://assets/sprites/cycling/Cycling_Technique_Background.webp" id="2_4q44n"]
-[ext_resource type="Texture2D" uid="uid://d2t6xf4mpux8w" path="res://assets/sprites/cycling/backgrounds/cycling_background_with_border.png" id="2_uk6eo"]
 [ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/cycling/cycling_technique/cycling_technique.tscn" id="3_hypg5"]
 [ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]
 [ext_resource type="PackedScene" uid="uid://86cemqoesomd" path="res://scenes/cycling/cycling_technique_selector/cycling_technique_selector.tscn" id="6_vx840"]
 [ext_resource type="Resource" uid="uid://de6qv3bad4yop" path="res://resources/cycling/cycling_techniques/cycling_technique_list.tres" id="7_uk6eo"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uk6eo"]
-draw_center = false
-corner_radius_top_left = 50
-corner_radius_top_right = 50
-corner_radius_bottom_right = 50
-corner_radius_bottom_left = 50
-shadow_color = Color(0, 0, 0, 0.6431373)
-shadow_size = 32
-anti_aliasing_size = 10.0
 
 [node name="CyclingView" type="Control"]
 layout_mode = 3
@@ -47,18 +37,9 @@ theme_override_constants/margin_bottom = 100
 [node name="Panel" type="Panel" parent="MarginContainer"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_uk6eo")
+theme_override_styles/panel = ExtResource("2_0j2st")
 
-[node name="TextureRect" type="TextureRect" parent="MarginContainer/Panel"]
-z_index = -2
-layout_mode = 0
-offset_right = 1620.0
-offset_bottom = 880.0
-mouse_filter = 2
-texture = ExtResource("2_uk6eo")
-expand_mode = 1
-
-[node name="CyclingBackground" type="TextureRect" parent="MarginContainer/Panel/TextureRect"]
+[node name="CyclingBackground" type="TextureRect" parent="MarginContainer/Panel"]
 layout_mode = 1
 offset_left = 139.0
 offset_top = 112.0
@@ -67,10 +48,10 @@ offset_bottom = 752.0
 mouse_filter = 2
 texture = ExtResource("2_4q44n")
 
-[node name="CyclingTechnique" parent="MarginContainer/Panel/TextureRect/CyclingBackground" instance=ExtResource("3_hypg5")]
+[node name="CyclingTechnique" parent="MarginContainer/Panel/CyclingBackground" instance=ExtResource("3_hypg5")]
 unique_name_in_owner = true
 
-[node name="CyclingResourcePanel" parent="MarginContainer/Panel/TextureRect" instance=ExtResource("4_3nchs")]
+[node name="CyclingResourcePanel" parent="MarginContainer/Panel" instance=ExtResource("4_3nchs")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 1
@@ -83,7 +64,7 @@ offset_bottom = 692.0
 grow_horizontal = 0
 grow_vertical = 1
 
-[node name="CyclingTechniqueSelector" parent="MarginContainer/Panel/TextureRect" instance=ExtResource("6_vx840")]
+[node name="CyclingTechniqueSelector" parent="MarginContainer/Panel" instance=ExtResource("6_vx840")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
