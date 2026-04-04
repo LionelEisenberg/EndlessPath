@@ -119,13 +119,16 @@ Generation runs in 4 phases:
 | `DialogueChoice` | `timeline_name` | Starts Dialogic timeline |
 
 ### World Effect System (separate from Combat effects)
-| Class | Action |
-|-------|--------|
-| `AwardResourceEffectData` | Calls `ResourceManager.award_resource()` |
-| `AwardItemEffectData` | Calls `InventoryManager.award_items()` |
-| `AwardLootTableEffectData` | Rolls loot table, awards items |
-| `ChangeVitalsEffectData` | Modifies health/stamina/mana via PlayerManager |
-| `TriggerEventEffectData` | Fires a narrative event via EventManager |
+
+Base class: `EffectData` (abstract Resource) — defines an `EffectType` enum and an abstract `process()` method. Each subclass implements `process()` to apply its effect. Effects are attached to encounter choices via `success_effects` and `failure_effects` arrays, and are executed by `_apply_effects()` when a choice resolves.
+
+| Class | EffectType | Action |
+|-------|------------|--------|
+| `AwardResourceEffectData` | `AWARD_RESOURCE` | Calls `ResourceManager.award_resource()` |
+| `AwardItemEffectData` | `AWARD_ITEM` | Calls `InventoryManager.award_items()` |
+| `AwardLootTableEffectData` | `AWARD_LOOT_TABLE` | Rolls loot table, awards items |
+| `ChangeVitalsEffectData` | *(not in enum)* | Modifies health/stamina/mana via PlayerManager |
+| `TriggerEventEffectData` | `TRIGGER_EVENT` | Fires a narrative event via EventManager |
 
 ## Encounter Flow
 
@@ -169,7 +172,9 @@ Generation runs in 4 phases:
 
 ## Existing Content
 
-One adventure exists: `test_adventure_data.tres` with default parameters (5 special tiles, distance 6, sparse factor 2). One combat encounter with a test enemy. One boss encounter. The Spirit Valley zone has a test adventure action with 300-second time limit.
+One adventure exists: `test_adventure_data.tres` with default parameters (5 special tiles, distance 6, sparse factor 2). The Spirit Valley zone has a test adventure action with 300-second time limit.
+
+**Encounters:** 1 combat encounter (with test enemy), 1 boss encounter, 1 treasure encounter (rolls weapon loot table), 1 rest encounter, 1 trap encounter.
 
 ## Key Files
 
@@ -187,15 +192,40 @@ One adventure exists: `test_adventure_data.tres` with default parameters (5 spec
 | `scripts/resource_definitions/adventure/choices/dialogue_choice.gd` | Dialogue initiator |
 | `scenes/tilemaps/hexagon_tile_map_layer.gd` | Project hex extension (click handling) |
 
-## Known Issues
+## Work Remaining
 
-- Two debug buttons in `adventure_view.tscn` — one with `TODO: Remove this temporary debug button`
-- `_assign_path_tiles` can loop forever if `num_path_encounters` exceeds available NoOp tiles
-- `num_combats_in_map` declared in generator but never read or written
-- No stamina UI feedback when movement is blocked — just a silent return
-- `MOVEMENT_STAMINA_COST` is a constant (5.0) — no per-tile or stat-based variation
-- `EncounterType.TRAP` falls through to unknown overlay; no dedicated trap icon
-- Boss placement is distance-based, not explicit — ties broken by last-wins
-- `experience_multiplier` and `difficulty_modifier` on AdventureActionData are unused
-- `cooldown_seconds` and `daily_limit` are defined but unenforced
-- `AdventureViewState.handle_input()` is a no-op — no escape/back navigation in adventure
+### Bugs
+
+No known bugs in the Adventuring system.
+
+### Missing Functionality
+
+- `[MEDIUM]` `experience_multiplier` and `difficulty_modifier` on AdventureActionData are defined but never applied — all adventures have identical difficulty regardless of these values
+- `[LOW]` `MOVEMENT_STAMINA_COST` is a constant (5.0) — no per-tile or stat-based variation for movement cost
+
+### Content
+
+- `[HIGH]` Only 1 adventure config exists (`test_adventure_data.tres`) — needs multiple adventures with varied parameters, encounter pools, and difficulty
+- `[MEDIUM]` Only 1 enemy type in combat encounters — no variety in what the player fights
+- `[MEDIUM]` No Madra Well encounter type — GDD describes this but it doesn't exist
+- `[LOW]` `TRAP` encounter type has no unique handling, content, or overlay icon — exists as an enum value but falls through to unknown overlay and has no authored encounters
+- `[LOW]` No home/retreat encounter type — player has no way to voluntarily end an adventure early; timer handles the exit case but a map-based retreat option would be better design
+
+### UI
+
+- `[HIGH]` No stamina UI feedback when movement is blocked — silent return with a TODO comment (`adventure_tilemap.gd:256`)
+- `[MEDIUM]` Player info panel and log overlap the adventure area — lower them to improve visibility of the hex map
+- `[LOW]` Timer label ("Time Left: MM:SS") should be repositioned above the encounter choice info panel
+- `[MEDIUM]` No adventure results screen — adventure ends with an instant snap back to zone view. Needs a summary modal showing success/failure, gold earned, items found, and encounters cleared. Addresses Satisfaction (closure on a 5-minute time investment) and Clarity (aggregated view of what the player gained)
+
+### Tech Debt
+
+#### Dead Code
+- `[MEDIUM]` Two debug buttons in `adventure_view.tscn` — one with `TODO: Remove this temporary debug button`
+- `[LOW]` `num_combats_in_map` declared in `adventure_map_generator.gd:12` but never read or written
+- `[LOW]` `enable_ai: bool` debug export still present on `adventure_combat.gd`
+- `[LOW]` `cooldown_seconds` and `daily_limit` on `AdventureActionData` — mobile-style pacing gates, not a fit for this game. Remove the fields
+
+#### Code Quality
+- `[LOW]` `EffectData.EffectType` enum is unused for dispatch — behavior routes through polymorphic `process()` overrides, making the enum redundant. `ChangeVitalsEffectData` isn't even in the enum and works fine. Consider removing the enum or using it consistently
+- `[LOW]` `AdventureView` defaults to visible in the scene — managed by state transitions but can briefly show on startup before state management is ready
