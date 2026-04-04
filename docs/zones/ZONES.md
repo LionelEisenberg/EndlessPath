@@ -7,7 +7,7 @@ The Zone system is the game's home base. Players see a hex-grid tilemap where ea
 ## Player Experience
 
 1. The zone view is the default view on game start
-2. Hex tiles show zones — locked (greyed), unlocked (normal), selected (highlighted)
+2. Hex tiles show zones in four states — ghost neighbors (transparent, structural tiles framing the map), locked (greyed), unlocked (normal), selected (highlighted)
 3. Clicking an unlocked tile moves the character sprite at 150 px/s
 4. The right-side Zone Info Panel rebuilds to show available actions, grouped by type
 5. Clicking an action button activates it via `ActionManager.select_action()`
@@ -183,8 +183,7 @@ No known bugs in the Zone system.
 
 - `[MEDIUM]` MERCHANT, TRAIN_STATS, ZONE_EVENT, QUEST_GIVER action types have no handler in ActionManager — selecting these actions does nothing
 - `[MEDIUM]` `ForageActionData.madra_cost_per_second` is defined but never deducted — foraging is free regardless of this value
-- `[MEDIUM]` `ZoneProgressionData.forage_active/forage_start_time` saved but not used on load — no offline foraging resume, progress lost on restart
-- `[LOW]` `get_unlocked_zones()` returns empty array (stub) — no way to query which zones are currently unlocked
+- `[LOW]` `ZoneProgressionData.forage_active/forage_start_time` saved but not used on load — no offline foraging resume, progress lost on restart
 
 ### Content
 
@@ -193,10 +192,14 @@ No known bugs in the Zone system.
 
 ### UI
 
-*(No zone-specific UI issues identified yet.)*
+- `[MEDIUM]` No feedback when zones or actions unlock — new zones appear silently on the map. Needs a visual/audio cue to reinforce the unlock chain and make progression feel rewarding
+- `[LOW]` Locked zones show no information — clicking a locked tile should show a tooltip with the zone name and unlock requirements, giving the player goals to work toward
+- `[LOW]` Unused `PanelContainer` in ZoneView (bottom-left, next to log panel) — no script or children, should be repurposed or removed
+- `[LOW]` Zone tilemap viewport may need recentering — currently gets clipped by overlaying UI panels (ZoneInfoPanel, log). Needs evaluation on whether to shift the tilemap view or adjust UI layout
 
 ### Tech Debt
 
 - `[LOW]` `ZoneCamera2D` map bounds not declared in script — set via scene inspector, not obvious from code
+- `[LOW]` `get_unlocked_zones()` in `zone_manager.gd` is a stub returning empty array — never called by anything, can be removed
 
 > **Note:** CyclingActionData modifier fields being unwired is tracked in [CYCLING.md](../cycling/CYCLING.md). AdventureActionData `cooldown_seconds`/`daily_limit` removal is tracked in [ADVENTURING.md](../adventuring/ADVENTURING.md).
