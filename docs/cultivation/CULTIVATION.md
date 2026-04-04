@@ -186,8 +186,8 @@ Only Foundation exists as a `.tres` resource. `advancement_stage_list.tres` exis
 
 ## Known Issues
 
-- `attempt_breakthrough()` is a stub — no breakthrough mechanic exists
-- Only Foundation has an AdvancementStageResource — Copper/Iron/Jade/Silver have no data
+- `[HIGH]` `attempt_breakthrough()` is a stub — no breakthrough mechanic exists. Full design doc at `docs/cultivation/breakthrough-tribulation.md`. Tribulation triggers from adventure mode, reuses cycling components, and is owned by this system
+- `[HIGH]` Only Foundation has an `AdvancementStageResource` — Copper/Iron/Jade/Silver have no data. Copper stage resource needed for breakthrough to function (new XP scaling, madra cap, `next_stage` linkage from Foundation)
 - `advancement_stage_changed` emitted only on save reset, not on actual advancement
 - `_get_attribute_bonuses()` always returns 0 — equipment and cultivation bonuses are TODOs
 - `get_equipped_abilities()` is hardcoded to 4 test abilities

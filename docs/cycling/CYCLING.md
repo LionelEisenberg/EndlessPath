@@ -153,14 +153,59 @@ Both techniques share the same `Curve2D` (`new_curve_2d.tres` at project root).
 | `scripts/resource_definitions/cycling/cycling_technique/cycling_zone_data.gd` | Zone data class |
 | `scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd` | Stage progression data |
 
-## Known Issues
+## Work Remaining
 
-- `CyclingZoneData.timing_window_ratio` is exported but never read — zone radius is hardcoded to 20
-- `CyclingActionData` fields (madra_multiplier, xp_multiplier, etc.) are defined but never applied to cycling logic
-- `AutoCycleToggle` uses the same texture for on/off states — no visual distinction
-- `ProgressShaderRect._ready()` validation always fails (checks string in Array[Dictionary])
-- `CyclingTechniqueSelector` calls `slot.set_selected()` but the method is named `_set_selected()` — runtime error
-- Foundation stage's `next_stage` is null, so resource panel permanently shows "(MAX)"
-- Only Foundation stage has an `AdvancementStageResource` — no Copper/Iron/Jade/Silver resources exist
-- `attempt_breakthrough()` in CultivationManager is a stub (returns immediately)
-- Shared `Curve2D` between both techniques at project root — should be split/relocated
+### Bugs
+
+- `[LOW]` `cycling_resource_panel.gd:123,156` — `current_madra / max_madra` and `xp / max_xp` have no zero guard; if a stage resource were ever missing, the shader receives `inf`
+
+### Missing Functionality
+
+- `[HIGH]` `CyclingActionData` modifiers (`madra_multiplier`, `cycle_duration_modifier`, `xp_multiplier`, `madra_cost_per_cycle`) are defined but never applied to cycling logic — different cycling actions all behave identically
+- `[MEDIUM]` Combo/streak system for zone clicks — consecutive PERFECT or GOOD hits should build a multiplier on XP and/or Madra rewards, rewarding consistency and raising the skill ceiling
+- `[MEDIUM]` `CyclingZoneData.timing_window_ratio` is exported but never read — zone radius is hardcoded to 20, so zone difficulty/size can't vary per zone
+
+> **Note:** The Tribulation mini-game reuses cycling components (mouse tracking, body diagram, Madra Ball) but is owned by the Cultivation system. See [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md) for the design doc and [CULTIVATION.md](../cultivation/CULTIVATION.md) for the work item.
+
+### Content
+
+- `[HIGH]` Techniques lack identity — both share the same Curve2D, background image, character pose (sitting), path routing, and zone layout. Different techniques should have distinct visuals (pose, body diagram, background), distinct paths, and distinct zone placements to feel like meaningfully different choices
+- `[HIGH]` No audio — zero sound effects for cycling (no zone click feedback, no ball movement, no cycle completion, no ambient sound)
+- `[MEDIUM]` Only 1 real technique exists (Foundation) + 1 test stub — need multiple techniques with varied gameplay profiles (speed, zone count, difficulty, rewards)
+- `[MEDIUM]` All 3 cycling zones have identical XP values (15/10/5) — zones should vary in difficulty and reward to create risk/reward choices along the path
+- `[MEDIUM]` Cycling zone indicators use placeholder icons (scaled game icon) — need custom art per zone or zone type
+- `[LOW]` No technique unlocking system — both techniques available from the start, no progression gate
+
+### UI
+
+**Overall: The cycling UI needs a full overhaul. Most issues below are interconnected. A dedicated UI design doc should be created before implementation to map out the target layout, interaction flow, and visual direction for the cycling view.**
+
+#### Layout & Navigation
+- `[HIGH]` No close button — the only way to exit cycling is via Escape, which isn't discoverable. Needs a visible close button (top-right or top-left)
+- `[HIGH]` Page structure should be redesigned as a book-style view (similar to the inventory book opening/closing animation), replacing the current flat UI popup
+- `[HIGH]` Technique selector opens as a modal on top of the cycling modal — bad UX layering. Technique selection should be integrated into the page layout (e.g., a book tab/page) rather than stacked modals
+- `[MEDIUM]` Technique selector has internal UX issues beyond the modal stacking (layout, interaction flow)
+
+#### Visual Quality
+- `[HIGH]` Text is illegible — brown background with black font creates poor contrast. Needs proper color pairing for readability
+- `[HIGH]` Cycling visualization (left side) is a static JPEG with a Line2D drawn on top — looks rough and placeholder. Needs a proper visual treatment
+- `[MEDIUM]` Backgrounds should be dynamic per cycling location — the village cycling room should look different from a mountain top or volcano cycling room, matching the zone context
+- `[MEDIUM]` `AutoCycleToggle` uses the same texture for on/off states — no visual distinction when toggled
+- `[LOW]` Resource panel permanently shows "(MAX)" for next stage due to null `next_stage` on Foundation
+
+### Tech Debt
+
+#### Dead Code
+- `[MEDIUM]` `AnimationPlayer` node with `move_madra_ball` animation in `cycling_technique.tscn` — replaced by Tween, never referenced by any script
+- `[LOW]` Unused variable `last_mouse_position` in `cycling_technique.gd:59` — declared, never assigned or read
+- `[LOW]` Unused method `get_next_stage_name()` in `cycling_resource_panel.gd:196` — defined but never called
+
+#### Code Quality
+- `[MEDIUM]` Hardcoded colors throughout `cycling_zone.gd` (highlight, dim, normal states) — should be constants or theme-driven
+- `[MEDIUM]` Collision shape radius hardcoded to 20 in `cycling_zone.gd:31` while `.tscn` defines 26 — mismatch between code and scene, should use `timing_window_ratio` from zone data
+- `[MEDIUM]` `_process()` in `cycling_technique.gd` runs every frame even when idle — should disable with `set_process(false)` when not cycling
+- `[LOW]` Missing `class_name` on `cycling_technique_selector.gd` and `info_panel.gd` — inconsistent with other cycling scripts
+- `[LOW]` Missing `##` doc comments on public methods `setup_ui()` and `connect_signals()` in `cycling_resource_panel.gd`
+
+#### Misplaced Files
+- `[LOW]` `new_curve_2d.tres` lives at the project root — should be moved to `resources/cycling/`

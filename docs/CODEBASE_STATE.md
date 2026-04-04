@@ -27,8 +27,6 @@ These will cause runtime errors or silent data loss:
 | `reset_save_data = true` default | `persistence_manager.gd` export | Every boot wipes save data (dev flag) |
 | `save_game_data._to_string()` references `inventory.items` | `save_game_data.gd:107` | `InventoryData` has no `items` property — runtime error in debug |
 | Double signal connections in view states | `MainView._ready()` + `CyclingViewState._ready()` + `AdventureViewState._ready()` all connect to same ActionManager signals | State transitions fire twice per signal |
-| `CyclingTechniqueSelector` calls `slot.set_selected()` | `cycling_technique_selector.gd:57` | Method is named `_set_selected()` — runtime error on technique change |
-| `ProgressShaderRect._ready()` validation | `progress_shader_rect.gd` | `.has("progress")` checks string in Array[Dictionary] — always fails |
 
 ## Non-Critical Bugs
 
@@ -203,8 +201,7 @@ Fields that are exported/defined but never read by any system:
 6. Apply CyclingActionData modifiers in cycling logic
 7. Implement missing UnlockConditionData types (ITEM_OWNED, ZONE_UNLOCKED, etc.)
 8. Create AdvancementStageResources for Copper/Iron/Jade/Silver
-9. Fix `set_selected()` / `_set_selected()` mismatch in technique selector
-10. Remove dead code artifacts (debug buttons, AnimationPlayer, CastTimer)
+9. Remove dead code artifacts (debug buttons, AnimationPlayer, CastTimer)
 
 ### Low Priority (polish and future-proofing)
 11. Centralize event ID strings into constants
