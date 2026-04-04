@@ -173,12 +173,30 @@ Actions are grouped by `ActionType` into `ZoneActionTypeSection` nodes. Each sec
 | `singletons/zone_manager/zone_manager.gd` | Zone state management |
 | `singletons/action_manager/action_manager.gd` | Action lifecycle |
 
-## Known Issues
+## Work Remaining
 
-- `CyclingActionData` fields (multipliers, cost) are defined but never applied
-- `ForageActionData.madra_cost_per_second` is defined but never deducted
-- `ZoneProgressionData.forage_active/forage_start_time` saved but not used on load — no offline foraging resume
-- `get_unlocked_zones()` returns empty array (stub)
-- MERCHANT, TRAIN_STATS, ZONE_EVENT, QUEST_GIVER action types have no handler
-- `AdventureActionData.cooldown_seconds` and `daily_limit` defined but unenforced
-- `ZoneCamera2D` map bounds not declared in script — set via scene inspector
+### Bugs
+
+No known bugs in the Zone system.
+
+### Missing Functionality
+
+- `[MEDIUM]` MERCHANT, TRAIN_STATS, ZONE_EVENT, QUEST_GIVER action types have no handler in ActionManager — selecting these actions does nothing
+- `[MEDIUM]` `ForageActionData.madra_cost_per_second` is defined but never deducted — foraging is free regardless of this value
+- `[MEDIUM]` `ZoneProgressionData.forage_active/forage_start_time` saved but not used on load — no offline foraging resume, progress lost on restart
+- `[LOW]` `get_unlocked_zones()` returns empty array (stub) — no way to query which zones are currently unlocked
+
+### Content
+
+- `[HIGH]` Only 2 zones exist (Spirit Valley functional, Test Zone empty) — needs more zones with unique actions, foraging resources, and adventure configs
+- `[MEDIUM]` No merchant, training, zone event, or quest giver content authored — action types exist as enums but have no `.tres` data
+
+### UI
+
+*(No zone-specific UI issues identified yet.)*
+
+### Tech Debt
+
+- `[LOW]` `ZoneCamera2D` map bounds not declared in script — set via scene inspector, not obvious from code
+
+> **Note:** CyclingActionData modifier fields being unwired is tracked in [CYCLING.md](../cycling/CYCLING.md). AdventureActionData `cooldown_seconds`/`daily_limit` removal is tracked in [ADVENTURING.md](../adventuring/ADVENTURING.md).

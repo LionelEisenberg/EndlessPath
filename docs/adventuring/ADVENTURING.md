@@ -210,6 +210,8 @@ No known bugs in the Adventuring system.
 - `[MEDIUM]` No Madra Well encounter type — GDD describes this but it doesn't exist
 - `[LOW]` `TRAP` encounter type has no unique handling, content, or overlay icon — exists as an enum value but falls through to unknown overlay and has no authored encounters
 - `[LOW]` No home/retreat encounter type — player has no way to voluntarily end an adventure early; timer handles the exit case but a map-based retreat option would be better design
+- `[LOW]` Run variety — author additional adventure configs per zone with different map sizes, encounter pools, time limits, and gold multipliers to create risk/reward tiers. Systems already support this, just needs content
+- `[LOW]` Non-combat encounters need richer content — rest/treasure/trap encounters exist but have minimal authored choices and effects. Rest should offer meaningful stamina/health recovery tradeoffs, treasure should be worth detouring for, traps should create real danger (stamina drain, debuffs before combat)
 
 ### UI
 
