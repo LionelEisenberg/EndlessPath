@@ -18,9 +18,9 @@ The cultivation system drives stage-based progression in Endless Path. Players a
 ### Axis 2: Advancement Stage
 | Stage | Enum Value | Resource Exists | Unlocks |
 |-------|------------|-----------------|---------|
-| Foundation | `FOUNDATION` | Yes | Cycling, Zones |
+| Foundation | `FOUNDATION` | Yes | Cycling, Zones, Adventuring, Combat |
 | Copper | `COPPER` | No | Scripting, Elixir Making (planned) |
-| Iron | `IRON` | No | Adventuring, Combat, Soulsmithing (planned) |
+| Iron | `IRON` | No | Soulsmithing (planned) |
 | Jade | `JADE` | No | Advanced systems (planned) |
 | Silver | `SILVER` | No | End-game (planned) |
 
@@ -84,7 +84,6 @@ Only Foundation exists as a `.tres` resource. `advancement_stage_list.tres` exis
 ### UI
 
 - `[MEDIUM]` No UI indicator when Core Density reaches 100 and breakthrough is available — player needs a hint to seek a breakthrough site in adventure mode
-- `[LOW]` Core Density displayed as level 0-100 but there's no visual treatment for approaching the cap or being at max
 
 ### Tech Debt
 
