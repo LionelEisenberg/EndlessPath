@@ -163,14 +163,40 @@ No loot table `.tres` files exist yet (only a README guide in `resources/loot_ta
 | `scripts/resource_definitions/loot/loot_table.gd` | Loot rolling logic |
 | `singletons/inventory_manager/inventory_manager.gd` | Inventory state management |
 
-## Known Issues
+## Work Remaining
 
-- **Equipment stats not wired to combat** — `attack_power` and `defense` are display-only; `CharacterManager._get_attribute_bonuses()` returns 0
-- **TrashSlot non-functional** — node exists but `_get_slot_under_mouse()` doesn't check it; item deletion not implemented
-- **Hardcoded slot count** — `NUM_INVENTORY_SLOTS = 50` duplicated in EquipmentGrid and InventoryManager
-- **GearSlot-to-GearSlot drag fragile** — unequips by value scan after adding to grid, which can match the wrong instance
-- **`save_game_data._to_string()` bug** — references `inventory.items.size()` but `InventoryData` has no `items` property
-- **`reset_save_data = true`** — PersistenceManager resets inventory every startup (dev flag)
-- **CONSUMABLE and QUEST_ITEM types** — `award_items()` logs error and drops them
-- **No loot table resources authored** — the system works but has no content
-- **Materials tab rebuilds entirely** on every `inventory_changed` signal (no diffing)
+### Bugs
+
+- `[HIGH]` Dragged items disappear — when picking up an item from a slot, it vanishes instead of following the cursor. The item isn't visible during the drag
+- `[MEDIUM]` GearSlot-to-GearSlot drag is fragile — unequips by value scan after adding to grid, which can match the wrong instance if duplicates exist
+
+### Missing Functionality
+
+- `[HIGH]` Equipment stats not wired to combat — `attack_power` and `defense` are display-only. `CharacterManager._get_attribute_bonuses()` returns 0. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md) but inventory is the primary consumer
+- `[MEDIUM]` TrashSlot is non-functional — node exists in scene but `_get_slot_under_mouse()` doesn't check it. No way to delete items
+- `[MEDIUM]` CONSUMABLE and QUEST_ITEM types not handled — `award_items()` logs error and drops them. Needed for Scripting (consumable Scripts) and future quest content
+- `[MEDIUM]` Right-clicking an item should attempt to equip it — standard RPG convention, currently only drag & drop works
+
+### Content
+
+- `[MEDIUM]` No loot table `.tres` resources authored — the loot system works but has no content to roll
+- `[MEDIUM]` Only 3 items exist (Dagger, Spirit Fern, Dewdrop Tear) — needs broader item variety across equipment and materials
+- `[LOW]` No armor items exist — `ArmorDefinitionData` class is defined but no `.tres` authored
+
+### UI
+
+#### Navigation
+- `[HIGH]` No close button — only way to close inventory is Escape. Needs a visible X button (top-right or similar)
+- `[HIGH]` No way to open inventory from the UI — only the `I` keybind works. Needs a UI button (toolbar, zone panel, etc.) in addition to the hotkey
+
+#### Visual Quality
+- `[HIGH]` Tab switching causes icon scaling issues — icons increase/decrease in size during tab transitions, looks janky
+- `[HIGH]` Materials tab UI needs a full rework — layout is poor and doesn't present material info well
+- `[MEDIUM]` Item tooltip is messy — text is too small, icons are too big, layout needs cleanup
+
+### Tech Debt
+
+- `[MEDIUM]` `NUM_INVENTORY_SLOTS = 50` hardcoded in both `EquipmentGrid` and `InventoryManager` — should be a single source of truth
+- `[LOW]` Materials tab rebuilds entirely on every `inventory_changed` signal — no diffing, rebuilds full list each time
+
+> **Note:** `save_game_data._to_string()` referencing non-existent `inventory.items` and `reset_save_data = true` are tracked in [PERSISTENCE.md](../infrastructure/PERSISTENCE.md).
