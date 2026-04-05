@@ -46,7 +46,7 @@ The `PlayerInfoPanel` lives in `AdventureView`, not inside `AdventureCombat`.
 | `AGILITY` | Ability scaling (no cooldown reduction implemented) |
 | `SPIRIT` | Spiritual damage scaling, Madra-type defense |
 | `FOUNDATION` | Max madra (50 + FOUNDATION*10) |
-| `CONTROL` | Defined, no runtime use |
+| `CONTROL` | Cooldown reduction (not yet implemented) |
 | `RESILIENCE` | Physical damage reduction |
 | `WILLPOWER` | Spiritual damage reduction |
 
@@ -98,7 +98,7 @@ Default: all attributes start at 10.0.
 
 ### Vitals (HP / Madra / Stamina)
 - Max values derived from attributes: HP = `100 + BODY*10`, Stamina = `50 + BODY*5`, Madra = `50 + FOUNDATION*10`
-- Continuous passive regen each frame via `_process(delta)` — currently only stamina regen is non-zero during adventures
+- Continuous passive regen each frame via `VitalsManager._process(delta)` — regen rates default to 0.0; only stamina regen is set to 1.0/s during adventures (by `adventure_view.gd`), reset to 0 on adventure end
 - `apply_vitals_change(health, stamina, madra)` clamps all values to `[0, max]`
 - Player VitalsManager reconnects to `CharacterManager.base_attribute_changed` for live stat updates
 
@@ -183,16 +183,38 @@ A global casting lock prevents firing multiple abilities simultaneously.
 
 ## Existing Content
 
-| Ability | Type | Cost | Cooldown | Cast | Effect |
-|---------|------|------|----------|------|--------|
-| `basic_strike` | Offensive | 5 stamina | 2.0s | 0s | Damage, STR+AGI scaling |
-| `empty_palm` | Offensive | 30 stamina | 8.0s | 0s | High damage, STR scaling |
-| `enforce` | Self-buff | 10 madra | 8.0s | 0s | STR/SPIRIT x1.5 for 10s |
-| `power_font` | Offensive | 10 madra | 5.0s | 3.0s | Damage, SPIRIT scaling |
-| `test_ability` | Offensive | 10 stamina | 3.0s | 0s | Damage, STR scaling |
-| `test_cast_ability` | Offensive | 0 | 5.0s | 2.0s | Damage, STR scaling |
+### Player Abilities
 
-One enemy exists: `test_enemy` (attributes default 10, uses `test_cast_ability`, drops 10 gold).
+| Ability | Target | Cost | Cooldown | Cast | Base | Damage Type | Scaling | Description |
+|---------|--------|------|----------|------|------|-------------|---------|-------------|
+| `basic_strike` | Enemy | 10 stam | 4.0s | 0s | 12 | Physical | STR 0.2, BODY 0.2, AGI 0.2 | Pure physical attack |
+| `empty_palm` | Enemy | 12 madra, 3 stam | 3.0s | 0s | 10 | Physical | AGI 0.3, SPI 1.0 | Madra-infused strike through enemy's core |
+| `enforce` | Self | 10 madra | 30.0s | 0s | — | Buff | STR x1.5, SPI x1.5 for 8s | Enhances body and soul |
+| `power_font` | Enemy | 20 madra | 15.0s | 3.0s | 30 | Madra | SPI 1.5, FND 0.5 | Channeled madra wave, high spirit scaling |
+
+### Test Abilities (debug/placeholder)
+
+| Ability | Target | Cost | Cooldown | Cast | Base | Scaling | Notes |
+|---------|--------|------|----------|------|------|---------|-------|
+| `test_ability` | Enemy | 10 madra | 5.0s | 0s | 1 | STR 1.0 | Placeholder, uses generic 64px icon |
+| `test_cast_ability` | Enemy | 10 madra | — | 3.0s | 1 | STR 1.0 | Placeholder with cast time, used by test enemy |
+
+### Attribute Usage in Combat
+
+| Attribute | Offensive Use | Defensive Use | Vitals | Status |
+|-----------|--------------|---------------|--------|--------|
+| **STRENGTH** | Damage scaling (basic_strike, test abilities), Enforce buff x1.5 | — | — | Active |
+| **BODY** | Damage scaling (basic_strike) | — | Max HP (100 + BODY*10), Max Stamina (50 + BODY*5) | **Core** |
+| **AGILITY** | Damage scaling (basic_strike, empty_palm) | — | — | Active |
+| **SPIRIT** | Damage scaling (empty_palm, power_font), Enforce buff x1.5 | Madra damage defense | — | **Core** |
+| **FOUNDATION** | Damage scaling (power_font) | — | Max Madra (50 + FND*10) | **Core** |
+| **CONTROL** | — | — | — | **Inert** (cooldown reduction planned) |
+| **RESILIENCE** | — | Physical + Mixed damage defense | — | Active (defense only) |
+| **WILLPOWER** | — | Mixed damage defense (averaged with Resilience) | — | Weak |
+
+### Enemies
+
+One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_ability`, drops 10 gold).
 
 ## Key Files
 
@@ -210,18 +232,49 @@ One enemy exists: `test_enemy` (attributes default 10, uses `test_cast_ability`,
 | `scripts/resource_definitions/combat/buff_effect_data.gd` | Buff definition |
 | `scripts/resource_definitions/abilities/ability_data.gd` | Ability definition |
 
-## Known Issues
+## Work Remaining
 
-- **No AP regeneration in combat.** The GDD describes AP regen; implementation uses Madra with no in-combat regen
-- `AbilityType` only has `OFFENSIVE` — no DEFENSIVE, UTILITY, or HEALING types
-- `ALL_ALLIES` target type has no implementation — only single-target works
-- `percentage_value` on CombatEffectData is exported but never read
-- `CONTROL` and `AGILITY` attributes have no runtime effects beyond damage scaling
-- `damage_type = TRUE` works by accident (falls through to no-defense case)
-- Madra defense uses `SPIRIT` attribute but labels it `"WILLPOWER"` — mismatch
-- `enemy_pool[0]` always used — no random selection or multi-enemy support
-- Player sprite hardcoded to `test_character_sprite.png`
-- `enable_ai` debug export still present on `AdventureCombat`
-- `_dot_timer` runs unconditionally from `_ready()`, even outside combat
-- BuffIcon countdown runs independently of actual buff duration — can drift
-- Leftover `CastTimer` label in scene with hardcoded debug text
+### Bugs
+
+- `[MEDIUM]` `damage_type = TRUE` works by accident — falls through to no-defense case instead of having an explicit match. Correct behavior but fragile
+- `[MEDIUM]` Madra defense log labels it `"WILLPOWER"` but actually reads `SPIRIT` attribute — misleading debug output
+- `[LOW]` `DamageType.MADRA` should be renamed to `DamageType.SPIRIT` to match the attribute it scales and defends against
+- `[LOW]` BuffIcon countdown runs independently of actual buff duration — visual timer can drift from real buff expiry
+- `[LOW]` `_dot_timer` starts unconditionally in `_ready()` — runs outside combat with no effect, minor waste
+
+### Missing Functionality
+
+- `[HIGH]` Attribute system needs a design pass — each attribute's purpose, offensive vs defensive role, and scaling rules need to be clearly defined. Currently several attributes overlap, CONTROL is inert, and WILLPOWER's defensive role is unclear. A design doc should be created before further ability authoring
+- `[HIGH]` Equipment stats not wired to combat — `attack_power` and `defense` from gear are ignored. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md)
+- `[HIGH]` `enemy_pool[0]` always used — no random selection from the pool. Every combat encounter uses the first enemy regardless of pool contents
+- `[MEDIUM]` `AbilityType` needs a deep dive and rework — currently only has `OFFENSIVE`, only checked in one place (consuming outgoing damage modifier), and that logic belongs on `EffectType.DAMAGE` not `AbilityType`. Need to clarify: does AbilityType serve a gameplay purpose (e.g., casting rules, interrupt behavior) or is it just a UI/display hint? Rework or remove
+- `[MEDIUM]` `ALL_ALLIES` target type has no implementation — only `SELF` and `SINGLE_ENEMY` work
+- `[MEDIUM]` `CONTROL` attribute should reduce ability cooldowns — currently completely inert, needs a formula (e.g., `effective_cooldown = base_cooldown * (100 / (100 + CONTROL))`)
+- `[MEDIUM]` No AP regeneration in combat — GDD describes AP regen; current implementation uses Madra with no in-combat regen
+- `[LOW]` `percentage_value` on CombatEffectData is exported but never read in calculations
+
+### Content
+
+- `[HIGH]` Only 1 enemy exists (`test_enemy`) — needs diverse enemies with different abilities, stats, and strategies
+- `[HIGH]` Only 6 abilities (4 player, 2 test) — GDD describes 3 starter skills (Flowing Strike, Stand Your Ground, Empty Palm) plus a Cycle tap skill
+- `[MEDIUM]` Player sprite hardcoded to `test_character_sprite.png` — needs to be driven by player/character data
+- `[LOW]` No ability unlock or progression system — abilities are hardcoded in `CharacterManager.get_equipped_abilities()`
+
+### UI
+
+- `[HIGH]` Ability icons don't disable or visually indicate when the player can't afford the cost (not enough madra/stamina) — ability just silently fails to cast
+- `[HIGH]` No ability tooltips — hovering over an ability icon shows no information (cost, cooldown, damage, description). New players can't learn the system without them
+- `[MEDIUM]` No buff tooltips — hovering over a buff icon shows no information (effect, duration remaining, stacks)
+- `[MEDIUM]` Enemy sprite placement needs improvement — current positioning is placeholder
+- `[LOW]` Cast bar visual (PNG) needs improvement
+- `[LOW]` Combat background should be modular — different adventure zones should have different combat backdrops
+
+### Tech Debt
+
+#### Dead Code
+- `[MEDIUM]` `enable_ai: bool` debug export on `AdventureCombat` — marked with `TODO: DELETE DEBUG`
+- `[LOW]` `CastTimer` label in scene with hardcoded debug text `"2.7 / 8.0s"`
+- `[LOW]` `percentage_value` field exported but unused — remove or implement
+
+#### Code Quality
+- `[LOW]` `+100 STRENGTH` debug modifier in `CharacterManager.get_total_attributes_data()` — affects all combat. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md)
