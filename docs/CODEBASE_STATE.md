@@ -151,9 +151,9 @@ Issues that span multiple systems and don't belong to any single doc:
 
 | System | Doc | Unlocks At |
 |--------|-----|------------|
-| Scripting | [docs/SCRIPTING.md](SCRIPTING.md) | Copper |
-| Elixir Making | [docs/ELIXIR_MAKING.md](ELIXIR_MAKING.md) | Copper |
-| Soulsmithing | [docs/SOULSMITHING.md](SOULSMITHING.md) | Iron |
+| Scripting | [docs/planned/SCRIPTING.md](planned/SCRIPTING.md) | Copper |
+| Elixir Making | [docs/planned/ELIXIR_MAKING.md](planned/ELIXIR_MAKING.md) | Copper |
+| Soulsmithing | [docs/planned/SOULSMITHING.md](planned/SOULSMITHING.md) | Iron |
 
 ### Top-Level
 
