@@ -104,7 +104,7 @@ func _to_string() -> String:
 			str(event_progression),
 			current_selected_zone_id,
 			zone_progression_data_str,
-			inventory.items.size() if inventory and inventory.has_method("items") else 0,
+			inventory.equipment.size() if inventory else 0,
 			str(character_attributes) if character_attributes else "None",
 			current_cycling_technique_name
 		]
@@ -117,7 +117,8 @@ func _to_string() -> String:
 func verify() -> bool:
 	return _verify_current_selected_zone_id()
 
-func _reset_state() -> void:
+## Resets all save data to default values.
+func reset() -> void:
 	# Resource Manager
 	madra = 25.0
 	gold = 0.0

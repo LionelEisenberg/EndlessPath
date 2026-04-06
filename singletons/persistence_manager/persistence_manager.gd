@@ -18,7 +18,7 @@ func _ready() -> void:
 		load_new_save_data()
 
 func load_new_save_data() -> void:
-	save_game_data.reset_state()
+	save_game_data.reset()
 	if save_data() != Error.OK:
 		Log.critical("PersistenceManager: Error saving data.")
 	save_data_reset.emit()

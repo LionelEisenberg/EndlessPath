@@ -81,8 +81,7 @@ func get_equipped_abilities() -> Array[AbilityData]:
 
 func get_total_attributes_data() -> CharacterAttributesData:
 	return CharacterAttributesData.new(
-		# TODO DEBUG REMOVE
-		get_strength() + 100,
+		get_strength(),
 		get_body(),
 		get_agility(),
 		get_spirit(),
