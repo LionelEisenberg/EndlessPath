@@ -1,211 +1,162 @@
 # Codebase State
 
-Last updated: 2026-04-03
+Last updated: 2026-04-06
 
-This document covers the technical health of the EndlessPath codebase — code quality issues, architectural concerns, bugs, and feature completeness per system.
+This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
+
+---
 
 ## Architecture Summary
 
-The codebase follows a clean separation:
-- **13 autoload singletons** manage global state (loaded in dependency order via `project.godot`)
-- **Resource definitions** (`scripts/resource_definitions/`) define data structures as Godot `Resource` subclasses
-- **Scene scripts** (`scenes/`) contain behavior and UI logic
-- **`.tres` data files** (`resources/`) instantiate resource classes with authored content
-- **View state machine** (`MainView`) manages screen transitions via push/pop/change
+The codebase follows a signal-driven, data-forward architecture with clean separation between game logic (singleton managers), UI (views + state machine), and content (Resource `.tres` files).
 
-The architecture is well-structured for a project at this stage. The data-driven design (resource classes + `.tres` files) is the right pattern for a game with many configurable entities.
+### Entry Point
 
----
+`scenes/main/main_game/main_game.tscn` is the entry scene. Its structure:
 
-## Critical Bugs
+```
+MainGame (Node2D)
+├── MainView (Control)
+│   ├── MainViewStateMachine (Node)
+│   │   ├── ZoneViewState
+│   │   ├── AdventureViewState
+│   │   ├── InventoryViewState
+│   │   └── CyclingViewState
+│   ├── ZoneView (Control)          — default view, always present
+│   ├── AdventureView (Control)     — hidden, shown by state
+│   ├── InventoryView (Control)     — hidden, shown by state
+│   ├── CyclingView (Control)       — hidden, shown by state
+│   ├── GreyBackground (Panel)      — modal overlay
+│   └── LogWindow
+└── SaveTimer (Timer)               — auto-save
+```
 
-These will cause runtime errors or silent data loss:
+### View State Machine
 
-| Bug | Location | Impact |
-|-----|----------|--------|
-| `reset_state()` vs `_reset_state()` naming mismatch | `persistence_manager.gd:21` calls `reset_state()`, but `save_game_data.gd:120` defines `_reset_state()` | Save reset silently fails or crashes |
-| `reset_save_data = true` default | `persistence_manager.gd` export | Every boot wipes save data (dev flag) |
-| `save_game_data._to_string()` references `inventory.items` | `save_game_data.gd:107` | `InventoryData` has no `items` property — runtime error in debug |
-| Double signal connections in view states | `MainView._ready()` + `CyclingViewState._ready()` + `AdventureViewState._ready()` all connect to same ActionManager signals | State transitions fire twice per signal |
+`MainView` manages screen transitions via a stack-based state machine:
 
-## Non-Critical Bugs
+- **Base state** (`base_current_state`) — the primary view (Zone, Adventure)
+- **State stack** (`state_stack`) — modal overlays pushed on top (Cycling, Inventory)
+- **Three operations:**
+  - `change_state(new_state)` — clears stack, exits old base, enters new base
+  - `push_state(state)` — pushes onto stack, calls `enter()`
+  - `pop_state()` — pops top, calls `exit()`
+- **Current state** = top of stack if non-empty, otherwise base state
+- **Transitions are signal-driven** — ActionManager emits `start_cycling`, `start_adventure`, etc. and MainView responds by changing/pushing states
 
-| Bug | Location | Impact |
-|-----|----------|--------|
-| Madra defense labeled "WILLPOWER" but reads SPIRIT | `combat_effect_data.gd:136` | Misleading log output |
-| `damage_type = TRUE` has no explicit match case | `combat_effect_data.gd` | Works by accident (falls through to no-defense) |
-| `_dot_timer` starts unconditionally in `_ready()` | `combat_buff_manager.gd` | Timer runs outside combat (no damage dealt, but unnecessary) |
-| BuffIcon countdown independent of actual buff | `buff_icon.gd` | Visual duration can drift from actual |
-| `_assign_path_tiles` infinite loop risk | `adventure_map_generator.gd:160` | No guard if `num_path_encounters > NoOp count` |
-| `ChangeVitalsEffectData` uses `mana_change` | Not `madra_change` | Naming inconsistency |
-| Forage timer not re-added to scene after stop | `action_manager.gd` | Timer node replaced but new one not added as child |
+Each state is a `MainViewState` node that controls visibility of its corresponding view and handles input routing.
 
-## Dead Code & Artifacts
+### Singleton Managers
 
-| Item | Location | Notes |
-|------|----------|-------|
-| `AnimationPlayer` with `move_madra_ball` | `cycling_technique.tscn` | Replaced by Tween, never triggered |
-| `CastTimer` label | `adventure_combat.tscn` | Hardcoded debug text "2.7 / 8.0s" |
-| Debug buttons in adventure view | `adventure_view.tscn` | TODO comment to remove |
-| `enable_ai: bool` export | `adventure_combat.gd` | TODO: DELETE DEBUG comment |
-| `num_combats_in_map` variable | `adventure_map_generator.gd` | Declared, never read or written |
-| `new_curve_2d.tres` at project root | Root directory | Shared curve, should be in `resources/cycling/` |
-| +100 STRENGTH debug modifier | `character_manager.gd` | Hardcoded in `get_total_attributes_data()` |
+13 autoload singletons manage global state, loaded in dependency order via `project.godot`:
 
-## Unused Data Fields
+1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager
 
-Fields that are exported/defined but never read by any system:
+**Communication pattern:** Singletons communicate via signals and shared state. All game-state managers hold a **live reference** to `PersistenceManager.save_game_data` (a shared `SaveGameData` Resource). Writes by one manager are immediately visible to all others. When state changes, managers emit signals that UI scenes listen to.
 
-| Field | Class | Notes |
-|-------|-------|-------|
-| `timing_window_ratio` | `CyclingZoneData` | Zone radius hardcoded to 20 |
-| `madra_multiplier`, `cycle_duration_modifier`, `xp_multiplier`, `madra_cost_per_cycle` | `CyclingActionData` | Stored but never applied |
-| `madra_cost_per_second` | `ForageActionData` | Never deducted |
-| `experience_multiplier`, `difficulty_modifier` | `AdventureActionData` | Never read |
-| `cooldown_seconds`, `daily_limit` | `AdventureActionData` | Never enforced |
-| `percentage_value` | `CombatEffectData` | Exported, never used in calculations |
-| `unlocking_mechanics`, `icon` | `AdvancementStageResource` | Defined, never consumed |
-| `forage_active`, `forage_start_time` | `ZoneProgressionData` | Saved, never used on load |
+```
+PersistenceManager (root — owns SaveGameData)
+  ↑ live_save_data reference held by:
+  ├── ResourceManager (madra, gold)
+  ├── CultivationManager (core density, stage)
+  ├── CharacterManager (attributes)
+  ├── InventoryManager (inventory)
+  ├── UnlockManager (unlock progression)
+  ├── EventManager (event progression)
+  └── ZoneManager (zone state, progression)
 
-## Singleton Dependency Concerns
+ActionManager (orchestrator)
+  → emits: start_cycling, stop_cycling, start_adventure, stop_adventure, start_foraging, etc.
+  ← MainView listens to these for state transitions
+  ← ZoneTilemap listens for foraging events
+```
 
-| Concern | Details |
-|---------|---------|
-| Private method cross-boundary call | `ResourceManager` calls `CultivationManager._get_current_stage_resource()` (underscore = private) |
-| Event ID magic strings | No enum or constants file for event IDs — scattered at call sites |
-| Hardcoded ability list | `CharacterManager.get_equipped_abilities()` loads 4 specific `.tres` files |
-| Hardcoded inventory slot count | `50` defined separately in `EquipmentGrid` and `InventoryManager` |
+### Data-Driven Design (Resource Pattern)
 
----
+Content is defined via Godot's Resource system in three layers:
 
-## Feature Completeness by System
+1. **GDScript class defines the schema** (`scripts/resource_definitions/`)
+   ```gdscript
+   class_name ItemDefinitionData
+   extends Resource
+   @export var item_id: String = ""
+   @export var item_name: String = ""
+   @export var icon: Texture2D
+   ```
 
-### Cycling — ~75% Complete
-| Feature | Status |
-|---------|--------|
-| Mouse tracking + Madra generation | Done |
-| Zone clicking + Core Density XP | Done |
-| Technique selection + persistence | Done |
-| Resource panel UI | Done |
-| Auto-cycle toggle | Done (no visual distinction on/off) |
-| CyclingActionData modifiers (multipliers) | Defined, not wired |
-| Multiple distinct techniques | 2 exist but share same path |
-| Breakthrough / Tribulation | Stub |
+2. **`.tres` files instantiate with authored content** (`resources/`)
+   ```
+   script = ExtResource("item_definition_data.gd")
+   item_id = "SpiritFern"
+   item_name = "Spirit Fern"
+   ```
 
-### Combat — ~65% Complete
-| Feature | Status |
-|---------|--------|
-| Real-time ability casting | Done |
-| Cooldown system | Done |
-| Cast bar system | Done |
-| Buff/debuff system | Done |
-| DoT damage | Done |
-| Attribute-scaled damage | Done |
-| Defense reduction | Done |
-| Enemy AI (basic) | Done |
-| Combat UI (bars, buttons, floating text) | Done |
-| Multiple ability types (DEFENSIVE, HEALING) | Missing |
-| Multi-target (ALL_ALLIES) | Missing |
-| Multiple enemy selection from pool | Missing |
-| AP regeneration in combat | Missing (GDD feature) |
-| Equipment stat integration | Missing |
+3. **Managers load via preload** (`singletons/`)
+   ```gdscript
+   @export var _all_zone_data: ZoneDataList = preload("res://resources/zones/zone_data_list.tres")
+   ```
 
-### Adventuring — ~60% Complete
-| Feature | Status |
-|---------|--------|
-| Procedural hex map generation | Done |
-| MST path connectivity | Done |
-| Fog-of-war tile reveal | Done |
-| Movement + stamina cost | Done |
-| Encounter presentation + choices | Done |
-| Combat encounters | Done |
-| Dialogue encounters | Done |
-| Timer system | Done |
-| Boss encounter (furthest tile) | Done |
-| Stamina feedback UI | Missing |
-| Dynamic movement cost | Missing |
-| Experience/difficulty modifiers | Missing |
-| Cooldown/daily limits | Missing |
-| Multiple adventure configurations | Only 1 test adventure exists |
+**List containers** aggregate resources — e.g., `ZoneDataList` holds `Array[ZoneData]` with lookup methods like `get_zone_data_by_id()`. This allows loading an entire domain from a single preloaded resource.
 
-### Inventory — ~50% Complete
-| Feature | Status |
-|---------|--------|
-| Equipment grid (50 slots) | Done |
-| Gear slots (8 paper doll) | Done |
-| Drag & drop equip/unequip | Done |
-| Materials tab | Done |
-| Book animation | Done |
-| Item description display | Done |
-| Loot table system | Done (no authored content) |
-| Equipment stat effects | Missing |
-| Trash/delete items | Missing |
-| Consumable item usage | Missing |
-| Quest items | Missing |
-| Loot table content | Missing |
+### Scene Composition
 
-### Zones — ~55% Complete
-| Feature | Status |
-|---------|--------|
-| Hex tilemap rendering | Done |
-| Zone selection + character movement | Done |
-| Action display + routing | Done |
-| Condition-based unlocking | Done |
-| Forage action (timer + loot) | Done |
-| Cycling action routing | Done |
-| Adventure action routing | Done |
-| NPC dialogue routing | Done |
-| Merchant, Train Stats, Zone Event, Quest Giver | Missing |
-| Offline forage resume | Missing |
-| Action cooldowns/daily limits | Missing |
-
-### Cultivation — ~30% Complete
-| Feature | Status |
-|---------|--------|
-| Core Density XP + leveling | Done |
-| Madra cap scaling | Done |
-| Foundation stage resource | Done |
-| Unlock condition system | Done |
-| Event-triggered unlocks | Done |
-| Breakthrough mechanic | Stub |
-| Copper/Iron/Jade/Silver stages | Missing |
-| Equipment stat bonuses | Missing |
-| Gold multiplier system | Missing |
-| GameSystem UI gating | Missing |
-
-### Infrastructure — ~70% Complete
-| Feature | Status |
-|---------|--------|
-| View state machine | Done |
-| Autoload singleton architecture | Done |
-| Save/load framework | Done |
-| Log system (file + console + in-game) | Done |
-| Dialogic integration | Done |
-| Auto-save timer | Done |
-| Input mappings | Done |
-| Save data validation | Minimal (only zone ID check) |
-| Save data reset | Broken (naming mismatch) |
+- **Unique names** (`%NodeName`) decouple scripts from scene hierarchy — preferred over `$Path/To/Node`
+- **Subscenes** package complex UI (e.g., `adventure_view.tscn` instanced into `main_game.tscn`)
+- **Scripts attach** via `[ext_resource]` references in `.tscn` files
 
 ---
 
-## Technical Debt Priority
+## Cross-Cutting Concerns
 
-### High Priority (blocks gameplay features)
-1. Fix `reset_state()` / `_reset_state()` naming mismatch
-2. Set `reset_save_data = false` for persistence testing
-3. Wire equipment stats to CharacterManager attribute bonuses
-4. Remove +100 STRENGTH debug modifier
-5. Fix double signal connections in view state machine
+Issues that span multiple systems and don't belong to any single doc:
 
-### Medium Priority (bugs and quality)
-6. Apply CyclingActionData modifiers in cycling logic
-7. Implement missing UnlockConditionData types (ITEM_OWNED, ZONE_UNLOCKED, etc.)
-8. Create AdvancementStageResources for Copper/Iron/Jade/Silver
-9. Remove dead code artifacts (debug buttons, AnimationPlayer, CastTimer)
+| Concern | Details | Priority |
+|---------|---------|----------|
+| Double signal connections in view states | `MainView._ready()` + individual `ViewState._ready()` both connect to ActionManager signals — state transitions can fire twice | HIGH |
+| `ChangeVitalsEffectData` uses `mana_change` | Should be `madra_change` — naming inconsistency across the effect system | LOW |
+| Forage timer not re-added to scene after stop | `action_manager.gd` — Timer node replaced but new one not added as child | MEDIUM |
 
-### Low Priority (polish and future-proofing)
-11. Centralize event ID strings into constants
-12. Unify hardcoded slot count (50) into a single source of truth
-13. Move `new_curve_2d.tres` to proper location
-14. Add auto-cycle toggle visual distinction
-15. Implement consumable/quest item support in InventoryManager
+---
+
+## System Documentation Index
+
+### Game Systems
+
+| System | Doc | Summary |
+|--------|-----|---------|
+| Cycling | [docs/cycling/CYCLING.md](cycling/CYCLING.md) | Mouse-tracking mini-game, Madra generation, Core Density XP |
+| Combat | [docs/combat/COMBAT.md](combat/COMBAT.md) | Real-time ability combat within adventures |
+| Adventuring | [docs/adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex map exploration with encounters |
+| Inventory | [docs/inventory/INVENTORY.md](inventory/INVENTORY.md) | Equipment grid, gear slots, materials, loot |
+| Zones | [docs/zones/ZONES.md](zones/ZONES.md) | Home base hex map, action routing, unlock chains |
+| Cultivation | [docs/cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density leveling, Advancement Stages, breakthrough |
+
+### Infrastructure
+
+| System | Doc | Summary |
+|--------|-----|---------|
+| Resources | [docs/infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra + Gold tracking (ResourceManager) |
+| Unlocks | [docs/infrastructure/UNLOCKS.md](infrastructure/UNLOCKS.md) | Condition-based content gating (UnlockManager) |
+| Events | [docs/infrastructure/EVENTS.md](infrastructure/EVENTS.md) | One-shot narrative event flags (EventManager) |
+| Character | [docs/infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, abilities, player state (CharacterManager + PlayerManager) |
+| Persistence | [docs/infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | Save/load, SaveGameData schema (PersistenceManager) |
+
+### Design Documents
+
+| Doc | System | Summary |
+|-----|--------|---------|
+| [breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | Cultivation | Tribulation mini-game design for stage advancement |
+
+### Planned Systems (no code)
+
+| System | Doc | Unlocks At |
+|--------|-----|------------|
+| Scripting | [docs/SCRIPTING.md](SCRIPTING.md) | Copper |
+| Elixir Making | [docs/ELIXIR_MAKING.md](ELIXIR_MAKING.md) | Copper |
+| Soulsmithing | [docs/SOULSMITHING.md](SOULSMITHING.md) | Iron |
+
+### Top-Level
+
+| Doc | Purpose |
+|-----|---------|
+| [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) | Current player experience, content inventory, progression blockers |
