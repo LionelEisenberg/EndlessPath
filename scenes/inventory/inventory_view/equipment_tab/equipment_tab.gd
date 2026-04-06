@@ -104,10 +104,9 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 				InventoryManager.equip_item(item_data, target_slot.slot_type, from_index)
 				dragged_item.queue_free()
 				
-			# Case 2: GearSlot -> GearSlot (Swap slots? e.g. Accessory 1 to 2)
+			# Case 2: GearSlot -> GearSlot (Swap slots, e.g. Accessory 1 to 2)
 			else:
-				InventoryManager.unequip_item(original_slot.slot_type)
-				InventoryManager.equip_item(item_data, target_slot.slot_type)
+				InventoryManager.swap_gear_slots(original_slot.slot_type, target_slot.slot_type)
 				dragged_item.queue_free()
 				
 		elif original_slot is GearSlot:
