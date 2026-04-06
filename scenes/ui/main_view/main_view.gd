@@ -30,15 +30,8 @@ func _ready() -> void:
 	# Initialize view visibility based on initial state
 	change_state(zone_view_state)
 	
-	# Connect to ActionManager
-	if ActionManager:
-		# Cycling
-		ActionManager.start_cycling.connect(_stack_cycling.unbind(1))
-		ActionManager.stop_cycling.connect(pop_state)
-		
-		# Adventure
-		ActionManager.start_adventure.connect(_switch_to_adventure.unbind(1))
-		ActionManager.stop_adventure.connect(change_state.bind(zone_view_state))
+	# State transitions are handled by individual ViewState scripts
+	# which connect to ActionManager signals in their own _ready()
 
 func _unhandled_input(event: InputEvent) -> void:
 	var current_state: MainViewState = _get_current_state()
@@ -48,14 +41,6 @@ func _unhandled_input(event: InputEvent) -> void:
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
-
-## Switch to adventure view state.
-func _switch_to_adventure() -> void:
-	change_state(adventure_view_state)
-
-## Push cycling view state onto the stack.
-func _stack_cycling() -> void:
-	push_state(cycling_view_state)
 
 ## Push a new state onto the stack.
 func push_state(state: MainViewState) -> void:
