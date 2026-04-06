@@ -104,7 +104,7 @@ func _to_string() -> String:
 			str(event_progression),
 			current_selected_zone_id,
 			zone_progression_data_str,
-			inventory.items.size() if inventory and inventory.has_method("items") else 0,
+			inventory.equipment.size() if inventory else 0,
 			str(character_attributes) if character_attributes else "None",
 			current_cycling_technique_name
 		]
