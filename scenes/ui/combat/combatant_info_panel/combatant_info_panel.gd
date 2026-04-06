@@ -139,6 +139,21 @@ func update_labels() -> void:
 		stamina_bar.update_values(vitals_manager.current_stamina, vitals_manager.max_stamina, vitals_manager.stamina_regen)
 
 #-----------------------------------------------------------------------------
+# BUFF DURATION SYNC
+#-----------------------------------------------------------------------------
+
+func _process(_delta: float) -> void:
+	if buff_manager and not active_buff_icons.is_empty():
+		_sync_buff_icon_durations()
+
+func _sync_buff_icon_durations() -> void:
+	for buff_id in active_buff_icons:
+		var buff: ActiveBuff = buff_manager._find_buff_by_id(buff_id)
+		if buff:
+			var icon: BuffIcon = active_buff_icons[buff_id]
+			icon.update_duration(buff.time_remaining)
+
+#-----------------------------------------------------------------------------
 # BUFF HANDLERS
 #-----------------------------------------------------------------------------
 
