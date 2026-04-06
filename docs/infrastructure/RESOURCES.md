@@ -24,6 +24,13 @@ ResourceManager is the global singleton that tracks the game's two currencies: M
 |------|---------|
 | `singletons/resource_manager/resource_manager.gd` | Madra + Gold tracking |
 
-## Known Issues
+## Work Remaining
 
-- ResourceManager calls `CultivationManager._get_current_stage_resource()` (private method cross-boundary call)
+### Missing Functionality
+
+- `[HIGH]` Unify the two Madra pools — currently ResourceManager Madra (from cycling) and VitalsManager Madra (in combat) are completely disconnected. Design: total Madra pool filled by cycling with a stage-based cap. At adventure start, combat Madra draws up to FOUNDATION-based cap from total pool. Unspent combat Madra returns to total pool after adventure. This creates a natural cycle→adventure loop and gives Madra a real economy (Scripting, Elixir Making, and combat all compete for the same pool)
+- `[MEDIUM]` Gold has no sinks — no merchant, no spending mechanism. Accumulates with no purpose until merchants are implemented
+
+### Tech Debt
+
+- `[LOW]` ResourceManager calls `CultivationManager._get_current_stage_resource()` (private method cross-boundary call)
