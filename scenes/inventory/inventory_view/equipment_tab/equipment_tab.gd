@@ -14,7 +14,7 @@ extends Control
 var dragged_item: Control = null
 var original_slot: InventorySlot = null
 var is_dragging: bool = false
-const POSITION_OFFSET = Vector2(-35, -35)
+const POSITION_OFFSET = Vector2(0, 0)
 const SELECTOR_OFFSET = Vector2(28, 28)
 
 #-----------------------------------------------------------------------------
@@ -73,9 +73,9 @@ func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 		is_dragging = true
 		original_slot = slot
 		
-		get_tree().root.add_child(dragged_item)
+		add_child(dragged_item)
 		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
-		dragged_item.scale = Vector2(2.0, 2.0)
+		dragged_item.scale = Vector2(1.0, 1.0)
 		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE # Pass events through to slots below
 
 func _drop_item(global_mouse_pos: Vector2) -> void:
