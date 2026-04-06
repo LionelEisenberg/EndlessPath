@@ -136,22 +136,25 @@ func calculate_damage(caster_attributes: CharacterAttributesData, target_attribu
 				defense_name = "Resilience"
 			DamageType.MADRA:
 				defense_value = target_attributes.get_attribute(CharacterAttributesData.AttributeType.SPIRIT)
-				defense_name = "WILLPOWER"
+				defense_name = "Spirit"
 			DamageType.MIXED:
 				var resilience = target_attributes.get_attribute(CharacterAttributesData.AttributeType.RESILIENCE)
 				var willpower = target_attributes.get_attribute(CharacterAttributesData.AttributeType.WILLPOWER)
 				defense_value = (resilience + willpower) / 2.0
-				defense_name = "Mixed (Resilience+WILLPOWER)/2"
-		
-		# Damage reduction formula: damage * (100 / (100 + defense))
-		var reduction_mult = (100.0 / (100.0 + defense_value))
-		var original_damage = damage
-		damage = damage * reduction_mult
-		
-		Log.info("  Defense Application (%s):" % defense_name)
-		Log.info("    Defense Value: %.1f" % defense_value)
-		Log.info("    Reduction Multiplier: %.3f" % reduction_mult)
-		Log.info("    Damage Reduced: %.1f -> %.1f" % [original_damage, damage])
+				defense_name = "Mixed (Resilience+Willpower)/2"
+			DamageType.TRUE:
+				Log.info("  TRUE damage — bypassing defenses.")
+
+		if damage_type != DamageType.TRUE:
+			# Damage reduction formula: damage * (100 / (100 + defense))
+			var reduction_mult = (100.0 / (100.0 + defense_value))
+			var original_damage = damage
+			damage = damage * reduction_mult
+
+			Log.info("  Defense Application (%s):" % defense_name)
+			Log.info("    Defense Value: %.1f" % defense_value)
+			Log.info("    Reduction Multiplier: %.3f" % reduction_mult)
+			Log.info("    Damage Reduced: %.1f -> %.1f" % [original_damage, damage])
 	else:
 		Log.info("  No target attributes for defense calculation.")
 	
