@@ -120,7 +120,7 @@ func update_madra_display() -> void:
 	var max_madra = stage_res.get_max_madra(level) if stage_res else 0.0
 
 	# Update progress bar (0-100%)
-	var progress = (current_madra / max_madra)
+	var progress: float = (current_madra / max_madra) if max_madra > 0.0 else 0.0
 	madra_circle_rect.set_value(progress)
 
 	# Update labels
@@ -153,7 +153,7 @@ func update_core_density() -> void:
 	core_density_level_label.text = "Level: %d" % int(level)
 
 	# Update XP progress bar
-	var xp_progress = (xp / max_xp) * 100.0
+	var xp_progress: float = ((xp / max_xp) * 100.0) if max_xp > 0.0 else 0.0
 	core_density_xp_progress_bar.value = xp_progress
 	core_density_xp_label.text = "XP: %d / %d" % [int(xp), int(max_xp)]
 
