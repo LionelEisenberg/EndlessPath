@@ -117,7 +117,8 @@ func _to_string() -> String:
 func verify() -> bool:
 	return _verify_current_selected_zone_id()
 
-func _reset_state() -> void:
+## Resets all save data to default values.
+func reset() -> void:
 	# Resource Manager
 	madra = 25.0
 	gold = 0.0
