@@ -42,7 +42,6 @@ func _setup_dot_timer() -> void:
 	_dot_timer.one_shot = false
 	_dot_timer.timeout.connect(_on_dot_tick)
 	add_child(_dot_timer)
-	_dot_timer.start()
 
 ## Sets up the manager with owner combatant reference.
 func setup(p_owner: CombatantNode) -> void:
@@ -96,6 +95,10 @@ func apply_buff(buff_data: BuffEffectData) -> void:
 		Log.info("CombatBuffManager: Applied buff '%s' for %.1fs" % [buff_data.buff_id, buff_data.duration])
 		buff_applied.emit(buff_data.buff_id, buff_data.duration)
 
+	# Start DoT timer if a DoT buff is now active and timer is stopped
+	if buff_data.buff_type == BuffEffectData.BuffType.DAMAGE_OVER_TIME and _dot_timer.is_stopped():
+		_dot_timer.start()
+
 ## Remove a buff by ID.
 func remove_buff(buff_id: String) -> void:
 	var buff = _find_buff_by_id(buff_id)
@@ -107,6 +110,7 @@ func clear_all_buffs() -> void:
 	for buff in active_buffs:
 		buff_removed.emit(buff.buff_data.buff_id)
 	active_buffs.clear()
+	_dot_timer.stop()
 	Log.info("CombatBuffManager: Cleared all buffs")
 
 #-----------------------------------------------------------------------------
@@ -177,9 +181,20 @@ func _find_buff_by_id(buff_id: String) -> ActiveBuff:
 	return null
 
 func _remove_buff(buff: ActiveBuff) -> void:
+	var was_dot: bool = buff.buff_data.buff_type == BuffEffectData.BuffType.DAMAGE_OVER_TIME
 	active_buffs.erase(buff)
 	Log.info("CombatBuffManager: Removed buff '%s'" % buff.buff_data.buff_id)
 	buff_removed.emit(buff.buff_data.buff_id)
+
+	# Stop DoT timer if no DoT buffs remain
+	if was_dot and not _has_active_dots():
+		_dot_timer.stop()
+
+func _has_active_dots() -> bool:
+	for buff in active_buffs:
+		if buff.buff_data.buff_type == BuffEffectData.BuffType.DAMAGE_OVER_TIME:
+			return true
+	return false
 
 #-----------------------------------------------------------------------------
 # DOT PROCESSING
