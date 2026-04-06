@@ -1,0 +1,162 @@
+# Codebase State
+
+Last updated: 2026-04-06
+
+This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
+
+---
+
+## Architecture Summary
+
+The codebase follows a signal-driven, data-forward architecture with clean separation between game logic (singleton managers), UI (views + state machine), and content (Resource `.tres` files).
+
+### Entry Point
+
+`scenes/main/main_game/main_game.tscn` is the entry scene. Its structure:
+
+```
+MainGame (Node2D)
+├── MainView (Control)
+│   ├── MainViewStateMachine (Node)
+│   │   ├── ZoneViewState
+│   │   ├── AdventureViewState
+│   │   ├── InventoryViewState
+│   │   └── CyclingViewState
+│   ├── ZoneView (Control)          — default view, always present
+│   ├── AdventureView (Control)     — hidden, shown by state
+│   ├── InventoryView (Control)     — hidden, shown by state
+│   ├── CyclingView (Control)       — hidden, shown by state
+│   ├── GreyBackground (Panel)      — modal overlay
+│   └── LogWindow
+└── SaveTimer (Timer)               — auto-save
+```
+
+### View State Machine
+
+`MainView` manages screen transitions via a stack-based state machine:
+
+- **Base state** (`base_current_state`) — the primary view (Zone, Adventure)
+- **State stack** (`state_stack`) — modal overlays pushed on top (Cycling, Inventory)
+- **Three operations:**
+  - `change_state(new_state)` — clears stack, exits old base, enters new base
+  - `push_state(state)` — pushes onto stack, calls `enter()`
+  - `pop_state()` — pops top, calls `exit()`
+- **Current state** = top of stack if non-empty, otherwise base state
+- **Transitions are signal-driven** — ActionManager emits `start_cycling`, `start_adventure`, etc. and MainView responds by changing/pushing states
+
+Each state is a `MainViewState` node that controls visibility of its corresponding view and handles input routing.
+
+### Singleton Managers
+
+13 autoload singletons manage global state, loaded in dependency order via `project.godot`:
+
+1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager
+
+**Communication pattern:** Singletons communicate via signals and shared state. All game-state managers hold a **live reference** to `PersistenceManager.save_game_data` (a shared `SaveGameData` Resource). Writes by one manager are immediately visible to all others. When state changes, managers emit signals that UI scenes listen to.
+
+```
+PersistenceManager (root — owns SaveGameData)
+  ↑ live_save_data reference held by:
+  ├── ResourceManager (madra, gold)
+  ├── CultivationManager (core density, stage)
+  ├── CharacterManager (attributes)
+  ├── InventoryManager (inventory)
+  ├── UnlockManager (unlock progression)
+  ├── EventManager (event progression)
+  └── ZoneManager (zone state, progression)
+
+ActionManager (orchestrator)
+  → emits: start_cycling, stop_cycling, start_adventure, stop_adventure, start_foraging, etc.
+  ← MainView listens to these for state transitions
+  ← ZoneTilemap listens for foraging events
+```
+
+### Data-Driven Design (Resource Pattern)
+
+Content is defined via Godot's Resource system in three layers:
+
+1. **GDScript class defines the schema** (`scripts/resource_definitions/`)
+   ```gdscript
+   class_name ItemDefinitionData
+   extends Resource
+   @export var item_id: String = ""
+   @export var item_name: String = ""
+   @export var icon: Texture2D
+   ```
+
+2. **`.tres` files instantiate with authored content** (`resources/`)
+   ```
+   script = ExtResource("item_definition_data.gd")
+   item_id = "SpiritFern"
+   item_name = "Spirit Fern"
+   ```
+
+3. **Managers load via preload** (`singletons/`)
+   ```gdscript
+   @export var _all_zone_data: ZoneDataList = preload("res://resources/zones/zone_data_list.tres")
+   ```
+
+**List containers** aggregate resources — e.g., `ZoneDataList` holds `Array[ZoneData]` with lookup methods like `get_zone_data_by_id()`. This allows loading an entire domain from a single preloaded resource.
+
+### Scene Composition
+
+- **Unique names** (`%NodeName`) decouple scripts from scene hierarchy — preferred over `$Path/To/Node`
+- **Subscenes** package complex UI (e.g., `adventure_view.tscn` instanced into `main_game.tscn`)
+- **Scripts attach** via `[ext_resource]` references in `.tscn` files
+
+---
+
+## Cross-Cutting Concerns
+
+Issues that span multiple systems and don't belong to any single doc:
+
+| Concern | Details | Priority |
+|---------|---------|----------|
+| Double signal connections in view states | `MainView._ready()` + individual `ViewState._ready()` both connect to ActionManager signals — state transitions can fire twice | HIGH |
+| `ChangeVitalsEffectData` uses `mana_change` | Should be `madra_change` — naming inconsistency across the effect system | LOW |
+| Forage timer not re-added to scene after stop | `action_manager.gd` — Timer node replaced but new one not added as child | MEDIUM |
+
+---
+
+## System Documentation Index
+
+### Game Systems
+
+| System | Doc | Summary |
+|--------|-----|---------|
+| Cycling | [docs/cycling/CYCLING.md](cycling/CYCLING.md) | Mouse-tracking mini-game, Madra generation, Core Density XP |
+| Combat | [docs/combat/COMBAT.md](combat/COMBAT.md) | Real-time ability combat within adventures |
+| Adventuring | [docs/adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex map exploration with encounters |
+| Inventory | [docs/inventory/INVENTORY.md](inventory/INVENTORY.md) | Equipment grid, gear slots, materials, loot |
+| Zones | [docs/zones/ZONES.md](zones/ZONES.md) | Home base hex map, action routing, unlock chains |
+| Cultivation | [docs/cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density leveling, Advancement Stages, breakthrough |
+
+### Infrastructure
+
+| System | Doc | Summary |
+|--------|-----|---------|
+| Resources | [docs/infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra + Gold tracking (ResourceManager) |
+| Unlocks | [docs/infrastructure/UNLOCKS.md](infrastructure/UNLOCKS.md) | Condition-based content gating (UnlockManager) |
+| Events | [docs/infrastructure/EVENTS.md](infrastructure/EVENTS.md) | One-shot narrative event flags (EventManager) |
+| Character | [docs/infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, abilities, player state (CharacterManager + PlayerManager) |
+| Persistence | [docs/infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | Save/load, SaveGameData schema (PersistenceManager) |
+
+### Design Documents
+
+| Doc | System | Summary |
+|-----|--------|---------|
+| [breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | Cultivation | Tribulation mini-game design for stage advancement |
+
+### Planned Systems (no code)
+
+| System | Doc | Unlocks At |
+|--------|-----|------------|
+| Scripting | [docs/planned/SCRIPTING.md](planned/SCRIPTING.md) | Copper |
+| Elixir Making | [docs/planned/ELIXIR_MAKING.md](planned/ELIXIR_MAKING.md) | Copper |
+| Soulsmithing | [docs/planned/SOULSMITHING.md](planned/SOULSMITHING.md) | Iron |
+
+### Top-Level
+
+| Doc | Purpose |
+|-----|---------|
+| [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) | Current player experience, content inventory, progression blockers |
