@@ -176,9 +176,8 @@ func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 func _stop_forage_action(successful: bool) -> void:
 	Log.info("ActionManager: Stopping foraging action")
 	stop_foraging.emit()
-	remove_child(action_timer)
-	action_timer = Timer.new()
-	
+	_reset_action_timer()
+
 	_process_completion_effects(successful)
 
 ## Handle adventure action - stop adventure.
@@ -219,3 +218,9 @@ func clear_current_action() -> void:
 func _set_current_action(action_data: ZoneActionData) -> void:
 	current_action = action_data
 	current_action_changed.emit(current_action)
+
+func _reset_action_timer() -> void:
+	action_timer.stop()
+	# Disconnect all bound callbacks from the timeout signal
+	for connection in action_timer.timeout.get_connections():
+		action_timer.timeout.disconnect(connection["callable"])
