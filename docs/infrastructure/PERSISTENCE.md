@@ -70,8 +70,8 @@ All fields are `@export` properties on `SaveGameData` (extends Resource), persis
 
 ### Bugs
 
-- `[HIGH]` `reset_state()` vs `_reset_state()` naming mismatch — `persistence_manager.gd:21` calls `reset_state()` but `save_game_data.gd:120` defines `_reset_state()`. Save reset silently fails or crashes
-- `[MEDIUM]` `save_game_data._to_string():107` references `inventory.items.size()` but `InventoryData` has no `items` property — runtime error in debug logging
+- ~~`[HIGH]` `reset_state()` vs `_reset_state()` naming mismatch~~ *(Fixed in PR #3)*
+- ~~`[MEDIUM]` `save_game_data._to_string():107` references `inventory.items.size()`~~ *(Fixed in PR #3)*
 
 ### Missing Functionality
 
@@ -81,5 +81,5 @@ All fields are `@export` properties on `SaveGameData` (extends Resource), persis
 ### Tech Debt
 
 - `[MEDIUM]` Remove `unlocked_game_systems: Array[GameSystem]` from SaveGameData — dead field, part of GameSystem removal tracked in [UNLOCKS.md](UNLOCKS.md). Also clean up references in `_to_string()` and `_reset_state()`
-- `[MEDIUM]` `SaveTimer` has no `wait_time` set — defaults to 1 second, saving to disk every second. Should be a reasonable interval (30-60s) or event-driven
+- ~~`[MEDIUM]` `SaveTimer` has no `wait_time` set~~ *(Fixed in PR #6 — set to 5s)*
 - `[LOW]` `_to_string()` formatting will need updating after GameSystem removal and `inventory.items` fix

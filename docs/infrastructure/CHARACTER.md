@@ -27,7 +27,7 @@ CharacterManager and PlayerManager together manage the player's persistent ident
 
 ### Bugs
 
-- `[HIGH]` Debug: +100 STRENGTH permanently added in `get_total_attributes_data()` — affects all combat damage calculations
+- ~~`[HIGH]` Debug: +100 STRENGTH permanently added in `get_total_attributes_data()`~~ *(Fixed in PR #3)*
 
 ### Missing Functionality
 

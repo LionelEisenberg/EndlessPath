@@ -167,8 +167,8 @@ No loot table `.tres` files exist yet (only a README guide in `resources/loot_ta
 
 ### Bugs
 
-- `[HIGH]` Dragged items disappear — when picking up an item from a slot, it vanishes instead of following the cursor. The item isn't visible during the drag
-- `[MEDIUM]` GearSlot-to-GearSlot drag is fragile — unequips by value scan after adding to grid, which can match the wrong instance if duplicates exist
+- ~~`[HIGH]` Dragged items disappear — item vanishes instead of following cursor during drag~~ *(Fixed in PR #4)*
+- ~~`[MEDIUM]` GearSlot-to-GearSlot drag is fragile — unequips by value scan~~ *(Fixed in PR #6 — direct `swap_gear_slots()` method)*
 
 ### Missing Functionality
 

@@ -157,7 +157,7 @@ Both techniques share the same `Curve2D` (`new_curve_2d.tres` at project root).
 
 ### Bugs
 
-- `[LOW]` `cycling_resource_panel.gd:123,156` — `current_madra / max_madra` and `xp / max_xp` have no zero guard; if a stage resource were ever missing, the shader receives `inf`
+- ~~`[LOW]` `cycling_resource_panel.gd:123,156` — `current_madra / max_madra` and `xp / max_xp` have no zero guard~~ *(Fixed in PR #6)*
 
 ### Missing Functionality
 

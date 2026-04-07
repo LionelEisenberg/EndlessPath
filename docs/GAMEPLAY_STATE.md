@@ -96,12 +96,12 @@ These are the biggest gaps preventing a playable loop beyond Foundation:
 ## Recommended Next Steps (Gameplay Priority)
 
 ### Foundation Stage (make the current loop solid)
-1. Fix persistence — flip `reset_save_data = false`, fix `reset_state()` naming mismatch
+1. ~~Fix persistence — flip `reset_save_data = false`, fix `reset_state()` naming mismatch~~ *(PR #3 fixed naming; `reset_save_data` still defaults to true)*
 2. Wire equipment stats to combat — make the Dagger matter
 3. Unify Madra pools — create the cycle→adventure resource loop
 4. Add ability tooltips and cost feedback in combat — make the system learnable
 5. Add more enemies and encounters — combat variety
-6. Remove debug artifacts (+100 STR, debug buttons, enable_ai flag)
+6. ~~Remove debug artifacts (+100 STR)~~ *(PR #3 fixed +100 STR; debug buttons and enable_ai flag still present)*
 
 ### Copper Stage (unlock the next progression tier)
 7. Implement breakthrough — Tribulation mini-game via adventure encounter

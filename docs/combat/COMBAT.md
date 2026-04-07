@@ -236,11 +236,11 @@ One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_abili
 
 ### Bugs
 
-- `[MEDIUM]` `damage_type = TRUE` works by accident — falls through to no-defense case instead of having an explicit match. Correct behavior but fragile
-- `[MEDIUM]` Madra defense log labels it `"WILLPOWER"` but actually reads `SPIRIT` attribute — misleading debug output
-- `[LOW]` `DamageType.MADRA` should be renamed to `DamageType.SPIRIT` to match the attribute it scales and defends against
-- `[LOW]` BuffIcon countdown runs independently of actual buff duration — visual timer can drift from real buff expiry
-- `[LOW]` `_dot_timer` starts unconditionally in `_ready()` — runs outside combat with no effect, minor waste
+- ~~`[MEDIUM]` `damage_type = TRUE` works by accident~~ *(Fixed in PR #5)*
+- ~~`[MEDIUM]` Madra defense log labels it `"WILLPOWER"` but reads `SPIRIT`~~ *(Fixed in PR #5)*
+- ~~`[LOW]` `DamageType.MADRA` should be renamed to `DamageType.SPIRIT`~~ *(Fixed in PR #6 — renamed to `DamageType.SPIRIT`)*
+- ~~`[LOW]` BuffIcon countdown runs independently of actual buff duration~~ *(Fixed in PR #6 — synced from authoritative ActiveBuff state)*
+- ~~`[LOW]` `_dot_timer` starts unconditionally in `_ready()`~~ *(Fixed in PR #6 — only runs while DoT buffs active)*
 
 ### Missing Functionality
 
@@ -277,4 +277,4 @@ One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_abili
 - `[LOW]` `percentage_value` field exported but unused — remove or implement
 
 #### Code Quality
-- `[LOW]` `+100 STRENGTH` debug modifier in `CharacterManager.get_total_attributes_data()` — affects all combat. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md)
+- ~~`[LOW]` `+100 STRENGTH` debug modifier in `CharacterManager.get_total_attributes_data()`~~ *(Fixed in PR #3)*

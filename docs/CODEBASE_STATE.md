@@ -112,9 +112,9 @@ Issues that span multiple systems and don't belong to any single doc:
 
 | Concern | Details | Priority |
 |---------|---------|----------|
-| Double signal connections in view states | `MainView._ready()` + individual `ViewState._ready()` both connect to ActionManager signals — state transitions can fire twice | HIGH |
-| `ChangeVitalsEffectData` uses `mana_change` | Should be `madra_change` — naming inconsistency across the effect system | LOW |
-| Forage timer not re-added to scene after stop | `action_manager.gd` — Timer node replaced but new one not added as child | MEDIUM |
+| ~~Double signal connections in view states~~ | ~~state transitions can fire twice~~ | ~~HIGH~~ *(Fixed in PR #3)* |
+| ~~`ChangeVitalsEffectData` uses `mana_change`~~ | ~~Should be `madra_change`~~ | ~~LOW~~ *(Fixed in PR #6)* |
+| ~~Forage timer not re-added to scene after stop~~ | ~~Timer node replaced but not added as child~~ | ~~MEDIUM~~ *(Fixed in PR #6)* |
 
 ---
 
