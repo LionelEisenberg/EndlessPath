@@ -1,0 +1,149 @@
+[gd_scene format=3 uid="uid://c1pbcdgvnut8p"]
+
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="1_hl72m"]
+[ext_resource type="Script" uid="uid://6mef0wdu2bp7" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.gd" id="2_jqnp7"]
+[ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="3_708fp"]
+[ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="4_tkkoj"]
+[ext_resource type="Script" uid="uid://chldnyvaer1hp" path="res://scenes/cycling/cycling_resource_panel/progress_shader_rect.gd" id="5_gvadv"]
+[ext_resource type="Shader" uid="uid://cnsig7e5ba7ln" path="res://assets/shaders/core_density_fill.gdshader" id="6_7q158"]
+[ext_resource type="PackedScene" uid="uid://d0eha7yo0rjne" path="res://scenes/zones/zone_resource_panel/system_menu/system_menu_button.tscn" id="7_82sv8"]
+[ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/ui_images/resources/gold_icon.png" id="7_jqnp7"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_o03u6"]
+shader = ExtResource("3_708fp")
+shader_parameter/progress = 0.8830000419425
+shader_parameter/wave_amplitude = 0.0350000016625
+shader_parameter/wave_frequency = 5.0000002375
+shader_parameter/wave_speed = 4.00000019
+shader_parameter/wave_randomness_freq = 3.0000001392401203
+shader_parameter/wave_randomness_amp = 0.60000002524012
+shader_parameter/foam_thickness = 0.0150000007125
+shader_parameter/foam_color = Color(0.7137255, 0.75686276, 0.8, 1)
+shader_parameter/bg_color = Color(0.43, 0.43, 0.43, 0.2)
+shader_parameter/polar_center = Vector2(0.5, 0.5)
+shader_parameter/polar_zoom = 1.0
+shader_parameter/polar_repeat = 1.0
+shader_parameter/spin_rotation = 0.0
+shader_parameter/spin_speed = 20.0
+shader_parameter/swirl_col_primary = Color(0.702, 0.854, 1, 0.678)
+shader_parameter/swirl_col_secondary = Color(0.6, 0.75, 0.9, 1)
+shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
+shader_parameter/contrast = 2.0
+shader_parameter/spin_amount = 0.36
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dntb2"]
+shader = ExtResource("6_7q158")
+shader_parameter/progress = 0.46000002185
+shader_parameter/pulse_amplitude = 0.0050000002375
+shader_parameter/pulse_frequency = 1.0000000475
+shader_parameter/pulse_speed = 2.000000095
+shader_parameter/edge_thickness = 0.010000000475
+shader_parameter/edge_color = Color(1, 1, 1, 1)
+shader_parameter/bg_color = Color(0, 0, 0, 0.25882354)
+shader_parameter/polar_center = Vector2(0.5, 0.5)
+shader_parameter/polar_zoom = 1.0
+shader_parameter/polar_repeat = 1.0
+shader_parameter/spin_rotation = 0.0
+shader_parameter/spin_speed = 50.0
+shader_parameter/swirl_col_primary = Color(0.702, 0.854, 1, 0.678)
+shader_parameter/swirl_col_secondary = Color(0.6, 0.75, 0.9, 1)
+shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
+shader_parameter/contrast = 2.0
+shader_parameter/spin_amount = 1.5
+
+[node name="ZoneResourcePanel" type="PanelContainer" unique_id=2120600450]
+custom_minimum_size = Vector2(650, 240)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = ExtResource("1_hl72m")
+script = ExtResource("2_jqnp7")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1366779780]
+layout_mode = 2
+
+[node name="OrbsSection" type="VBoxContainer" parent="HBoxContainer" unique_id=1439807942]
+layout_mode = 2
+alignment = 1
+
+[node name="OrbsRow" type="HBoxContainer" parent="HBoxContainer/OrbsSection" unique_id=85056112]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MadraVbox" type="VBoxContainer" parent="HBoxContainer/OrbsSection/OrbsRow" unique_id=2113365077]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+
+[node name="MadraCircle" type="TextureRect" parent="HBoxContainer/OrbsSection/OrbsRow/MadraVbox" unique_id=1626822521]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_o03u6")
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+texture = ExtResource("4_tkkoj")
+script = ExtResource("5_gvadv")
+
+[node name="MadraLabel" type="Label" parent="HBoxContainer/OrbsSection/OrbsRow/MadraVbox" unique_id=607764089]
+unique_name_in_owner = true
+layout_mode = 2
+text = "120 / 200"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CoreDensityVBox" type="VBoxContainer" parent="HBoxContainer/OrbsSection/OrbsRow" unique_id=903524058]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+alignment = 1
+
+[node name="CoreDensityRect" type="TextureRect" parent="HBoxContainer/OrbsSection/OrbsRow/CoreDensityVBox" unique_id=2099949461]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_dntb2")
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+texture = ExtResource("4_tkkoj")
+script = ExtResource("5_gvadv")
+
+[node name="CoreDensityLabel" type="Label" parent="HBoxContainer/OrbsSection/OrbsRow/CoreDensityVBox" unique_id=1023229903]
+unique_name_in_owner = true
+layout_mode = 2
+text = "lvl: 54"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GoldResource" type="HBoxContainer" parent="HBoxContainer/OrbsSection" unique_id=760289507]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+
+[node name="GoldTexture" type="TextureRect" parent="HBoxContainer/OrbsSection/GoldResource" unique_id=15572180]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture = ExtResource("7_jqnp7")
+
+[node name="GoldLabel" type="Label" parent="HBoxContainer/OrbsSection/GoldResource" unique_id=638387189]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Gold: 85g"
+
+[node name="VSeparator" type="VSeparator" parent="HBoxContainer" unique_id=752545621]
+layout_mode = 2
+
+[node name="SystemMenu" type="GridContainer" parent="HBoxContainer" unique_id=655467239]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 3
+
+[node name="InventoryButton" parent="HBoxContainer/SystemMenu" unique_id=1352621287 instance=ExtResource("7_82sv8")]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_vertical = 4
