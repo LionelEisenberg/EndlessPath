@@ -9,10 +9,14 @@ class_name ThemeConstants
 # COLOR PALETTE
 #-----------------------------------------------------------------------------
 
-## Backgrounds
+## Backgrounds — flat panels
 const BG_DARK: Color = Color("#2A1A12")
 const BG_MEDIUM: Color = Color("#3D2E22")
 const BG_LIGHT: Color = Color("#564332")
+
+## Backgrounds — texture panel tints
+const TINT_PARCHMENT: Color = Color(0.92, 0.82, 0.68, 1.0)
+const TINT_DARK_PANEL: Color = Color(0.85, 0.72, 0.55, 1.0)
 
 ## Borders
 const BORDER_PRIMARY: Color = Color("#C4884A")
