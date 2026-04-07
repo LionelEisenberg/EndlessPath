@@ -1,53 +1,87 @@
 extends Control
 
-signal slot_selected(data)
+## CyclingTechniqueSlot
+## A compact technique slot for the Techniques tab list.
+## Click to equip. Shows equipped state with gold border.
+
+#-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
+signal slot_selected(data: CyclingTechniqueData)
+
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
+@onready var _panel: PanelContainer = %CyclingTechniquePanelContainer
+@onready var _icon_rect: TextureRect = %CyclingTechniqueIcon
+@onready var _name_label: Label = %TechniqueNameLabel
+@onready var _stats_label: Label = %TechniqueStatsLabel
+
+#-----------------------------------------------------------------------------
+# STATE
+#-----------------------------------------------------------------------------
 
 var technique_data: CyclingTechniqueData = null
-var is_selected: bool = false
+var _is_equipped: bool = false
 
-@onready var panel_container: PanelContainer = %CyclingTechniquePanelContainer
-@onready var icon_texture_rect: TextureRect = %CyclingTechniqueIcon
-@onready var info_label: RichTextLabel = %CyclingTechniqueInfo
-
-const COLOR_SELECTED := Color(0.3, 0.5, 1.0, 1.0)
-const COLOR_HOVER := Color(0.85, 0.85, 0.95, 1.0)
-const COLOR_NORMAL := Color(1.0, 1.0, 1.0, 1.0)
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	self.mouse_entered.connect(_on_mouse_entered)
-	self.mouse_exited.connect(_on_mouse_exited)
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 
-## Sets up the slot with the given technique data.
+#-----------------------------------------------------------------------------
+# PUBLIC FUNCTIONS
+#-----------------------------------------------------------------------------
+
+## Initialize the slot with technique data.
 func setup(data: CyclingTechniqueData) -> void:
 	technique_data = data
-	_update_info()
-	set_selected(false)
+	_update_display()
 
-## Sets the selected state of the slot.
-func set_selected(selected: bool) -> void:
-	is_selected = selected
-	if panel_container:
-		panel_container.modulate = COLOR_SELECTED if selected else COLOR_NORMAL
+## Set whether this technique is currently equipped.
+func set_equipped(equipped: bool) -> void:
+	_is_equipped = equipped
+	_update_visual_state()
 
-func _update_info() -> void:
-	if not info_label:
-		return
+#-----------------------------------------------------------------------------
+# PRIVATE FUNCTIONS
+#-----------------------------------------------------------------------------
+
+func _update_display() -> void:
 	if technique_data == null:
-		info_label.text = "[b]Unknown Technique[/b]"
+		_name_label.text = "Unknown"
+		_stats_label.text = ""
 		return
-	var technique_name := technique_data.technique_name
-	var madra_per_cycle := technique_data.base_madra_per_cycle
-	var duration := technique_data.cycle_duration
-	info_label.text = "[b]%s[/b]\nMadra/cycle: %.1f\nDuration: %.0f s" % [technique_name, madra_per_cycle, duration]
+
+	_name_label.text = technique_data.technique_name
+	var zones_count: int = technique_data.cycling_zones.size()
+	_stats_label.text = "%g/cycle  %gs  %d zones" % [
+		technique_data.base_madra_per_cycle,
+		technique_data.cycle_duration,
+		zones_count
+	]
+
+func _update_visual_state() -> void:
+	if _name_label == null:
+		return
+	if _is_equipped:
+		_name_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
+	else:
+		_name_label.remove_theme_color_override("font_color")
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		slot_selected.emit(technique_data)
 
 func _on_mouse_entered() -> void:
-	if not is_selected and panel_container:
-		panel_container.modulate = COLOR_HOVER
+	if not _is_equipped and _name_label:
+		_name_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
 
 func _on_mouse_exited() -> void:
-	if not is_selected and panel_container:
-		panel_container.modulate = COLOR_NORMAL
+	if not _is_equipped and _name_label:
+		_name_label.remove_theme_color_override("font_color")
