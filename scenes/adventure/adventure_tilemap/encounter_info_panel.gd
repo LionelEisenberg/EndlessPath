@@ -1,5 +1,5 @@
 class_name EncounterInfoPanel
-extends Panel
+extends PanelContainer
 
 ## EncounterInfoPanel
 ## Displays information about the current tile's encounter and provides choices.

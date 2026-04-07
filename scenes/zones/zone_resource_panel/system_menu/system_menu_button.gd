@@ -73,6 +73,8 @@ const MENU_CONFIG: Dictionary = {
 
 func _ready() -> void:
 	pressed.connect(_on_pressed)
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 	_apply_config()
 
 #-----------------------------------------------------------------------------
@@ -91,6 +93,14 @@ func _apply_config() -> void:
 
 	_icon_rect.texture = config.icon
 	_icon_rect.visible = config.icon != null
+
+func _on_mouse_entered() -> void:
+	_name_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
+	_shortcut_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
+
+func _on_mouse_exited() -> void:
+	_name_label.remove_theme_color_override("font_color")
+	_shortcut_label.remove_theme_color_override("font_color")
 
 func _on_pressed() -> void:
 	var config: Dictionary = MENU_CONFIG.get(menu_type, {})
