@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EndlessPath - ZoneResourcePanel Mockup</title>
+<style>
+  @font-face {
+    font-family: 'PixelFont';
+    src: url('../../assets/themes/pixel_ui_theme/m5x7.ttf') format('truetype');
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a2a2a;
+    font-family: 'PixelFont', 'Courier New', monospace;
+    color: #d4c4a0;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-end;
+    padding: 30px;
+    background-image:
+      radial-gradient(ellipse at 30% 40%, rgba(60,90,80,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 30%, rgba(40,60,70,0.3) 0%, transparent 50%);
+  }
+
+  /* ── Panel Container ── */
+  .panel {
+    width: 680px;
+    background: linear-gradient(135deg, #3a2e24 0%, #2e2318 40%, #352a20 100%);
+    border: 4px solid #6b5438;
+    border-radius: 8px;
+    box-shadow:
+      inset 0 0 20px rgba(0,0,0,0.4),
+      0 4px 16px rgba(0,0,0,0.6),
+      0 0 0 2px #1a1208;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(107,84,56,0.04) 3px, rgba(107,84,56,0.04) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(107,84,56,0.03) 5px, rgba(107,84,56,0.03) 6px);
+    pointer-events: none;
+  }
+
+  .panel-inner {
+    border: 2px solid rgba(107,84,56,0.3);
+    border-radius: 5px;
+    margin: 3px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 16px;
+  }
+
+  /* ── Left: Orbs (same size/placement as current game) ── */
+  .orbs-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .orbs-row {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .resource-orb {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .orb-container {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid rgba(140,180,210,0.3);
+    box-shadow: 0 0 8px rgba(100,160,200,0.15);
+  }
+
+  .madra-orb {
+    background: radial-gradient(circle at 40% 60%, rgba(110,110,110,0.2) 0%, rgba(50,50,50,0.3) 100%);
+  }
+
+  .madra-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 45%;
+    background: linear-gradient(180deg,
+      rgba(179,218,255,0.7) 0%,
+      rgba(153,191,230,0.8) 30%,
+      rgba(128,166,204,0.9) 100%
+    );
+    border-radius: 0 0 50% 50%;
+    animation: wave 3s ease-in-out infinite;
+  }
+
+  .madra-fill::before {
+    content: '';
+    position: absolute;
+    top: -4px; left: -10%; width: 120%; height: 12px;
+    background: radial-gradient(ellipse, rgba(179,218,255,0.6) 0%, transparent 70%);
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  @keyframes wave {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+  }
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  .density-orb {
+    background: radial-gradient(circle, rgba(0,0,0,0.26) 0%, rgba(30,20,15,0.4) 100%);
+  }
+
+  .density-fill {
+    position: absolute; inset: 3px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .orb-label {
+    font-size: 18px;
+    color: #a89880;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+  }
+  .orb-label .value { color: #d4c4a0; }
+
+  /* ── Gold row under orbs ── */
+  .gold-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .gold-coin {
+    width: 14px; height: 14px;
+    background: radial-gradient(circle at 35% 35%, #e8c44a, #b8922a);
+    border-radius: 50%;
+    border: 1px solid #8a6a1a;
+  }
+
+  .gold-text {
+    font-size: 18px;
+    color: #c8b070;
+    letter-spacing: 1px;
+  }
+
+  /* ── Right: Nav buttons ── */
+  .nav-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    flex: 1;
+  }
+
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 4px 6px;
+    background: linear-gradient(180deg, rgba(58,46,36,0.8) 0%, rgba(42,32,24,0.9) 100%);
+    border: 2px solid rgba(107,84,56,0.35);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    font-family: inherit;
+  }
+
+  .nav-btn:hover {
+    background: linear-gradient(180deg, rgba(78,62,46,0.9) 0%, rgba(58,44,32,1) 100%);
+    border-color: rgba(168,144,112,0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+  }
+
+  .nav-btn:active {
+    transform: translateY(0);
+    background: linear-gradient(180deg, rgba(42,32,24,1) 0%, rgba(34,26,18,1) 100%);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  /* ── Pixel art placeholder icon ── */
+  .nav-icon-placeholder {
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    border: 2px solid rgba(168,144,112,0.3);
+    image-rendering: pixelated;
+  }
+
+  .icon-inventory    { background: #7a6a52; }
+  .icon-abilities    { background: #5a7a8a; }
+  .icon-character    { background: #8a6a5a; }
+  .icon-path         { background: #6a7a5a; }
+
+  .nav-btn:hover .nav-icon-placeholder {
+    border-color: rgba(168,144,112,0.6);
+  }
+
+  .nav-label {
+    font-size: 14px;
+    color: #a89070;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  .nav-btn:hover .nav-label { color: #d4c4a0; }
+
+  /* ── Hotkey hint ── */
+  .hotkey {
+    position: absolute;
+    bottom: 2px; right: 4px;
+    font-size: 11px;
+    color: rgba(168,144,112,0.3);
+  }
+
+  /* ── Context note ── */
+  .context-note {
+    position: fixed;
+    top: 20px; left: 20px;
+    color: #6a5a48;
+    font-size: 16px;
+    letter-spacing: 1px;
+    opacity: 0.6;
+  }
+  .context-note em { color: #a89070; font-style: normal; }
+
+  /* ── Annotation labels ── */
+  .annotation {
+    position: fixed;
+    color: #6b5438;
+    font-size: 13px;
+    letter-spacing: 1px;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="context-note">
+  EndlessPath &mdash; <em>ZoneResourcePanel Mockup v2</em>
+  &nbsp;&mdash;&nbsp; Orbs left, nav buttons right. Colored squares = pixel art icon placeholders.
+</div>
+
+<div class="panel">
+  <div class="panel-inner">
+
+    <!-- Left: Resource Orbs -->
+    <div class="orbs-section">
+      <div class="orbs-row">
+        <div class="resource-orb">
+          <div class="orb-container madra-orb">
+            <div class="madra-fill"></div>
+          </div>
+          <div class="orb-label"><span class="value">45</span> / 100</div>
+        </div>
+
+        <div class="resource-orb">
+          <div class="orb-container density-orb">
+            <div class="density-fill"></div>
+          </div>
+          <div class="orb-label">Foundation &mdash; Lvl 0</div>
+        </div>
+      </div>
+
+      <div class="gold-row">
+        <div class="gold-coin"></div>
+        <span class="gold-text">Gold: 0</span>
+      </div>
+    </div>
+
+    <!-- Right: Navigation Grid -->
+    <div class="nav-section">
+      <div class="nav-grid">
+        <button class="nav-btn" title="Inventory">
+          <div class="nav-icon-placeholder icon-inventory"></div>
+          <span class="nav-label">Inventory</span>
+          <span class="hotkey">I</span>
+        </button>
+
+        <button class="nav-btn" title="Abilities">
+          <div class="nav-icon-placeholder icon-abilities"></div>
+          <span class="nav-label">Abilities</span>
+          <span class="hotkey">A</span>
+        </button>
+
+        <button class="nav-btn" title="Character">
+          <div class="nav-icon-placeholder icon-character"></div>
+          <span class="nav-label">Character</span>
+          <span class="hotkey">C</span>
+        </button>
+
+        <button class="nav-btn" title="Cultivation Path">
+          <div class="nav-icon-placeholder icon-path"></div>
+          <span class="nav-label">Path</span>
+          <span class="hotkey">P</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -14,54 +14,7 @@
 [ext_resource type="Script" uid="uid://t6j7xu45pr3y" path="res://scenes/ui/main_view/states/inventory_view_state.gd" id="5_a5o3s"]
 [ext_resource type="Script" uid="uid://c6cvq5n61a2sw" path="res://scenes/ui/main_view/states/zone_view_state.gd" id="6_cp3p8"]
 [ext_resource type="PackedScene" uid="uid://cwb0nnj7np102" path="res://scenes/adventure/adventure_view/adventure_view.tscn" id="7_up6bt"]
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="11_wyoa6"]
-[ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="12_lb8xr"]
-[ext_resource type="Script" uid="uid://6mef0wdu2bp7" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.gd" id="12_xq0xm"]
-[ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="13_xq0xm"]
-[ext_resource type="Script" uid="uid://chldnyvaer1hp" path="res://scenes/cycling/cycling_resource_panel/progress_shader_rect.gd" id="14_ohlfh"]
-[ext_resource type="Shader" uid="uid://cnsig7e5ba7ln" path="res://assets/shaders/core_density_fill.gdshader" id="15_ppvet"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_o03u6"]
-shader = ExtResource("12_lb8xr")
-shader_parameter/progress = 0.8830000419425
-shader_parameter/wave_amplitude = 0.02
-shader_parameter/wave_frequency = 5.0000002375
-shader_parameter/wave_speed = 4.00000019
-shader_parameter/wave_randomness_freq = 3.0000001392401203
-shader_parameter/wave_randomness_amp = 0.60000002524012
-shader_parameter/foam_thickness = 0.0050000002375
-shader_parameter/foam_color = Color(0.5, 0.65, 0.8, 1)
-shader_parameter/bg_color = Color(0.43, 0.43, 0.43, 0.2)
-shader_parameter/polar_center = Vector2(0.5, 0.5)
-shader_parameter/polar_zoom = 1.0
-shader_parameter/polar_repeat = 1.0
-shader_parameter/spin_rotation = 0.0
-shader_parameter/spin_speed = 20.0
-shader_parameter/swirl_col_primary = Color(0.702, 0.854, 1, 0.678)
-shader_parameter/swirl_col_secondary = Color(0.6, 0.75, 0.9, 1)
-shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
-shader_parameter/contrast = 2.0
-shader_parameter/spin_amount = 0.36
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_dntb2"]
-shader = ExtResource("15_ppvet")
-shader_parameter/progress = 0.46000002185
-shader_parameter/pulse_amplitude = 0.0050000002375
-shader_parameter/pulse_frequency = 1.0000000475
-shader_parameter/pulse_speed = 2.000000095
-shader_parameter/edge_thickness = 0.010000000475
-shader_parameter/edge_color = Color(1, 1, 1, 1)
-shader_parameter/bg_color = Color(0, 0, 0, 0.25882354)
-shader_parameter/polar_center = Vector2(0.5, 0.5)
-shader_parameter/polar_zoom = 1.0
-shader_parameter/polar_repeat = 1.0
-shader_parameter/spin_rotation = 0.0
-shader_parameter/spin_speed = 50.0
-shader_parameter/swirl_col_primary = Color(0.702, 0.854, 1, 0.678)
-shader_parameter/swirl_col_secondary = Color(0.6, 0.75, 0.9, 1)
-shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
-shader_parameter/contrast = 2.0
-shader_parameter/spin_amount = 1.5
+[ext_resource type="PackedScene" uid="uid://c1pbcdgvnut8p" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.tscn" id="11_wyoa6"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_up6bt"]
 bg_color = Color(0.1764706, 0.21568628, 0.21568628, 0.5568628)
@@ -144,74 +97,23 @@ anchor_left = 1.0
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = -545.0
-offset_top = -540.0
+offset_top = -539.0
 offset_right = 9.0
-offset_bottom = 540.0
+offset_bottom = 541.0
 grow_horizontal = 0
 size_flags_vertical = 3
 
-[node name="ZoneResourcePanel" type="PanelContainer" parent="MainView/ZoneView" unique_id=349284910]
-custom_minimum_size = Vector2(650, 240)
+[node name="ZoneResourcePanel" parent="MainView/ZoneView" unique_id=2120600450 instance=ExtResource("11_wyoa6")]
 layout_mode = 0
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
 offset_left = 50.0
 offset_top = 763.0
 offset_right = 700.0
 offset_bottom = 1003.0
-theme_override_styles/panel = ExtResource("11_wyoa6")
-script = ExtResource("12_xq0xm")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel" unique_id=2115401156]
-layout_mode = 2
-alignment = 1
-
-[node name="MadraVbox" type="VBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer" unique_id=2112591155]
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-
-[node name="MadraCircle" type="TextureRect" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/MadraVbox" unique_id=2014187043]
-unique_name_in_owner = true
-material = SubResource("ShaderMaterial_o03u6")
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-texture = ExtResource("13_xq0xm")
-script = ExtResource("14_ohlfh")
-
-[node name="MadraLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/MadraVbox" unique_id=1189880297]
-unique_name_in_owner = true
-layout_mode = 2
-text = "120 / 200"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="VBoxContainer2" type="VBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer" unique_id=204135441]
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-alignment = 1
-
-[node name="CoreDensityRect" type="TextureRect" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/VBoxContainer2" unique_id=605879925]
-unique_name_in_owner = true
-material = SubResource("ShaderMaterial_dntb2")
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("13_xq0xm")
-script = ExtResource("14_ohlfh")
-
-[node name="CoreDensityLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/VBoxContainer2" unique_id=958158039]
-unique_name_in_owner = true
-layout_mode = 2
-text = "lvl: 54"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="GoldLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer" unique_id=1054204614]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 6
-text = "Gold: 85g"
+grow_horizontal = 1
+grow_vertical = 1
 
 [node name="AdventureView" parent="MainView" unique_id=1872924392 instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true

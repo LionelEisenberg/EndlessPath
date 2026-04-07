@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://d0eha7yo0rjne"]
+
+[ext_resource type="Script" uid="uid://dx88gs3kajku8" path="res://scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd" id="1_wjy3w"]
+[ext_resource type="Texture2D" uid="uid://ckujxkutsuhip" path="res://assets/ui_images/system_menu/inventory_icon.png" id="2_d8e01"]
+
+[node name="SystemMenuButton" type="Button" unique_id=1352621287]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_wjy3w")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=726085576]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.2
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 1
+theme_override_constants/margin_bottom = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1139124061]
+layout_mode = 2
+
+[node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=1728239316]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.7
+texture = ExtResource("2_d8e01")
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=558514512]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.4
+text = "INVENTORY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ShortCutLabel" type="Label" parent="." unique_id=521840759]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -54.0
+offset_top = -13.0
+grow_horizontal = 0
+grow_vertical = 0
+size_flags_vertical = 3
+text = "I"
+horizontal_alignment = 2
+vertical_alignment = 1

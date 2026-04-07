@@ -16,7 +16,7 @@ uniform float wave_randomness_amp : hint_range(0.1, 1.0) = 0.6;
 
 // Foam parameters
 uniform float foam_thickness : hint_range(0.0, 0.1) = 0.005;
-uniform vec4 foam_color : source_color = vec4(0.5, 0.65, 0.8, 1.0);
+uniform vec4 foam_color : source_color = vec4(0.714, 0.757, 0.8, 1.0);
 
 // Colors (Base fill is handled by swirl colors now)
 uniform vec4 bg_color : source_color = vec4(0.43, 0.43, 0.43, 0.2); // Transparent by default

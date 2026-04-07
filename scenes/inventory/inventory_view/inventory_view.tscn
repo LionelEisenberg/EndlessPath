@@ -209,6 +209,7 @@ icon_texture = ExtResource("4_0y30f")
 
 [node name="EquipmentTab" type="Control" parent="BookBackground/BookContent" unique_id=191510472]
 unique_name_in_owner = true
+visible = false
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
