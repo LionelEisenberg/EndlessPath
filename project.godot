@@ -37,8 +37,12 @@ LogManager="*res://singletons/log_manager/log_manager.gd"
 
 [dialogic]
 
-directories/dch_directory={}
-directories/dtl_directory={}
+directories/dch_directory={
+"wisened_dirt_eel": "res://assets/dialogue/characters/wisened_dirt_eel/wisened_dirt_eel.dch"
+}
+directories/dtl_directory={
+"spirit_valley": "res://assets/dialogue/timelines/spirit_valley.dtl"
+}
 layout/style_directory={
 "": "res://assets/dialogue/styles/default_style.tres",
 "default_style": "res://assets/dialogue/styles/default_style.tres"
