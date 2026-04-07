@@ -17,9 +17,9 @@ enum EffectType {
 
 enum DamageType {
 	PHYSICAL, ## Affected by physical defense/resilience
-	MADRA, ## Affected by spiritual defense
+	SPIRIT, ## Affected by spiritual defense (Madra-type damage)
 	TRUE, ## Ignores defenses
-	MIXED ## Combination of physical and madra
+	MIXED ## Combination of physical and spirit
 }
 
 #-----------------------------------------------------------------------------
@@ -134,7 +134,7 @@ func calculate_damage(caster_attributes: CharacterAttributesData, target_attribu
 			DamageType.PHYSICAL:
 				defense_value = target_attributes.get_attribute(CharacterAttributesData.AttributeType.RESILIENCE)
 				defense_name = "Resilience"
-			DamageType.MADRA:
+			DamageType.SPIRIT:
 				defense_value = target_attributes.get_attribute(CharacterAttributesData.AttributeType.SPIRIT)
 				defense_name = "Spirit"
 			DamageType.MIXED:

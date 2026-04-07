@@ -116,6 +116,28 @@ func unequip_item_to_slot(slot: EquipmentDefinitionData.EquipmentSlot, target_in
 	inventory.equipment[target_index] = item
 	inventory_changed.emit(inventory)
 
+## Swap items between two gear slots directly (e.g., Accessory 1 to Accessory 2).
+## Avoids routing through the grid which can match the wrong instance with duplicates.
+func swap_gear_slots(from_slot: EquipmentDefinitionData.EquipmentSlot, to_slot: EquipmentDefinitionData.EquipmentSlot) -> void:
+	var inventory = get_inventory()
+	var from_item: ItemInstanceData = inventory.equipped_gear.get(from_slot, null)
+	var to_item: ItemInstanceData = inventory.equipped_gear.get(to_slot, null)
+
+	if from_item == null:
+		Log.error("InventoryManager: swap_gear_slots called with empty from_slot")
+		return
+
+	# Place from_item into the target gear slot
+	inventory.equipped_gear[to_slot] = from_item
+
+	# Place to_item (if any) into the source gear slot, otherwise clear it
+	if to_item:
+		inventory.equipped_gear[from_slot] = to_item
+	else:
+		inventory.equipped_gear.erase(from_slot)
+
+	inventory_changed.emit(inventory)
+
 func move_equipment(from_index: int, to_index: int) -> void:
 	var inventory = get_inventory()
 	

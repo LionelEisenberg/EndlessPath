@@ -57,12 +57,5 @@ func update_stacks(count: int) -> void:
 		stack_label.text = str(count)
 		stack_label.visible = count > 1
 
-#-----------------------------------------------------------------------------
-# PROCESS
-#-----------------------------------------------------------------------------
-
-func _process(delta: float) -> void:
-	if is_active and time_left > 0:
-		# Visually countdown
-		time_left = max(0.0, time_left - delta)
-		update_duration(time_left)
+# Duration is synced externally by CombatantInfoPanel from the authoritative ActiveBuff state.
+# No independent _process countdown — avoids visual drift from actual buff duration.
