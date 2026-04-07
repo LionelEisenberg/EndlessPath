@@ -1,8 +1,10 @@
 class_name CyclingTabPanel
-extends PanelContainer
+extends TabContainer
 
 ## CyclingTabPanel
-## Manages tab switching between Resources and Techniques content.
+## TabContainer with Resources and Techniques tabs.
+## Resources tab holds the CyclingResourcePanel. Techniques tab holds a scrollable technique list.
+## Style via CyclingTabContainer theme type variation in PixelTheme.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -14,18 +16,11 @@ signal technique_change_request(data: CyclingTechniqueData)
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var _resources_tab_button: Button = %ResourcesTabButton
-@onready var _techniques_tab_button: Button = %TechniquesTabButton
-@onready var _resources_content: Control = %ResourcesContent
-@onready var _techniques_content: Control = %TechniquesContent
 @onready var _technique_list_container: VBoxContainer = %TechniqueListContainer
 
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
-
-enum Tab { RESOURCES, TECHNIQUES }
-var _active_tab: Tab = Tab.RESOURCES
 
 var _technique_slot_scene: PackedScene = preload("res://scenes/cycling/cycling_technique_selector/cycling_technique_slot.tscn")
 var _technique_list: CyclingTechniqueList = null
@@ -36,9 +31,10 @@ var _current_technique_data: CyclingTechniqueData = null
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	_resources_tab_button.pressed.connect(_on_resources_tab_pressed)
-	_techniques_tab_button.pressed.connect(_on_techniques_tab_pressed)
-	_switch_tab(Tab.RESOURCES)
+	set_tab_title(0, "Resources")
+	set_tab_title(1, "Techniques")
+	tab_alignment = TabBar.ALIGNMENT_CENTER
+	tab_changed.connect(_on_tab_changed)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -47,36 +43,24 @@ func _ready() -> void:
 ## Initialize with technique list data.
 func setup(technique_list: CyclingTechniqueList) -> void:
 	_technique_list = technique_list
+	_populate_technique_list()
 
 ## Update which technique is currently equipped (for highlight state).
 func set_current_technique(data: CyclingTechniqueData) -> void:
 	_current_technique_data = data
 	_update_technique_slot_states()
 
-## Switch to the Resources tab.
+## Switch to the Resources tab (index 0).
 func show_resources_tab() -> void:
-	_switch_tab(Tab.RESOURCES)
+	current_tab = 0
 
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
-func _on_resources_tab_pressed() -> void:
-	_switch_tab(Tab.RESOURCES)
-
-func _on_techniques_tab_pressed() -> void:
-	_switch_tab(Tab.TECHNIQUES)
-	_populate_technique_list()
-
-func _switch_tab(tab: Tab) -> void:
-	_active_tab = tab
-	_resources_content.visible = (tab == Tab.RESOURCES)
-	_techniques_content.visible = (tab == Tab.TECHNIQUES)
-
-	_resources_tab_button.add_theme_color_override("font_color",
-		ThemeConstants.ACCENT_GOLD if tab == Tab.RESOURCES else ThemeConstants.TEXT_MUTED)
-	_techniques_tab_button.add_theme_color_override("font_color",
-		ThemeConstants.ACCENT_GOLD if tab == Tab.TECHNIQUES else ThemeConstants.TEXT_MUTED)
+func _on_tab_changed(tab_index: int) -> void:
+	if tab_index == 1:
+		_populate_technique_list()
 
 func _populate_technique_list() -> void:
 	if _technique_list == null:

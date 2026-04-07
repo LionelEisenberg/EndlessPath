@@ -1,8 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://b2c0qwss02xti"]
+[gd_scene format=3 uid="uid://b2c0qwss02xti"]
 
 [ext_resource type="Script" uid="uid://bysux6fx02amd" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd" id="1_4xbm7"]
 [ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="2_0rw3m"]
-[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/panel_dark.tres" id="2_rnaqj"]
 [ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="3_hrwnf"]
 [ext_resource type="Shader" uid="uid://cnsig7e5ba7ln" path="res://assets/shaders/core_density_fill.gdshader" id="4_rnaqj"]
 [ext_resource type="Script" uid="uid://chldnyvaer1hp" path="res://scenes/cycling/cycling_resource_panel/progress_shader_rect.gd" id="5_rnaqj"]
@@ -49,7 +48,7 @@ shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
 shader_parameter/contrast = 2.0
 shader_parameter/spin_amount = 1.5
 
-[node name="CyclingResourcePanel" type="MarginContainer"]
+[node name="CyclingResourcePanel" type="MarginContainer" unique_id=1512099162]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -58,33 +57,24 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_4xbm7")
 
-[node name="Panel" type="Panel" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1493224955]
 layout_mode = 2
-theme_override_styles/panel = ExtResource("2_rnaqj")
-
-[node name="MarginContainer" type="MarginContainer" parent="Panel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 30
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 30
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=496031055]
 layout_mode = 2
 
-[node name="MadraSection" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="MadraSection" type="MarginContainer" parent="MarginContainer/VBoxContainer" unique_id=2007040565]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/MadraSection"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MadraSection" unique_id=88258542]
 layout_mode = 2
 
-[node name="MadraCircle" type="TextureRect" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
+[node name="MadraCircle" type="TextureRect" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer" unique_id=408540695]
 unique_name_in_owner = true
 material = SubResource("ShaderMaterial_rnaqj")
 layout_mode = 2
@@ -93,12 +83,12 @@ size_flags_vertical = 4
 texture = ExtResource("3_hrwnf")
 script = ExtResource("5_rnaqj")
 
-[node name="MadraStats" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer"]
+[node name="MadraStats" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer" unique_id=118865049]
 layout_mode = 2
 size_flags_horizontal = 2
 size_flags_vertical = 4
 
-[node name="MadraAmountLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer/MadraStats"]
+[node name="MadraAmountLabel" type="Label" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer/MadraStats" unique_id=1103523412]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
@@ -107,7 +97,7 @@ text = "Madra: 1000/1200
 "
 vertical_alignment = 1
 
-[node name="MadraGenerationRateLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MadraSection/HBoxContainer/MadraStats"]
+[node name="MadraGenerationRateLabel" type="Label" parent="MarginContainer/VBoxContainer/MadraSection/HBoxContainer/MadraStats" unique_id=1342130383]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
@@ -115,14 +105,17 @@ theme_override_font_sizes/font_size = 28
 text = "MadraRateLabel +2.5/s"
 vertical_alignment = 1
 
-[node name="CoreDensitySection" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=625435676]
+layout_mode = 2
+
+[node name="CoreDensitySection" type="MarginContainer" parent="MarginContainer/VBoxContainer" unique_id=962850697]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/CoreDensitySection" unique_id=1813285109]
 layout_mode = 2
 
-[node name="CoreDensityRect" type="TextureRect" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer"]
+[node name="CoreDensityRect" type="TextureRect" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer" unique_id=1984139905]
 unique_name_in_owner = true
 material = SubResource("ShaderMaterial_0rw3m")
 layout_mode = 2
@@ -131,39 +124,32 @@ size_flags_vertical = 4
 texture = ExtResource("3_hrwnf")
 script = ExtResource("5_rnaqj")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer" unique_id=376041712]
 layout_mode = 2
 size_flags_horizontal = 2
 size_flags_vertical = 4
 
-[node name="CoreDensityLevelLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+[node name="CoreDensityLevelLabel" type="Label" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer" unique_id=1792601841]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
 text = "Level: 14"
 vertical_alignment = 1
 
-[node name="CoreDensityXPProgressBar" type="ProgressBar" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+[node name="CoreDensityXPProgressBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer" unique_id=1234048941]
 unique_name_in_owner = true
 layout_mode = 2
 value = 60.0
 rounded = true
 
-[node name="CoreDensityXPLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer"]
+[node name="CoreDensityXPLabel" type="Label" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer" unique_id=80615653]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
 text = "XP: 60 / 100"
 vertical_alignment = 1
 
-[node name="StageSection" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="HBoxContainer" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer/StageSection"]
-layout_mode = 2
-
-[node name="CultivationStageLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/StageSection/HBoxContainer"]
+[node name="StageLabel" type="Label" parent="MarginContainer/VBoxContainer/CoreDensitySection/HBoxContainer/VBoxContainer" unique_id=1582892212]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 6
@@ -172,22 +158,17 @@ text = "Madra: 1000/1200
 "
 vertical_alignment = 1
 
-[node name="NextCultivationStageLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/StageSection/HBoxContainer"]
-unique_name_in_owner = true
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=1733984289]
 layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 0
-text = "MadraRateLabel +2.5/s"
-vertical_alignment = 1
 
-[node name="TechniqueSection" type="MarginContainer" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="TechniqueSummarySection" type="MarginContainer" parent="MarginContainer/VBoxContainer" unique_id=873844915]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/TechniqueSection"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TechniqueSummarySection" unique_id=1297391316]
 layout_mode = 2
 
-[node name="TechniqueNameLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
+[node name="TechniqueNameLabel" type="Label" parent="MarginContainer/VBoxContainer/TechniqueSummarySection/VBoxContainer" unique_id=1964077911]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -195,7 +176,7 @@ text = "XP: 60 / 100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TechniqueStatsLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
+[node name="TechniqueStatsLabel" type="Label" parent="MarginContainer/VBoxContainer/TechniqueSummarySection/VBoxContainer" unique_id=1013036559]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -203,11 +184,3 @@ text = "Madra: 1000/1200
 "
 horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="OpenTechniqueSelectorButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/TechniqueSection/VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 6
-text = "Change Technique
-"

@@ -60,7 +60,7 @@ func _update_display() -> void:
 
 	_name_label.text = technique_data.technique_name
 	var zones_count: int = technique_data.cycling_zones.size()
-	_stats_label.text = "%g/cycle  %gs  %d zones" % [
+	_stats_label.text = "%.0f/cycle  %.0fs  %d zones" % [
 		technique_data.base_madra_per_cycle,
 		technique_data.cycle_duration,
 		zones_count

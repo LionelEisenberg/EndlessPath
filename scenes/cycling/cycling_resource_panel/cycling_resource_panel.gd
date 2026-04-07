@@ -1,5 +1,5 @@
 class_name CyclingResourcePanel
-extends VBoxContainer
+extends MarginContainer
 
 ## CyclingResourcePanel
 ## Compact resource display for the cycling view's Resources tab.
@@ -15,14 +15,14 @@ const MAX_CORE_DENSITY_LEVEL: float = 100.0
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var _madra_circle: TextureRect = %MadraCircle
+@onready var _madra_circle: ProgressShaderRect = %MadraCircle
 @onready var _madra_amount_label: Label = %MadraAmountLabel
-@onready var _madra_rate_label: Label = %MadraRateLabel
+@onready var _madra_rate_label: Label = %MadraGenerationRateLabel
 
-@onready var _core_density_circle: TextureRect = %CoreDensityRect
+@onready var _core_density_circle: ProgressShaderRect = %CoreDensityRect
 @onready var _core_density_level_label: Label = %CoreDensityLevelLabel
 @onready var _core_density_xp_label: Label = %CoreDensityXPLabel
-@onready var _core_density_xp_bar: ProgressBar = %CoreDensityXPBar
+@onready var _core_density_xp_bar: ProgressBar = %CoreDensityXPProgressBar
 @onready var _stage_label: Label = %StageLabel
 
 @onready var _technique_name_label: Label = %TechniqueNameLabel
@@ -56,7 +56,8 @@ func _ready() -> void:
 ## Set the active technique and update the summary display.
 func set_technique_data(data: CyclingTechniqueData) -> void:
 	_current_technique = data
-	_update_technique_display()
+	if is_node_ready():
+		_update_technique_display()
 
 ## Called when a cycle starts.
 func on_cycling_started() -> void:
@@ -99,9 +100,9 @@ func _update_madra_display() -> void:
 	var max_madra: float = stage_res.get_max_madra(level) if stage_res else 0.0
 	_madra_amount_label.text = "Madra: %d / %d" % [current, max_madra]
 
-	if _madra_circle and _madra_circle.material:
+	if _madra_circle:
 		var progress: float = current / max_madra if max_madra > 0 else 0.0
-		_madra_circle.material.set_shader_parameter("progress", progress)
+		_madra_circle.set_value(progress)
 
 func _update_madra_rate_display() -> void:
 	if _is_cycling:
@@ -125,9 +126,9 @@ func _update_core_density_display() -> void:
 	var xp_ratio: float = xp / max_xp if max_xp > 0 else 0.0
 	_core_density_xp_bar.value = xp_ratio * 100.0
 
-	if _core_density_circle and _core_density_circle.material:
+	if _core_density_circle:
 		var density_progress: float = level / MAX_CORE_DENSITY_LEVEL
-		_core_density_circle.material.set_shader_parameter("progress", density_progress)
+		_core_density_circle.set_value(density_progress)
 
 func _update_stage_display() -> void:
 	if not CultivationManager:
@@ -136,13 +137,15 @@ func _update_stage_display() -> void:
 	_stage_label.text = "Stage: %s" % stage_name
 
 func _update_technique_display() -> void:
+	if not is_node_ready():
+		return
 	if _current_technique == null:
 		_technique_name_label.text = "No Technique"
 		_technique_stats_label.text = ""
 		return
 	_technique_name_label.text = _current_technique.technique_name
 	var zones_count: int = _current_technique.cycling_zones.size()
-	_technique_stats_label.text = "%g Madra/cycle  %gs  %d zones" % [
+	_technique_stats_label.text = "%.0f Madra/cycle  %.0fs  %d zones" % [
 		_current_technique.base_madra_per_cycle,
 		_current_technique.cycle_duration,
 		zones_count
