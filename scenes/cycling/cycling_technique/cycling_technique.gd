@@ -12,19 +12,23 @@ const TIMING_GOOD_THRESHOLD = 0.7
 # Path rendering
 const MIN_PATH_POINTS = 50
 const PATH_POINT_SPACING = 10
-const PATH_LINE_WIDTH = 3.0
-const PATH_LINE_COLOR = Color(0.8, 0.8, 1.0, 0.7)
+const PATH_LINE_WIDTH = 4.0
+const PATH_GLOW_WIDTH = 12.0
+const PATH_LINE_COLOR = Color(0.7, 0.85, 1.0, 0.85)
+const PATH_GLOW_COLOR = Color(0.5, 0.7, 0.9, 0.15)
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
 @onready var core_button: Button = %StartCyclingButton
-@onready var auto_cycle_toggle: TextureButton = %AutoCycleToggle
+@onready var auto_cycle_toggle: Button = %AutoCycleToggle
 @onready var path_2d: Path2D = %CyclingPath2D
 @onready var path_follow_2d: PathFollow2D = %PathFollow2D
 @onready var madra_ball: Area2D = %MadraBall
 @onready var path_line: Line2D = %PathLine
+@onready var _path_glow_line: Line2D = %PathGlowLine
+var _path_pulse_shader: Shader = preload("res://assets/shaders/path_pulse.gdshader")
 
 #-----------------------------------------------------------------------------
 # TWEEN FOR ANIMATION
@@ -125,22 +129,53 @@ func set_technique_data(data: CyclingTechniqueData) -> void:
 func _update_path_line() -> void:
 	if not path_2d.curve or not path_line:
 		return
-		
-	# Clear existing points
-	path_line.clear_points()
-	
+
 	# Sample points along the curve
-	var curve_length = path_2d.curve.get_baked_length()
-	var point_count = max(MIN_PATH_POINTS, int(curve_length / PATH_POINT_SPACING))
-	
+	var curve_length: float = path_2d.curve.get_baked_length()
+	var point_count: int = max(MIN_PATH_POINTS, int(curve_length / PATH_POINT_SPACING))
+	var points: PackedVector2Array = PackedVector2Array()
+
 	for i in range(point_count + 1):
-		var ratio = float(i) / point_count
-		var point = path_2d.curve.sample_baked(ratio * curve_length)
-		path_line.add_point(point)
-	
-	# Set line properties for visual appeal
+		var ratio: float = float(i) / point_count
+		var point: Vector2 = path_2d.curve.sample_baked(ratio * curve_length)
+		points.append(point)
+
+	# Main path line
+	path_line.clear_points()
+	path_line.points = points
 	path_line.width = PATH_LINE_WIDTH
 	path_line.default_color = PATH_LINE_COLOR
+	path_line.antialiased = true
+	path_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	path_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	path_line.joint_mode = Line2D.LINE_JOINT_ROUND
+
+	# Glow line (scene node, behind main line)
+	_path_glow_line.clear_points()
+	_path_glow_line.points = points
+	_path_glow_line.width = PATH_GLOW_WIDTH
+	_path_glow_line.default_color = PATH_GLOW_COLOR
+	_path_glow_line.antialiased = true
+	_path_glow_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_path_glow_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_path_glow_line.joint_mode = Line2D.LINE_JOINT_ROUND
+
+	# Apply pulse shader to both lines
+	if not path_line.material:
+		var mat: ShaderMaterial = ShaderMaterial.new()
+		mat.shader = _path_pulse_shader
+		mat.set_shader_parameter("pulse_speed", 1.5)
+		mat.set_shader_parameter("pulse_min", 0.65)
+		mat.set_shader_parameter("pulse_max", 1.0)
+		path_line.material = mat
+
+	if not _path_glow_line.material:
+		var glow_mat: ShaderMaterial = ShaderMaterial.new()
+		glow_mat.shader = _path_pulse_shader
+		glow_mat.set_shader_parameter("pulse_speed", 1.2)
+		glow_mat.set_shader_parameter("pulse_min", 0.4)
+		glow_mat.set_shader_parameter("pulse_max", 1.0)
+		_path_glow_line.material = glow_mat
 
 ## Create cycling zones using the CyclingZone scene based on technique data.
 func _create_cycling_zones() -> void:
