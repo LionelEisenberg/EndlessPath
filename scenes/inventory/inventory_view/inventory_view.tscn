@@ -408,7 +408,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-size_flags_stretch_ratio = 0.55
+size_flags_stretch_ratio = 0.45
 theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
 text = "[color=gray]Description...[/color]"
