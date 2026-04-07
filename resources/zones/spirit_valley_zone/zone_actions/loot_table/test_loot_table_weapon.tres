@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bbayqmvvc4hvt" path="res://scripts/resource_definitions/loot/loot_table_entries.gd" id="1_eeccx"]
 [ext_resource type="Resource" uid="uid://bwpoorfeekkiu" path="res://resources/items/test_items/dagger.tres" id="2_3u6fg"]
 [ext_resource type="Script" uid="uid://b0055qxx6pmno" path="res://scripts/resource_definitions/loot/loot_table.gd" id="4_0phud"]
-[ext_resource type="Resource" path="res://resources/items/test_items/sword.tres" id="5_sword"]
+[ext_resource type="Resource" uid="uid://cehsoutejuih0" path="res://resources/items/test_items/sword.tres" id="5_sword"]
 
 [sub_resource type="Resource" id="Resource_tg7os"]
 script = ExtResource("1_eeccx")

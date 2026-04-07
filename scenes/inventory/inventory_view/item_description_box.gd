@@ -10,9 +10,11 @@ extends TextureRect
 func setup(item_instance_data: ItemInstanceData) -> void:
 	item_icon.texture = item_instance_data.item_definition.icon
 	item_name.text = item_instance_data.item_definition.item_name
-	var type = item_instance_data.item_definition._get_item_type()
+	var type: String = item_instance_data.item_definition._get_item_type()
 	if item_instance_data.item_definition is EquipmentDefinitionData:
-		type = "%s - %s" % [type, (item_instance_data.item_definition as EquipmentDefinitionData)._get_equipment_type()]
+		var equip: EquipmentDefinitionData = item_instance_data.item_definition as EquipmentDefinitionData
+		var slot_name: String = EquipmentDefinitionData.EquipmentSlot.keys()[equip.slot_type].replace("_", " ").capitalize()
+		type = "%s - %s" % [type, slot_name]
 	item_type.text = "[%s]" % type
 	description_label.text = item_instance_data.item_definition.description
 	effects_label.text = "\n".join(item_instance_data.item_definition._get_item_effects())

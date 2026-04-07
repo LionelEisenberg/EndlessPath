@@ -14,7 +14,7 @@ extends Control
 var dragged_item: Control = null
 var original_slot: InventorySlot = null
 var is_dragging: bool = false
-const POSITION_OFFSET = Vector2(0, 0)
+const POSITION_OFFSET = Vector2(0, -15)
 const SELECTOR_OFFSET = Vector2(28, 28)
 
 #-----------------------------------------------------------------------------
@@ -48,14 +48,19 @@ func _input(event):
 func _on_slot_input(slot: InventorySlot, event: InputEvent) -> void:
 	if event is InputEventMouseMotion or (event is InputEventMouseButton and event.pressed):
 		_update_selector(slot)
-		if slot.item_instance:
-			item_description_box.setup(slot.item_instance.item_instance_data)
-		else:
-			item_description_box.reset()
+		if not is_dragging:
+			if slot.item_instance:
+				item_description_box.setup(slot.item_instance.item_instance_data)
+			else:
+				item_description_box.reset()
 	
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if not is_dragging and slot.item_instance != null:
 			_pick_up_item(slot, event.global_position)
+
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		if not is_dragging and slot.item_instance != null:
+			_quick_equip(slot)
 
 func _update_selector(slot: InventorySlot) -> void:
 	selector_sprite.global_position = slot.global_position + SELECTOR_OFFSET
@@ -69,10 +74,14 @@ func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 	var item = slot.grab_item()
 	if item:
 		dragged_item = item
-		
+
 		is_dragging = true
 		original_slot = slot
-		
+
+		# Show tooltip for the item being dragged
+		if dragged_item.item_instance_data:
+			item_description_box.setup(dragged_item.item_instance_data)
+
 		add_child(dragged_item)
 		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
 		dragged_item.scale = Vector2(1.0, 1.0)
@@ -128,6 +137,29 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 		_return_to_original()
 	
 	_cleanup_drag()
+
+#-----------------------------------------------------------------------------
+# QUICK EQUIP (Right-Click)
+#-----------------------------------------------------------------------------
+
+## Right-click to equip from grid, or unequip from gear slot.
+func _quick_equip(slot: InventorySlot) -> void:
+	var item_data: ItemInstanceData = slot.item_instance.item_instance_data
+	if not item_data.item_definition is EquipmentDefinitionData:
+		return
+
+	if slot is GearSlot:
+		# Right-click on gear slot → unequip to grid
+		InventoryManager.unequip_item(slot.slot_type)
+	else:
+		# Right-click on grid slot → equip to matching gear slot
+		var equip_def: EquipmentDefinitionData = item_data.item_definition as EquipmentDefinitionData
+		var from_index: int = slot.get_index()
+		InventoryManager.equip_item(item_data, equip_def.slot_type, from_index)
+
+#-----------------------------------------------------------------------------
+# DRAG HELPERS
+#-----------------------------------------------------------------------------
 
 func _return_to_original() -> void:
 	original_slot.equip_item(dragged_item)
