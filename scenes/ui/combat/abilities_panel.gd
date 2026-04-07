@@ -1,5 +1,5 @@
 class_name AbilitiesPanel
-extends Panel
+extends PanelContainer
 
 #-----------------------------------------------------------------------------
 # NODES

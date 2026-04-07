@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://c1pbcdgvnut8p"]
 
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="1_hl72m"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/panel_tan.tres" id="1_hl72m"]
 [ext_resource type="Script" uid="uid://6mef0wdu2bp7" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.gd" id="2_jqnp7"]
 [ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="3_708fp"]
 [ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="4_tkkoj"]
@@ -8,6 +8,7 @@
 [ext_resource type="Shader" uid="uid://cnsig7e5ba7ln" path="res://assets/shaders/core_density_fill.gdshader" id="6_7q158"]
 [ext_resource type="PackedScene" uid="uid://d0eha7yo0rjne" path="res://scenes/zones/zone_resource_panel/system_menu/system_menu_button.tscn" id="7_82sv8"]
 [ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/ui_images/resources/gold_icon.png" id="7_jqnp7"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="9_708fp"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_o03u6"]
 shader = ExtResource("3_708fp")
@@ -147,3 +148,4 @@ columns = 3
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_vertical = 4
+theme = ExtResource("9_708fp")

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cokwu41te4kd" path="res://scenes/cycling/cycling_technique_selector/cycling_technique_selector.gd" id="1_a084a"]
 [ext_resource type="PackedScene" uid="uid://drh25t5yg05ve" path="res://scenes/cycling/cycling_technique_selector/cycling_technique_slot.tscn" id="2_u6qub"]
-[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/border_2_panel_texture.tres" id="2_wpkg3"]
+[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/panel_dark.tres" id="2_wpkg3"]
 [ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="3_u6qub"]
 [ext_resource type="Script" uid="uid://c1wuf3htdmryc" path="res://scenes/cycling/cycling_technique_selector/info_panel.gd" id="3_vwpen"]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://beucojyars7pa"
-path="res://.godot/imported/border_2_panel_texture.png-210ecf16f1cd5fb8d357a23f06d67b29.ctex"
+uid="uid://bs23ehmpvprmi"
+path="res://.godot/imported/panel_tan_texture.png-36885bf54fee08773e67e7fedd3059fd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/styleboxes/border_2_panel_texture.png"
-dest_files=["res://.godot/imported/border_2_panel_texture.png-210ecf16f1cd5fb8d357a23f06d67b29.ctex"]
+source_file="res://assets/styleboxes/panel_tan_texture.png"
+dest_files=["res://.godot/imported/panel_tan_texture.png-36885bf54fee08773e67e7fedd3059fd.ctex"]
 
 [params]
 

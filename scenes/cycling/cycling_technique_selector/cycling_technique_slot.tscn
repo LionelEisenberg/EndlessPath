@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="1_hvhij"]
 [ext_resource type="Script" uid="uid://behnplj43lkoe" path="res://scenes/cycling/cycling_technique_selector/cycling_technique_slot.gd" id="1_rvmc6"]
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="2_jj5l6"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/panel_tan.tres" id="2_jj5l6"]
 
 [node name="CyclingTechniqueSlot" type="Control"]
 layout_mode = 3
