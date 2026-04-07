@@ -1,11 +1,10 @@
-[gd_resource type="Resource" script_class="EquipmentDefinitionData" load_steps=3 format=3 uid="uid://cehsoutejuih0"]
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3 uid="uid://cehsoutejuih0"]
 
 [ext_resource type="Texture2D" uid="uid://irvbdl0pat88" path="res://assets/asperite/inventory/sword_icon.png" id="1_sword"]
 [ext_resource type="Script" uid="uid://crbclsuiby2yn" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_m84n8"]
 
 [resource]
 script = ExtResource("2_m84n8")
-slot_type = 0
 attribute_bonuses = {
 0: 6.0,
 2: 2.0

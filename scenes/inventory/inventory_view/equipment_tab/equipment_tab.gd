@@ -14,7 +14,7 @@ extends Control
 var dragged_item: Control = null
 var original_slot: InventorySlot = null
 var is_dragging: bool = false
-const POSITION_OFFSET = Vector2(0, 0)
+const POSITION_OFFSET = Vector2(0, -15)
 const SELECTOR_OFFSET = Vector2(28, 28)
 
 #-----------------------------------------------------------------------------

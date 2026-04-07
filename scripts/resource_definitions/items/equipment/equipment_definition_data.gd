@@ -40,15 +40,14 @@ func _init() -> void:
 
 func _get_item_effects() -> Array[String]:
 	var effects: Array[String] = []
-	effects.append("Slot: %s" % EquipmentSlot.keys()[slot_type].replace("_", " ").capitalize())
 
 	for attr_type: int in attribute_bonuses:
 		var value: float = attribute_bonuses[attr_type]
 		var attr_name: String = CharacterAttributesData.AttributeType.keys()[attr_type].capitalize()
 		var value_text: String = str(int(value)) if is_equal_approx(value, roundf(value)) else str(value)
 		if value > 0:
-			effects.append("[color=green]+%s %s[/color]" % [value_text, attr_name])
+			effects.append("[color=#a89070]+%s %s[/color]" % [value_text, attr_name])
 		elif value < 0:
-			effects.append("[color=red]%s %s[/color]" % [value_text, attr_name])
+			effects.append("[color=#a89070]%s %s[/color]" % [value_text, attr_name])
 
 	return effects

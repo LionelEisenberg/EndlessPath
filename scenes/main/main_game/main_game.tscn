@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://dyrsbe5x01lgo"]
+[gd_scene format=3 uid="uid://dyrsbe5x01lgo"]
 
 [ext_resource type="Script" uid="uid://nfsup0uuf65l" path="res://scenes/main/main_game/main_game.gd" id="1_2bvax"]
 [ext_resource type="Script" uid="uid://bgb1l61v1xrxr" path="res://scenes/ui/main_view/main_view.gd" id="2_11so6"]
@@ -66,11 +66,11 @@ shader_parameter/spin_amount = 1.5
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_up6bt"]
 bg_color = Color(0.1764706, 0.21568628, 0.21568628, 0.5568628)
 
-[node name="MainGame" type="Node2D"]
+[node name="MainGame" type="Node2D" unique_id=495119710]
 script = ExtResource("1_2bvax")
 log_print_level = 0
 
-[node name="MainView" type="Control" parent="."]
+[node name="MainView" type="Control" parent="." unique_id=1948228570]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -82,7 +82,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_11so6")
 
-[node name="LogWindow" parent="MainView" instance=ExtResource("3_wyoa6")]
+[node name="LogWindow" parent="MainView" unique_id=1053696094 instance=ExtResource("3_wyoa6")]
 unique_name_in_owner = true
 z_index = 1
 layout_mode = 1
@@ -91,23 +91,23 @@ offset_top = 780.0
 offset_right = -522.0
 offset_bottom = -84.0
 
-[node name="MainViewStateMachine" type="Node" parent="MainView"]
+[node name="MainViewStateMachine" type="Node" parent="MainView" unique_id=1560757974]
 unique_name_in_owner = true
 
-[node name="AdventureViewState" type="Node" parent="MainView/MainViewStateMachine"]
+[node name="AdventureViewState" type="Node" parent="MainView/MainViewStateMachine" unique_id=841267933]
 script = ExtResource("3_0cw1e")
 
-[node name="InventoryViewState" type="Node" parent="MainView/MainViewStateMachine"]
+[node name="InventoryViewState" type="Node" parent="MainView/MainViewStateMachine" unique_id=419293177]
 script = ExtResource("5_a5o3s")
 
-[node name="ZoneViewState" type="Node" parent="MainView/MainViewStateMachine"]
+[node name="ZoneViewState" type="Node" parent="MainView/MainViewStateMachine" unique_id=730237477]
 script = ExtResource("6_cp3p8")
 metadata/_custom_type_script = "uid://c6cvq5n61a2sw"
 
-[node name="CyclingViewState" type="Node" parent="MainView/MainViewStateMachine"]
+[node name="CyclingViewState" type="Node" parent="MainView/MainViewStateMachine" unique_id=132422142]
 script = ExtResource("4_wyoa6")
 
-[node name="ZoneView" type="Control" parent="MainView"]
+[node name="ZoneView" type="Control" parent="MainView" unique_id=489769471]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -116,27 +116,27 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/ZoneView"]
+[node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/ZoneView" unique_id=2054059549]
 z_index = -1
 position = Vector2(963.49994, 555.49994)
 scale = Vector2(0.7769531, 0.7951389)
 texture = ExtResource("3_yssfv")
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/ZoneView"]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/ZoneView" unique_id=1838564014]
 clip_contents = true
 layout_mode = 0
 offset_right = 1382.0
 offset_bottom = 1080.0
 
-[node name="SubViewport" type="SubViewport" parent="MainView/ZoneView/SubViewportContainer"]
+[node name="SubViewport" type="SubViewport" parent="MainView/ZoneView/SubViewportContainer" unique_id=1166320537]
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1382, 1080)
 render_target_update_mode = 4
 
-[node name="ZoneTilemap" parent="MainView/ZoneView/SubViewportContainer/SubViewport" instance=ExtResource("3_1i3v0")]
+[node name="ZoneTilemap" parent="MainView/ZoneView/SubViewportContainer/SubViewport" unique_id=903827960 instance=ExtResource("3_1i3v0")]
 
-[node name="ZoneInfoPanel" parent="MainView/ZoneView" instance=ExtResource("4_tvvcy")]
+[node name="ZoneInfoPanel" parent="MainView/ZoneView" unique_id=1819263091 instance=ExtResource("4_tvvcy")]
 custom_minimum_size = Vector2(200, 80)
 layout_mode = 1
 anchors_preset = 6
@@ -150,7 +150,7 @@ offset_bottom = 540.0
 grow_horizontal = 0
 size_flags_vertical = 3
 
-[node name="ZoneResourcePanel" type="PanelContainer" parent="MainView/ZoneView"]
+[node name="ZoneResourcePanel" type="PanelContainer" parent="MainView/ZoneView" unique_id=349284910]
 custom_minimum_size = Vector2(650, 240)
 layout_mode = 0
 offset_left = 50.0
@@ -160,16 +160,16 @@ offset_bottom = 1003.0
 theme_override_styles/panel = ExtResource("11_wyoa6")
 script = ExtResource("12_xq0xm")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel" unique_id=2115401156]
 layout_mode = 2
 alignment = 1
 
-[node name="MadraVbox" type="VBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer"]
+[node name="MadraVbox" type="VBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer" unique_id=2112591155]
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
 
-[node name="MadraCircle" type="TextureRect" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/MadraVbox"]
+[node name="MadraCircle" type="TextureRect" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/MadraVbox" unique_id=2014187043]
 unique_name_in_owner = true
 material = SubResource("ShaderMaterial_o03u6")
 layout_mode = 2
@@ -178,20 +178,20 @@ size_flags_vertical = 4
 texture = ExtResource("13_xq0xm")
 script = ExtResource("14_ohlfh")
 
-[node name="MadraLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/MadraVbox"]
+[node name="MadraLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/MadraVbox" unique_id=1189880297]
 unique_name_in_owner = true
 layout_mode = 2
 text = "120 / 200"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="VBoxContainer2" type="VBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer"]
+[node name="VBoxContainer2" type="VBoxContainer" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer" unique_id=204135441]
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
 alignment = 1
 
-[node name="CoreDensityRect" type="TextureRect" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/VBoxContainer2"]
+[node name="CoreDensityRect" type="TextureRect" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/VBoxContainer2" unique_id=605879925]
 unique_name_in_owner = true
 material = SubResource("ShaderMaterial_dntb2")
 layout_mode = 2
@@ -200,27 +200,27 @@ size_flags_vertical = 4
 texture = ExtResource("13_xq0xm")
 script = ExtResource("14_ohlfh")
 
-[node name="CoreDensityLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/VBoxContainer2"]
+[node name="CoreDensityLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer/VBoxContainer2" unique_id=958158039]
 unique_name_in_owner = true
 layout_mode = 2
 text = "lvl: 54"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="GoldLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer"]
+[node name="GoldLabel" type="Label" parent="MainView/ZoneView/ZoneResourcePanel/HBoxContainer" unique_id=1054204614]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 6
 text = "Gold: 85g"
 
-[node name="AdventureView" parent="MainView" instance=ExtResource("7_up6bt")]
+[node name="AdventureView" parent="MainView" unique_id=1872924392 instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
 offset_top = 1.0
 offset_bottom = 1.0
 
-[node name="GreyBackground" type="Panel" parent="MainView"]
+[node name="GreyBackground" type="Panel" parent="MainView" unique_id=69316647]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -231,19 +231,19 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_up6bt")
 
-[node name="InventoryView" parent="MainView" instance=ExtResource("3_k2uxu")]
+[node name="InventoryView" parent="MainView" unique_id=1998483629 instance=ExtResource("3_k2uxu")]
 unique_name_in_owner = true
 visible = false
 z_index = 3
 layout_mode = 1
 
-[node name="CyclingView" parent="MainView" instance=ExtResource("3_7ijcf")]
+[node name="CyclingView" parent="MainView" unique_id=2090176626 instance=ExtResource("3_7ijcf")]
 unique_name_in_owner = true
 visible = false
 z_index = 3
 layout_mode = 1
 
-[node name="SaveTimer" type="Timer" parent="."]
+[node name="SaveTimer" type="Timer" parent="." unique_id=155020208]
 wait_time = 5.0
 autostart = true
 script = ExtResource("4_11so6")

@@ -209,7 +209,6 @@ icon_texture = ExtResource("4_0y30f")
 
 [node name="EquipmentTab" type="Control" parent="BookBackground/BookContent" unique_id=191510472]
 unique_name_in_owner = true
-visible = false
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
@@ -343,7 +342,7 @@ layout_mode = 0
 offset_left = 386.0
 offset_top = 257.5
 offset_right = 810.0
-offset_bottom = 508.5
+offset_bottom = 521.5
 scale = Vector2(0.5, 0.5)
 texture = ExtResource("17_00gvd")
 script = ExtResource("17_ycsy7")
@@ -352,9 +351,9 @@ script = ExtResource("17_ycsy7")
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 336.0
-offset_top = 10.0
+offset_top = 16.0
 offset_right = 352.0
-offset_bottom = 26.0
+offset_bottom = 32.0
 scale = Vector2(2.5, 2.5)
 size_flags_horizontal = 8
 size_flags_vertical = 0
@@ -372,9 +371,9 @@ grow_vertical = 2
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/margin_left = 7
+theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 7
-theme_override_constants/margin_right = 7
+theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 7
 
 [node name="VBoxContainer" type="VBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer" unique_id=1588254354]
@@ -385,40 +384,59 @@ theme_override_constants/separation = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 42
 text = "ItemName"
 
 [node name="ItemType" type="Label" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=360924840]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.37791893, 0.37791884, 0.37791875, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 28
 text = "[ItemType - SubitemType]"
 
-[node name="TextureRect" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=132517313]
+[node name="SeparatorRect" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=132517313]
 layout_mode = 2
 texture = ExtResource("18_ycsy7")
 stretch_mode = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=1578196630]
+[node name="VBoxContainer" type="VBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=35790361]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="DescriptionLabel" type="RichTextLabel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=534375849]
+[node name="DescriptionLabel" type="RichTextLabel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer" unique_id=534375849]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.66
-theme_override_font_sizes/normal_font_size = 11
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.55
+theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
 text = "[color=gray]Description...[/color]"
 
-[node name="EffectsLabel" type="RichTextLabel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/HBoxContainer" unique_id=1890824443]
+[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer" unique_id=597734929]
+layout_mode = 2
+
+[node name="Empty" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=157403211]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SeparatorRect" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1175144698]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.25
+texture = ExtResource("18_ycsy7")
+
+[node name="SeparatorRect2" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=549614654]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EffectsLabel" type="RichTextLabel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer" unique_id=1890824443]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 size_flags_stretch_ratio = 0.33
-theme_override_font_sizes/normal_font_size = 12
+theme_override_font_sizes/normal_font_size = 22
 bbcode_enabled = true
 text = "[color=red]Effects[/color]"
 
