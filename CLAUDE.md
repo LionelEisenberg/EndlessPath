@@ -28,7 +28,7 @@ There is no automated test suite yet — testing is manual via the editor.
 ### Tech Stack
 | Component | Details |
 |-----------|---------|
-| Engine | Godot 4.5 (Forward Plus / GL Compatibility) |
+| Engine | Godot 4.6 (Forward Plus / GL Compatibility) |
 | Language | GDScript |
 | Window | 1920x1080 |
 | Entry Scene | `res://scenes/main/main_game/main_game.tscn` |
@@ -64,9 +64,16 @@ These are autoloaded in `project.godot` and provide global state:
 | `Dialogic` | Dialogue/narrative system (addon autoload) |
 
 ### Data-Driven Design
-- Resource classes in `scripts/resource_definitions/` define data structures (e.g., `AbilityData`, `ZoneData`, `ItemData`, `EffectData`)
+- Resource classes in `scripts/resource_definitions/` define data structures (e.g., `AbilityData`, `ZoneData`, `EquipmentDefinitionData`, `EffectData`)
 - Godot `.tres` files in `resources/` instantiate and configure these resources
 - When modifying data structures, update both the `.gd` resource class and any `.tres` files that reference it
+
+### Equipment System
+- Single `EquipmentDefinitionData` class (no subclasses) with `attribute_bonuses: Dictionary` (AttributeType → float)
+- 6 equipment slots: `MAIN_HAND`, `OFF_HAND`, `HEAD`, `ARMOR`, `ACCESSORY_1`, `ACCESSORY_2`
+- `CharacterManager._get_attribute_bonuses()` → `_get_equipment_bonuses()` sums equipped gear bonuses
+- Bonuses flow through `get_total_attributes_data()` into combat, vitals, and all downstream systems
+- Right-click to quick equip/unequip; tooltip persists during drag
 
 ### View Architecture
 `MainView` (class) manages view states via a `MainViewStateMachine` child node:
@@ -74,6 +81,8 @@ These are autoloaded in `project.godot` and provide global state:
 - `CyclingViewState` — Cycling mini-game
 - `InventoryViewState` — Equipment/materials
 - `AdventureViewState` — Combat exploration
+
+Views are switched via input actions (e.g., `open_inventory`) handled by the current state. The `SystemMenu` in the `ZoneResourcePanel` provides nav buttons that fire these same input actions via `Input.parse_input_event()`. `SystemMenuButton` uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown.
 
 ### Game Systems
 1. **Cycling** — Mouse-following path + rhythm-clicking on a body diagram (Madra generation)

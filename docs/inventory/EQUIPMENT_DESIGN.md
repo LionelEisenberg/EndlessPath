@@ -178,14 +178,17 @@ The `_get_item_effects()` method on EquipmentDefinitionData generates the stat l
 
 ## Implementation Plan
 
-### Phase 1: Wire Equipment to Combat (this PR)
-1. Update `EquipmentSlot` enum to the new 6 slots
-2. Add `attribute_bonuses: Dictionary` to `EquipmentDefinitionData`
-3. Remove `WeaponDefinitionData` and `ArmorDefinitionData` subclasses
-4. Implement `CharacterManager._get_attribute_bonuses()` to sum equipped gear bonuses
-5. Update the existing Dagger `.tres` to use the new format
-6. Update `GearSlot` scene references for the new slot set
-7. Update `_get_item_effects()` to display attribute bonus lines
+### Phase 1: Wire Equipment to Combat (DONE — PR #9)
+1. ~~Update `EquipmentSlot` enum to the new 6 slots~~
+2. ~~Add `attribute_bonuses: Dictionary` to `EquipmentDefinitionData`~~
+3. ~~Remove `WeaponDefinitionData` and `ArmorDefinitionData` subclasses~~
+4. ~~Implement `CharacterManager._get_attribute_bonuses()` to sum equipped gear bonuses~~
+5. ~~Update the existing Dagger/Sword `.tres` to use the new format~~
+6. ~~Update `GearSlot` scene references for the new slot set~~
+7. ~~Update `_get_item_effects()` to display attribute bonus lines~~
+8. ~~Add GearSelector slot coverage validation~~
+9. ~~Add right-click quick equip/unequip~~
+10. ~~Add tooltip persistence during drag~~
 
 ### Phase 2: Content (separate PR)
 - Author Foundation-tier items for each slot
@@ -201,18 +204,13 @@ The `_get_item_effects()` method on EquipmentDefinitionData generates the stat l
 
 ## Migration Notes
 
-### .tres Files to Update
-- `resources/items/test_items/dagger.tres` — convert from WeaponDefinitionData to EquipmentDefinitionData with attribute_bonuses (attack_power: 10 → STRENGTH: ~3, AGILITY: ~1)
-- `resources/items/test_items/dagger_instance.tres` — ItemInstanceData wrapper, update script reference if needed
-- `resources/items/test_items/sword.tres` — convert from WeaponDefinitionData to EquipmentDefinitionData (attack_power: 25 → STRENGTH: ~6, AGILITY: ~2)
+### .tres Files (MIGRATED)
+- `dagger.tres` — STRENGTH +3, AGILITY +1 (was attack_power: 10)
+- `sword.tres` — STRENGTH +6, AGILITY +2 (was attack_power: 25)
+- `dagger_instance.tres` — no changes needed (UID reference resolved)
 
-### GearSelector Scene
-- Currently has 8 GearSlot nodes — reduce to 6 and update slot_type exports
-
-### InventoryManager
-- `equip_item` / `unequip_item` — no changes needed (they operate on EquipmentSlot enum, which is being updated)
-- Validate that the slot enum change doesn't break save data (equipped_gear dictionary keys)
+### GearSelector Scene (DONE)
+- Reduced to 6 GearSlot nodes with slot coverage validation on startup
 
 ### Save Data Compatibility
-- Existing saves with items in CHEST/LEGS/FEET slots will lose those items on migration
-- Since `reset_save_data = true` is still the default, this is acceptable for now
+- Old saves with CHEST/LEGS/FEET slots were cleared via `reset_save_data = true`
