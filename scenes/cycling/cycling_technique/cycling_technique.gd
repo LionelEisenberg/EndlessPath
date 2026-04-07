@@ -12,10 +12,10 @@ const TIMING_GOOD_THRESHOLD = 0.7
 # Path rendering
 const MIN_PATH_POINTS = 50
 const PATH_POINT_SPACING = 10
-const PATH_LINE_WIDTH = 4.0
-const PATH_GLOW_WIDTH = 12.0
-const PATH_LINE_COLOR = Color(0.7, 0.85, 1.0, 0.85)
-const PATH_GLOW_COLOR = Color(0.5, 0.7, 0.9, 0.15)
+const PATH_LINE_WIDTH = 5.0
+const PATH_GLOW_WIDTH = 20.0
+const PATH_LINE_COLOR = Color(0.75, 0.88, 1.0, 0.9)
+const PATH_GLOW_COLOR = Color(0.5, 0.72, 0.95, 0.3)
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -460,12 +460,13 @@ func _highlight_zone(zone: CyclingZone, highlight: bool) -> void:
 func _flash_zone(zone: CyclingZone, color: Color) -> void:
 	zone.flash_zone(color)
 
-## Spawn a floating text at the specified position.
-func _spawn_floating_text(text: String, color: Color, text_position: Vector2) -> void:
-	var floating_text = floating_text_scene.instantiate() as FloatingText
+## Spawn a floating text at the mouse position.
+func _spawn_floating_text(text: String, color: Color, _text_position: Vector2) -> void:
+	var floating_text: FloatingText = floating_text_scene.instantiate() as FloatingText
 	if floating_text:
-		get_tree().current_scene.add_child(floating_text)
-		floating_text.show_text(text, color, text_position)
+		add_child(floating_text)
+		var mouse_pos: Vector2 = get_global_mouse_position()
+		floating_text.show_text(text, color, mouse_pos)
 
 #-----------------------------------------------------------------------------
 # MADRA GENERATION
