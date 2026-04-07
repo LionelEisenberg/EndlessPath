@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://b0qowk3rd0jft"]
 
-[ext_resource type="StyleBox" uid="uid://d4monhhc8c602" path="res://assets/styleboxes/bamboo_panel.tres" id="1_onfjm"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/panel_popup.tres" id="1_onfjm"]
 [ext_resource type="Script" uid="uid://c2ish7w866jih" path="res://scenes/adventure/adventure_tilemap/encounter_info_panel.gd" id="1_script"]
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_onfjm"]
