@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CombatChoice" load_steps=9 format=3 uid="uid://0dylt1dcrp5d"]
+[gd_resource type="Resource" script_class="CombatChoice" format=3 uid="uid://0dylt1dcrp5d"]
 
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="1_1qsu1"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_7frae"]

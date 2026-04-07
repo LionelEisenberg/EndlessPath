@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b754ofe2jn7wa"
-path="res://.godot/imported/Combat.png-90900278e0ee27b7fe656e51c03d52ad.ctex"
+path="res://.godot/imported/combat.png-d495a7aa37de3434b5452c7cf64e34e6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/asperite/zones/Combat.png"
-dest_files=["res://.godot/imported/Combat.png-90900278e0ee27b7fe656e51c03d52ad.ctex"]
+source_file="res://assets/asperite/zones/combat.png"
+dest_files=["res://.godot/imported/combat.png-d495a7aa37de3434b5452c7cf64e34e6.ctex"]
 
 [params]
 
