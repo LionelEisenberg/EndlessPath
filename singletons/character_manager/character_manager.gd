@@ -174,12 +174,22 @@ func add_base_attribute(attr_type: AttributeType, amount: float) -> void:
 # PRIVATE HELPER FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Calculate total bonuses for an attribute from equipped gear
+## Calculate total bonuses for an attribute from all sources
 func _get_attribute_bonuses(attr_type: AttributeType) -> float:
 	var total_bonus: float = 0.0
 
+	total_bonus += _get_equipment_bonuses(attr_type)
+	# TODO: Add bonuses from active buffs/effects
+	# TODO: Add bonuses from cultivation techniques
+	# TODO: Add bonuses from temporary effects
+
+	return total_bonus
+
+func _get_equipment_bonuses(attr_type: AttributeType) -> float:
+	var bonus: float = 0.0
+
 	if InventoryManager == null or InventoryManager.live_save_data == null:
-		return total_bonus
+		return bonus
 
 	var inventory: InventoryData = InventoryManager.get_inventory()
 	for slot: int in inventory.equipped_gear:
@@ -190,6 +200,6 @@ func _get_attribute_bonuses(attr_type: AttributeType) -> float:
 		if equip_def == null:
 			continue
 		if equip_def.attribute_bonuses.has(attr_type):
-			total_bonus += equip_def.attribute_bonuses[attr_type]
+			bonus += equip_def.attribute_bonuses[attr_type]
 
-	return total_bonus
+	return bonus
