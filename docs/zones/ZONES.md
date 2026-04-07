@@ -196,6 +196,7 @@ No known bugs in the Zone system.
 - `[LOW]` Locked zones show no information — clicking a locked tile should show a tooltip with the zone name and unlock requirements, giving the player goals to work toward
 - `[LOW]` Unused `PanelContainer` in ZoneView (bottom-left, next to log panel) — no script or children, should be repurposed or removed
 - `[LOW]` Zone tilemap viewport may need recentering — currently gets clipped by overlaying UI panels (ZoneInfoPanel, log). Needs evaluation on whether to shift the tilemap view or adjust UI layout
+- `[LOW]` Add tooltip hint to locked Zones.
 
 ### Tech Debt
 
