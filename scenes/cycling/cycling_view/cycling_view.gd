@@ -3,37 +3,54 @@ extends Control
 
 signal current_technique_changed(technique_data: CyclingTechniqueData)
 
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
 @onready var cycling_technique_node: CyclingTechnique = %CyclingTechnique
 @onready var cycling_resource_panel_node: CyclingResourcePanel = %CyclingResourcePanel
-@onready var cycling_technique_selector: PanelContainer = %CyclingTechniqueSelector
+@onready var cycling_tab_panel: CyclingTabPanel = %CyclingTabPanel
+@onready var close_button: Button = %CloseButton
+
+#-----------------------------------------------------------------------------
+# STATE
+#-----------------------------------------------------------------------------
 
 var current_cycling_technique_data: CyclingTechniqueData = null
-
 var technique_list: CyclingTechniqueList = preload("res://resources/cycling/cycling_techniques/cycling_technique_list.tres")
 var foundation_technique: CyclingTechniqueData = technique_list.cycling_techniques[0]
-
 var cycling_action_data: CyclingActionData = null
 
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
 func _ready() -> void:
-	# Connect the signal passively to both subnodes' setter methods using Callable
+	# Technique change propagation
 	current_technique_changed.connect(cycling_technique_node.set_technique_data)
 	current_technique_changed.connect(cycling_resource_panel_node.set_technique_data)
-	
-	# Connect cycling state signals
+	current_technique_changed.connect(cycling_tab_panel.set_current_technique)
+
+	# Cycling state signals
 	cycling_technique_node.cycling_started.connect(cycling_resource_panel_node.on_cycling_started)
 	cycling_technique_node.cycle_completed.connect(cycling_resource_panel_node.on_cycle_completed)
-	
-	cycling_resource_panel_node.open_technique_selector.connect(_on_open_technique_selector)
-	cycling_technique_selector.technique_change_request.connect(_on_technique_change_request)
 
-	# Connect ActionManager signals
+	# Tab panel technique change
+	cycling_tab_panel.technique_change_request.connect(_on_technique_change_request)
+	cycling_tab_panel.setup(technique_list)
+
+	# Close button
+	close_button.pressed.connect(_on_close_button_pressed)
+
+	# ActionManager
 	ActionManager.stop_cycling.connect(_on_stop_cycling)
 
-	# Load saved technique or use default
+	# Load saved technique
 	_load_saved_technique()
 
-func _on_stop_cycling() -> void:
-	cycling_technique_node.stop_cycling()
+#-----------------------------------------------------------------------------
+# PUBLIC FUNCTIONS
+#-----------------------------------------------------------------------------
 
 ## Initializes the view with action data.
 func initialize_cycling_action_data(action_data: CyclingActionData) -> void:
@@ -45,44 +62,43 @@ func set_current_technique(technique_data: CyclingTechniqueData) -> void:
 	current_technique_changed.emit(technique_data)
 	_save_current_technique(technique_data)
 
+#-----------------------------------------------------------------------------
+# PRIVATE FUNCTIONS
+#-----------------------------------------------------------------------------
+
 func _on_technique_change_request(technique_data: CyclingTechniqueData) -> void:
 	set_current_technique(technique_data)
-	cycling_technique_selector.close_selector()
+	cycling_tab_panel.show_resources_tab()
 
-func _on_open_technique_selector() -> void:
-	cycling_technique_selector.open_selector(current_cycling_technique_data)
+func _on_close_button_pressed() -> void:
+	var event: InputEventAction = InputEventAction.new()
+	event.action = &"close_cycling_view"
+	event.pressed = true
+	Input.parse_input_event(event)
 
-## Load the saved technique from SaveGameData by looking up name in technique list.
+func _on_stop_cycling() -> void:
+	cycling_technique_node.stop_cycling()
+
 func _load_saved_technique() -> void:
 	if not PersistenceManager or not PersistenceManager.save_game_data:
-		# Fallback to foundation technique if no save data
 		set_current_technique(foundation_technique)
 		return
-	
+
 	if not technique_list:
-		# No technique list available, use default
 		set_current_technique(foundation_technique)
 		return
-	
-	var saved_name = PersistenceManager.save_game_data.current_cycling_technique_name
-	
-	# Lookup technique by name in the list
+
+	var saved_name: String = PersistenceManager.save_game_data.current_cycling_technique_name
 	var found_technique: CyclingTechniqueData = null
-	for technique in technique_list.cycling_techniques:
+	for technique: CyclingTechniqueData in technique_list.cycling_techniques:
 		if technique.technique_name == saved_name:
 			found_technique = technique
 			break
-	
-	if found_technique:
-		set_current_technique(found_technique)
-	else:
-		# Technique not found in list, use default
-		set_current_technique(foundation_technique)
 
-## Save the current technique name to SaveGameData.
+	set_current_technique(found_technique if found_technique else foundation_technique)
+
 func _save_current_technique(technique_data: CyclingTechniqueData) -> void:
 	if not PersistenceManager or not PersistenceManager.save_game_data:
 		return
-	
 	if technique_data and technique_data.technique_name:
 		PersistenceManager.save_game_data.current_cycling_technique_name = technique_data.technique_name
