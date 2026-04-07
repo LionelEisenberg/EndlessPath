@@ -1,226 +1,149 @@
 class_name CyclingResourcePanel
-extends MarginContainer
+extends VBoxContainer
+
+## CyclingResourcePanel
+## Compact resource display for the cycling view's Resources tab.
+## Shows Madra, Core Density, and active technique summary.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-# UI visual constants
-const MAX_CORE_DENSITY_LEVEL = 100.0
-const COLOR_CYCLING = Color(0.0, 1.0, 0.0) # Green when actively cycling
-const COLOR_IDLE = Color(0.7, 0.7, 0.7) # Gray when idle
-
-#-----------------------------------------------------------------------------
-# SIGNALS
-#-----------------------------------------------------------------------------
-signal open_technique_selector
+const MAX_CORE_DENSITY_LEVEL: float = 100.0
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
-@onready var madra_circle_rect: ProgressShaderRect = %MadraCircle
-@onready var madra_amount_label: Label = %MadraAmountLabel
-@onready var madra_generation_rate_label: Label = %MadraGenerationRateLabel
 
-@onready var core_density_rect: ProgressShaderRect = %CoreDensityRect
-@onready var core_density_level_label: Label = %CoreDensityLevelLabel
-@onready var core_density_xp_progress_bar: ProgressBar = %CoreDensityXPProgressBar
-@onready var core_density_xp_label: Label = %CoreDensityXPLabel
+@onready var _madra_circle: TextureRect = %MadraCircle
+@onready var _madra_amount_label: Label = %MadraAmountLabel
+@onready var _madra_rate_label: Label = %MadraRateLabel
 
-@onready var cultivation_stage_label: Label = %CultivationStageLabel
-@onready var next_cultivation_stage_label: Label = %NextCultivationStageLabel
+@onready var _core_density_circle: TextureRect = %CoreDensityRect
+@onready var _core_density_level_label: Label = %CoreDensityLevelLabel
+@onready var _core_density_xp_label: Label = %CoreDensityXPLabel
+@onready var _core_density_xp_bar: ProgressBar = %CoreDensityXPBar
+@onready var _stage_label: Label = %StageLabel
 
-@onready var technique_name_label: Label = %TechniqueNameLabel
-@onready var technique_stats_label: Label = %TechniqueStatsLabel
-@onready var open_technique_selector_button: Button = %OpenTechniqueSelectorButton
+@onready var _technique_name_label: Label = %TechniqueNameLabel
+@onready var _technique_stats_label: Label = %TechniqueStatsLabel
 
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
-var current_technique_data: CyclingTechniqueData = null
-var is_cycling: bool = false
-var last_madra_per_second: float = 0.0 # Madra per second from last completed cycle
-var last_madra_per_cycle: float = 0.0 # Madra per cycle from last completed cycle
+
+var _current_technique: CyclingTechniqueData = null
+var _is_cycling: bool = false
+var _last_madra_per_second: float = 0.0
+var _last_madra_per_cycle: float = 0.0
 
 #-----------------------------------------------------------------------------
-# INITIALIZATION
+# LIFECYCLE
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	if not ResourceManager:
-		Log.critical("CyclingResourcePanel: ResourceManager is missing!")
-		return
-	if not CultivationManager:
-		Log.critical("CyclingResourcePanel: CultivationManager is missing!")
-		return
-
-	setup_ui()
-	connect_signals()
-	update_all_displays()
-
-## Initialize UI elements with proper styling.
-func setup_ui() -> void:
-	# Setup button
-	open_technique_selector_button.pressed.connect(_on_open_technique_selector)
-
-## Connect to singleton signals for live updates.
-func connect_signals() -> void:
 	if ResourceManager:
 		ResourceManager.madra_changed.connect(_on_madra_changed)
-	
 	if CultivationManager:
-		CultivationManager.core_density_xp_updated.connect(_on_core_density_updated)
-		CultivationManager.advancement_stage_changed.connect(_on_stage_changed)
+		CultivationManager.core_density_xp_updated.connect(_on_core_density_xp_updated)
+		CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
+	_update_all_displays()
 
 #-----------------------------------------------------------------------------
-# PUBLIC API
+# PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Set the current technique data and update display.
-func set_technique_data(technique: CyclingTechniqueData) -> void:
-	current_technique_data = technique
-	update_technique_info()
+## Set the active technique and update the summary display.
+func set_technique_data(data: CyclingTechniqueData) -> void:
+	_current_technique = data
+	_update_technique_display()
 
-## Handle cycling started signal.
+## Called when a cycle starts.
 func on_cycling_started() -> void:
-	is_cycling = true
-	update_madra_rate()
+	_is_cycling = true
+	_update_madra_rate_display()
 
-## Handle cycle completed signal and calculate madra per second.
-func on_cycle_completed(madra_earned: float, _mouse_accuracy: float) -> void:
-	is_cycling = false
-	
-	# Store madra per cycle from last cycle
-	last_madra_per_cycle = madra_earned
-	
-	# Calculate madra per second from last cycle
-	if current_technique_data and current_technique_data.cycle_duration > 0:
-		last_madra_per_second = madra_earned / current_technique_data.cycle_duration
-	else:
-		last_madra_per_second = 0.0
-	
-	update_madra_rate()
+## Called when a cycle completes.
+func on_cycle_completed(madra_earned: float, mouse_accuracy: float) -> void:
+	_last_madra_per_cycle = madra_earned
+	if _current_technique:
+		_last_madra_per_second = madra_earned / _current_technique.cycle_duration
+	_update_madra_rate_display()
 
 #-----------------------------------------------------------------------------
-# UPDATE FUNCTIONS
+# PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Update all display elements.
-func update_all_displays() -> void:
-	update_madra_display()
-	update_core_density()
-	update_stage()
-	update_technique_info()
+func _on_madra_changed(_amount: float) -> void:
+	_update_madra_display()
 
-## Update madra section with current values.
-func update_madra_display() -> void:
-	var current_madra = ResourceManager.get_madra()
-	var level = CultivationManager.get_core_density_level()
-	var stage_res = CultivationManager._get_current_stage_resource()
-	var max_madra = stage_res.get_max_madra(level) if stage_res else 0.0
+func _on_core_density_xp_updated(_xp: float, _level: float) -> void:
+	_update_core_density_display()
 
-	# Update progress bar (0-100%)
-	var progress: float = (current_madra / max_madra) if max_madra > 0.0 else 0.0
-	madra_circle_rect.set_value(progress)
+func _on_advancement_stage_changed(_new_stage) -> void:
+	_update_stage_display()
 
-	# Update labels
-	madra_amount_label.text = "Madra: %d / %d" % [int(current_madra), int(max_madra)]
-	update_madra_rate()
+func _update_all_displays() -> void:
+	_update_madra_display()
+	_update_core_density_display()
+	_update_stage_display()
+	_update_technique_display()
+	_update_madra_rate_display()
 
-## Update madra rate display using last cycle's madra per second and per cycle.
-func update_madra_rate() -> void:
-	var display_text = "+%.1f/s\n%.1f/cycle" % [last_madra_per_second, last_madra_per_cycle]
-	
-	if is_cycling:
-		# Show last cycle's rate while cycling
-		madra_generation_rate_label.text = display_text
-		madra_generation_rate_label.modulate = COLOR_CYCLING
+func _update_madra_display() -> void:
+	if not ResourceManager or not CultivationManager:
+		return
+	var current: float = ResourceManager.get_madra()
+	var level: float = CultivationManager.get_core_density_level()
+	var stage_res: AdvancementStageResource = CultivationManager._get_current_stage_resource()
+	var max_madra: float = stage_res.get_max_madra(level) if stage_res else 0.0
+	_madra_amount_label.text = "Madra: %d / %d" % [current, max_madra]
+
+	if _madra_circle and _madra_circle.material:
+		var progress: float = current / max_madra if max_madra > 0 else 0.0
+		_madra_circle.material.set_shader_parameter("progress", progress)
+
+func _update_madra_rate_display() -> void:
+	if _is_cycling:
+		_madra_rate_label.text = "+%.1f/s  %.1f/cycle" % [_last_madra_per_second, _last_madra_per_cycle]
 	else:
-		# Show last cycle's rate
-		madra_generation_rate_label.text = display_text
-		madra_generation_rate_label.modulate = COLOR_IDLE
+		if _current_technique:
+			_madra_rate_label.text = "%.1f/cycle" % _current_technique.base_madra_per_cycle
+		else:
+			_madra_rate_label.text = ""
 
-## Update core density section with current values.
-func update_core_density() -> void:
+func _update_core_density_display() -> void:
 	if not CultivationManager:
 		return
-	
-	var xp = CultivationManager.get_core_density_xp()
-	var level = CultivationManager.get_core_density_level()
-	var max_xp = CultivationManager.get_xp_for_next_level()
+	var level: float = CultivationManager.get_core_density_level()
+	var xp: float = CultivationManager.get_core_density_xp()
+	var max_xp: float = CultivationManager.get_xp_for_next_level()
 
-	# Update level label
-	core_density_level_label.text = "Level: %d" % int(level)
+	_core_density_level_label.text = "Level: %d" % int(level)
+	_core_density_xp_label.text = "XP: %d / %d" % [xp, max_xp]
 
-	# Update XP progress bar
-	var xp_progress: float = ((xp / max_xp) * 100.0) if max_xp > 0.0 else 0.0
-	core_density_xp_progress_bar.value = xp_progress
-	core_density_xp_label.text = "XP: %d / %d" % [int(xp), int(max_xp)]
+	var xp_ratio: float = xp / max_xp if max_xp > 0 else 0.0
+	_core_density_xp_bar.value = xp_ratio * 100.0
 
-	# Update core sprite scale based on LEVEL (0-100 maps to 0-1.0 scale)
-	core_density_rect.set_value(level / MAX_CORE_DENSITY_LEVEL)
+	if _core_density_circle and _core_density_circle.material:
+		var density_progress: float = level / MAX_CORE_DENSITY_LEVEL
+		_core_density_circle.material.set_shader_parameter("progress", density_progress)
 
-## Update cultivation stage display.
-func update_stage() -> void:
+func _update_stage_display() -> void:
 	if not CultivationManager:
 		return
-	var stage_res = CultivationManager._get_current_stage_resource()
-	if stage_res:
-		cultivation_stage_label.text = "Stage: %s" % stage_res.stage_name
-	else:
-		cultivation_stage_label.text = "Stage: Unknown"
+	var stage_name: String = CultivationManager.get_current_advancement_stage_name()
+	_stage_label.text = "Stage: %s" % stage_name
 
-	# Show next stage name if you have next_stage data available
-	var next_stage_label_text = "(MAX)"
-	if stage_res and stage_res.next_stage:
-		next_stage_label_text = "(Next: %s)" % stage_res.next_stage.stage_name
-	if next_cultivation_stage_label:
-		next_cultivation_stage_label.text = next_stage_label_text
-
-## Update technique information section.
-func update_technique_info() -> void:
-	if not current_technique_data:
-		technique_name_label.text = "Technique: None"
-		technique_stats_label.text = "⚡ Madra: +0.0/s | ⭐ XP: 0/click"
+func _update_technique_display() -> void:
+	if _current_technique == null:
+		_technique_name_label.text = "No Technique"
+		_technique_stats_label.text = ""
 		return
-	technique_name_label.text = "Technique: %s" % current_technique_data.technique_name
-	# Show all stats available in the resource data
-	var msg = "⚡ Madra: %.1f/cycle" % current_technique_data.base_madra_per_cycle
-	technique_stats_label.text = msg
-
-#-----------------------------------------------------------------------------
-# HELPER FUNCTIONS
-#-----------------------------------------------------------------------------
-
-## Get the name of the next cultivation stage.
-func get_next_stage_name() -> String:
-	if not CultivationManager:
-		return "Unknown"
-	
-	var current_stage = CultivationManager.get_current_advancement_stage()
-	var next_stage = current_stage + 1
-	
-	if next_stage >= CultivationManager.AdvancementStage.size():
-		return "MAX"
-	
-	return CultivationManager.get_advancement_stage_name(next_stage)
-
-#-----------------------------------------------------------------------------
-# SIGNAL HANDLERS
-#-----------------------------------------------------------------------------
-
-## Handle madra changes from ResourceManager.
-func _on_madra_changed(_new_amount: float) -> void:
-	update_madra_display()
-
-## Handle core density updates from CultivationManager.
-func _on_core_density_updated(_xp: float, _level: float) -> void:
-	update_core_density()
-
-## Handle cultivation stage changes.
-func _on_stage_changed(_new_stage) -> void:
-	update_stage()
-
-## Handle change technique button press.
-func _on_open_technique_selector() -> void:
-	open_technique_selector.emit()
+	_technique_name_label.text = _current_technique.technique_name
+	var zones_count: int = _current_technique.cycling_zones.size()
+	_technique_stats_label.text = "%g Madra/cycle  %gs  %d zones" % [
+		_current_technique.base_madra_per_cycle,
+		_current_technique.cycle_duration,
+		zones_count
+	]
