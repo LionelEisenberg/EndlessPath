@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=130 format=4 uid="uid://ce3rf0fmqhydd"]
+[gd_resource type="Theme" format=4 uid="uid://ce3rf0fmqhydd"]
 
 [ext_resource type="Texture2D" uid="uid://bap8dnalffjv4" path="res://assets/themes/pixel_ui_theme/8x8_ui_elements_rose.png" id="1_21irx"]
 [ext_resource type="FontFile" uid="uid://sph0kotu777o" path="res://assets/themes/pixel_ui_theme/m5x7.ttf" id="2_r0eid"]
@@ -128,6 +128,15 @@ data = {
 
 [sub_resource type="FontFile" id="37"]
 fixed_size = 16
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
 cache/0/16/0/ascent = 11.0
 cache/0/16/0/descent = 3.0
 cache/0/16/0/underline_position = 0.0
@@ -1433,6 +1442,15 @@ anti_aliasing = false
 
 [sub_resource type="FontFile" id="2"]
 fallbacks = Array[Font]([ExtResource("2_r0eid")])
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
 cache/0/16/0/ascent = 0.0
 cache/0/16/0/descent = 0.0
 cache/0/16/0/underline_position = 0.0
@@ -2044,6 +2062,15 @@ region = Rect2(111, 48, 10, 8)
 
 [sub_resource type="FontFile" id="600"]
 fallbacks = Array[Font]([ExtResource("2_r0eid")])
+cache/0/variation_coordinates = {}
+cache/0/face_index = 0
+cache/0/embolden = 0.0
+cache/0/transform = Transform2D(1, 0, 0, 1, 0, 0)
+cache/0/spacing_top = 0
+cache/0/spacing_bottom = 0
+cache/0/spacing_space = 0
+cache/0/spacing_glyph = 0
+cache/0/baseline_offset = 0.0
 cache/0/16/0/ascent = 0.0
 cache/0/16/0/descent = 0.0
 cache/0/16/0/underline_position = 0.0

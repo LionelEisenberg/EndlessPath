@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://b1rl1n8ceijc8"]
 
 [ext_resource type="Script" uid="uid://dyha47vkmqg5o" path="res://scenes/cycling/cycling_view/cycling_view.gd" id="1_ob5ct"]
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/border_1_panel_texture.tres" id="2_0j2st"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/panel_tan.tres" id="2_0j2st"]
 [ext_resource type="Texture2D" uid="uid://751ki710lw0j" path="res://assets/sprites/cycling/Cycling_Technique_Background.webp" id="2_4q44n"]
 [ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/cycling/cycling_technique/cycling_technique.tscn" id="3_hypg5"]
 [ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]

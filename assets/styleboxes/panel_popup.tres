@@ -1,8 +1,11 @@
-[gd_resource type="StyleBoxFlat" format=3]
+[gd_resource type="StyleBoxFlat" format=3 uid="uid://dscrdcbm4jsw2"]
 
 [resource]
-bg_color = Color(0.12, 0.08, 0.05, 0.96)
-draw_center = true
+content_margin_left = 20.0
+content_margin_top = 20.0
+content_margin_right = 20.0
+content_margin_bottom = 20.0
+bg_color = Color(0.35, 0.27, 0.2, 0.94)
 border_width_left = 5
 border_width_top = 5
 border_width_right = 5
@@ -17,10 +20,6 @@ expand_margin_left = 4.0
 expand_margin_top = 4.0
 expand_margin_right = 4.0
 expand_margin_bottom = 4.0
-shadow_color = Color(0, 0, 0, 0.6)
-shadow_size = 16
-shadow_offset = Vector2(4, 6)
-content_margin_left = 20.0
-content_margin_top = 20.0
-content_margin_right = 20.0
-content_margin_bottom = 20.0
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 10
+shadow_offset = Vector2(3, 4)
