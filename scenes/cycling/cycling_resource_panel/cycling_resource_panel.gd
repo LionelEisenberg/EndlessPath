@@ -59,6 +59,22 @@ func set_technique_data(data: CyclingTechniqueData) -> void:
 	if is_node_ready():
 		_update_technique_display()
 
+## Get the global position of the Madra orb center (for particle targets).
+func get_madra_orb_global_position() -> Vector2:
+	return _madra_circle.global_position + _madra_circle.size * 0.5
+
+## Get the global position of the Core Density orb center (for particle targets).
+func get_core_density_orb_global_position() -> Vector2:
+	return _core_density_circle.global_position + _core_density_circle.size * 0.5
+
+## Brief scale pulse on the Madra orb.
+func pulse_madra_orb() -> void:
+	_pulse_node(_madra_circle)
+
+## Brief scale pulse on the Core Density orb.
+func pulse_core_density_orb() -> void:
+	_pulse_node(_core_density_circle)
+
 ## Called when a cycle starts.
 func on_cycling_started() -> void:
 	_is_cycling = true
@@ -150,3 +166,10 @@ func _update_technique_display() -> void:
 		_current_technique.cycle_duration,
 		zones_count
 	]
+
+func _pulse_node(node: Control) -> void:
+	if not node:
+		return
+	var tween: Tween = create_tween()
+	tween.tween_property(node, "scale", Vector2(1.08, 1.08), 0.06)
+	tween.tween_property(node, "scale", Vector2(1.0, 1.0), 0.12)
