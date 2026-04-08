@@ -435,8 +435,7 @@ func _handle_zone_click(zone: CyclingZone, zone_data_item: CyclingZoneData) -> v
 		_flash_zone(zone, Color.WHITE)
 	
 	# Show floating text at mouse position
-	var mouse_pos = get_global_mouse_position()
-	_spawn_floating_text(timing_quality + " +" + str(xp_reward) + " XP", quality_color, mouse_pos)
+	_spawn_floating_text(timing_quality + " +" + str(xp_reward) + " XP", quality_color)
 	
 	# Record timing data for final stats
 	click_timings.append({
@@ -464,8 +463,8 @@ func _highlight_zone(zone: CyclingZone, highlight: bool) -> void:
 func _flash_zone(zone: CyclingZone, color: Color) -> void:
 	zone.flash_zone(color)
 
-## Spawn a floating text at the mouse position.
-func _spawn_floating_text(text: String, color: Color, _text_position: Vector2) -> void:
+## Spawn a floating text at the current mouse position.
+func _spawn_floating_text(text: String, color: Color) -> void:
 	var floating_text: FloatingText = floating_text_scene.instantiate() as FloatingText
 	if floating_text:
 		add_child(floating_text)

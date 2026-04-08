@@ -2,7 +2,7 @@
 
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_hover.tres" id="1_eqrx5"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_normal.tres" id="2_s88hk"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="3_rniea"]
+[ext_resource type="StyleBox" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="3_rniea"]
 [ext_resource type="Texture2D" uid="uid://dx0u5hiwxfgu5" path="res://assets/themes/pixel_ui_theme/8x8_ui_elements.png" id="4_ritsa"]
 [ext_resource type="FontFile" uid="uid://sph0kotu777o" path="res://assets/themes/pixel_ui_theme/m5x7.ttf" id="5_coaog"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/tabs/tab_hovered.tres" id="5_ritsa"]
@@ -2707,7 +2707,7 @@ Button/colors/font_color_hover = Color(1, 1, 1, 1)
 Button/colors/font_color_pressed = Color(0.866667, 0.866667, 0.866667, 1)
 Button/colors/font_disabled_color = Color(0.3529412, 0.2901961, 0.22745098, 1)
 Button/colors/font_hover_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
-Button/colors/font_pressed_color = Color(0.65882355, 0.5647059, 0.4392157, 1)
+Button/colors/font_pressed_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
 Button/constants/hseparation = 2
 Button/styles/disabled = ExtResource("1_eqrx5")
 Button/styles/focus = SubResource("StyleBoxEmpty_w53ym")

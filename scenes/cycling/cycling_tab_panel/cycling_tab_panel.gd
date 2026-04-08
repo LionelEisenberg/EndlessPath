@@ -25,6 +25,7 @@ signal technique_change_request(data: CyclingTechniqueData)
 var _technique_slot_scene: PackedScene = preload("res://scenes/cycling/cycling_technique_selector/cycling_technique_slot.tscn")
 var _technique_list: CyclingTechniqueList = null
 var _current_technique_data: CyclingTechniqueData = null
+var _list_dirty: bool = true
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -59,12 +60,14 @@ func show_resources_tab() -> void:
 #-----------------------------------------------------------------------------
 
 func _on_tab_changed(tab_index: int) -> void:
-	if tab_index == 1:
+	if tab_index == 1 and _list_dirty:
 		_populate_technique_list()
 
 func _populate_technique_list() -> void:
 	if _technique_list == null:
 		return
+
+	_list_dirty = false
 
 	for child in _technique_list_container.get_children():
 		child.queue_free()

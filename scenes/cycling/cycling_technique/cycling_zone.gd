@@ -20,6 +20,7 @@ var is_used: bool = false
 
 var _zone_shader: Shader = preload("res://assets/shaders/cycling_zone.gdshader")
 var _shader_material: ShaderMaterial = null
+var _default_active_color: Color = Color(0.85, 0.95, 1.0, 0.95)
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -101,7 +102,7 @@ func flash_zone(color: Color) -> void:
 	await get_tree().create_timer(0.4).timeout
 	# Restore default active color
 	if _shader_material:
-		_shader_material.set_shader_parameter("active_color", Color(0.85, 0.95, 1.0, 0.95))
+		_shader_material.set_shader_parameter("active_color", _default_active_color)
 	if is_used:
 		_set_state(-1.0)
 	else:

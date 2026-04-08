@@ -81,7 +81,7 @@ func _on_madra_changed(_amount: float) -> void:
 func _on_core_density_xp_updated(_xp: float, _level: float) -> void:
 	_update_core_density_display()
 
-func _on_advancement_stage_changed(_new_stage) -> void:
+func _on_advancement_stage_changed(_new_stage: CultivationManager.AdvancementStage) -> void:
 	_update_stage_display()
 
 func _update_all_displays() -> void:
