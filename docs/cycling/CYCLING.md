@@ -176,36 +176,41 @@ Both techniques share the same `Curve2D` (`new_curve_2d.tres` at project root).
 - `[MEDIUM]` Cycling zone indicators use placeholder icons (scaled game icon) — need custom art per zone or zone type
 - `[LOW]` No technique unlocking system — both techniques available from the start, no progression gate
 
-### UI
+### UI (DONE — PRs #12, #13)
 
-**Overall: The cycling UI needs a full overhaul. Most issues below are interconnected. A dedicated UI design doc should be created before implementation to map out the target layout, interaction flow, and visual direction for the cycling view.**
+#### Layout & Navigation (DONE)
+- ~~`[HIGH]` No close button~~ — Added visible ESC close button top-left
+- ~~`[HIGH]` Page structure redesign~~ — Full-screen overlay with body diagram left, tabbed info panel right
+- ~~`[HIGH]` Technique selector modal stacking~~ — Replaced with TabContainer (Resources/Techniques tabs)
+- ~~`[MEDIUM]` Technique selector UX~~ — Inline technique list with click-to-equip and gold equipped highlight
 
-#### Layout & Navigation
-- `[HIGH]` No close button — the only way to exit cycling is via Escape, which isn't discoverable. Needs a visible close button (top-right or top-left)
-- `[HIGH]` Page structure should be redesigned as a book-style view (similar to the inventory book opening/closing animation), replacing the current flat UI popup
-- `[HIGH]` Technique selector opens as a modal on top of the cycling modal — bad UX layering. Technique selection should be integrated into the page layout (e.g., a book tab/page) rather than stacked modals
-- `[MEDIUM]` Technique selector has internal UX issues beyond the modal stacking (layout, interaction flow)
-
-#### Visual Quality
-- `[HIGH]` Text is illegible — brown background with black font creates poor contrast. Needs proper color pairing for readability
-- `[HIGH]` Cycling visualization (left side) is a static JPEG with a Line2D drawn on top — looks rough and placeholder. Needs a proper visual treatment
-- `[MEDIUM]` Backgrounds should be dynamic per cycling location — the village cycling room should look different from a mountain top or volcano cycling room, matching the zone context
-- `[MEDIUM]` `AutoCycleToggle` uses the same texture for on/off states — no visual distinction when toggled
+#### Visual Quality (DONE)
+- ~~`[HIGH]` Text illegible~~ — BBCode formatting, gold accent colors, proper contrast
+- ~~`[HIGH]` Cycling visualization rough~~ — Path line with glow shader + pulse animation, antialiased rounded caps
+- ~~`[MEDIUM]` `AutoCycleToggle` no visual distinction~~ — Text toggles "Auto: ON/OFF", theme pressed color
+- `[MEDIUM]` Backgrounds should be dynamic per cycling location — not yet implemented
 - `[LOW]` Resource panel permanently shows "(MAX)" for next stage due to null `next_stage` on Foundation
+
+#### Shaders & Effects (NEW — PRs #12, #13)
+- Madra ball vortex shader — UV rotation proportional to movement speed, idle breathing pulse, inner glow
+- Cycling zone procedural shader — smooth state blending (idle/active/used), pulsing ring + fill + glow
+- Path line pulse shader — breathing opacity on both main line and glow line
+- FlyingParticle system — glowing orbs with bezier trails fly from ball to Madra orb during tracking, burst from zone clicks to Core Density orb
+- Madra awarded incrementally per particle (not lump sum at cycle end)
+- Orb pulse on particle arrival (subtle for madra, full for XP burst)
 
 ### Tech Debt
 
-#### Dead Code
-- `[MEDIUM]` `AnimationPlayer` node with `move_madra_ball` animation in `cycling_technique.tscn` — replaced by Tween, never referenced by any script
-- `[LOW]` Unused variable `last_mouse_position` in `cycling_technique.gd:59` — declared, never assigned or read
-- `[LOW]` Unused method `get_next_stage_name()` in `cycling_resource_panel.gd:196` — defined but never called
+#### Dead Code (DONE)
+- ~~`[MEDIUM]` `AnimationPlayer` node~~ — Removed from cycling_technique.tscn
+- ~~`[LOW]` Unused variable `last_mouse_position`~~ — Removed
+- `[LOW]` Unused method `get_next_stage_name()` in `cycling_resource_panel.gd` — may have been removed in rewrite
 
 #### Code Quality
-- `[MEDIUM]` Hardcoded colors throughout `cycling_zone.gd` (highlight, dim, normal states) — should be constants or theme-driven
-- `[MEDIUM]` Collision shape radius hardcoded to 20 in `cycling_zone.gd:31` while `.tscn` defines 26 — mismatch between code and scene, should use `timing_window_ratio` from zone data
-- `[MEDIUM]` `_process()` in `cycling_technique.gd` runs every frame even when idle — should disable with `set_process(false)` when not cycling
-- `[LOW]` Missing `class_name` on `cycling_technique_selector.gd` and `info_panel.gd` — inconsistent with other cycling scripts
-- `[LOW]` Missing `##` doc comments on public methods `setup_ui()` and `connect_signals()` in `cycling_resource_panel.gd`
+- ~~`[MEDIUM]` Hardcoded colors in `cycling_zone.gd`~~ — Now shader-driven via uniforms
+- `[MEDIUM]` Collision shape radius hardcoded to 20 in `cycling_zone.gd:31` while `.tscn` defines 26 — should use `timing_window_ratio` from zone data
+- `[MEDIUM]` `_process()` in `cycling_technique.gd` runs every frame even when idle — now needed for madra ball shader updates
+- ~~`[LOW]` Missing `class_name` on `cycling_technique_selector.gd` and `info_panel.gd`~~ — Files deleted, replaced by CyclingTabPanel
 
-#### Misplaced Files
-- `[LOW]` `new_curve_2d.tres` lives at the project root — should be moved to `resources/cycling/`
+#### Misplaced Files (DONE)
+- ~~`[LOW]` `new_curve_2d.tres` at project root~~ — Moved to `resources/cycling/`
