@@ -17,6 +17,7 @@
 [ext_resource type="PackedScene" uid="uid://cwb0nnj7np102" path="res://scenes/adventure/adventure_view/adventure_view.tscn" id="7_up6bt"]
 [ext_resource type="PackedScene" uid="uid://c1pbcdgvnut8p" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.tscn" id="11_wyoa6"]
 [ext_resource type="PackedScene" path="res://scenes/zones/zone_header/zone_header.tscn" id="12_zh"]
+[ext_resource type="PackedScene" path="res://scenes/ui/zone_toolbar/zone_toolbar.tscn" id="13_zt"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_up6bt"]
 bg_color = Color(0.1764706, 0.21568628, 0.21568628, 0.5568628)
@@ -42,10 +43,13 @@ script = ExtResource("2_11so6")
 unique_name_in_owner = true
 z_index = 1
 layout_mode = 1
-offset_left = 704.0
-offset_top = 780.0
-offset_right = -522.0
-offset_bottom = -84.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -240.0
+offset_left = 0.0
+offset_right = -380.0
+offset_bottom = -56.0
 
 [node name="MainViewStateMachine" type="Node" parent="MainView" unique_id=1560757974]
 unique_name_in_owner = true
@@ -130,6 +134,16 @@ offset_right = 420.0
 offset_bottom = 160.0
 grow_horizontal = 1
 grow_vertical = 1
+
+[node name="ZoneToolbar" parent="MainView/ZoneView" instance=ExtResource("13_zt")]
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -56.0
+offset_left = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
 
 [node name="AdventureView" parent="MainView" unique_id=1872924392 instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true

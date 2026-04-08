@@ -1,0 +1,71 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/zone_toolbar/zone_toolbar.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://d0eha7yo0rjne" path="res://scenes/zones/zone_resource_panel/system_menu/system_menu_button.tscn" id="2_smb"]
+[ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/ui_images/resources/gold_icon.png" id="3_gold"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.04, 0.05, 0.07, 0.95)
+border_color = Color(0.83, 0.66, 0.29, 0.12)
+border_width_top = 1
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[node name="ZoneToolbar" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 56)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_script")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="InventoryButton" parent="HBoxContainer" instance=ExtResource("2_smb")]
+layout_mode = 2
+menu_type = 0
+
+[node name="AbilitiesButton" parent="HBoxContainer" instance=ExtResource("2_smb")]
+layout_mode = 2
+menu_type = 1
+
+[node name="CharacterButton" parent="HBoxContainer" instance=ExtResource("2_smb")]
+layout_mode = 2
+menu_type = 2
+
+[node name="PathButton" parent="HBoxContainer" instance=ExtResource("2_smb")]
+layout_mode = 2
+menu_type = 3
+
+[node name="ToolbarDivider" type="VSeparator" parent="HBoxContainer"]
+layout_mode = 2
+
+[node name="GoldSection" type="HBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="GoldIcon" type="TextureRect" parent="HBoxContainer/GoldSection"]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+texture = ExtResource("3_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GoldLabel" type="Label" parent="HBoxContainer/GoldSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_font_sizes/font_size = 16
+text = "0"
+
+[node name="Spacer" type="Control" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LogToggleButton" type="Button" parent="HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Log"
+flat = true
