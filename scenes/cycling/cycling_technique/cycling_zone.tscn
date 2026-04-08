@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://b2rppnxxcrdb7"]
 
 [ext_resource type="Script" uid="uid://bbp006uqnem45" path="res://scenes/cycling/cycling_technique/cycling_zone.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="2_texture"]
+[ext_resource type="Texture2D" uid="uid://dm58rs33ces5o" path="res://assets/sprites/cycling/Madra-Ball.png" id="2_texture"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_cabco"]
 radius = 26.0
@@ -15,5 +15,5 @@ shape = SubResource("CircleShape2D_cabco")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 unique_name_in_owner = true
-scale = Vector2(0.25, 0.25)
+scale = Vector2(0.15, 0.15)
 texture = ExtResource("2_texture")

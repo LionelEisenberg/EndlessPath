@@ -12,19 +12,25 @@ const TIMING_GOOD_THRESHOLD = 0.7
 # Path rendering
 const MIN_PATH_POINTS = 50
 const PATH_POINT_SPACING = 10
-const PATH_LINE_WIDTH = 3.0
-const PATH_LINE_COLOR = Color(0.8, 0.8, 1.0, 0.7)
+const PATH_LINE_WIDTH = 5.0
+const PATH_GLOW_WIDTH = 20.0
+const PATH_LINE_COLOR = Color(0.75, 0.88, 1.0, 0.9)
+const PATH_GLOW_COLOR = Color(0.5, 0.72, 0.95, 0.3)
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
 @onready var core_button: Button = %StartCyclingButton
-@onready var auto_cycle_toggle: TextureButton = %AutoCycleToggle
+@onready var auto_cycle_toggle: Button = %AutoCycleToggle
 @onready var path_2d: Path2D = %CyclingPath2D
 @onready var path_follow_2d: PathFollow2D = %PathFollow2D
 @onready var madra_ball: Area2D = %MadraBall
+@onready var _madra_ball_sprite: Sprite2D = %MadraBallSprite
 @onready var path_line: Line2D = %PathLine
+@onready var _path_glow_line: Line2D = %PathGlowLine
+var _path_pulse_shader: Shader = preload("res://assets/shaders/path_pulse.gdshader")
+var _last_progress: float = 0.0
 
 #-----------------------------------------------------------------------------
 # TWEEN FOR ANIMATION
@@ -56,7 +62,6 @@ var active_zone: CyclingZone = null
 #-----------------------------------------------------------------------------
 # MOUSE TRACKING
 #-----------------------------------------------------------------------------
-var last_mouse_position: Vector2
 var mouse_tracking_accuracy: float = 0.0
 var cycle_start_time: float = 0.0
 var time_mouse_in_ball: float = 0.0 # Total time mouse was inside ball
@@ -80,13 +85,14 @@ var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/fl
 func _ready() -> void:
 	# Connect core button to start cycling
 	core_button.pressed.connect(_on_core_button_pressed)
-	
+
 	# Connect madra ball area signals
 	madra_ball.area_entered.connect(_on_madra_ball_area_entered)
 	madra_ball.area_exited.connect(_on_madra_ball_area_exited)
-	
-	# Connect input for clicking on zones
-	# We'll handle this in _input() to detect clicks on any zone
+
+	# Auto cycle toggle visual state
+	auto_cycle_toggle.toggled.connect(_on_auto_cycle_toggled)
+
 	setup(technique_data_input)
 
 ## Initialize the technique with the provided data.
@@ -125,22 +131,53 @@ func set_technique_data(data: CyclingTechniqueData) -> void:
 func _update_path_line() -> void:
 	if not path_2d.curve or not path_line:
 		return
-		
-	# Clear existing points
-	path_line.clear_points()
-	
+
 	# Sample points along the curve
-	var curve_length = path_2d.curve.get_baked_length()
-	var point_count = max(MIN_PATH_POINTS, int(curve_length / PATH_POINT_SPACING))
-	
+	var curve_length: float = path_2d.curve.get_baked_length()
+	var point_count: int = max(MIN_PATH_POINTS, int(curve_length / PATH_POINT_SPACING))
+	var points: PackedVector2Array = PackedVector2Array()
+
 	for i in range(point_count + 1):
-		var ratio = float(i) / point_count
-		var point = path_2d.curve.sample_baked(ratio * curve_length)
-		path_line.add_point(point)
-	
-	# Set line properties for visual appeal
+		var ratio: float = float(i) / point_count
+		var point: Vector2 = path_2d.curve.sample_baked(ratio * curve_length)
+		points.append(point)
+
+	# Main path line
+	path_line.clear_points()
+	path_line.points = points
 	path_line.width = PATH_LINE_WIDTH
 	path_line.default_color = PATH_LINE_COLOR
+	path_line.antialiased = true
+	path_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	path_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	path_line.joint_mode = Line2D.LINE_JOINT_ROUND
+
+	# Glow line (scene node, behind main line)
+	_path_glow_line.clear_points()
+	_path_glow_line.points = points
+	_path_glow_line.width = PATH_GLOW_WIDTH
+	_path_glow_line.default_color = PATH_GLOW_COLOR
+	_path_glow_line.antialiased = true
+	_path_glow_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_path_glow_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_path_glow_line.joint_mode = Line2D.LINE_JOINT_ROUND
+
+	# Apply pulse shader to both lines
+	if not path_line.material:
+		var mat: ShaderMaterial = ShaderMaterial.new()
+		mat.shader = _path_pulse_shader
+		mat.set_shader_parameter("pulse_speed", 1.5)
+		mat.set_shader_parameter("pulse_min", 0.65)
+		mat.set_shader_parameter("pulse_max", 1.0)
+		path_line.material = mat
+
+	if not _path_glow_line.material:
+		var glow_mat: ShaderMaterial = ShaderMaterial.new()
+		glow_mat.shader = _path_pulse_shader
+		glow_mat.set_shader_parameter("pulse_speed", 1.2)
+		glow_mat.set_shader_parameter("pulse_min", 0.4)
+		glow_mat.set_shader_parameter("pulse_max", 1.0)
+		_path_glow_line.material = glow_mat
 
 ## Create cycling zones using the CyclingZone scene based on technique data.
 func _create_cycling_zones() -> void:
@@ -231,9 +268,11 @@ func _start_cycling_animation() -> void:
 	if movement_tween:
 		movement_tween.kill()
 	
-	# Create new tween for this cycle (now we're definitely in the scene tree)
+	# Create new tween for this cycle
 	movement_tween = create_tween()
-	movement_tween.tween_property(path_follow_2d, "progress_ratio", 1.0, technique_data.cycle_duration)
+	movement_tween.tween_property(path_follow_2d, "progress_ratio", 1.0, technique_data.cycle_duration) \
+		.set_ease(Tween.EASE_IN_OUT) \
+		.set_trans(Tween.TRANS_SINE)
 	movement_tween.finished.connect(_on_cycle_finished)
 
 ## Called when the ball completes one full cycle.
@@ -396,8 +435,7 @@ func _handle_zone_click(zone: CyclingZone, zone_data_item: CyclingZoneData) -> v
 		_flash_zone(zone, Color.WHITE)
 	
 	# Show floating text at mouse position
-	var mouse_pos = get_global_mouse_position()
-	_spawn_floating_text(timing_quality + " +" + str(xp_reward) + " XP", quality_color, mouse_pos)
+	_spawn_floating_text(timing_quality + " +" + str(xp_reward) + " XP", quality_color)
 	
 	# Record timing data for final stats
 	click_timings.append({
@@ -425,12 +463,43 @@ func _highlight_zone(zone: CyclingZone, highlight: bool) -> void:
 func _flash_zone(zone: CyclingZone, color: Color) -> void:
 	zone.flash_zone(color)
 
-## Spawn a floating text at the specified position.
-func _spawn_floating_text(text: String, color: Color, text_position: Vector2) -> void:
-	var floating_text = floating_text_scene.instantiate() as FloatingText
+## Spawn a floating text at the current mouse position.
+func _spawn_floating_text(text: String, color: Color) -> void:
+	var floating_text: FloatingText = floating_text_scene.instantiate() as FloatingText
 	if floating_text:
-		get_tree().current_scene.add_child(floating_text)
-		floating_text.show_text(text, color, text_position)
+		add_child(floating_text)
+		var mouse_pos: Vector2 = get_global_mouse_position()
+		floating_text.show_text(text, color, mouse_pos)
+
+#-----------------------------------------------------------------------------
+# MADRA BALL SHADER
+#-----------------------------------------------------------------------------
+
+func _update_madra_ball_shader(_delta: float) -> void:
+	if not _madra_ball_sprite or not _madra_ball_sprite.material:
+		return
+
+	var mat: ShaderMaterial = _madra_ball_sprite.material as ShaderMaterial
+	if not mat:
+		return
+
+	var is_moving: float = 0.0
+	if current_state == CycleState.CYCLING:
+		# Calculate speed from progress change
+		var current_progress: float = path_follow_2d.progress_ratio
+		var speed: float = abs(current_progress - _last_progress) * 60.0
+		_last_progress = current_progress
+		is_moving = clampf(speed * 5.0, 0.0, 1.0)
+
+	mat.set_shader_parameter("movement_state", is_moving)
+	mat.set_shader_parameter("spin_speed", lerpf(3.0, 15.0, is_moving))
+
+#-----------------------------------------------------------------------------
+# AUTO CYCLE TOGGLE
+#-----------------------------------------------------------------------------
+
+func _on_auto_cycle_toggled(toggled_on: bool) -> void:
+	auto_cycle_toggle.text = "Auto: ON" if toggled_on else "Auto: OFF"
 
 #-----------------------------------------------------------------------------
 # MADRA GENERATION
@@ -438,9 +507,11 @@ func _spawn_floating_text(text: String, color: Color, text_position: Vector2) ->
 
 ## Track mouse accuracy during cycling (madra calculated at cycle end).
 func _process(delta: float) -> void:
+	_update_madra_ball_shader(delta)
+
 	if current_state != CycleState.CYCLING:
 		return
-		
+
 	# Track elapsed cycle time
 	elapsed_cycle_time += delta
 		
