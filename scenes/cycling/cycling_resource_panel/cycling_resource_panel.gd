@@ -65,7 +65,7 @@ func on_cycling_started() -> void:
 	_update_madra_rate_display()
 
 ## Called when a cycle completes.
-func on_cycle_completed(madra_earned: float, mouse_accuracy: float) -> void:
+func on_cycle_completed(madra_earned: float, _mouse_accuracy: float) -> void:
 	_last_madra_per_cycle = madra_earned
 	if _current_technique:
 		_last_madra_per_second = madra_earned / _current_technique.cycle_duration

@@ -6,42 +6,6 @@
 [ext_resource type="Curve2D" uid="uid://bv6hktnn46o76" path="res://resources/cycling/cycling_techniques/test_technique_2/smooth_path.tres" id="3_3ut4h"]
 [ext_resource type="Shader" uid="uid://bedm1mso5rcux" path="res://assets/shaders/madra_ball.gdshader" id="shader_madra"]
 
-[sub_resource type="Animation" id="Animation_j38ga"]
-length = 0.001
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("CyclingPath2D/PathFollow2D:progress_ratio")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [0.0]
-}
-
-[sub_resource type="Animation" id="Animation_sxf01"]
-resource_name = "move_madra_ball"
-length = 5.0
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("CyclingPath2D/PathFollow2D:progress_ratio")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 5),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [0.0, 1.0]
-}
-
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_bloew"]
-_data = {
-&"RESET": SubResource("Animation_j38ga"),
-&"move_madra_ball": SubResource("Animation_sxf01")
-}
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2ju65"]
 
@@ -69,9 +33,6 @@ shader_parameter/movement_state = 0.0
 script = ExtResource("1_j38ga")
 technique_data_input = ExtResource("2_3ut4h")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=380373512]
-unique_name_in_owner = true
-libraries/ = SubResource("AnimationLibrary_bloew")
 
 [node name="PathLine" type="Line2D" parent="." unique_id=1039986837]
 unique_name_in_owner = true

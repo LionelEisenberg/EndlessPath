@@ -14,8 +14,6 @@ signal slot_selected(data: CyclingTechniqueData)
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var _panel: PanelContainer = %CyclingTechniquePanelContainer
-@onready var _icon_rect: TextureRect = %CyclingTechniqueIcon
 @onready var _name_label: Label = %TechniqueNameLabel
 @onready var _stats_label: Label = %TechniqueStatsLabel
 

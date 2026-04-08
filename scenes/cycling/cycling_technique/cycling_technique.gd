@@ -62,7 +62,6 @@ var active_zone: CyclingZone = null
 #-----------------------------------------------------------------------------
 # MOUSE TRACKING
 #-----------------------------------------------------------------------------
-var last_mouse_position: Vector2
 var mouse_tracking_accuracy: float = 0.0
 var cycle_start_time: float = 0.0
 var time_mouse_in_ball: float = 0.0 # Total time mouse was inside ball
