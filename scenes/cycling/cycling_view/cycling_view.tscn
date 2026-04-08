@@ -1,14 +1,17 @@
-[gd_scene load_steps=8 format=3 uid="uid://b1rl1n8ceijc8"]
+[gd_scene format=3 uid="uid://b1rl1n8ceijc8"]
 
 [ext_resource type="Script" uid="uid://dyha47vkmqg5o" path="res://scenes/cycling/cycling_view/cycling_view.gd" id="1_ob5ct"]
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/panel_tan.tres" id="2_0j2st"]
-[ext_resource type="Texture2D" uid="uid://751ki710lw0j" path="res://assets/sprites/cycling/Cycling_Technique_Background.webp" id="2_4q44n"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_8tk3k"]
+[ext_resource type="StyleBox" uid="uid://81c7cqhh1qo7" path="res://assets/styleboxes/panel_cycling_view.tres" id="3_4g8xi"]
 [ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/cycling/cycling_technique/cycling_technique.tscn" id="3_hypg5"]
 [ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]
-[ext_resource type="PackedScene" uid="uid://86cemqoesomd" path="res://scenes/cycling/cycling_technique_selector/cycling_technique_selector.tscn" id="6_vx840"]
-[ext_resource type="Resource" uid="uid://de6qv3bad4yop" path="res://resources/cycling/cycling_techniques/cycling_technique_list.tres" id="7_uk6eo"]
+[ext_resource type="StyleBox" uid="uid://dfld4jy3188gf" path="res://assets/styleboxes/panel_info_sidebar.tres" id="5_4g8xi"]
+[ext_resource type="Script" uid="uid://cvudatk537dno" path="res://scenes/cycling/cycling_tab_panel/cycling_tab_panel.gd" id="5_8tk3k"]
 
-[node name="CyclingView" type="Control"]
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_0j2st"]
+load_path = "res://.godot/imported/cycling_technique_outline.png-85eefb7e3ae9022069b8b8d30d9a844b.ctex"
+
+[node name="CyclingView" type="Control" unique_id=368495127]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,13 +23,11 @@ size_flags_vertical = 6
 mouse_filter = 2
 script = ExtResource("1_ob5ct")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=860410385]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -15.0
-offset_bottom = -15.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 150
@@ -34,42 +35,83 @@ theme_override_constants/margin_top = 100
 theme_override_constants/margin_right = 150
 theme_override_constants/margin_bottom = 100
 
-[node name="Panel" type="Panel" parent="MarginContainer"]
+[node name="Panel" type="Panel" parent="MarginContainer" unique_id=564752966]
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = ExtResource("2_0j2st")
+theme = ExtResource("2_8tk3k")
+theme_type_variation = &"PanelAccent"
+theme_override_styles/panel = ExtResource("3_4g8xi")
 
-[node name="CyclingBackground" type="TextureRect" parent="MarginContainer/Panel"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/Panel" unique_id=569617877]
 layout_mode = 1
-offset_left = 139.0
-offset_top = 112.0
-offset_right = 779.0
-offset_bottom = 752.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CyclingTechniqueOutline" type="Sprite2D" parent="MarginContainer/Panel/HBoxContainer" unique_id=411273347]
+position = Vector2(537, 452)
+scale = Vector2(1, 1.3866667)
+texture = SubResource("CompressedTexture2D_0j2st")
+
+[node name="CyclingBackground" type="TextureRect" parent="MarginContainer/Panel/HBoxContainer" unique_id=564596054]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+size_flags_stretch_ratio = 0.66
 mouse_filter = 2
-texture = ExtResource("2_4q44n")
 
-[node name="CyclingTechnique" parent="MarginContainer/Panel/CyclingBackground" instance=ExtResource("3_hypg5")]
+[node name="CyclingTechnique" parent="MarginContainer/Panel/HBoxContainer/CyclingBackground" unique_id=1193719417 instance=ExtResource("3_hypg5")]
 unique_name_in_owner = true
+position = Vector2(-322, -428)
 
-[node name="CyclingResourcePanel" parent="MarginContainer/Panel" instance=ExtResource("4_3nchs")]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_bottom = 0.0
-offset_left = -654.0
-offset_top = 172.0
-offset_right = -134.0
-offset_bottom = 692.0
-grow_horizontal = 0
-grow_vertical = 1
+[node name="InfoPanelArea" type="MarginContainer" parent="MarginContainer/Panel/HBoxContainer" unique_id=596135546]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.33
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="CyclingTechniqueSelector" parent="MarginContainer/Panel" instance=ExtResource("6_vx840")]
+[node name="CyclingTabPanel" type="TabContainer" parent="MarginContainer/Panel/HBoxContainer/InfoPanelArea" unique_id=242227923]
 unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_8tk3k")
+theme_type_variation = &"CyclingTabContainer"
+theme_override_font_sizes/font_size = 28
+theme_override_styles/panel = ExtResource("5_4g8xi")
+current_tab = 0
+script = ExtResource("5_8tk3k")
+
+[node name="CyclingResourcePanel" parent="MarginContainer/Panel/HBoxContainer/InfoPanelArea/CyclingTabPanel" unique_id=855671840 instance=ExtResource("4_3nchs")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.33
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 5
+metadata/_tab_index = 0
+
+[node name="TechniquesScrollContainer" type="ScrollContainer" parent="MarginContainer/Panel/HBoxContainer/InfoPanelArea/CyclingTabPanel" unique_id=2142081570]
 visible = false
-layout_mode = 1
-offset_left = -11.0
-offset_top = -8.0
-offset_right = -11.0
-offset_bottom = -8.0
-cycling_technique_list = ExtResource("7_uk6eo")
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="TechniqueListContainer" type="VBoxContainer" parent="MarginContainer/Panel/HBoxContainer/InfoPanelArea/CyclingTabPanel/TechniquesScrollContainer" unique_id=853899232]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 2
+
+[node name="CloseButton" type="Button" parent="MarginContainer/Panel" unique_id=2005087943]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 71.0
+offset_bottom = 46.0
+theme = ExtResource("2_8tk3k")
+text = "X ESC"

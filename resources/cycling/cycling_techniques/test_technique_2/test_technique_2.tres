@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CyclingTechniqueData" format=3 uid="uid://bfp0ftyd4wpmc"]
+
+[ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_zone_data.gd" id="1_zone_script"]
+[ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd" id="2_tech_script"]
+[ext_resource type="Curve2D" uid="uid://bv6hktnn46o76" path="res://resources/cycling/cycling_techniques/test_technique_2/smooth_path.tres" id="3_path"]
+[ext_resource type="Resource" uid="uid://cn43mr3bkyhem" path="res://resources/cycling/cycling_techniques/test_technique_2/cycling_zone_data/zone_1.tres" id="4_zone1"]
+[ext_resource type="Resource" uid="uid://dpeb7vggf3whv" path="res://resources/cycling/cycling_techniques/test_technique_2/cycling_zone_data/zone_2.tres" id="5_zone2"]
+[ext_resource type="Resource" uid="uid://yhh2pskdwqk8" path="res://resources/cycling/cycling_techniques/test_technique_2/cycling_zone_data/zone_3.tres" id="6_zone3"]
+[ext_resource type="Resource" uid="uid://by52s6rvcwuwe" path="res://resources/cycling/cycling_techniques/test_technique_2/cycling_zone_data/zone_4.tres" id="7_zone4"]
+
+[resource]
+script = ExtResource("2_tech_script")
+technique_name = "Smooth Flow Technique"
+path_curve = ExtResource("3_path")
+cycle_duration = 15.0
+base_madra_per_cycle = 30.0
+cycling_zones = Array[ExtResource("1_zone_script")]([ExtResource("4_zone1"), ExtResource("5_zone2"), ExtResource("6_zone3"), ExtResource("7_zone4")])
