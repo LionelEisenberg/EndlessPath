@@ -176,3 +176,5 @@ layout_mode = 1
 wait_time = 5.0
 autostart = true
 script = ExtResource("4_11so6")
+
+[connection signal="log_toggled" from="MainView/ZoneView/ZoneToolbar" to="MainView/LogWindow" method="toggle_log"]

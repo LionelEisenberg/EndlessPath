@@ -13,17 +13,20 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_logwin")
 
-[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1212776200]
+[node name="LogPanel" type="PanelContainer" parent="." unique_id=1212776200]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+clip_contents = true
+custom_minimum_size = Vector2(0, 0)
 theme = ExtResource("2_i3e3n")
 theme_type_variation = &"PanelDark"
 
-[node name="RichTextLabel" type="RichTextLabel" parent="PanelContainer" unique_id=1303827695]
+[node name="RichTextLabel" type="RichTextLabel" parent="LogPanel" unique_id=1303827695]
 unique_name_in_owner = true
 layout_mode = 2
 bbcode_enabled = true
