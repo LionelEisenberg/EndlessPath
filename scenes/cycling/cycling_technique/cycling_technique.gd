@@ -86,13 +86,14 @@ var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/fl
 func _ready() -> void:
 	# Connect core button to start cycling
 	core_button.pressed.connect(_on_core_button_pressed)
-	
+
 	# Connect madra ball area signals
 	madra_ball.area_entered.connect(_on_madra_ball_area_entered)
 	madra_ball.area_exited.connect(_on_madra_ball_area_exited)
-	
-	# Connect input for clicking on zones
-	# We'll handle this in _input() to detect clicks on any zone
+
+	# Auto cycle toggle visual state
+	auto_cycle_toggle.toggled.connect(_on_auto_cycle_toggled)
+
 	setup(technique_data_input)
 
 ## Initialize the technique with the provided data.
@@ -494,6 +495,13 @@ func _update_madra_ball_shader(_delta: float) -> void:
 
 	mat.set_shader_parameter("movement_state", is_moving)
 	mat.set_shader_parameter("spin_speed", lerpf(3.0, 15.0, is_moving))
+
+#-----------------------------------------------------------------------------
+# AUTO CYCLE TOGGLE
+#-----------------------------------------------------------------------------
+
+func _on_auto_cycle_toggled(toggled_on: bool) -> void:
+	auto_cycle_toggle.text = "Auto: ON" if toggled_on else "Auto: OFF"
 
 #-----------------------------------------------------------------------------
 # MADRA GENERATION
