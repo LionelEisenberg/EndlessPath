@@ -5,7 +5,7 @@ extends Node
 ## Handles clamping view to a given boundary
 
 @export_group("Boundaries")
-@export var use_boundaries: bool = true
+@export var use_boundaries: bool = false
 @export var boundary_min: Vector2 = Vector2(-1400, -1400)
 @export var boundary_max: Vector2 = Vector2(1400, 1400)
 

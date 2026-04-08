@@ -9,7 +9,7 @@ extends PanelContainer
 @onready var _madra_circle: ProgressShaderRect = %MadraCircle
 @onready var _madra_label: Label = %MadraLabel
 @onready var _core_density_rect: ProgressShaderRect = %CoreDensityRect
-@onready var _core_density_label: Label = %CoreDensityLabel
+@onready var _core_density_label: RichTextLabel = %CoreDensityLabel
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -46,7 +46,7 @@ func _update_core_density() -> void:
 	var stage_name: String = CultivationManager.get_current_advancement_stage_name()
 	var progress: float = level / 100.0
 	_core_density_rect.set_value(progress)
-	_core_density_label.text = "%s - Lvl %d" % [stage_name, int(level)]
+	_core_density_label.text = "[center][color=#D4A84A]%s[/color]\nLvl %d[/center]" % [stage_name, int(level)]
 
 func _on_madra_changed(_amount: float) -> void:
 	_update_madra()

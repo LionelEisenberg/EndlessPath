@@ -48,11 +48,22 @@ shader_parameter/swirl_col_tertiary = Color(0.5, 0.65, 0.8, 1)
 shader_parameter/contrast = 2.0
 shader_parameter/spin_amount = 1.5
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_float"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_res"]
+bg_color = Color(0.05, 0.06, 0.09, 0.78)
+border_width_left = 3
+border_color = Color(0.831, 0.659, 0.29, 0.6)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_left = 2
+corner_radius_bottom_right = 2
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
 
 [node name="ZoneResourcePanel" type="PanelContainer" unique_id=2120600450]
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxEmpty_float")
+theme_override_styles/panel = SubResource("StyleBoxFlat_res")
 script = ExtResource("2_jqnp7")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
@@ -63,6 +74,14 @@ theme_override_constants/separation = 20
 layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
+theme_override_constants/separation = 4
+
+[node name="MadraTitle" type="Label" parent="VBoxContainer/MadraVbox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.75, 0.72, 1)
+theme_override_font_sizes/font_size = 14
+text = "MADRA"
+horizontal_alignment = 1
 
 [node name="MadraCircle" type="TextureRect" parent="VBoxContainer/MadraVbox" unique_id=1626822521]
 unique_name_in_owner = true
@@ -76,6 +95,8 @@ script = ExtResource("5_gvadv")
 [node name="MadraLabel" type="Label" parent="VBoxContainer/MadraVbox" unique_id=607764089]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.78, 0.7, 1)
+theme_override_font_sizes/font_size = 24
 text = "120 / 200"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -85,6 +106,14 @@ layout_mode = 2
 size_flags_horizontal = 6
 size_flags_vertical = 4
 alignment = 1
+theme_override_constants/separation = 4
+
+[node name="CoreTitle" type="Label" parent="VBoxContainer/CoreDensityVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.6, 0.35, 1)
+theme_override_font_sizes/font_size = 14
+text = "CORE DENSITY"
+horizontal_alignment = 1
 
 [node name="CoreDensityRect" type="TextureRect" parent="VBoxContainer/CoreDensityVBox" unique_id=2099949461]
 unique_name_in_owner = true
@@ -95,9 +124,11 @@ size_flags_vertical = 4
 texture = ExtResource("4_tkkoj")
 script = ExtResource("5_gvadv")
 
-[node name="CoreDensityLabel" type="Label" parent="VBoxContainer/CoreDensityVBox" unique_id=1023229903]
+[node name="CoreDensityLabel" type="RichTextLabel" parent="VBoxContainer/CoreDensityVBox" unique_id=1023229903]
 unique_name_in_owner = true
 layout_mode = 2
-text = "lvl: 54"
-horizontal_alignment = 1
-vertical_alignment = 1
+bbcode_enabled = true
+theme_override_font_sizes/normal_font_size = 24
+text = "[center]lvl: 54[/center]"
+fit_content = true
+scroll_active = false

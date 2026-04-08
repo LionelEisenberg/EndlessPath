@@ -8,16 +8,17 @@
 [ext_resource type="PackedScene" uid="uid://b1rl1n8ceijc8" path="res://scenes/cycling/cycling_view/cycling_view.tscn" id="3_7ijcf"]
 [ext_resource type="PackedScene" uid="uid://sra4pqjmj11a" path="res://scenes/inventory/inventory_view/inventory_view.tscn" id="3_k2uxu"]
 [ext_resource type="PackedScene" uid="uid://b8q7j5y2k3m1n" path="res://scenes/ui/log_window/log_window.tscn" id="3_wyoa6"]
-[ext_resource type="Texture2D" uid="uid://b7a4s04x21evb" path="res://assets/sprites/zones/backgrounds/spirit_valley_background.jpg" id="3_yssfv"]
 [ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
 [ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]
 [ext_resource type="Script" uid="uid://b6v160h5lsx3" path="res://scenes/ui/main_view/states/cycling_view_state.gd" id="4_wyoa6"]
 [ext_resource type="Script" uid="uid://t6j7xu45pr3y" path="res://scenes/ui/main_view/states/inventory_view_state.gd" id="5_a5o3s"]
 [ext_resource type="Script" uid="uid://c6cvq5n61a2sw" path="res://scenes/ui/main_view/states/zone_view_state.gd" id="6_cp3p8"]
 [ext_resource type="PackedScene" uid="uid://cwb0nnj7np102" path="res://scenes/adventure/adventure_view/adventure_view.tscn" id="7_up6bt"]
+[ext_resource type="PackedScene" uid="uid://bn6xsijn342nc" path="res://scenes/zones/zone_view_background/zone_view_background.tscn" id="9_b61p0"]
 [ext_resource type="PackedScene" uid="uid://c1pbcdgvnut8p" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.tscn" id="11_wyoa6"]
-[ext_resource type="PackedScene" path="res://scenes/zones/zone_header/zone_header.tscn" id="12_zh"]
-[ext_resource type="PackedScene" path="res://scenes/ui/zone_toolbar/zone_toolbar.tscn" id="13_zt"]
+[ext_resource type="PackedScene" uid="uid://dwoh4801askaa" path="res://scenes/zones/zone_header/zone_header.tscn" id="12_zh"]
+[ext_resource type="PackedScene" uid="uid://bdd1ahrewppuc" path="res://scenes/ui/toolbar/toolbar.tscn" id="13_zt"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/panel_floating.tres" id="14_lb8xr"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_up6bt"]
 bg_color = Color(0.1764706, 0.21568628, 0.21568628, 0.5568628)
@@ -46,8 +47,21 @@ layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 offset_top = -240.0
-offset_right = -380.0
-offset_bottom = -56.0
+offset_right = -450.0
+offset_bottom = -60.0
+grow_vertical = 0
+
+[node name="Toolbar" parent="MainView" unique_id=1615253691 instance=ExtResource("13_zt")]
+unique_name_in_owner = true
+z_index = 10
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -60.0
+grow_horizontal = 2
+grow_vertical = 0
 
 [node name="MainViewStateMachine" type="Node" parent="MainView" unique_id=1560757974]
 unique_name_in_owner = true
@@ -71,22 +85,22 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_bottom = -60.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/ZoneView" unique_id=2054059549]
-visible = false
-z_index = -1
-position = Vector2(963.49994, 555.49994)
-scale = Vector2(0.7769531, 0.7951389)
-texture = ExtResource("3_yssfv")
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/ZoneView" unique_id=1838564014]
 clip_contents = true
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -960.0
+offset_top = -540.0
+offset_right = 960.0
+offset_bottom = 480.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -96,49 +110,43 @@ handle_input_locally = false
 size = Vector2i(1920, 1080)
 render_target_update_mode = 4
 
+[node name="ZoneViewBackground" parent="MainView/ZoneView/SubViewportContainer/SubViewport" unique_id=1102711138 instance=ExtResource("9_b61p0")]
+position = Vector2(960, 500)
+
 [node name="ZoneTilemap" parent="MainView/ZoneView/SubViewportContainer/SubViewport" unique_id=903827960 instance=ExtResource("3_1i3v0")]
 
 [node name="ZoneInfoPanel" parent="MainView/ZoneView" unique_id=1819263091 instance=ExtResource("4_tvvcy")]
-z_index = 5
 custom_minimum_size = Vector2(200, 80)
 layout_mode = 1
 anchors_preset = 6
 anchor_left = 1.0
 anchor_top = 0.5
 anchor_bottom = 0.5
-offset_left = -400.0
-offset_top = -539.0
-offset_right = -20.0
-offset_bottom = 485.0
+offset_left = -450.0
+offset_top = -510.0
+offset_bottom = 510.0
 grow_horizontal = 0
 size_flags_vertical = 3
 
 [node name="ZoneResourcePanel" parent="MainView/ZoneView" unique_id=2120600450 instance=ExtResource("11_wyoa6")]
-z_index = 5
 layout_mode = 1
+anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = 24.0
-offset_top = -120.0
-offset_right = 160.0
-offset_bottom = 120.0
+offset_top = -175.0
+offset_right = 182.0
+offset_bottom = 207.0
+grow_vertical = 2
 
 [node name="ZoneHeader" parent="MainView/ZoneView" unique_id=618100488 instance=ExtResource("12_zh")]
-z_index = 5
+custom_minimum_size = Vector2(360, 0)
 layout_mode = 1
-offset_left = 24.0
-offset_top = 24.0
-offset_right = 420.0
-offset_bottom = 160.0
-
-[node name="ZoneToolbar" parent="MainView/ZoneView" unique_id=1615253691 instance=ExtResource("13_zt")]
-z_index = 10
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -56.0
+offset_left = 28.0
+offset_top = 28.0
+offset_right = 424.0
+offset_bottom = 245.0
+theme_override_styles/panel = ExtResource("14_lb8xr")
 
 [node name="AdventureView" parent="MainView" unique_id=1872924392 instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true
@@ -174,5 +182,3 @@ layout_mode = 1
 wait_time = 5.0
 autostart = true
 script = ExtResource("4_11so6")
-
-[connection signal="log_toggled" from="MainView/ZoneView/ZoneToolbar" to="MainView/LogWindow" method="toggle_log"]
