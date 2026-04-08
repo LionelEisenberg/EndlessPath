@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://c6cvq5n61a2sw" path="res://scenes/ui/main_view/states/zone_view_state.gd" id="6_cp3p8"]
 [ext_resource type="PackedScene" uid="uid://cwb0nnj7np102" path="res://scenes/adventure/adventure_view/adventure_view.tscn" id="7_up6bt"]
 [ext_resource type="PackedScene" uid="uid://c1pbcdgvnut8p" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.tscn" id="11_wyoa6"]
+[ext_resource type="PackedScene" path="res://scenes/zones/zone_header/zone_header.tscn" id="12_zh"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_up6bt"]
 bg_color = Color(0.1764706, 0.21568628, 0.21568628, 0.5568628)
@@ -117,6 +118,16 @@ offset_left = 50.0
 offset_top = 763.0
 offset_right = 700.0
 offset_bottom = 1003.0
+grow_horizontal = 1
+grow_vertical = 1
+
+[node name="ZoneHeader" parent="MainView/ZoneView" instance=ExtResource("12_zh")]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 420.0
+offset_bottom = 160.0
 grow_horizontal = 1
 grow_vertical = 1
 

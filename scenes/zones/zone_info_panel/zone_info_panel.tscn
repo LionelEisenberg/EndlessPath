@@ -26,53 +26,6 @@ theme_override_constants/margin_bottom = 12
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="PanelContainer" type="PanelContainer" parent="MarginContainer/ZoneInfoContent" unique_id=526695622]
-layout_mode = 2
-theme = ExtResource("2_rm6n2")
-theme_type_variation = &"PanelAccent"
-
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/ZoneInfoContent/PanelContainer" unique_id=1387272087]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="ZoneHeaderSection" type="VBoxContainer" parent="MarginContainer/ZoneInfoContent/PanelContainer/MarginContainer" unique_id=1070768691]
-layout_mode = 2
-
-[node name="ZoneTitle" type="RichTextLabel" parent="MarginContainer/ZoneInfoContent/PanelContainer/MarginContainer/ZoneHeaderSection" unique_id=1766032039]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/normal_font_size = 42
-theme_override_font_sizes/bold_font_size = 42
-theme_override_font_sizes/bold_italics_font_size = 42
-theme_override_font_sizes/italics_font_size = 42
-theme_override_font_sizes/mono_font_size = 42
-bbcode_enabled = true
-text = "Current Zone: Sacred Valley"
-fit_content = true
-scroll_active = false
-vertical_alignment = 1
-
-[node name="HSeparator" type="HSeparator" parent="MarginContainer/ZoneInfoContent/PanelContainer/MarginContainer/ZoneHeaderSection" unique_id=1382568252]
-layout_mode = 2
-
-[node name="ZoneDescription" type="RichTextLabel" parent="MarginContainer/ZoneInfoContent/PanelContainer/MarginContainer/ZoneHeaderSection" unique_id=21410489]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
-layout_mode = 2
-theme_override_font_sizes/normal_font_size = 24
-theme_override_font_sizes/bold_font_size = 24
-theme_override_font_sizes/bold_italics_font_size = 24
-theme_override_font_sizes/italics_font_size = 24
-theme_override_font_sizes/mono_font_size = 24
-bbcode_enabled = true
-text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud"
-fit_content = true
-scroll_active = false
-autowrap_mode = 2
-
 [node name="ActionsSection" type="VBoxContainer" parent="MarginContainer/ZoneInfoContent" unique_id=1228696418]
 layout_mode = 2
 size_flags_vertical = 3
