@@ -26,9 +26,11 @@ const PATH_GLOW_COLOR = Color(0.5, 0.72, 0.95, 0.3)
 @onready var path_2d: Path2D = %CyclingPath2D
 @onready var path_follow_2d: PathFollow2D = %PathFollow2D
 @onready var madra_ball: Area2D = %MadraBall
+@onready var _madra_ball_sprite: Sprite2D = %MadraBallSprite
 @onready var path_line: Line2D = %PathLine
 @onready var _path_glow_line: Line2D = %PathGlowLine
 var _path_pulse_shader: Shader = preload("res://assets/shaders/path_pulse.gdshader")
+var _last_progress: float = 0.0
 
 #-----------------------------------------------------------------------------
 # TWEEN FOR ANIMATION
@@ -266,9 +268,11 @@ func _start_cycling_animation() -> void:
 	if movement_tween:
 		movement_tween.kill()
 	
-	# Create new tween for this cycle (now we're definitely in the scene tree)
+	# Create new tween for this cycle
 	movement_tween = create_tween()
-	movement_tween.tween_property(path_follow_2d, "progress_ratio", 1.0, technique_data.cycle_duration)
+	movement_tween.tween_property(path_follow_2d, "progress_ratio", 1.0, technique_data.cycle_duration) \
+		.set_ease(Tween.EASE_IN_OUT) \
+		.set_trans(Tween.TRANS_SINE)
 	movement_tween.finished.connect(_on_cycle_finished)
 
 ## Called when the ball completes one full cycle.
@@ -469,14 +473,39 @@ func _spawn_floating_text(text: String, color: Color, _text_position: Vector2) -
 		floating_text.show_text(text, color, mouse_pos)
 
 #-----------------------------------------------------------------------------
+# MADRA BALL SHADER
+#-----------------------------------------------------------------------------
+
+func _update_madra_ball_shader(_delta: float) -> void:
+	if not _madra_ball_sprite or not _madra_ball_sprite.material:
+		return
+
+	var mat: ShaderMaterial = _madra_ball_sprite.material as ShaderMaterial
+	if not mat:
+		return
+
+	var is_moving: float = 0.0
+	if current_state == CycleState.CYCLING:
+		# Calculate speed from progress change
+		var current_progress: float = path_follow_2d.progress_ratio
+		var speed: float = abs(current_progress - _last_progress) * 60.0
+		_last_progress = current_progress
+		is_moving = clampf(speed * 5.0, 0.0, 1.0)
+
+	mat.set_shader_parameter("movement_state", is_moving)
+	mat.set_shader_parameter("spin_speed", lerpf(3.0, 15.0, is_moving))
+
+#-----------------------------------------------------------------------------
 # MADRA GENERATION
 #-----------------------------------------------------------------------------
 
 ## Track mouse accuracy during cycling (madra calculated at cycle end).
 func _process(delta: float) -> void:
+	_update_madra_ball_shader(delta)
+
 	if current_state != CycleState.CYCLING:
 		return
-		
+
 	# Track elapsed cycle time
 	elapsed_cycle_time += delta
 		

@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="CyclingZoneData" format=3 uid="uid://yhh2pskdwqk8"]
+
+[ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_zone_data.gd" id="1_zone"]
+
+[resource]
+script = ExtResource("1_zone")
+position = Vector2(320, 180)

@@ -1287,11 +1287,11 @@ texture_margin_right = 2.0
 texture_margin_bottom = 2.0
 region_rect = Rect2(16, 40, 8, 8)
 
-[sub_resource type="StyleBoxFlat" id="576"]
-draw_center = false
-border_width_top = 1
-border_color = Color(0.2, 0.2, 0.2, 1)
-anti_aliasing = false
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_ritsa"]
+color = Color(0.76862746, 0.53333336, 0.2901961, 1)
+grow_begin = -8.0
+grow_end = -8.0
+thickness = 2
 
 [sub_resource type="AtlasTexture" id="250"]
 atlas = ExtResource("4_ritsa")
@@ -2367,6 +2367,11 @@ cache/0/28/0/descent = 0.0
 cache/0/28/0/underline_position = 0.0
 cache/0/28/0/underline_thickness = 0.0
 cache/0/28/0/scale = 1.0
+cache/0/38/0/ascent = 0.0
+cache/0/38/0/descent = 0.0
+cache/0/38/0/underline_position = 0.0
+cache/0/38/0/underline_thickness = 0.0
+cache/0/38/0/scale = 1.0
 cache/1/variation_coordinates = {}
 cache/1/face_index = 0
 cache/1/embolden = 2.0
@@ -2782,7 +2787,7 @@ HScrollBar/styles/grabber_highlight = SubResource("393")
 HScrollBar/styles/grabber_pressed = null
 HScrollBar/styles/scroll = SubResource("394")
 HScrollBar/styles/scroll_focus = SubResource("395")
-HSeparator/styles/separator = SubResource("576")
+HSeparator/styles/separator = SubResource("StyleBoxLine_ritsa")
 HSlider/icons/grabber = SubResource("250")
 HSlider/icons/grabber_disabled = SubResource("251")
 HSlider/icons/grabber_highlight = SubResource("252")

@@ -51,8 +51,8 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="CyclingTechniqueOutline" type="Sprite2D" parent="MarginContainer/Panel/HBoxContainer" unique_id=411273347]
-position = Vector2(537, 436)
-scale = Vector2(1, 1.1933334)
+position = Vector2(537, 452)
+scale = Vector2(1, 1.3866667)
 texture = SubResource("CompressedTexture2D_0j2st")
 
 [node name="CyclingBackground" type="TextureRect" parent="MarginContainer/Panel/HBoxContainer" unique_id=564596054]
@@ -64,7 +64,7 @@ mouse_filter = 2
 
 [node name="CyclingTechnique" parent="MarginContainer/Panel/HBoxContainer/CyclingBackground" unique_id=1193719417 instance=ExtResource("3_hypg5")]
 unique_name_in_owner = true
-position = Vector2(-322, -385)
+position = Vector2(-322, -428)
 
 [node name="InfoPanelArea" type="MarginContainer" parent="MarginContainer/Panel/HBoxContainer" unique_id=596135546]
 layout_mode = 2
@@ -79,6 +79,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_8tk3k")
 theme_type_variation = &"CyclingTabContainer"
+theme_override_font_sizes/font_size = 28
 theme_override_styles/panel = ExtResource("5_4g8xi")
 current_tab = 0
 script = ExtResource("5_8tk3k")

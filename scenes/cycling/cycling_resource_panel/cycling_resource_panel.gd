@@ -25,8 +25,8 @@ const MAX_CORE_DENSITY_LEVEL: float = 100.0
 @onready var _core_density_xp_bar: ProgressBar = %CoreDensityXPProgressBar
 @onready var _stage_label: Label = %StageLabel
 
-@onready var _technique_name_label: Label = %TechniqueNameLabel
-@onready var _technique_stats_label: Label = %TechniqueStatsLabel
+@onready var _technique_name_label: RichTextLabel = %TechniqueNameLabel
+@onready var _technique_stats_label: RichTextLabel = %TechniqueStatsLabel
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -140,12 +140,12 @@ func _update_technique_display() -> void:
 	if not is_node_ready():
 		return
 	if _current_technique == null:
-		_technique_name_label.text = "No Technique"
+		_technique_name_label.text = "[center][font_size=36][color=#D4A84A]No Technique[/color][/font_size][/center]"
 		_technique_stats_label.text = ""
 		return
-	_technique_name_label.text = _current_technique.technique_name
+	_technique_name_label.text = "[center][font_size=36][color=#D4A84A]%s[/color][/font_size][/center]" % _current_technique.technique_name
 	var zones_count: int = _current_technique.cycling_zones.size()
-	_technique_stats_label.text = "%.0f Madra/cycle  %.0fs  %d zones" % [
+	_technique_stats_label.text = "[font_size=28][table=2][cell][color=#7a6a52]Madra/cycle[/color][/cell][cell][color=#F0E8D8]%.0f[/color][/cell][cell][color=#7a6a52]Duration[/color][/cell][cell][color=#F0E8D8]%.0fs[/color][/cell][cell][color=#7a6a52]Zones[/color][/cell][cell][color=#F0E8D8]%d[/color][/cell][/table][/font_size]" % [
 		_current_technique.base_madra_per_cycle,
 		_current_technique.cycle_duration,
 		zones_count

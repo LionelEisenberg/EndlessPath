@@ -92,13 +92,19 @@ func show_zone() -> void:
 func hide_zone() -> void:
 	visible = false
 
-## Flash this zone with a specific color.
+## Flash this zone with a specific color on successful click.
 func flash_zone(color: Color) -> void:
 	if _shader_material:
+		# Temporarily override the active color for the flash
 		_shader_material.set_shader_parameter("active_color", color)
 		_set_state(1.0)
-	await get_tree().create_timer(0.3).timeout
-	if not is_used:
+	await get_tree().create_timer(0.4).timeout
+	# Restore default active color
+	if _shader_material:
+		_shader_material.set_shader_parameter("active_color", Color(0.85, 0.95, 1.0, 0.95))
+	if is_used:
+		_set_state(-1.0)
+	else:
 		_set_state(0.0)
 
 #-----------------------------------------------------------------------------
