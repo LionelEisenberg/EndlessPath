@@ -79,14 +79,17 @@ texture = ExtResource("3_yssfv")
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/ZoneView" unique_id=1838564014]
 clip_contents = true
-layout_mode = 0
-offset_right = 1382.0
-offset_bottom = 1080.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="SubViewport" type="SubViewport" parent="MainView/ZoneView/SubViewportContainer" unique_id=1166320537]
 transparent_bg = true
 handle_input_locally = false
-size = Vector2i(1382, 1080)
+size = Vector2i(1920, 1080)
 render_target_update_mode = 4
 
 [node name="ZoneTilemap" parent="MainView/ZoneView/SubViewportContainer/SubViewport" unique_id=903827960 instance=ExtResource("3_1i3v0")]
