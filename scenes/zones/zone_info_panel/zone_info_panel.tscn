@@ -3,7 +3,10 @@
 [ext_resource type="Script" uid="uid://c1016g1006mjr" path="res://scenes/zones/zone_info_panel/zone_info_panel.gd" id="1_rt5e4"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_rm6n2"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lgamx"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.06, 0.07, 0.1, 0.85)
+border_width_left = 1
+border_color = Color(0.83, 0.66, 0.29, 0.08)
 
 [node name="ZoneInfoPanel" type="PanelContainer" unique_id=694324229]
 anchors_preset = 15
@@ -12,7 +15,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxEmpty_lgamx")
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 script = ExtResource("1_rt5e4")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=505356348]
@@ -25,6 +28,13 @@ theme_override_constants/margin_bottom = 12
 [node name="ZoneInfoContent" type="VBoxContainer" parent="MarginContainer" unique_id=2136763688]
 layout_mode = 2
 theme_override_constants/separation = 12
+
+[node name="ActionsTitle" type="Label" parent="MarginContainer/ZoneInfoContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_font_sizes/font_size = 13
+text = "ZONE ACTIONS"
+horizontal_alignment = 0
 
 [node name="ActionsSection" type="VBoxContainer" parent="MarginContainer/ZoneInfoContent" unique_id=1228696418]
 layout_mode = 2
