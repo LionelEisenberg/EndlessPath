@@ -22,7 +22,7 @@ signal technique_change_request(data: CyclingTechniqueData)
 # STATE
 #-----------------------------------------------------------------------------
 
-var _technique_slot_scene: PackedScene = preload("res://scenes/cycling/cycling_technique_selector/cycling_technique_slot.tscn")
+var _technique_slot_scene: PackedScene = preload("res://scenes/cycling/cycling_technique_slot/cycling_technique_slot.tscn")
 var _technique_list: CyclingTechniqueList = null
 var _current_technique_data: CyclingTechniqueData = null
 var _list_dirty: bool = true
