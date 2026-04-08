@@ -114,16 +114,13 @@ grow_horizontal = 0
 size_flags_vertical = 3
 
 [node name="ZoneResourcePanel" parent="MainView/ZoneView" unique_id=2120600450 instance=ExtResource("11_wyoa6")]
-layout_mode = 0
-anchors_preset = 0
-anchor_right = 0.0
-anchor_bottom = 0.0
-offset_left = 50.0
-offset_top = 763.0
-offset_right = 700.0
-offset_bottom = 1003.0
-grow_horizontal = 1
-grow_vertical = 1
+layout_mode = 1
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 24.0
+offset_top = -120.0
+offset_right = 160.0
+offset_bottom = 120.0
 
 [node name="ZoneHeader" parent="MainView/ZoneView" instance=ExtResource("12_zh")]
 layout_mode = 1
