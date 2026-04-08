@@ -117,7 +117,8 @@ func _save_current_technique(technique_data: CyclingTechniqueData) -> void:
 
 func _on_madra_particle_requested(from_pos: Vector2) -> void:
 	var target: Vector2 = cycling_resource_panel_node.get_madra_orb_global_position()
-	_spawn_particle(from_pos, target, MADRA_PARTICLE_COLOR, 0.5, MADRA_PARTICLE_SIZE)
+	_spawn_particle(from_pos, target, MADRA_PARTICLE_COLOR, 0.5, MADRA_PARTICLE_SIZE,
+		cycling_resource_panel_node.pulse_madra_orb)
 
 func _on_xp_particle_requested(from_pos: Vector2, color: Color, quality: float) -> void:
 	var target: Vector2 = cycling_resource_panel_node.get_core_density_orb_global_position()
@@ -126,9 +127,11 @@ func _on_xp_particle_requested(from_pos: Vector2, color: Color, quality: float) 
 		var offset: Vector2 = Vector2(randf_range(-15, 15), randf_range(-15, 15))
 		var duration: float = randf_range(0.4, 0.7)
 		var size: float = randf_range(3.0, 5.0)
-		_spawn_particle(from_pos + offset, target, color, duration, size)
+		# Only pulse on the last particle of the burst
+		var callback: Callable = cycling_resource_panel_node.pulse_core_density_orb if i == count - 1 else Callable()
+		_spawn_particle(from_pos + offset, target, color, duration, size, callback)
 
-func _spawn_particle(from: Vector2, to: Vector2, color: Color, duration: float, size: float) -> void:
+func _spawn_particle(from: Vector2, to: Vector2, color: Color, duration: float, size: float, on_arrive: Callable = Callable()) -> void:
 	var particle: FlyingParticle = FlyingParticle.new()
 	add_child(particle)
-	particle.launch(from, to, color, duration, size)
+	particle.launch(from, to, color, duration, size, on_arrive)

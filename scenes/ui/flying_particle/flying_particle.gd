@@ -17,6 +17,7 @@ var _elapsed: float = 0.0
 var _color: Color = Color(0.7, 0.85, 1.0, 1.0)
 var _size: float = 5.0
 var _trail: PackedVector2Array = PackedVector2Array()
+var _on_arrive: Callable = Callable()
 const MAX_TRAIL_LENGTH: int = 8
 
 #-----------------------------------------------------------------------------
@@ -43,6 +44,8 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 	if t >= 1.0:
+		if _on_arrive.is_valid():
+			_on_arrive.call()
 		queue_free()
 
 func _draw() -> void:
@@ -73,12 +76,13 @@ func _draw() -> void:
 #-----------------------------------------------------------------------------
 
 ## Launch the particle from start to target with a random curve offset.
-func launch(start: Vector2, target: Vector2, color: Color, duration: float = 0.6, size: float = 5.0) -> void:
+func launch(start: Vector2, target: Vector2, color: Color, duration: float = 0.6, size: float = 5.0, on_arrive: Callable = Callable()) -> void:
 	_start_pos = start
 	_target_pos = target
 	_color = color
 	_duration = duration
 	_size = size
+	_on_arrive = on_arrive
 	global_position = start
 
 	# Random control point for curved path
