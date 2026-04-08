@@ -51,6 +51,8 @@ var zone_data: Array[CyclingZoneData] = []
 #-----------------------------------------------------------------------------
 signal cycling_started
 signal cycle_completed(madra_earned: float, mouse_accuracy: float)
+signal madra_particle_requested(from_pos: Vector2)
+signal xp_particle_requested(from_pos: Vector2, color: Color, quality: float)
 
 #-----------------------------------------------------------------------------
 # STATE TRACKING
@@ -62,6 +64,8 @@ var active_zone: CyclingZone = null
 #-----------------------------------------------------------------------------
 # MOUSE TRACKING
 #-----------------------------------------------------------------------------
+var _madra_particle_timer: float = 0.0
+const MADRA_PARTICLE_INTERVAL: float = 0.08
 var mouse_tracking_accuracy: float = 0.0
 var cycle_start_time: float = 0.0
 var time_mouse_in_ball: float = 0.0 # Total time mouse was inside ball
@@ -282,16 +286,11 @@ func _on_cycle_finished() -> void:
 	# Calculate final mouse tracking accuracy
 	var final_mouse_accuracy = mouse_tracking_accuracy
 	
-	# Calculate madra earned: base_madra_per_cycle * mouse_tracking_accuracy (0.0 to 1.0)
-	# This means perfect mouse tracking (1.0) gives 100% of base madra, poor tracking gives less
-	var madra_earned = 0.0
+	# Madra is now awarded incrementally during tracking (per particle spawn).
+	# Calculate total earned this cycle for stats/signals only.
+	var madra_earned: float = 0.0
 	if technique_data:
 		madra_earned = technique_data.base_madra_per_cycle * final_mouse_accuracy
-		madra_earned = max(0.0, madra_earned) # Ensure non-negative
-		
-		# Award madra to player
-		if madra_earned > 0:
-			ResourceManager.add_madra(madra_earned)
 	
 	# Emit cycle completed signal with madra earned and accuracy
 	cycle_completed.emit(madra_earned, final_mouse_accuracy)
@@ -436,6 +435,10 @@ func _handle_zone_click(zone: CyclingZone, zone_data_item: CyclingZoneData) -> v
 	
 	# Show floating text at mouse position
 	_spawn_floating_text(timing_quality + " +" + str(xp_reward) + " XP", quality_color)
+
+	# Emit particle burst toward core density orb
+	var quality_scale: float = 1.0 if timing_quality == "PERFECT" else (0.7 if timing_quality == "GOOD" else 0.4)
+	xp_particle_requested.emit(get_global_mouse_position(), quality_color, quality_scale)
 	
 	# Record timing data for final stats
 	click_timings.append({
@@ -518,9 +521,17 @@ func _process(delta: float) -> void:
 	# Check if mouse is inside the MadraBall's area using point detection
 	var mouse_inside_ball = is_mouse_in_madra_ball()
 	
-	# Track time mouse was inside ball
+	# Track time mouse was inside ball — award madra per particle
 	if mouse_inside_ball:
 		time_mouse_in_ball += delta
+		_madra_particle_timer += delta
+		if _madra_particle_timer >= MADRA_PARTICLE_INTERVAL:
+			_madra_particle_timer = 0.0
+			madra_particle_requested.emit(madra_ball.global_position)
+			# Award madra incrementally — each particle = a chunk of the total
+			if technique_data and technique_data.cycle_duration > 0:
+				var madra_per_particle: float = technique_data.base_madra_per_cycle * MADRA_PARTICLE_INTERVAL / technique_data.cycle_duration
+				ResourceManager.add_madra(madra_per_particle)
 	
 	# Calculate current mouse tracking accuracy (ratio of time inside ball, 0.0 to 1.0)
 	if elapsed_cycle_time > 0.0:
