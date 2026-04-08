@@ -1,4 +1,4 @@
-class_name ZoneToolbar
+class_name Toolbar
 extends PanelContainer
 ## Bottom toolbar with system menu buttons, gold display, and log toggle.
 

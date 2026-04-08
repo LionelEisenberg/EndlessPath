@@ -1,0 +1,113 @@
+[gd_scene format=3 uid="uid://bdd1ahrewppuc"]
+
+[ext_resource type="Script" uid="uid://dfhb6ul52u40i" path="res://scenes/ui/toolbar/toolbar.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://d0eha7yo0rjne" path="res://scenes/zones/zone_resource_panel/system_menu/system_menu_button.tscn" id="2_smb"]
+[ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/ui_images/resources/gold_icon.png" id="3_gold"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.04, 0.05, 0.07, 0.95)
+border_width_top = 1
+border_color = Color(0.831, 0.659, 0.29, 0.15)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_logbtn"]
+content_margin_left = 16.0
+content_margin_top = 6.0
+content_margin_right = 16.0
+content_margin_bottom = 6.0
+bg_color = Color(0.15, 0.16, 0.2, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.831, 0.659, 0.29, 0.3)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_logbtn_active"]
+content_margin_left = 16.0
+content_margin_top = 6.0
+content_margin_right = 16.0
+content_margin_bottom = 6.0
+bg_color = Color(0.2, 0.18, 0.12, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.831, 0.659, 0.29, 0.6)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[node name="Toolbar" type="PanelContainer" unique_id=1633776995]
+custom_minimum_size = Vector2(1920, 60)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1_script")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=2036524291]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="InventoryButton" parent="HBoxContainer" unique_id=556104671 instance=ExtResource("2_smb")]
+layout_mode = 2
+
+[node name="AbilitiesButton" parent="HBoxContainer" unique_id=45427362 instance=ExtResource("2_smb")]
+layout_mode = 2
+menu_type = 1
+
+[node name="CharacterButton" parent="HBoxContainer" unique_id=1622686658 instance=ExtResource("2_smb")]
+layout_mode = 2
+menu_type = 2
+
+[node name="PathButton" parent="HBoxContainer" unique_id=1818746569 instance=ExtResource("2_smb")]
+layout_mode = 2
+menu_type = 3
+
+[node name="ToolbarDivider" type="VSeparator" parent="HBoxContainer" unique_id=1638502559]
+layout_mode = 2
+
+[node name="GoldSection" type="HBoxContainer" parent="HBoxContainer" unique_id=1859840752]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 8
+
+[node name="GoldIcon" type="TextureRect" parent="HBoxContainer/GoldSection" unique_id=1655793914]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("3_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GoldLabel" type="Label" parent="HBoxContainer/GoldSection" unique_id=1564354176]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_font_sizes/font_size = 24
+text = "0"
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="HBoxContainer" unique_id=1551990771]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.89
+
+[node name="LogToggleButton" type="Button" parent="HBoxContainer" unique_id=1024105774]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
+theme_override_colors/font_pressed_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBoxFlat_logbtn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_logbtn_active")
+theme_override_styles/hover = SubResource("StyleBoxFlat_logbtn")
+toggle_mode = true
+text = "Log"
