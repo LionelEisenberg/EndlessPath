@@ -28,7 +28,7 @@ func _ready() -> void:
 func setup_zone_info() -> void:
 	if current_zone_data:
 		zone_title.bbcode_enabled = true
-		zone_title.text = "Current Zone: [color=red]%s[/color]" % current_zone_data.zone_name
+		zone_title.text = "Current Zone: [color=#D4A84A]%s[/color]" % current_zone_data.zone_name
 		zone_description.text = current_zone_data.description
 
 func _on_zone_changed(zone_data: ZoneData) -> void:

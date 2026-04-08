@@ -96,6 +96,7 @@ func _ready() -> void:
 
 	# Auto cycle toggle visual state
 	auto_cycle_toggle.toggled.connect(_on_auto_cycle_toggled)
+	auto_cycle_toggle.text = "Auto: OFF"
 
 	setup(technique_data_input)
 

@@ -6,7 +6,6 @@
 [ext_resource type="Curve2D" uid="uid://bv6hktnn46o76" path="res://resources/cycling/cycling_techniques/test_technique_2/smooth_path.tres" id="3_3ut4h"]
 [ext_resource type="Shader" uid="uid://bedm1mso5rcux" path="res://assets/shaders/madra_ball.gdshader" id="shader_madra"]
 
-
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2ju65"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_3ut4h"]
@@ -32,7 +31,6 @@ shader_parameter/movement_state = 0.0
 [node name="CyclingTechnique" type="Node2D" unique_id=1273419378]
 script = ExtResource("1_j38ga")
 technique_data_input = ExtResource("2_3ut4h")
-
 
 [node name="PathLine" type="Line2D" parent="." unique_id=1039986837]
 unique_name_in_owner = true
@@ -77,7 +75,7 @@ curve = ExtResource("3_3ut4h")
 
 [node name="PathFollow2D" type="PathFollow2D" parent="CyclingPath2D" unique_id=279969347]
 unique_name_in_owner = true
-position = Vector2(320, 456)
+position = Vector2(320, 464)
 rotation = 1.9557537
 rotates = false
 loop = false
