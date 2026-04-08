@@ -59,6 +59,14 @@ func set_technique_data(data: CyclingTechniqueData) -> void:
 	if is_node_ready():
 		_update_technique_display()
 
+## Get the global position of the Madra orb center (for particle targets).
+func get_madra_orb_global_position() -> Vector2:
+	return _madra_circle.global_position + _madra_circle.size * 0.5
+
+## Get the global position of the Core Density orb center (for particle targets).
+func get_core_density_orb_global_position() -> Vector2:
+	return _core_density_circle.global_position + _core_density_circle.size * 0.5
+
 ## Called when a cycle starts.
 func on_cycling_started() -> void:
 	_is_cycling = true

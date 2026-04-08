@@ -80,7 +80,7 @@ func add_madra(amount: float) -> void:
 	live_save_data.madra = clamp(live_save_data.madra + amount, 0.0, max_madra)
 	madra_changed.emit(live_save_data.madra)
 	
-	if LogManager:
+	if LogManager and amount >= 1.0:
 		LogManager.log_message("[color=cyan]Gained %d Madra[/color]" % int(amount))
 
 func spend_madra(amount: float) -> bool:
