@@ -29,7 +29,7 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 func _update_gold() -> void:
-	_gold_label.text = str(ResourceManager.get_gold())
+	_gold_label.text = str(int(ResourceManager.get_gold()))
 
 func _on_gold_changed(_new_amount: float) -> void:
 	_update_gold()

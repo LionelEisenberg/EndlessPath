@@ -43,11 +43,9 @@ script = ExtResource("2_11so6")
 unique_name_in_owner = true
 z_index = 10
 layout_mode = 1
+anchors_preset = 12
 anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
 offset_top = -240.0
-offset_left = 0.0
 offset_right = -380.0
 offset_bottom = -56.0
 
@@ -77,6 +75,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ZoneTilemapBackground" type="Sprite2D" parent="MainView/ZoneView" unique_id=2054059549]
+visible = false
 z_index = -1
 position = Vector2(963.49994, 555.49994)
 scale = Vector2(0.7769531, 0.7951389)
@@ -100,8 +99,8 @@ render_target_update_mode = 4
 [node name="ZoneTilemap" parent="MainView/ZoneView/SubViewportContainer/SubViewport" unique_id=903827960 instance=ExtResource("3_1i3v0")]
 
 [node name="ZoneInfoPanel" parent="MainView/ZoneView" unique_id=1819263091 instance=ExtResource("4_tvvcy")]
-custom_minimum_size = Vector2(200, 80)
 z_index = 5
+custom_minimum_size = Vector2(200, 80)
 layout_mode = 1
 anchors_preset = 6
 anchor_left = 1.0
@@ -124,27 +123,22 @@ offset_top = -120.0
 offset_right = 160.0
 offset_bottom = 120.0
 
-[node name="ZoneHeader" parent="MainView/ZoneView" instance=ExtResource("12_zh")]
+[node name="ZoneHeader" parent="MainView/ZoneView" unique_id=618100488 instance=ExtResource("12_zh")]
 z_index = 5
 layout_mode = 1
-anchors_preset = 0
 offset_left = 24.0
 offset_top = 24.0
 offset_right = 420.0
 offset_bottom = 160.0
-grow_horizontal = 1
-grow_vertical = 1
 
-[node name="ZoneToolbar" parent="MainView/ZoneView" instance=ExtResource("13_zt")]
+[node name="ZoneToolbar" parent="MainView/ZoneView" unique_id=1615253691 instance=ExtResource("13_zt")]
 z_index = 10
 layout_mode = 1
+anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = -56.0
-offset_left = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
 
 [node name="AdventureView" parent="MainView" unique_id=1872924392 instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true
