@@ -10,7 +10,6 @@ extends Control
 @onready var stamina_bar: ResourceBar = %StaminaProgressBar
 
 # Buff References
-@onready var buff_info_panel: PanelContainer = %BuffInfo
 @onready var buff_container: HBoxContainer = %BuffContainer
 
 # Ability References
@@ -37,10 +36,6 @@ func _ready() -> void:
 	madra_bar.label_prefix = "Madra"
 	stamina_bar.label_prefix = "Stamina"
 	profile_icon_rect.texture = profile_texture
-	
-	# Initially hide buff panel
-	if buff_info_panel:
-		buff_info_panel.visible = false
 	
 	# Initially hide ability panel
 	if abilities_panel:
@@ -100,10 +95,8 @@ func setup_buffs(p_buff_manager: CombatBuffManager) -> void:
 			if buff.stack_count > 1:
 				_on_buff_stacked(buff.buff_data.buff_id, buff.stack_count)
 
-		# Only show if there are actual buffs
-		buff_info_panel.visible = not active_buff_icons.is_empty()
 	else:
-		buff_info_panel.visible = false
+		pass
 
 ## Sets the combatant name displayed at the top of the panel.
 func setup_name(combatant_name: String) -> void:
@@ -180,14 +173,12 @@ func _on_buff_applied(buff_id: String, duration: float) -> void:
 	icon.setup(buff.buff_data, duration, buff.stack_count)
 	
 	active_buff_icons[buff_id] = icon
-	buff_info_panel.visible = true
 
 func _on_buff_removed(buff_id: String) -> void:
 	if active_buff_icons.has(buff_id):
 		var icon = active_buff_icons[buff_id]
 		icon.queue_free()
 		active_buff_icons.erase(buff_id)
-		buff_info_panel.visible = not active_buff_icons.is_empty()
 
 func _on_buff_refreshed(buff_id: String, new_duration: float) -> void:
 	if active_buff_icons.has(buff_id):
@@ -202,7 +193,6 @@ func _on_buff_stacked(buff_id: String, stack_count: int) -> void:
 
 func _on_buff_manager_exiting() -> void:
 	_cleanup_buffs()
-	buff_info_panel.visible = false
 
 func _cleanup_buffs() -> void:
 	# Disconnect signals if manager still valid
