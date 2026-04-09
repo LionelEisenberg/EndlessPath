@@ -19,6 +19,7 @@ signal start_cycling(action_data: CyclingActionData)
 signal stop_cycling()
 
 ## adventure signals
+signal adventure_start_requested(action_data: AdventureActionData)
 signal start_adventure(action_data: AdventureActionData)
 signal stop_adventure()
 
@@ -143,7 +144,7 @@ func _on_forage_timer_finished(action_data: ForageActionData) -> void:
 	foraging_completed.emit(rolled_items)
 
 
-## Handle adventure action - switch to adventure view.
+## Handle adventure action - request start (zone view plays drain animation first).
 func _execute_adventure_action(action_data: AdventureActionData) -> void:
 	if not ResourceManager.can_start_adventure():
 		var threshold: float = ResourceManager.get_adventure_madra_threshold()
@@ -153,7 +154,12 @@ func _execute_adventure_action(action_data: AdventureActionData) -> void:
 			LogManager.log_message("[color=red]Not enough Madra! Need %.0f, have %.0f[/color]" % [threshold, current])
 		_set_current_action(null)
 		return
-	Log.info("ActionManager: Executing adventure action: %s" % action_data.action_name)
+	Log.info("ActionManager: Adventure start requested: %s" % action_data.action_name)
+	adventure_start_requested.emit(action_data)
+
+## Confirm adventure start after drain animation completes.
+func confirm_adventure_start(action_data: AdventureActionData) -> void:
+	Log.info("ActionManager: Confirming adventure start: %s" % action_data.action_name)
 	start_adventure.emit(action_data)
 
 ## Handle cycling action - switch to cycling view.
