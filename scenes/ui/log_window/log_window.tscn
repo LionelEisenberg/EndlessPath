@@ -8,36 +8,38 @@
 
 [node name="LogWindow" type="PanelContainer" unique_id=1764718786]
 custom_minimum_size = Vector2(400, 0)
+mouse_filter = 1
 theme_override_styles/panel = ExtResource("2_lw")
 script = ExtResource("1_logwin")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1215342965]
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="TitleBar" type="PanelContainer" parent="VBoxContainer" unique_id=919663869]
+[node name="TitleBar" type="PanelContainer" parent="VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
+mouse_filter = 0
 theme_override_styles/panel = ExtResource("3_tb")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TitleBar" unique_id=1097860366]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TitleBar"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=1630605347]
+[node name="TitleLabel" type="Label" parent="VBoxContainer/TitleBar/HBoxContainer"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
 theme_override_font_sizes/font_size = 16
 text = "Log"
 
-[node name="Spacer" type="Control" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=1250722815]
+[node name="Spacer" type="Control" parent="VBoxContainer/TitleBar/HBoxContainer"]
 layout_mode = 2
-size_flags_horizontal = 3
 mouse_filter = 2
+size_flags_horizontal = 3
 
-[node name="CollapseButton" type="Button" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=1487653363]
+[node name="CollapseButton" type="Button" parent="VBoxContainer/TitleBar/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.57, 0.5, 1)
@@ -45,14 +47,14 @@ theme_override_font_sizes/font_size = 12
 text = "▼"
 flat = true
 
-[node name="ContentPanel" type="PanelContainer" parent="VBoxContainer" unique_id=1169158526]
+[node name="ContentPanel" type="PanelContainer" parent="VBoxContainer"]
 unique_name_in_owner = true
 clip_contents = true
 custom_minimum_size = Vector2(0, 180)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_content")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="VBoxContainer/ContentPanel" unique_id=1207959284]
+[node name="RichTextLabel" type="RichTextLabel" parent="VBoxContainer/ContentPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/normal_font_size = 14

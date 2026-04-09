@@ -9,7 +9,7 @@ extends PanelContainer
 #-----------------------------------------------------------------------------
 
 @onready var _title_bar: PanelContainer = %TitleBar
-@onready var _content_panel: Control = %ContentPanel
+@onready var _content_panel: PanelContainer = %ContentPanel
 @onready var _rich_text_label: RichTextLabel = %RichTextLabel
 @onready var _collapse_button: Button = %CollapseButton
 
@@ -25,17 +25,12 @@ var _drag_offset: Vector2 = Vector2.ZERO
 # LIFECYCLE
 #-----------------------------------------------------------------------------
 
-const DEFAULT_POSITION: Vector2 = Vector2(24, 800)
-
 func _ready() -> void:
 	LogManager.message_logged.connect(_on_message_logged)
 	LogManager.visibility_toggled.connect(toggle_collapse)
 	_collapse_button.pressed.connect(_on_collapse_pressed)
+	_title_bar.gui_input.connect(_on_titlebar_input)
 	_content_panel.visible = false
-	position = DEFAULT_POSITION
-
-func _gui_input(event: InputEvent) -> void:
-	_handle_drag(event)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -51,7 +46,7 @@ func toggle_collapse() -> void:
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
-func _handle_drag(event: InputEvent) -> void:
+func _on_titlebar_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_is_dragging = true
