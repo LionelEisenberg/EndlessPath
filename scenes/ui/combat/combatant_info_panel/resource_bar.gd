@@ -38,9 +38,9 @@ func _setup_progress_bars() -> void:
 ## Updates the bar values.
 func update_values(new_current: float, new_max: float, regen_rate: float = 0.0) -> void:
 	if regen_rate == 0:
-		resource_bar_label.text = "%s: %.1f / %.1f" % [label_prefix, new_current, new_max]
+		resource_bar_label.text = "%s: %d / %d" % [label_prefix, int(new_current), int(new_max)]
 	else:
-		resource_bar_label.text = "%s: %.1f / %.1f (%.1f/s)" % [label_prefix, new_current, new_max, regen_rate]
+		resource_bar_label.text = "%s: %d / %d (%.1f/s)" % [label_prefix, int(new_current), int(new_max), regen_rate]
 	
 	# Initialize if first run
 	if _current_value < 0:

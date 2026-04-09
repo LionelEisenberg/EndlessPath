@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dsyj8icyn4ri1"]
 
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/common/panel_tan.tres" id="1_idpww"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_vitals.tres" id="1_idpww"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_abilities.tres" id="11_combat"]
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_bvhaj"]
 [ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.tscn" id="3_5xx5a"]
@@ -48,12 +49,11 @@ custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_vertical = 8
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
+theme_override_styles/panel = ExtResource("1_idpww")
 
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BuffMarginContainer/BuffInfo" unique_id=1060336980]
 layout_mode = 2
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 theme_override_constants/margin_left = 15
 theme_override_constants/margin_top = 7
 theme_override_constants/margin_right = 15
@@ -64,19 +64,16 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 
 [node name="BuffIcon" parent="VBoxContainer/BuffMarginContainer/BuffInfo/MarginContainer/BuffContainer" unique_id=998018654 instance=ExtResource("3_qovyy")]
 layout_mode = 2
 size_flags_horizontal = 2
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 
 [node name="VitalsInfo" type="Panel" parent="VBoxContainer" unique_id=1244254010]
 layout_mode = 2
 size_flags_vertical = 3
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 theme_override_styles/panel = ExtResource("1_idpww")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/VitalsInfo" unique_id=1091243942]
@@ -95,7 +92,6 @@ grow_vertical = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 theme_override_constants/separation = 40
 
 [node name="HealthProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" unique_id=6725951 instance=ExtResource("3_5xx5a")]
@@ -104,7 +100,6 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 progress = ExtResource("6_l7ne6")
 
 [node name="MadraProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" unique_id=482408546 instance=ExtResource("3_5xx5a")]
@@ -113,7 +108,6 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 progress = ExtResource("4_h1px1")
 
 [node name="StaminaProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" unique_id=1860443413 instance=ExtResource("3_5xx5a")]
@@ -122,7 +116,6 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 progress = ExtResource("5_idpww")
 show_floating_text = false
 
@@ -140,14 +133,12 @@ grow_vertical = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 
 [node name="AbilityMarginContainer" type="MarginContainer" parent="VBoxContainer" unique_id=1197865632]
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.5
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_right = 20
 
@@ -158,7 +149,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 theme = ExtResource("2_bvhaj")
-theme_type_variation = &"PanelDark"
+theme_override_styles/panel = ExtResource("11_combat")
 script = ExtResource("9_5cglh")
 metadata/_edit_group_ = true
 
