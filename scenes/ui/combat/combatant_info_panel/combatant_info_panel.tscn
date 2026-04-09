@@ -2,6 +2,8 @@
 
 [ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_vitals.tres" id="1_idpww"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_abilities.tres" id="11_combat"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_buffs.tres" id="12_buffs"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/cast_bar_fill.tres" id="13_cast"]
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_bvhaj"]
 [ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.tscn" id="3_5xx5a"]
@@ -36,6 +38,14 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = -4
 
+[node name="NameLabel" type="Label" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_font_sizes/font_size = 22
+text = ""
+horizontal_alignment = 0
+
 [node name="BuffMarginContainer" type="MarginContainer" parent="VBoxContainer" unique_id=2115197457]
 layout_mode = 2
 size_flags_vertical = 3
@@ -49,7 +59,7 @@ custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 size_flags_vertical = 8
 theme = ExtResource("2_bvhaj")
-theme_override_styles/panel = ExtResource("1_idpww")
+theme_override_styles/panel = ExtResource("12_buffs")
 
 [node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/BuffMarginContainer/BuffInfo" unique_id=1060336980]
 layout_mode = 2
@@ -208,6 +218,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/fill = ExtResource("13_cast")
 value = 50.0
 show_percentage = false
 

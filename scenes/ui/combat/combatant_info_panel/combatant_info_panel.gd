@@ -3,7 +3,8 @@ extends Control
 
 @export var profile_texture: Texture2D
 
-@onready var profile_icon_rect = %ProfileIconRect
+@onready var name_label: Label = %NameLabel
+@onready var profile_icon_rect: TextureRect = %ProfileIconRect
 @onready var health_bar: ResourceBar = %HealthProgressBar
 @onready var madra_bar: ResourceBar = %MadraProgressBar
 @onready var stamina_bar: ResourceBar = %StaminaProgressBar
@@ -102,6 +103,11 @@ func setup_buffs(p_buff_manager: CombatBuffManager) -> void:
 				_on_buff_stacked(buff.buff_data.buff_id, buff.stack_count)
 	else:
 		buff_info_panel.visible = false
+
+## Sets the combatant name displayed at the top of the panel.
+func setup_name(combatant_name: String) -> void:
+	if name_label:
+		name_label.text = combatant_name
 
 func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
 	# Always clean up previous state/icons first

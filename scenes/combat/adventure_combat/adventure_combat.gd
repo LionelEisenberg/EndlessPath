@@ -127,6 +127,7 @@ func _create_enemy_combatant() -> void:
 	enemy_combatant.setup(enemy_data, null, false)
 
 	# Setup CombatantInfoPanel
+	enemy_info_panel.setup_name(enemy_data.character_name)
 	enemy_info_panel.setup_vitals(enemy_combatant.vitals_manager)
 	enemy_info_panel.setup_buffs(enemy_combatant.buff_manager)
 	enemy_info_panel.setup_abilities(enemy_combatant.ability_manager)
