@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://kqrb74mi06oc" path="res://assets/asperite/ui/resource_bar/Border.png" id="2_08ulu"]
 
 [node name="ResourceBar" type="Control" unique_id=974106900]
+custom_minimum_size = Vector2(316, 44)
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
