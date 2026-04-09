@@ -100,6 +100,22 @@ func get_madra() -> float:
 func can_afford_madra(amount: float) -> bool:
 	return get_madra() >= amount
 
+## Get the maximum Madra the player can bring into an adventure (Foundation capacity).
+func get_adventure_madra_capacity() -> float:
+	return 50.0 + CharacterManager.get_foundation() * 10.0
+
+## Get the actual Madra budget for an adventure (limited by current pool).
+func get_adventure_madra_budget() -> float:
+	return min(get_adventure_madra_capacity(), get_madra())
+
+## Get the minimum Madra required to start an adventure (50% of capacity).
+func get_adventure_madra_threshold() -> float:
+	return get_adventure_madra_capacity() * 0.5
+
+## Check if the player has enough Madra to start an adventure.
+func can_start_adventure() -> bool:
+	return get_madra() >= get_adventure_madra_threshold()
+
 #-----------------------------------------------------------------------------
 # GOLD MANAGEMENT
 #-----------------------------------------------------------------------------
