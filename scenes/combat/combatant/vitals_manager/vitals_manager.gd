@@ -82,10 +82,10 @@ func _update_combat_max() -> void:
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
-func initialize_current_values() -> void:
+func initialize_current_values(starting_madra: float = -1.0) -> void:
 	current_health = max_health
 	current_stamina = max_stamina
-	current_madra = max_madra
+	current_madra = starting_madra if starting_madra >= 0.0 else max_madra
 
 func apply_vitals_change(health_amount: float = 0.0, stamina_amount: float = 0.0, madra_amount: float = 0.0) -> void:
 	_apply_health_change(health_amount)
