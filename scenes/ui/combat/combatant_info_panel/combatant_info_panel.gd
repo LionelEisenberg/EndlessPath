@@ -10,7 +10,7 @@ extends Control
 @onready var stamina_bar: ResourceBar = %StaminaProgressBar
 
 # Buff References
-@onready var buff_margin_container: MarginContainer = %BuffMarginContainer
+@onready var buff_info_panel: PanelContainer = %BuffInfo
 @onready var buff_container: HBoxContainer = %BuffContainer
 
 # Ability References
@@ -39,8 +39,8 @@ func _ready() -> void:
 	profile_icon_rect.texture = profile_texture
 	
 	# Initially hide buff panel
-	if buff_margin_container:
-		buff_margin_container.visible = false
+	if buff_info_panel:
+		buff_info_panel.visible = false
 	
 	# Initially hide ability panel
 	if abilities_panel:
@@ -101,9 +101,9 @@ func setup_buffs(p_buff_manager: CombatBuffManager) -> void:
 				_on_buff_stacked(buff.buff_data.buff_id, buff.stack_count)
 
 		# Only show if there are actual buffs
-		buff_margin_container.visible = not active_buff_icons.is_empty()
+		buff_info_panel.visible = not active_buff_icons.is_empty()
 	else:
-		buff_margin_container.visible = false
+		buff_info_panel.visible = false
 
 ## Sets the combatant name displayed at the top of the panel.
 func setup_name(combatant_name: String) -> void:
@@ -180,14 +180,14 @@ func _on_buff_applied(buff_id: String, duration: float) -> void:
 	icon.setup(buff.buff_data, duration, buff.stack_count)
 	
 	active_buff_icons[buff_id] = icon
-	buff_margin_container.visible = true
+	buff_info_panel.visible = true
 
 func _on_buff_removed(buff_id: String) -> void:
 	if active_buff_icons.has(buff_id):
 		var icon = active_buff_icons[buff_id]
 		icon.queue_free()
 		active_buff_icons.erase(buff_id)
-		buff_margin_container.visible = not active_buff_icons.is_empty()
+		buff_info_panel.visible = not active_buff_icons.is_empty()
 
 func _on_buff_refreshed(buff_id: String, new_duration: float) -> void:
 	if active_buff_icons.has(buff_id):
@@ -202,7 +202,7 @@ func _on_buff_stacked(buff_id: String, stack_count: int) -> void:
 
 func _on_buff_manager_exiting() -> void:
 	_cleanup_buffs()
-	buff_margin_container.visible = false
+	buff_info_panel.visible = false
 
 func _cleanup_buffs() -> void:
 	# Disconnect signals if manager still valid
