@@ -20,7 +20,7 @@ signal stop_cycling()
 
 ## adventure signals
 signal adventure_start_requested(action_data: AdventureActionData)
-signal start_adventure(action_data: AdventureActionData)
+signal start_adventure(action_data: AdventureActionData, madra_budget: float)
 signal stop_adventure()
 
 #-----------------------------------------------------------------------------
@@ -158,9 +158,9 @@ func _execute_adventure_action(action_data: AdventureActionData) -> void:
 	adventure_start_requested.emit(action_data)
 
 ## Confirm adventure start after drain animation completes.
-func confirm_adventure_start(action_data: AdventureActionData) -> void:
-	Log.info("ActionManager: Confirming adventure start: %s" % action_data.action_name)
-	start_adventure.emit(action_data)
+func confirm_adventure_start(action_data: AdventureActionData, madra_budget: float) -> void:
+	Log.info("ActionManager: Confirming adventure start: %s (budget: %.1f)" % [action_data.action_name, madra_budget])
+	start_adventure.emit(action_data, madra_budget)
 
 ## Handle cycling action - switch to cycling view.
 func _execute_cycling_action(action_data: CyclingActionData) -> void:

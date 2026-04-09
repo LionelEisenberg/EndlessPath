@@ -52,12 +52,13 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
-mouse_filter = 2
+mouse_filter = 1
+tooltip_text = "Madra Requirement"
 theme_override_constants/separation = 4
 
 [node name="MadraBadge" type="RichTextLabel" parent="ActionCard/HBoxContainer/MadraBadgeContainer" unique_id=1553051251]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 0)
+custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2

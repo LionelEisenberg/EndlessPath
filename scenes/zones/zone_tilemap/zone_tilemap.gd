@@ -2,8 +2,6 @@ extends Node2D
 
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
-signal zoom_to_player_completed
-
 @onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
 @onready var character_body: CharacterBody2D = %PlayerCharacter
 @onready var selected_zone_pulse_node: Line2D = %PulseNode
@@ -189,36 +187,3 @@ func _show_foraging_completion_floating_text(items: Dictionary) -> void:
 		
 		var full_text = ", ".join(text_parts)
 		floating_text.show_text(full_text, Color.WHITE, FLOATING_TEXT_OFFSET)
-
-#-----------------------------------------------------------------------------
-# ADVENTURE ZOOM
-#-----------------------------------------------------------------------------
-
-var _saved_camera_zoom: Vector2 = Vector2.ZERO
-var _saved_camera_position: Vector2 = Vector2.ZERO
-
-## Zoom the camera into the player character over the given duration.
-func zoom_to_player(duration: float = 0.5, target_zoom: float = 3.0) -> void:
-	_saved_camera_zoom = _camera.zoom
-	_saved_camera_position = _camera.position
-
-	var target_pos: Vector2 = character_body.global_position + tile_map.position / 2
-
-	var tween: Tween = create_tween().set_parallel(true)
-	tween.tween_property(_camera, "zoom", Vector2(target_zoom, target_zoom), duration) \
-		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(_camera, "position", target_pos, duration) \
-		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
-
-	tween.finished.connect(func(): zoom_to_player_completed.emit())
-
-## Reset camera zoom back to pre-adventure state.
-func reset_camera_zoom(duration: float = 0.3) -> void:
-	if _saved_camera_zoom == Vector2.ZERO:
-		return
-	var tween: Tween = create_tween().set_parallel(true)
-	tween.tween_property(_camera, "zoom", _saved_camera_zoom, duration) \
-		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(_camera, "position", _saved_camera_position, duration) \
-		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	_saved_camera_zoom = Vector2.ZERO

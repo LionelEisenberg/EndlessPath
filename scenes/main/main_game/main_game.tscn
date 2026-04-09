@@ -14,6 +14,7 @@
 [ext_resource type="Script" uid="uid://t6j7xu45pr3y" path="res://scenes/ui/main_view/states/inventory_view_state.gd" id="5_a5o3s"]
 [ext_resource type="Script" uid="uid://c6cvq5n61a2sw" path="res://scenes/ui/main_view/states/zone_view_state.gd" id="6_cp3p8"]
 [ext_resource type="PackedScene" uid="uid://cwb0nnj7np102" path="res://scenes/adventure/adventure_view/adventure_view.tscn" id="7_up6bt"]
+[ext_resource type="Script" uid="uid://dfwnxr83f5s5n" path="res://scenes/zones/zone_transition/zone_transition.gd" id="8_ohlfh"]
 [ext_resource type="PackedScene" uid="uid://bn6xsijn342nc" path="res://scenes/zones/zone_view_background/zone_view_background.tscn" id="9_b61p0"]
 [ext_resource type="PackedScene" uid="uid://c1pbcdgvnut8p" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.tscn" id="11_wyoa6"]
 [ext_resource type="PackedScene" uid="uid://dwoh4801askaa" path="res://scenes/zones/zone_header/zone_header.tscn" id="12_zh"]
@@ -62,6 +63,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="ZoneTransition" type="Node" parent="MainView/ZoneView" unique_id=1866892530]
+script = ExtResource("8_ohlfh")
+metadata/_custom_type_script = "uid://dfwnxr83f5s5n"
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="MainView/ZoneView" unique_id=1838564014]
 clip_contents = true
