@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://bn6xsijn342nc"]
+
+[ext_resource type="Script" path="res://scenes/zones/zone_view_background/zone_view_background.gd" id="1_script"]
+
+[node name="ZoneViewBackground" type="Node2D" unique_id=107849951]
+z_index = -1
+script = ExtResource("1_script")

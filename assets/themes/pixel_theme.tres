@@ -5,13 +5,13 @@
 [ext_resource type="StyleBox" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="3_rniea"]
 [ext_resource type="Texture2D" uid="uid://dx0u5hiwxfgu5" path="res://assets/themes/pixel_ui_theme/8x8_ui_elements.png" id="4_ritsa"]
 [ext_resource type="FontFile" uid="uid://sph0kotu777o" path="res://assets/themes/pixel_ui_theme/m5x7.ttf" id="5_coaog"]
-[ext_resource type="StyleBox" uid="uid://dsvdxbyhv7ait" path="res://assets/styleboxes/tabs/tab_hovered.tres" id="5_ritsa"]
-[ext_resource type="StyleBox" uid="uid://ddxfrsj7ixivk" path="res://assets/styleboxes/tabs/tab_selected.tres" id="6_coaog"]
+[ext_resource type="StyleBox" uid="uid://dsvdxbyhv7ait" path="res://assets/styleboxes/common/tab_hovered.tres" id="5_ritsa"]
+[ext_resource type="StyleBox" uid="uid://ddxfrsj7ixivk" path="res://assets/styleboxes/common/tab_selected.tres" id="6_coaog"]
 [ext_resource type="Texture2D" uid="uid://cxyml1owhi6de" path="res://assets/themes/pixel_ui_theme/8x8_ui_icons.png" id="6_rtjik"]
-[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/panel_tan.tres" id="7_ret6c"]
-[ext_resource type="StyleBox" uid="uid://b0jso76bop0el" path="res://assets/styleboxes/tabs/tab_unselected.tres" id="7_rtjik"]
-[ext_resource type="StyleBox" uid="uid://4phhalxlvhmb" path="res://assets/styleboxes/panel_accent.tres" id="8_m83tu"]
-[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/panel_dark.tres" id="9_lnfkg"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/common/panel_tan.tres" id="7_ret6c"]
+[ext_resource type="StyleBox" uid="uid://b0jso76bop0el" path="res://assets/styleboxes/common/tab_unselected.tres" id="7_rtjik"]
+[ext_resource type="StyleBox" uid="uid://4phhalxlvhmb" path="res://assets/styleboxes/common/panel_accent.tres" id="8_m83tu"]
+[ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/common/panel_dark.tres" id="9_lnfkg"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_w53ym"]
 
@@ -2372,6 +2372,16 @@ cache/0/38/0/descent = 0.0
 cache/0/38/0/underline_position = 0.0
 cache/0/38/0/underline_thickness = 0.0
 cache/0/38/0/scale = 1.0
+cache/0/40/0/ascent = 0.0
+cache/0/40/0/descent = 0.0
+cache/0/40/0/underline_position = 0.0
+cache/0/40/0/underline_thickness = 0.0
+cache/0/40/0/scale = 1.0
+cache/0/26/0/ascent = 0.0
+cache/0/26/0/descent = 0.0
+cache/0/26/0/underline_position = 0.0
+cache/0/26/0/underline_thickness = 0.0
+cache/0/26/0/scale = 1.0
 cache/1/variation_coordinates = {}
 cache/1/face_index = 0
 cache/1/embolden = 2.0

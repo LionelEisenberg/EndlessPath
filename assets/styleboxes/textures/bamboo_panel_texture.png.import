@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://t42558tlpu22"
-path="res://.godot/imported/bamboo_panel_texture.png-92c3367f8fd4ffc42d7a28abf36c3775.ctex"
+path="res://.godot/imported/bamboo_panel_texture.png-27c3c3b5009178ee29376abca69e563a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/styleboxes/bamboo_panel_texture.png"
-dest_files=["res://.godot/imported/bamboo_panel_texture.png-92c3367f8fd4ffc42d7a28abf36c3775.ctex"]
+source_file="res://assets/styleboxes/textures/bamboo_panel_texture.png"
+dest_files=["res://.godot/imported/bamboo_panel_texture.png-27c3c3b5009178ee29376abca69e563a.ctex"]
 
 [params]
 

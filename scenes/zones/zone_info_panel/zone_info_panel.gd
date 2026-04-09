@@ -2,8 +2,6 @@ extends PanelContainer
 
 @onready var current_zone_data: ZoneData = ZoneManager.get_current_zone()
 @onready var actions_content_vbox: VBoxContainer = %ActionsContent
-@onready var zone_title: RichTextLabel = %ZoneTitle
-@onready var zone_description: RichTextLabel = %ZoneDescription
 
 @onready var zone_action_type_section_scene: PackedScene = preload("res://scenes/zones/zone_action_type_section/zone_action_type_section.tscn")
 
@@ -22,20 +20,11 @@ func _ready() -> void:
 
 	if current_zone_data:
 		setup_zone_actions()
-		setup_zone_info()
-	
-## Sets up the zone information display.
-func setup_zone_info() -> void:
-	if current_zone_data:
-		zone_title.bbcode_enabled = true
-		zone_title.text = "Current Zone: [color=#D4A84A]%s[/color]" % current_zone_data.zone_name
-		zone_description.text = current_zone_data.description
 
 func _on_zone_changed(zone_data: ZoneData) -> void:
 	if zone_data != current_zone_data:
 		current_zone_data = zone_data
 		setup_zone_actions()
-		setup_zone_info()
 
 func _on_action_completed(_args = null) -> void:
 	setup_zone_actions()

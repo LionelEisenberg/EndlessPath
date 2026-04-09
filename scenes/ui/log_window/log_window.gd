@@ -1,17 +1,41 @@
 extends Control
+## Collapsible log window that shows/hides on toggle.
 
-@onready var rich_text_label: RichTextLabel = %RichTextLabel
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
+@onready var _rich_text_label: RichTextLabel = %RichTextLabel
+@onready var _log_panel: PanelContainer = %LogPanel
+
+#-----------------------------------------------------------------------------
+# STATE
+#-----------------------------------------------------------------------------
+
+var _is_collapsed: bool = true
+
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
 
 func _ready() -> void:
 	if LogManager:
 		LogManager.message_logged.connect(_on_message_logged)
-		LogManager.visibility_toggled.connect(_on_visibility_toggled)
-	
-	# Default state
-	visible = true
+		LogManager.visibility_toggled.connect(toggle_log)
+	_log_panel.visible = false
+
+#-----------------------------------------------------------------------------
+# PUBLIC FUNCTIONS
+#-----------------------------------------------------------------------------
+
+## Toggles the log panel visibility.
+func toggle_log() -> void:
+	_is_collapsed = not _is_collapsed
+	_log_panel.visible = not _is_collapsed
+
+#-----------------------------------------------------------------------------
+# PRIVATE FUNCTIONS
+#-----------------------------------------------------------------------------
 
 func _on_message_logged(bbcode: String) -> void:
-	rich_text_label.append_text(bbcode + "\n")
-
-func _on_visibility_toggled() -> void:
-	visible = not visible
+	_rich_text_label.append_text(bbcode + "\n")

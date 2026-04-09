@@ -5,16 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://dm58rs33ces5o" path="res://assets/sprites/cycling/Madra-Ball.png" id="2_sxf01"]
 [ext_resource type="Curve2D" uid="uid://bv6hktnn46o76" path="res://resources/cycling/cycling_techniques/test_technique_2/smooth_path.tres" id="3_3ut4h"]
 [ext_resource type="Shader" uid="uid://bedm1mso5rcux" path="res://assets/shaders/madra_ball.gdshader" id="shader_madra"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_2ju65"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_3ut4h"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lpvlw"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ngsug"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_fuabd"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/common/button_invisible.tres" id="6_bi"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_sxf01"]
 radius = 29.54656
@@ -55,11 +46,11 @@ offset_right = 353.0
 offset_bottom = 486.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/normal = SubResource("StyleBoxEmpty_2ju65")
-theme_override_styles/pressed = SubResource("StyleBoxEmpty_3ut4h")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_lpvlw")
-theme_override_styles/disabled = SubResource("StyleBoxEmpty_ngsug")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_fuabd")
+theme_override_styles/normal = ExtResource("6_bi")
+theme_override_styles/pressed = ExtResource("6_bi")
+theme_override_styles/hover = ExtResource("6_bi")
+theme_override_styles/disabled = ExtResource("6_bi")
+theme_override_styles/focus = ExtResource("6_bi")
 
 [node name="AutoCycleToggle" type="Button" parent="." unique_id=345693534]
 unique_name_in_owner = true

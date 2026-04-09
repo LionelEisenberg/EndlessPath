@@ -10,7 +10,7 @@ extends Node
 
 @export_group("Zoom Settings")
 @export var zoom_min: float = 0.5
-@export var zoom_max: float = 1.35
+@export var zoom_max: float = 1.15
 @export var zoom_default: float = 0.65
 @export var zoom_speed: float = 10.0
 @export var zoom_step: float = 0.1  ## How much to zoom per wheel tick
