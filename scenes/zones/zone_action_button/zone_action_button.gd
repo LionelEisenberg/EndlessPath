@@ -1,9 +1,11 @@
 extends MarginContainer
 ## Action card button for zone actions.
-## Adventure actions show Madra cost and disable below threshold.
+## Adventure actions show a Madra badge and disable when unaffordable.
 
 const CARD_NORMAL: StyleBox = preload("res://assets/styleboxes/zones/action_card_normal.tres")
 const CARD_HOVER: StyleBox = preload("res://assets/styleboxes/zones/action_card_hover.tres")
+const DIMMED_MODULATE: Color = Color(0.55, 0.55, 0.55, 1.0)
+const NORMAL_MODULATE: Color = Color(1.0, 1.0, 1.0, 1.0)
 
 @export var action_data: ZoneActionData
 @export var is_current_action: bool = false:
@@ -14,8 +16,12 @@ const CARD_HOVER: StyleBox = preload("res://assets/styleboxes/zones/action_card_
 
 @onready var _action_card: PanelContainer = %ActionCard
 @onready var _action_name_label: Label = %ActionNameLabel
-@onready var _action_desc_label: Label = %ActionDescLabel
-var _madra_cost_label: Label = null
+@onready var _action_desc_label: RichTextLabel = %ActionDescLabel
+@onready var _madra_badge_container: HBoxContainer = %MadraBadgeContainer
+@onready var _madra_icon: TextureRect = %MadraIcon
+@onready var _madra_badge: RichTextLabel = %MadraBadge
+
+var _is_affordable: bool = true
 
 func _ready() -> void:
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
@@ -28,9 +34,8 @@ func _ready() -> void:
 		_setup_labels()
 
 	if action_data and action_data.action_type == ZoneActionData.ActionType.ADVENTURE:
-		_create_madra_cost_label()
 		ResourceManager.madra_changed.connect(_on_madra_changed_for_threshold)
-		_update_madra_cost_display()
+		_update_adventure_state()
 
 ## Sets up the card with action data.
 func setup_action(data: ZoneActionData) -> void:
@@ -51,38 +56,43 @@ func _setup_labels() -> void:
 		_action_desc_label.text = ""
 		_action_desc_label.visible = false
 
-func _create_madra_cost_label() -> void:
-	_madra_cost_label = Label.new()
-	_madra_cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_madra_cost_label.add_theme_font_size_override("font_size", 18)
-	_action_card.get_child(0).add_child(_madra_cost_label)
-
-func _update_madra_cost_display() -> void:
-	if _madra_cost_label == null or action_data == null:
+func _update_madra_badge() -> void:
+	if action_data == null or action_data.action_type != ZoneActionData.ActionType.ADVENTURE:
+		_madra_badge_container.visible = false
 		return
 
 	var threshold: float = ResourceManager.get_adventure_madra_threshold()
-	var budget: float = ResourceManager.get_adventure_madra_budget()
 	var current: float = ResourceManager.get_madra()
-	var can_afford: bool = ResourceManager.can_start_adventure()
+	var capacity: float = ResourceManager.get_adventure_madra_capacity()
 
-	if can_afford:
-		_madra_cost_label.text = "Madra: %.0f" % budget
-		_madra_cost_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
+	_madra_badge_container.visible = true
+	if current >= threshold:
+		_madra_badge.text = "[right][font_size=20][color=#D4A84A]%.0f[/color][color=#7a6a52] / %.0f[/color][/font_size][/right]" % [current, capacity]
 	else:
-		_madra_cost_label.text = "Need %.0f Madra (%.0f)" % [threshold, current]
-		_madra_cost_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_RED)
+		_madra_badge.text = "[right][font_size=20][color=#E06060]%.0f[/color][color=#7a6a52] / %.0f[/color][/font_size][/right]" % [current, threshold]
+
+func _update_adventure_state() -> void:
+	_is_affordable = ResourceManager.can_start_adventure()
+	_update_madra_badge()
+	# Only dim the name/description — keep the Madra badge bright so requirements are visible
+	_action_name_label.modulate = NORMAL_MODULATE if _is_affordable else DIMMED_MODULATE
+	_action_desc_label.modulate = NORMAL_MODULATE if _is_affordable else DIMMED_MODULATE
 
 func _on_card_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if not is_current_action:
 			if action_data and action_data.action_type == ZoneActionData.ActionType.ADVENTURE:
-				if ResourceManager.can_start_adventure():
-					_spawn_madra_drain_particles()
+				if not _is_affordable:
+					_shake_reject()
+					if LogManager:
+						var threshold: float = ResourceManager.get_adventure_madra_threshold()
+						var current: float = ResourceManager.get_madra()
+						LogManager.log_message("[color=red]Not enough Madra! Need %.0f, have %.0f[/color]" % [threshold, current])
+					return
 			ActionManager.select_action(action_data)
 
 func _on_mouse_entered() -> void:
-	if not is_current_action:
+	if not is_current_action and _is_affordable:
 		_action_card.add_theme_stylebox_override("panel", CARD_HOVER)
 
 func _on_mouse_exited() -> void:
@@ -99,21 +109,20 @@ func _on_current_action_changed(_new_action: ZoneActionData) -> void:
 	is_current_action = new_is_current
 
 func _on_madra_changed_for_threshold(_amount: float) -> void:
-	_update_madra_cost_display()
+	_update_adventure_state()
 
-func _spawn_madra_drain_particles() -> void:
-	var zone_resource_panel: ZoneResourcePanel = get_tree().get_first_node_in_group("ZoneResourcePanel") as ZoneResourcePanel
-	if zone_resource_panel == null:
-		return
-
-	var from_pos: Vector2 = zone_resource_panel.get_madra_orb_global_position()
-	var to_pos: Vector2 = _action_card.global_position + _action_card.size * 0.5
-	var particle_color: Color = Color(0.5, 0.78, 1.0, 0.85)
-
-	for i in 8:
-		var particle: FlyingParticle = FlyingParticle.new()
-		var offset: Vector2 = Vector2(randf_range(-10, 10), randf_range(-10, 10))
-		var duration: float = randf_range(0.3, 0.6)
-		var size: float = randf_range(3.0, 5.0)
-		get_tree().current_scene.add_child(particle)
-		particle.launch(from_pos + offset, to_pos + offset, particle_color, duration, size)
+func _shake_reject() -> void:
+	_madra_badge_container.pivot_offset = _madra_badge_container.size * 0.5
+	var tween: Tween = create_tween()
+	var original_pos: Vector2 = _madra_badge_container.position
+	# Scale up slightly
+	tween.tween_property(_madra_badge_container, "scale", Vector2(1.10, 1.10), 0.05)
+	# Shake left-right
+	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(-4, 0), 0.04)
+	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(4, 0), 0.04)
+	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(-3, 0), 0.04)
+	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(3, 0), 0.04)
+	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(-2, 0), 0.03)
+	# Settle back
+	tween.tween_property(_madra_badge_container, "position", original_pos, 0.05)
+	tween.tween_property(_madra_badge_container, "scale", Vector2(1.0, 1.0), 0.1)
