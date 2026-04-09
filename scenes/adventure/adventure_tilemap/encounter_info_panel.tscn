@@ -9,7 +9,7 @@ thickness = 1
 
 [node name="EncounterInfoPanel" type="PanelContainer" unique_id=961620192]
 z_index = 2
-custom_minimum_size = Vector2(400, 500)
+custom_minimum_size = Vector2(340, 0)
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -54,5 +54,4 @@ theme_override_styles/separator = SubResource("StyleBoxLine_onfjm")
 [node name="ChoicesContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=743769390]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
