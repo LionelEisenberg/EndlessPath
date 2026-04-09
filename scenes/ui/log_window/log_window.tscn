@@ -4,32 +4,39 @@
 [ext_resource type="StyleBox" path="res://assets/styleboxes/ui/log_window.tres" id="2_lw"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/ui/log_titlebar.tres" id="3_tb"]
 
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_content"]
+
 [node name="LogWindow" type="PanelContainer" unique_id=1764718786]
 custom_minimum_size = Vector2(400, 0)
+mouse_filter = 0
 theme_override_styles/panel = ExtResource("2_lw")
 script = ExtResource("1_logwin")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 0
 
 [node name="TitleBar" type="PanelContainer" parent="VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 0
+mouse_filter = 2
 theme_override_styles/panel = ExtResource("3_tb")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TitleBar"]
 layout_mode = 2
+mouse_filter = 2
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer/TitleBar/HBoxContainer"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
 theme_override_font_sizes/font_size = 16
 text = "Log"
 
 [node name="Spacer" type="Control" parent="VBoxContainer/TitleBar/HBoxContainer"]
 layout_mode = 2
+mouse_filter = 2
 size_flags_horizontal = 3
 
 [node name="CollapseButton" type="Button" parent="VBoxContainer/TitleBar/HBoxContainer"]
@@ -45,6 +52,7 @@ unique_name_in_owner = true
 layout_mode = 2
 clip_contents = true
 custom_minimum_size = Vector2(0, 180)
+theme_override_styles/panel = SubResource("StyleBoxEmpty_content")
 
 [node name="RichTextLabel" type="RichTextLabel" parent="VBoxContainer/ContentPanel"]
 unique_name_in_owner = true

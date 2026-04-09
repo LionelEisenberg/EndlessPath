@@ -9,7 +9,7 @@ extends PanelContainer
 #-----------------------------------------------------------------------------
 
 @onready var _title_bar: PanelContainer = %TitleBar
-@onready var _content_panel: PanelContainer = %ContentPanel
+@onready var _content_panel: Control = %ContentPanel
 @onready var _rich_text_label: RichTextLabel = %RichTextLabel
 @onready var _collapse_button: Button = %CollapseButton
 
@@ -26,12 +26,13 @@ var _drag_offset: Vector2 = Vector2.ZERO
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	if LogManager:
-		LogManager.message_logged.connect(_on_message_logged)
-		LogManager.visibility_toggled.connect(toggle_collapse)
-	_collapse_button.pressed.connect(toggle_collapse)
-	_title_bar.gui_input.connect(_on_titlebar_input)
+	LogManager.message_logged.connect(_on_message_logged)
+	LogManager.visibility_toggled.connect(toggle_collapse)
+	_collapse_button.pressed.connect(_on_collapse_pressed)
 	_content_panel.visible = false
+
+func _gui_input(event: InputEvent) -> void:
+	_handle_drag(event)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -47,7 +48,7 @@ func toggle_collapse() -> void:
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
-func _on_titlebar_input(event: InputEvent) -> void:
+func _handle_drag(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_is_dragging = true
@@ -57,5 +58,9 @@ func _on_titlebar_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and _is_dragging:
 		global_position = event.global_position - _drag_offset
 
+func _on_collapse_pressed() -> void:
+	toggle_collapse()
+
 func _on_message_logged(bbcode: String) -> void:
-	_rich_text_label.append_text(bbcode + "\n")
+	if _rich_text_label:
+		_rich_text_label.append_text(bbcode + "\n")
