@@ -1,9 +1,6 @@
 [gd_scene format=3 uid="uid://dsyj8icyn4ri1"]
 
-[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_vitals.tres" id="1_idpww"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_abilities.tres" id="11_combat"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_buffs.tres" id="12_buffs"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/cast_bar_fill.tres" id="13_cast"]
+[ext_resource type="StyleBox" uid="uid://c8ppv17qttxmo" path="res://assets/styleboxes/combat/panel_vitals.tres" id="1_idpww"]
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_bvhaj"]
 [ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.tscn" id="3_5xx5a"]
@@ -13,6 +10,9 @@
 [ext_resource type="Texture2D" uid="uid://c7o5q6nwirf5n" path="res://assets/asperite/ui/resource_bar/HealthFill.png" id="6_l7ne6"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="9_5cglh"]
 [ext_resource type="Texture2D" uid="uid://bldgrd4oo0vqe" path="res://assets/RPG_Item_Pack_Retro_Spritesheet.png" id="10_bvhaj"]
+[ext_resource type="StyleBox" uid="uid://3rtufb8sb7ii" path="res://assets/styleboxes/combat/panel_abilities.tres" id="11_combat"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_buffs.tres" id="12_buffs"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/cast_bar_fill.tres" id="13_cast"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_xkkay"]
 atlas = ExtResource("10_bvhaj")
@@ -80,19 +80,15 @@ theme_override_styles/panel = ExtResource("1_idpww")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/VitalsInfo" unique_id=1091243942]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = 100.0
-offset_top = -30.0
-offset_right = 100.0
-offset_bottom = 30.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 200.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
+alignment = 1
 theme = ExtResource("2_bvhaj")
 theme_override_constants/separation = 8
 
@@ -100,7 +96,6 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
 progress = ExtResource("6_l7ne6")
 
@@ -108,7 +103,6 @@ progress = ExtResource("6_l7ne6")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
 progress = ExtResource("4_h1px1")
 
@@ -116,7 +110,6 @@ progress = ExtResource("4_h1px1")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
 progress = ExtResource("5_idpww")
 show_floating_text = false
@@ -136,7 +129,7 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 theme = ExtResource("2_bvhaj")
 
-[node name="NameLabel" type="Label" parent="VBoxContainer/VitalsInfo"]
+[node name="NameLabel" type="Label" parent="VBoxContainer/VitalsInfo" unique_id=1988987892]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 7
@@ -151,7 +144,6 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
 theme_override_font_sizes/font_size = 20
-text = ""
 horizontal_alignment = 1
 
 [node name="AbilityMarginContainer" type="MarginContainer" parent="VBoxContainer" unique_id=1197865632]
