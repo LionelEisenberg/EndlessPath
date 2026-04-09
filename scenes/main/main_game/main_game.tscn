@@ -150,8 +150,8 @@ theme_override_styles/panel = ExtResource("14_lb8xr")
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
-offset_top = 1.0
-offset_bottom = 1.0
+offset_top = 0.0
+offset_bottom = -60.0
 
 [node name="GreyBackground" type="Panel" parent="MainView" unique_id=69316647]
 unique_name_in_owner = true

@@ -44,9 +44,6 @@ func _ready() -> void:
 	else:
 		Log.error("AdventureView: AdventureTilemap reference is missing!")
 	
-	# TODO: Remove this temporary debug button
-	$Button2.pressed.connect(_on_stop_combat.bind(true))
-
 	# Setup Timer
 	timer_panel.timer.timeout.connect(_on_adventure_timer_timeout)
 
