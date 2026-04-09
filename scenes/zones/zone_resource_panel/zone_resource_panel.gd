@@ -16,6 +16,7 @@ extends PanelContainer
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
+	add_to_group("ZoneResourcePanel")
 	_connect_signals()
 	_update_all_displays()
 
@@ -47,6 +48,10 @@ func _update_core_density() -> void:
 	var progress: float = level / 100.0
 	_core_density_rect.set_value(progress)
 	_core_density_label.text = "[center][color=#D4A84A]%s[/color]\nLvl %d[/center]" % [stage_name, int(level)]
+
+## Get the global position of the Madra orb center (for particle targets).
+func get_madra_orb_global_position() -> Vector2:
+	return _madra_circle.global_position + _madra_circle.size * 0.5
 
 func _on_madra_changed(_amount: float) -> void:
 	_update_madra()
