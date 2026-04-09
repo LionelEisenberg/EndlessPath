@@ -10,7 +10,7 @@ extends Control
 @onready var stamina_bar: ResourceBar = %StaminaProgressBar
 
 # Buff References
-@onready var buff_info_panel: Control = %BuffInfo
+@onready var buff_margin_container: MarginContainer = %BuffMarginContainer
 @onready var buff_container: HBoxContainer = %BuffContainer
 
 # Ability References
@@ -39,8 +39,8 @@ func _ready() -> void:
 	profile_icon_rect.texture = profile_texture
 	
 	# Initially hide buff panel
-	if buff_info_panel:
-		buff_info_panel.visible = false
+	if buff_margin_container:
+		buff_margin_container.visible = false
 	
 	# Initially hide ability panel
 	if abilities_panel:
@@ -85,7 +85,7 @@ func setup_buffs(p_buff_manager: CombatBuffManager) -> void:
 	buff_manager = p_buff_manager
 	
 	if buff_manager:
-		buff_info_panel.visible = true
+		buff_margin_container.visible = true
 		
 		# Connect signals
 		buff_manager.buff_applied.connect(_on_buff_applied)
@@ -102,7 +102,7 @@ func setup_buffs(p_buff_manager: CombatBuffManager) -> void:
 			if buff.stack_count > 1:
 				_on_buff_stacked(buff.buff_data.buff_id, buff.stack_count)
 	else:
-		buff_info_panel.visible = false
+		buff_margin_container.visible = false
 
 ## Sets the combatant name displayed at the top of the panel.
 func setup_name(combatant_name: String) -> void:
@@ -199,7 +199,7 @@ func _on_buff_stacked(buff_id: String, stack_count: int) -> void:
 
 func _on_buff_manager_exiting() -> void:
 	_cleanup_buffs()
-	buff_info_panel.visible = false
+	buff_margin_container.visible = false
 
 func _cleanup_buffs() -> void:
 	# Disconnect signals if manager still valid
