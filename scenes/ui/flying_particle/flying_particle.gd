@@ -3,7 +3,7 @@ extends Node2D
 
 ## FlyingParticle
 ## A glowing energy particle that flies from a start point to a target
-## along a curved path with a fading trail, then frees itself on arrival.
+## along a curved bezier path with a fading trail, then frees itself on arrival.
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -75,8 +75,10 @@ func _draw() -> void:
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Launch the particle from start to target with a random curve offset.
-func launch(start: Vector2, target: Vector2, color: Color, duration: float = 0.6, size: float = 5.0, on_arrive: Callable = Callable()) -> void:
+## Launch the particle from start to target.
+## curve_spread: how far the bezier control point deviates from the straight line (pixels).
+## curve_bias: offset the control point toward one side (-1.0 to 1.0, 0.0 = random).
+func launch(start: Vector2, target: Vector2, color: Color, duration: float = 0.6, size: float = 5.0, on_arrive: Callable = Callable(), curve_spread: float = 60.0, curve_bias: float = 0.0) -> void:
 	_start_pos = start
 	_target_pos = target
 	_color = color
@@ -85,10 +87,14 @@ func launch(start: Vector2, target: Vector2, color: Color, duration: float = 0.6
 	_on_arrive = on_arrive
 	global_position = start
 
-	# Random control point for curved path
+	# Bezier control point — perpendicular to the line between start and target
 	var midpoint: Vector2 = (start + target) * 0.5
 	var perpendicular: Vector2 = (target - start).rotated(PI * 0.5).normalized()
-	var curve_amount: float = randf_range(-60.0, 60.0)
+	var curve_amount: float
+	if curve_bias == 0.0:
+		curve_amount = randf_range(-curve_spread, curve_spread)
+	else:
+		curve_amount = curve_spread * curve_bias + randf_range(-curve_spread * 0.3, curve_spread * 0.3)
 	_control_point = midpoint + perpendicular * curve_amount
 
 	_trail.clear()
