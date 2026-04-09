@@ -27,6 +27,9 @@ var is_moving: bool = false
 
 @onready var animation_player: AnimationPlayer = %AnimationPlayer
 
+func _ready() -> void:
+	add_to_group("PlayerCharacter")
+
 func _physics_process(_delta: float) -> void:
 	if is_moving:
 		_update_movement()
