@@ -25,11 +25,14 @@ var _drag_offset: Vector2 = Vector2.ZERO
 # LIFECYCLE
 #-----------------------------------------------------------------------------
 
+const DEFAULT_POSITION: Vector2 = Vector2(24, 800)
+
 func _ready() -> void:
 	LogManager.message_logged.connect(_on_message_logged)
 	LogManager.visibility_toggled.connect(toggle_collapse)
 	_collapse_button.pressed.connect(_on_collapse_pressed)
 	_content_panel.visible = false
+	position = DEFAULT_POSITION
 
 func _gui_input(event: InputEvent) -> void:
 	_handle_drag(event)

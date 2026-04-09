@@ -38,15 +38,6 @@ mouse_filter = 2
 theme = ExtResource("2_a5o3s")
 script = ExtResource("2_11so6")
 
-[node name="LogWindow" parent="MainView" unique_id=1053696094 instance=ExtResource("3_wyoa6")]
-unique_name_in_owner = true
-z_index = 10
-layout_mode = 0
-offset_left = 24.0
-offset_top = 800.0
-offset_right = 440.0
-offset_bottom = 840.0
-
 [node name="MainViewStateMachine" type="Node" parent="MainView" unique_id=1560757974]
 unique_name_in_owner = true
 
@@ -146,9 +137,14 @@ unique_name_in_owner = true
 visible = false
 layout_mode = 1
 
+[node name="LogWindow" parent="MainView" unique_id=1053696094 instance=ExtResource("3_wyoa6")]
+unique_name_in_owner = true
+z_index = 1
+
 [node name="GreyBackground" type="Panel" parent="MainView" unique_id=69316647]
 unique_name_in_owner = true
 visible = false
+z_index = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
