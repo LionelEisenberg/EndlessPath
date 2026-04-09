@@ -80,6 +80,7 @@ theme_override_styles/panel = ExtResource("1_idpww")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/VitalsInfo" unique_id=1091243942]
 layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 200.0
@@ -88,9 +89,8 @@ offset_right = -10.0
 offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
 theme = ExtResource("2_bvhaj")
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="HealthProgressBar" parent="VBoxContainer/VitalsInfo/VBoxContainer" unique_id=6725951 instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
@@ -132,18 +132,13 @@ theme = ExtResource("2_bvhaj")
 [node name="NameLabel" type="Label" parent="VBoxContainer/VitalsInfo" unique_id=1988987892]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
 anchor_top = 1.0
-anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -80.0
-offset_top = -28.0
-offset_right = 80.0
-grow_horizontal = 2
-grow_vertical = 0
+offset_left = 40.0
+offset_top = -26.0
+offset_right = 190.0
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 horizontal_alignment = 1
 
 [node name="AbilityMarginContainer" type="MarginContainer" parent="VBoxContainer" unique_id=1197865632]
