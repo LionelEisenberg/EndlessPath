@@ -5,6 +5,10 @@ extends MainViewState
 ## Called when entering this state.
 func enter() -> void:
 	scene_root.zone_view.visible = true
+	# Reset camera zoom if returning from adventure
+	var zone_tilemap: Node = scene_root.zone_view.find_child("ZoneTilemap", true, false)
+	if zone_tilemap and zone_tilemap.has_method("reset_camera_zoom"):
+		zone_tilemap.reset_camera_zoom()
 
 ## Called when exiting this state.
 func exit() -> void:

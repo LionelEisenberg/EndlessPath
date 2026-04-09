@@ -71,10 +71,6 @@ folder_colors={
 "res://singletons/": "pink"
 }
 
-[global_group]
-
-PlayerCharacter=""
-
 [gui]
 
 theme/custom="uid://yqkvsb5q7pab"
