@@ -5,6 +5,7 @@
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_bvhaj"]
 [ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.tscn" id="3_5xx5a"]
 [ext_resource type="Texture2D" uid="uid://bgymbkidnr3et" path="res://assets/asperite/ui/resource_bar/MadraFill.png" id="4_h1px1"]
+[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/asperite/character_profiles/base_player.png" id="4_iwjul"]
 [ext_resource type="Texture2D" uid="uid://daujoefgcpmxk" path="res://assets/asperite/ui/resource_bar/StaminaFill.png" id="5_idpww"]
 [ext_resource type="Texture2D" uid="uid://c7o5q6nwirf5n" path="res://assets/asperite/ui/resource_bar/HealthFill.png" id="6_l7ne6"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="9_5cglh"]
@@ -18,107 +19,110 @@ region = Rect2(192, 384, 16, 16)
 filter_clip = true
 
 [node name="CombatantInfoPanel" type="Control" unique_id=271288353]
-custom_minimum_size = Vector2(480, 0)
+custom_minimum_size = Vector2(518, 0)
+layout_mode = 3
+anchors_preset = 0
 theme = ExtResource("2_bvhaj")
 script = ExtResource("2_5xx5a")
 
-[node name="MainVBox" type="VBoxContainer" parent="."]
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=83519171]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="MainVBox" type="VBoxContainer" parent="HBoxContainer" unique_id=1324303115]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="VitalsPanel" type="PanelContainer" parent="MainVBox"]
+[node name="VitalsPanel" type="PanelContainer" parent="HBoxContainer/MainVBox" unique_id=54844120]
 layout_mode = 2
 theme_override_styles/panel = ExtResource("1_idpww")
 
-[node name="VitalsHBox" type="HBoxContainer" parent="MainVBox/VitalsPanel"]
+[node name="VitalsHBox" type="HBoxContainer" parent="HBoxContainer/MainVBox/VitalsPanel" unique_id=186666596]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="PortraitColumn" type="VBoxContainer" parent="MainVBox/VitalsPanel/VitalsHBox"]
+[node name="PortraitColumn" type="VBoxContainer" parent="HBoxContainer/MainVBox/VitalsPanel/VitalsHBox" unique_id=633875547]
 layout_mode = 2
 size_flags_horizontal = 0
 theme_override_constants/separation = 2
 
-[node name="ProfileIconRect" type="TextureRect" parent="MainVBox/VitalsPanel/VitalsHBox/PortraitColumn"]
+[node name="ProfileIconRect" type="TextureRect" parent="HBoxContainer/MainVBox/VitalsPanel/VitalsHBox/PortraitColumn" unique_id=1792259372]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(120, 120)
+layout_mode = 2
+texture = ExtResource("4_iwjul")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="NameLabel" type="Label" parent="MainVBox/VitalsPanel/VitalsHBox/PortraitColumn"]
+[node name="NameLabel" type="Label" parent="HBoxContainer/MainVBox/VitalsPanel/VitalsHBox/PortraitColumn" unique_id=318088931]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
 theme_override_font_sizes/font_size = 18
 horizontal_alignment = 1
 
-[node name="BarsColumn" type="VBoxContainer" parent="MainVBox/VitalsPanel/VitalsHBox"]
+[node name="BarsColumn" type="VBoxContainer" parent="HBoxContainer/MainVBox/VitalsPanel/VitalsHBox" unique_id=1714855069]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_constants/separation = 4
 
-[node name="HealthProgressBar" parent="MainVBox/VitalsPanel/VitalsHBox/BarsColumn" instance=ExtResource("3_5xx5a")]
+[node name="HealthProgressBar" parent="HBoxContainer/MainVBox/VitalsPanel/VitalsHBox/BarsColumn" unique_id=1075824137 instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
 layout_mode = 2
 progress = ExtResource("6_l7ne6")
 
-[node name="MadraProgressBar" parent="MainVBox/VitalsPanel/VitalsHBox/BarsColumn" instance=ExtResource("3_5xx5a")]
+[node name="MadraProgressBar" parent="HBoxContainer/MainVBox/VitalsPanel/VitalsHBox/BarsColumn" unique_id=1536228396 instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
 layout_mode = 2
 progress = ExtResource("4_h1px1")
 
-[node name="StaminaProgressBar" parent="MainVBox/VitalsPanel/VitalsHBox/BarsColumn" instance=ExtResource("3_5xx5a")]
+[node name="StaminaProgressBar" parent="HBoxContainer/MainVBox/VitalsPanel/VitalsHBox/BarsColumn" unique_id=1286702744 instance=ExtResource("3_5xx5a")]
 unique_name_in_owner = true
 layout_mode = 2
 progress = ExtResource("5_idpww")
 show_floating_text = false
 
-[node name="BuffContainer" type="HBoxContainer" parent="MainVBox"]
+[node name="AbilitiesPanel" type="PanelContainer" parent="HBoxContainer/MainVBox" unique_id=2069215819]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="AbilitiesPanel" type="PanelContainer" parent="MainVBox"]
-unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 124)
 layout_mode = 2
 theme_override_styles/panel = ExtResource("11_combat")
 script = ExtResource("9_5cglh")
 
-[node name="MarginContainer" type="MarginContainer" parent="MainVBox/AbilitiesPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/MainVBox/AbilitiesPanel" unique_id=75021520]
 layout_mode = 2
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="AbilitiesContainer" type="HBoxContainer" parent="MainVBox/AbilitiesPanel/MarginContainer"]
+[node name="AbilitiesContainer" type="HBoxContainer" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer" unique_id=2108381877]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
 
-[node name="CastingIndicator" type="VBoxContainer" parent="MainVBox/AbilitiesPanel/MarginContainer"]
+[node name="CastingIndicator" type="VBoxContainer" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer" unique_id=1116424969]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="AbilityInformationMarginContainer" type="MarginContainer" parent="MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator"]
+[node name="AbilityInformationMarginContainer" type="MarginContainer" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator" unique_id=495175898]
 layout_mode = 2
 size_flags_vertical = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer" unique_id=1085359718]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 10
 
-[node name="AbilityInformation" type="Label" parent="MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer/HBoxContainer"]
+[node name="AbilityInformation" type="Label" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer/HBoxContainer" unique_id=1016146901]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
@@ -127,20 +131,20 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 20
 text = "Fireball"
 
-[node name="AbilityTypeIcon" type="TextureRect" parent="MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer/HBoxContainer"]
+[node name="AbilityTypeIcon" type="TextureRect" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/AbilityInformationMarginContainer/HBoxContainer" unique_id=1384602036]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 size_flags_horizontal = 3
 texture = SubResource("AtlasTexture_xkkay")
 
-[node name="ProgressBarContainer" type="MarginContainer" parent="MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator"]
+[node name="ProgressBarContainer" type="MarginContainer" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator" unique_id=1066251217]
 layout_mode = 2
 size_flags_vertical = 2
 theme_override_constants/margin_left = 30
 theme_override_constants/margin_right = 30
 
-[node name="ProgressBar" type="ProgressBar" parent="MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/ProgressBarContainer"]
+[node name="ProgressBar" type="ProgressBar" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/ProgressBarContainer" unique_id=514338918]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
@@ -149,7 +153,7 @@ theme_override_styles/fill = ExtResource("13_cast")
 value = 50.0
 show_percentage = false
 
-[node name="CastTimer" type="Label" parent="MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/ProgressBarContainer/ProgressBar"]
+[node name="CastTimer" type="Label" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator/ProgressBarContainer/ProgressBar" unique_id=1185750620]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -164,3 +168,9 @@ theme_override_font_sizes/font_size = 20
 text = "2.7 / 8.0s"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="BuffContainer" type="HBoxContainer" parent="HBoxContainer" unique_id=1866070307]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(42, 40)
+layout_mode = 2
+theme_override_constants/separation = 4

@@ -119,7 +119,7 @@ func _on_start_combat(choice: CombatChoice) -> void:
 		if combat.player_combatant:
 			player_info_panel.setup_buffs(combat.player_combatant.buff_manager)
 			player_info_panel.setup_abilities(combat.player_combatant.ability_manager)
-			player_info_panel.position = Vector2(200, 225)
+			player_info_panel.position = Vector2(390.0, 500.0)
 			
 			if not player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):
 				player_info_panel.ability_selected.connect(combat.on_player_ability_selected)

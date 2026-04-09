@@ -1,26 +1,27 @@
-[gd_scene load_steps=4 format=3 uid="uid://dh41j1mmxl5w5"]
+[gd_scene format=3 uid="uid://dh41j1mmxl5w5"]
 
 [ext_resource type="Script" uid="uid://wos6y25joxtn" path="res://scenes/ui/combat/buff_icon/buff_icon.gd" id="1_4t1cf"]
 [ext_resource type="Texture2D" uid="uid://cfupxjmvrm636" path="res://assets/ui_images/buff_icon/buff_icon_border.png" id="2_splm6"]
 [ext_resource type="Texture2D" uid="uid://briak23acb13b" path="res://assets/ui_images/buff_icon/buff_icon_overlay.png" id="3_r17if"]
 
-[node name="BuffIcon" type="MarginContainer"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="BuffIcon" type="MarginContainer" unique_id=70463311]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -19.0
+offset_right = 19.0
+offset_bottom = 38.0
 grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
 script = ExtResource("1_4t1cf")
 
-[node name="BackgroundRect" type="TextureRect" parent="."]
+[node name="BackgroundRect" type="TextureRect" parent="." unique_id=963624077]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 texture = ExtResource("2_splm6")
 
-[node name="BuffTexture" type="TextureRect" parent="BackgroundRect"]
+[node name="BuffTexture" type="TextureRect" parent="BackgroundRect" unique_id=1839093545]
 unique_name_in_owner = true
 z_index = 1
 custom_minimum_size = Vector2(32, 32)
@@ -40,7 +41,7 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 expand_mode = 2
 
-[node name="DurationProgressBar" type="TextureProgressBar" parent="BackgroundRect/BuffTexture"]
+[node name="DurationProgressBar" type="TextureProgressBar" parent="BackgroundRect/BuffTexture" unique_id=1227112498]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -60,7 +61,7 @@ value = 0.66
 fill_mode = 5
 texture_progress = ExtResource("3_r17if")
 
-[node name="DurationLabel" type="Label" parent="BackgroundRect/BuffTexture"]
+[node name="DurationLabel" type="Label" parent="BackgroundRect/BuffTexture" unique_id=1759169532]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 1.0
@@ -73,7 +74,7 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 16
 text = "5.0s"
 
-[node name="StackLabel" type="Label" parent="BackgroundRect/BuffTexture"]
+[node name="StackLabel" type="Label" parent="BackgroundRect/BuffTexture" unique_id=383473367]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 3

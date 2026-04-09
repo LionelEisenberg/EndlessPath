@@ -140,6 +140,12 @@ layout_mode = 1
 [node name="LogWindow" parent="MainView" unique_id=1053696094 instance=ExtResource("3_wyoa6")]
 unique_name_in_owner = true
 z_index = 1
+custom_minimum_size = Vector2(400, 217)
+layout_mode = 0
+offset_left = 736.0
+offset_top = 797.0
+offset_right = 1136.0
+offset_bottom = 1014.0
 
 [node name="GreyBackground" type="Panel" parent="MainView" unique_id=69316647]
 unique_name_in_owner = true
