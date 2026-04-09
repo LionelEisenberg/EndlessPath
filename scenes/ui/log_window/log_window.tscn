@@ -4,59 +4,61 @@
 [ext_resource type="StyleBox" path="res://assets/styleboxes/ui/log_window.tres" id="2_lw"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/ui/log_titlebar.tres" id="3_tb"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_content"]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_i3e3n"]
 
 [node name="LogWindow" type="PanelContainer" unique_id=1764718786]
 custom_minimum_size = Vector2(400, 0)
+offset_right = 400.0
+offset_bottom = 217.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
 mouse_filter = 1
-theme_override_styles/panel = ExtResource("2_lw")
+theme_override_styles/panel = SubResource("StyleBoxEmpty_i3e3n")
 script = ExtResource("1_logwin")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1748821923]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="TitleBar" type="PanelContainer" parent="VBoxContainer"]
+[node name="TitleBar" type="PanelContainer" parent="VBoxContainer" unique_id=617862878]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 0
 theme_override_styles/panel = ExtResource("3_tb")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TitleBar"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TitleBar" unique_id=244625269]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer/TitleBar/HBoxContainer"]
+[node name="TitleLabel" type="Label" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=1626426538]
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 20
 text = "Log"
 
-[node name="Spacer" type="Control" parent="VBoxContainer/TitleBar/HBoxContainer"]
+[node name="Spacer" type="Control" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=944227504]
 layout_mode = 2
-mouse_filter = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 
-[node name="CollapseButton" type="Button" parent="VBoxContainer/TitleBar/HBoxContainer"]
+[node name="CollapseButton" type="Button" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=1721329548]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.57, 0.5, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 text = "▼"
 flat = true
 
-[node name="ContentPanel" type="PanelContainer" parent="VBoxContainer"]
+[node name="ContentPanel" type="PanelContainer" parent="VBoxContainer" unique_id=941861460]
 unique_name_in_owner = true
 clip_contents = true
 custom_minimum_size = Vector2(0, 180)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxEmpty_content")
+theme_override_styles/panel = ExtResource("2_lw")
 
-[node name="RichTextLabel" type="RichTextLabel" parent="VBoxContainer/ContentPanel"]
+[node name="RichTextLabel" type="RichTextLabel" parent="VBoxContainer/ContentPanel" unique_id=957906466]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/normal_font_size = 14
+theme_override_font_sizes/normal_font_size = 18
 bbcode_enabled = true
 scroll_following = true
