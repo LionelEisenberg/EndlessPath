@@ -106,7 +106,6 @@ func _create_player_combatant() -> void:
 	player_data.attributes = CharacterManager.get_total_attributes_data()
 	player_data.abilities = CharacterManager.get_equipped_abilities()
 	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
-	player_combatant.position = Vector2(400, 1000)
 
 	player_combatant.setup(player_data, PlayerManager.vitals_manager, true)
 
@@ -120,13 +119,13 @@ func _create_enemy_combatant() -> void:
 	
 	enemy_combatant = combatant_scene.instantiate()
 	enemy_combatant.name = "EnemyCombatant"
-	enemy_combatant.position = Vector2(1100, 300)
 	add_child(enemy_combatant)
 		
 	# Enemy gets a new internal resource manager created by setup()
 	enemy_combatant.setup(enemy_data, null, false)
 
 	# Setup CombatantInfoPanel
+	enemy_info_panel.setup_name(enemy_data.character_name)
 	enemy_info_panel.setup_vitals(enemy_combatant.vitals_manager)
 	enemy_info_panel.setup_buffs(enemy_combatant.buff_manager)
 	enemy_info_panel.setup_abilities(enemy_combatant.ability_manager)

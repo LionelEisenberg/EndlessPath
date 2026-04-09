@@ -44,9 +44,6 @@ func _ready() -> void:
 	else:
 		Log.error("AdventureView: AdventureTilemap reference is missing!")
 	
-	# TODO: Remove this temporary debug button
-	$Button2.pressed.connect(_on_stop_combat.bind(true))
-
 	# Setup Timer
 	timer_panel.timer.timeout.connect(_on_adventure_timer_timeout)
 
@@ -122,7 +119,7 @@ func _on_start_combat(choice: CombatChoice) -> void:
 		if combat.player_combatant:
 			player_info_panel.setup_buffs(combat.player_combatant.buff_manager)
 			player_info_panel.setup_abilities(combat.player_combatant.ability_manager)
-			player_info_panel.position = Vector2(200, 225)
+			player_info_panel.position = Vector2(390.0, 500.0)
 			
 			if not player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):
 				player_info_panel.ability_selected.connect(combat.on_player_ability_selected)
@@ -159,7 +156,7 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	
 	is_in_combat = false
 	
-	player_info_panel.position = Vector2(50, 700)
+	player_info_panel.position = Vector2(170.0, 872.0)
 	
 	if current_action_data:
 		if not successful:
@@ -172,6 +169,7 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 ## Initialize resource values
 func _initialize_combat_resources() -> void:
 	PlayerManager.vitals_manager.initialize_current_values()
+	player_info_panel.setup_name("Player")
 	player_info_panel.setup_vitals(PlayerManager.vitals_manager)
 
 ## Updates the stamina regeneration based on the given modifier

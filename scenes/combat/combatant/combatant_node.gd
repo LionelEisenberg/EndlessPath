@@ -19,9 +19,6 @@ extends Node2D
 @onready var effect_manager: CombatEffectManager = %CombatEffectManager
 @onready var buff_manager: CombatBuffManager = %CombatBuffManager
 
-# Visuals
-@onready var sprite: Sprite2D = %Sprite2D
-
 # Data
 var combatant_data: CombatantData
 var is_player: bool = false
@@ -71,4 +68,5 @@ func receive_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 #-----------------------------------------------------------------------------
 
 func _update_visuals() -> void:
-	sprite.texture = combatant_data.texture
+	# pass
+	pass

@@ -72,7 +72,7 @@ offset = Vector2(100, 50)
 [node name="CameraZoomController" parent="Camera2D" unique_id=1338761720 instance=ExtResource("5_q6nfb")]
 zoom_min = 0.65
 zoom_max = 1.35
-zoom_default = 1.0
+zoom_default = 0.729
 
 [node name="CameraPanController" parent="Camera2D" unique_id=1061016863 instance=ExtResource("6_3euei")]
 

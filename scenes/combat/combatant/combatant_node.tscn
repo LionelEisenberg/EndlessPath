@@ -1,25 +1,22 @@
-[gd_scene load_steps=6 format=3 uid="uid://dmi336ty4kucj"]
+[gd_scene format=3 uid="uid://dmi336ty4kucj"]
 
 [ext_resource type="Script" uid="uid://q6y0u7037wuo" path="res://scenes/combat/combatant/combatant_node.gd" id="1_jrp2a"]
 [ext_resource type="PackedScene" uid="uid://b1s0r3yup5ykn" path="res://scenes/combat/combatant/combat_ability_manager/combat_ability_manager.tscn" id="2_e7ifb"]
 [ext_resource type="PackedScene" uid="uid://dmknq0mniyrnn" path="res://scenes/combat/combatant/vitals_manager/vitals_manager.tscn" id="3_re4bv"]
 [ext_resource type="PackedScene" uid="uid://dlglkp2cxqiq8" path="res://scenes/combat/combatant/combat_effect_manager/combat_effect_manager.tscn" id="4_sgtgi"]
-[ext_resource type="PackedScene" uid="uid://buff_manager_scene" path="res://scenes/combat/combatant/combat_buff_manager/combat_buff_manager.tscn" id="5_buffmgr"]
+[ext_resource type="PackedScene" path="res://scenes/combat/combatant/combat_buff_manager/combat_buff_manager.tscn" id="5_buffmgr"]
 
-[node name="CombatantNode" type="Node2D"]
+[node name="CombatantNode" type="Node2D" unique_id=162492521]
 script = ExtResource("1_jrp2a")
 
-[node name="CombatAbilityManager" parent="." instance=ExtResource("2_e7ifb")]
+[node name="CombatAbilityManager" parent="." unique_id=567670352 instance=ExtResource("2_e7ifb")]
 unique_name_in_owner = true
 
-[node name="VitalsManager" parent="." instance=ExtResource("3_re4bv")]
+[node name="VitalsManager" parent="." unique_id=140792063 instance=ExtResource("3_re4bv")]
 unique_name_in_owner = true
 
-[node name="CombatEffectManager" parent="." instance=ExtResource("4_sgtgi")]
+[node name="CombatEffectManager" parent="." unique_id=1490146497 instance=ExtResource("4_sgtgi")]
 unique_name_in_owner = true
 
-[node name="CombatBuffManager" parent="." instance=ExtResource("5_buffmgr")]
-unique_name_in_owner = true
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="CombatBuffManager" parent="." unique_id=739982425 instance=ExtResource("5_buffmgr")]
 unique_name_in_owner = true

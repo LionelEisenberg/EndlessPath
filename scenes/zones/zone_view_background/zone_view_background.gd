@@ -13,7 +13,7 @@ extends Node2D
 const MAX_SCROLL_SCALE: float = 0.2
 
 ## Scale applied to layer sprites (640×320 pixel art → fills 1920×1080 viewport).
-const LAYER_SCALE: float = 6.0
+@export var LAYER_SCALE: float = 6.0
 ## Sky layer (solid color) needs extra scale to cover full camera pan range.
 const SKY_LAYER_SCALE: float = 15.0
 

@@ -3,13 +3,13 @@ extends Control
 
 @export var profile_texture: Texture2D
 
-@onready var profile_icon_rect = %ProfileIconRect
+@onready var name_label: Label = %NameLabel
+@onready var profile_icon_rect: TextureRect = %ProfileIconRect
 @onready var health_bar: ResourceBar = %HealthProgressBar
 @onready var madra_bar: ResourceBar = %MadraProgressBar
 @onready var stamina_bar: ResourceBar = %StaminaProgressBar
 
 # Buff References
-@onready var buff_info_panel: Control = %BuffInfo
 @onready var buff_container: HBoxContainer = %BuffContainer
 
 # Ability References
@@ -36,10 +36,6 @@ func _ready() -> void:
 	madra_bar.label_prefix = "Madra"
 	stamina_bar.label_prefix = "Stamina"
 	profile_icon_rect.texture = profile_texture
-	
-	# Initially hide buff panel
-	if buff_info_panel:
-		buff_info_panel.visible = false
 	
 	# Initially hide ability panel
 	if abilities_panel:
@@ -84,24 +80,28 @@ func setup_buffs(p_buff_manager: CombatBuffManager) -> void:
 	buff_manager = p_buff_manager
 	
 	if buff_manager:
-		buff_info_panel.visible = true
-		
 		# Connect signals
 		buff_manager.buff_applied.connect(_on_buff_applied)
 		buff_manager.buff_removed.connect(_on_buff_removed)
 		buff_manager.buff_refreshed.connect(_on_buff_refreshed)
 		buff_manager.buff_stacked.connect(_on_buff_stacked)
-		
+
 		# Auto-cleanup when manager is destroyed
 		buff_manager.tree_exiting.connect(_on_buff_manager_exiting)
-		
+
 		# Load initial buffs if any
 		for buff in buff_manager.active_buffs:
 			_on_buff_applied(buff.buff_data.buff_id, buff.time_left)
 			if buff.stack_count > 1:
 				_on_buff_stacked(buff.buff_data.buff_id, buff.stack_count)
+
 	else:
-		buff_info_panel.visible = false
+		pass
+
+## Sets the combatant name displayed at the top of the panel.
+func setup_name(combatant_name: String) -> void:
+	if name_label:
+		name_label.text = combatant_name
 
 func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
 	# Always clean up previous state/icons first
@@ -193,7 +193,6 @@ func _on_buff_stacked(buff_id: String, stack_count: int) -> void:
 
 func _on_buff_manager_exiting() -> void:
 	_cleanup_buffs()
-	buff_info_panel.visible = false
 
 func _cleanup_buffs() -> void:
 	# Disconnect signals if manager still valid
