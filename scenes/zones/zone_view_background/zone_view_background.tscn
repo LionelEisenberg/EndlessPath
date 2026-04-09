@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://bn6xsijn342nc"]
+[gd_scene format=3 uid="uid://bn6xsijn342nc"]
 
 [ext_resource type="Script" path="res://scenes/zones/zone_view_background/zone_view_background.gd" id="1_script"]
 
