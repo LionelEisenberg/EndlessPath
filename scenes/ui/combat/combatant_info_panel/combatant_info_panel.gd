@@ -85,22 +85,23 @@ func setup_buffs(p_buff_manager: CombatBuffManager) -> void:
 	buff_manager = p_buff_manager
 	
 	if buff_manager:
-		buff_margin_container.visible = true
-		
 		# Connect signals
 		buff_manager.buff_applied.connect(_on_buff_applied)
 		buff_manager.buff_removed.connect(_on_buff_removed)
 		buff_manager.buff_refreshed.connect(_on_buff_refreshed)
 		buff_manager.buff_stacked.connect(_on_buff_stacked)
-		
+
 		# Auto-cleanup when manager is destroyed
 		buff_manager.tree_exiting.connect(_on_buff_manager_exiting)
-		
+
 		# Load initial buffs if any
 		for buff in buff_manager.active_buffs:
 			_on_buff_applied(buff.buff_data.buff_id, buff.time_left)
 			if buff.stack_count > 1:
 				_on_buff_stacked(buff.buff_data.buff_id, buff.stack_count)
+
+		# Only show if there are actual buffs
+		buff_margin_container.visible = not active_buff_icons.is_empty()
 	else:
 		buff_margin_container.visible = false
 
@@ -179,12 +180,14 @@ func _on_buff_applied(buff_id: String, duration: float) -> void:
 	icon.setup(buff.buff_data, duration, buff.stack_count)
 	
 	active_buff_icons[buff_id] = icon
+	buff_margin_container.visible = true
 
 func _on_buff_removed(buff_id: String) -> void:
 	if active_buff_icons.has(buff_id):
 		var icon = active_buff_icons[buff_id]
 		icon.queue_free()
 		active_buff_icons.erase(buff_id)
+		buff_margin_container.visible = not active_buff_icons.is_empty()
 
 func _on_buff_refreshed(buff_id: String, new_duration: float) -> void:
 	if active_buff_icons.has(buff_id):
