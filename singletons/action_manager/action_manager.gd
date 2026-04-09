@@ -145,6 +145,14 @@ func _on_forage_timer_finished(action_data: ForageActionData) -> void:
 
 ## Handle adventure action - switch to adventure view.
 func _execute_adventure_action(action_data: AdventureActionData) -> void:
+	if not ResourceManager.can_start_adventure():
+		var threshold: float = ResourceManager.get_adventure_madra_threshold()
+		var current: float = ResourceManager.get_madra()
+		Log.info("ActionManager: Cannot start adventure - need %.0f Madra, have %.0f" % [threshold, current])
+		if LogManager:
+			LogManager.log_message("[color=red]Not enough Madra! Need %.0f, have %.0f[/color]" % [threshold, current])
+		_set_current_action(null)
+		return
 	Log.info("ActionManager: Executing adventure action: %s" % action_data.action_name)
 	start_adventure.emit(action_data)
 
