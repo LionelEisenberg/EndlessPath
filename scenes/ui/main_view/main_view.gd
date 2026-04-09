@@ -11,8 +11,6 @@ extends Control
 @onready var cycling_view: Control = %CyclingView
 
 ## View Components
-@onready var toolbar: Toolbar = %Toolbar
-@onready var log_window: Control = %LogWindow
 @onready var grey_background: Panel = %GreyBackground
 
 ## State machine states
@@ -31,8 +29,6 @@ func _ready() -> void:
 	inventory_view_state.scene_root = self
 	cycling_view_state.scene_root = self
 	
-	toolbar.log_toggled.connect(log_window.toggle_log)
-
 	# Initialize view visibility based on initial state
 	change_state(zone_view_state)
 	

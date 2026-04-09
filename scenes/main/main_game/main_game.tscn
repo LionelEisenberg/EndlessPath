@@ -49,17 +49,6 @@ offset_right = -450.0
 offset_bottom = -60.0
 grow_vertical = 0
 
-[node name="Toolbar" parent="MainView" unique_id=1615253691 instance=ExtResource("13_zt")]
-unique_name_in_owner = true
-z_index = 10
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -60.0
-grow_horizontal = 2
-grow_vertical = 0
 
 [node name="MainViewStateMachine" type="Node" parent="MainView" unique_id=1560757974]
 unique_name_in_owner = true
@@ -83,7 +72,6 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_bottom = -60.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -146,12 +134,20 @@ offset_right = 424.0
 offset_bottom = 245.0
 theme_override_styles/panel = ExtResource("14_lb8xr")
 
+[node name="Toolbar" parent="MainView/ZoneView" unique_id=1615253691 instance=ExtResource("13_zt")]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+
 [node name="AdventureView" parent="MainView" unique_id=1872924392 instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
-offset_top = 0.0
-offset_bottom = -60.0
 
 [node name="GreyBackground" type="Panel" parent="MainView" unique_id=69316647]
 unique_name_in_owner = true
@@ -180,3 +176,5 @@ layout_mode = 1
 wait_time = 5.0
 autostart = true
 script = ExtResource("4_11so6")
+
+[connection signal="log_toggled" from="MainView/ZoneView/Toolbar" to="MainView/LogWindow" method="toggle_log"]
