@@ -166,14 +166,13 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 # PRIVATE METHODS - Resource Management
 #-----------------------------------------------------------------------------
 
-## Initialize resource values
+## Initialize resource values. Madra already spent by drain animation in ZoneResourcePanel.
 func _initialize_combat_resources() -> void:
-	var budget: float = ResourceManager.get_adventure_madra_budget()
-	ResourceManager.spend_madra(budget)
+	var budget: float = ResourceManager.get_adventure_madra_capacity()
 	PlayerManager.vitals_manager.initialize_current_values(budget)
 	player_info_panel.setup_name("Player")
 	player_info_panel.setup_vitals(PlayerManager.vitals_manager)
-	Log.info("AdventureView: Spent %.1f Madra from zone pool for adventure budget" % budget)
+	Log.info("AdventureView: Adventure budget: %.1f Madra" % budget)
 
 ## Updates the stamina regeneration based on the given modifier
 ## TODO: This will be expanded later to include more complex calculation logic
