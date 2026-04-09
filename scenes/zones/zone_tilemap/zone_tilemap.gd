@@ -3,7 +3,7 @@ extends Node2D
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
 @onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
-@onready var character_body: CharacterBody2D = %CharacterBody2D
+@onready var character_body: CharacterBody2D = %PlayerCharacter
 @onready var selected_zone_pulse_node: Line2D = %PulseNode
 
 const UNLOCKED_SOURCE_ID = 0

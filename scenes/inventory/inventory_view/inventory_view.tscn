@@ -54,7 +54,7 @@ _data = {
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_1vqu0"]
 atlas = ExtResource("2_wdr80")
-region = Rect2(0, 0, 700, 450)
+region = Rect2(6300, 0, 700, 450)
 
 [sub_resource type="Animation" id="Animation_pcbrs"]
 resource_name = "PageTurningAnimation"
