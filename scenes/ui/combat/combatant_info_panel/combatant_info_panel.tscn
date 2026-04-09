@@ -90,7 +90,7 @@ show_floating_text = false
 
 [node name="AbilitiesPanel" type="PanelContainer" parent="HBoxContainer/MainVBox" unique_id=2069215819]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 124)
+custom_minimum_size = Vector2(0, 126)
 layout_mode = 2
 theme_override_styles/panel = ExtResource("11_combat")
 script = ExtResource("9_5cglh")

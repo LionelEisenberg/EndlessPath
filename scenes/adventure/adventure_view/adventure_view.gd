@@ -156,7 +156,7 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	
 	is_in_combat = false
 	
-	player_info_panel.position = Vector2(50, 700)
+	player_info_panel.position = Vector2(170.0, 872.0)
 	
 	if current_action_data:
 		if not successful:

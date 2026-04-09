@@ -97,7 +97,7 @@ anchor_left = 1.0
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = -450.0
-offset_top = -510.0
+offset_top = -540.0
 offset_bottom = 480.0
 grow_horizontal = 0
 size_flags_vertical = 3
@@ -143,9 +143,9 @@ z_index = 1
 custom_minimum_size = Vector2(400, 217)
 layout_mode = 0
 offset_left = 736.0
-offset_top = 797.0
+offset_top = 781.0
 offset_right = 1136.0
-offset_bottom = 1014.0
+offset_bottom = 1008.0
 
 [node name="GreyBackground" type="Panel" parent="MainView" unique_id=69316647]
 unique_name_in_owner = true
