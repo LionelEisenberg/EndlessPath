@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" uid="uid://dyha47vkmqg5o" path="res://scenes/cycling/cycling_view/cycling_view.gd" id="1_ob5ct"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_8tk3k"]
-[ext_resource type="StyleBox" uid="uid://81c7cqhh1qo7" path="res://assets/styleboxes/panel_cycling_view.tres" id="3_4g8xi"]
+[ext_resource type="StyleBox" uid="uid://81c7cqhh1qo7" path="res://assets/styleboxes/cycling/panel_cycling_view.tres" id="3_4g8xi"]
 [ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/cycling/cycling_technique/cycling_technique.tscn" id="3_hypg5"]
 [ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]
-[ext_resource type="StyleBox" uid="uid://dfld4jy3188gf" path="res://assets/styleboxes/panel_info_sidebar.tres" id="5_4g8xi"]
+[ext_resource type="StyleBox" uid="uid://dfld4jy3188gf" path="res://assets/styleboxes/cycling/panel_info_sidebar.tres" id="5_4g8xi"]
 [ext_resource type="Script" uid="uid://cvudatk537dno" path="res://scenes/cycling/cycling_tab_panel/cycling_tab_panel.gd" id="5_8tk3k"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_0j2st"]

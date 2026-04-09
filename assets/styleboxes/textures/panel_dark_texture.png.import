@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bs23ehmpvprmi"
-path="res://.godot/imported/panel_tan_texture.png-36885bf54fee08773e67e7fedd3059fd.ctex"
+uid="uid://bflty8uyo3x6m"
+path="res://.godot/imported/panel_dark_texture.png-ba8029207ca4039559286c1ba39925be.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/styleboxes/panel_tan_texture.png"
-dest_files=["res://.godot/imported/panel_tan_texture.png-36885bf54fee08773e67e7fedd3059fd.ctex"]
+source_file="res://assets/styleboxes/textures/panel_dark_texture.png"
+dest_files=["res://.godot/imported/panel_dark_texture.png-ba8029207ca4039559286c1ba39925be.ctex"]
 
 [params]
 

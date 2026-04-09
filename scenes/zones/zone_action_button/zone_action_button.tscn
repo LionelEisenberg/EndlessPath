@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bw8m5x2oap4q1"]
 
 [ext_resource type="Script" uid="uid://d1adqdlc01837" path="res://scenes/zones/zone_action_button/zone_action_button.gd" id="1_action_btn"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/action_card_normal.tres" id="2_card_normal"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/zones/action_card_normal.tres" id="2_card_normal"]
 
 [node name="ZoneActionButtonContainer" type="MarginContainer" unique_id=1951268531]
 custom_minimum_size = Vector2(0, 48)

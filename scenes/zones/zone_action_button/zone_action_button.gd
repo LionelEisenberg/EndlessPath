@@ -1,8 +1,8 @@
 extends MarginContainer
 ## Action card button for zone actions.
 
-const CARD_NORMAL: StyleBox = preload("res://assets/styleboxes/action_card_normal.tres")
-const CARD_HOVER: StyleBox = preload("res://assets/styleboxes/action_card_hover.tres")
+const CARD_NORMAL: StyleBox = preload("res://assets/styleboxes/zones/action_card_normal.tres")
+const CARD_HOVER: StyleBox = preload("res://assets/styleboxes/zones/action_card_hover.tres")
 
 @export var action_data: ZoneActionData
 @export var is_current_action: bool = false:
