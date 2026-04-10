@@ -1,8 +1,15 @@
-[gd_scene format=3 uid="uid://bw8m5x2oap4q1"]
+[gd_scene format=3 uid="uid://bw8m5x2oap4q1" load_steps=7]
 
 [ext_resource type="Script" uid="uid://d1adqdlc01837" path="res://scenes/zones/zone_action_button/zone_action_button.gd" id="1_action_btn"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/zones/action_card_normal.tres" id="2_card_normal"]
 [ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/ui_images/resources/madra_icon.png" id="3_po6du"]
+[ext_resource type="Shader" uid="uid://action_card_sweep_shader" path="res://assets/shaders/action_card_sweep.gdshader" id="4_sweep_shader"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/zones/action_card_selected.tres" id="5_card_selected"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sweep"]
+resource_local_to_scene = true
+shader = ExtResource("4_sweep_shader")
+shader_parameter/fill_amount = 0.0
 
 [node name="ZoneActionButtonContainer" type="MarginContainer" unique_id=1951268531]
 custom_minimum_size = Vector2(0, 48)
@@ -19,6 +26,13 @@ script = ExtResource("1_action_btn")
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/panel = ExtResource("2_card_normal")
+
+[node name="ProgressFill" type="ColorRect" parent="ActionCard" unique_id=1234567890]
+unique_name_in_owner = true
+layout_mode = 2
+material = SubResource("ShaderMaterial_sweep")
+mouse_filter = 2
+color = Color(0.42, 0.67, 0.37, 0.45)
 
 [node name="HBoxContainer" type="HBoxContainer" parent="ActionCard" unique_id=922382785]
 layout_mode = 2
