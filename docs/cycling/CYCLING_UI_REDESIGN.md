@@ -1,5 +1,7 @@
 # Cycling View UI Redesign
 
+**Status:** Implemented (PR #12)
+
 ## Goal
 
 Overhaul the Cycling View UI from its current placeholder state into a polished, readable, Wuxia-themed full-screen overlay. Replace the modal technique selector with an integrated tabbed panel. Add a visible close button. Improve visual quality of both the body diagram area and the resource/info panel.

@@ -17,15 +17,56 @@ The Zone system is the game's home base. Players see a hex-grid tilemap where ea
 ## Architecture
 
 ```
+ZoneViewBackground (Node2D)                 — zone_view_background.gd
+  Parallax2D × 12                           — depth-sorted forest layers
+
 ZoneTilemap (Node2D)                        — zone_tilemap.gd
   MainZoneTileMapLayer (HexagonTileMapLayer)
   CharacterBody2D                           — player sprite
   PulseNode (Line2D)                        — pulsing ring on selected tile
+  ZoneTransition (Node)                     — zone_transition.gd
+
+ZoneHeader (Panel)                          — zone_header.gd
+  (floating top-left)                       — zone name + description display
+
+ZoneResourcePanel (Panel)                   — zone_resource_panel.gd
+  (floating left side)                      — Madra + Core Density orbs with labeled titles
+                                              + golden advancement stage name
 
 ZoneInfoPanel (PanelContainer)              — zone_info_panel.gd
   ZoneActionTypeSection (per action type)   — zone_action_type_section.gd
     ZoneActionButton (per action)           — zone_action_button.gd
+    (card-style; colored dot per category:
+     green=foraging, red=adventure, teal=cycling)
 ```
+
+### Parallax Background System
+
+`ZoneViewBackground` manages a 12-layer pixel art forest for Spirit Valley. Each layer is a `Parallax2D` node with a `Sprite2D` child; the `scroll_scale` increases from the back layers (near 0) to the front layers (near 1), producing a depth illusion as the camera pans. Layer images live in `assets/sprites/zones/backgrounds/background 1 - Spirit Valley/`.
+
+### Adventure Start Transition (ZoneTransition)
+
+Adventure starts are two-phase to accommodate the Madra drain animation (PR #16):
+
+```
+1. ZoneActionButton emits adventure_start_requested (carries madra_budget)
+2. ZoneViewState blocks all input via full-screen overlay Control
+3. ZoneTransition:
+   a. Deducts Madra from ResourceManager
+   b. Fires staggered flying particles from Madra orb → player character
+   c. After drain completes → camera zooms into player character
+4. ZoneTransition emits confirm_adventure_start (carries madra_budget)
+5. ActionManager starts adventure with the confirmed budget
+```
+
+`ZoneTransition` owns all transition logic: particle spawning, camera zoom, Madra spending. `ZoneResourcePanel` is display-only (orbs + position). On return from adventure, the camera resets to its original zoom.
+
+### Action Buttons
+
+`ZoneActionButton` renders as a card-style panel. Each card has:
+- A colored category dot on the left (green=foraging, red=adventure, teal=cycling)
+- Action name (26pt) and description (20pt)
+- For ADVENTURE actions: a Madra cost badge showing the icon and cost amount; the badge is **gold** when the player has enough Madra to start (≥50% of zone capacity), **red** when below threshold, and plays a shake-reject animation when the player clicks while below the threshold
 
 ### Tile Rendering
 
@@ -165,8 +206,13 @@ Actions are grouped by `ActionType` into `ZoneActionTypeSection` nodes. Each sec
 | File | Purpose |
 |------|---------|
 | `scenes/zones/zone_tilemap/zone_tilemap.gd` | Tilemap rendering, zone selection |
+| `scenes/zones/zone_header/zone_header.gd` | Zone name and description display (extracted from ZoneInfoPanel, PR #14) |
+| `scenes/zones/zone_header/zone_header.tscn` | Zone header scene |
+| `scenes/zones/zone_view_background/zone_view_background.gd` | Parallax forest background (12-layer, PR #14) |
+| `scenes/zones/zone_view_background/zone_view_background.tscn` | Parallax background scene |
+| `scenes/zones/zone_transition/zone_transition.gd` | Adventure start transition orchestration (PR #16) |
 | `scenes/zones/zone_info_panel/zone_info_panel.gd` | Action display and triggering |
-| `scenes/zones/zone_action_button/zone_action_button.gd` | Individual action button |
+| `scenes/zones/zone_action_button/zone_action_button.gd` | Individual action button (card style, Madra cost badge) |
 | `scenes/zones/zone_action_type_section/zone_action_type_section.gd` | Grouped action section |
 | `scripts/resource_definitions/zones/zone_data/zone_data.gd` | Zone data class |
 | `scripts/resource_definitions/zones/zone_action_data/zone_action_data.gd` | Base action class |
@@ -194,8 +240,8 @@ No known bugs in the Zone system.
 
 - `[MEDIUM]` No feedback when zones or actions unlock — new zones appear silently on the map. Needs a visual/audio cue to reinforce the unlock chain and make progression feel rewarding
 - `[LOW]` Locked zones show no information — clicking a locked tile should show a tooltip with the zone name and unlock requirements, giving the player goals to work toward
-- `[LOW]` Unused `PanelContainer` in ZoneView (bottom-left, next to log panel) — no script or children, should be repurposed or removed
-- `[LOW]` Zone tilemap viewport may need recentering — currently gets clipped by overlaying UI panels (ZoneInfoPanel, log). Needs evaluation on whether to shift the tilemap view or adjust UI layout
+- ~~`[LOW]` Unused `PanelContainer` in ZoneView (bottom-left, next to log panel) — no script or children, should be repurposed or removed~~ _(resolved in PR #14)_
+- ~~`[LOW]` Zone tilemap viewport may need recentering — currently gets clipped by overlaying UI panels (ZoneInfoPanel, log). Needs evaluation on whether to shift the tilemap view or adjust UI layout~~ _(resolved in PR #14 — SubViewport now fills the full screen with floating UI panels on top)_
 - `[LOW]` Add tooltip hint to locked Zones.
 
 ### Tech Debt

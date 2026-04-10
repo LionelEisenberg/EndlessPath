@@ -165,10 +165,19 @@ A global casting lock prevents firing multiple abilities simultaneously.
 |-----------|-------------|
 | `AbilityButton` | TextureButton + cooldown overlay (TextureProgressBar + Label) |
 | `AbilitiesPanel` | HBox of ability buttons + casting indicator with progress bar |
-| `CombatantInfoPanel` | Profile icon, 3 resource bars, buff container, abilities panel |
+| `CombatantInfoPanel` | Fully rebuilt in PR #15 — container-based layout, dark floating styleboxes, integer vitals display. Profile icon, 3 resource bars (HP/Madra/Stamina), buff container, abilities panel |
 | `ResourceBar` | Main bar + ghost trail bar (delayed by 0.5s tween) + floating text spawner |
 | `BuffIcon` | Buff texture + duration bar + stack count label |
 | `FloatingText` | Label that floats up 100px and fades over 1.5s, then self-destructs |
+
+### Styleboxes (PR #15)
+
+| File | Used By |
+|------|---------|
+| `assets/styleboxes/panel_vitals.tres` | Vitals section background on `CombatantInfoPanel` |
+| `assets/styleboxes/panel_abilities.tres` | Abilities section background on `CombatantInfoPanel` |
+| `assets/styleboxes/panel_buffs.tres` | Buffs section background on `CombatantInfoPanel` |
+| `assets/styleboxes/cast_bar_fill.tres` | Gold fill on the cast progress bar |
 
 ## Integration Points
 
@@ -245,7 +254,7 @@ One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_abili
 ### Missing Functionality
 
 - `[HIGH]` Attribute system needs a design pass — each attribute's purpose, offensive vs defensive role, and scaling rules need to be clearly defined. Currently several attributes overlap, CONTROL is inert, and WILLPOWER's defensive role is unclear. A design doc should be created before further ability authoring
-- `[HIGH]` Equipment stats not wired to combat — `attack_power` and `defense` from gear are ignored. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md)
+- ~~`[HIGH]` Equipment stats not wired to combat — `attack_power` and `defense` from gear are ignored. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md)~~ *(Fixed in PR #9)*
 - `[HIGH]` `enemy_pool[0]` always used — no random selection from the pool. Every combat encounter uses the first enemy regardless of pool contents
 - `[MEDIUM]` `AbilityType` needs a deep dive and rework — currently only has `OFFENSIVE`, only checked in one place (consuming outgoing damage modifier), and that logic belongs on `EffectType.DAMAGE` not `AbilityType`. Need to clarify: does AbilityType serve a gameplay purpose (e.g., casting rules, interrupt behavior) or is it just a UI/display hint? Rework or remove
 - `[MEDIUM]` `ALL_ALLIES` target type has no implementation — only `SELF` and `SINGLE_ENEMY` work
@@ -266,13 +275,13 @@ One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_abili
 - `[HIGH]` No ability tooltips — hovering over an ability icon shows no information (cost, cooldown, damage, description). New players can't learn the system without them
 - `[MEDIUM]` No buff tooltips — hovering over a buff icon shows no information (effect, duration remaining, stacks)
 - `[MEDIUM]` Enemy sprite placement needs improvement — current positioning is placeholder
-- `[LOW]` Cast bar visual (PNG) needs improvement
+- ~~`[LOW]` Cast bar visual (PNG) needs improvement~~ *(Fixed in PR #15 — `cast_bar_fill.tres` gold stylebox)*
 - `[LOW]` Combat background should be modular — different adventure zones should have different combat backdrops
 
 ### Tech Debt
 
 #### Dead Code
-- `[MEDIUM]` `enable_ai: bool` debug export on `AdventureCombat` — marked with `TODO: DELETE DEBUG`
+- ~~`[MEDIUM]` `enable_ai: bool` debug export on `AdventureCombat` — marked with `TODO: DELETE DEBUG`~~ *(Removed in PR #15)*
 - `[LOW]` `CastTimer` label in scene with hardcoded debug text `"2.7 / 8.0s"`
 - `[LOW]` `percentage_value` field exported but unused — remove or implement
 

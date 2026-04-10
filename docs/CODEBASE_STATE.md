@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-04-06
+Last updated: 2026-04-07
 
 This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
 
@@ -23,11 +23,20 @@ MainGame (Node2D)
 │   │   ├── InventoryViewState
 │   │   └── CyclingViewState
 │   ├── ZoneView (Control)          — default view, always present
+│   │   ├── ZoneTransition          — animated zone-change overlay (PR #16)
+│   │   ├── SubViewportContainer
+│   │   │   └── SubViewport
+│   │   │       ├── ZoneViewBackground  — decorative background (PR #14)
+│   │   │       └── ZoneTilemap
+│   │   ├── ZoneInfoPanel
+│   │   ├── ZoneResourcePanel
+│   │   ├── ZoneHeader              — zone name/info header, extracted from ZoneInfoPanel (PR #14)
+│   │   └── Toolbar                 — persistent action toolbar, moved from ZoneView script to MainView scene (PR #14)
 │   ├── AdventureView (Control)     — hidden, shown by state
-│   ├── InventoryView (Control)     — hidden, shown by state
-│   ├── CyclingView (Control)       — hidden, shown by state
+│   ├── LogWindow
 │   ├── GreyBackground (Panel)      — modal overlay
-│   └── LogWindow
+│   ├── InventoryView (Control)     — hidden, shown by state
+│   └── CyclingView (Control)       — hidden, shown by state
 └── SaveTimer (Timer)               — auto-save
 ```
 
@@ -104,6 +113,14 @@ Content is defined via Godot's Resource system in three layers:
 - **Subscenes** package complex UI (e.g., `adventure_view.tscn` instanced into `main_game.tscn`)
 - **Scripts attach** via `[ext_resource]` references in `.tscn` files
 
+### Key Shared Components
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `ThemeConstants` | `scripts/utils/theme_constants.gd` | Centralized color palette and styling constants (PR #11) |
+| `FlyingParticle` | `scenes/ui/flying_particle/flying_particle.gd` | Reusable particle effect — spawned for Madra tracking feedback and zone clicks (PR #13, reused PR #16) |
+| `SystemMenuButton` | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | Nav button component — single `MenuType` enum drives label, shortcut, icon, and input action (PR #10) |
+
 ---
 
 ## Cross-Cutting Concerns
@@ -146,6 +163,12 @@ Issues that span multiple systems and don't belong to any single doc:
 | Doc | System | Summary |
 |-----|--------|---------|
 | [breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | Cultivation | Tribulation mini-game design for stage advancement |
+| [docs/cycling/CYCLING_UI_REDESIGN.md](cycling/CYCLING_UI_REDESIGN.md) | Cycling | Cycling view UI redesign spec |
+| [docs/cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md](cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md) | Cycling | Cycling UI implementation plan |
+| [docs/inventory/EQUIPMENT_DESIGN.md](inventory/EQUIPMENT_DESIGN.md) | Inventory | Equipment system design spec |
+| [docs/inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md](inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md) | Inventory | Equipment system implementation plan |
+| [docs/infrastructure/MADRA_UNIFICATION_DESIGN.md](infrastructure/MADRA_UNIFICATION_DESIGN.md) | Infrastructure | Madra pool unification design spec |
+| [docs/infrastructure/MADRA_UNIFICATION_PLAN.md](infrastructure/MADRA_UNIFICATION_PLAN.md) | Infrastructure | Madra pool unification implementation plan |
 
 ### Planned Systems (no code)
 

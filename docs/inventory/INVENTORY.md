@@ -2,12 +2,12 @@
 
 ## Overview
 
-The inventory system manages equipment, materials, and item rewards. Players access a book-style UI with two tabs: Equipment (50-slot grid + 8 gear slots on a paper doll) and Materials (scrollable list with quantities). Items are dragged between grid slots and gear slots. Loot comes from foraging timers and adventure encounter rewards.
+The inventory system manages equipment, materials, and item rewards. Players access a book-style UI with two tabs: Equipment (50-slot grid + 6 gear slots on a paper doll) and Materials (scrollable list with quantities). Items are dragged between grid slots and gear slots. Loot comes from foraging timers and adventure encounter rewards.
 
 ## Player Experience
 
 1. Press `I` from the zone view to open the inventory (book-open animation)
-2. **Equipment Tab:** 50-slot grid on the left, 8 gear slots on a character paper doll on the right
+2. **Equipment Tab:** 50-slot grid on the left, 6 gear slots on a character paper doll on the right
 3. Click an item to see its description; drag items between grid and gear slots
 4. Gear slots enforce type matching (e.g., only weapons go in MAIN_HAND)
 5. **Materials Tab:** Scrollable list showing material icons, names, and quantities
@@ -24,7 +24,7 @@ InventoryView (Control)                           — inventory_view.gd
       EquipmentTabButton / MaterialsTabButton     — tab_button.gd
     EquipmentTab (Control)                        — equipment_tab.gd
       EquipmentGrid                               — equipment_grid.gd (50 InventorySlots)
-      GearSelector                                — gear_selector.gd (8 GearSlots)
+      GearSelector                                — gear_selector.gd (6 GearSlots)
       SelectorSprite                              — animated hover cursor
       ItemDescriptionBox                          — item_description_box.gd
       TrashSlot                                   — trash_slot.gd (visual only)
@@ -49,16 +49,11 @@ ItemDefinitionData (Resource)
   └── EquipmentDefinitionData
         ├── slot_type: EquipmentSlot
         ├── equipment_type: EquipmentType (WEAPON, ARMOR, ACCESSORY)
-        │
-        ├── WeaponDefinitionData
-        │     └── attack_power: float
-        │
-        └── ArmorDefinitionData
-              └── defense: float
+        └── attribute_bonuses: Dictionary  (AttributeType → float)
 ```
 
 ### EquipmentSlot Enum
-`HEAD`, `CHEST`, `LEGS`, `FEET`, `MAIN_HAND`, `OFF_HAND`, `ACCESSORY_1`, `ACCESSORY_2`
+`MAIN_HAND`, `OFF_HAND`, `HEAD`, `ARMOR`, `ACCESSORY_1`, `ACCESSORY_2`
 
 ### ItemInstanceData
 | Field | Type | Description |
@@ -132,7 +127,7 @@ Material awards increment count in dictionary. Equipment awards create individua
 | Zone View | `I` key pushes `InventoryViewState` |
 | Foraging | ActionManager rolls loot table on timer |
 | Combat/Adventure | Success effects award loot and items |
-| CharacterManager | **Not yet wired** — `_get_attribute_bonuses()` has TODO for equipment stats |
+| CharacterManager | Wired via `_get_attribute_bonuses()` → `_get_equipment_bonuses()` — sums `attribute_bonuses` from all equipped gear (Done - PR #9) |
 | UnlockManager | `ITEM_OWNED` condition type exists but returns false (unimplemented) |
 | Soulsmithing | Planned consumer — `metadata` and `instance_id` fields are forward-compatibility hooks |
 
@@ -142,7 +137,8 @@ Material awards increment count in dictionary. Equipment awards create individua
 |------|------|---------|
 | Spirit Fern | Material | Source: SpiritValley |
 | Dewdrop Tear | Material | Source: SpiritValley |
-| Dagger | Weapon | attack_power: 10.0, MAIN_HAND |
+| Dagger | Equipment | STRENGTH +3, AGILITY +1, MAIN_HAND |
+| Sword | Equipment | STRENGTH +6, AGILITY +2, MAIN_HAND |
 | Dagger Instance | ItemInstanceData | Wraps dagger.tres |
 
 No loot table `.tres` files exist yet (only a README guide in `resources/loot_tables/`).
@@ -154,7 +150,7 @@ No loot table `.tres` files exist yet (only a README guide in `resources/loot_ta
 | `scenes/inventory/inventory_view/inventory_view.gd` | Book animations, tab switching |
 | `scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd` | All drag & drop logic |
 | `scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.gd` | 50-slot grid |
-| `scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.gd` | 8 gear slots |
+| `scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.gd` | 6 gear slots |
 | `scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_slot.gd` | Type-validated slot |
 | `scenes/inventory/inventory_view/materials_tab/materials_tab.gd` | Materials list |
 | `scenes/inventory/item_instance/item_instance.gd` | Visual item node |
@@ -172,22 +168,22 @@ No loot table `.tres` files exist yet (only a README guide in `resources/loot_ta
 
 ### Missing Functionality
 
-- `[HIGH]` Equipment stats not wired to combat — `attack_power` and `defense` are display-only. `CharacterManager._get_attribute_bonuses()` returns 0. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md) but inventory is the primary consumer
+- ~~`[HIGH]` Equipment stats not wired to combat — `attack_power` and `defense` are display-only. `CharacterManager._get_attribute_bonuses()` returns 0. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md) but inventory is the primary consumer~~ (Done - PR #9)
 - `[MEDIUM]` TrashSlot is non-functional — node exists in scene but `_get_slot_under_mouse()` doesn't check it. No way to delete items
 - `[MEDIUM]` CONSUMABLE and QUEST_ITEM types not handled — `award_items()` logs error and drops them. Needed for Scripting (consumable Scripts) and future quest content
-- `[MEDIUM]` Right-clicking an item should attempt to equip it — standard RPG convention, currently only drag & drop works
+- ~~`[MEDIUM]` Right-clicking an item should attempt to equip it — standard RPG convention, currently only drag & drop works~~ (Done - PR #9)
 
 ### Content
 
 - `[MEDIUM]` No loot table `.tres` resources authored — the loot system works but has no content to roll
 - `[MEDIUM]` Only 3 items exist (Dagger, Spirit Fern, Dewdrop Tear) — needs broader item variety across equipment and materials
-- `[LOW]` No armor items exist — `ArmorDefinitionData` class is defined but no `.tres` authored
+- `[LOW]` No armor items exist — `EquipmentDefinitionData` supports ARMOR slot type but no `.tres` authored
 
 ### UI
 
 #### Navigation
 - `[HIGH]` No close button — only way to close inventory is Escape. Needs a visible X button (top-right or similar)
-- `[HIGH]` No way to open inventory from the UI — only the `I` keybind works. Needs a UI button (toolbar, zone panel, etc.) in addition to the hotkey
+- ~~`[LOW]` No way to open inventory from the UI — only the `I` keybind works. Needs a UI button (toolbar, zone panel, etc.) in addition to the hotkey~~ (Done - PR #10)
 
 #### Visual Quality
 - `[HIGH]` Tab switching causes icon scaling issues — icons increase/decrease in size during tab transitions, looks janky
