@@ -60,13 +60,14 @@ unique_name_in_owner = true
 material = SubResource("ShaderMaterial_mmmsv")
 width = 12.0
 
-[node name="CharacterBody2D" parent="." unique_id=2019777538 instance=ExtResource("4_q6nfb")]
+[node name="PlayerCharacter" parent="." unique_id=2019777538 instance=ExtResource("4_q6nfb")]
 unique_name_in_owner = true
 position = Vector2(-1, 0)
 scale = Vector2(2, 2)
 is_debug_mode = false
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1799141513]
+unique_name_in_owner = true
 offset = Vector2(100, 50)
 
 [node name="CameraZoomController" parent="Camera2D" unique_id=1338761720 instance=ExtResource("5_q6nfb")]

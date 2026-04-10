@@ -3,13 +3,15 @@ extends HexagonTileMapLayer
 
 signal tile_clicked(tile_coord: Vector2i)
 
+const HEX_TILE_OFFSET: Vector2 = Vector2(-82, -95)
+
 func set_cell_with_source_and_variant(source_id : int, variant_id: int, cell_coords: Vector2) -> void:
 	set_cell(cell_coords, source_id, Vector2i(0, 0), variant_id)
 	_draw_debug()
 	pathfinding_generate_points()
 
 func _ready() -> void:
-	if position != Vector2(-82, -95):
+	if position != HEX_TILE_OFFSET:
 		Log.warn("HexagonalTileMapLayer: TileMapLayer is not in the right position, it won't look right!")
 
 func _input(event: InputEvent) -> void:

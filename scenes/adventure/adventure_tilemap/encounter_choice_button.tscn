@@ -1,20 +1,19 @@
-[gd_scene load_steps=3 format=3 uid="uid://cbqt4f46cnfm3"]
+[gd_scene format=3 uid="uid://cbqt4f46cnfm3"]
 
 [ext_resource type="Script" uid="uid://je2hkp3atnt5" path="res://scenes/adventure/adventure_tilemap/encounter_choice_button.gd" id="1_script"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/zones/action_card_normal.tres" id="2_card"]
 
-[node name="EncounterChoiceButton" type="MarginContainer"]
+[node name="EncounterChoiceButton" type="MarginContainer" unique_id=980498651]
 custom_minimum_size = Vector2(0, 48)
 size_flags_horizontal = 3
 script = ExtResource("1_script")
 
-[node name="ChoiceCard" type="PanelContainer" parent="."]
+[node name="ChoiceCard" type="PanelContainer" parent="." unique_id=1763283917]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 0
 theme_override_styles/panel = ExtResource("2_card")
 
-[node name="ChoiceLabel" type="Label" parent="ChoiceCard"]
+[node name="ChoiceLabel" type="Label" parent="ChoiceCard" unique_id=595722330]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.91, 0.86, 0.78, 1)

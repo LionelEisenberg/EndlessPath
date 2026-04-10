@@ -19,7 +19,7 @@ func exit() -> void:
 func handle_input(_event: InputEvent) -> void:
 	pass
 
-func _on_start_adventure(_data: Variant) -> void:
+func _on_start_adventure(_data: AdventureActionData, _madra_budget: float = 0.0) -> void:
 	scene_root.change_state(scene_root.adventure_view_state)
 
 func _on_stop_adventure() -> void:

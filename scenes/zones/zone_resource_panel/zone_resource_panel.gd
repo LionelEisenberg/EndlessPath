@@ -20,13 +20,16 @@ func _ready() -> void:
 	_update_all_displays()
 
 #-----------------------------------------------------------------------------
-# PRIVATE FUNCTIONS
+# PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-func _connect_signals() -> void:
-	ResourceManager.madra_changed.connect(_on_madra_changed)
-	CultivationManager.core_density_level_updated.connect(_on_core_density_updated)
-	CultivationManager.advancement_stage_changed.connect(_on_stage_changed)
+## Get the global position of the Madra orb center (for particle targets).
+func get_madra_orb_global_position() -> Vector2:
+	return _madra_circle.global_position + _madra_circle.size * 0.5
+
+#-----------------------------------------------------------------------------
+# DISPLAY UPDATES
+#-----------------------------------------------------------------------------
 
 func _update_all_displays() -> void:
 	_update_madra()
@@ -47,6 +50,15 @@ func _update_core_density() -> void:
 	var progress: float = level / 100.0
 	_core_density_rect.set_value(progress)
 	_core_density_label.text = "[center][color=#D4A84A]%s[/color]\nLvl %d[/center]" % [stage_name, int(level)]
+
+#-----------------------------------------------------------------------------
+# SIGNAL HANDLERS
+#-----------------------------------------------------------------------------
+
+func _connect_signals() -> void:
+	ResourceManager.madra_changed.connect(_on_madra_changed)
+	CultivationManager.core_density_level_updated.connect(_on_core_density_updated)
+	CultivationManager.advancement_stage_changed.connect(_on_stage_changed)
 
 func _on_madra_changed(_amount: float) -> void:
 	_update_madra()

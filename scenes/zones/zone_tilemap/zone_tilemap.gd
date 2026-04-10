@@ -1,10 +1,12 @@
+class_name ZoneTilemap
 extends Node2D
 
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
 @onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
-@onready var character_body: CharacterBody2D = %CharacterBody2D
+@onready var character_body: CharacterBody2D = %PlayerCharacter
 @onready var selected_zone_pulse_node: Line2D = %PulseNode
+@onready var _camera: Camera2D = %Camera2D
 
 const UNLOCKED_SOURCE_ID = 0
 const LOCKED_SOURCE_ID = 1

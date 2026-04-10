@@ -52,16 +52,16 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Start an adventure with the given action data
-func start_adventure(action_data: AdventureActionData) -> void:
+func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.0) -> void:
 	Log.info("AdventureView: Starting adventure - %s" % action_data.action_name)
-	
+
 	if LogManager:
 		LogManager.log_message("[color=cyan]Adventure Started: %s[/color]" % action_data.action_name)
-	
+
 	current_action_data = action_data
 
-	# Initialize resource values
-	_initialize_combat_resources()
+	# Initialize resource values with the actual budget drained from zone pool
+	_initialize_combat_resources(madra_budget)
 	
 	if PlayerManager.vitals_manager:
 		_update_stamina_regen(action_data.stamina_regen_modifier)
@@ -166,11 +166,12 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 # PRIVATE METHODS - Resource Management
 #-----------------------------------------------------------------------------
 
-## Initialize resource values
-func _initialize_combat_resources() -> void:
-	PlayerManager.vitals_manager.initialize_current_values()
+## Initialize resource values. Madra already spent by drain animation in ZoneResourcePanel.
+func _initialize_combat_resources(madra_budget: float) -> void:
+	PlayerManager.vitals_manager.initialize_current_values(madra_budget)
 	player_info_panel.setup_name("Player")
 	player_info_panel.setup_vitals(PlayerManager.vitals_manager)
+	Log.info("AdventureView: Adventure budget: %.1f Madra" % madra_budget)
 
 ## Updates the stamina regeneration based on the given modifier
 ## TODO: This will be expanded later to include more complex calculation logic
