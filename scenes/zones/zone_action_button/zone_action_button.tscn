@@ -33,24 +33,32 @@ material = SubResource("ShaderMaterial_sweep")
 mouse_filter = 2
 color = Color(0.42, 0.67, 0.37, 0.45)
 
-[node name="HBoxContainer" type="HBoxContainer" parent="ActionCard" unique_id=922382785]
+[node name="ContentMargin" type="MarginContainer" parent="ActionCard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ActionCard/ContentMargin" unique_id=922382785]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="TextSection" type="VBoxContainer" parent="ActionCard/HBoxContainer" unique_id=977978053]
+[node name="TextSection" type="VBoxContainer" parent="ActionCard/ContentMargin/HBoxContainer" unique_id=977978053]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 3
 
-[node name="ActionNameLabel" type="Label" parent="ActionCard/HBoxContainer/TextSection" unique_id=1359801726]
+[node name="ActionNameLabel" type="Label" parent="ActionCard/ContentMargin/HBoxContainer/TextSection" unique_id=1359801726]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.91, 0.86, 0.78, 1)
 theme_override_font_sizes/font_size = 26
 
-[node name="ActionDescLabel" type="RichTextLabel" parent="ActionCard/HBoxContainer/TextSection" unique_id=995097632]
+[node name="ActionDescLabel" type="RichTextLabel" parent="ActionCard/ContentMargin/HBoxContainer/TextSection" unique_id=995097632]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
@@ -59,7 +67,7 @@ bbcode_enabled = true
 fit_content = true
 autowrap_mode = 2
 
-[node name="MadraBadgeContainer" type="HBoxContainer" parent="ActionCard/HBoxContainer" unique_id=462977340]
+[node name="MadraBadgeContainer" type="HBoxContainer" parent="ActionCard/ContentMargin/HBoxContainer" unique_id=462977340]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -69,7 +77,7 @@ mouse_filter = 1
 tooltip_text = "Madra Requirement"
 theme_override_constants/separation = 4
 
-[node name="MadraBadge" type="RichTextLabel" parent="ActionCard/HBoxContainer/MadraBadgeContainer" unique_id=1553051251]
+[node name="MadraBadge" type="RichTextLabel" parent="ActionCard/ContentMargin/HBoxContainer/MadraBadgeContainer" unique_id=1553051251]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
@@ -79,7 +87,7 @@ bbcode_enabled = true
 fit_content = true
 scroll_active = false
 
-[node name="MadraIcon" type="TextureRect" parent="ActionCard/HBoxContainer/MadraBadgeContainer" unique_id=864063711]
+[node name="MadraIcon" type="TextureRect" parent="ActionCard/ContentMargin/HBoxContainer/MadraBadgeContainer" unique_id=864063711]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 2

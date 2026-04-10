@@ -19,6 +19,7 @@ const CATEGORY_COLORS: Dictionary = {
 const DEFAULT_CATEGORY_COLOR: Color = Color(0.5, 0.5, 0.5)
 const FILL_TINT_OPACITY: float = 0.45
 const SWEEP_RESET_DURATION: float = 0.3
+const SWEEP_FADE_IN_DURATION: float = 0.1
 
 @export var action_data: ZoneActionData
 @export var is_current_action: bool = false:
@@ -40,6 +41,7 @@ const SWEEP_RESET_DURATION: float = 0.3
 var _is_affordable: bool = true
 var _sweep_tween: Tween = null
 var _cached_selected_style: StyleBoxFlat = null
+var _is_tracking_timer: bool = false
 
 func _ready() -> void:
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
@@ -93,23 +95,35 @@ func _kill_sweep_tween() -> void:
 		_sweep_tween.kill()
 	_sweep_tween = null
 
-func _start_sweep(duration: float) -> void:
+func _process(_delta: float) -> void:
+	if _is_tracking_timer:
+		var timer: Timer = ActionManager.action_timer
+		if timer.wait_time > 0.0 and not timer.is_stopped():
+			var progress: float = 1.0 - (timer.time_left / timer.wait_time)
+			_set_fill_amount(progress)
+
+func _start_sweep(_duration: float) -> void:
 	_kill_sweep_tween()
 	_set_fill_amount(0.0)
-	_sweep_tween = create_tween()
-	_sweep_tween.tween_method(_set_fill_amount, 0.0, 1.0, duration)
+	_is_tracking_timer = true
 
-func _reset_and_restart_sweep(duration: float) -> void:
+func _reset_and_restart_sweep(_duration: float) -> void:
+	_is_tracking_timer = false
+	_set_fill_amount(1.0)
 	_kill_sweep_tween()
 	_sweep_tween = create_tween()
-	# Smooth reset from 1.0 to 0.0
-	_sweep_tween.tween_method(_set_fill_amount, 1.0, 0.0, SWEEP_RESET_DURATION).set_ease(Tween.EASE_OUT)
-	# Then fill again
-	_sweep_tween.tween_method(_set_fill_amount, 0.0, 1.0, duration)
+	# Fade out the full fill (starting from 1.0)
+	_sweep_tween.tween_property(_progress_fill, "self_modulate:a", 0.0, SWEEP_RESET_DURATION).set_ease(Tween.EASE_OUT)
+	# Resume timer tracking (fill fades back in showing current progress)
+	_sweep_tween.tween_callback(func() -> void: _is_tracking_timer = true)
+	_sweep_tween.tween_property(_progress_fill, "self_modulate:a", 1.0, SWEEP_FADE_IN_DURATION)
 
 func _stop_sweep() -> void:
+	_is_tracking_timer = false
 	_kill_sweep_tween()
 	_set_fill_amount(0.0)
+	if is_instance_valid(_progress_fill):
+		_progress_fill.self_modulate.a = 1.0
 
 func _update_progress_fill() -> void:
 	if not is_instance_valid(_progress_fill):
