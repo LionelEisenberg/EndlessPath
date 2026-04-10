@@ -4,8 +4,18 @@ extends MarginContainer
 
 const CARD_NORMAL: StyleBox = preload("res://assets/styleboxes/zones/action_card_normal.tres")
 const CARD_HOVER: StyleBox = preload("res://assets/styleboxes/zones/action_card_hover.tres")
+const CARD_SELECTED: StyleBox = preload("res://assets/styleboxes/zones/action_card_selected.tres")
 const DIMMED_MODULATE: Color = Color(0.55, 0.55, 0.55, 1.0)
 const NORMAL_MODULATE: Color = Color(1.0, 1.0, 1.0, 1.0)
+const CATEGORY_COLORS: Dictionary = {
+	ZoneActionData.ActionType.FORAGE: Color(0.42, 0.67, 0.37),
+	ZoneActionData.ActionType.CYCLING: Color(0.37, 0.66, 0.62),
+	ZoneActionData.ActionType.ADVENTURE: Color(0.61, 0.25, 0.25),
+	ZoneActionData.ActionType.NPC_DIALOGUE: Color(0.83, 0.66, 0.29),
+}
+const DEFAULT_CATEGORY_COLOR: Color = Color(0.5, 0.5, 0.5)
+const FILL_TINT_OPACITY: float = 0.45
+const SWEEP_RESET_DURATION: float = 0.3
 
 @export var action_data: ZoneActionData
 @export var is_current_action: bool = false:
@@ -20,8 +30,10 @@ const NORMAL_MODULATE: Color = Color(1.0, 1.0, 1.0, 1.0)
 @onready var _madra_badge_container: HBoxContainer = %MadraBadgeContainer
 @onready var _madra_icon: TextureRect = %MadraIcon
 @onready var _madra_badge: RichTextLabel = %MadraBadge
+@onready var _progress_fill: ColorRect = %ProgressFill
 
 var _is_affordable: bool = true
+var _sweep_tween: Tween = null
 
 func _ready() -> void:
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
@@ -52,6 +64,11 @@ func setup_action(data: ZoneActionData) -> void:
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
+
+func _get_category_color() -> Color:
+	if action_data == null:
+		return DEFAULT_CATEGORY_COLOR
+	return CATEGORY_COLORS.get(action_data.action_type, DEFAULT_CATEGORY_COLOR)
 
 func _setup_labels() -> void:
 	_action_name_label.text = action_data.action_name
@@ -106,7 +123,10 @@ func _on_mouse_exited() -> void:
 
 func _update_card_style() -> void:
 	if is_current_action:
-		_action_card.add_theme_stylebox_override("panel", CARD_HOVER)
+		var selected_style: StyleBoxFlat = CARD_SELECTED.duplicate() as StyleBoxFlat
+		var cat_color: Color = _get_category_color()
+		selected_style.border_color = Color(cat_color.r, cat_color.g, cat_color.b, 0.4)
+		_action_card.add_theme_stylebox_override("panel", selected_style)
 	else:
 		_action_card.add_theme_stylebox_override("panel", CARD_NORMAL)
 
