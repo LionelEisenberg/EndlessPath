@@ -23,6 +23,8 @@ const SWEEP_RESET_DURATION: float = 0.3
 		is_current_action = value
 		if is_instance_valid(_action_card):
 			_update_card_style()
+		if is_instance_valid(_progress_fill):
+			_update_progress_fill()
 
 @onready var _action_card: PanelContainer = %ActionCard
 @onready var _action_name_label: Label = %ActionNameLabel
@@ -37,6 +39,7 @@ var _sweep_tween: Tween = null
 
 func _ready() -> void:
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
+	ActionManager.foraging_completed.connect(_on_foraging_completed)
 	if ActionManager.get_current_action() == action_data:
 		is_current_action = true
 	_action_card.mouse_entered.connect(_on_mouse_entered)
@@ -54,6 +57,9 @@ func _exit_tree() -> void:
 		ActionManager.current_action_changed.disconnect(_on_current_action_changed)
 	if ResourceManager.madra_changed.is_connected(_on_madra_changed_for_threshold):
 		ResourceManager.madra_changed.disconnect(_on_madra_changed_for_threshold)
+	if ActionManager.foraging_completed.is_connected(_on_foraging_completed):
+		ActionManager.foraging_completed.disconnect(_on_foraging_completed)
+	_kill_sweep_tween()
 
 ## Sets up the card with action data.
 func setup_action(data: ZoneActionData) -> void:
@@ -69,6 +75,54 @@ func _get_category_color() -> Color:
 	if action_data == null:
 		return DEFAULT_CATEGORY_COLOR
 	return CATEGORY_COLORS.get(action_data.action_type, DEFAULT_CATEGORY_COLOR)
+
+func _set_fill_amount(amount: float) -> void:
+	if is_instance_valid(_progress_fill) and _progress_fill.material:
+		_progress_fill.material.set_shader_parameter("fill_amount", amount)
+
+func _set_fill_color(cat_color: Color) -> void:
+	if is_instance_valid(_progress_fill):
+		_progress_fill.color = Color(cat_color.r, cat_color.g, cat_color.b, FILL_TINT_OPACITY)
+
+func _kill_sweep_tween() -> void:
+	if _sweep_tween and _sweep_tween.is_valid():
+		_sweep_tween.kill()
+	_sweep_tween = null
+
+func _start_sweep(duration: float) -> void:
+	_kill_sweep_tween()
+	_set_fill_amount(0.0)
+	_sweep_tween = create_tween()
+	_sweep_tween.tween_method(_set_fill_amount, 0.0, 1.0, duration)
+
+func _reset_and_restart_sweep(duration: float) -> void:
+	_kill_sweep_tween()
+	_sweep_tween = create_tween()
+	# Smooth reset from 1.0 to 0.0
+	_sweep_tween.tween_method(_set_fill_amount, 1.0, 0.0, SWEEP_RESET_DURATION).set_ease(Tween.EASE_OUT)
+	# Then fill again
+	_sweep_tween.tween_method(_set_fill_amount, 0.0, 1.0, duration)
+
+func _stop_sweep() -> void:
+	_kill_sweep_tween()
+	_set_fill_amount(0.0)
+
+func _update_progress_fill() -> void:
+	if not is_instance_valid(_progress_fill):
+		return
+
+	if is_current_action and action_data:
+		var cat_color: Color = _get_category_color()
+		_set_fill_color(cat_color)
+
+		if action_data is ForageActionData:
+			var forage_data: ForageActionData = action_data as ForageActionData
+			_start_sweep(forage_data.foraging_interval_in_sec)
+		else:
+			# Non-timed action: instant full tint
+			_set_fill_amount(1.0)
+	else:
+		_stop_sweep()
 
 func _setup_labels() -> void:
 	_action_name_label.text = action_data.action_name
@@ -133,6 +187,11 @@ func _update_card_style() -> void:
 func _on_current_action_changed(_new_action: ZoneActionData) -> void:
 	var new_is_current: bool = ActionManager.get_current_action() == action_data
 	is_current_action = new_is_current
+
+func _on_foraging_completed(_items: Dictionary) -> void:
+	if is_current_action and action_data is ForageActionData:
+		var forage_data: ForageActionData = action_data as ForageActionData
+		_reset_and_restart_sweep(forage_data.foraging_interval_in_sec)
 
 func _on_madra_changed_for_threshold(_amount: float) -> void:
 	_update_adventure_state()
