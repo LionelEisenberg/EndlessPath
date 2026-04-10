@@ -7,6 +7,9 @@ const CARD_HOVER: StyleBox = preload("res://assets/styleboxes/zones/action_card_
 const CARD_SELECTED: StyleBox = preload("res://assets/styleboxes/zones/action_card_selected.tres")
 const DIMMED_MODULATE: Color = Color(0.55, 0.55, 0.55, 1.0)
 const NORMAL_MODULATE: Color = Color(1.0, 1.0, 1.0, 1.0)
+## Maps active ActionTypes to their category color. Unmapped types (MERCHANT,
+## TRAIN_STATS, ZONE_EVENT, QUEST_GIVER) fall back to DEFAULT_CATEGORY_COLOR
+## since they have no zone action buttons yet.
 const CATEGORY_COLORS: Dictionary = {
 	ZoneActionData.ActionType.FORAGE: Color(0.42, 0.67, 0.37),
 	ZoneActionData.ActionType.CYCLING: Color(0.37, 0.66, 0.62),
@@ -36,6 +39,7 @@ const SWEEP_RESET_DURATION: float = 0.3
 
 var _is_affordable: bool = true
 var _sweep_tween: Tween = null
+var _cached_selected_style: StyleBoxFlat = null
 
 func _ready() -> void:
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
@@ -82,7 +86,7 @@ func _set_fill_amount(amount: float) -> void:
 
 func _set_fill_color(cat_color: Color) -> void:
 	if is_instance_valid(_progress_fill):
-		_progress_fill.color = Color(cat_color.r, cat_color.g, cat_color.b, FILL_TINT_OPACITY)
+		_progress_fill.color = Color(cat_color, FILL_TINT_OPACITY)
 
 func _kill_sweep_tween() -> void:
 	if _sweep_tween and _sweep_tween.is_valid():
@@ -177,10 +181,11 @@ func _on_mouse_exited() -> void:
 
 func _update_card_style() -> void:
 	if is_current_action:
-		var selected_style: StyleBoxFlat = CARD_SELECTED.duplicate() as StyleBoxFlat
+		if _cached_selected_style == null:
+			_cached_selected_style = CARD_SELECTED.duplicate() as StyleBoxFlat
 		var cat_color: Color = _get_category_color()
-		selected_style.border_color = Color(cat_color.r, cat_color.g, cat_color.b, 0.4)
-		_action_card.add_theme_stylebox_override("panel", selected_style)
+		_cached_selected_style.border_color = Color(cat_color.r, cat_color.g, cat_color.b, 0.4)
+		_action_card.add_theme_stylebox_override("panel", _cached_selected_style)
 	else:
 		_action_card.add_theme_stylebox_override("panel", CARD_NORMAL)
 

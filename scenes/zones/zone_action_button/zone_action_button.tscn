@@ -1,10 +1,9 @@
-[gd_scene format=3 uid="uid://bw8m5x2oap4q1" load_steps=7]
+[gd_scene format=3 uid="uid://bw8m5x2oap4q1" load_steps=6]
 
 [ext_resource type="Script" uid="uid://d1adqdlc01837" path="res://scenes/zones/zone_action_button/zone_action_button.gd" id="1_action_btn"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/zones/action_card_normal.tres" id="2_card_normal"]
 [ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/ui_images/resources/madra_icon.png" id="3_po6du"]
 [ext_resource type="Shader" uid="uid://action_card_sweep_shader" path="res://assets/shaders/action_card_sweep.gdshader" id="4_sweep_shader"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/zones/action_card_selected.tres" id="5_card_selected"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sweep"]
 resource_local_to_scene = true
