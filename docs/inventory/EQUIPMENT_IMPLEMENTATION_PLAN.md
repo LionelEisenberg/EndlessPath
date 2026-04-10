@@ -1,5 +1,7 @@
 # Equipment Attribute Bonuses — Implementation Plan
 
+**Status:** Complete (PR #9)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Wire equipment to the attribute system so equipping gear grants attribute bonuses that flow into combat, vitals, and all downstream systems.
