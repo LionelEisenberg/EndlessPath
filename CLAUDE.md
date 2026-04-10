@@ -8,20 +8,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Common Commands
 
-All commands are run from the project root (`/home/lionelshnizel/EndlessPath`).
+All commands are run from the project root.
 
 ```bash
 # Open in Godot editor
-godot project.godot
+"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" project.godot
 
 # Run the game from CLI
-godot --path . scenes/main/main_game/main_game.tscn
+"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
+
+# Run the test suite
+"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 
 # Export (example: Linux)
-godot --headless --export-release "Linux" build/endlesspath.x86_64
+"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --export-release "Linux" build/endlesspath.x86_64
 ```
 
-There is no automated test suite yet — testing is manual via the editor.
+## Testing
+
+The project uses **GUT v9.6.0** for unit and integration tests. Test files live in `tests/unit/` and `tests/integration/`.
+
+**Run tests:**
+- After completing any feature or bug fix, before committing
+- When a bug is suspected in a system that has tests — run tests first to see if anything is already failing
+- After modifying any singleton manager, resource class, or combat formula
+
+**Write new tests** when adding logic to: `ResourceManager`, `CultivationManager`, `CharacterManager`, `InventoryManager`, `CombatEffectData`, `EquipmentDefinitionData`, or any new system with testable pure logic.
+
+**Test file naming:** `tests/unit/test_<system_name>.gd`, extending `GutTest`.
+
+If the project has never been imported in the current environment, run `--import` first to register GUT class names:
+```bash
+"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --import
+```
 
 ## Architecture
 
