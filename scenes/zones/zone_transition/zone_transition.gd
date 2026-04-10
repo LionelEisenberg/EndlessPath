@@ -34,6 +34,7 @@ var _drain_particles_spawned: int = 0
 var _drain_total_particles: int = 0
 var _drain_madra_per_particle: float = 0.0
 var _drain_target_pos: Vector2 = Vector2.ZERO
+var _has_saved_camera: bool = false
 var _saved_camera_zoom: Vector2 = Vector2.ZERO
 var _saved_camera_position: Vector2 = Vector2.ZERO
 
@@ -56,7 +57,7 @@ func is_transitioning() -> bool:
 
 ## Reset camera to pre-transition state (called when returning to zone view).
 func reset_camera(duration: float = 0.3) -> void:
-	if _saved_camera_zoom == Vector2.ZERO:
+	if not _has_saved_camera:
 		return
 	var camera: Camera2D = _get_camera()
 	if not camera:
@@ -66,7 +67,7 @@ func reset_camera(duration: float = 0.3) -> void:
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(camera, "position", _saved_camera_position, duration) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	_saved_camera_zoom = Vector2.ZERO
+	_has_saved_camera = false
 
 #-----------------------------------------------------------------------------
 # ADVENTURE TRANSITION — PARTICLE DRAIN
@@ -134,6 +135,7 @@ func _on_drain_complete() -> void:
 	var camera: Camera2D = _get_camera()
 	var character: Node2D = _get_character()
 	if camera and character:
+		_has_saved_camera = true
 		_saved_camera_zoom = camera.zoom
 		_saved_camera_position = camera.position
 
