@@ -23,7 +23,9 @@ const ZOOM_TARGET: float = 3.0
 #-----------------------------------------------------------------------------
 
 var _zone_resource_panel: ZoneResourcePanel = null
-var _zone_tilemap: Node2D = null
+var _zone_tilemap: ZoneTilemap = null
+var _camera: Camera2D = null
+var _character: Node2D = null
 var _is_transitioning: bool = false
 var _pending_adventure_data: AdventureActionData = null
 var _drain_budget: float = 0.0
@@ -81,8 +83,12 @@ func _on_adventure_start_requested(action_data: AdventureActionData) -> void:
 	_drain_madra_per_particle = _drain_budget / _drain_total_particles
 	_drain_particles_spawned = 0
 
+	# Cache node references for this transition
+	_camera = _zone_tilemap.find_child("Camera2D", false, false) if _zone_tilemap else null
+	_character = _zone_tilemap.find_child("PlayerCharacter", true, false) if _zone_tilemap else null
+
 	# Cache particle target position
-	var character: Node2D = _get_character()
+	var character: Node2D = _character
 	if character:
 		_drain_target_pos = character.get_global_transform_with_canvas().origin
 	else:
@@ -153,11 +159,7 @@ func _on_zoom_complete() -> void:
 #-----------------------------------------------------------------------------
 
 func _get_camera() -> Camera2D:
-	if _zone_tilemap:
-		return _zone_tilemap.find_child("Camera2D", false, false)
-	return null
+	return _camera
 
 func _get_character() -> Node2D:
-	if _zone_tilemap:
-		return _zone_tilemap.find_child("PlayerCharacter", true, false)
-	return null
+	return _character

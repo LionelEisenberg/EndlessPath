@@ -1,3 +1,4 @@
+class_name ZoneTilemap
 extends Node2D
 
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)

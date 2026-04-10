@@ -37,6 +37,12 @@ func _ready() -> void:
 		ResourceManager.madra_changed.connect(_on_madra_changed_for_threshold)
 		_update_adventure_state()
 
+func _exit_tree() -> void:
+	if ActionManager.current_action_changed.is_connected(_on_current_action_changed):
+		ActionManager.current_action_changed.disconnect(_on_current_action_changed)
+	if ResourceManager.madra_changed.is_connected(_on_madra_changed_for_threshold):
+		ResourceManager.madra_changed.disconnect(_on_madra_changed_for_threshold)
+
 ## Sets up the card with action data.
 func setup_action(data: ZoneActionData) -> void:
 	action_data = data
