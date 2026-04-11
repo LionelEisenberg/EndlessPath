@@ -36,6 +36,7 @@ const ITEM_INSTANCE_SCENE := preload("res://scenes/inventory/item_instance/item_
 
 var _item_instance: ItemInstance = null
 var _item_data: ItemInstanceData = null
+var _active_tween: Tween = null
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -85,6 +86,8 @@ func _create_icon() -> void:
 func _on_mouse_entered() -> void:
 	if not _item_data:
 		return
+	if _active_tween:
+		_active_tween.kill()
 	_description_panel.setup(_item_data)
 
 	var final_y: float = -tooltip_panel.size.y - 8.0
@@ -95,14 +98,16 @@ func _on_mouse_entered() -> void:
 	tooltip_panel.modulate.a = 0.0
 	tooltip_panel.visible = true
 
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(tooltip_panel, "position:y", final_y, 0.2).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
+	_active_tween = create_tween().set_parallel(true)
+	_active_tween.tween_property(tooltip_panel, "position:y", final_y, 0.2).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_active_tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
 
 func _on_mouse_exited() -> void:
+	if _active_tween:
+		_active_tween.kill()
 	var current_y: float = tooltip_panel.position.y
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(tooltip_panel, "position:y", current_y + 10.0, 0.1).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
-	tween.tween_property(tooltip_panel, "modulate:a", 0.0, 0.1)
-	await tween.finished
+	_active_tween = create_tween().set_parallel(true)
+	_active_tween.tween_property(tooltip_panel, "position:y", current_y + 10.0, 0.1).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_active_tween.tween_property(tooltip_panel, "modulate:a", 0.0, 0.1)
+	await _active_tween.finished
 	tooltip_panel.visible = false
