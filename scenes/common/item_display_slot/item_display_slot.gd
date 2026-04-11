@@ -24,6 +24,17 @@ const ITEM_INSTANCE_SCENE := preload("res://scenes/inventory/item_instance/item_
 @onready var tooltip_effects: RichTextLabel = %TooltipEffects
 
 #-----------------------------------------------------------------------------
+# EXPORTED PROPERTIES
+#-----------------------------------------------------------------------------
+
+## Assign an item definition in the editor to preview this slot.
+@export var item_definition: ItemDefinitionData:
+	set(value):
+		item_definition = value
+		if is_node_ready() and item_definition:
+			setup_from_definition(item_definition)
+
+#-----------------------------------------------------------------------------
 # STATE VARIABLES
 #-----------------------------------------------------------------------------
 
@@ -38,6 +49,10 @@ func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 	tooltip_panel.visible = false
+
+	# If an item was assigned in the editor, set it up
+	if item_definition:
+		setup_from_definition(item_definition)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -64,8 +79,11 @@ func _create_icon() -> void:
 		_item_instance.queue_free()
 
 	_item_instance = ITEM_INSTANCE_SCENE.instantiate()
+	_item_instance.use_full_rect = true
 	add_child(_item_instance)
 	move_child(_item_instance, 0)
+	if not _item_instance.is_node_ready():
+		await _item_instance.ready
 	_item_instance.setup(_item_data)
 
 func _populate_tooltip() -> void:

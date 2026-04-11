@@ -54,6 +54,7 @@ const _ITEM_DISPLAY_SLOT_SCENE := preload("res://scenes/common/item_display_slot
 func _ready() -> void:
 	return_button.pressed.connect(_on_return_pressed)
 
+
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------

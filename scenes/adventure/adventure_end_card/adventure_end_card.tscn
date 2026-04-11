@@ -13,8 +13,9 @@
 [ext_resource type="Texture2D" uid="uid://dcmx0viuefy1s" path="res://assets/ui_images/stat_icons/health_icon.png" id="10_b33pj"]
 [ext_resource type="Texture2D" uid="uid://fr1ueqq6cg6y" path="res://assets/ui_images/stat_icons/map_icon.png" id="11_51wby"]
 [ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/ui_images/resources/madra_icon.png" id="12_cfyns"]
-[ext_resource type="Texture2D" uid="uid://irvbdl0pat88" path="res://assets/asperite/inventory/sword_icon.png" id="13_preview_sword"]
-[ext_resource type="Texture2D" uid="uid://n4bia46t2gbq" path="res://assets/asperite/inventory/dagger_icon.png" id="14_preview_dagger"]
+[ext_resource type="PackedScene" path="res://scenes/common/item_display_slot/item_display_slot.tscn" id="13_item_slot"]
+[ext_resource type="Resource" uid="uid://cehsoutejuih0" path="res://resources/items/test_items/sword.tres" id="14_sword"]
+[ext_resource type="Resource" uid="uid://bwpoorfeekkiu" path="res://resources/items/test_items/dagger.tres" id="15_dagger"]
 
 [sub_resource type="Animation" id="Animation_reset"]
 length = 0.001
@@ -539,23 +540,17 @@ layout_mode = 2
 theme_override_constants/separation = 14
 alignment = 1
 
-[node name="PreviewItem1" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=2125191315]
-custom_minimum_size = Vector2(40, 40)
+[node name="PreviewItem1" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" instance=ExtResource("13_item_slot")]
 layout_mode = 2
-texture = ExtResource("13_preview_sword")
-stretch_mode = 5
+item_definition = ExtResource("14_sword")
 
-[node name="PreviewItem2" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=50917552]
-custom_minimum_size = Vector2(40, 40)
+[node name="PreviewItem2" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" instance=ExtResource("13_item_slot")]
 layout_mode = 2
-texture = ExtResource("14_preview_dagger")
-stretch_mode = 5
+item_definition = ExtResource("15_dagger")
 
-[node name="PreviewItem3" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=2104409349]
-custom_minimum_size = Vector2(40, 40)
+[node name="PreviewItem3" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" instance=ExtResource("13_item_slot")]
 layout_mode = 2
-texture = ExtResource("13_preview_sword")
-stretch_mode = 5
+item_definition = ExtResource("14_sword")
 
 [node name="LootEmptyLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection" unique_id=406625895]
 unique_name_in_owner = true
