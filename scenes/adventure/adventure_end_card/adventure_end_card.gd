@@ -45,6 +45,8 @@ const MADRA_COLOR := Color("#4a7ab5")
 const VICTORY_ICON := preload("res://assets/ui_images/stat_icons/victory_icon.png")
 const DEFEAT_ICON := preload("res://assets/ui_images/stat_icons/skull_icon.png")
 
+const _ITEM_DISPLAY_SLOT_SCENE := preload("res://scenes/common/item_display_slot/item_display_slot.tscn")
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -108,7 +110,7 @@ func _populate(data: AdventureResultData) -> void:
 	_populate_loot(data.loot_items)
 
 func _populate_loot(items: Array[Resource]) -> void:
-	# Clear existing loot slots
+	# Clear existing preview/placeholder slots
 	for child in loot_container.get_children():
 		child.queue_free()
 
@@ -119,10 +121,11 @@ func _populate_loot(items: Array[Resource]) -> void:
 		loot_empty_label.visible = false
 		loot_container.visible = true
 		for item in items:
-			var slot := TextureRect.new()
-			slot.custom_minimum_size = Vector2(40, 40)
-			slot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			# TODO: Set slot.texture from item icon when item types have icon property
+			var slot := _ITEM_DISPLAY_SLOT_SCENE.instantiate() as ItemDisplaySlot
+			if item is ItemInstanceData:
+				slot.setup_from_instance(item)
+			elif item is ItemDefinitionData:
+				slot.setup_from_definition(item)
 			loot_container.add_child(slot)
 
 func _on_return_pressed() -> void:

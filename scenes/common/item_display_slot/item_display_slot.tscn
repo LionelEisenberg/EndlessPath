@@ -1,0 +1,90 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/common/item_display_slot/item_display_slot.gd" id="1_script"]
+[ext_resource type="StyleBox" uid="uid://dscrdcbm4jsw2" path="res://assets/styleboxes/common/panel_popup.tres" id="2_tooltip_bg"]
+
+[node name="ItemDisplaySlot" type="Control"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 0
+script = ExtResource("1_script")
+
+[node name="TooltipPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+z_index = 10
+layout_mode = 0
+offset_left = -80.0
+offset_top = -220.0
+offset_right = 120.0
+offset_bottom = -8.0
+theme_override_styles/panel = ExtResource("2_tooltip_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="TooltipPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TooltipPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderRow" type="HBoxContainer" parent="TooltipPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TooltipIcon" type="TextureRect" parent="TooltipPanel/MarginContainer/VBoxContainer/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 5
+
+[node name="NameColumn" type="VBoxContainer" parent="TooltipPanel/MarginContainer/VBoxContainer/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="TooltipName" type="Label" parent="TooltipPanel/MarginContainer/VBoxContainer/HeaderRow/NameColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.91, 0.85, 1)
+theme_override_font_sizes/font_size = 18
+text = "Item Name"
+
+[node name="TooltipType" type="Label" parent="TooltipPanel/MarginContainer/VBoxContainer/HeaderRow/NameColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.6, 0.5, 1)
+theme_override_font_sizes/font_size = 13
+text = "[Equipment - Main Hand]"
+
+[node name="Separator" type="HSeparator" parent="TooltipPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TooltipDescription" type="RichTextLabel" parent="TooltipPanel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/default_color = Color(0.8, 0.77, 0.7, 1)
+theme_override_font_sizes/normal_font_size = 14
+bbcode_enabled = true
+text = "Description text"
+fit_content = true
+scroll_active = false
+
+[node name="TooltipEffects" type="RichTextLabel" parent="TooltipPanel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 14
+bbcode_enabled = true
+text = "Effects"
+fit_content = true
+scroll_active = false

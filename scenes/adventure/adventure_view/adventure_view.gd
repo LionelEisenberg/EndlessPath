@@ -84,6 +84,10 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 	_adventure_start_time = Time.get_ticks_msec() / 1000.0
 	_pending_victory = false
 
+	# Listen for item awards during this adventure
+	if InventoryManager and not InventoryManager.item_awarded.is_connected(_on_item_awarded):
+		InventoryManager.item_awarded.connect(_on_item_awarded)
+
 	# Initialize resource values with the actual budget drained from zone pool
 	_initialize_combat_resources(madra_budget)
 	
@@ -128,6 +132,10 @@ func stop_adventure() -> void:
 
 	# Build result before cleanup clears the data
 	var result_data := _build_result_data(is_victory, defeat_reason)
+
+	# Disconnect item tracking before cleanup
+	if InventoryManager and InventoryManager.item_awarded.is_connected(_on_item_awarded):
+		InventoryManager.item_awarded.disconnect(_on_item_awarded)
 
 	adventure_tilemap.stop_adventure()
 	timer_panel.stop()
@@ -242,6 +250,9 @@ func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureRes
 
 func _on_boss_defeated() -> void:
 	_pending_victory = true
+
+func _on_item_awarded(item: ItemDefinitionData, _quantity: int) -> void:
+	_loot_items.append(item)
 
 ## Updates the stamina regeneration based on the given modifier
 ## TODO: This will be expanded later to include more complex calculation logic
