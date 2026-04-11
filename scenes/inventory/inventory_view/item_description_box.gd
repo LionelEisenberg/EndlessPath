@@ -1,28 +1,14 @@
 extends TextureRect
 
-@onready var item_icon: TextureRect = %ItemIcon
-@onready var item_name: Label = %ItemName
-@onready var item_type: Label = %ItemType
-@onready var description_label: RichTextLabel = %DescriptionLabel
-@onready var effects_label: RichTextLabel = %EffectsLabel
+## Wrapper for the inventory's anchored item description box.
+## Delegates to the shared ItemDescriptionPanel.
+
+@onready var _panel: ItemDescriptionPanel = %ItemDescriptionPanel
 
 ## Populates the description box with item data.
 func setup(item_instance_data: ItemInstanceData) -> void:
-	item_icon.texture = item_instance_data.item_definition.icon
-	item_name.text = item_instance_data.item_definition.item_name
-	var type: String = item_instance_data.item_definition._get_item_type()
-	if item_instance_data.item_definition is EquipmentDefinitionData:
-		var equip: EquipmentDefinitionData = item_instance_data.item_definition as EquipmentDefinitionData
-		var slot_name: String = EquipmentDefinitionData.EquipmentSlot.keys()[equip.slot_type].replace("_", " ").capitalize()
-		type = "%s - %s" % [type, slot_name]
-	item_type.text = "[%s]" % type
-	description_label.text = item_instance_data.item_definition.description
-	effects_label.text = "\n".join(item_instance_data.item_definition._get_item_effects())
+	_panel.setup(item_instance_data)
 
 ## Resets the description box to empty state.
 func reset() -> void:
-	item_icon.texture = null
-	item_name.text = ""
-	item_type.text = ""
-	description_label.text = ""
-	effects_label.text = ""
+	_panel.reset()

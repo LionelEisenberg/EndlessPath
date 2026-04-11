@@ -23,6 +23,6 @@ offset_right = 120.0
 offset_bottom = -8.0
 theme_override_styles/panel = ExtResource("2_tooltip_bg")
 
-[node name="ItemDescriptionPanel" parent="TooltipPanel" instance=ExtResource("3_desc_panel")]
+[node name="ItemDescriptionPanel" parent="TooltipPanel" unique_id=2091687201 instance=ExtResource("3_desc_panel")]
 unique_name_in_owner = true
 layout_mode = 2

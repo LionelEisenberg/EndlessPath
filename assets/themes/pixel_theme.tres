@@ -1296,6 +1296,15 @@ grow_begin = -8.0
 grow_end = -8.0
 thickness = 2
 
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_item_desc"]
+color = Color(0.914, 0.808, 0.678, 1)
+thickness = 2
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_item_desc_thin"]
+color = Color(0.914, 0.808, 0.678, 1)
+grow_begin = -40.0
+grow_end = -40.0
+
 [sub_resource type="AtlasTexture" id="250"]
 atlas = ExtResource("4_ritsa")
 region = Rect2(96, 64, 16, 16)
@@ -2405,6 +2414,11 @@ cache/0/64/0/descent = 0.0
 cache/0/64/0/underline_position = 0.0
 cache/0/64/0/underline_thickness = 0.0
 cache/0/64/0/scale = 1.0
+cache/0/21/0/ascent = 0.0
+cache/0/21/0/descent = 0.0
+cache/0/21/0/underline_position = 0.0
+cache/0/21/0/underline_thickness = 0.0
+cache/0/21/0/scale = 1.0
 cache/1/variation_coordinates = {}
 cache/1/face_index = 0
 cache/1/embolden = 2.0
@@ -2830,6 +2844,12 @@ HScrollBar/styles/grabber_pressed = null
 HScrollBar/styles/scroll = SubResource("394")
 HScrollBar/styles/scroll_focus = SubResource("395")
 HSeparator/styles/separator = SubResource("StyleBoxLine_ritsa")
+HSeparatorItemDesc/base_type = &"HSeparator"
+HSeparatorItemDesc/constants/separation = 12
+HSeparatorItemDesc/styles/separator = SubResource("StyleBoxLine_item_desc")
+HSeparatorItemDescThin/base_type = &"HSeparator"
+HSeparatorItemDescThin/constants/separation = 10
+HSeparatorItemDescThin/styles/separator = SubResource("StyleBoxLine_item_desc_thin")
 HSlider/icons/grabber = SubResource("250")
 HSlider/icons/grabber_disabled = SubResource("251")
 HSlider/icons/grabber_highlight = SubResource("252")
@@ -2853,6 +2873,12 @@ Label/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
 Label/colors/font_shadow_color = Color(0.101960786, 0.07058824, 0.03137255, 1)
 LabelDark/base_type = &"Label"
 LabelDark/colors/font_color = Color(0.16470589, 0.101960786, 0.07058824, 1)
+LabelDescItemName/base_type = &"Label"
+LabelDescItemName/colors/font_color = Color(0, 0, 0, 1)
+LabelDescItemName/font_sizes/font_size = 42
+LabelDescItemType/base_type = &"Label"
+LabelDescItemType/colors/font_color = Color(0.378, 0.378, 0.378, 1)
+LabelDescItemType/font_sizes/font_size = 28
 LabelEndCardDefeatReason/base_type = &"Label"
 LabelEndCardDefeatReason/colors/font_color = Color(0.545, 0, 0, 1)
 LabelEndCardDefeatReason/font_sizes/font_size = 16
