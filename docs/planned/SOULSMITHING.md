@@ -46,18 +46,18 @@ The GDD specifically mentions a **Parasite Ring** that improves Cycling — demo
 | Adventuring | Provides Sacred Resources (Remnants, Beast Parts) |
 | Foraging | Provides Stone (Tier 0) |
 | Inventory | Outputs stored as equipment/trinkets |
-| Combat | Gear provides stats (attack_power, defense) |
+| Combat | Gear provides stats via `attribute_bonuses: Dictionary` (AttributeType → float) |
 | Cycling | Trinkets may buff cycling efficiency |
 | Cultivation | Unlocked at Iron stage |
 
 ## Implementation Considerations
 
 ### Existing Infrastructure
-- `EquipmentDefinitionData` already has `slot_type` and subtypes (`WeaponDefinitionData.attack_power`, `ArmorDefinitionData.defense`)
+- `EquipmentDefinitionData` already has `slot_type` and `attribute_bonuses: Dictionary` (AttributeType → float) — no subclasses (`WeaponDefinitionData` and `ArmorDefinitionData` were removed in PR #9)
 - `ItemInstanceData.metadata: Dictionary` is an unused hook — could store assembly quality, color data
 - `ItemInstanceData.instance_id: String` is unused — could differentiate crafted items
-- `CharacterManager._get_attribute_bonuses()` has a TODO for equipment stat application — this system would be the primary consumer
-- The 8 `EquipmentSlot` values (HEAD, CHEST, LEGS, FEET, MAIN_HAND, OFF_HAND, ACCESSORY_1, ACCESSORY_2) are already defined
+- `CharacterManager._get_attribute_bonuses()` is implemented (PR #9) — sums equipped gear bonuses via `_get_equipment_bonuses()`; Soulsmithing output would feed directly into this flow
+- The 6 `EquipmentSlot` values (MAIN_HAND, OFF_HAND, HEAD, ARMOR, ACCESSORY_1, ACCESSORY_2) are already defined
 
 ### New Components Needed
 - Schematic data resource (grid dimensions, color regions, target item)

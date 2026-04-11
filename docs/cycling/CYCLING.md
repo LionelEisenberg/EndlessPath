@@ -14,7 +14,8 @@ Cycling is the Foundation-stage mini-game and primary resource generation mechan
    - Click while the ball is inside a zone to earn Core Density XP
    - Timing quality: **PERFECT** (< 0.3 distance ratio, 15 XP), **GOOD** (< 0.7, 10 XP), **OK** (5 XP)
    - Floating text displays the result; zone dims after use
-6. At cycle end: `madra_earned = base_madra_per_cycle * mouse_tracking_accuracy`
+   - On zone click, XP `FlyingParticle` orbs burst from the zone toward the Core Density orb
+6. While tracking, glowing `FlyingParticle` orbs fly from the Madra Ball toward the Madra orb — Madra is awarded **incrementally per particle** during the cycle (not as a lump sum at cycle end)
 7. Madra is capped by the current advancement stage's max (`100 + 5 * core_density_level` for Foundation)
 8. If **Auto Cycle** is toggled on, a new cycle starts immediately
 
@@ -25,21 +26,26 @@ Pressing Escape exits cycling via `ActionManager.stop_action()`. Interrupted cyc
 ```
 CyclingView (Control)                         — cycling_view.gd
   Panel
-    TextureRect (background)
-      CyclingBackground (body diagram)
-        CyclingTechnique (Node2D)             — cycling_technique.gd
-          PathLine (Line2D)                   — baked path visual
-          StartCyclingButton (Button)
-          AutoCycleToggle (TextureButton)
-          CyclingPath2D (Path2D)
-            PathFollow2D
-              MadraBall (Area2D)
-            CyclingZone1..N (Area2D)          — cycling_zone.gd, created at runtime
-      CyclingResourcePanel (MarginContainer)  — cycling_resource_panel.gd
-      CyclingTechniqueSelector (PanelContainer) — cycling_technique_selector.gd
+    HBoxContainer                             — left/right split
+      TextureRect (background, ~60% width)
+        CyclingBackground (body diagram)
+          CyclingTechnique (Node2D)           — cycling_technique.gd
+            PathLine (Line2D)                 — baked path visual (glow shader)
+            StartCyclingButton (Button)
+            AutoCycleToggle (TextureButton)
+            CyclingPath2D (Path2D)
+              PathFollow2D
+                MadraBall (Area2D)
+              CyclingZone1..N (Area2D)        — cycling_zone.gd, created at runtime
+      CyclingTabPanel (PanelContainer, ~40%)  — cycling_tab_panel.gd
+        TabContainer
+          Resources tab
+            CyclingResourcePanel (MarginContainer) — cycling_resource_panel.gd
+          Techniques tab
+            Technique slot list               — cycling_technique_slot.gd (per slot)
 ```
 
-Cycling Zones are created dynamically by `_create_cycling_zones()` from `CyclingZoneData` entries. The ball animation uses a `Tween` on `PathFollow2D.progress_ratio` (an older `AnimationPlayer` in the scene is unused).
+Cycling Zones are created dynamically by `_create_cycling_zones()` from `CyclingZoneData` entries. The ball animation uses a `Tween` on `PathFollow2D.progress_ratio`. ~~An older `AnimationPlayer` in the scene is unused — removed in PR #12.~~
 
 ## Data Model
 
@@ -85,8 +91,9 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 ### Madra Generation
 - Each `_process(delta)` frame checks if the mouse is inside `MadraBall`'s `CircleShape2D`
 - Accumulates `time_mouse_in_ball`; ratio = `time_mouse_in_ball / elapsed_cycle_time`
-- At cycle end: `madra_earned = base_madra_per_cycle * mouse_tracking_accuracy`
-- Passed to `ResourceManager.add_madra()`, which clamps to the stage's max
+- While the mouse is tracking, `FlyingParticle` orbs periodically spawn and fly from the Madra Ball toward the Madra orb on the resource panel
+- `ResourceManager.add_madra()` is called **incrementally** each time a particle arrives — Madra accrues throughout the cycle rather than as a lump sum at the end
+- The orb pulses subtly on each particle arrival; the resource panel reflects the running total in real time
 
 ### Core Density XP
 - Awarded per zone click via `CultivationManager.add_core_density_xp(xp_reward)`
@@ -94,8 +101,8 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 - Multi-level-up supported in a single call via a `while` loop
 
 ### Technique Selection
-- `CyclingTechniqueSelector` shows a grid of technique slots with an info panel
-- Selecting a technique emits `technique_change_request` up to `CyclingView`
+- `CyclingTabPanel` hosts a **Techniques** tab with an inline list of `CyclingTechniqueSlot` entries
+- The currently equipped technique is highlighted in gold; clicking a slot immediately equips it and emits `technique_change_request` up to `CyclingView`
 - Technique name is saved to `PersistenceManager.save_game_data.current_cycling_technique_name`
 - Loaded by string name lookup on startup (falls back to first technique if not found)
 
@@ -107,8 +114,8 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 | `cycle_completed(madra, accuracy)` | CyclingTechnique | CyclingResourcePanel |
 | `zone_clicked(zone, zone_data)` | CyclingZone | CyclingTechnique |
 | `current_technique_changed(data)` | CyclingView | CyclingTechnique, CyclingResourcePanel |
-| `technique_change_request(data)` | CyclingTechniqueSelector | CyclingView |
-| `open_technique_selector` | CyclingResourcePanel | CyclingView |
+| `technique_change_request(data)` | CyclingTabPanel | CyclingView |
+| ~~`open_technique_selector`~~ | ~~CyclingResourcePanel~~ | ~~CyclingView~~ — *deleted in PR #12* |
 | `start_cycling` / `stop_cycling` | ActionManager | CyclingViewState, MainView |
 
 ## Resource Panel UI
@@ -123,7 +130,7 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 
 | System | Connection |
 |--------|------------|
-| `ResourceManager` | `add_madra()` on cycle end; `madra_changed` signal updates resource panel |
+| `ResourceManager` | `add_madra()` incrementally during tracking (per particle arrival); `madra_changed` signal updates resource panel |
 | `CultivationManager` | `add_core_density_xp()` on zone click; signals update level/XP display |
 | `ActionManager` | `start_cycling` / `stop_cycling` signals control view lifecycle |
 | `PersistenceManager` | Technique name saved/loaded; Madra and XP persisted via SaveGameData |
@@ -134,10 +141,11 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 | Resource | Details |
 |----------|---------|
 | Foundation Technique | 10s cycle, 25 madra/cycle, 3 zones |
+| Smooth Flow Technique | 15s cycle, 30 madra/cycle, 4 zones, spiral path — *added in PR #12* |
 | Test Foundation Technique | 5s cycle, 25 madra/cycle, 0 zones |
 | Foundation Stage | base XP 10, scaling 1.02, max madra 100 + 5/level |
 
-Both techniques share the same `Curve2D` (`new_curve_2d.tres` at project root).
+~~Both techniques share the same `Curve2D` (`new_curve_2d.tres` at project root).~~ Curve files moved to `resources/cycling/` in PR #12; Smooth Flow Technique uses a distinct spiral `Curve2D`.
 
 ## Key Files
 
@@ -148,10 +156,15 @@ Both techniques share the same `Curve2D` (`new_curve_2d.tres` at project root).
 | `scenes/cycling/cycling_technique/cycling_zone.gd` | Individual inflection point |
 | `scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd` | Resource display UI |
 | `scenes/cycling/cycling_resource_panel/progress_shader_rect.gd` | Animated shader progress widget |
-| `scenes/cycling/cycling_technique_selector/cycling_technique_selector.gd` | Technique picker |
+| ~~`scenes/cycling/cycling_technique_selector/cycling_technique_selector.gd`~~ | ~~Technique picker~~ — *deleted in PR #12* |
+| `scenes/cycling/cycling_tab_panel/cycling_tab_panel.gd` | Tabbed right panel (Resources / Techniques) — *added in PR #12* |
+| `scenes/cycling/cycling_tab_panel/cycling_technique_slot.gd` | Individual technique slot in Techniques tab — *added in PR #12* |
 | `scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd` | Technique data class |
 | `scripts/resource_definitions/cycling/cycling_technique/cycling_zone_data.gd` | Zone data class |
 | `scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd` | Stage progression data |
+| `assets/shaders/madra_ball.gdshader` | Vortex shader for Madra Ball (UV rotation, idle pulse, inner glow) — *added in PR #12* |
+| `assets/shaders/cycling_zone.gdshader` | Procedural zone shader (idle/active/used state blending, ring + fill + glow) — *added in PR #12* |
+| `assets/shaders/path_pulse.gdshader` | Breathing opacity shader for path line and glow line — *added in PR #12* |
 
 ## Work Remaining
 

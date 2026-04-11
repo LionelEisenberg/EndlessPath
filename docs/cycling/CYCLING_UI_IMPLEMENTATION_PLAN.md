@@ -1,5 +1,7 @@
 # Cycling View UI Redesign — Implementation Plan
 
+**Status:** Complete (PR #12)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Restructure the Cycling View from its current placeholder layout into a polished full-screen overlay with body diagram left, tabbed info panel right (Resources/Techniques tabs), and a visible close button.
