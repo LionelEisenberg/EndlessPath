@@ -2,6 +2,9 @@ extends MarginContainer
 ## Action card button for zone actions.
 ## Adventure actions show a Madra badge and disable when unaffordable.
 
+const FLOATING_TEXT_SCENE: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
+const FLOATING_TEXT_TRAJECTORY: Vector2 = Vector2(-200, -40)
+const FLOATING_TEXT_COLOR: Color = Color(0.75, 0.92, 0.65)
 const CARD_NORMAL: StyleBox = preload("res://assets/styleboxes/zones/action_card_normal.tres")
 const CARD_HOVER: StyleBox = preload("res://assets/styleboxes/zones/action_card_hover.tres")
 const CARD_SELECTED: StyleBox = preload("res://assets/styleboxes/zones/action_card_selected.tres")
@@ -112,10 +115,17 @@ func _reset_and_restart_sweep(_duration: float) -> void:
 	_set_fill_amount(1.0)
 	_kill_sweep_tween()
 	_sweep_tween = create_tween()
-	# Fade out the full fill (starting from 1.0)
+	# Bright flash on completion — boost category color channel via HDR
+	var flash_color: Color = _get_category_color()
+	var flash: Color = Color(flash_color.r * 1.5, flash_color.g * 3.0, flash_color.b * 1.5, 1.0)
+	_sweep_tween.tween_property(_progress_fill, "self_modulate", flash, 0.1).set_ease(Tween.EASE_OUT)
+	# Fade out while still bright
 	_sweep_tween.tween_property(_progress_fill, "self_modulate:a", 0.0, SWEEP_RESET_DURATION).set_ease(Tween.EASE_OUT)
-	# Resume timer tracking (fill fades back in showing current progress)
-	_sweep_tween.tween_callback(func() -> void: _is_tracking_timer = true)
+	# Reset to normal, resume tracking
+	_sweep_tween.tween_callback(func() -> void:
+		_progress_fill.self_modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_is_tracking_timer = true
+	)
 	_sweep_tween.tween_property(_progress_fill, "self_modulate:a", 1.0, SWEEP_FADE_IN_DURATION)
 
 func _stop_sweep() -> void:
@@ -207,10 +217,26 @@ func _on_current_action_changed(_new_action: ZoneActionData) -> void:
 	var new_is_current: bool = ActionManager.get_current_action() == action_data
 	is_current_action = new_is_current
 
-func _on_foraging_completed(_items: Dictionary) -> void:
+func _on_foraging_completed(items: Dictionary) -> void:
 	if is_current_action and action_data is ForageActionData:
 		var forage_data: ForageActionData = action_data as ForageActionData
 		_reset_and_restart_sweep(forage_data.foraging_interval_in_sec)
+		_spawn_foraging_floating_text(items)
+
+func _spawn_foraging_floating_text(items: Dictionary) -> void:
+	if items.is_empty():
+		return
+	var text_parts: Array[String] = []
+	for item in items:
+		var quantity: int = items[item]
+		text_parts.append("+%d %s" % [quantity, item.item_name])
+	var full_text: String = ", ".join(text_parts)
+	var floating_text: FloatingText = FLOATING_TEXT_SCENE.instantiate()
+	# Add to the root viewport so it's not clipped by parent containers
+	get_tree().current_scene.add_child(floating_text)
+	# Spawn from right-of-center of the button card
+	var spawn_pos: Vector2 = _action_card.global_position + Vector2(-150, 20)
+	floating_text.show_text(full_text, FLOATING_TEXT_COLOR, spawn_pos, FLOATING_TEXT_TRAJECTORY)
 
 func _on_madra_changed_for_threshold(_amount: float) -> void:
 	_update_adventure_state()

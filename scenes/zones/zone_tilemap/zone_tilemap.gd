@@ -159,8 +159,7 @@ func _on_start_foraging() -> void:
 func _on_stop_foraging() -> void:
 	_move_character_to_tile_coord(selected_zone.tilemap_location)
 
-func _on_foraging_completed(items: Dictionary) -> void:
-	_show_foraging_completion_floating_text(items)
+func _on_foraging_completed(_items: Dictionary) -> void:
 	_character_move_to_new_foraging_location()
 
 func _character_move_to_new_foraging_location() -> void:

@@ -1,4 +1,4 @@
-[gd_resource type="StyleBoxFlat" format=3 uid="uid://action_card_normal_v1"]
+[gd_resource type="StyleBoxFlat" format=3 uid="uid://bqwcw6qf81wvg"]
 
 [resource]
 content_margin_left = 0.0
@@ -10,7 +10,7 @@ border_width_left = 2
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(1.0, 1.0, 1.0, 0.08)
+border_color = Color(1, 1, 1, 0.08)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
