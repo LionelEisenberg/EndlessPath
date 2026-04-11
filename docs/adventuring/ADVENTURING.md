@@ -15,6 +15,8 @@ Adventuring is a roguelite-style exploration mode where the player navigates a p
 7. Completed tiles show their post-completion text; player can move through freely
 8. Defeating the boss tile triggers `ActionManager.stop_action(true)` — adventure success
 9. Running out of stamina, losing combat, or timer expiry ends the run as a failure
+10. A scroll-themed end card overlays the adventure view showing victory/defeat, stats, and loot
+11. Player clicks RETURN — scroll closes and returns to zone view
 
 ## Architecture
 
@@ -36,6 +38,15 @@ AdventureView (Control)                         — adventure_view.gd
       AdventureCombat                           — adventure_combat.gd
   PlayerInfoPanel (CombatantInfoPanel)
   TimerPanel                                    — timer_panel.gd
+
+AdventureEndCard (Control)                      — adventure_end_card.gd
+  ContentContainer (Control)                    — scroll textures + content
+    UpperRoll / LowerRoll (TextureRect)         — scroll roll assets
+    PaperSection (TextureRect)                  — paper body with stats grid
+      StatsGrid (GridContainer)                 — 3x2 stat display
+      LootSection (VBoxContainer)               — ItemDisplaySlot instances
+    ReturnButton (Button)                       — ButtonEndCard theme variant
+  AnimationPlayer                               — single reversible scroll_animation
 ```
 
 ### Three-Layer Tilemap
@@ -130,6 +141,22 @@ Base class: `EffectData` (abstract Resource) — defines an `EffectType` enum an
 | `ChangeVitalsEffectData` | *(not in enum)* | Modifies health/stamina/mana via PlayerManager |
 | `TriggerEventEffectData` | `TRIGGER_EVENT` | Fires a narrative event via EventManager |
 
+### AdventureResultData (end card stats)
+| Field | Type | Description |
+|-------|------|-------------|
+| `is_victory` | `bool` | Boss defeated = true |
+| `defeat_reason` | `String` | Human-readable reason (empty on victory) |
+| `combats_fought` | `int` | Combats entered (win or lose) |
+| `combats_total` | `int` | Total combat encounters on the map |
+| `gold_earned` | `int` | Gold from successful combats |
+| `time_elapsed` | `float` | Seconds from start to end |
+| `health_remaining` | `float` | Player HP at end |
+| `health_max` | `float` | Player max HP |
+| `tiles_explored` | `int` | Unique tiles visited |
+| `tiles_total` | `int` | Total tiles on map |
+| `madra_spent` | `float` | Madra budget consumed |
+| `loot_items` | `Array[Resource]` | Items awarded during adventure |
+
 ## UI Style (PR #15)
 
 The adventure UI was restyled in PR #15 to match the dark floating panel aesthetic used across the game:
@@ -138,6 +165,18 @@ The adventure UI was restyled in PR #15 to match the dark floating panel aesthet
 - **`TimerPanel`** — repositioned to top-center of the screen, using the same dark floating style
 - **`PlayerInfoPanel` / `CombatantInfoPanel`** — rebuilt with container-based layout and integer vitals display (see [COMBAT.md](../combat/COMBAT.md) for full details)
 - **Log window** — made draggable, repositioned to avoid overlapping the hex map
+
+## Adventure End Card (PR #19)
+
+When an adventure ends (victory, death, timeout, or retreat), a scroll-themed overlay displays results before returning to the zone view.
+
+- **State machine integration:** `AdventureViewState` pushes `AdventureEndCardState` as a modal overlay via `push_state`/`pop_state`. The adventure view remains visible behind the grey background.
+- **Stat tracking:** `AdventureView` accumulates stats during the run (`_combats_fought`, `_gold_earned`, `_loot_items`, `_adventure_start_time`) and builds `AdventureResultData` in `stop_adventure()`.
+- **Victory detection:** `AdventureTilemap` emits `boss_defeated` signal → `AdventureView` sets `_pending_victory` flag before `stop_adventure()` is called.
+- **Loot tracking:** `InventoryManager.item_awarded` signal connected during adventure, items collected into `_loot_items`.
+- **Animation:** Single `scroll_animation` played backwards to open (unroll) and forwards to close (roll up).
+- **Loot display:** Uses reusable `ItemDisplaySlot` components (in `scenes/common/`) with hover tooltips via shared `ItemDescriptionPanel`.
+- **Theme variants:** Title, DefeatReason, StatName, StatValue, Section, Muted labels; ButtonEndCard; PanelLootTray — all in `pixel_theme.tres`.
 
 ## Encounter Flow
 
@@ -186,9 +225,10 @@ Adventures now consume Madra from the zone's pool on start.
 | ActionManager | `start_adventure(madra_budget: float)` / `stop_adventure` signals control lifecycle |
 | ResourceManager | Gold awarded on combat victory; zone Madra pool drained on adventure start |
 | PlayerManager | VitalsManager tracks health/stamina; stamina regen set on start |
-| InventoryManager | Loot tables rolled on encounter success effects |
+| InventoryManager | Loot tables rolled on encounter success effects; `item_awarded` signal tracked for end card loot |
 | DialogueManager | `DialogueChoice` starts timelines |
 | ZoneManager | Zone change cancels active adventure |
+| MainView state machine | `AdventureEndCardState` pushed as modal overlay on adventure end |
 
 ## Existing Content
 
@@ -200,8 +240,13 @@ One adventure exists: `test_adventure_data.tres` with default parameters (5 spec
 
 | File | Purpose |
 |------|---------|
-| `scenes/adventure/adventure_view/adventure_view.gd` | Top-level controller, view switching, timer |
-| `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` | Map state, movement, encounter logic |
+| `scenes/adventure/adventure_view/adventure_view.gd` | Top-level controller, view switching, timer, stat tracking |
+| `scenes/adventure/adventure_end_card/adventure_end_card.gd` | End card overlay — populates from AdventureResultData, drives scroll animation |
+| `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` | Map state, movement, encounter logic, tile/combat counts |
+| `scripts/resource_definitions/adventure/adventure_result_data.gd` | End-of-adventure stats bundle |
+| `scenes/ui/main_view/states/adventure_end_card_state.gd` | Modal overlay state for end card |
+| `scenes/common/item_display_slot/item_display_slot.gd` | Reusable item icon with hover tooltip |
+| `scenes/common/item_description_panel/item_description_panel.gd` | Shared item detail panel (inventory + end card) |
 | `scenes/adventure/adventure_tilemap/adventure_map_generator.gd` | Procedural hex map generation |
 | `scenes/adventure/adventure_tilemap/encounter_info_panel.gd` | Encounter UI display |
 | `scenes/adventure/adventure_tilemap/encounter_choice_button.gd` | Choice button with requirements |
@@ -238,7 +283,7 @@ No known bugs in the Adventuring system.
 - `[HIGH]` No stamina UI feedback when movement is blocked — silent return with a TODO comment (`adventure_tilemap.gd:256`)
 - ~~`[MEDIUM]` Player info panel and log overlap the adventure area — lower them to improve visibility of the hex map~~ *(Fixed in PR #15 — draggable log window + repositioned panels)*
 - ~~`[LOW]` Timer label ("Time Left: MM:SS") should be repositioned above the encounter choice info panel~~ *(Fixed in PR #15 — moved to top-center with dark floating style)*
-- `[MEDIUM]` No adventure results screen — adventure ends with an instant snap back to zone view. Needs a summary modal showing success/failure, gold earned, items found, and encounters cleared. Addresses Satisfaction (closure on a 5-minute time investment) and Clarity (aggregated view of what the player gained)
+- ~~`[MEDIUM]` No adventure results screen — adventure ends with an instant snap back to zone view. Needs a summary modal showing success/failure, gold earned, items found, and encounters cleared~~ *(Fixed in PR #19 — scroll-themed end card with stats, loot, and victory/defeat display)*
 
 ### Tech Debt
 
