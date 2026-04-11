@@ -9,6 +9,7 @@ extends Control
 @onready var adventure_view: Control = %AdventureView
 @onready var inventory_view: Control = %InventoryView
 @onready var cycling_view: Control = %CyclingView
+@onready var adventure_end_card: AdventureEndCard = %AdventureEndCard
 
 ## View Components
 @onready var grey_background: Panel = %GreyBackground
@@ -18,6 +19,7 @@ extends Control
 @onready var adventure_view_state: MainViewState = %MainViewStateMachine/AdventureViewState
 @onready var inventory_view_state: MainViewState = %MainViewStateMachine/InventoryViewState
 @onready var cycling_view_state: MainViewState = %MainViewStateMachine/CyclingViewState
+@onready var adventure_end_card_state: MainViewState = %MainViewStateMachine/AdventureEndCardState
 
 ## State stack
 @onready var state_stack: Array[MainViewState] = []
@@ -28,6 +30,7 @@ func _ready() -> void:
 	adventure_view_state.scene_root = self
 	inventory_view_state.scene_root = self
 	cycling_view_state.scene_root = self
+	adventure_end_card_state.scene_root = self
 	
 	# Initialize view visibility based on initial state
 	change_state(zone_view_state)

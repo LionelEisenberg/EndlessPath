@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://adventure_end_card"]
+[gd_scene format=3 uid="uid://yFwafxe4zeQ5n"]
 
-[ext_resource type="Script" uid="uid://adventure_end_card_gd" path="res://scenes/adventure/adventure_end_card/adventure_end_card.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://g4Bs1bCU5z9sA" path="res://scenes/adventure/adventure_end_card/adventure_end_card.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/scroll/parts/upper.png" id="2_upper"]
 [ext_resource type="Texture2D" path="res://assets/scroll/parts/lower.png" id="3_lower"]
 [ext_resource type="Texture2D" path="res://assets/scroll/parts/paper.png" id="4_paper"]
