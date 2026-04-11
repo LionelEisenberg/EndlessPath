@@ -216,6 +216,8 @@ offset_left = -579.5
 offset_right = 579.5
 offset_bottom = 270.00085
 grow_horizontal = 2
+scale = Vector2(0.9, 0.9)
+pivot_offset = Vector2(551, 127)
 texture = ExtResource("2_upper")
 stretch_mode = 5
 
@@ -263,9 +265,9 @@ offset_right = 376.0
 offset_bottom = 246.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
+theme_override_constants/margin_left = 60
 theme_override_constants/margin_top = 80
-theme_override_constants/margin_right = 20
+theme_override_constants/margin_right = 60
 theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin" unique_id=1356806507]
@@ -279,13 +281,19 @@ alignment = 1
 
 [node name="LeftIcon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection" unique_id=1657869428]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(52, 52)
+custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("5_dq8b2")
 expand_mode = 2
 
-[node name="TitleLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection" unique_id=1821253353]
+[node name="MarginContainer" type="MarginContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection" unique_id=1278179605]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="TitleLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection/MarginContainer" unique_id=1821253353]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelEndCardTitle"
@@ -294,7 +302,7 @@ horizontal_alignment = 1
 
 [node name="RightIcon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection" unique_id=1539121816]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(52, 52)
+custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("5_dq8b2")
@@ -324,7 +332,7 @@ theme_override_constants/margin_bottom = 40
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_constants/h_separation = 48
-theme_override_constants/v_separation = 14
+theme_override_constants/v_separation = 24
 columns = 3
 
 [node name="CombatStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGridMargin/StatsGrid" unique_id=934422215]
@@ -530,25 +538,35 @@ theme_type_variation = &"LabelEndCardSection"
 text = "LOOT"
 horizontal_alignment = 1
 
-[node name="LootContainer" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection" unique_id=1527237258]
+[node name="LootTray" type="PanelContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection" unique_id=1379369614]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"PanelLootTray"
+
+[node name="LootTrayContent" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootTray" unique_id=2145659766]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="LootContainer" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootTray/LootTrayContent" unique_id=1527237258]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 14
 alignment = 1
 
-[node name="PreviewItem1" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=637752747 instance=ExtResource("13_item_slot")]
+[node name="PreviewItem1" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootTray/LootTrayContent/LootContainer" unique_id=637752747 instance=ExtResource("13_item_slot")]
 layout_mode = 2
 item_definition = ExtResource("14_sword")
 
-[node name="PreviewItem2" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=238622363 instance=ExtResource("13_item_slot")]
+[node name="PreviewItem2" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootTray/LootTrayContent/LootContainer" unique_id=238622363 instance=ExtResource("13_item_slot")]
 layout_mode = 2
 item_definition = ExtResource("15_dagger")
 
-[node name="PreviewItem3" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=655800325 instance=ExtResource("13_item_slot")]
+[node name="PreviewItem3" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootTray/LootTrayContent/LootContainer" unique_id=655800325 instance=ExtResource("13_item_slot")]
 layout_mode = 2
 item_definition = ExtResource("14_sword")
 
-[node name="LootEmptyLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection" unique_id=406625895]
+[node name="LootEmptyLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootTray/LootTrayContent" unique_id=406625895]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelEndCardMuted"
@@ -576,6 +594,8 @@ offset_top = -255.0
 offset_right = 551.0
 grow_horizontal = 2
 grow_vertical = 0
+scale = Vector2(0.9, 0.9)
+pivot_offset = Vector2(551, 127)
 mouse_filter = 2
 texture = ExtResource("3_lower")
 stretch_mode = 5
