@@ -10,6 +10,7 @@ extends Node2D
 #-----------------------------------------------------------------------------
 
 signal start_combat(choice: CombatChoice)
+signal boss_defeated
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -149,6 +150,7 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 			_apply_effects(_current_combat_choice.success_effects)
 			
 			if _current_combat_choice.is_boss:
+				boss_defeated.emit()
 				Log.info("AdventureTilemap: Boss defeated! Adventure Successful.")
 				ActionManager.stop_action(true)
 				return
