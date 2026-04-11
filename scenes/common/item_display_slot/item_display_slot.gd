@@ -87,10 +87,12 @@ func _on_mouse_entered() -> void:
 		return
 	_description_panel.setup(_item_data)
 	tooltip_panel.visible = true
-	# Position tooltip above the slot
+	# Position tooltip above the slot (account for 0.5x scale on tooltip)
+	var visual_width: float = tooltip_panel.size.x * tooltip_panel.scale.x
+	var visual_height: float = tooltip_panel.size.y * tooltip_panel.scale.y
 	tooltip_panel.position = Vector2(
-		(size.x - tooltip_panel.size.x) / 2.0,
-		-tooltip_panel.size.y - 8.0
+		(size.x - visual_width) / 2.0,
+		-visual_height - 8.0
 	)
 
 func _on_mouse_exited() -> void:

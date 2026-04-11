@@ -17,10 +17,11 @@ unique_name_in_owner = true
 visible = false
 z_index = 10
 layout_mode = 0
-offset_left = -80.0
-offset_top = -220.0
-offset_right = 120.0
+offset_left = -160.0
+offset_top = -250.0
+offset_right = 200.0
 offset_bottom = -8.0
+scale = Vector2(0.5, 0.5)
 theme_override_styles/panel = ExtResource("2_tooltip_bg")
 
 [node name="ItemDescriptionPanel" parent="TooltipPanel" unique_id=2091687201 instance=ExtResource("3_desc_panel")]
