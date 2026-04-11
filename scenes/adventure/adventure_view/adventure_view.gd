@@ -30,8 +30,7 @@ var current_action_data: AdventureActionData = null
 var is_in_combat: bool = false # Whether the player is currently in combat
 
 # Adventure result tracking
-var _combats_won: int = 0
-var _combats_total: int = 0
+var _combats_fought: int = 0
 var _gold_earned: int = 0
 var _madra_budget: float = 0.0
 var _loot_items: Array[Resource] = []
@@ -76,8 +75,7 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 	current_action_data = action_data
 
 	# Reset result tracking
-	_combats_won = 0
-	_combats_total = 0
+	_combats_fought = 0
 	_gold_earned = 0
 	_madra_budget = madra_budget
 	_loot_items.clear()
@@ -196,9 +194,8 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 			LogManager.log_message("[color=red]Combat Defeat...[/color]")
 
 	# Track combat stats
-	_combats_total += 1
+	_combats_fought += 1
 	if successful:
-		_combats_won += 1
 		_gold_earned += gold_earned
 
 	# Disconnect player ability signal
@@ -236,8 +233,8 @@ func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureRes
 	var result := AdventureResultData.new()
 	result.is_victory = is_victory
 	result.defeat_reason = defeat_reason
-	result.combats_won = _combats_won
-	result.combats_total = _combats_total
+	result.combats_fought = _combats_fought
+	result.combats_total = adventure_tilemap.get_total_combat_count()
 	result.gold_earned = _gold_earned
 	result.time_elapsed = (Time.get_ticks_msec() / 1000.0) - _adventure_start_time
 	result.health_remaining = PlayerManager.vitals_manager.current_health

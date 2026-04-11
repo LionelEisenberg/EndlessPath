@@ -88,7 +88,7 @@ func _populate(data: AdventureResultData) -> void:
 		defeat_reason_label.visible = true
 
 	# Stats
-	combat_value_label.text = "%d / %d" % [data.combats_won, data.combats_total]
+	combat_value_label.text = "%d / %d" % [data.combats_fought, data.combats_total]
 	gold_value_label.text = str(data.gold_earned)
 	gold_value_label.add_theme_color_override("font_color", GOLD_COLOR)
 

@@ -14,10 +14,10 @@ var is_victory: bool = false
 ## Human-readable reason for defeat (empty string on victory)
 var defeat_reason: String = ""
 
-## Number of combat encounters won
-var combats_won: int = 0
+## Number of combat encounters fought
+var combats_fought: int = 0
 
-## Total number of combat encounters entered
+## Total number of combat encounters on the map
 var combats_total: int = 0
 
 ## Total gold earned across all combats

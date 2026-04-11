@@ -171,6 +171,19 @@ func get_visited_tile_count() -> int:
 func get_total_tile_count() -> int:
 	return _encounter_tile_dictionary.size()
 
+## Returns the total number of combat encounters on the map.
+func get_total_combat_count() -> int:
+	var count: int = 0
+	for encounter in _encounter_tile_dictionary.values():
+		if encounter.encounter_type in [
+			AdventureEncounter.EncounterType.COMBAT_REGULAR,
+			AdventureEncounter.EncounterType.COMBAT_BOSS,
+			AdventureEncounter.EncounterType.COMBAT_ELITE,
+			AdventureEncounter.EncounterType.COMBAT_AMBUSH,
+		]:
+			count += 1
+	return count
+
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
