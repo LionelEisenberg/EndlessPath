@@ -1,6 +1,8 @@
 class_name AdventureView
 extends Control
 
+signal adventure_completed(result_data: AdventureResultData)
+
 ## AdventureView
 ## Main controller for the adventure mode, managing transitions between
 ## tilemap exploration and combat encounters
@@ -27,6 +29,14 @@ var current_action_data: AdventureActionData = null
 
 var is_in_combat: bool = false # Whether the player is currently in combat
 
+# Adventure result tracking
+var _combats_fought: int = 0
+var _gold_earned: int = 0
+var _madra_budget: float = 0.0
+var _loot_items: Array[Resource] = []
+var _adventure_start_time: float = 0.0
+var _pending_victory: bool = false
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -47,6 +57,10 @@ func _ready() -> void:
 	# Setup Timer
 	timer_panel.timer.timeout.connect(_on_adventure_timer_timeout)
 
+	# Listen for boss victory from tilemap
+	if adventure_tilemap:
+		adventure_tilemap.boss_defeated.connect(_on_boss_defeated)
+
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
@@ -59,6 +73,18 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 		LogManager.log_message("[color=cyan]Adventure Started: %s[/color]" % action_data.action_name)
 
 	current_action_data = action_data
+
+	# Reset result tracking
+	_combats_fought = 0
+	_gold_earned = 0
+	_madra_budget = madra_budget
+	_loot_items.clear()
+	_adventure_start_time = Time.get_ticks_msec() / 1000.0
+	_pending_victory = false
+
+	# Listen for item awards during this adventure
+	if InventoryManager and not InventoryManager.item_awarded.is_connected(_on_item_awarded):
+		InventoryManager.item_awarded.connect(_on_item_awarded)
 
 	# Initialize resource values with the actual budget drained from zone pool
 	_initialize_combat_resources(madra_budget)
@@ -85,10 +111,30 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 ## Stop the current adventure and cleanup
 func stop_adventure() -> void:
 	Log.info("AdventureView: Stopping adventure")
-	
+
 	if LogManager:
 		LogManager.log_message("[color=cyan]Adventure Ended[/color]")
-		
+
+	# Determine end condition from current state
+	var is_victory: bool = false
+	var defeat_reason: String = ""
+
+	if _pending_victory:
+		is_victory = true
+	elif PlayerManager.vitals_manager.current_health <= 0.0:
+		defeat_reason = "Your health reached zero"
+	elif timer_panel.timer.is_stopped() or timer_panel.timer.time_left <= 0.0:
+		defeat_reason = "Time ran out"
+	else:
+		defeat_reason = "You retreated from the adventure"
+
+	# Build result before cleanup clears the data
+	var result_data := _build_result_data(is_victory, defeat_reason)
+
+	# Disconnect item tracking before cleanup
+	if InventoryManager and InventoryManager.item_awarded.is_connected(_on_item_awarded):
+		InventoryManager.item_awarded.disconnect(_on_item_awarded)
+
 	adventure_tilemap.stop_adventure()
 	timer_panel.stop()
 	timer_panel.visible = false
@@ -96,6 +142,10 @@ func stop_adventure() -> void:
 	_update_stamina_regen(0.0)
 	if is_in_combat:
 		_on_stop_combat()
+
+	_pending_victory = false
+
+	adventure_completed.emit(result_data)
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - View Management
@@ -142,7 +192,12 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 			LogManager.log_message("[color=green]Combat Victory![/color]")
 		else:
 			LogManager.log_message("[color=red]Combat Defeat...[/color]")
-	
+
+	# Track combat stats
+	_combats_fought += 1
+	if successful:
+		_gold_earned += gold_earned
+
 	# Disconnect player ability signal
 	if combat and player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):
 		player_info_panel.ability_selected.disconnect(combat.on_player_ability_selected)
@@ -172,6 +227,29 @@ func _initialize_combat_resources(madra_budget: float) -> void:
 	player_info_panel.setup_name("Player")
 	player_info_panel.setup_vitals(PlayerManager.vitals_manager)
 	Log.info("AdventureView: Adventure budget: %.1f Madra" % madra_budget)
+
+## Builds the adventure result data from accumulated stats.
+func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureResultData:
+	var result := AdventureResultData.new()
+	result.is_victory = is_victory
+	result.defeat_reason = defeat_reason
+	result.combats_fought = _combats_fought
+	result.combats_total = adventure_tilemap.get_total_combat_count()
+	result.gold_earned = _gold_earned
+	result.time_elapsed = (Time.get_ticks_msec() / 1000.0) - _adventure_start_time
+	result.health_remaining = PlayerManager.vitals_manager.current_health
+	result.health_max = PlayerManager.vitals_manager.max_health
+	result.tiles_explored = adventure_tilemap.get_visited_tile_count()
+	result.tiles_total = adventure_tilemap.get_total_tile_count()
+	result.madra_spent = _madra_budget
+	result.loot_items = _loot_items.duplicate()
+	return result
+
+func _on_boss_defeated() -> void:
+	_pending_victory = true
+
+func _on_item_awarded(item: ItemDefinitionData, _quantity: int) -> void:
+	_loot_items.append(item)
 
 ## Updates the stamina regeneration based on the given modifier
 ## TODO: This will be expanded later to include more complex calculation logic

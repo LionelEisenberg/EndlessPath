@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://ix8ck2f5o613"]
+
+[ext_resource type="Script" uid="uid://bhjud67w2k63a" path="res://scenes/common/item_display_slot/item_display_slot.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/asperite/inventory/equipment_tab/gear_selector/item_description_background.png" id="2_tooltip_bg"]
+[ext_resource type="PackedScene" uid="uid://hdpsokiiqmae" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="3_desc_panel"]
+
+[node name="ItemDisplaySlot" type="Control" unique_id=1702444595]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_script")
+
+[node name="TooltipPanel" type="TextureRect" parent="." unique_id=1713144941]
+unique_name_in_owner = true
+visible = false
+z_index = 10
+layout_mode = 0
+offset_right = 424.0
+offset_bottom = 264.0
+texture = ExtResource("2_tooltip_bg")
+
+[node name="ItemDescriptionPanel" parent="TooltipPanel" unique_id=1466255614 instance=ExtResource("3_desc_panel")]
+unique_name_in_owner = true
+layout_mode = 1

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d1dporgncb78s"
-path="res://.godot/imported/vecteezy_geometric-design-element_21048718_128x128_dark.png-7cd70729f73aaad5ebb74df231857b0b.ctex"
+uid="uid://rnc0r1ayf1d1"
+path="res://.godot/imported/paper.png-0e70c7dfa8d0f2ddc5f0017721190954.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/vecteezy_geometric-design-element_21048718_128x128_dark.png"
-dest_files=["res://.godot/imported/vecteezy_geometric-design-element_21048718_128x128_dark.png-7cd70729f73aaad5ebb74df231857b0b.ctex"]
+source_file="res://assets/scroll/parts/paper.png"
+dest_files=["res://.godot/imported/paper.png-0e70c7dfa8d0f2ddc5f0017721190954.ctex"]
 
 [params]
 

@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://cojy73u1k7pdl"]
+[gd_scene format=3 uid="uid://cojy73u1k7pdl"]
 
 [ext_resource type="Script" uid="uid://bb8gwkg0m4xxx" path="res://scenes/inventory/item_instance/item_instance.gd" id="1_cg5gu"]
 
-[node name="ItemInstance" type="Control"]
+[node name="ItemInstance" type="Control" unique_id=276395447]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
@@ -10,7 +10,7 @@ offset_bottom = 40.0
 mouse_filter = 1
 script = ExtResource("1_cg5gu")
 
-[node name="ItemIcon" type="TextureRect" parent="."]
+[node name="ItemIcon" type="TextureRect" parent="." unique_id=123435013]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8

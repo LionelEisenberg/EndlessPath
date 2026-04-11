@@ -17,15 +17,14 @@
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="16_1vqu0"]
 [ext_resource type="Texture2D" uid="uid://73gi871a4dr7" path="res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Spritesheet_Select01a.png" id="16_v70co"]
 [ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/asperite/inventory/equipment_tab/gear_selector/item_description_background.png" id="17_00gvd"]
-[ext_resource type="Texture2D" uid="uid://irvbdl0pat88" path="res://assets/asperite/inventory/sword_icon.png" id="17_ik22q"]
 [ext_resource type="Script" uid="uid://bpyj8ugmi6t0t" path="res://scenes/inventory/inventory_view/item_description_box.gd" id="17_ycsy7"]
-[ext_resource type="Texture2D" uid="uid://lap02cxlbnp1" path="res://assets/asperite/inventory/equipment_tab/line.png" id="18_ycsy7"]
 [ext_resource type="PackedScene" uid="uid://bx475rcu42d08" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.tscn" id="19_wdr80"]
 [ext_resource type="Texture2D" uid="uid://3w4d3der8ula" path="res://assets/asperite/inventory/materials_tab/banner.png" id="20_qufb6"]
 [ext_resource type="Script" uid="uid://budyxvcrbpvo1" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.gd" id="21_26fxh"]
 [ext_resource type="Texture2D" uid="uid://x368xmilo0p" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_scroll..png" id="21_xb6h7"]
 [ext_resource type="Texture2D" uid="uid://cqbdw487scbtr" path="res://assets/asperite/inventory/equipment_tab/equipment_grid/bar_grabber.png" id="22_26fxh"]
 [ext_resource type="PackedScene" uid="uid://c5wiepsq2qinv" path="res://scenes/inventory/inventory_view/materials_tab/material_container.tscn" id="22_qufb6"]
+[ext_resource type="PackedScene" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="23_desc_panel"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -210,7 +209,6 @@ icon_texture = ExtResource("4_0y30f")
 
 [node name="EquipmentTab" type="Control" parent="BookBackground/BookContent" unique_id=191510472]
 unique_name_in_owner = true
-visible = false
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
@@ -350,100 +348,14 @@ theme = ExtResource("16_1vqu0")
 texture = ExtResource("17_00gvd")
 script = ExtResource("17_ycsy7")
 
-[node name="ItemIcon" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox" unique_id=1655651789]
+[node name="ItemDescriptionPanel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox" instance=ExtResource("23_desc_panel")]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 336.0
-offset_top = 16.0
-offset_right = 352.0
-offset_bottom = 32.0
-scale = Vector2(2.5, 2.5)
-size_flags_horizontal = 8
-size_flags_vertical = 0
-texture = ExtResource("17_ik22q")
-
-[node name="ScrollContainer" type="ScrollContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox" unique_id=1731730256]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="MarginContainer" type="MarginContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer" unique_id=1249972978]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 7
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 7
-
-[node name="VBoxContainer" type="VBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer" unique_id=1588254354]
-layout_mode = 2
-theme_override_constants/separation = 1
-
-[node name="ItemName" type="Label" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=1914043940]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 42
-text = "ItemName"
-
-[node name="ItemType" type="Label" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=360924840]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.37791893, 0.37791884, 0.37791875, 1)
-theme_override_font_sizes/font_size = 28
-text = "[ItemType - SubitemType]"
-
-[node name="SeparatorRect" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=132517313]
-layout_mode = 2
-texture = ExtResource("18_ycsy7")
-stretch_mode = 1
-
-[node name="VBoxContainer" type="VBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer" unique_id=35790361]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="DescriptionLabel" type="RichTextLabel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer" unique_id=534375849]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.45
-theme = ExtResource("16_1vqu0")
-theme_type_variation = &"RichTextLabelDark"
-theme_override_font_sizes/normal_font_size = 20
-bbcode_enabled = true
-text = "[color=gray]Description...[/color]"
-
-[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer" unique_id=597734929]
-layout_mode = 2
-
-[node name="Empty" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=157403211]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="SeparatorRect" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=1175144698]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 1.25
-texture = ExtResource("18_ycsy7")
-
-[node name="SeparatorRect2" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=549614654]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="EffectsLabel" type="RichTextLabel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox/ScrollContainer/MarginContainer/VBoxContainer/VBoxContainer" unique_id=1890824443]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.33
-theme_override_font_sizes/normal_font_size = 22
-bbcode_enabled = true
-text = "[color=red]Effects[/color]"
 
 [node name="TrashSlot" parent="BookBackground/BookContent/EquipmentTab" unique_id=1620879164 instance=ExtResource("19_wdr80")]
 unique_name_in_owner = true

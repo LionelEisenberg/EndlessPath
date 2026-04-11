@@ -1,0 +1,90 @@
+[gd_scene format=3 uid="uid://hdpsokiiqmae"]
+
+[ext_resource type="Script" uid="uid://cmn6vn1m4imid" path="res://scenes/common/item_description_panel/item_description_panel.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://n4bia46t2gbq" path="res://assets/asperite/inventory/dagger_icon.png" id="3_pnnsf"]
+
+[node name="ItemDescriptionPanel" type="MarginContainer" unique_id=1983642273]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=910445664]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 10
+
+[node name="ItemIcon" type="TextureRect" parent="MarginContainer" unique_id=1238739951]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+texture = ExtResource("3_pnnsf")
+expand_mode = 2
+stretch_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1544881659]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="ItemName" type="Label" parent="VBoxContainer" unique_id=525464797]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelDescItemName"
+text = "Item Name"
+
+[node name="ItemType" type="Label" parent="VBoxContainer" unique_id=2011023757]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelDescItemType"
+text = "[Equipment - Main Hand]"
+
+[node name="SeparatorTop" type="HSeparator" parent="VBoxContainer" unique_id=1894119366]
+layout_mode = 2
+theme_type_variation = &"HSeparatorItemDesc"
+theme_override_constants/separation = 12
+
+[node name="ContentBox" type="VBoxContainer" parent="VBoxContainer" unique_id=1943649499]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="VBoxContainer/ContentBox" unique_id=940124458]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.45
+theme_type_variation = &"RichTextLabelDark"
+theme_override_font_sizes/normal_font_size = 24
+bbcode_enabled = true
+text = "Description"
+fit_content = true
+scroll_active = false
+
+[node name="SeparatorMiddle" type="HSeparator" parent="VBoxContainer/ContentBox" unique_id=1017997924]
+layout_mode = 2
+theme = ExtResource("2_theme")
+theme_type_variation = &"HSeparatorItemDescThin"
+
+[node name="EffectsLabel" type="RichTextLabel" parent="VBoxContainer/ContentBox" unique_id=1907701959]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.33
+theme_override_font_sizes/normal_font_size = 24
+bbcode_enabled = true
+text = "Effects"
+fit_content = true
+scroll_active = false

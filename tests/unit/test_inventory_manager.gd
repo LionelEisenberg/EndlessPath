@@ -310,3 +310,28 @@ func test_inventory_max_50_slots() -> void:
 	_add_to_first_slot(_inventory, overflow_inst)
 	# If inventory was full, the 51st wasn't added (size stays 50)
 	assert_eq(_inventory.equipment.size(), 50, "full inventory should not grow beyond 50")
+
+#-----------------------------------------------------------------------------
+# ITEM_AWARDED SIGNAL CONTRACT
+#-----------------------------------------------------------------------------
+
+func test_item_awarded_signal_exists() -> void:
+	# Verify the InventoryManager script defines the item_awarded signal
+	var mgr = Node.new()
+	mgr.set_script(load("res://singletons/inventory_manager/inventory_manager.gd"))
+	assert_true(mgr.has_signal("item_awarded"), "InventoryManager should have item_awarded signal")
+	mgr.free()
+
+func test_item_awarded_signal_emits_on_award() -> void:
+	# Verify signal fires when award_items is called
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+
+	watch_signals(InventoryManager)
+	var test_item := EquipmentDefinitionData.new()
+	test_item.item_name = "Signal Test Sword"
+	test_item.item_type = ItemDefinitionData.ItemType.EQUIPMENT
+	InventoryManager.award_items(test_item, 3)
+
+	assert_signal_emitted(InventoryManager, "item_awarded", "item_awarded should fire on award_items")

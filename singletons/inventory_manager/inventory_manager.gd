@@ -7,6 +7,9 @@ extends Node
 ## Emitted whenever the inventory collection changes.
 signal inventory_changed(inventory: InventoryData)
 
+## Emitted when a specific item is awarded, with the definition and quantity.
+signal item_awarded(item: ItemDefinitionData, quantity: int)
+
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
@@ -36,6 +39,7 @@ func get_material_items() -> Dictionary[MaterialDefinitionData, int]:
 	return live_save_data.inventory.materials
 
 func award_items(item: ItemDefinitionData, quantity: int) -> void:
+	item_awarded.emit(item, quantity)
 	match item.item_type:
 		ItemDefinitionData.ItemType.MATERIAL:
 			if item is MaterialDefinitionData:

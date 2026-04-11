@@ -10,6 +10,7 @@ extends Node2D
 #-----------------------------------------------------------------------------
 
 signal start_combat(choice: CombatChoice)
+signal boss_defeated
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -149,6 +150,7 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 			_apply_effects(_current_combat_choice.success_effects)
 			
 			if _current_combat_choice.is_boss:
+				boss_defeated.emit()
 				Log.info("AdventureTilemap: Boss defeated! Adventure Successful.")
 				ActionManager.stop_action(true)
 				return
@@ -160,6 +162,27 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 		# Usually failure means death/end of run, handled by ActionManager or PlayerResourceManager
 	
 	_current_combat_choice = null
+
+## Returns the number of tiles the player has visited.
+func get_visited_tile_count() -> int:
+	return _visited_tile_dictionary.size()
+
+## Returns the total number of tiles on the adventure map.
+func get_total_tile_count() -> int:
+	return _encounter_tile_dictionary.size()
+
+## Returns the total number of combat encounters on the map.
+func get_total_combat_count() -> int:
+	var count: int = 0
+	for encounter in _encounter_tile_dictionary.values():
+		if encounter.encounter_type in [
+			AdventureEncounter.EncounterType.COMBAT_REGULAR,
+			AdventureEncounter.EncounterType.COMBAT_BOSS,
+			AdventureEncounter.EncounterType.COMBAT_ELITE,
+			AdventureEncounter.EncounterType.COMBAT_AMBUSH,
+		]:
+			count += 1
+	return count
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
