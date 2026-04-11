@@ -13,7 +13,7 @@
 [ext_resource type="Texture2D" uid="uid://dcmx0viuefy1s" path="res://assets/ui_images/stat_icons/health_icon.png" id="10_b33pj"]
 [ext_resource type="Texture2D" uid="uid://fr1ueqq6cg6y" path="res://assets/ui_images/stat_icons/map_icon.png" id="11_51wby"]
 [ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/ui_images/resources/madra_icon.png" id="12_cfyns"]
-[ext_resource type="PackedScene" path="res://scenes/common/item_display_slot/item_display_slot.tscn" id="13_item_slot"]
+[ext_resource type="PackedScene" uid="uid://ix8ck2f5o613" path="res://scenes/common/item_display_slot/item_display_slot.tscn" id="13_item_slot"]
 [ext_resource type="Resource" uid="uid://cehsoutejuih0" path="res://resources/items/test_items/sword.tres" id="14_sword"]
 [ext_resource type="Resource" uid="uid://bwpoorfeekkiu" path="res://resources/items/test_items/dagger.tres" id="15_dagger"]
 
@@ -250,6 +250,7 @@ texture = ExtResource("4_paper")
 expand_mode = 4
 
 [node name="PaperMargin" type="MarginContainer" parent="ContentContainer/PaperSection" unique_id=1339667466]
+z_index = 4
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -529,26 +530,21 @@ theme_type_variation = &"LabelEndCardSection"
 text = "LOOT"
 horizontal_alignment = 1
 
-[node name="Underline" type="ColorRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootTitleRow" unique_id=308742248]
-custom_minimum_size = Vector2(100, 2)
-layout_mode = 2
-color = Color(0.35, 0.28, 0.18, 0.6)
-
 [node name="LootContainer" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection" unique_id=1527237258]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 14
 alignment = 1
 
-[node name="PreviewItem1" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" instance=ExtResource("13_item_slot")]
+[node name="PreviewItem1" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=637752747 instance=ExtResource("13_item_slot")]
 layout_mode = 2
 item_definition = ExtResource("14_sword")
 
-[node name="PreviewItem2" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" instance=ExtResource("13_item_slot")]
+[node name="PreviewItem2" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=238622363 instance=ExtResource("13_item_slot")]
 layout_mode = 2
 item_definition = ExtResource("15_dagger")
 
-[node name="PreviewItem3" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" instance=ExtResource("13_item_slot")]
+[node name="PreviewItem3" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootMargin/LootSection/LootContainer" unique_id=655800325 instance=ExtResource("13_item_slot")]
 layout_mode = 2
 item_definition = ExtResource("14_sword")
 
@@ -578,9 +574,9 @@ anchor_bottom = 1.0
 offset_left = -551.0
 offset_top = -255.0
 offset_right = 551.0
-offset_bottom = 0.00048828125
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
 texture = ExtResource("3_lower")
 stretch_mode = 5
 
