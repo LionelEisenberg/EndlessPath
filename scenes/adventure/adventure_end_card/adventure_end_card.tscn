@@ -1,0 +1,471 @@
+[gd_scene format=3 uid="uid://adventure_end_card"]
+
+[ext_resource type="Script" uid="uid://adventure_end_card_gd" path="res://scenes/adventure/adventure_end_card/adventure_end_card.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/scroll/parts/upper.png" id="2_upper"]
+[ext_resource type="Texture2D" path="res://assets/scroll/parts/lower.png" id="3_lower"]
+[ext_resource type="Texture2D" path="res://assets/scroll/parts/paper.png" id="4_paper"]
+[ext_resource type="Texture2D" path="res://assets/scroll/parts/flourish.png" id="5_flourish"]
+[ext_resource type="Texture2D" path="res://assets/scroll/parts/ribbon.png" id="6_ribbon"]
+
+[sub_resource type="Animation" id="Animation_scroll_open"]
+resource_name = "scroll_open"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ContentContainer:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.5, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, 0.0, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("ContentContainer/UpperRoll:position:y")
+tracks/1/interp = 2
+tracks/1/loop_wrap = false
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [200.0, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("ContentContainer/LowerRoll:position:y")
+tracks/2/interp = 2
+tracks/2/loop_wrap = false
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [200.0, 430.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("ContentContainer/PaperSection:size:y")
+tracks/3/interp = 2
+tracks/3/loop_wrap = false
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 400.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("ContentContainer/PaperSection:position:y")
+tracks/4/interp = 2
+tracks/4/loop_wrap = false
+tracks/4/keys = {
+"times": PackedFloat32Array(0.0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [60.0, 60.0]
+}
+
+[sub_resource type="Animation" id="Animation_scroll_close"]
+resource_name = "scroll_close"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ContentContainer:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.15),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("ContentContainer/UpperRoll:position:y")
+tracks/1/interp = 2
+tracks/1/loop_wrap = false
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 200.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("ContentContainer/LowerRoll:position:y")
+tracks/2/interp = 2
+tracks/2/loop_wrap = false
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [430.0, 200.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("ContentContainer/PaperSection:size:y")
+tracks/3/interp = 2
+tracks/3/loop_wrap = false
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [400.0, 0.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("ContentContainer/PaperSection:position:y")
+tracks/4/interp = 2
+tracks/4/loop_wrap = false
+tracks/4/keys = {
+"times": PackedFloat32Array(0.0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [60.0, 60.0]
+}
+
+[sub_resource type="Animation" id="Animation_reset"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ContentContainer:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_main"]
+_data = {
+&"RESET": SubResource("Animation_reset"),
+&"scroll_open": SubResource("Animation_scroll_open"),
+&"scroll_close": SubResource("Animation_scroll_close")
+}
+
+[node name="AdventureEndCard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="ContentContainer" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+modulate = Color(1, 1, 1, 0)
+
+[node name="UpperRoll" type="TextureRect" parent="ContentContainer"]
+layout_mode = 0
+offset_left = 790.0
+offset_top = 0.0
+offset_right = 1130.0
+offset_bottom = 68.0
+texture = ExtResource("2_upper")
+stretch_mode = 5
+
+[node name="Ribbon" type="TextureRect" parent="ContentContainer"]
+z_index = 1
+layout_mode = 0
+offset_left = 929.0
+offset_top = 10.0
+offset_right = 991.0
+offset_bottom = 58.0
+texture = ExtResource("6_ribbon")
+stretch_mode = 2
+
+[node name="PaperSection" type="TextureRect" parent="ContentContainer"]
+layout_mode = 0
+offset_left = 790.0
+offset_top = 60.0
+offset_right = 1130.0
+offset_bottom = 460.0
+texture = ExtResource("4_paper")
+stretch_mode = 1
+
+[node name="PaperMargin" type="MarginContainer" parent="ContentContainer/PaperSection"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleSection" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="LeftIcon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 2
+
+[node name="TitleLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "VICTORY"
+horizontal_alignment = 1
+
+[node name="RightIcon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 2
+
+[node name="DefeatReasonLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.545, 0.0, 0.0, 1)
+text = "Defeat reason"
+horizontal_alignment = 1
+label_settings = null
+
+[node name="TopDivider" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 12)
+texture = ExtResource("5_flourish")
+stretch_mode = 2
+
+[node name="StatsGrid" type="GridContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 6
+
+[node name="CombatStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 2
+
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat"]
+layout_mode = 2
+
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat/StatInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+text = "COMBAT"
+
+[node name="CombatValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat/StatInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0 / 0"
+
+[node name="GoldStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 2
+
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat"]
+layout_mode = 2
+
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat/StatInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+text = "GOLD"
+
+[node name="GoldValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat/StatInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0"
+
+[node name="TimeStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 2
+
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat"]
+layout_mode = 2
+
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat/StatInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+text = "TIME"
+
+[node name="TimeValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat/StatInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0:00"
+
+[node name="HealthStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 2
+
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat"]
+layout_mode = 2
+
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat/StatInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+text = "HEALTH"
+
+[node name="HealthValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat/StatInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "100 / 100"
+
+[node name="TilesStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 2
+
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat"]
+layout_mode = 2
+
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat/StatInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+text = "TILES EXPLORED"
+
+[node name="TilesValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat/StatInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0 / 0"
+
+[node name="MadraStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 2
+
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat"]
+layout_mode = 2
+
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat/StatInfo"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+text = "MADRA SPENT"
+
+[node name="MadraValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat/StatInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0"
+
+[node name="BottomDivider" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 12)
+texture = ExtResource("5_flourish")
+stretch_mode = 2
+
+[node name="LootSection" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="LootLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+text = "LOOT"
+horizontal_alignment = 1
+
+[node name="LootContainer" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="LootEmptyLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 0.8)
+text = "No items found"
+horizontal_alignment = 1
+
+[node name="ReturnButton" type="Button" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 18
+text = "RETURN"
+
+[node name="LowerRoll" type="TextureRect" parent="ContentContainer"]
+layout_mode = 0
+offset_left = 790.0
+offset_top = 430.0
+offset_right = 1130.0
+offset_bottom = 498.0
+texture = ExtResource("3_lower")
+stretch_mode = 5
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+unique_name_in_owner = true
+libraries/ = SubResource("AnimationLibrary_main")
