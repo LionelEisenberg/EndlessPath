@@ -1,0 +1,10 @@
+{
+  "dirs": ["res://tests/unit/", "res://tests/integration/"],
+  "prefix": "test_",
+  "suffix": ".gd",
+  "should_maximize": false,
+  "compact_mode": true,
+  "opacity": 100,
+  "font_size": 20,
+  "log_level": 2
+}

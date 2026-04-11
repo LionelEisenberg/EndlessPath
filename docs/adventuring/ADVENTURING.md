@@ -130,6 +130,15 @@ Base class: `EffectData` (abstract Resource) — defines an `EffectType` enum an
 | `ChangeVitalsEffectData` | *(not in enum)* | Modifies health/stamina/mana via PlayerManager |
 | `TriggerEventEffectData` | `TRIGGER_EVENT` | Fires a narrative event via EventManager |
 
+## UI Style (PR #15)
+
+The adventure UI was restyled in PR #15 to match the dark floating panel aesthetic used across the game:
+
+- **`EncounterInfoPanel`** — dark floating stylebox background, gold title label, card-style choice buttons with hover states
+- **`TimerPanel`** — repositioned to top-center of the screen, using the same dark floating style
+- **`PlayerInfoPanel` / `CombatantInfoPanel`** — rebuilt with container-based layout and integer vitals display (see [COMBAT.md](../combat/COMBAT.md) for full details)
+- **Log window** — made draggable, repositioned to avoid overlapping the hex map
+
 ## Encounter Flow
 
 ```
@@ -158,13 +167,24 @@ Base class: `EffectData` (abstract Resource) — defines an `EffectType` enum an
 
 `TimerPanel` wraps a `Timer` + `RichTextLabel` showing `"Time Left: MM:SS"`. Timer timeout triggers `ActionManager.stop_action(false)` — treated as failed adventure. If `time_limit_seconds` is 0 in the data, it defaults to 10 seconds.
 
+## Madra Cost System (PR #16)
+
+Adventures now consume Madra from the zone's pool on start.
+
+- **Minimum threshold:** The player must have at least **50% of the zone's Madra pool** remaining to start an adventure. The adventure button is disabled and shows a badge if this threshold is not met.
+- **Madra badge:** Adventure buttons in the zone view display the Madra cost alongside the action name.
+- **Two-phase start flow:**
+  1. `adventure_start_requested` signal fires when the player clicks the adventure button — begins ZoneTransition (drain animation + camera zoom).
+  2. `confirm_adventure_start` fires after the transition completes — actually starts the adventure and deducts Madra.
+- **`madra_budget` parameter:** The `start_adventure` signal now carries a `madra_budget: float` parameter representing the Madra drawn from the zone pool. This value flows through `AdventureView.start_adventure()` and is accessible during the run.
+
 ## Integration Points
 
 | System | Connection |
 |--------|------------|
 | Combat | `CombatChoice` triggers combat; result feeds back for loot/gold |
-| ActionManager | `start_adventure` / `stop_adventure` signals control lifecycle |
-| ResourceManager | Gold awarded on combat victory |
+| ActionManager | `start_adventure(madra_budget: float)` / `stop_adventure` signals control lifecycle |
+| ResourceManager | Gold awarded on combat victory; zone Madra pool drained on adventure start |
 | PlayerManager | VitalsManager tracks health/stamina; stamina regen set on start |
 | InventoryManager | Loot tables rolled on encounter success effects |
 | DialogueManager | `DialogueChoice` starts timelines |
@@ -216,14 +236,14 @@ No known bugs in the Adventuring system.
 ### UI
 
 - `[HIGH]` No stamina UI feedback when movement is blocked — silent return with a TODO comment (`adventure_tilemap.gd:256`)
-- `[MEDIUM]` Player info panel and log overlap the adventure area — lower them to improve visibility of the hex map
-- `[LOW]` Timer label ("Time Left: MM:SS") should be repositioned above the encounter choice info panel
+- ~~`[MEDIUM]` Player info panel and log overlap the adventure area — lower them to improve visibility of the hex map~~ *(Fixed in PR #15 — draggable log window + repositioned panels)*
+- ~~`[LOW]` Timer label ("Time Left: MM:SS") should be repositioned above the encounter choice info panel~~ *(Fixed in PR #15 — moved to top-center with dark floating style)*
 - `[MEDIUM]` No adventure results screen — adventure ends with an instant snap back to zone view. Needs a summary modal showing success/failure, gold earned, items found, and encounters cleared. Addresses Satisfaction (closure on a 5-minute time investment) and Clarity (aggregated view of what the player gained)
 
 ### Tech Debt
 
 #### Dead Code
-- `[MEDIUM]` Two debug buttons in `adventure_view.tscn` — one with `TODO: Remove this temporary debug button`
+- ~~`[MEDIUM]` Two debug buttons in `adventure_view.tscn` — one with `TODO: Remove this temporary debug button`~~ *(Removed in PR #15)*
 - `[LOW]` `num_combats_in_map` declared in `adventure_map_generator.gd:12` but never read or written
 - `[LOW]` `enable_ai: bool` debug export still present on `adventure_combat.gd`
 - `[LOW]` `cooldown_seconds` and `daily_limit` on `AdventureActionData` — mobile-style pacing gates, not a fit for this game. Remove the fields
