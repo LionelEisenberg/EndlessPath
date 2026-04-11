@@ -16,7 +16,7 @@ const ITEM_INSTANCE_SCENE := preload("res://scenes/inventory/item_instance/item_
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var tooltip_panel: PanelContainer = %TooltipPanel
+@onready var tooltip_panel: TextureRect = %TooltipPanel
 @onready var _description_panel: ItemDescriptionPanel = %ItemDescriptionPanel
 
 #-----------------------------------------------------------------------------
@@ -86,14 +86,23 @@ func _on_mouse_entered() -> void:
 	if not _item_data:
 		return
 	_description_panel.setup(_item_data)
+
+	var final_y: float = -tooltip_panel.size.y - 8.0
+	var start_y: float = final_y + 15.0
+	var center_x: float = (size.x - tooltip_panel.size.x) / 2.0
+
+	tooltip_panel.position = Vector2(center_x, start_y)
+	tooltip_panel.modulate.a = 0.0
 	tooltip_panel.visible = true
-	# Position tooltip above the slot (account for 0.5x scale on tooltip)
-	var visual_width: float = tooltip_panel.size.x * tooltip_panel.scale.x
-	var visual_height: float = tooltip_panel.size.y * tooltip_panel.scale.y
-	tooltip_panel.position = Vector2(
-		(size.x - visual_width) / 2.0,
-		-visual_height - 8.0
-	)
+
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(tooltip_panel, "position:y", final_y, 0.2).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
 
 func _on_mouse_exited() -> void:
+	var current_y: float = tooltip_panel.position.y
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(tooltip_panel, "position:y", current_y + 10.0, 0.1).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(tooltip_panel, "modulate:a", 0.0, 0.1)
+	await tween.finished
 	tooltip_panel.visible = false
