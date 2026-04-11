@@ -161,6 +161,14 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 	
 	_current_combat_choice = null
 
+## Returns the number of tiles the player has visited.
+func get_visited_tile_count() -> int:
+	return _visited_tile_dictionary.size()
+
+## Returns the total number of tiles on the adventure map.
+func get_total_tile_count() -> int:
+	return _encounter_tile_dictionary.size()
+
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
