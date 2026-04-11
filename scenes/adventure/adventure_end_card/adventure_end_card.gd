@@ -51,7 +51,6 @@ const DEFEAT_ICON := preload("res://assets/ui_images/stat_icons/skull_icon.png")
 
 func _ready() -> void:
 	return_button.pressed.connect(_on_return_pressed)
-	visible = false
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -121,7 +120,7 @@ func _populate_loot(items: Array[Resource]) -> void:
 		loot_container.visible = true
 		for item in items:
 			var slot := TextureRect.new()
-			slot.custom_minimum_size = Vector2(28, 28)
+			slot.custom_minimum_size = Vector2(40, 40)
 			slot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			# TODO: Set slot.texture from item icon when item types have icon property
 			loot_container.add_child(slot)
