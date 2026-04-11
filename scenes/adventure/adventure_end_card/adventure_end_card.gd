@@ -28,6 +28,8 @@ signal return_requested
 @onready var loot_empty_label: Label = %LootEmptyLabel
 @onready var return_button: Button = %ReturnButton
 @onready var content_container: Control = %ContentContainer
+@onready var left_icon: TextureRect = %LeftIcon
+@onready var right_icon: TextureRect = %RightIcon
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -39,6 +41,9 @@ const GOLD_COLOR := Color("#b8860b")
 const HEALTH_GOOD_COLOR := Color("#228b22")
 const HEALTH_DEAD_COLOR := Color("#8b2020")
 const MADRA_COLOR := Color("#4a7ab5")
+
+const VICTORY_ICON := preload("res://assets/ui_images/stat_icons/victory_icon.png")
+const DEFEAT_ICON := preload("res://assets/ui_images/stat_icons/skull_icon.png")
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -56,7 +61,7 @@ func _ready() -> void:
 func show_results(result_data: AdventureResultData) -> void:
 	_populate(result_data)
 	visible = true
-	animation_player.play("scroll_open")
+	animation_player.play_backwards("scroll_animation")
 	await animation_player.animation_finished
 	content_container.modulate.a = 1.0
 
@@ -65,14 +70,18 @@ func show_results(result_data: AdventureResultData) -> void:
 #-----------------------------------------------------------------------------
 
 func _populate(data: AdventureResultData) -> void:
-	# Title
+	# Title and icons
 	if data.is_victory:
 		title_label.text = "VICTORY"
 		title_label.add_theme_color_override("font_color", VICTORY_COLOR)
+		left_icon.texture = VICTORY_ICON
+		right_icon.texture = VICTORY_ICON
 		defeat_reason_label.visible = false
 	else:
 		title_label.text = "DEFEAT"
 		title_label.add_theme_color_override("font_color", DEFEAT_COLOR)
+		left_icon.texture = DEFEAT_ICON
+		right_icon.texture = DEFEAT_ICON
 		defeat_reason_label.text = data.defeat_reason
 		defeat_reason_label.visible = true
 
@@ -118,7 +127,7 @@ func _populate_loot(items: Array[Resource]) -> void:
 			loot_container.add_child(slot)
 
 func _on_return_pressed() -> void:
-	animation_player.play("scroll_close")
+	animation_player.play("scroll_animation")
 	await animation_player.animation_finished
 	visible = false
 	return_requested.emit()

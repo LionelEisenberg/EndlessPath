@@ -1,163 +1,182 @@
-[gd_scene format=3 uid="uid://yFwafxe4zeQ5n"]
+[gd_scene format=3 uid="uid://1sxjui5v2n0j"]
 
-[ext_resource type="Script" uid="uid://g4Bs1bCU5z9sA" path="res://scenes/adventure/adventure_end_card/adventure_end_card.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/scroll/parts/upper.png" id="2_upper"]
-[ext_resource type="Texture2D" path="res://assets/scroll/parts/lower.png" id="3_lower"]
-[ext_resource type="Texture2D" path="res://assets/scroll/parts/paper.png" id="4_paper"]
-[ext_resource type="Texture2D" path="res://assets/scroll/parts/flourish.png" id="5_flourish"]
-[ext_resource type="Texture2D" path="res://assets/scroll/parts/ribbon.png" id="6_ribbon"]
-
-[sub_resource type="Animation" id="Animation_scroll_open"]
-resource_name = "scroll_open"
-length = 0.6
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("ContentContainer:modulate:a")
-tracks/0/interp = 1
-tracks/0/loop_wrap = false
-tracks/0/keys = {
-"times": PackedFloat32Array(0.0, 0.5, 0.6),
-"transitions": PackedFloat32Array(1, 1, 1),
-"update": 0,
-"values": [0.0, 0.0, 1.0]
-}
-tracks/1/type = "value"
-tracks/1/imported = false
-tracks/1/enabled = true
-tracks/1/path = NodePath("ContentContainer/UpperRoll:position:y")
-tracks/1/interp = 2
-tracks/1/loop_wrap = false
-tracks/1/keys = {
-"times": PackedFloat32Array(0.0, 0.5),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [200.0, 0.0]
-}
-tracks/2/type = "value"
-tracks/2/imported = false
-tracks/2/enabled = true
-tracks/2/path = NodePath("ContentContainer/LowerRoll:position:y")
-tracks/2/interp = 2
-tracks/2/loop_wrap = false
-tracks/2/keys = {
-"times": PackedFloat32Array(0.0, 0.5),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [200.0, 430.0]
-}
-tracks/3/type = "value"
-tracks/3/imported = false
-tracks/3/enabled = true
-tracks/3/path = NodePath("ContentContainer/PaperSection:size:y")
-tracks/3/interp = 2
-tracks/3/loop_wrap = false
-tracks/3/keys = {
-"times": PackedFloat32Array(0.0, 0.5),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [0.0, 400.0]
-}
-tracks/4/type = "value"
-tracks/4/imported = false
-tracks/4/enabled = true
-tracks/4/path = NodePath("ContentContainer/PaperSection:position:y")
-tracks/4/interp = 2
-tracks/4/loop_wrap = false
-tracks/4/keys = {
-"times": PackedFloat32Array(0.0, 0.5),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [60.0, 60.0]
-}
-
-[sub_resource type="Animation" id="Animation_scroll_close"]
-resource_name = "scroll_close"
-length = 0.4
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("ContentContainer:modulate:a")
-tracks/0/interp = 1
-tracks/0/loop_wrap = false
-tracks/0/keys = {
-"times": PackedFloat32Array(0.0, 0.15),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [1.0, 0.0]
-}
-tracks/1/type = "value"
-tracks/1/imported = false
-tracks/1/enabled = true
-tracks/1/path = NodePath("ContentContainer/UpperRoll:position:y")
-tracks/1/interp = 2
-tracks/1/loop_wrap = false
-tracks/1/keys = {
-"times": PackedFloat32Array(0.0, 0.4),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [0.0, 200.0]
-}
-tracks/2/type = "value"
-tracks/2/imported = false
-tracks/2/enabled = true
-tracks/2/path = NodePath("ContentContainer/LowerRoll:position:y")
-tracks/2/interp = 2
-tracks/2/loop_wrap = false
-tracks/2/keys = {
-"times": PackedFloat32Array(0.0, 0.4),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [430.0, 200.0]
-}
-tracks/3/type = "value"
-tracks/3/imported = false
-tracks/3/enabled = true
-tracks/3/path = NodePath("ContentContainer/PaperSection:size:y")
-tracks/3/interp = 2
-tracks/3/loop_wrap = false
-tracks/3/keys = {
-"times": PackedFloat32Array(0.0, 0.4),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [400.0, 0.0]
-}
-tracks/4/type = "value"
-tracks/4/imported = false
-tracks/4/enabled = true
-tracks/4/path = NodePath("ContentContainer/PaperSection:position:y")
-tracks/4/interp = 2
-tracks/4/loop_wrap = false
-tracks/4/keys = {
-"times": PackedFloat32Array(0.0, 0.4),
-"transitions": PackedFloat32Array(1, 1),
-"update": 0,
-"values": [60.0, 60.0]
-}
+[ext_resource type="Script" path="res://scenes/adventure/adventure_end_card/adventure_end_card.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://mxh4a30poflc" path="res://assets/scroll/parts/upper.png" id="2_upper"]
+[ext_resource type="Texture2D" uid="uid://cjafan4uisaqi" path="res://assets/scroll/parts/lower.png" id="3_lower"]
+[ext_resource type="Texture2D" uid="uid://rnc0r1ayf1d1" path="res://assets/scroll/parts/paper.png" id="4_paper"]
+[ext_resource type="Texture2D" uid="uid://sp2b11nvcsqd" path="res://assets/scroll/parts/flourish.png" id="5_flourish"]
+[ext_resource type="Texture2D" uid="uid://co6psroy2i4b1" path="res://assets/scroll/parts/ribbon.png" id="6_ribbon"]
 
 [sub_resource type="Animation" id="Animation_reset"]
 length = 0.001
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("ContentContainer:modulate:a")
+tracks/0/path = NodePath("ContentContainer/UpperRoll:position")
 tracks/0/interp = 1
-tracks/0/loop_wrap = false
+tracks/0/loop_wrap = true
 tracks/0/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [0.0]
+"values": [Vector2(380.5, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("ContentContainer/LowerRoll:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(409, 825)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("ContentContainer/PaperSection:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(1, 1)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("ContentContainer/PaperSection/PaperMargin:modulate:a")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("ContentContainer/UpperRoll:modulate:a")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1.0]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("ContentContainer/PaperSection:modulate:a")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [1.0]
+}
+
+[sub_resource type="Animation" id="Animation_scroll_close"]
+resource_name = "scroll_animation"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ContentContainer/UpperRoll:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(380.5, 0), Vector2(380.5, 430)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("ContentContainer/LowerRoll:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(409, 825), Vector2(409, 500)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("ContentContainer/PaperSection:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector2(1, 1), Vector2(1, 0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("ContentContainer/PaperSection/PaperMargin:modulate:a")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.16666667),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("ContentContainer/UpperRoll:modulate:a")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("ContentContainer/LowerRoll:modulate:a")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [1.0, 0.0]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("ContentContainer/PaperSection:modulate:a")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_main"]
 _data = {
 &"RESET": SubResource("Animation_reset"),
-&"scroll_open": SubResource("Animation_scroll_open"),
-&"scroll_close": SubResource("Animation_scroll_close")
+&"scroll_animation": SubResource("Animation_scroll_close")
 }
 
-[node name="AdventureEndCard" type="Control"]
+[node name="AdventureEndCard" type="Control" unique_id=610632710]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -166,7 +185,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="ContentContainer" type="Control" parent="."]
+[node name="ContentContainer" type="Control" parent="." unique_id=381969370]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -174,41 +193,61 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-modulate = Color(1, 1, 1, 0)
 
-[node name="UpperRoll" type="TextureRect" parent="ContentContainer"]
-layout_mode = 0
-offset_left = 790.0
-offset_top = 0.0
-offset_right = 1130.0
-offset_bottom = 68.0
+[node name="UpperRoll" type="TextureRect" parent="ContentContainer" unique_id=1104103122]
+z_index = 2
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -579.5
+offset_right = 579.5
+offset_bottom = 270.0008
+grow_horizontal = 2
 texture = ExtResource("2_upper")
 stretch_mode = 5
 
-[node name="Ribbon" type="TextureRect" parent="ContentContainer"]
+[node name="Ribbon" type="TextureRect" parent="ContentContainer/UpperRoll" unique_id=1184065475]
 z_index = 1
-layout_mode = 0
-offset_left = 929.0
-offset_top = 10.0
-offset_right = 991.0
-offset_bottom = 58.0
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -80.5
+offset_right = 80.5
+offset_bottom = 293.0
+grow_horizontal = 2
 texture = ExtResource("6_ribbon")
 stretch_mode = 2
 
-[node name="PaperSection" type="TextureRect" parent="ContentContainer"]
-layout_mode = 0
-offset_left = 790.0
-offset_top = 60.0
-offset_right = 1130.0
-offset_bottom = 460.0
-texture = ExtResource("4_paper")
-stretch_mode = 1
-
-[node name="PaperMargin" type="MarginContainer" parent="ContentContainer/PaperSection"]
+[node name="PaperSection" type="TextureRect" parent="ContentContainer" unique_id=238956895]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -418.0
+offset_top = -456.0
+offset_right = 418.0
+offset_bottom = 458.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(418, 457)
+texture = ExtResource("4_paper")
+expand_mode = 4
+
+[node name="PaperMargin" type="MarginContainer" parent="ContentContainer/PaperSection" unique_id=1339667466]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -376.0
+offset_top = -246.0
+offset_right = 376.0
+offset_bottom = 246.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 20
@@ -216,256 +255,281 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin"]
+[node name="VBoxContainer" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin" unique_id=1356806507]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="TitleSection" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+[node name="TitleSection" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=1267151858]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 8
+alignment = 1
 
-[node name="LeftIcon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection"]
-custom_minimum_size = Vector2(22, 22)
+[node name="LeftIcon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection" unique_id=1657869428]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 2
 
-[node name="TitleLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection"]
+[node name="TitleLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection" unique_id=1821253353]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(0.545, 0.412, 0.078, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.3)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 52
 text = "VICTORY"
 horizontal_alignment = 1
 
-[node name="RightIcon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection"]
-custom_minimum_size = Vector2(22, 22)
+[node name="RightIcon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/TitleSection" unique_id=1539121816]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 2
 
-[node name="DefeatReasonLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+[node name="DefeatReasonLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=988648059]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+theme_override_colors/font_color = Color(0.545, 0, 0, 1)
 theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.545, 0.0, 0.0, 1)
 text = "Defeat reason"
 horizontal_alignment = 1
-label_settings = null
 
-[node name="TopDivider" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+[node name="TopDivider" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=1997968104]
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 12)
 texture = ExtResource("5_flourish")
 stretch_mode = 2
 
-[node name="StatsGrid" type="GridContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+[node name="StatsGrid" type="GridContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=160975452]
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
-columns = 2
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 6
+size_flags_horizontal = 4
+theme_override_constants/h_separation = 48
+theme_override_constants/v_separation = 14
+columns = 3
 
-[node name="CombatStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+[node name="CombatStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid" unique_id=934422215]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat"]
-custom_minimum_size = Vector2(20, 20)
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat" unique_id=683131722]
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 2
 
-[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat"]
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat" unique_id=1962846519]
 layout_mode = 2
 
-[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat/StatInfo"]
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat/StatInfo" unique_id=411927923]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+theme_override_font_sizes/font_size = 18
 text = "COMBAT"
 
-[node name="CombatValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat/StatInfo"]
+[node name="CombatValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/CombatStat/StatInfo" unique_id=750845688]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.2, 0.15, 0.1, 1)
+theme_override_font_sizes/font_size = 26
 text = "0 / 0"
 
-[node name="GoldStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+[node name="GoldStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid" unique_id=1327040627]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat"]
-custom_minimum_size = Vector2(20, 20)
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat" unique_id=1235694763]
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 2
 
-[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat"]
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat" unique_id=404106757]
 layout_mode = 2
 
-[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat/StatInfo"]
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat/StatInfo" unique_id=1762905810]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+theme_override_font_sizes/font_size = 18
 text = "GOLD"
 
-[node name="GoldValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat/StatInfo"]
+[node name="GoldValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/GoldStat/StatInfo" unique_id=220673870]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.2, 0.15, 0.1, 1)
+theme_override_font_sizes/font_size = 26
 text = "0"
 
-[node name="TimeStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+[node name="TimeStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid" unique_id=1527493957]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat"]
-custom_minimum_size = Vector2(20, 20)
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat" unique_id=1448656283]
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 2
 
-[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat"]
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat" unique_id=508817064]
 layout_mode = 2
 
-[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat/StatInfo"]
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat/StatInfo" unique_id=1132088984]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+theme_override_font_sizes/font_size = 18
 text = "TIME"
 
-[node name="TimeValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat/StatInfo"]
+[node name="TimeValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TimeStat/StatInfo" unique_id=963283290]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.2, 0.15, 0.1, 1)
+theme_override_font_sizes/font_size = 26
 text = "0:00"
 
-[node name="HealthStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+[node name="HealthStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid" unique_id=743309787]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat"]
-custom_minimum_size = Vector2(20, 20)
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat" unique_id=1581886661]
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 2
 
-[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat"]
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat" unique_id=157068286]
 layout_mode = 2
 
-[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat/StatInfo"]
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat/StatInfo" unique_id=795396510]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+theme_override_font_sizes/font_size = 18
 text = "HEALTH"
 
-[node name="HealthValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat/StatInfo"]
+[node name="HealthValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/HealthStat/StatInfo" unique_id=887365382]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.2, 0.15, 0.1, 1)
+theme_override_font_sizes/font_size = 26
 text = "100 / 100"
 
-[node name="TilesStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+[node name="TilesStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid" unique_id=771950282]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat"]
-custom_minimum_size = Vector2(20, 20)
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat" unique_id=730745077]
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 2
 
-[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat"]
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat" unique_id=88244688]
 layout_mode = 2
 
-[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat/StatInfo"]
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat/StatInfo" unique_id=910004802]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+theme_override_font_sizes/font_size = 18
 text = "TILES EXPLORED"
 
-[node name="TilesValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat/StatInfo"]
+[node name="TilesValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/TilesStat/StatInfo" unique_id=257211429]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.2, 0.15, 0.1, 1)
+theme_override_font_sizes/font_size = 26
 text = "0 / 0"
 
-[node name="MadraStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid"]
+[node name="MadraStat" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid" unique_id=947222539]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat"]
-custom_minimum_size = Vector2(20, 20)
+[node name="Icon" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat" unique_id=979951445]
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 2
 
-[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat"]
+[node name="StatInfo" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat" unique_id=23289761]
 layout_mode = 2
 
-[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat/StatInfo"]
+[node name="StatNameLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat/StatInfo" unique_id=912583558]
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+theme_override_font_sizes/font_size = 18
 text = "MADRA SPENT"
 
-[node name="MadraValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat/StatInfo"]
+[node name="MadraValueLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/StatsGrid/MadraStat/StatInfo" unique_id=396568788]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.2, 0.15, 0.1, 1)
+theme_override_font_sizes/font_size = 26
 text = "0"
 
-[node name="BottomDivider" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+[node name="BottomDivider" type="TextureRect" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=752016833]
+custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 12)
 texture = ExtResource("5_flourish")
 stretch_mode = 2
 
-[node name="LootSection" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+[node name="LootSection" type="VBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=1462942885]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 4
+alignment = 1
 
-[node name="LootLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection"]
+[node name="LootLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection" unique_id=1865235706]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 1)
+theme_override_colors/font_color = Color(0.35, 0.28, 0.18, 1)
+theme_override_font_sizes/font_size = 22
 text = "LOOT"
 horizontal_alignment = 1
 
-[node name="LootContainer" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection"]
+[node name="LootContainer" type="HBoxContainer" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection" unique_id=909681529]
 unique_name_in_owner = true
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 4
+alignment = 1
 
-[node name="LootEmptyLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection"]
+[node name="LootEmptyLabel" type="Label" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer/LootSection" unique_id=34339748]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.5, 0.42, 0.33, 0.8)
+theme_override_font_sizes/font_size = 18
 text = "No items found"
 horizontal_alignment = 1
 
-[node name="ReturnButton" type="Button" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer"]
+[node name="ReturnButton" type="Button" parent="ContentContainer/PaperSection/PaperMargin/VBoxContainer" unique_id=553923384]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.94, 0.91, 0.82, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.75, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 0.95, 1)
+theme_override_font_sizes/font_size = 26
 text = "RETURN"
 
-[node name="LowerRoll" type="TextureRect" parent="ContentContainer"]
-layout_mode = 0
-offset_left = 790.0
-offset_top = 430.0
-offset_right = 1130.0
-offset_bottom = 498.0
+[node name="LowerRoll" type="TextureRect" parent="ContentContainer" unique_id=61096679]
+z_index = 1
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -551.0
+offset_top = -255.0
+offset_right = 551.0
+offset_bottom = 0.0010986328
+grow_horizontal = 2
+grow_vertical = 0
 texture = ExtResource("3_lower")
 stretch_mode = 5
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1734944721]
 unique_name_in_owner = true
 libraries/ = SubResource("AnimationLibrary_main")
