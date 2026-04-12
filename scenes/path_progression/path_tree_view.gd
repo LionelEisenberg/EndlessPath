@@ -7,6 +7,7 @@ extends Control
 @export var layout_scene: PackedScene
 @export var path_node_ui_scene: PackedScene
 
+@onready var _tree_area: Control = %TreeArea
 @onready var _node_container: PathNodeContainer = %NodeContainer
 @onready var _path_title: Label = %PathTitle
 @onready var _points_value: Label = %PointsValue
@@ -95,6 +96,7 @@ func build_tree() -> void:
 
 	_refresh_all_nodes()
 	_rebuild_benefits_sidebar()
+	_center_tree(positions)
 	_node_container.queue_redraw()
 
 #-----------------------------------------------------------------------------
@@ -108,6 +110,7 @@ func _ready() -> void:
 
 	_path_title.mouse_entered.connect(_on_path_title_mouse_entered)
 	_path_title.mouse_exited.connect(_on_path_title_mouse_exited)
+	_tree_area.gui_input.connect(_on_tree_area_gui_input)
 
 	_update_points_display()
 	_update_header()
@@ -115,7 +118,7 @@ func _ready() -> void:
 	build_tree()
 
 
-func _gui_input(event: InputEvent) -> void:
+func _on_tree_area_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
@@ -165,6 +168,24 @@ func _refresh_all_nodes() -> void:
 		node_ui.refresh(current_level, can_afford)
 
 	_node_container.queue_redraw()
+
+
+func _center_tree(positions: Dictionary) -> void:
+	if positions.is_empty() or not is_inside_tree():
+		return
+	# Find bounding box of all node positions
+	var min_pos := Vector2(INF, INF)
+	var max_pos := Vector2(-INF, -INF)
+	for pos: Vector2 in positions.values():
+		min_pos.x = minf(min_pos.x, pos.x)
+		min_pos.y = minf(min_pos.y, pos.y)
+		max_pos.x = maxf(max_pos.x, pos.x)
+		max_pos.y = maxf(max_pos.y, pos.y)
+	var tree_size: Vector2 = max_pos - min_pos + Vector2(100, 100)  # padding
+	var tree_center: Vector2 = min_pos + (max_pos - min_pos) / 2.0
+	var area_size: Vector2 = _tree_area.size
+	var offset: Vector2 = area_size / 2.0 - tree_center
+	_node_container.position = offset
 
 
 func _clear_tree() -> void:

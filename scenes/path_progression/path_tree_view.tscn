@@ -163,19 +163,18 @@ size_flags_vertical = 3
 theme_override_constants/separation = 0
 
 [node name="TreeArea" type="Control" parent="UnifiedPanel/MainVBox/Body"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-mouse_filter = 2
+clip_contents = true
+mouse_filter = 0
 
 [node name="NodeContainer" type="Control" parent="UnifiedPanel/MainVBox/Body/TreeArea"]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+anchors_preset = 0
+custom_minimum_size = Vector2(800, 800)
 mouse_filter = 2
 script = ExtResource("2_container")
 
