@@ -77,6 +77,17 @@ func _verify_current_selected_zone_id() -> bool:
 
 @export var current_cycling_technique_name: String = "Foundation Technique"
 
+#-----------------------------------------------------------------------------
+# PATH PROGRESSION
+#-----------------------------------------------------------------------------
+
+## The path_id of the currently active path tree (empty if no path selected).
+@export var current_path_id: String = ""
+## Maps node_id -> purchase count for the current run's path tree.
+@export var path_node_purchases: Dictionary = {}
+## Current unspent path point balance.
+@export var path_points: int = 0
+
 func _to_string() -> String:
 	var zone_progression_data_str := ""
 	if typeof(zone_progression_data) == TYPE_DICTIONARY:
@@ -93,7 +104,7 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  CurrentCyclingTechnique: %s\n)" % [
+	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  CurrentCyclingTechnique: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
 			madra,
 			gold,
 			core_density_xp,
@@ -106,7 +117,10 @@ func _to_string() -> String:
 			zone_progression_data_str,
 			inventory.equipment.size() if inventory else 0,
 			str(character_attributes) if character_attributes else "None",
-			current_cycling_technique_name
+			current_cycling_technique_name,
+			current_path_id,
+			path_points,
+			str(path_node_purchases)
 		]
 
 
@@ -147,4 +161,9 @@ func reset() -> void:
 
 	# Current State
 	current_cycling_technique_name = "Foundation Technique"
-	
+
+	# Path Progression
+	current_path_id = ""
+	path_node_purchases = {}
+	path_points = 0
+
