@@ -1,7 +1,48 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cbps5t4a7d2m5"]
 
-[ext_resource type="Script" path="res://scenes/path_progression/path_tree_view.gd" id="1_tree_view"]
-[ext_resource type="Script" path="res://scenes/path_progression/path_node_container.gd" id="2_container"]
+[ext_resource type="Script" uid="uid://bwndb65a0mqda" path="res://scenes/path_progression/path_tree_view.gd" id="1_tree_view"]
+[ext_resource type="Script" uid="uid://bfrue6onb4elu" path="res://scenes/path_progression/path_node_container.gd" id="2_container"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unified_panel"]
+bg_color = Color(0.196, 0.157, 0.118, 0.94)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.769, 0.533, 0.29, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 15
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header_bg"]
+bg_color = Color(0.165, 0.102, 0.071, 0.5)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_benefits_bg"]
+bg_color = Color(0.165, 0.102, 0.071, 0.3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_points_icon"]
+bg_color = Color(0.831, 0.659, 0.29, 1)
+corner_radius_top_left = 13
+corner_radius_top_right = 13
+corner_radius_bottom_right = 13
+corner_radius_bottom_left = 13
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_header_sep"]
+color = Color(0.42, 0.29, 0.188, 1)
+thickness = 2
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_body_divider"]
+color = Color(0.42, 0.29, 0.188, 1)
+thickness = 2
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_benefits_sep"]
+color = Color(0.42, 0.29, 0.188, 0.6)
+thickness = 1
 
 [node name="PathTreeView" type="Control"]
 visible = false
@@ -11,18 +52,104 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+z_index = 3
 script = ExtResource("1_tree_view")
 
-[node name="BackgroundPanel" type="PanelContainer" parent="."]
+[node name="UnifiedPanel" type="PanelContainer" parent="."]
 layout_mode = 1
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_left = 24.0
+offset_top = 18.0
+offset_right = -24.0
+offset_bottom = -18.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_unified_panel")
+
+[node name="MainVBox" type="VBoxContainer" parent="UnifiedPanel"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="UnifiedPanel/MainVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header_bg")
+
+[node name="HeaderMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Header"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 14
+
+[node name="HeaderHBox" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin"]
+layout_mode = 2
+
+[node name="PathIdentity" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="PathTitle" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PathIdentity"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_font_sizes/font_size = 22
+text = "PURE MADRA"
+uppercase = true
+
+[node name="PathSubtitle" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PathIdentity"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
+theme_override_font_sizes/font_size = 13
+text = "Path of Disruption & Versatility"
+
+[node name="Spacer" type="Control" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PointsDisplay" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PointsIcon" type="Panel" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PointsDisplay"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_points_icon")
+
+[node name="PointsInfo" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PointsDisplay"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 0
+
+[node name="PointsValue" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PointsDisplay/PointsInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+
+[node name="PointsLabel" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PointsDisplay/PointsInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
+theme_override_font_sizes/font_size = 11
+text = "PATH POINTS"
+uppercase = true
+
+[node name="HeaderSep" type="HSeparator" parent="UnifiedPanel/MainVBox"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxLine_header_sep")
+
+[node name="Body" type="HBoxContainer" parent="UnifiedPanel/MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="TreeArea" type="Control" parent="UnifiedPanel/MainVBox/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 mouse_filter = 2
 
-[node name="NodeContainer" type="Control" parent="."]
+[node name="NodeContainer" type="Control" parent="UnifiedPanel/MainVBox/Body/TreeArea"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -33,16 +160,88 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_container")
 
-[node name="PointsMargin" type="MarginContainer" parent="."]
-layout_mode = 1
-anchors_preset = 0
-offset_right = 200.0
-offset_bottom = 40.0
-mouse_filter = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
+[node name="BodyDivider" type="VSeparator" parent="UnifiedPanel/MainVBox/Body"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxLine_body_divider")
 
-[node name="PointsLabel" type="Label" parent="PointsMargin"]
+[node name="BenefitsArea" type="PanelContainer" parent="UnifiedPanel/MainVBox/Body"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_benefits_bg")
+
+[node name="BenefitsMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="BenefitsVBox" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BenefitsHeader" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_font_sizes/font_size = 14
+text = "ACTIVE BENEFITS"
+uppercase = true
+
+[node name="BenefitsSep" type="HSeparator" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxLine_benefits_sep")
+
+[node name="BenefitsScroll" type="ScrollContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BenefitsList" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/BenefitsScroll"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Path Points: 0"
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="SummarySep" type="HSeparator" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxLine_benefits_sep")
+
+[node name="SummaryBox" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NodesRow" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox"]
+layout_mode = 2
+
+[node name="NodesLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox/NodesRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
+theme_override_font_sizes/font_size = 12
+text = "Purchased"
+
+[node name="NodeCountLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox/NodesRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
+theme_override_font_sizes/font_size = 12
+text = "0"
+horizontal_alignment = 2
+
+[node name="SpentRow" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox"]
+layout_mode = 2
+
+[node name="SpentLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox/SpentRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
+theme_override_font_sizes/font_size = 12
+text = "Spent"
+
+[node name="PointsSpentLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox/SpentRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
+theme_override_font_sizes/font_size = 12
+text = "0"
+horizontal_alignment = 2
