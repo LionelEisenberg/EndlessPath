@@ -29,6 +29,12 @@ var _is_panning: bool = false
 var _pan_start_mouse: Vector2 = Vector2.ZERO
 var _pan_start_offset: Vector2 = Vector2.ZERO
 
+## Zoom state
+var _zoom_level: float = 1.0
+const ZOOM_MIN: float = 0.5
+const ZOOM_MAX: float = 2.0
+const ZOOM_STEP: float = 0.1
+
 ## Tween for madra info popup animation
 var _madra_info_tween: Tween = null
 
@@ -53,6 +59,9 @@ const BENEFIT_DESCRIPTIONS: Dictionary = {
 	"madra_on_levelup": ["Breakthrough Surge", "+10 Madra on Level Up"],
 	"adventure_madra_return": ["Madra Reclamation", "+10% Madra Return"],
 }
+
+## NodeContainer base position to be centered
+const NODE_CONTAINER_BASE_POSITION : Vector2 = Vector2(120, 100)
 
 #-----------------------------------------------------------------------------
 # STATIC METHODS
@@ -96,7 +105,7 @@ func build_tree() -> void:
 
 	_refresh_all_nodes()
 	_rebuild_benefits_sidebar()
-	_center_tree(positions)
+	_center_tree()
 	_node_container.queue_redraw()
 
 #-----------------------------------------------------------------------------
@@ -117,7 +126,6 @@ func _ready() -> void:
 	_populate_madra_info()
 	build_tree()
 
-
 func _on_tree_area_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
@@ -128,6 +136,10 @@ func _on_tree_area_gui_input(event: InputEvent) -> void:
 				_pan_start_offset = _node_container.position
 			else:
 				_is_panning = false
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
+			_apply_zoom(ZOOM_STEP, mb.global_position)
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
+			_apply_zoom(-ZOOM_STEP, mb.global_position)
 	elif event is InputEventMouseMotion and _is_panning:
 		var mm: InputEventMouseMotion = event as InputEventMouseMotion
 		var delta: Vector2 = mm.global_position - _pan_start_mouse
@@ -170,22 +182,25 @@ func _refresh_all_nodes() -> void:
 	_node_container.queue_redraw()
 
 
-func _center_tree(positions: Dictionary) -> void:
-	if positions.is_empty() or not is_inside_tree():
+func _apply_zoom(delta: float, mouse_global: Vector2) -> void:
+	var old_zoom: float = _zoom_level
+	_zoom_level = clampf(_zoom_level + delta, ZOOM_MIN, ZOOM_MAX)
+	if is_equal_approx(old_zoom, _zoom_level):
 		return
-	# Find bounding box of all node positions
-	var min_pos := Vector2(INF, INF)
-	var max_pos := Vector2(-INF, -INF)
-	for pos: Vector2 in positions.values():
-		min_pos.x = minf(min_pos.x, pos.x)
-		min_pos.y = minf(min_pos.y, pos.y)
-		max_pos.x = maxf(max_pos.x, pos.x)
-		max_pos.y = maxf(max_pos.y, pos.y)
-	var tree_size: Vector2 = max_pos - min_pos + Vector2(100, 100)  # padding
-	var tree_center: Vector2 = min_pos + (max_pos - min_pos) / 2.0
-	var area_size: Vector2 = _tree_area.size
-	var offset: Vector2 = area_size / 2.0 - tree_center
-	_node_container.position = offset
+
+	# Zoom toward mouse position so the point under the cursor stays fixed
+	var mouse_local: Vector2 = mouse_global - _tree_area.global_position
+	var before: Vector2 = (mouse_local - _node_container.position) / old_zoom
+	var after: Vector2 = before * _zoom_level
+	_node_container.position = mouse_local - after
+
+	_node_container.scale = Vector2(_zoom_level, _zoom_level)
+	_node_container.queue_redraw()
+
+
+func _center_tree() -> void:
+	_node_container.position = 	NODE_CONTAINER_BASE_POSITION
+
 
 
 func _clear_tree() -> void:
