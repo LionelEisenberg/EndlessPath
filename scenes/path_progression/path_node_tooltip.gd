@@ -104,8 +104,7 @@ func _populate_effects(data: PathNodeData) -> void:
 
 	for effect: PathNodeEffectData in data.effects:
 		var effect_label: Label = Label.new()
-		effect_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GREEN)
-		effect_label.add_theme_font_size_override("font_size", 16)
+		effect_label.theme_type_variation = &"LabelPathGreen"
 		effect_label.text = _format_effect(effect)
 		_effects_container.add_child(effect_label)
 

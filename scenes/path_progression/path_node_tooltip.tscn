@@ -60,15 +60,13 @@ theme_override_constants/separation = 4
 [node name="NameLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"LabelPathHeading"
 text = "Node Name"
 
 [node name="TypeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"LabelPathMuted"
 text = "Minor"
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/MarginContainer/VBoxContainer"]
@@ -98,13 +96,11 @@ theme_override_styles/separator = SubResource("StyleBoxLine_tooltip_sep")
 [node name="CostLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"LabelPathMuted"
 text = "Cost: 1 point"
 
 [node name="LevelLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"LabelPathMuted"
 text = "Level: 1/3"

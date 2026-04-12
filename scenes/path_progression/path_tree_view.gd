@@ -257,8 +257,8 @@ func _add_benefit(node_id: String, _level: int) -> void:
 	var icon_label: Label = Label.new()
 	icon_label.custom_minimum_size = Vector2(20, 20)
 	icon_label.text = "\u25C6"
+	icon_label.theme_type_variation = &"LabelPathMuted"
 	icon_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
-	icon_label.add_theme_font_size_override("font_size", 14)
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(icon_label)
@@ -270,14 +270,12 @@ func _add_benefit(node_id: String, _level: int) -> void:
 
 	var name_label: Label = Label.new()
 	name_label.text = benefit_info[0]
-	name_label.add_theme_color_override("font_color", ThemeConstants.TEXT_LIGHT)
-	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.theme_type_variation = &"LabelPathBody"
 	info_vbox.add_child(name_label)
 
 	var value_label: Label = Label.new()
 	value_label.text = benefit_info[1]
-	value_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GREEN)
-	value_label.add_theme_font_size_override("font_size", 16)
+	value_label.theme_type_variation = &"LabelPathGreen"
 	info_vbox.add_child(value_label)
 
 	hbox.add_child(info_vbox)

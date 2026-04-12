@@ -2,63 +2,15 @@
 
 [ext_resource type="Script" uid="uid://bwndb65a0mqda" path="res://scenes/path_progression/path_tree_view.gd" id="1_tree_view"]
 [ext_resource type="Script" uid="uid://bfrue6onb4elu" path="res://scenes/path_progression/path_node_container.gd" id="2_container"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unified_panel"]
-bg_color = Color(0.196, 0.157, 0.118, 0.94)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.769, 0.533, 0.29, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 15
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header_bg"]
-bg_color = Color(0.165, 0.102, 0.071, 0.5)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_points_icon"]
-bg_color = Color(0.831, 0.659, 0.29, 1)
-corner_radius_top_left = 13
-corner_radius_top_right = 13
-corner_radius_bottom_right = 13
-corner_radius_bottom_left = 13
-
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_header_sep"]
-color = Color(0.42, 0.29, 0.188, 1)
-thickness = 2
-
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_body_divider"]
-color = Color(0.42, 0.29, 0.188, 1)
-thickness = 2
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_benefits_bg"]
-bg_color = Color(0.165, 0.102, 0.071, 0.3)
-
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_benefits_sep"]
-color = Color(0.42, 0.29, 0.188, 0.6)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_madra_info"]
-bg_color = Color(0.149, 0.094, 0.063, 0.97)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.769, 0.533, 0.29, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
-shadow_color = Color(0, 0, 0, 0.4)
-shadow_size = 8
-
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_madra_info_sep"]
-color = Color(0.42, 0.29, 0.188, 0.5)
+[ext_resource type="Resource" uid="uid://b3lhh7qlrydpc" path="res://assets/styleboxes/ui/panel_path_tree.tres" id="3_style"]
+[ext_resource type="Resource" uid="uid://cqv5rmd38q32y" path="res://assets/styleboxes/ui/panel_path_header.tres" id="4_style"]
+[ext_resource type="Resource" uid="uid://d2shs7aipdskt" path="res://assets/styleboxes/ui/panel_path_points_icon.tres" id="5_style"]
+[ext_resource type="Resource" uid="uid://bvt7k5x8bvms3" path="res://assets/styleboxes/ui/line_path_header_sep.tres" id="6_style"]
+[ext_resource type="Resource" uid="uid://cngg5mg74pkln" path="res://assets/styleboxes/ui/line_path_body_divider.tres" id="7_style"]
+[ext_resource type="Resource" uid="uid://dnmxw3j39bnm9" path="res://assets/styleboxes/ui/panel_path_benefits.tres" id="8_style"]
+[ext_resource type="Resource" uid="uid://bqvg7t1hq9b2t" path="res://assets/styleboxes/ui/line_path_benefits_sep.tres" id="9_style"]
+[ext_resource type="Resource" uid="uid://dngr24zl4lq6g" path="res://assets/styleboxes/ui/panel_path_tooltip.tres" id="10_style"]
+[ext_resource type="Resource" uid="uid://cw7w7dxl93z2h" path="res://assets/styleboxes/ui/line_path_madra_sep.tres" id="11_style"]
 
 [node name="PathTreeView" type="Control" unique_id=1168177824]
 visible = false
@@ -80,7 +32,7 @@ offset_left = 120.0
 offset_top = 80.0
 offset_right = -120.0
 offset_bottom = -80.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_unified_panel")
+theme_override_styles/panel = ExtResource("3_style")
 
 [node name="MainVBox" type="VBoxContainer" parent="UnifiedPanel" unique_id=1639026462]
 layout_mode = 2
@@ -88,7 +40,7 @@ theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="UnifiedPanel/MainVBox" unique_id=933022890]
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header_bg")
+theme_override_styles/panel = ExtResource("4_style")
 
 [node name="HeaderMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Header" unique_id=1408870553]
 layout_mode = 2
@@ -108,18 +60,13 @@ theme_override_constants/separation = 3
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 0
-theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 48
+theme_type_variation = &"LabelPathTitle"
 text = "PURE MADRA"
 uppercase = true
 
 [node name="PathSubtitle" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PathIdentity" unique_id=1227243090]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"LabelPathSubheading"
 text = "Path of Disruption & Versatility"
 
 [node name="Spacer" type="Control" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox" unique_id=1377426479]
@@ -134,7 +81,7 @@ theme_override_constants/separation = 10
 custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_styles/panel = SubResource("StyleBoxFlat_points_icon")
+theme_override_styles/panel = ExtResource("5_style")
 
 [node name="PointsInfo" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PointsDisplay" unique_id=1609421641]
 layout_mode = 2
@@ -144,20 +91,18 @@ theme_override_constants/separation = 0
 [node name="PointsValue" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PointsDisplay/PointsInfo" unique_id=1359226942]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 36
+theme_type_variation = &"LabelPathValueLarge"
 text = "0"
 
 [node name="PointsLabel" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PointsDisplay/PointsInfo" unique_id=191249357]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"LabelPathMuted"
 text = "PATH POINTS"
 uppercase = true
 
 [node name="HeaderSep" type="HSeparator" parent="UnifiedPanel/MainVBox" unique_id=1917346098]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_header_sep")
+theme_override_styles/separator = ExtResource("6_style")
 
 [node name="Body" type="HBoxContainer" parent="UnifiedPanel/MainVBox" unique_id=1162241102]
 layout_mode = 2
@@ -184,13 +129,13 @@ script = ExtResource("2_container")
 
 [node name="BodyDivider" type="VSeparator" parent="UnifiedPanel/MainVBox/Body" unique_id=116253073]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_body_divider")
+theme_override_styles/separator = ExtResource("7_style")
 
 [node name="BenefitsArea" type="PanelContainer" parent="UnifiedPanel/MainVBox/Body" unique_id=1800247584]
 custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_override_styles/panel = SubResource("StyleBoxFlat_benefits_bg")
+theme_override_styles/panel = ExtResource("8_style")
 
 [node name="BenefitsMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea" unique_id=781260254]
 layout_mode = 2
@@ -205,14 +150,13 @@ theme_override_constants/separation = 8
 
 [node name="BenefitsHeader" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox" unique_id=1487260876]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"LabelPathHeading"
 text = "ACTIVE BENEFITS"
 uppercase = true
 
 [node name="BenefitsSep" type="HSeparator" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox" unique_id=1922643132]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_benefits_sep")
+theme_override_styles/separator = ExtResource("9_style")
 
 [node name="BenefitsScroll" type="ScrollContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox" unique_id=841307520]
 layout_mode = 2
@@ -226,7 +170,7 @@ theme_override_constants/separation = 6
 
 [node name="SummarySep" type="HSeparator" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox" unique_id=2107652014]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_benefits_sep")
+theme_override_styles/separator = ExtResource("9_style")
 
 [node name="SummaryBox" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox" unique_id=778946866]
 layout_mode = 2
@@ -238,15 +182,13 @@ layout_mode = 2
 [node name="NodesLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox/NodesRow" unique_id=1982757930]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"LabelPathBody"
 text = "Purchased"
 
 [node name="NodeCountLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox/NodesRow" unique_id=1629374553]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"LabelPathBody"
 text = "0"
 horizontal_alignment = 2
 
@@ -256,15 +198,13 @@ layout_mode = 2
 [node name="SpentLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox/SpentRow" unique_id=2130277153]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"LabelPathBody"
 text = "Spent"
 
 [node name="PointsSpentLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/BenefitsArea/BenefitsMargin/BenefitsVBox/SummaryBox/SpentRow" unique_id=1471911749]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"LabelPathBody"
 text = "0"
 horizontal_alignment = 2
 
@@ -288,7 +228,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_madra_info")
+theme_override_styles/panel = ExtResource("10_style")
 
 [node name="PopupMargin" type="MarginContainer" parent="MadraInfoPopup/PopupPanel" unique_id=1864854661]
 layout_mode = 2
@@ -303,46 +243,40 @@ theme_override_constants/separation = 6
 
 [node name="MadraPathName" type="Label" parent="MadraInfoPopup/PopupPanel/PopupMargin/PopupVBox" unique_id=1021617608]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"LabelPathValueMedium"
 text = "Pure Madra"
 
 [node name="MadraDescLabel" type="Label" parent="MadraInfoPopup/PopupPanel/PopupMargin/PopupVBox" unique_id=1064070457]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"LabelPathMuted"
 text = "Path description"
 autowrap_mode = 2
 
 [node name="MadraSep" type="HSeparator" parent="MadraInfoPopup/PopupPanel/PopupMargin/PopupVBox" unique_id=1738659693]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_madra_info_sep")
+theme_override_styles/separator = ExtResource("11_style")
 
 [node name="MadraStrengthsLabel" type="Label" parent="MadraInfoPopup/PopupPanel/PopupMargin/PopupVBox" unique_id=1191614978]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.49, 0.808, 0.51, 1)
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"LabelPathGreen"
 text = "Strengths: ..."
 
 [node name="MadraWeaknessesLabel" type="Label" parent="MadraInfoPopup/PopupPanel/PopupMargin/PopupVBox" unique_id=1260053973]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.878, 0.376, 0.376, 1)
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"LabelPathRed"
 text = "Weaknesses: ..."
 
 [node name="MadraCyclingLabel" type="Label" parent="MadraInfoPopup/PopupPanel/PopupMargin/PopupVBox" unique_id=844763142]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"LabelPathMuted"
 text = "Cycling: ..."
 
 [node name="MadraCombatLabel" type="Label" parent="MadraInfoPopup/PopupPanel/PopupMargin/PopupVBox" unique_id=1662553010]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"LabelPathMuted"
 text = "Combat: ..."
