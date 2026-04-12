@@ -14,6 +14,7 @@ extends Control
 @onready var _benefits_list: VBoxContainer = %BenefitsList
 @onready var _node_count_label: Label = %NodeCountLabel
 @onready var _points_spent_label: Label = %PointsSpentLabel
+@onready var _shared_tooltip: PathNodeTooltip = %SharedTooltip
 @onready var _madra_info_popup: Control = %MadraInfoPopup
 @onready var _madra_desc_label: Label = %MadraDescLabel
 @onready var _madra_strengths_label: Label = %MadraStrengthsLabel
@@ -164,6 +165,8 @@ func _create_node_ui(node_data: PathNodeData, positions: Dictionary) -> void:
 		node_ui.position = Vector2.ZERO
 
 	node_ui.node_clicked.connect(_on_node_clicked)
+	node_ui.node_hovered.connect(_on_node_hovered)
+	node_ui.node_unhovered.connect(_on_node_unhovered)
 
 	var node_radius: float = node_ui.size.x / 2.0
 	_node_uis[node_data.id] = node_ui
@@ -293,6 +296,21 @@ func _clear_benefits() -> void:
 
 func _on_node_clicked(node_id: String) -> void:
 	PathManager.purchase_node(node_id)
+
+
+func _on_node_hovered(node_data: PathNodeData, node_ui: PathNodeUI) -> void:
+	var current_level: int = PathManager.get_node_purchase_count(node_data.id)
+	# Position tooltip at the node's global position, offset to the right
+	var node_global_pos: Vector2 = node_ui.global_position
+	_shared_tooltip.global_position = Vector2(
+		node_global_pos.x + node_ui.size.x + 16.0,
+		node_global_pos.y + node_ui.size.y / 2.0 - 80.0
+	)
+	_shared_tooltip.show_tooltip(node_data, current_level)
+
+
+func _on_node_unhovered() -> void:
+	_shared_tooltip.hide_tooltip()
 
 
 func _on_node_purchased(_node_id: String, _new_level: int) -> void:

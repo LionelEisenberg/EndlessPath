@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bwndb65a0mqda" path="res://scenes/path_progression/path_tree_view.gd" id="1_tree_view"]
 [ext_resource type="Texture2D" uid="uid://bagg3hpuf63iv" path="res://assets/ui_images/system_menu/star_icon.png" id="2_5saao"]
 [ext_resource type="Script" uid="uid://bfrue6onb4elu" path="res://scenes/path_progression/path_node_container.gd" id="2_container"]
+[ext_resource type="PackedScene" path="res://scenes/path_progression/path_node_tooltip.tscn" id="3_tooltip"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unified_panel"]
 bg_color = Color(0.196, 0.157, 0.118, 0.94)
@@ -122,7 +123,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="PointsIcon" type="TextureRect" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/PointsDisplay" unique_id=350248846]
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(58, 58)
 layout_mode = 2
 size_flags_vertical = 4
 texture = ExtResource("2_5saao")
@@ -157,7 +158,6 @@ theme_override_constants/separation = 0
 [node name="TreeArea" type="Control" parent="UnifiedPanel/MainVBox/Body" unique_id=1895509663]
 unique_name_in_owner = true
 clip_contents = true
-z_index = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -254,6 +254,16 @@ layout_mode = 2
 theme_type_variation = &"LabelPathBody"
 text = "0"
 horizontal_alignment = 2
+
+[node name="SharedTooltip" parent="." instance=ExtResource("3_tooltip")]
+unique_name_in_owner = true
+z_index = 50
+z_as_relative = false
+layout_mode = 0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 320.0
+offset_bottom = 200.0
 
 [node name="MadraInfoPopup" type="Control" parent="." unique_id=2131395885]
 unique_name_in_owner = true

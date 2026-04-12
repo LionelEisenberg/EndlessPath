@@ -1,9 +1,8 @@
 [gd_scene format=3 uid="uid://cwkb4dhlivby1"]
 
 [ext_resource type="Script" uid="uid://bquq6xc2eo24t" path="res://scenes/path_progression/path_node_ui.gd" id="1_node_ui"]
-[ext_resource type="PackedScene" path="res://scenes/path_progression/path_node_tooltip.tscn" id="2_tooltip"]
 
-[node name="PathNodeUI" type="TextureButton"]
+[node name="PathNodeUI" type="TextureButton" unique_id=343145559]
 custom_minimum_size = Vector2(64, 64)
 offset_right = 64.0
 offset_bottom = 64.0
@@ -12,7 +11,7 @@ size_flags_vertical = 0
 stretch_mode = 4
 script = ExtResource("1_node_ui")
 
-[node name="Border" type="Panel" parent="."]
+[node name="Border" type="Panel" parent="." unique_id=1554942101]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -23,7 +22,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="LevelLabel" type="Label" parent="."]
+[node name="LevelLabel" type="Label" parent="." unique_id=654291138]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 3
@@ -39,7 +38,3 @@ theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
 theme_override_font_sizes/font_size = 11
 text = "1/3"
 horizontal_alignment = 2
-
-[node name="Tooltip" parent="." instance=ExtResource("2_tooltip")]
-unique_name_in_owner = true
-layout_mode = 0

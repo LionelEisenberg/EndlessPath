@@ -5,10 +5,11 @@ extends TextureButton
 ## Handles hover effects, click signaling, purchase particles, and display state.
 
 signal node_clicked(node_id: String)
+signal node_hovered(node_data: PathNodeData, node_ui: PathNodeUI)
+signal node_unhovered()
 
 @onready var _border: Panel = %Border
 @onready var _level_label: Label = %LevelLabel
-@onready var _tooltip: PathNodeTooltip = %Tooltip
 
 var _node_data: PathNodeData = null
 var _hover_tween: Tween = null
@@ -103,7 +104,6 @@ func _ready() -> void:
 	mouse_exited.connect(_on_mouse_exited)
 	pressed.connect(_on_pressed)
 	pivot_offset = size / 2.0
-	_tooltip.visible = false
 	# Hide old border panel — shapes are now drawn in _draw()
 	_border.visible = false
 
@@ -241,8 +241,7 @@ func _on_mouse_entered() -> void:
 	_hover_tween.tween_property(self, "scale", Vector2(1.15, 1.15), 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 
 	if _node_data:
-		var current_level: int = PathManager.get_node_purchase_count(_node_data.id)
-		_tooltip.show_tooltip(_node_data, current_level)
+		node_hovered.emit(_node_data, self)
 
 
 func _on_mouse_exited() -> void:
@@ -250,7 +249,7 @@ func _on_mouse_exited() -> void:
 		_hover_tween.kill()
 	_hover_tween = create_tween()
 	_hover_tween.tween_property(self, "scale", Vector2.ONE, 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
-	_tooltip.hide_tooltip()
+	node_unhovered.emit()
 
 
 func _on_pressed() -> void:
