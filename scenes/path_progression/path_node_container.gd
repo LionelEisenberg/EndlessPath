@@ -5,8 +5,8 @@ extends Control
 ## Lines connect to node edges (not centers) for a cleaner visual.
 
 ## Color constants for connection lines
-const LINE_LOCKED: Color = Color(0.29, 0.22, 0.16)
-const LINE_AVAILABLE: Color = Color(0.54, 0.44, 0.38)
+const LINE_LOCKED: Color = Color(0.38, 0.30, 0.22)
+const LINE_AVAILABLE: Color = Color(0.65, 0.52, 0.36)
 const LINE_PURCHASED: Color = ThemeConstants.ACCENT_GOLD
 
 ## Width constants per state

@@ -20,22 +20,22 @@ var _glow_phase: float = 0.0
 var _is_keystone_available: bool = false
 
 ## Fill colors per state
-const FILL_LOCKED: Color = Color(0.14, 0.10, 0.07, 0.7)
-const FILL_AVAILABLE: Color = Color(0.22, 0.16, 0.11, 0.85)
-const FILL_PURCHASED: Color = Color(0.25, 0.18, 0.10, 0.9)
-const FILL_MAXED: Color = Color(0.30, 0.22, 0.12, 0.95)
+const FILL_LOCKED: Color = Color(0.22, 0.17, 0.12, 0.8)
+const FILL_AVAILABLE: Color = Color(0.35, 0.27, 0.18, 0.92)
+const FILL_PURCHASED: Color = Color(0.40, 0.30, 0.16, 0.95)
+const FILL_MAXED: Color = Color(0.45, 0.34, 0.18, 1.0)
 
 ## Border colors per state
-const BORDER_LOCKED: Color = Color(0.29, 0.22, 0.16, 0.6)
-const BORDER_AVAILABLE: Color = Color(0.54, 0.44, 0.38, 1.0)
-const BORDER_PURCHASED: Color = Color(0.769, 0.533, 0.290, 1.0)
-const BORDER_MAXED: Color = Color(0.831, 0.659, 0.290, 1.0)
+const BORDER_LOCKED: Color = Color(0.40, 0.32, 0.24, 0.7)
+const BORDER_AVAILABLE: Color = Color(0.72, 0.56, 0.36, 1.0)
+const BORDER_PURCHASED: Color = Color(0.85, 0.65, 0.29, 1.0)
+const BORDER_MAXED: Color = Color(0.95, 0.78, 0.35, 1.0)
 
 ## Border widths per state
-const BORDER_W_LOCKED: float = 1.5
-const BORDER_W_AVAILABLE: float = 2.0
-const BORDER_W_PURCHASED: float = 2.5
-const BORDER_W_MAXED: float = 3.0
+const BORDER_W_LOCKED: float = 2.0
+const BORDER_W_AVAILABLE: float = 2.5
+const BORDER_W_PURCHASED: float = 3.0
+const BORDER_W_MAXED: float = 3.5
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -91,7 +91,7 @@ func refresh(current_level: int, can_afford: bool) -> void:
 	if _is_purchased or _can_afford:
 		modulate.a = 1.0
 	else:
-		modulate.a = 0.55
+		modulate.a = 0.65
 
 	queue_redraw()
 
