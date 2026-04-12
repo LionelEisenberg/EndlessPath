@@ -31,8 +31,8 @@ var _pan_start_offset: Vector2 = Vector2.ZERO
 
 ## Zoom state
 var _zoom_level: float = 1.0
-const ZOOM_MIN: float = 0.5
-const ZOOM_MAX: float = 2.0
+const ZOOM_MIN: float = 0.75
+const ZOOM_MAX: float = 1.5
 const ZOOM_STEP: float = 0.1
 
 ## Tween for madra info popup animation

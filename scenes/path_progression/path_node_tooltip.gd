@@ -54,11 +54,10 @@ func show_tooltip(data: PathNodeData, current_level: int) -> void:
 
 	# Counter-scale to cancel the NodeContainer zoom so tooltip stays readable
 	var container_scale: float = _get_container_zoom()
-	if container_scale > 0.0:
-		scale = Vector2.ONE / container_scale
+	var target_scale: Vector2 = Vector2.ONE / container_scale if container_scale > 0.0 else Vector2.ONE
 
 	visible = true
-	_animate_in()
+	_animate_in(target_scale)
 
 
 ## Animate the tooltip out and hide it.
@@ -145,15 +144,15 @@ func _get_attribute_name(attr_type: CharacterAttributesData.AttributeType) -> St
 	return CharacterAttributesData.AttributeType.keys()[attr_type].capitalize()
 
 
-func _animate_in() -> void:
+func _animate_in(target_scale: Vector2 = Vector2.ONE) -> void:
 	if _tween and _tween.is_valid():
 		_tween.kill()
 	modulate.a = 0.0
-	scale = Vector2(0.95, 0.95)
+	scale = target_scale * 0.95
 	_tween = create_tween()
 	_tween.set_parallel(true)
 	_tween.tween_property(self, "modulate:a", 1.0, 0.15).set_ease(Tween.EASE_OUT)
-	_tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	_tween.tween_property(self, "scale", target_scale, 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
 func _animate_out() -> void:
