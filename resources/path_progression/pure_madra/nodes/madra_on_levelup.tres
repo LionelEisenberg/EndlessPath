@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PathNodeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_vm1e5"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_b1f1h"]
+
+[sub_resource type="Resource" id="Resource_f65tb"]
+script = ExtResource("1_vm1e5")
+effect_type = 7
+float_value = 10.0
+
+[resource]
+script = ExtResource("2_b1f1h")
+id = "madra_on_levelup"
+display_name = "Breakthrough Surge"
+description = "Grants bonus Madra each time your Core Density level increases."
+node_type = 2
+prerequisites = Array[String](["core_xp_boost"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("1_vm1e5")]([SubResource("Resource_f65tb")])

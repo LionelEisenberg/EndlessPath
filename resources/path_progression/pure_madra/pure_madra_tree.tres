@@ -1,0 +1,235 @@
+[gd_resource type="Resource" script_class="PathTreeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="1_um6r6"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="2_od0mv"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_tree_data.gd" id="3_7lhot"]
+
+[sub_resource type="Resource" id="Resource_v7ki3"]
+script = ExtResource("2_od0mv")
+effect_type = 8
+string_value = "res://resources/abilities/empty_palm.tres"
+
+[sub_resource type="Resource" id="Resource_2goba"]
+script = ExtResource("2_od0mv")
+effect_type = 9
+string_value = "smooth_flow"
+
+[sub_resource type="Resource" id="Resource_e0rcx"]
+script = ExtResource("1_um6r6")
+id = "pure_core_awakening"
+display_name = "Pure Core Awakening"
+description = "Establish your Pure Madra identity. Unlocks the Empty Palm combat technique and Smooth Flow cycling technique."
+node_type = 0
+prerequisites = Array[String]([])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_v7ki3"), SubResource("Resource_2goba")])
+
+[sub_resource type="Resource" id="Resource_2d6qk"]
+script = ExtResource("2_od0mv")
+effect_type = 8
+string_value = "res://resources/abilities/madra_strike.tres"
+
+[sub_resource type="Resource" id="Resource_qbtrk"]
+script = ExtResource("1_um6r6")
+id = "madra_strike"
+display_name = "Madra Strike"
+description = "Learn to channel Madra into your strikes. Unlocks a new combat ability that costs Madra but hits significantly harder."
+node_type = 0
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 2
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_2d6qk")])
+
+[sub_resource type="Resource" id="Resource_x73d3"]
+script = ExtResource("2_od0mv")
+effect_type = 9
+string_value = "torrent_flow"
+
+[sub_resource type="Resource" id="Resource_y5l0p"]
+script = ExtResource("1_um6r6")
+id = "torrent_flow"
+display_name = "Torrent Flow"
+description = "A faster, more demanding cycling technique. Generates more Madra per cycle at the expense of Core Density XP."
+node_type = 1
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 2
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_x73d3")])
+
+[sub_resource type="Resource" id="Resource_kc2h8"]
+script = ExtResource("2_od0mv")
+effect_type = 5
+float_value = 15.0
+
+[sub_resource type="Resource" id="Resource_q34u1"]
+script = ExtResource("1_um6r6")
+id = "cycling_accuracy"
+display_name = "Cycling Focus"
+description = "Slows the Madra ball near cycling zones, improving accuracy."
+node_type = 2
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_kc2h8")])
+
+[sub_resource type="Resource" id="Resource_0jsly"]
+script = ExtResource("2_od0mv")
+effect_type = 1
+float_value = 1.1
+
+[sub_resource type="Resource" id="Resource_pibau"]
+script = ExtResource("1_um6r6")
+id = "madra_gen_up"
+display_name = "Madra Surge"
+description = "Increases Madra generated per cycling session."
+node_type = 3
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 1
+max_purchases = 3
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_0jsly")])
+
+[sub_resource type="Resource" id="Resource_8gmjl"]
+script = ExtResource("2_od0mv")
+effect_type = 2
+float_value = 25.0
+
+[sub_resource type="Resource" id="Resource_8cow1"]
+script = ExtResource("1_um6r6")
+id = "madra_capacity"
+display_name = "Expanded Core"
+description = "Expands your core to hold more Madra."
+node_type = 2
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_8gmjl")])
+
+[sub_resource type="Resource" id="Resource_l84om"]
+script = ExtResource("1_um6r6")
+id = "empty_palm_duration"
+display_name = "Lingering Silence"
+description = "Empty Palm's silence effect lasts longer, giving you more time to press the advantage."
+node_type = 1
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([])
+
+[sub_resource type="Resource" id="Resource_as8cq"]
+script = ExtResource("1_um6r6")
+id = "empty_palm_cost"
+display_name = "Efficient Palm"
+description = "Reduces the Madra cost of Empty Palm."
+node_type = 2
+prerequisites = Array[String](["empty_palm_duration"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([])
+
+[sub_resource type="Resource" id="Resource_ateeq"]
+script = ExtResource("1_um6r6")
+id = "madra_strike_damage"
+display_name = "Focused Strike"
+description = "Madra Strike deals significantly more damage."
+node_type = 1
+prerequisites = Array[String](["madra_strike"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([])
+
+[sub_resource type="Resource" id="Resource_5f62h"]
+script = ExtResource("1_um6r6")
+id = "madra_strike_efficiency"
+display_name = "Strike Efficiency"
+description = "Reduces the stamina cost of Madra Strike."
+node_type = 2
+prerequisites = Array[String](["madra_strike"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([])
+
+[sub_resource type="Resource" id="Resource_kwf7j"]
+script = ExtResource("2_od0mv")
+effect_type = 4
+float_value = 1.2
+
+[sub_resource type="Resource" id="Resource_bi4li"]
+script = ExtResource("1_um6r6")
+id = "stamina_recovery"
+display_name = "Iron Will"
+description = "Pure Madra aids physical recovery, increasing stamina regeneration in combat."
+node_type = 1
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_kwf7j")])
+
+[sub_resource type="Resource" id="Resource_7yr41"]
+script = ExtResource("2_od0mv")
+effect_type = 3
+float_value = 1.1
+
+[sub_resource type="Resource" id="Resource_mlbap"]
+script = ExtResource("1_um6r6")
+id = "core_xp_boost"
+display_name = "Dedicated Cultivation"
+description = "Increases Core Density XP earned from all sources."
+node_type = 3
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 1
+max_purchases = 3
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_7yr41")])
+
+[sub_resource type="Resource" id="Resource_f65tb"]
+script = ExtResource("2_od0mv")
+effect_type = 7
+float_value = 10.0
+
+[sub_resource type="Resource" id="Resource_i3fba"]
+script = ExtResource("1_um6r6")
+id = "madra_on_levelup"
+display_name = "Breakthrough Surge"
+description = "Grants bonus Madra each time your Core Density level increases."
+node_type = 2
+prerequisites = Array[String](["core_xp_boost"])
+required_stage = 0
+point_cost = 1
+max_purchases = 1
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_f65tb")])
+
+[sub_resource type="Resource" id="Resource_odlld"]
+script = ExtResource("2_od0mv")
+effect_type = 6
+float_value = 0.1
+
+[sub_resource type="Resource" id="Resource_c7uqp"]
+script = ExtResource("1_um6r6")
+id = "adventure_madra_return"
+display_name = "Madra Reclamation"
+description = "Recovers a portion of unspent Madra when an adventure ends."
+node_type = 3
+prerequisites = Array[String](["pure_core_awakening"])
+required_stage = 0
+point_cost = 1
+max_purchases = 5
+effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_odlld")])
+
+[resource]
+script = ExtResource("3_7lhot")
+path_id = "pure_madra"
+path_name = "Pure Madra"
+path_description = "The path of Pure Madra. Versatile and balanced, specializing in disruption and neutralization of enemy techniques."
+nodes = Array[ExtResource("1_um6r6")]([SubResource("Resource_e0rcx"), SubResource("Resource_qbtrk"), SubResource("Resource_y5l0p"), SubResource("Resource_q34u1"), SubResource("Resource_pibau"), SubResource("Resource_8cow1"), SubResource("Resource_l84om"), SubResource("Resource_as8cq"), SubResource("Resource_ateeq"), SubResource("Resource_5f62h"), SubResource("Resource_bi4li"), SubResource("Resource_mlbap"), SubResource("Resource_i3fba"), SubResource("Resource_c7uqp")])
