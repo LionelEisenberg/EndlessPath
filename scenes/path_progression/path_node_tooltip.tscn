@@ -29,9 +29,9 @@ visible = false
 layout_mode = 3
 anchors_preset = 0
 offset_left = 80.0
-offset_top = -80.0
-offset_right = 320.0
-offset_bottom = 80.0
+offset_top = -100.0
+offset_right = 400.0
+offset_bottom = 100.0
 pivot_offset = Vector2(0, 80)
 mouse_filter = 2
 script = ExtResource("1_tooltip")
@@ -61,14 +61,14 @@ theme_override_constants/separation = 4
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 22
 text = "Node Name"
 
 [node name="TypeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 14
 text = "Minor"
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/MarginContainer/VBoxContainer"]
@@ -99,12 +99,12 @@ theme_override_styles/separator = SubResource("StyleBoxLine_tooltip_sep")
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 text = "Cost: 1 point"
 
 [node name="LevelLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.659, 0.565, 0.439, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 16
 text = "Level: 1/3"

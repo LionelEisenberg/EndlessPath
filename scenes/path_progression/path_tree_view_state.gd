@@ -14,5 +14,5 @@ func exit() -> void:
 
 ## Handle input events in this state.
 func handle_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("open_path_tree"):
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("open_path"):
 		scene_root.pop_state()
