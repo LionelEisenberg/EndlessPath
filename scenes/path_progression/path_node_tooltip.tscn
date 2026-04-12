@@ -26,7 +26,8 @@ thickness = 1
 
 [node name="PathNodeTooltip" type="Control"]
 visible = false
-z_index = 5
+z_index = 50
+z_as_relative = false
 layout_mode = 3
 anchors_preset = 0
 offset_left = 80.0
