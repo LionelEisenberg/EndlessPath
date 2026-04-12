@@ -1,4 +1,3 @@
-class_name PathManager
 extends Node
 
 ## Manages the player's path progression tree for the current run.
