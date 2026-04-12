@@ -9,6 +9,16 @@ extends Resource
 @export var path_name: String = ""
 @export_multiline var path_description: String = ""
 
+@export_group("Madra Type Info")
+## Strengths of this Madra type.
+@export var madra_strengths: String = ""
+## Weaknesses of this Madra type.
+@export var madra_weaknesses: String = ""
+## How cycling feels on this path.
+@export var madra_cycling: String = ""
+## How combat feels on this path.
+@export var madra_combat: String = ""
+
 ## All nodes in this tree, across all tiers.
 @export var nodes: Array[PathNodeData] = []
 

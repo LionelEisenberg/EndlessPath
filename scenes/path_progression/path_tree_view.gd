@@ -13,6 +13,12 @@ extends Control
 @onready var _benefits_list: VBoxContainer = %BenefitsList
 @onready var _node_count_label: Label = %NodeCountLabel
 @onready var _points_spent_label: Label = %PointsSpentLabel
+@onready var _madra_info_popup: Control = %MadraInfoPopup
+@onready var _madra_desc_label: Label = %MadraDescLabel
+@onready var _madra_strengths_label: Label = %MadraStrengthsLabel
+@onready var _madra_weaknesses_label: Label = %MadraWeaknessesLabel
+@onready var _madra_cycling_label: Label = %MadraCyclingLabel
+@onready var _madra_combat_label: Label = %MadraCombatLabel
 
 ## Maps node_id -> PathNodeUI for refresh
 var _node_uis: Dictionary = {}
@@ -21,6 +27,9 @@ var _node_uis: Dictionary = {}
 var _is_panning: bool = false
 var _pan_start_mouse: Vector2 = Vector2.ZERO
 var _pan_start_offset: Vector2 = Vector2.ZERO
+
+## Tween for madra info popup animation
+var _madra_info_tween: Tween = null
 
 ## Tracks total points spent and purchased node count
 var _total_spent: int = 0
@@ -97,8 +106,12 @@ func _ready() -> void:
 	PathManager.points_changed.connect(_on_points_changed)
 	PathManager.path_set.connect(_on_path_set)
 
+	_path_title.mouse_entered.connect(_on_path_title_mouse_entered)
+	_path_title.mouse_exited.connect(_on_path_title_mouse_exited)
+
 	_update_points_display()
 	_update_header()
+	_populate_madra_info()
 	build_tree()
 
 
@@ -222,13 +235,13 @@ func _add_benefit(node_id: String, _level: int) -> void:
 	var name_label: Label = Label.new()
 	name_label.text = benefit_info[0]
 	name_label.add_theme_color_override("font_color", ThemeConstants.TEXT_LIGHT)
-	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_font_size_override("font_size", 14)
 	info_vbox.add_child(name_label)
 
 	var value_label: Label = Label.new()
 	value_label.text = benefit_info[1]
 	value_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GREEN)
-	value_label.add_theme_font_size_override("font_size", 11)
+	value_label.add_theme_font_size_override("font_size", 13)
 	info_vbox.add_child(value_label)
 
 	hbox.add_child(info_vbox)
@@ -259,4 +272,33 @@ func _on_points_changed(_new_balance: int) -> void:
 
 func _on_path_set(_path_tree: PathTreeData) -> void:
 	_update_header()
+	_populate_madra_info()
 	build_tree()
+
+
+func _populate_madra_info() -> void:
+	var tree: PathTreeData = PathManager.get_current_tree()
+	if tree == null:
+		return
+	_madra_desc_label.text = tree.path_description
+	_madra_strengths_label.text = "Strengths: %s" % tree.madra_strengths
+	_madra_weaknesses_label.text = "Weaknesses: %s" % tree.madra_weaknesses
+	_madra_cycling_label.text = "Cycling: %s" % tree.madra_cycling
+	_madra_combat_label.text = "Combat: %s" % tree.madra_combat
+
+
+func _on_path_title_mouse_entered() -> void:
+	if _madra_info_tween and _madra_info_tween.is_valid():
+		_madra_info_tween.kill()
+	_madra_info_popup.visible = true
+	_madra_info_popup.modulate.a = 0.0
+	_madra_info_tween = create_tween()
+	_madra_info_tween.tween_property(_madra_info_popup, "modulate:a", 1.0, 0.15).set_ease(Tween.EASE_OUT)
+
+
+func _on_path_title_mouse_exited() -> void:
+	if _madra_info_tween and _madra_info_tween.is_valid():
+		_madra_info_tween.kill()
+	_madra_info_tween = create_tween()
+	_madra_info_tween.tween_property(_madra_info_popup, "modulate:a", 0.0, 0.1).set_ease(Tween.EASE_IN)
+	_madra_info_tween.chain().tween_callback(func() -> void: _madra_info_popup.visible = false)
