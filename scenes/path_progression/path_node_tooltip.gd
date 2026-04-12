@@ -52,6 +52,11 @@ func show_tooltip(data: PathNodeData, current_level: int) -> void:
 	var parent_size: Vector2 = get_parent().size if get_parent() else Vector2(64, 64)
 	position = Vector2(parent_size.x + 16, -size.y / 2.0 + parent_size.y / 2.0)
 
+	# Counter-scale to cancel the NodeContainer zoom so tooltip stays readable
+	var container_scale: float = _get_container_zoom()
+	if container_scale > 0.0:
+		scale = Vector2.ONE / container_scale
+
 	visible = true
 	_animate_in()
 
@@ -63,6 +68,14 @@ func hide_tooltip() -> void:
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
+
+func _get_container_zoom() -> float:
+	# Walk up to find the NodeContainer's scale (two levels: tooltip → PathNodeUI → NodeContainer)
+	var node_ui: Node = get_parent()
+	if node_ui and node_ui.get_parent():
+		return node_ui.get_parent().scale.x
+	return 1.0
+
 
 func _get_type_text(node_type: PathNodeData.NodeType) -> String:
 	match node_type:
