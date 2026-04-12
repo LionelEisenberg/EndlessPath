@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/path_progression/path_tree_view.gd" id="1_tree_view"]
+[ext_resource type="Script" path="res://scenes/path_progression/path_node_container.gd" id="2_container"]
+
+[node name="PathTreeView" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tree_view")
+
+[node name="BackgroundPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="NodeContainer" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_container")
+
+[node name="PointsMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 200.0
+offset_bottom = 40.0
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+
+[node name="PointsLabel" type="Label" parent="PointsMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Path Points: 0"
