@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[node name="PureMadraTier1Layout" type="Node2D"]
+
+[node name="pure_core_awakening" type="Marker2D" parent="."]
+position = Vector2(400, 300)
+
+[node name="cycling_accuracy" type="Marker2D" parent="."]
+position = Vector2(200, 200)
+
+[node name="madra_gen_up" type="Marker2D" parent="."]
+position = Vector2(200, 400)
+
+[node name="madra_capacity" type="Marker2D" parent="."]
+position = Vector2(200, 300)
+
+[node name="empty_palm_duration" type="Marker2D" parent="."]
+position = Vector2(500, 100)
+
+[node name="empty_palm_cost" type="Marker2D" parent="."]
+position = Vector2(700, 100)
+
+[node name="madra_strike" type="Marker2D" parent="."]
+position = Vector2(600, 200)
+
+[node name="madra_strike_damage" type="Marker2D" parent="."]
+position = Vector2(800, 200)
+
+[node name="madra_strike_efficiency" type="Marker2D" parent="."]
+position = Vector2(800, 300)
+
+[node name="torrent_flow" type="Marker2D" parent="."]
+position = Vector2(600, 400)
+
+[node name="stamina_recovery" type="Marker2D" parent="."]
+position = Vector2(400, 500)
+
+[node name="core_xp_boost" type="Marker2D" parent="."]
+position = Vector2(300, 500)
+
+[node name="madra_on_levelup" type="Marker2D" parent="."]
+position = Vector2(300, 600)
+
+[node name="adventure_madra_return" type="Marker2D" parent="."]
+position = Vector2(500, 500)
