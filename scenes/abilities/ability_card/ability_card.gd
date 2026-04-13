@@ -268,6 +268,8 @@ func _set_mouse_pass_recursive(node: Node) -> void:
 	for child: Node in node.get_children():
 		if child == _equip_button:
 			continue
+		if child is AbilityStatsDisplay:
+			continue  # StatLabels need MOUSE_FILTER_STOP for tooltips
 		if child is Control:
 			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_set_mouse_pass_recursive(child)
