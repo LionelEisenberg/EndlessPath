@@ -17,9 +17,7 @@ var _value_tween: Tween = null
 func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
-	# Enable built-in tooltip system
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	tooltip_text = " "  # Non-empty to trigger _make_custom_tooltip
 
 ## Configures the stat label.
 func setup(stat_name: String, value: float, color: Color, format_cb: Callable, tooltip: Dictionary) -> void:
@@ -28,6 +26,7 @@ func setup(stat_name: String, value: float, color: Color, format_cb: Callable, t
 	_stat_color = color
 	_format_callback = format_cb
 	_tooltip_data = tooltip
+	tooltip_text = stat_name  # Triggers _make_custom_tooltip
 	_update_text()
 
 ## Returns tooltip data for this label.
