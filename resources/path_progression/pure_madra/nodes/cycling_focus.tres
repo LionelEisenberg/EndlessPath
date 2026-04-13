@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="PathNodeData" format=3]
+[gd_resource type="Resource" script_class="PathNodeData" format=3 uid="uid://dcnbn3n8v2jok"]
 
-[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_7a6yj"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_6bt4o"]
+[ext_resource type="Script" uid="uid://bu68duxxx6bug" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_7a6yj"]
+[ext_resource type="Script" uid="uid://bcwya48qokiun" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_6bt4o"]
 
 [sub_resource type="Resource" id="Resource_kc2h8"]
 script = ExtResource("1_7a6yj")
@@ -13,10 +13,6 @@ script = ExtResource("2_6bt4o")
 id = "cycling_focus"
 display_name = "Cycling Focus"
 description = "Slows the Madra ball near cycling zones, improving accuracy."
-node_type = 2
 prerequisites = Array[String](["torrent_flow"])
-required_stage = 0
-point_cost = 1
-max_purchases = 1
 effects = Array[ExtResource("1_7a6yj")]([SubResource("Resource_kc2h8")])
 benefit_summary = "+15 Cycling Accuracy"

@@ -62,18 +62,6 @@ func _update_resources() -> void:
 
 
 #-----------------------------------------------------------------------------
-# ABILITY PUBLIC FUNCTIONS
-#-----------------------------------------------------------------------------
-
-func get_equipped_abilities() -> Array[AbilityData]:
-	var equipped_abilities : Array[AbilityData] = []
-	equipped_abilities.append(load("res://resources/abilities/basic_strike.tres"))
-	equipped_abilities.append(load("res://resources/abilities/empty_palm.tres"))
-	equipped_abilities.append(load("res://resources/abilities/enforce.tres"))
-	equipped_abilities.append(load("res://resources/abilities/power_font.tres"))
-	return equipped_abilities
-
-#-----------------------------------------------------------------------------
 # ATTRIBUTE GETTERS (Base + Bonuses)
 #-----------------------------------------------------------------------------
 # These return the total attribute value (base + bonuses from cultivation, equipment, etc.)

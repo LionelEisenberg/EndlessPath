@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="PathNodeData" format=3]
+[gd_resource type="Resource" script_class="PathNodeData" format=3 uid="uid://d1y4relsy2gbg"]
 
-[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_opq26"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_i01fr"]
+[ext_resource type="Script" uid="uid://bu68duxxx6bug" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_opq26"]
+[ext_resource type="Script" uid="uid://bcwya48qokiun" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_i01fr"]
 
 [sub_resource type="Resource" id="Resource_x73d3"]
 script = ExtResource("1_opq26")
@@ -15,8 +15,6 @@ display_name = "Torrent Flow"
 description = "A faster, more demanding cycling technique. Generates more Madra per cycle at the expense of Core Density XP."
 node_type = 1
 prerequisites = Array[String](["pure_core_awakening"])
-required_stage = 0
 point_cost = 2
-max_purchases = 1
 effects = Array[ExtResource("1_opq26")]([SubResource("Resource_x73d3")])
 benefit_summary = "Torrent Flow unlocked"

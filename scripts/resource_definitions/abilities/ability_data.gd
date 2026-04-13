@@ -19,6 +19,16 @@ enum TargetType {
 	ALL_ALLIES, ## All allies
 }
 
+enum MadraType {
+	NONE, ## No Madra affinity (physical abilities)
+	PURE, ## Pure Madra
+}
+
+enum AbilitySource {
+	INNATE, ## Always available, persists across path changes
+	PATH, ## Unlocked via path tree, resets with path
+}
+
 #-----------------------------------------------------------------------------
 # BASIC ABILITY INFO
 #-----------------------------------------------------------------------------
@@ -29,6 +39,10 @@ enum TargetType {
 @export var icon: Texture2D = null
 @export var ability_type: AbilityType = AbilityType.OFFENSIVE
 @export var target_type: TargetType = TargetType.SINGLE_ENEMY
+
+@export_group("Classification")
+@export var madra_type: MadraType = MadraType.NONE
+@export var ability_source: AbilitySource = AbilitySource.INNATE
 
 #-----------------------------------------------------------------------------
 # COSTS & COOLDOWN
@@ -123,10 +137,13 @@ func get_total_cost_display() -> String:
 #-----------------------------------------------------------------------------
 
 func _to_string() -> String:
-	return "AbilityData[%s] '%s' (Type: %s, Target: %s, Cost: %s, Cooldown: %d turns)" % [
+	return "AbilityData[%s] '%s' (Type: %s, Target: %s, Madra: %s, Source: %s, Cost: %s, CD: %.1fs)" % [
 		ability_id,
 		ability_name,
 		AbilityType.keys()[ability_type],
 		TargetType.keys()[target_type],
+		MadraType.keys()[madra_type],
+		AbilitySource.keys()[ability_source],
 		get_total_cost_display(),
+		base_cooldown,
 	]

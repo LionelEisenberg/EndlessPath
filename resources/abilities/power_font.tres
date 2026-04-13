@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AbilityData" load_steps=5 format=3 uid="uid://c6kj8se7d887c"]
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://c6kj8se7d887c"]
 
 [ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_ys7rd"]
 [ext_resource type="Texture2D" uid="uid://dppmky4a5xje" path="res://assets/asperite/abilities/power_font.png" id="2_1ymsf"]
@@ -18,6 +18,8 @@ ability_id = "power_font"
 ability_name = "Power Font"
 description = "After a short moment to channel your body's madra into your palms, you throw a wave of power at the enemy with the might of your entire spirit!"
 icon = ExtResource("2_1ymsf")
+madra_type = 1
+ability_source = 1
 madra_cost = 20.0
 base_cooldown = 15.0
 cast_time = 3.0

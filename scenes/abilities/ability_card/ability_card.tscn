@@ -1,0 +1,123 @@
+[gd_scene format=3 uid="uid://bv3k8n2xqpf7t"]
+
+[ext_resource type="Script" uid="uid://cmcwlk2fudb7o" path="res://scenes/abilities/ability_card/ability_card.gd" id="1_script"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_normal.tres" id="2_btn_normal"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_hover.tres" id="3_btn_hover"]
+[ext_resource type="StyleBox" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="4_btn_pressed"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_disabled.tres" id="5_btn_disabled"]
+[ext_resource type="PackedScene" path="res://scenes/abilities/ability_stats_display/ability_stats_display.tscn" id="6_stats_display"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/abilities/pill_madra.tres" id="7_pill_madra"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/abilities/pill_source.tres" id="8_pill_source"]
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_detail_sep"]
+color = Color(0.42, 0.29, 0.188, 0.5)
+
+[node name="AbilityCard" type="PanelContainer" unique_id=474507726]
+offset_right = 510.0
+offset_bottom = 100.0
+theme_type_variation = &"PanelAbilityCard"
+script = ExtResource("1_script")
+
+[node name="CardVBox" type="VBoxContainer" parent="." unique_id=1939155318]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MainRow" type="HBoxContainer" parent="CardVBox" unique_id=1505445585]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AbilityIcon" type="TextureRect" parent="CardVBox/MainRow" unique_id=1857239447]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="InfoColumn" type="VBoxContainer" parent="CardVBox/MainRow" unique_id=1341220367]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="NameRow" type="HBoxContainer" parent="CardVBox/MainRow/InfoColumn" unique_id=228923719]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AbilityName" type="Label" parent="CardVBox/MainRow/InfoColumn/NameRow" unique_id=388103546]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelAbilityTitle"
+text = "Ability Name"
+
+[node name="MadraBadge" type="Label" parent="CardVBox/MainRow/InfoColumn/NameRow" unique_id=1637330022]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelAbilityMuted"
+theme_override_colors/font_color = Color(0.49, 0.808, 0.51, 1)
+theme_override_styles/normal = ExtResource("7_pill_madra")
+text = "PURE"
+
+[node name="SourceBadge" type="Label" parent="CardVBox/MainRow/InfoColumn/NameRow" unique_id=1982733990]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelAbilityMuted"
+theme_override_styles/normal = ExtResource("8_pill_source")
+text = "Innate"
+
+[node name="DamageStatsDisplay" parent="CardVBox/MainRow/InfoColumn" unique_id=899715817 instance=ExtResource("6_stats_display")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TimingStatsDisplay" parent="CardVBox/MainRow/InfoColumn" unique_id=445928173 instance=ExtResource("6_stats_display")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ButtonRow" type="HBoxContainer" parent="CardVBox" unique_id=587913118]
+layout_mode = 2
+alignment = 2
+
+[node name="ExpandedDetails" type="VBoxContainer" parent="CardVBox" unique_id=2036730223]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="DetailSep" type="HSeparator" parent="CardVBox/ExpandedDetails" unique_id=1955323018]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxLine_detail_sep")
+
+[node name="TagsRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=168902174]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ContentRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=1889439913]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TextColumn" type="VBoxContainer" parent="CardVBox/ExpandedDetails/ContentRow" unique_id=1917926078]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="DescriptionLabel" type="Label" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=1351304126]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelAbilityBody"
+text = "Ability description goes here."
+autowrap_mode = 3
+
+[node name="EquipButton" type="Button" parent="." unique_id=1618026647]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 30)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+theme_override_styles/normal = ExtResource("2_btn_normal")
+theme_override_styles/pressed = ExtResource("4_btn_pressed")
+theme_override_styles/hover = ExtResource("3_btn_hover")
+theme_override_styles/disabled = ExtResource("5_btn_disabled")
+text = "EQUIP"

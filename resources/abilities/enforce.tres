@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AbilityData" load_steps=6 format=3 uid="uid://cdml8kjdgte7y"]
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cdml8kjdgte7y"]
 
 [ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_4mmr5"]
 [ext_resource type="Script" uid="uid://dp17ol31g6ph6" path="res://scripts/resource_definitions/combat/buff_effect_data.gd" id="1_buff"]

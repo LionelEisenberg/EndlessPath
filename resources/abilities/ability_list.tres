@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AbilityListData" format=3 uid="uid://ntl7g65abvs32"]
+
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="1_abildata"]
+[ext_resource type="Resource" uid="uid://dic54dwcx1ho4" path="res://resources/abilities/basic_strike.tres" id="2_basic"]
+[ext_resource type="Script" uid="uid://7u7469lr9obps" path="res://scripts/resource_definitions/abilities/ability_list_data.gd" id="2_listscript"]
+[ext_resource type="Resource" uid="uid://4ddominxr0ph" path="res://resources/abilities/empty_palm.tres" id="3_empty"]
+[ext_resource type="Resource" uid="uid://cdml8kjdgte7y" path="res://resources/abilities/enforce.tres" id="4_enforce"]
+[ext_resource type="Resource" uid="uid://c6kj8se7d887c" path="res://resources/abilities/power_font.tres" id="5_power"]
+
+[resource]
+script = ExtResource("2_listscript")
+abilities = Array[ExtResource("1_abildata")]([ExtResource("2_basic"), ExtResource("3_empty"), ExtResource("4_enforce"), ExtResource("5_power")])
+metadata/_custom_type_script = "uid://7u7469lr9obps"

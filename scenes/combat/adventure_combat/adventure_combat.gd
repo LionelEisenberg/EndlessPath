@@ -104,7 +104,7 @@ func _create_player_combatant() -> void:
 	var player_data = CombatantData.new()
 	player_data.character_name = "Player"
 	player_data.attributes = CharacterManager.get_total_attributes_data()
-	player_data.abilities = CharacterManager.get_equipped_abilities()
+	player_data.abilities = AbilityManager.get_equipped_abilities()
 	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
 
 	player_combatant.setup(player_data, PlayerManager.vitals_manager, true)
