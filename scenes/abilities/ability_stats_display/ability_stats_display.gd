@@ -40,7 +40,7 @@ func setup(ability_data: AbilityData) -> void:
 		)
 		var shader: ShaderMaterial = ShaderMaterial.new()
 		shader.shader = preload("res://assets/shaders/damage_total_glow.gdshader")
-		total_label.get_node("%StatText").material = shader
+		total_label.material = shader
 
 		# Base damage
 		_create_label(
