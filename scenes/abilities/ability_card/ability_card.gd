@@ -165,7 +165,7 @@ func _update_display() -> void:
 	_update_equipped_display()
 
 func _update_cost_display() -> void:
-	_cost_label.text = ""
+	_cost_label.clear()
 	var cost_text: String = _ability_data.get_total_cost_display()
 	var cd_text: String = "%.1fs CD" % _ability_data.base_cooldown
 	var cast_text: String = "Instant" if _ability_data.cast_time <= 0.0 else "%.1fs Cast" % _ability_data.cast_time
@@ -208,7 +208,7 @@ func _create_tag_label(text: String) -> Label:
 	return tag
 
 func _update_scaling_display() -> void:
-	_scaling_label.text = ""
+	_scaling_label.clear()
 	if _ability_data.effects.is_empty():
 		_scaling_label.visible = false
 		return
