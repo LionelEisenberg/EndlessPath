@@ -33,15 +33,13 @@ func setup(ability_data: AbilityData) -> void:
 	if effect and has_damage:
 		var total: float = effect.calculate_value(attrs)
 
-		# Total damage label (with circling border shader)
+		# Total damage label with animated pulsing gold border
 		var total_label: StatLabel = _create_label(
 			"DMG", total, Color("#D4A84A"),
 			func(n: String, v: float) -> String: return "%s %.0f" % [n, v],
 			_build_total_tooltip(effect, attrs, total)
 		)
-		var shader: ShaderMaterial = ShaderMaterial.new()
-		shader.shader = preload("res://assets/shaders/damage_total_glow.gdshader")
-		total_label.material = shader
+		_setup_damage_border_pulse(total_label)
 
 		# Base damage
 		_create_label(
@@ -119,3 +117,26 @@ func _on_label_hovered(label: StatLabel) -> void:
 
 func _on_label_unhovered() -> void:
 	_tooltip.hide_tooltip()
+
+# ----- Damage Border Pulse -----
+
+func _setup_damage_border_pulse(label: StatLabel) -> void:
+	# Create a unique StyleBoxFlat for this label with a thick gold border
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.15, 0.10, 0.07, 0.6)
+	style.set_border_width_all(2)
+	style.border_color = Color(0.83, 0.66, 0.29, 0.3)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 3.0
+	style.content_margin_bottom = 3.0
+	label.add_theme_stylebox_override("panel", style)
+
+	# Infinite pulse tween on the border color
+	var dim_color: Color = Color(0.83, 0.66, 0.29, 0.3)
+	var bright_color: Color = Color(1.0, 0.85, 0.4, 1.0)
+	var tween: Tween = create_tween()
+	tween.set_loops()
+	tween.tween_property(style, "border_color", bright_color, 0.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(style, "border_color", dim_color, 0.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
