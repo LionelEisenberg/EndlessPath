@@ -15,6 +15,7 @@ uniform highp vec4 swirl_col_primary : source_color = vec4(0.6, 0.8, 1.0, 0.7);
 uniform highp vec4 swirl_col_secondary : source_color = vec4(0.5, 0.7, 0.95, 1.0);
 uniform highp vec4 swirl_col_tertiary : source_color = vec4(0.4, 0.6, 0.85, 1.0);
 uniform float state : hint_range(0.0, 2.0) = 1.0; // 0=locked, 1=available, 2=purchased
+uniform float hover : hint_range(0.0, 1.0) = 0.0; // 0=idle, 1=hovered (faster spin)
 uniform float glow_intensity : hint_range(0.0, 1.0) = 0.3;
 uniform vec4 glow_color : source_color = vec4(0.7, 0.85, 1.0, 1.0);
 
@@ -39,7 +40,8 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
 
 	// Paint effect on swirled UV
 	uv *= 30.0;
-	highp float anim_speed = TIME * spin_speed;
+	highp float effective_spin = spin_speed * (1.0 + hover * 2.0); // 3x faster when hovered
+	highp float anim_speed = TIME * effective_spin;
 	highp vec2 uv2 = vec2(uv.x + uv.y);
 
 	for (int i = 0; i < 5; i++) {
@@ -63,11 +65,11 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
 // MAIN
 //---------------------------------------------------------
 
-// Hexagon signed distance function (pointy-top orientation)
+// Hexagon signed distance function (flat-top orientation, matches _draw_hexagon)
 float hex_sdf(vec2 p, float r) {
 	vec2 q = abs(p);
-	// Pointy-top hexagon: rotated 30 degrees from flat-top
-	return max(q.x * 0.866025 + q.y * 0.5, q.y) - r;
+	// Flat-top hexagon: swap x/y from pointy-top
+	return max(q.y * 0.866025 + q.x * 0.5, q.x) - r;
 }
 
 void fragment() {

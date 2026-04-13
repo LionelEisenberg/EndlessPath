@@ -280,6 +280,14 @@ func _create_keystone_swirl() -> void:
 	move_child(_swirl_rect, 0)
 
 
+func _set_swirl_hover(value: float) -> void:
+	if _swirl_rect == null or _swirl_rect.material == null:
+		return
+	var mat: ShaderMaterial = _swirl_rect.material as ShaderMaterial
+	if mat:
+		mat.set_shader_parameter("hover", value)
+
+
 func _update_swirl_state() -> void:
 	if _swirl_rect == null or _swirl_rect.material == null:
 		return
@@ -320,6 +328,8 @@ func _on_mouse_entered() -> void:
 	_hover_tween = create_tween()
 	_hover_tween.tween_property(self, "scale", Vector2(1.15, 1.15), 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 
+	_set_swirl_hover(1.0)
+
 	if _node_data:
 		node_hovered.emit(_node_data, self)
 
@@ -327,6 +337,7 @@ func _on_mouse_entered() -> void:
 func _on_mouse_exited() -> void:
 	if _hover_tween and _hover_tween.is_valid():
 		_hover_tween.kill()
+	_set_swirl_hover(0.0)
 	_hover_tween = create_tween()
 	_hover_tween.tween_property(self, "scale", Vector2.ONE, 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 	node_unhovered.emit()
