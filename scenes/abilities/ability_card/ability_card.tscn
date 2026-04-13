@@ -160,6 +160,7 @@ scroll_active = false
 [node name="ScalingLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=2057513249]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/normal_font_size = 20
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
