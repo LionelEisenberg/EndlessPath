@@ -16,6 +16,7 @@ func _ready() -> void:
 	_build_catalog_index()
 	if PersistenceManager:
 		_live_save_data = PersistenceManager.save_game_data
+		_ensure_equipped_array_size()
 		PersistenceManager.save_data_reset.connect(_on_save_data_reset)
 	else:
 		Log.critical("AbilityManager: Could not get save_game_data from PersistenceManager on ready!")
@@ -133,6 +134,12 @@ func get_max_slots() -> int:
 
 # ----- Private -----
 
+func _ensure_equipped_array_size() -> void:
+	if not _live_save_data:
+		return
+	while _live_save_data.equipped_ability_ids.size() < MAX_SLOTS:
+		_live_save_data.equipped_ability_ids.append("")
+
 func _clear_ability_from_slots(ability_id: String) -> void:
 	for i: int in range(MAX_SLOTS):
 		if _live_save_data.equipped_ability_ids[i] == ability_id:
@@ -146,3 +153,4 @@ func _build_catalog_index() -> void:
 
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data
+	_ensure_equipped_array_size()
