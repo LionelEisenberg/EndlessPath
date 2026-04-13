@@ -87,15 +87,13 @@ theme_override_constants/separation = 2
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="AbilityName" type="RichTextLabel" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=1169462998]
+[node name="AbilityName" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=1169462998]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/normal_font_size = 34
-bbcode_enabled = true
+theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
+theme_override_font_sizes/font_size = 34
 text = "Ability Name"
-fit_content = true
-scroll_active = false
 
 [node name="MadraBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=807632035]
 unique_name_in_owner = true
@@ -148,14 +146,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="DescriptionLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=2009695052]
+[node name="DescriptionLabel" type="Label" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=2009695052]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/normal_font_size = 22
-bbcode_enabled = true
+theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
+theme_override_font_sizes/font_size = 22
 text = "Ability description goes here."
-fit_content = true
-scroll_active = false
+autowrap_mode = 3
 
 [node name="ScalingLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=2057513249]
 unique_name_in_owner = true

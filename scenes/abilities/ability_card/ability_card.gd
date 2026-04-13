@@ -19,13 +19,13 @@ var _style_hover: StyleBoxFlat = null
 var _style_expanded: StyleBoxFlat = null
 
 @onready var _icon: TextureRect = %AbilityIcon
-@onready var _name_label: RichTextLabel = %AbilityName
+@onready var _name_label: Label = %AbilityName
 @onready var _cost_label: RichTextLabel = %CostLabel
 @onready var _madra_badge: Label = %MadraBadge
 @onready var _source_badge: Label = %SourceBadge
 @onready var _expanded_details: VBoxContainer = %ExpandedDetails
 @onready var _tags_row: HBoxContainer = %TagsRow
-@onready var _description_label: RichTextLabel = %DescriptionLabel
+@onready var _description_label: Label = %DescriptionLabel
 @onready var _scaling_label: RichTextLabel = %ScalingLabel
 @onready var _equip_button: Button = %EquipButton
 
@@ -140,9 +140,7 @@ func _update_display() -> void:
 
 	_icon.texture = _ability_data.icon
 
-	# Ability name with BBCode — larger font set in TSCN (28px override)
-	_name_label.text = ""
-	_name_label.append_text("[color=#F0E8D8]%s[/color]" % _ability_data.ability_name)
+	_name_label.text = _ability_data.ability_name
 
 	# Cost summary with colored values
 	_update_cost_display()
@@ -161,8 +159,7 @@ func _update_display() -> void:
 	_update_tags_display()
 
 	# Expanded details
-	_description_label.text = ""
-	_description_label.append_text("[color=#F0E8D8]%s[/color]" % _ability_data.description)
+	_description_label.text = _ability_data.description
 
 	_update_scaling_display()
 	_update_equipped_display()
