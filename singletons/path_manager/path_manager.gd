@@ -101,6 +101,11 @@ func purchase_node(node_id: String) -> bool:
 	_recalculate_effects()
 	points_changed.emit(_live_save_data.path_points)
 	node_purchased.emit(node_id, new_level)
+	# Apply cycling technique unlocks
+	if CyclingManager:
+		for effect: PathNodeEffectData in node.effects:
+			if effect.effect_type == PathNodeEffectData.EffectType.UNLOCK_CYCLING_TECHNIQUE:
+				CyclingManager.unlock_technique(effect.string_value)
 	return true
 
 ## Returns the current aggregated effects from all purchased nodes.
@@ -112,8 +117,8 @@ func get_effects() -> PathEffectsSummary:
 func get_unlocked_abilities() -> Array[String]:
 	return _cached_effects.unlocked_abilities
 
-## Returns names/paths of all cycling techniques unlocked by purchased nodes.
-## Not yet consumed by the cycling system — ready for ability rework integration.
+## Returns IDs of all cycling techniques unlocked by purchased nodes.
+## CyclingManager is the live consumer; this returns the aggregated view from path state.
 func get_unlocked_cycling_techniques() -> Array[String]:
 	return _cached_effects.unlocked_cycling_techniques
 

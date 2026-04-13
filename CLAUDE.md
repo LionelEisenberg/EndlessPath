@@ -57,7 +57,7 @@ If the project has never been imported in the current environment, run `--import
 | Directory | Purpose |
 |-----------|---------|
 | `scripts/` | GDScript source — resource definitions (`resource_definitions/`) and utilities (`utils/`) |
-| `singletons/` | 12 autoload manager singletons (global game state) |
+| `singletons/` | 15 autoload manager singletons (global game state) |
 | `scenes/` | Godot `.tscn` scene files + attached scripts |
 | `resources/` | `.tres` data files (abilities, zones, items, encounters, loot tables) |
 | `assets/` | Art, audio, shaders, themes, fonts, UI images, Aseprite sources |
@@ -80,6 +80,7 @@ These are autoloaded in `project.godot` and provide global state:
 | `LogManager` | Centralized logging system |
 | `ActionManager` | Action queue system |
 | `CharacterManager` | Character data |
+| `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups) |
 | `PathManager` | Path progression tree, point balance, perk effects |
 | `Dialogic` | Dialogue/narrative system (addon autoload) |
 

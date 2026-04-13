@@ -35,6 +35,11 @@ func before_each() -> void:
 	PathManager._current_tree = null
 	PathManager._cached_effects = PathEffectsSummary.new()
 	PathManager._test_stage_override = CultivationManager.AdvancementStage.JADE
+	# PathManager.purchase_node now calls CyclingManager, so set up its test state
+	CyclingManager._live_save_data = _save_data
+	var _smooth_flow := CyclingTechniqueData.new()
+	_smooth_flow.id = "smooth_flow"
+	CyclingManager._techniques_by_id = {"smooth_flow": _smooth_flow}
 
 # ----- Point management -----
 

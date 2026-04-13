@@ -1,6 +1,7 @@
 class_name CyclingTechniqueData
 extends Resource
 
+@export var id: String = ""
 @export var technique_name: String = "Basic Cycling"
 @export var path_curve: Curve2D  # The path shape
 @export var cycle_duration: float = 10.0 # Seconds for one complete cycle (Replaced cycle_speed)

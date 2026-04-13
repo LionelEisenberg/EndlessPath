@@ -17,8 +17,6 @@ signal current_technique_changed(technique_data: CyclingTechniqueData)
 #-----------------------------------------------------------------------------
 
 var current_cycling_technique_data: CyclingTechniqueData = null
-var technique_list: CyclingTechniqueList = preload("res://resources/cycling/cycling_techniques/cycling_technique_list.tres")
-var foundation_technique: CyclingTechniqueData = technique_list.cycling_techniques[0]
 var cycling_action_data: CyclingActionData = null
 
 const MADRA_PARTICLE_COLOR: Color = Color(0.5, 0.78, 1.0, 0.85)
@@ -45,7 +43,10 @@ func _ready() -> void:
 
 	# Tab panel technique change
 	cycling_tab_panel.technique_change_request.connect(_on_technique_change_request)
-	cycling_tab_panel.setup(technique_list)
+	_refresh_technique_list()
+
+	# Listen for new technique unlocks
+	CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
 
 	# Close button
 	close_button.pressed.connect(_on_close_button_pressed)
@@ -53,8 +54,8 @@ func _ready() -> void:
 	# ActionManager
 	ActionManager.stop_cycling.connect(_on_stop_cycling)
 
-	# Load saved technique
-	_load_saved_technique()
+	# Load equipped technique from CyclingManager
+	_load_equipped_technique()
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -68,7 +69,7 @@ func initialize_cycling_action_data(action_data: CyclingActionData) -> void:
 func set_current_technique(technique_data: CyclingTechniqueData) -> void:
 	current_cycling_technique_data = technique_data
 	current_technique_changed.emit(technique_data)
-	_save_current_technique(technique_data)
+	CyclingManager.equip_technique(technique_data.id)
 
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
@@ -87,29 +88,23 @@ func _on_close_button_pressed() -> void:
 func _on_stop_cycling() -> void:
 	cycling_technique_node.stop_cycling()
 
-func _load_saved_technique() -> void:
-	if not PersistenceManager or not PersistenceManager.save_game_data:
-		set_current_technique(foundation_technique)
-		return
+func _load_equipped_technique() -> void:
+	var equipped: CyclingTechniqueData = CyclingManager.get_equipped_technique()
+	if equipped:
+		current_cycling_technique_data = equipped
+		current_technique_changed.emit(equipped)
+	else:
+		# Fallback: equip first unlocked technique
+		var unlocked: Array[CyclingTechniqueData] = CyclingManager.get_unlocked_techniques()
+		if not unlocked.is_empty():
+			set_current_technique(unlocked[0])
 
-	if not technique_list:
-		set_current_technique(foundation_technique)
-		return
+func _refresh_technique_list() -> void:
+	var unlocked: Array[CyclingTechniqueData] = CyclingManager.get_unlocked_techniques()
+	cycling_tab_panel.setup(unlocked)
 
-	var saved_name: String = PersistenceManager.save_game_data.current_cycling_technique_name
-	var found_technique: CyclingTechniqueData = null
-	for technique: CyclingTechniqueData in technique_list.cycling_techniques:
-		if technique.technique_name == saved_name:
-			found_technique = technique
-			break
-
-	set_current_technique(found_technique if found_technique else foundation_technique)
-
-func _save_current_technique(technique_data: CyclingTechniqueData) -> void:
-	if not PersistenceManager or not PersistenceManager.save_game_data:
-		return
-	if technique_data and technique_data.technique_name:
-		PersistenceManager.save_game_data.current_cycling_technique_name = technique_data.technique_name
+func _on_technique_unlocked(_technique: CyclingTechniqueData) -> void:
+	_refresh_technique_list()
 
 #-----------------------------------------------------------------------------
 # PARTICLE FEEDBACK
