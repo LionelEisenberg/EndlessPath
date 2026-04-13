@@ -145,6 +145,16 @@ Shared components used across multiple views:
 
 Use `/ship` to review, commit, and get a summary in one step.
 
+## Parallel Agents
+
+Multiple Claude Code agents may run simultaneously on this codebase. Follow these rules to avoid conflicts:
+
+- **Stay in your scope.** Only edit files related to your assigned feature or directory. Do not "fix" code outside your scope, even if it looks wrong.
+- **Don't chase phantom build errors.** If you see build/parse errors in files you did NOT edit, do not try to fix them — another agent is likely mid-edit. Wait 30 seconds and retry the build before investigating.
+- **Use git worktrees for risky work.** When touching shared code (singletons, resource definitions, common UI components), prefer working in a git worktree so changes can be reviewed and merged manually.
+- **Don't share browser sessions.** If using browser automation, do not reuse tabs or sessions that another agent may be using.
+- **Commit only your own work.** Before committing, verify with `git diff` that you are only staging files you intentionally changed. If you see unexpected modifications from another agent, leave them alone.
+
 ## GDScript Coding Standards
 
 **Scope**: Never modify files in `addons/`.
