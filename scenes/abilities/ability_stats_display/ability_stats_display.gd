@@ -16,7 +16,7 @@ var _tooltip_tween: Tween = null
 
 func _ready() -> void:
 	_tooltip.visible = false
-	_tooltip.z_index = 10
+	_tooltip.z_index = 100
 	_tooltip.top_level = true
 
 ## Builds the stats display from ability data.
@@ -122,8 +122,10 @@ func _has_damage_or_scaling(effect: CombatEffectData) -> bool:
 func _on_label_hovered(label: StatLabel) -> void:
 	var data: Dictionary = label.get_tooltip_data()
 	_build_tooltip_content(data)
+	_tooltip.reset_size()
 	_tooltip.visible = true
-	# Position above the label
+	# Position above the label after size is resolved
+	await get_tree().process_frame
 	var label_rect: Rect2 = label.get_global_rect()
 	_tooltip.global_position = Vector2(
 		label_rect.position.x,
