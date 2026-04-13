@@ -317,10 +317,12 @@ func _create_border_shader(node_type: PathNodeData.NodeType) -> void:
 	# Set shape type: 0=circle (minor/repeatable), 1=diamond (major)
 	if node_type == PathNodeData.NodeType.MAJOR:
 		mat.set_shader_parameter("shape_type", 1.0)
-		mat.set_shader_parameter("radius", 0.44)
+		mat.set_shader_parameter("radius", 0.34)
+		mat.set_shader_parameter("glow_size", 0.04)
 	else:
 		mat.set_shader_parameter("shape_type", 0.0)
-		mat.set_shader_parameter("radius", 0.42)
+		mat.set_shader_parameter("radius", 0.38)
+		mat.set_shader_parameter("glow_size", 0.04)
 
 	_border_rect.material = mat
 	add_child(_border_rect)
