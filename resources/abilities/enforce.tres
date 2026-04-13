@@ -28,4 +28,6 @@ target_type = 0
 madra_cost = 10.0
 base_cooldown = 30.0
 effects = Array[ExtResource("1_4mmr5")]([SubResource("Resource_enforce_buff")])
+madra_type = 0
+ability_source = 0
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
