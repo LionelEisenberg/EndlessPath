@@ -6,6 +6,13 @@ extends PanelContainer
 
 @export var benefit_card_scene: PackedScene
 
+## Icon textures per node type. Assign in the Inspector.
+@export_group("Node Type Icons")
+@export var keystone_icon: Texture2D
+@export var major_icon: Texture2D
+@export var minor_icon: Texture2D
+@export var repeatable_icon: Texture2D
+
 @onready var _benefits_list: VBoxContainer = %BenefitsList
 @onready var _node_count_label: Label = %NodeCountLabel
 @onready var _points_spent_label: Label = %PointsSpentLabel
@@ -49,7 +56,7 @@ func rebuild() -> void:
 		if level >= 1:
 			_purchased_count += 1
 			_total_spent += node_data.point_cost * level
-			_add_benefit(node_data.id)
+			_add_benefit(node_data.id, node_data.node_type)
 
 	_node_count_label.text = "%d" % _purchased_count
 	_points_spent_label.text = "%d" % _total_spent
@@ -63,16 +70,29 @@ func clear() -> void:
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
 
-func _add_benefit(node_id: String) -> void:
+func _add_benefit(node_id: String, node_type: PathNodeData.NodeType) -> void:
 	var benefit_info: Array = BENEFIT_DESCRIPTIONS.get(node_id, []) as Array
 	if benefit_info.size() < 2:
 		return
 	if benefit_card_scene == null:
 		return
 
+	var icon: Texture2D = _get_icon_for_type(node_type)
 	var card: BenefitCard = benefit_card_scene.instantiate() as BenefitCard
 	_benefits_list.add_child(card)
-	card.setup(benefit_info[0], benefit_info[1])
+	card.setup(benefit_info[0], benefit_info[1], icon)
+
+
+func _get_icon_for_type(node_type: PathNodeData.NodeType) -> Texture2D:
+	match node_type:
+		PathNodeData.NodeType.KEYSTONE:
+			return keystone_icon
+		PathNodeData.NodeType.MAJOR:
+			return major_icon
+		PathNodeData.NodeType.REPEATABLE:
+			return repeatable_icon
+		_:
+			return minor_icon
 
 
 func _clear() -> void:
