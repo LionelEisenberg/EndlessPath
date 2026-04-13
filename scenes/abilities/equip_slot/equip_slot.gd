@@ -5,8 +5,7 @@ extends PanelContainer
 ## Accepts drag-and-drop from AbilityCard to equip abilities.
 ## Supports dragging out of occupied slots and reordering between slots.
 
-signal ability_dropped(ability_id: String, slot_index: int)
-signal slot_cleared(slot_index: int)
+signal ability_dropped(ability_id: String, slot_index: int, from_slot: int)
 
 var _ability_data: AbilityData = null
 var _slot_index: int = 0
@@ -40,14 +39,30 @@ func get_ability() -> AbilityData:
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if not _ability_data:
 		return null
-	# Build visual drag preview with the ability icon
-	var preview: TextureRect = TextureRect.new()
-	preview.custom_minimum_size = Vector2(48, 48)
-	preview.size = Vector2(48, 48)
-	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	preview.texture = _ability_data.icon
-	preview.modulate = Color(1.0, 1.0, 1.0, 0.85)
-	set_drag_preview(preview)
+	var container: Control = Control.new()
+	container.z_index = 100
+	container.top_level = true
+	var bg: Panel = Panel.new()
+	var bg_style: StyleBoxFlat = StyleBoxFlat.new()
+	bg_style.bg_color = ThemeConstants.BG_MEDIUM
+	bg_style.set_border_width_all(2)
+	bg_style.border_color = ThemeConstants.BORDER_PRIMARY
+	bg_style.set_corner_radius_all(6)
+	bg_style.set_content_margin_all(0)
+	bg.add_theme_stylebox_override("panel", bg_style)
+	bg.position = Vector2(-40, -40)
+	bg.size = Vector2(80, 80)
+	container.add_child(bg)
+	var icon: TextureRect = TextureRect.new()
+	icon.texture = _ability_data.icon
+	icon.position = Vector2(-32, -32)
+	icon.size = Vector2(64, 64)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.modulate = Color(1.5, 1.5, 1.5, 1.0)
+	container.add_child(icon)
+	set_drag_preview(container)
 	return {"ability_id": _ability_data.ability_id, "from_slot": _slot_index}
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
@@ -59,7 +74,8 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
 	_set_hover(false)
 	if data is Dictionary and data.has("ability_id"):
-		ability_dropped.emit(data["ability_id"], _slot_index)
+		var from_slot: int = data.get("from_slot", -1)
+		ability_dropped.emit(data["ability_id"], _slot_index, from_slot)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_END:
