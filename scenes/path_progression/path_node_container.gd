@@ -59,13 +59,30 @@ func clear_all() -> void:
 	_node_radii.clear()
 	_clear_energy_lines()
 
+
+## Rebuild energy Line2D overlays for purchased connections.
+func rebuild_energy_lines() -> void:
+	_clear_energy_lines()
+	for conn: Dictionary in _connections:
+		var from_id: String = conn["from_id"]
+		var to_id: String = conn["to_id"]
+		if not _node_ui_map.has(from_id) or not _node_ui_map.has(to_id):
+			continue
+		var from_ui: PathNodeUI = _node_ui_map[from_id] as PathNodeUI
+		var to_ui: PathNodeUI = _node_ui_map[to_id] as PathNodeUI
+		var from_center: Vector2 = from_ui.position + from_ui.size / 2.0
+		var to_center: Vector2 = to_ui.position + to_ui.size / 2.0
+		var from_level: int = PathManager.get_node_purchase_count(from_id)
+		var to_level: int = PathManager.get_node_purchase_count(to_id)
+		if _theme and from_level >= 1 and to_level >= 1:
+			var line_color: Color = _get_connection_color(from_id, to_id)
+			_add_energy_line(from_center, to_center, line_color)
+
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
 
 func _draw() -> void:
-	_clear_energy_lines()
-
 	for conn: Dictionary in _connections:
 		var from_id: String = conn["from_id"]
 		var to_id: String = conn["to_id"]
@@ -82,12 +99,6 @@ func _draw() -> void:
 		var line_color: Color = _get_connection_color(from_id, to_id)
 		var line_width: float = _get_connection_width(from_id, to_id)
 		draw_line(from_center, to_center, line_color, line_width, true)
-
-		# Add energy shader Line2D for purchased connections with a theme
-		var from_level: int = PathManager.get_node_purchase_count(from_id)
-		var to_level: int = PathManager.get_node_purchase_count(to_id)
-		if _theme and from_level >= 1 and to_level >= 1:
-			_add_energy_line(from_center, to_center, line_color)
 
 
 func _get_connection_color(from_id: String, to_id: String) -> Color:

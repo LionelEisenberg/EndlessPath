@@ -9,10 +9,14 @@ signal points_changed(new_balance: int)
 signal path_set(path_tree: PathTreeData)
 signal effects_changed(effects: PathEffectsSummary)
 
+## Default path for first run when no path has been selected yet.
+const DEFAULT_PATH_ID: String = "pure_madra"
+
 var _live_save_data: SaveGameData = null
 var _current_tree: PathTreeData = null
 var _all_trees: Dictionary = {}  # path_id -> PathTreeData
 var _cached_effects: PathEffectsSummary = PathEffectsSummary.new()
+var _path_tree_list: PathTreeList = preload("res://resources/path_progression/path_tree_list.tres")
 
 ## Test-only: override stage check. Set to -1 to use real CultivationManager.
 var _test_stage_override: int = -1
@@ -28,6 +32,8 @@ func _ready() -> void:
 
 ## Sets the active path for this run. Clears any existing tree state.
 func set_path(path_id: String) -> bool:
+	if not _live_save_data:
+		return false
 	if not _all_trees.has(path_id):
 		push_error("PathManager: unknown path_id '%s'" % path_id)
 		return false
@@ -51,6 +57,8 @@ func get_point_balance() -> int:
 
 ## Adds path points to the balance.
 func add_points(amount: int) -> void:
+	if not _live_save_data:
+		return
 	_live_save_data.path_points += amount
 	points_changed.emit(_live_save_data.path_points)
 
@@ -175,23 +183,9 @@ func _apply_effect(effect: PathNodeEffectData, level: int) -> void:
 				_cached_effects.unlocked_cycling_techniques.append(effect.string_value)
 
 func _load_all_path_trees() -> void:
-	var tree_dir: String = "res://resources/path_progression/"
-	var dir := DirAccess.open(tree_dir)
-	if dir == null:
-		return
-	dir.list_dir_begin()
-	var folder_name: String = dir.get_next()
-	while folder_name != "":
-		if dir.current_is_dir() and not folder_name.begins_with("."):
-			var tree_path: String = tree_dir + folder_name + "/" + folder_name + "_tree.tres"
-			if ResourceLoader.exists(tree_path):
-				var tree: PathTreeData = load(tree_path) as PathTreeData
-				if tree and tree.validate():
-					_all_trees[tree.path_id] = tree
-		folder_name = dir.get_next()
-
-## Default path for first run when no path has been selected yet.
-const DEFAULT_PATH_ID: String = "pure_madra"
+	for tree: PathTreeData in _path_tree_list.path_trees:
+		if tree and tree.validate():
+			_all_trees[tree.path_id] = tree
 
 func _restore_current_path() -> void:
 	if not _live_save_data:
@@ -200,15 +194,19 @@ func _restore_current_path() -> void:
 		if _all_trees.has(_live_save_data.current_path_id):
 			_current_tree = _all_trees[_live_save_data.current_path_id]
 			_recalculate_effects()
+			path_set.emit(_current_tree)
 	elif _all_trees.has(DEFAULT_PATH_ID):
 		# First run: auto-select Pure Madra without resetting points
 		_current_tree = _all_trees[DEFAULT_PATH_ID]
 		_live_save_data.current_path_id = DEFAULT_PATH_ID
 		_recalculate_effects()
 		path_set.emit(_current_tree)
+	points_changed.emit(_live_save_data.path_points)
 
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data
+	if not _live_save_data:
+		return
 	_current_tree = null
 	_cached_effects = PathEffectsSummary.new()
 	_restore_current_path()

@@ -33,7 +33,7 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
 	highp float uv_len = length(uv);
 
 	// Center swirl with time-based spin
-	highp float speed_val = (0.0 * SPIN_EASE * 0.2) + 302.2;
+	highp float speed_val = (TIME * SPIN_EASE * 0.2) + 302.2;
 	highp float new_pixel_angle = (atan(uv.y, uv.x)) + speed_val - SPIN_EASE * 20.0 * (1.0 * spin_amount * uv_len + (1.0 - 1.0 * spin_amount));
 	highp vec2 mid = (screenSize.xy / length(screenSize.xy)) / 2.0;
 	uv = (vec2((uv_len * cos(new_pixel_angle) + mid.x), (uv_len * sin(new_pixel_angle) + mid.y)) - mid);
@@ -68,7 +68,6 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
 // Hexagon signed distance function (flat-top orientation, matches _draw_hexagon)
 float hex_sdf(vec2 p, float r) {
 	vec2 q = abs(p);
-	// Flat-top hexagon: swap x/y from pointy-top
 	return max(q.y * 0.866025 + q.x * 0.5, q.x) - r;
 }
 
@@ -76,7 +75,7 @@ void fragment() {
 	// Hexagonal clip: discard pixels outside the hexagon shape
 	vec2 center = vec2(0.5);
 	vec2 p = UV - center;
-	float hex_dist = hex_sdf(p, 0.48); // 0.48 = slightly inset from edge
+	float hex_dist = hex_sdf(p, 0.49);
 	if (hex_dist > 0.0) {
 		discard;
 	}

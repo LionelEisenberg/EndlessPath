@@ -125,7 +125,8 @@ func _format_effect(effect: PathNodeEffectData) -> String:
 			return "%sUnlocks: %s" % [prefix, effect.string_value.get_file().get_basename()]
 		PathNodeEffectData.EffectType.UNLOCK_CYCLING_TECHNIQUE:
 			return "%sUnlocks: %s" % [prefix, effect.string_value]
-	return ""
+	push_warning("PathNodeTooltip: unhandled effect type %d" % effect.effect_type)
+	return "%s(unknown effect)" % prefix
 
 
 func _get_attribute_name(attr_type: CharacterAttributesData.AttributeType) -> String:

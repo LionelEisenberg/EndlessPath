@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="PathTreeList" load_steps=4 format=3]
+
+[ext_resource type="Script" uid="uid://drg8kwhpg00wj" path="res://scripts/resource_definitions/path_progression/path_tree_data.gd" id="1_type"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_tree_list.gd" id="2_script"]
+[ext_resource type="Resource" uid="uid://3p88lvaa26kt" path="res://resources/path_progression/pure_madra/pure_madra_tree.tres" id="3_pure"]
+
+[resource]
+script = ExtResource("2_script")
+path_trees = Array[ExtResource("1_type")]([ExtResource("3_pure")])

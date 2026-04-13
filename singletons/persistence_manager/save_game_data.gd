@@ -84,7 +84,7 @@ func _verify_current_selected_zone_id() -> bool:
 ## The path_id of the currently active path tree (empty if no path selected).
 @export var current_path_id: String = ""
 ## Maps node_id -> purchase count for the current run's path tree.
-@export var path_node_purchases: Dictionary = {}
+@export var path_node_purchases: Dictionary[String, int] = {}
 ## Current unspent path point balance.
 @export var path_points: int = 0
 

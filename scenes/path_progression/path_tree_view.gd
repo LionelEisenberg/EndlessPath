@@ -88,6 +88,7 @@ func build_tree() -> void:
 	_benefits_area.rebuild()
 	_center_tree()
 	_node_container.queue_redraw()
+	_node_container.rebuild_energy_lines()
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
@@ -119,8 +120,10 @@ func _on_tree_area_gui_input(event: InputEvent) -> void:
 				_is_panning = false
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
 			_apply_zoom(ZOOM_STEP, mb.global_position)
+			get_viewport().set_input_as_handled()
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
 			_apply_zoom(-ZOOM_STEP, mb.global_position)
+			get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and _is_panning:
 		var mm: InputEventMouseMotion = event as InputEventMouseMotion
 		var delta: Vector2 = mm.global_position - _pan_start_mouse
@@ -171,6 +174,7 @@ func _refresh_all_nodes() -> void:
 		node_ui.refresh(current_level, can_afford)
 
 	_node_container.queue_redraw()
+	_node_container.rebuild_energy_lines()
 
 
 func _apply_zoom(delta: float, mouse_global: Vector2) -> void:
@@ -194,11 +198,11 @@ func _center_tree() -> void:
 
 
 func _clear_tree() -> void:
+	_node_container.clear_all()
 	for node_id: String in _node_uis:
 		var node_ui: PathNodeUI = _node_uis[node_id] as PathNodeUI
 		node_ui.queue_free()
 	_node_uis.clear()
-	_node_container.clear_all()
 	_benefits_area.clear()
 
 

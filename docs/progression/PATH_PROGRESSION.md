@@ -286,6 +286,29 @@ All three paths:
 
 ---
 
+## Implementation Status (PR #20)
+
+The following have been implemented:
+
+- **PathManager singleton** — path selection, tree state, point balance, purchase logic, effect aggregation
+- **Data model** — PathNodeData, PathTreeData, PathNodeEffectData, PathEffectsSummary, PathThemeData, PathTreeList resources
+- **Pure Madra Tier 1 content** — 14 nodes across 5 layers (1 keystone, 2 major, 7 minor, 4 repeatable); 4 minor nodes have benefit text but empty effects arrays (stubs for future combat/ability rework)
+- **Path point awards** — CultivationManager awards 1 path point every 10 Core Density levels
+- **UI** — unified panel with header, pannable/zoomable tree view, benefits sidebar with BenefitCard scenes, animated tooltips
+- **Visual theming** — PathThemeData resource with per-path colors; 3 shaders (keystone swirl, animated border for minor/major nodes, energy flow on purchased connections); theme data authored for Pure Madra, Blackflame, and Earth
+- **Scene-based layout** — PathLayoutMarker with inline resource editing for node positioning
+- **Persistence** — purchased nodes, point balance, and current path ID saved in SaveGameData
+- **State machine** — PathTreeViewState pushed on top of ZoneViewState via P key or toolbar button
+- **Tests** — 25 PathManager unit tests
+
+### Not yet wired
+
+- PathEffectsSummary bonuses are computed but not consumed by CharacterManager, ResourceManager, or CombatAbilityManager
+- Unlocked abilities/techniques tracked in PathEffectsSummary but not consumed by ability or cycling systems
+- 4 stub nodes (lingering_silence, efficient_palm, focused_strike, strike_efficiency) have no effect data — awaiting combat/ability rework
+
+---
+
 ## Open Design Questions
 
 These are decisions deferred for future design work:
@@ -298,5 +321,5 @@ These are decisions deferred for future design work:
 6. **Exact node counts per tier** -- Requires balancing against point budget and desired completion percentages
 7. **Repeatable node caps** -- Exact cap values per node need balance testing
 8. **Point award frequency tuning** -- Every 10 levels is the starting value; may need adjustment based on how long levels take in practice
-9. **Path-specific visual theming** -- Each path should have its own color scheme and shader effects. Pure Madra = blue shimmer on node borders, Blackflame = red/black with ember particles, Earth = brown/green with stone texture. Node borders, connection lines, and the tree panel background should all shift per path. Requires per-path color palette in PathTreeData and shader work on node borders/connections.
-10. **Connection line shaders** -- Lines should have energy flow effects (moving particles or gradient pulses) rather than flat colors, especially for purchased connections
+9. ~~**Path-specific visual theming**~~ -- *(Done in PR #20 — PathThemeData resource with per-path colors, 3 custom shaders)*
+10. ~~**Connection line shaders**~~ -- *(Done in PR #20 — energy flow shader on purchased connections)*

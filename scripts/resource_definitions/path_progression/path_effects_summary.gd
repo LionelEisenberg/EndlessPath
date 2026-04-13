@@ -36,16 +36,3 @@ var unlocked_abilities: Array[String] = []
 ## Technique names/paths of cycling techniques unlocked by purchased nodes.
 ## Not yet consumed by the cycling system (wired during ability rework).
 var unlocked_cycling_techniques: Array[String] = []
-
-## Resets all values to defaults (no bonuses).
-func reset() -> void:
-	attribute_bonuses.clear()
-	madra_generation_mult = 1.0
-	madra_capacity_bonus = 0.0
-	core_density_xp_mult = 1.0
-	stamina_recovery_mult = 1.0
-	cycling_accuracy_bonus = 0.0
-	adventure_madra_return_pct = 0.0
-	madra_on_level_up = 0.0
-	unlocked_abilities.clear()
-	unlocked_cycling_techniques.clear()

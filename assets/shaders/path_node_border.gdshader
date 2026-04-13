@@ -29,7 +29,7 @@ void fragment() {
 	if (shape_type > 0.5) {
 		// Diamond
 		vec2 q = abs(p);
-		d = (q.x + q.y) / 1.414 - radius;
+		d = q.x + q.y - radius * 1.414;
 	} else {
 		// Circle
 		d = length(p) - radius;
