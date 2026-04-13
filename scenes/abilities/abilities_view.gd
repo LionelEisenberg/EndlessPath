@@ -183,10 +183,8 @@ func _on_sort_changed(_index: int) -> void:
 	_sort_mode = _sort_dropdown.get_selected_id() as SortMode
 	_rebuild_card_list()
 
-func _on_card_selected(card: AbilityCard) -> void:
-	if _expanded_card and _expanded_card != card:
-		_expanded_card.collapse()
-	_expanded_card = card
+func _on_card_selected(_card: AbilityCard) -> void:
+	pass
 
 func _on_equip_requested(ability_id: String) -> void:
 	AbilityManager.equip_ability(ability_id)
