@@ -155,14 +155,11 @@ bbcode_enabled = true
 fit_content = true
 scroll_active = false
 
-[node name="ButtonRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=555310966]
-layout_mode = 2
-alignment = 2
-
-[node name="EquipButton" type="Button" parent="CardVBox/ExpandedDetails/ButtonRow" unique_id=1376840928]
+[node name="EquipButton" type="Button" parent="CardVBox/CollapsedRow" unique_id=1376840928]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 36)
+custom_minimum_size = Vector2(100, 30)
 layout_mode = 2
+size_flags_vertical = 4
 theme_override_styles/normal = ExtResource("2_btn_normal")
 theme_override_styles/pressed = ExtResource("4_btn_pressed")
 theme_override_styles/hover = ExtResource("3_btn_hover")
