@@ -1,6 +1,6 @@
-[gd_scene load_steps=16 format=3 uid="uid://7a450axlkpc4"]
+[gd_scene format=3 uid="uid://7a450axlkpc4"]
 
-[ext_resource type="Script" path="res://scenes/path_progression/layouts/path_layout_marker.gd" id="1_marker"]
+[ext_resource type="Script" uid="uid://c3w7i4dsn7k3h" path="res://scenes/path_progression/layouts/path_layout_marker.gd" id="1_marker"]
 [ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/pure_core_awakening.tres" id="2_pure_core"]
 [ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/lingering_silence.tres" id="3_lingering"]
 [ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/madra_strike.tres" id="4_strike"]
@@ -16,74 +16,74 @@
 [ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/iron_will.tres" id="14_iron"]
 [ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/breakthrough_surge.tres" id="15_break"]
 
-[node name="PureMadraTier1Layout" type="Node2D"]
+[node name="PureMadraTier1Layout" type="Node2D" unique_id=2095216595]
 
-[node name="pure_core_awakening" type="Marker2D" parent="."]
+[node name="pure_core_awakening" type="Marker2D" parent="." unique_id=401451630]
 position = Vector2(550, 800)
 script = ExtResource("1_marker")
 node_data = ExtResource("2_pure_core")
 
-[node name="lingering_silence" type="Marker2D" parent="."]
+[node name="lingering_silence" type="Marker2D" parent="." unique_id=1427164398]
 position = Vector2(360, 615)
 script = ExtResource("1_marker")
 node_data = ExtResource("3_lingering")
 
-[node name="madra_strike" type="Marker2D" parent="."]
+[node name="madra_strike" type="Marker2D" parent="." unique_id=14591142]
 position = Vector2(549, 612)
 script = ExtResource("1_marker")
 node_data = ExtResource("4_strike")
 
-[node name="torrent_flow" type="Marker2D" parent="."]
+[node name="torrent_flow" type="Marker2D" parent="." unique_id=1238152410]
 position = Vector2(757, 594)
 script = ExtResource("1_marker")
 node_data = ExtResource("5_torrent")
 
-[node name="madra_surge" type="Marker2D" parent="."]
+[node name="madra_surge" type="Marker2D" parent="." unique_id=1500763371]
 position = Vector2(312, 254)
 script = ExtResource("1_marker")
 node_data = ExtResource("6_surge")
 
-[node name="efficient_palm" type="Marker2D" parent="."]
+[node name="efficient_palm" type="Marker2D" parent="." unique_id=1718281688]
 position = Vector2(381, 432)
 script = ExtResource("1_marker")
 node_data = ExtResource("7_palm")
 
-[node name="focused_strike" type="Marker2D" parent="."]
+[node name="focused_strike" type="Marker2D" parent="." unique_id=159249382]
 position = Vector2(460, 440)
 script = ExtResource("1_marker")
 node_data = ExtResource("8_focused")
 
-[node name="strike_efficiency" type="Marker2D" parent="."]
+[node name="strike_efficiency" type="Marker2D" parent="." unique_id=1307960682]
 position = Vector2(620, 450)
 script = ExtResource("1_marker")
 node_data = ExtResource("9_eff")
 
-[node name="cycling_focus" type="Marker2D" parent="."]
+[node name="cycling_focus" type="Marker2D" parent="." unique_id=2143512847]
 position = Vector2(720, 460)
 script = ExtResource("1_marker")
 node_data = ExtResource("10_cycling")
 
-[node name="madra_reclamation" type="Marker2D" parent="."]
+[node name="madra_reclamation" type="Marker2D" parent="." unique_id=180912220]
 position = Vector2(900, 470)
 script = ExtResource("1_marker")
 node_data = ExtResource("11_reclaim")
 
-[node name="expanded_core" type="Marker2D" parent="."]
+[node name="expanded_core" type="Marker2D" parent="." unique_id=991261565]
 position = Vector2(265, 437)
 script = ExtResource("1_marker")
 node_data = ExtResource("12_core")
 
-[node name="dedicated_cultivation" type="Marker2D" parent="."]
+[node name="dedicated_cultivation" type="Marker2D" parent="." unique_id=1611435153]
 position = Vector2(660, 280)
 script = ExtResource("1_marker")
 node_data = ExtResource("13_dedic")
 
-[node name="iron_will" type="Marker2D" parent="."]
+[node name="iron_will" type="Marker2D" parent="." unique_id=1249164106]
 position = Vector2(920, 290)
 script = ExtResource("1_marker")
 node_data = ExtResource("14_iron")
 
-[node name="breakthrough_surge" type="Marker2D" parent="."]
+[node name="breakthrough_surge" type="Marker2D" parent="." unique_id=383488560]
 position = Vector2(600, 120)
 script = ExtResource("1_marker")
 node_data = ExtResource("15_break")
