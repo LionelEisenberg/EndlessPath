@@ -23,6 +23,15 @@ var _node_ui_map: Dictionary = {}
 ## Maps node_id -> float radius for edge-to-edge line drawing
 var _node_radii: Dictionary = {}
 
+## Optional path theme for themed connection colors
+var _theme: PathThemeData = null
+
+## Cached Line2D nodes for energy shader on purchased connections
+var _energy_lines: Array[Line2D] = []
+
+## Cached energy shader resource
+var _energy_shader: Shader = null
+
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
@@ -38,17 +47,25 @@ func add_connection(from_id: String, to_id: String) -> void:
 	_connections.append({ "from_id": from_id, "to_id": to_id })
 
 
+## Set the visual theme for connection line colors.
+func set_theme_data(path_theme: PathThemeData) -> void:
+	_theme = path_theme
+
+
 ## Clear all registered nodes and connections.
 func clear_all() -> void:
 	_connections.clear()
 	_node_ui_map.clear()
 	_node_radii.clear()
+	_clear_energy_lines()
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
 
 func _draw() -> void:
+	_clear_energy_lines()
+
 	for conn: Dictionary in _connections:
 		var from_id: String = conn["from_id"]
 		var to_id: String = conn["to_id"]
@@ -78,11 +95,30 @@ func _draw() -> void:
 		var line_width: float = _get_connection_width(from_id, to_id)
 		draw_line(from_edge, to_edge, line_color, line_width, true)
 
+		# Add energy shader Line2D for purchased connections with a theme
+		var from_level: int = PathManager.get_node_purchase_count(from_id)
+		var to_level: int = PathManager.get_node_purchase_count(to_id)
+		if _theme and from_level >= 1 and to_level >= 1:
+			_add_energy_line(from_edge, to_edge, line_color)
+
 
 func _get_connection_color(from_id: String, to_id: String) -> Color:
 	var from_level: int = PathManager.get_node_purchase_count(from_id)
 	var to_level: int = PathManager.get_node_purchase_count(to_id)
 
+	if _theme:
+		if from_level >= 1 and to_level >= 1:
+			return _theme.line_purchased
+		elif from_level >= 1:
+			return _theme.line_available
+		return Color(
+			_theme.line_available.r * 0.5,
+			_theme.line_available.g * 0.5,
+			_theme.line_available.b * 0.5,
+			1.0
+		)
+
+	# Fallback to hardcoded colors
 	if from_level >= 1 and to_level >= 1:
 		return LINE_PURCHASED
 	elif from_level >= 1:
@@ -99,3 +135,34 @@ func _get_connection_width(from_id: String, to_id: String) -> float:
 	elif from_level >= 1:
 		return LINE_WIDTH_AVAILABLE
 	return LINE_WIDTH_LOCKED
+
+
+func _clear_energy_lines() -> void:
+	for line: Line2D in _energy_lines:
+		if is_instance_valid(line):
+			line.queue_free()
+	_energy_lines.clear()
+
+
+func _add_energy_line(from_point: Vector2, to_point: Vector2, base_color: Color) -> void:
+	if _energy_shader == null:
+		_energy_shader = load("res://assets/shaders/path_connection_energy.gdshader") as Shader
+	if _energy_shader == null:
+		return
+
+	var line: Line2D = Line2D.new()
+	line.add_point(from_point)
+	line.add_point(to_point)
+	line.width = LINE_WIDTH_PURCHASED + 1.0
+	line.default_color = base_color
+
+	var mat: ShaderMaterial = ShaderMaterial.new()
+	mat.shader = _energy_shader
+	mat.set_shader_parameter("line_color", base_color)
+	mat.set_shader_parameter("energy_color", _theme.line_energy_color if _theme else Color(1.0, 0.9, 0.7))
+	line.material = mat
+
+	add_child(line)
+	# Move energy lines behind node UIs
+	move_child(line, 0)
+	_energy_lines.append(line)
