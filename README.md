@@ -12,6 +12,7 @@ Players start at the **Foundation** stage, where they engage in a **Cycling** mi
 | **Adventuring** | Exploration + Combat | Navigate hex grid maps, encounter enemies, earn loot |
 | **Combat** | Real-time | AP-based ability system with cooldowns, buffs, and attribute scaling |
 | **Inventory** | Management | Equipment slots, materials, drag-and-drop gear management |
+| **Path Progression** | Skill tree | Spend path points to unlock perks, techniques, and stat bonuses |
 | **Scripting** | Active mini-game | Calligraphy tracing for short-term buffs *(planned)* |
 | **Elixir Making** | Active mini-game | Multi-stage crafting for long-term buffs *(planned)* |
 | **Soulsmithing** | Active mini-game | Tetris-like assembly puzzle for gear crafting *(planned)* |
@@ -29,7 +30,7 @@ Players start at the **Foundation** stage, where they engage in a **Cycling** mi
 | Component | Details |
 |-----------|---------|
 | Engine | Godot 4.6 (GDScript) |
-| Architecture | 13 autoload singletons, data-driven resource system |
+| Architecture | 14 autoload singletons, data-driven resource system |
 | Entry Scene | `scenes/main/main_game/main_game.tscn` |
 | Save System | `user://save.tres` via Godot ResourceSaver |
 | Map System | Hex grid via `hexagon_tilemaplayer` addon |
@@ -45,6 +46,7 @@ scripts/
     character/                  CharacterAttributesData
     combat/                     CombatEffectData, BuffEffectData, CombatantData
     cycling/                    CyclingTechniqueData, AdvancementStage
+    path_progression/           PathNodeData, PathTreeData
     effects/                    EffectData hierarchy (awards, triggers, vitals)
     items/                      ItemDefinitionData, equipment, materials
     loot/                       LootTable, LootTableEntry
@@ -52,7 +54,7 @@ scripts/
     zones/                      ZoneData, ZoneActionData subclasses
   utils/                      Log utility, text effect importer
 
-singletons/                   13 autoload manager singletons
+singletons/                   14 autoload manager singletons
   persistence_manager/          Save/load system (SaveGameData, InventoryData, etc.)
   resource_manager/             Madra and Gold tracking
   cultivation_manager/          Core Density leveling and stage progression
@@ -63,17 +65,22 @@ singletons/                   13 autoload manager singletons
   event_manager/                One-shot narrative event tracking
   character_manager/            Player attributes and abilities
   player_manager/               Player VitalsManager container
+  cycling_manager/              Cycling technique state (unlocked, equipped, catalog)
+  path_manager/                 Path progression tree, point balance, perk effects
   dialogue_manager/             Dialogic wrapper
   log_manager/                  In-game log signal bus
 
 scenes/
   main/main_game/             Entry scene (main_game.tscn), save timer
   cycling/                    Cycling mini-game (view, technique, zones, resource panel)
+  path_progression/           Path skill tree UI and node interactions
   combat/                     Combat system (combatant nodes, ability/buff/effect managers, AI)
   adventure/                  Adventure mode (tilemap, map generator, encounter panels)
   inventory/                  Inventory UI (equipment grid, gear slots, materials tab)
   zones/                      Zone tilemap, info panel, action buttons
+  common/                     Reusable UI components (item display, description panels)
   ui/                         Shared UI (main view state machine, log window, floating text)
+  game_systems/               Cross-system coordination scenes
   camera/                     Camera controllers (clamp, pan, zoom)
   characters/                 Player character body and animation
   tilemaps/                   Hex tilemap extensions and pulse effects
@@ -83,6 +90,7 @@ resources/                    Authored .tres data files
   adventure/                    Adventure configs, encounter definitions, choice data
   combat/combatant_data/        Enemy definitions (test_enemy)
   cycling/                      Technique definitions, advancement stage data
+  path_progression/             Path tree and node definitions
   effects/                      Effect instances (award_resource, trigger_event)
   items/                        Item definitions (dagger, spirit_fern, dewdrop_tear)
   loot_tables/                  (empty — system built, no content yet)
@@ -116,15 +124,16 @@ docs/                         Game system documentation
 
 Detailed documentation for each game system lives in `docs/`:
 
-- [Cycling](docs/CYCLING.md) — Madra generation mini-game
-- [Combat](docs/COMBAT.md) — Real-time ability-based combat
-- [Adventuring](docs/ADVENTURING.md) — Hex grid exploration and encounters
-- [Inventory](docs/INVENTORY.md) — Equipment and materials management
-- [Zones](docs/ZONES.md) — World map and zone actions
-- [Cultivation](docs/CULTIVATION.md) — Progression, resources, and unlocks
-- [Scripting](docs/SCRIPTING.md) — Calligraphy buff system *(planned)*
-- [Elixir Making](docs/ELIXIR_MAKING.md) — Potion crafting system *(planned)*
-- [Soulsmithing](docs/SOULSMITHING.md) — Assembly puzzle crafting *(planned)*
+- [Cycling](docs/cycling/CYCLING.md) — Madra generation mini-game
+- [Path Progression](docs/progression/PATH_PROGRESSION.md) — Skill tree and perk system
+- [Combat](docs/combat/COMBAT.md) — Real-time ability-based combat
+- [Adventuring](docs/adventuring/ADVENTURING.md) — Hex grid exploration and encounters
+- [Inventory](docs/inventory/INVENTORY.md) — Equipment and materials management
+- [Zones](docs/zones/ZONES.md) — World map and zone actions
+- [Cultivation](docs/cultivation/CULTIVATION.md) — Progression, resources, and unlocks
+- [Scripting](docs/planned/SCRIPTING.md) — Calligraphy buff system *(planned)*
+- [Elixir Making](docs/planned/ELIXIR_MAKING.md) — Potion crafting system *(planned)*
+- [Soulsmithing](docs/planned/SOULSMITHING.md) — Assembly puzzle crafting *(planned)*
 - [Codebase State](docs/CODEBASE_STATE.md) — Technical health and completeness
 - [Gameplay State](docs/GAMEPLAY_STATE.md) — Current status of each mechanic
 
