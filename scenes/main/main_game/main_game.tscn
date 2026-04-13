@@ -200,6 +200,7 @@ layout_mode = 1
 
 [node name="AbilitiesView" parent="MainView" unique_id=382947015 instance=ExtResource("23_av")]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 
 [node name="CyclingView" parent="MainView" unique_id=2090176626 instance=ExtResource("3_7ijcf")]
