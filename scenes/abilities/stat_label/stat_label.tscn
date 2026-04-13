@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/abilities/stat_label/stat_label.gd" id="1_script"]
+
+[node name="StatLabel" type="PanelContainer"]
+offset_right = 80.0
+offset_bottom = 28.0
+script = ExtResource("1_script")
+
+[node name="StatText" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.03, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 21

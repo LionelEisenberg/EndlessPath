@@ -20,13 +20,12 @@ var _style_expanded: StyleBoxFlat = null
 
 @onready var _icon: TextureRect = %AbilityIcon
 @onready var _name_label: Label = %AbilityName
-@onready var _cost_label: RichTextLabel = %CostLabel
 @onready var _madra_badge: Label = %MadraBadge
 @onready var _source_badge: Label = %SourceBadge
 @onready var _expanded_details: VBoxContainer = %ExpandedDetails
 @onready var _tags_row: HBoxContainer = %TagsRow
 @onready var _description_label: Label = %DescriptionLabel
-@onready var _scaling_label: RichTextLabel = %ScalingLabel
+@onready var _stats_display: AbilityStatsDisplay = %AbilityStatsDisplay
 @onready var _equip_button: Button = %EquipButton
 
 func _ready() -> void:
@@ -142,9 +141,6 @@ func _update_display() -> void:
 
 	_name_label.text = _ability_data.ability_name
 
-	# Cost summary with colored values
-	_update_cost_display()
-
 	# Madra badge
 	if _ability_data.madra_type == AbilityData.MadraType.NONE:
 		_madra_badge.visible = false
@@ -161,21 +157,8 @@ func _update_display() -> void:
 	# Expanded details
 	_description_label.text = _ability_data.description
 
-	_update_scaling_display()
+	_stats_display.setup(_ability_data)
 	_update_equipped_display()
-
-func _update_cost_display() -> void:
-	_cost_label.clear()
-	var cost_text: String = _ability_data.get_total_cost_display()
-	var cd_text: String = "%.1fs CD" % _ability_data.base_cooldown
-	var cast_text: String = "Instant" if _ability_data.cast_time <= 0.0 else "%.1fs Cast" % _ability_data.cast_time
-
-	# Color the cost portion
-	if cost_text == "Free":
-		_cost_label.append_text("[color=#7DCE82]Free[/color]")
-	else:
-		_cost_label.append_text("[color=#F0E8D8]%s[/color]" % cost_text)
-	_cost_label.append_text("[color=#D4A84A] \u00b7 %s \u00b7 %s[/color]" % [cd_text, cast_text])
 
 func _update_tags_display() -> void:
 	# Clear existing tag children
@@ -206,71 +189,6 @@ func _create_tag_label(text: String) -> Label:
 	tag.add_theme_stylebox_override("normal", pill)
 
 	return tag
-
-func _update_scaling_display() -> void:
-	_scaling_label.clear()
-	if _ability_data.effects.is_empty():
-		_scaling_label.visible = false
-		return
-
-	var effect: CombatEffectData = _ability_data.effects[0]
-
-	# Only show damage/scaling for offensive abilities with actual damage values
-	var has_damage_info: bool = _has_damage_or_scaling(effect)
-	if not has_damage_info:
-		_scaling_label.visible = false
-		return
-
-	var parts: Array[String] = []
-
-	# Base value
-	parts.append("[color=#D4A84A]Base: %.0f[/color]" % effect.base_value)
-
-	# Scaling attributes with per-stat colors and raw values from CharacterManager
-	var scaling_parts: Array[String] = []
-	var attrs: CharacterAttributesData = CharacterManager.get_total_attributes_data()
-	var AT: = CharacterAttributesData.AttributeType
-	_append_scaling(scaling_parts, "STR", effect.strength_scaling, attrs.get_attribute(AT.STRENGTH), "#E06060")
-	_append_scaling(scaling_parts, "BODY", effect.body_scaling, attrs.get_attribute(AT.BODY), "#D4A84A")
-	_append_scaling(scaling_parts, "AGI", effect.agility_scaling, attrs.get_attribute(AT.AGILITY), "#7DCE82")
-	_append_scaling(scaling_parts, "SPI", effect.spirit_scaling, attrs.get_attribute(AT.SPIRIT), "#6BA4D4")
-	_append_scaling(scaling_parts, "FND", effect.foundation_scaling, attrs.get_attribute(AT.FOUNDATION), "#B07DD4")
-	_append_scaling(scaling_parts, "CTL", effect.control_scaling, attrs.get_attribute(AT.CONTROL), "#60C4B0")
-	_append_scaling(scaling_parts, "RES", effect.resilience_scaling, attrs.get_attribute(AT.RESILIENCE), "#C4884A")
-	_append_scaling(scaling_parts, "WIL", effect.willpower_scaling, attrs.get_attribute(AT.WILLPOWER), "#D470A0")
-
-	if not scaling_parts.is_empty():
-		parts.append(", ".join(scaling_parts))
-
-	_scaling_label.visible = true
-	_scaling_label.append_text(" \u00b7 ".join(parts))
-
-func _append_scaling(parts: Array[String], name: String, scaling: float, raw_value: float, color: String) -> void:
-	if scaling == 0.0:
-		return
-	var contribution: float = scaling * raw_value
-	parts.append("[color=%s]%s[/color] %.0f \u00d7%.0f%% = +%.1f" % [color, name, raw_value, scaling * 100, contribution])
-
-func _has_damage_or_scaling(effect: CombatEffectData) -> bool:
-	if effect.base_value != 0.0:
-		return true
-	if effect.strength_scaling != 0.0:
-		return true
-	if effect.body_scaling != 0.0:
-		return true
-	if effect.agility_scaling != 0.0:
-		return true
-	if effect.spirit_scaling != 0.0:
-		return true
-	if effect.foundation_scaling != 0.0:
-		return true
-	if effect.control_scaling != 0.0:
-		return true
-	if effect.resilience_scaling != 0.0:
-		return true
-	if effect.willpower_scaling != 0.0:
-		return true
-	return false
 
 func _update_equipped_display() -> void:
 	if _is_equipped:

@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/abilities/ability_stats_display/ability_stats_display.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.239, 0.18, 0.133, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.769, 0.533, 0.29, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 8
+
+[node name="AbilityStatsDisplay" type="HFlowContainer"]
+offset_right = 400.0
+offset_bottom = 30.0
+script = ExtResource("1_script")
+
+[node name="StatTooltip" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tooltip")
+
+[node name="TooltipMargin" type="MarginContainer" parent="StatTooltip"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="TooltipContent" type="VBoxContainer" parent="StatTooltip/TooltipMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TooltipTitle" type="Label" parent="StatTooltip/TooltipMargin/TooltipContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPathBody"
+theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.03, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 21
+
+[node name="TooltipSep" type="HSeparator" parent="StatTooltip/TooltipMargin/TooltipContent"]
+layout_mode = 2
+
+[node name="TooltipBody" type="RichTextLabel" parent="StatTooltip/TooltipMargin/TooltipContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/normal_font_size = 21
+bbcode_enabled = true
+fit_content = true
+scroll_active = false

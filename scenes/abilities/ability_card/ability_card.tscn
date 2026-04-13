@@ -5,6 +5,7 @@
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_hover.tres" id="3_btn_hover"]
 [ext_resource type="StyleBox" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="4_btn_pressed"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_disabled.tres" id="5_btn_disabled"]
+[ext_resource type="PackedScene" path="res://scenes/abilities/ability_stats_display/ability_stats_display.tscn" id="6_stats_display"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_normal"]
 content_margin_left = 12.0
@@ -114,15 +115,9 @@ theme_override_font_sizes/font_size = 21
 theme_override_styles/normal = SubResource("StyleBoxFlat_source_pill")
 text = "Innate"
 
-[node name="CostLabel" type="RichTextLabel" parent="CardVBox/CollapsedRow/InfoVBox" unique_id=2080349343]
+[node name="AbilityStatsDisplay" parent="CardVBox" instance=ExtResource("6_stats_display")]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/normal_font_size = 28
-theme_override_constants/outline_size = 2
-bbcode_enabled = true
-text = "Free · 0.0s CD"
-fit_content = true
-scroll_active = false
 
 [node name="ExpandedDetails" type="VBoxContainer" parent="CardVBox" unique_id=687580963]
 unique_name_in_owner = true
@@ -158,16 +153,6 @@ theme_override_constants/outline_size = 2
 theme_override_font_sizes/font_size = 28
 text = "Ability description goes here."
 autowrap_mode = 3
-
-[node name="ScalingLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=2057513249]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/normal_font_size = 21
-theme_override_constants/outline_size = 2
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
 
 [node name="EquipButton" type="Button" parent="CardVBox/ExpandedDetails/ContentRow" unique_id=1376840928]
 unique_name_in_owner = true
