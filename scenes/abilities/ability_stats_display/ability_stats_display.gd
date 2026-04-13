@@ -121,10 +121,15 @@ func _has_damage_or_scaling(effect: CombatEffectData) -> bool:
 func _on_label_hovered(label: StatLabel) -> void:
 	var data: Dictionary = label.get_tooltip_data()
 	_build_tooltip_content(data)
+	# Show offscreen first so layout pass resolves fit_content height
+	_tooltip.global_position = Vector2(-9999, -9999)
+	_tooltip.modulate = Color(1, 1, 1, 0)
 	_tooltip.reset_size()
 	_tooltip.visible = true
-	# Position above the label after size is resolved
+	# Wait two frames: one for RichTextLabel content, one for container sizing
 	await get_tree().process_frame
+	await get_tree().process_frame
+	# Now position correctly with resolved size
 	var label_rect: Rect2 = label.get_global_rect()
 	_tooltip.global_position = Vector2(
 		label_rect.position.x,
@@ -133,7 +138,6 @@ func _on_label_hovered(label: StatLabel) -> void:
 	# Fade in
 	if _tooltip_tween and _tooltip_tween.is_valid():
 		_tooltip_tween.kill()
-	_tooltip.modulate = Color(1, 1, 1, 0)
 	_tooltip_tween = create_tween()
 	_tooltip_tween.tween_property(_tooltip, "modulate", Color(1, 1, 1, 1), 0.15)
 
