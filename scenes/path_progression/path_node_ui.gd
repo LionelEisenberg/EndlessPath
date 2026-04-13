@@ -22,7 +22,7 @@ var _is_keystone_available: bool = false
 var _swirl_rect: ColorRect = null
 
 ## Fill colors per state
-const FILL_LOCKED: Color = Color(0.25, 0.20, 0.15, 0.95)
+const FILL_LOCKED: Color = Color(0.25, 0.20, 0.15, 1.0)
 const FILL_AVAILABLE: Color = Color(0.38, 0.30, 0.20, 1.0)
 const FILL_PURCHASED: Color = Color(0.44, 0.34, 0.20, 1.0)
 const FILL_MAXED: Color = Color(0.50, 0.38, 0.22, 1.0)
@@ -214,7 +214,7 @@ func _get_fill_color() -> Color:
 		_theme.fill_available.r * 0.75,
 		_theme.fill_available.g * 0.75,
 		_theme.fill_available.b * 0.75,
-		0.95
+		1.0
 	)
 
 
