@@ -11,5 +11,4 @@ script = ExtResource("1_script")
 [node name="StatText" type="Label" parent="."]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
 theme_type_variation = &"LabelAbilityBody"
