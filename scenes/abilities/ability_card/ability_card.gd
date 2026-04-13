@@ -178,7 +178,7 @@ func _update_cost_display() -> void:
 		_cost_label.append_text("[color=#7DCE82]Free[/color]")
 	else:
 		_cost_label.append_text("[color=#F0E8D8]%s[/color]" % cost_text)
-	_cost_label.append_text("[color=#A89070] \u00b7 %s \u00b7 %s[/color]" % [cd_text, cast_text])
+	_cost_label.append_text("[color=#D4A84A] \u00b7 %s \u00b7 %s[/color]" % [cd_text, cast_text])
 
 func _update_tags_display() -> void:
 	# Clear existing tag children
@@ -249,7 +249,7 @@ func _update_scaling_display() -> void:
 		scaling_parts.append("WIL (\u00d7%.1f)" % effect.willpower_scaling)
 
 	if not scaling_parts.is_empty():
-		parts.append("[color=#A89070]Scales: %s[/color]" % ", ".join(scaling_parts))
+		parts.append("[color=#D4A84A]Scales: %s[/color]" % ", ".join(scaling_parts))
 
 	_scaling_label.visible = true
 	_scaling_label.append_text(" \u00b7 ".join(parts))
