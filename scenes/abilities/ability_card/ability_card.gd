@@ -66,13 +66,19 @@ func get_ability_data() -> AbilityData:
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if not _ability_data:
 		return null
-	# Build visual drag preview with the ability icon
-	var preview: TextureRect = TextureRect.new()
-	preview.custom_minimum_size = Vector2(48, 48)
-	preview.size = Vector2(48, 48)
-	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	preview.texture = _ability_data.icon
-	preview.modulate = Color(1.0, 1.0, 1.0, 0.85)
+	var preview: PanelContainer = PanelContainer.new()
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.27, 0.20, 0.15, 0.95)
+	style.set_border_width_all(2)
+	style.border_color = ThemeConstants.ACCENT_GOLD
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(6)
+	preview.add_theme_stylebox_override("panel", style)
+	var icon: TextureRect = TextureRect.new()
+	icon.custom_minimum_size = Vector2(64, 64)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = _ability_data.icon
+	preview.add_child(icon)
 	set_drag_preview(preview)
 	return {"ability_id": _ability_data.ability_id}
 
@@ -328,5 +334,5 @@ func _set_mouse_pass_recursive(node: Node) -> void:
 		if child == _equip_button:
 			continue
 		if child is Control:
-			(child as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_set_mouse_pass_recursive(child)

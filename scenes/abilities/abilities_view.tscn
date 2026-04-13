@@ -203,12 +203,13 @@ size_flags_vertical = 3
 theme_override_constants/separation = 0
 
 [node name="LoadoutSidebar" type="PanelContainer" parent="UnifiedPanel/MainVBox/Body" unique_id=1009210384]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(400, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_bg")
 
 [node name="LoadoutVBox" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar" unique_id=2026348320]
 layout_mode = 2
+size_flags_vertical = 0
 theme_override_constants/separation = 12
 
 [node name="LoadoutLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=757308609]
@@ -219,25 +220,26 @@ text = "LOADOUT"
 horizontal_alignment = 1
 uppercase = true
 
-[node name="EquipSlot1" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1926282163 instance=ExtResource("2_equip_slot")]
-unique_name_in_owner = true
+[node name="SlotsRow" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1337744200]
 layout_mode = 2
 size_flags_horizontal = 4
+theme_override_constants/separation = 10
 
-[node name="EquipSlot2" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1164936240 instance=ExtResource("2_equip_slot")]
+[node name="EquipSlot1" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox/SlotsRow" unique_id=1926282163 instance=ExtResource("2_equip_slot")]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 4
 
-[node name="EquipSlot3" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1473576055 instance=ExtResource("2_equip_slot")]
+[node name="EquipSlot2" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox/SlotsRow" unique_id=1164936240 instance=ExtResource("2_equip_slot")]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 4
 
-[node name="EquipSlot4" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=690544088 instance=ExtResource("2_equip_slot")]
+[node name="EquipSlot3" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox/SlotsRow" unique_id=1473576055 instance=ExtResource("2_equip_slot")]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 4
+
+[node name="EquipSlot4" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox/SlotsRow" unique_id=690544088 instance=ExtResource("2_equip_slot")]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="SlotCounter" type="Label" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1494064995]
 unique_name_in_owner = true
