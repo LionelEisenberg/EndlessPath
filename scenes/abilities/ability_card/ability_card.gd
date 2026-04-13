@@ -15,6 +15,7 @@ var _is_equipped: bool = false
 var _expand_tween: Tween = null
 
 var _style_normal: StyleBoxFlat = null
+var _style_hover: StyleBoxFlat = null
 var _style_expanded: StyleBoxFlat = null
 
 @onready var _icon: TextureRect = %AbilityIcon
@@ -33,7 +34,10 @@ var _style_expanded: StyleBoxFlat = null
 func _ready() -> void:
 	_equip_button.pressed.connect(_on_equip_button_pressed)
 	gui_input.connect(_on_gui_input)
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 	_build_card_styles()
+	_set_children_mouse_pass()
 	clip_contents = true
 
 # ----- Public API -----
@@ -86,6 +90,16 @@ func _build_card_styles() -> void:
 	_style_normal.set_content_margin_all(12)
 	_style_normal.content_margin_top = 10
 	_style_normal.content_margin_bottom = 10
+
+	# Hover style (slightly lighter bg, brighter border)
+	_style_hover = StyleBoxFlat.new()
+	_style_hover.bg_color = Color(0.27, 0.20, 0.15, 1.0)
+	_style_hover.set_border_width_all(2)
+	_style_hover.border_color = Color(0.55, 0.40, 0.28, 1.0)
+	_style_hover.set_corner_radius_all(6)
+	_style_hover.set_content_margin_all(12)
+	_style_hover.content_margin_top = 10
+	_style_hover.content_margin_bottom = 10
 
 	# Expanded style (brighter border, slightly lighter bg)
 	_style_expanded = StyleBoxFlat.new()
@@ -304,3 +318,24 @@ func _on_equip_button_pressed() -> void:
 		unequip_requested.emit(_ability_data.ability_id)
 	else:
 		equip_requested.emit(_ability_data.ability_id)
+
+func _on_mouse_entered() -> void:
+	if not _is_expanded:
+		add_theme_stylebox_override("panel", _style_hover)
+
+func _on_mouse_exited() -> void:
+	if not _is_expanded:
+		add_theme_stylebox_override("panel", _style_normal)
+
+## Sets mouse_filter = PASS on all child controls so clicks reach the PanelContainer.
+## Skips the EquipButton which needs to remain clickable.
+func _set_children_mouse_pass() -> void:
+	_set_mouse_pass_recursive(self)
+
+func _set_mouse_pass_recursive(node: Node) -> void:
+	for child: Node in node.get_children():
+		if child == _equip_button:
+			continue
+		if child is Control:
+			(child as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+		_set_mouse_pass_recursive(child)
