@@ -68,12 +68,16 @@ func build_tree() -> void:
 		_update_points_display()
 		return
 
+	# Wire path theme into the node container for connection colors
+	var path_theme: PathThemeData = tree.theme if tree else null
+	_node_container.set_theme_data(path_theme)
+
 	var positions: Dictionary = {}
 	if layout_scene:
 		positions = read_layout_positions(layout_scene)
 
 	for node_data: PathNodeData in tree.nodes:
-		_create_node_ui(node_data, positions)
+		_create_node_ui(node_data, positions, path_theme)
 
 	# Register connections based on prerequisites
 	for node_data: PathNodeData in tree.nodes:
@@ -123,7 +127,7 @@ func _on_tree_area_gui_input(event: InputEvent) -> void:
 		_node_container.position = _pan_start_offset + delta
 
 
-func _create_node_ui(node_data: PathNodeData, positions: Dictionary) -> void:
+func _create_node_ui(node_data: PathNodeData, positions: Dictionary, path_theme: PathThemeData = null) -> void:
 	if path_node_ui_scene == null:
 		return
 
@@ -131,7 +135,7 @@ func _create_node_ui(node_data: PathNodeData, positions: Dictionary) -> void:
 	_node_container.add_child(node_ui)
 
 	var current_level: int = PathManager.get_node_purchase_count(node_data.id)
-	node_ui.setup(node_data, current_level)
+	node_ui.setup(node_data, current_level, path_theme)
 
 	# Position from layout — adjust for variable node sizes after setup
 	if positions.has(node_data.id):
