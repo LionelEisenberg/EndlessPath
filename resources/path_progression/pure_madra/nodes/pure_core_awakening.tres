@@ -6,7 +6,7 @@
 [sub_resource type="Resource" id="Resource_v7ki3"]
 script = ExtResource("1_lmgu0")
 effect_type = 8
-string_value = "res://resources/abilities/empty_palm.tres"
+string_value = "empty_palm"
 
 [sub_resource type="Resource" id="Resource_2goba"]
 script = ExtResource("1_lmgu0")
