@@ -1,16 +1,11 @@
-[gd_resource type="Resource" script_class="PathNodeData" format=3]
+[gd_resource type="Resource" script_class="PathNodeData" format=3 uid="uid://cxhxhnhj2fyvu"]
 
-[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_ayv0g"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_eavl6"]
+[ext_resource type="Script" uid="uid://bu68duxxx6bug" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_ayv0g"]
+[ext_resource type="Script" uid="uid://bcwya48qokiun" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_eavl6"]
 
 [resource]
 script = ExtResource("2_eavl6")
 id = "efficient_palm"
 display_name = "Efficient Palm"
 description = "Reduces the Madra cost of Empty Palm."
-node_type = 2
-prerequisites = Array[String](["lingering_silence"])
-required_stage = 0
-point_cost = 1
-max_purchases = 1
-effects = Array[ExtResource("1_ayv0g")]([])
+prerequisites = Array[String](["expanded_core"])

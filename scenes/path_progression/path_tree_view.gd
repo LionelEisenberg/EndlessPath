@@ -31,8 +31,8 @@ var _pan_start_mouse: Vector2 = Vector2.ZERO
 var _pan_start_offset: Vector2 = Vector2.ZERO
 
 ## Zoom state
-var _zoom_level: float = 1.0
-const ZOOM_MIN: float = 0.75
+var _zoom_level: float = 0.8
+const ZOOM_MIN: float = 0.5
 const ZOOM_MAX: float = 1.5
 const ZOOM_STEP: float = 0.1
 
@@ -62,7 +62,7 @@ const BENEFIT_DESCRIPTIONS: Dictionary = {
 }
 
 ## NodeContainer base position to be centered
-const NODE_CONTAINER_BASE_POSITION : Vector2 = Vector2(120, 100)
+const NODE_CONTAINER_BASE_POSITION : Vector2 = Vector2(120, -50)
 
 #-----------------------------------------------------------------------------
 # STATIC METHODS

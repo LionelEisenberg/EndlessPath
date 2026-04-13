@@ -30,7 +30,7 @@ func handle_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("open_inventory"):
 		scene_root.push_state(scene_root.inventory_view_state)
-	elif event.is_action_pressed("open_path_tree"):
+	elif event.is_action_pressed("open_path"):
 		scene_root.push_state(scene_root.path_tree_view_state)
 
 func _on_adventure_start_requested(_action_data: AdventureActionData) -> void:

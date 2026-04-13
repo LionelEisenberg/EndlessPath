@@ -190,11 +190,22 @@ func _load_all_path_trees() -> void:
 					_all_trees[tree.path_id] = tree
 		folder_name = dir.get_next()
 
+## Default path for first run when no path has been selected yet.
+const DEFAULT_PATH_ID: String = "pure_madra"
+
 func _restore_current_path() -> void:
-	if _live_save_data and not _live_save_data.current_path_id.is_empty():
+	if not _live_save_data:
+		return
+	if not _live_save_data.current_path_id.is_empty():
 		if _all_trees.has(_live_save_data.current_path_id):
 			_current_tree = _all_trees[_live_save_data.current_path_id]
 			_recalculate_effects()
+	elif _all_trees.has(DEFAULT_PATH_ID):
+		# First run: auto-select Pure Madra without resetting points
+		_current_tree = _all_trees[DEFAULT_PATH_ID]
+		_live_save_data.current_path_id = DEFAULT_PATH_ID
+		_recalculate_effects()
+		path_set.emit(_current_tree)
 
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data
