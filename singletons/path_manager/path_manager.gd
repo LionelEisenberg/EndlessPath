@@ -101,6 +101,12 @@ func purchase_node(node_id: String) -> bool:
 	_recalculate_effects()
 	points_changed.emit(_live_save_data.path_points)
 	node_purchased.emit(node_id, new_level)
+	# Apply cycling technique unlocks
+	if CyclingManager:
+		for effect: PathNodeEffectData in node.effects:
+			if effect.effect_type == PathNodeEffectData.EffectType.UNLOCK_CYCLING_TECHNIQUE:
+				if CyclingManager.has_technique(effect.string_value):
+					CyclingManager.unlock_technique(effect.string_value)
 	return true
 
 ## Returns the current aggregated effects from all purchased nodes.
