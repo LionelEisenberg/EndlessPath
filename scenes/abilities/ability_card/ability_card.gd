@@ -296,8 +296,10 @@ func _animate_expand(expanding: bool) -> void:
 		_expand_tween.tween_callback(_expanded_details.set.bind("visible", false))
 
 func _on_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		accept_event()
+	# Handle click on RELEASE so the press is available for drag detection
+	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if get_viewport().gui_is_dragging():
+			return
 		if _is_expanded:
 			_is_expanded = false
 			_animate_expand(false)
