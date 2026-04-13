@@ -19,6 +19,10 @@ extends Resource
 ## How combat feels on this path.
 @export var madra_combat: String = ""
 
+@export_group("Visual Theme")
+## Optional visual theme controlling node, border, and connection colors for this path.
+@export var theme: PathThemeData
+
 ## All nodes in this tree, across all tiers.
 @export var nodes: Array[PathNodeData] = []
 
