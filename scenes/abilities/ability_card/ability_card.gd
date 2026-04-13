@@ -191,7 +191,7 @@ func _update_tags_display() -> void:
 func _create_tag_label(text: String) -> Label:
 	var tag: Label = Label.new()
 	tag.text = text
-	tag.add_theme_font_size_override("font_size", 20)
+	tag.add_theme_font_size_override("font_size", 21)
 	tag.add_theme_color_override("font_color", ThemeConstants.TEXT_MUTED)
 
 	var pill: StyleBoxFlat = StyleBoxFlat.new()

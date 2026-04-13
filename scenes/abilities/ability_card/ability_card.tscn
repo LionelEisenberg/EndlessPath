@@ -94,7 +94,7 @@ size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
 theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.03, 1)
 theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 34
+theme_override_font_sizes/font_size = 35
 text = "Ability Name"
 
 [node name="MadraBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=807632035]
@@ -102,7 +102,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelPathMuted"
 theme_override_colors/font_color = Color(0.49, 0.808, 0.51, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 21
 theme_override_styles/normal = SubResource("StyleBoxFlat_madra_pill")
 text = "PURE"
 
@@ -110,14 +110,14 @@ text = "PURE"
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelPathMuted"
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 21
 theme_override_styles/normal = SubResource("StyleBoxFlat_source_pill")
 text = "Innate"
 
 [node name="CostLabel" type="RichTextLabel" parent="CardVBox/CollapsedRow/InfoVBox" unique_id=2080349343]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/normal_font_size = 22
+theme_override_font_sizes/normal_font_size = 28
 theme_override_constants/outline_size = 2
 bbcode_enabled = true
 text = "Free · 0.0s CD"
@@ -155,7 +155,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
 theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.03, 1)
 theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 28
 text = "Ability description goes here."
 autowrap_mode = 3
 
@@ -163,7 +163,7 @@ autowrap_mode = 3
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/normal_font_size = 20
+theme_override_font_sizes/normal_font_size = 21
 theme_override_constants/outline_size = 2
 bbcode_enabled = true
 fit_content = true
