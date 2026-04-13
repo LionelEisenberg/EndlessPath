@@ -35,16 +35,13 @@ DialogueManager="*res://singletons/dialogue_manager/dialogue_manager.gd"
 PlayerManager="*res://singletons/player_manager/player_manager.gd"
 LogManager="*res://singletons/log_manager/log_manager.gd"
 CyclingManager="*res://singletons/cycling_manager/cycling_manager.gd"
+AbilityManager="*res://singletons/ability_manager/ability_manager.gd"
 PathManager="*res://singletons/path_manager/path_manager.gd"
 
 [dialogic]
 
-directories/dch_directory={
-"wisened_dirt_eel": "res://assets/dialogue/characters/wisened_dirt_eel/wisened_dirt_eel.dch"
-}
-directories/dtl_directory={
-"spirit_valley": "res://assets/dialogue/timelines/spirit_valley.dtl"
-}
+directories/dch_directory={}
+directories/dtl_directory={}
 layout/style_directory={
 "": "res://assets/dialogue/styles/default_style.tres",
 "default_style": "res://assets/dialogue/styles/default_style.tres"
