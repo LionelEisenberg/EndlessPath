@@ -106,14 +106,19 @@ func purchase_node(node_id: String) -> bool:
 		for effect: PathNodeEffectData in node.effects:
 			if effect.effect_type == PathNodeEffectData.EffectType.UNLOCK_CYCLING_TECHNIQUE:
 				CyclingManager.unlock_technique(effect.string_value)
+	# Apply ability unlocks
+	if AbilityManager:
+		for effect: PathNodeEffectData in node.effects:
+			if effect.effect_type == PathNodeEffectData.EffectType.UNLOCK_ABILITY:
+				AbilityManager.unlock_ability(effect.string_value)
 	return true
 
 ## Returns the current aggregated effects from all purchased nodes.
 func get_effects() -> PathEffectsSummary:
 	return _cached_effects
 
-## Returns resource paths of all combat abilities unlocked by purchased nodes.
-## Not yet consumed by the ability system — ready for ability rework integration.
+## Returns IDs of all combat abilities unlocked by purchased nodes.
+## AbilityManager is the live consumer; this returns the aggregated view from path state.
 func get_unlocked_abilities() -> Array[String]:
 	return _cached_effects.unlocked_abilities
 

@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://dkq8r3m5v7n2x"]
+
+[ext_resource type="Script" path="res://scenes/abilities/equip_slot/equip_slot.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_bg"]
+bg_color = Color(0.165, 0.102, 0.071, 0.6)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.42, 0.29, 0.188, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+
+[node name="EquipSlot" type="PanelContainer"]
+custom_minimum_size = Vector2(80, 80)
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot_bg")
+script = ExtResource("1_script")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 2
+
+[node name="SlotIcon" type="TextureRect" parent="CenterContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+stretch_mode = 5
+
+[node name="EmptyLabel" type="Label" parent="CenterContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPathMuted"
+text = "--"
+horizontal_alignment = 1
+vertical_alignment = 1

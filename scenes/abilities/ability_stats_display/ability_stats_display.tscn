@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bmhnqnlj8v8ul"]
+
+[ext_resource type="Script" uid="uid://b2p44ttp34xew" path="res://scenes/abilities/ability_stats_display/ability_stats_display.gd" id="1_script"]
+
+[node name="AbilityStatsDisplay" type="HFlowContainer" unique_id=759825265]
+offset_right = 400.0
+offset_bottom = 49.0
+script = ExtResource("1_script")
