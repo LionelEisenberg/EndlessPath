@@ -9,7 +9,7 @@ var _save_data: SaveGameData = null
 func before_each() -> void:
 	_save_data = SaveGameData.new()
 	_save_data.unlocked_ability_ids = ["basic_strike", "enforce"]
-	_save_data.equipped_ability_ids = ["basic_strike"]
+	_save_data.equipped_ability_ids = ["basic_strike", "", "", ""]
 	AbilityManager._live_save_data = _save_data
 	AbilityManager._build_catalog_index()
 
@@ -59,8 +59,12 @@ func test_equip_slot_limit() -> void:
 	AbilityManager.equip_ability("enforce")
 	AbilityManager.equip_ability("empty_palm")
 	AbilityManager.equip_ability("power_font")
-	assert_eq(_save_data.equipped_ability_ids.size(), 4,
-		"Should have exactly 4 equipped abilities")
+	# All 4 slots should be filled (no empty strings)
+	var filled: int = 0
+	for id: String in _save_data.equipped_ability_ids:
+		if not id.is_empty():
+			filled += 1
+	assert_eq(filled, 4, "Should have 4 abilities equipped")
 	assert_eq(AbilityManager.get_max_slots(), 4)
 
 func test_equip_already_equipped() -> void:

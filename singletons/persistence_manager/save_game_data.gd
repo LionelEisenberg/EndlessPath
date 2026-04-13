@@ -83,7 +83,7 @@ func _verify_current_selected_zone_id() -> bool:
 #-----------------------------------------------------------------------------
 
 @export var unlocked_ability_ids: Array[String] = ["basic_strike", "enforce"]
-@export var equipped_ability_ids: Array[String] = ["basic_strike", "enforce"]
+@export var equipped_ability_ids: Array[String] = ["basic_strike", "enforce", "", ""]
 
 #-----------------------------------------------------------------------------
 # PATH PROGRESSION
@@ -176,7 +176,7 @@ func reset() -> void:
 
 	# Ability Manager
 	unlocked_ability_ids = ["basic_strike", "enforce"]
-	equipped_ability_ids = ["basic_strike", "enforce"]
+	equipped_ability_ids = ["basic_strike", "enforce", "", ""]
 
 	# Path Progression
 	current_path_id = ""

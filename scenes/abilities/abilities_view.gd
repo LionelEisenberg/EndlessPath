@@ -144,10 +144,14 @@ func _apply_sort(abilities: Array[AbilityData]) -> Array[AbilityData]:
 # ----- Private: Loadout Sidebar -----
 
 func _update_loadout_sidebar() -> void:
-	var equipped: Array[AbilityData] = AbilityManager.get_equipped_abilities()
 	for i: int in range(_equip_slots.size()):
-		if i < equipped.size():
-			_equip_slots[i].set_ability(equipped[i])
+		var ability_id: String = AbilityManager.get_ability_at_slot(i)
+		if not ability_id.is_empty():
+			var abilities: Array[AbilityData] = AbilityManager.get_unlocked_abilities()
+			for ability: AbilityData in abilities:
+				if ability.ability_id == ability_id:
+					_equip_slots[i].set_ability(ability)
+					break
 		else:
 			_equip_slots[i].clear_slot()
 
@@ -193,30 +197,9 @@ func _on_unequip_requested(ability_id: String) -> void:
 	refresh()
 
 func _on_ability_dropped(ability_id: String, slot_index: int) -> void:
-	# If already equipped, unequip first to allow reordering
-	if AbilityManager.is_ability_equipped(ability_id):
-		AbilityManager.unequip_ability(ability_id)
-	# Equip at the target slot position by managing the equipped list order
-	_equip_at_slot(ability_id, slot_index)
+	AbilityManager.equip_ability_at_slot(ability_id, slot_index)
 	refresh()
 
 func _on_close_animation_finished() -> void:
 	_animation_player.animation_finished.disconnect(_on_close_animation_finished)
 	abilities_closed.emit()
-
-# ----- Private: Drag-Drop Equip Logic -----
-
-func _equip_at_slot(ability_id: String, slot_index: int) -> void:
-	if not AbilityManager._live_save_data:
-		return
-	var equipped_ids: Array[String] = AbilityManager._live_save_data.equipped_ability_ids
-	# Check max slots
-	if equipped_ids.size() >= AbilityManager.get_max_slots() and ability_id not in equipped_ids:
-		return
-	# Remove if already in the list
-	if ability_id in equipped_ids:
-		equipped_ids.erase(ability_id)
-	# Insert at the desired slot position (clamped)
-	var insert_pos: int = clampi(slot_index, 0, equipped_ids.size())
-	equipped_ids.insert(insert_pos, ability_id)
-	AbilityManager.equipped_abilities_changed.emit()
