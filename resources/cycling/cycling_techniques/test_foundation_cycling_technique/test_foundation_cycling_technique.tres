@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("6_anl3h")
+id = "test_foundation_technique"
 technique_name = "Test Foundation Technique"
 path_curve = ExtResource("5_snhs0")
 cycle_duration = 5.0

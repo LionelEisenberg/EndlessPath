@@ -9,6 +9,7 @@
 
 [resource]
 script = ExtResource("6_anl3h")
+id = "foundation_technique"
 technique_name = "Foundation Technique"
 path_curve = ExtResource("5_snhs0")
 cycling_zones = Array[ExtResource("1_3tspc")]([ExtResource("2_rlq0l"), ExtResource("3_oikp7"), ExtResource("4_2bnrp")])
