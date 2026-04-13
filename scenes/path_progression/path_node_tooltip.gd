@@ -34,23 +34,22 @@ const EFFECT_LABELS: Dictionary = {
 
 ## Populate the tooltip with node data and animate it in.
 func show_tooltip(data: PathNodeData, current_level: int) -> void:
-	_name_label.text = data.display_name
+	# Title with level for repeatables: "Madra Surge (1/3)"
+	if data.max_purchases > 1:
+		_name_label.text = "%s (%d/%d)" % [data.display_name, current_level, data.max_purchases]
+	else:
+		_name_label.text = data.display_name
+
 	_type_label.text = _get_type_text(data.node_type)
 	_description_label.text = data.description
 	var is_fully_purchased: bool = current_level >= data.max_purchases
-	var is_purchased: bool = current_level >= 1
 
 	if is_fully_purchased:
 		_cost_label.text = "Purchased"
-	elif is_purchased and data.max_purchases > 1:
-		_cost_label.text = "Cost: %d point%s" % [data.point_cost, "" if data.point_cost == 1 else "s"]
 	else:
 		_cost_label.text = "Cost: %d point%s" % [data.point_cost, "" if data.point_cost == 1 else "s"]
 
-	if data.max_purchases > 1:
-		_level_label.text = "Level: %d/%d" % [current_level, data.max_purchases]
-	else:
-		_level_label.text = ""
+	_level_label.visible = false
 
 	_populate_effects(data)
 
