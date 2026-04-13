@@ -94,11 +94,9 @@ func refresh(current_level: int, can_afford: bool) -> void:
 	else:
 		_level_label.visible = false
 
-	# Modulate alpha
-	if _is_purchased or _can_afford:
-		modulate.a = 1.0
-	else:
-		modulate.a = 0.65
+	# All nodes stay fully opaque so lines behind them are hidden.
+	# Locked state is conveyed via darker fill/border colors, not alpha.
+	modulate.a = 1.0
 
 	_update_swirl_state()
 	queue_redraw()
