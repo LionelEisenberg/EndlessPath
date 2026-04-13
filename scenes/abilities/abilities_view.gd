@@ -196,10 +196,7 @@ func _on_unequip_requested(ability_id: String) -> void:
 
 func _on_ability_dropped(ability_id: String, slot_index: int, from_slot: int) -> void:
 	if from_slot >= 0:
-		var target_id: String = AbilityManager.get_ability_at_slot(slot_index)
-		AbilityManager._live_save_data.equipped_ability_ids[from_slot] = target_id
-		AbilityManager._live_save_data.equipped_ability_ids[slot_index] = ability_id
-		AbilityManager.equipped_abilities_changed.emit()
+		AbilityManager.swap_slots(from_slot, slot_index)
 	else:
 		AbilityManager.equip_ability_at_slot(ability_id, slot_index)
 	_refresh_without_rebuild()

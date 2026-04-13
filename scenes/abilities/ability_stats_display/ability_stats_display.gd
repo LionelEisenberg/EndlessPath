@@ -80,12 +80,6 @@ func _add_scaling_label(attr_name: String, scaling: float, raw_value: float, col
 		{"type": "scaling", "attr_name": attr_name, "raw_value": raw_value, "scaling_pct": scaling, "contribution": contribution, "color": color}
 	)
 
-func _add_separator() -> void:
-	var sep: Label = Label.new()
-	sep.text = "\u00b7"
-	sep.theme_type_variation = &"LabelSeparatorDot"
-	add_child(sep)
-
 func _clear_children() -> void:
 	for child: Node in get_children():
 		if child == _tooltip:

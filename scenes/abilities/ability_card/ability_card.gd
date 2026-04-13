@@ -198,11 +198,7 @@ func _update_equipped_display() -> void:
 		_equip_button.text = "UNEQUIP"
 	else:
 		if AbilityManager:
-			var filled: int = 0
-			for id: String in AbilityManager._live_save_data.equipped_ability_ids:
-				if not id.is_empty():
-					filled += 1
-			if filled >= AbilityManager.get_max_slots():
+			if AbilityManager.get_filled_slot_count() >= AbilityManager.get_max_slots():
 				_equip_button.text = "SLOTS FULL"
 				_equip_button.disabled = true
 				return

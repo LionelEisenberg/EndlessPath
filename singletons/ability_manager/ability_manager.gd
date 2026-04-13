@@ -132,6 +132,27 @@ func is_ability_equipped(ability_id: String) -> bool:
 func get_max_slots() -> int:
 	return MAX_SLOTS
 
+## Swaps abilities between two slots. Empty slots are valid.
+func swap_slots(slot_a: int, slot_b: int) -> void:
+	if not _live_save_data:
+		return
+	if slot_a < 0 or slot_a >= MAX_SLOTS or slot_b < 0 or slot_b >= MAX_SLOTS:
+		return
+	var temp: String = _live_save_data.equipped_ability_ids[slot_a]
+	_live_save_data.equipped_ability_ids[slot_a] = _live_save_data.equipped_ability_ids[slot_b]
+	_live_save_data.equipped_ability_ids[slot_b] = temp
+	equipped_abilities_changed.emit()
+
+## Returns the number of non-empty equipped slots.
+func get_filled_slot_count() -> int:
+	if not _live_save_data:
+		return 0
+	var count: int = 0
+	for id: String in _live_save_data.equipped_ability_ids:
+		if not id.is_empty():
+			count += 1
+	return count
+
 # ----- Private -----
 
 func _ensure_equipped_array_size() -> void:
