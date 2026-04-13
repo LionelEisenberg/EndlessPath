@@ -20,6 +20,7 @@ var _can_afford: bool = false
 var _glow_phase: float = 0.0
 var _is_keystone_available: bool = false
 var _swirl_rect: ColorRect = null
+var _border_rect: ColorRect = null
 
 ## Fill colors per state
 const FILL_LOCKED: Color = Color(0.25, 0.20, 0.15, 1.0)
@@ -64,9 +65,12 @@ func setup(data: PathNodeData, current_level: int, path_theme: PathThemeData = n
 			size = Vector2(40, 40)
 	pivot_offset = size / 2.0
 
-	# Create swirl shader overlay for keystones when a theme is provided
-	if data.node_type == PathNodeData.NodeType.KEYSTONE and _theme != null:
-		_create_keystone_swirl()
+	# Create shader overlays when a theme is provided
+	if _theme != null:
+		if data.node_type == PathNodeData.NodeType.KEYSTONE:
+			_create_keystone_swirl()
+		else:
+			_create_border_shader(data.node_type)
 
 	refresh(current_level, false)
 
@@ -135,9 +139,12 @@ func _draw() -> void:
 		PathNodeData.NodeType.KEYSTONE:
 			_draw_hexagon(center, 34.0, fill_color, border_color, border_width)
 		PathNodeData.NodeType.MAJOR:
-			_draw_diamond(center, 23.0, fill_color, border_color, border_width)
+			# Only draw via _draw() if no border shader is active
+			if _border_rect == null:
+				_draw_diamond(center, 23.0, fill_color, border_color, border_width)
 		_:
-			_draw_circle(center, 18.0, fill_color, border_color, border_width)
+			if _border_rect == null:
+				_draw_circle(center, 18.0, fill_color, border_color, border_width)
 
 	# Breathing glow for available keystones
 	if _is_keystone_available:
@@ -286,20 +293,62 @@ func _set_swirl_hover(value: float) -> void:
 		mat.set_shader_parameter("hover", value)
 
 
+func _create_border_shader(node_type: PathNodeData.NodeType) -> void:
+	if _border_rect != null:
+		return
+
+	var shader: Shader = load("res://assets/shaders/path_node_border.gdshader") as Shader
+	if shader == null:
+		return
+
+	_border_rect = ColorRect.new()
+	_border_rect.color = Color.WHITE
+	_border_rect.position = Vector2.ZERO
+	_border_rect.size = size
+	_border_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var mat: ShaderMaterial = ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("border_color", _theme.border_color)
+	mat.set_shader_parameter("glow_color", _theme.border_glow_color)
+	mat.set_shader_parameter("fill_color", _theme.fill_available)
+	mat.set_shader_parameter("state", 1.0)
+
+	# Set shape type: 0=circle (minor/repeatable), 1=diamond (major)
+	if node_type == PathNodeData.NodeType.MAJOR:
+		mat.set_shader_parameter("shape_type", 1.0)
+		mat.set_shader_parameter("radius", 0.44)
+	else:
+		mat.set_shader_parameter("shape_type", 0.0)
+		mat.set_shader_parameter("radius", 0.42)
+
+	_border_rect.material = mat
+	add_child(_border_rect)
+	move_child(_border_rect, 0)
+
+
 func _update_swirl_state() -> void:
-	if _swirl_rect == null or _swirl_rect.material == null:
-		return
-
-	var mat: ShaderMaterial = _swirl_rect.material as ShaderMaterial
-	if mat == null:
-		return
-
 	var state_val: float = 0.0
 	if _is_maxed or _is_purchased:
 		state_val = 2.0
 	elif _can_afford:
 		state_val = 1.0
-	mat.set_shader_parameter("state", state_val)
+
+	# Update keystone swirl
+	if _swirl_rect and _swirl_rect.material:
+		var mat: ShaderMaterial = _swirl_rect.material as ShaderMaterial
+		if mat:
+			mat.set_shader_parameter("state", state_val)
+
+	# Update non-keystone border shader
+	if _border_rect and _border_rect.material:
+		var mat: ShaderMaterial = _border_rect.material as ShaderMaterial
+		if mat:
+			mat.set_shader_parameter("state", state_val)
+			# Update fill color based on state
+			if _theme:
+				var fill: Color = _theme.fill_purchased if (_is_purchased or _is_maxed) else _theme.fill_available
+				mat.set_shader_parameter("fill_color", fill)
 
 
 func _spawn_purchase_particles() -> void:
