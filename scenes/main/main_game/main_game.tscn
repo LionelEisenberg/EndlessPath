@@ -24,11 +24,9 @@
 [ext_resource type="Script" path="res://scenes/ui/main_view/states/adventure_end_card_state.gd" id="16_endcs"]
 [ext_resource type="PackedScene" uid="uid://1sxjui5v2n0j" path="res://scenes/adventure/adventure_end_card/adventure_end_card.tscn" id="17_endcn"]
 [ext_resource type="Script" uid="uid://dnn54bn7tn8p4" path="res://scenes/path_progression/path_tree_view_state.gd" id="18_ptvs"]
-[ext_resource type="PackedScene" path="res://scenes/path_progression/path_tree_view.tscn" id="19_ptv"]
-[ext_resource type="PackedScene" path="res://scenes/path_progression/path_node_ui.tscn" id="20_pnui"]
-[ext_resource type="PackedScene" path="res://scenes/path_progression/layouts/pure_madra_tier1_layout.tscn" id="21_pmtl"]
-[ext_resource type="Script" path="res://scenes/abilities/abilities_view_state.gd" id="22_avs"]
-[ext_resource type="PackedScene" path="res://scenes/abilities/abilities_view.tscn" id="23_av"]
+[ext_resource type="PackedScene" uid="uid://cbps5t4a7d2m5" path="res://scenes/path_progression/path_tree_view.tscn" id="19_ptv"]
+[ext_resource type="Script" uid="uid://cd0oljhv7jwgr" path="res://scenes/abilities/abilities_view_state.gd" id="22_avs"]
+[ext_resource type="PackedScene" uid="uid://dq8m3p6k2n1xt" path="res://scenes/abilities/abilities_view.tscn" id="23_av"]
 
 [node name="MainGame" type="Node2D" unique_id=495119710]
 script = ExtResource("1_2bvax")
@@ -186,10 +184,7 @@ theme_override_styles/panel = ExtResource("15_grybg")
 
 [node name="PathTreeView" parent="MainView" unique_id=69045446 instance=ExtResource("19_ptv")]
 unique_name_in_owner = true
-z_index = 3
 layout_mode = 1
-layout_scene = ExtResource("21_pmtl")
-path_node_ui_scene = ExtResource("20_pnui")
 
 [node name="AdventureEndCard" parent="MainView" unique_id=273849165 instance=ExtResource("17_endcn")]
 unique_name_in_owner = true
@@ -205,8 +200,6 @@ layout_mode = 1
 
 [node name="AbilitiesView" parent="MainView" unique_id=382947015 instance=ExtResource("23_av")]
 unique_name_in_owner = true
-visible = false
-z_index = 3
 layout_mode = 1
 
 [node name="CyclingView" parent="MainView" unique_id=2090176626 instance=ExtResource("3_7ijcf")]

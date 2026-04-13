@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AbilityData" load_steps=5 format=3 uid="uid://4ddominxr0ph"]
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://4ddominxr0ph"]
 
 [ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_lurdt"]
 [ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_34div"]
@@ -17,10 +17,10 @@ ability_id = "empty_palm"
 ability_name = "Empty Palm"
 description = "Infuse a strike with Madra and push it through the enemy's core		"
 icon = ExtResource("2_gtwq6")
+madra_type = 1
+ability_source = 1
 madra_cost = 12.0
 stamina_cost = 3.0
 base_cooldown = 3.0
 effects = Array[ExtResource("1_lurdt")]([SubResource("Resource_34div")])
-madra_type = 1
-ability_source = 1
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

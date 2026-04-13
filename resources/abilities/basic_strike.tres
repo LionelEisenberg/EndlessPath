@@ -21,6 +21,4 @@ icon = ExtResource("2_ah3dt")
 stamina_cost = 10.0
 base_cooldown = 4.0
 effects = Array[ExtResource("1_a2brc")]([SubResource("Resource_dx6op")])
-madra_type = 0
-ability_source = 0
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

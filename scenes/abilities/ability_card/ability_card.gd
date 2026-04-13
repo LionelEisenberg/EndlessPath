@@ -3,6 +3,7 @@ extends PanelContainer
 
 ## Expandable ability card for the AbilitiesView.
 ## Shows a collapsed summary row; click to expand for details and equip/unequip.
+## Supports drag-and-drop to loadout slots.
 
 signal equip_requested(ability_id: String)
 signal unequip_requested(ability_id: String)
@@ -12,20 +13,25 @@ var _ability_data: AbilityData = null
 var _is_expanded: bool = false
 var _is_equipped: bool = false
 
+var _style_normal: StyleBoxFlat = null
+var _style_expanded: StyleBoxFlat = null
+
 @onready var _icon: TextureRect = %AbilityIcon
-@onready var _name_label: Label = %AbilityName
-@onready var _cost_label: Label = %CostLabel
+@onready var _name_label: RichTextLabel = %AbilityName
+@onready var _cost_label: RichTextLabel = %CostLabel
 @onready var _madra_badge: Label = %MadraBadge
 @onready var _source_badge: Label = %SourceBadge
 @onready var _equipped_dot: Control = %EquippedDot
 @onready var _expanded_details: VBoxContainer = %ExpandedDetails
-@onready var _description_label: Label = %DescriptionLabel
-@onready var _stats_label: Label = %StatsLabel
+@onready var _description_label: RichTextLabel = %DescriptionLabel
+@onready var _stats_label: RichTextLabel = %StatsLabel
+@onready var _scaling_label: RichTextLabel = %ScalingLabel
 @onready var _equip_button: Button = %EquipButton
 
 func _ready() -> void:
 	_equip_button.pressed.connect(_on_equip_button_pressed)
 	gui_input.connect(_on_gui_input)
+	_build_card_styles()
 
 # ----- Public API -----
 
@@ -44,22 +50,68 @@ func set_equipped(is_equipped: bool) -> void:
 func collapse() -> void:
 	_is_expanded = false
 	_expanded_details.visible = false
+	_apply_card_style()
 
 ## Returns the ability data for this card.
 func get_ability_data() -> AbilityData:
 	return _ability_data
 
+# ----- Drag and Drop -----
+
+func _get_drag_data(_at_position: Vector2) -> Variant:
+	if not _ability_data:
+		return null
+	# Build drag preview
+	var preview: Label = Label.new()
+	preview.text = _ability_data.ability_name
+	preview.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
+	preview.add_theme_font_size_override("font_size", 20)
+	set_drag_preview(preview)
+	return {"ability_id": _ability_data.ability_id}
+
 # ----- Private -----
+
+func _build_card_styles() -> void:
+	# Normal style (BG_MEDIUM with subtle border)
+	_style_normal = StyleBoxFlat.new()
+	_style_normal.bg_color = ThemeConstants.BG_MEDIUM
+	_style_normal.set_border_width_all(2)
+	_style_normal.border_color = ThemeConstants.BORDER_SUBTLE
+	_style_normal.set_corner_radius_all(6)
+	_style_normal.set_content_margin_all(12)
+	_style_normal.content_margin_top = 10
+	_style_normal.content_margin_bottom = 10
+
+	# Expanded style (brighter border, slightly lighter bg)
+	_style_expanded = StyleBoxFlat.new()
+	_style_expanded.bg_color = Color(0.27, 0.20, 0.15, 1.0)
+	_style_expanded.set_border_width_all(2)
+	_style_expanded.border_color = ThemeConstants.BORDER_PRIMARY
+	_style_expanded.set_corner_radius_all(6)
+	_style_expanded.set_content_margin_all(12)
+	_style_expanded.content_margin_top = 10
+	_style_expanded.content_margin_bottom = 10
+
+	_apply_card_style()
+
+func _apply_card_style() -> void:
+	if _is_expanded:
+		add_theme_stylebox_override("panel", _style_expanded)
+	else:
+		add_theme_stylebox_override("panel", _style_normal)
 
 func _update_display() -> void:
 	if not _ability_data:
 		return
 
 	_icon.texture = _ability_data.icon
-	_name_label.text = _ability_data.ability_name
 
-	# Cost summary
-	_cost_label.text = _ability_data.get_total_cost_display() + " · %.1fs CD" % _ability_data.base_cooldown
+	# Ability name with BBCode
+	_name_label.text = ""
+	_name_label.append_text("[color=#F0E8D8]%s[/color]" % _ability_data.ability_name)
+
+	# Cost summary with colored values
+	_update_cost_display()
 
 	# Madra badge
 	if _ability_data.madra_type == AbilityData.MadraType.NONE:
@@ -72,15 +124,69 @@ func _update_display() -> void:
 	_source_badge.text = AbilityData.AbilitySource.keys()[_ability_data.ability_source].capitalize()
 
 	# Expanded details
-	_description_label.text = _ability_data.description
+	_description_label.text = ""
+	_description_label.append_text("[color=#A89070]%s[/color]" % _ability_data.description)
 
+	_update_stats_display()
+	_update_scaling_display()
+	_update_equipped_display()
+
+func _update_cost_display() -> void:
+	_cost_label.text = ""
+	var cost_text: String = _ability_data.get_total_cost_display()
+	var cd_text: String = "%.1fs CD" % _ability_data.base_cooldown
+
+	# Color the cost portion
+	if cost_text == "Free":
+		_cost_label.append_text("[color=#7DCE82]Free[/color]")
+	else:
+		_cost_label.append_text("[color=#E06060]%s[/color]" % cost_text)
+	_cost_label.append_text("[color=#A89070] \u00b7 %s[/color]" % cd_text)
+
+func _update_stats_display() -> void:
+	_stats_label.text = ""
 	var target_name: String = AbilityData.TargetType.keys()[_ability_data.target_type].capitalize().replace("_", " ")
 	var type_name: String = AbilityData.AbilityType.keys()[_ability_data.ability_type].capitalize()
 	var cast_text: String = "Instant" if _ability_data.cast_time <= 0.0 else "%.1fs" % _ability_data.cast_time
 	var madra_text: String = AbilityData.MadraType.keys()[_ability_data.madra_type].capitalize()
-	_stats_label.text = "%s · %s · Cast: %s · Madra: %s" % [type_name, target_name, cast_text, madra_text]
+	_stats_label.append_text("[color=#A89070]%s \u00b7 %s \u00b7 Cast: %s \u00b7 Madra: %s[/color]" % [type_name, target_name, cast_text, madra_text])
 
-	_update_equipped_display()
+func _update_scaling_display() -> void:
+	_scaling_label.text = ""
+	if _ability_data.effects.is_empty():
+		_scaling_label.visible = false
+		return
+
+	var effect: CombatEffectData = _ability_data.effects[0]
+	var parts: Array[String] = []
+
+	# Base value
+	parts.append("[color=#D4A84A]Base: %.0f[/color]" % effect.base_value)
+
+	# Scaling attributes (only non-zero)
+	var scaling_parts: Array[String] = []
+	if effect.strength_scaling != 0.0:
+		scaling_parts.append("STR (\u00d7%.1f)" % effect.strength_scaling)
+	if effect.body_scaling != 0.0:
+		scaling_parts.append("BODY (\u00d7%.1f)" % effect.body_scaling)
+	if effect.agility_scaling != 0.0:
+		scaling_parts.append("AGI (\u00d7%.1f)" % effect.agility_scaling)
+	if effect.spirit_scaling != 0.0:
+		scaling_parts.append("SPI (\u00d7%.1f)" % effect.spirit_scaling)
+	if effect.foundation_scaling != 0.0:
+		scaling_parts.append("FND (\u00d7%.1f)" % effect.foundation_scaling)
+	if effect.control_scaling != 0.0:
+		scaling_parts.append("CTL (\u00d7%.1f)" % effect.control_scaling)
+	if effect.resilience_scaling != 0.0:
+		scaling_parts.append("RES (\u00d7%.1f)" % effect.resilience_scaling)
+	if effect.willpower_scaling != 0.0:
+		scaling_parts.append("WIL (\u00d7%.1f)" % effect.willpower_scaling)
+
+	if not scaling_parts.is_empty():
+		parts.append("[color=#A89070]Scales: %s[/color]" % ", ".join(scaling_parts))
+
+	_scaling_label.visible = true
+	_scaling_label.append_text(" \u00b7 ".join(parts))
 
 func _update_equipped_display() -> void:
 	_equipped_dot.visible = _is_equipped
@@ -103,6 +209,7 @@ func _on_gui_input(event: InputEvent) -> void:
 			card_selected.emit(self)
 			_is_expanded = true
 			_expanded_details.visible = true
+			_apply_card_style()
 
 func _on_equip_button_pressed() -> void:
 	if not _ability_data:
