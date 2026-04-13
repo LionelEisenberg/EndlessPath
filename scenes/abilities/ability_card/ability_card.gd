@@ -229,30 +229,29 @@ func _update_scaling_display() -> void:
 	# Base value
 	parts.append("[color=#D4A84A]Base: %.0f[/color]" % effect.base_value)
 
-	# Scaling attributes (only non-zero)
+	# Scaling attributes with per-stat colors and raw values from CharacterManager
 	var scaling_parts: Array[String] = []
-	if effect.strength_scaling != 0.0:
-		scaling_parts.append("STR (\u00d7%.1f)" % effect.strength_scaling)
-	if effect.body_scaling != 0.0:
-		scaling_parts.append("BODY (\u00d7%.1f)" % effect.body_scaling)
-	if effect.agility_scaling != 0.0:
-		scaling_parts.append("AGI (\u00d7%.1f)" % effect.agility_scaling)
-	if effect.spirit_scaling != 0.0:
-		scaling_parts.append("SPI (\u00d7%.1f)" % effect.spirit_scaling)
-	if effect.foundation_scaling != 0.0:
-		scaling_parts.append("FND (\u00d7%.1f)" % effect.foundation_scaling)
-	if effect.control_scaling != 0.0:
-		scaling_parts.append("CTL (\u00d7%.1f)" % effect.control_scaling)
-	if effect.resilience_scaling != 0.0:
-		scaling_parts.append("RES (\u00d7%.1f)" % effect.resilience_scaling)
-	if effect.willpower_scaling != 0.0:
-		scaling_parts.append("WIL (\u00d7%.1f)" % effect.willpower_scaling)
+	var attrs: CharacterAttributesData = CharacterManager.get_total_attributes_data()
+	_append_scaling(scaling_parts, "STR", effect.strength_scaling, attrs.strength, "#E06060")
+	_append_scaling(scaling_parts, "BODY", effect.body_scaling, attrs.body, "#D4A84A")
+	_append_scaling(scaling_parts, "AGI", effect.agility_scaling, attrs.agility, "#7DCE82")
+	_append_scaling(scaling_parts, "SPI", effect.spirit_scaling, attrs.spirit, "#6BA4D4")
+	_append_scaling(scaling_parts, "FND", effect.foundation_scaling, attrs.foundation, "#B07DD4")
+	_append_scaling(scaling_parts, "CTL", effect.control_scaling, attrs.control, "#60C4B0")
+	_append_scaling(scaling_parts, "RES", effect.resilience_scaling, attrs.resilience, "#C4884A")
+	_append_scaling(scaling_parts, "WIL", effect.willpower_scaling, attrs.willpower, "#D470A0")
 
 	if not scaling_parts.is_empty():
-		parts.append("[color=#D4A84A]Scales: %s[/color]" % ", ".join(scaling_parts))
+		parts.append(", ".join(scaling_parts))
 
 	_scaling_label.visible = true
 	_scaling_label.append_text(" \u00b7 ".join(parts))
+
+func _append_scaling(parts: Array[String], name: String, scaling: float, raw_value: float, color: String) -> void:
+	if scaling == 0.0:
+		return
+	var contribution: float = scaling * raw_value
+	parts.append("[color=%s]%s[/color] %.0f \u00d7%.0f%% = +%.1f" % [color, name, raw_value, scaling * 100, contribution])
 
 func _has_damage_or_scaling(effect: CombatEffectData) -> bool:
 	if effect.base_value != 0.0:
