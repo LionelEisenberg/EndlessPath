@@ -10,11 +10,11 @@ float_value = 10.0
 
 [resource]
 script = ExtResource("2_b1f1h")
-id = "madra_on_levelup"
+id = "breakthrough_surge"
 display_name = "Breakthrough Surge"
 description = "Grants bonus Madra each time your Core Density level increases."
 node_type = 2
-prerequisites = Array[String](["core_xp_boost"])
+prerequisites = Array[String](["dedicated_cultivation"])
 required_stage = 0
 point_cost = 1
 max_purchases = 1

@@ -10,7 +10,7 @@ float_value = 25.0
 
 [resource]
 script = ExtResource("2_g3ko6")
-id = "madra_capacity"
+id = "expanded_core"
 display_name = "Expanded Core"
 description = "Expands your core to hold more Madra."
 node_type = 2

@@ -10,7 +10,7 @@ float_value = 0.1
 
 [resource]
 script = ExtResource("2_awu56")
-id = "adventure_madra_return"
+id = "madra_reclamation"
 display_name = "Madra Reclamation"
 description = "Recovers a portion of unspent Madra when an adventure ends."
 node_type = 3

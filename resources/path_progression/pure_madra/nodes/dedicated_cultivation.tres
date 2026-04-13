@@ -10,11 +10,11 @@ float_value = 1.1
 
 [resource]
 script = ExtResource("2_cijxh")
-id = "core_xp_boost"
+id = "dedicated_cultivation"
 display_name = "Dedicated Cultivation"
 description = "Increases Core Density XP earned from all sources."
 node_type = 3
-prerequisites = Array[String](["cycling_accuracy"])
+prerequisites = Array[String](["cycling_focus"])
 required_stage = 0
 point_cost = 1
 max_purchases = 3

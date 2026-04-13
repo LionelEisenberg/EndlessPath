@@ -5,11 +5,11 @@
 
 [resource]
 script = ExtResource("2_eavl6")
-id = "empty_palm_cost"
+id = "efficient_palm"
 display_name = "Efficient Palm"
 description = "Reduces the Madra cost of Empty Palm."
 node_type = 2
-prerequisites = Array[String](["empty_palm_duration"])
+prerequisites = Array[String](["lingering_silence"])
 required_stage = 0
 point_cost = 1
 max_purchases = 1

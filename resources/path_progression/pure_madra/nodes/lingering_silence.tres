@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("2_6a077")
-id = "empty_palm_duration"
+id = "lingering_silence"
 display_name = "Lingering Silence"
 description = "Empty Palm's silence effect lasts longer, giving you more time to press the advantage."
 node_type = 1

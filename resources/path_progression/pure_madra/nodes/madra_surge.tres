@@ -10,7 +10,7 @@ float_value = 1.1
 
 [resource]
 script = ExtResource("2_xgxhc")
-id = "madra_gen_up"
+id = "madra_surge"
 display_name = "Madra Surge"
 description = "Increases Madra generated per cycling session."
 node_type = 3

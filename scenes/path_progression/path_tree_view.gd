@@ -46,19 +46,19 @@ var _purchased_count: int = 0
 ## Benefit descriptions for sidebar display
 const BENEFIT_DESCRIPTIONS: Dictionary = {
 	"pure_core_awakening": ["Pure Core Awakening", "Empty Palm + Smooth Flow"],
-	"cycling_accuracy": ["Cycling Focus", "+15 Cycling Accuracy"],
-	"madra_capacity": ["Expanded Core", "+25 Max Madra"],
-	"madra_gen_up": ["Madra Surge", "+10% Madra Gen"],
-	"empty_palm_duration": ["Lingering Silence", "+2s Silence Duration"],
-	"empty_palm_cost": ["Efficient Palm", "-20% Palm Cost"],
+	"cycling_focus": ["Cycling Focus", "+15 Cycling Accuracy"],
+	"expanded_core": ["Expanded Core", "+25 Max Madra"],
+	"madra_surge": ["Madra Surge", "+10% Madra Gen"],
+	"lingering_silence": ["Lingering Silence", "+2s Silence Duration"],
+	"efficient_palm": ["Efficient Palm", "-20% Palm Cost"],
 	"madra_strike": ["Madra Strike", "Madra Strike unlocked"],
-	"madra_strike_damage": ["Focused Strike", "+40% Strike Damage"],
-	"madra_strike_efficiency": ["Strike Efficiency", "-15% Stamina Cost"],
+	"focused_strike": ["Focused Strike", "+40% Strike Damage"],
+	"strike_efficiency": ["Strike Efficiency", "-15% Stamina Cost"],
 	"torrent_flow": ["Torrent Flow", "Torrent Flow unlocked"],
-	"stamina_recovery": ["Iron Will", "+20% Stamina Recovery"],
-	"core_xp_boost": ["Dedicated Cultivation", "+10% Core Density XP"],
-	"madra_on_levelup": ["Breakthrough Surge", "+10 Madra on Level Up"],
-	"adventure_madra_return": ["Madra Reclamation", "+10% Madra Return"],
+	"iron_will": ["Iron Will", "+20% Stamina Recovery"],
+	"dedicated_cultivation": ["Dedicated Cultivation", "+10% Core Density XP"],
+	"breakthrough_surge": ["Breakthrough Surge", "+10 Madra on Level Up"],
+	"madra_reclamation": ["Madra Reclamation", "+10% Madra Return"],
 }
 
 ## NodeContainer base position to be centered

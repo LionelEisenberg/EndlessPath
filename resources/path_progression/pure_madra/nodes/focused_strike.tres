@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("2_8vw1h")
-id = "madra_strike_damage"
+id = "focused_strike"
 display_name = "Focused Strike"
 description = "Madra Strike deals significantly more damage."
 node_type = 1

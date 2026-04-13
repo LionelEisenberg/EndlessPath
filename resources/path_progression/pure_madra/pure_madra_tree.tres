@@ -59,7 +59,7 @@ float_value = 15.0
 
 [sub_resource type="Resource" id="Resource_q34u1"]
 script = ExtResource("1_um6r6")
-id = "cycling_accuracy"
+id = "cycling_focus"
 display_name = "Cycling Focus"
 description = "Slows the Madra ball near cycling zones, improving accuracy."
 prerequisites = Array[String](["pure_core_awakening"])
@@ -72,7 +72,7 @@ float_value = 1.1
 
 [sub_resource type="Resource" id="Resource_pibau"]
 script = ExtResource("1_um6r6")
-id = "madra_gen_up"
+id = "madra_surge"
 display_name = "Madra Surge"
 description = "Increases Madra generated per cycling session."
 node_type = 3
@@ -87,7 +87,7 @@ float_value = 25.0
 
 [sub_resource type="Resource" id="Resource_8cow1"]
 script = ExtResource("1_um6r6")
-id = "madra_capacity"
+id = "expanded_core"
 display_name = "Expanded Core"
 description = "Expands your core to hold more Madra."
 prerequisites = Array[String](["pure_core_awakening"])
@@ -95,7 +95,7 @@ effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_8gmjl")])
 
 [sub_resource type="Resource" id="Resource_l84om"]
 script = ExtResource("1_um6r6")
-id = "empty_palm_duration"
+id = "lingering_silence"
 display_name = "Lingering Silence"
 description = "Empty Palm's silence effect lasts longer, giving you more time to press the advantage."
 node_type = 1
@@ -103,14 +103,14 @@ prerequisites = Array[String](["pure_core_awakening"])
 
 [sub_resource type="Resource" id="Resource_as8cq"]
 script = ExtResource("1_um6r6")
-id = "empty_palm_cost"
+id = "efficient_palm"
 display_name = "Efficient Palm"
 description = "Reduces the Madra cost of Empty Palm."
-prerequisites = Array[String](["empty_palm_duration"])
+prerequisites = Array[String](["lingering_silence"])
 
 [sub_resource type="Resource" id="Resource_ateeq"]
 script = ExtResource("1_um6r6")
-id = "madra_strike_damage"
+id = "focused_strike"
 display_name = "Focused Strike"
 description = "Madra Strike deals significantly more damage."
 node_type = 1
@@ -118,7 +118,7 @@ prerequisites = Array[String](["madra_strike"])
 
 [sub_resource type="Resource" id="Resource_5f62h"]
 script = ExtResource("1_um6r6")
-id = "madra_strike_efficiency"
+id = "strike_efficiency"
 display_name = "Strike Efficiency"
 description = "Reduces the stamina cost of Madra Strike."
 prerequisites = Array[String](["madra_strike"])
@@ -130,7 +130,7 @@ float_value = 1.2
 
 [sub_resource type="Resource" id="Resource_bi4li"]
 script = ExtResource("1_um6r6")
-id = "stamina_recovery"
+id = "iron_will"
 display_name = "Iron Will"
 description = "Pure Madra aids physical recovery, increasing stamina regeneration in combat."
 node_type = 1
@@ -144,7 +144,7 @@ float_value = 1.1
 
 [sub_resource type="Resource" id="Resource_mlbap"]
 script = ExtResource("1_um6r6")
-id = "core_xp_boost"
+id = "dedicated_cultivation"
 display_name = "Dedicated Cultivation"
 description = "Increases Core Density XP earned from all sources."
 node_type = 3
@@ -159,10 +159,10 @@ float_value = 10.0
 
 [sub_resource type="Resource" id="Resource_i3fba"]
 script = ExtResource("1_um6r6")
-id = "madra_on_levelup"
+id = "breakthrough_surge"
 display_name = "Breakthrough Surge"
 description = "Grants bonus Madra each time your Core Density level increases."
-prerequisites = Array[String](["core_xp_boost"])
+prerequisites = Array[String](["dedicated_cultivation"])
 effects = Array[ExtResource("2_od0mv")]([SubResource("Resource_f65tb")])
 
 [sub_resource type="Resource" id="Resource_odlld"]
@@ -172,7 +172,7 @@ float_value = 0.1
 
 [sub_resource type="Resource" id="Resource_c7uqp"]
 script = ExtResource("1_um6r6")
-id = "adventure_madra_return"
+id = "madra_reclamation"
 display_name = "Madra Reclamation"
 description = "Recovers a portion of unspent Madra when an adventure ends."
 node_type = 3

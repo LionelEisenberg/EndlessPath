@@ -10,7 +10,7 @@ float_value = 15.0
 
 [resource]
 script = ExtResource("2_6bt4o")
-id = "cycling_accuracy"
+id = "cycling_focus"
 display_name = "Cycling Focus"
 description = "Slows the Madra ball near cycling zones, improving accuracy."
 node_type = 2

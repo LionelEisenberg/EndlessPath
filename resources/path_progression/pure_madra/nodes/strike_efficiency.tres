@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("2_y1lpo")
-id = "madra_strike_efficiency"
+id = "strike_efficiency"
 display_name = "Strike Efficiency"
 description = "Reduces the stamina cost of Madra Strike."
 node_type = 2
