@@ -53,7 +53,9 @@ func _update_text() -> void:
 
 func _build_style() -> void:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.24, 0.18, 0.13, 0.3)
+	style.bg_color = Color(0.15, 0.10, 0.07, 0.6)
+	style.set_border_width_all(1)
+	style.border_color = Color(0.42, 0.29, 0.19, 0.5)
 	style.set_corner_radius_all(4)
 	style.content_margin_left = 8.0
 	style.content_margin_right = 8.0
