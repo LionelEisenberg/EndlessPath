@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://cnbav6qrqwcux"]
 
 [ext_resource type="Script" uid="uid://d0rpldjw3ymsn" path="res://scenes/cycling/cycling_technique/cycling_technique.gd" id="1_j38ga"]
-[ext_resource type="Resource" uid="uid://bfp0ftyd4wpmc" path="res://resources/cycling/cycling_techniques/test_technique_2/test_technique_2.tres" id="2_3ut4h"]
+[ext_resource type="Resource" uid="uid://bfp0ftyd4wpmc" path="res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres" id="2_3ut4h"]
 [ext_resource type="Texture2D" uid="uid://dm58rs33ces5o" path="res://assets/sprites/cycling/Madra-Ball.png" id="2_sxf01"]
-[ext_resource type="Curve2D" uid="uid://bv6hktnn46o76" path="res://resources/cycling/cycling_techniques/test_technique_2/smooth_path.tres" id="3_3ut4h"]
+[ext_resource type="Curve2D" uid="uid://bv6hktnn46o76" path="res://resources/cycling/cycling_techniques/smooth_flow/smooth_path.tres" id="3_3ut4h"]
 [ext_resource type="Shader" uid="uid://bedm1mso5rcux" path="res://assets/shaders/madra_ball.gdshader" id="shader_madra"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/common/button_invisible.tres" id="6_bi"]
 

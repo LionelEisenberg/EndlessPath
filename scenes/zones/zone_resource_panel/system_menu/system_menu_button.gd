@@ -45,7 +45,7 @@ const MENU_CONFIG: Dictionary = {
 		"display_name": "PATH",
 		"input_action": &"open_path",
 		"shortcut_hint": "P",
-		"icon": null,
+		"icon": preload("res://assets/ui_images/system_menu/star_icon.png"),
 	},
 }
 

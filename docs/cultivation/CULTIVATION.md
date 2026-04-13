@@ -45,6 +45,7 @@ Only Foundation has an `AdvancementStageResource` with actual data. `attempt_bre
 Cycling → CultivationManager.add_core_density_xp()
               → core_density_level_updated → UnlockManager re-evaluates
               → max_madra recalculated via ResourceManager
+              → every 10 levels → PathManager.add_points(1) (PR #20)
 
 Core Density 100 + Adventure Breakthrough Site → Tribulation mini-game
               → Success → advancement_stage_changed → UnlockManager re-evaluates

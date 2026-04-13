@@ -80,6 +80,7 @@ These are autoloaded in `project.godot` and provide global state:
 | `LogManager` | Centralized logging system |
 | `ActionManager` | Action queue system |
 | `CharacterManager` | Character data |
+| `PathManager` | Path progression tree, point balance, perk effects |
 | `Dialogic` | Dialogue/narrative system (addon autoload) |
 
 ### Data-Driven Design
@@ -101,6 +102,7 @@ These are autoloaded in `project.godot` and provide global state:
 - `InventoryViewState` — Equipment/materials
 - `AdventureViewState` — Combat exploration
 - `AdventureEndCardState` — Modal overlay pushed on top of `AdventureViewState` when an adventure ends
+- `PathTreeViewState` — Path progression skill tree overlay
 
 Views are switched via input actions (e.g., `open_inventory`) handled by the current state. The state machine supports `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view). The `SystemMenu` in the `ZoneResourcePanel` provides nav buttons that fire these same input actions via `Input.parse_input_event()`. `SystemMenuButton` uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown.
 

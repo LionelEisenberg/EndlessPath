@@ -1,0 +1,89 @@
+[gd_scene format=3 uid="uid://7a450axlkpc4"]
+
+[ext_resource type="Script" uid="uid://c3w7i4dsn7k3h" path="res://scenes/path_progression/layouts/path_layout_marker.gd" id="1_marker"]
+[ext_resource type="Resource" uid="uid://dew53agiq4jlu" path="res://resources/path_progression/pure_madra/nodes/pure_core_awakening.tres" id="2_pure_core"]
+[ext_resource type="Resource" uid="uid://b7om5l4g7mhqo" path="res://resources/path_progression/pure_madra/nodes/lingering_silence.tres" id="3_lingering"]
+[ext_resource type="Resource" uid="uid://24vcknlqbota" path="res://resources/path_progression/pure_madra/nodes/madra_strike.tres" id="4_strike"]
+[ext_resource type="Resource" uid="uid://dvt32sbeeqhoo" path="res://resources/path_progression/pure_madra/nodes/torrent_flow.tres" id="5_torrent"]
+[ext_resource type="Resource" uid="uid://cppxajwksowid" path="res://resources/path_progression/pure_madra/nodes/madra_surge.tres" id="6_surge"]
+[ext_resource type="Resource" uid="uid://cxhxhnhj2fyvu" path="res://resources/path_progression/pure_madra/nodes/efficient_palm.tres" id="7_palm"]
+[ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/focused_strike.tres" id="8_focused"]
+[ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/strike_efficiency.tres" id="9_eff"]
+[ext_resource type="Resource" uid="uid://bqs5oaot12loe" path="res://resources/path_progression/pure_madra/nodes/cycling_focus.tres" id="10_cycling"]
+[ext_resource type="Resource" uid="uid://dmov52ei6upo4" path="res://resources/path_progression/pure_madra/nodes/madra_reclamation.tres" id="11_reclaim"]
+[ext_resource type="Resource" uid="uid://coyjfogvdy8gj" path="res://resources/path_progression/pure_madra/nodes/expanded_core.tres" id="12_core"]
+[ext_resource type="Resource" uid="uid://cjokisy78a63" path="res://resources/path_progression/pure_madra/nodes/dedicated_cultivation.tres" id="13_dedic"]
+[ext_resource type="Resource" uid="uid://d38ltp0ry2476" path="res://resources/path_progression/pure_madra/nodes/iron_will.tres" id="14_iron"]
+[ext_resource type="Resource" uid="uid://b1usp12jvesoi" path="res://resources/path_progression/pure_madra/nodes/breakthrough_surge.tres" id="15_break"]
+
+[node name="PureMadraTier1Layout" type="Node2D" unique_id=2095216595]
+
+[node name="pure_core_awakening" type="Marker2D" parent="." unique_id=401451630]
+position = Vector2(550, 800)
+script = ExtResource("1_marker")
+node_data = ExtResource("2_pure_core")
+
+[node name="lingering_silence" type="Marker2D" parent="." unique_id=1427164398]
+position = Vector2(341, 454)
+script = ExtResource("1_marker")
+node_data = ExtResource("3_lingering")
+
+[node name="madra_strike" type="Marker2D" parent="." unique_id=14591142]
+position = Vector2(562, 618)
+script = ExtResource("1_marker")
+node_data = ExtResource("4_strike")
+
+[node name="torrent_flow" type="Marker2D" parent="." unique_id=1238152410]
+position = Vector2(757, 594)
+script = ExtResource("1_marker")
+node_data = ExtResource("5_torrent")
+
+[node name="madra_surge" type="Marker2D" parent="." unique_id=1500763371]
+position = Vector2(361, 293)
+script = ExtResource("1_marker")
+node_data = ExtResource("6_surge")
+
+[node name="efficient_palm" type="Marker2D" parent="." unique_id=1718281688]
+position = Vector2(421, 468)
+script = ExtResource("1_marker")
+node_data = ExtResource("7_palm")
+
+[node name="focused_strike" type="Marker2D" parent="." unique_id=159249382]
+position = Vector2(496, 455)
+script = ExtResource("1_marker")
+node_data = ExtResource("8_focused")
+
+[node name="strike_efficiency" type="Marker2D" parent="." unique_id=1307960682]
+position = Vector2(588, 444)
+script = ExtResource("1_marker")
+node_data = ExtResource("9_eff")
+
+[node name="cycling_focus" type="Marker2D" parent="." unique_id=2143512847]
+position = Vector2(701, 444)
+script = ExtResource("1_marker")
+node_data = ExtResource("10_cycling")
+
+[node name="madra_reclamation" type="Marker2D" parent="." unique_id=180912220]
+position = Vector2(827, 463)
+script = ExtResource("1_marker")
+node_data = ExtResource("11_reclaim")
+
+[node name="expanded_core" type="Marker2D" parent="." unique_id=991261565]
+position = Vector2(358, 604)
+script = ExtResource("1_marker")
+node_data = ExtResource("12_core")
+
+[node name="dedicated_cultivation" type="Marker2D" parent="." unique_id=1611435153]
+position = Vector2(613, 300)
+script = ExtResource("1_marker")
+node_data = ExtResource("13_dedic")
+
+[node name="iron_will" type="Marker2D" parent="." unique_id=1249164106]
+position = Vector2(866, 286)
+script = ExtResource("1_marker")
+node_data = ExtResource("14_iron")
+
+[node name="breakthrough_surge" type="Marker2D" parent="." unique_id=383488560]
+position = Vector2(768, 301)
+script = ExtResource("1_marker")
+node_data = ExtResource("15_break")
