@@ -15,6 +15,8 @@ func _ready() -> void:
 	if PersistenceManager:
 		_live_save_data = PersistenceManager.save_game_data
 		PersistenceManager.save_data_reset.connect(_on_save_data_reset)
+	else:
+		Log.critical("CyclingManager: Could not get save_game_data from PersistenceManager on ready!")
 
 # ----- Public API -----
 
@@ -44,6 +46,7 @@ func unlock_technique(technique_id: String) -> void:
 		push_error("CyclingManager: unknown technique_id '%s'" % technique_id)
 		return
 	_live_save_data.unlocked_cycling_technique_ids.append(technique_id)
+	Log.info("CyclingManager: Unlocked technique '%s'" % technique_id)
 	technique_unlocked.emit(_techniques_by_id[technique_id])
 
 ## Sets the equipped technique by ID.
@@ -54,6 +57,7 @@ func equip_technique(technique_id: String) -> void:
 		push_error("CyclingManager: unknown technique_id '%s'" % technique_id)
 		return
 	_live_save_data.equipped_cycling_technique_id = technique_id
+	Log.info("CyclingManager: Equipped technique '%s'" % technique_id)
 	equipped_technique_changed.emit(_techniques_by_id[technique_id])
 
 ## Returns true if the technique is currently unlocked.
