@@ -23,7 +23,7 @@ signal technique_change_request(data: CyclingTechniqueData)
 #-----------------------------------------------------------------------------
 
 var _technique_slot_scene: PackedScene = preload("res://scenes/cycling/cycling_technique_slot/cycling_technique_slot.tscn")
-var _technique_list: CyclingTechniqueList = null
+var _techniques: Array[CyclingTechniqueData] = []
 var _current_technique_data: CyclingTechniqueData = null
 var _list_dirty: bool = true
 
@@ -41,9 +41,9 @@ func _ready() -> void:
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Initialize with technique list data.
-func setup(technique_list: CyclingTechniqueList) -> void:
-	_technique_list = technique_list
+## Initialize with unlocked technique data.
+func setup(techniques: Array[CyclingTechniqueData]) -> void:
+	_techniques = techniques
 	_populate_technique_list()
 
 ## Update which technique is currently equipped (for highlight state).
@@ -64,7 +64,7 @@ func _on_tab_changed(tab_index: int) -> void:
 		_populate_technique_list()
 
 func _populate_technique_list() -> void:
-	if _technique_list == null:
+	if _techniques.is_empty():
 		return
 
 	_list_dirty = false
@@ -72,7 +72,7 @@ func _populate_technique_list() -> void:
 	for child in _technique_list_container.get_children():
 		child.queue_free()
 
-	for technique_data: CyclingTechniqueData in _technique_list.cycling_techniques:
+	for technique_data: CyclingTechniqueData in _techniques:
 		var slot: Control = _technique_slot_scene.instantiate()
 		_technique_list_container.add_child(slot)
 		slot.setup(technique_data)

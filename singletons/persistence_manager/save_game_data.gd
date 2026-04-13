@@ -72,10 +72,11 @@ func _verify_current_selected_zone_id() -> bool:
 	return current_selected_zone_id == "" or ZoneManager.has_zone(current_selected_zone_id)
 
 #-----------------------------------------------------------------------------
-# CURRENT STATE (Player's current equipment/configuration)
+# CYCLING MANAGER
 #-----------------------------------------------------------------------------
 
-@export var current_cycling_technique_name: String = "Foundation Technique"
+@export var unlocked_cycling_technique_ids: Array[String] = ["foundation_technique"]
+@export var equipped_cycling_technique_id: String = "foundation_technique"
 
 #-----------------------------------------------------------------------------
 # PATH PROGRESSION
@@ -104,7 +105,7 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  CurrentCyclingTechnique: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
+	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
 			madra,
 			gold,
 			core_density_xp,
@@ -117,7 +118,8 @@ func _to_string() -> String:
 			zone_progression_data_str,
 			inventory.equipment.size() if inventory else 0,
 			str(character_attributes) if character_attributes else "None",
-			current_cycling_technique_name,
+			str(unlocked_cycling_technique_ids),
+			equipped_cycling_technique_id,
 			current_path_id,
 			path_points,
 			str(path_node_purchases)
@@ -159,8 +161,9 @@ func reset() -> void:
 	# Character Manager
 	character_attributes = CharacterAttributesData.new()
 
-	# Current State
-	current_cycling_technique_name = "Foundation Technique"
+	# Cycling Manager
+	unlocked_cycling_technique_ids = ["foundation_technique"]
+	equipped_cycling_technique_id = "foundation_technique"
 
 	# Path Progression
 	current_path_id = ""

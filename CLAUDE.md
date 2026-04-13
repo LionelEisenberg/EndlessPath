@@ -57,7 +57,7 @@ If the project has never been imported in the current environment, run `--import
 | Directory | Purpose |
 |-----------|---------|
 | `scripts/` | GDScript source — resource definitions (`resource_definitions/`) and utilities (`utils/`) |
-| `singletons/` | 12 autoload manager singletons (global game state) |
+| `singletons/` | 15 autoload manager singletons (global game state) |
 | `scenes/` | Godot `.tscn` scene files + attached scripts |
 | `resources/` | `.tres` data files (abilities, zones, items, encounters, loot tables) |
 | `assets/` | Art, audio, shaders, themes, fonts, UI images, Aseprite sources |
@@ -80,11 +80,12 @@ These are autoloaded in `project.godot` and provide global state:
 | `LogManager` | Centralized logging system |
 | `ActionManager` | Action queue system |
 | `CharacterManager` | Character data |
+| `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups) |
 | `PathManager` | Path progression tree, point balance, perk effects |
 | `Dialogic` | Dialogue/narrative system (addon autoload) |
 
 ### Data-Driven Design
-- Resource classes in `scripts/resource_definitions/` define data structures (e.g., `AbilityData`, `ZoneData`, `EquipmentDefinitionData`, `EffectData`)
+- Resource classes in `scripts/resource_definitions/` define data structures (e.g., `AbilityData`, `ZoneData`, `EquipmentDefinitionData`, `EffectData`, `AdventureResultData`)
 - Godot `.tres` files in `resources/` instantiate and configure these resources
 - When modifying data structures, update both the `.gd` resource class and any `.tres` files that reference it
 
@@ -101,13 +102,19 @@ These are autoloaded in `project.godot` and provide global state:
 - `CyclingViewState` — Cycling mini-game
 - `InventoryViewState` — Equipment/materials
 - `AdventureViewState` — Combat exploration
+- `AdventureEndCardState` — Modal overlay pushed on top of `AdventureViewState` when an adventure ends
 - `PathTreeViewState` — Path progression skill tree overlay
 
-Views are switched via input actions (e.g., `open_inventory`) handled by the current state. The `SystemMenu` in the `ZoneResourcePanel` provides nav buttons that fire these same input actions via `Input.parse_input_event()`. `SystemMenuButton` uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown.
+Views are switched via input actions (e.g., `open_inventory`) handled by the current state. The state machine supports `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view). The `SystemMenu` in the `ZoneResourcePanel` provides nav buttons that fire these same input actions via `Input.parse_input_event()`. `SystemMenuButton` uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown.
+
+### Reusable UI Components (`scenes/common/`)
+Shared components used across multiple views:
+- `ItemDisplaySlot` — Read-only item icon with hover tooltip, used in end card loot and anywhere items need display
+- `ItemDescriptionPanel` — Item detail panel (icon, name, type, description, effects), shared between inventory sidebar and end card tooltips
 
 ### Game Systems
 1. **Cycling** — Mouse-following path + rhythm-clicking on a body diagram (Madra generation)
-2. **Adventuring** — Node-based hex grid exploration + real-time combat
+2. **Adventuring** — Node-based hex grid exploration + real-time combat + scroll end card with stats/loot
 3. **Combat** — Real-time AP regeneration, learned abilities with cooldowns and costs
 4. **Scripting** — Calligraphy/character tracing (planned)
 5. **Elixir Making** — Multi-stage crafting (planned)

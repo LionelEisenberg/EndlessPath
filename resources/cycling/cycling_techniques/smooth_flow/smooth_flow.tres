@@ -10,6 +10,7 @@
 
 [resource]
 script = ExtResource("7_cbmp4")
+id = "smooth_flow"
 technique_name = "Smooth Flow Technique"
 path_curve = ExtResource("6_1s4yb")
 cycle_duration = 15.0
