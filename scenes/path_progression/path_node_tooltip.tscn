@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://boimokm0mg0j7"]
 
-[ext_resource type="Script" path="res://scenes/path_progression/path_node_tooltip.gd" id="1_tooltip"]
+[ext_resource type="Script" uid="uid://bxj4odu0vyld7" path="res://scenes/path_progression/path_node_tooltip.gd" id="1_tooltip"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip_panel"]
 content_margin_left = 0.0
@@ -22,10 +22,8 @@ shadow_size = 8
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_tooltip_sep"]
 color = Color(0.42, 0.29, 0.188, 0.5)
-thickness = 1
 
-[node name="PathNodeTooltip" type="Control"]
-visible = false
+[node name="PathNodeTooltip" type="Control" unique_id=580918942]
 z_index = 50
 z_as_relative = false
 layout_mode = 3
@@ -33,12 +31,12 @@ anchors_preset = 0
 offset_left = 80.0
 offset_top = -100.0
 offset_right = 400.0
-offset_bottom = 100.0
+offset_bottom = -100.0
 pivot_offset = Vector2(0, 80)
 mouse_filter = 2
 script = ExtResource("1_tooltip")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1576857403]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -48,60 +46,60 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_tooltip_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=261850105]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1171488778]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="NameLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="NameLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1474489292]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelPathHeading"
 text = "Node Name"
 
-[node name="TypeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="TypeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=818089310]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelPathMuted"
 text = "Minor"
 
-[node name="HSeparator" type="HSeparator" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1276330541]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxLine_tooltip_sep")
 
-[node name="DescriptionLabel" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="DescriptionLabel" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1720960700]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+mouse_filter = 2
 bbcode_enabled = true
 text = "Description text."
 fit_content = true
 scroll_active = false
-mouse_filter = 2
 
-[node name="EffectsContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="EffectsContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1689643478]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="EffectsSep" type="HSeparator" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="EffectsSep" type="HSeparator" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1541523756]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxLine_tooltip_sep")
 
-[node name="CostLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="CostLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1879794892]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelPathMuted"
 text = "Cost: 1 point"
 
-[node name="LevelLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="LevelLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=601234789]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelPathMuted"
