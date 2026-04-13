@@ -4,7 +4,7 @@
 [ext_resource type="Resource" uid="uid://bamglfy16qig4" path="res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres" id="2_kun6k"]
 [ext_resource type="Script" uid="uid://6ngdap4msfww" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_technique_list.gd" id="2_u5idy"]
 [ext_resource type="Resource" uid="uid://jtu2awyodaem" path="res://resources/cycling/cycling_techniques/test_foundation_cycling_technique/test_foundation_cycling_technique.tres" id="3_kun6k"]
-[ext_resource type="Resource" uid="uid://bfp0ftyd4wpmc" path="res://resources/cycling/cycling_techniques/test_technique_2/test_technique_2.tres" id="4_smooth"]
+[ext_resource type="Resource" uid="uid://bfp0ftyd4wpmc" path="res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres" id="4_smooth"]
 
 [resource]
 script = ExtResource("2_u5idy")

@@ -27,6 +27,7 @@ Since `SaveGameData` extends `Resource` (a Godot Object), `live_save_data` is a 
 | UnlockManager | `unlocked_game_systems`, `unlock_progression` |
 | EventManager | `event_progression` |
 | ZoneManager | `current_selected_zone_id`, `zone_progression_data` |
+| PathManager | `current_path_id`, `path_node_purchases`, `path_points` |
 | CyclingView (not singleton) | `current_cycling_technique_name` |
 
 ## SaveGameData Schema
@@ -47,6 +48,9 @@ All fields are `@export` properties on `SaveGameData` (extends Resource), persis
 | `zone_progression_data` | `Dictionary[String, ZoneProgressionData]` | `{}` | ZoneManager |
 | `inventory` | `InventoryData` | `new()` | InventoryManager |
 | `character_attributes` | `CharacterAttributesData` | `new()` (all 10.0) | CharacterManager |
+| `current_path_id` | `String` | `""` | PathManager |
+| `path_node_purchases` | `Dictionary[String, int]` | `{}` | PathManager |
+| `path_points` | `int` | `0` | PathManager |
 | `current_cycling_technique_name` | `String` | `"Foundation Technique"` | CyclingView |
 
 **Sub-resource contents:**
@@ -57,7 +61,7 @@ All fields are `@export` properties on `SaveGameData` (extends Resource), persis
 - `CharacterAttributesData` — 8 float attributes (STRENGTH, BODY, AGILITY, SPIRIT, FOUNDATION, CONTROL, RESILIENCE, WILLPOWER)
 
 ## Autoload Order
-1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager
+1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager → 14. PathManager
 
 ## Key Files
 
