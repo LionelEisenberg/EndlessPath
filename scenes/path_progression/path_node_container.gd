@@ -79,27 +79,15 @@ func _draw() -> void:
 		var from_center: Vector2 = from_ui.position + from_ui.size / 2.0
 		var to_center: Vector2 = to_ui.position + to_ui.size / 2.0
 
-		# Calculate edge points using node radii
-		var direction: Vector2 = (to_center - from_center).normalized()
-		var from_radius: float = _node_radii.get(from_id, 22.0) as float
-		var to_radius: float = _node_radii.get(to_id, 22.0) as float
-
-		var from_edge: Vector2 = from_center + direction * from_radius
-		var to_edge: Vector2 = to_center - direction * to_radius
-
-		# Only draw if nodes are far enough apart
-		if from_center.distance_to(to_center) <= (from_radius + to_radius):
-			continue
-
 		var line_color: Color = _get_connection_color(from_id, to_id)
 		var line_width: float = _get_connection_width(from_id, to_id)
-		draw_line(from_edge, to_edge, line_color, line_width, true)
+		draw_line(from_center, to_center, line_color, line_width, true)
 
 		# Add energy shader Line2D for purchased connections with a theme
 		var from_level: int = PathManager.get_node_purchase_count(from_id)
 		var to_level: int = PathManager.get_node_purchase_count(to_id)
 		if _theme and from_level >= 1 and to_level >= 1:
-			_add_energy_line(from_edge, to_edge, line_color)
+			_add_energy_line(from_center, to_center, line_color)
 
 
 func _get_connection_color(from_id: String, to_id: String) -> Color:
