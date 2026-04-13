@@ -4,7 +4,6 @@
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_normal.tres" id="2_s88hk"]
 [ext_resource type="StyleBox" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="3_rniea"]
 [ext_resource type="Texture2D" uid="uid://dx0u5hiwxfgu5" path="res://assets/themes/pixel_ui_theme/8x8_ui_elements.png" id="4_ritsa"]
-[ext_resource type="FontFile" uid="uid://sph0kotu777o" path="res://assets/themes/pixel_ui_theme/m5x7.ttf" id="5_coaog"]
 [ext_resource type="StyleBox" uid="uid://dsvdxbyhv7ait" path="res://assets/styleboxes/common/tab_hovered.tres" id="5_ritsa"]
 [ext_resource type="StyleBox" uid="uid://ddxfrsj7ixivk" path="res://assets/styleboxes/common/tab_selected.tres" id="6_coaog"]
 [ext_resource type="Texture2D" uid="uid://cxyml1owhi6de" path="res://assets/themes/pixel_ui_theme/8x8_ui_icons.png" id="6_rtjik"]
@@ -14,6 +13,7 @@
 [ext_resource type="StyleBox" uid="uid://6bpxixvqj3ck" path="res://assets/styleboxes/common/panel_dark.tres" id="9_lnfkg"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/common/panel_loot_tray.tres" id="10_loot_tray"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/scroll/scroll_button_normal.tres" id="10_scroll_n"]
+[ext_resource type="FontFile" uid="uid://sph0kotu777o" path="res://assets/themes/pixel_ui_theme/m5x7.ttf" id="11_hfw5f"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/scroll/scroll_button_hover.tres" id="11_scroll_h"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/scroll/scroll_button_pressed.tres" id="12_scroll_p"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/abilities/card_normal.tres" id="13_card_n"]
@@ -1403,7 +1403,7 @@ corner_detail = 1
 anti_aliasing = false
 
 [sub_resource type="FontFile" id="2"]
-fallbacks = Array[Font]([ExtResource("5_coaog")])
+fallbacks = Array[Font]([ExtResource("11_hfw5f")])
 cache/0/variation_coordinates = {}
 cache/0/face_index = 0
 cache/0/embolden = 0.0
@@ -2007,7 +2007,7 @@ atlas = ExtResource("6_rtjik")
 region = Rect2(111, 48, 10, 8)
 
 [sub_resource type="FontFile" id="600"]
-fallbacks = Array[Font]([ExtResource("5_coaog")])
+fallbacks = Array[Font]([ExtResource("11_hfw5f")])
 cache/0/variation_coordinates = {}
 cache/0/face_index = 0
 cache/0/embolden = 0.0
@@ -2774,7 +2774,7 @@ axis_stretch_vertical = 2
 region_rect = Rect2(96, 8, 16, 27)
 
 [resource]
-default_font = SubResource("600")
+default_font = ExtResource("11_hfw5f")
 default_font_size = 16
 Button/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
 Button/colors/font_color_disabled = Color(0.501961, 0.501961, 0.501961, 1)
