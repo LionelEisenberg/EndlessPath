@@ -20,10 +20,10 @@ var _glow_phase: float = 0.0
 var _is_keystone_available: bool = false
 
 ## Fill colors per state
-const FILL_LOCKED: Color = Color(0.22, 0.17, 0.12, 0.8)
-const FILL_AVAILABLE: Color = Color(0.35, 0.27, 0.18, 0.92)
-const FILL_PURCHASED: Color = Color(0.40, 0.30, 0.16, 0.95)
-const FILL_MAXED: Color = Color(0.45, 0.34, 0.18, 1.0)
+const FILL_LOCKED: Color = Color(0.25, 0.20, 0.15, 0.95)
+const FILL_AVAILABLE: Color = Color(0.38, 0.30, 0.20, 1.0)
+const FILL_PURCHASED: Color = Color(0.44, 0.34, 0.20, 1.0)
+const FILL_MAXED: Color = Color(0.50, 0.38, 0.22, 1.0)
 
 ## Border colors per state
 const BORDER_LOCKED: Color = Color(0.40, 0.32, 0.24, 0.7)

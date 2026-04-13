@@ -298,3 +298,5 @@ These are decisions deferred for future design work:
 6. **Exact node counts per tier** -- Requires balancing against point budget and desired completion percentages
 7. **Repeatable node caps** -- Exact cap values per node need balance testing
 8. **Point award frequency tuning** -- Every 10 levels is the starting value; may need adjustment based on how long levels take in practice
+9. **Path-specific visual theming** -- Each path should have its own color scheme and shader effects. Pure Madra = blue shimmer on node borders, Blackflame = red/black with ember particles, Earth = brown/green with stone texture. Node borders, connection lines, and the tree panel background should all shift per path. Requires per-path color palette in PathTreeData and shader work on node borders/connections.
+10. **Connection line shaders** -- Lines should have energy flow effects (moving particles or gradient pulses) rather than flat colors, especially for purchased connections

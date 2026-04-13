@@ -168,7 +168,15 @@ func _create_node_ui(node_data: PathNodeData, positions: Dictionary) -> void:
 	node_ui.node_hovered.connect(_on_node_hovered)
 	node_ui.node_unhovered.connect(_on_node_unhovered)
 
-	var node_radius: float = node_ui.size.x / 2.0
+	# Use the actual drawn shape radius, not bounding box
+	var node_radius: float = 20.0
+	match node_data.node_type:
+		PathNodeData.NodeType.KEYSTONE:
+			node_radius = 34.0
+		PathNodeData.NodeType.MAJOR:
+			node_radius = 23.0
+		_:
+			node_radius = 18.0
 	_node_uis[node_data.id] = node_ui
 	_node_container.register_node_ui(node_data.id, node_ui, node_radius)
 

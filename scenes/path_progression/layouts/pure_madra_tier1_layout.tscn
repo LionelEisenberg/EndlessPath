@@ -1,45 +1,50 @@
 [gd_scene format=3 uid="uid://7a450axlkpc4"]
 
-[node name="PureMadraTier1Layout" type="Node2D" unique_id=835162239]
+[node name="PureMadraTier1Layout" type="Node2D"]
 
-[node name="pure_core_awakening" type="Marker2D" parent="." unique_id=670294420]
-position = Vector2(600, 620)
+; Layer 1 — Root (bottom center)
+[node name="pure_core_awakening" type="Marker2D" parent="."]
+position = Vector2(550, 800)
 
-[node name="cycling_accuracy" type="Marker2D" parent="." unique_id=119086761]
-position = Vector2(440, 480)
+; Layer 2 — First branches (wide spread)
+[node name="empty_palm_duration" type="Marker2D" parent="."]
+position = Vector2(280, 640)
 
-[node name="empty_palm_duration" type="Marker2D" parent="." unique_id=1056646759]
-position = Vector2(560, 460)
+[node name="madra_strike" type="Marker2D" parent="."]
+position = Vector2(550, 620)
 
-[node name="stamina_recovery" type="Marker2D" parent="." unique_id=856647703]
-position = Vector2(640, 440)
+[node name="torrent_flow" type="Marker2D" parent="."]
+position = Vector2(780, 640)
 
-[node name="madra_strike" type="Marker2D" parent="." unique_id=301183898]
-position = Vector2(740, 460)
+[node name="madra_gen_up" type="Marker2D" parent="."]
+position = Vector2(140, 660)
 
-[node name="torrent_flow" type="Marker2D" parent="." unique_id=2086836204]
-position = Vector2(820, 490)
+; Layer 3 — Deeper branches (more spread)
+[node name="empty_palm_cost" type="Marker2D" parent="."]
+position = Vector2(200, 480)
 
-[node name="madra_gen_up" type="Marker2D" parent="." unique_id=1706209784]
-position = Vector2(380, 310)
+[node name="madra_strike_damage" type="Marker2D" parent="."]
+position = Vector2(460, 440)
 
-[node name="empty_palm_cost" type="Marker2D" parent="." unique_id=530055361]
-position = Vector2(500, 300)
+[node name="madra_strike_efficiency" type="Marker2D" parent="."]
+position = Vector2(620, 450)
 
-[node name="core_xp_boost" type="Marker2D" parent="." unique_id=2026123456]
-position = Vector2(620, 280)
+[node name="cycling_accuracy" type="Marker2D" parent="."]
+position = Vector2(720, 460)
 
-[node name="madra_strike_damage" type="Marker2D" parent="." unique_id=1547604617]
-position = Vector2(720, 300)
+[node name="adventure_madra_return" type="Marker2D" parent="."]
+position = Vector2(900, 470)
 
-[node name="madra_strike_efficiency" type="Marker2D" parent="." unique_id=1927052866]
-position = Vector2(820, 320)
+[node name="madra_capacity" type="Marker2D" parent="."]
+position = Vector2(80, 480)
 
-[node name="adventure_madra_return" type="Marker2D" parent="." unique_id=878084126]
-position = Vector2(880, 350)
+; Layer 4 — Deep
+[node name="core_xp_boost" type="Marker2D" parent="."]
+position = Vector2(660, 280)
 
-[node name="madra_capacity" type="Marker2D" parent="." unique_id=1481485315]
-position = Vector2(400, 140)
+[node name="stamina_recovery" type="Marker2D" parent="."]
+position = Vector2(920, 290)
 
-[node name="madra_on_levelup" type="Marker2D" parent="." unique_id=1643467614]
+; Layer 5 — Deepest
+[node name="madra_on_levelup" type="Marker2D" parent="."]
 position = Vector2(600, 120)

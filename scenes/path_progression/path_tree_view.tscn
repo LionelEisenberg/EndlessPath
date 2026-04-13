@@ -36,7 +36,7 @@ thickness = 2
 bg_color = Color(0.165, 0.102, 0.071, 0.3)
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_benefits_sep"]
-color = Color(0.42, 0.29, 0.188, 0.6)
+color = Color(0.41960785, 0.2901961, 0.1882353, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_madra_info"]
 bg_color = Color(0.149, 0.094, 0.063, 0.97)
@@ -255,10 +255,8 @@ theme_type_variation = &"LabelPathBody"
 text = "0"
 horizontal_alignment = 2
 
-[node name="SharedTooltip" parent="." instance=ExtResource("3_tooltip")]
+[node name="SharedTooltip" parent="." unique_id=1690444795 instance=ExtResource("3_tooltip")]
 unique_name_in_owner = true
-z_index = 50
-z_as_relative = false
 layout_mode = 0
 offset_left = 0.0
 offset_top = 0.0
