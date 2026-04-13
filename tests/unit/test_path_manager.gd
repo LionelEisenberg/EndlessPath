@@ -40,6 +40,11 @@ func before_each() -> void:
 	var _smooth_flow := CyclingTechniqueData.new()
 	_smooth_flow.id = "smooth_flow"
 	CyclingManager._techniques_by_id = {"smooth_flow": _smooth_flow}
+	# PathManager.purchase_node now calls AbilityManager, so set up its test state
+	AbilityManager._live_save_data = _save_data
+	var _empty_palm := AbilityData.new()
+	_empty_palm.ability_id = "empty_palm"
+	AbilityManager._abilities_by_id = {"empty_palm": _empty_palm}
 
 # ----- Point management -----
 
@@ -231,7 +236,7 @@ func test_ability_unlock_tracked() -> void:
 	var node_a := _create_test_node("a")
 	var effect := PathNodeEffectData.new()
 	effect.effect_type = PathNodeEffectData.EffectType.UNLOCK_ABILITY
-	effect.string_value = "res://resources/abilities/empty_palm.tres"
+	effect.string_value = "empty_palm"
 	node_a.effects = [effect]
 	var tree := _create_test_tree([node_a])
 	PathManager._all_trees["test_path"] = tree
@@ -240,7 +245,7 @@ func test_ability_unlock_tracked() -> void:
 	PathManager.purchase_node("a")
 	var unlocked: Array[String] = PathManager.get_unlocked_abilities()
 	assert_eq(unlocked.size(), 1, "should have 1 unlocked ability")
-	assert_eq(unlocked[0], "res://resources/abilities/empty_palm.tres", "should be empty_palm")
+	assert_eq(unlocked[0], "empty_palm", "should be empty_palm")
 
 func test_cycling_technique_unlock_tracked() -> void:
 	var node_a := _create_test_node("a")
@@ -261,7 +266,7 @@ func test_duplicate_unlocks_not_added() -> void:
 	var node_a := _create_test_node("a", 1, [], 3)
 	var effect := PathNodeEffectData.new()
 	effect.effect_type = PathNodeEffectData.EffectType.UNLOCK_ABILITY
-	effect.string_value = "res://resources/abilities/empty_palm.tres"
+	effect.string_value = "empty_palm"
 	node_a.effects = [effect]
 	var tree := _create_test_tree([node_a])
 	PathManager._all_trees["test_path"] = tree
