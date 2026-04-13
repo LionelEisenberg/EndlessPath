@@ -49,12 +49,15 @@ func unlock_technique(technique_id: String) -> void:
 	Log.info("CyclingManager: Unlocked technique '%s'" % technique_id)
 	technique_unlocked.emit(_techniques_by_id[technique_id])
 
-## Sets the equipped technique by ID.
+## Sets the equipped technique by ID. Must be unlocked first.
 func equip_technique(technique_id: String) -> void:
 	if not _live_save_data:
 		return
 	if not _techniques_by_id.has(technique_id):
 		push_error("CyclingManager: unknown technique_id '%s'" % technique_id)
+		return
+	if technique_id not in _live_save_data.unlocked_cycling_technique_ids:
+		push_error("CyclingManager: cannot equip locked technique '%s'" % technique_id)
 		return
 	_live_save_data.equipped_cycling_technique_id = technique_id
 	Log.info("CyclingManager: Equipped technique '%s'" % technique_id)

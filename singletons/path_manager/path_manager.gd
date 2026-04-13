@@ -117,8 +117,8 @@ func get_effects() -> PathEffectsSummary:
 func get_unlocked_abilities() -> Array[String]:
 	return _cached_effects.unlocked_abilities
 
-## Returns names/paths of all cycling techniques unlocked by purchased nodes.
-## Not yet consumed by the cycling system — ready for ability rework integration.
+## Returns IDs of all cycling techniques unlocked by purchased nodes.
+## CyclingManager is the live consumer; this returns the aggregated view from path state.
 func get_unlocked_cycling_techniques() -> Array[String]:
 	return _cached_effects.unlocked_cycling_techniques
 

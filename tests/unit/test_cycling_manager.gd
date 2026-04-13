@@ -4,7 +4,6 @@ extends GutTest
 
 var _save_data: SaveGameData
 var _technique_a: CyclingTechniqueData
-var _technique_b: CyclingTechniqueData
 var _foundation: CyclingTechniqueData
 
 func _create_test_technique(technique_id: String, technique_name: String) -> CyclingTechniqueData:
@@ -17,13 +16,15 @@ func before_each() -> void:
 	_save_data = SaveGameData.new()
 	_foundation = _create_test_technique("foundation_technique", "Foundation Technique")
 	_technique_a = _create_test_technique("tech_a", "Technique A")
-	_technique_b = _create_test_technique("tech_b", "Technique B")
 	CyclingManager._live_save_data = _save_data
 	CyclingManager._techniques_by_id = {
 		"foundation_technique": _foundation,
 		"tech_a": _technique_a,
-		"tech_b": _technique_b,
 	}
+
+func after_each() -> void:
+	CyclingManager._live_save_data = null
+	CyclingManager._techniques_by_id = {}
 
 # ----- Default state -----
 
@@ -79,16 +80,19 @@ func test_unlock_already_unlocked_does_not_emit_signal() -> void:
 # ----- equip_technique -----
 
 func test_equip_technique_changes_equipped() -> void:
+	CyclingManager.unlock_technique("tech_a")
 	CyclingManager.equip_technique("tech_a")
 	var equipped: CyclingTechniqueData = CyclingManager.get_equipped_technique()
 	assert_eq(equipped.id, "tech_a", "equipped should be tech_a")
 
 func test_equip_technique_updates_save_data() -> void:
+	CyclingManager.unlock_technique("tech_a")
 	CyclingManager.equip_technique("tech_a")
 	assert_eq(_save_data.equipped_cycling_technique_id, "tech_a",
 		"save data should store the equipped technique id")
 
 func test_equip_technique_emits_signal() -> void:
+	CyclingManager.unlock_technique("tech_a")
 	watch_signals(CyclingManager)
 	CyclingManager.equip_technique("tech_a")
 	assert_signal_emitted_with_parameters(CyclingManager, "equipped_technique_changed", [_technique_a])
@@ -96,6 +100,10 @@ func test_equip_technique_emits_signal() -> void:
 func test_equip_technique_unknown_id_pushes_error() -> void:
 	CyclingManager.equip_technique("nonexistent")
 	assert_push_error("unknown technique_id")
+
+func test_equip_locked_technique_pushes_error() -> void:
+	CyclingManager.equip_technique("tech_a")
+	assert_push_error("cannot equip locked technique")
 
 # ----- is_technique_unlocked -----
 
