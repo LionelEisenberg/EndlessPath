@@ -1,0 +1,87 @@
+[gd_scene format=3 uid="uid://bv3k8n2xqpf7t"]
+
+[ext_resource type="Script" uid="uid://c9m4r6y1wz5dn" path="res://scenes/abilities/ability_card/ability_card.gd" id="1_script"]
+
+[node name="AbilityCard" type="PanelContainer"]
+script = ExtResource("1_script")
+
+[node name="CardVBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="CollapsedRow" type="HBoxContainer" parent="CardVBox"]
+layout_mode = 2
+
+[node name="AbilityIcon" type="TextureRect" parent="CardVBox/CollapsedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+stretch_mode = 5
+
+[node name="InfoVBox" type="VBoxContainer" parent="CardVBox/CollapsedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameRow" type="HBoxContainer" parent="CardVBox/CollapsedRow/InfoVBox"]
+layout_mode = 2
+
+[node name="AbilityName" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPathBody"
+text = "Ability Name"
+
+[node name="MadraBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPathGreen"
+text = "PURE"
+
+[node name="SourceBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPathMuted"
+text = "Innate"
+
+[node name="CostLabel" type="Label" parent="CardVBox/CollapsedRow/InfoVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPathMuted"
+text = "Free · 0.0s CD"
+
+[node name="EquippedDot" type="ColorRect" parent="CardVBox/CollapsedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.490196, 0.807843, 0.509804, 1)
+
+[node name="ExpandedDetails" type="VBoxContainer" parent="CardVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="DetailSep" type="HSeparator" parent="CardVBox/ExpandedDetails"]
+layout_mode = 2
+
+[node name="DescriptionLabel" type="Label" parent="CardVBox/ExpandedDetails"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPathMuted"
+autowrap_mode = 3
+text = "Ability description goes here."
+
+[node name="StatsLabel" type="Label" parent="CardVBox/ExpandedDetails"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelPathBody"
+text = "Offensive · Single Enemy · Cast: Instant · Madra: None"
+
+[node name="ButtonRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails"]
+layout_mode = 2
+alignment = 2
+
+[node name="EquipButton" type="Button" parent="CardVBox/ExpandedDetails/ButtonRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "EQUIP"
