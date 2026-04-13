@@ -56,10 +56,6 @@ func equip_technique(technique_id: String) -> void:
 	_live_save_data.equipped_cycling_technique_id = technique_id
 	equipped_technique_changed.emit(_techniques_by_id[technique_id])
 
-## Returns true if the technique ID exists in the catalog.
-func has_technique(technique_id: String) -> bool:
-	return _techniques_by_id.has(technique_id)
-
 ## Returns true if the technique is currently unlocked.
 func is_technique_unlocked(technique_id: String) -> bool:
 	if not _live_save_data:
