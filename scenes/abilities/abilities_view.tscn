@@ -1,11 +1,10 @@
 [gd_scene format=3 uid="uid://dq8m3p6k2n1xt"]
 
-[ext_resource type="Script" uid="uid://bk7r4w9j5m2vc" path="res://scenes/abilities/abilities_view.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://682kdlw0pdag" path="res://scenes/abilities/abilities_view.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/abilities/equip_slot/equip_slot.tscn" id="2_equip_slot"]
-[ext_resource type="StyleBoxFlat" path="res://assets/styleboxes/buttons/button_default_normal.tres" id="3_btn_normal"]
-[ext_resource type="StyleBoxFlat" path="res://assets/styleboxes/buttons/button_default_hover.tres" id="4_btn_hover"]
-[ext_resource type="StyleBoxFlat" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="5_btn_pressed"]
-[ext_resource type="StyleBoxFlat" path="res://assets/styleboxes/buttons/button_default_disabled.tres" id="6_btn_disabled"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_normal.tres" id="3_btn_normal"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_hover.tres" id="4_btn_hover"]
+[ext_resource type="StyleBox" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="5_btn_pressed"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unified_panel"]
 bg_color = Color(0.196, 0.157, 0.118, 0.94)
@@ -30,22 +29,20 @@ corner_radius_top_right = 6
 color = Color(0.42, 0.29, 0.188, 1)
 thickness = 2
 
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_body_divider"]
-color = Color(0.42, 0.29, 0.188, 1)
-thickness = 2
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_loadout_bg"]
-bg_color = Color(0.165, 0.102, 0.071, 0.3)
 content_margin_left = 16.0
 content_margin_top = 16.0
 content_margin_right = 16.0
 content_margin_bottom = 16.0
+bg_color = Color(0.165, 0.102, 0.071, 0.3)
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_sep_full_width"]
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_body_divider"]
+color = Color(0.42, 0.29, 0.188, 1)
+thickness = 2
 
-[sub_resource type="Animation" id="Animation_open"]
-resource_name = "open"
-length = 0.3
+[sub_resource type="Animation" id="Animation_RESET"]
+resource_name = "RESET"
+length = 0.01
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -53,10 +50,10 @@ tracks/0/path = NodePath("UnifiedPanel:modulate")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.3),
-"transitions": PackedFloat32Array(0.5, 1),
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+"values": [Color(1, 1, 1, 1)]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -65,10 +62,10 @@ tracks/1/path = NodePath("UnifiedPanel:scale")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0, 0.3),
-"transitions": PackedFloat32Array(0.3, 1),
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(0.95, 0.95), Vector2(1, 1)]
+"values": [Vector2(1, 1)]
 }
 
 [sub_resource type="Animation" id="Animation_close"]
@@ -99,9 +96,9 @@ tracks/1/keys = {
 "values": [Vector2(1, 1), Vector2(0.95, 0.95)]
 }
 
-[sub_resource type="Animation" id="Animation_RESET"]
-resource_name = "RESET"
-length = 0.01
+[sub_resource type="Animation" id="Animation_open"]
+resource_name = "open"
+length = 0.3
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -109,10 +106,10 @@ tracks/0/path = NodePath("UnifiedPanel:modulate")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(0.5, 1),
 "update": 0,
-"values": [Color(1, 1, 1, 1)]
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -121,10 +118,10 @@ tracks/1/path = NodePath("UnifiedPanel:scale")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(0.3, 1),
 "update": 0,
-"values": [Vector2(1, 1)]
+"values": [Vector2(0.95, 0.95), Vector2(1, 1)]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_main"]
@@ -134,8 +131,7 @@ _data = {
 &"open": SubResource("Animation_open")
 }
 
-[node name="AbilitiesView" type="Control"]
-visible = false
+[node name="AbilitiesView" type="Control" unique_id=1061513448]
 z_index = 3
 layout_mode = 3
 anchors_preset = 15
@@ -145,7 +141,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="UnifiedPanel" type="PanelContainer" parent="."]
+[node name="UnifiedPanel" type="PanelContainer" parent="." unique_id=392311326]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -159,167 +155,168 @@ grow_vertical = 2
 pivot_offset = Vector2(840, 460)
 theme_override_styles/panel = SubResource("StyleBoxFlat_unified_panel")
 
-[node name="MainVBox" type="VBoxContainer" parent="UnifiedPanel"]
+[node name="MainVBox" type="VBoxContainer" parent="UnifiedPanel" unique_id=468248430]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Header" type="PanelContainer" parent="UnifiedPanel/MainVBox"]
+[node name="Header" type="PanelContainer" parent="UnifiedPanel/MainVBox" unique_id=879439799]
 z_index = 1
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_header_bg")
 
-[node name="HeaderMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Header"]
+[node name="HeaderMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Header" unique_id=1673349783]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 14
 
-[node name="HeaderHBox" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin"]
+[node name="HeaderHBox" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin" unique_id=482521895]
 layout_mode = 2
 
-[node name="TitleBlock" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox"]
+[node name="TitleBlock" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox" unique_id=155084540]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="Title" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/TitleBlock"]
+[node name="Title" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/TitleBlock" unique_id=2049434774]
 layout_mode = 2
 theme_type_variation = &"LabelPathTitle"
 text = "ABILITIES"
 uppercase = true
 
-[node name="Subtitle" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/TitleBlock"]
+[node name="Subtitle" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/TitleBlock" unique_id=854815547]
 layout_mode = 2
 theme_type_variation = &"LabelPathSubheading"
 text = "Manage your combat techniques"
 
-[node name="Spacer" type="Control" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox"]
+[node name="Spacer" type="Control" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox" unique_id=1963131407]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HeaderSep" type="HSeparator" parent="UnifiedPanel/MainVBox"]
+[node name="HeaderSep" type="HSeparator" parent="UnifiedPanel/MainVBox" unique_id=2047888090]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxLine_header_sep")
 
-[node name="Body" type="HBoxContainer" parent="UnifiedPanel/MainVBox"]
+[node name="Body" type="HBoxContainer" parent="UnifiedPanel/MainVBox" unique_id=672278870]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 0
 
-[node name="LoadoutSidebar" type="PanelContainer" parent="UnifiedPanel/MainVBox/Body"]
+[node name="LoadoutSidebar" type="PanelContainer" parent="UnifiedPanel/MainVBox/Body" unique_id=1009210384]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_loadout_bg")
 
-[node name="LoadoutVBox" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar"]
+[node name="LoadoutVBox" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar" unique_id=2026348320]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="LoadoutLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox"]
+[node name="LoadoutLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=757308609]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_type_variation = &"LabelPathHeading"
 text = "LOADOUT"
-uppercase = true
 horizontal_alignment = 1
+uppercase = true
 
-[node name="EquipSlot1" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" instance=ExtResource("2_equip_slot")]
+[node name="EquipSlot1" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1926282163 instance=ExtResource("2_equip_slot")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 
-[node name="EquipSlot2" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" instance=ExtResource("2_equip_slot")]
+[node name="EquipSlot2" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1164936240 instance=ExtResource("2_equip_slot")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 
-[node name="EquipSlot3" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" instance=ExtResource("2_equip_slot")]
+[node name="EquipSlot3" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1473576055 instance=ExtResource("2_equip_slot")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 
-[node name="EquipSlot4" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" instance=ExtResource("2_equip_slot")]
+[node name="EquipSlot4" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=690544088 instance=ExtResource("2_equip_slot")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 
-[node name="SlotCounter" type="Label" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox"]
+[node name="SlotCounter" type="Label" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1494064995]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelPathMuted"
 text = "0 / 4"
 horizontal_alignment = 1
 
-[node name="BodyDivider" type="VSeparator" parent="UnifiedPanel/MainVBox/Body"]
+[node name="BodyDivider" type="VSeparator" parent="UnifiedPanel/MainVBox/Body" unique_id=716063268]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxLine_body_divider")
 
-[node name="MainContent" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body"]
+[node name="MainContent" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body" unique_id=997926788]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 0
 
-[node name="FilterBarMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Body/MainContent"]
+[node name="FilterBarMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Body/MainContent" unique_id=1217246628]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="FilterBar" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin"]
+[node name="FilterBar" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin" unique_id=2069922360]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="FilterToggles" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar"]
+[node name="FilterToggles" type="HBoxContainer" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar" unique_id=2127712360]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="FilterAll" type="Button" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar/FilterToggles"]
+[node name="FilterAll" type="Button" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar/FilterToggles" unique_id=1270433829]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/normal = ExtResource("3_btn_normal")
-theme_override_styles/hover = ExtResource("4_btn_hover")
 theme_override_styles/pressed = ExtResource("5_btn_pressed")
+theme_override_styles/hover = ExtResource("4_btn_hover")
 text = "All"
 
-[node name="FilterOffensive" type="Button" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar/FilterToggles"]
+[node name="FilterOffensive" type="Button" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar/FilterToggles" unique_id=730216767]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/normal = ExtResource("3_btn_normal")
-theme_override_styles/hover = ExtResource("4_btn_hover")
 theme_override_styles/pressed = ExtResource("5_btn_pressed")
+theme_override_styles/hover = ExtResource("4_btn_hover")
 text = "Offensive"
 
-[node name="FilterBuff" type="Button" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar/FilterToggles"]
+[node name="FilterBuff" type="Button" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar/FilterToggles" unique_id=1994491906]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/normal = ExtResource("3_btn_normal")
-theme_override_styles/hover = ExtResource("4_btn_hover")
 theme_override_styles/pressed = ExtResource("5_btn_pressed")
+theme_override_styles/hover = ExtResource("4_btn_hover")
 text = "Buff"
 
-[node name="FilterEquipped" type="Button" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar/FilterToggles"]
+[node name="FilterEquipped" type="Button" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar/FilterToggles" unique_id=1693828789]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/normal = ExtResource("3_btn_normal")
-theme_override_styles/hover = ExtResource("4_btn_hover")
 theme_override_styles/pressed = ExtResource("5_btn_pressed")
+theme_override_styles/hover = ExtResource("4_btn_hover")
 text = "Equipped"
 
-[node name="SortDropdown" type="OptionButton" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar"]
+[node name="SortDropdown" type="OptionButton" parent="UnifiedPanel/MainVBox/Body/MainContent/FilterBarMargin/FilterBar" unique_id=1603491421]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_styles/normal = ExtResource("3_btn_normal")
-theme_override_styles/hover = ExtResource("4_btn_hover")
 theme_override_styles/pressed = ExtResource("5_btn_pressed")
+theme_override_styles/hover = ExtResource("4_btn_hover")
 theme_override_constants/arrow_margin = 8
 
-[node name="ScrollContainer" type="ScrollContainer" parent="UnifiedPanel/MainVBox/Body/MainContent"]
+[node name="ScrollContainer" type="ScrollContainer" parent="UnifiedPanel/MainVBox/Body/MainContent" unique_id=1092822142]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ScrollMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Body/MainContent/ScrollContainer"]
+[node name="ScrollMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Body/MainContent/ScrollContainer" unique_id=846377558]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -328,14 +325,12 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 16
 
-[node name="CardList" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/MainContent/ScrollContainer/ScrollMargin"]
+[node name="CardList" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Body/MainContent/ScrollContainer/ScrollMargin" unique_id=863808000]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=208952486]
 unique_name_in_owner = true
-libraries = {
-&"": SubResource("AnimationLibrary_main")
-}
+libraries/ = SubResource("AnimationLibrary_main")

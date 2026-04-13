@@ -3,6 +3,7 @@ extends PanelContainer
 
 ## A single loadout slot in the AbilitiesView sidebar.
 ## Accepts drag-and-drop from AbilityCard to equip abilities.
+## Supports dragging out of occupied slots and reordering between slots.
 
 signal ability_dropped(ability_id: String, slot_index: int)
 signal slot_cleared(slot_index: int)
@@ -35,6 +36,19 @@ func get_ability() -> AbilityData:
 	return _ability_data
 
 # ----- Drag and Drop -----
+
+func _get_drag_data(_at_position: Vector2) -> Variant:
+	if not _ability_data:
+		return null
+	# Build visual drag preview with the ability icon
+	var preview: TextureRect = TextureRect.new()
+	preview.custom_minimum_size = Vector2(48, 48)
+	preview.size = Vector2(48, 48)
+	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview.texture = _ability_data.icon
+	preview.modulate = Color(1.0, 1.0, 1.0, 0.85)
+	set_drag_preview(preview)
+	return {"ability_id": _ability_data.ability_id, "from_slot": _slot_index}
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if data is Dictionary and data.has("ability_id"):

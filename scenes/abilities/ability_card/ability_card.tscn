@@ -1,13 +1,17 @@
 [gd_scene format=3 uid="uid://bv3k8n2xqpf7t"]
 
-[ext_resource type="Script" uid="uid://c9m4r6y1wz5dn" path="res://scenes/abilities/ability_card/ability_card.gd" id="1_script"]
-[ext_resource type="StyleBoxFlat" path="res://assets/styleboxes/buttons/button_default_normal.tres" id="2_btn_normal"]
-[ext_resource type="StyleBoxFlat" path="res://assets/styleboxes/buttons/button_default_hover.tres" id="3_btn_hover"]
-[ext_resource type="StyleBoxFlat" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="4_btn_pressed"]
-[ext_resource type="StyleBoxFlat" path="res://assets/styleboxes/buttons/button_default_disabled.tres" id="5_btn_disabled"]
+[ext_resource type="Script" uid="uid://cmcwlk2fudb7o" path="res://scenes/abilities/ability_card/ability_card.gd" id="1_script"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_normal.tres" id="2_btn_normal"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_hover.tres" id="3_btn_hover"]
+[ext_resource type="StyleBox" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="4_btn_pressed"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_disabled.tres" id="5_btn_disabled"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_normal"]
-bg_color = Color(0.239, 0.180, 0.133, 1)
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.239, 0.18, 0.133, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
@@ -17,67 +21,97 @@ corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
-content_margin_left = 12.0
-content_margin_top = 10.0
-content_margin_right = 12.0
-content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_madra_pill"]
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0.49, 0.81, 0.51, 0.2)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.49, 0.81, 0.51, 0.4)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_source_pill"]
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0.42, 0.29, 0.188, 0.3)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.42, 0.29, 0.188, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_detail_sep"]
 color = Color(0.42, 0.29, 0.188, 0.5)
-thickness = 1
 
-[node name="AbilityCard" type="PanelContainer"]
+[node name="AbilityCard" type="PanelContainer" unique_id=474507726]
+offset_right = 510.0
+offset_bottom = 62.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_card_normal")
 script = ExtResource("1_script")
 
-[node name="CardVBox" type="VBoxContainer" parent="."]
+[node name="CardVBox" type="VBoxContainer" parent="." unique_id=166326077]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="CollapsedRow" type="HBoxContainer" parent="CardVBox"]
+[node name="CollapsedRow" type="HBoxContainer" parent="CardVBox" unique_id=1591884802]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="AbilityIcon" type="TextureRect" parent="CardVBox/CollapsedRow"]
+[node name="AbilityIcon" type="TextureRect" parent="CardVBox/CollapsedRow" unique_id=212929155]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_vertical = 4
 stretch_mode = 5
 
-[node name="InfoVBox" type="VBoxContainer" parent="CardVBox/CollapsedRow"]
+[node name="InfoVBox" type="VBoxContainer" parent="CardVBox/CollapsedRow" unique_id=1766059286]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="NameRow" type="HBoxContainer" parent="CardVBox/CollapsedRow/InfoVBox"]
+[node name="NameRow" type="HBoxContainer" parent="CardVBox/CollapsedRow/InfoVBox" unique_id=933578692]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="AbilityName" type="RichTextLabel" parent="CardVBox/CollapsedRow/InfoVBox/NameRow"]
+[node name="AbilityName" type="RichTextLabel" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=1169462998]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/normal_font_size = 28
 bbcode_enabled = true
 text = "Ability Name"
 fit_content = true
 scroll_active = false
 
-[node name="MadraBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow"]
+[node name="MadraBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=807632035]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 4
 theme_type_variation = &"LabelPathGreen"
+theme_override_styles/normal = SubResource("StyleBoxFlat_madra_pill")
 text = "PURE"
 
-[node name="SourceBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow"]
+[node name="SourceBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=670346991]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 4
 theme_type_variation = &"LabelPathMuted"
+theme_override_styles/normal = SubResource("StyleBoxFlat_source_pill")
 text = "Innate"
 
-[node name="CostLabel" type="RichTextLabel" parent="CardVBox/CollapsedRow/InfoVBox"]
+[node name="CostLabel" type="RichTextLabel" parent="CardVBox/CollapsedRow/InfoVBox" unique_id=2080349343]
 unique_name_in_owner = true
 layout_mode = 2
 bbcode_enabled = true
@@ -85,24 +119,29 @@ text = "Free · 0.0s CD"
 fit_content = true
 scroll_active = false
 
-[node name="EquippedDot" type="ColorRect" parent="CardVBox/CollapsedRow"]
+[node name="EquippedDot" type="ColorRect" parent="CardVBox/CollapsedRow" unique_id=172191552]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(8, 8)
 layout_mode = 2
 size_flags_vertical = 4
 color = Color(0.490196, 0.807843, 0.509804, 1)
 
-[node name="ExpandedDetails" type="VBoxContainer" parent="CardVBox"]
+[node name="ExpandedDetails" type="VBoxContainer" parent="CardVBox" unique_id=687580963]
 unique_name_in_owner = true
-visible = false
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="DetailSep" type="HSeparator" parent="CardVBox/ExpandedDetails"]
+[node name="DetailSep" type="HSeparator" parent="CardVBox/ExpandedDetails" unique_id=1209933513]
 layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxLine_detail_sep")
 
-[node name="DescriptionLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails"]
+[node name="TagsRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=1150968468]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails" unique_id=2009695052]
 unique_name_in_owner = true
 layout_mode = 2
 bbcode_enabled = true
@@ -110,32 +149,31 @@ text = "Ability description goes here."
 fit_content = true
 scroll_active = false
 
-[node name="StatsLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails"]
+[node name="StatsLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails" unique_id=1203350405]
 unique_name_in_owner = true
 layout_mode = 2
 bbcode_enabled = true
-text = "Offensive · Single Enemy · Cast: Instant · Madra: None"
+text = "Cast: Instant · Madra: None"
 fit_content = true
 scroll_active = false
 
-[node name="ScalingLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails"]
+[node name="ScalingLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails" unique_id=2057513249]
 unique_name_in_owner = true
 layout_mode = 2
 bbcode_enabled = true
-text = ""
 fit_content = true
 scroll_active = false
 
-[node name="ButtonRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails"]
+[node name="ButtonRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=555310966]
 layout_mode = 2
 alignment = 2
 
-[node name="EquipButton" type="Button" parent="CardVBox/ExpandedDetails/ButtonRow"]
+[node name="EquipButton" type="Button" parent="CardVBox/ExpandedDetails/ButtonRow" unique_id=1376840928]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 36)
 layout_mode = 2
 theme_override_styles/normal = ExtResource("2_btn_normal")
-theme_override_styles/hover = ExtResource("3_btn_hover")
 theme_override_styles/pressed = ExtResource("4_btn_pressed")
+theme_override_styles/hover = ExtResource("3_btn_hover")
 theme_override_styles/disabled = ExtResource("5_btn_disabled")
 text = "EQUIP"

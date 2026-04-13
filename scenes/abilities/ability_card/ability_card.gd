@@ -12,6 +12,7 @@ signal card_selected(card: AbilityCard)
 var _ability_data: AbilityData = null
 var _is_expanded: bool = false
 var _is_equipped: bool = false
+var _expand_tween: Tween = null
 
 var _style_normal: StyleBoxFlat = null
 var _style_expanded: StyleBoxFlat = null
@@ -23,6 +24,7 @@ var _style_expanded: StyleBoxFlat = null
 @onready var _source_badge: Label = %SourceBadge
 @onready var _equipped_dot: Control = %EquippedDot
 @onready var _expanded_details: VBoxContainer = %ExpandedDetails
+@onready var _tags_row: HBoxContainer = %TagsRow
 @onready var _description_label: RichTextLabel = %DescriptionLabel
 @onready var _stats_label: RichTextLabel = %StatsLabel
 @onready var _scaling_label: RichTextLabel = %ScalingLabel
@@ -32,6 +34,7 @@ func _ready() -> void:
 	_equip_button.pressed.connect(_on_equip_button_pressed)
 	gui_input.connect(_on_gui_input)
 	_build_card_styles()
+	clip_contents = true
 
 # ----- Public API -----
 
@@ -46,10 +49,10 @@ func set_equipped(is_equipped: bool) -> void:
 	_is_equipped = is_equipped
 	_update_equipped_display()
 
-## Collapses the card.
+## Collapses the card (no animation).
 func collapse() -> void:
 	_is_expanded = false
-	_expanded_details.visible = false
+	_animate_expand(false)
 	_apply_card_style()
 
 ## Returns the ability data for this card.
@@ -61,11 +64,13 @@ func get_ability_data() -> AbilityData:
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if not _ability_data:
 		return null
-	# Build drag preview
-	var preview: Label = Label.new()
-	preview.text = _ability_data.ability_name
-	preview.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
-	preview.add_theme_font_size_override("font_size", 20)
+	# Build visual drag preview with the ability icon
+	var preview: TextureRect = TextureRect.new()
+	preview.custom_minimum_size = Vector2(48, 48)
+	preview.size = Vector2(48, 48)
+	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview.texture = _ability_data.icon
+	preview.modulate = Color(1.0, 1.0, 1.0, 0.85)
 	set_drag_preview(preview)
 	return {"ability_id": _ability_data.ability_id}
 
@@ -106,7 +111,7 @@ func _update_display() -> void:
 
 	_icon.texture = _ability_data.icon
 
-	# Ability name with BBCode
+	# Ability name with BBCode — larger font set in TSCN (28px override)
 	_name_label.text = ""
 	_name_label.append_text("[color=#F0E8D8]%s[/color]" % _ability_data.ability_name)
 
@@ -122,6 +127,9 @@ func _update_display() -> void:
 
 	# Source badge
 	_source_badge.text = AbilityData.AbilitySource.keys()[_ability_data.ability_source].capitalize()
+
+	# Tag badges (type + target as pills)
+	_update_tags_display()
 
 	# Expanded details
 	_description_label.text = ""
@@ -143,13 +151,41 @@ func _update_cost_display() -> void:
 		_cost_label.append_text("[color=#E06060]%s[/color]" % cost_text)
 	_cost_label.append_text("[color=#A89070] \u00b7 %s[/color]" % cd_text)
 
+func _update_tags_display() -> void:
+	# Clear existing tag children
+	for child: Node in _tags_row.get_children():
+		child.queue_free()
+
+	var type_name: String = AbilityData.AbilityType.keys()[_ability_data.ability_type].capitalize()
+	var target_name: String = AbilityData.TargetType.keys()[_ability_data.target_type].capitalize().replace("_", " ")
+
+	_tags_row.add_child(_create_tag_label(type_name))
+	_tags_row.add_child(_create_tag_label(target_name))
+
+func _create_tag_label(text: String) -> Label:
+	var tag: Label = Label.new()
+	tag.text = text
+	tag.add_theme_font_size_override("font_size", 16)
+	tag.add_theme_color_override("font_color", ThemeConstants.TEXT_MUTED)
+
+	var pill: StyleBoxFlat = StyleBoxFlat.new()
+	pill.bg_color = Color(0.42, 0.29, 0.188, 0.25)
+	pill.set_border_width_all(1)
+	pill.border_color = Color(0.42, 0.29, 0.188, 0.5)
+	pill.set_corner_radius_all(4)
+	pill.content_margin_left = 8.0
+	pill.content_margin_right = 8.0
+	pill.content_margin_top = 2.0
+	pill.content_margin_bottom = 2.0
+	tag.add_theme_stylebox_override("normal", pill)
+
+	return tag
+
 func _update_stats_display() -> void:
 	_stats_label.text = ""
-	var target_name: String = AbilityData.TargetType.keys()[_ability_data.target_type].capitalize().replace("_", " ")
-	var type_name: String = AbilityData.AbilityType.keys()[_ability_data.ability_type].capitalize()
 	var cast_text: String = "Instant" if _ability_data.cast_time <= 0.0 else "%.1fs" % _ability_data.cast_time
 	var madra_text: String = AbilityData.MadraType.keys()[_ability_data.madra_type].capitalize()
-	_stats_label.append_text("[color=#A89070]%s \u00b7 %s \u00b7 Cast: %s \u00b7 Madra: %s[/color]" % [type_name, target_name, cast_text, madra_text])
+	_stats_label.append_text("[color=#A89070]Cast: %s \u00b7 Madra: %s[/color]" % [cast_text, madra_text])
 
 func _update_scaling_display() -> void:
 	_scaling_label.text = ""
@@ -158,6 +194,13 @@ func _update_scaling_display() -> void:
 		return
 
 	var effect: CombatEffectData = _ability_data.effects[0]
+
+	# Only show damage/scaling for offensive abilities with actual damage values
+	var has_damage_info: bool = _has_damage_or_scaling(effect)
+	if not has_damage_info:
+		_scaling_label.visible = false
+		return
+
 	var parts: Array[String] = []
 
 	# Base value
@@ -188,6 +231,27 @@ func _update_scaling_display() -> void:
 	_scaling_label.visible = true
 	_scaling_label.append_text(" \u00b7 ".join(parts))
 
+func _has_damage_or_scaling(effect: CombatEffectData) -> bool:
+	if effect.base_value != 0.0:
+		return true
+	if effect.strength_scaling != 0.0:
+		return true
+	if effect.body_scaling != 0.0:
+		return true
+	if effect.agility_scaling != 0.0:
+		return true
+	if effect.spirit_scaling != 0.0:
+		return true
+	if effect.foundation_scaling != 0.0:
+		return true
+	if effect.control_scaling != 0.0:
+		return true
+	if effect.resilience_scaling != 0.0:
+		return true
+	if effect.willpower_scaling != 0.0:
+		return true
+	return false
+
 func _update_equipped_display() -> void:
 	_equipped_dot.visible = _is_equipped
 	if _is_equipped:
@@ -201,14 +265,36 @@ func _update_equipped_display() -> void:
 		_equip_button.text = "EQUIP"
 	_equip_button.disabled = false
 
+func _animate_expand(expanding: bool) -> void:
+	# Kill any in-flight tween
+	if _expand_tween and _expand_tween.is_valid():
+		_expand_tween.kill()
+
+	if expanding:
+		_expanded_details.visible = true
+		_expanded_details.modulate = Color(1, 1, 1, 0)
+		_expand_tween = create_tween()
+		_expand_tween.set_ease(Tween.EASE_OUT)
+		_expand_tween.set_trans(Tween.TRANS_CUBIC)
+		_expand_tween.tween_property(_expanded_details, "modulate", Color(1, 1, 1, 1), 0.2)
+	else:
+		_expand_tween = create_tween()
+		_expand_tween.set_ease(Tween.EASE_IN)
+		_expand_tween.set_trans(Tween.TRANS_CUBIC)
+		_expand_tween.tween_property(_expanded_details, "modulate", Color(1, 1, 1, 0), 0.15)
+		_expand_tween.tween_callback(_expanded_details.set.bind("visible", false))
+
 func _on_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		accept_event()
 		if _is_expanded:
-			collapse()
+			_is_expanded = false
+			_animate_expand(false)
+			_apply_card_style()
 		else:
 			card_selected.emit(self)
 			_is_expanded = true
-			_expanded_details.visible = true
+			_animate_expand(true)
 			_apply_card_style()
 
 func _on_equip_button_pressed() -> void:
