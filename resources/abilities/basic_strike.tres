@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AbilityData" load_steps=5 format=3 uid="uid://dic54dwcx1ho4"]
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dic54dwcx1ho4"]
 
 [ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_a2brc"]
 [ext_resource type="Texture2D" uid="uid://444e1uf3hhc2" path="res://assets/sprites/abilities/basic_strike.png" id="2_ah3dt"]

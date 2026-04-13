@@ -24,6 +24,15 @@ enum AdvancementStage {
 	preload("res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres")
 ]
 
+## Points awarded per Core Density level milestone, indexed by advancement stage.
+const PATH_POINTS_PER_STAGE: Dictionary = {
+	AdvancementStage.FOUNDATION: 1,
+	AdvancementStage.COPPER: 2,
+	AdvancementStage.IRON: 3,
+	AdvancementStage.JADE: 4,
+}
+const PATH_POINT_LEVEL_INTERVAL: int = 10
+
 #-----------------------------------------------------------------------------
 # PLAYER DATA (Held by this manager)
 #-----------------------------------------------------------------------------
@@ -73,10 +82,16 @@ func add_core_density_xp(amount: float):
 		# Level up
 		live_save_data.core_density_level += 1
 		live_save_data.core_density_xp -= xp_needed_for_next_level
-		
+
 		# Emit level up signal
 		core_density_level_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
-		
+
+		# Award path points every PATH_POINT_LEVEL_INTERVAL levels
+		if int(live_save_data.core_density_level) % PATH_POINT_LEVEL_INTERVAL == 0 and int(live_save_data.core_density_level) > 0:
+			var points: int = PATH_POINTS_PER_STAGE.get(live_save_data.current_advancement_stage, 1)
+			if PathManager:
+				PathManager.add_points(points)
+
 		# Get XP needed for next level
 		xp_needed_for_next_level = get_xp_for_next_level()
 	

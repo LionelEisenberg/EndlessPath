@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-04-07
+Last updated: 2026-04-12
 
 This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
 
@@ -21,7 +21,8 @@ MainGame (Node2D)
 │   │   ├── ZoneViewState
 │   │   ├── AdventureViewState
 │   │   ├── InventoryViewState
-│   │   └── CyclingViewState
+│   │   ├── CyclingViewState
+│   │   └── PathTreeViewState
 │   ├── ZoneView (Control)          — default view, always present
 │   │   ├── ZoneTransition          — animated zone-change overlay (PR #16)
 │   │   ├── SubViewportContainer
@@ -36,7 +37,8 @@ MainGame (Node2D)
 │   ├── LogWindow
 │   ├── GreyBackground (Panel)      — modal overlay
 │   ├── InventoryView (Control)     — hidden, shown by state
-│   └── CyclingView (Control)       — hidden, shown by state
+│   ├── CyclingView (Control)       — hidden, shown by state
+│   └── PathTreeView (Control)     — hidden, shown by state (PR #20)
 └── SaveTimer (Timer)               — auto-save
 ```
 
@@ -57,9 +59,9 @@ Each state is a `MainViewState` node that controls visibility of its correspondi
 
 ### Singleton Managers
 
-13 autoload singletons manage global state, loaded in dependency order via `project.godot`:
+14 autoload singletons manage global state, loaded in dependency order via `project.godot`:
 
-1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager
+1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager → 14. PathManager
 
 **Communication pattern:** Singletons communicate via signals and shared state. All game-state managers hold a **live reference** to `PersistenceManager.save_game_data` (a shared `SaveGameData` Resource). Writes by one manager are immediately visible to all others. When state changes, managers emit signals that UI scenes listen to.
 
@@ -72,7 +74,8 @@ PersistenceManager (root — owns SaveGameData)
   ├── InventoryManager (inventory)
   ├── UnlockManager (unlock progression)
   ├── EventManager (event progression)
-  └── ZoneManager (zone state, progression)
+  ├── ZoneManager (zone state, progression)
+  └── PathManager (path tree state, purchases, point balance)
 
 ActionManager (orchestrator)
   → emits: start_cycling, stop_cycling, start_adventure, stop_adventure, start_foraging, etc.
@@ -119,7 +122,7 @@ Content is defined via Godot's Resource system in three layers:
 |-----------|------|---------|
 | `ThemeConstants` | `scripts/utils/theme_constants.gd` | Centralized color palette and styling constants (PR #11) |
 | `FlyingParticle` | `scenes/ui/flying_particle/flying_particle.gd` | Reusable particle effect — spawned for Madra tracking feedback and zone clicks (PR #13, reused PR #16) |
-| `SystemMenuButton` | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | Nav button component — single `MenuType` enum drives label, shortcut, icon, and input action (PR #10) |
+| `SystemMenuButton` | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | Nav button component — single `MenuType` enum drives label, shortcut, icon, and input action (PR #10, PATH added PR #20) |
 
 ---
 
@@ -147,6 +150,7 @@ Issues that span multiple systems and don't belong to any single doc:
 | Inventory | [docs/inventory/INVENTORY.md](inventory/INVENTORY.md) | Equipment grid, gear slots, materials, loot |
 | Zones | [docs/zones/ZONES.md](zones/ZONES.md) | Home base hex map, action routing, unlock chains |
 | Cultivation | [docs/cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density leveling, Advancement Stages, breakthrough |
+| Path Progression | [docs/progression/PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md) | Skill tree, path points, perk unlocks (PathManager) |
 
 ### Infrastructure
 

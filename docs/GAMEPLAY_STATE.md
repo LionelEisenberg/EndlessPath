@@ -1,6 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-04-07
+Last updated: 2026-04-12
 
 This document tracks the current player experience — what a player can actually do, what content exists, and what blocks the next stage of progression. For per-system details, see the [system documentation index](CODEBASE_STATE.md#system-documentation-index).
 
@@ -17,12 +17,13 @@ A new player can currently:
 5. **Open Inventory** — view equipment grid, equip the Dagger, see materials from foraging
 6. **Start an Adventure** — enter a procedurally generated hex map, move tile-by-tile spending stamina; adventures now cost Madra (50% threshold required, with particle drain animation) (PR #16)
 7. **Fight enemies** — encounter the test enemy in combat, use 4 abilities; equipped gear stats now flow through to combat (PR #9)
-8. **Defeat the boss** — complete the adventure, earn gold
-9. **Repeat** — cycle for more Madra, forage for materials, adventure for gold
+8. **Defeat the boss** — complete the adventure, earn gold; end card shows stats and loot (PR #19)
+9. **Open Path Tree** — press P to view the Pure Madra skill tree; earn Path Points every 10 Core Density levels; purchase nodes for cycling/combat/progression perks; pannable/zoomable tree with animated shaders (PR #20)
+10. **Repeat** — cycle for more Madra, forage for materials, adventure for gold, spend Path Points on perks
 
-Navigation is handled by a **Toolbar** with buttons for Inventory, Abilities, Character, and Path views (PRs #10/#14). A **draggable log window** provides in-game feedback (PR #15). The entire UI uses a unified warm parchment theme (PR #11).
+Navigation is handled by a **Toolbar** with buttons for Inventory, Abilities, Character, and Path views (PRs #10/#14/#20). A **draggable log window** provides in-game feedback (PR #15). The entire UI uses a unified warm parchment theme (PR #11).
 
-The core loop exists but is thin: one zone, one adventure, one enemy, one dialogue, and Foundation is the only cultivation stage. There is no way to advance beyond Foundation.
+The core loop now includes a meaningful progression sink: cycle for XP → earn Path Points → spend on perks that improve cycling, combat, and adventuring. However, the loop is still Foundation-only with one zone, one adventure, and one enemy.
 
 ---
 
@@ -70,6 +71,13 @@ The core loop exists but is thin: one zone, one adventure, one enemy, one dialog
 | initial_spirit_valley_dialogue_1 | EVENT_TRIGGERED | NPC dialogue completion |
 | test_attribute_requirement_unlock_data | ATTRIBUTE_VALUE | BODY >= 20 |
 
+### Path Progression
+| Path | Tier | Nodes | Status |
+|------|------|-------|--------|
+| Pure Madra | Tier 1 (Foundation) | 14 nodes (1 keystone, 2 major, 7 minor, 4 repeatable) | Implemented (PR #20) |
+| Blackflame | — | — | Theme data only, no tree |
+| Earth | — | — | Theme data only, no tree |
+
 ### Cultivation Stages
 | Stage | Data Exists | Status |
 |-------|-------------|--------|
@@ -90,7 +98,7 @@ These are the biggest gaps preventing a playable loop beyond Foundation:
 3. ~~**Equipment doesn't affect combat** — the Dagger's `attack_power: 10` is cosmetic. `_get_attribute_bonuses()` returns 0~~ (Done - PR #9)
 4. ~~**Madra pools disconnected** — cycling Madra (ResourceManager) and combat Madra (VitalsManager) are separate systems with no link. Design for unification in [RESOURCES.md](infrastructure/RESOURCES.md)~~ (Done - PR #16)
 5. **Only 1 enemy** — combat has no variety
-6. **Abilities are hardcoded** — `get_equipped_abilities()` returns 4 fixed `.tres` files, no unlock or equip system
+6. **Abilities are hardcoded** — `get_equipped_abilities()` returns 4 fixed `.tres` files, no unlock or equip system. PathManager can track unlocked abilities via `get_unlocked_abilities()` but nothing consumes this yet
 7. **No save persistence** — `reset_save_data = true` wipes progress every launch
 8. **No character stats screen** — player has no way to see their attributes, equipped gear, or abilities in one place
 
