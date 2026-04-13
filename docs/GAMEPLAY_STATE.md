@@ -1,6 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-04-12
+Last updated: 2026-04-13
 
 This document tracks the current player experience — what a player can actually do, what content exists, and what blocks the next stage of progression. For per-system details, see the [system documentation index](CODEBASE_STATE.md#system-documentation-index).
 
@@ -19,7 +19,8 @@ A new player can currently:
 7. **Fight enemies** — encounter the test enemy in combat, use 4 abilities; equipped gear stats now flow through to combat (PR #9)
 8. **Defeat the boss** — complete the adventure, earn gold; end card shows stats and loot (PR #19)
 9. **Open Path Tree** — press P to view the Pure Madra skill tree; earn Path Points every 10 Core Density levels; purchase nodes for cycling/combat/progression perks; pannable/zoomable tree with animated shaders (PR #20)
-10. **Repeat** — cycle for more Madra, forage for materials, adventure for gold, spend Path Points on perks
+10. **Manage Abilities** — press A to open the abilities view; drag-and-drop abilities into a 4-slot loadout; filter by type, sort by cost/name; hoverable stat pills show damage breakdowns; path tree purchases unlock new abilities (PR #22)
+11. **Repeat** — cycle for more Madra, forage for materials, adventure for gold, spend Path Points on perks
 
 Navigation is handled by a **Toolbar** with buttons for Inventory, Abilities, Character, and Path views (PRs #10/#14/#20). A **draggable log window** provides in-game feedback (PR #15). The entire UI uses a unified warm parchment theme (PR #11).
 
@@ -44,12 +45,14 @@ The core loop now includes a meaningful progression sink: cycle for XP → earn 
 | Dewdrop Tear | Material | Foraging |
 
 ### Abilities (Player)
-| Ability | Cost | Cooldown | Cast | Scaling | Damage Type |
-|---------|------|----------|------|---------|-------------|
-| Basic Strike | 10 stam | 4.0s | 0s | STR 0.2, BODY 0.2, AGI 0.2 | Physical |
-| Empty Palm | 12 madra, 3 stam | 3.0s | 0s | AGI 0.3, SPI 1.0 | Physical |
-| Enforce | 10 madra | 30.0s | 0s | STR x1.5, SPI x1.5 for 8s | Buff |
-| Power Font | 20 madra | 15.0s | 3.0s | SPI 1.5, FND 0.5 | Madra |
+| Ability | Source | Madra Type | Cost | Cooldown | Cast | Scaling | Damage Type |
+|---------|--------|-----------|------|----------|------|---------|-------------|
+| Basic Strike | INNATE | NONE | 10 stam | 4.0s | 0s | STR 0.2, BODY 0.2, AGI 0.2 | Physical |
+| Empty Palm | PATH | PURE | 12 madra, 3 stam | 3.0s | 0s | AGI 0.3, SPI 1.0 | Physical |
+| Enforce | INNATE | NONE | 10 madra | 30.0s | 0s | STR x1.5, SPI x1.5 for 8s | Buff |
+| Power Font | INNATE | PURE | 20 madra | 15.0s | 3.0s | SPI 1.5, FND 0.5 | Madra |
+
+Abilities are managed by `AbilityManager` (PR #22): INNATE abilities start unlocked, PATH abilities are unlocked via path tree purchases (UNLOCK_ABILITY effect). Players equip up to 4 abilities in a loadout via the AbilitiesView (press A).
 
 ### Enemies
 | Enemy | Abilities | Gold |
@@ -98,9 +101,9 @@ These are the biggest gaps preventing a playable loop beyond Foundation:
 3. ~~**Equipment doesn't affect combat** — the Dagger's `attack_power: 10` is cosmetic. `_get_attribute_bonuses()` returns 0~~ (Done - PR #9)
 4. ~~**Madra pools disconnected** — cycling Madra (ResourceManager) and combat Madra (VitalsManager) are separate systems with no link. Design for unification in [RESOURCES.md](infrastructure/RESOURCES.md)~~ (Done - PR #16)
 5. **Only 1 enemy** — combat has no variety
-6. **Abilities are hardcoded** — `get_equipped_abilities()` returns 4 fixed `.tres` files, no unlock or equip system. PathManager can track unlocked abilities via `get_unlocked_abilities()` but nothing consumes this yet
+6. ~~**Abilities are hardcoded** — `get_equipped_abilities()` returns 4 fixed `.tres` files, no unlock or equip system~~ (Done - PR #22: AbilityManager singleton with unlock/equip/4-slot loadout, AbilitiesView UI with drag-drop, filter/sort, stat tooltips)
 7. **No save persistence** — `reset_save_data = true` wipes progress every launch
-8. **No character stats screen** — player has no way to see their attributes, equipped gear, or abilities in one place
+8. ~~**No character stats screen** — player has no way to see their attributes, equipped gear, or abilities in one place~~ (Partially done - PR #22: AbilitiesView shows ability loadout and stat breakdowns; full character sheet still needed)
 
 ---
 
@@ -117,8 +120,8 @@ These are the biggest gaps preventing a playable loop beyond Foundation:
 ### Copper Stage (unlock the next progression tier)
 7. Implement breakthrough — Tribulation mini-game via adventure encounter
 8. Create Copper AdvancementStageResource — new XP scaling, madra cap
-9. Build ability unlock/equip system — let players discover and choose abilities
-10. Add character stats screen — let players see their growth
+9. ~~Build ability unlock/equip system — let players discover and choose abilities~~ (Done - PR #22)
+10. Add character stats screen — let players see their full growth (abilities covered by PR #22, need equipment/attributes view)
 11. Add more zones with unique content
 
 ### Future (post-Copper)

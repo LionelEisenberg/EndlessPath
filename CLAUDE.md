@@ -57,7 +57,7 @@ If the project has never been imported in the current environment, run `--import
 | Directory | Purpose |
 |-----------|---------|
 | `scripts/` | GDScript source — resource definitions (`resource_definitions/`) and utilities (`utils/`) |
-| `singletons/` | 15 autoload manager singletons (global game state) |
+| `singletons/` | 16 autoload manager singletons (global game state) |
 | `scenes/` | Godot `.tscn` scene files + attached scripts |
 | `resources/` | `.tres` data files (abilities, zones, items, encounters, loot tables) |
 | `assets/` | Art, audio, shaders, themes, fonts, UI images, Aseprite sources |
@@ -82,6 +82,7 @@ These are autoloaded in `project.godot` and provide global state:
 | `CharacterManager` | Character data |
 | `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups) |
 | `PathManager` | Path progression tree, point balance, perk effects |
+| `AbilityManager` | Ability unlock/equip state (unlocked pool, 4-slot loadout, catalog lookups) |
 | `Dialogic` | Dialogue/narrative system (addon autoload) |
 
 ### Data-Driven Design
@@ -104,6 +105,7 @@ These are autoloaded in `project.godot` and provide global state:
 - `AdventureViewState` — Combat exploration
 - `AdventureEndCardState` — Modal overlay pushed on top of `AdventureViewState` when an adventure ends
 - `PathTreeViewState` — Path progression skill tree overlay
+- `AbilitiesViewState` — Ability management with loadout and drag-drop equipping
 
 Views are switched via input actions (e.g., `open_inventory`) handled by the current state. The state machine supports `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view). The `SystemMenu` in the `ZoneResourcePanel` provides nav buttons that fire these same input actions via `Input.parse_input_event()`. `SystemMenuButton` uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown.
 
