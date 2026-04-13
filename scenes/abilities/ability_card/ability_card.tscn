@@ -139,7 +139,16 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="DescriptionLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails" unique_id=2009695052]
+[node name="ContentRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=555310966]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TextColumn" type="VBoxContainer" parent="CardVBox/ExpandedDetails/ContentRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=2009695052]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/normal_font_size = 22
@@ -148,21 +157,18 @@ text = "Ability description goes here."
 fit_content = true
 scroll_active = false
 
-[node name="ScalingLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails" unique_id=2057513249]
+[node name="ScalingLabel" type="RichTextLabel" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=2057513249]
 unique_name_in_owner = true
 layout_mode = 2
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
 
-[node name="ButtonRow" type="HBoxContainer" parent="CardVBox" unique_id=555310966]
-layout_mode = 2
-alignment = 2
-
-[node name="EquipButton" type="Button" parent="CardVBox/ButtonRow" unique_id=1376840928]
+[node name="EquipButton" type="Button" parent="CardVBox/ExpandedDetails/ContentRow" unique_id=1376840928]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 30)
 layout_mode = 2
+size_flags_vertical = 8
 theme_override_styles/normal = ExtResource("2_btn_normal")
 theme_override_styles/pressed = ExtResource("4_btn_pressed")
 theme_override_styles/hover = ExtResource("3_btn_hover")
