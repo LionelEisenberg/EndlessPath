@@ -6,32 +6,3 @@
 offset_right = 400.0
 offset_bottom = 49.0
 script = ExtResource("1_script")
-
-[node name="StatTooltip" type="PanelContainer" parent="." unique_id=92511282]
-unique_name_in_owner = true
-visible = false
-top_level = true
-custom_minimum_size = Vector2(250, 0)
-layout_mode = 2
-theme_type_variation = &"PanelTooltip"
-
-[node name="TooltipContent" type="VBoxContainer" parent="StatTooltip" unique_id=1877280241]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="TooltipTitle" type="Label" parent="StatTooltip/TooltipContent" unique_id=2071389164]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"LabelAbilityMuted"
-
-[node name="TooltipSep" type="HSeparator" parent="StatTooltip/TooltipContent" unique_id=1674301931]
-layout_mode = 2
-
-[node name="TooltipBody" type="RichTextLabel" parent="StatTooltip/TooltipContent" unique_id=826306115]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/normal_font_size = 21
-bbcode_enabled = true
-fit_content = true
-scroll_active = false

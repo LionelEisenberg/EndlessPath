@@ -1,28 +1,18 @@
 class_name AbilityStatsDisplay
 extends HFlowContainer
 
-## Displays ability stats as hoverable pill labels with tooltips.
+## Displays ability stats as hoverable pill labels with built-in tooltips.
 ## Creates StatLabel instances dynamically from AbilityData.
 
 const StatLabelScene: PackedScene = preload("res://scenes/abilities/stat_label/stat_label.tscn")
 
 var _ability_data: AbilityData = null
 var _stat_labels: Array[StatLabel] = []
-var _tooltip_tween: Tween = null
-
-@onready var _tooltip: PanelContainer = %StatTooltip
-@onready var _tooltip_title: Label = %TooltipTitle
-@onready var _tooltip_body: RichTextLabel = %TooltipBody
-
-func _ready() -> void:
-	_tooltip.visible = false
-	_tooltip.z_index = 100
-	_tooltip.top_level = true
 
 ## Builds the stats display from ability data.
 func setup(ability_data: AbilityData) -> void:
 	_ability_data = ability_data
-	_clear_stat_labels()
+	_clear_children()
 
 	var effect: CombatEffectData = null
 	var has_damage: bool = false
@@ -64,13 +54,13 @@ func setup(ability_data: AbilityData) -> void:
 		_add_scaling_label("RES", effect.resilience_scaling, attrs.get_attribute(AT.RESILIENCE), Color("#C4884A"))
 		_add_scaling_label("WIL", effect.willpower_scaling, attrs.get_attribute(AT.WILLPOWER), Color("#D470A0"))
 
+# ----- Private -----
+
 func _create_label(stat_name: String, value: float, color: Color, format_cb: Callable, tooltip: Dictionary) -> StatLabel:
 	var label: StatLabel = StatLabelScene.instantiate()
 	add_child(label)
 	label.setup(stat_name, value, color, format_cb, tooltip)
 	label.get_node("%StatText").add_theme_color_override("font_color", color)
-	label.hovered.connect(_on_label_hovered)
-	label.unhovered.connect(_on_label_unhovered)
 	_stat_labels.append(label)
 	return label
 
@@ -90,14 +80,10 @@ func _add_separator() -> void:
 	sep.theme_type_variation = &"LabelSeparatorDot"
 	add_child(sep)
 
-func _clear_stat_labels() -> void:
-	for label: StatLabel in _stat_labels:
-		label.queue_free()
-	_stat_labels.clear()
-	# Also remove separators
+func _clear_children() -> void:
 	for child: Node in get_children():
-		if child is Label and child != _tooltip and not child.is_in_group("tooltip"):
-			child.queue_free()
+		child.queue_free()
+	_stat_labels.clear()
 
 func _build_total_tooltip(effect: CombatEffectData, attrs: CharacterAttributesData, total: float) -> Dictionary:
 	return {
@@ -115,67 +101,3 @@ func _has_damage_or_scaling(effect: CombatEffectData) -> bool:
 		if effect.get(prop) != 0.0:
 			return true
 	return false
-
-# ----- Tooltip -----
-
-func _on_label_hovered(label: StatLabel) -> void:
-	var data: Dictionary = label.get_tooltip_data()
-	_build_tooltip_content(data)
-	# Show offscreen first so layout pass resolves fit_content height
-	_tooltip.global_position = Vector2(-9999, -9999)
-	_tooltip.modulate = Color(1, 1, 1, 0)
-	_tooltip.reset_size()
-	_tooltip.visible = true
-	# Wait two frames: one for RichTextLabel content, one for container sizing
-	await get_tree().process_frame
-	await get_tree().process_frame
-	# Now position correctly with resolved size
-	var label_rect: Rect2 = label.get_global_rect()
-	_tooltip.global_position = Vector2(
-		label_rect.position.x,
-		label_rect.position.y - _tooltip.size.y - 8
-	)
-	# Fade in
-	if _tooltip_tween and _tooltip_tween.is_valid():
-		_tooltip_tween.kill()
-	_tooltip_tween = create_tween()
-	_tooltip_tween.tween_property(_tooltip, "modulate", Color(1, 1, 1, 1), 0.15)
-
-func _on_label_unhovered() -> void:
-	_tooltip.visible = false
-
-func _build_tooltip_content(data: Dictionary) -> void:
-	var type: String = data.get("type", "")
-	_tooltip_body.clear()
-
-	match type:
-		"total":
-			_tooltip_title.text = "Total Damage"
-			var effect: CombatEffectData = data["effect"]
-			var attrs: CharacterAttributesData = data["attrs"]
-			var AT2: = CharacterAttributesData.AttributeType
-			_tooltip_body.append_text("[color=#A89070]Base Damage:[/color] [color=#F0E8D8]%.0f[/color]\n" % data["base_value"])
-			_append_tooltip_scaling(effect, "strength_scaling", "STR", attrs.get_attribute(AT2.STRENGTH), "#E06060")
-			_append_tooltip_scaling(effect, "body_scaling", "BODY", attrs.get_attribute(AT2.BODY), "#D4A84A")
-			_append_tooltip_scaling(effect, "agility_scaling", "AGI", attrs.get_attribute(AT2.AGILITY), "#7DCE82")
-			_append_tooltip_scaling(effect, "spirit_scaling", "SPI", attrs.get_attribute(AT2.SPIRIT), "#6BA4D4")
-			_append_tooltip_scaling(effect, "foundation_scaling", "FND", attrs.get_attribute(AT2.FOUNDATION), "#B07DD4")
-			_append_tooltip_scaling(effect, "control_scaling", "CTL", attrs.get_attribute(AT2.CONTROL), "#60C4B0")
-			_append_tooltip_scaling(effect, "resilience_scaling", "RES", attrs.get_attribute(AT2.RESILIENCE), "#C4884A")
-			_append_tooltip_scaling(effect, "willpower_scaling", "WIL", attrs.get_attribute(AT2.WILLPOWER), "#D470A0")
-			_tooltip_body.append_text("\n[color=#D4A84A]Total: %.1f[/color]" % data["total"])
-		"scaling":
-			_tooltip_title.text = "%s Scaling" % data["attr_name"]
-			_tooltip_body.append_text("[color=#A89070]Your %s:[/color] [color=#F0E8D8]%.0f[/color]\n" % [data["attr_name"], data["raw_value"]])
-			_tooltip_body.append_text("[color=#A89070]Scaling:[/color] [color=#F0E8D8]%.0f%%[/color]\n" % [data["scaling_pct"] * 100])
-			_tooltip_body.append_text("\n[color=%s]Contribution: +%.1f damage[/color]" % [data["color"].to_html(), data["contribution"]])
-		"base":
-			_tooltip_title.text = "Base Damage"
-			_tooltip_body.append_text("[color=#A89070]Flat damage before attribute scaling[/color]")
-
-func _append_tooltip_scaling(effect: CombatEffectData, prop: String, attr_name: String, raw: float, color: String) -> void:
-	var scaling: float = effect.get(prop)
-	if scaling == 0.0:
-		return
-	var contrib: float = scaling * raw
-	_tooltip_body.append_text("[color=%s]+ %s (%.0f \u00d7 %.0f%%) = +%.1f[/color]\n" % [color, attr_name, raw, scaling * 100, contrib])
