@@ -12,12 +12,14 @@ signal node_unhovered()
 @onready var _level_label: Label = %LevelLabel
 
 var _node_data: PathNodeData = null
+var _theme: PathThemeData = null
 var _hover_tween: Tween = null
 var _is_purchased: bool = false
 var _is_maxed: bool = false
 var _can_afford: bool = false
 var _glow_phase: float = 0.0
 var _is_keystone_available: bool = false
+var _swirl_rect: ColorRect = null
 
 ## Fill colors per state
 const FILL_LOCKED: Color = Color(0.25, 0.20, 0.15, 0.95)
@@ -41,9 +43,10 @@ const BORDER_W_MAXED: float = 3.5
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
-## Initialize the node UI with its data and current purchase level.
-func setup(data: PathNodeData, current_level: int) -> void:
+## Initialize the node UI with its data, current purchase level, and optional path theme.
+func setup(data: PathNodeData, current_level: int, path_theme: PathThemeData = null) -> void:
 	_node_data = data
+	_theme = path_theme
 	if data.icon:
 		texture_normal = data.icon
 	tooltip_text = ""
@@ -60,6 +63,10 @@ func setup(data: PathNodeData, current_level: int) -> void:
 			custom_minimum_size = Vector2(40, 40)
 			size = Vector2(40, 40)
 	pivot_offset = size / 2.0
+
+	# Create swirl shader overlay for keystones when a theme is provided
+	if data.node_type == PathNodeData.NodeType.KEYSTONE and _theme != null:
+		_create_keystone_swirl()
 
 	refresh(current_level, false)
 
@@ -93,6 +100,7 @@ func refresh(current_level: int, can_afford: bool) -> void:
 	else:
 		modulate.a = 0.65
 
+	_update_swirl_state()
 	queue_redraw()
 
 #-----------------------------------------------------------------------------
@@ -136,10 +144,11 @@ func _draw() -> void:
 	# Breathing glow for available keystones
 	if _is_keystone_available:
 		var glow_alpha: float = 0.15 + 0.15 * sin(_glow_phase)
-		var glow_color: Color = Color(ThemeConstants.ACCENT_GOLD.r, ThemeConstants.ACCENT_GOLD.g, ThemeConstants.ACCENT_GOLD.b, glow_alpha)
+		var glow_base: Color = _theme.border_glow_color if _theme else ThemeConstants.ACCENT_GOLD
+		var glow_col: Color = Color(glow_base.r, glow_base.g, glow_base.b, glow_alpha)
 		match _node_data.node_type:
 			PathNodeData.NodeType.KEYSTONE:
-				_draw_hexagon(center, 38.0, Color.TRANSPARENT, glow_color, 2.0)
+				_draw_hexagon(center, 38.0, Color.TRANSPARENT, glow_col, 2.0)
 			_:
 				pass
 
@@ -188,23 +197,47 @@ func _draw_circle(center: Vector2, radius: float, fill: Color, border: Color, bo
 
 
 func _get_fill_color() -> Color:
-	if _is_maxed:
-		return FILL_MAXED
-	elif _is_purchased:
-		return FILL_PURCHASED
+	if _theme == null:
+		if _is_maxed:
+			return FILL_MAXED
+		elif _is_purchased:
+			return FILL_PURCHASED
+		elif _can_afford:
+			return FILL_AVAILABLE
+		return FILL_LOCKED
+	# Theme-aware fill
+	if _is_maxed or _is_purchased:
+		return _theme.fill_purchased
 	elif _can_afford:
-		return FILL_AVAILABLE
-	return FILL_LOCKED
+		return _theme.fill_available
+	return Color(
+		_theme.fill_available.r * 0.6,
+		_theme.fill_available.g * 0.6,
+		_theme.fill_available.b * 0.6,
+		0.95
+	)
 
 
 func _get_border_color() -> Color:
-	if _is_maxed:
-		return BORDER_MAXED
-	elif _is_purchased:
-		return BORDER_PURCHASED
+	if _theme == null:
+		if _is_maxed:
+			return BORDER_MAXED
+		elif _is_purchased:
+			return BORDER_PURCHASED
+		elif _can_afford:
+			return BORDER_AVAILABLE
+		return BORDER_LOCKED
+	# Theme-aware border
+	if _is_maxed or _is_purchased:
+		return _theme.border_glow_color
 	elif _can_afford:
-		return BORDER_AVAILABLE
-	return BORDER_LOCKED
+		return _theme.border_color
+	return Color(
+		_theme.border_color.r * 0.5,
+		_theme.border_color.g * 0.5,
+		_theme.border_color.b * 0.5,
+		0.7
+	)
 
 
 func _get_border_width() -> float:
@@ -217,11 +250,58 @@ func _get_border_width() -> float:
 	return BORDER_W_LOCKED
 
 
+func _create_keystone_swirl() -> void:
+	if _swirl_rect != null:
+		return
+
+	var shader: Shader = load("res://assets/shaders/path_node_keystone.gdshader") as Shader
+	if shader == null:
+		return
+
+	_swirl_rect = ColorRect.new()
+	_swirl_rect.color = Color.WHITE
+	# Inset slightly so the hexagon border is visible around the swirl
+	var inset: float = 6.0
+	_swirl_rect.position = Vector2(inset, inset)
+	_swirl_rect.size = size - Vector2(inset * 2.0, inset * 2.0)
+	_swirl_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var mat: ShaderMaterial = ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("swirl_col_primary", _theme.swirl_primary)
+	mat.set_shader_parameter("swirl_col_secondary", _theme.swirl_secondary)
+	mat.set_shader_parameter("swirl_col_tertiary", _theme.swirl_tertiary)
+	mat.set_shader_parameter("glow_color", _theme.border_glow_color)
+	mat.set_shader_parameter("state", 1.0)
+	_swirl_rect.material = mat
+
+	add_child(_swirl_rect)
+	# Move behind the level label so text is visible on top
+	move_child(_swirl_rect, 0)
+
+
+func _update_swirl_state() -> void:
+	if _swirl_rect == null or _swirl_rect.material == null:
+		return
+
+	var mat: ShaderMaterial = _swirl_rect.material as ShaderMaterial
+	if mat == null:
+		return
+
+	var state_val: float = 0.0
+	if _is_maxed or _is_purchased:
+		state_val = 2.0
+	elif _can_afford:
+		state_val = 1.0
+	mat.set_shader_parameter("state", state_val)
+
+
 func _spawn_purchase_particles() -> void:
+	var particle_color: Color = _theme.border_glow_color if _theme else ThemeConstants.ACCENT_GOLD
 	for i: int in 12:
 		var particle: ColorRect = ColorRect.new()
 		particle.size = Vector2(4, 4)
-		particle.color = ThemeConstants.ACCENT_GOLD
+		particle.color = particle_color
 		particle.position = size / 2.0
 		add_child(particle)
 		var angle: float = (TAU * i) / 12.0
