@@ -34,6 +34,10 @@ enum NodeType {
 ## Effects granted per purchase of this node. For repeatable nodes, effects stack per level.
 @export var effects: Array[PathNodeEffectData] = []
 
+@export_group("Display")
+## Short summary of what this node grants, shown in the benefits sidebar (e.g., "+10% Madra Gen").
+@export var benefit_summary: String = ""
+
 ## Returns true if this node's data is valid (has required fields).
 func validate() -> bool:
 	if id.is_empty():

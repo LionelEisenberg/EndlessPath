@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="PathNodeData" format=3 uid="uid://cjokisy78a63"]
+[gd_resource type="Resource" script_class="PathNodeData" format=3]
 
-[ext_resource type="Script" uid="uid://bu68duxxx6bug" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_pv5eg"]
-[ext_resource type="Script" uid="uid://bcwya48qokiun" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_cijxh"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_pv5eg"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_cijxh"]
 
 [sub_resource type="Resource" id="Resource_7yr41"]
 script = ExtResource("1_pv5eg")
@@ -15,5 +15,8 @@ display_name = "Dedicated Cultivation"
 description = "Increases Core Density XP earned from all sources."
 node_type = 3
 prerequisites = Array[String](["cycling_focus"])
+required_stage = 0
+point_cost = 1
 max_purchases = 3
 effects = Array[ExtResource("1_pv5eg")]([SubResource("Resource_7yr41")])
+benefit_summary = "+10% Core Density XP"

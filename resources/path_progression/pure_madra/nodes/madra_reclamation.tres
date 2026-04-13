@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="PathNodeData" format=3 uid="uid://dmov52ei6upo4"]
+[gd_resource type="Resource" script_class="PathNodeData" format=3]
 
-[ext_resource type="Script" uid="uid://bu68duxxx6bug" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_jouex"]
-[ext_resource type="Script" uid="uid://bcwya48qokiun" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_awu56"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_jouex"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_awu56"]
 
 [sub_resource type="Resource" id="Resource_odlld"]
 script = ExtResource("1_jouex")
@@ -15,5 +15,8 @@ display_name = "Madra Reclamation"
 description = "Recovers a portion of unspent Madra when an adventure ends."
 node_type = 3
 prerequisites = Array[String](["torrent_flow"])
+required_stage = 0
+point_cost = 1
 max_purchases = 5
 effects = Array[ExtResource("1_jouex")]([SubResource("Resource_odlld")])
+benefit_summary = "+10% Madra Return"

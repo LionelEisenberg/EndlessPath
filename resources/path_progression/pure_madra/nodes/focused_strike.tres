@@ -14,3 +14,4 @@ required_stage = 0
 point_cost = 1
 max_purchases = 1
 effects = Array[ExtResource("1_ue7ga")]([])
+benefit_summary = "+40% Strike Damage"
