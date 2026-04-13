@@ -63,11 +63,24 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
 // MAIN
 //---------------------------------------------------------
 
+// Hexagon signed distance function (pointy-top orientation)
+float hex_sdf(vec2 p, float r) {
+	vec2 q = abs(p);
+	// Pointy-top hexagon: rotated 30 degrees from flat-top
+	return max(q.x * 0.866025 + q.y * 0.5, q.y) - r;
+}
+
 void fragment() {
-	vec4 tex = texture(TEXTURE, UV);
-	if (tex.a < 0.01) {
+	// Hexagonal clip: discard pixels outside the hexagon shape
+	vec2 center = vec2(0.5);
+	vec2 p = UV - center;
+	float hex_dist = hex_sdf(p, 0.48); // 0.48 = slightly inset from edge
+	if (hex_dist > 0.0) {
 		discard;
 	}
+
+	// Soft edge for anti-aliasing
+	float edge_alpha = smoothstep(0.0, -0.02, hex_dist);
 
 	vec2 used_coords = UV;
 	vec4 swirl_color = effect(vec2(1.0), used_coords);
@@ -79,11 +92,10 @@ void fragment() {
 	// Glow halo for purchased state
 	float glow = 0.0;
 	if (state > 1.5) {
-		vec2 center = vec2(0.5);
-		float dist = length(UV - center);
+		float dist = length(p);
 		glow = exp(-dist * 4.0) * glow_intensity;
 	}
 
 	COLOR = swirl_color + glow_color * glow;
-	COLOR.a = tex.a;
+	COLOR.a = edge_alpha;
 }

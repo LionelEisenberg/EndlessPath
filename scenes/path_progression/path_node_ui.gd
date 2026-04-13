@@ -211,9 +211,9 @@ func _get_fill_color() -> Color:
 	elif _can_afford:
 		return _theme.fill_available
 	return Color(
-		_theme.fill_available.r * 0.6,
-		_theme.fill_available.g * 0.6,
-		_theme.fill_available.b * 0.6,
+		_theme.fill_available.r * 0.75,
+		_theme.fill_available.g * 0.75,
+		_theme.fill_available.b * 0.75,
 		0.95
 	)
 
@@ -233,10 +233,10 @@ func _get_border_color() -> Color:
 	elif _can_afford:
 		return _theme.border_color
 	return Color(
-		_theme.border_color.r * 0.5,
-		_theme.border_color.g * 0.5,
-		_theme.border_color.b * 0.5,
-		0.7
+		_theme.border_color.r * 0.65,
+		_theme.border_color.g * 0.65,
+		_theme.border_color.b * 0.65,
+		0.8
 	)
 
 
