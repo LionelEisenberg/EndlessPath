@@ -52,7 +52,8 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 ### CyclingTechniqueData
 | Field | Type | Description |
 |-------|------|-------------|
-| `technique_name` | `String` | Display name, also the save key |
+| `id` | `String` | Unique snake_case identifier (e.g., `"foundation_technique"`) — used by SaveGameData and CyclingManager |
+| `technique_name` | `String` | Display name |
 | `path_curve` | `Curve2D` | Bezier path the ball follows |
 | `cycle_duration` | `float` | Seconds per cycle (default 10.0) |
 | `base_madra_per_cycle` | `float` | Madra at perfect accuracy (default 25.0) |
@@ -101,10 +102,13 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 - Multi-level-up supported in a single call via a `while` loop
 
 ### Technique Selection
+- `CyclingManager` singleton owns all cycling technique state — unlocked list and equipped technique
+- `CyclingView` queries `CyclingManager.get_unlocked_techniques()` to populate the Techniques tab — only unlocked techniques are shown
 - `CyclingTabPanel` hosts a **Techniques** tab with an inline list of `CyclingTechniqueSlot` entries
-- The currently equipped technique is highlighted in gold; clicking a slot immediately equips it and emits `technique_change_request` up to `CyclingView`
-- Technique name is saved to `PersistenceManager.save_game_data.current_cycling_technique_name`
-- Loaded by string name lookup on startup (falls back to first technique if not found)
+- The currently equipped technique is highlighted in gold; clicking a slot calls `CyclingManager.equip_technique(id)` and emits `technique_change_request` up to `CyclingView`
+- Technique IDs saved to `SaveGameData.equipped_cycling_technique_id` and `SaveGameData.unlocked_cycling_technique_ids`
+- `PathManager.purchase_node()` calls `CyclingManager.unlock_technique()` for `UNLOCK_CYCLING_TECHNIQUE` path node effects
+- `CyclingView` listens to `CyclingManager.technique_unlocked` to refresh the list when new techniques are unlocked
 
 ## Signals
 
@@ -115,6 +119,8 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 | `zone_clicked(zone, zone_data)` | CyclingZone | CyclingTechnique |
 | `current_technique_changed(data)` | CyclingView | CyclingTechnique, CyclingResourcePanel |
 | `technique_change_request(data)` | CyclingTabPanel | CyclingView |
+| `technique_unlocked(technique)` | CyclingManager | CyclingView |
+| `equipped_technique_changed(technique)` | CyclingManager | (available for UI) |
 | ~~`open_technique_selector`~~ | ~~CyclingResourcePanel~~ | ~~CyclingView~~ — *deleted in PR #12* |
 | `start_cycling` / `stop_cycling` | ActionManager | CyclingViewState, MainView |
 
@@ -133,7 +139,9 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 | `ResourceManager` | `add_madra()` incrementally during tracking (per particle arrival); `madra_changed` signal updates resource panel |
 | `CultivationManager` | `add_core_density_xp()` on zone click; signals update level/XP display |
 | `ActionManager` | `start_cycling` / `stop_cycling` signals control view lifecycle |
-| `PersistenceManager` | Technique name saved/loaded; Madra and XP persisted via SaveGameData |
+| `CyclingManager` | Owns unlocked/equipped technique state; queried by CyclingView, called by PathManager on unlock |
+| `PathManager` | Calls `CyclingManager.unlock_technique()` when purchasing nodes with `UNLOCK_CYCLING_TECHNIQUE` effects |
+| `PersistenceManager` | Technique IDs saved/loaded via SaveGameData; Madra and XP persisted |
 | `LogManager` | Cycle stats logged on completion |
 
 ## Existing Content
@@ -157,6 +165,7 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 | `scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd` | Resource display UI |
 | `scenes/cycling/cycling_resource_panel/progress_shader_rect.gd` | Animated shader progress widget |
 | ~~`scenes/cycling/cycling_technique_selector/cycling_technique_selector.gd`~~ | ~~Technique picker~~ — *deleted in PR #12* |
+| `singletons/cycling_manager/cycling_manager.gd` | Technique unlock/equip state, catalog lookups |
 | `scenes/cycling/cycling_tab_panel/cycling_tab_panel.gd` | Tabbed right panel (Resources / Techniques) — *added in PR #12* |
 | `scenes/cycling/cycling_tab_panel/cycling_technique_slot.gd` | Individual technique slot in Techniques tab — *added in PR #12* |
 | `scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd` | Technique data class |
@@ -187,7 +196,7 @@ Cycling Zones are created dynamically by `_create_cycling_zones()` from `Cycling
 - `[MEDIUM]` Only 1 real technique exists (Foundation) + 1 test stub — need multiple techniques with varied gameplay profiles (speed, zone count, difficulty, rewards)
 - `[MEDIUM]` All 3 cycling zones have identical XP values (15/10/5) — zones should vary in difficulty and reward to create risk/reward choices along the path
 - `[MEDIUM]` Cycling zone indicators use placeholder icons (scaled game icon) — need custom art per zone or zone type
-- `[LOW]` No technique unlocking system — both techniques available from the start, no progression gate
+- ~~`[LOW]` No technique unlocking system~~ — Implemented via CyclingManager + PathManager integration (PR #21). Only unlocked techniques shown in cycling view
 
 ### UI (DONE — PRs #12, #13)
 
