@@ -23,11 +23,9 @@ var _style_expanded: StyleBoxFlat = null
 @onready var _cost_label: RichTextLabel = %CostLabel
 @onready var _madra_badge: Label = %MadraBadge
 @onready var _source_badge: Label = %SourceBadge
-@onready var _equipped_dot: Control = %EquippedDot
 @onready var _expanded_details: VBoxContainer = %ExpandedDetails
 @onready var _tags_row: HBoxContainer = %TagsRow
 @onready var _description_label: RichTextLabel = %DescriptionLabel
-@onready var _stats_label: RichTextLabel = %StatsLabel
 @onready var _scaling_label: RichTextLabel = %ScalingLabel
 @onready var _equip_button: Button = %EquipButton
 
@@ -147,9 +145,8 @@ func _update_display() -> void:
 
 	# Expanded details
 	_description_label.text = ""
-	_description_label.append_text("[color=#A89070]%s[/color]" % _ability_data.description)
+	_description_label.append_text("[color=#F0E8D8]%s[/color]" % _ability_data.description)
 
-	_update_stats_display()
 	_update_scaling_display()
 	_update_equipped_display()
 
@@ -157,13 +154,14 @@ func _update_cost_display() -> void:
 	_cost_label.text = ""
 	var cost_text: String = _ability_data.get_total_cost_display()
 	var cd_text: String = "%.1fs CD" % _ability_data.base_cooldown
+	var cast_text: String = "Instant" if _ability_data.cast_time <= 0.0 else "%.1fs Cast" % _ability_data.cast_time
 
 	# Color the cost portion
 	if cost_text == "Free":
 		_cost_label.append_text("[color=#7DCE82]Free[/color]")
 	else:
-		_cost_label.append_text("[color=#E06060]%s[/color]" % cost_text)
-	_cost_label.append_text("[color=#A89070] \u00b7 %s[/color]" % cd_text)
+		_cost_label.append_text("[color=#F0E8D8]%s[/color]" % cost_text)
+	_cost_label.append_text("[color=#A89070] \u00b7 %s \u00b7 %s[/color]" % [cd_text, cast_text])
 
 func _update_tags_display() -> void:
 	# Clear existing tag children
@@ -194,12 +192,6 @@ func _create_tag_label(text: String) -> Label:
 	tag.add_theme_stylebox_override("normal", pill)
 
 	return tag
-
-func _update_stats_display() -> void:
-	_stats_label.text = ""
-	var cast_text: String = "Instant" if _ability_data.cast_time <= 0.0 else "%.1fs" % _ability_data.cast_time
-	var madra_text: String = AbilityData.MadraType.keys()[_ability_data.madra_type].capitalize()
-	_stats_label.append_text("[color=#A89070]Cast: %s \u00b7 Madra: %s[/color]" % [cast_text, madra_text])
 
 func _update_scaling_display() -> void:
 	_scaling_label.text = ""
@@ -267,7 +259,6 @@ func _has_damage_or_scaling(effect: CombatEffectData) -> bool:
 	return false
 
 func _update_equipped_display() -> void:
-	_equipped_dot.visible = _is_equipped
 	if _is_equipped:
 		_equip_button.text = "UNEQUIP"
 	else:
