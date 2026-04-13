@@ -87,8 +87,7 @@ func _add_scaling_label(attr_name: String, scaling: float, raw_value: float, col
 func _add_separator() -> void:
 	var sep: Label = Label.new()
 	sep.text = "\u00b7"
-	sep.add_theme_color_override("font_color", Color("#C4884A"))
-	sep.add_theme_font_size_override("font_size", 28)
+	sep.theme_type_variation = &"LabelSeparatorDot"
 	add_child(sep)
 
 func _clear_stat_labels() -> void:

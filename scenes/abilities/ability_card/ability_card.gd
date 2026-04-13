@@ -9,6 +9,9 @@ signal equip_requested(ability_id: String)
 signal unequip_requested(ability_id: String)
 signal card_selected(card: AbilityCard)
 
+const _CARD_NORMAL_STYLE: StyleBoxFlat = preload("res://assets/styleboxes/abilities/card_normal.tres")
+const _TAG_PILL_STYLE: StyleBoxFlat = preload("res://assets/styleboxes/abilities/pill_tag.tres")
+
 var _ability_data: AbilityData = null
 var _is_expanded: bool = false
 var _is_equipped: bool = false
@@ -96,15 +99,8 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 # ----- Private -----
 
 func _build_card_styles() -> void:
-	# Normal style (BG_MEDIUM with subtle border)
-	_style_normal = StyleBoxFlat.new()
-	_style_normal.bg_color = ThemeConstants.BG_MEDIUM
-	_style_normal.set_border_width_all(2)
-	_style_normal.border_color = ThemeConstants.BORDER_SUBTLE
-	_style_normal.set_corner_radius_all(6)
-	_style_normal.set_content_margin_all(12)
-	_style_normal.content_margin_top = 10
-	_style_normal.content_margin_bottom = 10
+	# Normal style from theme variant (PanelAbilityCard)
+	_style_normal = _CARD_NORMAL_STYLE
 
 	# Hover style (slightly lighter bg, brighter border)
 	_style_hover = StyleBoxFlat.new()
@@ -193,20 +189,8 @@ func _update_tags_display() -> void:
 func _create_tag_label(text: String) -> Label:
 	var tag: Label = Label.new()
 	tag.text = text
-	tag.add_theme_font_size_override("font_size", 21)
-	tag.add_theme_color_override("font_color", ThemeConstants.TEXT_MUTED)
-
-	var pill: StyleBoxFlat = StyleBoxFlat.new()
-	pill.bg_color = Color(0.3, 0.22, 0.15, 0.6)
-	pill.set_border_width_all(1)
-	pill.border_color = Color(0.55, 0.40, 0.28, 0.7)
-	pill.set_corner_radius_all(4)
-	pill.content_margin_left = 8.0
-	pill.content_margin_right = 8.0
-	pill.content_margin_top = 2.0
-	pill.content_margin_bottom = 2.0
-	tag.add_theme_stylebox_override("normal", pill)
-
+	tag.theme_type_variation = &"LabelAbilityMuted"
+	tag.add_theme_stylebox_override("normal", _TAG_PILL_STYLE)
 	return tag
 
 func _update_equipped_display() -> void:

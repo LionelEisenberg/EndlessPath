@@ -2,24 +2,6 @@
 
 [ext_resource type="Script" uid="uid://b2p44ttp34xew" path="res://scenes/abilities/ability_stats_display/ability_stats_display.gd" id="1_script"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip"]
-content_margin_left = 12.0
-content_margin_top = 10.0
-content_margin_right = 12.0
-content_margin_bottom = 10.0
-bg_color = Color(0.239, 0.18, 0.133, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.769, 0.533, 0.29, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 8
-
 [node name="AbilityStatsDisplay" type="HFlowContainer" unique_id=759825265]
 offset_right = 400.0
 offset_bottom = 49.0
@@ -27,10 +9,11 @@ script = ExtResource("1_script")
 
 [node name="StatTooltip" type="PanelContainer" parent="." unique_id=92511282]
 unique_name_in_owner = true
-top_level = true
 visible = false
+top_level = true
 custom_minimum_size = Vector2(250, 0)
-theme_override_styles/panel = SubResource("StyleBoxFlat_tooltip")
+layout_mode = 2
+theme_type_variation = &"PanelTooltip"
 
 [node name="TooltipContent" type="VBoxContainer" parent="StatTooltip" unique_id=1877280241]
 layout_mode = 2
@@ -39,10 +22,7 @@ theme_override_constants/separation = 4
 [node name="TooltipTitle" type="Label" parent="StatTooltip/TooltipContent" unique_id=2071389164]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelPathBody"
-theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.03, 1)
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 21
+theme_type_variation = &"LabelAbilityMuted"
 
 [node name="TooltipSep" type="HSeparator" parent="StatTooltip/TooltipContent" unique_id=1674301931]
 layout_mode = 2

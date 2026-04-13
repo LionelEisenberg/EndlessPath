@@ -19,7 +19,6 @@ var _value_tween: Tween = null
 func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
-	_build_style()
 
 ## Configures the stat label.
 func setup(stat_name: String, value: float, color: Color, format_cb: Callable, tooltip: Dictionary) -> void:
@@ -50,18 +49,6 @@ func set_value(new_val: float) -> void:
 func _update_text() -> void:
 	if _format_callback.is_valid():
 		_label.text = _format_callback.call(_stat_name, _stat_value)
-
-func _build_style() -> void:
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.15, 0.10, 0.07, 0.6)
-	style.set_border_width_all(1)
-	style.border_color = Color(0.42, 0.29, 0.19, 0.5)
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 8.0
-	style.content_margin_right = 8.0
-	style.content_margin_top = 3.0
-	style.content_margin_bottom = 3.0
-	add_theme_stylebox_override("panel", style)
 
 func _on_mouse_entered() -> void:
 	modulate = Color(1.2, 1.15, 1.1, 1.0)
