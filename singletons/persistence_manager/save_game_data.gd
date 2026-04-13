@@ -79,6 +79,13 @@ func _verify_current_selected_zone_id() -> bool:
 @export var equipped_cycling_technique_id: String = "foundation_technique"
 
 #-----------------------------------------------------------------------------
+# ABILITY MANAGER
+#-----------------------------------------------------------------------------
+
+@export var unlocked_ability_ids: Array[String] = ["basic_strike", "enforce"]
+@export var equipped_ability_ids: Array[String] = ["basic_strike", "enforce"]
+
+#-----------------------------------------------------------------------------
 # PATH PROGRESSION
 #-----------------------------------------------------------------------------
 
@@ -105,7 +112,7 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
+	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
 			madra,
 			gold,
 			core_density_xp,
@@ -120,6 +127,8 @@ func _to_string() -> String:
 			str(character_attributes) if character_attributes else "None",
 			str(unlocked_cycling_technique_ids),
 			equipped_cycling_technique_id,
+			str(unlocked_ability_ids),
+			str(equipped_ability_ids),
 			current_path_id,
 			path_points,
 			str(path_node_purchases)
@@ -164,6 +173,10 @@ func reset() -> void:
 	# Cycling Manager
 	unlocked_cycling_technique_ids = ["foundation_technique"]
 	equipped_cycling_technique_id = "foundation_technique"
+
+	# Ability Manager
+	unlocked_ability_ids = ["basic_strike", "enforce"]
+	equipped_ability_ids = ["basic_strike", "enforce"]
 
 	# Path Progression
 	current_path_id = ""
