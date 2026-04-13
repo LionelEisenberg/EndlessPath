@@ -188,24 +188,30 @@ func _on_card_selected(_card: AbilityCard) -> void:
 
 func _on_equip_requested(ability_id: String) -> void:
 	AbilityManager.equip_ability(ability_id)
-	refresh()
+	_refresh_without_rebuild()
 
 func _on_unequip_requested(ability_id: String) -> void:
 	AbilityManager.unequip_ability(ability_id)
-	refresh()
+	_refresh_without_rebuild()
 
 func _on_ability_dropped(ability_id: String, slot_index: int, from_slot: int) -> void:
 	if from_slot >= 0:
-		# Slot-to-slot: swap the two slots
 		var target_id: String = AbilityManager.get_ability_at_slot(slot_index)
-		# Clear the source slot
 		AbilityManager._live_save_data.equipped_ability_ids[from_slot] = target_id
 		AbilityManager._live_save_data.equipped_ability_ids[slot_index] = ability_id
 		AbilityManager.equipped_abilities_changed.emit()
 	else:
-		# Card-to-slot: equip at target slot
 		AbilityManager.equip_ability_at_slot(ability_id, slot_index)
-	refresh()
+	_refresh_without_rebuild()
+
+## Updates sidebar and card equipped states without rebuilding all cards.
+func _refresh_without_rebuild() -> void:
+	for card: AbilityCard in _cards:
+		var ability: AbilityData = card.get_ability_data()
+		if ability:
+			card.set_equipped(AbilityManager.is_ability_equipped(ability.ability_id))
+	_update_loadout_sidebar()
+	_update_slot_counter()
 
 func _on_close_animation_finished() -> void:
 	_animation_player.animation_finished.disconnect(_on_close_animation_finished)
