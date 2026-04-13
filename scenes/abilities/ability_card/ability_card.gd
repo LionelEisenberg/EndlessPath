@@ -229,14 +229,15 @@ func _update_scaling_display() -> void:
 	# Scaling attributes with per-stat colors and raw values from CharacterManager
 	var scaling_parts: Array[String] = []
 	var attrs: CharacterAttributesData = CharacterManager.get_total_attributes_data()
-	_append_scaling(scaling_parts, "STR", effect.strength_scaling, attrs.strength, "#E06060")
-	_append_scaling(scaling_parts, "BODY", effect.body_scaling, attrs.body, "#D4A84A")
-	_append_scaling(scaling_parts, "AGI", effect.agility_scaling, attrs.agility, "#7DCE82")
-	_append_scaling(scaling_parts, "SPI", effect.spirit_scaling, attrs.spirit, "#6BA4D4")
-	_append_scaling(scaling_parts, "FND", effect.foundation_scaling, attrs.foundation, "#B07DD4")
-	_append_scaling(scaling_parts, "CTL", effect.control_scaling, attrs.control, "#60C4B0")
-	_append_scaling(scaling_parts, "RES", effect.resilience_scaling, attrs.resilience, "#C4884A")
-	_append_scaling(scaling_parts, "WIL", effect.willpower_scaling, attrs.willpower, "#D470A0")
+	var AT: = CharacterAttributesData.AttributeType
+	_append_scaling(scaling_parts, "STR", effect.strength_scaling, attrs.get_attribute(AT.STRENGTH), "#E06060")
+	_append_scaling(scaling_parts, "BODY", effect.body_scaling, attrs.get_attribute(AT.BODY), "#D4A84A")
+	_append_scaling(scaling_parts, "AGI", effect.agility_scaling, attrs.get_attribute(AT.AGILITY), "#7DCE82")
+	_append_scaling(scaling_parts, "SPI", effect.spirit_scaling, attrs.get_attribute(AT.SPIRIT), "#6BA4D4")
+	_append_scaling(scaling_parts, "FND", effect.foundation_scaling, attrs.get_attribute(AT.FOUNDATION), "#B07DD4")
+	_append_scaling(scaling_parts, "CTL", effect.control_scaling, attrs.get_attribute(AT.CONTROL), "#60C4B0")
+	_append_scaling(scaling_parts, "RES", effect.resilience_scaling, attrs.get_attribute(AT.RESILIENCE), "#C4884A")
+	_append_scaling(scaling_parts, "WIL", effect.willpower_scaling, attrs.get_attribute(AT.WILLPOWER), "#D470A0")
 
 	if not scaling_parts.is_empty():
 		parts.append(", ".join(scaling_parts))
