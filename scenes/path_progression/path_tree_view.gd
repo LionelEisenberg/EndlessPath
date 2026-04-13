@@ -2,7 +2,7 @@ class_name PathTreeView
 extends Control
 ## Main view that renders the full path progression tree.
 ## Handles panning via left-click drag and instantiates path node UI components.
-## Displays a benefits sidebar and header with path identity and point balance.
+## Delegates benefits sidebar to BenefitsArea and tooltip to shared PathNodeTooltip.
 
 @export var layout_scene: PackedScene
 @export var path_node_ui_scene: PackedScene
@@ -11,9 +11,7 @@ extends Control
 @onready var _node_container: PathNodeContainer = %NodeContainer
 @onready var _path_title: Label = %PathTitle
 @onready var _points_value: Label = %PointsValue
-@onready var _benefits_list: VBoxContainer = %BenefitsList
-@onready var _node_count_label: Label = %NodeCountLabel
-@onready var _points_spent_label: Label = %PointsSpentLabel
+@onready var _benefits_area: BenefitsArea = %BenefitsArea
 @onready var _shared_tooltip: PathNodeTooltip = %SharedTooltip
 @onready var _madra_info_popup: Control = %MadraInfoPopup
 @onready var _madra_desc_label: Label = %MadraDescLabel
@@ -39,30 +37,8 @@ const ZOOM_STEP: float = 0.1
 ## Tween for madra info popup animation
 var _madra_info_tween: Tween = null
 
-## Tracks total points spent and purchased node count
-var _total_spent: int = 0
-var _purchased_count: int = 0
-
-## Benefit descriptions for sidebar display
-const BENEFIT_DESCRIPTIONS: Dictionary = {
-	"pure_core_awakening": ["Pure Core Awakening", "Empty Palm + Smooth Flow"],
-	"cycling_focus": ["Cycling Focus", "+15 Cycling Accuracy"],
-	"expanded_core": ["Expanded Core", "+25 Max Madra"],
-	"madra_surge": ["Madra Surge", "+10% Madra Gen"],
-	"lingering_silence": ["Lingering Silence", "+2s Silence Duration"],
-	"efficient_palm": ["Efficient Palm", "-20% Palm Cost"],
-	"madra_strike": ["Madra Strike", "Madra Strike unlocked"],
-	"focused_strike": ["Focused Strike", "+40% Strike Damage"],
-	"strike_efficiency": ["Strike Efficiency", "-15% Stamina Cost"],
-	"torrent_flow": ["Torrent Flow", "Torrent Flow unlocked"],
-	"iron_will": ["Iron Will", "+20% Stamina Recovery"],
-	"dedicated_cultivation": ["Dedicated Cultivation", "+10% Core Density XP"],
-	"breakthrough_surge": ["Breakthrough Surge", "+10 Madra on Level Up"],
-	"madra_reclamation": ["Madra Reclamation", "+10% Madra Return"],
-}
-
 ## NodeContainer base position to be centered
-const NODE_CONTAINER_BASE_POSITION : Vector2 = Vector2(120, -50)
+const NODE_CONTAINER_BASE_POSITION: Vector2 = Vector2(120, -50)
 
 #-----------------------------------------------------------------------------
 # STATIC METHODS
@@ -105,7 +81,7 @@ func build_tree() -> void:
 			_node_container.add_connection(prereq_id, node_data.id)
 
 	_refresh_all_nodes()
-	_rebuild_benefits_sidebar()
+	_benefits_area.rebuild()
 	_center_tree()
 	_node_container.queue_redraw()
 
@@ -210,8 +186,7 @@ func _apply_zoom(delta: float, mouse_global: Vector2) -> void:
 
 
 func _center_tree() -> void:
-	_node_container.position = 	NODE_CONTAINER_BASE_POSITION
-
+	_node_container.position = NODE_CONTAINER_BASE_POSITION
 
 
 func _clear_tree() -> void:
@@ -220,7 +195,7 @@ func _clear_tree() -> void:
 		node_ui.queue_free()
 	_node_uis.clear()
 	_node_container.clear_all()
-	_clear_benefits()
+	_benefits_area.clear()
 
 
 func _update_points_display() -> void:
@@ -233,73 +208,6 @@ func _update_header() -> void:
 		_path_title.text = tree.path_name.to_upper()
 	else:
 		_path_title.text = "NO PATH"
-
-
-func _rebuild_benefits_sidebar() -> void:
-	_clear_benefits()
-
-	var tree: PathTreeData = PathManager.get_current_tree()
-	if tree == null:
-		return
-
-	_total_spent = 0
-	_purchased_count = 0
-
-	for node_data: PathNodeData in tree.nodes:
-		var level: int = PathManager.get_node_purchase_count(node_data.id)
-		if level >= 1:
-			_purchased_count += 1
-			_total_spent += node_data.point_cost * level
-			_add_benefit(node_data.id, level)
-
-	_node_count_label.text = "%d" % _purchased_count
-	_points_spent_label.text = "%d" % _total_spent
-
-
-func _add_benefit(node_id: String, _level: int) -> void:
-	var benefit_info: Array = BENEFIT_DESCRIPTIONS.get(node_id, []) as Array
-	if benefit_info.size() < 2:
-		return
-
-	var hbox: HBoxContainer = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 8)
-
-	# Icon label
-	var icon_label: Label = Label.new()
-	icon_label.custom_minimum_size = Vector2(20, 20)
-	icon_label.text = "\u25C6"
-	icon_label.theme_type_variation = &"LabelPathMuted"
-	icon_label.add_theme_color_override("font_color", ThemeConstants.ACCENT_GOLD)
-	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hbox.add_child(icon_label)
-
-	# Info vbox
-	var info_vbox: VBoxContainer = VBoxContainer.new()
-	info_vbox.add_theme_constant_override("separation", 0)
-	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	var name_label: Label = Label.new()
-	name_label.text = benefit_info[0]
-	name_label.theme_type_variation = &"LabelPathBody"
-	info_vbox.add_child(name_label)
-
-	var value_label: Label = Label.new()
-	value_label.text = benefit_info[1]
-	value_label.theme_type_variation = &"LabelPathGreen"
-	info_vbox.add_child(value_label)
-
-	hbox.add_child(info_vbox)
-	_benefits_list.add_child(hbox)
-
-
-func _clear_benefits() -> void:
-	for child: Node in _benefits_list.get_children():
-		child.queue_free()
-	_total_spent = 0
-	_purchased_count = 0
-	_node_count_label.text = "0"
-	_points_spent_label.text = "0"
 
 
 func _on_node_clicked(node_id: String) -> void:
@@ -323,7 +231,7 @@ func _on_node_unhovered() -> void:
 
 func _on_node_purchased(_node_id: String, _new_level: int) -> void:
 	_refresh_all_nodes()
-	_rebuild_benefits_sidebar()
+	_benefits_area.rebuild()
 
 
 func _on_points_changed(_new_balance: int) -> void:

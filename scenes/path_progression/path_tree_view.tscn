@@ -4,6 +4,8 @@
 [ext_resource type="Texture2D" uid="uid://bagg3hpuf63iv" path="res://assets/ui_images/system_menu/star_icon.png" id="2_5saao"]
 [ext_resource type="Script" uid="uid://bfrue6onb4elu" path="res://scenes/path_progression/path_node_container.gd" id="2_container"]
 [ext_resource type="PackedScene" path="res://scenes/path_progression/path_node_tooltip.tscn" id="3_tooltip"]
+[ext_resource type="Script" path="res://scenes/path_progression/benefits_area.gd" id="4_benefits"]
+[ext_resource type="PackedScene" path="res://scenes/path_progression/benefit_card.tscn" id="5_bcard"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unified_panel"]
 bg_color = Color(0.196, 0.157, 0.118, 0.94)
@@ -178,11 +180,14 @@ layout_mode = 2
 theme_override_styles/separator = SubResource("StyleBoxLine_body_divider")
 
 [node name="BenefitsArea" type="PanelContainer" parent="UnifiedPanel/MainVBox/Body" unique_id=1800247584]
+unique_name_in_owner = true
 z_index = 1
 custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 size_flags_horizontal = 0
 theme_override_styles/panel = SubResource("StyleBoxFlat_benefits_bg")
+script = ExtResource("4_benefits")
+benefit_card_scene = ExtResource("5_bcard")
 
 [node name="BenefitsMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Body/BenefitsArea" unique_id=781260254]
 layout_mode = 2
