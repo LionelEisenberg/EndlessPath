@@ -3,10 +3,10 @@
 [ext_resource type="Script" path="res://scenes/abilities/ability_stats_display/ability_stats_display.gd" id="1_script"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
 bg_color = Color(0.239, 0.18, 0.133, 1)
 border_width_left = 2
 border_width_top = 2
@@ -28,21 +28,15 @@ script = ExtResource("1_script")
 [node name="StatTooltip" type="PanelContainer" parent="."]
 unique_name_in_owner = true
 visible = false
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_tooltip")
 
-[node name="TooltipMargin" type="MarginContainer" parent="StatTooltip"]
+[node name="TooltipContent" type="VBoxContainer" parent="StatTooltip"]
 layout_mode = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 12
+theme_override_constants/separation = 4
 
-[node name="TooltipContent" type="VBoxContainer" parent="StatTooltip/TooltipMargin"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="TooltipTitle" type="Label" parent="StatTooltip/TooltipMargin/TooltipContent"]
+[node name="TooltipTitle" type="Label" parent="StatTooltip/TooltipContent"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelPathBody"
@@ -50,10 +44,10 @@ theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.03, 1)
 theme_override_constants/outline_size = 2
 theme_override_font_sizes/font_size = 21
 
-[node name="TooltipSep" type="HSeparator" parent="StatTooltip/TooltipMargin/TooltipContent"]
+[node name="TooltipSep" type="HSeparator" parent="StatTooltip/TooltipContent"]
 layout_mode = 2
 
-[node name="TooltipBody" type="RichTextLabel" parent="StatTooltip/TooltipMargin/TooltipContent"]
+[node name="TooltipBody" type="RichTextLabel" parent="StatTooltip/TooltipContent"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/outline_size = 2

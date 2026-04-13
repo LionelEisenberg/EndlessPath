@@ -64,46 +64,6 @@ func setup(ability_data: AbilityData) -> void:
 		_add_scaling_label("RES", effect.resilience_scaling, attrs.get_attribute(AT.RESILIENCE), Color("#C4884A"))
 		_add_scaling_label("WIL", effect.willpower_scaling, attrs.get_attribute(AT.WILLPOWER), Color("#D470A0"))
 
-		_add_separator()
-
-	# Cooldown
-	_create_label(
-		"CD", ability_data.base_cooldown, Color("#D4A84A"),
-		func(n: String, v: float) -> String: return "%s: %.1fs" % [n, v],
-		{"type": "cd", "value": ability_data.base_cooldown}
-	)
-
-	# Cast time
-	var cast_val: float = ability_data.cast_time
-	_create_label(
-		"Cast", cast_val, Color("#F0E8D8"),
-		func(n: String, v: float) -> String:
-			return "Cast: Instant" if v <= 0.0 else "%s: %.1fs" % [n, v],
-		{"type": "cast", "value": cast_val}
-	)
-
-	_add_separator()
-
-	# Costs
-	if ability_data.madra_cost > 0:
-		_create_label(
-			"Madra", ability_data.madra_cost, Color("#6BA4D4"),
-			func(n: String, v: float) -> String: return "%s: %.0f" % [n, v],
-			{"type": "cost", "resource": "Madra", "value": ability_data.madra_cost}
-		)
-	if ability_data.stamina_cost > 0:
-		_create_label(
-			"Stamina", ability_data.stamina_cost, Color("#D4A84A"),
-			func(n: String, v: float) -> String: return "%s: %.0f" % [n, v],
-			{"type": "cost", "resource": "Stamina", "value": ability_data.stamina_cost}
-		)
-	if ability_data.health_cost > 0:
-		_create_label(
-			"Health", ability_data.health_cost, Color("#E06060"),
-			func(n: String, v: float) -> String: return "%s: %.0f" % [n, v],
-			{"type": "cost", "resource": "Health", "value": ability_data.health_cost}
-		)
-
 func _create_label(stat_name: String, value: float, color: Color, format_cb: Callable, tooltip: Dictionary) -> StatLabel:
 	var label: StatLabel = StatLabelScene.instantiate()
 	add_child(label)
@@ -207,18 +167,6 @@ func _build_tooltip_content(data: Dictionary) -> void:
 		"base":
 			_tooltip_title.text = "Base Damage"
 			_tooltip_body.append_text("[color=#A89070]Flat damage before attribute scaling[/color]")
-		"cd":
-			_tooltip_title.text = "Cooldown"
-			_tooltip_body.append_text("[color=#A89070]%.1f seconds between uses[/color]" % data["value"])
-		"cast":
-			_tooltip_title.text = "Cast Time"
-			if data["value"] <= 0.0:
-				_tooltip_body.append_text("[color=#A89070]Fires instantly[/color]")
-			else:
-				_tooltip_body.append_text("[color=#A89070]%.1f second channel before firing[/color]" % data["value"])
-		"cost":
-			_tooltip_title.text = "%s Cost" % data["resource"]
-			_tooltip_body.append_text("[color=#A89070]Costs %.0f %s per use[/color]" % [data["value"], data["resource"]])
 
 func _append_tooltip_scaling(effect: CombatEffectData, prop: String, attr_name: String, raw: float, color: String) -> void:
 	var scaling: float = effect.get(prop)

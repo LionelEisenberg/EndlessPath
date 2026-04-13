@@ -60,37 +60,38 @@ color = Color(0.42, 0.29, 0.188, 0.5)
 
 [node name="AbilityCard" type="PanelContainer" unique_id=474507726]
 offset_right = 510.0
-offset_bottom = 62.0
+offset_bottom = 100.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_card_normal")
 script = ExtResource("1_script")
 
-[node name="CardVBox" type="VBoxContainer" parent="." unique_id=166326077]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="CollapsedRow" type="HBoxContainer" parent="CardVBox" unique_id=1591884802]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="AbilityIcon" type="TextureRect" parent="CardVBox/CollapsedRow" unique_id=212929155]
+[node name="CardVBox" type="VBoxContainer" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MainRow" type="HBoxContainer" parent="CardVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AbilityIcon" type="TextureRect" parent="CardVBox/MainRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_vertical = 4
 expand_mode = 1
 stretch_mode = 5
 texture_filter = 0
 
-[node name="InfoVBox" type="VBoxContainer" parent="CardVBox/CollapsedRow" unique_id=1766059286]
+[node name="InfoColumn" type="VBoxContainer" parent="CardVBox/MainRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="NameRow" type="HBoxContainer" parent="CardVBox/CollapsedRow/InfoVBox" unique_id=933578692]
+[node name="NameRow" type="HBoxContainer" parent="CardVBox/MainRow/InfoColumn"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="AbilityName" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=1169462998]
+[node name="AbilityName" type="Label" parent="CardVBox/MainRow/InfoColumn/NameRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -100,67 +101,43 @@ theme_override_constants/outline_size = 2
 theme_override_font_sizes/font_size = 35
 text = "Ability Name"
 
-[node name="MadraBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=807632035]
+[node name="MadraBadge" type="Label" parent="CardVBox/MainRow/InfoColumn/NameRow"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 4
 theme_type_variation = &"LabelPathMuted"
 theme_override_colors/font_color = Color(0.49, 0.808, 0.51, 1)
 theme_override_font_sizes/font_size = 21
 theme_override_styles/normal = SubResource("StyleBoxFlat_madra_pill")
 text = "PURE"
 
-[node name="SourceBadge" type="Label" parent="CardVBox/CollapsedRow/InfoVBox/NameRow" unique_id=670346991]
+[node name="SourceBadge" type="Label" parent="CardVBox/MainRow/InfoColumn/NameRow"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 4
 theme_type_variation = &"LabelPathMuted"
 theme_override_font_sizes/font_size = 21
 theme_override_styles/normal = SubResource("StyleBoxFlat_source_pill")
 text = "Innate"
 
-[node name="AbilityStatsDisplay" parent="CardVBox" instance=ExtResource("6_stats_display")]
+[node name="TimingRow" type="Label" parent="CardVBox/MainRow/InfoColumn"]
 unique_name_in_owner = true
 layout_mode = 2
-
-[node name="ExpandedDetails" type="VBoxContainer" parent="CardVBox" unique_id=687580963]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
-
-[node name="DetailSep" type="HSeparator" parent="CardVBox/ExpandedDetails" unique_id=1209933513]
-layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_detail_sep")
-
-[node name="TagsRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=1150968468]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="ContentRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=555310966]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="TextColumn" type="VBoxContainer" parent="CardVBox/ExpandedDetails/ContentRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="DescriptionLabel" type="Label" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn" unique_id=2009695052]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
+theme_override_colors/font_color = Color(0.66, 0.565, 0.44, 1)
 theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.03, 1)
 theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 28
-text = "Ability description goes here."
-autowrap_mode = 3
+theme_override_font_sizes/font_size = 21
+text = "CD: 3.0s · Cast: Instant · Madra: 12"
 
-[node name="ButtonRow" type="HBoxContainer" parent="CardVBox" unique_id=1992841555]
+[node name="AbilityStatsDisplay" parent="CardVBox/MainRow/InfoColumn" instance=ExtResource("6_stats_display")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ButtonRow" type="HBoxContainer" parent="CardVBox"]
 layout_mode = 2
 alignment = 2
 
-[node name="EquipButton" type="Button" parent="CardVBox/ButtonRow" unique_id=1376840928]
+[node name="EquipButton" type="Button" parent="CardVBox/ButtonRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 30)
 layout_mode = 2
@@ -169,3 +146,38 @@ theme_override_styles/pressed = ExtResource("4_btn_pressed")
 theme_override_styles/hover = ExtResource("3_btn_hover")
 theme_override_styles/disabled = ExtResource("5_btn_disabled")
 text = "EQUIP"
+
+[node name="ExpandedDetails" type="VBoxContainer" parent="CardVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="DetailSep" type="HSeparator" parent="CardVBox/ExpandedDetails"]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxLine_detail_sep")
+
+[node name="TagsRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ContentRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TextColumn" type="VBoxContainer" parent="CardVBox/ExpandedDetails/ContentRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="DescriptionLabel" type="Label" parent="CardVBox/ExpandedDetails/ContentRow/TextColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.91, 0.847, 1)
+theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.03, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 28
+text = "Ability description goes here."
+autowrap_mode = 3
