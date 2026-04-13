@@ -62,6 +62,18 @@ func _build_content(data: Dictionary) -> void:
 		"base":
 			_title_label.text = "Base Damage"
 			_body_label.text = "Flat damage before attribute scaling"
+		"cd":
+			_title_label.text = "Cooldown"
+			_body_label.text = "%.1f seconds between uses" % data["value"]
+		"cast":
+			_title_label.text = "Cast Time"
+			if data["value"] <= 0.0:
+				_body_label.text = "Fires instantly"
+			else:
+				_body_label.text = "%.1f second channel before firing" % data["value"]
+		"cost":
+			_title_label.text = "%s Cost" % data["resource"]
+			_body_label.text = "Costs %.0f %s per use" % [data["value"], data["resource"]]
 		_:
 			_title_label.text = data.get("type", "").capitalize()
 			_body_label.text = ""

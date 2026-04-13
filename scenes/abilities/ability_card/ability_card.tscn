@@ -66,13 +66,11 @@ theme_type_variation = &"LabelAbilityMuted"
 theme_override_styles/normal = ExtResource("8_pill_source")
 text = "Innate"
 
-[node name="TimingRow" type="Label" parent="CardVBox/MainRow/InfoColumn" unique_id=1346597890]
+[node name="DamageStatsDisplay" parent="CardVBox/MainRow/InfoColumn" unique_id=899715817 instance=ExtResource("6_stats_display")]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelAbilityMuted"
-text = "CD: 3.0s · Cast: Instant · Madra: 12"
 
-[node name="AbilityStatsDisplay" parent="CardVBox/MainRow/InfoColumn" unique_id=899715817 instance=ExtResource("6_stats_display")]
+[node name="TimingStatsDisplay" parent="CardVBox/MainRow/InfoColumn" unique_id=445928173 instance=ExtResource("6_stats_display")]
 unique_name_in_owner = true
 layout_mode = 2
 

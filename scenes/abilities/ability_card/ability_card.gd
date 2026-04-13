@@ -25,11 +25,11 @@ var _style_expanded: StyleBoxFlat = null
 @onready var _name_label: Label = %AbilityName
 @onready var _madra_badge: Label = %MadraBadge
 @onready var _source_badge: Label = %SourceBadge
-@onready var _timing_row: Label = %TimingRow
 @onready var _expanded_details: VBoxContainer = %ExpandedDetails
 @onready var _tags_row: HBoxContainer = %TagsRow
 @onready var _description_label: Label = %DescriptionLabel
-@onready var _stats_display: AbilityStatsDisplay = %AbilityStatsDisplay
+@onready var _damage_stats: AbilityStatsDisplay = %DamageStatsDisplay
+@onready var _timing_stats: AbilityStatsDisplay = %TimingStatsDisplay
 @onready var _equip_button: Button = %EquipButton
 
 func _ready() -> void:
@@ -148,32 +148,15 @@ func _update_display() -> void:
 	# Source badge
 	_source_badge.text = AbilityData.AbilitySource.keys()[_ability_data.ability_source].capitalize()
 
-	# Timing row (CD, cast, costs as plain text)
-	_update_timing_row()
-
 	# Tag badges (type + target as pills)
 	_update_tags_display()
 
 	# Expanded details
 	_description_label.text = _ability_data.description
 
-	_stats_display.setup(_ability_data)
+	_damage_stats.setup(_ability_data, AbilityStatsDisplay.DisplayMode.DAMAGE)
+	_timing_stats.setup(_ability_data, AbilityStatsDisplay.DisplayMode.TIMING_COSTS)
 	_update_equipped_display()
-
-func _update_timing_row() -> void:
-	var parts: Array[String] = []
-	parts.append("CD: %.1fs" % _ability_data.base_cooldown)
-	if _ability_data.cast_time <= 0.0:
-		parts.append("Cast: Instant")
-	else:
-		parts.append("Cast: %.1fs" % _ability_data.cast_time)
-	if _ability_data.madra_cost > 0:
-		parts.append("Madra: %.0f" % _ability_data.madra_cost)
-	if _ability_data.stamina_cost > 0:
-		parts.append("Stamina: %.0f" % _ability_data.stamina_cost)
-	if _ability_data.health_cost > 0:
-		parts.append("Health: %.0f" % _ability_data.health_cost)
-	_timing_row.text = " \u00b7 ".join(parts)
 
 func _update_tags_display() -> void:
 	# Clear existing tag children
