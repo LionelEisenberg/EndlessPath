@@ -340,6 +340,7 @@ func _on_character_movement_completed() -> void:
 		_visit(_current_tile)
 
 func _mark_tile_visited(coord: Vector3i) -> void:
+	var previous_highlights := _highlight_tile_dictionary.keys()
 	_visited_tile_dictionary[coord] = true
 	_highlight_tile_dictionary.clear()
 
@@ -348,8 +349,30 @@ func _mark_tile_visited(coord: Vector3i) -> void:
 			if neighbour in _encounter_tile_dictionary.keys() and neighbour not in _visited_tile_dictionary.keys():
 				_highlight_tile_dictionary[neighbour] = HighlightType.VISIBLE_NEIGHBOUR
 
+	# Find newly-revealed neighbors (in new highlights but not old)
+	var newly_revealed: Array[Vector3i] = []
+	for c in _highlight_tile_dictionary.keys():
+		if not previous_highlights.has(c):
+			newly_revealed.append(c)
+
 	_update_visible_map()
 	_update_fog_uniforms()
+	_animate_reveal_stagger(newly_revealed)
+
+func _animate_reveal_stagger(coords: Array[Vector3i]) -> void:
+	var delay := 0.0
+	for cube in coords:
+		var icon: EncounterIcon = _encounter_icons.get(cube)
+		if icon:
+			icon.scale = Vector2(0.3, 0.3)
+			icon.modulate.a = 0.0
+			var tween := create_tween()
+			tween.tween_interval(delay)
+			tween.tween_property(icon, "scale", Vector2(1, 1), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			var alpha_tween := create_tween()
+			alpha_tween.tween_interval(delay)
+			alpha_tween.tween_property(icon, "modulate:a", 1.0, 0.3)
+		delay += 0.05
 
 func _process(_delta: float) -> void:
 	# Fog-of-war uniforms are in screen space, so they must be refreshed
