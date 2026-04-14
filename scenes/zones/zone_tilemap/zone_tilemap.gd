@@ -8,6 +8,7 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @onready var _camera: Camera2D = %Camera2D
 @onready var _hover_sprite: Sprite2D = %HoverSprite
 @onready var _aura_sprite: Sprite2D = %AuraSprite
+@onready var _locked_glyph_container: Node2D = %LockedGlyphContainer
 
 var _aura_breath_tween: Tween
 
@@ -23,6 +24,7 @@ const FLOATING_TEXT_OFFSET = Vector2i(250, 250)
 const CAMERA_EASE_DURATION := 0.5
 
 var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
+const LockedZoneGlyphScene := preload("res://scenes/zones/locked_zone_glyph/locked_zone_glyph.tscn")
 
 ## variable that stores the tile the character is on
 var selected_zone: ZoneData:
@@ -32,9 +34,10 @@ var selected_zone: ZoneData:
 
 func _ready() -> void:
 	selected_zone = ZoneManager.get_current_zone()
-	
+
 	set_all_zones_in_tile_map()
 	update_zone_tile_state(selected_zone)
+	_refresh_locked_glyphs()
 	_move_character_to_tile_coord(selected_zone.tilemap_location)
 
 	# Connect to tile map layer for zone selection
@@ -156,6 +159,18 @@ func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	set_all_zones_in_tile_map()
+	_refresh_locked_glyphs()
+
+func _refresh_locked_glyphs() -> void:
+	for child in _locked_glyph_container.get_children():
+		child.queue_free()
+	for zone_data in ZoneManager.get_all_zones():
+		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
+			continue
+		var glyph := LockedZoneGlyphScene.instantiate() as Label
+		_locked_glyph_container.add_child(glyph)
+		var world_pos := tile_map.map_to_local(zone_data.tilemap_location) + tile_map.position
+		glyph.position = world_pos - Vector2(glyph.size.x * 0.5, glyph.size.y * 0.5)
 
 func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
 	var zone_data := get_zone_at_tile(tile_coord)

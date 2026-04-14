@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://clockedzoneglyph"]
+
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="1"]
+
+[node name="LockedZoneGlyph" type="Label"]
+offset_right = 96.0
+offset_bottom = 96.0
+pivot_offset = Vector2(48, 48)
+mouse_filter = 2
+theme = ExtResource("1")
+theme_type_variation = &"LabelLockedGlyph"
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
