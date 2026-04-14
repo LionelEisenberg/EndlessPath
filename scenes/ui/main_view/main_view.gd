@@ -14,7 +14,7 @@ extends Control
 @onready var abilities_view: Control = %AbilitiesView
 
 ## View Components
-@onready var grey_background: Panel = %GreyBackground
+@onready var grey_background: GreyBackground = %GreyBackground
 
 ## State machine states
 @onready var zone_view_state: MainViewState = %MainViewStateMachine/ZoneViewState

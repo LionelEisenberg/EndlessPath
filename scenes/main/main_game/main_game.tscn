@@ -27,6 +27,62 @@
 [ext_resource type="PackedScene" uid="uid://cbps5t4a7d2m5" path="res://scenes/path_progression/path_tree_view.tscn" id="19_ptv"]
 [ext_resource type="Script" uid="uid://cd0oljhv7jwgr" path="res://scenes/abilities/abilities_view_state.gd" id="22_avs"]
 [ext_resource type="PackedScene" uid="uid://dq8m3p6k2n1xt" path="res://scenes/abilities/abilities_view.tscn" id="23_av"]
+[ext_resource type="Script" path="res://scenes/ui/grey_background/grey_background.gd" id="24_grybg_script"]
+
+[sub_resource type="Animation" id="Animation_grey_RESET"]
+resource_name = "RESET"
+length = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:self_modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_grey_fade_in"]
+resource_name = "grey_fade_in"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:self_modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_grey_fade_out"]
+resource_name = "grey_fade_out"
+length = 0.2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:self_modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 2),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_grey"]
+_data = {
+&"RESET": SubResource("Animation_grey_RESET"),
+&"grey_fade_in": SubResource("Animation_grey_fade_in"),
+&"grey_fade_out": SubResource("Animation_grey_fade_out")
+}
 
 [node name="MainGame" type="Node2D" unique_id=495119710]
 script = ExtResource("1_2bvax")
@@ -181,6 +237,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = ExtResource("15_grybg")
+script = ExtResource("24_grybg_script")
+
+[node name="GreyBackgroundAnimationPlayer" type="AnimationPlayer" parent="MainView/GreyBackground" unique_id=742819356]
+unique_name_in_owner = true
+libraries/ = SubResource("AnimationLibrary_grey")
 
 [node name="PathTreeView" parent="MainView" unique_id=69045446 instance=ExtResource("19_ptv")]
 unique_name_in_owner = true
