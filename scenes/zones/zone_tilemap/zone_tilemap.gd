@@ -20,6 +20,7 @@ const BASE_GHOST_VARIANT = 3
 const CHARACTER_MOVE_SPEED = 150.0
 const FORAGE_POSITION_MARGIN = 32
 const FLOATING_TEXT_OFFSET = Vector2i(250, 250)
+const CAMERA_EASE_DURATION := 0.5
 
 var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
 
@@ -127,24 +128,31 @@ func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[
 
 		tile_map.set_cell_with_source_and_variant(UNLOCKED_SOURCE_ID, BASE_GHOST_VARIANT, neighbor_tile)
 
+func _ease_camera_to(world_pos: Vector2) -> void:
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_BACK)
+	tween.set_ease(Tween.EASE_OUT)
+	tween.tween_property(_camera, "position", world_pos, CAMERA_EASE_DURATION)
+
 ## Called when a tile is clicked on the tile map.
 func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 	var zone_data = get_zone_at_tile(tile_coord)
 	Log.info("ZoneTilemap: Zone tile clicked: %s" % tile_coord)
 	if not zone_data:
 		return
-	
+
 	if zone_data == selected_zone:
 		return
-	
+
 	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
 		return
-	
+
 	if zone_data:
 		zone_selected.emit(zone_data, tile_coord)
 		update_zone_tile_state(zone_data)
-	
+
 	_move_character_to_tile_coord(tile_coord)
+	_ease_camera_to(tile_map.map_to_local(tile_coord) + tile_map.position)
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	set_all_zones_in_tile_map()
