@@ -9,6 +9,7 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @onready var _hover_sprite: Sprite2D = %HoverSprite
 @onready var _aura_sprite: Sprite2D = %AuraSprite
 @onready var _locked_glyph_container: Node2D = %LockedGlyphContainer
+@onready var _glowing_path_container: Node2D = %GlowingPathContainer
 
 var _aura_breath_tween: Tween
 
@@ -25,6 +26,7 @@ const CAMERA_EASE_DURATION := 0.5
 
 var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
 const LockedZoneGlyphScene := preload("res://scenes/zones/locked_zone_glyph/locked_zone_glyph.tscn")
+const GlowingPathScene := preload("res://scenes/zones/glowing_path/glowing_path.tscn")
 
 ## variable that stores the tile the character is on
 var selected_zone: ZoneData:
@@ -38,6 +40,7 @@ func _ready() -> void:
 	set_all_zones_in_tile_map()
 	update_zone_tile_state(selected_zone)
 	_refresh_locked_glyphs()
+	_refresh_glowing_paths()
 	_move_character_to_tile_coord(selected_zone.tilemap_location)
 
 	# Connect to tile map layer for zone selection
@@ -160,6 +163,7 @@ func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 func _on_condition_unlocked(_condition_id: String) -> void:
 	set_all_zones_in_tile_map()
 	_refresh_locked_glyphs()
+	_refresh_glowing_paths()
 
 func _refresh_locked_glyphs() -> void:
 	for child in _locked_glyph_container.get_children():
@@ -171,6 +175,35 @@ func _refresh_locked_glyphs() -> void:
 		_locked_glyph_container.add_child(glyph)
 		var world_pos := tile_map.map_to_local(zone_data.tilemap_location) + tile_map.position
 		glyph.position = world_pos - Vector2(glyph.size.x * 0.5, glyph.size.y * 0.5)
+
+func _refresh_glowing_paths() -> void:
+	for child in _glowing_path_container.get_children():
+		child.queue_free()
+
+	var unlocked_coords := {}
+	for zone_data in ZoneManager.get_all_zones():
+		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
+			unlocked_coords[zone_data.tilemap_location] = zone_data
+
+	var seen := {}
+	for coord in unlocked_coords.keys():
+		for neighbor_coord in tile_map.get_surrounding_cells(coord):
+			if not unlocked_coords.has(neighbor_coord):
+				continue
+			var min_x := mini(coord.x, neighbor_coord.x)
+			var min_y := mini(coord.y, neighbor_coord.y)
+			var max_x := maxi(coord.x, neighbor_coord.x)
+			var max_y := maxi(coord.y, neighbor_coord.y)
+			var pair_key := "%d_%d_%d_%d" % [min_x, min_y, max_x, max_y]
+			if seen.has(pair_key):
+				continue
+			seen[pair_key] = true
+
+			var from_world := tile_map.map_to_local(coord) + tile_map.position
+			var to_world := tile_map.map_to_local(neighbor_coord) + tile_map.position
+			var path := GlowingPathScene.instantiate() as GlowingPath
+			_glowing_path_container.add_child(path)
+			path.setup(from_world, to_world)
 
 func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
 	var zone_data := get_zone_at_tile(tile_coord)
