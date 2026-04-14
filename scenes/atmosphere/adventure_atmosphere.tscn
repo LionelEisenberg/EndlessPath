@@ -1,7 +1,7 @@
 [gd_scene load_steps=11 format=3 uid="uid://cadventureatmos01"]
 
 [ext_resource type="Script" path="res://scenes/atmosphere/adventure_atmosphere.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://dveq1aqafaccq" path="res://assets/sprites/atmosphere/mist_blob.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://cdwiub235t85v" path="res://assets/sprites/atmosphere/mist_sheet.png" id="2"]
 [ext_resource type="Texture2D" uid="uid://dxpd4rlal3kr0" path="res://assets/sprites/atmosphere/mote_particle.png" id="3"]
 [ext_resource type="Shader" uid="uid://dgq0bcd8enkeb" path="res://assets/shaders/vignette.gdshader" id="4"]
 
@@ -56,6 +56,9 @@ position = Vector2(-200, 100)
 scale = Vector2(4, 4)
 modulate = Color(0.59, 0.71, 0.9, 0.18)
 texture = ExtResource("2")
+hframes = 7
+vframes = 7
+frame = 0
 
 [node name="MistB" type="Sprite2D" parent="MistContainer"]
 unique_name_in_owner = true
@@ -63,6 +66,9 @@ position = Vector2(400, 300)
 scale = Vector2(5, 5)
 modulate = Color(0.45, 0.55, 0.78, 0.16)
 texture = ExtResource("2")
+hframes = 7
+vframes = 7
+frame = 15
 
 [node name="MistC" type="Sprite2D" parent="MistContainer"]
 unique_name_in_owner = true
@@ -70,6 +76,9 @@ position = Vector2(1200, 500)
 scale = Vector2(4.5, 4.5)
 modulate = Color(0.62, 0.5, 0.78, 0.14)
 texture = ExtResource("2")
+hframes = 7
+vframes = 7
+frame = 30
 
 [node name="MoteParticlesCyan" type="GPUParticles2D" parent="."]
 amount = 25
