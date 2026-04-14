@@ -59,6 +59,7 @@ enum HighlightType {
 @onready var _tile_state_overlay: TileStateOverlay = %TileStateOverlay
 @onready var _encounter_icon_container: Node2D = %EncounterIconContainer
 @onready var _fog_rect: ColorRect = %FogOfWarRect
+@onready var _path_preview: PathPreview = %PathPreview
 
 var _encounter_icons: Dictionary[Vector3i, EncounterIcon] = {}
 
@@ -91,6 +92,8 @@ func _ready() -> void:
 	
 	if visible_map:
 		visible_map.tile_clicked.connect(_on_tile_clicked)
+		visible_map.tile_hovered.connect(_on_tile_hovered)
+		visible_map.tile_unhovered.connect(_on_tile_unhovered)
 	else:
 		Log.critical("AdventureTilemap: Visible map is missing!")
 	
@@ -299,6 +302,31 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 		_process_next_visitation()
 	else:
 		Log.info("AdventureTilemap: Path is empty or only contains current tile")
+
+func _on_tile_hovered(tile_coord: Vector2i) -> void:
+	if _is_movement_locked:
+		return
+	var target_cube := visible_map.map_to_cube(tile_coord)
+	if not _visited_tile_dictionary.has(target_cube) and not _highlight_tile_dictionary.has(target_cube):
+		_path_preview.clear_path()
+		return
+
+	# Compute path from current tile to hover target
+	var path: Array[Vector3i] = visible_map.cube_pathfind(_current_tile, target_cube)
+	var world_points: Array[Vector2] = []
+	for c in path:
+		var world_pos := full_map.cube_to_local(c) + full_map.position
+		world_points.append(world_pos)
+	_path_preview.show_path(world_points)
+
+	# Brighten target tile overlay
+	if _tile_state_overlay.get_state(target_cube) != TileStateOverlay.TileState.CURRENT:
+		_tile_state_overlay.set_tile_state(target_cube, TileStateOverlay.TileState.HOVER_TARGET, full_map.cube_to_local(target_cube) + full_map.position)
+
+func _on_tile_unhovered() -> void:
+	_path_preview.clear_path()
+	# Reset overlays — restore proper states via _update_visible_map
+	_update_visible_map()
 
 ## Called when character completes movement to a tile
 func _on_character_movement_completed() -> void:

@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://ctilestateoverlay01" path="res://scenes/adventure/tile_state_overlay/tile_state_overlay.tscn" id="8_tso"]
 [ext_resource type="PackedScene" uid="uid://cencountericon01" path="res://scenes/adventure/encounter_icon/encounter_icon.tscn" id="9_enci"]
 [ext_resource type="Shader" path="res://assets/shaders/fog_of_war.gdshader" id="10_fog"]
+[ext_resource type="PackedScene" uid="uid://cpathpreview01" path="res://scenes/adventure/path_preview/path_preview.tscn" id="11_ppv"]
 
 [sub_resource type="ShaderMaterial" id="SM_fog"]
 shader = ExtResource("10_fog")
@@ -60,6 +61,9 @@ unique_name_in_owner = true
 [node name="EncounterIconContainer" type="Node2D" parent="."]
 unique_name_in_owner = true
 z_index = 6
+
+[node name="PathPreview" parent="." instance=ExtResource("11_ppv")]
+unique_name_in_owner = true
 
 [node name="FogLayer" type="CanvasLayer" parent="."]
 layer = 4
