@@ -16,6 +16,8 @@ signal boss_defeated
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
+const EncounterIconScene := preload("res://scenes/adventure/encounter_icon/encounter_icon.tscn")
+
 # Tilemap tile source IDs
 const BASE_TILE_SOURCE_ID = 0
 const WHITE_TILE_VARIANT_ID = 0
@@ -52,6 +54,9 @@ enum HighlightType {
 @onready var character_body: CharacterBody2D = %CharacterBody2D
 @onready var encounter_info_panel: EncounterInfoPanel = %EncounterInfoPanel
 @onready var _tile_state_overlay: TileStateOverlay = %TileStateOverlay
+@onready var _encounter_icon_container: Node2D = %EncounterIconContainer
+
+var _encounter_icons: Dictionary[Vector3i, EncounterIcon] = {}
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -129,6 +134,9 @@ func stop_adventure() -> void:
 	full_map.clear()
 	visible_map.clear()
 	highlight_map.clear()
+	for icon in _encounter_icons.values():
+		icon.queue_free()
+	_encounter_icons.clear()
 	_encounter_tile_dictionary.clear()
 	_visited_tile_dictionary.clear()
 	_highlight_tile_dictionary.clear()
@@ -352,6 +360,9 @@ func _update_visible_map() -> void:
 	visible_map.clear()
 	highlight_map.clear()
 	_tile_state_overlay.clear_all()
+	for icon in _encounter_icons.values():
+		icon.queue_free()
+	_encounter_icons.clear()
 
 	var visible_coords: Array[Vector3i] = []
 	for coord in _visited_tile_dictionary.keys():
@@ -380,24 +391,17 @@ func _update_visible_map() -> void:
 		_tile_state_overlay.set_tile_state(_current_tile, TileStateOverlay.TileState.CURRENT, world_pos)
 
 func _update_cell_highlight(coord: Vector3i) -> void:
-	const BOSS_OVERLAY_SOURCE_ID = 3
-	const COMBAT_OVERLAY_SOURCE_ID = 4
-	const REST_OVERLAY_SOURCE_ID = 5
-	const TREASURE_OVERLAY_SOURCE_ID = 6
-	const UNKNOWN_OVERLAY_SOURCE_ID = 7
-	
-	match _encounter_tile_dictionary[coord].encounter_type:
-		AdventureEncounter.EncounterType.COMBAT_REGULAR:
-			highlight_map.set_cell_with_source_and_variant(COMBAT_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
-		AdventureEncounter.EncounterType.COMBAT_BOSS:
-			highlight_map.set_cell_with_source_and_variant(BOSS_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
-		AdventureEncounter.EncounterType.COMBAT_ELITE:
-			highlight_map.set_cell_with_source_and_variant(COMBAT_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
-		AdventureEncounter.EncounterType.COMBAT_AMBUSH:
-			highlight_map.set_cell_with_source_and_variant(COMBAT_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
-		AdventureEncounter.EncounterType.REST_SITE:
-			highlight_map.set_cell_with_source_and_variant(REST_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
-		AdventureEncounter.EncounterType.TREASURE:
-			highlight_map.set_cell_with_source_and_variant(TREASURE_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
-		_:
-			highlight_map.set_cell_with_source_and_variant(UNKNOWN_OVERLAY_SOURCE_ID, 0, full_map.cube_to_map(coord))
+	var encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
+	if not encounter:
+		return
+
+	var icon: EncounterIcon = _encounter_icons.get(coord)
+	if icon == null:
+		icon = EncounterIconScene.instantiate()
+		_encounter_icon_container.add_child(icon)
+		_encounter_icons[coord] = icon
+
+	icon.position = full_map.cube_to_local(coord) + full_map.position
+	icon.set_visited(_visited_tile_dictionary.has(coord))
+	var should_show := icon.configure_for_type(encounter.encounter_type)
+	icon.visible = should_show
