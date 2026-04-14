@@ -30,7 +30,7 @@ Players start at the **Foundation** stage, where they engage in a **Cycling** mi
 | Component | Details |
 |-----------|---------|
 | Engine | Godot 4.6 (GDScript) |
-| Architecture | 14 autoload singletons, data-driven resource system |
+| Architecture | 15 autoload singletons, data-driven resource system |
 | Entry Scene | `scenes/main/main_game/main_game.tscn` |
 | Save System | `user://save.tres` via Godot ResourceSaver |
 | Map System | Hex grid via `hexagon_tilemaplayer` addon |
@@ -54,7 +54,7 @@ scripts/
     zones/                      ZoneData, ZoneActionData subclasses
   utils/                      Log utility, text effect importer
 
-singletons/                   14 autoload manager singletons
+singletons/                   15 autoload manager singletons
   persistence_manager/          Save/load system (SaveGameData, InventoryData, etc.)
   resource_manager/             Madra and Gold tracking
   cultivation_manager/          Core Density leveling and stage progression
@@ -67,6 +67,7 @@ singletons/                   14 autoload manager singletons
   player_manager/               Player VitalsManager container
   cycling_manager/              Cycling technique state (unlocked, equipped, catalog)
   path_manager/                 Path progression tree, point balance, perk effects
+  ability_manager/              Ability unlock/equip (4-slot loadout, catalog)
   dialogue_manager/             Dialogic wrapper
   log_manager/                  In-game log signal bus
 
@@ -74,6 +75,7 @@ scenes/
   main/main_game/             Entry scene (main_game.tscn), save timer
   cycling/                    Cycling mini-game (view, technique, zones, resource panel)
   path_progression/           Path skill tree UI and node interactions
+  abilities/                  Ability management (cards, loadout slots, stats display)
   combat/                     Combat system (combatant nodes, ability/buff/effect managers, AI)
   adventure/                  Adventure mode (tilemap, map generator, encounter panels)
   inventory/                  Inventory UI (equipment grid, gear slots, materials tab)

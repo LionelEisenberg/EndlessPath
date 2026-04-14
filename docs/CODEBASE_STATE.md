@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-04-12
+Last updated: 2026-04-13
 
 This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
 
@@ -22,7 +22,8 @@ MainGame (Node2D)
 │   │   ├── AdventureViewState
 │   │   ├── InventoryViewState
 │   │   ├── CyclingViewState
-│   │   └── PathTreeViewState
+│   │   ├── PathTreeViewState
+│   │   └── AbilitiesViewState
 │   ├── ZoneView (Control)          — default view, always present
 │   │   ├── ZoneTransition          — animated zone-change overlay (PR #16)
 │   │   ├── SubViewportContainer
@@ -38,7 +39,8 @@ MainGame (Node2D)
 │   ├── GreyBackground (Panel)      — modal overlay
 │   ├── InventoryView (Control)     — hidden, shown by state
 │   ├── CyclingView (Control)       — hidden, shown by state
-│   └── PathTreeView (Control)     — hidden, shown by state (PR #20)
+│   ├── PathTreeView (Control)     — hidden, shown by state (PR #20)
+│   └── AbilitiesView (Control)    — hidden, shown by state (PR #22)
 └── SaveTimer (Timer)               — auto-save
 ```
 
@@ -59,9 +61,9 @@ Each state is a `MainViewState` node that controls visibility of its correspondi
 
 ### Singleton Managers
 
-14 autoload singletons manage global state, loaded in dependency order via `project.godot`:
+15 autoload singletons manage global state, loaded in dependency order via `project.godot`:
 
-1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager → 14. PathManager
+1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager → 14. PathManager → 15. AbilityManager
 
 **Communication pattern:** Singletons communicate via signals and shared state. All game-state managers hold a **live reference** to `PersistenceManager.save_game_data` (a shared `SaveGameData` Resource). Writes by one manager are immediately visible to all others. When state changes, managers emit signals that UI scenes listen to.
 
@@ -75,7 +77,8 @@ PersistenceManager (root — owns SaveGameData)
   ├── UnlockManager (unlock progression)
   ├── EventManager (event progression)
   ├── ZoneManager (zone state, progression)
-  └── PathManager (path tree state, purchases, point balance)
+  ├── PathManager (path tree state, purchases, point balance)
+  └── AbilityManager (unlocked abilities, equipped loadout)
 
 ActionManager (orchestrator)
   → emits: start_cycling, stop_cycling, start_adventure, stop_adventure, start_foraging, etc.
