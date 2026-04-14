@@ -5,9 +5,11 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
 @onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
 @onready var character_body: CharacterBody2D = %PlayerCharacter
-@onready var selected_zone_pulse_node: Line2D = %PulseNode
 @onready var _camera: Camera2D = %Camera2D
 @onready var _hover_sprite: Sprite2D = %HoverSprite
+@onready var _aura_sprite: Sprite2D = %AuraSprite
+
+var _aura_breath_tween: Tween
 
 const UNLOCKED_SOURCE_ID = 0
 const LOCKED_SOURCE_ID = 1
@@ -165,11 +167,23 @@ func _on_zone_tile_unhovered() -> void:
 	_hover_sprite.visible = false
 
 func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
-	_move_character_to_position(tile_map.map_to_local(tile_coord) + tile_map.position)
-	selected_zone_pulse_node.global_position = tile_map.map_to_local(tile_coord) + tile_map.position
+	var world_pos := tile_map.map_to_local(tile_coord) + tile_map.position
+	_move_character_to_position(world_pos)
+	_aura_sprite.global_position = world_pos
+	_start_aura_breathing()
 
 func _move_character_to_position(new_position: Vector2) -> void:
 	character_body.move_to_position(new_position, CHARACTER_MOVE_SPEED)
+
+func _start_aura_breathing() -> void:
+	if _aura_breath_tween and _aura_breath_tween.is_valid():
+		_aura_breath_tween.kill()
+	_aura_breath_tween = create_tween()
+	_aura_breath_tween.set_loops()
+	_aura_breath_tween.set_trans(Tween.TRANS_SINE)
+	_aura_breath_tween.set_ease(Tween.EASE_IN_OUT)
+	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(0.95, 0.95), 1.25)
+	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(0.85, 0.85), 1.25)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
