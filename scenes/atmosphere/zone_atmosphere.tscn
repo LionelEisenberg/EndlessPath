@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ctw3kp4wkgads" path="res://scenes/atmosphere/zone_atmosphere.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://cdwiub235t85v" path="res://assets/sprites/atmosphere/mist_sheet.png" id="2"]
-[ext_resource type="Texture2D" uid="uid://dxpd4rlal3kr0" path="res://assets/sprites/atmosphere/mote_particle.png" id="3"]
+[ext_resource type="Texture2D" uid="uid://ciljxi5dxbh71" path="res://assets/sprites/atmosphere/mote_particle.png" id="3_twe1b"]
 [ext_resource type="Shader" uid="uid://dgq0bcd8enkeb" path="res://assets/shaders/vignette.gdshader" id="4"]
 
 [sub_resource type="Curve" id="Curve_alpha"]
@@ -14,28 +14,27 @@ curve = SubResource("Curve_alpha")
 
 [sub_resource type="ParticleProcessMaterial" id="PPM_cyan"]
 emission_shape = 3
-emission_box_extents = Vector3(1100, 700, 1)
+emission_box_extents = Vector3(1600, 1000, 1)
 direction = Vector3(0, -1, 0)
 spread = 180.0
 initial_velocity_min = 4.0
 initial_velocity_max = 14.0
 gravity = Vector3(0, -3, 0)
-scale_min = 0.6
-scale_max = 1.4
-color = Color(0.75, 0.86, 1, 0.85)
+scale_min = 0.02
+scale_max = 0.03
 alpha_curve = SubResource("CurveTexture_alpha")
 
 [sub_resource type="ParticleProcessMaterial" id="PPM_warm"]
 emission_shape = 3
-emission_box_extents = Vector3(1100, 700, 1)
+emission_box_extents = Vector3(1600, 1000, 1)
 direction = Vector3(0, -1, 0)
 spread = 180.0
 initial_velocity_min = 4.0
 initial_velocity_max = 14.0
 gravity = Vector3(0, -3, 0)
-scale_min = 0.6
-scale_max = 1.4
-color = Color(1, 0.85, 0.45, 0.85)
+scale_min = 0.02
+scale_max = 0.02
+color = Color(0.21960784, 0.8509804, 0.4509804, 0.8509804)
 alpha_curve = SubResource("CurveTexture_alpha")
 
 [sub_resource type="ShaderMaterial" id="SM_vignette"]
@@ -58,7 +57,6 @@ scale = Vector2(4, 4)
 texture = ExtResource("2")
 hframes = 7
 vframes = 7
-frame = 0
 
 [node name="MistB" type="Sprite2D" parent="MistContainer" unique_id=1992319293]
 unique_name_in_owner = true
@@ -81,16 +79,16 @@ vframes = 7
 frame = 30
 
 [node name="MoteParticlesCyan" type="GPUParticles2D" parent="." unique_id=644192755]
-amount = 30
-texture = ExtResource("3")
+amount = 60
+texture = ExtResource("3_twe1b")
 lifetime = 3.5
 preprocess = 3.5
 randomness = 0.5
 process_material = SubResource("PPM_cyan")
 
 [node name="MoteParticlesWarm" type="GPUParticles2D" parent="." unique_id=1780223110]
-amount = 12
-texture = ExtResource("3")
+amount = 30
+texture = ExtResource("3_twe1b")
 lifetime = 3.5
 preprocess = 3.5
 randomness = 0.5
