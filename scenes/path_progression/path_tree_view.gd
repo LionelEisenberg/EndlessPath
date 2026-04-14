@@ -4,6 +4,9 @@ extends Control
 ## Handles panning via left-click drag and instantiates path node UI components.
 ## Delegates benefits sidebar to BenefitsArea and tooltip to shared PathNodeTooltip.
 
+## Emitted when the close animation finishes, so the owning state can pop itself.
+signal path_tree_closed
+
 @export var layout_scene: PackedScene
 @export var path_node_ui_scene: PackedScene
 
@@ -19,6 +22,7 @@ extends Control
 @onready var _madra_weaknesses_label: Label = %MadraWeaknessesLabel
 @onready var _madra_cycling_label: Label = %MadraCyclingLabel
 @onready var _madra_combat_label: Label = %MadraCombatLabel
+@onready var _animation_player: AnimationPlayer = %AnimationPlayer
 
 ## Maps node_id -> PathNodeUI for refresh
 var _node_uis: Dictionary = {}
@@ -90,6 +94,20 @@ func build_tree() -> void:
 	_node_container.queue_redraw()
 	_node_container.rebuild_energy_lines()
 
+## Plays the open animation (fade in + slight scale).
+func animate_open() -> void:
+	if _animation_player.is_playing():
+		return
+	_animation_player.play("open")
+
+## Plays the close animation, then emits path_tree_closed.
+func animate_close() -> void:
+	if _animation_player.is_playing():
+		return
+	if not _animation_player.animation_finished.is_connected(_on_close_animation_finished):
+		_animation_player.animation_finished.connect(_on_close_animation_finished.unbind(1))
+	_animation_player.play("close")
+
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
@@ -107,6 +125,10 @@ func _ready() -> void:
 	_update_header()
 	_populate_madra_info()
 	build_tree()
+
+func _on_close_animation_finished() -> void:
+	_animation_player.animation_finished.disconnect(_on_close_animation_finished)
+	path_tree_closed.emit()
 
 func _on_tree_area_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
