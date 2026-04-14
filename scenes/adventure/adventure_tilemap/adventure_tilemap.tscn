@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="4_ywsim"]
 [ext_resource type="PackedScene" uid="uid://b0qowk3rd0jft" path="res://scenes/adventure/adventure_tilemap/encounter_info_panel.tscn" id="6_10now"]
 [ext_resource type="PackedScene" uid="uid://cadventureatmos01" path="res://scenes/atmosphere/adventure_atmosphere.tscn" id="7_atmos1"]
+[ext_resource type="PackedScene" uid="uid://ctilestateoverlay01" path="res://scenes/adventure/tile_state_overlay/tile_state_overlay.tscn" id="8_tso"]
 
 [node name="AdventureTilemap" type="Node2D" unique_id=1090162291]
 script = ExtResource("1_b7v0o")
@@ -42,6 +43,9 @@ zoom_default = 1.0
 zoom_speed = 100.0
 
 [node name="AdventureAtmosphere" parent="." instance=ExtResource("7_atmos1")]
+
+[node name="TileStateOverlay" parent="." instance=ExtResource("8_tso")]
+unique_name_in_owner = true
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2060548285]
 layer = 2

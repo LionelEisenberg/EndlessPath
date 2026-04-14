@@ -51,6 +51,7 @@ enum HighlightType {
 @onready var highlight_map: HexagonTileMapLayer = %AdventureHighlightMap
 @onready var character_body: CharacterBody2D = %CharacterBody2D
 @onready var encounter_info_panel: EncounterInfoPanel = %EncounterInfoPanel
+@onready var _tile_state_overlay: TileStateOverlay = %TileStateOverlay
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -348,30 +349,35 @@ func _update_full_map() -> void:
 		full_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, TRANSPARENT_TILE_VARIANT_ID, full_map.cube_to_map(coord))
 
 func _update_visible_map() -> void:
-	var pulse_node_scene: PackedScene = load("res://scenes/tilemaps/pulse_node.tscn")
 	visible_map.clear()
 	highlight_map.clear()
-	
-	for child in get_children():
-		if child is PulseNode:
-			child.queue_free()
-	
-	var visible_coords = _visited_tile_dictionary.keys()
+	_tile_state_overlay.clear_all()
+
+	var visible_coords: Array[Vector3i] = []
+	for coord in _visited_tile_dictionary.keys():
+		visible_coords.append(coord)
+
 	for highlight_coord in _highlight_tile_dictionary.keys():
 		if _highlight_tile_dictionary[highlight_coord] == HighlightType.VISIBLE_NEIGHBOUR:
 			visible_coords.append(highlight_coord)
-			var pulse_node_instance = pulse_node_scene.instantiate()
-			pulse_node_instance.setup(8.0, Color("Dark Red"), 0.6)
-			pulse_node_instance.global_position = full_map.cube_to_local(highlight_coord) + full_map.position
-			add_child(pulse_node_instance)
+			var world_pos := full_map.cube_to_local(highlight_coord) + full_map.position
+			_tile_state_overlay.set_tile_state(highlight_coord, TileStateOverlay.TileState.REVEAL, world_pos)
 
 	for coord in visible_coords:
 		if not _encounter_tile_dictionary[coord] is NoOpEncounter:
 			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, YELLOW_TILE_VARIANT_ID, full_map.cube_to_map(coord))
-			
 			_update_cell_highlight(coord)
 		else:
 			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, WHITE_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+
+	# Visited tiles get VISITED state; current tile overrides with CURRENT
+	for coord in _visited_tile_dictionary.keys():
+		var world_pos := full_map.cube_to_local(coord) + full_map.position
+		_tile_state_overlay.set_tile_state(coord, TileStateOverlay.TileState.VISITED, world_pos)
+
+	if _visited_tile_dictionary.has(_current_tile):
+		var world_pos := full_map.cube_to_local(_current_tile) + full_map.position
+		_tile_state_overlay.set_tile_state(_current_tile, TileStateOverlay.TileState.CURRENT, world_pos)
 
 func _update_cell_highlight(coord: Vector3i) -> void:
 	const BOSS_OVERLAY_SOURCE_ID = 3
