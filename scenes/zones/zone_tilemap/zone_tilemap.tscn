@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="5_q6nfb"]
 [ext_resource type="PackedScene" uid="uid://lt845ceb1dib" path="res://scenes/camera/camera_pan_controller/camera_pan_controller.tscn" id="6_3euei"]
 [ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="6_hxkky"]
-[ext_resource type="PackedScene" uid="uid://czoneatmosphere01" path="res://scenes/atmosphere/zone_atmosphere.tscn" id="7_atmos"]
+[ext_resource type="PackedScene" uid="uid://catmosphere01" path="res://scenes/atmosphere/atmosphere.tscn" id="7_atmos"]
 [ext_resource type="Texture2D" uid="uid://ckvr10ptgsd2l" path="res://assets/sprites/atmosphere/aura_glow.png" id="8_aura"]
 
 [node name="ZoneTilemap" type="Node2D" unique_id=731377091]
@@ -17,28 +17,28 @@ metadata/_edit_group_ = true
 unique_name_in_owner = true
 position = Vector2(-82, -95)
 
-[node name="ZoneAtmosphere" parent="." instance=ExtResource("7_atmos")]
+[node name="Atmosphere" parent="." unique_id=198385255 instance=ExtResource("7_atmos")]
 
-[node name="HoverSprite" type="Sprite2D" parent="."]
+[node name="HoverSprite" type="Sprite2D" parent="." unique_id=1988282557]
 unique_name_in_owner = true
+visible = false
 modulate = Color(0.55, 0.78, 1, 0.55)
 z_index = 5
 scale = Vector2(0.55, 0.55)
-visible = false
 texture = ExtResource("8_aura")
 
-[node name="AuraSprite" type="Sprite2D" parent="."]
+[node name="AuraSprite" type="Sprite2D" parent="." unique_id=728775513]
 unique_name_in_owner = true
 modulate = Color(0.42, 0.78, 1, 0.85)
 z_index = 4
 scale = Vector2(0.85, 0.85)
 texture = ExtResource("8_aura")
 
-[node name="LockedGlyphContainer" type="Node2D" parent="."]
+[node name="LockedGlyphContainer" type="Node2D" parent="." unique_id=1704809627]
 unique_name_in_owner = true
 z_index = 3
 
-[node name="GlowingPathContainer" type="Node2D" parent="."]
+[node name="GlowingPathContainer" type="Node2D" parent="." unique_id=336851789]
 unique_name_in_owner = true
 z_index = 1
 
