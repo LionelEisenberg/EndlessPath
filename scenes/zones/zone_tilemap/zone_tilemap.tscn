@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="5_q6nfb"]
 [ext_resource type="PackedScene" uid="uid://lt845ceb1dib" path="res://scenes/camera/camera_pan_controller/camera_pan_controller.tscn" id="6_3euei"]
 [ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="6_hxkky"]
+[ext_resource type="PackedScene" uid="uid://czoneatmosphere01" path="res://scenes/atmosphere/zone_atmosphere.tscn" id="7_atmos"]
 
 [sub_resource type="Shader" id="Shader_ryy4y"]
 code = "shader_type canvas_item;
@@ -54,6 +55,8 @@ metadata/_edit_group_ = true
 [node name="MainZoneTileMapLayer" parent="." unique_id=10980654 instance=ExtResource("2_v6of8")]
 unique_name_in_owner = true
 position = Vector2(-82, -95)
+
+[node name="ZoneAtmosphere" parent="." instance=ExtResource("7_atmos")]
 
 [node name="PulseNode" parent="." unique_id=1003553238 instance=ExtResource("2_ryy4y")]
 unique_name_in_owner = true
