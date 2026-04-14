@@ -7,6 +7,7 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @onready var character_body: CharacterBody2D = %PlayerCharacter
 @onready var selected_zone_pulse_node: Line2D = %PulseNode
 @onready var _camera: Camera2D = %Camera2D
+@onready var _hover_sprite: Sprite2D = %HoverSprite
 
 const UNLOCKED_SOURCE_ID = 0
 const LOCKED_SOURCE_ID = 1
@@ -36,6 +37,10 @@ func _ready() -> void:
 	# Connect to tile map layer for zone selection
 	if tile_map.has_signal("tile_clicked"):
 		tile_map.tile_clicked.connect(_on_zone_tile_clicked)
+	if tile_map.has_signal("tile_hovered"):
+		tile_map.tile_hovered.connect(_on_zone_tile_hovered)
+	if tile_map.has_signal("tile_unhovered"):
+		tile_map.tile_unhovered.connect(_on_zone_tile_unhovered)
 	
 	# Connect to ActionManager signals
 	if ActionManager:
@@ -141,6 +146,23 @@ func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	set_all_zones_in_tile_map()
+
+func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
+	var zone_data := get_zone_at_tile(tile_coord)
+	if not zone_data:
+		_hover_sprite.visible = false
+		return
+	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
+		_hover_sprite.visible = false
+		return
+	if zone_data == selected_zone:
+		_hover_sprite.visible = false
+		return
+	_hover_sprite.global_position = tile_map.map_to_local(tile_coord) + tile_map.position
+	_hover_sprite.visible = true
+
+func _on_zone_tile_unhovered() -> void:
+	_hover_sprite.visible = false
 
 func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
 	_move_character_to_position(tile_map.map_to_local(tile_coord) + tile_map.position)
