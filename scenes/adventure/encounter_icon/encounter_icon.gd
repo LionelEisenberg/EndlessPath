@@ -20,11 +20,14 @@ const _GLYPH_UNKNOWN := preload("res://assets/sprites/adventure/encounter_glyphs
 
 var _is_visited: bool = false
 var _current_type: int = -1
+var _boss_ring_tween: Tween
+var _boss_breathe_tween: Tween
 
 ## Configures this icon to display the given encounter type.
 ## Returns false if the type should render no icon (NONE / unconfigured).
 func configure_for_type(encounter_type: int) -> bool:
 	_current_type = encounter_type
+	_stop_boss_animation()
 	_ornamental_ring.visible = false
 	_frame.scale = Vector2(1, 1)
 	_glyph.scale = Vector2(1, 1)
@@ -48,6 +51,7 @@ func configure_for_type(encounter_type: int) -> bool:
 			_frame.scale = Vector2(1.65, 1.65)
 			_glyph.scale = Vector2(1.5, 1.5)
 			_ornamental_ring.visible = true
+			_start_boss_animation()
 			return true
 		AdventureEncounter.EncounterType.REST_SITE:
 			_glyph.texture = _GLYPH_REST
@@ -90,3 +94,25 @@ func set_visited(visited: bool) -> void:
 ## Returns the current configured type (used by tests).
 func get_configured_type() -> int:
 	return _current_type
+
+func _start_boss_animation() -> void:
+	_stop_boss_animation()
+	_boss_ring_tween = create_tween()
+	_boss_ring_tween.set_loops()
+	_boss_ring_tween.tween_property(_ornamental_ring, "rotation", TAU, 20.0).set_trans(Tween.TRANS_LINEAR)
+	_boss_ring_tween.tween_callback(func(): _ornamental_ring.rotation = 0.0)
+
+	_boss_breathe_tween = create_tween()
+	_boss_breathe_tween.set_loops()
+	_boss_breathe_tween.set_trans(Tween.TRANS_SINE)
+	_boss_breathe_tween.set_ease(Tween.EASE_IN_OUT)
+	_boss_breathe_tween.tween_property(_frame, "scale", Vector2(1.78, 1.78), 0.9)
+	_boss_breathe_tween.tween_property(_frame, "scale", Vector2(1.65, 1.65), 0.9)
+
+func _stop_boss_animation() -> void:
+	if _boss_ring_tween and _boss_ring_tween.is_valid():
+		_boss_ring_tween.kill()
+	if _boss_breathe_tween and _boss_breathe_tween.is_valid():
+		_boss_breathe_tween.kill()
+	if is_instance_valid(_ornamental_ring):
+		_ornamental_ring.rotation = 0.0
