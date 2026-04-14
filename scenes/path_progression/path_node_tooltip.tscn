@@ -20,9 +20,6 @@ corner_radius_bottom_left = 5
 shadow_color = Color(0, 0, 0, 0.4)
 shadow_size = 8
 
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_tooltip_sep"]
-color = Color(0.42, 0.29, 0.188, 0.5)
-
 [node name="PathNodeTooltip" type="Control" unique_id=580918942]
 z_index = 50
 z_as_relative = false
@@ -60,18 +57,19 @@ theme_override_constants/separation = 4
 [node name="NameLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1474489292]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelPathHeading"
+theme_type_variation = &"LabelHeading"
 text = "Node Name"
 
 [node name="TypeLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=818089310]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelPathMuted"
+theme_type_variation = &"LabelMuted"
+theme_override_font_sizes/font_size = 20
 text = "Minor"
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1276330541]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_tooltip_sep")
+theme_type_variation = &"HSeparatorTooltip"
 
 [node name="DescriptionLabel" type="RichTextLabel" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1720960700]
 unique_name_in_owner = true
@@ -91,16 +89,18 @@ theme_override_constants/separation = 3
 [node name="EffectsSep" type="HSeparator" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1541523756]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_tooltip_sep")
+theme_type_variation = &"HSeparatorTooltip"
 
 [node name="CostLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1879794892]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelPathMuted"
+theme_type_variation = &"LabelMuted"
+theme_override_font_sizes/font_size = 20
 text = "Cost: 1 point"
 
 [node name="LevelLabel" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=601234789]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelPathMuted"
+theme_type_variation = &"LabelMuted"
+theme_override_font_sizes/font_size = 20
 text = "Level: 1/3"

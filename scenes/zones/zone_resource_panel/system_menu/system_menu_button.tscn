@@ -26,11 +26,14 @@ theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 1
 theme_override_constants/margin_bottom = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1139124061]
+[node name="VBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=1208563015]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 
 [node name="IconTexture" type="TextureRect" parent="MarginContainer/VBoxContainer" unique_id=1728239316]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.7
@@ -41,9 +44,10 @@ stretch_mode = 5
 [node name="NameLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=558514512]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 4
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.4
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"LabelBodySmall"
 text = "INVENTORY"
 horizontal_alignment = 1
 vertical_alignment = 1

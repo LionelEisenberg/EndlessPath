@@ -161,7 +161,7 @@ func _update_technique_display() -> void:
 		return
 	_technique_name_label.text = "[center][font_size=36][color=#D4A84A]%s[/color][/font_size][/center]" % _current_technique.technique_name
 	var zones_count: int = _current_technique.cycling_zones.size()
-	_technique_stats_label.text = "[font_size=28][table=2][cell][color=#7a6a52]Madra/cycle[/color][/cell][cell][color=#F0E8D8]%.0f[/color][/cell][cell][color=#7a6a52]Duration[/color][/cell][cell][color=#F0E8D8]%.0fs[/color][/cell][cell][color=#7a6a52]Zones[/color][/cell][cell][color=#F0E8D8]%d[/color][/cell][/table][/font_size]" % [
+	_technique_stats_label.text = "[font_size=28][table=2][cell padding=0,0,32,0][color=#7a6a52]Madra/cycle[/color][/cell][cell][color=#F0E8D8]%.0f[/color][/cell][cell padding=0,0,32,0][color=#7a6a52]Duration[/color][/cell][cell][color=#F0E8D8]%.0fs[/color][/cell][cell padding=0,0,32,0][color=#7a6a52]Zones[/color][/cell][cell][color=#F0E8D8]%d[/color][/cell][/table][/font_size]" % [
 		_current_technique.base_madra_per_cycle,
 		_current_technique.cycle_duration,
 		zones_count

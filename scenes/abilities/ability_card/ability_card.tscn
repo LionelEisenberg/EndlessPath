@@ -5,12 +5,9 @@
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_hover.tres" id="3_btn_hover"]
 [ext_resource type="StyleBox" uid="uid://cpr1p5i1vomtp" path="res://assets/styleboxes/buttons/button_default_pressed.tres" id="4_btn_pressed"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/buttons/button_default_disabled.tres" id="5_btn_disabled"]
-[ext_resource type="PackedScene" path="res://scenes/abilities/ability_stats_display/ability_stats_display.tscn" id="6_stats_display"]
+[ext_resource type="PackedScene" uid="uid://bmhnqnlj8v8ul" path="res://scenes/abilities/ability_stats_display/ability_stats_display.tscn" id="6_stats_display"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/abilities/pill_madra.tres" id="7_pill_madra"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/abilities/pill_source.tres" id="8_pill_source"]
-
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_detail_sep"]
-color = Color(0.42, 0.29, 0.188, 0.5)
 
 [node name="AbilityCard" type="PanelContainer" unique_id=474507726]
 offset_right = 510.0
@@ -87,7 +84,7 @@ theme_override_constants/separation = 6
 
 [node name="DetailSep" type="HSeparator" parent="CardVBox/ExpandedDetails" unique_id=1955323018]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxLine_detail_sep")
+theme_type_variation = &"HSeparatorTooltip"
 
 [node name="TagsRow" type="HBoxContainer" parent="CardVBox/ExpandedDetails" unique_id=168902174]
 unique_name_in_owner = true

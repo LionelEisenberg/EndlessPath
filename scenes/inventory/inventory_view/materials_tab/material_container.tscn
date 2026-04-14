@@ -51,14 +51,14 @@ texture = ExtResource("3_dvc7y")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 6
+theme_type_variation = &"LabelSmall"
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 14
 text = "MATERIAL:"
 
 [node name="MaterialQuantity" type="Label" parent="MaterialPanelContainer/InnerMarginContainer/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 6
+theme_type_variation = &"LabelSmall"
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 14
 text = "20"

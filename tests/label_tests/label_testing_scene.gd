@@ -79,16 +79,6 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Ability stats display (dot separators)",
 	},
 	{
-		"name": "LabelDark",
-		"theme_type": "LabelDark",
-		"font_size": 16,
-		"color": Color(0.165, 0.102, 0.071, 1),
-		"shadow_color": Color.TRANSPARENT,
-		"shadow_offset": Vector2i(0, 0),
-		"notes": "Dark brown text for light backgrounds",
-		"used_in": "Unused",
-	},
-	{
 		"name": "LabelDescItemName",
 		"theme_type": "LabelDescItemName",
 		"font_size": 42,
@@ -169,8 +159,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Adventure end card (VICTORY / defeat title)",
 	},
 	{
-		"name": "LabelPathBody",
-		"theme_type": "LabelPathBody",
+		"name": "LabelBody",
+		"theme_type": "LabelBody",
 		"font_size": 24,
 		"color": Color(0.941, 0.91, 0.847, 1),
 		"shadow_color": Color.TRANSPARENT,
@@ -179,8 +169,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Path tree view, benefit card (body text)",
 	},
 	{
-		"name": "LabelPathGreen",
-		"theme_type": "LabelPathGreen",
+		"name": "LabelGreen",
+		"theme_type": "LabelGreen",
 		"font_size": 22,
 		"color": Color(0.49, 0.808, 0.51, 1),
 		"shadow_color": Color.TRANSPARENT,
@@ -189,8 +179,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Path tree (strengths), benefit card (value text)",
 	},
 	{
-		"name": "LabelPathHeading",
-		"theme_type": "LabelPathHeading",
+		"name": "LabelHeading",
+		"theme_type": "LabelHeading",
 		"font_size": 38,
 		"color": Color(0.831, 0.659, 0.29, 1),
 		"shadow_color": Color.TRANSPARENT,
@@ -199,8 +189,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Path tree (ACTIVE BENEFITS header), path node tooltip (name)",
 	},
 	{
-		"name": "LabelPathMuted",
-		"theme_type": "LabelPathMuted",
+		"name": "LabelMuted",
+		"theme_type": "LabelMuted",
 		"font_size": 28,
 		"color": Color(0.659, 0.565, 0.439, 1),
 		"shadow_color": Color.TRANSPARENT,
@@ -209,8 +199,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Path tree (points label, description), node tooltip (type, cost, level)",
 	},
 	{
-		"name": "LabelPathRed",
-		"theme_type": "LabelPathRed",
+		"name": "LabelRed",
+		"theme_type": "LabelRed",
 		"font_size": 22,
 		"color": Color(0.878, 0.376, 0.376, 1),
 		"shadow_color": Color.TRANSPARENT,
@@ -219,8 +209,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Path tree (weaknesses in madra info popup)",
 	},
 	{
-		"name": "LabelPathSubheading",
-		"theme_type": "LabelPathSubheading",
+		"name": "LabelSubheading",
+		"theme_type": "LabelSubheading",
 		"font_size": 26,
 		"color": Color(0.659, 0.565, 0.439, 1),
 		"shadow_color": Color.TRANSPARENT,
@@ -229,8 +219,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Path tree (path description under title)",
 	},
 	{
-		"name": "LabelPathTitle",
-		"theme_type": "LabelPathTitle",
+		"name": "LabelTitle",
+		"theme_type": "LabelTitle",
 		"font_size": 52,
 		"color": Color(0.831, 0.659, 0.29, 1),
 		"shadow_color": Color(0, 0, 0, 0.6),
@@ -239,8 +229,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Path tree (main path name heading)",
 	},
 	{
-		"name": "LabelPathValueLarge",
-		"theme_type": "LabelPathValueLarge",
+		"name": "LabelValueLarge",
+		"theme_type": "LabelValueLarge",
 		"font_size": 36,
 		"color": Color(0.831, 0.659, 0.29, 1),
 		"shadow_color": Color.TRANSPARENT,
@@ -249,8 +239,8 @@ const LABEL_VARIANTS: Array[Dictionary] = [
 		"used_in": "Path tree (path points number)",
 	},
 	{
-		"name": "LabelPathValueMedium",
-		"theme_type": "LabelPathValueMedium",
+		"name": "LabelValueMedium",
+		"theme_type": "LabelValueMedium",
 		"font_size": 24,
 		"color": Color(0.831, 0.659, 0.29, 1),
 		"shadow_color": Color.TRANSPARENT,
@@ -310,7 +300,7 @@ func _build_ui() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = "All %d label variants  |  m5x7 vs Pixelmix (%.0f%%) vs Korean Calligraphy (%.0f%%)" % [LABEL_VARIANTS.size(), PIXELMIX_SCALE * 100, KOREAN_SCALE * 100]
-	subtitle.theme_type_variation = &"LabelPathMuted"
+	subtitle.theme_type_variation = &"LabelMuted"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(subtitle)
 
@@ -347,7 +337,7 @@ func _add_variant_row(parent: VBoxContainer, variant: Dictionary) -> void:
 
 	var name_label := Label.new()
 	name_label.text = variant["name"]
-	name_label.theme_type_variation = &"LabelPathHeading"
+	name_label.theme_type_variation = &"LabelHeading"
 	stats_vbox.add_child(name_label)
 
 	var notes_label := Label.new()
@@ -486,7 +476,7 @@ func _add_stat_line(parent: VBoxContainer, stat_name: String, stat_value: String
 
 	var value_lbl := Label.new()
 	value_lbl.text = stat_value
-	value_lbl.theme_type_variation = &"LabelPathBody"
+	value_lbl.theme_type_variation = &"LabelBody"
 	hbox.add_child(value_lbl)
 
 

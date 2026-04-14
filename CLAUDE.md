@@ -156,6 +156,10 @@ Multiple Claude Code agents may run simultaneously on this codebase. Follow thes
 - **Don't share browser sessions.** If using browser automation, do not reuse tabs or sessions that another agent may be using.
 - **Commit only your own work.** Before committing, verify with `git diff` that you are only staging files you intentionally changed. If you see unexpected modifications from another agent, leave them alone.
 
+## UI Styling
+
+UI text uses a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`. Before adding inline `theme_override_font_sizes` or `theme_override_colors` to a Label, read **`docs/UI_STYLING.md`** — it lists every available variant, the rule of thumb for when to use a variant vs a direct override, and copy-paste `.tscn` patterns.
+
 ## GDScript Coding Standards
 
 **Scope**: Never modify files in `addons/`.
@@ -200,7 +204,7 @@ Example: `feat(combat): implement generic cast time logic`
 Custom shaders live in `assets/shaders/`. Recent examples include liquid wave effects for the Madra bar and a radial fill shader for Core Density display.
 
 ### Styling / Themes
-UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Custom styleboxes in `assets/styleboxes/`. Use existing theme tokens — do not introduce external UI frameworks.
+UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Custom styleboxes in `assets/styleboxes/`. Use existing theme tokens — do not introduce external UI frameworks. See `docs/UI_STYLING.md` for the Label variant type-scale and usage rules.
 
 ### Dialogue
 Dialogic addon handles narrative/dialogue. Timeline and character data in `assets/dialogue/`.

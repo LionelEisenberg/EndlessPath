@@ -93,7 +93,7 @@ func _populate_effects(data: PathNodeData) -> void:
 
 	for effect: PathNodeEffectData in data.effects:
 		var effect_label: Label = Label.new()
-		effect_label.theme_type_variation = &"LabelPathGreen"
+		effect_label.theme_type_variation = &"LabelGreen"
 		effect_label.text = _format_effect(effect)
 		_effects_container.add_child(effect_label)
 

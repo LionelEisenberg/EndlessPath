@@ -180,13 +180,13 @@ theme_override_constants/separation = 3
 
 [node name="Title" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/TitleBlock" unique_id=2049434774]
 layout_mode = 2
-theme_type_variation = &"LabelPathTitle"
+theme_type_variation = &"LabelTitle"
 text = "ABILITIES"
 uppercase = true
 
 [node name="Subtitle" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox/TitleBlock" unique_id=854815547]
 layout_mode = 2
-theme_type_variation = &"LabelPathSubheading"
+theme_type_variation = &"LabelSubheading"
 text = "Manage your combat techniques"
 
 [node name="Spacer" type="Control" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderHBox" unique_id=1963131407]
@@ -215,7 +215,7 @@ theme_override_constants/separation = 12
 [node name="LoadoutLabel" type="Label" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=757308609]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"LabelPathHeading"
+theme_type_variation = &"LabelHeading"
 text = "LOADOUT"
 horizontal_alignment = 1
 uppercase = true
@@ -244,7 +244,7 @@ layout_mode = 2
 [node name="SlotCounter" type="Label" parent="UnifiedPanel/MainVBox/Body/LoadoutSidebar/LoadoutVBox" unique_id=1494064995]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelPathMuted"
+theme_type_variation = &"LabelMuted"
 text = "0 / 4"
 horizontal_alignment = 1
 

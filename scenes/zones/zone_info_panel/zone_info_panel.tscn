@@ -18,8 +18,7 @@ theme_override_constants/separation = 12
 
 [node name="ActionsTitle" type="Label" parent="ZoneInfoContent"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"LabelTitleSmall"
 text = "ZONE ACTIONS"
 
 [node name="Spacer" type="Control" parent="ZoneInfoContent"]

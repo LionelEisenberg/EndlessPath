@@ -32,8 +32,8 @@ theme_override_constants/separation = 20
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=1362810270]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
-theme_override_font_sizes/font_size = 48
+theme_type_variation = &"LabelTitleSmall"
+theme_override_font_sizes/font_size = 32
 text = "Encounter Title"
 horizontal_alignment = 1
 
@@ -41,7 +41,7 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/default_color = Color(0.82, 0.78, 0.7, 0.9)
-theme_override_font_sizes/normal_font_size = 24
+theme_override_font_sizes/normal_font_size = 20
 text = "Encounter description goes here..."
 fit_content = true
 horizontal_alignment = 1
