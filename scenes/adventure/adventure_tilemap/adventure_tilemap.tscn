@@ -78,6 +78,19 @@ grow_vertical = 2
 mouse_filter = 2
 material = SubResource("SM_fog")
 
+[node name="BossFlashLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="BossFlashRect" type="ColorRect" parent="BossFlashLayer"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.55, 0.78, 1, 0)
+
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2060548285]
 layer = 2
 

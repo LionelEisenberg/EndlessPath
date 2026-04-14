@@ -60,6 +60,9 @@ enum HighlightType {
 @onready var _encounter_icon_container: Node2D = %EncounterIconContainer
 @onready var _fog_rect: ColorRect = %FogOfWarRect
 @onready var _path_preview: PathPreview = %PathPreview
+@onready var _boss_flash_rect: ColorRect = %BossFlashRect
+
+var _boss_revealed: bool = false
 
 var _encounter_icons: Dictionary[Vector3i, EncounterIcon] = {}
 
@@ -127,6 +130,7 @@ func start_adventure(action_data: AdventureActionData) -> void:
 	
 	# Initialize starting position
 	_current_tile = Vector3i.ZERO
+	_boss_revealed = false
 	_visit(_current_tile)
 
 ## Stops the current adventure and cleans up the map.
@@ -372,7 +376,37 @@ func _animate_reveal_stagger(coords: Array[Vector3i]) -> void:
 			var alpha_tween := create_tween()
 			alpha_tween.tween_interval(delay)
 			alpha_tween.tween_property(icon, "modulate:a", 1.0, 0.3)
+
+		# Boss-tile dramatic reveal (only the first time)
+		if not _boss_revealed:
+			var encounter: AdventureEncounter = _encounter_tile_dictionary.get(cube)
+			if encounter and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
+				_boss_revealed = true
+				_play_boss_reveal(cube)
+
 		delay += 0.05
+
+func _play_boss_reveal(boss_cube: Vector3i) -> void:
+	# Hit-stop: slow time briefly
+	Engine.time_scale = 0.25
+	get_tree().create_timer(0.15 * 0.25).timeout.connect(func(): Engine.time_scale = 1.0)
+
+	# Screen flash
+	_boss_flash_rect.color = Color(0.55, 0.78, 1.0, 0.6)
+	var flash_tween := create_tween()
+	flash_tween.tween_property(_boss_flash_rect, "color:a", 0.0, 0.4)
+
+	# Camera push toward boss
+	var camera := get_viewport().get_camera_2d()
+	if camera:
+		var boss_world := full_map.cube_to_local(boss_cube) + full_map.position
+		var current_pos := camera.global_position
+		var push_target := current_pos.lerp(boss_world, 0.45)
+		var push_tween := create_tween()
+		push_tween.set_trans(Tween.TRANS_CUBIC)
+		push_tween.set_ease(Tween.EASE_OUT)
+		push_tween.tween_property(camera, "global_position", push_target, 0.5)
+		push_tween.tween_property(camera, "global_position", current_pos, 0.7)
 
 func _process(_delta: float) -> void:
 	# Fog-of-war uniforms are in screen space, so they must be refreshed
