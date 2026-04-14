@@ -17,10 +17,15 @@ signal inventory_closed
 @onready var book_animation_player: AnimationPlayer = %BookAnimationPlayer
 @onready var page_turning_animation_player: AnimationPlayer = %PageTurningAnimationPlayer
 
+## Tracks the previously-shown tab index so _on_tab_changed can decide whether
+## to play the page-turn animation forward (going to a later tab) or backwards
+## (going to an earlier tab).
+var _last_tab_index: int = 0
+
 
 func _ready() -> void:
 	tab_switcher.tab_changed.connect(_on_tab_changed)
-	
+
 	# Initialize visibility
 	for i in range(tabs.size()):
 		tabs[i].visible = false
@@ -51,6 +56,8 @@ func animate_close() -> void:
 	book_animation_player.play("BookClosingAnimation")
 
 ## Handle tab changes by playing page turn animation.
+## Plays forward when moving to a later tab, backwards when moving to an earlier
+## tab so the flipping direction matches the direction of travel through the book.
 func _on_tab_changed(index: int) -> void:
 	# Set all tabs to invisible, play animation, set tab to visible
 	for i in range(tabs.size()):
@@ -58,7 +65,13 @@ func _on_tab_changed(index: int) -> void:
 	if page_turning_animation_player.animation_finished.has_connections():
 		page_turning_animation_player.animation_finished.disconnect(_on_animation_finished)
 	page_turning_animation_player.animation_finished.connect(_on_animation_finished.bind(index))
-	page_turning_animation_player.play("PageTurningAnimation")
+
+	if index > _last_tab_index:
+		page_turning_animation_player.play("PageTurningAnimation")
+	else:
+		page_turning_animation_player.play_backwards("PageTurningAnimation")
+
+	_last_tab_index = index
 
 ## Show the new tab content when page turn animation finishes.
 func _on_animation_finished(_args, index: int) -> void:
