@@ -33,7 +33,7 @@ const MENU_CONFIG: Dictionary = {
 		"display_name": "ABILITIES",
 		"input_action": &"open_abilities",
 		"shortcut_hint": "A",
-		"icon": null,
+		"icon": preload("res://assets/ui_images/system_menu/ability_icon.png"),
 	},
 	MenuType.CHARACTER: {
 		"display_name": "CHARACTER",

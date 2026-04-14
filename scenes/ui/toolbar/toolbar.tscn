@@ -53,4 +53,3 @@ theme_type_variation = &"LabelSubheading"
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
 text = "0"
 vertical_alignment = 1
-

@@ -1309,6 +1309,10 @@ color = Color(0.914, 0.808, 0.678, 1)
 grow_begin = -100.0
 grow_end = -100.0
 
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_hfw5f"]
+color = Color(0.83137256, 0.65882355, 0.2901961, 0.6)
+thickness = 2
+
 [sub_resource type="StyleBoxLine" id="StyleBoxLine_tooltip_sep"]
 color = Color(0.42, 0.29, 0.188, 0.5)
 
@@ -2882,6 +2886,8 @@ HSeparatorItemDesc/styles/separator = SubResource("StyleBoxLine_item_desc")
 HSeparatorItemDescThin/base_type = &"HSeparator"
 HSeparatorItemDescThin/constants/separation = 10
 HSeparatorItemDescThin/styles/separator = SubResource("StyleBoxLine_item_desc_thin")
+HSeparatorResourcePanel/base_type = &"HSeparator"
+HSeparatorResourcePanel/styles/separator = SubResource("StyleBoxLine_hfw5f")
 HSeparatorTooltip/base_type = &"HSeparator"
 HSeparatorTooltip/constants/separation = 6
 HSeparatorTooltip/styles/separator = SubResource("StyleBoxLine_tooltip_sep")
