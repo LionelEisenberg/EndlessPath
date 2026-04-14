@@ -36,6 +36,9 @@ const INSTANT_MOVE_SPEED = 10000.0
 # TODO: Calculate this dynamically based on terrain/stats instead of a constant
 const MOVEMENT_STAMINA_COST = 5.0
 
+# Fog-of-war shader array size (must match fog_of_war.gdshader MAX_CLEAR_POSITIONS)
+const FOG_MAX_CLEAR_POSITIONS := 64
+
 #-----------------------------------------------------------------------------
 # ENUMS
 #-----------------------------------------------------------------------------
@@ -55,6 +58,7 @@ enum HighlightType {
 @onready var encounter_info_panel: EncounterInfoPanel = %EncounterInfoPanel
 @onready var _tile_state_overlay: TileStateOverlay = %TileStateOverlay
 @onready var _encounter_icon_container: Node2D = %EncounterIconContainer
+@onready var _fog_rect: ColorRect = %FogOfWarRect
 
 var _encounter_icons: Dictionary[Vector3i, EncounterIcon] = {}
 
@@ -310,13 +314,54 @@ func _on_character_movement_completed() -> void:
 func _mark_tile_visited(coord: Vector3i) -> void:
 	_visited_tile_dictionary[coord] = true
 	_highlight_tile_dictionary.clear()
-	
+
 	for c in _visited_tile_dictionary.keys():
 		for neighbour in full_map.cube_neighbors(c):
 			if neighbour in _encounter_tile_dictionary.keys() and neighbour not in _visited_tile_dictionary.keys():
 				_highlight_tile_dictionary[neighbour] = HighlightType.VISIBLE_NEIGHBOUR
-	
+
 	_update_visible_map()
+	_update_fog_uniforms()
+
+func _process(_delta: float) -> void:
+	# Fog-of-war uniforms are in screen space, so they must be refreshed
+	# every frame to stay in sync with camera pan/zoom.
+	if current_adventure_action_data != null:
+		_update_fog_uniforms()
+
+func _update_fog_uniforms() -> void:
+	if _fog_rect == null or _fog_rect.material == null:
+		return
+
+	var camera := get_viewport().get_camera_2d()
+	var viewport_size := get_viewport_rect().size
+
+	var positions: Array[Vector2] = []
+	var tiles_to_clear: Array[Vector3i] = []
+	for c in _visited_tile_dictionary.keys():
+		tiles_to_clear.append(c)
+	for c in _highlight_tile_dictionary.keys():
+		tiles_to_clear.append(c)
+
+	for c in tiles_to_clear:
+		var world_pos := full_map.cube_to_local(c) + full_map.position
+		var screen_pos: Vector2
+		if camera:
+			screen_pos = (world_pos - camera.global_position) * camera.zoom + viewport_size * 0.5
+		else:
+			screen_pos = world_pos
+		positions.append(screen_pos)
+		if positions.size() >= FOG_MAX_CLEAR_POSITIONS:
+			Log.warn("AdventureTilemap: fog clear positions reached cap (%d)" % FOG_MAX_CLEAR_POSITIONS)
+			break
+
+	var clear_count := positions.size()
+	# Pad to cap (shader uniform array is fixed-size)
+	while positions.size() < FOG_MAX_CLEAR_POSITIONS:
+		positions.append(Vector2(-99999, -99999))
+
+	_fog_rect.material.set_shader_parameter("clear_positions", positions)
+	_fog_rect.material.set_shader_parameter("clear_count", clear_count)
 
 ## Process the next tile in the visitation queue
 func _process_next_visitation() -> void:

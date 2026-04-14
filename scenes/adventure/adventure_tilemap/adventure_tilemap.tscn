@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://bvgyusvjgbnbx"]
+[gd_scene load_steps=11 format=3 uid="uid://bvgyusvjgbnbx"]
 
 [ext_resource type="PackedScene" uid="uid://d3givt02dwnlp" path="res://scenes/tilemaps/hexagon_tile_map_layer.tscn" id="1_4pw8h"]
 [ext_resource type="Script" uid="uid://w7rvakxl1g1t" path="res://scenes/adventure/adventure_tilemap/adventure_tilemap.gd" id="1_b7v0o"]
@@ -9,6 +9,15 @@
 [ext_resource type="PackedScene" uid="uid://cadventureatmos01" path="res://scenes/atmosphere/adventure_atmosphere.tscn" id="7_atmos1"]
 [ext_resource type="PackedScene" uid="uid://ctilestateoverlay01" path="res://scenes/adventure/tile_state_overlay/tile_state_overlay.tscn" id="8_tso"]
 [ext_resource type="PackedScene" uid="uid://cencountericon01" path="res://scenes/adventure/encounter_icon/encounter_icon.tscn" id="9_enci"]
+[ext_resource type="Shader" path="res://assets/shaders/fog_of_war.gdshader" id="10_fog"]
+
+[sub_resource type="ShaderMaterial" id="SM_fog"]
+shader = ExtResource("10_fog")
+shader_parameter/clear_positions = PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+shader_parameter/clear_count = 0
+shader_parameter/clear_radius = 180.0
+shader_parameter/clear_softness = 0.5
+shader_parameter/fog_color = Color(0.02, 0.03, 0.08, 0.85)
 
 [node name="AdventureTilemap" type="Node2D" unique_id=1090162291]
 script = ExtResource("1_b7v0o")
@@ -51,6 +60,19 @@ unique_name_in_owner = true
 [node name="EncounterIconContainer" type="Node2D" parent="."]
 unique_name_in_owner = true
 z_index = 6
+
+[node name="FogLayer" type="CanvasLayer" parent="."]
+layer = 4
+
+[node name="FogOfWarRect" type="ColorRect" parent="FogLayer"]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("SM_fog")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2060548285]
 layer = 2
