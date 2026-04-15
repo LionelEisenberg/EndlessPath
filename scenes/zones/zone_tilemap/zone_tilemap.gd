@@ -255,8 +255,12 @@ func _start_aura_breathing() -> void:
 	_aura_breath_tween.set_loops()
 	_aura_breath_tween.set_trans(Tween.TRANS_SINE)
 	_aura_breath_tween.set_ease(Tween.EASE_IN_OUT)
-	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(0.95, 0.95), 1.25)
-	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(0.85, 0.85), 1.25)
+	# Bloom phase: scale up + alpha up in parallel over 0.9s
+	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(1.0, 1.0), 0.9)
+	_aura_breath_tween.parallel().tween_property(_aura_sprite, "modulate:a", 1.0, 0.9)
+	# Contract phase: scale down + alpha down in parallel over 0.9s
+	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(0.85, 0.85), 0.9)
+	_aura_breath_tween.parallel().tween_property(_aura_sprite, "modulate:a", 0.65, 0.9)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
