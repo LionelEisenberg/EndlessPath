@@ -39,9 +39,10 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @export_group("Ghost Neighbors")
 ## Color of the hex-shaped polygon overlays that sit around real zones
 ## to frame the playable area (so zones don't look like they're floating
-## in the middle of nowhere). Semi-transparent cool grey reads as
-## "fog-shrouded distant forest." Alpha 0 would make them invisible.
-@export var ghost_neighbor_color: Color = Color(0.28, 0.32, 0.40, 0.45)
+## in the middle of nowhere). Dark near-black at ~74% alpha reads as
+## "edge of the known world" / bounds marker. Alpha 0 would make them
+## invisible.
+@export var ghost_neighbor_color: Color = Color(0.005910289, 0.0075441017, 0.018441157, 0.7411765)
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
