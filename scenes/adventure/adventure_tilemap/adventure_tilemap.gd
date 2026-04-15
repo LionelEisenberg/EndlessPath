@@ -218,33 +218,39 @@ func get_total_combat_count() -> int:
 #-----------------------------------------------------------------------------
 
 func _visit(coord: Vector3i) -> void:
+	# Snapshot the pre-arrival state so the encounter panel can still
+	# distinguish "first visit" from "replay" after we promote the tile.
+	var was_already_visited := _visited_tile_dictionary.has(coord)
+
+	# Mark the tile visited the moment the player arrives — not after
+	# resolution — so the fog veil clears and the encounter icon appears
+	# immediately. The encounter panel flow below uses the pre-arrival
+	# snapshot to decide whether to show the "already cleared" state.
+	if not was_already_visited:
+		_mark_tile_visited(coord)
+
 	# Always show the panel if there's an encounter
 	if _encounter_tile_dictionary.has(coord):
 		var tile_encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
-		
+
 		# Check for NoOpEncounter (or empty choices) and auto-complete
 		if tile_encounter is NoOpEncounter or tile_encounter.choices.is_empty():
 			Log.info("AdventureTilemap: Auto-completing NoOp/Empty encounter at %s" % coord)
-			_mark_tile_visited(coord)
-			if _visited_tile_dictionary.has(coord):
-				_process_next_visitation()
 			encounter_info_panel.visible = false
+			_process_next_visitation()
 			return
 
-		var is_completed = _visited_tile_dictionary.has(coord)
-		
-		encounter_info_panel.setup(tile_encounter, is_completed)
+		encounter_info_panel.setup(tile_encounter, was_already_visited)
 		encounter_info_panel.visible = true
-		
-		if not is_completed:
+
+		if not was_already_visited:
 			_is_movement_locked = true
 			_visitation_queue.clear() # Stop any further queued movement
 	else:
 		encounter_info_panel.visible = false
-		
-	if _visited_tile_dictionary.has(coord):
+
+	if was_already_visited:
 		_process_next_visitation()
-		return
 
 func _on_choice_selected(choice: EncounterChoice) -> void:
 	Log.info("AdventureTilemap: Choice selected: %s" % choice.label)
