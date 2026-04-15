@@ -26,7 +26,7 @@ unique_name_in_owner = true
 visible = false
 z_index = 5
 texture = ExtResource("9_hexsel")
-hframes = 6
+hframes = 8
 
 [node name="AuraSprite" type="Sprite2D" parent="." unique_id=728775513]
 unique_name_in_owner = true
