@@ -36,6 +36,13 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 ## Higher = slower, more contemplative. Lower = snappier.
 @export_range(0.1, 3.0, 0.05) var camera_ease_duration: float = 0.65
 
+@export_group("Ghost Neighbors")
+## Color of the hex-shaped polygon overlays that sit around real zones
+## to frame the playable area (so zones don't look like they're floating
+## in the middle of nowhere). Semi-transparent cool grey reads as
+## "fog-shrouded distant forest." Alpha 0 would make them invisible.
+@export var ghost_neighbor_color: Color = Color(0.28, 0.32, 0.40, 0.45)
+
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
@@ -47,6 +54,7 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @onready var _aura_sprite: Sprite2D = %AuraSprite
 @onready var _locked_overlay_container: Node2D = %LockedOverlayContainer
 @onready var _glowing_path_container: Node2D = %GlowingPathContainer
+@onready var _ghost_neighbor_container: Node2D = %GhostNeighborContainer
 
 var _aura_breath_tween: Tween
 var _aura_fade_tween: Tween
@@ -54,7 +62,19 @@ var _aura_initialized: bool = false
 var _hover_frame_time: float = 0.0
 var _locked_overlays: Dictionary[Vector2i, LockedZoneOverlay] = {}
 
-const BASE_GHOST_VARIANT = 3
+# Hex polygon points for a ghost-neighbor tile. Matches the 164x190
+# tile grid so adjacent polygons touch edge-to-edge with no gaps.
+# Same geometry as LockedZoneOverlay.GreyBackground. Can't be a const
+# because PackedVector2Array(Vector2(...)) isn't a constant expression
+# in GDScript — but it's effectively immutable at the class level.
+var _ghost_hex_points: PackedVector2Array = PackedVector2Array([
+	Vector2(0, -95),
+	Vector2(82.2, -47.5),
+	Vector2(82.2, 47.5),
+	Vector2(0, 95),
+	Vector2(-82.2, 47.5),
+	Vector2(-82.2, -47.5),
+])
 
 # Zone tile forest-variant → atlas source id mapping.
 # Currently only variant 0 (Hex_Forest_00_Basic at source 8) exists; the
@@ -120,17 +140,12 @@ func _get_zone_tile_source_id(zone_data: ZoneData) -> int:
 ## with the same forest variant — locked zones get a grey+lock overlay on
 ## top via _refresh_locked_overlays() rather than a different tile source.
 func set_all_zones_in_tile_map() -> void:
-	var zone_tiles: Array[Vector2i] = []
 	var all_zones = ZoneManager.get_all_zones()
-
-	for zone_data in all_zones:
-		zone_tiles.append(zone_data.tilemap_location)
 
 	for zone_data in all_zones:
 		tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(zone_data), _get_zone_variant(zone_data), zone_data.tilemap_location)
 
-	for zone_data in all_zones:
-		_set_neighboring_tiles_transparent(zone_data.tilemap_location, zone_tiles)
+	_refresh_ghost_neighbors()
 
 
 ## Returns the ZoneData at the given tile coordinate, or null if not found.
@@ -164,26 +179,40 @@ func _get_zone_variant(zone_data: ZoneData) -> int:
 
 	return 1
 
-## Sets all neighboring tiles around a zone to the ghost variant.
-## Does not overwrite tiles that are actual zone placements.
-## Ghost tiles always use the default forest variant (index 0) since
-## they're structural bounds markers, not tied to any specific zone.
-func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[Vector2i]) -> void:
-	# Get all 8 neighboring tile coordinates
-	var neighbor_offsets = [
-		Vector2i(-1, -1), Vector2i(0, -1), # Top row
-		Vector2i(-1, 0), Vector2i(1, 0), # Middle row (left and right)
-		Vector2i(0, 1), Vector2i(1, 1) # Bottom row
-	]
+## Rebuilds the hex-shaped ghost neighbor polygons that frame the zone
+## cluster. Uses TileMapLayer.get_surrounding_cells() so the 6 hex
+## neighbors are computed correctly regardless of row parity (the
+## previous hardcoded offsets only worked for one row parity).
+##
+## Ghost neighbors are rendered as solid-color Polygon2Ds (not tilemap
+## variants) so adjacent ghosts touch edge-to-edge with zero seams —
+## tilemap-based ghosts had anti-aliased edges that created visible
+## double-alpha seams where two ghost hexes met.
+func _refresh_ghost_neighbors() -> void:
+	for child in _ghost_neighbor_container.get_children():
+		child.queue_free()
 
-	for offset in neighbor_offsets:
-		var neighbor_tile = tile_coord + offset
+	# Build a set of real zone positions so we don't place a ghost over a zone.
+	var zone_coords := {}
+	for zone_data in ZoneManager.get_all_zones():
+		zone_coords[zone_data.tilemap_location] = true
 
-		# Don't overwrite if this tile is an actual zone placement
-		if neighbor_tile in zone_tiles:
-			continue
+	# Collect unique ghost positions (a position adjacent to multiple zones
+	# should only get one polygon).
+	var ghost_coords := {}
+	for zone_data in ZoneManager.get_all_zones():
+		for neighbor_coord in tile_map.get_surrounding_cells(zone_data.tilemap_location):
+			if zone_coords.has(neighbor_coord):
+				continue
+			ghost_coords[neighbor_coord] = true
 
-		tile_map.set_cell_with_source_and_variant(ZONE_TILE_VARIANT_SOURCE_IDS[0], BASE_GHOST_VARIANT, neighbor_tile)
+	# Spawn one hex polygon per ghost coordinate.
+	for coord in ghost_coords.keys():
+		var polygon := Polygon2D.new()
+		polygon.polygon = _ghost_hex_points
+		polygon.color = ghost_neighbor_color
+		polygon.position = tile_map.map_to_local(coord) + tile_map.position
+		_ghost_neighbor_container.add_child(polygon)
 
 func _ease_camera_to(world_pos: Vector2) -> void:
 	# TRANS_CUBIC + EASE_IN_OUT gives a smooth slow-start / slow-end glide

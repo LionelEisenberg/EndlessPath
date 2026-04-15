@@ -35,6 +35,9 @@ z_index = 4
 scale = Vector2(0.85, 0.85)
 texture = ExtResource("8_aura")
 
+[node name="GhostNeighborContainer" type="Node2D" parent="." unique_id=1892517634]
+unique_name_in_owner = true
+
 [node name="LockedOverlayContainer" type="Node2D" parent="." unique_id=1704809627]
 unique_name_in_owner = true
 z_index = 3
