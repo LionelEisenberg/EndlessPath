@@ -37,11 +37,18 @@ const BOSS_SPRITESHEET_HFRAMES: int = 7
 ## Duration of one full boss spritesheet cycle.
 const BOSS_ANIMATION_DURATION: float = 1.4
 
+## Alpha applied to the glyph when the marker is showing a
+## previously-resolved encounter. Matches EncounterIcon's set_completed
+## dim value so a tile looks the same whether the player is standing on
+## it (marker) or walked away (flat icon).
+const COMPLETED_GLYPH_ALPHA: float = 0.9
+
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
 @onready var _glyph: Sprite2D = %MarkerGlyph
+@onready var _checkmark: Sprite2D = %MarkerCheckmark
 
 #-----------------------------------------------------------------------------
 # PRIVATE STATE
@@ -60,11 +67,27 @@ var _current_type: int = -1
 ## the tile, not dead-center on the character. Safe to call repeatedly
 ## — the boss animation tween only restarts when the type actually
 ## changes, so same-type calls don't thrash.
-func show_at(world_pos: Vector2, encounter_type: int) -> void:
+##
+## When `completed` is true, the glyph inside the marker is dimmed and
+## the checkmark badge is shown, so revisiting a previously-resolved
+## encounter tile looks "done" even while the player is standing on it.
+func show_at(world_pos: Vector2, encounter_type: int, completed: bool = false) -> void:
 	global_position = world_pos + Vector2(0.0, TILE_OFFSET_Y)
 	if encounter_type != _current_type:
 		_configure_for_type(encounter_type)
+	_set_completed(completed)
 	visible = true
+
+## Applies the completed visual state to the marker contents (glyph +
+## checkmark). The pin sprite stays at full opacity either way — only
+## the inner icon reflects the encounter's "done" state.
+func _set_completed(completed: bool) -> void:
+	if completed:
+		_glyph.modulate.a = COMPLETED_GLYPH_ALPHA
+		_checkmark.visible = true
+	else:
+		_glyph.modulate.a = 1.0
+		_checkmark.visible = false
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS

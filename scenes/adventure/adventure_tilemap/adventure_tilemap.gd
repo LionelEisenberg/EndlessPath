@@ -246,8 +246,14 @@ func _visit(coord: Vector3i) -> void:
 	# resolution — so the fog veil clears and the encounter icon appears
 	# immediately. The encounter panel flow below uses the pre-arrival
 	# snapshot to decide whether to show the "already cleared" state.
+	# On revisits we skip _mark_tile_visited (nothing new to compute)
+	# but still need to re-render so the AdventureMarker follows the
+	# player to the new _current_tile and the previously-current tile's
+	# flat encounter icon reappears.
 	if not was_already_visited:
 		_mark_tile_visited(coord)
+	else:
+		_update_visible_map()
 
 	# Always show the panel if there's an encounter
 	if _encounter_tile_dictionary.has(coord):
@@ -631,11 +637,14 @@ func _update_visible_map() -> void:
 	# AdventureMarker: show the current tile's encounter glyph floating
 	# above the player via the marker pin, instead of as a flat icon on
 	# the hex. NoOp tiles have nothing to show, so hide the marker.
+	# If the encounter at the current tile has already been resolved,
+	# the marker renders in its completed state (dimmed glyph + check).
 	var current_encounter: AdventureEncounter = _encounter_tile_dictionary.get(_current_tile)
 	if current_encounter and not (current_encounter is NoOpEncounter):
 		_adventure_marker.show_at(
 			full_map.cube_to_local(_current_tile) + full_map.position,
 			current_encounter.encounter_type,
+			_completed_encounter_tiles.has(_current_tile),
 		)
 	else:
 		_adventure_marker.hide()
