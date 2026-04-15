@@ -8,20 +8,20 @@
 [node name="AdventureMarker" type="Node2D"]
 visible = false
 z_index = 15
-scale = Vector2(0.6, 0.6)
 script = ExtResource("1_script")
 
 [node name="Pin" type="Sprite2D" parent="."]
+scale = Vector2(0.5, 0.5)
 offset = Vector2(0, -140)
 texture = ExtResource("2_marker")
 
 [node name="MarkerGlyph" type="Sprite2D" parent="."]
 unique_name_in_owner = true
-position = Vector2(0, -190)
+position = Vector2(0, -95)
 texture = ExtResource("3_placeholder")
 
 [node name="MarkerCheckmark" type="Sprite2D" parent="."]
 unique_name_in_owner = true
 visible = false
-position = Vector2(40, -140)
+position = Vector2(30, -55)
 texture = ExtResource("4_check")
