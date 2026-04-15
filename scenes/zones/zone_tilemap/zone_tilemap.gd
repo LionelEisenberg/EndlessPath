@@ -23,6 +23,11 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 ## Frame rate at which the hex selector spritesheet cycles when shown.
 @export_range(1.0, 30.0, 0.5) var hover_selector_fps: float = 8.0
 
+@export_group("Camera")
+## How long the camera takes to glide to a newly-selected zone.
+## Higher = slower, more contemplative. Lower = snappier.
+@export_range(0.1, 3.0, 0.05) var camera_ease_duration: float = 0.65
+
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
@@ -53,7 +58,6 @@ const ZONE_TILE_VARIANT_SOURCE_IDS := [8]
 const CHARACTER_MOVE_SPEED = 150.0
 const FORAGE_POSITION_MARGIN = 32
 const FLOATING_TEXT_OFFSET = Vector2i(250, 250)
-const CAMERA_EASE_DURATION := 0.5
 
 var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
 const LockedZoneGlyphScene := preload("res://scenes/zones/locked_zone_glyph/locked_zone_glyph.tscn")
@@ -177,10 +181,13 @@ func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[
 		tile_map.set_cell_with_source_and_variant(ZONE_TILE_VARIANT_SOURCE_IDS[0], BASE_GHOST_VARIANT, neighbor_tile)
 
 func _ease_camera_to(world_pos: Vector2) -> void:
+	# TRANS_CUBIC + EASE_IN_OUT gives a smooth slow-start / slow-end glide
+	# (no overshoot, no abrupt initial velocity). The previous TRANS_BACK
+	# overshoot felt sudden because EASE_OUT starts at maximum velocity.
 	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_BACK)
-	tween.set_ease(Tween.EASE_OUT)
-	tween.tween_property(_camera, "position", world_pos, CAMERA_EASE_DURATION)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_camera, "position", world_pos, camera_ease_duration)
 
 ## Called when a tile is clicked on the tile map.
 func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
