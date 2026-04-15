@@ -22,9 +22,17 @@ const _GLYPH_TREASURE := preload("res://assets/sprites/adventure/encounter_glyph
 const _GLYPH_TRAP := preload("res://assets/sprites/adventure/encounter_glyphs/trap.png")
 const _GLYPH_UNKNOWN := preload("res://assets/sprites/adventure/encounter_glyphs/unknown.png")
 
-## Target rendered size for the glyph inside the marker, in pixels.
-## Matches EncounterIcon.ICON_TARGET_SIZE for visual consistency.
+## Standard rendered size for encounter glyphs, in pixels. Matches
+## EncounterIcon.ICON_TARGET_SIZE — this is the "reference size" that
+## a flat encounter icon on a visited tile uses.
 const ICON_TARGET_SIZE: float = 84.0
+
+## Fraction of ICON_TARGET_SIZE the marker renders its inner glyph at,
+## so the version inside the pin reads as a smaller, tighter callout
+## while flat encounter icons on the map stay at full reference size.
+## Also applied as a scale on the MarkerCheckmark sprite in the tscn
+## so the check badge shrinks in lockstep with the glyph.
+const MARKER_SCALE_FACTOR: float = 0.7
 
 ## Vertical offset from the tile center to the marker's pin point.
 ## Negative y is up in screen space — the pin floats above the tile so
@@ -133,7 +141,8 @@ func _apply_icon_scale() -> void:
 	var frame_size := Vector2(tex_size.x / float(hf), tex_size.y / float(vf))
 	if frame_size.x <= 0.0 or frame_size.y <= 0.0:
 		return
-	_glyph.scale = Vector2(ICON_TARGET_SIZE / frame_size.x, ICON_TARGET_SIZE / frame_size.y)
+	var effective_size := ICON_TARGET_SIZE * MARKER_SCALE_FACTOR
+	_glyph.scale = Vector2(effective_size / frame_size.x, effective_size / frame_size.y)
 
 func _start_boss_animation() -> void:
 	_stop_boss_animation()

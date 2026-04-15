@@ -6,7 +6,6 @@
 
 [node name="EncounterIcon" type="Node2D" unique_id=744409268]
 z_index = 6
-scale = Vector2(0.7, 0.7)
 script = ExtResource("1")
 
 [node name="Dimmable" type="Node2D" parent="." unique_id=541627204]
