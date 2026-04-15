@@ -96,8 +96,10 @@ def resize_and_quantize(path: str) -> None:
 
 
 def main() -> None:
-    pattern = os.path.join(ASSET_DIR, "Hex_Forest_*.png")
-    files = sorted(glob.glob(pattern))
+    # Recursive glob — picks up Hex_Forest_*.png both directly under
+    # ASSET_DIR and in nested subdirectories like hex_tiles/forest/.
+    pattern = os.path.join(ASSET_DIR, "**", "Hex_Forest_*.png")
+    files = sorted(glob.glob(pattern, recursive=True))
     print(f"Found {len(files)} Hex_Forest file(s)")
     for f in files:
         resize_and_quantize(f)
