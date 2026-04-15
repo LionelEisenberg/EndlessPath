@@ -19,6 +19,14 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 ## Duration of one bloom OR contract phase. Total cycle is 2x this value.
 @export_range(0.1, 5.0, 0.05) var aura_half_cycle_seconds: float = 0.9
 
+@export_group("Aura Fade Transition")
+## How long the aura takes to fade out from the old tile when the player
+## moves to a new zone. Faster = snappier "leaving."
+@export_range(0.05, 2.0, 0.05) var aura_fade_out_seconds: float = 0.2
+## How long the aura takes to fade in at the new tile after teleporting.
+## Slower than fade_out feels more deliberate; same speed feels symmetric.
+@export_range(0.05, 2.0, 0.05) var aura_fade_in_seconds: float = 0.45
+
 @export_group("Hover Selector")
 ## Frame rate at which the hex selector spritesheet cycles when shown.
 @export_range(1.0, 30.0, 0.5) var hover_selector_fps: float = 8.0
@@ -41,6 +49,8 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @onready var _glowing_path_container: Node2D = %GlowingPathContainer
 
 var _aura_breath_tween: Tween
+var _aura_fade_tween: Tween
+var _aura_initialized: bool = false
 var _hover_frame_time: float = 0.0
 
 const LOCKED_SOURCE_ID = 1
@@ -289,8 +299,43 @@ func _process(delta: float) -> void:
 func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
 	var world_pos := tile_map.map_to_local(tile_coord) + tile_map.position
 	_move_character_to_position(world_pos)
-	_aura_sprite.global_position = world_pos
-	_start_aura_breathing()
+
+	if not _aura_initialized:
+		# First placement on game load — snap into place without a fade.
+		_aura_sprite.global_position = world_pos
+		_start_aura_breathing()
+		_aura_initialized = true
+		return
+
+	if _aura_sprite.global_position.distance_squared_to(world_pos) < 1.0:
+		# Same tile (e.g. returning from foraging) — just keep breathing,
+		# no fade transition needed.
+		_start_aura_breathing()
+		return
+
+	_move_aura_with_fade(world_pos)
+
+## Fades the aura sprite out at its current position, snaps it to the
+## new world position while invisible, then fades it back in and resumes
+## the breathing tween. Cancels any in-progress breathing or fade tween
+## first so the transition is clean even on rapid zone switches.
+func _move_aura_with_fade(world_pos: Vector2) -> void:
+	if _aura_breath_tween and _aura_breath_tween.is_valid():
+		_aura_breath_tween.kill()
+	if _aura_fade_tween and _aura_fade_tween.is_valid():
+		_aura_fade_tween.kill()
+
+	_aura_fade_tween = create_tween()
+	_aura_fade_tween.set_trans(Tween.TRANS_SINE)
+	_aura_fade_tween.set_ease(Tween.EASE_IN_OUT)
+	# Fade out at the old position
+	_aura_fade_tween.tween_property(_aura_sprite, "modulate:a", 0.0, aura_fade_out_seconds)
+	# Snap to the new tile while invisible
+	_aura_fade_tween.tween_callback(func(): _aura_sprite.global_position = world_pos)
+	# Fade in at the new position
+	_aura_fade_tween.tween_property(_aura_sprite, "modulate:a", aura_max_alpha, aura_fade_in_seconds)
+	# Resume the breathing pulse once the fade-in completes
+	_aura_fade_tween.tween_callback(_start_aura_breathing)
 
 func _move_character_to_position(new_position: Vector2) -> void:
 	character_body.move_to_position(new_position, CHARACTER_MOVE_SPEED)
