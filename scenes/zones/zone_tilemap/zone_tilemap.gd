@@ -255,9 +255,10 @@ func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
 	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
 		_hover_sprite.visible = false
 		return
-	if zone_data == selected_zone:
-		_hover_sprite.visible = false
-		return
+	# Hover is also shown on the player's current tile — the breathing
+	# aura signals "you are here", the selector ring signals "this is
+	# the tile your cursor is over right now". Both layers are useful
+	# even when they overlap.
 	_hover_sprite.global_position = tile_map.map_to_local(tile_coord) + tile_map.position
 	if not _hover_sprite.visible:
 		# Restart the spritesheet cycle from frame 0 each time the hover
