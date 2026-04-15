@@ -27,7 +27,7 @@
 [ext_resource type="PackedScene" uid="uid://cbps5t4a7d2m5" path="res://scenes/path_progression/path_tree_view.tscn" id="19_ptv"]
 [ext_resource type="Script" uid="uid://cd0oljhv7jwgr" path="res://scenes/abilities/abilities_view_state.gd" id="22_avs"]
 [ext_resource type="PackedScene" uid="uid://dq8m3p6k2n1xt" path="res://scenes/abilities/abilities_view.tscn" id="23_av"]
-[ext_resource type="Script" path="res://scenes/ui/grey_background/grey_background.gd" id="24_grybg_script"]
+[ext_resource type="Script" uid="uid://cj636cki5h3is" path="res://scenes/ui/grey_background/grey_background.gd" id="24_grybg_script"]
 
 [sub_resource type="Animation" id="Animation_grey_RESET"]
 resource_name = "RESET"

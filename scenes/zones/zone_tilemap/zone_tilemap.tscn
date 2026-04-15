@@ -30,8 +30,9 @@ hframes = 8
 
 [node name="AuraSprite" type="Sprite2D" parent="." unique_id=728775513]
 unique_name_in_owner = true
-modulate = Color(0.9882353, 0.65882355, 0.0627451, 0.81960785)
+modulate = Color(0.9882353, 0.65882355, 0.0627451, 0.7764706)
 z_index = 4
+scale = Vector2(0.85, 0.85)
 texture = ExtResource("8_aura")
 
 [node name="LockedGlyphContainer" type="Node2D" parent="." unique_id=1704809627]
@@ -45,7 +46,7 @@ z_index = 1
 [node name="PlayerCharacter" parent="." unique_id=2019777538 instance=ExtResource("4_q6nfb")]
 unique_name_in_owner = true
 position = Vector2(-1, 0)
-scale = Vector2(2, 2)
+scale = Vector2(2.5, 2.5)
 is_debug_mode = false
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1799141513]

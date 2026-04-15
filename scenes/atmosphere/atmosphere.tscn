@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://catmosphere01"]
 
-[ext_resource type="Script" path="res://scenes/atmosphere/atmosphere.gd" id="1"]
+[ext_resource type="Script" uid="uid://ckvsahlgrp6nm" path="res://scenes/atmosphere/atmosphere.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://cdwiub235t85v" path="res://assets/sprites/atmosphere/mist_sheet.png" id="2"]
 [ext_resource type="Texture2D" uid="uid://ciljxi5dxbh71" path="res://assets/sprites/atmosphere/mote_particle.png" id="3"]
 [ext_resource type="Shader" uid="uid://dgq0bcd8enkeb" path="res://assets/shaders/vignette.gdshader" id="4"]
@@ -80,7 +80,7 @@ frame = 30
 
 [node name="MoteParticlesCyan" type="GPUParticles2D" parent="." unique_id=1440619960]
 unique_name_in_owner = true
-amount = 90
+amount = 150
 texture = ExtResource("3")
 lifetime = 3.5
 preprocess = 3.5
@@ -89,7 +89,7 @@ process_material = SubResource("PPM_cyan")
 
 [node name="MoteParticlesWarm" type="GPUParticles2D" parent="." unique_id=1928480000]
 unique_name_in_owner = true
-amount = 45
+amount = 75
 texture = ExtResource("3")
 lifetime = 3.5
 preprocess = 3.5
