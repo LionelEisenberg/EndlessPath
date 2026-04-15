@@ -3,6 +3,26 @@ extends Node2D
 
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
+#-----------------------------------------------------------------------------
+# EXPORTS
+#-----------------------------------------------------------------------------
+
+@export_group("Aura Breathing")
+## Smallest scale the current-zone aura sprite shrinks to during the pulse.
+@export_range(0.1, 2.0, 0.05) var aura_min_scale: float = 0.85
+## Largest scale the current-zone aura sprite expands to during the pulse.
+@export_range(0.1, 2.0, 0.05) var aura_max_scale: float = 1.0
+## Lowest alpha the aura sprite fades to at the pulse trough.
+@export_range(0.0, 1.0, 0.05) var aura_min_alpha: float = 0.65
+## Brightest alpha the aura sprite blooms to at the pulse peak.
+@export_range(0.0, 1.0, 0.05) var aura_max_alpha: float = 1.0
+## Duration of one bloom OR contract phase. Total cycle is 2x this value.
+@export_range(0.1, 5.0, 0.05) var aura_half_cycle_seconds: float = 0.9
+
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
 @onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
 @onready var character_body: CharacterBody2D = %PlayerCharacter
 @onready var _camera: Camera2D = %Camera2D
@@ -255,12 +275,12 @@ func _start_aura_breathing() -> void:
 	_aura_breath_tween.set_loops()
 	_aura_breath_tween.set_trans(Tween.TRANS_SINE)
 	_aura_breath_tween.set_ease(Tween.EASE_IN_OUT)
-	# Bloom phase: scale up + alpha up in parallel over 0.9s
-	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(1.0, 1.0), 0.9)
-	_aura_breath_tween.parallel().tween_property(_aura_sprite, "modulate:a", 1.0, 0.9)
-	# Contract phase: scale down + alpha down in parallel over 0.9s
-	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(0.85, 0.85), 0.9)
-	_aura_breath_tween.parallel().tween_property(_aura_sprite, "modulate:a", 0.65, 0.9)
+	# Bloom phase: scale up + alpha up in parallel
+	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(aura_max_scale, aura_max_scale), aura_half_cycle_seconds)
+	_aura_breath_tween.parallel().tween_property(_aura_sprite, "modulate:a", aura_max_alpha, aura_half_cycle_seconds)
+	# Contract phase: scale down + alpha down in parallel
+	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(aura_min_scale, aura_min_scale), aura_half_cycle_seconds)
+	_aura_breath_tween.parallel().tween_property(_aura_sprite, "modulate:a", aura_min_alpha, aura_half_cycle_seconds)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
