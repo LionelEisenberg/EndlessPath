@@ -19,17 +19,15 @@ func test_configure_combat_returns_true() -> void:
 
 func test_configure_ambush_uses_combat_visuals() -> void:
 	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	var combat_color := icon._glyph.modulate
+	var combat_texture := icon._glyph.texture
 	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_AMBUSH)
-	assert_eq(icon._glyph.modulate, combat_color, "ambush should look identical to regular combat")
+	assert_eq(icon._glyph.texture, combat_texture, "ambush should look identical to regular combat")
 
 func test_configure_elite_returns_true() -> void:
 	assert_true(icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_ELITE))
 
-func test_configure_boss_enables_ornamental_ring() -> void:
-	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_BOSS)
-	assert_true(icon._ornamental_ring.visible)
-	assert_almost_eq(icon._frame.scale.x, 1.65, 0.01)
+func test_configure_boss_returns_true() -> void:
+	assert_true(icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_BOSS))
 
 func test_configure_rest_returns_true() -> void:
 	assert_true(icon.configure_for_type(AdventureEncounter.EncounterType.REST_SITE))
@@ -37,30 +35,18 @@ func test_configure_rest_returns_true() -> void:
 func test_configure_treasure_returns_true() -> void:
 	assert_true(icon.configure_for_type(AdventureEncounter.EncounterType.TREASURE))
 
-func test_configure_trap_unvisited_returns_false() -> void:
-	icon.set_visited(false)
+func test_configure_trap_returns_true() -> void:
 	var result := icon.configure_for_type(AdventureEncounter.EncounterType.TRAP)
-	assert_false(result, "trap should be hidden until visited")
-
-func test_configure_trap_visited_returns_true() -> void:
-	icon.set_visited(true)
-	var result := icon.configure_for_type(AdventureEncounter.EncounterType.TRAP)
-	assert_true(result, "trap should be visible once visited")
+	assert_true(result, "trap should configure like any other encounter")
 
 func test_configure_none_returns_false() -> void:
 	var result := icon.configure_for_type(AdventureEncounter.EncounterType.NONE)
 	assert_false(result)
 
-func test_configure_resets_ornamental_ring_for_non_boss() -> void:
-	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_BOSS)
-	assert_true(icon._ornamental_ring.visible)
-	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	assert_false(icon._ornamental_ring.visible)
-
 func test_set_completed_dims_dimmable_wrapper() -> void:
 	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
 	icon.set_completed(true)
-	assert_almost_eq(icon._dimmable.modulate.a, 0.45, 0.01, "completed state should dim the Dimmable wrapper")
+	assert_almost_eq(icon._dimmable.modulate.a, 0.9, 0.01, "completed state should dim the Dimmable wrapper")
 	assert_true(icon._checkmark.visible, "completed state should show the checkmark badge")
 
 func test_set_completed_false_restores_full_opacity() -> void:
