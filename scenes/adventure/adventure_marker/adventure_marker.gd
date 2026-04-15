@@ -1,0 +1,128 @@
+class_name AdventureMarker
+extends Node2D
+
+## A map-pin style marker that floats above the tile the player is
+## currently standing on, displaying the tile's encounter glyph inside
+## the pin's circular head. Replaces the old "flat encounter icon on
+## the current tile" layout so the player's position on the hex grid
+## isn't obscured by the icon they're about to interact with.
+##
+## Use show_at(world_pos, encounter_type) to position and configure
+## the marker in one call; hide() (inherited) to hide it.
+
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+const _GLYPH_COMBAT := preload("res://assets/ui_images/stat_icons/combat_icon.png")
+const _GLYPH_ELITE := preload("res://assets/sprites/adventure/encounter_glyphs/elite.png")
+const _GLYPH_BOSS := preload("res://assets/sprites/adventure/encounter_glyphs/boss_spritesheet.png")
+const _GLYPH_REST := preload("res://assets/sprites/adventure/encounter_glyphs/rest.png")
+const _GLYPH_TREASURE := preload("res://assets/sprites/adventure/encounter_glyphs/treasure.png")
+const _GLYPH_TRAP := preload("res://assets/sprites/adventure/encounter_glyphs/trap.png")
+const _GLYPH_UNKNOWN := preload("res://assets/sprites/adventure/encounter_glyphs/unknown.png")
+
+## Target rendered size for the glyph inside the marker, in pixels.
+## Matches EncounterIcon.ICON_TARGET_SIZE for visual consistency.
+const ICON_TARGET_SIZE: float = 84.0
+
+## Frame count for the animated boss glyph spritesheet.
+const BOSS_SPRITESHEET_HFRAMES: int = 7
+
+## Duration of one full boss spritesheet cycle.
+const BOSS_ANIMATION_DURATION: float = 1.4
+
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
+@onready var _glyph: Sprite2D = %MarkerGlyph
+
+#-----------------------------------------------------------------------------
+# PRIVATE STATE
+#-----------------------------------------------------------------------------
+
+var _boss_tween: Tween
+var _current_type: int = -1
+
+#-----------------------------------------------------------------------------
+# PUBLIC API
+#-----------------------------------------------------------------------------
+
+## Positions the marker at world_pos (should be the tile center) and
+## configures the inner glyph for the given encounter type. Makes the
+## marker visible. Safe to call repeatedly — the boss animation tween
+## only restarts when the type actually changes from non-boss to boss,
+## so non-boss → non-boss or same-boss → same-boss calls don't thrash.
+func show_at(world_pos: Vector2, encounter_type: int) -> void:
+	global_position = world_pos
+	if encounter_type != _current_type:
+		_configure_for_type(encounter_type)
+	visible = true
+
+#-----------------------------------------------------------------------------
+# PRIVATE METHODS
+#-----------------------------------------------------------------------------
+
+## Swaps the glyph texture and kicks off boss-specific animation.
+## Mirrors EncounterIcon.configure_for_type but doesn't track a
+## completed/checkmark state — the marker is only ever shown on the
+## active tile, which by definition isn't done yet.
+func _configure_for_type(encounter_type: int) -> void:
+	_current_type = encounter_type
+	_stop_boss_animation()
+	_glyph.hframes = 1
+	_glyph.vframes = 1
+	_glyph.frame = 0
+
+	match encounter_type:
+		AdventureEncounter.EncounterType.COMBAT_REGULAR, AdventureEncounter.EncounterType.COMBAT_AMBUSH:
+			_glyph.texture = _GLYPH_COMBAT
+		AdventureEncounter.EncounterType.COMBAT_ELITE:
+			_glyph.texture = _GLYPH_ELITE
+		AdventureEncounter.EncounterType.COMBAT_BOSS:
+			_glyph.texture = _GLYPH_BOSS
+			_glyph.hframes = BOSS_SPRITESHEET_HFRAMES
+			_start_boss_animation()
+		AdventureEncounter.EncounterType.REST_SITE:
+			_glyph.texture = _GLYPH_REST
+		AdventureEncounter.EncounterType.TREASURE:
+			_glyph.texture = _GLYPH_TREASURE
+		AdventureEncounter.EncounterType.TRAP:
+			_glyph.texture = _GLYPH_TRAP
+		_:
+			_glyph.texture = _GLYPH_UNKNOWN
+
+	_apply_icon_scale()
+
+func _apply_icon_scale() -> void:
+	if _glyph.texture == null:
+		return
+	var tex_size := _glyph.texture.get_size()
+	var hf := maxi(_glyph.hframes, 1)
+	var vf := maxi(_glyph.vframes, 1)
+	var frame_size := Vector2(tex_size.x / float(hf), tex_size.y / float(vf))
+	if frame_size.x <= 0.0 or frame_size.y <= 0.0:
+		return
+	_glyph.scale = Vector2(ICON_TARGET_SIZE / frame_size.x, ICON_TARGET_SIZE / frame_size.y)
+
+func _start_boss_animation() -> void:
+	_stop_boss_animation()
+	var total_frames := _glyph.hframes * maxi(_glyph.vframes, 1)
+	if total_frames <= 1:
+		return
+	_boss_tween = create_tween()
+	_boss_tween.set_loops()
+	_boss_tween.tween_method(_apply_boss_frame, 0.0, float(total_frames), BOSS_ANIMATION_DURATION)
+
+func _stop_boss_animation() -> void:
+	if _boss_tween and _boss_tween.is_valid():
+		_boss_tween.kill()
+
+func _apply_boss_frame(f: float) -> void:
+	if not is_instance_valid(_glyph):
+		return
+	var total_frames := _glyph.hframes * maxi(_glyph.vframes, 1)
+	if total_frames <= 0:
+		return
+	_glyph.frame = int(f) % total_frames

@@ -10,6 +10,7 @@
 [ext_resource type="Shader" uid="uid://cmkgtm86u0l1y" path="res://assets/shaders/fog_of_war.gdshader" id="10_fog"]
 [ext_resource type="PackedScene" uid="uid://b387ck3lm5j3y" path="res://scenes/adventure/path_preview/path_preview.tscn" id="11_ppv"]
 [ext_resource type="PackedScene" uid="uid://cottn87ch2b4s" path="res://scenes/tilemaps/hex_hover_selector.tscn" id="12_hover"]
+[ext_resource type="PackedScene" uid="uid://cadvmarkr0001" path="res://scenes/adventure/adventure_marker/adventure_marker.tscn" id="13_marker"]
 
 [sub_resource type="ShaderMaterial" id="SM_fog"]
 shader = ExtResource("10_fog")
@@ -78,6 +79,9 @@ z_index = 4
 [node name="EncounterIconContainer" type="Node2D" parent="." unique_id=953463062]
 unique_name_in_owner = true
 z_index = 6
+
+[node name="AdventureMarker" parent="." unique_id=1900000003 instance=ExtResource("13_marker")]
+unique_name_in_owner = true
 
 [node name="PathPreview" parent="." unique_id=1759675795 instance=ExtResource("11_ppv")]
 unique_name_in_owner = true

@@ -46,3 +46,12 @@ func _process(delta: float) -> void:
 	var total_frames := hframes * maxi(vframes, 1)
 	if total_frames > 0:
 		frame = int(_frame_time * animation_fps) % total_frames
+
+## Fades self_modulate alpha to zero over the given duration and then
+## queue_frees this veil. Used by the adventure tilemap's fog-of-war
+## diff when a revealed tile transitions to visited or falls out of
+## reveal range — the smoke should dissipate, not pop.
+func fade_and_free(duration: float) -> void:
+	var tween := create_tween()
+	tween.tween_property(self, "self_modulate:a", 0.0, duration)
+	tween.tween_callback(queue_free)

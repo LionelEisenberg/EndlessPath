@@ -28,6 +28,12 @@ const TRANSPARENT_TILE_VARIANT_ID = 4
 ## base_tile source as alternative id 5 with a ~35% alpha dark modulate.
 const GRAY_OVERLAY_VARIANT_ID = 5
 
+## How long a fog veil takes to fade out when it despawns (because the
+## tile became visited or fell out of reveal range). Short enough to
+## feel responsive, long enough to read as "smoke dissipating" rather
+## than "sprite popping away".
+const FOG_VEIL_FADE_OUT_SECONDS := 0.25
+
 # Forest atlas (shared with ZoneTilemap). Multiple Hex_Forest_NN variants
 # are packed into a single TileSetAtlasSource (sources/8) backed by
 # hex_forest_atlas.png. Adventure tiles pick a deterministic-random cell
@@ -68,6 +74,7 @@ enum HighlightType {
 @onready var _hover_selector: HexHoverSelector = %HoverSelector
 @onready var _encounter_icon_container: Node2D = %EncounterIconContainer
 @onready var _fog_veil_container: Node2D = %FogVeilContainer
+@onready var _adventure_marker: AdventureMarker = %AdventureMarker
 @onready var _fog_rect: ColorRect = %FogOfWarRect
 @onready var _path_preview: PathPreview = %PathPreview
 @onready var _boss_flash_rect: ColorRect = %BossFlashRect
@@ -88,6 +95,13 @@ var adventure_map_generator: AdventureMapGenerator
 var _encounter_tile_dictionary: Dictionary[Vector3i, AdventureEncounter] = {}
 var _visited_tile_dictionary: Dictionary[Vector3i, bool] = {}
 var _highlight_tile_dictionary: Dictionary[Vector3i, HighlightType] = {}
+## Tiles whose encounter has been resolved (won fight, looted treasure,
+## finished dialogue, etc.). Separate from _visited_tile_dictionary
+## because we want the "completed" visual (gray overlay + dim icon +
+## checkmark) to apply the moment the encounter is resolved, even while
+## the player is still standing on the tile. NoOp tiles never end up in
+## here — there's nothing to complete.
+var _completed_encounter_tiles: Dictionary[Vector3i, bool] = {}
 
 ## Visitation queue - tiles the character will visit in order
 var _visitation_queue: Array[Vector3i] = []
@@ -165,6 +179,7 @@ func stop_adventure() -> void:
 	_encounter_tile_dictionary.clear()
 	_visited_tile_dictionary.clear()
 	_highlight_tile_dictionary.clear()
+	_completed_encounter_tiles.clear()
 	_visitation_queue.clear()
 	_current_tile = Vector3i.ZERO
 	_is_movement_locked = false
@@ -288,6 +303,10 @@ func _on_dialogue_ended(_resource: Resource = null) -> void:
 func _complete_current_tile() -> void:
 	_is_movement_locked = false
 	encounter_info_panel.show_completed_state()
+	# Promote the tile to "encounter completed" BEFORE re-rendering so
+	# the gray overlay, dimmed icon, and checkmark appear immediately —
+	# not only once the player moves off to another tile.
+	_completed_encounter_tiles[_current_tile] = true
 	_mark_tile_visited(_current_tile)
 
 func _apply_effects(effects: Array[EffectData]) -> void:
@@ -542,26 +561,31 @@ func _update_visible_map() -> void:
 	for coord in visible_coords:
 		visible_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, full_map.cube_to_map(coord), _get_random_forest_atlas_coords(coord))
 
-	# Visited (non-current) tiles get a dim gray overlay on the highlight
-	# map so the player can see where they've already been at a glance.
-	# The current tile stays clean so "you are here" reads as fresh art.
-	for coord in _visited_tile_dictionary.keys():
-		if coord == _current_tile:
-			continue
+	# Tiles with a RESOLVED encounter (not merely visited) get a dim
+	# gray overlay on the highlight map so the player can see their
+	# progress at a glance. NoOp tiles and unresolved-but-arrived tiles
+	# stay clean. The gray appears the moment _complete_current_tile
+	# runs, even while the player is still standing on the tile.
+	for coord in _completed_encounter_tiles.keys():
 		highlight_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, GRAY_OVERLAY_VARIANT_ID, full_map.cube_to_map(coord))
 
 	# Visited tiles: spawn/update encounter icon and set completion state.
-	# NoOp visited tiles get no icon at all.
+	# NoOp visited tiles get no icon at all. The current tile's encounter
+	# is shown in the AdventureMarker above the player, not as a flat
+	# hex icon — so we skip spawning one here when coord == _current_tile.
 	var visited_with_icon: Dictionary[Vector3i, bool] = {}
 	for coord in _visited_tile_dictionary.keys():
 		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
 		if not encounter or encounter is NoOpEncounter:
 			_despawn_encounter_icon(coord)
 			continue
+		if coord == _current_tile:
+			_despawn_encounter_icon(coord)
+			continue
 		_update_cell_highlight(coord)
 		var icon: EncounterIcon = _encounter_icons.get(coord)
 		if icon:
-			icon.set_completed(coord != _current_tile)
+			icon.set_completed(_completed_encounter_tiles.has(coord))
 		visited_with_icon[coord] = true
 
 	# Revealed neighbors: fog veils, except for the boss tile which is the
@@ -604,6 +628,18 @@ func _update_visible_map() -> void:
 	for coord in stale_icon_coords:
 		_despawn_encounter_icon(coord)
 
+	# AdventureMarker: show the current tile's encounter glyph floating
+	# above the player via the marker pin, instead of as a flat icon on
+	# the hex. NoOp tiles have nothing to show, so hide the marker.
+	var current_encounter: AdventureEncounter = _encounter_tile_dictionary.get(_current_tile)
+	if current_encounter and not (current_encounter is NoOpEncounter):
+		_adventure_marker.show_at(
+			full_map.cube_to_local(_current_tile) + full_map.position,
+			current_encounter.encounter_type,
+		)
+	else:
+		_adventure_marker.hide()
+
 func _update_cell_highlight(coord: Vector3i) -> void:
 	var encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
 	if not encounter:
@@ -632,12 +668,17 @@ func _spawn_fog_veil(coord: Vector3i) -> void:
 	_fog_veil_sprites[coord] = veil
 
 ## Despawns a FogVeilSprite for the given cube coord if one is tracked.
+## The veil fades over FOG_VEIL_FADE_OUT_SECONDS rather than popping out,
+## so walking onto a fogged tile (or revealing it to visited) dissolves
+## the smoke smoothly. The dictionary entry is cleared immediately so
+## subsequent _update_visible_map calls don't double-process the fading
+## sprite.
 func _despawn_fog_veil(coord: Vector3i) -> void:
 	var veil: FogVeilSprite = _fog_veil_sprites.get(coord)
 	if veil == null:
 		return
-	veil.queue_free()
 	_fog_veil_sprites.erase(coord)
+	veil.fade_and_free(FOG_VEIL_FADE_OUT_SECONDS)
 
 ## Despawns an EncounterIcon for the given cube coord if one is tracked.
 func _despawn_encounter_icon(coord: Vector3i) -> void:
