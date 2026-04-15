@@ -19,6 +19,10 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 ## Duration of one bloom OR contract phase. Total cycle is 2x this value.
 @export_range(0.1, 5.0, 0.05) var aura_half_cycle_seconds: float = 0.9
 
+@export_group("Hover Selector")
+## Frame rate at which the hex selector spritesheet cycles when shown.
+@export_range(1.0, 30.0, 0.5) var hover_selector_fps: float = 8.0
+
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
@@ -32,6 +36,7 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @onready var _glowing_path_container: Node2D = %GlowingPathContainer
 
 var _aura_breath_tween: Tween
+var _hover_frame_time: float = 0.0
 
 const LOCKED_SOURCE_ID = 1
 const BASE_LOCKED_VARIANT = 0
@@ -254,10 +259,24 @@ func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
 		_hover_sprite.visible = false
 		return
 	_hover_sprite.global_position = tile_map.map_to_local(tile_coord) + tile_map.position
+	if not _hover_sprite.visible:
+		# Restart the spritesheet cycle from frame 0 each time the hover
+		# becomes visible on a new tile, so the animation always begins
+		# cleanly instead of resuming mid-cycle.
+		_hover_frame_time = 0.0
+		_hover_sprite.frame = 0
 	_hover_sprite.visible = true
 
 func _on_zone_tile_unhovered() -> void:
 	_hover_sprite.visible = false
+
+func _process(delta: float) -> void:
+	# Cycle the hover selector spritesheet frames while it's visible.
+	if _hover_sprite and _hover_sprite.visible:
+		_hover_frame_time += delta
+		var total_frames := _hover_sprite.hframes * maxi(_hover_sprite.vframes, 1)
+		if total_frames > 0:
+			_hover_sprite.frame = int(_hover_frame_time * hover_selector_fps) % total_frames
 
 func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
 	var world_pos := tile_map.map_to_local(tile_coord) + tile_map.position

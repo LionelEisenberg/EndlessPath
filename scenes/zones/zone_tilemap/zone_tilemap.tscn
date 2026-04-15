@@ -8,20 +8,11 @@
 [ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="6_hxkky"]
 [ext_resource type="PackedScene" uid="uid://catmosphere01" path="res://scenes/atmosphere/atmosphere.tscn" id="7_atmos"]
 [ext_resource type="Texture2D" uid="uid://ckvr10ptgsd2l" path="res://assets/sprites/atmosphere/aura_glow.png" id="8_aura"]
-[ext_resource type="Shader" path="res://assets/shaders/hex_border_pulse.gdshader" id="9_hexbp"]
-
-[sub_resource type="ShaderMaterial" id="SM_hex_border"]
-shader = ExtResource("9_hexbp")
-shader_parameter/border_color = Color(0.55, 0.88, 1.0, 1.0)
-shader_parameter/border_thickness = 0.06
-shader_parameter/pulse_speed = 3.2
-shader_parameter/pulse_min_alpha = 0.45
-shader_parameter/hex_radius = 0.42
-shader_parameter/radius_pulse_amount = 0.01
-shader_parameter/hex_rotation_deg = 0.0
+[ext_resource type="Texture2D" uid="uid://d1yn6rxso1ty6" path="res://assets/sprites/tilemap/hex_selector_spritesheet.png" id="9_hexsel"]
 
 [node name="ZoneTilemap" type="Node2D" unique_id=731377091]
 script = ExtResource("1_w46j4")
+aura_min_alpha = 0.45
 metadata/_edit_group_ = true
 
 [node name="MainZoneTileMapLayer" parent="." unique_id=10980654 instance=ExtResource("2_v6of8")]
@@ -33,16 +24,14 @@ position = Vector2(-82, -95)
 [node name="HoverSprite" type="Sprite2D" parent="." unique_id=1988282557]
 unique_name_in_owner = true
 visible = false
-material = SubResource("SM_hex_border")
 z_index = 5
-scale = Vector2(0.9, 0.9)
-texture = ExtResource("8_aura")
+texture = ExtResource("9_hexsel")
+hframes = 6
 
 [node name="AuraSprite" type="Sprite2D" parent="." unique_id=728775513]
 unique_name_in_owner = true
-modulate = Color(0.42, 0.78, 1, 0.85)
+modulate = Color(0.9882353, 0.65882355, 0.0627451, 0.81960785)
 z_index = 4
-scale = Vector2(0.85, 0.85)
 texture = ExtResource("8_aura")
 
 [node name="LockedGlyphContainer" type="Node2D" parent="." unique_id=1704809627]
