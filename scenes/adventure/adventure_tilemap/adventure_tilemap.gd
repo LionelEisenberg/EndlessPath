@@ -17,6 +17,7 @@ signal boss_defeated
 #-----------------------------------------------------------------------------
 
 const EncounterIconScene := preload("res://scenes/adventure/encounter_icon/encounter_icon.tscn")
+const FogVeilSpriteScene := preload("res://scenes/adventure/fog_veil_sprite.tscn")
 
 # Tilemap tile source IDs
 const BASE_TILE_SOURCE_ID = 0
@@ -58,6 +59,7 @@ enum HighlightType {
 @onready var encounter_info_panel: EncounterInfoPanel = %EncounterInfoPanel
 @onready var _tile_state_overlay: TileStateOverlay = %TileStateOverlay
 @onready var _encounter_icon_container: Node2D = %EncounterIconContainer
+@onready var _fog_veil_container: Node2D = %FogVeilContainer
 @onready var _fog_rect: ColorRect = %FogOfWarRect
 @onready var _path_preview: PathPreview = %PathPreview
 @onready var _boss_flash_rect: ColorRect = %BossFlashRect
@@ -65,6 +67,7 @@ enum HighlightType {
 var _boss_revealed: bool = false
 
 var _encounter_icons: Dictionary[Vector3i, EncounterIcon] = {}
+var _fog_veil_sprites: Dictionary[Vector3i, FogVeilSprite] = {}
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -148,6 +151,9 @@ func stop_adventure() -> void:
 	for icon in _encounter_icons.values():
 		icon.queue_free()
 	_encounter_icons.clear()
+	for veil in _fog_veil_sprites.values():
+		veil.queue_free()
+	_fog_veil_sprites.clear()
 	_encounter_tile_dictionary.clear()
 	_visited_tile_dictionary.clear()
 	_highlight_tile_dictionary.clear()
@@ -490,26 +496,82 @@ func _update_visible_map() -> void:
 	visible_map.clear()
 	highlight_map.clear()
 	_tile_state_overlay.clear_all()
-	for icon in _encounter_icons.values():
-		icon.queue_free()
-	_encounter_icons.clear()
+	# Don't clear _encounter_icons or _fog_veil_sprites up front — we diff
+	# them below so visited icons persist across frames and smoothly switch
+	# between current/completed visual states.
 
 	var visible_coords: Array[Vector3i] = []
 	for coord in _visited_tile_dictionary.keys():
 		visible_coords.append(coord)
 
+	var revealed_coords: Array[Vector3i] = []
 	for highlight_coord in _highlight_tile_dictionary.keys():
 		if _highlight_tile_dictionary[highlight_coord] == HighlightType.VISIBLE_NEIGHBOUR:
 			visible_coords.append(highlight_coord)
+			revealed_coords.append(highlight_coord)
 			var world_pos := full_map.cube_to_local(highlight_coord) + full_map.position
 			_tile_state_overlay.set_tile_state(highlight_coord, TileStateOverlay.TileState.REVEAL, world_pos)
 
+	# Render the tile (YELLOW for encounters, WHITE for NoOp) at every visible coord
 	for coord in visible_coords:
 		if not _encounter_tile_dictionary[coord] is NoOpEncounter:
 			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, YELLOW_TILE_VARIANT_ID, full_map.cube_to_map(coord))
-			_update_cell_highlight(coord)
 		else:
 			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, WHITE_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+
+	# Visited tiles: spawn/update encounter icon and set completion state.
+	# NoOp visited tiles get no icon at all.
+	var visited_with_icon: Dictionary[Vector3i, bool] = {}
+	for coord in _visited_tile_dictionary.keys():
+		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
+		if not encounter or encounter is NoOpEncounter:
+			_despawn_encounter_icon(coord)
+			continue
+		_update_cell_highlight(coord)
+		var icon: EncounterIcon = _encounter_icons.get(coord)
+		if icon:
+			icon.set_completed(coord != _current_tile)
+		visited_with_icon[coord] = true
+
+	# Revealed neighbors: fog veils, except for the boss tile which is the
+	# visible-while-fogged exception (player needs a long-term goal marker).
+	var revealed_with_veil: Dictionary[Vector3i, bool] = {}
+	for coord in revealed_coords:
+		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
+		if encounter and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
+			# Boss exception: show the encounter icon, no fog veil
+			_despawn_fog_veil(coord)
+			_update_cell_highlight(coord)
+			var icon: EncounterIcon = _encounter_icons.get(coord)
+			if icon:
+				icon.set_completed(false)
+		else:
+			# Normal revealed tile: fog veil hides the encounter type
+			_despawn_encounter_icon(coord)
+			_spawn_fog_veil(coord)
+			revealed_with_veil[coord] = true
+
+	# Despawn fog veils whose coord is no longer revealed (or transitioned to visited).
+	var stale_veil_coords: Array[Vector3i] = []
+	for coord in _fog_veil_sprites.keys():
+		if not revealed_with_veil.has(coord):
+			stale_veil_coords.append(coord)
+	for coord in stale_veil_coords:
+		_despawn_fog_veil(coord)
+
+	# Despawn encounter icons whose coord is not visited-with-icon and not the revealed boss.
+	var stale_icon_coords: Array[Vector3i] = []
+	for coord in _encounter_icons.keys():
+		var is_visited_icon := visited_with_icon.has(coord)
+		var is_revealed_boss := false
+		if revealed_coords.has(coord):
+			var enc: AdventureEncounter = _encounter_tile_dictionary.get(coord)
+			if enc and enc.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
+				is_revealed_boss = true
+		if not is_visited_icon and not is_revealed_boss:
+			stale_icon_coords.append(coord)
+	for coord in stale_icon_coords:
+		_despawn_encounter_icon(coord)
 
 	# Visited tiles get VISITED state; current tile overrides with CURRENT
 	for coord in _visited_tile_dictionary.keys():
@@ -535,3 +597,30 @@ func _update_cell_highlight(coord: Vector3i) -> void:
 	icon.set_visited(_visited_tile_dictionary.has(coord))
 	var should_show := icon.configure_for_type(encounter.encounter_type)
 	icon.visible = should_show
+
+## Spawns a FogVeilSprite at the given cube coord if one isn't already
+## tracked. Called from _update_visible_map for revealed-but-not-visited
+## tiles that aren't the boss exception.
+func _spawn_fog_veil(coord: Vector3i) -> void:
+	if _fog_veil_sprites.has(coord):
+		return
+	var veil: FogVeilSprite = FogVeilSpriteScene.instantiate()
+	_fog_veil_container.add_child(veil)
+	veil.position = full_map.cube_to_local(coord) + full_map.position
+	_fog_veil_sprites[coord] = veil
+
+## Despawns a FogVeilSprite for the given cube coord if one is tracked.
+func _despawn_fog_veil(coord: Vector3i) -> void:
+	var veil: FogVeilSprite = _fog_veil_sprites.get(coord)
+	if veil == null:
+		return
+	veil.queue_free()
+	_fog_veil_sprites.erase(coord)
+
+## Despawns an EncounterIcon for the given cube coord if one is tracked.
+func _despawn_encounter_icon(coord: Vector3i) -> void:
+	var icon: EncounterIcon = _encounter_icons.get(coord)
+	if icon == null:
+		return
+	icon.queue_free()
+	_encounter_icons.erase(coord)

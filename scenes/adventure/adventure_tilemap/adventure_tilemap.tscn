@@ -70,6 +70,10 @@ warm_mote_count = 8
 [node name="TileStateOverlay" parent="." unique_id=268399168 instance=ExtResource("8_tso")]
 unique_name_in_owner = true
 
+[node name="FogVeilContainer" type="Node2D" parent="." unique_id=1900000002]
+unique_name_in_owner = true
+z_index = 4
+
 [node name="EncounterIconContainer" type="Node2D" parent="." unique_id=953463062]
 unique_name_in_owner = true
 z_index = 6
