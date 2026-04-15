@@ -72,8 +72,9 @@ Adventure starts are two-phase to accommodate the Madra drain animation (PR #16)
 
 Zone tiles are rendered from `scenes/tilemaps/tilemap_tileset.tres`. Each zone
 selects a forest tile variant via `ZoneData.tile_variant_index`; each variant
-is its own atlas source with a distinct 560×560 texture. Locked zones use a
-separate source (small 164×190 texture) regardless of variant.
+is its own atlas source. All variants share the same texture dimensions
+(164×190 PNG, 156×181 visible hex) so grid layout is uniform and future
+variants drop in cleanly.
 
 | Source ID | Variant | Visual |
 |-----------|---------|--------|
@@ -104,26 +105,36 @@ Variants 1–20 (`Hex_Forest_01_*.png` through `Hex_Forest_20_*.png`) exist in
 the source art library but have not been imported into the project yet. When
 importing each one:
 
-1. Place the PNG in `assets/sprites/tilemap/` and run `--headless --import`
-2. Add a new `ext_resource` for the texture in `tilemap_tileset.tres`
-3. Add a new `TileSetAtlasSource` sub_resource mirroring
+1. Place the PNG in `assets/sprites/tilemap/`. **Target dimensions: 164×190
+   PNG bounds with the hex shape centered at roughly (4, 4) → (160, 185).**
+   Source art at 560×560 (or any larger bound) can be resized in place with
+   a quick Pillow script — see the Hex_Forest_00_Basic resize in git history
+   at commit `fc7d141` → next for the exact approach (crop to visible hex,
+   LANCZOS resize to 156×181, paste onto 164×190 transparent canvas at (4, 4))
+2. Run `--headless --import` to generate Godot's `.import` metadata
+3. Add a new `ext_resource` for the texture in `tilemap_tileset.tres`
+4. Add a new `TileSetAtlasSource` sub_resource mirroring
    `TileSetAtlasSource_forest0` (same 5 alternative tiles, same modulate
-   colors for normal/selected/hovered/ghost/transparent states)
-4. Assign the new source a unique source id (e.g. 9, 10, 11...) via
+   colors for normal/selected/hovered/ghost/transparent states, same
+   `texture_region_size = Vector2i(164, 190)`)
+5. Assign the new source a unique source id (9, 10, 11...) via
    `sources/N = SubResource("...")`
-5. Append the new source id to `ZONE_TILE_VARIANT_SOURCE_IDS` in
+6. Append the new source id to `ZONE_TILE_VARIANT_SOURCE_IDS` in
    `scenes/zones/zone_tilemap/zone_tilemap.gd`
-6. Designers can then set `tile_variant_index = N` on any `ZoneData` resource
+7. Designers can then set `tile_variant_index = N` on any `ZoneData` resource
    to use the new variant
 
 Until that happens, all zones fall back to variant 0 regardless of what's
 set in their `.tres` file (a warning is logged for out-of-range indices).
 
-**Why 560×560 art on a 164×190 logical grid?** The logical `tile_size` defines
-grid spacing (how far apart tile centers sit). The atlas `texture_region_size`
-defines the visible art extent — it can be larger. Godot auto-centers the
-larger texture on the smaller cell, producing the intended overhang/bleed
-between adjacent forest tiles for a painted-map aesthetic.
+**Note on source art sizing:** The project standard for zone tile PNGs is
+164×190 bounds with a 156×181 visible hex centered at (4, 4). This matches
+the TileSet's logical `tile_size` exactly, so the art renders 1:1 with grid
+spacing and adjacent tiles tessellate cleanly. Source art at larger
+dimensions (the original Hex_Forest pack ships at 560×560) must be resized
+to 164×190 before being dropped into `assets/sprites/tilemap/`; otherwise
+the tiles overhang into neighbors and the visual scale mismatches the old
+adventure tileset.
 
 ## Data Model
 
