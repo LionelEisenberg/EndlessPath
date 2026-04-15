@@ -16,9 +16,10 @@ extends Sprite2D
 #-----------------------------------------------------------------------------
 
 ## Frame rate at which the smoke spritesheet cycles. Slow values feel
-## ethereal/atmospheric; faster values feel more violent/chaotic. 6 FPS
-## is a good starting point for a slow drift.
-@export_range(1.0, 30.0, 0.5) var animation_fps: float = 6.0
+## ethereal/atmospheric; faster values feel more violent/chaotic. 2.5 FPS
+## gives a calm, almost-static drift; the 25 distinct frames cycle every
+## 10 seconds, slow enough that adjacent frames blend perceptually.
+@export_range(0.25, 30.0, 0.25) var animation_fps: float = 2.5
 
 #-----------------------------------------------------------------------------
 # PRIVATE STATE
