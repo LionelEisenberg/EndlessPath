@@ -52,6 +52,7 @@ var _aura_breath_tween: Tween
 var _aura_fade_tween: Tween
 var _aura_initialized: bool = false
 var _hover_frame_time: float = 0.0
+var _locked_overlays: Dictionary[Vector2i, LockedZoneOverlay] = {}
 
 const BASE_GHOST_VARIANT = 3
 
@@ -204,6 +205,9 @@ func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 		return
 
 	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
+		# Locked — shake the lock icon as denied-feedback, don't move.
+		if _locked_overlays.has(tile_coord):
+			_locked_overlays[tile_coord].shake()
 		return
 
 	if zone_data:
@@ -226,12 +230,14 @@ func _on_condition_unlocked(_condition_id: String) -> void:
 func _refresh_locked_overlays() -> void:
 	for child in _locked_overlay_container.get_children():
 		child.queue_free()
+	_locked_overlays.clear()
 	for zone_data in ZoneManager.get_all_zones():
 		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
 			continue
-		var overlay := LockedZoneOverlayScene.instantiate() as Node2D
+		var overlay := LockedZoneOverlayScene.instantiate() as LockedZoneOverlay
 		_locked_overlay_container.add_child(overlay)
 		overlay.position = tile_map.map_to_local(zone_data.tilemap_location) + tile_map.position
+		_locked_overlays[zone_data.tilemap_location] = overlay
 
 func _refresh_glowing_paths() -> void:
 	for child in _glowing_path_container.get_children():
