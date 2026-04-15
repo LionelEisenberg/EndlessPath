@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dtt1mb8gex1vm"
-path="res://.godot/imported/boss.png-95b8dc04e42142426086c7461bd0a948.ctex"
+uid="uid://ps7wgy0dp1a7"
+path="res://.godot/imported/boss_spritesheet.png-be45be7ff87be9b989e4a0fa7ac74ce8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/adventure/encounter_glyphs/boss.png"
-dest_files=["res://.godot/imported/boss.png-95b8dc04e42142426086c7461bd0a948.ctex"]
+source_file="res://assets/sprites/adventure/encounter_glyphs/boss_spritesheet.png"
+dest_files=["res://.godot/imported/boss_spritesheet.png-be45be7ff87be9b989e4a0fa7ac74ce8.ctex"]
 
 [params]
 
