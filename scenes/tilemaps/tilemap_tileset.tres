@@ -7,10 +7,12 @@
 resource_name = "base_tile"
 texture = ExtResource("1_kcnis")
 texture_region_size = Vector2i(164, 190)
-0:0/next_alternative_id = 5
+0:0/next_alternative_id = 6
 0:0/0 = 0
 0:0/4 = 4
 0:0/4/modulate = Color(1, 1, 1, 0)
+0:0/5 = 5
+0:0/5/modulate = Color(0.08, 0.08, 0.08, 0.35)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_forest_atlas"]
 resource_name = "forest_atlas"

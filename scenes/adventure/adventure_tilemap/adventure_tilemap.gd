@@ -22,6 +22,11 @@ const FogVeilSpriteScene := preload("res://scenes/adventure/fog_veil_sprite.tscn
 # Tilemap tile source IDs
 const BASE_TILE_SOURCE_ID = 0
 const TRANSPARENT_TILE_VARIANT_ID = 4
+## Dim dark-gray overlay variant painted on the highlight_map over
+## visited-but-not-current tiles so the player can see where they've
+## already been at a glance. Defined in tilemap_tileset.tres on the
+## base_tile source as alternative id 5 with a ~35% alpha dark modulate.
+const GRAY_OVERLAY_VARIANT_ID = 5
 
 # Forest atlas (shared with ZoneTilemap). Multiple Hex_Forest_NN variants
 # are packed into a single TileSetAtlasSource (sources/8) backed by
@@ -536,6 +541,14 @@ func _update_visible_map() -> void:
 	# art and no icon.
 	for coord in visible_coords:
 		visible_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, full_map.cube_to_map(coord), _get_random_forest_atlas_coords(coord))
+
+	# Visited (non-current) tiles get a dim gray overlay on the highlight
+	# map so the player can see where they've already been at a glance.
+	# The current tile stays clean so "you are here" reads as fresh art.
+	for coord in _visited_tile_dictionary.keys():
+		if coord == _current_tile:
+			continue
+		highlight_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, GRAY_OVERLAY_VARIANT_ID, full_map.cube_to_map(coord))
 
 	# Visited tiles: spawn/update encounter icon and set completion state.
 	# NoOp visited tiles get no icon at all.
