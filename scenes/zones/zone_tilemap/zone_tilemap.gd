@@ -67,9 +67,7 @@ const ZONE_TILE_VARIANT_SOURCE_IDS := [8]
 # Movement and display constants
 const CHARACTER_MOVE_SPEED = 150.0
 const FORAGE_POSITION_MARGIN = 32
-const FLOATING_TEXT_OFFSET = Vector2i(250, 250)
 
-var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
 const LockedZoneGlyphScene := preload("res://scenes/zones/locked_zone_glyph/locked_zone_glyph.tscn")
 const GlowingPathScene := preload("res://scenes/zones/glowing_path/glowing_path.tscn")
 
@@ -370,25 +368,8 @@ func _on_foraging_completed(_items: Dictionary) -> void:
 func _character_move_to_new_foraging_location() -> void:
 	# Get a random global position within the tilemap, accounting for a margin
 	var random_local_pos := tile_map.map_to_local(selected_zone.tilemap_location) + tile_map.position
-	
+
 	random_local_pos.x += randf_range(-FORAGE_POSITION_MARGIN, FORAGE_POSITION_MARGIN)
 	random_local_pos.y += randf_range(-FORAGE_POSITION_MARGIN, FORAGE_POSITION_MARGIN)
-	
-	_move_character_to_position(random_local_pos)
 
-func _show_foraging_completion_floating_text(items: Dictionary) -> void:
-	if items.is_empty():
-		return
-	
-	var floating_text = floating_text_scene.instantiate() as FloatingText
-	if floating_text:
-		get_tree().current_scene.add_child(floating_text)
-		
-		# Build a text string showing all items
-		var text_parts: Array[String] = []
-		for item in items:
-			var quantity: int = items[item]
-			text_parts.append("%d %s" % [quantity, item.item_name])
-		
-		var full_text = ", ".join(text_parts)
-		floating_text.show_text(full_text, Color.WHITE, FLOATING_TEXT_OFFSET)
+	_move_character_to_position(random_local_pos)
