@@ -3,11 +3,12 @@
 [ext_resource type="Texture2D" uid="uid://nnhoojvpoehu" path="res://assets/sprites/tilemap/tile_horizontal.png" id="1_kcnis"]
 [ext_resource type="Texture2D" uid="uid://dbs7q3rxlog0j" path="res://assets/sprites/tilemap/tile_horizontal_locked.png" id="2_6an1b"]
 [ext_resource type="Texture2D" uid="uid://c1bjygb1vsq8j" path="res://assets/sprites/tilemap/tile_overlay.png" id="3_6an1b"]
-[ext_resource type="Texture2D" uid="uid://6h08ip6odlci" path="res://assets/asperite/zones/boss.png" id="4_2d48m"]
-[ext_resource type="Texture2D" uid="uid://b754ofe2jn7wa" path="res://assets/asperite/zones/combat.png" id="5_nmb5y"]
+[ext_resource type="Texture2D" uid="uid://6h08ip6odlci" path="res://assets/asperite/zones/Boss.png" id="4_2d48m"]
+[ext_resource type="Texture2D" uid="uid://b754ofe2jn7wa" path="res://assets/asperite/zones/Combat.png" id="5_nmb5y"]
 [ext_resource type="Texture2D" uid="uid://dlr6m56x115ng" path="res://assets/asperite/zones/rest.png" id="6_6g2bo"]
 [ext_resource type="Texture2D" uid="uid://dn082ahwg7qn0" path="res://assets/asperite/zones/treasure.png" id="7_jg1iy"]
 [ext_resource type="Texture2D" uid="uid://q5umgakd5yls" path="res://assets/asperite/zones/unknown.png" id="8_4galj"]
+[ext_resource type="Texture2D" uid="uid://daw1naj0giu3j" path="res://assets/sprites/tilemap/Hex_Forest_00_Basic.png" id="9_forest0"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nwvq3"]
 resource_name = "base_tile"
@@ -64,6 +65,21 @@ texture = ExtResource("8_4galj")
 texture_region_size = Vector2i(164, 190)
 0:0/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_forest0"]
+resource_name = "forest_00_basic"
+texture = ExtResource("9_forest0")
+texture_region_size = Vector2i(560, 560)
+0:0/next_alternative_id = 5
+0:0/0 = 0
+0:0/1 = 1
+0:0/1/modulate = Color(0.9647059, 0.8039216, 0.14901961, 1)
+0:0/2 = 2
+0:0/2/modulate = Color(0.6745098, 0.41960785, 0.14901961, 1)
+0:0/3 = 3
+0:0/3/modulate = Color(0, 0, 0, 0.8235294)
+0:0/4 = 4
+0:0/4/modulate = Color(1, 1, 1, 0)
+
 [resource]
 resource_name = "Horizontal"
 tile_shape = 3
@@ -82,3 +98,4 @@ sources/4 = SubResource("TileSetAtlasSource_6g2bo")
 sources/5 = SubResource("TileSetAtlasSource_fgmky")
 sources/6 = SubResource("TileSetAtlasSource_qts17")
 sources/7 = SubResource("TileSetAtlasSource_m5pju")
+sources/8 = SubResource("TileSetAtlasSource_forest0")

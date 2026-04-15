@@ -13,10 +13,16 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
 var _aura_breath_tween: Tween
 
-const UNLOCKED_SOURCE_ID = 0
 const LOCKED_SOURCE_ID = 1
 const BASE_LOCKED_VARIANT = 0
 const BASE_GHOST_VARIANT = 3
+
+# Zone tile forest-variant → atlas source id mapping.
+# Currently only variant 0 (Hex_Forest_00_Basic at source 8) exists; the
+# other 20 variants live as a TODO in docs/zones/ZONES.md. When they get
+# imported, add each new atlas source id in order below and the
+# tile_variant_index field on ZoneData will pick them automatically.
+const ZONE_TILE_VARIANT_SOURCE_IDS := [8]
 
 # Movement and display constants
 const CHARACTER_MOVE_SPEED = 150.0
@@ -65,20 +71,29 @@ func _ready() -> void:
 	else:
 		Log.critical("ZoneTilemap: UnlockManager is not loaded!")
 
+## Returns the tileset atlas source id for a given zone's forest variant.
+## Falls back to variant 0 if the index is out of range.
+func _get_zone_tile_source_id(zone_data: ZoneData) -> int:
+	var idx := zone_data.tile_variant_index
+	if idx < 0 or idx >= ZONE_TILE_VARIANT_SOURCE_IDS.size():
+		Log.warn("ZoneTilemap: zone '%s' has tile_variant_index %d but only %d variants exist; falling back to 0" % [zone_data.zone_id, idx, ZONE_TILE_VARIANT_SOURCE_IDS.size()])
+		return ZONE_TILE_VARIANT_SOURCE_IDS[0]
+	return ZONE_TILE_VARIANT_SOURCE_IDS[idx]
+
 ## Set all zones in the tile_map
 func set_all_zones_in_tile_map() -> void:
 	var zone_tiles: Array[Vector2i] = []
 	var all_zones = ZoneManager.get_all_zones()
-	
+
 	for zone_data in all_zones:
 		zone_tiles.append(zone_data.tilemap_location)
-	
+
 	for zone_data in all_zones:
 		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
-			tile_map.set_cell_with_source_and_variant(UNLOCKED_SOURCE_ID, _get_zone_variant(zone_data), zone_data.tilemap_location)
+			tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(zone_data), _get_zone_variant(zone_data), zone_data.tilemap_location)
 		else:
 			tile_map.set_cell_with_source_and_variant(LOCKED_SOURCE_ID, BASE_LOCKED_VARIANT, zone_data.tilemap_location)
-	
+
 	for zone_data in all_zones:
 		_set_neighboring_tiles_transparent(zone_data.tilemap_location, zone_tiles)
 
@@ -94,16 +109,16 @@ func get_zone_at_tile(tile_coord: Vector2i) -> ZoneData:
 func update_zone_tile_state(zone_data: ZoneData) -> void:
 	if not zone_data:
 		return
-	
+
 	var previous_selected = selected_zone
 	selected_zone = zone_data
-	
+
 	# Update previous selected zone back to normal (if any)
 	if previous_selected and previous_selected != zone_data:
-		tile_map.set_cell_with_source_and_variant(UNLOCKED_SOURCE_ID, _get_zone_variant(previous_selected), previous_selected.tilemap_location)
-	
+		tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(previous_selected), _get_zone_variant(previous_selected), previous_selected.tilemap_location)
+
 	# Update current selected zone
-	tile_map.set_cell_with_source_and_variant(UNLOCKED_SOURCE_ID, _get_zone_variant(zone_data), zone_data.tilemap_location)
+	tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(zone_data), _get_zone_variant(zone_data), zone_data.tilemap_location)
 
 ## Returns the tile variant index based on zone state.
 func _get_zone_variant(zone_data: ZoneData) -> int:
@@ -115,8 +130,10 @@ func _get_zone_variant(zone_data: ZoneData) -> int:
 
 	return 1
 
-## Sets all neighboring tiles around a zone to transparent variant (4).
+## Sets all neighboring tiles around a zone to the ghost variant.
 ## Does not overwrite tiles that are actual zone placements.
+## Ghost tiles always use the default forest variant (index 0) since
+## they're structural bounds markers, not tied to any specific zone.
 func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[Vector2i]) -> void:
 	# Get all 8 neighboring tile coordinates
 	var neighbor_offsets = [
@@ -124,15 +141,15 @@ func _set_neighboring_tiles_transparent(tile_coord: Vector2i, zone_tiles: Array[
 		Vector2i(-1, 0), Vector2i(1, 0), # Middle row (left and right)
 		Vector2i(0, 1), Vector2i(1, 1) # Bottom row
 	]
-	
+
 	for offset in neighbor_offsets:
 		var neighbor_tile = tile_coord + offset
-		
+
 		# Don't overwrite if this tile is an actual zone placement
 		if neighbor_tile in zone_tiles:
 			continue
 
-		tile_map.set_cell_with_source_and_variant(UNLOCKED_SOURCE_ID, BASE_GHOST_VARIANT, neighbor_tile)
+		tile_map.set_cell_with_source_and_variant(ZONE_TILE_VARIANT_SOURCE_IDS[0], BASE_GHOST_VARIANT, neighbor_tile)
 
 func _ease_camera_to(world_pos: Vector2) -> void:
 	var tween := create_tween()

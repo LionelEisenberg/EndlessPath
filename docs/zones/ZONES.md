@@ -70,14 +70,60 @@ Adventure starts are two-phase to accommodate the Madra drain animation (PR #16)
 
 ### Tile Rendering
 
+Zone tiles are rendered from `scenes/tilemaps/tilemap_tileset.tres`. Each zone
+selects a forest tile variant via `ZoneData.tile_variant_index`; each variant
+is its own atlas source with a distinct 560×560 texture. Locked zones use a
+separate source (small 164×190 texture) regardless of variant.
+
 | Source ID | Variant | Visual |
 |-----------|---------|--------|
-| Source 0 (UNLOCKED) | 1 | Unlocked, unselected |
-| Source 0 (UNLOCKED) | 2 | Currently selected |
-| Source 0 (UNLOCKED) | 3 | Ghost neighbor (transparent) |
+| Source 8 (FOREST variant 0, Hex_Forest_00_Basic) | 1 | Unlocked, unselected |
+| Source 8 (FOREST variant 0) | 2 | Currently selected |
+| Source 8 (FOREST variant 0) | 3 | Ghost neighbor (dark/transparent) |
 | Source 1 (LOCKED) | 0 | Locked zone (greyed) |
 
+Source 0 (`tile_horizontal.png`, 164×190) is retained for the adventure
+tilemap's generic path tiles — it is no longer used by the zone view.
+
 Camera (`zone_camera_2d.gd`) clamps position to map bounds each frame.
+
+### Tile Variants
+
+Each zone picks its hex tile artwork via `ZoneData.tile_variant_index`. The
+variant index maps to an atlas source id via `ZoneTilemap.ZONE_TILE_VARIANT_SOURCE_IDS`.
+
+**Currently imported variants:**
+
+| Index | Source ID | Asset | Status |
+|-------|-----------|-------|--------|
+| 0 | 8 | `assets/sprites/tilemap/Hex_Forest_00_Basic.png` | Imported |
+
+**TODO — import remaining 20 forest variants:**
+
+Variants 1–20 (`Hex_Forest_01_*.png` through `Hex_Forest_20_*.png`) exist in
+the source art library but have not been imported into the project yet. When
+importing each one:
+
+1. Place the PNG in `assets/sprites/tilemap/` and run `--headless --import`
+2. Add a new `ext_resource` for the texture in `tilemap_tileset.tres`
+3. Add a new `TileSetAtlasSource` sub_resource mirroring
+   `TileSetAtlasSource_forest0` (same 5 alternative tiles, same modulate
+   colors for normal/selected/hovered/ghost/transparent states)
+4. Assign the new source a unique source id (e.g. 9, 10, 11...) via
+   `sources/N = SubResource("...")`
+5. Append the new source id to `ZONE_TILE_VARIANT_SOURCE_IDS` in
+   `scenes/zones/zone_tilemap/zone_tilemap.gd`
+6. Designers can then set `tile_variant_index = N` on any `ZoneData` resource
+   to use the new variant
+
+Until that happens, all zones fall back to variant 0 regardless of what's
+set in their `.tres` file (a warning is logged for out-of-range indices).
+
+**Why 560×560 art on a 164×190 logical grid?** The logical `tile_size` defines
+grid spacing (how far apart tile centers sit). The atlas `texture_region_size`
+defines the visible art extent — it can be larger. Godot auto-centers the
+larger texture on the smaller cell, producing the intended overhang/bleed
+between adjacent forest tiles for a painted-map aesthetic.
 
 ## Data Model
 
@@ -90,6 +136,7 @@ Camera (`zone_camera_2d.gd`) clamps position to map bounds each frame.
 | `tilemap_location` | `Vector2i` | Position on hex grid |
 | `zone_unlock_conditions` | `Array[UnlockConditionData]` | Gate conditions |
 | `all_actions` | `Array[ZoneActionData]` | Available activities |
+| `tile_variant_index` | `int` | Index into `ZONE_TILE_VARIANT_SOURCE_IDS` selecting which forest tile art is drawn for this zone. See **Tile Variants** above |
 
 ### ZoneActionData (base class)
 | Field | Type | Description |
@@ -235,6 +282,7 @@ No known bugs in the Zone system.
 
 - `[HIGH]` Only 2 zones exist (Spirit Valley functional, Test Zone empty) — needs more zones with unique actions, foraging resources, and adventure configs
 - `[MEDIUM]` No merchant, training, zone event, or quest giver content authored — action types exist as enums but have no `.tres` data
+- `[MEDIUM]` Only 1 of 21 forest tile variants is imported (`Hex_Forest_00_Basic`). Variants 01–20 exist in the source art library but have not been added to the project. See **Tile Variants** section above for the import procedure. Each variant is a 560×560 hex PNG that plugs into the existing `ZoneData.tile_variant_index` field
 
 ### UI
 
