@@ -5,10 +5,19 @@ extends Node2D
 ## Renders an encounter glyph + frame at a tile center. Per-type configuration
 ## sets glyph texture, modulate color, frame size, and optional dramatic
 ## extras (boss ornamental ring, treasure sparkle).
+##
+## Visual states:
+## - Default (just visited or revealed boss): full opacity, no checkmark
+## - Completed (visited and player moved away): Dimmable parent at 0.45
+##   alpha, Checkmark badge visible
+##
+## set_visited() is independent and only drives trap-encounter reveal.
 
+@onready var _dimmable: Node2D = %Dimmable
 @onready var _frame: Sprite2D = %Frame
 @onready var _glyph: Sprite2D = %Glyph
 @onready var _ornamental_ring: Sprite2D = %OrnamentalRing
+@onready var _checkmark: Sprite2D = %Checkmark
 
 const _GLYPH_COMBAT := preload("res://assets/sprites/adventure/encounter_glyphs/combat.png")
 const _GLYPH_ELITE := preload("res://assets/sprites/adventure/encounter_glyphs/elite.png")
@@ -80,16 +89,26 @@ func configure_for_type(encounter_type: int) -> bool:
 			_frame.modulate = Color(0.24, 0.12, 0.47, 0.78)
 			return true
 
-## Marks this icon as visited (dimmed/desaturated, traps revealed).
+## Marks this icon as visited so traps get revealed on the next
+## configure_for_type call. Does NOT change the visual opacity — use
+## set_completed() for the "visited + moved on" visual state.
 func set_visited(visited: bool) -> void:
 	_is_visited = visited
-	if visited:
-		modulate = Color(1, 1, 1, 0.45)
-	else:
-		modulate = Color(1, 1, 1, 1.0)
 	# Re-run config so traps get revealed
 	if _current_type != -1:
 		configure_for_type(_current_type)
+
+## Sets the icon's "visited + moved on" visual state. When completed,
+## the encounter icon is dimmed to roughly half opacity via the Dimmable
+## wrapper and a green checkmark badge appears in the bottom-right.
+## Used by adventure_tilemap to mark tiles the player has cleared.
+func set_completed(completed: bool) -> void:
+	if completed:
+		_dimmable.modulate.a = 0.45
+		_checkmark.visible = true
+	else:
+		_dimmable.modulate.a = 1.0
+		_checkmark.visible = false
 
 ## Returns the current configured type (used by tests).
 func get_configured_type() -> int:

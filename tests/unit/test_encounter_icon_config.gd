@@ -57,7 +57,15 @@ func test_configure_resets_ornamental_ring_for_non_boss() -> void:
 	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
 	assert_false(icon._ornamental_ring.visible)
 
-func test_set_visited_dims_modulate() -> void:
+func test_set_completed_dims_dimmable_wrapper() -> void:
 	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
-	icon.set_visited(true)
-	assert_almost_eq(icon.modulate.a, 0.45, 0.01)
+	icon.set_completed(true)
+	assert_almost_eq(icon._dimmable.modulate.a, 0.45, 0.01, "completed state should dim the Dimmable wrapper")
+	assert_true(icon._checkmark.visible, "completed state should show the checkmark badge")
+
+func test_set_completed_false_restores_full_opacity() -> void:
+	icon.configure_for_type(AdventureEncounter.EncounterType.COMBAT_REGULAR)
+	icon.set_completed(true)
+	icon.set_completed(false)
+	assert_almost_eq(icon._dimmable.modulate.a, 1.0, 0.01, "uncompleted state should be fully opaque")
+	assert_false(icon._checkmark.visible, "uncompleted state should hide the checkmark badge")
