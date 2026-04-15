@@ -21,14 +21,17 @@ const FogVeilSpriteScene := preload("res://scenes/adventure/fog_veil_sprite.tscn
 
 # Tilemap tile source IDs
 const BASE_TILE_SOURCE_ID = 0
-const WHITE_TILE_VARIANT_ID = 0
-const YELLOW_TILE_VARIANT_ID = 1
-const ORANGE_TILE_VARIANT_ID = 2
-const HALF_TRANSPARENT_TILE_VARIANT_ID = 3
 const TRANSPARENT_TILE_VARIANT_ID = 4
 
-const CONTOUR_SOURCE_ID = 2
-const RED_CONTOUR_VARIANT_ID = 1
+# Forest atlas (shared with ZoneTilemap). Multiple Hex_Forest_NN variants
+# are packed into a single TileSetAtlasSource (sources/8) backed by
+# hex_forest_atlas.png. Adventure tiles pick a deterministic-random cell
+# per cube coord via _get_random_forest_atlas_coords() so the same tile
+# always shows the same variant across re-renders. Keep these constants
+# in sync with ZoneTilemap.FOREST_* and ATLAS_COLS in pack_hex_atlas.py.
+const FOREST_ATLAS_SOURCE_ID := 8
+const FOREST_ATLAS_COLS := 6
+const FOREST_VARIANT_COUNT := 23
 
 # Character movement speeds
 const CHARACTER_MOVE_SPEED = 150.0
@@ -487,6 +490,17 @@ func _get_current_tile_from_character_position() -> Vector3i:
 	var char_map_coord = visible_map.local_to_map(char_world_pos)
 	return visible_map.map_to_cube(char_map_coord)
 
+## Returns a deterministic forest atlas cell for the given cube coord.
+## The same coord always returns the same variant, so the map looks
+## consistent across re-renders, fog reveals, and adventure restarts
+## (when the same map seed is used). Hashes the coord, takes posmod by
+## the variant count to handle negative hash values, then splits into
+## (col, row) for the FOREST_ATLAS_COLS-wide grid.
+func _get_random_forest_atlas_coords(coord: Vector3i) -> Vector2i:
+	var idx := posmod(hash(coord), FOREST_VARIANT_COUNT)
+	@warning_ignore("integer_division")
+	return Vector2i(idx % FOREST_ATLAS_COLS, idx / FOREST_ATLAS_COLS)
+
 func _update_full_map() -> void:
 	full_map.clear()
 	for coord in _encounter_tile_dictionary.keys():
@@ -512,12 +526,12 @@ func _update_visible_map() -> void:
 			var world_pos := full_map.cube_to_local(highlight_coord) + full_map.position
 			_tile_state_overlay.set_tile_state(highlight_coord, TileStateOverlay.TileState.REVEAL, world_pos)
 
-	# Render the tile (YELLOW for encounters, WHITE for NoOp) at every visible coord
+	# Every visible tile renders as a deterministic-random forest variant
+	# from the shared forest atlas. Encounter icons and fog veils get
+	# overlaid on top in the loops below; NoOp tiles show only the forest
+	# art and no icon.
 	for coord in visible_coords:
-		if not _encounter_tile_dictionary[coord] is NoOpEncounter:
-			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, YELLOW_TILE_VARIANT_ID, full_map.cube_to_map(coord))
-		else:
-			visible_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, WHITE_TILE_VARIANT_ID, full_map.cube_to_map(coord))
+		visible_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, full_map.cube_to_map(coord), _get_random_forest_atlas_coords(coord))
 
 	# Visited tiles: spawn/update encounter icon and set completion state.
 	# NoOp visited tiles get no icon at all.

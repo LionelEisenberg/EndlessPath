@@ -77,12 +77,18 @@ var _ghost_hex_points: PackedVector2Array = PackedVector2Array([
 	Vector2(-82.2, -47.5),
 ])
 
-# Zone tile forest-variant → atlas source id mapping.
-# Currently only variant 0 (Hex_Forest_00_Basic at source 8) exists; the
-# other 20 variants live as a TODO in docs/zones/ZONES.md. When they get
-# imported, add each new atlas source id in order below and the
-# tile_variant_index field on ZoneData will pick them automatically.
-const ZONE_TILE_VARIANT_SOURCE_IDS := [8]
+# Forest tile atlas. All Hex_Forest_NN variants are packed into a single
+# TileSetAtlasSource (sources/8 in tilemap_tileset.tres) backed by
+# hex_forest_atlas.png. The Python script that generates the atlas
+# (scenes/tilemaps/scripts/pack_hex_atlas.py) lays variants out
+# left-to-right top-to-bottom in FOREST_ATLAS_COLS columns, so variant
+# index N maps to atlas cell (N % FOREST_ATLAS_COLS, N / FOREST_ATLAS_COLS).
+# ZoneData.tile_variant_index picks which cell each zone renders.
+# Keep FOREST_ATLAS_COLS in sync with ATLAS_COLS in pack_hex_atlas.py and
+# bump FOREST_VARIANT_COUNT whenever new Hex_Forest_NN variants are added.
+const FOREST_ATLAS_SOURCE_ID := 8
+const FOREST_ATLAS_COLS := 6
+const FOREST_VARIANT_COUNT := 23
 
 # Movement and display constants
 const CHARACTER_MOVE_SPEED = 150.0
@@ -128,23 +134,28 @@ func _ready() -> void:
 	else:
 		Log.critical("ZoneTilemap: UnlockManager is not loaded!")
 
-## Returns the tileset atlas source id for a given zone's forest variant.
-## Falls back to variant 0 if the index is out of range.
-func _get_zone_tile_source_id(zone_data: ZoneData) -> int:
+## Returns the atlas cell coords for a given zone's forest variant.
+## Variant index N maps to (N % FOREST_ATLAS_COLS, N / FOREST_ATLAS_COLS)
+## to match the layout produced by pack_hex_atlas.py. Falls back to cell
+## (0, 0) if tile_variant_index is out of range.
+func _get_zone_tile_atlas_coords(zone_data: ZoneData) -> Vector2i:
 	var idx := zone_data.tile_variant_index
-	if idx < 0 or idx >= ZONE_TILE_VARIANT_SOURCE_IDS.size():
-		Log.warn("ZoneTilemap: zone '%s' has tile_variant_index %d but only %d variants exist; falling back to 0" % [zone_data.zone_id, idx, ZONE_TILE_VARIANT_SOURCE_IDS.size()])
-		return ZONE_TILE_VARIANT_SOURCE_IDS[0]
-	return ZONE_TILE_VARIANT_SOURCE_IDS[idx]
+	if idx < 0 or idx >= FOREST_VARIANT_COUNT:
+		Log.warn("ZoneTilemap: zone '%s' has tile_variant_index %d but only %d forest variants exist; falling back to 0" % [zone_data.zone_id, idx, FOREST_VARIANT_COUNT])
+		return Vector2i.ZERO
+	@warning_ignore("integer_division")
+	return Vector2i(idx % FOREST_ATLAS_COLS, idx / FOREST_ATLAS_COLS)
 
 ## Set all zones in the tile_map. All zones (locked or unlocked) render
-## with the same forest variant — locked zones get a grey+lock overlay on
-## top via _refresh_locked_overlays() rather than a different tile source.
+## with their assigned forest variant — locked zones get a grey+lock
+## overlay on top via _refresh_locked_overlays() rather than a different
+## tile source. Selected/unselected state has no tile-side difference;
+## the player character sprite is the only "you are here" indicator.
 func set_all_zones_in_tile_map() -> void:
 	var all_zones = ZoneManager.get_all_zones()
 
 	for zone_data in all_zones:
-		tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(zone_data), _get_zone_variant(zone_data), zone_data.tilemap_location)
+		tile_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, zone_data.tilemap_location, _get_zone_tile_atlas_coords(zone_data))
 
 	_refresh_ghost_neighbors()
 
@@ -156,29 +167,15 @@ func get_zone_at_tile(tile_coord: Vector2i) -> ZoneData:
 			return zone_data
 	return null
 
-## Updates tile variant based on zone state (locked/unlocked/selected).
+## Updates the selected_zone bookkeeping when the player moves. The tile
+## itself doesn't visually change between selected/unselected states —
+## the player character sprite is the only "you are here" indicator —
+## so we don't need to redraw the previous tile.
 func update_zone_tile_state(zone_data: ZoneData) -> void:
 	if not zone_data:
 		return
 
-	var previous_selected = selected_zone
 	selected_zone = zone_data
-
-	# Update previous selected zone back to normal (if any)
-	if previous_selected and previous_selected != zone_data:
-		tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(previous_selected), _get_zone_variant(previous_selected), previous_selected.tilemap_location)
-
-	# Update current selected zone
-	tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(zone_data), _get_zone_variant(zone_data), zone_data.tilemap_location)
-
-## Returns the tile variant index based on zone state. Locked zones use
-## variant 1 (same as unlocked) — the locked-state feedback comes from
-## _refresh_locked_overlays() stacking a grey+lock overlay on top.
-func _get_zone_variant(zone_data: ZoneData) -> int:
-	if selected_zone == zone_data:
-		return 2
-
-	return 1
 
 ## Rebuilds the hex-shaped ghost neighbor polygons that frame the zone
 ## cluster. Uses TileMapLayer.get_surrounding_cells() so the 6 hex

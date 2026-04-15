@@ -9,8 +9,14 @@ const HEX_TILE_OFFSET: Vector2 = Vector2(-82, -95)
 
 var _last_hovered_coord: Vector2i = Vector2i(-9999, -9999)
 
-func set_cell_with_source_and_variant(source_id : int, variant_id: int, cell_coords: Vector2) -> void:
-	set_cell(cell_coords, source_id, Vector2i(0, 0), variant_id)
+## Sets a tile cell from a TileSet atlas source. Defaults atlas_coords to
+## (0, 0) so single-cell sources (like the adventure tilemap's
+## tile_horizontal.png) keep their existing call sites. Multi-cell atlas
+## sources (like the forest hex_forest_atlas) pass explicit coords to
+## pick which cell to render. variant_id selects an alternative tile
+## (e.g. dimmed/transparent state) on the chosen cell.
+func set_cell_with_source_and_variant(source_id: int, variant_id: int, cell_coords: Vector2, atlas_coords: Vector2i = Vector2i.ZERO) -> void:
+	set_cell(cell_coords, source_id, atlas_coords, variant_id)
 	_draw_debug()
 	pathfinding_generate_points()
 
