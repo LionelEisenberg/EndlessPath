@@ -12,13 +12,12 @@ extends Resource
 ## Index into the forest tile variant catalog. Selects which hex tile
 ## artwork is rendered for this zone on the overworld map.
 ##
-## Currently only variant 0 (Hex_Forest_00_Basic) exists — all zones
-## default to it. When additional forest variants are imported
-## (Hex_Forest_01 through Hex_Forest_20), each one gets added as a new
-## atlas source in scenes/tilemaps/tilemap_tileset.tres and its source
-## id appended to ZoneTilemap.ZONE_TILE_VARIANT_SOURCE_IDS. Setting
-## this field to the variant index picks that art per zone.
+## All Hex_Forest_NN variants are packed into a single atlas
+## (assets/sprites/tilemap/hex_tiles/forest/hex_forest_atlas.png) by
+## scenes/tilemaps/scripts/pack_hex_atlas.py. Setting this field to N
+## picks the atlas cell at (N % FOREST_ATLAS_COLS, N / FOREST_ATLAS_COLS)
+## for that zone. Valid range: 0..FOREST_VARIANT_COUNT-1
+## (see ZoneTilemap constants). Variant 0 is the default Basic forest.
 ##
-## See docs/zones/ZONES.md § Tile Variants for the full mapping and
-## TODO list of remaining variants to import.
+## See docs/zones/ZONES.md § Tile Variants for the full variant table.
 @export var tile_variant_index: int = 0

@@ -7,30 +7,6 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 # EXPORTS
 #-----------------------------------------------------------------------------
 
-@export_group("Aura Breathing")
-## Smallest scale the current-zone aura sprite shrinks to during the pulse.
-@export_range(0.1, 2.0, 0.05) var aura_min_scale: float = 0.85
-## Largest scale the current-zone aura sprite expands to during the pulse.
-@export_range(0.1, 2.0, 0.05) var aura_max_scale: float = 1.0
-## Lowest alpha the aura sprite fades to at the pulse trough.
-@export_range(0.0, 1.0, 0.05) var aura_min_alpha: float = 0.65
-## Brightest alpha the aura sprite blooms to at the pulse peak.
-@export_range(0.0, 1.0, 0.05) var aura_max_alpha: float = 1.0
-## Duration of one bloom OR contract phase. Total cycle is 2x this value.
-@export_range(0.1, 5.0, 0.05) var aura_half_cycle_seconds: float = 0.9
-
-@export_group("Aura Fade Transition")
-## How long the aura takes to fade out from the old tile when the player
-## moves to a new zone. Faster = snappier "leaving."
-@export_range(0.05, 2.0, 0.05) var aura_fade_out_seconds: float = 0.2
-## How long the aura takes to fade in at the new tile after teleporting.
-## Slower than fade_out feels more deliberate; same speed feels symmetric.
-@export_range(0.05, 2.0, 0.05) var aura_fade_in_seconds: float = 0.45
-
-@export_group("Hover Selector")
-## Frame rate at which the hex selector spritesheet cycles when shown.
-@export_range(1.0, 30.0, 0.5) var hover_selector_fps: float = 8.0
-
 @export_group("Camera")
 ## How long the camera takes to glide to a newly-selected zone.
 ## Higher = slower, more contemplative. Lower = snappier.
@@ -51,16 +27,11 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
 @onready var character_body: CharacterBody2D = %PlayerCharacter
 @onready var _camera: Camera2D = %Camera2D
-@onready var _hover_sprite: Sprite2D = %HoverSprite
-@onready var _aura_sprite: Sprite2D = %AuraSprite
+@onready var _hover_selector: HexHoverSelector = %HoverSelector
 @onready var _locked_overlay_container: Node2D = %LockedOverlayContainer
 @onready var _glowing_path_container: Node2D = %GlowingPathContainer
 @onready var _ghost_neighbor_container: Node2D = %GhostNeighborContainer
 
-var _aura_breath_tween: Tween
-var _aura_fade_tween: Tween
-var _aura_initialized: bool = false
-var _hover_frame_time: float = 0.0
 var _locked_overlays: Dictionary[Vector2i, LockedZoneOverlay] = {}
 
 # Hex polygon points for a ghost-neighbor tile. Matches the 164x190
@@ -298,92 +269,22 @@ func _refresh_glowing_paths() -> void:
 func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
 	var zone_data := get_zone_at_tile(tile_coord)
 	if not zone_data:
-		_hover_sprite.visible = false
+		_hover_selector.hide()
 		return
 	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
-		_hover_sprite.visible = false
+		_hover_selector.hide()
 		return
-	# Hover is also shown on the player's current tile — the breathing
-	# aura signals "you are here", the selector ring signals "this is
-	# the tile your cursor is over right now". Both layers are useful
-	# even when they overlap.
-	_hover_sprite.global_position = tile_map.map_to_local(tile_coord) + tile_map.position
-	if not _hover_sprite.visible:
-		# Restart the spritesheet cycle from frame 0 each time the hover
-		# becomes visible on a new tile, so the animation always begins
-		# cleanly instead of resuming mid-cycle.
-		_hover_frame_time = 0.0
-		_hover_sprite.frame = 0
-	_hover_sprite.visible = true
+	_hover_selector.show_at(tile_map.map_to_local(tile_coord) + tile_map.position)
 
 func _on_zone_tile_unhovered() -> void:
-	_hover_sprite.visible = false
-
-func _process(delta: float) -> void:
-	# Cycle the hover selector spritesheet frames while it's visible.
-	if _hover_sprite and _hover_sprite.visible:
-		_hover_frame_time += delta
-		var total_frames := _hover_sprite.hframes * maxi(_hover_sprite.vframes, 1)
-		if total_frames > 0:
-			_hover_sprite.frame = int(_hover_frame_time * hover_selector_fps) % total_frames
+	_hover_selector.hide()
 
 func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
 	var world_pos := tile_map.map_to_local(tile_coord) + tile_map.position
 	_move_character_to_position(world_pos)
 
-	if not _aura_initialized:
-		# First placement on game load — snap into place without a fade.
-		_aura_sprite.global_position = world_pos
-		_start_aura_breathing()
-		_aura_initialized = true
-		return
-
-	if _aura_sprite.global_position.distance_squared_to(world_pos) < 1.0:
-		# Same tile (e.g. returning from foraging) — just keep breathing,
-		# no fade transition needed.
-		_start_aura_breathing()
-		return
-
-	_move_aura_with_fade(world_pos)
-
-## Fades the aura sprite out at its current position, snaps it to the
-## new world position while invisible, then fades it back in and resumes
-## the breathing tween. Cancels any in-progress breathing or fade tween
-## first so the transition is clean even on rapid zone switches.
-func _move_aura_with_fade(world_pos: Vector2) -> void:
-	if _aura_breath_tween and _aura_breath_tween.is_valid():
-		_aura_breath_tween.kill()
-	if _aura_fade_tween and _aura_fade_tween.is_valid():
-		_aura_fade_tween.kill()
-
-	_aura_fade_tween = create_tween()
-	_aura_fade_tween.set_trans(Tween.TRANS_SINE)
-	_aura_fade_tween.set_ease(Tween.EASE_IN_OUT)
-	# Fade out at the old position
-	_aura_fade_tween.tween_property(_aura_sprite, "modulate:a", 0.0, aura_fade_out_seconds)
-	# Snap to the new tile while invisible
-	_aura_fade_tween.tween_callback(func(): _aura_sprite.global_position = world_pos)
-	# Fade in at the new position
-	_aura_fade_tween.tween_property(_aura_sprite, "modulate:a", aura_max_alpha, aura_fade_in_seconds)
-	# Resume the breathing pulse once the fade-in completes
-	_aura_fade_tween.tween_callback(_start_aura_breathing)
-
 func _move_character_to_position(new_position: Vector2) -> void:
 	character_body.move_to_position(new_position, CHARACTER_MOVE_SPEED)
-
-func _start_aura_breathing() -> void:
-	if _aura_breath_tween and _aura_breath_tween.is_valid():
-		_aura_breath_tween.kill()
-	_aura_breath_tween = create_tween()
-	_aura_breath_tween.set_loops()
-	_aura_breath_tween.set_trans(Tween.TRANS_SINE)
-	_aura_breath_tween.set_ease(Tween.EASE_IN_OUT)
-	# Bloom phase: scale up + alpha up in parallel
-	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(aura_max_scale, aura_max_scale), aura_half_cycle_seconds)
-	_aura_breath_tween.parallel().tween_property(_aura_sprite, "modulate:a", aura_max_alpha, aura_half_cycle_seconds)
-	# Contract phase: scale down + alpha down in parallel
-	_aura_breath_tween.tween_property(_aura_sprite, "scale", Vector2(aura_min_scale, aura_min_scale), aura_half_cycle_seconds)
-	_aura_breath_tween.parallel().tween_property(_aura_sprite, "modulate:a", aura_min_alpha, aura_half_cycle_seconds)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS

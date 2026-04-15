@@ -60,7 +60,7 @@ enum HighlightType {
 @onready var highlight_map: HexagonTileMapLayer = %AdventureHighlightMap
 @onready var character_body: CharacterBody2D = %CharacterBody2D
 @onready var encounter_info_panel: EncounterInfoPanel = %EncounterInfoPanel
-@onready var _tile_state_overlay: TileStateOverlay = %TileStateOverlay
+@onready var _hover_selector: HexHoverSelector = %HoverSelector
 @onready var _encounter_icon_container: Node2D = %EncounterIconContainer
 @onready var _fog_veil_container: Node2D = %FogVeilContainer
 @onready var _fog_rect: ColorRect = %FogOfWarRect
@@ -318,11 +318,17 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 
 func _on_tile_hovered(tile_coord: Vector2i) -> void:
 	if _is_movement_locked:
+		_hover_selector.hide()
 		return
 	var target_cube := visible_map.map_to_cube(tile_coord)
 	if not _visited_tile_dictionary.has(target_cube) and not _highlight_tile_dictionary.has(target_cube):
+		# Hovering a fog-of-war tile — no path preview, no selector ring.
+		_hover_selector.hide()
 		_path_preview.clear_path()
 		return
+
+	# Snap the animated selector ring onto the hovered tile.
+	_hover_selector.show_at(visible_map.map_to_local(tile_coord) + visible_map.position)
 
 	# Compute path from current tile to hover target
 	var path: Array[Vector3i] = visible_map.cube_pathfind(_current_tile, target_cube)
@@ -332,14 +338,9 @@ func _on_tile_hovered(tile_coord: Vector2i) -> void:
 		world_points.append(world_pos)
 	_path_preview.show_path(world_points)
 
-	# Brighten target tile overlay
-	if _tile_state_overlay.get_state(target_cube) != TileStateOverlay.TileState.CURRENT:
-		_tile_state_overlay.set_tile_state(target_cube, TileStateOverlay.TileState.HOVER_TARGET, full_map.cube_to_local(target_cube) + full_map.position)
-
 func _on_tile_unhovered() -> void:
+	_hover_selector.hide()
 	_path_preview.clear_path()
-	# Reset overlays — restore proper states via _update_visible_map
-	_update_visible_map()
 
 ## Called when character completes movement to a tile
 func _on_character_movement_completed() -> void:
@@ -509,7 +510,6 @@ func _update_full_map() -> void:
 func _update_visible_map() -> void:
 	visible_map.clear()
 	highlight_map.clear()
-	_tile_state_overlay.clear_all()
 	# Don't clear _encounter_icons or _fog_veil_sprites up front — we diff
 	# them below so visited icons persist across frames and smoothly switch
 	# between current/completed visual states.
@@ -523,8 +523,6 @@ func _update_visible_map() -> void:
 		if _highlight_tile_dictionary[highlight_coord] == HighlightType.VISIBLE_NEIGHBOUR:
 			visible_coords.append(highlight_coord)
 			revealed_coords.append(highlight_coord)
-			var world_pos := full_map.cube_to_local(highlight_coord) + full_map.position
-			_tile_state_overlay.set_tile_state(highlight_coord, TileStateOverlay.TileState.REVEAL, world_pos)
 
 	# Every visible tile renders as a deterministic-random forest variant
 	# from the shared forest atlas. Encounter icons and fog veils get
@@ -586,15 +584,6 @@ func _update_visible_map() -> void:
 			stale_icon_coords.append(coord)
 	for coord in stale_icon_coords:
 		_despawn_encounter_icon(coord)
-
-	# Visited tiles get VISITED state; current tile overrides with CURRENT
-	for coord in _visited_tile_dictionary.keys():
-		var world_pos := full_map.cube_to_local(coord) + full_map.position
-		_tile_state_overlay.set_tile_state(coord, TileStateOverlay.TileState.VISITED, world_pos)
-
-	if _visited_tile_dictionary.has(_current_tile):
-		var world_pos := full_map.cube_to_local(_current_tile) + full_map.position
-		_tile_state_overlay.set_tile_state(_current_tile, TileStateOverlay.TileState.CURRENT, world_pos)
 
 func _update_cell_highlight(coord: Vector3i) -> void:
 	var encounter: AdventureEncounter = _encounter_tile_dictionary[coord]

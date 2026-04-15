@@ -7,9 +7,9 @@
 [ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="4_ywsim"]
 [ext_resource type="PackedScene" uid="uid://b0qowk3rd0jft" path="res://scenes/adventure/adventure_tilemap/encounter_info_panel.tscn" id="6_10now"]
 [ext_resource type="PackedScene" uid="uid://catmosphere01" path="res://scenes/atmosphere/atmosphere.tscn" id="7_atmos1"]
-[ext_resource type="PackedScene" uid="uid://chhjdo5yr7gsq" path="res://scenes/adventure/tile_state_overlay/tile_state_overlay.tscn" id="8_tso"]
 [ext_resource type="Shader" uid="uid://cmkgtm86u0l1y" path="res://assets/shaders/fog_of_war.gdshader" id="10_fog"]
 [ext_resource type="PackedScene" uid="uid://b387ck3lm5j3y" path="res://scenes/adventure/path_preview/path_preview.tscn" id="11_ppv"]
+[ext_resource type="PackedScene" uid="uid://cottn87ch2b4s" path="res://scenes/tilemaps/hex_hover_selector.tscn" id="12_hover"]
 
 [sub_resource type="ShaderMaterial" id="SM_fog"]
 shader = ExtResource("10_fog")
@@ -37,8 +37,12 @@ unique_name_in_owner = true
 position = Vector2(-82, -95)
 pathfinding_enabled = true
 
+[node name="HoverSelector" parent="." unique_id=1900000001 instance=ExtResource("12_hover")]
+unique_name_in_owner = true
+
 [node name="CharacterBody2D" parent="." unique_id=1664272752 instance=ExtResource("2_b7v0o")]
 unique_name_in_owner = true
+scale = Vector2(2.5, 2.5)
 is_debug_mode = false
 
 [node name="Camera2D" type="Camera2D" parent="CharacterBody2D" unique_id=690717049]
@@ -66,9 +70,6 @@ mist_c_min_duration = 1.5
 mist_c_max_duration = 5.5
 cyan_mote_count = 25
 warm_mote_count = 8
-
-[node name="TileStateOverlay" parent="." unique_id=268399168 instance=ExtResource("8_tso")]
-unique_name_in_owner = true
 
 [node name="FogVeilContainer" type="Node2D" parent="." unique_id=1900000002]
 unique_name_in_owner = true
