@@ -7,6 +7,7 @@
 [node name="AdventureMarker" type="Node2D"]
 visible = false
 z_index = 7
+scale = Vector2(0.6, 0.6)
 script = ExtResource("1_script")
 
 [node name="Pin" type="Sprite2D" parent="."]

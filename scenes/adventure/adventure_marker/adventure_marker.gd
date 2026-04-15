@@ -26,6 +26,11 @@ const _GLYPH_UNKNOWN := preload("res://assets/sprites/adventure/encounter_glyphs
 ## Matches EncounterIcon.ICON_TARGET_SIZE for visual consistency.
 const ICON_TARGET_SIZE: float = 84.0
 
+## Vertical offset from the tile center to the marker's pin point.
+## Negative y is up in screen space — the pin floats above the tile so
+## it doesn't block the player character sprite underneath.
+const TILE_OFFSET_Y: float = -35.0
+
 ## Frame count for the animated boss glyph spritesheet.
 const BOSS_SPRITESHEET_HFRAMES: int = 7
 
@@ -51,11 +56,12 @@ var _current_type: int = -1
 
 ## Positions the marker at world_pos (should be the tile center) and
 ## configures the inner glyph for the given encounter type. Makes the
-## marker visible. Safe to call repeatedly — the boss animation tween
-## only restarts when the type actually changes from non-boss to boss,
-## so non-boss → non-boss or same-boss → same-boss calls don't thrash.
+## marker visible. Applies TILE_OFFSET_Y so the pin point floats above
+## the tile, not dead-center on the character. Safe to call repeatedly
+## — the boss animation tween only restarts when the type actually
+## changes, so same-type calls don't thrash.
 func show_at(world_pos: Vector2, encounter_type: int) -> void:
-	global_position = world_pos
+	global_position = world_pos + Vector2(0.0, TILE_OFFSET_Y)
 	if encounter_type != _current_type:
 		_configure_for_type(encounter_type)
 	visible = true
