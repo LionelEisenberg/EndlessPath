@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dbs7q3rxlog0j"
-path="res://.godot/imported/tile_horizontal_locked.png-d8d1f63eb2d0be5afd080a6e2d4a1cfd.ctex"
+uid="uid://cc4r0m0rxqdot"
+path="res://.godot/imported/lock_icon.png-5d1b1b2fbd7f8f56575a9f68ccc73318.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/tilemap/tile_horizontal_locked.png"
-dest_files=["res://.godot/imported/tile_horizontal_locked.png-d8d1f63eb2d0be5afd080a6e2d4a1cfd.ctex"]
+source_file="res://assets/lock_icon.png"
+dest_files=["res://.godot/imported/lock_icon.png-5d1b1b2fbd7f8f56575a9f68ccc73318.ctex"]
 
 [params]
 

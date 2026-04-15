@@ -45,7 +45,7 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 @onready var _camera: Camera2D = %Camera2D
 @onready var _hover_sprite: Sprite2D = %HoverSprite
 @onready var _aura_sprite: Sprite2D = %AuraSprite
-@onready var _locked_glyph_container: Node2D = %LockedGlyphContainer
+@onready var _locked_overlay_container: Node2D = %LockedOverlayContainer
 @onready var _glowing_path_container: Node2D = %GlowingPathContainer
 
 var _aura_breath_tween: Tween
@@ -53,8 +53,6 @@ var _aura_fade_tween: Tween
 var _aura_initialized: bool = false
 var _hover_frame_time: float = 0.0
 
-const LOCKED_SOURCE_ID = 1
-const BASE_LOCKED_VARIANT = 0
 const BASE_GHOST_VARIANT = 3
 
 # Zone tile forest-variant → atlas source id mapping.
@@ -68,7 +66,7 @@ const ZONE_TILE_VARIANT_SOURCE_IDS := [8]
 const CHARACTER_MOVE_SPEED = 150.0
 const FORAGE_POSITION_MARGIN = 32
 
-const LockedZoneGlyphScene := preload("res://scenes/zones/locked_zone_glyph/locked_zone_glyph.tscn")
+const LockedZoneOverlayScene := preload("res://scenes/zones/locked_zone_overlay/locked_zone_overlay.tscn")
 const GlowingPathScene := preload("res://scenes/zones/glowing_path/glowing_path.tscn")
 
 ## variable that stores the tile the character is on
@@ -82,7 +80,7 @@ func _ready() -> void:
 
 	set_all_zones_in_tile_map()
 	update_zone_tile_state(selected_zone)
-	_refresh_locked_glyphs()
+	_refresh_locked_overlays()
 	_refresh_glowing_paths()
 	_move_character_to_tile_coord(selected_zone.tilemap_location)
 
@@ -117,7 +115,9 @@ func _get_zone_tile_source_id(zone_data: ZoneData) -> int:
 		return ZONE_TILE_VARIANT_SOURCE_IDS[0]
 	return ZONE_TILE_VARIANT_SOURCE_IDS[idx]
 
-## Set all zones in the tile_map
+## Set all zones in the tile_map. All zones (locked or unlocked) render
+## with the same forest variant — locked zones get a grey+lock overlay on
+## top via _refresh_locked_overlays() rather than a different tile source.
 func set_all_zones_in_tile_map() -> void:
 	var zone_tiles: Array[Vector2i] = []
 	var all_zones = ZoneManager.get_all_zones()
@@ -126,10 +126,7 @@ func set_all_zones_in_tile_map() -> void:
 		zone_tiles.append(zone_data.tilemap_location)
 
 	for zone_data in all_zones:
-		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
-			tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(zone_data), _get_zone_variant(zone_data), zone_data.tilemap_location)
-		else:
-			tile_map.set_cell_with_source_and_variant(LOCKED_SOURCE_ID, BASE_LOCKED_VARIANT, zone_data.tilemap_location)
+		tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(zone_data), _get_zone_variant(zone_data), zone_data.tilemap_location)
 
 	for zone_data in all_zones:
 		_set_neighboring_tiles_transparent(zone_data.tilemap_location, zone_tiles)
@@ -157,11 +154,10 @@ func update_zone_tile_state(zone_data: ZoneData) -> void:
 	# Update current selected zone
 	tile_map.set_cell_with_source_and_variant(_get_zone_tile_source_id(zone_data), _get_zone_variant(zone_data), zone_data.tilemap_location)
 
-## Returns the tile variant index based on zone state.
+## Returns the tile variant index based on zone state. Locked zones use
+## variant 1 (same as unlocked) — the locked-state feedback comes from
+## _refresh_locked_overlays() stacking a grey+lock overlay on top.
 func _get_zone_variant(zone_data: ZoneData) -> int:
-	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
-		return 3
-	
 	if selected_zone == zone_data:
 		return 2
 
@@ -219,19 +215,23 @@ func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	set_all_zones_in_tile_map()
-	_refresh_locked_glyphs()
+	_refresh_locked_overlays()
 	_refresh_glowing_paths()
 
-func _refresh_locked_glyphs() -> void:
-	for child in _locked_glyph_container.get_children():
+## Rebuilds the grey-+-lock overlays for all currently-locked zones.
+## Runs at scene load and whenever an unlock condition changes. Overlays
+## sit above the tile (the underlying forest art is still rendered) so
+## players see "here's what this zone looks like, and here's why you
+## can't click it yet".
+func _refresh_locked_overlays() -> void:
+	for child in _locked_overlay_container.get_children():
 		child.queue_free()
 	for zone_data in ZoneManager.get_all_zones():
 		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
 			continue
-		var glyph := LockedZoneGlyphScene.instantiate() as Label
-		_locked_glyph_container.add_child(glyph)
-		var world_pos := tile_map.map_to_local(zone_data.tilemap_location) + tile_map.position
-		glyph.position = world_pos - Vector2(glyph.size.x * 0.5, glyph.size.y * 0.5)
+		var overlay := LockedZoneOverlayScene.instantiate() as Node2D
+		_locked_overlay_container.add_child(overlay)
+		overlay.position = tile_map.map_to_local(zone_data.tilemap_location) + tile_map.position
 
 func _refresh_glowing_paths() -> void:
 	for child in _glowing_path_container.get_children():

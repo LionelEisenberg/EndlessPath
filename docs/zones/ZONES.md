@@ -78,13 +78,23 @@ variants drop in cleanly.
 
 | Source ID | Variant | Visual |
 |-----------|---------|--------|
-| Source 8 (FOREST variant 0, Hex_Forest_00_Basic) | 1 | Unlocked, unselected |
-| Source 8 (FOREST variant 0) | 2 | Currently selected |
+| Source 8 (FOREST variant 0, Hex_Forest_00_Basic) | 1 | Unlocked OR locked, unselected |
+| Source 8 (FOREST variant 0) | 2 | Currently selected (player's zone) |
 | Source 8 (FOREST variant 0) | 3 | Ghost neighbor (dark/transparent) |
-| Source 1 (LOCKED) | 0 | Locked zone (greyed) |
 
 Source 0 (`tile_horizontal.png`, 164×190) is retained for the adventure
 tilemap's generic path tiles — it is no longer used by the zone view.
+
+**Locked zones** render the same forest variant as unlocked zones — the
+lock state is communicated by a separate overlay node stacked on top
+(`scenes/zones/locked_zone_overlay/locked_zone_overlay.tscn`), which is
+a hex-shaped semi-transparent grey `Polygon2D` with `assets/lock_icon.png`
+centered on it. `ZoneTilemap._refresh_locked_overlays()` manages the
+overlay instances — one per locked zone, positioned at each zone's
+world coordinates. When `UnlockManager.condition_unlocked` fires, the
+overlays are rebuilt and any newly-unlocked zones lose their overlay.
+This gives players a "here's what this zone looks like" preview while
+still clearly marking it as inaccessible.
 
 Camera (`zone_camera_2d.gd`) clamps position to map bounds each frame.
 
