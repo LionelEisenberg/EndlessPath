@@ -54,6 +54,15 @@ const MOVEMENT_STAMINA_COST = 5.0
 # Fog-of-war shader array size (must match fog_of_war.gdshader MAX_CLEAR_POSITIONS)
 const FOG_MAX_CLEAR_POSITIONS := 64
 
+## Desired fog-clear radius in WORLD units (hex tile is 164 wide, so ~180
+## gives each visited tile a clear zone a hair larger than a full tile
+## — enough that adjacent visited tiles always have overlapping clear
+## zones regardless of camera zoom). Scaled by camera.zoom.x inside
+## _update_fog_uniforms so the shader's screen-space clear_radius tracks
+## the current zoom: zoom in → bigger screen radius, zoom out → smaller
+## screen radius, constant world coverage.
+const FOG_CLEAR_WORLD_RADIUS: float = 180.0
+
 #-----------------------------------------------------------------------------
 # ENUMS
 #-----------------------------------------------------------------------------
@@ -262,18 +271,18 @@ func _visit(coord: Vector3i) -> void:
 		# Check for NoOpEncounter (or empty choices) and auto-complete
 		if tile_encounter is NoOpEncounter or tile_encounter.choices.is_empty():
 			Log.info("AdventureTilemap: Auto-completing NoOp/Empty encounter at %s" % coord)
-			encounter_info_panel.visible = false
+			encounter_info_panel.hide_panel()
 			_process_next_visitation()
 			return
 
 		encounter_info_panel.setup(tile_encounter, was_already_visited)
-		encounter_info_panel.visible = true
+		encounter_info_panel.show_panel()
 
 		if not was_already_visited:
 			_is_movement_locked = true
 			_visitation_queue.clear() # Stop any further queued movement
 	else:
-		encounter_info_panel.visible = false
+		encounter_info_panel.hide_panel()
 
 	if was_already_visited:
 		_process_next_visitation()
@@ -493,6 +502,16 @@ func _update_fog_uniforms() -> void:
 
 	_fog_rect.material.set_shader_parameter("clear_positions", positions)
 	_fog_rect.material.set_shader_parameter("clear_count", clear_count)
+
+	# Scale the clear radius by the camera's current zoom so the cleared
+	# WORLD area stays constant. Without this, zooming out makes a tile's
+	# clear zone cover 4-5 tiles worth of world space, and zooming in
+	# leaves gaps between adjacent visited tiles because each one's
+	# screen-space circle shrinks below the center-to-center distance.
+	var zoom_scale := 1.0
+	if camera:
+		zoom_scale = camera.zoom.x
+	_fog_rect.material.set_shader_parameter("clear_radius", FOG_CLEAR_WORLD_RADIUS * zoom_scale)
 
 ## Process the next tile in the visitation queue
 func _process_next_visitation() -> void:
