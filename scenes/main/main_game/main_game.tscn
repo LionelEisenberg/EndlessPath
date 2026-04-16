@@ -30,6 +30,8 @@
 [ext_resource type="Script" uid="uid://cj636cki5h3is" path="res://scenes/ui/grey_background/grey_background.gd" id="24_grybg_script"]
 [ext_resource type="PackedScene" path="res://scenes/character/character_view.tscn" id="25_cv"]
 [ext_resource type="Script" path="res://scenes/character/character_view_state.gd" id="26_cvs"]
+[ext_resource type="PackedScene" uid="uid://b1quest1win1" path="res://scenes/ui/quest_window/quest_window.tscn" id="27_qw"]
+[ext_resource type="PackedScene" uid="uid://b1quest1toast1" path="res://scenes/ui/quest_toast/quest_toast.tscn" id="28_qt"]
 
 [sub_resource type="Animation" id="Animation_grey_RESET"]
 resource_name = "RESET"
@@ -231,6 +233,32 @@ offset_left = 736.0
 offset_top = 781.0
 offset_right = 1136.0
 offset_bottom = 1008.0
+
+[node name="QuestWindow" parent="MainView" instance=ExtResource("27_qw")]
+unique_name_in_owner = true
+z_index = 1
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 240.0
+offset_top = -120.0
+offset_right = 560.0
+offset_bottom = 120.0
+grow_vertical = 2
+
+[node name="QuestToast" parent="MainView" instance=ExtResource("28_qt")]
+unique_name_in_owner = true
+z_index = 10
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 40.0
+offset_right = 200.0
+offset_bottom = 100.0
+grow_horizontal = 2
 
 [node name="GreyBackground" type="Panel" parent="MainView" unique_id=69316647]
 unique_name_in_owner = true
