@@ -1,6 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-04-15
+Last updated: 2026-04-16
 
 This document tracks the current player experience — what a player can actually do, what content exists, and what blocks the next stage of progression. For per-system details, see the [system documentation index](CODEBASE_STATE.md#system-documentation-index).
 
@@ -16,7 +16,7 @@ A new player can currently:
 4. **Forage** — toggle passive foraging, earn Spirit Fern and Dewdrop Tear materials over time
 5. **Open Inventory** — view equipment grid, equip the Dagger, see materials from foraging
 6. **Start an Adventure** — enter a procedurally generated hex map with fog-of-war (shader fog + smoke veil overlays), per-type encounter icons, atmospheric mist/motes, and a tiled-texture path preview that commits on click and fades behind the player as they walk; move tile-by-tile spending stamina; adventures cost Madra (50% threshold required, with particle drain animation) (PRs #16/#23)
-7. **Fight enemies** — encounter the test enemy in combat, use 4 abilities; equipped gear stats now flow through to combat (PR #9)
+7. **Fight enemies** — encounter the test enemy in combat, use 4 abilities with Q/W/E/R keybindings; ability tooltips on hover show stats/costs/cooldowns; cost strip and can't-afford dimming provide resource feedback; buff tooltips show live duration; combat atmosphere matches adventure view (PRs #9/#24)
 8. **Defeat the boss** — complete the adventure, earn gold; end card shows stats and loot (PR #19)
 9. **Open Path Tree** — press P to view the Pure Madra skill tree; earn Path Points every 10 Core Density levels; purchase nodes for cycling/combat/progression perks; pannable/zoomable tree with animated shaders (PR #20)
 10. **Manage Abilities** — press A to open the abilities view; drag-and-drop abilities into a 4-slot loadout; filter by type, sort by cost/name; hoverable stat pills show damage breakdowns; path tree purchases unlock new abilities (PR #22)
@@ -113,7 +113,7 @@ These are the biggest gaps preventing a playable loop beyond Foundation:
 1. ~~Fix persistence — flip `reset_save_data = false`, fix `reset_state()` naming mismatch~~ *(PR #3 fixed naming; `reset_save_data` still defaults to true)*
 2. ~~Wire equipment stats to combat — make the Dagger matter~~ (Done - PR #9)
 3. ~~Unify Madra pools — create the cycle→adventure resource loop~~ (Done - PR #16)
-4. Add ability tooltips and cost feedback in combat — make the system learnable
+~~4. Add ability tooltips and cost feedback in combat — make the system learnable~~ (Done - PR #24: ability/buff tooltips, Q/W/E/R keybindings, cost strip, can't-afford state, combat atmosphere)
 5. Add more enemies and encounters — combat variety
 6. ~~Remove debug artifacts (+100 STR)~~ *(PR #3 fixed +100 STR; debug buttons and enable_ai flag still present)*
 

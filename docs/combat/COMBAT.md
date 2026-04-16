@@ -19,6 +19,7 @@ Combat is a real-time system embedded within the Adventure mode. When the player
 
 ```
 AdventureCombat (Node2D)                    — adventure_combat.gd
+  Atmosphere                                — vignette + mist + motes (PR #24)
   CanvasLayer
     EnemyInfoPanel (CombatantInfoPanel)     — combatant_info_panel.gd
 
@@ -163,21 +164,24 @@ A global casting lock prevents firing multiple abilities simultaneously.
 
 | Component | Description |
 |-----------|-------------|
-| `AbilityButton` | TextureButton + cooldown overlay (TextureProgressBar + Label) |
-| `AbilitiesPanel` | HBox of ability buttons + casting indicator with progress bar |
+| `AbilityButton` | TextureButton + cooldown overlay + gold keyhint badge (Q/W/E/R) + color-coded cost strip (blue=madra, gold=stamina, red=health) + can't-afford dimming (PR #24) |
+| `AbilitiesPanel` | HBox of ability buttons + casting indicator + Q/W/E/R keybinding activation (PR #24) |
 | `CombatantInfoPanel` | Fully rebuilt in PR #15 — container-based layout, dark floating styleboxes, integer vitals display. Profile icon, 3 resource bars (HP/Madra/Stamina), buff container, abilities panel |
 | `ResourceBar` | Main bar + ghost trail bar (delayed by 0.5s tween) + floating text spawner |
-| `BuffIcon` | Buff texture + duration bar + stack count label |
+| `BuffIcon` | Buff texture + duration bar + stack count label + hover tooltip (PR #24) |
+| `CombatAbilityTooltip` | Hover tooltip showing icon, name, total DMG, cooldown, cast time, and resource costs (PR #24) |
+| `CombatBuffTooltip` | Hover tooltip showing buff name, effect description, live remaining duration, and stack count (PR #24) |
 | `FloatingText` | Label that floats up 100px and fades over 1.5s, then self-destructs |
 
-### Styleboxes (PR #15)
+### Styleboxes (PRs #15, #24)
 
 | File | Used By |
 |------|---------|
-| `assets/styleboxes/panel_vitals.tres` | Vitals section background on `CombatantInfoPanel` |
-| `assets/styleboxes/panel_abilities.tres` | Abilities section background on `CombatantInfoPanel` |
-| `assets/styleboxes/panel_buffs.tres` | Buffs section background on `CombatantInfoPanel` |
-| `assets/styleboxes/cast_bar_fill.tres` | Gold fill on the cast progress bar |
+| `assets/styleboxes/combat/panel_vitals.tres` | Vitals section background on `CombatantInfoPanel` |
+| `assets/styleboxes/combat/panel_abilities.tres` | Abilities section background on `CombatantInfoPanel` |
+| `assets/styleboxes/combat/panel_buffs.tres` | Buffs section background on `CombatantInfoPanel` |
+| `assets/styleboxes/combat/cast_bar_fill.tres` | Gold fill on the cast progress bar |
+| `assets/styleboxes/combat/panel_keyhint.tres` | Gold badge behind Q/W/E/R keybinding hints on ability buttons (PR #24) |
 
 ## Integration Points
 
@@ -237,6 +241,8 @@ One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_abili
 | `scenes/combat/combatant/combat_effect_manager/combat_effect_manager.gd` | Effect routing |
 | `scenes/combat/combatant/vitals_manager/vitals_manager.gd` | HP/Madra/Stamina tracking |
 | `scenes/combat/ai/simple_enemy_ai.gd` | Enemy decision loop |
+| `scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.gd` | Ability hover tooltip (PR #24) |
+| `scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd` | Buff hover tooltip (PR #24) |
 | `scripts/resource_definitions/combat/combat_effect_data.gd` | Damage/heal formula |
 | `scripts/resource_definitions/combat/buff_effect_data.gd` | Buff definition |
 | `scripts/resource_definitions/abilities/ability_data.gd` | Ability definition |
@@ -267,7 +273,7 @@ One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_abili
 - `[HIGH]` Only 1 enemy exists (`test_enemy`) — needs diverse enemies with different abilities, stats, and strategies
 - `[HIGH]` Only 6 abilities (4 player, 2 test) — GDD describes 3 starter skills (Flowing Strike, Stand Your Ground, Empty Palm) plus a Cycle tap skill
 - `[MEDIUM]` Player sprite hardcoded to `test_character_sprite.png` — needs to be driven by player/character data
-- `[LOW]` No ability unlock or progression system — abilities are hardcoded in `CharacterManager.get_equipped_abilities()`
+- ~~`[LOW]` No ability unlock or progression system — abilities are hardcoded in `CharacterManager.get_equipped_abilities()`~~ *(Fixed in PR #22 — AbilityManager singleton with unlock/equip system)*
 
 ### UI
 
