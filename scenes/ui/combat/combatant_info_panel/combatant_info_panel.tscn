@@ -12,6 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://bldgrd4oo0vqe" path="res://assets/RPG_Item_Pack_Retro_Spritesheet.png" id="10_bvhaj"]
 [ext_resource type="StyleBox" uid="uid://3rtufb8sb7ii" path="res://assets/styleboxes/combat/panel_abilities.tres" id="11_combat"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/combat/cast_bar_fill.tres" id="13_cast"]
+[ext_resource type="PackedScene" path="res://scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.tscn" id="14_tooltip"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_xkkay"]
 atlas = ExtResource("10_bvhaj")
@@ -174,3 +175,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(42, 40)
 layout_mode = 2
 theme_override_constants/separation = 4
+
+[node name="CombatAbilityTooltip" parent="." instance=ExtResource("14_tooltip")]
+unique_name_in_owner = true

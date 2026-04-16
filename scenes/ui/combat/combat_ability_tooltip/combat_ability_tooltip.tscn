@@ -2,8 +2,49 @@
 
 [ext_resource type="Script" path="res://scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/abilities/tooltip_panel.tres" id="3_tooltip_panel"]
+[ext_resource type="PackedScene" uid="uid://bmhnqnlj8v8ul" path="res://scenes/abilities/ability_stats_display/ability_stats_display.tscn" id="4_stats_display"]
 
 [node name="CombatAbilityTooltip" type="PanelContainer"]
+visible = false
+top_level = true
 custom_minimum_size = Vector2(280, 0)
+mouse_filter = 2
 theme = ExtResource("2_theme")
+theme_override_styles/panel = ExtResource("3_tooltip_panel")
 script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="AbilityIcon" type="TextureRect" parent="VBox/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AbilityName" type="Label" parent="VBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"LabelAbilityBody"
+
+[node name="DamageDisplay" parent="VBox" instance=ExtResource("4_stats_display")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TimingDisplay" parent="VBox" instance=ExtResource("4_stats_display")]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
