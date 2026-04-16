@@ -1,29 +1,28 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bkbwc31y6p6u5"]
 
-[ext_resource type="Script" path="res://scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://b8c5fdcuma1md" path="res://scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/abilities/tooltip_panel.tres" id="3_tooltip_panel"]
 
-[node name="CombatBuffTooltip" type="PanelContainer"]
+[node name="CombatBuffTooltip" type="PanelContainer" unique_id=393278935]
 visible = false
 top_level = true
 custom_minimum_size = Vector2(220, 0)
 mouse_filter = 2
 theme = ExtResource("2_theme")
-theme_override_styles/panel = ExtResource("3_tooltip_panel")
+theme_type_variation = &"PanelTooltip"
 script = ExtResource("1_script")
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="VBox" type="VBoxContainer" parent="." unique_id=213799325]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 6
 
-[node name="Header" type="HBoxContainer" parent="VBox"]
+[node name="Header" type="HBoxContainer" parent="VBox" unique_id=1679657425]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="BuffIcon" type="TextureRect" parent="VBox/Header"]
+[node name="BuffIcon" type="TextureRect" parent="VBox/Header" unique_id=552056245]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
@@ -31,35 +30,32 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="BuffName" type="Label" parent="VBox/Header"]
+[node name="BuffName" type="Label" parent="VBox/Header" unique_id=698075388]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
 theme_type_variation = &"LabelAbilityBody"
 
-[node name="Description" type="Label" parent="VBox"]
+[node name="Description" type="Label" parent="VBox" unique_id=529619872]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
 theme_type_variation = &"LabelAbilityMuted"
 autowrap_mode = 2
 
-[node name="MetaRow" type="HBoxContainer" parent="VBox"]
+[node name="MetaRow" type="HBoxContainer" parent="VBox" unique_id=974571762]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 12
 
-[node name="DurationLabel" type="Label" parent="VBox/MetaRow"]
+[node name="DurationLabel" type="Label" parent="VBox/MetaRow" unique_id=1114843685]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
+size_flags_horizontal = 0
 theme_type_variation = &"LabelSmall"
 theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
 
-[node name="StacksLabel" type="Label" parent="VBox/MetaRow"]
+[node name="StacksLabel" type="Label" parent="VBox/MetaRow" unique_id=244251474]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-mouse_filter = 2
+size_flags_horizontal = 0
 theme_type_variation = &"LabelSmall"

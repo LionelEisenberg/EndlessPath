@@ -186,5 +186,7 @@ offset_top = 160.0
 offset_right = 531.0
 offset_bottom = 264.0
 
-[node name="CombatBuffTooltip" parent="." instance=ExtResource("15_buff_tooltip")]
+[node name="CombatBuffTooltip" parent="." unique_id=145024239 instance=ExtResource("15_buff_tooltip")]
 unique_name_in_owner = true
+layout_mode = 0
+theme_type_variation = &"PanelTooltip"
