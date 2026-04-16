@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="QuestList" load_steps=2 format=3 uid="uid://bquest1listzz"]
+
+[ext_resource type="Script" path="res://scripts/resource_definitions/quests/quest_list.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+quests = Array[ExtResource("1")]([])
