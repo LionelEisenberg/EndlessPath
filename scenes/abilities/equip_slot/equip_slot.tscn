@@ -1,8 +1,13 @@
 [gd_scene format=3 uid="uid://dkq8r3m5v7n2x"]
 
-[ext_resource type="Script" path="res://scenes/abilities/equip_slot/equip_slot.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dbpjypeit3km6" path="res://scenes/abilities/equip_slot/equip_slot.gd" id="1_script"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_keyhint.tres" id="2_keyhint"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot_bg"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
 bg_color = Color(0.165, 0.102, 0.071, 0.6)
 border_width_left = 2
 border_width_top = 2
@@ -13,20 +18,16 @@ corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
 
-[node name="EquipSlot" type="PanelContainer"]
+[node name="EquipSlot" type="PanelContainer" unique_id=89486825]
 custom_minimum_size = Vector2(80, 80)
 theme_override_styles/panel = SubResource("StyleBoxFlat_slot_bg")
 script = ExtResource("1_script")
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=307752631]
 layout_mode = 2
 
-[node name="SlotIcon" type="TextureRect" parent="CenterContainer"]
+[node name="SlotIcon" type="TextureRect" parent="CenterContainer" unique_id=1630192229]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
@@ -34,10 +35,29 @@ size_flags_horizontal = 4
 size_flags_vertical = 4
 stretch_mode = 5
 
-[node name="EmptyLabel" type="Label" parent="CenterContainer"]
+[node name="EmptyLabel" type="Label" parent="CenterContainer" unique_id=517729485]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelMuted"
 text = "--"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KeyHintPanel" type="PanelContainer" parent="." unique_id=1033658560]
+z_index = 3
+layout_mode = 2
+size_flags_vertical = 8
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("2_keyhint")
+
+[node name="KeyHintLabel" type="Label" parent="KeyHintPanel" unique_id=1700036411]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelSmall"
+theme_override_colors/font_color = Color(0.831, 0.659, 0.29, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 11
+text = "Q"
 horizontal_alignment = 1
 vertical_alignment = 1

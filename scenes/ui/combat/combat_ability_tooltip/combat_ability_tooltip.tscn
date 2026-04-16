@@ -1,0 +1,55 @@
+[gd_scene format=3 uid="uid://dtpro3leek0w6"]
+
+[ext_resource type="Script" uid="uid://c0lnrydtjbqup" path="res://scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="4_1i8dk"]
+[ext_resource type="PackedScene" uid="uid://bmhnqnlj8v8ul" path="res://scenes/abilities/ability_stats_display/ability_stats_display.tscn" id="4_stats_display"]
+
+[node name="CombatAbilityTooltip" type="PanelContainer" unique_id=790169444]
+visible = false
+top_level = true
+custom_minimum_size = Vector2(600, 80)
+offset_right = 588.0
+offset_bottom = 104.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_type_variation = &"PanelTooltip"
+script = ExtResource("1_script")
+
+[node name="Header" type="HBoxContainer" parent="." unique_id=238356541]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="AbilityIcon" type="TextureRect" parent="Header" unique_id=1417875535]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_1i8dk")
+expand_mode = 3
+
+[node name="VBox" type="VBoxContainer" parent="Header" unique_id=13270192]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="AbilityName" type="Label" parent="Header/VBox" unique_id=2100953030]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 6
+theme_type_variation = &"LabelAbilityBody"
+
+[node name="TimingDisplay" parent="Header/VBox" unique_id=319148546 instance=ExtResource("4_stats_display")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="DamageDisplay" parent="Header/VBox" unique_id=222729951 instance=ExtResource("4_stats_display")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2

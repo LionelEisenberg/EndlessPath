@@ -11,14 +11,18 @@ var _ability_data: AbilityData = null
 var _slot_index: int = 0
 var _is_hover: bool = false
 
+const KEY_LABELS: PackedStringArray = ["Q", "W", "E", "R"]
+
 @onready var _icon: TextureRect = %SlotIcon
 @onready var _empty_label: Label = %EmptyLabel
+@onready var _key_hint_label: Label = %KeyHintLabel
 
 # ----- Public API -----
 
 ## Configures this slot with its index in the loadout.
 func setup(index: int) -> void:
 	_slot_index = index
+	_set_key_hint()
 
 ## Sets the ability displayed in this slot.
 func set_ability(ability_data: AbilityData) -> void:
@@ -93,6 +97,14 @@ func _update_display() -> void:
 		_icon.texture = null
 		_icon.visible = false
 		_empty_label.visible = true
+
+func _set_key_hint() -> void:
+	if _slot_index < 0 or _slot_index >= KEY_LABELS.size():
+		_key_hint_label.get_parent().visible = false
+		return
+
+	_key_hint_label.text = KEY_LABELS[_slot_index]
+	_key_hint_label.get_parent().visible = true
 
 func _set_hover(hovering: bool) -> void:
 	_is_hover = hovering

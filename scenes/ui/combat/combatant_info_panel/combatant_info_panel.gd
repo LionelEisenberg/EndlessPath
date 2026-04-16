@@ -29,6 +29,7 @@ var ability_manager: CombatAbilityManager
 var active_buff_icons: Dictionary = {}
 
 var buff_icon_scene: PackedScene = preload("res://scenes/ui/combat/buff_icon/buff_icon.tscn")
+@onready var _buff_tooltip: CombatBuffTooltip = %CombatBuffTooltip
 
 
 func _ready() -> void:
@@ -104,13 +105,16 @@ func setup_name(combatant_name: String) -> void:
 		name_label.text = combatant_name
 
 func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
-	# Always clean up previous state/icons first
 	_cleanup_abilities()
-	
+
 	ability_manager = p_ability_manager
 
 	if ability_manager:
 		abilities_panel.visible = true
+
+		# Pass vitals manager for affordability checks
+		if vitals_manager:
+			abilities_panel.set_vitals_manager(vitals_manager)
 
 		# Connect selection signal
 		if not abilities_panel.ability_selected.is_connected(_on_ability_selected):
@@ -124,8 +128,6 @@ func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
 			_register_ability(ability_instance)
 	else:
 		abilities_panel.visible = false
-	
-	pass
 
 #-----------------------------------------------------------------------------
 # VITALS UPDATES
@@ -173,6 +175,8 @@ func _on_buff_applied(buff_id: String, duration: float) -> void:
 	icon.setup(buff.buff_data, duration, buff.stack_count)
 	
 	active_buff_icons[buff_id] = icon
+	icon.hovered.connect(_on_buff_icon_hovered.bind(buff_id))
+	icon.unhovered.connect(_on_buff_icon_unhovered)
 
 func _on_buff_removed(buff_id: String) -> void:
 	if active_buff_icons.has(buff_id):
@@ -194,6 +198,23 @@ func _on_buff_stacked(buff_id: String, stack_count: int) -> void:
 func _on_buff_manager_exiting() -> void:
 	_cleanup_buffs()
 
+func _on_buff_icon_hovered(buff_data: BuffEffectData, buff_id: String) -> void:
+	if not buff_manager or not _buff_tooltip:
+		return
+	var buff: ActiveBuff = buff_manager._find_buff_by_id(buff_id)
+	if not buff:
+		return
+
+	_buff_tooltip.show_for_buff(buff)
+
+	if active_buff_icons.has(buff_id):
+		var icon: BuffIcon = active_buff_icons[buff_id]
+		(func() -> void: _buff_tooltip.position_beside(icon)).call_deferred()
+
+func _on_buff_icon_unhovered() -> void:
+	if _buff_tooltip:
+		_buff_tooltip.hide_tooltip()
+
 func _cleanup_buffs() -> void:
 	# Disconnect signals if manager still valid
 	if buff_manager and is_instance_valid(buff_manager):
@@ -213,6 +234,8 @@ func _cleanup_buffs() -> void:
 	# Clear icons - use get_children for safety to remove anything in the container
 	for child in buff_container.get_children():
 		child.queue_free()
+	if _buff_tooltip:
+		_buff_tooltip.hide_tooltip()
 	active_buff_icons.clear()
 
 #-----------------------------------------------------------------------------

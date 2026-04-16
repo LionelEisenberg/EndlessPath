@@ -10,7 +10,9 @@
 [ext_resource type="Texture2D" uid="uid://c7o5q6nwirf5n" path="res://assets/sprites/ui/resource_bar/HealthFill.png" id="6_l7ne6"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="9_5cglh"]
 [ext_resource type="StyleBox" uid="uid://3rtufb8sb7ii" path="res://assets/styleboxes/combat/panel_abilities.tres" id="11_combat"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/cast_bar_fill.tres" id="13_cast"]
+[ext_resource type="StyleBox" uid="uid://87vryitjnt4l" path="res://assets/styleboxes/combat/cast_bar_fill.tres" id="13_cast"]
+[ext_resource type="PackedScene" uid="uid://dtpro3leek0w6" path="res://scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.tscn" id="14_tooltip"]
+[ext_resource type="PackedScene" path="res://scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.tscn" id="15_buff_tooltip"]
 
 
 [node name="CombatantInfoPanel" type="Control" unique_id=271288353]
@@ -168,3 +170,17 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(42, 40)
 layout_mode = 2
 theme_override_constants/separation = 4
+
+[node name="CombatAbilityTooltip" parent="." unique_id=1456737201 instance=ExtResource("14_tooltip")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(350, 0)
+layout_mode = 0
+offset_left = -69.0
+offset_top = 160.0
+offset_right = 531.0
+offset_bottom = 264.0
+
+[node name="CombatBuffTooltip" parent="." unique_id=145024239 instance=ExtResource("15_buff_tooltip")]
+unique_name_in_owner = true
+layout_mode = 0
+theme_type_variation = &"PanelTooltip"

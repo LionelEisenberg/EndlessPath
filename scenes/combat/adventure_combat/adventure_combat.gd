@@ -16,6 +16,7 @@ signal trigger_combat_end(is_successful: bool, gold_earned: int)
 #-----------------------------------------------------------------------------
 
 var combatant_scene: PackedScene = preload("res://scenes/combat/combatant/combatant_node.tscn")
+var atmosphere_scene: PackedScene = preload("res://scenes/atmosphere/atmosphere.tscn")
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -26,6 +27,7 @@ var current_adventure_action: AdventureActionData = null
 
 var player_combatant: CombatantNode
 var enemy_combatant: CombatantNode
+var _atmosphere: Node
 
 #-----------------------------------------------------------------------------
 # TODO: DELETE DEBUG
@@ -41,6 +43,19 @@ var enemy_combatant: CombatantNode
 
 func _ready() -> void:
 	Log.info("AdventureCombat: Initialized")
+	_setup_atmosphere()
+
+func _setup_atmosphere() -> void:
+	_atmosphere = atmosphere_scene.instantiate()
+	# Match adventure tilemap settings
+	_atmosphere.vignette_radius = 0.5
+	_atmosphere.vignette_softness = 0.35
+	_atmosphere.vignette_color = Color(0.0, 0.005, 0.025, 1.0)
+	_atmosphere.cyan_mote_count = 25
+	_atmosphere.warm_mote_count = 8
+	# Insert at index 0 so it renders behind everything
+	add_child(_atmosphere)
+	move_child(_atmosphere, 0)
 
 ## Initializes the combat with the chosen encounter, and adventure context.
 func initialize_combat(
