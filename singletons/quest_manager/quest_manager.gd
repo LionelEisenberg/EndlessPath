@@ -35,6 +35,7 @@ func _ready() -> void:
 		EventManager.event_triggered.connect(_on_event_triggered)
 	else:
 		Log.critical("QuestManager: EventManager not available on ready!")
+	_prune_unknown_active_quests()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -43,6 +44,7 @@ func _ready() -> void:
 ## Starts a quest by id. No-op if already active or completed.
 ## After adding to the active list, performs a retroactive pass to skip
 ## any steps whose completion criteria were already satisfied before start.
+## Zero-step quests complete immediately after emitting quest_started.
 func start_quest(quest_id: String) -> void:
 	if not _live_save_data:
 		return
@@ -53,9 +55,13 @@ func start_quest(quest_id: String) -> void:
 		return
 	if has_completed_quest(quest_id):
 		return
+	var quest: QuestData = _quests_by_id[quest_id]
 	_live_save_data.quest_progression.active_quests[quest_id] = 0
 	Log.info("QuestManager: Started quest '%s'" % quest_id)
 	quest_started.emit(quest_id)
+	if quest.steps.is_empty():
+		_complete_quest(quest_id)
+		return
 	_retroactive_advance(quest_id)
 
 ## Returns true if the quest is currently in the active list.
@@ -110,6 +116,7 @@ func _build_catalog_index() -> void:
 
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data
+	_prune_unknown_active_quests()
 
 func _on_event_triggered(event_id: String) -> void:
 	# Iterate over a copy since advancement may complete a quest and mutate active_quests.
@@ -192,3 +199,17 @@ func _complete_quest(quest_id: String) -> void:
 		if effect:
 			effect.process()
 	quest_completed.emit(quest_id)
+
+## Removes any active quests whose QuestData is no longer in the catalog.
+## Called on _ready and on save_data_reset to keep state consistent with the
+## current resource definitions.
+func _prune_unknown_active_quests() -> void:
+	if not _live_save_data:
+		return
+	var to_remove: Array[String] = []
+	for quest_id: String in _live_save_data.quest_progression.active_quests.keys():
+		if not _quests_by_id.has(quest_id):
+			Log.warn("QuestManager: dropping active quest '%s' (no QuestData in catalog)" % quest_id)
+			to_remove.append(quest_id)
+	for quest_id: String in to_remove:
+		_live_save_data.quest_progression.active_quests.erase(quest_id)

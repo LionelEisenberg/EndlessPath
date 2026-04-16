@@ -234,3 +234,29 @@ func test_completion_preserves_insertion_order_in_completed_list() -> void:
 	assert_eq(completed.size(), 2)
 	assert_eq(completed[0], "quest_b", "quest_b completed first")
 	assert_eq(completed[1], "quest_a", "quest_a completed second")
+
+# ----- edge cases -----
+
+func test_zero_step_quest_completes_instantly_on_start() -> void:
+	var empty_quest := _create_quest("empty_quest", "Empty Quest", [] as Array[QuestStepData])
+	QuestManager._quests_by_id["empty_quest"] = empty_quest
+	QuestManager.start_quest("empty_quest")
+	assert_false(QuestManager.has_active_quest("empty_quest"),
+		"zero-step quest should not remain active")
+	assert_true(QuestManager.has_completed_quest("empty_quest"),
+		"zero-step quest should be in completed list")
+
+func test_zero_step_quest_fires_completion_effects() -> void:
+	var effect := TestRecordingEffect.new()
+	var empty_quest := _create_quest("empty_quest", "Empty Quest", [] as Array[QuestStepData])
+	empty_quest.completion_effects = [effect] as Array[EffectData]
+	QuestManager._quests_by_id["empty_quest"] = empty_quest
+	QuestManager.start_quest("empty_quest")
+	assert_true(effect.processed, "zero-step quest should still fire completion effects")
+
+func test_load_drops_active_quest_with_deleted_data() -> void:
+	# Simulate a save that references a quest no longer in the catalog.
+	_save_data.quest_progression.active_quests["ghost_quest"] = 0
+	QuestManager._prune_unknown_active_quests()
+	assert_false(_save_data.quest_progression.active_quests.has("ghost_quest"),
+		"unknown active quests should be pruned")
