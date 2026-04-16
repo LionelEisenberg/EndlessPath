@@ -271,9 +271,9 @@ One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_abili
 
 ### UI
 
-- `[HIGH]` Ability icons don't disable or visually indicate when the player can't afford the cost (not enough madra/stamina) — ability just silently fails to cast
-- `[HIGH]` No ability tooltips — hovering over an ability icon shows no information (cost, cooldown, damage, description). New players can't learn the system without them
-- `[MEDIUM]` No buff tooltips — hovering over a buff icon shows no information (effect, duration remaining, stacks)
+- ~~`[HIGH]` Ability icons don't disable or visually indicate when the player can't afford the cost (not enough madra/stamina) — ability just silently fails to cast~~ *(Fixed — can't-afford visual state dims icon and turns cost labels red)*
+- ~~`[HIGH]` No ability tooltips — hovering over an ability icon shows no information (cost, cooldown, damage, description). New players can't learn the system without them~~ *(Fixed — CombatAbilityTooltip shows on hover)*
+- ~~`[MEDIUM]` No buff tooltips — hovering over a buff icon shows no information (effect, duration remaining, stacks)~~ *(Fixed — CombatBuffTooltip shows on hover with live duration)*
 - `[MEDIUM]` Enemy sprite placement needs improvement — current positioning is placeholder
 - ~~`[LOW]` Cast bar visual (PNG) needs improvement~~ *(Fixed in PR #15 — `cast_bar_fill.tres` gold stylebox)*
 - `[LOW]` Combat background should be modular — different adventure zones should have different combat backdrops
