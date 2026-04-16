@@ -78,7 +78,6 @@ func setup(instance: CombatAbilityInstance, slot_index: int = -1, vitals_manager
 	_vitals_manager = vitals_manager
 
 	# Set Visuals
-	button.tooltip_text = instance.ability_data.ability_name
 	button.texture_normal = instance.ability_data.icon
 	button.texture_pressed = instance.ability_data.icon
 	button.texture_disabled = instance.ability_data.icon
