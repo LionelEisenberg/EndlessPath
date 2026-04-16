@@ -35,15 +35,15 @@ func hide_tooltip() -> void:
 	visible = false
 
 ## Positions the tooltip above the given control, centered horizontally.
-func position_above(control: Control) -> void:
+func position_below(control: Control) -> void:
 	var control_rect: Rect2 = control.get_global_rect()
 	var tooltip_size: Vector2 = size
 	var x: float = control_rect.position.x + (control_rect.size.x - tooltip_size.x) / 2.0
-	var y: float = control_rect.position.y - tooltip_size.y - 8.0
+	var y: float = control_rect.position.y + tooltip_size.y + 25.0
 
 	# Flip below if would overflow top
-	if y < 0:
-		y = control_rect.position.y + control_rect.size.y + 8.0
+	if y > 1920:
+		y = control_rect.position.y - control_rect.size.y - 8.0
 
 	# Clamp horizontal
 	x = clampf(x, 4.0, get_viewport_rect().size.x - tooltip_size.x - 4.0)

@@ -119,11 +119,7 @@ func _on_ability_hovered(instance: CombatAbilityInstance) -> void:
 		return
 
 	_tooltip.show_for_ability(instance.ability_data)
-
-	for btn: AbilityButton in _ability_buttons:
-		if btn.ability_instance == instance:
-			(func() -> void: _tooltip.position_above(btn)).call_deferred()
-			break
+	_tooltip.position_below(self)
 
 func _on_ability_unhovered() -> void:
 	_hide_tooltip()
