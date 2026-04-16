@@ -39,7 +39,7 @@ const MENU_CONFIG: Dictionary = {
 		"display_name": "CHARACTER",
 		"input_action": &"open_character",
 		"shortcut_hint": "C",
-		"icon": null,
+		"icon": preload("res://assets/sprites/ui/system_menu/character_icon.png"),
 	},
 	MenuType.PATH: {
 		"display_name": "PATH",

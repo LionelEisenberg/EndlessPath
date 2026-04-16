@@ -1,8 +1,16 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://ckq28b0kkipr"]
 
-[ext_resource type="Script" path="res://scenes/character/character_view.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://mprbbiaybrln" path="res://scenes/character/character_view.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://m26avynuswy" path="res://scenes/character/attribute_row/attribute_row.tscn" id="2_attribute_row"]
 [ext_resource type="PackedScene" uid="uid://cattrtlpscene" path="res://scenes/character/attribute_tooltip/attribute_tooltip.tscn" id="3_attribute_tooltip"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/strength_icon.png" id="4_str"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/body_icon.png" id="5_bod"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/agility_icon.png" id="6_agi"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/resilience_icon.png" id="7_res"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/spirit_icon.png" id="8_spi"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/foundation_icon.png" id="9_fnd"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/control_icon.png" id="10_ctl"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/attribute_icons/willpower_icon.png" id="11_wil"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unified_panel"]
 bg_color = Color(0.165, 0.129, 0.094, 1)
@@ -37,22 +45,6 @@ tracks/0/keys = {
 "values": [Color(1, 1, 1, 1)]
 }
 
-[sub_resource type="Animation" id="Animation_open"]
-resource_name = "open"
-length = 0.3
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:modulate")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.3),
-"transitions": PackedFloat32Array(0.5, 1),
-"update": 0,
-"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
-}
-
 [sub_resource type="Animation" id="Animation_close"]
 resource_name = "close"
 length = 0.2
@@ -69,6 +61,22 @@ tracks/0/keys = {
 "values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
 }
 
+[sub_resource type="Animation" id="Animation_open"]
+resource_name = "open"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_main"]
 _data = {
 &"RESET": SubResource("Animation_RESET"),
@@ -76,7 +84,7 @@ _data = {
 &"open": SubResource("Animation_open")
 }
 
-[node name="CharacterView" type="Control"]
+[node name="CharacterView" type="Control" unique_id=1384627830]
 visible = false
 z_index = 3
 layout_mode = 3
@@ -88,7 +96,8 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_script")
 
-[node name="UnifiedPanel" type="PanelContainer" parent="."]
+[node name="UnifiedPanel" type="PanelContainer" parent="." unique_id=1465283750]
+custom_minimum_size = Vector2(820, 0)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -101,137 +110,144 @@ offset_right = 410.0
 offset_bottom = 250.0
 grow_horizontal = 2
 grow_vertical = 2
-custom_minimum_size = Vector2(820, 0)
 theme_override_styles/panel = SubResource("StyleBoxFlat_unified_panel")
 
-[node name="MainVBox" type="VBoxContainer" parent="UnifiedPanel"]
+[node name="MainVBox" type="VBoxContainer" parent="UnifiedPanel" unique_id=1723634516]
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="Header" type="PanelContainer" parent="UnifiedPanel/MainVBox"]
+[node name="Header" type="PanelContainer" parent="UnifiedPanel/MainVBox" unique_id=524876901]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_header_bg")
 
-[node name="HeaderMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Header"]
+[node name="HeaderMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox/Header" unique_id=1393032820]
 layout_mode = 2
 theme_override_constants/margin_left = 28
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 28
 theme_override_constants/margin_bottom = 16
 
-[node name="HeaderVBox" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin"]
+[node name="HeaderVBox" type="VBoxContainer" parent="UnifiedPanel/MainVBox/Header/HeaderMargin" unique_id=708222033]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Title" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderVBox"]
+[node name="Title" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderVBox" unique_id=2062371918]
 layout_mode = 2
 theme_type_variation = &"LabelTitle"
 text = "CHARACTER"
 
-[node name="Subtitle" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderVBox"]
+[node name="Subtitle" type="Label" parent="UnifiedPanel/MainVBox/Header/HeaderMargin/HeaderVBox" unique_id=359973022]
 layout_mode = 2
 theme_type_variation = &"LabelSubheading"
 text = "Your cultivation attributes"
 
-[node name="HeaderSep" type="HSeparator" parent="UnifiedPanel/MainVBox"]
+[node name="HeaderSep" type="HSeparator" parent="UnifiedPanel/MainVBox" unique_id=2129713775]
 layout_mode = 2
 
-[node name="BodyMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox"]
+[node name="BodyMargin" type="MarginContainer" parent="UnifiedPanel/MainVBox" unique_id=706786265]
 layout_mode = 2
 theme_override_constants/margin_left = 32
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 32
 theme_override_constants/margin_bottom = 28
 
-[node name="Body" type="HBoxContainer" parent="UnifiedPanel/MainVBox/BodyMargin"]
+[node name="Body" type="HBoxContainer" parent="UnifiedPanel/MainVBox/BodyMargin" unique_id=1632006245]
 layout_mode = 2
 theme_override_constants/separation = 32
 
-[node name="PhysicalGroup" type="VBoxContainer" parent="UnifiedPanel/MainVBox/BodyMargin/Body"]
+[node name="PhysicalGroup" type="VBoxContainer" parent="UnifiedPanel/MainVBox/BodyMargin/Body" unique_id=285644715]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="PhysicalLabel" type="Label" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup"]
+[node name="PhysicalLabel" type="Label" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" unique_id=295651139]
 layout_mode = 2
 theme_type_variation = &"LabelHeading"
 text = "PHYSICAL"
 
-[node name="PhysicalSep" type="HSeparator" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup"]
+[node name="PhysicalSep" type="HSeparator" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" unique_id=952402247]
 layout_mode = 2
 
-[node name="StrengthRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" instance=ExtResource("2_attribute_row")]
+[node name="StrengthRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" unique_id=54940965 instance=ExtResource("2_attribute_row")]
 layout_mode = 2
 attribute_name = "STRENGTH"
-attribute_type = 0
+icon_texture = ExtResource("4_str")
 
-[node name="BodyRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" instance=ExtResource("2_attribute_row")]
+[node name="BodyRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" unique_id=1386166360 instance=ExtResource("2_attribute_row")]
 layout_mode = 2
 attribute_name = "BODY"
 attribute_type = 1
+icon_texture = ExtResource("5_bod")
 
-[node name="AgilityRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" instance=ExtResource("2_attribute_row")]
+[node name="AgilityRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" unique_id=344035810 instance=ExtResource("2_attribute_row")]
 layout_mode = 2
 attribute_name = "AGILITY"
 attribute_type = 2
+icon_texture = ExtResource("6_agi")
 
-[node name="ResilienceRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" instance=ExtResource("2_attribute_row")]
+[node name="ResilienceRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/PhysicalGroup" unique_id=1697694767 instance=ExtResource("2_attribute_row")]
 layout_mode = 2
 attribute_name = "RESILIENCE"
 attribute_type = 6
+icon_texture = ExtResource("7_res")
 
-[node name="BodyDivider" type="VSeparator" parent="UnifiedPanel/MainVBox/BodyMargin/Body"]
+[node name="BodyDivider" type="VSeparator" parent="UnifiedPanel/MainVBox/BodyMargin/Body" unique_id=616703860]
 layout_mode = 2
 
-[node name="SpiritualGroup" type="VBoxContainer" parent="UnifiedPanel/MainVBox/BodyMargin/Body"]
+[node name="SpiritualGroup" type="VBoxContainer" parent="UnifiedPanel/MainVBox/BodyMargin/Body" unique_id=1282515219]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="SpiritualLabel" type="Label" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup"]
+[node name="SpiritualLabel" type="Label" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" unique_id=112252327]
 layout_mode = 2
 theme_type_variation = &"LabelHeading"
 text = "SPIRITUAL"
 
-[node name="SpiritualSep" type="HSeparator" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup"]
+[node name="SpiritualSep" type="HSeparator" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" unique_id=628186531]
 layout_mode = 2
 
-[node name="SpiritRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" instance=ExtResource("2_attribute_row")]
+[node name="SpiritRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" unique_id=526967519 instance=ExtResource("2_attribute_row")]
 layout_mode = 2
 attribute_name = "SPIRIT"
 attribute_type = 3
+icon_texture = ExtResource("8_spi")
 
-[node name="FoundationRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" instance=ExtResource("2_attribute_row")]
+[node name="FoundationRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" unique_id=1449732978 instance=ExtResource("2_attribute_row")]
 layout_mode = 2
 attribute_name = "FOUNDATION"
 attribute_type = 4
+icon_texture = ExtResource("9_fnd")
 
-[node name="ControlRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" instance=ExtResource("2_attribute_row")]
+[node name="ControlRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" unique_id=668326560 instance=ExtResource("2_attribute_row")]
 layout_mode = 2
 attribute_name = "CONTROL"
 attribute_type = 5
+icon_texture = ExtResource("10_ctl")
 
-[node name="WillpowerRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" instance=ExtResource("2_attribute_row")]
+[node name="WillpowerRow" parent="UnifiedPanel/MainVBox/BodyMargin/Body/SpiritualGroup" unique_id=859990964 instance=ExtResource("2_attribute_row")]
 layout_mode = 2
 attribute_name = "WILLPOWER"
 attribute_type = 7
+icon_texture = ExtResource("11_wil")
 
-[node name="Footer" type="MarginContainer" parent="UnifiedPanel/MainVBox"]
+[node name="Footer" type="MarginContainer" parent="UnifiedPanel/MainVBox" unique_id=160553824]
 layout_mode = 2
 theme_override_constants/margin_bottom = 16
 
-[node name="FooterLabel" type="Label" parent="UnifiedPanel/MainVBox/Footer"]
+[node name="FooterLabel" type="Label" parent="UnifiedPanel/MainVBox/Footer" unique_id=731035580]
 layout_mode = 2
 theme_type_variation = &"LabelSmall"
 theme_override_colors/font_color = Color(0.42, 0.38, 0.31, 1)
 text = "Press C or ESC to close"
 horizontal_alignment = 1
 
-[node name="SharedTooltip" parent="." instance=ExtResource("3_attribute_tooltip")]
+[node name="SharedTooltip" parent="." unique_id=663806894 instance=ExtResource("3_attribute_tooltip")]
 unique_name_in_owner = true
+layout_mode = 0
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1747623982]
 unique_name_in_owner = true
 libraries/ = SubResource("AnimationLibrary_main")

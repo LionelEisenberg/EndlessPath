@@ -9,6 +9,7 @@ signal unhovered()
 
 @export var attribute_name: String = "ATTRIBUTE"
 @export var attribute_type: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.STRENGTH
+@export var icon_texture: Texture2D = null
 
 @onready var _icon: TextureRect = %Icon
 @onready var _name_label: Label = %NameLabel
@@ -18,6 +19,8 @@ func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 	_name_label.text = attribute_name
+	if icon_texture:
+		_icon.texture = icon_texture
 
 ## Updates the displayed attribute value.
 func set_value(value: float) -> void:
