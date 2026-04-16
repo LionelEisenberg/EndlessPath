@@ -42,7 +42,18 @@ func _ready() -> void:
 
 ## Starts a quest by id. No-op if already active or completed.
 func start_quest(quest_id: String) -> void:
-	push_error("QuestManager.start_quest not yet implemented")
+	if not _live_save_data:
+		return
+	if not _quests_by_id.has(quest_id):
+		push_error("QuestManager: unknown quest_id '%s'" % quest_id)
+		return
+	if has_active_quest(quest_id):
+		return
+	if has_completed_quest(quest_id):
+		return
+	_live_save_data.quest_progression.active_quests[quest_id] = 0
+	Log.info("QuestManager: Started quest '%s'" % quest_id)
+	quest_started.emit(quest_id)
 
 ## Returns true if the quest is currently in the active list.
 func has_active_quest(quest_id: String) -> bool:
