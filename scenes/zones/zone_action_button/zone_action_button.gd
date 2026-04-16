@@ -11,8 +11,8 @@ const CARD_SELECTED: StyleBox = preload("res://assets/styleboxes/zones/action_ca
 const DIMMED_MODULATE: Color = Color(0.55, 0.55, 0.55, 1.0)
 const NORMAL_MODULATE: Color = Color(1.0, 1.0, 1.0, 1.0)
 ## Maps active ActionTypes to their category color. Unmapped types (MERCHANT,
-## TRAIN_STATS, ZONE_EVENT, QUEST_GIVER) fall back to DEFAULT_CATEGORY_COLOR
-## since they have no zone action buttons yet.
+## TRAIN_STATS, ZONE_EVENT) fall back to DEFAULT_CATEGORY_COLOR since they have
+## no zone action buttons yet.
 const CATEGORY_COLORS: Dictionary = {
 	ZoneActionData.ActionType.FORAGE: Color(0.42, 0.67, 0.37),
 	ZoneActionData.ActionType.CYCLING: Color(0.37, 0.66, 0.62),

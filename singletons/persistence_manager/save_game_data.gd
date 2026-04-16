@@ -43,6 +43,12 @@ extends Resource
 @export var event_progression: EventProgressionData = EventProgressionData.new()
 
 #-----------------------------------------------------------------------------
+# QUEST MANAGER
+#-----------------------------------------------------------------------------
+
+@export var quest_progression: QuestProgressionData = QuestProgressionData.new()
+
+#-----------------------------------------------------------------------------
 # ZONE MANAGER
 #-----------------------------------------------------------------------------
 
@@ -112,7 +118,7 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
+	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
 			madra,
 			gold,
 			core_density_xp,
@@ -121,6 +127,7 @@ func _to_string() -> String:
 			str(unlocked_game_systems),
 			str(unlock_progression),
 			str(event_progression),
+			str(quest_progression),
 			current_selected_zone_id,
 			zone_progression_data_str,
 			inventory.equipment.size() if inventory else 0,
@@ -159,7 +166,10 @@ func reset() -> void:
 	
 	# Event Manager
 	event_progression = EventProgressionData.new()
-	
+
+	# Quest Manager
+	quest_progression = QuestProgressionData.new()
+
 	# Zone Manager
 	zone_progression_data = {}
 	current_selected_zone_id = ""
