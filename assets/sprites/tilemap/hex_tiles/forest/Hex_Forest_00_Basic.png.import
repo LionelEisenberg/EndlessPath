@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://daw1naj0giu3j"
-path="res://.godot/imported/Hex_Forest_00_Basic.png-a8f2a5f76427ee63831619fb4e5f67c5.ctex"
+path="res://.godot/imported/Hex_Forest_00_Basic.png-d3fe7449aa1cb67b30c19cd489e7594b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/tilemap/Hex_Forest_00_Basic.png"
-dest_files=["res://.godot/imported/Hex_Forest_00_Basic.png-a8f2a5f76427ee63831619fb4e5f67c5.ctex"]
+source_file="res://assets/sprites/tilemap/hex_tiles/forest/Hex_Forest_00_Basic.png"
+dest_files=["res://.godot/imported/Hex_Forest_00_Basic.png-d3fe7449aa1cb67b30c19cd489e7594b.ctex"]
 
 [params]
 

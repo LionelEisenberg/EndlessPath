@@ -1,11 +1,13 @@
 [gd_resource type="TileSet" format=3 uid="uid://brm40hxx3wp8n"]
 
-[ext_resource type="Texture2D" uid="uid://nnhoojvpoehu" path="res://assets/sprites/tilemap/tile_horizontal.png" id="1_kcnis"]
 [ext_resource type="Texture2D" uid="uid://bm2b67q6iitaw" path="res://assets/sprites/tilemap/hex_tiles/forest/hex_forest_atlas.png" id="9_forest_atlas"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_t1tt8"]
+load_path = "res://.godot/imported/tile_horizontal.png-32246fd8dd06933cc22a7575eab26419.ctex"
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nwvq3"]
 resource_name = "base_tile"
-texture = ExtResource("1_kcnis")
+texture = SubResource("CompressedTexture2D_t1tt8")
 texture_region_size = Vector2i(164, 190)
 0:0/next_alternative_id = 6
 0:0/0 = 0
