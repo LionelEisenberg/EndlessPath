@@ -53,8 +53,10 @@ func start_quest(quest_id: String) -> void:
 		push_error("QuestManager: unknown quest_id '%s'" % quest_id)
 		return
 	if has_active_quest(quest_id):
+		Log.warn("QuestManager: start_quest '%s' ignored (already active)" % quest_id)
 		return
 	if has_completed_quest(quest_id):
+		Log.warn("QuestManager: start_quest '%s' ignored (already completed)" % quest_id)
 		return
 	var quest: QuestData = _quests_by_id[quest_id]
 	_live_save_data.quest_progression.active_quests[quest_id] = 0

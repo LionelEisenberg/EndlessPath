@@ -4,6 +4,10 @@ extends EffectData
 @export var quest_id: String = ""
 
 
+func _init() -> void:
+	effect_type = EffectType.START_QUEST
+
+
 func _to_string() -> String:
 	return "StartQuestEffectData { quest_id: %s }" % quest_id
 
