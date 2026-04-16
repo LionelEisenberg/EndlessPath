@@ -9,7 +9,6 @@ enum ActionType {
 	TRAIN_STATS,
 	CYCLING,
 	ZONE_EVENT,  # Story/scripted events
-	QUEST_GIVER
 }
 
 @export var action_id: String = ""

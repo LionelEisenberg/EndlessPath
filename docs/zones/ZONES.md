@@ -154,7 +154,6 @@ source ID mapping.
 | `MERCHANT` | No | No handler |
 | `TRAIN_STATS` | No | No handler |
 | `ZONE_EVENT` | No | No handler |
-| `QUEST_GIVER` | No | No handler |
 
 ### Action Subclasses
 
@@ -274,7 +273,7 @@ No known bugs in the Zone system.
 
 ### Missing Functionality
 
-- `[MEDIUM]` MERCHANT, TRAIN_STATS, ZONE_EVENT, QUEST_GIVER action types have no handler in ActionManager — selecting these actions does nothing
+- `[MEDIUM]` MERCHANT, TRAIN_STATS, ZONE_EVENT action types have no handler in ActionManager — selecting these actions does nothing
 - `[MEDIUM]` `ForageActionData.madra_cost_per_second` is defined but never deducted — foraging is free regardless of this value
 - `[LOW]` `ZoneProgressionData.forage_active/forage_start_time` saved but not used on load — no offline foraging resume, progress lost on restart
 
