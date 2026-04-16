@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://b8q7j5y2k3m1n"]
 
 [ext_resource type="Script" uid="uid://dexm610tf5784" path="res://scenes/ui/log_window/log_window.gd" id="1_logwin"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/ui/log_window.tres" id="2_lw"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/ui/log_titlebar.tres" id="3_tb"]
+[ext_resource type="StyleBox" uid="uid://dt2uc6nccjdh8" path="res://assets/styleboxes/ui/log_window.tres" id="2_lw"]
+[ext_resource type="StyleBox" uid="uid://d07lobj0fkrxr" path="res://assets/styleboxes/ui/log_titlebar.tres" id="3_tb"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_i3e3n"]
 
@@ -12,7 +12,7 @@ offset_right = 400.0
 offset_bottom = 217.0
 size_flags_horizontal = 0
 size_flags_vertical = 0
-mouse_filter = 1
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxEmpty_i3e3n")
 script = ExtResource("1_logwin")
 

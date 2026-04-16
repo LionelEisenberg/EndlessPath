@@ -8,3 +8,6 @@
 .worktrees/
 .claude/worktrees/
 .superpowers/
+
+# Local preview server working directory (served copy of docs/superpowers/mockups/)
+/mockups/
