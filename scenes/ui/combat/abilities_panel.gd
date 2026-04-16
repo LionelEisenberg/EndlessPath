@@ -152,6 +152,7 @@ func _on_cast_updated(_instance: CombatAbilityInstance, time_left: float) -> voi
 func _on_cast_finished(_instance: CombatAbilityInstance) -> void:
 	hide_casting_state()
 
+## Shows the casting UI with ability name and progress bar.
 func show_casting_state(instance: CombatAbilityInstance, total_duration: float) -> void:
 	ability_container.visible = false
 	casting_indicator.visible = true
@@ -162,10 +163,12 @@ func show_casting_state(instance: CombatAbilityInstance, total_duration: float) 
 
 	update_cast_progress(total_duration)
 
+## Updates the cast progress bar and timer label.
 func update_cast_progress(time_left: float) -> void:
 	progress_bar.value = time_left
 	cast_timer_label.text = "%.1f / %.1fs" % [time_left, progress_bar.max_value]
 
+## Hides the casting UI and shows ability buttons again.
 func hide_casting_state() -> void:
 	casting_indicator.visible = false
 	ability_container.visible = true

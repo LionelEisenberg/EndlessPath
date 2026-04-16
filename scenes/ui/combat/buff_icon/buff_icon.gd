@@ -53,8 +53,10 @@ func setup(buff_data: BuffEffectData, duration: float, stack_count: int) -> void
 
 	# Enable mouse hover
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	mouse_entered.connect(_on_mouse_entered)
-	mouse_exited.connect(_on_mouse_exited)
+	if not mouse_entered.is_connected(_on_mouse_entered):
+		mouse_entered.connect(_on_mouse_entered)
+	if not mouse_exited.is_connected(_on_mouse_exited):
+		mouse_exited.connect(_on_mouse_exited)
 
 ## Updates the duration display.
 func update_duration(new_time_left: float) -> void:

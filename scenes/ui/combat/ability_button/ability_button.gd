@@ -45,6 +45,7 @@ var _cost_container: HBoxContainer
 var _cost_bg: PanelContainer
 var _cost_labels: Array[Label] = []
 var _border_rect: TextureRect
+var _border_default_modulate: Color = Color.WHITE
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -68,6 +69,8 @@ func _ready() -> void:
 	cooldown_progress_bar.value = 0.0
 
 	_border_rect = get_node("BackgroundRect")
+	if _border_rect:
+		_border_default_modulate = _border_rect.modulate
 
 ## Sets up the button with the given ability instance, slot index, and vitals manager.
 func setup(instance: CombatAbilityInstance, slot_index: int = -1, vitals_manager: VitalsManager = null) -> void:
@@ -96,6 +99,19 @@ func setup(instance: CombatAbilityInstance, slot_index: int = -1, vitals_manager
 	# Build UI overlays
 	_create_key_hint_label()
 	_create_cost_strip()
+
+func _exit_tree() -> void:
+	if ability_instance and is_instance_valid(ability_instance):
+		if ability_instance.cooldown_started.is_connected(_on_cooldown_started):
+			ability_instance.cooldown_started.disconnect(_on_cooldown_started)
+		if ability_instance.cooldown_updated.is_connected(_on_cooldown_updated):
+			ability_instance.cooldown_updated.disconnect(_on_cooldown_updated)
+		if ability_instance.cooldown_ready.is_connected(_on_cooldown_ready):
+			ability_instance.cooldown_ready.disconnect(_on_cooldown_ready)
+		if ability_instance.cast_started.is_connected(_on_cast_started):
+			ability_instance.cast_started.disconnect(_on_cast_started)
+		if ability_instance.cast_finished.is_connected(_on_cast_finished):
+			ability_instance.cast_finished.disconnect(_on_cast_finished)
 
 #-----------------------------------------------------------------------------
 # PROCESS — Affordability Check
@@ -213,10 +229,14 @@ func _add_cost_label(text: String, color: Color, resource_type: String) -> void:
 func _update_affordability_visuals(can_afford: bool) -> void:
 	if can_afford:
 		button.modulate.a = 1.0
+		if _border_rect:
+			_border_rect.modulate = _border_default_modulate
 		for label: Label in _cost_labels:
 			label.add_theme_color_override("font_color", label.get_meta("default_color"))
 	else:
 		button.modulate.a = 0.35
+		if _border_rect:
+			_border_rect.modulate = BORDER_CANT_AFFORD
 		# Tint unaffordable cost labels red
 		if _vitals_manager and ability_instance:
 			var data: AbilityData = ability_instance.ability_data
