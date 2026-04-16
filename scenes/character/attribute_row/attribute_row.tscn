@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://m26avynuswy"]
+
+[ext_resource type="Script" uid="uid://rp23jtqjpgx" path="res://scenes/character/attribute_row/attribute_row.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="3_icon"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_row_bg"]
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
+bg_color = Color(1, 1, 1, 0.02)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[node name="AttributeRow" type="PanelContainer"]
+mouse_filter = 0
+theme = ExtResource("2_theme")
+theme_override_styles/panel = SubResource("StyleBoxFlat_row_bg")
+script = ExtResource("1_script")
+
+[node name="RowHBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Icon" type="TextureRect" parent="RowHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+texture = ExtResource("3_icon")
+expand_mode = 3
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="RowHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelBody"
+text = "ATTRIBUTE"
+vertical_alignment = 1
+
+[node name="ValueLabel" type="Label" parent="RowHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_type_variation = &"LabelValueLarge"
+text = "10"
+horizontal_alignment = 2
+vertical_alignment = 1
