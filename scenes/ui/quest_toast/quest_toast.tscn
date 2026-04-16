@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1quest1toast1"]
+
+[ext_resource type="Script" path="res://scenes/ui/quest_toast/quest_toast.gd" id="1_qt"]
+[ext_resource type="StyleBox" uid="uid://quest_toast_01" path="res://assets/styleboxes/ui/quest_toast.tres" id="2_qtbg"]
+
+[node name="QuestToast" type="PanelContainer"]
+custom_minimum_size = Vector2(400, 0)
+size_flags_horizontal = 4
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("2_qtbg")
+script = ExtResource("1_qt")
+
+[node name="MessageLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+horizontal_alignment = 1
+text = ""
