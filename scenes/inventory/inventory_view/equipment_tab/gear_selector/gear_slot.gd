@@ -1,7 +1,7 @@
 class_name GearSlot
 extends InventorySlot
 
-const GEAR_SLOT_TEXTURE = preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot03a.png")
+const GEAR_SLOT_TEXTURE = preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot03a.png")
 
 @export var slot_type: EquipmentDefinitionData.EquipmentSlot = EquipmentDefinitionData.EquipmentSlot.HEAD
 

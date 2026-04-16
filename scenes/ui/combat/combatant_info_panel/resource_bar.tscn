@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bafol1aia1ngt"]
 
 [ext_resource type="Script" uid="uid://3ptonqwtx0dr" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.gd" id="1_08ulu"]
-[ext_resource type="Texture2D" uid="uid://t0oivlblyw7u" path="res://assets/asperite/ui/resource_bar/Background.png" id="1_bdkjb"]
-[ext_resource type="Texture2D" uid="uid://kqrb74mi06oc" path="res://assets/asperite/ui/resource_bar/Border.png" id="2_08ulu"]
+[ext_resource type="Texture2D" uid="uid://t0oivlblyw7u" path="res://assets/sprites/ui/resource_bar/Background.png" id="1_bdkjb"]
+[ext_resource type="Texture2D" uid="uid://kqrb74mi06oc" path="res://assets/sprites/ui/resource_bar/Border.png" id="2_08ulu"]
 
 [node name="ResourceBar" type="Control" unique_id=974106900]
 custom_minimum_size = Vector2(316, 44)

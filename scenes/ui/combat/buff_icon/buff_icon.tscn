@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://dh41j1mmxl5w5"]
 
 [ext_resource type="Script" uid="uid://wos6y25joxtn" path="res://scenes/ui/combat/buff_icon/buff_icon.gd" id="1_4t1cf"]
-[ext_resource type="Texture2D" uid="uid://cfupxjmvrm636" path="res://assets/ui_images/buff_icon/buff_icon_border.png" id="2_splm6"]
-[ext_resource type="Texture2D" uid="uid://briak23acb13b" path="res://assets/ui_images/buff_icon/buff_icon_overlay.png" id="3_r17if"]
+[ext_resource type="Texture2D" uid="uid://cfupxjmvrm636" path="res://assets/sprites/ui/buff_icon/buff_icon_border.png" id="2_splm6"]
+[ext_resource type="Texture2D" uid="uid://briak23acb13b" path="res://assets/sprites/ui/buff_icon/buff_icon_overlay.png" id="3_r17if"]
 
 [node name="BuffIcon" type="MarginContainer" unique_id=70463311]
 anchors_preset = 5

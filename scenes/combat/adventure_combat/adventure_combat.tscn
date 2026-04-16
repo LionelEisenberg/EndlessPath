@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://blofb5opg1kdu"]
 
 [ext_resource type="Script" uid="uid://b5570lugu0psn" path="res://scenes/combat/adventure_combat/adventure_combat.gd" id="1_utfsu"]
-[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/asperite/character_profiles/base_player.png" id="3_12g5w"]
+[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/sprites/character/base_player.png" id="3_12g5w"]
 [ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="4_vkkxw"]
 
 [node name="AdventureCombat" type="Node2D" unique_id=34704748]

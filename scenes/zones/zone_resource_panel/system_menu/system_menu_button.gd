@@ -27,13 +27,13 @@ const MENU_CONFIG: Dictionary = {
 		"display_name": "INVENTORY",
 		"input_action": &"open_inventory",
 		"shortcut_hint": "I",
-		"icon": preload("res://assets/ui_images/system_menu/inventory_icon.png"),
+		"icon": preload("res://assets/sprites/ui/system_menu/inventory_icon.png"),
 	},
 	MenuType.ABILITIES: {
 		"display_name": "ABILITIES",
 		"input_action": &"open_abilities",
 		"shortcut_hint": "A",
-		"icon": preload("res://assets/ui_images/system_menu/ability_icon.png"),
+		"icon": preload("res://assets/sprites/ui/system_menu/ability_icon.png"),
 	},
 	MenuType.CHARACTER: {
 		"display_name": "CHARACTER",
@@ -45,7 +45,7 @@ const MENU_CONFIG: Dictionary = {
 		"display_name": "PATH",
 		"input_action": &"open_path",
 		"shortcut_hint": "P",
-		"icon": preload("res://assets/ui_images/system_menu/star_icon.png"),
+		"icon": preload("res://assets/sprites/ui/system_menu/star_icon.png"),
 	},
 }
 

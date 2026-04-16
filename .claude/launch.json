@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "zone-mockup",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "mockups", "-l", "3456", "--no-clipboard"],
+      "port": 3456
+    }
+  ]
+}

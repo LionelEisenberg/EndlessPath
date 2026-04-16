@@ -4,21 +4,16 @@
 [ext_resource type="Script" uid="uid://dwq1j0omvr0wt" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd" id="2_5xx5a"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_bvhaj"]
 [ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/combatant_info_panel/resource_bar.tscn" id="3_5xx5a"]
-[ext_resource type="Texture2D" uid="uid://bgymbkidnr3et" path="res://assets/asperite/ui/resource_bar/MadraFill.png" id="4_h1px1"]
-[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/asperite/character_profiles/base_player.png" id="4_iwjul"]
-[ext_resource type="Texture2D" uid="uid://daujoefgcpmxk" path="res://assets/asperite/ui/resource_bar/StaminaFill.png" id="5_idpww"]
-[ext_resource type="Texture2D" uid="uid://c7o5q6nwirf5n" path="res://assets/asperite/ui/resource_bar/HealthFill.png" id="6_l7ne6"]
+[ext_resource type="Texture2D" uid="uid://bgymbkidnr3et" path="res://assets/sprites/ui/resource_bar/MadraFill.png" id="4_h1px1"]
+[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/sprites/character/base_player.png" id="4_iwjul"]
+[ext_resource type="Texture2D" uid="uid://daujoefgcpmxk" path="res://assets/sprites/ui/resource_bar/StaminaFill.png" id="5_idpww"]
+[ext_resource type="Texture2D" uid="uid://c7o5q6nwirf5n" path="res://assets/sprites/ui/resource_bar/HealthFill.png" id="6_l7ne6"]
 [ext_resource type="Script" uid="uid://bxymrpp02u0lr" path="res://scenes/ui/combat/abilities_panel.gd" id="9_5cglh"]
-[ext_resource type="Texture2D" uid="uid://bldgrd4oo0vqe" path="res://assets/RPG_Item_Pack_Retro_Spritesheet.png" id="10_bvhaj"]
 [ext_resource type="StyleBox" uid="uid://3rtufb8sb7ii" path="res://assets/styleboxes/combat/panel_abilities.tres" id="11_combat"]
 [ext_resource type="StyleBox" uid="uid://87vryitjnt4l" path="res://assets/styleboxes/combat/cast_bar_fill.tres" id="13_cast"]
 [ext_resource type="PackedScene" uid="uid://dtpro3leek0w6" path="res://scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.tscn" id="14_tooltip"]
 [ext_resource type="PackedScene" path="res://scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.tscn" id="15_buff_tooltip"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_xkkay"]
-atlas = ExtResource("10_bvhaj")
-region = Rect2(192, 384, 16, 16)
-filter_clip = true
 
 [node name="CombatantInfoPanel" type="Control" unique_id=271288353]
 custom_minimum_size = Vector2(518, 0)
@@ -138,7 +133,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 size_flags_horizontal = 3
-texture = SubResource("AtlasTexture_xkkay")
 
 [node name="ProgressBarContainer" type="MarginContainer" parent="HBoxContainer/MainVBox/AbilitiesPanel/MarginContainer/CastingIndicator" unique_id=1066251217]
 layout_mode = 2

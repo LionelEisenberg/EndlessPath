@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_lurdt"]
 [ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_34div"]
-[ext_resource type="Texture2D" uid="uid://djrbdgn6s8xmq" path="res://assets/asperite/abilities/empty_palm.png" id="2_gtwq6"]
+[ext_resource type="Texture2D" uid="uid://djrbdgn6s8xmq" path="res://assets/sprites/abilities/empty_palm.png" id="2_gtwq6"]
 
 [sub_resource type="Resource" id="Resource_34div"]
 script = ExtResource("1_lurdt")

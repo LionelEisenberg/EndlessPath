@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://4xhyejm3nwu"
+path="res://.godot/imported/resource_bar.aseprite-49bcb2e97493f019f9b009be1ad0cbe5.res"
+
+[deps]
+
+source_file="res://assets/aseprite/ui/resource_bar/resource_bar.aseprite"
+dest_files=["res://.godot/imported/resource_bar.aseprite-49bcb2e97493f019f9b009be1ad0cbe5.res"]
+
+[params]
+

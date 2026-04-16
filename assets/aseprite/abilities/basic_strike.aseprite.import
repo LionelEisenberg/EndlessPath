@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://cta5ookip0ob2"
+path="res://.godot/imported/basic_strike.aseprite-a272565c665db2b31c238d1029c6ad50.res"
+
+[deps]
+
+source_file="res://assets/aseprite/abilities/basic_strike.aseprite"
+dest_files=["res://.godot/imported/basic_strike.aseprite-a272565c665db2b31c238d1029c6ad50.res"]
+
+[params]
+

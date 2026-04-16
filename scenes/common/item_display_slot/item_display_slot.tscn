@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://ix8ck2f5o613"]
 
 [ext_resource type="Script" uid="uid://bhjud67w2k63a" path="res://scenes/common/item_display_slot/item_display_slot.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/asperite/inventory/equipment_tab/gear_selector/item_description_background.png" id="2_tooltip_bg"]
+[ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/sprites/inventory/gear_selector/item_description_background.png" id="2_tooltip_bg"]
 [ext_resource type="PackedScene" uid="uid://hdpsokiiqmae" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="3_desc_panel"]
 
 [node name="ItemDisplaySlot" type="Control" unique_id=1702444595]

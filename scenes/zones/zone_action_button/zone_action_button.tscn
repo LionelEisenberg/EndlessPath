@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://d1adqdlc01837" path="res://scenes/zones/zone_action_button/zone_action_button.gd" id="1_action_btn"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/zones/action_card_normal.tres" id="2_card_normal"]
-[ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/ui_images/resources/madra_icon.png" id="3_po6du"]
+[ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/sprites/ui/resources/madra_icon.png" id="3_po6du"]
 [ext_resource type="Shader" uid="uid://action_card_sweep_shader" path="res://assets/shaders/action_card_sweep.gdshader" id="4_sweep_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sweep"]
