@@ -26,6 +26,7 @@ var _quests_by_id: Dictionary = {}  # String -> QuestData
 
 func _ready() -> void:
 	_build_catalog_index()
+	_validate_catalog()
 	if PersistenceManager:
 		_live_save_data = PersistenceManager.save_game_data
 		PersistenceManager.save_data_reset.connect(_on_save_data_reset)
@@ -113,6 +114,24 @@ func _build_catalog_index() -> void:
 	for quest: QuestData in _quest_catalog.quests:
 		if quest and not quest.quest_id.is_empty():
 			_quests_by_id[quest.quest_id] = quest
+
+## Validates the catalog for authoring errors. Called from _ready(). Does not
+## modify state; only logs errors so the developer sees them in the console.
+func _validate_catalog() -> void:
+	for quest: QuestData in _quest_catalog.quests:
+		if quest == null or quest.quest_id.is_empty():
+			continue
+		for i: int in quest.steps.size():
+			var step: QuestStepData = quest.steps[i]
+			if step == null:
+				push_error("QuestManager: quest '%s' step %d is null" % [quest.quest_id, i])
+				continue
+			var has_event: bool = not step.completion_event_id.is_empty()
+			var has_conditions: bool = not step.completion_conditions.is_empty()
+			if has_event and has_conditions:
+				push_error("QuestManager: quest '%s' step '%s' has both completion_event_id and completion_conditions — event will take precedence" % [quest.quest_id, step.step_id])
+			elif not has_event and not has_conditions:
+				push_error("QuestManager: quest '%s' step '%s' has no completion criteria — will auto-advance" % [quest.quest_id, step.step_id])
 
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data

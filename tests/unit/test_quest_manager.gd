@@ -260,3 +260,28 @@ func test_load_drops_active_quest_with_deleted_data() -> void:
 	QuestManager._prune_unknown_active_quests()
 	assert_false(_save_data.quest_progression.active_quests.has("ghost_quest"),
 		"unknown active quests should be pruned")
+
+# ----- load-time validation -----
+
+func test_step_with_both_event_and_conditions_pushes_error() -> void:
+	var bad_step := QuestStepData.new()
+	bad_step.step_id = "bad"
+	bad_step.completion_event_id = "some_event"
+	bad_step.completion_conditions = [_create_condition_event("other")] as Array[UnlockConditionData]
+	var bad_quest := _create_quest("bad_quest", "Bad Quest", [bad_step] as Array[QuestStepData])
+	QuestManager._quest_catalog = QuestList.new()
+	QuestManager._quest_catalog.quests = [bad_quest] as Array[QuestData]
+	QuestManager._build_catalog_index()
+	QuestManager._validate_catalog()
+	assert_push_error("has both completion_event_id and completion_conditions")
+
+func test_step_with_neither_event_nor_conditions_pushes_error() -> void:
+	var bad_step := QuestStepData.new()
+	bad_step.step_id = "bad"
+	# Neither completion_event_id nor completion_conditions set.
+	var bad_quest := _create_quest("bad_quest2", "Bad Quest 2", [bad_step] as Array[QuestStepData])
+	QuestManager._quest_catalog = QuestList.new()
+	QuestManager._quest_catalog.quests = [bad_quest] as Array[QuestData]
+	QuestManager._build_catalog_index()
+	QuestManager._validate_catalog()
+	assert_push_error("has no completion criteria")
