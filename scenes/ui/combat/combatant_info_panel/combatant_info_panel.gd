@@ -104,13 +104,16 @@ func setup_name(combatant_name: String) -> void:
 		name_label.text = combatant_name
 
 func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
-	# Always clean up previous state/icons first
 	_cleanup_abilities()
-	
+
 	ability_manager = p_ability_manager
 
 	if ability_manager:
 		abilities_panel.visible = true
+
+		# Pass vitals manager for affordability checks
+		if vitals_manager:
+			abilities_panel.set_vitals_manager(vitals_manager)
 
 		# Connect selection signal
 		if not abilities_panel.ability_selected.is_connected(_on_ability_selected):
@@ -124,8 +127,6 @@ func setup_abilities(p_ability_manager: CombatAbilityManager) -> void:
 			_register_ability(ability_instance)
 	else:
 		abilities_panel.visible = false
-	
-	pass
 
 #-----------------------------------------------------------------------------
 # VITALS UPDATES
