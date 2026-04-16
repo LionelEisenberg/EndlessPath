@@ -108,6 +108,45 @@ func _build_catalog_index() -> void:
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data
 
-func _on_event_triggered(_event_id: String) -> void:
-	# Implemented in Task 5.
-	pass
+func _on_event_triggered(event_id: String) -> void:
+	# Iterate over a copy since advancement may complete a quest and mutate active_quests.
+	var active_ids: Array[String] = get_active_quest_ids()
+	for quest_id: String in active_ids:
+		_try_advance_step(quest_id, event_id)
+
+## Advances the current step of `quest_id` if its completion criteria are met.
+## `triggering_event_id` is the event that just fired (empty for non-event triggers).
+func _try_advance_step(quest_id: String, triggering_event_id: String) -> void:
+	var quest: QuestData = _quests_by_id.get(quest_id)
+	if quest == null:
+		return
+	var step_index: int = _live_save_data.quest_progression.active_quests.get(quest_id, -1)
+	if step_index < 0 or step_index >= quest.steps.size():
+		return
+	var step: QuestStepData = quest.steps[step_index]
+	if not _is_step_satisfied(step, triggering_event_id):
+		return
+	_advance_step(quest_id)
+
+## Returns true if the step's completion criterion is met right now.
+## For event-based steps, `triggering_event_id` must match. For condition-based
+## steps, evaluates all conditions against current state.
+func _is_step_satisfied(step: QuestStepData, triggering_event_id: String) -> bool:
+	if not step.completion_event_id.is_empty():
+		return step.completion_event_id == triggering_event_id
+	# Conditions path — implemented in Task 6.
+	return false
+
+## Moves the quest forward one step. If it was on the last step, the quest
+## completes (implemented in Task 8). Emits quest_step_advanced otherwise.
+func _advance_step(quest_id: String) -> void:
+	var quest: QuestData = _quests_by_id[quest_id]
+	var new_index: int = _live_save_data.quest_progression.active_quests[quest_id] + 1
+	if new_index >= quest.steps.size():
+		# Completion logic added in Task 8 — for now, remove from active to
+		# satisfy Task 5's multi-quest test.
+		_live_save_data.quest_progression.active_quests.erase(quest_id)
+		return
+	_live_save_data.quest_progression.active_quests[quest_id] = new_index
+	Log.info("QuestManager: Quest '%s' advanced to step %d" % [quest_id, new_index])
+	quest_step_advanced.emit(quest_id, new_index)

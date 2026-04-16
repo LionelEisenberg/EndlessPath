@@ -73,3 +73,38 @@ func test_start_quest_already_completed_is_noop() -> void:
 	assert_signal_not_emitted(QuestManager, "quest_started")
 	assert_false(QuestManager.has_active_quest("quest_a"),
 		"already-completed quest should not become active")
+
+# ----- step advancement: event-based -----
+
+func test_step_advances_on_matching_event() -> void:
+	QuestManager.start_quest("quest_a")
+	QuestManager._on_event_triggered("eel_dialogue_done")
+	assert_eq(QuestManager.get_current_step_index("quest_a"), 1,
+		"quest_a should advance to step 1 after eel_dialogue_done")
+
+func test_step_does_not_advance_on_unmatched_event() -> void:
+	QuestManager.start_quest("quest_a")
+	QuestManager._on_event_triggered("unrelated_event")
+	assert_eq(QuestManager.get_current_step_index("quest_a"), 0,
+		"quest_a should still be at step 0")
+
+func test_step_advance_emits_signal() -> void:
+	QuestManager.start_quest("quest_a")
+	watch_signals(QuestManager)
+	QuestManager._on_event_triggered("eel_dialogue_done")
+	assert_signal_emitted_with_parameters(QuestManager, "quest_step_advanced", ["quest_a", 1])
+
+func test_multiple_active_quests_share_event_advance() -> void:
+	QuestManager.start_quest("quest_a")
+	QuestManager.start_quest("quest_b")
+	QuestManager._on_event_triggered("eel_dialogue_done")
+	assert_eq(QuestManager.get_current_step_index("quest_a"), 1,
+		"quest_a advances to step 1")
+	# quest_b only has one step matching eel_dialogue_done — it completes;
+	# "completes" behavior is tested in Task 8 — for now just assert it's no
+	# longer at step 0 OR has been removed from active.
+	assert_true(
+		not QuestManager.has_active_quest("quest_b") or
+			QuestManager.get_current_step_index("quest_b") != 0,
+		"quest_b should have left step 0"
+	)
