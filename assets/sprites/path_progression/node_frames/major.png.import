@@ -10,7 +10,7 @@ metadata={
 
 [deps]
 
-source_file="res://assets/images/path_progression/node_frames/major.png"
+source_file="res://assets/sprites/path_progression/node_frames/major.png"
 dest_files=["res://.godot/imported/major.png-329348305f1fdc57281c58e624fe7cac.ctex"]
 
 [params]

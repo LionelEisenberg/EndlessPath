@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://c4vvva3sq1y6b"]
 
 [ext_resource type="Script" uid="uid://iuxltlu1tgt0" path="res://scenes/path_progression/benefit_card.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://v6wqojakad61" path="res://assets/images/path_progression/node_frames/major.png" id="2_eriu7"]
+[ext_resource type="Texture2D" uid="uid://v6wqojakad61" path="res://assets/sprites/path_progression/node_frames/major.png" id="2_eriu7"]
 
 [node name="BenefitCard" type="HBoxContainer" unique_id=349986916]
 theme_override_constants/separation = 8

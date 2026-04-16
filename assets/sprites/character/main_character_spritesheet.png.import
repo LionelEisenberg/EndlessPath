@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c5niluk4uidka"
-path="res://.godot/imported/minor.png-05c327cb5f2edbf77a62cf36d27db525.ctex"
+uid="uid://bpbehk6ko2uu3"
+path="res://.godot/imported/Main-Character-8-Direction.png-46c8b7b8b55ae57f594af98a55a1e78e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/path_progression/node_frames/minor.png"
-dest_files=["res://.godot/imported/minor.png-05c327cb5f2edbf77a62cf36d27db525.ctex"]
+source_file="res://assets/sprites/character/main_character_spritesheet.png"
+dest_files=["res://.godot/imported/Main-Character-8-Direction.png-46c8b7b8b55ae57f594af98a55a1e78e.ctex"]
 
 [params]
 

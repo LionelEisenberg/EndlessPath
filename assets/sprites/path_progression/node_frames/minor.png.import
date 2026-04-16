@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c3j356ojanlsg"
-path="res://.godot/imported/keystone.png-1a2d020eb1458b9aa80845b3712c0050.ctex"
+uid="uid://c5niluk4uidka"
+path="res://.godot/imported/minor.png-05c327cb5f2edbf77a62cf36d27db525.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/path_progression/node_frames/keystone.png"
-dest_files=["res://.godot/imported/keystone.png-1a2d020eb1458b9aa80845b3712c0050.ctex"]
+source_file="res://assets/sprites/path_progression/node_frames/minor.png"
+dest_files=["res://.godot/imported/minor.png-05c327cb5f2edbf77a62cf36d27db525.ctex"]
 
 [params]
 

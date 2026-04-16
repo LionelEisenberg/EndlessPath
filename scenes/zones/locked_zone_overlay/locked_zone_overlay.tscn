@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://clockedoverlay01"]
 
 [ext_resource type="Script" path="res://scenes/zones/locked_zone_overlay/locked_zone_overlay.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://cc4r0m0rxqdot" path="res://assets/lock_icon.png" id="2_lock"]
+[ext_resource type="Texture2D" uid="uid://cc4r0m0rxqdot" path="res://assets/sprites/ui/lock_icon.png" id="2_lock"]
 
 [node name="LockedZoneOverlay" type="Node2D"]
 z_index = 3

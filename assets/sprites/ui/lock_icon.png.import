@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bpbehk6ko2uu3"
-path="res://.godot/imported/Main-Character-8-Direction.png-46c8b7b8b55ae57f594af98a55a1e78e.ctex"
+uid="uid://cc4r0m0rxqdot"
+path="res://.godot/imported/lock_icon.png-5d1b1b2fbd7f8f56575a9f68ccc73318.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/spritesheets/Main-Character-8-Direction.png"
-dest_files=["res://.godot/imported/Main-Character-8-Direction.png-46c8b7b8b55ae57f594af98a55a1e78e.ctex"]
+source_file="res://assets/sprites/ui/lock_icon.png"
+dest_files=["res://.godot/imported/lock_icon.png-5d1b1b2fbd7f8f56575a9f68ccc73318.ctex"]
 
 [params]
 

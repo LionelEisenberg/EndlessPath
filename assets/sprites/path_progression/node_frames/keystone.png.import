@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cc4r0m0rxqdot"
-path="res://.godot/imported/lock_icon.png-5d1b1b2fbd7f8f56575a9f68ccc73318.ctex"
+uid="uid://c3j356ojanlsg"
+path="res://.godot/imported/keystone.png-1a2d020eb1458b9aa80845b3712c0050.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/lock_icon.png"
-dest_files=["res://.godot/imported/lock_icon.png-5d1b1b2fbd7f8f56575a9f68ccc73318.ctex"]
+source_file="res://assets/sprites/path_progression/node_frames/keystone.png"
+dest_files=["res://.godot/imported/keystone.png-1a2d020eb1458b9aa80845b3712c0050.ctex"]
 
 [params]
 

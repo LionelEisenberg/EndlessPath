@@ -8,9 +8,9 @@
 [ext_resource type="PackedScene" uid="uid://boimokm0mg0j7" path="res://scenes/path_progression/path_node_tooltip.tscn" id="3_tooltip"]
 [ext_resource type="Script" uid="uid://bgl54ackvst58" path="res://scenes/path_progression/benefits_area.gd" id="4_benefits"]
 [ext_resource type="PackedScene" uid="uid://c4vvva3sq1y6b" path="res://scenes/path_progression/benefit_card.tscn" id="5_bcard"]
-[ext_resource type="Texture2D" uid="uid://c3j356ojanlsg" path="res://assets/images/path_progression/node_frames/keystone.png" id="6_key_icon"]
-[ext_resource type="Texture2D" uid="uid://v6wqojakad61" path="res://assets/images/path_progression/node_frames/major.png" id="7_maj_icon"]
-[ext_resource type="Texture2D" uid="uid://c5niluk4uidka" path="res://assets/images/path_progression/node_frames/minor.png" id="8_min_icon"]
+[ext_resource type="Texture2D" uid="uid://c3j356ojanlsg" path="res://assets/sprites/path_progression/node_frames/keystone.png" id="6_key_icon"]
+[ext_resource type="Texture2D" uid="uid://v6wqojakad61" path="res://assets/sprites/path_progression/node_frames/major.png" id="7_maj_icon"]
+[ext_resource type="Texture2D" uid="uid://c5niluk4uidka" path="res://assets/sprites/path_progression/node_frames/minor.png" id="8_min_icon"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unified_panel"]
 bg_color = Color(0.196, 0.157, 0.118, 0.94)
