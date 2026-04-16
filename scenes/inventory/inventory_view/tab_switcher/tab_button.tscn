@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://dnkls2h5eaj10"]
 
-[ext_resource type="Texture2D" uid="uid://c4hiwispu082d" path="res://assets/asperite/inventory/tab_switcher/tab_button_open.png" id="1_qf55a"]
-[ext_resource type="Texture2D" uid="uid://qg3e62j1wpfi" path="res://assets/asperite/inventory/tab_switcher/bag_icon.png" id="2_ejei4"]
+[ext_resource type="Texture2D" uid="uid://c4hiwispu082d" path="res://assets/sprites/inventory/tab_switcher/tab_button_open.png" id="1_qf55a"]
+[ext_resource type="Texture2D" uid="uid://qg3e62j1wpfi" path="res://assets/sprites/inventory/tab_switcher/bag_icon.png" id="2_ejei4"]
 [ext_resource type="Script" uid="uid://r0d5awro0gtx" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.gd" id="2_gxvos"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/common/button_invisible.tres" id="4_bi"]
 

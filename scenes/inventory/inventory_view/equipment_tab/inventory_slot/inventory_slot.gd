@@ -8,17 +8,17 @@ signal clicked(slot: InventorySlot, event: InputEvent)
 var item_instance: ItemInstance = null
 
 const empty_slot_textures: Array[Texture2D] = [
-	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot01a.png"),
-	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot01b.png"),
-	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot01c.png"),
-	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot01d.png")
+	preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot01a.png"),
+	preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot01b.png"),
+	preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot01c.png"),
+	preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot01d.png")
 ]
 
 const full_slot_textures: Array[Texture2D] = [
-	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02a.png"),
-	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02b.png"),
-	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02c.png"),
-	preload("res://assets/asperite/inventory/inventory_slot/UI_NoteBook_Slot02d.png")
+	preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot02a.png"),
+	preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot02b.png"),
+	preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot02c.png"),
+	preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot02d.png")
 ]
 
 var empty_texture: Texture2D = empty_slot_textures[randi() % empty_slot_textures.size()]

@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://bn6xsijn342nc" path="res://scenes/zones/zone_view_background/zone_view_background.tscn" id="3_wf87j"]
 [ext_resource type="PackedScene" uid="uid://blofb5opg1kdu" path="res://scenes/combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
 [ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="6_a8cog"]
-[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/asperite/character_profiles/base_player.png" id="7_4nakn"]
+[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/sprites/character/base_player.png" id="7_4nakn"]
 [ext_resource type="Script" uid="uid://btelbuw52bmqs" path="res://scenes/adventure/adventure_view/timer_panel.gd" id="8_wf87j"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/adventure/panel_timer.tres" id="9_tmr"]
 

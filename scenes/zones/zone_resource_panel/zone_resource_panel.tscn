@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://6mef0wdu2bp7" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.gd" id="2_jqnp7"]
 [ext_resource type="Shader" uid="uid://cwdh2ac063vwq" path="res://assets/shaders/liquid_wave.gdshader" id="3_708fp"]
-[ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/asperite/cycling/madra_circle.png" id="4_tkkoj"]
+[ext_resource type="Texture2D" uid="uid://gpg403wa84ug" path="res://assets/sprites/cycling/madra_circle.png" id="4_tkkoj"]
 [ext_resource type="Script" uid="uid://chldnyvaer1hp" path="res://scenes/cycling/cycling_resource_panel/progress_shader_rect.gd" id="5_gvadv"]
 [ext_resource type="Shader" uid="uid://cnsig7e5ba7ln" path="res://assets/shaders/core_density_fill.gdshader" id="6_7q158"]
 [ext_resource type="StyleBox" uid="uid://dhwyufpnngnfa" path="res://assets/styleboxes/common/panel_floating_dark.tres" id="7_pfd"]
