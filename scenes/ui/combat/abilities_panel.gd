@@ -112,17 +112,32 @@ func _unhandled_input(event: InputEvent) -> void:
 # TOOLTIP
 #-----------------------------------------------------------------------------
 
-var _tooltip: Control = null
+const CombatAbilityTooltipScene: PackedScene = preload("res://scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.tscn")
+var _tooltip: CombatAbilityTooltip = null
+
+func _setup_tooltip() -> void:
+	_tooltip = CombatAbilityTooltipScene.instantiate()
+	add_child(_tooltip)
 
 func _on_ability_hovered(instance: CombatAbilityInstance) -> void:
-	# Tooltip is wired externally by CombatAbilityTooltip system (Task 5)
-	pass
+	if not _tooltip:
+		_setup_tooltip()
+
+	_tooltip.show_for_ability(instance.ability_data)
+
+	# Find the button that emitted this
+	for btn: AbilityButton in _ability_buttons:
+		if btn.ability_instance == instance:
+			# Defer positioning to next frame so tooltip sizes itself first
+			(func() -> void: _tooltip.position_above(btn)).call_deferred()
+			break
 
 func _on_ability_unhovered() -> void:
-	pass
+	_hide_tooltip()
 
 func _hide_tooltip() -> void:
-	pass
+	if _tooltip:
+		_tooltip.hide_tooltip()
 
 #-----------------------------------------------------------------------------
 # CASTING UI HANDLERS
