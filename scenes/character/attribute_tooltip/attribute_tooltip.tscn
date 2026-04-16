@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://cattrtlpscene"]
+
+[ext_resource type="Script" path="res://scenes/character/attribute_tooltip/attribute_tooltip.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+
+[node name="AttributeTooltip" type="PanelContainer"]
+visible = false
+top_level = true
+z_index = 100
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_type_variation = &"PanelTooltip"
+script = ExtResource("1_script")
+
+[node name="TooltipMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="TooltipVBox" type="VBoxContainer" parent="TooltipMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="TooltipMargin/TooltipVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelAbilityTitle"
+text = "ATTRIBUTE"
+
+[node name="TooltipSep" type="HSeparator" parent="TooltipMargin/TooltipVBox"]
+layout_mode = 2
+theme_type_variation = &"HSeparatorTooltip"
+
+[node name="BodyLabel" type="Label" parent="TooltipMargin/TooltipVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+theme_type_variation = &"LabelAbilityBody"
+autowrap_mode = 3
+text = "Description text"
+
+[node name="EffectsLabel" type="Label" parent="TooltipMargin/TooltipVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelAbilityMuted"
+autowrap_mode = 3
+text = "Formula text"
