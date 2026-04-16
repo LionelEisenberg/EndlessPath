@@ -3,12 +3,12 @@
 importer="aseprite_wizard.plugin.noop"
 type="PackedDataContainer"
 uid="uid://dktt46uvgorsl"
-path="res://.godot/imported/madra_circle.aseprite-86bfa5d768bc31acb61d14055b872e7b.res"
+path="res://.godot/imported/madra_circle.aseprite-481a29f7e3ff35517520b124bf9f2736.res"
 
 [deps]
 
-source_file="res://assets/asperite/cycling/madra_circle.aseprite"
-dest_files=["res://.godot/imported/madra_circle.aseprite-86bfa5d768bc31acb61d14055b872e7b.res"]
+source_file="res://assets/aseprite/cycling/madra_circle.aseprite"
+dest_files=["res://.godot/imported/madra_circle.aseprite-481a29f7e3ff35517520b124bf9f2736.res"]
 
 [params]
 

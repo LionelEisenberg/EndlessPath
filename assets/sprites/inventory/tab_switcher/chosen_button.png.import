@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bvrjqlv1hvv23"
-path="res://.godot/imported/chosen_button.png-d1918fd77d1f6d46a000d898381faf74.ctex"
+path="res://.godot/imported/chosen_button.png-1f9a11f68fcceceb95cc5d18a5d90b9c.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/inventory/tab_switcher/chosen_button.png"
-dest_files=["res://.godot/imported/chosen_button.png-d1918fd77d1f6d46a000d898381faf74.ctex"]
+dest_files=["res://.godot/imported/chosen_button.png-1f9a11f68fcceceb95cc5d18a5d90b9c.ctex"]
 
 [params]
 

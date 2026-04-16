@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://df8tyt5invbyg"
-path="res://.godot/imported/ability_icon.png-de5d5d0132a0809006404e44b0566164.ctex"
+path="res://.godot/imported/ability_icon.png-3469b27a1ed5633d1c76d8a1c00cb1d0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/system_menu/ability_icon.png"
-dest_files=["res://.godot/imported/ability_icon.png-de5d5d0132a0809006404e44b0566164.ctex"]
+source_file="res://assets/sprites/ui/system_menu/ability_icon.png"
+dest_files=["res://.godot/imported/ability_icon.png-3469b27a1ed5633d1c76d8a1c00cb1d0.ctex"]
 
 [params]
 

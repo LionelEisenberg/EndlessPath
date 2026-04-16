@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c5niluk4uidka"
-path="res://.godot/imported/minor.png-05c327cb5f2edbf77a62cf36d27db525.ctex"
+path="res://.godot/imported/minor.png-e1bc5f0200de6b2c1af3996455691e6e.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/path_progression/node_frames/minor.png"
-dest_files=["res://.godot/imported/minor.png-05c327cb5f2edbf77a62cf36d27db525.ctex"]
+dest_files=["res://.godot/imported/minor.png-e1bc5f0200de6b2c1af3996455691e6e.ctex"]
 
 [params]
 

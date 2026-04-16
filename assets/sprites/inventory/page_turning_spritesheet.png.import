@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2ht5lyu30god"
-path="res://.godot/imported/page_turning_spritesheet.png-8a0046dd37960e67a727f2251edf46ec.ctex"
+path="res://.godot/imported/page_turning_spritesheet.png-3b3a3786921fe5be5b379fc444a33016.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/inventory/page_turning_spritesheet.png"
-dest_files=["res://.godot/imported/page_turning_spritesheet.png-8a0046dd37960e67a727f2251edf46ec.ctex"]
+dest_files=["res://.godot/imported/page_turning_spritesheet.png-3b3a3786921fe5be5b379fc444a33016.ctex"]
 
 [params]
 

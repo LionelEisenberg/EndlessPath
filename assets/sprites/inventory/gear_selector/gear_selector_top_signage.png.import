@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://veonv7snu457"
-path="res://.godot/imported/gear_selector_top_signage.png-5083cd55cdc917760bf765c3e4ef0c11.ctex"
+path="res://.godot/imported/gear_selector_top_signage.png-4c841c30716135aa8467bfffe9012bb7.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/inventory/gear_selector/gear_selector_top_signage.png"
-dest_files=["res://.godot/imported/gear_selector_top_signage.png-5083cd55cdc917760bf765c3e4ef0c11.ctex"]
+dest_files=["res://.godot/imported/gear_selector_top_signage.png-4c841c30716135aa8467bfffe9012bb7.ctex"]
 
 [params]
 

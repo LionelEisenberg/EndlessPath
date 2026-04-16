@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dppmky4a5xje"
-path="res://.godot/imported/power_font.png-8f5853451f203340c5aa8f23f6277c13.ctex"
+path="res://.godot/imported/power_font.png-91c4fc4362b4256e0b9b9679c0752e82.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/abilities/power_font.png"
-dest_files=["res://.godot/imported/power_font.png-8f5853451f203340c5aa8f23f6277c13.ctex"]
+dest_files=["res://.godot/imported/power_font.png-91c4fc4362b4256e0b9b9679c0752e82.ctex"]
 
 [params]
 

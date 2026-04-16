@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://v1vt6c8yg10y"
-path="res://.godot/imported/ability_button_border.png-e2aa4c8f30f85efbb9887e7b1b8ab4b2.ctex"
+path="res://.godot/imported/ability_button_border.png-f6a14dc807772c6712154e20e2906154.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/ability_button/ability_button_border.png"
-dest_files=["res://.godot/imported/ability_button_border.png-e2aa4c8f30f85efbb9887e7b1b8ab4b2.ctex"]
+source_file="res://assets/sprites/ui/ability_button/ability_button_border.png"
+dest_files=["res://.godot/imported/ability_button_border.png-f6a14dc807772c6712154e20e2906154.ctex"]
 
 [params]
 

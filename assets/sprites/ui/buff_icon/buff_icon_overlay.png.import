@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://briak23acb13b"
-path="res://.godot/imported/buff_icon_overlay.png-ba70f361a782a41b76944564daa74edd.ctex"
+path="res://.godot/imported/buff_icon_overlay.png-fc311bd28f868059e6d38d6b3ac0694c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/buff_icon/buff_icon_overlay.png"
-dest_files=["res://.godot/imported/buff_icon_overlay.png-ba70f361a782a41b76944564daa74edd.ctex"]
+source_file="res://assets/sprites/ui/buff_icon/buff_icon_overlay.png"
+dest_files=["res://.godot/imported/buff_icon_overlay.png-fc311bd28f868059e6d38d6b3ac0694c.ctex"]
 
 [params]
 

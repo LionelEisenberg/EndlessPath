@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://qg3e62j1wpfi"
-path="res://.godot/imported/bag_icon.png-2b6f7c883f0214bc48af9d44b520983d.ctex"
+path="res://.godot/imported/bag_icon.png-766ab50d6b200a9855ff2102f7a176ce.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/inventory/tab_switcher/bag_icon.png"
-dest_files=["res://.godot/imported/bag_icon.png-2b6f7c883f0214bc48af9d44b520983d.ctex"]
+dest_files=["res://.godot/imported/bag_icon.png-766ab50d6b200a9855ff2102f7a176ce.ctex"]
 
 [params]
 

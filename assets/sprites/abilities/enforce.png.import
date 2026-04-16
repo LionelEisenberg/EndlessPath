@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dnpoxy5qdxcpa"
-path="res://.godot/imported/enforce.png-2aa147f763378d6315c433d4b23d8b97.ctex"
+path="res://.godot/imported/enforce.png-9a46fcd205a6e8fd1e84d83d41e200f2.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/abilities/enforce.png"
-dest_files=["res://.godot/imported/enforce.png-2aa147f763378d6315c433d4b23d8b97.ctex"]
+dest_files=["res://.godot/imported/enforce.png-9a46fcd205a6e8fd1e84d83d41e200f2.ctex"]
 
 [params]
 

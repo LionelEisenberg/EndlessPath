@@ -3,12 +3,12 @@
 importer="aseprite_wizard.plugin.noop"
 type="PackedDataContainer"
 uid="uid://chqjkrnfbuk1i"
-path="res://.godot/imported/buff_icon_border.aseprite-2b116f02536c46de85279bb9ed271a29.res"
+path="res://.godot/imported/buff_icon_border.aseprite-d70ce4a62f1d4b6395e713081b2c12fd.res"
 
 [deps]
 
-source_file="res://assets/asperite/ui/buff_icon/buff_icon_border.aseprite"
-dest_files=["res://.godot/imported/buff_icon_border.aseprite-2b116f02536c46de85279bb9ed271a29.res"]
+source_file="res://assets/aseprite/ui/buff_icon/buff_icon_border.aseprite"
+dest_files=["res://.godot/imported/buff_icon_border.aseprite-d70ce4a62f1d4b6395e713081b2c12fd.res"]
 
 [params]
 

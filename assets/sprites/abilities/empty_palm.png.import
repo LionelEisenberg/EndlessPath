@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://djrbdgn6s8xmq"
-path="res://.godot/imported/empty_palm.png-7cc007a1ea420fd2198e9cf1fbf79f66.ctex"
+path="res://.godot/imported/empty_palm.png-a811033aba9058930c4e340073a8ffd8.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/abilities/empty_palm.png"
-dest_files=["res://.godot/imported/empty_palm.png-7cc007a1ea420fd2198e9cf1fbf79f66.ctex"]
+dest_files=["res://.godot/imported/empty_palm.png-a811033aba9058930c4e340073a8ffd8.ctex"]
 
 [params]
 

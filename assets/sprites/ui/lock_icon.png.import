@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cc4r0m0rxqdot"
-path="res://.godot/imported/lock_icon.png-5d1b1b2fbd7f8f56575a9f68ccc73318.ctex"
+path="res://.godot/imported/lock_icon.png-30004c0580b6d61c89aeebb99534e3d6.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/ui/lock_icon.png"
-dest_files=["res://.godot/imported/lock_icon.png-5d1b1b2fbd7f8f56575a9f68ccc73318.ctex"]
+dest_files=["res://.godot/imported/lock_icon.png-30004c0580b6d61c89aeebb99534e3d6.ctex"]
 
 [params]
 

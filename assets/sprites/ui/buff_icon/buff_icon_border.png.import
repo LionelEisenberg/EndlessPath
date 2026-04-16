@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cfupxjmvrm636"
-path="res://.godot/imported/buff_icon_border.png-3e089ed72d0ebe44231d0e0469631f52.ctex"
+path="res://.godot/imported/buff_icon_border.png-b3391efa34f0b147bc18807d18f220eb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui_images/buff_icon/buff_icon_border.png"
-dest_files=["res://.godot/imported/buff_icon_border.png-3e089ed72d0ebe44231d0e0469631f52.ctex"]
+source_file="res://assets/sprites/ui/buff_icon/buff_icon_border.png"
+dest_files=["res://.godot/imported/buff_icon_border.png-b3391efa34f0b147bc18807d18f220eb.ctex"]
 
 [params]
 

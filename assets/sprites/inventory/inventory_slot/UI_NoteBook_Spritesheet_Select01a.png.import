@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://73gi871a4dr7"
-path="res://.godot/imported/UI_NoteBook_Spritesheet_Select01a.png-28efd6d262ed284829e8e763759aed70.ctex"
+path="res://.godot/imported/UI_NoteBook_Spritesheet_Select01a.png-626295194c4651abf27c6fd42b97ac35.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Spritesheet_Select01a.png"
-dest_files=["res://.godot/imported/UI_NoteBook_Spritesheet_Select01a.png-28efd6d262ed284829e8e763759aed70.ctex"]
+dest_files=["res://.godot/imported/UI_NoteBook_Spritesheet_Select01a.png-626295194c4651abf27c6fd42b97ac35.ctex"]
 
 [params]
 

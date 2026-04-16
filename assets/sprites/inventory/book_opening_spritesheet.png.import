@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bl4374rlugdsq"
-path="res://.godot/imported/book_opening_spritesheet.png-9682cf8048c6a8231692802c359a2405.ctex"
+path="res://.godot/imported/book_opening_spritesheet.png-0ae776b385d177c250ff868cf8f608e2.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/inventory/book_opening_spritesheet.png"
-dest_files=["res://.godot/imported/book_opening_spritesheet.png-9682cf8048c6a8231692802c359a2405.ctex"]
+dest_files=["res://.godot/imported/book_opening_spritesheet.png-0ae776b385d177c250ff868cf8f608e2.ctex"]
 
 [params]
 

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b2to8g8ud6ub0"
-path="res://.godot/imported/gear_selected_slot.png-d16cdaea16248d5a41f0d563e2b91dd0.ctex"
+path="res://.godot/imported/gear_selected_slot.png-b857da12750ab5765f416ff67e32a564.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/inventory/inventory_slot/gear_selected_slot.png"
-dest_files=["res://.godot/imported/gear_selected_slot.png-d16cdaea16248d5a41f0d563e2b91dd0.ctex"]
+dest_files=["res://.godot/imported/gear_selected_slot.png-b857da12750ab5765f416ff67e32a564.ctex"]
 
 [params]
 

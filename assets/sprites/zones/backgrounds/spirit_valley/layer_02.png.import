@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dra7llg2kmbgj"
-path="res://.godot/imported/2.png-9e810c380e3a2dc9fb65da2b1bfd05b6.ctex"
+path="res://.godot/imported/layer_02.png-0dc3224bc7db5a988f2d26c40d1d3899.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/zones/backgrounds/background 1 - Spirit Valley/2.png"
-dest_files=["res://.godot/imported/2.png-9e810c380e3a2dc9fb65da2b1bfd05b6.ctex"]
+source_file="res://assets/sprites/zones/backgrounds/spirit_valley/layer_02.png"
+dest_files=["res://.godot/imported/layer_02.png-0dc3224bc7db5a988f2d26c40d1d3899.ctex"]
 
 [params]
 

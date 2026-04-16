@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://2en522dn0wvj"
-path="res://.godot/imported/book_background.png-fb169f912622f110c1ea220da57fcf3a.ctex"
+path="res://.godot/imported/book_background.png-80353e90c649f3d5d5862d03e0928a60.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sprites/inventory/book_background.png"
-dest_files=["res://.godot/imported/book_background.png-fb169f912622f110c1ea220da57fcf3a.ctex"]
+dest_files=["res://.godot/imported/book_background.png-80353e90c649f3d5d5862d03e0928a60.ctex"]
 
 [params]
 
