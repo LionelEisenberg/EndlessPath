@@ -1,6 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-04-13
+Last updated: 2026-04-15
 
 This document tracks the current player experience — what a player can actually do, what content exists, and what blocks the next stage of progression. For per-system details, see the [system documentation index](CODEBASE_STATE.md#system-documentation-index).
 
@@ -10,12 +10,12 @@ This document tracks the current player experience — what a player can actuall
 
 A new player can currently:
 
-1. **Start on the Zone Map** — see Spirit Valley tile, click it; the zone view features parallax backgrounds, floating panels, and card-style action panels (PR #14)
+1. **Start on the Zone Map** — see Spirit Valley tile, click it; the zone view features parallax backgrounds, floating panels, card-style action panels (PR #14), atmospheric mist/motes, hover selector ring, glowing paths between zones, and lock overlays on gated tiles (PR #23)
 2. **Talk to the Wisened Dirt Eel** — triggers a Dialogic dialogue, awards a Dagger, unlocks more content
 3. **Cycle** — open the cycling mini-game, follow the Madra Ball, click inflection points for XP; the cycling UI features shader effects, particle feedback, and a tabbed info panel (PRs #12/#13)
 4. **Forage** — toggle passive foraging, earn Spirit Fern and Dewdrop Tear materials over time
 5. **Open Inventory** — view equipment grid, equip the Dagger, see materials from foraging
-6. **Start an Adventure** — enter a procedurally generated hex map, move tile-by-tile spending stamina; adventures now cost Madra (50% threshold required, with particle drain animation) (PR #16)
+6. **Start an Adventure** — enter a procedurally generated hex map with fog-of-war (shader fog + smoke veil overlays), per-type encounter icons, atmospheric mist/motes, and a tiled-texture path preview that commits on click and fades behind the player as they walk; move tile-by-tile spending stamina; adventures cost Madra (50% threshold required, with particle drain animation) (PRs #16/#23)
 7. **Fight enemies** — encounter the test enemy in combat, use 4 abilities; equipped gear stats now flow through to combat (PR #9)
 8. **Defeat the boss** — complete the adventure, earn gold; end card shows stats and loot (PR #19)
 9. **Open Path Tree** — press P to view the Pure Madra skill tree; earn Path Points every 10 Core Density levels; purchase nodes for cycling/combat/progression perks; pannable/zoomable tree with animated shaders (PR #20)

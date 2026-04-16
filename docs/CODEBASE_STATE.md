@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-04-13
+Last updated: 2026-04-15
 
 This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
 
@@ -126,6 +126,10 @@ Content is defined via Godot's Resource system in three layers:
 | `ThemeConstants` | `scripts/utils/theme_constants.gd` | Centralized color palette and styling constants (PR #11) |
 | `FlyingParticle` | `scenes/ui/flying_particle/flying_particle.gd` | Reusable particle effect — spawned for Madra tracking feedback and zone clicks (PR #13, reused PR #16) |
 | `SystemMenuButton` | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | Nav button component — single `MenuType` enum drives label, shortcut, icon, and input action (PR #10, PATH added PR #20) |
+| `Atmosphere` | `scenes/atmosphere/atmosphere.gd` | Vignette shader + drifting mist + floating motes; instanced in zone and adventure views with per-scene @export tuning (PR #23) |
+| `HexHoverSelector` | `scenes/tilemaps/hex_hover_selector.gd` | Animated spritesheet ring for hex tile hover; shared between zone and adventure tilemaps (PR #23) |
+| `EncounterIcon` | `scenes/adventure/encounter_icon/encounter_icon.gd` | Per-type glyph renderer with visited/completed/boss-animated states; reused in both flat tile icons and floating AdventureMarker (PR #23) |
+| `PathPreview` | `scenes/adventure/path_preview/path_preview.gd` | Tiled-texture Line2D route line with gradient-based fade behind the player during committed travel (PR #23) |
 
 ---
 

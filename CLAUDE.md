@@ -109,14 +109,18 @@ These are autoloaded in `project.godot` and provide global state:
 
 Views are switched via input actions (e.g., `open_inventory`) handled by the current state. The state machine supports `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view). The `SystemMenu` in the `ZoneResourcePanel` provides nav buttons that fire these same input actions via `Input.parse_input_event()`. `SystemMenuButton` uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown.
 
-### Reusable UI Components (`scenes/common/`)
+### Reusable UI Components (`scenes/common/` and shared scenes)
 Shared components used across multiple views:
 - `ItemDisplaySlot` — Read-only item icon with hover tooltip, used in end card loot and anywhere items need display
 - `ItemDescriptionPanel` — Item detail panel (icon, name, type, description, effects), shared between inventory sidebar and end card tooltips
+- `Atmosphere` (`scenes/atmosphere/`) — Vignette shader + drifting mist sprites + floating mote particles; instanced in both zone and adventure views with per-scene `@export` tuning
+- `HexHoverSelector` (`scenes/tilemaps/`) — Animated spritesheet ring that snaps to the hovered hex tile; shared between zone and adventure tilemaps
+- `EncounterIcon` (`scenes/adventure/encounter_icon/`) — Per-type glyph renderer (combat, elite, boss, rest, treasure, trap, unknown) with visited/completed states and animated boss skull; reused inside both flat tile icons and the floating `AdventureMarker`
+- `PathPreview` (`scenes/adventure/path_preview/`) — Tiled-texture `Line2D` showing the route from player to target; supports gradient-based fade that hides the section behind the player during committed travel
 
 ### Game Systems
 1. **Cycling** — Mouse-following path + rhythm-clicking on a body diagram (Madra generation)
-2. **Adventuring** — Node-based hex grid exploration + real-time combat + scroll end card with stats/loot
+2. **Adventuring** — Hex grid exploration with fog-of-war (shader + FogVeilSprite smoke overlays), per-type encounter icons, floating AdventureMarker, tiled-texture path preview with committed-destination system (gradient fade behind player), real-time combat, scroll end card with stats/loot
 3. **Combat** — Real-time AP regeneration, learned abilities with cooldowns and costs
 4. **Scripting** — Calligraphy/character tracing (planned)
 5. **Elixir Making** — Multi-stage crafting (planned)
@@ -203,7 +207,7 @@ Example: `feat(combat): implement generic cast time logic`
 ## Development Notes
 
 ### Shaders
-Custom shaders live in `assets/shaders/`. Recent examples include liquid wave effects for the Madra bar and a radial fill shader for Core Density display.
+Custom shaders live in `assets/shaders/`. Notable shaders include: `liquid_wave` (Madra bar fill), `core_density_fill` (radial density display), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), `flowing_path` (animated brightness wave for zone glowing paths), `tile_aura` (pulsing color overlay for zone hover), and `path_connection_energy` (animated pulses along path tree connections).
 
 ### Styling / Themes
 UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Custom styleboxes in `assets/styleboxes/`. Use existing theme tokens — do not introduce external UI frameworks. See `docs/UI_STYLING.md` for the Label variant type-scale and usage rules.
@@ -212,7 +216,7 @@ UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Cust
 Dialogic addon handles narrative/dialogue. Timeline and character data in `assets/dialogue/`.
 
 ### Hex Grid
-Adventure maps use the `hexagon_tilemaplayer` addon for hex-based tile rendering.
+Both zone and adventure maps use the `hexagon_tilemaplayer` addon for hex-based tile rendering. The zone map renders per-zone forest variants via `ZoneData.tile_variant_index`. The adventure map uses a 23-variant forest atlas (`hex_forest_atlas.png`) with deterministic-random per-tile selection. Hover feedback uses a shared `HexHoverSelector` animated spritesheet. Zone connections between unlocked tiles are drawn with `GlowingPath` (Line2D + flowing shader). Locked zones are overlaid with `LockedZoneOverlay` (grey hex + lock icon with shake-on-click).
 
 ### Logging
 `LogManager` singleton emits `message_logged` signals for in-game log display via `LogWindow`. Call `LogManager.log_message(bbcode)` to log. There is no log-level system — callers format their own BBCode strings.

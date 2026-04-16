@@ -28,11 +28,23 @@ AdventureView (Control)                         — adventure_view.gd
       SubViewport
         AdventureTilemap (Node2D)               — adventure_tilemap.gd
           AdventureFullMap (HexagonTileMapLayer)    — structural ghost tiles
-          AdventureVisibleMap (HexagonTileMapLayer) — fog-of-war revealed
-          AdventureHighlightMap (HexagonTileMapLayer) — encounter type overlays
+          AdventureVisibleMap (HexagonTileMapLayer) — fog-of-war revealed + click/hover signals
+          AdventureHighlightMap (HexagonTileMapLayer) — gray overlay on completed tiles
+          PathPreview (Line2D)                  — path_preview.gd, tiled-texture route line
+          HoverSelector (AnimatedSprite2D)      — hex_hover_selector.gd, shared ring
           CharacterBody2D + Camera2D
-          CanvasLayer
-            EncounterInfoPanel                  — encounter_info_panel.gd
+            CameraClampController
+            CameraZoomController
+          Atmosphere                            — vignette + mist + motes (PR #23)
+          FogVeilContainer (Node2D, z=4)        — holds FogVeilSprite instances
+          EncounterIconContainer (Node2D, z=6)  — holds EncounterIcon instances
+          AdventureMarker (z=15)                — floating pin above current tile
+          FogLayer (CanvasLayer=4)
+            FogOfWarRect (ColorRect + shader)   — full-screen fog with per-tile clear zones
+          BossFlashLayer (CanvasLayer=10)
+            BossFlashRect (ColorRect)           — white flash on boss reveal
+          CanvasLayer (layer=100)
+            EncounterInfoPanel                  — encounter_info_panel.gd (fade in/out)
   CombatView (Control, hidden)
     SubViewport
       AdventureCombat                           — adventure_combat.gd
@@ -53,11 +65,11 @@ AdventureEndCard (Control)                      — adventure_end_card.gd
 
 | Layer | Node | Purpose |
 |-------|------|---------|
-| `full_map` | AdventureFullMap | All tiles as transparent ghosts (structural) |
-| `visible_map` | AdventureVisibleMap | Fog-of-war revealed: yellow = encounter, white = path |
-| `highlight_map` | AdventureHighlightMap | Encounter type overlay icons (source IDs 3-7) |
+| `full_map` | AdventureFullMap | All tiles as transparent ghosts (structural, pathfinding reference) |
+| `visible_map` | AdventureVisibleMap | Fog-of-war revealed tiles rendered as random forest variants from `hex_forest_atlas.png`; emits `tile_clicked`/`tile_hovered`/`tile_unhovered` signals |
+| `highlight_map` | AdventureHighlightMap | Gray overlay on completed encounter tiles (variant ID 5 with ~35% alpha dark modulate) |
 
-Pathfinding runs on `AdventureVisibleMap` only — players can only click revealed tiles.
+Encounter type visuals are handled by `EncounterIcon` instances in a separate `EncounterIconContainer` (Node2D at z=6), not by the tilemap highlight layer. Pathfinding runs on `AdventureVisibleMap` — players can only click revealed tiles.
 
 ## Map Generation
 
@@ -181,26 +193,43 @@ When an adventure ends (victory, death, timeout, or retreat), a scroll-themed ov
 ## Encounter Flow
 
 ```
-1. Tile clicked → HexagonTileMapLayer.tile_clicked(coord)
-2. Pathfind from current to target → AStar2D via addon
+1. Tile hovered → show HexHoverSelector ring + PathPreview line (hover preview, full opacity)
+2. Tile clicked → commit destination:
+   a. HexagonTileMapLayer.tile_clicked(coord)
+   b. Pathfind from current to target → cube_pathfind via addon
+   c. Set _committed_destination, freeze hover selector + path preview
+   d. Seed static PathPreview line with full route
 3. Move character step by step (5 stamina per step, speed scales with queue length)
-4. On arrival at encounter tile:
-   - NoOpEncounter or already visited → auto-continue
-   - Has choices → show EncounterInfoPanel, lock movement
+   - Per frame: gradient fade slides to hide the path section behind the player
+   - Hover events blocked while committed — selector and path locked to destination
+4. On arrival at each intermediate tile:
+   - _check_committed_arrival() — no-op for intermediate tiles
+   - NoOpEncounter → auto-continue to next tile in queue
+   - Unvisited encounter with choices → lock movement, release committed destination,
+     show EncounterInfoPanel (fade in), clear path preview
 5. Player selects choice:
    - CombatChoice → emit start_combat, switch to combat view
    - DialogueChoice → start Dialogic timeline, complete on end
    - Base choice → apply success_effects, complete tile
-6. Tile completed → mark visited, update fog-of-war, unlock movement
+6. Tile completed → gray overlay + dimmed icon + checkmark, unlock movement
+7. On arrival at committed destination:
+   - _check_committed_arrival() → release committed state, clear path
+   - Encounter panel shows if tile has encounter; otherwise player is free to click again
 ```
 
-## Fog-of-War
+## Fog-of-War (PR #23)
 
-`_update_visible_map()` clears and rebuilds all three tilemaps each time:
-- Visited tiles + their unvisited neighbors are rendered
-- Encounter nodes get yellow tiles; NoOp paths get white tiles
-- Encounter type icons rendered on the highlight layer
-- Unvisited neighbors get a `PulseNode` (Line2D with pulsing shader) as a beacon
+The adventure map uses a multi-layer fog-of-war system:
+
+**Shader fog** — A full-screen `ColorRect` on `FogLayer` (CanvasLayer=4) runs `fog_of_war.gdshader`. The shader maintains a fixed-size array of up to 64 clear positions (screen-space) with soft-edged circles. `_update_fog_uniforms()` runs every frame to convert visited + highlighted tile world positions to screen coordinates, accounting for camera pan/zoom. The clear radius is `FOG_CLEAR_WORLD_RADIUS * camera.zoom.x` so cleared world area stays constant across zoom levels.
+
+**FogVeilSprite** — Revealed-but-unvisited neighbor tiles get a swirling smoke overlay (`FogVeilSprite` in `FogVeilContainer`, z=4). Each veil is an animated spritesheet that randomizes its start frame so adjacent veils don't sync. When a tile transitions to visited, the veil fades out over `FOG_VEIL_FADE_OUT_SECONDS` (0.25s) and frees itself.
+
+**Encounter icons** — Visited tiles with encounters get an `EncounterIcon` in `EncounterIconContainer` (z=6). Icons configure per encounter type (combat, elite, boss, rest, treasure, trap). Completed encounters show dimmed icon + checkmark badge. The current tile's encounter renders inside the floating `AdventureMarker` pin instead of as a flat icon. Boss tiles are revealed through fog as an exception (visible while still fogged).
+
+**Stagger reveal** — Newly revealed neighbor tiles animate in with a scale bounce + alpha fade, staggered by 50ms per tile. Boss tile reveals trigger a dramatic sequence: Engine time_scale → 0.25 for 150ms, screen flash, and camera push toward the boss.
+
+`_update_visible_map()` diffs the icon and veil dictionaries rather than clearing them — visited icons persist across frames, and stale veils/icons are despawned individually.
 
 ## Timer
 
@@ -248,14 +277,21 @@ One adventure exists: `test_adventure_data.tres` with default parameters (5 spec
 | `scenes/common/item_display_slot/item_display_slot.gd` | Reusable item icon with hover tooltip |
 | `scenes/common/item_description_panel/item_description_panel.gd` | Shared item detail panel (inventory + end card) |
 | `scenes/adventure/adventure_tilemap/adventure_map_generator.gd` | Procedural hex map generation |
-| `scenes/adventure/adventure_tilemap/encounter_info_panel.gd` | Encounter UI display |
+| `scenes/adventure/adventure_tilemap/encounter_info_panel.gd` | Encounter UI display (fade in/out) |
 | `scenes/adventure/adventure_tilemap/encounter_choice_button.gd` | Choice button with requirements |
+| `scenes/adventure/encounter_icon/encounter_icon.gd` | Per-type glyph renderer with visited/completed states (PR #23) |
+| `scenes/adventure/adventure_marker/adventure_marker.gd` | Floating pin above current tile, embeds EncounterIcon (PR #23) |
+| `scenes/adventure/fog_veil_sprite.gd` | Animated smoke overlay for revealed-but-unvisited tiles (PR #23) |
+| `scenes/adventure/path_preview/path_preview.gd` | Tiled-texture route line with gradient-based fade (PR #23) |
+| `scenes/tilemaps/hex_hover_selector.gd` | Animated hex selector ring, shared with zone map (PR #23) |
+| `scenes/atmosphere/atmosphere.gd` | Vignette + mist + motes, shared with zone map (PR #23) |
 | `scenes/adventure/adventure_view/timer_panel.gd` | Countdown timer |
 | `scripts/resource_definitions/adventure/adventure_data.gd` | Map generation parameters |
 | `scripts/resource_definitions/adventure/encounters/adventure_encounter.gd` | Encounter base class |
 | `scripts/resource_definitions/adventure/choices/combat_choice.gd` | Combat initiator |
 | `scripts/resource_definitions/adventure/choices/dialogue_choice.gd` | Dialogue initiator |
-| `scenes/tilemaps/hexagon_tile_map_layer.gd` | Project hex extension (click handling) |
+| `scenes/tilemaps/hexagon_tile_map_layer.gd` | Project hex extension (click/hover handling) |
+| `assets/shaders/fog_of_war.gdshader` | Full-screen fog with per-tile clear zones (PR #23) |
 
 ## Work Remaining
 
