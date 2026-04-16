@@ -18,7 +18,7 @@ signal quest_completed(quest_id: String)
 
 var _live_save_data: SaveGameData = null
 var _quest_catalog: QuestList = preload("res://resources/quests/quest_list.tres")
-var _quests_by_id: Dictionary = {}  # String -> QuestData
+var _quests_by_id: Dictionary[String, QuestData] = {}
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
