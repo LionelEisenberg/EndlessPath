@@ -70,14 +70,81 @@ Adventure starts are two-phase to accommodate the Madra drain animation (PR #16)
 
 ### Tile Rendering
 
+Zone tiles are rendered from `scenes/tilemaps/tilemap_tileset.tres`. Each zone
+selects a forest tile variant via `ZoneData.tile_variant_index`; each variant
+is its own atlas source. All variants share the same texture dimensions
+(164×190 PNG, 156×181 visible hex) so grid layout is uniform and future
+variants drop in cleanly.
+
 | Source ID | Variant | Visual |
 |-----------|---------|--------|
-| Source 0 (UNLOCKED) | 1 | Unlocked, unselected |
-| Source 0 (UNLOCKED) | 2 | Currently selected |
-| Source 0 (UNLOCKED) | 3 | Ghost neighbor (transparent) |
-| Source 1 (LOCKED) | 0 | Locked zone (greyed) |
+| Source 8 (FOREST variant 0, Hex_Forest_00_Basic) | 1 | Unlocked OR locked, unselected |
+| Source 8 (FOREST variant 0) | 2 | Currently selected (player's zone) |
+| Source 8 (FOREST variant 0) | 3 | Ghost neighbor (dark/transparent) |
+
+Source 0 (`tile_horizontal.png`, 164×190) is retained for the adventure
+tilemap's generic path tiles — it is no longer used by the zone view.
+
+**Locked zones** render the same forest variant as unlocked zones — the
+lock state is communicated by a separate overlay node stacked on top
+(`scenes/zones/locked_zone_overlay/locked_zone_overlay.tscn`), which is
+a hex-shaped semi-transparent grey `Polygon2D` with `assets/lock_icon.png`
+centered on it. `ZoneTilemap._refresh_locked_overlays()` manages the
+overlay instances — one per locked zone, positioned at each zone's
+world coordinates. When `UnlockManager.condition_unlocked` fires, the
+overlays are rebuilt and any newly-unlocked zones lose their overlay.
+This gives players a "here's what this zone looks like" preview while
+still clearly marking it as inaccessible.
 
 Camera (`zone_camera_2d.gd`) clamps position to map bounds each frame.
+
+### Tile Variants
+
+Each zone picks its hex tile artwork via `ZoneData.tile_variant_index`. The
+variant index maps to an atlas source id via `ZoneTilemap.ZONE_TILE_VARIANT_SOURCE_IDS`.
+
+**Currently imported variants:**
+
+| Index | Source ID | Asset | Status |
+|-------|-----------|-------|--------|
+| 0 | 8 | `assets/sprites/tilemap/Hex_Forest_00_Basic.png` | Imported |
+
+**TODO — import remaining 20 forest variants:**
+
+Variants 1–20 (`Hex_Forest_01_*.png` through `Hex_Forest_20_*.png`) exist in
+the source art library but have not been imported into the project yet. When
+importing each one:
+
+1. Place the PNG in `assets/sprites/tilemap/`. **Target dimensions: 164×190
+   PNG bounds with the hex shape centered at roughly (4, 4) → (160, 185).**
+   Source art at 560×560 (or any larger bound) can be resized in place with
+   a quick Pillow script — see the Hex_Forest_00_Basic resize in git history
+   at commit `fc7d141` → next for the exact approach (crop to visible hex,
+   LANCZOS resize to 156×181, paste onto 164×190 transparent canvas at (4, 4))
+2. Run `--headless --import` to generate Godot's `.import` metadata
+3. Add a new `ext_resource` for the texture in `tilemap_tileset.tres`
+4. Add a new `TileSetAtlasSource` sub_resource mirroring
+   `TileSetAtlasSource_forest0` (same 5 alternative tiles, same modulate
+   colors for normal/selected/hovered/ghost/transparent states, same
+   `texture_region_size = Vector2i(164, 190)`)
+5. Assign the new source a unique source id (9, 10, 11...) via
+   `sources/N = SubResource("...")`
+6. Append the new source id to `ZONE_TILE_VARIANT_SOURCE_IDS` in
+   `scenes/zones/zone_tilemap/zone_tilemap.gd`
+7. Designers can then set `tile_variant_index = N` on any `ZoneData` resource
+   to use the new variant
+
+Until that happens, all zones fall back to variant 0 regardless of what's
+set in their `.tres` file (a warning is logged for out-of-range indices).
+
+**Note on source art sizing:** The project standard for zone tile PNGs is
+164×190 bounds with a 156×181 visible hex centered at (4, 4). This matches
+the TileSet's logical `tile_size` exactly, so the art renders 1:1 with grid
+spacing and adjacent tiles tessellate cleanly. Source art at larger
+dimensions (the original Hex_Forest pack ships at 560×560) must be resized
+to 164×190 before being dropped into `assets/sprites/tilemap/`; otherwise
+the tiles overhang into neighbors and the visual scale mismatches the old
+adventure tileset.
 
 ## Data Model
 
@@ -90,6 +157,7 @@ Camera (`zone_camera_2d.gd`) clamps position to map bounds each frame.
 | `tilemap_location` | `Vector2i` | Position on hex grid |
 | `zone_unlock_conditions` | `Array[UnlockConditionData]` | Gate conditions |
 | `all_actions` | `Array[ZoneActionData]` | Available activities |
+| `tile_variant_index` | `int` | Index into `ZONE_TILE_VARIANT_SOURCE_IDS` selecting which forest tile art is drawn for this zone. See **Tile Variants** above |
 
 ### ZoneActionData (base class)
 | Field | Type | Description |
@@ -235,6 +303,7 @@ No known bugs in the Zone system.
 
 - `[HIGH]` Only 2 zones exist (Spirit Valley functional, Test Zone empty) — needs more zones with unique actions, foraging resources, and adventure configs
 - `[MEDIUM]` No merchant, training, zone event, or quest giver content authored — action types exist as enums but have no `.tres` data
+- `[MEDIUM]` Only 1 of 21 forest tile variants is imported (`Hex_Forest_00_Basic`). Variants 01–20 exist in the source art library but have not been added to the project. See **Tile Variants** section above for the import procedure. Each variant is a 560×560 hex PNG that plugs into the existing `ZoneData.tile_variant_index` field
 
 ### UI
 

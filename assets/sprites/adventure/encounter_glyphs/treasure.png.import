@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dbs7q3rxlog0j"
-path="res://.godot/imported/tile_horizontal_locked.png-d8d1f63eb2d0be5afd080a6e2d4a1cfd.ctex"
+uid="uid://cme1hh0d5t12q"
+path="res://.godot/imported/treasure.png-874ebcc74c675a207f4dfec94daea4f5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/tilemap/tile_horizontal_locked.png"
-dest_files=["res://.godot/imported/tile_horizontal_locked.png-d8d1f63eb2d0be5afd080a6e2d4a1cfd.ctex"]
+source_file="res://assets/sprites/adventure/encounter_glyphs/treasure.png"
+dest_files=["res://.godot/imported/treasure.png-874ebcc74c675a207f4dfec94daea4f5.ctex"]
 
 [params]
 

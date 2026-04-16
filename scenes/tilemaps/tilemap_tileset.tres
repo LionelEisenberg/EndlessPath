@@ -1,68 +1,48 @@
 [gd_resource type="TileSet" format=3 uid="uid://brm40hxx3wp8n"]
 
-[ext_resource type="Texture2D" uid="uid://nnhoojvpoehu" path="res://assets/sprites/tilemap/tile_horizontal.png" id="1_kcnis"]
-[ext_resource type="Texture2D" uid="uid://dbs7q3rxlog0j" path="res://assets/sprites/tilemap/tile_horizontal_locked.png" id="2_6an1b"]
-[ext_resource type="Texture2D" uid="uid://c1bjygb1vsq8j" path="res://assets/sprites/tilemap/tile_overlay.png" id="3_6an1b"]
-[ext_resource type="Texture2D" uid="uid://6h08ip6odlci" path="res://assets/asperite/zones/boss.png" id="4_2d48m"]
-[ext_resource type="Texture2D" uid="uid://b754ofe2jn7wa" path="res://assets/asperite/zones/combat.png" id="5_nmb5y"]
-[ext_resource type="Texture2D" uid="uid://dlr6m56x115ng" path="res://assets/asperite/zones/rest.png" id="6_6g2bo"]
-[ext_resource type="Texture2D" uid="uid://dn082ahwg7qn0" path="res://assets/asperite/zones/treasure.png" id="7_jg1iy"]
-[ext_resource type="Texture2D" uid="uid://q5umgakd5yls" path="res://assets/asperite/zones/unknown.png" id="8_4galj"]
+[ext_resource type="Texture2D" uid="uid://bm2b67q6iitaw" path="res://assets/sprites/tilemap/hex_tiles/forest/hex_forest_atlas.png" id="9_forest_atlas"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_t1tt8"]
+load_path = "res://.godot/imported/tile_horizontal.png-32246fd8dd06933cc22a7575eab26419.ctex"
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nwvq3"]
 resource_name = "base_tile"
-texture = ExtResource("1_kcnis")
+texture = SubResource("CompressedTexture2D_t1tt8")
 texture_region_size = Vector2i(164, 190)
 0:0/next_alternative_id = 6
 0:0/0 = 0
-0:0/1 = 1
-0:0/1/modulate = Color(0.9647059, 0.8039216, 0.14901961, 1)
-0:0/2 = 2
-0:0/2/modulate = Color(0.6745098, 0.41960785, 0.14901961, 1)
-0:0/3 = 3
-0:0/3/modulate = Color(0, 0, 0, 0.8235294)
 0:0/4 = 4
 0:0/4/modulate = Color(1, 1, 1, 0)
+0:0/5 = 5
+0:0/5/modulate = Color(0.08, 0.08, 0.08, 0.35)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_mh3wn"]
-resource_name = "locked_tile"
-texture = ExtResource("2_6an1b")
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_forest_atlas"]
+resource_name = "forest_atlas"
+texture = ExtResource("9_forest_atlas")
 texture_region_size = Vector2i(164, 190)
 0:0/0 = 0
-0:0/0/modulate = Color(1, 1, 0.41960785, 1)
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_e5jnf"]
-texture = ExtResource("3_6an1b")
-texture_region_size = Vector2i(164, 190)
-0:0/next_alternative_id = 2
-0:0/0 = 0
-0:0/1 = 1
-0:0/1/modulate = Color(1, 0, 0, 0.92941177)
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_2re4u"]
-texture = ExtResource("4_2d48m")
-texture_region_size = Vector2i(164, 190)
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6g2bo"]
-texture = ExtResource("5_nmb5y")
-texture_region_size = Vector2i(164, 190)
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fgmky"]
-texture = ExtResource("6_6g2bo")
-texture_region_size = Vector2i(164, 190)
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_qts17"]
-texture = ExtResource("7_jg1iy")
-texture_region_size = Vector2i(164, 190)
-0:0/0 = 0
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_m5pju"]
-texture = ExtResource("8_4galj")
-texture_region_size = Vector2i(164, 190)
-0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+4:1/0 = 0
+5:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+2:2/0 = 0
+3:2/0 = 0
+4:2/0 = 0
+5:2/0 = 0
+0:3/0 = 0
+1:3/0 = 0
+2:3/0 = 0
+3:3/0 = 0
+4:3/0 = 0
 
 [resource]
 resource_name = "Horizontal"
@@ -75,10 +55,4 @@ custom_data_layer_1/type = 3
 custom_data_layer_2/name = "color"
 custom_data_layer_2/type = 21
 sources/0 = SubResource("TileSetAtlasSource_nwvq3")
-sources/1 = SubResource("TileSetAtlasSource_mh3wn")
-sources/2 = SubResource("TileSetAtlasSource_e5jnf")
-sources/3 = SubResource("TileSetAtlasSource_2re4u")
-sources/4 = SubResource("TileSetAtlasSource_6g2bo")
-sources/5 = SubResource("TileSetAtlasSource_fgmky")
-sources/6 = SubResource("TileSetAtlasSource_qts17")
-sources/7 = SubResource("TileSetAtlasSource_m5pju")
+sources/8 = SubResource("TileSetAtlasSource_forest_atlas")

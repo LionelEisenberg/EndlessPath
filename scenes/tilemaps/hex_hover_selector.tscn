@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://cottn87ch2b4s"]
+
+[ext_resource type="Script" path="res://scenes/tilemaps/hex_hover_selector.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://d1yn6rxso1ty6" path="res://assets/sprites/tilemap/hex_selector_spritesheet.png" id="2_tex"]
+
+[node name="HexHoverSelector" type="Sprite2D"]
+visible = false
+z_index = 5
+texture = ExtResource("2_tex")
+hframes = 8
+script = ExtResource("1_script")

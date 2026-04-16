@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://eomevugae50m"]
+[gd_scene format=3 uid="uid://eomevugae50m"]
 
 [ext_resource type="Script" uid="uid://cot2oaolt25d7" path="res://scenes/characters/main_character/character_body_2d.gd" id="1_oymdk"]
 [ext_resource type="Texture2D" uid="uid://bpbehk6ko2uu3" path="res://assets/spritesheets/Main-Character-8-Direction.png" id="1_vnxra"]
@@ -171,24 +171,24 @@ _data = {
 &"walk_up_right": SubResource("Animation_walk_up_right")
 }
 
-[node name="CharacterBody2D" type="CharacterBody2D"]
+[node name="CharacterBody2D" type="CharacterBody2D" unique_id=1824514734]
+z_index = 100
+z_as_relative = false
 script = ExtResource("1_oymdk")
 is_debug_mode = true
 metadata/_edit_group_ = true
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=788830714]
 position = Vector2(0, 1)
 shape = SubResource("CapsuleShape2D_fy8xs")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=832494220]
 texture = ExtResource("1_vnxra")
 offset = Vector2(1, -1)
 hframes = 8
 vframes = 12
 frame = 20
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=80036769]
 unique_name_in_owner = true
-libraries = {
-&"": SubResource("AnimationLibrary_fy8xs")
-}
+libraries/ = SubResource("AnimationLibrary_fy8xs")

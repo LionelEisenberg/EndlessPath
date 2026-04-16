@@ -5,10 +5,27 @@ extends PanelContainer
 ## Displays information about the current tile's encounter and provides choices.
 
 #-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+## Duration of the modulate fade used by show_panel() / hide_panel().
+## Short enough to feel responsive, long enough that the panel slides
+## in rather than popping.
+const FADE_DURATION: float = 0.25
+
+#-----------------------------------------------------------------------------
 # SIGNALS
 #-----------------------------------------------------------------------------
 
 signal choice_selected(choice: EncounterChoice)
+
+#-----------------------------------------------------------------------------
+# PRIVATE STATE
+#-----------------------------------------------------------------------------
+
+## In-flight fade tween, reused so rapid show/hide toggles cancel cleanly
+## instead of stacking.
+var _fade_tween: Tween
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -46,6 +63,32 @@ func setup(encounter: AdventureEncounter, is_completed: bool) -> void:
 		description_label.text = encounter.description
 		_generate_choice_buttons(encounter.choices)
 		choices_container.visible = true
+
+## Fades the panel in by tweening modulate alpha to 1. If the panel
+## is currently hidden (visible = false), snaps alpha to 0 first so
+## the fade starts from transparent. If a hide fade is mid-flight,
+## kills it so the two don't overlap — we continue upward from
+## whatever the current alpha happens to be.
+func show_panel() -> void:
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+	if not visible:
+		modulate.a = 0.0
+		visible = true
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(self, "modulate:a", 1.0, FADE_DURATION)
+
+## Fades the panel out by tweening modulate alpha to 0, then hides
+## it at the end so it stops consuming layout space. Kills any
+## in-flight show fade first.
+func hide_panel() -> void:
+	if not visible:
+		return
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(self, "modulate:a", 0.0, FADE_DURATION)
+	_fade_tween.tween_callback(func() -> void: visible = false)
 
 ## Updates the UI to show the completed state.
 func show_completed_state() -> void:

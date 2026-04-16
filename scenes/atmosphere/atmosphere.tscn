@@ -1,0 +1,107 @@
+[gd_scene format=3 uid="uid://catmosphere01"]
+
+[ext_resource type="Script" uid="uid://ckvsahlgrp6nm" path="res://scenes/atmosphere/atmosphere.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://cdwiub235t85v" path="res://assets/sprites/atmosphere/mist_sheet.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://ciljxi5dxbh71" path="res://assets/sprites/atmosphere/mote_particle.png" id="3"]
+[ext_resource type="Shader" uid="uid://dgq0bcd8enkeb" path="res://assets/shaders/vignette.gdshader" id="4"]
+
+[sub_resource type="Curve" id="Curve_alpha"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.5, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_alpha"]
+curve = SubResource("Curve_alpha")
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_cyan"]
+emission_shape = 3
+emission_box_extents = Vector3(1600, 1000, 1)
+direction = Vector3(0, -1, 0)
+spread = 180.0
+initial_velocity_min = 4.0
+initial_velocity_max = 14.0
+gravity = Vector3(0, -3, 0)
+scale_min = 0.01
+scale_max = 0.01
+alpha_curve = SubResource("CurveTexture_alpha")
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_warm"]
+emission_shape = 3
+emission_box_extents = Vector3(1600, 1000, 1)
+direction = Vector3(0, -1, 0)
+spread = 180.0
+initial_velocity_min = 4.0
+initial_velocity_max = 14.0
+gravity = Vector3(0, -3, 0)
+scale_min = 0.01
+scale_max = 0.01
+color = Color(0.21960784, 0.8509804, 0.4509804, 0.8509804)
+alpha_curve = SubResource("CurveTexture_alpha")
+
+[sub_resource type="ShaderMaterial" id="SM_vignette"]
+shader = ExtResource("4")
+shader_parameter/vignette_radius = 0.55
+shader_parameter/vignette_softness = 0.4
+shader_parameter/vignette_color = Color(0, 0.01, 0.04, 1)
+
+[node name="Atmosphere" type="CanvasLayer" unique_id=196004916]
+layer = 5
+script = ExtResource("1")
+
+[node name="MistContainer" type="Node2D" parent="." unique_id=1967027696]
+
+[node name="MistA" type="Sprite2D" parent="MistContainer" unique_id=666357635]
+unique_name_in_owner = true
+modulate = Color(0.5882353, 0.70980394, 0.9019608, 0.5647059)
+position = Vector2(576, 893)
+scale = Vector2(4, 4)
+texture = ExtResource("2")
+hframes = 7
+vframes = 7
+
+[node name="MistB" type="Sprite2D" parent="MistContainer" unique_id=995063212]
+unique_name_in_owner = true
+modulate = Color(0.5882353, 0.70980394, 0.9019608, 0.5647059)
+position = Vector2(400, 300)
+scale = Vector2(5, 5)
+texture = ExtResource("2")
+hframes = 7
+vframes = 7
+frame = 15
+
+[node name="MistC" type="Sprite2D" parent="MistContainer" unique_id=1267185449]
+unique_name_in_owner = true
+modulate = Color(0.5882353, 0.70980394, 0.9019608, 0.5647059)
+position = Vector2(1300, 300)
+scale = Vector2(4.5, 4.5)
+texture = ExtResource("2")
+hframes = 7
+vframes = 7
+frame = 30
+
+[node name="MoteParticlesCyan" type="GPUParticles2D" parent="." unique_id=1440619960]
+unique_name_in_owner = true
+amount = 150
+texture = ExtResource("3")
+lifetime = 3.5
+preprocess = 3.5
+randomness = 0.5
+process_material = SubResource("PPM_cyan")
+
+[node name="MoteParticlesWarm" type="GPUParticles2D" parent="." unique_id=1928480000]
+unique_name_in_owner = true
+amount = 75
+texture = ExtResource("3")
+lifetime = 3.5
+preprocess = 3.5
+randomness = 0.5
+process_material = SubResource("PPM_warm")
+
+[node name="VignetteRect" type="ColorRect" parent="." unique_id=2061156403]
+unique_name_in_owner = true
+material = SubResource("SM_vignette")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

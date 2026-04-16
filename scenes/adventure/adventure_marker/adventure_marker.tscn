@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://cadvmarkr0001"]
+
+[ext_resource type="Script" uid="uid://de1llagq44hok" path="res://scenes/adventure/adventure_marker/adventure_marker.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://f42s7xfvwges" path="res://assets/sprites/adventure/adventure_marker.png" id="2_marker"]
+[ext_resource type="PackedScene" uid="uid://qqulcnq1rxx5" path="res://scenes/adventure/encounter_icon/encounter_icon.tscn" id="3_encicon"]
+
+[node name="AdventureMarker" type="Node2D" unique_id=1808515849]
+z_index = 15
+script = ExtResource("1_script")
+
+[node name="Pin" type="Sprite2D" parent="." unique_id=1028815282]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_marker")
+offset = Vector2(0, -140)
+
+[node name="InnerEncounterIcon" parent="." unique_id=2057322018 instance=ExtResource("3_encicon")]
+unique_name_in_owner = true
+position = Vector2(0, -93)
+scale = Vector2(0.7, 0.7)

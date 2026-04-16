@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://b2cbrfur045p6"
+path="res://.godot/imported/hex_selector_spritesheet.aseprite-328a97ce2fdac987d75a64b07ea5c387.res"
+
+[deps]
+
+source_file="res://assets/sprites/tilemap/hex_selector_spritesheet.aseprite"
+dest_files=["res://.godot/imported/hex_selector_spritesheet.aseprite-328a97ce2fdac987d75a64b07ea5c387.res"]
+
+[params]
+
