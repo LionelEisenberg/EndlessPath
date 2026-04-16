@@ -28,7 +28,7 @@ var ability_button_scene: PackedScene = preload("res://scenes/ui/combat/ability_
 
 var _vitals_manager: VitalsManager
 var _ability_buttons: Array[AbilityButton] = []
-var _slot_counter: int = 0
+var _buttons_by_slot: Dictionary = {} # int → AbilityButton
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -55,7 +55,9 @@ func set_vitals_manager(vm: VitalsManager) -> void:
 func register_ability(instance: CombatAbilityInstance) -> void:
 	var button: AbilityButton = ability_button_scene.instantiate() as AbilityButton
 	ability_container.add_child(button)
-	button.setup(instance, _slot_counter, _vitals_manager)
+
+	var slot_index: int = _find_equip_slot(instance.ability_data.ability_id)
+	button.setup(instance, slot_index, _vitals_manager)
 
 	# Connect button signals
 	button.pressed.connect(func() -> void: ability_selected.emit(instance))
@@ -68,7 +70,8 @@ func register_ability(instance: CombatAbilityInstance) -> void:
 	instance.cast_finished.connect(_on_cast_finished)
 
 	_ability_buttons.append(button)
-	_slot_counter += 1
+	if slot_index >= 0:
+		_buttons_by_slot[slot_index] = button
 
 ## Resets the panel by removing all buttons and cleaning up connections.
 func reset() -> void:
@@ -88,7 +91,7 @@ func reset() -> void:
 		child.queue_free()
 
 	_ability_buttons.clear()
-	_slot_counter = 0
+	_buttons_by_slot.clear()
 	_vitals_manager = null
 
 #-----------------------------------------------------------------------------
@@ -99,14 +102,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 
-	for i: int in range(mini(SLOT_ACTIONS.size(), _ability_buttons.size())):
+	for i: int in range(SLOT_ACTIONS.size()):
 		if event.is_action_pressed(SLOT_ACTIONS[i]):
-			var btn: AbilityButton = _ability_buttons[i]
-			if btn.ability_instance and not btn.button.disabled:
-				ability_selected.emit(btn.ability_instance)
-				_hide_tooltip()
+			if _buttons_by_slot.has(i):
+				var btn: AbilityButton = _buttons_by_slot[i]
+				if btn.ability_instance and not btn.button.disabled:
+					ability_selected.emit(btn.ability_instance)
+					_hide_tooltip()
 			get_viewport().set_input_as_handled()
 			return
+
+func _find_equip_slot(ability_id: String) -> int:
+	for i: int in range(AbilityManager.get_max_slots()):
+		if AbilityManager.get_ability_at_slot(i) == ability_id:
+			return i
+	return -1
 
 #-----------------------------------------------------------------------------
 # TOOLTIP
