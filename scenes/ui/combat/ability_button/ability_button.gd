@@ -44,6 +44,9 @@ var _is_casting: bool = false
 
 var _border_default_modulate: Color = Color.WHITE
 var _cost_labels: Array[Label] = []
+var _madra_default_color: Color
+var _stamina_default_color: Color
+var _health_default_color: Color
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -62,6 +65,9 @@ func _ready() -> void:
 	cooldown_progress_bar.value = 0.0
 
 	_border_default_modulate = _background_rect.modulate
+	_madra_default_color = _madra_cost_label.get_theme_color("font_color")
+	_stamina_default_color = _stamina_cost_label.get_theme_color("font_color")
+	_health_default_color = _health_cost_label.get_theme_color("font_color")
 	_key_hint_label.get_parent().visible = false
 	_cost_strip.visible = false
 
@@ -172,9 +178,9 @@ func _update_affordability_visuals(can_afford: bool) -> void:
 	if can_afford:
 		button.modulate.a = 1.0
 		_background_rect.modulate = _border_default_modulate
-		_madra_cost_label.remove_theme_color_override("font_color")
-		_stamina_cost_label.remove_theme_color_override("font_color")
-		_health_cost_label.remove_theme_color_override("font_color")
+		_madra_cost_label.add_theme_color_override("font_color", _madra_default_color)
+		_stamina_cost_label.add_theme_color_override("font_color", _stamina_default_color)
+		_health_cost_label.add_theme_color_override("font_color", _health_default_color)
 	else:
 		button.modulate.a = 0.35
 		_background_rect.modulate = BORDER_CANT_AFFORD
@@ -182,10 +188,16 @@ func _update_affordability_visuals(can_afford: bool) -> void:
 			var data: AbilityData = ability_instance.ability_data
 			if data.madra_cost > _vitals_manager.current_madra:
 				_madra_cost_label.add_theme_color_override("font_color", COLOR_CANT_AFFORD)
+			else:
+				_madra_cost_label.add_theme_color_override("font_color", _madra_default_color)
 			if data.stamina_cost > _vitals_manager.current_stamina:
 				_stamina_cost_label.add_theme_color_override("font_color", COLOR_CANT_AFFORD)
+			else:
+				_stamina_cost_label.add_theme_color_override("font_color", _stamina_default_color)
 			if data.health_cost > _vitals_manager.current_health:
 				_health_cost_label.add_theme_color_override("font_color", COLOR_CANT_AFFORD)
+			else:
+				_health_cost_label.add_theme_color_override("font_color", _health_default_color)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
