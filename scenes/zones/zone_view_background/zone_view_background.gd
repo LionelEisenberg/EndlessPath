@@ -18,20 +18,20 @@ const MAX_SCROLL_SCALE: float = 0.2
 const SKY_LAYER_SCALE: float = 15.0
 
 ## Spirit Valley layer files, ordered back-to-front.
-const SPIRIT_VALLEY_PATH: String = "res://assets/sprites/zones/backgrounds/background 1 - Spirit Valley/"
+const SPIRIT_VALLEY_PATH: String = "res://assets/sprites/zones/backgrounds/spirit_valley/"
 const SPIRIT_VALLEY_LAYERS: PackedStringArray = [
-	"0.png",
-	"1.png",
-	"2.png",
-	"3.png",
-	"4.png",
-	"5.png",
-	"6.png",
-	"7.png",
-	"8.png",
-	"9-(floor).png",
-	"10.png",
-	"11.png",
+	"layer_00.png",
+	"layer_01.png",
+	"layer_02.png",
+	"layer_03.png",
+	"layer_04.png",
+	"layer_05.png",
+	"layer_06.png",
+	"layer_07.png",
+	"layer_08.png",
+	"layer_09.png",
+	"layer_10.png",
+	"layer_11.png",
 ]
 
 #-----------------------------------------------------------------------------

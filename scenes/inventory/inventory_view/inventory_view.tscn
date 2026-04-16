@@ -20,7 +20,7 @@
 [ext_resource type="PackedScene" uid="uid://bx475rcu42d08" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.tscn" id="19_wdr80"]
 [ext_resource type="Texture2D" uid="uid://3w4d3der8ula" path="res://assets/sprites/inventory/materials_tab/banner.png" id="20_qufb6"]
 [ext_resource type="Script" uid="uid://budyxvcrbpvo1" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.gd" id="21_26fxh"]
-[ext_resource type="Texture2D" uid="uid://x368xmilo0p" path="res://assets/sprites/inventory/equipment_grid/bar_scroll..png" id="21_xb6h7"]
+[ext_resource type="Texture2D" uid="uid://x368xmilo0p" path="res://assets/sprites/inventory/equipment_grid/bar_scroll.png" id="21_xb6h7"]
 [ext_resource type="Texture2D" uid="uid://cqbdw487scbtr" path="res://assets/sprites/inventory/equipment_grid/bar_grabber.png" id="22_26fxh"]
 [ext_resource type="PackedScene" uid="uid://c5wiepsq2qinv" path="res://scenes/inventory/inventory_view/materials_tab/material_container.tscn" id="22_qufb6"]
 [ext_resource type="PackedScene" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="23_desc_panel"]

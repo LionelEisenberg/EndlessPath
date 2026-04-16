@@ -10,7 +10,7 @@ metadata={
 
 [deps]
 
-source_file="res://assets/sprites/inventory/equipment_grid/bar_scroll..png"
+source_file="res://assets/sprites/inventory/equipment_grid/bar_scroll.png"
 dest_files=["res://.godot/imported/bar_scroll..png-ca699488a48dd6f4ad0578d534814848.ctex"]
 
 [params]
