@@ -158,3 +158,32 @@ func test_condition_step_does_not_advance_while_partial() -> void:
 		"quest should remain active since event_never never fired")
 	assert_eq(QuestManager.get_current_step_index("cond_quest"), 0,
 		"step should still be 0")
+
+# ----- retroactive auto-complete on start -----
+
+func test_start_skips_past_already_satisfied_event_step() -> void:
+	# Pre-fire the first step's event before starting the quest.
+	EventManager.trigger_event("eel_dialogue_done")
+	QuestManager.start_quest("quest_a")
+	assert_eq(QuestManager.get_current_step_index("quest_a"), 1,
+		"start should skip past the pre-satisfied step")
+
+func test_start_stops_at_first_unsatisfied_step() -> void:
+	# quest_a has two steps: eel_dialogue_done, spring_forest_visited.
+	# Only the first event has fired.
+	EventManager.trigger_event("eel_dialogue_done")
+	QuestManager.start_quest("quest_a")
+	assert_eq(QuestManager.get_current_step_index("quest_a"), 1,
+		"should stop at step 1 (unfired spring_forest_visited)")
+	assert_true(QuestManager.has_active_quest("quest_a"),
+		"quest_a should still be active")
+
+func test_start_completes_instantly_if_all_satisfied() -> void:
+	EventManager.trigger_event("eel_dialogue_done")
+	EventManager.trigger_event("spring_forest_visited")
+	watch_signals(QuestManager)
+	QuestManager.start_quest("quest_a")
+	assert_false(QuestManager.has_active_quest("quest_a"),
+		"fully-satisfied quest should not remain active")
+	# quest_started still fires (the quest WAS started, just instantly finished).
+	assert_signal_emitted(QuestManager, "quest_started")

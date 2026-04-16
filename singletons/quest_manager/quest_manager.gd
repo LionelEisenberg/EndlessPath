@@ -41,6 +41,8 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Starts a quest by id. No-op if already active or completed.
+## After adding to the active list, performs a retroactive pass to skip
+## any steps whose completion criteria were already satisfied before start.
 func start_quest(quest_id: String) -> void:
 	if not _live_save_data:
 		return
@@ -54,6 +56,7 @@ func start_quest(quest_id: String) -> void:
 	_live_save_data.quest_progression.active_quests[quest_id] = 0
 	Log.info("QuestManager: Started quest '%s'" % quest_id)
 	quest_started.emit(quest_id)
+	_retroactive_advance(quest_id)
 
 ## Returns true if the quest is currently in the active list.
 func has_active_quest(quest_id: String) -> bool:
@@ -136,6 +139,32 @@ func _is_step_satisfied(step: QuestStepData, triggering_event_id: String) -> boo
 		return step.completion_event_id == triggering_event_id
 	if step.completion_conditions.is_empty():
 		# No criteria at all — auto-advance (load-time validation logs an error).
+		return true
+	for cond: UnlockConditionData in step.completion_conditions:
+		if not cond.evaluate():
+			return false
+	return true
+
+## Walks a freshly-started quest forward through any already-satisfied steps.
+## For event-based steps, checks `EventManager.has_event_triggered`. For
+## condition-based steps, re-evaluates conditions. Stops at first unsatisfied
+## step or when the quest completes.
+func _retroactive_advance(quest_id: String) -> void:
+	var quest: QuestData = _quests_by_id[quest_id]
+	while _live_save_data.quest_progression.active_quests.has(quest_id):
+		var step_index: int = _live_save_data.quest_progression.active_quests[quest_id]
+		if step_index >= quest.steps.size():
+			break
+		var step: QuestStepData = quest.steps[step_index]
+		if not _is_step_retroactively_satisfied(step):
+			break
+		_advance_step(quest_id)
+
+## Returns true if the step should be treated as already done at start time.
+func _is_step_retroactively_satisfied(step: QuestStepData) -> bool:
+	if not step.completion_event_id.is_empty():
+		return EventManager != null and EventManager.has_event_triggered(step.completion_event_id)
+	if step.completion_conditions.is_empty():
 		return true
 	for cond: UnlockConditionData in step.completion_conditions:
 		if not cond.evaluate():
