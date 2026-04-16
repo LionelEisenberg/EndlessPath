@@ -108,3 +108,53 @@ func test_multiple_active_quests_share_event_advance() -> void:
 			QuestManager.get_current_step_index("quest_b") != 0,
 		"quest_b should have left step 0"
 	)
+
+# ----- step advancement: condition-based -----
+
+func _create_condition_event(event_id: String) -> UnlockConditionData:
+	var c := UnlockConditionData.new()
+	c.condition_id = "cond_" + event_id
+	c.condition_type = UnlockConditionData.ConditionType.EVENT_TRIGGERED
+	c.target_value = event_id
+	return c
+
+func test_condition_step_advances_when_all_conditions_true() -> void:
+	var cond_step := QuestStepData.new()
+	cond_step.step_id = "cond_step"
+	cond_step.description = "Do two things"
+	cond_step.completion_conditions = [
+		_create_condition_event("event_x"),
+		_create_condition_event("event_y"),
+	] as Array[UnlockConditionData]
+	var cond_quest := _create_quest("cond_quest", "Cond Quest",
+		[cond_step] as Array[QuestStepData])
+	QuestManager._quests_by_id["cond_quest"] = cond_quest
+
+	QuestManager.start_quest("cond_quest")
+	EventManager.trigger_event("event_x")  # one of two satisfied
+	assert_true(QuestManager.has_active_quest("cond_quest"),
+		"quest should still be active (only 1/2 conditions met)")
+
+	EventManager.trigger_event("event_y")  # both now satisfied
+	# After event_y, _on_event_triggered re-evaluates, both conditions pass,
+	# step advances (quest has 1 step total, so it completes and is removed).
+	assert_false(QuestManager.has_active_quest("cond_quest"),
+		"quest should no longer be active after all conditions met")
+
+func test_condition_step_does_not_advance_while_partial() -> void:
+	var cond_step := QuestStepData.new()
+	cond_step.step_id = "cond_step"
+	cond_step.completion_conditions = [
+		_create_condition_event("event_x"),
+		_create_condition_event("event_never"),
+	] as Array[UnlockConditionData]
+	var cond_quest := _create_quest("cond_quest", "Cond Quest",
+		[cond_step] as Array[QuestStepData])
+	QuestManager._quests_by_id["cond_quest"] = cond_quest
+
+	QuestManager.start_quest("cond_quest")
+	EventManager.trigger_event("event_x")
+	assert_true(QuestManager.has_active_quest("cond_quest"),
+		"quest should remain active since event_never never fired")
+	assert_eq(QuestManager.get_current_step_index("cond_quest"), 0,
+		"step should still be 0")

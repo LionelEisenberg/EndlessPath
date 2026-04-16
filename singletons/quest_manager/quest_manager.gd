@@ -134,8 +134,13 @@ func _try_advance_step(quest_id: String, triggering_event_id: String) -> void:
 func _is_step_satisfied(step: QuestStepData, triggering_event_id: String) -> bool:
 	if not step.completion_event_id.is_empty():
 		return step.completion_event_id == triggering_event_id
-	# Conditions path — implemented in Task 6.
-	return false
+	if step.completion_conditions.is_empty():
+		# No criteria at all — auto-advance (load-time validation logs an error).
+		return true
+	for cond: UnlockConditionData in step.completion_conditions:
+		if not cond.evaluate():
+			return false
+	return true
 
 ## Moves the quest forward one step. If it was on the last step, the quest
 ## completes (implemented in Task 8). Emits quest_step_advanced otherwise.
