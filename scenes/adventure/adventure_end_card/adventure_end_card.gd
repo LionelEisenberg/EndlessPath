@@ -42,8 +42,8 @@ const HEALTH_GOOD_COLOR := Color("#228b22")
 const HEALTH_DEAD_COLOR := Color("#8b2020")
 const MADRA_COLOR := Color("#4a7ab5")
 
-const VICTORY_ICON := preload("res://assets/ui_images/stat_icons/victory_icon.png")
-const DEFEAT_ICON := preload("res://assets/ui_images/stat_icons/skull_icon.png")
+const VICTORY_ICON := preload("res://assets/sprites/ui/stat_icons/victory_icon.png")
+const DEFEAT_ICON := preload("res://assets/sprites/ui/stat_icons/skull_icon.png")
 
 const _ITEM_DISPLAY_SLOT_SCENE := preload("res://scenes/common/item_display_slot/item_display_slot.tscn")
 

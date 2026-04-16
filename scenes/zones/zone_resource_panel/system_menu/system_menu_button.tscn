@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://d0eha7yo0rjne"]
 
 [ext_resource type="Script" uid="uid://dx88gs3kajku8" path="res://scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd" id="1_wjy3w"]
-[ext_resource type="Texture2D" uid="uid://ckujxkutsuhip" path="res://assets/ui_images/system_menu/inventory_icon.png" id="2_d8e01"]
+[ext_resource type="Texture2D" uid="uid://ckujxkutsuhip" path="res://assets/sprites/ui/system_menu/inventory_icon.png" id="2_d8e01"]
 
 [node name="SystemMenuButton" type="Button" unique_id=1352621287]
 anchors_preset = 15

@@ -17,7 +17,7 @@ extends Node2D
 @onready var _glyph: Sprite2D = %Glyph
 @onready var _checkmark: Sprite2D = %Checkmark
 
-const _GLYPH_COMBAT := preload("res://assets/ui_images/stat_icons/combat_icon.png")
+const _GLYPH_COMBAT := preload("res://assets/sprites/ui/stat_icons/combat_icon.png")
 const _GLYPH_ELITE := preload("res://assets/sprites/adventure/encounter_glyphs/elite.png")
 const _GLYPH_BOSS := preload("res://assets/sprites/adventure/encounter_glyphs/boss_spritesheet.png")
 const _GLYPH_REST := preload("res://assets/sprites/adventure/encounter_glyphs/rest.png")

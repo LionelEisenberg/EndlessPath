@@ -10,9 +10,9 @@ const LABEL_COLOR_NORMAL = Color(1, 1, 1)
 const LABEL_COLOR_HOVER = Color(0, 0, 0)
 
 static var button_texture_list: Array[Texture2D] = [
-	load("res://assets/ui_images/action_buttons/action_button_1.png"),
-	load("res://assets/ui_images/action_buttons/action_button_2.png"),
-	load("res://assets/ui_images/action_buttons/action_button_3.png")
+	load("res://assets/sprites/ui/action_buttons/action_button_1.png"),
+	load("res://assets/sprites/ui/action_buttons/action_button_2.png"),
+	load("res://assets/sprites/ui/action_buttons/action_button_3.png")
 ]
 
 @onready var icon_texture: TextureRect = %IconTexture

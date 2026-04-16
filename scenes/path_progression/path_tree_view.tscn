@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cbps5t4a7d2m5"]
 
 [ext_resource type="Script" uid="uid://bwndb65a0mqda" path="res://scenes/path_progression/path_tree_view.gd" id="1_tree_view"]
-[ext_resource type="Texture2D" uid="uid://bagg3hpuf63iv" path="res://assets/ui_images/system_menu/star_icon.png" id="2_5saao"]
+[ext_resource type="Texture2D" uid="uid://bagg3hpuf63iv" path="res://assets/sprites/ui/system_menu/star_icon.png" id="2_5saao"]
 [ext_resource type="PackedScene" uid="uid://7a450axlkpc4" path="res://scenes/path_progression/layouts/pure_madra_tier1_layout.tscn" id="2_6xi7k"]
 [ext_resource type="Script" uid="uid://bfrue6onb4elu" path="res://scenes/path_progression/path_node_container.gd" id="2_container"]
 [ext_resource type="PackedScene" uid="uid://cwkb4dhlivby1" path="res://scenes/path_progression/path_node_ui.tscn" id="3_keujn"]
