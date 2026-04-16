@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+
+[node name="CombatBuffTooltip" type="PanelContainer"]
+custom_minimum_size = Vector2(220, 0)
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")

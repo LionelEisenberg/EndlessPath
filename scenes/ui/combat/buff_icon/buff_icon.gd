@@ -6,6 +6,13 @@ extends MarginContainer
 ## Displays icon, duration, and stack count.
 
 #-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
+signal hovered(buff_data: BuffEffectData)
+signal unhovered
+
+#-----------------------------------------------------------------------------
 # SCENE REFERENCES
 #-----------------------------------------------------------------------------
 
@@ -21,6 +28,7 @@ extends MarginContainer
 var max_duration: float = 0.0
 var time_left: float = 0.0
 var is_active: bool = false
+var _buff_data: BuffEffectData
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -28,18 +36,25 @@ var is_active: bool = false
 
 ## Sets up the icon with the given buff data.
 func setup(buff_data: BuffEffectData, duration: float, stack_count: int) -> void:
+	_buff_data = buff_data
+
 	# Set Icon
 	if buff_texture:
 		buff_texture.texture = buff_data.buff_icon
-	
+
 	# Set State
 	max_duration = duration
 	time_left = duration
 	is_active = true
-	
+
 	# Initial Update
 	update_duration(duration)
 	update_stacks(stack_count)
+
+	# Enable mouse hover
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
 
 ## Updates the duration display.
 func update_duration(new_time_left: float) -> void:
@@ -59,3 +74,10 @@ func update_stacks(count: int) -> void:
 
 # Duration is synced externally by CombatantInfoPanel from the authoritative ActiveBuff state.
 # No independent _process countdown — avoids visual drift from actual buff duration.
+
+func _on_mouse_entered() -> void:
+	if _buff_data:
+		hovered.emit(_buff_data)
+
+func _on_mouse_exited() -> void:
+	unhovered.emit()
