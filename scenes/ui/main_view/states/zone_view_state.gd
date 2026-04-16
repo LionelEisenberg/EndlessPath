@@ -34,6 +34,8 @@ func handle_input(event: InputEvent) -> void:
 		scene_root.push_state(scene_root.path_tree_view_state)
 	elif event.is_action_pressed("open_abilities"):
 		scene_root.push_state(scene_root.abilities_view_state)
+	elif event.is_action_pressed("open_character"):
+		scene_root.push_state(scene_root.character_view_state)
 
 func _on_adventure_start_requested(_action_data: AdventureActionData) -> void:
 	_add_input_blocker()

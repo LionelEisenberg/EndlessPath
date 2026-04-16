@@ -28,6 +28,8 @@
 [ext_resource type="Script" uid="uid://cd0oljhv7jwgr" path="res://scenes/abilities/abilities_view_state.gd" id="22_avs"]
 [ext_resource type="PackedScene" uid="uid://dq8m3p6k2n1xt" path="res://scenes/abilities/abilities_view.tscn" id="23_av"]
 [ext_resource type="Script" uid="uid://cj636cki5h3is" path="res://scenes/ui/grey_background/grey_background.gd" id="24_grybg_script"]
+[ext_resource type="PackedScene" path="res://scenes/character/character_view.tscn" id="25_cv"]
+[ext_resource type="Script" path="res://scenes/character/character_view_state.gd" id="26_cvs"]
 
 [sub_resource type="Animation" id="Animation_grey_RESET"]
 resource_name = "RESET"
@@ -128,6 +130,10 @@ script = ExtResource("18_ptvs")
 [node name="AbilitiesViewState" type="Node" parent="MainView/MainViewStateMachine" unique_id=271834561]
 unique_name_in_owner = true
 script = ExtResource("22_avs")
+
+[node name="CharacterViewState" type="Node" parent="MainView/MainViewStateMachine"]
+unique_name_in_owner = true
+script = ExtResource("26_cvs")
 
 [node name="ZoneView" type="Control" parent="MainView" unique_id=489769471]
 unique_name_in_owner = true
@@ -261,6 +267,11 @@ z_index = 3
 layout_mode = 1
 
 [node name="AbilitiesView" parent="MainView" unique_id=382947015 instance=ExtResource("23_av")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="CharacterView" parent="MainView" instance=ExtResource("25_cv")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
