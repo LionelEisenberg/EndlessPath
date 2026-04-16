@@ -172,15 +172,23 @@ func _is_step_retroactively_satisfied(step: QuestStepData) -> bool:
 	return true
 
 ## Moves the quest forward one step. If it was on the last step, the quest
-## completes (implemented in Task 8). Emits quest_step_advanced otherwise.
+## completes. Emits quest_step_advanced otherwise.
 func _advance_step(quest_id: String) -> void:
 	var quest: QuestData = _quests_by_id[quest_id]
 	var new_index: int = _live_save_data.quest_progression.active_quests[quest_id] + 1
 	if new_index >= quest.steps.size():
-		# Completion logic added in Task 8 — for now, remove from active to
-		# satisfy Task 5's multi-quest test.
-		_live_save_data.quest_progression.active_quests.erase(quest_id)
+		_complete_quest(quest_id)
 		return
 	_live_save_data.quest_progression.active_quests[quest_id] = new_index
 	Log.info("QuestManager: Quest '%s' advanced to step %d" % [quest_id, new_index])
 	quest_step_advanced.emit(quest_id, new_index)
+
+func _complete_quest(quest_id: String) -> void:
+	var quest: QuestData = _quests_by_id[quest_id]
+	_live_save_data.quest_progression.active_quests.erase(quest_id)
+	_live_save_data.quest_progression.completed_quest_ids.append(quest_id)
+	Log.info("QuestManager: Quest '%s' completed" % quest_id)
+	for effect: EffectData in quest.completion_effects:
+		if effect:
+			effect.process()
+	quest_completed.emit(quest_id)

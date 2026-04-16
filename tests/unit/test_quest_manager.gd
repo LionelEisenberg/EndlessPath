@@ -33,10 +33,12 @@ func before_each() -> void:
 		"quest_a": _quest_a,
 		"quest_b": _quest_b,
 	}
+	EventManager.live_save_data = _save_data
 
 func after_each() -> void:
 	QuestManager._live_save_data = null
 	QuestManager._quests_by_id = {}
+	EventManager.live_save_data = null
 
 # ----- start_quest: basic -----
 
@@ -187,3 +189,48 @@ func test_start_completes_instantly_if_all_satisfied() -> void:
 		"fully-satisfied quest should not remain active")
 	# quest_started still fires (the quest WAS started, just instantly finished).
 	assert_signal_emitted(QuestManager, "quest_started")
+
+# ----- quest completion -----
+
+## A simple effect that records when it was processed — lets us assert
+## completion_effects fire in order.
+class TestRecordingEffect extends EffectData:
+	var processed: bool = false
+	func process() -> void:
+		processed = true
+	func _to_string() -> String:
+		return "TestRecordingEffect(processed=%s)" % processed
+
+func test_final_step_advance_completes_quest() -> void:
+	QuestManager.start_quest("quest_b")  # single step
+	QuestManager._on_event_triggered("eel_dialogue_done")
+	assert_false(QuestManager.has_active_quest("quest_b"),
+		"quest_b should be removed from active after final step")
+	assert_true(QuestManager.has_completed_quest("quest_b"),
+		"quest_b should be in completed list")
+
+func test_completion_fires_completion_effects() -> void:
+	var effect := TestRecordingEffect.new()
+	_quest_b.completion_effects = [effect] as Array[EffectData]
+	QuestManager.start_quest("quest_b")
+	QuestManager._on_event_triggered("eel_dialogue_done")
+	assert_true(effect.processed, "completion effect should have been processed")
+
+func test_completion_emits_signal() -> void:
+	QuestManager.start_quest("quest_b")
+	watch_signals(QuestManager)
+	QuestManager._on_event_triggered("eel_dialogue_done")
+	assert_signal_emitted_with_parameters(QuestManager, "quest_completed", ["quest_b"])
+
+func test_completion_preserves_insertion_order_in_completed_list() -> void:
+	QuestManager.start_quest("quest_a")
+	QuestManager.start_quest("quest_b")
+	# Complete quest_b first (it only has 1 step).
+	QuestManager._on_event_triggered("eel_dialogue_done")
+	# eel_dialogue_done also advanced quest_a to step 1. Complete quest_a by
+	# firing spring_forest_visited.
+	QuestManager._on_event_triggered("spring_forest_visited")
+	var completed: Array[String] = QuestManager.get_completed_quest_ids()
+	assert_eq(completed.size(), 2)
+	assert_eq(completed[0], "quest_b", "quest_b completed first")
+	assert_eq(completed[1], "quest_a", "quest_a completed second")
