@@ -29,8 +29,7 @@ var ability_manager: CombatAbilityManager
 var active_buff_icons: Dictionary = {}
 
 var buff_icon_scene: PackedScene = preload("res://scenes/ui/combat/buff_icon/buff_icon.tscn")
-var buff_tooltip_scene: PackedScene = preload("res://scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.tscn")
-var _buff_tooltip: CombatBuffTooltip
+@onready var _buff_tooltip: CombatBuffTooltip = %CombatBuffTooltip
 
 
 func _ready() -> void:
@@ -200,15 +199,11 @@ func _on_buff_manager_exiting() -> void:
 	_cleanup_buffs()
 
 func _on_buff_icon_hovered(buff_data: BuffEffectData, buff_id: String) -> void:
-	if not buff_manager:
+	if not buff_manager or not _buff_tooltip:
 		return
 	var buff: ActiveBuff = buff_manager._find_buff_by_id(buff_id)
 	if not buff:
 		return
-
-	if not _buff_tooltip:
-		_buff_tooltip = buff_tooltip_scene.instantiate()
-		add_child(_buff_tooltip)
 
 	_buff_tooltip.show_for_buff(buff)
 
