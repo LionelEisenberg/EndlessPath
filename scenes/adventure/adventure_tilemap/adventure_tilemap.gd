@@ -120,6 +120,16 @@ var _is_movement_locked: bool = false
 var _current_combat_choice: CombatChoice = null # Store for post-combat processing
 var _current_dialogue_choice: DialogueChoice = null # Store for post-dialogue processing
 
+## When the player clicks a tile to commit to a destination, the path
+## preview locks in and the hover selector snaps onto that tile — neither
+## moves in response to hovering until the player arrives, gets hijacked
+## by an unvisited encounter along the way, or the adventure ends. Each
+## arrival along the route shrinks the preview by one point so the line
+## walks forward with the player. See _refresh_committed_path_preview and
+## _release_committed_destination.
+var _committed_destination: Vector3i = Vector3i.ZERO
+var _has_committed_destination: bool = false
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -192,6 +202,7 @@ func stop_adventure() -> void:
 	_visitation_queue.clear()
 	_current_tile = Vector3i.ZERO
 	_is_movement_locked = false
+	_release_committed_destination()
 	encounter_info_panel.visible = false
 	
 
@@ -264,6 +275,12 @@ func _visit(coord: Vector3i) -> void:
 	else:
 		_update_visible_map()
 
+	# If this arrival is the committed destination, drop the lock so the
+	# path clears. Intermediate arrivals are a no-op — the static line
+	# keeps leading to the destination and the per-frame gradient fade
+	# handles visually retreating it behind the player.
+	_check_committed_arrival()
+
 	# Always show the panel if there's an encounter
 	if _encounter_tile_dictionary.has(coord):
 		var tile_encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
@@ -281,6 +298,11 @@ func _visit(coord: Vector3i) -> void:
 		if not was_already_visited:
 			_is_movement_locked = true
 			_visitation_queue.clear() # Stop any further queued movement
+			# An unvisited encounter just hijacked the trip mid-route —
+			# abandon the committed destination. After resolving the
+			# encounter the player will need to click again to decide
+			# where to go next.
+			_release_committed_destination()
 	else:
 		encounter_info_panel.hide_panel()
 
@@ -357,6 +379,18 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	if path_cube_coords.size() > 1:
 		_visitation_queue = path_cube_coords.slice(1) # Skip current tile
 		Log.info("AdventureTilemap: Created visitation queue with %d tiles" % _visitation_queue.size())
+
+		# Commit to this destination: the path preview and hover selector
+		# both lock onto the clicked tile until arrival. Snap the selector
+		# explicitly in case the click landed without a prior hover event.
+		_committed_destination = target_cube_coord
+		_has_committed_destination = true
+		_hover_selector.show_at(visible_map.map_to_local(coord) + visible_map.position)
+		# Seed the full static route. This replaces whatever the hover
+		# preview was showing with the exact cube-pathfind route from
+		# here to the destination. Points stay fixed for the whole trip.
+		_seed_committed_path_preview()
+
 		_process_next_visitation()
 	else:
 		Log.info("AdventureTilemap: Path is empty or only contains current tile")
@@ -364,6 +398,12 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 func _on_tile_hovered(tile_coord: Vector2i) -> void:
 	if _is_movement_locked:
 		_hover_selector.hide()
+		return
+	# While a destination is committed, both the path preview and the
+	# hover selector stay locked onto the clicked tile — hovering over
+	# anything else is a no-op until the player arrives or the trip
+	# gets aborted.
+	if _has_committed_destination:
 		return
 	var target_cube := visible_map.map_to_cube(tile_coord)
 	if not _visited_tile_dictionary.has(target_cube) and not _highlight_tile_dictionary.has(target_cube):
@@ -384,8 +424,64 @@ func _on_tile_hovered(tile_coord: Vector2i) -> void:
 	_path_preview.show_path(world_points)
 
 func _on_tile_unhovered() -> void:
+	# Mouse leaving a tile mid-trip must not clear the locked preview or
+	# the locked selector — those are pinned to the committed destination
+	# and only release on arrival / abort.
+	if _has_committed_destination:
+		return
 	_hover_selector.hide()
 	_path_preview.clear_path()
+
+## Seeds the committed path preview with the full cube-pathfind route
+## from the player's current tile to the committed destination. Called
+## exactly once per trip from _on_tile_clicked, after the commit flags
+## are set. The line's points then stay static for the whole trip —
+## _update_committed_path_visibility slides a gradient over them
+## instead of editing the point list, which keeps the tiled texture
+## UVs stable and avoids rendering artifacts from per-frame segment
+## resizing.
+func _seed_committed_path_preview() -> void:
+	var path: Array[Vector3i] = visible_map.cube_pathfind(_current_tile, _committed_destination)
+	var world_points: Array[Vector2] = []
+	for c in path:
+		var world_pos := full_map.cube_to_local(c) + full_map.position
+		world_points.append(world_pos)
+	_path_preview.show_path(world_points)
+
+## Fires on every tile arrival via _visit. If the player has reached
+## the committed destination, drops the commit and clears the path. On
+## intermediate arrivals this is a no-op — the static line continues
+## to lead to the destination and the per-frame gradient update takes
+## care of visually retreating it behind the player.
+func _check_committed_arrival() -> void:
+	if not _has_committed_destination:
+		return
+	if _current_tile == _committed_destination:
+		_release_committed_destination()
+
+## Drops the committed-destination state and hides the path preview.
+## Called on arrival at the destination, when an unvisited encounter
+## hijacks the trip mid-route, when the player runs out of stamina
+## mid-route, and when the adventure tears down. The hover selector
+## is intentionally left where it is — the next hover event updates it.
+func _release_committed_destination() -> void:
+	_has_committed_destination = false
+	_committed_destination = Vector3i.ZERO
+	_path_preview.clear_path()
+
+## Runs every frame while a destination is committed. The path's points
+## are static — this call only nudges the Line2D's two gradient stops
+## to fade out the portion behind the character's current position,
+## keeping the tile centers ahead of the player fully opaque. Both
+## PathPreview and character_body live in AdventureTilemap's local
+## space, so character_body.position can be handed in directly without
+## a coordinate transform.
+func _update_committed_path_visibility() -> void:
+	if not _has_committed_destination:
+		return
+	if _path_preview.get_point_count() < 2:
+		return
+	_path_preview.set_fade_behind(character_body.position)
 
 ## Called when character completes movement to a tile
 func _on_character_movement_completed() -> void:
@@ -465,9 +561,13 @@ func _play_boss_reveal(boss_cube: Vector3i) -> void:
 
 func _process(_delta: float) -> void:
 	# Fog-of-war uniforms are in screen space, so they must be refreshed
-	# every frame to stay in sync with camera pan/zoom.
+	# every frame to stay in sync with camera pan/zoom. The committed
+	# path preview's gradient fade also needs per-frame attention so the
+	# section of the static line behind the character stays hidden while
+	# the section ahead remains fully visible.
 	if current_adventure_action_data != null:
 		_update_fog_uniforms()
+		_update_committed_path_visibility()
 
 func _update_fog_uniforms() -> void:
 	if _fog_rect == null or _fog_rect.material == null:
@@ -529,6 +629,7 @@ func _process_next_visitation() -> void:
 		else:
 			Log.info("AdventureTilemap: Out of stamina, stopping movement.")
 			_visitation_queue.clear()
+			_release_committed_destination()
 			return
 
 	_visitation_queue.pop_front() # Actually remove it
