@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_aq0o0"]
 [ext_resource type="Script" uid="uid://dskgt7ri3i7p3" path="res://scripts/resource_definitions/unlocks/unlock_condition_list.gd" id="2_2uato"]
-[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/initial_spirit_valley_dialogue_1.tres" id="2_tsp8q"]
+[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/wandering_spirit_dialogue_1.tres" id="2_tsp8q"]
 [ext_resource type="Resource" uid="uid://l11ly74pkjay" path="res://resources/unlocks/test_attribute_requirement_unlock_data.tres" id="3_pa8gf"]
 
 [resource]

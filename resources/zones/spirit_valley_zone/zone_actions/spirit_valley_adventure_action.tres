@@ -10,7 +10,7 @@
 script = ExtResource("1_bedlk")
 adventure_data = ExtResource("1_v40qa")
 time_limit_seconds = 300
-action_id = "test_adventure_action_data"
+action_id = "spirit_valley_adventure_action"
 action_name = "Fight the Baddies!"
 action_type = 1
 description = "Come with me, Fight the Baddies"

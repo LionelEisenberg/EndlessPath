@@ -4,6 +4,6 @@
 
 [resource]
 script = ExtResource("1_7d24d")
-event_id = "initial_spirit_valley_dialogue_1"
+event_id = "wandering_spirit_dialogue_1"
 effect_type = 1
 metadata/_custom_type_script = "uid://cc0ky7w2fsg10"
