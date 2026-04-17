@@ -8,6 +8,7 @@ enum EffectType {
 	AWARD_ITEM,
 	AWARD_LOOT_TABLE,
 	START_QUEST,
+	AWARD_ATTRIBUTE,
 }
 
 @export var effect_type: EffectType = EffectType.NONE
