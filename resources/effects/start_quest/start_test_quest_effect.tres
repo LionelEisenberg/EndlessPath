@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StartQuestEffectData" load_steps=2 format=3 uid="uid://start_test_quest_effect_01"]
+
+[ext_resource type="Script" uid="uid://dnny6lt7o8jep" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="1_sqe"]
+
+[resource]
+script = ExtResource("1_sqe")
+effect_type = 5
+quest_id = "test_quest"
+metadata/_custom_type_script = "uid://dnny6lt7o8jep"
