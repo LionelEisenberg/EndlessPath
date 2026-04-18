@@ -1,14 +1,7 @@
-[gd_scene format=3 uid="uid://bw8m5x2oap4q1" load_steps=6]
+[gd_scene format=3 uid="uid://bw8m5x2oap4q1" load_steps=3]
 
 [ext_resource type="Script" uid="uid://d1adqdlc01837" path="res://scenes/zones/zone_action_button/zone_action_button.gd" id="1_action_btn"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/zones/action_card_normal.tres" id="2_card_normal"]
-[ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/sprites/ui/resources/madra_icon.png" id="3_po6du"]
-[ext_resource type="Shader" uid="uid://action_card_sweep_shader" path="res://assets/shaders/action_card_sweep.gdshader" id="4_sweep_shader"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_sweep"]
-resource_local_to_scene = true
-shader = ExtResource("4_sweep_shader")
-shader_parameter/fill_amount = 0.0
 
 [node name="ZoneActionButtonContainer" type="MarginContainer" unique_id=1951268531]
 custom_minimum_size = Vector2(0, 48)
@@ -26,12 +19,15 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/panel = ExtResource("2_card_normal")
 
-[node name="ProgressFill" type="ColorRect" parent="ActionCard" unique_id=1234567890]
+[node name="OverlaySlot" type="Control" parent="ActionCard"]
 unique_name_in_owner = true
-layout_mode = 2
-material = SubResource("ShaderMaterial_sweep")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
-color = Color(0.42, 0.67, 0.37, 0.45)
 
 [node name="ContentMargin" type="MarginContainer" parent="ActionCard"]
 layout_mode = 2
@@ -41,24 +37,28 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 10
 
-[node name="HBoxContainer" type="HBoxContainer" parent="ActionCard/ContentMargin" unique_id=922382785]
+[node name="VBoxContainer" type="VBoxContainer" parent="ActionCard/ContentMargin"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TopRow" type="HBoxContainer" parent="ActionCard/ContentMargin/VBoxContainer"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="TextSection" type="VBoxContainer" parent="ActionCard/ContentMargin/HBoxContainer" unique_id=977978053]
+[node name="TextSection" type="VBoxContainer" parent="ActionCard/ContentMargin/VBoxContainer/TopRow" unique_id=977978053]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 3
 
-[node name="ActionNameLabel" type="Label" parent="ActionCard/ContentMargin/HBoxContainer/TextSection" unique_id=1359801726]
+[node name="ActionNameLabel" type="Label" parent="ActionCard/ContentMargin/VBoxContainer/TopRow/TextSection" unique_id=1359801726]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelBody"
 theme_override_colors/font_color = Color(0.91, 0.86, 0.78, 1)
 
-[node name="ActionDescLabel" type="RichTextLabel" parent="ActionCard/ContentMargin/HBoxContainer/TextSection" unique_id=995097632]
+[node name="ActionDescLabel" type="RichTextLabel" parent="ActionCard/ContentMargin/VBoxContainer/TopRow/TextSection" unique_id=995097632]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
@@ -67,32 +67,16 @@ bbcode_enabled = true
 fit_content = true
 autowrap_mode = 2
 
-[node name="MadraBadgeContainer" type="HBoxContainer" parent="ActionCard/ContentMargin/HBoxContainer" unique_id=462977340]
+[node name="InlineSlot" type="HBoxContainer" parent="ActionCard/ContentMargin/VBoxContainer/TopRow"]
 unique_name_in_owner = true
-visible = false
 layout_mode = 2
 size_flags_horizontal = 8
 size_flags_vertical = 4
-mouse_filter = 1
-tooltip_text = "Madra Requirement"
-theme_override_constants/separation = 4
-
-[node name="MadraBadge" type="RichTextLabel" parent="ActionCard/ContentMargin/HBoxContainer/MadraBadgeContainer" unique_id=1553051251]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 0)
-layout_mode = 2
-size_flags_vertical = 4
 mouse_filter = 2
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
+alignment = 2
 
-[node name="MadraIcon" type="TextureRect" parent="ActionCard/ContentMargin/HBoxContainer/MadraBadgeContainer" unique_id=864063711]
+[node name="FooterSlot" type="VBoxContainer" parent="ActionCard/ContentMargin/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(20, 20)
 layout_mode = 2
-size_flags_vertical = 4
+size_flags_horizontal = 3
 mouse_filter = 2
-texture = ExtResource("3_po6du")
-expand_mode = 3
-stretch_mode = 5

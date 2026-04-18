@@ -61,9 +61,9 @@ func _ready() -> void:
 		Log.warn("VitalsManager: is_player and character_attributes_data should never be set at the same time")
 	
 	if is_player:
-		var f = func(): character_attributes_data = CharacterManager.get_total_attributes_data()
+		var f = func(_attr_type, _new_value): character_attributes_data = CharacterManager.get_total_attributes_data()
 		CharacterManager.base_attribute_changed.connect(f)
-		f.call()
+		f.call(null, 0.0)
 
 func _process(delta: float) -> void:
 	if health_regen != 0:

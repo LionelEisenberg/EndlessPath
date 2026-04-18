@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/foraging_presenter.gd" id="1_forage"]
+[ext_resource type="Shader" uid="uid://d1le2lwhb6c0s" path="res://assets/shaders/action_card_sweep.gdshader" id="2_sweep"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sweep"]
+resource_local_to_scene = true
+shader = ExtResource("2_sweep")
+shader_parameter/fill_amount = 0.0
+
+[node name="ForagingPresenter" type="Node"]
+script = ExtResource("1_forage")
+
+[node name="ProgressFill" type="ColorRect" parent="."]
+unique_name_in_owner = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+material = SubResource("ShaderMaterial_sweep")
+mouse_filter = 2
+color = Color(0.42, 0.67, 0.37, 0.45)

@@ -23,6 +23,12 @@ signal adventure_start_requested(action_data: AdventureActionData)
 signal start_adventure(action_data: AdventureActionData, madra_budget: float)
 signal stop_adventure()
 
+## training signals
+signal start_training(action_data: TrainingActionData)
+signal stop_training()
+signal training_tick_processed(action_data: TrainingActionData, new_tick_count: int)
+signal training_level_gained(action_data: TrainingActionData, new_level: int)
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -90,6 +96,11 @@ func _execute_action(action_data: ZoneActionData) -> void:
 				_execute_dialogue_action(action_data as NpcDialogueActionData)
 			else:
 				Log.error("ActionManager: Dialogue action data is not NpcDialogueActionData")
+		ZoneActionData.ActionType.TRAIN_STATS:
+			if action_data is TrainingActionData:
+				_execute_train_action(action_data as TrainingActionData)
+			else:
+				Log.error("ActionManager: Training action data is not a TrainingActionData: %s" % action_data.action_name)
 		_:
 			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
@@ -107,6 +118,8 @@ func _stop_executing_current_action(successful: bool = true) -> void:
 				_stop_cycling_action(successful)
 			ZoneActionData.ActionType.NPC_DIALOGUE:
 				_stop_dialogue_action(successful)
+			ZoneActionData.ActionType.TRAIN_STATS:
+				_stop_train_action(successful)
 			_:
 				Log.error("ActionManager: Unknown action type: %s" % current_action.action_type)
 	
@@ -170,17 +183,45 @@ func _execute_cycling_action(action_data: CyclingActionData) -> void:
 ## Handle dialogue action - show dialogue.
 func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 	Log.info("ActionManager: Executing dialogue action: %s" % action_data.action_name)
-	
+
 	if not DialogueManager:
 		Log.critical("ActionManager: DialogueManager is not initialized")
 		return
-	
+
 	DialogueManager.dialogue_ended.connect(
 		stop_action,
 		CONNECT_ONE_SHOT
 	)
 
 	DialogueManager.start_timeline(action_data.dialogue_timeline_name)
+
+## Handle training action - start periodic tick timer.
+func _execute_train_action(action_data: TrainingActionData) -> void:
+	Log.info("ActionManager: Executing training action: %s" % action_data.action_name)
+	start_training.emit(action_data)
+
+	action_timer.name = "TrainingTimer"
+	action_timer.timeout.connect(_on_train_timer_finished.bind(action_data))
+	action_timer.wait_time = action_data.tick_interval_seconds
+	action_timer.autostart = true
+	action_timer.start()
+
+func _on_train_timer_finished(action_data: TrainingActionData) -> void:
+	var prev_ticks: int = ZoneManager.get_training_ticks(action_data.action_id)
+	var prev_level: int = action_data.get_current_level(prev_ticks)
+
+	var new_ticks: int = ZoneManager.increment_training_ticks(action_data.action_id)
+	var new_level: int = action_data.get_current_level(new_ticks)
+
+	for effect in action_data.effects_per_tick:
+		effect.process()
+
+	training_tick_processed.emit(action_data, new_ticks)
+
+	for level in range(prev_level + 1, new_level + 1):
+		for effect in action_data.effects_on_level:
+			effect.process()
+		training_level_gained.emit(action_data, level)
 
 #-----------------------------------------------------------------------------
 # ACTION STOP EXECUTION HANDLERS
@@ -211,7 +252,14 @@ func _stop_cycling_action(successful: bool) -> void:
 ## Handle dialogue action - stop dialogue.
 func _stop_dialogue_action(successful: bool) -> void:
 	Log.info("ActionManager: Dialogue completed, processing effects for: %s" % current_action.action_name)
-	
+
+	_process_completion_effects(successful)
+
+## Handle training action - stop and persist remaining progress.
+func _stop_train_action(successful: bool) -> void:
+	Log.info("ActionManager: Stopping training action")
+	stop_training.emit()
+	_reset_action_timer()
 	_process_completion_effects(successful)
 
 func _process_completion_effects(successful: bool) -> void:
