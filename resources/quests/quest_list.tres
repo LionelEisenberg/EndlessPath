@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" uid="uid://c1urxnbhmkqws" path="res://scripts/resource_definitions/quests/quest_list.gd" id="1_ql"]
 [ext_resource type="Script" uid="uid://c777hl035dwml" path="res://scripts/resource_definitions/quests/quest_data.gd" id="2_qd"]
-[ext_resource type="Resource" uid="uid://test_quest_resource_01" path="res://resources/quests/test_quest_resource.tres" id="3_tq"]
+[ext_resource type="Resource" uid="uid://bqfillcore0001" path="res://resources/quests/q_fill_core.tres" id="3_qfc01"]
 
 [resource]
 script = ExtResource("1_ql")
-quests = Array[ExtResource("2_qd")]([ExtResource("3_tq")])
+quests = Array[ExtResource("2_qd")]([ExtResource("3_qfc01")])
 metadata/_custom_type_script = "uid://c1urxnbhmkqws"
