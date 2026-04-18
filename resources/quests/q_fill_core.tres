@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="QuestData" load_steps=7 format=3 uid="uid://bqfillcore0001"]
+[gd_resource type="Resource" script_class="QuestData" load_steps=10 format=3 uid="uid://bqfillcore0001"]
 
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="1_qfc01"]
 [ext_resource type="Script" path="res://scripts/resource_definitions/quests/quest_data.gd" id="2_qfc02"]
