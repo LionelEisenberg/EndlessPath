@@ -17,6 +17,7 @@ const CATEGORY_COLORS: Dictionary = {
 	ZoneActionData.ActionType.CYCLING: Color(0.37, 0.66, 0.62),
 	ZoneActionData.ActionType.ADVENTURE: Color(0.61, 0.25, 0.25),
 	ZoneActionData.ActionType.NPC_DIALOGUE: Color(0.83, 0.66, 0.29),
+	ZoneActionData.ActionType.TRAIN_STATS: Color(0.55, 0.45, 0.75),
 }
 const DEFAULT_CATEGORY_COLOR: Color = Color(0.5, 0.5, 0.5)
 
@@ -27,6 +28,7 @@ const PRESENTER_SCENES: Dictionary = {
 	ZoneActionData.ActionType.ADVENTURE: preload("res://scenes/zones/zone_action_button/presenters/adventure_presenter.tscn"),
 	ZoneActionData.ActionType.CYCLING: preload("res://scenes/zones/zone_action_button/presenters/default_presenter.tscn"),
 	ZoneActionData.ActionType.NPC_DIALOGUE: preload("res://scenes/zones/zone_action_button/presenters/default_presenter.tscn"),
+	ZoneActionData.ActionType.TRAIN_STATS: preload("res://scenes/zones/zone_action_button/presenters/training_presenter.tscn"),
 }
 
 @export var action_data: ZoneActionData
