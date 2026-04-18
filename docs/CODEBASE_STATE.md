@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-04-16
+Last updated: 2026-04-18
 
 This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
 
@@ -61,9 +61,9 @@ Each state is a `MainViewState` node that controls visibility of its correspondi
 
 ### Singleton Managers
 
-16 autoload singletons manage global state, loaded in dependency order via `project.godot`:
+17 autoload singletons manage global state, loaded in dependency order via `project.godot`:
 
-1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager → 14. CyclingManager → 15. AbilityManager → 16. PathManager
+1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager → 14. CyclingManager → 15. AbilityManager → 16. PathManager → 17. QuestManager
 
 **Communication pattern:** Singletons communicate via signals and shared state. All game-state managers hold a **live reference** to `PersistenceManager.save_game_data` (a shared `SaveGameData` Resource). Writes by one manager are immediately visible to all others. When state changes, managers emit signals that UI scenes listen to.
 
@@ -79,7 +79,8 @@ PersistenceManager (root — owns SaveGameData)
   ├── ZoneManager (zone state, progression)
   ├── PathManager (path tree state, purchases, point balance)
   ├── AbilityManager (unlocked abilities, equipped loadout)
-  └── CyclingManager (unlocked techniques, equipped technique)
+  ├── CyclingManager (unlocked techniques, equipped technique)
+  └── QuestManager (active and completed quests, step progression)
 
 ActionManager (orchestrator)
   → emits: start_cycling, stop_cycling, start_adventure, stop_adventure, start_foraging, etc.
@@ -169,6 +170,7 @@ Issues that span multiple systems and don't belong to any single doc:
 | Events | [docs/infrastructure/EVENTS.md](infrastructure/EVENTS.md) | One-shot narrative event flags (EventManager) |
 | Character | [docs/infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, abilities, player state (CharacterManager + PlayerManager) |
 | Persistence | [docs/infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | Save/load, SaveGameData schema (PersistenceManager) |
+| Quests | *(undocumented)* | Multi-step quest progression driven by events + unlock conditions (QuestManager, PR #25/#26). Spec at `docs/superpowers/specs/2026-04-16-quest-system-design.md` |
 
 ### Design Documents
 

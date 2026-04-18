@@ -41,16 +41,16 @@ Example: Spirit Valley NPC dialogue unlocks new zones and actions.
 2. Dialogic plays "spirit_valley" timeline
 3. Dialogue ends → ActionManager.stop_action(true) → _process_completion_effects()
 4. TriggerEventEffectData.process()
-   → EventManager.trigger_event("initial_spirit_valley_dialogue_1")
+   → EventManager.trigger_event("wandering_spirit_dialogue_1")
 5. EventManager emits event_triggered
    → UnlockManager._evaluate_all_conditions()
-6. Condition "initial_spirit_valley_dialogue_1" (EVENT_TRIGGERED) evaluates true
+6. Condition "wandering_spirit_dialogue_1" (EVENT_TRIGGERED) evaluates true
    → appended to save_data.unlock_progression.unlocked_condition_ids
    → condition_unlocked signal emitted
 7. ZoneTilemap._on_condition_unlocked() → refreshes tiles
    → Test Zone tile changes from locked to unlocked
 8. ZoneInfoPanel rebuilds
-   → "Mountain Top Cycling" and "Spring Forest Foraging" actions appear
+   → "Wilderness Cycling" and "Spring Forest Foraging" actions appear
 9. AwardItemEffectData gives the player a Dagger
 ```
 
@@ -59,8 +59,10 @@ The key pattern: **game action → EffectData triggers event → UnlockManager r
 ## Existing Content
 
 ### Unlock Conditions
-1. `initial_spirit_valley_dialogue_1` — EVENT_TRIGGERED, unlocks Test Zone + Mountain Top Cycling + Foraging
+1. `wandering_spirit_dialogue_1` — EVENT_TRIGGERED, unlocks Test Zone + Wilderness Cycling + Spring Forest Foraging (PR #28 renamed from `initial_spirit_valley_dialogue_1`)
 2. `test_attribute_requirement_unlock_data` — ATTRIBUTE_VALUE, requires BODY >= 20
+3. `q_fill_core_madra_full` — MADRA_AMOUNT, used by the "Fill Your Core" quest step (PR #28)
+4. `q_fill_core_completed` — EVENT_TRIGGERED, marks the "Fill Your Core" quest complete (PR #28)
 
 ## Key Files
 
