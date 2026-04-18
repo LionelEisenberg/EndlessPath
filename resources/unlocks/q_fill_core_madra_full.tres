@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="UnlockConditionData" load_steps=2 format=3 uid="uid://bqfcmadrafull01"]
+[gd_resource type="Resource" script_class="UnlockConditionData" format=3 uid="uid://vpg7uwcsfmts"]
 
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_qfcm1"]
 
@@ -7,7 +7,6 @@ script = ExtResource("1_qfcm1")
 condition_id = "q_fill_core_madra_full"
 condition_type = 6
 target_value = 100.0
-comparison_op = ">="
 optional_params = {
 "resource_type": "madra"
 }

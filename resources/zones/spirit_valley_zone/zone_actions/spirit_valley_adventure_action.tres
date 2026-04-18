@@ -1,11 +1,11 @@
-[gd_resource type="Resource" script_class="AdventureActionData" load_steps=7 format=3 uid="uid://bbpx8ls6tj2u"]
+[gd_resource type="Resource" script_class="AdventureActionData" format=3 uid="uid://bbpx8ls6tj2u"]
 
 [ext_resource type="Script" uid="uid://cmmqjph50wohc" path="res://scripts/resource_definitions/zones/zone_action_data/adventure_action_data/adventure_action_data.gd" id="1_bedlk"]
 [ext_resource type="Resource" uid="uid://b2erw55qd1wh7" path="res://resources/adventure/data/test_adventure_data.tres" id="1_v40qa"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_8ideb"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_v40qa"]
 [ext_resource type="Resource" uid="uid://vauqsrr78ccw" path="res://resources/effects/award_resource/award_madra_5_effect_data.tres" id="5_udarr"]
-[ext_resource type="Resource" uid="uid://bqfillcorecomp1" path="res://resources/unlocks/q_fill_core_completed.tres" id="6_qfcgt"]
+[ext_resource type="Resource" uid="uid://2or6sfbainjs" path="res://resources/unlocks/q_fill_core_completed.tres" id="6_qfcgt"]
 
 [resource]
 script = ExtResource("1_bedlk")

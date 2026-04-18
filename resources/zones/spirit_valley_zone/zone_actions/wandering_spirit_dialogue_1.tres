@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="3_ur7gj"]
 [ext_resource type="Resource" uid="uid://bwpoorfeekkiu" path="res://resources/items/test_items/dagger.tres" id="4_pwpfl"]
 [ext_resource type="Script" uid="uid://dbbopeowutwja" path="res://scripts/resource_definitions/effects/award_item_effect_data.gd" id="5_3o3qq"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="6_sqfc1"]
+[ext_resource type="Script" uid="uid://dnny6lt7o8jep" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="6_sqfc1"]
 
 [sub_resource type="Resource" id="Resource_8j4wv"]
 script = ExtResource("5_3o3qq")
@@ -15,8 +15,8 @@ metadata/_custom_type_script = "uid://dbbopeowutwja"
 
 [sub_resource type="Resource" id="Resource_start_quest"]
 script = ExtResource("6_sqfc1")
-effect_type = 5
 quest_id = "q_fill_core"
+effect_type = 5
 
 [resource]
 script = ExtResource("2_nm6h2")

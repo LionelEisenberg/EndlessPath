@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ZoneData" load_steps=10 format=3 uid="uid://bh1wsc1wrvc80"]
+[gd_resource type="Resource" script_class="ZoneData" format=3 uid="uid://bh1wsc1wrvc80"]
 
 [ext_resource type="Script" uid="uid://cv640mljv33xk" path="res://scripts/resource_definitions/zones/zone_action_data/zone_action_data.gd" id="1_gfpen"]
 [ext_resource type="Resource" uid="uid://c36o44atngp5e" path="res://resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_1.tres" id="2_4l7yp"]
@@ -8,7 +8,7 @@
 [ext_resource type="Script" uid="uid://culb0p88pnexb" path="res://scripts/resource_definitions/zones/zone_data/zone_data.gd" id="5_owjyk"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="6_4wd7e"]
 [ext_resource type="Resource" uid="uid://bbpx8ls6tj2u" path="res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres" id="6_owjyk"]
-[ext_resource type="Resource" uid="uid://cnpc2zact001" path="res://resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres" id="7_npc2z"]
+[ext_resource type="Resource" uid="uid://cnpc20act001" path="res://resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres" id="7_npc2z"]
 
 [resource]
 script = ExtResource("5_owjyk")

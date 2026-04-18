@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="QuestList" load_steps=4 format=3 uid="uid://bquest1listzz"]
+[gd_resource type="Resource" script_class="QuestList" format=3 uid="uid://bquest1list00"]
 
 [ext_resource type="Script" uid="uid://c1urxnbhmkqws" path="res://scripts/resource_definitions/quests/quest_list.gd" id="1_ql"]
 [ext_resource type="Script" uid="uid://c777hl035dwml" path="res://scripts/resource_definitions/quests/quest_data.gd" id="2_qd"]
-[ext_resource type="Resource" uid="uid://bqfillcore0001" path="res://resources/quests/q_fill_core.tres" id="3_qfc01"]
+[ext_resource type="Resource" uid="uid://d1l5innqmliwu" path="res://resources/quests/q_fill_core.tres" id="3_qfc01"]
 
 [resource]
 script = ExtResource("1_ql")
