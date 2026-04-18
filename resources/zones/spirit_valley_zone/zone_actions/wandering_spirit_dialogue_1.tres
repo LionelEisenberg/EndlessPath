@@ -6,12 +6,17 @@
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="3_ur7gj"]
 [ext_resource type="Resource" uid="uid://bwpoorfeekkiu" path="res://resources/items/test_items/dagger.tres" id="4_pwpfl"]
 [ext_resource type="Script" uid="uid://dbbopeowutwja" path="res://scripts/resource_definitions/effects/award_item_effect_data.gd" id="5_3o3qq"]
-[ext_resource type="Resource" uid="uid://start_test_quest_effect_01" path="res://resources/effects/start_quest/start_test_quest_effect.tres" id="6_sqe"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="6_sqfc1"]
 
 [sub_resource type="Resource" id="Resource_8j4wv"]
 script = ExtResource("5_3o3qq")
 item = ExtResource("4_pwpfl")
 metadata/_custom_type_script = "uid://dbbopeowutwja"
+
+[sub_resource type="Resource" id="Resource_start_quest"]
+script = ExtResource("6_sqfc1")
+effect_type = 5
+quest_id = "q_fill_core"
 
 [resource]
 script = ExtResource("2_nm6h2")
@@ -21,5 +26,5 @@ action_name = "Talk to the Wisened Dirt Eel"
 action_type = 2
 description = "Talk to the Wisened Dirt Eel"
 max_completions = 1
-success_effects = Array[ExtResource("1_nm6h2")]([ExtResource("6_sqe"), ExtResource("2_ur7gj"), SubResource("Resource_8j4wv")])
+success_effects = Array[ExtResource("1_nm6h2")]([ExtResource("2_ur7gj"), SubResource("Resource_8j4wv"), SubResource("Resource_start_quest")])
 metadata/_custom_type_script = "uid://10xqk22j564o"
