@@ -4,7 +4,7 @@
 [ext_resource type="Resource" uid="uid://dwxmjysxlrtw2" path="res://resources/zones/spirit_valley_zone/zone_actions/loot_table/test_loot_table_foraging.tres" id="2_hx8v7"]
 [ext_resource type="Script" uid="uid://mjp0u2yt3hkr" path="res://scripts/resource_definitions/zones/zone_action_data/forage_action_data/forage_action_data.gd" id="3_a7ewm"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="4_q34no"]
-[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/wandering_spirit_dialogue_1.tres" id="7_q34no"]
+[ext_resource type="Resource" uid="uid://bqfillcorecomp1" path="res://resources/unlocks/q_fill_core_completed.tres" id="7_q34no"]
 
 [resource]
 script = ExtResource("3_a7ewm")
