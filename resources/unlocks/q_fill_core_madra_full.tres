@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" format=3 uid="uid://vpg7uwcsfmts"]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_qfcm1"]
+
+[resource]
+script = ExtResource("1_qfcm1")
+condition_id = "q_fill_core_madra_full"
+condition_type = 6
+target_value = 100.0
+optional_params = {
+"resource_type": "madra"
+}
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"

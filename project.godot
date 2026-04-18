@@ -45,7 +45,8 @@ directories/dch_directory={
 "wisened_dirt_eel": "res://assets/dialogue/characters/wisened_dirt_eel/wisened_dirt_eel.dch"
 }
 directories/dtl_directory={
-"spirit_valley": "res://assets/dialogue/timelines/spirit_valley.dtl"
+"wandering_spirit_1": "res://assets/dialogue/timelines/wandering_spirit_1.dtl",
+"wandering_spirit_2": "res://assets/dialogue/timelines/wandering_spirit_2.dtl"
 }
 layout/style_directory={
 "": "res://assets/dialogue/styles/default_style.tres",
