@@ -22,3 +22,38 @@ func test_training_tick_progress_persists_via_resource_save_load() -> void:
 	assert_eq(loaded.training_tick_progress["spirit_well_training"], 7)
 	assert_eq(loaded.training_tick_progress["other_training"], 99)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(tmp_path))
+
+#-----------------------------------------------------------------------------
+# ZoneManager.get_training_ticks / increment_training_ticks
+#-----------------------------------------------------------------------------
+
+var _original_live_save: SaveGameData
+var _save_data: SaveGameData
+
+func before_each() -> void:
+	_original_live_save = ZoneManager.live_save_data
+	_save_data = SaveGameData.new()
+	ZoneManager.live_save_data = _save_data
+
+func after_each() -> void:
+	ZoneManager.live_save_data = _original_live_save
+
+func test_get_training_ticks_returns_zero_for_unseen_action() -> void:
+	assert_eq(ZoneManager.get_training_ticks("unknown_action", "SpiritValley"), 0)
+
+func test_increment_training_ticks_initializes_from_zero() -> void:
+	var total: int = ZoneManager.increment_training_ticks("spirit_well_training", "SpiritValley")
+	assert_eq(total, 1)
+	assert_eq(ZoneManager.get_training_ticks("spirit_well_training", "SpiritValley"), 1)
+
+func test_increment_training_ticks_accumulates_across_calls() -> void:
+	ZoneManager.increment_training_ticks("spirit_well_training", "SpiritValley")
+	ZoneManager.increment_training_ticks("spirit_well_training", "SpiritValley")
+	var total: int = ZoneManager.increment_training_ticks("spirit_well_training", "SpiritValley", 3)
+	assert_eq(total, 5)
+
+func test_increment_training_ticks_independent_per_action() -> void:
+	ZoneManager.increment_training_ticks("a", "SpiritValley", 2)
+	ZoneManager.increment_training_ticks("b", "SpiritValley", 7)
+	assert_eq(ZoneManager.get_training_ticks("a", "SpiritValley"), 2)
+	assert_eq(ZoneManager.get_training_ticks("b", "SpiritValley"), 7)
