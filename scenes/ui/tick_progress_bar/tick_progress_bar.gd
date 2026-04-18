@@ -7,7 +7,6 @@ extends Control
 ## Call flash_and_reset(color, duration) to play a brief flash, fade to zero,
 ## and then resume showing fresh values on the next set_progress call.
 
-const BAR_HEIGHT: float = 2.0
 const BAR_COLOR_BG: Color = Color(0.18, 0.18, 0.18, 0.9)
 const BAR_COLOR_FILL_DEFAULT: Color = Color(0.83, 0.75, 0.45, 1.0)
 const GRADATION_COLOR: Color = Color(0.0, 0.0, 0.0, 0.45)

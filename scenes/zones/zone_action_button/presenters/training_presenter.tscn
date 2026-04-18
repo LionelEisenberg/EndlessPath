@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/training_presenter.gd" id="1_train"]
-[ext_resource type="Shader" uid="uid://action_card_sweep_shader" path="res://assets/shaders/action_card_sweep.gdshader" id="2_sweep"]
+[ext_resource type="Shader" uid="uid://d1le2lwhb6c0s" path="res://assets/shaders/action_card_sweep.gdshader" id="2_sweep"]
 [ext_resource type="PackedScene" path="res://scenes/ui/tick_progress_bar/tick_progress_bar.tscn" id="3_tpb"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_train_sweep"]
