@@ -13,8 +13,6 @@ const BAR_COLOR_FILL_DEFAULT: Color = Color(0.83, 0.75, 0.45, 1.0)
 const GRADATION_COLOR: Color = Color(0.0, 0.0, 0.0, 0.45)
 const GRADATION_WIDTH: float = 1.0
 const GRADATION_HEIGHT: float = 4.0  # slightly taller than the bar for visibility
-const COUNTER_FONT_SIZE: int = 12
-const COUNTER_COLOR: Color = Color(0.72, 0.68, 0.58, 1.0)
 
 @onready var _bar_bg: ColorRect = %BarBg
 @onready var _bar_fill: ColorRect = %BarFill
@@ -28,8 +26,7 @@ func _ready() -> void:
 	_bar_fill.color = _fill_color
 	_bar_bg.color = BAR_COLOR_BG
 	_gradation_overlay.draw.connect(_draw_gradations)
-	_counter_label.add_theme_font_size_override("font_size", COUNTER_FONT_SIZE)
-	_counter_label.add_theme_color_override("font_color", COUNTER_COLOR)
+	_gradation_overlay.resized.connect(_gradation_overlay.queue_redraw)
 
 ## Sets the fill percentage and counter text. `total == 0` clears the bar.
 func set_progress(current: int, total: int) -> void:
@@ -45,9 +42,11 @@ func set_progress(current: int, total: int) -> void:
 
 ## Sets the fill color (used by the presenter to tint per category).
 func set_fill_color(color: Color) -> void:
+	_kill_reset_tween()
 	_fill_color = color
 	if is_instance_valid(_bar_fill):
 		_bar_fill.color = color
+		_bar_fill.self_modulate.a = 1.0
 
 ## Briefly flashes the bar to `flash_color`, fades to transparent, then snaps
 ## to zero fill.
@@ -74,6 +73,8 @@ func _kill_reset_tween() -> void:
 func _draw_gradations() -> void:
 	var w: float = _gradation_overlay.size.x
 	var h: float = _gradation_overlay.size.y
+	if w <= 0.0 or h <= 0.0:
+		return
 	for i in range(1, 10):
 		var x: float = w * (i / 10.0)
 		_gradation_overlay.draw_rect(Rect2(Vector2(x, 0), Vector2(GRADATION_WIDTH, h)), GRADATION_COLOR)
