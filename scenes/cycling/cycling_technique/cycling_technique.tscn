@@ -5,7 +5,6 @@
 [ext_resource type="Texture2D" uid="uid://dm58rs33ces5o" path="res://assets/sprites/cycling/Madra-Ball.png" id="2_sxf01"]
 [ext_resource type="Curve2D" uid="uid://bv6hktnn46o76" path="res://resources/cycling/cycling_techniques/smooth_flow/smooth_path.tres" id="3_3ut4h"]
 [ext_resource type="Shader" uid="uid://bedm1mso5rcux" path="res://assets/shaders/madra_ball.gdshader" id="shader_madra"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/common/button_invisible.tres" id="6_bi"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_sxf01"]
 radius = 29.54656
@@ -32,25 +31,6 @@ default_color = Color(1, 0, 0, 1)
 unique_name_in_owner = true
 width = 2.0
 default_color = Color(1, 0, 0, 1)
-
-[node name="StartCyclingButton" type="Button" parent="." unique_id=1640963413]
-unique_name_in_owner = true
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = 288.0
-offset_top = 425.0
-offset_right = 353.0
-offset_bottom = 486.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/normal = ExtResource("6_bi")
-theme_override_styles/pressed = ExtResource("6_bi")
-theme_override_styles/hover = ExtResource("6_bi")
-theme_override_styles/disabled = ExtResource("6_bi")
-theme_override_styles/focus = ExtResource("6_bi")
 
 [node name="AutoCycleToggle" type="Button" parent="." unique_id=345693534]
 unique_name_in_owner = true

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CyclingActionData" format=3 uid="uid://cfbgjcfudlc3i"]
+
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="1_6hhfe"]
+[ext_resource type="Script" uid="uid://q70uw6l2p5qw" path="res://scripts/resource_definitions/zones/zone_action_data/cycling_action_data/cycling_action_data.gd" id="1_ptrbs"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_sl167"]
+[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/wandering_spirit_dialogue_1.tres" id="3_npc1t"]
+
+[resource]
+script = ExtResource("1_ptrbs")
+action_id = "wilderness_cycling_action"
+action_name = "Wilderness Cycling"
+action_type = 5
+description = "Cycle in the wilderness"
+unlock_conditions = Array[ExtResource("2_sl167")]([ExtResource("3_npc1t")])
+metadata/_custom_type_script = "uid://q70uw6l2p5qw"

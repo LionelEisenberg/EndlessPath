@@ -36,6 +36,10 @@ func _ready() -> void:
 		EventManager.event_triggered.connect(_on_event_triggered)
 	else:
 		Log.critical("QuestManager: EventManager not available on ready!")
+	if UnlockManager:
+		UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
+	else:
+		Log.critical("QuestManager: UnlockManager not available on ready!")
 	_prune_unknown_active_quests()
 
 #-----------------------------------------------------------------------------
@@ -144,6 +148,17 @@ func _on_event_triggered(event_id: String) -> void:
 	var active_ids: Array[String] = get_active_quest_ids()
 	for quest_id: String in active_ids:
 		_try_advance_step(quest_id, event_id)
+
+## Re-evaluates condition-based steps when UnlockManager reports a newly
+## unlocked condition. Quest steps that match (via their completion_conditions
+## evaluating true) will advance. Event-based steps are untouched — they only
+## advance through _on_event_triggered.
+func _on_condition_unlocked(_condition_id: String) -> void:
+	# Iterate over a copy since advancement may complete a quest and mutate active_quests.
+	var active_ids: Array[String] = get_active_quest_ids()
+	for quest_id: String in active_ids:
+		# Empty triggering_event_id — only condition-based steps will be satisfied.
+		_try_advance_step(quest_id, "")
 
 ## Advances the current step of `quest_id` if its completion criteria are met.
 ## `triggering_event_id` is the event that just fired (empty for non-event triggers).

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" format=3 uid="uid://2or6sfbainjs"]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_qfc01"]
+
+[resource]
+script = ExtResource("1_qfc01")
+condition_id = "q_fill_core_completed"
+condition_type = 4
+target_value = "q_fill_core_completed"
+comparison_op = ""
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"

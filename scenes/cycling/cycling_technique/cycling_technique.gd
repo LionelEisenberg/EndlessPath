@@ -21,7 +21,6 @@ const PATH_GLOW_COLOR = Color(0.5, 0.72, 0.95, 0.3)
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var core_button: Button = %StartCyclingButton
 @onready var auto_cycle_toggle: Button = %AutoCycleToggle
 @onready var path_2d: Path2D = %CyclingPath2D
 @onready var path_follow_2d: PathFollow2D = %PathFollow2D
@@ -87,8 +86,8 @@ var floating_text_scene: PackedScene = preload("res://scenes/ui/floating_text/fl
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	# Connect core button to start cycling
-	core_button.pressed.connect(_on_core_button_pressed)
+	# Start a cycle when the Madra Ball itself is clicked
+	madra_ball.input_event.connect(_on_madra_ball_input)
 
 	# Connect madra ball area signals
 	madra_ball.area_entered.connect(_on_madra_ball_area_entered)
@@ -234,9 +233,10 @@ func _create_cycling_zones() -> void:
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
-func _on_core_button_pressed() -> void:
-	_start_cycle()
-	
+func _on_madra_ball_input(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_start_cycle()
+
 ## Start a new cycling cycle.
 func _start_cycle() -> void:
 	if current_state != CycleState.IDLE:

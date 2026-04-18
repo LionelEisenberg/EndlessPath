@@ -285,3 +285,44 @@ func test_step_with_neither_event_nor_conditions_pushes_error() -> void:
 	QuestManager._build_catalog_index()
 	QuestManager._validate_catalog()
 	assert_push_error("has no completion criteria")
+
+# ----- condition_unlocked listener -----
+
+func test_condition_unlocked_advances_condition_based_step() -> void:
+	# A condition that will evaluate true once madra >= 1 (simple threshold).
+	var test_condition := UnlockConditionData.new()
+	test_condition.condition_id = "test_madra_geq_1"
+	test_condition.condition_type = UnlockConditionData.ConditionType.RESOURCE_AMOUNT
+	test_condition.target_value = 1.0
+	test_condition.comparison_op = ">="
+	test_condition.optional_params = {"resource_type": "madra"}
+
+	# Single-step quest whose step completes on that condition.
+	var test_step := QuestStepData.new()
+	test_step.step_id = "reach_madra_1"
+	test_step.completion_conditions = [test_condition] as Array[UnlockConditionData]
+
+	var test_quest := QuestData.new()
+	test_quest.quest_id = "test_condition_listener_quest"
+	test_quest.steps = [test_step] as Array[QuestStepData]
+
+	# Inject into QuestManager's catalog for the duration of this test.
+	QuestManager._quests_by_id[test_quest.quest_id] = test_quest
+
+	# Reset madra so retroactive_advance doesn't auto-complete on start.
+	ResourceManager.set_madra(0.0)
+	QuestManager.start_quest(test_quest.quest_id)
+	assert_true(QuestManager.has_active_quest(test_quest.quest_id),
+		"Quest should be active after start (madra=0, condition not yet met)")
+
+	# Bring madra up, then manually fire the signal the new listener handles.
+	ResourceManager.set_madra(5.0)
+	UnlockManager.condition_unlocked.emit("test_madra_geq_1")
+
+	assert_false(QuestManager.has_active_quest(test_quest.quest_id),
+		"Quest should complete after condition_unlocked fires and condition evaluates true")
+	assert_true(QuestManager.has_completed_quest(test_quest.quest_id),
+		"Quest should be recorded as completed")
+
+	# Cleanup — remove the test quest from the catalog so it doesn't leak.
+	QuestManager._quests_by_id.erase(test_quest.quest_id)
