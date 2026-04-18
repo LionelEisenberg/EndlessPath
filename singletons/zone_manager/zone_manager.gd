@@ -68,7 +68,10 @@ func get_zone_progression(zone_id: String = get_current_zone().zone_id) -> ZoneP
 ## Increments the completion count for the given action in the ZoneProgressionData.
 func increment_zone_progression_for_action(action_id: String, zone_id: String = get_current_zone().zone_id, quantity = 1) -> void:
 	var _num_completions_for_action = live_save_data.increment_zone_progression_for_action(action_id, zone_id, quantity)
-	if get_action_by_id(action_id).max_completions != 0 and _num_completions_for_action >= get_action_by_id(action_id).max_completions:
+	var action: ZoneActionData = get_action_by_id(action_id)
+	if action == null:
+		return
+	if action.max_completions != 0 and _num_completions_for_action >= action.max_completions:
 		action_completed.emit(action_id)
 
 ## Returns accumulated training ticks for the given action in the given zone (0 if unseen).
