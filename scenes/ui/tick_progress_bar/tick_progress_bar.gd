@@ -48,9 +48,14 @@ func set_fill_color(color: Color) -> void:
 		_bar_fill.self_modulate.a = 1.0
 
 ## Briefly flashes the bar to `flash_color`, fades to transparent, then snaps
-## to zero fill.
+## to zero fill. Forces the bar to full width at the start so the flash is
+## visible even when a caller has just reset the fill (e.g. when a level-up
+## signal fires right after a tick that rolled the progress to 0).
 func flash_and_reset(flash_color: Color, duration: float = 0.3) -> void:
 	_kill_reset_tween()
+	_bar_fill.anchor_right = 1.0
+	_bar_fill.color = _fill_color
+	_bar_fill.self_modulate.a = 1.0
 	_reset_tween = create_tween()
 	_reset_tween.tween_property(_bar_fill, "color", flash_color, duration * 0.33)
 	_reset_tween.tween_property(_bar_fill, "self_modulate:a", 0.0, duration * 0.66)

@@ -12,6 +12,7 @@ var _madra_trickle_effect: AwardResourceEffectData
 var _original_character_live: SaveGameData
 var _original_zone_live: SaveGameData
 var _original_resource_live: SaveGameData
+var _original_event_live: SaveGameData
 
 var _tick_signal_count: int = 0
 var _level_signal_levels: Array[int] = []
@@ -25,10 +26,12 @@ func before_each() -> void:
 	_original_character_live = CharacterManager.live_save_data
 	_original_zone_live = ZoneManager.live_save_data
 	_original_resource_live = ResourceManager.live_save_data
+	_original_event_live = EventManager.live_save_data
 
 	CharacterManager.live_save_data = _save_data
 	ZoneManager.live_save_data = _save_data
 	ResourceManager.live_save_data = _save_data
+	EventManager.live_save_data = _save_data
 
 	_spirit_award_effect = AwardAttributeEffectData.new()
 	_spirit_award_effect.attribute_type = CharacterAttributesData.AttributeType.SPIRIT
@@ -60,6 +63,7 @@ func after_each() -> void:
 	CharacterManager.live_save_data = _original_character_live
 	ZoneManager.live_save_data = _original_zone_live
 	ResourceManager.live_save_data = _original_resource_live
+	EventManager.live_save_data = _original_event_live
 
 func _on_tick(_data: TrainingActionData, _count: int) -> void:
 	_tick_signal_count += 1
