@@ -117,7 +117,7 @@ func _update_attribute_badge(accumulated_ticks: int) -> void:
 	var current_total: int = int(round(current_level * amount_per_level))
 	var max_total: int = int(round(levels_available * amount_per_level))
 	var attr_name: String = CharacterAttributesData.AttributeType.keys()[attribute_effect.attribute_type].capitalize()
-	_attribute_badge.text = "[right][color=#D4A84A]%d[/color][color=#7a6a52] / %d %s[/color][/right]" % [current_total, max_total, attr_name]
+	_attribute_badge.text = "[right][color=#D4A84A]+ %d[/color][color=#7a6a52] / %d %s[/color][/right]" % [current_total, max_total, attr_name]
 
 func _find_attribute_effect(training: TrainingActionData) -> AwardAttributeEffectData:
 	for effect in training.effects_on_level:
