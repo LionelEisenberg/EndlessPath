@@ -14,7 +14,7 @@
 ```
 1. Game action completes (e.g., NPC dialogue ends)
 2. TriggerEventEffectData.process()
-   → EventManager.trigger_event("initial_spirit_valley_dialogue_1")
+   → EventManager.trigger_event("wandering_spirit_dialogue_1")
 3. EventManager appends ID to save_data.event_progression.triggered_events
 4. EventManager emits event_triggered signal
 5. UnlockManager._evaluate_all_conditions() runs

@@ -1,6 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-04-16
+Last updated: 2026-04-18
 
 This document tracks the current player experience — what a player can actually do, what content exists, and what blocks the next stage of progression. For per-system details, see the [system documentation index](CODEBASE_STATE.md#system-documentation-index).
 
@@ -33,7 +33,7 @@ The core loop now includes a meaningful progression sink: cycle for XP → earn 
 ### Zones
 | Zone | Actions | Unlock |
 |------|---------|--------|
-| Spirit Valley | Basic Room Cycling, Wisened Dirt Eel Dialogue, Mountain Top Cycling, Spring Forest Foraging, Test Adventure | Always |
+| Spirit Valley | Wandering Spirit Dialogue (2 parts), Wilderness Cycling, Spring Forest Foraging, Spirit Valley Adventure, Spirit Well Training | Always |
 | Test Zone | None | After NPC dialogue |
 
 ### Items
@@ -71,8 +71,10 @@ Abilities are managed by `AbilityManager` (PR #22): INNATE abilities start unloc
 ### Unlock Conditions
 | Condition | Type | Trigger |
 |-----------|------|---------|
-| initial_spirit_valley_dialogue_1 | EVENT_TRIGGERED | NPC dialogue completion |
+| wandering_spirit_dialogue_1 | EVENT_TRIGGERED | Wandering Spirit dialogue part 1 completion (PR #28 rename) |
 | test_attribute_requirement_unlock_data | ATTRIBUTE_VALUE | BODY >= 20 |
+| q_fill_core_madra_full | MADRA_AMOUNT | Madra at cap (PR #28, Fill Your Core quest) |
+| q_fill_core_completed | EVENT_TRIGGERED | Fill Your Core quest completion (PR #28) |
 
 ### Path Progression
 | Path | Tier | Nodes | Status |

@@ -66,10 +66,22 @@ Adventure starts are two-phase to accommodate the Madra drain animation (PR #16)
 
 ### Action Buttons
 
-`ZoneActionButton` renders as a card-style panel. Each card has:
-- A colored category dot on the left (green=foraging, red=adventure, teal=cycling)
-- Action name (26pt) and description (20pt)
-- For ADVENTURE actions: a Madra cost badge showing the icon and cost amount; the badge is **gold** when the player has enough Madra to start (≥50% of zone capacity), **red** when below threshold, and plays a shake-reject animation when the player clicks while below the threshold
+`ZoneActionButton` is a type-agnostic card shell that delegates its visuals to a per-type **presenter** (PR #29). The button owns the panel styling, click routing, hover feedback, and three slots that presenters can fill:
+
+- `OverlaySlot` — full-rect `Control` layered over the card (used for per-tick sweep shaders)
+- `InlineSlot` — top-row `HBoxContainer` next to the action name and description (used for inline badges)
+- `FooterSlot` — `VBoxContainer` below the top row (used for progress bars and counters)
+
+A presenter scene is selected by `action_type` via `ZoneActionButton.PRESENTER_SCENES: Dictionary[ActionType → PackedScene]`. Presenters extend the abstract `ZoneActionPresenter` base and implement `setup()` / `teardown()` plus optional hooks (`set_is_current`, `can_activate`, `on_activation_rejected`). The button exposes helpers — `get_category_color()`, `get_madra_target_global_position()`, `get_action_card()`, `set_text_dimmed()` — that presenters use without knowing about each other.
+
+| Presenter | Action types | What it renders |
+|-----------|--------------|-----------------|
+| `ForagingPresenter` | FORAGE | Sweep shader overlay tied to `ActionManager.action_timer`; spawns floating text with rolled loot on `foraging_completed` |
+| `AdventurePresenter` | ADVENTURE | Madra cost badge in the inline slot (**gold** when ≥50% of zone capacity, **red** when below); dims text and plays a shake-reject animation on click when unaffordable |
+| `TrainingPresenter` | TRAIN_STATS | Sweep overlay + attribute-progress badge inline (e.g. `+ 0 / 4 Spirit`) + graded `TickProgressBar` in the footer showing ticks-within-current-level; spawns a Madra `FlyingParticle` per tick and flashes the footer bar on level-up |
+| `DefaultZoneActionPresenter` | CYCLING, NPC_DIALOGUE | No-op fallback; the card stands on its own card styling |
+
+Per-category colors live in `ZoneActionButton.CATEGORY_COLORS` (forage=green, adventure=red, cycling=teal, dialogue=gold, training=purple) and the selected-state border pulls its tint from `get_category_color()`.
 
 ### Tile Rendering
 
@@ -151,8 +163,8 @@ source ID mapping.
 | `ADVENTURE` | Yes | Opens adventure view |
 | `CYCLING` | Yes | Opens cycling view |
 | `NPC_DIALOGUE` | Yes | Starts Dialogic timeline |
+| `TRAIN_STATS` | Yes | Periodic tick timer; `effects_per_tick` fire every tick, `effects_on_level` fire per crossed level. Emits `training_tick_processed` / `training_level_gained` (PR #29) |
 | `MERCHANT` | No | No handler |
-| `TRAIN_STATS` | No | No handler |
 | `ZONE_EVENT` | No | No handler |
 
 ### Action Subclasses
@@ -163,11 +175,13 @@ source ID mapping.
 | `CyclingActionData` | `madra_multiplier`, `cycle_duration_modifier`, `xp_multiplier`, `madra_cost_per_cycle` |
 | `AdventureActionData` | `adventure_data`, `time_limit_seconds`, `gold_multiplier`, `stamina_regen_modifier` |
 | `NpcDialogueActionData` | `dialogue_timeline_name` |
+| `TrainingActionData` | `tick_interval_seconds`, `ticks_per_level: Array[int]`, `tail_growth_multiplier`, `effects_per_tick`, `effects_on_level`. Exposes `get_current_level(ticks)`, `get_ticks_required_for_level(level)`, `get_progress_within_level(ticks)` |
 
 ### ZoneProgressionData (per-zone save data)
 | Field | Type | Description |
 |-------|------|-------------|
 | `action_completion_count` | `Dictionary[String, int]` | action_id -> completions |
+| `training_tick_progress` | `Dictionary[String, int]` | action_id -> accumulated training ticks (PR #29) |
 | `forage_active` | `bool` | Saved but not used on load |
 | `forage_start_time` | `float` | Saved but not used on load |
 
@@ -184,6 +198,7 @@ source ID mapping.
    CYCLING  → Emit start_cycling signal → view transition
    ADVENTURE → Emit start_adventure signal → view transition
    NPC_DIALOGUE → DialogueManager.start_timeline() → stop on dialogue_ended
+   TRAIN_STATS → Start tick timer at `tick_interval_seconds`; each timeout increments ZoneManager training ticks, fires `effects_per_tick`, emits `training_tick_processed`; any levels crossed fire `effects_on_level` + emit `training_level_gained` (PR #29)
 5. stop_action(successful)
    → Stop and increment progression
    → Process completion effects
@@ -207,11 +222,11 @@ Actions are grouped by `ActionType` into `ZoneActionTypeSection` nodes. Each sec
 1. Player clicks "Talk to the Wisened Dirt Eel" (NPC_DIALOGUE, max_completions=1)
 2. Dialogic plays "spirit_valley" timeline
 3. Dialogue ends → stop_action() → _process_completion_effects(true)
-4. TriggerEventEffectData.process() → EventManager.trigger_event("initial_spirit_valley_dialogue_1")
+4. TriggerEventEffectData.process() → EventManager.trigger_event("wandering_spirit_dialogue_1")
 5. EventManager emits event_triggered → UnlockManager._evaluate_all_conditions()
-6. "initial_spirit_valley_dialogue_1" condition evaluates true → condition_unlocked signal
+6. "wandering_spirit_dialogue_1" condition evaluates true → condition_unlocked signal
 7. ZoneTilemap refreshes → Test Zone tile appears (was locked)
-8. ZoneInfoPanel rebuilds → "Mountain Top Cycling" and "Spring Forest Foraging" appear
+8. ZoneInfoPanel rebuilds → "Wilderness Cycling" and "Spring Forest Foraging" appear
 9. AwardItemEffectData gives the player a Dagger
 ```
 
@@ -232,16 +247,17 @@ Actions are grouped by `ActionType` into `ZoneActionTypeSection` nodes. Each sec
 
 ### Spirit Valley (`zone_id: "SpiritValley"`)
 - Location: `(0, 0)`, no unlock conditions (always available)
-- Actions:
-  1. **Basic Room Cycling** — CyclingActionData, no conditions
-  2. **Wisened Dirt Eel Dialogue** — NpcDialogueActionData, max_completions=1, awards Dagger + triggers unlock event
-  3. **Mountain Top Cycling** — CyclingActionData, madra_multiplier=2.0, requires dialogue event
-  4. **Spring Forest Foraging** — ForageActionData, loot: Dewdrop Tear (1-5) + Spirit Fern (2-6), requires dialogue event
-  5. **Test Adventure** — AdventureActionData, 300s time limit, awards 5 Madra on success
+- Actions (post PR #28 rename + PR #29 training addition):
+  1. **Wandering Spirit Dialogue (Part 1)** — NpcDialogueActionData, max_completions=1, awards a Dagger + triggers `wandering_spirit_dialogue_1` event
+  2. **Wandering Spirit Dialogue (Part 2)** — NpcDialogueActionData, max_completions=1, requires `wandering_spirit_dialogue_1`
+  3. **Wilderness Cycling** — CyclingActionData, madra_multiplier=2.0, requires `wandering_spirit_dialogue_1`
+  4. **Spring Forest Foraging** — ForageActionData, loot: Dewdrop Tear (1-5) + Spirit Fern (2-6), requires `wandering_spirit_dialogue_1`
+  5. **Spirit Valley Adventure** — AdventureActionData, 300s time limit, awards 5 Madra on success
+  6. **Spirit Well Training** — TrainingActionData, 1s tick interval, `ticks_per_level = [60, 300, 600, 1200]`, awards Madra per tick + 1 Spirit attribute per level (PR #29)
 
 ### Test Zone (`zone_id: "TestZone"`)
 - Location: `(0, 1)`, no actions
-- Requires: `initial_spirit_valley_dialogue_1` event
+- Requires: `wandering_spirit_dialogue_1` event
 
 ## Key Files
 
@@ -254,7 +270,13 @@ Actions are grouped by `ActionType` into `ZoneActionTypeSection` nodes. Each sec
 | `scenes/zones/zone_view_background/zone_view_background.tscn` | Parallax background scene |
 | `scenes/zones/zone_transition/zone_transition.gd` | Adventure start transition orchestration (PR #16) |
 | `scenes/zones/zone_info_panel/zone_info_panel.gd` | Action display and triggering |
-| `scenes/zones/zone_action_button/zone_action_button.gd` | Individual action button (card style, Madra cost badge) |
+| `scenes/zones/zone_action_button/zone_action_button.gd` | Type-agnostic action button shell + presenter factory (PR #29) |
+| `scripts/ui/zone_action_presenter.gd` | Abstract presenter base class (PR #29) |
+| `scenes/zones/zone_action_button/presenters/foraging_presenter.gd` | Foraging sweep + loot floating text (PR #29) |
+| `scenes/zones/zone_action_button/presenters/adventure_presenter.gd` | Adventure Madra badge + affordability gate (PR #29) |
+| `scenes/zones/zone_action_button/presenters/training_presenter.gd` | Training sweep + attribute badge + footer tick bar + Madra particles (PR #29) |
+| `scenes/zones/zone_action_button/presenters/default_presenter.gd` | No-op fallback for CYCLING / NPC_DIALOGUE (PR #29) |
+| `scenes/ui/tick_progress_bar/tick_progress_bar.gd` | Reusable 2px graded progress bar with counter + level-up flash (PR #29) |
 | `scenes/zones/zone_action_type_section/zone_action_type_section.gd` | Grouped action section |
 | `scenes/zones/glowing_path/glowing_path.gd` | Animated line between unlocked adjacent zones (PR #23) |
 | `scenes/zones/locked_zone_overlay/locked_zone_overlay.gd` | Grey hex + lock icon with shake-on-click (PR #23) |
@@ -273,14 +295,14 @@ No known bugs in the Zone system.
 
 ### Missing Functionality
 
-- `[MEDIUM]` MERCHANT, TRAIN_STATS, ZONE_EVENT action types have no handler in ActionManager — selecting these actions does nothing
+- `[MEDIUM]` MERCHANT and ZONE_EVENT action types have no handler in ActionManager — selecting these actions does nothing. (TRAIN_STATS was implemented in PR #29)
 - `[MEDIUM]` `ForageActionData.madra_cost_per_second` is defined but never deducted — foraging is free regardless of this value
 - `[LOW]` `ZoneProgressionData.forage_active/forage_start_time` saved but not used on load — no offline foraging resume, progress lost on restart
 
 ### Content
 
 - `[HIGH]` Only 2 zones exist (Spirit Valley functional, Test Zone empty) — needs more zones with unique actions, foraging resources, and adventure configs
-- `[MEDIUM]` No merchant, training, zone event, or quest giver content authored — action types exist as enums but have no `.tres` data
+- `[MEDIUM]` No merchant or zone event content authored — action types exist as enums but have no `.tres` data. (Spirit Well training action authored in PR #29; quest system backed by QuestManager in PR #25)
 - ~~`[MEDIUM]` Only 1 of 21 forest tile variants is imported~~ _(Done — PR #23: all 23 variants imported and packed into hex_forest_atlas.png)_
 
 ### UI
