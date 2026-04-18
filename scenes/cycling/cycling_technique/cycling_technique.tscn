@@ -4,8 +4,8 @@
 [ext_resource type="Resource" uid="uid://bfp0ftyd4wpmc" path="res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres" id="2_3ut4h"]
 [ext_resource type="Texture2D" uid="uid://dm58rs33ces5o" path="res://assets/sprites/cycling/Madra-Ball.png" id="2_sxf01"]
 [ext_resource type="Curve2D" uid="uid://bv6hktnn46o76" path="res://resources/cycling/cycling_techniques/smooth_flow/smooth_path.tres" id="3_3ut4h"]
-[ext_resource type="Shader" uid="uid://bedm1mso5rcux" path="res://assets/shaders/madra_ball.gdshader" id="shader_madra"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/common/button_invisible.tres" id="6_bi"]
+[ext_resource type="Shader" uid="uid://bedm1mso5rcux" path="res://assets/shaders/madra_ball.gdshader" id="shader_madra"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_sxf01"]
 radius = 29.54656

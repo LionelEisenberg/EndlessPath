@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]
 [ext_resource type="StyleBox" uid="uid://dfld4jy3188gf" path="res://assets/styleboxes/cycling/panel_info_sidebar.tres" id="5_4g8xi"]
 [ext_resource type="Script" uid="uid://cvudatk537dno" path="res://scenes/cycling/cycling_tab_panel/cycling_tab_panel.gd" id="5_8tk3k"]
+[ext_resource type="Resource" uid="uid://bamglfy16qig4" path="res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres" id="5_waxhc"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_0j2st"]
 load_path = "res://.godot/imported/cycling_technique_outline.png-85eefb7e3ae9022069b8b8d30d9a844b.ctex"
@@ -65,6 +66,7 @@ mouse_filter = 2
 [node name="CyclingTechnique" parent="MarginContainer/Panel/HBoxContainer/CyclingBackground" unique_id=1193719417 instance=ExtResource("3_hypg5")]
 unique_name_in_owner = true
 position = Vector2(-322, -428)
+technique_data_input = ExtResource("5_waxhc")
 
 [node name="InfoPanelArea" type="MarginContainer" parent="MarginContainer/Panel/HBoxContainer" unique_id=596135546]
 layout_mode = 2
