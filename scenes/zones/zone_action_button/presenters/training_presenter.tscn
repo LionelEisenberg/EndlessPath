@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/training_presenter.gd" id="1_train"]
+[ext_resource type="Shader" uid="uid://action_card_sweep_shader" path="res://assets/shaders/action_card_sweep.gdshader" id="2_sweep"]
+[ext_resource type="PackedScene" path="res://scenes/ui/tick_progress_bar/tick_progress_bar.tscn" id="3_tpb"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_train_sweep"]
+resource_local_to_scene = true
+shader = ExtResource("2_sweep")
+shader_parameter/fill_amount = 0.0
+
+[node name="TrainingPresenter" type="Node"]
+script = ExtResource("1_train")
+
+[node name="ProgressFill" type="ColorRect" parent="."]
+unique_name_in_owner = true
+anchor_right = 1.0
+anchor_bottom = 1.0
+material = SubResource("ShaderMaterial_train_sweep")
+mouse_filter = 2
+color = Color(0.55, 0.45, 0.75, 0.45)
+
+[node name="AttributeBadge" type="RichTextLabel" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+size_flags_vertical = 4
+mouse_filter = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="TickProgressBar" parent="." instance=ExtResource("3_tpb")]
+unique_name_in_owner = true
