@@ -16,12 +16,15 @@ The first adventure is beatable but costly: the player loses ~50% of their HP to
 
 ## Architecture
 
-### Quest chain
+### Quest chain (Pattern B — transitions live on NPC actions, not in quest completion_effects)
+
+Chain transitions sit on the NPC dialogue actions that complete the previous quest, NOT in the completing quest's `completion_effects`. This keeps quest resources independent — no quest references any other quest by id.
 
 ```
-q_fill_core (Beat 1, existing)
-  └─ completion_effects NOW ALSO:
+wandering_spirit_dialogue_2 (Beat 1 existing — NOW APPENDS to success_effects):
+  └─ success_effects gains:
      └─ inline StartQuestEffect → "q_first_steps"
+     (existing TriggerEvent("wandering_spirit_dialogue_2") stays; completes q_fill_core)
 
 q_first_steps (NEW)
   ├─ description: "Venture into the wilderness and test your strength."
@@ -30,7 +33,14 @@ q_first_steps (NEW)
   ├─ Step 2: "Return to the Wandering Spirit"
   │    completion_event_id = "wandering_spirit_dialogue_3"
   └─ completion_effects:
-     ├─ inline AwardPathPointEffect(1)
+     └─ inline AwardPathPointEffect(1)
+     (no StartQuest — the next-quest transition lives on NPC 3's success_effects)
+
+wandering_spirit_dialogue_3 (NEW — success_effects carry both the event AND the next-quest start):
+  └─ success_effects:
+     ├─ inline TriggerEventEffect("wandering_spirit_dialogue_3")
+     │    (advances q_first_steps step 2, which completes the quest and fires its
+     │    completion_effects — i.e. AwardPathPointEffect)
      └─ inline StartQuestEffect → "q_reach_core_density_10"
 
 q_reach_core_density_10 (NEW, stub for Beat 3)
@@ -40,9 +50,15 @@ q_reach_core_density_10 (NEW, stub for Beat 3)
   └─ completion_effects: (empty — Beat 3 adds the reward)
 ```
 
+**Principle:** NPC dialogue actions are the coordination point between quests. A dialogue's `success_effects` both fire the moment-event (which advances/completes the current quest) AND start the next quest directly. The completing quest's `completion_effects` only contain within-quest concerns — rewards, cleanup, side-effects — never references to downstream quests.
+
 ### Quest start trigger
 
-`q_first_steps` is not triggered by "adventure entry" at runtime — it starts as a completion effect of `q_fill_core`. Since Beat 1 ends with the player talking to NPC 2 (which completes `q_fill_core`), `q_first_steps` is already active before the player enters Adventure for the first time. Simpler than wiring a new "on adventure entry" signal, and functionally identical to the FOUNDATION_PLAYTHROUGH.md spec from the player's perspective.
+`q_first_steps` starts from `wandering_spirit_dialogue_2.success_effects` — the same NPC click that completes Beat 1 also starts Beat 2. No coupling between `q_fill_core` and `q_first_steps` at the quest-data layer; the NPC action owns the transition.
+
+Same shape for Beat 2 → Beat 3: NPC 3's `success_effects` fire the event that completes `q_first_steps` AND start `q_reach_core_density_10`. Each quest remains a self-contained state machine.
+
+Effect-ordering note: within a `success_effects` array, the `TriggerEvent` fires first so the current quest completes (including its own completion_effects like `AwardPathPoint`) before the `StartQuest` runs. This keeps the temporal semantics "Beat 1 fully ends → Beat 2 begins" clean even though both effects live in the same array.
 
 ### Combat → event bridge
 
@@ -162,7 +178,7 @@ No new encounter/enemy data — just value changes on existing resources.
 | File | Change |
 |---|---|
 | `scripts/resource_definitions/effects/effect_data.gd` | Add `AWARD_PATH_POINT = 6` to the `EffectType` enum |
-| `resources/quests/q_fill_core.tres` | Add inline `StartQuestEffect("q_first_steps")` to `completion_effects` |
+| `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres` | Append inline `StartQuestEffect("q_first_steps")` to `success_effects` (Pattern B chain from Beat 1 to Beat 2) |
 | `resources/quests/quest_list.tres` | Register `q_first_steps` and `q_reach_core_density_10` |
 | `resources/unlocks/unlock_condition_list.tres` | Register the two new conditions |
 | `resources/zones/spirit_valley_zone/spirit_valley_zone.tres` | Add `wandering_spirit_dialogue_3` to `all_actions` |
@@ -176,15 +192,19 @@ No new encounter/enemy data — just value changes on existing resources.
 
 ## Runtime flow (Beat 1 end → Beat 2 end)
 
-1. Player completes Beat 1 by talking to NPC 2. `q_fill_core` completes.
-2. Completion effects fire: `TriggerEvent("q_fill_core_completed")` + `StartQuest("q_first_steps")`. Adventure + Foraging unlock (existing Beat 1 behavior). `q_first_steps` is now active, on step 1.
+1. Player talks to NPC 2 (Beat 1 return talk). NPC 2's `success_effects` fire in order:
+   - `TriggerEvent("wandering_spirit_dialogue_2")` — advances `q_fill_core` step 2, completes the quest, fires its `completion_effects` (`TriggerEvent("q_fill_core_completed")` — unlocks Adventure + Foraging, existing Beat 1 behavior).
+   - `StartQuest("q_first_steps")` — Beat 2 quest becomes active, on step 1.
+2. Quest tracker now shows `q_first_steps` active.
 3. Player enters Adventure. First encounter contains a combat-tile enemy.
 4. Combat starts. Player uses bare-hands ability (existing starter state). Tutorial popup cut per design — combat UI does the teaching.
 5. Player wins the combat. `AdventureCombat` fires `trigger_combat_end(true, ...)` AND `EventManager.trigger_event("q_first_steps_enemy_defeated")`.
 6. QuestManager advances `q_first_steps` to step 2. UnlockManager's condition-eval pass sees `q_first_steps_enemy_defeated` now true → NPC 3 visible.
 7. Player returns to Spirit Valley. NPC 3 "Return to the Wisened Dirt Eel" is now visible.
-8. Player clicks NPC 3. Dialogic plays `wandering_spirit_3` timeline. Success effect fires `TriggerEvent("wandering_spirit_dialogue_3")`.
-9. QuestManager advances step 2 → quest completes. Completion effects fire: `AwardPathPoint(1)` → `PathManager.add_points(1)`; `StartQuest("q_reach_core_density_10")` → new quest active, step 1 is condition-based (CD ≥ 10, not yet met).
+8. Player clicks NPC 3. Dialogic plays `wandering_spirit_3` timeline. NPC 3's `success_effects` fire in order:
+   - `TriggerEvent("wandering_spirit_dialogue_3")` — advances `q_first_steps` step 2, completes the quest, fires its `completion_effects` (`AwardPathPoint(1)` → `PathManager.add_points(1)`).
+   - `StartQuest("q_reach_core_density_10")` — Beat 3's quest becomes active, step 1 is condition-based (CD ≥ 10, not yet met).
+9. Player has 1 path point AND `q_reach_core_density_10` is active pointing at Beat 3.
 10. Player has 1 path point. Opens Path Tree (existing UI). The only purchasable node is `pure_core_awakening` (prerequisite-free, in the starting tier). Clicks → purchase. PathManager fires `unlock_technique("smooth_flow")` and `unlock_ability("empty_palm")`.
 11. `CyclingManager.technique_unlocked` signal fires. SystemMenuButton badge on Cycling refreshes — visible (Smooth Flow unlocked but Foundation still equipped).
 12. `AbilityManager.ability_unlocked` signal fires. SystemMenuButton badge on Abilities refreshes — visible.
@@ -208,8 +228,10 @@ No new encounter/enemy data — just value changes on existing resources.
 ## Deviations from FOUNDATION_PLAYTHROUGH.md Beat 2
 
 - **No tutorial popup.** Spec said "In-combat tutorial popup on first combat." We cut it — design decision, documented here and to be reflected back into the playthrough doc.
-- **Quest triggered by Beat 1 completion, not "adventure entry."** Spec said `q_first_steps` starts on adventure entry. We wire it as a Beat 1 completion effect for simpler plumbing and identical player experience.
-- **`q_reach_core_density_10` starts on `q_first_steps` completion, not keystone purchase.** Spec said on keystone purchase. Starting on quest completion avoids adding a START_QUEST effect type to `PathNodeEffectData`. Functionally equivalent because the player buys the keystone immediately after reaching the path tree (it's the only purchasable node).
+- **Quest transitions live on NPC dialogue actions (Pattern B), not in quest `completion_effects`.** This keeps quest resources independent — no quest references any other quest. The NPC dialogue action that completes Beat 1 (`wandering_spirit_dialogue_2`) also starts Beat 2 (`q_first_steps`). Same shape for Beat 2 → Beat 3 (NPC 3 starts `q_reach_core_density_10`). Specifically:
+  - `q_first_steps` starts from `wandering_spirit_dialogue_2.success_effects`, not "on adventure entry."
+  - `q_reach_core_density_10` starts from `wandering_spirit_dialogue_3.success_effects`, not on keystone purchase.
+- Functionally equivalent to the original spec from the player's perspective; the transition points happen at the same moments the player clicks each NPC.
 - **Manual equip.** Spec implied auto-apply ("replaces bare-hands starter in slot 1"). We defer to manual equip with a badge indicator. Aligns with existing unlock-vs-equip split in CyclingManager and AbilityManager.
 
 `FOUNDATION_PLAYTHROUGH.md` Beat 2 entry will be updated to reflect these deviations as part of the implementation PR.

@@ -56,7 +56,7 @@
 | `scripts/resource_definitions/effects/effect_data.gd` | Add `AWARD_PATH_POINT = 6` to the `EffectType` enum. |
 | `resources/unlocks/unlock_condition_list.tres` | Register the two new unlock conditions. |
 | `resources/quests/quest_list.tres` | Register `q_first_steps` and `q_reach_core_density_10`. |
-| `resources/quests/q_fill_core.tres` | Append an inline `StartQuestEffect("q_first_steps")` to `completion_effects`. |
+| `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres` | Append inline `StartQuestEffect("q_first_steps")` to `success_effects` (Pattern B — Beat 1 → Beat 2 chain lives on the NPC action, not in q_fill_core's completion_effects). |
 | `resources/zones/spirit_valley_zone/spirit_valley_zone.tres` | Append `wandering_spirit_dialogue_3` to `all_actions`. |
 | `project.godot` | Add `"wandering_spirit_3"` entry to Dialogic's `directories/dtl_directory`. |
 | `scenes/combat/adventure_combat/adventure_combat.gd` | After `trigger_combat_end.emit(true, gold)`, fire `EventManager.trigger_event("q_first_steps_enemy_defeated")`. |
@@ -301,13 +301,13 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ## Task 3: Author quests + chain from Beat 1
 
-`q_first_steps` and `q_reach_core_density_10` are new; `q_fill_core` gets an inline StartQuest sub-resource appended so Beat 1 ending chains into Beat 2.
+`q_first_steps` and `q_reach_core_density_10` are new. **Pattern B:** chain transitions live on NPC action `success_effects`, not on quest `completion_effects`. So this task creates the two quests and appends `StartQuestEffect("q_first_steps")` to NPC 2's `success_effects` (from Beat 1). NPC 3 gets `StartQuestEffect("q_reach_core_density_10")` in Task 5 when NPC 3 is authored.
 
 **Files:**
 - Create: `resources/quests/q_first_steps.tres`
 - Create: `resources/quests/q_reach_core_density_10.tres`
 - Modify: `resources/quests/quest_list.tres`
-- Modify: `resources/quests/q_fill_core.tres`
+- Modify: `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres` (append inline StartQuest sub-resource)
 
 - [ ] **Step 1: Create `q_reach_core_density_10.tres` first (simpler)**
 
@@ -349,16 +349,15 @@ Corrected header:
 
 - [ ] **Step 2: Create `q_first_steps.tres`**
 
-Two steps + two inline completion effects (AwardPathPoint + StartQuest).
+Two steps + one inline completion effect (AwardPathPoint only — StartQuest for the next quest lives on NPC 3's success_effects per Pattern B).
 
 ```
-[gd_resource type="Resource" script_class="QuestData" load_steps=9 format=3 uid="uid://bqfirststeps01"]
+[gd_resource type="Resource" script_class="QuestData" load_steps=8 format=3 uid="uid://bqfirststeps01"]
 
 [ext_resource type="Script" path="res://scripts/resource_definitions/quests/quest_data.gd" id="1_qfst"]
 [ext_resource type="Script" path="res://scripts/resource_definitions/quests/quest_step_data.gd" id="2_qfst"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_qfst"]
 [ext_resource type="Script" path="res://scripts/resource_definitions/effects/award_path_point_effect_data.gd" id="4_qfst"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="5_qfst"]
 
 [sub_resource type="Resource" id="Resource_step1"]
 script = ExtResource("2_qfst")
@@ -381,26 +380,17 @@ script = ExtResource("4_qfst")
 amount = 1
 effect_type = 6
 
-[sub_resource type="Resource" id="Resource_start_next"]
-script = ExtResource("5_qfst")
-effect_type = 5
-quest_id = "q_reach_core_density_10"
-
 [resource]
 script = ExtResource("1_qfst")
 quest_id = "q_first_steps"
 quest_name = "First Steps Out"
 description = "Venture into the wilderness and test your strength."
 steps = Array[Resource]([SubResource("Resource_step1"), SubResource("Resource_step2")])
-completion_effects = Array[ExtResource("3_qfst")]([SubResource("Resource_award_point"), SubResource("Resource_start_next")])
+completion_effects = Array[ExtResource("3_qfst")]([SubResource("Resource_award_point")])
 metadata/_custom_type_script = "res://scripts/resource_definitions/quests/quest_data.gd"
 ```
 
-Recount: 5 ext_resources + 4 sub_resources + 1 main = **10**. Change header to `load_steps=10`:
-
-```
-[gd_resource type="Resource" script_class="QuestData" load_steps=10 format=3 uid="uid://bqfirststeps01"]
-```
+Verify `load_steps`: 4 ext_resources + 3 sub_resources + 1 main = **8**. Matches header.
 
 - [ ] **Step 3: Import**
 
@@ -429,28 +419,34 @@ metadata/_custom_type_script = "uid://c1urxnbhmkqws"
 
 *Note: q_fill_core.tres's current UID (`d1l5innqmliwu`) reflects Beat 1 post-playtest normalization. Match what's actually in the file.*
 
-- [ ] **Step 5: Append inline StartQuest to `q_fill_core.tres` completion_effects**
+- [ ] **Step 5: Append inline StartQuest to `wandering_spirit_dialogue_2.tres` success_effects (Pattern B chain: Beat 1 → Beat 2)**
 
-Open `resources/quests/q_fill_core.tres` in the Godot editor. The existing file has `completion_effects` with one inline TriggerEvent sub-resource (`Resource_completion_trigger` firing `q_fill_core_completed`). Add a second inline sub-resource: `StartQuestEffectData` with `quest_id = "q_first_steps"`.
+Open `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres` in the Godot editor. The existing file (from Beat 1) has `success_effects` with one inline TriggerEvent sub-resource (`Resource_trigger_dialogue_2` firing `wandering_spirit_dialogue_2`). Add a second inline sub-resource: `StartQuestEffectData` with `quest_id = "q_first_steps"`.
 
-If hand-editing, add a new ext_resource for `start_quest_effect_data.gd` and a new sub_resource, then extend the completion_effects array:
+**Effect-ordering matters**: place the TriggerEvent FIRST (so `q_fill_core` completes and its completion_effects fire before the next quest starts), then StartQuest.
+
+If hand-editing, add a new ext_resource for `start_quest_effect_data.gd` and a new sub_resource, then extend the success_effects array:
 
 ```
-[ext_resource type="Script" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="7_qfcst"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="6_sqfs"]
 
 ...
 
 [sub_resource type="Resource" id="Resource_start_q_first_steps"]
-script = ExtResource("7_qfcst")
+script = ExtResource("6_sqfs")
 effect_type = 5
 quest_id = "q_first_steps"
 
 ...
 
-completion_effects = Array[ExtResource("1_qfc01")]([SubResource("Resource_completion_trigger"), SubResource("Resource_start_q_first_steps")])
+success_effects = Array[ExtResource("2_npc2a")]([SubResource("Resource_trigger_dialogue_2"), SubResource("Resource_start_q_first_steps")])
 ```
 
+(`ExtResource("2_npc2a")` is the existing `effect_data.gd` typing ref in this file; use whatever id it has post-Beat-1.)
+
 Remember to bump `load_steps` accordingly (add 1 for the new ext_resource + 1 for the new sub_resource; verify the resulting count matches actual content).
+
+**Do NOT modify `q_fill_core.tres`** — its `completion_effects` stay focused on within-quest concerns (the TriggerEvent for `q_fill_core_completed`), not on downstream quest chaining.
 
 - [ ] **Step 6: Run the full test suite**
 
@@ -463,21 +459,25 @@ Expected: all tests pass, no `QuestManager._validate_catalog()` push_errors refe
 - [ ] **Step 7: Commit**
 
 ```bash
-git add resources/quests/q_first_steps.tres resources/quests/q_reach_core_density_10.tres resources/quests/quest_list.tres resources/quests/q_fill_core.tres
+git add resources/quests/q_first_steps.tres resources/quests/q_reach_core_density_10.tres resources/quests/quest_list.tres resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres
 git commit -m "feat(quests): add q_first_steps and q_reach_core_density_10
 
-Beat 2's quest chain:
-  q_fill_core -> (StartQuest) q_first_steps
+Beat 2's quest resources (Pattern B chain — NPC actions own the
+quest-to-quest transitions, not quest completion_effects):
+  q_first_steps
     step 1: defeat_enemy (event: q_first_steps_enemy_defeated)
     step 2: return_to_npc (event: wandering_spirit_dialogue_3)
-  q_first_steps completion effects:
-    - AwardPathPoint(1)
-    - StartQuest(q_reach_core_density_10)
-  q_reach_core_density_10 step 1 condition-based (CULTIVATION_LEVEL >= 10);
+    completion_effects: AwardPathPoint(1) only
+  q_reach_core_density_10
+    step 1 condition-based (CULTIVATION_LEVEL >= 10)
     completion_effects empty pending Beat 3.
 
-q_fill_core.completion_effects gains the inline StartQuest sub-resource
-so Beat 1 end chains into Beat 2.
+wandering_spirit_dialogue_2.success_effects gains an inline
+StartQuest(q_first_steps) sub-resource — Beat 1 ends AND Beat 2
+begins on the same NPC click. q_fill_core remains untouched.
+
+(q_first_steps -> q_reach_core_density_10 chain is wired in Task 5
+via wandering_spirit_dialogue_3.success_effects, same pattern.)
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
@@ -624,22 +624,30 @@ The stranger meets your eyes. "You faced the wild and came back. Good. Take this
 
 - [ ] **Step 2: Create the NPC 3 zone action**
 
+NPC 3's `success_effects` carry TWO inline sub-resources per Pattern B: the TriggerEvent (first — advances q_first_steps step 2, completes quest, fires AwardPathPoint) AND the StartQuest for Beat 3 (second — after q_first_steps has completed).
+
 Create `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_3.tres`:
 
 ```
-[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=7 format=3 uid="uid://cnpc3zact001"]
+[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=9 format=3 uid="uid://cnpc3zact001"]
 
 [ext_resource type="Script" uid="uid://10xqk22j564o" path="res://scripts/resource_definitions/zones/zone_action_data/npc_dialogue_action_data/npc_dialogue_action_data.gd" id="1_npc3a"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_npc3a"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="3_npc3a"]
 [ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="4_npc3a"]
 [ext_resource type="Resource" uid="uid://bqfsendefeat01" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="5_npc3a"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="6_sqrc"]
 
 [sub_resource type="Resource" id="Resource_trigger_dialogue_3"]
 script = ExtResource("4_npc3a")
 event_id = "wandering_spirit_dialogue_3"
 effect_type = 1
 metadata/_custom_type_script = "uid://cc0ky7w2fsg10"
+
+[sub_resource type="Resource" id="Resource_start_q_reach_cd_10"]
+script = ExtResource("6_sqrc")
+effect_type = 5
+quest_id = "q_reach_core_density_10"
 
 [resource]
 script = ExtResource("1_npc3a")
@@ -650,11 +658,13 @@ action_type = 2
 description = "Report back to the stranger with news of your first victory."
 unlock_conditions = Array[ExtResource("3_npc3a")]([ExtResource("5_npc3a")])
 max_completions = 1
-success_effects = Array[ExtResource("2_npc3a")]([SubResource("Resource_trigger_dialogue_3")])
+success_effects = Array[ExtResource("2_npc3a")]([SubResource("Resource_trigger_dialogue_3"), SubResource("Resource_start_q_reach_cd_10")])
 metadata/_custom_type_script = "uid://10xqk22j564o"
 ```
 
-*Verify load_steps: 5 ext_resources + 1 sub_resource + 1 main = 7. Matches.*
+*Verify `load_steps`: 6 ext_resources + 2 sub_resources + 1 main = **9**. Matches header.*
+
+*Effect ordering in `success_effects` matters*: TriggerEvent first (so q_first_steps completes and its AwardPathPoint fires before Beat 3's quest starts), StartQuest second. Same shape as the Beat 1 → Beat 2 chain on NPC 2.
 
 - [ ] **Step 3: Register NPC 3 in `spirit_valley_zone.tres`**
 
@@ -1192,7 +1202,7 @@ git push
 
 **Spec coverage check** against `docs/superpowers/specs/2026-04-18-foundation-beat-2-design.md`:
 
-- [x] Quest chain: q_fill_core → q_first_steps → q_reach_core_density_10 — Tasks 3 + quest resources + inline StartQuest chaining.
+- [x] Quest chain: q_fill_core → q_first_steps → q_reach_core_density_10 — Pattern B via NPC actions: Task 3 Step 5 adds StartQuest(q_first_steps) to NPC 2's success_effects; Task 5 Step 2 includes StartQuest(q_reach_core_density_10) in NPC 3's success_effects. Quests themselves remain independent (no quest references any other quest by id).
 - [x] AwardPathPointEffectData — Task 1.
 - [x] Combat → event bridge — Task 4.
 - [x] NPC 3 + Dialogic timeline + zone registration — Task 5.
