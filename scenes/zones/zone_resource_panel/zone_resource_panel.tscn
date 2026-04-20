@@ -9,8 +9,8 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_o03u6"]
 shader = ExtResource("3_708fp")
-shader_parameter/progress = 0.8830000419425
-shader_parameter/wave_amplitude = 0.0350000016625
+shader_parameter/progress = 0.5
+shader_parameter/wave_amplitude = 0.035
 shader_parameter/wave_frequency = 5.0000002375
 shader_parameter/wave_speed = 4.00000019
 shader_parameter/wave_randomness_freq = 3.0000001392401203

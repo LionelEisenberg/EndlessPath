@@ -193,7 +193,7 @@ func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 		CONNECT_ONE_SHOT
 	)
 
-	DialogueManager.start_timeline(action_data.dialogue_timeline_name)
+	DialogueManager.start_timeline(action_data.dialogue_timeline_name, action_data.dialogue_timeline_label_jump)
 
 ## Handle training action - start periodic tick timer.
 func _execute_train_action(action_data: TrainingActionData) -> void:

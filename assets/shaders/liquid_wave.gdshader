@@ -8,7 +8,7 @@ shader_type canvas_item;
 uniform float progress : hint_range(0.0, 1.0) = 0.5;
 
 // Wave parameters
-uniform float wave_amplitude : hint_range(0.0, 0.1) = 0.02;
+uniform float wave_amplitude : hint_range(0.0, 0.1) = 0.035;
 uniform float wave_frequency : hint_range(0.0, 20.0) = 5.0;
 uniform float wave_speed : hint_range(0.0, 5.0) = 4.0;
 uniform float wave_randomness_freq : hint_range(0.1, 5.0) = 3.0;

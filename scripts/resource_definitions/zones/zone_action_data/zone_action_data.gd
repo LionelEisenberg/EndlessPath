@@ -14,7 +14,7 @@ enum ActionType {
 @export var action_id: String = ""
 @export var action_name: String = ""
 @export var action_type: ActionType = ActionType.FORAGE
-@export var description: String = ""
+@export_multiline var description: String = ""
 @export var icon: Texture2D
 @export var unlock_conditions: Array[UnlockConditionData] = []
 @export var max_completions: int = 0  # 0 = unlimited, 1 = one-time, N = can be completed N times

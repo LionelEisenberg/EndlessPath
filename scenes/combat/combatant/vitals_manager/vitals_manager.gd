@@ -123,12 +123,12 @@ func _apply_madra_change(amount: float) -> void:
 
 ## Calculate maximum health based on Body attribute
 func _get_max_health() -> float:
-	return 100.0 + (character_attributes_data.get_attribute(AttributeType.BODY) * 10.0)
+	return character_attributes_data.get_attribute(AttributeType.BODY) * 10.0
 
 ## Calculate maximum stamina based on Body attribute
 func _get_max_stamina() -> float:
-	return 50.0 + (character_attributes_data.get_attribute(AttributeType.BODY) * 5.0)
+	return character_attributes_data.get_attribute(AttributeType.BODY) * 5.0
 
 ## Calculate maximum madra based on Foundation attribute
 func _get_max_madra() -> float:
-	return 50.0 + (character_attributes_data.get_attribute(AttributeType.FOUNDATION) * 10.0)
+	return character_attributes_data.get_attribute(AttributeType.FOUNDATION) * 10.0
