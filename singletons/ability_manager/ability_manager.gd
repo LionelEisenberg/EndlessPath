@@ -153,6 +153,21 @@ func get_filled_slot_count() -> int:
 			count += 1
 	return count
 
+## Returns true if any unlocked ability is not currently in any equipped slot.
+## Used by the Abilities SystemMenuButton badge to signal "new ability to equip."
+## Derived from existing save fields; no new save schema needed.
+func has_unequipped_unlocks() -> bool:
+	if not _live_save_data:
+		return false
+	var unlocked: Array = _live_save_data.unlocked_ability_ids
+	if unlocked.is_empty():
+		return false
+	var equipped: Array = _live_save_data.equipped_ability_ids
+	for ability_id: String in unlocked:
+		if ability_id not in equipped:
+			return true
+	return false
+
 # ----- Private -----
 
 func _ensure_equipped_array_size() -> void:
