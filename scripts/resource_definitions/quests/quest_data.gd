@@ -6,7 +6,7 @@ extends Resource
 ## the last step advances.
 @export var quest_id: String = ""
 @export var quest_name: String = ""
-@export var description: String = ""
+@export_multiline() var description: String = ""
 @export var steps: Array[QuestStepData] = []
 @export var completion_effects: Array[EffectData] = []
 
