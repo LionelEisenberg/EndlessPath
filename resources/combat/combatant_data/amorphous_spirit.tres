@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="CombatantData" format=3 uid="uid://b4jn343ifh3vd"]
+
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="1_3x30a"]
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="2_2sxdb"]
+[ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="3_vg6m5"]
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="4_5rqx4"]
+
+[sub_resource type="Resource" id="Resource_m6bjc"]
+script = ExtResource("2_2sxdb")
+base_value = 10.0
+damage_type = 1
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[sub_resource type="Resource" id="Resource_cmadw"]
+script = ExtResource("1_3x30a")
+ability_id = "madra_lash"
+ability_name = "Madra Lash"
+cast_time = 2.0
+effects = Array[ExtResource("2_2sxdb")]([SubResource("Resource_m6bjc")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
+
+[sub_resource type="Resource" id="Resource_wrvmu"]
+script = ExtResource("3_vg6m5")
+attributes = Dictionary[int, float]({
+1: 10.0,
+4: 10.0
+})
+metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
+
+[resource]
+script = ExtResource("4_5rqx4")
+character_name = "Amorphous Spirit"
+attributes = SubResource("Resource_wrvmu")
+abilities = Array[ExtResource("1_3x30a")]([SubResource("Resource_cmadw")])
+metadata/_custom_type_script = "uid://hbo1w3358rom"
