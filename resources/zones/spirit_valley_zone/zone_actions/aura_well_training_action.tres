@@ -4,8 +4,8 @@
 [ext_resource type="Script" uid="uid://bfhl52eit3e13" path="res://scripts/resource_definitions/effects/award_resource_effect_data.gd" id="2_madraef"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_effectb"]
 [ext_resource type="Script" uid="uid://cglrs0duscknn" path="res://scripts/resource_definitions/zones/zone_action_data/training_action_data/training_action_data.gd" id="4_trainac"]
-[ext_resource type="Resource" path="res://resources/zones/spirit_valley_zone/zone_actions/spirit_well_madra_trickle_effect.tres" id="5_madratk"]
-[ext_resource type="Resource" path="res://resources/zones/spirit_valley_zone/zone_actions/spirit_well_spirit_award_effect.tres" id="6_spiraw"]
+[ext_resource type="Resource" path="res://resources/zones/spirit_valley_zone/zone_actions/aura_well_madra_trickle_effect.tres" id="5_madratk"]
+[ext_resource type="Resource" path="res://resources/zones/spirit_valley_zone/zone_actions/aura_well_spirit_award_effect.tres" id="6_spiraw"]
 
 [resource]
 script = ExtResource("4_trainac")
@@ -14,10 +14,10 @@ ticks_per_level = Array[int]([60, 300, 600, 1200])
 tail_growth_multiplier = 2.0
 effects_per_tick = Array[ExtResource("3_effectb")]([ExtResource("5_madratk")])
 effects_on_level = Array[ExtResource("3_effectb")]([ExtResource("6_spiraw")])
-action_id = "spirit_well_training"
-action_name = "Spirit Well"
+action_id = "aura_well_training"
+action_name = "Aura Well"
 action_type = 4
-description = "Sit at the Spirit Well. Let the valley's aura steep into your bones."
+description = "Sit at the Aura Well. Let the valley's aura steep into your bones."
 max_completions = 0
 unlock_conditions = []
 metadata/_custom_type_script = "uid://cglrs0duscknn"
