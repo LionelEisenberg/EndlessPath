@@ -59,9 +59,12 @@ func setup(
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Called by other combatants/abilities to apply effects
-func receive_effect(effect: CombatEffectData, source_attributes: CharacterAttributesData) -> void:
-	effect_manager.process_effect(effect, source_attributes)
+## Called by other combatants/abilities to apply effects.
+## `outgoing_modifier` carries the source's outgoing-damage buff multiplier
+## (already consumed on the source side). Defaults to 1.0 for non-damage
+## effects or callers that don't need to scale damage.
+func receive_effect(effect: CombatEffectData, source_attributes: CharacterAttributesData, outgoing_modifier: float = 1.0) -> void:
+	effect_manager.process_effect(effect, source_attributes, outgoing_modifier)
 
 #-----------------------------------------------------------------------------
 # INTERNAL LOGIC

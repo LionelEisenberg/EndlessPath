@@ -245,6 +245,7 @@ Adventures now consume Madra from the zone's pool on start.
   1. `adventure_start_requested` signal fires when the player clicks the adventure button — begins ZoneTransition (drain animation + camera zoom).
   2. `confirm_adventure_start` fires after the transition completes — actually starts the adventure and deducts Madra.
 - **`madra_budget` parameter:** The `start_adventure` signal now carries a `madra_budget: float` parameter representing the Madra drawn from the zone pool. This value flows through `AdventureView.start_adventure()` and is accessible during the run.
+- **Deficit particle drain (Foundation Beat 2):** On adventure start, the Madra bar drains by exactly the computed `madra_budget` — the particle animation stops at the precise deficit rather than always animating to zero.
 
 ## Integration Points
 
@@ -261,9 +262,9 @@ Adventures now consume Madra from the zone's pool on start.
 
 ## Existing Content
 
-One adventure exists: `test_adventure_data.tres` with default parameters (5 special tiles, distance 6, sparse factor 2). The Spirit Valley zone has a test adventure action with 300-second time limit.
+One adventure exists: **The Shallow Woods** (`shallow_woods.tres`), reached from Spirit Valley once `q_fill_core_completed` is triggered. 300-second time limit, 8 path encounters, uses the `amorphous_spirit` combat encounter pool (`amorphous_spirit_encounter.tres`).
 
-**Encounters:** 1 combat encounter (with test enemy), 1 boss encounter, 1 treasure encounter (rolls weapon loot table), 1 rest encounter, 1 trap encounter.
+**Encounters in rotation:** combat (amorphous spirit variants), boss, treasure (rolls weapon loot table), rest, trap.
 
 ## Key Files
 

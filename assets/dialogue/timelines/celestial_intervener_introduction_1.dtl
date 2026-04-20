@@ -1,0 +1,18 @@
+label dialogue_1
+join celestial_intervener center
+celestial_intervener: Oop got you out of there just in time huh? Yeah that was what we call a [color=red][TIMELINE ALTERING EVENT][/color], and we tend to look a little down on that, so I decided to help you out!
+celestial_intervener: Anywho, your [color=blue][CORE][color] is running a little dry there, we're safe here, so take some time to cycle and get back to me when you're all plumped up!
+leave celestial_intervener
+[end_timeline]
+label dialogue_2
+join celestial_intervener center
+celestial_intervener: There you go! Now you've got plenty of Madra to defend yourself!
+celestial_intervener: These woods should be pretty safe even for someone like you! Why don't you go find a [DREADBEAST] or [REMNANT] to kick their ass?
+leave celestial_intervener
+[end_timeline]
+label dialogue_3
+join celestial_intervener center
+celestial_intervener: Oh good! Hopefully these spirits haven't been giving you TOO much trouble, otherwise... Well you'll be in for a suprise!
+celestial_intervener: [REPORT REQUESTED] - Okay I don't have too much more time before I need to leave, strengthen your core while cycling with that fancy new cycling technique! Let me know when you've progressed a little more and I'll give you some tips before heading out of here.
+leave celestial_intervener
+[end_timeline]

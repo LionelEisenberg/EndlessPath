@@ -43,10 +43,10 @@ The `PlayerInfoPanel` lives in `AdventureView`, not inside `AdventureCombat`.
 | Attribute | Combat Role |
 |-----------|-------------|
 | `STRENGTH` | Physical damage scaling |
-| `BODY` | Max health (100 + BODY*10), max stamina (50 + BODY*5) |
+| `BODY` | Max health (BODY*10), max stamina (BODY*5) |
 | `AGILITY` | Ability scaling (no cooldown reduction implemented) |
 | `SPIRIT` | Spiritual damage scaling, Madra-type defense |
-| `FOUNDATION` | Max madra (50 + FOUNDATION*10) |
+| `FOUNDATION` | Max madra (FOUNDATION*10) |
 | `CONTROL` | Cooldown reduction (not yet implemented) |
 | `RESILIENCE` | Physical damage reduction |
 | `WILLPOWER` | Spiritual damage reduction |
@@ -98,7 +98,7 @@ Default: all attributes start at 10.0.
 ## Core Systems
 
 ### Vitals (HP / Madra / Stamina)
-- Max values derived from attributes: HP = `100 + BODY*10`, Stamina = `50 + BODY*5`, Madra = `50 + FOUNDATION*10`
+- Max values derived from attributes: HP = `BODY*10`, Stamina = `BODY*5`, Madra = `FOUNDATION*10` (shared with `CharacterAttributesData.get_max_madra()`)
 - Continuous passive regen each frame via `VitalsManager._process(delta)` — regen rates default to 0.0; only stamina regen is set to 1.0/s during adventures (by `adventure_view.gd`), reset to 0 on adventure end
 - `apply_vitals_change(health, stamina, madra)` clamps all values to `[0, max]`
 - Player VitalsManager reconnects to `CharacterManager.base_attribute_changed` for live stat updates
@@ -217,10 +217,10 @@ A global casting lock prevents firing multiple abilities simultaneously.
 | Attribute | Offensive Use | Defensive Use | Vitals | Status |
 |-----------|--------------|---------------|--------|--------|
 | **STRENGTH** | Damage scaling (basic_strike, test abilities), Enforce buff x1.5 | — | — | Active |
-| **BODY** | Damage scaling (basic_strike) | — | Max HP (100 + BODY*10), Max Stamina (50 + BODY*5) | **Core** |
+| **BODY** | Damage scaling (basic_strike) | — | Max HP (BODY*10), Max Stamina (BODY*5) | **Core** |
 | **AGILITY** | Damage scaling (basic_strike, empty_palm) | — | — | Active |
 | **SPIRIT** | Damage scaling (empty_palm, power_font), Enforce buff x1.5 | Madra damage defense | — | **Core** |
-| **FOUNDATION** | Damage scaling (power_font) | — | Max Madra (50 + FND*10) | **Core** |
+| **FOUNDATION** | Damage scaling (power_font) | — | Max Madra (FND*10) | **Core** |
 | **CONTROL** | — | — | — | **Inert** (cooldown reduction planned) |
 | **RESILIENCE** | — | Physical + Mixed damage defense | — | Active (defense only) |
 | **WILLPOWER** | — | Mixed damage defense (averaged with Resilience) | — | Weak |

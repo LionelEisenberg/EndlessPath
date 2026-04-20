@@ -18,10 +18,10 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Start a Dialogic timeline by timeline name/ID.
-func start_timeline(timeline_name: String) -> void:
+func start_timeline(timeline_name: String, label_or_idx:Variant = "") -> void:
 	Log.info("DialogueManager: Starting timeline: %s" % timeline_name)
 	
-	Dialogic.start(timeline_name)
+	Dialogic.start(timeline_name,label_or_idx)
 	get_viewport().set_input_as_handled()
 	dialogue_started.emit(timeline_name)
 	current_timeline_name = timeline_name

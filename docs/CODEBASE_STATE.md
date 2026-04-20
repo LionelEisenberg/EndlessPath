@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-04-18
+Last updated: 2026-04-20
 
 This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
 

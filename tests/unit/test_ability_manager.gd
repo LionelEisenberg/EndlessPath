@@ -112,3 +112,48 @@ func test_get_unlocked_abilities() -> void:
 
 func test_get_max_slots() -> void:
 	assert_eq(AbilityManager.get_max_slots(), 4)
+
+# ----- has_unequipped_unlocks Tests -----
+
+func test_has_unequipped_unlocks_false_when_none_unlocked() -> void:
+	# Start from a clean state with no unlocks.
+	var data: SaveGameData = SaveGameData.new()
+	data.unlocked_ability_ids = []
+	data.equipped_ability_ids = ["", "", "", ""]
+	AbilityManager._live_save_data = data
+
+	assert_false(
+		AbilityManager.has_unequipped_unlocks(),
+		"No unlocks -> no badge"
+	)
+
+
+func test_has_unequipped_unlocks_true_when_unlock_not_in_any_slot() -> void:
+	# Unlock but do not equip.
+	var data: SaveGameData = SaveGameData.new()
+	data.unlocked_ability_ids = []
+	data.equipped_ability_ids = ["", "", "", ""]
+	AbilityManager._live_save_data = data
+
+	AbilityManager.unlock_ability("empty_palm")
+
+	assert_true(
+		AbilityManager.has_unequipped_unlocks(),
+		"Unlocked but not in any slot -> badge should show"
+	)
+
+
+func test_has_unequipped_unlocks_false_when_unlock_equipped_to_any_slot() -> void:
+	# Unlock and equip into a slot.
+	var data: SaveGameData = SaveGameData.new()
+	data.unlocked_ability_ids = []
+	data.equipped_ability_ids = ["", "", "", ""]
+	AbilityManager._live_save_data = data
+
+	AbilityManager.unlock_ability("empty_palm")
+	AbilityManager.equip_ability_at_slot("empty_palm", 0)
+
+	assert_false(
+		AbilityManager.has_unequipped_unlocks(),
+		"Equipped the unlock -> no badge"
+	)

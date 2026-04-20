@@ -1,20 +1,18 @@
 [gd_resource type="Resource" script_class="AdventureActionData" format=3 uid="uid://bbpx8ls6tj2u"]
 
 [ext_resource type="Script" uid="uid://cmmqjph50wohc" path="res://scripts/resource_definitions/zones/zone_action_data/adventure_action_data/adventure_action_data.gd" id="1_bedlk"]
-[ext_resource type="Resource" uid="uid://b2erw55qd1wh7" path="res://resources/adventure/data/test_adventure_data.tres" id="1_v40qa"]
+[ext_resource type="Resource" uid="uid://b2erw55qd1wh7" path="res://resources/adventure/data/shallow_woods.tres" id="1_i4yr3"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_8ideb"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_v40qa"]
-[ext_resource type="Resource" uid="uid://vauqsrr78ccw" path="res://resources/effects/award_resource/award_madra_5_effect_data.tres" id="5_udarr"]
 [ext_resource type="Resource" uid="uid://2or6sfbainjs" path="res://resources/unlocks/q_fill_core_completed.tres" id="6_qfcgt"]
 
 [resource]
 script = ExtResource("1_bedlk")
-adventure_data = ExtResource("1_v40qa")
+adventure_data = ExtResource("1_i4yr3")
 time_limit_seconds = 300
-action_id = "spirit_valley_adventure_action"
-action_name = "Fight the Baddies!"
+action_id = "shallow_woods_adventure_action"
+action_name = "The Shallow Woods"
 action_type = 1
-description = "Come with me, Fight the Baddies"
+description = "The beasts are few and the aura is thin, where aspiring masters take their first steps beyond the sanctuary"
 unlock_conditions = Array[ExtResource("2_v40qa")]([ExtResource("6_qfcgt")])
-success_effects = Array[ExtResource("2_8ideb")]([ExtResource("5_udarr")])
 metadata/_custom_type_script = "uid://cmmqjph50wohc"

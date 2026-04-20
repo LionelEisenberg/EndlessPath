@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" load_steps=2 format=3 uid="uid://bqreachcd10001"]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_qrcd"]
+
+[resource]
+script = ExtResource("1_qrcd")
+condition_id = "q_reach_cd_10"
+condition_type = 1
+target_value = 10
+comparison_op = ">="
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"

@@ -69,6 +69,21 @@ func is_technique_unlocked(technique_id: String) -> bool:
 		return false
 	return technique_id in _live_save_data.unlocked_cycling_technique_ids
 
+## Returns true if any unlocked cycling technique is not currently equipped.
+## Used by UI (badges) to signal "you have something new to equip."
+## Derived from existing save fields; no new save schema needed.
+func has_unequipped_unlocks() -> bool:
+	if not _live_save_data:
+		return false
+	var unlocked: Array = _live_save_data.unlocked_cycling_technique_ids
+	if unlocked.is_empty():
+		return false
+	var equipped: String = _live_save_data.equipped_cycling_technique_id
+	for technique_id: String in unlocked:
+		if technique_id != equipped:
+			return true
+	return false
+
 # ----- Private -----
 
 func _build_catalog_index() -> void:

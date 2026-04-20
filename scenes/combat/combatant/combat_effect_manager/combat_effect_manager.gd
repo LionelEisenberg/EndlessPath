@@ -23,26 +23,33 @@ func setup(p_owner: CombatantNode) -> void:
 #-----------------------------------------------------------------------------
 
 ## Processes an incoming effect from a source.
-func process_effect(effect: CombatEffectData, source_attributes: CharacterAttributesData) -> void:
+## `outgoing_modifier` is the source's outgoing-damage buff multiplier,
+## already consumed on the source side and passed here to multiply into
+## damage. Defaults to 1.0 for non-damage effects.
+func process_effect(effect: CombatEffectData, source_attributes: CharacterAttributesData, outgoing_modifier: float = 1.0) -> void:
 	if not owner_combatant.vitals_manager:
 		Log.error("CombatEffectManager: No resource manager set!")
 		return
-		
+
 	# Calculate final value based on source attributes and target attributes (us)
 	# Note: calculate_damage handles defense calculation if we pass our attributes
 	var final_value = 0.0
-	
+
 	match effect.effect_type:
 		CombatEffectData.EffectType.DAMAGE:
 			final_value = effect.calculate_damage(source_attributes, owner_combatant.combatant_data.attributes)
-			
-			# Apply incoming damage modifier from buffs
+
+			# Apply outgoing damage modifier from the source's buffs
+			if outgoing_modifier != 1.0:
+				Log.info("CombatEffectManager: Outgoing damage modifier: %.2f" % outgoing_modifier)
+				final_value *= outgoing_modifier
+
+			# Apply incoming damage modifier from our buffs (consumes consume_on_use)
 			if owner_combatant.buff_manager:
-				var damage_modifier = owner_combatant.buff_manager.get_incoming_damage_modifier()
-				if damage_modifier != 1.0:
-					Log.info("CombatEffectManager: Incoming damage modifier: %.2f" % damage_modifier)
-					final_value *= damage_modifier
-				owner_combatant.buff_manager.consume_incoming_modifier()
+				var incoming_modifier: float = owner_combatant.buff_manager.consume_incoming_modifier()
+				if incoming_modifier != 1.0:
+					Log.info("CombatEffectManager: Incoming damage modifier: %.2f" % incoming_modifier)
+					final_value *= incoming_modifier
 			
 			Log.info("CombatEffectManager: %s Took %.1f damage from %s" % [owner_combatant.combatant_data.character_name, final_value, effect.effect_name])
 			owner_combatant.vitals_manager.apply_vitals_change(-final_value, 0, 0)

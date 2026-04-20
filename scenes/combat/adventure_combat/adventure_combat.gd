@@ -168,6 +168,11 @@ func _on_enemy_health_changed(health: float) -> void:
 	if health <= 0.0:
 		Log.info("AdventureCombat: Enemy died")
 		var gold = _calculate_gold_reward()
+		# Fire the q_first_steps_enemy_defeated event so Foundation Beat 2's
+		# quest step advances. EventManager deduplicates — subsequent victories
+		# are no-ops on this event.
+		if EventManager:
+			EventManager.trigger_event("q_first_steps_enemy_defeated")
 		trigger_combat_end.emit(true, gold)
 
 ## Calculate gold reward using multi-factor formula

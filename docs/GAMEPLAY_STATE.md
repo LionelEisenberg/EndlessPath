@@ -1,6 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-04-18
+Last updated: 2026-04-20
 
 This document tracks the current player experience — what a player can actually do, what content exists, and what blocks the next stage of progression. For per-system details, see the [system documentation index](CODEBASE_STATE.md#system-documentation-index).
 
@@ -11,7 +11,7 @@ This document tracks the current player experience — what a player can actuall
 A new player can currently:
 
 1. **Start on the Zone Map** — see Spirit Valley tile, click it; the zone view features parallax backgrounds, floating panels, card-style action panels (PR #14), atmospheric mist/motes, hover selector ring, glowing paths between zones, and lock overlays on gated tiles (PR #23)
-2. **Talk to the Wisened Dirt Eel** — triggers a Dialogic dialogue, awards a Dagger, unlocks more content
+2. **Talk to the Celestial Intervener** — triggers a Dialogic dialogue, awards a Dagger, starts the "Fill Your Core" quest, and unlocks Wilderness Cycling + Spring Forest Foraging (PR #32 NPC rename)
 3. **Cycle** — open the cycling mini-game, follow the Madra Ball, click inflection points for XP; the cycling UI features shader effects, particle feedback, and a tabbed info panel (PRs #12/#13)
 4. **Forage** — toggle passive foraging, earn Spirit Fern and Dewdrop Tear materials over time
 5. **Open Inventory** — view equipment grid, equip the Dagger, see materials from foraging
@@ -33,7 +33,7 @@ The core loop now includes a meaningful progression sink: cycle for XP → earn 
 ### Zones
 | Zone | Actions | Unlock |
 |------|---------|--------|
-| Spirit Valley | Wandering Spirit Dialogue (2 parts), Wilderness Cycling, Spring Forest Foraging, Spirit Valley Adventure, Spirit Well Training | Always |
+| Spirit Valley | Celestial Intervener Dialogue (3 parts), Wilderness Cycling, Spring Forest Foraging, The Shallow Woods Adventure, Spirit Well Training | Always |
 | Test Zone | None | After NPC dialogue |
 
 ### Items
@@ -62,7 +62,7 @@ Abilities are managed by `AbilityManager` (PR #22): INNATE abilities start unloc
 ### Adventure Encounters
 | Encounter | Type | Notes |
 |-----------|------|-------|
-| Test Combat | Combat | 1 enemy, basic gold reward |
+| Amorphous Spirit Combat | Combat | Shallow Woods enemy pool (PR #32) |
 | Boss Combat | Combat (Boss) | Furthest tile, completes adventure |
 | Treasure | Treasure | Rolls weapon loot table |
 | Rest | Rest | — |
@@ -71,10 +71,12 @@ Abilities are managed by `AbilityManager` (PR #22): INNATE abilities start unloc
 ### Unlock Conditions
 | Condition | Type | Trigger |
 |-----------|------|---------|
-| wandering_spirit_dialogue_1 | EVENT_TRIGGERED | Wandering Spirit dialogue part 1 completion (PR #28 rename) |
+| celestial_intervener_dialogue_1 | EVENT_TRIGGERED | Celestial Intervener dialogue part 1 (PR #32 rename) |
 | test_attribute_requirement_unlock_data | ATTRIBUTE_VALUE | BODY >= 20 |
 | q_fill_core_madra_full | MADRA_AMOUNT | Madra at cap (PR #28, Fill Your Core quest) |
 | q_fill_core_completed | EVENT_TRIGGERED | Fill Your Core quest completion (PR #28) |
+| q_first_steps_enemy_defeated | EVENT_TRIGGERED | First Shallow Woods combat victory (PR #32) |
+| q_reach_cd_10 | CULTIVATION_LEVEL | Core Density level ≥ 10 (PR #32) |
 
 ### Path Progression
 | Path | Tier | Nodes | Status |

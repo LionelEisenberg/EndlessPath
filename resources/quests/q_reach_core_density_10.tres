@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="QuestData" format=3 uid="uid://bqreachcdq001"]
+
+[ext_resource type="Script" uid="uid://c777hl035dwml" path="res://scripts/resource_definitions/quests/quest_data.gd" id="1_qrcdq"]
+[ext_resource type="Script" uid="uid://dg16ukxsxuhbr" path="res://scripts/resource_definitions/quests/quest_step_data.gd" id="2_qrcdq"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_qrcdq"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="4_qrcdq"]
+[ext_resource type="Resource" uid="uid://i2xnqd3pem53" path="res://resources/unlocks/q_reach_cd_10.tres" id="5_qrcdq"]
+
+[sub_resource type="Resource" id="Resource_step1"]
+script = ExtResource("2_qrcdq")
+step_id = "reach_cd_10"
+description = "Reach Core Density level 10"
+completion_conditions = Array[ExtResource("4_qrcdq")]([ExtResource("5_qrcdq")])
+
+[resource]
+script = ExtResource("1_qrcdq")
+quest_id = "q_reach_core_density_10"
+quest_name = "Harden Your Core"
+description = "Deepen your cultivation. Raise your Core Density to level 10."
+steps = Array[ExtResource("2_qrcdq")]([SubResource("Resource_step1")])

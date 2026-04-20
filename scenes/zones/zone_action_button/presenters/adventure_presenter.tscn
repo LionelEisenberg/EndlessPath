@@ -1,20 +1,19 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://sk3tekdunv36"]
 
-[ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/adventure_presenter.gd" id="1_adv"]
+[ext_resource type="Script" uid="uid://cpni6kagtx2bg" path="res://scenes/zones/zone_action_button/presenters/adventure_presenter.gd" id="1_adv"]
 [ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/sprites/ui/resources/madra_icon.png" id="2_madra_icon"]
 
-[node name="AdventurePresenter" type="Node"]
+[node name="AdventurePresenter" type="Node" unique_id=2010109081]
 script = ExtResource("1_adv")
 
-[node name="MadraBadgeContainer" type="HBoxContainer" parent="."]
+[node name="MadraBadgeContainer" type="HBoxContainer" parent="." unique_id=355110938]
 unique_name_in_owner = true
 size_flags_horizontal = 8
 size_flags_vertical = 4
-mouse_filter = 1
 tooltip_text = "Madra Requirement"
 theme_override_constants/separation = 4
 
-[node name="MadraBadge" type="RichTextLabel" parent="MadraBadgeContainer"]
+[node name="MadraBadge" type="RichTextLabel" parent="MadraBadgeContainer" unique_id=364165455]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
@@ -24,7 +23,7 @@ bbcode_enabled = true
 fit_content = true
 scroll_active = false
 
-[node name="MadraIcon" type="TextureRect" parent="MadraBadgeContainer"]
+[node name="MadraIcon" type="TextureRect" parent="MadraBadgeContainer" unique_id=446137177]
 custom_minimum_size = Vector2(20, 20)
 layout_mode = 2
 size_flags_vertical = 4

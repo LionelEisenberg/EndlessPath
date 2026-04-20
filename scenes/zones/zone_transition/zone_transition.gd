@@ -31,8 +31,9 @@ var _pending_adventure_data: AdventureActionData = null
 var _drain_budget: float = 0.0
 var _drain_budget_ratio: float = 0.0
 var _drain_particles_spawned: int = 0
-var _drain_total_particles: int = 0
-var _drain_madra_per_particle: float = 0.0
+var _drain_total_particles: int = 0  # includes the extra deficit particle when there is one
+var _drain_madra_per_particle: float = 0.0  # whole-madra amount per "base" particle
+var _drain_deficit_particle_amount: float = 0.0  # leftover carried by one extra particle; 0 if none
 var _drain_target_pos: Vector2 = Vector2.ZERO
 var _has_saved_camera: bool = false
 var _saved_camera_zoom: Vector2 = Vector2.ZERO
@@ -80,8 +81,14 @@ func _on_adventure_start_requested(action_data: AdventureActionData) -> void:
 	_pending_adventure_data = action_data
 	_drain_budget = ResourceManager.get_adventure_madra_budget()
 	_drain_budget_ratio = clampf(_drain_budget / ResourceManager.get_adventure_madra_capacity(), 0.0, 1.0)
-	_drain_total_particles = int(lerpf(DRAIN_MIN_PARTICLES, DRAIN_MAX_PARTICLES, _drain_budget_ratio))
-	_drain_madra_per_particle = _drain_budget / _drain_total_particles
+	var base_particles: int = int(lerpf(DRAIN_MIN_PARTICLES, DRAIN_MAX_PARTICLES, _drain_budget_ratio))
+	# Use whole-madra amounts per particle so the bar drains in clean integer
+	# steps. Any leftover from the floor (e.g. budget=100, base=19 -> per=5,
+	# 19*5=95 leaves 5) gets carried by one extra particle at the end. This
+	# avoids float accumulation in the per-particle subtraction path.
+	_drain_madra_per_particle = floor(_drain_budget / base_particles)
+	_drain_deficit_particle_amount = _drain_budget - (_drain_madra_per_particle * base_particles)
+	_drain_total_particles = base_particles + (1 if _drain_deficit_particle_amount > 0.001 else 0)
 	_drain_particles_spawned = 0
 
 	# Cache node references for this transition
@@ -113,7 +120,16 @@ func _spawn_next_drain_particle() -> void:
 	get_tree().current_scene.add_child(particle)
 	particle.launch(from_pos + offset, _drain_target_pos + offset, DRAIN_PARTICLE_COLOR, duration, size, Callable(), curve_spread)
 
-	ResourceManager.spend_madra(_drain_madra_per_particle)
+	# The final particle carries the leftover deficit (when budget doesn't
+	# divide evenly by base count). Every other particle spends the whole-
+	# madra per-particle amount.
+	var is_deficit_particle: bool = (
+		_drain_deficit_particle_amount > 0.001
+		and _drain_particles_spawned == _drain_total_particles - 1
+	)
+	var amount: float = _drain_deficit_particle_amount if is_deficit_particle else _drain_madra_per_particle
+	ResourceManager.spend_madra(amount)
+
 	_drain_particles_spawned += 1
 
 	get_tree().create_timer(DRAIN_SPAWN_INTERVAL).timeout.connect(_spawn_next_drain_particle)
@@ -125,11 +141,6 @@ func _spawn_next_drain_particle() -> void:
 func _on_drain_complete() -> void:
 	if _pending_adventure_data == null:
 		return
-
-	# Spend rounding leftovers
-	var remaining: float = _drain_budget - (_drain_madra_per_particle * _drain_total_particles)
-	if remaining > 0.01:
-		ResourceManager.spend_madra(remaining)
 
 	# Zoom camera into player
 	var camera: Camera2D = _get_camera()

@@ -30,7 +30,7 @@ ResourceManager="*res://singletons/resource_manager/resource_manager.gd"
 ZoneManager="*res://singletons/zone_manager/zone_manager.gd"
 ActionManager="*res://singletons/action_manager/action_manager.gd"
 InventoryManager="*res://singletons/inventory_manager/inventory_manager.gd"
-Dialogic="*res://addons/dialogic/Core/DialogicGameHandler.gd"
+Dialogic="*uid://ds2q0uclmolvu"
 DialogueManager="*res://singletons/dialogue_manager/dialogue_manager.gd"
 PlayerManager="*res://singletons/player_manager/player_manager.gd"
 LogManager="*res://singletons/log_manager/log_manager.gd"
@@ -42,11 +42,13 @@ QuestManager="*res://singletons/quest_manager/quest_manager.gd"
 [dialogic]
 
 directories/dch_directory={
+"celestial_intervener": "res://assets/dialogue/characters/celestial_intervener/celestial_intervener.dch",
 "wisened_dirt_eel": "res://assets/dialogue/characters/wisened_dirt_eel/wisened_dirt_eel.dch"
 }
 directories/dtl_directory={
-"wandering_spirit_1": "res://assets/dialogue/timelines/wandering_spirit_1.dtl",
-"wandering_spirit_2": "res://assets/dialogue/timelines/wandering_spirit_2.dtl"
+"celestial_intervener_introduction_1": "res://assets/dialogue/timelines/celestial_intervener_introduction_1.dtl",
+"wandering_spirit_2": "res://assets/dialogue/timelines/rwr.dtl",
+"wandering_spirit_3": "res://assets/dialogue/timelines/wandering_spirit_3.dtl"
 }
 layout/style_directory={
 "": "res://assets/dialogue/styles/default_style.tres",
@@ -55,6 +57,39 @@ layout/style_directory={
 layout/style_list=["res://assets/dialogue/styles/default_style.tres"]
 layout/default_style="res://assets/dialogue/styles/default_style.tres"
 glossary/default_case_sensitive=true
+extensions_folder="res://addons/dialogic_additions"
+text/letter_speed=0.01
+text/initial_text_reveal_skippable=true
+text/text_reveal_skip_delay=0.1
+text/advance_delay=0.1
+text/autoadvance_per_character_delay=0.1
+text/autoadvance_ignored_characters_enabled=true
+animations/join_default_length=0.5
+animations/join_default_wait=true
+animations/leave_default_length=0.5
+animations/leave_default_wait=true
+animations/cross_fade_default_length=0.5
+choices/autofocus_first=true
+choices/delay=0.2
+choices/reveal_delay=0
+choices/reveal_by_input=false
+save/autosave_delay=60.0
+save/encryption_on_exports_only=true
+text/autopauses={}
+audio/channel_defaults={
+"": {
+"audio_bus": "",
+"fade_length": 0.0,
+"loop": false,
+"volume": 0.0
+},
+"music": {
+"audio_bus": "",
+"fade_length": 0.0,
+"loop": true,
+"volume": 0.0
+}
+}
 
 [display]
 

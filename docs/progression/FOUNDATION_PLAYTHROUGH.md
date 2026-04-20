@@ -65,17 +65,19 @@ These assumptions shape the entire spine. Update here if they change.
 | Primary emotion | Curiosity / discovery. |
 | Exit gate | Adventure zone action is available and the player enters it. |
 
-### Beat 2 — First Steps Out `PLANNED`
+### Beat 2 — First Steps Out `IMPLEMENTED`
 
-**Trigger:** Player enters Adventure view for the first time.
+**Trigger:** Beat 1 completion. `celestial_intervener_dialogue_2.success_effects` fires a `StartQuest("q_first_steps")` sub-resource on the same NPC click that completes `q_fill_core` (Pattern B — chain transitions live on NPC actions, not in quest `completion_effects`).
 
-- First adventure is the **normal Zone 1 baseline** (not a scripted one-off tutorial instance). All tiles exist from day one; the player dies before reaching most of them.
-- **Quest starts (auto on adventure entry):** `q_first_steps` — "Complete an adventure." Completes on any outcome: win, death, clear.
-- **In-combat tutorial popup** on first combat: AP regen, ability cast, cooldowns, targeting. Minimal text.
-- Adventure ends → `q_first_steps` completes.
-- **Reward:** **First Path Point**, auto-applied to Keystone #1.
-  - Keystone #1 grants: new cycling technique (generates **Core Density XP**, unlike the starter technique which only gives Madra) + combat ability (replaces bare-hands starter in slot 1) + path lore text.
-- **Quest starts (auto, on keystone pick):** `q_reach_core_density_10`.
+- First adventure is the **normal Spirit Valley baseline** — same tiles, same encounters; `test_enemy` retuned so the player loses ~50% HP winning one combat (BODY 10→0 drops enemy HP 200→100; STR 10→13 raises damage 11→14 per cast).
+- **`q_first_steps` — 2 steps:**
+  - Step 1: *"Defeat an enemy in combat"* — completes on `q_first_steps_enemy_defeated` event, fired by `AdventureCombat` when `trigger_combat_end(true, ...)` emits on victory.
+  - Step 2: *"Return to the Celestial Intervener"* — completes on `celestial_intervener_dialogue_3` event (third NPC action, gated by step 1's completion via the `q_first_steps_enemy_defeated` unlock condition).
+- **`q_first_steps.completion_effects`:** `AwardPathPointEffect(1)` only — grants the first Path Point via `PathManager.add_points(1)`. Next-quest transition lives on NPC 3 per Pattern B.
+- **NPC 3 (`celestial_intervener_dialogue_3`) `success_effects`:** `TriggerEvent("celestial_intervener_dialogue_3")` then `StartQuest("q_reach_core_density_10")` — Beat 3's stub quest becomes active.
+- **No in-combat tutorial popup.** Quest description does the light onboarding; combat UI does the teaching.
+- **Manual equip.** Player spends the path point in the Path Tree UI on Pure Core Awakening (only purchasable node at this point). Keystone unlocks Smooth Flow + Empty Palm via existing PathManager → CyclingManager/AbilityManager wiring. Player manually equips via CyclingView and AbilitiesView.
+- **Badge indicator** on the Abilities system-menu button signals unequipped unlocks (`AbilityManager.has_unequipped_unlocks()` drives visibility; listens to `ability_unlocked` + `equipped_abilities_changed`). Cycling badging deferred — cycling enters via a zone action, not a SystemMenuButton (different UI surface).
 
 | Property | Value |
 |---|---|
@@ -83,7 +85,13 @@ These assumptions shape the entire spine. Update here if they change.
 | Player goal (mechanical) | Survive or die; collect first real tools. |
 | Systems exercised | Adventure, combat, inventory, path tree, quests. |
 | Primary emotion | Tension → relief (or: failure → resolve to try again). |
-| Exit gate | Player is back in Zone 1 view with Keystone #1 equipped and `q_reach_core_density_10` active. |
+| Exit gate | `q_first_steps` complete, 1 Path Point spent on Pure Core Awakening keystone, `q_reach_core_density_10` active. |
+
+**Deviations from the original plan** (documented for reference):
+- No tutorial popup (cut for scope; incremental-genre convention — combat UI IS the tutorial).
+- `q_first_steps` triggered by NPC 2 click (Pattern B) rather than by "adventure entry" — identical player experience.
+- `q_reach_core_density_10` starts on NPC 3 click (Pattern B) rather than on keystone purchase — also identical moment functionally.
+- Keystone effects are not auto-equipped; player equips manually. Badge indicator signals availability.
 
 ### Beat 3 — Preparing to Go Deeper `PLANNED`
 

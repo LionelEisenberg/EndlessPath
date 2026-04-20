@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="AdventureEncounter" format=3 uid="uid://c7s6suad328qd"]
+
+[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_qdmh0"]
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_bhcea"]
+[ext_resource type="Resource" uid="uid://b4jn343ifh3vd" path="res://resources/combat/combatant_data/amorphous_spirit.tres" id="3_7ovbm"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="4_elc5y"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_sqlsg"]
+[ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="6_b3sbp"]
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="7_sptof"]
+
+[sub_resource type="Resource" id="Resource_lef70"]
+script = ExtResource("6_b3sbp")
+enemy_pool = Array[ExtResource("2_bhcea")]([ExtResource("3_7ovbm")])
+label = "Attack the Spirit"
+metadata/_custom_type_script = "uid://cpq8eacgl1537"
+
+[resource]
+script = ExtResource("7_sptof")
+encounter_id = "amorphous_spirit_encounter"
+encounter_name = "Amorphous Spirit Attacks!"
+description = "You happen upon a blob of a creature, barely formed enough to materialize a threat, but it lashes its madra out unpredictably"
+text_description_completed = "You defeated the Amorphous Spirit! Only a puddle of Goo remains..."
+choices = Array[ExtResource("1_qdmh0")]([SubResource("Resource_lef70")])
+encounter_type = 0
+metadata/_custom_type_script = "uid://cs335nesm7wfr"

@@ -68,6 +68,10 @@ func get_attribute(attr_type: AttributeType) -> float:
 	Log.error("CharacterAttributesData: Attribute type %s not found" % AttributeType.keys()[attr_type])
 	return 10.0
 
+## Maximum madra pool derived from the Foundation attribute.
+func get_max_madra() -> float:
+	return get_attribute(AttributeType.FOUNDATION) * 10.0
+
 
 ## Add an amount to a specific attribute
 func add_to_attribute(attr_type: AttributeType, amount: float) -> void:
