@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="AdventureEncounter" load_steps=9 format=3]
+
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="1_encounter"]
+[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="2_choice"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_effect"]
+[ext_resource type="Script" uid="uid://cesx0glx57xs4" path="res://scripts/resource_definitions/effects/change_vitals_effect_data.gd" id="4_vitals"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_ucd"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="6_trigger"]
+[ext_resource type="Resource" path="res://resources/unlocks/aura_well_not_yet_discovered.tres" id="7_notyet"]
+
+[sub_resource type="Resource" id="Resource_rest_effect"]
+script = ExtResource("4_vitals")
+health_change = 0.0
+stamina_change = 0.0
+madra_change = 0.0
+body_hp_multiplier = 5.0
+foundation_madra_multiplier = 2.0
+metadata/_custom_type_script = "uid://cesx0glx57xs4"
+
+[sub_resource type="Resource" id="Resource_trigger_event"]
+script = ExtResource("6_trigger")
+event_id = "aura_well_discovered"
+
+[sub_resource type="Resource" id="Resource_rest_choice"]
+script = ExtResource("2_choice")
+label = "Rest"
+tooltip = "Draw on the well's aura to restore yourself."
+requirements = Array[ExtResource("5_ucd")]([])
+success_effects = Array[ExtResource("3_effect")]([SubResource("Resource_rest_effect")])
+failure_effects = Array[ExtResource("3_effect")]([])
+
+[sub_resource type="Resource" id="Resource_mark_choice"]
+script = ExtResource("2_choice")
+label = "Mark down the location"
+tooltip = "Commit the well's site to memory so you can find your way back."
+requirements = Array[ExtResource("5_ucd")]([ExtResource("7_notyet")])
+success_effects = Array[ExtResource("3_effect")]([SubResource("Resource_rest_effect"), SubResource("Resource_trigger_event")])
+failure_effects = Array[ExtResource("3_effect")]([])
+
+[resource]
+script = ExtResource("1_encounter")
+encounter_id = "aura_well"
+encounter_name = "Aura Well"
+description = "A spring of pale light wells up between the roots. The air here is thick with aura."
+text_description_completed = "The aura here still thrums. You could rest, or continue on."
+choices = Array[ExtResource("2_choice")]([SubResource("Resource_rest_choice"), SubResource("Resource_mark_choice")])
+encounter_type = 4
+metadata/_custom_type_script = "uid://cs335nesm7wfr"
