@@ -1,11 +1,11 @@
-[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=9 format=3 uid="uid://cnpc3zact001"]
+[gd_resource type="Resource" script_class="NpcDialogueActionData" format=3 uid="uid://cnpc30act001"]
 
 [ext_resource type="Script" uid="uid://10xqk22j564o" path="res://scripts/resource_definitions/zones/zone_action_data/npc_dialogue_action_data/npc_dialogue_action_data.gd" id="1_npc3a"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_npc3a"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="3_npc3a"]
 [ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="4_npc3a"]
-[ext_resource type="Resource" uid="uid://bqfsendefeat01" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="5_npc3a"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="6_npc3a"]
+[ext_resource type="Resource" uid="uid://d1vxkodelucwu" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="5_npc3a"]
+[ext_resource type="Script" uid="uid://dnny6lt7o8jep" path="res://scripts/resource_definitions/effects/start_quest_effect_data.gd" id="6_npc3a"]
 
 [sub_resource type="Resource" id="Resource_trigger_dialogue_3"]
 script = ExtResource("4_npc3a")
@@ -24,7 +24,6 @@ dialogue_timeline_name = "wandering_spirit_3"
 action_id = "wandering_spirit_dialogue_3"
 action_name = "Return to the Wisened Dirt Eel"
 action_type = 2
-description = "Report back to the stranger with news of your first victory."
 unlock_conditions = Array[ExtResource("3_npc3a")]([ExtResource("5_npc3a")])
 max_completions = 1
 success_effects = Array[ExtResource("2_npc3a")]([SubResource("Resource_trigger_dialogue_3"), SubResource("Resource_start_q_reach_cd_10")])

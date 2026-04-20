@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="UnlockConditionList" load_steps=9 format=3 uid="uid://chaqu7ri6ewe1"]
+[gd_resource type="Resource" script_class="UnlockConditionList" format=3 uid="uid://chaqu7ri6ewe1"]
 
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_aq0o0"]
 [ext_resource type="Script" uid="uid://dskgt7ri3i7p3" path="res://scripts/resource_definitions/unlocks/unlock_condition_list.gd" id="2_2uato"]
-[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/wandering_spirit_dialogue_1.tres" id="2_tsp8q"]
+[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/celestial_intervener_dialogue_1.tres" id="2_tsp8q"]
 [ext_resource type="Resource" uid="uid://l11ly74pkjay" path="res://resources/unlocks/test_attribute_requirement_unlock_data.tres" id="3_pa8gf"]
 [ext_resource type="Resource" uid="uid://vpg7uwcsfmts" path="res://resources/unlocks/q_fill_core_madra_full.tres" id="4_qfcm1"]
 [ext_resource type="Resource" uid="uid://2or6sfbainjs" path="res://resources/unlocks/q_fill_core_completed.tres" id="5_qfc01"]
-[ext_resource type="Resource" uid="uid://bqfsendefeat01" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="6_qfsed"]
-[ext_resource type="Resource" uid="uid://bqreachcd10001" path="res://resources/unlocks/q_reach_cd_10.tres" id="7_qrcd"]
+[ext_resource type="Resource" uid="uid://d1vxkodelucwu" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="6_qfsed"]
+[ext_resource type="Resource" uid="uid://i2xnqd3pem53" path="res://resources/unlocks/q_reach_cd_10.tres" id="7_qrcd"]
 
 [resource]
 script = ExtResource("2_2uato")

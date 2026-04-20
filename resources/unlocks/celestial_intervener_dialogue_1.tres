@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_0j3x6")
-condition_id = "wandering_spirit_dialogue_1"
+condition_id = "celestial_intervener_dialogue_1"
 condition_type = 4
-target_value = "wandering_spirit_dialogue_1"
+target_value = "celestial_intervener_dialogue_1"
 comparison_op = ""
 metadata/_custom_type_script = "uid://bk5wuop0jogg4"
