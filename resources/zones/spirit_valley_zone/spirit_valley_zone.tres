@@ -10,6 +10,7 @@
 [ext_resource type="Resource" uid="uid://bbpx8ls6tj2u" path="res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres" id="6_owjyk"]
 [ext_resource type="Resource" uid="uid://cnpc20act001" path="res://resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres" id="7_npc2z"]
 [ext_resource type="Resource" path="res://resources/zones/spirit_valley_zone/zone_actions/spirit_well_training_action.tres" id="7_spwtrain"]
+[ext_resource type="Resource" uid="uid://cnpc3zact001" path="res://resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_3.tres" id="8_npc3z"]
 
 [resource]
 script = ExtResource("5_owjyk")
@@ -19,5 +20,5 @@ description = "Deep at the heart of the world lies Spirit Valley, a sanctuary re
 
 In this place of beginnings, aspiring masters temper their spirits, learning the fundamental techniques that will one day grant them the strength to shake the heavens"
 icon = ExtResource("2_ym136")
-all_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_8fv6p"), ExtResource("2_4l7yp"), ExtResource("3_4l7yp"), ExtResource("6_owjyk"), ExtResource("7_npc2z"), ExtResource("7_spwtrain")])
+all_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_8fv6p"), ExtResource("2_4l7yp"), ExtResource("3_4l7yp"), ExtResource("6_owjyk"), ExtResource("7_npc2z"), ExtResource("7_spwtrain"), ExtResource("8_npc3z")])
 metadata/_custom_type_script = "uid://culb0p88pnexb"
