@@ -123,16 +123,18 @@ func execute_ability(target: CombatantNode) -> void:
 	# Get modified attributes (with buff multipliers applied)
 	var modified_attributes = _get_modified_attributes()
 	
-	# Consume outgoing damage modifiers if this is an offensive ability
+	# Consume outgoing damage modifiers if this is an offensive ability.
+	# The modifier multiplies into damage at the target's process_effect.
+	var outgoing_modifier: float = 1.0
 	if ability_data.ability_type == AbilityData.AbilityType.OFFENSIVE:
 		if owner_combatant.buff_manager:
-			owner_combatant.buff_manager.consume_outgoing_modifier()
-	
+			outgoing_modifier = owner_combatant.buff_manager.consume_outgoing_modifier()
+
 	# Apply Effects
 	if target:
 		for effect in ability_data.effects:
 			if target.has_method("receive_effect"):
-				target.receive_effect(effect, modified_attributes)
+				target.receive_effect(effect, modified_attributes, outgoing_modifier)
 				
 	Log.info("CombatAbilityInstance: Executed ability %s" % ability_data.ability_name)
 

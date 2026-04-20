@@ -154,21 +154,37 @@ func get_incoming_damage_modifier() -> float:
 	
 	return total_modifier
 
-## Consume outgoing damage modifier buffs (for consume_on_use buffs).
-func consume_outgoing_modifier() -> void:
+## Returns the total outgoing damage modifier (multiplied across every active
+## outgoing-damage buff) AND consumes any consume_on_use buffs in the process.
+## Call once per outgoing damage event; multiply the result into the damage.
+func consume_outgoing_modifier() -> float:
+	var total_modifier: float = 1.0
 	for buff in active_buffs:
-		if buff.buff_data.buff_type == BuffEffectData.BuffType.OUTGOING_DAMAGE_MODIFIER:
-			if buff.buff_data.consume_on_use and not buff.is_consumed:
-				buff.is_consumed = true
-				Log.info("CombatBuffManager: Consumed outgoing damage buff '%s'" % buff.buff_data.buff_id)
+		if buff.buff_data.buff_type != BuffEffectData.BuffType.OUTGOING_DAMAGE_MODIFIER:
+			continue
+		if buff.is_consumed:
+			continue
+		total_modifier *= buff.buff_data.damage_multiplier
+		if buff.buff_data.consume_on_use:
+			buff.is_consumed = true
+			Log.info("CombatBuffManager: Consumed outgoing damage buff '%s'" % buff.buff_data.buff_id)
+	return total_modifier
 
-## Consume incoming damage modifier buffs (for consume_on_use buffs).
-func consume_incoming_modifier() -> void:
+## Returns the total incoming damage modifier (multiplied across every active
+## incoming-damage buff) AND consumes any consume_on_use buffs in the process.
+## Call once per incoming damage event; multiply the result into the damage.
+func consume_incoming_modifier() -> float:
+	var total_modifier: float = 1.0
 	for buff in active_buffs:
-		if buff.buff_data.buff_type == BuffEffectData.BuffType.INCOMING_DAMAGE_MODIFIER:
-			if buff.buff_data.consume_on_use and not buff.is_consumed:
-				buff.is_consumed = true
-				Log.info("CombatBuffManager: Consumed incoming damage buff '%s'" % buff.buff_data.buff_id)
+		if buff.buff_data.buff_type != BuffEffectData.BuffType.INCOMING_DAMAGE_MODIFIER:
+			continue
+		if buff.is_consumed:
+			continue
+		total_modifier *= buff.buff_data.damage_multiplier
+		if buff.buff_data.consume_on_use:
+			buff.is_consumed = true
+			Log.info("CombatBuffManager: Consumed incoming damage buff '%s'" % buff.buff_data.buff_id)
+	return total_modifier
 
 #-----------------------------------------------------------------------------
 # INTERNAL LOGIC
