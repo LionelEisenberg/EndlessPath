@@ -147,6 +147,16 @@ func stop_adventure() -> void:
 
 	adventure_completed.emit(result_data)
 
+## DEV-only: immediately resolve the current combat as a win.
+## No-op if not currently in combat.
+## Used by the dev panel; do not call from gameplay code.
+func force_win_combat() -> void:
+	if not is_in_combat:
+		return
+	if combat == null:
+		return
+	combat.trigger_combat_end.emit(true, 0)
+
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - View Management
 #-----------------------------------------------------------------------------

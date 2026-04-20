@@ -32,6 +32,8 @@
 [ext_resource type="Script" uid="uid://2yrvi0rkqcvb" path="res://scenes/character/character_view_state.gd" id="26_cvs"]
 [ext_resource type="PackedScene" uid="uid://b1quest1win1" path="res://scenes/ui/quest_window/quest_window.tscn" id="27_qw"]
 [ext_resource type="PackedScene" uid="uid://crqcxy8168ohk" path="res://scenes/ui/quest_toast/quest_toast.tscn" id="28_qt"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_panel.tscn" id="30_dp"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_password_modal.tscn" id="31_dpm"]
 
 [sub_resource type="Animation" id="Animation_grey_RESET"]
 resource_name = "RESET"
@@ -309,6 +311,18 @@ unique_name_in_owner = true
 visible = false
 z_index = 3
 layout_mode = 1
+
+[node name="DevPasswordModal" parent="MainView" unique_id=1197758016 instance=ExtResource("31_dpm")]
+unique_name_in_owner = true
+visible = false
+z_index = 10
+layout_mode = 1
+
+[node name="DevPanel" parent="MainView" unique_id=841197742 instance=ExtResource("30_dp")]
+unique_name_in_owner = true
+visible = false
+z_index = 10
+layout_mode = 0
 
 [node name="SaveTimer" type="Timer" parent="." unique_id=155020208]
 wait_time = 5.0

@@ -104,6 +104,11 @@ func _unlock_condition(condition_id: String) -> void:
 
 		Log.info("UnlockManager: Condition permanently unlocked: %s" % condition_id)
 
+## DEV-only: force-unlock a condition by id. Idempotent.
+## Used by the dev panel; do not call from gameplay code.
+func force_unlock_condition(condition_id: String) -> void:
+	_unlock_condition(condition_id)
+
 #-----------------------------------------------------------------------------
 # PRIVATE UTILITY FUNCTIONS
 #-----------------------------------------------------------------------------

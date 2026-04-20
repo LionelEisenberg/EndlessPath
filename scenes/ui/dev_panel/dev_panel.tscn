@@ -1,0 +1,175 @@
+[gd_scene load_steps=2 format=3 uid="uid://dev_panel_001"]
+
+[ext_resource type="Script" path="res://scenes/ui/dev_panel/dev_panel.gd" id="1_devp"]
+
+[node name="DevPanel" type="PanelContainer"]
+script = ExtResource("1_devp")
+custom_minimum_size = Vector2(340, 0)
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 380.0
+offset_bottom = 440.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
+mouse_filter = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleBar" type="PanelContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TitleBar"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer/TitleBar/HBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelHeading"
+theme_override_font_sizes/font_size = 20
+text = "Dev Panel"
+
+[node name="Spacer" type="Control" parent="VBoxContainer/TitleBar/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseButton" type="Button" parent="VBoxContainer/TitleBar/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "×"
+flat = true
+
+[node name="ResourcesHeader" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "RESOURCES"
+
+[node name="MadraRow" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/MadraRow"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Madra"
+
+[node name="MadraSpin" type="SpinBox" parent="VBoxContainer/MadraRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1000000.0
+allow_greater = true
+
+[node name="MadraApply" type="Button" parent="VBoxContainer/MadraRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Apply"
+
+[node name="GoldRow" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/GoldRow"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Gold"
+
+[node name="GoldSpin" type="SpinBox" parent="VBoxContainer/GoldRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1000000.0
+allow_greater = true
+
+[node name="GoldApply" type="Button" parent="VBoxContainer/GoldRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Apply"
+
+[node name="CultHeader" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "CULTIVATION"
+
+[node name="XpRow" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/XpRow"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Add CD XP"
+
+[node name="XpSpin" type="SpinBox" parent="VBoxContainer/XpRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1000000.0
+allow_greater = true
+
+[node name="XpApply" type="Button" parent="VBoxContainer/XpRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Apply"
+
+[node name="PointsRow" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/PointsRow"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Path Points"
+
+[node name="PointsSpin" type="SpinBox" parent="VBoxContainer/PointsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1000.0
+rounded = true
+
+[node name="PointsApply" type="Button" parent="VBoxContainer/PointsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Apply"
+
+[node name="UnlocksHeader" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "UNLOCKS"
+
+[node name="ConditionRow" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/ConditionRow"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Condition"
+
+[node name="ConditionOption" type="OptionButton" parent="VBoxContainer/ConditionRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConditionApply" type="Button" parent="VBoxContainer/ConditionRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Trigger"
+
+[node name="UnlockCyclingButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Unlock All Cycling Techniques"
+
+[node name="CombatHeader" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "COMBAT"
+
+[node name="ForceWinButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Force-Win Current Combat"
