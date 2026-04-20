@@ -71,7 +71,7 @@ func is_technique_unlocked(technique_id: String) -> bool:
 
 ## Returns true if any unlocked cycling technique is not currently equipped.
 ## Used by UI (badges) to signal "you have something new to equip."
-## Derived state — no save data required.
+## Derived from existing save fields; no new save schema needed.
 func has_unequipped_unlocks() -> bool:
 	if not _live_save_data:
 		return false
