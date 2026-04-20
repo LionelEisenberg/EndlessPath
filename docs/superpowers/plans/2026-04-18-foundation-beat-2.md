@@ -378,7 +378,7 @@ metadata/_custom_type_script = "res://scripts/resource_definitions/quests/quest_
 [sub_resource type="Resource" id="Resource_award_point"]
 script = ExtResource("4_qfst")
 amount = 1
-effect_type = 6
+effect_type = 7
 
 [resource]
 script = ExtResource("1_qfst")
