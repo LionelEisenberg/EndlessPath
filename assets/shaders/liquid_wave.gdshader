@@ -108,7 +108,7 @@ void fragment() {
 	float y_threshold = 1.0 - progress;
 
 	float time_wave = TIME * wave_speed;
-	float wave_offset = calculate_wave_offset(UV, time_wave);
+	float wave_offset = calculate_wave_offset(UV, time_wave) * step(0.001, progress);
 	float current_level = y_threshold + wave_offset;
 
 	vec4 tex_color = texture(TEXTURE, UV);
