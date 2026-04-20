@@ -1,6 +1,9 @@
-[gd_scene format=3 uid="uid://dev_panel_001"]
+[gd_scene load_steps=2 format=3 uid="uid://dev_panel_001"]
+
+[ext_resource type="Script" path="res://scenes/ui/dev_panel/dev_panel.gd" id="1_devp"]
 
 [node name="DevPanel" type="PanelContainer"]
+script = ExtResource("1_devp")
 custom_minimum_size = Vector2(340, 0)
 offset_left = 40.0
 offset_top = 40.0
