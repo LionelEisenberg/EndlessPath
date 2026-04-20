@@ -8,8 +8,9 @@
 [ext_resource type="Resource" uid="uid://2or6sfbainjs" path="res://resources/unlocks/q_fill_core_completed.tres" id="5_qfc01"]
 [ext_resource type="Resource" uid="uid://d1vxkodelucwu" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="6_qfsed"]
 [ext_resource type="Resource" uid="uid://i2xnqd3pem53" path="res://resources/unlocks/q_reach_cd_10.tres" id="7_qrcd"]
+[ext_resource type="Resource" path="res://resources/unlocks/aura_well_discovered.tres" id="8_awd"]
 
 [resource]
 script = ExtResource("2_2uato")
-list = Array[ExtResource("1_aq0o0")]([ExtResource("2_tsp8q"), ExtResource("3_pa8gf"), ExtResource("4_qfcm1"), ExtResource("5_qfc01"), ExtResource("6_qfsed"), ExtResource("7_qrcd")])
+list = Array[ExtResource("1_aq0o0")]([ExtResource("2_tsp8q"), ExtResource("3_pa8gf"), ExtResource("4_qfcm1"), ExtResource("5_qfc01"), ExtResource("6_qfsed"), ExtResource("7_qrcd"), ExtResource("8_awd")])
 metadata/_custom_type_script = "uid://dskgt7ri3i7p3"
