@@ -21,10 +21,13 @@ func _on_dev_hotkey() -> void:
 	if not FileAccess.file_exists("user://dev_password.txt"):
 		return
 	if _dev_unlocked:
-		_dev_panel.visible = not _dev_panel.visible
+		if _dev_panel.visible:
+			_dev_panel.visible = false
+		else:
+			_dev_panel.open()
 	else:
 		_dev_password_modal.open()
 
 func _on_dev_unlocked() -> void:
 	_dev_unlocked = true
-	_dev_panel.visible = true
+	_dev_panel.open()
