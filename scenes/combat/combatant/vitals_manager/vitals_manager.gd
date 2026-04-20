@@ -131,4 +131,4 @@ func _get_max_stamina() -> float:
 
 ## Calculate maximum madra based on Foundation attribute
 func _get_max_madra() -> float:
-	return character_attributes_data.get_attribute(AttributeType.FOUNDATION) * 10.0
+	return character_attributes_data.get_max_madra()
