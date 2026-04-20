@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=8 format=3 uid="uid://cnpc20act001"]
+[gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=9 format=3 uid="uid://cnpc20act001"]
 
 [ext_resource type="Script" uid="uid://10xqk22j564o" path="res://scripts/resource_definitions/zones/zone_action_data/npc_dialogue_action_data/npc_dialogue_action_data.gd" id="1_npc2a"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_npc2a"]
