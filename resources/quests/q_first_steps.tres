@@ -1,16 +1,20 @@
-[gd_resource type="Resource" script_class="QuestData" load_steps=8 format=3 uid="uid://bqfirststeps01"]
+[gd_resource type="Resource" script_class="QuestData" format=3 uid="uid://d1mcp5rsmbbwu"]
 
-[ext_resource type="Script" path="res://scripts/resource_definitions/quests/quest_data.gd" id="1_qfst"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/quests/quest_step_data.gd" id="2_qfst"]
+[ext_resource type="Script" uid="uid://c777hl035dwml" path="res://scripts/resource_definitions/quests/quest_data.gd" id="1_qfst"]
+[ext_resource type="Script" uid="uid://dg16ukxsxuhbr" path="res://scripts/resource_definitions/quests/quest_step_data.gd" id="2_qfst"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_qfst"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/effects/award_path_point_effect_data.gd" id="4_qfst"]
+[ext_resource type="Script" uid="uid://cn4n33cbjhihq" path="res://scripts/resource_definitions/effects/award_path_point_effect_data.gd" id="4_qfst"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_3qc5d"]
+
+[sub_resource type="Resource" id="Resource_award_point"]
+script = ExtResource("4_qfst")
+effect_type = 7
 
 [sub_resource type="Resource" id="Resource_step1"]
 script = ExtResource("2_qfst")
 step_id = "defeat_enemy"
 description = "Defeat an enemy in combat"
 completion_event_id = "q_first_steps_enemy_defeated"
-completion_conditions = Array[Resource]([])
 metadata/_custom_type_script = "res://scripts/resource_definitions/quests/quest_step_data.gd"
 
 [sub_resource type="Resource" id="Resource_step2"]
@@ -18,19 +22,13 @@ script = ExtResource("2_qfst")
 step_id = "return_to_npc"
 description = "Return to the Wandering Spirit"
 completion_event_id = "wandering_spirit_dialogue_3"
-completion_conditions = Array[Resource]([])
 metadata/_custom_type_script = "res://scripts/resource_definitions/quests/quest_step_data.gd"
-
-[sub_resource type="Resource" id="Resource_award_point"]
-script = ExtResource("4_qfst")
-amount = 1
-effect_type = 7
 
 [resource]
 script = ExtResource("1_qfst")
 quest_id = "q_first_steps"
 quest_name = "First Steps Out"
 description = "Venture into the wilderness and test your strength."
-steps = Array[Resource]([SubResource("Resource_step1"), SubResource("Resource_step2")])
+steps = Array[ExtResource("2_qfst")]([SubResource("Resource_step1"), SubResource("Resource_step2")])
 completion_effects = Array[ExtResource("3_qfst")]([SubResource("Resource_award_point")])
 metadata/_custom_type_script = "res://scripts/resource_definitions/quests/quest_data.gd"
