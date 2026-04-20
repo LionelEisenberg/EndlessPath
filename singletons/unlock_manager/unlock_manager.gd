@@ -2,21 +2,10 @@
 # AUTOLOADED SINGLETON
 extends Node
 
-## The enum for all game systems
-enum GameSystem {
-	ZONE,
-	CYCLING,
-	SCRIPTING,
-	ELIXIR_MAKING,
-	SOULSMITHING,
-	ADVENTURING
-}
-
 #-----------------------------------------------------------------------------
 # SIGNALS
 #-----------------------------------------------------------------------------
 
-signal game_systems_updated(unlocked_game_systems: Array[GameSystem])
 signal condition_unlocked(condition_id: String)
 
 #-----------------------------------------------------------------------------
@@ -45,7 +34,6 @@ func _ready() -> void:
 
 func _initialize_from_save() -> void:
 	live_save_data = PersistenceManager.save_game_data
-	game_systems_updated.emit(live_save_data.unlocked_game_systems)
 	condition_unlocked.emit("")
 
 func _connect_unlock_signals() -> void:
@@ -115,24 +103,6 @@ func _unlock_condition(condition_id: String) -> void:
 		condition_unlocked.emit(condition_id)
 
 		Log.info("UnlockManager: Condition permanently unlocked: %s" % condition_id)
-
-#-----------------------------------------------------------------------------
-# GAME SYSTEM UNLOCK FUNCTIONS
-#-----------------------------------------------------------------------------
-
-## The main function to unlock a new game system.
-func unlock_game_system(system: GameSystem):
-	if system not in live_save_data.unlocked_game_systems:
-		live_save_data.unlocked_game_systems.append(system)
-		game_systems_updated.emit(live_save_data.unlocked_game_systems)
-
-## Returns the full list of unlocked game system enums.
-func get_unlocked_game_systems() -> Array[GameSystem]:
-	return live_save_data.unlocked_game_systems
-
-## A public function for other nodes to check a game system's status.
-func is_game_system_unlocked(system: GameSystem) -> bool:
-	return system in live_save_data.unlocked_game_systems
 
 #-----------------------------------------------------------------------------
 # PRIVATE UTILITY FUNCTIONS
