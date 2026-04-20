@@ -112,3 +112,40 @@ func test_is_technique_unlocked_true_for_unlocked() -> void:
 
 func test_is_technique_unlocked_false_for_locked() -> void:
 	assert_false(CyclingManager.is_technique_unlocked("tech_a"))
+
+# ----- has_unequipped_unlocks -----
+
+func test_has_unequipped_unlocks_false_when_none_unlocked() -> void:
+	_save_data.unlocked_cycling_technique_ids = []
+	_save_data.equipped_cycling_technique_id = ""
+	assert_false(
+		CyclingManager.has_unequipped_unlocks(),
+		"No unlocks -> no badge"
+	)
+
+
+func test_has_unequipped_unlocks_true_when_unlock_not_equipped() -> void:
+	# Default save has foundation_technique unlocked and equipped.
+	# Unlock tech_a without equipping it -> badge should show.
+	CyclingManager.unlock_technique("tech_a")
+	assert_true(
+		CyclingManager.has_unequipped_unlocks(),
+		"Unlocked but not equipped -> badge should show"
+	)
+
+
+func test_has_unequipped_unlocks_false_when_equipped_matches_unlock() -> void:
+	# Only foundation_technique unlocked, and it is the equipped technique.
+	assert_false(
+		CyclingManager.has_unequipped_unlocks(),
+		"Equipped the only unlock -> no badge"
+	)
+
+
+func test_has_unequipped_unlocks_true_with_multiple_unlocks_one_equipped() -> void:
+	# Foundation equipped (default), unlock tech_a but leave foundation equipped.
+	CyclingManager.unlock_technique("tech_a")
+	assert_true(
+		CyclingManager.has_unequipped_unlocks(),
+		"One unlock equipped, another unlocked -> badge should show"
+	)
