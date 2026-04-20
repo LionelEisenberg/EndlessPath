@@ -34,6 +34,10 @@
 1. **Badge scope narrowed to Abilities only.** The spec mentioned badges on both Cycling and Abilities nav buttons. Cycling is not a `SystemMenuButton` — it's a zone action (`wilderness_cycling_action`). Badging zone-action buttons is a different UI surface; deferring out of Beat 2 scope. Abilities has a `SystemMenuButton` (`MenuType.ABILITIES`) so we badge that. Cycling unlock is discovered organically via the Path Tree UI's keystone description and by entering the cycling loop (the game's core activity).
 2. **No new convention doc edits** — the file landed with the spec already.
 
+## Implementation note (post-hoc)
+
+The NPC was renamed from "Wandering Spirit" / "Wisened Dirt Eel" to **Celestial Intervener** in commit `d934de4`. Event ids, zone-action filenames, and Dialogic character/timeline files were renamed to match. Dialogue timelines were also **consolidated into a single file** (`celestial_intervener_introduction_1.dtl`) with Dialogic label jumps (`dialogue_1`, `dialogue_2`, `dialogue_3`) rather than the three separate `wandering_spirit_{1,2,3}.dtl` files this plan originally called for. The task steps below are preserved as a historical planning record — treat references to `wandering_spirit_*.dtl` as pointing at the corresponding `dialogue_*` label inside the consolidated timeline.
+
 ## File Structure
 
 **New files:**
@@ -45,7 +49,7 @@
 | `resources/unlocks/q_reach_cd_10.tres` | UnlockConditionData: CULTIVATION_LEVEL ≥ 10. Gates `q_reach_core_density_10` step 1. |
 | `resources/quests/q_first_steps.tres` | QuestData: 2 steps (defeat enemy event-based, return to NPC event-based) + 2 inline completion effects (AwardPathPoint + StartQuest). |
 | `resources/quests/q_reach_core_density_10.tres` | QuestData: 1 condition-based step. No completion effects (Beat 3 fills them). |
-| `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_3.tres` | NpcDialogueActionData. Gated by `q_first_steps_enemy_defeated` condition; success effect is inline TriggerEvent firing `wandering_spirit_dialogue_3`. |
+| `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_3.tres` | NpcDialogueActionData. Gated by `q_first_steps_enemy_defeated` condition; success effect is inline TriggerEvent firing `celestial_intervener_dialogue_3`. |
 | `assets/dialogue/timelines/wandering_spirit_3.dtl` | Dialogic timeline, placeholder flavor text mirroring `wandering_spirit_1/2.dtl` syntax. |
 | `tests/unit/test_award_path_point_effect_data.gd` | Unit tests for the new effect. |
 
@@ -56,8 +60,8 @@
 | `scripts/resource_definitions/effects/effect_data.gd` | Add `AWARD_PATH_POINT = 6` to the `EffectType` enum. |
 | `resources/unlocks/unlock_condition_list.tres` | Register the two new unlock conditions. |
 | `resources/quests/quest_list.tres` | Register `q_first_steps` and `q_reach_core_density_10`. |
-| `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres` | Append inline `StartQuestEffect("q_first_steps")` to `success_effects` (Pattern B — Beat 1 → Beat 2 chain lives on the NPC action, not in q_fill_core's completion_effects). |
-| `resources/zones/spirit_valley_zone/spirit_valley_zone.tres` | Append `wandering_spirit_dialogue_3` to `all_actions`. |
+| `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_2.tres` | Append inline `StartQuestEffect("q_first_steps")` to `success_effects` (Pattern B — Beat 1 → Beat 2 chain lives on the NPC action, not in q_fill_core's completion_effects). |
+| `resources/zones/spirit_valley_zone/spirit_valley_zone.tres` | Append `celestial_intervener_dialogue_3` to `all_actions`. |
 | `project.godot` | Add `"wandering_spirit_3"` entry to Dialogic's `directories/dtl_directory`. |
 | `scenes/combat/adventure_combat/adventure_combat.gd` | After `trigger_combat_end.emit(true, gold)`, fire `EventManager.trigger_event("q_first_steps_enemy_defeated")`. |
 | `tests/unit/test_adventure_combat_count.gd` *(or a new dedicated test file)* | Add test: on victory, `q_first_steps_enemy_defeated` event is triggered. |
@@ -264,7 +268,7 @@ Post-state (hand-editable form, with the existing 4 conditions from Beat 1 + 2 n
 
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_aq0o0"]
 [ext_resource type="Script" uid="uid://dskgt7ri3i7p3" path="res://scripts/resource_definitions/unlocks/unlock_condition_list.gd" id="2_2uato"]
-[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/wandering_spirit_dialogue_1.tres" id="2_tsp8q"]
+[ext_resource type="Resource" uid="uid://2ojw7sl0d3lp" path="res://resources/unlocks/celestial_intervener_dialogue_1.tres" id="2_tsp8q"]
 [ext_resource type="Resource" uid="uid://l11ly74pkjay" path="res://resources/unlocks/test_attribute_requirement_unlock_data.tres" id="3_pa8gf"]
 [ext_resource type="Resource" uid="uid://bqfcmadrafull01" path="res://resources/unlocks/q_fill_core_madra_full.tres" id="4_qfcm1"]
 [ext_resource type="Resource" uid="uid://bqfillcorecomp1" path="res://resources/unlocks/q_fill_core_completed.tres" id="5_qfc01"]
@@ -307,7 +311,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - Create: `resources/quests/q_first_steps.tres`
 - Create: `resources/quests/q_reach_core_density_10.tres`
 - Modify: `resources/quests/quest_list.tres`
-- Modify: `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres` (append inline StartQuest sub-resource)
+- Modify: `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_2.tres` (append inline StartQuest sub-resource)
 
 - [ ] **Step 1: Create `q_reach_core_density_10.tres` first (simpler)**
 
@@ -370,8 +374,8 @@ metadata/_custom_type_script = "res://scripts/resource_definitions/quests/quest_
 [sub_resource type="Resource" id="Resource_step2"]
 script = ExtResource("2_qfst")
 step_id = "return_to_npc"
-description = "Return to the Wandering Spirit"
-completion_event_id = "wandering_spirit_dialogue_3"
+description = "Return to the Celestial Intervener"
+completion_event_id = "celestial_intervener_dialogue_3"
 completion_conditions = Array[Resource]([])
 metadata/_custom_type_script = "res://scripts/resource_definitions/quests/quest_step_data.gd"
 
@@ -419,9 +423,9 @@ metadata/_custom_type_script = "uid://c1urxnbhmkqws"
 
 *Note: q_fill_core.tres's current UID (`d1l5innqmliwu`) reflects Beat 1 post-playtest normalization. Match what's actually in the file.*
 
-- [ ] **Step 5: Append inline StartQuest to `wandering_spirit_dialogue_2.tres` success_effects (Pattern B chain: Beat 1 → Beat 2)**
+- [ ] **Step 5: Append inline StartQuest to `celestial_intervener_dialogue_2.tres` success_effects (Pattern B chain: Beat 1 → Beat 2)**
 
-Open `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres` in the Godot editor. The existing file (from Beat 1) has `success_effects` with one inline TriggerEvent sub-resource (`Resource_trigger_dialogue_2` firing `wandering_spirit_dialogue_2`). Add a second inline sub-resource: `StartQuestEffectData` with `quest_id = "q_first_steps"`.
+Open `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_2.tres` in the Godot editor. The existing file (from Beat 1) has `success_effects` with one inline TriggerEvent sub-resource (`Resource_trigger_dialogue_2` firing `celestial_intervener_dialogue_2`). Add a second inline sub-resource: `StartQuestEffectData` with `quest_id = "q_first_steps"`.
 
 **Effect-ordering matters**: place the TriggerEvent FIRST (so `q_fill_core` completes and its completion_effects fire before the next quest starts), then StartQuest.
 
@@ -459,25 +463,25 @@ Expected: all tests pass, no `QuestManager._validate_catalog()` push_errors refe
 - [ ] **Step 7: Commit**
 
 ```bash
-git add resources/quests/q_first_steps.tres resources/quests/q_reach_core_density_10.tres resources/quests/quest_list.tres resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_2.tres
+git add resources/quests/q_first_steps.tres resources/quests/q_reach_core_density_10.tres resources/quests/quest_list.tres resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_2.tres
 git commit -m "feat(quests): add q_first_steps and q_reach_core_density_10
 
 Beat 2's quest resources (Pattern B chain — NPC actions own the
 quest-to-quest transitions, not quest completion_effects):
   q_first_steps
     step 1: defeat_enemy (event: q_first_steps_enemy_defeated)
-    step 2: return_to_npc (event: wandering_spirit_dialogue_3)
+    step 2: return_to_npc (event: celestial_intervener_dialogue_3)
     completion_effects: AwardPathPoint(1) only
   q_reach_core_density_10
     step 1 condition-based (CULTIVATION_LEVEL >= 10)
     completion_effects empty pending Beat 3.
 
-wandering_spirit_dialogue_2.success_effects gains an inline
+celestial_intervener_dialogue_2.success_effects gains an inline
 StartQuest(q_first_steps) sub-resource — Beat 1 ends AND Beat 2
 begins on the same NPC click. q_fill_core remains untouched.
 
 (q_first_steps -> q_reach_core_density_10 chain is wired in Task 5
-via wandering_spirit_dialogue_3.success_effects, same pattern.)
+via celestial_intervener_dialogue_3.success_effects, same pattern.)
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
@@ -609,7 +613,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 - Create: `assets/dialogue/timelines/wandering_spirit_3.dtl`
-- Create: `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_3.tres`
+- Create: `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_3.tres`
 - Modify: `resources/zones/spirit_valley_zone/spirit_valley_zone.tres`
 - Modify: `project.godot`
 
@@ -626,7 +630,7 @@ The stranger meets your eyes. "You faced the wild and came back. Good. Take this
 
 NPC 3's `success_effects` carry TWO inline sub-resources per Pattern B: the TriggerEvent (first — advances q_first_steps step 2, completes quest, fires AwardPathPoint) AND the StartQuest for Beat 3 (second — after q_first_steps has completed).
 
-Create `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_3.tres`:
+Create `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_3.tres`:
 
 ```
 [gd_resource type="Resource" script_class="NpcDialogueActionData" load_steps=9 format=3 uid="uid://cnpc3zact001"]
@@ -640,7 +644,7 @@ Create `resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogu
 
 [sub_resource type="Resource" id="Resource_trigger_dialogue_3"]
 script = ExtResource("4_npc3a")
-event_id = "wandering_spirit_dialogue_3"
+event_id = "celestial_intervener_dialogue_3"
 effect_type = 1
 metadata/_custom_type_script = "uid://cc0ky7w2fsg10"
 
@@ -652,8 +656,8 @@ quest_id = "q_reach_core_density_10"
 [resource]
 script = ExtResource("1_npc3a")
 dialogue_timeline_name = "wandering_spirit_3"
-action_id = "wandering_spirit_dialogue_3"
-action_name = "Return to the Wisened Dirt Eel"
+action_id = "celestial_intervener_dialogue_3"
+action_name = "Return to the Celestial Intervener"
 action_type = 2
 description = "Report back to the stranger with news of your first victory."
 unlock_conditions = Array[ExtResource("3_npc3a")]([ExtResource("5_npc3a")])
@@ -668,10 +672,10 @@ metadata/_custom_type_script = "uid://10xqk22j564o"
 
 - [ ] **Step 3: Register NPC 3 in `spirit_valley_zone.tres`**
 
-Open in the Godot editor. Append `wandering_spirit_dialogue_3.tres` to the `all_actions` array. If hand-editing, add a new ext_resource and extend the array:
+Open in the Godot editor. Append `celestial_intervener_dialogue_3.tres` to the `all_actions` array. If hand-editing, add a new ext_resource and extend the array:
 
 ```
-[ext_resource type="Resource" uid="uid://cnpc3zact001" path="res://resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_3.tres" id="8_npc3z"]
+[ext_resource type="Resource" uid="uid://cnpc3zact001" path="res://resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_3.tres" id="8_npc3z"]
 ```
 
 And `all_actions` grows from 5 entries (cycling, NPC 1, foraging, adventure, NPC 2) to 6 (adding NPC 3). Bump `load_steps` correspondingly.
@@ -701,12 +705,12 @@ Expected: 298+ tests pass. No new warnings referencing the new `.tres` files.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add assets/dialogue/timelines/wandering_spirit_3.dtl assets/dialogue/timelines/wandering_spirit_3.dtl.uid resources/zones/spirit_valley_zone/zone_actions/wandering_spirit_dialogue_3.tres resources/zones/spirit_valley_zone/spirit_valley_zone.tres project.godot
+git add assets/dialogue/timelines/wandering_spirit_3.dtl assets/dialogue/timelines/wandering_spirit_3.dtl.uid resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_3.tres resources/zones/spirit_valley_zone/spirit_valley_zone.tres project.godot
 git commit -m "feat(zones): add NPC 3 return-talk for Foundation Beat 2
 
 Third wandering-spirit dialogue action, gated by
 q_first_steps_enemy_defeated. Its success effect fires the
-wandering_spirit_dialogue_3 event which advances q_first_steps step 2
+celestial_intervener_dialogue_3 event which advances q_first_steps step 2
 to quest completion.
 
 Also registers the wandering_spirit_3 Dialogic timeline in
@@ -1101,7 +1105,7 @@ Replace the Beat 2 section with a version that reflects what actually shipped. T
 - First adventure is the **normal Spirit Valley baseline** — same tiles, same encounters; enemy retuned so the player loses ~50% HP winning one combat.
 - **`q_first_steps` — 2 steps:**
   - Step 1: *"Defeat an enemy in combat"* — completes on `q_first_steps_enemy_defeated` event (fired by `AdventureCombat` on victory).
-  - Step 2: *"Return to the Wandering Spirit"* — completes on `wandering_spirit_dialogue_3` event (third NPC action, gated by step 1's completion).
+  - Step 2: *"Return to the Celestial Intervener"* — completes on `celestial_intervener_dialogue_3` event (third NPC action, gated by step 1's completion).
 - **Completion effects:**
   - `AwardPathPointEffect(1)` — new effect type grants the first Path Point via `PathManager.add_points(1)`.
   - Inline `StartQuest("q_reach_core_density_10")` — stub quest for Beat 3.
@@ -1216,7 +1220,7 @@ git push
 
 **Type consistency:**
 - `q_first_steps_enemy_defeated` used as event_id + condition_id consistently (Tasks 2, 4, 5).
-- `wandering_spirit_dialogue_3` used as event_id + action_id + dialogue_timeline_name consistently (Tasks 5).
+- `celestial_intervener_dialogue_3` used as event_id + action_id + dialogue_timeline_name consistently (Tasks 5).
 - `q_reach_cd_10` used as condition_id (Task 2) + referenced in q_reach_core_density_10 step 1 (Task 3).
 - `AWARD_PATH_POINT = 6` consistent between Task 1's enum addition and Task 3's inline sub-resource `effect_type = 6`.
 - `START_QUEST = 5` consistent across inline sub-resources in Tasks 3.

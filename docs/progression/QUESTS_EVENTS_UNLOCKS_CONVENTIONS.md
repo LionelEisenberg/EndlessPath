@@ -51,8 +51,8 @@ Something is happening in the game and I want to react to it.
 
 | Moment / state | Event | Unlock Condition | Why the condition (if any) |
 |---|---|---|---|
-| NPC 1 talked | `wandering_spirit_dialogue_1` | `wandering_spirit_dialogue_1` (EVENT_TRIGGERED) | Wilderness Cycling's `unlock_conditions` gates on it |
-| NPC 2 talked | `wandering_spirit_dialogue_2` | *(none)* | Only used as `q_fill_core` step 2's `completion_event_id`. No other consumer. |
+| NPC 1 talked | `celestial_intervener_dialogue_1` | `celestial_intervener_dialogue_1` (EVENT_TRIGGERED) | Wilderness Cycling's `unlock_conditions` gates on it |
+| NPC 2 talked | `celestial_intervener_dialogue_2` | *(none)* | Only used as `q_fill_core` step 2's `completion_event_id`. No other consumer. |
 | Madra reaches 100 | *(none — it's a state, not a moment)* | `q_fill_core_madra_full` (RESOURCE_AMOUNT ≥ 100) | Both quest step 1 and NPC 2 visibility use the same state predicate |
 | `q_fill_core` completes | `q_fill_core_completed` | `q_fill_core_completed` (EVENT_TRIGGERED) | Adventure + Foraging gate on it |
 
@@ -61,12 +61,12 @@ Something is happening in the game and I want to react to it.
 | Moment / state | Event | Unlock Condition | Why |
 |---|---|---|---|
 | Enemy defeated in combat | `q_first_steps_enemy_defeated` | `q_first_steps_enemy_defeated` (EVENT_TRIGGERED) | Quest step 1 advances on it AND NPC 3 visibility gates on it |
-| NPC 3 talked | `wandering_spirit_dialogue_3` | *(none)* | Only quest step 2 consumes it |
+| NPC 3 talked | `celestial_intervener_dialogue_3` | *(none)* | Only quest step 2 consumes it |
 | CD level reaches 10 | *(none — it's a state)* | `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10) | Quest step advances on state predicate |
 
 ## Naming convention
 
-Use the **same string id** for the event and its wrapping unlock condition when both exist. Reduces cognitive load — author sees `wandering_spirit_dialogue_1` and knows both the event and the condition are named that.
+Use the **same string id** for the event and its wrapping unlock condition when both exist. Reduces cognitive load — author sees `celestial_intervener_dialogue_1` and knows both the event and the condition are named that.
 
 For quest-scoped conditions (particularly state predicates that apply to one specific quest), prefix with the quest id: `q_fill_core_madra_full`, `q_first_steps_enemy_defeated`. Prevents collision when future quests want a similar predicate with different thresholds.
 

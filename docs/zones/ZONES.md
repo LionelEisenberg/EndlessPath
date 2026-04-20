@@ -219,15 +219,15 @@ Actions are grouped by `ActionType` into `ZoneActionTypeSection` nodes. Each sec
 ## Unlock Chain Example (Spirit Valley)
 
 ```
-1. Player clicks "Talk to the Wisened Dirt Eel" (NPC_DIALOGUE, max_completions=1)
-2. Dialogic plays "spirit_valley" timeline
+1. Player clicks "Talk to the Celestial Intervener" (NPC_DIALOGUE, max_completions=1)
+2. Dialogic plays "celestial_intervener_introduction_1" timeline
 3. Dialogue ends → stop_action() → _process_completion_effects(true)
-4. TriggerEventEffectData.process() → EventManager.trigger_event("wandering_spirit_dialogue_1")
+4. TriggerEventEffectData.process() → EventManager.trigger_event("celestial_intervener_dialogue_1")
 5. EventManager emits event_triggered → UnlockManager._evaluate_all_conditions()
-6. "wandering_spirit_dialogue_1" condition evaluates true → condition_unlocked signal
-7. ZoneTilemap refreshes → Test Zone tile appears (was locked)
-8. ZoneInfoPanel rebuilds → "Wilderness Cycling" and "Spring Forest Foraging" appear
-9. AwardItemEffectData gives the player a Dagger
+6. "celestial_intervener_dialogue_1" condition evaluates true → condition_unlocked signal
+7. ZoneInfoPanel rebuilds → "Wilderness Cycling" and "Spring Forest Foraging" appear
+8. AwardItemEffectData gives the player a Dagger
+9. StartQuestEffectData starts `q_fill_core`
 ```
 
 ## Integration Points
@@ -247,17 +247,18 @@ Actions are grouped by `ActionType` into `ZoneActionTypeSection` nodes. Each sec
 
 ### Spirit Valley (`zone_id: "SpiritValley"`)
 - Location: `(0, 0)`, no unlock conditions (always available)
-- Actions (post PR #28 rename + PR #29 training addition):
-  1. **Wandering Spirit Dialogue (Part 1)** — NpcDialogueActionData, max_completions=1, awards a Dagger + triggers `wandering_spirit_dialogue_1` event
-  2. **Wandering Spirit Dialogue (Part 2)** — NpcDialogueActionData, max_completions=1, requires `wandering_spirit_dialogue_1`
-  3. **Wilderness Cycling** — CyclingActionData, madra_multiplier=2.0, requires `wandering_spirit_dialogue_1`
-  4. **Spring Forest Foraging** — ForageActionData, loot: Dewdrop Tear (1-5) + Spirit Fern (2-6), requires `wandering_spirit_dialogue_1`
-  5. **Spirit Valley Adventure** — AdventureActionData, 300s time limit, awards 5 Madra on success
-  6. **Spirit Well Training** — TrainingActionData, 1s tick interval, `ticks_per_level = [60, 300, 600, 1200]`, awards Madra per tick + 1 Spirit attribute per level (PR #29)
+- Actions (post PR #32 NPC rename + Foundation Beat 2):
+  1. **Celestial Intervener Dialogue (Part 1)** — NpcDialogueActionData, max_completions=1, awards a Dagger + triggers `celestial_intervener_dialogue_1` event, starts `q_fill_core`
+  2. **Celestial Intervener Dialogue (Part 2)** — NpcDialogueActionData, max_completions=1, requires `q_fill_core_madra_full`, triggers `celestial_intervener_dialogue_2` event, starts `q_first_steps`
+  3. **Celestial Intervener Dialogue (Part 3)** — NpcDialogueActionData, max_completions=1, requires `q_first_steps_enemy_defeated`, triggers `celestial_intervener_dialogue_3` event, starts `q_reach_core_density_10`
+  4. **Wilderness Cycling** — CyclingActionData, madra_multiplier=2.0, requires `celestial_intervener_dialogue_1`
+  5. **Spring Forest Foraging** — ForageActionData, loot: Dewdrop Tear (1-5) + Spirit Fern (2-6), requires `celestial_intervener_dialogue_1`
+  6. **The Shallow Woods** — AdventureActionData (`shallow_woods.tres`), 300s time limit, requires `q_fill_core_completed`
+  7. **Spirit Well Training** — TrainingActionData, 1s tick interval, `ticks_per_level = [60, 300, 600, 1200]`, awards Madra per tick + 1 Spirit attribute per level (PR #29)
 
 ### Test Zone (`zone_id: "TestZone"`)
 - Location: `(0, 1)`, no actions
-- Requires: `wandering_spirit_dialogue_1` event
+- Requires: `celestial_intervener_dialogue_1` event
 
 ## Key Files
 

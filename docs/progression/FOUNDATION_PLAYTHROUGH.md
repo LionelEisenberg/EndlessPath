@@ -67,14 +67,14 @@ These assumptions shape the entire spine. Update here if they change.
 
 ### Beat 2 — First Steps Out `IMPLEMENTED`
 
-**Trigger:** Beat 1 completion. `wandering_spirit_dialogue_2.success_effects` fires a `StartQuest("q_first_steps")` sub-resource on the same NPC click that completes `q_fill_core` (Pattern B — chain transitions live on NPC actions, not in quest `completion_effects`).
+**Trigger:** Beat 1 completion. `celestial_intervener_dialogue_2.success_effects` fires a `StartQuest("q_first_steps")` sub-resource on the same NPC click that completes `q_fill_core` (Pattern B — chain transitions live on NPC actions, not in quest `completion_effects`).
 
 - First adventure is the **normal Spirit Valley baseline** — same tiles, same encounters; `test_enemy` retuned so the player loses ~50% HP winning one combat (BODY 10→0 drops enemy HP 200→100; STR 10→13 raises damage 11→14 per cast).
 - **`q_first_steps` — 2 steps:**
   - Step 1: *"Defeat an enemy in combat"* — completes on `q_first_steps_enemy_defeated` event, fired by `AdventureCombat` when `trigger_combat_end(true, ...)` emits on victory.
-  - Step 2: *"Return to the Wandering Spirit"* — completes on `wandering_spirit_dialogue_3` event (third NPC action, gated by step 1's completion via the `q_first_steps_enemy_defeated` unlock condition).
+  - Step 2: *"Return to the Celestial Intervener"* — completes on `celestial_intervener_dialogue_3` event (third NPC action, gated by step 1's completion via the `q_first_steps_enemy_defeated` unlock condition).
 - **`q_first_steps.completion_effects`:** `AwardPathPointEffect(1)` only — grants the first Path Point via `PathManager.add_points(1)`. Next-quest transition lives on NPC 3 per Pattern B.
-- **NPC 3 (`wandering_spirit_dialogue_3`) `success_effects`:** `TriggerEvent("wandering_spirit_dialogue_3")` then `StartQuest("q_reach_core_density_10")` — Beat 3's stub quest becomes active.
+- **NPC 3 (`celestial_intervener_dialogue_3`) `success_effects`:** `TriggerEvent("celestial_intervener_dialogue_3")` then `StartQuest("q_reach_core_density_10")` — Beat 3's stub quest becomes active.
 - **No in-combat tutorial popup.** Quest description does the light onboarding; combat UI does the teaching.
 - **Manual equip.** Player spends the path point in the Path Tree UI on Pure Core Awakening (only purchasable node at this point). Keystone unlocks Smooth Flow + Empty Palm via existing PathManager → CyclingManager/AbilityManager wiring. Player manually equips via CyclingView and AbilitiesView.
 - **Badge indicator** on the Abilities system-menu button signals unequipped unlocks (`AbilityManager.has_unequipped_unlocks()` drives visibility; listens to `ability_unlocked` + `equipped_abilities_changed`). Cycling badging deferred — cycling enters via a zone action, not a SystemMenuButton (different UI surface).

@@ -22,7 +22,7 @@ Cycling -> Zone Pool (ResourceManager) -> Adventure Start drains pool
 ### Budget Calculation
 
 ```
-foundation_capacity = 50 + (Foundation attribute * 10)
+foundation_capacity = Foundation attribute * 10
 adventure_madra_budget = min(foundation_capacity, current_zone_madra)
 ```
 

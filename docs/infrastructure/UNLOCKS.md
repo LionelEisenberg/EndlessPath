@@ -37,14 +37,14 @@ UnlockManager listens to and re-evaluates on:
 Example: Spirit Valley NPC dialogue unlocks new zones and actions.
 
 ```
-1. Player clicks "Talk to the Wisened Dirt Eel" (NPC_DIALOGUE action, max_completions=1)
-2. Dialogic plays "spirit_valley" timeline
+1. Player clicks "Talk to the Celestial Intervener" (NPC_DIALOGUE action, max_completions=1)
+2. Dialogic plays "celestial_intervener_introduction_1" timeline
 3. Dialogue ends → ActionManager.stop_action(true) → _process_completion_effects()
 4. TriggerEventEffectData.process()
-   → EventManager.trigger_event("wandering_spirit_dialogue_1")
+   → EventManager.trigger_event("celestial_intervener_dialogue_1")
 5. EventManager emits event_triggered
    → UnlockManager._evaluate_all_conditions()
-6. Condition "wandering_spirit_dialogue_1" (EVENT_TRIGGERED) evaluates true
+6. Condition "celestial_intervener_dialogue_1" (EVENT_TRIGGERED) evaluates true
    → appended to save_data.unlock_progression.unlocked_condition_ids
    → condition_unlocked signal emitted
 7. ZoneTilemap._on_condition_unlocked() → refreshes tiles
@@ -52,6 +52,7 @@ Example: Spirit Valley NPC dialogue unlocks new zones and actions.
 8. ZoneInfoPanel rebuilds
    → "Wilderness Cycling" and "Spring Forest Foraging" actions appear
 9. AwardItemEffectData gives the player a Dagger
+10. StartQuestEffectData starts `q_fill_core`
 ```
 
 The key pattern: **game action → EffectData triggers event → UnlockManager re-evaluates → UI refreshes**. Zones and actions each have their own `unlock_conditions` arrays that reference conditions from the global `unlock_condition_list.tres`.
@@ -59,10 +60,12 @@ The key pattern: **game action → EffectData triggers event → UnlockManager r
 ## Existing Content
 
 ### Unlock Conditions
-1. `wandering_spirit_dialogue_1` — EVENT_TRIGGERED, unlocks Test Zone + Wilderness Cycling + Spring Forest Foraging (PR #28 renamed from `initial_spirit_valley_dialogue_1`)
+1. `celestial_intervener_dialogue_1` — EVENT_TRIGGERED, unlocks Test Zone + Wilderness Cycling + Spring Forest Foraging (PR #32 renamed from `wandering_spirit_dialogue_1`)
 2. `test_attribute_requirement_unlock_data` — ATTRIBUTE_VALUE, requires BODY >= 20
 3. `q_fill_core_madra_full` — MADRA_AMOUNT, used by the "Fill Your Core" quest step (PR #28)
-4. `q_fill_core_completed` — EVENT_TRIGGERED, marks the "Fill Your Core" quest complete (PR #28)
+4. `q_fill_core_completed` — EVENT_TRIGGERED, marks the "Fill Your Core" quest complete (PR #28); gates Dialogue Part 2 and The Shallow Woods adventure
+5. `q_first_steps_enemy_defeated` — EVENT_TRIGGERED, fires when the player wins their first Shallow Woods combat (PR #32); gates Dialogue Part 3
+6. `q_reach_cd_10` — CULTIVATION_LEVEL >= 10, used by the "Reach Core Density 10" quest step (PR #32)
 
 ## Key Files
 
