@@ -5,6 +5,5 @@
 [resource]
 script = ExtResource("1_zone")
 position = Vector2(530, 430)
-perfect_xp = 10
-good_xp = 8
-ok_xp = 4
+perfect_xp = 25
+good_xp = 15

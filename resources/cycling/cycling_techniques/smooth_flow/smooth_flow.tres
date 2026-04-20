@@ -14,5 +14,5 @@ id = "smooth_flow"
 technique_name = "Smooth Flow Technique"
 path_curve = ExtResource("6_1s4yb")
 cycle_duration = 15.0
-base_madra_per_cycle = 1000.0
+base_madra_per_cycle = 200.0
 cycling_zones = Array[ExtResource("1_l5sxf")]([ExtResource("2_gcicw"), ExtResource("3_3bp60"), ExtResource("4_fxhmj"), ExtResource("5_or40r")])
