@@ -15,14 +15,17 @@ const AttributeType = CharacterAttributesData.AttributeType
 ## Defaults to 0.0 so existing flat-value resources behave identically.
 @export var foundation_madra_multiplier: float = 0.0
 
+## Returns health_change plus BODY * body_hp_multiplier.
 func get_final_health_change() -> float:
 	var body: float = CharacterManager.get_total_attributes_data().get_attribute(AttributeType.BODY)
 	return health_change + body_hp_multiplier * body
 
+## Returns madra_change plus FOUNDATION * foundation_madra_multiplier.
 func get_final_madra_change() -> float:
 	var foundation: float = CharacterManager.get_total_attributes_data().get_attribute(AttributeType.FOUNDATION)
 	return madra_change + foundation_madra_multiplier * foundation
 
+## Returns stamina_change (not scaled by any attribute).
 func get_final_stamina_change() -> float:
 	return stamina_change
 
