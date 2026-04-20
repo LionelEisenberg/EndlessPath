@@ -67,3 +67,14 @@ size_flags_vertical = 3
 text = "I"
 horizontal_alignment = 2
 vertical_alignment = 1
+
+[node name="Badge" type="ColorRect" parent="." unique_id=2045817610]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 18.0
+offset_bottom = 18.0
+color = Color(0.831373, 0.658824, 0.290196, 1)

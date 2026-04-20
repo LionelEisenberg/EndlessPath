@@ -20,6 +20,12 @@ enum MenuType {
 # MENU CONFIG
 #-----------------------------------------------------------------------------
 
+## Maps MenuType to the singleton node name whose unequipped-unlocks state drives
+## the badge indicator. MenuTypes absent from this map never show a badge.
+const BADGE_PROVIDER: Dictionary = {
+	MenuType.ABILITIES: "AbilityManager",
+}
+
 ## Maps each MenuType to its display name, input action, shortcut hint, and icon.
 ## Icon textures are null until pixel art is created — add paths here later.
 const MENU_CONFIG: Dictionary = {
@@ -66,6 +72,7 @@ const MENU_CONFIG: Dictionary = {
 @onready var _icon_rect: TextureRect = %IconTexture
 @onready var _name_label: Label = %NameLabel
 @onready var _shortcut_label: Label = %ShortCutLabel
+@onready var _badge: ColorRect = %Badge
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -76,6 +83,8 @@ func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 	_apply_config()
+	_wire_badge_listeners()
+	_refresh_badge()
 
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
@@ -113,3 +122,16 @@ func _on_pressed() -> void:
 	event.action = action
 	event.pressed = true
 	Input.parse_input_event(event)
+
+func _wire_badge_listeners() -> void:
+	if menu_type == MenuType.ABILITIES and AbilityManager:
+		AbilityManager.ability_unlocked.connect(_refresh_badge.unbind(1))
+		AbilityManager.equipped_abilities_changed.connect(_refresh_badge)
+
+func _refresh_badge() -> void:
+	if not is_instance_valid(_badge):
+		return
+	var should_show: bool = false
+	if menu_type == MenuType.ABILITIES and AbilityManager:
+		should_show = AbilityManager.has_unequipped_unlocks()
+	_badge.visible = should_show
