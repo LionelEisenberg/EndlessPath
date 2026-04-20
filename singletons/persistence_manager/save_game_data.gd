@@ -33,7 +33,6 @@ extends Resource
 # UNLOCK MANAGER
 #-----------------------------------------------------------------------------
 
-@export var unlocked_game_systems: Array[UnlockManager.GameSystem] = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
 @export var unlock_progression: UnlockProgressionData = UnlockProgressionData.new()
 
 #-----------------------------------------------------------------------------
@@ -118,13 +117,12 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockedGameSystems: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
+	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
 			madra,
 			gold,
 			core_density_xp,
 			core_density_level,
 			CultivationManager.get_advancement_stage_name(current_advancement_stage),
-			str(unlocked_game_systems),
 			str(unlock_progression),
 			str(event_progression),
 			str(quest_progression),
@@ -160,8 +158,7 @@ func reset() -> void:
 	core_density_level = 0.0
 	current_advancement_stage = CultivationManager.AdvancementStage.FOUNDATION
 
-	# Unlock Manager, default to Zone and Cycling unlocked
-	unlocked_game_systems = [UnlockManager.GameSystem.ZONE, UnlockManager.GameSystem.CYCLING]
+	# Unlock Manager
 	unlock_progression = UnlockProgressionData.new()
 	
 	# Event Manager

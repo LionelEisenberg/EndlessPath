@@ -50,7 +50,7 @@ When a player's Core Density reaches level 100, they become eligible to advance 
     - A success visual plays (flash of golden light, particles burst, screen shake resolves).
     - A short Dialogic timeline plays: 1-2 lines acknowledging the advancement (*"The core solidifies. Copper."*).
     - `CultivationManager` advances the stage from FOUNDATION to COPPER.
-    - `UnlockManager` unlocks SCRIPTING and ELIXIR_MAKING.
+    - Scripting and Elixir Making become available (gated by `UnlockConditionData` conditions that evaluate on `advancement_stage_changed`).
     - Core Density resets to level 0 (new stage, new progression track).
     - The adventure ends successfully (equivalent to boss defeat -- `ActionManager.stop_action(true)`).
 
@@ -283,15 +283,14 @@ When the player successfully completes the Foundation to Copper Tribulation:
 |--------|-----------|
 | Advancement stage changes to COPPER | `CultivationManager` sets `live_save_data.current_advancement_stage = AdvancementStage.COPPER` and emits `advancement_stage_changed` |
 | Core Density resets to level 0 | `live_save_data.core_density_level = 0`, `live_save_data.core_density_xp = 0` |
-| SCRIPTING game system unlocked | `UnlockManager.unlock_game_system(GameSystem.SCRIPTING)` |
-| ELIXIR_MAKING game system unlocked | `UnlockManager.unlock_game_system(GameSystem.ELIXIR_MAKING)` |
+| Scripting and Elixir Making become available | `advancement_stage_changed` fires `UnlockManager._evaluate_all_conditions()`; `UnlockConditionData` entries gated on `CULTIVATION_STAGE >= COPPER` unlock and their UI/actions become visible |
 | Copper AdvancementStageResource becomes active | New max Madra formula, new XP scaling, new Core Density progression curve |
 | Adventure ends successfully | `ActionManager.stop_action(true)` |
 
 ### Downstream Effects (Triggered by Signals)
 
 - `advancement_stage_changed` signal triggers `UnlockManager._evaluate_all_conditions()`, which may unlock additional conditions gated on stage.
-- `game_systems_updated` signal triggers UI updates -- new tabs/buttons for Scripting and Elixir Making appear in the zone view or main navigation.
+- `condition_unlocked` signals from newly satisfied conditions drive UI updates — new tabs/buttons for Scripting and Elixir Making appear in the zone view or main navigation.
 - The cycling resource panel updates to show the new stage name and next-stage info.
 - Madra capacity increases per the Copper stage's `max_madra_base` and `max_madra_per_core_density_level`.
 
@@ -399,7 +398,7 @@ Foundation to Copper is the player's first breakthrough. Harsh penalties here ri
 | `AdventureTilemap._on_choice_selected()` | Choice dispatch pattern | Add `elif choice is BreakthroughChoice` branch. |
 | `AdventureView` | View transition pattern (tilemap <-> combat) | Add tribulation view transition (tilemap <-> tribulation), analogous to combat. |
 | `CultivationManager` | `attempt_breakthrough()` stub, `advancement_stage_changed` signal | Fill in the stub with real logic. |
-| `UnlockManager.unlock_game_system()` | Direct call | None. |
+| `UnlockManager` / `UnlockConditionData` | Stage-gated conditions auto-evaluate on `advancement_stage_changed` | Author `CULTIVATION_STAGE >= COPPER` conditions and wire them to Scripting/Elixir Making unlocks. |
 | `Dialogic` / `DialogueManager` | Timeline playback | Author new timelines for pre/post Tribulation. |
 | `AdventureMapGenerator` | Tile placement logic | Add conditional breakthrough encounter injection. |
 

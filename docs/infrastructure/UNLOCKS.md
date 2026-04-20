@@ -87,4 +87,3 @@ The key pattern: **game action → EffectData triggers event → UnlockManager r
 ### Tech Debt
 
 - `[LOW]` Duplicate `_compare_values()` function in both `UnlockConditionData` and `UnlockManager` — extract to a shared utility
-- `[MEDIUM]` Remove GameSystem enum and all related code — `unlock_game_system()`, `is_game_system_unlocked()`, `game_systems_updated` signal, `unlocked_game_systems` in SaveGameData. Fully built but never used by anything. The `UnlockConditionData` system handles all actual gating. Also remove the `GAME_SYSTEM_UNLOCKED` condition type since it depends on this

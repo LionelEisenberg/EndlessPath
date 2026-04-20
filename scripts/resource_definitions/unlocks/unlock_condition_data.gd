@@ -12,7 +12,6 @@ enum ConditionType {
 	ITEM_OWNED, # Check inventory for item
 	RESOURCE_AMOUNT, # Check resource quantity (madra/gold)
 	ATTRIBUTE_VALUE, # Check attribute value
-	GAME_SYSTEM_UNLOCKED # Check if system is unlocked
 }
 
 @export var condition_id: String = "" # Unique identifier for this condition
@@ -67,12 +66,7 @@ func evaluate() -> bool:
 			var attribute_type: AttributeType = optional_params.get("attribute_type", AttributeType.STRENGTH)
 			var current_value = CharacterManager.get_total_attributes_data().get_attribute(attribute_type)
 			return _compare_values(current_value, target_value, comparison_op)
-		
-		ConditionType.GAME_SYSTEM_UNLOCKED:
-			# Will be implemented in SystemManager
-			Log.warn("UnlockConditionData: GAME_SYSTEM_UNLOCKED not yet implemented")
-			return false
-		
+
 	return false
 
 

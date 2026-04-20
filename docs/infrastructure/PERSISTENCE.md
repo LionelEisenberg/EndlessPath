@@ -24,7 +24,7 @@ Since `SaveGameData` extends `Resource` (a Godot Object), `live_save_data` is a 
 | CultivationManager | `core_density_xp`, `core_density_level`, `current_advancement_stage` |
 | InventoryManager | `inventory` |
 | CharacterManager | `character_attributes` |
-| UnlockManager | `unlocked_game_systems`, `unlock_progression` |
+| UnlockManager | `unlock_progression` |
 | EventManager | `event_progression` |
 | ZoneManager | `current_selected_zone_id`, `zone_progression_data` |
 | PathManager | `current_path_id`, `path_node_purchases`, `path_points` |
@@ -41,7 +41,6 @@ All fields are `@export` properties on `SaveGameData` (extends Resource), persis
 | `core_density_xp` | `float` | 0.0 | CultivationManager |
 | `core_density_level` | `float` | 0.0 | CultivationManager |
 | `current_advancement_stage` | `AdvancementStage` | `FOUNDATION` | CultivationManager |
-| `unlocked_game_systems` | `Array[GameSystem]` | `[ZONE, CYCLING]` | UnlockManager |
 | `unlock_progression` | `UnlockProgressionData` | `new()` | UnlockManager |
 | `event_progression` | `EventProgressionData` | `new()` | EventManager |
 | `current_selected_zone_id` | `String` | `""` | ZoneManager |
@@ -84,6 +83,4 @@ All fields are `@export` properties on `SaveGameData` (extends Resource), persis
 
 ### Tech Debt
 
-- `[MEDIUM]` Remove `unlocked_game_systems: Array[GameSystem]` from SaveGameData — dead field, part of GameSystem removal tracked in [UNLOCKS.md](UNLOCKS.md). Also clean up references in `_to_string()` and `_reset_state()`
 - ~~`[MEDIUM]` `SaveTimer` has no `wait_time` set~~ *(Fixed in PR #6 — set to 5s)*
-- `[LOW]` `_to_string()` formatting will need updating after GameSystem removal and `inventory.items` fix
