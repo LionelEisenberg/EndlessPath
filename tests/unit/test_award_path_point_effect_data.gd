@@ -32,3 +32,17 @@ func test_effect_type_is_award_path_point() -> void:
 	var effect := AwardPathPointEffectData.new()
 	assert_eq(effect.effect_type, EffectData.EffectType.AWARD_PATH_POINT,
 		"effect_type should be set to AWARD_PATH_POINT by _init")
+
+
+func test_process_with_negative_amount_is_noop() -> void:
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
+
+	var starting_points: int = PathManager.get_point_balance()
+
+	var effect := AwardPathPointEffectData.new()
+	effect.amount = -5
+	effect.process()
+
+	assert_eq(PathManager.get_point_balance(), starting_points,
+		"Negative amount should not change balance (guard against malformed .tres)")
