@@ -168,6 +168,26 @@ func get_equipped_item(slot: EquipmentDefinitionData.EquipmentSlot) -> ItemInsta
 	var inventory = get_inventory()
 	return inventory.equipped_gear.get(slot, null)
 
+## Returns true if the player owns at least one item with the given item_id
+## across materials, unequipped gear, equipped gear, or quest items.
+func has_item(item_id: String) -> bool:
+	var inv := get_inventory()
+	for material in inv.materials:
+		if material and material.item_id == item_id and inv.materials[material] > 0:
+			return true
+	for slot_idx in inv.equipment:
+		var instance: ItemInstanceData = inv.equipment[slot_idx]
+		if instance and instance.item_definition and instance.item_definition.item_id == item_id:
+			return true
+	for slot in inv.equipped_gear:
+		var instance: ItemInstanceData = inv.equipped_gear[slot]
+		if instance and instance.item_definition and instance.item_definition.item_id == item_id:
+			return true
+	for quest_item in inv.quest_items:
+		if quest_item and quest_item.item_id == item_id and inv.quest_items[quest_item] > 0:
+			return true
+	return false
+
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
