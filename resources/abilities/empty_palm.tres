@@ -6,9 +6,10 @@
 
 [sub_resource type="Resource" id="Resource_34div"]
 script = ExtResource("1_lurdt")
-base_value = 10.0
-agility_scaling = 0.3
-spirit_scaling = 1.0
+base_value = 5.0
+agility_scaling = 0.5
+spirit_scaling = 1.5
+damage_type = 3
 metadata/_custom_type_script = "uid://bnd52oeyddekj"
 
 [resource]
@@ -19,8 +20,7 @@ description = "Infuse a strike with Madra and push it through the enemy's core		
 icon = ExtResource("2_gtwq6")
 madra_type = 1
 ability_source = 1
-madra_cost = 12.0
-stamina_cost = 3.0
-base_cooldown = 3.0
-effects = Array[ExtResource("1_lurdt")]([SubResource("Resource_34div")])
+madra_cost = 15.0
+base_cooldown = 5.0
+effects_on_target = Array[ExtResource("1_lurdt")]([SubResource("Resource_34div")])
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

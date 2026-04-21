@@ -156,5 +156,6 @@ One row per ability. All 8 attribute scaling coefficients, base value, damage ty
 - When editing an ability `.tres`, update its row here in the same commit.
 - When adding a new ability, add it under the correct path section with both the field table and the scaling table.
 - When adding a new path, create a new H2 section with the path's theme description and a "Path Node → Ability" mapping table.
-- If a field is unset in the `.tres`, list the *effective* value (the resource default) here — e.g. `TargetType.SINGLE_ENEMY` is the default when unset.
+- If a field is unset in the `.tres`, list the *effective* value (the resource default) here.
+- Effects go into `effects_on_target` (enemy-facing) or `effects_on_self` (caster-facing). An ability with no `effects_on_target` entries is a pure self-cast and takes no enemy selection.
 - Sanity-check numbers by running a combat encounter — `CombatEffectData.calculate_value()` logs the full scaling breakdown.

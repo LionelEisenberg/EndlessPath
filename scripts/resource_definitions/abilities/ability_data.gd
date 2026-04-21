@@ -13,12 +13,6 @@ enum AbilityType {
 	OFFENSIVE, ## Damage-dealing abilities
 }
 
-enum TargetType {
-	SELF, ## Only targets the caster
-	SINGLE_ENEMY, ## One enemy
-	ALL_ALLIES, ## All allies
-}
-
 enum MadraType {
 	NONE, ## No Madra affinity (physical abilities)
 	PURE, ## Pure Madra
@@ -38,7 +32,6 @@ enum AbilitySource {
 @export_multiline var description: String = ""
 @export var icon: Texture2D = null
 @export var ability_type: AbilityType = AbilityType.OFFENSIVE
-@export var target_type: TargetType = TargetType.SINGLE_ENEMY
 
 @export_group("Classification")
 @export var madra_type: MadraType = MadraType.NONE
@@ -60,8 +53,11 @@ enum AbilitySource {
 #-----------------------------------------------------------------------------
 
 @export_group("Effects")
-## Array of combat effects this ability applies
-@export var effects: Array[CombatEffectData] = []
+## Effects that apply to the ability's enemy target (damage, debuffs, etc.).
+## An ability requires an enemy target iff this array is non-empty.
+@export var effects_on_target: Array[CombatEffectData] = []
+## Effects that apply to the caster (self-buffs, self-heals, etc.).
+@export var effects_on_self: Array[CombatEffectData] = []
 
 #-----------------------------------------------------------------------------
 # VALIDATION
@@ -76,9 +72,9 @@ func validate() -> bool:
 		Log.error("AbilityData[%s]: ability_name is empty" % ability_id)
 		return false
 	
-	if effects.is_empty():
+	if effects_on_target.is_empty() and effects_on_self.is_empty():
 		Log.warn("AbilityData[%s]: No effects defined" % ability_id)
-	
+
 	return true
 
 #-----------------------------------------------------------------------------
@@ -137,11 +133,12 @@ func get_total_cost_display() -> String:
 #-----------------------------------------------------------------------------
 
 func _to_string() -> String:
-	return "AbilityData[%s] '%s' (Type: %s, Target: %s, Madra: %s, Source: %s, Cost: %s, CD: %.1fs)" % [
+	return "AbilityData[%s] '%s' (Type: %s, OnTarget: %d, OnSelf: %d, Madra: %s, Source: %s, Cost: %s, CD: %.1fs)" % [
 		ability_id,
 		ability_name,
 		AbilityType.keys()[ability_type],
-		TargetType.keys()[target_type],
+		effects_on_target.size(),
+		effects_on_self.size(),
 		MadraType.keys()[madra_type],
 		AbilitySource.keys()[ability_source],
 		get_total_cost_display(),

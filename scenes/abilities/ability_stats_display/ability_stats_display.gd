@@ -33,8 +33,8 @@ func setup(ability_data: AbilityData, mode: DisplayMode = DisplayMode.DAMAGE) ->
 
 func _setup_damage(ability_data: AbilityData) -> void:
 	var effect: CombatEffectData = null
-	if not ability_data.effects.is_empty():
-		effect = ability_data.effects[0]
+	if not ability_data.effects_on_target.is_empty():
+		effect = ability_data.effects_on_target[0]
 	if not effect or not _has_damage_or_scaling(effect):
 		return
 
@@ -69,8 +69,8 @@ func _setup_damage(ability_data: AbilityData) -> void:
 
 func _setup_damage_total(ability_data: AbilityData) -> void:
 	var effect: CombatEffectData = null
-	if not ability_data.effects.is_empty():
-		effect = ability_data.effects[0]
+	if not ability_data.effects_on_target.is_empty():
+		effect = ability_data.effects_on_target[0]
 	if not effect or not _has_damage_or_scaling(effect):
 		return
 

@@ -164,10 +164,19 @@ func _update_tags_display() -> void:
 		child.queue_free()
 
 	var type_name: String = AbilityData.AbilityType.keys()[_ability_data.ability_type].capitalize()
-	var target_name: String = AbilityData.TargetType.keys()[_ability_data.target_type].capitalize().replace("_", " ")
+	var target_name: String = _derive_target_tag(_ability_data)
 
 	_tags_row.add_child(_create_tag_label(type_name))
 	_tags_row.add_child(_create_tag_label(target_name))
+
+func _derive_target_tag(data: AbilityData) -> String:
+	var has_target_effects: bool = not data.effects_on_target.is_empty()
+	var has_self_effects: bool = not data.effects_on_self.is_empty()
+	if has_target_effects and has_self_effects:
+		return "Mixed"
+	if has_target_effects:
+		return "Targeted"
+	return "Self-Cast"
 
 func _create_tag_label(text: String) -> Label:
 	var tag: Label = Label.new()

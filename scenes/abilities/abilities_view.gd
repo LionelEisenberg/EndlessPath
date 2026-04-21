@@ -106,10 +106,10 @@ func _apply_filter(abilities: Array[AbilityData]) -> Array[AbilityData]:
 	for ability: AbilityData in abilities:
 		match _filter_mode:
 			FilterMode.OFFENSIVE:
-				if ability.target_type != AbilityData.TargetType.SELF:
+				if not ability.effects_on_target.is_empty():
 					result.append(ability)
 			FilterMode.BUFF:
-				if ability.target_type == AbilityData.TargetType.SELF:
+				if ability.effects_on_target.is_empty():
 					result.append(ability)
 			FilterMode.EQUIPPED:
 				if AbilityManager.is_ability_equipped(ability.ability_id):

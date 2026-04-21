@@ -23,5 +23,5 @@ ability_source = 1
 madra_cost = 20.0
 base_cooldown = 15.0
 cast_time = 3.0
-effects = Array[ExtResource("1_ys7rd")]([SubResource("Resource_2sgll")])
+effects_on_target = Array[ExtResource("1_ys7rd")]([SubResource("Resource_2sgll")])
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

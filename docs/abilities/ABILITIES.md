@@ -2,7 +2,7 @@
 
 ## Overview
 
-Abilities are the player's active toolkit in combat: damage attacks, self-buffs, and (future) utility effects. Each ability is a data-driven `AbilityData` resource defining costs, cooldown, cast time, targeting, and a list of `CombatEffectData` effects that resolve on the target when the cast completes.
+Abilities are the player's active toolkit in combat: damage attacks, self-buffs, and (future) utility effects. Each ability is a data-driven `AbilityData` resource defining costs, cooldown, cast time, and two lists of `CombatEffectData` — one routed to the enemy target, one routed to the caster. An ability needs an enemy target iff its `effects_on_target` array is non-empty.
 
 The system has two halves:
 
@@ -24,13 +24,13 @@ Defined in [scripts/resource_definitions/abilities/ability_data.gd](../../script
 | `description` | `String` (multiline) | Tooltip description |
 | `icon` | `Texture2D` | UI icon (64x64 preferred) |
 | `ability_type` | `AbilityType` | Only `OFFENSIVE` exists today — flagged for rework (see COMBAT.md tech debt) |
-| `target_type` | `TargetType` | `SELF`, `SINGLE_ENEMY`, `ALL_ALLIES` (last one unimplemented) |
 | `madra_type` | `MadraType` | `NONE` (physical) or `PURE` — flavor axis, separate from damage type |
 | `ability_source` | `AbilitySource` | `INNATE` (persists) or `PATH` (tied to path tree, resets on ascension) |
 | `health_cost` / `madra_cost` / `stamina_cost` | `float` | Resources consumed on use |
 | `base_cooldown` | `float` | Cooldown in seconds after cast resolves |
 | `cast_time` | `float` | Pre-cast duration — `0` = instant |
-| `effects` | `Array[CombatEffectData]` | Effects applied to the target on execute |
+| `effects_on_target` | `Array[CombatEffectData]` | Effects applied to the enemy target on execute (damage, debuffs). Non-empty means the ability requires an enemy target. |
+| `effects_on_self` | `Array[CombatEffectData]` | Effects applied to the caster on execute (self-buffs, self-heals). Can be combined with `effects_on_target` for mixed abilities (e.g. lifesteal, rage-stacking attacks). |
 
 ### CombatEffectData
 
@@ -68,11 +68,18 @@ Defense is `RESILIENCE` for `PHYSICAL`, `SPIRIT` for `SPIRIT`, `(RESILIENCE + WI
 
 ## Classification Axes
 
-Three orthogonal enums classify each ability:
+Two orthogonal enums classify each ability. Targeting is no longer an enum — it is *derived* from whether `effects_on_target` is populated:
 
 - **`MadraType`** — flavor/identity, shown as a badge in UI. `NONE` = physical (Basic Strike, Enforce), `PURE` = Pure Madra path (Empty Palm, Power Font). Future paths will add `BLACKFLAME`, `EARTH`, etc. Note: this is independent of `damage_type` on the effect — a `MadraType.PURE` ability can still deal physical damage.
 - **`AbilitySource`** — lifecycle. `INNATE` abilities are in the default `unlocked_ability_ids` and persist across path changes / ascensions. `PATH` abilities are granted by path tree nodes and will reset when the path progression rework fully wires ascension reset.
-- **`TargetType`** — `SELF` buffs the caster; `SINGLE_ENEMY` fires at the combat target; `ALL_ALLIES` is defined but unimplemented.
+
+**Targeting derivation:**
+
+| `effects_on_target` | `effects_on_self` | Ability role |
+|---|---|---|
+| empty | populated | Pure self-cast (e.g. Enforce). No enemy target needed. UI tag: *Self-Cast*. |
+| populated | empty | Pure offensive (e.g. Basic Strike, Empty Palm). Needs an enemy target. UI tag: *Targeted*. |
+| populated | populated | Mixed (e.g. Famishing Bite — damages target, applies Hunger to self). Needs an enemy target. UI tag: *Mixed*. |
 
 ## Lifecycle
 
@@ -95,25 +102,26 @@ CombatAbilityInstance (Node child, one per ability)
     │
     │ player clicks button / enemy AI picks ready ability
     ▼
-use_ability_instance(instance, target)
+use_ability_instance(instance, enemy)
     ├─ is_casting()?           reject (global lock)
     ├─ is_ready()?              reject (on cooldown)
     ├─ can_afford()?            reject (not enough HP/Madra/Stamina)
     ├─ consume_costs()          deduct resources immediately
-    ├─ resolve target           SELF → owner, else → passed enemy
-    └─ instance.start_cast(target)
+    └─ instance.start_cast(enemy)
          │
          ├─ cast_time > 0?      enter casting state, start cast_timer,
          │                      emit cast_started → UI shows cast bar
-         │                      on timeout → execute_ability(target)
+         │                      on timeout → execute_ability(enemy)
          │
-         └─ cast_time == 0      execute_ability(target) immediately
+         └─ cast_time == 0      execute_ability(enemy) immediately
 
-execute_ability(target)
+execute_ability(enemy)
     ├─ modified_attributes = base * buff_manager.get_attribute_modifier()
     ├─ if OFFENSIVE: outgoing_mod = buff_manager.consume_outgoing_modifier()
-    ├─ for each effect in ability.effects:
-    │     target.receive_effect(effect, modified_attributes, outgoing_mod)
+    ├─ for each effect in ability.effects_on_target:
+    │     enemy.receive_effect(effect, modified_attributes, outgoing_mod)
+    ├─ for each effect in ability.effects_on_self:
+    │     owner.receive_effect(effect, modified_attributes, 1.0)
     │     (routes via CombatEffectManager → damage/heal/buff)
     └─ start cooldown_timer (ability.base_cooldown)
 ```

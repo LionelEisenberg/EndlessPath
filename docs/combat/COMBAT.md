@@ -68,11 +68,11 @@ Default: all attributes start at 10.0.
 | `ability_id` | `String` | Unique identifier |
 | `ability_name` | `String` | Display name |
 | `ability_type` | `AbilityType` | Only `OFFENSIVE` exists |
-| `target_type` | `TargetType` | `SELF`, `SINGLE_ENEMY`, `ALL_ALLIES` |
 | `health_cost` / `madra_cost` / `stamina_cost` | `float` | Resource costs |
 | `base_cooldown` | `float` | Cooldown in seconds |
 | `cast_time` | `float` | 0 = instant |
-| `effects` | `Array[CombatEffectData]` | Effects applied on hit |
+| `effects_on_target` | `Array[CombatEffectData]` | Effects applied to the enemy target (damage, debuffs). Non-empty ⇒ ability needs an enemy target. |
+| `effects_on_self` | `Array[CombatEffectData]` | Effects applied to the caster (self-buffs, self-heals). |
 
 ### CombatEffectData
 | Field | Type | Description |

@@ -20,5 +20,5 @@ icon = ExtResource("2_ah3dt")
 stamina_cost = 3.0
 base_cooldown = 2.0
 cast_time = 0.5
-effects = Array[ExtResource("1_a2brc")]([SubResource("Resource_dx6op")])
+effects_on_target = Array[ExtResource("1_a2brc")]([SubResource("Resource_dx6op")])
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
