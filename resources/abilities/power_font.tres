@@ -4,24 +4,32 @@
 [ext_resource type="Texture2D" uid="uid://dppmky4a5xje" path="res://assets/sprites/abilities/power_font.png" id="2_1ymsf"]
 [ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_6gbj8"]
 
-[sub_resource type="Resource" id="Resource_2sgll"]
+[sub_resource type="Resource" id="Resource_damage"]
 script = ExtResource("1_ys7rd")
+effect_type = 0
+effect_name = "Sundering Font"
 base_value = 30.0
 spirit_scaling = 1.5
 foundation_scaling = 0.5
 damage_type = 1
 metadata/_custom_type_script = "uid://bnd52oeyddekj"
 
+[sub_resource type="Resource" id="Resource_strip"]
+script = ExtResource("1_ys7rd")
+effect_type = 4
+effect_name = "Sunder All Buffs"
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
 [resource]
 script = ExtResource("2_6gbj8")
 ability_id = "power_font"
 ability_name = "Power Font"
-description = "After a short moment to channel your body's madra into your palms, you throw a wave of power at the enemy with the might of your entire spirit!"
+description = "Channel your body's Madra and release it in a cleansing wave — heavy damage and wipes every buff on the target."
 icon = ExtResource("2_1ymsf")
 madra_type = 1
 ability_source = 1
-madra_cost = 20.0
-base_cooldown = 15.0
+madra_cost = 30.0
+base_cooldown = 25.0
 cast_time = 3.0
-effects = Array[ExtResource("1_ys7rd")]([SubResource("Resource_2sgll")])
+effects = Array[ExtResource("1_ys7rd")]([SubResource("Resource_damage"), SubResource("Resource_strip")])
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
