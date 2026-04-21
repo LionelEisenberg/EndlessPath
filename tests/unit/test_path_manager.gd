@@ -10,7 +10,7 @@ func _create_test_effect(type: PathNodeEffectData.EffectType, value: float) -> P
 	effect.float_value = value
 	return effect
 
-func _create_test_node(id: String, cost: int = 1, prereqs: Array[String] = [], max_purchases: int = 1, stage: CultivationManager.AdvancementStage = CultivationManager.AdvancementStage.FOUNDATION) -> PathNodeData:
+func _create_test_node(id: String, cost: int = 1, prereqs: Array[PathNodeData] = [], max_purchases: int = 1, stage: CultivationManager.AdvancementStage = CultivationManager.AdvancementStage.FOUNDATION) -> PathNodeData:
 	var node := PathNodeData.new()
 	node.id = id
 	node.display_name = "Test " + id
@@ -114,7 +114,7 @@ func test_cannot_purchase_at_max_level() -> void:
 
 func test_cannot_purchase_without_prerequisites() -> void:
 	var node_a := _create_test_node("a")
-	var node_b := _create_test_node("b", 1, ["a"])
+	var node_b := _create_test_node("b", 1, [node_a])
 	var tree := _create_test_tree([node_a, node_b])
 	PathManager._all_trees["test_path"] = tree
 	PathManager.set_path("test_path")
@@ -123,7 +123,7 @@ func test_cannot_purchase_without_prerequisites() -> void:
 
 func test_can_purchase_with_prerequisites_met() -> void:
 	var node_a := _create_test_node("a")
-	var node_b := _create_test_node("b", 1, ["a"])
+	var node_b := _create_test_node("b", 1, [node_a])
 	var tree := _create_test_tree([node_a, node_b])
 	PathManager._all_trees["test_path"] = tree
 	PathManager.set_path("test_path")

@@ -3,7 +3,7 @@ extends Resource
 
 ## Defines a single node in a path progression tree.
 ## Nodes can be keystones, major, minor, or repeatable.
-## Prerequisites are tracked by ID strings referencing other nodes in the same tree.
+## Prerequisites are direct references to other PathNodeData resources in the same tree.
 
 enum NodeType {
 	KEYSTONE,    ## Game-changers: new abilities, cycling techniques, mechanic shifts (~20%)
@@ -19,8 +19,8 @@ enum NodeType {
 @export var icon: Texture2D = null
 
 @export_group("Requirements")
-## IDs of nodes that must be purchased (level >= 1) before this node can be purchased.
-@export var prerequisites: Array[String] = []
+## Nodes that must be purchased (level >= 1) before this node can be purchased.
+@export var prerequisites: Array[PathNodeData] = []
 ## The cultivation stage required to purchase this node (tier gate).
 @export var required_stage: CultivationManager.AdvancementStage = CultivationManager.AdvancementStage.FOUNDATION
 

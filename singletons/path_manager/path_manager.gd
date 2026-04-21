@@ -147,8 +147,8 @@ func _is_stage_reached(required: CultivationManager.AdvancementStage) -> bool:
 	return CultivationManager.get_current_advancement_stage() >= required
 
 func _are_all_prerequisites_met(node: PathNodeData) -> bool:
-	for prereq_id: String in node.prerequisites:
-		if get_node_purchase_count(prereq_id) < 1:
+	for prereq: PathNodeData in node.prerequisites:
+		if get_node_purchase_count(prereq.id) < 1:
 			return false
 	return true
 
