@@ -173,3 +173,13 @@ text = "COMBAT"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Force-Win Current Combat"
+
+[node name="AdventureHeader" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "ADVENTURE"
+
+[node name="ShowWholeMapCheck" type="CheckButton" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Show Whole Map"
