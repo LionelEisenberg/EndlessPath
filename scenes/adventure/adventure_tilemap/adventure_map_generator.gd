@@ -96,6 +96,10 @@ func _assign_special_tiles() -> void:
 		Log.warn("AdventureMapGenerator: Can't Assign Encounters to special tiles as encounter pool is empty")
 		return
 
+	var eligible_pool: Array = _build_eligible_special_pool(adventure_data.special_encounter_pool)
+	if eligible_pool.is_empty():
+		Log.warn("AdventureMapGenerator: No eligible special encounters after filter; leaving tiles as no-op")
+
 	var furthest_node_coord = Vector3i.ZERO
 	var furthest_distance = 0
 	for coord in all_map_tiles.keys():
@@ -105,9 +109,28 @@ func _assign_special_tiles() -> void:
 			furthest_distance = distance_to_origin
 		if coord == Vector3i.ZERO:
 			continue
-		all_map_tiles[coord] = adventure_data.special_encounter_pool[randi_range(0, adventure_data.special_encounter_pool.size() - 1)]
+		if not eligible_pool.is_empty():
+			all_map_tiles[coord] = eligible_pool[randi_range(0, eligible_pool.size() - 1)]
+		# else: leave the NoOpEncounter placed earlier in _place_special_tiles.
 
 	all_map_tiles[furthest_node_coord] = adventure_data.boss_encounter
+
+## Filters a pool of encounters by their unlock_conditions dictionary. Each
+## condition must evaluate to its paired expected bool, otherwise the encounter
+## is dropped. Encounters with empty unlock_conditions always pass.
+func _build_eligible_special_pool(pool: Array) -> Array:
+	var eligible: Array = []
+	for encounter in pool:
+		if encounter == null:
+			continue
+		var ok: bool = true
+		for condition in encounter.unlock_conditions:
+			if condition.evaluate() != encounter.unlock_conditions[condition]:
+				ok = false
+				break
+		if ok:
+			eligible.append(encounter)
+	return eligible
 
 ## Generates a path network connecting all special tiles using Prim's MST algorithm.
 func _generate_mst_paths() -> void:
