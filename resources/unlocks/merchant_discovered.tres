@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" load_steps=2 format=3 uid="uid://bunlock_mrch_discov"]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+condition_id = "merchant_discovered"
+condition_type = 4
+target_value = "merchant_discovered"
+comparison_op = ">="
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"
