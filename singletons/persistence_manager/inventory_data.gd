@@ -10,5 +10,8 @@ extends Resource
 ## Dictionary of EquipmentSlot -> ItemInstanceData (Equipped gear)
 @export var equipped_gear: Dictionary = {} # Dictionary[EquipmentDefinitionData.EquipmentSlot, ItemInstanceData]
 
+## Dictionary of ItemDefinitionData (QUEST_ITEM type) -> Quantity owned.
+@export var quest_items: Dictionary[ItemDefinitionData, int] = {}
+
 func _to_string() -> String:
-	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s)" % [materials, equipment, equipped_gear]
+	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, quest_items: %s)" % [materials, equipment, equipped_gear, quest_items]
