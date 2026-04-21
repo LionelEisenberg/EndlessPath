@@ -6,6 +6,10 @@
 
 **Architecture:** Three small script changes (Inventory, UnlockCondition, AdventureEncounter/MapGenerator, ActionManager) plus a set of `.tres` resources and a dialogue timeline label. The Merchant click is a hard-coded stub in `ActionManager` that logs a "coming soon" message; no new UI or scene is created. Map generator filters `special_encounter_pool` by per-encounter `unlock_conditions` before placement, so gated encounters silently drop out of the pool.
 
+### Revisions
+
+Task 5/6/10 originally specified `Array[UnlockConditionData]` for `AdventureEncounter.unlock_conditions`. Revised in-session to `Dictionary[UnlockConditionData, bool]` for consistency with `EncounterChoice.requirements` (Beat 3a). The dict value is the expected evaluation result — a condition paired with `true` means "must evaluate true", `false` means "must evaluate false". Tasks 4 and onward reflect the revised approach.
+
 **Tech Stack:** Godot 4.5, GDScript, GUT v9.6.0.
 
 **Spec reference:** [2026-04-21-beat-3b-merchant-unlock-design.md](../specs/2026-04-21-beat-3b-merchant-unlock-design.md)
@@ -440,7 +444,10 @@ Add the following `@export` to the file (after existing exports, before any meth
 ## Optional gates evaluated at map-generation time. Encounters with unmet
 ## conditions are filtered out of the random pool before placement — the player
 ## never sees them.
-@export var unlock_conditions: Array[UnlockConditionData] = []
+## Key = UnlockConditionData, value = expected evaluation result (true means
+## "condition must hold", false means "condition must NOT hold"). Mirrors the
+## Dictionary[UnlockConditionData, bool] pattern used by EncounterChoice.requirements.
+@export var unlock_conditions: Dictionary[UnlockConditionData, bool] = {}
 ```
 
 - [ ] **Step 3: Sanity check**
@@ -492,7 +499,8 @@ func _make_gated_encounter() -> AdventureEncounter:
 	cond.target_value = TEST_EVENT
 	var enc := AdventureEncounter.new()
 	enc.encounter_id = "gated"
-	enc.unlock_conditions = [cond]
+	# Dictionary[UnlockConditionData, bool]: key=condition, value=expected result
+	enc.unlock_conditions = { cond: true }
 	return enc
 
 func _make_open_encounter() -> AdventureEncounter:
@@ -522,6 +530,30 @@ func test_filter_keeps_gated_encounters_when_met() -> void:
 
 	assert_eq(eligible.size(), 2, "both encounters should be eligible once event fires")
 	generator.queue_free()
+
+func test_filter_respects_false_expected_value() -> void:
+	# A condition paired with false means "must NOT hold" — keep encounter only
+	# when the event has NOT fired.
+	var cond := UnlockConditionData.new()
+	cond.condition_type = UnlockConditionData.ConditionType.EVENT_TRIGGERED
+	cond.target_value = TEST_EVENT
+	var enc := AdventureEncounter.new()
+	enc.encounter_id = "negated_gate"
+	enc.unlock_conditions = { cond: false }
+
+	var generator_script: GDScript = load("res://scenes/adventure/adventure_tilemap/adventure_map_generator.gd")
+	var generator = generator_script.new()
+
+	# Before event: condition evaluates false, expected false → match → eligible
+	var before: Array = generator._build_eligible_special_pool([enc])
+	assert_eq(before.size(), 1, "encounter should be eligible when condition is false and expected is false")
+
+	EventManager.trigger_event(TEST_EVENT)
+
+	# After event: condition evaluates true, expected false → mismatch → filtered
+	var after: Array = generator._build_eligible_special_pool([enc])
+	assert_eq(after.size(), 0, "encounter should be filtered when condition becomes true but expected is false")
+	generator.queue_free()
 ```
 
 - [ ] **Step 2: Run failing test**
@@ -537,8 +569,10 @@ Open `scenes/adventure/adventure_tilemap/adventure_map_generator.gd`. Add the ne
 
 ```gdscript
 ## Filters a pool of encounters by their unlock_conditions. Encounters with any
-## unmet condition are dropped so gated content never lands on a tile the player
-## hasn't earned access to.
+## condition whose evaluation does not match the expected value are dropped so
+## gated content never lands on a tile the player hasn't earned access to.
+## unlock_conditions is Dictionary[UnlockConditionData, bool] — key is the
+## condition, value is the expected evaluation result.
 func _build_eligible_special_pool(pool: Array) -> Array:
 	var eligible: Array = []
 	for encounter in pool:
@@ -546,7 +580,7 @@ func _build_eligible_special_pool(pool: Array) -> Array:
 			continue
 		var ok: bool = true
 		for condition in encounter.unlock_conditions:
-			if not condition.evaluate():
+			if condition.evaluate() != encounter.unlock_conditions[condition]:
 				ok = false
 				break
 		if ok:
@@ -826,7 +860,6 @@ condition_id = "merchant_not_yet_discovered"
 condition_type = 4
 target_value = "merchant_discovered"
 comparison_op = ">="
-negate = true
 
 [sub_resource type="Resource" id="Resource_trigger_merchant"]
 script = ExtResource("4_trigger")
@@ -845,7 +878,7 @@ encounter_name = "Refugee Camp"
 description = "A cluster of makeshift tents under the trees. A merchant's wagon leans against a rock, its owner watching you approach."
 text_description_completed = "The camp is empty now — they must have moved on, following your map back to the valley."
 encounter_type = 4
-unlock_conditions = Array[ExtResource("5_cond")]([SubResource("Resource_cond_map_owned"), SubResource("Resource_cond_not_discovered")])
+unlock_conditions = Dictionary[ExtResource("5_cond"), bool]({SubResource("Resource_cond_map_owned"): true, SubResource("Resource_cond_not_discovered"): false})
 choices = Array[ExtResource("2_choice")]([SubResource("Resource_approach_choice")])
 metadata/_custom_type_script = "uid://cs335nesm7wfr"
 ```
@@ -853,6 +886,7 @@ metadata/_custom_type_script = "uid://cs335nesm7wfr"
 Notes:
 - `condition_type = 5` = `ITEM_OWNED`, `= 4` = `EVENT_TRIGGERED`.
 - `encounter_type = 4` = `REST_SITE` (reuses the existing icon; a dedicated glyph is future polish).
+- `unlock_conditions` uses the `Dictionary[ExtResource("5_cond"), bool]({...})` typed-literal syntax — key is the condition sub-resource, bool value is the expected evaluation result (`true` = must hold, `false` = must NOT hold). The `Resource_cond_not_discovered` condition checks that `merchant_discovered` has NOT fired (expected `false`), replacing the old `negate = true` approach — the `negate` field on the sub-resource is no longer set.
 
 - [ ] **Step 2: Verify**
 

@@ -111,10 +111,10 @@ These assumptions shape the entire spine. Update here if they change.
   - `EncounterChoice.completion_condition` + `EncounterChoice.completed_label` — per-choice completion state, independent of eligibility.
   - `ChangeVitalsEffectData.body_hp_multiplier` + `foundation_madra_multiplier` — attribute-scaled Rest effect.
 
-#### Beat 3b — Second Keystone + Merchant Handoff `PLANNED`
+#### Beat 3b — Second Keystone + Merchant Handoff `IMPLEMENTED (map + merchant unlock only — Merchant shop UI still PLANNED)`
 
 - Player cycles with Keystone #1 technique; Core Density rises.
-- At **Core Density 10**, second path point awarded via `q_reach_core_density_10` completion effects.
+- At **Core Density 10**, `CultivationManager`'s existing CD-milestone hook awards the second path point. `q_reach_core_density_10`'s `completion_effects` award the Refugee Camp Map only — no path-point double-award.
 - Player picks Keystone #2 (ability-focused) on the Pure Madra tree → second combat ability equipped to slot 2.
 - `q_reach_core_density_10` step 1 completes on CD10. A **second step** sends the player back to the Celestial Intervener — NPC hands over a **map** item, fires the next event, and starts Beat 4's quest chain. This map unlock is the gate that enables the **Merchant** zone action (Beat 4 below).
 
@@ -193,7 +193,7 @@ These assumptions shape the entire spine. Update here if they change.
 | 1 | Awakening | Cycling + Adventure unlocked via NPC dialogue | `PLANNED` |
 | 2 | First Steps Out | First adventure + Keystone #1 | `PLANNED` |
 | 3a | Aura Well Discovery | Aura Well adventure encounter + Aura Well zone action (+1.5 Madra/tick passive, +1 Spirit per level) | `IMPLEMENTED` |
-| 3b | Second Keystone + Merchant handoff | Keystone #2 at Core Density 10 + NPC map unlock (gates Merchant) | `PLANNED` |
+| 3b | Second Keystone + Merchant handoff | Keystone #2 at Core Density 10 + NPC map unlock (gates Merchant) | `IMPLEMENTED (partial — shop UI deferred)` |
 | 4 | Refugee Camp | Merchant zone action + gold sink | `PLANNED` |
 | 5 | Elite Gear Drop | First elite defeated, tier-bump gear | `PLANNED` |
 | 6 | Third Keystone | Keystone #3 (burst/finisher) at Core Density ~30 | `PLANNED` |
@@ -363,3 +363,4 @@ STATUS: Open | Testing | Resolved → (pointer to where the answer lives)
 
 - *2026-04-17* — Initial scaffold created; brainstorm session filled in the 10-beat Foundation spine end-to-end, added framing notes (tile-always-exists / no-retreat / quests-for-ambiguity / NPC placeholders), and seeded 9 open tuning questions in Section 3.
 - *2026-04-20* — Beat 3a (Aura Well) promoted `PLANNED → IMPLEMENTED`. Renamed Spirit Well → Aura Well throughout (training action, trickle/award effects). Reframed discovery as an adventure-encounter Mark choice rather than a generic tile interaction. Updated Keystone framing note — all three Foundation keystones live on the Pure Madra tree (the "first node of each path" phrasing was incorrect). Expanded Beat 3b to document the NPC → map → Merchant handoff that gates Beat 4.
+- *2026-04-21* — Beat 3b implementation landed (map item + refugee camp encounter + Merchant zone-action stub). Merchant shop UI still deferred. Implemented `UnlockConditionData.ITEM_OWNED` and added per-encounter `unlock_conditions` filtering (using `Dictionary[UnlockConditionData, bool]` to match the Beat 3a encounter-choice pattern).
