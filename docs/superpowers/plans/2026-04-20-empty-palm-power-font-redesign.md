@@ -51,42 +51,7 @@ If class names don't resolve, pre-import once:
 
 ---
 
-### Task 1: Verify enemy Madra regen creates pressure (diagnostic, no code)
-
-**Why:** The spec relies on the Madra economy gating Empty Palm spam. If combat Madra regen is faster than 8 / 3s ≈ 2.67 per second, the design has no natural cap and will need a different gate before ship.
-
-**Files:** read-only
-
-- [ ] **Step 1: Inspect current Madra regen baseline.**
-
-Open [scenes/combat/combatant/vitals_manager/vitals_manager.gd](scenes/combat/combatant/vitals_manager/vitals_manager.gd). The field `madra_regen: float = 0.0` is the default. Find where it is assigned in gameplay code:
-
-Run:
-```bash
-grep -rn "madra_regen" scenes/ singletons/ resources/ --include='*.gd' --include='*.tres'
-```
-
-- [ ] **Step 2: Record findings.**
-
-If the player's `madra_regen` during combat is **≤ 2.5/sec**, the economy gate is sufficient; proceed with the plan as written.
-
-If it is **> 2.5/sec**, note the value in the task's commit message and flag it on the [design spec](docs/superpowers/specs/2026-04-20-empty-palm-power-font-redesign-design.md) "Open validation" section as an open issue before shipping. Do not alter the plan — the balance knob ("lower combat Madra regen") is a separate tuning concern.
-
-If `madra_regen` is not assigned anywhere at runtime (stays 0.0), the game currently uses a different regen mechanism; capture the real source and cross-check the same inequality.
-
-- [ ] **Step 3: Commit the finding as a note (optional).**
-
-If you updated the spec with the measured value, commit that change:
-```bash
-git add docs/superpowers/specs/2026-04-20-empty-palm-power-font-redesign-design.md
-git commit -m "docs(abilities): record combat Madra regen baseline for Empty Palm design"
-```
-
-If no spec edit was needed, skip this commit and move on.
-
----
-
-### Task 2: Add `CANCEL_CAST` and `STRIP_BUFFS` to `CombatEffectData.EffectType`
+### Task 1: Add `CANCEL_CAST` and `STRIP_BUFFS` to `CombatEffectData.EffectType`
 
 **Files:**
 - Modify: `scripts/resource_definitions/combat/combat_effect_data.gd:12-16`
@@ -155,7 +120,7 @@ git commit -m "feat(combat): add CANCEL_CAST and STRIP_BUFFS effect types"
 
 ---
 
-### Task 3: Add `cancel_cast()` and `cast_cancelled` signal to `CombatAbilityInstance`
+### Task 2: Add `cancel_cast()` and `cast_cancelled` signal to `CombatAbilityInstance`
 
 **Files:**
 - Modify: `scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd`
@@ -270,7 +235,7 @@ git commit -m "feat(combat): add cancel_cast() method and cast_cancelled signal"
 
 ---
 
-### Task 4: Add `cancel_current_cast()` helper to `CombatAbilityManager`
+### Task 3: Add `cancel_current_cast()` helper to `CombatAbilityManager`
 
 **Why:** External effects (like Empty Palm's CANCEL_CAST rider) need a way to cancel whatever the target is currently casting, without knowing which specific ability instance is the one active.
 
@@ -346,7 +311,7 @@ git commit -m "feat(combat): add cancel_current_cast helper on CombatAbilityMana
 
 ---
 
-### Task 5: Add `strip_all_buffs()` to `CombatBuffManager`
+### Task 4: Add `strip_all_buffs()` to `CombatBuffManager`
 
 **Files:**
 - Modify: `scenes/combat/combatant/combat_buff_manager/combat_buff_manager.gd`
@@ -456,7 +421,7 @@ git commit -m "feat(combat): add strip_all_buffs for mid-combat buff wipe"
 
 ---
 
-### Task 6: Route `CANCEL_CAST` and `STRIP_BUFFS` in `CombatEffectManager.process_effect`
+### Task 5: Route `CANCEL_CAST` and `STRIP_BUFFS` in `CombatEffectManager.process_effect`
 
 **Files:**
 - Modify: `scenes/combat/combatant/combat_effect_manager/combat_effect_manager.gd`
@@ -556,10 +521,14 @@ Expected: tests fail (match statement has no case for new types).
 
 - [ ] **Step 3: Extend `process_effect` to handle new types.**
 
+> **Note on `owner_combatant`:** `CombatEffectManager` lives as a child of a `CombatantNode`, and `CombatantNode.receive_effect()` dispatches into its *own* effect manager. So inside `process_effect`, `owner_combatant` is always the **target** (the combatant receiving the effect), and `source_attributes` belongs to the caster. When the player's Empty Palm is applied to an enemy, the enemy's effect manager runs the `CANCEL_CAST` case and `owner_combatant` resolves to the enemy — which is what we want to cancel.
+
 In `scenes/combat/combatant/combat_effect_manager/combat_effect_manager.gd`, extend the `match effect.effect_type` block inside `process_effect()` (after the existing `BUFF` case, before the closing `pass`):
 
 ```gdscript
 		CombatEffectData.EffectType.CANCEL_CAST:
+			# owner_combatant here = the target of this effect (see note above).
+			# Cancel the target's in-progress cast if any.
 			if owner_combatant.ability_manager:
 				var cancelled: bool = owner_combatant.ability_manager.cancel_current_cast()
 				if cancelled:
@@ -571,6 +540,8 @@ In `scenes/combat/combatant/combat_effect_manager/combat_effect_manager.gd`, ext
 				Log.error("CombatEffectManager: Cannot cancel cast - missing ability_manager")
 
 		CombatEffectData.EffectType.STRIP_BUFFS:
+			# owner_combatant here = the target of this effect (see note above).
+			# Strip all buffs currently on the target.
 			if owner_combatant.buff_manager:
 				owner_combatant.buff_manager.strip_all_buffs()
 				Log.info("CombatEffectManager: %s's buffs stripped by %s" % [
@@ -598,7 +569,7 @@ git commit -m "feat(combat): route CANCEL_CAST and STRIP_BUFFS effects"
 
 ---
 
-### Task 7: Rebalance `empty_palm.tres` (new values + CANCEL_CAST rider)
+### Task 6: Rebalance `empty_palm.tres` (new values + CANCEL_CAST rider)
 
 **Files:**
 - Modify: `resources/abilities/empty_palm.tres`
@@ -679,7 +650,7 @@ No errors about `empty_palm.tres` should appear.
 ```bash
 "C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 ```
-All previously-passing tests should continue to pass. No behavior test exists for this resource yet — Task 10 covers the integration test.
+All previously-passing tests should continue to pass. No behavior test exists for this resource yet — Task 9 covers the integration test.
 
 - [ ] **Step 5: Commit.**
 
@@ -694,7 +665,7 @@ git commit -m "feat(abilities): rebalance Empty Palm as interrupt-capable main D
 
 ---
 
-### Task 8: Rebalance `power_font.tres` (new values + STRIP_BUFFS rider)
+### Task 7: Rebalance `power_font.tres` (new values + STRIP_BUFFS rider)
 
 **Files:**
 - Modify: `resources/abilities/power_font.tres`
@@ -782,7 +753,7 @@ git commit -m "feat(abilities): rebalance Power Font as buff-stripping finisher
 
 ---
 
-### Task 9: Add enemy cast-bar UI to `CombatantInfoPanel`
+### Task 8: Add enemy cast-bar UI to `CombatantInfoPanel`
 
 **Why:** Empty Palm's interrupt rider is only readable if the player sees the enemy's cast. Without a visible cast bar on the enemy panel, canceling a cast is invisible and frustrating.
 
@@ -880,7 +851,7 @@ git commit -m "feat(combat-ui): show enemy cast progress in CombatantInfoPanel"
 
 ---
 
-### Task 10: Integration test — Empty Palm interrupts enemy cast
+### Task 9: Integration test — Empty Palm interrupts enemy cast
 
 **Files:**
 - Create: `tests/integration/test_empty_palm_interrupt.gd`
@@ -986,7 +957,7 @@ git commit -m "test(combat): integration test for Empty Palm cancelling enemy ca
 
 ---
 
-### Task 11: Integration test — Power Font strips all enemy buffs
+### Task 10: Integration test — Power Font strips all enemy buffs
 
 **Files:**
 - Create: `tests/integration/test_power_font_buff_strip.gd`
@@ -1095,7 +1066,7 @@ git commit -m "test(combat): integration test for Power Font buff-strip + damage
 
 ---
 
-### Task 12: Full-suite regression + in-game smoke
+### Task 11: Full-suite regression + in-game smoke
 
 **Files:** (none modified)
 
@@ -1133,21 +1104,21 @@ Spec coverage pass — every spec requirement maps to a task:
 
 | Spec requirement | Task |
 |---|---|
-| Empty Palm: Madra 8, CD 3s, cast 0s | Task 7 |
-| Empty Palm: base 15 Spirit, spi 1.0 / agi 0.3 | Task 7 |
-| Empty Palm: cancel target's cast on hit | Task 2, 3, 4, 6, 7, 10 |
-| Power Font: Madra 30, CD 25s, cast 3s | Task 8 |
-| Power Font: base 30 Spirit, spi 1.5 / fnd 0.5 | Task 8 |
-| Power Font: strip all buffs on target | Task 2, 5, 6, 8, 11 |
-| Cast cancellation infrastructure | Task 3, 4 |
-| Mid-combat buff strip | Task 5 |
-| CANCEL_CAST + STRIP_BUFFS effect types | Task 2, 6 |
-| Enemy cast bar UI (Empty Palm clarity prereq) | Task 9 |
-| Madra regen validation (open issue in spec) | Task 1 |
+| Empty Palm: Madra 8, CD 3s, cast 0s | Task 6 |
+| Empty Palm: base 15 Spirit, spi 1.0 / agi 0.3 | Task 6 |
+| Empty Palm: cancel target's cast on hit | Task 1, 2, 3, 5, 6, 9 |
+| Power Font: Madra 30, CD 25s, cast 3s | Task 7 |
+| Power Font: base 30 Spirit, spi 1.5 / fnd 0.5 | Task 7 |
+| Power Font: strip all buffs on target | Task 1, 4, 5, 7, 10 |
+| Cast cancellation infrastructure | Task 2, 3 |
+| Mid-combat buff strip | Task 4 |
+| CANCEL_CAST + STRIP_BUFFS effect types | Task 1, 5 |
+| Enemy cast bar UI (Empty Palm clarity prereq) | Task 8 |
+| Madra regen validation (open issue in spec) | Deferred to playtest — removed from plan per review |
 
 Out-of-scope callouts from the spec (correctly omitted from plan):
 - Path-tree upgrade nodes
-- VFX/SFX asset creation (structure marked with `TODO` in Task 9)
+- VFX/SFX asset creation (structure marked with `TODO` in Task 8)
 - Stacking for non-DoT buffs (spec defers to separate enemy-design work)
 - Enemy cast bar on player side — unchanged, only enemy panels need the bar
 
