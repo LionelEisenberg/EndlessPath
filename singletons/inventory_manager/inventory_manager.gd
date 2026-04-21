@@ -38,6 +38,10 @@ func get_inventory() -> InventoryData:
 func get_material_items() -> Dictionary[MaterialDefinitionData, int]:
 	return live_save_data.inventory.materials
 
+## Returns the quest items dict from live save data (definition → quantity).
+func get_quest_items() -> Dictionary[ItemDefinitionData, int]:
+	return live_save_data.inventory.quest_items
+
 func award_items(item: ItemDefinitionData, quantity: int) -> void:
 	item_awarded.emit(item, quantity)
 	match item.item_type:

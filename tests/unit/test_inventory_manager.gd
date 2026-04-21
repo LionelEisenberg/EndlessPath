@@ -447,3 +447,36 @@ func test_has_item_true_for_equipped_gear() -> void:
 	InventoryManager.equip_item(instance, EquipmentDefinitionData.EquipmentSlot.MAIN_HAND)
 
 	assert_true(InventoryManager.has_item("gear_test_x"), "equipped gear should count as owned")
+
+#-----------------------------------------------------------------------------
+# GET_QUEST_ITEMS
+#-----------------------------------------------------------------------------
+
+func test_get_quest_items_returns_empty_on_fresh_save() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
+
+	var quest_items := InventoryManager.get_quest_items()
+	assert_eq(quest_items.size(), 0, "fresh save should report zero quest items")
+
+func test_get_quest_items_reflects_awards() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
+
+	var def := ItemDefinitionData.new()
+	def.item_id = "get_quest_items_test"
+	def.item_name = "Get Quest Items Test"
+	def.item_type = ItemDefinitionData.ItemType.QUEST_ITEM
+	InventoryManager.award_items(def, 1)
+
+	var quest_items := InventoryManager.get_quest_items()
+	assert_eq(quest_items.size(), 1, "should report exactly one quest item after award")
+	assert_eq(quest_items.get(def, 0), 1, "awarded item should appear with quantity 1")
