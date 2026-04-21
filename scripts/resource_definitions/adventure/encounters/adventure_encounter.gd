@@ -42,6 +42,13 @@ enum EncounterType {
 ## Type of encounter
 @export var encounter_type: EncounterType = EncounterType.NONE
 
+## Optional gates evaluated at map-generation time. Each key is an
+## UnlockConditionData; the value is the expected evaluation result.
+## Encounters whose conditions don't all match their expected booleans
+## are filtered out of the random pool before placement — the player
+## never sees them.
+@export var unlock_conditions: Dictionary[UnlockConditionData, bool] = {}
+
 #-----------------------------------------------------------------------------
 # STRING REPRESENTATION
 #-----------------------------------------------------------------------------
