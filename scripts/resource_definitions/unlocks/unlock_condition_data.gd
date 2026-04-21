@@ -19,15 +19,9 @@ enum ConditionType {
 @export var target_value: Variant # What to check against
 @export var comparison_op: String = ">=" # ">=", "==", "<=", etc.
 @export var optional_params: Dictionary = {} # Type-specific params
-@export var negate: bool = false
 
-## Evaluates condition against current game state, applying negation if set.
+## Evaluates condition against current game state via manager queries.
 func evaluate() -> bool:
-	var result: bool = _evaluate_raw()
-	return not result if negate else result
-
-func _evaluate_raw() -> bool:
-	# Evaluates condition against current game state via manager queries
 	match condition_type:
 		ConditionType.CULTIVATION_STAGE:
 			var current_stage = CultivationManager.get_current_advancement_stage()
