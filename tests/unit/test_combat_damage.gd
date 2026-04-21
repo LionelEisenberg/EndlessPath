@@ -218,6 +218,8 @@ func test_effect_type_enum_values() -> void:
 	assert_eq(CombatEffectData.EffectType.DAMAGE, 0)
 	assert_eq(CombatEffectData.EffectType.HEAL, 1)
 	assert_eq(CombatEffectData.EffectType.BUFF, 2)
+	assert_eq(CombatEffectData.EffectType.CANCEL_CAST, 3)
+	assert_eq(CombatEffectData.EffectType.STRIP_BUFFS, 4)
 
 func test_damage_type_enum_values() -> void:
 	assert_eq(CombatEffectData.DamageType.PHYSICAL, 0)

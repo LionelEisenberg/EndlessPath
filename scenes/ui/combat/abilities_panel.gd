@@ -68,6 +68,7 @@ func register_ability(instance: CombatAbilityInstance) -> void:
 	instance.cast_started.connect(_on_cast_started)
 	instance.cast_updated.connect(_on_cast_updated)
 	instance.cast_finished.connect(_on_cast_finished)
+	instance.cast_cancelled.connect(_on_cast_cancelled)
 
 	_ability_buttons.append(button)
 	if slot_index >= 0:
@@ -87,6 +88,8 @@ func reset() -> void:
 				instance.cast_updated.disconnect(_on_cast_updated)
 			if instance.cast_finished.is_connected(_on_cast_finished):
 				instance.cast_finished.disconnect(_on_cast_finished)
+			if instance.cast_cancelled.is_connected(_on_cast_cancelled):
+				instance.cast_cancelled.disconnect(_on_cast_cancelled)
 
 		child.queue_free()
 
@@ -149,6 +152,10 @@ func _on_cast_updated(_instance: CombatAbilityInstance, time_left: float) -> voi
 	update_cast_progress(time_left)
 
 func _on_cast_finished(_instance: CombatAbilityInstance) -> void:
+	hide_casting_state()
+
+func _on_cast_cancelled(_instance: CombatAbilityInstance) -> void:
+	# TODO: VFX pass — shatter/flash animation goes here.
 	hide_casting_state()
 
 ## Shows the casting UI with ability name and progress bar.

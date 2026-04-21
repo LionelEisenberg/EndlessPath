@@ -76,3 +76,28 @@ func process_effect(effect: CombatEffectData, source_attributes: CharacterAttrib
 				owner_combatant.buff_manager.apply_buff(buff_effect)
 			else:
 				Log.error("CombatEffectManager: Cannot apply buff - missing buff_manager or invalid effect type")
+
+		CombatEffectData.EffectType.CANCEL_CAST:
+			# owner_combatant here = the target of this effect.
+			# Cancel the target's in-progress cast if any.
+			if owner_combatant.ability_manager:
+				var cancelled: bool = owner_combatant.ability_manager.cancel_current_cast()
+				if cancelled:
+					Log.info("CombatEffectManager: %s's cast was cancelled by %s" % [
+						owner_combatant.combatant_data.character_name, effect.effect_name])
+					if LogManager:
+						LogManager.log_message("[b]%s[/b]'s cast was [color=cyan]interrupted[/color]!" % owner_combatant.combatant_data.character_name)
+			else:
+				Log.error("CombatEffectManager: Cannot cancel cast - missing ability_manager")
+
+		CombatEffectData.EffectType.STRIP_BUFFS:
+			# owner_combatant here = the target of this effect.
+			# Strip all buffs currently on the target.
+			if owner_combatant.buff_manager:
+				owner_combatant.buff_manager.strip_all_buffs()
+				Log.info("CombatEffectManager: %s's buffs stripped by %s" % [
+					owner_combatant.combatant_data.character_name, effect.effect_name])
+				if LogManager:
+					LogManager.log_message("[b]%s[/b]'s buffs were [color=cyan]stripped[/color]!" % owner_combatant.combatant_data.character_name)
+			else:
+				Log.error("CombatEffectManager: Cannot strip buffs - missing buff_manager")

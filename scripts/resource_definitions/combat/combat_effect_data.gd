@@ -13,6 +13,8 @@ enum EffectType {
 	DAMAGE, ## Deal damage to target
 	HEAL, ## Restore health to target
 	BUFF, ## Apply a buff or debuff
+	CANCEL_CAST, ## Cancel target's current cast if any
+	STRIP_BUFFS, ## Remove all active buffs on target
 }
 
 enum DamageType {

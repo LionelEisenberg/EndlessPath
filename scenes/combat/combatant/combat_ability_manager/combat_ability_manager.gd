@@ -68,6 +68,16 @@ func is_casting() -> bool:
 			return true
 	return false
 
+## Cancels the currently-casting ability if one exists. Returns true if a cast
+## was cancelled, false otherwise. Used by external effects (e.g. Empty Palm's
+## CANCEL_CAST rider) to interrupt the target mid-cast.
+func cancel_current_cast() -> bool:
+	for ability: CombatAbilityInstance in abilities:
+		if ability.is_casting:
+			ability.cancel_cast()
+			return true
+	return false
+
 ## Returns the number of abilities.
 func get_ability_count() -> int:
 	return abilities.size()
