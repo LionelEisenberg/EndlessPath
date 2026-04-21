@@ -7,5 +7,5 @@ script = ExtResource("1_cond")
 condition_id = "merchant_discovered"
 condition_type = 4
 target_value = "merchant_discovered"
-comparison_op = ">="
+comparison_op = "=="
 metadata/_custom_type_script = "uid://bk5wuop0jogg4"

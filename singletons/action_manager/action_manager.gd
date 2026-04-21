@@ -228,6 +228,10 @@ func _on_train_timer_finished(action_data: TrainingActionData) -> void:
 		training_level_gained.emit(action_data, level)
 
 ## Handle merchant action - stub: log a "coming soon" message and end the action.
+## NOTE: This stub calls stop_action() synchronously, unlike every other action type
+## that waits for an external stop signal (timer, dialogue end, view close). When
+## real Merchant UI lands, remove the stop_action() call and let the UI close drive
+## the stop the same way dialogue does.
 func _execute_merchant_action(action_data: ZoneActionData) -> void:
 	Log.info("ActionManager: Executing merchant action (stub): %s" % action_data.action_name)
 	if LogManager:
