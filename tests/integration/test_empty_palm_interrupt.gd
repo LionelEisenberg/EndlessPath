@@ -53,7 +53,7 @@ func test_empty_palm_applied_to_casting_target_cancels_cast() -> void:
 	assert_not_null(ability, "empty_palm.tres must load")
 
 	# Apply each of Empty Palm's effects to the target
-	for effect in ability.effects:
+	for effect in ability.effects_on_target:
 		_target.receive_effect(effect, _source_attributes, 1.0)
 
 	var long_cast: CombatAbilityInstance = _target.ability_manager.abilities[0]
@@ -69,7 +69,7 @@ func test_empty_palm_applied_to_noncasting_target_only_damages() -> void:
 
 	var starting_health: float = _target.vitals_manager.current_health
 	var ability: AbilityData = load(EMPTY_PALM_PATH)
-	for effect in ability.effects:
+	for effect in ability.effects_on_target:
 		_target.receive_effect(effect, _source_attributes, 1.0)
 
 	assert_lt(_target.vitals_manager.current_health, starting_health,

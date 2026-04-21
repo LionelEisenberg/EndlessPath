@@ -25,8 +25,8 @@ func show_for_ability(ability_data: AbilityData) -> void:
 	_damage_display.setup(ability_data, AbilityStatsDisplay.DisplayMode.DAMAGE_TOTAL)
 	_timing_display.setup(ability_data, AbilityStatsDisplay.DisplayMode.TIMING_COSTS)
 
-	# Hide damage row if ability has no damage (e.g., Enforce is a self-buff)
-	_damage_display.visible = not ability_data.effects.is_empty()
+	# Hide damage row if ability has no effects on an enemy target (e.g., Enforce is a self-buff).
+	_damage_display.visible = not ability_data.effects_on_target.is_empty()
 
 	visible = true
 

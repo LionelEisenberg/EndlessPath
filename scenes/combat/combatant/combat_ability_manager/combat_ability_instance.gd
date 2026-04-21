@@ -131,12 +131,17 @@ func execute_ability(target: CombatantNode) -> void:
 		if owner_combatant.buff_manager:
 			outgoing_modifier = owner_combatant.buff_manager.consume_outgoing_modifier()
 
-	# Apply Effects
-	if target:
-		for effect in ability_data.effects:
-			if target.has_method("receive_effect"):
-				target.receive_effect(effect, modified_attributes, outgoing_modifier)
-				
+	# Apply effects to the enemy target (outgoing modifier multiplies into damage there).
+	if target and target.has_method("receive_effect"):
+		for effect in ability_data.effects_on_target:
+			target.receive_effect(effect, modified_attributes, outgoing_modifier)
+
+	# Apply effects to self (caster). Outgoing modifier does not apply here — self-effects
+	# are not "outgoing attacks" from the caster's perspective.
+	if owner_combatant and owner_combatant.has_method("receive_effect"):
+		for effect in ability_data.effects_on_self:
+			owner_combatant.receive_effect(effect, modified_attributes, 1.0)
+
 	Log.info("CombatAbilityInstance: Executed ability %s" % ability_data.ability_name)
 
 ## Cancels an in-progress cast. Stops the cast timer, resets casting state,

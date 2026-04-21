@@ -90,7 +90,7 @@ scenes/
 resources/                    Authored .tres data files
   abilities/                    Ability definitions (basic_strike, empty_palm, enforce, etc.)
   adventure/                    Adventure configs, encounter definitions, choice data
-  combat/combatant_data/        Enemy definitions (test_enemy)
+  combat/combatant_data/        Enemy definitions (amorphous_spirit, starving_dreadbeast)
   cycling/                      Technique definitions, advancement stage data
   path_progression/             Path tree and node definitions
   effects/                      Effect instances (award_resource, trigger_event)

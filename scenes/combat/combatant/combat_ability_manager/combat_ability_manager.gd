@@ -112,18 +112,12 @@ func use_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode)
 		
 	# Consume Resources
 	instance.ability_data.consume_costs(owner_combatant.vitals_manager)
-	
-	# Determine actual target based on target type
-	var target = enemy
-	if instance.ability_data.target_type == AbilityData.TargetType.SELF:
-		target = owner_combatant
-	
-	# Start Cast
-	# Log info is handled inside start_cast if casting, or locally if instant? 
-	# Actually start_cast logs cast start. execute_ability logs execution. 
-	# We can log the "Attempt" here.
-	Log.info("CombatAbilityManager: %s: Triggering ability %s on %s" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name, target.name])
-	
-	instance.start_cast(target)
+
+	# The instance routes effects internally: effects_on_target -> enemy, effects_on_self -> caster.
+	# The enemy here is purely the "ability target" reference — may be null for pure self-cast abilities.
+	var target_name: String = enemy.name if enemy else "(self)"
+	Log.info("CombatAbilityManager: %s: Triggering ability %s on %s" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name, target_name])
+
+	instance.start_cast(enemy)
 	ability_used.emit(instance) # Emitted when usage is accepted/started
 	return true

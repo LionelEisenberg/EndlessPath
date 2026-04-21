@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="CombatantData" format=3 uid="uid://pls5nofdocrv"]
+
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="1_uu7wp"]
+[ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="2_8emjg"]
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_mquym"]
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="2_xwkgh"]
+[ext_resource type="Script" uid="uid://dp17ol31g6ph6" path="res://scripts/resource_definitions/combat/buff_effect_data.gd" id="3_xwkgh"]
+
+[sub_resource type="Resource" id="Resource_8emjg"]
+script = ExtResource("2_xwkgh")
+base_value = 15.0
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[sub_resource type="Resource" id="Resource_qqks4"]
+script = ExtResource("3_xwkgh")
+buff_id = "hunger"
+duration = 10.0
+buff_type = 2
+damage_multiplier = 1.5
+metadata/_custom_type_script = "uid://dp17ol31g6ph6"
+
+[sub_resource type="Resource" id="Resource_c7lvi"]
+script = ExtResource("1_uu7wp")
+ability_id = "famishing_bite"
+ability_name = "Famishing Bite"
+cast_time = 3.0
+effects_on_target = Array[ExtResource("2_xwkgh")]([SubResource("Resource_8emjg")])
+effects_on_self = Array[ExtResource("2_xwkgh")]([SubResource("Resource_qqks4")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
+
+[sub_resource type="Resource" id="Resource_xwkgh"]
+script = ExtResource("2_8emjg")
+attributes = Dictionary[int, float]({
+1: 12.0,
+4: 12.0
+})
+metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
+
+[resource]
+script = ExtResource("2_mquym")
+character_name = "Starving Dreadbeast"
+attributes = SubResource("Resource_xwkgh")
+abilities = Array[ExtResource("1_uu7wp")]([SubResource("Resource_c7lvi")])
+base_gold_drop = 20
+metadata/_custom_type_script = "uid://hbo1w3358rom"

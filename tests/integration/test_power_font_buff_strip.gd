@@ -60,7 +60,7 @@ func test_power_font_strips_all_buffs_and_deals_damage() -> void:
 
 	var starting_health: float = _target.vitals_manager.current_health
 
-	for effect in ability.effects:
+	for effect in ability.effects_on_target:
 		_target.receive_effect(effect, _source_attributes, 1.0)
 
 	assert_eq(_target.buff_manager.active_buffs.size(), 0,
@@ -74,7 +74,7 @@ func test_power_font_on_unbuffed_target_only_damages() -> void:
 
 	var starting_health: float = _target.vitals_manager.current_health
 	var ability: AbilityData = load(POWER_FONT_PATH)
-	for effect in ability.effects:
+	for effect in ability.effects_on_target:
 		_target.receive_effect(effect, _source_attributes, 1.0)
 
 	assert_lt(_target.vitals_manager.current_health, starting_health,
