@@ -1,10 +1,9 @@
-[gd_resource type="Resource" script_class="AwardResourceEffectData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="AwardResourceEffectData" format=3 uid="uid://csl1me1d5cwtf"]
 
 [ext_resource type="Script" uid="uid://bfhl52eit3e13" path="res://scripts/resource_definitions/effects/award_resource_effect_data.gd" id="1_madratrck"]
 
 [resource]
 script = ExtResource("1_madratrck")
-resource_type = 0
 amount = 1.5
 effect_type = 2
 metadata/_custom_type_script = "uid://bfhl52eit3e13"

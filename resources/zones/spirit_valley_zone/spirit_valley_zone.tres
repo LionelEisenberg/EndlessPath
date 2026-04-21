@@ -9,7 +9,7 @@
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="6_4wd7e"]
 [ext_resource type="Resource" uid="uid://cnpc20act001" path="res://resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_2.tres" id="6_8sxt0"]
 [ext_resource type="Resource" uid="uid://bbpx8ls6tj2u" path="res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres" id="6_owjyk"]
-[ext_resource type="Resource" path="res://resources/zones/spirit_valley_zone/zone_actions/aura_well_training_action.tres" id="7_spwtrain"]
+[ext_resource type="Resource" uid="uid://bhud1yn6ptntn" path="res://resources/zones/spirit_valley_zone/zone_actions/aura_well_training_action.tres" id="7_spwtrain"]
 [ext_resource type="Resource" uid="uid://cnpc30act001" path="res://resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_3.tres" id="8_1xdtd"]
 
 [resource]

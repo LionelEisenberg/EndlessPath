@@ -1,25 +1,19 @@
-[gd_resource type="Resource" script_class="TrainingActionData" load_steps=9 format=3]
+[gd_resource type="Resource" script_class="TrainingActionData" format=3 uid="uid://bhud1yn6ptntn"]
 
-[ext_resource type="Script" uid="uid://cjnctwbr0or12" path="res://scripts/resource_definitions/effects/award_attribute_effect_data.gd" id="1_spiratef"]
-[ext_resource type="Script" uid="uid://bfhl52eit3e13" path="res://scripts/resource_definitions/effects/award_resource_effect_data.gd" id="2_madraef"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_effectb"]
 [ext_resource type="Script" uid="uid://cglrs0duscknn" path="res://scripts/resource_definitions/zones/zone_action_data/training_action_data/training_action_data.gd" id="4_trainac"]
-[ext_resource type="Resource" path="res://resources/zones/spirit_valley_zone/zone_actions/aura_well_madra_trickle_effect.tres" id="5_madratk"]
-[ext_resource type="Resource" path="res://resources/zones/spirit_valley_zone/zone_actions/aura_well_spirit_award_effect.tres" id="6_spiraw"]
+[ext_resource type="Resource" uid="uid://csl1me1d5cwtf" path="res://resources/zones/spirit_valley_zone/zone_actions/aura_well_madra_trickle_effect.tres" id="5_madratk"]
+[ext_resource type="Resource" uid="uid://b0n0bo08ix57d" path="res://resources/zones/spirit_valley_zone/zone_actions/aura_well_spirit_award_effect.tres" id="6_spiraw"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="7_ucd"]
-[ext_resource type="Resource" path="res://resources/unlocks/aura_well_discovered.tres" id="8_discovered"]
+[ext_resource type="Resource" uid="uid://g51gy61ho7ji" path="res://resources/unlocks/aura_well_discovered.tres" id="8_discovered"]
 
 [resource]
 script = ExtResource("4_trainac")
-tick_interval_seconds = 1.0
-ticks_per_level = Array[int]([60, 300, 600, 1200])
-tail_growth_multiplier = 2.0
 effects_per_tick = Array[ExtResource("3_effectb")]([ExtResource("5_madratk")])
 effects_on_level = Array[ExtResource("3_effectb")]([ExtResource("6_spiraw")])
 action_id = "aura_well_training"
 action_name = "Aura Well"
 action_type = 4
 description = "Sit at the Aura Well. Let the valley's aura steep into your bones."
-max_completions = 0
 unlock_conditions = Array[ExtResource("7_ucd")]([ExtResource("8_discovered")])
 metadata/_custom_type_script = "uid://cglrs0duscknn"

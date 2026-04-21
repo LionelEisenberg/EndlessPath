@@ -8,7 +8,7 @@
 [ext_resource type="Resource" uid="uid://2or6sfbainjs" path="res://resources/unlocks/q_fill_core_completed.tres" id="5_qfc01"]
 [ext_resource type="Resource" uid="uid://d1vxkodelucwu" path="res://resources/unlocks/q_first_steps_enemy_defeated.tres" id="6_qfsed"]
 [ext_resource type="Resource" uid="uid://i2xnqd3pem53" path="res://resources/unlocks/q_reach_cd_10.tres" id="7_qrcd"]
-[ext_resource type="Resource" path="res://resources/unlocks/aura_well_discovered.tres" id="8_awd"]
+[ext_resource type="Resource" uid="uid://g51gy61ho7ji" path="res://resources/unlocks/aura_well_discovered.tres" id="8_awd"]
 
 [resource]
 script = ExtResource("2_2uato")
