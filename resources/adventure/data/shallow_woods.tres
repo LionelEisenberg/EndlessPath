@@ -29,7 +29,6 @@ encounter_type = 2
 script = ExtResource("8_2dkfl")
 adventure_id = "shallow_woods"
 adventure_name = "The Shallow Woods"
-num_special_tiles = 1
 num_path_encounters = 8
 boss_encounter = SubResource("Resource_bpxxd")
 special_encounter_pool = Array[ExtResource("6_mnoah")]([ExtResource("9_aurawell")])
