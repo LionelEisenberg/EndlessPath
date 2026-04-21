@@ -189,4 +189,3 @@ func reset() -> void:
 	current_path_id = ""
 	path_node_purchases = {}
 	path_points = 0
-
