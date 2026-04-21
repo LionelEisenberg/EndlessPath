@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AdventureEncounter" format=3 uid="uid://dquwaod5rj70m"]
+
+[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_y3srr"]
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="2_asda7"]
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_glsdj"]
+[ext_resource type="Resource" uid="uid://pls5nofdocrv" path="res://resources/combat/combatant_data/starving_dreadbeast.tres" id="3_rkwkm"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="4_srkob"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_pugfe"]
+[ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="6_2g4xi"]
+
+[sub_resource type="Resource" id="Resource_f6ngc"]
+script = ExtResource("6_2g4xi")
+enemy_pool = Array[ExtResource("2_glsdj")]([ExtResource("3_rkwkm")])
+metadata/_custom_type_script = "uid://cpq8eacgl1537"
+
+[resource]
+script = ExtResource("2_asda7")
+encounter_id = "starving_dreadbeast_encounter"
+encounter_name = "A Starving Dreadbeast!"
+description = "A gaunt, twisted beast slinks from the undergrowth — all ribs and hunger. Its empty eyes fix on you, and its jaws work as though already feeding."
+text_description_completed = "The Starving Dreadbeast lies still. Its hunger, at last, is sated."
+choices = Array[ExtResource("1_y3srr")]([SubResource("Resource_f6ngc")])
+encounter_type = 0
+metadata/_custom_type_script = "uid://cs335nesm7wfr"
