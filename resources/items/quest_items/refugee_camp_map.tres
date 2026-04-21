@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDefinitionData" load_steps=3 format=3 uid="uid://bitem_refugee_map"]
+
+[ext_resource type="Script" uid="uid://cuag0kvf84qnl" path="res://scripts/resource_definitions/items/item_definition_data.gd" id="1_itm"]
+[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_itm")
+item_id = "refugee_camp_map"
+item_name = "Refugee Camp Map"
+description = "A hand-drawn map leading to a camp of survivors hidden in the valley."
+icon = ExtResource("2_icon")
+item_type = 3
+stack_size = 1
+base_value = 0.0
+metadata/_custom_type_script = "uid://cuag0kvf84qnl"
