@@ -46,9 +46,7 @@ directories/dch_directory={
 "wisened_dirt_eel": "res://assets/dialogue/characters/wisened_dirt_eel/wisened_dirt_eel.dch"
 }
 directories/dtl_directory={
-"celestial_intervener_introduction_1": "res://assets/dialogue/timelines/celestial_intervener_introduction_1.dtl",
-"wandering_spirit_2": "res://assets/dialogue/timelines/rwr.dtl",
-"wandering_spirit_3": "res://assets/dialogue/timelines/wandering_spirit_3.dtl"
+"celestial_intervener_introduction_1": "res://assets/dialogue/timelines/celestial_intervener_introduction_1.dtl"
 }
 layout/style_directory={
 "": "res://assets/dialogue/styles/default_style.tres",
