@@ -16,3 +16,9 @@ celestial_intervener: Oh good! Hopefully these spirits haven't been giving you T
 celestial_intervener: [REPORT REQUESTED] - Okay I don't have too much more time before I need to leave, strengthen your core while cycling with that fancy new cycling technique! Let me know when you've progressed a little more and I'll give you some tips before heading out of here.
 leave celestial_intervener
 [end_timeline]
+label dialogue_4
+join celestial_intervener center
+celestial_intervener: Look at you! Core's humming nicely now, eh? Right before I slip off, I'm gonna leave you something useful.
+celestial_intervener: Here, take this map. There's a little refugee camp tucked away in the woods — go find them. Got a merchant with them who'll trade you real gear for coin. Tell 'em I sent you!
+leave celestial_intervener
+[end_timeline]
