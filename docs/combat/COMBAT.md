@@ -79,7 +79,7 @@ Default: all attributes start at 10.0.
 |-------|------|-------------|
 | `effect_type` | `EffectType` | `DAMAGE`, `HEAL`, `BUFF` |
 | `base_value` | `float` | Base effect value |
-| `damage_type` | `DamageType` | `PHYSICAL`, `MADRA`, `TRUE`, `MIXED` |
+| `damage_type` | `DamageType` | `PHYSICAL`, `SPIRIT`, `TRUE`, `MIXED` |
 | `*_scaling` | `float` | Per-attribute scaling (8 fields) |
 
 **Damage formula:** `base_value + sum(attribute * scaling)`, then defense reduction: `damage * (100 / (100 + defense))`.
@@ -196,30 +196,18 @@ A global casting lock prevents firing multiple abilities simultaneously.
 
 ## Existing Content
 
-### Player Abilities
+### Abilities
 
-| Ability | Target | Cost | Cooldown | Cast | Base | Damage Type | Scaling | Description |
-|---------|--------|------|----------|------|------|-------------|---------|-------------|
-| `basic_strike` | Enemy | 10 stam | 4.0s | 0s | 12 | Physical | STR 0.2, BODY 0.2, AGI 0.2 | Pure physical attack |
-| `empty_palm` | Enemy | 12 madra, 3 stam | 3.0s | 0s | 10 | Physical | AGI 0.3, SPI 1.0 | Madra-infused strike through enemy's core |
-| `enforce` | Self | 10 madra | 30.0s | 0s | — | Buff | STR x1.5, SPI x1.5 for 8s | Enhances body and soul |
-| `power_font` | Enemy | 20 madra | 15.0s | 3.0s | 30 | Madra | SPI 1.5, FND 0.5 | Channeled madra wave, high spirit scaling |
-
-### Test Abilities (debug/placeholder)
-
-| Ability | Target | Cost | Cooldown | Cast | Base | Scaling | Notes |
-|---------|--------|------|----------|------|------|---------|-------|
-| `test_ability` | Enemy | 10 madra | 5.0s | 0s | 1 | STR 1.0 | Placeholder, uses generic 64px icon |
-| `test_cast_ability` | Enemy | 10 madra | — | 3.0s | 1 | STR 1.0 | Placeholder with cast time, used by test enemy |
+Full per-path ability stats, costs, cooldowns, cast times, damage types, and attribute scaling live in [ABILITIES_MATRIX.md](../abilities/ABILITIES_MATRIX.md). See [ABILITIES.md](../abilities/ABILITIES.md) for the ability system architecture (data model, lifecycle, unlock/equip flow).
 
 ### Attribute Usage in Combat
 
 | Attribute | Offensive Use | Defensive Use | Vitals | Status |
 |-----------|--------------|---------------|--------|--------|
-| **STRENGTH** | Damage scaling (basic_strike, test abilities), Enforce buff x1.5 | — | — | Active |
-| **BODY** | Damage scaling (basic_strike) | — | Max HP (BODY*10), Max Stamina (BODY*5) | **Core** |
+| **STRENGTH** | Damage scaling (basic_strike) | — | — | Active |
+| **BODY** | — | — | Max HP (BODY*10), Max Stamina (BODY*5) | **Core** |
 | **AGILITY** | Damage scaling (basic_strike, empty_palm) | — | — | Active |
-| **SPIRIT** | Damage scaling (empty_palm, power_font), Enforce buff x1.5 | Madra damage defense | — | **Core** |
+| **SPIRIT** | Damage scaling (empty_palm, power_font) | Spirit damage defense | — | **Core** |
 | **FOUNDATION** | Damage scaling (power_font) | — | Max Madra (FND*10) | **Core** |
 | **CONTROL** | — | — | — | **Inert** (cooldown reduction planned) |
 | **RESILIENCE** | — | Physical + Mixed damage defense | — | Active (defense only) |
@@ -227,7 +215,21 @@ A global casting lock prevents firing multiple abilities simultaneously.
 
 ### Enemies
 
-One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_ability`, drops 10 gold).
+Enemy `CombatantData` resources live in [resources/combat/combatant_data/](../../resources/combat/combatant_data/).
+
+| Enemy | Attributes (STR/BODY/AGI/SPI/FND/CTRL/RES/WPR) | Abilities | Gold | Sprite |
+|-------|------------------------------------------------|-----------|------|--------|
+| `amorphous_spirit` | 0 / 10 / 0 / 0 / 10 / 0 / 0 / 0 (unset attrs default to 0) | inline `madra_lash` (2.0s cast, 10 base SPIRIT dmg, no scaling) | 0 (unset) | *(none set)* |
+
+**Known anomalies:**
+- `amorphous_spirit` only sets BODY and FOUNDATION in its attribute dict; missing keys resolve to 0, giving it 0 Spirit/Resilience/Willpower and no physical damage scaling. Also missing `texture` and `base_gold_drop`.
+- `amorphous_spirit`'s `madra_lash` is defined inline as a sub-resource on the enemy — not in the shared ability catalog, so it doesn't show up in [ABILITIES_MATRIX.md](../abilities/ABILITIES_MATRIX.md).
+
+### Combat Encounters
+
+| Encounter | Used In | Choices | Notes |
+|-----------|---------|---------|-------|
+| `amorphous_spirit_encounter` | Foundation Beat 3a content | "Attack the Spirit" → fights `amorphous_spirit` | Real content encounter |
 
 ## Key Files
 
@@ -270,8 +272,9 @@ One enemy exists: `test_enemy` (all attributes default 10, uses `test_cast_abili
 
 ### Content
 
-- `[HIGH]` Only 1 enemy exists (`test_enemy`) — needs diverse enemies with different abilities, stats, and strategies
-- `[HIGH]` Only 6 abilities (4 player, 2 test) — GDD describes 3 starter skills (Flowing Strike, Stand Your Ground, Empty Palm) plus a Cycle tap skill
+- `[HIGH]` Only 1 enemy exists (`amorphous_spirit`) — needs diverse enemies with different abilities, stats, and strategies
+- `[MEDIUM]` `amorphous_spirit` has an incomplete attribute dict (only BODY + FOUNDATION set), no `texture`, and no `base_gold_drop`
+- `[HIGH]` Only 4 player abilities exist — GDD describes 3 starter skills (Flowing Strike, Stand Your Ground, Empty Palm) plus a Cycle tap skill
 - `[MEDIUM]` Player sprite hardcoded to `test_character_sprite.png` — needs to be driven by player/character data
 - ~~`[LOW]` No ability unlock or progression system — abilities are hardcoded in `CharacterManager.get_equipped_abilities()`~~ *(Fixed in PR #22 — AbilityManager singleton with unlock/equip system)*
 
