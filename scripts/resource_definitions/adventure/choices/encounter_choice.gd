@@ -19,6 +19,15 @@ extends Resource
 ## Effects applied when this choice results in failure (e.g. lost combat).
 @export var failure_effects: Array[EffectData] = []
 
+## Label shown when completion_condition is met. Renders grayed/disabled.
+## Falls back to `label` if empty.
+@export var completed_label: String = ""
+
+## When non-null and evaluates to true, the choice renders as completed
+## (grayed, using completed_label). Separate from requirements so completion
+## and eligibility are independent.
+@export var completion_condition: UnlockConditionData
+
 ## Returns true when every condition in `requirements` evaluates to its
 ## expected bool. Returns true for empty requirements.
 func evaluate_requirements() -> bool:
@@ -26,3 +35,7 @@ func evaluate_requirements() -> bool:
 		if condition.evaluate() != requirements[condition]:
 			return false
 	return true
+
+## Returns true when completion_condition is set and evaluates true.
+func is_completed() -> bool:
+	return completion_condition != null and completion_condition.evaluate()

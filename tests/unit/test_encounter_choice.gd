@@ -49,3 +49,18 @@ func test_mixed_requirements_all_must_match() -> void:
 
 	EventManager.trigger_event("b")
 	assert_false(choice.evaluate_requirements(), "b fired -> violates expected=false")
+
+func test_is_completed_false_when_no_completion_condition() -> void:
+	var choice := EncounterChoice.new()
+	assert_false(choice.is_completed(), "no completion_condition -> not completed")
+
+func test_is_completed_false_when_condition_evaluates_false() -> void:
+	var choice := EncounterChoice.new()
+	choice.completion_condition = _make_event_condition("done_event")
+	assert_false(choice.is_completed(), "event not fired -> not completed")
+
+func test_is_completed_true_when_condition_evaluates_true() -> void:
+	var choice := EncounterChoice.new()
+	choice.completion_condition = _make_event_condition("done_event")
+	EventManager.trigger_event("done_event")
+	assert_true(choice.is_completed(), "event fired -> completed")

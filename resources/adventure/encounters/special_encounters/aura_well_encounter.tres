@@ -28,7 +28,11 @@ event_id = "aura_well_discovered"
 script = ExtResource("2_choice")
 label = "Mark down the location"
 tooltip = "Commit the well's site to memory so you can find your way back."
-requirements = Dictionary[ExtResource("5_ucd"), bool]({ExtResource("8_discovered"): false})
+completed_label = "✓ Location noted"
+completion_condition = ExtResource("8_discovered")
+requirements = Dictionary[ExtResource("5_ucd"), bool]({
+ExtResource("8_discovered"): false
+})
 success_effects = Array[ExtResource("3_effect")]([SubResource("Resource_rest_effect"), SubResource("Resource_trigger_event")])
 
 [resource]
