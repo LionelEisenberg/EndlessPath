@@ -317,8 +317,8 @@ Exact dispatcher file/function: locate during implementation by grepping for whe
 ## 8. Out of scope / follow-ups
 
 - **Merchant buy/sell UI.** Real stock, pricing, sell-back fraction, restock, rotating inventory — all Beat 4 / future-beat work. A `MerchantActionData` subclass + merchant scene would slot in cleanly once that work begins.
-- **Quest-items inventory tab.** Player currently sees the Refugee Camp Map only as a log line on acquisition. A dedicated Quest Items view can come with the next quest-item addition.
+- **Quest-items inventory tab.** ✅ Implemented (see [2026-04-21-quest-items-tab-design.md](./2026-04-21-quest-items-tab-design.md) + plan).
 - **Dedicated `REFUGEE_CAMP` encounter icon.** Reuses `REST_SITE` for now.
 - **Path-point awarding on CD 10.** Existing PathManager CD-milestone behavior is expected to award the second path point at CD 10 independently of the quest. The quest's `completion_effects` deliberately do **not** re-award it. Verify during implementation; if PathManager's milestone hook isn't wired yet, handle in a separate pass — not as part of this beat.
 - **Dialogue copy polish.** Draft in §5.2 is placeholder; final copy can land anytime without touching mechanics.
-- **UI surfacing of quest items.** If playtest reveals players don't notice the map → camp → merchant chain, add either a Quest Items tab in inventory or a highlighted quest log entry. Out of scope for a stub pass.
+- **UI surfacing of quest items.** ✅ Addressed by the Quest Items inventory tab (see link above). If playtest still reveals the map → camp → merchant chain is missable, a highlighted quest log entry remains an option.
