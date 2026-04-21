@@ -39,6 +39,7 @@ signal cooldown_ready()
 signal cast_started(instance: CombatAbilityInstance, duration: float)
 signal cast_updated(instance: CombatAbilityInstance, time_left: float)
 signal cast_finished(instance: CombatAbilityInstance)
+signal cast_cancelled(instance: CombatAbilityInstance)
 
 #-----------------------------------------------------------------------------
 # DATA
@@ -137,6 +138,20 @@ func execute_ability(target: CombatantNode) -> void:
 				target.receive_effect(effect, modified_attributes, outgoing_modifier)
 				
 	Log.info("CombatAbilityInstance: Executed ability %s" % ability_data.ability_name)
+
+## Cancels an in-progress cast. Stops the cast timer, resets casting state,
+## starts the ability's cooldown, and emits cast_cancelled.
+## No-op if not currently casting.
+func cancel_cast() -> void:
+	if not is_casting:
+		return
+
+	is_casting = false
+	cast_timer.stop()
+	_current_target = null
+	_start_cooldown(ability_data.base_cooldown)
+	cast_cancelled.emit(self)
+	Log.info("CombatAbilityInstance: Cancelled cast of %s" % ability_data.ability_name)
 
 #-----------------------------------------------------------------------------
 # INTERNAL LOGIC
