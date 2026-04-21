@@ -83,10 +83,10 @@ func apply_buff(buff_data: BuffEffectData) -> void:
 		Log.info("CombatBuffManager: Refreshed buff '%s' (%.1fs)" % [buff_data.buff_id, buff_data.duration])
 		buff_refreshed.emit(buff_data.buff_id, buff_data.duration)
 		
-		# For DoT, also add a stack
-		if buff_data.buff_type == BuffEffectData.BuffType.DAMAGE_OVER_TIME:
+		# Stack DoTs and outgoing damage modifiers
+		if _buff_type_stacks(buff_data.buff_type):
 			existing_buff.add_stack()
-			Log.info("CombatBuffManager: DoT '%s' now has %d stacks" % [buff_data.buff_id, existing_buff.stack_count])
+			Log.info("CombatBuffManager: Buff '%s' now has %d stacks" % [buff_data.buff_id, existing_buff.stack_count])
 			buff_stacked.emit(buff_data.buff_id, existing_buff.stack_count)
 	else:
 		# Create new buff
@@ -146,12 +146,12 @@ func get_attribute_modifier(attr_type: CharacterAttributesData.AttributeType) ->
 ## Returns 1.0 if no modifiers.
 func get_outgoing_damage_modifier() -> float:
 	var total_modifier: float = 1.0
-	
+
 	for buff in active_buffs:
 		if buff.buff_data.buff_type == BuffEffectData.BuffType.OUTGOING_DAMAGE_MODIFIER:
 			if not buff.is_consumed:
-				total_modifier *= buff.buff_data.damage_multiplier
-	
+				total_modifier *= pow(buff.buff_data.damage_multiplier, buff.stack_count)
+
 	return total_modifier
 
 ## Get the total incoming damage modifier.
@@ -176,7 +176,7 @@ func consume_outgoing_modifier() -> float:
 			continue
 		if buff.is_consumed:
 			continue
-		total_modifier *= buff.buff_data.damage_multiplier
+		total_modifier *= pow(buff.buff_data.damage_multiplier, buff.stack_count)
 		if buff.buff_data.consume_on_use:
 			buff.is_consumed = true
 			Log.info("CombatBuffManager: Consumed outgoing damage buff '%s'" % buff.buff_data.buff_id)
@@ -201,6 +201,10 @@ func consume_incoming_modifier() -> float:
 #-----------------------------------------------------------------------------
 # INTERNAL LOGIC
 #-----------------------------------------------------------------------------
+
+func _buff_type_stacks(buff_type: BuffEffectData.BuffType) -> bool:
+	return buff_type == BuffEffectData.BuffType.DAMAGE_OVER_TIME \
+		or buff_type == BuffEffectData.BuffType.OUTGOING_DAMAGE_MODIFIER
 
 func _find_buff_by_id(buff_id: String) -> ActiveBuff:
 	for buff in active_buffs:
