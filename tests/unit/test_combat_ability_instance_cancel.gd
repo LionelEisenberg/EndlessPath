@@ -13,8 +13,10 @@ func before_each() -> void:
 	_ability_data.cast_time = 2.0
 	_ability_data.base_cooldown = 5.0
 
-	# Pass null as the owner — _init only assigns it for logging; no methods are
-	# called on it during cancel_cast(), so null is safe for these tests.
+	# Owner is passed as null: these tests exercise cancel_cast() in isolation,
+	# which never dereferences owner_combatant. If a future change to cancel_cast()
+	# starts reading owner_combatant.combatant_data (e.g. for logs), this test
+	# will crash and must be updated to pass a real CombatantNode with stubbed data.
 	_instance = CombatAbilityInstance.new(_ability_data, null)
 	add_child_autofree(_instance)
 
