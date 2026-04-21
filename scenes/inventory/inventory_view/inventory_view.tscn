@@ -24,6 +24,7 @@
 [ext_resource type="Texture2D" uid="uid://cqbdw487scbtr" path="res://assets/sprites/inventory/equipment_grid/bar_grabber.png" id="22_26fxh"]
 [ext_resource type="PackedScene" uid="uid://c5wiepsq2qinv" path="res://scenes/inventory/inventory_view/materials_tab/material_container.tscn" id="22_qufb6"]
 [ext_resource type="PackedScene" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="23_desc_panel"]
+[ext_resource type="PackedScene" uid="uid://bquestitemstab001" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.tscn" id="24_qtab"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -204,6 +205,14 @@ offset_left = 55.5
 offset_top = 144.0
 offset_right = 55.5
 offset_bottom = 144.0
+
+[node name="QuestItemsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=931205040 instance=ExtResource("3_eyvfv")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 55.5
+offset_top = 193.0
+offset_right = 55.5
+offset_bottom = 193.0
 
 [node name="EquipmentTab" type="Control" parent="BookBackground/BookContent" unique_id=191510472]
 unique_name_in_owner = true
@@ -503,3 +512,7 @@ layout_mode = 2
 
 [node name="MaterialContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/ScrollContainer/MaterialsVbox" unique_id=632772983 instance=ExtResource("22_qufb6")]
 layout_mode = 2
+
+[node name="QuestItemsTab" parent="BookBackground/BookContent" unique_id=1012340856 instance=ExtResource("24_qtab")]
+unique_name_in_owner = true
+visible = false

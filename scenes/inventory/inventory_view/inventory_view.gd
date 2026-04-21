@@ -12,7 +12,7 @@ signal inventory_closed
 #-----------------------------------------------------------------------------
 
 @onready var tab_switcher: Control = %TabSwitcher
-@onready var tabs: Array[Control] = [%EquipmentTab, %MaterialsTab]
+@onready var tabs: Array[Control] = [%EquipmentTab, %MaterialsTab, %QuestItemsTab]
 @onready var book_content: Control = %BookContent
 @onready var book_animation_player: AnimationPlayer = %BookAnimationPlayer
 @onready var page_turning_animation_player: AnimationPlayer = %PageTurningAnimationPlayer
