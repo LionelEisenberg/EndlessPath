@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://4rs2o3l3fo4d"]
+
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_txy6p"]
+[ext_resource type="Script" uid="uid://dp17ol31g6ph6" path="res://scripts/resource_definitions/combat/buff_effect_data.gd" id="2_56htg"]
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_73xcy"]
+[ext_resource type="Texture2D" uid="uid://5us4w5sfp1k7" path="res://assets/sprites/abilities/famishing_bite.png" id="2_hjbpe"]
+
+[sub_resource type="Resource" id="Resource_qqks4"]
+script = ExtResource("2_56htg")
+buff_id = "hunger"
+buff_icon = ExtResource("2_hjbpe")
+duration = 10.0
+buff_type = 2
+damage_multiplier = 1.5
+metadata/_custom_type_script = "uid://dp17ol31g6ph6"
+
+[sub_resource type="Resource" id="Resource_8emjg"]
+script = ExtResource("1_txy6p")
+base_value = 15.0
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[resource]
+script = ExtResource("2_73xcy")
+ability_id = "famishing_bite"
+ability_name = "Famishing Bite"
+icon = ExtResource("2_hjbpe")
+cast_time = 3.0
+effects_on_target = Array[ExtResource("1_txy6p")]([SubResource("Resource_8emjg")])
+effects_on_self = Array[ExtResource("1_txy6p")]([SubResource("Resource_qqks4")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

@@ -6,7 +6,6 @@
 
 [sub_resource type="Resource" id="Resource_damage"]
 script = ExtResource("1_lurdt")
-effect_type = 0
 effect_name = "Empty Palm Strike"
 base_value = 15.0
 agility_scaling = 0.3
@@ -30,6 +29,5 @@ madra_type = 1
 ability_source = 1
 madra_cost = 8.0
 base_cooldown = 3.0
-cast_time = 0.0
 effects_on_target = Array[ExtResource("1_lurdt")]([SubResource("Resource_damage"), SubResource("Resource_cancel")])
 metadata/_custom_type_script = "uid://cmwib0b1jyoa8"
