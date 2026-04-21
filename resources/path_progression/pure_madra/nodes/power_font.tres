@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PathNodeData" format=3 uid="uid://dr7yte0lxmckq"]
+
+[ext_resource type="Script" uid="uid://bu68duxxx6bug" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_oxfag"]
+[ext_resource type="Script" uid="uid://bcwya48qokiun" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_mdqxp"]
+[ext_resource type="Resource" uid="uid://bsmdqod42b8d" path="res://resources/path_progression/pure_madra/nodes/pure_core_awakening.tres" id="prereq_pure_core"]
+
+[sub_resource type="Resource" id="Resource_2d6qk"]
+script = ExtResource("1_oxfag")
+effect_type = 8
+string_value = "power_font"
+
+[resource]
+script = ExtResource("2_mdqxp")
+id = "power_font"
+display_name = "Power Font"
+description = "Unlocks a new combat ability that costs Madra but hits significantly harder, and strips enemies of buffs"
+node_type = 0
+prerequisites = Array[ExtResource("2_mdqxp")]([ExtResource("prereq_pure_core")])
+point_cost = 2
+effects = Array[ExtResource("1_oxfag")]([SubResource("Resource_2d6qk")])
+benefit_summary = "Madra Strike unlocked"

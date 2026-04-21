@@ -6,7 +6,6 @@
 
 [sub_resource type="Resource" id="Resource_damage"]
 script = ExtResource("1_ys7rd")
-effect_type = 0
 effect_name = "Sundering Font"
 base_value = 30.0
 spirit_scaling = 1.5
