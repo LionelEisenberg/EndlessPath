@@ -113,6 +113,18 @@ func clear_all_buffs() -> void:
 	_dot_timer.stop()
 	Log.info("CombatBuffManager: Cleared all buffs")
 
+## Strips every active buff from this combatant as a mid-combat operation.
+## Emits buff_removed for each buff removed and stops the DoT timer if no
+## DoT buffs remain. Different from clear_all_buffs(), which is for combat end.
+func strip_all_buffs() -> void:
+	if active_buffs.is_empty():
+		return
+
+	var to_remove: Array[ActiveBuff] = active_buffs.duplicate()
+	for buff in to_remove:
+		_remove_buff(buff)
+	Log.info("CombatBuffManager: Stripped %d buffs" % to_remove.size())
+
 #-----------------------------------------------------------------------------
 # PUBLIC API - Modifier Queries
 #-----------------------------------------------------------------------------
