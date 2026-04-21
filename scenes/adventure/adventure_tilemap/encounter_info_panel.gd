@@ -110,10 +110,20 @@ func _generate_choice_buttons(choices: Array[EncounterChoice]) -> void:
 	
 	# Create new buttons
 	for choice in choices:
-		var fill_color = Color.WHITE
+		var fill_color: Color = Color.WHITE
 		if choice is CombatChoice:
 			fill_color = Color.DARK_RED
+
+		var is_complete: bool = choice.is_completed()
+		var is_available: bool = choice.evaluate_requirements()
+
+		var label_text: String = choice.label
+		if is_complete and choice.completed_label != "":
+			label_text = choice.completed_label
+
+		var disabled: bool = is_complete or not is_available
+
 		var button = encounter_choice_button_scene.instantiate()
-		button.setup(choice.label, null, fill_color, not choice.evaluate_requirements())
+		button.setup(label_text, null, fill_color, disabled)
 		button.button_pressed.connect(choice_selected.emit.bind(choice))
 		choices_container.add_child(button)

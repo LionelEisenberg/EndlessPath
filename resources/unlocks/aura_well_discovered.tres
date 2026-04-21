@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" format=3 uid="uid://g51gy61ho7ji"]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+condition_id = "aura_well_discovered"
+condition_type = 4
+target_value = "aura_well_discovered"
+comparison_op = "=="
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"

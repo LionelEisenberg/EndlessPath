@@ -8,6 +8,7 @@
 [sub_resource type="Resource" id="Resource_4mmr5"]
 script = ExtResource("1_buff")
 buff_id = "enforce_buff_effect"
+buff_icon = ExtResource("2_4mmr5")
 buff_type = 2
 damage_multiplier = 1.5
 consume_on_use = true

@@ -34,8 +34,8 @@ These assumptions shape the entire spine. Update here if they change.
 - **Path points in Foundation:**
   - First point is a **one-time freebie** (reward for Beat 2).
   - Subsequent points come from Core Density level milestones — every 10 CD levels awards 1 path point (existing `PathManager` behavior).
-- **Keystones** are the first node of each path. They grant:
-  - **Keystone #1** (Beat 2): new cycling technique (generates CD XP) + combat ability + path lore.
+- **Keystones** are keystone-tier nodes on the Pure Madra path tree. All three live on the same tree for Foundation — distinct paths (Blackflame, Earth, etc.) are not yet scaffolded. They grant:
+  - **Keystone #1** (Beat 2, `pure_core_awakening`): new cycling technique (generates CD XP) + combat ability + path lore.
   - **Keystone #2** (Beat 3b): ability-focused — gives a second combat ability for slot 2.
   - **Keystone #3** (Beat 6): combat-focused — burst/finisher ability that raises damage ceiling.
 - **Ability slots 3-4** are earned via path-tree non-keystone nodes (later in the tree), not via scripted beats.
@@ -97,25 +97,31 @@ These assumptions shape the entire spine. Update here if they change.
 
 *Two parallel tracks; either order. Both must resolve before Beat 4 is reachable.*
 
-#### Beat 3a — Spirit Well Discovery
+#### Beat 3a — Aura Well Discovery `IMPLEMENTED`
 
-- During some adventure run, player survives long enough to reach the **Spirit Well tile** (always on the map).
-- Interaction → brief flavor event, no NPC.
-- **Unlocks:** Basic Training system, Spirit Well zone action in Zone 1 main view.
-  - Spirit Well grants Spirit attribute growth (exponential cost curve — starting value 1m / 5m / 10m / 20m for first four points, see [§3 Q-9](#q-9-basic-training-cost-curve)) + passive resource trickle.
-- **No quest.** New zone action is the signal.
+- During an adventure, player may reach an **Aura Well** special tile — one entry in `shallow_woods.special_encounter_pool`. With only Aura Wells in the pool today, every map currently has ~4 Aura Wells (one of the 5 special slots is overwritten with the boss). As more special encounters land, the pool diversifies.
+- Encounter panel offers two choices:
+  - **Rest** — restores `5 × BODY` HP and `2 × FOUNDATION` Madra. Always available.
+  - **Mark down the location** — same Rest payload *plus* fires the `aura_well_discovered` event. Gated by `requirements = {aura_well_discovered: false}` so it's only pickable pre-discovery. Paired with `completion_condition = aura_well_discovered` + `completed_label = "✓ Location noted"`, so sibling Aura Well tiles (and Aura Wells on future adventures) render the button as "✓ Location noted" grayed.
+- Firing `aura_well_discovered` satisfies the `aura_well_discovered` unlock condition on the `aura_well_training` zone action → the **Aura Well** button appears in Zone 1's main view.
+- Zone action is a `TrainingActionData`: 1s ticks, `+1.5 Madra` trickle per tick, `ticks_per_level = [60, 300, 600, 1200]` with `tail_growth_multiplier = 2.0` (~1m / 5m / 10m / 20m for first four points, see [§3 Q-9](#q-9-basic-training-cost-curve)). Each level crossed awards `+1 Spirit` attribute.
+- **No quest.** New zone action appearing in Zone 1 is the signal.
+- **Schema additions this beat introduced** (referenced by later beats):
+  - `UnlockConditionData`-keyed `Dictionary` for `EncounterChoice.requirements` (`{condition: expected_bool}`) replaces the older Array + `negate` design.
+  - `EncounterChoice.completion_condition` + `EncounterChoice.completed_label` — per-choice completion state, independent of eligibility.
+  - `ChangeVitalsEffectData.body_hp_multiplier` + `foundation_madra_multiplier` — attribute-scaled Rest effect.
 
-#### Beat 3b — Second Keystone
+#### Beat 3b — Second Keystone + Merchant Handoff `PLANNED`
 
 - Player cycles with Keystone #1 technique; Core Density rises.
-- At **Core Density 10**, second path point awarded.
-- Player picks Keystone #2 (ability-focused) → second combat ability equipped to slot 2.
-- `q_reach_core_density_10` completes.
+- At **Core Density 10**, second path point awarded via `q_reach_core_density_10` completion effects.
+- Player picks Keystone #2 (ability-focused) on the Pure Madra tree → second combat ability equipped to slot 2.
+- `q_reach_core_density_10` step 1 completes on CD10. A **second step** sends the player back to the Celestial Intervener — NPC hands over a **map** item, fires the next event, and starts Beat 4's quest chain. This map unlock is the gate that enables the **Merchant** zone action (Beat 4 below).
 
 | Property | Value |
 |---|---|
-| Combined effect | Adventure viability rises via attributes + passive resources (3a) and a second ability for combat (3b). |
-| Exit gate | Spirit Well unlocked AND Keystone #2 picked. |
+| Combined effect | Adventure viability rises via attributes + passive resources (3a), a second combat ability (3b), and the Merchant unlock (3b → 4 handoff). |
+| Exit gate | Aura Well discovered AND Keystone #2 picked AND NPC map handed over. |
 
 ### Beat 4 — Refugee Camp `PLANNED`
 
@@ -186,8 +192,8 @@ These assumptions shape the entire spine. Update here if they change.
 |---|---|---|---|
 | 1 | Awakening | Cycling + Adventure unlocked via NPC dialogue | `PLANNED` |
 | 2 | First Steps Out | First adventure + Keystone #1 | `PLANNED` |
-| 3a | Spirit Well | Basic Training system + Spirit Well zone action | `PLANNED` |
-| 3b | Second Keystone | Keystone #2 at Core Density 10 | `PLANNED` |
+| 3a | Aura Well Discovery | Aura Well adventure encounter + Aura Well zone action (+1.5 Madra/tick passive, +1 Spirit per level) | `IMPLEMENTED` |
+| 3b | Second Keystone + Merchant handoff | Keystone #2 at Core Density 10 + NPC map unlock (gates Merchant) | `PLANNED` |
 | 4 | Refugee Camp | Merchant zone action + gold sink | `PLANNED` |
 | 5 | Elite Gear Drop | First elite defeated, tier-bump gear | `PLANNED` |
 | 6 | Third Keystone | Keystone #3 (burst/finisher) at Core Density ~30 | `PLANNED` |
@@ -356,3 +362,4 @@ STATUS: Open | Testing | Resolved → (pointer to where the answer lives)
 ## Change Log
 
 - *2026-04-17* — Initial scaffold created; brainstorm session filled in the 10-beat Foundation spine end-to-end, added framing notes (tile-always-exists / no-retreat / quests-for-ambiguity / NPC placeholders), and seeded 9 open tuning questions in Section 3.
+- *2026-04-20* — Beat 3a (Aura Well) promoted `PLANNED → IMPLEMENTED`. Renamed Spirit Well → Aura Well throughout (training action, trickle/award effects). Reframed discovery as an adventure-encounter Mark choice rather than a generic tile interaction. Updated Keystone framing note — all three Foundation keystones live on the Pure Madra tree (the "first node of each path" phrasing was incorrect). Expanded Beat 3b to document the NPC → map → Merchant handoff that gates Beat 4.

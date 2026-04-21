@@ -24,7 +24,7 @@ metadata/_custom_type_script = "uid://cesx0glx57xs4"
 
 [sub_resource type="Resource" id="Resource_ilask"]
 script = ExtResource("1_cnrdd")
-requirements = Array[ExtResource("3_7xoeq")]([ExtResource("5_7xoeq")])
+requirements = Dictionary[ExtResource("3_7xoeq"), bool]({ExtResource("5_7xoeq"): true})
 success_effects = Array[ExtResource("2_a2by8")]([SubResource("Resource_vhjb0")])
 metadata/_custom_type_script = "uid://c1b11mq3a2qya"
 
