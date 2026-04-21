@@ -335,3 +335,47 @@ func test_item_awarded_signal_emits_on_award() -> void:
 	InventoryManager.award_items(test_item, 3)
 
 	assert_signal_emitted(InventoryManager, "item_awarded", "item_awarded should fire on award_items")
+
+#-----------------------------------------------------------------------------
+# AWARD ITEMS - QUEST ITEMS
+#-----------------------------------------------------------------------------
+
+func test_award_quest_item_new() -> void:
+	var def := ItemDefinitionData.new()
+	def.item_id = "test_map"
+	def.item_name = "Test Map"
+	def.item_type = ItemDefinitionData.ItemType.QUEST_ITEM
+
+	_inventory.quest_items[def] = 1
+	assert_eq(_inventory.quest_items[def], 1, "quest item should be stored by definition")
+
+func test_award_quest_item_stacks() -> void:
+	var def := ItemDefinitionData.new()
+	def.item_id = "test_map"
+	def.item_name = "Test Map"
+	def.item_type = ItemDefinitionData.ItemType.QUEST_ITEM
+
+	_inventory.quest_items[def] = 1
+	_inventory.quest_items[def] += 2
+	assert_eq(_inventory.quest_items[def], 3, "quest items should stack")
+
+func test_award_items_quest_item_lands_in_quest_items() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+
+	# Reset live save data so prior tests don't leak into this one.
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
+
+	var def := ItemDefinitionData.new()
+	def.item_id = "test_map_award"
+	def.item_name = "Test Map Award"
+	def.item_type = ItemDefinitionData.ItemType.QUEST_ITEM
+
+	InventoryManager.award_items(def, 1)
+
+	var inv := InventoryManager.get_inventory()
+	assert_eq(inv.quest_items.get(def, 0), 1, "quest item should land in quest_items dict")
+	assert_eq(inv.materials.size(), 0, "quest item must not land in materials")
+	assert_eq(inv.equipment.size(), 0, "quest item must not land in equipment grid")

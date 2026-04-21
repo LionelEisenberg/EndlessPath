@@ -55,6 +55,10 @@ func award_items(item: ItemDefinitionData, quantity: int) -> void:
 					LogManager.log_message("[color=purple]Looted %dx %s[/color]" % [quantity, item.item_name])
 			else:
 				Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
+		ItemDefinitionData.ItemType.QUEST_ITEM:
+			_award_quest_item(item, quantity)
+			if LogManager:
+				LogManager.log_message("[color=yellow]Obtained %dx %s[/color]" % [quantity, item.item_name])
 		_:
 			Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
 
@@ -173,6 +177,13 @@ func _award_material(material: MaterialDefinitionData, quantity: int) -> void:
 		live_save_data.inventory.materials[material] += quantity
 	else:
 		live_save_data.inventory.materials[material] = quantity
+	inventory_changed.emit(get_inventory())
+
+func _award_quest_item(item: ItemDefinitionData, quantity: int) -> void:
+	if live_save_data.inventory.quest_items.has(item):
+		live_save_data.inventory.quest_items[item] += quantity
+	else:
+		live_save_data.inventory.quest_items[item] = quantity
 	inventory_changed.emit(get_inventory())
 
 func _award_equipment(equipment_def: EquipmentDefinitionData, quantity: int) -> void:
