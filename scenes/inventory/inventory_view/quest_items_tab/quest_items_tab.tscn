@@ -1,0 +1,60 @@
+[gd_scene load_steps=3 format=3 uid="uid://bquestitemstab001"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.gd" id="1_tab"]
+[ext_resource type="PackedScene" uid="uid://hdpsokiiqmae" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="2_desc"]
+
+[node name="QuestItemsTab" type="Control"]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_tab")
+
+[node name="ListPane" type="MarginContainer" parent="."]
+layout_mode = 0
+offset_left = 82.5
+offset_top = 183.5
+offset_right = 310.5
+offset_bottom = 371.5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="ScrollContainer" type="ScrollContainer" parent="ListPane"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="ListVBox" type="VBoxContainer" parent="ListPane/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EmptyLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 82.5
+offset_top = 250.0
+offset_right = 310.5
+offset_bottom = 290.0
+theme_type_variation = &"LabelSmall"
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "No quest items yet."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ItemDescriptionBox" type="Control" parent="."]
+layout_mode = 0
+offset_left = 386.0
+offset_top = 257.5
+offset_right = 810.0
+offset_bottom = 521.5
+scale = Vector2(0.5, 0.5)
+
+[node name="ItemDescriptionPanel" parent="ItemDescriptionBox" instance=ExtResource("2_desc")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
