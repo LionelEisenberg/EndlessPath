@@ -47,8 +47,10 @@ func evaluate() -> bool:
 				return EventManager.has_event_triggered(target_value)
 
 		ConditionType.ITEM_OWNED:
-			Log.warn("UnlockConditionData: ITEM_OWNED not yet implemented")
-			return false
+			if not InventoryManager:
+				Log.error("UnlockConditionData: InventoryManager is not initialized")
+				return false
+			return InventoryManager.has_item(str(target_value))
 
 		ConditionType.RESOURCE_AMOUNT:
 			var resource_type = optional_params.get("resource_type", "madra")

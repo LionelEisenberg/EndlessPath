@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://b4nlsemiwg2h6" path="res://scripts/resource_definitions/adventure/adventure_data.gd" id="8_2dkfl"]
 [ext_resource type="Resource" uid="uid://dquwaod5rj70m" path="res://resources/adventure/encounters/combat_encounters/starving_dreadbeast_encounter.tres" id="8_pkd7m"]
 [ext_resource type="Resource" uid="uid://c6sihdrapbcl" path="res://resources/adventure/encounters/special_encounters/aura_well_encounter.tres" id="9_aurawell"]
+[ext_resource type="Resource" uid="uid://bdtjfqv318ovi" path="res://resources/adventure/encounters/special_encounters/refugee_camp_encounter.tres" id="10_refcamp"]
 
 [resource]
 script = ExtResource("8_2dkfl")
@@ -12,6 +13,6 @@ adventure_id = "shallow_woods"
 adventure_name = "The Shallow Woods"
 num_path_encounters = 8
 boss_encounter = ExtResource("7_r4hwa")
-special_encounter_pool = Array[ExtResource("6_mnoah")]([ExtResource("9_aurawell")])
+special_encounter_pool = Array[ExtResource("6_mnoah")]([ExtResource("9_aurawell"), ExtResource("10_refcamp")])
 path_encounter_pool = Array[ExtResource("6_mnoah")]([ExtResource("8_pkd7m"), ExtResource("7_r4hwa")])
 metadata/_custom_type_script = "uid://b4nlsemiwg2h6"

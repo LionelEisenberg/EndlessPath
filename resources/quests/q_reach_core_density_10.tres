@@ -5,6 +5,12 @@
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_qrcdq"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="4_qrcdq"]
 [ext_resource type="Resource" uid="uid://i2xnqd3pem53" path="res://resources/unlocks/q_reach_cd_10.tres" id="5_qrcdq"]
+[ext_resource type="Script" uid="uid://dbbopeowutwja" path="res://scripts/resource_definitions/effects/award_item_effect_data.gd" id="6_awi"]
+[ext_resource type="Resource" path="res://resources/items/quest_items/refugee_camp_map.tres" id="7_map"]
+
+[sub_resource type="Resource" id="Resource_award_map"]
+script = ExtResource("6_awi")
+item = ExtResource("7_map")
 
 [sub_resource type="Resource" id="Resource_step1"]
 script = ExtResource("2_qrcdq")
@@ -12,9 +18,16 @@ step_id = "reach_cd_10"
 description = "Reach Core Density level 10"
 completion_conditions = Array[ExtResource("4_qrcdq")]([ExtResource("5_qrcdq")])
 
+[sub_resource type="Resource" id="Resource_step2"]
+script = ExtResource("2_qrcdq")
+step_id = "return_to_npc"
+description = "Return to the Celestial [INTERVENER]"
+completion_event_id = "celestial_intervener_dialogue_4"
+
 [resource]
 script = ExtResource("1_qrcdq")
 quest_id = "q_reach_core_density_10"
 quest_name = "Harden Your Core"
-description = "Deepen your cultivation. Raise your Core Density to level 10."
-steps = Array[ExtResource("2_qrcdq")]([SubResource("Resource_step1")])
+description = "Deepen your cultivation. Raise your Core Density to level 10, then report back to the Celestial [INTERVENER]."
+steps = Array[ExtResource("2_qrcdq")]([SubResource("Resource_step1"), SubResource("Resource_step2")])
+completion_effects = Array[ExtResource("3_qrcdq")]([SubResource("Resource_award_map")])

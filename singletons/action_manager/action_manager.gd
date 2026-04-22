@@ -101,6 +101,8 @@ func _execute_action(action_data: ZoneActionData) -> void:
 				_execute_train_action(action_data as TrainingActionData)
 			else:
 				Log.error("ActionManager: Training action data is not a TrainingActionData: %s" % action_data.action_name)
+		ZoneActionData.ActionType.MERCHANT:
+			_execute_merchant_action(action_data)
 		_:
 			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
@@ -120,6 +122,8 @@ func _stop_executing_current_action(successful: bool = true) -> void:
 				_stop_dialogue_action(successful)
 			ZoneActionData.ActionType.TRAIN_STATS:
 				_stop_train_action(successful)
+			ZoneActionData.ActionType.MERCHANT:
+				_stop_merchant_action(successful)
 			_:
 				Log.error("ActionManager: Unknown action type: %s" % current_action.action_type)
 	
@@ -223,6 +227,17 @@ func _on_train_timer_finished(action_data: TrainingActionData) -> void:
 			effect.process()
 		training_level_gained.emit(action_data, level)
 
+## Handle merchant action - stub: log a "coming soon" message and end the action.
+## NOTE: This stub calls stop_action() synchronously, unlike every other action type
+## that waits for an external stop signal (timer, dialogue end, view close). When
+## real Merchant UI lands, remove the stop_action() call and let the UI close drive
+## the stop the same way dialogue does.
+func _execute_merchant_action(action_data: ZoneActionData) -> void:
+	Log.info("ActionManager: Executing merchant action (stub): %s" % action_data.action_name)
+	if LogManager:
+		LogManager.log_message("[color=yellow]The merchant nods at you. (Shop coming soon.)[/color]")
+	stop_action()
+
 #-----------------------------------------------------------------------------
 # ACTION STOP EXECUTION HANDLERS
 #-----------------------------------------------------------------------------
@@ -260,6 +275,10 @@ func _stop_train_action(successful: bool) -> void:
 	Log.info("ActionManager: Stopping training action")
 	stop_training.emit()
 	_reset_action_timer()
+	_process_completion_effects(successful)
+
+## Handle merchant action stop - just run completion effects (none in the stub).
+func _stop_merchant_action(successful: bool) -> void:
 	_process_completion_effects(successful)
 
 func _process_completion_effects(successful: bool) -> void:
