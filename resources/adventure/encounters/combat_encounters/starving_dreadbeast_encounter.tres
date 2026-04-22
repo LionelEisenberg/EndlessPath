@@ -22,4 +22,7 @@ description = "A gaunt, twisted beast slinks from the undergrowth — all ribs a
 text_description_completed = "The Starving Dreadbeast lies still. Its hunger, at last, is sated."
 choices = Array[ExtResource("1_y3srr")]([SubResource("Resource_f6ngc")])
 encounter_type = 0
+placement = 1
+min_distance_from_origin = 0
+min_fillers_on_path = 0
 metadata/_custom_type_script = "uid://cs335nesm7wfr"
