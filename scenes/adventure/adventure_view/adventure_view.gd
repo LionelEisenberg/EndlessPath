@@ -157,6 +157,14 @@ func force_win_combat() -> void:
 		return
 	combat.trigger_combat_end.emit(true, 0)
 
+## DEV-only: toggle a visual fog-of-war override that reveals every tile
+## on the current adventure map. Purely visual — progression state is
+## unaffected. Used by the dev panel; do not call from gameplay code.
+func set_show_whole_map(enabled: bool) -> void:
+	if adventure_tilemap == null:
+		return
+	adventure_tilemap.set_dev_reveal_all(enabled)
+
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - View Management
 #-----------------------------------------------------------------------------
