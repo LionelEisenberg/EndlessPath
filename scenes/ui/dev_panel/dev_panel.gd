@@ -27,6 +27,7 @@ extends PanelContainer
 @onready var _unlock_cycling_button: Button = %UnlockCyclingButton
 
 @onready var _force_win_button: Button = %ForceWinButton
+@onready var _show_whole_map_check: CheckButton = %ShowWholeMapCheck
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -51,6 +52,7 @@ func _ready() -> void:
 	_condition_apply.pressed.connect(_on_apply_condition)
 	_unlock_cycling_button.pressed.connect(_on_unlock_all_cycling)
 	_force_win_button.pressed.connect(_on_force_win)
+	_show_whole_map_check.toggled.connect(_on_show_whole_map_toggled)
 
 	_populate_condition_dropdown()
 	_force_win_button.visible = false
@@ -147,6 +149,14 @@ func _on_force_win() -> void:
 		return
 	av.force_win_combat()
 	LogManager.log_message("[color=magenta][DEV][/color] Force-won current combat")
+
+func _on_show_whole_map_toggled(pressed: bool) -> void:
+	var av: Node = _get_adventure_view()
+	if av == null:
+		return
+	av.set_show_whole_map(pressed)
+	var state_text := "ON" if pressed else "OFF"
+	LogManager.log_message("[color=magenta][DEV][/color] Show Whole Map: %s" % state_text)
 
 #-----------------------------------------------------------------------------
 # PRIVATE: adventure view lookup

@@ -90,6 +90,13 @@ enum HighlightType {
 
 var _boss_revealed: bool = false
 
+## DEV-only visual override: when true, every encounter tile renders with
+## its forest art and encounter icon, the fog-of-war ColorRect is hidden,
+## and fog veils are suppressed. _visited_tile_dictionary and
+## _highlight_tile_dictionary are untouched so progression, stats, and
+## encounter-resolution logic are unaffected.
+var _dev_reveal_all: bool = false
+
 var _encounter_icons: Dictionary[Vector3i, EncounterIcon] = {}
 var _fog_veil_sprites: Dictionary[Vector3i, FogVeilSprite] = {}
 
@@ -240,6 +247,19 @@ func get_visited_tile_count() -> int:
 func get_total_tile_count() -> int:
 	return _encounter_tile_dictionary.size()
 
+## DEV-only: toggle a visual override that renders every encounter tile as
+## revealed (forest + icon) and hides the fog ColorRect. Does not touch
+## _visited_tile_dictionary, so progression, stats, and encounter-resolution
+## remain accurate. Called from the dev panel.
+func set_dev_reveal_all(enabled: bool) -> void:
+	if _dev_reveal_all == enabled:
+		return
+	_dev_reveal_all = enabled
+	if current_adventure_action_data == null:
+		return
+	_update_visible_map()
+	_update_fog_uniforms()
+
 ## Returns the total number of combat encounters on the map.
 func get_total_combat_count() -> int:
 	var count: int = 0
@@ -355,15 +375,22 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	if _is_movement_locked:
 		Log.info("AdventureTilemap: Movement locked. Complete the encounter first.")
 		return
-		
-	Log.info("AdventureTilemap: Tile clicked: %s" % coord)
-	
+
+	# Resolve the encounter on the clicked tile so logs name what's there —
+	# helpful alongside the dev "Show Whole Map" toggle for scouting.
+	var target_cube_coord = visible_map.map_to_cube(coord)
+	var clicked_encounter: AdventureEncounter = _encounter_tile_dictionary.get(target_cube_coord)
+	var encounter_label: String = "(no encounter)"
+	if clicked_encounter != null:
+		if clicked_encounter.encounter_name.is_empty():
+			encounter_label = clicked_encounter.encounter_id if not clicked_encounter.encounter_id.is_empty() else "(unnamed)"
+		else:
+			encounter_label = clicked_encounter.encounter_name
+	Log.info("AdventureTilemap: Tile clicked: %s [%s]" % [coord, encounter_label])
+
 	# Don't allow new clicks if we're already processing a visitation queue
 	if _visitation_queue.size() > 0 or character_body.is_moving:
 		return
-	
-	# Get the target tile in cube coordinates
-	var target_cube_coord = visible_map.map_to_cube(coord)
 	
 	# Calculate the path using hexagonal line drawing
 	var path_cube_coords = visible_map.cube_pathfind(_current_tile, target_cube_coord)
@@ -573,6 +600,11 @@ func _update_fog_uniforms() -> void:
 	if _fog_rect == null or _fog_rect.material == null:
 		return
 
+	if _dev_reveal_all:
+		_fog_rect.visible = false
+		return
+	_fog_rect.visible = true
+
 	var camera := get_viewport().get_camera_2d()
 	var viewport_size := get_viewport_rect().size
 
@@ -680,6 +712,19 @@ func _update_visible_map() -> void:
 			visible_coords.append(highlight_coord)
 			revealed_coords.append(highlight_coord)
 
+	# DEV reveal: pull every remaining encounter tile into the visible set so
+	# it paints forest art + icon, without mutating the visited/highlight
+	# dicts that drive game state.
+	var dev_reveal_coords: Dictionary[Vector3i, bool] = {}
+	if _dev_reveal_all:
+		for coord in _encounter_tile_dictionary.keys():
+			if _visited_tile_dictionary.has(coord):
+				continue
+			if _highlight_tile_dictionary.has(coord):
+				continue
+			dev_reveal_coords[coord] = true
+			visible_coords.append(coord)
+
 	# Every visible tile renders as a deterministic-random forest variant
 	# from the shared forest atlas. Encounter icons and fog veils get
 	# overlaid on top in the loops below; NoOp tiles show only the forest
@@ -716,11 +761,12 @@ func _update_visible_map() -> void:
 
 	# Revealed neighbors: fog veils, except for the boss tile which is the
 	# visible-while-fogged exception (player needs a long-term goal marker).
+	# Dev reveal also suppresses veils — every revealed tile shows its icon.
 	var revealed_with_veil: Dictionary[Vector3i, bool] = {}
 	for coord in revealed_coords:
 		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-		if encounter and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
-			# Boss exception: show the encounter icon, no fog veil
+		var is_boss: bool = encounter != null and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS
+		if _dev_reveal_all or is_boss:
 			_despawn_fog_veil(coord)
 			_update_cell_highlight(coord)
 			var icon: EncounterIcon = _encounter_icons.get(coord)
@@ -732,6 +778,17 @@ func _update_visible_map() -> void:
 			_spawn_fog_veil(coord)
 			revealed_with_veil[coord] = true
 
+	# DEV reveal: spawn icons for tiles that aren't visited OR in the normal
+	# revealed set. NoOp tiles have no icon, matching non-dev behavior.
+	for coord in dev_reveal_coords.keys():
+		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
+		if not encounter or encounter is NoOpEncounter:
+			continue
+		_update_cell_highlight(coord)
+		var icon: EncounterIcon = _encounter_icons.get(coord)
+		if icon:
+			icon.set_completed(false)
+
 	# Despawn fog veils whose coord is no longer revealed (or transitioned to visited).
 	var stale_veil_coords: Array[Vector3i] = []
 	for coord in _fog_veil_sprites.keys():
@@ -740,16 +797,22 @@ func _update_visible_map() -> void:
 	for coord in stale_veil_coords:
 		_despawn_fog_veil(coord)
 
-	# Despawn encounter icons whose coord is not visited-with-icon and not the revealed boss.
+	# Despawn encounter icons whose coord is not visited-with-icon, not the
+	# revealed boss, not dev-revealed, and (under dev reveal) not any
+	# revealed neighbor.
 	var stale_icon_coords: Array[Vector3i] = []
 	for coord in _encounter_icons.keys():
 		var is_visited_icon := visited_with_icon.has(coord)
-		var is_revealed_boss := false
+		var is_revealed_non_veil := false
 		if revealed_coords.has(coord):
-			var enc: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-			if enc and enc.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
-				is_revealed_boss = true
-		if not is_visited_icon and not is_revealed_boss:
+			if _dev_reveal_all:
+				is_revealed_non_veil = true
+			else:
+				var enc: AdventureEncounter = _encounter_tile_dictionary.get(coord)
+				if enc and enc.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
+					is_revealed_non_veil = true
+		var is_dev_revealed := dev_reveal_coords.has(coord)
+		if not is_visited_icon and not is_revealed_non_veil and not is_dev_revealed:
 			stale_icon_coords.append(coord)
 	for coord in stale_icon_coords:
 		_despawn_encounter_icon(coord)

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bu68duxxx6bug" path="res://scripts/resource_definitions/path_progression/path_node_effect_data.gd" id="1_j17im"]
 [ext_resource type="Script" uid="uid://bcwya48qokiun" path="res://scripts/resource_definitions/path_progression/path_node_data.gd" id="2_kxy1v"]
+[ext_resource type="Resource" uid="uid://b6onv6t7skvjv" path="res://resources/path_progression/pure_madra/nodes/madra_reclamation.tres" id="prereq_madra_reclamation"]
 
 [sub_resource type="Resource" id="Resource_kwf7j"]
 script = ExtResource("1_j17im")
@@ -14,6 +15,6 @@ id = "iron_will"
 display_name = "Iron Will"
 description = "Pure Madra aids physical recovery, increasing stamina regeneration in combat."
 node_type = 1
-prerequisites = Array[String](["madra_reclamation"])
+prerequisites = Array[ExtResource("2_kxy1v")]([ExtResource("prereq_madra_reclamation")])
 effects = Array[ExtResource("1_j17im")]([SubResource("Resource_kwf7j")])
 benefit_summary = "+20% Stamina Recovery"

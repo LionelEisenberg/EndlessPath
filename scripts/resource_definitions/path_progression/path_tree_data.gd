@@ -61,10 +61,13 @@ func validate() -> bool:
 			push_error("PathTreeData: duplicate node id '%s'" % node.id)
 			return false
 		ids.append(node.id)
-	# Validate prerequisite references
+	# Validate prerequisite references — each prereq must be in this tree's node list.
 	for node: PathNodeData in nodes:
-		for prereq_id: String in node.prerequisites:
-			if not ids.has(prereq_id):
-				push_error("PathTreeData: node '%s' references unknown prerequisite '%s'" % [node.id, prereq_id])
+		for prereq: PathNodeData in node.prerequisites:
+			if prereq == null:
+				push_error("PathTreeData: node '%s' has a null prerequisite" % node.id)
+				return false
+			if not ids.has(prereq.id):
+				push_error("PathTreeData: node '%s' references prerequisite '%s' which is not in this tree" % [node.id, prereq.id])
 				return false
 	return true

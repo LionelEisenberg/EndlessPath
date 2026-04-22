@@ -85,8 +85,8 @@ func build_tree() -> void:
 
 	# Register connections based on prerequisites
 	for node_data: PathNodeData in tree.nodes:
-		for prereq_id: String in node_data.prerequisites:
-			_node_container.add_connection(prereq_id, node_data.id)
+		for prereq: PathNodeData in node_data.prerequisites:
+			_node_container.add_connection(prereq.id, node_data.id)
 
 	_refresh_all_nodes()
 	_benefits_area.rebuild()
