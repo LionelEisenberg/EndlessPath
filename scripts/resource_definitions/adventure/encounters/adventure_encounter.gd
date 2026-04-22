@@ -20,6 +20,11 @@ enum EncounterType {
 	NONE, # No encounter, no implementation needed
 }
 
+enum Placement {
+	ANCHOR, # Scattered first with sparse_factor + min_distance_from_origin
+	FILLER, # Placed on NoOp path tiles after MST is built
+}
+
 #-----------------------------------------------------------------------------
 # EXPORTED PROPERTIES
 #-----------------------------------------------------------------------------
@@ -49,6 +54,16 @@ enum EncounterType {
 ## never sees them.
 @export var unlock_conditions: Dictionary[UnlockConditionData, bool] = {}
 
+## Placement strategy used by the map generator.
+@export var placement: Placement = Placement.FILLER
+
+## Minimum hex distance from origin for placement. 0 = no constraint.
+@export var min_distance_from_origin: int = 0
+
+## Minimum number of FILLER-placement encounters that must sit on the
+## shortest path from origin to this tile. 0 = no constraint.
+@export var min_fillers_on_path: int = 0
+
 #-----------------------------------------------------------------------------
 # STRING REPRESENTATION
 #-----------------------------------------------------------------------------
@@ -66,3 +81,15 @@ func _to_string() -> String:
 			lines.append("    [%d] %s" % [i, choices[i].label])
 	lines.append("}")
 	return "\n".join(lines)
+
+#-----------------------------------------------------------------------------
+# ELIGIBILITY
+#-----------------------------------------------------------------------------
+
+## Returns true when all unlock_conditions evaluate to their expected bool.
+## Encounters with no unlock_conditions are always eligible.
+func is_eligible() -> bool:
+	for condition in unlock_conditions:
+		if condition.evaluate() != unlock_conditions[condition]:
+			return false
+	return true
