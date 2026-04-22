@@ -130,6 +130,7 @@ Generation runs in 4 phases:
 | `text_description_completed` | `String` | Shown after completion |
 | `choices` | `Array[EncounterChoice]` | Available player choices |
 | `encounter_type` | `EncounterType` | Visual overlay category |
+| `unlock_conditions` | `Dictionary[UnlockConditionData, bool]` | Map-generation-time gate (PR #41). Each key's `evaluate()` must match its expected bool for the encounter to be eligible for placement; otherwise it's filtered out of the pool before generation — the player never sees it |
 
 **EncounterType enum:** `COMBAT_REGULAR`, `COMBAT_AMBUSH`, `COMBAT_BOSS`, `COMBAT_ELITE`, `REST_SITE`, `TRAP`, `TREASURE`, `NONE`
 
@@ -137,9 +138,16 @@ Generation runs in 4 phases:
 
 | Class | Extra Fields | Behavior |
 |-------|-------------|----------|
-| `EncounterChoice` (base) | `requirements`, `success_effects`, `failure_effects` | Applies effects directly |
+| `EncounterChoice` (base) | `requirements`, `success_effects`, `failure_effects`, `completed_label`, `completion_condition` | Applies effects directly. See below for the schema additions from PR #36 |
 | `CombatChoice` | `enemy_pool`, `is_boss`, `gold_multiplier` | Triggers combat view |
 | `DialogueChoice` | `timeline_name` | Starts Dialogic timeline |
+
+**EncounterChoice schema (PR #36):**
+
+- `requirements: Dictionary[UnlockConditionData, bool]` — each key is an `UnlockConditionData`; the value is the expected `evaluate()` result. The choice is eligible when every entry matches. Empty dict → always eligible. Replaces the older `Array[UnlockConditionData]` (+ `negate` flag) schema.
+- `completion_condition: UnlockConditionData` (optional) — when set and evaluates true, the choice renders as completed (grayed, using `completed_label` if non-empty; falls back to `label`). Independent of `requirements` so eligibility and completion are orthogonal — used by the Aura Well "Mark" choice to show "✓ Location noted" on sibling tiles post-discovery.
+- `completed_label: String` — the text shown when `completion_condition` is satisfied.
+- Helpers: `evaluate_requirements()` and `is_completed()`.
 
 ### World Effect System (separate from Combat effects)
 
@@ -150,7 +158,10 @@ Base class: `EffectData` (abstract Resource) — defines an `EffectType` enum an
 | `AwardResourceEffectData` | `AWARD_RESOURCE` | Calls `ResourceManager.award_resource()` |
 | `AwardItemEffectData` | `AWARD_ITEM` | Calls `InventoryManager.award_items()` |
 | `AwardLootTableEffectData` | `AWARD_LOOT_TABLE` | Rolls loot table, awards items |
-| `ChangeVitalsEffectData` | *(not in enum)* | Modifies health/stamina/mana via PlayerManager |
+| `AwardAttributeEffectData` | `AWARD_ATTRIBUTE` | Grants attribute points via CharacterManager |
+| `AwardPathPointEffectData` | `AWARD_PATH_POINT` | Grants path points via `PathManager.add_points()` (PR #32) |
+| `StartQuestEffectData` | `START_QUEST` | Starts a quest via `QuestManager.start_quest()` |
+| `ChangeVitalsEffectData` | *(not in enum)* | Modifies health/stamina/madra via PlayerManager. Includes `body_hp_multiplier` / `foundation_madra_multiplier` for attribute-scaled vitals changes (PR #36) — final values via `get_final_health_change()` / `get_final_madra_change()` / `get_final_stamina_change()` |
 | `TriggerEventEffectData` | `TRIGGER_EVENT` | Fires a narrative event via EventManager |
 
 ### AdventureResultData (end card stats)
@@ -264,7 +275,11 @@ Adventures now consume Madra from the zone's pool on start.
 
 One adventure exists: **The Shallow Woods** (`shallow_woods.tres`), reached from Spirit Valley once `q_fill_core_completed` is triggered. 300-second time limit, 8 path encounters, uses the `amorphous_spirit` combat encounter pool (`amorphous_spirit_encounter.tres`).
 
-**Encounters in rotation:** combat (amorphous spirit variants), boss, treasure (rolls weapon loot table), rest, trap.
+**Special encounter pool:**
+- `aura_well_encounter` (PR #36) — Rest + "Mark down the location" choice that fires `aura_well_discovered` and unlocks the Aura Well zone action in Zone 1.
+- `refugee_camp_encounter` (PR #41) — gated behind `unlock_conditions = {refugee_camp_map_owned: true, merchant_discovered: false}` (only shows up once the player has the map and hasn't already visited the camp). Approaching fires `merchant_discovered` and unlocks the Merchant zone action stub.
+
+**Encounters in rotation:** combat (amorphous spirit variants), boss, treasure (rolls weapon loot table), rest, trap, plus the special encounters above when eligible.
 
 ## Key Files
 

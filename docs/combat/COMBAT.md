@@ -77,7 +77,7 @@ Default: all attributes start at 10.0.
 ### CombatEffectData
 | Field | Type | Description |
 |-------|------|-------------|
-| `effect_type` | `EffectType` | `DAMAGE`, `HEAL`, `BUFF` |
+| `effect_type` | `EffectType` | `DAMAGE`, `HEAL`, `BUFF`, `CANCEL_CAST`, `STRIP_BUFFS` |
 | `base_value` | `float` | Base effect value |
 | `damage_type` | `DamageType` | `PHYSICAL`, `SPIRIT`, `TRUE`, `MIXED` |
 | `*_scaling` | `float` | Per-attribute scaling (8 fields) |
@@ -119,6 +119,7 @@ A global casting lock prevents firing multiple abilities simultaneously.
 - DoT damage: separate 1-second timer, damage = `dot_damage_per_tick * stack_count`
 - Modifier queries: `get_attribute_modifier()`, `get_outgoing_damage_modifier()`, `get_incoming_damage_modifier()` — all multiplicative
 - `clear_all_buffs()` called on combat end
+- `strip_all_buffs()` wipes every active buff mid-combat (PR #39) — invoked by `STRIP_BUFFS` effects (Power Font). Distinct from `clear_all_buffs()` so end-of-combat cleanup and mid-combat buff-sunder stay separate
 
 ### Effect Resolution (CombatEffectManager)
 | Type | Action |
@@ -126,6 +127,8 @@ A global casting lock prevents firing multiple abilities simultaneously.
 | `DAMAGE` | Calculate damage with attribute scaling + defense reduction, apply incoming modifier, deduct health |
 | `HEAL` | Calculate value with attribute scaling, add health |
 | `BUFF` | Cast to `BuffEffectData`, apply via `CombatBuffManager` |
+| `CANCEL_CAST` | Interrupt the target's in-progress cast via `CombatAbilityManager.cancel_current_cast()` — emits `cast_cancelled`, hides the cast bar UI. No-op if target isn't casting. (PR #39) |
+| `STRIP_BUFFS` | Remove every active buff on the target via `CombatBuffManager.strip_all_buffs()`. Distinct from `clear_all_buffs()`, which only runs on combat end. (PR #39) |
 
 ### Enemy AI (SimpleEnemyAI)
 - Every `_process` frame: iterates all abilities in order

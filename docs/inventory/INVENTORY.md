@@ -2,7 +2,7 @@
 
 ## Overview
 
-The inventory system manages equipment, materials, and item rewards. Players access a book-style UI with two tabs: Equipment (50-slot grid + 6 gear slots on a paper doll) and Materials (scrollable list with quantities). Items are dragged between grid slots and gear slots. Loot comes from foraging timers and adventure encounter rewards.
+The inventory system manages equipment, materials, and item rewards. Players access a book-style UI with three tabs: Equipment (50-slot grid + 6 gear slots on a paper doll), Materials (scrollable list with quantities), and Quest Items (scrollable list of narrative items). Items are dragged between grid slots and gear slots. Loot comes from foraging timers and adventure encounter rewards.
 
 ## Player Experience
 
@@ -11,7 +11,8 @@ The inventory system manages equipment, materials, and item rewards. Players acc
 3. Click an item to see its description; drag items between grid and gear slots
 4. Gear slots enforce type matching (e.g., only weapons go in MAIN_HAND)
 5. **Materials Tab:** Scrollable list showing material icons, names, and quantities
-6. Press `I` or `Escape` to close (book-close animation)
+6. **Quest Items Tab (PR #41):** Scrollable list of narrative/quest items (e.g., Refugee Camp Map). Clicking a row shows its `ItemDescriptionPanel` detail pane; empty state shows "No quest items yet."
+7. Press `I` or `Escape` to close (book-close animation)
 
 ## Architecture
 
@@ -20,8 +21,8 @@ InventoryView (Control)                           — inventory_view.gd
   BookAnimationPlayer                             — open/close book animation
   PageTurningAnimationPlayer                      — tab transition animation
   BookContent (Control)
-    TabSwitcher                                   — tab_switcher.gd
-      EquipmentTabButton / MaterialsTabButton     — tab_button.gd
+    TabSwitcher                                   — tab_switcher.gd (N-capable, 3 tabs since PR #41)
+      EquipmentTabButton / MaterialsTabButton / QuestItemsTabButton — tab_button.gd
     EquipmentTab (Control)                        — equipment_tab.gd
       EquipmentGrid                               — equipment_grid.gd (50 InventorySlots)
       GearSelector                                — gear_selector.gd (6 GearSlots)
@@ -31,6 +32,11 @@ InventoryView (Control)                           — inventory_view.gd
     MaterialsTab (Control)                        — materials_tab.gd
       MaterialsVbox
         MaterialContainer (per material)          — material_container.gd
+    QuestItemsTab (Control)                       — quest_items_tab.gd (PR #41)
+      ListPane/ScrollContainer/ListVBox
+        QuestItemRow (per quest item)             — quest_item_row.gd
+      EmptyLabel                                  — "No quest items yet."
+      ItemDescriptionBox/ItemDescriptionPanel     — shared detail pane
 ```
 
 ## Data Model
@@ -128,7 +134,7 @@ Material awards increment count in dictionary. Equipment awards create individua
 | Foraging | ActionManager rolls loot table on timer |
 | Combat/Adventure | Success effects award loot and items |
 | CharacterManager | Wired via `_get_attribute_bonuses()` → `_get_equipment_bonuses()` — sums `attribute_bonuses` from all equipped gear (Done - PR #9) |
-| UnlockManager | `ITEM_OWNED` condition type exists but returns false (unimplemented) |
+| UnlockManager | `ITEM_OWNED` condition type evaluates via `InventoryManager.has_item(item_id)` (PR #41) — used by the refugee camp special encounter to gate placement on the Refugee Camp Map |
 | Soulsmithing | Planned consumer — `metadata` and `instance_id` fields are forward-compatibility hooks |
 
 ## Existing Content
@@ -140,6 +146,7 @@ Material awards increment count in dictionary. Equipment awards create individua
 | Dagger | Equipment | STRENGTH +3, AGILITY +1, MAIN_HAND |
 | Sword | Equipment | STRENGTH +6, AGILITY +2, MAIN_HAND |
 | Dagger Instance | ItemInstanceData | Wraps dagger.tres |
+| Refugee Camp Map | Quest Item | Source: NPC 4 dialogue (Beat 3b, PR #41). Gates the refugee camp special encounter via `ITEM_OWNED` |
 
 No loot table `.tres` files exist yet (only a README guide in `resources/loot_tables/`).
 
@@ -170,7 +177,7 @@ No loot table `.tres` files exist yet (only a README guide in `resources/loot_ta
 
 - ~~`[HIGH]` Equipment stats not wired to combat — `attack_power` and `defense` are display-only. `CharacterManager._get_attribute_bonuses()` returns 0. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md) but inventory is the primary consumer~~ (Done - PR #9)
 - `[MEDIUM]` TrashSlot is non-functional — node exists in scene but `_get_slot_under_mouse()` doesn't check it. No way to delete items
-- `[MEDIUM]` CONSUMABLE and QUEST_ITEM types not handled — `award_items()` logs error and drops them. Needed for Scripting (consumable Scripts) and future quest content
+- `[MEDIUM]` CONSUMABLE type not handled — `award_items()` logs error and drops them. Needed for Scripting (consumable Scripts). QUEST_ITEM is now handled (PR #41 — Refugee Camp Map awarded by NPC dialogue, displayed in the Quest Items tab)
 - ~~`[MEDIUM]` Right-clicking an item should attempt to equip it — standard RPG convention, currently only drag & drop works~~ (Done - PR #9)
 
 ### Content

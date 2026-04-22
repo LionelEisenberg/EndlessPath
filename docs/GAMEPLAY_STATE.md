@@ -1,6 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-04-20
+Last updated: 2026-04-21
 
 This document tracks the current player experience — what a player can actually do, what content exists, and what blocks the next stage of progression. For per-system details, see the [system documentation index](CODEBASE_STATE.md#system-documentation-index).
 
@@ -16,7 +16,7 @@ A new player can currently:
 4. **Forage** — toggle passive foraging, earn Spirit Fern and Dewdrop Tear materials over time
 5. **Open Inventory** — view equipment grid, equip the Dagger, see materials from foraging
 6. **Start an Adventure** — enter a procedurally generated hex map with fog-of-war (shader fog + smoke veil overlays), per-type encounter icons, atmospheric mist/motes, and a tiled-texture path preview that commits on click and fades behind the player as they walk; move tile-by-tile spending stamina; adventures cost Madra (50% threshold required, with particle drain animation) (PRs #16/#23)
-7. **Fight enemies** — encounter the test enemy in combat, use 4 abilities with Q/W/E/R keybindings; ability tooltips on hover show stats/costs/cooldowns; cost strip and can't-afford dimming provide resource feedback; buff tooltips show live duration; combat atmosphere matches adventure view (PRs #9/#24)
+7. **Fight enemies** — encounter the Amorphous Spirit in combat, use 4 abilities with Q/W/E/R keybindings; ability tooltips on hover show stats/costs/cooldowns; cost strip and can't-afford dimming provide resource feedback; buff tooltips show live duration; combat atmosphere matches adventure view (PRs #9/#24)
 8. **Defeat the boss** — complete the adventure, earn gold; end card shows stats and loot (PR #19)
 9. **Open Path Tree** — press P to view the Pure Madra skill tree; earn Path Points every 10 Core Density levels; purchase nodes for cycling/combat/progression perks; pannable/zoomable tree with animated shaders (PR #20)
 10. **Manage Abilities** — press A to open the abilities view; drag-and-drop abilities into a 4-slot loadout; filter by type, sort by cost/name; hoverable stat pills show damage breakdowns; path tree purchases unlock new abilities (PR #22)
@@ -45,19 +45,15 @@ The core loop now includes a meaningful progression sink: cycle for XP → earn 
 | Dewdrop Tear | Material | Foraging |
 
 ### Abilities (Player)
-| Ability | Source | Madra Type | Cost | Cooldown | Cast | Scaling | Damage Type |
-|---------|--------|-----------|------|----------|------|---------|-------------|
-| Basic Strike | INNATE | NONE | 10 stam | 4.0s | 0s | STR 0.2, BODY 0.2, AGI 0.2 | Physical |
-| Empty Palm | PATH | PURE | 12 madra, 3 stam | 3.0s | 0s | AGI 0.3, SPI 1.0 | Physical |
-| Enforce | INNATE | NONE | 10 madra | 30.0s | 0s | STR x1.5, SPI x1.5 for 8s | Buff |
-| Power Font | INNATE | PURE | 20 madra | 15.0s | 3.0s | SPI 1.5, FND 0.5 | Madra |
+
+Full per-path ability stats (costs, cooldowns, cast times, scaling, effect composition) live in [ABILITIES_MATRIX.md](abilities/ABILITIES_MATRIX.md) — authoritative source. Current roster: `basic_strike` and `enforce` (INNATE); `empty_palm` and `power_font` (PATH, Pure Madra). Empty Palm + Power Font were retuned in PR #39 to express the Pure Path's disruption identity (interrupt + buff-wipe respectively).
 
 Abilities are managed by `AbilityManager` (PR #22): INNATE abilities start unlocked, PATH abilities are unlocked via path tree purchases (UNLOCK_ABILITY effect). Players equip up to 4 abilities in a loadout via the AbilitiesView (press A).
 
 ### Enemies
 | Enemy | Abilities | Gold |
 |-------|-----------|------|
-| Test Enemy | test_cast_ability | 10 |
+| Amorphous Spirit | inline `madra_lash` (2s cast, 10 base SPIRIT dmg) | 0 (unset) — see COMBAT.md known anomalies |
 
 ### Adventure Encounters
 | Encounter | Type | Notes |
@@ -77,6 +73,8 @@ Abilities are managed by `AbilityManager` (PR #22): INNATE abilities start unloc
 | q_fill_core_completed | EVENT_TRIGGERED | Fill Your Core quest completion (PR #28) |
 | q_first_steps_enemy_defeated | EVENT_TRIGGERED | First Shallow Woods combat victory (PR #32) |
 | q_reach_cd_10 | CULTIVATION_LEVEL | Core Density level ≥ 10 (PR #32) |
+| aura_well_discovered | EVENT_TRIGGERED | Aura Well "Mark the location" choice (PR #36) — gates Aura Well zone action |
+| merchant_discovered | EVENT_TRIGGERED | Refugee camp encounter visited (PR #41) — gates Merchant zone action stub |
 
 ### Path Progression
 | Path | Tier | Nodes | Status |
