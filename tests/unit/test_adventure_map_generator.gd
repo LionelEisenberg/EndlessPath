@@ -138,7 +138,17 @@ func _neighbor_offsets() -> Array[Vector3i]:
 	]
 
 func test_quota_counts_are_respected() -> void:
-	var data := _make_data()
+	# Use min_fillers_on_path = 0 for the rest anchor so Phase 4's critical-path
+	# promotion never fires, keeping the combat count deterministically at 4.
+	var data := AdventureData.new()
+	data.max_distance_from_start = 6
+	data.sparse_factor = 2
+	data.num_extra_edges = 2
+	data.boss_encounter = _make_encounter("boss", AdventureEncounter.Placement.ANCHOR, 5)
+	data.encounter_quotas = [
+		_make_quota(_make_encounter("rest", AdventureEncounter.Placement.ANCHOR, 3, 0), 1),
+		_make_quota(_make_encounter("combat", AdventureEncounter.Placement.FILLER), 4),
+	]
 	var tiles := _run_generation(data)
 	var counts: Dictionary = {"rest": 0, "combat": 0, "boss": 0}
 	for enc in tiles.values():
