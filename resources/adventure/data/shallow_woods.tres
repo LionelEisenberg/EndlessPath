@@ -6,8 +6,8 @@
 [ext_resource type="Resource" uid="uid://dquwaod5rj70m" path="res://resources/adventure/encounters/combat_encounters/starving_dreadbeast_encounter.tres" id="8_pkd7m"]
 [ext_resource type="Resource" uid="uid://c6sihdrapbcl" path="res://resources/adventure/encounters/special_encounters/aura_well_encounter.tres" id="9_aurawell"]
 [ext_resource type="Resource" uid="uid://bdtjfqv318ovi" path="res://resources/adventure/encounters/special_encounters/refugee_camp_encounter.tres" id="10_refcamp"]
-[ext_resource type="Resource" path="res://resources/adventure/encounters/combat_encounters/amorphous_spirit_boss.tres" id="11_boss"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/adventure/encounter_quota.gd" id="12_quota"]
+[ext_resource type="Resource" uid="uid://r4iptfj1fyhu" path="res://resources/adventure/encounters/combat_encounters/amorphous_spirit_boss.tres" id="11_boss"]
+[ext_resource type="Script" uid="uid://bpsev8acl42vn" path="res://scripts/resource_definitions/adventure/encounter_quota.gd" id="12_quota"]
 
 [sub_resource type="Resource" id="Resource_quota_aura"]
 script = ExtResource("12_quota")

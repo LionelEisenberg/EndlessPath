@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="AdventureEncounter" format=3]
+[gd_resource type="Resource" script_class="AdventureEncounter" format=3 uid="uid://r4iptfj1fyhu"]
 
 [ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_qdmh0"]
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_bhcea"]
