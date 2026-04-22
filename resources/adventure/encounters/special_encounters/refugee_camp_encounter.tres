@@ -1,10 +1,20 @@
-[gd_resource type="Resource" script_class="AdventureEncounter" format=3 uid="uid://brefugee_camp_enc"]
+[gd_resource type="Resource" script_class="AdventureEncounter" format=3 uid="uid://bdtjfqv318ovi"]
 
 [ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="1_encounter"]
 [ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="2_choice"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="3_effect"]
 [ext_resource type="Script" uid="uid://cc0ky7w2fsg10" path="res://scripts/resource_definitions/effects/trigger_event_effect_data.gd" id="4_trigger"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_cond"]
+
+[sub_resource type="Resource" id="Resource_trigger_merchant"]
+script = ExtResource("4_trigger")
+event_id = "merchant_discovered"
+
+[sub_resource type="Resource" id="Resource_approach_choice"]
+script = ExtResource("2_choice")
+label = "Approach the camp"
+tooltip = "Show them the map and see what they trade."
+success_effects = Array[ExtResource("3_effect")]([SubResource("Resource_trigger_merchant")])
 
 [sub_resource type="Resource" id="Resource_cond_map_owned"]
 script = ExtResource("5_cond")
@@ -20,26 +30,16 @@ condition_type = 4
 target_value = "merchant_discovered"
 comparison_op = "=="
 
-[sub_resource type="Resource" id="Resource_trigger_merchant"]
-script = ExtResource("4_trigger")
-event_id = "merchant_discovered"
-
-[sub_resource type="Resource" id="Resource_approach_choice"]
-script = ExtResource("2_choice")
-label = "Approach the camp"
-tooltip = "Show them the map and see what they trade."
-success_effects = Array[ExtResource("3_effect")]([SubResource("Resource_trigger_merchant")])
-
 [resource]
 script = ExtResource("1_encounter")
 encounter_id = "refugee_camp"
 encounter_name = "Refugee Camp"
 description = "A cluster of makeshift tents under the trees. A merchant's wagon leans against a rock, its owner watching you approach."
 text_description_completed = "The camp is empty now — they must have moved on, following your map back to the valley."
+choices = Array[ExtResource("2_choice")]([SubResource("Resource_approach_choice")])
 encounter_type = 4
 unlock_conditions = Dictionary[ExtResource("5_cond"), bool]({
 SubResource("Resource_cond_map_owned"): true,
 SubResource("Resource_cond_merchant_discovered"): false
 })
-choices = Array[ExtResource("2_choice")]([SubResource("Resource_approach_choice")])
 metadata/_custom_type_script = "uid://cs335nesm7wfr"
