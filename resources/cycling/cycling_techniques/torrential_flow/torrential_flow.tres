@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CyclingTechniqueData" format=3 uid="uid://b7lu3bq8fax8w"]
+
+[ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_zone_data.gd" id="1_21bxv"]
+[ext_resource type="Curve2D" uid="uid://c565mswer420e" path="res://resources/cycling/cycling_techniques/torrential_flow/torrential_curve.tres" id="2_7hh5c"]
+[ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd" id="2_nkwtb"]
+
+[sub_resource type="Resource" id="Resource_nkwtb"]
+script = ExtResource("1_21bxv")
+position = Vector2(322, 256)
+perfect_xp = 30
+good_xp = 25
+ok_xp = 20
+metadata/_custom_type_script = "uid://duv3r5hw7qtnd"
+
+[resource]
+script = ExtResource("2_nkwtb")
+id = "torrential_flow"
+technique_name = "Torrential Flow"
+path_curve = ExtResource("2_7hh5c")
+cycle_duration = 8.0
+base_madra_per_cycle = 250.0
+cycling_zones = Array[ExtResource("1_21bxv")]([SubResource("Resource_nkwtb")])
+metadata/_custom_type_script = "uid://7kr7phhtq16r"

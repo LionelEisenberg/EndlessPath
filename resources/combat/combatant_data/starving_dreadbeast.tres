@@ -8,7 +8,7 @@
 [sub_resource type="Resource" id="Resource_xwkgh"]
 script = ExtResource("2_8emjg")
 attributes = Dictionary[int, float]({
-1: 12.0,
+1: 8.5,
 4: 12.0
 })
 metadata/_custom_type_script = "uid://c78ok6kfhyf6y"

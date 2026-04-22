@@ -16,6 +16,5 @@ display_name = "Power Font"
 description = "Unlocks a new combat ability that costs Madra but hits significantly harder, and strips enemies of buffs"
 node_type = 0
 prerequisites = Array[ExtResource("2_mdqxp")]([ExtResource("prereq_pure_core")])
-point_cost = 2
 effects = Array[ExtResource("1_oxfag")]([SubResource("Resource_2d6qk")])
 benefit_summary = "Madra Strike unlocked"

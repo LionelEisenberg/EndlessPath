@@ -3,9 +3,10 @@
 [ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd" id="1_8648x"]
 [ext_resource type="Resource" uid="uid://bamglfy16qig4" path="res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres" id="2_kun6k"]
 [ext_resource type="Script" uid="uid://6ngdap4msfww" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_technique_list.gd" id="2_u5idy"]
+[ext_resource type="Resource" uid="uid://b7lu3bq8fax8w" path="res://resources/cycling/cycling_techniques/torrential_flow/torrential_flow.tres" id="4_4sicb"]
 [ext_resource type="Resource" uid="uid://bfp0ftyd4wpmc" path="res://resources/cycling/cycling_techniques/smooth_flow/smooth_flow.tres" id="4_smooth"]
 
 [resource]
 script = ExtResource("2_u5idy")
-cycling_techniques = Array[ExtResource("1_8648x")]([ExtResource("2_kun6k"), ExtResource("4_smooth")])
+cycling_techniques = Array[ExtResource("1_8648x")]([ExtResource("2_kun6k"), ExtResource("4_smooth"), ExtResource("4_4sicb")])
 metadata/_custom_type_script = "uid://6ngdap4msfww"

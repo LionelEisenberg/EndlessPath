@@ -11,13 +11,14 @@
 [sub_resource type="Resource" id="Resource_f6ngc"]
 script = ExtResource("6_2g4xi")
 enemy_pool = Array[ExtResource("2_glsdj")]([ExtResource("3_rkwkm")])
+label = "Attack the Dreadbeast"
 metadata/_custom_type_script = "uid://cpq8eacgl1537"
 
 [resource]
 script = ExtResource("2_asda7")
 encounter_id = "starving_dreadbeast_encounter"
-encounter_name = "A Starving Dreadbeast!"
-description = "A gaunt, twisted beast slinks from the undergrowth — all ribs and hunger. Its empty eyes fix on you, and its jaws work as though already feeding."
+encounter_name = "Starving Dreadbeast Attacks!"
+description = "A gaunt, twisted beast slinks from the undergrowth — all ribs and hunger."
 text_description_completed = "The Starving Dreadbeast lies still. Its hunger, at last, is sated."
 choices = Array[ExtResource("1_y3srr")]([SubResource("Resource_f6ngc")])
 encounter_type = 0

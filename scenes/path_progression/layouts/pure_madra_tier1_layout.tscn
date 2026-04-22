@@ -2,13 +2,13 @@
 
 [ext_resource type="Script" uid="uid://c3w7i4dsn7k3h" path="res://scenes/path_progression/layouts/path_layout_marker.gd" id="1_marker"]
 [ext_resource type="Resource" uid="uid://bsmdqod42b8d" path="res://resources/path_progression/pure_madra/nodes/pure_core_awakening.tres" id="2_pure_core"]
-[ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/lingering_silence.tres" id="3_lingering"]
+[ext_resource type="Resource" uid="uid://birh4xxovxavy" path="res://resources/path_progression/pure_madra/nodes/lingering_silence.tres" id="3_lingering"]
 [ext_resource type="Resource" uid="uid://dr7yte0lxmckq" path="res://resources/path_progression/pure_madra/nodes/power_font.tres" id="4_mwbny"]
-[ext_resource type="Resource" uid="uid://d1y4relsy2gbg" path="res://resources/path_progression/pure_madra/nodes/torrent_flow.tres" id="5_torrent"]
+[ext_resource type="Resource" uid="uid://d1y4relsy2gbg" path="res://resources/path_progression/pure_madra/nodes/torrential_flow.tres" id="5_torrent"]
 [ext_resource type="Resource" uid="uid://3mpbs2cc2c12" path="res://resources/path_progression/pure_madra/nodes/madra_surge.tres" id="6_surge"]
-[ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/efficient_palm.tres" id="7_palm"]
-[ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/focused_strike.tres" id="8_focused"]
-[ext_resource type="Resource" path="res://resources/path_progression/pure_madra/nodes/strike_efficiency.tres" id="9_eff"]
+[ext_resource type="Resource" uid="uid://bgohfq3hrahvu" path="res://resources/path_progression/pure_madra/nodes/efficient_palm.tres" id="7_palm"]
+[ext_resource type="Resource" uid="uid://bf3kxh7gq224f" path="res://resources/path_progression/pure_madra/nodes/focused_strike.tres" id="8_focused"]
+[ext_resource type="Resource" uid="uid://d0gwjebyf2tsj" path="res://resources/path_progression/pure_madra/nodes/strike_efficiency.tres" id="9_eff"]
 [ext_resource type="Resource" uid="uid://dcnbn3n8v2jok" path="res://resources/path_progression/pure_madra/nodes/cycling_focus.tres" id="10_cycling"]
 [ext_resource type="Resource" uid="uid://b6onv6t7skvjv" path="res://resources/path_progression/pure_madra/nodes/madra_reclamation.tres" id="11_reclaim"]
 [ext_resource type="Resource" uid="uid://g3k5q8m6vcjq" path="res://resources/path_progression/pure_madra/nodes/expanded_core.tres" id="12_core"]
@@ -33,8 +33,8 @@ position = Vector2(562, 618)
 script = ExtResource("1_marker")
 node_data = ExtResource("4_mwbny")
 
-[node name="torrent_flow" type="Marker2D" parent="." unique_id=1238152410]
-position = Vector2(757, 594)
+[node name="torrential_flow" type="Marker2D" parent="." unique_id=1238152410]
+position = Vector2(757, 600)
 script = ExtResource("1_marker")
 node_data = ExtResource("5_torrent")
 
