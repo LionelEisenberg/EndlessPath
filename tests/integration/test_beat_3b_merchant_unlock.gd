@@ -35,10 +35,10 @@ func _refugee_camp_encounter() -> AdventureEncounter:
 	return load("res://resources/adventure/encounters/special_encounters/refugee_camp_encounter.tres") as AdventureEncounter
 
 func _filter_pool(pool: Array) -> Array:
-	var generator_script: GDScript = load("res://scenes/adventure/adventure_tilemap/adventure_map_generator.gd")
-	var generator = generator_script.new()
-	var result: Array = generator._build_eligible_special_pool(pool)
-	generator.queue_free()
+	var result: Array = []
+	for enc in pool:
+		if enc != null and enc.is_eligible():
+			result.append(enc)
 	return result
 
 func _push_cd_to_10() -> void:

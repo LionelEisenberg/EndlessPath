@@ -22,7 +22,7 @@ The unlock system gates features and content using `UnlockConditionData` — a p
 | `ZONE_UNLOCKED` | No | Returns false |
 | `ADVENTURE_COMPLETED` | No | Returns false |
 | `ATTRIBUTE_VALUE` | Yes | `CharacterManager.get_total_attributes_data().get_attribute(type) >= target` |
-| `ITEM_OWNED` | No | Returns false |
+| `ITEM_OWNED` | Yes | `InventoryManager.has_item(str(target_value))` |
 
 ### Trigger Signals
 UnlockManager listens to and re-evaluates on:
@@ -66,6 +66,8 @@ The key pattern: **game action → EffectData triggers event → UnlockManager r
 4. `q_fill_core_completed` — EVENT_TRIGGERED, marks the "Fill Your Core" quest complete (PR #28); gates Dialogue Part 2 and The Shallow Woods adventure
 5. `q_first_steps_enemy_defeated` — EVENT_TRIGGERED, fires when the player wins their first Shallow Woods combat (PR #32); gates Dialogue Part 3
 6. `q_reach_cd_10` — CULTIVATION_LEVEL >= 10, used by the "Reach Core Density 10" quest step (PR #32)
+7. `aura_well_discovered` — EVENT_TRIGGERED, fires from the Aura Well encounter's "Mark down the location" choice (PR #36); gates the Aura Well zone action in Zone 1 and flips sibling Aura Well tiles' Mark choice to the "✓ Location noted" completed state
+8. `merchant_discovered` — EVENT_TRIGGERED, fires when the player visits the refugee camp special encounter (PR #41); gates the Merchant zone action stub in Zone 1
 
 ## Key Files
 
@@ -78,7 +80,7 @@ The key pattern: **game action → EffectData triggers event → UnlockManager r
 
 ### Missing Functionality
 
-- `[LOW]` ZONE_UNLOCKED, ADVENTURE_COMPLETED, ITEM_OWNED condition types return false — implement when needed for content gating
+- `[LOW]` ZONE_UNLOCKED and ADVENTURE_COMPLETED condition types return false — implement when needed for content gating
 
 ### Performance
 

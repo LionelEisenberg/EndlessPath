@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-04-20
+Last updated: 2026-04-21
 
 This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
 
@@ -155,8 +155,9 @@ Issues that span multiple systems and don't belong to any single doc:
 |--------|-----|---------|
 | Cycling | [docs/cycling/CYCLING.md](cycling/CYCLING.md) | Mouse-tracking mini-game, Madra generation, Core Density XP |
 | Combat | [docs/combat/COMBAT.md](combat/COMBAT.md) | Real-time ability combat within adventures |
+| Abilities | [docs/abilities/ABILITIES.md](abilities/ABILITIES.md) + [docs/abilities/ABILITIES_MATRIX.md](abilities/ABILITIES_MATRIX.md) | Ability data model, unlock/equip lifecycle, per-path stats matrix (PR #38) |
 | Adventuring | [docs/adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex map exploration with encounters |
-| Inventory | [docs/inventory/INVENTORY.md](inventory/INVENTORY.md) | Equipment grid, gear slots, materials, loot |
+| Inventory | [docs/inventory/INVENTORY.md](inventory/INVENTORY.md) | Equipment grid, gear slots, materials, quest items, loot |
 | Zones | [docs/zones/ZONES.md](zones/ZONES.md) | Home base hex map, action routing, unlock chains |
 | Cultivation | [docs/cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density leveling, Advancement Stages, breakthrough |
 | Path Progression | [docs/progression/PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md) | Skill tree, path points, perk unlocks (PathManager) |

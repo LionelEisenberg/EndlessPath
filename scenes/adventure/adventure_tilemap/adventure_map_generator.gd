@@ -1,15 +1,19 @@
 class_name AdventureMapGenerator
 extends Node
 
-# Generation constants
-const MAX_TILE_PLACEMENT_ATTEMPTS = 100
+const MAX_PLACEMENT_ATTEMPTS: int = 100
+const MAX_REGENERATION_ATTEMPTS: int = 5
+
+const NEIGHBOR_OFFSETS: Array[Vector3i] = [
+	Vector3i(+1, -1, 0), Vector3i(-1, +1, 0),
+	Vector3i(+1, 0, -1), Vector3i(-1, 0, +1),
+	Vector3i(0, +1, -1), Vector3i(0, -1, +1),
+]
 
 var adventure_data: AdventureData
 var tile_map: HexagonTileMapLayer
 
 var all_map_tiles: Dictionary[Vector3i, AdventureEncounter] = {}
-
-var num_combats_in_map : int = 0
 
 ## Sets the adventure_data used for generation.
 func set_adventure_data(p_adventure_data: AdventureData) -> void:
@@ -23,166 +27,268 @@ func set_tile_map(tm: HexagonTileMapLayer) -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Generates the full set of tile coordinates for an adventure map.
-## Returns an array of Vector3i (cube coordinates) for all generated tiles.
+## Generates a full adventure map. Returns the coord->encounter dictionary,
+## or an empty dictionary if validation fails.
 func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
-	if not adventure_data:
-		Log.error("AdventureMapGenerator: Adventure data is not set")
+	if adventure_data == null:
+		Log.error("AdventureMapGenerator: adventure_data is not set")
+		return {}
+	if tile_map == null:
+		Log.error("AdventureMapGenerator: tile_map is not set")
 		return {}
 
-	if not tile_map:
-		Log.error("AdventureMapGenerator: Tile map is not set")
+	var errors: Array[String] = adventure_data.validate()
+	if errors.size() > 0:
+		for err in errors:
+			Log.error("AdventureMapGenerator: %s" % err)
 		return {}
-	
-	all_map_tiles[Vector3i.ZERO] = NoOpEncounter.new() # Ensure origin is in the map
 
-	_place_special_tiles()
+	for attempt in MAX_REGENERATION_ATTEMPTS:
+		all_map_tiles = {}
+		all_map_tiles[Vector3i.ZERO] = NoOpEncounter.new()
 
-	_assign_special_tiles()
-	
-	_generate_mst_paths()
-	
-	_assign_path_tiles()
-	
+		_place_anchors()
+		_generate_paths()
+		_place_fillers()
+
+		if _validate_critical_paths():
+			return all_map_tiles
+
+		Log.warn("AdventureMapGenerator: critical-path check failed, regenerating (attempt %d)" % (attempt + 1))
+
+	Log.error("AdventureMapGenerator: exhausted regeneration attempts, returning best-effort map")
 	return all_map_tiles
 
-
 #-----------------------------------------------------------------------------
-# PRIVATE HELPER FUNCTIONS
+# PHASE 1 — SCATTER ANCHORS
 #-----------------------------------------------------------------------------
 
-## Places special tiles based on parameters
-func _place_special_tiles() -> void:
-	var special_tiles: Array[Vector3i] = []
+func _place_anchors() -> void:
+	for quota in adventure_data.encounter_quotas:
+		if quota == null or quota.encounter == null:
+			continue
+		if quota.encounter.placement != AdventureEncounter.Placement.ANCHOR:
+			continue
+		if not quota.encounter.is_eligible():
+			Log.info("AdventureMapGenerator: skipping %s — unlock_conditions not met" % quota.encounter.encounter_id)
+			continue
+		for i in quota.count:
+			_place_single_anchor(quota.encounter)
 
-	for i in adventure_data.num_special_tiles:
-		var attempts = 0
-		var tile_placed = false
-		
-		while not tile_placed and attempts < MAX_TILE_PLACEMENT_ATTEMPTS:
-			attempts += 1
-			
-			# 1. Pick a random coordinate
-			# We pick 'q' and 'r' and 's' is derived (-q-r)
-			var q = randi_range(-adventure_data.max_distance_from_start, adventure_data.max_distance_from_start)
-			var r = randi_range(-adventure_data.max_distance_from_start, adventure_data.max_distance_from_start)
-			var s = -q - r
-			var random_coord = Vector3i(q, r, s)
+	# Boss always placed last at the farthest anchor-valid coord found.
+	if adventure_data.boss_encounter != null:
+		_place_boss()
 
-			# 2. Check max distance
-			if tile_map.cube_distance(Vector3i.ZERO, random_coord) > adventure_data.max_distance_from_start:
-				continue # Tile is too far from origin, try again
-
-			# 3. Check sparse factor (distance from *other* special tiles AND from origin)
-			var is_valid_sparse = true
-			if tile_map.cube_distance(Vector3i.ZERO, random_coord) < adventure_data.sparse_factor:
-				is_valid_sparse = false
-			for existing_tile in special_tiles:
-				if tile_map.cube_distance(existing_tile, random_coord) < adventure_data.sparse_factor:
-					is_valid_sparse = false
-					break # Tile is too close to another special tile
-			
-			if is_valid_sparse:
-				all_map_tiles[random_coord] = NoOpEncounter.new()
-				tile_placed = true
-				Log.info("AdventureMapGenerator: Placed special tile at %s after %s attempts" % [random_coord, attempts])
-
-		if attempts >= MAX_TILE_PLACEMENT_ATTEMPTS:
-			Log.warn("AdventureMapGenerator: Could not place a special tile. Check map parameters.")
-			break
-
-func _assign_special_tiles() -> void:
-	if adventure_data.special_encounter_pool.is_empty():
-		Log.warn("AdventureMapGenerator: Can't Assign Encounters to special tiles as encounter pool is empty")
+func _place_single_anchor(encounter: AdventureEncounter) -> void:
+	for attempt in MAX_PLACEMENT_ATTEMPTS:
+		var coord := _random_cube_coord(adventure_data.max_distance_from_start)
+		if tile_map.cube_distance(Vector3i.ZERO, coord) > adventure_data.max_distance_from_start:
+			continue
+		if tile_map.cube_distance(Vector3i.ZERO, coord) < encounter.min_distance_from_origin:
+			continue
+		if _violates_sparse_factor(coord):
+			continue
+		all_map_tiles[coord] = encounter
 		return
+	Log.warn("AdventureMapGenerator: could not place anchor %s after %d attempts" % [encounter.encounter_id, MAX_PLACEMENT_ATTEMPTS])
 
-	var eligible_pool: Array = _build_eligible_special_pool(adventure_data.special_encounter_pool)
-	if eligible_pool.is_empty():
-		Log.warn("AdventureMapGenerator: No eligible special encounters after filter; leaving tiles as no-op")
+func _place_boss() -> void:
+	var boss := adventure_data.boss_encounter
+	var best_coord: Vector3i = Vector3i.ZERO
+	var best_distance: int = -1
+	for attempt in MAX_PLACEMENT_ATTEMPTS:
+		var coord := _random_cube_coord(adventure_data.max_distance_from_start)
+		if tile_map.cube_distance(Vector3i.ZERO, coord) > adventure_data.max_distance_from_start:
+			continue
+		if tile_map.cube_distance(Vector3i.ZERO, coord) < boss.min_distance_from_origin:
+			continue
+		if _violates_sparse_factor(coord):
+			continue
+		var d: int = tile_map.cube_distance(Vector3i.ZERO, coord)
+		if d > best_distance:
+			best_distance = d
+			best_coord = coord
+	if best_distance >= 0:
+		all_map_tiles[best_coord] = boss
+	else:
+		Log.warn("AdventureMapGenerator: could not place boss %s" % boss.encounter_id)
 
-	var furthest_node_coord = Vector3i.ZERO
-	var furthest_distance = 0
+func _random_cube_coord(radius: int) -> Vector3i:
+	var q := randi_range(-radius, radius)
+	var r := randi_range(-radius, radius)
+	return Vector3i(q, r, -q - r)
+
+func _violates_sparse_factor(coord: Vector3i) -> bool:
+	if tile_map.cube_distance(Vector3i.ZERO, coord) < adventure_data.sparse_factor:
+		return true
+	for existing in all_map_tiles.keys():
+		if existing == Vector3i.ZERO:
+			continue
+		if tile_map.cube_distance(existing, coord) < adventure_data.sparse_factor:
+			return true
+	return false
+
+#-----------------------------------------------------------------------------
+# PHASE 2 — MST + EXTRA EDGES
+#-----------------------------------------------------------------------------
+
+func _generate_paths() -> void:
+	var anchors: Array[Vector3i] = all_map_tiles.keys().duplicate()
+
+	var mst_edges: Array = []
+	var in_tree: Array[Vector3i] = [Vector3i.ZERO]
+	var remaining: Array[Vector3i] = anchors.filter(func(c): return c != Vector3i.ZERO)
+
+	while not remaining.is_empty():
+		var best_from: Vector3i
+		var best_to: Vector3i
+		var best_dist: int = 1 << 30
+		for a in in_tree:
+			for b in remaining:
+				var d: int = tile_map.cube_distance(a, b)
+				if d < best_dist:
+					best_dist = d
+					best_from = a
+					best_to = b
+		if best_dist == 1 << 30:
+			break
+		mst_edges.append([best_from, best_to])
+		in_tree.append(best_to)
+		remaining.erase(best_to)
+
+	for edge in mst_edges:
+		_stamp_line(edge[0], edge[1])
+
+	# Extra edges — shortest non-tree edges between any two anchors.
+	var candidate_edges: Array = []
+	for i in range(anchors.size()):
+		for j in range(i + 1, anchors.size()):
+			var a: Vector3i = anchors[i]
+			var b: Vector3i = anchors[j]
+			if _edge_in_mst(mst_edges, a, b):
+				continue
+			candidate_edges.append({"a": a, "b": b, "dist": tile_map.cube_distance(a, b)})
+	candidate_edges.sort_custom(func(x, y): return x.dist < y.dist)
+
+	var added: int = 0
+	for c in candidate_edges:
+		if added >= adventure_data.num_extra_edges:
+			break
+		_stamp_line(c.a, c.b)
+		added += 1
+
+func _edge_in_mst(mst_edges: Array, a: Vector3i, b: Vector3i) -> bool:
+	for e in mst_edges:
+		if (e[0] == a and e[1] == b) or (e[0] == b and e[1] == a):
+			return true
+	return false
+
+func _stamp_line(from: Vector3i, to: Vector3i) -> void:
+	for coord in tile_map.cube_linedraw(from, to):
+		if not coord in all_map_tiles:
+			all_map_tiles[coord] = NoOpEncounter.new()
+
+#-----------------------------------------------------------------------------
+# PHASE 3 — PLACE FILLERS
+#-----------------------------------------------------------------------------
+
+func _place_fillers() -> void:
+	for quota in adventure_data.encounter_quotas:
+		if quota == null or quota.encounter == null:
+			continue
+		if quota.encounter.placement != AdventureEncounter.Placement.FILLER:
+			continue
+		if not quota.encounter.is_eligible():
+			Log.info("AdventureMapGenerator: skipping filler %s — unlock_conditions not met" % quota.encounter.encounter_id)
+			continue
+		var placed: int = 0
+		while placed < quota.count:
+			var noop_coords: Array[Vector3i] = _collect_noop_coords()
+			if noop_coords.is_empty():
+				Log.warn("AdventureMapGenerator: filler quota %s exceeds available NoOp tiles (placed %d of %d)" % [quota.encounter.encounter_id, placed, quota.count])
+				break
+			var pick: Vector3i = noop_coords[randi_range(0, noop_coords.size() - 1)]
+			all_map_tiles[pick] = quota.encounter
+			placed += 1
+
+func _collect_noop_coords() -> Array[Vector3i]:
+	var result: Array[Vector3i] = []
 	for coord in all_map_tiles.keys():
-		var distance_to_origin = tile_map.cube_distance(Vector3i.ZERO, coord)
-		if distance_to_origin >= furthest_distance:
-			furthest_node_coord = coord
-			furthest_distance = distance_to_origin
 		if coord == Vector3i.ZERO:
 			continue
-		if not eligible_pool.is_empty():
-			all_map_tiles[coord] = eligible_pool[randi_range(0, eligible_pool.size() - 1)]
-		# else: leave the NoOpEncounter placed earlier in _place_special_tiles.
+		if all_map_tiles[coord] is NoOpEncounter:
+			result.append(coord)
+	return result
 
-	all_map_tiles[furthest_node_coord] = adventure_data.boss_encounter
+#-----------------------------------------------------------------------------
+# PHASE 4 — CRITICAL-PATH CHECK
+#-----------------------------------------------------------------------------
 
-## Filters a pool of encounters by their unlock_conditions dictionary. Each
-## condition must evaluate to its paired expected bool, otherwise the encounter
-## is dropped. Encounters with empty unlock_conditions always pass.
-func _build_eligible_special_pool(pool: Array) -> Array:
-	var eligible: Array = []
-	for encounter in pool:
-		if encounter == null:
+## Returns true if every encounter with min_fillers_on_path > 0 has enough
+## fillers on its shortest path from origin. Mutates all_map_tiles to promote
+## NoOp tiles to combat fillers where possible. Returns false if unable to
+## satisfy (caller should regenerate).
+func _validate_critical_paths() -> bool:
+	for coord in all_map_tiles.keys():
+		var enc: AdventureEncounter = all_map_tiles[coord]
+		if enc == null or enc.min_fillers_on_path <= 0:
 			continue
-		var ok: bool = true
-		for condition in encounter.unlock_conditions:
-			if condition.evaluate() != encounter.unlock_conditions[condition]:
-				ok = false
-				break
-		if ok:
-			eligible.append(encounter)
-	return eligible
+		var path: Array[Vector3i] = _bfs_path(Vector3i.ZERO, coord)
+		if path.is_empty():
+			return false
+		var filler_count: int = 0
+		var noops_on_path: Array[Vector3i] = []
+		for p in path:
+			if p == Vector3i.ZERO or p == coord:
+				continue
+			var enc_on_path: AdventureEncounter = all_map_tiles[p]
+			if enc_on_path is NoOpEncounter:
+				noops_on_path.append(p)
+			elif enc_on_path.placement == AdventureEncounter.Placement.FILLER:
+				filler_count += 1
+		var deficit: int = enc.min_fillers_on_path - filler_count
+		if deficit <= 0:
+			continue
+		if deficit > noops_on_path.size():
+			return false
+		var promote_pool: AdventureEncounter = _find_eligible_filler_encounter()
+		if promote_pool == null:
+			return false
+		for i in deficit:
+			all_map_tiles[noops_on_path[i]] = promote_pool
+	return true
 
-## Generates a path network connecting all special tiles using Prim's MST algorithm.
-func _generate_mst_paths() -> void:
-	# A set of all nodes that are not yet part of the MST.
-	var nodes_to_add: Array[Vector3i] = all_map_tiles.keys().duplicate()
-	
-	# A set of all nodes that are already included in the MST.
-	# We start the tree from the origin.
-	var nodes_in_tree: Array[Vector3i] = [Vector3i.ZERO]
+func _find_eligible_filler_encounter() -> AdventureEncounter:
+	# Prefer COMBAT_REGULAR; fall back to any eligible FILLER.
+	var fallback: AdventureEncounter = null
+	for quota in adventure_data.encounter_quotas:
+		if quota == null or quota.encounter == null:
+			continue
+		if quota.encounter.placement != AdventureEncounter.Placement.FILLER:
+			continue
+		if not quota.encounter.is_eligible():
+			continue
+		if quota.encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_REGULAR:
+			return quota.encounter
+		if fallback == null:
+			fallback = quota.encounter
+	return fallback
 
-	# Loop until all special tiles have been added to the tree.
-	while not nodes_to_add.is_empty():
-		var min_dist = INF
-		var best_start_node: Vector3i
-		var best_target_node: Vector3i
-
-		# Find the cheapest edge connecting the "tree" to a "non-tree" node.
-		for start_node in nodes_in_tree:
-			for target_node in nodes_to_add:
-				var dist = tile_map.cube_distance(start_node, target_node)
-				
-				if dist < min_dist:
-					min_dist = dist
-					best_start_node = start_node
-					best_target_node = target_node
-
-		# If no path is found (e.g., isolated nodes, though this shouldn't happen),
-		# safety break.
-		if min_dist == INF:
-			break
-
-		# We found the best path. Add it to the map.
-		var path = tile_map.cube_linedraw(best_start_node, best_target_node)
-		for coord in path:
-			if not coord in all_map_tiles:
-				all_map_tiles[coord] = NoOpEncounter.new()
-
-		# Move the newly connected node from 'nodes_to_add' to 'nodes_in_tree'.
-		nodes_in_tree.append(best_target_node)
-		nodes_to_add.erase(best_target_node)
-
-## Assigns path tiles according to the path encounter pools as well as the map data's number of combats
-## The logic here is there are num
-func _assign_path_tiles() -> void:
-	if adventure_data.path_encounter_pool.is_empty():
-		Log.warn("AdventureMapGenerator: Can't Assign Encounters to path tiles as encounter pool is empty")
-		return
-	
-	var num_path_encounters_left = adventure_data.num_path_encounters
-	while num_path_encounters_left != 0:
-		var tile_index = randi_range(1, all_map_tiles.values().size() - 1)
-		var path_encounter = all_map_tiles.values()[tile_index]
-		if path_encounter is NoOpEncounter:
-			all_map_tiles[all_map_tiles.keys()[tile_index]] = adventure_data.path_encounter_pool[randi_range(0, adventure_data.path_encounter_pool.size() - 1)]
-			num_path_encounters_left -= 1
+func _bfs_path(start: Vector3i, goal: Vector3i) -> Array[Vector3i]:
+	var came_from: Dictionary = {start: null}
+	var frontier: Array[Vector3i] = [start]
+	while not frontier.is_empty():
+		var current: Vector3i = frontier.pop_front()
+		if current == goal:
+			var path: Array[Vector3i] = []
+			var node = goal
+			while node != null:
+				path.push_front(node)
+				node = came_from[node]
+			return path
+		for off in NEIGHBOR_OFFSETS:
+			var next: Vector3i = current + off
+			if next in all_map_tiles and not (next in came_from):
+				came_from[next] = current
+				frontier.append(next)
+	return []

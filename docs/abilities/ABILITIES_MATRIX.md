@@ -82,37 +82,48 @@ Path identity: *"Versatile and balanced, specializing in disruption and neutrali
 
 ### empty_palm — "Empty Palm"
 
-> Infuse a strike with Madra and push it through the enemy's core.
+> A focused Pure Madra strike. Cancels the target's current cast if any.
 
 | Field | Value |
 |-------|-------|
 | Source / Madra | `PATH` / `PURE` |
 | Target | `SINGLE_ENEMY` |
-| Cost | 12 M, 3 S |
+| Cost | 8 M |
 | Cooldown / Cast | 3.0s / 0s |
-| Effects | 1 × damage |
+| Effects | 2 — damage + cancel_cast |
 
 **Effect 1 — damage (PHYSICAL)**
 
 | Base | STR | BODY | AGI | SPI | FND | CTRL | RES | WPR |
 |------|-----|------|-----|-----|-----|------|-----|-----|
-| 10.0 | — | — | 0.3 | 1.0 | — | — | — | — |
+| 15.0 | — | — | 0.3 | 1.0 | — | — | — | — |
+
+**Effect 2 — cancel_cast**
+
+| Field | Value |
+|-------|-------|
+| `effect_type` | `CANCEL_CAST` |
+| `effect_name` | `"Disrupting Palm"` |
+
+Interrupts the target's in-progress cast (if any) via `CombatAbilityManager.cancel_current_cast()` → emits `cast_cancelled`. No value, no scaling.
 
 > **Note:** `madra_type = PURE` but `damage_type = PHYSICAL` — the ability is Pure Madra in flavor/identity but the palm strike resolves against physical defense (Resilience). This is intentional composition flexibility.
+
+*At default attributes (all 10): raw damage = 15 + (10×0.3) + (10×1.0) = 28, vs 10 Resilience → `28 × 100/110 ≈ 25.5` damage. Gated by Madra economy rather than a hard cooldown — the interrupt is the real payload.*
 
 [resources/abilities/empty_palm.tres](../../resources/abilities/empty_palm.tres)
 
 ### power_font — "Power Font"
 
-> After a short moment to channel your body's madra into your palms, you throw a wave of power at the enemy with the might of your entire spirit!
+> Channel your body's Madra and release it in a cleansing wave — heavy damage and wipes every buff on the target.
 
 | Field | Value |
 |-------|-------|
 | Source / Madra | `PATH` / `PURE` |
 | Target | `SINGLE_ENEMY` |
-| Cost | 20 M |
-| Cooldown / Cast | 15.0s / 3.0s |
-| Effects | 1 × damage |
+| Cost | 30 M |
+| Cooldown / Cast | 25.0s / 3.0s |
+| Effects | 2 — damage + strip_buffs |
 
 **Effect 1 — damage (SPIRIT)**
 
@@ -120,7 +131,16 @@ Path identity: *"Versatile and balanced, specializing in disruption and neutrali
 |------|-----|------|-----|-----|-----|------|-----|-----|
 | 30.0 | — | — | — | 1.5 | 0.5 | — | — | — |
 
-*At default attributes: raw = 30 + (10×1.5) + (10×0.5) = 50, vs 10 Spirit → `50 × 100/110 ≈ 45.5` damage. Heavy payoff for the 3s cast.*
+**Effect 2 — strip_buffs**
+
+| Field | Value |
+|-------|-------|
+| `effect_type` | `STRIP_BUFFS` |
+| `effect_name` | `"Sunder All Buffs"` |
+
+Clears every active buff on the target via `CombatBuffManager.strip_all_buffs()`. Distinct from `clear_all_buffs()` (which runs on combat end). No value, no scaling — bonus-damage-per-stack is deferred to a future path-tree upgrade.
+
+*At default attributes: raw = 30 + (10×1.5) + (10×0.5) = 50, vs 10 Spirit → `50 × 100/110 ≈ 45.5` damage. Heavy payoff for the 3s cast + the buff wipe.*
 
 [resources/abilities/power_font.tres](../../resources/abilities/power_font.tres)
 
@@ -148,8 +168,8 @@ One row per ability. All 8 attribute scaling coefficients, base value, damage ty
 |---------|------|-------------|-----|------|-----|-----|-----|------|-----|-----|--------|
 | `basic_strike` | 10 | PHYSICAL | 1.0 | — | 0.5 | — | — | — | — | — | 1 × damage |
 | `enforce` | — | — (buff) | — | — | — | — | — | — | — | — | 1 × buff: `OUTGOING_DAMAGE_MODIFIER` ×1.5, 5s, consume_on_use |
-| `empty_palm` | 10 | PHYSICAL | — | — | 0.3 | 1.0 | — | — | — | — | 1 × damage |
-| `power_font` | 30 | SPIRIT | — | — | — | 1.5 | 0.5 | — | — | — | 1 × damage |
+| `empty_palm` | 15 | PHYSICAL | — | — | 0.3 | 1.0 | — | — | — | — | 2 × (damage + `CANCEL_CAST`) |
+| `power_font` | 30 | SPIRIT | — | — | — | 1.5 | 0.5 | — | — | — | 2 × (damage + `STRIP_BUFFS`) |
 
 ## Maintenance Notes
 

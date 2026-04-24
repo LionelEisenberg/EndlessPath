@@ -43,4 +43,7 @@ description = "The air here is thick with aura, recover briefly from the chaos b
 text_description_completed = "Diminished as the aura is, nothing to do now but move on."
 choices = Array[ExtResource("2_choice")]([SubResource("Resource_rest_choice"), SubResource("Resource_mark_choice")])
 encounter_type = 4
+placement = 0
+min_distance_from_origin = 3
+min_fillers_on_path = 1
 metadata/_custom_type_script = "uid://cs335nesm7wfr"

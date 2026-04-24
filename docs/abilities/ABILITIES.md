@@ -38,10 +38,12 @@ Effect composition lives in [scripts/resource_definitions/combat/combat_effect_d
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `effect_type` | `EffectType` | `DAMAGE`, `HEAL`, `BUFF` |
+| `effect_type` | `EffectType` | `DAMAGE`, `HEAL`, `BUFF`, `CANCEL_CAST`, `STRIP_BUFFS` |
 | `base_value` | `float` | Flat starting value |
 | `damage_type` | `DamageType` | `PHYSICAL`, `SPIRIT`, `TRUE` (ignores defense), `MIXED` (avg of both defenses) |
 | `*_scaling` | `float` | Per-attribute coefficient — 8 fields: `strength_scaling`, `body_scaling`, `agility_scaling`, `spirit_scaling`, `foundation_scaling`, `control_scaling`, `resilience_scaling`, `willpower_scaling` |
+
+`CANCEL_CAST` and `STRIP_BUFFS` (PR #39) are value-less control effects — no `base_value`, no scaling. They're dispatched by `CombatEffectManager.process_effect()` to `CombatAbilityManager.cancel_current_cast()` / `CombatBuffManager.strip_all_buffs()` respectively. See [COMBAT.md Effect Resolution](../combat/COMBAT.md#effect-resolution-combateffectmanager).
 
 **Damage formula** (see `calculate_damage()`):
 

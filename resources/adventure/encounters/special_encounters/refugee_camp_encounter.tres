@@ -38,6 +38,9 @@ description = "A cluster of makeshift tents under the trees. A merchant's wagon 
 text_description_completed = "The camp is empty now — they must have moved on, following your map back to the valley."
 choices = Array[ExtResource("2_choice")]([SubResource("Resource_approach_choice")])
 encounter_type = 4
+placement = 0
+min_distance_from_origin = 3
+min_fillers_on_path = 1
 unlock_conditions = Dictionary[ExtResource("5_cond"), bool]({
 SubResource("Resource_cond_map_owned"): true,
 SubResource("Resource_cond_merchant_discovered"): false
