@@ -88,7 +88,14 @@ func _to_string() -> String:
 
 ## Returns true when all unlock_conditions evaluate to their expected bool.
 ## Encounters with no unlock_conditions are always eligible.
+##
+## At editor time (@tool context), returns true unconditionally —
+## UnlockConditionData.evaluate() depends on autoloads that aren't
+## instantiated in the editor. Preview tools want the full potential
+## map anyway, not the subset visible to the current player state.
 func is_eligible() -> bool:
+	if Engine.is_editor_hint():
+		return true
 	for condition in unlock_conditions:
 		if condition.evaluate() != unlock_conditions[condition]:
 			return false
