@@ -43,7 +43,7 @@ This is a slow, high-friction loop — especially when iterating on numerical pa
 MapPreview (Node2D, @tool)                    — scripts/tools/map_preview.gd
   PreviewTileMap (HexagonTileMapLayer)        — instanced from scenes/tilemaps/hexagon_tile_map_layer.tscn
   EncounterIconContainer (Node2D, z=6)        — parents spawned EncounterIcon instances
-  OriginMarker (Sprite2D or Label)            — small "START" marker at Vector2.ZERO
+  OriginMarker (Node2D wrapper + Label child) — small "START" marker at Vector2.ZERO
   StatsLabel (Label)                          — one-line summary, CanvasLayer overlay top-left
 ```
 
@@ -104,11 +104,11 @@ No `Camera2D` — in a `@tool` scene opened in the editor, Godot's 2D editor vie
    - For each `coord` in `tiles`: `preview_tile_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, preview_tile_map.cube_to_map(coord), HexForestAtlas.pick(coord))`.
    - `HexForestAtlas.pick(coord)` is a static helper at `scripts/utils/hex_forest_atlas.gd` extracted from `AdventureTilemap._get_random_forest_atlas_coords()`. Same deterministic-by-coord hash, shared call site.
 3. **Position origin marker**
-   - Show the pre-placed `OriginMarker` node at world position `Vector2.ZERO` (where `cube_to_world(Vector3i.ZERO)` lands, which is the scene origin). Set `visible = true`. The marker is a simple Sprite2D or Label reading "START" — it only needs to exist so the designer can tell the origin apart from anchor tiles at a glance.
+   - Show the pre-placed `OriginMarker` node at world position `Vector2.ZERO` (where `cube_to_local(Vector3i.ZERO)` lands, which is the scene origin). Set `visible = true`. The marker is a `Node2D` wrapper with a `Label` child reading "START" — the wrapper is what the script positions, and the Label child is offset slightly negative so the text sits visually over the origin hex. It only needs to exist so the designer can tell the origin apart from anchor tiles at a glance.
 4. **Spawn encounter icons**
    - For each `coord` whose encounter is not `NoOpEncounter` (including the boss):
      - Instance `EncounterIcon.tscn`, add to `EncounterIconContainer`.
-     - Position at `preview_tile_map.cube_to_world(coord)`.
+     - Position at `preview_tile_map.cube_to_local(coord)`.
      - Configure with `encounter.encounter_type`, treating the tile as visited + not-completed so the icon renders fully lit.
 
 The designer frames the view using the editor's standard 2D navigation (`F` to focus, wheel to zoom). No in-scene camera framing step.

@@ -105,9 +105,9 @@ func _render(tiles: Dictionary[Vector3i, AdventureEncounter]) -> void:
 			HexForestAtlas.pick(coord),
 		)
 
-	# Show origin marker at Vector2.ZERO (which is cube_to_world(Vector3i.ZERO)
+	# Show origin marker at Vector2.ZERO (which is cube_to_local(Vector3i.ZERO)
 	# for a correctly-configured HexagonTileMapLayer at position 0,0).
-	_origin_marker.position = _preview_tile_map.cube_to_world(Vector3i.ZERO)
+	_origin_marker.position = _preview_tile_map.cube_to_local(Vector3i.ZERO)
 	_origin_marker.visible = true
 
 	# Spawn encounter icons for every non-NoOp tile
@@ -119,7 +119,7 @@ func _render(tiles: Dictionary[Vector3i, AdventureEncounter]) -> void:
 			continue
 		var icon: EncounterIcon = ENCOUNTER_ICON_SCENE.instantiate()
 		_icon_container.add_child(icon)
-		icon.position = _preview_tile_map.cube_to_world(coord)
+		icon.position = _preview_tile_map.cube_to_local(coord)
 		# EncounterIcon has @onready node refs — in @tool context, call after
 		# add_child so _ready has fired. configure_for_type() is the public
 		# entry point used by AdventureTilemap.
@@ -131,7 +131,7 @@ func _render(tiles: Dictionary[Vector3i, AdventureEncounter]) -> void:
 
 func _update_stats_label(tiles: Dictionary[Vector3i, AdventureEncounter]) -> void:
 	var total: int = tiles.size()
-	var counts: Dictionary = {
+	var counts: Dictionary[String, int] = {
 		"combat": 0,
 		"elite": 0,
 		"boss": 0,

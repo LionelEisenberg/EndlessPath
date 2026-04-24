@@ -13,9 +13,13 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 z_index = 6
 
-[node name="OriginMarker" type="Label" parent="."]
+[node name="OriginMarker" type="Node2D" parent="."]
 unique_name_in_owner = true
 visible = false
+
+[node name="Label" type="Label" parent="OriginMarker"]
+offset_left = -30.0
+offset_top = -12.0
 text = "START"
 theme_override_colors/font_color = Color(1, 0.9, 0.3, 1)
 
