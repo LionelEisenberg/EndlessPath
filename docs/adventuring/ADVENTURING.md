@@ -75,25 +75,34 @@ Encounter type visuals are handled by `EncounterIcon` instances in a separate `E
 
 File: `scenes/adventure/adventure_tilemap/adventure_map_generator.gd`
 
-Generation runs in 4 phases:
+The generator is quota-keyed: `AdventureData.encounter_quotas` is a list of `(AdventureEncounter, count)` pairs. Each encounter declares its own placement behavior (`placement`, `min_distance_from_origin`, `min_fillers_on_path`), so the generator reads data rather than hard-coding type rules.
 
-### Phase 1 — Place Special Tiles
-- Scatters `num_special_tiles` coordinates using random cube coords `(q, r, s=-q-r)`
-- Rejects tiles outside `max_distance_from_start` or too close to existing tiles (`sparse_factor`)
-- Up to 100 attempts per tile placement
+`AdventureData.validate()` runs before Phase 1 — if it returns any errors, generation logs them and returns an empty map. The test suite asserts every shipped adventure `.tres` validates clean.
 
-### Phase 2 — Assign Encounters
-- Each special tile gets a random encounter from `special_encounter_pool`
-- The tile **furthest from origin** becomes the boss encounter
+Generation runs in 4 phases, wrapped in a regeneration loop (up to 5 attempts if Phase 4 can't satisfy critical paths; after exhaustion the last attempt is returned and an error logged).
 
-### Phase 3 — Generate MST Paths (Prim's Algorithm)
-- Connects all special tiles via Minimum Spanning Tree
-- Draws hex lines (`cube_linedraw`) between connected nodes
-- Intermediate tiles become `NoOpEncounter` walk-through paths
-- Guarantees all special nodes are reachable from start
+### Phase 1 — Scatter Anchors
+- For each quota where `encounter.placement == ANCHOR` and `is_eligible()`, places `count` instances using random cube coords `(q, r, s=-q-r)`
+- Rejects candidate coords outside `max_distance_from_start`, below the encounter's own `min_distance_from_origin`, or within `sparse_factor` of origin or an already-placed anchor
+- Up to 100 attempts per instance, then the instance is skipped with a warning
+- Boss is placed last at the farthest valid candidate coord found
 
-### Phase 4 — Assign Path Encounters
-- Promotes `num_path_encounters` random NoOp path tiles to encounters from `path_encounter_pool`
+### Phase 2 — MST + Extra Edges (Prim's Algorithm)
+- Connects origin + all anchors via Minimum Spanning Tree over `cube_distance`
+- Adds `num_extra_edges` shortest non-tree edges between anchors for branching choice (pure MST gives no route choice)
+- Stamps intermediate tiles (`cube_linedraw`) as `NoOpEncounter` walk-through paths
+- Guarantees all anchors are reachable from origin
+
+### Phase 3 — Place Fillers
+- For each quota where `encounter.placement == FILLER` and `is_eligible()`, picks random NoOp tiles and assigns `count` instances
+- Bounded loop: exits when quota is met OR NoOps are exhausted (fixes the prior infinite-loop bug when quotas exceeded available tiles)
+
+### Phase 4 — Critical-Path Check
+- For every placed encounter with `min_fillers_on_path > 0`, BFS the shortest path from origin across the generated graph
+- If the path has fewer fillers than required, promotes NoOps on that path to a filler encounter (prefers `COMBAT_REGULAR`, falls back to any eligible FILLER in the quota)
+- If the path has no NoOps left to promote, returns false → regeneration
+
+**Quota-vs-placement note:** Phase 4 can promote NoOps beyond a filler's declared `count` when satisfying `min_fillers_on_path`. `EncounterQuota.count` is effectively a **minimum** for fillers that can gain from critical-path promotion, not a strict ceiling.
 
 ## Data Model
 
@@ -101,13 +110,21 @@ Generation runs in 4 phases:
 | Field | Type | Description |
 |-------|------|-------------|
 | `adventure_id` | `String` | Unique identifier |
-| `num_special_tiles` | `int` | Encounter nodes to scatter |
-| `max_distance_from_start` | `int` | Bounding hex radius |
-| `sparse_factor` | `int` | Minimum spacing between special tiles |
-| `num_path_encounters` | `int` | NoOp tiles promoted to encounters |
-| `boss_encounter` | `AdventureEncounter` | Placed at furthest tile |
-| `special_encounter_pool` | `Array[AdventureEncounter]` | Pool for special tiles |
-| `path_encounter_pool` | `Array[AdventureEncounter]` | Pool for promoted path tiles |
+| `adventure_name` | `String` | Display name |
+| `adventure_description` | `String` | Display description |
+| `max_distance_from_start` | `int` | Bounding hex radius for anchor placement |
+| `sparse_factor` | `int` | Minimum hex spacing between origin/anchors |
+| `num_extra_edges` | `int` | Non-MST edges added between anchors for path branching |
+| `boss_encounter` | `AdventureEncounter` | Single boss — placed at the farthest valid anchor coord |
+| `encounter_quotas` | `Array[EncounterQuota]` | Per-encounter instance counts for everything non-boss |
+
+`AdventureData.validate()` returns `Array[String]` of configuration errors (empty array = valid). Checks: boss is set and is `ANCHOR`, every quota has a non-null encounter with positive count, no encounter's `min_distance_from_origin` exceeds `max_distance_from_start`, and every encounter requiring `min_fillers_on_path > 0` has enough FILLER quota to satisfy it. Called at the top of `AdventureMapGenerator.generate_adventure_map()` and by `test_shipped_adventures_validate` against every shipped `.tres`.
+
+### EncounterQuota
+| Field | Type | Description |
+|-------|------|-------------|
+| `encounter` | `AdventureEncounter` | The encounter resource to place |
+| `count` | `int` (default 1) | Number of instances to place (minimum — Phase 4 promotion may exceed this for fillers) |
 
 ### AdventureActionData (extends ZoneActionData)
 | Field | Type | Description |
@@ -130,9 +147,14 @@ Generation runs in 4 phases:
 | `text_description_completed` | `String` | Shown after completion |
 | `choices` | `Array[EncounterChoice]` | Available player choices |
 | `encounter_type` | `EncounterType` | Visual overlay category |
-| `unlock_conditions` | `Dictionary[UnlockConditionData, bool]` | Map-generation-time gate (PR #41). Each key's `evaluate()` must match its expected bool for the encounter to be eligible for placement; otherwise it's filtered out of the pool before generation — the player never sees it |
+| `unlock_conditions` | `Dictionary[UnlockConditionData, bool]` | Map-generation-time gate (PR #41). Each key's `evaluate()` must match its expected bool for the encounter to be eligible; otherwise it's skipped during placement — the player never sees it. Evaluated via `is_eligible()` |
+| `placement` | `Placement` (`ANCHOR` / `FILLER`) | How the generator positions this encounter. `ANCHOR` = scattered first (Phase 1) respecting sparse/distance constraints. `FILLER` = placed on NoOp path tiles after MST is built (Phase 3) |
+| `min_distance_from_origin` | `int` (default 0) | Minimum hex distance from origin for placement. Used to keep rests/treasure/boss away from the start |
+| `min_fillers_on_path` | `int` (default 0) | Minimum FILLER-placement encounters that must sit on the shortest path from origin to this tile. Validated in Phase 4 — NoOps on the path are promoted to combat if the requirement is unmet |
 
 **EncounterType enum:** `COMBAT_REGULAR`, `COMBAT_AMBUSH`, `COMBAT_BOSS`, `COMBAT_ELITE`, `REST_SITE`, `TRAP`, `TREASURE`, `NONE`
+
+**Placement enum:** `ANCHOR` (0), `FILLER` (1) — integer values are load-bearing for `.tres` serialization.
 
 ### Choice Types
 
@@ -273,7 +295,7 @@ Adventures now consume Madra from the zone's pool on start.
 
 ## Existing Content
 
-One adventure exists: **The Shallow Woods** (`shallow_woods.tres`), reached from Spirit Valley once `q_fill_core_completed` is triggered. 300-second time limit, 8 path encounters, uses the `amorphous_spirit` combat encounter pool (`amorphous_spirit_encounter.tres`).
+One adventure exists: **The Shallow Woods** (`shallow_woods.tres`), reached from Spirit Valley once `q_fill_core_completed` is triggered. 300-second time limit. Quota composition: 1 boss (`amorphous_spirit_boss`), 1 aura well + 1 refugee camp (ANCHOR rests, `min_distance_from_origin = 3`, `min_fillers_on_path = 1`), 3 starving dreadbeasts + 4 amorphous spirits (FILLER combats). `num_extra_edges = 2` adds branching beyond the MST.
 
 **Special encounter pool:**
 - `aura_well_encounter` (PR #36) — Rest + "Mark down the location" choice that fires `aura_well_discovered` and unlocks the Aura Well zone action in Zone 1.
@@ -302,8 +324,9 @@ One adventure exists: **The Shallow Woods** (`shallow_woods.tres`), reached from
 | `scenes/tilemaps/hex_hover_selector.gd` | Animated hex selector ring, shared with zone map (PR #23) |
 | `scenes/atmosphere/atmosphere.gd` | Vignette + mist + motes, shared with zone map (PR #23) |
 | `scenes/adventure/adventure_view/timer_panel.gd` | Countdown timer |
-| `scripts/resource_definitions/adventure/adventure_data.gd` | Map generation parameters |
-| `scripts/resource_definitions/adventure/encounters/adventure_encounter.gd` | Encounter base class |
+| `scripts/resource_definitions/adventure/adventure_data.gd` | Map generation parameters + `validate()` |
+| `scripts/resource_definitions/adventure/encounter_quota.gd` | `(encounter, count)` pair used in `AdventureData.encounter_quotas` |
+| `scripts/resource_definitions/adventure/encounters/adventure_encounter.gd` | Encounter base class — defines `Placement` enum, `is_eligible()`, placement fields |
 | `scripts/resource_definitions/adventure/choices/combat_choice.gd` | Combat initiator |
 | `scripts/resource_definitions/adventure/choices/dialogue_choice.gd` | Dialogue initiator |
 | `scenes/tilemaps/hexagon_tile_map_layer.gd` | Project hex extension (click/hover handling) |
@@ -341,7 +364,7 @@ No known bugs in the Adventuring system.
 
 #### Dead Code
 - ~~`[MEDIUM]` Two debug buttons in `adventure_view.tscn` — one with `TODO: Remove this temporary debug button`~~ *(Removed in PR #15)*
-- `[LOW]` `num_combats_in_map` declared in `adventure_map_generator.gd:12` but never read or written
+- ~~`[LOW]` `num_combats_in_map` declared in `adventure_map_generator.gd:12` but never read or written~~ *(Removed in the map-generation rework)*
 - `[LOW]` `enable_ai: bool` debug export still present on `adventure_combat.gd`
 - `[LOW]` `cooldown_seconds` and `daily_limit` on `AdventureActionData` — mobile-style pacing gates, not a fit for this game. Remove the fields
 
