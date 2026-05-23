@@ -76,6 +76,57 @@ static func _parse_table_cells(line: String) -> Array[String]:
 		out.append(r.strip_edges().trim_prefix("`").trim_suffix("`").strip_edges())
 	return out
 
+## Returns Dictionary[String, Array[Dictionary]] mapping zone name -> rows.
+## Each row is a Dictionary keyed by the table's column names (from parse_table_row).
+## Only tables under "## Equipment" with a roster-shaped header are included.
+## Tables under other H2 sections, the Schema table, and non-table prose are skipped.
+static func parse_equipment_sections(markdown: String) -> Dictionary:
+	var result: Dictionary = {}
+	var lines := markdown.split("\n")
+	var in_equipment := false
+	var current_zone := ""
+	var pending_header: Array[String] = []
+	var in_table := false
+
+	var i := 0
+	while i < lines.size():
+		var line: String = lines[i]
+		var trimmed := line.strip_edges()
+
+		if trimmed.begins_with("## "):
+			in_equipment = (trimmed.substr(3).strip_edges() == "Equipment")
+			current_zone = ""
+			in_table = false
+			pending_header.clear()
+		elif in_equipment and trimmed.begins_with("### "):
+			current_zone = trimmed.substr(4).strip_edges()
+			in_table = false
+			pending_header.clear()
+		elif in_equipment and trimmed.begins_with("|") and current_zone != "":
+			if pending_header.is_empty():
+				# Candidate header line.
+				var cols := parse_table_header(line)
+				if is_roster_header(cols):
+					pending_header = cols
+					# Next line should be the separator; skip it.
+					if i + 1 < lines.size() and is_separator_line(lines[i + 1]):
+						i += 1
+					in_table = true
+			elif is_separator_line(line):
+				# Defensive — shouldn't happen because we consumed it above.
+				pass
+			elif in_table:
+				var row := parse_table_row(line, pending_header)
+				if not result.has(current_zone):
+					result[current_zone] = []
+				result[current_zone].append(row)
+		elif in_equipment and trimmed.is_empty():
+			# Blank line terminates a table.
+			in_table = false
+			pending_header.clear()
+		i += 1
+	return result
+
 ## A header counts as a roster header if it has both `id` and `slot` columns.
 ## The Schema table (Column | Maps to | Notes) and Stats DSL text sections fail this.
 static func is_roster_header(columns: Array[String]) -> bool:

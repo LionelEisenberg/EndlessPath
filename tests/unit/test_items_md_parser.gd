@@ -85,3 +85,49 @@ func test_is_roster_header_false_for_schema_table() -> void:
 	# The Schema sub-section has columns "Column | Maps to | Notes" — not a roster.
 	var cols: Array[String] = ["Column", "Maps to", "Notes"]
 	assert_false(ItemsMdParser.is_roster_header(cols))
+
+func test_parse_equipment_sections_groups_by_zone() -> void:
+	var md = """
+## Equipment
+
+### Schema
+
+| Column | Maps to | Notes |
+|---|---|---|
+| id | item_id | snake_case |
+
+### Spirit Valley
+
+| # | id | name | slot | stats | tier | cost | identity | source | description |
+|---|---|---|---|---|---|---|---|---|---|
+| E1 | makeshift_dagger | Makeshift Dagger | MAIN_HAND | STRENGTH+3 | Foundation | 0 | Starter | NPC | A blade. |
+
+### Other Zone
+
+| # | id | name | slot | stats | tier | cost | identity | source | description |
+|---|---|---|---|---|---|---|---|---|---|
+| E1 | other_item | Other Item | HEAD | WILLPOWER+1 | Copper | 5 | Hat | Drop | A hat. |
+
+## Materials
+"""
+	var sections = ItemsMdParser.parse_equipment_sections(md)
+	assert_eq(sections.size(), 2)
+	assert_true(sections.has("Spirit Valley"))
+	assert_true(sections.has("Other Zone"))
+	assert_eq(sections["Spirit Valley"].size(), 1)
+	assert_eq(sections["Spirit Valley"][0]["id"], "makeshift_dagger")
+	assert_eq(sections["Other Zone"][0]["id"], "other_item")
+
+func test_parse_equipment_sections_ignores_schema_table() -> void:
+	# The Schema sub-section's table must NOT appear as a roster row.
+	var md = """
+## Equipment
+
+### Schema
+
+| Column | Maps to | Notes |
+|---|---|---|
+| id | item_id | snake_case |
+"""
+	var sections = ItemsMdParser.parse_equipment_sections(md)
+	assert_eq(sections.size(), 0)
