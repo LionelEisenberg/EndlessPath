@@ -7,12 +7,6 @@
 
 [sub_resource type="Resource" id="Resource_wrvmu"]
 script = ExtResource("3_vg6m5")
-attributes = Dictionary[int, float]({
-0: 10.0,
-1: 10.0,
-3: 10.0,
-4: 10.0
-})
 metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
 
 [resource]

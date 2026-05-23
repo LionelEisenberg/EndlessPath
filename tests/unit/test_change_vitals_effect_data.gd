@@ -24,8 +24,8 @@ func after_each() -> void:
 ## (which rebuilds from live_save_data + bonuses each call) reads these values.
 func _set_attrs(body: float, foundation: float) -> void:
 	var attrs: CharacterAttributesData = PersistenceManager.save_game_data.character_attributes
-	attrs.attributes[AttributeType.BODY] = body
-	attrs.attributes[AttributeType.FOUNDATION] = foundation
+	attrs.body = body
+	attrs.foundation = foundation
 
 func test_flat_values_with_zero_multipliers() -> void:
 	_set_attrs(10.0, 10.0)

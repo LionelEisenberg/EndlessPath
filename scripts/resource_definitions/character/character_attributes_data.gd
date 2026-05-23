@@ -2,8 +2,8 @@ class_name CharacterAttributesData
 extends Resource
 
 ## CharacterAttributesData
-## Stores and manages the player's base attribute values
-## Base attributes can be modified by cultivation, equipment, and other systems
+## Stores the player's base attribute values. Total attributes (with bonuses
+## from equipment, cultivation, etc.) are computed by CharacterManager.
 
 #-----------------------------------------------------------------------------
 # ENUMS
@@ -23,64 +23,84 @@ enum AttributeType {
 #-----------------------------------------------------------------------------
 # BASE ATTRIBUTES
 #-----------------------------------------------------------------------------
-# These are the persistent base attribute values that are saved.
-# Total attributes = base + bonuses from other systems (cultivation, equipment, etc.)
 
-@export var attributes: Dictionary [AttributeType, float] = {}
+@export var strength: float = 10.0
+@export var body: float = 10.0
+@export var agility: float = 10.0
+@export var spirit: float = 10.0
+@export var foundation: float = 10.0
+@export var control: float = 10.0
+@export var resilience: float = 10.0
+@export var willpower: float = 10.0
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-func _init(strength: float = 10.0, body: float = 10.0, agility: float = 10.0, spirit: float = 10.0, foundation: float = 10.0, control: float = 10.0, resilience: float = 10.0, willpower: float = 10.0) -> void:
-	attributes[AttributeType.STRENGTH] = strength
-	attributes[AttributeType.BODY] = body
-	attributes[AttributeType.AGILITY] = agility
-	attributes[AttributeType.SPIRIT] = spirit
-	attributes[AttributeType.FOUNDATION] = foundation
-	attributes[AttributeType.CONTROL] = control
-	attributes[AttributeType.RESILIENCE] = resilience
-	attributes[AttributeType.WILLPOWER] = willpower
-	_validate_attributes()
-
-#-----------------------------------------------------------------------------
-# VALIDATION
-#-----------------------------------------------------------------------------
-
-func _validate_attributes() -> void:
-	var expected_count = AttributeType.size()
-	if attributes.size() != expected_count:
-		Log.error("CharacterAttributesData: Invalid attribute count. Expected %d, got %d" % [expected_count, attributes.size()])
-		# Fix by ensuring all attributes exist
-		for attr_type in AttributeType.values():
-			if not attributes.has(attr_type):
-				attributes[attr_type] = 10.0
-				Log.warn("CharacterAttributesData: Added missing attribute type: %s" % AttributeType.keys()[attr_type])
+func _init(
+	strength_value: float = 10.0,
+	body_value: float = 10.0,
+	agility_value: float = 10.0,
+	spirit_value: float = 10.0,
+	foundation_value: float = 10.0,
+	control_value: float = 10.0,
+	resilience_value: float = 10.0,
+	willpower_value: float = 10.0,
+) -> void:
+	strength = strength_value
+	body = body_value
+	agility = agility_value
+	spirit = spirit_value
+	foundation = foundation_value
+	control = control_value
+	resilience = resilience_value
+	willpower = willpower_value
 
 #-----------------------------------------------------------------------------
 # ATTRIBUTE ACCESSORS
 #-----------------------------------------------------------------------------
 
-## Get the value of a specific attribute
+## Get the value of a specific attribute by type.
 func get_attribute(attr_type: AttributeType) -> float:
-	if attributes.has(attr_type):
-		return attributes[attr_type]
-	Log.error("CharacterAttributesData: Attribute type %s not found" % AttributeType.keys()[attr_type])
-	return 10.0
+	match attr_type:
+		AttributeType.STRENGTH: return strength
+		AttributeType.BODY: return body
+		AttributeType.AGILITY: return agility
+		AttributeType.SPIRIT: return spirit
+		AttributeType.FOUNDATION: return foundation
+		AttributeType.CONTROL: return control
+		AttributeType.RESILIENCE: return resilience
+		AttributeType.WILLPOWER: return willpower
+	Log.error("CharacterAttributesData: Unknown attribute type %s" % attr_type)
+	return 0.0
+
+## Set the value of a specific attribute by type.
+func set_attribute(attr_type: AttributeType, value: float) -> void:
+	match attr_type:
+		AttributeType.STRENGTH: strength = value
+		AttributeType.BODY: body = value
+		AttributeType.AGILITY: agility = value
+		AttributeType.SPIRIT: spirit = value
+		AttributeType.FOUNDATION: foundation = value
+		AttributeType.CONTROL: control = value
+		AttributeType.RESILIENCE: resilience = value
+		AttributeType.WILLPOWER: willpower = value
+		_: Log.error("CharacterAttributesData: Unknown attribute type %s" % attr_type)
+
+## Add an amount to a specific attribute by type.
+func add_to_attribute(attr_type: AttributeType, amount: float) -> void:
+	var old_value := get_attribute(attr_type)
+	set_attribute(attr_type, old_value + amount)
+	Log.info("CharacterAttributesData: Added %.1f to %s (%.1f -> %.1f)" % [
+		amount,
+		AttributeType.keys()[attr_type],
+		old_value,
+		get_attribute(attr_type),
+	])
 
 ## Maximum madra pool derived from the Foundation attribute.
 func get_max_madra() -> float:
-	return get_attribute(AttributeType.FOUNDATION) * 10.0
-
-
-## Add an amount to a specific attribute
-func add_to_attribute(attr_type: AttributeType, amount: float) -> void:
-	if attributes.has(attr_type):
-		var old_value = attributes[attr_type]
-		attributes[attr_type] += amount
-		Log.info("CharacterAttributesData: Added %.1f to %s (%.1f -> %.1f)" % [amount, AttributeType.keys()[attr_type], old_value, attributes[attr_type]])
-	else:
-		Log.error("CharacterAttributesData: Cannot add to attribute type %s - not found" % AttributeType.keys()[attr_type])
+	return foundation * 10.0
 
 #-----------------------------------------------------------------------------
 # STRING REPRESENTATION
@@ -88,12 +108,5 @@ func add_to_attribute(attr_type: AttributeType, amount: float) -> void:
 
 func _to_string() -> String:
 	return "CharacterAttributesData(\n  Strength: %.1f\n  Body: %.1f\n  Agility: %.1f\n  Spirit: %.1f\n  Foundation: %.1f\n  Control: %.1f\n  Resilience: %.1f\n  Willpower: %.1f\n)" % [
-		get_attribute(AttributeType.STRENGTH),
-		get_attribute(AttributeType.BODY),
-		get_attribute(AttributeType.AGILITY),
-		get_attribute(AttributeType.SPIRIT),
-		get_attribute(AttributeType.FOUNDATION),
-		get_attribute(AttributeType.CONTROL),
-		get_attribute(AttributeType.RESILIENCE),
-		get_attribute(AttributeType.WILLPOWER)
+		strength, body, agility, spirit, foundation, control, resilience, willpower
 	]

@@ -190,7 +190,7 @@ func _get_modified_attributes() -> CharacterAttributesData:
 		var base_value = source_attributes.get_attribute(attr_type)
 		var multiplier = owner_combatant.buff_manager.get_attribute_modifier(attr_type)
 		var final_value = base_value * multiplier
-		modified.attributes[attr_type] = final_value
+		modified.set_attribute(attr_type, final_value)
 		
 		if multiplier != 1.0:
 			var attr_name = CharacterAttributesData.AttributeType.keys()[attr_type]
