@@ -76,3 +76,12 @@ func test_parse_table_row_handles_missing_columns_with_empty_string() -> void:
 	assert_eq(row["a"], "x")
 	assert_eq(row["b"], "y")
 	assert_eq(row["c"], "")
+
+func test_is_roster_header_true_for_equipment_columns() -> void:
+	var cols: Array[String] = ["#", "id", "name", "slot", "stats", "tier", "cost", "identity", "source", "description"]
+	assert_true(ItemsMdParser.is_roster_header(cols))
+
+func test_is_roster_header_false_for_schema_table() -> void:
+	# The Schema sub-section has columns "Column | Maps to | Notes" — not a roster.
+	var cols: Array[String] = ["Column", "Maps to", "Notes"]
+	assert_false(ItemsMdParser.is_roster_header(cols))

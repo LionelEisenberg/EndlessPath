@@ -76,6 +76,11 @@ static func _parse_table_cells(line: String) -> Array[String]:
 		out.append(r.strip_edges().trim_prefix("`").trim_suffix("`").strip_edges())
 	return out
 
+## A header counts as a roster header if it has both `id` and `slot` columns.
+## The Schema table (Column | Maps to | Notes) and Stats DSL text sections fail this.
+static func is_roster_header(columns: Array[String]) -> bool:
+	return columns.has("id") and columns.has("slot")
+
 ## Parses a slot literal like "MAIN_HAND" into EquipmentSlot.
 ## Returns -1 (and push_error) for unknown values.
 static func parse_slot(s: String) -> int:
