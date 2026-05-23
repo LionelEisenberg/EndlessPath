@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_qdmh0"]
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_bhcea"]
 [ext_resource type="Resource" uid="uid://b4jn343ifh3vd" path="res://resources/combat/combatant_data/amorphous_spirit.tres" id="3_7ovbm"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="4_hkjea"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_3ww43"]
 [ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="6_b3sbp"]
 [ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="7_sptof"]
 

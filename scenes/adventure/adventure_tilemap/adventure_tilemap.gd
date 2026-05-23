@@ -34,15 +34,9 @@ const GRAY_OVERLAY_VARIANT_ID = 5
 ## than "sprite popping away".
 const FOG_VEIL_FADE_OUT_SECONDS := 0.25
 
-# Forest atlas (shared with ZoneTilemap). Multiple Hex_Forest_NN variants
-# are packed into a single TileSetAtlasSource (sources/8) backed by
-# hex_forest_atlas.png. Adventure tiles pick a deterministic-random cell
-# per cube coord via _get_random_forest_atlas_coords() so the same tile
-# always shows the same variant across re-renders. Keep these constants
-# in sync with ZoneTilemap.FOREST_* and ATLAS_COLS in pack_hex_atlas.py.
+# Forest atlas source id — variants are picked via HexForestAtlas.pick().
+# Keep in sync with ZoneTilemap.FOREST_ATLAS_SOURCE_ID.
 const FOREST_ATLAS_SOURCE_ID := 8
-const FOREST_ATLAS_COLS := 6
-const FOREST_VARIANT_COUNT := 23
 
 # Character movement speeds
 const CHARACTER_MOVE_SPEED = 150.0
@@ -679,17 +673,6 @@ func _get_current_tile_from_character_position() -> Vector3i:
 	var char_map_coord = visible_map.local_to_map(char_world_pos)
 	return visible_map.map_to_cube(char_map_coord)
 
-## Returns a deterministic forest atlas cell for the given cube coord.
-## The same coord always returns the same variant, so the map looks
-## consistent across re-renders, fog reveals, and adventure restarts
-## (when the same map seed is used). Hashes the coord, takes posmod by
-## the variant count to handle negative hash values, then splits into
-## (col, row) for the FOREST_ATLAS_COLS-wide grid.
-func _get_random_forest_atlas_coords(coord: Vector3i) -> Vector2i:
-	var idx := posmod(hash(coord), FOREST_VARIANT_COUNT)
-	@warning_ignore("integer_division")
-	return Vector2i(idx % FOREST_ATLAS_COLS, idx / FOREST_ATLAS_COLS)
-
 func _update_full_map() -> void:
 	full_map.clear()
 	for coord in _encounter_tile_dictionary.keys():
@@ -730,7 +713,7 @@ func _update_visible_map() -> void:
 	# overlaid on top in the loops below; NoOp tiles show only the forest
 	# art and no icon.
 	for coord in visible_coords:
-		visible_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, full_map.cube_to_map(coord), _get_random_forest_atlas_coords(coord))
+		visible_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, full_map.cube_to_map(coord), HexForestAtlas.pick(coord))
 
 	# Tiles with a RESOLVED encounter (not merely visited) get a dim
 	# gray overlay on the highlight map so the player can see their

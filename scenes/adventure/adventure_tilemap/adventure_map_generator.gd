@@ -1,3 +1,4 @@
+@tool
 class_name AdventureMapGenerator
 extends Node
 
@@ -31,16 +32,16 @@ func set_tile_map(tm: HexagonTileMapLayer) -> void:
 ## or an empty dictionary if validation fails.
 func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 	if adventure_data == null:
-		Log.error("AdventureMapGenerator: adventure_data is not set")
+		push_error("AdventureMapGenerator: adventure_data is not set")
 		return {}
 	if tile_map == null:
-		Log.error("AdventureMapGenerator: tile_map is not set")
+		push_error("AdventureMapGenerator: tile_map is not set")
 		return {}
 
 	var errors: Array[String] = adventure_data.validate()
 	if errors.size() > 0:
 		for err in errors:
-			Log.error("AdventureMapGenerator: %s" % err)
+			push_error("AdventureMapGenerator: %s" % err)
 		return {}
 
 	for attempt in MAX_REGENERATION_ATTEMPTS:
@@ -54,9 +55,9 @@ func generate_adventure_map() -> Dictionary[Vector3i, AdventureEncounter]:
 		if _validate_critical_paths():
 			return all_map_tiles
 
-		Log.warn("AdventureMapGenerator: critical-path check failed, regenerating (attempt %d)" % (attempt + 1))
+		push_warning("AdventureMapGenerator: critical-path check failed, regenerating (attempt %d)" % (attempt + 1))
 
-	Log.error("AdventureMapGenerator: exhausted regeneration attempts, returning best-effort map")
+	push_error("AdventureMapGenerator: exhausted regeneration attempts, returning best-effort map")
 	return all_map_tiles
 
 #-----------------------------------------------------------------------------
@@ -70,7 +71,6 @@ func _place_anchors() -> void:
 		if quota.encounter.placement != AdventureEncounter.Placement.ANCHOR:
 			continue
 		if not quota.encounter.is_eligible():
-			Log.info("AdventureMapGenerator: skipping %s — unlock_conditions not met" % quota.encounter.encounter_id)
 			continue
 		for i in quota.count:
 			_place_single_anchor(quota.encounter)
@@ -90,7 +90,7 @@ func _place_single_anchor(encounter: AdventureEncounter) -> void:
 			continue
 		all_map_tiles[coord] = encounter
 		return
-	Log.warn("AdventureMapGenerator: could not place anchor %s after %d attempts" % [encounter.encounter_id, MAX_PLACEMENT_ATTEMPTS])
+	push_warning("AdventureMapGenerator: could not place anchor %s after %d attempts" % [encounter.encounter_id, MAX_PLACEMENT_ATTEMPTS])
 
 func _place_boss() -> void:
 	var boss := adventure_data.boss_encounter
@@ -111,7 +111,7 @@ func _place_boss() -> void:
 	if best_distance >= 0:
 		all_map_tiles[best_coord] = boss
 	else:
-		Log.warn("AdventureMapGenerator: could not place boss %s" % boss.encounter_id)
+		push_warning("AdventureMapGenerator: could not place boss %s" % boss.encounter_id)
 
 func _random_cube_coord(radius: int) -> Vector3i:
 	var q := randi_range(-radius, radius)
@@ -199,13 +199,12 @@ func _place_fillers() -> void:
 		if quota.encounter.placement != AdventureEncounter.Placement.FILLER:
 			continue
 		if not quota.encounter.is_eligible():
-			Log.info("AdventureMapGenerator: skipping filler %s — unlock_conditions not met" % quota.encounter.encounter_id)
 			continue
 		var placed: int = 0
 		while placed < quota.count:
 			var noop_coords: Array[Vector3i] = _collect_noop_coords()
 			if noop_coords.is_empty():
-				Log.warn("AdventureMapGenerator: filler quota %s exceeds available NoOp tiles (placed %d of %d)" % [quota.encounter.encounter_id, placed, quota.count])
+				push_warning("AdventureMapGenerator: filler quota %s exceeds available NoOp tiles (placed %d of %d)" % [quota.encounter.encounter_id, placed, quota.count])
 				break
 			var pick: Vector3i = noop_coords[randi_range(0, noop_coords.size() - 1)]
 			all_map_tiles[pick] = quota.encounter

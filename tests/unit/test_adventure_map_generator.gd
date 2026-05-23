@@ -48,6 +48,7 @@ func test_invalid_config_returns_empty_map() -> void:
 	var data := _make_data()
 	data.boss_encounter = null
 	var tiles := _run_generation(data)
+	assert_push_error("boss_encounter is not set")
 	assert_eq(tiles.size(), 0, "invalid config should yield an empty map")
 
 func test_anchors_respect_min_distance_from_origin() -> void:
@@ -167,6 +168,7 @@ func test_ineligible_encounter_is_skipped() -> void:
 	cond.target_value = "never_fires_generator_test"
 	data.encounter_quotas[1].encounter.unlock_conditions = {cond: true}
 	var tiles := _run_generation(data)
+	assert_push_error("exhausted regeneration attempts")
 	for enc in tiles.values():
 		assert_ne(enc.encounter_id, "combat", "ineligible combat should not be placed")
 

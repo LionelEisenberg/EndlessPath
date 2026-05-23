@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://cykbyaig3viuq"]
+
+[ext_resource type="Script" uid="uid://4s0fla4rk2vc" path="res://scripts/tools/map_preview.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://d3givt02dwnlp" path="res://scenes/tilemaps/hexagon_tile_map_layer.tscn" id="2_hex"]
+
+[node name="MapPreview" type="Node2D" unique_id=1140585066]
+script = ExtResource("1_script")
+
+[node name="PreviewTileMap" parent="." unique_id=261080654 instance=ExtResource("2_hex")]
+unique_name_in_owner = true
+
+[node name="EncounterIconContainer" type="Node2D" parent="." unique_id=952365056]
+unique_name_in_owner = true
+z_index = 6
+
+[node name="OriginMarker" type="Node2D" parent="." unique_id=300903388]
+unique_name_in_owner = true
+visible = false
+
+[node name="Label" type="Label" parent="OriginMarker" unique_id=2045817958]
+offset_left = -30.0
+offset_top = -12.0
+theme_override_colors/font_color = Color(1, 0.9, 0.3, 1)
+text = "START"
+
+[node name="UiLayer" type="CanvasLayer" parent="." unique_id=1021194904]
+
+[node name="StatsLabel" type="Label" parent="UiLayer" unique_id=1980437284]
+unique_name_in_owner = true
+offset_left = 16.0
+offset_top = 16.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)

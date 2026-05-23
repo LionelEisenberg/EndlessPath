@@ -1,3 +1,4 @@
+@tool
 class_name EncounterIcon
 extends Node2D
 
