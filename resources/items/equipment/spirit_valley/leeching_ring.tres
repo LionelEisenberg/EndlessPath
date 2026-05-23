@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3 uid="uid://bttu1f1ytmyjb"]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/leeching_ring.png" id="1_6v6li"]
 [ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_6m2ib"]

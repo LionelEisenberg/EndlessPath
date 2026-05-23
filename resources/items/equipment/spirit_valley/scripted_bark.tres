@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3 uid="uid://dfq6p1xc500if"]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/scripted_bark.png" id="1_2pb40"]
 [ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_mxkoj"]

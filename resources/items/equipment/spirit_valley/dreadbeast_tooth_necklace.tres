@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3 uid="uid://bxaib1l25vk12"]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/dreadbeast_tooth_necklace.png" id="1_38sk5"]
 [ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_3h1wa"]

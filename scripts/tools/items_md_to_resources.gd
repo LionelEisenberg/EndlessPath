@@ -108,12 +108,49 @@ func _write_one(row: Dictionary, target_path: String) -> String:
 		existing.icon = eq.icon
 		eq = existing
 		status = "updated"
+	var uid_str := ""
+	if status == "created":
+		# Generating a fresh UID string for the new resource.
+		var uid_int := ResourceUID.create_id()
+		uid_str = ResourceUID.id_to_text(uid_int)
 
 	var err := ResourceSaver.save(eq, target_path)
 	if err != OK:
 		push_error("ItemsMdGenerator: ResourceSaver.save returned %s for %s" % [err, target_path])
 		return "error"
+
+	# ResourceSaver does not embed a uid= in the header for newly-created resources.
+	# Inject it manually into the [gd_resource ...] header line now.
+	if status == "created" and not uid_str.is_empty():
+		_inject_uid_into_tres(target_path, uid_str)
+
 	return status
+
+## Reads the saved .tres file and rewrites its first line to include uid="<uid_str>".
+func _inject_uid_into_tres(path: String, uid_str: String) -> void:
+	var abs_path := ProjectSettings.globalize_path(path)
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		push_error("ItemsMdGenerator._inject_uid_into_tres: cannot read %s" % path)
+		return
+	var content := f.get_as_text()
+	f.close()
+
+	# Replace the first line's closing ] to insert uid="..."  before it.
+	# Pattern: [gd_resource ... format=3]  →  [gd_resource ... format=3 uid="uid://..."]
+	var first_newline := content.find("\n")
+	var header_line := content.substr(0, first_newline) if first_newline >= 0 else content
+	if "uid=" in header_line:
+		return  # Already has a UID — nothing to do.
+	var new_header := header_line.trim_suffix("]") + " uid=\"" + uid_str + "\"]"
+	var new_content := new_header + content.substr(first_newline)
+
+	var fw := FileAccess.open(path, FileAccess.WRITE)
+	if fw == null:
+		push_error("ItemsMdGenerator._inject_uid_into_tres: cannot write %s" % path)
+		return
+	fw.store_string(new_content)
+	fw.close()
 
 func _resources_equal(a: EquipmentDefinitionData, b: EquipmentDefinitionData) -> bool:
 	return (
