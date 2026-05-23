@@ -39,6 +39,43 @@ static func _find_sign_index(token: String) -> int:
 		return plus
 	return min(plus, minus)
 
+## Parses a markdown table header row "| # | id | name |" into ["#", "id", "name"].
+## Strips whitespace and surrounding backticks from each cell.
+static func parse_table_header(line: String) -> Array[String]:
+	return _parse_table_cells(line)
+
+## Parses a markdown table data row into a Dictionary keyed by the column names.
+## Missing trailing cells get empty-string values.
+static func parse_table_row(line: String, columns: Array) -> Dictionary:
+	var cells := _parse_table_cells(line)
+	var row: Dictionary = {}
+	for i in range(columns.size()):
+		row[columns[i]] = cells[i] if i < cells.size() else ""
+	return row
+
+## Returns true if the line is a markdown table separator like "|---|---|".
+static func is_separator_line(line: String) -> bool:
+	var trimmed := line.strip_edges()
+	if not trimmed.begins_with("|"):
+		return false
+	for c in trimmed:
+		if c not in "|-: \t":
+			return false
+	return true
+
+static func _parse_table_cells(line: String) -> Array[String]:
+	var trimmed := line.strip_edges()
+	# Drop leading/trailing pipe so split() doesn't produce empty fencepost cells.
+	if trimmed.begins_with("|"):
+		trimmed = trimmed.substr(1)
+	if trimmed.ends_with("|"):
+		trimmed = trimmed.substr(0, trimmed.length() - 1)
+	var raw := trimmed.split("|")
+	var out: Array[String] = []
+	for r in raw:
+		out.append(r.strip_edges().trim_prefix("`").trim_suffix("`").strip_edges())
+	return out
+
 ## Parses a slot literal like "MAIN_HAND" into EquipmentSlot.
 ## Returns -1 (and push_error) for unknown values.
 static func parse_slot(s: String) -> int:

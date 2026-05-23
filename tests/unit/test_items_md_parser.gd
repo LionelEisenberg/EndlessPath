@@ -43,3 +43,36 @@ func test_parse_slot_trims_whitespace() -> void:
 func test_parse_slot_unknown_returns_negative_one() -> void:
 	assert_eq(ItemsMdParser.parse_slot("BOGUS"), -1)
 	assert_push_error("unknown slot 'BOGUS'")
+
+func test_parse_table_header_returns_columns_in_order() -> void:
+	var line = "| # | id | name | slot | stats |"
+	var cols = ItemsMdParser.parse_table_header(line)
+	assert_eq(cols, ["#", "id", "name", "slot", "stats"])
+
+func test_parse_table_header_strips_whitespace_and_backticks() -> void:
+	# Allow `id` (markdown inline-code) in header
+	var line = "| ` # ` | `id` | name |"
+	var cols = ItemsMdParser.parse_table_header(line)
+	assert_eq(cols, ["#", "id", "name"])
+
+func test_is_separator_line() -> void:
+	assert_true(ItemsMdParser.is_separator_line("|---|---|---|"))
+	assert_true(ItemsMdParser.is_separator_line("| --- | :--: | ---: |"))
+	assert_false(ItemsMdParser.is_separator_line("| id | name |"))
+
+func test_parse_table_row_maps_columns_to_cells() -> void:
+	var cols = ["#", "id", "name", "slot"]
+	var line = "| E1 | makeshift_dagger | Makeshift Dagger | MAIN_HAND |"
+	var row = ItemsMdParser.parse_table_row(line, cols)
+	assert_eq(row["#"], "E1")
+	assert_eq(row["id"], "makeshift_dagger")
+	assert_eq(row["name"], "Makeshift Dagger")
+	assert_eq(row["slot"], "MAIN_HAND")
+
+func test_parse_table_row_handles_missing_columns_with_empty_string() -> void:
+	var cols = ["a", "b", "c"]
+	var line = "| x | y |"
+	var row = ItemsMdParser.parse_table_row(line, cols)
+	assert_eq(row["a"], "x")
+	assert_eq(row["b"], "y")
+	assert_eq(row["c"], "")
