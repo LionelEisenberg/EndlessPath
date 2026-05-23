@@ -38,3 +38,12 @@ static func _find_sign_index(token: String) -> int:
 	if minus < 0:
 		return plus
 	return min(plus, minus)
+
+## Parses a slot literal like "MAIN_HAND" into EquipmentSlot.
+## Returns -1 (and push_error) for unknown values.
+static func parse_slot(s: String) -> int:
+	var trimmed := s.strip_edges()
+	if not EquipmentDefinitionData.EquipmentSlot.has(trimmed):
+		push_error("ItemsMdParser.parse_slot: unknown slot '%s'" % trimmed)
+		return -1
+	return EquipmentDefinitionData.EquipmentSlot[trimmed]

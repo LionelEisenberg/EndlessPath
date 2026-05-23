@@ -28,3 +28,18 @@ func test_parse_stats_unknown_attr_returns_empty() -> void:
 	var result = ItemsMdParser.parse_stats("BOGUS+5")
 	assert_eq(result.size(), 0)
 	assert_push_error("unknown attribute 'BOGUS'")
+
+const ES = EquipmentDefinitionData.EquipmentSlot
+
+func test_parse_slot_main_hand() -> void:
+	assert_eq(ItemsMdParser.parse_slot("MAIN_HAND"), ES.MAIN_HAND)
+
+func test_parse_slot_off_hand() -> void:
+	assert_eq(ItemsMdParser.parse_slot("OFF_HAND"), ES.OFF_HAND)
+
+func test_parse_slot_trims_whitespace() -> void:
+	assert_eq(ItemsMdParser.parse_slot("  HEAD  "), ES.HEAD)
+
+func test_parse_slot_unknown_returns_negative_one() -> void:
+	assert_eq(ItemsMdParser.parse_slot("BOGUS"), -1)
+	assert_push_error("unknown slot 'BOGUS'")
