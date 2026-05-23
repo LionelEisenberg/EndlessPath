@@ -163,11 +163,21 @@ func _update_tags_display() -> void:
 	for child: Node in _tags_row.get_children():
 		child.queue_free()
 
-	var type_name: String = AbilityData.AbilityType.keys()[_ability_data.ability_type].capitalize()
-	var target_name: String = _derive_target_tag(_ability_data)
+	# One tag per effect kind present (composite abilities get multiple tags).
+	for tag_text in _compute_effect_tags(_ability_data):
+		_tags_row.add_child(_create_tag_label(tag_text))
+	# Plus the target-shape tag (Targeted / Self-Cast / Mixed).
+	_tags_row.add_child(_create_tag_label(_derive_target_tag(_ability_data)))
 
-	_tags_row.add_child(_create_tag_label(type_name))
-	_tags_row.add_child(_create_tag_label(target_name))
+func _compute_effect_tags(data: AbilityData) -> Array[String]:
+	var tags: Array[String] = []
+	if data.deals_damage(): tags.append("Damage")
+	if data.heals_self(): tags.append("Heal")
+	if data.buffs_self(): tags.append("Buff")
+	if data.debuffs_target(): tags.append("Debuff")
+	if data.interrupts_target(): tags.append("Interrupt")
+	if data.strips_target_buffs(): tags.append("Strip")
+	return tags
 
 func _derive_target_tag(data: AbilityData) -> String:
 	var has_target_effects: bool = not data.effects_on_target.is_empty()

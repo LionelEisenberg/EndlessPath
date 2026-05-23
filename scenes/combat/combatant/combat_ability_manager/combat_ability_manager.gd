@@ -88,9 +88,7 @@ func get_ability(index: int) -> CombatAbilityInstance:
 		return abilities[index]
 	return null
 
-## Uses the specific ability instance on the target.
-## Returns true if the request was accepted (checks passed and cast started).
-func use_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode) -> bool:
+func can_cast_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode) -> bool:
 	if not instance in abilities:
 		Log.warn("CombatAbilityManager: %s: Ability instance %s not found" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name])
 		return false
@@ -108,6 +106,14 @@ func use_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode)
 	# Check Resources
 	if not instance.ability_data.can_afford(owner_combatant.vitals_manager):
 		Log.warn("CombatAbilityManager: %s: Not enough resources for %s" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name])
+		return false
+	
+	return true
+
+## Uses the specific ability instance on the target.
+## Returns true if the request was accepted (checks passed and cast started).
+func use_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode) -> bool:
+	if not can_cast_ability_instance(instance, enemy):
 		return false
 		
 	# Consume Resources
