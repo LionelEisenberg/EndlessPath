@@ -15,7 +15,7 @@
 [ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/sprites/ui/resources/madra_icon.png" id="12_cfyns"]
 [ext_resource type="PackedScene" uid="uid://ix8ck2f5o613" path="res://scenes/common/item_display_slot/item_display_slot.tscn" id="13_item_slot"]
 [ext_resource type="Resource" uid="uid://cehsoutejuih0" path="res://resources/items/test_items/sword.tres" id="14_sword"]
-[ext_resource type="Resource" uid="uid://bwpoorfeekkiu" path="res://resources/items/test_items/dagger.tres" id="15_dagger"]
+[ext_resource type="Resource" uid="uid://innfe75slegl" path="res://resources/items/equipment/spirit_valley/makeshift_dagger.tres" id="15_dagger"]
 
 [sub_resource type="Animation" id="Animation_reset"]
 length = 0.001
