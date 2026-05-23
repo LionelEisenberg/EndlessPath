@@ -131,3 +131,36 @@ func test_parse_equipment_sections_ignores_schema_table() -> void:
 """
 	var sections = ItemsMdParser.parse_equipment_sections(md)
 	assert_eq(sections.size(), 0)
+
+func test_build_equipment_populates_all_fields() -> void:
+	var row = {
+		"#": "E1",
+		"id": "makeshift_dagger",
+		"name": "Makeshift Dagger",
+		"slot": "MAIN_HAND",
+		"stats": "STRENGTH+3, AGILITY+2",
+		"tier": "Foundation",
+		"cost": "0",
+		"identity": "Starter weapon",
+		"source": "NPC reward (Beat 1)",
+		"description": "A simple iron blade, well-balanced for a beginner."
+	}
+	var eq: EquipmentDefinitionData = ItemsMdParser.build_equipment(row)
+	assert_not_null(eq)
+	assert_eq(eq.item_id, "makeshift_dagger")
+	assert_eq(eq.item_name, "Makeshift Dagger")
+	assert_eq(eq.description, "A simple iron blade, well-balanced for a beginner.")
+	assert_eq(eq.slot_type, EquipmentDefinitionData.EquipmentSlot.MAIN_HAND)
+	assert_eq(eq.attribute_bonuses[AT.STRENGTH], 3.0)
+	assert_eq(eq.attribute_bonuses[AT.AGILITY], 2.0)
+	assert_eq(eq.base_value, 0.0)
+	assert_eq(eq.item_type, ItemDefinitionData.ItemType.EQUIPMENT)
+
+func test_build_equipment_empty_stats_yields_empty_bonuses() -> void:
+	var row = {
+		"id": "naked_ring", "name": "Naked Ring", "slot": "ACCESSORY_1",
+		"stats": "", "tier": "Foundation", "cost": "0",
+		"description": "Nothing here."
+	}
+	var eq = ItemsMdParser.build_equipment(row)
+	assert_eq(eq.attribute_bonuses.size(), 0)

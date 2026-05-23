@@ -29,6 +29,31 @@ static func parse_stats(s: String) -> Dictionary:
 		result[CharacterAttributesData.AttributeType[attr_name]] = float(num_str)
 	return result
 
+## Builds an EquipmentDefinitionData (no icon resolution — caller assigns icon).
+## Returns null if any required field is missing or invalid.
+static func build_equipment(row: Dictionary) -> EquipmentDefinitionData:
+	var required := ["id", "name", "slot", "stats", "description"]
+	for key in required:
+		if not row.has(key) or str(row[key]).strip_edges().is_empty() and key != "stats":
+			push_error("ItemsMdParser.build_equipment: missing required field '%s' in row %s" % [key, row])
+			return null
+
+	var slot := parse_slot(row["slot"])
+	if slot < 0:
+		return null
+
+	var bonuses := parse_stats(row["stats"])
+
+	var eq := EquipmentDefinitionData.new()
+	eq.item_id = row["id"]
+	eq.item_name = row["name"]
+	eq.description = row["description"]
+	eq.slot_type = slot
+	eq.attribute_bonuses = bonuses
+	eq.base_value = float(row.get("cost", "0"))
+	# item_type is set to EQUIPMENT by EquipmentDefinitionData._init().
+	return eq
+
 static func _find_sign_index(token: String) -> int:
 	# Locate the first + or - sign (skip index 0 — attribute names don't begin with signs).
 	var plus := token.find("+", 1)
