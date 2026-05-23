@@ -11,33 +11,23 @@
 [sub_resource type="Resource" id="Resource_quota_aura"]
 script = ExtResource("12_quota")
 encounter = ExtResource("9_aurawell")
-count = 1
 
 [sub_resource type="Resource" id="Resource_quota_refugee"]
 script = ExtResource("12_quota")
 encounter = ExtResource("10_refcamp")
-count = 1
 
 [sub_resource type="Resource" id="Resource_quota_dreadbeast"]
 script = ExtResource("12_quota")
 encounter = ExtResource("8_pkd7m")
-count = 3
 
 [sub_resource type="Resource" id="Resource_quota_amorphous"]
 script = ExtResource("12_quota")
 encounter = ExtResource("7_r4hwa")
-count = 4
 
 [resource]
 script = ExtResource("8_2dkfl")
 adventure_id = "shallow_woods"
 adventure_name = "The Shallow Woods"
-num_extra_edges = 2
+encounter_quotas = Array[ExtResource("12_quota")]([SubResource("Resource_quota_aura"), SubResource("Resource_quota_refugee"), SubResource("Resource_quota_dreadbeast"), SubResource("Resource_quota_amorphous")])
 boss_encounter = ExtResource("11_boss")
-encounter_quotas = Array[ExtResource("12_quota")]([
-    SubResource("Resource_quota_aura"),
-    SubResource("Resource_quota_refugee"),
-    SubResource("Resource_quota_dreadbeast"),
-    SubResource("Resource_quota_amorphous"),
-])
 metadata/_custom_type_script = "uid://b4nlsemiwg2h6"
