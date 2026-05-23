@@ -13,9 +13,15 @@ extends Node2D
 ## Seed != 0 → deterministic (same seed + same data = same map).
 
 const ENCOUNTER_ICON_SCENE: PackedScene = preload("res://scenes/adventure/encounter_icon/encounter_icon.tscn")
+const ENCOUNTER_ID_LABEL_SCENE: PackedScene = preload("res://scenes/tools/encounter_id_label.tscn")
 
 # Forest tileset source id (matches AdventureTilemap.FOREST_ATLAS_SOURCE_ID).
 const FOREST_ATLAS_SOURCE_ID: int = 8
+
+# Pixel offset from a tile's center to where the encounter_id Label's
+# top-left should sit. Half the label's 80px width to the left, 32px down
+# so it lands below the 84px-tall encounter glyph.
+const ID_LABEL_OFFSET: Vector2 = Vector2(-40, 32)
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -39,6 +45,13 @@ const FOREST_ATLAS_SOURCE_ID: int = 8
 @export_tool_button("Generate", "Play") var generate_button: Callable = _generate
 @export_tool_button("Clear", "Remove") var clear_button: Callable = _clear
 
+# The seed actually used by the most recent generation. When seed_value is
+# non-zero this matches it; when seed_value is 0 we mint a fresh random
+# seed via randi() and store it here so the stats label can show it —
+# letting the designer copy the displayed seed back into seed_value to
+# lock in a layout they liked.
+var _last_used_seed: int = 0
+
 #-----------------------------------------------------------------------------
 # GENERATE
 #-----------------------------------------------------------------------------
@@ -57,9 +70,18 @@ func _generate() -> void:
 		return
 
 	if seed_value == 0:
-		randomize()
+		# Mint a fresh random seed but capture it so we can display it.
+		# randomize() seeds globally but doesn't expose the value used.
+		_last_used_seed = randi()
+		seed(_last_used_seed)
 	else:
+		_last_used_seed = seed_value
 		seed(seed_value)
+
+	# The HexagonTileMapLayer addon only wires up its cube<->map conversion
+	# callables inside _enter_tree() when NOT in editor mode. Force the setup
+	# manually so cube_to_map / cube_to_local / cube_distance work here.
+	_preview_tile_map._on_tileset_changed()
 
 	var generator := AdventureMapGenerator.new()
 	generator.set_adventure_data(adventure_data)
@@ -125,6 +147,14 @@ func _render(tiles: Dictionary[Vector3i, AdventureEncounter]) -> void:
 		# entry point used by AdventureTilemap.
 		icon.configure_for_type(encounter.encounter_type)
 
+		# Drop the encounter_id under each icon so the designer can tell
+		# similar-typed encounters apart (e.g. amorphous_spirit vs
+		# starving_dreadbeast both render as the same combat glyph).
+		var id_label: Label = ENCOUNTER_ID_LABEL_SCENE.instantiate()
+		id_label.text = encounter.encounter_id
+		id_label.position = _preview_tile_map.cube_to_local(coord) + ID_LABEL_OFFSET
+		_icon_container.add_child(id_label)
+
 #-----------------------------------------------------------------------------
 # STATS
 #-----------------------------------------------------------------------------
@@ -168,5 +198,5 @@ func _update_stats_label(tiles: Dictionary[Vector3i, AdventureEncounter]) -> voi
 		counts["treasure"],
 		counts["trap"],
 		counts["noop"],
-		seed_value,
+		_last_used_seed,
 	]
