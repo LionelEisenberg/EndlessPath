@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/makeshift_dagger.png" id="1_rppdt"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_a5ijk"]
+
+[resource]
+script = ExtResource("2_a5ijk")
+attribute_bonuses = {
+0: 3.0,
+2: 2.0
+}
+item_id = "makeshift_dagger"
+item_name = "Makeshift Dagger"
+description = "A simple iron blade, well-balanced for a beginner."
+icon = ExtResource("1_rppdt")
+item_type = 2

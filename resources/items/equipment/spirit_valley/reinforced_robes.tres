@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/reinforced_robes.png" id="1_8vrnu"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_xlglq"]
+
+[resource]
+script = ExtResource("2_xlglq")
+slot_type = 3
+attribute_bonuses = {
+1: 4.0,
+6: 2.0
+}
+item_id = "reinforced_robes"
+item_name = "Reinforced Robes"
+description = "Padded robes lined with light scripted plates."
+icon = ExtResource("1_8vrnu")
+item_type = 2
+base_value = 7.0

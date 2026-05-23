@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/dreadbeast_tooth_necklace.png" id="1_38sk5"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_3h1wa"]
+
+[resource]
+script = ExtResource("2_3h1wa")
+slot_type = 4
+attribute_bonuses = {
+0: 2.0,
+2: 2.0
+}
+item_id = "dreadbeast_tooth_necklace"
+item_name = "Dreadbeast Tooth Necklace"
+description = "A small dreadbeast tooth, fashioned around a leather strap."
+icon = ExtResource("1_38sk5")
+item_type = 2

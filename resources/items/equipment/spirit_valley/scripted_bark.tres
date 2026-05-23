@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/scripted_bark.png" id="1_2pb40"]
+[ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_mxkoj"]
+
+[resource]
+script = ExtResource("2_mxkoj")
+slot_type = 1
+attribute_bonuses = {
+1: 2.0
+}
+item_id = "scripted_bark"
+item_name = "Scripted Bark"
+description = "A small scripted piece of bark, not much but will take a hit or two"
+icon = ExtResource("1_2pb40")
+item_type = 2
