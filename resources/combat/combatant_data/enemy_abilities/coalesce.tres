@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://hh4xqhiwoeob"]
+
+[ext_resource type="Script" uid="uid://bnd52oeyddekj" path="res://scripts/resource_definitions/combat/combat_effect_data.gd" id="1_lkxij"]
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="2_an7xi"]
+
+[sub_resource type="Resource" id="Resource_lkxij"]
+script = ExtResource("1_lkxij")
+effect_type = 1
+effect_name = "Heal"
+spirit_scaling = 3.0
+metadata/_custom_type_script = "uid://bnd52oeyddekj"
+
+[resource]
+script = ExtResource("2_an7xi")
+ability_id = "coalesce"
+ability_name = "Coalesce"
+description = "Heals self"
+base_cooldown = 30.0
+cast_time = 5.0
+effects_on_self = Array[ExtResource("1_lkxij")]([SubResource("Resource_lkxij")])
+metadata/_custom_type_script = "uid://cmwib0b1jyoa8"

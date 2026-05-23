@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="AdventureData" format=3 uid="uid://b2erw55qd1wh7"]
 
+[ext_resource type="Resource" uid="uid://bk2hpip75hjyc" path="res://resources/adventure/encounters/combat_encounters/coalescing_spirit_encounter.tres" id="7_ly8fd"]
 [ext_resource type="Resource" uid="uid://c7s6suad328qd" path="res://resources/adventure/encounters/combat_encounters/amorphous_spirit_encounter.tres" id="7_r4hwa"]
 [ext_resource type="Script" uid="uid://b4nlsemiwg2h6" path="res://scripts/resource_definitions/adventure/adventure_data.gd" id="8_2dkfl"]
 [ext_resource type="Resource" uid="uid://dquwaod5rj70m" path="res://resources/adventure/encounters/combat_encounters/starving_dreadbeast_encounter.tres" id="8_pkd7m"]
@@ -19,17 +20,23 @@ encounter = ExtResource("10_refcamp")
 [sub_resource type="Resource" id="Resource_quota_dreadbeast"]
 script = ExtResource("12_quota")
 encounter = ExtResource("8_pkd7m")
-count = 2
+count = 3
 
 [sub_resource type="Resource" id="Resource_quota_amorphous"]
 script = ExtResource("12_quota")
 encounter = ExtResource("7_r4hwa")
-count = 3
+count = 4
+
+[sub_resource type="Resource" id="Resource_6ldoi"]
+script = ExtResource("12_quota")
+encounter = ExtResource("7_ly8fd")
+count = 2
+metadata/_custom_type_script = "uid://bpsev8acl42vn"
 
 [resource]
 script = ExtResource("8_2dkfl")
 adventure_id = "shallow_woods"
 adventure_name = "The Shallow Woods"
-encounter_quotas = Array[ExtResource("12_quota")]([SubResource("Resource_quota_aura"), SubResource("Resource_quota_refugee"), SubResource("Resource_quota_dreadbeast"), SubResource("Resource_quota_amorphous")])
+encounter_quotas = Array[ExtResource("12_quota")]([SubResource("Resource_quota_aura"), SubResource("Resource_quota_refugee"), SubResource("Resource_quota_dreadbeast"), SubResource("Resource_quota_amorphous"), SubResource("Resource_6ldoi")])
 boss_encounter = ExtResource("11_boss")
 metadata/_custom_type_script = "uid://b4nlsemiwg2h6"

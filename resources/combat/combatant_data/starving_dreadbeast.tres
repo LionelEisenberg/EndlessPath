@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="1_uu7wp"]
 [ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="2_8emjg"]
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_mquym"]
-[ext_resource type="Resource" uid="uid://4rs2o3l3fo4d" path="res://resources/combat/combatant_data/enemy_abilities/ famishing_bite.tres" id="2_xwkgh"]
+[ext_resource type="Resource" uid="uid://4rs2o3l3fo4d" path="res://resources/combat/combatant_data/enemy_abilities/famishing_bite.tres" id="2_xwkgh"]
 
 [sub_resource type="Resource" id="Resource_xwkgh"]
 script = ExtResource("2_8emjg")

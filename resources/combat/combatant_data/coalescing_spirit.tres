@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CombatantData" format=3 uid="uid://ciaopodw03cju"]
+
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="1_kfu6i"]
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_0cial"]
+[ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="2_jrad1"]
+[ext_resource type="Resource" uid="uid://cp8w1nknqcyhn" path="res://resources/combat/combatant_data/enemy_abilities/madra_lash.tres" id="2_ygc7y"]
+[ext_resource type="Resource" uid="uid://hh4xqhiwoeob" path="res://resources/combat/combatant_data/enemy_abilities/coalesce.tres" id="3_ygc7y"]
+
+[sub_resource type="Resource" id="Resource_ygc7y"]
+script = ExtResource("2_jrad1")
+attributes = Dictionary[int, float]({
+1: 20.0,
+3: 25.0,
+4: 10.0
+})
+metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
+
+[resource]
+script = ExtResource("2_0cial")
+character_name = "Coalescing Spirit"
+attributes = SubResource("Resource_ygc7y")
+abilities = Array[ExtResource("1_kfu6i")]([ExtResource("2_ygc7y"), ExtResource("3_ygc7y")])
+metadata/_custom_type_script = "uid://hbo1w3358rom"
