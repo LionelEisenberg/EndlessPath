@@ -1,13 +1,16 @@
-[gd_scene format=3 uid="uid://cykbyaig3viuq"]
+[gd_scene format=4 uid="uid://cykbyaig3viuq"]
 
 [ext_resource type="Script" uid="uid://4s0fla4rk2vc" path="res://scripts/tools/map_preview.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://d3givt02dwnlp" path="res://scenes/tilemaps/hexagon_tile_map_layer.tscn" id="2_hex"]
+[ext_resource type="Resource" uid="uid://b2erw55qd1wh7" path="res://resources/adventure/data/shallow_woods.tres" id="2_ofvmp"]
 
 [node name="MapPreview" type="Node2D" unique_id=1140585066]
 script = ExtResource("1_script")
+adventure_data = ExtResource("2_ofvmp")
 
 [node name="PreviewTileMap" parent="." unique_id=261080654 instance=ExtResource("2_hex")]
 unique_name_in_owner = true
+tile_map_data = PackedByteArray("AAAAAAAACAAFAAAAAAD+//v/CAACAAIAAAD+//3/CAABAAMAAAACAPr/CAAAAAAAAAD/////CAAFAAAAAAD///7/CAAAAAMAAAD///z/CAAEAAEAAAD///v/CAAEAAAAAAAAAPr/CAAAAAAAAAABAPr/CAACAAAAAAD///3/CAACAAIAAAAAAPz/CAAEAAMAAAAAAPv/CAAEAAMAAAABAPv/CAACAAAAAAA=")
 
 [node name="EncounterIconContainer" type="Node2D" parent="." unique_id=952365056]
 unique_name_in_owner = true
@@ -15,7 +18,7 @@ z_index = 6
 
 [node name="OriginMarker" type="Node2D" parent="." unique_id=300903388]
 unique_name_in_owner = true
-visible = false
+position = Vector2(82, 95)
 
 [node name="Label" type="Label" parent="OriginMarker" unique_id=2045817958]
 offset_left = -30.0
@@ -30,3 +33,4 @@ unique_name_in_owner = true
 offset_left = 16.0
 offset_top = 16.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "14 tiles · 2 combat · 0 elite · 1 boss · 2 rest · 0 treasure · 0 trap · 9 walk · seed: 3202158547"
