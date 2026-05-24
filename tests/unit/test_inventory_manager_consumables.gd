@@ -117,3 +117,117 @@ func test_has_item_ignores_consumable_with_zero_count() -> void:
 	inv.consumables[def] = 0
 
 	assert_false(InventoryManager.has_item("zero_count"), "consumable with 0 count should not be 'owned'")
+
+#-----------------------------------------------------------------------------
+# USE_CONSUMABLE
+#-----------------------------------------------------------------------------
+
+## Counter EffectData subclass used to observe process() invocations.
+## Mirrors the helper from test_consumable_definition_data.gd; duplicated here
+## so each test file stays independently runnable.
+class CountingEffect extends EffectData:
+	var call_count: int = 0
+
+	func process() -> void:
+		call_count += 1
+
+	func _to_string() -> String:
+		return "CountingEffect"
+
+func _make_consumable_with_effect(id: String, effect: EffectData) -> ConsumableDefinitionData:
+	var def := _make_consumable(id)
+	def.effects = [effect]
+	return def
+
+func test_use_consumable_with_stock_returns_true_and_decrements() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var effect := CountingEffect.new()
+	var def := _make_consumable_with_effect("use_success", effect)
+	InventoryManager.award_items(def, 3)
+
+	var result: bool = InventoryManager.use_consumable(def)
+
+	assert_true(result, "use_consumable should return true on success")
+	assert_eq(effect.call_count, 1, "effect.process() should be called exactly once")
+	var inv := InventoryManager.get_inventory()
+	assert_eq(inv.consumables.get(def, 0), 2, "stack should drop from 3 to 2")
+
+func test_use_consumable_to_zero_erases_dict_entry() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var def := _make_consumable_with_effect("use_to_zero", CountingEffect.new())
+	InventoryManager.award_items(def, 1)
+
+	var result: bool = InventoryManager.use_consumable(def)
+
+	assert_true(result, "use_consumable should succeed when stack is 1")
+	var inv := InventoryManager.get_inventory()
+	assert_false(inv.consumables.has(def), "dict entry should be erased when count drops to 0")
+	assert_false(InventoryManager.has_item("use_to_zero"), "has_item should return false after stack hits 0")
+
+func test_use_consumable_with_no_stock_returns_false() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var effect := CountingEffect.new()
+	var def := _make_consumable_with_effect("use_empty", effect)
+	# Do NOT award.
+
+	var result: bool = InventoryManager.use_consumable(def)
+
+	assert_false(result, "use_consumable should return false with no stock")
+	assert_eq(effect.call_count, 0, "effects must not fire when stock is 0")
+
+func test_use_consumable_with_null_def_returns_false() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var result: bool = InventoryManager.use_consumable(null)
+	assert_false(result, "use_consumable(null) should return false")
+
+func test_use_consumable_ignores_cooldown_seconds() -> void:
+	# Cooldown enforcement is the combat instance's job — InventoryManager
+	# should let back-to-back calls both succeed as long as there's stock.
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var effect := CountingEffect.new()
+	var def := _make_consumable_with_effect("use_cooldown_ignored", effect)
+	def.cooldown_seconds = 999.0  # Long cooldown, but nothing should enforce it here.
+	InventoryManager.award_items(def, 2)
+
+	var first: bool = InventoryManager.use_consumable(def)
+	var second: bool = InventoryManager.use_consumable(def)
+
+	assert_true(first, "first use should succeed")
+	assert_true(second, "second use should ALSO succeed — no cooldown check in InventoryManager")
+	assert_eq(effect.call_count, 2, "effects should fire both times")
+	var inv := InventoryManager.get_inventory()
+	assert_false(inv.consumables.has(def), "stack of 2 should be drained to 0 and erased")
+
+func test_use_consumable_emits_inventory_changed() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var def := _make_consumable_with_effect("use_signal", CountingEffect.new())
+	InventoryManager.award_items(def, 1)
+
+	watch_signals(InventoryManager)
+	InventoryManager.use_consumable(def)
+
+	assert_signal_emitted(InventoryManager, "inventory_changed", "inventory_changed should fire on successful use")
