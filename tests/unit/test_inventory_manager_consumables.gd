@@ -78,3 +78,42 @@ func test_award_consumable_emits_inventory_changed_signal() -> void:
 	InventoryManager.award_items(def, 1)
 
 	assert_signal_emitted(InventoryManager, "inventory_changed", "inventory_changed should fire on consumable award")
+
+#-----------------------------------------------------------------------------
+# HAS_ITEM (consumables)
+#-----------------------------------------------------------------------------
+
+func test_has_item_returns_true_for_owned_consumable() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var def := _make_consumable("has_item_test")
+	InventoryManager.award_items(def, 2)
+
+	assert_true(InventoryManager.has_item("has_item_test"), "should find owned consumable by item_id")
+
+func test_has_item_returns_false_for_unowned_consumable() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var def := _make_consumable("not_awarded")
+	# NOTE: do not award
+	assert_false(InventoryManager.has_item("not_awarded"), "should not find unowned consumable")
+
+func test_has_item_ignores_consumable_with_zero_count() -> void:
+	if not InventoryManager:
+		pass_test("InventoryManager not available in test environment")
+		return
+	_reset_save()
+
+	var def := _make_consumable("zero_count")
+	InventoryManager.award_items(def, 1)
+	# Manually zero the count without erasing the key.
+	var inv := InventoryManager.get_inventory()
+	inv.consumables[def] = 0
+
+	assert_false(InventoryManager.has_item("zero_count"), "consumable with 0 count should not be 'owned'")

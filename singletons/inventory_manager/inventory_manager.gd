@@ -197,6 +197,9 @@ func has_item(item_id: String) -> bool:
 	for quest_item in inv.quest_items:
 		if quest_item and quest_item.item_id == item_id and inv.quest_items[quest_item] > 0:
 			return true
+	for consumable in inv.consumables:
+		if consumable and consumable.item_id == item_id and inv.consumables[consumable] > 0:
+			return true
 	return false
 
 #-----------------------------------------------------------------------------
