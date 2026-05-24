@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3 uid="uid://k4ty3iexewla"]
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/cultivators_cowl.png" id="1_y5fxt"]
 [ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_bl2yh"]

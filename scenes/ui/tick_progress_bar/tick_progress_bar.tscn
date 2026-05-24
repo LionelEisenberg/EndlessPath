@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://crccap7ugqnul"]
 
-[ext_resource type="Script" uid="uid://cnvpesqp6474t" path="res://scenes/ui/tick_progress_bar/tick_progress_bar.gd" id="1_tpb"]
+[ext_resource type="Script" uid="uid://cc6rse15gr3l6" path="res://scenes/ui/tick_progress_bar/tick_progress_bar.gd" id="1_tpb"]
 
 [node name="TickProgressBar" type="Control" unique_id=732371883]
 custom_minimum_size = Vector2(0, 16)

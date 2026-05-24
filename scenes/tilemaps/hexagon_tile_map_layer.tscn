@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://d3givt02dwnlp"]
 
-[ext_resource type="TileSet" uid="uid://brm40hxx3wp8n" path="res://scenes/tilemaps/tilemap_tileset.tres" id="1_8xswh"]
+[ext_resource type="TileSet" uid="uid://eptmap1q2w3e4" path="res://scenes/tilemaps/tilemap_tileset.tres" id="1_8xswh"]
 [ext_resource type="Script" uid="uid://qscq7dtmesw6" path="res://scenes/tilemaps/hexagon_tile_map_layer.gd" id="2_gt0uv"]
 
 [node name="HexagonTileMapLayer" type="TileMapLayer" unique_id=482776733]

@@ -14,8 +14,8 @@
 [ext_resource type="Texture2D" uid="uid://fr1ueqq6cg6y" path="res://assets/sprites/ui/stat_icons/map_icon.png" id="11_51wby"]
 [ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/sprites/ui/resources/madra_icon.png" id="12_cfyns"]
 [ext_resource type="PackedScene" uid="uid://ix8ck2f5o613" path="res://scenes/common/item_display_slot/item_display_slot.tscn" id="13_item_slot"]
-[ext_resource type="Resource" uid="uid://cr154q6p1wf0v" path="res://resources/items/equipment/spirit_valley/iron_shortsword.tres" id="14_sword"]
-[ext_resource type="Resource" uid="uid://innfe75slegl" path="res://resources/items/equipment/spirit_valley/makeshift_dagger.tres" id="15_dagger"]
+[ext_resource type="Resource" path="res://resources/items/equipment/spirit_valley/iron_shortsword.tres" id="14_sword"]
+[ext_resource type="Resource" path="res://resources/items/equipment/spirit_valley/makeshift_dagger.tres" id="15_dagger"]
 
 [sub_resource type="Animation" id="Animation_reset"]
 length = 0.001

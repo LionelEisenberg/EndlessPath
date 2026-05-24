@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dueoslbbduivu"]
 
-[ext_resource type="Script" uid="uid://hfi5ohgx2fu0" path="res://assets/dialogue/styles/dialogue_backgrounds/custom_background_layer.gd" id="1_custom"]
+[ext_resource type="Script" uid="uid://cmk6l5oml8t7p" path="res://assets/dialogue/styles/dialogue_backgrounds/custom_background_layer.gd" id="1_custom"]
 [ext_resource type="Script" uid="uid://oxcjhq2817c7" path="res://addons/dialogic/Modules/Background/node_background_holder.gd" id="2_holder"]
 
 [node name="BackgroundLayer" type="Control"]
