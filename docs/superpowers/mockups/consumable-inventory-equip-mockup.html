@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EndlessPath - Consumable Inventory Equip Mockup</title>
+<style>
+  @font-face {
+    font-family: 'PixelFont';
+    src: url('../../../assets/themes/pixel_ui_theme/m5x7.ttf') format('truetype');
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a2a2a;
+    font-family: 'PixelFont', 'Courier New', monospace;
+    color: #d4c4a0;
+    min-height: 100vh;
+    padding: 30px;
+    background-image:
+      radial-gradient(ellipse at 30% 40%, rgba(60,90,80,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 30%, rgba(40,60,70,0.3) 0%, transparent 50%);
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+  }
+
+  h1 {
+    color: #d4b76b;
+    font-size: 36px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+  }
+  .subtitle {
+    color: #8a7f64;
+    font-size: 18px;
+    text-align: center;
+    max-width: 760px;
+    line-height: 1.4;
+  }
+
+  /* ── Book (inventory) outer frame ── */
+  .book {
+    width: 1040px;
+    background: linear-gradient(135deg, #4a3a26 0%, #3a2c1a 50%, #4a3a26 100%);
+    border: 6px solid #2a1a08;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow:
+      0 8px 28px rgba(0,0,0,0.7),
+      inset 0 0 24px rgba(0,0,0,0.4);
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    padding-left: 18px;
+  }
+  .tab {
+    padding: 8px 22px;
+    background: linear-gradient(180deg, #5a4a30 0%, #3a2c1a 100%);
+    border: 2px solid #2a1a08;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    color: #a89070;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .tab.active {
+    background: linear-gradient(180deg, #d6c9a8 0%, #b8a888 100%);
+    color: #3a2818;
+    font-weight: bold;
+    position: relative;
+    top: 2px;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.3);
+  }
+
+  /* ── Pages (book interior, parchment) ── */
+  .pages {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    background: #b8a888;
+    border: 2px solid #2a1a08;
+    border-radius: 4px;
+    overflow: hidden;
+    min-height: 540px;
+  }
+  .page {
+    padding: 28px 32px;
+    background:
+      radial-gradient(ellipse at top, rgba(214, 201, 168, 1) 0%, rgba(184, 168, 136, 1) 80%),
+      #b8a888;
+    color: #3a2818;
+    position: relative;
+  }
+  .page::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(45deg,
+        transparent, transparent 24px,
+        rgba(58,40,24,0.03) 24px, rgba(58,40,24,0.03) 25px);
+    pointer-events: none;
+  }
+  .page-left { border-right: 1px solid rgba(58,40,24,0.25); box-shadow: inset -8px 0 16px rgba(58,40,24,0.15); }
+  .page-right { box-shadow: inset 8px 0 16px rgba(58,40,24,0.15); }
+
+  .page h2 {
+    color: #3a2818;
+    font-size: 26px;
+    margin-bottom: 4px;
+    border-bottom: 2px solid rgba(58,40,24,0.3);
+    padding-bottom: 6px;
+  }
+  .page .hint {
+    color: #6b5438;
+    font-size: 14px;
+    margin-bottom: 18px;
+    font-style: italic;
+  }
+
+  /* ── Owned-consumables list (left page) ── */
+  .stack-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .stack-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px;
+    background: rgba(58,40,24,0.08);
+    border: 2px solid rgba(58,40,24,0.25);
+    border-radius: 4px;
+    cursor: grab;
+    position: relative;
+  }
+  .stack-row:hover {
+    background: rgba(58,40,24,0.18);
+    border-color: rgba(58,40,24,0.45);
+  }
+  .stack-row.equipped {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .stack-row.equipped::before {
+    content: 'EQUIPPED';
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    background: #6b5438;
+    color: #d4c4a0;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+  .stack-row .icon {
+    width: 44px; height: 44px;
+    background: #1a1208;
+    border: 2px solid #6b5438;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stack-row .icon .core {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+      rgba(170,200,230,0.9) 0%,
+      rgba(110,150,200,0.7) 40%,
+      rgba(50,90,140,0.5) 100%);
+    box-shadow: 0 0 5px rgba(120,180,230,0.6);
+  }
+  .stack-row .meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .stack-row .name {
+    font-size: 17px;
+    color: #3a2818;
+    font-weight: bold;
+  }
+  .stack-row .desc {
+    font-size: 12px;
+    color: #6b5438;
+    margin-top: 2px;
+  }
+  .stack-row .count {
+    font-size: 22px;
+    color: #6b5438;
+    font-weight: bold;
+    margin-left: auto;
+  }
+
+  /* ── Equip-slot grid (right page) ── */
+  .equip-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .equip-slot {
+    width: 280px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background: rgba(58,40,24,0.08);
+    border: 3px dashed rgba(58,40,24,0.5);
+    border-radius: 4px;
+    position: relative;
+  }
+  .equip-slot.filled {
+    border-style: solid;
+    border-color: #6b5438;
+    background: rgba(58,40,24,0.15);
+  }
+  .equip-slot .slot-num {
+    width: 36px; height: 36px;
+    background: #2a1a08;
+    color: #d4b76b;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .equip-slot .slot-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .equip-slot .slot-icon {
+    width: 44px; height: 44px;
+    background: #1a1208;
+    border: 2px solid #6b5438;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .equip-slot .slot-icon .core {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+      rgba(170,200,230,0.9) 0%,
+      rgba(110,150,200,0.7) 40%,
+      rgba(50,90,140,0.5) 100%);
+    box-shadow: 0 0 5px rgba(120,180,230,0.6);
+  }
+  .equip-slot .slot-name {
+    font-size: 16px;
+    color: #3a2818;
+    font-weight: bold;
+  }
+  .equip-slot .slot-cooldown {
+    font-size: 12px;
+    color: #6b5438;
+  }
+  .equip-slot .slot-empty-hint {
+    flex: 1;
+    color: #8a7f64;
+    font-size: 14px;
+    font-style: italic;
+    text-align: center;
+  }
+  .equip-slot .unequip {
+    background: transparent;
+    border: 1px solid #6b5438;
+    color: #6b5438;
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .equip-slot .unequip:hover {
+    background: #6b5438;
+    color: #d4c4a0;
+  }
+
+  /* ── Drag-arrow demo overlay (purely illustrative) ── */
+  .drag-arrow {
+    position: relative;
+    margin: 10px auto 0;
+    width: 60%;
+    height: 0;
+    border-top: 2px dashed #6b8c6a;
+    color: #6b8c6a;
+    font-size: 14px;
+  }
+  .drag-arrow span {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #b8a888;
+    padding: 0 8px;
+  }
+  .drag-arrow::after {
+    content: '▶';
+    position: absolute;
+    right: -6px;
+    top: -10px;
+    color: #6b8c6a;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    width: 1040px;
+    background: rgba(20, 16, 8, 0.5);
+    border: 2px solid rgba(107, 84, 56, 0.5);
+    border-radius: 4px;
+    padding: 18px 24px;
+    color: #d4c4a0;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .legend h3 {
+    color: #d4b76b;
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+  .legend ul { list-style: none; padding-left: 0; }
+  .legend li {
+    padding: 4px 0 4px 20px;
+    position: relative;
+  }
+  .legend li::before {
+    content: '◆';
+    position: absolute;
+    left: 0;
+    color: #6b8c6a;
+  }
+  .legend code {
+    background: #1a1208;
+    border: 1px solid #6b5438;
+    color: #d4b76b;
+    padding: 1px 5px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+  <div>
+    <h1>Inventory — Consumables Tab</h1>
+    <p class="subtitle">A new fourth tab in the book inventory. Left page shows owned stacks; right page shows the equip slots. Drag a stack to a slot to equip; click <em>Unequip</em> to return it to the stack list.</p>
+  </div>
+
+  <div class="book">
+    <div class="tabs">
+      <div class="tab">Equipment</div>
+      <div class="tab">Materials</div>
+      <div class="tab active">Consumables</div>
+      <div class="tab">Quest Items</div>
+    </div>
+
+    <div class="pages">
+      <!-- Left page: owned consumable stacks -->
+      <div class="page page-left">
+        <h2>Owned</h2>
+        <p class="hint">Drag a stack to an equip slot →</p>
+
+        <div class="stack-list">
+          <div class="stack-row">
+            <div class="icon"><div class="core"></div></div>
+            <div class="meta">
+              <div class="name">Barely Coalesced Scale</div>
+              <div class="desc">+20 Madra · 10s cooldown</div>
+            </div>
+            <div class="count">×12</div>
+          </div>
+          <div class="stack-row equipped">
+            <div class="icon"><div class="core"></div></div>
+            <div class="meta">
+              <div class="name">Barely Coalesced Scale</div>
+              <div class="desc">Equipped to slot 1 · ×12</div>
+            </div>
+          </div>
+          <div class="stack-row" style="opacity: 0.4;">
+            <div class="icon" style="background: #2a2a1a;"><div class="core" style="background: radial-gradient(circle at 35% 35%, rgba(255,220,140,0.9) 0%, rgba(200,160,80,0.7) 40%, rgba(140,100,40,0.5) 100%); box-shadow: 0 0 5px rgba(255,220,140,0.6);"></div></div>
+            <div class="meta">
+              <div class="name" style="font-style: italic;">Iron Heart Scale</div>
+              <div class="desc">Future tier (not yet implemented)</div>
+            </div>
+            <div class="count">—</div>
+          </div>
+          <div class="stack-row" style="opacity: 0.4;">
+            <div class="icon" style="background: #2a1a2a;"><div class="core" style="background: radial-gradient(circle at 35% 35%, rgba(220,170,255,0.9) 0%, rgba(170,110,210,0.7) 40%, rgba(110,60,160,0.5) 100%); box-shadow: 0 0 5px rgba(220,170,255,0.6);"></div></div>
+            <div class="meta">
+              <div class="name" style="font-style: italic;">Jade Forged Scale</div>
+              <div class="desc">Future tier (not yet implemented)</div>
+            </div>
+            <div class="count">—</div>
+          </div>
+        </div>
+
+        <div class="drag-arrow"><span>drag →</span></div>
+      </div>
+
+      <!-- Right page: equip slots -->
+      <div class="page page-right">
+        <h2>Equipped</h2>
+        <p class="hint">These appear in the combat HUD bar (slots 1–3).</p>
+
+        <div class="equip-slots">
+          <div class="equip-slot filled">
+            <div class="slot-num">1</div>
+            <div class="slot-content">
+              <div class="slot-icon"><div class="core"></div></div>
+              <div>
+                <div class="slot-name">Barely Coalesced Scale</div>
+                <div class="slot-cooldown">+20 Madra · 10s CD</div>
+              </div>
+            </div>
+            <button class="unequip">Unequip</button>
+          </div>
+
+          <div class="equip-slot">
+            <div class="slot-num">2</div>
+            <div class="slot-empty-hint">Empty — drag a stack here</div>
+          </div>
+
+          <div class="equip-slot">
+            <div class="slot-num">3</div>
+            <div class="slot-empty-hint">Empty — drag a stack here</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <h3>Interaction model</h3>
+    <ul>
+      <li><strong>Drag-and-drop equip</strong> — same affordance as the existing Equipment tab. Drag a row from the left page onto a slot on the right.</li>
+      <li><strong>Stack stays in inventory</strong> — equipping does NOT remove the stack from owned consumables; it just marks a slot as "draws from this stack." The greyed-out row labeled <em>EQUIPPED</em> on the left shows the slot/stack link.</li>
+      <li><strong>Click <code>Unequip</code></strong> — empties the slot. The stack on the left un-greys.</li>
+      <li><strong>One stack per slot</strong> — you can equip the same consumable into multiple slots (e.g., two slots both pointing at Barely Coalesced Scale) for double-tap healing. Cooldowns are per-slot in this future model.</li>
+    </ul>
+
+    <h3 style="margin-top: 16px;">Data shape (future)</h3>
+    <ul>
+      <li><code>InventoryData.consumables: Dictionary[ConsumableDefinitionData, int]</code> — owned stacks (MVP, this slice)</li>
+      <li><code>InventoryData.equipped_consumables: Dictionary[int, ConsumableDefinitionData]</code> — slot index → definition (future)</li>
+      <li><code>InventoryManager.equip_consumable(def, slot_index)</code> and <code>unequip_consumable(slot_index)</code> — parallel <code>equip_item</code> / <code>unequip_item</code></li>
+      <li><code>ConsumableCooldownTracker</code> rekeys from <code>def</code> to <code>slot_index</code> when slots arrive</li>
+    </ul>
+
+    <h3 style="margin-top: 16px;">Not shown (out of scope for this mockup)</h3>
+    <ul>
+      <li>Stack-splitting (e.g., assigning 3 of 12 to a slot). Slots draw from the full stack.</li>
+      <li>Auto-restock from a quickbar / favorites. Manual equip only.</li>
+      <li>Tooltip on hover — we'd reuse the existing item description panel.</li>
+    </ul>
+  </div>
+</body>
+</html>
