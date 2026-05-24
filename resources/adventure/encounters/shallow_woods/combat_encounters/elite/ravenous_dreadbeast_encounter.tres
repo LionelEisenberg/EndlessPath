@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="AdventureEncounter" format=3 uid="uid://crpb17u5v280k"]
+
+[ext_resource type="Script" uid="uid://c1b11mq3a2qya" path="res://scripts/resource_definitions/adventure/choices/encounter_choice.gd" id="1_q7dy1"]
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_5hkel"]
+[ext_resource type="Resource" uid="uid://bveu08pdk3um0" path="res://resources/combat/combatant_data/ravenous_dreadbeast.tres" id="3_b1j0e"]
+[ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="4_h58sv"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_l33yq"]
+[ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="6_mdyae"]
+[ext_resource type="Script" uid="uid://bbayqmvvc4hvt" path="res://scripts/resource_definitions/loot/loot_table_entries.gd" id="7_i4stj"]
+[ext_resource type="Resource" path="res://resources/items/equipment/spirit_valley/dreadbeast_tooth_necklace.tres" id="8_abmdm"]
+[ext_resource type="Script" uid="uid://b0055qxx6pmno" path="res://scripts/resource_definitions/loot/loot_table.gd" id="9_jvglo"]
+[ext_resource type="Script" uid="uid://w0sbaux5u040" path="res://scripts/resource_definitions/effects/award_loot_table_effect_data.gd" id="10_hn4ml"]
+[ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="11_ue3ap"]
+
+[sub_resource type="Resource" id="Resource_qyuqa"]
+script = ExtResource("7_i4stj")
+item = ExtResource("8_abmdm")
+drop_chance = 0.25
+metadata/_custom_type_script = "uid://bbayqmvvc4hvt"
+
+[sub_resource type="Resource" id="Resource_j6agw"]
+script = ExtResource("9_jvglo")
+entries = Array[ExtResource("7_i4stj")]([SubResource("Resource_qyuqa")])
+metadata/_custom_type_script = "uid://b0055qxx6pmno"
+
+[sub_resource type="Resource" id="Resource_mn67u"]
+script = ExtResource("10_hn4ml")
+loot_table = SubResource("Resource_j6agw")
+metadata/_custom_type_script = "uid://w0sbaux5u040"
+
+[sub_resource type="Resource" id="Resource_f6ngc"]
+script = ExtResource("6_mdyae")
+enemy_pool = Array[ExtResource("2_5hkel")]([ExtResource("3_b1j0e")])
+label = "Attack the Dreadbeast"
+success_effects = Array[ExtResource("4_h58sv")]([SubResource("Resource_mn67u")])
+metadata/_custom_type_script = "uid://cpq8eacgl1537"
+
+[resource]
+script = ExtResource("11_ue3ap")
+encounter_id = "ravenous_dreadbeast_encounter"
+encounter_name = "Ravenous Dreadbeast Attacks!"
+description = "This putrid's dreadbeasts muscles bulge under its thin, sickly skin. Its breath is putrid and stinks of the poor beast it just fed on."
+text_description_completed = "The Ravenous Dreadbeast lies still. Its hunger, at last, is sated."
+choices = Array[ExtResource("1_q7dy1")]([SubResource("Resource_f6ngc")])
+encounter_type = 3
+placement = 0
+min_fillers_on_path = 1
+metadata/_custom_type_script = "uid://cs335nesm7wfr"

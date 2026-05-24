@@ -32,7 +32,7 @@ func _has_action(action_id: String) -> bool:
 	return false
 
 func _refugee_camp_encounter() -> AdventureEncounter:
-	return load("res://resources/adventure/encounters/special_encounters/refugee_camp_encounter.tres") as AdventureEncounter
+	return load("res://resources/adventure/encounters/shallow_woods/special_encounters/refugee_camp_encounter.tres") as AdventureEncounter
 
 func _filter_pool(pool: Array) -> Array:
 	var result: Array = []
