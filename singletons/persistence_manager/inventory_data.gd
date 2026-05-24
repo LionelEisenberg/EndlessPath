@@ -13,5 +13,8 @@ extends Resource
 ## Dictionary of ItemDefinitionData (QUEST_ITEM type) -> Quantity owned.
 @export var quest_items: Dictionary[ItemDefinitionData, int] = {}
 
+## Dictionary of ConsumableDefinitionData -> Quantity owned. Stacks like materials.
+@export var consumables: Dictionary[ConsumableDefinitionData, int] = {}
+
 func _to_string() -> String:
-	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, quest_items: %s)" % [materials, equipment, equipped_gear, quest_items]
+	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, quest_items: %s, consumables: %s)" % [materials, equipment, equipped_gear, quest_items, consumables]
