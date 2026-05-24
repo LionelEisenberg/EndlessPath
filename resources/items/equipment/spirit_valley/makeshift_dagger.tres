@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3]
+[gd_resource type="Resource" script_class="EquipmentDefinitionData" format=3 uid="uid://lqbac1tinke"]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/items/equipment/makeshift_dagger.png" id="1_rppdt"]
-[ext_resource type="Script" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_a5ijk"]
+[ext_resource type="Texture2D" uid="uid://n4bia46t2gbq" path="res://assets/sprites/items/equipment/makeshift_dagger.png" id="1_rppdt"]
+[ext_resource type="Script" uid="uid://crbclsuiby2yn" path="res://scripts/resource_definitions/items/equipment/equipment_definition_data.gd" id="2_a5ijk"]
 
 [resource]
 script = ExtResource("2_a5ijk")
