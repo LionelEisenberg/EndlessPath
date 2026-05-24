@@ -158,7 +158,7 @@ func test_build_equipment_populates_all_fields() -> void:
 
 func test_build_equipment_empty_stats_yields_empty_bonuses() -> void:
 	var row = {
-		"id": "naked_ring", "name": "Naked Ring", "slot": "ACCESSORY_1",
+		"id": "naked_ring", "name": "Naked Ring", "slot": "ACCESSORY",
 		"stats": "", "tier": "Foundation", "cost": "0",
 		"description": "Nothing here."
 	}

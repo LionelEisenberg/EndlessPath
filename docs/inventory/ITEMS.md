@@ -27,7 +27,7 @@
 | `#` | — | Row index for human reference ("let's bump E5"); not generated |
 | `id` | `item_id` | snake_case; becomes filename `<id>.tres` |
 | `name` | `item_name` | Player-facing display name |
-| `slot` | `slot_type` (EquipmentSlot enum) | One of `MAIN_HAND` / `OFF_HAND` / `HEAD` / `ARMOR` / `ACCESSORY_1` / `ACCESSORY_2` |
+| `slot` | `slot_type` (EquipmentSlot enum) | One of `MAIN_HAND` / `OFF_HAND` / `HEAD` / `ARMOR` / `ACCESSORY` |
 | `stats` | `attribute_bonuses` (Dictionary[AttributeType, float]) | Inline DSL, see below |
 | `tier` | — (doc-only) | `Foundation` / `Copper` / `Iron` / … — used by designer for balance grouping |
 | `cost` | `base_value` | Gold value; also informs merchant pricing (sell-back is derived) |
@@ -57,8 +57,8 @@ Format: `<ATTR>[+-]<N>, ...`
 | E2 | iron_shortsword | Iron Shortsword | MAIN_HAND | STRENGTH+5, AGILITY+2 | Foundation | 10 | Dagger upgrade | Merchant | A heavier blade, demanding both hands. |
 | E3 | cultivators_cowl | Cultivator's Cowl | HEAD | WILLPOWER+3, SPIRIT+1 | Foundation | 6 | First HEAD slot — mental focus | Merchant | A felted cowl, traditional among initiate cultivators. |
 | E4 | reinforced_robes | Reinforced Robes | ARMOR | BODY+4, RESILIENCE+2 | Foundation | 7 | First ARMOR slot — survivability | Merchant | Padded robes lined with light scripted plates. |
-| E5 | dreadbeast_tooth_necklace | Dreadbeast Tooth Necklace | ACCESSORY_1 | STRENGTH+2, AGILITY+2 | Foundation | 0 | Physical Offense | Loot | A small dreadbeast tooth, fashioned around a leather strap. |
-| E6 | leeching_ring | Leeching Ring | ACCESSORY_2 | CONTROL+2, FOUNDATION+2 | Foundation | 50 | Cooldown + max mana | Merchant, Loot | A polished metal band engraved with a single character. |
+| E5 | dreadbeast_tooth_necklace | Dreadbeast Tooth Necklace | ACCESSORY | STRENGTH+2, AGILITY+2 | Foundation | 0 | Physical Offense | Loot | A small dreadbeast tooth, fashioned around a leather strap. |
+| E6 | leeching_ring | Leeching Ring | ACCESSORY | CONTROL+2, FOUNDATION+2 | Foundation | 50 | Cooldown + max mana | Merchant, Loot | A polished metal band engraved with a single character. |
 | E7 | scripted_bark | Scripted Bark | OFF_HAND | BODY+2 | Foundation | 0 | First offhand slot, played with makeshift dagger dropped by first mob seen | Loot | A small scripted piece of bark, not much but will take a hit or two |
 
 ---

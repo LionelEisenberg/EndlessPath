@@ -55,6 +55,7 @@ slot_type = 3
 [node name="Accessory1GearSlot" parent="VBoxContainer" unique_id=1885838001 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
 slot_type = 4
+accessory_index = 0
 
 [node name="VBoxContainer2" type="VBoxContainer" parent="." unique_id=1523099243]
 layout_mode = 1
@@ -81,4 +82,5 @@ slot_type = 1
 
 [node name="Accessory2GearSlot" parent="VBoxContainer2" unique_id=1052880311 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
-slot_type = 5
+slot_type = 4
+accessory_index = 1

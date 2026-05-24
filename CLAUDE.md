@@ -92,8 +92,8 @@ These are autoloaded in `project.godot` and provide global state:
 
 ### Equipment System
 - Single `EquipmentDefinitionData` class (no subclasses) with `attribute_bonuses: Dictionary` (AttributeType → float)
-- 6 equipment slots: `MAIN_HAND`, `OFF_HAND`, `HEAD`, `ARMOR`, `ACCESSORY_1`, `ACCESSORY_2`
-- `CharacterManager._get_attribute_bonuses()` → `_get_equipment_bonuses()` sums equipped gear bonuses
+- 5 equipment slot types: `MAIN_HAND`, `OFF_HAND`, `HEAD`, `ARMOR`, `ACCESSORY`. Accessories live in a separate `equipped_accessories` dict keyed by physical slot index (0 or 1) on `InventoryData`, so any accessory item fits either of the two physical accessory slots.
+- `CharacterManager._get_attribute_bonuses()` → `_get_equipment_bonuses()` sums bonuses from both `equipped_gear` and `equipped_accessories`
 - Bonuses flow through `get_total_attributes_data()` into combat, vitals, and all downstream systems
 - Right-click to quick equip/unequip; tooltip persists during drag
 

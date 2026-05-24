@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("2_6m2ib")
-slot_type = 5
+slot_type = 4
 attribute_bonuses = {
 4: 2.0,
 5: 2.0

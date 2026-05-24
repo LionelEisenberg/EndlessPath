@@ -73,19 +73,21 @@ func award_items(item: ItemDefinitionData, quantity: int) -> void:
 		_:
 			Log.error("InventoryManager: Item type not supported: %s" % item.item_type)
 
-func equip_item(instance: ItemInstanceData, slot: EquipmentDefinitionData.EquipmentSlot, from_index: int = -1) -> void:
+## Equip an item to the given slot. For ACCESSORY slots, accessory_index (0 or 1)
+## selects which of the two physical accessory slots receives the item.
+func equip_item(instance: ItemInstanceData, slot: EquipmentDefinitionData.EquipmentSlot, from_index: int = -1, accessory_index: int = -1) -> void:
 	var inventory = get_inventory()
-	
+
 	# Check if something is already equipped in that slot
-	var has_equipped = inventory.equipped_gear.has(slot)
+	var has_equipped = _has_equipped(inventory, slot, accessory_index)
 	if has_equipped:
-		var currently_equipped = inventory.equipped_gear[slot]
+		var currently_equipped: ItemInstanceData = _get_equipped(inventory, slot, accessory_index)
 		# Swap: move currently equipped to where the dragged item came from
 		if from_index != -1:
 			inventory.equipment[from_index] = currently_equipped
 		else:
 			_add_to_first_available_slot(inventory, currently_equipped)
-		inventory.equipped_gear.erase(slot)
+		_erase_equipped(inventory, slot, accessory_index)
 
 	# Remove the dragged item from the grid (only if we didn't already swap into its slot)
 	if not has_equipped:
@@ -99,61 +101,61 @@ func equip_item(instance: ItemInstanceData, slot: EquipmentDefinitionData.Equipm
 					break
 			if key_to_remove != -1:
 				inventory.equipment.erase(key_to_remove)
-	
+
 	# Equip new item
-	inventory.equipped_gear[slot] = instance
+	_set_equipped(inventory, slot, accessory_index, instance)
 	inventory_changed.emit(inventory)
 
-func unequip_item(slot: EquipmentDefinitionData.EquipmentSlot) -> void:
+func unequip_item(slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: int = -1) -> void:
 	var inventory = get_inventory()
-	
-	if inventory.equipped_gear.has(slot):
-		var item = inventory.equipped_gear[slot]
-		inventory.equipped_gear.erase(slot)
+
+	if _has_equipped(inventory, slot, accessory_index):
+		var item: ItemInstanceData = _get_equipped(inventory, slot, accessory_index)
+		_erase_equipped(inventory, slot, accessory_index)
 		_add_to_first_available_slot(inventory, item)
 		inventory_changed.emit(inventory)
 
-func unequip_item_to_slot(slot: EquipmentDefinitionData.EquipmentSlot, target_index: int) -> void:
+func unequip_item_to_slot(slot: EquipmentDefinitionData.EquipmentSlot, target_index: int, accessory_index: int = -1) -> void:
 	var inventory = get_inventory()
 
-	if not inventory.equipped_gear.has(slot):
+	if not _has_equipped(inventory, slot, accessory_index):
 		return
 
-	var item = inventory.equipped_gear[slot]
+	var item: ItemInstanceData = _get_equipped(inventory, slot, accessory_index)
 
 	# If target slot has a compatible item, swap it into the gear slot
 	if inventory.equipment.has(target_index):
 		var existing_item = inventory.equipment[target_index]
 		if existing_item.item_definition is EquipmentDefinitionData and existing_item.item_definition.slot_type == slot:
-			inventory.equipped_gear[slot] = existing_item
+			_set_equipped(inventory, slot, accessory_index, existing_item)
 		else:
-			inventory.equipped_gear.erase(slot)
+			_erase_equipped(inventory, slot, accessory_index)
 	else:
-		inventory.equipped_gear.erase(slot)
+		_erase_equipped(inventory, slot, accessory_index)
 
 	# Place unequipped item at the target slot
 	inventory.equipment[target_index] = item
 	inventory_changed.emit(inventory)
 
-## Swap items between two gear slots directly (e.g., Accessory 1 to Accessory 2).
+## Swap the items in the two physical accessory slots (indices 0 and 1).
 ## Avoids routing through the grid which can match the wrong instance with duplicates.
-func swap_gear_slots(from_slot: EquipmentDefinitionData.EquipmentSlot, to_slot: EquipmentDefinitionData.EquipmentSlot) -> void:
+func swap_accessory_slots(from_index: int, to_index: int) -> void:
 	var inventory = get_inventory()
-	var from_item: ItemInstanceData = inventory.equipped_gear.get(from_slot, null)
-	var to_item: ItemInstanceData = inventory.equipped_gear.get(to_slot, null)
+	var from_item: ItemInstanceData = inventory.equipped_accessories.get(from_index, null)
+	var to_item: ItemInstanceData = inventory.equipped_accessories.get(to_index, null)
 
 	if from_item == null:
-		Log.error("InventoryManager: swap_gear_slots called with empty from_slot")
+		Log.error("InventoryManager: swap_accessory_slots called with empty from_index")
 		return
 
-	# Place from_item into the target gear slot
-	inventory.equipped_gear[to_slot] = from_item
+	# Place from_item into the target accessory slot
+	inventory.equipped_accessories[to_index] = from_item
 
-	# Place to_item (if any) into the source gear slot, otherwise clear it
+	# Place to_item (if any) into the source accessory slot, otherwise clear it
 	if to_item:
-		inventory.equipped_gear[from_slot] = to_item
+		inventory.equipped_accessories[from_index] = to_item
 	else:
-		inventory.equipped_gear.erase(from_slot)
+		inventory.equipped_accessories.erase(from_index)
 
 	inventory_changed.emit(inventory)
 
@@ -175,12 +177,13 @@ func move_equipment(from_index: int, to_index: int) -> void:
 			
 		inventory_changed.emit(inventory)
 
-func get_equipped_item(slot: EquipmentDefinitionData.EquipmentSlot) -> ItemInstanceData:
+func get_equipped_item(slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: int = -1) -> ItemInstanceData:
 	var inventory = get_inventory()
-	return inventory.equipped_gear.get(slot, null)
+	return _get_equipped(inventory, slot, accessory_index)
 
 ## Returns true if the player owns at least one item with the given item_id
-## across materials, unequipped gear, equipped gear, or quest items.
+## across materials, unequipped gear, equipped gear, equipped accessories,
+## quest items, or consumables.
 func has_item(item_id: String) -> bool:
 	var inv := get_inventory()
 	for material in inv.materials:
@@ -192,6 +195,10 @@ func has_item(item_id: String) -> bool:
 			return true
 	for slot in inv.equipped_gear:
 		var instance: ItemInstanceData = inv.equipped_gear[slot]
+		if instance and instance.item_definition and instance.item_definition.item_id == item_id:
+			return true
+	for acc_idx in inv.equipped_accessories:
+		var instance: ItemInstanceData = inv.equipped_accessories[acc_idx]
 		if instance and instance.item_definition and instance.item_definition.item_id == item_id:
 			return true
 	for quest_item in inv.quest_items:
@@ -265,10 +272,42 @@ func _add_to_first_available_slot(inventory: InventoryData, item: ItemInstanceDa
 	# Assuming a max slot count, e.g., 50 from EquipmentGrid
 	# We should probably define this constant somewhere shared.
 	var max_slots = 50
-	
+
 	for i in max_slots:
 		if not inventory.equipment.has(i):
 			inventory.equipment[i] = item
 			return
-	
+
 	Log.warn("InventoryManager: Inventory full, cannot add equipment.")
+
+#-----------------------------------------------------------------------------
+# EQUIPPED-SLOT ROUTING HELPERS
+#-----------------------------------------------------------------------------
+# Pick the right backing dict based on slot type. Accessories live in
+# equipped_accessories keyed by physical slot index (0/1); everything else
+# lives in equipped_gear keyed by EquipmentSlot enum.
+
+func _is_accessory(slot: EquipmentDefinitionData.EquipmentSlot) -> bool:
+	return slot == EquipmentDefinitionData.EquipmentSlot.ACCESSORY
+
+func _has_equipped(inventory: InventoryData, slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: int) -> bool:
+	if _is_accessory(slot):
+		return inventory.equipped_accessories.has(accessory_index)
+	return inventory.equipped_gear.has(slot)
+
+func _get_equipped(inventory: InventoryData, slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: int) -> ItemInstanceData:
+	if _is_accessory(slot):
+		return inventory.equipped_accessories.get(accessory_index, null)
+	return inventory.equipped_gear.get(slot, null)
+
+func _set_equipped(inventory: InventoryData, slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: int, item: ItemInstanceData) -> void:
+	if _is_accessory(slot):
+		inventory.equipped_accessories[accessory_index] = item
+	else:
+		inventory.equipped_gear[slot] = item
+
+func _erase_equipped(inventory: InventoryData, slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: int) -> void:
+	if _is_accessory(slot):
+		inventory.equipped_accessories.erase(accessory_index)
+	else:
+		inventory.equipped_gear.erase(slot)

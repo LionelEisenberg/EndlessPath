@@ -59,7 +59,7 @@ ItemDefinitionData (Resource)
 ```
 
 ### EquipmentSlot Enum
-`MAIN_HAND`, `OFF_HAND`, `HEAD`, `ARMOR`, `ACCESSORY_1`, `ACCESSORY_2`
+`MAIN_HAND`, `OFF_HAND`, `HEAD`, `ARMOR`, `ACCESSORY` (5 values). All accessories share `slot_type = ACCESSORY` and fit either of the two physical accessory UI slots, distinguished by `accessory_index` 0/1.
 
 ### ItemInstanceData
 | Field | Type | Description |
@@ -74,7 +74,8 @@ ItemDefinitionData (Resource)
 |-------|------|-------------|
 | `materials` | `Dictionary[MaterialDefinitionData, int]` | Resource type as key, count as value |
 | `equipment` | `Dictionary` | Slot index (0-49) -> ItemInstanceData |
-| `equipped_gear` | `Dictionary` | EquipmentSlot enum -> ItemInstanceData |
+| `equipped_gear` | `Dictionary` | EquipmentSlot enum (singular slots only) -> ItemInstanceData |
+| `equipped_accessories` | `Dictionary` | Physical accessory slot index (0 or 1) -> ItemInstanceData |
 
 ### Loot Tables
 

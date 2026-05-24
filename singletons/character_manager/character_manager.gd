@@ -182,12 +182,19 @@ func _get_equipment_bonuses(attr_type: AttributeType) -> float:
 	var inventory: InventoryData = InventoryManager.get_inventory()
 	for slot: int in inventory.equipped_gear:
 		var instance: ItemInstanceData = inventory.equipped_gear[slot]
-		if instance == null or instance.item_definition == null:
-			continue
-		var equip_def: EquipmentDefinitionData = instance.item_definition as EquipmentDefinitionData
-		if equip_def == null:
-			continue
-		if equip_def.attribute_bonuses.has(attr_type):
-			bonus += equip_def.attribute_bonuses[attr_type]
+		bonus += _bonus_from_instance(instance, attr_type)
+	for acc_idx: int in inventory.equipped_accessories:
+		var instance: ItemInstanceData = inventory.equipped_accessories[acc_idx]
+		bonus += _bonus_from_instance(instance, attr_type)
 
 	return bonus
+
+func _bonus_from_instance(instance: ItemInstanceData, attr_type: AttributeType) -> float:
+	if instance == null or instance.item_definition == null:
+		return 0.0
+	var equip_def: EquipmentDefinitionData = instance.item_definition as EquipmentDefinitionData
+	if equip_def == null:
+		return 0.0
+	if equip_def.attribute_bonuses.has(attr_type):
+		return equip_def.attribute_bonuses[attr_type]
+	return 0.0

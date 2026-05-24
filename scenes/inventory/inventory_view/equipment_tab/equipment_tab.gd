@@ -105,23 +105,23 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 		# Logic for swapping/moving via InventoryManager
 		if target_slot is GearSlot:
 			# Dropping ONTO a gear slot (Equipping)
-			
+
 			# Case 1: Grid -> GearSlot
 			if not (original_slot is GearSlot):
 				# We need the index of the original slot
 				var from_index = original_slot.get_index()
-				InventoryManager.equip_item(item_data, target_slot.slot_type, from_index)
+				InventoryManager.equip_item(item_data, target_slot.slot_type, from_index, target_slot.accessory_index)
 				dragged_item.queue_free()
-				
-			# Case 2: GearSlot -> GearSlot (Swap slots, e.g. Accessory 1 to 2)
+
+			# Case 2: GearSlot -> GearSlot (only meaningful between the two accessory slots)
 			else:
-				InventoryManager.swap_gear_slots(original_slot.slot_type, target_slot.slot_type)
+				InventoryManager.swap_accessory_slots(original_slot.accessory_index, target_slot.accessory_index)
 				dragged_item.queue_free()
-				
+
 		elif original_slot is GearSlot:
 			# Dropping FROM GearSlot TO Grid (Unequipping to specific slot)
 			var target_index = target_slot.get_index()
-			InventoryManager.unequip_item_to_slot(original_slot.slot_type, target_index)
+			InventoryManager.unequip_item_to_slot(original_slot.slot_type, target_index, original_slot.accessory_index)
 			dragged_item.queue_free()
 				
 		else:
@@ -150,12 +150,22 @@ func _quick_equip(slot: InventorySlot) -> void:
 
 	if slot is GearSlot:
 		# Right-click on gear slot → unequip to grid
-		InventoryManager.unequip_item(slot.slot_type)
+		InventoryManager.unequip_item(slot.slot_type, slot.accessory_index)
 	else:
 		# Right-click on grid slot → equip to matching gear slot
 		var equip_def: EquipmentDefinitionData = item_data.item_definition as EquipmentDefinitionData
 		var from_index: int = slot.get_index()
-		InventoryManager.equip_item(item_data, equip_def.slot_type, from_index)
+		var accessory_index: int = -1
+		# For accessories, pick the first empty physical slot (else slot 0 to swap).
+		if equip_def.slot_type == EquipmentDefinitionData.EquipmentSlot.ACCESSORY:
+			var equipped: Dictionary = InventoryManager.get_inventory().equipped_accessories
+			if not equipped.has(0):
+				accessory_index = 0
+			elif not equipped.has(1):
+				accessory_index = 1
+			else:
+				accessory_index = 0
+		InventoryManager.equip_item(item_data, equip_def.slot_type, from_index, accessory_index)
 
 #-----------------------------------------------------------------------------
 # DRAG HELPERS

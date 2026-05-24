@@ -13,8 +13,7 @@ enum EquipmentSlot {
 	OFF_HAND,
 	HEAD,
 	ARMOR,
-	ACCESSORY_1,
-	ACCESSORY_2
+	ACCESSORY,
 }
 
 #-----------------------------------------------------------------------------

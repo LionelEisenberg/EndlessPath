@@ -64,8 +64,8 @@ EquipmentDefinitionData
 
 ### How Bonuses Apply
 
-`CharacterManager._get_attribute_bonuses()` (currently returns 0) will:
-1. Read all equipped items from `InventoryManager.get_inventory().equipped_gear`
+`CharacterManager._get_attribute_bonuses()` will:
+1. Read all equipped items from `InventoryManager.get_inventory().equipped_gear` AND `equipped_accessories` (accessories are stored separately so the two physical accessory slots can be addressed by index)
 2. Sum `attribute_bonuses` from each equipped item per attribute
 3. Return the totals
 
@@ -106,12 +106,11 @@ enum EquipmentSlot {
     OFF_HAND,
     HEAD,
     ARMOR,
-    ACCESSORY_1,
-    ACCESSORY_2
+    ACCESSORY,
 }
 ```
 
-Removed: `CHEST` (renamed to `ARMOR`), `LEGS`, `FEET`.
+Removed: `CHEST` (renamed to `ARMOR`), `LEGS`, `FEET`. `ACCESSORY_1`/`ACCESSORY_2` collapsed into a single `ACCESSORY` value — items declare themselves as ACCESSORY and fit either of the two physical accessory UI slots (distinguished at the UI/data layer by an `accessory_index` 0/1, not by the item itself).
 
 ---
 

@@ -7,8 +7,8 @@ extends GutTest
 # EQUIPMENT SLOT ENUM
 #-----------------------------------------------------------------------------
 
-func test_equipment_slot_has_six_values() -> void:
-	assert_eq(EquipmentDefinitionData.EquipmentSlot.size(), 6, "should have exactly 6 equipment slots")
+func test_equipment_slot_has_five_values() -> void:
+	assert_eq(EquipmentDefinitionData.EquipmentSlot.size(), 5, "should have exactly 5 equipment slot types")
 
 func test_equipment_slot_main_hand() -> void:
 	assert_eq(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, 0)
@@ -22,11 +22,8 @@ func test_equipment_slot_head() -> void:
 func test_equipment_slot_armor() -> void:
 	assert_eq(EquipmentDefinitionData.EquipmentSlot.ARMOR, 3)
 
-func test_equipment_slot_accessory_1() -> void:
-	assert_eq(EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1, 4)
-
-func test_equipment_slot_accessory_2() -> void:
-	assert_eq(EquipmentDefinitionData.EquipmentSlot.ACCESSORY_2, 5)
+func test_equipment_slot_accessory() -> void:
+	assert_eq(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, 4)
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION

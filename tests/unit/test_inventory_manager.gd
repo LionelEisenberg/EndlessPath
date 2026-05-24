@@ -66,14 +66,12 @@ func test_equip_item_swaps_existing_to_grid() -> void:
 	assert_eq(_inventory.equipped_gear[slot], new_inst, "new item should be equipped")
 	assert_eq(_inventory.equipment[from_index], old_inst, "old item should be in grid at from_index")
 
-func test_equip_item_all_six_slots() -> void:
+func test_equip_item_all_singular_slots() -> void:
 	var slots = [
 		EquipmentDefinitionData.EquipmentSlot.MAIN_HAND,
 		EquipmentDefinitionData.EquipmentSlot.OFF_HAND,
 		EquipmentDefinitionData.EquipmentSlot.HEAD,
 		EquipmentDefinitionData.EquipmentSlot.ARMOR,
-		EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1,
-		EquipmentDefinitionData.EquipmentSlot.ACCESSORY_2,
 	]
 
 	for slot in slots:
@@ -81,7 +79,13 @@ func test_equip_item_all_six_slots() -> void:
 		var inst = _make_instance(def)
 		_inventory.equipped_gear[slot] = inst
 
-	assert_eq(_inventory.equipped_gear.size(), 6, "should be able to equip all 6 slots")
+	# Plus two accessory slots stored separately.
+	var acc_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Acc 0")
+	_inventory.equipped_accessories[0] = _make_instance(acc_def)
+	_inventory.equipped_accessories[1] = _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Acc 1"))
+
+	assert_eq(_inventory.equipped_gear.size(), 4, "4 singular gear slots")
+	assert_eq(_inventory.equipped_accessories.size(), 2, "2 physical accessory slots")
 
 #-----------------------------------------------------------------------------
 # UNEQUIP ITEM
@@ -123,51 +127,51 @@ func test_unequip_empty_slot_does_nothing() -> void:
 	assert_false(had, "slot should not have anything to unequip")
 
 #-----------------------------------------------------------------------------
-# SWAP GEAR SLOTS
+# SWAP ACCESSORY SLOTS
 #-----------------------------------------------------------------------------
 
-func test_swap_gear_slots_both_occupied() -> void:
-	var acc1_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1, "Ring A")
+func test_swap_accessory_slots_both_occupied() -> void:
+	var acc1_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring A")
 	var acc1_inst = _make_instance(acc1_def)
-	var acc2_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY_2, "Ring B")
+	var acc2_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring B")
 	var acc2_inst = _make_instance(acc2_def)
 
-	_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1] = acc1_inst
-	_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.ACCESSORY_2] = acc2_inst
+	_inventory.equipped_accessories[0] = acc1_inst
+	_inventory.equipped_accessories[1] = acc2_inst
 
-	# Simulate swap
-	var from_slot = EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1
-	var to_slot = EquipmentDefinitionData.EquipmentSlot.ACCESSORY_2
-	var from_item = _inventory.equipped_gear.get(from_slot, null)
-	var to_item = _inventory.equipped_gear.get(to_slot, null)
+	# Simulate swap (mirrors InventoryManager.swap_accessory_slots logic)
+	var from_index = 0
+	var to_index = 1
+	var from_item = _inventory.equipped_accessories.get(from_index, null)
+	var to_item = _inventory.equipped_accessories.get(to_index, null)
 
-	_inventory.equipped_gear[to_slot] = from_item
+	_inventory.equipped_accessories[to_index] = from_item
 	if to_item:
-		_inventory.equipped_gear[from_slot] = to_item
+		_inventory.equipped_accessories[from_index] = to_item
 	else:
-		_inventory.equipped_gear.erase(from_slot)
+		_inventory.equipped_accessories.erase(from_index)
 
-	assert_eq(_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1], acc2_inst, "items should be swapped")
-	assert_eq(_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.ACCESSORY_2], acc1_inst)
+	assert_eq(_inventory.equipped_accessories[0], acc2_inst, "items should be swapped")
+	assert_eq(_inventory.equipped_accessories[1], acc1_inst)
 
-func test_swap_gear_slots_target_empty() -> void:
-	var acc1_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1, "Ring")
+func test_swap_accessory_slots_target_empty() -> void:
+	var acc1_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring")
 	var acc1_inst = _make_instance(acc1_def)
-	_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1] = acc1_inst
+	_inventory.equipped_accessories[0] = acc1_inst
 
-	var from_slot = EquipmentDefinitionData.EquipmentSlot.ACCESSORY_1
-	var to_slot = EquipmentDefinitionData.EquipmentSlot.ACCESSORY_2
-	var from_item = _inventory.equipped_gear.get(from_slot, null)
-	var to_item = _inventory.equipped_gear.get(to_slot, null)
+	var from_index = 0
+	var to_index = 1
+	var from_item = _inventory.equipped_accessories.get(from_index, null)
+	var to_item = _inventory.equipped_accessories.get(to_index, null)
 
-	_inventory.equipped_gear[to_slot] = from_item
+	_inventory.equipped_accessories[to_index] = from_item
 	if to_item:
-		_inventory.equipped_gear[from_slot] = to_item
+		_inventory.equipped_accessories[from_index] = to_item
 	else:
-		_inventory.equipped_gear.erase(from_slot)
+		_inventory.equipped_accessories.erase(from_index)
 
-	assert_false(_inventory.equipped_gear.has(from_slot), "source should be empty")
-	assert_eq(_inventory.equipped_gear[to_slot], acc1_inst, "target should have the item")
+	assert_false(_inventory.equipped_accessories.has(from_index), "source should be empty")
+	assert_eq(_inventory.equipped_accessories[to_index], acc1_inst, "target should have the item")
 
 #-----------------------------------------------------------------------------
 # MOVE EQUIPMENT (grid reorder)
@@ -293,6 +297,7 @@ func test_award_material_multiple_types() -> void:
 func test_inventory_starts_empty() -> void:
 	assert_eq(_inventory.equipment.size(), 0, "equipment grid should start empty")
 	assert_eq(_inventory.equipped_gear.size(), 0, "equipped gear should start empty")
+	assert_eq(_inventory.equipped_accessories.size(), 0, "equipped accessories should start empty")
 	assert_eq(_inventory.materials.size(), 0, "materials should start empty")
 
 func test_inventory_max_50_slots() -> void:
