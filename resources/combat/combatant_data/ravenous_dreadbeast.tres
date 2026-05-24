@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CombatantData" format=3 uid="uid://bveu08pdk3um0"]
+
+[ext_resource type="Script" uid="uid://cmwib0b1jyoa8" path="res://scripts/resource_definitions/abilities/ability_data.gd" id="1_2vb35"]
+[ext_resource type="Resource" uid="uid://4rs2o3l3fo4d" path="res://resources/combat/combatant_data/enemy_abilities/famishing_bite.tres" id="2_23v7h"]
+[ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="3_jqnof"]
+[ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="4_nt838"]
+
+[sub_resource type="Resource" id="Resource_xwkgh"]
+script = ExtResource("3_jqnof")
+strength = 15.0
+body = 8.5
+foundation = 12.0
+metadata/_custom_type_script = "uid://c78ok6kfhyf6y"
+
+[resource]
+script = ExtResource("4_nt838")
+character_name = "Ravenous Dreadbeast"
+attributes = SubResource("Resource_xwkgh")
+abilities = Array[ExtResource("1_2vb35")]([ExtResource("2_23v7h")])
+base_gold_drop = 20
+metadata/_custom_type_script = "uid://hbo1w3358rom"
