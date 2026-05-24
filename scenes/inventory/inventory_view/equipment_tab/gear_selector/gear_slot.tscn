@@ -1,11 +1,30 @@
-[gd_scene load_steps=3 format=3 uid="uid://csm6jt2i1j477"]
+[gd_scene format=3 uid="uid://csm6jt2i1j477"]
 
 [ext_resource type="Texture2D" uid="uid://ham185gpg17y" path="res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot03a.png" id="1_bh1ob"]
 [ext_resource type="Script" uid="uid://ngxbtsiea242" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_slot.gd" id="2_bh1ob"]
+[ext_resource type="Texture2D" uid="uid://dvjmoi7qsrq2w" path="res://assets/sprites/inventory/gear_selector/item_slot_outlines/armor_slot.png" id="3_nweak"]
 
-[node name="GearSlot" type="TextureRect" groups=["GearSlots"]]
+[node name="GearSlot" type="TextureRect" unique_id=419513313 groups=["GearSlots"]]
 size_flags_horizontal = 4
 size_flags_vertical = 6
 texture = ExtResource("1_bh1ob")
 script = ExtResource("2_bh1ob")
 metadata/_custom_type_script = "uid://cblvkakbg24c2"
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1090193043]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="SlotBackground" type="TextureRect" parent="MarginContainer" unique_id=341512628]
+modulate = Color(1, 1, 1, 0.3647059)
+layout_mode = 2
+texture = ExtResource("3_nweak")
+expand_mode = 2
