@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bk7feyxd13jwc" path="res://scripts/resource_definitions/items/consumable_definition_data.gd" id="1_def"]
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_eff"]
 [ext_resource type="Script" uid="uid://cesx0glx57xs4" path="res://scripts/resource_definitions/effects/change_vitals_effect_data.gd" id="3_vitals"]
+[ext_resource type="Texture2D" uid="uid://ddvfucm325fb2" path="res://assets/sprites/items/consumables/crude_scale.png" id="4_icon"]
 
 [sub_resource type="Resource" id="Resource_scale_effect"]
 script = ExtResource("3_vitals")
@@ -13,8 +14,9 @@ metadata/_custom_type_script = "uid://cesx0glx57xs4"
 script = ExtResource("1_def")
 effects = Array[ExtResource("2_eff")]([SubResource("Resource_scale_effect")])
 cooldown_seconds = 10.0
-item_id = "barely_coalesced_scale"
-item_name = "Barely Coalesced Scale"
+item_id = "crude_scale"
+item_name = "Crude Scale"
 description = "A poorly-formed flake of madra, scarcely worth the name. Crude practitioners still find a use for them."
+icon = ExtResource("4_icon")
 base_value = 1.0
 metadata/_custom_type_script = "uid://bk7feyxd13jwc"

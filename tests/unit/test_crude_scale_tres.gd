@@ -1,9 +1,9 @@
 extends GutTest
 
 ## Regression test: locks in the field values on the shipped
-## Barely Coalesced Scale .tres so future inspector edits are intentional.
+## Crude Scale .tres so future inspector edits are intentional.
 
-const SCALE_PATH := "res://resources/items/consumables/barely_coalesced_scale.tres"
+const SCALE_PATH := "res://resources/items/consumables/crude_scale.tres"
 
 var _def: ConsumableDefinitionData
 
@@ -11,14 +11,18 @@ func before_each() -> void:
 	_def = load(SCALE_PATH)
 
 func test_tres_loads_as_consumable_definition_data() -> void:
-	assert_not_null(_def, "barely_coalesced_scale.tres should load")
+	assert_not_null(_def, "crude_scale.tres should load")
 	assert_true(_def is ConsumableDefinitionData,
 		"loaded resource should be a ConsumableDefinitionData")
 
 func test_item_identity_fields() -> void:
-	assert_eq(_def.item_id, "barely_coalesced_scale", "item_id locked")
-	assert_eq(_def.item_name, "Barely Coalesced Scale", "item_name locked")
+	assert_eq(_def.item_id, "crude_scale", "item_id locked")
+	assert_eq(_def.item_name, "Crude Scale", "item_name locked")
 	assert_eq(_def.item_type, ItemDefinitionData.ItemType.CONSUMABLE, "item_type locked")
+
+func test_icon_is_assigned() -> void:
+	assert_not_null(_def.icon, "icon should be wired up")
+	assert_true(_def.icon is Texture2D, "icon should be a Texture2D")
 
 func test_cooldown_seconds_locked() -> void:
 	assert_eq(_def.cooldown_seconds, 10.0, "cooldown_seconds locked at 10.0")
