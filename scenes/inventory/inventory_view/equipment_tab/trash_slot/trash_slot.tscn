@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://d35ss1s455l8x" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.gd" id="1_76ana"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
 
-[node name="TrashSlot" type="TextureRect"]
+[node name="TrashSlot" type="TextureRect" unique_id=2060870537]
 custom_minimum_size = Vector2(28, 28)
 texture = ExtResource("1_8f1eq")
 script = ExtResource("1_76ana")
