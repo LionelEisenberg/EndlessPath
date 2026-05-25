@@ -7,10 +7,6 @@
 [ext_resource type="Script" uid="uid://bevd783gr5t7m" path="res://scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd" id="4_tabsw"]
 [ext_resource type="Texture2D" uid="uid://3ceshn32wqax" path="res://assets/sprites/inventory/equipment_grid/tab_banner.png" id="8_midoe"]
 [ext_resource type="Script" uid="uid://o2cqmwaxwv01" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd" id="8_qfdbg"]
-[ext_resource type="Texture2D" uid="uid://ba14l6y1itu7w" path="res://assets/sprites/inventory/equipment_grid/equipment_category.png" id="9_qedsu"]
-[ext_resource type="Texture2D" uid="uid://vggpdp1g004h" path="res://assets/sprites/inventory/equipment_grid/selection_arrow.png" id="10_fs5oo"]
-[ext_resource type="Texture2D" uid="uid://droy2byen4eel" path="res://assets/sprites/inventory/equipment_grid/selected_option.png" id="11_xrgga"]
-[ext_resource type="Texture2D" uid="uid://c7e4uc5k4i3hx" path="res://assets/sprites/inventory/equipment_grid/unselected_option.png" id="12_qfdbg"]
 [ext_resource type="PackedScene" uid="uid://u2naqgqaai45" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.tscn" id="13_qedsu"]
 [ext_resource type="PackedScene" uid="uid://bywdjh8pmjuev" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.tscn" id="14_xrgga"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="16_1vqu0"]
@@ -120,18 +116,9 @@ _data = {
 &"start_select": SubResource("Animation_835ns")
 }
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_v70co"]
-texture = ExtResource("21_xb6h7")
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ik22q"]
-texture = ExtResource("22_26fxh")
-
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ycsy7"]
 texture = ExtResource("22_26fxh")
 axis_stretch_vertical = 1
-
-[sub_resource type="Theme" id="Theme_00gvd"]
-VScrollBar/styles/grabber = SubResource("StyleBoxTexture_ycsy7")
 
 [node name="InventoryView" type="Control" unique_id=212600376]
 layout_mode = 3

@@ -26,4 +26,4 @@ extends Resource
 @export var equipped_consumables: Dictionary[int, ConsumableDefinitionData] = {}
 
 func _to_string() -> String:
-	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, equipped_accessories: %s, quest_items: %s, consumables: %s)" % [materials, equipment, equipped_gear, equipped_accessories, quest_items, consumables]
+	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, equipped_accessories: %s, quest_items: %s, consumables: %s, equipped_consumables: %s)" % [materials, equipment, equipped_gear, equipped_accessories, quest_items, consumables, equipped_consumables]

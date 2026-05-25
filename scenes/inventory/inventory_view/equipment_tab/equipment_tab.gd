@@ -1,5 +1,11 @@
 extends Control
 
+## EquipmentTab
+## Left page is the equipment grid + sort sub-banner + grid toolbar
+## (count + trash slot). Right page is the gear selector + item detail
+## card. Handles drag/drop between grid slots, gear slots, and the
+## trash slot (with hold-buffer semantics).
+
 @onready var equipment_grid: Control = %EquipmentGrid
 @onready var gear_selector: Control = %GearSelector
 @onready var selector_sprite: Node2D = %SelectorSprite
