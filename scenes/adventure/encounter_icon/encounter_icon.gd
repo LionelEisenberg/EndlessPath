@@ -24,7 +24,7 @@ const _GLYPH_BOSS := preload("res://assets/sprites/adventure/encounter_glyphs/bo
 const _GLYPH_REST := preload("res://assets/sprites/adventure/encounter_glyphs/rest.png")
 const _GLYPH_TREASURE := preload("res://assets/sprites/adventure/encounter_glyphs/treasure.png")
 const _GLYPH_TRAP := preload("res://assets/sprites/adventure/encounter_glyphs/trap.png")
-const _GLYPH_UNKNOWN := preload("res://assets/sprites/adventure/encounter_glyphs/unknown.png")
+const _GLYPH_UNKNOWN := preload("res://assets/sprites/adventure/encounter_glyphs/question_mark.png")
 
 ## Target rendered size for every encounter glyph, in pixels. Each
 ## texture is scaled up (or down) to this size uniformly so encounter
