@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EndlessPath — Inventory Redesign Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=VT323&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="page-header">
+  <div class="header-inner">
+    <h1>Inventory <span class="amp">&middot;</span> Redesign Concepts</h1>
+    <p class="lede">
+      Click the bookmarks on the left edge of the tome to flip between
+      <em>Equipment</em>, <em>Consumables</em>, <em>Materials</em>, and <em>Quest</em>.
+      Click a slot to inspect, drag onto the marked <kbd>✕</kbd> to discard,
+      hover to reveal flourishes.
+    </p>
+    <div class="toggle-row">
+      <button class="legend-toggle" id="legendToggle" aria-pressed="true">
+        <span class="legend-toggle__dot"></span> Annotations: ON
+      </button>
+      <div class="theme-pills">
+        <span class="pill pill--alive">Equipment ✓ refined</span>
+        <span class="pill pill--alive">Materials ✓ rebuilt</span>
+        <span class="pill pill--alive">Quest ✓ rebuilt</span>
+        <span class="pill pill--new">Consumables ✦ new</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="stage">
+  <!-- Drifting motes for atmosphere -->
+  <div class="motes" aria-hidden="true">
+    <span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span>
+  </div>
+
+  <!-- The tome -->
+  <section class="tome" id="tome" data-tab="equipment">
+
+    <!-- Bookmark ribbons on the left edge -->
+    <nav class="bookmarks" aria-label="Inventory tabs">
+      <button class="bookmark is-active" data-target="equipment" aria-label="Equipment tab">
+        <span class="bookmark__icon">⚔︎</span>
+        <span class="bookmark__label">Equipment</span>
+      </button>
+      <button class="bookmark" data-target="consumables" aria-label="Consumables tab">
+        <span class="bookmark__icon">⚱︎</span>
+        <span class="bookmark__label">Consumables</span>
+      </button>
+      <button class="bookmark" data-target="materials" aria-label="Materials tab">
+        <span class="bookmark__icon">❀</span>
+        <span class="bookmark__label">Materials</span>
+      </button>
+      <button class="bookmark" data-target="quest" aria-label="Quest tab">
+        <span class="bookmark__icon">✦</span>
+        <span class="bookmark__label">Journal</span>
+      </button>
+    </nav>
+
+    <!-- Wooden cover frame -->
+    <div class="cover">
+      <div class="spine-shadow"></div>
+      <div class="page-fold-shadow"></div>
+
+      <!-- LEFT PAGE -->
+      <div class="page page--left">
+        <div class="page-grain"></div>
+        <div class="corner corner--tl"></div>
+        <div class="corner corner--tr"></div>
+        <div class="corner corner--bl"></div>
+        <div class="corner corner--br"></div>
+
+        <!-- ============ EQUIPMENT — LEFT ============ -->
+        <section class="tab-pane is-active" data-pane="equipment">
+          <div class="banner-stack">
+            <h2 class="banner">Equipment</h2>
+            <div class="sub-banner">
+              <button class="arrow arrow--left" data-action="prev-filter" aria-label="previous filter">◀</button>
+              <div class="sub-banner__label" id="eqFilterLabel">All</div>
+              <button class="arrow arrow--right" data-action="next-filter" aria-label="next filter">▶</button>
+            </div>
+            <div class="dot-row" id="eqDots"></div>
+          </div>
+
+          <!-- Trash + utility row -->
+          <div class="grid-toolbar">
+            <div class="grid-toolbar__count"><strong>14</strong> / 30</div>
+            <button class="trash-slot" id="trashSlot" aria-label="Discard slot — drop to permanently destroy">
+              <span class="trash-slot__x">✕</span>
+              <span class="trash-slot__tag">Discard</span>
+            </button>
+          </div>
+
+          <!-- The improved grid -->
+          <div class="inv-grid" id="eqGrid" role="grid" aria-label="Equipment inventory grid">
+            <!-- JS-populated -->
+          </div>
+
+          <!-- The new scrollbar -->
+          <div class="scroll-rail">
+            <div class="scroll-rail__track"></div>
+            <div class="scroll-rail__thumb"></div>
+            <span class="scroll-rail__cap scroll-rail__cap--top"></span>
+            <span class="scroll-rail__cap scroll-rail__cap--bot"></span>
+          </div>
+
+          <div class="annotation annotation--tl" data-annotation>
+            <span class="annotation__pin">①</span>
+            <div class="annotation__body">
+              <strong>Filter banner</strong> — arrows cycle by slot type:
+              All → Weapons → Armor → Accessories. The dots track position.
+            </div>
+          </div>
+
+          <div class="annotation annotation--mr" data-annotation>
+            <span class="annotation__pin">②</span>
+            <div class="annotation__body">
+              <strong>Trash slot</strong> drops permanently destroy
+              previous occupants. Hover preview shows what will be lost.
+            </div>
+          </div>
+
+          <div class="annotation annotation--br" data-annotation>
+            <span class="annotation__pin">③</span>
+            <div class="annotation__body">
+              <strong>Tighter grid</strong> — 6×5 cells (was 5×4), rarity
+              border + corner notch on each occupied slot, illuminated
+              scroll rail in the margin.
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ CONSUMABLES — LEFT ============ -->
+        <section class="tab-pane" data-pane="consumables">
+          <div class="banner-stack">
+            <h2 class="banner">Consumables</h2>
+            <div class="sub-banner">
+              <button class="arrow arrow--left" aria-label="previous filter">◀</button>
+              <div class="sub-banner__label">All</div>
+              <button class="arrow arrow--right" aria-label="next filter">▶</button>
+            </div>
+            <div class="dot-row" id="conDots"></div>
+          </div>
+
+          <div class="grid-toolbar">
+            <div class="grid-toolbar__count"><strong>7</strong> stacks</div>
+            <button class="trash-slot" aria-label="Discard slot">
+              <span class="trash-slot__x">✕</span>
+              <span class="trash-slot__tag">Discard</span>
+            </button>
+          </div>
+
+          <div class="inv-grid inv-grid--consumables" id="conGrid"></div>
+
+          <div class="scroll-rail">
+            <div class="scroll-rail__track"></div>
+            <div class="scroll-rail__thumb"></div>
+            <span class="scroll-rail__cap scroll-rail__cap--top"></span>
+            <span class="scroll-rail__cap scroll-rail__cap--bot"></span>
+          </div>
+
+          <div class="annotation annotation--mr" data-annotation>
+            <span class="annotation__pin">①</span>
+            <div class="annotation__body">
+              <strong>Stack counts</strong> on every slot (no need to hover).
+              Crude Scale ×8, Spirit Tea ×3…
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MATERIALS — LEFT ============ -->
+        <section class="tab-pane" data-pane="materials">
+          <div class="banner-stack">
+            <h2 class="banner">Materials</h2>
+            <div class="sub-banner">
+              <button class="arrow arrow--left arrow--disabled" aria-label="previous filter">◀</button>
+              <div class="sub-banner__label">All</div>
+              <button class="arrow arrow--right arrow--disabled" aria-label="next filter">▶</button>
+            </div>
+            <div class="dot-row"><span class="dot is-active"></span></div>
+          </div>
+
+          <div class="grid-toolbar">
+            <div class="grid-toolbar__count"><strong>9</strong> kinds collected</div>
+            <button class="trash-slot" aria-label="Discard slot">
+              <span class="trash-slot__x">✕</span>
+              <span class="trash-slot__tag">Discard</span>
+            </button>
+          </div>
+
+          <div class="inv-grid inv-grid--materials" id="matGrid"></div>
+
+          <div class="scroll-rail">
+            <div class="scroll-rail__track"></div>
+            <div class="scroll-rail__thumb"></div>
+            <span class="scroll-rail__cap scroll-rail__cap--top"></span>
+            <span class="scroll-rail__cap scroll-rail__cap--bot"></span>
+          </div>
+
+          <div class="annotation annotation--tl" data-annotation>
+            <span class="annotation__pin">①</span>
+            <div class="annotation__body">
+              <strong>Grid (not a list)</strong> — same visual rhythm as Equipment,
+              stack count badge on each slot. Sorting arrows present but
+              disabled per your "no sorting yet" note.
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ QUEST — LEFT ============ -->
+        <section class="tab-pane" data-pane="quest">
+          <div class="banner-stack">
+            <h2 class="banner banner--quest">Journal</h2>
+            <div class="quest-subtitle">Items of consequence</div>
+          </div>
+
+          <div class="quest-list" id="questList"></div>
+
+          <div class="scroll-rail">
+            <div class="scroll-rail__track"></div>
+            <div class="scroll-rail__thumb"></div>
+            <span class="scroll-rail__cap scroll-rail__cap--top"></span>
+            <span class="scroll-rail__cap scroll-rail__cap--bot"></span>
+          </div>
+
+          <div class="annotation annotation--tl" data-annotation>
+            <span class="annotation__pin">①</span>
+            <div class="annotation__body">
+              <strong>Journal layout</strong> — rich rows with icon, name,
+              one-line provenance, and a wax-seal marker if the related
+              quest is still open.
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Central binding / spine -->
+      <div class="binding">
+        <div class="binding__rings">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span>
+        </div>
+      </div>
+
+      <!-- RIGHT PAGE -->
+      <div class="page page--right">
+        <div class="page-grain"></div>
+        <div class="corner corner--tl"></div>
+        <div class="corner corner--tr"></div>
+        <div class="corner corner--bl"></div>
+        <div class="corner corner--br"></div>
+
+        <!-- ============ EQUIPMENT — RIGHT ============ -->
+        <section class="tab-pane is-active" data-pane="equipment">
+          <div class="right-stack">
+            <div class="gear-selector">
+              <h3 class="mini-banner">Gear Selector</h3>
+              <div class="gear-layout">
+                <div class="gear-col gear-col--left">
+                  <div class="gear-slot" data-slot="head">
+                    <span class="gear-slot__glyph">⛑</span>
+                    <span class="gear-slot__hint">Head</span>
+                  </div>
+                  <div class="gear-slot is-equipped" data-slot="main">
+                    <span class="gear-slot__glyph">⚔︎</span>
+                    <span class="gear-slot__hint">Main</span>
+                    <span class="gear-slot__pip"></span>
+                  </div>
+                  <div class="gear-slot" data-slot="armor">
+                    <span class="gear-slot__glyph">▦</span>
+                    <span class="gear-slot__hint">Armor</span>
+                  </div>
+                </div>
+
+                <div class="paper-doll">
+                  <div class="paper-doll__halo"></div>
+                  <div class="paper-doll__figure"></div>
+                  <div class="paper-doll__shadow"></div>
+                </div>
+
+                <div class="gear-col gear-col--right">
+                  <div class="gear-slot is-equipped" data-slot="off">
+                    <span class="gear-slot__glyph">⛨</span>
+                    <span class="gear-slot__hint">Off</span>
+                    <span class="gear-slot__pip"></span>
+                  </div>
+                  <div class="gear-slot is-equipped" data-slot="acc1">
+                    <span class="gear-slot__glyph">○</span>
+                    <span class="gear-slot__hint">Accessory</span>
+                    <span class="gear-slot__pip"></span>
+                  </div>
+                  <div class="gear-slot" data-slot="acc2">
+                    <span class="gear-slot__glyph">○</span>
+                    <span class="gear-slot__hint">Accessory</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="item-card" id="itemCard">
+              <div class="item-card__head">
+                <div class="item-card__title">
+                  <h4 id="itemName">Iron Shortsword</h4>
+                  <div class="item-card__sub" id="itemSub">[Equipment · Main Hand]</div>
+                </div>
+                <div class="item-card__icon" id="itemIcon" data-rarity="uncommon">
+                  <span>⚔</span>
+                </div>
+              </div>
+
+              <div class="item-card__divider"></div>
+
+              <div class="item-card__desc" id="itemDesc">
+                A heavier blade, demanding both hands. Forged in the dead
+                ash of Spirit Valley by a smith who could not remember
+                their own name.
+              </div>
+
+              <div class="item-card__effects" id="itemEffects">
+                <div class="effect-pill effect-pill--pos">+5 Strength</div>
+                <div class="effect-pill effect-pill--pos">+2 Focus</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="annotation annotation--tr" data-annotation>
+            <span class="annotation__pin">④</span>
+            <div class="annotation__body">
+              <strong>Right page unchanged in spirit</strong> — same gear
+              selector + description panel, but ornamented to match the
+              new visual rhythm (mini-banner, rarity-tinted icon frame).
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ CONSUMABLES — RIGHT ============ -->
+        <section class="tab-pane" data-pane="consumables">
+          <div class="right-stack">
+            <div class="quick-bar">
+              <h3 class="mini-banner">Combat Hotbar</h3>
+              <p class="quick-bar__lede">
+                Drag a stack from the left page into any slot to ready it
+                for combat. Hotkeys&nbsp;<kbd>1</kbd>&nbsp;<kbd>2</kbd>&nbsp;<kbd>3</kbd>&nbsp;<kbd>4</kbd>.
+              </p>
+              <div class="hotbar">
+                <div class="hot-slot is-equipped" data-key="1">
+                  <div class="hot-slot__icon hot-slot__icon--scale">◈</div>
+                  <span class="hot-slot__count">×6</span>
+                  <span class="hot-slot__key">1</span>
+                </div>
+                <div class="hot-slot is-equipped" data-key="2">
+                  <div class="hot-slot__icon hot-slot__icon--leaf">❦</div>
+                  <span class="hot-slot__count">×3</span>
+                  <span class="hot-slot__key">2</span>
+                </div>
+                <div class="hot-slot" data-key="3">
+                  <span class="hot-slot__plus">+</span>
+                  <span class="hot-slot__key">3</span>
+                </div>
+                <div class="hot-slot" data-key="4">
+                  <span class="hot-slot__plus">+</span>
+                  <span class="hot-slot__key">4</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="item-card">
+              <div class="item-card__head">
+                <div class="item-card__title">
+                  <h4>Crude Scale</h4>
+                  <div class="item-card__sub">[Consumable · Stack ×8]</div>
+                </div>
+                <div class="item-card__icon" data-rarity="common">
+                  <span>◈</span>
+                </div>
+              </div>
+
+              <div class="item-card__divider"></div>
+
+              <div class="item-card__desc">
+                A poorly-formed flake of madra, scarcely worth the name.
+                Crude practitioners still find a use for them.
+              </div>
+
+              <div class="item-card__effects">
+                <div class="effect-pill effect-pill--pos">+20 Madra</div>
+                <div class="effect-pill effect-pill--cool">Cooldown 10.0s</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="annotation annotation--tr" data-annotation>
+            <span class="annotation__pin">②</span>
+            <div class="annotation__body">
+              <strong>Combat Hotbar</strong> — 4 slots, drag a stack from
+              the inventory grid to load it. Cooldown ring + remaining
+              count visible mid-fight.
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MATERIALS — RIGHT ============ -->
+        <section class="tab-pane" data-pane="materials">
+          <div class="right-stack">
+            <div class="item-card item-card--material">
+              <div class="item-card__head">
+                <div class="item-card__title">
+                  <h4>Spirit Fern</h4>
+                  <div class="item-card__sub">[Material · Stack ×12]</div>
+                </div>
+                <div class="item-card__icon" data-rarity="uncommon">
+                  <span>❦</span>
+                </div>
+              </div>
+
+              <div class="item-card__divider"></div>
+
+              <div class="item-card__desc">
+                A fronded shoot that grows only where madra has steeped
+                into the soil. Smells of rain on hot stone.
+              </div>
+
+              <div class="item-card__row">
+                <div class="item-card__label">Source</div>
+                <div class="item-card__value">Spirit Valley — shaded hex</div>
+              </div>
+              <div class="item-card__row">
+                <div class="item-card__label">Used in</div>
+                <div class="item-card__value">Reinforced Robes · Greenleaf Tonic</div>
+              </div>
+              <div class="item-card__row">
+                <div class="item-card__label">Worth</div>
+                <div class="item-card__value">3 <span class="coin">◉</span></div>
+              </div>
+            </div>
+
+            <div class="hint-card">
+              <div class="hint-card__title">Tip</div>
+              <p>
+                Right-click a material to mark it as a&nbsp;
+                <em>favorite</em> — favorites rise to the top of the grid
+                and pulse softly when used by a recipe.
+              </p>
+            </div>
+          </div>
+
+          <div class="annotation annotation--tr" data-annotation>
+            <span class="annotation__pin">②</span>
+            <div class="annotation__body">
+              <strong>Right page reclaimed</strong> — materials now have a
+              real detail panel (source, recipes that use them, worth).
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ QUEST — RIGHT ============ -->
+        <section class="tab-pane" data-pane="quest">
+          <div class="right-stack quest-stack">
+            <div class="quest-card">
+              <div class="quest-card__head">
+                <div class="quest-card__icon">✦</div>
+                <div>
+                  <h4 id="questName">Refugee Camp Map</h4>
+                  <div class="quest-card__sub" id="questSub">Hand-drawn on bark, smudged by rain</div>
+                </div>
+                <div class="quest-card__seal" id="questSeal" title="Quest active">
+                  <span>?</span>
+                </div>
+              </div>
+
+              <div class="quest-card__divider"></div>
+
+              <p class="quest-card__body" id="questBody">
+                A trembling hand sketched this map by firelight. It marks
+                the camp where the last of the valley's people gathered
+                before the second-rain. Three paths leave from it; only
+                one is marked safe.
+              </p>
+
+              <div class="quest-meta">
+                <div class="quest-meta__row">
+                  <div class="quest-meta__label">From</div>
+                  <div class="quest-meta__value">Old Vesh, in the broken shrine</div>
+                </div>
+                <div class="quest-meta__row">
+                  <div class="quest-meta__label">Linked quest</div>
+                  <div class="quest-meta__value quest-meta__value--active">
+                    <span class="quest-dot quest-dot--active"></span>
+                    The Second Rain
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="annotation annotation--tr" data-annotation>
+            <span class="annotation__pin">②</span>
+            <div class="annotation__body">
+              <strong>Full quest reading</strong> — right page becomes a
+              proper "journal entry" with provenance, full description,
+              and the linked quest state.
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Drag preview ghost (JS-driven) -->
+    <div class="drag-ghost" id="dragGhost" hidden></div>
+  </section>
+
+  <!-- Trash-confirm flash overlay -->
+  <div class="trash-flash" id="trashFlash" aria-hidden="true">
+    <div class="trash-flash__panel">
+      <div class="trash-flash__title">Discarded forever</div>
+      <div class="trash-flash__name" id="trashFlashName">—</div>
+      <div class="trash-flash__hint">Drop anything else here to replace it.</div>
+    </div>
+  </div>
+
+  <!-- Floor note -->
+  <footer class="floor">
+    <div class="floor__col">
+      <div class="floor__label">Notes</div>
+      <ul>
+        <li>Equipment grid: 6×5 = 30 cells (was 5×4 = 20). Same page size.</li>
+        <li>Trash slot wired into all 4 tabs, not just Equipment.</li>
+        <li>Right page never empty — Materials & Quest now use it.</li>
+        <li>Consumables tab = grid + 4-slot combat hotbar.</li>
+      </ul>
+    </div>
+    <div class="floor__col">
+      <div class="floor__label">Out of scope (per your call)</div>
+      <ul>
+        <li>Material-type sorting — controls shown but disabled.</li>
+        <li>Combat-side cooldown logic — already deferred elsewhere.</li>
+        <li>Soulsmithing / Elixir crafting flows.</li>
+      </ul>
+    </div>
+  </footer>
+</main>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
