@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3 uid="uid://b7gtbr4yvm21q"]
+
+[ext_resource type="Script" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+
+[node name="GridToolbar" type="HBoxContainer"]
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="CountLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelBody"
+theme_override_colors/font_color = Color(0.227451, 0.156863, 0.094118, 1)
+text = "0 / 0"
+
+[node name="TrashSlotHolder" type="Container" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
