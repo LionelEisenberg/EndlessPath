@@ -48,7 +48,7 @@ func _on_inventory_changed(_inventory: InventoryData) -> void:
 
 func _refresh_count() -> void:
 	var inventory := InventoryManager.get_inventory()
-	grid_toolbar.set_count(inventory.equipment.size(), 60)
+	grid_toolbar.set_count(inventory.equipment.size(), EquipmentGrid.NUM_INVENTORY_SLOTS)
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
