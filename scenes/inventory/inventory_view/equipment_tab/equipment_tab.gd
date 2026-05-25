@@ -203,6 +203,14 @@ func _quick_equip(slot: InventorySlot) -> void:
 #-----------------------------------------------------------------------------
 
 func _return_to_original() -> void:
+	if original_slot is TrashSlot:
+		# The item came out of the trash hold-buffer. Put it back there, not
+		# into the slot's item_instance field (which would desync _held).
+		var trash := original_slot as TrashSlot
+		var data: ItemInstanceData = dragged_item.item_instance_data
+		trash.accept(data)
+		dragged_item.queue_free()
+		return
 	original_slot.equip_item(dragged_item)
 
 func _cleanup_drag() -> void:

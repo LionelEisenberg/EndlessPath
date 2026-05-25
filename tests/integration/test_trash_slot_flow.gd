@@ -51,3 +51,28 @@ func test_flush_restores_material_with_correct_quantity() -> void:
 	trash.accept([def, 1])
 	trash.flush_to_inventory()
 	assert_eq(InventoryManager.get_inventory().materials[def], 1)
+
+func test_drag_out_then_drop_outside_returns_to_hold_buffer() -> void:
+	# Simulate the full flow: equip the trash, pick up (clear_hold), then
+	# restore via accept() — what _return_to_original now does for TrashSlot.
+	var trash := TrashSlotScene.instantiate()
+	add_child_autofree(trash)
+	await get_tree().process_frame
+	var inst := ItemInstanceData.new()
+	inst.item_definition = EquipmentDefinitionData.new()
+	inst.item_definition.item_name = "Held"
+
+	# Put item in trash hold-buffer.
+	trash.accept(inst)
+	assert_true(trash.is_holding())
+
+	# Player drags it out (the controller's _pick_up_from_trash does this).
+	var held = trash.get_held()
+	trash.clear_hold()
+	assert_false(trash.is_holding())
+
+	# Player releases the drag in empty space — _return_to_original
+	# routes the data back into the hold-buffer.
+	trash.accept(held)
+	assert_true(trash.is_holding())
+	assert_eq(trash.get_held(), inst)
