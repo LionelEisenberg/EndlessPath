@@ -1,0 +1,77 @@
+[gd_scene load_steps=5 format=3 uid="uid://bjournalrow001"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/quest_items_tab/journal_row.gd" id="1_row"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/common/button_invisible.tres" id="2_bi"]
+[ext_resource type="Texture2D" uid="uid://droy2byen4eel" path="res://assets/sprites/inventory/equipment_grid/selected_option.png" id="3_disc"]
+[ext_resource type="PackedScene" uid="uid://bwaxseal0001q" path="res://scenes/inventory/inventory_view/quest_items_tab/wax_seal.tscn" id="4_seal"]
+
+[node name="JournalRow" type="Button"]
+custom_minimum_size = Vector2(0, 56)
+size_flags_horizontal = 3
+flat = true
+theme_override_styles/normal = ExtResource("2_bi")
+theme_override_styles/normal_mirrored = ExtResource("2_bi")
+theme_override_styles/pressed = ExtResource("2_bi")
+theme_override_styles/pressed_mirrored = ExtResource("2_bi")
+theme_override_styles/hover = ExtResource("2_bi")
+theme_override_styles/hover_mirrored = ExtResource("2_bi")
+theme_override_styles/hover_pressed = ExtResource("2_bi")
+theme_override_styles/hover_pressed_mirrored = ExtResource("2_bi")
+theme_override_styles/focus = ExtResource("2_bi")
+script = ExtResource("1_row")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="IconCircle" type="TextureRect" parent="HBoxContainer"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("3_disc")
+stretch_mode = 5
+
+[node name="Icon" type="TextureRect" parent="HBoxContainer/IconCircle"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+stretch_mode = 5
+
+[node name="TextColumn" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Name" type="Label" parent="HBoxContainer/TextColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+theme_override_colors/font_color = Color(0.180392, 0.121569, 0.0627451, 1)
+text = "Quest Item"
+
+[node name="Sub" type="Label" parent="HBoxContainer/TextColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelMuted"
+text = ""
+
+[node name="WaxSeal" parent="HBoxContainer" instance=ExtResource("4_seal")]
+layout_mode = 2
+size_flags_vertical = 4
