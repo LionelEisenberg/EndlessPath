@@ -1,0 +1,93 @@
+[gd_scene load_steps=9 format=3 uid="uid://bconsumablestab01"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.gd" id="1_tab"]
+[ext_resource type="Texture2D" uid="uid://3w4d3der8ula" path="res://assets/sprites/inventory/materials_tab/banner.png" id="2_banner"]
+[ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="3_sortbanner"]
+[ext_resource type="PackedScene" uid="uid://b7gtbr4yvm21q" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.tscn" id="4_gridtoolbar"]
+[ext_resource type="PackedScene" uid="uid://b7e8m9p4xrlnq" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="5_invgrid"]
+[ext_resource type="PackedScene" uid="uid://bcombathotbar0001" path="res://scenes/inventory/inventory_view/consumables_tab/combat_hotbar/combat_hotbar.tscn" id="6_hotbar"]
+[ext_resource type="PackedScene" uid="uid://b1wj5d3npxe4i" path="res://scenes/inventory/common/item_detail_card/item_detail_card.tscn" id="7_detail"]
+[ext_resource type="PackedScene" uid="uid://bx475rcu42d08" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.tscn" id="8_trash"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/discard_flash.tscn" id="9_discflash"]
+
+[node name="ConsumablesTab" type="Control"]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_tab")
+
+[node name="ConsumablesBanner" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 109.0
+offset_top = 63.0
+offset_right = 305.0
+offset_bottom = 129.0
+texture = ExtResource("2_banner")
+
+[node name="BannerLabel" type="Label" parent="ConsumablesBanner"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"LabelTitleSmall"
+text = "CONSUMABLES"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ConsumablesSortSubBanner" parent="." instance=ExtResource("3_sortbanner")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 145.0
+offset_top = 130.0
+offset_right = 290.0
+offset_bottom = 170.0
+
+[node name="ConsumablesGridToolbar" parent="." instance=ExtResource("4_gridtoolbar")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 82.0
+offset_top = 165.0
+offset_right = 318.0
+offset_bottom = 185.0
+
+[node name="ConsumablesInventoryGrid" parent="." instance=ExtResource("5_invgrid")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 82.0
+offset_top = 187.0
+offset_right = 318.0
+offset_bottom = 400.0
+
+[node name="ConsumablesCombatHotbar" parent="." instance=ExtResource("6_hotbar")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 387.0
+offset_top = 100.0
+offset_right = 620.0
+offset_bottom = 220.0
+
+[node name="ConsumablesItemDetailCard" parent="." instance=ExtResource("7_detail")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 387.0
+offset_top = 240.0
+offset_right = 620.0
+offset_bottom = 400.0
+
+[node name="ConsumablesTrashSlot" parent="." instance=ExtResource("8_trash")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 290.0
+offset_top = 165.0
+offset_right = 318.0
+offset_bottom = 193.0
+
+[node name="DiscardFlash" parent="." instance=ExtResource("9_discflash")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

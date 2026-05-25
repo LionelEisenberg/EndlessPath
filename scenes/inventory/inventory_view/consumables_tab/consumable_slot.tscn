@@ -1,0 +1,47 @@
+[gd_scene load_steps=3 format=3 uid="uid://bconsumableslot01"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/consumables_tab/consumable_slot.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://xnnpplhufgu5" path="res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot01a.png" id="2_slot"]
+
+[node name="ConsumableSlot" type="TextureRect"]
+custom_minimum_size = Vector2(60, 60)
+texture = ExtResource("2_slot")
+stretch_mode = 5
+script = ExtResource("1_script")
+
+[node name="Icon" type="TextureRect" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+stretch_mode = 5
+
+[node name="Count" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -40.0
+offset_top = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"LabelSmall"
+theme_override_colors/font_color = Color(0.227451, 0.156863, 0.094118, 1)
+text = ""
+horizontal_alignment = 2
+vertical_alignment = 2
