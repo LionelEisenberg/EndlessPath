@@ -7,6 +7,9 @@ const AttributeType = CharacterAttributesData.AttributeType
 @export var stamina_change: float = 0.0
 @export var madra_change: float = 0.0
 
+func _init() -> void:
+	effect_type = EffectType.CHANGE_VITALS
+
 ## Multiplies the character's BODY attribute and adds the result to health_change.
 ## Defaults to 0.0 so existing flat-value resources behave identically.
 @export var body_hp_multiplier: float = 0.0
