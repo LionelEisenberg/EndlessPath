@@ -20,5 +20,10 @@ extends Resource
 ## Dictionary of ConsumableDefinitionData -> Quantity owned. Stacks like materials.
 @export var consumables: Dictionary[ConsumableDefinitionData, int] = {}
 
+## Consumables equipped to the combat hotbar. Keys are physical slot
+## indices 0..3 (corresponding to hotkeys 1..4). Stack count is read
+## from `consumables`, not stored here.
+@export var equipped_consumables: Dictionary[int, ConsumableDefinitionData] = {}
+
 func _to_string() -> String:
 	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, equipped_accessories: %s, quest_items: %s, consumables: %s)" % [materials, equipment, equipped_gear, equipped_accessories, quest_items, consumables]

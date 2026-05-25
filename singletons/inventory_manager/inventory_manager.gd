@@ -264,6 +264,31 @@ func restore_consumable(def: ConsumableDefinitionData, quantity: int) -> void:
 	inventory.consumables[def] = inventory.consumables.get(def, 0) + quantity
 	inventory_changed.emit(inventory)
 
+## Place a consumable definition into hotbar slot_index (0..3).
+## If the same definition is already in another slot, that other slot
+## is cleared first — uniqueness rule, matches the ability loadout.
+func equip_consumable(def: ConsumableDefinitionData, slot_index: int) -> void:
+	if def == null:
+		Log.error("InventoryManager.equip_consumable: null definition")
+		return
+	if slot_index < 0 or slot_index > 3:
+		Log.error("InventoryManager.equip_consumable: slot_index %d out of range" % slot_index)
+		return
+	var inventory := get_inventory()
+	# Clear any existing slot that already holds this def.
+	for existing_slot in inventory.equipped_consumables.keys():
+		if inventory.equipped_consumables[existing_slot] == def and existing_slot != slot_index:
+			inventory.equipped_consumables.erase(existing_slot)
+	inventory.equipped_consumables[slot_index] = def
+	inventory_changed.emit(inventory)
+
+## Clear a consumable hotbar slot. No-op if the slot is already empty.
+func unequip_consumable(slot_index: int) -> void:
+	var inventory := get_inventory()
+	if inventory.equipped_consumables.has(slot_index):
+		inventory.equipped_consumables.erase(slot_index)
+		inventory_changed.emit(inventory)
+
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
