@@ -50,7 +50,7 @@ layout_mode = 0
 offset_left = 82.0
 offset_top = 165.0
 offset_right = 318.0
-offset_bottom = 185.0
+offset_bottom = 195.0
 
 [node name="ConsumablesInventoryGrid" parent="." instance=ExtResource("5_invgrid")]
 unique_name_in_owner = true

@@ -193,7 +193,7 @@ offset_top = 144.0
 offset_right = 55.5
 offset_bottom = 144.0
 
-[node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=709037587 instance=ExtResource("3_eyvfv")]
+[node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -238,7 +238,7 @@ layout_mode = 0
 offset_left = 82.0
 offset_top = 165.0
 offset_right = 318.0
-offset_bottom = 185.0
+offset_bottom = 195.0
 
 [node name="EquipmentGrid" parent="BookBackground/BookContent/EquipmentTab" unique_id=342341599 instance=ExtResource("13_qedsu")]
 unique_name_in_owner = true
@@ -344,7 +344,7 @@ layout_mode = 0
 offset_left = 82.0
 offset_top = 165.0
 offset_right = 318.0
-offset_bottom = 185.0
+offset_bottom = 195.0
 
 [node name="MaterialsInventoryGrid" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("28_invgrid")]
 unique_name_in_owner = true

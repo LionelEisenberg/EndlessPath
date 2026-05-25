@@ -15,6 +15,6 @@ theme_type_variation = &"LabelBody"
 theme_override_colors/font_color = Color(0.227451, 0.156863, 0.094118, 1)
 text = "0 / 0"
 
-[node name="TrashSlotHolder" type="Container" parent="."]
+[node name="TrashSlotHolder" type="MarginContainer" parent="."]
 unique_name_in_owner = true
 layout_mode = 2
