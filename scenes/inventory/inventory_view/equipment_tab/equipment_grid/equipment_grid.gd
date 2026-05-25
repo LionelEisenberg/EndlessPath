@@ -12,7 +12,7 @@ const SCROLL_MIN_Y = 0.025
 const SCROLL_MAX_Y = 0.90
 
 # TODO: DELETE / REPLACE WITH VALUES WHICH WILL FETCHED FORM AN INVENTORY MANAGER
-const NUM_INVENTORY_SLOTS = 50
+const NUM_INVENTORY_SLOTS = 60  # was 50 — now 6 columns x 10 rows
 
 #-----------------------------------------------------------------------------
 # COMPONENTS

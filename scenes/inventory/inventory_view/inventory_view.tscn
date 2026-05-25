@@ -25,6 +25,8 @@
 [ext_resource type="PackedScene" uid="uid://c5wiepsq2qinv" path="res://scenes/inventory/inventory_view/materials_tab/material_container.tscn" id="22_qufb6"]
 [ext_resource type="PackedScene" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="23_desc_panel"]
 [ext_resource type="PackedScene" uid="uid://bquestitemstab001" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.tscn" id="24_qtab"]
+[ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="25_sortbanner"]
+[ext_resource type="PackedScene" uid="uid://b7gtbr4yvm21q" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.tscn" id="26_gridtoolbar"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -229,86 +231,21 @@ offset_right = 305.0
 offset_bottom = 129.0
 texture = ExtResource("8_midoe")
 
-[node name="Selection" type="Control" parent="BookBackground/BookContent/EquipmentTab" unique_id=1469797459]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="SelectionBanner" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection" unique_id=110360696]
+[node name="SortSubBanner" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("25_sortbanner")]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = 145.0
 offset_top = 130.0
-offset_right = 269.0
-offset_bottom = 158.0
-texture = ExtResource("9_qedsu")
+offset_right = 290.0
+offset_bottom = 170.0
 
-[node name="RightArrow" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection" unique_id=1762207632]
+[node name="GridToolbar" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("26_gridtoolbar")]
+unique_name_in_owner = true
 layout_mode = 0
-offset_left = 272.5
-offset_top = 138.0
-offset_right = 286.5
-offset_bottom = 151.0
-texture = ExtResource("10_fs5oo")
-
-[node name="LeftArrow" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection" unique_id=653315526]
-layout_mode = 0
-offset_left = 127.0
-offset_top = 138.0
-offset_right = 141.0
-offset_bottom = 151.0
-texture = ExtResource("10_fs5oo")
-flip_h = true
-
-[node name="SelectionDots" type="Control" parent="BookBackground/BookContent/EquipmentTab/Selection" unique_id=1838568606]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots" unique_id=191390593]
-layout_mode = 0
-offset_left = 152.5
-offset_top = 159.0
-offset_right = 260.5
-offset_bottom = 167.0
-
-[node name="Option1" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer" unique_id=1828818154]
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("11_xrgga")
-stretch_mode = 2
-
-[node name="Option2" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer" unique_id=241710467]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("12_qfdbg")
-stretch_mode = 2
-
-[node name="Option3" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer" unique_id=1664267331]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("12_qfdbg")
-stretch_mode = 2
-
-[node name="Option4" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer" unique_id=83832375]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("12_qfdbg")
-stretch_mode = 2
-
-[node name="Option5" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab/Selection/SelectionDots/HBoxContainer" unique_id=1660929951]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("12_qfdbg")
-stretch_mode = 2
+offset_left = 82.0
+offset_top = 165.0
+offset_right = 318.0
+offset_bottom = 185.0
 
 [node name="EquipmentGrid" parent="BookBackground/BookContent/EquipmentTab" unique_id=342341599 instance=ExtResource("13_qedsu")]
 unique_name_in_owner = true

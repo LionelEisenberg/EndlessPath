@@ -6,6 +6,8 @@ extends Control
 @onready var selector_anim: AnimationPlayer = %AnimationPlayer
 @onready var item_description_box : TextureRect = %ItemDescriptionBox
 @onready var trash_slot : TrashSlot = %TrashSlot
+@onready var sort_banner: SortSubBanner = %SortSubBanner
+@onready var grid_toolbar: GridToolbar = %GridToolbar
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -25,9 +27,28 @@ func _ready() -> void:
 	# Connect drag signals
 	equipment_grid.slot_clicked.connect(_on_slot_input)
 	gear_selector.slot_clicked.connect(_on_slot_input)
-	
+
 	item_description_box.reset()
 	selector_sprite.visible = false
+
+	sort_banner.set_options(PackedStringArray(["All", "Weapons", "Armor", "Accessories"]))
+	sort_banner.enabled = false  # filtering wiring is deferred per spec
+	grid_toolbar.set_trash_slot(trash_slot)
+
+	if InventoryManager:
+		InventoryManager.inventory_changed.connect(_on_inventory_changed)
+		_refresh_count()
+
+#-----------------------------------------------------------------------------
+# SIGNAL HANDLERS
+#-----------------------------------------------------------------------------
+
+func _on_inventory_changed(_inventory: InventoryData) -> void:
+	_refresh_count()
+
+func _refresh_count() -> void:
+	var inventory := InventoryManager.get_inventory()
+	grid_toolbar.set_count(inventory.equipment.size(), 60)
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
