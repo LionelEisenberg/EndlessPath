@@ -27,6 +27,7 @@
 [ext_resource type="PackedScene" uid="uid://bquestitemstab001" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.tscn" id="24_qtab"]
 [ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="25_sortbanner"]
 [ext_resource type="PackedScene" uid="uid://b7gtbr4yvm21q" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.tscn" id="26_gridtoolbar"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/discard_flash.tscn" id="27_discflash"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -308,6 +309,14 @@ offset_left = 376.5
 offset_top = 71.0
 offset_right = 405.5
 offset_bottom = 99.0
+
+[node name="DiscardFlash" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("27_discflash")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="MaterialsTab" type="Control" parent="BookBackground/BookContent" unique_id=2080808482]
 unique_name_in_owner = true

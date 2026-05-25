@@ -87,4 +87,7 @@ func _on_inventory_open_animation_finished() -> void:
 ## Handle completion of book closing animation.
 func _on_inventory_close_animation_finished() -> void:
 	book_animation_player.animation_finished.disconnect(_on_inventory_close_animation_finished)
+	for trash in get_tree().get_nodes_in_group("TrashSlots"):
+		if trash.has_method("flush_to_inventory"):
+			trash.flush_to_inventory()
 	inventory_closed.emit()

@@ -76,8 +76,12 @@ func _on_slot_input(slot: InventorySlot, event: InputEvent) -> void:
 				item_description_box.reset()
 	
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if not is_dragging and slot.item_instance != null:
-			_pick_up_item(slot, event.global_position)
+		if not is_dragging:
+			if slot is TrashSlot and (slot as TrashSlot).is_holding():
+				_pick_up_from_trash(slot as TrashSlot, event.global_position)
+				return
+			if slot.item_instance != null:
+				_pick_up_item(slot, event.global_position)
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		if not is_dragging and slot.item_instance != null:
@@ -111,7 +115,13 @@ func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 func _drop_item(global_mouse_pos: Vector2) -> void:
 	var target_slot = _get_slot_under_mouse(global_mouse_pos)
 	dragged_item.scale = Vector2(1.0, 1.0)
-	
+
+	# Trash drop short-circuits everything else.
+	if target_slot is TrashSlot:
+		_handle_trash_drop(target_slot as TrashSlot)
+		_cleanup_drag()
+		return
+
 	if target_slot and target_slot != original_slot:
 		# Check if target slot accepts this item
 		var item_data = dragged_item.item_instance_data
@@ -208,10 +218,73 @@ func _get_slot_under_mouse(global_pos: Vector2) -> InventorySlot:
 	for slot in equipment_grid.get_slots():
 		if slot.get_global_rect().has_point(global_pos):
 			return slot
-	
+
 	# Check GearSelector slots
 	for slot in gear_selector.get_slots():
 		if slot.get_global_rect().has_point(global_pos):
 			return slot
-			
+
+	# Check TrashSlot
+	if trash_slot and trash_slot.get_global_rect().has_point(global_pos):
+		return trash_slot
+
 	return null
+
+#-----------------------------------------------------------------------------
+# TRASH SLOT
+#-----------------------------------------------------------------------------
+
+func _handle_trash_drop(trash: TrashSlot) -> void:
+	if dragged_item == null:
+		return
+	var data: ItemInstanceData = dragged_item.item_instance_data
+	var prior_name: String = trash.accept(data)
+	if prior_name != "":
+		_show_discard_flash(prior_name)
+	# The visual disappeared when the item was picked up, but the inventory
+	# dictionary still holds a reference. Remove that reference so the next
+	# refresh doesn't restore the item visually. Skip when the drag started
+	# from the trash itself (item was never in inventory while held).
+	_remove_dragged_from_inventory_state()
+	dragged_item.queue_free()
+
+## Removes the dragged item from InventoryData based on where it came from.
+## No-op if the drag originated in the trash slot itself.
+func _remove_dragged_from_inventory_state() -> void:
+	if original_slot == null or original_slot is TrashSlot:
+		return
+	var inventory: InventoryData = InventoryManager.get_inventory()
+	if original_slot is GearSlot:
+		var gear: GearSlot = original_slot as GearSlot
+		if gear.accessory_index >= 0:
+			inventory.equipped_accessories.erase(gear.accessory_index)
+		else:
+			inventory.equipped_gear.erase(gear.slot_type)
+	else:
+		var from_index: int = original_slot.get_index()
+		inventory.equipment.erase(from_index)
+	InventoryManager.inventory_changed.emit(inventory)
+
+func _show_discard_flash(item_name: String) -> void:
+	var flash := get_tree().get_first_node_in_group("DiscardFlashes")
+	if flash and flash.has_method("show_for"):
+		flash.show_for(item_name)
+
+func _pick_up_from_trash(trash: TrashSlot, global_mouse_pos: Vector2) -> void:
+	var held = trash.get_held()
+	trash.clear_hold()
+
+	# Equipment instances are dragged as visual ItemInstance controls.
+	if held is ItemInstanceData:
+		var item_instance_scene: PackedScene = preload("res://scenes/inventory/item_instance/item_instance.tscn")
+		var visual: Control = item_instance_scene.instantiate()
+		add_child(visual)
+		visual.setup(held)
+		dragged_item = visual
+		is_dragging = true
+		original_slot = trash
+		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
+		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Show tooltip for the dragged item.
+		if item_description_box:
+			item_description_box.setup(held)
