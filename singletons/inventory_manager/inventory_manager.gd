@@ -232,6 +232,38 @@ func use_consumable(def: ConsumableDefinitionData) -> bool:
 	inventory_changed.emit(inventory)
 	return true
 
+## Put an equipment instance back into inventory (e.g., when the player
+## drags it out of the trash slot before another item replaces it).
+## Differs from award_items: takes the existing ItemInstanceData rather
+## than creating a new one, and stays silent (no log spam).
+func restore_equipment_instance(instance: ItemInstanceData, target_slot_index: int = -1) -> void:
+	if instance == null:
+		Log.error("InventoryManager.restore_equipment_instance: null instance")
+		return
+	var inventory := get_inventory()
+	if target_slot_index >= 0 and not inventory.equipment.has(target_slot_index):
+		inventory.equipment[target_slot_index] = instance
+	else:
+		_add_to_first_available_slot(inventory, instance)
+	inventory_changed.emit(inventory)
+
+## Restore N copies of a material to inventory (e.g., from trash drag-out).
+## Bypasses the looted-log message that award_items emits.
+func restore_material(def: MaterialDefinitionData, quantity: int) -> void:
+	if def == null or quantity <= 0:
+		return
+	var inventory := get_inventory()
+	inventory.materials[def] = inventory.materials.get(def, 0) + quantity
+	inventory_changed.emit(inventory)
+
+## Restore N copies of a consumable. Bypasses the looted-log message.
+func restore_consumable(def: ConsumableDefinitionData, quantity: int) -> void:
+	if def == null or quantity <= 0:
+		return
+	var inventory := get_inventory()
+	inventory.consumables[def] = inventory.consumables.get(def, 0) + quantity
+	inventory_changed.emit(inventory)
+
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
