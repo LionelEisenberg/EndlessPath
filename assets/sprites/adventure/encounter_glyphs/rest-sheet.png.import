@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dl8jodhco0nfq"
-path="res://.godot/imported/rest.png-350c18eb85d52d1f95e75d3aa26b1acd.ctex"
+uid="uid://cm7ycles3lxkd"
+path="res://.godot/imported/rest-sheet.png-676b51f24da3750fd5dd3c937d8621ef.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/adventure/encounter_glyphs/rest.png"
-dest_files=["res://.godot/imported/rest.png-350c18eb85d52d1f95e75d3aa26b1acd.ctex"]
+source_file="res://assets/sprites/adventure/encounter_glyphs/rest-sheet.png"
+dest_files=["res://.godot/imported/rest-sheet.png-676b51f24da3750fd5dd3c937d8621ef.ctex"]
 
 [params]
 

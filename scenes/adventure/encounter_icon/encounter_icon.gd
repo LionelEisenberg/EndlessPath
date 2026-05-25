@@ -21,7 +21,7 @@ extends Node2D
 const _GLYPH_COMBAT := preload("res://assets/sprites/ui/stat_icons/combat_icon.png")
 const _GLYPH_ELITE := preload("res://assets/sprites/adventure/encounter_glyphs/elite.png")
 const _GLYPH_BOSS := preload("res://assets/sprites/adventure/encounter_glyphs/boss_spritesheet.png")
-const _GLYPH_REST := preload("res://assets/sprites/adventure/encounter_glyphs/rest.png")
+const _GLYPH_REST := preload("res://assets/sprites/adventure/encounter_glyphs/rest-sheet.png")
 const _GLYPH_TREASURE := preload("res://assets/sprites/adventure/encounter_glyphs/treasure.png")
 const _GLYPH_TRAP := preload("res://assets/sprites/adventure/encounter_glyphs/trap.png")
 const _GLYPH_UNKNOWN := preload("res://assets/sprites/adventure/encounter_glyphs/question_mark.png")
@@ -29,8 +29,8 @@ const _GLYPH_UNKNOWN := preload("res://assets/sprites/adventure/encounter_glyphs
 ## Target rendered size for every encounter glyph, in pixels. Each
 ## texture is scaled up (or down) to this size uniformly so encounter
 ## icons feel consistent regardless of their source resolution. For
-## spritesheet glyphs (e.g. boss_spritesheet.png) the calculation uses
-## the per-frame size, not the whole spritesheet width.
+## spritesheet glyphs (e.g. boss_spritesheet.png, rest-sheet.png) the
+## calculation uses the per-frame size, not the whole spritesheet width.
 const ICON_TARGET_SIZE: float = 84.0
 
 ## Frame count for the animated boss glyph spritesheet. Keep in sync
@@ -42,19 +42,28 @@ const BOSS_SPRITESHEET_HFRAMES: int = 7
 ## Longer = calmer breathing animation.
 const BOSS_ANIMATION_DURATION: float = 1.4
 
+## Frame count for the animated rest glyph spritesheet. Keep in sync
+## with the source asset: rest-sheet.png is a 320x64 strip of 5 frames
+## at 64x64 each.
+const REST_SPRITESHEET_HFRAMES: int = 5
+
+## Duration of one full cycle through the rest spritesheet frames.
+## A bit slower than the boss to feel like a calm flicker rather than a
+## tense breathing pattern.
+const REST_ANIMATION_DURATION: float = 2.0
+
 var _is_visited: bool = false
 var _current_type: int = -1
-var _boss_ring_tween: Tween
-var _boss_breathe_tween: Tween
+var _spritesheet_tween: Tween
 
 ## Configures this icon to display the given encounter type.
 ## Returns false if the type should render no icon (NONE / unconfigured).
 func configure_for_type(encounter_type: int) -> bool:
 	_current_type = encounter_type
-	_stop_boss_animation()
+	_stop_spritesheet_animation()
 	# Reset spritesheet frame count in case a previous configure left us
-	# on the boss's multi-frame state. Non-boss glyphs are single-frame
-	# textures and should render with hframes/vframes = 1.
+	# on a multi-frame state. Single-frame glyphs should render with
+	# hframes/vframes = 1.
 	_glyph.hframes = 1
 	_glyph.vframes = 1
 	_glyph.frame = 0
@@ -67,9 +76,11 @@ func configure_for_type(encounter_type: int) -> bool:
 		AdventureEncounter.EncounterType.COMBAT_BOSS:
 			_glyph.texture = _GLYPH_BOSS
 			_glyph.hframes = BOSS_SPRITESHEET_HFRAMES
-			_start_boss_animation()
+			_start_spritesheet_animation(BOSS_SPRITESHEET_HFRAMES, BOSS_ANIMATION_DURATION)
 		AdventureEncounter.EncounterType.REST_SITE:
 			_glyph.texture = _GLYPH_REST
+			_glyph.hframes = REST_SPRITESHEET_HFRAMES
+			_start_spritesheet_animation(REST_SPRITESHEET_HFRAMES, REST_ANIMATION_DURATION)
 		AdventureEncounter.EncounterType.TREASURE:
 			_glyph.texture = _GLYPH_TREASURE
 		AdventureEncounter.EncounterType.TRAP:
@@ -123,29 +134,28 @@ func set_completed(completed: bool) -> void:
 func get_configured_type() -> int:
 	return _current_type
 
-## Cycles the boss glyph spritesheet frames on a loop. The tween drives
-## _apply_boss_frame with a float that's truncated to an int each tick,
-## so fractional time values step cleanly between frames without
-## interpolating through partial frame indices.
-func _start_boss_animation() -> void:
-	_stop_boss_animation()
-	var total_frames := _glyph.hframes * maxi(_glyph.vframes, 1)
+## Cycles a multi-frame glyph spritesheet on a loop. The tween drives
+## _apply_spritesheet_frame with a float that's truncated to an int each
+## tick, so fractional time values step cleanly between frames without
+## interpolating through partial frame indices. Caller passes the
+## hframes count (must match _glyph.hframes) and the per-cycle duration.
+func _start_spritesheet_animation(hframes: int, duration: float) -> void:
+	_stop_spritesheet_animation()
+	var total_frames := hframes * maxi(_glyph.vframes, 1)
 	if total_frames <= 1:
 		return
-	_boss_ring_tween = create_tween()
-	_boss_ring_tween.set_loops()
-	_boss_ring_tween.tween_method(_apply_boss_frame, 0.0, float(total_frames), BOSS_ANIMATION_DURATION)
+	_spritesheet_tween = create_tween()
+	_spritesheet_tween.set_loops()
+	_spritesheet_tween.tween_method(_apply_spritesheet_frame, 0.0, float(total_frames), duration)
 
-func _stop_boss_animation() -> void:
-	if _boss_ring_tween and _boss_ring_tween.is_valid():
-		_boss_ring_tween.kill()
-	if _boss_breathe_tween and _boss_breathe_tween.is_valid():
-		_boss_breathe_tween.kill()
+func _stop_spritesheet_animation() -> void:
+	if _spritesheet_tween and _spritesheet_tween.is_valid():
+		_spritesheet_tween.kill()
 
-## Tween callback for the boss spritesheet cycle. Clamps the incoming
+## Tween callback for the active spritesheet cycle. Clamps the incoming
 ## float to a valid frame index on the glyph. Guards against the tween
 ## firing after the node has been freed mid-cycle.
-func _apply_boss_frame(f: float) -> void:
+func _apply_spritesheet_frame(f: float) -> void:
 	if not is_instance_valid(_glyph):
 		return
 	var total_frames := _glyph.hframes * maxi(_glyph.vframes, 1)
