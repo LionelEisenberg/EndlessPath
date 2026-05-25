@@ -30,6 +30,7 @@
 [ext_resource type="PackedScene" uid="uid://b7e8m9p4xrlnq" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="28_invgrid"]
 [ext_resource type="PackedScene" uid="uid://bm8mdc2t4qx3a" path="res://scenes/inventory/inventory_view/materials_tab/material_detail_card.tscn" id="29_matdetail"]
 [ext_resource type="PackedScene" uid="uid://btpcrd9mtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="30_mattip"]
+[ext_resource type="PackedScene" uid="uid://bconsumablestab01" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.tscn" id="31_constab"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -203,7 +204,7 @@ offset_top = 95.0
 offset_right = 55.5
 offset_bottom = 95.0
 
-[node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=709037587 instance=ExtResource("3_eyvfv")]
+[node name="ConsumablesTabButton" parent="BookBackground/BookContent/TabSwitcher" instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -211,13 +212,21 @@ offset_top = 144.0
 offset_right = 55.5
 offset_bottom = 144.0
 
-[node name="QuestItemsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=931205040 instance=ExtResource("3_eyvfv")]
+[node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=709037587 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
 offset_top = 193.0
 offset_right = 55.5
 offset_bottom = 193.0
+
+[node name="QuestItemsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=931205040 instance=ExtResource("3_eyvfv")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 55.5
+offset_top = 242.0
+offset_right = 55.5
+offset_bottom = 242.0
 
 [node name="EquipmentTab" type="Control" parent="BookBackground/BookContent" unique_id=191510472]
 unique_name_in_owner = true
@@ -319,6 +328,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="ConsumablesTab" parent="BookBackground/BookContent" instance=ExtResource("31_constab")]
+unique_name_in_owner = true
+visible = false
 
 [node name="MaterialsTab" type="Control" parent="BookBackground/BookContent" unique_id=2080808482]
 unique_name_in_owner = true
