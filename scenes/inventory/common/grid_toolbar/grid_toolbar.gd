@@ -25,8 +25,17 @@ func set_count(used: int, total: int) -> void:
 func set_count_text(text: String) -> void:
 	count_label.text = text
 
-## Replace any existing child of the trash slot holder with the given slot.
+## Mount the given Control as the toolbar's right-side slot. Reparents from
+## the slot's current parent if necessary. Any previously-mounted slot is
+## removed and freed.
 func set_trash_slot(slot: Control) -> void:
 	for child in trash_slot_holder.get_children():
+		if child == slot:
+			continue
 		trash_slot_holder.remove_child(child)
+		child.queue_free()
+	if slot.get_parent() == trash_slot_holder:
+		return
+	if slot.get_parent() != null:
+		slot.get_parent().remove_child(slot)
 	trash_slot_holder.add_child(slot)
