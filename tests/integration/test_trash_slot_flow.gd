@@ -52,27 +52,40 @@ func test_flush_restores_material_with_correct_quantity() -> void:
 	trash.flush_to_inventory()
 	assert_eq(InventoryManager.get_inventory().materials[def], 1)
 
-func test_drag_out_then_drop_outside_returns_to_hold_buffer() -> void:
-	# Simulate the full flow: equip the trash, pick up (clear_hold), then
-	# restore via accept() — what _return_to_original now does for TrashSlot.
-	var trash := TrashSlotScene.instantiate()
-	add_child_autofree(trash)
+func test_return_to_original_routes_back_into_hold_buffer_for_trash() -> void:
+	# Spin up the EquipmentTab so we can drive _return_to_original.
+	var tab_scene: PackedScene = load("res://scenes/inventory/inventory_view/inventory_view.tscn")
+	# Use the inventory_view scene which contains the equipment_tab subtree —
+	# because equipment_tab.gd is the script with _return_to_original.
+	var view = tab_scene.instantiate()
+	add_child_autofree(view)
 	await get_tree().process_frame
+	var equipment_tab: Node = view.find_child("EquipmentTab", true, false)
+	assert_not_null(equipment_tab, "EquipmentTab node not found in inventory_view")
+
+	var trash: TrashSlot = view.find_child("TrashSlot", true, false)
+	assert_not_null(trash, "TrashSlot node not found in inventory_view")
+
+	# Seed the hold-buffer.
 	var inst := ItemInstanceData.new()
 	inst.item_definition = EquipmentDefinitionData.new()
 	inst.item_definition.item_name = "Held"
-
-	# Put item in trash hold-buffer.
 	trash.accept(inst)
 	assert_true(trash.is_holding())
 
-	# Player drags it out (the controller's _pick_up_from_trash does this).
-	var held = trash.get_held()
+	# Simulate pick-up from trash: clear hold-buffer and stage a fake
+	# dragged_item visual whose data matches the held instance.
 	trash.clear_hold()
-	assert_false(trash.is_holding())
+	var item_instance_scene: PackedScene = preload("res://scenes/inventory/item_instance/item_instance.tscn")
+	var visual = item_instance_scene.instantiate()
+	view.add_child(visual)
+	visual.setup(inst)
+	equipment_tab.dragged_item = visual
+	equipment_tab.original_slot = trash
 
-	# Player releases the drag in empty space — _return_to_original
-	# routes the data back into the hold-buffer.
-	trash.accept(held)
-	assert_true(trash.is_holding())
-	assert_eq(trash.get_held(), inst)
+	# Drive the bug-fix branch.
+	equipment_tab._return_to_original()
+
+	# Assert: hold-buffer repopulated, visual queue_freed (or freed).
+	assert_true(trash.is_holding(), "hold-buffer should be repopulated")
+	assert_eq(trash.get_held(), inst, "held value should be the original instance")
