@@ -22,12 +22,14 @@
 [ext_resource type="Script" uid="uid://budyxvcrbpvo1" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.gd" id="21_26fxh"]
 [ext_resource type="Texture2D" uid="uid://x368xmilo0p" path="res://assets/sprites/inventory/equipment_grid/bar_scroll.png" id="21_xb6h7"]
 [ext_resource type="Texture2D" uid="uid://cqbdw487scbtr" path="res://assets/sprites/inventory/equipment_grid/bar_grabber.png" id="22_26fxh"]
-[ext_resource type="PackedScene" uid="uid://c5wiepsq2qinv" path="res://scenes/inventory/inventory_view/materials_tab/material_container.tscn" id="22_qufb6"]
 [ext_resource type="PackedScene" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="23_desc_panel"]
 [ext_resource type="PackedScene" uid="uid://bquestitemstab001" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.tscn" id="24_qtab"]
 [ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="25_sortbanner"]
 [ext_resource type="PackedScene" uid="uid://b7gtbr4yvm21q" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.tscn" id="26_gridtoolbar"]
 [ext_resource type="PackedScene" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/discard_flash.tscn" id="27_discflash"]
+[ext_resource type="PackedScene" uid="uid://b7e8m9p4xrlnq" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="28_invgrid"]
+[ext_resource type="PackedScene" uid="uid://bm8mdc2t4qx3a" path="res://scenes/inventory/inventory_view/materials_tab/material_detail_card.tscn" id="29_matdetail"]
+[ext_resource type="PackedScene" uid="uid://btpcrd9mtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="30_mattip"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -334,130 +336,61 @@ offset_right = 305.0
 offset_bottom = 129.0
 texture = ExtResource("20_qufb6")
 
-[node name="Selection" type="Control" parent="BookBackground/BookContent/MaterialsTab" unique_id=820950608]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="SelectionBanner" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection" unique_id=1775879996]
+[node name="MaterialsSortSubBanner" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("25_sortbanner")]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = 145.0
 offset_top = 130.0
-offset_right = 269.0
-offset_bottom = 158.0
-texture = ExtResource("9_qedsu")
+offset_right = 290.0
+offset_bottom = 170.0
 
-[node name="RightArrow" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection" unique_id=270390478]
-layout_mode = 0
-offset_left = 272.5
-offset_top = 138.0
-offset_right = 286.5
-offset_bottom = 151.0
-texture = ExtResource("10_fs5oo")
-
-[node name="LeftArrow" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection" unique_id=2045339307]
-layout_mode = 0
-offset_left = 127.0
-offset_top = 138.0
-offset_right = 141.0
-offset_bottom = 151.0
-texture = ExtResource("10_fs5oo")
-flip_h = true
-
-[node name="SelectionDots" type="Control" parent="BookBackground/BookContent/MaterialsTab/Selection" unique_id=669379014]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="HBoxContainer" type="HBoxContainer" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots" unique_id=1294800937]
-layout_mode = 0
-offset_left = 152.5
-offset_top = 159.0
-offset_right = 260.5
-offset_bottom = 167.0
-
-[node name="Option1" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer" unique_id=1735644199]
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("11_xrgga")
-stretch_mode = 2
-
-[node name="Option2" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer" unique_id=1948496827]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("12_qfdbg")
-stretch_mode = 2
-
-[node name="Option3" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer" unique_id=92578795]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("12_qfdbg")
-stretch_mode = 2
-
-[node name="Option4" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer" unique_id=1464707633]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("12_qfdbg")
-stretch_mode = 2
-
-[node name="Option5" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/Selection/SelectionDots/HBoxContainer" unique_id=1329914414]
-visible = false
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-texture = ExtResource("12_qfdbg")
-stretch_mode = 2
-
-[node name="MaterialsGrid" type="MarginContainer" parent="BookBackground/BookContent/MaterialsTab" unique_id=1001245269]
-layout_mode = 0
-offset_left = 82.5
-offset_top = 183.5
-offset_right = 310.5
-offset_bottom = 371.5
-
-[node name="MarginContainer" type="MarginContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid" unique_id=2049564161]
-layout_mode = 2
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_bottom = 5
-
-[node name="VScrollBar" type="VScrollBar" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/MarginContainer" unique_id=1040841107]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(8, 0)
-layout_mode = 2
-size_flags_horizontal = 8
-theme_override_styles/scroll = SubResource("StyleBoxTexture_v70co")
-theme_override_styles/grabber = SubResource("StyleBoxTexture_ik22q")
-
-[node name="Grabber" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/MarginContainer/VScrollBar" unique_id=488460720]
+[node name="MaterialsGridToolbar" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("26_gridtoolbar")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = -3.0
-offset_top = 3.0
-offset_right = 11.0
-offset_bottom = 18.0
-mouse_filter = 0
-texture = ExtResource("22_26fxh")
+offset_left = 82.0
+offset_top = 165.0
+offset_right = 318.0
+offset_bottom = 185.0
 
-[node name="ScrollContainer" type="ScrollContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid" unique_id=1904227589]
+[node name="MaterialsInventoryGrid" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("28_invgrid")]
 unique_name_in_owner = true
-layout_mode = 2
-theme = SubResource("Theme_00gvd")
-horizontal_scroll_mode = 0
-vertical_scroll_mode = 3
+layout_mode = 0
+offset_left = 82.0
+offset_top = 187.0
+offset_right = 318.0
+offset_bottom = 400.0
 
-[node name="MaterialsVbox" type="VBoxContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/ScrollContainer" unique_id=1045424638]
+[node name="MaterialDetailCard" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("29_matdetail")]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 0
+offset_left = 387.0
+offset_top = 110.0
+offset_right = 620.0
+offset_bottom = 280.0
 
-[node name="MaterialContainer" parent="BookBackground/BookContent/MaterialsTab/MaterialsGrid/ScrollContainer/MaterialsVbox" unique_id=632772983 instance=ExtResource("22_qufb6")]
-layout_mode = 2
+[node name="MaterialTipCard" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("30_mattip")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 387.0
+offset_top = 290.0
+offset_right = 620.0
+offset_bottom = 360.0
+
+[node name="MaterialsTrashSlot" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("19_wdr80")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 290.0
+offset_top = 165.0
+offset_right = 318.0
+offset_bottom = 193.0
+
+[node name="DiscardFlash" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("27_discflash")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="QuestItemsTab" parent="BookBackground/BookContent" unique_id=1012340856 instance=ExtResource("24_qtab")]
 unique_name_in_owner = true

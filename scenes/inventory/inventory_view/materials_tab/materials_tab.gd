@@ -1,28 +1,63 @@
 extends Control
 
-@onready var materials_vbox: VBoxContainer = %MaterialsVbox
+## MaterialsTab
+## Hosts the shared chrome (SortSubBanner, GridToolbar, InventoryGrid) and a
+## right-page MaterialDetailCard + MaterialTipCard. Populates the grid with
+## MaterialSlot instances from InventoryManager and updates the detail card
+## when a slot is clicked.
 
-var material_container_scene: PackedScene = preload("res://scenes/inventory/inventory_view/materials_tab/material_container.tscn")
+const MaterialSlotScene: PackedScene = preload("res://scenes/inventory/inventory_view/materials_tab/material_slot.tscn")
+
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
+@onready var sort_banner: SortSubBanner = %MaterialsSortSubBanner
+@onready var grid_toolbar: GridToolbar = %MaterialsGridToolbar
+@onready var grid: InventoryGrid = %MaterialsInventoryGrid
+@onready var detail_card: MaterialDetailCard = %MaterialDetailCard
+@onready var trash_slot: TrashSlot = %MaterialsTrashSlot
+
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
 
 func _ready() -> void:
+	sort_banner.set_options(PackedStringArray(["All"]))
+	sort_banner.enabled = false
+	grid_toolbar.set_trash_slot(trash_slot)
+
 	if InventoryManager:
-		## Handle inventory signals
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
+		_rebuild(InventoryManager.get_material_items())
 
-		## Initialize tabs
-		populate_materials_tab(InventoryManager.get_material_items())
+#-----------------------------------------------------------------------------
+# REBUILD
+#-----------------------------------------------------------------------------
 
-## Populates the tab with the given materials.
-func populate_materials_tab(materials: Dictionary[MaterialDefinitionData, int]) -> void:
-	# Clear the grid container
-	for child in materials_vbox.get_children():
-		child.queue_free()
+func _rebuild(materials: Dictionary[MaterialDefinitionData, int]) -> void:
+	grid.clear_slots()
+	var first_def: MaterialDefinitionData = null
+	for def in materials.keys():
+		var slot: MaterialSlot = MaterialSlotScene.instantiate()
+		grid.add_slot(slot)
+		slot.setup(def, materials[def])
+		slot.clicked.connect(_on_slot_clicked)
+		if first_def == null:
+			first_def = def
+	grid_toolbar.set_count_text("%d kinds collected" % materials.size())
+	if first_def:
+		detail_card.setup_from_definition(first_def)
+	else:
+		detail_card.reset()
 
-	for material_data in materials.keys():
-		var new_material_instance = material_container_scene.instantiate()
-		new_material_instance.material_data = material_data
-		new_material_instance.material_quantity = materials[material_data]
-		materials_vbox.add_child(new_material_instance)
+#-----------------------------------------------------------------------------
+# SIGNAL HANDLERS
+#-----------------------------------------------------------------------------
 
-func _on_inventory_changed(inventory: InventoryData) -> void:
-	populate_materials_tab(inventory.materials)
+func _on_slot_clicked(slot: MaterialSlot, event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		detail_card.setup_from_definition(slot.get_definition())
+
+func _on_inventory_changed(_inv: InventoryData) -> void:
+	_rebuild(InventoryManager.get_material_items())
