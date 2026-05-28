@@ -1,52 +1,62 @@
-[gd_scene load_steps=5 format=3 uid="uid://b8s1f1ssbnr01"]
+[gd_scene format=3 uid="uid://b8s1f1ssbnr01"]
 
-[ext_resource type="Script" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://c6s456jq62skp" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://vggpdp1g004h" path="res://assets/sprites/inventory/equipment_grid/selection_arrow.png" id="2_arrow"]
 [ext_resource type="Texture2D" uid="uid://ba14l6y1itu7w" path="res://assets/sprites/inventory/equipment_grid/equipment_category.png" id="3_pill"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="4_theme"]
 
-[node name="SortSubBanner" type="HBoxContainer"]
+[node name="SortSubBanner" type="VBoxContainer" unique_id=1122666677]
+offset_right = 164.0
+offset_bottom = 32.0
 theme = ExtResource("4_theme")
 alignment = 1
 script = ExtResource("1_script")
 
-[node name="LeftArrow" type="TextureRect" parent="."]
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1567269484]
+layout_mode = 2
+
+[node name="LeftArrow" type="TextureRect" parent="HBoxContainer" unique_id=112288147]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 13)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-mouse_filter = 1
 texture = ExtResource("2_arrow")
 flip_h = true
 
-[node name="Banner" type="TextureRect" parent="."]
+[node name="Banner" type="TextureRect" parent="HBoxContainer" unique_id=1024847103]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(124, 28)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 texture = ExtResource("3_pill")
 
-[node name="Label" type="Label" parent="Banner"]
+[node name="Label" type="Label" parent="HBoxContainer/Banner" unique_id=35274342]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 2.0
+offset_bottom = 2.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_type_variation = &"LabelBodyLarge"
+theme_type_variation = &"LabelBody"
 text = "All"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="RightArrow" type="TextureRect" parent="."]
+[node name="RightArrow" type="TextureRect" parent="HBoxContainer" unique_id=34155835]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 13)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
-mouse_filter = 1
 texture = ExtResource("2_arrow")
 
-[node name="Dots" type="HBoxContainer" parent="."]
+[node name="Dots" type="HBoxContainer" parent="." unique_id=344956552]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4

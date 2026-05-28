@@ -1,5 +1,5 @@
 class_name SortSubBanner
-extends HBoxContainer
+extends VBoxContainer
 
 ## SortSubBanner
 ## Pill widget with left/right arrows over a list of named options, plus
@@ -31,10 +31,10 @@ const DOT_UNSELECTED: Texture2D = preload("res://assets/sprites/inventory/equipm
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-@onready var _label: Label = $Banner/Label
-@onready var _left: TextureRect = $LeftArrow
-@onready var _right: TextureRect = $RightArrow
-@onready var _dots: HBoxContainer = $Dots
+@onready var _label: Label = %Label
+@onready var _left: TextureRect = %LeftArrow
+@onready var _right: TextureRect = %RightArrow
+@onready var _dots: HBoxContainer = %Dots
 
 #-----------------------------------------------------------------------------
 # STATE

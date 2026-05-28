@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://b7gtbr4yvm21q"]
+[gd_scene load_steps=4 format=3 uid="uid://b7gtbr4yvm21q"]
 
 [ext_resource type="Script" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" uid="uid://bx475rcu42d08" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.tscn" id="3_trash"]
 
 [node name="GridToolbar" type="HBoxContainer"]
 theme = ExtResource("2_theme")
@@ -11,10 +12,14 @@ script = ExtResource("1_script")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 4
 theme_type_variation = &"LabelBody"
 theme_override_colors/font_color = Color(0.227451, 0.156863, 0.094118, 1)
 text = "0 / 0"
+vertical_alignment = 1
 
-[node name="TrashSlotHolder" type="MarginContainer" parent="."]
+[node name="TrashSlot" parent="." instance=ExtResource("3_trash")]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4

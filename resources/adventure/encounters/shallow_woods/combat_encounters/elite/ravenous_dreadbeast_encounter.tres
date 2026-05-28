@@ -7,7 +7,7 @@
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="5_l33yq"]
 [ext_resource type="Script" uid="uid://cpq8eacgl1537" path="res://scripts/resource_definitions/adventure/choices/combat_choice.gd" id="6_mdyae"]
 [ext_resource type="Script" uid="uid://bbayqmvvc4hvt" path="res://scripts/resource_definitions/loot/loot_table_entries.gd" id="7_i4stj"]
-[ext_resource type="Resource" path="res://resources/items/equipment/spirit_valley/dreadbeast_tooth_necklace.tres" id="8_abmdm"]
+[ext_resource type="Resource" uid="uid://bxaib1l25vk12" path="res://resources/items/equipment/spirit_valley/dreadbeast_tooth_necklace.tres" id="8_abmdm"]
 [ext_resource type="Script" uid="uid://b0055qxx6pmno" path="res://scripts/resource_definitions/loot/loot_table.gd" id="9_jvglo"]
 [ext_resource type="Script" uid="uid://w0sbaux5u040" path="res://scripts/resource_definitions/effects/award_loot_table_effect_data.gd" id="10_hn4ml"]
 [ext_resource type="Script" uid="uid://cs335nesm7wfr" path="res://scripts/resource_definitions/adventure/encounters/adventure_encounter.gd" id="11_ue3ap"]

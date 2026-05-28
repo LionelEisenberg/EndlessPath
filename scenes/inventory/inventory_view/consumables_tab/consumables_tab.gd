@@ -17,7 +17,7 @@ const ConsumableSlotScene: PackedScene = preload("res://scenes/inventory/invento
 @onready var grid: InventoryGrid = %ConsumablesInventoryGrid
 @onready var hotbar: CombatHotbar = %ConsumablesCombatHotbar
 @onready var detail_card: ItemDetailCard = %ConsumablesItemDetailCard
-@onready var trash_slot: TrashSlot = %ConsumablesTrashSlot
+@onready var trash_slot: TrashSlot = grid_toolbar.trash_slot
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -26,7 +26,6 @@ const ConsumableSlotScene: PackedScene = preload("res://scenes/inventory/invento
 func _ready() -> void:
 	sort_banner.set_options(PackedStringArray(["All"]))
 	sort_banner.enabled = false
-	grid_toolbar.set_trash_slot(trash_slot)
 	hotbar.slot_clicked.connect(_on_hotbar_clicked)
 
 	if InventoryManager:

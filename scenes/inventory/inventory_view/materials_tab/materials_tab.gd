@@ -16,7 +16,7 @@ const MaterialSlotScene: PackedScene = preload("res://scenes/inventory/inventory
 @onready var grid_toolbar: GridToolbar = %MaterialsGridToolbar
 @onready var grid: InventoryGrid = %MaterialsInventoryGrid
 @onready var detail_card: MaterialDetailCard = %MaterialDetailCard
-@onready var trash_slot: TrashSlot = %MaterialsTrashSlot
+@onready var trash_slot: TrashSlot = grid_toolbar.trash_slot
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -25,7 +25,6 @@ const MaterialSlotScene: PackedScene = preload("res://scenes/inventory/inventory
 func _ready() -> void:
 	sort_banner.set_options(PackedStringArray(["All"]))
 	sort_banner.enabled = false
-	grid_toolbar.set_trash_slot(trash_slot)
 
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)

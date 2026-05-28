@@ -33,6 +33,8 @@ func _ready() -> void:
 	# Connect drag signals
 	equipment_grid.slot_clicked.connect(_on_slot_input)
 	gear_selector.slot_clicked.connect(_on_slot_input)
+	if trash_slot:
+		trash_slot.clicked.connect(_on_slot_input)
 
 	item_description_box.reset()
 	selector_sprite.visible = false
