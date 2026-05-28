@@ -134,6 +134,30 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 		_cleanup_drag()
 		return
 
+	# Restoring from trash: put the item back into inventory via the
+	# appropriate manager call. Without this branch the generic Grid→Grid
+	# path would call move_equipment with the trash's child-index, which
+	# doesn't correspond to an inventory.equipment key.
+	if original_slot is TrashSlot:
+		if target_slot == null:
+			_return_to_original()
+			_cleanup_drag()
+			return
+		var inst: ItemInstanceData = dragged_item.item_instance_data
+		if target_slot is GearSlot:
+			var gear: GearSlot = target_slot as GearSlot
+			if not gear.is_valid_item(inst):
+				_return_to_original()
+				_cleanup_drag()
+				return
+			InventoryManager.equip_item(inst, gear.slot_type, -1, gear.accessory_index)
+		else:
+			# Drop on a regular inventory grid slot.
+			InventoryManager.restore_equipment_instance(inst, target_slot.get_index())
+		dragged_item.queue_free()
+		_cleanup_drag()
+		return
+
 	if target_slot and target_slot != original_slot:
 		# Check if target slot accepts this item
 		var item_data = dragged_item.item_instance_data
