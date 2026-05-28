@@ -17,14 +17,11 @@ const SLOT_TEXTURE := preload("res://assets/sprites/inventory/inventory_slot/UI_
 ## Either an ItemInstanceData OR an Array [def, quantity].
 var _held: Variant = null
 
-@onready var _x_overlay: Label = $XOverlay
-
 func _ready() -> void:
 	empty_texture = SLOT_TEXTURE
 	full_texture = SLOT_TEXTURE
 	super._ready()
 	add_to_group("TrashSlots")
-	_update_x_visibility()
 
 ## Returns true if currently holding something.
 func is_holding() -> bool:
@@ -36,10 +33,13 @@ func get_held() -> Variant:
 	return _held
 
 ## Empty the hold-buffer without destroying or restoring.
-## The caller decides what to do with the previously held value.
+## The caller decides what to do with the previously held value. If the
+## visual ItemInstance is still attached after the caller is done with us,
+## clear it so we don't keep showing a ghost.
 func clear_hold() -> void:
 	_held = null
-	_update_x_visibility()
+	if item_instance != null:
+		setup(null)
 
 ## Place an item into the hold-buffer. If the buffer already has something,
 ## that prior item is permanently destroyed.
@@ -49,8 +49,14 @@ func accept(held_value: Variant) -> String:
 	if _held != null:
 		discarded_name = _held_display_name(_held)
 		_log_discard(_held)
+		# Free any prior visual so the new one renders cleanly.
+		if item_instance != null:
+			item_instance.queue_free()
+			item_instance = null
 	_held = held_value
-	_update_x_visibility()
+	# Render equipment instances so the player can see (and pick up) what's held.
+	if _held is ItemInstanceData:
+		setup(_held as ItemInstanceData)
 	return discarded_name
 
 ## On close-inventory, restore held content to InventoryManager.
@@ -60,11 +66,6 @@ func flush_to_inventory() -> void:
 		return
 	_restore_to_inventory(_held)
 	_held = null
-	_update_x_visibility()
-
-func _update_x_visibility() -> void:
-	if _x_overlay:
-		_x_overlay.visible = not is_holding()
 
 func _held_display_name(value: Variant) -> String:
 	if value is ItemInstanceData:

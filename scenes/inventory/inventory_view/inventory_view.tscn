@@ -13,18 +13,16 @@
 [ext_resource type="Texture2D" uid="uid://73gi871a4dr7" path="res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Spritesheet_Select01a.png" id="16_v70co"]
 [ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/sprites/inventory/gear_selector/item_description_background.png" id="17_00gvd"]
 [ext_resource type="Script" uid="uid://bpyj8ugmi6t0t" path="res://scenes/inventory/inventory_view/item_description_box.gd" id="17_ycsy7"]
-[ext_resource type="PackedScene" uid="uid://bx475rcu42d08" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.tscn" id="19_wdr80"]
 [ext_resource type="Texture2D" uid="uid://3w4d3der8ula" path="res://assets/sprites/inventory/materials_tab/banner.png" id="20_qufb6"]
 [ext_resource type="Script" uid="uid://budyxvcrbpvo1" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.gd" id="21_26fxh"]
-[ext_resource type="PackedScene" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="23_desc_panel"]
-[ext_resource type="PackedScene" uid="uid://bquestitemstab001" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.tscn" id="24_qtab"]
+[ext_resource type="PackedScene" uid="uid://hdpsokiiqmae" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="23_desc_panel"]
+[ext_resource type="PackedScene" uid="uid://b0gr2k468xgyi" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.tscn" id="24_qtab"]
 [ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="25_sortbanner"]
 [ext_resource type="PackedScene" uid="uid://b7gtbr4yvm21q" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.tscn" id="26_gridtoolbar"]
-[ext_resource type="PackedScene" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/discard_flash.tscn" id="27_discflash"]
-[ext_resource type="PackedScene" uid="uid://b7e8m9p4xrlnq" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="28_invgrid"]
+[ext_resource type="PackedScene" uid="uid://b7e8nap4xrlnq" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="28_invgrid"]
 [ext_resource type="PackedScene" uid="uid://bm8mdc2t4qx3a" path="res://scenes/inventory/inventory_view/materials_tab/material_detail_card.tscn" id="29_matdetail"]
-[ext_resource type="PackedScene" uid="uid://btpcrd9mtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="30_mattip"]
-[ext_resource type="PackedScene" uid="uid://bconsumablestab01" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.tscn" id="31_constab"]
+[ext_resource type="PackedScene" uid="uid://btpcreamtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="30_mattip"]
+[ext_resource type="PackedScene" uid="uid://dlst8ppfx3u0o" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.tscn" id="31_constab"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -185,7 +183,7 @@ offset_top = 95.0
 offset_right = 55.5
 offset_bottom = 95.0
 
-[node name="ConsumablesTabButton" parent="BookBackground/BookContent/TabSwitcher" instance=ExtResource("3_eyvfv")]
+[node name="ConsumablesTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=321563705 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -193,7 +191,7 @@ offset_top = 144.0
 offset_right = 55.5
 offset_bottom = 144.0
 
-[node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" instance=ExtResource("3_eyvfv")]
+[node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=1287899700 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -211,42 +209,59 @@ offset_bottom = 242.0
 
 [node name="EquipmentTab" type="Control" parent="BookBackground/BookContent" unique_id=191510472]
 unique_name_in_owner = true
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("8_qfdbg")
 
 [node name="EquipmentTabBanner" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab" unique_id=2036657518]
-layout_mode = 0
-offset_left = 109.0
-offset_top = 63.0
-offset_right = 305.0
-offset_bottom = 129.0
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -235.5
+offset_top = -165.0
+offset_right = -39.5
+offset_bottom = -99.0
+grow_horizontal = 2
+grow_vertical = 2
 texture = ExtResource("8_midoe")
 
-[node name="SortSubBanner" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("25_sortbanner")]
+[node name="SortSubBanner" parent="BookBackground/BookContent/EquipmentTab" unique_id=1411663176 instance=ExtResource("25_sortbanner")]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 145.0
-offset_top = 130.0
-offset_right = 290.0
-offset_bottom = 170.0
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -217.5
+offset_top = -99.5
+offset_right = -53.5
+offset_bottom = -67.5
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="GridToolbar" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("26_gridtoolbar")]
+[node name="GridToolbar" parent="BookBackground/BookContent/EquipmentTab" unique_id=1052109374 instance=ExtResource("26_gridtoolbar")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 82.0
-offset_top = 165.0
-offset_right = 318.0
-offset_bottom = 195.0
+offset_left = 94.0
+offset_top = 159.5
+offset_right = 324.0
+offset_bottom = 189.5
 
 [node name="EquipmentGrid" parent="BookBackground/BookContent/EquipmentTab" unique_id=342341599 instance=ExtResource("13_qedsu")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 82.0
-offset_top = 179.0
-offset_right = 318.0
-offset_bottom = 399.0
+offset_top = 191.5
+offset_right = 330.0
+offset_bottom = 408.0
 
 [node name="GearSelector" parent="BookBackground/BookContent/EquipmentTab" unique_id=72603322 instance=ExtResource("14_xrgga")]
 unique_name_in_owner = true
@@ -277,40 +292,19 @@ libraries/ = SubResource("AnimationLibrary_juskt")
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 386.0
-offset_top = 257.5
+offset_top = 250.5
 offset_right = 810.0
-offset_bottom = 521.5
+offset_bottom = 528.5
 scale = Vector2(0.5, 0.5)
 theme = ExtResource("16_1vqu0")
 texture = ExtResource("17_00gvd")
 script = ExtResource("17_ycsy7")
 
-[node name="ItemDescriptionPanel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox" instance=ExtResource("23_desc_panel")]
+[node name="ItemDescriptionPanel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox" unique_id=725582600 instance=ExtResource("23_desc_panel")]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="TrashSlot" parent="BookBackground/BookContent/EquipmentTab" unique_id=1620879164 instance=ExtResource("19_wdr80")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 376.5
-offset_top = 71.0
-offset_right = 405.5
-offset_bottom = 99.0
-
-[node name="DiscardFlash" parent="BookBackground/BookContent/EquipmentTab" instance=ExtResource("27_discflash")]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="ConsumablesTab" parent="BookBackground/BookContent" instance=ExtResource("31_constab")]
+[node name="ConsumablesTab" parent="BookBackground/BookContent" unique_id=923432901 instance=ExtResource("31_constab")]
 unique_name_in_owner = true
 visible = false
 
@@ -330,7 +324,7 @@ offset_right = 305.0
 offset_bottom = 129.0
 texture = ExtResource("20_qufb6")
 
-[node name="MaterialsSortSubBanner" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("25_sortbanner")]
+[node name="MaterialsSortSubBanner" parent="BookBackground/BookContent/MaterialsTab" unique_id=1630147688 instance=ExtResource("25_sortbanner")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 145.0
@@ -338,7 +332,7 @@ offset_top = 130.0
 offset_right = 290.0
 offset_bottom = 170.0
 
-[node name="MaterialsGridToolbar" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("26_gridtoolbar")]
+[node name="MaterialsGridToolbar" parent="BookBackground/BookContent/MaterialsTab" unique_id=1677358575 instance=ExtResource("26_gridtoolbar")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 82.0
@@ -346,7 +340,7 @@ offset_top = 165.0
 offset_right = 318.0
 offset_bottom = 195.0
 
-[node name="MaterialsInventoryGrid" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("28_invgrid")]
+[node name="MaterialsInventoryGrid" parent="BookBackground/BookContent/MaterialsTab" unique_id=750174956 instance=ExtResource("28_invgrid")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 82.0
@@ -354,7 +348,7 @@ offset_top = 187.0
 offset_right = 318.0
 offset_bottom = 400.0
 
-[node name="MaterialDetailCard" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("29_matdetail")]
+[node name="MaterialDetailCard" parent="BookBackground/BookContent/MaterialsTab" unique_id=730258233 instance=ExtResource("29_matdetail")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 387.0
@@ -362,29 +356,13 @@ offset_top = 110.0
 offset_right = 620.0
 offset_bottom = 280.0
 
-[node name="MaterialTipCard" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("30_mattip")]
+[node name="MaterialTipCard" parent="BookBackground/BookContent/MaterialsTab" unique_id=500652944 instance=ExtResource("30_mattip")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 387.0
 offset_top = 290.0
 offset_right = 620.0
 offset_bottom = 360.0
-
-[node name="MaterialsTrashSlot" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("19_wdr80")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 290.0
-offset_top = 165.0
-offset_right = 318.0
-offset_bottom = 193.0
-
-[node name="DiscardFlash" parent="BookBackground/BookContent/MaterialsTab" instance=ExtResource("27_discflash")]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
 [node name="QuestItemsTab" parent="BookBackground/BookContent" unique_id=1012340856 instance=ExtResource("24_qtab")]
 unique_name_in_owner = true

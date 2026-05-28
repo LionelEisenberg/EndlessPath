@@ -11,9 +11,9 @@ extends Control
 @onready var selector_sprite: Node2D = %SelectorSprite
 @onready var selector_anim: AnimationPlayer = %AnimationPlayer
 @onready var item_description_box : TextureRect = %ItemDescriptionBox
-@onready var trash_slot : TrashSlot = %TrashSlot
 @onready var sort_banner: SortSubBanner = %SortSubBanner
 @onready var grid_toolbar: GridToolbar = %GridToolbar
+@onready var trash_slot : TrashSlot = grid_toolbar.trash_slot
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -39,7 +39,6 @@ func _ready() -> void:
 
 	sort_banner.set_options(PackedStringArray(["All", "Weapons", "Armor", "Accessories"]))
 	sort_banner.enabled = false  # filtering wiring is deferred per spec
-	grid_toolbar.set_trash_slot(trash_slot)
 
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
@@ -114,6 +113,11 @@ func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 			item_description_box.setup(dragged_item.item_instance_data)
 
 		add_child(dragged_item)
+		# ItemInstance is a full-rect Control; once re-parented to this larger tab,
+		# the anchors would balloon it. Pin to top-left + slot dimensions.
+		dragged_item.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		dragged_item.custom_minimum_size = Vector2(28, 28)
+		dragged_item.size = Vector2(28, 28)
 		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
 		dragged_item.scale = Vector2(1.0, 1.0)
 		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE # Pass events through to slots below
@@ -252,9 +256,8 @@ func _handle_trash_drop(trash: TrashSlot) -> void:
 	if dragged_item == null:
 		return
 	var data: ItemInstanceData = dragged_item.item_instance_data
-	var prior_name: String = trash.accept(data)
-	if prior_name != "":
-		_show_discard_flash(prior_name)
+	# accept() handles discard logging when a prior held item gets replaced.
+	trash.accept(data)
 	# The visual disappeared when the item was picked up, but the inventory
 	# dictionary still holds a reference. Remove that reference so the next
 	# refresh doesn't restore the item visually. Skip when the drag started
@@ -279,24 +282,26 @@ func _remove_dragged_from_inventory_state() -> void:
 		inventory.equipment.erase(from_index)
 	InventoryManager.inventory_changed.emit(inventory)
 
-func _show_discard_flash(item_name: String) -> void:
-	var flash := get_tree().get_first_node_in_group("DiscardFlashes")
-	if flash and flash.has_method("show_for"):
-		flash.show_for(item_name)
-
 func _pick_up_from_trash(trash: TrashSlot, global_mouse_pos: Vector2) -> void:
 	var held = trash.get_held()
-	trash.clear_hold()
+	if held == null:
+		return
 
 	# Equipment instances are dragged as visual ItemInstance controls.
 	if held is ItemInstanceData:
-		var item_instance_scene: PackedScene = preload("res://scenes/inventory/item_instance/item_instance.tscn")
-		var visual: Control = item_instance_scene.instantiate()
-		add_child(visual)
-		visual.setup(held)
+		# Take the existing visual the trash already rendered (see TrashSlot.accept),
+		# so picking up doesn't spawn a duplicate.
+		var visual: Control = trash.grab_item()
+		trash.clear_hold()
+		if visual == null:
+			return
 		dragged_item = visual
 		is_dragging = true
 		original_slot = trash
+		add_child(dragged_item)
+		dragged_item.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		dragged_item.custom_minimum_size = Vector2(28, 28)
+		dragged_item.size = Vector2(28, 28)
 		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
 		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		# Show tooltip for the dragged item.
