@@ -16,7 +16,11 @@ func test_grid_global_index_uses_current_page() -> void:
 	tab.equipment_grid.set_page(1)
 	await get_tree().process_frame
 	var slot0 = tab.equipment_grid.get_slots()[0]
-	assert_eq(tab._grid_global_index(slot0), 36, "page 1 slot 0 -> global index 36")
+	# Expected offset = one page's worth of slots, derived from the grid's
+	# (tunable) page size rather than hardcoded, so this stays correct as the
+	# num_rows/num_columns layout knobs change.
+	var per_page: int = tab.equipment_grid.slots_per_page()
+	assert_eq(tab._grid_global_index(slot0), per_page, "page 1 slot 0 -> global index equals one page offset")
 
 func test_page_hover_flips_page_only_while_dragging() -> void:
 	var inv := PersistenceManager.save_game_data.inventory

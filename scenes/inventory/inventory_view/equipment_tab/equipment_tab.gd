@@ -21,6 +21,11 @@ extends Control
 
 var dragged_item: Control = null
 var original_slot: InventorySlot = null
+## Global equipment index a grid-origin drag started from (-1 for gear/trash
+## origins). Captured at pickup because page-flipping mid-drag re-binds the
+## persistent grid slots to another page, so the origin node's live index no
+## longer reflects where the dragged item actually came from.
+var original_grid_index: int = -1
 var is_dragging: bool = false
 const POSITION_OFFSET = Vector2(0, -15)
 const SELECTOR_OFFSET = Vector2(28, 28)
@@ -58,7 +63,6 @@ func _on_inventory_changed(_inventory: InventoryData) -> void:
 func _refresh_pagination() -> void:
 	var inventory := InventoryManager.get_inventory()
 	pagination_bar.setup(inventory.unlocked_equipment_pages, equipment_grid.current_page)
-	pagination_bar.set_count(inventory.equipment.size(), inventory.equipment_capacity())
 
 func _on_page_selected(index: int) -> void:
 	equipment_grid.set_page(index)
@@ -71,7 +75,17 @@ func _on_page_hovered(index: int) -> void:
 
 ## Global inventory index of a paged grid slot (local child-index + page offset).
 func _grid_global_index(slot: InventorySlot) -> int:
-	return equipment_grid.current_page * EquipmentGrid.SLOTS_PER_PAGE + slot.get_index()
+	return equipment_grid.current_page * equipment_grid.slots_per_page() + slot.get_index()
+
+## True when the drop target is the same inventory location the drag started
+## from (so the drag cancels instead of moving). Grid origins compare by global
+## index, which stays correct even if the player flipped pages mid-drag.
+func _drag_target_is_origin(target: InventorySlot) -> bool:
+	if original_slot is GearSlot:
+		return target == original_slot
+	if target is GearSlot:
+		return false
+	return _grid_global_index(target) == original_grid_index
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
@@ -123,6 +137,8 @@ func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 		dragged_item = item
 		is_dragging = true
 		original_slot = slot
+		# Remember the source page's global index now (gear origins use -1).
+		original_grid_index = -1 if slot is GearSlot else _grid_global_index(slot)
 		if dragged_item.item_instance_data:
 			item_description_box.setup(dragged_item.item_instance_data)
 		add_child(dragged_item)
@@ -163,7 +179,7 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 		_cleanup_drag()
 		return
 
-	if target_slot and target_slot != original_slot:
+	if target_slot and not _drag_target_is_origin(target_slot):
 		var item_data = dragged_item.item_instance_data
 
 		if target_slot is GearSlot:
@@ -175,7 +191,7 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 		if target_slot is GearSlot:
 			# Dropping ONTO a gear slot (Equipping)
 			if not (original_slot is GearSlot):
-				var from_index = _grid_global_index(original_slot)
+				var from_index = original_grid_index
 				InventoryManager.equip_item(item_data, target_slot.slot_type, from_index, target_slot.accessory_index)
 				dragged_item.queue_free()
 			else:
@@ -189,7 +205,7 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 			dragged_item.queue_free()
 		else:
 			# Grid -> Grid (Reordering)
-			var from_index = _grid_global_index(original_slot)
+			var from_index = original_grid_index
 			var to_index = _grid_global_index(target_slot)
 			InventoryManager.move_equipment(from_index, to_index)
 			dragged_item.queue_free()
@@ -234,7 +250,15 @@ func _return_to_original() -> void:
 		trash.accept(data)
 		dragged_item.queue_free()
 		return
-	original_slot.equip_item(dragged_item)
+	if original_slot is GearSlot:
+		original_slot.equip_item(dragged_item)
+		return
+	# Grid origin: the item was never removed from inventory.equipment, so drop
+	# the floating visual and re-render the current page. Correct even if the
+	# player flipped pages mid-drag — the item stays at its original global index
+	# and reappears when they flip back.
+	dragged_item.queue_free()
+	equipment_grid.set_page(equipment_grid.current_page)
 
 func _cleanup_drag() -> void:
 	if dragged_item:
@@ -242,6 +266,7 @@ func _cleanup_drag() -> void:
 		dragged_item.mouse_filter = Control.MOUSE_FILTER_PASS
 	dragged_item = null
 	original_slot = null
+	original_grid_index = -1
 	is_dragging = false
 
 func _get_slot_under_mouse(global_pos: Vector2) -> InventorySlot:
@@ -278,7 +303,7 @@ func _remove_dragged_from_inventory_state() -> void:
 		else:
 			inventory.equipped_gear.erase(gear.slot_type)
 	else:
-		inventory.equipment.erase(_grid_global_index(original_slot))
+		inventory.equipment.erase(original_grid_index)
 	InventoryManager.inventory_changed.emit(inventory)
 
 func _pick_up_from_trash(trash: TrashSlot, global_mouse_pos: Vector2) -> void:

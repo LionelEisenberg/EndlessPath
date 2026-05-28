@@ -35,20 +35,21 @@ func _on_gui_input(event: InputEvent) -> void:
 ## Sets up the slot with the given item data.
 func setup(data: ItemInstanceData) -> void:
 	if item_instance != null:
-		if data == null:
-			item_instance.queue_free()
-			return
+		# Already showing exactly this item — nothing to rebuild.
 		if item_instance.item_instance_data == data:
 			return
-		else:
-			item_instance.queue_free()
-		
+		# Different item (or now empty): drop the old visual immediately so a
+		# page flip that re-binds this slot to an empty global index doesn't keep
+		# showing the previous page's item / occupied texture.
+		remove_child(item_instance)
+		item_instance.queue_free()
+		item_instance = null
+
 	if data != null:
 		item_instance = item_instance_scene.instantiate()
 		add_child(item_instance)
 		item_instance.setup(data)
-		self.texture = full_slot_textures[randi() % full_slot_textures.size()]
-	
+
 	_update_slot()
 
 ## Removes and returns the item instance from the slot.
