@@ -2,61 +2,58 @@ class_name EquipmentGrid
 extends MarginContainer
 
 ## EquipmentGrid
-## Manages the grid view of equipment items and custom scrollbar logic
+## A fixed 6×6 (36-slot) page of the equipment inventory. The visible page
+## is `current_page`; local slot child-index i maps to global inventory
+## index current_page * SLOTS_PER_PAGE + i. No scrolling — navigation is
+## handled by the PaginationBar.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-const SCROLL_MIN_Y = 0.025
-const SCROLL_MAX_Y = 0.90
+const SLOTS_PER_PAGE := 36
 
-## Max inventory slots — 6 columns x 10 rows for the redesigned grid.
-const NUM_INVENTORY_SLOTS = 60
+#-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
+signal slot_clicked(slot: InventorySlot, event: InputEvent)
 
 #-----------------------------------------------------------------------------
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-@onready var v_scroll_bar: VScrollBar = %VScrollBar
-@onready var grabber: TextureRect = %Grabber
-@onready var scroll_container: ScrollContainer = %ScrollContainer
 @onready var grid_container: GridContainer = %GridContainer
 
-signal slot_clicked(slot: InventorySlot, event: InputEvent)
+var inventory_slot_scene: PackedScene = preload("res://scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.tscn")
 
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
 
-# Drag logic moved to InventoryView
+var current_page: int = 0
 
-#-----------------------------------------------------------------------------
-# COMPONENTS
-#-----------------------------------------------------------------------------
-
-var inventory_slot_scene: PackedScene = preload("res://scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.tscn")
-
-@export var default_item_instance_data = null
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	scroll_container.get_v_scroll_bar().scrolling.connect(_on_scrolling)
-	
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
 		_update_grid(InventoryManager.get_inventory())
 
 #-----------------------------------------------------------------------------
-# INPUT HANDLING
+# PUBLIC API
 #-----------------------------------------------------------------------------
 
-func _on_slot_clicked(slot: InventorySlot, event: InputEvent) -> void:
-	slot_clicked.emit(slot, event)
+## Switch to a page and re-render. Clamps to [0, unlocked_pages - 1].
+func set_page(page: int) -> void:
+	var inventory := InventoryManager.get_inventory()
+	var max_page := inventory.unlocked_equipment_pages - 1
+	current_page = clampi(page, 0, max_page)
+	_update_grid(inventory)
 
-## Returns all inventory slots in the grid.
+## Returns the 36 InventorySlot children of the grid.
 func get_slots() -> Array[InventorySlot]:
 	var slots: Array[InventorySlot] = []
 	for child in grid_container.get_children():
@@ -68,30 +65,27 @@ func get_slots() -> Array[InventorySlot]:
 # SETUP FUNCTIONS
 #-----------------------------------------------------------------------------
 
-func _on_inventory_changed(inventory: InventoryData) -> void:
-	_update_grid(inventory)
+func _on_inventory_changed(_inventory: InventoryData) -> void:
+	# A page may have been granted; re-clamp current_page and re-render.
+	set_page(current_page)
 
 func _update_grid(inventory: InventoryData) -> void:
-	# Clear existing slots
 	for slot in grid_container.get_children():
 		slot.queue_free()
-	
-	# Create slots for equipment
-	var equipment_dict = inventory.equipment
-	
-	for i in NUM_INVENTORY_SLOTS:
+	var base := current_page * SLOTS_PER_PAGE
+	for i in SLOTS_PER_PAGE:
 		var slot = inventory_slot_scene.instantiate()
 		slot.clicked.connect(_on_slot_clicked)
 		grid_container.add_child(slot)
-		
-		# Check if we have an item at this index
-		if equipment_dict.has(i):
-			slot.setup(equipment_dict[i])
+		var global_index := base + i
+		if inventory.equipment.has(global_index):
+			slot.setup(inventory.equipment[global_index])
 		else:
 			slot.setup(null)
 
-func _on_scrolling() -> void:
-	var page = scroll_container.get_v_scroll_bar().page
-	var ratio = scroll_container.get_v_scroll_bar().value / (scroll_container.get_v_scroll_bar().max_value - page)
-	# Maps scroll ratio 0.0-1.0 to visual range SCROLL_MIN_Y-SCROLL_MAX_Y
-	grabber.position.y = clampf(ratio, SCROLL_MIN_Y, SCROLL_MAX_Y) * v_scroll_bar.get_size().y
+#-----------------------------------------------------------------------------
+# INPUT HANDLING
+#-----------------------------------------------------------------------------
+
+func _on_slot_clicked(slot: InventorySlot, event: InputEvent) -> void:
+	slot_clicked.emit(slot, event)
