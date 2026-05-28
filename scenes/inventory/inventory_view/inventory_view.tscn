@@ -251,22 +251,25 @@ grow_vertical = 2
 [node name="EquipmentGrid" parent="BookBackground/BookContent/EquipmentTab" unique_id=342341599 instance=ExtResource("13_qedsu")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 87.5
-offset_top = 188.5
-offset_right = 321.0
-offset_bottom = 431.5
+offset_left = 84.5
+offset_top = 162.5
+offset_right = 336.5
+offset_bottom = 368.0
 theme_override_constants/margin_left = 13
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 7
-theme_override_constants/margin_bottom = 27
+theme_override_constants/margin_bottom = 2
+num_columns = 7
+row_separation = 5
+col_separation = 5
 
 [node name="PaginationBar" parent="BookBackground/BookContent/EquipmentTab" unique_id=1052109374 instance=ExtResource("32_pagination")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 100.0
-offset_top = 432.0
-offset_right = 318.0
-offset_bottom = 460.0
+offset_left = 97.5
+offset_top = 364.0
+offset_right = 323.5
+offset_bottom = 396.0
 
 [node name="GearSelector" parent="BookBackground/BookContent/EquipmentTab" unique_id=72603322 instance=ExtResource("14_xrgga")]
 unique_name_in_owner = true

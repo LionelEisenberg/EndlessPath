@@ -1,42 +1,40 @@
-[gd_scene load_steps=4 format=3 uid="uid://c0pg8q7n3pb4r"]
+[gd_scene format=3 uid="uid://c0pg8q7n3pb4r"]
 
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="1_theme"]
-[ext_resource type="Script" path="res://scenes/inventory/inventory_view/equipment_tab/pagination_bar/pagination_bar.gd" id="2_script"]
+[ext_resource type="Script" uid="uid://mwc3c7bn0cw8" path="res://scenes/inventory/inventory_view/equipment_tab/pagination_bar/pagination_bar.gd" id="2_script"]
 [ext_resource type="PackedScene" uid="uid://bx475rcu42d08" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.tscn" id="3_trash"]
+[ext_resource type="PackedScene" uid="uid://cp4g3btnw8x2k" path="res://scenes/inventory/inventory_view/equipment_tab/page_button/page_button.tscn" id="4_pagebutton"]
 
-[node name="PaginationBar" type="HBoxContainer"]
+[node name="PaginationBar" type="HBoxContainer" unique_id=1685343429]
+custom_minimum_size = Vector2(160, 0)
 theme = ExtResource("1_theme")
-script = ExtResource("2_script")
 theme_override_constants/separation = 8
+script = ExtResource("2_script")
 
-[node name="CountWrapper" type="Control" parent="."]
-clip_contents = true
-custom_minimum_size = Vector2(80, 28)
-layout_mode = 2
-size_flags_horizontal = 0
-
-[node name="CountLabel" type="Label" parent="CountWrapper"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-scale = Vector2(0.5, 0.5)
-pivot_offset = Vector2(0, 14)
-theme_type_variation = &"LabelInventoryCount"
-text = "0 / 0"
-vertical_alignment = 1
-
-[node name="PageButtons" type="HBoxContainer" parent="."]
+[node name="PageButtons" type="HBoxContainer" parent="." unique_id=1459869600]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
-alignment = 1
+size_flags_horizontal = 2
 theme_override_constants/separation = 4
+alignment = 1
 
-[node name="TrashSlot" parent="." instance=ExtResource("3_trash")]
+[node name="PageButton1" parent="PageButtons" unique_id=1405629973 instance=ExtResource("4_pagebutton")]
+layout_mode = 2
+button_pressed = true
+
+[node name="PageButton2" parent="PageButtons" unique_id=854048901 instance=ExtResource("4_pagebutton")]
+layout_mode = 2
+
+[node name="PageButton3" parent="PageButtons" unique_id=144887779 instance=ExtResource("4_pagebutton")]
+layout_mode = 2
+
+[node name="PageButton4" parent="PageButtons" unique_id=1704289236 instance=ExtResource("4_pagebutton")]
+layout_mode = 2
+
+[node name="PageButton5" parent="PageButtons" unique_id=110555573 instance=ExtResource("4_pagebutton")]
+layout_mode = 2
+
+[node name="TrashSlot" parent="." unique_id=1003267604 instance=ExtResource("3_trash")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 8

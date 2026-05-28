@@ -20,7 +20,7 @@ func test_clicking_button_emits_page_selected() -> void:
 	await get_tree().process_frame
 	bar.setup(3, 0)
 	watch_signals(bar)
-	var third_btn: Button = bar.page_buttons.get_child(2)
+	var third_btn: BaseButton = bar.page_buttons.get_child(2)
 	third_btn.pressed.emit()
 	assert_signal_emitted_with_parameters(bar, "page_selected", [2])
 
@@ -29,15 +29,9 @@ func test_hovering_button_emits_page_hovered() -> void:
 	await get_tree().process_frame
 	bar.setup(2, 0)
 	watch_signals(bar)
-	var second_btn: Button = bar.page_buttons.get_child(1)
+	var second_btn: BaseButton = bar.page_buttons.get_child(1)
 	second_btn.mouse_entered.emit()
 	assert_signal_emitted_with_parameters(bar, "page_hovered", [1])
-
-func test_set_count_formats_label() -> void:
-	var bar := _bar()
-	await get_tree().process_frame
-	bar.set_count(14, 72)
-	assert_eq(bar.count_label.text, "14 / 72")
 
 func test_has_trash_slot() -> void:
 	var bar := _bar()
