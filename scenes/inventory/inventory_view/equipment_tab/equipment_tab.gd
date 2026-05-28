@@ -1,19 +1,19 @@
 extends Control
 
 ## EquipmentTab
-## Left page is the equipment grid + sort sub-banner + grid toolbar
-## (count + trash slot). Right page is the gear selector + item detail
-## card. Handles drag/drop between grid slots, gear slots, and the
-## trash slot (with hold-buffer semantics).
+## Left page is the paginated equipment grid + sort sub-banner; the bottom
+## PaginationBar holds the count, page buttons, and trash slot. Right page is
+## the gear selector + item detail card. Handles drag/drop between grid slots
+## (paged → global index), gear slots, and the trash slot (hold-buffer).
 
-@onready var equipment_grid: Control = %EquipmentGrid
+@onready var equipment_grid: EquipmentGrid = %EquipmentGrid
 @onready var gear_selector: Control = %GearSelector
 @onready var selector_sprite: Node2D = %SelectorSprite
 @onready var selector_anim: AnimationPlayer = %AnimationPlayer
 @onready var item_description_box : TextureRect = %ItemDescriptionBox
 @onready var sort_banner: SortSubBanner = %SortSubBanner
-@onready var grid_toolbar: GridToolbar = %GridToolbar
-@onready var trash_slot : TrashSlot = grid_toolbar.trash_slot
+@onready var pagination_bar: PaginationBar = %PaginationBar
+@onready var trash_slot : TrashSlot = pagination_bar.trash_slot
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -30,11 +30,13 @@ const SELECTOR_OFFSET = Vector2(28, 28)
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	# Connect drag signals
 	equipment_grid.slot_clicked.connect(_on_slot_input)
 	gear_selector.slot_clicked.connect(_on_slot_input)
 	if trash_slot:
 		trash_slot.clicked.connect(_on_slot_input)
+
+	pagination_bar.page_selected.connect(_on_page_selected)
+	pagination_bar.page_hovered.connect(_on_page_hovered)
 
 	item_description_box.reset()
 	selector_sprite.visible = false
@@ -44,18 +46,32 @@ func _ready() -> void:
 
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
-		_refresh_count()
+		_refresh_pagination()
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
 func _on_inventory_changed(_inventory: InventoryData) -> void:
-	_refresh_count()
+	_refresh_pagination()
 
-func _refresh_count() -> void:
+func _refresh_pagination() -> void:
 	var inventory := InventoryManager.get_inventory()
-	grid_toolbar.set_count(inventory.equipment.size(), EquipmentGrid.NUM_INVENTORY_SLOTS)
+	pagination_bar.setup(inventory.unlocked_equipment_pages, equipment_grid.current_page)
+	pagination_bar.set_count(inventory.equipment.size(), inventory.equipment_capacity())
+
+func _on_page_selected(index: int) -> void:
+	equipment_grid.set_page(index)
+	pagination_bar.set_active_page(equipment_grid.current_page)
+
+func _on_page_hovered(index: int) -> void:
+	if is_dragging:
+		equipment_grid.set_page(index)
+		pagination_bar.set_active_page(equipment_grid.current_page)
+
+## Global inventory index of a paged grid slot (local child-index + page offset).
+func _grid_global_index(slot: InventorySlot) -> int:
+	return equipment_grid.current_page * EquipmentGrid.SLOTS_PER_PAGE + slot.get_index()
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
@@ -65,7 +81,6 @@ func _input(event):
 	if is_dragging and dragged_item:
 		if event is InputEventMouseMotion:
 			dragged_item.global_position = get_global_mouse_position() + POSITION_OFFSET
-		
 		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_drop_item(get_global_mouse_position())
 
@@ -81,7 +96,7 @@ func _on_slot_input(slot: InventorySlot, event: InputEvent) -> void:
 				item_description_box.setup(slot.item_instance.item_instance_data)
 			else:
 				item_description_box.reset()
-	
+
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if not is_dragging:
 			if slot is TrashSlot and (slot as TrashSlot).is_holding():
@@ -106,23 +121,17 @@ func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 	var item = slot.grab_item()
 	if item:
 		dragged_item = item
-
 		is_dragging = true
 		original_slot = slot
-
-		# Show tooltip for the item being dragged
 		if dragged_item.item_instance_data:
 			item_description_box.setup(dragged_item.item_instance_data)
-
 		add_child(dragged_item)
-		# ItemInstance is a full-rect Control; once re-parented to this larger tab,
-		# the anchors would balloon it. Pin to top-left + slot dimensions.
 		dragged_item.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		dragged_item.custom_minimum_size = Vector2(28, 28)
 		dragged_item.size = Vector2(28, 28)
 		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
 		dragged_item.scale = Vector2(1.0, 1.0)
-		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE # Pass events through to slots below
+		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _drop_item(global_mouse_pos: Vector2) -> void:
 	var target_slot = _get_slot_under_mouse(global_mouse_pos)
@@ -134,10 +143,7 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 		_cleanup_drag()
 		return
 
-	# Restoring from trash: put the item back into inventory via the
-	# appropriate manager call. Without this branch the generic Grid→Grid
-	# path would call move_equipment with the trash's child-index, which
-	# doesn't correspond to an inventory.equipment key.
+	# Restoring from trash back into inventory.
 	if original_slot is TrashSlot:
 		if target_slot == null:
 			_return_to_original()
@@ -152,78 +158,61 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 				return
 			InventoryManager.equip_item(inst, gear.slot_type, -1, gear.accessory_index)
 		else:
-			# Drop on a regular inventory grid slot.
-			InventoryManager.restore_equipment_instance(inst, target_slot.get_index())
+			InventoryManager.restore_equipment_instance(inst, _grid_global_index(target_slot))
 		dragged_item.queue_free()
 		_cleanup_drag()
 		return
 
 	if target_slot and target_slot != original_slot:
-		# Check if target slot accepts this item
 		var item_data = dragged_item.item_instance_data
-		
-		# Validation for GearSlot
+
 		if target_slot is GearSlot:
 			if not target_slot.is_valid_item(item_data):
 				_return_to_original()
 				_cleanup_drag()
 				return
-		
-		# Logic for swapping/moving via InventoryManager
+
 		if target_slot is GearSlot:
 			# Dropping ONTO a gear slot (Equipping)
-
-			# Case 1: Grid -> GearSlot
 			if not (original_slot is GearSlot):
-				# We need the index of the original slot
-				var from_index = original_slot.get_index()
+				var from_index = _grid_global_index(original_slot)
 				InventoryManager.equip_item(item_data, target_slot.slot_type, from_index, target_slot.accessory_index)
 				dragged_item.queue_free()
-
-			# Case 2: GearSlot -> GearSlot (only meaningful between the two accessory slots)
 			else:
 				InventoryManager.swap_accessory_slots(original_slot.accessory_index, target_slot.accessory_index)
 				dragged_item.queue_free()
 
 		elif original_slot is GearSlot:
 			# Dropping FROM GearSlot TO Grid (Unequipping to specific slot)
-			var target_index = target_slot.get_index()
+			var target_index = _grid_global_index(target_slot)
 			InventoryManager.unequip_item_to_slot(original_slot.slot_type, target_index, original_slot.accessory_index)
 			dragged_item.queue_free()
-				
 		else:
 			# Grid -> Grid (Reordering)
-			var from_index = original_slot.get_index()
-			var to_index = target_slot.get_index()
-			
+			var from_index = _grid_global_index(original_slot)
+			var to_index = _grid_global_index(target_slot)
 			InventoryManager.move_equipment(from_index, to_index)
-			
-			# Visual update is handled by InventoryManager signal -> EquipmentGrid update
 			dragged_item.queue_free()
 	else:
 		_return_to_original()
-	
+
 	_cleanup_drag()
 
 #-----------------------------------------------------------------------------
 # QUICK EQUIP (Right-Click)
 #-----------------------------------------------------------------------------
 
-## Right-click to equip from grid, or unequip from gear slot.
 func _quick_equip(slot: InventorySlot) -> void:
 	var item_data: ItemInstanceData = slot.item_instance.item_instance_data
 	if not item_data.item_definition is EquipmentDefinitionData:
 		return
 
 	if slot is GearSlot:
-		# Right-click on gear slot → unequip to grid
 		InventoryManager.unequip_item(slot.slot_type, slot.accessory_index)
 	else:
-		# Right-click on grid slot → equip to matching gear slot
 		var equip_def: EquipmentDefinitionData = item_data.item_definition as EquipmentDefinitionData
-		var from_index: int = slot.get_index()
+		var from_index: int = _grid_global_index(slot)
 		var accessory_index: int = -1
-		# For accessories, pick the first empty physical slot (else slot 0 to swap).
 		if equip_def.slot_type == EquipmentDefinitionData.EquipmentSlot.ACCESSORY:
 			var equipped: Dictionary = InventoryManager.get_inventory().equipped_accessories
 			if not equipped.has(0):
@@ -240,8 +229,6 @@ func _quick_equip(slot: InventorySlot) -> void:
 
 func _return_to_original() -> void:
 	if original_slot is TrashSlot:
-		# The item came out of the trash hold-buffer. Put it back there, not
-		# into the slot's item_instance field (which would desync _held).
 		var trash := original_slot as TrashSlot
 		var data: ItemInstanceData = dragged_item.item_instance_data
 		trash.accept(data)
@@ -258,20 +245,14 @@ func _cleanup_drag() -> void:
 	is_dragging = false
 
 func _get_slot_under_mouse(global_pos: Vector2) -> InventorySlot:
-	# Check EquipmentGrid slots
 	for slot in equipment_grid.get_slots():
 		if slot.get_global_rect().has_point(global_pos):
 			return slot
-
-	# Check GearSelector slots
 	for slot in gear_selector.get_slots():
 		if slot.get_global_rect().has_point(global_pos):
 			return slot
-
-	# Check TrashSlot
 	if trash_slot and trash_slot.get_global_rect().has_point(global_pos):
 		return trash_slot
-
 	return null
 
 #-----------------------------------------------------------------------------
@@ -282,17 +263,10 @@ func _handle_trash_drop(trash: TrashSlot) -> void:
 	if dragged_item == null:
 		return
 	var data: ItemInstanceData = dragged_item.item_instance_data
-	# accept() handles discard logging when a prior held item gets replaced.
 	trash.accept(data)
-	# The visual disappeared when the item was picked up, but the inventory
-	# dictionary still holds a reference. Remove that reference so the next
-	# refresh doesn't restore the item visually. Skip when the drag started
-	# from the trash itself (item was never in inventory while held).
 	_remove_dragged_from_inventory_state()
 	dragged_item.queue_free()
 
-## Removes the dragged item from InventoryData based on where it came from.
-## No-op if the drag originated in the trash slot itself.
 func _remove_dragged_from_inventory_state() -> void:
 	if original_slot == null or original_slot is TrashSlot:
 		return
@@ -304,19 +278,14 @@ func _remove_dragged_from_inventory_state() -> void:
 		else:
 			inventory.equipped_gear.erase(gear.slot_type)
 	else:
-		var from_index: int = original_slot.get_index()
-		inventory.equipment.erase(from_index)
+		inventory.equipment.erase(_grid_global_index(original_slot))
 	InventoryManager.inventory_changed.emit(inventory)
 
 func _pick_up_from_trash(trash: TrashSlot, global_mouse_pos: Vector2) -> void:
 	var held = trash.get_held()
 	if held == null:
 		return
-
-	# Equipment instances are dragged as visual ItemInstance controls.
 	if held is ItemInstanceData:
-		# Take the existing visual the trash already rendered (see TrashSlot.accept),
-		# so picking up doesn't spawn a duplicate.
 		var visual: Control = trash.grab_item()
 		trash.clear_hold()
 		if visual == null:
@@ -330,6 +299,5 @@ func _pick_up_from_trash(trash: TrashSlot, global_mouse_pos: Vector2) -> void:
 		dragged_item.size = Vector2(28, 28)
 		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
 		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Show tooltip for the dragged item.
 		if item_description_box:
 			item_description_box.setup(held)

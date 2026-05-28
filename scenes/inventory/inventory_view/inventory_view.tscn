@@ -23,6 +23,7 @@
 [ext_resource type="PackedScene" uid="uid://bm8mdc2t4qx3a" path="res://scenes/inventory/inventory_view/materials_tab/material_detail_card.tscn" id="29_matdetail"]
 [ext_resource type="PackedScene" uid="uid://btpcreamtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="30_mattip"]
 [ext_resource type="PackedScene" uid="uid://dlst8ppfx3u0o" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.tscn" id="31_constab"]
+[ext_resource type="PackedScene" uid="uid://c0pg8q7n3pb4r" path="res://scenes/inventory/inventory_view/equipment_tab/pagination_bar/pagination_bar.tscn" id="32_pagination"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -247,14 +248,6 @@ offset_bottom = -67.5
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="GridToolbar" parent="BookBackground/BookContent/EquipmentTab" unique_id=1052109374 instance=ExtResource("26_gridtoolbar")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 106.0
-offset_top = 158.5
-offset_right = 324.0
-offset_bottom = 186.5
-
 [node name="EquipmentGrid" parent="BookBackground/BookContent/EquipmentTab" unique_id=342341599 instance=ExtResource("13_qedsu")]
 unique_name_in_owner = true
 layout_mode = 0
@@ -266,6 +259,14 @@ theme_override_constants/margin_left = 13
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 7
 theme_override_constants/margin_bottom = 27
+
+[node name="PaginationBar" parent="BookBackground/BookContent/EquipmentTab" unique_id=1052109374 instance=ExtResource("32_pagination")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 100.0
+offset_top = 432.0
+offset_right = 318.0
+offset_bottom = 460.0
 
 [node name="GearSelector" parent="BookBackground/BookContent/EquipmentTab" unique_id=72603322 instance=ExtResource("14_xrgga")]
 unique_name_in_owner = true
