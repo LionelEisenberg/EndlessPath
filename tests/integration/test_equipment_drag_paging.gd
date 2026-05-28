@@ -4,7 +4,7 @@ func before_each() -> void:
 	PersistenceManager.save_game_data.inventory = InventoryData.new()
 
 func _equipment_tab() -> Node:
-	var view := load("res://scenes/inventory/inventory_view/inventory_view.tscn").instantiate()
+	var view: Node = load("res://scenes/inventory/inventory_view/inventory_view.tscn").instantiate()
 	add_child_autofree(view)
 	return view.find_child("EquipmentTab", true, false)
 
