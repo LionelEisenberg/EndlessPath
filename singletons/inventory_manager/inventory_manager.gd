@@ -241,7 +241,7 @@ func restore_equipment_instance(instance: ItemInstanceData, target_slot_index: i
 		Log.error("InventoryManager.restore_equipment_instance: null instance")
 		return
 	var inventory := get_inventory()
-	if target_slot_index >= 0 and not inventory.equipment.has(target_slot_index):
+	if target_slot_index >= 0 and target_slot_index < inventory.equipment_capacity() and not inventory.equipment.has(target_slot_index):
 		inventory.equipment[target_slot_index] = instance
 	else:
 		_add_to_first_available_slot(inventory, instance)
@@ -254,6 +254,14 @@ func restore_material(def: MaterialDefinitionData, quantity: int) -> void:
 		return
 	var inventory := get_inventory()
 	inventory.materials[def] = inventory.materials.get(def, 0) + quantity
+	inventory_changed.emit(inventory)
+
+## Grant the player one more equipment page (a progression reward).
+## Increments the unlocked page count and notifies listeners so the
+## pagination UI can show the new page.
+func grant_equipment_page() -> void:
+	var inventory := get_inventory()
+	inventory.unlocked_equipment_pages += 1
 	inventory_changed.emit(inventory)
 
 ## Restore N copies of a consumable. Bypasses the looted-log message.
@@ -325,17 +333,13 @@ func _award_equipment(equipment_def: EquipmentDefinitionData, quantity: int) -> 
 	inventory_changed.emit(inventory)
 
 func _add_to_first_available_slot(inventory: InventoryData, item: ItemInstanceData) -> void:
-	# Find first available slot index
-	# Assuming a max slot count, e.g., 50 from EquipmentGrid
-	# We should probably define this constant somewhere shared.
-	var max_slots = 50
-
-	for i in max_slots:
+	var capacity := inventory.equipment_capacity()
+	for i in capacity:
 		if not inventory.equipment.has(i):
 			inventory.equipment[i] = item
 			return
-
-	Log.warn("InventoryManager: Inventory full, cannot add equipment.")
+	var item_id := item.item_definition.item_id if item.item_definition else "?"
+	Log.warn("InventoryManager: Equipment full (%d/%d), cannot add %s" % [inventory.equipment.size(), capacity, item_id])
 
 #-----------------------------------------------------------------------------
 # EQUIPPED-SLOT ROUTING HELPERS
