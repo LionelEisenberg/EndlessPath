@@ -25,5 +25,18 @@ extends Resource
 ## from `consumables`, not stored here.
 @export var equipped_consumables: Dictionary[int, ConsumableDefinitionData] = {}
 
+## Slots per equipment page (6 columns × 6 rows). Global slot index for
+## page P, local position i is P * SLOTS_PER_PAGE + i.
+const SLOTS_PER_PAGE := 36
+
+## Number of equipment pages the player has unlocked. Starts at 1; granted
+## by InventoryManager.grant_equipment_page(). Total capacity is
+## unlocked_equipment_pages * SLOTS_PER_PAGE.
+@export var unlocked_equipment_pages: int = 1
+
+## Total equipment slots currently available across all unlocked pages.
+func equipment_capacity() -> int:
+	return unlocked_equipment_pages * SLOTS_PER_PAGE
+
 func _to_string() -> String:
 	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, equipped_accessories: %s, quest_items: %s, consumables: %s, equipped_consumables: %s)" % [materials, equipment, equipped_gear, equipped_accessories, quest_items, consumables, equipped_consumables]
