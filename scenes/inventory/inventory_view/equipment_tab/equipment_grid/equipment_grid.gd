@@ -49,7 +49,7 @@ func _ready() -> void:
 ## Switch to a page and re-render. Clamps to [0, unlocked_pages - 1].
 func set_page(page: int) -> void:
 	var inventory := InventoryManager.get_inventory()
-	var max_page := inventory.unlocked_equipment_pages - 1
+	var max_page := maxi(inventory.unlocked_equipment_pages - 1, 0)
 	current_page = clampi(page, 0, max_page)
 	_update_grid(inventory)
 
@@ -74,7 +74,7 @@ func _update_grid(inventory: InventoryData) -> void:
 		slot.queue_free()
 	var base := current_page * SLOTS_PER_PAGE
 	for i in SLOTS_PER_PAGE:
-		var slot = inventory_slot_scene.instantiate()
+		var slot: InventorySlot = inventory_slot_scene.instantiate() as InventorySlot
 		slot.clicked.connect(_on_slot_clicked)
 		grid_container.add_child(slot)
 		var global_index := base + i
