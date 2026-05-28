@@ -234,6 +234,7 @@ texture = ExtResource("8_midoe")
 
 [node name="SortSubBanner" parent="BookBackground/BookContent/EquipmentTab" unique_id=1411663176 instance=ExtResource("25_sortbanner")]
 unique_name_in_owner = true
+scale = Vector2(0.5, 0.5)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -249,6 +250,7 @@ grow_vertical = 2
 
 [node name="GridToolbar" parent="BookBackground/BookContent/EquipmentTab" unique_id=1052109374 instance=ExtResource("26_gridtoolbar")]
 unique_name_in_owner = true
+scale = Vector2(0.5, 0.5)
 layout_mode = 0
 offset_left = 106.5
 offset_top = 159.5
