@@ -46,3 +46,27 @@ func _to_string() -> String:
 	return "ChangeVitalsEffectData: {\n HealthChanged: %s, \n StaminaChanged: %s, \n MadraChanged: %s, \n BodyHPMul: %s, \n FoundationMadraMul: %s }" % [
 		health_change, stamina_change, madra_change, body_hp_multiplier, foundation_madra_multiplier
 	]
+
+## Human-readable summary of the non-zero changes only, for item tooltips.
+## E.g. "+20 Madra" or "+15 Health, +50% Body as Health".
+func describe() -> String:
+	var parts: PackedStringArray = PackedStringArray()
+	if health_change != 0.0:
+		parts.append("%s Health" % _format_signed(health_change))
+	if stamina_change != 0.0:
+		parts.append("%s Stamina" % _format_signed(stamina_change))
+	if madra_change != 0.0:
+		parts.append("%s Madra" % _format_signed(madra_change))
+	if body_hp_multiplier != 0.0:
+		parts.append("%s%% Body as Health" % _format_signed(body_hp_multiplier * 100.0))
+	if foundation_madra_multiplier != 0.0:
+		parts.append("%s%% Foundation as Madra" % _format_signed(foundation_madra_multiplier * 100.0))
+	if parts.is_empty():
+		return "No effect"
+	return ", ".join(parts)
+
+## Leading sign, and no trailing ".0" for whole numbers ("+20", "-7.5").
+func _format_signed(value: float) -> String:
+	if is_equal_approx(value, roundf(value)):
+		return "%+d" % int(value)
+	return "%+.1f" % value
