@@ -5,25 +5,10 @@
 [ext_resource type="Texture2D" uid="uid://2ht5lyu30god" path="res://assets/sprites/inventory/page_turning_spritesheet.png" id="2_wdr80"]
 [ext_resource type="PackedScene" uid="uid://dnkls2h5eaj10" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.tscn" id="3_eyvfv"]
 [ext_resource type="Script" uid="uid://bevd783gr5t7m" path="res://scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd" id="4_tabsw"]
-[ext_resource type="PackedScene" uid="uid://btabbanner00001" path="res://scenes/inventory/common/tab_banner/tab_banner.tscn" id="33_tabbanner"]
-[ext_resource type="Script" uid="uid://o2cqmwaxwv01" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd" id="8_qfdbg"]
-[ext_resource type="PackedScene" uid="uid://u2naqgqaai45" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.tscn" id="13_qedsu"]
-[ext_resource type="PackedScene" uid="uid://bywdjh8pmjuev" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.tscn" id="14_xrgga"]
-[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="16_1vqu0"]
-[ext_resource type="Texture2D" uid="uid://73gi871a4dr7" path="res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Spritesheet_Select01a.png" id="16_v70co"]
-[ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/sprites/inventory/gear_selector/item_description_background.png" id="17_00gvd"]
-[ext_resource type="Script" uid="uid://bpyj8ugmi6t0t" path="res://scenes/inventory/inventory_view/item_description_box.gd" id="17_ycsy7"]
-[ext_resource type="Texture2D" uid="uid://3w4d3der8ula" path="res://assets/sprites/inventory/materials_tab/banner.png" id="20_qufb6"]
-[ext_resource type="Script" uid="uid://budyxvcrbpvo1" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.gd" id="21_26fxh"]
-[ext_resource type="PackedScene" uid="uid://hdpsokiiqmae" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="23_desc_panel"]
+[ext_resource type="PackedScene" uid="uid://bf2mvtcm5vq52" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_tab.tscn" id="6_k51tu"]
+[ext_resource type="PackedScene" uid="uid://dmx5iukydwvil" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.tscn" id="8_asm34"]
 [ext_resource type="PackedScene" uid="uid://b0gr2k468xgyi" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.tscn" id="24_qtab"]
-[ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="25_sortbanner"]
-[ext_resource type="PackedScene" uid="uid://b7gtbr4yvm21q" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.tscn" id="26_gridtoolbar"]
-[ext_resource type="PackedScene" uid="uid://b7e8nap4xrlnq" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="28_invgrid"]
-[ext_resource type="PackedScene" uid="uid://bm8mdc2t4qx3a" path="res://scenes/inventory/inventory_view/materials_tab/material_detail_card.tscn" id="29_matdetail"]
-[ext_resource type="PackedScene" uid="uid://btpcreamtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="30_mattip"]
 [ext_resource type="PackedScene" uid="uid://dlst8ppfx3u0o" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.tscn" id="31_constab"]
-[ext_resource type="PackedScene" uid="uid://c0pg8q7n3pb4r" path="res://scenes/inventory/inventory_view/equipment_tab/pagination_bar/pagination_bar.tscn" id="32_pagination"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -73,44 +58,6 @@ tracks/0/keys = {
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_gsa2o"]
 _data = {
 &"PageTurningAnimation": SubResource("Animation_pcbrs")
-}
-
-[sub_resource type="Animation" id="Animation_a4bu5"]
-length = 0.001
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 1,
-"values": [3]
-}
-
-[sub_resource type="Animation" id="Animation_835ns"]
-resource_name = "start_select"
-length = 0.8
-loop_mode = 1
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.2, 0.4, 0.6),
-"transitions": PackedFloat32Array(1, 1, 1, 1),
-"update": 1,
-"values": [0, 1, 2, 3]
-}
-
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_juskt"]
-_data = {
-&"RESET": SubResource("Animation_a4bu5"),
-&"start_select": SubResource("Animation_835ns")
 }
 
 [node name="InventoryView" type="Control" unique_id=212600376]
@@ -208,106 +155,7 @@ offset_top = 242.0
 offset_right = 55.5
 offset_bottom = 242.0
 
-[node name="EquipmentTab" type="Control" parent="BookBackground/BookContent" unique_id=191510472]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("8_qfdbg")
-
-[node name="EquipmentTabBanner" parent="BookBackground/BookContent/EquipmentTab" unique_id=2036657518 instance=ExtResource("33_tabbanner")]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -235.5
-offset_top = -165.0
-offset_right = -39.5
-offset_bottom = -99.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="SortSubBanner" parent="BookBackground/BookContent/EquipmentTab" unique_id=1411663176 instance=ExtResource("25_sortbanner")]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -217.5
-offset_top = -99.5
-offset_right = -57.5
-offset_bottom = -67.5
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="EquipmentGrid" parent="BookBackground/BookContent/EquipmentTab" unique_id=342341599 instance=ExtResource("13_qedsu")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 84.5
-offset_top = 162.5
-offset_right = 336.5
-offset_bottom = 368.0
-theme_override_constants/margin_left = 13
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 7
-theme_override_constants/margin_bottom = 2
-num_columns = 7
-row_separation = 5
-col_separation = 5
-
-[node name="PaginationBar" parent="BookBackground/BookContent/EquipmentTab" unique_id=1052109374 instance=ExtResource("32_pagination")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 97.5
-offset_top = 364.0
-offset_right = 323.5
-offset_bottom = 396.0
-
-[node name="GearSelector" parent="BookBackground/BookContent/EquipmentTab" unique_id=72603322 instance=ExtResource("14_xrgga")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 387.5
-offset_top = 66.5
-offset_right = 427.5
-offset_bottom = 106.5
-
-[node name="SelectorSprite" type="Node2D" parent="BookBackground/BookContent/EquipmentTab" unique_id=1002958317]
-unique_name_in_owner = true
-top_level = true
-position = Vector2(27, 19)
-metadata/_edit_group_ = true
-
-[node name="SelectorSprite" type="Sprite2D" parent="BookBackground/BookContent/EquipmentTab/SelectorSprite" unique_id=1412817067]
-scale = Vector2(2.2, 2.2)
-texture = ExtResource("16_v70co")
-hframes = 4
-frame = 3
-
-[node name="AnimationPlayer" type="AnimationPlayer" parent="BookBackground/BookContent/EquipmentTab/SelectorSprite" unique_id=1875744133]
-unique_name_in_owner = true
-root_node = NodePath("../SelectorSprite")
-libraries/ = SubResource("AnimationLibrary_juskt")
-
-[node name="ItemDescriptionBox" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab" unique_id=2015014081]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 376.0
-offset_top = 250.5
-offset_right = 846.0
-offset_bottom = 538.5
-scale = Vector2(0.5, 0.5)
-theme = ExtResource("16_1vqu0")
-texture = ExtResource("17_00gvd")
-script = ExtResource("17_ycsy7")
-
-[node name="ItemDescriptionPanel" parent="BookBackground/BookContent/EquipmentTab/ItemDescriptionBox" unique_id=725582600 instance=ExtResource("23_desc_panel")]
+[node name="EquipmentTab" parent="BookBackground/BookContent" unique_id=697996180 instance=ExtResource("6_k51tu")]
 unique_name_in_owner = true
 layout_mode = 1
 
@@ -315,61 +163,9 @@ layout_mode = 1
 unique_name_in_owner = true
 visible = false
 
-[node name="MaterialsTab" type="Control" parent="BookBackground/BookContent" unique_id=2080808482]
-unique_name_in_owner = true
-visible = false
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-script = ExtResource("21_26fxh")
-
-[node name="MaterialsTabBanner" type="TextureRect" parent="BookBackground/BookContent/MaterialsTab" unique_id=1839681741]
-layout_mode = 0
-offset_left = 109.0
-offset_top = 63.0
-offset_right = 305.0
-offset_bottom = 129.0
-texture = ExtResource("20_qufb6")
-
-[node name="MaterialsSortSubBanner" parent="BookBackground/BookContent/MaterialsTab" unique_id=1630147688 instance=ExtResource("25_sortbanner")]
+[node name="MaterialsTab" parent="BookBackground/BookContent" unique_id=47492188 instance=ExtResource("8_asm34")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 145.0
-offset_top = 130.0
-offset_right = 290.0
-offset_bottom = 170.0
-
-[node name="MaterialsGridToolbar" parent="BookBackground/BookContent/MaterialsTab" unique_id=1677358575 instance=ExtResource("26_gridtoolbar")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 82.0
-offset_top = 165.0
-offset_right = 318.0
-offset_bottom = 195.0
-
-[node name="MaterialsInventoryGrid" parent="BookBackground/BookContent/MaterialsTab" unique_id=750174956 instance=ExtResource("28_invgrid")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 82.0
-offset_top = 187.0
-offset_right = 318.0
-offset_bottom = 400.0
-
-[node name="MaterialDetailCard" parent="BookBackground/BookContent/MaterialsTab" unique_id=730258233 instance=ExtResource("29_matdetail")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 387.0
-offset_top = 110.0
-offset_right = 620.0
-offset_bottom = 280.0
-
-[node name="MaterialTipCard" parent="BookBackground/BookContent/MaterialsTab" unique_id=500652944 instance=ExtResource("30_mattip")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 387.0
-offset_top = 290.0
-offset_right = 620.0
-offset_bottom = 360.0
 
 [node name="QuestItemsTab" parent="BookBackground/BookContent" unique_id=1012340856 instance=ExtResource("24_qtab")]
 unique_name_in_owner = true

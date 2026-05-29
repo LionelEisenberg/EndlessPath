@@ -1,0 +1,65 @@
+[gd_scene format=3 uid="uid://dmx5iukydwvil"]
+
+[ext_resource type="Script" uid="uid://budyxvcrbpvo1" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.gd" id="1_2y5o7"]
+[ext_resource type="Texture2D" uid="uid://3w4d3der8ula" path="res://assets/sprites/inventory/materials_tab/banner.png" id="2_ndr45"]
+[ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="3_cbsr0"]
+[ext_resource type="PackedScene" uid="uid://b7gtbr4yvm21q" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.tscn" id="4_mn000"]
+[ext_resource type="PackedScene" uid="uid://b7e8nap4xrlnq" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="5_bmjvd"]
+[ext_resource type="PackedScene" uid="uid://bm8mdc2t4qx3a" path="res://scenes/inventory/inventory_view/materials_tab/material_detail_card.tscn" id="6_le5a0"]
+[ext_resource type="PackedScene" uid="uid://btpcreamtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="7_07lrm"]
+
+[node name="MaterialsTab" type="Control" unique_id=47492188]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_2y5o7")
+
+[node name="MaterialsTabBanner" type="TextureRect" parent="." unique_id=809524323]
+layout_mode = 0
+offset_left = 109.0
+offset_top = 63.0
+offset_right = 305.0
+offset_bottom = 129.0
+texture = ExtResource("2_ndr45")
+
+[node name="MaterialsSortSubBanner" parent="." unique_id=1122666677 instance=ExtResource("3_cbsr0")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 145.0
+offset_top = 130.0
+offset_right = 290.0
+offset_bottom = 170.0
+
+[node name="MaterialsGridToolbar" parent="." unique_id=1727561648 instance=ExtResource("4_mn000")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 82.0
+offset_top = 165.0
+offset_right = 318.0
+offset_bottom = 195.0
+
+[node name="MaterialsInventoryGrid" parent="." unique_id=1469197411 instance=ExtResource("5_bmjvd")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 82.0
+offset_top = 187.0
+offset_right = 318.0
+offset_bottom = 400.0
+
+[node name="MaterialDetailCard" parent="." unique_id=1457964030 instance=ExtResource("6_le5a0")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 387.0
+offset_top = 110.0
+offset_right = 620.0
+offset_bottom = 280.0
+
+[node name="MaterialTipCard" parent="." unique_id=380313957 instance=ExtResource("7_07lrm")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 387.0
+offset_top = 290.0
+offset_right = 620.0
+offset_bottom = 360.0
