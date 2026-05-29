@@ -43,14 +43,16 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -4.0
-offset_bottom = 19.0
+offset_left = -31.0
+offset_top = -6.0
+offset_right = 93.0
+offset_bottom = 22.0
 grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(0.5, 0.5)
 pivot_offset = Vector2(62, 14)
 theme_type_variation = &"LabelInventorySort"
-text = "All"
+text = "Weapons"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -68,22 +70,22 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 
-[node name="Dot0" type="TextureRect" parent="Dots"]
+[node name="Dot0" type="TextureRect" parent="Dots" unique_id=2108154130]
 layout_mode = 2
 texture = ExtResource("5_selected")
 stretch_mode = 3
 
-[node name="Dot1" type="TextureRect" parent="Dots"]
+[node name="Dot1" type="TextureRect" parent="Dots" unique_id=1351925035]
 layout_mode = 2
 texture = ExtResource("6_unselected")
 stretch_mode = 3
 
-[node name="Dot2" type="TextureRect" parent="Dots"]
+[node name="Dot2" type="TextureRect" parent="Dots" unique_id=1029260042]
 layout_mode = 2
 texture = ExtResource("6_unselected")
 stretch_mode = 3
 
-[node name="Dot3" type="TextureRect" parent="Dots"]
+[node name="Dot3" type="TextureRect" parent="Dots" unique_id=535309597]
 layout_mode = 2
 texture = ExtResource("6_unselected")
 stretch_mode = 3
