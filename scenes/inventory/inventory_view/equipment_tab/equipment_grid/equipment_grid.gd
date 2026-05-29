@@ -25,6 +25,10 @@ extends MarginContainer
 ## (num_rows * num_columns) cannot exceed this without adding more instances.
 const SLOT_POOL_SIZE := 48
 
+## Opacity for slots whose item does not match the active category filter
+## (purely visual de-emphasis; slots stay fully interactive).
+const DIM_ALPHA := 0.3
+
 #-----------------------------------------------------------------------------
 # EXPORTS (live layout tuning)
 #-----------------------------------------------------------------------------
@@ -68,6 +72,10 @@ signal slot_clicked(slot: InventorySlot, event: InputEvent)
 
 var current_page: int = 0
 
+## Predicate (ItemInstanceData -> bool) for the active category filter: items
+## that fail it (and empty slots) render dimmed. Defaults to match-all.
+var _category_match: Callable = func(_d: ItemInstanceData) -> bool: return true
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -107,6 +115,14 @@ func get_slots() -> Array[InventorySlot]:
 			slots.append(child)
 	return slots
 
+## Set the active category filter. Slots whose item fails `match` (and empty
+## slots) render dimmed; pass a match-all predicate to clear. Re-renders so the
+## dim state is reapplied to the current page.
+func set_category_filter(match: Callable) -> void:
+	_category_match = match
+	if InventoryManager:
+		_update_grid(InventoryManager.get_inventory())
+
 #-----------------------------------------------------------------------------
 # SETUP FUNCTIONS
 #-----------------------------------------------------------------------------
@@ -137,10 +153,9 @@ func _update_grid(inventory: InventoryData) -> void:
 	var slots := get_slots()
 	for i in slots.size():
 		var global_index := base + i
-		if inventory.equipment.has(global_index):
-			slots[i].setup(inventory.equipment[global_index])
-		else:
-			slots[i].setup(null)
+		var data: ItemInstanceData = inventory.equipment.get(global_index)
+		slots[i].setup(data)
+		slots[i].modulate.a = 1.0 if _category_match.call(data) else DIM_ALPHA
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING

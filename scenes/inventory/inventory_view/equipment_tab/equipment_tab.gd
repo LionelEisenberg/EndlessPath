@@ -27,6 +27,10 @@ var original_slot: InventorySlot = null
 ## longer reflects where the dragged item actually came from.
 var original_grid_index: int = -1
 var is_dragging: bool = false
+## Category filters for the sort banner: each entry is { label: String,
+## match: Callable } where match(ItemInstanceData) -> bool decides which items
+## stay at full opacity. Built in _ready.
+var _categories: Array = []
 const POSITION_OFFSET = Vector2(0, -15)
 const SELECTOR_OFFSET = Vector2(28, 28)
 
@@ -46,8 +50,13 @@ func _ready() -> void:
 	item_description_box.reset()
 	selector_sprite.visible = false
 
-	sort_banner.set_options(PackedStringArray(["All", "Weapons", "Armor", "Accessories"]))
-	sort_banner.enabled = false  # filtering wiring is deferred per spec
+	_build_categories()
+	var labels := PackedStringArray()
+	for cat in _categories:
+		labels.append(cat["label"])
+	sort_banner.set_options(labels)
+	sort_banner.enabled = true
+	sort_banner.option_changed.connect(_on_filter_changed)
 
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
@@ -76,6 +85,32 @@ func _on_page_hovered(index: int) -> void:
 ## Global inventory index of a paged grid slot (local child-index + page offset).
 func _grid_global_index(slot: InventorySlot) -> int:
 	return equipment_grid.current_page * equipment_grid.slots_per_page() + slot.get_index()
+
+#-----------------------------------------------------------------------------
+# CATEGORY FILTER
+#-----------------------------------------------------------------------------
+
+## Build the category list. Each match closure takes an ItemInstanceData (or
+## null) and returns whether it belongs to the category.
+func _build_categories() -> void:
+	_categories = [
+		{ "label": "All", "match": func(_d: ItemInstanceData) -> bool: return true },
+		{ "label": "Weapons", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, EquipmentDefinitionData.EquipmentSlot.OFF_HAND]) },
+		{ "label": "Armor", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.HEAD, EquipmentDefinitionData.EquipmentSlot.ARMOR]) },
+		{ "label": "Accessories", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.ACCESSORY]) },
+	]
+
+## True when `data` is equipment whose slot_type is in `slot_types`.
+func _item_in_slots(data: ItemInstanceData, slot_types: Array) -> bool:
+	if data == null:
+		return false
+	var def := data.item_definition
+	return def is EquipmentDefinitionData and (def as EquipmentDefinitionData).slot_type in slot_types
+
+## Apply the selected category as a visual dim filter on the grid.
+func _on_filter_changed(index: int) -> void:
+	if index >= 0 and index < _categories.size():
+		equipment_grid.set_category_filter(_categories[index]["match"])
 
 ## True when the drop target is the same inventory location the drag started
 ## from (so the drag cancels instead of moving). Grid origins compare by global
