@@ -9,7 +9,6 @@
 [ext_resource type="PackedScene" uid="uid://btpcreamtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="7_07lrm"]
 
 [node name="MaterialsTab" type="Control" unique_id=47492188]
-visible = false
 layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
@@ -27,10 +26,10 @@ texture = ExtResource("2_ndr45")
 [node name="MaterialsSortSubBanner" parent="." unique_id=1122666677 instance=ExtResource("3_cbsr0")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 145.0
-offset_top = 130.0
-offset_right = 290.0
-offset_bottom = 170.0
+offset_left = 124.0
+offset_top = 128.0
+offset_right = 284.0
+offset_bottom = 168.0
 
 [node name="MaterialsGridToolbar" parent="." unique_id=1727561648 instance=ExtResource("4_mn000")]
 unique_name_in_owner = true

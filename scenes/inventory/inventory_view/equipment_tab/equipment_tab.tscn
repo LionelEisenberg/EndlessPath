@@ -52,11 +52,9 @@ _data = {
 
 [node name="EquipmentTab" type="Control" unique_id=697996180]
 layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
 script = ExtResource("1_npkje")
 
 [node name="EquipmentTabBanner" parent="." unique_id=16900707 instance=ExtResource("2_ou53u")]
@@ -66,10 +64,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -235.5
-offset_top = -165.0
-offset_right = -39.5
-offset_bottom = -99.0
+offset_left = 95.0
+offset_top = 42.0
+offset_right = 291.0
+offset_bottom = 108.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -81,10 +79,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -217.5
-offset_top = -99.5
-offset_right = -57.5
-offset_bottom = -67.5
+offset_left = 111.0
+offset_top = 106.0
+offset_right = 271.0
+offset_bottom = 143.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -92,15 +90,15 @@ grow_vertical = 2
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 84.5
-offset_top = 162.5
+offset_top = 168.5
 offset_right = 336.5
-offset_bottom = 368.0
+offset_bottom = 374.0
 theme_override_constants/margin_left = 13
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 7
 theme_override_constants/margin_bottom = 2
 num_columns = 7
-row_separation = 5
+row_separation = 4
 col_separation = 5
 
 [node name="PaginationBar" parent="." unique_id=1685343429 instance=ExtResource("5_ciuoo")]
@@ -122,7 +120,7 @@ offset_bottom = 106.5
 [node name="SelectorSprite" type="Node2D" parent="." unique_id=1671125583]
 unique_name_in_owner = true
 top_level = true
-position = Vector2(27, 19)
+z_index = 100
 metadata/_edit_group_ = true
 
 [node name="SelectorSprite" type="Sprite2D" parent="SelectorSprite" unique_id=2117251498]

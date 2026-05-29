@@ -165,6 +165,7 @@ visible = false
 
 [node name="MaterialsTab" parent="BookBackground/BookContent" unique_id=47492188 instance=ExtResource("8_asm34")]
 unique_name_in_owner = true
+visible = false
 layout_mode = 0
 
 [node name="QuestItemsTab" parent="BookBackground/BookContent" unique_id=1012340856 instance=ExtResource("24_qtab")]
