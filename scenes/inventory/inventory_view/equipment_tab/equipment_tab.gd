@@ -234,10 +234,14 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 				dragged_item.queue_free()
 
 		elif original_slot is GearSlot:
-			# Dropping FROM GearSlot TO Grid (Unequipping to specific slot)
+			# Dropping FROM GearSlot TO Grid (Unequipping to a specific slot). If
+			# the target holds an item that can't go into this gear slot, the swap
+			# is rejected — return the dragged item to its slot rather than lose it.
 			var target_index = _grid_global_index(target_slot)
-			InventoryManager.unequip_item_to_slot(original_slot.slot_type, target_index, original_slot.accessory_index)
-			dragged_item.queue_free()
+			if InventoryManager.unequip_item_to_slot(original_slot.slot_type, target_index, original_slot.accessory_index):
+				dragged_item.queue_free()
+			else:
+				_return_to_original()
 		else:
 			# Grid -> Grid (Reordering)
 			var from_index = original_grid_index

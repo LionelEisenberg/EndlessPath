@@ -115,27 +115,34 @@ func unequip_item(slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: 
 		_add_to_first_available_slot(inventory, item)
 		inventory_changed.emit(inventory)
 
-func unequip_item_to_slot(slot: EquipmentDefinitionData.EquipmentSlot, target_index: int, accessory_index: int = -1) -> void:
+## Unequip the gear item into target_index. If that slot holds a compatible
+## item, the two swap. Returns false (changing nothing) when the target holds
+## an item that does NOT fit the gear slot: that swap is invalid and must not
+## overwrite/destroy the occupant. Returns true on a successful unequip/swap.
+func unequip_item_to_slot(slot: EquipmentDefinitionData.EquipmentSlot, target_index: int, accessory_index: int = -1) -> bool:
 	var inventory = get_inventory()
 
 	if not _has_equipped(inventory, slot, accessory_index):
-		return
+		return false
 
 	var item: ItemInstanceData = _get_equipped(inventory, slot, accessory_index)
 
-	# If target slot has a compatible item, swap it into the gear slot
 	if inventory.equipment.has(target_index):
 		var existing_item = inventory.equipment[target_index]
-		if existing_item.item_definition is EquipmentDefinitionData and existing_item.item_definition.slot_type == slot:
-			_set_equipped(inventory, slot, accessory_index, existing_item)
-		else:
-			_erase_equipped(inventory, slot, accessory_index)
+		var fits: bool = existing_item.item_definition is EquipmentDefinitionData \
+			and (existing_item.item_definition as EquipmentDefinitionData).slot_type == slot
+		if not fits:
+			# Incompatible occupant: reject the swap rather than destroy it.
+			return false
+		# Compatible: swap the grid item into the gear slot.
+		_set_equipped(inventory, slot, accessory_index, existing_item)
 	else:
 		_erase_equipped(inventory, slot, accessory_index)
 
-	# Place unequipped item at the target slot
+	# Place the unequipped item at the target slot.
 	inventory.equipment[target_index] = item
 	inventory_changed.emit(inventory)
+	return true
 
 ## Swap the items in the two physical accessory slots (indices 0 and 1).
 ## Avoids routing through the grid which can match the wrong instance with duplicates.
