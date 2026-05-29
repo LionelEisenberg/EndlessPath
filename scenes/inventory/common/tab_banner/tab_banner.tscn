@@ -2,10 +2,12 @@
 
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="1_theme"]
 [ext_resource type="Texture2D" uid="uid://bwpugnc8unm7r" path="res://assets/sprites/inventory/signage/tab_banner.png" id="2_ribbon"]
+[ext_resource type="Script" path="res://scenes/inventory/common/tab_banner/tab_banner.gd" id="3_script"]
 
 [node name="TabBanner" type="TextureRect" unique_id=16900707]
 theme = ExtResource("1_theme")
 texture = ExtResource("2_ribbon")
+script = ExtResource("3_script")
 
 [node name="Title" type="Label" parent="." unique_id=649990342]
 unique_name_in_owner = true

@@ -16,9 +16,7 @@ offset_left = 109.0
 offset_top = 63.0
 offset_right = 305.0
 offset_bottom = 129.0
-
-[node name="Title" parent="JournalBanner" index="0"]
-text = "Journal"
+title = "Journal"
 
 [node name="Subtitle" type="Label" parent="."]
 layout_mode = 0
