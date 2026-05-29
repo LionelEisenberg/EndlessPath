@@ -7,6 +7,8 @@ extends PanelContainer
 ## (1-4). Empty state shows a faint `+`. Emits `slot_clicked` on press.
 
 signal slot_clicked(slot: HotbarSlot, event: InputEvent)
+## Emitted when a consumable is dropped onto this slot (drag-and-drop equip).
+signal consumable_dropped(def: ConsumableDefinitionData, slot_index: int)
 
 const STYLE_EMPTY: StyleBox = preload("res://assets/styleboxes/inventory/hotbar_slot_empty.tres")
 const STYLE_EQUIPPED: StyleBox = preload("res://assets/styleboxes/inventory/hotbar_slot_equipped.tres")
@@ -50,3 +52,26 @@ func get_definition() -> ConsumableDefinitionData:
 
 func _on_gui_input(event: InputEvent) -> void:
 	slot_clicked.emit(self, event)
+
+#-----------------------------------------------------------------------------
+# DRAG AND DROP (equip)
+#-----------------------------------------------------------------------------
+
+## Accept a consumable dragged from the list; highlight while hovering.
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	var can: bool = data is Dictionary and data.has("consumable")
+	_set_drop_hover(can)
+	return can
+
+## Equip the dropped consumable into this slot.
+func _drop_data(_at_position: Vector2, data: Variant) -> void:
+	_set_drop_hover(false)
+	if data is Dictionary and data.has("consumable"):
+		consumable_dropped.emit(data["consumable"], slot_index)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAG_END:
+		_set_drop_hover(false)
+
+func _set_drop_hover(hovering: bool) -> void:
+	modulate = Color(1.2, 1.15, 1.0) if hovering else Color.WHITE

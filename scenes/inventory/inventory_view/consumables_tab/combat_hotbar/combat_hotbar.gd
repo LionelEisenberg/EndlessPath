@@ -8,6 +8,8 @@ extends VBoxContainer
 ## any child slot.
 
 signal slot_clicked(slot: HotbarSlot, event: InputEvent)
+## Re-emitted from a child slot when a consumable is dropped onto it.
+signal consumable_dropped(def: ConsumableDefinitionData, slot_index: int)
 
 @onready var _slots: Array[HotbarSlot] = [
 	%SlotsRow.get_child(0) as HotbarSlot,
@@ -19,6 +21,7 @@ signal slot_clicked(slot: HotbarSlot, event: InputEvent)
 func _ready() -> void:
 	for s in _slots:
 		s.slot_clicked.connect(_on_slot_clicked)
+		s.consumable_dropped.connect(_on_consumable_dropped)
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
 		_refresh(InventoryManager.get_inventory())
@@ -36,3 +39,6 @@ func _on_inventory_changed(inv: InventoryData) -> void:
 
 func _on_slot_clicked(slot: HotbarSlot, event: InputEvent) -> void:
 	slot_clicked.emit(slot, event)
+
+func _on_consumable_dropped(def: ConsumableDefinitionData, slot_index: int) -> void:
+	consumable_dropped.emit(def, slot_index)

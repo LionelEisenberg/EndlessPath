@@ -1,13 +1,13 @@
 extends GutTest
 
 ## Integration test for the Consumables tab + Combat Hotbar wiring.
-## Verifies right-click on a grid slot equips the consumable to the first
-## empty hotbar slot, and clicking an equipped hotbar slot unequips it.
+## Verifies dragging a consumable onto a hotbar slot equips it to that slot,
+## and clicking an equipped hotbar slot unequips it.
 
 func before_each() -> void:
 	PersistenceManager.save_game_data.inventory = InventoryData.new()
 
-func test_right_click_consumable_slot_equips_to_first_empty_hotbar_slot() -> void:
+func test_drop_consumable_onto_hotbar_slot_equips_to_that_slot() -> void:
 	var def := ConsumableDefinitionData.new()
 	def.item_id = "scale"
 	def.item_name = "Crude Scale"
@@ -18,13 +18,12 @@ func test_right_click_consumable_slot_equips_to_first_empty_hotbar_slot() -> voi
 	add_child_autofree(tab)
 	await get_tree().process_frame
 
-	var first_grid_slot = tab.get_node("%ConsumablesInventoryGrid").get_slots()[0]
-	var evt := InputEventMouseButton.new()
-	evt.button_index = MOUSE_BUTTON_RIGHT
-	evt.pressed = true
-	first_grid_slot.clicked.emit(first_grid_slot, evt)
+	# Drag a consumable onto hotbar slot 2 (native drag-and-drop equip).
+	var slot = tab.get_node("%ConsumablesCombatHotbar").get_node("SlotsRow").get_child(2)
+	assert_true(slot._can_drop_data(Vector2.ZERO, {"consumable": def}), "slot accepts a consumable drop")
+	slot._drop_data(Vector2.ZERO, {"consumable": def})
 
-	assert_eq(InventoryManager.get_inventory().equipped_consumables[0], def)
+	assert_eq(InventoryManager.get_inventory().equipped_consumables.get(2), def, "drop equips to the slot it was dropped on")
 
 func test_click_equipped_hotbar_slot_unequips() -> void:
 	var def := ConsumableDefinitionData.new()

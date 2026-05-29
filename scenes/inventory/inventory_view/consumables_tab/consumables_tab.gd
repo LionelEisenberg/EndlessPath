@@ -1,23 +1,22 @@
 extends Control
 
 ## ConsumablesTab
-## Hosts the shared chrome (SortSubBanner, GridToolbar, InventoryGrid) for
-## consumable stacks on the left page, plus a CombatHotbar + ItemDetailCard
-## on the right page. Right-click a consumable in the grid to equip it to
-## the first empty hotbar slot. Click an equipped hotbar slot to unequip.
+## Hosts the SortSubBanner + a vertical InventoryList of consumable rows on the
+## left page, plus a CombatHotbar + ItemDescriptionBox on the right page.
+## Drag a row onto a combat hotbar slot to equip the consumable there; click an
+## equipped hotbar slot to unequip. Left-click a row to show its details.
+## (Editor preview rows are authored under the list and cleared at runtime.)
 
-const ConsumableSlotScene: PackedScene = preload("res://scenes/inventory/inventory_view/consumables_tab/consumable_slot.tscn")
+const ConsumableRowScene: PackedScene = preload("res://scenes/inventory/inventory_view/consumables_tab/consumable_row.tscn")
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
 @onready var sort_banner: SortSubBanner = %ConsumablesSortSubBanner
-@onready var grid_toolbar: GridToolbar = %ConsumablesGridToolbar
-@onready var grid: InventoryGrid = %ConsumablesInventoryGrid
+@onready var list: InventoryList = %ConsumablesInventoryList
 @onready var hotbar: CombatHotbar = %ConsumablesCombatHotbar
-@onready var detail_card: ItemDetailCard = %ConsumablesItemDetailCard
-@onready var trash_slot: TrashSlot = grid_toolbar.trash_slot
+@onready var detail_box = %ConsumablesItemDescriptionBox
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -27,6 +26,7 @@ func _ready() -> void:
 	sort_banner.set_options(PackedStringArray(["All"]))
 	sort_banner.enabled = false
 	hotbar.slot_clicked.connect(_on_hotbar_clicked)
+	hotbar.consumable_dropped.connect(_on_consumable_dropped)
 
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
@@ -37,31 +37,32 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 func _rebuild(inv: InventoryData) -> void:
-	grid.clear_slots()
+	list.clear_slots()
 	var first_def: ConsumableDefinitionData = null
 	for def in inv.consumables.keys():
-		var slot: ConsumableSlot = ConsumableSlotScene.instantiate()
-		grid.add_slot(slot)
-		slot.setup(def, inv.consumables[def])
-		slot.clicked.connect(_on_grid_slot_clicked)
+		var row: ConsumableRow = ConsumableRowScene.instantiate()
+		list.add_slot(row)
+		row.setup(def, inv.consumables[def])
+		row.clicked.connect(_on_row_clicked)
 		if first_def == null:
 			first_def = def
-	grid_toolbar.set_count_text("%d stacks" % inv.consumables.size())
 	if first_def:
-		detail_card.setup_from_definition(first_def)
+		detail_box.setup_from_definition(first_def)
 	else:
-		detail_card.reset()
+		detail_box.reset()
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
-func _on_grid_slot_clicked(slot: ConsumableSlot, event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			detail_card.setup_from_definition(slot.get_definition())
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			_equip_to_first_empty(slot.get_definition())
+## Left-click selects the row for the detail panel. Equipping is drag-and-drop
+## (handled by the row's _get_drag_data and the hotbar slots' _drop_data).
+func _on_row_clicked(row: ConsumableRow, _event: InputEvent) -> void:
+	detail_box.setup_from_definition(row.get_definition())
+
+## Equip a consumable dragged from the list onto the hotbar slot it was dropped on.
+func _on_consumable_dropped(def: ConsumableDefinitionData, slot_index: int) -> void:
+	InventoryManager.equip_consumable(def, slot_index)
 
 func _on_hotbar_clicked(slot: HotbarSlot, event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -70,21 +71,3 @@ func _on_hotbar_clicked(slot: HotbarSlot, event: InputEvent) -> void:
 
 func _on_inventory_changed(inv: InventoryData) -> void:
 	_rebuild(inv)
-
-#-----------------------------------------------------------------------------
-# PRIVATE HELPERS
-#-----------------------------------------------------------------------------
-
-## Equip the consumable to the first empty hotbar slot (0..3). If all four
-## slots are already occupied, overwrite slot 0 as a fallback so the
-## right-click always lands somewhere visible.
-func _equip_to_first_empty(def: ConsumableDefinitionData) -> void:
-	if def == null:
-		return
-	var inv: InventoryData = InventoryManager.get_inventory()
-	for i in 4:
-		if not inv.equipped_consumables.has(i):
-			InventoryManager.equip_consumable(def, i)
-			return
-	# All slots full — replace slot 0
-	InventoryManager.equip_consumable(def, 0)
