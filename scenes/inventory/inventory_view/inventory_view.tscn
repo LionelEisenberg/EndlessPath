@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://2ht5lyu30god" path="res://assets/sprites/inventory/page_turning_spritesheet.png" id="2_wdr80"]
 [ext_resource type="PackedScene" uid="uid://dnkls2h5eaj10" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.tscn" id="3_eyvfv"]
 [ext_resource type="Script" uid="uid://bevd783gr5t7m" path="res://scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd" id="4_tabsw"]
-[ext_resource type="Texture2D" uid="uid://3ceshn32wqax" path="res://assets/sprites/inventory/equipment_grid/tab_banner.png" id="8_midoe"]
+[ext_resource type="PackedScene" uid="uid://btabbanner00001" path="res://scenes/inventory/common/tab_banner/tab_banner.tscn" id="33_tabbanner"]
 [ext_resource type="Script" uid="uid://o2cqmwaxwv01" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd" id="8_qfdbg"]
 [ext_resource type="PackedScene" uid="uid://u2naqgqaai45" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.tscn" id="13_qedsu"]
 [ext_resource type="PackedScene" uid="uid://bywdjh8pmjuev" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.tscn" id="14_xrgga"]
@@ -218,7 +218,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("8_qfdbg")
 
-[node name="EquipmentTabBanner" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab" unique_id=2036657518]
+[node name="EquipmentTabBanner" parent="BookBackground/BookContent/EquipmentTab" unique_id=2036657518 instance=ExtResource("33_tabbanner")]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -231,7 +231,6 @@ offset_right = -39.5
 offset_bottom = -99.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("8_midoe")
 
 [node name="SortSubBanner" parent="BookBackground/BookContent/EquipmentTab" unique_id=1411663176 instance=ExtResource("25_sortbanner")]
 unique_name_in_owner = true
@@ -299,10 +298,10 @@ libraries/ = SubResource("AnimationLibrary_juskt")
 [node name="ItemDescriptionBox" type="TextureRect" parent="BookBackground/BookContent/EquipmentTab" unique_id=2015014081]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 386.0
+offset_left = 376.0
 offset_top = 250.5
-offset_right = 810.0
-offset_bottom = 528.5
+offset_right = 846.0
+offset_bottom = 538.5
 scale = Vector2(0.5, 0.5)
 theme = ExtResource("16_1vqu0")
 texture = ExtResource("17_00gvd")

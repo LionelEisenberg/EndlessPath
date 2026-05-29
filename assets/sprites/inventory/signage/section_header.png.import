@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3ceshn32wqax"
-path="res://.godot/imported/tab_banner.png-710c851f9ce81bbaf1432e5aa249df66.ctex"
+uid="uid://bptga5m4hxy5b"
+path="res://.godot/imported/section_header.png-0333415a72188f2b3ae38c29e1e2be23.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/inventory/equipment_grid/tab_banner.png"
-dest_files=["res://.godot/imported/tab_banner.png-710c851f9ce81bbaf1432e5aa249df66.ctex"]
+source_file="res://assets/sprites/inventory/signage/section_header.png"
+dest_files=["res://.godot/imported/section_header.png-0333415a72188f2b3ae38c29e1e2be23.ctex"]
 
 [params]
 

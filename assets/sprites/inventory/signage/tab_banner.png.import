@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://veonv7snu457"
-path="res://.godot/imported/gear_selector_top_signage.png-4c841c30716135aa8467bfffe9012bb7.ctex"
+uid="uid://bwpugnc8unm7r"
+path="res://.godot/imported/tab_banner.png-e3105a8148b183d38f94cf416f83a18e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/inventory/gear_selector/gear_selector_top_signage.png"
-dest_files=["res://.godot/imported/gear_selector_top_signage.png-4c841c30716135aa8467bfffe9012bb7.ctex"]
+source_file="res://assets/sprites/inventory/signage/tab_banner.png"
+dest_files=["res://.godot/imported/tab_banner.png-e3105a8148b183d38f94cf416f83a18e.ctex"]
 
 [params]
 
