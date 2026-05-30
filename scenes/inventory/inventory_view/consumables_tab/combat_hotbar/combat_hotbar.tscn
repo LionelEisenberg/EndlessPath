@@ -1,0 +1,45 @@
+[gd_scene load_steps=3 format=3 uid="uid://bcombathotbar0001"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/consumables_tab/combat_hotbar/combat_hotbar.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://bhotbarslot00001" path="res://scenes/inventory/inventory_view/consumables_tab/combat_hotbar/hotbar_slot/hotbar_slot.tscn" id="2_slot"]
+
+[node name="CombatHotbar" type="VBoxContainer"]
+theme_override_constants/separation = 16
+script = ExtResource("1_script")
+
+[node name="Banner" type="Label" parent="."]
+layout_mode = 2
+theme_type_variation = &"LabelTitleSmall"
+theme_override_font_sizes/font_size = 44
+text = "Combat Hotbar"
+horizontal_alignment = 1
+
+[node name="Lede" type="Label" parent="."]
+layout_mode = 2
+theme_type_variation = &"LabelMuted"
+theme_override_font_sizes/font_size = 22
+text = "Drag a stack from the left page into any slot. Hotkeys 1-4."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="SlotsRow" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="HotbarSlot" parent="SlotsRow" instance=ExtResource("2_slot")]
+layout_mode = 2
+slot_index = 0
+
+[node name="HotbarSlot2" parent="SlotsRow" instance=ExtResource("2_slot")]
+layout_mode = 2
+slot_index = 1
+
+[node name="HotbarSlot3" parent="SlotsRow" instance=ExtResource("2_slot")]
+layout_mode = 2
+slot_index = 2
+
+[node name="HotbarSlot4" parent="SlotsRow" instance=ExtResource("2_slot")]
+layout_mode = 2
+slot_index = 3

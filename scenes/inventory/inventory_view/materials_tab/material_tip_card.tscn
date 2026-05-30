@@ -1,0 +1,31 @@
+[gd_scene load_steps=3 format=3 uid="uid://btpcrd9mtipx2"]
+
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="1_theme"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/common/panel_tan.tres" id="2_panel"]
+
+[node name="MaterialTipCard" type="PanelContainer"]
+theme = ExtResource("1_theme")
+theme_override_styles/panel = ExtResource("2_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+theme_override_colors/font_color = Color(0.690196, 0.290196, 0.184314, 1)
+text = "Tip"
+
+[node name="Body" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSmall"
+text = "Right-click a material to mark it as a favorite — favorites rise to the top of the grid and pulse softly when used by a recipe."
+autowrap_mode = 2

@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://b7gtbr4yvm21q"]
+
+[ext_resource type="Script" uid="uid://3lpgwf1jcs5j" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" uid="uid://bx475rcu42d08" path="res://scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.tscn" id="3_trash"]
+
+[node name="GridToolbar" type="HBoxContainer" unique_id=1727561648]
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="CountWrapper" type="Control" parent="." unique_id=1109339693]
+clip_contents = true
+custom_minimum_size = Vector2(80, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CountLabel" type="Label" parent="CountWrapper" unique_id=1336776563]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = -4.0
+offset_right = 16.0
+offset_bottom = 13.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.5, 0.5)
+pivot_offset = Vector2(0, 14)
+theme_type_variation = &"LabelInventoryCount"
+text = "0 / 0"
+vertical_alignment = 3
+
+[node name="TrashSlot" parent="." unique_id=1460124043 instance=ExtResource("3_trash")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4

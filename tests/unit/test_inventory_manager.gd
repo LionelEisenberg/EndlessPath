@@ -126,6 +126,36 @@ func test_unequip_empty_slot_does_nothing() -> void:
 	var had = _inventory.equipped_gear.has(slot)
 	assert_false(had, "slot should not have anything to unequip")
 
+func test_unequip_to_slot_empty_target() -> void:
+	PersistenceManager.save_game_data.inventory = _inventory
+	var head := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.HEAD, "Helm"))
+	_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.HEAD] = head
+	InventoryManager.unequip_item_to_slot(EquipmentDefinitionData.EquipmentSlot.HEAD, 5)
+	assert_false(_inventory.equipped_gear.has(EquipmentDefinitionData.EquipmentSlot.HEAD), "gear slot emptied")
+	assert_eq(_inventory.equipment.get(5), head, "item placed at target slot")
+
+func test_unequip_to_slot_swaps_compatible_item() -> void:
+	PersistenceManager.save_game_data.inventory = _inventory
+	var head_a := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.HEAD, "Helm A"))
+	var head_b := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.HEAD, "Helm B"))
+	_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.HEAD] = head_a
+	_inventory.equipment[5] = head_b
+	InventoryManager.unequip_item_to_slot(EquipmentDefinitionData.EquipmentSlot.HEAD, 5)
+	assert_eq(_inventory.equipped_gear.get(EquipmentDefinitionData.EquipmentSlot.HEAD), head_b, "compatible grid item equipped")
+	assert_eq(_inventory.equipment.get(5), head_a, "unequipped item placed at target")
+
+func test_unequip_to_slot_rejects_incompatible_swap() -> void:
+	# Regression: dropping an equipped item onto a grid slot holding an item
+	# that does not fit the gear slot must NOT destroy the grid item or unequip.
+	PersistenceManager.save_game_data.inventory = _inventory
+	var head := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.HEAD, "Helm"))
+	var sword := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, "Sword"))
+	_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.HEAD] = head
+	_inventory.equipment[5] = sword
+	InventoryManager.unequip_item_to_slot(EquipmentDefinitionData.EquipmentSlot.HEAD, 5)
+	assert_eq(_inventory.equipped_gear.get(EquipmentDefinitionData.EquipmentSlot.HEAD), head, "head stays equipped (invalid swap rejected)")
+	assert_eq(_inventory.equipment.get(5), sword, "non-fitting grid item not lost")
+
 #-----------------------------------------------------------------------------
 # SWAP ACCESSORY SLOTS
 #-----------------------------------------------------------------------------

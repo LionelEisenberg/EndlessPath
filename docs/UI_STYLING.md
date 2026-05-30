@@ -37,6 +37,10 @@ These are size-based and drop into any scene. Default color is beige (inherited 
 - **Ability card text** (all with 2px outline for legibility — don't substitute general variants): `LabelAbilityTitle` 34px / `LabelAbilityBody` 18px / `LabelAbilityMuted` 16px
 - **Item description panel** (light background): `LabelDescItemName` 32px black / `LabelDescItemType` 20px gray
 - **Ability stats display:** `LabelSeparatorDot` 26px orange — Dot separators
+- **Inventory toolbar / sort banner** (double-size fonts paired with `scale = Vector2(0.5, 0.5)` to cancel the InventoryView's 2x scale and avoid sub-pixel blur):
+  - `LabelInventoryCount` 40px dark-ink — for `GridToolbar` count text ("8 / 60" etc.) on parchment background
+  - `LabelInventorySort` 40px beige — for `SortSubBanner` pill label ("All", "Weapons" etc.) on dark pill background
+  - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
 
 ## RichTextLabel variants
 

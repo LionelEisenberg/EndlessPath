@@ -1,0 +1,61 @@
+[gd_scene load_steps=3 format=3 uid="uid://bm8mdc2t4qx3a"]
+
+[ext_resource type="PackedScene" uid="uid://b1wj5d3npxe4i" path="res://scenes/inventory/common/item_detail_card/item_detail_card.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/materials_tab/material_detail_card.gd" id="2_script"]
+
+[node name="MaterialDetailCard" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+
+[node name="SourceRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/SourceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelSmall"
+theme_override_colors/font_color = Color(0.478431, 0.32549, 0.188235, 1)
+text = "Source"
+
+[node name="SourceValue" type="Label" parent="MarginContainer/VBoxContainer/SourceRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+theme_override_colors/font_color = Color(0.180392, 0.121569, 0.0627451, 1)
+text = ""
+horizontal_alignment = 2
+
+[node name="UsedInRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/UsedInRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelSmall"
+theme_override_colors/font_color = Color(0.478431, 0.32549, 0.188235, 1)
+text = "Used in"
+
+[node name="UsedInValue" type="Label" parent="MarginContainer/VBoxContainer/UsedInRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+theme_override_colors/font_color = Color(0.180392, 0.121569, 0.0627451, 1)
+text = ""
+horizontal_alignment = 2
+
+[node name="WorthRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/WorthRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelSmall"
+theme_override_colors/font_color = Color(0.478431, 0.32549, 0.188235, 1)
+text = "Worth"
+
+[node name="WorthValue" type="Label" parent="MarginContainer/VBoxContainer/WorthRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+theme_override_colors/font_color = Color(0.180392, 0.121569, 0.0627451, 1)
+text = ""
+horizontal_alignment = 2

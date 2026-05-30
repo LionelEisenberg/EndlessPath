@@ -1,0 +1,82 @@
+[gd_scene format=3 uid="uid://dlst8ppfx3u0o"]
+
+[ext_resource type="Script" uid="uid://c2ghwuib03qwi" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.gd" id="1_tab"]
+[ext_resource type="PackedScene" uid="uid://76prc2etr5vo" path="res://scenes/inventory/common/tab_banner/tab_banner.tscn" id="2_banner"]
+[ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="3_sortbanner"]
+[ext_resource type="PackedScene" uid="uid://caceboj6ahxum" path="res://scenes/inventory/inventory_view/consumables_tab/combat_hotbar/combat_hotbar.tscn" id="6_hotbar"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="7_theme"]
+[ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/sprites/inventory/gear_selector/item_description_background.png" id="8_descbg"]
+[ext_resource type="Script" uid="uid://bpyj8ugmi6t0t" path="res://scenes/inventory/inventory_view/item_description_box.gd" id="9_descbox"]
+[ext_resource type="PackedScene" uid="uid://hdpsokiiqmae" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="10_descpanel"]
+[ext_resource type="PackedScene" uid="uid://d3gn7yw6nj2js" path="res://scenes/inventory/common/inventory_list/inventory_list.tscn" id="13_invlist"]
+[ext_resource type="PackedScene" uid="uid://5nnxd345r6pc" path="res://scenes/inventory/inventory_view/consumables_tab/consumable_row.tscn" id="14_row"]
+
+[node name="ConsumablesTab" type="Control" unique_id=888538053]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_tab")
+
+[node name="ConsumablesBanner" parent="." unique_id=642795541 instance=ExtResource("2_banner")]
+layout_mode = 0
+offset_left = 115.0
+offset_top = 62.0
+offset_right = 311.0
+offset_bottom = 128.0
+title = "Consumables"
+title_font_size = 38
+
+[node name="ConsumablesSortSubBanner" parent="." unique_id=1023491089 instance=ExtResource("3_sortbanner")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 131.0
+offset_top = 126.0
+offset_right = 291.0
+offset_bottom = 166.0
+
+[node name="ConsumablesInventoryList" parent="." unique_id=164163359 instance=ExtResource("13_invlist")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 95.0
+offset_top = 173.0
+offset_right = 319.0
+offset_bottom = 400.0
+
+[node name="PreviewRow1" parent="ConsumablesInventoryList/ScrollContainer/ListContainer" parent_id_path=PackedInt32Array(164163359, 1535670763) index="0" unique_id=2017635384 instance=ExtResource("14_row")]
+layout_mode = 2
+
+[node name="PreviewRow2" parent="ConsumablesInventoryList/ScrollContainer/ListContainer" parent_id_path=PackedInt32Array(164163359, 1535670763) index="1" unique_id=289759213 instance=ExtResource("14_row")]
+layout_mode = 2
+
+[node name="PreviewRow3" parent="ConsumablesInventoryList/ScrollContainer/ListContainer" parent_id_path=PackedInt32Array(164163359, 1535670763) index="2" unique_id=482749845 instance=ExtResource("14_row")]
+layout_mode = 2
+
+[node name="ConsumablesCombatHotbar" parent="." unique_id=1330991992 instance=ExtResource("6_hotbar")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 375.0
+offset_top = 109.0
+offset_right = 841.0
+offset_bottom = 389.0
+scale = Vector2(0.5, 0.5)
+
+[node name="ConsumablesItemDescriptionBox" type="TextureRect" parent="." unique_id=666664091]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 384.0
+offset_top = 243.0
+offset_right = 808.0
+offset_bottom = 531.0
+scale = Vector2(0.5, 0.5)
+theme = ExtResource("7_theme")
+texture = ExtResource("8_descbg")
+script = ExtResource("9_descbox")
+
+[node name="ItemDescriptionPanel" parent="ConsumablesItemDescriptionBox" unique_id=187443185 instance=ExtResource("10_descpanel")]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 2.0
+offset_right = 2.0
+
+[editable path="ConsumablesInventoryList"]

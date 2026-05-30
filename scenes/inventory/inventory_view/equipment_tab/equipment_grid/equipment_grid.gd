@@ -1,53 +1,161 @@
+@tool
 class_name EquipmentGrid
 extends MarginContainer
 
 ## EquipmentGrid
-## Manages the grid view of equipment items and custom scrollbar logic
+## One page of the equipment inventory, laid out as num_rows × num_columns
+## slots. Page size (slots_per_page) is num_rows * num_columns; local slot index
+## i on `current_page` maps to global inventory index
+## current_page * slots_per_page() + i. Slot nodes are persistent children
+## authored in the scene (editor-visible, stable across page flips) — the grid
+## shows/hides and re-binds them, never recreates them. No scrolling; navigation
+## is handled by the PaginationBar.
+##
+## num_rows / num_columns / row_separation / col_separation are live layout knobs
+## (applied in-editor via @tool). NOTE: the scene provides a fixed pool of slot
+## instances (SLOT_POOL_SIZE), so configs are capped at that many visible slots.
+## InventoryData.SLOTS_PER_PAGE (capacity math) is independent — if you settle on
+## a page size other than 36, sync it there and grow the slot pool to match.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-const SCROLL_MIN_Y = 0.025
-const SCROLL_MAX_Y = 0.90
+## Number of InventorySlot instances authored in the scene. Visible slot count
+## (num_rows * num_columns) cannot exceed this without adding more instances.
+const SLOT_POOL_SIZE := 48
 
-# TODO: DELETE / REPLACE WITH VALUES WHICH WILL FETCHED FORM AN INVENTORY MANAGER
-const NUM_INVENTORY_SLOTS = 50
+## Opacity for slots whose item does not match the active category filter
+## (purely visual de-emphasis; slots stay fully interactive).
+const DIM_ALPHA := 0.3
+
+#-----------------------------------------------------------------------------
+# EXPORTS (live layout tuning)
+#-----------------------------------------------------------------------------
+
+@export var num_rows: int = InventoryData.PAGE_ROWS:
+	set(value):
+		num_rows = maxi(value, 1)
+		if is_node_ready():
+			_apply_grid_layout()
+@export var num_columns: int = InventoryData.PAGE_COLUMNS:
+	set(value):
+		num_columns = maxi(value, 1)
+		if is_node_ready():
+			_apply_grid_layout()
+@export var row_separation: int = 6:
+	set(value):
+		row_separation = maxi(value, 0)
+		if is_node_ready():
+			_apply_grid_layout()
+@export var col_separation: int = 6:
+	set(value):
+		col_separation = maxi(value, 0)
+		if is_node_ready():
+			_apply_grid_layout()
+
+#-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
+signal slot_clicked(slot: InventorySlot, event: InputEvent)
 
 #-----------------------------------------------------------------------------
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-@onready var v_scroll_bar: VScrollBar = %VScrollBar
-@onready var grabber: TextureRect = %Grabber
-@onready var scroll_container: ScrollContainer = %ScrollContainer
 @onready var grid_container: GridContainer = %GridContainer
-
-signal slot_clicked(slot: InventorySlot, event: InputEvent)
 
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
 
-# Drag logic moved to InventoryView
+var current_page: int = 0
 
-#-----------------------------------------------------------------------------
-# COMPONENTS
-#-----------------------------------------------------------------------------
+## Predicate (ItemInstanceData -> bool) for the active category filter: items
+## that fail it (and empty slots) render dimmed. Defaults to match-all.
+var _category_match: Callable = func(_d: ItemInstanceData) -> bool: return true
 
-var inventory_slot_scene: PackedScene = preload("res://scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.tscn")
-
-@export var default_item_instance_data = null
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	scroll_container.get_v_scroll_bar().scrolling.connect(_on_scrolling)
-	
+	_apply_grid_layout()
+	if Engine.is_editor_hint():
+		return
+	# Slots are persistent children authored in the scene (editor-visible and
+	# stable across page flips); we only re-bind their data, never recreate them.
+	for slot in get_slots():
+		slot.clicked.connect(_on_slot_clicked)
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
 		_update_grid(InventoryManager.get_inventory())
+
+#-----------------------------------------------------------------------------
+# PUBLIC API
+#-----------------------------------------------------------------------------
+
+## Slots shown per page (num_rows * num_columns), capped at the authored pool.
+func slots_per_page() -> int:
+	return mini(num_rows * num_columns, SLOT_POOL_SIZE)
+
+## Switch to a page and re-render. Clamps to [0, unlocked_pages - 1].
+func set_page(page: int) -> void:
+	var inventory := InventoryManager.get_inventory()
+	var max_page := maxi(inventory.unlocked_equipment_pages - 1, 0)
+	current_page = clampi(page, 0, max_page)
+	_update_grid(inventory)
+
+## Returns the currently-visible InventorySlot children of the grid.
+func get_slots() -> Array[InventorySlot]:
+	var slots: Array[InventorySlot] = []
+	for child in grid_container.get_children():
+		if child is InventorySlot and child.visible:
+			slots.append(child)
+	return slots
+
+## Set the active category filter. Slots whose item fails `match` (and empty
+## slots) render dimmed; pass a match-all predicate to clear. Re-renders so the
+## dim state is reapplied to the current page.
+func set_category_filter(match: Callable) -> void:
+	_category_match = match
+	if InventoryManager:
+		_update_grid(InventoryManager.get_inventory())
+
+#-----------------------------------------------------------------------------
+# SETUP FUNCTIONS
+#-----------------------------------------------------------------------------
+
+## Apply the tunable layout (columns, separations, visible slot count) to the
+## GridContainer. Editor-safe: touches only the grid, no runtime/Inventory deps.
+func _apply_grid_layout() -> void:
+	if grid_container == null:
+		return
+	grid_container.columns = num_columns
+	grid_container.add_theme_constant_override("h_separation", col_separation)
+	grid_container.add_theme_constant_override("v_separation", row_separation)
+	var visible_count := slots_per_page()
+	var i := 0
+	for child in grid_container.get_children():
+		if child is Control:
+			(child as Control).visible = i < visible_count
+		i += 1
+
+func _on_inventory_changed(_inventory: InventoryData) -> void:
+	# A page may have been granted; re-clamp current_page and re-render.
+	set_page(current_page)
+
+func _update_grid(inventory: InventoryData) -> void:
+	# Re-bind data onto the visible slot children (no recreation). Each local
+	# child index i maps to global index base + i for the current page.
+	var base := current_page * slots_per_page()
+	var slots := get_slots()
+	for i in slots.size():
+		var global_index := base + i
+		var data: ItemInstanceData = inventory.equipment.get(global_index)
+		slots[i].setup(data)
+		slots[i].modulate.a = 1.0 if _category_match.call(data) else DIM_ALPHA
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING
@@ -55,43 +163,3 @@ func _ready() -> void:
 
 func _on_slot_clicked(slot: InventorySlot, event: InputEvent) -> void:
 	slot_clicked.emit(slot, event)
-
-## Returns all inventory slots in the grid.
-func get_slots() -> Array[InventorySlot]:
-	var slots: Array[InventorySlot] = []
-	for child in grid_container.get_children():
-		if child is InventorySlot:
-			slots.append(child)
-	return slots
-
-#-----------------------------------------------------------------------------
-# SETUP FUNCTIONS
-#-----------------------------------------------------------------------------
-
-func _on_inventory_changed(inventory: InventoryData) -> void:
-	_update_grid(inventory)
-
-func _update_grid(inventory: InventoryData) -> void:
-	# Clear existing slots
-	for slot in grid_container.get_children():
-		slot.queue_free()
-	
-	# Create slots for equipment
-	var equipment_dict = inventory.equipment
-	
-	for i in NUM_INVENTORY_SLOTS:
-		var slot = inventory_slot_scene.instantiate()
-		slot.clicked.connect(_on_slot_clicked)
-		grid_container.add_child(slot)
-		
-		# Check if we have an item at this index
-		if equipment_dict.has(i):
-			slot.setup(equipment_dict[i])
-		else:
-			slot.setup(null)
-
-func _on_scrolling() -> void:
-	var page = scroll_container.get_v_scroll_bar().page
-	var ratio = scroll_container.get_v_scroll_bar().value / (scroll_container.get_v_scroll_bar().max_value - page)
-	# Maps scroll ratio 0.0-1.0 to visual range SCROLL_MIN_Y-SCROLL_MAX_Y
-	grabber.position.y = clampf(ratio, SCROLL_MIN_Y, SCROLL_MAX_Y) * v_scroll_bar.get_size().y

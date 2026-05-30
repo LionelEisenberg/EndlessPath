@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://cp4g3btnw8x2k"]
+
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="1_theme"]
+[ext_resource type="Texture2D" uid="uid://brrw85kb11ak2" path="res://assets/sprites/inventory/equipment_grid/pagination/unpressed_button.png" id="2_unpressed"]
+[ext_resource type="Texture2D" uid="uid://dgtvcj02lhqd0" path="res://assets/sprites/inventory/equipment_grid/pagination/pressed_button.png" id="3_pressed"]
+
+[node name="PageButton" type="TextureButton" unique_id=144887779]
+custom_minimum_size = Vector2(24, 24)
+offset_right = 24.0
+offset_bottom = 24.0
+focus_mode = 0
+theme = ExtResource("1_theme")
+toggle_mode = true
+texture_normal = ExtResource("2_unpressed")
+texture_pressed = ExtResource("3_pressed")
+ignore_texture_size = true
+stretch_mode = 3
+
+[node name="PageNumber" type="Label" parent="." unique_id=1231162042]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -3.0
+offset_bottom = 18.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.5, 0.5)
+pivot_offset = Vector2(12, 12)
+theme_override_font_sizes/font_size = 24
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1

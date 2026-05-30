@@ -4,10 +4,12 @@ signal tab_changed(index: int)
 
 var current_tab_index: int = 0
 @onready var equipment_tab_button: Control = %EquipmentTabButton
+@onready var consumables_tab_button: Control = %ConsumablesTabButton
 @onready var materials_tab_button: Control = %MaterialsTabButton
 @onready var quest_items_tab_button: Control = %QuestItemsTabButton
 @onready var tab_buttons: Array[Control] = [
 	equipment_tab_button,
+	consumables_tab_button,
 	materials_tab_button,
 	quest_items_tab_button,
 ]

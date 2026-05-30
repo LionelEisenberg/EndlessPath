@@ -115,27 +115,34 @@ func unequip_item(slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: 
 		_add_to_first_available_slot(inventory, item)
 		inventory_changed.emit(inventory)
 
-func unequip_item_to_slot(slot: EquipmentDefinitionData.EquipmentSlot, target_index: int, accessory_index: int = -1) -> void:
+## Unequip the gear item into target_index. If that slot holds a compatible
+## item, the two swap. Returns false (changing nothing) when the target holds
+## an item that does NOT fit the gear slot: that swap is invalid and must not
+## overwrite/destroy the occupant. Returns true on a successful unequip/swap.
+func unequip_item_to_slot(slot: EquipmentDefinitionData.EquipmentSlot, target_index: int, accessory_index: int = -1) -> bool:
 	var inventory = get_inventory()
 
 	if not _has_equipped(inventory, slot, accessory_index):
-		return
+		return false
 
 	var item: ItemInstanceData = _get_equipped(inventory, slot, accessory_index)
 
-	# If target slot has a compatible item, swap it into the gear slot
 	if inventory.equipment.has(target_index):
 		var existing_item = inventory.equipment[target_index]
-		if existing_item.item_definition is EquipmentDefinitionData and existing_item.item_definition.slot_type == slot:
-			_set_equipped(inventory, slot, accessory_index, existing_item)
-		else:
-			_erase_equipped(inventory, slot, accessory_index)
+		var fits: bool = existing_item.item_definition is EquipmentDefinitionData \
+			and (existing_item.item_definition as EquipmentDefinitionData).slot_type == slot
+		if not fits:
+			# Incompatible occupant: reject the swap rather than destroy it.
+			return false
+		# Compatible: swap the grid item into the gear slot.
+		_set_equipped(inventory, slot, accessory_index, existing_item)
 	else:
 		_erase_equipped(inventory, slot, accessory_index)
 
-	# Place unequipped item at the target slot
+	# Place the unequipped item at the target slot.
 	inventory.equipment[target_index] = item
 	inventory_changed.emit(inventory)
+	return true
 
 ## Swap the items in the two physical accessory slots (indices 0 and 1).
 ## Avoids routing through the grid which can match the wrong instance with duplicates.
@@ -232,6 +239,63 @@ func use_consumable(def: ConsumableDefinitionData) -> bool:
 	inventory_changed.emit(inventory)
 	return true
 
+## Put an equipment instance back into inventory (e.g., when the player
+## drags it out of the trash slot before another item replaces it).
+## Differs from award_items: takes the existing ItemInstanceData rather
+## than creating a new one, and stays silent (no log spam).
+func restore_equipment_instance(instance: ItemInstanceData, target_slot_index: int = -1) -> void:
+	if instance == null:
+		Log.error("InventoryManager.restore_equipment_instance: null instance")
+		return
+	var inventory := get_inventory()
+	if target_slot_index >= 0 and target_slot_index < inventory.equipment_capacity() and not inventory.equipment.has(target_slot_index):
+		inventory.equipment[target_slot_index] = instance
+	else:
+		_add_to_first_available_slot(inventory, instance)
+	inventory_changed.emit(inventory)
+
+## Restore N copies of a material to inventory (e.g., from trash drag-out).
+## Bypasses the looted-log message that award_items emits.
+func restore_material(def: MaterialDefinitionData, quantity: int) -> void:
+	if def == null or quantity <= 0:
+		return
+	var inventory := get_inventory()
+	inventory.materials[def] = inventory.materials.get(def, 0) + quantity
+	inventory_changed.emit(inventory)
+
+## Grant the player one more equipment page (a progression reward).
+## Increments the unlocked page count and notifies listeners so the
+## pagination UI can show the new page.
+func grant_equipment_page() -> void:
+	var inventory := get_inventory()
+	inventory.unlocked_equipment_pages += 1
+	inventory_changed.emit(inventory)
+
+## Place a consumable definition into hotbar slot_index (0..3).
+## If the same definition is already in another slot, that other slot
+## is cleared first — uniqueness rule, matches the ability loadout.
+func equip_consumable(def: ConsumableDefinitionData, slot_index: int) -> void:
+	if def == null:
+		Log.error("InventoryManager.equip_consumable: null definition")
+		return
+	if slot_index < 0 or slot_index > 3:
+		Log.error("InventoryManager.equip_consumable: slot_index %d out of range" % slot_index)
+		return
+	var inventory := get_inventory()
+	# Clear any existing slot that already holds this def.
+	for existing_slot in inventory.equipped_consumables.keys():
+		if inventory.equipped_consumables[existing_slot] == def and existing_slot != slot_index:
+			inventory.equipped_consumables.erase(existing_slot)
+	inventory.equipped_consumables[slot_index] = def
+	inventory_changed.emit(inventory)
+
+## Clear a consumable hotbar slot. No-op if the slot is already empty.
+func unequip_consumable(slot_index: int) -> void:
+	var inventory := get_inventory()
+	if inventory.equipped_consumables.has(slot_index):
+		inventory.equipped_consumables.erase(slot_index)
+		inventory_changed.emit(inventory)
+
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
@@ -268,17 +332,13 @@ func _award_equipment(equipment_def: EquipmentDefinitionData, quantity: int) -> 
 	inventory_changed.emit(inventory)
 
 func _add_to_first_available_slot(inventory: InventoryData, item: ItemInstanceData) -> void:
-	# Find first available slot index
-	# Assuming a max slot count, e.g., 50 from EquipmentGrid
-	# We should probably define this constant somewhere shared.
-	var max_slots = 50
-
-	for i in max_slots:
+	var capacity := inventory.equipment_capacity()
+	for i in capacity:
 		if not inventory.equipment.has(i):
 			inventory.equipment[i] = item
 			return
-
-	Log.warn("InventoryManager: Inventory full, cannot add equipment.")
+	var item_id := item.item_definition.item_id if item.item_definition else "?"
+	Log.warn("InventoryManager: Equipment full (%d/%d), cannot add %s" % [inventory.equipment.size(), capacity, item_id])
 
 #-----------------------------------------------------------------------------
 # EQUIPPED-SLOT ROUTING HELPERS
