@@ -1,10 +1,11 @@
 class_name HotbarSlot
-extends PanelContainer
+extends DropTargetSlot
 
 ## HotbarSlot
-## One slot in the 4-slot combat hotbar. Displays the equipped
-## consumable's icon and live stack count, plus a static keybind chip
-## (1-4). Empty state shows a faint `+`. Emits `slot_clicked` on press.
+## One slot in the 4-slot combat hotbar. Displays the equipped consumable's
+## icon and live stack count, plus a static keybind chip (1-4). Empty state
+## shows a faint `+`. Emits `slot_clicked` on press; accepts a dragged
+## consumable to equip (drop-target behavior inherited from DropTargetSlot).
 
 signal slot_clicked(slot: HotbarSlot, event: InputEvent)
 ## Emitted when a consumable is dropped onto this slot (drag-and-drop equip).
@@ -28,6 +29,7 @@ const STYLE_EQUIPPED: StyleBox = preload("res://assets/styleboxes/inventory/hotb
 var _def: ConsumableDefinitionData = null
 
 func _ready() -> void:
+	super._ready()  # DropTargetSlot: clear hover highlight on mouse_exited
 	gui_input.connect(_on_gui_input)
 	_key_chip.text = str(slot_index + 1)
 	setup(_def, 0)
@@ -54,24 +56,11 @@ func _on_gui_input(event: InputEvent) -> void:
 	slot_clicked.emit(self, event)
 
 #-----------------------------------------------------------------------------
-# DRAG AND DROP (equip)
+# DROP TARGET (equip)
 #-----------------------------------------------------------------------------
 
-## Accept a consumable dragged from the list; highlight while hovering.
-func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
-	var can: bool = data is Dictionary and data.has("consumable")
-	_set_drop_hover(can)
-	return can
+func _accepts(data: Variant) -> bool:
+	return data is Dictionary and data.has("consumable")
 
-## Equip the dropped consumable into this slot.
-func _drop_data(_at_position: Vector2, data: Variant) -> void:
-	_set_drop_hover(false)
-	if data is Dictionary and data.has("consumable"):
-		consumable_dropped.emit(data["consumable"], slot_index)
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_DRAG_END:
-		_set_drop_hover(false)
-
-func _set_drop_hover(hovering: bool) -> void:
-	modulate = Color(1.2, 1.15, 1.0) if hovering else Color.WHITE
+func _on_dropped(data: Variant) -> void:
+	consumable_dropped.emit(data["consumable"], slot_index)
