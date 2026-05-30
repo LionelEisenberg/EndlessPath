@@ -271,14 +271,6 @@ func grant_equipment_page() -> void:
 	inventory.unlocked_equipment_pages += 1
 	inventory_changed.emit(inventory)
 
-## Restore N copies of a consumable. Bypasses the looted-log message.
-func restore_consumable(def: ConsumableDefinitionData, quantity: int) -> void:
-	if def == null or quantity <= 0:
-		return
-	var inventory := get_inventory()
-	inventory.consumables[def] = inventory.consumables.get(def, 0) + quantity
-	inventory_changed.emit(inventory)
-
 ## Place a consumable definition into hotbar slot_index (0..3).
 ## If the same definition is already in another slot, that other slot
 ## is cleared first — uniqueness rule, matches the ability loadout.

@@ -88,5 +88,3 @@ func _restore_to_inventory(value: Variant) -> void:
 		var qty: int = value[1]
 		if def is MaterialDefinitionData:
 			InventoryManager.restore_material(def as MaterialDefinitionData, qty)
-		elif def is ConsumableDefinitionData:
-			InventoryManager.restore_consumable(def as ConsumableDefinitionData, qty)

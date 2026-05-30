@@ -37,9 +37,3 @@ func test_restore_material_increments_count() -> void:
 	assert_eq(InventoryManager.get_inventory().materials[def], 3)
 	InventoryManager.restore_material(def, 2)
 	assert_eq(InventoryManager.get_inventory().materials[def], 5)
-
-func test_restore_consumable_increments_count() -> void:
-	var def := ConsumableDefinitionData.new()
-	def.item_id = "scale"
-	InventoryManager.restore_consumable(def, 2)
-	assert_eq(InventoryManager.get_inventory().consumables[def], 2)
