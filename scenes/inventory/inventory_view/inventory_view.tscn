@@ -157,12 +157,11 @@ offset_bottom = 242.0
 
 [node name="EquipmentTab" parent="BookBackground/BookContent" unique_id=697996180 instance=ExtResource("6_k51tu")]
 unique_name_in_owner = true
-visible = false
 layout_mode = 1
 
 [node name="ConsumablesTab" parent="BookBackground/BookContent" unique_id=923432901 instance=ExtResource("31_constab")]
 unique_name_in_owner = true
-layout_mode = 0
+visible = false
 
 [node name="MaterialsTab" parent="BookBackground/BookContent" unique_id=47492188 instance=ExtResource("8_asm34")]
 unique_name_in_owner = true
