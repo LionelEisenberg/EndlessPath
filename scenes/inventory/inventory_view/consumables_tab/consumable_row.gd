@@ -3,8 +3,8 @@ extends Control
 
 ## ConsumableRow
 ## One full-width row in the Consumables list: icon + name + stack count.
-## Emits `clicked` (with the triggering event) so the tab can show the detail
-## panel (left-click) or equip the consumable to the hotbar (right-click).
+## Drag a row onto a combat hotbar slot to equip; left-click selects it for the
+## detail panel (the row emits `clicked` on left-release when not dragging).
 
 signal clicked(row: ConsumableRow, event: InputEvent)
 
@@ -29,10 +29,6 @@ func setup(def: ConsumableDefinitionData, qty: int) -> void:
 ## Returns the consumable definition currently shown.
 func get_definition() -> ConsumableDefinitionData:
 	return _def
-
-## Returns the quantity currently shown.
-func get_quantity() -> int:
-	return _qty
 
 #-----------------------------------------------------------------------------
 # DRAG AND DROP

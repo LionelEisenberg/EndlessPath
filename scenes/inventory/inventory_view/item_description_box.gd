@@ -1,3 +1,4 @@
+class_name ItemDescriptionBox
 extends TextureRect
 
 ## Wrapper for the inventory's anchored item description box.

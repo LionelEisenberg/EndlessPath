@@ -16,7 +16,12 @@ const ConsumableRowScene: PackedScene = preload("res://scenes/inventory/inventor
 @onready var sort_banner: SortSubBanner = %ConsumablesSortSubBanner
 @onready var list: InventoryList = %ConsumablesInventoryList
 @onready var hotbar: CombatHotbar = %ConsumablesCombatHotbar
-@onready var detail_box = %ConsumablesItemDescriptionBox
+@onready var detail_box: ItemDescriptionBox = %ConsumablesItemDescriptionBox
+
+## Content hash of the consumable stacks at the last list rebuild. equip/unequip
+## change only the hotbar (equipped_consumables), not the stacks, so we skip the
+## full list rebuild when the stacks are unchanged.
+var _last_consumables_hash: int = 0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -37,6 +42,7 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 func _rebuild(inv: InventoryData) -> void:
+	_last_consumables_hash = inv.consumables.hash()
 	list.clear_slots()
 	var first_def: ConsumableDefinitionData = null
 	for def in inv.consumables.keys():
@@ -70,4 +76,8 @@ func _on_hotbar_clicked(slot: HotbarSlot, event: InputEvent) -> void:
 			InventoryManager.unequip_consumable(slot.slot_index)
 
 func _on_inventory_changed(inv: InventoryData) -> void:
+	# Only the consumable stacks drive the list. Skip the rebuild when they're
+	# unchanged (e.g. an equip/unequip that only touched the hotbar).
+	if inv.consumables.hash() == _last_consumables_hash:
+		return
 	_rebuild(inv)
