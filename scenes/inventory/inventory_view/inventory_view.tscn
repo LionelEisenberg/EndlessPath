@@ -9,6 +9,10 @@
 [ext_resource type="PackedScene" uid="uid://dmx5iukydwvil" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.tscn" id="8_asm34"]
 [ext_resource type="PackedScene" uid="uid://b0gr2k468xgyi" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_items_tab.tscn" id="24_qtab"]
 [ext_resource type="PackedScene" uid="uid://dlst8ppfx3u0o" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.tscn" id="31_constab"]
+[ext_resource type="Texture2D" uid="uid://btigh60j8tjvo" path="res://assets/sprites/inventory/tab_switcher/equipment_tab_icon.png" id="32_eqicon"]
+[ext_resource type="Texture2D" uid="uid://wuphpnbcq6g3" path="res://assets/sprites/inventory/tab_switcher/consumables_tab_icon.png" id="33_consicon"]
+[ext_resource type="Texture2D" uid="uid://b2uhfp6uhvrjt" path="res://assets/sprites/inventory/tab_switcher/materials_tab.png" id="34_maticon"]
+[ext_resource type="Texture2D" uid="uid://g2by347othvt" path="res://assets/sprites/inventory/tab_switcher/quest_items_tab_icon.png" id="35_qicon"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
 atlas = ExtResource("2_cs4ju")
@@ -130,6 +134,7 @@ offset_left = 55.5
 offset_top = 95.0
 offset_right = 55.5
 offset_bottom = 95.0
+icon_texture = ExtResource("32_eqicon")
 
 [node name="ConsumablesTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=321563705 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
@@ -138,6 +143,7 @@ offset_left = 55.5
 offset_top = 144.0
 offset_right = 55.5
 offset_bottom = 144.0
+icon_texture = ExtResource("33_consicon")
 
 [node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=1287899700 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
@@ -146,6 +152,7 @@ offset_left = 55.5
 offset_top = 193.0
 offset_right = 55.5
 offset_bottom = 193.0
+icon_texture = ExtResource("34_maticon")
 
 [node name="QuestItemsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=931205040 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
@@ -154,6 +161,7 @@ offset_left = 55.5
 offset_top = 242.0
 offset_right = 55.5
 offset_bottom = 242.0
+icon_texture = ExtResource("35_qicon")
 
 [node name="EquipmentTab" parent="BookBackground/BookContent" unique_id=697996180 instance=ExtResource("6_k51tu")]
 unique_name_in_owner = true
