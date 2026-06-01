@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "mockups", "-l", "3456", "--no-clipboard"],
       "port": 3456
+    },
+    {
+      "name": "inventory-redesign",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3789", "--directory", "docs/superpowers/mockups/inventory-redesign"],
+      "port": 3789
     }
   ]
 }

@@ -1,68 +1,70 @@
 extends Control
 
-## Quest Items tab — renders a list of owned quest items with a shared
-## ItemDescriptionPanel showing the currently-selected item. Empty state
-## hides the description panel and shows a centered label instead.
+## Journal tab — renders quest items as rich rows with a shared
+## QuestJournalCard on the right page. Empty state hides the card and
+## shows a centered label instead.
+
+const JournalRowScene := preload("res://scenes/inventory/inventory_view/quest_items_tab/journal_row.tscn")
 
 @onready var list_vbox: VBoxContainer = %ListVBox
 @onready var empty_label: Label = %EmptyLabel
-@onready var description_panel: ItemDescriptionPanel = %ItemDescriptionPanel
+@onready var journal_card: PanelContainer = %QuestJournalCard
 
-var _row_scene: PackedScene = preload("res://scenes/inventory/inventory_view/quest_items_tab/quest_item_row.tscn")
-var _selected_item: ItemDefinitionData = null
+var _selected: ItemDefinitionData = null
 
 func _ready() -> void:
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
-		_rebuild_rows(InventoryManager.get_quest_items())
+		_rebuild(InventoryManager.get_quest_items())
 	else:
-		_rebuild_rows({})
+		_rebuild({})
 
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-func _rebuild_rows(quest_items: Dictionary) -> void:
+func _rebuild(quest_items: Dictionary) -> void:
 	for child in list_vbox.get_children():
 		child.queue_free()
 
 	if quest_items.is_empty():
 		empty_label.visible = true
-		description_panel.visible = false
-		description_panel.reset()
-		_selected_item = null
+		journal_card.visible = false
+		if journal_card.has_method("reset"):
+			journal_card.reset()
+		_selected = null
 		return
 
 	empty_label.visible = false
-	description_panel.visible = true
+	journal_card.visible = true
 
-	var first_item: ItemDefinitionData = null
-	for item in quest_items.keys():
-		var row = _row_scene.instantiate()
+	var first: ItemDefinitionData = null
+	for def in quest_items.keys():
+		var row: Button = JournalRowScene.instantiate()
 		list_vbox.add_child(row)
-		row.set_item(item)
+		row.set_item(def)
 		row.row_clicked.connect(_on_row_clicked)
-		if first_item == null:
-			first_item = item
+		if first == null:
+			first = def
 
-	# Preserve selection across rebuilds if the item still exists;
-	# otherwise fall back to the first row.
-	if _selected_item == null or not quest_items.has(_selected_item):
-		_selected_item = first_item
-	_show_item(_selected_item)
+	if _selected == null or not quest_items.has(_selected):
+		_selected = first
+	_show_item(_selected)
 
-func _show_item(item: ItemDefinitionData) -> void:
-	if item == null:
-		description_panel.reset()
+func _show_item(def: ItemDefinitionData) -> void:
+	if def == null:
+		if journal_card.has_method("reset"):
+			journal_card.reset()
 		return
-	description_panel.setup_from_definition(item)
+	if journal_card.has_method("setup_from_definition"):
+		journal_card.setup_from_definition(def)
 	for row in list_vbox.get_children():
-		if row.has_method("get_item") and row.has_method("set_selected"):
-			row.set_selected(row.get_item() == item)
+		if row.has_method("set_selected") and row.has_method("get_item"):
+			row.set_selected(row.get_item() == def)
 
-func _on_row_clicked(item: ItemDefinitionData) -> void:
-	_selected_item = item
-	_show_item(item)
+func _on_row_clicked(def: ItemDefinitionData) -> void:
+	_selected = def
+	_show_item(def)
 
-func _on_inventory_changed(_inventory: InventoryData) -> void:
-	_rebuild_rows(InventoryManager.get_quest_items())
+func _on_inventory_changed(_inv: InventoryData) -> void:
+	_rebuild(InventoryManager.get_quest_items())

@@ -1,0 +1,79 @@
+[gd_scene load_steps=4 format=3 uid="uid://b1wj5d3npxe4i"]
+
+[ext_resource type="Script" uid="uid://dg4s0xe2q5qmx" path="res://scenes/inventory/common/item_detail_card/item_detail_card.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" uid="uid://b0umwsa2clxit" path="res://assets/styleboxes/common/panel_tan.tres" id="3_panel"]
+
+[node name="ItemDetailCard" type="PanelContainer"]
+theme = ExtResource("2_theme")
+theme_override_styles/panel = ExtResource("3_panel")
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="ItemName" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelDescItemName"
+text = "Item Name"
+autowrap_mode = 3
+
+[node name="ItemType" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelDescItemType"
+text = "[Material]"
+
+[node name="ItemIcon" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+expand_mode = 2
+stretch_mode = 5
+
+[node name="SeparatorTop" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"HSeparatorItemDesc"
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"RichTextLabelDark"
+bbcode_enabled = true
+text = "Description"
+fit_content = true
+scroll_active = false
+
+[node name="SeparatorMiddle" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"HSeparatorItemDescThin"
+
+[node name="EffectsLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"RichTextLabelDark"
+bbcode_enabled = true
+text = ""
+fit_content = true
+scroll_active = false

@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://76prc2etr5vo"]
+
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="1_theme"]
+[ext_resource type="Texture2D" uid="uid://bwpugnc8unm7r" path="res://assets/sprites/inventory/signage/tab_banner.png" id="2_ribbon"]
+[ext_resource type="Script" path="res://scenes/inventory/common/tab_banner/tab_banner.gd" id="3_script"]
+
+[node name="TabBanner" type="TextureRect" unique_id=16900707]
+theme = ExtResource("1_theme")
+texture = ExtResource("2_ribbon")
+script = ExtResource("3_script")
+
+[node name="Title" type="Label" parent="." unique_id=649990342]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -9.5
+offset_top = -11.0
+offset_right = 25.5
+offset_bottom = -11.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.5, 0.5)
+pivot_offset = Vector2(98, 33)
+theme_type_variation = &"LabelInventorySignage"
+text = "Equipment"
+horizontal_alignment = 1
+vertical_alignment = 1

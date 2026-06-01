@@ -1,15 +1,15 @@
 class_name AbilityEquipSlot
-extends PanelContainer
+extends DropTargetSlot
 
 ## A single loadout slot in the AbilitiesView sidebar.
-## Accepts drag-and-drop from AbilityCard to equip abilities.
-## Supports dragging out of occupied slots and reordering between slots.
+## Accepts drag-and-drop from AbilityCard to equip abilities, and is itself a
+## drag source so an equipped ability can be dragged out / reordered between
+## slots. The drop-target hover + routing is inherited from DropTargetSlot.
 
 signal ability_dropped(ability_id: String, slot_index: int, from_slot: int)
 
 var _ability_data: AbilityData = null
 var _slot_index: int = 0
-var _is_hover: bool = false
 
 const KEY_LABELS: PackedStringArray = ["Q", "W", "E", "R"]
 
@@ -38,7 +38,7 @@ func clear_slot() -> void:
 func get_ability() -> AbilityData:
 	return _ability_data
 
-# ----- Drag and Drop -----
+# ----- Drag source -----
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if not _ability_data:
@@ -69,21 +69,13 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	set_drag_preview(container)
 	return {"ability_id": _ability_data.ability_id, "from_slot": _slot_index}
 
-func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
-	if data is Dictionary and data.has("ability_id"):
-		_set_hover(true)
-		return true
-	return false
+# ----- Drop target (hover + routing inherited from DropTargetSlot) -----
 
-func _drop_data(_at_position: Vector2, data: Variant) -> void:
-	_set_hover(false)
-	if data is Dictionary and data.has("ability_id"):
-		var from_slot: int = data.get("from_slot", -1)
-		ability_dropped.emit(data["ability_id"], _slot_index, from_slot)
+func _accepts(data: Variant) -> bool:
+	return data is Dictionary and data.has("ability_id")
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_DRAG_END:
-		_set_hover(false)
+func _on_dropped(data: Variant) -> void:
+	ability_dropped.emit(data["ability_id"], _slot_index, data.get("from_slot", -1))
 
 # ----- Private -----
 
@@ -105,10 +97,3 @@ func _set_key_hint() -> void:
 
 	_key_hint_label.text = KEY_LABELS[_slot_index]
 	_key_hint_label.get_parent().visible = true
-
-func _set_hover(hovering: bool) -> void:
-	_is_hover = hovering
-	if _is_hover:
-		modulate = Color(1.2, 1.15, 1.0, 1.0)
-	else:
-		modulate = Color.WHITE

@@ -6,6 +6,8 @@
 [resource]
 script = ExtResource("1_6uwof")
 source_zone_ids = Array[String](["SpiritValley"])
+source_description = "Spirit Valley — shaded hex"
+used_in = "Reinforced Robes · Greenleaf Tonic"
 item_id = "SpiritFern"
 item_name = "Spirit Fern"
 description = "Spirit Fern Description"

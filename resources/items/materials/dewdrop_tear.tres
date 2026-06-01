@@ -6,6 +6,8 @@
 [resource]
 script = ExtResource("1_ehedu")
 source_zone_ids = Array[String](["SpiritValley"])
+source_description = "Glade pool, dawn only"
+used_in = "Spirit Tea · Mirror Pill"
 item_id = "DewdropTear"
 item_name = "Dewdrop Tear"
 description = "Dewdrop Tear Description"

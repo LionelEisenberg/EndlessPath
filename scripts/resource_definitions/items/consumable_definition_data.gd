@@ -27,7 +27,7 @@ func use() -> void:
 func _get_item_effects() -> Array[String]:
 	var lines: Array[String] = []
 	for effect: EffectData in effects:
-		lines.append("[color=#7ea870]%s[/color]" % str(effect))
+		lines.append("[color=#7ea870]%s[/color]" % effect.describe())
 	if cooldown_seconds > 0.0:
 		lines.append("[color=#a89070]Cooldown: %.1fs[/color]" % cooldown_seconds)
 	return lines

@@ -1,0 +1,151 @@
+[gd_scene format=3 uid="uid://bf2mvtcm5vq52"]
+
+[ext_resource type="Script" uid="uid://o2cqmwaxwv01" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd" id="1_npkje"]
+[ext_resource type="PackedScene" uid="uid://76prc2etr5vo" path="res://scenes/inventory/common/tab_banner/tab_banner.tscn" id="2_ou53u"]
+[ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="3_gweiv"]
+[ext_resource type="PackedScene" uid="uid://u2naqgqaai45" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.tscn" id="4_wwd7d"]
+[ext_resource type="PackedScene" uid="uid://c0pg8q7n3pb4r" path="res://scenes/inventory/inventory_view/equipment_tab/pagination_bar/pagination_bar.tscn" id="5_ciuoo"]
+[ext_resource type="PackedScene" uid="uid://bywdjh8pmjuev" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.tscn" id="6_scojw"]
+[ext_resource type="Texture2D" uid="uid://73gi871a4dr7" path="res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Spritesheet_Select01a.png" id="7_3p61g"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="8_5g3l0"]
+[ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/sprites/inventory/gear_selector/item_description_background.png" id="9_nrm8p"]
+[ext_resource type="Script" uid="uid://bpyj8ugmi6t0t" path="res://scenes/inventory/inventory_view/item_description_box.gd" id="10_s401l"]
+[ext_resource type="PackedScene" uid="uid://hdpsokiiqmae" path="res://scenes/common/item_description_panel/item_description_panel.tscn" id="11_osl8m"]
+
+[sub_resource type="Animation" id="Animation_a4bu5"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [3]
+}
+
+[sub_resource type="Animation" id="Animation_835ns"]
+resource_name = "start_select"
+length = 0.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_juskt"]
+_data = {
+&"RESET": SubResource("Animation_a4bu5"),
+&"start_select": SubResource("Animation_835ns")
+}
+
+[node name="EquipmentTab" type="Control" unique_id=697996180]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_npkje")
+
+[node name="EquipmentTabBanner" parent="." unique_id=16900707 instance=ExtResource("2_ou53u")]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 95.0
+offset_top = 42.0
+offset_right = 291.0
+offset_bottom = 108.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SortSubBanner" parent="." unique_id=1122666677 instance=ExtResource("3_gweiv")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 111.0
+offset_top = 106.0
+offset_right = 271.0
+offset_bottom = 143.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EquipmentGrid" parent="." unique_id=829708921 instance=ExtResource("4_wwd7d")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 84.5
+offset_top = 168.5
+offset_right = 336.5
+offset_bottom = 374.0
+theme_override_constants/margin_left = 13
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 2
+num_columns = 7
+row_separation = 4
+col_separation = 5
+
+[node name="PaginationBar" parent="." unique_id=1685343429 instance=ExtResource("5_ciuoo")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 97.5
+offset_top = 364.0
+offset_right = 323.5
+offset_bottom = 396.0
+
+[node name="GearSelector" parent="." unique_id=1615876472 instance=ExtResource("6_scojw")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 387.5
+offset_top = 66.5
+offset_right = 427.5
+offset_bottom = 106.5
+
+[node name="SelectorSprite" type="Node2D" parent="." unique_id=1671125583]
+unique_name_in_owner = true
+top_level = true
+z_index = 100
+metadata/_edit_group_ = true
+
+[node name="SelectorSprite" type="Sprite2D" parent="SelectorSprite" unique_id=2117251498]
+scale = Vector2(2.2, 2.2)
+texture = ExtResource("7_3p61g")
+hframes = 4
+frame = 3
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="SelectorSprite" unique_id=117863249]
+unique_name_in_owner = true
+root_node = NodePath("../SelectorSprite")
+libraries/ = SubResource("AnimationLibrary_juskt")
+
+[node name="ItemDescriptionBox" type="TextureRect" parent="." unique_id=1471989121]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 376.0
+offset_top = 250.5
+offset_right = 846.0
+offset_bottom = 538.5
+scale = Vector2(0.5, 0.5)
+theme = ExtResource("8_5g3l0")
+texture = ExtResource("9_nrm8p")
+script = ExtResource("10_s401l")
+
+[node name="ItemDescriptionPanel" parent="ItemDescriptionBox" unique_id=1983642273 instance=ExtResource("11_osl8m")]
+unique_name_in_owner = true
+layout_mode = 1

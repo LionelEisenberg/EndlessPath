@@ -1,9 +1,10 @@
 [gd_scene format=3 uid="uid://bywdjh8pmjuev"]
 
 [ext_resource type="Script" uid="uid://dtfuro5fu4nu3" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.gd" id="1_3nnrq"]
-[ext_resource type="Texture2D" uid="uid://veonv7snu457" path="res://assets/sprites/inventory/gear_selector/gear_selector_top_signage.png" id="1_f2oh5"]
+[ext_resource type="Texture2D" uid="uid://bptga5m4hxy5b" path="res://assets/sprites/inventory/signage/section_header.png" id="1_f2oh5"]
 [ext_resource type="Texture2D" uid="uid://c3nawmnr7g0aj" path="res://assets/sprites/inventory/gear_selector/gear_selector_portrait.png" id="2_3nnrq"]
 [ext_resource type="PackedScene" uid="uid://csm6jt2i1j477" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_slot.tscn" id="4_3nnrq"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="5_theme"]
 
 [node name="GearSelector" type="Control" unique_id=1615876472]
 layout_mode = 3
@@ -17,10 +18,31 @@ script = ExtResource("1_3nnrq")
 [node name="Top Signage" type="TextureRect" parent="." unique_id=446469579]
 layout_mode = 0
 offset_left = 43.5
-offset_top = 4.0
+offset_top = 2.0
 offset_right = 167.5
-offset_bottom = 32.0
+offset_bottom = 30.0
 texture = ExtResource("1_f2oh5")
+
+[node name="Title" type="Label" parent="Top Signage" unique_id=33881144]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -17.0
+offset_top = -1.0
+offset_right = 51.0
+offset_bottom = 5.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.5, 0.5)
+pivot_offset = Vector2(62, 14)
+theme = ExtResource("5_theme")
+theme_type_variation = &"LabelInventorySignage"
+theme_override_font_sizes/font_size = 30
+text = "Gear Selector"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="GearSelectorPortrait" type="TextureRect" parent="." unique_id=1804800343]
 layout_mode = 0

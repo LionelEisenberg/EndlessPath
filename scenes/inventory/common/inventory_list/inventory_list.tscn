@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://d3gn7yw6nj2js"]
+
+[ext_resource type="Script" uid="uid://b8a80gql135" path="res://scenes/inventory/common/inventory_list/inventory_list.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://bsr1ny8a3rl0q" path="res://scenes/inventory/common/scroll_rail/scroll_rail.tscn" id="2_rail"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_grabber"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_scroll"]
+
+[sub_resource type="Theme" id="Theme_hide_scrollbar"]
+VScrollBar/styles/grabber = SubResource("StyleBoxEmpty_grabber")
+VScrollBar/styles/scroll = SubResource("StyleBoxEmpty_scroll")
+
+[node name="InventoryList" type="HBoxContainer" unique_id=34013631]
+offset_right = 236.0
+offset_bottom = 220.0
+script = ExtResource("1_script")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1022210615]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme = SubResource("Theme_hide_scrollbar")
+horizontal_scroll_mode = 0
+
+[node name="ListContainer" type="VBoxContainer" parent="ScrollContainer" unique_id=1535670763]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="ScrollRail" parent="." unique_id=985989683 instance=ExtResource("2_rail")]
+layout_mode = 2

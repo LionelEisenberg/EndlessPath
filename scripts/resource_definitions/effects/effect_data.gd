@@ -20,3 +20,8 @@ func process() -> void
 
 @abstract
 func _to_string() -> String
+
+## Human-readable description for UI (e.g. item tooltips). Subclasses that are
+## shown to the player override this; the default falls back to _to_string().
+func describe() -> String:
+	return _to_string()
