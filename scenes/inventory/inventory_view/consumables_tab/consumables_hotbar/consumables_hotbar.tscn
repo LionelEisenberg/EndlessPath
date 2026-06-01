@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://caceboj6ahxum"]
 
-[ext_resource type="Script" uid="uid://bmfalq2qdlhn5" path="res://scenes/inventory/inventory_view/consumables_tab/combat_hotbar/combat_hotbar.gd" id="1_script"]
-[ext_resource type="PackedScene" uid="uid://td0e57hxe2bk" path="res://scenes/inventory/inventory_view/consumables_tab/combat_hotbar/hotbar_slot/hotbar_slot.tscn" id="2_slot"]
+[ext_resource type="Script" uid="uid://bmfalq2qdlhn5" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_hotbar/consumables_hotbar.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://td0e57hxe2bk" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_hotbar/hotbar_slot/hotbar_slot.tscn" id="2_slot"]
 
-[node name="CombatHotbar" type="VBoxContainer" unique_id=1477555168]
+[node name="ConsumablesHotbar" type="VBoxContainer" unique_id=1477555168]
 theme_override_constants/separation = 16
 script = ExtResource("1_script")
 

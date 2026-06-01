@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://c2ghwuib03qwi" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_tab.gd" id="1_tab"]
 [ext_resource type="PackedScene" uid="uid://76prc2etr5vo" path="res://scenes/inventory/common/tab_banner/tab_banner.tscn" id="2_banner"]
 [ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="3_sortbanner"]
-[ext_resource type="PackedScene" uid="uid://caceboj6ahxum" path="res://scenes/inventory/inventory_view/consumables_tab/combat_hotbar/combat_hotbar.tscn" id="6_hotbar"]
+[ext_resource type="PackedScene" uid="uid://caceboj6ahxum" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_hotbar/consumables_hotbar.tscn" id="6_hotbar"]
 [ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="7_theme"]
 [ext_resource type="Texture2D" uid="uid://cy05oajbiqdkn" path="res://assets/sprites/inventory/gear_selector/item_description_background.png" id="8_descbg"]
 [ext_resource type="Script" uid="uid://bpyj8ugmi6t0t" path="res://scenes/inventory/inventory_view/item_description_box.gd" id="9_descbox"]
@@ -52,7 +52,7 @@ layout_mode = 2
 [node name="PreviewRow3" parent="ConsumablesInventoryList/ScrollContainer/ListContainer" parent_id_path=PackedInt32Array(164163359, 1535670763) index="2" unique_id=482749845 instance=ExtResource("14_row")]
 layout_mode = 2
 
-[node name="ConsumablesCombatHotbar" parent="." unique_id=1330991992 instance=ExtResource("6_hotbar")]
+[node name="ConsumablesHotbar" parent="." unique_id=1330991992 instance=ExtResource("6_hotbar")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 375.0

@@ -296,6 +296,27 @@ func unequip_consumable(slot_index: int) -> void:
 		inventory.equipped_consumables.erase(slot_index)
 		inventory_changed.emit(inventory)
 
+## Move/swap the consumable between two hotbar slots. If the target slot is
+## empty the source consumable simply moves there; otherwise the two slots
+## exchange consumables. No-op when the source is empty or the indices match.
+func swap_consumable_slots(from_slot: int, to_slot: int) -> void:
+	if from_slot == to_slot:
+		return
+	if from_slot < 0 or from_slot > 3 or to_slot < 0 or to_slot > 3:
+		Log.error("InventoryManager.swap_consumable_slots: slot index out of range (%d -> %d)" % [from_slot, to_slot])
+		return
+	var inventory := get_inventory()
+	var from_def: ConsumableDefinitionData = inventory.equipped_consumables.get(from_slot, null)
+	if from_def == null:
+		return
+	var to_def: ConsumableDefinitionData = inventory.equipped_consumables.get(to_slot, null)
+	inventory.equipped_consumables[to_slot] = from_def
+	if to_def != null:
+		inventory.equipped_consumables[from_slot] = to_def
+	else:
+		inventory.equipped_consumables.erase(from_slot)
+	inventory_changed.emit(inventory)
+
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------

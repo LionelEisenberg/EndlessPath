@@ -8,8 +8,9 @@ extends DropTargetSlot
 ## consumable to equip (drop-target behavior inherited from DropTargetSlot).
 
 signal slot_clicked(slot: HotbarSlot, event: InputEvent)
-## Emitted when a consumable is dropped onto this slot (drag-and-drop equip).
-signal consumable_dropped(def: ConsumableDefinitionData, slot_index: int)
+## Emitted when a consumable is dropped onto this slot. `from_slot` is the source
+## hotbar slot for a slot-to-slot move, or -1 when the drag came from the list.
+signal consumable_dropped(def: ConsumableDefinitionData, slot_index: int, from_slot: int)
 
 const STYLE_EMPTY: StyleBox = preload("res://assets/styleboxes/inventory/hotbar_slot_empty.tres")
 const STYLE_EQUIPPED: StyleBox = preload("res://assets/styleboxes/inventory/hotbar_slot_equipped.tres")
@@ -56,11 +57,33 @@ func _on_gui_input(event: InputEvent) -> void:
 	slot_clicked.emit(self, event)
 
 #-----------------------------------------------------------------------------
-# DROP TARGET (equip)
+# DRAG SOURCE (re-order between slots)
+#-----------------------------------------------------------------------------
+
+## Drag an equipped consumable out of this slot to move/swap it with another
+## slot. Empty slots aren't draggable. Preview mirrors the consumable list row.
+func _get_drag_data(_at_position: Vector2) -> Variant:
+	if _def == null:
+		return null
+	var preview: TextureRect = TextureRect.new()
+	preview.texture = _def.icon
+	preview.custom_minimum_size = Vector2(36, 36)
+	preview.size = Vector2(36, 36)
+	preview.position = Vector2(-18, -18)
+	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var holder: Control = Control.new()
+	holder.add_child(preview)
+	set_drag_preview(holder)
+	return {"consumable": _def, "from_slot": slot_index}
+
+#-----------------------------------------------------------------------------
+# DROP TARGET (equip from list / receive a moved slot)
 #-----------------------------------------------------------------------------
 
 func _accepts(data: Variant) -> bool:
 	return data is Dictionary and data.has("consumable")
 
 func _on_dropped(data: Variant) -> void:
-	consumable_dropped.emit(data["consumable"], slot_index)
+	consumable_dropped.emit(data["consumable"], slot_index, data.get("from_slot", -1))

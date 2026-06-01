@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://td0e57hxe2bk"]
 
-[ext_resource type="Script" uid="uid://cikyet8m3a1nw" path="res://scenes/inventory/inventory_view/consumables_tab/combat_hotbar/hotbar_slot/hotbar_slot.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cikyet8m3a1nw" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_hotbar/hotbar_slot/hotbar_slot.gd" id="1_script"]
 [ext_resource type="StyleBox" uid="uid://oux3yvou5hpk" path="res://assets/styleboxes/inventory/hotbar_slot_empty.tres" id="2_empty"]
 
 [node name="HotbarSlot" type="PanelContainer" unique_id=1921980364]

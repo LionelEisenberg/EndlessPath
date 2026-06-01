@@ -1,15 +1,16 @@
-class_name CombatHotbar
+class_name ConsumablesHotbar
 extends VBoxContainer
 
-## CombatHotbar
+## ConsumablesHotbar
 ## A row of 4 HotbarSlots. Reads from InventoryManager.equipped_consumables
 ## (slot_index -> def) and InventoryManager.consumables (def -> count).
 ## Refreshes automatically on inventory_changed. Re-emits slot_clicked from
 ## any child slot.
 
 signal slot_clicked(slot: HotbarSlot, event: InputEvent)
-## Re-emitted from a child slot when a consumable is dropped onto it.
-signal consumable_dropped(def: ConsumableDefinitionData, slot_index: int)
+## Re-emitted from a child slot when a consumable is dropped onto it. `from_slot`
+## is the source slot for a slot-to-slot move, or -1 when dragged from the list.
+signal consumable_dropped(def: ConsumableDefinitionData, slot_index: int, from_slot: int)
 
 @onready var _slots: Array[HotbarSlot] = [
 	%SlotsRow.get_child(0) as HotbarSlot,
@@ -40,5 +41,5 @@ func _on_inventory_changed(inv: InventoryData) -> void:
 func _on_slot_clicked(slot: HotbarSlot, event: InputEvent) -> void:
 	slot_clicked.emit(slot, event)
 
-func _on_consumable_dropped(def: ConsumableDefinitionData, slot_index: int) -> void:
-	consumable_dropped.emit(def, slot_index)
+func _on_consumable_dropped(def: ConsumableDefinitionData, slot_index: int, from_slot: int) -> void:
+	consumable_dropped.emit(def, slot_index, from_slot)
