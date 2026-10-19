@@ -1,9 +1,9 @@
 # Testing
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Overview
 
-EndlessPath uses **GUT 9.6.0** (`addons/gut/`, editor plugin enabled) for unit and integration tests.
+EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit and integration tests.
 
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
@@ -17,15 +17,15 @@ Tests run inside the full project, so all 17 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-19, after the trash-slot and adventure end-flow fixes, with the command from `CLAUDE.md`.
+Run on 2026-10-19, after the trash-slot and adventure end-flow fixes and the Godot 4.7 upgrade, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
-| Engine | Godot v4.6.stable.official.89cea1439 |
-| GUT | 9.6.0 (GUT reports 9.6.1 is available) |
+| Engine | Godot v4.7.2.stable.official.ed1daf0bf |
+| GUT | 9.7.1 |
 | Scripts / tests | 62 / 538 |
 | Passing / failing / pending or risky | 538 / 0 / 0 |
-| Asserts | 1962 on the final run. Earlier runs of the 533-test suite gave 1957 and 1952; the count varies slightly, probably because of randomized map-generation tests. |
+| Asserts | 1966 on this run. The count varies between runs because `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | Exit code | 0 |
@@ -52,26 +52,25 @@ Known noise in a green run:
 GUT's `class_name`s (`GutTest` and others) are only registered after the project has been imported once. Without a `.godot/` cache, import first:
 
 ```bash
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --import
-git diff project.godot            # check what the import changed
-git checkout -- project.godot     # restore it if the only change is the emptied [dialogic] directories
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import
+git diff project.godot            # should print nothing
 ```
 
-> **Gotcha (verified 2026-10-18):** In a fresh checkout the headless `--import` rewrites the `[dialogic]` section of `project.godot`. `directories/dch_directory` and `directories/dtl_directory` become `{}`, which drops the registered characters (`celestial_intervener`, `wisened_dirt_eel`) and the `celestial_intervener_introduction_1` timeline. Always check `git diff project.godot` after `--import` and restore it before committing. `git checkout -- project.godot` discards every uncommitted change to that file, so only use it when the import is the only change. Running the test command by itself does not modify `project.godot`.
+> **Fixed 2026-10-19:** In a fresh checkout this import used to rewrite the `[dialogic]` section of `project.godot`, emptying `directories/dch_directory` and `directories/dtl_directory` and dropping the registered characters and timeline. Dialogic's editor panel pruned every entry whose `.dch`/`.dtl` loader wasn't registered yet. A local patch in `addons/dialogic/Core/DialogicResourceUtil.gd` now prunes only files that are really missing (see the addon exceptions in `CLAUDE.md`). If `git diff project.godot` ever shows those keys emptied again, the patch was probably lost in a Dialogic upgrade. Running the test command by itself does not modify `project.godot`.
 
 ### Command line
 
 From the project root:
 
 ```bash
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 ```
 
 - Use the `_console.exe` build so output reaches the terminal.
 - `-gdir` repeats what `.gutconfig.json` already sets. GUT loads `res://.gutconfig.json` by default; `-gconfig=` disables that.
 - Exit code is `0` when every test passes and `1` when any fails. In headless mode GUT quits on its own, but keep `-gexit` for clarity.
 
-Useful GUT 9.6 flags (from `addons/gut/cli/gut_cli.gd`):
+Useful GUT 9.7 flags (from `addons/gut/cli/gut_cli.gd`):
 
 | Flag | Example | Effect |
 |------|---------|--------|
@@ -138,7 +137,7 @@ tests/
 | Instance a scene | `const X := preload("res://...tscn")`, `X.instantiate()`, `add_child_autofree(node)`, then `await get_tree().process_frame` before reading `@onready` nodes | 40 `await get_tree().process_frame` calls across 11 files |
 | Scenes with hex map layers | After `add_child_autofree()`, call `tile_set.emit_changed()` on one of the scene's layers (`test_adventure_end_flow.gd`) | The project's hex layer script skips the addon's `_ready()`. A layer built after the shared tileset's first `changed` therefore has no cube↔map conversion, and `cube_to_map()` errors. See [ADVENTURING.md](../adventuring/ADVENTURING.md) Tech Debt. |
 | Signals | `watch_signals(obj)` with `assert_signal_emitted`, `assert_signal_emitted_with_parameters`, `assert_signal_emit_count`, `assert_signal_not_emitted` | 14 files |
-| Expected errors | `assert_push_error("unknown technique_id")` | GUT 9.6 fails a test on unexpected engine errors and `push_error` by default, so negative-path tests must consume their `push_error` (7 files, 14 uses) |
+| Expected errors | `assert_push_error("unknown technique_id")` | GUT 9.7 fails a test on unexpected engine errors and `push_error` by default, so negative-path tests must consume their `push_error` (7 files, 14 uses) |
 | Fakes | Inner classes extending `EffectData`, such as `CountingEffect` (in 2 files) | Don't start inner class names with `Test` |
 | Temporary files | `user://test_*.tres` / `user://__test_*.tres`, removed with `DirAccess.remove_absolute(ProjectSettings.globalize_path(path))` | `test_quest_progression_persistence.gd`, `test_zone_progression_data.gd`, `test_dev_password_modal.gd` |
 | Content lock | Loads shipped `.tres` and asserts on field values | `test_crude_scale_tres.gd`, `test_path_tree_resource_loading.gd` |
@@ -192,7 +191,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | File | Purpose |
 |------|---------|
 | `.gutconfig.json` | GUT defaults (directories, prefix, log level) |
-| `addons/gut/` | GUT 9.6.0 (read-only third-party code) |
+| `addons/gut/` | GUT 9.7.1 (read-only third-party code) |
 | `addons/gut/gut_cmdln.gd` | CLI entry point |
 | `tests/unit/`, `tests/integration/` | Test scripts |
 | `tests/label_tests/label_testing_scene.tscn` | Visual Label-variant reference |

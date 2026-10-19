@@ -42,7 +42,7 @@ If the project has never been imported in the current environment, run `--import
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import
 ```
 
-In a fresh checkout, the headless `--import` has been seen to rewrite `project.godot`'s `[dialogic]` `directories/dch_directory` and `directories/dtl_directory` to `{}`, which unregisters the dialogue characters and timeline. Afterwards, check `git diff project.godot` and restore the file before committing. Running the tests alone does not modify it.
+A fresh-checkout `--import` used to rewrite `project.godot`'s `[dialogic]` `directories/dch_directory` and `directories/dtl_directory` to `{}`. The local Dialogic patch listed under GDScript Coding Standards → Scope prevents that. If `git diff project.godot` ever shows those keys emptied again, the patch was probably lost in a Dialogic upgrade: restore the file and re-apply the patch before committing.
 
 See `docs/testing/TESTING.md` for test conventions, the coverage map, and why tests must call production code instead of re-implementing ("mirroring") it.
 

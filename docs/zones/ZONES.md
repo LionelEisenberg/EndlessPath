@@ -1,6 +1,6 @@
 # Zones & Actions
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Overview
 
@@ -206,7 +206,6 @@ The zone camera is a plain `Camera2D` with the three shared controllers from `sc
 - Clamping runs only when the pan or zoom controller emits `position_changed` or `zoom_changed`.
 - `ZoneTilemap._ease_camera_to()` tweens the camera to a newly selected zone over `camera_ease_duration` (0.65 s, `TRANS_CUBIC` / `EASE_IN_OUT`).
 - `ZoneTransition` zooms to 3.0 when an adventure starts. `ZoneTransition.reset_camera()` restores the saved zoom and position over 0.3 s when `ZoneViewState.enter()` runs.
-- `scenes/zones/zone_tilemap/zone_camera_2d.gd` is not attached to any node (see [Tech Debt](#tech-debt)).
 
 ### Zone Info Panel
 
@@ -746,7 +745,6 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 
 - `[MEDIUM]` Removing or renaming a zone id wipes the whole save. `PersistenceManager._ready()` resets all data when `SaveGameData.verify()` (`_verify_current_selected_zone_id()`) fails. Renaming an `action_id` silently drops its completion count, so one-time dialogues reappear. A migration path is needed before Test Zone is replaced.
 - `[LOW]` Dead code and assets:
-  - `scenes/zones/zone_tilemap/zone_camera_2d.gd` is not attached to any node and references undeclared `map_bounds_min` / `map_bounds_max`.
   - `ZoneManager.get_unlocked_zones()` always returns `[]` and has no callers.
   - `ZoneTilemap.zone_selected`, `ActionManager.start_training` and `ActionManager.stop_training` have no listeners.
   - `assets/shaders/tile_aura.gdshader`, `scenes/tilemaps/pulse_node.gd` / `.tscn` with `assets/shaders/pulse_node.gdshader`, and `scenes/tilemaps/tile_map_layer.tscn` are not referenced anywhere.

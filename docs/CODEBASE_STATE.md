@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 This document covers the architecture of the EndlessPath codebase and the technical concerns that span several systems. The other entry points are:
 - [README.md](README.md): index of every doc.
@@ -15,10 +15,10 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 
 | | |
 |---|---|
-| Engine | Godot 4.6, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
+| Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
 | Code | ~19.5k lines of game GDScript and ~6.4k lines of tests; 112 scenes; 98 authored `.tres` resources; 15 shaders |
 | Autoloads | 17: 16 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.6.0. 62 scripts and 538 tests, all passing on 2026-10-19. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 62 scripts and 538 tests, all passing on 2026-10-19 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
 | In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR |
 

@@ -43,7 +43,7 @@ Breaking through to the next cultivation stage (step 6 of the design) is not bui
 | Save System | `user://save.tres` via `ResourceSaver`, auto-saved every 5 s |
 | Map System | Hex grids via the `hexagon_tilemaplayer` addon |
 | Dialogue | Dialogic addon |
-| Tests | GUT 9.6.0 (`tests/unit/`, `tests/integration/`) |
+| Tests | GUT 9.7.1 (`tests/unit/`, `tests/integration/`) |
 
 ## Project Structure
 
@@ -122,15 +122,15 @@ docs/                         Game and system documentation (start at docs/READM
 
 ## Running
 
-Paths assume the Windows install used for development; adjust for your Godot 4.6 binary.
+Paths assume the Windows install used for development; adjust for your Godot 4.7 binary.
 
 ```bash
 # Open in the Godot editor
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" project.godot
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" project.godot
 
 # Run the game
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
 
 # Run the test suite (first run in a fresh checkout: --headless --import, then see docs/testing/TESTING.md)
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 ```
