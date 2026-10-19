@@ -111,7 +111,7 @@ overlays are rebuilt and any newly-unlocked zones lose their overlay.
 This gives players a "here's what this zone looks like" preview while
 still clearly marking it as inaccessible.
 
-Camera (`zone_camera_2d.gd`) clamps position to map bounds each frame.
+The zone `Camera2D` is clamped to map bounds by its `CameraClampController` child (`scenes/camera/camera_clamp_controller/`). It re-clamps whenever the sibling `CameraPanController` or `CameraZoomController` moves or zooms the view. The bounds are set on the instance in `zone_tilemap.tscn`.
 
 ### Tile Variants
 
@@ -316,7 +316,7 @@ No known bugs in the Zone system.
 
 ### Tech Debt
 
-- `[LOW]` `ZoneCamera2D` map bounds not declared in script — set via scene inspector, not obvious from code
+- ~~`[LOW]` `ZoneCamera2D` map bounds not declared in script — set via scene inspector, not obvious from code~~ _(resolved — the unused `zone_camera_2d.gd` was removed; clamping lives in `CameraClampController`, which declares its bounds as exports)_
 - `[LOW]` `get_unlocked_zones()` in `zone_manager.gd` is a stub returning empty array — never called by anything, can be removed
 
 > **Note:** CyclingActionData modifier fields being unwired is tracked in [CYCLING.md](../cycling/CYCLING.md). AdventureActionData `cooldown_seconds`/`daily_limit` removal is tracked in [ADVENTURING.md](../adventuring/ADVENTURING.md).
