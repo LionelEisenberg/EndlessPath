@@ -264,7 +264,7 @@ Start — `AdventureView._on_start_combat(choice)`:
 End:
 - Enemy Health ≤ 0 → `_calculate_gold_reward()` → `EventManager.trigger_event("q_first_steps_enemy_defeated")` (every victory; EventManager de-duplicates) → `trigger_combat_end(true, gold)`.
 - Player Health ≤ 0 → `trigger_combat_end(false, 0)`.
-- `AdventureView._on_stop_combat()` restores the map view, calls `AdventureCombat.stop()` (reset `EnemyInfoPanel`, `clear_all_buffs()` on both sides, `queue_free()` both combatants), then `AdventureTilemap.handle_combat_result(successful, gold)`. On defeat it calls `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`, which currently re-enters `_on_stop_combat()` (see Bugs).
+- `AdventureView._on_stop_combat()` restores the map view and clears `is_in_combat`. It then calls `AdventureCombat.stop()`, which resets `EnemyInfoPanel`, runs `clear_all_buffs()` on both sides and `queue_free()`s both combatants. Next it calls `AdventureTilemap.handle_combat_result(successful, gold)`, and on defeat `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`. Because `is_in_combat` is already false at that point, `stop_adventure()` doesn't end the fight a second time.
 
 Gold: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())`. All three multipliers are 1.0 in current content (`get_gold_multiplier()` is a stub).
 
@@ -393,7 +393,6 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 
 ### Bugs
 
-- `[MEDIUM]` A boss victory runs the combat-end path twice. `AdventureView._on_stop_combat()` clears `is_in_combat` only after `AdventureTilemap.handle_combat_result()` returns, but the boss branch calls `ActionManager.stop_action(true)`, whose `stop_adventure` signal re-enters `_on_stop_combat()` with the defaults `(false, 0)`: the log shows "Combat Defeat..." after "Combat Victory!", and `handle_combat_result(false, 0)` runs with the boss choice still set (its `failure_effects` would apply; none are authored). Combat side: `AdventureCombat.stop()` runs a second time in the same frame on combatants already queued for deletion; it has no already-stopped guard. Adventure side: [ADVENTURING.md](../adventuring/ADVENTURING.md).
 - `[MEDIUM]` Equipment never updates the player's vitals maxima. The player `VitalsManager` recomputes max Health/Stamina/Madra only on `CharacterManager.base_attribute_changed` (`vitals_manager.gd` `_ready`). Equipping Reinforced Robes (+4 BODY) or Leeching Ring (+2 FOUNDATION) leaves max Health/Madra unchanged until a base attribute changes or the game restarts, while damage and defense already use the new totals.
 - `[MEDIUM]` Defense ignores buffs. `CombatEffectManager.process_effect()` passes the target's unmodified `combatant_data.attributes` to `calculate_damage()`, so RESILIENCE/SPIRIT/WILLPOWER attribute buffs do nothing defensively.
 - `[MEDIUM]` Enemy ability tooltips show the player's numbers. `AbilityStatsDisplay` always reads `CharacterManager.get_total_attributes_data()`, so hovering Coalescing Spirit's Madra Lash shows a DMG value from the player's SPIRIT (10 on a new save) instead of the spirit's 25.

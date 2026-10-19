@@ -248,7 +248,7 @@ This is a plain `Resource` with no exports. `AdventureView._build_result_data()`
 | Field | Type | Source |
 |-------|------|--------|
 | `is_victory` | `bool` | `_pending_victory`, set by `AdventureTilemap.boss_defeated` |
-| `defeat_reason` | `String` | "Your health reached zero", "Time ran out" or "You retreated from the adventure" (see [Bugs](#bugs)) |
+| `defeat_reason` | `String` | "Your health reached zero", "Time ran out" or "You retreated from the adventure" |
 | `combats_fought` | `int` | Incremented in every `_on_stop_combat()` call |
 | `combats_total` | `int` | `AdventureTilemap.get_total_combat_count()`: tiles typed REGULAR, AMBUSH, ELITE or BOSS |
 | `gold_earned` | `int` | Sum of gold from won combats |
@@ -393,7 +393,8 @@ EncounterInfoPanel.choice_selected(choice)
   EncounterChoice→ success_effects → _complete_current_tile()
 
 AdventureCombat.trigger_combat_end(is_successful, gold)
-  → AdventureView._on_stop_combat(): combats_fought += 1; gold tally; show tilemap view; combat.stop()
+  → AdventureView._on_stop_combat(): combats_fought += 1; gold tally; show tilemap view;
+                                     is_in_combat = false; combat.stop()
     → AdventureTilemap.handle_combat_result(successful, gold)
         win:  ResourceManager.add_gold(gold); apply success_effects
               is_boss → boss_defeated → _pending_victory; ActionManager.stop_action(true)
@@ -402,13 +403,14 @@ AdventureCombat.trigger_combat_end(is_successful, gold)
     → loss → ActionManager.stop_action(false)
 ```
 
+- **Ending the fight first:** `_on_stop_combat()` clears `is_in_combat` before it hands the result to the tilemap. A boss win ends the whole adventure synchronously inside `handle_combat_result()`, and `stop_adventure()` only force-ends a fight that is still running, so the win is handled once.
 - **Gold:** `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())`. The last multiplier is a stub that returns 1.0.
 - **`q_first_steps_enemy_defeated`:** every combat win fires this event (deduplicated by `EventManager`).
 - **`_complete_current_tile()`:** unlocks movement, switches the panel to its completed text (choices hidden), adds the tile to `_completed_encounter_tiles`, and re-renders.
 
 ### Timer and End Conditions
 
-`TimerPanel.timer.timeout` → `AdventureView._on_adventure_timer_timeout()` → `ActionManager.stop_action(false)`. The timer keeps running during combat.
+`TimerPanel.timer.timeout` → `AdventureView._on_adventure_timer_timeout()` → `ActionManager.stop_action(false)`. The timer keeps running during combat. It is `one_shot`, so once it fires it reads as stopped, which is how `stop_adventure()` recognises a timeout.
 
 `ActionManager.stop_action(successful)` then runs these steps:
 - `ZoneManager.increment_zone_progression_for_action(action_id)`, on every stop;
@@ -567,12 +569,13 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 | `tests/integration/test_adventure_flow.gd` | 17 | Re-implements the Madra math with a stale `50 + FOUNDATION × 10` capacity; never calls `ResourceManager` |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | `aura_well_discovered` gates the Aura Well zone action |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | 1 | Refugee camp eligibility before and after `merchant_discovered` |
+| `tests/integration/test_adventure_end_flow.gd` | 2 | The real `AdventureView`, started through `ActionManager`: a timeout ends the run with "Time ran out"; a boss win ends it once, as a victory, without the boss choice's failure effects |
 
 ### Related Design Docs
 
 | Spec / plan | Status |
 |-------------|--------|
-| [2026-04-10 adventure end card](../superpowers/specs/2026-04-10-adventure-end-card-design.md) | Shipped. The spec's "manual exit" trigger has no UI (no retreat, by design), and timeouts are mislabelled (see Bugs). |
+| [2026-04-10 adventure end card](../superpowers/specs/2026-04-10-adventure-end-card-design.md) | Shipped. The spec's "manual exit" trigger has no UI (no retreat, by design). |
 | [2026-04-13 tilemap visual overhaul](../superpowers/specs/2026-04-13-tilemap-visual-overhaul-design.md) | Partial. Shipped: atmosphere, fog shader, `EncounterIcon`, `PathPreview` (tiled texture instead of a flowing shader), reveal stagger, boss hit-stop/flash/push, hover ring. Not built: 5-state `TileStateOverlay` (dropped), boss ornamental ring, treasure sparkle, hidden-until-visited traps, player glow orb, click ring burst, hover scale, `PanelStamina` restyle, gradient background. |
 | [2026-04-15 fog-of-war redesign](../superpowers/specs/2026-04-15-fog-of-war-redesign-design.md) | Shipped and iterated. A tile now counts as completed when it is resolved (not when the player walks away); the grey overlay, map-pin marker and 0.25 s veil fade-out were added. |
 | [2026-04-21 map generation rework](../superpowers/specs/2026-04-21-map-generation-rework-design.md) | Shipped. Shallow Woods was retuned in May (radius 5, sparse 1, 4 extra edges, 4 elite anchors). Not done: a boss with its own stats, the anchor-density warning, logging of skipped ineligible encounters. |
@@ -582,11 +585,6 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 
 ### Bugs
 
-- `[MEDIUM]` **A timeout is reported as a retreat.** The `Timer` under `TimerPanel` in `adventure_view.tscn` is not `one_shot`, so Godot re-arms `time_left` before it emits `timeout`. `AdventureView.stop_adventure()`'s `timer.is_stopped() or timer.time_left <= 0.0` check is therefore false, and the end card shows "You retreated from the adventure" instead of "Time ran out". Found by reading the code; not reproduced in-engine.
-- `[MEDIUM]` **Boss victory runs the combat-end handler twice.**
-  - `AdventureTilemap.handle_combat_result()` calls `ActionManager.stop_action(true)` while `AdventureView.is_in_combat` is still true.
-  - `AdventureView.stop_adventure()` therefore calls `_on_stop_combat()` a second time with `(false, 0)`.
-  - Result: the log prints "Combat Defeat..." right after the victory, and `handle_combat_result(false)` applies the boss `CombatChoice.failure_effects` (none are authored yet). The end card is correct because the result is built first.
 - `[LOW]` **Deaths outside combat are handled inconsistently.**
   - `AdventureCombat._on_player_health_changed` is connected to the persistent player `VitalsManager` in the first `initialize_combat()` and is never disconnected.
   - After a session's first fight, HP reaching 0 outside combat (for example from a future trap effect) emits `trigger_combat_end(false, 0)` and counts as a lost combat.
@@ -647,6 +645,11 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 - `[LOW]` The three `test_*_encounter.tres` placeholders (see Content).
 
 #### Code Quality
+- `[MEDIUM]` **Hex layers skip the addon's own setup.**
+  - `scenes/tilemaps/hexagon_tile_map_layer.gd` overrides `_ready()` without calling `super()`, so the addon's `_ready()` never runs. That `_ready()` is what sets up the cube↔map conversion methods and pathfinding.
+  - A layer only gets its conversions when the shared `tilemap_tileset.tres` emits `changed`, which happens once after the tileset first loads. The game works because its single zone and adventure maps exist at that moment.
+  - Any hex layer created later (a second adventure view, a new map scene, a test that builds the view twice) fails `cube_to_map()` with "conversion method was not properly set up". `test_adventure_end_flow.gd` re-emits the tileset's `changed` to work around it.
+  - Fix: call `super()` in that `_ready()`, then check both maps in play.
 - `[LOW]` `HexagonTileMapLayer.set_cell_with_source_and_variant()` rebuilds the whole A* graph (`pathfinding_generate_points()`) and debug drawing for every cell set. `_update_visible_map()` repaints every visible tile on each arrival, so each refresh is O(N²). `AdventureFullMap` and `AdventureHighlightMap` also have `pathfinding_enabled = true`, although only the visible map pathfinds. This is negligible at about 25 tiles.
 - `[LOW]` Fog clear positions are capped at 64 (`FOG_MAX_CLEAR_POSITIONS` and the shader's `MAX_CLEAR_POSITIONS`). Tiles past the cap stay fogged, with a warning. Shallow Woods never reaches it; larger adventures will.
 - `[LOW]` Stale `ext_resource` UIDs:
@@ -654,7 +657,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
   - `hexagon_tile_map_layer.tscn` references the tileset as `uid://eptmap1q2w3e4`, but `tilemap_tileset.tres` is now `uid://ufqon4iip7nd`.
   - Godot falls back to the text path with a warning.
   - The tileset's `base_tile` source also uses an inline `CompressedTexture2D` pointing into `.godot/imported/` instead of an `ext_resource` to `assets/sprites/tilemap/tile_horizontal.png`.
-- `[LOW]` `AdventureTilemap` creates `AdventureMapGenerator` (a `Node`) with `.new()` and never adds it to the tree or frees it. It could be a `RefCounted`.
+- `[LOW]` `AdventureTilemap` creates `AdventureMapGenerator` (a `Node`) with `.new()` and never adds it to the tree or frees it, so it leaks one node per view (`test_adventure_end_flow.gd` frees it by hand). It could be a `RefCounted`.
 - `[LOW]` `AdventureView` hardcodes the PlayerInfoPanel positions (`Vector2(390, 500)` during combat, `Vector2(170, 872)` after), duplicating the scene layout.
 - `[LOW]` "Show Whole Map" is not purely visual: dev-revealed tiles are painted on `AdventureVisibleMap`, so they become clickable and pathable, while hover previews still ignore them.
 - `[LOW]` `EffectData.EffectType` is not used for dispatch. The `AwardResource`, `AwardItem`, `AwardLootTable` and `TriggerEvent` effect classes don't set it in `_init()`, so it stays `NONE` unless the `.tres` sets it, and none of the adventure encounter effects do.
@@ -668,7 +671,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
   - `test_min_fillers_on_path_guaranteed` counts NoOp tiles as fillers (they inherit `placement = FILLER`), so it passes even if Phase 4 is broken.
 - `[MEDIUM]` **Core scene logic is untested.** There are no tests for:
   - `AdventureTilemap` (visit/complete, Stamina gating, committed path);
-  - `AdventureView` (end-reason selection, result building);
+  - `AdventureView` beyond the timeout and boss-win paths in `test_adventure_end_flow.gd` (death, result building);
   - `EncounterInfoPanel` (disabled and completed card states);
   - `AdventureEndCard`;
   - `PathPreview.set_fade_behind()`;
