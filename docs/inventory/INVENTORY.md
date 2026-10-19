@@ -292,7 +292,7 @@ The Equipment tab uses a manual drag system, not Godot's built-in drag-and-drop:
 | Trash → nowhere | Item goes back into the hold-buffer |
 | Origin slot, or nowhere | Item returns to its origin |
 
-Right-click calls `_quick_equip()`. `GearSlot.is_valid_item()` passes only `EquipmentDefinitionData` whose `slot_type` matches the gear slot. `GearSelector._validate_slot_coverage()` logs an error if a singular slot type, or accessory index 0 or 1, has no gear slot.
+Right-click calls `_quick_equip()`, which ignores the trash slot: a held item is rescued only by dragging it out. `GearSlot.is_valid_item()` passes only `EquipmentDefinitionData` whose `slot_type` matches the gear slot. `GearSelector._validate_slot_coverage()` logs an error if a singular slot type, or accessory index 0 or 1, has no gear slot.
 
 ### Trash hold-buffer
 
@@ -302,7 +302,7 @@ Right-click calls `_quick_equip()`. `GearSlot.is_valid_item()` passes only `Equi
 |---|---|
 | `accept(value) -> String` | If something is already held, logs "[color=red]Discarded <name>" and drops that reference (permanent deletion). Stores the new value and renders equipment visuals. Returns the discarded name |
 | `get_held()`, `is_holding()`, `clear_hold()` | Accessors. `clear_hold()` also clears the visual |
-| `flush_to_inventory()` | Called by `InventoryView` on close for every node in the "TrashSlots" group. Restores the held value through InventoryManager |
+| `flush_to_inventory()` | Called by `InventoryView` on close for every node in the "TrashSlots" group. Restores the held value through InventoryManager, then calls `clear_hold()` so no icon is left behind |
 
 The Materials tab has a trash slot, but nothing is wired to it. The Consumables tab has no trash slot; that path was removed in f0e3e0a.
 
@@ -453,23 +453,12 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
 
-Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`. That is 22 files and 157 tests.
+Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`. That is 22 files and 160 tests.
 
 ## Work Remaining
 
 ### Bugs
 
-- `[HIGH]` **The trash slot can duplicate items after the book is closed.** `TrashSlot.flush_to_inventory()` restores `_held` but never clears the `ItemInstance` visual (regression from 1b15025; `clear_hold()` does clear it).
-  - On reopen, the trash still shows the icon. Clicking it goes through `EquipmentTab._pick_up_item()` with the trash as origin.
-  - The drop then calls `restore_equipment_instance()`, or `accept()` followed by the next flush, on an instance that is already back in the grid.
-  - Result: one `ItemInstanceData` sits under two grid keys, or is both equipped and in the grid.
-  - Found by reading the code; not reproduced in game.
-- `[HIGH]` **Right-clicking an item held in the trash corrupts the grid.** `_quick_equip()` treats the `TrashSlot` as a grid slot.
-  - `from_index` becomes `current_page * 42 + 1`, because `TrashSlot` is child 1 of `PaginationBar`.
-  - `equip_item()` then erases or overwrites whatever grid item sits at that index.
-  - The trash keeps holding the now-equipped instance, which the next flush duplicates.
-  - Fix: guard `slot is TrashSlot` in `_quick_equip()` and `_pick_up_item()`.
-  - Found by reading the code; not reproduced in game.
 - `[MEDIUM]` **The visible page size and the data page size disagree.**
   - `equipment_tab.tscn` sets `EquipmentGrid.num_columns = 7`, so a page shows 42 slots. `InventoryData.SLOTS_PER_PAGE` is 36, so capacity is 72.
   - Page 2 shows global indices 42–83. Awards fill only 0–71, then log "Equipment full (72/72)" while 12 slots still look empty.
@@ -518,7 +507,7 @@ Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_d
 - `[MEDIUM]` **`test_inventory_manager.gd` tests less than its count suggests.**
   - About 20 of its 33 tests re-implement the logic on a local `InventoryData` instead of calling the manager. As a result, `equip_item`, `unequip_item`, `move_equipment` and `swap_accessory_slots` are effectively untested.
   - `test_inventory_max_50_slots` checks a 50-slot rule that no longer exists.
-  - There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, `_quick_equip`, `GearSelector`, `MaterialsTab` or the generator script.
+  - There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, `_quick_equip` (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
 - `[LOW]` **Two item-detail widgets exist.** `ItemDescriptionPanel` serves Equipment, Consumables and the end-card tooltip; `ItemDetailCard` serves only Materials. Their setup logic is duplicated, and `ItemDetailCard`'s doc comment wrongly says Consumables and the Journal use it.
 - `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop. The drag-preview code is duplicated in `ConsumableRow` and `HotbarSlot`.
 - `[LOW]` **Dead code:**
