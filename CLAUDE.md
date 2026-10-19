@@ -204,6 +204,16 @@ Example: `feat(combat): implement generic cast time logic`
 - When implementing from a plan, build **bottom-up** — start with the lowest-level data structures and work up
 - Update the planning document as implementation progresses and after completion to reflect final reality
 
+## GodotPrompter
+
+This is a Godot project with GodotPrompter skills available. Before implementing any game system, you MUST check for a matching `godot-prompter:*` skill and invoke it. This applies to all agents, subagents, and sessions working in this repository.
+
+Key skills for this project: `resource-pattern`, `state-machine`, `event-bus`, `scene-organization`, `save-load`, `inventory-system`, `ability-system`, `godot-ui`, `hud-system`, `shader-basics`, `2d-essentials`, `godot-testing`.
+
+If a skill's pattern conflicts with a convention in this file, follow this file and mention the conflict.
+
+For the full skill list, invoke `godot-prompter:using-godot-prompter`.
+
 ## Development Notes
 
 ### Shaders
