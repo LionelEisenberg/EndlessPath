@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-17
 **Status:** Approved
-**Drives:** Beat 3a of [FOUNDATION_PLAYTHROUGH.md](../../progression/FOUNDATION_PLAYTHROUGH.md#beat-3a--spirit-well-discovery) — the Spirit Well zone action and the "Basic Training" system.
+**Drives:** Beat 3a of [FOUNDATION_PLAYTHROUGH.md](../../progression/FOUNDATION_PLAYTHROUGH.md#beat-3a-aura-well-discovery-implemented) — the Spirit Well zone action and the "Basic Training" system.
 
 ## Overview
 
