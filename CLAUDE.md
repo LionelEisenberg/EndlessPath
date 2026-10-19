@@ -168,7 +168,9 @@ UI text uses a **Label theme variant type-scale** defined in `assets/themes/pixe
 
 ## GDScript Coding Standards
 
-**Scope**: Never modify files in `addons/`. One known exception: `addons/dialogic` (2.0-Alpha-19) carries upstream's 3-line Godot 4.7 return-value fix (dialogic-godot/dialogic#2769); Alpha 20+ already includes it, so the patch goes away when Dialogic is upgraded.
+**Scope**: Never modify files in `addons/`. Known exceptions, both in `addons/dialogic` (2.0-Alpha-19):
+- Upstream's 3-line Godot 4.7 return-value fix (dialogic-godot/dialogic#2769). Alpha 20+ already includes it.
+- A local 1-line fix in `DialogicResourceUtil.update_directory()` so a first import without `.godot/` no longer empties the `[dialogic]` timeline/character registry in `project.godot`. Upstream still has this bug, so re-apply the fix after any Dialogic upgrade.
 
 ### Functions
 - All functions must have explicit return types (use `-> void` if no return value)
