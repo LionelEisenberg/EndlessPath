@@ -1,5 +1,7 @@
 # Madra Pool Unification — Implementation Plan
 
+> **Status (2026-10-18):** Implemented (PR #16). See [RESOURCES.md](RESOURCES.md) for current behaviour. This plan is kept as a historical record, and file paths below may be out of date. The badge and shake-reject logic now live in `scenes/zones/zone_action_button/presenters/adventure_presenter.gd`.
+
 **Status:** Complete (PR #16)
 
 **Goal:** Unify zone Madra and combat Madra into a single economy — cycling fills the pool, adventures drain it, combat uses the drained amount as budget.

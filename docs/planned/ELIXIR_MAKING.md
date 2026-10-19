@@ -1,8 +1,10 @@
 # Elixir Making System
 
-> **Status: Planned — Not Yet Implemented**
+Last updated: 2026-10-18
+
+> **Status: Planned, not started.** No code exists for this system. This document records the design intent from the Game Design Document.
 >
-> No code exists for this system. This document describes the design intent from the Game Design Document for future implementation.
+> **Blocked on Copper:** Elixir Making unlocks at the Copper stage, and the game can't reach Copper yet. There is no breakthrough, and no Copper `AdvancementStageResource`. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
 
 ## Design Intent
 
@@ -27,6 +29,8 @@ Quality is determined by performance across all stations. Higher quality elixirs
 | Herbs / Ingredients | Foraging (Tier 0), Adventuring (higher tiers) |
 | Madra | Cycling |
 
+Spirit Fern and Dewdrop Tear, from Spring Forest Foraging, are the only materials today, and nothing consumes them. `InventoryManager` has no API to spend or remove materials, which a crafting system needs first. See [INVENTORY.md](../inventory/INVENTORY.md).
+
 ## Output
 
 Consumable Elixirs providing long-duration buffs. Example from GDD:
@@ -47,14 +51,15 @@ Elixirs are meant to be more expensive than Scripts but last much longer, reward
 
 ## Implementation Considerations
 
-- The multi-station approach could reuse or extend the `MainViewState` pattern — one state per station
-- Rapid-click could use a simple click counter with a timer
-- Mouse-follow reuses the concept from Cycling's `mouse_tracking_accuracy`
-- Timed-click reuses the concept from Cycling Zones' timing quality
-- `ItemDefinitionData.ItemType.CONSUMABLE` needs implementation in `InventoryManager`
-- The `BuffEffectData` system already supports timed attribute modifiers — elixir effects could map directly
-- A new `ElixirActionData` subclass of `ZoneActionData` would be needed
-- Recipe discovery could use the `EffectData` system (awarded as knowledge items from adventures)
+What exists:
+- **Views:** the multi-station flow could reuse the `MainViewState` push/pop pattern, one state per station ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)).
+- **Reusable mechanics from Cycling:** mouse-follow maps to its Madra Ball tracking, and timed-click to its cycling-zone PERFECT/GOOD/OK scoring ([CYCLING.md](../cycling/CYCLING.md)). Rapid-click could be a click counter with a timer.
+- **Consumable items:** `ConsumableDefinitionData` (`effects: Array[EffectData]`, `cooldown_seconds`, `use()`) and consumable stacks in `InventoryData.consumables` are implemented. An Elixir fits as a consumable item ([INVENTORY.md](../inventory/INVENTORY.md)).
+- **Recipe discovery:** could reuse the `EffectData` reward pipeline, e.g. an item awarded from adventure encounters ([EFFECTS.md](../infrastructure/EFFECTS.md)).
+
+What's missing:
+- **Long-duration buffs:** there is no system for them. `BuffEffectData` timed modifiers live in `CombatBuffManager` and only exist during a fight; nothing persists a buff across cycling, adventures, or a save/load. Elixir effects such as "+10% Core Density XP" need a persistent timed-modifier system that `CultivationManager`/`CyclingTechnique` read. That is the same hookup the path tree's inert `core_density_xp_mult` perk is missing ([PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md)).
+- **Zone action:** a new `ElixirActionData` subclass of `ZoneActionData`, plus an `ActionManager` route, is needed ([ZONES.md](../zones/ZONES.md)).
 
 ## Open Design Questions
 

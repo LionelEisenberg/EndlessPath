@@ -1,39 +1,291 @@
-# Character & Player State
+# Character, Player Vitals and Character View
+
+Last updated: 2026-10-18
 
 ## Overview
 
-CharacterManager and PlayerManager together manage the player's persistent identity: attributes, abilities, and combat vitals.
+Three pieces make up the player's persistent identity outside of abilities:
 
-## CharacterManager
-- Manages 8 attributes (all default 10.0): STRENGTH, BODY, AGILITY, SPIRIT, FOUNDATION, CONTROL, RESILIENCE, WILLPOWER
-- `get_total_attributes_data()` = base + bonuses (`_get_attribute_bonuses()` → `_get_equipment_bonuses()` sums all equipped gear's `attribute_bonuses` dictionaries — implemented in PR #9)
-- ~~`get_equipped_abilities()` — hardcoded to 4 test abilities~~ Removed in PR #22; abilities now managed by `AbilityManager` singleton
-- `get_gold_multiplier()` — returns 1.0 (TODO)
-- ~~**Debug:** `get_total_attributes_data()` permanently adds +100 to STRENGTH~~ *(Fixed long ago)*
+- **`CharacterManager`** (autoload) owns the 8 **base attributes**, which are persisted in `SaveGameData.character_attributes`. It computes **total attributes** as base + equipment bonuses for every system that needs stats.
+- **`PlayerManager`** (autoload) holds the player's single persistent **`VitalsManager`** (health, stamina, and combat Madra), which every adventure and fight reuses.
+- **Character View** (press **C**) is a read-only modal that shows the 8 total attributes in two columns, with a hover tooltip for each.
 
-## PlayerManager
-- Thin container for the player's persistent `VitalsManager` (used in combat)
-- `VitalsManager` is created as a child node with `is_player = true`
-- When `is_player`, connects to `CharacterManager.base_attribute_changed` for live updates
+Abilities are not part of this system. Unlocks and the 4-slot loadout live in `AbilityManager` (see [ABILITIES.md](../abilities/ABILITIES.md)).
+
+## Player Experience
+
+1. On the zone view, press **C** or click **CHARACTER** in the bottom `Toolbar`. A grey backdrop fades in with the panel (0.3 s).
+2. The panel is headed "CHARACTER — Your cultivation attributes". It has two columns, each row showing an icon, a name and a value:
+   - **PHYSICAL:** Strength, Body, Agility, Resilience
+   - **SPIRITUAL:** Spirit, Foundation, Control, Willpower
+3. Values are **totals** (base + equipped gear), rounded to whole numbers (`"%.0f"`). A new character shows 10 everywhere.
+4. Hovering a row brightens it and shows a tooltip above it, with the attribute name, a description and a formula line (some formulas are wrong; see Work Remaining).
+5. **C** or **Esc** closes the panel (0.2 s fade). It can only be opened from the zone view, not during adventures, cycling or other modals.
+
+Attributes grow in two ways:
+
+- **Gear:** equipment `attribute_bonuses`, which apply immediately to totals.
+- **Base gains:** `AwardAttributeEffectData`. The only content using it is the Aura Well training action, which gives +1 Spirit per training level.
+
+## Architecture
+
+```
+CharacterManager (autoload)                singletons/character_manager/character_manager.gd
+  live_save_data.character_attributes ──► base values (CharacterAttributesData)
+  get_total_attributes_data() ──► new CharacterAttributesData(base + equipment bonuses)
+  signal base_attribute_changed(attribute_type, new_value)
+
+PlayerManager (autoload)                   singletons/player_manager/player_manager.gd
+  └── PlayerVitalsManager (VitalsManager, is_player = true)
+        listens: CharacterManager.base_attribute_changed → refresh attrs → recompute max values
+
+MainView (main_game.tscn)
+  MainViewStateMachine/CharacterViewState  scenes/character/character_view_state.gd
+  CharacterView (Control, z_index 3)       scenes/character/character_view.tscn / .gd
+    UnifiedPanel (PanelContainer, min width 820, centered)
+      MainVBox
+        Header → HeaderMargin → HeaderVBox → Title "CHARACTER" (LabelTitle),
+                                             Subtitle "Your cultivation attributes" (LabelSubheading)
+        HeaderSep
+        BodyMargin → Body (HBox)
+          PhysicalGroup %  → PhysicalLabel, PhysicalSep, Strength/Body/Agility/ResilienceRow
+          BodyDivider (VSeparator)
+          SpiritualGroup % → SpiritualLabel, SpiritualSep, Spirit/Foundation/Control/WillpowerRow
+        Footer → FooterLabel "Press C or ESC to close" (LabelSmall, muted)
+    SharedTooltip % (AttributeTooltip)    scenes/character/attribute_tooltip/
+    AnimationPlayer % ("open" 0.3 s, "close" 0.2 s, modulate fade)
+  AttributeRow (×8, PanelContainer)        scenes/character/attribute_row/
+    RowHBox → Icon % (36×36), NameLabel % (LabelBody), ValueLabel % (LabelValueLarge)
+```
+
+## Data Model
+
+### CharacterAttributesData
+
+`scripts/resource_definitions/character/character_attributes_data.gd` defines `class_name CharacterAttributesData extends Resource`.
+
+| Field | Type | Default | `AttributeType` value |
+|-------|------|---------|-----------------------|
+| `strength` | `float` | `10.0` | `STRENGTH` = 0 |
+| `body` | `float` | `10.0` | `BODY` = 1 |
+| `agility` | `float` | `10.0` | `AGILITY` = 2 |
+| `spirit` | `float` | `10.0` | `SPIRIT` = 3 |
+| `foundation` | `float` | `10.0` | `FOUNDATION` = 4 |
+| `control` | `float` | `10.0` | `CONTROL` = 5 |
+| `resilience` | `float` | `10.0` | `RESILIENCE` = 6 |
+| `willpower` | `float` | `10.0` | `WILLPOWER` = 7 |
+
+| Method | Behaviour |
+|--------|-----------|
+| `_init(strength_value = 10.0, …, willpower_value = 10.0)` | Positional constructor in enum order |
+| `get_attribute(type) -> float` | `match` dispatch. Unknown types call `Log.error` and return 0.0 |
+| `set_attribute(type, value)` | `match` dispatch |
+| `add_to_attribute(type, amount)` | Get, then set, then `Log.info` |
+| `get_max_madra() -> float` | `foundation × 10.0`. Shared by `VitalsManager` and `ResourceManager.get_adventure_madra_capacity()` |
+
+The same class is used for enemy stat blocks (`CombatantData.attributes`). Until commit `1ce7ecd` (2026-05-23) the values were stored in a single `attributes` dictionary, and saves from before that change are incompatible (see [PERSISTENCE.md](PERSISTENCE.md#versioning)).
+
+### CharacterManager
+
+| Member | Behaviour |
+|--------|-----------|
+| `const AttributeType` | Alias of `CharacterAttributesData.AttributeType` |
+| `signal base_attribute_changed(attribute_type, new_value)` | Emitted by `add_base_attribute()`, and for all 8 attributes from `_update_resources()` in `_ready()` and on `save_data_reset` |
+| `get_total_attributes_data() -> CharacterAttributesData` | Builds a **new** instance each call from `get_strength()` … `get_willpower()` |
+| `get_strength()` … `get_willpower() -> float` | `base + _get_attribute_bonuses(type)` |
+| `add_base_attribute(type, amount)` | Mutates the saved base value, emits `base_attribute_changed`, and calls `Log.info` |
+| `get_gold_multiplier() -> float` | Always `1.0` (a `TODO`) |
+| `static get_attribute_display_name(type) -> String` | `"STRENGTH"` becomes `"Strength"`. Used only in log lines |
+| `_get_attribute_bonuses(type)` | Equipment only. The TODOs for buffs, cultivation and temporary effects are unimplemented |
+| `_get_equipment_bonuses(type)` | Sums `EquipmentDefinitionData.attribute_bonuses[type]` over `InventoryData.equipped_gear` and `equipped_accessories` |
+
+### PlayerManager and VitalsManager
+
+`PlayerManager._ready()` creates `VitalsManager.new()` named `PlayerVitalsManager`, sets `is_player = true`, and adds it as a child. Code reaches it through `PlayerManager.vitals_manager`. None of this state is saved.
+
+| VitalsManager behaviour (player) | Detail |
+|----------------------------------|--------|
+| Attribute source | On `_ready()`, and on every `CharacterManager.base_attribute_changed`, it sets `character_attributes_data = CharacterManager.get_total_attributes_data()`. That setter recomputes the max values |
+| Max values | `max_health = BODY × 10`, `max_stamina = BODY × 5`, `max_madra = FOUNDATION × 10` (defaults 100 / 50 / 100) |
+| Adventure start | `AdventureView` calls `initialize_current_values(madra_budget)`: health and stamina go to max, and Madra is set to the drained budget |
+| Regen | `stamina_regen = 1.0 × AdventureActionData.stamina_regen_modifier` per second during an adventure, then 0 after it. `health_regen` and `madra_regen` are never set (0) |
+| Changes | `apply_vitals_change(health, stamina, madra)` clamps each to `[0, max]`. Callers: adventure movement (−5 stamina per tile, `MOVEMENT_STAMINA_COST`), `ChangeVitalsEffectData`, and combat effects and costs |
+| Signals | `health_changed`, `stamina_changed`, `madra_changed` (separate from `ResourceManager.madra_changed`) |
+
+See [COMBAT.md](../combat/COMBAT.md) for how combat uses these.
+
+### Character View nodes
+
+| Node / script | Key members |
+|---------------|-------------|
+| `CharacterView` (`class_name CharacterView`) | `TOOLTIP_DATA: Dictionary` (title, description and effects text per attribute, hard-coded); `refresh()`; `animate_open()` (calls `refresh()`, then plays "open"); `animate_close()` (hides the tooltip, then plays "close"); `_rows_by_type`, filled from the AttributeRow children of `%PhysicalGroup` / `%SpiritualGroup` |
+| `AttributeRow` (`class_name AttributeRow`) | Exports `attribute_name: String`, `attribute_type: AttributeType`, `icon_texture: Texture2D` (set per instance to `assets/sprites/ui/attribute_icons/<attr>_icon.png`). `set_value(float)` writes `"%.0f"`. Signals `hovered(row)` and `unhovered()`. A hovered row is tinted to `Color(1.15, 1.1, 1.05)` |
+| `AttributeTooltip` (`class_name AttributeTooltip`) | `top_level`, `z_index 100`, `PanelTooltip` variant, ignores the mouse. `show_for_row(row, data)` positions it 8 px above the row. `hide_tooltip()` |
+| `CharacterViewState` (`class_name CharacterViewState extends MainViewState`) | `enter()` calls `grey_background.show_with_panel(character_view)`. `handle_input` reacts to `ui_cancel` / `open_character`. `exit()` does nothing |
+
+## Core Systems and Flows
+
+### Total attributes
+
+```
+get_total_attributes_data()
+  for each of the 8 attributes:
+    base  = live_save_data.character_attributes.get_attribute(type)
+    bonus = Σ attribute_bonuses[type] over equipped_gear + equipped_accessories
+  return CharacterAttributesData.new(totals…)       # fresh object, nothing cached
+```
+
+These are not included in totals:
+
+- Path `ATTRIBUTE_BONUS` perks. `PathManager` aggregates them, but nothing reads them.
+- Combat buffs, which `CombatBuffManager` applies to combat attributes only.
+- Cultivation stage bonuses.
+
+### Derived stats
+
+| Stat | Formula | Computed in |
+|------|---------|-------------|
+| Max Health | `BODY × 10` | `VitalsManager._get_max_health()` |
+| Max Stamina | `BODY × 5` | `VitalsManager._get_max_stamina()` |
+| Max combat Madra | `FOUNDATION × 10` | `CharacterAttributesData.get_max_madra()` |
+| Adventure Madra capacity / threshold | `FOUNDATION × 10` / 50% of that | `ResourceManager` (see [RESOURCES.md](RESOURCES.md)) |
+| Ability value | `base_value + Σ(attribute × *_scaling)` | `CombatEffectData.calculate_value()` |
+| Damage taken | `damage × 100 / (100 + defense)`. Defense is RESILIENCE for PHYSICAL, SPIRIT for SPIRIT, `(RESILIENCE + WILLPOWER) / 2` for MIXED, and none for TRUE | `CombatEffectData.calculate_damage()` |
+| Vitals effects | `health_change + BODY × body_hp_multiplier`; `madra_change + FOUNDATION × foundation_madra_multiplier` | `ChangeVitalsEffectData` |
+| Gold multiplier | `1.0` | `CharacterManager.get_gold_multiplier()` |
+
+### Attribute usage
+
+| Attribute | What reads it today | Gear granting it |
+|-----------|---------------------|------------------|
+| STRENGTH | `strength_scaling` (Basic Strike ×1.0) | Iron Shortsword +5, Makeshift Dagger +3, Dreadbeast Tooth Necklace +2 |
+| BODY | Max Health, Max Stamina, `body_hp_multiplier` | Reinforced Robes +4, Scripted Bark +2 |
+| AGILITY | `agility_scaling` (Basic Strike ×0.5, Empty Palm ×0.3) | Iron Shortsword +2, Makeshift Dagger +2, Dreadbeast Tooth Necklace +2 |
+| SPIRIT | `spirit_scaling` (Empty Palm ×1.0, Power Font ×1.5), SPIRIT-damage defense | Cultivator's Cowl +1. Base: Aura Well training +1 per level |
+| FOUNDATION | Max combat Madra, adventure capacity, `foundation_scaling` (Power Font ×0.5), `foundation_madra_multiplier` | Leeching Ring +2 |
+| CONTROL | Nothing (no ability sets `control_scaling`) | Leeching Ring +2 |
+| RESILIENCE | PHYSICAL defense, half of MIXED defense | Reinforced Robes +2 |
+| WILLPOWER | Half of MIXED defense | Cultivator's Cowl +3 |
+
+`UnlockConditionData` `ATTRIBUTE_VALUE` conditions compare the total attributes. The only content using one is `test_attribute_requirement_unlock_data` (BODY >= 20).
+
+### Base attribute award
+
+```
+TrainingActionData.effects_on_level (Aura Well) → AwardAttributeEffectData.process()
+  → CharacterManager.add_base_attribute(SPIRIT, 1.0)
+      → character_attributes.add_to_attribute()       (saved at the next SaveTimer tick)
+      → base_attribute_changed.emit(SPIRIT, new_value)
+          → PlayerVitalsManager refreshes its attributes and max values
+```
+
+### Opening and closing the Character View
+
+```
+C key / Toolbar CHARACTER button (SystemMenuButton MenuType.CHARACTER → Input.parse_input_event(open_character))
+  → MainView._unhandled_input → ZoneViewState.handle_input("open_character")
+  → MainView.push_state(character_view_state) → CharacterViewState.enter()
+  → GreyBackground.show_with_panel(character_view) → CharacterView.animate_open()
+      → refresh() reads CharacterManager.get_total_attributes_data() → each AttributeRow.set_value()
+
+C / Esc (top state is CharacterViewState)
+  → GreyBackground.hide_with_panel(character_view) (+ one-shot panel_hidden → _on_close_finished)
+  → CharacterView.animate_close() → grey fade-out finishes → both hidden → panel_hidden
+  → MainView.pop_state()
+```
+
+Values are read only when the panel opens. Nothing updates them while it is open. The state machine, `GreyBackground` and `Toolbar` are documented in [MAIN_VIEW.md](MAIN_VIEW.md).
+
+## Integration Points
+
+| System | Connection |
+|--------|------------|
+| PersistenceManager | `SaveGameData.character_attributes` holds the base values. `save_data_reset` triggers `_update_resources()` |
+| InventoryManager | `_get_equipment_bonuses()` reads `get_inventory().equipped_gear` / `equipped_accessories`. CharacterManager does not listen to `inventory_changed` |
+| ResourceManager | `get_adventure_madra_capacity()` uses the total Foundation (see [RESOURCES.md](RESOURCES.md)) |
+| AdventureCombat | Snapshots `get_total_attributes_data()` into the player `CombatantData` at combat start, and passes `PlayerManager.vitals_manager` as the player's external vitals |
+| AdventureView / AdventureTilemap | Initialize vitals with the Madra budget, set stamina regen, spend 5 stamina per move, and read health for the end card |
+| ChangeVitalsEffectData | Reads total BODY and FOUNDATION and applies the result to `PlayerManager.vitals_manager` (encounters, consumables) |
+| AwardAttributeEffectData | The only caller of `add_base_attribute()` (see [EFFECTS.md](EFFECTS.md)) |
+| UnlockConditionData | `ATTRIBUTE_VALUE` conditions read totals. UnlockManager does not listen to `base_attribute_changed`, so these conditions are only re-checked when another signal fires (Madra, gold, event, cultivation) |
+| AbilityStatsDisplay | Shows per-attribute damage scaling from `get_total_attributes_data()` |
+| PathManager | `PathEffectsSummary.attribute_bonuses` is computed but not consumed |
+| MainView / GreyBackground / Toolbar | Host the Character View and drive its modal flow |
+
+## Existing Content
+
+- **Attribute icons:** `assets/sprites/ui/attribute_icons/{strength,body,agility,spirit,foundation,control,resilience,willpower}_icon.png`. The Toolbar's CHARACTER button uses `assets/sprites/ui/system_menu/character_icon.png`.
+- **Gear with attribute bonuses:** the 7 items in `resources/items/equipment/spirit_valley/`, listed in the attribute-usage table above. Most of them cannot be obtained on `main`:
+  - The Dreadbeast Tooth Necklace is in the Ravenous Dreadbeast elite encounter's loot table.
+  - The Makeshift Dagger and Iron Shortsword appear only in `test_loot_table_weapon.tres`, which is used only by the unreferenced `test_treasure_encounter.tres`.
+  - Nothing references the Cultivator's Cowl, Leeching Ring, Reinforced Robes or Scripted Bark resources.
+  - There is no starting gear, and the old NPC dagger award was removed in `d934de4` (2026-04-19).
+
+  See [ITEMS.md](../inventory/ITEMS.md).
+- **Base-attribute awards:** `resources/zones/spirit_valley_zone/zone_actions/aura_well_spirit_award_effect.tres` (SPIRIT, amount 1.0).
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `singletons/character_manager/character_manager.gd` | Attribute management |
-| `singletons/player_manager/player_manager.gd` | Player VitalsManager container |
-| `singletons/ability_manager/ability_manager.gd` | Ability unlock/equip state (PR #22) |
+| `singletons/character_manager/character_manager.gd` | Base and total attributes, equipment bonuses |
+| `scripts/resource_definitions/character/character_attributes_data.gd` | Attribute storage, `get_max_madra()` |
+| `singletons/player_manager/player_manager.gd` | Creates the persistent player `VitalsManager` |
+| `scenes/combat/combatant/vitals_manager/vitals_manager.gd` | Max values, regen, clamped vitals changes |
+| `scripts/resource_definitions/effects/award_attribute_effect_data.gd` | Data-driven base-attribute award |
+| `scenes/character/character_view.tscn` / `.gd` | Character View panel and tooltip text |
+| `scenes/character/character_view_state.gd` | Modal state |
+| `scenes/character/attribute_row/attribute_row.tscn` / `.gd` | Row subscene |
+| `scenes/character/attribute_tooltip/attribute_tooltip.tscn` / `.gd` | Shared tooltip |
+| `scenes/ui/main_view/states/zone_view_state.gd` | Pushes `CharacterViewState` on `open_character` |
+| `tests/unit/test_character_attributes_data.gd` | `get_max_madra()` (3 tests) |
+| `tests/unit/test_character_manager.gd` | See Tech Debt: does not call `CharacterManager` |
+| `tests/unit/test_award_attribute_effect_data.gd` | `AwardAttributeEffectData` → `add_base_attribute()` against the real singleton |
+| `tests/unit/test_change_vitals_effect_data.gd` | BODY / FOUNDATION scaling through the real `get_total_attributes_data()` |
+
+Design history: [character view spec](../superpowers/specs/2026-04-16-character-view-design.md) and [plan](../superpowers/plans/2026-04-16-character-view.md). Shipped on 2026-04-16 with the deviations listed under Work Remaining.
 
 ## Work Remaining
 
 ### Bugs
 
-- ~~`[HIGH]` Debug: +100 STRENGTH permanently added in `get_total_attributes_data()`~~ *(Fixed in PR #3)*
+- `[MEDIUM]` Several Character View tooltip formulas are wrong. `CharacterView.TOOLTIP_DATA` is hand-written text that has drifted from the code:
+
+  | Attribute | Tooltip says | Actual |
+  |-----------|--------------|--------|
+  | BODY | `Max Health = 100 + BODY x 10`, `Max Stamina = 50 + BODY x 5` | `BODY × 10` and `BODY × 5` (`VitalsManager`) |
+  | FOUNDATION | `Max Madra = 50 + FND x 10` | `FOUNDATION × 10` |
+  | STRENGTH | `Basic Strike: STR x 0.2` | `basic_strike.tres` is 10 + STR × 1.0 + AGI × 0.5 |
+  | AGILITY / SPIRIT | Empty Palm `AGI x 0.3` / Power Font `SPI x 1.5` | These leave out Empty Palm's SPI × 1.0 and Power Font's FND × 0.5 |
+
+  Generate the text from the formulas and ability data instead of hard-coding it.
+- `[MEDIUM]` The player's maximum vitals ignore equipment changed during a session. `PlayerVitalsManager` refreshes its attributes only on `base_attribute_changed`, and equipping or unequipping gear never emits it.
+  - Equipping Reinforced Robes (+4 BODY) leaves max health at 100 until a base attribute changes or the game restarts.
+  - With Leeching Ring (+2 FOUNDATION), `ResourceManager.get_adventure_madra_capacity()` allows a 120 budget, but `VitalsManager.max_madra` stays at 100, so the extra 20 is clamped away on the first combat Madra change.
+
+  Refresh on `InventoryManager.inventory_changed` (or add a total-attributes-changed signal), or refresh at adventure start.
+- `[LOW]` The Character View doesn't update while open. The spec called for a `base_attribute_changed` connection. Values refresh only in `animate_open()`, so an Aura Well level-up gained while the panel is open isn't shown.
 
 ### Missing Functionality
 
-- ~~`[HIGH]` `_get_attribute_bonuses()` always returns 0 — equipment and cultivation bonuses never apply. Inventory equipment stats (`attack_power`, `defense`) are cosmetic until this is wired~~ *(Done in PR #9 — `_get_attribute_bonuses()` now sums equipped gear bonuses via `_get_equipment_bonuses()`)*
-- ~~`[HIGH]` Ability unlock and equip system~~ *(Done in PR #22 — AbilityManager singleton with unlock/equip/4-slot loadout, AbilitiesView UI with drag-drop, filter/sort, stat tooltips. Path tree UNLOCK_ABILITY effects wire to AbilityManager)*
-- `[MEDIUM]` No player-facing character/stats screen — AbilitiesView (PR #22) covers ability loadout, but player still can't see attributes, equipped gear, and cultivation progress in one place
-- `[MEDIUM]` `get_gold_multiplier()` always returns 1.0 — intended to scale gold rewards but never implemented
-- `[HIGH]` Attribute system needs a design pass — tracked in [COMBAT.md](../combat/COMBAT.md), owned here since CharacterManager manages attributes
+- `[HIGH]` The attribute system needs a design pass. CONTROL has no effect at all (no ability uses `control_scaling`, and nothing reduces cooldowns). WILLPOWER only feeds MIXED defense, and no MIXED-damage ability exists. AGILITY has no role beyond scaling. The combat side is tracked in [COMBAT.md](../combat/COMBAT.md); attributes are owned here.
+- `[MEDIUM]` Path `ATTRIBUTE_BONUS` perks are not applied. `_get_attribute_bonuses()` sums equipment only, and `PathEffectsSummary.attribute_bonuses` is never read. No current Pure Madra node uses `ATTRIBUTE_BONUS`, so nothing visible is lost yet.
+- `[MEDIUM]` The Character View shows totals only. It has no base/gear breakdown, no equipped-gear summary, no cultivation stage or Core Density, and no derived stats (HP, stamina, Madra capacity). The spec left these out of scope.
+- `[MEDIUM]` `CharacterManager.get_gold_multiplier()` always returns `1.0`.
+- `[LOW]` `_get_attribute_bonuses()` has unimplemented TODOs for buffs, cultivation techniques and temporary effects.
+
+### UI
+
+- `[LOW]` The open and close animations only fade `modulate`. The plan also specified a 0.95 → 1.0 scale.
+- `[LOW]` The tooltip is always placed above the hovered row and never clamped to the screen. This is harmless with the current centered layout, but it is fragile if the panel moves.
+
+### Tech Debt
+
+- `[MEDIUM]` `tests/unit/test_character_manager.gd` (23 tests) never calls `CharacterManager`. Its attribute tests use a bare `CharacterAttributesData`. Its `_calculate_equipment_bonus()` helper re-implements the bonus loop for `equipped_gear` only, ignoring `equipped_accessories`, and the "total" tests add numbers inline. Nothing tests `get_total_attributes_data()`, `_get_equipment_bonuses()` with accessories, the `base_attribute_changed` emission, or the `PlayerManager` / `VitalsManager` refresh.
+- `[LOW]` `get_total_attributes_data()` allocates a new resource on every call, and every consumer polls it. A cached total plus a change signal would also fix the vitals bug above.
+- `[LOW]` Several doc comments are stale:
+  - The `CharacterManager` class comment says it computes "health, madra, and combat stats", but it doesn't.
+  - The `AttributeType` comments promise mechanics that don't exist: AGILITY "evasion, cooldown reduction", FOUNDATION "regeneration", CONTROL "madra cost reduction", WILLPOWER "technique power".
+  - The CONTROL tooltip says "reduce ability cooldowns", which contradicts the enum comment.
+- `[LOW]` `CharacterManager._update_resources()` is named after the ResourceManager pattern but only re-emits attributes. `get_total_attributes_data()` has no `##` doc comment, and the locals in the getters and `_update_resources()` are untyped (`var base = …`).
+- `[LOW]` `PlayerManager` has no class doc. The player `VitalsManager` connects `base_attribute_changed` through an untyped lambda in `_ready()`.

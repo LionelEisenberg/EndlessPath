@@ -1,301 +1,447 @@
 # Combat System
 
+Last updated: 2026-10-18
+
 ## Overview
 
-Combat is a real-time system embedded within the Adventure mode. When the player selects a combat encounter on the hex map, the tilemap hides and two combatants (player and enemy) face off using ability-based combat. Abilities cost resources (HP/Madra/Stamina), have cooldowns and optional cast times, and can apply damage, healing, or buffs. The enemy uses a simple AI that casts the first available ability each frame.
+Combat is a real-time, one-versus-one fight that runs inside an adventure. When the player picks a `CombatChoice` on an adventure tile, the hex map hides and `AdventureCombat` builds two `CombatantNode`s: the player (attributes snapshot + equipped loadout) and the first enemy in the choice's `enemy_pool`. Each side casts abilities that cost Health, Madra or Stamina, may have a cast time, then go on cooldown. Effects deal damage, heal, apply buffs, interrupt casts, or strip buffs. The enemy is driven by `SimpleEnemyAI`. The fight ends the moment either side's Health reaches 0.
+
+There is no AP pool (the GDD's AP/Cycle-skill economy is not built). Health and Madra do not regenerate during an adventure; Stamina regenerates at 1/s. Madra is a per-adventure budget drained from the zone Madra pool when the adventure starts.
+
+This doc covers the combat side. How a fight is triggered from the map and how results feed back into the adventure is in [ADVENTURING.md](../adventuring/ADVENTURING.md). Ability data, unlocks and the loadout are in [ABILITIES.md](../abilities/ABILITIES.md); per-ability numbers are in [ABILITIES_MATRIX.md](../abilities/ABILITIES_MATRIX.md).
 
 ## Player Experience
 
-1. Player encounters a combat tile during an adventure and selects the fight choice
-2. Combat view appears with player sprite (left) and enemy sprite (right)
-3. All abilities start on a 1.5-second initial cooldown
-4. Player clicks ability icons to cast — abilities may fire instantly or have a cast bar
-5. Damage numbers float off health bars; a ghost trail shows recent damage
-6. Enemy AI automatically uses abilities when ready
-7. Combat ends when either combatant's health reaches 0
-8. Victory awards gold (multi-factor formula); defeat ends the adventure
+1. On the adventure map the player reaches a combat tile (regular, elite or boss) and picks its combat choice, e.g. "Attack the Spirit".
+2. The map hides. The combat view shows the zone background with a vignette, drifting mist and motes. The player's info panel moves to the left-centre of the screen (`(390, 500)`); the enemy's panel sits to its right. There are no character sprites; each panel has a portrait, and both portraits are currently the player sprite.
+3. Each panel shows the combatant's name, Health/Madra/Stamina bars with `current / max` values (plus `(x/s)` when a regen rate is set, i.e. Stamina), a row of buff icons, and a row of ability buttons.
+4. Player buttons show the bound key (Q/W/E/R by loadout slot), a cost strip (Madra blue, Stamina gold, Health red), and a cooldown overlay with seconds left. Every player ability starts the fight on a 1.5 s cooldown.
+5. The player clicks a button or presses its key. Instant abilities fire immediately; abilities with a cast time replace the button row with a casting indicator (ability name, draining bar, `time_left / total s`). Only one cast runs at a time. Unaffordable abilities dim to 35% and the missing resource's cost turns red.
+6. The enemy acts on its own. Its casts show in the casting indicator on its panel, which is the window for Empty Palm's interrupt. Enemy abilities with no cooldown can start casting on the first frame and repeat back to back.
+7. Hovering an ability shows a tooltip (icon, name, CD, cast time, costs, and a pre-defense DMG total for the first target effect). Hovering a buff icon shows its name, effect, live remaining time and stacks.
+8. Health and Madra changes float up from the bar as red `-N` / green `+N` numbers, and a ghost bar trails damage. The log window records damage taken, heals, interrupts and buff strips.
+9. When the enemy reaches 0 Health the player wins gold and returns to the map; beating the boss ends the adventure as a victory. When the player reaches 0 Health the adventure ends in defeat. Either way the end card shows when the adventure ends.
+10. Health, Madra and Stamina carry over to the next fight in the same adventure. Buffs and cooldowns do not.
 
 ## Architecture
 
+### Scene composition during a fight
+
 ```
-AdventureCombat (Node2D)                    — adventure_combat.gd
-  Atmosphere                                — vignette + mist + motes (PR #24)
-  CanvasLayer
-    EnemyInfoPanel (CombatantInfoPanel)     — combatant_info_panel.gd
-
-CombatantNode (Node2D)                      — combatant_node.gd (2 per fight, runtime)
-  CombatAbilityManager (Node)               — combat_ability_manager.gd
-    AbilityInstance_* (Node)                 — combat_ability_instance.gd (per ability)
-  VitalsManager (Node)                      — vitals_manager.gd
-  CombatEffectManager (Node)                — combat_effect_manager.gd
-  CombatBuffManager (Node)                  — combat_buff_manager.gd
-    _dot_timer (Timer)                      — 1s interval for DoT ticks
-  Sprite2D
+AdventureView (Control)                          adventure_view.gd (adventure-owned host)
+├── ZoneViewBackground                           parallax backdrop, visible behind map and combat
+├── TilemapView/…/AdventureTilemap               emits start_combat(choice)
+├── CombatView (Control, hidden outside combat)
+│   └── CombatSubviewportContainer/SubViewport   1920x1080
+│       └── AdventureCombat (Node2D)             adventure_combat.gd
+│           ├── Atmosphere                       instanced in _setup_atmosphere(), moved to index 0
+│           ├── CanvasLayer
+│           │   └── EnemyInfoPanel (CombatantInfoPanel)
+│           ├── CastTimer (Label)                stray placeholder text, unreferenced
+│           ├── PlayerCombatant (CombatantNode)  created per fight
+│           └── EnemyCombatant (CombatantNode)   created per fight
+│               └── EnemyAI (SimpleEnemyAI)      added when enable_ai is true
+└── PlayerInfoPanel (CombatantInfoPanel)         persistent; (170, 872) on the map, (390, 500) in combat
 ```
 
-The player's `VitalsManager` is a persistent node from `PlayerManager` — it survives between fights. The enemy always gets a fresh local `VitalsManager`.
+### CombatantNode (`combatant_node.tscn`)
 
-The `PlayerInfoPanel` lives in `AdventureView`, not inside `AdventureCombat`.
+```
+CombatantNode (Node2D)                 combatant_node.gd
+├── CombatAbilityManager (Node)        combat_ability_manager.gd
+│   └── AbilityInstance_<name> (Node)  combat_ability_instance.gd, created in code per AbilityData
+│       ├── Timer (cooldown, one-shot)
+│       └── Timer (cast, one-shot)
+├── VitalsManager (Node)               vitals_manager.gd (used by enemies; the player uses PlayerManager's)
+├── CombatEffectManager (Node)         combat_effect_manager.gd (scene root is named CombatEffectProcessor)
+└── CombatBuffManager (Node)           combat_buff_manager.gd
+    └── Timer (DoT tick, 1 s, runs only while a DoT is active)
+```
+
+There is no sprite node; `_update_visuals()` is an empty stub.
+
+### CombatantInfoPanel (`combatant_info_panel.tscn`)
+
+```
+CombatantInfoPanel (Control)                      combatant_info_panel.gd
+├── HBoxContainer
+│   ├── MainVBox
+│   │   ├── VitalsPanel (panel_vitals.tres)
+│   │   │   └── VitalsHBox
+│   │   │       ├── PortraitColumn: ProfileIconRect, NameLabel (LabelHeading)
+│   │   │       └── BarsColumn: HealthProgressBar, MadraProgressBar, StaminaProgressBar (ResourceBar)
+│   │   └── AbilitiesPanel (panel_abilities.tres) abilities_panel.gd, hidden until setup_abilities()
+│   │       └── MarginContainer
+│   │           ├── AbilitiesContainer (HBox)     AbilityButton instances
+│   │           └── CastingIndicator (VBox)       AbilityInformation, AbilityTypeIcon (unused),
+│   │                                             ProgressBar (cast_bar_fill.tres) + CastTimer label
+│   └── BuffContainer (HBox)                      BuffIcon instances
+├── CombatAbilityTooltip
+└── CombatBuffTooltip
+```
+
+### Ability button and buff icon
+
+```
+AbilityButton (MarginContainer)              ability_button.gd
+└── BackgroundRect (TextureRect, border art)
+    ├── Button (TextureButton, ability icon)
+    │   └── CooldownProgressBar → CooldownLabel
+    ├── KeyHintPanel (panel_keyhint.tres) → KeyHintLabel
+    └── CostStrip (panel_keyhint.tres) → MadraCostLabel, StaminaCostLabel, HealthCostLabel
+
+BuffIcon (MarginContainer)                   buff_icon.gd
+└── BackgroundRect → BuffTexture → DurationProgressBar, DurationLabel, StackLabel
+```
 
 ## Data Model
 
-### CharacterAttributesData (8 attributes)
-| Attribute | Combat Role |
-|-----------|-------------|
-| `STRENGTH` | Physical damage scaling |
-| `BODY` | Max health (BODY*10), max stamina (BODY*5) |
-| `AGILITY` | Ability scaling (no cooldown reduction implemented) |
-| `SPIRIT` | Spiritual damage scaling, Madra-type defense |
-| `FOUNDATION` | Max madra (FOUNDATION*10) |
-| `CONTROL` | Cooldown reduction (not yet implemented) |
-| `RESILIENCE` | Physical damage reduction |
-| `WILLPOWER` | Spiritual damage reduction |
+### CombatantData (`scripts/resource_definitions/combat/combatant_data.gd`)
 
-Default: all attributes start at 10.0.
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `character_name` | `String` | `"Combatant"` | Panel name and log label |
+| `attributes` | `CharacterAttributesData` | new instance (all 10) | Offense scaling, defense, vitals maxima |
+| `abilities` | `Array[AbilityData]` | `[]` | One `CombatAbilityInstance` each, in array order |
+| `texture` | `Texture2D` | null | Not read anywhere |
+| `scale` | `float` | 1.0 | Not read anywhere |
+| `offset` | `Vector2` | `(0, 0)` | Not read anywhere |
+| `base_gold_drop` | `int` | 0 | Base of the victory gold formula |
 
-### CombatantData
-| Field | Type | Description |
-|-------|------|-------------|
-| `character_name` | `String` | Display name |
-| `attributes` | `CharacterAttributesData` | Stat block |
-| `abilities` | `Array[AbilityData]` | Available abilities |
-| `texture` | `Texture2D` | Sprite |
-| `base_gold_drop` | `int` | Gold reward on defeat |
+The player's `CombatantData` is built in code each fight: name `"Player"`, `attributes = CharacterManager.get_total_attributes_data()` (base + equipment, snapshot), `abilities = AbilityManager.get_equipped_abilities()` (slot order, empty slots skipped).
+
+### CharacterAttributesData — combat roles
+
+8 `@export float` fields (`strength`, `body`, `agility`, `spirit`, `foundation`, `control`, `resilience`, `willpower`), all defaulting to `10.0`, read through `get_attribute(AttributeType)`. Full attribute docs: [CHARACTER.md](../infrastructure/CHARACTER.md).
+
+| Attribute | Offense (scaling coefficient on) | Defense | Vitals | Effective today |
+|-----------|----------------------------------|---------|--------|-----------------|
+| `STRENGTH` | basic_strike 1.0, famishing_bite 1.0 | — | — | Yes |
+| `BODY` | — | — | Max Health = BODY × 10, Max Stamina = BODY × 5 | Yes |
+| `AGILITY` | basic_strike 0.5, empty_palm 0.3 | — | — | Damage only |
+| `SPIRIT` | empty_palm 1.0, power_font 1.5, madra_lash 1.0, coalesce (heal) 3.0 | vs `SPIRIT` damage | — | Yes |
+| `FOUNDATION` | power_font 0.5 | — | Max Madra = FOUNDATION × 10 (also the adventure Madra capacity) | Yes |
+| `CONTROL` | — | — | — | No effect |
+| `RESILIENCE` | — | vs `PHYSICAL`; half of `MIXED` | — | Yes |
+| `WILLPOWER` | — | half of `MIXED` | — | No effect (no ability deals `MIXED`) |
+
+The `AttributeType` doc comments describe roles that are not implemented (AGILITY "evasion, and cooldown reduction", CONTROL "madra cost reduction", FOUNDATION "regeneration").
+
+### CombatEffectData (`scripts/resource_definitions/combat/combat_effect_data.gd`)
+
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `effect_type` | `EffectType` | `DAMAGE` | `DAMAGE`, `HEAL`, `BUFF`, `CANCEL_CAST`, `STRIP_BUFFS` |
+| `effect_name` | `String` | `""` | Used in `Log` lines only |
+| `effect_description` | `String` | `""` | Not read anywhere |
+| `base_value` | `float` | 0.0 | Flat value before scaling |
+| `percentage_value` | `float` | 0.0 | Not read anywhere |
+| `strength_scaling` … `willpower_scaling` | `float` ×8 | 0.0 | Added as `caster_attribute × coefficient` |
+| `damage_type` | `DamageType` | `PHYSICAL` | `PHYSICAL`, `SPIRIT`, `TRUE`, `MIXED` |
+
+`calculate_value(caster)` returns `base_value + Σ(attribute × scaling)` and logs each term. `calculate_damage(caster, target)` applies defense (below).
+
+### BuffEffectData (`buff_effect_data.gd`, extends CombatEffectData)
+
+`_init()` forces `effect_type = BUFF`. `validate()` requires a non-empty `buff_id` and `duration > 0`.
+
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `buff_id` | `String` | `""` | Identity for refresh/stack lookup; tooltip title is `buff_id.capitalize()` |
+| `buff_icon` | `Texture2D` | null | BuffIcon and tooltip art |
+| `duration` | `float` | 5.0 | Seconds; refreshed to full on re-apply |
+| `buff_type` | `BuffType` | `ATTRIBUTE_MODIFIER_MULTIPLICATIVE` | See below |
+| `attribute_modifiers` | `Dictionary[AttributeType, float]` | `{}` | Multipliers on the caster's attributes |
+| `dot_damage_per_tick` | `float` | 0.0 | Per 1 s tick, × stack count |
+| `dot_damage_type` | `DamageType` | `TRUE` | Not read anywhere |
+| `damage_multiplier` | `float` | 1.0 | Outgoing or incoming damage multiplier |
+| `consume_on_use` | `bool` | false | Removed after the first proc |
+
+| BuffType | Effect | Re-apply behavior |
+|----------|--------|-------------------|
+| `ATTRIBUTE_MODIFIER_MULTIPLICATIVE` | Multiplies the owner's attributes when the owner casts (offense only) | Refresh duration |
+| `DAMAGE_OVER_TIME` | `dot_damage_per_tick × stack_count` raw Health loss every 1 s | Refresh + add stack |
+| `OUTGOING_DAMAGE_MODIFIER` | Multiplies the owner's outgoing damage by `damage_multiplier ^ stack_count` | Refresh + add stack |
+| `INCOMING_DAMAGE_MODIFIER` | Multiplies damage the owner takes by `damage_multiplier` | Refresh duration |
+
+### ActiveBuff (`active_buff.gd`, RefCounted)
+
+Runtime record per applied buff: `buff_data`, `time_remaining`, `stack_count` (starts at 1), `is_consumed`. `tick(delta)` returns true when expired or consumed.
 
 ### AbilityData
-| Field | Type | Description |
-|-------|------|-------------|
-| `ability_id` | `String` | Unique identifier |
-| `ability_name` | `String` | Display name |
-| `ability_type` | `AbilityType` | Only `OFFENSIVE` exists |
-| `health_cost` / `madra_cost` / `stamina_cost` | `float` | Resource costs |
-| `base_cooldown` | `float` | Cooldown in seconds |
-| `cast_time` | `float` | 0 = instant |
-| `effects_on_target` | `Array[CombatEffectData]` | Effects applied to the enemy target (damage, debuffs). Non-empty ⇒ ability needs an enemy target. |
-| `effects_on_self` | `Array[CombatEffectData]` | Effects applied to the caster (self-buffs, self-heals). |
 
-### CombatEffectData
-| Field | Type | Description |
-|-------|------|-------------|
-| `effect_type` | `EffectType` | `DAMAGE`, `HEAL`, `BUFF`, `CANCEL_CAST`, `STRIP_BUFFS` |
-| `base_value` | `float` | Base effect value |
-| `damage_type` | `DamageType` | `PHYSICAL`, `SPIRIT`, `TRUE`, `MIXED` |
-| `*_scaling` | `float` | Per-attribute scaling (8 fields) |
-
-**Damage formula:** `base_value + sum(attribute * scaling)`, then defense reduction: `damage * (100 / (100 + defense))`.
-
-### BuffEffectData (extends CombatEffectData)
-| Field | Type | Description |
-|-------|------|-------------|
-| `buff_id` | `String` | Identity key for stacking/lookup |
-| `duration` | `float` | Seconds |
-| `buff_type` | `BuffType` | `ATTRIBUTE_MODIFIER_MULTIPLICATIVE`, `DAMAGE_OVER_TIME`, `OUTGOING_DAMAGE_MODIFIER`, `INCOMING_DAMAGE_MODIFIER` |
-| `attribute_modifiers` | `Dictionary` | For multiplicative buffs |
-| `dot_damage_per_tick` | `float` | For DoT buffs |
-| `damage_multiplier` | `float` | For damage modifier buffs |
-| `consume_on_use` | `bool` | If true, buff consumed on first proc |
+Costs (`health_cost`, `madra_cost`, `stamina_cost`), `base_cooldown`, `cast_time`, and two effect lists: `effects_on_target` (sent to the enemy) and `effects_on_self` (sent to the caster). Predicates such as `deals_damage()` are derived from those lists. Full field list in [ABILITIES.md](../abilities/ABILITIES.md#data-model).
 
 ## Core Systems
 
-### Vitals (HP / Madra / Stamina)
-- Max values derived from attributes: HP = `BODY*10`, Stamina = `BODY*5`, Madra = `FOUNDATION*10` (shared with `CharacterAttributesData.get_max_madra()`)
-- Continuous passive regen each frame via `VitalsManager._process(delta)` — regen rates default to 0.0; only stamina regen is set to 1.0/s during adventures (by `adventure_view.gd`), reset to 0 on adventure end
-- `apply_vitals_change(health, stamina, madra)` clamps all values to `[0, max]`
-- Player VitalsManager reconnects to `CharacterManager.base_attribute_changed` for live stat updates
+### Vitals (`VitalsManager`)
 
-### Ability Lifecycle
-1. `CombatAbilityManager.use_ability_instance(instance, enemy)` — gate checks (casting lock, cooldown, afford)
-2. `consume_costs()` — deducts HP/Madra/Stamina immediately
-3. If `cast_time > 0`: cast bar phase with `cast_timer`, then `execute_ability(target)` on timeout
-4. If `cast_time == 0`: `execute_ability(target)` immediately
-5. `execute_ability`: gets buff-modified attributes, optionally consumes outgoing damage modifier, applies each effect to target via `target.receive_effect(effect, modified_attributes)`
-6. Cooldown starts (`base_cooldown` seconds)
+| Value | Formula | Regen |
+|-------|---------|-------|
+| Max Health | `BODY × 10` | `health_regen` (always 0) |
+| Max Stamina | `BODY × 5` | `stamina_regen`: `1.0 × AdventureActionData.stamina_regen_modifier` during an adventure, 0 otherwise (set by `AdventureView._update_stamina_regen()`) |
+| Max Madra | `CharacterAttributesData.get_max_madra()` = `FOUNDATION × 10` | `madra_regen` (always 0) |
 
-A global casting lock prevents firing multiple abilities simultaneously.
+- Maxima are recomputed when `character_attributes_data` is assigned. `apply_vitals_change(health, stamina, madra)` clamps each value to `[0, max]`; regen is applied in `_process`.
+- Every `current_*` assignment emits its `*_changed` signal, even when the value does not change, and `apply_vitals_change()` assigns all three values, so any call emits all three signals.
+- **Player:** one persistent `VitalsManager` owned by `PlayerManager` (`is_player = true`). In `_ready` it connects to `CharacterManager.base_attribute_changed` and re-pulls `get_total_attributes_data()`. At adventure start `AdventureView` calls `initialize_current_values(madra_budget)`: full Health and Stamina, Madra = the budget drained from the zone pool (`min(FOUNDATION × 10, Madra pool)`). Stamina is also spent on map movement (see ADVENTURING.md).
+- **Enemy:** `CombatantNode.setup()` uses the node's own `VitalsManager`, assigns the enemy attributes, and starts at full Health, Stamina and Madra.
 
-### Buff System
-- `apply_buff(buff_data)` — if buff_id already exists, refreshes duration (and stacks for DoT)
-- `_process(delta)` ticks all buff durations, removes expired/consumed buffs
-- DoT damage: separate 1-second timer, damage = `dot_damage_per_tick * stack_count`
-- Modifier queries: `get_attribute_modifier()`, `get_outgoing_damage_modifier()`, `get_incoming_damage_modifier()` — all multiplicative
-- `clear_all_buffs()` called on combat end
-- `strip_all_buffs()` wipes every active buff mid-combat (PR #39) — invoked by `STRIP_BUFFS` effects (Power Font). Distinct from `clear_all_buffs()` so end-of-combat cleanup and mid-combat buff-sunder stay separate
+### Ability lifecycle
 
-### Effect Resolution (CombatEffectManager)
-| Type | Action |
-|------|--------|
-| `DAMAGE` | Calculate damage with attribute scaling + defense reduction, apply incoming modifier, deduct health |
-| `HEAL` | Calculate value with attribute scaling, add health |
-| `BUFF` | Cast to `BuffEffectData`, apply via `CombatBuffManager` |
-| `CANCEL_CAST` | Interrupt the target's in-progress cast via `CombatAbilityManager.cancel_current_cast()` — emits `cast_cancelled`, hides the cast bar UI. No-op if target isn't casting. (PR #39) |
-| `STRIP_BUFFS` | Remove every active buff on the target via `CombatBuffManager.strip_all_buffs()`. Distinct from `clear_all_buffs()`, which only runs on combat end. (PR #39) |
+1. **Request.** `AbilitiesPanel` emits `ability_selected(instance)` on click or key; `CombatantInfoPanel` re-emits it; `AdventureCombat.on_player_ability_selected()` calls `player.ability_manager.use_ability_instance(instance, enemy)`. The AI calls the same method.
+2. **Gate** — `CombatAbilityManager.can_cast_ability_instance()`: the instance belongs to this manager; no instance of this combatant is casting (global lock); the instance is ready (cooldown timer stopped and not casting); `AbilityData.can_afford(vitals)`. Failures log a warning and return false.
+3. **Pay.** `AbilityData.consume_costs(vitals)` deducts all costs at cast start. Cancelled casts are not refunded.
+4. **Cast.** `CombatAbilityInstance.start_cast(target)`. If `cast_time > 0`: `is_casting = true`, cast timer starts, `cast_started` emits, and `cast_updated` emits every frame; on timeout `execute_ability()` runs, then `cast_finished` emits. If `cast_time == 0`: `execute_ability()` runs immediately.
+5. **Execute** — `execute_ability(target)`:
+   - starts the cooldown (`base_cooldown`), so cooldowns begin when the cast resolves;
+   - builds caster attributes with buff multipliers (`_get_modified_attributes()`);
+   - if `deals_damage()`, calls `buff_manager.consume_outgoing_modifier()` once per cast;
+   - sends each `effects_on_target` entry to `target.receive_effect(effect, attrs, outgoing_modifier)`;
+   - then sends each `effects_on_self` entry to the caster with modifier 1.0.
+6. **Cancel.** `cancel_cast()` (via `CombatAbilityManager.cancel_current_cast()`) stops the cast timer, clears `is_casting`, starts the full cooldown and emits `cast_cancelled`.
 
-### Enemy AI (SimpleEnemyAI)
-- Every `_process` frame: iterates all abilities in order
-- Casts the first one that is off cooldown and affordable
-- No priority system, target evaluation, or health-based decision making
+Cooldown rules: `INITIAL_COOLDOWN = 1.5` s is started in `_ready`, but `_start_cooldown()` does nothing when `base_cooldown <= 0`. Abilities with a 0 s base cooldown therefore have no opening cooldown and no post-cancel cooldown. `cooldown_started` always reports `base_cooldown` as its duration.
 
-## Combat Flow
+### Effect resolution (`CombatEffectManager.process_effect`)
+
+The receiving combatant processes each effect against itself.
+
+| EffectType | Resolution |
+|------------|------------|
+| `DAMAGE` | `effect.calculate_damage(source_attrs, own combatant_data.attributes)` → × outgoing modifier → × `buff_manager.consume_incoming_modifier()` → `apply_vitals_change(-damage)` → log line `<Name> took N Damage` |
+| `HEAL` | `effect.calculate_value(source_attrs)` → `apply_vitals_change(+heal)` → log line `<Name> healed for N Health`. No modifiers, no defense |
+| `BUFF` | Cast to `BuffEffectData` and `buff_manager.apply_buff()` |
+| `CANCEL_CAST` | `ability_manager.cancel_current_cast()`; logs `<Name>'s cast was interrupted!` only if a cast was cancelled |
+| `STRIP_BUFFS` | `buff_manager.strip_all_buffs()`; logs `<Name>'s buffs were stripped!` (also when there were none) |
+
+### Damage formula
 
 ```
-1. Player selects CombatChoice on hex tile
-   → AdventureTilemap.start_combat signal
-   → AdventureView._on_start_combat()
-
-2. AdventureCombat.initialize_combat(choice, action_data)
-   → Create player CombatantNode (pos 400,1000) with PlayerManager.vitals_manager
-   → Create enemy CombatantNode (pos 1100,300) from enemy_pool[0]
-   → Wire UI panels, start SimpleEnemyAI
-
-3. Real-time combat
-   → Player clicks ability buttons → ability_selected → use_ability_instance
-   → Enemy AI auto-casts each frame
-   → Effects resolve through CombatEffectManager
-   → Buffs tick via CombatBuffManager
-
-4. Victory/Defeat
-   → health <= 0 triggers trigger_combat_end(successful, gold)
-   → Gold = floor(base_gold * combat_mult * adventure_mult * char_mult)
-   → AdventureView._on_stop_combat → combat.stop() → cleanup
-
-5. Post-combat
-   → Victory: gold awarded, success_effects applied, tile completed
-   → Defeat: ActionManager.stop_action(false), adventure ends
+raw     = base_value + Σ (caster_attribute[i] × scaling[i])     # caster attrs include buff multipliers
+reduced = raw × 100 / (100 + defense)                            # skipped for TRUE
+final   = reduced × outgoing_modifier × incoming_modifier
 ```
+
+| DamageType | Defense attribute (target) |
+|------------|----------------------------|
+| `PHYSICAL` | `RESILIENCE` |
+| `SPIRIT` | `SPIRIT` |
+| `MIXED` | `(RESILIENCE + WILLPOWER) / 2` |
+| `TRUE` | none |
+
+Defense reads the target's unmodified `combatant_data.attributes`; attribute buffs on the target never change its defense. Log lines truncate damage to an integer. Worked numbers per ability are in [ABILITIES_MATRIX.md](../abilities/ABILITIES_MATRIX.md).
+
+### Buffs (`CombatBuffManager`)
+
+- `apply_buff(data)`: validates, then either refreshes the existing buff with the same `buff_id` (`buff_refreshed`, plus `add_stack()` and `buff_stacked` for DoT and outgoing-damage buffs) or creates an `ActiveBuff` (`buff_applied`). Starts the DoT timer when a DoT is applied.
+- `_process` ticks every buff and removes expired or consumed ones (`buff_removed`).
+- `get_attribute_modifier(attr)`: product of all attribute-modifier multipliers for that attribute.
+- `consume_outgoing_modifier()`: product of `damage_multiplier ^ stack_count` over unconsumed outgoing buffs; marks `consume_on_use` buffs consumed.
+- `consume_incoming_modifier()`: product of unconsumed incoming multipliers (stacks ignored); marks `consume_on_use` buffs consumed. Called once per incoming `DAMAGE` effect.
+- DoT: every 1 s, `dot_damage_per_tick × stack_count` is applied as a raw Health change — no defense, no modifiers, no log line.
+- `strip_all_buffs()`: mid-combat wipe (Power Font); emits `buff_removed` per buff and stops the DoT timer. `clear_all_buffs()`: end-of-combat cleanup from `AdventureCombat.stop()`.
+- No stack cap. Outgoing stacks compound: Hunger (×1.5) gives 1.5, 2.25, 3.375, 5.06… as long as each bite lands within the 10 s refresh window.
+
+### Enemy AI (`SimpleEnemyAI`)
+
+Runs every frame while `active` and both combatants exist:
+
+1. Skip if the enemy is casting.
+2. Sort a copy of the enemy's ability instances by `base_cooldown`, longest first.
+3. Take the first one where `can_cast_ability_instance()` passes and `_should_cast_ability()` is true. Heal-self abilities (`heals_self()`) only qualify when missing Health ≥ `get_total_self_heal()` (no overheal); everything else always qualifies.
+4. `use_ability_instance(ability, player)`.
+
+There is no targeting choice, priority list, or reaction to the player's casts. Because the AI checks every frame, a 0 s-cooldown ability is recast as soon as the previous cast resolves.
+
+### Combat start and end (combat side)
+
+Start — `AdventureView._on_start_combat(choice)`:
+1. `AdventureCombat.initialize_combat(choice, action_data)` stores the context and connects `PlayerManager.vitals_manager.health_changed` (once; never disconnected).
+2. `AdventureCombat.start()` → `_create_player_combatant()` (`setup(data, PlayerManager.vitals_manager, true)`) then `_create_enemy_combatant()`: `enemy_pool[0]`, own vitals, `EnemyInfoPanel` setup (name, vitals, buffs, abilities), `SimpleEnemyAI` child, enemy `health_changed` connection.
+3. `AdventureView` wires the persistent `PlayerInfoPanel` (`setup_buffs`, `setup_abilities`, `ability_selected` → `on_player_ability_selected`), moves it, and swaps the tilemap view for the combat view.
+
+End:
+- Enemy Health ≤ 0 → `_calculate_gold_reward()` → `EventManager.trigger_event("q_first_steps_enemy_defeated")` (every victory; EventManager de-duplicates) → `trigger_combat_end(true, gold)`.
+- Player Health ≤ 0 → `trigger_combat_end(false, 0)`.
+- `AdventureView._on_stop_combat()` restores the map view and clears `is_in_combat`. It then calls `AdventureCombat.stop()`, which resets `EnemyInfoPanel`, runs `clear_all_buffs()` on both sides and `queue_free()`s both combatants. Next it calls `AdventureTilemap.handle_combat_result(successful, gold)`, and on defeat `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`. Because `is_in_combat` is already false at that point, `stop_adventure()` doesn't end the fight a second time.
+
+Gold: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())`. All three multipliers are 1.0 in current content (`get_gold_multiplier()` is a stub).
+
+### Signals
+
+| Emitter | Signal | Listener |
+|---------|--------|----------|
+| `AdventureTilemap` | `start_combat(choice)` | `AdventureView._on_start_combat` |
+| `AdventureCombat` | `trigger_combat_end(is_successful, gold_earned)` | `AdventureView._on_stop_combat` |
+| `VitalsManager` | `health_changed`, `madra_changed`, `stamina_changed` | `CombatantInfoPanel.update_labels`; `AdventureCombat` death checks (health) |
+| `CombatAbilityInstance` | `cooldown_started`, `cooldown_updated`, `cooldown_ready` | `AbilityButton` |
+| `CombatAbilityInstance` | `cast_started`, `cast_updated`, `cast_finished`, `cast_cancelled` | `AbilitiesPanel` (casting indicator); `AbilityButton` (`cast_started`/`cast_finished` only) |
+| `CombatAbilityManager` | `ability_registered`, `ability_used` | none |
+| `CombatBuffManager` | `buff_applied`, `buff_removed`, `buff_refreshed`, `buff_stacked` | `CombatantInfoPanel` |
+| `AbilityButton` | `pressed`, `hovered(instance)`, `unhovered` | `AbilitiesPanel` |
+| `AbilitiesPanel` / `CombatantInfoPanel` | `ability_selected(instance)` | `AdventureCombat.on_player_ability_selected` (player panel only) |
+| `BuffIcon` | `hovered(buff_data)`, `unhovered` | `CombatantInfoPanel` (buff tooltip) |
 
 ## Combat UI
 
-| Component | Description |
-|-----------|-------------|
-| `AbilityButton` | TextureButton + cooldown overlay + gold keyhint badge (Q/W/E/R) + color-coded cost strip (blue=madra, gold=stamina, red=health) + can't-afford dimming (PR #24) |
-| `AbilitiesPanel` | HBox of ability buttons + casting indicator + Q/W/E/R keybinding activation (PR #24) |
-| `CombatantInfoPanel` | Fully rebuilt in PR #15 — container-based layout, dark floating styleboxes, integer vitals display. Profile icon, 3 resource bars (HP/Madra/Stamina), buff container, abilities panel |
-| `ResourceBar` | Main bar + ghost trail bar (delayed by 0.5s tween) + floating text spawner |
-| `BuffIcon` | Buff texture + duration bar + stack count label + hover tooltip (PR #24) |
-| `CombatAbilityTooltip` | Hover tooltip showing icon, name, total DMG, cooldown, cast time, and resource costs (PR #24) |
-| `CombatBuffTooltip` | Hover tooltip showing buff name, effect description, live remaining duration, and stack count (PR #24) |
-| `FloatingText` | Label that floats up 100px and fades over 1.5s, then self-destructs |
+| Component | Script | Behavior |
+|-----------|--------|----------|
+| `CombatantInfoPanel` | `combatant_info_panel.gd` | Portrait (`profile_texture` export, set in the scene), name, three `ResourceBar`s, buff row, `AbilitiesPanel`. Syncs buff icon durations from `ActiveBuff.time_remaining` every frame. Auto-cleans when the buff/ability managers leave the tree |
+| `ResourceBar` | `resource_bar.gd` | Label `Prefix: cur / max` (+ `(x/s)` when regen ≠ 0). Damage drops the main bar and starts a 0.5 s ghost timer, then a 0.5 s tween; heals move both bars. Floating `-N`/`+N` text unless the new value equals max. Stamina has floating text disabled |
+| `FloatingText` | `scenes/ui/floating_text/floating_text.gd` | Rises 100 px over 1.5 s, starts fading after 0.45 s, frees itself |
+| `AbilitiesPanel` | `abilities_panel.gd` | One `AbilityButton` per instance; slot index from `AbilityManager.get_ability_at_slot()`; Q/W/E/R input; casting indicator; owns the ability tooltip |
+| `AbilityButton` | `ability_button.gd` | Icon, key hint (slot 0–3 → Q/W/E/R; hidden for enemy abilities), cost strip, cooldown overlay (`time_left / base_cooldown`) and `"%.1f (s)"` label; when ready and unaffordable: icon alpha 0.35, border `#553333`, missing costs `#E06060` |
+| `BuffIcon` | `buff_icon.gd` | Icon, duration bar and `"%.1fs"`, stack count when > 1 |
+| `CombatAbilityTooltip` | `combat_ability_tooltip.gd` | Icon, name, `AbilityStatsDisplay` in `TIMING_COSTS` and `DAMAGE_TOTAL` modes; damage row hidden for abilities with no target effects. Hidden on unhover or key press |
+| `CombatBuffTooltip` | `combat_buff_tooltip.gd` | Name (`buff_id.capitalize()`), generated effect text, live `x.xs remaining`, `xN stacks` |
 
-### Styleboxes (PRs #15, #24)
+Keybindings (`project.godot`, physical keys):
 
-| File | Used By |
-|------|---------|
-| `assets/styleboxes/combat/panel_vitals.tres` | Vitals section background on `CombatantInfoPanel` |
-| `assets/styleboxes/combat/panel_abilities.tres` | Abilities section background on `CombatantInfoPanel` |
-| `assets/styleboxes/combat/panel_buffs.tres` | Buffs section background on `CombatantInfoPanel` |
-| `assets/styleboxes/combat/cast_bar_fill.tres` | Gold fill on the cast progress bar |
-| `assets/styleboxes/combat/panel_keyhint.tres` | Gold badge behind Q/W/E/R keybinding hints on ability buttons (PR #24) |
+| Action | Key | Handler |
+|--------|-----|---------|
+| `ability_slot_1` … `ability_slot_4` | Q / W / E / R | `AbilitiesPanel._unhandled_input` → ability in loadout slot 0–3 (ignored if its button is disabled) |
+| `open_abilities` | A | Opens/closes the Abilities view from the zone view (not available during adventures) |
+
+Styleboxes in use: `assets/styleboxes/combat/panel_vitals.tres`, `panel_abilities.tres`, `cast_bar_fill.tres`, `panel_keyhint.tres` (key hint and cost strip, also the loadout slot hint). `panel_buffs.tres` is unreferenced.
 
 ## Integration Points
 
-| System | Connection |
-|--------|------------|
-| Adventure | `CombatChoice` supplies enemy data; combat result feeds back to tilemap |
-| ResourceManager | Gold awarded via `ResourceManager.add_gold()` on victory |
-| InventoryManager | Loot via `AwardLootTableEffectData` / `AwardItemEffectData` in choice effects |
-| CharacterManager | Player attributes via `get_total_attributes_data()`, abilities via `get_equipped_abilities()` |
-| PlayerManager | Persistent `VitalsManager` survives between fights |
-| LogManager | Damage/heal events logged with BBCode formatting |
+| System | Direction | Connection |
+|--------|-----------|------------|
+| Adventure (`AdventureView`, `AdventureTilemap`) | in / out | `start_combat(choice)` starts a fight; `trigger_combat_end` → `handle_combat_result()` awards gold (`ResourceManager.add_gold`), applies `CombatChoice.success_effects`/`failure_effects`, completes the tile, or ends the run on a boss win. See [ADVENTURING.md](../adventuring/ADVENTURING.md) |
+| `AbilityManager` | in | `get_equipped_abilities()` → player abilities; `get_ability_at_slot()` → key hints and key routing |
+| `CharacterManager` | in | `get_total_attributes_data()` snapshot at fight start; `base_attribute_changed` refreshes player vitals maxima; `get_gold_multiplier()` |
+| `PlayerManager` | in / out | Persistent player `VitalsManager` shared by map and combat |
+| `ResourceManager` | in | Adventure Madra budget becomes starting combat Madra |
+| `EventManager` | out | `q_first_steps_enemy_defeated` on victory (Foundation Beat 2 quest step) |
+| `LogManager` | out | Damage, heal, interrupt and strip lines; `AdventureView` logs encounter, victory and defeat |
+| `Atmosphere` | — | Instanced by `AdventureCombat._setup_atmosphere()` with radius 0.5, softness 0.35, 25 cyan / 8 warm motes |
+| Dev panel | in | `AdventureView.force_win_combat()` emits `trigger_combat_end(true, 0)` directly (no gold, no quest event) |
 
 ## Existing Content
 
-### Abilities
-
-Full per-path ability stats, costs, cooldowns, cast times, damage types, and attribute scaling live in [ABILITIES_MATRIX.md](../abilities/ABILITIES_MATRIX.md). See [ABILITIES.md](../abilities/ABILITIES.md) for the ability system architecture (data model, lifecycle, unlock/equip flow).
-
-### Attribute Usage in Combat
-
-| Attribute | Offensive Use | Defensive Use | Vitals | Status |
-|-----------|--------------|---------------|--------|--------|
-| **STRENGTH** | Damage scaling (basic_strike) | — | — | Active |
-| **BODY** | — | — | Max HP (BODY*10), Max Stamina (BODY*5) | **Core** |
-| **AGILITY** | Damage scaling (basic_strike, empty_palm) | — | — | Active |
-| **SPIRIT** | Damage scaling (empty_palm, power_font) | Spirit damage defense | — | **Core** |
-| **FOUNDATION** | Damage scaling (power_font) | — | Max Madra (FND*10) | **Core** |
-| **CONTROL** | — | — | — | **Inert** (cooldown reduction planned) |
-| **RESILIENCE** | — | Physical + Mixed damage defense | — | Active (defense only) |
-| **WILLPOWER** | — | Mixed damage defense (averaged with Resilience) | — | Weak |
-
 ### Enemies
 
-Enemy `CombatantData` resources live in [resources/combat/combatant_data/](../../resources/combat/combatant_data/).
+`resources/combat/combatant_data/`. Attributes not listed are 10.0. Vitals follow the formulas above.
 
-| Enemy | Attributes (STR/BODY/AGI/SPI/FND/CTRL/RES/WPR) | Abilities | Gold | Sprite |
-|-------|------------------------------------------------|-----------|------|--------|
-| `amorphous_spirit` | 0 / 10 / 0 / 0 / 10 / 0 / 0 / 0 (unset attrs default to 0) | inline `madra_lash` (2.0s cast, 10 base SPIRIT dmg, no scaling) | 0 (unset) | *(none set)* |
+| Enemy (`.tres`) | Name | Non-default attributes | Health / Stamina / Madra | Abilities | Gold | Texture |
+|-----------------|------|------------------------|--------------------------|-----------|------|---------|
+| `amorphous_spirit` | Amorphous Spirit | none | 100 / 50 / 100 | `madra_lash` | 15 | none |
+| `coalescing_spirit` | Coalescing Spirit | BODY 20, SPIRIT 25 | 200 / 100 / 100 | `madra_lash`, `coalesce` | 0 (unset) | none |
+| `starving_dreadbeast` | Starving Dreadbeast | BODY 8.5, FOUNDATION 12 | 85 / 42.5 / 120 | `famishing_bite` | 20 | none |
+| `ravenous_dreadbeast` | Ravenous Dreadbeast | STRENGTH 15, BODY 8.5, FOUNDATION 12 | 85 / 42.5 / 120 | `famishing_bite` | 20 | none |
 
-**Known anomalies:**
-- `amorphous_spirit` only sets BODY and FOUNDATION in its attribute dict; missing keys resolve to 0, giving it 0 Spirit/Resilience/Willpower and no physical damage scaling. Also missing `texture` and `base_gold_drop`.
-- `amorphous_spirit`'s `madra_lash` is defined inline as a sub-resource on the enemy — not in the shared ability catalog, so it doesn't show up in [ABILITIES_MATRIX.md](../abilities/ABILITIES_MATRIX.md).
+Threat against a default player (all attributes 10, 100 Health):
 
-### Combat Encounters
+| Enemy | Attack | Per hit | Cadence | Notes |
+|-------|--------|---------|---------|-------|
+| Amorphous Spirit | Madra Lash (SPIRIT) | 9.1 | 2 s cast, back to back | Interruptible by Empty Palm, recast immediately |
+| Coalescing Spirit | Madra Lash (SPIRIT) | 22.7 | 2 s cast | Its SPIRIT 25 cuts incoming SPIRIT damage to 80% of raw (91% at SPIRIT 10) |
+| Coalescing Spirit | Coalesce (heal) | +75 Health | 5 s cast, 30 s cooldown | Only when missing ≥ 75 Health; first use after 1.5 s |
+| Starving Dreadbeast | Famishing Bite (PHYSICAL) | 9.1 × 1.5^(n−1) | 3 s cast, back to back | Hunger stacks after each bite; 5th bite ≈ 46, 6th ≈ 69 |
+| Ravenous Dreadbeast | Famishing Bite (PHYSICAL) | 13.6 × 1.5^(n−1) | 3 s cast, back to back | Same Hunger stacking |
 
-| Encounter | Used In | Choices | Notes |
-|-----------|---------|---------|-------|
-| `amorphous_spirit_encounter` | Foundation Beat 3a content | "Attack the Spirit" → fights `amorphous_spirit` | Real content encounter |
+Enemy abilities live in `resources/combat/combatant_data/enemy_abilities/` and are not in the player catalog; full values in [ABILITIES_MATRIX.md](../abilities/ABILITIES_MATRIX.md#enemy-abilities).
+
+### Encounters that start combat
+
+All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and used by The Shallow Woods. Every `CombatChoice` has one enemy and `gold_multiplier = 1.0`.
+
+| Encounter | Type | Enemy | Choice label | Rewards beyond gold | Shallow Woods quota |
+|-----------|------|-------|--------------|---------------------|---------------------|
+| `amorphous_spirit_encounter` | COMBAT_REGULAR | `amorphous_spirit` | Attack the Spirit | — | 4 |
+| `starving_dreadbeast_encounter` | COMBAT_REGULAR | `starving_dreadbeast` | Attack the Dreadbeast | — | 3 |
+| `coalescing_spirit_encounter` | COMBAT_ELITE | `coalescing_spirit` | Attack the Spirit | — | 2 |
+| `ravenous_dreadbeast_encounter` | COMBAT_ELITE | `ravenous_dreadbeast` | Attack the Dreadbeast | 25% Dreadbeast Tooth Necklace | 2 |
+| `manifested_spirit_encounter` | COMBAT_BOSS (`is_boss`) | `amorphous_spirit` | Confront the Boss | Ends the adventure as a victory | boss |
+
+### Player abilities
+
+`basic_strike`, `enforce` (innate) and `empty_palm`, `power_font` (Pure Madra path). See [ABILITIES_MATRIX.md](../abilities/ABILITIES_MATRIX.md).
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `scenes/combat/adventure_combat/adventure_combat.gd` | Combat orchestrator |
-| `scenes/combat/combatant/combatant_node.gd` | Combatant composition root |
-| `scenes/combat/combatant/combat_ability_manager/combat_ability_manager.gd` | Ability gate-keeping |
-| `scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd` | Cast/cooldown lifecycle |
-| `scenes/combat/combatant/combat_buff_manager/combat_buff_manager.gd` | Buff management |
-| `scenes/combat/combatant/combat_effect_manager/combat_effect_manager.gd` | Effect routing |
-| `scenes/combat/combatant/vitals_manager/vitals_manager.gd` | HP/Madra/Stamina tracking |
+| `scenes/combat/adventure_combat/adventure_combat.gd` / `.tscn` | Fight orchestrator: combatant creation, AI, death checks, gold |
+| `scenes/combat/combatant/combatant_node.gd` / `.tscn` | Combatant composition root, `receive_effect()` |
+| `scenes/combat/combatant/combat_ability_manager/combat_ability_manager.gd` | Gate checks, cost payment, `cancel_current_cast()` |
+| `scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd` | Cast, cooldown, execution, cancel |
+| `scenes/combat/combatant/combat_effect_manager/combat_effect_manager.gd` | Effect routing and damage application |
+| `scenes/combat/combatant/combat_buff_manager/combat_buff_manager.gd` | Buffs, stacking, modifiers, DoT |
+| `scenes/combat/combatant/combat_buff_manager/active_buff.gd` | Runtime buff record |
+| `scenes/combat/combatant/vitals_manager/vitals_manager.gd` | Health / Madra / Stamina |
 | `scenes/combat/ai/simple_enemy_ai.gd` | Enemy decision loop |
-| `scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.gd` | Ability hover tooltip (PR #24) |
-| `scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd` | Buff hover tooltip (PR #24) |
-| `scripts/resource_definitions/combat/combat_effect_data.gd` | Damage/heal formula |
-| `scripts/resource_definitions/combat/buff_effect_data.gd` | Buff definition |
-| `scripts/resource_definitions/abilities/ability_data.gd` | Ability definition |
+| `scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd` | Combatant panel (vitals, buffs, abilities) |
+| `scenes/ui/combat/combatant_info_panel/resource_bar.gd` | Vitals bar with ghost trail and floating text |
+| `scenes/ui/combat/abilities_panel.gd` | Ability row, keybindings, casting indicator |
+| `scenes/ui/combat/ability_button/ability_button.gd` | Ability button |
+| `scenes/ui/combat/buff_icon/buff_icon.gd` | Buff icon |
+| `scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.gd` | Ability tooltip |
+| `scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd` | Buff tooltip |
+| `scripts/resource_definitions/combat/combatant_data.gd` | `CombatantData` |
+| `scripts/resource_definitions/combat/combat_effect_data.gd` | `CombatEffectData`, damage formula |
+| `scripts/resource_definitions/combat/buff_effect_data.gd` | `BuffEffectData` |
+| `scripts/resource_definitions/abilities/ability_data.gd` | `AbilityData`, costs, predicates |
+| `singletons/player_manager/player_manager.gd` | Owns the persistent player `VitalsManager` |
+| `resources/combat/combatant_data/` | Enemy definitions and enemy abilities |
+| `tests/unit/test_combat_damage.gd`, `test_combat_effect_types.gd`, `test_combat_buff_manager_stacking.gd`, `test_combat_buff_manager_strip.gd`, `test_combat_ability_instance_cancel.gd`, `test_adventure_combat_victory_event.gd`, `test_adventure_combat_count.gd` | Unit tests |
+| `tests/integration/test_empty_palm_interrupt.gd`, `test_power_font_buff_strip.gd` | Integration tests (real `.tres` through the effect pipeline) |
 
 ## Work Remaining
 
 ### Bugs
 
-- ~~`[MEDIUM]` `damage_type = TRUE` works by accident~~ *(Fixed in PR #5)*
-- ~~`[MEDIUM]` Madra defense log labels it `"WILLPOWER"` but reads `SPIRIT`~~ *(Fixed in PR #5)*
-- ~~`[LOW]` `DamageType.MADRA` should be renamed to `DamageType.SPIRIT`~~ *(Fixed in PR #6 — renamed to `DamageType.SPIRIT`)*
-- ~~`[LOW]` BuffIcon countdown runs independently of actual buff duration~~ *(Fixed in PR #6 — synced from authoritative ActiveBuff state)*
-- ~~`[LOW]` `_dot_timer` starts unconditionally in `_ready()`~~ *(Fixed in PR #6 — only runs while DoT buffs active)*
+- `[MEDIUM]` Equipment never updates the player's vitals maxima. The player `VitalsManager` recomputes max Health/Stamina/Madra only on `CharacterManager.base_attribute_changed` (`vitals_manager.gd` `_ready`). Equipping Reinforced Robes (+4 BODY) or Leeching Ring (+2 FOUNDATION) leaves max Health/Madra unchanged until a base attribute changes or the game restarts, while damage and defense already use the new totals.
+- `[MEDIUM]` Defense ignores buffs. `CombatEffectManager.process_effect()` passes the target's unmodified `combatant_data.attributes` to `calculate_damage()`, so RESILIENCE/SPIRIT/WILLPOWER attribute buffs do nothing defensively.
+- `[MEDIUM]` Enemy ability tooltips show the player's numbers. `AbilityStatsDisplay` always reads `CharacterManager.get_total_attributes_data()`, so hovering Coalescing Spirit's Madra Lash shows a DMG value from the player's SPIRIT (10 on a new save) instead of the spirit's 25.
+- `[LOW]` 0 s-cooldown abilities skip the opening cooldown and the post-interrupt cooldown (`CombatAbilityInstance._start_cooldown()` returns early when `base_cooldown <= 0`). Madra Lash and Famishing Bite start casting on frame 1, and an Empty Palm interrupt only restarts their cast.
+- `[LOW]` `AdventureCombat._on_player_health_changed` stays connected to the player `VitalsManager` after combat. A lethal non-combat Health change during an adventure (e.g. a trap's `ChangeVitalsEffectData`) is reported as a combat defeat (`_combats_fought` + 1, `handle_combat_result(false)`). Latent: `test_trap_encounter` (−10 Health) is not in any adventure.
+- `[LOW]` `CombatantInfoPanel.setup_buffs()` reads `buff.time_left`, but `ActiveBuff` has `time_remaining`. It errors if a panel attaches to a manager that already has buffs (does not happen today).
+- `[LOW]` `AbilityButton` does not listen to `cast_cancelled`; after an interrupt its `_is_casting` stays true and affordability visuals stop updating for that button.
+- `[LOW]` `CombatAbilityTooltip.position_below()`: the doc comment says "above", the code places it below the panel, and the overflow check compares `y` with 1920 (window width) instead of the viewport height.
+- `[LOW]` `FloatingText._ready()` sets font size with `add_theme_constant_override("font_size", 24)`, which does not change a Label's font size (needs a font-size override).
 
 ### Missing Functionality
 
-- `[HIGH]` Attribute system needs a design pass — each attribute's purpose, offensive vs defensive role, and scaling rules need to be clearly defined. Currently several attributes overlap, CONTROL is inert, and WILLPOWER's defensive role is unclear. A design doc should be created before further ability authoring
-- ~~`[HIGH]` Equipment stats not wired to combat — `attack_power` and `defense` from gear are ignored. Tracked in [CHARACTER.md](../infrastructure/CHARACTER.md)~~ *(Fixed in PR #9)*
-- `[HIGH]` `enemy_pool[0]` always used — no random selection from the pool. Every combat encounter uses the first enemy regardless of pool contents
-- `[MEDIUM]` `AbilityType` needs a deep dive and rework — currently only has `OFFENSIVE`, only checked in one place (consuming outgoing damage modifier), and that logic belongs on `EffectType.DAMAGE` not `AbilityType`. Need to clarify: does AbilityType serve a gameplay purpose (e.g., casting rules, interrupt behavior) or is it just a UI/display hint? Rework or remove
-- `[MEDIUM]` `ALL_ALLIES` target type has no implementation — only `SELF` and `SINGLE_ENEMY` work
-- `[MEDIUM]` `CONTROL` attribute should reduce ability cooldowns — currently completely inert, needs a formula (e.g., `effective_cooldown = base_cooldown * (100 / (100 + CONTROL))`)
-- `[MEDIUM]` No AP regeneration in combat — GDD describes AP regen; current implementation uses Madra with no in-combat regen
-- `[LOW]` `percentage_value` on CombatEffectData is exported but never read in calculations
+- `[HIGH]` Attribute design pass. CONTROL and WILLPOWER have no combat effect (no ability deals `MIXED`), AGILITY is only a damage coefficient, and the `AttributeType` comments promise evasion, cooldown and cost reduction that do not exist. Current gear already grants inert stats (Cultivator's Cowl +3 WILLPOWER, Leeching Ring +2 CONTROL).
+- `[HIGH]` Only `enemy_pool[0]` is used (`_create_enemy_combatant()`, `_calculate_gold_reward()`): no random pick and no multi-enemy fights.
+- `[MEDIUM]` No buff stack cap. Outgoing-damage and DoT stacks are unbounded and outgoing stacks compound; a dreadbeast that bites every 3 s doubles its damage roughly every 5 s until Power Font (a path unlock) strips it. Add a `max_stacks` field to `BuffEffectData`.
+- `[MEDIUM]` No in-combat resource economy beyond Stamina regen. No AP or Cycle skill (GDD), no Madra or Health regen, and the Iron Will path node's `stamina_recovery_mult` is never applied.
+- `[MEDIUM]` Casts are only interrupted by `CANCEL_CAST`; damage never interrupts (the Power Font spec assumed it does).
+- `[MEDIUM]` No combat feedback beyond floating numbers: no hit, interrupt or strip VFX/SFX (`AbilitiesPanel._on_cast_cancelled` has `TODO: VFX pass`) and no combat audio.
+- `[LOW]` DoT ignores `dot_damage_type`, defense and modifiers and is not logged (`CombatBuffManager._apply_dot_damage`). No content uses DoTs.
+- `[LOW]` `INCOMING_DAMAGE_MODIFIER` and attribute buffs only refresh, never stack. No content uses either.
+- `[LOW]` `AdventureActionData.difficulty_modifier` is never read; `CharacterManager.get_gold_multiplier()` is a stub returning 1.0.
+- `[LOW]` `SimpleEnemyAI` has no priorities beyond "longest cooldown first" and the heal gate. Its comment calls `sort_custom` stable; Godot documents it as unstable (matters once an enemy has two abilities with equal cooldowns).
+- `[LOW]` Using consumables in combat (`CombatConsumableManager`, `ConsumableButton`, hotkeys 1–4) exists only on the unmerged branch `feat/infallible-chaum-58f8ad` (20 commits, 2026-06-01). On `main`, combat ignores the inventory consumable hotbar.
 
 ### Content
 
-- `[HIGH]` Only 1 enemy exists (`amorphous_spirit`) — needs diverse enemies with different abilities, stats, and strategies
-- `[MEDIUM]` `amorphous_spirit` has an incomplete attribute dict (only BODY + FOUNDATION set), no `texture`, and no `base_gold_drop`
-- `[HIGH]` Only 4 player abilities exist — GDD describes 3 starter skills (Flowing Strike, Stand Your Ground, Empty Palm) plus a Cycle tap skill
-- `[MEDIUM]` Player sprite hardcoded to `test_character_sprite.png` — needs to be driven by player/character data
-- ~~`[LOW]` No ability unlock or progression system — abilities are hardcoded in `CharacterManager.get_equipped_abilities()`~~ *(Fixed in PR #22 — AbilityManager singleton with unlock/equip system)*
+- `[HIGH]` No real boss. `manifested_spirit_encounter` (the Shallow Woods boss) fights the regular `amorphous_spirit` (100 Health, 9 damage per lash, 15 gold). The Foundation Beat 7 Tribulation Guardian does not exist.
+- `[MEDIUM]` Coalescing Spirit (elite) has no `base_gold_drop` and its encounter has no loot.
+- `[MEDIUM]` No enemy art. No `CombatantData` sets `texture`, and Madra Lash and Coalesce have no icon, so their buttons in the enemy row are blank.
+- `[MEDIUM]` Four enemies, all for The Shallow Woods; nothing for later Foundation beats or Copper.
+- `[LOW]` Enemy effects have empty `effect_name` (Madra Lash damage, Famishing Bite damage and Hunger), so `Log` lines and the Hunger tooltip lack names.
 
 ### UI
 
-- ~~`[HIGH]` Ability icons don't disable or visually indicate when the player can't afford the cost (not enough madra/stamina) — ability just silently fails to cast~~ *(Fixed — can't-afford visual state dims icon and turns cost labels red)*
-- ~~`[HIGH]` No ability tooltips — hovering over an ability icon shows no information (cost, cooldown, damage, description). New players can't learn the system without them~~ *(Fixed — CombatAbilityTooltip shows on hover)*
-- ~~`[MEDIUM]` No buff tooltips — hovering over a buff icon shows no information (effect, duration remaining, stacks)~~ *(Fixed — CombatBuffTooltip shows on hover with live duration)*
-- `[MEDIUM]` Enemy sprite placement needs improvement — current positioning is placeholder
-- ~~`[LOW]` Cast bar visual (PNG) needs improvement~~ *(Fixed in PR #15 — `cast_bar_fill.tres` gold stylebox)*
-- `[LOW]` Combat background should be modular — different adventure zones should have different combat backdrops
+- `[MEDIUM]` No combatant visuals. `CombatantNode` has no sprite (removed 2026-04-08), `CombatantData.texture`/`scale`/`offset` are unused, the player texture set in `_create_player_combatant()` is dead, and `EnemyInfoPanel.profile_texture` is `base_player.png`, so every enemy shows the player's portrait.
+- `[MEDIUM]` Buff tooltip misstates stacked buffs: "Outgoing damage x1.5" regardless of stacks (actual 1.5^stacks), DoT text ignores stacks, and `consume_on_use` and `effect_description` are not shown.
+- `[LOW]` The ability tooltip only shows the raw total of the first target effect; heals (Coalesce), interrupts, strips and descriptions are not shown.
+- `[LOW]` Info panel positions are hardcoded in `AdventureView` (`(390, 500)` in combat, `(170, 872)` on the map), and `PlayerInfoPanel` has a stray `rotation = -0.0037` (fixed on the consumables branch).
+- `[LOW]` The combat backdrop is the shared zone background plus Atmosphere values hardcoded in `_setup_atmosphere()`; there is no per-zone backdrop.
+- `[LOW]` The cooldown overlay divides by `base_cooldown`, so the 1.5 s opening cooldown renders as a fraction of the full cooldown (10% for Enforce).
+- `[LOW]` Casting-indicator labels (`AbilityInformation`, `CastTimer`) use inline font size/colour overrides instead of Label variants; the `AbilityTypeIcon` TextureRect is never set.
 
 ### Tech Debt
 
-#### Dead Code
-- ~~`[MEDIUM]` `enable_ai: bool` debug export on `AdventureCombat` — marked with `TODO: DELETE DEBUG`~~ *(Removed in PR #15)*
-- `[LOW]` `CastTimer` label in scene with hardcoded debug text `"2.7 / 8.0s"`
-- `[LOW]` `percentage_value` field exported but unused — remove or implement
-
-#### Code Quality
-- ~~`[LOW]` `+100 STRENGTH` debug modifier in `CharacterManager.get_total_attributes_data()`~~ *(Fixed in PR #3)*
+- `[MEDIUM]` `enable_ai` debug export under `# TODO: DELETE DEBUG` is still in `adventure_combat.gd` (lines 33–36); earlier docs wrongly said PR #15 removed it.
+- `[LOW]` Stray `CastTimer` Label with placeholder text `"2.7 / 8.0s"` under the `AdventureCombat` root in `adventure_combat.tscn`; nothing references it.
+- `[LOW]` Dead code: `combat_ability_instance.tscn` (unused; root node misspelled `CombatAbilitiyInstance`), `CombatAbilityManager.ability_registered`/`ability_used` (no listeners; `ability_used` declared with two args, emitted with one), `CombatBuffManager.get_outgoing_damage_modifier()` (tests only) and `get_incoming_damage_modifier()` (unused), `panel_buffs.tres`, and the unused child `VitalsManager` on the player's `CombatantNode`.
+- `[LOW]` `CombatantInfoPanel` calls `CombatBuffManager._find_buff_by_id()` (private) for duration sync and tooltips.
+- `[LOW]` `AbilitiesPanel._unhandled_input` marks a slot key handled even when that panel has no button for the slot, and the enemy panel runs the same handler; correct behaviour depends on input order.
+- `[LOW]` Key letters are hardcoded (`AbilityButton.KEY_LABELS`, `AbilityEquipSlot.KEY_LABELS`) instead of read from the InputMap.
+- `[LOW]` Public functions without `##` doc comments (CLAUDE.md): `VitalsManager.initialize_current_values()`/`apply_vitals_change()`, `CombatAbilityManager.can_cast_ability_instance()`, `AdventureCombat.on_player_ability_selected()`, `CombatantInfoPanel.setup_abilities()`.
+- `[LOW]` Test gaps: nothing covers `SimpleEnemyAI`, `VitalsManager`, `execute_ability()` (modifier consumption, effect order), incoming modifiers, DoT ticks, the gold formula, or `AdventureCombat` start/stop. `test_adventure_combat_victory_event.gd` only calls `EventManager` directly, and `test_adventure_combat_count.gd` re-implements the counting logic instead of calling `AdventureTilemap.get_total_combat_count()`.
