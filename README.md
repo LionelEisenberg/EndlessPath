@@ -1,6 +1,6 @@
 # Endless Path
 
-A cultivation-themed incremental/idle game blended with active mini-games, built in Godot 4.6. Inspired by the *Cradle* book series by Will Wight, Endless Path follows a sacred artist on their journey from Foundation to mastery, cultivating power through interconnected gameplay systems.
+A cultivation-themed incremental/idle game blended with active mini-games, built in Godot 4.7. Inspired by the *Cradle* book series by Will Wight, Endless Path follows a sacred artist on their journey from Foundation to mastery, cultivating power through interconnected gameplay systems.
 
 ## The Game
 
@@ -29,7 +29,7 @@ Players start at the **Foundation** stage, where they engage in a **Cycling** mi
 
 | Component | Details |
 |-----------|---------|
-| Engine | Godot 4.6 (GDScript) |
+| Engine | Godot 4.7 (GDScript) |
 | Architecture | 15 autoload singletons, data-driven resource system |
 | Entry Scene | `scenes/main/main_game/main_game.tscn` |
 | Save System | `user://save.tres` via Godot ResourceSaver |

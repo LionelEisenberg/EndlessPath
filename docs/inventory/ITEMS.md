@@ -82,7 +82,7 @@ Format: `<ATTR>[+-]<N>, ...`
 ### Invocation
 
 ```bash
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s scripts/tools/items_md_to_resources.gd
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s scripts/tools/items_md_to_resources.gd
 ```
 
 ### Folder layout (target output)

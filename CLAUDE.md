@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**EndlessPath** is an incremental/idle game blended with active mini-games, built in **Godot 4.5** using **GDScript**. Inspired by the "Cradle" book series, it follows a sacred artist cultivating power through a Wuxia-inspired cultivation system. Players progress through stages (Foundation, Copper, Iron, Jade), managing resources like Madra and Core Density through interconnected gameplay loops.
+**EndlessPath** is an incremental/idle game blended with active mini-games, built in **Godot 4.7** using **GDScript**. Inspired by the "Cradle" book series, it follows a sacred artist cultivating power through a Wuxia-inspired cultivation system. Players progress through stages (Foundation, Copper, Iron, Jade), managing resources like Madra and Core Density through interconnected gameplay loops.
 
 ## Common Commands
 
@@ -12,21 +12,21 @@ All commands are run from the project root.
 
 ```bash
 # Open in Godot editor
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" project.godot
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" project.godot
 
 # Run the game from CLI
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
 
 # Run the test suite
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 
 # Export (example: Linux)
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --export-release "Linux" build/endlesspath.x86_64
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --export-release "Linux" build/endlesspath.x86_64
 ```
 
 ## Testing
 
-The project uses **GUT v9.6.0** for unit and integration tests. Test files live in `tests/unit/` and `tests/integration/`.
+The project uses **GUT v9.7.1** for unit and integration tests. Test files live in `tests/unit/` and `tests/integration/`.
 
 **Run tests:**
 - After completing any feature or bug fix, before committing
@@ -39,7 +39,7 @@ The project uses **GUT v9.6.0** for unit and integration tests. Test files live 
 
 If the project has never been imported in the current environment, run `--import` first to register GUT class names:
 ```bash
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --import
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import
 ```
 
 ## Architecture
@@ -47,7 +47,7 @@ If the project has never been imported in the current environment, run `--import
 ### Tech Stack
 | Component | Details |
 |-----------|---------|
-| Engine | Godot 4.6 (Forward Plus / GL Compatibility) |
+| Engine | Godot 4.7 (Forward Plus / GL Compatibility) |
 | Language | GDScript |
 | Window | 1920x1080 |
 | Entry Scene | `res://scenes/main/main_game/main_game.tscn` |
@@ -168,7 +168,7 @@ UI text uses a **Label theme variant type-scale** defined in `assets/themes/pixe
 
 ## GDScript Coding Standards
 
-**Scope**: Never modify files in `addons/`.
+**Scope**: Never modify files in `addons/`. One known exception: `addons/dialogic` (2.0-Alpha-19) carries upstream's 3-line Godot 4.7 return-value fix (dialogic-godot/dialogic#2769); Alpha 20+ already includes it, so the patch goes away when Dialogic is upgraded.
 
 ### Functions
 - All functions must have explicit return types (use `-> void` if no return value)
