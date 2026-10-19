@@ -1,99 +1,261 @@
-# Cultivation & Progression System
+# Cultivation System
+
+Last updated: 2026-10-18
 
 ## Overview
 
-The cultivation system drives stage-based progression in Endless Path. Players advance through two axes: **Core Density Level** (continuous XP-based leveling within a stage) and **Advancement Stage** (discrete cultivation stages: Foundation, Copper, Iron, Jade, Silver). Reaching Core Density 100 and completing a Tribulation mini-game advances the player to the next stage, unlocking new game systems.
+Cultivation tracks the player's power on two axes:
 
-## Progression Model
+- **Core Density level**: an XP-driven level within the current stage. It raises the Madra cap and awards path points every 10 levels.
+- **Advancement Stage**: `FOUNDATION`, `COPPER`, `IRON`, `JADE` or `SILVER`.
 
-### Axis 1: Core Density Level
-- A continuous float level representing how filled the player's core is
-- XP added via `CultivationManager.add_core_density_xp(amount)` (from Cycling zone clicks)
-- XP formula: `core_density_base_xp_cost * pow(core_xp_scaling_factor, level - 1)`
-- Foundation stage: base=10, scaling=1.02 — level 1 costs 10 XP, level 50 costs ~26.8 XP
-- Multi-level-up supported per single XP award via a `while` loop
-- Level affects Madra cap: `max_madra = max_madra_base + max_madra_per_core_density_level * level`
-- Foundation: `100 + 5 * level` — level 0 = 100 max, level 20 = 200 max
+`CultivationManager` (autoload) owns both, storing them in `SaveGameData`. Each stage's numbers come from an `AdvancementStageResource`.
 
-### Axis 2: Advancement Stage
-| Stage | Enum Value | Resource Exists | Unlocks |
-|-------|------------|-----------------|---------|
-| Foundation | `FOUNDATION` | Yes | Cycling, Zones, Adventuring, Combat |
-| Copper | `COPPER` | No | Scripting, Elixir Making (planned) |
-| Iron | `IRON` | No | Soulsmithing (planned) |
-| Jade | `JADE` | No | Advanced systems (planned) |
-| Silver | `SILVER` | No | End-game (planned) |
+Only the Foundation stage is playable. Only Foundation has stage data, and there is no way to change stage: `CultivationManager.attempt_breakthrough()` is an empty stub with no callers. The designed breakthrough flow (adventure site, then a Tribulation mini-game, then Copper) is documented in [breakthrough-tribulation.md](breakthrough-tribulation.md) and is not implemented.
 
-Only Foundation has an `AdvancementStageResource` with actual data. `attempt_breakthrough()` is a stub.
+## Player Experience
+
+1. A new save starts at **Foundation**, Core Density level 0, 0 XP, 25 Madra, with a Madra cap of 100.
+2. Core Density XP comes only from scoring cycling zones (see [CYCLING.md](../cycling/CYCLING.md)). The starting Foundational Technique has no zones. The first XP-earning technique, Smooth Flow, comes from the `pure_core_awakening` path node. The player buys it with the path point awarded by the "First Steps Out" quest (`q_first_steps`).
+3. XP fills the bar in the cycling Resources tab (`Level: N`, `XP: x / y`). Each level costs 2% more XP than the previous one, starting at 10 XP for level 1. One scored zone can grant several levels.
+4. Each level raises the Madra cap by 5.
+5. Every 10th level grants **1 path point** at Foundation, spent in the Path Tree.
+6. The quest "Harden Your Core" (`q_reach_core_density_10`) asks for level 10.
+7. Stage and level are shown in the cycling Resources tab (`Stage: Foundation`, plus a radial Core Density orb that is full at level 100) and in the zone view's resource panel (`Foundation` / `Lvl N`, plus the same orb).
+8. **At level 100 nothing happens.** There is no hint, no breakthrough and no cap. The orbs read full, levels keep going (each more expensive), path points keep coming every 10 levels, and the Madra cap keeps growing.
+
+## Architecture
+
+```
+CultivationManager (autoload #2)                 — singletons/cultivation_manager/cultivation_manager.gd
+  advancement_stage_resources: Array[AdvancementStageResource]
+      = [preload(foundation_advancement_stage.tres)]
+  live_save_data → SaveGameData.core_density_xp / core_density_level / current_advancement_stage
+
+AdvancementStageResource (Resource)              — scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd
+AdvancementStageList (Resource, never loaded)    — advancement_stage_list.gd + resources/cycling/advancement_stages/advancement_stage_list.tres
+
+Writers:  CyclingTechnique._handle_zone_click() → add_core_density_xp()
+          DevPanel "Add CD XP" → add_core_density_xp()
+Readers:  ResourceManager.add_madra()           — Madra cap via _get_current_stage_resource()
+          CyclingResourcePanel                  — level, XP, XP needed, stage name, Madra cap
+          ZoneResourcePanel                     — stage name, level, Madra cap
+          UnlockConditionData.evaluate()        — CULTIVATION_STAGE / CULTIVATION_LEVEL
+          PathManager._is_stage_reached()       — node required_stage gate
+          SaveGameData._to_string()             — get_advancement_stage_name()
+```
+
+## Data Model
+
+### AdvancementStage enum (`CultivationManager.AdvancementStage`)
+`FOUNDATION` = 0, `COPPER` = 1, `IRON` = 2, `JADE` = 3, `SILVER` = 4.
+
+### Constants
+| Constant | Value | Use |
+|----------|-------|-----|
+| `PATH_POINTS_PER_STAGE` | `{FOUNDATION: 1, COPPER: 2, IRON: 3, JADE: 4}` | Path points per milestone. `SILVER` has no entry and falls back to 1 |
+| `PATH_POINT_LEVEL_INTERVAL` | `10` | Milestone every N levels |
 
 ### AdvancementStageResource
-| Field | Type | Description |
-|-------|------|-------------|
-| `stage_name` | `String` | Display name |
-| `stage_id` | `AdvancementStage` | Enum reference |
-| `core_density_base_xp_cost` | `float` | Base XP per level (10.0) |
-| `core_xp_scaling_factor` | `float` | Exponential scaling (1.02) |
-| `max_madra_base` | `float` | Madra cap at level 0 (100.0) |
-| `max_madra_per_core_density_level` | `float` | Cap increase per level (5.0) |
-| `next_stage` | `AdvancementStageResource` | Linked list to next (currently null) |
-| `unlocking_mechanics` | `Array[String]` | Defined but unused |
-| `icon` | `Texture2D` | Defined but unused |
+| Field | Type | Class default | Read by code? |
+|-------|------|---------------|---------------|
+| `stage_name` | `String` | `""` | Yes (stage name getters) |
+| `stage_id` | `CultivationManager.AdvancementStage` | `FOUNDATION` | Yes (stage lookup) |
+| `core_density_base_xp_cost` | `float` | `10.0` | Yes |
+| `core_xp_scaling_factor` | `float` | `1.0` | Yes |
+| `unlocking_mechanics` | `Array[String]` | `[]` | No |
+| `max_madra_base` | `float` | `0.0` | Yes |
+| `max_madra_per_core_density_level` | `float` | `0.0` | Yes |
+| `icon` | `Texture2D` | `null` | No |
+| `next_stage` | `AdvancementStageResource` | `null` | No |
 
-## Integration Map
+| Method | Formula |
+|--------|---------|
+| `get_xp_for_level(level: int) -> float` | `core_density_base_xp_cost × core_xp_scaling_factor^(level − 1)` (XP to reach `level` from `level − 1`) |
+| `get_max_madra(level: int) -> float` | `max_madra_base + max_madra_per_core_density_level × level` |
 
+### SaveGameData (cultivation fields)
+| Field | Type | Default |
+|-------|------|---------|
+| `core_density_xp` | `float` | `0.0`: XP into the current level |
+| `core_density_level` | `float` | `0.0`: whole levels stored as a float |
+| `current_advancement_stage` | `CultivationManager.AdvancementStage` | `FOUNDATION` |
+| `madra` | `float` | `25.0`, owned by `ResourceManager` and capped by the stage |
+
+### CultivationManager API
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `add_core_density_xp(amount: float)` | untyped (void) | See flow below |
+| `attempt_breakthrough()` | untyped | Body is `return`. No callers |
+| `get_xp_for_next_level()` | `float` | `stage.get_xp_for_level(level + 1)`, i.e. `base × factor^level`. Returns `0.0` if there is no save or no stage resource |
+| `get_core_density_xp()` / `get_core_density_level()` | `float` | `0.0` without save data |
+| `get_current_advancement_stage()` | `AdvancementStage` | `FOUNDATION` without save data |
+| `get_current_advancement_stage_name()` | `String` | `"Unknown"` if the stage has no resource |
+| `get_advancement_stage_name(stage)` | `String` | `"Unknown"` if the stage has no resource |
+| `_get_current_stage_resource()` / `_get_stage_resource(stage)` | `AdvancementStageResource` | Private, but `_get_current_stage_resource()` is called by `ResourceManager`, `CyclingResourcePanel` and `ZoneResourcePanel` |
+
+## Core Systems
+
+### Core Density XP and Leveling
 ```
-Cycling → CultivationManager.add_core_density_xp()
-              → core_density_level_updated → UnlockManager re-evaluates
-              → max_madra recalculated via ResourceManager
-              → every 10 levels → PathManager.add_points(1) (PR #20)
-
-Core Density 100 + Adventure Breakthrough Site → Tribulation mini-game
-              → Success → advancement_stage_changed → UnlockManager re-evaluates
-              → Core Density resets to 0 for new stage
+add_core_density_xp(amount)                                   # cultivation_manager.gd:69-99
+  core_density_xp += amount
+  needed = get_xp_for_next_level()                            # base × factor^level; 0.0 if no stage resource
+  while core_density_xp >= needed:
+      core_density_level += 1
+      core_density_xp -= needed
+      core_density_level_updated.emit(xp, level)
+      if int(level) % PATH_POINT_LEVEL_INTERVAL == 0 and int(level) > 0:      # every 10 levels (lines 89-93)
+          PathManager.add_points(PATH_POINTS_PER_STAGE.get(current_advancement_stage, 1))
+          # Foundation 1, Copper 2, Iron 3, Jade 4; Silver and anything else fall back to 1
+      needed = get_xp_for_next_level()
+  core_density_xp_updated.emit(xp, level)
 ```
+- Several level-ups from one award are handled by the `while` loop. Overflow XP carries into the next level.
+- Path points per milestone depend on the current stage, not a flat 1. Only Foundation is reachable, so in practice every 10th level gives 1 point.
+- **There is no level cap.** Neither `add_core_density_xp()` nor `AdvancementStageResource` has a maximum. The only "100" in the code is display: `CyclingResourcePanel.MAX_CORE_DENSITY_LEVEL` and `level / 100.0` in `ZoneResourcePanel._update_core_density()` set when the orbs read full.
+- Path-perk hooks `CORE_DENSITY_XP_MULT` and `MADRA_ON_LEVEL_UP` would plug into this function, but are not applied (see [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md)).
+
+### Madra Cap
+Two different maximums exist:
+
+| Value | Formula (Foundation) | Enforced by | Shown in |
+|-------|----------------------|-------------|----------|
+| **Pool cap** (cultivation) | `get_max_madra(level)` = `100 + 5 × Core Density level` | `ResourceManager.add_madra()` clamps to `[0, cap]` | Cycling and zone resource panels (`Madra: X / Y`) |
+| **Adventure capacity** (character) | `CharacterAttributesData.get_max_madra()` = `FOUNDATION attribute × 10` (100 at the default 10) | `ResourceManager.get_adventure_madra_capacity()` / budget; combat `VitalsManager` | Adventure start |
+
+The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not added to either cap. See [RESOURCES.md](../infrastructure/RESOURCES.md) for the pool and adventure budget.
+
+### Advancement Stage and Breakthrough
+- `current_advancement_stage` is written only by `SaveGameData.reset()`.
+- `attempt_breakthrough()` is a stub with no callers.
+- `advancement_stage_changed` is emitted only from `_update_resources()`, which runs in `_ready()` and on `PersistenceManager.save_data_reset`. It always carries the unchanged stage.
+- Stage lookups go through `advancement_stage_resources`. Only Foundation is listed, so any other stage resolves to `null`. A `null` stage makes `get_xp_for_next_level()` return 0 and makes `ResourceManager.add_madra()` clamp Madra to 0 (see Bugs).
+
+**What a Foundation → Copper breakthrough still needs:**
+1. A Copper `AdvancementStageResource` `.tres` (`stage_id = COPPER`, XP curve, Madra cap) added to `advancement_stage_resources`. This has to land before any code can change the stage.
+2. A rule for level 100: a cap or `max_core_density_level`, and what happens to overflow XP.
+3. A real `attempt_breakthrough()` (or Tribulation result handler) that sets the stage, resets level and XP, and emits `advancement_stage_changed` plus the Core Density signals.
+4. The Tribulation mini-game and its adventure integration: `TribulationData`, `BreakthroughChoice`, `EncounterType.BREAKTHROUGH`, a Tribulation view and HUD, encounter content and Dialogic timelines. None exist.
+5. An eligibility hint at level 100.
+6. Something for Copper to unlock. No `CULTIVATION_STAGE` unlock conditions exist, no path node requires a stage above Foundation, and Scripting and Elixir Making are not built.
+
+## Signals
+
+| Signal | Emitted | Listeners |
+|--------|---------|-----------|
+| `core_density_xp_updated(xp, level)` | End of every `add_core_density_xp()`; `_update_resources()` | `CyclingResourcePanel` |
+| `core_density_level_updated(xp, level)` | Each level gained; `_update_resources()` | `UnlockManager` (re-evaluates all conditions), `ZoneResourcePanel` |
+| `advancement_stage_changed(new_stage)` | `_update_resources()` only | `UnlockManager`, `CyclingResourcePanel`, `ZoneResourcePanel` |
+
+## Integration Points
+
+| System | Connection |
+|--------|------------|
+| Cycling | `CyclingTechnique._handle_zone_click()` → `add_core_density_xp(zone XP)`. This is the only gameplay XP source |
+| `ResourceManager` | `add_madra()` reads the stage resource for the pool cap |
+| `PathManager` | Receives `add_points()` every 10 levels. `_is_stage_reached()` compares node `required_stage` with the current stage (tests use `_test_stage_override`) |
+| `UnlockManager` / `UnlockConditionData` | Re-evaluates on `core_density_level_updated` and `advancement_stage_changed`. `CULTIVATION_STAGE` and `CULTIVATION_LEVEL` conditions query the manager |
+| `QuestManager` | `q_reach_core_density_10` step 1 completes when `q_reach_cd_10` unlocks |
+| UI | `CyclingResourcePanel` and `ZoneResourcePanel` both hardcode 100 as the orb's full level |
+| `PersistenceManager` | Fields above persist in `user://save.tres` |
+| `DevPanel` (Ctrl+Shift+D, needs `user://dev_password.txt`) | "Add CD XP" calls `add_core_density_xp(value)`. There is no stage control |
+
+## Existing Content
+
+### Advancement Stages
+| Stage | Resource | `stage_name` | Base XP | Scaling | Madra cap | `next_stage` | Path points per 10 levels |
+|-------|----------|--------------|---------|---------|-----------|--------------|---------------------------|
+| Foundation | `resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres` | `Foundation` | 10.0 (class default) | 1.02 | 100 + 5 × level | `null` | 1 |
+| Copper | none | — | — | — | — | — | 2 |
+| Iron | none | — | — | — | — | — | 3 |
+| Jade | none | — | — | — | — | — | 4 |
+| Silver | none | — | — | — | — | — | 1 (fallback) |
+
+`advancement_stage_list.tres` lists only Foundation and is never loaded.
+
+### Foundation Curve
+| Level reached | XP for that level | Cumulative XP | Madra cap | Path points so far |
+|---------------|-------------------|---------------|-----------|--------------------|
+| 1 | 10.0 | 10.0 | 105 | 0 |
+| 10 | 11.95 | 109.5 | 150 | 1 |
+| 20 | 14.57 | 243.0 | 200 | 2 |
+| 30 | 17.76 | 405.7 | 250 | 3 |
+| 50 | 26.39 | 845.8 | 350 | 5 |
+| 100 | 71.03 | 3,122.3 | 600 | 10 |
+
+Pacing derived from the authored values, counting cycle time only:
+
+- **Smooth Flow** (125 / 70 / 25 XP per cycle for all PERFECT / all GOOD / all OK, 15 s cycles):
+  - level 10 takes 1–5 cycles;
+  - level 100 takes 25 cycles (about 6 min) to 125 cycles (about 31 min).
+- **Torrential Flow** (30 / 25 / 20 XP per 8 s cycle): level 100 takes 105–157 cycles (14–21 min).
+
+### Content That Reads Cultivation State
+| Resource | Kind | Check |
+|----------|------|-------|
+| `resources/unlocks/q_reach_cd_10.tres` | `CULTIVATION_LEVEL` | `>= 10`. Step 1 of `q_reach_core_density_10` "Harden Your Core", whose completion awards the Refugee Camp Map |
+| `CULTIVATION_STAGE` conditions | — | None authored |
+| Pure Madra path nodes | `required_stage` | All left at the default `FOUNDATION` |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `singletons/cultivation_manager/cultivation_manager.gd` | Core Density + stage progression |
-| `scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd` | Stage data |
-
-## Existing Content
-
-### Advancement Stages
-Only Foundation exists as a `.tres` resource. `advancement_stage_list.tres` exists but is never loaded by any manager.
+| `singletons/cultivation_manager/cultivation_manager.gd` | Core Density XP/levels, stage, path-point milestones |
+| `scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd` | `AdvancementStageResource` (XP curve, Madra cap) |
+| `scripts/resource_definitions/cycling/advancement_stage/advancement_stage_list.gd` | `AdvancementStageList` (unused) |
+| `resources/cycling/advancement_stages/` | Foundation stage and the unused list |
+| `singletons/persistence_manager/save_game_data.gd` | Persisted cultivation fields |
+| `singletons/resource_manager/resource_manager.gd` | Applies the Madra cap |
+| `scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd` | Level, XP and stage display (cycling view) |
+| `scenes/zones/zone_resource_panel/zone_resource_panel.gd` | Stage and level display (zone view) |
+| `tests/unit/test_cultivation_manager.gd` | 25 tests of the XP curve and level loop (simulated) |
 
 ## Work Remaining
 
 ### Bugs
 
-- `[HIGH]` `advancement_stage_changed` signal emitted only on save reset, not on actual stage advancement — downstream listeners (UnlockManager) won't react to breakthrough success
+- `[HIGH]` Infinite loop as soon as the stage moves past Foundation. This blocks Copper. `get_xp_for_next_level()` (`cultivation_manager.gd:104-109`) returns `0.0` when `_get_current_stage_resource()` is `null`, which happens for any stage missing from `advancement_stage_resources` (today, everything except `FOUNDATION`). The `while core_density_xp >= xp_needed_for_next_level` loop (line 81) then never exits, because XP never drops below 0 when 0 is subtracted. The game freezes on the first Core Density XP award: `core_density_level_updated` fires on every pass, and path points are added every 10th pass. With the same missing resource, `ResourceManager.add_madra()` clamps Madra to 0 (cap = 0). It is unreachable only because nothing changes the stage yet. Fix before or with the breakthrough: add the Copper resource and make the loop bail out when `needed <= 0`.
+- `[LOW]` Madra cap text lags. Both resource panels refresh `Madra: X / Y` only on `madra_changed` (`ZoneResourcePanel` also on stage change), so the cap does not update on level-up.
 
 ### Missing Functionality
 
-- `[HIGH]` `attempt_breakthrough()` is a stub — no breakthrough mechanic exists. Full design doc at [breakthrough-tribulation.md](breakthrough-tribulation.md). Tribulation triggers from adventure mode, reuses cycling components
-- `[HIGH]` Copper `AdvancementStageResource` needed — new XP scaling, madra cap, `next_stage` linkage from Foundation. Required for breakthrough to have a destination
-- `[MEDIUM]` `unlocking_mechanics` and `icon` fields on AdvancementStageResource are defined but never consumed — need to wire these or remove them
-- `[LOW]` `advancement_stage_list.tres` exists but is never loaded by any manager — dead resource or needs to be wired into CultivationManager
+- `[HIGH]` No breakthrough. `attempt_breakthrough()` is an empty stub and nothing changes `current_advancement_stage`. See "What a Foundation → Copper breakthrough still needs" and [breakthrough-tribulation.md](breakthrough-tribulation.md).
+- `[HIGH]` No Copper stage resource. `advancement_stage_resources` only preloads Foundation, and Foundation's `next_stage` is `null`.
+- `[MEDIUM]` No Core Density cap or overflow rule at 100. `AdvancementStageResource` has no `max_core_density_level`, and 100 is hardcoded in `CyclingResourcePanel.MAX_CORE_DENSITY_LEVEL` and `ZoneResourcePanel._update_core_density()`. Path points keep accruing past 100.
+- `[MEDIUM]` Cultivation path perks are not applied: `CORE_DENSITY_XP_MULT` (Dedicated Cultivation), `MADRA_ON_LEVEL_UP` (Breakthrough Surge) and `MADRA_CAPACITY_BONUS` (Expanded Core). `PathManager.get_effects()` has no gameplay reader.
+- `[MEDIUM]` No stage-gated content. No `CULTIVATION_STAGE` unlock conditions exist and no path node requires a stage above Foundation.
+- `[LOW]` `unlocking_mechanics`, `icon` and `next_stage` on `AdvancementStageResource` are exported but never read.
 
 ### Content
 
-- `[HIGH]` Only Foundation stage has data — no Copper/Iron/Jade/Silver `.tres` resources exist
-- `[MEDIUM]` No stage-specific unlock definitions — which GameSystems unlock at each stage needs to be authored as UnlockConditionData entries
+- `[HIGH]` Only Foundation has stage data. Copper, Iron, Jade and Silver have no `.tres`.
+- `[MEDIUM]` No breakthrough content: no Tribulation curve or data, no breakthrough encounter, no pre/post Dialogic timelines. Beats 7–9 in [FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md) are planned.
 
 ### UI
 
-- `[MEDIUM]` No UI indicator when Core Density reaches 100 and breakthrough is available — player needs a hint to seek a breakthrough site in adventure mode
+- `[MEDIUM]` Nothing tells the player when Core Density reaches 100 or what to do next.
+- `[LOW]` The stage appears only as text (`Stage: Foundation`, zone panel name). There is no next-stage info and no stage badge or aura (the GDD calls for one).
 
 ### Tech Debt
 
-- `[LOW]` `_get_current_stage_resource()` is private (underscore prefix) but called by ResourceManager and CyclingResourcePanel — should be a public API
+- `[MEDIUM]` Tests do not exercise the manager. `test_cultivation_manager.gd` re-implements the level loop (`_simulate_add_xp`) and only calls `AdvancementStageResource`. `add_core_density_xp()`, its path-point awards and signals, and `get_xp_for_next_level()` are untested, although the file header says "signals" are covered.
+- `[LOW]` `_get_current_stage_resource()` is private but used by `ResourceManager.add_madra()`, `CyclingResourcePanel._update_madra_display()` and `ZoneResourcePanel._update_madra()`. It needs a public API, for example `get_max_madra()` on the manager.
+- `[LOW]` The stage list is duplicated. The `@export advancement_stage_resources` preload on the autoload script cannot be edited in the inspector, and `AdvancementStageList` / `advancement_stage_list.tres` sits unused.
+- `[LOW]` Coding standards:
+  - `add_core_density_xp()` and `attempt_breakthrough()` have no return types;
+  - the public getters have no `##` doc comments;
+  - several locals are untyped (`xp_needed_for_next_level`, `cur_level`, `res`).
+- `[LOW]` `PATH_POINTS_PER_STAGE` has no `SILVER` entry.
 
-### Related Docs
+## Related Docs
 
-- **Resources (Madra, Gold):** [infrastructure/RESOURCES.md](../infrastructure/RESOURCES.md)
-- **Unlock System:** [infrastructure/UNLOCKS.md](../infrastructure/UNLOCKS.md)
-- **Character State:** [infrastructure/CHARACTER.md](../infrastructure/CHARACTER.md)
-- **Events:** [infrastructure/EVENTS.md](../infrastructure/EVENTS.md)
-- **Persistence:** [infrastructure/PERSISTENCE.md](../infrastructure/PERSISTENCE.md)
+- [CYCLING.md](../cycling/CYCLING.md): the only Core Density XP source
+- [breakthrough-tribulation.md](breakthrough-tribulation.md): breakthrough and Tribulation design (not implemented)
+- [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md): path points and cultivation perks
+- [FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md): Foundation beats, including the planned breakthrough
+- [RESOURCES.md](../infrastructure/RESOURCES.md): Madra pool, adventure budget
+- [UNLOCKS.md](../infrastructure/UNLOCKS.md): `CULTIVATION_STAGE` / `CULTIVATION_LEVEL` conditions
+- [CHARACTER.md](../infrastructure/CHARACTER.md): Foundation attribute and adventure Madra capacity
+- [PERSISTENCE.md](../infrastructure/PERSISTENCE.md): `SaveGameData`

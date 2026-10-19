@@ -1,5 +1,12 @@
 # Equipment Attribute Bonuses — Implementation Plan
 
+> **Status (2026-10-18):** Implemented in PR #9 — see [INVENTORY.md](INVENTORY.md) for current behaviour. Three things have changed since:
+> - `ACCESSORY_1` and `ACCESSORY_2` were collapsed into a single `ACCESSORY` slot type. Accessories now live in `InventoryData.equipped_accessories`, keyed by slot 0 or 1.
+> - `CharacterManager._get_equipment_bonuses()` sums bonuses from both `equipped_gear` and `equipped_accessories`.
+> - The `test_items/` dagger and sword were replaced by the generated `makeshift_dagger.tres` and `iron_shortsword.tres`.
+>
+> Kept as a historical plan; the code snippets and file paths below are out of date.
+
 **Status:** Complete (PR #9)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

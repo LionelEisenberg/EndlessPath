@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**EndlessPath** is an incremental/idle game blended with active mini-games, built in **Godot 4.5** using **GDScript**. Inspired by the "Cradle" book series, it follows a sacred artist cultivating power through a Wuxia-inspired cultivation system. Players progress through stages (Foundation, Copper, Iron, Jade), managing resources like Madra and Core Density through interconnected gameplay loops.
+**EndlessPath** is an incremental/idle game blended with active mini-games, built in **Godot 4.6** using **GDScript**. Inspired by the "Cradle" book series, it follows a sacred artist cultivating power through a Wuxia-inspired cultivation system. Players progress through stages (Foundation, Copper, Iron, Jade), managing resources like Madra and Core Density through interconnected gameplay loops. Only the Foundation stage is implemented today. See `docs/STATE_OF_THE_GAME.md` for current status, and `docs/README.md` for the documentation index.
 
 ## Common Commands
 
@@ -20,7 +20,7 @@ All commands are run from the project root.
 # Run the test suite
 "C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 
-# Export (example: Linux)
+# Export (example: Linux). Requires an export preset; no export_presets.cfg is committed yet
 "C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --export-release "Linux" build/endlesspath.x86_64
 ```
 
@@ -42,12 +42,16 @@ If the project has never been imported in the current environment, run `--import
 "C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --import
 ```
 
+In a fresh checkout, the headless `--import` has been seen to rewrite `project.godot`'s `[dialogic]` `directories/dch_directory` and `directories/dtl_directory` to `{}`, which unregisters the dialogue characters and timeline. Afterwards, check `git diff project.godot` and restore the file before committing. Running the tests alone does not modify it.
+
+See `docs/testing/TESTING.md` for test conventions, the coverage map, and why tests must call production code instead of re-implementing ("mirroring") it.
+
 ## Architecture
 
 ### Tech Stack
 | Component | Details |
 |-----------|---------|
-| Engine | Godot 4.6 (Forward Plus / GL Compatibility) |
+| Engine | Godot 4.6, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
 | Language | GDScript |
 | Window | 1920x1080 |
 | Entry Scene | `res://scenes/main/main_game/main_game.tscn` |
@@ -56,33 +60,36 @@ If the project has never been imported in the current environment, run `--import
 ### Directory Structure
 | Directory | Purpose |
 |-----------|---------|
-| `scripts/` | GDScript source — resource definitions (`resource_definitions/`) and utilities (`utils/`) |
-| `singletons/` | 16 autoload manager singletons (global game state) |
+| `scripts/` | GDScript source: resource definitions (`resource_definitions/`), utilities (`utils/`), editor/CLI tools (`tools/`), and the zone action presenter base (`ui/`) |
+| `singletons/` | 16 manager singletons (global game state). They are autoloads along with Dialogic, 17 in total |
 | `scenes/` | Godot `.tscn` scene files + attached scripts |
-| `resources/` | `.tres` data files (abilities, zones, items, encounters, loot tables) |
-| `assets/` | Art, audio, shaders, themes, fonts, UI images, Aseprite sources |
-| `addons/` | Godot plugins (Dialogic, AsepriteWizard, ResourcePlus, hexagon_tilemaplayer, script-ide, godot_context_exporter) |
+| `resources/` | `.tres` data files (abilities, adventures and encounters, enemies, cycling, items, path tree, quests, unlocks, zones and their loot tables) |
+| `assets/` | Art (sprites, Aseprite sources), shaders, themes, styleboxes, fonts, dialogue data. No audio yet |
+| `addons/` | Godot plugins (Dialogic, AsepriteWizard, ResourcePlus, hexagon_tilemaplayer, script-ide, godot_context_exporter, gut) |
+| `tests/` | GUT tests: `unit/`, `integration/`, `label_tests/` |
+| `docs/` | Game and system documentation. Start at `docs/README.md` |
 
 ### Singleton Managers (`singletons/`)
 These are autoloaded in `project.godot` and provide global state:
 
 | Manager | Purpose |
 |---------|---------|
-| `PersistenceManager` | Save/load system with `SaveGameData` resource |
-| `ResourceManager` | Tracks Madra, Core Density, and currencies |
-| `CultivationManager` | Cultivation stage progression and breakthroughs |
-| `InventoryManager` | Equipment and material inventory |
-| `ZoneManager` | Active zone/map control |
-| `UnlockManager` | Feature unlock gates |
-| `EventManager` | Global event bus |
+| `PersistenceManager` | Save/load system with `SaveGameData` resource (auto-saved every 5 s by `SaveTimer`) |
+| `ResourceManager` | Madra and Gold, plus adventure Madra capacity/threshold. Core Density lives in `CultivationManager` |
+| `CultivationManager` | Core Density XP and levels, advancement stage, path-point milestones. `attempt_breakthrough()` is still a stub |
+| `InventoryManager` | Equipment (paged grid), gear and accessories, materials, consumables and the 4-slot hotbar, quest items |
+| `ZoneManager` | Selected zone and per-zone progression (completions, training ticks) |
+| `UnlockManager` | Feature unlock gates (condition catalog, latched unlocks) |
+| `EventManager` | Persistent one-shot narrative event flags (not a general event bus) |
+| `QuestManager` | Multi-step quests: active/completed quests, step advancement |
 | `DialogueManager` | Dialogic integration |
-| `PlayerManager` | Character/player state |
-| `LogManager` | Centralized logging system |
-| `ActionManager` | Action queue system |
-| `CharacterManager` | Character data |
+| `PlayerManager` | Holds the persistent player `VitalsManager` (HP/Madra/Stamina) |
+| `LogManager` | Player-facing in-game log, shown in `LogWindow`. Diagnostics use the `Log` utility |
+| `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training). No queue |
+| `CharacterManager` | Player attributes (base + equipment bonuses) |
 | `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups) |
-| `PathManager` | Path progression tree, point balance, perk effects |
-| `AbilityManager` | Ability unlock/equip state (unlocked pool, 4-slot loadout, catalog lookups) |
+| `PathManager` | Path progression tree, point balance, perk aggregation. Most numeric perks are not yet read by any system |
+| `AbilityManager` | Ability unlock/equip state (unlocked pool, 4-slot loadout, catalog) |
 | `Dialogic` | Dialogue/narrative system (addon autoload) |
 
 ### Data-Driven Design
@@ -94,20 +101,24 @@ These are autoloaded in `project.godot` and provide global state:
 - Single `EquipmentDefinitionData` class (no subclasses) with `attribute_bonuses: Dictionary` (AttributeType → float)
 - 5 equipment slot types: `MAIN_HAND`, `OFF_HAND`, `HEAD`, `ARMOR`, `ACCESSORY`. Accessories live in a separate `equipped_accessories` dict keyed by physical slot index (0 or 1) on `InventoryData`, so any accessory item fits either of the two physical accessory slots.
 - `CharacterManager._get_attribute_bonuses()` → `_get_equipment_bonuses()` sums bonuses from both `equipped_gear` and `equipped_accessories`
-- Bonuses flow through `get_total_attributes_data()` into combat, vitals, and all downstream systems
-- Right-click to quick equip/unequip; tooltip persists during drag
+- Bonuses flow through `get_total_attributes_data()` into combat and downstream systems. Caveat: the player's max HP/Madra/Stamina only refresh on `base_attribute_changed`, so equipping gear doesn't update them until a base attribute changes (see `docs/infrastructure/CHARACTER.md`)
+- Equipment grid: 2 unlocked pages of 36 slots (`InventoryData.SLOTS_PER_PAGE`), a category filter, and a trash slot that holds one item (see `docs/inventory/INVENTORY.md`)
+- Right-click to quick equip/unequip; the description box shows the dragged item during a drag
 
 ### View Architecture
-`MainView` (class) manages view states via a `MainViewStateMachine` child node:
-- `ZoneViewState` — Exploration/map view
-- `CyclingViewState` — Cycling mini-game
-- `InventoryViewState` — Equipment/materials
-- `AdventureViewState` — Combat exploration
+`MainView` (class) implements the state stack. Its 8 state nodes live under a script-less `MainViewStateMachine` child node:
+- `ZoneViewState` — Exploration/map view (initial base state)
+- `AdventureViewState` — Combat exploration (base state)
+- `CyclingViewState` — Cycling mini-game overlay
+- `InventoryViewState` — Inventory overlay (Equipment, Consumables, Materials, Journal tabs)
 - `AdventureEndCardState` — Modal overlay pushed on top of `AdventureViewState` when an adventure ends
 - `PathTreeViewState` — Path progression skill tree overlay
 - `AbilitiesViewState` — Ability management with loadout and drag-drop equipping
+- `CharacterViewState` — Character attributes overlay
 
-Views are switched via input actions (e.g., `open_inventory`) handled by the current state. The state machine supports `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view). The `SystemMenu` in the `ZoneResourcePanel` provides nav buttons that fire these same input actions via `Input.parse_input_event()`. `SystemMenuButton` uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown.
+Menu overlays are switched via input actions (`open_inventory`, `open_abilities`, `open_character`, `open_path`), which only the current state handles. Cycling, adventure, and the end card are driven by signals instead: the state scripts connect to `ActionManager`/`AdventureView` themselves. The state machine supports `change_state` for base views and `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view).
+
+The `Toolbar` (`scenes/ui/toolbar/`, at the bottom of `ZoneView`) holds the nav buttons, which fire the same input actions via `Input.parse_input_event()`. `SystemMenuButton` (script in `scenes/zones/zone_resource_panel/system_menu/`) uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown. See `docs/infrastructure/MAIN_VIEW.md`.
 
 ### Reusable UI Components (`scenes/common/` and shared scenes)
 Shared components used across multiple views:
@@ -115,22 +126,29 @@ Shared components used across multiple views:
 - `ItemDescriptionPanel` — Item detail panel (icon, name, type, description, effects), shared between inventory sidebar and end card tooltips
 - `Atmosphere` (`scenes/atmosphere/`) — Vignette shader + drifting mist sprites + floating mote particles; instanced in both zone and adventure views with per-scene `@export` tuning
 - `HexHoverSelector` (`scenes/tilemaps/`) — Animated spritesheet ring that snaps to the hovered hex tile; shared between zone and adventure tilemaps
-- `EncounterIcon` (`scenes/adventure/encounter_icon/`) — Per-type glyph renderer (combat, elite, boss, rest, treasure, trap, unknown) with visited/completed states and animated boss skull; reused inside both flat tile icons and the floating `AdventureMarker`
+- `EncounterIcon` (`scenes/adventure/encounter_icon/`) — Per-type glyph renderer (combat, elite, boss, rest, treasure, trap, unknown) with a completed state and animated boss and rest-site glyphs; reused inside both flat tile icons and the floating `AdventureMarker`
 - `PathPreview` (`scenes/adventure/path_preview/`) — Tiled-texture `Line2D` showing the route from player to target; supports gradient-based fade that hides the section behind the player during committed travel
+- `DropTargetSlot` (`scenes/common/drop_target_slot.gd`) — Shared drag-and-drop target base with drop highlight
+- Inventory chrome (`scenes/inventory/common/`) — `InventoryScrollHost` base plus `InventoryGrid`, `InventoryList`, `GridToolbar`, `SortSubBanner`, `TabBanner`, `ScrollRail`, `ItemDetailCard`, shared by the inventory tabs
+- `GreyBackground` (`scenes/ui/grey_background/`) — Modal backdrop; `show_with_panel()`/`hide_with_panel()` orchestrate overlay fades
 
 ### Game Systems
-1. **Cycling** — Mouse-following path + rhythm-clicking on a body diagram (Madra generation)
-2. **Adventuring** — Hex grid exploration with fog-of-war (shader + FogVeilSprite smoke overlays), per-type encounter icons, floating AdventureMarker, tiled-texture path preview with committed-destination system (gradient fade behind player), real-time combat, scroll end card with stats/loot
-3. **Combat** — Real-time AP regeneration, learned abilities with cooldowns and costs
-4. **Scripting** — Calligraphy/character tracing (planned)
-5. **Elixir Making** — Multi-stage crafting (planned)
-6. **Soulsmithing** — Tetris-like assembly puzzle (planned)
+1. **Cycling** — Mouse-following Madra Ball + timed clicks on cycling zones along a body diagram (Madra and Core Density XP); swappable techniques
+2. **Zones & idle actions** — Hex zone map; foraging and training (Aura Well) idle actions, NPC dialogue, merchant (stub)
+3. **Adventuring** — Procedurally generated hex maps with fog-of-war (shader + FogVeilSprite smoke overlays), per-type encounter icons, floating AdventureMarker, tiled-texture path preview with committed-destination system (gradient fade behind player), real-time combat, scroll end card with stats/loot
+4. **Combat** — Real-time; abilities cost Health/Madra/Stamina (no AP pool) and have cooldowns, cast times, buffs, and interrupts; simple enemy AI
+5. **Inventory** — Book-style UI: paged equipment grid, gear slots, consumables hotbar, materials, quest journal
+6. **Path Progression** — Pure Madra skill tree; Path Points unlock abilities and cycling techniques
+7. **Quests** — Multi-step quests driven by events and unlock conditions (Celestial Intervener questline)
+8. **Scripting** — Calligraphy/character tracing (planned)
+9. **Elixir Making** — Multi-stage crafting (planned)
+10. **Soulsmithing** — Tetris-like assembly puzzle (planned)
 
 ### Progression
-- Madra: currency generated from Cycling
-- Core Density: 0-100% level system
-- Breakthrough mechanic with Tribulation challenge
-- Cultivation stages unlock new systems
+- Madra: currency generated from Cycling (and Aura Well training)
+- Core Density: integer level with no cap in code. The design calls for 0–100 per stage
+- Breakthrough mechanic with Tribulation challenge: designed (`docs/cultivation/breakthrough-tribulation.md`), not implemented
+- Cultivation stages unlock new systems: planned. Only Foundation exists, and its systems are gated by quests and unlock conditions instead
 
 ## Git Workflow
 
@@ -182,7 +200,7 @@ UI text uses a **Label theme variant type-scale** defined in `assets/themes/pixe
 ### Comments & Logging
 - Use `##` for doc comments on public functions and the class itself
 - Follow the existing section header pattern (e.g., `#-----...`)
-- Remove all `print()` statements — use `LogManager.log_message()` for runtime output
+- Remove all `print()` statements. Use the `Log` utility (`Log.info()`/`Log.warn()`/`Log.error()`) for diagnostic output, and `LogManager.log_message()` only for messages the player should see in the in-game log
 - Review `Log.debug()` calls for necessity before leaving them in
 
 ## Commit Message Format
@@ -217,7 +235,7 @@ For the full skill list, invoke `godot-prompter:using-godot-prompter`.
 ## Development Notes
 
 ### Shaders
-Custom shaders live in `assets/shaders/`. Notable shaders include: `liquid_wave` (Madra bar fill), `core_density_fill` (radial density display), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), `flowing_path` (animated brightness wave for zone glowing paths), `tile_aura` (pulsing color overlay for zone hover), and `path_connection_energy` (animated pulses along path tree connections).
+Custom shaders (15) live in `assets/shaders/`. Notable shaders include: `liquid_wave` (Madra orb fill), `core_density_fill` (radial density display), `madra_ball` and `cycling_zone` (cycling mini-game), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), `flowing_path` (animated brightness wave for zone glowing paths), `action_card_sweep` (timed zone action card fill), and `path_connection_energy`, `path_node_border`, `path_node_keystone` (path tree). `tile_aura` (pulsing color overlay) is currently unreferenced, and `zone_action_button` is only used by the unused `InkbrushButton`.
 
 ### Styling / Themes
 UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Custom styleboxes in `assets/styleboxes/`. Use existing theme tokens — do not introduce external UI frameworks. See `docs/UI_STYLING.md` for the Label variant type-scale and usage rules.
@@ -229,13 +247,22 @@ Dialogic addon handles narrative/dialogue. Timeline and character data in `asset
 Both zone and adventure maps use the `hexagon_tilemaplayer` addon for hex-based tile rendering. The zone map renders per-zone forest variants via `ZoneData.tile_variant_index`. The adventure map uses a 23-variant forest atlas (`hex_forest_atlas.png`) with deterministic-random per-tile selection. Hover feedback uses a shared `HexHoverSelector` animated spritesheet. Zone connections between unlocked tiles are drawn with `GlowingPath` (Line2D + flowing shader). Locked zones are overlaid with `LockedZoneOverlay` (grey hex + lock icon with shake-on-click).
 
 ### Logging
-`LogManager` singleton emits `message_logged` signals for in-game log display via `LogWindow`. Call `LogManager.log_message(bbcode)` to log. There is no log-level system — callers format their own BBCode strings.
+There are two channels:
+- **`Log`** (`scripts/utils/log.gd`): leveled diagnostics (INFO/DEBUG/WARN/ERROR/CRITICAL) to the console and a daily `user://logs-*.log` file.
+- **`LogManager`**: the player-facing log. It emits `message_logged` signals for in-game display in `LogWindow`; call `LogManager.log_message(bbcode)`. It has no levels; callers format their own BBCode strings.
+
+See `docs/infrastructure/LOGGING.md`.
 
 ### Key Input Bindings
-- `open_inventory` / `close_inventory` — I / Escape
+- `open_inventory` / `close_inventory` — I / I or Escape
+- `open_abilities` — A; `open_character` — C; `open_path` — P (Escape, i.e. `ui_cancel`, also closes these overlays). Menu shortcuts only work from the zone view
 - `close_cycling_view` — Escape
-- `center_zone_map_camera` — Space
+- `ability_slot_1`–`ability_slot_4` — Q / W / E / R (combat)
+- Dev panel — Ctrl+Shift+D, hard-coded in `MainGame._input`; requires `user://dev_password.txt` (see `docs/tooling/DEV_TOOLS.md`)
+- `center_zone_map_camera` — Space (bound, but nothing handles it); `open_path_tree` — P (unused duplicate of `open_path`)
 - `dialogic_default_action` — Enter, Click, Space, X, Gamepad A
 
 ### Reference Documents
+- **Documentation index**: `docs/README.md` (every system doc, design record, and tool guide)
+- **Current status and roadmap**: `docs/STATE_OF_THE_GAME.md` (one page); `docs/GAMEPLAY_STATE.md` (content inventory); `docs/CODEBASE_STATE.md` (architecture)
 - **Game Design Document**: `Endless Path Game Design Document [v0.1].txt` in project root (detailed mechanics, progression, visual style, MVP goals)

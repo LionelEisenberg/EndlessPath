@@ -65,7 +65,9 @@ func flush_to_inventory() -> void:
 	if _held == null:
 		return
 	_restore_to_inventory(_held)
-	_held = null
+	# Clear the visual too: a leftover icon would let the player pick up and
+	# restore the same instance a second time on reopen.
+	clear_hold()
 
 func _held_display_name(value: Variant) -> String:
 	if value is ItemInstanceData:

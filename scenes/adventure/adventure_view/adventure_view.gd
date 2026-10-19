@@ -222,13 +222,17 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	
 	tilemap_view.visible = true
 	combat_view.visible = false
-	
+
+	# Mark the fight over before its result is handled: a boss win ends the
+	# whole adventure synchronously inside handle_combat_result(), and
+	# stop_adventure() must not see a fight still running and end it again as
+	# a defeat.
+	is_in_combat = false
+
 	# Notify the tilemap that combat has ended (tilemap handles reward processing)
 	combat.stop()
 	adventure_tilemap.handle_combat_result(successful, gold_earned)
-	
-	is_in_combat = false
-	
+
 	player_info_panel.position = Vector2(170.0, 872.0)
 	
 	if current_action_data:

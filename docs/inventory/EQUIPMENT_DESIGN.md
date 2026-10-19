@@ -1,5 +1,12 @@
 # Equipment System Design
 
+> **Status (2026-10-18):** Phase 1 implemented — see [INVENTORY.md](INVENTORY.md) for current behaviour.
+> - **Phase 1** shipped in PR #9: flat `EquipmentDefinitionData`, `attribute_bonuses`, and the bonus wiring in `CharacterManager._get_equipment_bonuses()`.
+> - **Phase 2 is partial.** Seven Foundation items are authored in [ITEMS.md](ITEMS.md), including an OFF_HAND item (Scripted Bark), which contradicts the Off Hand note below. Only the Dreadbeast Tooth Necklace drops in play.
+> - **Phase 3 is not started:** item perks, cross-system bonuses, Soulsmithing.
+>
+> Kept as a historical design record; some details below may be out of date, such as the dagger and sword migration values.
+
 ## Design Goals
 
 1. Equipment provides **direct attribute bonuses** — no separate attack_power/defense layer

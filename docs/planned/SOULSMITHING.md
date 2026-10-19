@@ -1,8 +1,10 @@
 # Soulsmithing System
 
-> **Status: Planned — Not Yet Implemented**
+Last updated: 2026-10-18
+
+> **Status: Planned, not started.** No code exists for this system. This document records the design intent from the Game Design Document.
 >
-> No code exists for this system. This document describes the design intent from the Game Design Document for future implementation.
+> **Blocked on Iron:** Soulsmithing unlocks at the Iron stage. Only Foundation is reachable today, with no breakthrough and no stage data past Foundation ([CULTIVATION.md](../cultivation/CULTIVATION.md)). No Sacred Resources (Remnants, Beast Parts) exist yet ([ADVENTURING.md](../adventuring/ADVENTURING.md)).
 
 ## Design Intent
 
@@ -53,11 +55,12 @@ The GDD specifically mentions a **Parasite Ring** that improves Cycling — demo
 ## Implementation Considerations
 
 ### Existing Infrastructure
-- `EquipmentDefinitionData` already has `slot_type` and `attribute_bonuses: Dictionary` (AttributeType → float) — no subclasses (`WeaponDefinitionData` and `ArmorDefinitionData` were removed in PR #9)
-- `ItemInstanceData.metadata: Dictionary` is an unused hook — could store assembly quality, color data
-- `ItemInstanceData.instance_id: String` is unused — could differentiate crafted items
-- `CharacterManager._get_attribute_bonuses()` is implemented (PR #9) — sums equipped gear bonuses via `_get_equipment_bonuses()`; Soulsmithing output would feed directly into this flow
-- The 6 `EquipmentSlot` values (MAIN_HAND, OFF_HAND, HEAD, ARMOR, ACCESSORY_1, ACCESSORY_2) are already defined
+- **Equipment data:** `EquipmentDefinitionData` is a single class with `slot_type` and `attribute_bonuses: Dictionary` (AttributeType → float); there are no weapon/armor subclasses. Seven equipment items are authored in [ITEMS.md](../inventory/ITEMS.md), and only one (Dreadbeast Tooth Necklace) can currently be obtained in play.
+- **Crafting hooks:** `ItemInstanceData.metadata: Dictionary` and `ItemInstanceData.instance_id: String` are exported but unread anywhere. They could store assembly quality or color data and tell crafted items apart.
+- **Stats pipeline:** `CharacterManager._get_attribute_bonuses()` → `_get_equipment_bonuses()` sums bonuses from `equipped_gear` and `equipped_accessories`, so Soulsmithing output would feed straight into it ([CHARACTER.md](../infrastructure/CHARACTER.md)).
+- **Slots:** `EquipmentSlot` has 5 values: `MAIN_HAND`, `OFF_HAND`, `HEAD`, `ARMOR`, `ACCESSORY`. Two physical accessory slots both accept `ACCESSORY` items, tracked in `InventoryData.equipped_accessories` by index 0/1.
+- **Item tooling:** a generator (`scripts/tools/items_md_to_resources.gd`) writes equipment `.tres` files from the tables in [ITEMS.md](../inventory/ITEMS.md). That fits authored items, not runtime-crafted ones.
+- **Gap:** `InventoryManager` has no API to spend materials, which Soulsmithing inputs need ([INVENTORY.md](../inventory/INVENTORY.md)).
 
 ### New Components Needed
 - Schematic data resource (grid dimensions, color regions, target item)
