@@ -1,366 +1,451 @@
-# Foundation Stage Playthrough Plan
+# Foundation Stage Playthrough
 
-> **Purpose:** the intended 0-to-advancement path through the Foundation stage and Zone 1 (Spirit Valley, placeholder name) plus a sketch of the Zone 2 handoff. This is the *target* — the code converges toward this, not the other way around. When something feels off in playtest, this is where we write down *why* and *what to tune*.
+Last updated: 2026-10-18
 
-> **Scope:** Foundation stage only. Target real-time length: **30-60 minutes** of committed play, **10 beats**. Ends at the first breakthrough / Tribulation leading into Copper.
+> This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
+>
+> System mechanics live in [QUESTS.md](QUESTS.md), [EVENTS.md](../infrastructure/EVENTS.md), [UNLOCKS.md](../infrastructure/UNLOCKS.md), [EFFECTS.md](../infrastructure/EFFECTS.md), and [DIALOGUE.md](../infrastructure/DIALOGUE.md). Authoring rules are in [QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md](QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md).
 
-> **How to use this doc:**
-> - **Section 1 (Spine)** answers: *what should the player be doing right now, and what unlocks next?*
-> - **Section 2 (Economy)** answers: *are the numbers tuned right?*
-> - **Section 3 (Questions)** answers: *what do we not yet know and how will we find out?*
-> - When a design decision lands, update the relevant section. When a playtest resolves an open question, promote it from Section 3 into a concrete number in Section 2.
+## Overview
 
----
+- **Target:** 30–60 minutes of committed play across 10 beats, ending with the Foundation → Copper breakthrough (Tribulation).
+- **Built:** Beats 1, 2, 3a, and 3b. Beat 3b unlocks the Merchant, but the shop is a stub.
+- **Content ends** after the Refugee Camp visit. See [Where content ends](#where-content-ends).
+- **Planned:** Beats 4–10. See [Planned beats](#planned-beats-410).
 
-## Status Legend
-
-| Tag | Meaning |
+| Status tag | Meaning |
 |---|---|
-| `PLANNED` | Described in this doc, no code yet |
-| `STUBBED` | Systems/data wired but content placeholder |
-| `IMPLEMENTED` | Fully coded + content, not playtested end-to-end |
+| `PLANNED` | Designed here; no code or data |
+| `STUBBED` | Systems or data partly wired; the beat's content or UI is missing |
+| `IMPLEMENTED` | Code and content exist, but the beat has not been playtested end to end |
 | `PLAYTESTED` | Played through; feel validated; numbers settled |
-
----
 
 ## Framing notes
 
-These assumptions shape the entire spine. Update here if they change.
+- **Adventure tiles are gated by difficulty, not by unlocking.** Combat and boss tiles are always on the map; early players die before reaching or surviving them. Special tiles are map anchors: every Shallow Woods map places exactly one Aura Well, and the Refugee Camp is placed only while its gate holds.
+- **Failure is the loop.** Adventures are meant to end in death or a clear, following incremental-genre convention. The code also ends a run at its 300 s time limit.
+- **Quests only where the next step is ambiguous.** A new zone action, a path point, or a tracker entry should be enough of a signal. By design, Beats 3a, 4, and 6 have no quest, and Beat 5's quest is optional.
+- **Chains live on NPC actions (Pattern B).** The NPC dialogue action that completes one quest starts the next. Quests never reference each other.
+- **One NPC.** The Celestial Intervener (Dialogic description: "Ashe"; display name "Intervener [Celestial]"; action names "[INTERVENER]") is the only character. Narratively, the Intervener leaves after the fourth talk. Names are placeholders.
+- **Path points in Foundation:** one freebie from `q_first_steps`, then +1 every 10 Core Density levels (`CultivationManager.PATH_POINTS_PER_STAGE[FOUNDATION] = 1`). That makes 11 points by CD 100.
+- **Keystones on the Pure Madra tree:** #1 Pure Core Awakening (the tree's only root: Empty Palm plus Smooth Flow) and #2 Power Font (the `power_font` ability) exist. #3, a burst or finisher, is not authored. See [PATH_PROGRESSION.md](PATH_PROGRESSION.md).
+- **Ability slots:** all four are open from the start (`AbilityManager.MAX_SLOTS = 4`). `basic_strike` and `enforce` fill slots 1–2, so path abilities go into slots 3–4. The original idea of earning slots 3–4 through path nodes is not built.
 
-- **Adventure tiles always exist; they are gated by difficulty, not by progressive unlocking.** The player can always walk to any tile — they just die before reaching or surviving it early. "Discovery" and "unlock" of an adventure feature means the player finally survives long enough to interact.
-- **Adventures run to death or clear — no retreat button.** Consistent with incremental-genre conventions (Pokeclicker etc.). First adventures are expected to end in death; that is the loop.
-- **Quests only where ambiguous.** If the next objective is self-evident from UI (new zone action appearing, path-point notification, new quest tracker entry), no explicit quest is needed.
-- **NPCs are placeholder roles.** Story/thematic framing comes later; beats hit gameplay moments first.
-- **Path points in Foundation:**
-  - First point is a **one-time freebie** (reward for Beat 2).
-  - Subsequent points come from Core Density level milestones — every 10 CD levels awards 1 path point (existing `PathManager` behavior).
-- **Keystones** are keystone-tier nodes on the Pure Madra path tree. All three live on the same tree for Foundation — distinct paths (Blackflame, Earth, etc.) are not yet scaffolded. They grant:
-  - **Keystone #1** (Beat 2, `pure_core_awakening`): new cycling technique (generates CD XP) + combat ability + path lore.
-  - **Keystone #2** (Beat 3b): ability-focused — gives a second combat ability for slot 2.
-  - **Keystone #3** (Beat 6): combat-focused — burst/finisher ability that raises damage ceiling.
-- **Ability slots 3-4** are earned via path-tree non-keystone nodes (later in the tree), not via scripted beats.
+## Player Experience (as built)
 
----
+### Starting state (fresh save)
 
-## 1. Progression Spine
+| State | Value | Source |
+|---|---|---|
+| Zone | Spirit Valley (`SpiritValley`, tile (0,0), always unlocked) | `zone_data_list.tres` (first entry) |
+| Available zone actions | "Talk to the [INTERVENER]" only | `ZoneManager.get_available_actions()` |
+| Locked tiles | Test Zone (0,1), gated on `celestial_intervener_dialogue_1` | `test_zone.tres` |
+| Madra | 25, with a cap of 100 at CD 0 | `SaveGameData.madra`, `foundation_advancement_stage.tres` |
+| Core Density | Level 0, 0 XP | `SaveGameData` |
+| Path points | 0, with the path set to `pure_madra` | `PathManager.DEFAULT_PATH_ID` |
+| Abilities | `basic_strike` and `enforce`, unlocked and equipped | `SaveGameData` |
+| Cycling technique | `foundation_technique` (Foundational Technique) | `SaveGameData` |
+| Quests, events, conditions | None. The quest tracker is collapsed and empty. | — |
+| HUD | Madra bar and the Inventory, Abilities, Character, and Path menu buttons are visible from the first frame | — |
 
-### Beat 1 — Awakening `PLANNED`
+### Beat chain at a glance
 
-**Initial state:** Zone 1 starting view. One zone action available: *Talk to [NPC]*.
+```
+START  Spirit Valley: only "Talk to the [INTERVENER]"
+  │ NPC 1 (dialogue_1) ─ event celestial_intervener_dialogue_1 ─► Wilderness Cycling, Test Zone tile
+  │                    ─ start q_fill_core
+BEAT 1  cycle to 100 Madra ─ cond q_fill_core_madra_full ─► step 0 done, NPC 2 visible
+  │ NPC 2 (dialogue_2) ─ event celestial_intervener_dialogue_2 ─► q_fill_core complete
+  │                    ─ event q_fill_core_completed ─► The Shallow Woods, Spring Forest Foraging
+  │                    ─ start q_first_steps
+BEAT 2  win any combat ─ event q_first_steps_enemy_defeated ─► step 0 done, NPC 3 visible
+  │ NPC 3 (dialogue_3) ─ event celestial_intervener_dialogue_3 ─► q_first_steps complete ─► +1 path point
+  │                    ─ start q_reach_core_density_10
+  │ (player buys Pure Core Awakening; equips Smooth Flow and Empty Palm)
+BEAT 3a (any Shallow Woods run) Aura Well tile ─ "Mark down the location"
+  │                    ─ event aura_well_discovered ─► Aura Well training action
+BEAT 3b CD 10 ─ cond q_reach_cd_10 ─► step 0 done, NPC 4 visible   (+1 path point from CD milestone)
+  │ NPC 4 (dialogue_4) ─ event celestial_intervener_dialogue_4 ─► q_reach_core_density_10 complete
+  │                    ─► Refugee Camp Map
+  │ next Shallow Woods map places the Refugee Camp ─ "Approach the camp"
+  │                    ─ event merchant_discovered ─► Traveling Merchant (stub)
+END OF AUTHORED CONTENT
+```
 
-- **Talk to NPC (first time)** → dialogue (disaster context, cultivation primer).
-  - **Unlocks:** Madra bar UI, Cycling zone action.
-  - **Quest starts:** `q_fill_core`
-    - Step 1: *Reach max Madra by cycling*
-    - Step 2: *Return to [NPC]*
-- Player cycles **2-4 sessions** (starting value → [§3 Q-1](#q-1-cycles-to-fill-core-in-beat-1)).
-- **Talk to NPC (second time)** → `q_fill_core` completes.
-  - **Unlocks:** Adventure zone action, Zone 1 adventure map.
+### Beat 1: Awakening `IMPLEMENTED`
 
-| Property | Value |
-|---|---|
-| Player goal (fiction) | Understand cultivation enough to survive. |
-| Player goal (mechanical) | Learn cycling → fill bar → return to NPC. |
-| Systems exercised | Dialogue, cycling, quests. |
-| Primary emotion | Curiosity / discovery. |
-| Exit gate | Adventure zone action is available and the player enters it. |
+**Trigger:** a new save.
 
-### Beat 2 — First Steps Out `IMPLEMENTED`
-
-**Trigger:** Beat 1 completion. `celestial_intervener_dialogue_2.success_effects` fires a `StartQuest("q_first_steps")` sub-resource on the same NPC click that completes `q_fill_core` (Pattern B — chain transitions live on NPC actions, not in quest `completion_effects`).
-
-- First adventure is the **normal Spirit Valley baseline** — same tiles, same encounters; `test_enemy` retuned so the player loses ~50% HP winning one combat (BODY 10→0 drops enemy HP 200→100; STR 10→13 raises damage 11→14 per cast).
-- **`q_first_steps` — 2 steps:**
-  - Step 1: *"Defeat an enemy in combat"* — completes on `q_first_steps_enemy_defeated` event, fired by `AdventureCombat` when `trigger_combat_end(true, ...)` emits on victory.
-  - Step 2: *"Return to the Celestial Intervener"* — completes on `celestial_intervener_dialogue_3` event (third NPC action, gated by step 1's completion via the `q_first_steps_enemy_defeated` unlock condition).
-- **`q_first_steps.completion_effects`:** `AwardPathPointEffect(1)` only — grants the first Path Point via `PathManager.add_points(1)`. Next-quest transition lives on NPC 3 per Pattern B.
-- **NPC 3 (`celestial_intervener_dialogue_3`) `success_effects`:** `TriggerEvent("celestial_intervener_dialogue_3")` then `StartQuest("q_reach_core_density_10")` — Beat 3's stub quest becomes active.
-- **No in-combat tutorial popup.** Quest description does the light onboarding; combat UI does the teaching.
-- **Manual equip.** Player spends the path point in the Path Tree UI on Pure Core Awakening (only purchasable node at this point). Keystone unlocks Smooth Flow + Empty Palm via existing PathManager → CyclingManager/AbilityManager wiring. Player manually equips via CyclingView and AbilitiesView.
-- **Badge indicator** on the Abilities system-menu button signals unequipped unlocks (`AbilityManager.has_unequipped_unlocks()` drives visibility; listens to `ability_unlocked` + `equipped_abilities_changed`). Cycling badging deferred — cycling enters via a zone action, not a SystemMenuButton (different UI surface).
-
-| Property | Value |
-|---|---|
-| Player goal (fiction) | Test the wilderness. |
-| Player goal (mechanical) | Survive or die; collect first real tools. |
-| Systems exercised | Adventure, combat, inventory, path tree, quests. |
-| Primary emotion | Tension → relief (or: failure → resolve to try again). |
-| Exit gate | `q_first_steps` complete, 1 Path Point spent on Pure Core Awakening keystone, `q_reach_core_density_10` active. |
-
-**Deviations from the original plan** (documented for reference):
-- No tutorial popup (cut for scope; incremental-genre convention — combat UI IS the tutorial).
-- `q_first_steps` triggered by NPC 2 click (Pattern B) rather than by "adventure entry" — identical player experience.
-- `q_reach_core_density_10` starts on NPC 3 click (Pattern B) rather than on keystone purchase — also identical moment functionally.
-- Keystone effects are not auto-equipped; player equips manually. Badge indicator signals availability.
-
-### Beat 3 — Preparing to Go Deeper `PLANNED`
-
-*Two parallel tracks; either order. Both must resolve before Beat 4 is reachable.*
-
-#### Beat 3a — Aura Well Discovery `IMPLEMENTED`
-
-- During an adventure, player may reach an **Aura Well** special tile — one entry in `shallow_woods.special_encounter_pool`. With only Aura Wells in the pool today, every map currently has ~4 Aura Wells (one of the 5 special slots is overwritten with the boss). As more special encounters land, the pool diversifies.
-- Encounter panel offers two choices:
-  - **Rest** — restores `5 × BODY` HP and `2 × FOUNDATION` Madra. Always available.
-  - **Mark down the location** — same Rest payload *plus* fires the `aura_well_discovered` event. Gated by `requirements = {aura_well_discovered: false}` so it's only pickable pre-discovery. Paired with `completion_condition = aura_well_discovered` + `completed_label = "✓ Location noted"`, so sibling Aura Well tiles (and Aura Wells on future adventures) render the button as "✓ Location noted" grayed.
-- Firing `aura_well_discovered` satisfies the `aura_well_discovered` unlock condition on the `aura_well_training` zone action → the **Aura Well** button appears in Zone 1's main view.
-- Zone action is a `TrainingActionData`: 1s ticks, `+1.5 Madra` trickle per tick, `ticks_per_level = [60, 300, 600, 1200]` with `tail_growth_multiplier = 2.0` (~1m / 5m / 10m / 20m for first four points, see [§3 Q-9](#q-9-basic-training-cost-curve)). Each level crossed awards `+1 Spirit` attribute.
-- **No quest.** New zone action appearing in Zone 1 is the signal.
-- **Schema additions this beat introduced** (referenced by later beats):
-  - `UnlockConditionData`-keyed `Dictionary` for `EncounterChoice.requirements` (`{condition: expected_bool}`) replaces the older Array + `negate` design.
-  - `EncounterChoice.completion_condition` + `EncounterChoice.completed_label` — per-choice completion state, independent of eligibility.
-  - `ChangeVitalsEffectData.body_hp_multiplier` + `foundation_madra_multiplier` — attribute-scaled Rest effect.
-
-#### Beat 3b — Second Keystone + Merchant Handoff `IMPLEMENTED (map + merchant unlock only — Merchant shop UI still PLANNED)`
-
-- Player cycles with Keystone #1 technique; Core Density rises.
-- At **Core Density 10**, `CultivationManager`'s existing CD-milestone hook awards the second path point. `q_reach_core_density_10`'s `completion_effects` award the Refugee Camp Map only — no path-point double-award.
-- Player picks Keystone #2 (ability-focused) on the Pure Madra tree → second combat ability equipped to slot 2.
-- `q_reach_core_density_10` step 1 completes on CD10. A **second step** sends the player back to the Celestial Intervener — NPC hands over a **map** item, fires the next event, and starts Beat 4's quest chain. This map unlock is the gate that enables the **Merchant** zone action (Beat 4 below).
+| # | Player does | What happens | Ids |
+|---|---|---|---|
+| 1 | Clicks **Talk to the [INTERVENER]** | Timeline `celestial_intervener_introduction_1` plays from label `dialogue_1` (2 lines). When it ends, the action is consumed (`max_completions` 1) and its `success_effects` run. | Action `celestial_intervener_dialogue_1` |
+| 2 | — | `TriggerEventEffectData` fires the event and the condition latches. **Wilderness Cycling** appears, and the **Test Zone** tile unlocks. The Test Zone has no actions. | Event and condition `celestial_intervener_dialogue_1` |
+| 3 | — | `StartQuestEffectData` starts the quest. Toast: "Quest Started: Awaken Your Core". | Quest `q_fill_core`, step 0 `reach_max_madra` |
+| 4 | Cycles with the Foundational Technique | 8 s cycle and 50 base Madra per cycle, scaled by mouse-tracking accuracy. The technique has no cycling zones, so it gives no Core Density XP. | `foundation_technique` |
+| 5 | Reaches 100 Madra (the CD-0 cap) | The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and **Return to the [INTERVENER]** (NPC 2) appears | Condition `q_fill_core_madra_full` (RESOURCE_AMOUNT, madra ≥ 100.0) |
+| 6 | Clicks NPC 2 | Label `dialogue_2` plays, then the event fires and `q_fill_core` completes ("Quest Complete: Awaken Your Core") | Action and event `celestial_intervener_dialogue_2` |
+| 7 | — | `q_fill_core.completion_effects` fires an event, the condition latches, and **The Shallow Woods** and **Spring Forest Foraging** appear | Event and condition `q_fill_core_completed`; actions `shallow_woods_adventure_action`, `sprint_forest_foraging_action` |
+| 8 | — | NPC 2's second effect starts Beat 2 ("Quest Started: First Steps Out") | Quest `q_first_steps` |
 
 | Property | Value |
 |---|---|
-| Combined effect | Adventure viability rises via attributes + passive resources (3a), a second combat ability (3b), and the Merchant unlock (3b → 4 handoff). |
-| Exit gate | Aura Well discovered AND Keystone #2 picked AND NPC map handed over. |
+| Player goal (fiction) | Understand cultivation well enough to survive |
+| Player goal (mechanical) | Learn cycling, fill the core, return to the NPC |
+| Systems exercised | Dialogue, cycling, quests, unlocks |
+| Exit gate | Adventure available, and `q_first_steps` active |
 
-### Beat 4 — Refugee Camp `PLANNED`
+Deviations from the original design:
+- The Madra bar is not gated; it is visible from the start.
+- Foraging unlocks together with Adventure through a temporary gate.
+- NPC 1 no longer awards a dagger.
+- NPC 1 also unlocks the empty Test Zone tile.
 
-**Trigger:** Player now survives long enough to reach the **Refugee Camp tile** on the adventure map.
+### Beat 2: First Steps Out `IMPLEMENTED`
 
-- One-shot flavor event: small group of survivors, a wandering merchant among them.
-- **Unlocks:** Merchant zone action in Zone 1 main view.
-  - Merchant sells equipment one tier above starter gear, priced in gold. Rotating stock (design TBD).
-  - Gold — passively accumulated from adventures — now has a sink.
-- **No quest.**
+**Trigger:** the NPC 2 click that completes Beat 1.
 
-### Beat 5 — Elite Gear Drop `PLANNED`
+| # | Player does | What happens | Ids |
+|---|---|---|---|
+| 1 | Starts **The Shallow Woods** | Requires Madra ≥ 50% of adventure capacity: FOUNDATION × 10 × 0.5 = 50 at default stats. The run has a 300 s limit. The map comes from `shallow_woods.tres` (see [ADVENTURING.md](../adventuring/ADVENTURING.md)): Starving Dreadbeast ×3 and Amorphous Spirit ×4 regular fights, Coalescing Spirit ×2 and Ravenous Dreadbeast ×2 elites, a Manifested Spirit boss (the regular `amorphous_spirit` enemy), one Aura Well, and the Refugee Camp when eligible. Enemy stats are in [COMBAT.md](../combat/COMBAT.md). | Adventure `shallow_woods` |
+| 2 | Wins any combat | On the first enemy death `AdventureCombat._on_enemy_health_changed()` fires the event. Step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), the condition latches, and NPC 3 appears in Spirit Valley. | Event and condition `q_first_steps_enemy_defeated` |
+| 3 | Clicks NPC 3 | Label `dialogue_3` plays, then the event fires and `q_first_steps` completes. `AwardPathPointEffectData(1)` adds the first path point ("Quest Complete: First Steps Out"). | Action and event `celestial_intervener_dialogue_3` |
+| 4 | — | NPC 3's second effect starts Beat 3b's quest ("Quest Started: Harden Your Core") | Quest `q_reach_core_density_10`, step 0 `reach_cd_10` |
+| 5 | Opens the Path tree and buys **Pure Core Awakening** | The keystone costs 1 point and is the only root, so it is the only purchase possible. It unlocks the ability `empty_palm` and the technique `smooth_flow` (see [ABILITIES.md](../abilities/ABILITIES.md)). The Abilities button shows a badge until Empty Palm is equipped. Smooth Flow has to be equipped by hand in the cycling view, with no badge. | Node `pure_core_awakening` |
 
-**Trigger:** Player reaches and defeats the **Elite encounter** on its fixed adventure tile.
+| Property | Value |
+|---|---|
+| Player goal (fiction) | Test the wilderness |
+| Player goal (mechanical) | Survive one fight; collect the first tools |
+| Systems exercised | Adventure, combat, quests, path tree, ability loadout |
+| Exit gate | `q_first_steps` complete, Pure Core Awakening bought, `q_reach_core_density_10` active |
 
-- Elite has always been present; the player has been walking past / dying.
-- With 2 keystones + Spirit Well attributes + merchant gear, the elite is winnable but not trivial.
-- **Optional quest:** `q_first_elite` — starts when the elite tile is first *seen* (signals "this is a thing to aim for"); completes on defeat.
-- **Reward:** equipment tier bump — the first "real" loot moment.
+Deviations from the original design:
+- There is no in-combat tutorial popup.
+- Quests chain from NPC actions rather than from adventure entry or keystone purchase.
+- Unlocks are equipped manually. Only the Abilities button has a badge: `CyclingManager.has_unequipped_unlocks()` exists, but no UI shows it.
 
-### Beat 6 — Third Keystone `PLANNED`
+### Beat 3a: Aura Well Discovery `IMPLEMENTED`
 
-**Trigger:** Core Density reaches ~30 → third path point awarded.
+**Trigger:** reaching the Aura Well tile on any Shallow Woods map. This can happen as early as the first adventure.
 
-- Player picks Keystone #3 — a **combat-focused burst/finisher ability** (see [§3 Q-6](#q-6-core-density-thresholds-for-path-points-in-foundation)).
-- **No quest.** Path-point notification is the signal.
-- **Effect:** combat feel shifts from sustain (Keystones #1-2) to burst-capable — needed to threaten the Guardian (Beat 7).
+- **Placement:** a `shallow_woods.tres` `encounter_quotas` entry with count 1, ANCHOR placement, `min_distance_from_origin` 3, and `min_fillers_on_path` 1. Every map gets exactly one Aura Well, drawn with the REST_SITE icon. Map generation is described in [ADVENTURING.md](../adventuring/ADVENTURING.md).
+- **Choices** (`aura_well_encounter.tres`):
+  - **Rest:** ChangeVitals with `body_hp_multiplier` 5.0 and `foundation_madra_multiplier` 2.0, which gives +50 HP and +20 Madra at the default BODY and FOUNDATION of 10. Always available.
+  - **Mark down the location:** the same rest plus `TriggerEventEffectData("aura_well_discovered")`. `requirements = {aura_well_discovered: false}` and `completion_condition = aura_well_discovered`. Once the event has fired, every Aura Well renders this choice disabled as "✓ Location noted".
+- **Unlock:** the event latches the condition `aura_well_discovered`, and the **Aura Well** training action (`aura_well_training`, TRAIN_STATS) appears in Spirit Valley.
+- **Training:** 1 s ticks award +1.5 Madra per tick (`aura_well_madra_trickle_effect.tres`), and each training level awards +1 SPIRIT (`aura_well_spirit_award_effect.tres`). Levels cost 60, 300, 600, and 1200 ticks, then ×2 per level (2400, 4800, …). That is about 1, 5, 10, 20, and 40 minutes, with no cap.
+- **No quest.** The new zone action is the only signal.
 
-### Beat 7 — The Tribulation Guardian `PLANNED`
+### Beat 3b: Second Keystone + Merchant Unlock `IMPLEMENTED` (Merchant shop is a stub)
 
-**Trigger:** Player is strong enough to reach and survive the **Tribulation Guardian boss tile**.
+**Trigger:** `q_reach_core_density_10` starts at the NPC 3 click.
 
-- Guardian has always been on the map; player has been unable to approach or survive.
-- **Quest:** `q_tribulation_guardian` — "Defeat the Tribulation Guardian." Starts the first time the player enters adventure with Keystone #3, or first reaches the Guardian tile — whichever is sooner.
-- Marquee fight of Foundation stage. First encounter the player has to *earn the right to attempt*.
-- **Defeat** → `q_tribulation_guardian` completes → **Advancement Zone becomes accessible.**
+| # | Player does | What happens | Ids |
+|---|---|---|---|
+| 1 | Cycles with **Smooth Flow** | 15 s cycle, 200 base Madra, and 4 cycling zones that give Core Density XP per click (perfect / good / ok): 25/15/5, 25/15/5, 50/25/10, 25/15/5. CD 10 needs about 110 cumulative XP, roughly one perfect cycle. | `smooth_flow` |
+| 2 | Reaches CD 10 | `CultivationManager` adds +1 path point (the milestone award). The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and NPC 4 appears. | Condition `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10) |
+| 3 | Optionally buys **Power Font** (Keystone #2) | It requires Pure Core Awakening and unlocks the `power_font` ability. The alternatives are Torrential Flow (MAJOR: a technique) and Expanded Core (MINOR: +25 Madra capacity). Nothing requires the keystone. | Node `power_font` |
+| 4 | Clicks NPC 4 | Label `dialogue_4` plays, then the event fires and `q_reach_core_density_10` completes. The quest's `completion_effects` (`AwardItemEffectData`) add the **Refugee Camp Map** and log "Obtained 1x Refugee Camp Map" ("Quest Complete: Harden Your Core"). NPC 4 itself only fires the event. The map shows in Inventory → Quest Items. | Action and event `celestial_intervener_dialogue_4`; item `refugee_camp_map` |
+| 5 | Starts another Shallow Woods run | The **Refugee Camp** anchor is placed: count 1, `min_distance_from_origin` 3, REST_SITE icon. Its live gate is `refugee_camp_map_owned` (ITEM_OWNED) = true and `merchant_discovered` = false. | Encounter `refugee_camp` |
+| 6 | Chooses **Approach the camp** | The event fires and the condition latches, and **Traveling Merchant** appears in Spirit Valley. The tile then reads "The camp is empty now — they must have moved on, following your map back to the valley." Later maps never place the camp. | Event and condition `merchant_discovered`; action `spirit_valley_merchant` |
+| 7 | Clicks **Traveling Merchant** | `ActionManager._execute_merchant_action()` logs "The merchant nods at you. (Shop coming soon.)" and stops at once. The action has unlimited uses and no effects. | — |
 
-### Beat 8 — The Advancement Zone `PLANNED`
+### Where content ends
 
-**Trigger:** Advancement Zone is accessible (link from Zone 1 map, or as a distinct zone — implementation TBD).
+After Beat 3b, step 7:
 
-- Player enters Advancement Zone — smaller, atmospheric area centered on the **Tribulation / Breakthrough Site**.
-- **Quest:** `q_breakthrough_seek` — "Reach the Breakthrough Site and cultivate to full Core Density." Progresses as the player approaches CD 100.
-- No combat required here. The space exists for cultivation + reflection.
-- Can be revisited freely before CD 100 without auto-triggering Tribulation.
+- No quest is active, and the tracker lists the three completed quests.
+- No further NPC actions, events, or conditions exist. The Intervener is gone, the Merchant has no shop, and gold has nothing to spend on.
+- Only repeatable systems remain:
+  - cycling (+1 path point per 10 CD levels)
+  - Shallow Woods runs (elites, the Manifested Spirit boss, Aura Well rests, loot)
+  - Aura Well training
+  - Spring Forest Foraging
+  - consumables
+  - Path tree purchases (14 nodes)
+- Core Density keeps rising past 100 with no effect. `CultivationManager.attempt_breakthrough()` is an empty stub, only the Foundation `AdvancementStageResource` exists, there is no Tribulation scene, and no CD-100 condition is registered.
+- The Test Zone tile can be selected but has no actions.
 
-### Beat 9 — Tribulation `PLANNED`
-
-**Trigger:** Player is at the Tribulation Site AND Core Density ≥ 100.
-
-- Tribulation mini-game fires — design in [`docs/cultivation/breakthrough-tribulation.md`](../cultivation/breakthrough-tribulation.md).
-- **Success:** advancement to Copper stage. Foundation ends.
-- **Failure consequence:** TBD → see [§3 Q-5](#q-5-tribulation-failure-consequence).
-
-### Beat 10 — Zone 2 Onramp `PLANNED — sketch only`
-
-**Trigger:** Successful Tribulation.
-
-- Zone 2 becomes visible/accessible on the world/zone map.
-- Short spirit-NPC moment acknowledging the disaster spreads and the player must follow.
-- Full Zone 2 content lives in a future doc.
-
----
-
-## Beat Index
+### Beat index
 
 | # | Beat | Key unlock / moment | Status |
 |---|---|---|---|
-| 1 | Awakening | Cycling + Adventure unlocked via NPC dialogue | `PLANNED` |
-| 2 | First Steps Out | First adventure + Keystone #1 | `PLANNED` |
-| 3a | Aura Well Discovery | Aura Well adventure encounter + Aura Well zone action (+1.5 Madra/tick passive, +1 Spirit per level) | `IMPLEMENTED` |
-| 3b | Second Keystone + Merchant handoff | Keystone #2 at Core Density 10 + NPC map unlock (gates Merchant) | `IMPLEMENTED (partial — shop UI deferred)` |
-| 4 | Refugee Camp | Merchant zone action + gold sink | `PLANNED` |
-| 5 | Elite Gear Drop | First elite defeated, tier-bump gear | `PLANNED` |
-| 6 | Third Keystone | Keystone #3 (burst/finisher) at Core Density ~30 | `PLANNED` |
-| 7 | Tribulation Guardian | Boss defeated → Advancement Zone accessible | `PLANNED` |
-| 8 | The Advancement Zone | Tribulation Site reachable; `q_breakthrough_seek` active | `PLANNED` |
-| 9 | Tribulation | CD 100 + Tribulation mini-game → advancement to Copper | `PLANNED` |
-| 10 | Zone 2 Onramp | Zone 2 accessible; story handoff | `PLANNED` |
+| 1 | Awakening | Cycling, then Adventure and Foraging, via `q_fill_core` and NPCs 1–2 | `IMPLEMENTED` |
+| 2 | First Steps Out | First victory, first path point, Keystone #1 (Pure Core Awakening) | `IMPLEMENTED` |
+| 3a | Aura Well Discovery | Aura Well training action (+1.5 Madra/tick, +1 Spirit/level) | `IMPLEMENTED` |
+| 3b | Second Keystone + Merchant unlock | CD 10, NPC 4, Refugee Camp Map, Refugee Camp, Merchant action | `IMPLEMENTED` (shop stub) |
+| 4 | Merchant shop | Gold sink | `STUBBED` |
+| 5 | Elite Gear Drop | First elite defeated; tier-bump gear | `STUBBED` |
+| 6 | Third Keystone | Keystone #3 at CD ~30 | `PLANNED` |
+| 7 | Tribulation Guardian | Boss defeated, Advancement Zone accessible | `PLANNED` |
+| 8 | Advancement Zone | Tribulation Site; `q_breakthrough_seek` | `PLANNED` |
+| 9 | Tribulation | CD 100 plus Tribulation, then Copper | `PLANNED` |
+| 10 | Zone 2 Onramp | Zone 2 accessible | `PLANNED` (sketch) |
 
----
+## Planned beats (4–10)
 
-## 2. Loop Economy Targets
+### Beat 4: Refugee Camp / Merchant `STUBBED`
 
-Tuning dashboard. Every number here is either **source-backed** or a **starting value with a test plan**. No bare "feels right" numbers.
+- **Design:** The Merchant sells equipment one tier above starter gear, priced in gold, with rotating stock (TBD). Gold, which adventures accumulate passively, gets its first sink. No quest. The Refugee Camp discovery planned for this beat shipped with Beat 3b.
+- **Exists:** the `spirit_valley_merchant` action (plain `ZoneActionData`, MERCHANT) gated on `merchant_discovered`; the stub handler; `ResourceManager.spend_gold()`.
+- **Needs:**
+  - a merchant action data class and shop UI, closed by the UI rather than the synchronous `stop_action()` in the stub
+  - stock and price data
+  - a buy flow
+  - optionally, a merchant character and timeline
 
-### 2.1 Cycling economy
+### Beat 5: Elite Gear Drop `STUBBED`
 
-| Metric | Early Zone 1 | Mid Zone 1 | Late Zone 1 | Fail signal / test |
-|---|---|---|---|---|
-| Madra gained per cycling session (avg play) | _TBD_ | _TBD_ | _TBD_ | Player cycles >2x before an adventure feels viable → value too low |
-| Madra gained per cycling session (skilled play) | _TBD_ | _TBD_ | _TBD_ | Gap to avg <20% → skill expression too weak |
-| Time per cycling session (seconds) | _TBD_ | _TBD_ | _TBD_ | >45s feels like a chore; <10s feels trivial |
-| Core Density XP gained per session (Keystone #1 technique) | _TBD_ | _TBD_ | _TBD_ | Time-to-CD-10 governs Beat 3b pacing |
-| Cycles to fill Madra (Beat 1 specifically) | **2-4** (starting value) | — | — | See [§3 Q-1](#q-1-cycles-to-fill-core-in-beat-1) |
+- **Design:** Elites are always on the map. With two keystones, Aura Well attributes, and merchant gear, an elite is winnable but not trivial. An optional `q_first_elite` starts when an elite tile is first seen and completes on defeat. The reward is the first real equipment tier bump.
+- **Exists:** 2 × Coalescing Spirit and 2 × Ravenous Dreadbeast elites (COMBAT_ELITE) per map. The Ravenous Dreadbeast's `CombatChoice.success_effects` rolls a Dreadbeast Tooth Necklace at 25%.
+- **Needs:**
+  - the `q_first_elite` quest
+  - an elite-defeated event, via a `TriggerEventEffectData` in the elite `CombatChoice.success_effects` (data-only)
+  - a "tile first seen" hook, which doesn't exist
+  - a guaranteed tier-bump reward
 
-### 2.2 Adventure economy
+### Beat 6: Third Keystone `PLANNED`
 
-| Metric | Early Zone 1 | Mid Zone 1 | Late Zone 1 | Fail signal / test |
-|---|---|---|---|---|
-| Madra spent per adventure (avg) | _TBD_ | _TBD_ | _TBD_ | Player runs dry mid-run >30% → adventure too expensive |
-| Encounters per adventure | _TBD_ | _TBD_ | _TBD_ | |
-| Real-time minutes per adventure | _TBD_ | _TBD_ | _TBD_ | >10min of committed play per attempt = too long early |
-| Cycles needed to fund one adventure | _TBD_ | _TBD_ | _TBD_ | >3 cycles per 1 adventure → loop imbalanced |
-| Combats beaten before death (first adventure) | ~2-3 (starting value) | — | — | See [§3 Q-2](#q-2-combats-before-failure-in-early-adventures) |
+- **Design:** Core Density ~30 awards the third path point. The player picks Keystone #3, a combat burst or finisher that raises the damage ceiling for the Guardian. No quest; the path-point notification is the signal.
+- **Exists:** CD 30 awards a point.
+- **Needs:**
+  - a third KEYSTONE node and its ability on the Pure Madra tree
+  - a path-point notification, which doesn't exist (see Work Remaining → UI)
+  - retuning, since CD 30 currently arrives about four perfect Smooth Flow cycles after Beat 2 (see [Economy](#loop-economy))
 
-### 2.3 Combat economy
+### Beat 7: The Tribulation Guardian `PLANNED`
 
-| Metric | Starter enemy | Mid enemy | Elite (Beat 5) | Tribulation Guardian (Beat 7) | Fail signal / test |
-|---|---|---|---|---|---|
-| Enemy HP | _TBD_ | _TBD_ | _TBD_ | _TBD_ | |
-| Enemy DPS (vs starter player) | _TBD_ | _TBD_ | _TBD_ | _TBD_ | |
-| Expected player TTK | _TBD_ | _TBD_ | _TBD_ | _TBD_ | >20s vs trash = slog; <3s = no interaction |
-| Expected player HP loss per fight | _TBD_ | _TBD_ | _TBD_ | _TBD_ | |
-| Ability uses per fight | _TBD_ | _TBD_ | _TBD_ | _TBD_ | <1 means fight ends before decisions matter |
+- **Design:** The Guardian has always been on the map. `q_tribulation_guardian` ("Defeat the Tribulation Guardian") starts the first time the player enters an adventure with Keystone #3, or first reaches the Guardian tile. This is the marquee Foundation fight. Defeating the Guardian makes the Advancement Zone accessible.
+- **Exists:** the Shallow Woods boss slot. Today it is `manifested_spirit_encounter` (COMBAT_BOSS, `min_distance_from_origin` 5), which fights the regular `amorphous_spirit` enemy. A boss win ends the adventure with `stop_action(true)`, and **nothing records the clear**: the boss `CombatChoice` has no `success_effects`, `spirit_valley_adventure_action.tres` has no `success_effects`, no event fires, and `ADVENTURE_COMPLETED` always evaluates false. No beat can be gated on "clear the Shallow Woods" yet. Encounter details are in [ADVENTURING.md](../adventuring/ADVENTURING.md).
+- **Needs:**
+  - the Guardian encounter and enemy
+  - the quest
+  - a boss-defeated event: a TriggerEvent in the boss `CombatChoice.success_effects`, or an implementation of `ADVENTURE_COMPLETED`
+  - a trigger for "has Keystone #3", which needs a node-purchased event or condition type; neither exists
 
-### 2.4 Progression pacing
+### Beat 8: The Advancement Zone `PLANNED`
 
-Target real-time windows for reaching each beat, assuming committed play. Starting values; validate via playtest.
+- **Design:** A small, atmospheric zone centered on the Tribulation Site. `q_breakthrough_seek` ("Reach the Breakthrough Site and cultivate to full Core Density") progresses toward CD 100. No combat. The zone can be revisited before CD 100 without triggering the Tribulation.
+- **Exists:** gated zone tiles (`zone_unlock_conditions`, lock overlays). The Test Zone at (0,1) is an empty placeholder.
+- **Needs:**
+  - the zone's `ZoneData` and actions
+  - the quest
+  - a gating event from Beat 7. Note that `ZONE_UNLOCKED` is unimplemented.
+
+### Beat 9: Tribulation `PLANNED`
+
+- **Design:** At the Tribulation Site with CD ≥ 100, the Tribulation mini-game runs. Success advances the player to Copper and ends Foundation. Failure is open (Q-5).
+- **Conflicting design:** [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md) gates the breakthrough only on CD 100, which adds a Breakthrough Encounter tile to regular adventure maps. That flow is a Dialogic beat, then a 15–30 s mouse-tracking Tribulation, then on success Copper with a CD reset to 0 and Scripting and Elixir Making unlocked through `CULTIVATION_STAGE` conditions. Failure has no penalty. Beats 7–9 here instead route through a Guardian and an Advancement Zone, and Q-5 leans toward a partial penalty. Reconcile the two before building.
+- **Exists:**
+  - `CultivationManager.attempt_breakthrough()` (empty)
+  - the `AdvancementStage` enum (FOUNDATION through SILVER)
+  - `PATH_POINTS_PER_STAGE[COPPER] = 2`
+  - the `CULTIVATION_STAGE` condition type
+  - UnlockManager's sweep on `advancement_stage_changed`
+- **Needs:**
+  - a Tribulation scene
+  - a stage-advance method
+  - a Copper `AdvancementStageResource`
+  - a CD-100 condition
+  - dialogue timelines
+  - Copper unlock conditions and content
+
+### Beat 10: Zone 2 Onramp `PLANNED` (sketch)
+
+- **Design:** A successful Tribulation makes Zone 2 visible. A short spirit-NPC moment acknowledges that the disaster is spreading and the player must follow. Full Zone 2 content belongs in a future doc.
+- **Needs:** Zone 2 `ZoneData` and tile, the gating event, the NPC and timeline.
+
+## Loop Economy
+
+### Current data values
+
+| Value | Data | Source |
+|---|---|---|
+| Starting Madra / Foundation cap | 25 / 100 + 5 × CD level (100 at CD 0, 150 at CD 10, 600 at CD 100) | `SaveGameData`, `foundation_advancement_stage.tres` |
+| Adventure capacity / start threshold | FOUNDATION × 10 (100 at default) / 50% of capacity | `CharacterAttributesData.get_max_madra()`, `ResourceManager` |
+| Shallow Woods time limit | 300 s | `spirit_valley_adventure_action.tres` |
+| Foundational Technique | 8 s cycle, 50 base Madra (accuracy-scaled), no zones, so 0 CD XP | `foundation_cycling_technique.tres` |
+| Smooth Flow | 15 s cycle, 200 base Madra, 4 zones; per-cycle CD XP is 125 perfect / 70 good / 25 ok | `smooth_flow.tres`, `cycling_zone_data/zone_1..4.tres` |
+| Torrential Flow | 8 s cycle, 250 base Madra, 1 zone (30 / 25 / 20 XP) | `torrential_flow.tres` |
+| CD XP to reach level L | 10 × 1.02^(L−1) | `core_density_base_xp_cost` (default 10) × `core_xp_scaling_factor` 1.02 |
+| Cumulative CD XP | CD 10 ≈ 110; CD 30 ≈ 406; CD 50 ≈ 846; CD 100 ≈ 3,122 | Computed |
+| Path points by CD 100 | 11 (1 quest + 10 milestones) | `q_first_steps`, `CultivationManager` |
+| Pure Madra tree capacity | 14 nodes at 1 point each = 22 purchases (repeatables max 3 / 5 / 3) | `resources/path_progression/pure_madra/nodes/` |
+| Aura Well training | +1.5 Madra per 1 s tick; +1 SPIRIT per level; 60 / 300 / 600 / 1200 ticks, then ×2 | `aura_well_training_action.tres`, `TrainingActionData` defaults |
+| Aura Well rest | +5 × BODY HP, +2 × FOUNDATION Madra | `aura_well_encounter.tres` |
+| Consumables | Crude Scale and Barely Coalesced Scale: +20 Madra (10 s cooldown, not enforced) | `resources/items/consumables/` |
+| Merchant prices | None | Stub |
+
+**Pacing reality (computed):** No Core Density XP multiplier is applied in code. `PathEffectsSummary.core_density_xp_mult` and `CyclingActionData.xp_multiplier` are never read. With Smooth Flow, CD 10 takes about 1 perfect cycle (≈15 s), CD 30 about 4 cycles, and CD 100 about 25 perfect or 45 good cycles, which is roughly 6–11 minutes of cycling. That is far ahead of the [pacing targets](#progression-pacing-targets) (Beat 3b at 6–15 min, Beat 6 at 20–30 min, Beat 9 at 35–60 min). The curve must be retuned before Beats 6–9 ship.
+
+### Targets to validate
+
+| Area | Metric | Starting target | Fail signal / test |
+|---|---|---|---|
+| Cycling | Cycles to fill Madra in Beat 1 | 2–4 | Player stuck more than 5 min (Q-1) |
+| Cycling | Madra per session, average vs skilled | TBD | Skilled-play gap under 20% means skill expression is too weak |
+| Cycling | Time per session | TBD | Over 45 s is a chore; under 10 s is trivial |
+| Adventure | Combats won before death (first runs) | ~2–3 | Accidental first clear, or death in the first fight (Q-2) |
+| Adventure | Cycles needed to fund one adventure | ~1 | More than 3 cycles per adventure means the loop is unbalanced (Q-4) |
+| Adventure | Real-time minutes per run | TBD (cap 5) | Over 10 min of committed play per early attempt |
+| Adventure | Madra runs dry mid-run | TBD | Over 30% of runs means adventures are too expensive |
+| Combat | Starter enemy TTK | ~5–10 s | Over 20 s is a slog; under 3 s leaves no interaction (Q-3) |
+| Combat | Ability uses per fight | TBD | Fewer than 1 means the fight ends before decisions matter |
+| Rewards | Adventures between meaningful drops | TBD | More than 4 empty runs in a row |
+| Rewards | Concurrent quests | TBD | More than 3 overloads the early tracker |
+| Rewards | Merchant gear price | ~3–5 adventures of gold | Unaffordable, or bought on the first visit (Q-8) |
+
+### Progression pacing targets
 
 | Milestone | Target minute | Fail signal / test |
 |---|---|---|
-| Beat 1 complete (Adventure unlocked) | 0-3 | Player stuck cycling >5min = Beat 1 drags |
-| Beat 2 complete (first adventure ends) | 3-6 | First adventure >10min = too long; <2min = too brief to teach |
-| Beat 3a (Spirit Well discovered) | 6-15 | |
-| Beat 3b (CD 10 → Keystone #2) | 6-15 | |
-| Beat 4 (Refugee Camp / Merchant) | 10-18 | |
-| Beat 5 (Elite defeated) | 15-25 | |
-| Beat 6 (Keystone #3 at CD ~30) | 20-30 | |
-| Beat 7 (Tribulation Guardian defeated) | 25-45 | |
-| Beat 8 (Advancement Zone entered) | 30-50 | |
-| Beat 9 (Tribulation success → Copper) | 35-60 | Whole Foundation >75min = pacing too slow |
+| Beat 1 complete (Adventure unlocked) | 0–3 | Stuck cycling more than 5 min |
+| Beat 2 complete (first victory and return) | 3–6 | First adventure over 10 min, or under 2 min |
+| Beat 3a (Aura Well discovered) | 6–15 | |
+| Beat 3b (CD 10, Keystone #2, map, Merchant) | 6–15 | Computed: reachable about 1 cycle after equipping Smooth Flow |
+| Beat 4 (Merchant shop) | 10–18 | |
+| Beat 5 (Elite defeated) | 15–25 | |
+| Beat 6 (Keystone #3 at CD ~30) | 20–30 | Computed: CD 30 ≈ 4 Smooth Flow cycles |
+| Beat 7 (Guardian defeated) | 25–45 | |
+| Beat 8 (Advancement Zone entered) | 30–50 | |
+| Beat 9 (Tribulation success, Copper) | 35–60 | Whole Foundation over 75 min is too slow |
 
-### 2.5 Reward cadence
+## Open Tuning Questions
 
-| Metric | Target | Fail signal / test |
-|---|---|---|
-| Adventures between meaningful drops | _TBD_ | >4 empty runs in a row kills motivation |
-| Adventures between new unlock moments | _TBD_ | |
-| Quests active simultaneously (typical) | _TBD_ | >3 concurrent = tracker overload early-game |
-| Merchant gear price (Zone 1 starter) | ~3-5 adventures of gold (starting value) | See [§3 Q-8](#q-8-merchant-pricing-vs-adventure-gold-output) |
+Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**. When a question resolves, move its answer into the economy tables and delete the entry.
 
----
+### Q-1: Cycles to fill the core in Beat 1
 
-## 3. Open Tuning Questions
-
-Running list of things we haven't decided. When a question resolves, move the answer into Section 2 or Section 1 and delete the entry here.
-
-### Question Template
-
-```
-### Q-<number>: <short name>
-
-ASSUMPTION: what we're currently assuming is true
-IMPACT: why the design depends on this
-IF WRONG: what breaks / what the failure mode looks like
-VALIDATE: how we will check (playtest script / instrumentation / math)
-STATUS: Open | Testing | Resolved → (pointer to where the answer lives)
-```
-
-### Q-1: Cycles to fill core in Beat 1
-
-- **ASSUMPTION:** 2-4 cycling sessions to fill the Madra bar from 0 to max (100) for the first time.
-- **IMPACT:** Too few → intro feels trivial. Too many → intro drags. Sets first impression of cycling.
-- **IF WRONG:** player bounces off in first minute, OR races past intro without understanding cycling.
-- **VALIDATE:** internal playtest. Count cycles-to-full for avg-play and skilled-play. Target: avg player fills in ~3 cycles.
+- **ASSUMPTION:** 2–4 sessions to go from 25 to 100 Madra. The data allows at least 2 cycles at full accuracy (50 base per 8 s cycle).
+- **IMPACT:** Sets the first impression of cycling.
+- **IF WRONG:** The intro is trivial, or it drags and the player bounces.
+- **VALIDATE:** Internal playtest; target about 3 cycles for average play.
 - **STATUS:** Open
 
-### Q-2: Combats-before-failure in early adventures
+### Q-2: Combats before failure in early adventures
 
-- **ASSUMPTION:** Player beats ~2-3 combats in their first few adventures before dying, giving them multiple combat exposures per run to learn mechanics.
-- **IMPACT:** Pace of early loss/retry. Too few → frustrating. Too many → first-adventure success rate too high, breaks the "failure is normal" conceit.
-- **IF WRONG:** player wins first adventure accidentally (missing the intended flee → improve → retry loop) OR dies in first combat and never sees the full run shape.
-- **VALIDATE:** first-adventure playtest; record combats-beaten-before-death across ≥5 runs.
+- **ASSUMPTION:** About 2–3 wins before the first death.
+- **IMPACT:** The early loss and retry rhythm.
+- **IF WRONG:** An accidental first clear, or death in the first fight.
+- **VALIDATE:** Record combats beaten before death across at least 5 first runs.
 - **STATUS:** Open
 
-### Q-3: Starter combat numbers (enemy HP, player DPS, TTK)
+### Q-3: Starter combat numbers
 
-- **ASSUMPTION:** Starter enemy is beatable in 3-5 ability uses by a player with the bare-hands starter ability. Median TTK ~5-10s.
-- **IMPACT:** Combat rhythm. Too fast → no strategic space. Too slow → grindy.
-- **IF WRONG:** first combat feels either auto-win or unreachable.
-- **VALIDATE:** test starter combat in isolation; aim for median TTK 7s, player-loss-rate 30-50% (to justify "return stronger").
+- **ASSUMPTION:** The starter enemy dies in 3–5 ability uses; median TTK is about 7 s; player loss rate is 30–50%.
+- **IMPACT:** Combat rhythm.
+- **IF WRONG:** The fight feels like an auto-win or an impossible wall.
+- **VALIDATE:** Test Starving Dreadbeast and Amorphous Spirit fights in isolation (stats in [COMBAT.md](../combat/COMBAT.md)).
 - **STATUS:** Open
 
-### Q-4: Cycle-to-adventure ratio across Foundation
+### Q-4: Cycle-to-adventure ratio
 
-- **ASSUMPTION:** Post-Beat 2, a full Madra bar funds one adventure; one adventure's return motivates the next cycle session. Target ratio ~1:1.
-- **IMPACT:** If cycles-per-adventure drifts to 3+, loop feels choreographed around cycling and time is wasted.
-- **IF WRONG:** player idles at full Madra frequently (too much cycling) or runs dry mid-adventure constantly (too little).
-- **VALIDATE:** instrument average cycles-per-adventure across a full playthrough; target 0.8-1.2 for mid-Foundation.
+- **ASSUMPTION:** One full Madra bar funds one adventure (about 1:1).
+- **IMPACT:** If cycles per adventure drifts above 3, the loop is choreographed around cycling.
+- **IF WRONG:** Frequent idling at full Madra, or running dry mid-run.
+- **VALIDATE:** Instrument cycles per adventure; target 0.8–1.2 mid-Foundation.
 - **STATUS:** Open
 
 ### Q-5: Tribulation failure consequence
 
-- **ASSUMPTION:** Undecided. Options:
-  - (a) Full death penalty — respawn at Zone 1 start; keep unlocks and gear.
-  - (b) Soft retry — stay at CD 100; retry with no cost.
-  - (c) Partial penalty — drop to CD ~90, must re-earn the last stretch.
-- **IMPACT:** Defines the weight of the Tribulation moment. Soft retry (b) risks trivializing the climax. Full penalty (a) may punish players past their patience.
-- **IF WRONG:** climax feels weightless, OR players quit after first failure.
-- **VALIDATE:** pick a default (lean: (c)), playtest, observe retry feel.
-- **STATUS:** Open
+- **ASSUMPTION:** Undecided between (a) a full reset with unlocks kept, (b) a free retry, and (c) a drop to about CD 90. This doc leans toward (c). [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md) specifies (b), no penalty.
+- **IMPACT:** The weight of the climax.
+- **IF WRONG:** The climax feels weightless, or players quit.
+- **VALIDATE:** Pick one design, playtest, and observe the retry feel.
+- **STATUS:** Open. The two docs conflict and must be reconciled.
 
-### Q-6: Core Density thresholds for path points in Foundation
+### Q-6: Path points vs tree size
 
-- **ASSUMPTION:** Beat 3b awards at CD 10. Beat 6 at CD ~30. CD 100 is Tribulation. That leaves CD 40, 50, 60, 70, 80, 90 as "silent" point-earning moments — path points awarded without a named beat.
-- **IMPACT:** Player keeps earning path points through mid-late Foundation. Is that a pacing problem (points pile up with nothing to spend) or a feature (player has tree flexibility)?
-- **IF WRONG:** path tree runs out of meaningful nodes before CD 100, OR bottlenecks with unspent points.
-- **VALIDATE:** design the path tree with ≥10 meaningful node slots reachable across Foundation; check beat density against total point-earning rate (CD 10/20/30/…/100 = ~10 points + freebie = 11 total).
+- **ASSUMPTION:** Named beats at CD 10 and ~30; CD 40–90 award "silent" points.
+- **IMPACT:** Points pile up, or there is room for tree flexibility.
+- **IF WRONG:** The tree runs out of meaningful nodes, or points sit unspent.
+- **VALIDATE:** Compare the 11 points earned by CD 100 against the 22 purchases available on the 14-node Pure Madra tree. Only 2 of those nodes are keystones; Keystone #3 is missing.
 - **STATUS:** Open
 
 ### Q-7: Time-to-beat targets
 
-- **ASSUMPTION:** Foundation fits in 30-60 min committed play per the per-beat windows in [§2.4](#24-progression-pacing).
-- **IMPACT:** If the curve is off, middle beats (4-6) feel padded or compressed.
-- **IF WRONG:** late beats feel rushed OR early beats run over-long.
-- **VALIDATE:** timestamp playtests at each beat entry; compare to targets.
+- **ASSUMPTION:** Foundation fits in 30–60 minutes ([pacing targets](#progression-pacing-targets)).
+- **IMPACT:** Middle beats feel padded or compressed.
+- **IF WRONG:** Late beats feel rushed, or early beats run long.
+- **VALIDATE:** Timestamp each beat in playtests. The computed CD pacing already undercuts the targets.
 - **STATUS:** Open
 
-### Q-8: Merchant pricing vs adventure gold output
+### Q-8: Merchant pricing vs adventure gold
 
-- **ASSUMPTION:** One piece of merchant gear costs ~3-5 adventures' worth of gold. Keeps merchant a goal, not an immediate purchase.
-- **IMPACT:** Pricing governs whether merchant feels meaningful.
-- **IF WRONG:** gear unaffordable (dead system) OR trivially bought on first visit (no choice).
-- **VALIDATE:** set starting prices; playtest adventure-to-purchase count.
-- **STATUS:** Open
+- **ASSUMPTION:** One piece costs about 3–5 adventures of gold.
+- **IMPACT:** Whether the Merchant feels meaningful.
+- **IF WRONG:** A dead system, or a trivial purchase.
+- **VALIDATE:** Set prices once the shop exists; count adventures per purchase.
+- **STATUS:** Open (no shop)
 
-### Q-9: Basic Training cost curve
+### Q-9: Aura Well training cost curve
 
-- **ASSUMPTION:** Exponential — first Spirit point takes ~1 minute of passive time at the Spirit Well, second ~5min, third ~10min, fourth ~20min, etc.
-- **IMPACT:** Sets how often the player returns to a training site vs. adventures/cycles. Too cheap → dominates other actions. Too expensive → ignored.
-- **IF WRONG:** training either trivializes combat early (points pile up) or never matters (too slow to progress).
-- **VALIDATE:** set starting curve, observe player attribute total at Beats 5 / 7 / 9; compare to expected gear + keystone contributions.
-- **STATUS:** Open
+- **ASSUMPTION:** An exponential curve: about 1, 5, 10, and 20 minutes for the first four Spirit points. Implemented as `[60, 300, 600, 1200]` ticks with a ×2 tail.
+- **IMPACT:** How often the player returns to train instead of adventuring or cycling.
+- **IF WRONG:** Training trivializes combat, or is ignored.
+- **VALIDATE:** Check total attributes at Beats 5, 7, and 9 against gear and keystone contributions.
+- **STATUS:** Open (implemented, not playtested)
 
----
+## Key Files
 
-## Change Log
+| File | Role in the chain |
+|---|---|
+| `resources/zones/spirit_valley_zone/spirit_valley_zone.tres` | Spirit Valley and its 9 actions |
+| `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_{1..4}.tres` | NPC beats (events and quest starts) |
+| `resources/zones/spirit_valley_zone/zone_actions/wilderness_cycling_action.tres`, `spirit_valley_adventure_action.tres`, `spring_forest_foraging_action.tres` | Beat 1 unlocks |
+| `resources/zones/spirit_valley_zone/zone_actions/aura_well_training_action.tres` (+ `aura_well_madra_trickle_effect.tres`, `aura_well_spirit_award_effect.tres`) | Beat 3a training |
+| `resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres` | Beat 3b Merchant stub |
+| `resources/zones/test_zone/test_zone.tres` | Empty Test Zone (unlocks at NPC 1) |
+| `resources/quests/q_fill_core.tres`, `q_first_steps.tres`, `q_reach_core_density_10.tres`, `quest_list.tres` | Quests |
+| `resources/unlocks/*.tres`, `unlock_condition_list.tres` | Conditions |
+| `resources/effects/trigger_event/celestial_intervener_dialogue_1.tres` | NPC 1 event effect |
+| `assets/dialogue/timelines/celestial_intervener_introduction_1.dtl` | The four dialogue labels |
+| `resources/adventure/data/shallow_woods.tres` | Adventure quotas (Aura Well, Refugee Camp, combats, boss) |
+| `resources/adventure/encounters/shallow_woods/special_encounters/aura_well_encounter.tres`, `refugee_camp_encounter.tres` | Special encounters |
+| `resources/items/quest_items/refugee_camp_map.tres` | Beat 3b reward |
+| `resources/path_progression/pure_madra/nodes/pure_core_awakening.tres`, `power_font.tres` | Keystones #1 and #2 |
+| `scenes/combat/adventure_combat/adventure_combat.gd` | `q_first_steps_enemy_defeated` producer |
+| `singletons/cultivation_manager/cultivation_manager.gd` | CD milestone path points; `attempt_breakthrough()` stub |
+| `tests/integration/test_aura_well_discovery_unlock.gd`, `test_beat_3b_merchant_unlock.gd` | Beat 3a and 3b integration tests |
 
-- *2026-04-17* — Initial scaffold created; brainstorm session filled in the 10-beat Foundation spine end-to-end, added framing notes (tile-always-exists / no-retreat / quests-for-ambiguity / NPC placeholders), and seeded 9 open tuning questions in Section 3.
-- *2026-04-20* — Beat 3a (Aura Well) promoted `PLANNED → IMPLEMENTED`. Renamed Spirit Well → Aura Well throughout (training action, trickle/award effects). Reframed discovery as an adventure-encounter Mark choice rather than a generic tile interaction. Updated Keystone framing note — all three Foundation keystones live on the Pure Madra tree (the "first node of each path" phrasing was incorrect). Expanded Beat 3b to document the NPC → map → Merchant handoff that gates Beat 4.
-- *2026-04-21* — Beat 3b implementation landed (map item + refugee camp encounter + Merchant zone-action stub). Merchant shop UI still deferred. Implemented `UnlockConditionData.ITEM_OWNED` and added per-encounter `unlock_conditions` filtering (using `Dictionary[UnlockConditionData, bool]` to match the Beat 3a encounter-choice pattern).
+## Work Remaining
+
+### Bugs
+
+- `[MEDIUM]` Quests can soft-lock. QuestManager never re-checks a step after advancing, so a "return" event that fires early leaves the quest stuck. Normal play avoids this through NPC gating, but the dev panel's force-unlock reproduces it. See [QUESTS.md](QUESTS.md).
+- `[MEDIUM]` `dialogue_1` has malformed BBCode: `[color=blue][CORE][color]` is never closed. See [DIALOGUE.md](../infrastructure/DIALOGUE.md).
+
+### Missing Functionality
+
+- `[HIGH]` There is no breakthrough: `CultivationManager.attempt_breakthrough()` is empty, and there is no Copper stage resource, no Tribulation scene, and no CD-100 gate. This blocks Beats 8–10 and the Copper milestone.
+- `[HIGH]` There is no Merchant shop (Beat 4). The stub logs one line, and gold has no sink.
+- `[MEDIUM]` No events or working condition types exist for an elite defeated, the boss defeated, an adventure completed, or a zone unlocked. `ADVENTURE_COMPLETED` and `ZONE_UNLOCKED` always return false. Beats 5, 7, and 8 depend on them.
+- `[MEDIUM]` There is no "path node purchased" event or condition, which Beat 7's quest trigger ("enters an adventure with Keystone #3") needs.
+- `[LOW]` The Madra bar is not gated behind Beat 1 as the original design intended.
+
+### Content
+
+- `[HIGH]` Nothing narrative exists after Beat 3b: no quest, dialogue, or NPC leads toward Beats 4–10 or the breakthrough.
+- `[HIGH]` Keystone #3 (burst or finisher) is not on the Pure Madra tree, which has only two KEYSTONE nodes.
+- `[HIGH]` The Core Density curve undercuts the pacing targets. CD 10 arrives within about one Smooth Flow cycle, and CD 100 within about 6–11 minutes of cycling (see [Economy](#loop-economy)).
+- `[MEDIUM]` Player-facing names are placeholders:
+  - "[INTERVENER]" in action names, quest steps, and descriptions
+  - the display name "Intervener [Celestial]"
+  - "[CORE]", "[DREADBEAST]", "[REMNANT]", "[TIMELINE ALTERING EVENT]", and "[REPORT REQUESTED]" in the timeline
+  - The map's `from_source`, "Old Vesh, in the broken shrine", contradicts the Intervener handing it over.
+  - The map's icon is the placeholder `res://64.png`.
+- `[MEDIUM]` The Test Zone tile unlocks at NPC 1 with the description "test zone" and no actions. Players see a dead tile.
+- `[LOW]` Spring Forest Foraging still uses the temporary Beat 1 gate (`q_fill_core_completed`) and `test_loot_table_foraging.tres`.
+- `[LOW]` The Tribulation Guardian is not authored. The boss slot holds Manifested Spirit, which reuses the regular `amorphous_spirit` enemy.
+
+### UI
+
+- `[HIGH]` Path points are never announced. `PathManager.add_points()` emits `points_changed`, but only `path_tree_view.gd` listens, so the balance is visible only inside the Path panel. Nothing writes a LogWindow line or shows a toast, and the PATH button has no badge (`SystemMenuButton.BADGE_PROVIDER` maps only ABILITIES). The `q_first_steps` point shows only as "Quest Complete: First Steps Out". The CD-milestone points (`CultivationManager` +1 every 10 levels) are completely silent. Beat 6 is designed around a path-point notification that doesn't exist.
+- `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`, and cycling has no badge (`CyclingManager.has_unequipped_unlocks()` is unused).
+- `[MEDIUM]` The Aura Well discovery and the Refugee Camp search have no tracker guidance. The map's purpose is explained only in `dialogue_4` and the item description.
+- `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The quest tracker starts collapsed and empty.
+- `[LOW]` The Merchant click produces only a log line ("Shop coming soon"), which can read as broken.
+
+### Tech Debt
+
+- `[LOW]` Only Beats 3a and 3b have integration tests. The Beat 1–2 chain is untested end to end: NPC 1 → `q_fill_core` → NPC 2 → `q_first_steps` → combat event → NPC 3 → path point. The combat-to-event test is tautological.

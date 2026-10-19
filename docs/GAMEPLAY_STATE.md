@@ -1,133 +1,191 @@
 # Gameplay State
 
-Last updated: 2026-04-21
+Last updated: 2026-10-18
 
-This document tracks the current player experience — what a player can actually do, what content exists, and what blocks the next stage of progression. For per-system details, see the [system documentation index](CODEBASE_STATE.md#system-documentation-index).
+This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
 
 ---
 
 ## Current Player Experience
 
-A new player can currently:
+All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A new save plays like this. The authoritative beat-by-beat walkthrough with every id is [FOUNDATION_PLAYTHROUGH.md](progression/FOUNDATION_PLAYTHROUGH.md).
 
-1. **Start on the Zone Map** — see Spirit Valley tile, click it; the zone view features parallax backgrounds, floating panels, card-style action panels (PR #14), atmospheric mist/motes, hover selector ring, glowing paths between zones, and lock overlays on gated tiles (PR #23)
-2. **Talk to the Celestial Intervener** — triggers a Dialogic dialogue, awards a Dagger, starts the "Fill Your Core" quest, and unlocks Wilderness Cycling + Spring Forest Foraging (PR #32 NPC rename)
-3. **Cycle** — open the cycling mini-game, follow the Madra Ball, click inflection points for XP; the cycling UI features shader effects, particle feedback, and a tabbed info panel (PRs #12/#13)
-4. **Forage** — toggle passive foraging, earn Spirit Fern and Dewdrop Tear materials over time
-5. **Open Inventory** — view equipment grid, equip the Dagger, see materials from foraging
-6. **Start an Adventure** — enter a procedurally generated hex map with fog-of-war (shader fog + smoke veil overlays), per-type encounter icons, atmospheric mist/motes, and a tiled-texture path preview that commits on click and fades behind the player as they walk; move tile-by-tile spending stamina; adventures cost Madra (50% threshold required, with particle drain animation) (PRs #16/#23)
-7. **Fight enemies** — encounter the Amorphous Spirit in combat, use 4 abilities with Q/W/E/R keybindings; ability tooltips on hover show stats/costs/cooldowns; cost strip and can't-afford dimming provide resource feedback; buff tooltips show live duration; combat atmosphere matches adventure view (PRs #9/#24)
-8. **Defeat the boss** — complete the adventure, earn gold; end card shows stats and loot (PR #19)
-9. **Open Path Tree** — press P to view the Pure Madra skill tree; earn Path Points every 10 Core Density levels; purchase nodes for cycling/combat/progression perks; pannable/zoomable tree with animated shaders (PR #20)
-10. **Manage Abilities** — press A to open the abilities view; drag-and-drop abilities into a 4-slot loadout; filter by type, sort by cost/name; hoverable stat pills show damage breakdowns; path tree purchases unlock new abilities (PR #22)
-11. **Repeat** — cycle for more Madra, forage for materials, adventure for gold, spend Path Points on perks
+1. **Start.** The zone view opens on Spirit Valley:
+   - Resources: 25 Madra (cap `100 + 5 × Core Density level`), Core Density 0, 0 Path Points.
+   - Loadout: Basic Strike and Enforce equipped; the Foundational Technique equipped for cycling.
+   - The only action card is *Talk to the [INTERVENER]*. The neighbouring Test Zone hex is locked.
+2. **NPC dialogue 1** (Dialogic). It unlocks Wilderness Cycling and the empty Test Zone, and starts quest **Awaken Your Core** (`q_fill_core`).
+3. **Cycle.** Keep the cursor in the moving Madra Ball to earn Madra. The Foundational Technique has no cycling zones, so it earns **no Core Density XP**. Reaching 100 Madra completes step 1.
+4. **NPC dialogue 2.** It completes the quest, unlocks **Spring Forest Foraging** and **The Shallow Woods** adventure, and starts **First Steps Out** (`q_first_steps`).
+5. **Forage** (idle). Every 5 s the player gains Spirit Fern (2–6) and Dewdrop Tear (1–5). Foraging costs nothing, can't be toggled off, and the materials have no use yet.
+6. **Adventure.** Starting a run needs Madra ≥ 50% of the adventure capacity (`FOUNDATION × 10`, so 50 of 100 on a new save). The whole budget drains into the run.
+   - The map is a procedurally generated hex map with fog of war. Each step costs 5 Stamina, and Stamina regenerates 1/s.
+   - The timer is 300 s. Fights are real-time, with Q/W/E/R for abilities.
+   - The run ends on a boss win, a death, or a timeout. A scroll end card shows stats and loot.
+7. **Win any fight**, then **NPC dialogue 3**. This completes the quest, awards **+1 Path Point**, and starts **Harden Your Core** (`q_reach_core_density_10`).
+8. **Path tree** (P). Buying *Pure Core Awakening* unlocks Empty Palm and the Smooth Flow technique.
+   - The player must equip them by hand: Abilities view (A) and the cycling Techniques tab.
+   - Smooth Flow has cycling zones, so cycling now earns Core Density XP. The only hint is a line of dialogue.
+9. **Aura Well** (one per map). Choosing *Mark down the location* unlocks **Aura Well** training: an idle action giving +1.5 Madra/s and +1 Spirit per level.
+10. **Reach Core Density 10** (+1 Path Point), then **NPC dialogue 4**. This completes the quest and awards the **Refugee Camp Map**.
+11. **Refugee Camp** encounter. It appears in later runs while the player holds the map. Visiting it reveals the **Traveling Merchant**, which is a stub that only logs "Shop coming soon".
+12. **End of content.** No quest is active and no further beats exist. Cycling, adventures, foraging, training and the path tree remain as repeatable loops. Core Density keeps rising past 100 with no breakthrough, and the stage can never change.
 
-Navigation is handled by a **Toolbar** with buttons for Inventory, Abilities, Character, and Path views (PRs #10/#14/#20). A **draggable log window** provides in-game feedback (PR #15). The entire UI uses a unified warm parchment theme (PR #11).
+Other views, all opened from the zone view via keyboard or the bottom toolbar:
 
-The core loop now includes a meaningful progression sink: cycle for XP → earn Path Points → spend on perks that improve cycling, combat, and adventuring. However, the loop is still Foundation-only with one zone, one adventure, and one enemy.
+| View | Key | Details |
+|---|---|---|
+| Inventory | I | 4 tabs: Equipment (2 pages, filter, trash), Consumables (+ 4-slot hotbar), Materials, Journal. See [INVENTORY.md](inventory/INVENTORY.md) |
+| Abilities | A | 4-slot loadout with drag-drop, filter/sort and stat pills. See [ABILITIES.md](abilities/ABILITIES.md) |
+| Character | C | 8 total attributes with tooltips. See [CHARACTER.md](infrastructure/CHARACTER.md) |
+| Path | P | Pure Madra skill tree. See [PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md) |
+
+A draggable log window and a quest tracker/toast give feedback. Progress auto-saves every 5 s to `user://save.tres` ([PERSISTENCE.md](infrastructure/PERSISTENCE.md)).
 
 ---
 
 ## Content Inventory
 
-### Zones
+### Zones and Actions
 | Zone | Actions | Unlock |
-|------|---------|--------|
-| Spirit Valley | Celestial Intervener Dialogue (3 parts), Wilderness Cycling, Spring Forest Foraging, The Shallow Woods Adventure, Spirit Well Training | Always |
-| Test Zone | None | After NPC dialogue |
+|---|---|---|
+| Spirit Valley (`SpiritValley`) | 9 actions, listed below | Always |
+| Test Zone (`TestZone`) | None (placeholder, description "test zone") | Event `celestial_intervener_dialogue_1` |
+
+| Action (`action_id`) | Type | Unlock | What it does |
+|---|---|---|---|
+| `celestial_intervener_dialogue_1` | NPC dialogue (once) | — | Starts `q_fill_core` |
+| `wilderness_cycling_action` | Cycling | `celestial_intervener_dialogue_1` | Opens the cycling view |
+| `celestial_intervener_dialogue_2` | NPC dialogue (once) | Madra ≥ 100 | Completes `q_fill_core`, starts `q_first_steps` |
+| `sprint_forest_foraging_action` (sic) | Forage | `q_fill_core_completed` | Spirit Fern + Dewdrop Tear every 5 s |
+| `shallow_woods_adventure_action` | Adventure | `q_fill_core_completed` | The Shallow Woods, 300 s limit |
+| `celestial_intervener_dialogue_3` | NPC dialogue (once) | `q_first_steps_enemy_defeated` | Completes `q_first_steps`, starts `q_reach_core_density_10` |
+| `aura_well_training` | Training | `aura_well_discovered` | 1 s ticks: +1.5 Madra; +1 Spirit per level (60/300/600/1200 ticks, then ×2) |
+| `celestial_intervener_dialogue_4` | NPC dialogue (once) | Core Density ≥ 10 | Completes `q_reach_core_density_10` |
+| `spirit_valley_merchant` | Merchant | `merchant_discovered` | Stub: logs "Shop coming soon" |
+
+Details: [ZONES.md](zones/ZONES.md).
+
+### Quests
+| Quest | Name | Steps | Reward |
+|---|---|---|---|
+| `q_fill_core` | Awaken Your Core | Reach 100 Madra → talk to the Intervener | Unlocks Foraging + The Shallow Woods |
+| `q_first_steps` | First Steps Out | Win a combat → talk to the Intervener | +1 Path Point |
+| `q_reach_core_density_10` | Harden Your Core | Reach Core Density 10 → talk to the Intervener | Refugee Camp Map |
+
+All dialogue is one Dialogic timeline (`celestial_intervener_introduction_1`, labels `dialogue_1`–`dialogue_4`) spoken by the Celestial Intervener. Details: [QUESTS.md](progression/QUESTS.md), [DIALOGUE.md](infrastructure/DIALOGUE.md).
 
 ### Items
-| Item | Type | Source |
-|------|------|--------|
-| Dagger | Weapon (MAIN_HAND, `attribute_bonuses = { STRENGTH: 3, AGILITY: 1 }`) | NPC dialogue reward |
-| Sword | Weapon (MAIN_HAND, `attribute_bonuses = { STRENGTH: 6, AGILITY: 2 }`) | — |
-| Spirit Fern | Material | Foraging |
-| Dewdrop Tear | Material | Foraging |
+| Item | Type | Stats / effect | Obtainable on `main`? |
+|---|---|---|---|
+| Makeshift Dagger (`makeshift_dagger`) | Equipment, MAIN_HAND | STR +3, AGI +2 | No (only in an unreferenced test loot table) |
+| Iron Shortsword (`iron_shortsword`) | Equipment, MAIN_HAND | STR +5, AGI +2 | No (same unreferenced table) |
+| Cultivator's Cowl (`cultivators_cowl`) | Equipment, HEAD | WIL +3, SPI +1 | No |
+| Reinforced Robes (`reinforced_robes`) | Equipment, ARMOR | BODY +4, RES +2 | No |
+| Scripted Bark (`scripted_bark`) | Equipment, OFF_HAND | BODY +2 | No |
+| Leeching Ring (`leeching_ring`) | Equipment, ACCESSORY | FND +2, CTRL +2 | No |
+| Dreadbeast Tooth Necklace (`dreadbeast_tooth_necklace`) | Equipment, ACCESSORY | STR +2, AGI +2 | Yes, 25% drop from the Ravenous Dreadbeast elite |
+| Spirit Fern (`SpiritFern`) | Material | — | Yes, foraging |
+| Dewdrop Tear (`DewdropTear`) | Material | — | Yes, foraging |
+| Crude Scale (`crude_scale`) | Consumable | +20 Madra, 10 s cooldown (unenforced) | No |
+| Barely Coalesced Scale (`barely_coalesced_scale`) | Consumable | Same values as Crude Scale, no icon | No |
+| Refugee Camp Map (`refugee_camp_map`) | Quest item | Gates the Refugee Camp encounter | Yes, quest reward |
 
-### Abilities (Player)
+Consumables can be put on the hotbar, but nothing on `main` uses them. In-combat use is on the unmerged branch `feat/infallible-chaum-58f8ad`. Details: [INVENTORY.md](inventory/INVENTORY.md), [ITEMS.md](inventory/ITEMS.md).
 
-Full per-path ability stats (costs, cooldowns, cast times, scaling, effect composition) live in [ABILITIES_MATRIX.md](abilities/ABILITIES_MATRIX.md) — authoritative source. Current roster: `basic_strike` and `enforce` (INNATE); `empty_palm` and `power_font` (PATH, Pure Madra). Empty Palm + Power Font were retuned in PR #39 to express the Pure Path's disruption identity (interrupt + buff-wipe respectively).
+### Abilities
+| Ability | Source | Cost | Cooldown / cast | Effect |
+|---|---|---|---|---|
+| Basic Strike (`basic_strike`) | Innate, equipped at start | 3 Stamina | 2 s / 0.5 s | Physical, 10 + STR×1.0 + AGI×0.5 |
+| Enforce (`enforce`) | Innate, equipped at start | 10 Madra | 15 s / 1 s | Next damaging ability ×1.5 (5 s, consumed) |
+| Empty Palm (`empty_palm`) | Path node `pure_core_awakening` | 8 Madra | 3 s / instant | Spirit, 15 + SPI×1.0 + AGI×0.3, interrupts the target's cast |
+| Power Font (`power_font`) | Path node `power_font` | 30 Madra | 25 s / 3 s | Spirit, 30 + SPI×1.5 + FND×0.5, strips all target buffs |
 
-Abilities are managed by `AbilityManager` (PR #22): INNATE abilities start unlocked, PATH abilities are unlocked via path tree purchases (UNLOCK_ABILITY effect). Players equip up to 4 abilities in a loadout via the AbilitiesView (press A).
+There are also 3 enemy abilities: `madra_lash`, `famishing_bite` and `coalesce`. Full values: [ABILITIES_MATRIX.md](abilities/ABILITIES_MATRIX.md).
 
-### Enemies
-| Enemy | Abilities | Gold |
-|-------|-----------|------|
-| Amorphous Spirit | inline `madra_lash` (2s cast, 10 base SPIRIT dmg) | 0 (unset) — see COMBAT.md known anomalies |
+### Enemies and Encounters (The Shallow Woods)
+| Encounter | Type | Per map | Enemy / effect | Gold |
+|---|---|---|---|---|
+| `manifested_spirit_encounter` | Boss (win = victory) | 1 | `amorphous_spirit` (the regular enemy) | 15 |
+| `amorphous_spirit_encounter` | Combat | 4 | `amorphous_spirit`: 100 HP, Madra Lash | 15 |
+| `starving_dreadbeast_encounter` | Combat | 3 | `starving_dreadbeast`: 85 HP, Famishing Bite (self-stacking Hunger) | 20 |
+| `coalescing_spirit_encounter` | Elite | 2 | `coalescing_spirit`: 200 HP, Madra Lash + Coalesce (self-heal) | 0 |
+| `ravenous_dreadbeast_encounter` | Elite | 2 | `ravenous_dreadbeast`: STR 15, Famishing Bite | 20, plus 25% necklace |
+| `aura_well_encounter` | Rest site | 1 | Rest (+HP/Madra), or mark the location (unlocks Aura Well training) | — |
+| `refugee_camp_encounter` | Rest site | 0–1 | Only while holding the map and before discovery; reveals the Merchant | — |
 
-### Adventure Encounters
-| Encounter | Type | Notes |
-|-----------|------|-------|
-| Amorphous Spirit Combat | Combat | Shallow Woods enemy pool (PR #32) |
-| Boss Combat | Combat (Boss) | Furthest tile, completes adventure |
-| Treasure | Treasure | Rolls weapon loot table |
-| Rest | Rest | — |
-| Trap | Trap | No unique handling |
+`test_rest_encounter`, `test_trap_encounter` and `test_treasure_encounter` exist but no adventure uses them. Enemies have no sprite art. Details: [ADVENTURING.md](adventuring/ADVENTURING.md), [COMBAT.md](combat/COMBAT.md).
 
-### Unlock Conditions
-| Condition | Type | Trigger |
-|-----------|------|---------|
-| celestial_intervener_dialogue_1 | EVENT_TRIGGERED | Celestial Intervener dialogue part 1 (PR #32 rename) |
-| test_attribute_requirement_unlock_data | ATTRIBUTE_VALUE | BODY >= 20 |
-| q_fill_core_madra_full | MADRA_AMOUNT | Madra at cap (PR #28, Fill Your Core quest) |
-| q_fill_core_completed | EVENT_TRIGGERED | Fill Your Core quest completion (PR #28) |
-| q_first_steps_enemy_defeated | EVENT_TRIGGERED | First Shallow Woods combat victory (PR #32) |
-| q_reach_cd_10 | CULTIVATION_LEVEL | Core Density level ≥ 10 (PR #32) |
-| aura_well_discovered | EVENT_TRIGGERED | Aura Well "Mark the location" choice (PR #36) — gates Aura Well zone action |
-| merchant_discovered | EVENT_TRIGGERED | Refugee camp encounter visited (PR #41) — gates Merchant zone action stub |
+### Cycling Techniques
+| Technique | Cycle | Madra per cycle | Cycling zones (max XP per cycle) | Unlock |
+|---|---|---|---|---|
+| Foundational Technique (`foundation_technique`) | 8 s | 50 | 0 (0 XP) | Default |
+| Smooth Flow Technique (`smooth_flow`) | 15 s | 200 | 4 (125) | Path node `pure_core_awakening` |
+| Torrential Flow (`torrential_flow`) | 8 s | 250 | 1 (30) | Path node `torrential_flow` |
+
+Details: [CYCLING.md](cycling/CYCLING.md).
 
 ### Path Progression
-| Path | Tier | Nodes | Status |
-|------|------|-------|--------|
-| Pure Madra | Tier 1 (Foundation) | 14 nodes (1 keystone, 2 major, 7 minor, 4 repeatable) | Implemented (PR #20) |
-| Blackflame | — | — | Theme data only, no tree |
-| Earth | — | — | Theme data only, no tree |
+| Path | Nodes | Working in play | Status |
+|---|---|---|---|
+| Pure Madra (`pure_madra`) | 14: 2 keystone, 4 major, 5 minor, 3 repeatable; 22 points to max | 3 unlock nodes (Pure Core Awakening, Power Font, Torrential Flow) | Auto-selected; Tier 1 only |
+| Blackflame, Earth | — | — | Theme data only, no tree |
+
+Points come from every 10th Core Density level (+1 in Foundation) and the First Steps Out quest (+1). Details: [PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md).
 
 ### Cultivation Stages
-| Stage | Data Exists | Status |
-|-------|-------------|--------|
-| Foundation | Yes | Active — only stage with an AdvancementStageResource |
-| Copper | No | Planned — unlocks Scripting, Elixir Making |
-| Iron | No | Planned — unlocks Soulsmithing |
-| Jade | No | Planned |
-| Silver | No | Planned |
+| Stage | Data | Status |
+|---|---|---|
+| Foundation | `foundation_advancement_stage.tres`: 10 XP base, ×1.02 per level, Madra cap 100 + 5/level | Active; the only stage that can ever be reached |
+| Copper, Iron, Jade, Silver | Enum values only | Unreachable: no breakthrough, no stage resources |
+
+Details: [CULTIVATION.md](cultivation/CULTIVATION.md).
+
+### Events and Unlock Conditions
+- **Events (8):** `celestial_intervener_dialogue_1`–`_4`, `q_fill_core_completed`, `q_first_steps_enemy_defeated`, `aura_well_discovered`, `merchant_discovered`.
+- **Registered unlock conditions (8):**
+  - `celestial_intervener_dialogue_1`
+  - `q_fill_core_madra_full` (`RESOURCE_AMOUNT` Madra ≥ 100)
+  - `q_fill_core_completed`
+  - `q_first_steps_enemy_defeated`
+  - `q_reach_cd_10` (`CULTIVATION_LEVEL` ≥ 10)
+  - `aura_well_discovered`
+  - `merchant_discovered`
+  - `test_attribute_requirement_unlock_data` (unused)
+- **Inline conditions (2):** an `ITEM_OWNED` check on the Refugee Camp Map, and a duplicate of `merchant_discovered`.
+
+Details: [EVENTS.md](infrastructure/EVENTS.md), [UNLOCKS.md](infrastructure/UNLOCKS.md).
+
+---
+
+## Built but Not Wired
+
+These systems look finished to the player but have no effect:
+
+| What the player sees | Reality | Doc |
+|---|---|---|
+| 11 path nodes (19 of 22 points) sold as perks | 7 numeric perks are aggregated but nothing reads them; 4 nodes have no effects at all | [PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md) |
+| Gear with BODY / FOUNDATION | Player max HP/Stamina/Madra only refresh when a *base* attribute changes, not when gear is equipped | [CHARACTER.md](infrastructure/CHARACTER.md) |
+| CONTROL and WILLPOWER on gear | CONTROL does nothing. WILLPOWER only counts toward MIXED-damage defense, and no ability deals MIXED damage | [COMBAT.md](combat/COMBAT.md) |
+| Consumable hotbar | Nothing on `main` consumes from it | [INVENTORY.md](inventory/INVENTORY.md) |
+| Foraging "Madra cost" field, cycling action modifiers | Exported but never read | [ZONES.md](zones/ZONES.md), [CYCLING.md](cycling/CYCLING.md) |
+| Gold counter | Gold comes from combat wins and has no sinks | [RESOURCES.md](infrastructure/RESOURCES.md) |
+| Clearing The Shallow Woods | Fires no event, so nothing can gate on it | [ADVENTURING.md](adventuring/ADVENTURING.md) |
 
 ---
 
 ## Progression Blockers
 
-These are the biggest gaps preventing a playable loop beyond Foundation:
+Ranked by how much they stop the game from growing:
 
-1. **No breakthrough mechanic** — players can level Core Density to 100 but never advance stages. Design doc exists at [breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md)
-2. **No Copper stage data** — even with breakthrough, there's nowhere to go. No AdvancementStageResource for Copper
-3. ~~**Equipment doesn't affect combat** — the Dagger's `attack_power: 10` is cosmetic. `_get_attribute_bonuses()` returns 0~~ (Done - PR #9)
-4. ~~**Madra pools disconnected** — cycling Madra (ResourceManager) and combat Madra (VitalsManager) are separate systems with no link. Design for unification in [RESOURCES.md](infrastructure/RESOURCES.md)~~ (Done - PR #16)
-5. **Only 1 enemy** — combat has no variety
-6. ~~**Abilities are hardcoded** — `get_equipped_abilities()` returns 4 fixed `.tres` files, no unlock or equip system~~ (Done - PR #22: AbilityManager singleton with unlock/equip/4-slot loadout, AbilitiesView UI with drag-drop, filter/sort, stat tooltips)
-7. **No save persistence** — `reset_save_data = true` wipes progress every launch
-8. ~~**No character stats screen** — player has no way to see their attributes, equipped gear, or abilities in one place~~ (Partially done - PR #22: AbilitiesView shows ability loadout and stat breakdowns; full character sheet still needed)
+1. **No breakthrough.** `CultivationManager.attempt_breakthrough()` is an empty stub, and the Tribulation is design-only ([breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md)). Foundation is a hard ceiling.
+2. **No stage past Foundation, and a hang waiting for it.** No Copper `AdvancementStageResource` exists. If the stage ever changes without one, `add_core_density_xp()` loops forever, because `get_xp_for_next_level()` returns 0.
+3. **No content after Beat 3b.** There is no quest, NPC or event after the Refugee Camp. Beats 4–5 (Merchant, elite gear drop) are stubs, and Beats 6–10 (third keystone through the Zone 2 onramp) are design-only ([FOUNDATION_PLAYTHROUGH.md](progression/FOUNDATION_PLAYTHROUGH.md)).
+4. **Merchant is a stub.** Gold has no sink, and 6 of 7 equipment items can't be obtained.
+5. **No real boss.** The Shallow Woods boss fights the regular Amorphous Spirit, and clearing a run records nothing.
+6. **Inert perks.** Most of the path tree, and every stat-multiplier hook, does nothing.
+7. **Onboarding.** Path Points and unlocks are silent, the Foundational Technique earns no XP with no clear prompt to switch, dialogue still has placeholder text (`[INTERVENER]`), and the empty Test Zone unlocks at the first dialogue.
 
----
+## Recommended Next Steps
 
-## Recommended Next Steps (Gameplay Priority)
-
-### Foundation Stage (make the current loop solid)
-1. ~~Fix persistence — flip `reset_save_data = false`, fix `reset_state()` naming mismatch~~ *(PR #3 fixed naming; `reset_save_data` still defaults to true)*
-2. ~~Wire equipment stats to combat — make the Dagger matter~~ (Done - PR #9)
-3. ~~Unify Madra pools — create the cycle→adventure resource loop~~ (Done - PR #16)
-~~4. Add ability tooltips and cost feedback in combat — make the system learnable~~ (Done - PR #24: ability/buff tooltips, Q/W/E/R keybindings, cost strip, can't-afford state, combat atmosphere)
-5. Add more enemies and encounters — combat variety
-6. ~~Remove debug artifacts (+100 STR)~~ *(PR #3 fixed +100 STR; debug buttons and enable_ai flag still present)*
-
-### Copper Stage (unlock the next progression tier)
-7. Implement breakthrough — Tribulation mini-game via adventure encounter
-8. Create Copper AdvancementStageResource — new XP scaling, madra cap
-9. ~~Build ability unlock/equip system — let players discover and choose abilities~~ (Done - PR #22)
-10. Add character stats screen — let players see their full growth (abilities covered by PR #22, need equipment/attributes view)
-11. Add more zones with unique content
-
-### Future (post-Copper)
-12. Build Scripting system (Copper unlock)
-13. Build Elixir Making system (Copper unlock)
-14. Build Soulsmithing system (Iron unlock)
-15. New player onboarding — no guidance on first load pointing player to the NPC dialogue, which gates most content
+The prioritized roadmap (make Foundation complete → break through to Copper → GDD MVP through Iron) lives in [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md#necessary-work). Each system doc's **Work Remaining** section holds the detailed, tagged backlog.

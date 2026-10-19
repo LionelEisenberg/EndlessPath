@@ -1,257 +1,316 @@
 # Abilities System
 
+Last updated: 2026-10-18
+
 ## Overview
 
-Abilities are the player's active toolkit in combat: damage attacks, self-buffs, and (future) utility effects. Each ability is a data-driven `AbilityData` resource defining costs, cooldown, cast time, and two lists of `CombatEffectData` — one routed to the enemy target, one routed to the caster. An ability needs an enemy target iff its `effects_on_target` array is non-empty.
+Abilities are the actions combatants use in [combat](../combat/COMBAT.md). Each one is an `AbilityData` resource: costs, cooldown, cast time, and two lists of `CombatEffectData` — `effects_on_target` (sent to the enemy) and `effects_on_self` (sent to the caster). What an ability "is" (damage, heal, buff, interrupt…) is derived from those lists; there is no type tag.
 
-The system has two halves:
+The system has three parts:
 
-- **Meta layer** — `AbilityManager` singleton owns which abilities the player has **unlocked** (via path tree purchases or innate starting grants) and which 4 are **equipped** into combat loadout slots. State is persisted in `SaveGameData`.
-- **Combat runtime** — `CombatAbilityManager` + `CombatAbilityInstance` per combatant, instantiated at fight start from the combatant's `abilities: Array[AbilityData]`. Handles gate checks (casting lock, cooldown, resource cost), cast timer lifecycle, and effect application.
+- **Catalog and state** — `AbilityManager` (autoload) indexes the player catalog `resources/abilities/ability_list.tres` by `ability_id` and owns which abilities are unlocked and which sit in the 4 loadout slots. State lives on `SaveGameData`.
+- **Abilities view** — a modal overlay (key A) for browsing unlocked abilities and arranging the loadout by button or drag-and-drop.
+- **Combat runtime** — at fight start the equipped abilities become `CombatAbilityInstance`s; slot order maps to Q/W/E/R. Runtime behavior is documented in [COMBAT.md](../combat/COMBAT.md#ability-lifecycle).
 
-See [ABILITIES_MATRIX.md](ABILITIES_MATRIX.md) for a per-path table of every ability with full stats, scaling, and effect composition.
+Enemy abilities use the same `AbilityData` class but are referenced directly by enemy `CombatantData` and are not in the player catalog. Every ability's numbers are in [ABILITIES_MATRIX.md](ABILITIES_MATRIX.md).
+
+## Player Experience
+
+1. A new save starts with Basic Strike (slot 1, Q) and Enforce (slot 2, W) unlocked and equipped; slots 3 and 4 are empty but usable.
+2. Buying Pure Core Awakening on the Pure Madra path tree unlocks Empty Palm; buying the Power Font node unlocks Power Font. Unlocks are never auto-equipped. While any unlocked ability is not in a slot, the ABILITIES button in the system menu shows a badge.
+3. On the zone view the player presses A (or clicks ABILITIES). A grey backdrop and the Abilities view fade in: title "ABILITIES", subtitle "Manage your combat techniques", a LOADOUT row of 4 slots with Q/W/E/R hints and an `n / 4` counter, filter buttons (All / Offensive / Buff / Equipped), a sort dropdown (Equipped First / Name A-Z / Madra Cost / Cooldown), and a scrolling list of unlocked-ability cards.
+4. Each card shows the icon, name, a PURE badge for Pure Madra abilities, a source badge (Innate / Path), damage pills when the ability hits a target (DMG total with a pulsing gold border, Base, one pill per scaling attribute showing its contribution), timing and cost pills (CD, Cast, Madra/Stamina/Health), and an EQUIP / UNEQUIP button in the bottom-right corner. Hovering a pill shows a breakdown tooltip computed from the player's current attributes.
+5. Clicking a card toggles its details: effect tags (Damage, Heal, Buff, Debuff, Interrupt, Strip, plus Targeted / Self-Cast / Mixed) and the description.
+6. EQUIP puts the ability in the first empty slot; with 4 slots filled the button reads SLOTS FULL and is disabled. Dragging a card onto a slot puts it there, replacing whatever was in it. Dragging one slot onto another swaps them, which changes the key. UNEQUIP on the card clears its slot.
+7. Esc or A closes the view. The next fight uses the loadout as arranged; the Abilities view cannot be opened during an adventure.
+
+## Architecture
+
+```
+AbilityManager (autoload)                       singletons/ability_manager/ability_manager.gd
+  ├─ _ability_catalog = preload(resources/abilities/ability_list.tres)
+  ├─ _abilities_by_id: Dictionary               built in _ready()
+  └─ _live_save_data → SaveGameData.unlocked_ability_ids / equipped_ability_ids
+
+MainView (main_game.tscn)
+├── MainViewStateMachine/AbilitiesViewState     scenes/abilities/abilities_view_state.gd
+├── GreyBackground                              shows/hides the panel, calls animate_open()/animate_close()
+└── AbilitiesView (Control)                     scenes/abilities/abilities_view.gd
+    ├── UnifiedPanel/MainVBox
+    │   ├── Header: Title, Subtitle
+    │   ├── HeaderSep
+    │   └── Body
+    │       ├── LoadoutSidebar/LoadoutVBox
+    │       │   ├── LoadoutLabel ("LOADOUT")
+    │       │   ├── SlotsRow (HBox): EquipSlot1..EquipSlot4 (AbilityEquipSlot)
+    │       │   └── SlotCounter ("n / 4")
+    │       ├── BodyDivider
+    │       └── MainContent
+    │           ├── FilterBarMargin/FilterBar: FilterToggles (FilterAll, FilterOffensive,
+    │           │                              FilterBuff, FilterEquipped), SortDropdown
+    │           └── ScrollContainer/ScrollMargin/CardList (VBox): AbilityCard × N
+    └── AnimationPlayer ("open", "close")
+
+AbilityCard (PanelContainer, PanelAbilityCard)  scenes/abilities/ability_card/ability_card.gd
+├── CardVBox
+│   ├── MainRow: AbilityIcon, InfoColumn
+│   │            ├── NameRow: AbilityName, MadraBadge, SourceBadge
+│   │            ├── DamageStatsDisplay (AbilityStatsDisplay, DAMAGE)
+│   │            └── TimingStatsDisplay (AbilityStatsDisplay, TIMING_COSTS)
+│   ├── ButtonRow (empty)
+│   └── ExpandedDetails (hidden): DetailSep, TagsRow, ContentRow/TextColumn/DescriptionLabel
+└── EquipButton                                 direct child of the card root, always visible
+
+AbilityEquipSlot (extends DropTargetSlot)       scenes/abilities/equip_slot/equip_slot.gd
+├── CenterContainer: SlotIcon, EmptyLabel ("--")
+└── KeyHintPanel (panel_keyhint.tres): KeyHintLabel
+
+AbilityStatsDisplay (HFlowContainer)            scenes/abilities/ability_stats_display/ability_stats_display.gd
+├── StatTooltip                                 scenes/abilities/stat_tooltip/stat_tooltip.gd (built in code)
+└── StatLabel × N (stat_label.tscn) and "·" separator Labels
+```
+
+`AbilityStatsDisplay` is also used by the combat ability tooltip (`CombatAbilityTooltip`, modes `TIMING_COSTS` and `DAMAGE_TOTAL`).
 
 ## Data Model
 
-### AbilityData
+### AbilityData (`scripts/resource_definitions/abilities/ability_data.gd`)
 
-Defined in [scripts/resource_definitions/abilities/ability_data.gd](../../scripts/resource_definitions/abilities/ability_data.gd). Each ability is a `.tres` file in [resources/abilities/](../../resources/abilities/).
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `ability_id` | `String` | `""` | Unique key used by the catalog, path unlocks and saves |
+| `ability_name` | `String` | `""` | Display name |
+| `description` | `String` (multiline) | `""` | Card details text |
+| `icon` | `Texture2D` | null | Card, slot, combat button, tooltip |
+| `madra_type` | `MadraType` | `NONE` | Flavor badge; independent of `damage_type` |
+| `ability_source` | `AbilitySource` | `INNATE` | Badge text; no lifecycle logic reads it |
+| `health_cost` / `madra_cost` / `stamina_cost` | `float` | 0.0 | Paid when a cast starts |
+| `base_cooldown` | `float` | 0.0 | Starts when the cast resolves; 0 means none |
+| `cast_time` | `float` | 0.0 | 0 = instant |
+| `effects_on_target` | `Array[CombatEffectData]` | `[]` | Sent to the enemy |
+| `effects_on_self` | `Array[CombatEffectData]` | `[]` | Sent to the caster |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `ability_id` | `String` | Unique ID — used by `AbilityManager`, path unlocks, and save data |
-| `ability_name` | `String` | Display name |
-| `description` | `String` (multiline) | Tooltip description |
-| `icon` | `Texture2D` | UI icon (64x64 preferred) |
-| `ability_type` | `AbilityType` | Only `OFFENSIVE` exists today — flagged for rework (see COMBAT.md tech debt) |
-| `madra_type` | `MadraType` | `NONE` (physical) or `PURE` — flavor axis, separate from damage type |
-| `ability_source` | `AbilitySource` | `INNATE` (persists) or `PATH` (tied to path tree, resets on ascension) |
-| `health_cost` / `madra_cost` / `stamina_cost` | `float` | Resources consumed on use |
-| `base_cooldown` | `float` | Cooldown in seconds after cast resolves |
-| `cast_time` | `float` | Pre-cast duration — `0` = instant |
-| `effects_on_target` | `Array[CombatEffectData]` | Effects applied to the enemy target on execute (damage, debuffs). Non-empty means the ability requires an enemy target. |
-| `effects_on_self` | `Array[CombatEffectData]` | Effects applied to the caster on execute (self-buffs, self-heals). Can be combined with `effects_on_target` for mixed abilities (e.g. lifesteal, rage-stacking attacks). |
+| Enum | Values |
+|------|--------|
+| `MadraType` | `NONE` (physical / no affinity), `PURE` |
+| `AbilitySource` | `INNATE` ("Always available, persists across path changes"), `PATH` ("Unlocked via path tree, resets with path" — the reset is not implemented) |
 
-### CombatEffectData
+Effect fields, damage types and buff fields are documented in [COMBAT.md](../combat/COMBAT.md#data-model).
 
-Effect composition lives in [scripts/resource_definitions/combat/combat_effect_data.gd](../../scripts/resource_definitions/combat/combat_effect_data.gd).
+### Derived predicates and methods
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `effect_type` | `EffectType` | `DAMAGE`, `HEAL`, `BUFF`, `CANCEL_CAST`, `STRIP_BUFFS` |
-| `base_value` | `float` | Flat starting value |
-| `damage_type` | `DamageType` | `PHYSICAL`, `SPIRIT`, `TRUE` (ignores defense), `MIXED` (avg of both defenses) |
-| `*_scaling` | `float` | Per-attribute coefficient — 8 fields: `strength_scaling`, `body_scaling`, `agility_scaling`, `spirit_scaling`, `foundation_scaling`, `control_scaling`, `resilience_scaling`, `willpower_scaling` |
+| Method | Returns / true when | Used by |
+|--------|---------------------|---------|
+| `deals_damage()` | a `DAMAGE` effect is in `effects_on_target` | Outgoing-modifier consumption in `execute_ability()`; card tag |
+| `heals_self()` | a `HEAL` effect is in `effects_on_self` | `SimpleEnemyAI` heal gate; card tag |
+| `buffs_self()` | a `BUFF` effect is in `effects_on_self` | Card tag |
+| `debuffs_target()` | a `BUFF` effect is in `effects_on_target` | Card tag |
+| `interrupts_target()` | a `CANCEL_CAST` effect is in `effects_on_target` | Card tag |
+| `strips_target_buffs()` | a `STRIP_BUFFS` effect is in `effects_on_target` | Card tag |
+| `get_total_self_heal(attrs)` | summed scaled value of self `HEAL` effects | `SimpleEnemyAI` heal gate |
+| `can_afford(vitals)` / `consume_costs(vitals)` | cost check / deduction against a `VitalsManager` | Combat gate and payment; `AbilityButton` affordability |
+| `get_total_cost_display()` | `"Madra: 8"`-style string or `"Free"` | `_to_string()` only |
+| `validate()` | id and name set | Never called |
 
-`CANCEL_CAST` and `STRIP_BUFFS` (PR #39) are value-less control effects — no `base_value`, no scaling. They're dispatched by `CombatEffectManager.process_effect()` to `CombatAbilityManager.cancel_current_cast()` / `CombatBuffManager.strip_all_buffs()` respectively. See [COMBAT.md Effect Resolution](../combat/COMBAT.md#effect-resolution-combateffectmanager).
+Target shape, shown as a card tag:
 
-**Damage formula** (see `calculate_damage()`):
+| `effects_on_target` | `effects_on_self` | Tag | Examples |
+|---------------------|-------------------|-----|----------|
+| empty | populated | Self-Cast | Enforce, Coalesce |
+| populated | empty | Targeted | Basic Strike, Empty Palm, Power Font, Madra Lash |
+| populated | populated | Mixed | Famishing Bite (damage + Hunger on self) |
 
-```
-raw   = base_value + Σ (caster.attribute[i] * scaling[i])
-final = raw * (100 / (100 + target_defense))
-```
+### AbilityListData (`ability_list_data.gd`)
 
-Defense is `RESILIENCE` for `PHYSICAL`, `SPIRIT` for `SPIRIT`, `(RESILIENCE + WILLPOWER) / 2` for `MIXED`. `TRUE` bypasses defense entirely.
+`abilities: Array[AbilityData]`. The single instance is `resources/abilities/ability_list.tres` with `basic_strike`, `empty_palm`, `enforce`, `power_font`.
 
-### BuffEffectData (extends CombatEffectData)
-
-[scripts/resource_definitions/combat/buff_effect_data.gd](../../scripts/resource_definitions/combat/buff_effect_data.gd). Used for `effect_type = BUFF`.
-
-| Field | Purpose |
-|-------|---------|
-| `buff_id` | Identity key — stacking/refresh lookup |
-| `duration` | Seconds (default `5.0`) |
-| `buff_type` | `ATTRIBUTE_MODIFIER_MULTIPLICATIVE`, `DAMAGE_OVER_TIME`, `OUTGOING_DAMAGE_MODIFIER`, `INCOMING_DAMAGE_MODIFIER` |
-| `attribute_modifiers` | Dict `AttributeType → multiplier` (for attribute buffs) |
-| `dot_damage_per_tick` + `dot_damage_type` | For DoT buffs (1s tick) |
-| `damage_multiplier` | For outgoing/incoming damage modifier buffs |
-| `consume_on_use` | If `true`, buff is consumed after one proc (e.g. Enforce) |
-
-## Classification Axes
-
-Two orthogonal enums classify each ability. Targeting is no longer an enum — it is *derived* from whether `effects_on_target` is populated:
-
-- **`MadraType`** — flavor/identity, shown as a badge in UI. `NONE` = physical (Basic Strike, Enforce), `PURE` = Pure Madra path (Empty Palm, Power Font). Future paths will add `BLACKFLAME`, `EARTH`, etc. Note: this is independent of `damage_type` on the effect — a `MadraType.PURE` ability can still deal physical damage.
-- **`AbilitySource`** — lifecycle. `INNATE` abilities are in the default `unlocked_ability_ids` and persist across path changes / ascensions. `PATH` abilities are granted by path tree nodes and will reset when the path progression rework fully wires ascension reset.
-
-**Targeting derivation:**
-
-| `effects_on_target` | `effects_on_self` | Ability role |
-|---|---|---|
-| empty | populated | Pure self-cast (e.g. Enforce). No enemy target needed. UI tag: *Self-Cast*. |
-| populated | empty | Pure offensive (e.g. Basic Strike, Empty Palm). Needs an enemy target. UI tag: *Targeted*. |
-| populated | populated | Mixed (e.g. Famishing Bite — damages target, applies Hunger to self). Needs an enemy target. UI tag: *Mixed*. |
-
-## Lifecycle
-
-```
-Catalog (.tres files)         resources/abilities/*.tres
-    │                         registered in ability_list.tres
-    ▼
-AbilityManager
-   • _abilities_by_id         Dict[String → AbilityData] (built on _ready)
-   • unlocked_ability_ids     from SaveGameData — grown by unlock_ability()
-   • equipped_ability_ids     4-slot array — positions matter for Q/W/E/R binding
-    │
-    │ at combat start: AbilityManager.get_equipped_abilities() →
-    │                  player CombatantData.abilities
-    ▼
-CombatAbilityManager (per combatant)
-    │ setup(owner): for each AbilityData →
-    ▼
-CombatAbilityInstance (Node child, one per ability)
-    │
-    │ player clicks button / enemy AI picks ready ability
-    ▼
-use_ability_instance(instance, enemy)
-    ├─ is_casting()?           reject (global lock)
-    ├─ is_ready()?              reject (on cooldown)
-    ├─ can_afford()?            reject (not enough HP/Madra/Stamina)
-    ├─ consume_costs()          deduct resources immediately
-    └─ instance.start_cast(enemy)
-         │
-         ├─ cast_time > 0?      enter casting state, start cast_timer,
-         │                      emit cast_started → UI shows cast bar
-         │                      on timeout → execute_ability(enemy)
-         │
-         └─ cast_time == 0      execute_ability(enemy) immediately
-
-execute_ability(enemy)
-    ├─ modified_attributes = base * buff_manager.get_attribute_modifier()
-    ├─ if OFFENSIVE: outgoing_mod = buff_manager.consume_outgoing_modifier()
-    ├─ for each effect in ability.effects_on_target:
-    │     enemy.receive_effect(effect, modified_attributes, outgoing_mod)
-    ├─ for each effect in ability.effects_on_self:
-    │     owner.receive_effect(effect, modified_attributes, 1.0)
-    │     (routes via CombatEffectManager → damage/heal/buff)
-    └─ start cooldown_timer (ability.base_cooldown)
-```
-
-Key runtime invariants:
-
-- **Global casting lock** — `CombatAbilityManager.is_casting()` blocks any new ability while *any* instance of the owner is mid-cast.
-- **Initial cooldown** — all abilities start combat on a `1.5s` cooldown (`CombatAbilityInstance.INITIAL_COOLDOWN`) to prevent front-load bursting.
-- **Modifier consumption** — outgoing damage modifiers (like Enforce) are consumed once per *offensive ability cast*, not per effect. Applied multiplicatively into damage at the target.
-
-## AbilityManager (Singleton)
-
-[singletons/ability_manager/ability_manager.gd](../../singletons/ability_manager/ability_manager.gd). Autoloaded. Mirrors the `CyclingManager` pattern.
-
-**Catalog**: loaded from [resources/abilities/ability_list.tres](../../resources/abilities/ability_list.tres) (an `AbilityListData` resource holding an `Array[AbilityData]`). Indexed by `ability_id` in `_build_catalog_index()` at `_ready()`.
-
-**State** (held on `SaveGameData`):
+### Save data (`singletons/persistence_manager/save_game_data.gd`)
 
 ```gdscript
 @export var unlocked_ability_ids: Array[String] = ["basic_strike", "enforce"]
-@export var equipped_ability_ids: Array[String] = ["basic_strike", "enforce"]
+@export var equipped_ability_ids: Array[String] = ["basic_strike", "enforce", "", ""]
 ```
 
-Default save: both innate abilities unlocked and equipped. `MAX_SLOTS = 4`; `_ensure_equipped_array_size()` pads the equipped array with `""` to length 4.
+`reset()` restores the same values. The equipped array is positional: index = slot = key (0 → Q … 3 → R); `""` is an empty slot.
 
-**Public API**:
+## Core Systems
 
-| Method | Purpose |
-|--------|---------|
-| `get_unlocked_abilities()` | `Array[AbilityData]` from unlocked IDs |
-| `get_equipped_abilities()` | `Array[AbilityData]` from equipped slots (skips empty) |
-| `get_ability_at_slot(i)` | ID at slot or `""` |
-| `unlock_ability(id)` | Idempotent — no-op if already unlocked; emits `ability_unlocked` |
-| `equip_ability(id)` | First empty slot; fails if locked or slots full |
-| `equip_ability_at_slot(id, i)` | Explicit slot placement; clears previous slot holding this ID |
-| `unequip_ability(id)` | Clears the ID from all slots |
-| `swap_slots(a, b)` | Reorder equipped layout (drives Q/W/E/R position) |
-| `is_ability_unlocked(id)` / `is_ability_equipped(id)` | Booleans |
-| `get_max_slots()` / `get_filled_slot_count()` | Slot queries |
-| `has_unequipped_unlocks()` | Drives the "new ability" badge on the Abilities SystemMenuButton |
+### AbilityManager API
 
-**Signals**: `ability_unlocked(ability)` and `equipped_abilities_changed()`.
+`MAX_SLOTS = 4`. All methods return safe defaults when no save data is attached.
 
-## Path Integration
+| Method | Behavior |
+|--------|----------|
+| `get_unlocked_abilities()` | `Array[AbilityData]` for unlocked ids, in unlock order; unknown ids skipped |
+| `get_equipped_abilities()` | `Array[AbilityData]` in slot order, empty slots and unknown ids skipped |
+| `get_ability_at_slot(i)` | id in slot `i`, or `""` (also for out-of-range) |
+| `unlock_ability(id)` | No-op if already unlocked; `push_error` for ids not in the catalog; appends and emits `ability_unlocked(ability)` |
+| `equip_ability(id)` | Errors if unknown or locked; returns true if already equipped; else fills the first empty slot and emits `equipped_abilities_changed`; returns false when all 4 are full |
+| `equip_ability_at_slot(id, i)` | Errors if unknown, locked or `i` out of range; clears the id from any other slot, overwrites slot `i` (the previous occupant becomes unequipped), emits |
+| `unequip_ability(id)` | No-op if not equipped; clears every slot holding the id, emits |
+| `swap_slots(a, b)` | Swaps two slots (empty allowed), emits; silently ignores out-of-range indices |
+| `is_ability_unlocked(id)` / `is_ability_equipped(id)` | Membership checks |
+| `get_max_slots()` / `get_filled_slot_count()` | 4 / non-empty slot count |
+| `has_unequipped_unlocks()` | Any unlocked id not in a slot; drives the system-menu badge |
 
-Path tree nodes unlock abilities via `PathNodeEffectData.EffectType.UNLOCK_ABILITY` (enum value `8`). The effect's `string_value` is the `ability_id` (not a resource path).
+Signals: `ability_unlocked(ability: AbilityData)`, `equipped_abilities_changed()`.
 
-`PathManager._apply_effect()` forwards the ID to `AbilityManager.unlock_ability(id)` — same pattern as `UNLOCK_CYCLING_TECHNIQUE` → `CyclingManager`.
+On `_ready` and on `PersistenceManager.save_data_reset`, the manager re-reads `PersistenceManager.save_game_data` and pads `equipped_ability_ids` to 4 entries. There is no public lookup by id; the catalog is only reachable through the unlocked/equipped getters.
 
-Current Pure Madra unlocks (see [resources/path_progression/pure_madra/nodes/](../../resources/path_progression/pure_madra/nodes/)):
+### Unlock flow
 
-| Path Node | Unlocks Ability |
-|-----------|-----------------|
-| `pure_core_awakening` | `empty_palm` |
-| `madra_strike` | `power_font` |
+```
+PathTreeView purchase → PathManager.purchase_node(node_id)
+  ├─ deduct points, record purchase, _recalculate_effects()
+  │     └─ _apply_effect(UNLOCK_ABILITY) → PathEffectsSummary.unlocked_abilities (read-only aggregate)
+  └─ for each node effect with effect_type == UNLOCK_ABILITY:
+        AbilityManager.unlock_ability(effect.string_value)   # string_value is an ability_id
+            └─ ability_unlocked → SystemMenuButton._refresh_badge()
+```
 
-Future paths (`blackflame`, `earth` themes exist, tree data pending) will unlock their own abilities via the same mechanism.
+`purchase_node()` makes the `AbilityManager.unlock_ability()` call itself. `_apply_effect()` only aggregates into `PathEffectsSummary` (exposed by `PathManager.get_unlocked_abilities()`) and never calls `AbilityManager`; `AbilityManager` is the source of truth for unlock state.
 
-## UI Surfaces
+| Path node (`resources/path_progression/pure_madra/nodes/`) | Type | Cost | Prerequisite | Unlocks |
+|-------------------------------------------------------------|------|------|--------------|---------|
+| `pure_core_awakening` | KEYSTONE | 1 point | none (root) | `empty_palm` + cycling technique `smooth_flow` |
+| `power_font` | KEYSTONE | 1 point | `pure_core_awakening` | `power_font` |
 
-### AbilitiesView (meta loadout)
+Both require the FOUNDATION stage (default). `PathManager.reset_path()` does not touch `AbilityManager`, so PATH abilities stay unlocked and equipped after a path reset. Path progression is documented in [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md).
 
-[scenes/abilities/abilities_view.tscn](../../scenes/abilities/abilities_view.tscn) — full-screen overlay pushed by `AbilitiesViewState` via the `open_abilities` input action (default: `A`).
+### Equip flows in the Abilities view
 
-- Left sidebar: 4 equipped slots with icons
-- Main area: filter bar (All / Offensive / Buff / Equipped) + sort dropdown + scrolling card list
-- `AbilityCard` scene — collapsed row (icon, name, badges, equipped dot) expands on click to show description, stats, and an EQUIP/UNEQUIP button
+| Player action | Call | Result |
+|---------------|------|--------|
+| Card EQUIP | `equip_ability(id)` | First empty slot |
+| Card UNEQUIP | `unequip_ability(id)` | Slot cleared (no compaction) |
+| Drag card → slot | `equip_ability_at_slot(id, slot)` | Placed in that slot; its old slot (if any) cleared; the occupant is unequipped |
+| Drag slot → slot | `swap_slots(from, to)` | Swapped (reorders keys) |
+| Drag slot → elsewhere | — | Nothing happens |
 
-### Combat UI
+After each action `AbilitiesView._refresh_without_rebuild()` updates card buttons, the loadout row and the counter. The full list is rebuilt when the view becomes visible and when the filter or sort changes.
 
-| Component | Purpose |
-|-----------|---------|
-| `AbilityButton` | Icon + cooldown overlay + Q/W/E/R keyhint + cost strip (blue/gold/red) + can't-afford dimming |
-| `AbilitiesPanel` | HBox of ability buttons + casting indicator + Q/W/E/R keybinding activation |
-| `CombatAbilityTooltip` | Hover tooltip — icon, name, total DMG, cooldown, cast time, costs |
-| `CombatBuffTooltip` | Hover tooltip for active buffs — name, description, live remaining duration, stacks |
+### Filters and sorts (`AbilitiesView`)
 
-Slot position in `equipped_ability_ids` directly drives Q/W/E/R binding order.
+| Filter | Shows unlocked abilities where |
+|--------|-------------------------------|
+| All | always |
+| Offensive | `effects_on_target` is non-empty |
+| Buff | `effects_on_target` is empty |
+| Equipped | `AbilityManager.is_ability_equipped(id)` |
+
+| Sort | Order |
+|------|-------|
+| Equipped First (default) | equipped before unequipped, then name A-Z |
+| Name A-Z | `ability_name` ascending |
+| Madra Cost | `madra_cost` ascending |
+| Cooldown | `base_cooldown` ascending |
+
+The active filter button is tinted `ThemeConstants.ACCENT_GOLD`.
+
+### Loadout to combat
+
+At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.get_equipped_abilities()` (slot order, gaps skipped). Each `AbilityButton` asks `AbilityManager.get_ability_at_slot()` for its slot, so Q/W/E/R follow the slot even when an earlier slot is empty. Loadout changes take effect at the next fight.
 
 ### AbilityStatsDisplay
 
-[scenes/abilities/ability_stats_display/](../../scenes/abilities/ability_stats_display/) — reusable stat block rendering for cards and tooltips. See the 2026-04-13 design spec for layout rules.
+| Mode | Pills | Used by |
+|------|-------|---------|
+| `DAMAGE` | DMG total (pulsing gold border), Base, one `+contribution` pill per non-zero scaling | Ability card |
+| `DAMAGE_TOTAL` | DMG total only | Combat ability tooltip |
+| `TIMING_COSTS` | CD, Cast (or "Cast: Instant"), `·`, non-zero Madra/Stamina/Health costs | Ability card, combat ability tooltip |
 
-## Persistence
+- Damage pills read only `effects_on_target[0]` and only when it has a base value or scaling; values are raw (`calculate_value`, before defense and modifiers) using `CharacterManager.get_total_attributes_data()`.
+- Hovering a pill shows `StatTooltip` with "Total Damage" (formula breakdown), "<ATTR> Scaling" (your value, %, contribution), "Base Damage", "Cooldown", "Cast Time" or "<Resource> Cost".
+- Attribute colours: STR `#E06060`, BODY `#D4A84A`, AGI `#7DCE82`, SPI `#6BA4D4`, FND `#B07DD4`, CTL `#60C4B0`, RES `#C4884A`, WIL `#D470A0`.
 
-All state lives on `SaveGameData`:
+## Integration Points
 
-```gdscript
-# Ability Manager
-@export var unlocked_ability_ids: Array[String] = ["basic_strike", "enforce"]
-@export var equipped_ability_ids: Array[String] = ["basic_strike", "enforce"]
-```
+| System | Direction | Connection |
+|--------|-----------|------------|
+| `PersistenceManager` / `SaveGameData` | in / out | `unlocked_ability_ids`, `equipped_ability_ids`; `save_data_reset` re-binds |
+| `PathManager` | in | `purchase_node()` calls `unlock_ability(string_value)` for `UNLOCK_ABILITY` effects |
+| Combat (`AdventureCombat`, `AbilitiesPanel`) | out | `get_equipped_abilities()` for the player combatant; `get_ability_at_slot()` for key hints and key routing |
+| `SystemMenuButton` (ABILITIES) | out | Listens to `ability_unlocked` and `equipped_abilities_changed`; badge = `has_unequipped_unlocks()` |
+| `MainView` state machine | in | `ZoneViewState` pushes `AbilitiesViewState` on `open_abilities` (A); `AbilitiesViewState` closes on `ui_cancel` or `open_abilities` via `GreyBackground.hide_with_panel()` |
+| `CharacterManager` | in | Attribute totals for stat pills and tooltips |
 
-`AbilityManager` holds `_live_save_data` reference from `PersistenceManager.save_game_data` and reconnects on `save_data_reset`. All mutations are direct writes — `PersistenceManager` handles saving.
+## Existing Content
+
+| Ability | Source | Madra type | Unlock | In catalog |
+|---------|--------|------------|--------|------------|
+| `basic_strike` | INNATE | NONE | New save | Yes |
+| `enforce` | INNATE | NONE | New save | Yes |
+| `empty_palm` | PATH | PURE | `pure_core_awakening` node | Yes |
+| `power_font` | PATH | PURE | `power_font` node | Yes |
+| `madra_lash` | (enemy) | NONE | Amorphous Spirit, Coalescing Spirit | No |
+| `famishing_bite` | (enemy) | NONE | Starving and Ravenous Dreadbeast | No |
+| `coalesce` | (enemy) | NONE | Coalescing Spirit | No |
+
+Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITIES_MATRIX.md).
 
 ## Adding a New Ability
 
-1. **Create the `.tres`** in `resources/abilities/<ability_id>.tres` — set `ability_id`, name, description, icon, target/madra/source, costs, cooldown, cast time.
-2. **Author the effect sub-resource(s)** — `CombatEffectData` for damage/heal, `BuffEffectData` for buffs. Set scaling coefficients per the attribute design (see [COMBAT.md attribute usage](../combat/COMBAT.md#attribute-usage-in-combat)).
-3. **Register in the catalog** — add the resource to the `abilities` array in [resources/abilities/ability_list.tres](../../resources/abilities/ability_list.tres).
-4. **Wire unlock**:
-   - `INNATE` → add `ability_id` to `unlocked_ability_ids` default in `SaveGameData.gd` and `reset()`.
-   - `PATH` → add an `UNLOCK_ABILITY` effect (type `8`) with `string_value = "<ability_id>"` to the appropriate path node `.tres`.
-5. **Update the matrix** — add the ability to [ABILITIES_MATRIX.md](ABILITIES_MATRIX.md) under the correct path section.
-6. **Test** — run GUT (`test_ability_manager.gd` covers unlock/equip paths). For balance, play through a combat encounter and watch damage numbers.
+1. Create `resources/abilities/<ability_id>.tres` (enemy-only abilities go in `resources/combat/combatant_data/enemy_abilities/`). Set `ability_id`, `ability_name`, `description`, `icon`, `madra_type`, `ability_source`, costs, `base_cooldown`, `cast_time`.
+2. Add effects: `CombatEffectData` sub-resources for damage, heal, `CANCEL_CAST` or `STRIP_BUFFS`; `BuffEffectData` for buffs. Put enemy-facing effects in `effects_on_target` and caster-facing ones in `effects_on_self`. A 0 s `base_cooldown` also removes the 1.5 s opening cooldown.
+3. Player abilities: add the resource to `abilities` in `resources/abilities/ability_list.tres`. Enemy abilities: add it to the enemy's `CombatantData.abilities` instead.
+4. Unlock: INNATE → add the id to the `unlocked_ability_ids` default and `reset()` in `save_game_data.gd`. PATH → add a `PathNodeEffectData` with `effect_type = UNLOCK_ABILITY` (8) and `string_value = "<ability_id>"` to a path node.
+5. Update [ABILITIES_MATRIX.md](ABILITIES_MATRIX.md).
+6. Run the test suite (`test_ability_manager.gd` covers unlock/equip), then play an encounter; `CombatEffectData.calculate_value()` logs the scaling breakdown.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| [scripts/resource_definitions/abilities/ability_data.gd](../../scripts/resource_definitions/abilities/ability_data.gd) | `AbilityData` class — ability definition |
-| [scripts/resource_definitions/abilities/ability_list_data.gd](../../scripts/resource_definitions/abilities/ability_list_data.gd) | `AbilityListData` — catalog container |
-| [scripts/resource_definitions/combat/combat_effect_data.gd](../../scripts/resource_definitions/combat/combat_effect_data.gd) | `CombatEffectData` — damage/heal/buff base, damage formula |
-| [scripts/resource_definitions/combat/buff_effect_data.gd](../../scripts/resource_definitions/combat/buff_effect_data.gd) | `BuffEffectData` — attribute/DoT/damage-mod buffs |
-| [singletons/ability_manager/ability_manager.gd](../../singletons/ability_manager/ability_manager.gd) | Unlock/equip state authority |
-| [resources/abilities/ability_list.tres](../../resources/abilities/ability_list.tres) | Catalog `.tres` |
-| [resources/abilities/](../../resources/abilities/) | All ability `.tres` definitions |
-| [scenes/combat/combatant/combat_ability_manager/combat_ability_manager.gd](../../scenes/combat/combatant/combat_ability_manager/combat_ability_manager.gd) | Per-combatant ability gate-keeping |
-| [scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd](../../scenes/combat/combatant/combat_ability_manager/combat_ability_instance.gd) | Cast/cooldown lifecycle |
-| [scenes/abilities/abilities_view.gd](../../scenes/abilities/abilities_view.gd) | Loadout management view |
-| [scenes/abilities/ability_card/ability_card.gd](../../scenes/abilities/ability_card/ability_card.gd) | Card component (collapsed + expanded rows) |
-| [scenes/ui/combat/ability_button/ability_button.gd](../../scenes/ui/combat/ability_button/ability_button.gd) | Combat ability button |
-| [tests/unit/test_ability_manager.gd](../../tests/unit/test_ability_manager.gd) | Unlock/equip unit tests |
+| `scripts/resource_definitions/abilities/ability_data.gd` | `AbilityData` definition, predicates, cost helpers |
+| `scripts/resource_definitions/abilities/ability_list_data.gd` | `AbilityListData` catalog class |
+| `resources/abilities/ability_list.tres` | Player ability catalog |
+| `resources/abilities/*.tres` | Player abilities |
+| `resources/combat/combatant_data/enemy_abilities/*.tres` | Enemy abilities |
+| `singletons/ability_manager/ability_manager.gd` | Unlock/equip state |
+| `singletons/persistence_manager/save_game_data.gd` | Ability save fields |
+| `singletons/path_manager/path_manager.gd` | `purchase_node()` → `unlock_ability()` |
+| `scenes/abilities/abilities_view.gd` / `.tscn` | Abilities view |
+| `scenes/abilities/abilities_view_state.gd` | View state (open/close input) |
+| `scenes/abilities/ability_card/ability_card.gd` / `.tscn` | Ability card |
+| `scenes/abilities/equip_slot/equip_slot.gd` / `.tscn` | Loadout slot (drag source and drop target) |
+| `scenes/common/drop_target_slot.gd` | Shared drop-target base (hover tint, drop routing) |
+| `scenes/abilities/ability_stats_display/ability_stats_display.gd` | Stat pills |
+| `scenes/abilities/stat_label/stat_label.gd` / `.tscn` | Single stat pill |
+| `scenes/abilities/stat_tooltip/stat_tooltip.gd` | Pill tooltip |
+| `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | ABILITIES menu button and badge |
+| `tests/unit/test_ability_manager.gd` | AbilityManager unit tests |
 
-## Related Docs
+## Work Remaining
 
-- [ABILITIES_MATRIX.md](ABILITIES_MATRIX.md) — per-path ability data tables (the source of truth for numbers)
-- [COMBAT.md](../combat/COMBAT.md) — combat runtime, attribute roles, damage formula context
-- [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) — how path nodes unlock abilities
-- `docs/superpowers/specs/2026-04-12-ability-system-redesign.md` — historical spec for the current architecture
-- `docs/superpowers/specs/2026-04-13-ability-stats-display-design.md` — stats display component spec
+### Bugs
+
+- `[MEDIUM]` Stat pills always use the player's attributes, including in the combat tooltip for enemy abilities (see [COMBAT.md](../combat/COMBAT.md#bugs)).
+- `[LOW]` Stale "resource path" wording for `UNLOCK_ABILITY`: the enum comment and `string_value` comment in `path_node_effect_data.gd` and `PathEffectsSummary.unlocked_abilities` say resource path; the value is an `ability_id`. The `power_font` node's `benefit_summary` still reads "Madra Strike unlocked".
+
+### Missing Functionality
+
+- `[HIGH]` Path perks that modify abilities do nothing. `efficient_palm` ("-20% Palm Cost"), `lingering_silence` ("+2s Silence Duration"; Empty Palm has no silence), `focused_strike` ("+40% Strike Damage") and `strike_efficiency` ("-15% Stamina Cost"; Power Font costs no Stamina) have empty `effects`. `PathNodeEffectData` has no ability-modifier effect type and abilities have no modifier hook.
+- `[MEDIUM]` No slot progression. `MAX_SLOTS` is a constant 4 and all slots are open on a new save; FOUNDATION_PLAYTHROUGH plans slots 3–4 as path-node rewards.
+- `[MEDIUM]` `AbilitySource.PATH` has no lifecycle. Nothing relocks or unequips path abilities on `PathManager.reset_path()`, and `AbilityManager` has no relock API.
+- `[MEDIUM]` `MadraType` has only `NONE` and `PURE`. Blackflame and Earth path themes exist with no enum values, trees or abilities.
+- `[LOW]` No validation: `AbilityData.validate()` is never called, and unknown ids in the save are silently skipped.
+- `[LOW]` No public lookup by id; `AbilitiesView._update_loadout_sidebar()` scans the unlocked list for every slot.
+
+### Content
+
+- `[HIGH]` Four player abilities. FOUNDATION_PLAYTHROUGH plans three Pure Madra keystone abilities (Beats 2, 3b, 6); the Beat 6 burst/finisher does not exist. No defensive, sustain, heal, DoT or debuff ability exists for the player (the GDD's "Stand Your Ground" defensive buff is not built).
+
+### UI
+
+- `[LOW]` Dropping a card onto an occupied slot unequips the occupant instead of moving it to the dragged ability's old slot, and dragging a slot onto empty space does nothing. The card button is the only way to unequip.
+- `[LOW]` Several cards can be expanded at once: `_on_card_selected()` is empty and `_expanded_card` is never assigned (the 2026-04-12 spec called for one at a time).
+- `[LOW]` The EQUIP button is a direct child of the card root and always visible; `ButtonRow` is empty. Cards have no equipped marker other than the button text, slots have no hover tooltip, and clicking a slot does not scroll to its card (spec).
+- `[LOW]` UI is built in code, against the project's scene-tree rule: `StatTooltip` builds its whole tree in `_init()` (no `.tscn`), `AbilityStatsDisplay._add_separator()` and `AbilityCard._create_tag_label()` create Labels, `AbilityCard` builds hover/expanded StyleBoxFlats, and `AbilityCard`/`AbilityEquipSlot` build identical drag previews.
+- `[LOW]` The pulsing DMG border is a StyleBoxFlat tween; the spec's `damage_total_glow` shader was never added, and pills do not live-update on attribute changes (the view rebuilds on open instead).
+
+### Tech Debt
+
+- `[LOW]` Unused: `StatLabel.set_value()`, `AbilityCard.collapse()`, `AbilitiesView.abilities_closed` (no listeners), `AbilitiesView._expanded_card`.
+- `[LOW]` `AbilityCard._set_children_mouse_pass()` says PASS but sets `MOUSE_FILTER_IGNORE`.
+- `[LOW]` Public functions without `##` doc comments: `AbilityData.validate()`, `AbilityData.get_total_cost_display()`.
+- `[LOW]` `test_ability_manager.gd` does not cover `swap_slots`, `equip_ability_at_slot` (move/overwrite), `get_ability_at_slot` bounds or save reset, and it replaces `AbilityManager._live_save_data` without restoring it. No tests cover `AbilityData` predicates, `can_afford`/`consume_costs`, or the view's filter and sort.

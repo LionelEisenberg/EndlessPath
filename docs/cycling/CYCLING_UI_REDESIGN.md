@@ -1,6 +1,11 @@
 # Cycling View UI Redesign
 
-**Status:** Implemented (PR #12)
+> **Status (2026-10-18):** Implemented in PR #12. See [CYCLING.md](CYCLING.md) for current behaviour. This is kept as a historical design record, so details below may be out of date. The main differences from this spec:
+> - There is no Start button; a cycle starts when the player clicks the Madra Ball.
+> - The Auto toggle stays inside the `CyclingTechnique` scene.
+> - The tabs are a `TabContainer` (`CyclingTabPanel`).
+> - Locked techniques are hidden rather than greyed out, and the list comes from `CyclingManager`.
+> - The equipped technique is marked by a gold name, not a gold border.
 
 ## Goal
 
