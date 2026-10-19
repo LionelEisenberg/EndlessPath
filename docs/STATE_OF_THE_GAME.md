@@ -10,7 +10,7 @@ Endless Path is a cultivation idle/incremental game with active mini-games, insp
 - a procedurally generated adventure with real-time combat;
 - inventory and gear, an ability loadout, a character sheet, and a skill tree.
 
-The engineering base is healthy: it is data-driven, has 16 manager singletons, and all 533 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
+The engineering base is healthy: it is data-driven, has 16 manager singletons, and all 538 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
 
 ## Where Each System Stands
 
@@ -36,15 +36,15 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 ## Health
 
 - **Size:** about 19.5k lines of game GDScript plus 6.4k lines of tests, 112 scenes, 98 data resources, 15 shaders.
-- **Tests:** 533/533 pass across 61 files in about 6 s (GUT 9.6.0). Several suites re-implement the logic they test instead of calling it: ResourceManager, CharacterManager, CultivationManager, and parts of inventory and adventure. Real coverage is lower than the count suggests ([TESTING.md](testing/TESTING.md)).
+- **Tests:** 538/538 pass across 62 files in about 7 s (GUT 9.6.0). Several suites re-implement the logic they test instead of calling it: ResourceManager, CharacterManager, CultivationManager, and parts of inventory and adventure. Real coverage is lower than the count suggests ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.
   - One unmerged branch, `feat/infallible-chaum-58f8ad`, adds in-combat consumables (20 commits, no PR).
-- **Notable bugs** (found in code review, not yet reproduced in-game):
-  - The trash slot can duplicate items, by two different paths.
-  - Adventure timeouts are reported as "retreated".
-  - A boss win runs the combat-end handler twice.
-  - Equipping BODY/FOUNDATION gear doesn't raise max vitals.
+- **Bugs fixed during this audit,** each reproduced by a failing test first:
+  - the trash slot could duplicate items, by two paths;
+  - adventure timeouts were reported as "retreated";
+  - a boss win ran the combat-end handler twice.
+- **Notable open bug** (found in code review): equipping BODY/FOUNDATION gear doesn't raise max vitals.
 - **Latent hang:** if the cultivation stage ever changes without stage data, `CultivationManager.add_core_density_xp()` loops forever. This must be fixed before Copper exists.
 
 ## Necessary Work
@@ -54,7 +54,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 2. **Consumables in combat.** Merge or finish `feat/infallible-chaum-58f8ad`, and give consumables a drop source.
 3. **Merchant v1 (Beat 4).** A gold sink that also makes the existing gear obtainable.
 4. **Beats 5–6:** an elite gear drop and a third keystone. These also need elite-defeated and "adventure cleared" events, so quests can gate on runs.
-5. **Fix the HIGH bugs**, starting with trash duplication.
+5. **Work through the open bugs** in each system doc's Work Remaining, e.g. the equipment page-size mismatch and the invisible modal backdrop.
 6. **Onboarding:**
    - announce Path Points and unlocks;
    - prompt the switch to Smooth Flow;

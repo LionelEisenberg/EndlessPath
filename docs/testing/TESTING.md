@@ -8,8 +8,8 @@ EndlessPath uses **GUT 9.6.0** (`addons/gut/`, editor plugin enabled) for unit a
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
 | Unit | `tests/unit/` | 44 | 476 |
-| Integration | `tests/integration/` | 17 | 57 |
-| **Total** | | **61** | **533** |
+| Integration | `tests/integration/` | 18 | 62 |
+| **Total** | | **62** | **538** |
 
 Tests run inside the full project, so all 17 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -17,19 +17,19 @@ Tests run inside the full project, so all 17 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-18 in this worktree at `21b3cb2` with the command from `CLAUDE.md`.
+Run on 2026-10-19, after the trash-slot and adventure end-flow fixes, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.6.stable.official.89cea1439 |
 | GUT | 9.6.0 (GUT reports 9.6.1 is available) |
-| Scripts / tests | 61 / 533 |
-| Passing / failing / pending or risky | 533 / 0 / 0 |
-| Asserts | 1957 and 1952 on two consecutive runs. The count varies slightly, probably from randomized map-generation tests. |
+| Scripts / tests | 62 / 538 |
+| Passing / failing / pending or risky | 538 / 0 / 0 |
+| Asserts | 1962 on the final run. Earlier runs of the 533-test suite gave 1957 and 1952; the count varies slightly, probably because of randomized map-generation tests. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | Exit code | 0 |
-| Wall time | About 6 to 6.5 s |
+| Wall time | About 6 to 7 s |
 
 Known noise in a green run:
 
@@ -135,7 +135,8 @@ tests/
 | Inject manager state directly | `CyclingManager._live_save_data`, `CyclingManager._techniques_by_id`, `QuestManager._quests_by_id`, `PathManager._all_trees`, `EventManager.live_save_data` | Some files null these in `after_each()` instead of restoring them, which leaks into later files. Nulling `EventManager.live_save_data` is behind the `event_progression on Nil` errors described above. |
 | Test-only hook in production code | `PathManager._test_stage_override` | The only one. `PathManager._is_stage_reached()` checks it first. |
 | Mutate the loaded save in place | `PersistenceManager.save_game_data.inventory = InventoryData.new()` (inventory integration tests) | Changes only in-memory state, but the rest of the developer's save stays loaded |
-| Instance a scene | `const X := preload("res://...tscn")`, `X.instantiate()`, `add_child_autofree(node)`, then `await get_tree().process_frame` before reading `@onready` nodes | 37 `await get_tree().process_frame` calls across 10 files |
+| Instance a scene | `const X := preload("res://...tscn")`, `X.instantiate()`, `add_child_autofree(node)`, then `await get_tree().process_frame` before reading `@onready` nodes | 40 `await get_tree().process_frame` calls across 11 files |
+| Scenes with hex map layers | After `add_child_autofree()`, call `tile_set.emit_changed()` on one of the scene's layers (`test_adventure_end_flow.gd`) | The project's hex layer script skips the addon's `_ready()`. A layer built after the shared tileset's first `changed` therefore has no cube↔map conversion, and `cube_to_map()` errors. See [ADVENTURING.md](../adventuring/ADVENTURING.md) Tech Debt. |
 | Signals | `watch_signals(obj)` with `assert_signal_emitted`, `assert_signal_emitted_with_parameters`, `assert_signal_emit_count`, `assert_signal_not_emitted` | 14 files |
 | Expected errors | `assert_push_error("unknown technique_id")` | GUT 9.6 fails a test on unexpected engine errors and `push_error` by default, so negative-path tests must consume their `push_error` (7 files, 14 uses) |
 | Fakes | Inner classes extending `EffectData`, such as `CountingEffect` (in 2 files) | Don't start inner class names with `Test` |
@@ -168,18 +169,18 @@ New tests should call the real method on the autoload, with its state swapped as
 | CultivationManager | `test_cultivation_manager` (25, mirror) | `AdvancementStageResource.get_xp_for_level()` | The `add_core_density_xp()` level-up loop and path point awards |
 | CharacterManager | `test_character_manager` (23), `test_character_attributes_data` (3), `test_award_attribute_effect_data` (3), `test_change_vitals_effect_data` (6) | Attribute data, `get_total_attributes_data()` through effects | Real `_get_equipment_bonuses()`, including accessories |
 | InventoryManager / InventoryData | `test_inventory_manager` (33), `_consumables` (14), `_consumable_hotbar` (7), `_pages` (3), `_restore` (4), `test_inventory_data_pagination` (4) | Equip/unequip/move/award/`has_item`, consumables, hotbar, pages, restore | Accessory swap (mirror) |
-| Inventory UI | `test_equipment_grid_pagination` (4), `test_equipment_drag_paging` (2), `test_equipment_filter` (4), `test_pagination_bar` (4), `test_sort_sub_banner` (2), `test_tab_banner_title` (2), `test_trash_slot_flow` (5), `test_item_detail_card` (2), `test_consumables_tab_hotbar_equip` (3), `test_journal_tab_render` (1) | Scene-level behaviour of tabs, grid, pagination, trash, detail card | `InventoryView` book open/close, materials tab |
+| Inventory UI | `test_equipment_grid_pagination` (4), `test_equipment_drag_paging` (2), `test_equipment_filter` (4), `test_pagination_bar` (4), `test_sort_sub_banner` (2), `test_tab_banner_title` (2), `test_trash_slot_flow` (8), `test_item_detail_card` (2), `test_consumables_tab_hotbar_equip` (3), `test_journal_tab_render` (1) | Scene-level behaviour of tabs, grid, pagination, trash, detail card | `InventoryView` book open/close, materials tab |
 | Items | `test_equipment` (25), `test_consumable_definition_data` (7), `test_crude_scale_tres` (6), `test_quest_item_definition_data` (2) | Definitions, tooltips, shipped Crude Scale values | |
 | Items generator | `test_items_md_parser` (21) | `ItemsMdParser` | Writer `scripts/tools/items_md_to_resources.gd` |
 | Combat | `test_combat_damage` (29), `test_combat_effect_types` (3), `test_combat_buff_manager_stacking` (7), `test_combat_buff_manager_strip` (4), `test_combat_ability_instance_cancel` (6), `test_empty_palm_interrupt` (2), `test_power_font_buff_strip` (2), `test_adventure_combat_victory_event` (2) | Damage formula, effect routing, buffs, cast cancel, victory event | `SimpleEnemyAI`, `VitalsManager` regen, gold reward |
-| Adventure | `test_adventure_map_generator` (9), `test_adventure_data` (9), `test_adventure_encounter` (5), `test_encounter_choice` (7), `test_encounter_quota` (2), `test_encounter_icon_config` (10), `test_hex_forest_atlas` (4), `test_adventure_result_data` (12), `test_adventure_combat_count` (12, mirror) | Generator, validation, eligibility, icon config, result defaults | `AdventureTilemap` (movement, fog, path preview), `AdventureView`, `AdventureEndCard` |
+| Adventure | `test_adventure_map_generator` (9), `test_adventure_data` (9), `test_adventure_encounter` (5), `test_encounter_choice` (7), `test_encounter_quota` (2), `test_encounter_icon_config` (10), `test_hex_forest_atlas` (4), `test_adventure_result_data` (12), `test_adventure_combat_count` (12, mirror), `test_adventure_end_flow` (2) | Generator, validation, eligibility, icon config, result defaults; the real `AdventureView` end flow for a timeout and a boss win | `AdventureTilemap` (movement, fog, path preview), the rest of `AdventureView` (death, result building), `AdventureEndCard` |
 | AbilityManager | `test_ability_manager` (18), `test_path_manager` | Unlock/equip/loadout | `AbilitiesView` UI |
 | CyclingManager | `test_cycling_manager` (20), `test_path_manager` | Unlock/equip/catalog | Cycling mini-game (`CyclingTechnique`, `CyclingView`) |
 | PathManager | `test_path_manager` (25), `test_award_path_point_effect_data` (4), `test_path_tree_resource_loading` (3) | Purchases, prerequisites, effects, shipped Pure Madra tree | `PathTreeView` UI |
 | QuestManager | `test_quest_manager` (25), `test_start_quest_effect_data` (2), `test_quest_progression_persistence` (3), `test_beat_3b_merchant_unlock` (1) | Start/advance/complete, validation, persistence | `QuestWindow`, `QuestToast` |
 | UnlockManager / conditions | `test_unlock_manager` (3), `test_unlock_condition_item_owned` (2), `test_aura_well_discovery_unlock` (2), `test_beat_3b_merchant_unlock` (1) | `force_unlock_condition()`; `EVENT_TRIGGERED`, `ITEM_OWNED`, `RESOURCE_AMOUNT` conditions; `CULTIVATION_LEVEL` only indirectly through the Beat 3b flow (`q_reach_cd_10`) | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED`, `ATTRIBUTE_VALUE` have no direct tests |
 | ZoneManager / training | `test_zone_progression_data` (7), `test_training_action_data` (18), `test_training_flow` (1), `test_aura_well_discovery_unlock` (2) | Training ticks/levels, action availability | Zone selection, `ZoneTilemap`, zone action presenters, `ZoneTransition` |
-| ActionManager | `test_training_flow` (1) | `TRAIN_STATS` only | `FORAGE`, `CYCLING`, `ADVENTURE`, `NPC_DIALOGUE` and `MERCHANT` dispatch |
+| ActionManager | `test_training_flow` (1), `test_adventure_end_flow` (2) | `TRAIN_STATS`; adventure `confirm_adventure_start()` and `stop_action()` | `FORAGE`, `CYCLING`, `NPC_DIALOGUE` and `MERCHANT` dispatch; the adventure Madra check in `_execute_adventure_action()` |
 | EventManager | None dedicated | `trigger_event()` used inside quest, encounter and content tests | `trigger_event()`/`has_event_triggered()` contract |
 | DialogueManager, PlayerManager, LogManager, `Log` | None | | All |
 | UI shell | None | | `MainView` stack, all 8 view states, `GreyBackground`, `Toolbar`, `SystemMenuButton` ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)) |

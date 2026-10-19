@@ -12,7 +12,7 @@ Status key:
 
 | Date | Feature | Spec | Plan | Status | Notes | Living doc |
 |---|---|---|---|---|---|---|
-| 2026-04-10 | Adventure end card | [spec](specs/2026-04-10-adventure-end-card-design.md) | [plan](plans/2026-04-10-adventure-end-card.md) | Shipped\* | Timeouts are labelled "You retreated" | [ADVENTURING](../adventuring/ADVENTURING.md) |
+| 2026-04-10 | Adventure end card | [spec](specs/2026-04-10-adventure-end-card-design.md) | [plan](plans/2026-04-10-adventure-end-card.md) | Shipped | The "manual exit" trigger has no UI (no retreat, by design). A timeout mislabelled as "You retreated" was fixed in the 2026-10 audit | [ADVENTURING](../adventuring/ADVENTURING.md) |
 | 2026-04-10 | Zone action button visuals | [spec](specs/2026-04-10-zone-action-button-visuals-design.md) | [plan](plans/2026-04-10-zone-action-button-visuals.md) | Shipped\* | PR #18; reworked into presenters in PR #29 | [ZONES](../zones/ZONES.md) |
 | 2026-04-11 | Path progression | — | [plan](plans/2026-04-11-path-progression.md) | Shipped\* | Node ids and costs differ from the plan; numeric perks are computed but never applied | [PATH_PROGRESSION](../progression/PATH_PROGRESSION.md) |
 | 2026-04-12 | Ability system redesign | [spec](specs/2026-04-12-ability-system-redesign.md) | [plan](plans/2026-04-12-ability-system-redesign.md) | Shipped\* | Unlock call lives in `PathManager.purchase_node()`; path-ability reset not built; drag-drop added beyond spec | [ABILITIES](../abilities/ABILITIES.md) |

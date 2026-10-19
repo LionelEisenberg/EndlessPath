@@ -1,6 +1,6 @@
 # EndlessPath Test Suite — One-Shot Agent Prompt
 
-> **Status (2026-10-18): historical, already executed. Do not run this prompt.** It was used on 2026-04-10 in commit `2f6d5bf`, which installed GUT **9.6.0** (not the v9.3.0 that Phase 1 below says) and added the first 176 tests. "There are currently ZERO tests" no longer holds: the suite now has 61 scripts and 533 tests. Several details below are also out of date:
+> **Status (2026-10-18): historical, already executed. Do not run this prompt.** It was used on 2026-04-10 in commit `2f6d5bf`, which installed GUT **9.6.0** (not the v9.3.0 that Phase 1 below says) and added the first 176 tests. "There are currently ZERO tests" no longer holds: the suite now has 62 scripts and 538 tests. Several details below are also out of date:
 >
 > - `.gutconfig.json` lists `res://tests/unit/` and `res://tests/integration/`.
 > - Adventure capacity is `foundation * 10`.
