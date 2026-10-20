@@ -71,6 +71,14 @@ func pop_state() -> void:
 	
 	state_stack.pop_back().exit()
 
+## Remove a state from wherever it sits in the stack, leaving the states above it open.
+func remove_state(state: MainViewState) -> void:
+	if not state_stack.has(state):
+		return
+
+	state_stack.erase(state)
+	state.exit()
+
 ## Change the base state, clearing the stack.
 func change_state(new_state: MainViewState) -> void:
 	if base_current_state == new_state:
