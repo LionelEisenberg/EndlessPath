@@ -162,6 +162,23 @@ func test_invalid_entries() -> void:
 	assert_eq(MerchantManager.purchase(_stock, itemless_entry), MerchantManager.PurchaseResult.INVALID_ENTRY, "no item")
 	assert_eq(ResourceManager.get_gold(), 1000.0, "invalid purchases must not charge")
 
+func test_item_class_must_match_item_type() -> void:
+	# award_items() only places an item whose class matches its item_type, so a
+	# mismatched entry would take the gold and award nothing.
+	ResourceManager.set_gold(1000.0)
+	var plain_item := ItemDefinitionData.new()
+	plain_item.item_id = "test_plain"
+	plain_item.item_type = ItemDefinitionData.ItemType.EQUIPMENT
+	plain_item.base_value = 10.0
+	var blade_as_consumable := _make_equipment("test_odd_blade", 10.0)
+	blade_as_consumable.item_type = ItemDefinitionData.ItemType.CONSUMABLE
+
+	assert_eq(MerchantManager.purchase(_stock, _make_entry("test_plain", plain_item, 0)),
+		MerchantManager.PurchaseResult.INVALID_ENTRY, "a plain ItemDefinitionData typed EQUIPMENT")
+	assert_eq(MerchantManager.purchase(_stock, _make_entry("test_odd_blade", blade_as_consumable, 0)),
+		MerchantManager.PurchaseResult.INVALID_ENTRY, "an EquipmentDefinitionData typed CONSUMABLE")
+	assert_eq(ResourceManager.get_gold(), 1000.0, "mismatched entries must not charge")
+
 #-----------------------------------------------------------------------------
 # QUERIES AND SIGNALS
 #-----------------------------------------------------------------------------

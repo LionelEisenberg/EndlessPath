@@ -111,7 +111,24 @@ func _is_valid(stock: MerchantStock, entry: MerchantStockEntry) -> bool:
 		and not stock.merchant_id.is_empty() \
 		and entry != null \
 		and not entry.entry_id.is_empty() \
-		and entry.item != null
+		and _can_award(entry.item)
+
+## Mirrors InventoryManager.award_items(): it only places an item whose class
+## matches its item_type (quest items take any class). Anything else would take
+## the gold and award nothing.
+func _can_award(item: ItemDefinitionData) -> bool:
+	if item == null:
+		return false
+	match item.item_type:
+		ItemDefinitionData.ItemType.MATERIAL:
+			return item is MaterialDefinitionData
+		ItemDefinitionData.ItemType.EQUIPMENT:
+			return item is EquipmentDefinitionData
+		ItemDefinitionData.ItemType.CONSUMABLE:
+			return item is ConsumableDefinitionData
+		ItemDefinitionData.ItemType.QUEST_ITEM:
+			return true
+	return false
 
 func _on_save_data_reset() -> void:
 	live_save_data = PersistenceManager.save_game_data
