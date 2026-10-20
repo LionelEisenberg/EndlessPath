@@ -12,13 +12,9 @@
 HSeparatorMerchant/base_type = &"HSeparator"
 HSeparatorMerchant/constants/separation = 24
 HSeparatorMerchant/styles/separator = ExtResource("7_separator")
-LabelMerchantTitle/base_type = &"Label"
-LabelMerchantTitle/colors/font_color = Color(0.831, 0.659, 0.29, 1)
+LabelMerchantTitle/base_type = &"LabelTitle"
 LabelMerchantTitle/colors/font_outline_color = Color(0.471, 0.91, 0.831, 0.3)
-LabelMerchantTitle/colors/font_shadow_color = Color(0, 0, 0, 0.6)
 LabelMerchantTitle/constants/outline_size = 10
-LabelMerchantTitle/constants/shadow_offset_x = 2
-LabelMerchantTitle/constants/shadow_offset_y = 2
 LabelMerchantTitle/font_sizes/font_size = 50
 MerchantAtmosphere/colors/light = Color(0.471, 0.882, 0.804, 0.28)
 MerchantAtmosphere/colors/mist = Color(1, 1.2, 1.5, 0.5)

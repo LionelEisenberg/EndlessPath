@@ -1,7 +1,8 @@
 extends GutTest
 
 ## Integration tests for Merchant v1: the ActionManager route (the shop stays
-## open until stop_action() closes it) and the shop view bound to real stock.
+## open until stop_action() closes it) and the shop view bound to real stock,
+## including broken stock data and the title's LabelTitle inheritance.
 
 const ZONE_ID: String = "SpiritValley"
 const ACTION_ID: String = "spirit_valley_merchant"
@@ -85,12 +86,38 @@ func test_shop_does_not_resume_cycling() -> void:
 
 const MerchantViewScene := preload("res://scenes/merchant/merchant_view.tscn")
 const DEFAULT_THEME_PATH: String = "res://assets/themes/merchant/spirit_valley_merchant_theme.tres"
+const PIXEL_THEME_PATH: String = "res://assets/themes/pixel_theme.tres"
 
 func _make_view() -> MerchantView:
 	var view: MerchantView = MerchantViewScene.instantiate()
 	add_child_autofree(view)
 	await get_tree().process_frame
 	return view
+
+## Puts the shop under a Control carrying outer_theme, the way MainView
+## carries pixel_theme.tres in main_game.tscn.
+func _make_view_under(outer_theme: Theme) -> MerchantView:
+	var outer := Control.new()
+	outer.theme = outer_theme
+	add_child_autofree(outer)
+	var view: MerchantView = MerchantViewScene.instantiate()
+	outer.add_child(view)
+	await get_tree().process_frame
+	return view
+
+## The Spirit Valley merchant, selling entries instead of its own stock.
+func _action_selling(entries: Array[MerchantStockEntry]) -> MerchantActionData:
+	var stock := MerchantStock.new()
+	stock.merchant_id = "test_merchant"
+	stock.entries = entries
+	var action: MerchantActionData = _merchant_action().duplicate()
+	action.stock = stock
+	return action
+
+func _fill_equipment() -> void:
+	var inventory := InventoryManager.get_inventory()
+	for i: int in inventory.equipment_capacity():
+		inventory.equipment[i] = ItemInstanceData.new()
 
 func _rows(view: MerchantView) -> Array[MerchantStockRow]:
 	var rows: Array[MerchantStockRow] = []
@@ -129,10 +156,34 @@ func test_rows_refresh_when_gold_changes() -> void:
 	ResourceManager.set_gold(0.0)
 	var view := await _make_view()
 	view.setup(_merchant_action())
+	view.show()
 	ResourceManager.set_gold(1000.0)
 	for row: MerchantStockRow in _visible_rows(view):
 		assert_false(row.get_node("%BuyButton").disabled, "%s is affordable now" % row.get_entry().entry_id)
 		assert_false(row.get_node("%BlockReasonLabel").visible)
+
+func test_closed_shop_skips_refresh_until_setup() -> void:
+	ResourceManager.set_gold(0.0)
+	var view := await _make_view()
+	view.setup(_merchant_action())
+	view.hide()
+	ResourceManager.set_gold(1000.0)
+	var dagger_buy: Button = _row_for(view, "makeshift_dagger").get_node("%BuyButton")
+	assert_true(dagger_buy.disabled, "a closed shop ignores gold changes")
+	view.setup(_merchant_action())
+	assert_false(dagger_buy.disabled, "opening the shop refreshes every row")
+
+func test_gear_rows_read_equipment_full() -> void:
+	ResourceManager.set_gold(1000.0)
+	_fill_equipment()
+	var view := await _make_view()
+	view.setup(_merchant_action())
+	var dagger_row := _row_for(view, "makeshift_dagger")
+	var reason: Label = dagger_row.get_node("%BlockReasonLabel")
+	assert_true(reason.visible)
+	assert_eq(reason.text, "Equipment full")
+	assert_true(dagger_row.get_node("%BuyButton").disabled, "gear can't be bought without a free slot")
+	assert_false(_row_for(view, "crude_scale").get_node("%BuyButton").disabled, "Crude Scales don't take an equipment slot")
 
 func test_buy_press_purchases_and_reports() -> void:
 	ResourceManager.set_gold(100.0)
@@ -147,18 +198,38 @@ func test_buy_press_purchases_and_reports() -> void:
 	assert_false(dagger_row.get_node("%BuyButton").visible)
 
 func test_extra_entries_beyond_rows_are_ignored() -> void:
-	var action: MerchantActionData = _merchant_action().duplicate()
-	var stock := MerchantStock.new()
-	stock.merchant_id = "test_overflow"
-	var entries: Array[MerchantStockEntry] = _merchant_action().stock.entries.duplicate()
-	entries.append(entries[0])
-	entries.append(entries[1])
-	stock.entries = entries
-	action.stock = stock
+	var real_entries: Array[MerchantStockEntry] = _merchant_action().stock.entries
+	var entries: Array[MerchantStockEntry] = real_entries.duplicate()
+	entries.append(real_entries[0])
+	entries.append(real_entries[1])
 	var view := await _make_view()
-	view.setup(action)
-	assert_eq(stock.entries.size(), 9)
-	assert_eq(_visible_rows(view).size(), 8, "rows beyond the 8 pre-built ones are dropped")
+	view.setup(_action_selling(entries))
+	assert_eq(entries.size(), 9)
+	var shown := _visible_rows(view)
+	assert_eq(shown.size(), 8, "rows beyond the 8 pre-built ones are dropped")
+	for i: int in shown.size():
+		assert_same(shown[i].get_entry(), entries[i], "row %d shows entry %d, in stock order" % [i + 1, i + 1])
+
+func test_merchant_without_stock_shows_no_rows() -> void:
+	var stockless: MerchantActionData = _merchant_action().duplicate()
+	stockless.stock = null
+	var view := await _make_view()
+	view.setup(stockless)
+	assert_eq(_visible_rows(view).size(), 0)
+
+func test_entries_without_item_hide_their_rows() -> void:
+	var real_entries: Array[MerchantStockEntry] = _merchant_action().stock.entries
+	var itemless := MerchantStockEntry.new()
+	itemless.entry_id = "test_nothing"
+	var entries: Array[MerchantStockEntry] = [real_entries[0], itemless, null, real_entries[1]]
+	var view := await _make_view()
+	view.setup(_action_selling(entries))
+	var rows := _rows(view)
+	assert_true(rows[0].visible)
+	assert_false(rows[1].visible, "an entry with no item has nothing to show")
+	assert_false(rows[2].visible, "an empty stock slot has nothing to show")
+	assert_true(rows[3].visible)
+	assert_same(rows[3].get_entry(), real_entries[1], "later rows still show their own entries")
 
 func test_buy_button_never_takes_keyboard_focus() -> void:
 	var view := await _make_view()
@@ -187,6 +258,31 @@ func test_setup_applies_shop_theme() -> void:
 	view.setup(plain)
 	assert_not_null(view.theme)
 	assert_eq(view.theme.resource_path, DEFAULT_THEME_PATH, "no shop_theme falls back to the scene default")
+
+func test_title_follows_label_title_from_the_outer_theme() -> void:
+	# LabelMerchantTitle's base, LabelTitle, lives in pixel_theme.tres on MainView,
+	# not in the merchant theme. Recolouring LabelTitle must recolour the shop title.
+	var outer_theme := Theme.new()
+	outer_theme.set_type_variation(&"LabelTitle", &"Label")
+	outer_theme.set_color(&"font_color", &"LabelTitle", Color.RED)
+	outer_theme.set_color(&"font_shadow_color", &"LabelTitle", Color.BLUE)
+	var view := await _make_view_under(outer_theme)
+	var title: Label = view.get_node("%TitleLabel")
+	assert_eq(title.get_theme_color(&"font_color"), Color.RED)
+	assert_eq(title.get_theme_color(&"font_shadow_color"), Color.BLUE)
+	assert_gt(title.get_theme_constant(&"outline_size"), 0, "the glow stays the zone's own")
+
+func test_title_matches_label_title_in_game() -> void:
+	# pixel_theme.tres has a default font size, which Godot returns for
+	# LabelMerchantTitle before it reaches LabelTitle. So the merchant theme
+	# repeats LabelTitle's size, and this catches the two drifting apart.
+	var pixel_theme: Theme = load(PIXEL_THEME_PATH)
+	var view := await _make_view_under(pixel_theme)
+	var title: Label = view.get_node("%TitleLabel")
+	assert_eq(title.get_theme_font_size(&"font_size"), pixel_theme.get_font_size(&"font_size", &"LabelTitle"))
+	assert_eq(title.get_theme_color(&"font_color"), pixel_theme.get_color(&"font_color", &"LabelTitle"))
+	assert_eq(title.get_theme_color(&"font_shadow_color"), pixel_theme.get_color(&"font_shadow_color", &"LabelTitle"))
+	assert_eq(title.get_theme_constant(&"shadow_offset_y"), pixel_theme.get_constant(&"shadow_offset_y", &"LabelTitle"))
 
 func test_atmosphere_reads_theme_colours() -> void:
 	var view := await _make_view()

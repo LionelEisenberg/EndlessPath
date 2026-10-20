@@ -61,7 +61,8 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Shows the merchant: its zone theme, title, greeting and stock. Rows beyond
-## the stock are hidden; stock beyond the rows is left out with a warning.
+## the stock are hidden; stock beyond the rows is left out with a warning, and
+## so is an entry with no item (its row stays hidden).
 func setup(action_data: MerchantActionData) -> void:
 	theme = action_data.shop_theme if action_data.shop_theme else _default_theme
 	_title_label.text = action_data.action_name
@@ -70,15 +71,23 @@ func setup(action_data: MerchantActionData) -> void:
 	_status_label.text = ""
 
 	_stock = action_data.stock
-	var entries: Array[MerchantStockEntry] = _stock.entries if _stock else []
+	var entries: Array[MerchantStockEntry] = []
+	if _stock:
+		entries = _stock.entries
 	if entries.size() > _rows.size():
 		Log.warn("MerchantView: %s sells %d entries but the shop has %d rows; the rest are hidden" % [
 			action_data.action_id, entries.size(), _rows.size()])
 	for i: int in _rows.size():
 		var row := _rows[i]
-		row.visible = i < entries.size()
-		if row.visible:
-			row.set_entry(entries[i])
+		row.visible = false
+		if i >= entries.size():
+			continue
+		var entry := entries[i]
+		if entry == null or entry.item == null:
+			Log.warn("MerchantView: %s stock entry %d has no item; its row is hidden" % [action_data.action_id, i])
+			continue
+		row.set_entry(entry)
+		row.visible = true
 	_refresh()
 
 ## Plays the open animation.
@@ -102,6 +111,11 @@ func _refresh() -> void:
 		if row.visible and entry:
 			row.set_status(MerchantManager.get_purchase_status(_stock, entry), MerchantManager.get_gold_shortfall(entry))
 
+## setup() refreshes when the shop opens, so a closed shop skips the work.
+func _refresh_if_visible() -> void:
+	if is_visible_in_tree():
+		_refresh()
+
 func _on_row_buy_pressed(entry: MerchantStockEntry) -> void:
 	if MerchantManager.purchase(_stock, entry) == MerchantManager.PurchaseResult.OK:
 		_status_label.text = MSG_BOUGHT % entry.item.item_name
@@ -111,7 +125,7 @@ func _on_leave_button_pressed() -> void:
 	close_requested.emit()
 
 func _on_gold_changed(_new_amount: float) -> void:
-	_refresh()
+	_refresh_if_visible()
 
 func _on_inventory_changed(_inventory: InventoryData) -> void:
-	_refresh()
+	_refresh_if_visible()
