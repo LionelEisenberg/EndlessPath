@@ -61,7 +61,7 @@ See `docs/testing/TESTING.md` for test conventions, the coverage map, and why te
 | Directory | Purpose |
 |-----------|---------|
 | `scripts/` | GDScript source: resource definitions (`resource_definitions/`), utilities (`utils/`), editor/CLI tools (`tools/`), and the zone action presenter base (`ui/`) |
-| `singletons/` | 16 manager singletons (global game state). They are autoloads along with Dialogic, 17 in total |
+| `singletons/` | 17 manager singletons (global game state). They are autoloads along with Dialogic, 18 in total |
 | `scenes/` | Godot `.tscn` scene files + attached scripts |
 | `resources/` | `.tres` data files (abilities, adventures and encounters, enemies, cycling, items, path tree, quests, unlocks, zones and their loot tables) |
 | `assets/` | Art (sprites, Aseprite sources), shaders, themes, styleboxes, fonts, dialogue data. No audio yet |
@@ -85,11 +85,12 @@ These are autoloaded in `project.godot` and provide global state:
 | `DialogueManager` | Dialogic integration |
 | `PlayerManager` | Holds the persistent player `VitalsManager` (HP/Madra/Stamina) |
 | `LogManager` | Player-facing in-game log, shown in `LogWindow`. Diagnostics use the `Log` utility |
-| `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training). No queue |
+| `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training, merchant). No queue |
 | `CharacterManager` | Player attributes (base + equipment bonuses) |
 | `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups) |
 | `PathManager` | Path progression tree, point balance, perk aggregation. Most numeric perks are not yet read by any system |
 | `AbilityManager` | Ability unlock/equip state (unlocked pool, 4-slot loadout, catalog) |
+| `MerchantManager` | Merchant purchases: stock limits, gold and equipment-space checks, per-merchant ledgers in `SaveGameData.merchant_ledgers` |
 | `Dialogic` | Dialogue/narrative system (addon autoload) |
 
 ### Data-Driven Design
@@ -106,7 +107,7 @@ These are autoloaded in `project.godot` and provide global state:
 - Right-click to quick equip/unequip; the description box shows the dragged item during a drag
 
 ### View Architecture
-`MainView` (class) implements the state stack. Its 8 state nodes live under a script-less `MainViewStateMachine` child node:
+`MainView` (class) implements the state stack. Its 9 state nodes live under a script-less `MainViewStateMachine` child node:
 - `ZoneViewState` — Exploration/map view (initial base state)
 - `AdventureViewState` — Combat exploration (base state)
 - `CyclingViewState` — Cycling mini-game overlay
@@ -115,8 +116,9 @@ These are autoloaded in `project.godot` and provide global state:
 - `PathTreeViewState` — Path progression skill tree overlay
 - `AbilitiesViewState` — Ability management with loadout and drag-drop equipping
 - `CharacterViewState` — Character attributes overlay
+- `MerchantViewState` — Merchant shop overlay (`MerchantView`), opened and closed by `ActionManager.start_merchant` / `stop_merchant`
 
-Menu overlays are switched via input actions (`open_inventory`, `open_abilities`, `open_character`, `open_path`), which only the current state handles. Cycling, adventure, and the end card are driven by signals instead: the state scripts connect to `ActionManager`/`AdventureView` themselves. The state machine supports `change_state` for base views and `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view).
+Menu overlays are switched via input actions (`open_inventory`, `open_abilities`, `open_character`, `open_path`), which only the current state handles. Cycling, adventure, the merchant, and the end card are driven by signals instead: the state scripts connect to `ActionManager`/`AdventureView` themselves. The state machine supports `change_state` for base views and `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view).
 
 The `Toolbar` (`scenes/ui/toolbar/`, at the bottom of `ZoneView`) holds the nav buttons, which fire the same input actions via `Input.parse_input_event()`. `SystemMenuButton` (script in `scenes/zones/zone_resource_panel/system_menu/`) uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown. See `docs/infrastructure/MAIN_VIEW.md`.
 
@@ -134,7 +136,7 @@ Shared components used across multiple views:
 
 ### Game Systems
 1. **Cycling** — Mouse-following Madra Ball + timed clicks on cycling zones along a body diagram (Madra and Core Density XP); swappable techniques
-2. **Zones & idle actions** — Hex zone map; foraging and training (Aura Well) idle actions, NPC dialogue, merchant (stub)
+2. **Zones & idle actions** — Hex zone map; foraging and training (Aura Well) idle actions, NPC dialogue, merchant shop (gold for gear and Crude Scales; look themed per zone)
 3. **Adventuring** — Procedurally generated hex maps with fog-of-war (shader + FogVeilSprite smoke overlays), per-type encounter icons, floating AdventureMarker, tiled-texture path preview with committed-destination system (gradient fade behind player), real-time combat, scroll end card with stats/loot
 4. **Combat** — Real-time; abilities cost Health/Madra/Stamina (no AP pool) and have cooldowns, cast times, buffs, and interrupts; simple enemy AI
 5. **Inventory** — Book-style UI: paged equipment grid, gear slots, consumables hotbar, materials, quest journal

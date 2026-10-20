@@ -1,12 +1,12 @@
 # Main View (UI Shell and Navigation)
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Overview
 
-`main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, adventure end card), the always-on HUD panels (log, quests), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
+`main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, merchant shop, adventure end card), the always-on HUD panels (log, quests), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
 
 - Menu overlays (Inventory, Path, Abilities, Character) open from the keyboard or the bottom toolbar. Both routes produce the same input action.
-- Cycling, adventures and the end card are driven by `ActionManager` and `AdventureView` signals.
+- Cycling, the merchant shop, adventures and the end card are driven by `ActionManager` and `AdventureView` signals.
 - Only the top state receives input. Everything else that reads input (combat hotkeys, camera pan/zoom, the dev hotkey, Dialogic) is handled outside the state machine.
 
 Related docs: [UI_STYLING.md](../UI_STYLING.md) (theme), [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) (dev panel), [TESTING.md](../testing/TESTING.md).
@@ -19,7 +19,7 @@ Related docs: [UI_STYLING.md](../UI_STYLING.md) (theme), [DEV_TOOLS.md](../tooli
 MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey, Log print level
 ├── MainView (Control, 1920x1080)          main_view.gd (class MainView): state stack + input routing
 │   │                                      theme = pixel_theme.tres, mouse_filter = Ignore
-│   ├── MainViewStateMachine (Node)        no script; container for the 8 state nodes
+│   ├── MainViewStateMachine (Node)        no script; container for the 9 state nodes
 │   │   ├── AdventureViewState             scenes/ui/main_view/states/adventure_view_state.gd
 │   │   ├── InventoryViewState             scenes/ui/main_view/states/inventory_view_state.gd
 │   │   ├── ZoneViewState                  scenes/ui/main_view/states/zone_view_state.gd
@@ -27,7 +27,8 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 │   │   ├── AdventureEndCardState          scenes/ui/main_view/states/adventure_end_card_state.gd
 │   │   ├── PathTreeViewState              scenes/path_progression/path_tree_view_state.gd
 │   │   ├── AbilitiesViewState             scenes/abilities/abilities_view_state.gd
-│   │   └── CharacterViewState             scenes/character/character_view_state.gd
+│   │   ├── CharacterViewState             scenes/character/character_view_state.gd
+│   │   └── MerchantViewState              scenes/merchant/merchant_view_state.gd
 │   ├── ZoneView (Control)                 base view; hidden while adventuring
 │   │   ├── ZoneTransition (Node)          zone_transition.gd: Madra drain + camera zoom into adventures
 │   │   ├── SubViewportContainer           1920x1080, centred
@@ -49,6 +50,7 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 │   ├── InventoryView           z 3        inventory_view.tscn (root scale 2x, centred)
 │   ├── AbilitiesView           z 3        abilities_view.tscn (z set on the scene root)
 │   ├── CharacterView           z 3        character_view.tscn (z and visible=false set on the scene root)
+│   ├── MerchantView            z 3        merchant_view.tscn (z, visible=false and the Spirit Valley theme set on the scene root)
 │   ├── CyclingView             z 3        cycling_view.tscn
 │   ├── DevPasswordModal        z 10       dev_password_modal.tscn, hidden
 │   └── DevPanel                z 10       dev_panel.tscn, hidden, top-left 340x400
@@ -74,7 +76,7 @@ Draw order is controlled by `z_index`. LogWindow and QuestWindow (z 1) sit under
 
 ### State machine (`MainView`)
 
-`MainView` (`scenes/ui/main_view/main_view.gd`) owns the machine. `MainViewStateMachine` is only a node that groups the state children. Every state extends `MainViewState` (`states/main_view_state.gd`), which defines `scene_root: MainView` plus `enter()`, `exit()` and `handle_input(event)`, all no-ops by default. `MainView._ready()` assigns `scene_root` on all 8 states and calls `change_state(zone_view_state)`.
+`MainView` (`scenes/ui/main_view/main_view.gd`) owns the machine. `MainViewStateMachine` is only a node that groups the state children. Every state extends `MainViewState` (`states/main_view_state.gd`), which defines `scene_root: MainView` plus `enter()`, `exit()` and `handle_input(event)`, all no-ops by default. `MainView._ready()` assigns `scene_root` on all 9 states and calls `change_state(zone_view_state)`.
 
 | Field / method | Behaviour |
 |----------------|-----------|
@@ -99,6 +101,7 @@ In practice at most one overlay is open at a time. Overlay states never push oth
 | `PathTreeViewState` | Overlay | `grey_background.show_with_panel(path_tree_view)` | No-op (already hidden by the fade) | `ui_cancel` or `open_path` → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Grey fade-out |
 | `AbilitiesViewState` | Overlay | `show_with_panel(abilities_view)` | No-op | `ui_cancel` or `open_abilities` → same close path | Grey fade-out |
 | `CharacterViewState` | Overlay | `show_with_panel(character_view)` | No-op | `ui_cancel` or `open_character` → same close path | Grey fade-out |
+| `MerchantViewState` | Overlay | `show_with_panel(merchant_view)` | No-op | `ui_cancel` → `ActionManager.stop_action()`; the Leave button (`MerchantView.close_requested`) does the same | `ActionManager.stop_merchant` → `hide_with_panel()`, then `pop_state()` on `panel_hidden`, only while it is the top state |
 
 What each view shows:
 
@@ -112,6 +115,7 @@ What each view shows:
 | `PathTreeView` | Path skill tree (left-drag pan, wheel zoom), benefits area | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
 | `AbilitiesView` | Ability cards, 4-slot loadout, sort and filter | [ABILITIES.md](../abilities/ABILITIES.md) |
 | `CharacterView` | 8 attributes in Physical (STR, BODY, AGI, RES) and Spiritual (SPI, FND, CTRL, WILL) groups, with hover tooltips | [CHARACTER.md](CHARACTER.md) |
+| `MerchantView` | Merchant shop: title, greeting, gold, up to 8 stock rows with price and Buy, status line, Leave. Its root `theme` is the merchant's zone theme | [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
 
 ### GreyBackground (modal backdrop)
 
@@ -120,7 +124,7 @@ What each view shows:
 | Mode | Used by | Behaviour |
 |------|---------|-----------|
 | Direct toggle | Inventory, Cycling, AdventureEndCard states | `grey_background.visible = true/false`, with no animation |
-| Fade orchestration | PathTree, Abilities, Character states | `show_with_panel(panel)` sets `self_modulate.a = 0`, shows backdrop and panel, plays `grey_fade_in`, and calls `panel.animate_open()` if it exists. `hide_with_panel(panel)` plays `grey_fade_out`, calls `panel.animate_close()` if it exists, and when the grey animation finishes hides both nodes and emits `panel_hidden`. The grey animation's timing, not the panel's, decides when the close is done. |
+| Fade orchestration | PathTree, Abilities, Character, Merchant states | `show_with_panel(panel)` sets `self_modulate.a = 0`, shows backdrop and panel, plays `grey_fade_in`, and calls `panel.animate_open()` if it exists. `hide_with_panel(panel)` plays `grey_fade_out`, calls `panel.animate_close()` if it exists, and when the grey animation finishes hides both nodes and emits `panel_hidden`. The grey animation's timing, not the panel's, decides when the close is done. |
 
 ### ActionManager-driven transitions
 
@@ -129,6 +133,9 @@ The state scripts connect to `ActionManager` themselves in `_ready()`. `MainView
 ```
 Zone action (cycling) ─► ActionManager.start_cycling ─► CyclingViewState: push_state(cycling)
 Esc / close button ─► close_cycling_view ─► ActionManager.stop_action() ─► stop_cycling ─► pop_state()
+
+Zone action (merchant) ─► ActionManager.start_merchant ─► MerchantViewState: merchant_view.setup(action); push_state(merchant)
+Leave / Esc ─► ActionManager.stop_action() ─► stop_merchant ─► hide_with_panel ─► panel_hidden ─► pop_state()
 
 Zone action (adventure) ─► ActionManager.adventure_start_requested
    ├─► ZoneViewState: adds a full-rect Control (mouse Stop) to ZoneView and ignores keys
@@ -145,7 +152,7 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure
                      └─► pop_state(); change_state(zone)   (ZoneTransition.reset_camera())
 ```
 
-`stop_cycling` and `stop_adventure` also fire when `ActionManager.select_action()` replaces the current action, or when `ZoneManager.zone_changed` stops it.
+`stop_cycling`, `stop_merchant` and `stop_adventure` also fire when `ActionManager.select_action()` replaces the current action, or when `ZoneManager.zone_changed` stops it.
 
 ### Input routing
 
@@ -176,7 +183,7 @@ Other inputs:
 
 | Input | Handled by | Effect |
 |-------|------------|--------|
-| Escape (built-in `ui_cancel`) | `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState` | Close the overlay |
+| Escape (built-in `ui_cancel`) | `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState` | Close the overlay (the merchant does it by stopping its action) |
 | Ctrl+Shift+D (`KEY_D`, logical) | `MainGame._input()` | Dev password modal or dev panel toggle. No-op unless `user://dev_password.txt` exists. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md). |
 | Right mouse drag | `CameraPanController` on the zone tilemap camera only (the adventure camera follows the player and has no pan controller) | Pan the zone map |
 | Mouse wheel | `CameraZoomController`: zone 0.65 to 1.35 (default 0.729), adventure 0.3 to 1.3 (default 1.0) | Zoom |
@@ -237,11 +244,11 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 | System | Connection |
 |--------|------------|
-| ActionManager | `start_cycling`/`stop_cycling` → `CyclingViewState` push/pop. `adventure_start_requested` → `ZoneViewState` input blocker plus `ZoneTransition` drain. `start_adventure` → `AdventureViewState.change_state()`. `stop_action()` called by `CyclingViewState`. |
+| ActionManager | `start_cycling`/`stop_cycling` → `CyclingViewState` push/pop. `start_merchant`/`stop_merchant` → `MerchantViewState` push / fade and pop. `adventure_start_requested` → `ZoneViewState` input blocker plus `ZoneTransition` drain. `start_adventure` → `AdventureViewState.change_state()`. `stop_action()` called by `CyclingViewState`. |
 | AdventureView | `adventure_completed(result)` → end card push. `is_in_combat`, `force_win_combat()` and `set_show_whole_map()` are used by the dev panel. |
 | AdventureEndCard | `show_results(result)`, `return_requested` → pop + `change_state(zone)` |
 | InventoryView | `animate_open()`, `animate_close()`, `inventory_closed` |
-| PathTreeView / AbilitiesView / CharacterView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
+| PathTreeView / AbilitiesView / CharacterView / MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
 | ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain. |
 | ResourceManager | `Toolbar` gold label (`gold_changed`, `get_gold()`) |
 | AbilityManager | `SystemMenuButton` badge (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
@@ -262,6 +269,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/path_progression/path_tree_view_state.gd` | Path tree overlay state |
 | `scenes/abilities/abilities_view_state.gd` | Abilities overlay state |
 | `scenes/character/character_view_state.gd` | Character overlay state |
+| `scenes/merchant/merchant_view_state.gd`, `merchant_view.tscn` | Merchant shop overlay state and view |
 | `scenes/ui/grey_background/grey_background.gd` | Modal backdrop and fade orchestration |
 | `scenes/ui/toolbar/toolbar.tscn`, `toolbar.gd` | Bottom navigation bar and gold readout |
 | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | `SystemMenuButton` and `MenuType` config |
@@ -273,7 +281,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 ### Bugs
 
-- `[MEDIUM]` The grey backdrop goes invisible after a faded panel closes. `GreyBackground.hide_with_panel()` ends `grey_fade_out` with `self_modulate.a = 0`, and nothing resets it. `InventoryViewState.enter()`, `CyclingViewState.enter()` and `AdventureEndCardState.enter()` only set `visible = true`. After the Path, Abilities or Character view has been opened and closed once, the backdrop behind Inventory, Cycling and the end card no longer dims the screen, though it still blocks clicks. Found by reading the code; not reproduced in-game.
+- `[MEDIUM]` The grey backdrop goes invisible after a faded panel closes. `GreyBackground.hide_with_panel()` ends `grey_fade_out` with `self_modulate.a = 0`, and nothing resets it. `InventoryViewState.enter()`, `CyclingViewState.enter()` and `AdventureEndCardState.enter()` only set `visible = true`. After the Path, Abilities, Character or Merchant view has been opened and closed once, the backdrop behind Inventory, Cycling and the end card no longer dims the screen, though it still blocks clicks. Found by reading the code; not reproduced in-game.
 
 ### Missing Functionality
 
@@ -302,7 +310,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
   - `AbilitiesView.abilities_closed`, `PathTreeView.path_tree_closed` and `InventoryView.inventory_opened` are emitted but have no listeners.
 - `[LOW]` Some nodes are created in code despite the scene-tree UI rule: the `ZoneViewState._add_input_blocker()` `Control.new()`, and `FlyingParticle`, which has no `.tscn`.
 - `[LOW]` Stale doc comments:
-  - The `MainView` class comment lists 4 views; there are 8 states.
+  - The `MainView` class comment lists 4 views; there are 9 states.
   - The `GreyBackground` header names only AbilitiesView/PathTreeView.
   - `TickProgressBar` says the counter is "below the bar"; the scene places it to the right.
 - `[LOW]` `MainGame.log_print_level` is set to `0` (`Log.Event.INFO`) in `main_game.tscn`; the script default is `DEBUG`. `Log.Event` orders `INFO`(0) before `DEBUG`(1), so INFO prints every level and DEBUG would hide INFO lines (see [LOGGING.md](LOGGING.md)).

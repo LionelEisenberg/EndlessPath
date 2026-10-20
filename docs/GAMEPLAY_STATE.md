@@ -1,6 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
 
@@ -28,8 +28,8 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
    - Smooth Flow has cycling zones, so cycling now earns Core Density XP. The only hint is a line of dialogue.
 9. **Aura Well** (one per map). Choosing *Mark down the location* unlocks **Aura Well** training: an idle action giving +1.5 Madra/s and +1 Spirit per level.
 10. **Reach Core Density 10** (+1 Path Point), then **NPC dialogue 4**. This completes the quest and awards the **Refugee Camp Map**.
-11. **Refugee Camp** encounter. It appears in later runs while the player holds the map. Visiting it reveals the **Traveling Merchant**, which is a stub that only logs "Shop coming soon".
-12. **End of content.** No quest is active and no further beats exist. Cycling, adventures, foraging, training and the path tree remain as repeatable loops. Core Density keeps rising past 100 with no breakthrough, and the stage can never change.
+11. **Refugee Camp** encounter. It appears in later runs while the player holds the map. Visiting it reveals the **Traveling Merchant**, whose shop sells six gear pieces (once each per save) and Crude Scales for gold.
+12. **End of content.** No quest is active and no further beats exist. Cycling, adventures, foraging, training, the Merchant and the path tree remain as repeatable loops. Core Density keeps rising past 100 with no breakthrough, and the stage can never change.
 
 Other views, all opened from the zone view via keyboard or the bottom toolbar:
 
@@ -62,7 +62,7 @@ A draggable log window and a quest tracker/toast give feedback. Progress auto-sa
 | `celestial_intervener_dialogue_3` | NPC dialogue (once) | `q_first_steps_enemy_defeated` | Completes `q_first_steps`, starts `q_reach_core_density_10` |
 | `aura_well_training` | Training | `aura_well_discovered` | 1 s ticks: +1.5 Madra; +1 Spirit per level (60/300/600/1200 ticks, then ×2) |
 | `celestial_intervener_dialogue_4` | NPC dialogue (once) | Core Density ≥ 10 | Completes `q_reach_core_density_10` |
-| `spirit_valley_merchant` | Merchant | `merchant_discovered` | Stub: logs "Shop coming soon" |
+| `spirit_valley_merchant` | Merchant | `merchant_discovered` | Opens the shop: 6 gear pieces (once per save) and Crude Scales for gold |
 
 Details: [ZONES.md](zones/ZONES.md).
 
@@ -78,16 +78,16 @@ All dialogue is one Dialogic timeline (`celestial_intervener_introduction_1`, la
 ### Items
 | Item | Type | Stats / effect | Obtainable on `main`? |
 |---|---|---|---|
-| Makeshift Dagger (`makeshift_dagger`) | Equipment, MAIN_HAND | STR +3, AGI +2 | No (only in an unreferenced test loot table) |
-| Iron Shortsword (`iron_shortsword`) | Equipment, MAIN_HAND | STR +5, AGI +2 | No (same unreferenced table) |
-| Cultivator's Cowl (`cultivators_cowl`) | Equipment, HEAD | WIL +3, SPI +1 | No |
-| Reinforced Robes (`reinforced_robes`) | Equipment, ARMOR | BODY +4, RES +2 | No |
-| Scripted Bark (`scripted_bark`) | Equipment, OFF_HAND | BODY +2 | No |
-| Leeching Ring (`leeching_ring`) | Equipment, ACCESSORY | FND +2, CTRL +2 | No |
+| Makeshift Dagger (`makeshift_dagger`) | Equipment, MAIN_HAND | STR +3, AGI +2 | Yes, Merchant (60 gold, once) |
+| Iron Shortsword (`iron_shortsword`) | Equipment, MAIN_HAND | STR +5, AGI +2 | Yes, Merchant (150 gold, once) |
+| Cultivator's Cowl (`cultivators_cowl`) | Equipment, HEAD | WIL +3, SPI +1 | Yes, Merchant (40 gold, once) |
+| Reinforced Robes (`reinforced_robes`) | Equipment, ARMOR | BODY +4, RES +2 | Yes, Merchant (180 gold, once) |
+| Scripted Bark (`scripted_bark`) | Equipment, OFF_HAND | BODY +2 | Yes, Merchant (75 gold, once) |
+| Leeching Ring (`leeching_ring`) | Equipment, ACCESSORY | FND +2, CTRL +2 | Yes, Merchant (120 gold, once) |
 | Dreadbeast Tooth Necklace (`dreadbeast_tooth_necklace`) | Equipment, ACCESSORY | STR +2, AGI +2 | Yes, 25% drop from the Ravenous Dreadbeast elite |
 | Spirit Fern (`SpiritFern`) | Material | — | Yes, foraging |
 | Dewdrop Tear (`DewdropTear`) | Material | — | Yes, foraging |
-| Crude Scale (`crude_scale`) | Consumable | +20 Madra, 10 s cooldown (unenforced) | No |
+| Crude Scale (`crude_scale`) | Consumable | +20 Madra, 10 s cooldown (unenforced) | Yes, Merchant (10 gold, unlimited) |
 | Barely Coalesced Scale (`barely_coalesced_scale`) | Consumable | Same values as Crude Scale, no icon | No |
 | Refugee Camp Map (`refugee_camp_map`) | Quest item | Gates the Refugee Camp encounter | Yes, quest reward |
 
@@ -169,7 +169,6 @@ These systems look finished to the player but have no effect:
 | CONTROL and WILLPOWER on gear | CONTROL does nothing. WILLPOWER only counts toward MIXED-damage defense, and no ability deals MIXED damage | [COMBAT.md](combat/COMBAT.md) |
 | Consumable hotbar | Nothing on `main` consumes from it | [INVENTORY.md](inventory/INVENTORY.md) |
 | Foraging "Madra cost" field, cycling action modifiers | Exported but never read | [ZONES.md](zones/ZONES.md), [CYCLING.md](cycling/CYCLING.md) |
-| Gold counter | Gold comes from combat wins and has no sinks | [RESOURCES.md](infrastructure/RESOURCES.md) |
 | Clearing The Shallow Woods | Fires no event, so nothing can gate on it | [ADVENTURING.md](adventuring/ADVENTURING.md) |
 
 ---
@@ -180,8 +179,8 @@ Ranked by how much they stop the game from growing:
 
 1. **No breakthrough.** `CultivationManager.attempt_breakthrough()` is an empty stub, and the Tribulation is design-only ([breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md)). Foundation is a hard ceiling.
 2. **No stage past Foundation, and a hang waiting for it.** No Copper `AdvancementStageResource` exists. If the stage ever changes without one, `add_core_density_xp()` loops forever, because `get_xp_for_next_level()` returns 0.
-3. **No content after Beat 3b.** There is no quest, NPC or event after the Refugee Camp. Beats 4–5 (Merchant, elite gear drop) are stubs, and Beats 6–10 (third keystone through the Zone 2 onramp) are design-only ([FOUNDATION_PLAYTHROUGH.md](progression/FOUNDATION_PLAYTHROUGH.md)).
-4. **Merchant is a stub.** Gold has no sink, and 6 of 7 equipment items can't be obtained.
+3. **No content after Beat 4.** There is no quest, NPC or event after the Merchant. Beat 5 (elite gear drop) is a stub, and Beats 6–10 (third keystone through the Zone 2 onramp) are design-only ([FOUNDATION_PLAYTHROUGH.md](progression/FOUNDATION_PLAYTHROUGH.md)).
+4. **The gold sink runs dry.** Once the six gear pieces are bought (625 gold), gold only buys Crude Scales.
 5. **No real boss.** The Shallow Woods boss fights the regular Amorphous Spirit, and clearing a run records nothing.
 6. **Inert perks.** Most of the path tree, and every stat-multiplier hook, does nothing.
 7. **Onboarding.** Path Points and unlocks are silent, the Foundational Technique earns no XP with no clear prompt to switch, dialogue still has placeholder text (`[INTERVENER]`), and the empty Test Zone unlocks at the first dialogue.

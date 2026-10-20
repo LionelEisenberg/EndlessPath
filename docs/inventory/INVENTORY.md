@@ -1,6 +1,6 @@
 # Inventory System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Overview
 
@@ -366,6 +366,7 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | UnlockConditionData `ITEM_OWNED` (5) | Returns `InventoryManager.has_item(str(target_value))`. `comparison_op` is ignored. `AdventureEncounter.is_eligible()` evaluates it directly. `UnlockManager` does not listen to `inventory_changed` |
 | PersistenceManager | `InventoryData` is `SaveGameData.inventory`. InventoryManager re-grabs `live_save_data` on `save_data_reset`, and a reset creates a fresh `InventoryData` |
 | LogManager | Award messages and "Discarded <name>" |
+| MerchantManager | `award_items(item, 1)` for each purchase (so gear purchases log as "Looted", Crude Scales as "Obtained"). Gear purchases first check `InventoryData.has_free_equipment_slot()`; with every slot full the shop shows "Equipment full" and takes no gold |
 | Combat (unmerged) | `equipped_consumables` and `use_consumable()` are the hooks used by the `feat/infallible-chaum-58f8ad` branch |
 
 ## Existing Content
@@ -376,13 +377,13 @@ These seven items live in `resources/items/equipment/spirit_valley/` and are gen
 
 | id | Name | Slot | Bonuses | base_value | How the player gets it on `main` |
 |---|---|---|---|---|---|
-| `makeshift_dagger` | Makeshift Dagger | MAIN_HAND | STRENGTH +3, AGILITY +2 | 0 | No way — the NPC award was removed on 2026-04-19 (d934de4) |
-| `iron_shortsword` | Iron Shortsword | MAIN_HAND | STRENGTH +5, AGILITY +2 | 10 | No way — only in `test_loot_table_weapon` (unreachable) |
-| `cultivators_cowl` | Cultivator's Cowl | HEAD | WILLPOWER +3, SPIRIT +1 | 6 | No way (planned: Merchant) |
-| `reinforced_robes` | Reinforced Robes | ARMOR | BODY +4, RESILIENCE +2 | 7 | No way (planned: Merchant) |
+| `makeshift_dagger` | Makeshift Dagger | MAIN_HAND | STRENGTH +3, AGILITY +2 | 60 | Merchant, once per save (the NPC award was removed on 2026-04-19, d934de4) |
+| `iron_shortsword` | Iron Shortsword | MAIN_HAND | STRENGTH +5, AGILITY +2 | 150 | Merchant, once per save |
+| `cultivators_cowl` | Cultivator's Cowl | HEAD | WILLPOWER +3, SPIRIT +1 | 40 | Merchant, once per save |
+| `reinforced_robes` | Reinforced Robes | ARMOR | BODY +4, RESILIENCE +2 | 180 | Merchant, once per save |
 | `dreadbeast_tooth_necklace` | Dreadbeast Tooth Necklace | ACCESSORY | STRENGTH +2, AGILITY +2 | 0 | 25% drop from the Ravenous Dreadbeast elite in Shallow Woods (quota 2 per map) |
-| `leeching_ring` | Leeching Ring | ACCESSORY | FOUNDATION +2, CONTROL +2 | 50 | No way (planned: Merchant, Loot) |
-| `scripted_bark` | Scripted Bark | OFF_HAND | BODY +2 | 0 | No way (planned: Loot) |
+| `leeching_ring` | Leeching Ring | ACCESSORY | FOUNDATION +2, CONTROL +2 | 120 | Merchant, once per save (planned: Loot) |
+| `scripted_bark` | Scripted Bark | OFF_HAND | BODY +2 | 75 | Merchant, once per save (planned: Loot) |
 
 ### Materials
 
@@ -401,7 +402,7 @@ These live in `resources/items/consumables/`.
 
 | item_id | Name | Effect | cooldown_seconds | base_value | Icon | Source on `main` |
 |---|---|---|---|---|---|---|
-| `crude_scale` | Crude Scale | `ChangeVitalsEffectData` `madra_change` 20 ("+20 Madra") | 10.0 | 1 | `assets/sprites/items/consumables/crude_scale.png` | None |
+| `crude_scale` | Crude Scale | `ChangeVitalsEffectData` `madra_change` 20 ("+20 Madra") | 10.0 | 10 | `assets/sprites/items/consumables/crude_scale.png` | Merchant, unlimited |
 | `barely_coalesced_scale` | Barely Coalesced Scale | Same: +20 Madra | 10.0 | 1 | None | None |
 
 The two consumables also share the same description. The first scale was renamed Barely Coalesced → Crude in 459aeb6. Commit 21b3cb2 then re-added `barely_coalesced_scale.tres` as "a weaker counterpart", but its values are identical (see Content below).
@@ -471,8 +472,8 @@ Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_d
 
 ### Missing Functionality
 
-- `[HIGH]` **Consumables can't be obtained or used on `main`.** No loot table, effect or merchant awards `crude_scale` or `barely_coalesced_scale`, and nothing calls `use_consumable()`. Combat use exists only on the unmerged branch `feat/infallible-chaum-58f8ad` (20 commits, 2026-06-01): `CombatConsumableManager` / `CombatConsumableInstance`, `ConsumableButton`, consumable hotkeys 1–4 and `get_consumable_count()`.
-- `[HIGH]` **Six of the seven equipment items have no in-game source** (see Existing Content). The Merchant zone action is a stub that logs "(Shop coming soon.)", and the Shallow Woods loot only includes the necklace. A complete Foundation loop needs these wired.
+- `[HIGH]` **Consumables can't be used on `main`.** The Merchant sells `crude_scale`, but no loot table or effect awards either scale, and nothing calls `use_consumable()`. Combat use exists only on the unmerged branch `feat/infallible-chaum-58f8ad` (20 commits, 2026-06-01): `CombatConsumableManager` / `CombatConsumableInstance`, `ConsumableButton`, consumable hotkeys 1–4 and `get_consumable_count()`.
+- `[MEDIUM]` **Gear has one source each.** The Merchant sells six pieces once per save, and the Shallow Woods loot only includes the necklace. Loot drops for the merchant gear are planned (Beat 5).
 - `[MEDIUM]` **There is no API to spend or remove items.** InventoryManager can't consume materials, take back quest items or sell equipment. The only removal path is the trash, which `EquipmentTab` implements by mutating `InventoryData` directly. Crafting (Elixir Making, Soulsmithing), merchant selling and quest hand-ins all need `remove_*` verbs. The redesign spec's `discard_*` methods were never built.
 - `[MEDIUM]` **The Materials tab's trash slot does nothing.** `MaterialsTab` has no drag source and never connects `trash_slot`. As a result, `TrashSlot`'s `[def, qty]` path and `restore_material()` are reachable only from tests.
 - `[LOW]` **`grant_equipment_page()` has no caller**, so every player stays at 2 pages (72 slots). The trigger was deferred by the pagination spec.

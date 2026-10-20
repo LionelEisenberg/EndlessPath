@@ -1,13 +1,13 @@
 # Zones & Actions
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Overview
 
 The zone view is the home base and the initial `MainView` state. A 2D hex map (`ZoneTilemap`) draws each zone as a forest hex, and the player character stands on the selected zone. The right-hand `ZoneInfoPanel` lists the selected zone's available **zone actions** as cards grouped by type. Clicking a card hands its `ZoneActionData` to `ActionManager`, which runs exactly one action at a time:
 
 - Timer-driven actions (foraging, training) run in place on the zone view.
-- Cycling, adventure and NPC dialogue hand off to their own views or to Dialogic.
+- Cycling, adventure, NPC dialogue and the merchant hand off to their own views or to Dialogic.
 
 `ZoneManager` owns the selected zone and per-zone progression (completion counts, training ticks). Zones and actions are gated by `UnlockConditionData` ids that `UnlockManager` latches.
 
@@ -39,7 +39,7 @@ There are two zones today:
 8. The remaining action types:
    - **Cycling** opens the cycling view. Escape closes it and ends the action.
    - **Dialogue** plays a Dialogic timeline over the zone view. These cards are one-time: the card disappears when the timeline ends.
-   - **Traveling Merchant** only logs `The merchant nods at you. (Shop coming soon.)`.
+   - **Traveling Merchant** opens the shop over the zone view. Leave or Escape closes it and ends the action. Stock, prices and rules are in [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented).
 9. New cards and newly unlocked hexes appear as soon as a condition unlocks, with no notification.
 10. Around the map:
     - Right-drag pans the camera and the mouse wheel zooms.
@@ -47,7 +47,7 @@ There are two zones today:
     - The top-left header shows the zone name and description.
     - The bottom toolbar opens Inventory, Abilities, Character and Path, and shows gold.
 
-Foraging and training keep running while the Inventory, Path, Abilities or Character overlays are open. Starting cycling, an adventure or a dialogue stops them, and they do not resume afterwards.
+Foraging and training keep running while the Inventory, Path, Abilities or Character overlays are open. Starting cycling, an adventure or a dialogue stops them, and they do not resume afterwards. The merchant replaces them only while its shop is open: leaving the shop resumes them, unless the zone changed.
 
 ### Controls
 
@@ -335,12 +335,12 @@ Shell behaviour:
 | 0 | `FORAGE` | `ForageActionData` | `_execute_forage_action`: repeating timer, loot roll | `ForagingPresenter` | Implemented |
 | 1 | `ADVENTURE` | `AdventureActionData` | `_execute_adventure_action`: Madra check, then `adventure_start_requested` | `AdventurePresenter` | Implemented |
 | 2 | `NPC_DIALOGUE` | `NpcDialogueActionData` | `_execute_dialogue_action`: Dialogic timeline | Default | Implemented |
-| 3 | `MERCHANT` | `ZoneActionData` (no subclass) | `_execute_merchant_action`: log line, then immediate `stop_action()` | Default (fallback) | Stub |
+| 3 | `MERCHANT` | `MerchantActionData` | `_execute_merchant_action`: emits `start_merchant`; the shop's Leave or Escape calls `stop_action()` | Default (fallback) | Implemented |
 | 4 | `TRAIN_STATS` | `TrainingActionData` | `_execute_train_action`: repeating tick timer | `TrainingPresenter` | Implemented |
 | 5 | `CYCLING` | `CyclingActionData` | `_execute_cycling_action`: `start_cycling` | Default | Implemented |
 | 6 | `ZONE_EVENT` | — | None. `_execute_action()` logs "Unknown action type" | Default (fallback) | Not implemented |
 
-If the data class doesn't match the type (for example `action_type = FORAGE` on a resource that isn't a `ForageActionData`), the handler logs an error and does nothing. Only `AdventureActionData._init()` and `TrainingActionData._init()` set `action_type`; the other subclasses rely on the value saved in the `.tres`.
+If the data class doesn't match the type (for example `action_type = FORAGE` on a resource that isn't a `ForageActionData`), the handler logs an error and does nothing. Only `AdventureActionData._init()`, `TrainingActionData._init()` and `MerchantActionData._init()` set `action_type`; the other subclasses rely on the value saved in the `.tres`.
 
 ### Subclasses
 
@@ -365,6 +365,9 @@ If the data class doesn't match the type (for example `action_type = FORAGE` on 
 | | `tail_growth_multiplier` | `float` | `2.0` | A level N beyond the array costs `last × mult^(N − size)` |
 | | `effects_per_tick` | `Array[EffectData]` | `[]` | Run on every tick |
 | | `effects_on_level` | `Array[EffectData]` | `[]` | Run once per level crossed |
+| `MerchantActionData` | `stock` | `MerchantStock` | `null` | `MerchantView` rows and `MerchantManager` purchases |
+| | `greeting` | `String` (multiline) | `""` | `MerchantView` subtitle; hidden when empty |
+| | `shop_theme` | `Theme` | `null` | `MerchantView.setup()` sets it as the shop's root theme; null keeps the scene default (Spirit Valley) |
 
 `AdventureActionData.is_valid()` exists but nothing calls it.
 
@@ -427,7 +430,7 @@ What ends an action:
 | `AdventureTilemap.handle_combat_result()` | Boss combat won | `true` |
 | `AdventureView._on_stop_combat()` | Combat lost | `false` |
 | `AdventureView._on_adventure_timer_timeout()` | Time limit reached | `false` |
-| `ActionManager._execute_merchant_action()` | Right after the log line | `true` |
+| `MerchantViewState` (Leave button or Escape) | The player leaves the shop | `true` |
 
 Every stop adds 1 to `action_completion_count`, under the zone that is current at that moment. This happens whether the action succeeded, failed or was replaced, so `max_completions` counts attempts, not successes.
 
@@ -456,6 +459,8 @@ Every stop adds 1 to `action_completion_count`, under the zone that is current a
 | `start_training(action_data)`, `stop_training()` | Training start / stop | None |
 | `training_tick_processed(action_data, new_tick_count)` | Every training tick | `TrainingPresenter` |
 | `training_level_gained(action_data, new_level)` | Once per level crossed | `TrainingPresenter` |
+| `start_merchant(action_data)` | `_execute_merchant_action()` | `MerchantViewState` (binds the shop, pushes the overlay) |
+| `stop_merchant()` | `_stop_merchant_action()` | `MerchantViewState` (fades the shop out, then pops) |
 
 Other signals the zone code consumes:
 
@@ -524,7 +529,7 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
 
 - **Cycling.** `start_cycling(action)` makes `CyclingViewState` push the cycling view. Escape calls `stop_action()`, which emits `stop_cycling`, and the view is popped. The `CyclingActionData` never reaches the view. See [CYCLING.md](../cycling/CYCLING.md).
 - **NPC dialogue.** The handler connects `DialogueManager.dialogue_ended` to `stop_action` (one-shot), then calls `DialogueManager.start_timeline(dialogue_timeline_name, dialogue_timeline_label_jump)`. When the timeline ends, the success effects run (events and quest starts) and the one-time card disappears.
-- **Merchant.** Logs `[color=yellow]The merchant nods at you. (Shop coming soon.)[/color]` and calls `stop_action()` synchronously. The completion count goes up by 1; no effects are authored.
+- **Merchant.** `_execute_merchant_action()` emits `start_merchant(action)`. `MerchantViewState` binds the action's stock to `MerchantView` and pushes the overlay, which fades in with the grey backdrop. The action stays current while the shop is open. Leave (`MerchantView.close_requested`) or Escape calls `stop_action()`, which emits `stop_merchant`; the state fades the shop out and pops itself. If the shop replaced a foraging or training action, `stop_action()` re-selects it (`_idle_action_to_resume`); a zone change clears that first. Each visit adds 1 to the completion count; no effects are authored. Purchases go through `MerchantManager` (see [RESOURCES.md](../infrastructure/RESOURCES.md#gold-sink-the-merchant)).
 
 ### Unlock gating
 
@@ -557,7 +562,8 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
 | `InventoryManager` | Forage loot via `award_items()` |
 | `CultivationManager` | Resource panel stage and level; the `q_reach_cd_10` gate |
 | `PersistenceManager` | `current_selected_zone_id` and `zone_progression_data`; a save reset re-emits `zone_changed` |
-| `LogManager` | Adventure rejection and merchant messages |
+| `LogManager` | Adventure rejection messages |
+| `MerchantViewState` / `MerchantView` / `MerchantManager` | Driven by `start_merchant` and `stop_merchant`. The shop calls `stop_action()` on Leave or Escape and buys through `MerchantManager` |
 | Dev panel | `UnlockManager.force_unlock_condition()` |
 
 ## Existing Content
@@ -587,7 +593,7 @@ The two hexes are adjacent, so a glowing path joins them once Test Zone unlocks.
 | 6 | `aura_well_training` | `Aura Well` | TRAIN_STATS | `aura_well_discovered` | 0 | 1.0 s ticks, `[60, 300, 600, 1200]`, tail 2.0; +1.5 Madra per tick; +1 Spirit per level | — |
 | 7 | `celestial_intervener_dialogue_3` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_first_steps_enemy_defeated` | 1 | Label `dialogue_3` | Event `celestial_intervener_dialogue_3`; start `q_reach_core_density_10` |
 | 8 | `celestial_intervener_dialogue_4` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_reach_cd_10` | 1 | Label `dialogue_4` | Event `celestial_intervener_dialogue_4` |
-| 9 | `spirit_valley_merchant` | `Traveling Merchant` | MERCHANT | `merchant_discovered` | 0 | Plain `ZoneActionData` | — |
+| 9 | `spirit_valley_merchant` | `Traveling Merchant` | MERCHANT | `merchant_discovered` | 0 | `MerchantActionData`: `resources/merchants/spirit_valley_merchant_stock.tres` (7 entries), `spirit_valley_merchant_theme.tres` | — |
 
 Notes:
 
@@ -689,6 +695,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/integration/test_training_flow.gd` | 1 | `select_action` → ticks, Madra trickle, level-ups, persistence across stop and restart |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | Aura Well hidden before and visible after `aura_well_discovered` |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | 1 | Dialogue 4 appears at CD 10, map award, merchant card after `merchant_discovered` |
+| `tests/integration/test_merchant_shop_flow.gd` | 15 | The merchant action stays current until `stop_action()`, a second stop is a no-op, leaving resumes the replaced idle action (not after a zone change, not cycling), and `MerchantView` binds real stock, row states, buying, Leave and the zone theme |
 | `tests/unit/test_hex_forest_atlas.gd` | 4 | Atlas picker shared with the adventure map |
 
 ### Specs and plans
@@ -712,7 +719,6 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 
 ### Missing Functionality
 
-- `[HIGH]` Merchant shop. `_execute_merchant_action()` logs "Shop coming soon" and stops at once. There is no `MerchantActionData` (stock, prices), presenter or shop UI. Foundation Beat 4 needs this. Once a shop UI exists, closing it should call `stop_action()`, the same way dialogue does.
 - `[HIGH]` `ZONE_EVENT` has no handler. `_execute_action()` logs "Unknown action type", but the action stays current (selected card, nothing running) until another action replaces it, and `_stop_executing_current_action()` skips its completion effects. Story events such as the Tribulation site (Beats 8–9) need this.
 - `[MEDIUM]` Foraging is free. Nothing reads `ForageActionData.madra_cost_per_second`, but the GDD calls for a small continuous Madra cost.
 - `[MEDIUM]` Foraging and training can't be toggled off. `_on_card_input()` ignores clicks on the current card and there is no stop control. They end only when another action starts or the zone changes. The GDD specifies an ON/OFF toggle.
@@ -727,7 +733,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 
 - `[HIGH]` Only one real zone. `TestZone` is a placeholder the player can see (name "Test Zone", description "test zone", no actions). It unlocks after dialogue 1, and travelling there only stops the running action. Foundation Beats 8–10 need the Advancement Zone and a Zone 2.
 - `[MEDIUM]` Foraged materials have no use. Dewdrop Tear and Spirit Fern list `used_in` recipes, but no system consumes them. There is only one forage action and one loot table.
-- `[MEDIUM]` The Traveling Merchant has no stock, and there is no `ZONE_EVENT` content.
+- `[MEDIUM]` There is no `ZONE_EVENT` content.
 - `[LOW]` `ZoneViewBackground` always loads the Spirit Valley layers. Per-zone backgrounds need a `ZoneData` field.
 - `[LOW]` Both zones use `tile_variant_index` 0, so the other 22 forest variants never appear on the zone map.
 - `[LOW]` Placeholder text and art: Wilderness Cycling's description is "Cycle in the wilderness", Spring Forest Foraging's is "Go to the Spring Forest and Forage some materials", and Spirit Valley's `icon` is `res://64.png`.
@@ -771,7 +777,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 - `[LOW]` Missing tests:
   - `ActionManager` routing and stop paths, completion counting and `action_completed`.
   - `max_completions` filtering in `get_available_actions()`.
-  - Foraging loot awarding, the merchant stub and the adventure Madra check.
+  - Foraging loot awarding and the adventure Madra check.
   - `ZoneTransition` drain arithmetic (whole-Madra particles plus the remainder).
   - Test Zone gating.
   - `get_current_level()` with an empty `ticks_per_level`.

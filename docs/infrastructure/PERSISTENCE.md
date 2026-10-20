@@ -1,6 +1,6 @@
 # Persistence System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Overview
 
@@ -92,6 +92,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `current_path_id` | `String` | `""` | PathManager | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
 | `path_node_purchases` | `Dictionary[String, int]` | `{}` | PathManager | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
 | `path_points` | `int` | `0` | PathManager | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
+| `merchant_ledgers` | `Dictionary[String, MerchantLedgerData]` | `{}` | MerchantManager (through `get_merchant_ledger()`) | [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
 
 Apart from tests, each field is read and written only by its owning singleton. `DevPanel` changes state only through manager APIs.
 
@@ -100,6 +101,7 @@ Apart from tests, each field is read and written only by its owning singleton. `
 | Method | Behaviour |
 |--------|-----------|
 | `get_zone_progression_data(zone_id) -> ZoneProgressionData` | Returns the zone's entry, creating and storing one on first access |
+| `get_merchant_ledger(merchant_id) -> MerchantLedgerData` | Returns the merchant's ledger, creating and storing an empty one on first access |
 | `increment_zone_progression_for_action(action_id, zone_id, quantity) -> int` | Adds `quantity` to `action_completion_count[action_id]` (creating the zone entry if needed) and returns the new total |
 | `verify() -> bool` | Returns `_verify_current_selected_zone_id()`: true if the id is `""` or `ZoneManager.has_zone(id)`. This is the only validation performed |
 | `reset()` | Sets every field back to its default. The defaults are written out a second time here |
@@ -111,12 +113,13 @@ Each of these is embedded in `save.tres` as a `sub_resource`.
 
 | Class | File | Fields | Owner |
 |-------|------|--------|-------|
-| `InventoryData` | `singletons/persistence_manager/inventory_data.gd` | `materials: Dictionary[MaterialDefinitionData, int]`; `equipment: Dictionary` (slot index → `ItemInstanceData`); `equipped_gear: Dictionary` (`EquipmentSlot` → `ItemInstanceData`, for MAIN_HAND/OFF_HAND/HEAD/ARMOR); `equipped_accessories: Dictionary` (0/1 → `ItemInstanceData`); `quest_items: Dictionary[ItemDefinitionData, int]`; `consumables: Dictionary[ConsumableDefinitionData, int]`; `equipped_consumables: Dictionary[int, ConsumableDefinitionData]` (hotbar 0–3); `unlocked_equipment_pages: int = 2`. Constants: `PAGE_ROWS = 6`, `PAGE_COLUMNS = 6`, `SLOTS_PER_PAGE = 36`; `equipment_capacity()` | InventoryManager |
+| `InventoryData` | `singletons/persistence_manager/inventory_data.gd` | `materials: Dictionary[MaterialDefinitionData, int]`; `equipment: Dictionary` (slot index → `ItemInstanceData`); `equipped_gear: Dictionary` (`EquipmentSlot` → `ItemInstanceData`, for MAIN_HAND/OFF_HAND/HEAD/ARMOR); `equipped_accessories: Dictionary` (0/1 → `ItemInstanceData`); `quest_items: Dictionary[ItemDefinitionData, int]`; `consumables: Dictionary[ConsumableDefinitionData, int]`; `equipped_consumables: Dictionary[int, ConsumableDefinitionData]` (hotbar 0–3); `unlocked_equipment_pages: int = 2`. Constants: `PAGE_ROWS = 6`, `PAGE_COLUMNS = 6`, `SLOTS_PER_PAGE = 36`; `equipment_capacity()`, `has_free_equipment_slot()` | InventoryManager |
 | `CharacterAttributesData` | `scripts/resource_definitions/character/character_attributes_data.gd` | 8 `float` fields: `strength` … `willpower` | CharacterManager |
 | `UnlockProgressionData` | `singletons/persistence_manager/unlock_progression_data.gd` | `unlocked_condition_ids: Array[String]` | UnlockManager |
 | `EventProgressionData` | `singletons/persistence_manager/event_progression_data.gd` | `triggered_events: Array[String]` | EventManager |
 | `QuestProgressionData` | `singletons/persistence_manager/quest_progression_data.gd` | `active_quests: Dictionary[String, int]` (quest_id → 0-based step index); `completed_quest_ids: Array[String]` | QuestManager |
 | `ZoneProgressionData` | `singletons/persistence_manager/zone_progression_data.gd` | `zone_id: String`; `action_completion_count: Dictionary[String, int]`; `forage_active: bool`; `forage_start_time: float`; `training_tick_progress: Dictionary[String, int]` | ZoneManager |
+| `MerchantLedgerData` | `singletons/persistence_manager/merchant_ledger_data.gd` | `merchant_id: String`; `purchase_counts: Dictionary[String, int]` (`MerchantStockEntry.entry_id` → copies bought); `get_count()`, `add_purchase()` | MerchantManager |
 
 Item definitions are not copied into the save. The keys of the `InventoryData` dictionaries and `ItemInstanceData.item_definition` are saved as `ext_resource` references to the item `.tres` files under `res://resources/items/`. `ItemInstanceData` itself (`item_definition`, `quantity`, `instance_id`, `metadata`) is embedded.
 
@@ -226,6 +229,7 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 | `scenes/main/main_game/save_timer.gd` | Auto-save timer script (node in `main_game.tscn`) |
 | `tests/unit/test_quest_progression_persistence.gd` | `QuestProgressionData` save/load round trip and `reset()` |
 | `tests/unit/test_zone_progression_data.gd` | `ZoneProgressionData.training_tick_progress` round trip |
+| `tests/unit/test_merchant_data.gd` | `merchant_ledgers` round trip, `reset()`, and an old save without the field |
 | `tests/unit/test_inventory_manager_restore.gd` | `InventoryManager.restore_*` against the live save (in memory only) |
 
 ## Work Remaining
@@ -247,7 +251,7 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 
 ### Tech Debt
 
-- `[MEDIUM]` Missing tests. Nothing covers `PersistenceManager.load_data()`, the `verify()` reset path, or a full `SaveGameData` round trip (typed dictionaries keyed by resources in `InventoryData`, `equipped_accessories`, enum fields). Only the quest progression and `ZoneProgressionData` round trips are tested.
+- `[MEDIUM]` Missing tests. Nothing covers `PersistenceManager.load_data()`, the `verify()` reset path, or a full `SaveGameData` round trip (typed dictionaries keyed by resources in `InventoryData`, `equipped_accessories`, enum fields). Only the quest progression, `ZoneProgressionData` and merchant ledger round trips are tested.
 - `[LOW]` Defaults are duplicated. Each field's default is declared on its `@export` and again in `SaveGameData.reset()`, and must also be added to `_to_string()`. `reset()` could copy from `SaveGameData.new()` instead.
 - `[LOW]` `ZoneProgressionData.forage_active` and `forage_start_time` are saved but never read or written anywhere.
 - `[LOW]` `verify()` depends on autoload timing. It runs before `ZoneManager._ready()` and relies on `_all_zone_data` being a preloaded member default. Moving that load into `_ready()` would make every save with a selected zone fail validation and get wiped.

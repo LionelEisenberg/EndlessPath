@@ -1,6 +1,6 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 > This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >
@@ -9,9 +9,9 @@ Last updated: 2026-10-18
 ## Overview
 
 - **Target:** 30–60 minutes of committed play across 10 beats, ending with the Foundation → Copper breakthrough (Tribulation).
-- **Built:** Beats 1, 2, 3a, and 3b. Beat 3b unlocks the Merchant, but the shop is a stub.
-- **Content ends** after the Refugee Camp visit. See [Where content ends](#where-content-ends).
-- **Planned:** Beats 4–10. See [Planned beats](#planned-beats-410).
+- **Built:** Beats 1, 2, 3a, 3b and 4. Beat 3b unlocks the Merchant; Beat 4 is its shop (Merchant v1).
+- **Content ends** after the Merchant. See [Where content ends](#where-content-ends).
+- **Planned:** Beats 5–10. See [Planned beats](#planned-beats-510).
 
 | Status tag | Meaning |
 |---|---|
@@ -68,7 +68,8 @@ BEAT 3b CD 10 ─ cond q_reach_cd_10 ─► step 0 done, NPC 4 visible   (+1 pat
   │ NPC 4 (dialogue_4) ─ event celestial_intervener_dialogue_4 ─► q_reach_core_density_10 complete
   │                    ─► Refugee Camp Map
   │ next Shallow Woods map places the Refugee Camp ─ "Approach the camp"
-  │                    ─ event merchant_discovered ─► Traveling Merchant (stub)
+  │                    ─ event merchant_discovered ─► Traveling Merchant
+BEAT 4  Traveling Merchant ─ shop: gold buys 6 gear pieces (once per save each) and Crude Scales
 END OF AUTHORED CONTENT
 ```
 
@@ -136,7 +137,7 @@ Deviations from the original design:
 - **Training:** 1 s ticks award +1.5 Madra per tick (`aura_well_madra_trickle_effect.tres`), and each training level awards +1 SPIRIT (`aura_well_spirit_award_effect.tres`). Levels cost 60, 300, 600, and 1200 ticks, then ×2 per level (2400, 4800, …). That is about 1, 5, 10, 20, and 40 minutes, with no cap.
 - **No quest.** The new zone action is the only signal.
 
-### Beat 3b: Second Keystone + Merchant Unlock `IMPLEMENTED` (Merchant shop is a stub)
+### Beat 3b: Second Keystone + Merchant Unlock `IMPLEMENTED`
 
 **Trigger:** `q_reach_core_density_10` starts at the NPC 3 click.
 
@@ -148,19 +149,56 @@ Deviations from the original design:
 | 4 | Clicks NPC 4 | Label `dialogue_4` plays, then the event fires and `q_reach_core_density_10` completes. The quest's `completion_effects` (`AwardItemEffectData`) add the **Refugee Camp Map** and log "Obtained 1x Refugee Camp Map" ("Quest Complete: Harden Your Core"). NPC 4 itself only fires the event. The map shows in Inventory → Quest Items. | Action and event `celestial_intervener_dialogue_4`; item `refugee_camp_map` |
 | 5 | Starts another Shallow Woods run | The **Refugee Camp** anchor is placed: count 1, `min_distance_from_origin` 3, REST_SITE icon. Its live gate is `refugee_camp_map_owned` (ITEM_OWNED) = true and `merchant_discovered` = false. | Encounter `refugee_camp` |
 | 6 | Chooses **Approach the camp** | The event fires and the condition latches, and **Traveling Merchant** appears in Spirit Valley. The tile then reads "The camp is empty now — they must have moved on, following your map back to the valley." Later maps never place the camp. | Event and condition `merchant_discovered`; action `spirit_valley_merchant` |
-| 7 | Clicks **Traveling Merchant** | `ActionManager._execute_merchant_action()` logs "The merchant nods at you. (Shop coming soon.)" and stops at once. The action has unlimited uses and no effects. | — |
+| 7 | Clicks **Traveling Merchant** | The shop opens: see [Beat 4](#beat-4-merchant-shop-implemented). | Action `spirit_valley_merchant` |
+
+### Beat 4: Merchant Shop `IMPLEMENTED`
+
+**Trigger:** clicking **Traveling Merchant**, which Beat 3b unlocks. There is no quest. Decisions and the pricing test plan are in the [Merchant v1 spec](../superpowers/specs/2026-10-19-merchant-v1-design.md).
+
+- **Opening.** `ActionManager` emits `start_merchant` and the shop fades in over the zone view. The action stays current until the player presses Leave or Escape. That stops the action (`stop_merchant`) and fades the shop out. A foraging or training action the visit replaced resumes when the shop closes, unless the zone changed. Every visit adds 1 to the action's completion count; the action has unlimited uses and no effects.
+- **Stock** (`resources/merchants/spirit_valley_merchant_stock.tres`). Each price is the item's `base_value`. All prices are starting values.
+
+| Item | Slot | Price | Limit |
+|---|---|---|---|
+| Crude Scale | Consumable | 10 | Unlimited |
+| Cultivator's Cowl | Head | 40 | 1 per save |
+| Makeshift Dagger | Main hand | 60 | 1 per save |
+| Scripted Bark | Off hand | 75 | 1 per save |
+| Leeching Ring | Accessory | 120 | 1 per save |
+| Iron Shortsword | Main hand | 150 | 1 per save |
+| Reinforced Robes | Armor | 180 | 1 per save |
+
+- **Rules** (`MerchantManager`):
+  - A gear piece bought from this merchant stays sold out for the rest of the save, even if the player trashes it. Purchases are kept per merchant in `SaveGameData.merchant_ledgers`.
+  - When the price is above the player's gold, the row reads "Need N more gold" and Buy is disabled.
+  - When every equipment slot is full, gear rows read "Equipment full". Crude Scales stay buyable.
+  - No gold moves until every check passes.
+  - The merchant buys nothing back.
+- **Look.** A translucent teal panel with drifting mist, motes and a glowing edge, from `assets/themes/merchant/spirit_valley_merchant_theme.tres`. A merchant in another zone sets its own `shop_theme`.
+
+| Property | Value |
+|---|---|
+| Player goal (fiction) | Trade adventure gold for real gear |
+| Player goal (mechanical) | Choose which upgrade to save for |
+| Systems exercised | Gold, inventory, merchant, save |
+| Exit gate | None; the shop is repeatable |
+
+Deviations from the original design:
+- Stock does not rotate in v1.
+- The Refugee Camp discovery shipped with Beat 3b.
 
 ### Where content ends
 
-After Beat 3b, step 7:
+After Beat 4:
 
 - No quest is active, and the tracker lists the three completed quests.
-- No further NPC actions, events, or conditions exist. The Intervener is gone, the Merchant has no shop, and gold has nothing to spend on.
+- No further NPC actions, events, or conditions exist, and the Intervener is gone. Gold buys the Merchant's six gear pieces once each; after that it only buys Crude Scales.
 - Only repeatable systems remain:
   - cycling (+1 path point per 10 CD levels)
   - Shallow Woods runs (elites, the Manifested Spirit boss, Aura Well rests, loot)
   - Aura Well training
   - Spring Forest Foraging
+  - the Merchant (Crude Scales, and gear until it sells out)
   - consumables
   - Path tree purchases (14 nodes)
 - Core Density keeps rising past 100 with no effect. `CultivationManager.attempt_breakthrough()` is an empty stub, only the Foundation `AdvancementStageResource` exists, there is no Tribulation scene, and no CD-100 condition is registered.
@@ -173,8 +211,8 @@ After Beat 3b, step 7:
 | 1 | Awakening | Cycling, then Adventure and Foraging, via `q_fill_core` and NPCs 1–2 | `IMPLEMENTED` |
 | 2 | First Steps Out | First victory, first path point, Keystone #1 (Pure Core Awakening) | `IMPLEMENTED` |
 | 3a | Aura Well Discovery | Aura Well training action (+1.5 Madra/tick, +1 Spirit/level) | `IMPLEMENTED` |
-| 3b | Second Keystone + Merchant unlock | CD 10, NPC 4, Refugee Camp Map, Refugee Camp, Merchant action | `IMPLEMENTED` (shop stub) |
-| 4 | Merchant shop | Gold sink | `STUBBED` |
+| 3b | Second Keystone + Merchant unlock | CD 10, NPC 4, Refugee Camp Map, Refugee Camp, Merchant action | `IMPLEMENTED` |
+| 4 | Merchant shop | Gold buys gear (once per save each) and Crude Scales | `IMPLEMENTED` |
 | 5 | Elite Gear Drop | First elite defeated; tier-bump gear | `STUBBED` |
 | 6 | Third Keystone | Keystone #3 at CD ~30 | `PLANNED` |
 | 7 | Tribulation Guardian | Boss defeated, Advancement Zone accessible | `PLANNED` |
@@ -182,17 +220,7 @@ After Beat 3b, step 7:
 | 9 | Tribulation | CD 100 plus Tribulation, then Copper | `PLANNED` |
 | 10 | Zone 2 Onramp | Zone 2 accessible | `PLANNED` (sketch) |
 
-## Planned beats (4–10)
-
-### Beat 4: Refugee Camp / Merchant `STUBBED`
-
-- **Design:** The Merchant sells equipment one tier above starter gear, priced in gold, with rotating stock (TBD). Gold, which adventures accumulate passively, gets its first sink. No quest. The Refugee Camp discovery planned for this beat shipped with Beat 3b.
-- **Exists:** the `spirit_valley_merchant` action (plain `ZoneActionData`, MERCHANT) gated on `merchant_discovered`; the stub handler; `ResourceManager.spend_gold()`.
-- **Needs:**
-  - a merchant action data class and shop UI, closed by the UI rather than the synchronous `stop_action()` in the stub
-  - stock and price data
-  - a buy flow
-  - optionally, a merchant character and timeline
+## Planned beats (5–10)
 
 ### Beat 5: Elite Gear Drop `STUBBED`
 
@@ -274,7 +302,7 @@ After Beat 3b, step 7:
 | Aura Well training | +1.5 Madra per 1 s tick; +1 SPIRIT per level; 60 / 300 / 600 / 1200 ticks, then ×2 | `aura_well_training_action.tres`, `TrainingActionData` defaults |
 | Aura Well rest | +5 × BODY HP, +2 × FOUNDATION Madra | `aura_well_encounter.tres` |
 | Consumables | Crude Scale and Barely Coalesced Scale: +20 Madra (10 s cooldown, not enforced) | `resources/items/consumables/` |
-| Merchant prices | None | Stub |
+| Merchant prices | Crude Scale 10, Cultivator's Cowl 40, Makeshift Dagger 60, Scripted Bark 75, Leeching Ring 120, Iron Shortsword 150, Reinforced Robes 180 (starting values; all gear 625) | Item `base_value`; stock in `spirit_valley_merchant_stock.tres` |
 
 **Pacing reality (computed):** No Core Density XP multiplier is applied in code. `PathEffectsSummary.core_density_xp_mult` and `CyclingActionData.xp_multiplier` are never read. With Smooth Flow, CD 10 takes about 1 perfect cycle (≈15 s), CD 30 about 4 cycles, and CD 100 about 25 perfect or 45 good cycles, which is roughly 6–11 minutes of cycling. That is far ahead of the [pacing targets](#progression-pacing-targets) (Beat 3b at 6–15 min, Beat 6 at 20–30 min, Beat 9 at 35–60 min). The curve must be retuned before Beats 6–9 ship.
 
@@ -372,11 +400,11 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Q-8: Merchant pricing vs adventure gold
 
-- **ASSUMPTION:** One piece costs about 3–5 adventures of gold.
+- **ASSUMPTION:** One piece costs about 3–5 adventures of gold. Merchant v1 sets the Ring (120), Shortsword (150) and Robes (180) in that band at ~45 gold per run. It deliberately prices the Cowl (40), Dagger (60) and Bark (75) lower, so the first visit has a purchase.
 - **IMPACT:** Whether the Merchant feels meaningful.
 - **IF WRONG:** A dead system, or a trivial purchase.
-- **VALIDATE:** Set prices once the shop exists; count adventures per purchase.
-- **STATUS:** Open (no shop)
+- **VALIDATE:** The [Merchant v1 test plan](../superpowers/specs/2026-10-19-merchant-v1-design.md#starting-values-and-test-plan). Over at least 5 playthroughs, record the gold banked at the first visit and the runs between main-piece purchases. Pass: the first visit buys at most one cheap piece plus scales, and each main piece takes 3–5 runs.
+- **STATUS:** Open. Starting values are set; not playtested.
 
 ### Q-9: Aura Well training cost curve
 
@@ -394,7 +422,11 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 | `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_{1..4}.tres` | NPC beats (events and quest starts) |
 | `resources/zones/spirit_valley_zone/zone_actions/wilderness_cycling_action.tres`, `spirit_valley_adventure_action.tres`, `spring_forest_foraging_action.tres` | Beat 1 unlocks |
 | `resources/zones/spirit_valley_zone/zone_actions/aura_well_training_action.tres` (+ `aura_well_madra_trickle_effect.tres`, `aura_well_spirit_award_effect.tres`) | Beat 3a training |
-| `resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres` | Beat 3b Merchant stub |
+| `resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres` | Beat 3b Merchant action, a `MerchantActionData` (stock, greeting, shop theme) |
+| `resources/merchants/spirit_valley_merchant_stock.tres` | Beat 4 stock and limits |
+| `singletons/merchant_manager/merchant_manager.gd` | Beat 4 purchase rules and per-merchant ledgers |
+| `scenes/merchant/` | Beat 4 shop view, rows, atmosphere and view state |
+| `assets/themes/merchant/spirit_valley_merchant_theme.tres` | Beat 4 Spirit Valley shop look |
 | `resources/zones/test_zone/test_zone.tres` | Empty Test Zone (unlocks at NPC 1) |
 | `resources/quests/q_fill_core.tres`, `q_first_steps.tres`, `q_reach_core_density_10.tres`, `quest_list.tres` | Quests |
 | `resources/unlocks/*.tres`, `unlock_condition_list.tres` | Conditions |
@@ -407,6 +439,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 | `scenes/combat/adventure_combat/adventure_combat.gd` | `q_first_steps_enemy_defeated` producer |
 | `singletons/cultivation_manager/cultivation_manager.gd` | CD milestone path points; `attempt_breakthrough()` stub |
 | `tests/integration/test_aura_well_discovery_unlock.gd`, `test_beat_3b_merchant_unlock.gd` | Beat 3a and 3b integration tests |
+| `tests/unit/test_merchant_manager.gd`, `test_merchant_data.gd`, `test_spirit_valley_merchant_stock.gd`, `tests/integration/test_merchant_shop_flow.gd` | Beat 4 tests |
 
 ## Work Remaining
 
@@ -418,7 +451,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 ### Missing Functionality
 
 - `[HIGH]` There is no breakthrough: `CultivationManager.attempt_breakthrough()` is empty, and there is no Copper stage resource, no Tribulation scene, and no CD-100 gate. This blocks Beats 8–10 and the Copper milestone.
-- `[HIGH]` There is no Merchant shop (Beat 4). The stub logs one line, and gold has no sink.
+- `[MEDIUM]` Once the six gear pieces are bought (625 gold), gold only buys Crude Scales. The next gold sink needs new stock (for example a Copper merchant) or rotation.
 - `[MEDIUM]` No events or working condition types exist for an elite defeated, the boss defeated, an adventure completed, or a zone unlocked. `ADVENTURE_COMPLETED` and `ZONE_UNLOCKED` always return false. Beats 5, 7, and 8 depend on them.
 - `[MEDIUM]` There is no "path node purchased" event or condition, which Beat 7's quest trigger ("enters an adventure with Keystone #3") needs.
 - `[LOW]` The Madra bar is not gated behind Beat 1 as the original design intended.
@@ -444,7 +477,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 - `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`, and cycling has no badge (`CyclingManager.has_unequipped_unlocks()` is unused).
 - `[MEDIUM]` The Aura Well discovery and the Refugee Camp search have no tracker guidance. The map's purpose is explained only in `dialogue_4` and the item description.
 - `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The quest tracker starts collapsed and empty.
-- `[LOW]` The Merchant click produces only a log line ("Shop coming soon"), which can read as broken.
+- `[LOW]` Merchant gear purchases log as "Looted 1x …" (Crude Scales as "Obtained 1x …"), because the shop awards items through `InventoryManager.award_items()`.
 
 ### Tech Debt
 
