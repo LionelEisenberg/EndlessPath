@@ -7,9 +7,9 @@ EndlessPath uses **GUT 9.6.0** (`addons/gut/`, editor plugin enabled) for unit a
 
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
-| Unit | `tests/unit/` | 49 | 519 |
-| Integration | `tests/integration/` | 19 | 83 |
-| **Total** | | **68** | **602** |
+| Unit | `tests/unit/` | 49 | 524 |
+| Integration | `tests/integration/` | 19 | 87 |
+| **Total** | | **68** | **611** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -17,15 +17,15 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-19, after the Merchant v1 review fixes, with the command from `CLAUDE.md`.
+Run on 2026-10-19, after the Merchant v1 playtest fixes, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.6.stable.official.89cea1439 |
 | GUT | 9.6.0 (GUT reports 9.6.1 is available) |
-| Scripts / tests | 68 / 602 |
-| Passing / failing / pending or risky | 602 / 0 / 0 |
-| Asserts | 2202 on the final run. The count varies slightly between runs, probably because of randomized map-generation tests. |
+| Scripts / tests | 68 / 611 |
+| Passing / failing / pending or risky | 611 / 0 / 0 |
+| Asserts | 2220 on the final run. The count varies slightly between runs, probably because of randomized map-generation tests. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | Exit code | 0 |
@@ -181,11 +181,11 @@ New tests should call the real method on the autoload, with its state swapped as
 | QuestManager | `test_quest_manager` (25), `test_start_quest_effect_data` (2), `test_quest_progression_persistence` (3), `test_beat_3b_merchant_unlock` (1) | Start/advance/complete, validation, persistence | `QuestWindow`, `QuestToast` |
 | UnlockManager / conditions | `test_unlock_manager` (3), `test_unlock_condition_item_owned` (2), `test_aura_well_discovery_unlock` (2), `test_beat_3b_merchant_unlock` (1) | `force_unlock_condition()`; `EVENT_TRIGGERED`, `ITEM_OWNED`, `RESOURCE_AMOUNT` conditions; `CULTIVATION_LEVEL` only indirectly through the Beat 3b flow (`q_reach_cd_10`) | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED`, `ATTRIBUTE_VALUE` have no direct tests |
 | ZoneManager / training | `test_zone_progression_data` (7), `test_training_action_data` (18), `test_training_flow` (1), `test_aura_well_discovery_unlock` (2) | Training ticks/levels, action availability | Zone selection, `ZoneTilemap`, zone action presenters, `ZoneTransition` |
-| ActionManager | `test_training_flow` (1), `test_adventure_end_flow` (2), `test_merchant_shop_flow` (6 of 21) | `TRAIN_STATS`; adventure `confirm_adventure_start()` and `stop_action()`; `MERCHANT` start/stop, a second stop, and resuming the replaced idle action (not after a zone change, not cycling) | `FORAGE`, `CYCLING` and `NPC_DIALOGUE` dispatch; the adventure Madra check in `_execute_adventure_action()` |
-| MerchantManager / shop | `test_merchant_manager` (14), `test_merchant_data` (12), `test_spirit_valley_merchant_stock` (8), `test_spirit_valley_merchant_theme` (3), `test_merchant_view_state` (6), `test_merchant_shop_flow` (15 of 21) | Purchase rules (sold out, gold, equipment space, item class vs `item_type`), per-merchant ledgers, their save round trip and debug string, the shipped stock and theme entries, `MerchantView` rows (including "Equipment full" and broken stock data), buying, Buy without keyboard focus, Leave, the zone theme, the title's `LabelTitle` inheritance, a closed shop skipping refreshes, and `MerchantViewState`'s push and close paths | The real `GreyBackground` fade and Escape routing through `MainView` (checked in play) |
+| ActionManager | `test_training_flow` (1), `test_adventure_end_flow` (2), `test_merchant_shop_flow` (6 of 25) | `TRAIN_STATS`; adventure `confirm_adventure_start()` and `stop_action()`; `MERCHANT` start/stop, a second stop, and resuming the replaced idle action (not after a zone change, not cycling) | `FORAGE`, `CYCLING` and `NPC_DIALOGUE` dispatch; the adventure Madra check in `_execute_adventure_action()` |
+| MerchantManager / shop | `test_merchant_manager` (14), `test_merchant_data` (12), `test_spirit_valley_merchant_stock` (8), `test_spirit_valley_merchant_theme` (5), `test_merchant_view_state` (9), `test_merchant_shop_flow` (19 of 25) | Purchase rules (sold out, gold, equipment space, item class vs `item_type`), per-merchant ledgers, their save round trip and debug string, the shipped stock and theme entries (including a panel opaque enough to hide the HUD under it, and an atmosphere mask that matches its corners), `MerchantView` rows (including "Equipment full" and broken stock data), buying, Buy without keyboard focus, Leave, the zone theme, the title's `LabelTitle` inheritance, the mock's header and footer padding with a panel that fits its rows, an atmosphere that fills the panel inside its border, a closed shop skipping refreshes, and `MerchantViewState`'s push and close paths, including hiding and restoring the log and quest windows | The real `GreyBackground` fade and Escape routing through `MainView` (checked in play) |
 | EventManager | None dedicated | `trigger_event()` used inside quest, encounter and content tests | `trigger_event()`/`has_event_triggered()` contract |
 | DialogueManager, PlayerManager, LogManager, `Log` | None | | All |
-| UI shell | `test_merchant_view_state` (6) | `MainView.remove_state()` and `MerchantViewState` on a `MainView` that never enters the tree | `MainView` push/pop/change semantics, the other 8 view states, `GreyBackground`, `Toolbar`, `SystemMenuButton` ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)) |
+| UI shell | `test_merchant_view_state` (9) | `MainView.remove_state()` and `MerchantViewState` on a `MainView` that never enters the tree | `MainView` push/pop/change semantics, the other 8 view states, `GreyBackground`, `Toolbar`, `SystemMenuButton` ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)) |
 | Dev tools | `test_dev_password_modal` (5), `test_unlock_manager` (3) | `DevPasswordModal.check_password()`, `force_unlock_condition()` | Dev panel actions, Ctrl+Shift+D gate, Map Preview, UID tool ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 | Loot | None | | `LootTable` rolls (no test references `LootTable`) |
 

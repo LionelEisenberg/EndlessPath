@@ -1,6 +1,6 @@
 # Merchant v1 (Foundation Beat 4) — Design
 
-> **Status:** decisions settled with the user on 2026-10-19 (godot-grill); design approved (MerchantManager, per-merchant ledgers, zone themes) and implemented the same day. Built as designed except: row padding comes from the `MerchantRow` stylebox (no `RowMargin` node), `MerchantAtmosphere` clips itself instead of `ShopPanel` (so hover tooltips aren't cut off), and `MerchantButton` styleboxes have no glow shadow (Godot draws it under translucent boxes).
+> **Status:** decisions settled with the user on 2026-10-19 (godot-grill); design approved (MerchantManager, per-merchant ledgers, zone themes) and implemented the same day. Built as designed except: row padding comes from the `MerchantRow` stylebox (no `RowMargin` node), `MerchantAtmosphere` masks itself instead of `ShopPanel` clipping its children (so hover tooltips aren't cut off), and `MerchantButton` styleboxes have no glow shadow (Godot draws it under translucent boxes). After the playtest, the panel is 95% opaque, because the log and quest windows under the shop read through a translucent one. The shop also hides those windows while it is open, because it cut their text off. The atmosphere fills the panel inside its border through a rounded mask (`clip_children`), with the panel's padding moved into a `ContentMargin` container.
 >
 > **Scope:** the Traveling Merchant's shop: a gold sink that makes the six unobtainable gear pieces and the Crude Scale buyable. Selling, rotation and merchant dialogue are out of scope.
 
@@ -96,19 +96,20 @@ Mock at 1:1 game scale: [`docs/superpowers/mockups/merchant-shop-mockup.html`](.
 MerchantView (Control, full rect, hidden, z 3)        scenes/merchant/merchant_view.gd (class MerchantView)
 │                                                     theme = the merchant's shop_theme (scene default: spirit_valley_merchant_theme.tres)
 ├── AnimationPlayer (%)                               RESET / open (0.3 s fade-in) / close (0.2 s fade-out)
-└── ShopPanel (PanelContainer, MerchantPanel, centred, clip_contents)
-    ├── MerchantAtmosphere (%, Control, full rect, mouse ignored)   colours read from the theme's MerchantAtmosphere type
+└── ShopPanel (PanelContainer, MerchantPanel, centred, sized to its content; content margins = border width)
+    ├── MerchantAtmosphere (%, Panel, MerchantAtmosphereMask, clip_children, mouse ignored)   fills the panel inside its border; colours from the theme's MerchantAtmosphere type
     │   ├── TopLight (TextureRect, GradientTexture2D)
     │   ├── MistA / MistB / MistC (Sprite2D, mist_sheet.png cells, slow drift)
     │   └── MotesPrimary / MotesSecondary (GPUParticles2D, mote_particle.png)
-    └── MainVBox (VBoxContainer)
-        ├── HeaderHBox
-        │   ├── TitleBlock: TitleLabel (%, LabelMerchantTitle) · GreetingLabel (%, LabelSubheading)
-        │   └── GoldBox: GoldIcon (TextureRect, gold_icon.png) · GoldLabel (%, LabelValueLarge)
-        ├── HSeparator (HSeparatorMerchant)
-        ├── StockList (%, VBoxContainer)              8 pre-instanced MerchantStockRow scenes; extras hidden
-        ├── HSeparator (HSeparatorMerchant)
-        └── FooterHBox: StatusLabel (%, LabelGreen) · LeaveButton (%, MerchantButton, "Leave [Esc]")
+    └── ContentMargin (MarginContainer, 16 sides / 12 top and bottom)
+        └── MainVBox (%, VBoxContainer)
+            ├── HeaderMargin (MarginContainer, 8 sides / 4 top): HeaderHBox
+            │   ├── TitleBlock: TitleLabel (%, LabelMerchantTitle) · GreetingLabel (%, LabelSubheading)
+            │   └── GoldBox: GoldIcon (TextureRect, gold_icon.png) · GoldLabel (%, LabelValueLarge)
+            ├── HSeparator (HSeparatorMerchant)
+            ├── StockList (%, VBoxContainer)          8 pre-instanced MerchantStockRow scenes; extras hidden
+            ├── HSeparator (HSeparatorMerchant)
+            └── FooterMargin (MarginContainer, 8 sides / 4 bottom): FooterHBox: StatusLabel (%, LabelGreen) · LeaveButton (%, MerchantButton, "Leave [Esc]")
 
 MerchantStockRow (PanelContainer, MerchantRow)        scenes/merchant/merchant_stock_row/merchant_stock_row.gd
 └── RowMargin > RowHBox
@@ -128,7 +129,7 @@ Each merchant action picks a zone Theme, so a zone (or one area of it) can give 
 
 | Theme entry | Drives |
 |---|---|
-| `MerchantPanel` (PanelContainer variant) | Translucent tinted panel, glowing edge (StyleBoxFlat border and shadow) |
+| `MerchantPanel` (PanelContainer variant) | Dark tinted panel, 95% opaque so the HUD under it doesn't read through; glowing edge (StyleBoxFlat border and shadow) |
 | `MerchantRow` (PanelContainer variant) | Translucent rows with a thin luminous edge |
 | `MerchantButton` (Button variant) | Buy and Leave in every state, disabled included |
 | `LabelMerchantTitle` (`LabelTitle` variant) | `LabelTitle`'s gold title with a zone-coloured glow (shadow outline). It repeats `LabelTitle`'s size, because `pixel_theme.tres`'s default font size answers first |
@@ -180,3 +181,4 @@ Close: Leave / Escape → ActionManager.stop_action()
 - `tests/unit/test_spirit_valley_merchant_stock.gd`: the real `.tres` wiring (seven entries, a merchant id, unique entry ids, limits, prices above zero, the action is a `MerchantActionData`).
 - `tests/integration/test_merchant_shop_flow.gd`: the `ActionManager` route stays open until `stop_action()`; `MerchantView` binds the real stock and disables Buy when gold is short.
 - Added by the final-review follow-ups: `tests/unit/test_merchant_view_state.gd` (the overlay pushes once and removes only itself, on a `MainView` that never enters the tree) and `tests/unit/test_spirit_valley_merchant_theme.gd` (every variant and `MerchantAtmosphere` colour). `test_merchant_shop_flow.gd` also covers a merchant with no stock, entries without an item, the "Equipment full" row, a closed shop skipping refreshes, and the title's `LabelTitle` inheritance.
+- Added by the playtest fixes: `test_spirit_valley_merchant_theme.gd` checks the panel's opacity, and `test_merchant_shop_flow.gd` checks the mock's header and footer padding and that the panel fits its rows. A second round checks that the atmosphere fills the panel inside its border with a mask matching its corners (`test_merchant_shop_flow.gd`, `test_spirit_valley_merchant_theme.gd`), and that `MerchantViewState` hides and restores the log and quest windows (`test_merchant_view_state.gd`).

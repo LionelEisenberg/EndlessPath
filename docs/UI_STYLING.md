@@ -56,12 +56,13 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
   - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Equipment" etc.); `GearSelector`'s "Gear Selector" title uses it with a 30px size override
   - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
 - **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
-  - `MerchantPanel` (PanelContainer) — translucent tinted shop panel with a glowing edge
+  - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and quest windows sit under the shop, and their text reads through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`
   - `MerchantRow` (PanelContainer) — translucent stock row with a thin luminous edge
   - `MerchantButton` (Button) — Buy and Leave, 20px; every state, disabled included. No StyleBoxFlat shadow: Godot draws it under a translucent box, which fills the button
   - `LabelMerchantTitle` (base `LabelTitle`) — `LabelTitle`'s gold colour and 2px drop shadow, inherited from `pixel_theme.tres`, plus a zone-coloured glow (10px outline at low alpha). It repeats `LabelTitle`'s 50px size: `pixel_theme.tres` sets `default_font_size = 14`, and Godot returns that default for `LabelMerchantTitle` before it reaches `LabelTitle`. Colours and constants have no theme default, so they inherit. `test_title_matches_label_title_in_game` fails if the two sizes drift apart
   - `HSeparatorMerchant` (HSeparator) — 1px zone-coloured divider, 8px inset, separation 24
   - `MerchantAtmosphere` colours `mist`, `mote_primary`, `mote_secondary`, `light`, `slot_glow` — read in code with `get_theme_color()` by `MerchantAtmosphere` and `MerchantStockRow` and applied as `modulate`
+  - `MerchantAtmosphereMask` (Panel) — the shape `MerchantAtmosphere` clips its light, mist and motes to (`clip_children`). It is opaque, with corners rounded to the panel's inner radius (corner radius minus border width). It is a separate type because making `MerchantAtmosphere` a Panel variation would hide its colours from a zone theme that doesn't declare that variation
 
 ## RichTextLabel variants
 

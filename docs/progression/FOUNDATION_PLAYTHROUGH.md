@@ -175,7 +175,7 @@ Deviations from the original design:
   - No gold moves until every check passes.
   - Broken stock data never takes gold. An entry with no item gets no row, and the shop logs a warning. An entry whose item class doesn't match its `item_type` (so `InventoryManager.award_items()` couldn't place it) can't be bought.
   - The merchant buys nothing back.
-- **Look.** A translucent teal panel with drifting mist, motes and a glowing edge, from `assets/themes/merchant/spirit_valley_merchant_theme.tres`. A merchant in another zone sets its own `shop_theme`.
+- **Look.** A dark teal panel with drifting mist, motes and a glowing edge, from `assets/themes/merchant/spirit_valley_merchant_theme.tres`. A merchant in another zone sets its own `shop_theme`. The log and quest windows are hidden while the shop is open, so the panel never cuts off their text.
 
 | Property | Value |
 |---|---|

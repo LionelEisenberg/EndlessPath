@@ -3,7 +3,7 @@ Last updated: 2026-10-19
 
 ## Overview
 
-`main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, merchant shop, adventure end card), the always-on HUD panels (log, quests), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
+`main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, merchant shop, adventure end card), the HUD panels (log, quests; the merchant shop hides them while it is open), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
 
 - Menu overlays (Inventory, Path, Abilities, Character) open from the keyboard or the bottom toolbar. Both routes produce the same input action.
 - Cycling, the merchant shop, adventures and the end card are driven by `ActionManager` and `AdventureView` signals.
@@ -102,7 +102,7 @@ In practice at most one overlay is open at a time. Overlay states never push oth
 | `PathTreeViewState` | Overlay | `grey_background.show_with_panel(path_tree_view)` | No-op (already hidden by the fade) | `ui_cancel` or `open_path` → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Grey fade-out |
 | `AbilitiesViewState` | Overlay | `show_with_panel(abilities_view)` | No-op | `ui_cancel` or `open_abilities` → same close path | Grey fade-out |
 | `CharacterViewState` | Overlay | `show_with_panel(character_view)` | No-op | `ui_cancel` or `open_character` → same close path | Grey fade-out |
-| `MerchantViewState` | Overlay | `show_with_panel(merchant_view)` | No-op | `ui_cancel` → `ActionManager.stop_action()`; the Leave button (`MerchantView.close_requested`) does the same | `ActionManager.stop_merchant` → `hide_with_panel()`, then `remove_state(self)` on `panel_hidden`. If another state is above it, it hides `MerchantView` at once and removes itself without the fade. `start_merchant` while it is already on the stack only rebinds the stock |
+| `MerchantViewState` | Overlay | Hides the log and quest windows (the shop would cut their text off), then `show_with_panel(merchant_view)` | Shows the log and quest windows again, as they were | `ui_cancel` → `ActionManager.stop_action()`; the Leave button (`MerchantView.close_requested`) does the same | `ActionManager.stop_merchant` → `hide_with_panel()`, then `remove_state(self)` on `panel_hidden`. If another state is above it, it hides `MerchantView` at once and removes itself without the fade. `start_merchant` while it is already on the stack only rebinds the stock |
 
 What each view shows:
 
