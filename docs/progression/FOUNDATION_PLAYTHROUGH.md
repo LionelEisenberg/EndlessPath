@@ -155,7 +155,7 @@ Deviations from the original design:
 
 **Trigger:** clicking **Traveling Merchant**, which Beat 3b unlocks. There is no quest. Decisions and the pricing test plan are in the [Merchant v1 spec](../superpowers/specs/2026-10-19-merchant-v1-design.md).
 
-- **Opening.** `ActionManager` emits `start_merchant` and the shop fades in over the zone view. The action stays current until the player presses Leave or Escape. That stops the action (`stop_merchant`) and fades the shop out. A foraging or training action the visit replaced resumes when the shop closes, unless the zone changed. Every visit adds 1 to the action's completion count; the action has unlimited uses and no effects.
+- **Opening.** `ActionManager` emits `start_merchant` and the shop fades in over the zone view. The action stays current until the player presses Leave or Escape. That stops the action (`stop_merchant`) and fades the shop out; if another view has opened above the shop, it closes at once and that view stays open. A foraging or training action the visit replaced resumes when the shop closes, unless the zone changed. Every visit adds 1 to the action's completion count; the action has unlimited uses and no effects.
 - **Stock** (`resources/merchants/spirit_valley_merchant_stock.tres`). Each price is the item's `base_value`. All prices are starting values.
 
 | Item | Slot | Price | Limit |
@@ -173,6 +173,7 @@ Deviations from the original design:
   - When the price is above the player's gold, the row reads "Need N more gold" and Buy is disabled.
   - When every equipment slot is full, gear rows read "Equipment full". Crude Scales stay buyable.
   - No gold moves until every check passes.
+  - Broken stock data never takes gold. An entry with no item gets no row, and the shop logs a warning. An entry whose item class doesn't match its `item_type` (so `InventoryManager.award_items()` couldn't place it) can't be bought.
   - The merchant buys nothing back.
 - **Look.** A translucent teal panel with drifting mist, motes and a glowing edge, from `assets/themes/merchant/spirit_valley_merchant_theme.tres`. A merchant in another zone sets its own `shop_theme`.
 
@@ -439,7 +440,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 | `scenes/combat/adventure_combat/adventure_combat.gd` | `q_first_steps_enemy_defeated` producer |
 | `singletons/cultivation_manager/cultivation_manager.gd` | CD milestone path points; `attempt_breakthrough()` stub |
 | `tests/integration/test_aura_well_discovery_unlock.gd`, `test_beat_3b_merchant_unlock.gd` | Beat 3a and 3b integration tests |
-| `tests/unit/test_merchant_manager.gd`, `test_merchant_data.gd`, `test_spirit_valley_merchant_stock.gd`, `tests/integration/test_merchant_shop_flow.gd` | Beat 4 tests |
+| `tests/unit/test_merchant_manager.gd`, `test_merchant_data.gd`, `test_merchant_view_state.gd`, `test_spirit_valley_merchant_stock.gd`, `test_spirit_valley_merchant_theme.gd`, `tests/integration/test_merchant_shop_flow.gd` | Beat 4 tests |
 
 ## Work Remaining
 

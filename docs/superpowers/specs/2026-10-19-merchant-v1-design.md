@@ -82,7 +82,7 @@ Content: `resources/merchants/spirit_valley_merchant_stock.tres` (`merchant_id` 
 
 | Member | Behaviour |
 |---|---|
-| `enum PurchaseResult { OK, INVALID_ENTRY, SOLD_OUT, INSUFFICIENT_GOLD, EQUIPMENT_FULL }` | Checked in that order. `INVALID_ENTRY` also covers an empty `merchant_id` or `entry_id` |
+| `enum PurchaseResult { OK, INVALID_ENTRY, SOLD_OUT, INSUFFICIENT_GOLD, EQUIPMENT_FULL }` | Checked in that order. `INVALID_ENTRY` also covers an empty `merchant_id` or `entry_id`, and an item whose class doesn't match its `item_type` (which `award_items()` would drop after the gold was spent) |
 | `get_purchase_status(stock, entry) -> PurchaseResult` | No side effects; drives each row's state |
 | `purchase(stock, entry) -> PurchaseResult` | Checks the status first. On `OK`: `spend_gold(price)`, `award_items(item, 1)`, adds 1 to the entry in that merchant's ledger, emits `item_purchased(stock, entry)` |
 | `get_purchase_count(stock, entry) -> int`, `get_remaining_stock(stock, entry) -> int` (-1 = unlimited) | Read the merchant's ledger and compare it with `entry.stock_limit` |
@@ -131,7 +131,7 @@ Each merchant action picks a zone Theme, so a zone (or one area of it) can give 
 | `MerchantPanel` (PanelContainer variant) | Translucent tinted panel, glowing edge (StyleBoxFlat border and shadow) |
 | `MerchantRow` (PanelContainer variant) | Translucent rows with a thin luminous edge |
 | `MerchantButton` (Button variant) | Buy and Leave in every state, disabled included |
-| `LabelMerchantTitle` (Label variant) | Gold title with a zone-coloured glow (shadow outline) |
+| `LabelMerchantTitle` (`LabelTitle` variant) | `LabelTitle`'s gold title with a zone-coloured glow (shadow outline). It repeats `LabelTitle`'s size, because `pixel_theme.tres`'s default font size answers first |
 | `HSeparatorMerchant` (HSeparator variant) | Zone-coloured dividers |
 | `MerchantAtmosphere` colours: `mist`, `mote_primary`, `mote_secondary`, `light`, `slot_glow` | Mist, motes, top light and the glow behind item icons; read by `MerchantAtmosphere` and `MerchantStockRow` on `NOTIFICATION_THEME_CHANGED` |
 
@@ -143,9 +143,9 @@ Rejected: a colour resource applied by script with `add_theme_*_override()`, whi
 
 | Signal | Emitted by | Consumed by | Payload |
 |---|---|---|---|
-| `ActionManager.start_merchant` | `_execute_merchant_action()` | `MerchantViewState`: `merchant_view.setup()`, then `push_state()` | `MerchantActionData` |
-| `ActionManager.stop_merchant` | `_stop_merchant_action()` | `MerchantViewState`: `hide_with_panel()` | — |
-| `GreyBackground.panel_hidden` | End of the fade-out | `MerchantViewState`: `pop_state()` (only if it is the top state) | — |
+| `ActionManager.start_merchant` | `_execute_merchant_action()` | `MerchantViewState`: `merchant_view.setup()`, then `push_state()` unless it is already on the stack | `MerchantActionData` |
+| `ActionManager.stop_merchant` | `_stop_merchant_action()` | `MerchantViewState`: `hide_with_panel()`, or an instant hide and `remove_state()` when another view sits above the shop | — |
+| `GreyBackground.panel_hidden` | End of the fade-out | `MerchantViewState`: `MainView.remove_state(self)` (removes only itself) | — |
 | `MerchantView.close_requested` | Leave button | `MerchantViewState`: `ActionManager.stop_action()` | — |
 | `MerchantStockRow.buy_pressed` | Buy button | `MerchantView`: `MerchantManager.purchase()` | `MerchantStockEntry` |
 | `MerchantManager.item_purchased` | A successful `purchase()` | None yet (hook for quests and analytics) | `MerchantStock`, `MerchantStockEntry` |
@@ -171,7 +171,7 @@ Buy:   BuyButton → MerchantStockRow.buy_pressed(entry) → MerchantView → Me
 
 Close: Leave / Escape → ActionManager.stop_action()
          → completion count +1 → _stop_merchant_action → stop_merchant, success_effects
-         → MerchantViewState: hide_with_panel → panel_hidden → pop_state
+         → MerchantViewState: hide_with_panel → panel_hidden → remove_state(self)
 ```
 
 ### Tests
@@ -179,3 +179,4 @@ Close: Leave / Escape → ActionManager.stop_action()
 - `tests/unit/test_merchant_manager.gd`: spending; exact gold; insufficient gold changes nothing; full equipment blocks before spending; consumables still buyable with full equipment; sold out after one copy, and still sold out after the item is trashed; unlimited entries; limits kept per merchant (the same item at limit 1 in one stock and 3 in another); invalid entries; `item_purchased` signal; save round-trip of the ledgers.
 - `tests/unit/test_spirit_valley_merchant_stock.gd`: the real `.tres` wiring (seven entries, a merchant id, unique entry ids, limits, prices above zero, the action is a `MerchantActionData`).
 - `tests/integration/test_merchant_shop_flow.gd`: the `ActionManager` route stays open until `stop_action()`; `MerchantView` binds the real stock and disables Buy when gold is short.
+- Added by the final-review follow-ups: `tests/unit/test_merchant_view_state.gd` (the overlay pushes once and removes only itself, on a `MainView` that never enters the tree) and `tests/unit/test_spirit_valley_merchant_theme.gd` (every variant and `MerchantAtmosphere` colour). `test_merchant_shop_flow.gd` also covers a merchant with no stock, entries without an item, the "Equipment full" row, a closed shop skipping refreshes, and the title's `LabelTitle` inheritance.

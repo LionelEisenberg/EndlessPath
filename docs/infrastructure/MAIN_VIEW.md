@@ -84,6 +84,7 @@ Draw order is controlled by `z_index`. LogWindow and QuestWindow (z 1) sit under
 | `state_stack: Array[MainViewState]` | Overlays above the base. The current state is the top of the stack, or the base when the stack is empty. |
 | `push_state(state)` | Appends and calls `state.enter()`. The state underneath is **not** exited and stays visible. |
 | `pop_state()` | No-op on an empty stack. Otherwise pops and calls `exit()` on the popped state. The state underneath is **not** re-entered. |
+| `remove_state(state)` | No-op if `state` isn't on the stack. Otherwise erases it wherever it sits and calls its `exit()`. States above it stay open. `MerchantViewState` closes this way, so it never pops another view. |
 | `change_state(new_state)` | Returns early if `new_state` is already the base. Otherwise it clears the stack **without** calling `exit()` on stacked states, calls `exit()` on the old base, then `enter()` on the new base. |
 | `_unhandled_input(event)` | Forwards to the current state's `handle_input(event)`. |
 
@@ -101,7 +102,7 @@ In practice at most one overlay is open at a time. Overlay states never push oth
 | `PathTreeViewState` | Overlay | `grey_background.show_with_panel(path_tree_view)` | No-op (already hidden by the fade) | `ui_cancel` or `open_path` → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Grey fade-out |
 | `AbilitiesViewState` | Overlay | `show_with_panel(abilities_view)` | No-op | `ui_cancel` or `open_abilities` → same close path | Grey fade-out |
 | `CharacterViewState` | Overlay | `show_with_panel(character_view)` | No-op | `ui_cancel` or `open_character` → same close path | Grey fade-out |
-| `MerchantViewState` | Overlay | `show_with_panel(merchant_view)` | No-op | `ui_cancel` → `ActionManager.stop_action()`; the Leave button (`MerchantView.close_requested`) does the same | `ActionManager.stop_merchant` → `hide_with_panel()`, then `pop_state()` on `panel_hidden`, only while it is the top state |
+| `MerchantViewState` | Overlay | `show_with_panel(merchant_view)` | No-op | `ui_cancel` → `ActionManager.stop_action()`; the Leave button (`MerchantView.close_requested`) does the same | `ActionManager.stop_merchant` → `hide_with_panel()`, then `remove_state(self)` on `panel_hidden`. If another state is above it, it hides `MerchantView` at once and removes itself without the fade. `start_merchant` while it is already on the stack only rebinds the stock |
 
 What each view shows:
 
@@ -135,7 +136,7 @@ Zone action (cycling) ─► ActionManager.start_cycling ─► CyclingViewState
 Esc / close button ─► close_cycling_view ─► ActionManager.stop_action() ─► stop_cycling ─► pop_state()
 
 Zone action (merchant) ─► ActionManager.start_merchant ─► MerchantViewState: merchant_view.setup(action); push_state(merchant)
-Leave / Esc ─► ActionManager.stop_action() ─► stop_merchant ─► hide_with_panel ─► panel_hidden ─► pop_state()
+Leave / Esc ─► ActionManager.stop_action() ─► stop_merchant ─► hide_with_panel ─► panel_hidden ─► remove_state(merchant)
 
 Zone action (adventure) ─► ActionManager.adventure_start_requested
    ├─► ZoneViewState: adds a full-rect Control (mouse Stop) to ZoneView and ignores keys
@@ -244,7 +245,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 | System | Connection |
 |--------|------------|
-| ActionManager | `start_cycling`/`stop_cycling` → `CyclingViewState` push/pop. `start_merchant`/`stop_merchant` → `MerchantViewState` push / fade and pop. `adventure_start_requested` → `ZoneViewState` input blocker plus `ZoneTransition` drain. `start_adventure` → `AdventureViewState.change_state()`. `stop_action()` called by `CyclingViewState`. |
+| ActionManager | `start_cycling`/`stop_cycling` → `CyclingViewState` push/pop. `start_merchant`/`stop_merchant` → `MerchantViewState` push / fade and remove. `adventure_start_requested` → `ZoneViewState` input blocker plus `ZoneTransition` drain. `start_adventure` → `AdventureViewState.change_state()`. `stop_action()` called by `CyclingViewState`. |
 | AdventureView | `adventure_completed(result)` → end card push. `is_in_combat`, `force_win_combat()` and `set_show_whole_map()` are used by the dev panel. |
 | AdventureEndCard | `show_results(result)`, `return_requested` → pop + `change_state(zone)` |
 | InventoryView | `animate_open()`, `animate_close()`, `inventory_closed` |
@@ -263,7 +264,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/main/main_game/main_game.tscn` | Entry scene, full UI tree |
 | `scenes/main/main_game/main_game.gd` | Dev hotkey gate, `log_print_level` export |
 | `scenes/main/main_game/save_timer.gd` | 5 s autosave |
-| `scenes/ui/main_view/main_view.gd` | `MainView`: state stack, `push_state`/`pop_state`/`change_state`, input routing |
+| `scenes/ui/main_view/main_view.gd` | `MainView`: state stack, `push_state`/`pop_state`/`remove_state`/`change_state`, input routing |
 | `scenes/ui/main_view/states/main_view_state.gd` | `MainViewState` base class |
 | `scenes/ui/main_view/states/*.gd` | Zone, Adventure, AdventureEndCard, Inventory, Cycling states |
 | `scenes/path_progression/path_tree_view_state.gd` | Path tree overlay state |

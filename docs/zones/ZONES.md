@@ -460,7 +460,7 @@ Every stop adds 1 to `action_completion_count`, under the zone that is current a
 | `training_tick_processed(action_data, new_tick_count)` | Every training tick | `TrainingPresenter` |
 | `training_level_gained(action_data, new_level)` | Once per level crossed | `TrainingPresenter` |
 | `start_merchant(action_data)` | `_execute_merchant_action()` | `MerchantViewState` (binds the shop, pushes the overlay) |
-| `stop_merchant()` | `_stop_merchant_action()` | `MerchantViewState` (fades the shop out, then pops) |
+| `stop_merchant()` | `_stop_merchant_action()` | `MerchantViewState` (fades the shop out, then removes only itself from the stack; closes at once if another view sits above the shop) |
 
 Other signals the zone code consumes:
 
@@ -529,7 +529,7 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
 
 - **Cycling.** `start_cycling(action)` makes `CyclingViewState` push the cycling view. Escape calls `stop_action()`, which emits `stop_cycling`, and the view is popped. The `CyclingActionData` never reaches the view. See [CYCLING.md](../cycling/CYCLING.md).
 - **NPC dialogue.** The handler connects `DialogueManager.dialogue_ended` to `stop_action` (one-shot), then calls `DialogueManager.start_timeline(dialogue_timeline_name, dialogue_timeline_label_jump)`. When the timeline ends, the success effects run (events and quest starts) and the one-time card disappears.
-- **Merchant.** `_execute_merchant_action()` emits `start_merchant(action)`. `MerchantViewState` binds the action's stock to `MerchantView` and pushes the overlay, which fades in with the grey backdrop. The action stays current while the shop is open. Leave (`MerchantView.close_requested`) or Escape calls `stop_action()`, which emits `stop_merchant`; the state fades the shop out and pops itself. If the shop replaced a foraging or training action, `stop_action()` re-selects it (`_idle_action_to_resume`); a zone change clears that first. Each visit adds 1 to the completion count; no effects are authored. Purchases go through `MerchantManager` (see [RESOURCES.md](../infrastructure/RESOURCES.md#gold-sink-the-merchant)).
+- **Merchant.** `_execute_merchant_action()` emits `start_merchant(action)`. `MerchantViewState` binds the action's stock to `MerchantView` and pushes the overlay, which fades in with the grey backdrop; a second `start_merchant` while the shop is open only rebinds the stock. The action stays current while the shop is open. Leave (`MerchantView.close_requested`) or Escape calls `stop_action()`, which emits `stop_merchant`. The state fades the shop out, then removes only itself from the stack (`MainView.remove_state()`), so a view pushed during the fade stays open. If another view already sits above the shop, the shop closes at once without the fade. If the shop replaced a foraging or training action, `stop_action()` re-selects it (`_idle_action_to_resume`); a zone change clears that first. Each visit adds 1 to the completion count; no effects are authored. Purchases go through `MerchantManager` (see [RESOURCES.md](../infrastructure/RESOURCES.md#gold-sink-the-merchant)).
 
 ### Unlock gating
 
@@ -695,7 +695,8 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/integration/test_training_flow.gd` | 1 | `select_action` → ticks, Madra trickle, level-ups, persistence across stop and restart |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | Aura Well hidden before and visible after `aura_well_discovered` |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | 1 | Dialogue 4 appears at CD 10, map award, merchant card after `merchant_discovered` |
-| `tests/integration/test_merchant_shop_flow.gd` | 15 | The merchant action stays current until `stop_action()`, a second stop is a no-op, leaving resumes the replaced idle action (not after a zone change, not cycling), and `MerchantView` binds real stock, row states, buying, Leave and the zone theme |
+| `tests/integration/test_merchant_shop_flow.gd` | 21 | The merchant action stays current until `stop_action()`, a second stop is a no-op, leaving resumes the replaced idle action (not after a zone change, not cycling), and `MerchantView` binds real stock, row states (including "Equipment full"), buying, Leave and the zone theme. Also: a merchant with no stock, entries without an item, the first 8 of 9 entries in order, a closed shop skipping refreshes, and the title inheriting `LabelTitle` |
+| `tests/unit/test_merchant_view_state.gd` | 6 | `start_merchant` pushes the shop once; closing removes only `MerchantViewState`, after the fade or at once when another view sits above it |
 | `tests/unit/test_hex_forest_atlas.gd` | 4 | Atlas picker shared with the adventure map |
 
 ### Specs and plans

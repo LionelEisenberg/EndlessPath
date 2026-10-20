@@ -59,7 +59,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
   - `MerchantPanel` (PanelContainer) — translucent tinted shop panel with a glowing edge
   - `MerchantRow` (PanelContainer) — translucent stock row with a thin luminous edge
   - `MerchantButton` (Button) — Buy and Leave, 20px; every state, disabled included. No StyleBoxFlat shadow: Godot draws it under a translucent box, which fills the button
-  - `LabelMerchantTitle` (Label) — 50px gold title with a zone-coloured glow (10px outline at low alpha) and a 2px drop shadow
+  - `LabelMerchantTitle` (base `LabelTitle`) — `LabelTitle`'s gold colour and 2px drop shadow, inherited from `pixel_theme.tres`, plus a zone-coloured glow (10px outline at low alpha). It repeats `LabelTitle`'s 50px size: `pixel_theme.tres` sets `default_font_size = 14`, and Godot returns that default for `LabelMerchantTitle` before it reaches `LabelTitle`. Colours and constants have no theme default, so they inherit. `test_title_matches_label_title_in_game` fails if the two sizes drift apart
   - `HSeparatorMerchant` (HSeparator) — 1px zone-coloured divider, 8px inset, separation 24
   - `MerchantAtmosphere` colours `mist`, `mote_primary`, `mote_secondary`, `light`, `slot_glow` — read in code with `get_theme_color()` by `MerchantAtmosphere` and `MerchantStockRow` and applied as `modulate`
 

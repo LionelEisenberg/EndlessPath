@@ -152,7 +152,7 @@ MerchantStockRow Buy → MerchantView → MerchantManager.purchase(stock, entry)
      → MerchantManager.item_purchased(stock, entry)
 ```
 
-Every check runs before gold moves, so a blocked purchase changes nothing. Gold is uncapped and may hold fractions (dev panel), so the shortfall shown on a row is rounded up.
+Every check runs before gold moves, so a blocked purchase changes nothing. `INVALID_ENTRY` covers a missing stock or entry, an empty `merchant_id` or `entry_id`, and an item that `award_items()` couldn't place: no item, or a class that doesn't match its `item_type`. Gold is uncapped and may hold fractions (dev panel), so the shortfall shown on a row is rounded up.
 
 ## Integration Points
 
