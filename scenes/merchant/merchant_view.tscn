@@ -89,9 +89,7 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -500.0
-offset_top = -415.0
 offset_right = 500.0
-offset_bottom = 415.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_type_variation = &"MerchantPanel"
@@ -100,37 +98,52 @@ theme_type_variation = &"MerchantPanel"
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="MainVBox" type="VBoxContainer" parent="ShopPanel"]
+[node name="ContentMargin" type="MarginContainer" parent="ShopPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="MainVBox" type="VBoxContainer" parent="ShopPanel/ContentMargin"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="HeaderHBox" type="HBoxContainer" parent="ShopPanel/MainVBox"]
+[node name="HeaderMargin" type="MarginContainer" parent="ShopPanel/ContentMargin/MainVBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 0
+
+[node name="HeaderHBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin"]
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="TitleBlock" type="VBoxContainer" parent="ShopPanel/MainVBox/HeaderHBox"]
+[node name="TitleBlock" type="VBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="TitleLabel" type="Label" parent="ShopPanel/MainVBox/HeaderHBox/TitleBlock"]
+[node name="TitleLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox/TitleBlock"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelMerchantTitle"
 text = "Traveling Merchant"
 
-[node name="GreetingLabel" type="Label" parent="ShopPanel/MainVBox/HeaderHBox/TitleBlock"]
+[node name="GreetingLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox/TitleBlock"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelSubheading"
 text = "Greeting"
 
-[node name="GoldBox" type="HBoxContainer" parent="ShopPanel/MainVBox/HeaderHBox"]
+[node name="GoldBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox"]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 10
 
-[node name="GoldIcon" type="TextureRect" parent="ShopPanel/MainVBox/HeaderHBox/GoldBox"]
+[node name="GoldIcon" type="TextureRect" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox/GoldBox"]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 size_flags_vertical = 4
@@ -138,61 +151,68 @@ texture = ExtResource("5_gold")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="GoldLabel" type="Label" parent="ShopPanel/MainVBox/HeaderHBox/GoldBox"]
+[node name="GoldLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox/GoldBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelValueLarge"
 text = "0"
 
-[node name="TopSeparator" type="HSeparator" parent="ShopPanel/MainVBox"]
+[node name="TopSeparator" type="HSeparator" parent="ShopPanel/ContentMargin/MainVBox"]
 layout_mode = 2
 theme_type_variation = &"HSeparatorMerchant"
 
-[node name="StockList" type="VBoxContainer" parent="ShopPanel/MainVBox"]
+[node name="StockList" type="VBoxContainer" parent="ShopPanel/ContentMargin/MainVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Row1" parent="ShopPanel/MainVBox/StockList" instance=ExtResource("4_row")]
+[node name="Row1" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
 layout_mode = 2
 
-[node name="Row2" parent="ShopPanel/MainVBox/StockList" instance=ExtResource("4_row")]
+[node name="Row2" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
 layout_mode = 2
 
-[node name="Row3" parent="ShopPanel/MainVBox/StockList" instance=ExtResource("4_row")]
+[node name="Row3" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
 layout_mode = 2
 
-[node name="Row4" parent="ShopPanel/MainVBox/StockList" instance=ExtResource("4_row")]
+[node name="Row4" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
 layout_mode = 2
 
-[node name="Row5" parent="ShopPanel/MainVBox/StockList" instance=ExtResource("4_row")]
+[node name="Row5" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
 layout_mode = 2
 
-[node name="Row6" parent="ShopPanel/MainVBox/StockList" instance=ExtResource("4_row")]
+[node name="Row6" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
 layout_mode = 2
 
-[node name="Row7" parent="ShopPanel/MainVBox/StockList" instance=ExtResource("4_row")]
+[node name="Row7" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
 layout_mode = 2
 
-[node name="Row8" parent="ShopPanel/MainVBox/StockList" instance=ExtResource("4_row")]
+[node name="Row8" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
 layout_mode = 2
 
-[node name="BottomSeparator" type="HSeparator" parent="ShopPanel/MainVBox"]
+[node name="BottomSeparator" type="HSeparator" parent="ShopPanel/ContentMargin/MainVBox"]
 layout_mode = 2
 theme_type_variation = &"HSeparatorMerchant"
 
-[node name="FooterHBox" type="HBoxContainer" parent="ShopPanel/MainVBox"]
+[node name="FooterMargin" type="MarginContainer" parent="ShopPanel/ContentMargin/MainVBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
+
+[node name="FooterHBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin"]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="StatusLabel" type="Label" parent="ShopPanel/MainVBox/FooterHBox"]
+[node name="StatusLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_type_variation = &"LabelGreen"
 
-[node name="LeaveButton" type="Button" parent="ShopPanel/MainVBox/FooterHBox"]
+[node name="LeaveButton" type="Button" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(170, 44)
 layout_mode = 2

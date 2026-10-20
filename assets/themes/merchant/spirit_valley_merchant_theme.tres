@@ -7,6 +7,7 @@
 [ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_button_pressed.tres" id="5_btn_pressed"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_button_disabled.tres" id="6_btn_disabled"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_separator.tres" id="7_separator"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_atmosphere_mask.tres" id="8_atmosphere_mask"]
 
 [resource]
 HSeparatorMerchant/base_type = &"HSeparator"
@@ -21,6 +22,8 @@ MerchantAtmosphere/colors/mist = Color(1, 1.2, 1.5, 0.5)
 MerchantAtmosphere/colors/mote_primary = Color(0.471, 0.894, 1, 0.9)
 MerchantAtmosphere/colors/mote_secondary = Color(0.22, 0.851, 0.451, 0.85)
 MerchantAtmosphere/colors/slot_glow = Color(0.471, 0.894, 1, 0.22)
+MerchantAtmosphereMask/base_type = &"Panel"
+MerchantAtmosphereMask/styles/panel = ExtResource("8_atmosphere_mask")
 MerchantButton/base_type = &"Button"
 MerchantButton/colors/font_color = Color(0.941, 0.91, 0.847, 1)
 MerchantButton/colors/font_disabled_color = Color(0.941, 0.91, 0.847, 0.28)

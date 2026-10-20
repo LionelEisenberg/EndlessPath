@@ -87,6 +87,11 @@ func test_shop_does_not_resume_cycling() -> void:
 const MerchantViewScene := preload("res://scenes/merchant/merchant_view.tscn")
 const DEFAULT_THEME_PATH: String = "res://assets/themes/merchant/spirit_valley_merchant_theme.tres"
 const PIXEL_THEME_PATH: String = "res://assets/themes/pixel_theme.tres"
+## The mock (docs/superpowers/mockups/merchant-shop-mockup.html) indents the
+## header and footer 8px more than the rows, and pads 4px above the title and
+## below the footer.
+const MOCK_HEADER_FOOTER_INSET: float = 8.0
+const MOCK_EDGE_PADDING: float = 4.0
 
 func _make_view() -> MerchantView:
 	var view: MerchantView = MerchantViewScene.instantiate()
@@ -134,6 +139,24 @@ func _row_for(view: MerchantView, entry_id: String) -> MerchantStockRow:
 		if row.get_entry() and row.get_entry().entry_id == entry_id:
 			return row
 	return null
+
+## The shop with real stock, shown and laid out.
+func _shown_view() -> MerchantView:
+	var view := await _make_view()
+	view.setup(_merchant_action())
+	view.visible = true
+	await get_tree().process_frame
+	await get_tree().process_frame
+	return view
+
+func _rect_of(view: MerchantView, unique_name: String) -> Rect2:
+	return (view.get_node("%" + unique_name) as Control).get_global_rect()
+
+## The shop panel's area inside its border.
+func _panel_inner_rect(view: MerchantView) -> Rect2:
+	var panel: PanelContainer = view.get_node("ShopPanel")
+	var style := panel.get_theme_stylebox(&"panel") as StyleBoxFlat
+	return panel.get_global_rect().grow_individual(-style.border_width_left, -style.border_width_top, -style.border_width_right, -style.border_width_bottom)
 
 func test_setup_binds_real_stock() -> void:
 	var view := await _make_view()
@@ -283,6 +306,34 @@ func test_title_matches_label_title_in_game() -> void:
 	assert_eq(title.get_theme_color(&"font_color"), pixel_theme.get_color(&"font_color", &"LabelTitle"))
 	assert_eq(title.get_theme_color(&"font_shadow_color"), pixel_theme.get_color(&"font_shadow_color", &"LabelTitle"))
 	assert_eq(title.get_theme_constant(&"shadow_offset_y"), pixel_theme.get_constant(&"shadow_offset_y", &"LabelTitle"))
+
+func test_header_and_footer_sit_inside_the_rows() -> void:
+	var view := await _shown_view()
+	var row := _visible_rows(view)[0].get_global_rect()
+	assert_almost_eq(_rect_of(view, "TitleLabel").position.x - row.position.x, MOCK_HEADER_FOOTER_INSET, 0.5, "title")
+	assert_almost_eq(row.end.x - _rect_of(view, "GoldLabel").end.x, MOCK_HEADER_FOOTER_INSET, 0.5, "gold")
+	assert_almost_eq(_rect_of(view, "StatusLabel").position.x - row.position.x, MOCK_HEADER_FOOTER_INSET, 0.5, "status line")
+	assert_almost_eq(row.end.x - _rect_of(view, "LeaveButton").end.x, MOCK_HEADER_FOOTER_INSET, 0.5, "Leave")
+
+func test_title_sits_below_the_panel_padding() -> void:
+	var view := await _shown_view()
+	var content := _rect_of(view, "MainVBox")
+	assert_almost_eq(_rect_of(view, "TitleLabel").position.y - content.position.y, MOCK_EDGE_PADDING, 0.5)
+
+func test_panel_ends_just_below_the_footer() -> void:
+	# The panel fits its rows; a fixed height left a spare band under Leave.
+	var view := await _shown_view()
+	var content: VBoxContainer = view.get_node("%MainVBox")
+	assert_almost_eq(content.size.y, content.get_combined_minimum_size().y, 0.5, "no spare band under the footer")
+	assert_almost_eq(content.get_global_rect().end.y - _rect_of(view, "LeaveButton").end.y, MOCK_EDGE_PADDING, 0.5)
+
+func test_atmosphere_fills_the_panel_inside_its_border() -> void:
+	var view := await _shown_view()
+	var atmosphere: MerchantAtmosphere = view.get_node("%MerchantAtmosphere")
+	var inner := _panel_inner_rect(view)
+	assert_true(atmosphere.get_global_rect().is_equal_approx(inner),
+		"atmosphere %s should cover the panel inside its border %s, or a dark frame shows" % [atmosphere.get_global_rect(), inner])
+	assert_eq(atmosphere.clip_children, CanvasItem.CLIP_CHILDREN_ONLY, "the atmosphere's mask keeps it inside the rounded corners")
 
 func test_atmosphere_reads_theme_colours() -> void:
 	var view := await _make_view()

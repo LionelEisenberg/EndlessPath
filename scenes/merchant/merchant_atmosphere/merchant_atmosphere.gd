@@ -1,11 +1,16 @@
 class_name MerchantAtmosphere
-extends Control
+extends Panel
 
 ## MerchantAtmosphere
 ## The shop's ethereal layer behind its content: a soft top light, drifting
 ## mist (the Atmosphere scene's mist_sheet.png) and floating motes. Colours
 ## come from the MerchantAtmosphere type of the shop's zone theme, so each
 ## zone tints the same layer differently.
+## The root Panel draws nothing itself. It masks the layers (clip_children)
+## to the theme's MerchantAtmosphereMask panel, rounded to match the shop
+## panel's inner corners, so the light and mist reach the border without
+## crossing it. The mask has its own type: making MerchantAtmosphere a Panel
+## variation would hide its colours from zone themes that don't declare one.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
