@@ -34,7 +34,7 @@
 [ext_resource type="PackedScene" uid="uid://crqcxy8168ohk" path="res://scenes/ui/quest_toast/quest_toast.tscn" id="28_qt"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_panel.tscn" id="30_dp"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_password_modal.tscn" id="31_dpm"]
-[ext_resource type="Script" path="res://scenes/merchant/merchant_view_state.gd" id="32_mvs"]
+[ext_resource type="Script" uid="uid://bh8yinf86y3v5" path="res://scenes/merchant/merchant_view_state.gd" id="32_mvs"]
 [ext_resource type="PackedScene" path="res://scenes/merchant/merchant_view.tscn" id="33_mv"]
 
 [sub_resource type="Animation" id="Animation_grey_RESET"]
@@ -141,7 +141,7 @@ script = ExtResource("22_avs")
 unique_name_in_owner = true
 script = ExtResource("26_cvs")
 
-[node name="MerchantViewState" type="Node" parent="MainView/MainViewStateMachine"]
+[node name="MerchantViewState" type="Node" parent="MainView/MainViewStateMachine" unique_id=1528159008]
 unique_name_in_owner = true
 script = ExtResource("32_mvs")
 
@@ -312,7 +312,7 @@ layout_mode = 1
 unique_name_in_owner = true
 layout_mode = 1
 
-[node name="MerchantView" parent="MainView" instance=ExtResource("33_mv")]
+[node name="MerchantView" parent="MainView" unique_id=356854437 instance=ExtResource("33_mv")]
 unique_name_in_owner = true
 layout_mode = 1
 

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="MerchantStock" format=3]
+[gd_resource type="Resource" script_class="MerchantStock" format=3 uid="uid://bqoxyd3haom18"]
 
 [ext_resource type="Script" uid="uid://qypgjbfjuka6" path="res://scripts/resource_definitions/merchant/merchant_stock.gd" id="1_stock"]
 [ext_resource type="Script" uid="uid://bamokut6hqd8x" path="res://scripts/resource_definitions/merchant/merchant_stock_entry.gd" id="2_entry"]
