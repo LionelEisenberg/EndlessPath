@@ -2,7 +2,7 @@ extends GutTest
 
 ## Unit tests for the Merchant v1 data layer: MerchantStockEntry pricing and
 ## limits, MerchantActionData defaults, per-merchant ledgers on SaveGameData
-## (including save round-trips and old saves) and
+## (including save round-trips, old saves and the debug string) and
 ## InventoryData.has_free_equipment_slot().
 
 const TMP_SAVE_PATH: String = "user://test_merchant_save.tres"
@@ -79,6 +79,13 @@ func test_ledgers_round_trip() -> void:
 	var loaded: SaveGameData = ResourceLoader.load(TMP_SAVE_PATH, "", ResourceLoader.CACHE_MODE_IGNORE)
 	assert_true(loaded.merchant_ledgers.has("spirit_valley_merchant"))
 	assert_eq(loaded.get_merchant_ledger("spirit_valley_merchant").get_count("iron_shortsword"), 1)
+
+func test_save_to_string_lists_ledgers() -> void:
+	var data := SaveGameData.new()
+	data.get_merchant_ledger("spirit_valley_merchant").add_purchase("iron_shortsword")
+	var text := str(data)
+	assert_string_contains(text, "spirit_valley_merchant")
+	assert_string_contains(text, "iron_shortsword")
 
 func test_reset_clears_ledgers() -> void:
 	var data := SaveGameData.new()
