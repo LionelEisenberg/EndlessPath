@@ -14,3 +14,4 @@ item_name = "Scripted Bark"
 description = "A small scripted piece of bark, not much but will take a hit or two"
 icon = ExtResource("1_2pb40")
 item_type = 2
+base_value = 75.0

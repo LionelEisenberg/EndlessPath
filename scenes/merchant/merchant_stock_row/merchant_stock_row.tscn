@@ -1,0 +1,128 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/merchant/merchant_stock_row/merchant_stock_row.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://ix8ck2f5o613" path="res://scenes/common/item_display_slot/item_display_slot.tscn" id="2_slot"]
+[ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="3_gold"]
+
+[sub_resource type="Gradient" id="Gradient_glow"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_glow"]
+gradient = SubResource("Gradient_glow")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[node name="MerchantStockRow" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 80)
+theme_type_variation = &"MerchantRow"
+script = ExtResource("1_script")
+
+[node name="RowHBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SlotStack" type="Control" parent="RowHBox"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="SlotGlow" type="TextureRect" parent="RowHBox/SlotStack"]
+unique_name_in_owner = true
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -10.0
+offset_top = -10.0
+offset_right = 10.0
+offset_bottom = 10.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_glow")
+expand_mode = 1
+
+[node name="ItemSlot" parent="RowHBox/SlotStack" instance=ExtResource("2_slot")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InfoVBox" type="VBoxContainer" parent="RowHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="NameLabel" type="Label" parent="RowHBox/InfoVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Item Name"
+
+[node name="DetailLabel" type="RichTextLabel" parent="RowHBox/InfoVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.941, 0.91, 0.847, 1)
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+text = "Main Hand: +5 Strength, +2 Agility"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+
+[node name="BlockReasonLabel" type="Label" parent="RowHBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelRed"
+text = "Need 0 more gold"
+
+[node name="SoldOutLabel" type="Label" parent="RowHBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelMuted"
+text = "Sold out"
+
+[node name="PriceBox" type="HBoxContainer" parent="RowHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(76, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="GoldIcon" type="TextureRect" parent="RowHBox/PriceBox"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("3_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PriceLabel" type="Label" parent="RowHBox/PriceBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelValueMedium"
+text = "0"
+
+[node name="BuyButton" type="Button" parent="RowHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"MerchantButton"
+text = "Buy"

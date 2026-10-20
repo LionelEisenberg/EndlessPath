@@ -1,0 +1,101 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/merchant/merchant_atmosphere/merchant_atmosphere.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://cdwiub235t85v" path="res://assets/sprites/atmosphere/mist_sheet.png" id="2_mist"]
+[ext_resource type="Texture2D" uid="uid://ciljxi5dxbh71" path="res://assets/sprites/atmosphere/mote_particle.png" id="3_mote"]
+
+[sub_resource type="Gradient" id="Gradient_light"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+fill_from = Vector2(0.5, 0)
+fill_to = Vector2(0.5, 1)
+
+[sub_resource type="Curve" id="Curve_alpha"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.5, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_alpha"]
+curve = SubResource("Curve_alpha")
+
+[sub_resource type="ParticleProcessMaterial" id="PPM_motes"]
+emission_shape = 3
+emission_box_extents = Vector3(480, 400, 1)
+direction = Vector3(0, -1, 0)
+spread = 180.0
+initial_velocity_min = 3.0
+initial_velocity_max = 10.0
+gravity = Vector3(0, -2, 0)
+scale_min = 0.008
+scale_max = 0.016
+alpha_curve = SubResource("CurveTexture_alpha")
+
+[node name="MerchantAtmosphere" type="Control"]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="TopLight" type="TextureRect" parent="."]
+unique_name_in_owner = true
+texture_filter = 2
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 260.0
+grow_horizontal = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_light")
+expand_mode = 1
+
+[node name="MistA" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(120, 90)
+scale = Vector2(3, 3)
+texture = ExtResource("2_mist")
+hframes = 7
+vframes = 7
+
+[node name="MistB" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(860, 420)
+scale = Vector2(3.5, 3.5)
+texture = ExtResource("2_mist")
+hframes = 7
+vframes = 7
+frame = 24
+
+[node name="MistC" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(380, 780)
+scale = Vector2(3.2, 3.2)
+texture = ExtResource("2_mist")
+hframes = 7
+vframes = 7
+frame = 38
+
+[node name="MotesPrimary" type="GPUParticles2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(484, 400)
+amount = 30
+texture = ExtResource("3_mote")
+lifetime = 4.0
+preprocess = 4.0
+randomness = 0.5
+process_material = SubResource("PPM_motes")
+
+[node name="MotesSecondary" type="GPUParticles2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(484, 400)
+amount = 14
+texture = ExtResource("3_mote")
+lifetime = 4.0
+preprocess = 4.0
+randomness = 0.5
+process_material = SubResource("PPM_motes")

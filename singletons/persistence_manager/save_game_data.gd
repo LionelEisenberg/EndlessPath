@@ -101,6 +101,21 @@ func _verify_current_selected_zone_id() -> bool:
 ## Current unspent path point balance.
 @export var path_points: int = 0
 
+#-----------------------------------------------------------------------------
+# MERCHANT MANAGER
+#-----------------------------------------------------------------------------
+
+## Maps MerchantStock.merchant_id -> what the player bought from that merchant.
+@export var merchant_ledgers: Dictionary[String, MerchantLedgerData] = {}
+
+## Returns the merchant's ledger, creating and storing an empty one on first use.
+func get_merchant_ledger(merchant_id: String) -> MerchantLedgerData:
+	if not merchant_ledgers.has(merchant_id):
+		var ledger := MerchantLedgerData.new()
+		ledger.merchant_id = merchant_id
+		merchant_ledgers[merchant_id] = ledger
+	return merchant_ledgers[merchant_id]
+
 func _to_string() -> String:
 	var zone_progression_data_str := ""
 	if typeof(zone_progression_data) == TYPE_DICTIONARY:
@@ -189,3 +204,6 @@ func reset() -> void:
 	current_path_id = ""
 	path_node_purchases = {}
 	path_points = 0
+
+	# Merchant Manager
+	merchant_ledgers = {}

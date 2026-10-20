@@ -1,6 +1,6 @@
 # Items
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 > **Source-of-truth catalog for equipment content in EndlessPath.**
 >
@@ -40,7 +40,7 @@ Last updated: 2026-10-18
 | `slot` | `slot_type` (EquipmentSlot enum) | One of `MAIN_HAND` / `OFF_HAND` / `HEAD` / `ARMOR` / `ACCESSORY` |
 | `stats` | `attribute_bonuses` (Dictionary[AttributeType, float]) | Inline DSL, see below |
 | `tier` | — (doc-only) | `Foundation` / `Copper` / `Iron` / … — used by designer for balance grouping |
-| `cost` | `base_value` | Gold value. Intended to drive merchant pricing (sell-back derived) once a merchant exists; nothing reads it for equipment today |
+| `cost` | `base_value` | Gold value, and the merchant's buy price (`MerchantStockEntry.get_price()` rounds it). A future sell-back will derive from it. Prices are starting values; see [Merchant v1](../superpowers/specs/2026-10-19-merchant-v1-design.md#starting-values-and-test-plan) |
 | `identity` | — (doc-only) | One short phrase capturing design intent |
 | `source` | — (doc-only) | Where the item appears in the loop; comma-sep when multi-source |
 | `description` | `description` | Player-facing flavor |
@@ -64,13 +64,13 @@ Format: `<ATTR>[+-]<N>, ...`
 
 | # | id | name | slot | stats | tier | cost | identity | source | description |
 |---|----|------|------|-------|------|------|----------|--------|-------------|
-| E1 | makeshift_dagger | Makeshift Dagger | MAIN_HAND | STRENGTH+3, AGILITY+2 | Foundation | 0 | Starter weapon | NPC reward (Beat 1) | A simple iron blade, well-balanced for a beginner. |
-| E2 | iron_shortsword | Iron Shortsword | MAIN_HAND | STRENGTH+5, AGILITY+2 | Foundation | 10 | Dagger upgrade | Merchant | A heavier blade, demanding both hands. |
-| E3 | cultivators_cowl | Cultivator's Cowl | HEAD | WILLPOWER+3, SPIRIT+1 | Foundation | 6 | First HEAD slot — mental focus | Merchant | A felted cowl, traditional among initiate cultivators. |
-| E4 | reinforced_robes | Reinforced Robes | ARMOR | BODY+4, RESILIENCE+2 | Foundation | 7 | First ARMOR slot — survivability | Merchant | Padded robes lined with light scripted plates. |
+| E1 | makeshift_dagger | Makeshift Dagger | MAIN_HAND | STRENGTH+3, AGILITY+2 | Foundation | 60 | Starter weapon | Merchant | A simple iron blade, well-balanced for a beginner. |
+| E2 | iron_shortsword | Iron Shortsword | MAIN_HAND | STRENGTH+5, AGILITY+2 | Foundation | 150 | Dagger upgrade | Merchant | A heavier blade, demanding both hands. |
+| E3 | cultivators_cowl | Cultivator's Cowl | HEAD | WILLPOWER+3, SPIRIT+1 | Foundation | 40 | First HEAD slot — mental focus | Merchant | A felted cowl, traditional among initiate cultivators. |
+| E4 | reinforced_robes | Reinforced Robes | ARMOR | BODY+4, RESILIENCE+2 | Foundation | 180 | First ARMOR slot — survivability | Merchant | Padded robes lined with light scripted plates. |
 | E5 | dreadbeast_tooth_necklace | Dreadbeast Tooth Necklace | ACCESSORY | STRENGTH+2, AGILITY+2 | Foundation | 0 | Physical Offense | Loot | A small dreadbeast tooth, fashioned around a leather strap. |
-| E6 | leeching_ring | Leeching Ring | ACCESSORY | CONTROL+2, FOUNDATION+2 | Foundation | 50 | Cooldown + max mana | Merchant, Loot | A polished metal band engraved with a single character. |
-| E7 | scripted_bark | Scripted Bark | OFF_HAND | BODY+2 | Foundation | 0 | First offhand slot, played with makeshift dagger dropped by first mob seen | Loot | A small scripted piece of bark, not much but will take a hit or two |
+| E6 | leeching_ring | Leeching Ring | ACCESSORY | CONTROL+2, FOUNDATION+2 | Foundation | 120 | Cooldown + max mana | Merchant, Loot | A polished metal band engraved with a single character. |
+| E7 | scripted_bark | Scripted Bark | OFF_HAND | BODY+2 | Foundation | 75 | First offhand slot, played with makeshift dagger dropped by first mob seen | Merchant, Loot | A small scripted piece of bark, not much but will take a hit or two |
 
 ---
 
@@ -92,7 +92,7 @@ Format: `<ATTR>[+-]<N>, ...`
 > - `crude_scale.tres` (Crude Scale)
 > - `barely_coalesced_scale.tres` (Barely Coalesced Scale)
 >
-> The two files currently hold identical values (+20 Madra, 10 s cooldown, base value 1), and only Crude Scale has an icon. See [INVENTORY.md → Existing Content](INVENTORY.md#consumables).
+> The two files hold the same effect (+20 Madra, 10 s cooldown). Crude Scale's base value is 10, its merchant price; Barely Coalesced Scale's is 1. Only Crude Scale has an icon. See [INVENTORY.md → Existing Content](INVENTORY.md#consumables).
 
 ---
 

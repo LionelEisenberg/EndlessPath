@@ -1,15 +1,20 @@
-[gd_resource type="Resource" script_class="ZoneActionData" format=3 uid="uid://cspirit_merchant_act"]
+[gd_resource type="Resource" script_class="MerchantActionData" format=3 uid="uid://cspirit_merchant_act"]
 
-[ext_resource type="Script" uid="uid://cv640mljv33xk" path="res://scripts/resource_definitions/zones/zone_action_data/zone_action_data.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://dwbaolqbq70v5" path="res://scripts/resource_definitions/zones/zone_action_data/merchant_action_data/merchant_action_data.gd" id="1_action"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_cond"]
 [ext_resource type="Resource" uid="uid://bunlock_mrch_discov" path="res://resources/unlocks/merchant_discovered.tres" id="3_discov"]
+[ext_resource type="Resource" path="res://resources/merchants/spirit_valley_merchant_stock.tres" id="4_stock"]
+[ext_resource type="Theme" path="res://assets/themes/merchant/spirit_valley_merchant_theme.tres" id="5_theme"]
 
 [resource]
 script = ExtResource("1_action")
+stock = ExtResource("4_stock")
+greeting = "Real gear for honest coin. Everything here came out of the woods with us."
+shop_theme = ExtResource("5_theme")
 action_id = "spirit_valley_merchant"
 action_name = "Traveling Merchant"
 action_type = 3
 description = "The refugee-camp merchant has set up a small stall in the valley."
 unlock_conditions = Array[ExtResource("2_cond")]([ExtResource("3_discov")])
 max_completions = 0
-metadata/_custom_type_script = "uid://cv640mljv33xk"
+metadata/_custom_type_script = "uid://dwbaolqbq70v5"

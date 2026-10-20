@@ -34,6 +34,8 @@
 [ext_resource type="PackedScene" uid="uid://crqcxy8168ohk" path="res://scenes/ui/quest_toast/quest_toast.tscn" id="28_qt"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_panel.tscn" id="30_dp"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_password_modal.tscn" id="31_dpm"]
+[ext_resource type="Script" path="res://scenes/merchant/merchant_view_state.gd" id="32_mvs"]
+[ext_resource type="PackedScene" path="res://scenes/merchant/merchant_view.tscn" id="33_mv"]
 
 [sub_resource type="Animation" id="Animation_grey_RESET"]
 resource_name = "RESET"
@@ -138,6 +140,10 @@ script = ExtResource("22_avs")
 [node name="CharacterViewState" type="Node" parent="MainView/MainViewStateMachine" unique_id=1212840587]
 unique_name_in_owner = true
 script = ExtResource("26_cvs")
+
+[node name="MerchantViewState" type="Node" parent="MainView/MainViewStateMachine"]
+unique_name_in_owner = true
+script = ExtResource("32_mvs")
 
 [node name="ZoneView" type="Control" parent="MainView" unique_id=489769471]
 unique_name_in_owner = true
@@ -303,6 +309,10 @@ visible = false
 layout_mode = 1
 
 [node name="CharacterView" parent="MainView" unique_id=299343700 instance=ExtResource("25_cv")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="MerchantView" parent="MainView" instance=ExtResource("33_mv")]
 unique_name_in_owner = true
 layout_mode = 1
 
