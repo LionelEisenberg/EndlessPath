@@ -6,6 +6,9 @@
 class_name MerchantViewState
 extends MainViewState
 
+## The HUD windows the open shop hid, each with the visibility it had.
+var _hidden_hud_windows: Dictionary[Control, bool] = {}
+
 func _ready() -> void:
 	if ActionManager:
 		ActionManager.start_merchant.connect(_on_start_merchant)
@@ -13,13 +16,14 @@ func _ready() -> void:
 
 ## Called when entering this state.
 func enter() -> void:
+	_hide_hud_windows()
 	scene_root.grey_background.show_with_panel(scene_root.merchant_view)
 
 ## Called when exiting this state.
 ## Hiding is driven by grey_background.panel_hidden -> _on_close_finished -> remove_state,
 ## so by the time exit() runs the grey background and merchant view are already hidden.
 func exit() -> void:
-	pass
+	_restore_hud_windows()
 
 ## Handle input events in this state.
 func handle_input(event: InputEvent) -> void:
@@ -56,3 +60,15 @@ func _on_close_requested() -> void:
 
 func _is_top_state() -> bool:
 	return not scene_root.state_stack.is_empty() and scene_root.state_stack.back() == self
+
+## Hides the log and quest windows. The shop covers part of them, so their
+## text would show cut off at the panel's edge.
+func _hide_hud_windows() -> void:
+	for window: Control in [scene_root.log_window, scene_root.quest_window]:
+		_hidden_hud_windows[window] = window.visible
+		window.visible = false
+
+func _restore_hud_windows() -> void:
+	for window: Control in _hidden_hud_windows:
+		window.visible = _hidden_hud_windows[window]
+	_hidden_hud_windows.clear()

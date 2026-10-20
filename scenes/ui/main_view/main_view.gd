@@ -17,6 +17,8 @@ extends Control
 
 ## View Components
 @onready var grey_background: GreyBackground = %GreyBackground
+@onready var log_window: Control = %LogWindow
+@onready var quest_window: Control = %QuestWindow
 
 ## State machine states
 @onready var zone_view_state: MainViewState = %MainViewStateMachine/ZoneViewState

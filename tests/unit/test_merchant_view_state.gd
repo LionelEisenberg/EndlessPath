@@ -2,7 +2,8 @@ extends GutTest
 
 ## Unit tests for how MerchantViewState opens and closes the shop on MainView's
 ## state stack. The MainView is never added to the tree: each test builds its
-## state_stack by hand and fills in merchant_view and grey_background directly.
+## state_stack by hand and fills in merchant_view, grey_background and the HUD
+## windows directly.
 
 const MerchantViewScene := preload("res://scenes/merchant/merchant_view.tscn")
 const ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres"
@@ -35,6 +36,8 @@ func before_each() -> void:
 	_main_view = autofree(MainView.new())
 	_main_view.grey_background = autofree(FakeGreyBackground.new())
 	_main_view.merchant_view = add_child_autofree(MerchantViewScene.instantiate())
+	_main_view.log_window = autofree(Control.new())
+	_main_view.quest_window = autofree(Control.new())
 	_state = autofree(MerchantViewState.new())
 	_state.scene_root = _main_view
 	_other = autofree(MainViewState.new())
@@ -94,3 +97,29 @@ func test_close_finished_never_pops_another_state() -> void:
 	_state._on_close_finished()
 	assert_eq(_main_view.state_stack.size(), 1)
 	assert_same(_main_view.state_stack.back(), _other)
+
+#-----------------------------------------------------------------------------
+# HUD WINDOWS
+#-----------------------------------------------------------------------------
+
+func test_open_hides_the_log_and_quest_windows() -> void:
+	# The shop covers part of them, so their text would be cut off at its edge.
+	_set_stack([])
+	_state._on_start_merchant(_merchant_action())
+	assert_false(_main_view.log_window.visible, "log window")
+	assert_false(_main_view.quest_window.visible, "quest window")
+
+func test_close_shows_the_log_and_quest_windows_again() -> void:
+	_set_stack([])
+	_state._on_start_merchant(_merchant_action())
+	_state._on_stop_merchant()
+	assert_true(_main_view.log_window.visible, "log window")
+	assert_true(_main_view.quest_window.visible, "quest window")
+
+func test_close_leaves_a_hidden_window_hidden() -> void:
+	_main_view.quest_window.visible = false
+	_set_stack([])
+	_state._on_start_merchant(_merchant_action())
+	_state._on_stop_merchant()
+	assert_false(_main_view.quest_window.visible, "the shop restores what was there, not more")
+	assert_true(_main_view.log_window.visible)
