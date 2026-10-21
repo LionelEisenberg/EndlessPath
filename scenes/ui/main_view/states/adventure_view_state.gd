@@ -56,7 +56,7 @@ func _on_end_card_return() -> void:
 func _move_log_window_aside() -> void:
 	if _log_window:
 		return # Already moved; keep the original saved position.
-	_log_window = scene_root.get_node_or_null("%LogWindow") as Control
+	_log_window = scene_root.log_window
 	if not _log_window:
 		return
 	_saved_log_position = _log_window.position
