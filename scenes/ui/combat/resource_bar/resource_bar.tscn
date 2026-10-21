@@ -1,0 +1,100 @@
+[gd_scene format=3 uid="uid://bafol1aia1ngt"]
+
+[ext_resource type="Script" uid="uid://3ptonqwtx0dr" path="res://scenes/ui/combat/resource_bar/resource_bar.gd" id="1_08ulu"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/bar_track.tres" id="2_track"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/bar_fill_ghost.tres" id="3_ghost"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/bar_fill_health.tres" id="4_fill"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/cost_preview.tres" id="5_cost"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bg"]
+
+[node name="ResourceBar" type="Control"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 3
+anchors_preset = 0
+size_flags_horizontal = 3
+script = ExtResource("1_08ulu")
+fill_style = ExtResource("4_fill")
+
+[node name="GhostTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+
+[node name="GhostBar" type="ProgressBar" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/background = ExtResource("2_track")
+theme_override_styles/fill = ExtResource("3_ghost")
+max_value = 1.0
+step = 0.0
+value = 0.8
+show_percentage = false
+
+[node name="MainBar" type="ProgressBar" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = -1.0
+offset_bottom = -1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxEmpty_bg")
+theme_override_styles/fill = ExtResource("4_fill")
+max_value = 1.0
+step = 0.0
+value = 0.6
+show_percentage = false
+
+[node name="CostPreview" type="Panel" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("5_cost")
+
+[node name="LabelMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 8
+
+[node name="LabelRow" type="HBoxContainer" parent="LabelMargin"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="LabelMargin/LabelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelBodySmall"
+theme_override_colors/font_color = Color(1, 1, 1, 0.9)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "Health"
+vertical_alignment = 1
+
+[node name="ValueLabel" type="Label" parent="LabelMargin/LabelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+text = "86 / 100"
+horizontal_alignment = 2
+vertical_alignment = 1

@@ -2,6 +2,12 @@
 class_name AdventureViewState
 extends MainViewState
 
+## Where the log window sits during an adventure, clear of the bottom HUD dock.
+const ADVENTURE_LOG_POSITION: Vector2 = Vector2(24.0, 24.0)
+
+var _log_window: Control
+var _saved_log_position: Vector2 = Vector2.ZERO
+
 func _ready() -> void:
 	if ActionManager:
 		ActionManager.start_adventure.connect(_on_start_adventure)
@@ -10,6 +16,7 @@ func _ready() -> void:
 ## Called when entering this state.
 func enter() -> void:
 	scene_root.adventure_view.visible = true
+	_move_log_window_aside()
 	# Connect to adventure_completed to show end card
 	if not scene_root.adventure_view.adventure_completed.is_connected(_on_adventure_completed):
 		scene_root.adventure_view.adventure_completed.connect(_on_adventure_completed)
@@ -17,6 +24,7 @@ func enter() -> void:
 ## Called when exiting this state.
 func exit() -> void:
 	scene_root.adventure_view.visible = false
+	_restore_log_window()
 	if scene_root.adventure_view.adventure_completed.is_connected(_on_adventure_completed):
 		scene_root.adventure_view.adventure_completed.disconnect(_on_adventure_completed)
 
@@ -43,3 +51,19 @@ func _on_adventure_completed(result_data: AdventureResultData) -> void:
 func _on_end_card_return() -> void:
 	scene_root.pop_state() # Remove end card overlay
 	scene_root.change_state(scene_root.zone_view_state) # Return to zone
+
+## Moves the log window to the top-left corner for the adventure.
+func _move_log_window_aside() -> void:
+	if _log_window:
+		return # Already moved; keep the original saved position.
+	_log_window = scene_root.get_node_or_null("%LogWindow") as Control
+	if not _log_window:
+		return
+	_saved_log_position = _log_window.position
+	_log_window.position = ADVENTURE_LOG_POSITION
+
+## Puts the log window back where it was before the adventure.
+func _restore_log_window() -> void:
+	if _log_window and is_instance_valid(_log_window):
+		_log_window.position = _saved_log_position
+	_log_window = null

@@ -14,6 +14,12 @@ extends PanelContainer
 @onready var _damage_display: AbilityStatsDisplay = %DamageDisplay
 @onready var _timing_display: AbilityStatsDisplay = %TimingDisplay
 
+## Control the tooltip is anchored above; re-applied whenever the tooltip resizes.
+var _anchor_control: Control
+
+func _ready() -> void:
+	resized.connect(_reposition)
+
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
@@ -33,19 +39,26 @@ func show_for_ability(ability_data: AbilityData) -> void:
 ## Hides the tooltip.
 func hide_tooltip() -> void:
 	visible = false
+	_anchor_control = null
 
-## Positions the tooltip above the given control, centered horizontally.
-func position_below(control: Control) -> void:
-	var control_rect: Rect2 = control.get_global_rect()
-	var tooltip_size: Vector2 = size
-	var x: float = control_rect.position.x + (control_rect.size.x - tooltip_size.x) / 2.0
-	var y: float = control_rect.position.y + tooltip_size.y + 25.0
+## Positions the tooltip just above the given control, centered horizontally.
+## Flips below the control if there isn't room above, and clamps to the viewport.
+## Stays anchored if the tooltip resizes after its content finishes laying out.
+func position_above(control: Control) -> void:
+	_anchor_control = control
+	reset_size()
+	_reposition()
 
-	# Flip below if would overflow top
-	if y > 1920:
-		y = control_rect.position.y - control_rect.size.y - 8.0
+func _reposition() -> void:
+	if not visible or not is_instance_valid(_anchor_control):
+		return
+	var control_rect: Rect2 = _anchor_control.get_global_rect()
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var x: float = control_rect.position.x + (control_rect.size.x - size.x) / 2.0
+	var y: float = control_rect.position.y - size.y - 12.0
+	if y < 4.0:
+		y = control_rect.end.y + 12.0
 
-	# Clamp horizontal
-	x = clampf(x, 4.0, get_viewport_rect().size.x - tooltip_size.x - 4.0)
-
+	x = clampf(x, 4.0, viewport_size.x - size.x - 4.0)
+	y = clampf(y, 4.0, viewport_size.y - size.y - 4.0)
 	global_position = Vector2(x, y)

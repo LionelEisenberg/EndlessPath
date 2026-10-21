@@ -17,7 +17,7 @@ signal adventure_completed(result_data: AdventureResultData)
 @onready var tilemap_view: Control = %TilemapView
 @onready var combat_view: Control = %CombatView
 
-@onready var player_info_panel: CombatantInfoPanel = %PlayerInfoPanel
+@onready var player_hud: PlayerHud = %PlayerHud
 
 @onready var timer_panel: TimerPanel = %TimerPanel
 
@@ -183,14 +183,11 @@ func _on_start_combat(choice: CombatChoice) -> void:
 			current_action_data # Pass adventure action data for gold multiplier
 		)
 		combat.start()
-		# Enable buffs and abilities for player
+		# Show the action bar, cast bar and buffs for the player
 		if combat.player_combatant:
-			player_info_panel.setup_buffs(combat.player_combatant.buff_manager)
-			player_info_panel.setup_abilities(combat.player_combatant.ability_manager)
-			player_info_panel.position = Vector2(390.0, 500.0)
-			
-			if not player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):
-				player_info_panel.ability_selected.connect(combat.on_player_ability_selected)
+			player_hud.setup_combatant(combat.player_combatant)
+			if not player_hud.ability_selected.is_connected(combat.on_player_ability_selected):
+				player_hud.ability_selected.connect(combat.on_player_ability_selected)
 		
 	is_in_combat = true
 	
@@ -200,6 +197,7 @@ func _on_start_combat(choice: CombatChoice) -> void:
 		
 	tilemap_view.visible = false
 	combat_view.visible = true
+	_fade_in_combat_view()
 
 ## Transition from combat view back to tilemap view
 func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
@@ -216,9 +214,10 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	if successful:
 		_gold_earned += gold_earned
 
-	# Disconnect player ability signal
-	if combat and player_info_panel.ability_selected.is_connected(combat.on_player_ability_selected):
-		player_info_panel.ability_selected.disconnect(combat.on_player_ability_selected)
+	# Disconnect player ability signal and hide the combat HUD
+	if combat and player_hud.ability_selected.is_connected(combat.on_player_ability_selected):
+		player_hud.ability_selected.disconnect(combat.on_player_ability_selected)
+	player_hud.reset_combat()
 	
 	tilemap_view.visible = true
 	combat_view.visible = false
@@ -229,11 +228,13 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	
 	is_in_combat = false
 	
-	player_info_panel.position = Vector2(170.0, 872.0)
-	
 	if current_action_data:
 		if not successful:
 			ActionManager.stop_action(successful)
+
+func _fade_in_combat_view() -> void:
+	combat_view.modulate.a = 0.0
+	create_tween().tween_property(combat_view, "modulate:a", 1.0, 0.25)
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS - Resource Management
@@ -242,8 +243,8 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 ## Initialize resource values. Madra already spent by drain animation in ZoneResourcePanel.
 func _initialize_combat_resources(madra_budget: float) -> void:
 	PlayerManager.vitals_manager.initialize_current_values(madra_budget)
-	player_info_panel.setup_name("Player")
-	player_info_panel.setup_vitals(PlayerManager.vitals_manager)
+	player_hud.setup_vitals(PlayerManager.vitals_manager)
+	player_hud.show_loadout()
 	Log.info("AdventureView: Adventure budget: %.1f Madra" % madra_budget)
 
 ## Builds the adventure result data from accumulated stats.

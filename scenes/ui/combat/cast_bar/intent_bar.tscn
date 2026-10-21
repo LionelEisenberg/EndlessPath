@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ui/combat/cast_bar/cast_bar.tscn" id="1_base"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_intent.tres" id="2_panel"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/cast_bar_fill_enemy.tres" id="3_fill"]
+
+[node name="IntentBar" instance=ExtResource("1_base")]
+custom_minimum_size = Vector2(290, 0)
+theme_override_styles/panel = ExtResource("2_panel")
+fill_style = ExtResource("3_fill")
+danger_color = Color(0.91, 0.2, 0.16, 1)
+imminent_time = 0.6
+
+[node name="Row" parent="." index="0"]
+theme_override_constants/separation = 10
+
+[node name="Icon" parent="Row" index="0"]
+custom_minimum_size = Vector2(40, 40)
+
+[node name="Column" parent="Row" index="1"]
+theme_override_constants/separation = 5
+
+[node name="NameLabel" parent="Row/Column/TextRow" index="0"]
+theme_type_variation = &"LabelBody"
+
+[node name="TimeLabel" parent="Row/Column/TextRow" index="1"]
+theme_type_variation = &"LabelBody"
+
+[node name="Bar" parent="Row/Column" index="1"]
+custom_minimum_size = Vector2(0, 12)

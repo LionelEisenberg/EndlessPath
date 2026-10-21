@@ -23,11 +23,13 @@ theme_override_constants/separation = 10
 
 [node name="AbilityIcon" type="TextureRect" parent="Header" unique_id=1417875535]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 texture = ExtResource("4_1i8dk")
-expand_mode = 3
+expand_mode = 1
+stretch_mode = 5
 
 [node name="VBox" type="VBoxContainer" parent="Header" unique_id=13270192]
 layout_mode = 2

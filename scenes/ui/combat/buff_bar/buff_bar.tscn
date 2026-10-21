@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/combat/buff_bar/buff_bar.gd" id="1_bar"]
+[ext_resource type="PackedScene" uid="uid://bkbwc31y6p6u5" path="res://scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.tscn" id="2_tooltip"]
+
+[node name="BuffBar" type="HFlowContainer"]
+custom_minimum_size = Vector2(0, 54)
+mouse_filter = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 2
+script = ExtResource("1_bar")
+
+[node name="CombatBuffTooltip" parent="." instance=ExtResource("2_tooltip")]
+unique_name_in_owner = true
+z_index = 20
+layout_mode = 2
