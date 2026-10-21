@@ -48,7 +48,7 @@ AdventureView (Control)                         — adventure_view.gd
   CombatView (Control, hidden)
     SubViewport
       AdventureCombat                           — adventure_combat.gd
-  PlayerInfoPanel (CombatantInfoPanel)
+  PlayerHud                                     — player_hud.gd (bottom-center dock: orbs, stamina, technique slots)
   TimerPanel                                    — timer_panel.gd
 
 AdventureEndCard (Control)                      — adventure_end_card.gd
@@ -207,9 +207,9 @@ Base class: `EffectData` (abstract Resource) — defines an `EffectType` enum an
 The adventure UI was restyled in PR #15 to match the dark floating panel aesthetic used across the game:
 
 - **`EncounterInfoPanel`** — dark floating stylebox background, gold title label, card-style choice buttons with hover states
-- **`TimerPanel`** — repositioned to top-center of the screen, using the same dark floating style
-- **`PlayerInfoPanel` / `CombatantInfoPanel`** — rebuilt with container-based layout and integer vitals display (see [COMBAT.md](../combat/COMBAT.md) for full details)
-- **Log window** — made draggable, repositioned to avoid overlapping the hex map
+- **`TimerPanel`** — top-center pill (hourglass + `M:SS`) that turns red and ticks in the last 30 seconds
+- **`PlayerHud`** — bottom-center dock with Health and Madra orbs, stamina bar and the four technique slots; previews the loadout while exploring and activates in combat (see [COMBAT.md](../combat/COMBAT.md) for full details)
+- **Log window** — draggable; `AdventureViewState` moves it to the top-left for the length of an adventure (clear of the dock) and restores it afterwards
 
 ## Adventure End Card (PR #19)
 
@@ -266,7 +266,7 @@ The adventure map uses a multi-layer fog-of-war system:
 
 ## Timer
 
-`TimerPanel` wraps a `Timer` + `RichTextLabel` showing `"Time Left: MM:SS"`. Timer timeout triggers `ActionManager.stop_action(false)` — treated as failed adventure. If `time_limit_seconds` is 0 in the data, it defaults to 10 seconds.
+`TimerPanel` wraps a `Timer` + `Label` showing `M:SS` next to an hourglass icon (red and ticking in the last 30 seconds). Timer timeout triggers `ActionManager.stop_action(false)` — treated as failed adventure. If `time_limit_seconds` is 0 in the data, it defaults to 10 seconds.
 
 ## Madra Cost System (PR #16)
 

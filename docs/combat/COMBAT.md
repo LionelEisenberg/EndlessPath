@@ -10,7 +10,7 @@ Combat is a real-time system embedded within the Adventure mode. When the player
 2. Combat view appears with player sprite (left) and enemy sprite (right)
 3. All abilities start on a 1.5-second initial cooldown
 4. Player clicks ability icons to cast — abilities may fire instantly or have a cast bar
-5. Damage numbers float off health bars; a ghost trail shows recent damage
+5. Combatants lunge when their ability executes and flash/recoil when hit; damage numbers pop over the sprite and a ghost trail on the health bar shows recent damage
 6. Enemy AI automatically uses abilities when ready
 7. Combat ends when either combatant's health reaches 0
 8. Victory awards gold (multi-factor formula); defeat ends the adventure
@@ -20,8 +20,9 @@ Combat is a real-time system embedded within the Adventure mode. When the player
 ```
 AdventureCombat (Node2D)                    — adventure_combat.gd
   Atmosphere                                — vignette + mist + motes (PR #24)
+  PlayerSpot / EnemySpot (Marker2D)         — feet positions on the ground line
   CanvasLayer
-    EnemyInfoPanel (CombatantInfoPanel)     — combatant_info_panel.gd
+    EnemyNameplate                          — enemy_nameplate.gd (placed above the enemy sprite)
 
 CombatantNode (Node2D)                      — combatant_node.gd (2 per fight, runtime)
   CombatAbilityManager (Node)               — combat_ability_manager.gd
@@ -30,12 +31,17 @@ CombatantNode (Node2D)                      — combatant_node.gd (2 per fight, 
   CombatEffectManager (Node)                — combat_effect_manager.gd
   CombatBuffManager (Node)                  — combat_buff_manager.gd
     _dot_timer (Timer)                      — 1s interval for DoT ticks
-  Sprite2D
+  CombatantVisual (Node2D)                  — combatant_visual.gd (origin = feet)
+    Shadow (Sprite2D)                       — radial ground shadow
+    Body (Node2D) / Sprite (Sprite2D)       — hit_flash.gdshader material
+    NumberAnchor (Marker2D)                 — damage number spawn point
 ```
+
+`CombatantVisual` normalizes any texture to `display_height × CombatantData.scale` px tall, so placeholder art of any resolution lines up. Enemies are mirrored to face the player. It reacts to `VitalsManager.health_changed` (hit flash + recoil + number; heal number) and to `CombatAbilityInstance.executed` (lunge for target abilities, gold pulse for self-buffs).
 
 The player's `VitalsManager` is a persistent node from `PlayerManager` — it survives between fights. The enemy always gets a fresh local `VitalsManager`.
 
-The `PlayerInfoPanel` lives in `AdventureView`, not inside `AdventureCombat`.
+The `PlayerHud` dock lives in `AdventureView`, not inside `AdventureCombat`, because it stays up for the whole adventure (exploration and combat).
 
 ## Data Model
 
@@ -165,26 +171,61 @@ A global casting lock prevents firing multiple abilities simultaneously.
 
 ## Combat UI
 
+The adventure HUD is built around where the player's eyes need to be during a fight:
+
+- **Bottom-center dock (`PlayerHud`)** — everything about *you*: Health orb, Madra orb, stamina bar and the four technique slots, with your cast bar and statuses directly above. It is up for the whole adventure; entering combat activates the slots instead of spawning new UI, so nothing moves between exploration and combat.
+- **Enemy plate (`EnemyNameplate`)** — everything about *them*, floating above the enemy sprite: a red intent tab on top (what is coming and when, only shown while it casts), then the card with name and health, then statuses.
+- **Corners** — the adventure timer pill (top-center), the log window (moved to the top-left for the adventure by `AdventureViewState`) and the quest window (top-right).
+
+```
+PlayerHud (VBox, bottom-center of AdventureView, grows upward)
+  AboveRow
+    BuffBar            — player statuses, above the Health orb
+    CastBar            — player cast, gold fill
+  Dock (panel_dock)
+    HealthOrb          — ResourceOrb, red liquid, pulses below 30%
+    Center
+      StaminaBar       — compact ResourceBar
+      AbilitiesPanel   — 4 fixed slots (Q/W/E/R) + CombatAbilityTooltip
+    MadraOrb           — ResourceOrb, same liquid look as the zone panel
+
+EnemyNameplate (VBox, above the enemy sprite)
+  IntentBar            — intent_bar.tscn (CastBar variant): ramps orange → red, throbs in the last 0.6s
+  Panel                — name + health ResourceBar
+  BuffBar
+```
+
 | Component | Description |
 |-----------|-------------|
-| `AbilityButton` | TextureButton + cooldown overlay + gold keyhint badge (Q/W/E/R) + color-coded cost strip (blue=madra, gold=stamina, red=health) + can't-afford dimming (PR #24) |
-| `AbilitiesPanel` | HBox of ability buttons + casting indicator + Q/W/E/R keybinding activation (PR #24) |
-| `CombatantInfoPanel` | Fully rebuilt in PR #15 — container-based layout, dark floating styleboxes, integer vitals display. Profile icon, 3 resource bars (HP/Madra/Stamina), buff container, abilities panel |
-| `ResourceBar` | Main bar + ghost trail bar (delayed by 0.5s tween) + floating text spawner |
-| `BuffIcon` | Buff texture + duration bar + stack count label + hover tooltip (PR #24) |
-| `CombatAbilityTooltip` | Hover tooltip showing icon, name, total DMG, cooldown, cast time, and resource costs (PR #24) |
-| `CombatBuffTooltip` | Hover tooltip showing buff name, effect description, live remaining duration, and stack count (PR #24) |
-| `FloatingText` | Label that floats up 100px and fades over 1.5s, then self-destructs |
+| `PlayerHud` | The dock. `setup_vitals()` / `show_loadout()` at adventure start, `setup_combatant()` / `reset_combat()` around each fight. Forwards slot hovers to the orbs and stamina bar as cost previews |
+| `ResourceOrb` | Liquid globe (`liquid_wave` shader on `madra_circle.png`) with a pale ghost liquid that lingers after a loss, a gold ring that pulses when low (`low_threshold`), value labels, regen tooltip, and `preview_cost()` — a line at the level the resource would drop to (red if unaffordable) |
+| `AbilitiesPanel` | Four static `AbilityButton` slots. `show_loadout()` previews the equipped techniques out of combat (hover to read them); `bind()` activates them for a fight. Q/W/E/R keybinds only fire while bound |
+| `AbilityButton` | One slot: `EMPTY` (frame + key hint), `PREVIEW` (dimmed icon + costs) or `ACTIVE` (cooldown sweep, gold casting glow, can't-afford dimming, hover/press/ready feedback). Key hints read the `ability_slot_N` InputMap actions |
+| `CastBar` | Binds to a `CombatAbilityManager`; icon + name + bar that fills toward release + time left. Fades when idle but keeps its layout space; flashes on release; "Interrupted" + shake on cancel. Optional `danger_color` ramp and `imminent_time` throb (used by `intent_bar.tscn`) |
+| `EnemyNameplate` | Enemy intent, name, health and statuses. `setup(combatant)` / `reset()` |
+| `BuffBar` | Wrapping row (`HFlowContainer`) of `BuffIcon`s mirroring a `CombatBuffManager`, hosts `CombatBuffTooltip` |
+| `ResourceBar` | Flat `ProgressBar` + ghost trail + name/value labels; regen in its tooltip; `compact` for thin bars; `preview_cost()` highlights the segment a cost would spend |
+| `BuffIcon` | Buff texture + duration sweep + duration label under the icon + stack count + hover tooltip |
+| `CombatAbilityTooltip` | Hover tooltip (icon, name, total DMG, cooldown, cast time, costs); stays anchored above the hovered slot while its layout settles |
+| `CombatBuffTooltip` | Hover tooltip showing buff name, effect description, live remaining duration, and stack count |
+| `DamageNumber` | Number that pops, rises and fades over a combatant's head |
+| `TimerPanel` | Adventure timer pill (hourglass + `M:SS`); turns red and ticks each second in the last 30s |
 
-### Styleboxes (PRs #15, #24)
+### Styleboxes
 
 | File | Used By |
 |------|---------|
-| `assets/styleboxes/combat/panel_vitals.tres` | Vitals section background on `CombatantInfoPanel` |
-| `assets/styleboxes/combat/panel_abilities.tres` | Abilities section background on `CombatantInfoPanel` |
-| `assets/styleboxes/combat/panel_buffs.tres` | Buffs section background on `CombatantInfoPanel` |
-| `assets/styleboxes/combat/cast_bar_fill.tres` | Gold fill on the cast progress bar |
-| `assets/styleboxes/combat/panel_keyhint.tres` | Gold badge behind Q/W/E/R keybinding hints on ability buttons (PR #24) |
+| `assets/styleboxes/combat/panel_dock.tres` | `PlayerHud` dock plate |
+| `assets/styleboxes/combat/orb_ring.tres` / `orb_shine.tres` | `ResourceOrb` gold ring and glass highlight |
+| `assets/styleboxes/combat/panel_intent.tres` | Enemy intent tab (rounded top, sits on the enemy card) |
+| `assets/styleboxes/combat/panel_nameplate.tres` | `EnemyNameplate` panel and the player `CastBar` |
+| `assets/styleboxes/combat/slot_cast_glow.tres` | Gold glow on the slot that is casting |
+| `assets/styleboxes/combat/bar_track.tres` | Track behind every resource / cast bar |
+| `assets/styleboxes/combat/bar_fill_{health,madra,stamina,ghost}.tres` | `ResourceBar` fills |
+| `assets/styleboxes/combat/cast_bar_fill.tres` / `cast_bar_fill_enemy.tres` | Player (gold) and enemy (orange) cast fills |
+| `assets/styleboxes/combat/cost_preview.tres` / `cost_line.tres` | Cost previews on the stamina bar and orbs |
+| `assets/styleboxes/combat/panel_keyhint.tres` | Badge behind Q/W/E/R hints and the cost strip on slots |
+| `assets/styleboxes/adventure/panel_timer.tres` | `TimerPanel` pill |
 
 ## Integration Points
 
