@@ -9,7 +9,7 @@
 [resource]
 script = ExtResource("1_action")
 stock = ExtResource("4_stock")
-greeting = "Real gear for honest coin. Everything here came out of the woods with us."
+greeting = "The wagon from the woods stands with its side let down into a counter, and the robes laid across it are still stiff with mud. \"Prices are chalked on the board. Don't ask me whose it was.\""
 shop_theme = ExtResource("5_theme")
 action_id = "spirit_valley_merchant"
 action_name = "Traveling Merchant"
