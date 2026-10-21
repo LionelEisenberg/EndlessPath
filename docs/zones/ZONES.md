@@ -366,7 +366,7 @@ If the data class doesn't match the type (for example `action_type = FORAGE` on 
 | | `effects_per_tick` | `Array[EffectData]` | `[]` | Run on every tick |
 | | `effects_on_level` | `Array[EffectData]` | `[]` | Run once per level crossed |
 | `MerchantActionData` | `stock` | `MerchantStock` | `null` | `MerchantView` rows and `MerchantManager` purchases |
-| | `greeting` | `String` (multiline) | `""` | `MerchantView` subtitle; hidden when empty |
+| | `greeting` | `String` (multiline) | `""` | Flavour text under the shop title, in smaller text that wraps across the header; hidden when empty |
 | | `shop_theme` | `Theme` | `null` | `MerchantView.setup()` sets it as the shop's root theme; null keeps the scene default (Spirit Valley) |
 
 `AdventureActionData.is_valid()` exists but nothing calls it.
@@ -695,7 +695,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/integration/test_training_flow.gd` | 1 | `select_action` → ticks, Madra trickle, level-ups, persistence across stop and restart |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | Aura Well hidden before and visible after `aura_well_discovered` |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | 1 | Dialogue 4 appears at CD 10, map award, merchant card after `merchant_discovered` |
-| `tests/integration/test_merchant_shop_flow.gd` | 25 | The merchant action stays current until `stop_action()`, a second stop is a no-op, leaving resumes the replaced idle action (not after a zone change, not cycling), and `MerchantView` binds real stock, row states (including "Equipment full"), buying, Leave and the zone theme. Also: a merchant with no stock, entries without an item, the first 8 of 9 entries in order, a closed shop skipping refreshes, the title inheriting `LabelTitle`, the header and footer padding from the mock, and the atmosphere filling the panel inside its border |
+| `tests/integration/test_merchant_shop_flow.gd` | 32 | The merchant action stays current until `stop_action()`, a second stop is a no-op, leaving resumes the replaced idle action (not after a zone change, not cycling), and `MerchantView` binds real stock, row states (including "Equipment full"), buying, Leave and the zone theme. Also: a merchant with no stock, entries without an item, the first 8 of 9 entries in order, a closed shop skipping refreshes, the title inheriting `LabelTitle`, the header and footer padding from the mock, the atmosphere filling the panel inside its border, Leave beside the title with the gold in the footer, the wrapping greeting, and the gold preview while Buy is hovered |
 | `tests/unit/test_merchant_view_state.gd` | 6 | `start_merchant` pushes the shop once; closing removes only `MerchantViewState`, after the fade or at once when another view sits above it |
 | `tests/unit/test_hex_forest_atlas.gd` | 4 | Atlas picker shared with the adventure map |
 

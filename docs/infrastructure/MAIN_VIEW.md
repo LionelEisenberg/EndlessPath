@@ -116,7 +116,7 @@ What each view shows:
 | `PathTreeView` | Path skill tree (left-drag pan, wheel zoom), benefits area | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
 | `AbilitiesView` | Ability cards, 4-slot loadout, sort and filter | [ABILITIES.md](../abilities/ABILITIES.md) |
 | `CharacterView` | 8 attributes in Physical (STR, BODY, AGI, RES) and Spiritual (SPI, FND, CTRL, WILL) groups, with hover tooltips | [CHARACTER.md](CHARACTER.md) |
-| `MerchantView` | Merchant shop: title, greeting, gold, up to 8 stock rows with price and Buy, status line, Leave. Its root `theme` is the merchant's zone theme | [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
+| `MerchantView` | Merchant shop: title and Leave, a wrapping greeting, up to 8 stock rows with price and Buy, then the status line and gold. The gold previews a purchase while Buy is hovered. Its root `theme` is the merchant's zone theme | [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
 
 ### GreyBackground (modal backdrop)
 

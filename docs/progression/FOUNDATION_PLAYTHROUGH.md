@@ -171,11 +171,12 @@ Deviations from the original design:
 - **Rules** (`MerchantManager`):
   - A gear piece bought from this merchant stays sold out for the rest of the save, even if the player trashes it. Purchases are kept per merchant in `SaveGameData.merchant_ledgers`.
   - When the price is above the player's gold, the row reads "Need N more gold" and Buy is disabled.
+  - Hovering Buy previews the purchase beside the gold in the footer: "N left" in green when the player can afford it, "N short" in red when they can't.
   - When every equipment slot is full, gear rows read "Equipment full". Crude Scales stay buyable.
   - No gold moves until every check passes.
   - Broken stock data never takes gold. An entry with no item gets no row, and the shop logs a warning. An entry whose item class doesn't match its `item_type` (so `InventoryManager.award_items()` couldn't place it) can't be bought.
   - The merchant buys nothing back.
-- **Look.** A dark teal panel with drifting mist, motes and a glowing edge, from `assets/themes/merchant/spirit_valley_merchant_theme.tres`. A merchant in another zone sets its own `shop_theme`. The log and quest windows are hidden while the shop is open, so the panel never cuts off their text.
+- **Look.** A dark teal panel with drifting mist, motes and a glowing edge, from `assets/themes/merchant/spirit_valley_merchant_theme.tres`. A merchant in another zone sets its own `shop_theme`. The log and quest windows are hidden while the shop is open, so the panel never cuts off their text. Leave sits beside the title; the gold sits in the footer, beside the status line.
 
 | Property | Value |
 |---|---|

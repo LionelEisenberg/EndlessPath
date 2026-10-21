@@ -1,6 +1,6 @@
 # Merchant v1 (Foundation Beat 4) — Design
 
-> **Status:** decisions settled with the user on 2026-10-19 (godot-grill); design approved (MerchantManager, per-merchant ledgers, zone themes) and implemented the same day. Built as designed except: row padding comes from the `MerchantRow` stylebox (no `RowMargin` node), `MerchantAtmosphere` masks itself instead of `ShopPanel` clipping its children (so hover tooltips aren't cut off), and `MerchantButton` styleboxes have no glow shadow (Godot draws it under translucent boxes). After the playtest, the panel is 95% opaque, because the log and quest windows under the shop read through a translucent one. The shop also hides those windows while it is open, because it cut their text off. The atmosphere fills the panel inside its border through a rounded mask (`clip_children`), with the panel's padding moved into a `ContentMargin` container.
+> **Status:** decisions settled with the user on 2026-10-19 (godot-grill); design approved (MerchantManager, per-merchant ledgers, zone themes) and implemented the same day. Built as designed except: row padding comes from the `MerchantRow` stylebox (no `RowMargin` node), `MerchantAtmosphere` masks itself instead of `ShopPanel` clipping its children (so hover tooltips aren't cut off), and `MerchantButton` styleboxes have no glow shadow (Godot draws it under translucent boxes). After the playtest, the panel is 95% opaque, because the log and quest windows under the shop read through a translucent one. The shop also hides those windows while it is open, because it cut their text off. The atmosphere fills the panel inside its border through a rounded mask (`clip_children`), with the panel's padding moved into a `ContentMargin` container. A third round moved Leave beside the title and the gold into the footer, where hovering Buy previews the gold left or missing, and gave the greeting its own wrapping row in smaller text (`LabelMerchantGreeting`).
 >
 > **Scope:** the Traveling Merchant's shop: a gold sink that makes the six unobtainable gear pieces and the Crude Scale buyable. Selling, rotation and merchant dialogue are out of scope.
 
@@ -18,7 +18,7 @@ Today every fight pays gold and nothing spends it, and 6 of the 7 equipment item
 | Selling | Buy-only | Materials are reserved for Elixir Making / Soulsmithing. Foraging yields ~84 materials a minute while idle, so even 1 gold each would out-earn adventuring (~10–15 gold a minute). Gear sell-back needs spare gear, which loot drops will create | Loot drops produce duplicates, or crafting consumes materials |
 | Full equipment pages | Block the purchase before any gold is spent. Buy is disabled and the row reads "Equipment full". Consumables are unaffected | Never take gold for an item that can't be placed | An overflow or mailbox system exists |
 | Buy interaction | **Assumed:** one click buys one item, no confirm step | Gear sells out after one copy, so a misclick can't stack duplicates | Misclick complaints in playtests |
-| Merchant fiction | **Assumed:** no Dialogic timeline in v1; the shop shows the action name and a one-line greeting | Narrative content after Beat 3b isn't written yet | A narrative pass names the merchant |
+| Merchant fiction | **Assumed:** no Dialogic timeline in v1; the shop shows the action name and a short greeting that wraps under it | Narrative content after Beat 3b isn't written yet | A narrative pass names the merchant |
 | Idle actions during a visit | Opening the shop replaces a running foraging or training action; leaving resumes it (not after a zone change, and never cycling) | Final review: the shop behaves like a menu, and the other menus leave idle actions running | Idle actions run alongside other activities |
 | Look | Ethereal shop. Each merchant action picks a zone Theme for its panel, rows, buttons, title glow, mist and motes; text keeps the global type scale | User ask; styling stays in theme resources, one file per zone | A zone needs more than colours and styleboxes, such as its own layout |
 
@@ -103,13 +103,16 @@ MerchantView (Control, full rect, hidden, z 3)        scenes/merchant/merchant_v
     │   └── MotesPrimary / MotesSecondary (GPUParticles2D, mote_particle.png)
     └── ContentMargin (MarginContainer, 16 sides / 12 top and bottom)
         └── MainVBox (%, VBoxContainer)
-            ├── HeaderMargin (MarginContainer, 8 sides / 4 top): HeaderHBox
-            │   ├── TitleBlock: TitleLabel (%, LabelMerchantTitle) · GreetingLabel (%, LabelSubheading)
-            │   └── GoldBox: GoldIcon (TextureRect, gold_icon.png) · GoldLabel (%, LabelValueLarge)
+            ├── HeaderMargin (MarginContainer, 8 sides / 4 top): HeaderVBox
+            │   ├── HeaderHBox: TitleLabel (%, LabelMerchantTitle) · LeaveButton (%, MerchantButton, "Leave [Esc]")
+            │   └── GreetingLabel (%, LabelMerchantGreeting)   wraps across the header
             ├── HSeparator (HSeparatorMerchant)
             ├── StockList (%, VBoxContainer)          8 pre-instanced MerchantStockRow scenes; extras hidden
             ├── HSeparator (HSeparatorMerchant)
-            └── FooterMargin (MarginContainer, 8 sides / 4 bottom): FooterHBox: StatusLabel (%, LabelGreen) · LeaveButton (%, MerchantButton, "Leave [Esc]")
+            └── FooterMargin (MarginContainer, 8 sides / 4 bottom): FooterHBox (%)
+                ├── StatusLabel (%, LabelGreen)
+                └── GoldBox: GoldShortLabel (%, LabelRed) · GoldAfterLabel (%, LabelGreen) · GoldIcon (gold_icon.png) · GoldLabel (%, LabelValueLarge)
+                    the two preview labels show only while a Buy button is hovered
 
 MerchantStockRow (PanelContainer, MerchantRow)        scenes/merchant/merchant_stock_row/merchant_stock_row.gd
 └── RowMargin > RowHBox
@@ -181,4 +184,4 @@ Close: Leave / Escape → ActionManager.stop_action()
 - `tests/unit/test_spirit_valley_merchant_stock.gd`: the real `.tres` wiring (seven entries, a merchant id, unique entry ids, limits, prices above zero, the action is a `MerchantActionData`).
 - `tests/integration/test_merchant_shop_flow.gd`: the `ActionManager` route stays open until `stop_action()`; `MerchantView` binds the real stock and disables Buy when gold is short.
 - Added by the final-review follow-ups: `tests/unit/test_merchant_view_state.gd` (the overlay pushes once and removes only itself, on a `MainView` that never enters the tree) and `tests/unit/test_spirit_valley_merchant_theme.gd` (every variant and `MerchantAtmosphere` colour). `test_merchant_shop_flow.gd` also covers a merchant with no stock, entries without an item, the "Equipment full" row, a closed shop skipping refreshes, and the title's `LabelTitle` inheritance.
-- Added by the playtest fixes: `test_spirit_valley_merchant_theme.gd` checks the panel's opacity, and `test_merchant_shop_flow.gd` checks the mock's header and footer padding and that the panel fits its rows. A second round checks that the atmosphere fills the panel inside its border with a mask matching its corners (`test_merchant_shop_flow.gd`, `test_spirit_valley_merchant_theme.gd`), and that `MerchantViewState` hides and restores the log and quest windows (`test_merchant_view_state.gd`).
+- Added by the playtest fixes: `test_spirit_valley_merchant_theme.gd` checks the panel's opacity, and `test_merchant_shop_flow.gd` checks the mock's header and footer padding and that the panel fits its rows. A second round checks that the atmosphere fills the panel inside its border with a mask matching its corners (`test_merchant_shop_flow.gd`, `test_spirit_valley_merchant_theme.gd`), and that `MerchantViewState` hides and restores the log and quest windows (`test_merchant_view_state.gd`). A third round checks where Leave and the gold sit, the greeting's wrap and size, and the hover preview (`test_merchant_shop_flow.gd`).
