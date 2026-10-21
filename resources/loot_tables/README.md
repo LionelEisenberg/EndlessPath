@@ -1,140 +1,102 @@
-# LootTable System Guide
+# LootTable Guide
+
+Last updated: 2026-10-18
 
 ## Overview
 
-The LootTable system provides a flexible way to define item rewards with independent probability rolls. Each entry in a loot table rolls separately, allowing multiple items to drop from a single roll.
+A `LootTable` is a list of entries. Each entry rolls on its own, so one roll can award several items at once.
 
-## Creating a LootTable Resource
+Two systems roll tables:
+- foraging actions (`ForageActionData`)
+- encounter rewards (`AwardLootTableEffectData`)
 
-1. In Godot, create a new Resource of type `LootTable`
-2. Add entries to the `entries` array
-3. For each entry, configure:
-   - **item**: Reference to an `ItemDefinitionData` resource
-   - **drop_chance**: Probability from 0.0 (never) to 1.0 (always)
-   - **min_quantity**: Minimum items to award if roll succeeds
-   - **max_quantity**: Maximum items to award if roll succeeds
+The results go to `InventoryManager.award_items()`.
 
-### Example: Basic Combat Loot
+This folder holds only this guide. Current loot tables live next to the content that uses them; see [Where loot tables live](#where-loot-tables-live). For how awarded items are stored and shown, see [docs/inventory/INVENTORY.md](../../docs/inventory/INVENTORY.md).
 
-```
-LootTable
-├─ Entry 0:
-│  ├─ item: Gold Coin
-│  ├─ drop_chance: 1.0 (100% - guaranteed)
-│  ├─ min_quantity: 10
-│  └─ max_quantity: 25
-├─ Entry 1:
-│  ├─ item: Health Potion
-│  ├─ drop_chance: 0.3 (30% chance)
-│  ├─ min_quantity: 1
-│  └─ max_quantity: 2
-└─ Entry 2:
-   ├─ item: Rare Gem
-   ├─ drop_chance: 0.05 (5% chance)
-   ├─ min_quantity: 1
-   └─ max_quantity: 1
-```
+## Data
 
-This loot table:
-- **Always** drops 10-25 gold coins
-- Has a **30% chance** to drop 1-2 health potions
-- Has a **5% chance** to drop 1 rare gem
+| Class | File | Field | Type | Default |
+|---|---|---|---|---|
+| `LootTable` | `scripts/resource_definitions/loot/loot_table.gd` | `entries` | `Array[LootTableEntry]` | `[]` |
+| `LootTableEntry` | `scripts/resource_definitions/loot/loot_table_entries.gd` | `item` | `ItemDefinitionData` | null |
+| | | `drop_chance` | `float`, `@export_range(0.0, 1.0)` | 1.0 |
+| | | `min_quantity` | `int` | 1 |
+| | | `max_quantity` | `int` | 1 |
 
-## Using LootTable in Combat Encounters
+Note that the file name `loot_table_entries.gd` is plural, but the class is `LootTableEntry`.
 
-Combat rewards are handled through the effect system. Use `AwardLootTableEffectData` in your `EncounterChoice` resources.
+## How a roll works
 
-### Step-by-Step: Adding Combat Loot
+`LootTable.roll_loot() -> Dictionary` returns `ItemDefinitionData → int` and works like this:
 
-1. **Create a LootTable** (as described above)
-2. **Open your CombatChoice resource** in the inspector
-3. Navigate to **success_effects** array
-4. **Add a new effect** of type `AwardLootTableEffectData`
-5. Set the **loot_table** property to your LootTable resource
+1. Each entry rolls independently. Null entries and entries with no item are skipped with a warning.
+2. The entry succeeds if `randf() <= drop_chance`. Its quantity is then `randi_range(min_quantity, max_quantity)`.
+3. If two entries award the same item, their quantities are summed.
+4. Every roll is logged at info level (`LootTable: SUCCESS - …` / `FAILED - …`), followed by a summary line.
 
-### Example: Boss Combat
+All four item types can be loot, because `award_items()` routes materials, equipment, consumables and quest items. Awarding equipment with quantity N creates N separate `ItemInstanceData`. If the equipment grid is full (`equipment_capacity()`), the overflow is dropped with only a warning.
 
-For a boss fight that always drops good rewards plus rare items:
+Gold and Madra are not items. Award them with `AwardResourceEffectData` next to the loot effect.
 
-**boss_loot.tres:**
-```
-LootTable
-├─ Guaranteed Gold (100%, 100-200)
-├─ Guaranteed Equipment (100%, 1-1)
-├─ Bonus Materials (50%, 5-10)
-└─ Legendary Item (10%, 1-1)
-```
+## Using a loot table
 
-**CombatChoice:**
-```
-success_effects:
-  - AwardLootTableEffectData
-      loot_table: res://resources/loot_tables/boss_loot.tres
-```
+### Foraging
 
-## Using LootTable for Foraging
+Set `ForageActionData.loot_table` (`scripts/resource_definitions/zones/zone_action_data/forage_action_data/forage_action_data.gd`).
 
-Foraging uses LootTable directly through `ForageActionData`:
+While foraging runs, `ActionManager._on_forage_timer_finished()` does the following every `foraging_interval_in_sec` seconds (default 5.0):
+1. rolls the table
+2. awards each result
+3. emits `foraging_completed(items)`
 
-1. Create a LootTable with your forage resources
-2. Open your `ForageActionData` resource
-3. Set the `loot_table` property to your LootTable
+`madra_cost_per_second` defaults to 0.0.
 
-### Example: Forest Foraging
+### Encounter rewards
+
+Add an `AwardLootTableEffectData` (`loot_table` field) to an `EncounterChoice` or `CombatChoice` `success_effects` array. You can point `loot_table` at a shared `.tres`, or embed it as a sub-resource when only one encounter uses it. The live example embeds it:
 
 ```
-LootTable
-├─ Berries (80%, 2-5)
-├─ Herbs (60%, 1-3)
-├─ Wood (40%, 1-2)
-└─ Rare Flower (5%, 1-1)
+ravenous_dreadbeast_encounter.tres
+└─ CombatChoice "Attack the Dreadbeast"
+   └─ success_effects
+      └─ AwardLootTableEffectData
+         └─ loot_table: LootTable (sub-resource)
+            └─ LootTableEntry: item = dreadbeast_tooth_necklace.tres, drop_chance = 0.25, min 1, max 1
 ```
 
-Each foraging interval will roll all items independently, so you might get berries + herbs + wood in a single roll!
+`AdventureView` collects every `item_awarded` during an adventure for the end-card loot row. It records one entry per award call and ignores the quantity.
 
-## Advanced Patterns
+### Single guaranteed item
 
-### Guaranteed Baseline + Rare Drops
+When there's no chance involved, skip the table and use `AwardItemEffectData` (`item`, `quantity`). For example, quest `q_reach_core_density_10` uses it to award the Refugee Camp Map.
 
-Ensure players always get something useful while adding excitement:
-```
-├─ Common Currency (100%, 50-100)
-├─ Common Material (100%, 3-7)
-├─ Uncommon Material (30%, 1-3)
-└─ Rare Material (5%, 1-1)
-```
+## Where loot tables live
 
-### Tiered Drops
+| Table | Path | Entries | Used by |
+|---|---|---|---|
+| `test_loot_table_foraging.tres` | `resources/zones/spirit_valley_zone/zone_actions/loot_table/` | Dewdrop Tear 100% ×1–5; Spirit Fern 100% ×2–6 | `spring_forest_foraging_action.tres` ("Spring Forest Foraging", every 5.0 s) |
+| `test_loot_table_weapon.tres` | `resources/zones/spirit_valley_zone/zone_actions/loot_table/` | Makeshift Dagger 100% ×1; Iron Shortsword 100% ×1 | `resources/adventure/encounters/test_treasure_encounter.tres` only. No `AdventureData` references that encounter, so this table never rolls in play |
+| inline sub-resource | `resources/adventure/encounters/shallow_woods/combat_encounters/elite/ravenous_dreadbeast_encounter.tres` | Dreadbeast Tooth Necklace 25% ×1 | The encounter's "Attack the Dreadbeast" choice. The Shallow Woods quota is 2 per map |
 
-Create separate loot tables for different difficulty levels:
-- `easy_combat_loot.tres` - Higher drop chances, lower quantities
-- `hard_combat_loot.tres` - Lower drop chances, higher quantities
-- `boss_loot.tres` - Guaranteed good rewards + rare items
-
-### Multiple Loot Tables
-
-You can add multiple `AwardLootTableEffectData` effects to the same encounter choice:
-```
-success_effects:
-  - AwardLootTableEffectData (basic_loot.tres)
-  - AwardLootTableEffectData (bonus_loot.tres)
-  - AwardResourceEffectData (gold)
-```
-
-## Tips
-
-1. **Use 100% drop_chance** for guaranteed rewards players expect
-2. **Keep rare drops at 5-20%** for excitement without frustration
-3. **Use quantity ranges** to add variety (e.g., 3-7 instead of 5)
-4. **Test your loot tables** by checking the logs - they show every roll
-5. **Combine with other effects** - LootTable for items, separate effects for resources/XP
+Despite its `test_` prefix, the foraging table is live content.
 
 ## Validation
 
-LootTable automatically validates entries on load:
-- Checks that all items are assigned
-- Ensures drop_chance is 0.0-1.0
-- Verifies min_quantity <= max_quantity
-- Confirms quantities are >= 1
+`LootTable._init()` calls `_verify_loot_table()` through `call_deferred`, so it runs after the resource's properties are loaded. It logs `Log.error` for:
+- a null entry or a null item
+- a `drop_chance` outside 0.0–1.0
+- a `min_quantity` or `max_quantity` below 1
+- a `min_quantity` greater than `max_quantity`
 
-Check the console for any validation errors when loading resources.
+It then logs "LootTable: Validation failed!". Validation only reports problems; the table still rolls. Check the console after loading a new table.
+
+There are no automated tests for `LootTable`, `AwardLootTableEffectData` or `AwardItemEffectData` yet.
+
+## Authoring tips
+
+- **Guaranteed rewards:** use `drop_chance = 1.0`.
+- **Variety:** use quantity ranges rather than fixed counts.
+- **Excitement:** keep rare drops at 5–25%. The only live gear drop is 25%.
+- **Bonus loot:** put several `AwardLootTableEffectData` in one `success_effects` array to layer a base table and a bonus table.
+- **Shared vs embedded:** keep a table as its own `.tres` when several encounters or actions share it, and embed it when it belongs to one encounter.

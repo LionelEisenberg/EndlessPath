@@ -38,6 +38,7 @@ CyclingManager="*res://singletons/cycling_manager/cycling_manager.gd"
 AbilityManager="*res://singletons/ability_manager/ability_manager.gd"
 PathManager="*res://singletons/path_manager/path_manager.gd"
 QuestManager="*res://singletons/quest_manager/quest_manager.gd"
+MerchantManager="*res://singletons/merchant_manager/merchant_manager.gd"
 
 [dialogic]
 

@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="MerchantStock" format=3 uid="uid://bqoxyd3haom18"]
+
+[ext_resource type="Script" uid="uid://qypgjbfjuka6" path="res://scripts/resource_definitions/merchant/merchant_stock.gd" id="1_stock"]
+[ext_resource type="Script" uid="uid://bamokut6hqd8x" path="res://scripts/resource_definitions/merchant/merchant_stock_entry.gd" id="2_entry"]
+[ext_resource type="Resource" uid="uid://c7h5v0w1u11co" path="res://resources/items/consumables/crude_scale.tres" id="3_crude_scale"]
+[ext_resource type="Resource" path="res://resources/items/equipment/spirit_valley/cultivators_cowl.tres" id="4_cowl"]
+[ext_resource type="Resource" uid="uid://lqbac1tinke" path="res://resources/items/equipment/spirit_valley/makeshift_dagger.tres" id="5_dagger"]
+[ext_resource type="Resource" uid="uid://dfq6p1xc500if" path="res://resources/items/equipment/spirit_valley/scripted_bark.tres" id="6_bark"]
+[ext_resource type="Resource" uid="uid://bttu1f1ytmyjb" path="res://resources/items/equipment/spirit_valley/leeching_ring.tres" id="7_ring"]
+[ext_resource type="Resource" uid="uid://vb6tttucnflj" path="res://resources/items/equipment/spirit_valley/iron_shortsword.tres" id="8_sword"]
+[ext_resource type="Resource" uid="uid://bttcg1fsnshae" path="res://resources/items/equipment/spirit_valley/reinforced_robes.tres" id="9_robes"]
+
+[sub_resource type="Resource" id="Resource_crude_scale"]
+script = ExtResource("2_entry")
+entry_id = "crude_scale"
+item = ExtResource("3_crude_scale")
+
+[sub_resource type="Resource" id="Resource_cowl"]
+script = ExtResource("2_entry")
+entry_id = "cultivators_cowl"
+item = ExtResource("4_cowl")
+stock_limit = 1
+
+[sub_resource type="Resource" id="Resource_dagger"]
+script = ExtResource("2_entry")
+entry_id = "makeshift_dagger"
+item = ExtResource("5_dagger")
+stock_limit = 1
+
+[sub_resource type="Resource" id="Resource_bark"]
+script = ExtResource("2_entry")
+entry_id = "scripted_bark"
+item = ExtResource("6_bark")
+stock_limit = 1
+
+[sub_resource type="Resource" id="Resource_ring"]
+script = ExtResource("2_entry")
+entry_id = "leeching_ring"
+item = ExtResource("7_ring")
+stock_limit = 1
+
+[sub_resource type="Resource" id="Resource_sword"]
+script = ExtResource("2_entry")
+entry_id = "iron_shortsword"
+item = ExtResource("8_sword")
+stock_limit = 1
+
+[sub_resource type="Resource" id="Resource_robes"]
+script = ExtResource("2_entry")
+entry_id = "reinforced_robes"
+item = ExtResource("9_robes")
+stock_limit = 1
+
+[resource]
+script = ExtResource("1_stock")
+merchant_id = "spirit_valley_merchant"
+entries = Array[ExtResource("2_entry")]([SubResource("Resource_crude_scale"), SubResource("Resource_cowl"), SubResource("Resource_dagger"), SubResource("Resource_bark"), SubResource("Resource_ring"), SubResource("Resource_sword"), SubResource("Resource_robes")])

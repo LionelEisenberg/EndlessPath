@@ -1,200 +1,169 @@
 # Codebase State
 
-Last updated: 2026-04-21
+Last updated: 2026-10-18
 
-This document covers the architecture of the EndlessPath codebase and serves as an index to per-system documentation. Bugs, missing functionality, and tech debt are tracked in each system's own doc.
+This document covers the architecture of the EndlessPath codebase and the technical concerns that span several systems. The other entry points are:
+- [README.md](README.md): index of every doc.
+- [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md): one-page status and roadmap.
+- [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md): the player's view and content inventory.
+
+Bugs, missing functionality and tech debt for a single system live in that system's doc, under **Work Remaining**.
+
+---
+
+## At a Glance
+
+| | |
+|---|---|
+| Engine | Godot 4.6, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
+| Code | ~19.5k lines of game GDScript and ~6.4k lines of tests; 112 scenes; 98 authored `.tres` resources; 15 shaders |
+| Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
+| Tests | GUT 9.6.0. 68 scripts and 618 tests, all passing on 2026-10-19. See [TESTING.md](testing/TESTING.md) |
+| History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
+| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR |
 
 ---
 
 ## Architecture Summary
 
-The codebase follows a signal-driven, data-forward architecture with clean separation between game logic (singleton managers), UI (views + state machine), and content (Resource `.tres` files).
+The codebase is signal-driven and data-forward. Its three layers are kept separate:
+- **Game logic:** singleton managers.
+- **UI:** views, switched by a state machine.
+- **Content:** `Resource` `.tres` files.
 
 ### Entry Point
 
-`scenes/main/main_game/main_game.tscn` is the entry scene. Its structure:
+`scenes/main/main_game/main_game.tscn` is the only runtime scene. Abridged:
 
 ```
-MainGame (Node2D)
-├── MainView (Control)
-│   ├── MainViewStateMachine (Node)
-│   │   ├── ZoneViewState
-│   │   ├── AdventureViewState
-│   │   ├── InventoryViewState
-│   │   ├── CyclingViewState
-│   │   ├── PathTreeViewState
-│   │   └── AbilitiesViewState
-│   ├── ZoneView (Control)          — default view, always present
-│   │   ├── ZoneTransition          — animated zone-change overlay (PR #16)
-│   │   ├── SubViewportContainer
-│   │   │   └── SubViewport
-│   │   │       ├── ZoneViewBackground  — decorative background (PR #14)
-│   │   │       └── ZoneTilemap
-│   │   ├── ZoneInfoPanel
-│   │   ├── ZoneResourcePanel
-│   │   ├── ZoneHeader              — zone name/info header, extracted from ZoneInfoPanel (PR #14)
-│   │   └── Toolbar                 — persistent action toolbar, moved from ZoneView script to MainView scene (PR #14)
-│   ├── AdventureView (Control)     — hidden, shown by state
-│   ├── LogWindow
-│   ├── GreyBackground (Panel)      — modal overlay
-│   ├── InventoryView (Control)     — hidden, shown by state
-│   ├── CyclingView (Control)       — hidden, shown by state
-│   ├── PathTreeView (Control)     — hidden, shown by state (PR #20)
-│   └── AbilitiesView (Control)    — hidden, shown by state (PR #22)
-└── SaveTimer (Timer)               — auto-save
+MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log print level
+├── MainView (Control)            main_view.gd: state stack + input routing
+│   ├── MainViewStateMachine      9 state nodes (no script)
+│   ├── ZoneView                  base view: ZoneTransition, SubViewport (background + ZoneTilemap),
+│   │                             ZoneInfoPanel, ZoneResourcePanel, ZoneHeader, Toolbar
+│   ├── AdventureView             adventure map + combat
+│   ├── LogWindow, QuestWindow    always-on HUD (z 1)
+│   ├── QuestToast                z 10
+│   ├── GreyBackground            modal backdrop (z 2)
+│   ├── PathTreeView, AdventureEndCard, InventoryView, AbilitiesView, CharacterView, CyclingView (z 3)
+│   └── DevPasswordModal, DevPanel                                                            (z 10)
+└── SaveTimer                     5 s auto-save → PersistenceManager.save_data()
 ```
+
+The full tree, HUD placement and z-order are in [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
 
 ### View State Machine
 
-`MainView` manages screen transitions via a stack-based state machine:
+`MainView` keeps a **base state** (`ZoneViewState` or `AdventureViewState`) and a **stack of overlay states**:
+- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `AdventureEndCardState`.
+- **Operations:** `change_state()` swaps the base and clears the stack, `push_state()` opens an overlay, and `pop_state()` closes it.
+- **Input:** only the current state receives it, through `_unhandled_input` → `handle_input()`.
 
-- **Base state** (`base_current_state`) — the primary view (Zone, Adventure)
-- **State stack** (`state_stack`) — modal overlays pushed on top (Cycling, Inventory)
-- **Three operations:**
-  - `change_state(new_state)` — clears stack, exits old base, enters new base
-  - `push_state(state)` — pushes onto stack, calls `enter()`
-  - `pop_state()` — pops top, calls `exit()`
-- **Current state** = top of stack if non-empty, otherwise base state
-- **Transitions are signal-driven** — ActionManager emits `start_cycling`, `start_adventure`, etc. and MainView responds by changing/pushing states
-
-Each state is a `MainViewState` node that controls visibility of its corresponding view and handles input routing.
+Menu overlays open from keyboard actions (I/A/C/P) or the bottom `Toolbar`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. Cycling, the merchant shop, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
 
 ### Singleton Managers
 
-17 autoload singletons manage global state, loaded in dependency order via `project.godot`:
+The 18 autoloads, in `project.godot` load order:
 
-1. PersistenceManager → 2. CultivationManager → 3. EventManager → 4. CharacterManager → 5. UnlockManager → 6. ResourceManager → 7. ZoneManager → 8. ActionManager → 9. InventoryManager → 10. Dialogic → 11. DialogueManager → 12. PlayerManager → 13. LogManager → 14. CyclingManager → 15. AbilityManager → 16. PathManager → 17. QuestManager
+| # | Autoload | Owns | Doc |
+|---|---|---|---|
+| 1 | `PersistenceManager` | Loads/saves `SaveGameData` (`user://save.tres`); `save_data_reset` signal | [PERSISTENCE](infrastructure/PERSISTENCE.md) |
+| 2 | `CultivationManager` | Core Density XP and level, advancement stage, path-point milestones | [CULTIVATION](cultivation/CULTIVATION.md) |
+| 3 | `EventManager` | Persistent one-shot event flags (not a general event bus) | [EVENTS](infrastructure/EVENTS.md) |
+| 4 | `CharacterManager` | Base attributes; totals including equipment bonuses | [CHARACTER](infrastructure/CHARACTER.md) |
+| 5 | `UnlockManager` | Unlock-condition catalog and latched unlocks | [UNLOCKS](infrastructure/UNLOCKS.md) |
+| 6 | `ResourceManager` | Madra and Gold; adventure Madra capacity and threshold | [RESOURCES](infrastructure/RESOURCES.md) |
+| 7 | `ZoneManager` | Selected zone, per-zone progression (completions, training ticks) | [ZONES](zones/ZONES.md) |
+| 8 | `ActionManager` | The single current zone action and its lifecycle signals (no queue) | [ZONES](zones/ZONES.md) |
+| 9 | `InventoryManager` | Equipment (paged), gear, materials, consumables and hotbar, quest items | [INVENTORY](inventory/INVENTORY.md) |
+| 10 | `Dialogic` | Dialogue addon (2.0-Alpha-19) | [DIALOGUE](infrastructure/DIALOGUE.md) |
+| 11 | `DialogueManager` | Dialogic wrapper; `dialogue_ended` | [DIALOGUE](infrastructure/DIALOGUE.md) |
+| 12 | `PlayerManager` | The persistent player `VitalsManager` (HP/Madra/Stamina) | [CHARACTER](infrastructure/CHARACTER.md) |
+| 13 | `LogManager` | Player-facing in-game log (`message_logged`) | [LOGGING](infrastructure/LOGGING.md) |
+| 14 | `CyclingManager` | Unlocked/equipped cycling techniques, technique catalog | [CYCLING](cycling/CYCLING.md) |
+| 15 | `AbilityManager` | Unlocked abilities, 4-slot loadout, ability catalog | [ABILITIES](abilities/ABILITIES.md) |
+| 16 | `PathManager` | Path tree, point balance, purchases, perk aggregation (`PathEffectsSummary`) | [PATH_PROGRESSION](progression/PATH_PROGRESSION.md) |
+| 17 | `QuestManager` | Active/completed quests and step advancement | [QUESTS](progression/QUESTS.md) |
+| 18 | `MerchantManager` | Merchant purchases: stock limits, gold and equipment-space checks, per-merchant ledgers | [FOUNDATION_PLAYTHROUGH](progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
 
-**Communication pattern:** Singletons communicate via signals and shared state. All game-state managers hold a **live reference** to `PersistenceManager.save_game_data` (a shared `SaveGameData` Resource). Writes by one manager are immediately visible to all others. When state changes, managers emit signals that UI scenes listen to.
+**Shared save state:** every game-state manager holds a **live reference** to `PersistenceManager.save_game_data`, a single `SaveGameData` resource. A write by one manager is immediately visible to the others. On reset, `PersistenceManager.save_data_reset` tells each manager to re-bind and refresh. Field ownership is listed in [PERSISTENCE.md](infrastructure/PERSISTENCE.md).
 
-```
-PersistenceManager (root — owns SaveGameData)
-  ↑ live_save_data reference held by:
-  ├── ResourceManager (madra, gold)
-  ├── CultivationManager (core density, stage)
-  ├── CharacterManager (attributes)
-  ├── InventoryManager (inventory)
-  ├── UnlockManager (unlock progression)
-  ├── EventManager (event progression)
-  ├── ZoneManager (zone state, progression)
-  ├── PathManager (path tree state, purchases, point balance)
-  ├── AbilityManager (unlocked abilities, equipped loadout)
-  ├── CyclingManager (unlocked techniques, equipped technique)
-  └── QuestManager (active and completed quests, step progression)
+**Signals out:** when state changes, managers emit signals (`madra_changed`, `inventory_changed`, `condition_unlocked`, `quest_step_advanced`, …), and UI scenes and other managers react. Two signals carry most of the progression: `UnlockManager.condition_unlocked` gates zones, actions and quest steps, and `EventManager.event_triggered` records narrative moments. Authoring rules are in [QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md](progression/QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md).
 
-ActionManager (orchestrator)
-  → emits: start_cycling, stop_cycling, start_adventure, stop_adventure, start_foraging, etc.
-  ← MainView listens to these for state transitions
-  ← ZoneTilemap listens for foraging events
-```
+**Effects:** rewards and side effects are data. `EffectData` subclasses (award item, loot, resource, attribute or path point; change vitals; start quest; trigger event) hang off zone actions, encounter choices, quests and consumables ([EFFECTS.md](infrastructure/EFFECTS.md)).
 
 ### Data-Driven Design (Resource Pattern)
 
-Content is defined via Godot's Resource system in three layers:
+Content is defined in three layers.
 
-1. **GDScript class defines the schema** (`scripts/resource_definitions/`)
+1. **A GDScript class defines the schema** (`scripts/resource_definitions/`):
    ```gdscript
-   class_name ItemDefinitionData
-   extends Resource
-   @export var item_id: String = ""
-   @export var item_name: String = ""
-   @export var icon: Texture2D
+   class_name MaterialDefinitionData
+   extends ItemDefinitionData
+   @export var source_zone_ids: Array[String] = []
    ```
 
-2. **`.tres` files instantiate with authored content** (`resources/`)
+2. **`.tres` files instantiate it with authored content** (`resources/`), e.g. `resources/items/materials/spirit_fern.tres`:
    ```
-   script = ExtResource("item_definition_data.gd")
+   script = ExtResource("..._material_definition_data.gd")
    item_id = "SpiritFern"
    item_name = "Spirit Fern"
+   source_zone_ids = Array[String](["SpiritValley"])
    ```
 
-3. **Managers load via preload** (`singletons/`)
+3. **Managers preload a list resource** that holds a whole domain:
    ```gdscript
    @export var _all_zone_data: ZoneDataList = preload("res://resources/zones/zone_data_list.tres")
    ```
 
-**List containers** aggregate resources — e.g., `ZoneDataList` holds `Array[ZoneData]` with lookup methods like `get_zone_data_by_id()`. This allows loading an entire domain from a single preloaded resource.
+Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.tres`, `path_tree_list.tres`, `quest_list.tres`, `unlock_condition_list.tres` and `zone_data_list.tres`. **A new resource only takes effect once it is added to its list.** For example, an unlock condition missing from `unlock_condition_list.tres` can never latch. Equipment `.tres` files are generated from the tables in [ITEMS.md](inventory/ITEMS.md) by `scripts/tools/items_md_to_resources.gd`.
 
 ### Scene Composition
 
-- **Unique names** (`%NodeName`) decouple scripts from scene hierarchy — preferred over `$Path/To/Node`
-- **Subscenes** package complex UI (e.g., `adventure_view.tscn` instanced into `main_game.tscn`)
-- **Scripts attach** via `[ext_resource]` references in `.tscn` files
+- **Unique names** (`%NodeName`) decouple scripts from the scene hierarchy. Use them instead of `$Path/To/Node`.
+- **Subscenes** package complex UI, e.g. `adventure_view.tscn` is instanced into `main_game.tscn`.
+- **No UI nodes in code:** UI structure lives in `.tscn` files, and scripts only set data.
+- **Label styling:** text uses the Label theme-variant type scale in `pixel_theme.tres` ([UI_STYLING.md](UI_STYLING.md)).
 
 ### Key Shared Components
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| `ThemeConstants` | `scripts/utils/theme_constants.gd` | Centralized color palette and styling constants (PR #11) |
-| `FlyingParticle` | `scenes/ui/flying_particle/flying_particle.gd` | Reusable particle effect — spawned for Madra tracking feedback and zone clicks (PR #13, reused PR #16) |
-| `SystemMenuButton` | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | Nav button component — single `MenuType` enum drives label, shortcut, icon, and input action (PR #10, PATH added PR #20) |
-| `Atmosphere` | `scenes/atmosphere/atmosphere.gd` | Vignette shader + drifting mist + floating motes; instanced in zone and adventure views with per-scene @export tuning (PR #23) |
-| `HexHoverSelector` | `scenes/tilemaps/hex_hover_selector.gd` | Animated spritesheet ring for hex tile hover; shared between zone and adventure tilemaps (PR #23) |
-| `EncounterIcon` | `scenes/adventure/encounter_icon/encounter_icon.gd` | Per-type glyph renderer with visited/completed/boss-animated states; reused in both flat tile icons and floating AdventureMarker (PR #23) |
-| `PathPreview` | `scenes/adventure/path_preview/path_preview.gd` | Tiled-texture Line2D route line with gradient-based fade behind the player during committed travel (PR #23) |
+| `Log` | `scripts/utils/log.gd` | Leveled diagnostic logging to console and file. `LogManager` is the player-facing log ([LOGGING.md](infrastructure/LOGGING.md)) |
+| `ThemeConstants` | `scripts/utils/theme_constants.gd` | Colour constants for code-side styling |
+| `GreyBackground` | `scenes/ui/grey_background/` | Modal backdrop with `show_with_panel()` / `hide_with_panel()` fade orchestration |
+| `SystemMenuButton` | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | Toolbar nav button. Its `MenuType` enum drives label, shortcut, icon and input action |
+| `FlyingParticle` | `scenes/ui/flying_particle/` | Particle that flies to a target. Used by cycling Madra feedback, the adventure-start drain (`ZoneTransition`) and training ticks |
+| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. Used for combat damage numbers, foraging `+N Item` pop-ups and cycling feedback |
+| `TickProgressBar` | `scenes/ui/tick_progress_bar/` | Tick counter bar on training actions |
+| `Atmosphere` | `scenes/atmosphere/` | Vignette shader, drifting mist and floating motes. Used in the zone and adventure views, tuned per scene with `@export` |
+| `HexHoverSelector` | `scenes/tilemaps/hex_hover_selector.gd` | Animated ring that snaps to the hovered hex. Used by the zone and adventure tilemaps |
+| `EncounterIcon` | `scenes/adventure/encounter_icon/` | Glyph for each encounter type (animated boss and rest glyphs). Used by tile icons and the floating `AdventureMarker` |
+| `PathPreview` | `scenes/adventure/path_preview/` | Tiled-texture `Line2D` route, with a gradient fade behind the player during committed travel |
+| `ItemDisplaySlot` / `ItemDescriptionPanel` | `scenes/common/` | Read-only item icon with tooltip, and the item detail panel |
+| `DropTargetSlot` | `scenes/common/drop_target_slot.gd` | Shared drag-and-drop target base, with drop highlight |
+| `InventoryScrollHost` and inventory chrome | `scenes/inventory/common/` | `InventoryGrid`, `InventoryList`, `GridToolbar`, `SortSubBanner`, `TabBanner`, `ScrollRail` and `ItemDetailCard`, shared by the inventory tabs ([INVENTORY.md](inventory/INVENTORY.md)) |
 
 ---
 
 ## Cross-Cutting Concerns
 
-Issues that span multiple systems and don't belong to any single doc:
+These issues span several systems, so no single system doc owns them. The detailed items are in the linked docs.
 
 | Concern | Details | Priority |
-|---------|---------|----------|
-| ~~Double signal connections in view states~~ | ~~state transitions can fire twice~~ | ~~HIGH~~ *(Fixed in PR #3)* |
-| ~~`ChangeVitalsEffectData` uses `mana_change`~~ | ~~Should be `madra_change`~~ | ~~LOW~~ *(Fixed in PR #6)* |
-| ~~Forage timer not re-added to scene after stop~~ | ~~Timer node replaced but not added as child~~ | ~~MEDIUM~~ *(Fixed in PR #6)* |
+|---|---|---|
+| **Modifiers nobody reads** | `PathManager` aggregates 7 numeric perk types into `PathEffectsSummary`, but no production code reads it. Other values are exported and never read: cycling action modifiers and foraging `madra_cost_per_second`. Player max vitals ignore equipment changes until a base attribute changes. See [PATH_PROGRESSION](progression/PATH_PROGRESSION.md), [CYCLING](cycling/CYCLING.md), [ZONES](zones/ZONES.md), [CHARACTER](infrastructure/CHARACTER.md) | HIGH |
+| **Missing stage data hangs the game** | `CultivationManager.add_core_density_xp()` loops forever if the current stage has no `AdvancementStageResource`, because `get_xp_for_next_level()` returns 0. `ResourceManager.add_madra()` likewise clamps Madra to 0. Guard both before adding any stage past Foundation. See [CULTIVATION](cultivation/CULTIVATION.md) | HIGH (blocks Copper) |
+| **Save robustness** | Saves have no version field and no migration, and two schema changes have already broken old saves. A failed `verify()` (e.g. a renamed zone id) or an unreadable file silently replaces the whole save. Nothing saves on quit, and wiping a save requires editing `reset_save_data` in the script. See [PERSISTENCE](infrastructure/PERSISTENCE.md) | HIGH (before any public build) |
+| **Mirror tests** | About 114 tests in 5 files re-implement the logic they check instead of calling it: `test_resource_manager`, `test_cultivation_manager`, `test_character_manager`, `test_adventure_flow`, `test_adventure_combat_count`. ResourceManager, CultivationManager and CharacterManager are effectively untested. See [TESTING](testing/TESTING.md) | HIGH |
+| **Untyped ids** | Event ids, condition ids and unlock targets are strings, and no test checks that every gate's condition is registered, that every quest step's event has a producer, or that every path unlock id resolves. See [UNLOCKS](infrastructure/UNLOCKS.md), [EVENTS](infrastructure/EVENTS.md) | MEDIUM |
+| **Log volume** | `ResourceManager.add_madra()` logs every award, about 12 lines/s while cycling Smooth or Torrential Flow and once per second while training, into an unbounded `LogWindow`. Each `madra_changed` also re-evaluates every unlock condition. See [RESOURCES](infrastructure/RESOURCES.md), [LOGGING](infrastructure/LOGGING.md) | MEDIUM |
+| **Modal backdrop** | Found by code reading: after Path, Abilities or Character closes, `GreyBackground.self_modulate.a` stays 0. Later Inventory, Cycling and end-card overlays then show an invisible but click-blocking backdrop. See [MAIN_VIEW](infrastructure/MAIN_VIEW.md) | MEDIUM |
+| **Tooling gotchas** | The first headless `--import` in a fresh checkout rewrote `project.godot`'s `[dialogic]` directory registry to `{}`, so revert it before committing. Editor, exported builds and GUT runs share one `user://` dir (save file, logs, dev password file). Green test runs print SCRIPT ERRORs and 24 Dialogic orphans. See [TESTING](testing/TESTING.md), [DEV_TOOLS](tooling/DEV_TOOLS.md) | MEDIUM |
+| **Shipping gaps** | No `export_presets.cfg`, no CI, and no audio assets or audio code | MEDIUM |
 
 ---
 
-## System Documentation Index
+## Documentation
 
-### Game Systems
-
-| System | Doc | Summary |
-|--------|-----|---------|
-| Cycling | [docs/cycling/CYCLING.md](cycling/CYCLING.md) | Mouse-tracking mini-game, Madra generation, Core Density XP |
-| Combat | [docs/combat/COMBAT.md](combat/COMBAT.md) | Real-time ability combat within adventures |
-| Abilities | [docs/abilities/ABILITIES.md](abilities/ABILITIES.md) + [docs/abilities/ABILITIES_MATRIX.md](abilities/ABILITIES_MATRIX.md) | Ability data model, unlock/equip lifecycle, per-path stats matrix (PR #38) |
-| Adventuring | [docs/adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex map exploration with encounters |
-| Inventory | [docs/inventory/INVENTORY.md](inventory/INVENTORY.md) | Equipment grid, gear slots, materials, quest items, loot |
-| Zones | [docs/zones/ZONES.md](zones/ZONES.md) | Home base hex map, action routing, unlock chains |
-| Cultivation | [docs/cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density leveling, Advancement Stages, breakthrough |
-| Path Progression | [docs/progression/PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md) | Skill tree, path points, perk unlocks (PathManager) |
-
-### Infrastructure
-
-| System | Doc | Summary |
-|--------|-----|---------|
-| Resources | [docs/infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra + Gold tracking (ResourceManager) |
-| Unlocks | [docs/infrastructure/UNLOCKS.md](infrastructure/UNLOCKS.md) | Condition-based content gating (UnlockManager) |
-| Events | [docs/infrastructure/EVENTS.md](infrastructure/EVENTS.md) | One-shot narrative event flags (EventManager) |
-| Character | [docs/infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, abilities, player state (CharacterManager + PlayerManager) |
-| Persistence | [docs/infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | Save/load, SaveGameData schema (PersistenceManager) |
-| Quests | *(undocumented)* | Multi-step quest progression driven by events + unlock conditions (QuestManager, PR #25/#26). Spec at `docs/superpowers/specs/2026-04-16-quest-system-design.md` |
-
-### Design Documents
-
-| Doc | System | Summary |
-|-----|--------|---------|
-| [breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | Cultivation | Tribulation mini-game design for stage advancement |
-| [docs/cycling/CYCLING_UI_REDESIGN.md](cycling/CYCLING_UI_REDESIGN.md) | Cycling | Cycling view UI redesign spec |
-| [docs/cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md](cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md) | Cycling | Cycling UI implementation plan |
-| [docs/inventory/EQUIPMENT_DESIGN.md](inventory/EQUIPMENT_DESIGN.md) | Inventory | Equipment system design spec |
-| [docs/inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md](inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md) | Inventory | Equipment system implementation plan |
-| [docs/infrastructure/MADRA_UNIFICATION_DESIGN.md](infrastructure/MADRA_UNIFICATION_DESIGN.md) | Infrastructure | Madra pool unification design spec |
-| [docs/infrastructure/MADRA_UNIFICATION_PLAN.md](infrastructure/MADRA_UNIFICATION_PLAN.md) | Infrastructure | Madra pool unification implementation plan |
-
-### Planned Systems (no code)
-
-| System | Doc | Unlocks At |
-|--------|-----|------------|
-| Scripting | [docs/planned/SCRIPTING.md](planned/SCRIPTING.md) | Copper |
-| Elixir Making | [docs/planned/ELIXIR_MAKING.md](planned/ELIXIR_MAKING.md) | Copper |
-| Soulsmithing | [docs/planned/SOULSMITHING.md](planned/SOULSMITHING.md) | Iron |
-
-### Top-Level
-
-| Doc | Purpose |
-|-----|---------|
-| [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) | Current player experience, content inventory, progression blockers |
+Every system doc, design record and tool guide is indexed in [docs/README.md](README.md). Historical specs and plans, with their shipped status, are indexed in [superpowers/README.md](superpowers/README.md).

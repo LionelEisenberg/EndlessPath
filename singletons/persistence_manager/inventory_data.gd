@@ -43,5 +43,12 @@ const SLOTS_PER_PAGE := PAGE_ROWS * PAGE_COLUMNS
 func equipment_capacity() -> int:
 	return unlocked_equipment_pages * SLOTS_PER_PAGE
 
+## True while any slot below equipment_capacity() is empty.
+func has_free_equipment_slot() -> bool:
+	for i: int in equipment_capacity():
+		if not equipment.has(i):
+			return true
+	return false
+
 func _to_string() -> String:
 	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, equipped_accessories: %s, quest_items: %s, consumables: %s, equipped_consumables: %s)" % [materials, equipment, equipped_gear, equipped_accessories, quest_items, consumables, equipped_consumables]

@@ -15,4 +15,4 @@ item_name = "Cultivator's Cowl"
 description = "A felted cowl, traditional among initiate cultivators."
 icon = ExtResource("1_y5fxt")
 item_type = 2
-base_value = 6.0
+base_value = 40.0

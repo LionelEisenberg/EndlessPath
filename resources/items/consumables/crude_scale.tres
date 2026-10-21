@@ -18,5 +18,5 @@ item_id = "crude_scale"
 item_name = "Crude Scale"
 description = "A poorly-formed flake of madra, scarcely worth the name. Crude practitioners still find a use for them."
 icon = ExtResource("4_icon")
-base_value = 1.0
+base_value = 10.0
 metadata/_custom_type_script = "uid://bk7feyxd13jwc"

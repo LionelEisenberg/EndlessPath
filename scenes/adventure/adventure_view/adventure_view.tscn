@@ -130,3 +130,4 @@ vertical_alignment = 1
 
 [node name="Timer" type="Timer" parent="TimerPanel" unique_id=1543296091]
 unique_name_in_owner = true
+one_shot = true

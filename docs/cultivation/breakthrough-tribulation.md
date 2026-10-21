@@ -1,5 +1,7 @@
 # Breakthrough / Tribulation Design Document
 
+> **Status (2026-10-18):** Not implemented. `CultivationManager.attempt_breakthrough()` is still an empty stub with no callers, and none of the pieces this design adds exist yet. Those pieces are `TribulationData`, `BreakthroughChoice`, `EncounterType.BREAKTHROUGH`, the Tribulation view/HUD, the Copper `AdvancementStageResource`, the breakthrough encounter and its timelines. Current behaviour is in [CULTIVATION.md](CULTIVATION.md) and [CYCLING.md](../cycling/CYCLING.md). This is kept as the design record. References to existing code below were re-checked against the code on 2026-10-18.
+
 ## 1. Overview
 
 When a player's Core Density reaches level 100, they become eligible to advance their cultivation stage. Rather than a passive stat check, the breakthrough is a gauntlet: the player must adventure to find a breakthrough site on the map, engage with a short narrative beat, and then survive a Tribulation -- an intense, stripped-down variant of the cycling mini-game where only mouse-tracking accuracy matters. For Foundation to Copper, the Tribulation is short (15-30 seconds), forgiving on failure, and rewards the player with access to two new game systems: Scripting and Elixir Making. The system is designed to scale in difficulty and stakes for future stage transitions without requiring redesign.
@@ -17,7 +19,7 @@ When a player's Core Density reaches level 100, they become eligible to advance 
 ### Phase B: Seeking the Breakthrough Site
 
 4. When Core Density is 100, adventure maps in the player's current zone gain a **Breakthrough Encounter** -- a special tile placed on the map alongside the usual encounter distribution.
-5. The breakthrough tile has a distinct visual overlay on the hex grid (new overlay source ID, unique color/icon -- e.g., a glowing golden/white tile distinct from boss, combat, treasure, etc.).
+5. The breakthrough tile has a distinct marker on the hex grid: a new `EncounterIcon` glyph for `BREAKTHROUGH`, e.g. a glowing golden/white icon distinct from the boss, combat and treasure glyphs (see Map Overlay in section 6).
 6. The player navigates the adventure map normally -- spending stamina, fighting enemies, etc. -- until they reach the breakthrough tile.
 7. Reaching the tile opens the `EncounterInfoPanel` with the encounter name (e.g., "Place of Dense Aura") and a single choice: "Begin Tribulation".
 
@@ -31,7 +33,7 @@ When a player's Core Density reaches level 100, they become eligible to advance 
 
 ### Phase D: Tribulation Mini-Game
 
-10. The screen transitions to the Tribulation view: the cycling body diagram with the Madra Ball, but **no cycling UI** (no resource panel, no technique selector, no auto-cycle toggle, no start button).
+10. The screen transitions to the Tribulation view: the cycling body diagram with the Madra Ball, but **no cycling UI**: no Resources/Techniques tab panel, no auto-cycle toggle, and no click-the-ball-to-start. (Cycling has no Start button; a cycle starts when the player clicks the Madra Ball.)
 11. A minimal Tribulation HUD appears:
     - **Accuracy Meter**: a bar or arc showing current running accuracy (0-100%).
     - **Time Remaining**: countdown timer.
@@ -72,7 +74,7 @@ When a player's Core Density reaches level 100, they become eligible to advance 
 The Tribulation reuses the cycling `Path2D` + `PathFollow2D` + `MadraBall` system. The ball follows a path curve over a fixed duration, identical to how cycling works mechanically. The key differences:
 
 - **No cycling zones.** No inflection points to click. Pure mouse tracking.
-- **No Madra generation.** The cycle_completed signal is not connected to ResourceManager.
+- **No Madra generation.** Cycling does not pay Madra through `cycle_completed`. It pays per particle inside `CyclingTechnique._process()` by calling `ResourceManager.add_madra()` every 0.08 s while the cursor is in the ball. The Tribulation mode therefore has to skip that call, not just leave a signal unconnected.
 - **Dedicated path curve.** The Tribulation uses its own `Curve2D` resource, not the player's selected cycling technique. This curve should be moderately complex -- more turns and tighter bends than the Foundation Technique path, to make tracking non-trivial.
 
 The ball moves from `progress_ratio = 0.0` to `1.0` over the Tribulation duration. The existing `_process(delta)` mouse-tracking logic in `CyclingTechnique` calculates `mouse_tracking_accuracy` identically.
@@ -91,7 +93,7 @@ Accuracy is calculated the same way as cycling: `time_mouse_in_ball / elapsed_cy
 
 ### Orb Speed
 
-The orb speed is implicitly controlled by `cycle_duration` (shorter duration = faster ball for same path length). The Tribulation's dedicated `CyclingTechniqueData` resource controls this.
+The orb speed is implicitly controlled by `cycle_duration` (shorter duration = faster ball for same path length). The Tribulation's dedicated `CyclingTechniqueData` resource controls this. Speed is not constant: cycling tweens `PathFollow2D.progress_ratio` with `EASE_IN_OUT` / `TRANS_SINE`, so the ball is slowest at the start and end of the path.
 
 - **Starting value -- Tribulation cycle duration**: 20 seconds (same as the timer -- one full pass of the path equals one Tribulation).
 - **Test plan**: If the path feels too slow/boring, shorten duration (faster ball). If tracking is frustratingly hard regardless of accuracy threshold, lengthen duration.
@@ -139,7 +141,7 @@ IDLE -> DIALOGUE_PRE -> TRIBULATION_ACTIVE -> DIALOGUE_POST_SUCCESS
 **DIALOGUE_PRE**
 - Entry condition: Player selects the "Begin Tribulation" choice on a Breakthrough Encounter tile, AND Core Density level >= 100.
 - Behavior: A Dialogic timeline plays. Movement is locked. Adventure map is still visible behind the dialogue.
-- Exit: Dialogic `dialogue_ended` signal fires. Transitions to TRIBULATION_ACTIVE.
+- Exit: `DialogueManager.dialogue_ended` fires (DialogueManager relays Dialogic's `timeline_ended`). Transitions to TRIBULATION_ACTIVE.
 - Interruptibility: Not interruptible. The dialogue is short (2-4 lines) and has no branching.
 
 **TRIBULATION_ACTIVE**
@@ -180,7 +182,7 @@ IDLE -> DIALOGUE_PRE -> TRIBULATION_ACTIVE -> DIALOGUE_POST_SUCCESS
 |-----------|-------|-----------|
 | Accuracy threshold | 70% (starting value) | Forgiving. Players have practiced mouse tracking in cycling. |
 | Duration | 20s (starting value) | Short and intense. Respects player time. |
-| Ball speed | Same as a standard cycling technique (~10s cycle on Foundation path length) | Familiar feel. |
+| Ball speed | Same as a standard cycling technique (the Foundational Technique uses an 8 s cycle) | Familiar feel. |
 | Orb movement | Single Path2D pass, moderately complex curve | No randomness, learnable. |
 | Failure penalty | None. Adventure ends. | First breakthrough should feel achievable, not punishing. |
 | Intensity effects | Mild screen shake, particle ramp, light vignette | Sets the mood without overwhelming. |
@@ -216,9 +218,11 @@ The `AdventureMapGenerator` checks `CultivationManager.get_core_density_level() 
 
 This means the breakthrough site only appears when the player is ready. If they are not at Core Density 100, adventure maps generate normally.
 
+> Current code: `AdventureMapGenerator` already filters every encounter through `AdventureEncounter.is_eligible()`, which evaluates the encounter's `unlock_conditions` (`Dictionary[UnlockConditionData, bool]`) at generation time. A breakthrough encounter gated by `CULTIVATION_LEVEL >= 100` and `CULTIVATION_STAGE == FOUNDATION` conditions needs no generator code for eligibility.
+
 **Alternative: Always Present, Gated by Choice Requirements**
 
-The breakthrough encounter is always placed on maps but the "Begin Tribulation" choice has a requirement (`UnlockConditionData` checking Core Density >= 100). If not met, the choice is visible but grayed out. This is simpler but clutters maps with an unusable tile for most of the player's Foundation experience.
+The breakthrough encounter is always placed on maps but the "Begin Tribulation" choice has a requirement (`UnlockConditionData` checking Core Density >= 100). If not met, the choice is visible but grayed out. This already works today: `EncounterChoice.requirements` exists and `EncounterInfoPanel` disables choices whose requirements fail. This is simpler but clutters maps with an unusable tile for most of the player's Foundation experience.
 
 ### Encounter & Choice Structure
 
@@ -269,7 +273,7 @@ elif choice is BreakthroughChoice:
 
 ### Map Overlay
 
-A new overlay source ID is needed for the highlight map, similar to the existing BOSS, COMBAT, REST, TREASURE overlays. The breakthrough tile should use a distinct, unmissable visual -- bright gold or white, possibly with a pulse animation like the existing `PulseNode` but with a unique color.
+The adventure map no longer marks encounter types with per-type highlight-map overlays. `EncounterIcon` (`scenes/adventure/encounter_icon/`) picks a glyph per `EncounterType` (combat, elite, boss, rest, treasure, trap, unknown), and the highlight map only carries the gray "completed" overlay. `PulseNode` is not used on the adventure map. The breakthrough tile needs a new `EncounterIcon` glyph branch for `BREAKTHROUGH` with a distinct, unmissable visual: bright gold or white, possibly animated like the existing boss and rest spritesheet glyphs.
 
 ---
 
@@ -291,14 +295,14 @@ When the player successfully completes the Foundation to Copper Tribulation:
 
 - `advancement_stage_changed` signal triggers `UnlockManager._evaluate_all_conditions()`, which may unlock additional conditions gated on stage.
 - `condition_unlocked` signals from newly satisfied conditions drive UI updates — new tabs/buttons for Scripting and Elixir Making appear in the zone view or main navigation.
-- The cycling resource panel updates to show the new stage name and next-stage info.
+- The cycling resource panel updates its `Stage:` label on `advancement_stage_changed`. It shows no next-stage info today.
 - Madra capacity increases per the Copper stage's `max_madra_base` and `max_madra_per_core_density_level`.
 
 ### Required Content
 
 - A `CopperAdvancementStageResource` `.tres` file must be created with tuned values for the Copper stage (XP scaling, Madra caps, etc.).
 - The Foundation stage's `next_stage` field must be populated with the Copper stage resource.
-- The `advancement_stage_resources` array on `CultivationManager` must include the Copper stage resource.
+- The `advancement_stage_resources` array on `CultivationManager` must include the Copper stage resource. This must land before anything changes the stage. With no resource for the current stage, `get_xp_for_next_level()` returns 0, so `add_core_density_xp()` loops forever, and `ResourceManager.add_madra()` clamps Madra to 0.
 
 ---
 
@@ -378,7 +382,7 @@ Foundation to Copper is the player's first breakthrough. Harsh penalties here ri
 
 **How well does this integrate with the rest of the game?**
 
-- The Tribulation bridges cycling and adventuring -- two systems that currently operate independently. Cycling builds Core Density, adventuring finds the breakthrough site, and the Tribulation reuses cycling's core mechanic in a new context.
+- The Tribulation bridges cycling and adventuring. Today these two systems are linked only by the shared Madra pool: adventures spend Madra earned by cycling. Cycling builds Core Density, adventuring finds the breakthrough site, and the Tribulation reuses cycling's core mechanic in a new context.
 - The encounter/choice system in adventures already supports heterogeneous choice types (CombatChoice, DialogueChoice). Adding BreakthroughChoice follows the established pattern.
 - The stage advancement and unlock system already exist (CultivationManager, UnlockManager). This feature fills the empty `attempt_breakthrough()` stub.
 - The data-driven design (TribulationData resource, BreakthroughChoice resource) follows the project's existing patterns.
@@ -400,7 +404,7 @@ Foundation to Copper is the player's first breakthrough. Harsh penalties here ri
 | `CultivationManager` | `attempt_breakthrough()` stub, `advancement_stage_changed` signal | Fill in the stub with real logic. |
 | `UnlockManager` / `UnlockConditionData` | Stage-gated conditions auto-evaluate on `advancement_stage_changed` | Author `CULTIVATION_STAGE >= COPPER` conditions and wire them to Scripting/Elixir Making unlocks. |
 | `Dialogic` / `DialogueManager` | Timeline playback | Author new timelines for pre/post Tribulation. |
-| `AdventureMapGenerator` | Tile placement logic | Add conditional breakthrough encounter injection. |
+| `AdventureMapGenerator` | Tile placement logic | Eligibility needs no code: gate the encounter with `AdventureEncounter.unlock_conditions`, which `is_eligible()` already evaluates at generation time. Placement uses the existing `Placement` (`ANCHOR` / `FILLER`) quota system. |
 
 ### What is New
 
@@ -415,7 +419,7 @@ Foundation to Copper is the player's first breakthrough. Harsh penalties here ri
 | Copper AdvancementStageResource `.tres` | Stage resource for the Copper stage. |
 | Dialogic timelines | Pre-tribulation, post-success, post-failure timelines. |
 | Visual effects | Screen shake, particle emitter, vignette shader/overlay. |
-| Breakthrough tile overlay | New hex tile overlay graphic for the adventure map. |
+| Breakthrough tile glyph | New `EncounterIcon` glyph for `EncounterType.BREAKTHROUGH`. |
 | UI hint system | Mechanism to show "Your core is full..." messaging when Core Density hits 100. |
 
 ### Rough Build Order

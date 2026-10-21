@@ -14,4 +14,4 @@ item_name = "Iron Shortsword"
 description = "A heavier blade, demanding both hands."
 icon = ExtResource("1_l5fpy")
 item_type = 2
-base_value = 10.0
+base_value = 150.0

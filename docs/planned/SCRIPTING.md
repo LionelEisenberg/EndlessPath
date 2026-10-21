@@ -1,8 +1,10 @@
 # Scripting System
 
-> **Status: Planned — Not Yet Implemented**
+Last updated: 2026-10-18
+
+> **Status: Planned, not started.** No code exists for this system. This document records the design intent from the Game Design Document.
 >
-> No code exists for this system. This document describes the design intent from the Game Design Document for future implementation.
+> **Blocked on Copper:** Scripting unlocks at the Copper stage, and the game can't reach Copper yet. `CultivationManager.attempt_breakthrough()` is an empty stub, and only the Foundation `AdvancementStageResource` exists. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
 
 ## Design Intent
 
@@ -25,6 +27,8 @@ Scripting is an active mini-game unlocked at the **Copper** cultivation stage. T
 | Ink | Foraging (Tier 0 resource) |
 | Madra | Cycling |
 
+No Paper or Ink materials exist yet. Foraging yields only Spirit Fern and Dewdrop Tear (see [INVENTORY.md](../inventory/INVENTORY.md) and [ZONES.md](../zones/ZONES.md)).
+
 ## Output
 
 Consumable Scripts providing short-duration, stackable buffs. Example from GDD:
@@ -44,11 +48,15 @@ Scripts are intended to be relatively cheap to produce and frequently consumed, 
 
 ## Implementation Considerations
 
-- The `ItemDefinitionData.ItemType.CONSUMABLE` enum value exists but `InventoryManager.award_items()` doesn't handle it yet
-- No `ScriptActionData` subclass of `ZoneActionData` exists
-- The `ActionType.ZONE_EVENT` or a new `SCRIPTING` type could serve as the action handler
-- The calligraphy tracing mechanic likely needs a custom `Path2D`-based input system similar to how Cycling uses paths
-- Quality tiers could leverage the existing `EffectData` system for buff application
+What exists:
+- **Consumable items:** `ConsumableDefinitionData` has `effects: Array[EffectData]`, `cooldown_seconds`, and `use()`. `InventoryManager` stacks consumables in `InventoryData.consumables`, and a 4-slot `equipped_consumables` hotbar is managed in the inventory's Consumables tab. A Script fits this as a `ConsumableDefinitionData`. See [INVENTORY.md](../inventory/INVENTORY.md).
+- **Using consumables:** nothing on `main` consumes from the hotbar. In-combat use (`CombatConsumableManager`, consumable hotkeys) exists only on the unmerged branch `feat/infallible-chaum-58f8ad`. Using one outside combat has no UI at all.
+- **Effects:** quality tiers could pick between different `EffectData` sets. See [EFFECTS.md](../infrastructure/EFFECTS.md).
+
+What's missing:
+- **Buffs outside combat:** there is no system for them. `BuffEffectData` and `CombatBuffManager` only run inside a fight, and `CharacterManager.get_total_attributes_data()` has a TODO for active buffs. Short-duration Script buffs that act outside combat (e.g. on cycling) need a timed-modifier system first. The same hookup problem leaves the path tree's numeric perks inert ([PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md)).
+- **Zone action:** no `ScriptActionData` subclass of `ZoneActionData` exists. `ZoneActionData.ActionType` is `FORAGE`, `ADVENTURE`, `NPC_DIALOGUE`, `MERCHANT`, `TRAIN_STATS`, `CYCLING`, `ZONE_EVENT`. A new `SCRIPTING` type (or `ZONE_EVENT`) could route it through `ActionManager` ([ZONES.md](../zones/ZONES.md)).
+- **Tracing input:** the calligraphy mechanic likely needs a custom `Path2D`-based input system, similar to how Cycling uses paths ([CYCLING.md](../cycling/CYCLING.md)).
 
 ## Open Design Questions
 
@@ -56,4 +64,4 @@ Scripts are intended to be relatively cheap to produce and frequently consumed, 
 - Should Scripts stack additively or multiplicatively?
 - What is the duration range? (seconds? minutes? tied to quality?)
 - Should Script recipes be unlocked via the advancement tree or found in adventures?
-- How does the "Auto-Cycle" Script interact with the existing auto-cycle toggle?
+- The cycling view already has an "Auto: ON/OFF" toggle that chains cycles back to back. The player must still keep the cursor in the Madra Ball to earn anything ([CYCLING.md](../cycling/CYCLING.md)). What does an Auto-Cycle Script add: removing the cursor requirement, or running cycles while the view is closed?

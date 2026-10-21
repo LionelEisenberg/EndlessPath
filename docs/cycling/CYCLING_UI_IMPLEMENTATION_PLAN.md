@@ -1,6 +1,10 @@
 # Cycling View UI Redesign — Implementation Plan
 
-**Status:** Complete (PR #12)
+> **Status (2026-10-18):** Implemented in PR #12. See [CYCLING.md](CYCLING.md) for current behaviour. This is kept as a historical plan, so details below may be out of date. Changes since:
+> - The technique slot lives in `scenes/cycling/cycling_technique_slot/`.
+> - `CyclingTabPanel` extends `TabContainer` and has no `.tscn` of its own.
+> - `StartCyclingButton` was removed in favour of clicking the Madra Ball.
+> - Technique data comes from `CyclingManager`, added after this plan.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

@@ -258,6 +258,11 @@ func _drop_item(global_mouse_pos: Vector2) -> void:
 #-----------------------------------------------------------------------------
 
 func _quick_equip(slot: InventorySlot) -> void:
+	# The trash is not a grid slot: its held item is rescued only by dragging it
+	# out, and the grid path below would erase whatever sits at the trash's
+	# aliased grid index.
+	if slot is TrashSlot:
+		return
 	var item_data: ItemInstanceData = slot.item_instance.item_instance_data
 	if not item_data.item_definition is EquipmentDefinitionData:
 		return

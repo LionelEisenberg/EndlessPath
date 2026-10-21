@@ -1,0 +1,42 @@
+[gd_resource type="Theme" format=3]
+
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_shop_panel.tres" id="1_panel"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_shop_row.tres" id="2_row"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_button_normal.tres" id="3_btn_normal"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_button_hover.tres" id="4_btn_hover"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_button_pressed.tres" id="5_btn_pressed"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_button_disabled.tres" id="6_btn_disabled"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_separator.tres" id="7_separator"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/merchant/spirit_valley_atmosphere_mask.tres" id="8_atmosphere_mask"]
+
+[resource]
+HSeparatorMerchant/base_type = &"HSeparator"
+HSeparatorMerchant/constants/separation = 24
+HSeparatorMerchant/styles/separator = ExtResource("7_separator")
+LabelMerchantGreeting/base_type = &"LabelSubheading"
+LabelMerchantGreeting/font_sizes/font_size = 16
+LabelMerchantTitle/base_type = &"LabelTitle"
+LabelMerchantTitle/colors/font_outline_color = Color(0.471, 0.91, 0.831, 0.3)
+LabelMerchantTitle/constants/outline_size = 10
+LabelMerchantTitle/font_sizes/font_size = 50
+MerchantAtmosphere/colors/light = Color(0.471, 0.882, 0.804, 0.28)
+MerchantAtmosphere/colors/mist = Color(1, 1.2, 1.5, 0.5)
+MerchantAtmosphere/colors/mote_primary = Color(0.471, 0.894, 1, 0.9)
+MerchantAtmosphere/colors/mote_secondary = Color(0.22, 0.851, 0.451, 0.85)
+MerchantAtmosphere/colors/slot_glow = Color(0.471, 0.894, 1, 0.22)
+MerchantAtmosphereMask/base_type = &"Panel"
+MerchantAtmosphereMask/styles/panel = ExtResource("8_atmosphere_mask")
+MerchantButton/base_type = &"Button"
+MerchantButton/colors/font_color = Color(0.941, 0.91, 0.847, 1)
+MerchantButton/colors/font_disabled_color = Color(0.941, 0.91, 0.847, 0.28)
+MerchantButton/colors/font_hover_color = Color(0.831, 0.659, 0.29, 1)
+MerchantButton/colors/font_pressed_color = Color(0.831, 0.659, 0.29, 1)
+MerchantButton/font_sizes/font_size = 20
+MerchantButton/styles/disabled = ExtResource("6_btn_disabled")
+MerchantButton/styles/hover = ExtResource("4_btn_hover")
+MerchantButton/styles/normal = ExtResource("3_btn_normal")
+MerchantButton/styles/pressed = ExtResource("5_btn_pressed")
+MerchantPanel/base_type = &"PanelContainer"
+MerchantPanel/styles/panel = ExtResource("1_panel")
+MerchantRow/base_type = &"PanelContainer"
+MerchantRow/styles/panel = ExtResource("2_row")

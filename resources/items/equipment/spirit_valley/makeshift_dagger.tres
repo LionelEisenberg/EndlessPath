@@ -14,3 +14,4 @@ item_name = "Makeshift Dagger"
 description = "A simple iron blade, well-balanced for a beginner."
 icon = ExtResource("1_rppdt")
 item_type = 2
+base_value = 60.0
