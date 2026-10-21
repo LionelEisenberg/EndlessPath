@@ -46,7 +46,8 @@ static func update_directory(extension:String) -> void:
 
 	var keys_to_remove := []
 	for key in directory:
-		if not ResourceLoader.exists(directory[key]):
+		# FileAccess fallback: on a fresh .godot/ the .dch/.dtl loaders aren't registered yet.
+		if not ResourceLoader.exists(directory[key]) and not FileAccess.file_exists(directory[key]):
 			keys_to_remove.append(key)
 	for key in keys_to_remove:
 		directory.erase(key)

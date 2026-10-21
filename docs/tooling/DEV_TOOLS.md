@@ -1,5 +1,5 @@
 # Developer Tools
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Overview
 
@@ -111,7 +111,7 @@ Icons and id labels are spawned without an owner, so they are not saved. Painted
 `scripts/tools/generate_uid.gd` extends `SceneTree` and prints five fresh UIDs (`ResourceUID.id_to_text(ResourceUID.create_id())`), then quits. Use it when authoring `.tscn`/`.tres` files by hand.
 
 ```bash
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s scripts/tools/generate_uid.gd
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s scripts/tools/generate_uid.gd
 ```
 
 Output: five lines of the form `uid://...`.
@@ -137,9 +137,9 @@ Output: five lines of the form `uid://...`.
 |-------|------------------------|----------------------------|-----|
 | `AsepriteWizard` | 9.6.0 | Yes | Imports `.aseprite` sources |
 | `ResourcePlus` | 0.1.0 | Yes | Resource editing helpers |
-| `dialogic` | 2.0-Alpha-19 (Godot 4.4+) | Yes | Dialogue; also the `Dialogic` autoload |
+| `dialogic` | 2.0-Alpha-19 (Godot 4.4+) | Yes | Dialogue; also the `Dialogic` autoload. Carries two local patches, listed in `CLAUDE.md` |
 | `godot_context_exporter` | 1.0 | Yes | Exports scripts and scene trees to a single text file |
-| `gut` | 9.6.0 | Yes | Test framework ([TESTING.md](../testing/TESTING.md)) |
+| `gut` | 9.7.1 | Yes | Test framework ([TESTING.md](../testing/TESTING.md)) |
 | `hexagon_tilemaplayer` | 2.5.2 | No | Its runtime classes (`HexagonTileMapLayer`) are used by both maps |
 | `script-ide` | 2.0.2 | No (disabled in `39f1817`) | Script editor tabs and outline |
 

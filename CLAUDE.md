@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**EndlessPath** is an incremental/idle game blended with active mini-games, built in **Godot 4.6** using **GDScript**. Inspired by the "Cradle" book series, it follows a sacred artist cultivating power through a Wuxia-inspired cultivation system. Players progress through stages (Foundation, Copper, Iron, Jade), managing resources like Madra and Core Density through interconnected gameplay loops. Only the Foundation stage is implemented today. See `docs/STATE_OF_THE_GAME.md` for current status, and `docs/README.md` for the documentation index.
+**EndlessPath** is an incremental/idle game blended with active mini-games, built in **Godot 4.7** using **GDScript**. Inspired by the "Cradle" book series, it follows a sacred artist cultivating power through a Wuxia-inspired cultivation system. Players progress through stages (Foundation, Copper, Iron, Jade), managing resources like Madra and Core Density through interconnected gameplay loops. Only the Foundation stage is implemented today. See `docs/STATE_OF_THE_GAME.md` for current status, and `docs/README.md` for the documentation index.
 
 ## Common Commands
 
@@ -12,21 +12,21 @@ All commands are run from the project root.
 
 ```bash
 # Open in Godot editor
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" project.godot
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" project.godot
 
 # Run the game from CLI
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
 
 # Run the test suite
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 
 # Export (example: Linux). Requires an export preset; no export_presets.cfg is committed yet
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --export-release "Linux" build/endlesspath.x86_64
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --export-release "Linux" build/endlesspath.x86_64
 ```
 
 ## Testing
 
-The project uses **GUT v9.6.0** for unit and integration tests. Test files live in `tests/unit/` and `tests/integration/`.
+The project uses **GUT v9.7.1** for unit and integration tests. Test files live in `tests/unit/` and `tests/integration/`.
 
 **Run tests:**
 - After completing any feature or bug fix, before committing
@@ -39,10 +39,10 @@ The project uses **GUT v9.6.0** for unit and integration tests. Test files live 
 
 If the project has never been imported in the current environment, run `--import` first to register GUT class names:
 ```bash
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless --import
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --import
 ```
 
-In a fresh checkout, the headless `--import` has been seen to rewrite `project.godot`'s `[dialogic]` `directories/dch_directory` and `directories/dtl_directory` to `{}`, which unregisters the dialogue characters and timeline. Afterwards, check `git diff project.godot` and restore the file before committing. Running the tests alone does not modify it.
+A fresh-checkout `--import` used to rewrite `project.godot`'s `[dialogic]` `directories/dch_directory` and `directories/dtl_directory` to `{}`. The local Dialogic patch listed under GDScript Coding Standards → Scope prevents that. If `git diff project.godot` ever shows those keys emptied again, the patch was probably lost in a Dialogic upgrade: restore the file and re-apply the patch before committing.
 
 See `docs/testing/TESTING.md` for test conventions, the coverage map, and why tests must call production code instead of re-implementing ("mirroring") it.
 
@@ -51,7 +51,7 @@ See `docs/testing/TESTING.md` for test conventions, the coverage map, and why te
 ### Tech Stack
 | Component | Details |
 |-----------|---------|
-| Engine | Godot 4.6, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
+| Engine | Godot 4.7, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
 | Language | GDScript |
 | Window | 1920x1080 |
 | Entry Scene | `res://scenes/main/main_game/main_game.tscn` |
@@ -188,7 +188,9 @@ UI text uses a **Label theme variant type-scale** defined in `assets/themes/pixe
 
 ## GDScript Coding Standards
 
-**Scope**: Never modify files in `addons/`.
+**Scope**: Never modify files in `addons/`. Known exceptions, both in `addons/dialogic` (2.0-Alpha-19):
+- Upstream's 3-line Godot 4.7 return-value fix (dialogic-godot/dialogic#2769). Alpha 20+ already includes it.
+- A local 1-line fix in `DialogicResourceUtil.update_directory()` so a first import without `.godot/` no longer empties the `[dialogic]` timeline/character registry in `project.godot`. Upstream still has this bug, so re-apply the fix after any Dialogic upgrade.
 
 ### Functions
 - All functions must have explicit return types (use `-> void` if no return value)

@@ -1,6 +1,6 @@
 # Endless Path
 
-A cultivation-themed incremental/idle game with active mini-games, built in Godot 4.6. Inspired by the *Cradle* book series by Will Wight, Endless Path follows a sacred artist on their journey from Foundation to mastery, cultivating power through interconnected gameplay systems.
+A cultivation-themed incremental/idle game with active mini-games, built in Godot 4.7. Inspired by the *Cradle* book series by Will Wight, Endless Path follows a sacred artist on their journey from Foundation to mastery, cultivating power through interconnected gameplay systems.
 
 > **Current state:** a playable Foundation-stage slice in one zone. There is no breakthrough to the next stage yet. See [docs/STATE_OF_THE_GAME.md](docs/STATE_OF_THE_GAME.md) for the one-page status and roadmap.
 
@@ -37,13 +37,13 @@ Breaking through to the next cultivation stage (step 6 of the design) is not bui
 
 | Component | Details |
 |-----------|---------|
-| Engine | Godot 4.6, GDScript, GL Compatibility renderer, 1920×1080 viewport |
+| Engine | Godot 4.7, GDScript, GL Compatibility renderer, 1920×1080 viewport |
 | Architecture | 17 autoloads (16 manager singletons + Dialogic), data-driven `Resource` content |
 | Entry Scene | `scenes/main/main_game/main_game.tscn` |
 | Save System | `user://save.tres` via `ResourceSaver`, auto-saved every 5 s |
 | Map System | Hex grids via the `hexagon_tilemaplayer` addon |
 | Dialogue | Dialogic addon |
-| Tests | GUT 9.6.0 (`tests/unit/`, `tests/integration/`) |
+| Tests | GUT 9.7.1 (`tests/unit/`, `tests/integration/`) |
 
 ## Project Structure
 
@@ -122,15 +122,15 @@ docs/                         Game and system documentation (start at docs/READM
 
 ## Running
 
-Paths assume the Windows install used for development; adjust for your Godot 4.6 binary.
+Paths assume the Windows install used for development; adjust for your Godot 4.7 binary.
 
 ```bash
 # Open in the Godot editor
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" project.godot
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" project.godot
 
 # Run the game
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
 
 # Run the test suite (first run in a fresh checkout: --headless --import, then see docs/testing/TESTING.md)
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 ```

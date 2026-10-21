@@ -112,7 +112,7 @@ The generator covers the **Equipment** section only. It was implemented on 2026-
 ### Invocation
 
 ```bash
-"C:\Program Files (x86)\Godot\Godot_v4.6-stable_win64_console.exe" --headless -s scripts/tools/items_md_to_resources.gd
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s scripts/tools/items_md_to_resources.gd
 ```
 
 Run it from the project root. It prints `ItemsMdGenerator: created=N updated=N skipped=N orphans=N`, then one `orphan: <path>` line per orphan. It exits with 0 on success and 1 on a fatal error.
