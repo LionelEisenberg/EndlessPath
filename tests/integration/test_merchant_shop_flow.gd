@@ -2,7 +2,8 @@ extends GutTest
 
 ## Integration tests for Merchant v1: the ActionManager route (the shop stays
 ## open until stop_action() closes it) and the shop view bound to real stock,
-## including broken stock data and the title's LabelTitle inheritance.
+## including broken stock data, the title's LabelTitle inheritance, the layout
+## against the mock and the gold preview while Buy is hovered.
 
 const ZONE_ID: String = "SpiritValley"
 const ACTION_ID: String = "spirit_valley_merchant"
@@ -92,6 +93,8 @@ const PIXEL_THEME_PATH: String = "res://assets/themes/pixel_theme.tres"
 ## below the footer.
 const MOCK_HEADER_FOOTER_INSET: float = 8.0
 const MOCK_EDGE_PADDING: float = 4.0
+## Repeated to be longer than one line at any font size the header could use.
+const GREETING_FILLER: String = "A long merchant greeting that goes on. "
 
 func _make_view() -> MerchantView:
 	var view: MerchantView = MerchantViewScene.instantiate()
@@ -321,11 +324,41 @@ func test_title_sits_below_the_panel_padding() -> void:
 	assert_almost_eq(_rect_of(view, "TitleLabel").position.y - content.position.y, MOCK_EDGE_PADDING, 0.5)
 
 func test_panel_ends_just_below_the_footer() -> void:
-	# The panel fits its rows; a fixed height left a spare band under Leave.
+	# The panel fits its rows; a fixed height left a spare band under the footer.
 	var view := await _shown_view()
 	var content: VBoxContainer = view.get_node("%MainVBox")
 	assert_almost_eq(content.size.y, content.get_combined_minimum_size().y, 0.5, "no spare band under the footer")
-	assert_almost_eq(content.get_global_rect().end.y - _rect_of(view, "LeaveButton").end.y, MOCK_EDGE_PADDING, 0.5)
+	assert_almost_eq(content.get_global_rect().end.y - _rect_of(view, "FooterHBox").end.y, MOCK_EDGE_PADDING, 0.5)
+
+func test_leave_sits_in_the_header_and_gold_in_the_footer() -> void:
+	var view := await _shown_view()
+	var rows := _visible_rows(view)
+	assert_lt(_rect_of(view, "LeaveButton").end.y, rows[0].get_global_rect().position.y,
+		"Leave sits above the rows, where players look to close a window")
+	assert_gt(_rect_of(view, "GoldLabel").position.y, rows[-1].get_global_rect().end.y,
+		"the gold sits below the rows, beside the purchase status")
+
+func test_long_greeting_wraps_across_the_header() -> void:
+	var view := await _make_view()
+	var talkative: MerchantActionData = _merchant_action().duplicate()
+	talkative.greeting = GREETING_FILLER.repeat(8)
+	view.setup(talkative)
+	view.visible = true
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var greeting: Label = view.get_node("%GreetingLabel")
+	var header_width := _rect_of(view, "MainVBox").size.x - 2.0 * MOCK_HEADER_FOOTER_INSET
+	assert_almost_eq((view.get_node("ShopPanel") as Control).size.x, 1000.0, 0.5, "the panel keeps its width")
+	assert_gt(greeting.get_line_count(), 1, "a long greeting wraps")
+	assert_almost_eq(greeting.size.x, header_width, 0.5, "the greeting wraps at the header's full width")
+
+func test_greeting_is_smaller_than_a_subheading_in_game() -> void:
+	var pixel_theme: Theme = load(PIXEL_THEME_PATH)
+	var view := await _make_view_under(pixel_theme)
+	var greeting: Label = view.get_node("%GreetingLabel")
+	assert_lt(greeting.get_theme_font_size(&"font_size"), pixel_theme.get_font_size(&"font_size", &"LabelSubheading"))
+	assert_eq(greeting.get_theme_color(&"font_color"), pixel_theme.get_color(&"font_color", &"LabelSubheading"),
+		"it keeps the subheading's tan")
 
 func test_atmosphere_fills_the_panel_inside_its_border() -> void:
 	var view := await _shown_view()
@@ -345,3 +378,47 @@ func test_atmosphere_reads_theme_colours() -> void:
 	await get_tree().process_frame
 	var atmosphere: MerchantAtmosphere = view.get_node("%MerchantAtmosphere")
 	assert_eq(atmosphere.get_node("%MistA").modulate, Color.RED)
+
+#-----------------------------------------------------------------------------
+# GOLD PREVIEW WHILE BUY IS HOVERED
+#-----------------------------------------------------------------------------
+
+func _buy_button(view: MerchantView, entry_id: String) -> Button:
+	return _row_for(view, entry_id).get_node("%BuyButton")
+
+func test_hovering_buy_shows_the_gold_left_after() -> void:
+	ResourceManager.set_gold(215.0)
+	var view := await _make_view()
+	view.setup(_merchant_action())
+	_buy_button(view, "crude_scale").mouse_entered.emit()
+	var after: Label = view.get_node("%GoldAfterLabel")
+	assert_true(after.visible)
+	assert_eq(after.text, "205 left")
+	assert_false((view.get_node("%GoldShortLabel") as Label).visible)
+
+func test_hovering_a_disabled_buy_shows_the_shortfall() -> void:
+	ResourceManager.set_gold(100.0)
+	var view := await _make_view()
+	view.setup(_merchant_action())
+	_buy_button(view, "reinforced_robes").mouse_entered.emit()
+	var short: Label = view.get_node("%GoldShortLabel")
+	assert_true(short.visible)
+	assert_eq(short.text, "80 short")
+	assert_false((view.get_node("%GoldAfterLabel") as Label).visible)
+
+func test_leaving_buy_clears_the_preview() -> void:
+	ResourceManager.set_gold(215.0)
+	var view := await _make_view()
+	view.setup(_merchant_action())
+	_buy_button(view, "crude_scale").mouse_entered.emit()
+	_buy_button(view, "crude_scale").mouse_exited.emit()
+	assert_false((view.get_node("%GoldAfterLabel") as Label).visible)
+	assert_false((view.get_node("%GoldShortLabel") as Label).visible)
+
+func test_preview_follows_a_purchase() -> void:
+	ResourceManager.set_gold(215.0)
+	var view := await _make_view()
+	view.setup(_merchant_action())
+	_buy_button(view, "crude_scale").mouse_entered.emit()
+	_buy_button(view, "crude_scale").pressed.emit()
+	assert_eq((view.get_node("%GoldAfterLabel") as Label).text, "195 left", "with 205 left, the next scale leaves 195")

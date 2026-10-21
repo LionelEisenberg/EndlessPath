@@ -13,6 +13,8 @@
 HSeparatorMerchant/base_type = &"HSeparator"
 HSeparatorMerchant/constants/separation = 24
 HSeparatorMerchant/styles/separator = ExtResource("7_separator")
+LabelMerchantGreeting/base_type = &"LabelSubheading"
+LabelMerchantGreeting/font_sizes/font_size = 16
 LabelMerchantTitle/base_type = &"LabelTitle"
 LabelMerchantTitle/colors/font_outline_color = Color(0.471, 0.91, 0.831, 0.3)
 LabelMerchantTitle/constants/outline_size = 10

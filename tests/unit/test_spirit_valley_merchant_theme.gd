@@ -14,6 +14,7 @@ const VARIANTS: Array[StringName] = [
 	&"LabelMerchantTitle",
 	&"HSeparatorMerchant",
 	&"MerchantAtmosphereMask",
+	&"LabelMerchantGreeting",
 ]
 
 ## [variant, data type, item name] for what the shop's nodes read from each
@@ -33,6 +34,7 @@ const VARIANT_ITEMS: Array[Array] = [
 	[&"LabelMerchantTitle", Theme.DATA_TYPE_FONT_SIZE, &"font_size"],
 	[&"HSeparatorMerchant", Theme.DATA_TYPE_STYLEBOX, &"separator"],
 	[&"MerchantAtmosphereMask", Theme.DATA_TYPE_STYLEBOX, &"panel"],
+	[&"LabelMerchantGreeting", Theme.DATA_TYPE_FONT_SIZE, &"font_size"],
 ]
 
 ## The log and quest windows sit under the shop. Through a lighter panel their

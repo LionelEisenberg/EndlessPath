@@ -12,6 +12,10 @@ extends PanelContainer
 
 ## Emitted when the player presses Buy on this row.
 signal buy_pressed(entry: MerchantStockEntry)
+## Emitted when the pointer enters this row's Buy button, enabled or not.
+signal buy_hovered(entry: MerchantStockEntry)
+## Emitted when the pointer leaves this row's Buy button.
+signal buy_unhovered(entry: MerchantStockEntry)
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -47,6 +51,8 @@ var _entry: MerchantStockEntry = null
 
 func _ready() -> void:
 	_buy_button.pressed.connect(_on_buy_button_pressed)
+	_buy_button.mouse_entered.connect(_on_buy_button_mouse_entered)
+	_buy_button.mouse_exited.connect(_on_buy_button_mouse_exited)
 	_apply_theme_colours()
 
 func _notification(what: int) -> void:
@@ -110,3 +116,11 @@ func _apply_theme_colours() -> void:
 func _on_buy_button_pressed() -> void:
 	if _entry:
 		buy_pressed.emit(_entry)
+
+func _on_buy_button_mouse_entered() -> void:
+	if _entry:
+		buy_hovered.emit(_entry)
+
+func _on_buy_button_mouse_exited() -> void:
+	if _entry:
+		buy_unhovered.emit(_entry)

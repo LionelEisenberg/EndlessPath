@@ -117,45 +117,35 @@ theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 0
 
-[node name="HeaderHBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin"]
+[node name="HeaderVBox" type="VBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderHBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderVBox"]
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="TitleBlock" type="VBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="TitleLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox/TitleBlock"]
+[node name="TitleLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderVBox/HeaderHBox"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_type_variation = &"LabelMerchantTitle"
 text = "Traveling Merchant"
 
-[node name="GreetingLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox/TitleBlock"]
+[node name="LeaveButton" type="Button" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderVBox/HeaderHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 44)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"MerchantButton"
+text = "Leave [Esc]"
+
+[node name="GreetingLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelMerchantGreeting"
 text = "Greeting"
-
-[node name="GoldBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox"]
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 10
-
-[node name="GoldIcon" type="TextureRect" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox/GoldBox"]
-custom_minimum_size = Vector2(40, 40)
-layout_mode = 2
-size_flags_vertical = 4
-texture = ExtResource("5_gold")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="GoldLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderHBox/GoldBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"LabelValueLarge"
-text = "0"
+autowrap_mode = 3
 
 [node name="TopSeparator" type="HSeparator" parent="ShopPanel/ContentMargin/MainVBox"]
 layout_mode = 2
@@ -202,6 +192,7 @@ theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 4
 
 [node name="FooterHBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 16
 
@@ -212,9 +203,35 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_type_variation = &"LabelGreen"
 
-[node name="LeaveButton" type="Button" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(170, 44)
+[node name="GoldBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox"]
 layout_mode = 2
-theme_type_variation = &"MerchantButton"
-text = "Leave [Esc]"
+size_flags_vertical = 4
+theme_override_constants/separation = 10
+
+[node name="GoldShortLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox/GoldBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelRed"
+
+[node name="GoldAfterLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox/GoldBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelGreen"
+
+[node name="GoldIcon" type="TextureRect" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox/GoldBox"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("5_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GoldLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox/GoldBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelValueLarge"
+text = "0"
