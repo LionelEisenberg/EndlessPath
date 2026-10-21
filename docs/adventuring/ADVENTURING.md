@@ -488,7 +488,7 @@ The editor-only map preview (`scenes/tools/map_preview.tscn`, `scripts/tools/map
 | `coalescing_spirit_encounter` (`combat_encounters/elite/`) | Coalescing Spirit Attacks! | `COMBAT_ELITE` | ANCHOR | 0 | 1 | "Attack the Spirit" → `coalescing_spirit` | 0 gold (no `base_gold_drop`) |
 | `ravenous_dreadbeast_encounter` (`combat_encounters/elite/`) | Ravenous Dreadbeast Attacks! | `COMBAT_ELITE` | ANCHOR | 0 | 1 | "Attack the Dreadbeast" → `ravenous_dreadbeast` | 20 gold + 25% Dreadbeast Tooth Necklace (inline loot table) |
 | `aura_well` (`special_encounters/`) | Aura Well | `REST_SITE` | ANCHOR | 3 | 1 | "Rest" → +5 × BODY HP, +2 × FOUNDATION Madra. "Mark down the location" (requires `aura_well_discovered` = false) → same restore plus fires `aura_well_discovered`; once the event has fired the card reads "✓ Location noted" and is disabled. | Unlocks the Aura Well training zone action |
-| `refugee_camp` (`special_encounters/`) | Refugee Camp | `REST_SITE` | ANCHOR | 3 | 1 | "Approach the camp" → fires `merchant_discovered` | Unlocks the Merchant zone action (stub). Only eligible while `refugee_camp_map` is owned (ITEM_OWNED) and `merchant_discovered` has not fired. |
+| `refugee_camp` (`special_encounters/`) | Refugee Camp | `REST_SITE` | ANCHOR | 3 | 1 | "Approach the camp" → fires `merchant_discovered` | Unlocks the Merchant zone action and its shop. Only eligible while `refugee_camp_map` is owned (ITEM_OWNED) and `merchant_discovered` has not fired. |
 
 Enemy stats and abilities are in [COMBAT.md](../combat/COMBAT.md). All gold values assume the 1.0 multipliers above. With default attributes (BODY 10, FOUNDATION 10), the Aura Well restores 50 HP and 20 Madra.
 

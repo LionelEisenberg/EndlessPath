@@ -13,9 +13,12 @@ extends Control
 @onready var path_tree_view: PathTreeView = %PathTreeView
 @onready var abilities_view: Control = %AbilitiesView
 @onready var character_view: CharacterView = %CharacterView
+@onready var merchant_view: MerchantView = %MerchantView
 
 ## View Components
 @onready var grey_background: GreyBackground = %GreyBackground
+@onready var log_window: Control = %LogWindow
+@onready var quest_window: Control = %QuestWindow
 
 ## State machine states
 @onready var zone_view_state: MainViewState = %MainViewStateMachine/ZoneViewState
@@ -26,6 +29,7 @@ extends Control
 @onready var path_tree_view_state: MainViewState = %MainViewStateMachine/PathTreeViewState
 @onready var abilities_view_state: MainViewState = %MainViewStateMachine/AbilitiesViewState
 @onready var character_view_state: MainViewState = %MainViewStateMachine/CharacterViewState
+@onready var merchant_view_state: MainViewState = %MainViewStateMachine/MerchantViewState
 
 ## State stack
 @onready var state_stack: Array[MainViewState] = []
@@ -40,6 +44,7 @@ func _ready() -> void:
 	path_tree_view_state.scene_root = self
 	abilities_view_state.scene_root = self
 	character_view_state.scene_root = self
+	merchant_view_state.scene_root = self
 
 	# Initialize view visibility based on initial state
 	change_state(zone_view_state)
@@ -67,6 +72,14 @@ func pop_state() -> void:
 		return
 	
 	state_stack.pop_back().exit()
+
+## Remove a state from wherever it sits in the stack, leaving the states above it open.
+func remove_state(state: MainViewState) -> void:
+	if not state_stack.has(state):
+		return
+
+	state_stack.erase(state)
+	state.exit()
 
 ## Change the base state, clearing the stack.
 func change_state(new_state: MainViewState) -> void:

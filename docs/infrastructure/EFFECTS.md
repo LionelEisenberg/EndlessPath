@@ -39,7 +39,7 @@ Execution is synchronous and context-free. `process()` takes no arguments; `Adve
 
 | Owner field | Runner | When it runs |
 |---|---|---|
-| `ZoneActionData.success_effects` / `failure_effects` | `ActionManager._process_completion_effects(successful)` | When the current action stops: `stop_action(successful)`, or when `select_action()` replaces it (which counts as success). NPC dialogue stops on `DialogueManager.dialogue_ended`; the Merchant stub stops immediately; adventures stop with `false` on time-out. |
+| `ZoneActionData.success_effects` / `failure_effects` | `ActionManager._process_completion_effects(successful)` | When the current action stops: `stop_action(successful)`, or when `select_action()` replaces it (which counts as success). NPC dialogue stops on `DialogueManager.dialogue_ended`; the Merchant stops when the player leaves the shop; adventures stop with `false` on time-out. |
 | `TrainingActionData.effects_per_tick` | `ActionManager._on_train_timer_finished()` | Every `tick_interval_seconds` while the training action is selected |
 | `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` also reads the first `AwardAttributeEffectData` here for its "+N / M Attribute" badge. |
 | `QuestData.completion_effects` | `QuestManager._complete_quest()` | After the last step advances, before `quest_completed` |

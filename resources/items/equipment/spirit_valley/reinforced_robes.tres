@@ -15,4 +15,4 @@ item_name = "Reinforced Robes"
 description = "Padded robes lined with light scripted plates."
 icon = ExtResource("1_8vrnu")
 item_type = 2
-base_value = 7.0
+base_value = 180.0

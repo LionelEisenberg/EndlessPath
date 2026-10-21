@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-10-19
+Last updated: 2026-10-20
 
 This document covers the architecture of the EndlessPath codebase and the technical concerns that span several systems. The other entry points are:
 - [README.md](README.md): index of every doc.
@@ -17,8 +17,8 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
 | Code | ~19.5k lines of game GDScript and ~6.4k lines of tests; 112 scenes; 98 authored `.tres` resources; 15 shaders |
-| Autoloads | 17: 16 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 62 scripts and 538 tests, all passing on 2026-10-19 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
+| Tests | GUT 9.7.1. 68 scripts and 618 tests, all passing on 2026-10-20 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
 | In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR |
 
@@ -38,7 +38,7 @@ The codebase is signal-driven and data-forward. Its three layers are kept separa
 ```
 MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log print level
 ├── MainView (Control)            main_view.gd: state stack + input routing
-│   ├── MainViewStateMachine      8 state nodes (no script)
+│   ├── MainViewStateMachine      9 state nodes (no script)
 │   ├── ZoneView                  base view: ZoneTransition, SubViewport (background + ZoneTilemap),
 │   │                             ZoneInfoPanel, ZoneResourcePanel, ZoneHeader, Toolbar
 │   ├── AdventureView             adventure map + combat
@@ -59,11 +59,11 @@ The full tree, HUD placement and z-order are in [MAIN_VIEW.md](infrastructure/MA
 - **Operations:** `change_state()` swaps the base and clears the stack, `push_state()` opens an overlay, and `pop_state()` closes it.
 - **Input:** only the current state receives it, through `_unhandled_input` → `handle_input()`.
 
-Menu overlays open from keyboard actions (I/A/C/P) or the bottom `Toolbar`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. Cycling, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
+Menu overlays open from keyboard actions (I/A/C/P) or the bottom `Toolbar`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. Cycling, the merchant shop, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
 
 ### Singleton Managers
 
-The 17 autoloads, in `project.godot` load order:
+The 18 autoloads, in `project.godot` load order:
 
 | # | Autoload | Owns | Doc |
 |---|---|---|---|
@@ -84,6 +84,7 @@ The 17 autoloads, in `project.godot` load order:
 | 15 | `AbilityManager` | Unlocked abilities, 4-slot loadout, ability catalog | [ABILITIES](abilities/ABILITIES.md) |
 | 16 | `PathManager` | Path tree, point balance, purchases, perk aggregation (`PathEffectsSummary`) | [PATH_PROGRESSION](progression/PATH_PROGRESSION.md) |
 | 17 | `QuestManager` | Active/completed quests and step advancement | [QUESTS](progression/QUESTS.md) |
+| 18 | `MerchantManager` | Merchant purchases: stock limits, gold and equipment-space checks, per-merchant ledgers | [FOUNDATION_PLAYTHROUGH](progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
 
 **Shared save state:** every game-state manager holds a **live reference** to `PersistenceManager.save_game_data`, a single `SaveGameData` resource. A write by one manager is immediately visible to the others. On reset, `PersistenceManager.save_data_reset` tells each manager to re-bind and refresh. Field ownership is listed in [PERSISTENCE.md](infrastructure/PERSISTENCE.md).
 

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>EndlessPath - Merchant Shop Mockup</title>
+<!--
+  Merchant v1 shop mock (spec: docs/superpowers/specs/2026-10-19-merchant-v1-design.md).
+  Sizes are 1:1 with the 1920x1080 game viewport.
+
+  What stays fixed in every zone: layout, the Label type-scale and its colours from
+  assets/themes/pixel_theme.tres (beige body, tan subheading, gold title and prices,
+  red/green status), the font (BMEULJIROTTF) and the item and gold sprites.
+
+  What each zone changes (one MerchantStyleData per merchant, see the spec): panel tint,
+  edge glow, mist colour (the Atmosphere scene's mist_sheet.png, tinted), mote colours
+  (Atmosphere's cyan and warm motes) and the title's glow. Each zone is one block of
+  CSS variables below, the way one style resource would be in Godot.
+
+  Hash modes: #spirit-valley or #advancement frames one shop for a screenshot;
+  no hash shows both, stacked.
+  Shown state: the player had 155 gold, bought the Makeshift Dagger and has 95 left.
+-->
+<style>
+  @font-face {
+    font-family: 'Euljiro';
+    src: url('../../../assets/fonts/BMEULJIROTTF.ttf') format('truetype');
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { background: #0b1214; }
+  body { font-family: 'Euljiro', sans-serif; color: #F0E8D8; }
+
+  /* ── Zone styles: the only values that differ between zones ── */
+  .screen[data-zone="spirit-valley"] {
+    --world-a: rgba(70, 120, 95, 0.55);
+    --world-b: rgba(40, 90, 100, 0.45);
+    --world-base: #1c3a36;
+    --panel-bg: rgba(10, 30, 32, 0.80);
+    --panel-light: rgba(120, 225, 205, 0.28);
+    --edge: rgba(150, 232, 215, 0.60);
+    --edge-glow: rgba(90, 215, 195, 0.40);
+    --mist: rgb(150, 181, 230);
+    --mist-alpha: 0.34;
+    --mote-a: rgb(120, 228, 255);
+    --mote-b: rgb(56, 217, 115);
+    --row-bg: rgba(6, 20, 22, 0.58);
+    --row-edge: rgba(150, 232, 215, 0.22);
+    --slot-glow: rgba(120, 228, 255, 0.20);
+    --title-glow: rgba(120, 232, 212, 0.55);
+  }
+  .screen[data-zone="advancement"] {
+    --world-a: rgba(90, 60, 150, 0.55);
+    --world-b: rgba(40, 50, 120, 0.50);
+    --world-base: #1b1730;
+    --panel-bg: rgba(20, 14, 40, 0.80);
+    --panel-light: rgba(175, 150, 255, 0.30);
+    --edge: rgba(196, 178, 255, 0.60);
+    --edge-glow: rgba(150, 120, 255, 0.42);
+    --mist: rgb(172, 152, 240);
+    --mist-alpha: 0.36;
+    --mote-a: rgb(205, 225, 255);
+    --mote-b: rgb(165, 125, 255);
+    --row-bg: rgba(12, 8, 26, 0.58);
+    --row-edge: rgba(196, 178, 255, 0.22);
+    --slot-glow: rgba(175, 150, 255, 0.22);
+    --title-glow: rgba(176, 156, 255, 0.60);
+  }
+
+  /* Zone view behind the modal, dimmed by GreyBackground. */
+  .screen {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 25% 35%, var(--world-a) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 60%, var(--world-b) 0%, transparent 50%),
+      linear-gradient(180deg, var(--world-base) 0%, #0e1a18 100%);
+  }
+  .grey { position: absolute; inset: 0; background: rgba(45, 55, 55, 0.557); }
+
+  /* ShopPanel: translucent tinted panel, light falling from the top, glowing edge. */
+  .shop {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 1000px;
+    padding: 12px 16px;
+    overflow: hidden;
+    border: 2px solid var(--edge);
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, var(--panel-light) 0%, transparent 32%),
+      var(--panel-bg);
+    box-shadow:
+      0 0 32px var(--edge-glow),
+      0 0 4px var(--edge-glow),
+      inset 0 0 48px rgba(0, 0, 0, 0.45);
+  }
+
+  /* Mist: Atmosphere's mist_sheet.png cells, tinted with the zone's mist colour. */
+  .mist {
+    position: absolute;
+    width: 760px;
+    height: 760px;
+    background: var(--mist);
+    opacity: var(--mist-alpha);
+    -webkit-mask-image: url('../../../assets/sprites/atmosphere/mist_sheet.png');
+    -webkit-mask-size: 700% 700%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .mist.a { left: -260px; top: -300px; -webkit-mask-position: 33.33% 16.67%; }
+  .mist.b { right: -300px; top: 160px; -webkit-mask-position: 66.67% 50%; }
+  .mist.c { left: 120px; bottom: -420px; -webkit-mask-position: 16.67% 83.33%; }
+
+  /* Motes: Atmosphere's cyan and warm motes, recoloured per zone. */
+  .motes { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+  .mote { position: absolute; border-radius: 50%; }
+  .mote.a { background: radial-gradient(circle, #ffffff 0%, var(--mote-a) 45%, transparent 72%); box-shadow: 0 0 7px var(--mote-a); }
+  .mote.b { background: radial-gradient(circle, #ffffff 0%, var(--mote-b) 45%, transparent 72%); box-shadow: 0 0 7px var(--mote-b); }
+
+  .orb { position: absolute; border-radius: 50%; filter: blur(6px); }
+  .orb.a { background: radial-gradient(circle, var(--mote-a) 0%, transparent 70%); }
+  .orb.b { background: radial-gradient(circle, var(--mote-b) 0%, transparent 70%); }
+
+  .content { position: relative; z-index: 1; }
+
+  /* Label type-scale from pixel_theme.tres (unchanged across zones). */
+  .lbl { text-shadow: 1px 1px 0 #1A1208; white-space: nowrap; }
+  .label-title {
+    font-size: 50px;
+    color: #D4A84A;
+    line-height: 1.15;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6), 0 0 26px var(--title-glow), 0 0 6px var(--title-glow);
+  }
+  .label-subheading { font-size: 24px; color: #A89070; }
+  .label-value-large { font-size: 34px; color: #D4A84A; }
+  .label-value-medium { font-size: 22px; color: #D4A84A; }
+  .label-body { font-size: 22px; color: #F0E8D8; }
+  .label-red { font-size: 20px; color: #E06060; }
+  .label-green { font-size: 20px; color: #7DCE82; }
+  .label-muted { font-size: 26px; color: #A89070; }
+
+  .rtl { font-size: 16px; color: #F0E8D8; white-space: nowrap; }
+  .fx-gear { color: #a89070; }
+  .fx-consumable { color: #7ea870; }
+
+  .header { display: flex; align-items: center; gap: 24px; padding: 4px 8px 0 8px; }
+  .title-block { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .gold-box { display: flex; align-items: center; gap: 10px; }
+  .gold-box img { width: 40px; height: 40px; image-rendering: pixelated; }
+
+  /* Separator fades out at both ends. */
+  .sep { height: 1px; margin: 12px 8px; background: linear-gradient(90deg, transparent 0%, var(--edge) 20%, var(--edge) 80%, transparent 100%); }
+
+  .stock-list { display: flex; flex-direction: column; gap: 8px; }
+
+  /* MerchantStockRow: translucent, thin luminous edge. */
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 12px;
+    background: var(--row-bg);
+    border: 1px solid var(--row-edge);
+    border-radius: 6px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .slot {
+    width: 56px;
+    height: 56px;
+    padding: 4px;
+    flex: none;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--slot-glow) 0%, transparent 70%);
+  }
+  .slot img { width: 48px; height: 48px; image-rendering: pixelated; display: block; }
+  .info { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .price-box { display: flex; align-items: center; gap: 8px; min-width: 76px; justify-content: flex-end; }
+  .price-box img { width: 24px; height: 24px; image-rendering: pixelated; }
+
+  .btn {
+    font-family: 'Euljiro', sans-serif;
+    font-size: 20px;
+    color: #F0E8D8;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--edge);
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-width: 110px;
+    height: 44px;
+    box-shadow: 0 0 10px var(--edge-glow);
+  }
+  .btn.disabled {
+    color: rgba(240, 232, 216, 0.28);
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(255, 255, 255, 0.10);
+    box-shadow: none;
+  }
+  .btn.leave { min-width: 170px; }
+
+  .footer { display: flex; align-items: center; gap: 16px; padding: 0 8px 4px 8px; }
+  .footer .status { flex: 1; }
+
+  .zone-caption {
+    font-family: 'Euljiro', sans-serif;
+    font-size: 22px;
+    color: #A89070;
+    padding: 24px 0 0 40px;
+  }
+
+  /* Framed mode: one shop, cropped to the panel. */
+  html.framed .zone-caption { display: none; }
+  html.framed .screen { width: 1040px; height: 870px; }
+  html.framed .shop { top: 20px; left: 20px; transform: none; }
+  html.framed .screen.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<template id="shop-template">
+  <div class="shop">
+    <div class="mist a"></div>
+    <div class="mist b"></div>
+    <div class="mist c"></div>
+    <div class="motes"></div>
+
+    <div class="content">
+      <div class="header">
+        <div class="title-block">
+          <div class="lbl label-title">Traveling Merchant</div>
+          <div class="lbl label-subheading greeting"></div>
+        </div>
+        <div class="gold-box">
+          <img src="../../../assets/sprites/ui/resources/gold_icon.png" alt="">
+          <div class="lbl label-value-large">95</div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="stock-list">
+        <div class="row">
+          <div class="slot"><img src="../../../assets/sprites/items/consumables/crude_scale.png" alt=""></div>
+          <div class="info">
+            <div class="lbl label-body">Crude Scale</div>
+            <div class="rtl">Consumable: <span class="fx-consumable">+20 Madra</span>, <span class="fx-gear">Cooldown: 10.0s</span></div>
+          </div>
+          <div class="price-box"><img src="../../../assets/sprites/ui/resources/gold_icon.png" alt=""><span class="lbl label-value-medium">10</span></div>
+          <button class="btn">Buy</button>
+        </div>
+
+        <div class="row">
+          <div class="slot"><img src="../../../assets/sprites/items/equipment/cultivators_cowl.png" alt=""></div>
+          <div class="info">
+            <div class="lbl label-body">Cultivator's Cowl</div>
+            <div class="rtl">Head: <span class="fx-gear">+1 Spirit</span>, <span class="fx-gear">+3 Willpower</span></div>
+          </div>
+          <div class="price-box"><img src="../../../assets/sprites/ui/resources/gold_icon.png" alt=""><span class="lbl label-value-medium">40</span></div>
+          <button class="btn">Buy</button>
+        </div>
+
+        <div class="row">
+          <div class="slot"><img src="../../../assets/sprites/items/equipment/makeshift_dagger.png" alt=""></div>
+          <div class="info">
+            <div class="lbl label-body">Makeshift Dagger</div>
+            <div class="rtl">Main Hand: <span class="fx-gear">+3 Strength</span>, <span class="fx-gear">+2 Agility</span></div>
+          </div>
+          <div class="lbl label-muted">Sold out</div>
+        </div>
+
+        <div class="row">
+          <div class="slot"><img src="../../../assets/sprites/items/equipment/scripted_bark.png" alt=""></div>
+          <div class="info">
+            <div class="lbl label-body">Scripted Bark</div>
+            <div class="rtl">Off Hand: <span class="fx-gear">+2 Body</span></div>
+          </div>
+          <div class="price-box"><img src="../../../assets/sprites/ui/resources/gold_icon.png" alt=""><span class="lbl label-value-medium">75</span></div>
+          <button class="btn">Buy</button>
+        </div>
+
+        <div class="row">
+          <div class="slot"><img src="../../../assets/sprites/items/equipment/leeching_ring.png" alt=""></div>
+          <div class="info">
+            <div class="lbl label-body">Leeching Ring</div>
+            <div class="rtl">Accessory: <span class="fx-gear">+2 Foundation</span>, <span class="fx-gear">+2 Control</span></div>
+          </div>
+          <div class="lbl label-red">Need 25 more gold</div>
+          <div class="price-box"><img src="../../../assets/sprites/ui/resources/gold_icon.png" alt=""><span class="lbl label-value-medium">120</span></div>
+          <button class="btn disabled">Buy</button>
+        </div>
+
+        <div class="row">
+          <div class="slot"><img src="../../../assets/sprites/items/equipment/iron_shortsword.png" alt=""></div>
+          <div class="info">
+            <div class="lbl label-body">Iron Shortsword</div>
+            <div class="rtl">Main Hand: <span class="fx-gear">+5 Strength</span>, <span class="fx-gear">+2 Agility</span></div>
+          </div>
+          <div class="lbl label-red">Need 55 more gold</div>
+          <div class="price-box"><img src="../../../assets/sprites/ui/resources/gold_icon.png" alt=""><span class="lbl label-value-medium">150</span></div>
+          <button class="btn disabled">Buy</button>
+        </div>
+
+        <div class="row">
+          <div class="slot"><img src="../../../assets/sprites/items/equipment/reinforced_robes.png" alt=""></div>
+          <div class="info">
+            <div class="lbl label-body">Reinforced Robes</div>
+            <div class="rtl">Armor: <span class="fx-gear">+4 Body</span>, <span class="fx-gear">+2 Resilience</span></div>
+          </div>
+          <div class="lbl label-red">Need 85 more gold</div>
+          <div class="price-box"><img src="../../../assets/sprites/ui/resources/gold_icon.png" alt=""><span class="lbl label-value-medium">180</span></div>
+          <button class="btn disabled">Buy</button>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="footer">
+        <div class="status lbl label-green">Bought Makeshift Dagger.</div>
+        <button class="btn leave">Leave [Esc]</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<div class="zone-caption">Spirit Valley</div>
+<div class="screen" data-zone="spirit-valley"><div class="grey"></div></div>
+<div class="zone-caption">Example: Advancement Zone (Tribulation Site, a future zone)</div>
+<div class="screen" data-zone="advancement"><div class="grey"></div></div>
+
+<script>
+  // Deterministic motes (no Math.random), so every render matches.
+  function seededRandom(seed) {
+    let s = seed;
+    return function () {
+      s = (s * 1664525 + 1013904223) % 4294967296;
+      return s / 4294967296;
+    };
+  }
+
+  const GREETINGS = {
+    'spirit-valley': 'Real gear for honest coin. Everything here came out of the woods with us.',
+    'advancement': 'Few climb this far. Fewer climb back down without supplies.',
+  };
+
+  const template = document.getElementById('shop-template');
+  document.querySelectorAll('.screen').forEach(function (screen, index) {
+    screen.appendChild(template.content.cloneNode(true));
+    screen.querySelector('.greeting').textContent = GREETINGS[screen.dataset.zone];
+    const motes = screen.querySelector('.motes');
+    const rand = seededRandom(7 + index * 101);
+    for (let i = 0; i < 6; i++) {
+      const orb = document.createElement('div');
+      const size = 40 + Math.floor(rand() * 50);
+      orb.className = 'orb ' + (rand() < 0.5 ? 'a' : 'b');
+      orb.style.width = size + 'px';
+      orb.style.height = size + 'px';
+      orb.style.left = Math.floor(rand() * 960) + 'px';
+      orb.style.top = Math.floor(rand() * 820) + 'px';
+      orb.style.opacity = (0.10 + rand() * 0.10).toFixed(2);
+      motes.appendChild(orb);
+    }
+    for (let i = 0; i < 46; i++) {
+      const mote = document.createElement('div');
+      const size = 3 + Math.floor(rand() * 6);
+      mote.className = 'mote ' + (rand() < 0.65 ? 'a' : 'b');
+      mote.style.width = size + 'px';
+      mote.style.height = size + 'px';
+      mote.style.left = Math.floor(rand() * 980) + 'px';
+      mote.style.top = Math.floor(rand() * 840) + 'px';
+      mote.style.opacity = (0.45 + rand() * 0.5).toFixed(2);
+      motes.appendChild(mote);
+    }
+  });
+
+  const zone = location.hash.replace('#', '');
+  if (zone) {
+    document.documentElement.classList.add('framed');
+    document.querySelectorAll('.screen').forEach(function (screen) {
+      if (screen.dataset.zone !== zone) screen.classList.add('hidden');
+    });
+  }
+</script>
+</body>
+</html>

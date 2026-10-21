@@ -1,5 +1,5 @@
 # Testing
-Last updated: 2026-10-19
+Last updated: 2026-10-20
 
 ## Overview
 
@@ -7,29 +7,29 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
-| Unit | `tests/unit/` | 44 | 476 |
-| Integration | `tests/integration/` | 18 | 62 |
-| **Total** | | **62** | **538** |
+| Unit | `tests/unit/` | 49 | 524 |
+| Integration | `tests/integration/` | 19 | 94 |
+| **Total** | | **68** | **618** |
 
-Tests run inside the full project, so all 17 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
+Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
 `tests/label_tests/label_testing_scene.tscn` is a visual reference scene, not a GUT test. See [UI_STYLING.md](../UI_STYLING.md#label-testing-scene).
 
 ## Current Suite Status
 
-Run on 2026-10-19, after the trash-slot and adventure end-flow fixes and the Godot 4.7 upgrade, with the command from `CLAUDE.md`.
+Run on 2026-10-20, after the Merchant v1 playtest fixes and the Godot 4.7 upgrade, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 62 / 538 |
-| Passing / failing / pending or risky | 538 / 0 / 0 |
-| Asserts | 1966 on this run. The count varies between runs because `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 68 / 618 |
+| Passing / failing / pending or risky | 618 / 0 / 0 |
+| Asserts | 2242 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | Exit code | 0 |
-| Wall time | About 6 to 7 s |
+| Wall time | About 9 s (GUT's `Time` line) |
 
 Known noise in a green run:
 
@@ -107,8 +107,8 @@ The enabled GUT plugin adds a GUT bottom panel. It can run all tests, a single s
 
 ```
 tests/
-├── unit/                         44 scripts: one system, resource or manager per file
-├── integration/                  17 scripts: content flows and scene-level UI behaviour
+├── unit/                         49 scripts: one system, resource or manager per file
+├── integration/                  19 scripts: content flows and scene-level UI behaviour
 ├── label_tests/
 │   ├── label_testing_scene.tscn  visual Label-variant reference (run with F6)
 │   └── label_testing_scene.gd
@@ -128,17 +128,18 @@ tests/
 
 | Pattern | Example | Notes |
 |---------|---------|-------|
-| Fresh save per test | `_save_data = SaveGameData.new()` in `before_each()` | `SaveGameData.new()` appears in 25 files |
+| Fresh save per test | `_save_data = SaveGameData.new()` in `before_each()` | `SaveGameData.new()` appears in 28 files |
 | Swap one manager's save, restore it after | `test_award_attribute_effect_data.gd`, `test_zone_progression_data.gd`, `test_training_flow.gd` | Keep the original in a field and put it back in `after_each()`. This is the safe pattern. |
 | Swap the global save and re-bind all managers | `PersistenceManager.save_game_data = SaveGameData.new()` then `PersistenceManager.save_data_reset.emit()` (`test_unlock_condition_item_owned.gd`; `test_change_vitals_effect_data.gd` also restores) | Handlers run in autoload order, so `CultivationManager` re-evaluates unlocks before `EventManager` re-binds |
 | Inject manager state directly | `CyclingManager._live_save_data`, `CyclingManager._techniques_by_id`, `QuestManager._quests_by_id`, `PathManager._all_trees`, `EventManager.live_save_data` | Some files null these in `after_each()` instead of restoring them, which leaks into later files. Nulling `EventManager.live_save_data` is behind the `event_progression on Nil` errors described above. |
 | Test-only hook in production code | `PathManager._test_stage_override` | The only one. `PathManager._is_stage_reached()` checks it first. |
 | Mutate the loaded save in place | `PersistenceManager.save_game_data.inventory = InventoryData.new()` (inventory integration tests) | Changes only in-memory state, but the rest of the developer's save stays loaded |
-| Instance a scene | `const X := preload("res://...tscn")`, `X.instantiate()`, `add_child_autofree(node)`, then `await get_tree().process_frame` before reading `@onready` nodes | 40 `await get_tree().process_frame` calls across 11 files |
+| Instance a scene | `const X := preload("res://...tscn")`, `X.instantiate()`, `add_child_autofree(node)`, then `await get_tree().process_frame` before reading `@onready` nodes | 43 `await get_tree().process_frame` calls across 12 files |
+| A view state without the main scene | `test_merchant_view_state.gd`: `MainView.new()` that never enters the tree, a hand-built `state_stack`, and `merchant_view` / `grey_background` assigned directly | Call the state's signal handlers (`_on_start_merchant()`, `_on_stop_merchant()`, `_on_close_finished()`) instead of emitting `ActionManager` signals, since the state is never in the tree to connect them |
 | Scenes with hex map layers | After `add_child_autofree()`, call `tile_set.emit_changed()` on one of the scene's layers (`test_adventure_end_flow.gd`) | The project's hex layer script skips the addon's `_ready()`. A layer built after the shared tileset's first `changed` therefore has no cube↔map conversion, and `cube_to_map()` errors. See [ADVENTURING.md](../adventuring/ADVENTURING.md) Tech Debt. |
-| Signals | `watch_signals(obj)` with `assert_signal_emitted`, `assert_signal_emitted_with_parameters`, `assert_signal_emit_count`, `assert_signal_not_emitted` | 14 files |
+| Signals | `watch_signals(obj)` with `assert_signal_emitted`, `assert_signal_emitted_with_parameters`, `assert_signal_emit_count`, `assert_signal_not_emitted` | 16 files |
 | Expected errors | `assert_push_error("unknown technique_id")` | GUT 9.7 fails a test on unexpected engine errors and `push_error` by default, so negative-path tests must consume their `push_error` (7 files, 14 uses) |
-| Fakes | Inner classes extending `EffectData`, such as `CountingEffect` (in 2 files) | Don't start inner class names with `Test` |
+| Fakes | Inner classes extending `EffectData`, such as `CountingEffect` (in 2 files); `FakeGreyBackground` extends `GreyBackground` and shows and hides at once (`test_merchant_view_state.gd`) | Don't start inner class names with `Test` |
 | Temporary files | `user://test_*.tres` / `user://__test_*.tres`, removed with `DirAccess.remove_absolute(ProjectSettings.globalize_path(path))` | `test_quest_progression_persistence.gd`, `test_zone_progression_data.gd`, `test_dev_password_modal.gd` |
 | Content lock | Loads shipped `.tres` and asserts on field values | `test_crude_scale_tres.gd`, `test_path_tree_resource_loading.gd` |
 
@@ -179,10 +180,11 @@ New tests should call the real method on the autoload, with its state swapped as
 | QuestManager | `test_quest_manager` (25), `test_start_quest_effect_data` (2), `test_quest_progression_persistence` (3), `test_beat_3b_merchant_unlock` (1) | Start/advance/complete, validation, persistence | `QuestWindow`, `QuestToast` |
 | UnlockManager / conditions | `test_unlock_manager` (3), `test_unlock_condition_item_owned` (2), `test_aura_well_discovery_unlock` (2), `test_beat_3b_merchant_unlock` (1) | `force_unlock_condition()`; `EVENT_TRIGGERED`, `ITEM_OWNED`, `RESOURCE_AMOUNT` conditions; `CULTIVATION_LEVEL` only indirectly through the Beat 3b flow (`q_reach_cd_10`) | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED`, `ATTRIBUTE_VALUE` have no direct tests |
 | ZoneManager / training | `test_zone_progression_data` (7), `test_training_action_data` (18), `test_training_flow` (1), `test_aura_well_discovery_unlock` (2) | Training ticks/levels, action availability | Zone selection, `ZoneTilemap`, zone action presenters, `ZoneTransition` |
-| ActionManager | `test_training_flow` (1), `test_adventure_end_flow` (2) | `TRAIN_STATS`; adventure `confirm_adventure_start()` and `stop_action()` | `FORAGE`, `CYCLING`, `NPC_DIALOGUE` and `MERCHANT` dispatch; the adventure Madra check in `_execute_adventure_action()` |
+| ActionManager | `test_training_flow` (1), `test_adventure_end_flow` (2), `test_merchant_shop_flow` (6 of 32) | `TRAIN_STATS`; adventure `confirm_adventure_start()` and `stop_action()`; `MERCHANT` start/stop, a second stop, and resuming the replaced idle action (not after a zone change, not cycling) | `FORAGE`, `CYCLING` and `NPC_DIALOGUE` dispatch; the adventure Madra check in `_execute_adventure_action()` |
+| MerchantManager / shop | `test_merchant_manager` (14), `test_merchant_data` (12), `test_spirit_valley_merchant_stock` (8), `test_spirit_valley_merchant_theme` (5), `test_merchant_view_state` (9), `test_merchant_shop_flow` (26 of 32) | Purchase rules (sold out, gold, equipment space, item class vs `item_type`), per-merchant ledgers, their save round trip and debug string, the shipped stock and theme entries (including a panel opaque enough to hide the HUD under it, and an atmosphere mask that matches its corners), `MerchantView` rows (including "Equipment full" and broken stock data), buying, Buy without keyboard focus, Leave, the zone theme, the title's `LabelTitle` inheritance, the mock's header and footer padding with a panel that fits its rows, an atmosphere that fills the panel inside its border, Leave beside the title with the gold in the footer, a greeting that wraps at the header's width in smaller text, the gold preview while Buy is hovered, a closed shop skipping refreshes, and `MerchantViewState`'s push and close paths, including hiding and restoring the log and quest windows | The real `GreyBackground` fade and Escape routing through `MainView` (checked in play) |
 | EventManager | None dedicated | `trigger_event()` used inside quest, encounter and content tests | `trigger_event()`/`has_event_triggered()` contract |
 | DialogueManager, PlayerManager, LogManager, `Log` | None | | All |
-| UI shell | None | | `MainView` stack, all 8 view states, `GreyBackground`, `Toolbar`, `SystemMenuButton` ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)) |
+| UI shell | `test_merchant_view_state` (9) | `MainView.remove_state()` and `MerchantViewState` on a `MainView` that never enters the tree | `MainView` push/pop/change semantics, the other 8 view states, `GreyBackground`, `Toolbar`, `SystemMenuButton` ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)) |
 | Dev tools | `test_dev_password_modal` (5), `test_unlock_manager` (3) | `DevPasswordModal.check_password()`, `force_unlock_condition()` | Dev panel actions, Ctrl+Shift+D gate, Map Preview, UID tool ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 | Loot | None | | `LootTable` rolls (no test references `LootTable`) |
 
@@ -206,7 +208,7 @@ New tests should call the real method on the autoload, with its state swapped as
 ### Missing Functionality
 
 - `[HIGH]` The core singletons have no real-method tests. `ResourceManager`, `CultivationManager` and `CharacterManager._get_equipment_bonuses()` are covered by mirror tests that never call the singleton (see [Avoid mirror tests](#avoid-mirror-tests)). `CLAUDE.md` lists all three as must-test systems.
-- `[MEDIUM]` No tests for the UI shell (`MainView` stack semantics, view states, `GreyBackground`) or for `ActionManager` dispatch beyond `TRAIN_STATS`.
+- `[MEDIUM]` Little coverage of the UI shell or of `ActionManager` dispatch. Only `MerchantViewState` and `MainView.remove_state()` are tested (`test_merchant_view_state.gd`), not the `MainView` push/pop/change semantics, the other view states or `GreyBackground`. Dispatch is tested only for `TRAIN_STATS`, `MERCHANT` and the adventure stop.
 - `[MEDIUM]` No tests for `PersistenceManager` load/save/verify/reset or for `SaveGameData.verify()`/`reset()`.
 - `[MEDIUM]` No tests for adventure runtime (`AdventureTilemap`, `AdventureView.stop_adventure()` result building, `AdventureEndCard`), `SimpleEnemyAI` or `LootTable`.
 - `[LOW]` Dev panel actions and the Ctrl+Shift+D gate are untested; the spec's planned `test_dev_panel_actions.gd` was never written.
