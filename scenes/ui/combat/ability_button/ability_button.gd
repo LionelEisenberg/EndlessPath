@@ -186,9 +186,9 @@ func _get_key_label() -> String:
 			var key_event: InputEventKey = event as InputEventKey
 			if not key_event:
 				continue
-			var keycode: Key = key_event.keycode
-			if keycode == KEY_NONE:
-				keycode = DisplayServer.keyboard_get_keycode_from_physical(key_event.physical_keycode)
+			# Slot actions are bound by physical key; name that key directly rather than
+			# asking the DisplayServer for a layout (unsupported on headless servers).
+			var keycode: Key = key_event.keycode if key_event.keycode != KEY_NONE else key_event.physical_keycode
 			var label: String = OS.get_keycode_string(keycode)
 			if not label.is_empty():
 				return label
