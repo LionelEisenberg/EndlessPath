@@ -198,6 +198,10 @@ func consume_incoming_modifier() -> float:
 			Log.info("CombatBuffManager: Consumed incoming damage buff '%s'" % buff.buff_data.buff_id)
 	return total_modifier
 
+## Returns the active buff with the given id, or null if it isn't active.
+func get_active_buff(buff_id: String) -> ActiveBuff:
+	return _find_buff_by_id(buff_id)
+
 #-----------------------------------------------------------------------------
 # INTERNAL LOGIC
 #-----------------------------------------------------------------------------

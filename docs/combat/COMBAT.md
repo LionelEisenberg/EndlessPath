@@ -1,6 +1,6 @@
 # Combat System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-20
 
 ## Overview
 
@@ -13,13 +13,13 @@ This doc covers the combat side. How a fight is triggered from the map and how r
 ## Player Experience
 
 1. On the adventure map the player reaches a combat tile (regular, elite or boss) and picks its combat choice, e.g. "Attack the Spirit".
-2. The map hides. The combat view shows the zone background with a vignette, drifting mist and motes. The player's info panel moves to the left-centre of the screen (`(390, 500)`); the enemy's panel sits to its right. There are no character sprites; each panel has a portrait, and both portraits are currently the player sprite.
-3. Each panel shows the combatant's name, Health/Madra/Stamina bars with `current / max` values (plus `(x/s)` when a regen rate is set, i.e. Stamina), a row of buff icons, and a row of ability buttons.
-4. Player buttons show the bound key (Q/W/E/R by loadout slot), a cost strip (Madra blue, Stamina gold, Health red), and a cooldown overlay with seconds left. Every player ability starts the fight on a 1.5 s cooldown.
-5. The player clicks a button or presses its key. Instant abilities fire immediately; abilities with a cast time replace the button row with a casting indicator (ability name, draining bar, `time_left / total s`). Only one cast runs at a time. Unaffordable abilities dim to 35% and the missing resource's cost turns red.
-6. The enemy acts on its own. Its casts show in the casting indicator on its panel, which is the window for Empty Palm's interrupt. Enemy abilities with no cooldown can start casting on the first frame and repeat back to back.
-7. Hovering an ability shows a tooltip (icon, name, CD, cast time, costs, and a pre-defense DMG total for the first target effect). Hovering a buff icon shows its name, effect, live remaining time and stacks.
-8. Health and Madra changes float up from the bar as red `-N` / green `+N` numbers, and a ghost bar trails damage. The log window records damage taken, heals, interrupts and buff strips.
+2. The map hides and the combat view fades in: the zone background with a vignette, drifting mist and motes. The player's sprite stands on the left and the enemy's on the right, both sliding in from their own side. Sprites are scaled to a shared height (elites 15% larger); every enemy currently uses the placeholder `test_enemy_sprite.png`.
+3. The bottom-centre dock (`PlayerHud`) stays where it was on the map: Health orb (left), Madra orb (right), the Stamina bar and four technique slots. Above the enemy floats its plate: a red intent tab (only while it casts), a card with its name and Health bar, and a row of buff icons. The player's buffs sit above the Health orb.
+4. Slots show the bound key (read from the InputMap: Q/W/E/R by loadout slot), a cost strip with a coloured pip per resource (Madra blue, Stamina gold, Health red), and a cooldown sweep with seconds left. Empty loadout slots show only their frame and key. Every player ability starts the fight on a 1.5 s cooldown.
+5. The player clicks a slot or presses its key. Instant abilities fire immediately; abilities with a cast time fill the player's cast bar above the dock while the casting slot glows gold. The slots stay visible throughout. Only one cast runs at a time. Unaffordable abilities dim to 35% and the missing resource's cost turns red.
+6. The enemy acts on its own. Its casts show in the intent tab on its plate (icon, name, time left, and a bar that ramps from orange to red and throbs in the last 0.6 s), which is the window for Empty Palm's interrupt. An interrupted cast shows "Interrupted" with a shake. Enemy abilities with no cooldown can start casting on the first frame and repeat back to back.
+7. Hovering a slot shows a tooltip above it (icon, name, CD, cast time, costs, and a pre-defense DMG total for the first target effect) and previews the cost: a line on the Health or Madra orb at the level it would leave, a highlighted segment on the Stamina bar, red when unaffordable. Hovering a buff icon shows its name, effect, live remaining time and stacks.
+8. When an ability executes the caster lunges (self-only abilities give a gold pulse instead); the target flashes white, recoils, and a damage number pops over its head (heals in green). The orbs and the enemy Health bar trail recent losses with a pale ghost, and the Health orb's ring pulses red at 30% or below. The log window (moved to the top-left for the adventure) records damage taken, heals, interrupts and buff strips.
 9. When the enemy reaches 0 Health the player wins gold and returns to the map; beating the boss ends the adventure as a victory. When the player reaches 0 Health the adventure ends in defeat. Either way the end card shows when the adventure ends.
 10. Health, Madra and Stamina carry over to the next fight in the same adventure. Buffs and cooldowns do not.
 
@@ -31,17 +31,18 @@ This doc covers the combat side. How a fight is triggered from the map and how r
 AdventureView (Control)                          adventure_view.gd (adventure-owned host)
 ├── ZoneViewBackground                           parallax backdrop, visible behind map and combat
 ├── TilemapView/…/AdventureTilemap               emits start_combat(choice)
-├── CombatView (Control, hidden outside combat)
+├── CombatView (Control, hidden outside combat; fades in when a fight starts)
 │   └── CombatSubviewportContainer/SubViewport   1920x1080
 │       └── AdventureCombat (Node2D)             adventure_combat.gd
-│           ├── Atmosphere                       instanced in _setup_atmosphere(), moved to index 0
-│           ├── CanvasLayer
-│           │   └── EnemyInfoPanel (CombatantInfoPanel)
-│           ├── CastTimer (Label)                stray placeholder text, unreferenced
+│           ├── Atmosphere (CanvasLayer 5)       instanced in _setup_atmosphere(), moved to index 0
+│           ├── PlayerSpot / EnemySpot (Marker2D) fighters' feet, (660, 790) / (1300, 790)
+│           ├── HudLayer (CanvasLayer 100)       above the atmosphere
+│           │   └── EnemyNameplate               placed above the enemy sprite by _place_nameplate()
 │           ├── PlayerCombatant (CombatantNode)  created per fight
 │           └── EnemyCombatant (CombatantNode)   created per fight
 │               └── EnemyAI (SimpleEnemyAI)      added when enable_ai is true
-└── PlayerInfoPanel (CombatantInfoPanel)         persistent; (170, 872) on the map, (390, 500) in combat
+├── PlayerHud                                    persistent dock, bottom-centre; slots activate in combat
+└── TimerPanel                                   adventure timer pill, top-centre
 ```
 
 ### CombatantNode (`combatant_node.tscn`)
@@ -54,44 +55,56 @@ CombatantNode (Node2D)                 combatant_node.gd
 │       └── Timer (cast, one-shot)
 ├── VitalsManager (Node)               vitals_manager.gd (used by enemies; the player uses PlayerManager's)
 ├── CombatEffectManager (Node)         combat_effect_manager.gd (scene root is named CombatEffectProcessor)
-└── CombatBuffManager (Node)           combat_buff_manager.gd
-    └── Timer (DoT tick, 1 s, runs only while a DoT is active)
+├── CombatBuffManager (Node)           combat_buff_manager.gd
+│   └── Timer (DoT tick, 1 s, runs only while a DoT is active)
+└── CombatantVisual (Node2D)           combatant_visual.gd, origin = the fighter's feet
+    ├── Shadow (Sprite2D)              radial ground shadow
+    ├── Body (Node2D) → Sprite         hit_flash.gdshader material; idle bob on the sprite
+    ├── NumberAnchor (Marker2D)        damage number spawn point
+    └── NumberLayer (CanvasLayer 100)  DamageNumber instances, above the atmosphere
 ```
 
-There is no sprite node; `_update_visuals()` is an empty stub.
+`CombatantNode._update_visuals()` passes `CombatantData.texture`, `scale` and `offset` to `CombatantVisual.setup()`, which scales the sprite to `display_height × scale` (280 px at 1.0) and mirrors enemies to face the player. The node then listens to its `VitalsManager.health_changed` (a loss of at least 0.5 → `play_hit()`: white flash, recoil, damage number; a gain of at least 1 → `play_heal()`) and to each ability's `executed` signal (`play_attack()` lunge for abilities with target effects, `play_buff()` gold pulse for self-only ones). The thresholds keep regen ticks from triggering reactions.
 
-### CombatantInfoPanel (`combatant_info_panel.tscn`)
+### PlayerHud (`player_hud.tscn`)
+
+The adventure dock. It is visible for the whole adventure: on the map the slots preview the equipped loadout (dimmed, hover to read a technique); `setup_combatant()` binds them to the fight and `reset_combat()` returns them to the preview.
 
 ```
-CombatantInfoPanel (Control)                      combatant_info_panel.gd
-├── HBoxContainer
-│   ├── MainVBox
-│   │   ├── VitalsPanel (panel_vitals.tres)
-│   │   │   └── VitalsHBox
-│   │   │       ├── PortraitColumn: ProfileIconRect, NameLabel (LabelHeading)
-│   │   │       └── BarsColumn: HealthProgressBar, MadraProgressBar, StaminaProgressBar (ResourceBar)
-│   │   └── AbilitiesPanel (panel_abilities.tres) abilities_panel.gd, hidden until setup_abilities()
-│   │       └── MarginContainer
-│   │           ├── AbilitiesContainer (HBox)     AbilityButton instances
-│   │           └── CastingIndicator (VBox)       AbilityInformation, AbilityTypeIcon (unused),
-│   │                                             ProgressBar (cast_bar_fill.tres) + CastTimer label
-│   └── BuffContainer (HBox)                      BuffIcon instances
-├── CombatAbilityTooltip
-└── CombatBuffTooltip
+PlayerHud (VBox, bottom-centre of AdventureView, grows upward)   player_hud.gd
+├── AboveRow
+│   ├── BuffBar (HFlowContainer)          player buffs, above the Health orb
+│   └── CastBar                           player cast; fades when idle but keeps its space
+└── Dock (panel_dock.tres)
+    ├── HealthOrb (ResourceOrb)           red liquid, ring pulses at 30% or below
+    ├── Center
+    │   ├── StaminaBar (ResourceBar, compact)
+    │   └── AbilitiesPanel                4 static AbilityButton slots + CombatAbilityTooltip
+    └── MadraOrb (ResourceOrb)            the zone resource panel's liquid orb
+```
+
+### EnemyNameplate (`enemy_nameplate.tscn`)
+
+```
+EnemyNameplate (VBox)                     enemy_nameplate.gd
+├── IntentBar (intent_bar.tscn)           CastBar variant: red tab, ramps to red, throbs in the last 0.6 s
+├── Panel (panel_nameplate.tres)          NameLabel (LabelValueMedium) + HealthBar (ResourceBar)
+└── BuffMargin → BuffBar                  enemy buffs and debuffs
 ```
 
 ### Ability button and buff icon
 
 ```
-AbilityButton (MarginContainer)              ability_button.gd
+AbilityButton (MarginContainer)              ability_button.gd; EMPTY / PREVIEW / ACTIVE slot
 └── BackgroundRect (TextureRect, border art)
-    ├── Button (TextureButton, ability icon)
+    ├── Button (TextureButton, ability icon; takes no keyboard focus)
     │   └── CooldownProgressBar → CooldownLabel
+    ├── CastGlow (slot_cast_glow.tres)       pulses while this slot's ability casts
     ├── KeyHintPanel (panel_keyhint.tres) → KeyHintLabel
-    └── CostStrip (panel_keyhint.tres) → MadraCostLabel, StaminaCostLabel, HealthCostLabel
+    └── CostStrip (panel_keyhint.tres) → a pip + cost label per resource
 
 BuffIcon (MarginContainer)                   buff_icon.gd
-└── BackgroundRect → BuffTexture → DurationProgressBar, DurationLabel, StackLabel
+└── BackgroundRect → BuffTexture → DurationProgressBar, StackLabel; DurationLabel under the icon
 ```
 
 ## Data Model
@@ -100,15 +113,15 @@ BuffIcon (MarginContainer)                   buff_icon.gd
 
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
-| `character_name` | `String` | `"Combatant"` | Panel name and log label |
+| `character_name` | `String` | `"Combatant"` | Enemy plate name and log label |
 | `attributes` | `CharacterAttributesData` | new instance (all 10) | Offense scaling, defense, vitals maxima |
 | `abilities` | `Array[AbilityData]` | `[]` | One `CombatAbilityInstance` each, in array order |
-| `texture` | `Texture2D` | null | Not read anywhere |
-| `scale` | `float` | 1.0 | Not read anywhere |
-| `offset` | `Vector2` | `(0, 0)` | Not read anywhere |
+| `texture` | `Texture2D` | null | Sprite drawn by `CombatantVisual` |
+| `scale` | `float` | 1.0 | Multiplier on the shared sprite height (elites use 1.15) |
+| `offset` | `Vector2` | `(0, 0)` | Sprite offset from the fighter's feet, in px |
 | `base_gold_drop` | `int` | 0 | Base of the victory gold formula |
 
-The player's `CombatantData` is built in code each fight: name `"Player"`, `attributes = CharacterManager.get_total_attributes_data()` (base + equipment, snapshot), `abilities = AbilityManager.get_equipped_abilities()` (slot order, empty slots skipped).
+The player's `CombatantData` is built in code each fight: name `"Player"`, `attributes = CharacterManager.get_total_attributes_data()` (base + equipment, snapshot), `abilities = AbilityManager.get_equipped_abilities()` (slot order, empty slots skipped), `texture = test_character_sprite.png` (placeholder).
 
 ### CharacterAttributesData — combat roles
 
@@ -189,11 +202,12 @@ Costs (`health_cost`, `madra_cost`, `stamina_cost`), `base_cooldown`, `cast_time
 
 ### Ability lifecycle
 
-1. **Request.** `AbilitiesPanel` emits `ability_selected(instance)` on click or key; `CombatantInfoPanel` re-emits it; `AdventureCombat.on_player_ability_selected()` calls `player.ability_manager.use_ability_instance(instance, enemy)`. The AI calls the same method.
+1. **Request.** `AbilitiesPanel` emits `ability_selected(instance)` on click or key; `PlayerHud` re-emits it; `AdventureCombat.on_player_ability_selected()` calls `player.ability_manager.use_ability_instance(instance, enemy)`. The AI calls the same method.
 2. **Gate** — `CombatAbilityManager.can_cast_ability_instance()`: the instance belongs to this manager; no instance of this combatant is casting (global lock); the instance is ready (cooldown timer stopped and not casting); `AbilityData.can_afford(vitals)`. Failures log a warning and return false.
 3. **Pay.** `AbilityData.consume_costs(vitals)` deducts all costs at cast start. Cancelled casts are not refunded.
 4. **Cast.** `CombatAbilityInstance.start_cast(target)`. If `cast_time > 0`: `is_casting = true`, cast timer starts, `cast_started` emits, and `cast_updated` emits every frame; on timeout `execute_ability()` runs, then `cast_finished` emits. If `cast_time == 0`: `execute_ability()` runs immediately.
 5. **Execute** — `execute_ability(target)`:
+   - emits `executed(self)` (the caster's lunge or buff pulse);
    - starts the cooldown (`base_cooldown`), so cooldowns begin when the cast resolves;
    - builds caster attributes with buff multipliers (`_get_modified_attributes()`);
    - if `deals_damage()`, calls `buff_manager.consume_outgoing_modifier()` once per cast;
@@ -258,13 +272,13 @@ There is no targeting choice, priority list, or reaction to the player's casts. 
 
 Start — `AdventureView._on_start_combat(choice)`:
 1. `AdventureCombat.initialize_combat(choice, action_data)` stores the context and connects `PlayerManager.vitals_manager.health_changed` (once; never disconnected).
-2. `AdventureCombat.start()` → `_create_player_combatant()` (`setup(data, PlayerManager.vitals_manager, true)`) then `_create_enemy_combatant()`: `enemy_pool[0]`, own vitals, `EnemyInfoPanel` setup (name, vitals, buffs, abilities), `SimpleEnemyAI` child, enemy `health_changed` connection.
-3. `AdventureView` wires the persistent `PlayerInfoPanel` (`setup_buffs`, `setup_abilities`, `ability_selected` → `on_player_ability_selected`), moves it, and swaps the tilemap view for the combat view.
+2. `AdventureCombat.start()` → `_create_player_combatant()` (placed on `PlayerSpot`, `setup(data, PlayerManager.vitals_manager, true)`, `play_enter()`) then `_create_enemy_combatant()`: `enemy_pool[0]`, own vitals, placed on `EnemySpot` and slid in, `EnemyNameplate.setup()` (positioned above the sprite on the next frame), `SimpleEnemyAI` child, enemy `health_changed` connection.
+3. `AdventureView` calls `PlayerHud.setup_combatant()` (buffs, cast bar, slots bound to the player's abilities), connects `ability_selected` → `on_player_ability_selected`, swaps the tilemap view for the combat view and fades it in.
 
 End:
 - Enemy Health ≤ 0 → `_calculate_gold_reward()` → `EventManager.trigger_event("q_first_steps_enemy_defeated")` (every victory; EventManager de-duplicates) → `trigger_combat_end(true, gold)`.
 - Player Health ≤ 0 → `trigger_combat_end(false, 0)`.
-- `AdventureView._on_stop_combat()` restores the map view and clears `is_in_combat`. It then calls `AdventureCombat.stop()`, which resets `EnemyInfoPanel`, runs `clear_all_buffs()` on both sides and `queue_free()`s both combatants. Next it calls `AdventureTilemap.handle_combat_result(successful, gold)`, and on defeat `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`. Because `is_in_combat` is already false at that point, `stop_adventure()` doesn't end the fight a second time.
+- `AdventureView._on_stop_combat()` disconnects the player HUD (`PlayerHud.reset_combat()` puts the slots back into loadout preview), restores the map view and clears `is_in_combat`. It then calls `AdventureCombat.stop()`, which resets `EnemyNameplate`, runs `clear_all_buffs()` on both sides and `queue_free()`s both combatants. Next it calls `AdventureTilemap.handle_combat_result(successful, gold)`, and on defeat `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`. Because `is_in_combat` is already false at that point, `stop_adventure()` doesn't end the fight a second time.
 
 Gold: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())`. All three multipliers are 1.0 in current content (`get_gold_multiplier()` is a stub).
 
@@ -274,49 +288,56 @@ Gold: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionDa
 |---------|--------|----------|
 | `AdventureTilemap` | `start_combat(choice)` | `AdventureView._on_start_combat` |
 | `AdventureCombat` | `trigger_combat_end(is_successful, gold_earned)` | `AdventureView._on_stop_combat` |
-| `VitalsManager` | `health_changed`, `madra_changed`, `stamina_changed` | `CombatantInfoPanel.update_labels`; `AdventureCombat` death checks (health) |
+| `VitalsManager` | `health_changed`, `madra_changed`, `stamina_changed` | `PlayerHud` (orbs, Stamina bar); `EnemyNameplate` (Health); `CombatantNode` (hit/heal reactions); `AdventureCombat` death checks (health) |
 | `CombatAbilityInstance` | `cooldown_started`, `cooldown_updated`, `cooldown_ready` | `AbilityButton` |
-| `CombatAbilityInstance` | `cast_started`, `cast_updated`, `cast_finished`, `cast_cancelled` | `AbilitiesPanel` (casting indicator); `AbilityButton` (`cast_started`/`cast_finished` only) |
+| `CombatAbilityInstance` | `cast_started`, `cast_updated`, `cast_finished`, `cast_cancelled` | `CastBar` (player cast bar, enemy intent tab); `AbilityButton` (casting glow, affordability) |
+| `CombatAbilityInstance` | `executed(instance)` | `CombatantNode` (lunge or buff pulse) |
 | `CombatAbilityManager` | `ability_registered`, `ability_used` | none |
-| `CombatBuffManager` | `buff_applied`, `buff_removed`, `buff_refreshed`, `buff_stacked` | `CombatantInfoPanel` |
-| `AbilityButton` | `pressed`, `hovered(instance)`, `unhovered` | `AbilitiesPanel` |
-| `AbilitiesPanel` / `CombatantInfoPanel` | `ability_selected(instance)` | `AdventureCombat.on_player_ability_selected` (player panel only) |
-| `BuffIcon` | `hovered(buff_data)`, `unhovered` | `CombatantInfoPanel` (buff tooltip) |
+| `CombatBuffManager` | `buff_applied`, `buff_removed`, `buff_refreshed`, `buff_stacked` | `BuffBar` |
+| `AbilityButton` | `pressed`, `hovered(ability_data)`, `unhovered` | `AbilitiesPanel` |
+| `AbilitiesPanel` / `PlayerHud` | `ability_selected(instance)` | `AdventureCombat.on_player_ability_selected` |
+| `AbilitiesPanel` | `ability_hovered(ability_data)`, `ability_unhovered` | `PlayerHud` (cost previews) |
+| `BuffIcon` | `hovered(buff_data)`, `unhovered` | `BuffBar` (buff tooltip) |
 
 ## Combat UI
 
 | Component | Script | Behavior |
 |-----------|--------|----------|
-| `CombatantInfoPanel` | `combatant_info_panel.gd` | Portrait (`profile_texture` export, set in the scene), name, three `ResourceBar`s, buff row, `AbilitiesPanel`. Syncs buff icon durations from `ActiveBuff.time_remaining` every frame. Auto-cleans when the buff/ability managers leave the tree |
-| `ResourceBar` | `resource_bar.gd` | Label `Prefix: cur / max` (+ `(x/s)` when regen ≠ 0). Damage drops the main bar and starts a 0.5 s ghost timer, then a 0.5 s tween; heals move both bars. Floating `-N`/`+N` text unless the new value equals max. Stamina has floating text disabled |
-| `FloatingText` | `scenes/ui/floating_text/floating_text.gd` | Rises 100 px over 1.5 s, starts fading after 0.45 s, frees itself |
-| `AbilitiesPanel` | `abilities_panel.gd` | One `AbilityButton` per instance; slot index from `AbilityManager.get_ability_at_slot()`; Q/W/E/R input; casting indicator; owns the ability tooltip |
-| `AbilityButton` | `ability_button.gd` | Icon, key hint (slot 0–3 → Q/W/E/R; hidden for enemy abilities), cost strip, cooldown overlay (`time_left / base_cooldown`) and `"%.1f (s)"` label; when ready and unaffordable: icon alpha 0.35, border `#553333`, missing costs `#E06060` |
-| `BuffIcon` | `buff_icon.gd` | Icon, duration bar and `"%.1fs"`, stack count when > 1 |
-| `CombatAbilityTooltip` | `combat_ability_tooltip.gd` | Icon, name, `AbilityStatsDisplay` in `TIMING_COSTS` and `DAMAGE_TOTAL` modes; damage row hidden for abilities with no target effects. Hidden on unhover or key press |
+| `PlayerHud` | `player_hud.gd` | The dock. `setup_vitals()` and `show_loadout()` at adventure start, `setup_combatant()` / `reset_combat()` around each fight. Forwards slot hovers to the orbs and Stamina bar as cost previews. Disables the Health orb's floating text during fights (damage numbers pop over the sprite instead) |
+| `ResourceOrb` | `resource_orb.gd` | `liquid_wave` shader on `madra_circle.png` (the zone panel's orb) with a pale ghost liquid that holds 0.45 s after a loss, a gold ring that pulses at or below `low_threshold`, value labels, and a regen tooltip. `preview_cost()` draws a line at the level a cost would leave (red if unaffordable) |
+| `ResourceBar` | `resource_bar.gd` | Flat `ProgressBar` (fill stylebox per resource) with the name on the left and `cur / max` on the right; regen is in its tooltip. Losses tween the bar and hold a ghost for 0.45 s before it drains; gains move both. Optional floating `-N`/`+N` text; `compact` for thin bars; `preview_cost()` highlights the segment a cost would spend |
+| `CastBar` | `cast_bar.gd` | Binds to a `CombatAbilityManager`: icon, name, time left, and a bar that fills toward release. Fades when idle but keeps its layout space; flashes on release; "Interrupted" and a shake on cancel. `danger_color` ramps the fill and `imminent_time` throbs the panel (used by `intent_bar.tscn`) |
+| `EnemyNameplate` | `enemy_nameplate.gd` | Intent tab, name, Health bar and buffs for the enemy. `setup(combatant)` / `reset()` |
+| `DamageNumber` | `damage_number.gd` | Pops from 40% scale, rises 70 px with a random drift and fades over 0.9 s |
+| `FloatingText` | `scenes/ui/floating_text/floating_text.gd` | Rises 100 px over 1.5 s, starts fading after 0.45 s, frees itself. Used by the Health orb on the map and by `ResourceBar` |
+| `AbilitiesPanel` | `abilities_panel.gd` | Four static slots. `show_loadout()` previews the equipped techniques; `bind()` maps each ability instance to its loadout slot (`AbilityManager.get_ability_at_slot()`, first free slot as a fallback) and enables Q/W/E/R. Owns the ability tooltip |
+| `AbilityButton` | `ability_button.gd` | One slot: EMPTY (frame and key), PREVIEW (dimmed icon and costs) or ACTIVE. Key hint read from the `ability_slot_N` InputMap actions; cost strip with resource pips; cooldown sweep (`time_left / base_cooldown`) and `"%.1f"` label; gold glow while casting; when ready and unaffordable: icon alpha 0.35, border `#553333`, missing costs `#E06060`. Hover, press and cooldown-ready feedback |
+| `BuffBar` | `buff_bar.gd` | Wrapping row of `BuffIcon`s mirroring a `CombatBuffManager` (durations synced from `ActiveBuff.time_remaining` every frame); hosts the buff tooltip |
+| `BuffIcon` | `buff_icon.gd` | Icon, duration sweep, `"%.1fs"` under the icon, stack count when > 1 |
+| `CombatAbilityTooltip` | `combat_ability_tooltip.gd` | Icon, name, `AbilityStatsDisplay` in `TIMING_COSTS` and `DAMAGE_TOTAL` modes; damage row hidden for abilities with no target effects. Positioned above the hovered slot and re-anchored when its layout resizes. Hidden on unhover or key press |
 | `CombatBuffTooltip` | `combat_buff_tooltip.gd` | Name (`buff_id.capitalize()`), generated effect text, live `x.xs remaining`, `xN stacks` |
 
 Keybindings (`project.godot`, physical keys):
 
 | Action | Key | Handler |
 |--------|-----|---------|
-| `ability_slot_1` … `ability_slot_4` | Q / W / E / R | `AbilitiesPanel._unhandled_input` → ability in loadout slot 0–3 (ignored if its button is disabled) |
+| `ability_slot_1` … `ability_slot_4` | Q / W / E / R | `AbilitiesPanel._unhandled_input` → ability in loadout slot 0–3 while the slots are bound for a fight (ignored if its button is disabled) |
 | `open_abilities` | A | Opens/closes the Abilities view from the zone view (not available during adventures) |
 
-Styleboxes in use: `assets/styleboxes/combat/panel_vitals.tres`, `panel_abilities.tres`, `cast_bar_fill.tres`, `panel_keyhint.tres` (key hint and cost strip, also the loadout slot hint). `panel_buffs.tres` is unreferenced.
+Styleboxes in use (`assets/styleboxes/combat/`): `panel_dock.tres` (dock plate), `orb_ring.tres` / `orb_shine.tres` (orbs), `panel_intent.tres` (enemy intent tab), `panel_nameplate.tres` (enemy card and player cast bar), `slot_cast_glow.tres`, `bar_track.tres`, `bar_fill_{health,madra,stamina,ghost}.tres`, `cast_bar_fill.tres` / `cast_bar_fill_enemy.tres`, `cost_preview.tres` / `cost_line.tres`, and `panel_keyhint.tres` (key hint and cost strip, also the loadout slot hint). `panel_vitals.tres`, `panel_abilities.tres` and `panel_buffs.tres` are unreferenced.
 
 ## Integration Points
 
 | System | Direction | Connection |
 |--------|-----------|------------|
 | Adventure (`AdventureView`, `AdventureTilemap`) | in / out | `start_combat(choice)` starts a fight; `trigger_combat_end` → `handle_combat_result()` awards gold (`ResourceManager.add_gold`), applies `CombatChoice.success_effects`/`failure_effects`, completes the tile, or ends the run on a boss win. See [ADVENTURING.md](../adventuring/ADVENTURING.md) |
-| `AbilityManager` | in | `get_equipped_abilities()` → player abilities; `get_ability_at_slot()` → key hints and key routing |
+| `AbilityManager` | in | `get_equipped_abilities()` → player abilities and the dock's loadout preview; `get_ability_at_slot()` → slot mapping and key routing |
 | `CharacterManager` | in | `get_total_attributes_data()` snapshot at fight start; `base_attribute_changed` refreshes player vitals maxima; `get_gold_multiplier()` |
 | `PlayerManager` | in / out | Persistent player `VitalsManager` shared by map and combat |
 | `ResourceManager` | in | Adventure Madra budget becomes starting combat Madra |
 | `EventManager` | out | `q_first_steps_enemy_defeated` on victory (Foundation Beat 2 quest step) |
 | `LogManager` | out | Damage, heal, interrupt and strip lines; `AdventureView` logs encounter, victory and defeat |
-| `Atmosphere` | — | Instanced by `AdventureCombat._setup_atmosphere()` with radius 0.5, softness 0.35, 25 cyan / 8 warm motes |
+| `Atmosphere` | — | Instanced by `AdventureCombat._setup_atmosphere()` with radius 0.5, softness 0.35, 25 cyan / 8 warm motes. It is a CanvasLayer on layer 5, so mist drifts in front of the fighters; the enemy plate and damage numbers render on layer 100 above it |
 | Dev panel | in | `AdventureView.force_win_combat()` emits `trigger_combat_end(true, 0)` directly (no gold, no quest event) |
 
 ## Existing Content
@@ -327,10 +348,12 @@ Styleboxes in use: `assets/styleboxes/combat/panel_vitals.tres`, `panel_abilitie
 
 | Enemy (`.tres`) | Name | Non-default attributes | Health / Stamina / Madra | Abilities | Gold | Texture |
 |-----------------|------|------------------------|--------------------------|-----------|------|---------|
-| `amorphous_spirit` | Amorphous Spirit | none | 100 / 50 / 100 | `madra_lash` | 15 | none |
-| `coalescing_spirit` | Coalescing Spirit | BODY 20, SPIRIT 25 | 200 / 100 / 100 | `madra_lash`, `coalesce` | 0 (unset) | none |
-| `starving_dreadbeast` | Starving Dreadbeast | BODY 8.5, FOUNDATION 12 | 85 / 42.5 / 120 | `famishing_bite` | 20 | none |
-| `ravenous_dreadbeast` | Ravenous Dreadbeast | STRENGTH 15, BODY 8.5, FOUNDATION 12 | 85 / 42.5 / 120 | `famishing_bite` | 20 | none |
+| `amorphous_spirit` | Amorphous Spirit | none | 100 / 50 / 100 | `madra_lash` | 15 | placeholder |
+| `coalescing_spirit` | Coalescing Spirit | BODY 20, SPIRIT 25 | 200 / 100 / 100 | `madra_lash`, `coalesce` | 0 (unset) | placeholder, ×1.15 |
+| `starving_dreadbeast` | Starving Dreadbeast | BODY 8.5, FOUNDATION 12 | 85 / 42.5 / 120 | `famishing_bite` | 20 | placeholder |
+| `ravenous_dreadbeast` | Ravenous Dreadbeast | STRENGTH 15, BODY 8.5, FOUNDATION 12 | 85 / 42.5 / 120 | `famishing_bite` | 20 | placeholder, ×1.15 |
+
+"placeholder" is `assets/sprites/combat/enemies/test_enemy_sprite.png`; ×1.15 is the `scale` field.
 
 Threat against a default player (all attributes 10, 100 Health):
 
@@ -373,10 +396,17 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 | `scenes/combat/combatant/combat_buff_manager/active_buff.gd` | Runtime buff record |
 | `scenes/combat/combatant/vitals_manager/vitals_manager.gd` | Health / Madra / Stamina |
 | `scenes/combat/ai/simple_enemy_ai.gd` | Enemy decision loop |
-| `scenes/ui/combat/combatant_info_panel/combatant_info_panel.gd` | Combatant panel (vitals, buffs, abilities) |
-| `scenes/ui/combat/combatant_info_panel/resource_bar.gd` | Vitals bar with ghost trail and floating text |
-| `scenes/ui/combat/abilities_panel.gd` | Ability row, keybindings, casting indicator |
-| `scenes/ui/combat/ability_button/ability_button.gd` | Ability button |
+| `scenes/combat/combatant/combatant_visual/combatant_visual.gd` / `.tscn` | Fighter sprite, shadow, hit flash, lunge, damage numbers |
+| `scenes/combat/combatant/combatant_visual/damage_number.gd` | Floating damage number |
+| `assets/shaders/hit_flash.gdshader` | White/gold flash on the fighter sprite |
+| `scenes/ui/combat/player_hud/player_hud.gd` | The adventure dock |
+| `scenes/ui/combat/enemy_nameplate/enemy_nameplate.gd` | Enemy plate (intent, name, Health, buffs) |
+| `scenes/ui/combat/resource_orb/resource_orb.gd` | Health and Madra orbs |
+| `scenes/ui/combat/resource_bar/resource_bar.gd` | Flat vitals bar with ghost trail and cost preview |
+| `scenes/ui/combat/cast_bar/cast_bar.gd`, `intent_bar.tscn` | Player cast bar and enemy intent tab |
+| `scenes/ui/combat/abilities_panel/abilities_panel.gd` | Technique slots and keybindings |
+| `scenes/ui/combat/ability_button/ability_button.gd` | Technique slot |
+| `scenes/ui/combat/buff_bar/buff_bar.gd` | Buff row and buff tooltip host |
 | `scenes/ui/combat/buff_icon/buff_icon.gd` | Buff icon |
 | `scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.gd` | Ability tooltip |
 | `scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd` | Buff tooltip |
@@ -398,9 +428,6 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 - `[MEDIUM]` Enemy ability tooltips show the player's numbers. `AbilityStatsDisplay` always reads `CharacterManager.get_total_attributes_data()`, so hovering Coalescing Spirit's Madra Lash shows a DMG value from the player's SPIRIT (10 on a new save) instead of the spirit's 25.
 - `[LOW]` 0 s-cooldown abilities skip the opening cooldown and the post-interrupt cooldown (`CombatAbilityInstance._start_cooldown()` returns early when `base_cooldown <= 0`). Madra Lash and Famishing Bite start casting on frame 1, and an Empty Palm interrupt only restarts their cast.
 - `[LOW]` `AdventureCombat._on_player_health_changed` stays connected to the player `VitalsManager` after combat. A lethal non-combat Health change during an adventure (e.g. a trap's `ChangeVitalsEffectData`) is reported as a combat defeat (`_combats_fought` + 1, `handle_combat_result(false)`). Latent: `test_trap_encounter` (−10 Health) is not in any adventure.
-- `[LOW]` `CombatantInfoPanel.setup_buffs()` reads `buff.time_left`, but `ActiveBuff` has `time_remaining`. It errors if a panel attaches to a manager that already has buffs (does not happen today).
-- `[LOW]` `AbilityButton` does not listen to `cast_cancelled`; after an interrupt its `_is_casting` stays true and affordability visuals stop updating for that button.
-- `[LOW]` `CombatAbilityTooltip.position_below()`: the doc comment says "above", the code places it below the panel, and the overflow check compares `y` with 1920 (window width) instead of the viewport height.
 - `[LOW]` `FloatingText._ready()` sets font size with `add_theme_constant_override("font_size", 24)`, which does not change a Label's font size (needs a font-size override).
 
 ### Missing Functionality
@@ -410,7 +437,7 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 - `[MEDIUM]` No buff stack cap. Outgoing-damage and DoT stacks are unbounded and outgoing stacks compound; a dreadbeast that bites every 3 s doubles its damage roughly every 5 s until Power Font (a path unlock) strips it. Add a `max_stacks` field to `BuffEffectData`.
 - `[MEDIUM]` No in-combat resource economy beyond Stamina regen. No AP or Cycle skill (GDD), no Madra or Health regen, and the Iron Will path node's `stamina_recovery_mult` is never applied.
 - `[MEDIUM]` Casts are only interrupted by `CANCEL_CAST`; damage never interrupts (the Power Font spec assumed it does).
-- `[MEDIUM]` No combat feedback beyond floating numbers: no hit, interrupt or strip VFX/SFX (`AbilitiesPanel._on_cast_cancelled` has `TODO: VFX pass`) and no combat audio.
+- `[MEDIUM]` Combat feedback is visual only: hits flash and recoil, attackers lunge, numbers pop and interrupted casts shake, but there are no interrupt or strip VFX on the fighters, no death or victory beat (the fight ends the frame Health reaches 0), no screen shake and no combat audio.
 - `[LOW]` DoT ignores `dot_damage_type`, defense and modifiers and is not logged (`CombatBuffManager._apply_dot_damage`). No content uses DoTs.
 - `[LOW]` `INCOMING_DAMAGE_MODIFIER` and attribute buffs only refresh, never stack. No content uses either.
 - `[LOW]` `AdventureActionData.difficulty_modifier` is never read; `CharacterManager.get_gold_multiplier()` is a stub returning 1.0.
@@ -421,27 +448,24 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 
 - `[HIGH]` No real boss. `manifested_spirit_encounter` (the Shallow Woods boss) fights the regular `amorphous_spirit` (100 Health, 9 damage per lash, 15 gold). The Foundation Beat 7 Tribulation Guardian does not exist.
 - `[MEDIUM]` Coalescing Spirit (elite) has no `base_gold_drop` and its encounter has no loot.
-- `[MEDIUM]` No enemy art. No `CombatantData` sets `texture`, and Madra Lash and Coalesce have no icon, so their buttons in the enemy row are blank.
+- `[MEDIUM]` No enemy art. Every enemy uses the placeholder `test_enemy_sprite.png` and the player uses `test_character_sprite.png`, both high-resolution images drawn with the project's nearest filter. Madra Lash and Coalesce have no icon, so the intent tab shows no icon for them.
 - `[MEDIUM]` Four enemies, all for The Shallow Woods; nothing for later Foundation beats or Copper.
 - `[LOW]` Enemy effects have empty `effect_name` (Madra Lash damage, Famishing Bite damage and Hunger), so `Log` lines and the Hunger tooltip lack names.
 
 ### UI
 
-- `[MEDIUM]` No combatant visuals. `CombatantNode` has no sprite (removed 2026-04-08), `CombatantData.texture`/`scale`/`offset` are unused, the player texture set in `_create_player_combatant()` is dead, and `EnemyInfoPanel.profile_texture` is `base_player.png`, so every enemy shows the player's portrait.
 - `[MEDIUM]` Buff tooltip misstates stacked buffs: "Outgoing damage x1.5" regardless of stacks (actual 1.5^stacks), DoT text ignores stacks, and `consume_on_use` and `effect_description` are not shown.
 - `[LOW]` The ability tooltip only shows the raw total of the first target effect; heals (Coalesce), interrupts, strips and descriptions are not shown.
-- `[LOW]` Info panel positions are hardcoded in `AdventureView` (`(390, 500)` in combat, `(170, 872)` on the map), and `PlayerInfoPanel` has a stray `rotation = -0.0037` (fixed on the consumables branch).
+- `[LOW]` The enemy plate does not mark elites or bosses; the encounter type never reaches `AdventureCombat` (elites are only drawn larger).
+- `[LOW]` The quest window, when expanded, overlaps the top of an elite's plate.
 - `[LOW]` The combat backdrop is the shared zone background plus Atmosphere values hardcoded in `_setup_atmosphere()`; there is no per-zone backdrop.
 - `[LOW]` The cooldown overlay divides by `base_cooldown`, so the 1.5 s opening cooldown renders as a fraction of the full cooldown (10% for Enforce).
-- `[LOW]` Casting-indicator labels (`AbilityInformation`, `CastTimer`) use inline font size/colour overrides instead of Label variants; the `AbilityTypeIcon` TextureRect is never set.
 
 ### Tech Debt
 
 - `[MEDIUM]` `enable_ai` debug export under `# TODO: DELETE DEBUG` is still in `adventure_combat.gd` (lines 33–36); earlier docs wrongly said PR #15 removed it.
-- `[LOW]` Stray `CastTimer` Label with placeholder text `"2.7 / 8.0s"` under the `AdventureCombat` root in `adventure_combat.tscn`; nothing references it.
-- `[LOW]` Dead code: `combat_ability_instance.tscn` (unused; root node misspelled `CombatAbilitiyInstance`), `CombatAbilityManager.ability_registered`/`ability_used` (no listeners; `ability_used` declared with two args, emitted with one), `CombatBuffManager.get_outgoing_damage_modifier()` (tests only) and `get_incoming_damage_modifier()` (unused), `panel_buffs.tres`, and the unused child `VitalsManager` on the player's `CombatantNode`.
-- `[LOW]` `CombatantInfoPanel` calls `CombatBuffManager._find_buff_by_id()` (private) for duration sync and tooltips.
-- `[LOW]` `AbilitiesPanel._unhandled_input` marks a slot key handled even when that panel has no button for the slot, and the enemy panel runs the same handler; correct behaviour depends on input order.
-- `[LOW]` Key letters are hardcoded (`AbilityButton.KEY_LABELS`, `AbilityEquipSlot.KEY_LABELS`) instead of read from the InputMap.
-- `[LOW]` Public functions without `##` doc comments (CLAUDE.md): `VitalsManager.initialize_current_values()`/`apply_vitals_change()`, `CombatAbilityManager.can_cast_ability_instance()`, `AdventureCombat.on_player_ability_selected()`, `CombatantInfoPanel.setup_abilities()`.
+- `[LOW]` Dead code: `combat_ability_instance.tscn` (unused; root node misspelled `CombatAbilitiyInstance`), `CombatAbilityManager.ability_registered`/`ability_used` (no listeners; `ability_used` declared with two args, emitted with one), `CombatBuffManager.get_outgoing_damage_modifier()` (tests only) and `get_incoming_damage_modifier()` (unused), the unused child `VitalsManager` on the player's `CombatantNode`, and assets the old info panel used: `panel_vitals.tres`, `panel_abilities.tres`, `panel_buffs.tres`, `assets/sprites/ui/resource_bar/*.png` and `assets/sprites/character/base_player.png`.
+- `[LOW]` `AbilitiesPanel._unhandled_input` marks a slot key handled during a fight even when that slot is empty.
+- `[LOW]` `AbilityEquipSlot.KEY_LABELS` hardcodes Q/W/E/R; the combat slots read their keys from the InputMap.
+- `[LOW]` Public functions without `##` doc comments (CLAUDE.md): `VitalsManager.initialize_current_values()`/`apply_vitals_change()`, `CombatAbilityManager.can_cast_ability_instance()`, `AdventureCombat.on_player_ability_selected()`.
 - `[LOW]` Test gaps: nothing covers `SimpleEnemyAI`, `VitalsManager`, `execute_ability()` (modifier consumption, effect order), incoming modifiers, DoT ticks, the gold formula, or `AdventureCombat` start/stop. `test_adventure_combat_victory_event.gd` only calls `EventManager` directly, and `test_adventure_combat_count.gd` re-implements the counting logic instead of calling `AdventureTilemap.get_total_combat_count()`.

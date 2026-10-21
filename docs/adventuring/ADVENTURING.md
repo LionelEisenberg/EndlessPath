@@ -1,6 +1,6 @@
 # Adventuring System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-20
 
 ## Overview
 
@@ -16,7 +16,7 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
    - When the player has at least half their adventure capacity, the badge shows `current / capacity` in gold.
    - Otherwise it shows `current / threshold` in red, the button text is dimmed, and clicking shakes the badge and logs "Not enough Madra! Need X, have Y".
 2. On click, the zone view locks input. Between 8 and 25 Madra particles fly from the Madra orb to the character while the budget (`min(capacity, current Madra)`) is spent. The camera then zooms to 3× over 0.5 s and the adventure view opens.
-3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at 1/s, and a `Time Left: 05:00` countdown starts at top-centre. The player panel (HP / Madra / Stamina bars) sits bottom-left and the log window stays available.
+3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at 1/s, and a `5:00` timer pill (hourglass icon) starts at top-centre; it turns red and ticks for the last 30 seconds. The adventure dock sits bottom-centre: Health and Madra orbs, the Stamina bar, and the four technique slots previewing the equipped loadout (hover a slot to read the technique and see its cost). The log window moves to the top-left for the adventure, clear of the dock, and goes back afterwards.
 4. The player starts on the origin tile:
    - Adjacent map tiles are revealed as forest tiles under a swirling smoke veil with a "?", so their type stays hidden.
    - The boss is the exception: once revealed it shows its animated skull glyph through the fog.
@@ -60,9 +60,9 @@ AdventureView (Control)                              — adventure_view.gd (inst
 │   └── CombatSubviewportContainer
 │       └── SubViewport (1920×1080)
 │           └── AdventureCombat                      — adventure_combat.gd (see COMBAT.md)
-├── PlayerInfoPanel (CombatantInfoPanel)             — bottom-left; moved to (390, 500) during combat
+├── PlayerHud                                        — player_hud.gd, bottom-centre dock: orbs, Stamina bar, technique slots (see COMBAT.md)
 └── TimerPanel (PanelContainer)                      — timer_panel.gd, top-centre, panel_timer.tres
-    ├── TimerLabel (RichTextLabel)                   — "Time Left: MM:SS"
+    ├── Row → TimeIcon (hourglass), TimerLabel (Label, LabelValueMedium) — "M:SS"
     └── Timer
 
 AdventureTilemap (Node2D)                            — adventure_tilemap.gd
@@ -387,7 +387,7 @@ Routes come from A* over `AdventureVisibleMap`. They can pass through revealed b
 EncounterInfoPanel.choice_selected(choice)
   CombatChoice   → AdventureTilemap.start_combat(choice)
                    → AdventureView._on_start_combat(): combat.initialize_combat(choice, action);
-                     combat.start(); wire PlayerInfoPanel buffs/abilities; hide tilemap view, show combat view;
+                     combat.start(); PlayerHud.setup_combatant(); hide tilemap view, fade in combat view;
                      log "Encounter: <label>"
   DialogueChoice → DialogueManager.start_timeline(); dialogue_ended → success_effects → _complete_current_tile()
   EncounterChoice→ success_effects → _complete_current_tile()
@@ -410,7 +410,7 @@ AdventureCombat.trigger_combat_end(is_successful, gold)
 
 ### Timer and End Conditions
 
-`TimerPanel.timer.timeout` → `AdventureView._on_adventure_timer_timeout()` → `ActionManager.stop_action(false)`. The timer keeps running during combat. It is `one_shot`, so once it fires it reads as stopped, which is how `stop_adventure()` recognises a timeout.
+`TimerPanel.timer.timeout` → `AdventureView._on_adventure_timer_timeout()` → `ActionManager.stop_action(false)`. The timer keeps running during combat. In the last 30 seconds the pill's time turns red and the pill ticks once a second. It is `one_shot`, so once it fires it reads as stopped, which is how `stop_adventure()` recognises a timeout.
 
 `ActionManager.stop_action(successful)` then runs these steps:
 - `ZoneManager.increment_zone_progression_for_action(action_id)`, on every stop;
@@ -449,7 +449,7 @@ The editor-only map preview (`scenes/tools/map_preview.tscn`, `scripts/tools/map
 | `ActionManager` | `adventure_start_requested(action)`, `confirm_adventure_start(action, budget)` → `start_adventure(action, budget)`, `stop_action(successful)` → `stop_adventure` plus the action's completion effects |
 | `ResourceManager` | `get_adventure_madra_capacity/budget/threshold()`, `can_start_adventure()`, `spend_madra()` during the drain, `add_gold()` on combat wins |
 | Zones (`ZoneTransition`, `ZoneViewState`, `AdventurePresenter`) | Madra drain and camera zoom, input blocker, Madra badge and reject shake ([ZONES.md](../zones/ZONES.md)) |
-| `MainView` state machine | `AdventureViewState` (`change_state` on `start_adventure`, pushes the end card on `adventure_completed`); `AdventureEndCardState` (grey background) |
+| `MainView` state machine | `AdventureViewState` (`change_state` on `start_adventure`, pushes the end card on `adventure_completed`, moves `MainView.log_window` to the top-left on enter and restores it on exit); `AdventureEndCardState` (grey background) |
 | `PlayerManager.vitals_manager` | `initialize_current_values(budget)`, `stamina_regen`, Stamina deducted per step, `ChangeVitalsEffectData`, HP for end conditions and the end card |
 | Combat (`AdventureCombat`) | `initialize_combat(choice, action)`, `start()`, `stop()`, `trigger_combat_end(is_successful, gold)` ([COMBAT.md](../combat/COMBAT.md)) |
 | `InventoryManager` | `item_awarded(item, quantity)` feeds end-card loot; loot effects call `award_items()`; `ITEM_OWNED` conditions call `has_item()` |
@@ -518,7 +518,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 | File | Purpose |
 |------|---------|
 | `scenes/adventure/adventure_view/adventure_view.gd` / `.tscn` | Top-level controller: start/stop, tilemap/combat view switching, timer, stat tracking, result building, dev hooks |
-| `scenes/adventure/adventure_view/timer_panel.gd` | Countdown label |
+| `scenes/adventure/adventure_view/timer_panel.gd` | Countdown pill (red and ticking in the last 30 s) |
 | `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` / `.tscn` | Map state, reveal and fog, movement and Stamina, committed path, encounter resolution, boss reveal |
 | `scenes/adventure/adventure_tilemap/adventure_map_generator.gd` | Quota-based 4-phase generator (`@tool`) |
 | `scenes/adventure/adventure_tilemap/encounter_info_panel.gd` / `.tscn` | Encounter panel: fade, choice cards, completed text |
@@ -658,7 +658,6 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
   - Godot falls back to the text path with a warning.
   - The tileset's `base_tile` source also uses an inline `CompressedTexture2D` pointing into `.godot/imported/` instead of an `ext_resource` to `assets/sprites/tilemap/tile_horizontal.png`.
 - `[LOW]` `AdventureTilemap` creates `AdventureMapGenerator` (a `Node`) with `.new()` and never adds it to the tree or frees it, so it leaks one node per view (`test_adventure_end_flow.gd` frees it by hand). It could be a `RefCounted`.
-- `[LOW]` `AdventureView` hardcodes the PlayerInfoPanel positions (`Vector2(390, 500)` during combat, `Vector2(170, 872)` after), duplicating the scene layout.
 - `[LOW]` "Show Whole Map" is not purely visual: dev-revealed tiles are painted on `AdventureVisibleMap`, so they become clickable and pathable, while hover previews still ignore them.
 - `[LOW]` `EffectData.EffectType` is not used for dispatch. The `AwardResource`, `AwardItem`, `AwardLootTable` and `TriggerEvent` effect classes don't set it in `_init()`, so it stays `NONE` unless the `.tres` sets it, and none of the adventure encounter effects do.
 - `[LOW]` Open TODOs: `_apply_effects()` (`# TODO: Pass context if needed`) and `_update_stamina_regen()` (`# TODO: ... more complex calculation logic`).

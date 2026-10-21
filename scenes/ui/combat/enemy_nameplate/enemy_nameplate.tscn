@@ -1,0 +1,56 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/combat/enemy_nameplate/enemy_nameplate.gd" id="1_plate"]
+[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/panel_nameplate.tres" id="3_panel"]
+[ext_resource type="PackedScene" uid="uid://bafol1aia1ngt" path="res://scenes/ui/combat/resource_bar/resource_bar.tscn" id="4_bar"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/combat/bar_fill_health.tres" id="5_health"]
+[ext_resource type="PackedScene" path="res://scenes/ui/combat/buff_bar/buff_bar.tscn" id="6_buffs"]
+[ext_resource type="PackedScene" path="res://scenes/ui/combat/cast_bar/intent_bar.tscn" id="7_intent"]
+
+[node name="EnemyNameplate" type="VBoxContainer"]
+custom_minimum_size = Vector2(360, 0)
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_override_constants/separation = 0
+script = ExtResource("1_plate")
+
+[node name="IntentBar" parent="." instance=ExtResource("7_intent")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("3_panel")
+
+[node name="Column" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="NameLabel" type="Label" parent="Panel/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelValueMedium"
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+text = "Ravenous Dreadbeast"
+
+[node name="HealthBar" parent="Panel/Column" instance=ExtResource("4_bar")]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 22)
+layout_mode = 2
+fill_style = ExtResource("5_health")
+show_floating_text = false
+label_prefix = ""
+
+[node name="BuffMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 6
+
+[node name="BuffBar" parent="BuffMargin" instance=ExtResource("6_buffs")]
+unique_name_in_owner = true
+layout_mode = 2

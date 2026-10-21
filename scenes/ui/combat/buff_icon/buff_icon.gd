@@ -74,7 +74,7 @@ func update_stacks(count: int) -> void:
 		stack_label.text = str(count)
 		stack_label.visible = count > 1
 
-# Duration is synced externally by CombatantInfoPanel from the authoritative ActiveBuff state.
+# Duration is synced externally by BuffBar from the authoritative ActiveBuff state.
 # No independent _process countdown — avoids visual drift from actual buff duration.
 
 func _on_mouse_entered() -> void:
