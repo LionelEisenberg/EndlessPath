@@ -5,10 +5,10 @@
 [ext_resource type="PackedScene" uid="uid://bvgyusvjgbnbx" path="res://scenes/adventure/adventure_tilemap/adventure_tilemap.tscn" id="2_176xw"]
 [ext_resource type="PackedScene" uid="uid://bn6xsijn342nc" path="res://scenes/zones/zone_view_background/zone_view_background.tscn" id="3_wf87j"]
 [ext_resource type="PackedScene" uid="uid://blofb5opg1kdu" path="res://scenes/combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
-[ext_resource type="PackedScene" uid="uid://dsyj8icyn4ri1" path="res://scenes/ui/combat/combatant_info_panel/combatant_info_panel.tscn" id="6_a8cog"]
-[ext_resource type="Texture2D" uid="uid://bs1jsrhe5wmt8" path="res://assets/sprites/character/base_player.png" id="7_4nakn"]
+[ext_resource type="PackedScene" path="res://scenes/ui/combat/player_hud/player_hud.tscn" id="6_a8cog"]
 [ext_resource type="Script" uid="uid://btelbuw52bmqs" path="res://scenes/adventure/adventure_view/timer_panel.gd" id="8_wf87j"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/adventure/panel_timer.tres" id="9_tmr"]
+[ext_resource type="Texture2D" uid="uid://bllskk3frps0" path="res://assets/sprites/ui/stat_icons/time_icon.png" id="10_time"]
 
 [node name="AdventureView" type="Control" unique_id=1962712565]
 layout_mode = 3
@@ -74,20 +74,20 @@ render_target_update_mode = 0
 [node name="AdventureCombat" parent="CombatView/CombatSubviewportContainer/SubViewport" unique_id=1831882021 instance=ExtResource("5_a8cog")]
 unique_name_in_owner = true
 
-[node name="PlayerInfoPanel" parent="." unique_id=908648507 instance=ExtResource("6_a8cog")]
+[node name="PlayerHud" parent="." unique_id=908648507 instance=ExtResource("6_a8cog")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(475, 0)
 layout_mode = 1
-anchors_preset = 2
+anchors_preset = 7
+anchor_left = 0.5
 anchor_top = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = 170.0
-offset_top = -208.0
-offset_right = 645.0
-offset_bottom = -208.0
+offset_left = -350.0
+offset_top = -14.0
+offset_right = 350.0
+offset_bottom = -14.0
+grow_horizontal = 2
 grow_vertical = 0
-rotation = -0.0036693101
-profile_texture = ExtResource("7_4nakn")
 
 [node name="TimerPanel" type="PanelContainer" parent="." unique_id=2110103791]
 unique_name_in_owner = true
@@ -95,26 +95,37 @@ layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -120.0
+offset_left = -70.0
 offset_top = 16.0
-offset_right = 120.0
-offset_bottom = 64.0
+offset_right = 70.0
+offset_bottom = 60.0
 grow_horizontal = 2
+tooltip_text = "Time left in this adventure"
 theme_override_styles/panel = ExtResource("9_tmr")
 script = ExtResource("8_wf87j")
 
-[node name="TimerLabel" type="RichTextLabel" parent="TimerPanel" unique_id=1352746675]
+[node name="Row" type="HBoxContainer" parent="TimerPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="TimeIcon" type="TextureRect" parent="TimerPanel/Row"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("10_time")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TimerLabel" type="Label" parent="TimerPanel/Row" unique_id=1352746675]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/default_color = Color(0.82, 0.78, 0.7, 1)
-theme_override_font_sizes/normal_font_size = 18
-theme_override_font_sizes/bold_font_size = 18
-theme_override_font_sizes/bold_italics_font_size = 18
-theme_override_font_sizes/italics_font_size = 18
-theme_override_font_sizes/mono_font_size = 18
-bbcode_enabled = true
-text = "Time Left: 2m 60s"
-horizontal_alignment = 1
+theme_type_variation = &"LabelValueMedium"
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+text = "4:56"
 vertical_alignment = 1
 
 [node name="Timer" type="Timer" parent="TimerPanel" unique_id=1543296091]

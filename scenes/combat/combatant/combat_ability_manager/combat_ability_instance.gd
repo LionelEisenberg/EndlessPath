@@ -41,6 +41,9 @@ signal cast_updated(instance: CombatAbilityInstance, time_left: float)
 signal cast_finished(instance: CombatAbilityInstance)
 signal cast_cancelled(instance: CombatAbilityInstance)
 
+## Emitted right before the ability's effects are applied (instant or after cast).
+signal executed(instance: CombatAbilityInstance)
+
 #-----------------------------------------------------------------------------
 # DATA
 #-----------------------------------------------------------------------------
@@ -116,6 +119,7 @@ func start_cast(target: CombatantNode) -> void:
 ## Called immediately for instant abilities, or after cast timer for casted abilities.
 func execute_ability(target: CombatantNode) -> void:
 	use_count += 1
+	executed.emit(self)
 	
 	# Start Cooldown
 	var cooldown = ability_data.base_cooldown

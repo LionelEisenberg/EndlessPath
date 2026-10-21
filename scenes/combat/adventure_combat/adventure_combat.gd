@@ -39,7 +39,12 @@ var _atmosphere: Node
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
-@onready var enemy_info_panel: CombatantInfoPanel = %EnemyInfoPanel
+@onready var enemy_nameplate: EnemyNameplate = %EnemyNameplate
+@onready var _player_spot: Marker2D = %PlayerSpot
+@onready var _enemy_spot: Marker2D = %EnemySpot
+
+## Gap (px) between the top of the enemy sprite and its nameplate.
+const NAMEPLATE_GAP: float = 18.0
 
 func _ready() -> void:
 	Log.info("AdventureCombat: Initialized")
@@ -89,8 +94,7 @@ func start() -> void:
 
 ## Stops the combat and cleans up.
 func stop() -> void:
-	# Reset EnemyInfoPanel & AbilitiesPanel
-	enemy_info_panel.reset()
+	enemy_nameplate.reset()
 	
 	# Clear all buffs before freeing combatants
 	if player_combatant and player_combatant.buff_manager:
@@ -114,6 +118,7 @@ func _create_combatants() -> void:
 func _create_player_combatant() -> void:
 	player_combatant = combatant_scene.instantiate()
 	player_combatant.name = "PlayerCombatant"
+	player_combatant.position = _player_spot.position
 	add_child(player_combatant)
 
 	var player_data = CombatantData.new()
@@ -123,6 +128,7 @@ func _create_player_combatant() -> void:
 	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
 
 	player_combatant.setup(player_data, PlayerManager.vitals_manager, true)
+	player_combatant.visual.play_enter()
 
 func _create_enemy_combatant() -> void:
 	if current_combat_choice.enemy_pool.is_empty():
@@ -134,16 +140,16 @@ func _create_enemy_combatant() -> void:
 	
 	enemy_combatant = combatant_scene.instantiate()
 	enemy_combatant.name = "EnemyCombatant"
+	enemy_combatant.position = _enemy_spot.position
 	add_child(enemy_combatant)
 		
 	# Enemy gets a new internal resource manager created by setup()
 	enemy_combatant.setup(enemy_data, null, false)
 
-	# Setup CombatantInfoPanel
-	enemy_info_panel.setup_name(enemy_data.character_name)
-	enemy_info_panel.setup_vitals(enemy_combatant.vitals_manager)
-	enemy_info_panel.setup_buffs(enemy_combatant.buff_manager)
-	enemy_info_panel.setup_abilities(enemy_combatant.ability_manager)
+	enemy_combatant.visual.play_enter()
+
+	enemy_nameplate.setup(enemy_combatant)
+	_place_nameplate.call_deferred()
 	
 	# Setup AI
 	var ai = SimpleEnemyAI.new()
@@ -155,6 +161,18 @@ func _create_enemy_combatant() -> void:
 	# Connect player_resource_manager to the trigger_combat_end signal
 	enemy_combatant.vitals_manager.health_changed.connect(_on_enemy_health_changed)
 	
+## Centers the enemy nameplate just above the enemy sprite.
+func _place_nameplate() -> void:
+	if not enemy_combatant:
+		return
+	enemy_nameplate.reset_size()
+	var plate_size: Vector2 = enemy_nameplate.get_combined_minimum_size()
+	var top_of_sprite: float = _enemy_spot.position.y - enemy_combatant.visual.get_visual_height()
+	enemy_nameplate.position = Vector2(
+		_enemy_spot.position.x - plate_size.x / 2.0,
+		top_of_sprite - plate_size.y - NAMEPLATE_GAP
+	)
+
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------

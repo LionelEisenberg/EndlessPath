@@ -4,6 +4,7 @@
 [ext_resource type="Resource" uid="uid://4rs2o3l3fo4d" path="res://resources/combat/combatant_data/enemy_abilities/famishing_bite.tres" id="2_23v7h"]
 [ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="3_jqnof"]
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="4_nt838"]
+[ext_resource type="Texture2D" uid="uid://3mr5xlmm5m1m" path="res://assets/sprites/combat/enemies/test_enemy_sprite.png" id="9_sprite"]
 
 [sub_resource type="Resource" id="Resource_xwkgh"]
 script = ExtResource("3_jqnof")
@@ -17,5 +18,7 @@ script = ExtResource("4_nt838")
 character_name = "Ravenous Dreadbeast"
 attributes = SubResource("Resource_xwkgh")
 abilities = Array[ExtResource("1_2vb35")]([ExtResource("2_23v7h")])
+texture = ExtResource("9_sprite")
+scale = 1.15
 base_gold_drop = 20
 metadata/_custom_type_script = "uid://hbo1w3358rom"

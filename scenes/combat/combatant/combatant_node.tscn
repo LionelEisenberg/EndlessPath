@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://dlglkp2cxqiq8" path="res://scenes/combat/combatant/combat_effect_manager/combat_effect_manager.tscn" id="4_sgtgi"]
 [ext_resource type="PackedScene" path="res://scenes/combat/combatant/combat_buff_manager/combat_buff_manager.tscn" id="5_buffmgr"]
 
+[ext_resource type="PackedScene" path="res://scenes/combat/combatant/combatant_visual/combatant_visual.tscn" id="6_visual"]
+
 [node name="CombatantNode" type="Node2D" unique_id=162492521]
 script = ExtResource("1_jrp2a")
 
@@ -19,4 +21,7 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 
 [node name="CombatBuffManager" parent="." unique_id=739982425 instance=ExtResource("5_buffmgr")]
+unique_name_in_owner = true
+
+[node name="CombatantVisual" parent="." instance=ExtResource("6_visual")]
 unique_name_in_owner = true
