@@ -212,7 +212,7 @@ No tests cover DialogueManager, the Dialogic setup, or the dialogue-end → effe
 
 ### Content
 
-- `[HIGH]` The Intervener is the only speaking character and leaves after `dialogue_4`. No dialogue exists for the Refugee Camp, the Merchant, Beats 4–10, or the breakthrough. The Merchant's stub logs a single line ("The merchant nods at you. (Shop coming soon.)").
+- `[HIGH]` The Intervener is the only speaking character and leaves after `dialogue_4`. No dialogue exists for the Refugee Camp, the Merchant, Beats 4–10, or the breakthrough. The Merchant has a shop (Beat 4) but no dialogue.
 - `[MEDIUM]` Player-facing text is full of bracketed placeholders: "[INTERVENER]" in four action names and two action descriptions, the display name "Intervener [Celestial]", and "[TIMELINE ALTERING EVENT]", "[CORE]", "[DREADBEAST]", "[REMNANT]", and "[REPORT REQUESTED]" in the timeline.
 - `[LOW]` The copy needs an editorial pass. `dialogue_3` contains the typo "suprise". The `refugee_camp_map` item's `from_source` says "Old Vesh, in the broken shrine", but the Intervener hands over the map in `dialogue_4`.
 

@@ -1,5 +1,5 @@
 # UI Styling
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 All UI text in the game flows through a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`. Use variants instead of inline size overrides so the type hierarchy stays consistent and global tuning is possible in one place.
 
@@ -32,7 +32,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 | `LabelMuted` | 26px | Tan | Secondary/muted text |
 | `LabelSubheading` | 24px | Tan | Subtitle text under titles |
 | `LabelBody` | 22px | Beige | Standard body text |
-| `LabelValueMedium` | 22px | Gold | Medium gold values (defined but currently unused) |
+| `LabelValueMedium` | 22px | Gold | Medium gold values (merchant shop prices) |
 | `LabelGreen` | 20px | Green | Positive/buff indicators |
 | `LabelRed` | 20px | Red | Negative/debuff indicators |
 | `LabelBodySmall` | 16px | Beige | Small body text, menu buttons, HUD text |
@@ -55,6 +55,15 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
   - `LabelInventorySort` 38px beige — `SortSubBanner` pill label ("All", "Weapons" etc.) on the dark pill background
   - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Equipment" etc.); `GearSelector`'s "Gear Selector" title uses it with a 30px size override
   - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
+- **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
+  - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and quest windows sit under the shop, and their text reads through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`
+  - `MerchantRow` (PanelContainer) — translucent stock row with a thin luminous edge
+  - `MerchantButton` (Button) — Buy and Leave, 20px; every state, disabled included. No StyleBoxFlat shadow: Godot draws it under a translucent box, which fills the button
+  - `LabelMerchantTitle` (base `LabelTitle`) — `LabelTitle`'s gold colour and 2px drop shadow, inherited from `pixel_theme.tres`, plus a zone-coloured glow (10px outline at low alpha). It repeats `LabelTitle`'s 50px size: `pixel_theme.tres` sets `default_font_size = 14`, and Godot returns that default for `LabelMerchantTitle` before it reaches `LabelTitle`. Colours and constants have no theme default, so they inherit. `test_title_matches_label_title_in_game` fails if the two sizes drift apart
+  - `LabelMerchantGreeting` (base `LabelSubheading`) — the greeting under the title. It keeps `LabelSubheading`'s tan and shadow from `pixel_theme.tres` at 16px, and the label wraps (`autowrap_mode` word smart) across the header. The size is set in the zone theme for the same reason as the title's: otherwise `pixel_theme.tres`'s default font size answers first. `test_greeting_is_smaller_than_a_subheading_in_game` checks both
+  - `HSeparatorMerchant` (HSeparator) — 1px zone-coloured divider, 8px inset, separation 24
+  - `MerchantAtmosphere` colours `mist`, `mote_primary`, `mote_secondary`, `light`, `slot_glow` — read in code with `get_theme_color()` by `MerchantAtmosphere` and `MerchantStockRow` and applied as `modulate`
+  - `MerchantAtmosphereMask` (Panel) — the shape `MerchantAtmosphere` clips its light, mist and motes to (`clip_children`). It is opaque, with corners rounded to the panel's inner radius (corner radius minus border width). It is a separate type because making `MerchantAtmosphere` a Panel variation would hide its colours from a zone theme that doesn't declare that variation
 
 ## RichTextLabel variants
 
@@ -177,7 +186,7 @@ There is no `assets/audio/` folder; the project has no audio files. The 2026-04-
 ## Known issues
 
 - `[MEDIUM]` The label testing scene is stale (see above).
-- `[LOW]` `LabelValueMedium` and `PanelDark` are defined but not used by any scene or script.
+- `[LOW]` `PanelDark` is defined but not used by any scene or script.
 - `[LOW]` `ThemeConstants.FONT_*` (42/28/20/16/12) disagree with the variant scale and are unused. The header's "single source of truth" claim conflicts with this doc.
 - `[LOW]` `pixel_theme.tres` still carries Godot 3-style item names inherited from the pixel UI pack, which Godot 4 does not read. Examples: `Button/colors/font_color_hover`, `font_color_pressed`, `font_color_disabled`, and `*/constants/hseparation`. The Godot 4 names (`font_hover_color`, etc.) are also present for `Button`.
 - `[LOW]` A few UI files still set sizes inline instead of using a variant. Examples: the dev panel title (`LabelHeading` + 20px), `TickProgressBar`'s counter (`LabelSmall` + 12px), and `scenes/tools/encounter_id_label.tscn` (bare Label + 11px).

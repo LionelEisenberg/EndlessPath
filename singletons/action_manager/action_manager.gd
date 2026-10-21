@@ -29,11 +29,19 @@ signal stop_training()
 signal training_tick_processed(action_data: TrainingActionData, new_tick_count: int)
 signal training_level_gained(action_data: TrainingActionData, new_level: int)
 
+## merchant signals
+signal start_merchant(action_data: MerchantActionData)
+signal stop_merchant()
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
 var current_action: ZoneActionData = null
+
+## Idle action (foraging or training) that opening the merchant replaced.
+## Leaving the shop resumes it, the way closing a menu leaves it running.
+var _idle_action_to_resume: ZoneActionData = null
 
 @onready var action_timer: Timer = Timer.new()
 
@@ -47,6 +55,8 @@ func _ready() -> void:
 		Log.critical("ActionManager: ZoneManager is not found")
 
 func _on_zone_changed(_zone_data: ZoneData) -> void:
+	# The idle action belongs to the zone being left; don't restart it.
+	_idle_action_to_resume = null
 	stop_action()
 
 #-----------------------------------------------------------------------------
@@ -59,14 +69,19 @@ func select_action(action_data: ZoneActionData) -> void:
 		Log.error("ActionManager: select_action called with null action_data")
 		return
 
+	var replaced_action := current_action
 	_stop_executing_current_action()
 	_set_current_action(action_data)
+	var opens_merchant := action_data.action_type == ZoneActionData.ActionType.MERCHANT
+	_idle_action_to_resume = replaced_action if opens_merchant and _is_idle_action(replaced_action) else null
 	_execute_action(action_data)
 
-## Stop action
+## Stop the current action. Closing the merchant resumes the idle action it replaced.
 func stop_action(successful: bool = true) -> void:
+	var stopped_action := current_action
 	_stop_executing_current_action(successful)
 	clear_current_action()
+	_resume_idle_action_after(stopped_action)
 
 #-----------------------------------------------------------------------------
 # ACTION EXECUTION
@@ -102,7 +117,10 @@ func _execute_action(action_data: ZoneActionData) -> void:
 			else:
 				Log.error("ActionManager: Training action data is not a TrainingActionData: %s" % action_data.action_name)
 		ZoneActionData.ActionType.MERCHANT:
-			_execute_merchant_action(action_data)
+			if action_data is MerchantActionData:
+				_execute_merchant_action(action_data as MerchantActionData)
+			else:
+				Log.error("ActionManager: Merchant action data is not a MerchantActionData: %s" % action_data.action_name)
 		_:
 			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
@@ -227,16 +245,11 @@ func _on_train_timer_finished(action_data: TrainingActionData) -> void:
 			effect.process()
 		training_level_gained.emit(action_data, level)
 
-## Handle merchant action - stub: log a "coming soon" message and end the action.
-## NOTE: This stub calls stop_action() synchronously, unlike every other action type
-## that waits for an external stop signal (timer, dialogue end, view close). When
-## real Merchant UI lands, remove the stop_action() call and let the UI close drive
-## the stop the same way dialogue does.
-func _execute_merchant_action(action_data: ZoneActionData) -> void:
-	Log.info("ActionManager: Executing merchant action (stub): %s" % action_data.action_name)
-	if LogManager:
-		LogManager.log_message("[color=yellow]The merchant nods at you. (Shop coming soon.)[/color]")
-	stop_action()
+## Handle merchant action - open the shop. The action stays current until the
+## shop closes it with stop_action() (Leave or Escape), the way cycling does.
+func _execute_merchant_action(action_data: MerchantActionData) -> void:
+	Log.info("ActionManager: Executing merchant action: %s" % action_data.action_name)
+	start_merchant.emit(action_data)
 
 #-----------------------------------------------------------------------------
 # ACTION STOP EXECUTION HANDLERS
@@ -277,8 +290,10 @@ func _stop_train_action(successful: bool) -> void:
 	_reset_action_timer()
 	_process_completion_effects(successful)
 
-## Handle merchant action stop - just run completion effects (none in the stub).
+## Handle merchant action stop - close the shop, then run completion effects.
 func _stop_merchant_action(successful: bool) -> void:
+	Log.info("ActionManager: Stopping merchant action")
+	stop_merchant.emit()
 	_process_completion_effects(successful)
 
 func _process_completion_effects(successful: bool) -> void:
@@ -299,6 +314,19 @@ func clear_current_action() -> void:
 func _set_current_action(action_data: ZoneActionData) -> void:
 	current_action = action_data
 	current_action_changed.emit(current_action)
+
+func _is_idle_action(action_data: ZoneActionData) -> bool:
+	return action_data != null and action_data.action_type in [
+		ZoneActionData.ActionType.FORAGE,
+		ZoneActionData.ActionType.TRAIN_STATS,
+	]
+
+## Restarts the idle action the merchant replaced, once the merchant stops.
+func _resume_idle_action_after(stopped_action: ZoneActionData) -> void:
+	var to_resume := _idle_action_to_resume
+	_idle_action_to_resume = null
+	if to_resume and stopped_action and stopped_action.action_type == ZoneActionData.ActionType.MERCHANT:
+		select_action(to_resume)
 
 func _reset_action_timer() -> void:
 	action_timer.stop()

@@ -1,13 +1,13 @@
 # Resource Tracking (Madra and Gold)
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Overview
 
 `ResourceManager` is the global singleton for the game's two currencies:
 
 - **Madra** is the primary resource. Cycling and Aura Well training fill it, and starting an adventure drains it. It is capped by the current cultivation stage.
-- **Gold** is the secondary currency. It is earned from combat victories, is uncapped, and has nothing to spend it on yet.
+- **Gold** is the secondary currency. It is earned from combat victories, is uncapped, and is spent at the Traveling Merchant.
 
 Both values live on the shared `SaveGameData` (`madra`, `gold`) and persist with the rest of the save (see [PERSISTENCE.md](PERSISTENCE.md)). There are no other currencies.
 
@@ -18,7 +18,7 @@ Both values live on the shared `SaveGameData` (`madra`, `gold`) and persist with
   - While cycling, Madra ticks up as long as the cursor stays inside the Madra ball.
   - The Aura Well training action adds 1.5 Madra per tick.
 - **Spending Madra:** An adventure button shows a Madra badge, in gold when `current / capacity` meets the requirement and in red as `current / threshold` when it doesn't. Clicking below the threshold shakes the badge and logs `Not enough Madra!`. Starting an adventure streams particles from the orb to the player and drains the budget.
-- **Gold:** The bottom `Toolbar` shows the gold total. Each combat victory adds gold and logs `Gained N Gold`.
+- **Gold:** The bottom `Toolbar` shows the gold total. Each combat victory adds gold and logs `Gained N Gold`. The Merchant's shop shows the same total; a purchase spends the price and logs `Spent N Gold`.
 - **Log lines:** `Gained N Madra` (cyan) for each Madra award of at least 1, and `Gained/Spent N Gold` (gold) for every gold change made through `add_gold` / `spend_gold`.
 
 ## Architecture
@@ -34,6 +34,7 @@ Writers                                          Readers / listeners
   AwardResourceEffectData ── award_resource ─┤   AdventurePresenter (badge, can_start_adventure)
   ZoneTransition ── spend_madra ─┤               ActionManager (threshold gate)
   AdventureTilemap ── add_gold ─┤                Toolbar (gold label)
+  MerchantManager ── spend_gold ─┤               MerchantView (gold label, row affordability)
   DevPanel ── set_madra / set_gold ─┘            UnlockManager (re-evaluates all conditions on every change)
 ```
 
@@ -79,9 +80,9 @@ Only `foundation_advancement_stage.tres` exists (`max_madra_base = 100.0`, `max_
 | `get_adventure_madra_threshold() -> float` | `capacity × 0.5` |
 | `can_start_adventure() -> bool` | `madra >= threshold` |
 | `add_gold(amount)` | `gold += amount`, emits `gold_changed`, logs `[color=gold]Gained %d Gold[/color]` |
-| `spend_gold(amount) -> bool` | All or nothing. Logs `Spent %d Gold` on success. Nothing calls it in production code |
+| `spend_gold(amount) -> bool` | All or nothing. Logs `Spent %d Gold` on success. `MerchantManager.purchase()` calls it |
 | `set_gold(amount)` | `gold = max(0, amount)`. Dev panel only |
-| `get_gold() -> float` / `can_afford_gold(amount) -> bool` | Read helpers |
+| `get_gold() -> float` / `can_afford_gold(amount) -> bool` | Read helpers. `MerchantManager` uses both for a row's state and the "Need N more gold" shortfall |
 | `award_resource(type, amount)` | Dispatches to `add_madra` / `add_gold` and calls `Log.error` on an unknown type |
 
 | Signal | Emitted |
@@ -137,9 +138,21 @@ AdventureView._on_stop_combat → AdventureTilemap.handle_combat_result(true, go
 
 A defeat awards 0. `CharacterManager.get_gold_multiplier()` is hard-coded to `1.0`. `AdventureView` also totals the gold for the end card (`AdventureResultData.gold_earned`).
 
-### Gold sinks
+### Gold sink: the merchant
 
-None. The merchant action only logs `The merchant nods at you. (Shop coming soon.)` (`ActionManager`, line 238).
+The Traveling Merchant's shop is the only gold sink. A price is the item's `base_value`, rounded (`MerchantStockEntry.get_price()`). Stock, prices and limits are in [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented).
+
+```
+MerchantStockRow Buy → MerchantView → MerchantManager.purchase(stock, entry)
+  get_purchase_status(): INVALID_ENTRY → SOLD_OUT (ledger count ≥ stock_limit)
+                         → INSUFFICIENT_GOLD (not can_afford_gold(price)) → EQUIPMENT_FULL → OK
+  OK → ResourceManager.spend_gold(price)                → gold_changed, "Spent N Gold"
+     → InventoryManager.award_items(item, 1)
+     → SaveGameData.merchant_ledgers[merchant_id].purchase_counts[entry_id] += 1
+     → MerchantManager.item_purchased(stock, entry)
+```
+
+Every check runs before gold moves, so a blocked purchase changes nothing. `INVALID_ENTRY` covers a missing stock or entry, an empty `merchant_id` or `entry_id`, and an item that `award_items()` couldn't place: no item, or a class that doesn't match its `item_type`. Gold is uncapped and may hold fractions (dev panel), so the shortfall shown on a row is rounded up.
 
 ## Integration Points
 
@@ -152,6 +165,7 @@ None. The merchant action only logs `The merchant nods at you. (Shop coming soon
 | AdventurePresenter | Draws the Madra badge, sets affordability, and plays the shake-reject. Listens to `madra_changed` |
 | ZoneResourcePanel / CyclingResourcePanel | Draw the orb and the `current / max` label. Listen to `madra_changed` |
 | Toolbar | Shows the gold label. Listens to `gold_changed` |
+| MerchantManager / MerchantView | `MerchantManager` checks `can_afford_gold()` and calls `spend_gold()` on a purchase. `MerchantView` shows the gold total and refreshes every row on `gold_changed` |
 | AdventureTilemap / AdventureCombat | Calculate and award gold on victory |
 | UnlockManager | Calls `_evaluate_all_conditions` on every `madra_changed` and `gold_changed`. That is about 12 times a second while cycling, and once per drain particle |
 | UnlockConditionData | `RESOURCE_AMOUNT` conditions read `get_madra()` / `get_gold()` (for example, `q_fill_core_madra_full` needs Madra >= 100) |
@@ -201,7 +215,6 @@ None. The merchant action only logs `The merchant nods at you. (Shop coming soon
 ### Missing Functionality
 
 - `[HIGH]` Path Madra perks are not applied. `PathManager._recalculate_effects()` fills in `PathEffectsSummary.madra_capacity_bonus` (Expanded Core "+25 Max Madra"), `madra_generation_mult` (Madra Surge "+10% Madra Gen"), `adventure_madra_return_pct` (Madra Reclamation "+10% Madra Return") and `madra_on_level_up` (Breakthrough Surge "+10 Madra on Level Up"), but no production code reads `PathManager.get_effects()`. Players spend path points on these perks for no effect. See [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md).
-- `[MEDIUM]` Gold has no sinks. There is no merchant shop, and `spend_gold()` has no callers.
 - `[LOW]` `CharacterManager.get_gold_multiplier()` always returns `1.0` (a `TODO`).
 - `[LOW]` Madra is not transferred atomically. `ZoneTransition` deducts the budget particle by particle and ignores the `bool` returned by `spend_madra()`. If anything else spends Madra mid-drain, the budget passed to combat can exceed what was actually deducted. Deduct once up front and animate the drain separately.
 - `[LOW]` No public pool-cap API. `ResourceManager.add_madra()`, `ZoneResourcePanel._update_madra()` and `CyclingResourcePanel._update_madra_display()` each recompute the cap themselves. Add `ResourceManager.get_max_madra()`.

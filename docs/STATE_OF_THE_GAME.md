@@ -10,7 +10,7 @@ Endless Path is a cultivation idle/incremental game with active mini-games, insp
 - a procedurally generated adventure with real-time combat;
 - inventory and gear, an ability loadout, a character sheet, and a skill tree.
 
-The engineering base is healthy: it is data-driven, has 16 manager singletons, and all 538 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
+The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 618 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
 
 ## Where Each System Stands
 
@@ -20,14 +20,14 @@ The engineering base is healthy: it is data-driven, has 16 manager singletons, a
 | Zone map and idle actions | Playable | 1 real zone with 9 actions. Foraging is free, and its materials have no use |
 | Adventuring | Playable | 1 procedural adventure with 7 encounter types. The "boss" is a regular enemy, and a clear records nothing |
 | Combat | Playable | Real-time, with 4 player abilities and 4 enemies. No enemy art, VFX or SFX |
-| Inventory and items | Playable, thin | 12 items. 6 of 7 gear pieces can't be obtained, and consumables can't be used on `main` |
+| Inventory and items | Playable, thin | 12 items. The Merchant sells six gear pieces and Crude Scales; consumables can't be used in combat on `main` |
 | Abilities and loadout | Playable | 4-slot drag-drop loadout; abilities unlock through the path tree |
 | Path tree | Partial | 14 nodes, but only 3 have an effect: 19 of 22 points buy nothing |
-| Quests and story | Playable, short | 3 quests and 4 dialogues, ending at a merchant that isn't built |
+| Quests and story | Playable, short | 3 quests and 4 dialogues, ending at the Merchant's shop |
 | Character sheet | Playable | Attributes only; some tooltip formulas are wrong |
 | Persistence | Works | Auto-saves every 5 s. No save versioning, and no save on quit |
 | Breakthrough / Copper | Missing | Breakthrough is an empty stub. The Tribulation is designed but not built |
-| Merchant | Stub | Logs "Shop coming soon" |
+| Merchant | Playable (v1) | Six gear pieces (once per save) and Crude Scales for gold; prices are untested starting values |
 | Scripting, Elixirs, Soulsmithing | Not started | Design notes only |
 | Audio, release builds | None | No sound, no export presets, no CI |
 
@@ -36,7 +36,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 ## Health
 
 - **Size:** about 19.5k lines of game GDScript plus 6.4k lines of tests, 112 scenes, 98 data resources, 15 shaders.
-- **Tests:** 538/538 pass across 62 files in about 7 s (GUT 9.6.0). Several suites re-implement the logic they test instead of calling it: ResourceManager, CharacterManager, CultivationManager, and parts of inventory and adventure. Real coverage is lower than the count suggests ([TESTING.md](testing/TESTING.md)).
+- **Tests:** 618/618 pass across 68 files in about 9 s (GUT 9.6.0). Several suites re-implement the logic they test instead of calling it: ResourceManager, CharacterManager, CultivationManager, and parts of inventory and adventure. Real coverage is lower than the count suggests ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.
   - One unmerged branch, `feat/infallible-chaum-58f8ad`, adds in-combat consumables (20 commits, no PR).
@@ -52,7 +52,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 ### 1. Make Foundation a complete loop (now)
 1. **Wire the inert systems.** Path perks need readers for `PathEffectsSummary`. Vitals must refresh on gear change. The foraging Madra cost and cycling action modifiers need to be applied.
 2. **Consumables in combat.** Merge or finish `feat/infallible-chaum-58f8ad`, and give consumables a drop source.
-3. **Merchant v1 (Beat 4).** A gold sink that also makes the existing gear obtainable.
+3. **Merchant v1 (Beat 4).** Done 2026-10-19: a gold sink that makes the six gear pieces obtainable. Next: playtest the prices (FOUNDATION_PLAYTHROUGH Q-8).
 4. **Beats 5–6:** an elite gear drop and a third keystone. These also need elite-defeated and "adventure cleared" events, so quests can gate on runs.
 5. **Work through the open bugs** in each system doc's Work Remaining, e.g. the equipment page-size mismatch and the invisible modal backdrop.
 6. **Onboarding:**

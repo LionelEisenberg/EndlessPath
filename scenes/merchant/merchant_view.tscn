@@ -1,0 +1,237 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/merchant/merchant_view.gd" id="1_script"]
+[ext_resource type="Theme" path="res://assets/themes/merchant/spirit_valley_merchant_theme.tres" id="2_theme"]
+[ext_resource type="PackedScene" path="res://scenes/merchant/merchant_atmosphere/merchant_atmosphere.tscn" id="3_atmosphere"]
+[ext_resource type="PackedScene" path="res://scenes/merchant/merchant_stock_row/merchant_stock_row.tscn" id="4_row"]
+[ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="5_gold"]
+
+[sub_resource type="Animation" id="Animation_RESET"]
+resource_name = "RESET"
+length = 0.01
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_close"]
+resource_name = "close"
+length = 0.2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 2),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_open"]
+resource_name = "open"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(0.5, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_main"]
+_data = {
+&"RESET": SubResource("Animation_RESET"),
+&"close": SubResource("Animation_close"),
+&"open": SubResource("Animation_open")
+}
+
+[node name="MerchantView" type="Control"]
+visible = false
+z_index = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+unique_name_in_owner = true
+libraries = {
+&"": SubResource("AnimationLibrary_main")
+}
+
+[node name="ShopPanel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(1000, 0)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_right = 500.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"MerchantPanel"
+
+[node name="MerchantAtmosphere" parent="ShopPanel" instance=ExtResource("3_atmosphere")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ContentMargin" type="MarginContainer" parent="ShopPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="MainVBox" type="VBoxContainer" parent="ShopPanel/ContentMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="HeaderMargin" type="MarginContainer" parent="ShopPanel/ContentMargin/MainVBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 0
+
+[node name="HeaderVBox" type="VBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderHBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderVBox"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="TitleLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderVBox/HeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LabelMerchantTitle"
+text = "Traveling Merchant"
+
+[node name="LeaveButton" type="Button" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderVBox/HeaderHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 44)
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"MerchantButton"
+text = "Leave [Esc]"
+
+[node name="GreetingLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/HeaderMargin/HeaderVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelMerchantGreeting"
+text = "Greeting"
+autowrap_mode = 3
+
+[node name="TopSeparator" type="HSeparator" parent="ShopPanel/ContentMargin/MainVBox"]
+layout_mode = 2
+theme_type_variation = &"HSeparatorMerchant"
+
+[node name="StockList" type="VBoxContainer" parent="ShopPanel/ContentMargin/MainVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Row1" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
+layout_mode = 2
+
+[node name="Row2" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
+layout_mode = 2
+
+[node name="Row3" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
+layout_mode = 2
+
+[node name="Row4" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
+layout_mode = 2
+
+[node name="Row5" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
+layout_mode = 2
+
+[node name="Row6" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
+layout_mode = 2
+
+[node name="Row7" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
+layout_mode = 2
+
+[node name="Row8" parent="ShopPanel/ContentMargin/MainVBox/StockList" instance=ExtResource("4_row")]
+layout_mode = 2
+
+[node name="BottomSeparator" type="HSeparator" parent="ShopPanel/ContentMargin/MainVBox"]
+layout_mode = 2
+theme_type_variation = &"HSeparatorMerchant"
+
+[node name="FooterMargin" type="MarginContainer" parent="ShopPanel/ContentMargin/MainVBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
+
+[node name="FooterHBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="StatusLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"LabelGreen"
+
+[node name="GoldBox" type="HBoxContainer" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 10
+
+[node name="GoldShortLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox/GoldBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelRed"
+
+[node name="GoldAfterLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox/GoldBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelGreen"
+
+[node name="GoldIcon" type="TextureRect" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox/GoldBox"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("5_gold")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GoldLabel" type="Label" parent="ShopPanel/ContentMargin/MainVBox/FooterMargin/FooterHBox/GoldBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelValueLarge"
+text = "0"

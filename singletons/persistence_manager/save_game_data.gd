@@ -101,6 +101,21 @@ func _verify_current_selected_zone_id() -> bool:
 ## Current unspent path point balance.
 @export var path_points: int = 0
 
+#-----------------------------------------------------------------------------
+# MERCHANT MANAGER
+#-----------------------------------------------------------------------------
+
+## Maps MerchantStock.merchant_id -> what the player bought from that merchant.
+@export var merchant_ledgers: Dictionary[String, MerchantLedgerData] = {}
+
+## Returns the merchant's ledger, creating and storing an empty one on first use.
+func get_merchant_ledger(merchant_id: String) -> MerchantLedgerData:
+	if not merchant_ledgers.has(merchant_id):
+		var ledger := MerchantLedgerData.new()
+		ledger.merchant_id = merchant_id
+		merchant_ledgers[merchant_id] = ledger
+	return merchant_ledgers[merchant_id]
+
 func _to_string() -> String:
 	var zone_progression_data_str := ""
 	if typeof(zone_progression_data) == TYPE_DICTIONARY:
@@ -117,7 +132,7 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n)" % [
+	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
 			madra,
 			gold,
 			core_density_xp,
@@ -136,7 +151,8 @@ func _to_string() -> String:
 			str(equipped_ability_ids),
 			current_path_id,
 			path_points,
-			str(path_node_purchases)
+			str(path_node_purchases),
+			str(merchant_ledgers)
 		]
 
 
@@ -189,3 +205,6 @@ func reset() -> void:
 	current_path_id = ""
 	path_node_purchases = {}
 	path_points = 0
+
+	# Merchant Manager
+	merchant_ledgers = {}
