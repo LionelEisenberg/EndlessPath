@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="2_8emjg"]
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="2_mquym"]
 [ext_resource type="Resource" uid="uid://4rs2o3l3fo4d" path="res://resources/combat/combatant_data/enemy_abilities/famishing_bite.tres" id="2_xwkgh"]
+[ext_resource type="Texture2D" uid="uid://3mr5xlmm5m1m" path="res://assets/sprites/combat/enemies/test_enemy_sprite.png" id="9_sprite"]
 
 [sub_resource type="Resource" id="Resource_xwkgh"]
 script = ExtResource("2_8emjg")
@@ -16,5 +17,6 @@ script = ExtResource("2_mquym")
 character_name = "Starving Dreadbeast"
 attributes = SubResource("Resource_xwkgh")
 abilities = Array[ExtResource("1_uu7wp")]([ExtResource("2_xwkgh")])
+texture = ExtResource("9_sprite")
 base_gold_drop = 20
 metadata/_custom_type_script = "uid://hbo1w3358rom"

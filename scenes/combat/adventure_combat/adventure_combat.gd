@@ -40,6 +40,8 @@ var _atmosphere: Node
 #-----------------------------------------------------------------------------
 
 @onready var enemy_info_panel: CombatantInfoPanel = %EnemyInfoPanel
+@onready var _player_spot: Marker2D = %PlayerSpot
+@onready var _enemy_spot: Marker2D = %EnemySpot
 
 func _ready() -> void:
 	Log.info("AdventureCombat: Initialized")
@@ -114,6 +116,7 @@ func _create_combatants() -> void:
 func _create_player_combatant() -> void:
 	player_combatant = combatant_scene.instantiate()
 	player_combatant.name = "PlayerCombatant"
+	player_combatant.position = _player_spot.position
 	add_child(player_combatant)
 
 	var player_data = CombatantData.new()
@@ -123,6 +126,7 @@ func _create_player_combatant() -> void:
 	player_data.texture = load("res://assets/sprites/combat/test_character_sprite.png")
 
 	player_combatant.setup(player_data, PlayerManager.vitals_manager, true)
+	player_combatant.visual.play_enter()
 
 func _create_enemy_combatant() -> void:
 	if current_combat_choice.enemy_pool.is_empty():
@@ -134,10 +138,12 @@ func _create_enemy_combatant() -> void:
 	
 	enemy_combatant = combatant_scene.instantiate()
 	enemy_combatant.name = "EnemyCombatant"
+	enemy_combatant.position = _enemy_spot.position
 	add_child(enemy_combatant)
 		
 	# Enemy gets a new internal resource manager created by setup()
 	enemy_combatant.setup(enemy_data, null, false)
+	enemy_combatant.visual.play_enter()
 
 	# Setup CombatantInfoPanel
 	enemy_info_panel.setup_name(enemy_data.character_name)

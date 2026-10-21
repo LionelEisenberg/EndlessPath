@@ -7,6 +7,14 @@
 [node name="AdventureCombat" type="Node2D" unique_id=34704748]
 script = ExtResource("1_utfsu")
 
+[node name="PlayerSpot" type="Marker2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(660, 790)
+
+[node name="EnemySpot" type="Marker2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(1300, 790)
+
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=320164428]
 
 [node name="EnemyInfoPanel" parent="CanvasLayer" unique_id=334430267 instance=ExtResource("4_vkkxw")]

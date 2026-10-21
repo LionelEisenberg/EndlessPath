@@ -4,6 +4,7 @@
 [ext_resource type="Resource" uid="uid://cp8w1nknqcyhn" path="res://resources/combat/combatant_data/enemy_abilities/madra_lash.tres" id="2_3x30a"]
 [ext_resource type="Script" uid="uid://c78ok6kfhyf6y" path="res://scripts/resource_definitions/character/character_attributes_data.gd" id="3_vg6m5"]
 [ext_resource type="Script" uid="uid://hbo1w3358rom" path="res://scripts/resource_definitions/combat/combatant_data.gd" id="4_5rqx4"]
+[ext_resource type="Texture2D" uid="uid://3mr5xlmm5m1m" path="res://assets/sprites/combat/enemies/test_enemy_sprite.png" id="9_sprite"]
 
 [sub_resource type="Resource" id="Resource_wrvmu"]
 script = ExtResource("3_vg6m5")
@@ -14,5 +15,6 @@ script = ExtResource("4_5rqx4")
 character_name = "Amorphous Spirit"
 attributes = SubResource("Resource_wrvmu")
 abilities = Array[ExtResource("1_3x30a")]([ExtResource("2_3x30a")])
+texture = ExtResource("9_sprite")
 base_gold_drop = 15
 metadata/_custom_type_script = "uid://hbo1w3358rom"
