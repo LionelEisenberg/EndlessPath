@@ -50,6 +50,9 @@ func before_each() -> void:
 	PersistenceManager.save_data_reset.emit()
 
 func after_each() -> void:
+	# The Esc tests parse a ui_cancel press; leave the action released for the
+	# tests that run after this file (TESTING.md: parsed input actions).
+	Input.action_release(&"ui_cancel")
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 	if _renamed_zone != null:
@@ -267,6 +270,18 @@ func test_strip_shows_for_foraging() -> void:
 	assert_has(texts, "2–6")
 	assert_has(texts, "haul in 5 s")
 	assert_false((_strip_node("TrainingContent") as Control).visible)
+
+func test_strip_haul_counts_down() -> void:
+	# "haul in N s" follows the foraging timer's time left, not its interval:
+	# 1.2 s into a 5 s haul it reads 4.
+	await _add_panel()
+	EventManager.trigger_event(FORAGING_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	await wait_process_frames(2)
+	assert_has(_texts(_strip()), "haul in 5 s", "precondition: a fresh haul")
+	await wait_seconds(1.2)
+	assert_eq(ActionManager.action_timer.wait_time, 5.0, "precondition: still the 5 s interval")
+	assert_has(_texts(_strip()), "haul in 4 s")
 
 func test_strip_shows_each_items_mini_icon() -> void:
 	await _add_panel()
