@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://dxpnc8htanohg" path="res://assets/ui/lacquer/lacquer_rod_goal_empty_ai.png" id="8_rod_empty"]
 [ext_resource type="Texture2D" uid="uid://bsra35lmu7jxc" path="res://assets/ui/lacquer/lacquer_rod_goal_full_ai.png" id="9_rod_full"]
 [ext_resource type="Texture2D" uid="uid://cxn01d1umqedg" path="res://assets/ui/lacquer/lacquer_rod_goal_end_ai.png" id="10_rod_end"]
+[ext_resource type="Texture2D" uid="uid://72ttatdg3o7c" path="res://assets/ui/lacquer/lacquer_goals_top_plain_ai.png" id="11_top_plain"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_cords"]
 atlas = ExtResource("3_board")
@@ -36,6 +37,7 @@ offset_right = 464.0
 offset_bottom = 492.0
 theme = ExtResource("2_theme")
 script = ExtResource("1_goals")
+top_without_hooks = ExtResource("11_top_plain")
 
 [node name="Cords" type="TextureRect" parent="."]
 unique_name_in_owner = true

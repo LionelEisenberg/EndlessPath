@@ -7,6 +7,8 @@ extends GutTest
 
 const GOALS_SCENE_PATH: String = "res://scenes/ui/goals_panel/goals_panel.tscn"
 const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
+## The board's top slice without the cords' two brass hooks.
+const PLAIN_TOP_PATH: String = "res://assets/ui/lacquer/lacquer_goals_top_plain_ai.png"
 
 const FILL_CORE_QUEST_ID: String = "q_fill_core"
 const FIRST_STEPS_QUEST_ID: String = "q_first_steps"
@@ -339,6 +341,19 @@ func test_cords_hang_above_the_board() -> void:
 	assert_false(_is_shown("Cords"))
 	_goals.set_cords_visible(true)
 	assert_true(_is_shown("Cords"))
+
+## The two brass hooks are drawn on the board's top slice, not on the cords.
+## With the cords hidden the top slice is a hookless copy, so no hook is left
+## on the board's edge leading nowhere; the hooks come back with the cords.
+func test_hidden_cords_take_their_hooks_along() -> void:
+	_add_goals()
+	var board_top: TextureRect = _node("BoardTop")
+	var hooked_top: Texture2D = board_top.texture
+	_goals.set_cords_visible(false)
+	assert_eq(board_top.texture.resource_path, PLAIN_TOP_PATH, "the hookless top slice")
+	assert_eq(board_top.texture.get_size(), hooked_top.get_size(), "the same size, so the board keeps its layout")
+	_goals.set_cords_visible(true)
+	assert_eq(board_top.texture, hooked_top, "the hooks come back with the cords")
 
 #-----------------------------------------------------------------------------
 # ROOT

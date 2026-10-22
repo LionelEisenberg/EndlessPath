@@ -11,7 +11,8 @@ extends Control
 ## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into its
 ## cords and a top, a tiled middle and a bottom slice, so the board is 220 px
 ## tall with a quest and 150 px with the milestone alone. The cords are their
-## own node, which the adventure view hides (set_cords_visible).
+## own node, which the adventure view hides (set_cords_visible); their two
+## brass hooks are drawn on the top slice, which then swaps for a hookless copy.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -25,10 +26,20 @@ const BOTTOM_PADDING: float = 22.0
 const CORDS_HEIGHT: float = 20.0
 
 #-----------------------------------------------------------------------------
+# EXPORTS
+#-----------------------------------------------------------------------------
+
+## The board's top slice without the cords' two brass hooks, shown while the
+## cords are hidden so no hook is left leading nowhere.
+@export var top_without_hooks: Texture2D = null
+
+#-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
 @onready var _cords: Control = %Cords
+@onready var _board_top: TextureRect = %BoardTop
+@onready var _top_with_hooks: Texture2D = _board_top.texture
 @onready var _rows: Control = %Rows
 @onready var _quest_row: Control = %QuestRow
 @onready var _divider: Control = %Divider
@@ -66,13 +77,16 @@ func refresh() -> void:
 	_update_quest()
 	_update_milestone()
 
-## Shows or hides the two cords the board hangs from. The zone view hangs the
-## board under the cultivator cabinet; the adventure view puts it at the top
-## right, where the cords would hang from nothing.
+## Shows or hides the two cords the board hangs from, and the brass hooks they
+## end in. The zone view hangs the board under the cultivator cabinet; the
+## adventure view puts it at the top right, where the cords would hang from
+## nothing.
 func set_cords_visible(cords_visible: bool) -> void:
 	if not is_node_ready():
 		return
 	_cords.visible = cords_visible
+	var hookless: bool = not cords_visible and top_without_hooks != null
+	_board_top.texture = top_without_hooks if hookless else _top_with_hooks
 
 #-----------------------------------------------------------------------------
 # DISPLAY UPDATES
