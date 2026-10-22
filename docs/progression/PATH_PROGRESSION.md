@@ -1,6 +1,6 @@
 # Path Progression System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-21
 
 ## Overview
 
@@ -23,25 +23,25 @@ The original design (paths as Madra types, tier gates, budget branching, ascensi
 ## Player Experience
 
 1. A new save starts on the Pure Madra tree with 0 points. The PATH button is always on the toolbar.
-2. From the zone view, press **P** or click **PATH**. A grey backdrop fades in and the panel fades and scales in over 0.3 s. Other views ignore P; see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md).
-3. The header shows **PURE MADRA**, a static subtitle, and the unspent **PATH POINTS**. Hovering the title opens a popup with the path description and its Strengths, Weaknesses, Cycling, and Combat lines.
-4. All 14 nodes are visible at once, joined by prerequisite lines:
+2. From the zone view, press **P** or click **PATH**. A grey backdrop fades in while the ink-and-gold Path book opens (one of the four menu books, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)). Other views ignore P.
+3. **Chapters.** Side tabs on the book's left edge hold the cultivation stages: Foundation, Copper, Iron and Jade. A stage the player hasn't reached shows a padlock, can't be opened, and its tooltip says "Reach <Stage> to open this chapter." The book opens at the highest stage reached (always Foundation today, since nothing advances the stage). Switching to another reached stage plays the page turn.
+4. **Left page:** the "Path" title ribbon, a plaque with the path's name ("Pure Madra"), and a card holding the open stage's tree on a dark inset, fitted to the card, with "Foundation · stage 1 of 4" above it. Only nodes whose `required_stage` is the open stage are shown, joined by prerequisite lines:
    - Keystones are hexagons with a swirling shader.
    - Majors are diamonds.
-   - Minors and repeatables are circles; repeatables show `n/max`.
+   - Minors and repeatables are circles; repeatables show `n/max` centred under the node.
    - A purchasable keystone pulses with a glow ring.
-5. Hovering a node enlarges it to 1.15× and shows a tooltip: name (plus `(n/max)` on repeatables), type, description, green effect lines, and either `Cost: N point(s)` or `Purchased`.
-6. Left-drag on empty space pans the tree. The mouse wheel zooms between 0.5× and 1.5× toward the cursor.
-7. Points come from finishing the quest "First Steps Out" (+1) and from every 10th Core Density level (+1 in Foundation). No in-game message announces them; the balance only shows inside this panel.
+5. **Right page:** a plaque and a card describing what was last pointed at. Hovering a node enlarges it to 1.15× and describes it: name (plus `(n/max)` on repeatables), type ("Major node"), description, green effect lines, and either `Cost: N point(s) · click the node to buy it` or `Purchased`. Hovering the path-name plaque describes the path itself (description, Strengths, Weaknesses, Cycling and Combat lines); that is also what shows when the book opens. The card keeps one height (300 px) whatever it describes, with the cost or "Purchased" line at its foot, so nothing below it moves. Below: an "Active Benefits" plaque over a card listing what each purchased node of every stage grants, one green "▲" line each ("▲ +25 Max Madra"), or "None yet. Buy a node on the tree." The list scrolls with the wheel, shows no scrollbar and has no tooltips. The points to spend sit in a small badge (star and number) in the right page's top-right corner, beside the plaque.
+6. Left-drag on empty space pans the tree. The mouse wheel zooms between 0.4× and 1.5× toward the cursor.
+7. Points come from finishing the quest "First Steps Out" (+1) and from every 10th Core Density level (+1 in Foundation). No in-game message announces them; the balance only shows inside this book.
 8. Clicking an available node buys one level:
    - The point is deducted and node and line colors update.
    - Energy pulses run along lines that join two purchased nodes.
    - A particle burst plays on a node's first purchase.
-   - The node appears under **ACTIVE BENEFITS**, with Purchased/Spent totals.
+   - The node appears under **Active Benefits**, and the points badge updates.
    - Clicking a node that can't be bought does nothing.
 9. Pure Core Awakening unlocks the Empty Palm ability and the Smooth Flow technique. Power Font unlocks the Power Font ability. Torrential Flow unlocks the Torrential Flow technique. The player equips them in the Abilities view (its toolbar button shows a badge) and in the cycling view.
 10. The other 11 nodes can be bought and are listed as active benefits, but they change nothing in play today.
-11. **Esc** (`ui_cancel`) or **P** closes the panel with a 0.2 s fade/scale out.
+11. **Esc** (`ui_cancel`), **P**, the close tab on the book's top edge, or a click outside the book closes it.
 
 ## Architecture
 
@@ -50,58 +50,55 @@ PathManager (autoload Node)                   — singletons/path_manager/path_m
 
 MainView (scenes/main/main_game/main_game.tscn)
   MainViewStateMachine
-    PathTreeViewState (Node)                  — path_tree_view_state.gd (MainViewState)
+    PathTreeViewState (Node)                  — path_tree_view_state.gd (BookViewState)
   GreyBackground (Panel, z 2)                 — scenes/ui/grey_background/grey_background.gd (shared modal backdrop)
-  PathTreeView (Control, z 3, hidden)         — path_tree_view.tscn / path_tree_view.gd
-    UnifiedPanel (PanelContainer)             — gold-bordered panel, inset 120 px / 80 px
-      MainVBox
-        Header > HeaderMargin > HeaderHBox
-          PathIdentity
-            %PathTitle (Label, LabelTitle)    — tree.path_name.to_upper(); hover → MadraInfoPopup
-            PathSubtitle (Label)              — static "Path of Disruption & Versatility"
-          PointsDisplay
-            PointsIcon (TextureRect)          — star_icon.png
-            PointsInfo > %PointsValue, PointsLabel ("PATH POINTS")
-        HeaderSep
-        Body (HBoxContainer)
-          %TreeArea (Control, clip_contents)  — pan/zoom input (gui_input)
-            %NodeContainer (Control)          — path_node_container.gd; draws connection lines
-              PathNodeUI × N                  — runtime instances of path_node_ui.tscn
-              Line2D × M                      — runtime energy overlays (child index 0, behind nodes)
-          BodyDivider
-          %BenefitsArea (PanelContainer, 320 px) — benefits_area.gd
-            BenefitsMargin > BenefitsVBox
-              BenefitsHeader ("ACTIVE BENEFITS")
-              BenefitsScroll > %BenefitsList  — runtime BenefitCard instances
-              SummaryBox > %NodeCountLabel ("Purchased"), %PointsSpentLabel ("Spent")
-    %SharedTooltip                            — PathNodeTooltip instance (path_node_tooltip.tscn)
-    %MadraInfoPopup (Control, z 10)           — MadraPathName (static "Pure Madra") + 5 data labels
-    %AnimationPlayer                          — RESET, open (0.3 s), close (0.2 s) on UnifiedPanel
+  PathTreeView (Control, z 3, hidden)         — path_tree_view.tscn / path_tree_view.gd (MenuBookView, theme book_theme.tres)
+    BookLayer (centred, scale 2)
+      %BookFrame                              — scenes/ui/book_frame/, style path_book_style.tres
+      BookContent
+        %StageTabs                            — tab_switcher.gd: FoundationTab, CopperTab, IronTab, JadeTab (tab_button.tscn,
+                                                stage_*.png icons, set_locked() with a padlock and tooltip)
+        %TitleBanner                          — TabBanner "Path"
+    %PageLayer (centred, screen pixels)
+      LeftPage (VBox)
+        %PathPlaque (Label, LabelBookPlaque)  — tree.path_name; hover → show_path_info()
+        TreeCard (PanelBookCard) > TreeVBox
+          %StageLabel                         — "Foundation · stage 1 of 4"
+          TreeInset (PanelBookInset, dark)
+            %TreeArea (Control, clip_contents) — pan/zoom input (gui_input)
+              %NodeContainer (Control)        — path_node_container.gd; draws connection lines
+                PathNodeUI × N                — runtime instances of path_node_ui.tscn
+                Line2D × M                    — runtime energy overlays (child index 0, behind nodes)
+          TreeHint                            — "drag to pan · wheel to zoom"
+      RightPage (VBox)
+        %DetailPlaque                         — the node's or the path's name
+        %DetailsCard (PathDetailsCard)        — path_details_card.tscn / .gd, fixed 300 px tall
+        BenefitsPlaque ("Active Benefits")
+        BenefitsCard (PanelBookCard)          — fills the rest of the page
+          %BenefitsArea (ScrollContainer)     — benefits_area.gd, scrollbar hidden > BenefitsBox > %BenefitsLabel (LabelBookPositive),
+                                                %BenefitsEmpty (LabelBookMuted)
+      PointsBadge (PanelBookPill, top-right)  — StarIcon, %PointsLabel ("N"); tooltip "Path points to spend"
 
 PathNodeUI (TextureButton)                    — path_node_ui.gd
   %Border (Panel)                             — legacy; hidden in _ready()
-  %LevelLabel (Label)                         — "n/max" on repeatables
+  %LevelLabel (Label)                         — "n/max" on repeatables, centred under the node (22 px, dark outline)
   (runtime) swirl ColorRect                   — keystones: path_node_keystone.gdshader
   (runtime) border ColorRect                  — majors/minors/repeatables: path_node_border.gdshader
   (runtime) 12 particle ColorRects            — first purchase only
 
-PathNodeTooltip (Control, z 50 absolute)      — path_node_tooltip.gd
-  PanelContainer > MarginContainer > VBoxContainer
-    %NameLabel, %TypeLabel, HSeparator, %DescriptionLabel (RichTextLabel),
-    %EffectsContainer (runtime Labels), %EffectsSep, %CostLabel, %LevelLabel (always hidden)
-
-BenefitCard (HBoxContainer)                   — benefit_card.gd
-  %IconRect (TextureRect, node-type frame), InfoVBox > %NameLabel, %ValueLabel
+PathDetailsCard (PanelContainer, PanelBookCard) — path_details_card.gd
+  HeaderRow (IconSlot > %DetailIcon, %DetailName, %DetailType), %DetailDescription,
+  %DetailEffects (LabelBookPositive), %DetailTraits (path only), FooterSpacer,
+  %DetailFooter (cost or "Purchased", at the card's foot)
 
 PureMadraTier1Layout (Node2D)                 — layouts/pure_madra_tier1_layout.tscn
   <node_id> (Marker2D + PathLayoutMarker) × 14
 ```
 
 Exported wiring in `path_tree_view.tscn`:
-- `PathTreeView.layout_scene` = `pure_madra_tier1_layout.tscn`.
+- `PathTreeView.stage_layouts` = `[pure_madra_tier1_layout.tscn]`: one layout per chapter, in `PathTreeView.STAGES` order (Foundation, Copper, Iron, Jade). Chapters without a layout are empty.
 - `PathTreeView.path_node_ui_scene` = `path_node_ui.tscn`.
-- `BenefitsArea.benefit_card_scene` = `benefit_card.tscn`.
-- BenefitsArea icons are `keystone.png`, `major.png`, and `minor.png`; repeatables reuse `minor.png`.
+- PathDetailsCard icons are `keystone.png`, `major.png`, and `minor.png`; repeatables reuse `minor.png`. The path's own icon is `star_icon.png`.
 
 ## Data Model
 
@@ -130,8 +127,8 @@ Methods:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `id` | `String` | `""` | Unique within the tree. Also the layout `Marker2D` name and the save key |
-| `display_name` | `String` | `""` | Tooltip and benefit card title |
-| `description` | `String` (multiline) | `""` | Tooltip body (BBCode-capable) |
+| `display_name` | `String` | `""` | Details card title |
+| `description` | `String` (multiline) | `""` | Details card body (plain text; the card is a `Label`) |
 | `node_type` | `NodeType` | `MINOR` | `KEYSTONE` (0), `MAJOR` (1), `MINOR` (2), `REPEATABLE` (3). Visual and label only; PathManager never reads it |
 | `icon` | `Texture2D` | `null` | Used as `texture_normal` if set. Unset on every node |
 | `prerequisites` | `Array[PathNodeData]` | `[]` | Direct resource references. All must be at level ≥ 1 (AND) |
@@ -289,13 +286,15 @@ _on_save_data_reset()       — re-point _live_save_data, clear tree and summary
 
 ### Path Tree View
 
-**Build.** `PathTreeView._ready()` connects to `node_purchased`, `points_changed`, and `path_set`, then calls `build_tree()`. The tree is rebuilt only on `path_set`, not each time the panel opens. `build_tree()`:
-1. Clears the container.
+**Chapters.** `PathTreeView.STAGES` lists Foundation, Copper, Iron and Jade, one side tab each. `is_stage_unlocked(stage)` compares the stage with `CultivationManager.get_current_advancement_stage()`. `_before_open()` re-locks the tabs (so a stage reached between openings unlocks next time), opens the highest reached stage with `open_stage()` (no page turn), and shows the path info. A tab click (`StageTabs.tab_changed`) hides the pages and title ribbon, plays `BookFrame.turn_page()` forwards or backwards by direction, and rebuilds the tree for the new stage on `page_turned`.
+
+**Build.** `PathTreeView._ready()` connects to `node_purchased`, `points_changed`, and `path_set`, then calls `build_tree()`. `build_tree()` builds the open chapter:
+1. Clears the container (nodes are freed at once).
 2. Passes `tree.theme` to `PathNodeContainer.set_theme_data()`.
-3. Reads layout positions (`read_layout_positions()` maps Marker2D **name** → position).
-4. Instantiates one `PathNodeUI` per node, centered on its marker. A node with no marker lands at (0, 0).
-5. Registers a connection for every prerequisite → dependent pair.
-6. Refreshes all nodes, rebuilds the benefits list, and sets `%NodeContainer.position = (120, -50)`.
+3. Reads the chapter's layout from `stage_layouts` (`read_layout_positions()` maps Marker2D **name** → position).
+4. Instantiates one `PathNodeUI` per node of the open stage (`PathTreeData.get_nodes_for_stage()`), centered on its marker. A node with no marker lands at (0, 0).
+5. Registers a connection for every prerequisite → dependent pair; links to another chapter's nodes are skipped by the container.
+6. Refreshes all nodes, rebuilds the benefits list and the points badge, and fits the tree: `_fit_tree()` zooms and centres the chapter's node bounds (marker positions ± 36 px) in `%TreeArea` with a 12 px margin, clamped to [0.4, 1.5]. It runs again when `%TreeArea` resizes and after the book has opened.
 
 **Refresh.** `_refresh_all_nodes()` runs on `points_changed` and `node_purchased`. It updates the balance label, calls `PathNodeUI.refresh(level, PathManager.can_purchase_node(id))` on every node, redraws the lines, and rebuilds the energy `Line2D`s.
 
@@ -324,26 +323,24 @@ Fallback constants apply without a theme. When the tree has a theme, `rebuild_en
 
 **Pan and zoom.** `_on_tree_area_gui_input()` handles input:
 - A left press on empty `%TreeArea` space starts a pan that moves `%NodeContainer.position`. Nodes are `TextureButton`s, so presses on them don't pan.
-- The wheel steps `_zoom_level` by ±0.1 within [0.5, 1.5] and keeps the point under the cursor fixed.
+- The wheel steps `_zoom_level` by ±0.1 within [0.4, 1.5] and keeps the point under the cursor fixed.
 
-**Tooltip.** `_on_node_hovered()` places `%SharedTooltip` 16 px right of the node, vertically at the node's center minus 80 px. It animates in over 0.15 s (fade, scale 0.95 → 1) and out over 0.1 s. `PathNodeTooltip._format_effect()` renders one `▲` line per effect:
+**Right page.** `_on_node_hovered()` calls `show_node_details()`: the plaque takes the node's name and `PathDetailsCard.show_node()` fills the card. The details stay until another node or the path plaque is pointed at. `PathDetailsCard.format_effect()` renders one `▲` line per effect:
 - `+15 Cycling Accuracy`
 - `+10% Madra Generation` (multipliers display as `(value − 1) × 100`)
 - `+10% Madra Return`
-- `Unlocks: empty_palm` (raw id)
+- `Unlocks: Empty Palm` (the ability's file name, capitalized)
 
-**Benefits sidebar.** `BenefitsArea.rebuild()` adds a `BenefitCard` for each purchased node, in `tree.nodes` order. Each card shows the node-type icon, `display_name`, and `benefit_summary`. **Purchased** counts nodes at level ≥ 1. **Spent** sums `point_cost × level`.
+Hovering `%PathPlaque` calls `show_path_info()`, which shows the path's description and its Strengths, Weaknesses, Cycling and Combat lines from `PathTreeData`.
 
-**Madra info popup.** Hovering `%PathTitle` fades `%MadraInfoPopup` in over 0.15 s and out over 0.1 s. Its labels come from `PathTreeData`.
+**Benefits.** `BenefitsArea.rebuild()` writes one `"▲ " + benefit_summary` line (the description when the summary is empty) per purchased node of every stage, in `tree.nodes` order, into `%BenefitsLabel`; with none it shows `%BenefitsEmpty` instead. `get_purchased_count()` counts nodes at level ≥ 1. The points badge shows `PathManager.get_point_balance()` only; the spend total was dropped on 2026-10-21. The row-per-node `BenefitCard` scene was removed the same day.
 
-**Open/close.**
-- **Open.** `PathTreeViewState.enter()` calls `GreyBackground.show_with_panel(path_tree_view)`, which plays `grey_fade_in` (0.3 s) and `PathTreeView.animate_open()`.
-- **Close.** In `PathTreeViewState.handle_input()`, `ui_cancel` or `open_path` connects `GreyBackground.panel_hidden` (one-shot) and calls `hide_with_panel()`, which plays `grey_fade_out` (0.2 s) and `animate_close()`. `panel_hidden` then triggers `scene_root.pop_state()`.
+**Open/close.** `PathTreeViewState` is a `BookViewState`: `enter()` calls `GreyBackground.show_with_panel(path_tree_view)`; `ui_cancel`, `open_path`, the book's close tab or a backdrop click call `hide_with_panel()`, and `panel_hidden` pops the state once both the grey fade and the book's close animation have finished.
 - **Entry points.** `ZoneViewState.handle_input()` pushes the state on `open_path` (P). The toolbar's `PathButton` (`SystemMenuButton.MenuType.PATH`) fires `open_path` through `Input.parse_input_event()`.
 
 ### Layouts
 
-A layout is a `Node2D` scene with one `Marker2D` per node. Each marker is **named after the node `id`** and runs `PathLayoutMarker`, whose `@export var node_data: PathNodeData` lets you edit the node resource inline in the editor. Only the marker name and position are read at runtime. `PathTreeView.layout_scene` holds a single layout, `pure_madra_tier1_layout.tscn`, for whichever tree is loaded.
+A layout is a `Node2D` scene with one `Marker2D` per node. Each marker is **named after the node `id`** and runs `PathLayoutMarker`, whose `@export var node_data: PathNodeData` lets you edit the node resource inline in the editor. Only the marker name and position are read at runtime. `PathTreeView.stage_layouts` holds one layout per chapter; today only Foundation's, `pure_madra_tier1_layout.tscn`, for whichever tree is loaded. A Copper layout would be the second entry.
 
 ### Shaders
 
@@ -365,7 +362,7 @@ A layout is a `Node2D` scene with one `Marker2D` per node. Each marker is **name
 | `PersistenceManager` / `SaveGameData` | ↔ | Three save fields. `save_data_reset` → `_on_save_data_reset()` |
 | `MainView` / `ZoneViewState` / `PathTreeViewState` | → view | `open_path` (P) opens and closes. See [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md) |
 | `Toolbar` `PathButton` (`SystemMenuButton`, `MenuType.PATH`) | → input | Label "PATH", hint "P", `star_icon.png`. No badge |
-| `GreyBackground` | ↔ PathTreeView | `show_with_panel` / `hide_with_panel` ↔ `animate_open` / `animate_close` |
+| `GreyBackground` | ↔ PathTreeView | `show_with_panel` / `hide_with_panel` ↔ `animate_open` / `animate_close`; waits for `close_finished` |
 | `DevPanel` | → PathManager | "Path Points" SpinBox (0–1000) → `add_points()` |
 | `ResourceManager`, `CharacterManager`, `CyclingTechnique`, `AdventureView`, combat | — | **Do not read** `PathEffectsSummary`; numeric perks are inert |
 
@@ -480,17 +477,18 @@ RGB(A) values from `resources/path_progression/themes/`. Alpha is 1 unless shown
 | `resources/path_progression/pure_madra/nodes/*.tres` | 14 node resources (effects as sub-resources) |
 | `resources/path_progression/themes/*.tres` | Pure Madra, Blackflame, Earth themes |
 | `resources/quests/q_first_steps.tres` | Quest whose completion awards 1 path point |
-| `scenes/path_progression/path_tree_view.tscn` / `.gd` | `PathTreeView` panel |
-| `scenes/path_progression/path_tree_view_state.gd` | `PathTreeViewState` |
+| `scenes/path_progression/path_tree_view.tscn` / `.gd` | `PathTreeView` book (chapters, tree, right page) |
+| `scenes/path_progression/path_tree_view_state.gd` | `PathTreeViewState` (`BookViewState`) |
 | `scenes/path_progression/path_node_container.gd` | `PathNodeContainer`: connections and energy lines |
 | `scenes/path_progression/path_node_ui.tscn` / `.gd` | `PathNodeUI` node button |
-| `scenes/path_progression/path_node_tooltip.tscn` / `.gd` | `PathNodeTooltip` |
-| `scenes/path_progression/benefits_area.gd` | `BenefitsArea` sidebar |
-| `scenes/path_progression/benefit_card.tscn` / `.gd` | `BenefitCard` |
+| `scenes/path_progression/path_details_card.tscn` / `.gd` | `PathDetailsCard`: node or path details on the right page |
+| `scenes/path_progression/benefits_area.gd` | `BenefitsArea`: the Active Benefits lines and count |
 | `scenes/path_progression/layouts/path_layout_marker.gd` | `PathLayoutMarker` |
 | `scenes/path_progression/layouts/pure_madra_tier1_layout.tscn` | Pure Madra node positions |
 | `assets/shaders/path_node_keystone.gdshader`, `path_node_border.gdshader`, `path_connection_energy.gdshader` | Node and line shaders |
-| `assets/sprites/path_progression/node_frames/{keystone,major,minor}.png` | Sidebar type icons |
+| `assets/sprites/path_progression/node_frames/{keystone,major,minor}.png` | Node-type icons in the details card |
+| `assets/sprites/ui/book/stage_{foundation,copper,iron,jade}_ai.png`, `stage_lock_ai.png` | Chapter tab icons and padlock |
+| `tests/integration/test_path_book.gd`, `test_tab_switcher.gd` | Chapters and locking, per-stage tree, right page (stays put between nodes), benefits (marked lines in one card, no scrollbar or tooltips), points badge, level labels under their nodes, tree fit; side tabs |
 | `scenes/ui/grey_background/grey_background.gd` | Shared modal backdrop |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Pushes `PathTreeViewState` on `open_path` |
 | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` / `scenes/ui/toolbar/toolbar.tscn` | PATH toolbar button |
@@ -620,10 +618,8 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - FOUNDATION_PLAYTHROUGH Beat 6 depends on "path-point notification is the signal".
 - `[HIGH]` **No effect type can modify an ability.** The upgrade nodes need per-ability cost, damage, cooldown, or duration modifiers that `PathNodeEffectData.EffectType` can't express, and combat (`CombatAbilityInstance` / `CombatEffectManager`) would have to read them.
 - `[MEDIUM]` **No ability-slot unlocks.** FOUNDATION_PLAYTHROUGH expects slots 3–4 to come from non-keystone nodes. `AbilityManager.MAX_SLOTS` is a fixed 4 with no gating, and there is no slot effect type.
-- `[MEDIUM]` **Tier gates have no presentation.** This is needed before Copper content.
-  - `required_stage` is enforced, but the view draws no dividers and the tooltip never names a stage.
-  - `PathTreeView` doesn't listen to `CultivationManager.advancement_stage_changed`, so availability would go stale after a breakthrough.
-- `[MEDIUM]` **One layout for every tree.** `PathTreeView.layout_scene` is a single export. A second path, or a separate Tier 2 layout, needs a layout reference on `PathTreeData`.
+- `[MEDIUM]` **Tier gates show only as locked chapters.** Each stage is a chapter tab that unlocks when the stage is reached (re-checked each time the book opens), but a node blocked by its stage never says so, and a prerequisite in an earlier chapter shows no link across the page. `PathTreeView` doesn't listen to `CultivationManager.advancement_stage_changed`, so an open book keeps its tabs until it is reopened.
+- `[MEDIUM]` **Layouts belong to the view, not the tree.** `PathTreeView.stage_layouts` holds one layout per chapter for whichever tree is loaded. A second path needs a layout reference on `PathTreeData`.
 - `[LOW]` **No path selection, respec, or ascension reset in play.**
   - `set_path()` and `reset_path()` are only called by tests.
   - Neither revokes abilities or techniques granted by earlier purchases.
@@ -652,12 +648,12 @@ The built system merges the advancement tree and Paths into one per-path tree av
 
 ### UI
 - `[MEDIUM]` **Locked and unaffordable look the same.** A node looks "available" only when `can_purchase_node()` is true, so a node with its prerequisites met but no points looks the same as one missing prerequisites. With a theme, a partially bought repeatable also looks the same as a maxed one.
-- `[MEDIUM]` **The tooltip never explains a block.** It doesn't list prerequisites, the required stage, or "not enough points".
+- `[MEDIUM]` **The details card never explains a block.** It doesn't list prerequisites, the required stage, or "not enough points".
 - `[MEDIUM]` **ACTIVE BENEFITS shows inert perks as active**, for example "Lingering Silence — +2s Silence Duration" and "Expanded Core — +25 Max Madra".
-- `[LOW]` **Unlock tooltips show raw ids.** They read "Unlocks: empty_palm" and "Unlocks: smooth_flow" instead of `AbilityData.ability_name` / `CyclingTechniqueData.technique_name`.
-- `[LOW]` **Repeatables show per-level values only.** The tooltip line and the benefit card never show the stacked total or the level; Madra Surge at 3/3 still reads "+10% Madra Gen".
+- `[LOW]` **Unlock lines use ids, not names.** Abilities read "Unlocks: Empty Palm" from the capitalized file name and techniques read "Unlocks: smooth_flow", instead of `AbilityData.ability_name` / `CyclingTechniqueData.technique_name`.
+- `[LOW]` **Repeatables show per-level values only.** The details card's effect line and the Active Benefits line never show the stacked total or the level; Madra Surge at 3/3 still reads "+10% Madra Gen".
 - `[LOW]` **Little purchase feedback.** A failed purchase gives no feedback and there are no SFX. The particle burst plays only on a node's first purchase (`PathNodeUI._on_pressed()` checks `was_purchased`).
-- `[LOW]` **No pan bounds or reset-view control**, and the tooltip isn't clamped to the screen.
+- `[LOW]` **No pan bounds or reset-view control.** The tree is fitted when a chapter opens, but a pan can push it out of the card until the book is reopened.
 
 ### Tech Debt
 - `[MEDIUM]` **Missing tests:**
@@ -667,24 +663,19 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - The unlock calls `purchase_node()` makes to AbilityManager and CyclingManager.
   - Multiplicative stacking above level 1.
   - A content test that every `UNLOCK_*` id resolves and every node has a layout marker.
-  - No `PathTreeView` UI tests.
 - `[LOW]` **Stale doc comments:**
   - `PathNodeEffectData` says `UNLOCK_ABILITY.string_value` is a resource path (it's an `ability_id`) and that effects "stack additively" (multipliers compound via `pow`).
   - `PathEffectsSummary.unlocked_abilities` / `unlocked_cycling_techniques` say "Not yet consumed… (wired during ability rework)".
   - The `PathNodeContainer` class comment says lines meet node edges; `_draw()` draws center to center.
 - `[LOW]` **Unused API and nodes:**
-  - `get_unlocked_abilities()`, `get_unlocked_cycling_techniques()`, `PathTreeData.get_nodes_for_stage()`, `get_total_tree_cost()`, and `PathNodeData.is_repeatable()` have no production callers.
-  - The `PathTreeView.path_tree_closed` signal has no listeners.
+  - `get_unlocked_abilities()`, `get_unlocked_cycling_techniques()`, `get_total_tree_cost()`, and `PathNodeData.is_repeatable()` have no production callers.
   - `PathThemeData.panel_accent_color` and `PathNodeContainer._node_radii` are never read.
-  - The `PathNodeUI` `%Border` panel and the tooltip `%LevelLabel` are always hidden.
+  - The `PathNodeUI` `%Border` panel is always hidden.
   - The `open_path_tree` input action duplicates `open_path` (both bound to P) and is unused.
-- `[LOW]` **Hardcoded per-path values in the shared scene:**
-  - `PathSubtitle` text, `MadraPathName` text, and the gold `UnifiedPanel` border.
-  - `_create_node_ui()` duplicates the shape radii from `PathNodeUI._draw()`.
+- `[LOW]` **Duplicated values:** `_create_node_ui()` duplicates the shape radii from `PathNodeUI._draw()`.
 - `[LOW]` **UI nodes are built in code** instead of following the scene-first convention:
   - `PathNodeUI` builds its swirl, border, and particle `ColorRect`s.
   - `PathNodeContainer._add_energy_line()` builds `Line2D`s.
-  - `PathNodeTooltip._populate_effects()` builds `Label`s.
 - `[LOW]` **Path state and unlock state can drift.** UNLOCK effects are applied only at purchase time. Saves that bought Pure Core Awakening before the CyclingManager/AbilityManager wiring (PRs #21/#22) never received Smooth Flow or Empty Palm, and nothing reconciles them on load.
 - `[LOW]` **Robustness gaps:**
   - `add_points()` accepts negative amounts with no floor.

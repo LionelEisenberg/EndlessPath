@@ -1,11 +1,11 @@
 # Main View (UI Shell and Navigation)
-Last updated: 2026-10-19
+Last updated: 2026-10-21
 
 ## Overview
 
 `main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, merchant shop, adventure end card), the HUD panels (log, quests; the merchant shop hides them while it is open), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
 
-- Menu overlays (Inventory, Path, Abilities, Character) open from the keyboard or the bottom toolbar. Both routes produce the same input action.
+- Menu overlays (Inventory, Path, Abilities, Character) open from the keyboard or the bottom toolbar. Both routes produce the same input action. All four are books built on one shared `BookFrame` scene and open and close the same way (see [Menu books](#menu-books)).
 - Cycling, the merchant shop, adventures and the end card are driven by `ActionManager` and `AdventureView` signals.
 - Only the top state receives input. Everything else that reads input (combat hotkeys, camera pan/zoom, the dev hotkey, Dialogic) is handled outside the state machine.
 
@@ -45,11 +45,11 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 │   ├── QuestToast              z 10       quest_toast.tscn
 │   ├── GreyBackground (Panel)  z 2        grey_background.gd, hidden by default
 │   │   └── GreyBackgroundAnimationPlayer  RESET, grey_fade_in (0.3 s), grey_fade_out (0.2 s)
-│   ├── PathTreeView            z 3        path_tree_view.tscn (z set on the scene root)
+│   ├── PathTreeView            z 3        path_tree_view.tscn (menu book; z set on the scene root)
 │   ├── AdventureEndCard        z 3        adventure_end_card.tscn
-│   ├── InventoryView           z 3        inventory_view.tscn (root scale 2x, centred)
-│   ├── AbilitiesView           z 3        abilities_view.tscn (z set on the scene root)
-│   ├── CharacterView           z 3        character_view.tscn (z and visible=false set on the scene root)
+│   ├── InventoryView           z 3        inventory_view.tscn (menu book; root scale 2x, centred)
+│   ├── AbilitiesView           z 3        abilities_view.tscn (menu book; z set on the scene root)
+│   ├── CharacterView           z 3        character_view.tscn (menu book; z and visible=false set on the scene root)
 │   ├── MerchantView            z 3        merchant_view.tscn (z, visible=false and the Spirit Valley theme set on the scene root)
 │   ├── CyclingView             z 3        cycling_view.tscn
 │   ├── DevPasswordModal        z 10       dev_password_modal.tscn, hidden
@@ -97,11 +97,11 @@ In practice at most one overlay is open at a time. Overlay states never push oth
 | `ZoneViewState` | Base (initial) | Shows `ZoneView`. Removes the input blocker. Finds `ZoneTransition` and calls `reset_camera()` to undo the adventure zoom. | Removes the input blocker. Hides `ZoneView`. | `open_inventory` → push Inventory; `open_path` → push PathTree; `open_abilities` → push Abilities; `open_character` → push Character. Ignored while the input blocker exists. | `start_adventure` (handled by `AdventureViewState`) |
 | `AdventureViewState` | Base | Shows `AdventureView`. Connects `AdventureView.adventure_completed`. | Hides `AdventureView` and disconnects. | None | End card return → `change_state(zone)` |
 | `AdventureEndCardState` | Overlay on Adventure | Shows GreyBackground. `AdventureViewState` then calls `show_results()`. | Hides `AdventureEndCard` and GreyBackground. | None (the card's own Return button) | Popped by `AdventureViewState` |
-| `InventoryViewState` | Overlay | Shows GreyBackground. Calls `InventoryView.animate_open()`, then shows the view. | Hides `InventoryView` and GreyBackground. | `close_inventory` or `open_inventory` → `animate_close()`. `inventory_closed` → `pop_state()`. | Book close animation |
+| `InventoryViewState` | Overlay (`BookViewState`) | Connects the book's close tab, then `grey_background.show_with_panel(inventory_view)` | Disconnects the close tab (the view is already hidden) | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
 | `CyclingViewState` | Overlay | Shows `CyclingView` and GreyBackground. | Hides both. | `close_cycling_view` → `ActionManager.stop_action()` | `ActionManager.stop_cycling` → `pop_state()` |
-| `PathTreeViewState` | Overlay | `grey_background.show_with_panel(path_tree_view)` | No-op (already hidden by the fade) | `ui_cancel` or `open_path` → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Grey fade-out |
-| `AbilitiesViewState` | Overlay | `show_with_panel(abilities_view)` | No-op | `ui_cancel` or `open_abilities` → same close path | Grey fade-out |
-| `CharacterViewState` | Overlay | `show_with_panel(character_view)` | No-op | `ui_cancel` or `open_character` → same close path | Grey fade-out |
+| `PathTreeViewState` | Overlay (`BookViewState`) | Same as Inventory | Same | `ui_cancel` or `open_path`, the close tab, or a backdrop click → same close path | Same |
+| `AbilitiesViewState` | Overlay (`BookViewState`) | Same | Same | `ui_cancel` or `open_abilities`, the close tab, or a backdrop click → same close path | Same |
+| `CharacterViewState` | Overlay (`BookViewState`) | Same | Same | `ui_cancel` or `open_character`, the close tab, or a backdrop click → same close path | Same |
 | `MerchantViewState` | Overlay | Hides the log and quest windows (the shop would cut their text off), then `show_with_panel(merchant_view)` | Shows the log and quest windows again, as they were | `ui_cancel` → `ActionManager.stop_action()`; the Leave button (`MerchantView.close_requested`) does the same | `ActionManager.stop_merchant` → `hide_with_panel()`, then `remove_state(self)` on `panel_hidden`. If another state is above it, it hides `MerchantView` at once and removes itself without the fade. `start_merchant` while it is already on the stack only rebinds the stock |
 
 What each view shows:
@@ -111,21 +111,30 @@ What each view shows:
 | `ZoneView` | Hex zone map with parallax background, zone header, info panel, resource orbs, toolbar | [ZONES.md](../zones/ZONES.md) |
 | `AdventureView` | Adventure hex map, combat view, timer, player info panel | [ADVENTURING.md](../adventuring/ADVENTURING.md), [COMBAT.md](../combat/COMBAT.md) |
 | `AdventureEndCard` | Scroll with VICTORY/defeat title, run stats, loot slots, Return button | [ADVENTURING.md](../adventuring/ADVENTURING.md) |
-| `InventoryView` | Book with Equipment, Consumables, Materials and Quest Items tabs | [INVENTORY.md](../inventory/INVENTORY.md) |
+| `InventoryView` | Red book with Equipment, Consumables, Materials and Quest Items tabs | [INVENTORY.md](../inventory/INVENTORY.md) |
 | `CyclingView` | Cycling mini-game, technique tabs, resource panel, close button | [CYCLING.md](../cycling/CYCLING.md) |
-| `PathTreeView` | Path skill tree (left-drag pan, wheel zoom), benefits area | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
-| `AbilitiesView` | Ability cards, 4-slot loadout, sort and filter | [ABILITIES.md](../abilities/ABILITIES.md) |
-| `CharacterView` | 8 attributes in Physical (STR, BODY, AGI, RES) and Spiritual (SPI, FND, CTRL, WILL) groups, with hover tooltips | [CHARACTER.md](CHARACTER.md) |
+| `PathTreeView` | Ink-and-gold book: a chapter tab per cultivation stage, the open stage's tree (left-drag pan, wheel zoom), node or path details, active benefits, points | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
+| `AbilitiesView` | Jade book: filtered and sorted ability rows, 4-slot loadout, details of the ability pointed at | [ABILITIES.md](../abilities/ABILITIES.md) |
+| `CharacterView` | Indigo book: 8 attributes in Physical (STR, BODY, AGI, RES) and Spiritual (SPI, FND, CTRL, WILL) groups, and the attribute pointed at described on the right page | [CHARACTER.md](CHARACTER.md) |
 | `MerchantView` | Merchant shop: title and Leave, a wrapping greeting, up to 8 stock rows with price and Buy, then the status line and gold. The gold previews a purchase while Buy is hovered. Its root `theme` is the merchant's zone theme | [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
 
 ### GreyBackground (modal backdrop)
 
-`GreyBackground` (`scenes/ui/grey_background/grey_background.gd`, class `GreyBackground`) is a full-rect `Panel` at z 2. Its stylebox is `assets/styleboxes/zones/grey_background.tres`, a flat slate fill `Color(0.176, 0.216, 0.216, 0.557)`. Because it uses the Panel's default mouse filter it blocks clicks to everything beneath it, including the toolbar. States use it in two ways:
+`GreyBackground` (`scenes/ui/grey_background/grey_background.gd`, class `GreyBackground`) is a full-rect `Panel` at z 2. Its stylebox is `assets/styleboxes/zones/grey_background.tres`, a flat slate fill `Color(0.176, 0.216, 0.216, 0.557)`. Because it uses the Panel's default mouse filter it blocks clicks to everything beneath it, including the toolbar. A left press on the backdrop itself emits `clicked`; the menu books close on it, and other users (the merchant) ignore it. States use it in two ways:
 
 | Mode | Used by | Behaviour |
 |------|---------|-----------|
-| Direct toggle | Inventory, Cycling, AdventureEndCard states | `grey_background.visible = true/false`, with no animation |
-| Fade orchestration | PathTree, Abilities, Character, Merchant states | `show_with_panel(panel)` sets `self_modulate.a = 0`, shows backdrop and panel, plays `grey_fade_in`, and calls `panel.animate_open()` if it exists. `hide_with_panel(panel)` plays `grey_fade_out`, calls `panel.animate_close()` if it exists, and when the grey animation finishes hides both nodes and emits `panel_hidden`. The grey animation's timing, not the panel's, decides when the close is done. |
+| Direct toggle | Cycling, AdventureEndCard states | `grey_background.visible = true/false`, with no animation |
+| Fade orchestration | Inventory, PathTree, Abilities, Character, Merchant states | `show_with_panel(panel)` sets `self_modulate.a = 0`, shows backdrop and panel, plays `grey_fade_in`, and calls `panel.animate_open()` if it exists. `hide_with_panel(panel)` plays `grey_fade_out` and calls `panel.animate_close()` if it exists. It then hides both nodes and emits `panel_hidden` once the grey fade-out has finished and, for a panel with a `close_finished` signal (the menu books), once that panel's own close has finished too. A panel without the signal (the merchant shop) is done when the fade ends. |
+
+### Menu books
+
+The four menus are books (`docs/superpowers/specs/2026-10-21-menu-books-design.md`):
+
+- `BookFrame` (`scenes/ui/book_frame/book_frame.tscn` + `.gd`) is the shared book: the inventory's book spritesheet with its open, close and page-turn animations, the close tab on the top edge of the right page, and the bookmark. The close tab is the side-tab art standing up, showing 22 book px above the page near its corner. Its X is a `CloseGlyph` label in the game font (the same X as the cycling view's "X ESC"), and like the side tabs it has no hover art, tooltip or hand cursor. The bookmark hangs about 27 book px below the page stack, centred at x 583 (between its first spot and the book's right edge). It sits in a `BookmarkClip` whose top is the top page's bottom edge, and once the book lies open it slides down out of it in `BOOKMARK_SLIDE_SECONDS` (0.45 s, ease out), as if pulled from between the pages; it hides at once when the book starts closing. One palette-swap shader (`assets/shaders/palette_swap.gdshader`) recolours the cover edge, the page border line, the turning page and the bookmark from a `BookStyleData` (`scripts/resource_definitions/ui/book_style_data.gd`; one per book in `resources/ui/book_styles/`). The close tab and bookmark only show while the book lies open. A `BookHitArea` over the open book's art, (48, 24)-(652, 432), and the bookmark catch clicks, so only a click outside the book reaches the backdrop and closes it; the transparent margins of the 700 × 450 frame count as outside. Signals: `opened`, `closed`, `close_requested`, `page_turned`.
+- `MenuBookView` (`scenes/ui/book_frame/menu_book_view.gd`) is the base script of the four views. `animate_open()` and `animate_close()` drive the `%BookFrame`; the nodes in its `page_content` export are shown only while the book lies open. It re-emits the close tab as `close_requested` and emits `close_finished` when the book has closed. Hooks: `_before_open()`, `_after_open()`, `_before_close()`, `_after_close()`.
+- `BookViewState` (`scenes/ui/main_view/states/book_view_state.gd`) is the base of the four states. Subclasses name the view (`_get_view()`) and their close keys (`_is_close_event()`); Esc, the menu's key, the close tab and `GreyBackground.clicked` (connected in `enter()`, disconnected in `exit()`) all call `_request_close()`.
+- Inventory keeps its own pages in book units (its text widgets counter-scaled to 0.5). The other three books draw their pages at screen resolution in a `PageLayer`, styled by `assets/themes/book_theme.tres` (see [UI_STYLING.md](../UI_STYLING.md#menu-book-pages)), with the inventory's title ribbon (`TabBanner`), selector (`SortSubBanner`) and side tabs reused at book scale.
 
 ### ActionManager-driven transitions
 
@@ -248,8 +257,8 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | ActionManager | `start_cycling`/`stop_cycling` → `CyclingViewState` push/pop. `start_merchant`/`stop_merchant` → `MerchantViewState` push / fade and remove. `adventure_start_requested` → `ZoneViewState` input blocker plus `ZoneTransition` drain. `start_adventure` → `AdventureViewState.change_state()`. `stop_action()` called by `CyclingViewState`. |
 | AdventureView | `adventure_completed(result)` → end card push. `is_in_combat`, `force_win_combat()` and `set_show_whole_map()` are used by the dev panel. |
 | AdventureEndCard | `show_results(result)`, `return_requested` → pop + `change_state(zone)` |
-| InventoryView | `animate_open()`, `animate_close()`, `inventory_closed` |
-| PathTreeView / AbilitiesView / CharacterView / MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
+| InventoryView / PathTreeView / AbilitiesView / CharacterView | `MenuBookView`: `animate_open()` / `animate_close()` called through `GreyBackground`; `close_requested` (close tab) → the state's close path; `close_finished` → `GreyBackground` finishes hiding |
+| MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
 | ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain. |
 | ResourceManager | `Toolbar` gold label (`gold_changed`, `get_gold()`) |
 | AbilityManager | `SystemMenuButton` badge (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
@@ -272,6 +281,8 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/character/character_view_state.gd` | Character overlay state |
 | `scenes/merchant/merchant_view_state.gd`, `merchant_view.tscn` | Merchant shop overlay state and view |
 | `scenes/ui/grey_background/grey_background.gd` | Modal backdrop and fade orchestration |
+| `scenes/ui/book_frame/book_frame.tscn`, `book_frame.gd`, `menu_book_view.gd` | Shared menu book and the menu views' base script |
+| `scenes/ui/main_view/states/book_view_state.gd` | Base state of the four menu books |
 | `scenes/ui/toolbar/toolbar.tscn`, `toolbar.gd` | Bottom navigation bar and gold readout |
 | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | `SystemMenuButton` and `MenuType` config |
 | `scenes/zones/zone_transition/zone_transition.gd` | Adventure-entry drain and zoom; camera reset |
@@ -282,7 +293,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 ### Bugs
 
-- `[MEDIUM]` The grey backdrop goes invisible after a faded panel closes. `GreyBackground.hide_with_panel()` ends `grey_fade_out` with `self_modulate.a = 0`, and nothing resets it. `InventoryViewState.enter()`, `CyclingViewState.enter()` and `AdventureEndCardState.enter()` only set `visible = true`. After the Path, Abilities, Character or Merchant view has been opened and closed once, the backdrop behind Inventory, Cycling and the end card no longer dims the screen, though it still blocks clicks. Found by reading the code; not reproduced in-game.
+- `[MEDIUM]` The grey backdrop goes invisible after a faded panel closes. `GreyBackground.hide_with_panel()` ends `grey_fade_out` with `self_modulate.a = 0`, and nothing resets it. `CyclingViewState.enter()` and `AdventureEndCardState.enter()` only set `visible = true`. After a menu book or the Merchant view has been opened and closed once, the backdrop behind Cycling and the end card no longer dims the screen, though it still blocks clicks. The menu books are not affected: they open through `show_with_panel()`. Found by reading the code; not reproduced in-game.
 
 ### Missing Functionality
 
@@ -293,7 +304,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 ### UI
 
-- `[LOW]` Overlays use two transition styles. Inventory, Cycling and the end card toggle the backdrop instantly; Path, Abilities and Character fade it through `GreyBackground.show_with_panel()`/`hide_with_panel()`.
+- `[LOW]` Overlays use two transition styles. Cycling and the end card toggle the backdrop instantly; the menu books and the merchant fade it through `GreyBackground.show_with_panel()`/`hide_with_panel()`. The zone-action pop-ups are the next consistency pass ("menus are books, action pop-ups are scrolls").
 - `[LOW]` `FloatingText._ready()` sets its size with `add_theme_constant_override("font_size", FONT_SIZE)`. Font sizes need `add_theme_font_size_override`, so `FONT_SIZE` never applies and the size comes from `LabelSubheading` (24 px). The script also uses `$Label` instead of `%Label`.
 
 ### Tech Debt
@@ -308,11 +319,9 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 - `[LOW]` Dead code:
   - `InkbrushButton` has no references. It uses the root-level placeholder `res://32.png`, untyped constants, functions without return types, and `$MarginContainer/...` paths.
   - `scripts/utils/text_effect_importer.gd` has no references, no `class_name` and no doc comment.
-  - `AbilitiesView.abilities_closed`, `PathTreeView.path_tree_closed` and `InventoryView.inventory_opened` are emitted but have no listeners.
 - `[LOW]` Some nodes are created in code despite the scene-tree UI rule: the `ZoneViewState._add_input_blocker()` `Control.new()`, and `FlyingParticle`, which has no `.tscn`.
 - `[LOW]` Stale doc comments:
   - The `MainView` class comment lists 4 views; there are 9 states.
-  - The `GreyBackground` header names only AbilitiesView/PathTreeView.
   - `TickProgressBar` says the counter is "below the bar"; the scene places it to the right.
 - `[LOW]` `MainGame.log_print_level` is set to `0` (`Log.Event.INFO`) in `main_game.tscn`; the script default is `DEBUG`. `Log.Event` orders `INFO`(0) before `DEBUG`(1), so INFO prints every level and DEBUG would hide INFO lines (see [LOGGING.md](LOGGING.md)).
 - `[LOW]` `project.godot` mismatches:

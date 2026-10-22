@@ -1,6 +1,6 @@
 # Character, Player Vitals and Character View
 
-Last updated: 2026-10-18
+Last updated: 2026-10-21
 
 ## Overview
 
@@ -8,19 +8,19 @@ Three pieces make up the player's persistent identity outside of abilities:
 
 - **`CharacterManager`** (autoload) owns the 8 **base attributes**, which are persisted in `SaveGameData.character_attributes`. It computes **total attributes** as base + equipment bonuses for every system that needs stats.
 - **`PlayerManager`** (autoload) holds the player's single persistent **`VitalsManager`** (health, stamina, and combat Madra), which every adventure and fight reuses.
-- **Character View** (press **C**) is a read-only modal that shows the 8 total attributes in two columns, with a hover tooltip for each.
+- **Character View** (press **C**) is a read-only menu book (the indigo one of the four menu books, see [MAIN_VIEW.md](MAIN_VIEW.md#menu-books)). The left page shows the 8 total attributes as tiles; the right page describes the one you point at.
 
 Abilities are not part of this system. Unlocks and the 4-slot loadout live in `AbilityManager` (see [ABILITIES.md](../abilities/ABILITIES.md)).
 
 ## Player Experience
 
-1. On the zone view, press **C** or click **CHARACTER** in the bottom `Toolbar`. A grey backdrop fades in with the panel (0.3 s).
-2. The panel is headed "CHARACTER — Your cultivation attributes". It has two columns, each row showing an icon, a name and a value:
-   - **PHYSICAL:** Strength, Body, Agility, Resilience
-   - **SPIRITUAL:** Spirit, Foundation, Control, Willpower
+1. On the zone view, press **C** or click **CHARACTER** in the bottom `Toolbar`. A grey backdrop fades in while the indigo book opens.
+2. The left page carries the "Character" title ribbon and two header plaques, each over a row of four attribute tiles (the icon at 64 px, the value in large gold and the name, centred on a small card):
+   - **Physical:** Strength, Body, Agility, Resilience
+   - **Spiritual:** Spirit, Foundation, Control, Willpower
 3. Values are **totals** (base + equipped gear), rounded to whole numbers (`"%.0f"`). A new character shows 10 everywhere.
-4. Hovering a row brightens it and shows a tooltip above it, with the attribute name, a description and a formula line (some formulas are wrong; see Work Remaining).
-5. **C** or **Esc** closes the panel (0.2 s fade). It can only be opened from the zone view, not during adventures, cycling or other modals.
+4. Pointing at a tile selects it (a warm tint) and describes it on the right page: a plaque with the name, then one card that fills the page. The card has the icon, name, group ("Physical attribute") and value, the description in a three-line area, a divider, an "Effects" caption and the effect lines. Those lines (each marked "▲") are the attribute's formulas, written to match the code, then every unlocked ability that scales with it, read from the ability data ("Basic Strike: +1 damage per point"). An attribute with neither says "Not yet active". The effects start at the same height for every attribute. The right page keeps the last attribute pointed at; Strength is shown when the book opens.
+5. **C**, **Esc**, the close tab on the book's top edge, or a click outside the book closes it. It can only be opened from the zone view, not during adventures, cycling or other modals.
 
 Attributes grow in two ways:
 
@@ -40,22 +40,21 @@ PlayerManager (autoload)                   singletons/player_manager/player_mana
         listens: CharacterManager.base_attribute_changed → refresh attrs → recompute max values
 
 MainView (main_game.tscn)
-  MainViewStateMachine/CharacterViewState  scenes/character/character_view_state.gd
-  CharacterView (Control, z_index 3)       scenes/character/character_view.tscn / .gd
-    UnifiedPanel (PanelContainer, min width 820, centered)
-      MainVBox
-        Header → HeaderMargin → HeaderVBox → Title "CHARACTER" (LabelTitle),
-                                             Subtitle "Your cultivation attributes" (LabelSubheading)
-        HeaderSep
-        BodyMargin → Body (HBox)
-          PhysicalGroup %  → PhysicalLabel, PhysicalSep, Strength/Body/Agility/ResilienceRow
-          BodyDivider (VSeparator)
-          SpiritualGroup % → SpiritualLabel, SpiritualSep, Spirit/Foundation/Control/WillpowerRow
-        Footer → FooterLabel "Press C or ESC to close" (LabelSmall, muted)
-    SharedTooltip % (AttributeTooltip)    scenes/character/attribute_tooltip/
-    AnimationPlayer % ("open" 0.3 s, "close" 0.2 s, modulate fade)
-  AttributeRow (×8, PanelContainer)        scenes/character/attribute_row/
-    RowHBox → Icon % (36×36), NameLabel % (LabelBody), ValueLabel % (LabelValueLarge)
+  MainViewStateMachine/CharacterViewState  scenes/character/character_view_state.gd (BookViewState)
+  CharacterView (Control, z_index 3)       scenes/character/character_view.tscn / .gd (MenuBookView, theme book_theme.tres)
+    BookLayer (centred, scale 2)
+      BookFrame %                          scenes/ui/book_frame/, style character_book_style.tres
+      BookContent → TitleBanner "Character" (TabBanner at the inventory's ribbon position)
+    PageLayer (centred, screen pixels)
+      LeftPage (VBox)
+        PhysicalPlaque (LabelBookPlaque) → PhysicalTiles % (GridContainer, 4 columns) → Strength/Body/Agility/ResilienceTile
+        SpiritualPlaque → SpiritualTiles % (GridContainer, 4 columns) → Spirit/Foundation/Control/WillpowerTile
+      RightPage (VBox)
+        DetailPlaque % → DetailCard (PanelBookCard, fills the page): DetailIcon % (64×64), DetailName %,
+                         DetailGroup %, DetailValue % (LabelBookValueLarge), DetailDescription % (3 lines, fixed),
+                         EffectsSep, EffectsCaption ("Effects"), EffectsLabel %
+  AttributeTile (×8, PanelContainer, PanelBookTile, 110×150)  scenes/character/attribute_tile/
+    TileVBox → Icon % (64×64), ValueLabel % (LabelBookValueLarge), NameLabel % (LabelBookMuted)
 ```
 
 ## Data Model
@@ -118,10 +117,9 @@ See [COMBAT.md](../combat/COMBAT.md) for how combat uses these.
 
 | Node / script | Key members |
 |---------------|-------------|
-| `CharacterView` (`class_name CharacterView`) | `TOOLTIP_DATA: Dictionary` (title, description and effects text per attribute, hard-coded); `refresh()`; `animate_open()` (calls `refresh()`, then plays "open"); `animate_close()` (hides the tooltip, then plays "close"); `_rows_by_type`, filled from the AttributeRow children of `%PhysicalGroup` / `%SpiritualGroup` |
-| `AttributeRow` (`class_name AttributeRow`) | Exports `attribute_name: String`, `attribute_type: AttributeType`, `icon_texture: Texture2D` (set per instance to `assets/sprites/ui/attribute_icons/<attr>_icon.png`). `set_value(float)` writes `"%.0f"`. Signals `hovered(row)` and `unhovered()`. A hovered row is tinted to `Color(1.15, 1.1, 1.05)` |
-| `AttributeTooltip` (`class_name AttributeTooltip`) | `top_level`, `z_index 100`, `PanelTooltip` variant, ignores the mouse. `show_for_row(row, data)` positions it 8 px above the row. `hide_tooltip()` |
-| `CharacterViewState` (`class_name CharacterViewState extends MainViewState`) | `enter()` calls `grey_background.show_with_panel(character_view)`. `handle_input` reacts to `ui_cancel` / `open_character`. `exit()` does nothing |
+| `CharacterView` (`class_name CharacterView extends MenuBookView`) | `ATTRIBUTE_DETAILS: Dictionary` (per attribute: a description and the `formulas` it feeds, written to match the code); `NO_EFFECTS_TEXT` ("Not yet active"); `refresh()`; `select_attribute(type)` (marks the tile, fills the right page; pointing again at the described attribute does nothing); `get_selected_attribute()`; `_before_open()` selects Strength and refreshes; `_describe_effects()` lists the formulas, then each unlocked ability whose effects scale with the attribute (`CombatEffectData.get_scaling()`); `_tiles_by_type`, filled from the AttributeTile children of `%PhysicalTiles` / `%SpiritualTiles` |
+| `AttributeTile` (`class_name AttributeTile`) | Exports `attribute_name: String`, `attribute_type: AttributeType`, `icon_texture: Texture2D` (set per instance to `assets/sprites/ui/attribute_icons/<attr>_icon.png`, 32 px art stored at 2×, shown at 64). `set_value(float)` writes `"%.0f"`. Signal `hovered(tile)`. `set_selected(bool)` swaps between `PanelBookTile` and the tinted `PanelBookTileSelected` |
+| `CharacterViewState` (`class_name CharacterViewState extends BookViewState`) | View `character_view`; closes on `ui_cancel`, `open_character`, the close tab or a backdrop click |
 
 ## Core Systems and Flows
 
@@ -186,15 +184,17 @@ C key / Toolbar CHARACTER button (SystemMenuButton MenuType.CHARACTER → Input.
   → MainView._unhandled_input → ZoneViewState.handle_input("open_character")
   → MainView.push_state(character_view_state) → CharacterViewState.enter()
   → GreyBackground.show_with_panel(character_view) → CharacterView.animate_open()
-      → refresh() reads CharacterManager.get_total_attributes_data() → each AttributeRow.set_value()
+      → _before_open(): select_attribute(STRENGTH), refresh() reads
+        CharacterManager.get_total_attributes_data() → each AttributeTile.set_value()
+      → BookFrame open animation → pages shown
 
-C / Esc (top state is CharacterViewState)
-  → GreyBackground.hide_with_panel(character_view) (+ one-shot panel_hidden → _on_close_finished)
-  → CharacterView.animate_close() → grey fade-out finishes → both hidden → panel_hidden
-  → MainView.pop_state()
+C / Esc / close tab / click outside the book (top state is CharacterViewState)
+  → BookViewState._request_close() → GreyBackground.hide_with_panel(character_view)
+  → CharacterView.animate_close() → pages hidden, book closes → close_finished
+  → grey fade-out and book close both finished → both hidden → panel_hidden → MainView.pop_state()
 ```
 
-Values are read only when the panel opens. Nothing updates them while it is open. The state machine, `GreyBackground` and `Toolbar` are documented in [MAIN_VIEW.md](MAIN_VIEW.md).
+Values are read only when the book opens. Nothing updates them while it is open. The state machine, `GreyBackground` and `Toolbar` are documented in [MAIN_VIEW.md](MAIN_VIEW.md).
 
 ## Integration Points
 
@@ -208,13 +208,14 @@ Values are read only when the panel opens. Nothing updates them while it is open
 | ChangeVitalsEffectData | Reads total BODY and FOUNDATION and applies the result to `PlayerManager.vitals_manager` (encounters, consumables) |
 | AwardAttributeEffectData | The only caller of `add_base_attribute()` (see [EFFECTS.md](EFFECTS.md)) |
 | UnlockConditionData | `ATTRIBUTE_VALUE` conditions read totals. UnlockManager does not listen to `base_attribute_changed`, so these conditions are only re-checked when another signal fires (Madra, gold, event, cultivation) |
-| AbilityStatsDisplay | Shows per-attribute damage scaling from `get_total_attributes_data()` |
+| AbilitiesView, CombatAbilityTooltip | Damage previews from `get_total_attributes_data()` (see [ABILITIES.md](../abilities/ABILITIES.md)) |
+| AbilityManager | The Effects card lists the unlocked abilities that scale with the attribute |
 | PathManager | `PathEffectsSummary.attribute_bonuses` is computed but not consumed |
 | MainView / GreyBackground / Toolbar | Host the Character View and drive its modal flow |
 
 ## Existing Content
 
-- **Attribute icons:** `assets/sprites/ui/attribute_icons/{strength,body,agility,spirit,foundation,control,resilience,willpower}_icon.png`. The Toolbar's CHARACTER button uses `assets/sprites/ui/system_menu/character_icon.png`.
+- **Attribute icons:** `assets/sprites/ui/attribute_icons/{strength,body,agility,spirit,foundation,control,resilience,willpower}_icon.png` (32 px art stored at 2×). The original Control art sits 6 px right of centre, so the books use `control_icon_ai.png`, a re-centred copy; the original is unchanged. The Abilities book's damage breakdown uses them too. The Toolbar's CHARACTER button uses `assets/sprites/ui/system_menu/character_icon.png`.
 - **Gear with attribute bonuses:** the 7 items in `resources/items/equipment/spirit_valley/`, listed in the attribute-usage table above. Most of them cannot be obtained on `main`:
   - The Dreadbeast Tooth Necklace is in the Ravenous Dreadbeast elite encounter's loot table.
   - The Makeshift Dagger and Iron Shortsword appear only in `test_loot_table_weapon.tres`, which is used only by the unreferenced `test_treasure_encounter.tres`.
@@ -233,10 +234,10 @@ Values are read only when the panel opens. Nothing updates them while it is open
 | `singletons/player_manager/player_manager.gd` | Creates the persistent player `VitalsManager` |
 | `scenes/combat/combatant/vitals_manager/vitals_manager.gd` | Max values, regen, clamped vitals changes |
 | `scripts/resource_definitions/effects/award_attribute_effect_data.gd` | Data-driven base-attribute award |
-| `scenes/character/character_view.tscn` / `.gd` | Character View panel and tooltip text |
-| `scenes/character/character_view_state.gd` | Modal state |
-| `scenes/character/attribute_row/attribute_row.tscn` / `.gd` | Row subscene |
-| `scenes/character/attribute_tooltip/attribute_tooltip.tscn` / `.gd` | Shared tooltip |
+| `scenes/character/character_view.tscn` / `.gd` | Character book and the attribute details text |
+| `scenes/character/character_view_state.gd` | Modal state (`BookViewState`) |
+| `scenes/character/attribute_tile/attribute_tile.tscn` / `.gd` | Tile subscene |
+| `tests/integration/test_character_book.gd` | Tiles four to a row, right page follows hover, opens on Strength, values from `CharacterManager`, effects share the details pane and stay put, match the code and list only unlocked abilities, pages wait for the open book |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Pushes `CharacterViewState` on `open_character` |
 | `tests/unit/test_character_attributes_data.gd` | `get_max_madra()` (3 tests) |
 | `tests/unit/test_character_manager.gd` | See Tech Debt: does not call `CharacterManager` |
@@ -249,16 +250,7 @@ Design history: [character view spec](../superpowers/specs/2026-04-16-character-
 
 ### Bugs
 
-- `[MEDIUM]` Several Character View tooltip formulas are wrong. `CharacterView.TOOLTIP_DATA` is hand-written text that has drifted from the code:
-
-  | Attribute | Tooltip says | Actual |
-  |-----------|--------------|--------|
-  | BODY | `Max Health = 100 + BODY x 10`, `Max Stamina = 50 + BODY x 5` | `BODY × 10` and `BODY × 5` (`VitalsManager`) |
-  | FOUNDATION | `Max Madra = 50 + FND x 10` | `FOUNDATION × 10` |
-  | STRENGTH | `Basic Strike: STR x 0.2` | `basic_strike.tres` is 10 + STR × 1.0 + AGI × 0.5 |
-  | AGILITY / SPIRIT | Empty Palm `AGI x 0.3` / Power Font `SPI x 1.5` | These leave out Empty Palm's SPI × 1.0 and Power Font's FND × 0.5 |
-
-  Generate the text from the formulas and ability data instead of hard-coding it.
+- `[LOW]` The Effects card's formula lines are still hand-written (`ATTRIBUTE_DETAILS.formulas`), matched to `VitalsManager`, `get_max_madra()` and `calculate_damage()` as of 2026-10-21. A change to those formulas needs the text changed too. The ability lines are read from the ability data.
 - `[MEDIUM]` The player's maximum vitals ignore equipment changed during a session. `PlayerVitalsManager` refreshes its attributes only on `base_attribute_changed`, and equipping or unequipping gear never emits it.
   - Equipping Reinforced Robes (+4 BODY) leaves max health at 100 until a base attribute changes or the game restarts.
   - With Leeching Ring (+2 FOUNDATION), `ResourceManager.get_adventure_madra_capacity()` allows a 120 budget, but `VitalsManager.max_madra` stays at 100, so the extra 20 is clamped away on the first combat Madra change.
@@ -276,8 +268,7 @@ Design history: [character view spec](../superpowers/specs/2026-04-16-character-
 
 ### UI
 
-- `[LOW]` The open and close animations only fade `modulate`. The plan also specified a 0.95 → 1.0 scale.
-- `[LOW]` The tooltip is always placed above the hovered row and never clamped to the screen. This is harmless with the current centered layout, but it is fragile if the panel moves.
+- `[LOW]` The details card fills the right page but its effects are often a line or two. Derived totals (Max Health, Max Madra, Max Stamina) as numbers would fit there; not built.
 
 ### Tech Debt
 
@@ -286,6 +277,6 @@ Design history: [character view spec](../superpowers/specs/2026-04-16-character-
 - `[LOW]` Several doc comments are stale:
   - The `CharacterManager` class comment says it computes "health, madra, and combat stats", but it doesn't.
   - The `AttributeType` comments promise mechanics that don't exist: AGILITY "evasion, cooldown reduction", FOUNDATION "regeneration", CONTROL "madra cost reduction", WILLPOWER "technique power".
-  - The CONTROL tooltip says "reduce ability cooldowns", which contradicts the enum comment.
+  - The CONTROL description in `ATTRIBUTE_DETAILS` says "reduce ability cooldowns", which contradicts the enum comment.
 - `[LOW]` `CharacterManager._update_resources()` is named after the ResourceManager pattern but only re-emits attributes. `get_total_attributes_data()` has no `##` doc comment, and the locals in the getters and `_update_resources()` are untyped (`var base = …`).
 - `[LOW]` `PlayerManager` has no class doc. The player `VitalsManager` connects `base_attribute_changed` through an untyped lambda in `_ready()`.
