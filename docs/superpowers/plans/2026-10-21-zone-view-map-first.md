@@ -10,6 +10,24 @@
 
 **Spec:** [docs/superpowers/specs/2026-10-21-zone-view-map-first-design.md](../specs/2026-10-21-zone-view-map-first-design.md). **Art kit:** [docs/superpowers/specs/2026-10-21-zone-view-lacquer-kit.md](../specs/2026-10-21-zone-view-lacquer-kit.md) (every texture, colour, font size and screen position). Read both before any task. The mock-up [zone-view-map-first-mockup.html](../mockups/zone-view-map-first-mockup.html) is the visual reference; it opens in a browser from the repo.
 
+## As built (2026-10-22)
+
+All 15 tasks are built on `feat/zone-view-redesign-4656b7` (not merged); the suite ends at 97 scripts and 1128 tests, all passing. The living docs ([ZONES.md](../../zones/ZONES.md), [MAIN_VIEW.md](../../infrastructure/MAIN_VIEW.md)) describe the result. Deviations from the task text that matter (`git log main..HEAD` has the rest):
+
+- **Data (Task 1).** Test Zone sits at (-1, 0) with no description (`9a82d74`); see the corrected Data bullet in Task 1.
+- **Idle actions (Task 3).** Every resume after a session action logs "Resumed <name>"; only the auto-start on a first idle unlock logs "Started" (`384be22`). An action's completion counts in the zone it started in and only in the save it started under (`10b819e`, `0a0933e`), and a save reset that resolves to the same idle action restarts it in the new save (`68501bd`). The shop stops only a merchant action, so a second Leave or Escape during its fade cannot stop the resumed idle action (`0a0933e`).
+- **Theme and text (Task 4).** The Yatra decimal point trims its own line height in the `[font]` tag, because a `FontVariation` loaded by path drops its spacing in 4.7.2 (`39f9fcf`); `decimal_bbcode()` escapes `[` first (`81bb50c`). RichText detail lines ellipsize through `ZoneActionButton.fit_detail_rich_text()` (`f63eb32`). Items gained `mini_icon` instead of an id table in the presenters (`3abbcf7`).
+- **Goals (Tasks 6, 14).** The board hugs its rows (220 px with a quest, 150 without) from slices of its one texture; its cords are a node the adventure view hides, swapping in the hookless `lacquer_goals_top_plain_ai.png`; the adventure root sits at (1456, 4) so the body lines up with the log (`4294eff`, `32e583a`, `709d1e6`). The milestone figure caps at 100, and the board also follows `gold_changed` (`876dff8`).
+- **Log (Task 7).** `LogWindow._unhandled_input()` handles L, not `MainView`. The root is the log's slot and the board hangs inside it (from the top edge in the upper half, for the adventure view). The full log trims to `HISTORY_LIMIT`, lights its rail caps only when it can scroll, hangs wrapped lines under their text, uses the `RichTextLacquerLog` variant, and closes when the log hides (`f7395ed`, `b7071b4`).
+- **HUD boards (Task 14).** Every overlay over the zone view hides the log and the Goals board, counted per overlay in `MainView.hide_hud_boards()` / `release_hud_boards()`, not only the merchant (`ab4707a`).
+- **Dock (Task 8).** A button sends the release right after the press (`3d12688`).
+- **Zone chest (Task 10).** The lore is a `LabelLacquerLore` Label, 366 wide, with its paragraph gap as its one override; it closes at the end of the frame so a click lands on what the player saw; Escape closes it only while the zone view is the active state; the rail caps act on press (`1107c12`, `9fead1f`, `959bc20`, `8e9f83e`).
+- **Map (Tasks 11-13).** The camera clamp keeps one map zone's centre in the free map window through per-zone camera windows, not the zone bounds plus 1.5 hexes (`6d54e9c`). Fog art follows kit §6.2's hand-placed cells and is Basic for about 60% of the rest (`9847357`). Markers keep their kit size at every zoom; below zoom 1.25 plates show names only, narrowed to the name; the current plate draws on top; the ring lifts above the plate near zoom 1 (`587ef49`, `dca7c2e`, `3e81802`, `d992e88`). Plate lines split into icon, ellipsizing name and whole rate, in a slot inset to x 10-238 (`361de54`, `2aba7ce`). Routes run from the nearest reached zone and light only between open zones (`361de54`, `fa83ad1`). The walk starts before the zone changes, steps in whole world px, and ends where it began on an outside zone change or a lost target; the forage wander is phase-locked to the haul and the Aura Well bobs (`82243b0`, `52a0e17`, `b47a64f`, `dd8214c`).
+- **Drain (Task 14).** `ZoneTransition` pours opaque `MadraPellet`s (`lacquer_madra_pellet_ai.png`) in 2 px steps instead of glowing `FlyingParticle`s (`668783d`).
+- **Tests.** `test_foraging_detail_has_interval_and_cost` is `test_foraging_detail_has_ranges_interval_and_cost`; `test_fresh_save_cycling_card_wraps` uses a fixture technique because `test_cycling_manager.gd` empties the catalog index ([TESTING.md](../../testing/TESTING.md) Tech Debt).
+- **Open.** One Escape closes both a pinned map popover and the zone lore (the popover's `set_input_as_handled()` stays inside the SubViewport). A two-digit Path count is 1 px wider than the mock. Both are in the living docs' Work Remaining.
+- **Docs (Task 15).** Split into `docs(zones)`, `docs(logging)`, `docs(state)`, `docs(testing)` and a plain `docs:` commit for the system docs, plus this record.
+
 ## Global Constraints
 
 - **Project rules (CLAUDE.md):** UI nodes live in `.tscn` scenes, scripts only set data (memory rule: never create UI nodes in code). Label theme variants before inline overrides. Explicit types everywhere, `->` return types, `##` doc comments on public functions, `_` prefix on private ones, `%UniqueName` node references, `#-----` section headers, `Log.*` for diagnostics, no `print()`.
@@ -65,7 +83,7 @@
   - `SaveGameData.seen_action_ids: Array[String] = []`, `SaveGameData.seen_actions_initialized: bool = false`, `SaveGameData.migrate() -> void` (moves `current_selected_zone_id` through `const ZONE_ID_MIGRATIONS: Dictionary = {"TestZone": "SpiritValley"}`); `reset()` resets the new fields.
   - `ZoneManager`: `enum ZoneMapState { CURRENT, OPEN, LOCKED, UNCHARTED }`; `signal map_zones_changed()`; `signal action_focus_requested(action_id: String)`; `get_map_zones() -> Array[ZoneData]`; `get_zone_map_state(zone_data: ZoneData) -> ZoneMapState`; `is_zone_charted(zone_data: ZoneData) -> bool`; `set_demo_zones_visible(visible: bool) -> void`; `set_hidden_zones_visible(visible: bool) -> void`; `get_last_idle_action_id(zone_id: String) -> String`; `set_last_idle_action_id(zone_id: String, action_id: String) -> void`; `mark_action_seen(action_id: String) -> void`; `is_action_seen(action_id: String) -> bool`; `request_action_focus(action_id: String) -> void` (emits `action_focus_requested`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `test_save_migration.gd`: `test_test_zone_save_moves_to_spirit_valley` (a `SaveGameData` with `current_selected_zone_id = "TestZone"`, `migrate()`, expect `"SpiritValley"`); `test_other_zone_is_unchanged`; `test_empty_zone_is_unchanged`; `test_old_save_loads_new_field_defaults` (hand-written `.tres` with only `gold = 42.0`, as `test_merchant_data.gd:96` does; expect `seen_action_ids == []`, `seen_actions_initialized == false`).
 
@@ -82,17 +100,17 @@
 
 `test_seen_actions.gd`: `test_mark_then_is_seen`; `test_mark_twice_stores_once`; `test_first_init_marks_available_actions_seen` (fresh save + reset: `wilderness_cycling_action` is seen, `seen_actions_initialized` is true); `test_init_runs_once` (unlock foraging after init: foraging is not seen).
 
-- [ ] **Step 2: Run them, expect failures** (missing fields and methods).
+- [x] **Step 2: Run them, expect failures** (missing fields and methods).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
   - Fields as listed. `SaveGameData.migrate()`; `PersistenceManager._ready()` calls `save_game_data.migrate()` after `load_data()` and before `verify()`.
   - `ZoneManager`: demo zones are loaded from `const DEMO_ZONE_PATHS: Array[String]` and never enter `zone_data_list.tres`; `get_map_zones()` keeps list order, skips `hidden_on_map` unless hidden zones are on, then appends demo zones when on. `get_zone_map_state`: not charted (chart conditions not latched, via `UnlockManager.are_unlock_conditions_met`) → UNCHARTED; zone unlock conditions not latched → LOCKED; id == current → CURRENT; else OPEN. On `_initialize_from_save`, when `seen_actions_initialized` is false, mark every action in `get_available_actions(zone.zone_id)` of every zone seen and set the flag.
-  - Data: TestZone `hidden_on_map = true`. Spirit Valley `tile_variant_index = 6`. `dev_never_unlocked_condition.tres`: `EVENT_TRIGGERED`, id and target `dev_demo_never_unlocked`, **not** added to `unlock_condition_list.tres`. Advancement demo: id `AdvancementZoneDemo`, name "Advancement Zone", `tilemap_location (0, -1)`, `tile_variant_index 20` (Stones), unlock condition = the never condition, `blocker_short_text "Tribulation Guardian"`, `requirement_text "Defeat the Tribulation Guardian in The Shallow Woods"`, `requirement_action_id "shallow_woods_adventure_action"`. Uncharted demo: id `UnchartedZoneDemo`, name "Uncharted", `tilemap_location (0, -2)`, `tile_variant_index 8` (Mountains2), chart condition = the never condition, `blocker_short_text "After the Tribulation"`, `requirement_text "Revealed after the Tribulation."`.
+  - Data: TestZone `hidden_on_map = true`, `tilemap_location (-1, 0)` (kit §6: west of Spirit Valley, where the hidden-zones toggle shows it on screen) and no `description` (kit §8 demo=1: no About). Spirit Valley `tile_variant_index = 6`. `dev_never_unlocked_condition.tres`: `EVENT_TRIGGERED`, id and target `dev_demo_never_unlocked`, **not** added to `unlock_condition_list.tres`. Advancement demo: id `AdvancementZoneDemo`, name "Advancement Zone", `tilemap_location (0, -1)`, `tile_variant_index 20` (Stones), unlock condition = the never condition, `blocker_short_text "Tribulation Guardian"`, `requirement_text "Defeat the Tribulation Guardian in The Shallow Woods"`, `requirement_action_id "shallow_woods_adventure_action"`. Uncharted demo: id `UnchartedZoneDemo`, name "Uncharted", `tilemap_location (0, -2)`, `tile_variant_index 8` (Mountains2), chart condition = the never condition, `blocker_short_text "After the Tribulation"`, `requirement_text "Revealed after the Tribulation."`.
   - Icons: set `ZoneActionData.icon` on every action: cycling `icons/ic_cycle_ai.png`, foraging `icons/ic_forage_ai.png`, Aura Well `icons/ic_well_ai.png`, merchant `icons/ic_merchant_ai.png`, dialogues `icons/ic_story_ai.png`, adventure the user's `assets/sprites/ui/stat_icons/combat_icon.png`.
 
-- [ ] **Step 4: Run the three new files and the suite; expect all green.**
+- [x] **Step 4: Run the three new files and the suite; expect all green.**
 
-- [ ] **Step 5: Commit** `feat(zones): add map state, demo zones and save fields for the map-first view`.
+- [x] **Step 5: Commit** `feat(zones): add map state, demo zones and save fields for the map-first view`.
 
 ---
 
@@ -112,7 +130,7 @@
   - `ZoneActionGroups` (no `extends`, statics only): `enum Group { TALK, CULTIVATE, GATHER, VENTURE, VISIT }`; `group_of(action_type: ZoneActionData.ActionType) -> Group` (TALK = NPC_DIALOGUE; CULTIVATE = CYCLING, TRAIN_STATS; GATHER = FORAGE; VENTURE = ADVENTURE; VISIT = MERCHANT, ZONE_EVENT); `label(group: Group) -> String` ("Talk", "Cultivate", "Gather", "Venture", "Visit"); `sort_actions(actions: Array[ZoneActionData]) -> Array[ZoneActionData]` (stable: by group, input order within a group); `mode_tag(action: ZoneActionData) -> String` ("IDLE" for FORAGE/TRAIN_STATS, "ACTIVE" for CYCLING/ADVENTURE, "SHOP" for MERCHANT, "STORY" for NPC_DIALOGUE/ZONE_EVENT).
   - `LogManager.HISTORY_LIMIT: int = 200`; `get_history() -> Array[String]` (oldest first; `log_message` appends and trims).
 
-- [ ] **Step 1: Write the failing tests** (swap the managers' save as the existing unit tests do; call the real methods):
+- [x] **Step 1: Write the failing tests** (swap the managers' save as the existing unit tests do; call the real methods):
   - `test_max_madra_follows_level` (level 32 → 100 + 5 × 32 = 260.0).
   - `test_quiet_add_logs_nothing`, `test_loud_add_logs_gained_line`, `test_capped_add_logs_nothing` (Madra at max, add 5 → no `message_logged`), `test_quiet_add_still_adds` (Madra rises by the amount).
   - `test_madra_per_second_sums_madra_effects` (effects 1.5 MADRA + 2 GOLD, interval 1.0 → 1.5; interval 0.5 → 3.0), `test_ticks_in_level` and `test_ticks_for_next_level` with `ticks_per_level [3, 5]` at 0, 2, 3, 7 ticks.
@@ -120,10 +138,10 @@
   - `test_sort_puts_talk_first_and_keeps_order` (input in Spirit Valley's `all_actions` order → cycling, Aura Well before foraging; dialogues first), `test_mode_tags`, `test_labels`.
   - `test_history_keeps_order`, `test_history_trims_to_limit`.
 
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement** as listed. `test_training_flow.gd` must stay green (the quiet flag must not change what is added).
-- [ ] **Step 4: Run the new files and the suite; green.**
-- [ ] **Step 5: Commit** `feat(core): add getters, quiet Madra and action groups for the zone view`.
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement** as listed. `test_training_flow.gd` must stay green (the quiet flag must not change what is added).
+- [x] **Step 4: Run the new files and the suite; green.**
+- [x] **Step 5: Commit** `feat(core): add getters, quiet Madra and action groups for the zone view`.
 
 ---
 
@@ -144,7 +162,7 @@ Rules (spec, Behaviour › Idle action resolution, and Implementation notes › 
 - `_on_zone_changed(zone)`: remember the last resolved zone id. Same zone and an idle action of that zone already running → do nothing (the load emits `zone_changed` twice). Otherwise stop the current action and resolve: log "Travelled to <zone> · resumed <name>" or "Travelled to <zone>" when the zone differs from the previous one, else "Resumed <name>" (nothing when nothing resumes).
 - On `UnlockManager.condition_unlocked(id)` with a non-empty id and no current action: resolve; if an idle action results, start it and log "Started <name>".
 
-- [ ] **Step 1: Write the failing tests** (fresh-save fixture; unlock foraging with `EventManager.trigger_event("q_fill_core_completed")`, the Aura Well with `EventManager.trigger_event("aura_well_discovered")`):
+- [x] **Step 1: Write the failing tests** (fresh-save fixture; unlock foraging with `EventManager.trigger_event("q_fill_core_completed")`, the Aura Well with `EventManager.trigger_event("aura_well_discovered")`):
   - `test_resolve_prefers_saved_last_idle`, `test_resolve_falls_back_to_first_in_group_order` (both unlocked, none saved → Aura Well), `test_resolve_skips_stale_saved_id` (saved id of a locked action → first available), `test_resolve_returns_null_with_nothing_idle`.
   - `test_cycling_stop_resumes_idle`, `test_adventure_stop_win_resumes_idle`, `test_adventure_stop_loss_resumes_idle` (`stop_action(false)`), `test_dialogue_end_resumes_idle` (select a dialogue action, then `DialogueManager.dialogue_ended.emit()` if the timeline cannot run headless), `test_merchant_close_resumes_idle`.
   - `test_stopping_idle_resumes_nothing`.
@@ -155,10 +173,10 @@ Rules (spec, Behaviour › Idle action resolution, and Implementation notes › 
   - `test_madra_per_second_tracks_current_action` (Aura Well → 1.5; foraging → 0).
   - Update `test_merchant_shop_flow.gd`: `test_shop_resumes_the_idle_action_it_replaced` unlocks foraging in its own body; add `test_zone_change_during_shop_resumes_destination_idle`. Keep lines 72-82 green.
 
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement.** Keep the side effect noted in the spec (every stop counts a completion).
-- [ ] **Step 4: Run the new file, the merchant flow, the training flow, the adventure end flow and the suite; green.**
-- [ ] **Step 5: Commit** `feat(actions): resume the zone's idle action after every session action`.
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement.** Keep the side effect noted in the spec (every stop counts a completion).
+- [x] **Step 4: Run the new file, the merchant flow, the training flow, the adventure end flow and the suite; green.**
+- [x] **Step 5: Commit** `feat(actions): resume the zone's idle action after every session action`.
 
 ---
 
@@ -178,11 +196,11 @@ Rules (spec, Behaviour › Idle action resolution, and Implementation notes › 
   - `LacquerFrameOverlay extends Panel` (style `frame_brass` or `frame_hover`, `draw_center = false`, mouse ignored): `flash(times: int) -> void` (300 ms shown, 300 ms hidden, `times` times, outright), `is_flashing() -> bool`.
   - `LacquerText` (statics): `rate(value: float) -> String` ("+1.5", "+2", "+0.5"); `decimal_bbcode(text: String) -> String` (wraps each `.` between digits in `[font=res://assets/fonts/YatraOne-Regular.ttf].[/font]`, kit §3 glyph gaps).
 
-- [ ] **Step 1: Write the failing tests:** `test_strip_rect_selects_frame` (frame (3, 1) of 80x80 → region `Rect2(240, 80, 80, 80)`); `test_rod_steps` (steps 152: f 0 → k 0, clip width 2, end hidden; f 0.5 → k 76, width 154, end at x 152 and shown); `test_rod_clamps`; `test_flash_toggles_and_ends_hidden` (await the tween; hidden at the end); `test_rate_format`; `test_decimal_bbcode_wraps_only_between_digits` ("+1.5 Madra / s" wraps one dot; "Lv 1 → 2." wraps none); `test_theme_has_variants` (load the theme; each variant listed above exists with the expected font size; `LabelLacquerZoneName` uses Yatra One).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement**; StyleBoxTexture margins: frame_brass 8, frame_hover 4, rail_thumb top/bottom 4 (kit §4.2, §4.4), token 6 left/top and 8 right/bottom (its 2 px shadow is baked in; kit Godot notes). Add a "Lacquer theme" section to `docs/UI_STYLING.md` listing the variants and the rule that zone-view panels set `theme = lacquer_theme.tres` on their root.
-- [ ] **Step 4: Run; green. `--import` once for the new class names.**
-- [ ] **Step 5: Commit** `feat(ui): add the lacquer theme, strip, rod and frame pieces`.
+- [x] **Step 1: Write the failing tests:** `test_strip_rect_selects_frame` (frame (3, 1) of 80x80 → region `Rect2(240, 80, 80, 80)`); `test_rod_steps` (steps 152: f 0 → k 0, clip width 2, end hidden; f 0.5 → k 76, width 154, end at x 152 and shown); `test_rod_clamps`; `test_flash_toggles_and_ends_hidden` (await the tween; hidden at the end); `test_rate_format`; `test_decimal_bbcode_wraps_only_between_digits` ("+1.5 Madra / s" wraps one dot; "Lv 1 → 2." wraps none); `test_theme_has_variants` (load the theme; each variant listed above exists with the expected font size; `LabelLacquerZoneName` uses Yatra One).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement**; StyleBoxTexture margins: frame_brass 8, frame_hover 4, rail_thumb top/bottom 4 (kit §4.2, §4.4), token 6 left/top and 8 right/bottom (its 2 px shadow is baked in; kit Godot notes). Add a "Lacquer theme" section to `docs/UI_STYLING.md` listing the variants and the rule that zone-view panels set `theme = lacquer_theme.tres` on their root.
+- [x] **Step 4: Run; green. `--import` once for the new class names.**
+- [x] **Step 5: Commit** `feat(ui): add the lacquer theme, strip, rod and frame pieces`.
 
 ---
 
@@ -198,11 +216,11 @@ Rules (spec, Behaviour › Idle action resolution, and Implementation notes › 
 
 Layout is kit §5.1 (positions relative to the cabinet's top-left = screen − (24, 24)). Madra orb frame = round(Madra / max × 32); core orb column = round(min(level, 100) / 100 × 16), row = swirl phase stepped every 1.5 s by a `Timer` in the scene; beads row = round(xp / need × 18). The rate label shows `LacquerText.rate(rate) + " / s"` only while `get_current_madra_per_second() > 0`. Listens to `madra_changed`, `core_density_xp_updated`, `core_density_level_updated`, `advancement_stage_changed`, `gold_changed`, `ActionManager.current_action_changed`, and reads everything once in `_ready`.
 
-- [ ] **Step 1: Write the failing tests** (fresh-save fixture, scene via `add_child_autofree`): `test_shows_madra_over_max` ("25" and "/ 100" on a fresh save); `test_madra_orb_frame_follows_ratio` (Madra 50 of 100 → frame 16); `test_core_orb_column_follows_level` (level 32 → column 5); `test_beads_follow_xp`; `test_level_and_stage_text` ("Level 0", "Foundation"); `test_gold_text`; `test_rate_hidden_without_madra_action`; `test_rate_shows_while_aura_well_runs` (unlock and select the Aura Well → "+1.5 / s" visible; select cycling → hidden); `test_madra_orb_position_is_orb_centre` (within the orb's rect).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Build the scene** from kit textures (`lacquer_cult_ai`, orb and bead strips, `lacquer_line_ai`, the user's `gold_icon` at 32x32). Core Density level 0 shows the dormant-core frame (column 0) and the script.
-- [ ] **Step 4: Run; green. Capture the scene alone (movie command) and compare with the mock's cabinet; fix placement.**
-- [ ] **Step 5: Commit** `feat(zones): add the lacquer cultivator cabinet`.
+- [x] **Step 1: Write the failing tests** (fresh-save fixture, scene via `add_child_autofree`): `test_shows_madra_over_max` ("25" and "/ 100" on a fresh save); `test_madra_orb_frame_follows_ratio` (Madra 50 of 100 → frame 16); `test_core_orb_column_follows_level` (level 32 → column 5); `test_beads_follow_xp`; `test_level_and_stage_text` ("Level 0", "Foundation"); `test_gold_text`; `test_rate_hidden_without_madra_action`; `test_rate_shows_while_aura_well_runs` (unlock and select the Aura Well → "+1.5 / s" visible; select cycling → hidden); `test_madra_orb_position_is_orb_centre` (within the orb's rect).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Build the scene** from kit textures (`lacquer_cult_ai`, orb and bead strips, `lacquer_line_ai`, the user's `gold_icon` at 32x32). Core Density level 0 shows the dormant-core frame (column 0) and the script.
+- [x] **Step 4: Run; green. Capture the scene alone (movie command) and compare with the mock's cabinet; fix placement.**
+- [x] **Step 5: Commit** `feat(zones): add the lacquer cultivator cabinet`.
 
 ---
 
@@ -218,11 +236,11 @@ Layout is kit §5.1 (positions relative to the cabinet's top-left = screen − (
 
 Layout is kit §5.2 (relative to the board's top-left (24, 272)). Row 1: the first active quest (`QuestManager.get_active_quest_ids()[0]`), its `quest_name` and current step `description`, and `current / target` on the name row only when every completion condition of the step is measurable and there is at least one (use the first). Row 2: "Breakthrough", "Raise Core Density to 100", rod (`steps 138`), `level / 100`. With no active quest, hide row 1 and the divider and move row 2 up 70 px. Listens to `QuestManager.quest_started`, `quest_step_advanced`, `quest_completed`, `PersistenceManager.save_data_reset`, `CultivationManager.core_density_level_updated`, `ResourceManager.madra_changed` (for a Madra figure). Step text ellipsizes in 358 px.
 
-- [ ] **Step 1: Write the failing tests** (swap the save and reload the quest catalog as `test_beat_3b_merchant_unlock.gd:19` does): `test_no_quest_shows_milestone_only` (row 1 hidden, milestone row at its moved-up y); `test_quest_row_shows_current_step` (start `q_fill_core` → its name and "Fill your Madra by cycling"); `test_measurable_step_shows_figure` ("25 / 100"); `test_figure_follows_madra` (set Madra 60 → "60 / 100"); `test_event_step_has_no_figure` (`q_first_steps`); `test_refreshes_on_step_advance`; `test_refreshes_on_save_reset`; `test_milestone_figure_and_rod` (level 32 → "32 / 100", rod step round(0.32 × 138)); `test_long_step_text_does_not_widen_board` (Review Focus 4: a 300-character description leaves the panel 440 wide).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Build the scene and script.**
-- [ ] **Step 4: Run; green; capture alone and compare with the mock.**
-- [ ] **Step 5: Commit** `feat(ui): add the Goals board`.
+- [x] **Step 1: Write the failing tests** (swap the save and reload the quest catalog as `test_beat_3b_merchant_unlock.gd:19` does): `test_no_quest_shows_milestone_only` (row 1 hidden, milestone row at its moved-up y); `test_quest_row_shows_current_step` (start `q_fill_core` → its name and "Fill your Madra by cycling"); `test_measurable_step_shows_figure` ("25 / 100"); `test_figure_follows_madra` (set Madra 60 → "60 / 100"); `test_event_step_has_no_figure` (`q_first_steps`); `test_refreshes_on_step_advance`; `test_refreshes_on_save_reset`; `test_milestone_figure_and_rod` (level 32 → "32 / 100", rod step round(0.32 × 138)); `test_long_step_text_does_not_widen_board` (Review Focus 4: a 300-character description leaves the panel 440 wide).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Build the scene and script.**
+- [x] **Step 4: Run; green; capture alone and compare with the mock.**
+- [x] **Step 5: Commit** `feat(ui): add the Goals board`.
 
 ---
 
@@ -238,11 +256,11 @@ Layout is kit §5.2 (relative to the board's top-left (24, 272)). Row 1: the fir
 
 Compact board per kit §5.3 and §0: `lacquer_log<n>_ai` for n lines (74 + 26n px tall, n = 1–5; with no lines yet it shows `log1` empty), bottom-anchored at screen y 1056 so it grows upward (the root's top = 1056 − height); a line of age a has its top at height − 42 − 26a. Up to 5 lines, newest at the bottom, BBCode stripped, line colour by age (ages 0–1 their tone, 2 tan, 3–4 dim `#94806A`) with the matching `lacquer_bullet_*` texture; ellipsis at 384 px. Reads `get_history()` in `_ready` so lines logged before it existed show. The full log is a second, larger board in the same scene (a `StyleBoxTexture` 9-slice of `lacquer_log5_ai`, kit-coloured lines, scrolling, newest at the bottom), hidden by default; `L`, `Esc` while open, or `toggle_window()` toggles it. Drop the old drag title bar and collapse button.
 
-- [ ] **Step 1: Write the failing tests:** `test_shows_last_five_newest_last` (log 7 → 5 lines, last text == message 7); `test_board_grows_upward` (2 lines → height 126 and its bottom edge at y 1056 in a 1920x1080 parent; 5 lines → height 204); `test_tones_fade_with_age` (five gold lines → line colours brass, brass, tan, dim, dim, bullets match); `test_tone_for_mapping` (cyan → MADRA, gold → BRASS, green → CREAM, red → TAN, plain → TAN); `test_strips_bbcode`; `test_reads_history_on_ready`; `test_toggle_window_opens_full_log_with_all_lines`; `test_long_line_ellipsizes` (Review Focus 4: label width stays ≤ 384).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement.** `test_merchant_view_state.gd` still assigns a plain `Control` to `log_window`: keep `MainView.log_window` typed `Control`.
-- [ ] **Step 4: Run; green; capture alone.**
-- [ ] **Step 5: Commit** `feat(ui): restyle the log as a five-line board with a full log on L`.
+- [x] **Step 1: Write the failing tests:** `test_shows_last_five_newest_last` (log 7 → 5 lines, last text == message 7); `test_board_grows_upward` (2 lines → height 126 and its bottom edge at y 1056 in a 1920x1080 parent; 5 lines → height 204); `test_tones_fade_with_age` (five gold lines → line colours brass, brass, tan, dim, dim, bullets match); `test_tone_for_mapping` (cyan → MADRA, gold → BRASS, green → CREAM, red → TAN, plain → TAN); `test_strips_bbcode`; `test_reads_history_on_ready`; `test_toggle_window_opens_full_log_with_all_lines`; `test_long_line_ellipsizes` (Review Focus 4: label width stays ≤ 384).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement.** `test_merchant_view_state.gd` still assigns a plain `Control` to `log_window`: keep `MainView.log_window` typed `Control`.
+- [x] **Step 4: Run; green; capture alone.**
+- [x] **Step 5: Commit** `feat(ui): restyle the log as a five-line board with a full log on L`.
 
 ---
 
@@ -259,11 +277,11 @@ Compact board per kit §5.3 and §0: `lacquer_log<n>_ai` for n lines (74 + 26n p
 
 Kit §5.4: buttons 108x64 at x 10, 126, 242, 358 inside the dock (screen x 732, 848, 964, 1080, y 984); `lacquer_btn_ai`, `lacquer_btn_hover_ai` on hover, `lacquer_btn_ring_ai` while notified; the Path count seal (`lacquer_seal_count_ai`) overhangs the top-left corner. Path: `PathManager.get_point_balance()` in `_ready` and `points_changed`; count shown when > 0. Abilities: ring with no count while `AbilityManager.has_unequipped_unlocks()`. Remove the `%Badge` `ColorRect` and the unused `BADGE_PROVIDER`. Gold leaves the bar (it moved to the cabinet).
 
-- [ ] **Step 1: Write the failing tests** (inject `PathManager` state as `test_path_manager.gd:31` does): `test_four_buttons_in_order` (labels Inventory, Abilities, Character, Path; hotkeys I, A, C, P); `test_path_count_follows_points` (add 3 → ring + "3"; spend to 0 → no ring); `test_path_reads_balance_on_ready`; `test_abilities_ring_without_count`; `test_pressing_parses_the_action` (emit the Path button's `pressed`, then `Input.is_action_pressed("open_path")` is true; release it with `Input.action_release` in `after_each`).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run; green; capture alone.**
-- [ ] **Step 5: Commit** `feat(ui): add the lacquer dock with Path and Abilities notifications`.
+- [x] **Step 1: Write the failing tests** (inject `PathManager` state as `test_path_manager.gd:31` does): `test_four_buttons_in_order` (labels Inventory, Abilities, Character, Path; hotkeys I, A, C, P); `test_path_count_follows_points` (add 3 → ring + "3"; spend to 0 → no ring); `test_path_reads_balance_on_ready`; `test_abilities_ring_without_count`; `test_pressing_parses_the_action` (emit the Path button's `pressed`, then `Input.is_action_pressed("open_path")` is true; release it with `Input.action_release` in `after_each`).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run; green; capture alone.**
+- [x] **Step 5: Commit** `feat(ui): add the lacquer dock with Path and Abilities notifications`.
 
 ---
 
@@ -287,11 +305,11 @@ Kit §5.5 › Card internals. Presenter detail lines:
 - Default (dialogue, zone event): the description, tag STORY.
 A non-idle card whose detail line is wider than 316 px at 15 px uses the tall drawer and wraps the detail onto two lines (kit §0; the fresh-save cycling card). The NEW seal shows when `not ZoneManager.is_action_seen(id)`; hover or click marks it seen and hides it. Remove the category colour table, sweep fills and flying particles.
 
-- [ ] **Step 1: Write the failing tests** (fresh save; cards built with `setup_action`): `test_mode_tags_per_type`; `test_running_card_is_pulled_out_and_tagged` (select the Aura Well → tag text "RUNNING", `Drawer.position == Vector2(-2, -2)`; select cycling → back to (0, 0), "IDLE"); `test_new_seal_clears_on_hover` (emit `mouse_entered` on the card → hidden and `is_action_seen` true); `test_adventure_below_threshold_copy` ("Needs 50 Madra · you have 25", "train or cycle to fill"); `test_adventure_hint_with_aura_well` ("ready in ~17 s"); `test_adventure_ready_copy_and_enter` (Madra 60 → "Ready · carries up to 100 Madra · 5 min run", ENTER tag); `test_unaffordable_click_does_not_select`; `test_training_detail` ("+1.5 Madra / s · each level +1 Spirit"); `test_foraging_detail_has_interval_and_cost` (contains "every 5 s · free"); `test_long_action_name_ellipsizes` (Review Focus 4: card stays 392 wide); `test_long_detail_wraps_in_tall_drawer` (a cycling card with a 40-word detail is 96 tall).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run; green; capture a card column alone (a scratch test scene under `tests/label_tests/` is fine, not committed) and compare with the mock.**
-- [ ] **Step 5: Commit** `feat(zones): turn activity cards into lacquer drawers with mode tags and detail lines`.
+- [x] **Step 1: Write the failing tests** (fresh save; cards built with `setup_action`): `test_mode_tags_per_type`; `test_running_card_is_pulled_out_and_tagged` (select the Aura Well → tag text "RUNNING", `Drawer.position == Vector2(-2, -2)`; select cycling → back to (0, 0), "IDLE"); `test_new_seal_clears_on_hover` (emit `mouse_entered` on the card → hidden and `is_action_seen` true); `test_adventure_below_threshold_copy` ("Needs 50 Madra · you have 25", "train or cycle to fill"); `test_adventure_hint_with_aura_well` ("ready in ~17 s"); `test_adventure_ready_copy_and_enter` (Madra 60 → "Ready · carries up to 100 Madra · 5 min run", ENTER tag); `test_unaffordable_click_does_not_select`; `test_training_detail` ("+1.5 Madra / s · each level +1 Spirit"); `test_foraging_detail_has_interval_and_cost` (contains "every 5 s · free"); `test_long_action_name_ellipsizes` (Review Focus 4: card stays 392 wide); `test_long_detail_wraps_in_tall_drawer` (a cycling card with a 40-word detail is 96 tall).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run; green; capture a card column alone (a scratch test scene under `tests/label_tests/` is fine, not committed) and compare with the mock.**
+- [x] **Step 5: Commit** `feat(zones): turn activity cards into lacquer drawers with mode tags and detail lines`.
 
 ---
 
@@ -307,11 +325,11 @@ A non-idle card whose detail line is wider than 316 px at 15 px uses the tall dr
 
 Kit §5.5 and §0. The chest hugs its content: `lacquer_chest_top_ai`, a tiled `lacquer_chest_mid_ai` and `lacquer_chest_bot_ai` stacked, height max(176, list top + list height + 24) local; when the list needs more than the space to local 992 it scrolls, folds 8 px under its last whole drawer (no cut drawer, no lone group label), keeps 40 px under the list, and snaps to local 1032 when within 64 px. Header: thumbnail (`lacquer_thumb_ai` for Spirit Valley, `lacquer_thumb_basic_ai` otherwise), zone name, About (`lacquer_about_ai` / `_open_ai`, hidden when the zone has no description) toggling the lore panel (`lacquer_lore_ai`, `ZoneData.description`), which opens inline under the Now tray and pushes the Activities header and list down 276 px; About, `Esc` or a click outside closes it. Now strip: visible only while the current action is FORAGE or TRAIN_STATS; ring frame = floor(progress × 13) clamped to 12 from `ActionManager.action_timer` (1 − time_left / wait_time); Aura Well and foraging variants exactly as kit §5.5's table ("Lv <n> → <n+1> · +<amount> <Attribute>", `<ticks in level> / <ticks for next>`, rod `steps 152`; dewdrop/fern ranges and "haul in <ceil(time_left)> s"). Activities header with "<n> here" and grooves; list viewport and card flow (group label rows 18 + 6, cards 8 apart, groups 14 apart) per kit; `ScrollContainer` with its own scrollbar hidden; `LacquerRail` (caps lit only when the list can scroll that way, thumb height and position formula from kit §5.5); `lip_top` / `lip_bottom` shown at a scrolled edge; "Nothing to do here yet." when empty. When the strip hides, the header moves to y 102 (screen) and the list to 132 with height 908. Rebuild on `ZoneManager.zone_changed`, `ZoneManager.action_completed`, `UnlockManager.condition_unlocked`; listen to `ZoneManager.action_focus_requested` → `scroll_to_action`. Clicking the strip → `scroll_to_action(current id)`; a card's `card_pressed_while_running` → `NowStrip.flash()`.
 
-- [ ] **Step 1: Write the failing tests** (fresh save; panel via `add_child_autofree`; await two frames for layout): `test_header_shows_zone_name`; `test_fresh_save_collapses_strip_and_moves_list` (strip hidden, list top at the collapsed y); `test_strip_shows_for_aura_well` (texts "Aura Well", "+1.5 Madra / s", and "Lv 0 → 1 · +1 Spirit" with no ticks yet); `test_strip_hidden_while_cycling`; `test_groups_in_order_with_labels` (unlock everything: labels Talk…Visit in order, only for non-empty groups); `test_count_label` ("<n> here"); `test_empty_zone_shows_nothing_to_do` (a fixture zone with no actions); `test_scroll_to_action_makes_card_visible` (nine-card fixture: the last card's rect ends inside the viewport after the call, and its frame flashes); `test_rail_hidden_when_content_fits`; `test_focus_request_scrolls` (`ZoneManager.request_action_focus("shallow_woods_adventure_action")`); `test_lore_toggles` (open pushes the header down 276 px); `test_chest_hugs_short_list` (fresh save: chest height under 400); `test_chest_fills_for_nine_cards` (nine-card fixture: chest height 1032, last visible card not cut).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run; green; capture the panel alone and compare with the mock (default, foraging, fresh save, 9 cards).**
-- [ ] **Step 5: Commit** `feat(zones): add the zone chest with the Now strip and a scrolling activity list`.
+- [x] **Step 1: Write the failing tests** (fresh save; panel via `add_child_autofree`; await two frames for layout): `test_header_shows_zone_name`; `test_fresh_save_collapses_strip_and_moves_list` (strip hidden, list top at the collapsed y); `test_strip_shows_for_aura_well` (texts "Aura Well", "+1.5 Madra / s", and "Lv 0 → 1 · +1 Spirit" with no ticks yet); `test_strip_hidden_while_cycling`; `test_groups_in_order_with_labels` (unlock everything: labels Talk…Visit in order, only for non-empty groups); `test_count_label` ("<n> here"); `test_empty_zone_shows_nothing_to_do` (a fixture zone with no actions); `test_scroll_to_action_makes_card_visible` (nine-card fixture: the last card's rect ends inside the viewport after the call, and its frame flashes); `test_rail_hidden_when_content_fits`; `test_focus_request_scrolls` (`ZoneManager.request_action_focus("shallow_woods_adventure_action")`); `test_lore_toggles` (open pushes the header down 276 px); `test_chest_hugs_short_list` (fresh save: chest height under 400); `test_chest_fills_for_nine_cards` (nine-card fixture: chest height 1032, last visible card not cut).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run; green; capture the panel alone and compare with the mock (default, foraging, fresh save, 9 cards).**
+- [x] **Step 5: Commit** `feat(zones): add the zone chest with the Now strip and a scrolling activity list`.
 
 ---
 
@@ -331,11 +349,11 @@ Kit §5.5 and §0. The chest hugs its content: `lacquer_chest_top_ai`, a tiled `
 
 Rules: camera zoom range 1.0–2.0, default 2.0, `Camera2D.offset` zero, framed on `_ready` and after travel, clamp boundary = map zones' bounds plus 1.5 hexes and re-clamped after camera tweens. Fog cells fill the clamp bounds plus half a viewport at zoom 1.0 (Review Focus 3), skipping map-zone cells, written with `set_cell` (not the debug-drawing wrapper), tier from `fog_tier` over charted map zones, atlas cell from `pick_from(cube, 9)`. (Visual QA, 2026-10-22: the clamp keeps at least one map zone's centre in the free map window between the panels, x 546–1374 and y 95–881 on screen, at every zoom: one camera window per zone (`ZoneMapMath.camera_window_for`), set again on `CameraZoomController.zoom_changed`; the fog covers the widest clamp, at zoom 1.0, plus half a viewport. Fog art follows kit §6.2's hand-placed table on its 32 cells and is Basic for about 60% of the cells past them (`ZoneMapMath.fog_art_index`).) Zone layer only holds map zones. Current zone: `lacquer_hex_current_ai`; open zones: `lacquer_hex_open_ai` (both `map/`, on the cell). Locked: `LockedZoneOverlay` shows `map/lacquer_tile_locked_ai` (hover variant on hover); uncharted: `map/lacquer_tile_uncharted_ai` (hover variant on hover). No glimmer (removed in revision 2). Expose a rim setter on the overlays so Task 13 can swap in `map/lacquer_hex_hover_ai` (open hex hovered), `map/lacquer_hex_hover_in_ai` and `map/lacquer_hex_pinned_in_ai` (veiled hexes hovered or pinned). The overlay's lock icon moves out (Task 12 draws glyphs). `PlayerCharacter.scale = Vector2.ONE`, standing where kit §0 puts it (its 32x48 screen rect's top-left at (960, 740) in Spirit Valley, i.e. the zone centre plus (0, 38) screen px); foraging wanders west only (0 → −24 → −8 → 0 world px over the 5 s haul). Remove `Atmosphere`, the ghost-neighbour polygons and the `GlowingPath`s from the zone map. A full-rect `#090E0E` map ground sits behind the map (a `CanvasLayer` at layer −1 in `zone_tilemap.tscn`). `CHARACTER_MOVE_SPEED = 275.0` (travel itself is Task 13). Rebuild on `map_zones_changed` and `condition_unlocked`.
 
-- [ ] **Step 1: Write the failing tests:** `test_camera_position_frames_anchor` at zooms 1.0, 1.5, 2.0 (`world_to_screen(centre, camera_position_for(centre, z), z)` ≈ (960, 702)); `test_fog_tier_distances` (neighbour 1, two away 2, far 3, empty 3); `test_pick_from_is_deterministic_and_in_range`; integration (instantiate `zone_tilemap.tscn` after the fresh-save fixture; `tile_set.emit_changed()` then await a frame, as `test_adventure_end_flow.gd:13` does): `test_default_zoom_is_two`; `test_spirit_valley_framed`; `test_fog_tiers_around_spirit_valley` (cell (1, 0) tier 1, (2, 0) tier 2, (3, 0) tier 3, (0, 0) no fog); `test_hidden_test_zone_not_drawn`; `test_demo_zones_add_overlays_and_retier_fog` (demo on → Advancement cell gets a locked overlay, uncharted gets the uncharted one, and (1, −2) becomes tier 1); `test_fog_covers_screen_at_zoom_one` (every cell whose rect intersects the clamp bounds plus the half viewport at zoom 1.0 has fog or a zone).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run; green; capture `zone_tilemap.tscn` alone (with the demo toggle forced on in a scratch copy, not committed) and compare with the mock's map.**
-- [ ] **Step 5: Commit** `feat(zones): render the zone map at zoom 2 with fog tiers and lacquer hex states`.
+- [x] **Step 1: Write the failing tests:** `test_camera_position_frames_anchor` at zooms 1.0, 1.5, 2.0 (`world_to_screen(centre, camera_position_for(centre, z), z)` ≈ (960, 702)); `test_fog_tier_distances` (neighbour 1, two away 2, far 3, empty 3); `test_pick_from_is_deterministic_and_in_range`; integration (instantiate `zone_tilemap.tscn` after the fresh-save fixture; `tile_set.emit_changed()` then await a frame, as `test_adventure_end_flow.gd:13` does): `test_default_zoom_is_two`; `test_spirit_valley_framed`; `test_fog_tiers_around_spirit_valley` (cell (1, 0) tier 1, (2, 0) tier 2, (3, 0) tier 3, (0, 0) no fog); `test_hidden_test_zone_not_drawn`; `test_demo_zones_add_overlays_and_retier_fog` (demo on → Advancement cell gets a locked overlay, uncharted gets the uncharted one, and (1, −2) becomes tier 1); `test_fog_covers_screen_at_zoom_one` (every cell whose rect intersects the clamp bounds plus the half viewport at zoom 1.0 has fog or a zone).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run; green; capture `zone_tilemap.tscn` alone (with the demo toggle forced on in a scratch copy, not committed) and compare with the mock's map.**
+- [x] **Step 5: Commit** `feat(zones): render the zone map at zoom 2 with fog tiers and lacquer hex states`.
 
 ---
 
@@ -352,11 +370,11 @@ Rules: camera zoom range 1.0–2.0, default 2.0, `Camera2D.offset` zero, framed 
 
 Kit §6.3–6.5 and §6.7. Plates (248x52 screen) follow their hex every frame from the SubViewport's canvas transform; the kit's offsets from the hex centre at zoom 2 are current/open (−124, +98), locked (−124, +11), uncharted (−124, +18). (Polish, after Task 14: plates, glyphs, ring, floater and popover keep their kit size at every zoom so no text drops under 13 px; at other zooms only the point each hangs from follows the hex, by zoom / 2. Below zoom 1.25 plates show their names only, and the current zone's plate draws over its neighbours. Visual QA, 2026-10-22: a name-only plate narrows to the name plus 16 px a side, a 9-slice of its texture with a tiled middle; the ring and the floater lift to stay 2 px above the current zone's plate; a floater left from another idle action stops when the action changes.) Plate lines: current = running idle action ("Aura Well · +1.5 Madra / s" with `mini_well`, "Foraging · a haul every 5 s" with `mini_forage`, name only with nothing running); open = "Open · <n> activities", "Click to travel" in brass on hover; locked = `mini_swords` + `blocker_short_text`; uncharted = `blocker_short_text`. Glyphs: `lacquer_glyph_lock_ai` at centre (−22, −61), `lacquer_glyph_unknown_ai` at centre (−14, −40), and the uncharted twinkle (`lacquer_glyph_twinkle_strip_ai`, 3 frames of 14x14, frame 0 empty) at centre (+12, −48), playing frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s. Routes (kit §0): six dots 24 screen px apart (12 world px), centred on the midpoint between two hex centres, crossing only their shared rim; from the current zone to each charted map zone and on to uncharted zones beyond. The ring (`lacquer_map_ring_strip_ai`, 64x64, 13 frames, same stepping as the Now strip) sits at the zone centre + (38, 4) screen px with the action icon at + (54, 20); it stays with the zone, not the character. The floater rides the lacquer token (`token.tres`, height 28, width even(text width + 28), centred on centre x + 50, top at centre y − 28): `+1.5 Madra` in Madra blue per Aura Well tick, rising 40 px in 1 s in 2 px steps, then hidden; the haul text in cream once per forage. Ring and floater are hidden with no idle action. Hide the whole layer during `ZoneTransition`'s adventure zoom (listen to `ActionManager.adventure_start_requested`; show again when the zone view state re-enters).
 
-- [ ] **Step 1: Write the failing tests** (instance the tilemap as in Task 11): `test_plate_per_map_zone` (one plate, Spirit Valley); `test_current_plate_line_follows_action` (Aura Well → "Aura Well · +1.5 Madra / s"; none → name only); `test_demo_plates_and_glyphs` ("Tribulation Guardian", "After the Tribulation", lock and `?` glyphs); `test_open_plate_counts_activities` (Test Zone shown and unlocked → "Open · <n> activities"); `test_plate_follows_hex_at_zoom_one` (Review Focus 3: plate top-left == world_to_screen(centre) + (−124, 98) × 0.5); `test_ring_hidden_without_idle_action`; `test_floater_on_training_tick`; `test_route_lit_toggles`; `test_hiding_demo_zones_removes_their_plates` (Review Focus 5).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run; green; capture and compare with the mock.**
-- [ ] **Step 5: Commit** `feat(zones): add map plates, glyphs, routes and the action ring`.
+- [x] **Step 1: Write the failing tests** (instance the tilemap as in Task 11): `test_plate_per_map_zone` (one plate, Spirit Valley); `test_current_plate_line_follows_action` (Aura Well → "Aura Well · +1.5 Madra / s"; none → name only); `test_demo_plates_and_glyphs` ("Tribulation Guardian", "After the Tribulation", lock and `?` glyphs); `test_open_plate_counts_activities` (Test Zone shown and unlocked → "Open · <n> activities"); `test_plate_follows_hex_at_zoom_one` (Review Focus 3: plate top-left == world_to_screen(centre) + (−124, 98) × 0.5); `test_ring_hidden_without_idle_action`; `test_floater_on_training_tick`; `test_route_lit_toggles`; `test_hiding_demo_zones_removes_their_plates` (Review Focus 5).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run; green; capture and compare with the mock.**
+- [x] **Step 5: Commit** `feat(zones): add map plates, glyphs, routes and the action ring`.
 
 ---
 
@@ -373,11 +391,11 @@ Kit §6.3–6.5 and §6.7. Plates (248x52 screen) follow their hex every frame f
 
 Spec, Behaviour › Map interaction, and kit §6.6. Hover (rim swaps, no brackets, kit §0): a travelable open hex swaps `hex_open` for `map/lacquer_hex_hover_ai`; a locked or uncharted hex gets `map/lacquer_hex_hover_in_ai` and its hover tile; plate hover state, route lit toward a travelable zone, preview popover after 150 ms for locked/uncharted. Click: open → TRAVEL (close popover, walk at 275 px/s standing on whole world px every physics frame, i.e. 2 screen px steps (`snap_walk_to_whole_px` on the map's `PlayerCharacter`; visual QA, 2026-10-22), keep the current action running, on `movement_completed` call `ZoneManager.set_current_zone`, then `frame_zone` with a short ease and re-clamp); locked → shake the lock glyph (0, −8, 8, −6, 4, 0 px over 0.44 s in steps), `map/lacquer_hex_pinned_in_ai` on the pinned hex and the brass frame on its plate, pinned popover with × and "Show me" (`lacquer_showme_ai` + `lacquer_chev_ai`) only when `requirement_action_id` is an action of the current zone; uncharted → pinned popover, never travels; current → recentre and close; fog → close. One popover at a time; Esc, ×, a click outside, another hex, or travel closes it. "Show me" calls `ZoneManager.request_action_focus(requirement_action_id)`. A plate press does what its hex's click does. A second click during a walk retargets the walk; the zone changes only on the final arrival (Review Focus 2).
 
-- [ ] **Step 1: Write the failing tests.** Unit: `test_click_open_travels`, `test_click_locked_pins`, `test_click_uncharted_pins_never_travels`, `test_click_current_recentres_and_closes`, `test_click_fog_closes`, `test_only_one_pinned`, `test_preview_requires_show_preview`, `test_unhover_clears_preview_not_pin`. Integration (fresh save; Test Zone shown with `set_hidden_zones_visible(true)` and unlocked with `UnlockManager.force_unlock_condition("celestial_intervener_dialogue_1")`): `test_travel_changes_zone_on_arrival_only` (right after the click `ZoneManager.get_current_zone()` is still Spirit Valley; after `movement_completed` it is Test Zone); `test_old_action_runs_during_walk` (Aura Well still current mid-walk); `test_second_click_during_walk_retargets` (Review Focus 2); `test_show_me_only_for_action_in_current_zone` (demo Advancement in Spirit Valley → shown; from Test Zone → hidden); `test_show_me_requests_focus`; `test_esc_closes_pinned_popover`; `test_hiding_demo_zones_closes_their_popover` (Review Focus 5).
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run; green.**
-- [ ] **Step 5: Commit** `feat(zones): add map hover, popovers and travel on arrival`.
+- [x] **Step 1: Write the failing tests.** Unit: `test_click_open_travels`, `test_click_locked_pins`, `test_click_uncharted_pins_never_travels`, `test_click_current_recentres_and_closes`, `test_click_fog_closes`, `test_only_one_pinned`, `test_preview_requires_show_preview`, `test_unhover_clears_preview_not_pin`. Integration (fresh save; Test Zone shown with `set_hidden_zones_visible(true)` and unlocked with `UnlockManager.force_unlock_condition("celestial_intervener_dialogue_1")`): `test_travel_changes_zone_on_arrival_only` (right after the click `ZoneManager.get_current_zone()` is still Spirit Valley; after `movement_completed` it is Test Zone); `test_old_action_runs_during_walk` (Aura Well still current mid-walk); `test_second_click_during_walk_retargets` (Review Focus 2); `test_show_me_only_for_action_in_current_zone` (demo Advancement in Spirit Valley → shown; from Test Zone → hidden); `test_show_me_requests_focus`; `test_esc_closes_pinned_popover`; `test_hiding_demo_zones_closes_their_popover` (Review Focus 5).
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run; green.**
+- [x] **Step 5: Commit** `feat(zones): add map hover, popovers and travel on arrival`.
 
 ---
 
@@ -394,11 +412,11 @@ Spec, Behaviour › Map interaction, and kit §6.6. Hover (rim swaps, no bracket
 
 Steps inside: `ZoneView` drops `ZoneViewBackground`, `ZoneInfoPanel`, `ZoneResourcePanel`, `ZoneHeader` and `Toolbar`, and gains `CultivatorPlate` (24, 24), `ZonePanel` (1456, 24) and `Dock` (722, 976). The zone `SubViewport` gets `canvas_item_default_texture_filter = 0`. `MainView` swaps `QuestWindow` for `GoalsPanel` (`layout_mode = 0`, z 1) and moves `LogWindow` to (24, 852). `ZoneTransition` finds `CultivatorPlate` (typed) instead of `ZoneResourcePanel`. `MerchantViewState._hide_hud_windows` hides `goals_panel`. Dev panel: a `ZonesHeader` label and two `CheckButton`s, "Demo zones (locked, uncharted)" → `ZoneManager.set_demo_zones_visible`, "Show hidden zones (Test Zone)" → `set_hidden_zones_visible`, each logging a `[DEV]` line like the existing toggle; add both rows to DEV_TOOLS.md.
 
-- [ ] **Step 1: Write the failing tests:** `test_adventure_moves_goals_and_restores` and `test_merchant_hides_goals` (built like `test_merchant_view_state.gd`, with `goals_panel`); update `test_merchant_view_state.gd` for the rename.
-- [ ] **Step 2: Run, expect failures.**
-- [ ] **Step 3: Wire it**; grep for every removed class and scene path (`ZoneResourcePanel`, `ZoneInfoPanel`, `ZoneHeader`, `ZoneActionTypeSection`, `QuestWindow`, `QuestEntry`, `Toolbar`) and leave none; `--import`; check `git diff project.godot`.
-- [ ] **Step 4: Run the suite; green. Back up the save, capture `main_game.tscn` (`--write-movie … --quit-after 100`), check the save hash is unchanged, and compare the frame with the mock's default state; fix placement differences. Repeat with the demo toggles forced on in memory only if needed (never commit a forced toggle).**
-- [ ] **Step 5: Commit** `feat(zones): swap in the map-first lacquer zone view` (and a separate `refactor(zones): remove the replaced zone view scenes` for the deletions).
+- [x] **Step 1: Write the failing tests:** `test_adventure_moves_goals_and_restores` and `test_merchant_hides_goals` (built like `test_merchant_view_state.gd`, with `goals_panel`); update `test_merchant_view_state.gd` for the rename.
+- [x] **Step 2: Run, expect failures.**
+- [x] **Step 3: Wire it**; grep for every removed class and scene path (`ZoneResourcePanel`, `ZoneInfoPanel`, `ZoneHeader`, `ZoneActionTypeSection`, `QuestWindow`, `QuestEntry`, `Toolbar`) and leave none; `--import`; check `git diff project.godot`.
+- [x] **Step 4: Run the suite; green. Back up the save, capture `main_game.tscn` (`--write-movie … --quit-after 100`), check the save hash is unchanged, and compare the frame with the mock's default state; fix placement differences. Repeat with the demo toggles forced on in memory only if needed (never commit a forced toggle).**
+- [x] **Step 5: Commit** `feat(zones): swap in the map-first lacquer zone view` (and a separate `refactor(zones): remove the replaced zone view scenes` for the deletions).
 
 ---
 
@@ -407,5 +425,5 @@ Steps inside: `ZoneView` drops `ZoneViewBackground`, `ZoneInfoPanel`, `ZoneResou
 **Files:**
 - Modify: `docs/zones/ZONES.md`, `docs/infrastructure/MAIN_VIEW.md`, `docs/progression/FOUNDATION_PLAYTHROUGH.md` (Path points now announced by the dock), `docs/STATE_OF_THE_GAME.md`, `docs/CODEBASE_STATE.md`, `CLAUDE.md` (View Architecture: Toolbar → Dock, QuestWindow → GoalsPanel, Atmosphere now only in the adventure view; Reusable UI Components: the lacquer pieces), the spec's Status line ("Built on <date>"), and the plan's checkboxes.
 
-- [ ] **Step 1: Update each doc to the built state** (scene tree, behaviour, placement per view, the dev toggles, Work Remaining items this closes).
-- [ ] **Step 2: Commit** `docs(zones): document the map-first lacquer zone view`.
+- [x] **Step 1: Update each doc to the built state** (scene tree, behaviour, placement per view, the dev toggles, Work Remaining items this closes).
+- [x] **Step 2: Commit** `docs(zones): document the map-first lacquer zone view`.
