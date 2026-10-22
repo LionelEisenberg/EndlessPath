@@ -9,6 +9,7 @@ extends GutTest
 ## boards it needs with plain Controls, as test_merchant_view_state.gd does.
 
 const MerchantViewScene := preload("res://scenes/merchant/merchant_view.tscn")
+const GoalsPanelScene := preload("res://scenes/ui/goals_panel/goals_panel.tscn")
 const MERCHANT_ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres"
 
 ## Kit §5.2, §5.3 and the spec's adventure placement, written out so the
@@ -89,6 +90,18 @@ func test_adventure_moves_the_log_and_restores() -> void:
 	assert_eq(_main_view.log_window.position, ADVENTURE_LOG_POSITION)
 	state.exit()
 	assert_eq(_main_view.log_window.position, ZONE_LOG_POSITION)
+
+## At the top right the cords would hang from nothing: the adventure hides
+## them and shows them again when it ends.
+func test_adventure_hides_the_goals_cords_and_restores() -> void:
+	var goals: GoalsPanel = add_child_autofree(GoalsPanelScene.instantiate())
+	_main_view.goals_panel = goals
+	var cords: Control = goals.get_node("%Cords")
+	var state: MainViewState = _new_state(AdventureViewState.new())
+	state.enter()
+	assert_false(cords.visible, "no cords at the top right")
+	state.exit()
+	assert_true(cords.visible, "the cords hang again under the cabinet")
 
 func test_back_from_an_adventure_the_zone_view_places_both_boards() -> void:
 	var zone_state: MainViewState = _new_state(ZoneViewState.new())

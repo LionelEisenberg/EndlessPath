@@ -2,8 +2,8 @@ extends GutTest
 
 ## Integration tests for the lacquer Goals board (GoalsPanel, lacquer kit
 ## §5.2): the first active quest's current step with a progress figure only for
-## measurable steps, the Breakthrough milestone, and the milestone moving up
-## when no quest is active.
+## measurable steps, the Breakthrough milestone, the milestone moving up when
+## no quest is active, and the board hugging its rows (spec: Goals).
 
 const GOALS_SCENE_PATH: String = "res://scenes/ui/goals_panel/goals_panel.tscn"
 const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
@@ -21,6 +21,11 @@ const MILESTONE_SHIFT: float = 70.0
 ## The step line's slot: board-local x 64 to 422 (kit: screen 88 to 446).
 const STEP_SLOT_WIDTH: float = 358.0
 const MILESTONE_ROD_STEPS: int = 138
+## The board's height with both rows (kit §5.2: 272 to 492) and with the
+## milestone alone (70 px shorter). The board art carries a 4 px shadow below.
+const FULL_HEIGHT: float = 220.0
+const MILESTONE_ONLY_HEIGHT: float = 150.0
+const SHADOW: float = 4.0
 
 var _goals: GoalsPanel = null
 
@@ -70,6 +75,12 @@ func _is_shown(unique_name: String) -> bool:
 func _milestone_top() -> float:
 	var name_label: Control = _node("MilestoneNameLabel")
 	return name_label.global_position.y - _goals.global_position.y
+
+## The bottom edge of the board art (the bottom slice, shadow included),
+## local to the board.
+func _board_art_bottom() -> float:
+	var bottom: Control = _node("BoardBottom")
+	return bottom.get_global_rect().end.y - _goals.global_position.y
 
 ## A one-quest catalog with a single step, for text the real quests do not
 ## have. With no conditions the step waits for an event that never fires; with
@@ -193,6 +204,7 @@ func test_completed_quest_falls_back_to_milestone() -> void:
 	await wait_process_frames(1)
 	assert_false(_is_shown("QuestRow"))
 	assert_eq(_milestone_top(), MILESTONE_TOP_WITH_QUEST - MILESTONE_SHIFT)
+	assert_eq(_goals.size.y, MILESTONE_ONLY_HEIGHT, "the board shrinks back to the milestone")
 
 func test_core_density_step_figure_follows_level() -> void:
 	_add_goals()
@@ -303,12 +315,38 @@ func test_step_with_an_unmeasurable_condition_has_no_figure() -> void:
 	assert_false(_is_shown("QuestFigureLabel"), "every condition must be measurable")
 
 #-----------------------------------------------------------------------------
+# HEIGHT (spec: Goals hugs its content)
+#-----------------------------------------------------------------------------
+
+func test_board_hugs_the_milestone_without_a_quest() -> void:
+	_add_goals()
+	await wait_process_frames(1)
+	assert_eq(_goals.size, Vector2(440.0, MILESTONE_ONLY_HEIGHT), "70 px shorter than with a quest")
+	assert_eq(_board_art_bottom(), MILESTONE_ONLY_HEIGHT + SHADOW, "the board art ends with the board")
+
+func test_board_is_full_height_with_a_quest() -> void:
+	_add_goals()
+	QuestManager.start_quest(FILL_CORE_QUEST_ID)
+	await wait_process_frames(1)
+	assert_eq(_goals.size, Vector2(440.0, FULL_HEIGHT))
+	assert_eq(_board_art_bottom(), FULL_HEIGHT + SHADOW)
+
+func test_cords_hang_above_the_board() -> void:
+	_add_goals()
+	assert_true(_is_shown("Cords"))
+	assert_eq((_node("Cords") as Control).position, Vector2.ZERO, "the cords take the board's top 20 px")
+	_goals.set_cords_visible(false)
+	assert_false(_is_shown("Cords"))
+	_goals.set_cords_visible(true)
+	assert_true(_is_shown("Cords"))
+
+#-----------------------------------------------------------------------------
 # ROOT
 #-----------------------------------------------------------------------------
 
 func test_root_is_the_board_and_stops_clicks() -> void:
 	_add_goals()
-	assert_eq(_goals.size, Vector2(440.0, 220.0))
+	assert_eq(_goals.size, Vector2(440.0, MILESTONE_ONLY_HEIGHT), "no quest: the board hugs the milestone")
 	assert_eq(_goals.mouse_filter, Control.MOUSE_FILTER_STOP)
 	assert_eq(_goals.theme, load("res://assets/themes/lacquer/lacquer_theme.tres"))
 

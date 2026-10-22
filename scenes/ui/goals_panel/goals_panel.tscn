@@ -11,6 +11,22 @@
 [ext_resource type="Texture2D" uid="uid://bsra35lmu7jxc" path="res://assets/ui/lacquer/lacquer_rod_goal_full_ai.png" id="9_rod_full"]
 [ext_resource type="Texture2D" uid="uid://cxn01d1umqedg" path="res://assets/ui/lacquer/lacquer_rod_goal_end_ai.png" id="10_rod_end"]
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_cords"]
+atlas = ExtResource("3_board")
+region = Rect2(0, 0, 444, 20)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_board_top"]
+atlas = ExtResource("3_board")
+region = Rect2(0, 20, 444, 66)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_board_mid"]
+atlas = ExtResource("3_board")
+region = Rect2(0, 86, 444, 74)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_board_bottom"]
+atlas = ExtResource("3_board")
+region = Rect2(0, 160, 444, 64)
+
 [node name="GoalsPanel" type="Control"]
 layout_mode = 3
 anchors_preset = 0
@@ -21,12 +37,47 @@ offset_bottom = 492.0
 theme = ExtResource("2_theme")
 script = ExtResource("1_goals")
 
-[node name="Board" type="TextureRect" parent="."]
+[node name="Cords" type="TextureRect" parent="."]
+unique_name_in_owner = true
 layout_mode = 0
 offset_right = 444.0
-offset_bottom = 224.0
+offset_bottom = 20.0
 mouse_filter = 2
-texture = ExtResource("3_board")
+texture = SubResource("AtlasTexture_cords")
+
+[node name="Board" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 20.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="BoardTop" type="TextureRect" parent="Board"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_board_top")
+
+[node name="BoardMid" type="TextureRect" parent="Board"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+texture = SubResource("AtlasTexture_board_mid")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="BoardBottom" type="TextureRect" parent="Board"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_board_bottom")
 
 [node name="TitleLabel" type="Label" parent="."]
 layout_mode = 0
@@ -38,6 +89,7 @@ theme_type_variation = &"LabelLacquerPanelTitle"
 text = "Goals"
 
 [node name="Rows" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 0
 offset_top = 66.0
 offset_right = 440.0

@@ -75,7 +75,8 @@ func _restore_log_window() -> void:
 		_log_window.position = _saved_log_position
 	_log_window = null
 
-## Moves the Goals board to the top-right corner for the adventure.
+## Moves the Goals board to the top-right corner for the adventure and hides
+## its cords, which would hang from nothing there.
 func _move_goals_panel_aside() -> void:
 	if _goals_panel:
 		return # Already moved; keep the original saved position.
@@ -84,9 +85,17 @@ func _move_goals_panel_aside() -> void:
 		return
 	_saved_goals_position = _goals_panel.position
 	_goals_panel.position = ADVENTURE_GOALS_POSITION
+	_set_goals_cords_visible(false)
 
-## Puts the Goals board back where it was before the adventure.
+## Puts the Goals board back where it was before the adventure, cords and all.
 func _restore_goals_panel() -> void:
 	if _goals_panel and is_instance_valid(_goals_panel):
 		_goals_panel.position = _saved_goals_position
+		_set_goals_cords_visible(true)
 	_goals_panel = null
+
+## MainView holds the board as a Control; only a GoalsPanel has cords.
+func _set_goals_cords_visible(cords_visible: bool) -> void:
+	var goals: GoalsPanel = _goals_panel as GoalsPanel
+	if goals:
+		goals.set_cords_visible(cords_visible)

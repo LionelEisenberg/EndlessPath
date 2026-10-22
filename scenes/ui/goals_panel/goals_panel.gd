@@ -7,13 +7,26 @@ extends Control
 ## current / target figure on the name row when the step can be measured.
 ## Row 2 is the Breakthrough milestone: Core Density towards level 100 on a jade
 ## rod. With no active quest, row 1 and the divider hide and the milestone row
-## moves up into their place (the Rows container does the move). The board
-## keeps its size.
+## moves up into their place (the Rows container does the move).
+## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into its
+## cords and a top, a tiled middle and a bottom slice, so the board is 220 px
+## tall with a quest and 150 px with the milestone alone. The cords are their
+## own node, which the adventure view hides (set_cords_visible).
+
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+## Board-local space under the last row: the milestone rod ends at 198 and the
+## board at 220 (kit §5.2: screen 470 and 492).
+const BOTTOM_PADDING: float = 22.0
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
+@onready var _cords: Control = %Cords
+@onready var _rows: Control = %Rows
 @onready var _quest_row: Control = %QuestRow
 @onready var _divider: Control = %Divider
 @onready var _quest_name_label: Label = %QuestNameLabel
@@ -50,6 +63,14 @@ func refresh() -> void:
 	_update_quest()
 	_update_milestone()
 
+## Shows or hides the two cords the board hangs from. The zone view hangs the
+## board under the cultivator cabinet; the adventure view puts it at the top
+## right, where the cords would hang from nothing.
+func set_cords_visible(cords_visible: bool) -> void:
+	if not is_node_ready():
+		return
+	_cords.visible = cords_visible
+
 #-----------------------------------------------------------------------------
 # DISPLAY UPDATES
 #-----------------------------------------------------------------------------
@@ -68,6 +89,7 @@ func _update_quest() -> void:
 	var has_quest: bool = step != null
 	_quest_row.visible = has_quest
 	_divider.visible = has_quest
+	_fit_height()
 	if not has_quest:
 		return
 	_quest_name_label.text = quest.quest_name
@@ -86,6 +108,12 @@ func _update_milestone() -> void:
 	_milestone_text_label.text = "Raise Core Density to %d" % breakthrough_level
 	_milestone_rod.set_fraction(float(level) / breakthrough_level)
 	_milestone_figure_label.text = "%d / %d" % [mini(level, breakthrough_level), breakthrough_level]
+
+## Sizes the board to its visible rows; the board art's slices follow.
+func _fit_height() -> void:
+	var rows_height: float = _rows.get_combined_minimum_size().y
+	_rows.size = Vector2(_rows.size.x, rows_height)
+	size = Vector2(size.x, _rows.position.y + rows_height + BOTTOM_PADDING)
 
 #-----------------------------------------------------------------------------
 # PRIVATE

@@ -271,7 +271,7 @@ The spec's rects are kept apart from the deltas in §7. Positions are absolute i
 | Rod | 88, 460, 280x10 | `rod_goal_*` |
 | `32 / 100` | right 446, top 456 | 15/18 tan |
 
-When no quest is active, hide the quest row and the divider and move the milestone row up 70 px. The board stays the same size (the spec's "hugs content" is the one thing given up).
+When no quest is active, hide the quest row and the divider and move the milestone row up 70 px. The board shrinks by the same 70 px to 440x150, so it hugs its content as the spec says (polish pass, 2026-10-22). The game cuts `lacquer_goals_ai.png` into four slices with no new art: the cords (rows 0–20, their own node, hidden while the board sits at the adventure view's top right), a top slice (rows 20–86), a tiled middle (rows 86–160) and a bottom slice (rows 160–224). At full height the slices rebuild the file exactly; at 150 the middle shows its first 4 plain rows.
 
 ### 5.3 Log board `24, 852, 440, 204` (4 px shadow)
 
