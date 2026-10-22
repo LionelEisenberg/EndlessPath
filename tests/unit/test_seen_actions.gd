@@ -59,4 +59,7 @@ func test_fresh_save_init_marks_only_the_first_dialogue() -> void:
 func test_init_runs_once() -> void:
 	UnlockManager.force_unlock_condition("q_fill_core_completed")
 	PersistenceManager.save_data_reset.emit()
+	assert_true(ZoneManager.get_available_actions("SpiritValley").any(
+		func(action: ZoneActionData) -> bool: return action.action_id == FORAGING_ID),
+		"foraging is available after the unlock, so a second pass would have marked it")
 	assert_false(ZoneManager.is_action_seen(FORAGING_ID), "an action unlocked after the first pass stays NEW")

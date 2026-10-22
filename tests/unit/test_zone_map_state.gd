@@ -144,6 +144,20 @@ func test_advancement_demo_requirement_names_a_real_action() -> void:
 	assert_not_null(ZoneManager.get_action_by_id(demo.requirement_action_id), "Show me needs a card to scroll to")
 
 #-----------------------------------------------------------------------------
+# TEST ZONE (OPEN-ZONE DEMO)
+#-----------------------------------------------------------------------------
+
+func test_test_zone_sits_west_of_spirit_valley() -> void:
+	var spirit_valley: ZoneData = ZoneManager.get_zone_by_id("SpiritValley")
+	var test_zone: ZoneData = ZoneManager.get_zone_by_id("TestZone")
+	assert_eq(spirit_valley.tilemap_location, Vector2i(0, 0), "the kit centres the map on Spirit Valley's cell")
+	assert_eq(test_zone.tilemap_location, Vector2i(-1, 0), "the kit puts Test Zone one cell west, on the west route")
+
+func test_test_zone_has_no_lore() -> void:
+	var test_zone: ZoneData = ZoneManager.get_zone_by_id("TestZone")
+	assert_eq(test_zone.description, "", "the kit shows Test Zone's panel with no About button")
+
+#-----------------------------------------------------------------------------
 # LAST IDLE ACTION
 #-----------------------------------------------------------------------------
 
