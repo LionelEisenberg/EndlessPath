@@ -2,14 +2,15 @@ class_name ZonePanel
 extends Control
 
 ## The zone chest at the zone view's top right (lacquer kit §5.5 and §0):
-## the zone's header (tile thumbnail, name, About), the Now strip while an
-## idle action runs, the Activities header with "N here", and the scrolling
-## activity list.
+## the zone's header (tile thumbnail, name, About), the Now tray, the
+## Activities header with "N here", and the scrolling activity list.
+## The Now tray always keeps its space, empty or not, so the Activities
+## header and the list never move up to take its place.
 ## The chest hugs its content: max(176, list top + list height + 24) tall.
 ## A list too long for the space down to local 992 scrolls, folds 8 px under
 ## its last whole drawer, keeps 40 px under it, and the chest snaps to the
 ## bottom line (local 1032) when that is within 64 px. About opens the lore
-## inline under the Now strip and pushes the Activities header and the list
+## inline under the Now tray and pushes the Activities header and the list
 ## down 276 px; About, Esc or a click outside closes it. Esc closes it only
 ## while the zone view is MainView's active state: an overlay opened over the
 ## zone view (the inventory, say) takes Esc first.
@@ -34,21 +35,16 @@ const SNAP_DISTANCE: float = 64.0
 const GAP_UNDER_LIST: float = 24.0
 const GAP_UNDER_SCROLLING_LIST: float = 40.0
 
-## The Activities header's top and the gap from it to the list, with the Now
-## strip and without it (kit §0: header at screen 204 or 102, list at 232 or
-## 132).
-const HEADER_TOP_WITH_STRIP: float = 180.0
-const HEADER_TOP_COLLAPSED: float = 78.0
-const LIST_GAP_WITH_STRIP: float = 28.0
-const LIST_GAP_COLLAPSED: float = 30.0
+## The Activities header's top under the Now tray and the gap from it to the
+## list (kit §0: header at screen 204, list at 232).
+const HEADER_TOP: float = 180.0
+const LIST_GAP: float = 28.0
 ## Yatra One at 20 px is 30 px tall on the header's 24 px line: its row sits
 ## 3 px above the line's top, as the mock's half-leading puts it.
 const HEADER_TEXT_RAISE: float = 3.0
 
-## The lore panel's top with the strip and without it; opening it pushes the
-## header and the list down by its 264 px and 12.
-const LORE_TOP_WITH_STRIP: float = 182.0
-const LORE_TOP_COLLAPSED: float = 80.0
+## The lore panel sits under the Now tray (local 182, set in the scene);
+## opening it pushes the header and the list down by its 264 px and 12.
 const LORE_PUSH: float = 276.0
 ## About's word sits 2 px lower while it is pressed in (the lore is open).
 const ABOUT_TEXT_DROP: float = 2.0
@@ -101,7 +97,6 @@ func _ready() -> void:
 	_about_button.toggled.connect(_on_about_toggled)
 	_about_button.mouse_entered.connect(_about_hover.show)
 	_about_button.mouse_exited.connect(_about_hover.hide)
-	_now_strip.visibility_changed.connect(_relayout)
 	_now_strip.strip_pressed.connect(_on_strip_pressed)
 	_activity_list.layout_changed.connect(_relayout)
 	_activity_list.card_pressed_while_running.connect(_now_strip.flash)
@@ -145,10 +140,6 @@ func scroll_to_action(action_id: String) -> void:
 ## Returns the action's card, or null when the list has none.
 func get_card(action_id: String) -> Control:
 	return _activity_list.get_card(action_id)
-
-## Returns true while the Now strip shows (an idle action runs).
-func is_now_strip_shown() -> bool:
-	return _now_strip.visible
 
 ## Returns the nearest MainView among the panel's ancestors, or null.
 func find_main_view() -> MainView:
@@ -194,17 +185,13 @@ func _rebuild() -> void:
 # LAYOUT
 #-----------------------------------------------------------------------------
 
-## Places the header, the list and the lore under the strip (or in its
-## place), and sizes the list and the chest (kit §0).
+## Places the header and the list under the Now tray (and the lore, when it
+## is open), and sizes the list and the chest (kit §0).
 func _relayout() -> void:
 	if not is_node_ready():
 		return
-	var strip_shown: bool = _now_strip.visible
-	var lore_open: bool = _lore_panel.visible
-	var header_top: float = (HEADER_TOP_WITH_STRIP if strip_shown else HEADER_TOP_COLLAPSED) \
-		+ (LORE_PUSH if lore_open else 0.0)
-	var list_top: float = header_top + (LIST_GAP_WITH_STRIP if strip_shown else LIST_GAP_COLLAPSED)
-	_lore_panel.position.y = LORE_TOP_WITH_STRIP if strip_shown else LORE_TOP_COLLAPSED
+	var header_top: float = HEADER_TOP + (LORE_PUSH if _lore_panel.visible else 0.0)
+	var list_top: float = header_top + LIST_GAP
 	_activities_header.position.y = header_top - HEADER_TEXT_RAISE
 
 	var content_height: float = _activity_list.get_content_height()

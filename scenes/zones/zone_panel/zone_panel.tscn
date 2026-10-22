@@ -22,14 +22,14 @@ anchors_preset = 0
 offset_left = 1456.0
 offset_top = 24.0
 offset_right = 1896.0
-offset_bottom = 224.0
+offset_bottom = 356.0
 theme = ExtResource("2_theme")
 script = ExtResource("1_panel")
 
 [node name="Chest" type="Control" parent="." unique_id=520020737]
 layout_mode = 0
 offset_right = 444.0
-offset_bottom = 204.0
+offset_bottom = 336.0
 mouse_filter = 2
 
 [node name="ChestTop" type="TextureRect" parent="Chest" unique_id=2052087803]
@@ -44,7 +44,7 @@ unique_name_in_owner = true
 layout_mode = 0
 offset_top = 128.0
 offset_right = 444.0
-offset_bottom = 152.0
+offset_bottom = 284.0
 mouse_filter = 2
 texture = ExtResource("4_chest_mid")
 expand_mode = 1
@@ -53,9 +53,9 @@ stretch_mode = 1
 [node name="ChestBottom" type="TextureRect" parent="Chest" unique_id=177114300]
 unique_name_in_owner = true
 layout_mode = 0
-offset_top = 152.0
+offset_top = 284.0
 offset_right = 444.0
-offset_bottom = 204.0
+offset_bottom = 336.0
 mouse_filter = 2
 texture = ExtResource("5_chest_bot")
 
@@ -124,9 +124,9 @@ offset_bottom = 170.0
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0
-offset_top = 75.0
+offset_top = 177.0
 offset_right = 425.0
-offset_bottom = 105.0
+offset_bottom = 207.0
 mouse_filter = 2
 theme_override_constants/separation = 0
 
@@ -186,9 +186,9 @@ text = "1 here"
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 12.0
-offset_top = 108.0
+offset_top = 208.0
 offset_right = 424.0
-offset_bottom = 208.0
+offset_bottom = 308.0
 
 [node name="LorePanel" type="Control" parent="." unique_id=187218867]
 unique_name_in_owner = true

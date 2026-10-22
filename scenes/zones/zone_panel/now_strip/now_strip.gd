@@ -2,14 +2,18 @@ class_name NowStrip
 extends Control
 
 ## The Now tray at the top of the zone chest (lacquer kit §5.5): what the
-## zone's idle action is doing right now. It shows only while an idle action
-## (FORAGE or TRAIN_STATS) runs, and hides outright otherwise.
-## A jade bead ring lights over each timer cycle (one Aura Well tick, one
-## foraging haul), around the action's icon. The Aura Well variant shows its
-## Madra rate, "Lv n → n+1 · +1 Spirit", the ticks into the level and a rod;
-## the foraging variant shows each loot entry's range and "haul in N s".
-## Clicking the tray emits strip_pressed (the chest scrolls to the running
-## card and flashes it).
+## zone's idle action is doing right now. It always shows and keeps its
+## space in the chest.
+## While an idle action (FORAGE or TRAIN_STATS) runs, a jade bead ring lights
+## over each timer cycle (one Aura Well tick, one foraging haul), around the
+## action's icon. The Aura Well variant shows its Madra rate,
+## "Lv n → n+1 · +1 Spirit", the ticks into the level and a rod; the foraging
+## variant shows each loot entry's range and "haul in N s". Clicking the tray
+## emits strip_pressed (the chest scrolls to the running card and flashes it).
+## While none runs, the tray is empty: the ring dark, no icon, and one tan
+## line, "<idle action> · paused" while a session action (the shop, cycling,
+## an adventure, dialogue) stands in for the zone's idle action, or
+## "Nothing running" when the zone has none. The empty tray takes no clicks.
 
 ## Emitted when the player clicks the tray.
 signal strip_pressed
@@ -24,6 +28,9 @@ const RING_FRAME_COUNT: int = 13
 ## The tray flashes once when its running card is clicked.
 const FLASH_TIMES: int = 1
 const SEPARATOR: String = " · "
+## The empty tray's line: the idle action that resumes, or none.
+const PAUSED_FORMAT: String = "%s · paused"
+const NOTHING_RUNNING: String = "Nothing running"
 
 const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/presenters/forage_yield.tscn")
 
@@ -44,6 +51,7 @@ const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_
 @onready var _forage_name: Label = %ForageName
 @onready var _yield_row: HBoxContainer = %YieldRow
 @onready var _haul_label: Label = %HaulLabel
+@onready var _empty_label: Label = %EmptyLabel
 @onready var _hover_frame: LacquerFrameOverlay = %HoverFrame
 @onready var _flash_frame: LacquerFrameOverlay = %FlashFrame
 
@@ -51,7 +59,7 @@ const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_
 # STATE
 #-----------------------------------------------------------------------------
 
-## The idle action shown, or null while the strip is hidden.
+## The idle action shown, or null while the tray is empty.
 var _action: ZoneActionData = null
 
 #-----------------------------------------------------------------------------
@@ -62,6 +70,7 @@ func _ready() -> void:
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
 	ActionManager.training_tick_processed.connect(_on_training_tick_processed)
 	ActionManager.training_level_gained.connect(_on_training_level_gained)
+	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	gui_input.connect(_on_gui_input)
 	mouse_entered.connect(_hover_frame.show)
 	mouse_exited.connect(_hover_frame.hide)
@@ -82,13 +91,15 @@ func flash() -> void:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## Shows the action when it is idle; hides the strip otherwise.
+## Shows the action when it is idle; empties the tray otherwise.
 func _show_action(action: ZoneActionData) -> void:
 	_action = action if _is_idle(action) else null
-	visible = _action != null
-	set_process(visible)
-	if _action == null:
-		_hover_frame.hide()
+	var running: bool = _action != null
+	set_process(running)
+	mouse_filter = MOUSE_FILTER_STOP if running else MOUSE_FILTER_IGNORE
+	_empty_label.visible = not running
+	if not running:
+		_show_empty()
 		return
 	_action_icon.texture = _action.icon
 	var training := _action as TrainingActionData
@@ -100,6 +111,23 @@ func _show_action(action: ZoneActionData) -> void:
 	elif forage != null:
 		_show_forage(forage)
 	_update_timer_display()
+
+## The empty tray: the ring at its dark frame, no icon, no content, and the
+## one line.
+func _show_empty() -> void:
+	_hover_frame.hide()
+	_ring.set_frame(0)
+	_action_icon.texture = null
+	_training_content.visible = false
+	_forage_content.visible = false
+	_update_empty_line()
+
+## "<idle action> · paused" for the idle action the current zone resumes
+## when the session action ends, or "Nothing running" when it has none.
+func _update_empty_line() -> void:
+	var zone: ZoneData = ZoneManager.get_current_zone()
+	var idle: ZoneActionData = ActionManager.resolve_idle_action(zone.zone_id) if zone != null else null
+	_empty_label.text = PAUSED_FORMAT % idle.action_name if idle != null else NOTHING_RUNNING
 
 ## "+1.5 Madra / s", "Lv 1 → 2 · +1 Spirit", "214 / 300" and the rod toward
 ## the next level.
@@ -187,6 +215,13 @@ func _is_idle(action: ZoneActionData) -> bool:
 
 func _on_current_action_changed(action: ZoneActionData) -> void:
 	_show_action(action)
+
+## An idle action that unlocks while a session action runs does not start
+## (ActionManager waits for the session to end), but it is now the one that
+## resumes.
+func _on_condition_unlocked(_condition_id: String) -> void:
+	if _action == null:
+		_update_empty_line()
 
 func _on_training_tick_processed(training: TrainingActionData, _new_tick_count: int) -> void:
 	if training == _action:

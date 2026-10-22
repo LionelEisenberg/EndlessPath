@@ -24,9 +24,11 @@ const FORAGING_EVENT: String = "q_fill_core_completed"
 const THUMB_RIVER: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ai.png")
 const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_basic_ai.png")
 
-## Chest layout, local to the chest (kit §0, §5.5).
-const LIST_TOP_WITH_STRIP: float = 208.0
-const LIST_TOP_COLLAPSED: float = 108.0
+## Chest layout, local to the chest (kit §0, §5.5). The Now tray always
+## keeps its space, so the header, the list and the lore never move up.
+const HEADER_TOP: float = 177.0
+const LIST_TOP: float = 208.0
+const LORE_TOP: float = 182.0
 const LORE_PUSH: float = 276.0
 const FULL_CHEST_HEIGHT: float = 1032.0
 const FOLD_GAP: float = 8.0
@@ -228,24 +230,41 @@ func test_long_zone_name_ellipsizes() -> void:
 # NOW STRIP
 #-----------------------------------------------------------------------------
 
-func test_fresh_save_collapses_strip_and_moves_list() -> void:
+## Asserts the tray shows its empty state: the ring dark, no action icon,
+## and only the line (and the Now legend) among its texts, so no name,
+## rate, level line, figure, yields, haul or rod.
+func _assert_empty_tray(line: String) -> void:
+	assert_true(_strip().is_visible_in_tree(), "the tray always shows")
+	assert_eq(_texts(_strip()), [line, "Now"] as Array[String], "one line and the Now legend")
+	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark")
+	assert_null((_strip_node("ActionIcon") as TextureRect).texture, "no action icon")
+	assert_false((_strip_node("WellRod") as Control).is_visible_in_tree(), "no rod")
+
+## Asserts the header and the list sit under the tray, as with an idle action.
+func _assert_list_under_tray() -> void:
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP, "the header keeps its place")
+	assert_eq(_list().position.y, LIST_TOP, "the list keeps its top")
+
+func test_fresh_save_shows_an_empty_tray() -> void:
 	await _add_panel()
-	assert_false(_panel.is_now_strip_shown(), "nothing idle runs on a fresh save")
-	assert_false(_strip().visible)
-	assert_eq(_list().position.y, LIST_TOP_COLLAPSED, "the list moves up to the strip's space")
+	assert_null(ActionManager.get_current_action(), "precondition: nothing runs on a fresh save")
+	_assert_empty_tray("Nothing running")
+	_assert_list_under_tray()
+	assert_eq((_node("LorePanel") as Control).position.y, LORE_TOP, "the lore opens under the tray")
 
 func test_strip_shows_for_aura_well() -> void:
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well runs")
 	await wait_process_frames(2)
-	assert_true(_panel.is_now_strip_shown())
 	var texts: Array[String] = _texts(_strip())
 	assert_has(texts, "Aura Well")
 	assert_has(texts, "+1.5 Madra / s")
 	assert_has(texts, "Lv 0 → 1 · +1 Spirit")
 	assert_has(texts, "0 / 60")
-	assert_eq(_list().position.y, LIST_TOP_WITH_STRIP, "the list sits under the strip")
+	assert_does_not_have(texts, "Nothing running")
+	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
+	_assert_list_under_tray()
 
 func test_strip_follows_training_ticks() -> void:
 	await _add_panel()
@@ -263,7 +282,6 @@ func test_strip_shows_for_foraging() -> void:
 	EventManager.trigger_event(FORAGING_EVENT)
 	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
 	await wait_process_frames(2)
-	assert_true(_panel.is_now_strip_shown())
 	var texts: Array[String] = _texts(_strip())
 	assert_has(texts, "Spring Forest Foraging")
 	assert_has(texts, "1–5")
@@ -297,14 +315,69 @@ func test_strip_shows_each_items_mini_icon() -> void:
 		expected.append(entry.item.get_mini_icon())
 	assert_eq(icons, expected, "the kit's mini dewdrop and fern, from the item data")
 
-func test_strip_hidden_while_cycling() -> void:
+func test_tray_reads_paused_while_cycling() -> void:
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	_unlock_everything()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	await wait_process_frames(2)
-	assert_false(_panel.is_now_strip_shown(), "cycling is not an idle action")
-	assert_eq(_list().position.y, LIST_TOP_COLLAPSED)
+	_assert_empty_tray("Aura Well · paused")
+	_assert_list_under_tray()
+
+func test_tray_reads_paused_with_the_shop_open() -> void:
+	# The paused name is the idle action that resumes when the shop closes:
+	# the zone's last idle action (foraging), not the first idle card (the
+	# Aura Well).
+	await _add_panel()
+	_unlock_everything()
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	ActionManager.action_timer.start(1.0)
+	await wait_seconds(0.5)
+	assert_gt((_strip_node("Ring") as LacquerStripRect).get_frame().x, 0, "precondition: the ring is lit")
+	ActionManager.select_action(ZoneManager.get_action_by_id(MERCHANT_ID))
+	await wait_process_frames(2)
+	assert_eq(_current_id(), MERCHANT_ID, "precondition: the shop is open")
+	_assert_empty_tray("Spring Forest Foraging · paused")
+	_assert_list_under_tray()
+	ActionManager.stop_action()
+	await wait_process_frames(2)
+	assert_has(_texts(_strip()), "haul in 5 s", "closing the shop resumes foraging in the tray")
+	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
+
+func test_tray_reads_paused_when_an_idle_action_unlocks_mid_session() -> void:
+	# Cycling runs on a save with no idle action; the Aura Well unlocks while
+	# it runs, so it does not start, and the tray names it as the action that
+	# resumes after cycling.
+	var cycling: ZoneActionData = ZoneManager.get_action_by_id(CYCLING_ID)
+	for condition: UnlockConditionData in cycling.unlock_conditions:
+		UnlockManager.force_unlock_condition(condition.condition_id)
+	await _add_panel()
+	ActionManager.select_action(cycling)
+	await wait_process_frames(2)
+	_assert_empty_tray("Nothing running")
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await wait_process_frames(2)
+	assert_eq(_current_id(), CYCLING_ID, "precondition: cycling still runs")
+	_assert_empty_tray("Aura Well · paused")
+
+func test_test_zone_tray_reads_nothing_running() -> void:
+	await _add_panel()
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await wait_process_frames(2)
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	await wait_process_frames(2)
+	assert_null(ActionManager.get_current_action(), "precondition: Test Zone has no idle action")
+	_assert_empty_tray("Nothing running")
+	_assert_list_under_tray()
+
+func test_empty_tray_click_does_nothing() -> void:
+	await _add_panel_above_gut()
+	assert_true(_strip().is_visible_in_tree(), "precondition: the empty tray shows")
+	watch_signals(_strip())
+	_click(_strip().get_global_rect().get_center())
+	await wait_process_frames(1)
+	assert_signal_not_emitted(_strip(), "strip_pressed")
+	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_IGNORE, "no hover frame and no pointing hand")
 
 func test_ring_frame_follows_the_action_timer() -> void:
 	await _add_panel()
@@ -386,6 +459,15 @@ func test_chest_hugs_short_list() -> void:
 	var list: Control = _list()
 	assert_eq(_panel.size.y, maxf(176.0, list.position.y + list.size.y + 24.0), "24 px under the list")
 	_assert_flow_matches_scenes()
+
+func test_chest_height_on_a_fresh_save() -> void:
+	# The empty tray keeps its space: the one Talk card starts at the list's
+	# usual top, 208, and the chest ends 24 px under it.
+	await _add_panel()
+	var content: float = (_list() as ActivityList).get_content_height()
+	assert_gt(content, 0.0, "precondition: the Talk card is listed")
+	assert_eq(_list().position.y, LIST_TOP)
+	assert_eq(_panel.size.y, LIST_TOP + content + 24.0, "the list top under the tray, then 24 px")
 
 func test_chest_fills_for_nine_cards() -> void:
 	await _add_panel()
