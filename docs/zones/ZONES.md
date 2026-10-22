@@ -28,7 +28,7 @@ Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advanc
 
 ## Player Experience
 
-1. A fresh save opens on Spirit Valley with 25 Madra. The map shows only Spirit Valley, framed in fog. The only card is `Talk to the [INTERVENER]` under **Talk**, with a NEW seal until it is hovered or clicked. The Now strip is hidden because nothing idle is unlocked, so the Activities header sits at the top of the chest. The Goals board shows only the Breakthrough milestone ("Raise Core Density to 100", `0 / 100`).
+1. A fresh save opens on Spirit Valley with 25 Madra. The map shows only Spirit Valley, framed in fog. The only card is `Talk to the [INTERVENER]` under **Talk**, with no NEW seal: the save's first pass marks every action available at that moment as seen, so NEW lights only cards that unlock later. The Now strip is hidden because nothing idle is unlocked, so the Activities header sits at the top of the chest. The Goals board shows only the Breakthrough milestone ("Raise Core Density to 100", `0 / 100`).
 2. Hovering the current zone's hex or plate brightens its plate. Locked and uncharted hexes (dev demo zones only, today) get a thin brass rim inside their veil and, after 150 ms, a preview popover with the requirement. Fog shows nothing.
 3. Clicking a hex:
    - **Open zone** (another unlocked zone): the character walks there at 275 map px/s in whole-px steps while the current action keeps running. On arrival the zone changes, the camera eases onto it (0.3 s), the chest switches to the new zone's cards, and the new zone's idle action starts. The log reads "Travelled to <zone> · resumed <action>", or "Travelled to <zone>" when nothing resumes. A second click during the walk retargets it.
@@ -65,7 +65,7 @@ Foraging and training keep running while the Inventory, Path, Abilities or Chara
 | Left-click current hex | Recentre the camera (a walk in progress turns back home) | `ZoneTilemap.click_zone()` |
 | Left-click locked / uncharted hex | Pin the popover (the padlock shakes on a locked hex) | `MapMarkers`, `MapGlyph.shake()` |
 | Left-click fog or empty map | Close the popover | `MapMarkers` |
-| Escape | Close the pinned popover, the zone lore (only while the zone view is the active state) or the full log | `MapMarkers`, `ZonePanel`, `LogWindow` |
+| Escape | Close the full log; else the zone lore; else the pinned popover. The lore and the popover close only while the zone view is the active state, so an overlay opened from the keyboard (C, I, A, P) gets Esc first | `LogWindow`, `ZonePanel`, `MapMarkers` |
 | Left-click action card | Start the action (on the running idle card: flash the Now strip) | `ZoneActionButton._on_gui_input()` |
 | Left-click Now strip | Scroll to the running card and flash it | `ZonePanel.scroll_to_action()` |
 | Rail caps, rail thumb drag, mouse wheel over the list | Scroll the activity list (caps step one drawer in six even-px steps) | `LacquerRail`, the list's `ScrollContainer` |
@@ -472,7 +472,7 @@ Every stop adds 1 to `action_completion_count`, under the zone the action starte
 | Signal | Emitted by | Listeners |
 |---|---|---|
 | `zone_changed(zone_data)` | `set_current_zone_by_id()`; `_initialize_from_save()` on save reset | `ActionManager._on_zone_changed` (stops and resolves), `ZonePanel` (rebuild), `ZoneTilemap` (rebuild; a change it did not make snaps the character and camera there) |
-| `action_completed` (declared without parameters, emitted with `action_id`) | `increment_zone_progression_for_action()` | `ZonePanel`, `MapMarkers` (plate counts) |
+| `action_completed(action_id)` | `increment_zone_progression_for_action()` | `ZonePanel`, `MapMarkers` (plate counts) |
 | `map_zones_changed()` | `set_demo_zones_visible()`, `set_hidden_zones_visible()` | `ZoneTilemap` (rebuild; a walk whose target left the map ends where it began) |
 | `action_focus_requested(action_id)` | `request_action_focus()` | `ZonePanel.scroll_to_action()` |
 
@@ -753,10 +753,11 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/integration/test_idle_action_resolution.gd` | 35 | Resolution order, resume after every session action, travel and save-reset cases, the log lines, auto-start on a first idle unlock, completions in the zone and save the action started in, `get_current_madra_per_second()` |
 | `tests/integration/test_training_flow.gd` | 1 | `select_action` → ticks, Madra trickle, level-ups, persistence across stop and restart |
 | `tests/integration/test_zone_map_render.gd` | 33 | Camera framing and clamp, fog tiers and coverage at zoom 1, hex states, the character's stand and idle motion, outside zone changes |
-| `tests/integration/test_map_markers.gd` | 45 | Plates and their lines, glyphs, routes, ring and floaters, positions at other zooms, name-only plates, demo toggles |
-| `tests/integration/test_zone_travel.gd` | 44 | Hover rims and routes, previews, pins, Show me, travel on arrival, retargeting, walks cut short, Esc and outside clicks |
+| `tests/integration/test_map_markers.gd` | 46 | Plates and their lines (re-counted on `action_completed`), glyphs, routes, ring and floaters, positions at other zooms, name-only plates, demo toggles |
+| `tests/integration/test_zone_travel.gd` | 49 | Hover rims and routes (also after the camera moves under a still pointer), previews, pins, Show me, travel on arrival, retargeting, walks cut short, Esc (left to an overlay or the full log) and outside clicks |
+| `tests/integration/test_zone_transition.gd` | 3 | The drain's lookups in `main_game.tscn` and `zone_tilemap.tscn` (read, never instanced), and one whole drain: pellets, Madra spent, adventure confirmed |
 | `tests/integration/test_zone_walk_steps.gd` | 1 | The map's travel walk stands on whole world px |
-| `tests/integration/test_zone_panel.gd` | 42 | Header, Now strip variants, groups, count, empty zone, scroll and flash, rail and lips, lore, chest sizing |
+| `tests/integration/test_zone_panel.gd` | 43 | Header, Now strip variants and the haul countdown, groups, count, empty zone, scroll and flash, rail and lips, lore, chest sizing |
 | `tests/integration/test_zone_action_cards.gd` | 40 | Mode tags, running drawer, NEW seal, each presenter's detail line, adventure states, tall drawer, ellipsis |
 | `tests/integration/test_cultivator_plate.gd` | 17 | Cabinet values, strip frames, rate visibility, orb position |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | Aura Well hidden before and visible after `aura_well_discovered` |
@@ -803,7 +804,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 ### UI
 
 - `[MEDIUM]` Unlocks give little feedback. A new card gets a static NEW seal, and only a first idle unlock writes a log line ("Started …"); a new story or session card appears silently, and only quests have toasts.
-- `[LOW]` One Escape closes both a pinned map popover and an open zone lore. `MapMarkers` marks the event handled inside the SubViewport only, so it still reaches `ZonePanel`. The mock closes the popover first.
+- `[LOW]` With the zone lore open and a map popover pinned, Escape closes the lore first and the popover on a second press; the mock closes the popover first. `ZonePanel` sits after the map's `SubViewportContainer`, which hands keys to the map in the root's unhandled-input pass, so the panel hears Esc first.
 - `[LOW]` The zone view shows two different Madra maximums. The cabinet shows the pool cap (100 + 5 × Core Density level), while the adventure card measures the adventure capacity (total FOUNDATION × 10). Coordinate with [RESOURCES.md](../infrastructure/RESOURCES.md).
 
 ### Tech Debt
@@ -815,7 +816,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
   - The old zone view leftovers: `scenes/zones/glowing_path/` with `assets/shaders/flowing_path.gdshader`, `assets/shaders/action_card_sweep.gdshader`, `assets/styleboxes/zones/action_card_selected.tres`, `scenes/ui/tick_progress_bar/` (`TickProgressBar`) and `assets/sprites/ui/lock_icon.png` are no longer referenced.
   - `assets/shaders/tile_aura.gdshader`, `scenes/tilemaps/pulse_node.gd` / `.tscn` with `assets/shaders/pulse_node.gdshader`, and `scenes/tilemaps/tile_map_layer.tscn` are not referenced anywhere.
   - Nothing reads `ZoneData.icon`, and nothing calls `AdventureActionData.is_valid()`.
-- `[LOW]` Signal declarations don't match their emits. `start_foraging(action_data)` is emitted with no argument. `ZoneManager.action_completed` is declared without parameters but emitted with `action_id`.
+- `[LOW]` A signal declaration doesn't match its emit: `start_foraging(action_data)` is emitted with no argument.
 - `[LOW]` `FOREST_ATLAS_COLS` and `FOREST_VARIANT_COUNT` are defined in both `zone_tilemap.gd` and `HexForestAtlas`.
 - `[LOW]` `ForageActionData`, `CyclingActionData` and `NpcDialogueActionData` don't set `action_type` in `_init()`.
 - `[LOW]` `zone_changed` fires twice on load. `ActionManager` treats the repeat as a no-op (`_last_resolved_zone_id`), and the other listeners rebuild twice. `ZoneManager.get_current_zone()` writes to save data when the id is empty.

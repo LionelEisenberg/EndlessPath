@@ -7,9 +7,9 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
-| Unit | `tests/unit/` | 66 | 706 |
-| Integration | `tests/integration/` | 31 | 422 |
-| **Total** | | **97** | **1128** |
+| Unit | `tests/unit/` | 67 | 715 |
+| Integration | `tests/integration/` | 32 | 433 |
+| **Total** | | **99** | **1148** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -17,19 +17,19 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-22, on `feat/zone-view-redesign-4656b7` after the map-first zone view was built, with the command from `CLAUDE.md`.
+Run on 2026-10-22, on `feat/zone-view-redesign-4656b7` after the map-first zone view was built and its final-review fixes landed, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 97 / 1128 |
-| Passing / failing / pending or risky | 1128 / 0 / 0 |
-| Asserts | 6210 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 99 / 1148 |
+| Passing / failing / pending or risky | 1148 / 0 / 0 |
+| Asserts | 6270 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | Exit code | 0 |
-| Wall time | About 51 s (GUT's `Time` line). The zone view's scene tests await real frames and timers (walks, tweens, the 150 ms popover delay) |
+| Wall time | About 66 s (GUT's `Time` line; 51 s on an earlier run of nearly the same suite). The zone view's scene tests await real frames and timers (walks, tweens, the 150 ms popover delay) |
 
 Known noise in a green run:
 
@@ -39,6 +39,7 @@ Known noise in a green run:
   - 18 copies of `SCRIPT ERROR: Invalid access to property or key 'event_progression' on a base object of type 'Nil'` at `event_manager.gd:35` (`has_event_triggered`): 10 under `tests/unit/test_quiet_madra.gd` and 8 under `tests/unit/test_unlock_condition_item_owned.gd`. The chain is `unlock_condition_data.gd evaluate()` ← `unlock_manager.gd _evaluate_all_conditions()` ← `cultivation_manager.gd _update_resources()` ← a `before_each()` that emits `PersistenceManager.save_data_reset`.
     - Likely cause, from reading the code: `tests/unit/test_quest_manager.gd` and `tests/unit/test_start_quest_effect_data.gd` set `EventManager.live_save_data = null` in `after_each()`, and both run earlier in alphabetical order. On `save_data_reset`, `CultivationManager`'s handler (autoload 2) runs before `EventManager`'s re-bind lambda (autoload 3). It emits `core_density_level_updated` and `advancement_stage_changed`, and each one evaluates the `EVENT_TRIGGERED` conditions against the null save. `test_quiet_madra.gd` now sorts between those files and `test_unlock_condition_item_owned.gd`, so it takes the first share of the errors.
   - `tests/unit/test_combat_effect_types.gd` and `tests/integration/test_power_font_buff_strip.gd` print `Node not found: %VitalsManager / %CombatEffectManager / %CombatBuffManager / %CombatAbilityManager`. They build `CombatantNode.new()` from the script and `add_child_autofree()` it before attaching manager children, so the `@onready %` lookups fail. `tests/integration/test_empty_palm_interrupt.gd` uses the same construction.
+  - `tests/unit/test_persistence_manager.gd` prints the engine's load errors for its unreadable fixture save (`Cannot open file 'res://__missing_for_test_persistence/missing_item.tres'`, `Parse Error: [ext_resource] referenced non-existent resource`) and `PersistenceManager`'s CRITICAL lines. The tests mark the engine errors as expected.
   - Expected negative-path logs:
     - `CyclingManager`, `QuestManager` and `PathManager` "unknown id 'nonexistent'"
     - `StartQuestEffectData` "empty quest_id"
@@ -186,11 +187,11 @@ New tests should call the real method on the autoload, with its state swapped as
 | UnlockManager / conditions | `test_unlock_manager` (3), `test_unlock_condition_item_owned` (2), `test_aura_well_discovery_unlock` (2), `test_beat_3b_merchant_unlock` (1), `test_unlock_condition_progress` (6) | `force_unlock_condition()`; `EVENT_TRIGGERED`, `ITEM_OWNED`, `RESOURCE_AMOUNT` conditions; `CULTIVATION_LEVEL` indirectly through the Beat 3b flow (`q_reach_cd_10`); `is_measurable()` and the current / target getters | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED`, `ATTRIBUTE_VALUE` have no direct tests |
 | ZoneManager / training | `test_zone_progression_data` (8), `test_zone_map_state` (18), `test_seen_actions` (5), `test_training_action_data` (18), `test_training_action_helpers` (7), `test_training_flow` (1), `test_aura_well_discovery_unlock` (2), `test_zone_action_groups` (7) | Training ticks/levels and helpers, action availability, map zones and the four map states, the dev zone toggles, per-zone last idle action, seen actions, groups and mode tags | `max_completions` filtering in `get_available_actions()` |
 | ActionManager | `test_idle_action_resolution` (35), `test_training_flow` (1), `test_adventure_end_flow` (2), `test_merchant_shop_flow` (35) | Idle-action resolution and resumes after cycling, adventures (win and loss), dialogue and the merchant; travel and its log lines; save resets; the auto-start on a first idle unlock; completions counted in the zone and save an action started in; the adventure Madra check before anything stops; `TRAIN_STATS`; `MERCHANT` start/stop | `FORAGE` loot awarding; the Dialogic timeline itself (the tests emit `dialogue_ended`) |
-| Zone view panels | `test_cultivator_plate` (17), `test_goals_panel` (26), `test_zone_panel` (42), `test_zone_action_cards` (40), `test_lacquer_pieces` (32) | The cabinet's values and strip frames, the Goals board, the zone chest (Now strip, groups, scrolling, rail, lore, sizing), every card presenter and state, the lacquer theme's variants and line pitch, the strip rect, rod, frame overlay and text helpers | Pixel placement against the mock (checked by movie captures, not tests) |
-| Zone map | `test_zone_map_math` (15), `test_zone_map_render` (33), `test_map_markers` (45), `test_map_popover_state` (18), `test_zone_travel` (44), `test_zone_walk_steps` (1), `test_character_walk_steps` (5), `test_camera_clamp_controller` (5), `test_madra_pellet` (8) | Framing and the camera clamp at every zoom, fog tiers and coverage, hex states, plates, glyphs, routes, ring and floaters, hover, popovers, travel on arrival and walks cut short, whole-px walk steps, drain pellets | `ZoneTransition`'s drain arithmetic and camera zoom |
+| Zone view panels | `test_cultivator_plate` (17), `test_goals_panel` (26), `test_zone_panel` (43), `test_zone_action_cards` (40), `test_lacquer_pieces` (32) | The cabinet's values and strip frames, the Goals board, the zone chest (Now strip, groups, scrolling, rail, lore, sizing), every card presenter and state, the lacquer theme's variants and line pitch, the strip rect, rod, frame overlay and text helpers | Pixel placement against the mock (checked by movie captures, not tests) |
+| Zone map | `test_zone_map_math` (15), `test_zone_map_render` (33), `test_map_markers` (46), `test_map_popover_state` (18), `test_zone_travel` (49), `test_zone_walk_steps` (1), `test_character_walk_steps` (5), `test_camera_clamp_controller` (5), `test_madra_pellet` (8), `test_zone_transition` (3) | Framing and the camera clamp at every zoom, fog tiers and coverage, hex states, plates, glyphs, routes, ring and floaters, hover (also after the camera moves under a still pointer), popovers and who hears Esc, travel on arrival and walks cut short, whole-px walk steps, drain pellets; the drain's lookups in `main_game.tscn` and one whole drain into a confirmed adventure | `ZoneTransition`'s per-pellet arithmetic and its camera reset |
 | MerchantManager / shop | `test_merchant_manager` (14), `test_merchant_data` (12), `test_spirit_valley_merchant_stock` (8), `test_spirit_valley_merchant_theme` (5), `test_merchant_view_state` (9), `test_merchant_shop_flow` (most of 35) | Purchase rules (sold out, gold, equipment space, item class vs `item_type`), per-merchant ledgers, their save round trip and debug string, the shipped stock and theme entries (including a panel opaque enough to hide the HUD under it, and an atmosphere mask that matches its corners), `MerchantView` rows (including "Equipment full" and broken stock data), buying, Buy without keyboard focus, Leave, the zone theme, the title's `LabelTitle` inheritance, the mock's header and footer padding with a panel that fits its rows, an atmosphere that fills the panel inside its border, Leave beside the title with the gold in the footer, a greeting that wraps at the header's width in smaller text, the gold preview while Buy is hovered, a closed shop skipping refreshes, and `MerchantViewState`'s push and close paths, including hiding and restoring the log and Goals boards | The real `GreyBackground` fade and Escape routing through `MainView` (checked in play) |
 | EventManager | None dedicated | `trigger_event()` used inside quest, encounter and content tests | `trigger_event()`/`has_event_triggered()` contract |
-| LogManager / log board | `test_log_manager_history` (5), `test_log_board` (26) | The bounded history; the five-line board (order, growth, tones and fading, BBCode stripping, ellipsis); the full log (L, Escape, `toggle_window()`, trimming, rail caps, closing when hidden) | |
+| LogManager / log board | `test_log_manager_history` (5), `test_log_board` (27) | The bounded history; the five-line board (order, growth, tones and fading, cream haul lines, BBCode stripping, ellipsis); the full log (L, Escape, `toggle_window()`, trimming, rail caps, closing when hidden) | |
 | DialogueManager, PlayerManager, `Log` | None | | All |
 | UI shell | `test_merchant_view_state` (9), `test_view_state_hud_positions` (15), `test_dock` (12) | `MainView.remove_state()` and `MerchantViewState` on a `MainView` that never enters the tree; where each view state puts the Goals and log boards, and every overlay hiding and restoring them; the dock's buttons, notifications and parsed actions | `MainView` push/pop/change semantics, `GreyBackground` ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)) |
 | Dev tools | `test_dev_password_modal` (5), `test_unlock_manager` (3), `test_dev_panel_zone_toggles` (4) | `DevPasswordModal.check_password()`, `force_unlock_condition()`, the two Zones toggles | Other dev panel actions, Ctrl+Shift+D gate, Map Preview, UID tool ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |

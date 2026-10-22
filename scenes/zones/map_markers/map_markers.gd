@@ -187,10 +187,10 @@ func _process(_delta: float) -> void:
 	_place_markers()
 
 ## Esc closes the pinned popover while the player can see the map: the zone
-## view is the active state and no full log covers it. The map's SubViewport
-## (handle_input_locally off) hears keys during the root's _input, before
-## MainView, the overlays and the log; marking Esc handled here would take it
-## from them.
+## view is the active state and no full log covers it. The SubViewportContainer
+## hands keys to the map in the root's unhandled-input pass, ahead of MainView
+## (an ancestor), and with handle_input_locally off, marking Esc handled here
+## ends it for the root too: MainView would never pass it to the overlay.
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or _popover_state.get_pinned_zone_id() == "":
 		return
@@ -557,6 +557,8 @@ func _is_camera_at_rest() -> bool:
 
 ## True when nothing covers the map: the zone view is MainView's active state
 ## (no overlay pushed) and the full log is closed. True outside a MainView.
+## (In main_game.tscn the log sits after the zone view and hears Esc first
+## anyway; the check keeps a reordered tree from changing that.)
 func _is_map_in_front() -> bool:
 	if main_view == null:
 		return true

@@ -12,7 +12,7 @@ Endless Path is a cultivation idle/incremental game with active mini-games, insp
 - a procedurally generated adventure with real-time combat;
 - inventory and gear, an ability loadout, a character sheet, and a skill tree.
 
-The engineering base is healthy: it is data-driven, has 17 manager singletons, and all tests pass (618 at the snapshot, 1128 on the zone view branch). However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
+The engineering base is healthy: it is data-driven, has 17 manager singletons, and all tests pass (618 at the snapshot, 1148 on the zone view branch). However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
 
 ## Where Each System Stands
 
@@ -38,7 +38,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 ## Health
 
 - **Size:** about 19.5k lines of game GDScript plus 6.4k lines of tests, 112 scenes, 98 data resources, 15 shaders. On the zone view branch: about 25.8k plus 14.7k, 135 scenes, 102 resources, 16 shaders.
-- **Tests:** 618/618 pass across 68 files in about 9 s (GUT 9.6.0). On the zone view branch: 1128/1128 across 97 files in about 51 s (GUT 9.7.1). Several suites re-implement the logic they test instead of calling it: ResourceManager, CharacterManager, CultivationManager, and parts of inventory and adventure. Real coverage is lower than the count suggests ([TESTING.md](testing/TESTING.md)).
+- **Tests:** 618/618 pass across 68 files in about 9 s (GUT 9.6.0). On the zone view branch: 1148/1148 across 99 files in about 66 s (GUT 9.7.1). Several suites re-implement the logic they test instead of calling it: ResourceManager, CharacterManager, CultivationManager, and parts of inventory and adventure. Real coverage is lower than the count suggests ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.
   - One unmerged branch, `feat/infallible-chaum-58f8ad`, adds in-combat consumables (20 commits, no PR).

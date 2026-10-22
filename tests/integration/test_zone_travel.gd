@@ -734,8 +734,9 @@ func _main_view_on_the_zone_view() -> MainView:
 	return main_view
 
 ## A LogWindow with its full log open, placed before the map in the tree so
-## the map hears Esc first, as it does in the game, where its SubViewport
-## hears keys during the root's _input.
+## the map hears Esc first. (In the game the log sits after the zone view and
+## hears it first anyway; this pins that the map leaves Esc to a full log
+## whatever the order.)
 func _log_with_full_log_open() -> LogWindow:
 	var screen := Control.new()
 	screen.size = ZoneMapMath.VIEWPORT_SIZE
@@ -747,9 +748,9 @@ func _log_with_full_log_open() -> LogWindow:
 	return log_window
 
 func test_esc_reaches_an_overlay_over_the_zone_view_first() -> void:
-	# The map's SubViewport hears Esc before MainView does. With the Character
-	# view pushed over the zone view (opened with C), Esc belongs to it, not to
-	# a popover pinned under it.
+	# The map's SubViewport hears Esc before MainView, its ancestor, does. With
+	# the Character view pushed over the zone view (opened with C), Esc belongs
+	# to it, not to a popover pinned under it.
 	ZoneManager.set_demo_zones_visible(true)
 	var main_view: MainView = _main_view_on_the_zone_view()
 	_markers().main_view = main_view

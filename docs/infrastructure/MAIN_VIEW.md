@@ -180,7 +180,7 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's id
 3. `_unhandled_input` reaches the nodes in reverse tree order, then `MainView`:
    - `LogWindow` (while visible): L (`toggle_log`) opens or closes the full log; Escape closes it while open.
    - `ZonePanel`: Escape closes the lore, only while it shows and `ZoneViewState` is MainView's current state, so an overlay opened over the zone view takes Escape first.
-   - Inside the zone SubViewport, `MapMarkers`: Escape closes a pinned map popover. Its `set_input_as_handled()` only marks the SubViewport's copy, so the same Escape still reaches `ZonePanel` and `MainView`.
+   - Inside the zone SubViewport, `MapMarkers`: Escape closes a pinned map popover, only while `ZoneViewState` is current with no overlay pushed and the full log is closed. The `SubViewportContainer` hands keys to the SubViewport at its own place in this pass (after `LogWindow` and `ZonePanel`, which sit later in the tree), and the SubViewport has `handle_input_locally` off, so its `set_input_as_handled()` ends the event for `MainView` too. One Escape therefore closes the lore before the popover.
    - `MainView` (routed to the current state only), the combat `AbilitiesPanel` (Q/W/E/R while visible), and the camera controllers inside the tilemaps (zoom on both maps, pan on the zone map only).
 
 Escape is bound to three actions: `close_inventory`, `close_cycling_view` and the built-in `ui_cancel`. Inside the state machine they never conflict because only the top state reads input. Menu shortcuts work only while `ZoneViewState` is current. `AdventureViewState.handle_input()` is empty, so I/A/C/P do nothing during an adventure; L still opens the full log.
