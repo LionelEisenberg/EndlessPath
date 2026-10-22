@@ -136,7 +136,8 @@ How the theme is built, so a reused piece inside a lacquer panel keeps its own l
 - **Shadows.** `pixel_theme.tres`'s base `Label` draws a 1 px ink shadow. The four painted titles set the kit's hard 2 px shadow (`#150909`, offset 2, 2, `shadow_outline_size` 0). Every other lacquer variant sets a transparent `font_shadow_color`, so it draws none.
 - **Line pitch.** Each variant's `line_spacing` is the kit's line height minus the font's height at that size, so wrapped lines (lore, two-line card details, popover bodies) step by the kit's line height. A single-line Label is only the font's height (17 px for 15 px BM Euljiro), not the kit's line height.
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for the painted titles, BM Euljiro for everything else. Tags and seals use a `FontVariation` of BM Euljiro with 1 px letter spacing (`spacing_glyph = 1`).
-- **Tag and seal indent.** The 1 px letter spacing also trails the last letter, which would pull centred text 0.5 px left. Tags and seals therefore have a `normal` style of their own, a `StyleBoxEmpty` with a 1 px left content margin: the mock's `text-indent: 1px`. Give the Label the tag's or seal's full width (76 px for a tag) and centre the text. Add no offset of your own.
+- **Tag and seal indent.** The 1 px letter spacing also trails the last letter, which would pull centred text 0.5 px left. Tags and seals therefore have a `normal` style of their own, a `StyleBoxEmpty` with a 1 px left content margin: the mock's `text-indent: 1px`. For the mode tags, NEW and UNKNOWN, give the Label the tag's or seal's full width (76 px for a tag) and centre the text. Add no offset of your own.
+- **The LOCKED seal is the exception.** Its word is left-aligned, not centred: `mini_lock` sits at seal +8, +3 and the word starts at seal +26 (kit §4.2; the mock has no `text-indent` there). The variant's 1 px indent still applies, so put the `LabelLacquerSeal` at seal-local x 25, left-aligned, and the word lands on +26. A Label placed at +26 draws its word at +27, off the 2 px grid.
 
 Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 
@@ -146,10 +147,10 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerPanelTitle` | Yatra 22 / 28, shadow | Brass | Panel titles: Goals, Log |
 | `LabelLacquerSection` | Yatra 20 / 24, shadow | Brass | The Activities header |
 | `LabelLacquerStage` | Yatra 21 / 28, shadow | Cream | Stage name ("Foundation") |
-| `LabelLacquerBig` | Euljiro 30 / 36 | Cream | The Madra value |
+| `LabelLacquerBig` | Euljiro 30 / 36 | Cream | The Madra value. The cabinet's `/ max` after it uses it too, with a tan colour override |
 | `LabelLacquerGold` | Euljiro 22 / 28 | Cream | The gold value |
 | `LabelLacquerName` | Euljiro 17 / 20 | Cream | Card titles, quest and milestone names, `Level 32` |
-| `LabelLacquerRate` | Euljiro 17 / 20 | Tan | The cabinet's Madra rate (`+1.5 / s`) |
+| `LabelLacquerRate` | Euljiro 17 / 20 | Tan | The `gold` word after the cabinet's gold value. The cabinet's Madra rate (`+1.5 / s`) has a decimal point, so it is a 17 px `RichTextLacquer` (see below), not this variant |
 | `LabelLacquerNowName` | Euljiro 18 / 22 | Cream | Now strip action name |
 | `LabelLacquerNowRate` | Euljiro 16 / 22 | Cream | Now strip rate |
 | `LabelLacquerDetail` | Euljiro 15 / 18 | Tan | Labels, card detail lines, figures (`17 / 18 XP`), log lines, group labels |
@@ -158,7 +159,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerLegend` | Euljiro 14 / 22 | Ink | The `Now` legend on its brass plate |
 | `LabelLacquerDock` | Euljiro 14 / 18 | Cream | Dock button labels |
 | `LabelLacquerHotkey` | Euljiro 14 / 18 | Tan | Dock hotkeys |
-| `LabelLacquerLore` | Euljiro 16 / 22 | Cream | Zone lore text |
+| `LabelLacquerLore` | Euljiro 16 / 22, 10 px between paragraphs (`paragraph_spacing`) | Cream | Zone lore text (the zone chest's `LoreText`, a wrapping Label with no overrides) |
 | `LabelLacquerPlateName` | Euljiro 16 / 18 | Cream | Map plate zone names |
 | `LabelLacquerPlateLine` | Euljiro 14 / 18 | Cream | Map plate status lines |
 | `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |
@@ -169,7 +170,10 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 
 - **The dot never grows its line.** Yatra One's ascent and descent run up to 3 px past BM Euljiro's, so a plain Yatra dot would make a 15 px line 24 px tall and drop its baseline 3 px. `decimal_bbcode()` writes the dot as `[font name=…YatraOne-Regular.ttf top_spacing=-3 bottom_spacing=-3]`, the mock's `.pt { line-height: 0 }`. At 13 to 18 px a line with a decimal is exactly as tall as the same line without one (`test_decimal_point_never_grows_a_line`). Above 18 px the trim is not enough: check the line height before using it there.
 - **Other sizes.** Override `normal_font_size` for the 16 px Now rate and floater or the 17 px cabinet rate, and the colour (`default_color`) where the kit colours the line. The line is then the font's height + 1: 20 px at 16, 21 at 17. The kit's cabinet rate is 17/20, but it is one line, so only its box is 1 px taller: the baseline is where a Label's would be.
+- **No `text_overrun_behavior`.** A `RichTextLabel` cannot ellipsize. An activity card's detail line goes through `ZoneActionButton.fit_detail_rich_text()`, which drops whole words until the line fits its width (316 px, kit §5.5), ends it in `…` with no separator left before it, and then applies `decimal_bbcode()`.
 - **Not `[font=path]` with a `FontVariation` file.** In Godot 4.7.2 a `[font=…]` tag that loads a `FontVariation` `.tres` drops its `spacing_top` / `spacing_bottom` (measured: the line still grows to 24 px), while `push_font()` with the same object keeps them. Put the spacing in the tag's options, as `decimal_bbcode()` does.
+
+`RichTextLacquerLog` (base `RichTextLacquer`): the same 15 px tan text with `line_separation` 9, so lines are 26 px apart, the first included: the log's line pitch (kit §0). The full log's `FullLogText` uses it; give such a text area a height that is a whole number of 26 px lines (it is 468, 18 lines), or a sliver of an older line shows at its top when it sits scrolled to the bottom.
 
 Per-label colour overrides on top of these variants are expected where the kit colours by state: log lines by tone and age, plate names on hover, RUNNING and ENTER tags, Madra-blue text.
 
