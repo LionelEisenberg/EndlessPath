@@ -1,33 +1,78 @@
 [gd_scene format=3 uid="uid://sk3tekdunv36"]
 
 [ext_resource type="Script" uid="uid://cpni6kagtx2bg" path="res://scenes/zones/zone_action_button/presenters/adventure_presenter.gd" id="1_adv"]
-[ext_resource type="Texture2D" uid="uid://b33dvnifjhgr7" path="res://assets/sprites/ui/resources/madra_icon.png" id="2_madra_icon"]
+[ext_resource type="Texture2D" uid="uid://dq702d707hd24" path="res://assets/ui/lacquer/lacquer_mini_madra_ai.png" id="2_mini_madra"]
+[ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="3_rod"]
+[ext_resource type="Texture2D" uid="uid://dv1omtcf4oc7o" path="res://assets/ui/lacquer/lacquer_rod_adv_empty_ai.png" id="4_rod_empty"]
+[ext_resource type="Texture2D" uid="uid://c0htmskhd3esn" path="res://assets/ui/lacquer/lacquer_rod_adv_full_ai.png" id="5_rod_full"]
+[ext_resource type="Texture2D" uid="uid://7jt6t37mty76" path="res://assets/ui/lacquer/lacquer_rod_adv_end_ai.png" id="6_rod_end"]
 
-[node name="AdventurePresenter" type="Node" unique_id=2010109081]
+[node name="AdventurePresenter" type="Node"]
 script = ExtResource("1_adv")
 
-[node name="MadraBadgeContainer" type="HBoxContainer" parent="." unique_id=355110938]
+[node name="NeedGroup" type="Control" parent="."]
 unique_name_in_owner = true
-size_flags_horizontal = 8
-size_flags_vertical = 4
-tooltip_text = "Madra Requirement"
-theme_override_constants/separation = 4
-
-[node name="MadraBadge" type="RichTextLabel" parent="MadraBadgeContainer" unique_id=364165455]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 0)
-layout_mode = 2
-size_flags_vertical = 4
+layout_mode = 3
+anchors_preset = 0
+offset_right = 392.0
+offset_bottom = 96.0
 mouse_filter = 2
+
+[node name="MadraIcon" type="TextureRect" parent="NeedGroup"]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 41.0
+offset_right = 80.0
+offset_bottom = 57.0
+mouse_filter = 2
+texture = ExtResource("2_mini_madra")
+
+[node name="NeedLabel" type="Label" parent="NeedGroup"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 86.0
+offset_top = 39.0
+offset_right = 380.0
+offset_bottom = 56.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Needs 50 Madra · you have 25"
+text_overrun_behavior = 3
+
+[node name="MadraRod" parent="NeedGroup" instance=ExtResource("3_rod")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 70.0
+offset_right = 216.0
+offset_bottom = 80.0
+empty_texture = ExtResource("4_rod_empty")
+full_texture = ExtResource("5_rod_full")
+end_texture = ExtResource("6_rod_end")
+steps = 74
+
+[node name="HintLabel" type="Label" parent="NeedGroup"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 228.0
+offset_top = 66.0
+offset_right = 380.0
+offset_bottom = 83.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "train or cycle to fill"
+horizontal_alignment = 2
+text_overrun_behavior = 3
+
+[node name="ReadyText" type="RichTextLabel" parent="."]
+unique_name_in_owner = true
+visible = false
+offset_left = 64.0
+offset_top = 54.0
+offset_right = 380.0
+offset_bottom = 72.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+theme_override_colors/default_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
-
-[node name="MadraIcon" type="TextureRect" parent="MadraBadgeContainer" unique_id=446137177]
-custom_minimum_size = Vector2(20, 20)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("2_madra_icon")
-expand_mode = 3
-stretch_mode = 5
+autowrap_mode = 0

@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/cycling_presenter.gd" id="1_cycling"]
+
+[node name="CyclingPresenter" type="Node"]
+script = ExtResource("1_cycling")
+
+[node name="DetailLabel" type="Label" parent="."]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerDetail"
+text_overrun_behavior = 3

@@ -19,7 +19,7 @@ func _ready() -> void:
 func _populate_actions() -> void:
 	for action in zone_action_data_list:
 		if action.action_type == action_type:
-			var new_action_button: MarginContainer = _zone_action_button_scene.instantiate()
+			var new_action_button: ZoneActionButton = _zone_action_button_scene.instantiate() as ZoneActionButton
 			new_action_button.setup_action(action)
 			_button_section.add_child(new_action_button)
 

@@ -1,106 +1,87 @@
 class_name ForagingPresenter
 extends ZoneActionPresenter
-## Presenter for FORAGE actions. Owns the sweep ColorRect (action_card_sweep shader)
-## and spawns floating text for rolled loot on foraging_completed.
+## Presenter for FORAGE cards: each loot entry's 16 px icon and "min–max",
+## then "every <interval> s · free" ("· <n> Madra / s" when foraging costs
+## Madra), e.g. [dewdrop] 1–5  [fern] 2–6 · every 5 s · free (lacquer kit §5.5).
+## One ForageYield scene is instanced per loot entry. The haul timer and the
+## haul text live in the Now strip and on the map, not on the card.
 
-const FLOATING_TEXT_SCENE: PackedScene = preload("res://scenes/ui/floating_text/floating_text.tscn")
-const FLOATING_TEXT_TRAJECTORY: Vector2 = Vector2(-200, -40)
-const FLOATING_TEXT_COLOR: Color = Color(0.75, 0.92, 0.65)
-const FILL_TINT_OPACITY: float = 0.45
-const SWEEP_RESET_DURATION: float = 0.3
-const SWEEP_FADE_IN_DURATION: float = 0.1
+const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/presenters/forage_yield.tscn")
 
-@onready var _progress_fill: ColorRect = %ProgressFill
+## The kit's 16 px mini icons for the materials it drew them for. They win over
+## the item's own icon: both Spirit Valley materials still point at the shared
+## placeholder icon.
+const MINI_ICONS: Dictionary = {
+	"DewdropTear": preload("res://assets/ui/lacquer/lacquer_mini_dewdrop_ai.png"),
+	"SpiritFern": preload("res://assets/ui/lacquer/lacquer_mini_fern_ai.png"),
+}
 
-var _sweep_tween: Tween = null
-var _is_tracking_timer: bool = false
+const SEPARATOR: String = " · "
 
-func setup(data: ZoneActionData, owner_button: Control, overlay_slot: Control, _inline_slot: Control, _footer_slot: Control) -> void:
+@onready var _yield_row: HBoxContainer = %YieldRow
+@onready var _tail_text: RichTextLabel = %TailText
+
+## Moves the detail into the card and fills it.
+func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	action_data = data
 	button = owner_button
-	_progress_fill.reparent(overlay_slot)
-	_progress_fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_set_fill_color(button.get_category_color())
-	_set_fill_amount(0.0)
-	ActionManager.foraging_completed.connect(_on_foraging_completed)
+	_yield_row.reparent(button.get_detail_slot(), false)
+	_fill()
 
+## Nothing to undo: the detail line never changes.
 func teardown() -> void:
-	if ActionManager.foraging_completed.is_connected(_on_foraging_completed):
-		ActionManager.foraging_completed.disconnect(_on_foraging_completed)
-	_kill_sweep_tween()
-
-func set_is_current(is_current: bool) -> void:
-	if is_current:
-		_start_sweep()
-	else:
-		_stop_sweep()
+	pass
 
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-func _process(_delta: float) -> void:
-	if _is_tracking_timer:
-		var timer: Timer = ActionManager.action_timer
-		if timer.wait_time > 0.0 and not timer.is_stopped():
-			var progress: float = 1.0 - (timer.time_left / timer.wait_time)
-			_set_fill_amount(progress)
-
-func _set_fill_amount(amount: float) -> void:
-	if is_instance_valid(_progress_fill) and _progress_fill.material:
-		_progress_fill.material.set_shader_parameter("fill_amount", amount)
-
-func _set_fill_color(cat_color: Color) -> void:
-	if is_instance_valid(_progress_fill):
-		_progress_fill.color = Color(cat_color, FILL_TINT_OPACITY)
-
-func _kill_sweep_tween() -> void:
-	if _sweep_tween and _sweep_tween.is_valid():
-		_sweep_tween.kill()
-	_sweep_tween = null
-
-func _start_sweep() -> void:
-	_kill_sweep_tween()
-	_set_fill_amount(0.0)
-	_is_tracking_timer = true
-
-func _reset_and_restart_sweep() -> void:
-	_is_tracking_timer = false
-	_set_fill_amount(1.0)
-	_kill_sweep_tween()
-	_sweep_tween = create_tween()
-	var cat_color: Color = button.get_category_color()
-	var flash: Color = Color(cat_color.r * 1.5, cat_color.g * 3.0, cat_color.b * 1.5, 1.0)
-	_sweep_tween.tween_property(_progress_fill, "self_modulate", flash, 0.1).set_ease(Tween.EASE_OUT)
-	_sweep_tween.tween_property(_progress_fill, "self_modulate:a", 0.0, SWEEP_RESET_DURATION).set_ease(Tween.EASE_OUT)
-	_sweep_tween.tween_callback(func() -> void:
-		_progress_fill.self_modulate = Color(1.0, 1.0, 1.0, 0.0)
-		_is_tracking_timer = true
-	)
-	_sweep_tween.tween_property(_progress_fill, "self_modulate:a", 1.0, SWEEP_FADE_IN_DURATION)
-
-func _stop_sweep() -> void:
-	_is_tracking_timer = false
-	_kill_sweep_tween()
-	_set_fill_amount(0.0)
-	if is_instance_valid(_progress_fill):
-		_progress_fill.self_modulate.a = 1.0
-
-func _on_foraging_completed(items: Dictionary) -> void:
-	if action_data != ActionManager.get_current_action():
+## One yield per loot entry; the tail ("every 5 s · free") follows the last
+## range, or stands alone when the table is empty.
+func _fill() -> void:
+	var forage := action_data as ForageActionData
+	if forage == null:
 		return
-	_reset_and_restart_sweep()
-	_spawn_floating_text(items)
+	var range_labels: Array[RichTextLabel] = []
+	var ranges: Array[String] = []
+	if forage.loot_table != null:
+		for entry: LootTableEntry in forage.loot_table.entries:
+			if entry == null or entry.item == null:
+				continue
+			var yield_row: HBoxContainer = FORAGE_YIELD_SCENE.instantiate() as HBoxContainer
+			_yield_row.add_child(yield_row)
+			_yield_row.move_child(yield_row, _tail_text.get_index())
+			var icon_rect: TextureRect = yield_row.get_node("%Icon") as TextureRect
+			icon_rect.texture = _icon_for(entry.item)
+			icon_rect.visible = icon_rect.texture != null
+			range_labels.append(yield_row.get_node("%RangeText") as RichTextLabel)
+			ranges.append(_range_text(entry))
 
-func _spawn_floating_text(items: Dictionary) -> void:
-	if items.is_empty():
+	var tail: String = _tail_line(forage)
+	_tail_text.visible = ranges.is_empty()
+	if ranges.is_empty():
+		_tail_text.text = LacquerText.decimal_bbcode(tail)
 		return
-	var text_parts: Array[String] = []
-	for item in items:
-		var quantity: int = items[item]
-		text_parts.append("+%d %s" % [quantity, item.item_name])
-	var full_text: String = ", ".join(text_parts)
-	var floating_text: FloatingText = FLOATING_TEXT_SCENE.instantiate()
-	get_tree().current_scene.add_child(floating_text)
-	var spawn_pos: Vector2 = button.get_action_card().global_position + Vector2(-150, 20)
-	floating_text.show_text(full_text, FLOATING_TEXT_COLOR, spawn_pos, FLOATING_TEXT_TRAJECTORY)
+	ranges[-1] += SEPARATOR + tail
+	for i: int in range_labels.size():
+		range_labels[i].text = LacquerText.decimal_bbcode(ranges[i])
+
+func _tail_line(forage: ForageActionData) -> String:
+	var cost: String = "free"
+	if forage.madra_cost_per_second > 0.0:
+		cost = "%s Madra / s" % _number(forage.madra_cost_per_second)
+	return "every %s s%s%s" % [_number(forage.foraging_interval_in_sec), SEPARATOR, cost]
+
+func _range_text(entry: LootTableEntry) -> String:
+	if entry.min_quantity == entry.max_quantity:
+		return str(entry.min_quantity)
+	return "%d–%d" % [entry.min_quantity, entry.max_quantity]
+
+func _icon_for(item: ItemDefinitionData) -> Texture2D:
+	if MINI_ICONS.has(item.item_id):
+		return MINI_ICONS[item.item_id] as Texture2D
+	return item.icon
+
+## A number with no sign and no trailing zeros: 5.0 → "5", 2.5 → "2.5".
+func _number(value: float) -> String:
+	return LacquerText.rate(value).trim_prefix("+")
