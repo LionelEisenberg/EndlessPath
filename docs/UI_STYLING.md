@@ -1,5 +1,5 @@
 # UI Styling
-Last updated: 2026-10-19
+Last updated: 2026-10-21
 
 All UI text in the game flows through a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`. Use variants instead of inline size overrides so the type hierarchy stays consistent and global tuning is possible in one place.
 
@@ -47,12 +47,12 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
   - `LabelEndCardStatValue` 22px dark brown `#33261A`
   - `LabelEndCardStatName` 18px brown `#735926`
   - `LabelEndCardMuted` 12px muted brown `#806B54` at 80% alpha
-- **Ability card text** (all with a 2px `#1A1208` outline for legibility — don't substitute general variants): `LabelAbilityTitle` 34px beige / `LabelAbilityBody` 18px beige / `LabelAbilityMuted` 16px tan
+- **Ability tooltip and stat pill text** (all with a 2px `#1A1208` outline for legibility — don't substitute general variants): `LabelAbilityBody` 18px beige (stat pills, combat tooltips) / `LabelAbilityMuted` 16px tan (tooltips). `LabelAbilityTitle` 34px beige is unused since the ability cards were replaced by the Abilities book's rows
 - **Item description panel** (light background): `LabelDescItemName` 32px black / `LabelDescItemType` 20px gray `#606060`
 - **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators (assigned in code by `ability_stats_display.gd`)
 - **Inventory chrome.** These labels set `scale = Vector2(0.5, 0.5)` to cancel the `InventoryView` root's 2x scale. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
   - `LabelInventoryCount` 24px dark ink `#33261A` — `GridToolbar` count text ("8 / 60" etc.) on the parchment background
-  - `LabelInventorySort` 38px beige — `SortSubBanner` pill label ("All", "Weapons" etc.) on the dark pill background
+  - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All", "Weapons" etc.) on the dark pill background
   - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Equipment" etc.); `GearSelector`'s "Gear Selector" title uses it with a 30px size override
   - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
 - **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
@@ -64,6 +64,32 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
   - `HSeparatorMerchant` (HSeparator) — 1px zone-coloured divider, 8px inset, separation 24
   - `MerchantAtmosphere` colours `mist`, `mote_primary`, `mote_secondary`, `light`, `slot_glow` — read in code with `get_theme_color()` by `MerchantAtmosphere` and `MerchantStockRow` and applied as `modulate`
   - `MerchantAtmosphereMask` (Panel) — the shape `MerchantAtmosphere` clips its light, mist and motes to (`clip_children`). It is opaque, with corners rounded to the panel's inner radius (corner radius minus border width). It is a separate type because making `MerchantAtmosphere` a Panel variation would hide its colours from a zone theme that doesn't declare that variation
+
+## Menu book pages
+
+The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md#menu-books)) have cream pages, where the general Label variants (light text for dark panels) don't read. The Abilities, Character and Path views set `assets/themes/book_theme.tres` as their root `theme`; it holds only the variants below, and every other lookup falls back to `pixel_theme.tres`. Each variant sets its own font size and clears the base Label's drop shadow.
+
+| Variant | Base type | Style | Use |
+|---------|-----------|-------|-----|
+| `LabelBookTitle` | Label | 28px dark ink `#33261A` | Card titles (the ability, attribute or node shown) |
+| `LabelBookBody` | Label | 20px dark brown `#3B2A20` | Body text, row names |
+| `LabelBookValue` | Label | 20px dark gold `#8B6914` | Values, equipped state |
+| `LabelBookValueLarge` | Label | 28px dark gold `#8B6914` | The big number on an attribute tile and the Character details header |
+| `LabelBookMuted` | Label | 16px muted brown `#7D5F47` | Secondary lines, hints, captions |
+| `LabelBookPositive` | Label | 18px dark green `#3E7A3A` | Path node effect lines and the Active Benefits lines |
+| `LabelBookPill` | Label | 18px cream `#F4DCBF` | Text on a dark pill |
+| `LabelBookKey` | Label | 14px cream on a dark rounded chip | Loadout key chips (Q/W/E/R) |
+| `LabelBookPlaque` | Label | 20px dark ink on the header plaque art (`normal` stylebox) | Section headers ("Loadout", "Physical", "Active Benefits", the pointed-at name). Set `custom_minimum_size = (248, 52)` and centre the text; the stylebox's 11px top and 7px bottom content margins centre it on the plaque's face |
+| `PanelBookCard` | PanelContainer | The inventory's item-details card art | Details blocks, the loadout, the tree card |
+| `PanelBookRow` / `PanelBookRowSelected` | PanelContainer | The consumables row-bar art; the selected one is tinted warm | List rows (abilities) |
+| `PanelBookTile` / `PanelBookTileSelected` | PanelContainer | The card art with tight 6px side margins; the selected one is tinted warm like rows | Attribute tiles in the Character book |
+| `PanelBookSlot` | PanelContainer | The inventory's slot art | Icon slots and loadout slots |
+| `PanelBookPill` | PanelContainer | The inventory's dark category pill | Small status pills (the path points badge) |
+| `PanelBookInset` | PanelContainer | The dark pill art, darkened | The path tree's map window |
+
+The panel art is drawn at the book's own pixel density (one art pixel = 2 screen pixels). Their 9-slice styleboxes use 2x nearest-neighbour copies in `assets/sprites/ui/book/` (`book_card_2x_ai.png`, `book_row_2x_ai.png`, `book_pill_2x_ai.png`, `book_plaque_2x_ai.png`, `book_slot_2x_ai.png`) of the inventory originals, so stretched panels keep crisp, matching edges. Separators on cards use `HSeparatorItemDesc` from `pixel_theme.tres`.
+
+Each book's own colours are not theme items: a `BookStyleData` resource per book (`resources/ui/book_styles/`) recolours the cover edge, page border, turning page and bookmark through `assets/shaders/palette_swap.gdshader`.
 
 ## RichTextLabel variants
 
@@ -86,11 +112,11 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 |---------|-----------|-------|---------|
 | `ButtonEndCard` | `Button` | Scroll button styleboxes (`assets/styleboxes/buttons/scroll/`), 20px, cream font `#F0E0C2` | `AdventureEndCard` Return button |
 | `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige | `CyclingView` |
-| `PanelAbilityCard` | `PanelContainer` | `abilities/card_normal.tres` (dark brown, 2px brown border) | `AbilityCard` |
+| `PanelAbilityCard` | `PanelContainer` | `abilities/card_normal.tres` (dark brown, 2px brown border) | Unused (the ability card it styled was replaced by `AbilityRow`) |
 | `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border) | `CyclingView` |
 | `PanelLootTray` | `PanelContainer` | `common/panel_loot_tray.tres` (translucent parchment) | `AdventureEndCard` |
 | `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill) | `StatLabel` |
-| `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) | Ability/buff tooltips, `CombatantInfoPanel`, `AttributeTooltip`, `StatTooltip` (set in code) |
+| `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) | Ability/buff tooltips, `CombatantInfoPanel`, `StatTooltip` (set in code) |
 | `PanelDark` | `PanelContainer` | `common/panel_dark.tres` (dark texture) | Unused |
 
 Base types without a variant:
@@ -170,13 +196,14 @@ Use the Label variants for sizes. Use `ThemeConstants` only for colours that mus
 
 | Path | Contents |
 |------|----------|
-| `assets/themes/pixel_theme.tres` | Project theme: base types, all variants above |
+| `assets/themes/pixel_theme.tres` | Project theme: base types, all variants above except the book and merchant ones |
+| `assets/themes/book_theme.tres` | Menu book page variants ([Menu book pages](#menu-book-pages)) |
 | `assets/themes/pixel_ui_theme/` | Third-party pixel UI pack: `8x8_ui_elements*.png` and `8x8_ui_icons.png` atlases, `m5x7.ttf`, 8 colour-variant `PixelTheme-*.tres`, `TabContainer.tscn`. `pixel_theme.tres` uses only the two base atlases; the variant themes are not referenced by the game. |
 | `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `cycling`, `inventory`, `textures`, `ui`, `zones` |
 | `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `Korean_Calligraphy.ttf`, `pixelmix.ttf`, `Ubage-woA3P.otf` and `YatraOne-Regular.ttf` are loaded only by the label testing scene. |
-| `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
+| `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `book` (menu book bookmark, close tab, stage icons, padlock, 2x panel art), `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
 | `assets/aseprite/` | Aseprite sources: `abilities`, `character_profiles`, `cycling`, `ui/{ability_button,buff_icon,resource_bar}`, `zones`, plus root `madra_circle.aseprite`, `Sprite-0003*.aseprite` and a stray `Sprite-0003.gif` |
-| `assets/shaders/` | 15 `.gdshader` files |
+| `assets/shaders/` | 16 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |
 | `assets/scroll/` | Scroll art (and `parts/`) used by the adventure end card |
 | `assets/dialogue/` | Dialogic `characters/`, `styles/` (including `dialogue_backgrounds/custom_background_layer.gd`), `timelines/` |
 | `assets/colors/` | `default_color_palette.tres` (not referenced by game scenes or scripts) |

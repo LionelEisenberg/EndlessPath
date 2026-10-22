@@ -1,6 +1,6 @@
 # Abilities System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-21
 
 ## Overview
 
@@ -18,11 +18,16 @@ Enemy abilities use the same `AbilityData` class but are referenced directly by 
 
 1. A new save starts with Basic Strike (slot 1, Q) and Enforce (slot 2, W) unlocked and equipped; slots 3 and 4 are empty but usable.
 2. Buying Pure Core Awakening on the Pure Madra path tree unlocks Empty Palm; buying the Power Font node unlocks Power Font. Unlocks are never auto-equipped. While any unlocked ability is not in a slot, the ABILITIES button in the system menu shows a badge.
-3. On the zone view the player presses A (or clicks ABILITIES). A grey backdrop and the Abilities view fade in: title "ABILITIES", subtitle "Manage your combat techniques", a LOADOUT row of 4 slots with Q/W/E/R hints and an `n / 4` counter, filter buttons (All / Offensive / Buff / Equipped), a sort dropdown (Equipped First / Name A-Z / Madra Cost / Cooldown), and a scrolling list of unlocked-ability cards.
-4. Each card shows the icon, name, a PURE badge for Pure Madra abilities, a source badge (Innate / Path), damage pills when the ability hits a target (DMG total with a pulsing gold border, Base, one pill per scaling attribute showing its contribution), timing and cost pills (CD, Cast, Madra/Stamina/Health), and an EQUIP / UNEQUIP button in the bottom-right corner. Hovering a pill shows a breakdown tooltip computed from the player's current attributes.
-5. Clicking a card toggles its details: effect tags (Damage, Heal, Buff, Debuff, Interrupt, Strip, plus Targeted / Self-Cast / Mixed) and the description.
-6. EQUIP puts the ability in the first empty slot; with 4 slots filled the button reads SLOTS FULL and is disabled. Dragging a card onto a slot puts it there, replacing whatever was in it. Dragging one slot onto another swaps them, which changes the key. UNEQUIP on the card clears its slot.
-7. Esc or A closes the view. The next fight uses the loadout as arranged; the Abilities view cannot be opened during an adventure.
+3. On the zone view the player presses A (or clicks ABILITIES). A grey backdrop fades in while the jade Abilities book opens (one of the four menu books, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)).
+4. **Left page:** the "Abilities" title ribbon, the inventory's arrows-and-dots filter selector (All / Offensive / Buff / Equipped), and a scrolling list of unlocked abilities on row bars (icon, name, a cost line such as "10 Madra · 15 s · 1 s cast", and the slot's key chip when equipped). The list is in loadout order: the equipped abilities in Q, W, E, R order, then the rest by name. There is no sort selector.
+5. **Right page:** a "Loadout" plaque over a card with the 4 slots (96 px, the ability icon at 72 px, key chips Q/W/E/R) and "n / 4 equipped", then a details card for the ability pointed at. Every ability gets the same layout, so pointing around never moves anything:
+   - **Header:** icon, name, Madra-type and source badges ("Pure · Path"), targeting plus any extras ("Targeted · Strips buffs"; "Interrupts", "Heals you", "Buffs you", "Debuffs"), and at the right a type icon for what it mainly does: crossed swords for damage, a heart for healing, a gold up arrow for a buff, a purple down arrow for a debuff.
+   - **First stat line:** "Damage 34" (or "Heal") with a line under it showing how it adds up: "10 base", then each scaling attribute's icon and what it adds ("+17", "+7"). A buff or debuff shows "Effect" instead, for example "×1.5 damage" with "on your next attack" (or "for 5 s on you").
+   - Then Cooldown, Cast time ("Instant" when there is none), Cost ("Free" when there is none), a divider, and the description in a four-line area.
+
+   The details follow the pointer and keep the last ability pointed at; the first ability in the list is shown when the book opens. The damage or heal is worked out from the player's current attributes the first time an ability is described in an opening; pointing back at it reuses that value. The key an ability sits on shows on its row and in the loadout, so the card doesn't repeat it.
+6. Right-clicking an ability equips it into the first empty slot, or unequips it when it is equipped. With 4 slots filled, right-clicking an unequipped ability does nothing. Dragging an ability onto a slot puts it there, replacing whatever was in it. Dragging one slot onto another swaps them, which changes the key.
+7. Esc, A, the close tab on the book's top edge, or a click outside the book closes it. The next fight uses the loadout as arranged; the Abilities view cannot be opened during an adventure.
 
 ## Architecture
 
@@ -33,44 +38,42 @@ AbilityManager (autoload)                       singletons/ability_manager/abili
   └─ _live_save_data → SaveGameData.unlocked_ability_ids / equipped_ability_ids
 
 MainView (main_game.tscn)
-├── MainViewStateMachine/AbilitiesViewState     scenes/abilities/abilities_view_state.gd
-├── GreyBackground                              shows/hides the panel, calls animate_open()/animate_close()
-└── AbilitiesView (Control)                     scenes/abilities/abilities_view.gd
-    ├── UnifiedPanel/MainVBox
-    │   ├── Header: Title, Subtitle
-    │   ├── HeaderSep
-    │   └── Body
-    │       ├── LoadoutSidebar/LoadoutVBox
-    │       │   ├── LoadoutLabel ("LOADOUT")
-    │       │   ├── SlotsRow (HBox): EquipSlot1..EquipSlot4 (AbilityEquipSlot)
-    │       │   └── SlotCounter ("n / 4")
-    │       ├── BodyDivider
-    │       └── MainContent
-    │           ├── FilterBarMargin/FilterBar: FilterToggles (FilterAll, FilterOffensive,
-    │           │                              FilterBuff, FilterEquipped), SortDropdown
-    │           └── ScrollContainer/ScrollMargin/CardList (VBox): AbilityCard × N
-    └── AnimationPlayer ("open", "close")
+├── MainViewStateMachine/AbilitiesViewState     scenes/abilities/abilities_view_state.gd (BookViewState)
+├── GreyBackground                              shows/hides the book, calls animate_open()/animate_close()
+└── AbilitiesView (Control)                     scenes/abilities/abilities_view.gd (MenuBookView, theme book_theme.tres)
+    ├── BookLayer (centred, scale 2)
+    │   ├── BookFrame %                         scenes/ui/book_frame/, style abilities_book_style.tres
+    │   └── BookContent: TitleBanner "Abilities", FilterSelector % (SortSubBanner)
+    └── PageLayer (centred, screen pixels)
+        ├── AbilityScroll/AbilityList % (VBox): AbilityRow × N, down to the page's foot
+        └── RightPage (VBox)
+            ├── LoadoutPlaque ("Loadout")
+            ├── LoadoutCard: SlotsRow (EquipSlot1..EquipSlot4, AbilityEquipSlot), SlotCounter %
+            └── DetailCard %: HeaderRow (DetailIcon, DetailName, DetailBadges, DetailTags, TypeSlot/TypeIcon %),
+                              StatList (PrimaryStat: PrimaryName %/PrimaryValue %; ExplainRow (34 px):
+                              ExplainText %, ScalingPart1..3 %; CooldownStat, CastStat, CostStat),
+                              DetailDescription % (four lines, fixed height), DetailSpacer
 
-AbilityCard (PanelContainer, PanelAbilityCard)  scenes/abilities/ability_card/ability_card.gd
-├── CardVBox
-│   ├── MainRow: AbilityIcon, InfoColumn
-│   │            ├── NameRow: AbilityName, MadraBadge, SourceBadge
-│   │            ├── DamageStatsDisplay (AbilityStatsDisplay, DAMAGE)
-│   │            └── TimingStatsDisplay (AbilityStatsDisplay, TIMING_COSTS)
-│   ├── ButtonRow (empty)
-│   └── ExpandedDetails (hidden): DetailSep, TagsRow, ContentRow/TextColumn/DescriptionLabel
-└── EquipButton                                 direct child of the card root, always visible
+ScalingPart (HBoxContainer)                     scenes/abilities/scaling_part/scaling_part.gd
+└── Icon % (attribute icon, 32 px), ValueLabel % ("+16.5")
 
-AbilityEquipSlot (extends DropTargetSlot)       scenes/abilities/equip_slot/equip_slot.gd
-├── CenterContainer: SlotIcon, EmptyLabel ("--")
-└── KeyHintPanel (panel_keyhint.tres): KeyHintLabel
+AbilityRow (PanelContainer, PanelBookRow)        scenes/abilities/ability_row/ability_row.gd
+├── RowHBox: IconSlot (PanelBookSlot)/Icon, TextBox (NameLabel, CostLabel), KeyChip (LabelBookKey)
+└── signals hovered(row), quick_equip_requested(ability_id); drag source {"ability_id"}
+
+AbilityDragPreview (Control)                    scenes/abilities/ability_row/ability_drag_preview.tscn
+└── Slot (PanelBookSlot)/Icon                   the cursor icon for row and slot drags
+
+AbilityEquipSlot (extends DropTargetSlot)       scenes/abilities/equip_slot/equip_slot.gd (PanelBookSlot)
+├── CenterContainer: SlotIcon, EmptyLabel
+└── KeyHintPanel (empty style): KeyHintLabel (LabelBookKey), bottom-right
 
 AbilityStatsDisplay (HFlowContainer)            scenes/abilities/ability_stats_display/ability_stats_display.gd
 ├── StatTooltip                                 scenes/abilities/stat_tooltip/stat_tooltip.gd (built in code)
 └── StatLabel × N (stat_label.tscn) and "·" separator Labels
 ```
 
-`AbilityStatsDisplay` is also used by the combat ability tooltip (`CombatAbilityTooltip`, modes `TIMING_COSTS` and `DAMAGE_TOTAL`).
+`AbilityStatsDisplay` is now used only by the combat ability tooltip (`CombatAbilityTooltip`, modes `TIMING_COSTS` and `DAMAGE_TOTAL`). The Abilities book's details card has its own stat list.
 
 ## Data Model
 
@@ -181,15 +184,15 @@ Both require the FOUNDATION stage (default). `PathManager.reset_path()` does not
 
 | Player action | Call | Result |
 |---------------|------|--------|
-| Card EQUIP | `equip_ability(id)` | First empty slot |
-| Card UNEQUIP | `unequip_ability(id)` | Slot cleared (no compaction) |
-| Drag card → slot | `equip_ability_at_slot(id, slot)` | Placed in that slot; its old slot (if any) cleared; the occupant is unequipped |
+| Right-click an unequipped row | `equip_ability(id)` (`AbilitiesView.toggle_equipped`) | First empty slot; nothing when all 4 are full |
+| Right-click an equipped row | `unequip_ability(id)` | Slot cleared (no compaction) |
+| Drag row → slot | `equip_ability_at_slot(id, slot)` | Placed in that slot; its old slot (if any) cleared; the occupant is unequipped |
 | Drag slot → slot | `swap_slots(from, to)` | Swapped (reorders keys) |
 | Drag slot → elsewhere | — | Nothing happens |
 
-After each action `AbilitiesView._refresh_without_rebuild()` updates card buttons, the loadout row and the counter. The full list is rebuilt when the view becomes visible and when the filter or sort changes.
+After each action `AbilitiesView.refresh()` rebuilds the rows, the loadout and the details. A right-click equip is deferred one frame, because it rebuilds the row that is still handling the click. The list is also rebuilt when the book opens and when the filter or sort changes.
 
-### Filters and sorts (`AbilitiesView`)
+### Filter and order (`AbilitiesView`)
 
 | Filter | Shows unlocked abilities where |
 |--------|-------------------------------|
@@ -198,14 +201,15 @@ After each action `AbilitiesView._refresh_without_rebuild()` updates card button
 | Buff | `effects_on_target` is empty |
 | Equipped | `AbilityManager.is_ability_equipped(id)` |
 
-| Sort | Order |
-|------|-------|
-| Equipped First (default) | equipped before unequipped, then name A-Z |
-| Name A-Z | `ability_name` ascending |
-| Madra Cost | `madra_cost` ascending |
-| Cooldown | `base_cooldown` ascending |
+The filter is a `SortSubBanner` selector (`FILTER_OPTIONS`). The list is always in loadout order (`_order_by_loadout()`): equipped abilities in slot order (Q, W, E, R), then the rest by name A-Z. The sort selector was dropped on 2026-10-21 to give the list the room.
 
-The active filter button is tinted `ThemeConstants.ACCENT_GOLD`.
+### Details card (`AbilitiesView`)
+
+- `select_ability(id)` does nothing when `id` is already described, so moving the pointer around one row doesn't rebuild the card.
+- `AbilityKind` (`_get_kind()`): DAMAGE if `deals_damage()`, else HEAL if `heals_self()`, else BUFF if `buffs_self()`, else DEBUFF if `debuffs_target()`, else OTHER. It picks the type icon (`_KIND_ICONS`: `stat_icons/combat_icon.png`, `stat_icons/health_icon.png`, `book/type_buff_ai.png`, `book/type_debuff_ai.png`) and the first stat line, and is left out of the tags.
+- Damage (or heal) uses the first `DAMAGE` effect in `effects_on_target` (or `HEAL` in `effects_on_self`): `calculate_value()` with `CharacterManager.get_total_attributes_data()` (raw, before defense and modifiers), stored in `_value_previews` by ability id. The store is cleared when the book opens and on `CharacterManager.base_attribute_changed`, which also redraws the card. The breakdown shows `base_value` and, for each attribute with a non-zero `get_scaling()` (up to three), a `ScalingPart` with that attribute's icon and `get_scaling_contribution()`; those parts add up to `calculate_value()` (`test_combat_effect_data.gd`).
+- A buff (`BuffEffectData`) reads `×damage_multiplier damage` (OUTGOING_DAMAGE_MODIFIER), `×N Attribute` per `attribute_modifiers` entry, or `N damage per tick`; under it, "on your next attack" when `consume_on_use`, else "for N s on you" ("on the target" for a debuff).
+- Numbers use `AbilityRow.format_number()` / `format_seconds()` / `format_cost()`: whole numbers without ".0", others with up to two decimals.
 
 ### Loadout to combat
 
@@ -215,9 +219,9 @@ At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.
 
 | Mode | Pills | Used by |
 |------|-------|---------|
-| `DAMAGE` | DMG total (pulsing gold border), Base, one `+contribution` pill per non-zero scaling | Ability card |
+| `DAMAGE` | DMG total (pulsing gold border), Base, one `+contribution` pill per non-zero scaling | Nothing since the Abilities book got its own stat list |
 | `DAMAGE_TOTAL` | DMG total only | Combat ability tooltip |
-| `TIMING_COSTS` | CD, Cast (or "Cast: Instant"), `·`, non-zero Madra/Stamina/Health costs | Ability card, combat ability tooltip |
+| `TIMING_COSTS` | CD, Cast (or "Cast: Instant"), `·`, non-zero Madra/Stamina/Health costs | Combat ability tooltip |
 
 - Damage pills read only `effects_on_target[0]` and only when it has a base value or scaling; values are raw (`calculate_value`, before defense and modifiers) using `CharacterManager.get_total_attributes_data()`.
 - Hovering a pill shows `StatTooltip` with "Total Damage" (formula breakdown), "<ATTR> Scaling" (your value, %, contribution), "Base Damage", "Cooldown", "Cast Time" or "<Resource> Cost".
@@ -231,8 +235,8 @@ At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.
 | `PathManager` | in | `purchase_node()` calls `unlock_ability(string_value)` for `UNLOCK_ABILITY` effects |
 | Combat (`AdventureCombat`, `AbilitiesPanel`) | out | `get_equipped_abilities()` for the player combatant; `get_ability_at_slot()` for key hints and key routing |
 | `SystemMenuButton` (ABILITIES) | out | Listens to `ability_unlocked` and `equipped_abilities_changed`; badge = `has_unequipped_unlocks()` |
-| `MainView` state machine | in | `ZoneViewState` pushes `AbilitiesViewState` on `open_abilities` (A); `AbilitiesViewState` closes on `ui_cancel` or `open_abilities` via `GreyBackground.hide_with_panel()` |
-| `CharacterManager` | in | Attribute totals for stat pills and tooltips |
+| `MainView` state machine | in | `ZoneViewState` pushes `AbilitiesViewState` on `open_abilities` (A); `AbilitiesViewState` (`BookViewState`) closes on `ui_cancel`, `open_abilities`, the book's close tab or a backdrop click via `GreyBackground.hide_with_panel()` |
+| `CharacterManager` | in | Attribute totals for the details card's damage and the combat tooltip's pills; `base_attribute_changed` clears the book's damage previews |
 
 ## Existing Content
 
@@ -271,10 +275,13 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 | `singletons/path_manager/path_manager.gd` | `purchase_node()` → `unlock_ability()` |
 | `scenes/abilities/abilities_view.gd` / `.tscn` | Abilities view |
 | `scenes/abilities/abilities_view_state.gd` | View state (open/close input) |
-| `scenes/abilities/ability_card/ability_card.gd` / `.tscn` | Ability card |
+| `scenes/abilities/ability_row/ability_row.gd` / `.tscn` | Ability row (list entry, right-click equip, drag source) |
+| `scenes/abilities/ability_row/ability_drag_preview.gd` / `.tscn` | Drag cursor icon for rows and slots |
+| `tests/integration/test_abilities_book.gd` | Filter options, no sort selector, loadout order, rows, quick equip (full loadout), details (no status lines, damage and each attribute's part, buff effect, type icon, tags, timing and cost, one damage preview per opening, same layout for every ability, fits the page), large loadout icons |
+| `scenes/abilities/scaling_part/scaling_part.gd` / `.tscn` | One attribute's icon and contribution in the damage breakdown |
 | `scenes/abilities/equip_slot/equip_slot.gd` / `.tscn` | Loadout slot (drag source and drop target) |
 | `scenes/common/drop_target_slot.gd` | Shared drop-target base (hover tint, drop routing) |
-| `scenes/abilities/ability_stats_display/ability_stats_display.gd` | Stat pills |
+| `scenes/abilities/ability_stats_display/ability_stats_display.gd` | Stat pills (combat ability tooltip) |
 | `scenes/abilities/stat_label/stat_label.gd` / `.tscn` | Single stat pill |
 | `scenes/abilities/stat_tooltip/stat_tooltip.gd` | Pill tooltip |
 | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | ABILITIES menu button and badge |
@@ -285,6 +292,8 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 ### Bugs
 
 - `[MEDIUM]` Stat pills always use the player's attributes, including in the combat tooltip for enemy abilities (see [COMBAT.md](../combat/COMBAT.md#bugs)).
+- `[MEDIUM]` `AbilityStatsDisplay` leaks a tween on every `DAMAGE` / `DAMAGE_TOTAL` `setup()`: `_setup_damage_border_pulse()` starts an endless `set_loops()` tween with `create_tween()` on the display, not the label, and the tween keeps its `StyleBoxFlat` alive. Each call adds another tween that runs until the display is freed. The combat ability tooltip calls `setup()` on every hover. Creating the tween on the label (`label.create_tween()`) would let it die with the label.
+- `[LOW]` `CombatEffectData.calculate_value()` logs four or more INFO lines per call, so every damage preview (the Abilities book, the combat tooltip) writes to the log as if a hit landed.
 - `[LOW]` Stale "resource path" wording for `UNLOCK_ABILITY`: the enum comment and `string_value` comment in `path_node_effect_data.gd` and `PathEffectsSummary.unlocked_abilities` say resource path; the value is an `ability_id`. The `power_font` node's `benefit_summary` still reads "Madra Strike unlocked".
 
 ### Missing Functionality
@@ -294,7 +303,7 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 - `[MEDIUM]` `AbilitySource.PATH` has no lifecycle. Nothing relocks or unequips path abilities on `PathManager.reset_path()`, and `AbilityManager` has no relock API.
 - `[MEDIUM]` `MadraType` has only `NONE` and `PURE`. Blackflame and Earth path themes exist with no enum values, trees or abilities.
 - `[LOW]` No validation: `AbilityData.validate()` is never called, and unknown ids in the save are silently skipped.
-- `[LOW]` No public lookup by id; `AbilitiesView._update_loadout_sidebar()` scans the unlocked list for every slot.
+- `[LOW]` No public lookup by id; `AbilitiesView._find_ability()` scans the unlocked list for every slot and for the details card.
 
 ### Content
 
@@ -302,15 +311,15 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 
 ### UI
 
-- `[LOW]` Dropping a card onto an occupied slot unequips the occupant instead of moving it to the dragged ability's old slot, and dragging a slot onto empty space does nothing. The card button is the only way to unequip.
-- `[LOW]` Several cards can be expanded at once: `_on_card_selected()` is empty and `_expanded_card` is never assigned (the 2026-04-12 spec called for one at a time).
-- `[LOW]` The EQUIP button is a direct child of the card root and always visible; `ButtonRow` is empty. Cards have no equipped marker other than the button text, slots have no hover tooltip, and clicking a slot does not scroll to its card (spec).
-- `[LOW]` UI is built in code, against the project's scene-tree rule: `StatTooltip` builds its whole tree in `_init()` (no `.tscn`), `AbilityStatsDisplay._add_separator()` and `AbilityCard._create_tag_label()` create Labels, `AbilityCard` builds hover/expanded StyleBoxFlats, and `AbilityCard`/`AbilityEquipSlot` build identical drag previews.
-- `[LOW]` The pulsing DMG border is a StyleBoxFlat tween; the spec's `damage_total_glow` shader was never added, and pills do not live-update on attribute changes (the view rebuilds on open instead).
+- `[LOW]` Dropping an ability onto an occupied slot unequips the occupant instead of moving it to the dragged ability's old slot, and dragging a slot onto empty space does nothing. Right-clicking a row is the only way to unequip.
+- `[LOW]` Right-clicking an unequipped ability with all four slots full does nothing and says nothing, since the details card's "Loadout full" line was removed on 2026-10-21.
+- `[LOW]` The damage breakdown shows at most three scaling attributes (`ScalingPart1..3`); a fourth would be left out.
+- `[LOW]` Slots have no hover tooltip, and clicking a slot does not select its ability on the right page.
+- `[LOW]` UI is built in code, against the project's scene-tree rule: `StatTooltip` builds its whole tree in `_init()` (no `.tscn`) and `AbilityStatsDisplay._add_separator()` creates Labels.
+- `[LOW]` The combat tooltip's pulsing DMG border is a StyleBoxFlat tween; the spec's `damage_total_glow` shader was never added.
 
 ### Tech Debt
 
-- `[LOW]` Unused: `StatLabel.set_value()`, `AbilityCard.collapse()`, `AbilitiesView.abilities_closed` (no listeners), `AbilitiesView._expanded_card`.
-- `[LOW]` `AbilityCard._set_children_mouse_pass()` says PASS but sets `MOUSE_FILTER_IGNORE`.
+- `[LOW]` Unused: `StatLabel.set_value()`, and the `PanelAbilityCard` theme variant and `assets/styleboxes/abilities/pill_tag.tres` (the ability card that used them was replaced by `AbilityRow`).
 - `[LOW]` Public functions without `##` doc comments: `AbilityData.validate()`, `AbilityData.get_total_cost_display()`.
-- `[LOW]` `test_ability_manager.gd` does not cover `swap_slots`, `equip_ability_at_slot` (move/overwrite), `get_ability_at_slot` bounds or save reset, and it replaces `AbilityManager._live_save_data` without restoring it. No tests cover `AbilityData` predicates, `can_afford`/`consume_costs`, or the view's filter and sort.
+- `[LOW]` `test_ability_manager.gd` does not cover `swap_slots`, `equip_ability_at_slot` (move/overwrite), `get_ability_at_slot` bounds or save reset, and it replaces `AbilityManager._live_save_data` without restoring it. No tests cover `AbilityData` predicates or `can_afford`/`consume_costs`.

@@ -1,6 +1,6 @@
 # Inventory System
 
-Last updated: 2026-10-19
+Last updated: 2026-10-21
 
 ## Overview
 
@@ -14,7 +14,7 @@ The inventory holds what the player owns and what they have equipped:
 
 `InventoryManager` (autoload) owns every mutation and emits a single `inventory_changed` signal. The state lives in `InventoryData` inside the save file.
 
-The UI is a book (`InventoryView`) with four tabs:
+The UI is a book (`InventoryView`), the red one of the four menu books that share `BookFrame` (see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)), with four tabs:
 
 | Tab | Contents |
 |---|---|
@@ -66,26 +66,27 @@ Related docs:
    - Each row shows the icon, the name, the first 60 characters of the description, and a red seal dot.
    - Clicking a row shows the journal card: icon, name, a drop-cap description, and a `From` row.
    - When there are no quest items it shows "No quest items yet." and hides the card.
-8. **Close.** Press `I` or `Escape` to play the book-close animation. On close, every trash slot flushes back into the inventory.
+8. **Close.** Press `I` or `Escape`, click the close tab standing up from the top-right of the book, or click anywhere outside the book. The backdrop fades out while the book closes. On close, every trash slot flushes back into the inventory.
 
 ## Architecture
 
 ```
 MainView
-  MainViewStateMachine/InventoryViewState        — inventory_view_state.gd (enter/exit, close on I/Escape)
-  InventoryView (Control, scale 2x)              — inventory_view.gd (signals inventory_opened / inventory_closed)
-    BookBackground (TextureRect)
-      BookAnimationPlayer                        — "BookClosingAnimation" (played backwards to open)
-      PageTurningRect/PageTurningAnimationPlayer — "PageTurningAnimation"
-      BookContent (Control)
-        TabSwitcher                              — tab_switcher.gd (signal tab_changed(index))
-          EquipmentTabButton / ConsumablesTabButton / MaterialsTabButton / QuestItemsTabButton
-                                                 — tab_button.tscn/.gd (icon_texture export, "TabButtonAnimation")
-        EquipmentTab                             — equipment_tab.tscn/.gd
-        ConsumablesTab                           — consumables_tab.tscn/.gd
-        MaterialsTab                             — materials_tab.tscn/.gd
-        QuestItemsTab                            — quest_items_tab.tscn/.gd (the Journal)
+  MainViewStateMachine/InventoryViewState        — inventory_view_state.gd (BookViewState: close on I/Escape/close tab/backdrop click)
+  InventoryView (Control, scale 2x)              — inventory_view.gd (MenuBookView; page_content = [BookContent])
+    BookFrame                                    — scenes/ui/book_frame/book_frame.tscn, style inventory_book_style.tres
+                                                   (book art + open/close and page-turn animations, close tab, bookmark)
+    BookContent (Control, mouse ignored)         — shown only while the book lies open
+      TabSwitcher (mouse ignored)                — tab_switcher.gd: collects its child tab buttons, signal tab_changed(index)
+        EquipmentTabButton / ConsumablesTabButton / MaterialsTabButton / QuestItemsTabButton
+                                                 — tab_button.tscn/.gd (icon_texture export, "TabButtonAnimation", set_locked())
+      EquipmentTab                               — equipment_tab.tscn/.gd
+      ConsumablesTab                             — consumables_tab.tscn/.gd
+      MaterialsTab                               — materials_tab.tscn/.gd
+      QuestItemsTab                              — quest_items_tab.tscn/.gd (the Journal)
 ```
+
+`InventoryView` turns pages through `BookFrame.turn_page()` and shows the new tab on `page_turned`. Its `_after_close()` hook flushes the trash slots.
 
 ### Equipment tab
 
@@ -438,8 +439,9 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scripts/resource_definitions/loot/loot_table.gd`, `loot_table_entries.gd` | Loot rolling |
 | `scripts/resource_definitions/effects/award_item_effect_data.gd`, `award_loot_table_effect_data.gd` | Effect-driven awards |
 | `scripts/tools/items_md_parser.gd`, `items_md_to_resources.gd` | ITEMS.md → equipment `.tres` generator |
-| `scenes/ui/main_view/states/inventory_view_state.gd` | Open/close state |
-| `scenes/inventory/inventory_view/inventory_view.gd` | Book animations, tab switching, trash flush on close |
+| `scenes/ui/main_view/states/inventory_view_state.gd` | Open/close state (`BookViewState`) |
+| `scenes/inventory/inventory_view/inventory_view.gd` | Tab switching with the page turn, trash flush on close (`MenuBookView`) |
+| `scenes/ui/book_frame/` | The shared book (`BookFrame`) and the menu views' base (`MenuBookView`) |
 | `scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd`, `tab_button.gd` | Tab buttons |
 | `scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd` | Equipment drag/drop, quick-equip, filter, trash routing |
 | `scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.gd` | Paged slot pool, dimming |
@@ -495,7 +497,6 @@ Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_d
 ### UI
 
 - `[MEDIUM]` **MaterialTipCard advertises a favorites feature that doesn't exist:** "Right-click a material to mark it as a favorite — favorites rise to the top of the grid…".
-- `[MEDIUM]` **No on-screen close button.** Only `I` and `Escape` close the book.
 - `[LOW]` **The hotbar's helper text** says "Hotkeys 1-4", but `main` has no consumable input actions.
 - `[LOW]` **The Equipment tab shows no item count or capacity.** `PaginationBar`'s count label was dropped in 8d147eb.
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
@@ -518,7 +519,7 @@ Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_d
   - `QuestJournalCard`'s `%Sub` label, which is always empty
 - `[LOW]` **UI nodes built in code.** `SortSubBanner._redraw()` creates its dot `TextureRect`s in code and frees the four authored `Dot0-3` nodes.
 - `[LOW]` **Coding-standard gaps:**
-  - `$AnimationPlayer` in `tab_button.gd` and `$MarginContainer/SlotBackground` in `gear_slot.gd` should use `%` unique names
+  - `$MarginContainer/SlotBackground` in `gear_slot.gd` should use a `%` unique name
   - untyped variables (for example `var inventory = get_inventory()` in `inventory_manager.gd`) and an untyped `func _input(event)` in `equipment_tab.gd`
   - no `##` docs on `get_inventory`, `get_material_items`, `award_items`, `unequip_item`, `move_equipment` and `get_equipped_item`
   - `_get_item_type()` and `_get_item_effects()` start with `_` but are called from other classes

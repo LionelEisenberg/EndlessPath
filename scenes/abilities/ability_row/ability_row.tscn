@@ -1,0 +1,57 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/abilities/ability_row/ability_row.gd" id="1_script"]
+
+[node name="AbilityRow" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 66)
+mouse_filter = 0
+theme_type_variation = &"PanelBookRow"
+script = ExtResource("1_script")
+
+[node name="RowHBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="IconSlot" type="PanelContainer" parent="RowHBox"]
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"PanelBookSlot"
+
+[node name="Icon" type="TextureRect" parent="RowHBox/IconSlot"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextBox" type="VBoxContainer" parent="RowHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="NameLabel" type="Label" parent="RowHBox/TextBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookBody"
+text = "Ability"
+
+[node name="CostLabel" type="Label" parent="RowHBox/TextBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookMuted"
+text = "0 Madra · 0 s"
+
+[node name="KeyChip" type="Label" parent="RowHBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelBookKey"
+text = "Q"
+horizontal_alignment = 1

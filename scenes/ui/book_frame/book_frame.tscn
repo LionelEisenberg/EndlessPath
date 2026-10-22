@@ -1,0 +1,161 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/book_frame/book_frame.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://bl4374rlugdsq" path="res://assets/sprites/inventory/book_opening_spritesheet.png" id="2_book"]
+[ext_resource type="Texture2D" uid="uid://2ht5lyu30god" path="res://assets/sprites/inventory/page_turning_spritesheet.png" id="3_page"]
+[ext_resource type="Shader" path="res://assets/shaders/palette_swap.gdshader" id="4_palette"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/book_close_tab_ai.png" id="5_close"]
+[ext_resource type="Theme" uid="uid://ciwq623bywp6n" path="res://assets/themes/book_theme.tres" id="6_theme"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/book_bookmark_ai.png" id="7_bookmark"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_book"]
+resource_local_to_scene = true
+shader = ExtResource("4_palette")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_book"]
+resource_local_to_scene = true
+atlas = ExtResource("2_book")
+region = Rect2(0, 0, 700, 450)
+
+[sub_resource type="Animation" id="Animation_book_close"]
+resource_name = "BookClosingAnimation"
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:texture:region")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.075, 0.15, 0.225, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 1,
+"values": [Rect2(0, 0, 700, 450), Rect2(700, 0, 700, 450), Rect2(1400, 0, 700, 450), Rect2(2100, 0, 700, 450), Rect2(2800, 0, 700, 450)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_book"]
+_data = {
+&"BookClosingAnimation": SubResource("Animation_book_close")
+}
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_page"]
+resource_local_to_scene = true
+shader = ExtResource("4_palette")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_page"]
+resource_local_to_scene = true
+atlas = ExtResource("3_page")
+region = Rect2(6300, 0, 700, 450)
+
+[sub_resource type="Animation" id="Animation_page_turn"]
+resource_name = "PageTurningAnimation"
+length = 0.54
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:texture:region")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.06, 0.12, 0.18, 0.24, 0.3, 0.36, 0.42, 0.48, 0.54),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [Rect2(0, 0, 700, 450), Rect2(700, 0, 700, 450), Rect2(1400, 0, 700, 450), Rect2(2100, 0, 700, 450), Rect2(2800, 0, 700, 450), Rect2(3500, 0, 700, 450), Rect2(4200, 0, 700, 450), Rect2(4900, 0, 700, 450), Rect2(5600, 0, 700, 450), Rect2(6300, 0, 700, 450)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_page"]
+_data = {
+&"PageTurningAnimation": SubResource("Animation_page_turn")
+}
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bookmark"]
+resource_local_to_scene = true
+shader = ExtResource("4_palette")
+
+[node name="BookFrame" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 700.0
+offset_bottom = 450.0
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="BookHitArea" type="Control" parent="."]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 24.0
+offset_right = 652.0
+offset_bottom = 432.0
+
+[node name="CloseTab" type="TextureButton" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 578.0
+offset_top = 10.0
+offset_right = 615.0
+offset_bottom = 34.0
+focus_mode = 0
+texture_normal = ExtResource("5_close")
+
+[node name="CloseGlyph" type="Label" parent="CloseTab"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 4.0
+offset_right = 74.0
+offset_bottom = 48.0
+scale = Vector2(0.5, 0.5)
+theme = ExtResource("6_theme")
+theme_type_variation = &"LabelBookTitle"
+text = "X"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BookBackground" type="TextureRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_book")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_book")
+
+[node name="BookAnimationPlayer" type="AnimationPlayer" parent="BookBackground"]
+unique_name_in_owner = true
+libraries/ = SubResource("AnimationLibrary_book")
+
+[node name="PageTurningRect" type="TextureRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_page")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_page")
+
+[node name="PageTurningAnimationPlayer" type="AnimationPlayer" parent="PageTurningRect"]
+unique_name_in_owner = true
+libraries/ = SubResource("AnimationLibrary_page")
+
+[node name="BookmarkClip" type="Control" parent="."]
+unique_name_in_owner = true
+clip_contents = true
+layout_mode = 0
+offset_left = 575.0
+offset_top = 420.0
+offset_right = 591.0
+offset_bottom = 454.0
+
+[node name="Bookmark" type="TextureRect" parent="BookmarkClip"]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_bookmark")
+layout_mode = 0
+offset_right = 16.0
+offset_bottom = 34.0
+mouse_filter = 2
+texture = ExtResource("7_bookmark")

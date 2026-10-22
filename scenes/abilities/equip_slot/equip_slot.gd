@@ -1,10 +1,10 @@
 class_name AbilityEquipSlot
 extends DropTargetSlot
 
-## A single loadout slot in the AbilitiesView sidebar.
-## Accepts drag-and-drop from AbilityCard to equip abilities, and is itself a
-## drag source so an equipped ability can be dragged out / reordered between
-## slots. The drop-target hover + routing is inherited from DropTargetSlot.
+## A single loadout slot in the Abilities book.
+## Accepts drag-and-drop from AbilityRow to equip abilities, and is itself a
+## drag source so an equipped ability can be reordered between slots. The
+## drop-target hover + routing is inherited from DropTargetSlot.
 
 signal ability_dropped(ability_id: String, slot_index: int, from_slot: int)
 
@@ -12,6 +12,7 @@ var _ability_data: AbilityData = null
 var _slot_index: int = 0
 
 const KEY_LABELS: PackedStringArray = ["Q", "W", "E", "R"]
+const DragPreviewScene: PackedScene = preload("res://scenes/abilities/ability_row/ability_drag_preview.tscn")
 
 @onready var _icon: TextureRect = %SlotIcon
 @onready var _empty_label: Label = %EmptyLabel
@@ -43,30 +44,9 @@ func get_ability() -> AbilityData:
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if not _ability_data:
 		return null
-	var container: Control = Control.new()
-	container.z_index = 100
-	container.top_level = true
-	var bg: Panel = Panel.new()
-	var bg_style: StyleBoxFlat = StyleBoxFlat.new()
-	bg_style.bg_color = ThemeConstants.BG_MEDIUM
-	bg_style.set_border_width_all(2)
-	bg_style.border_color = ThemeConstants.BORDER_PRIMARY
-	bg_style.set_corner_radius_all(6)
-	bg_style.set_content_margin_all(0)
-	bg.add_theme_stylebox_override("panel", bg_style)
-	bg.position = Vector2(-40, -40)
-	bg.size = Vector2(80, 80)
-	container.add_child(bg)
-	var icon: TextureRect = TextureRect.new()
-	icon.texture = _ability_data.icon
-	icon.position = Vector2(-32, -32)
-	icon.size = Vector2(64, 64)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.modulate = Color(1.5, 1.5, 1.5, 1.0)
-	container.add_child(icon)
-	set_drag_preview(container)
+	var preview: AbilityDragPreview = DragPreviewScene.instantiate() as AbilityDragPreview
+	preview.setup(_ability_data.icon)
+	set_drag_preview(preview)
 	return {"ability_id": _ability_data.ability_id, "from_slot": _slot_index}
 
 # ----- Drop target (hover + routing inherited from DropTargetSlot) -----

@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/abilities/scaling_part/scaling_part.gd" id="1_script"]
+
+[node name="ScalingPart" type="HBoxContainer"]
+mouse_filter = 2
+theme_override_constants/separation = 2
+script = ExtResource("1_script")
+
+[node name="Icon" type="TextureRect" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ValueLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookMuted"
+text = "+0"
+vertical_alignment = 1
