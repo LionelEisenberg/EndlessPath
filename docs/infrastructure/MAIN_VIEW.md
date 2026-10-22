@@ -1,15 +1,15 @@
 # Main View (UI Shell and Navigation)
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 ## Overview
 
-`main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, merchant shop, adventure end card), the HUD panels (log, quests; the merchant shop hides them while it is open), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
+`main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, merchant shop, adventure end card), the HUD boards (the log and the Goals board; every overlay over the zone view hides them while it is open), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
 
-- Menu overlays (Inventory, Path, Abilities, Character) open from the keyboard or the bottom toolbar. Both routes produce the same input action. All four are books built on one shared `BookFrame` scene and open and close the same way (see [Menu books](#menu-books)).
+- Menu overlays (Inventory, Path, Abilities, Character) open from the keyboard or the dock at the bottom of the zone view. Both routes produce the same input action. All four are books built on one shared `BookFrame` scene and open and close the same way (see [Menu books](#menu-books)).
 - Cycling, the merchant shop, adventures and the end card are driven by `ActionManager` and `AdventureView` signals.
-- Only the top state receives input. Everything else that reads input (combat hotkeys, camera pan/zoom, the dev hotkey, Dialogic) is handled outside the state machine.
+- Only the top state receives input. Everything else that reads input (the full log on L, the zone chest's lore and the map popover on Escape, combat hotkeys, camera pan/zoom, the dev hotkey, Dialogic) is handled outside the state machine.
 
-Related docs: [UI_STYLING.md](../UI_STYLING.md) (theme), [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) (dev panel), [TESTING.md](../testing/TESTING.md).
+The zone view itself (map, cultivator cabinet, zone chest) is documented in [ZONES.md](../zones/ZONES.md). Related docs: [UI_STYLING.md](../UI_STYLING.md) (themes, including the lacquer theme), [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) (dev panel), [TESTING.md](../testing/TESTING.md).
 
 ## Architecture
 
@@ -17,7 +17,7 @@ Related docs: [UI_STYLING.md](../UI_STYLING.md) (theme), [DEV_TOOLS.md](../tooli
 
 ```
 MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey, Log print level
-├── MainView (Control, 1920x1080)          main_view.gd (class MainView): state stack + input routing
+├── MainView (Control, 1920x1080)          main_view.gd (class MainView): state stack, input routing, HUD board hiding
 │   │                                      theme = pixel_theme.tres, mouse_filter = Ignore
 │   ├── MainViewStateMachine (Node)        no script; container for the 9 state nodes
 │   │   ├── AdventureViewState             scenes/ui/main_view/states/adventure_view_state.gd
@@ -30,18 +30,16 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 │   │   ├── CharacterViewState             scenes/character/character_view_state.gd
 │   │   └── MerchantViewState              scenes/merchant/merchant_view_state.gd
 │   ├── ZoneView (Control)                 base view; hidden while adventuring
-│   │   ├── ZoneTransition (Node)          zone_transition.gd: Madra drain + camera zoom into adventures
+│   │   ├── ZoneTransition (Node)          zone_transition.gd: Madra pellet drain + camera zoom into adventures
 │   │   ├── SubViewportContainer           1920x1080, centred
-│   │   │   └── SubViewport                transparent bg, always updates
-│   │   │       ├── ZoneViewBackground     zone_view_background.tscn (parallax)
-│   │   │       └── ZoneTilemap            zone_tilemap.tscn (hex map, camera, player)
-│   │   ├── ZoneInfoPanel                  right edge, 450 px wide
-│   │   ├── ZoneResourcePanel              left middle: Madra + Core Density orbs
-│   │   ├── ZoneHeader                     top-left, panel_floating.tres override
-│   │   └── Toolbar                        bottom, 60 px: system menu buttons + gold
+│   │   │   └── SubViewport                transparent bg, always updates, Nearest texture filter
+│   │   │       └── ZoneTilemap            zone_tilemap.tscn (hex map, fog, camera, player, MapMarkers)
+│   │   ├── CultivatorPlate                cultivator_plate.tscn: Madra, Core Density, gold (top left)
+│   │   ├── ZonePanel                      zone_panel.tscn: the zone chest (top right)
+│   │   └── Dock                           dock.tscn: four SystemMenuButtons (bottom centre)
 │   ├── AdventureView           z 0        adventure_view.tscn, hidden by default
-│   ├── LogWindow               z 1        log_window.tscn
-│   ├── QuestWindow             z 1        quest_window.tscn
+│   ├── LogWindow               z 1        log_window.tscn (lacquer log board and full log)
+│   ├── GoalsPanel              z 1        goals_panel.tscn (lacquer Goals board)
 │   ├── QuestToast              z 10       quest_toast.tscn
 │   ├── GreyBackground (Panel)  z 2        grey_background.gd, hidden by default
 │   │   └── GreyBackgroundAnimationPlayer  RESET, grey_fade_in (0.3 s), grey_fade_out (0.2 s)
@@ -57,18 +55,17 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 └── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.save_data()
 ```
 
-Draw order is controlled by `z_index`. LogWindow and QuestWindow (z 1) sit under the GreyBackground (z 2), so a modal dims them and blocks clicks to them. QuestToast and the dev tools (z 10) draw above every modal.
+Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under the GreyBackground (z 2), so the end card's backdrop dims them; the zone-view overlays hide them outright (see [HUD boards](#hud-boards)). QuestToast and the dev tools (z 10) draw above every modal.
 
 ### HUD placement
 
 | Node | Parent | Placement (1920x1080) | Notes |
 |------|--------|-----------------------|-------|
-| `Toolbar` | `ZoneView` | Bottom strip, full width, 60 px tall | Hidden with the zone view during adventures |
-| `ZoneHeader` | `ZoneView` | (28, 28) to (424, 245) | Zone name/info |
-| `ZoneResourcePanel` | `ZoneView` | Left edge, vertically centred (x 28 to 206) | Madra orb is the drain particle source |
-| `ZoneInfoPanel` | `ZoneView` | Right edge, x 1470 to 1920 | Zone actions |
-| `LogWindow` | `MainView` | (736, 781) to (1136, 1008) | Draggable by its title bar, starts collapsed; visible in zone and adventure views |
-| `QuestWindow` | `MainView` | x 1147 to 1467, y 28 to 271 | Collapsible, not draggable |
+| `CultivatorPlate` | `ZoneView` | (24, 24), 440x252 | Madra orb is the drain pellets' source. Hidden with the zone view during adventures |
+| `ZonePanel` | `ZoneView` | (1456, 24), 440 wide, height hugs its content (176 to 1032) | Zone header, Now strip, activity list |
+| `Dock` | `ZoneView` | (722, 976), 476x80 | Four 108x64 buttons. Hidden with the zone view during adventures |
+| `GoalsPanel` | `MainView` | Zone view: (24, 272), hung on its cords under the cabinet. Adventure view: root at (1456, 4), body at (1456, 24), cords and hooks hidden | 220 px tall with a quest, 150 with the milestone alone. Not draggable |
+| `LogWindow` | `MainView` | Zone view: its 440x204 slot at (24, 852), the board on the slot's bottom edge (screen 1056) growing upward. Adventure view: slot at (24, 24), the board hanging from its top edge | 74 + 26 px per line, up to 5 lines. The full log is a 440x560 board in the same place |
 | `QuestToast` | `MainView` | Top-centre, 350x60 at y 28 | `mouse_filter` Ignore; queues messages |
 | `DevPanel` | `MainView` | (0, 0), 340x400 | Draggable; see [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) |
 
@@ -86,29 +83,39 @@ Draw order is controlled by `z_index`. LogWindow and QuestWindow (z 1) sit under
 | `pop_state()` | No-op on an empty stack. Otherwise pops and calls `exit()` on the popped state. The state underneath is **not** re-entered. |
 | `remove_state(state)` | No-op if `state` isn't on the stack. Otherwise erases it wherever it sits and calls its `exit()`. States above it stay open. `MerchantViewState` closes this way, so it never pops another view. |
 | `change_state(new_state)` | Returns early if `new_state` is already the base. Otherwise it clears the stack **without** calling `exit()` on stacked states, calls `exit()` on the old base, then `enter()` on the new base. |
+| `hide_hud_boards(holder)` / `release_hud_boards(holder)` | See [HUD boards](#hud-boards). |
+| `goals_panel`, `log_window` | The two shared HUD boards, typed `Control` (a test assigns plain Controls). |
 | `_unhandled_input(event)` | Forwards to the current state's `handle_input(event)`. |
 
-In practice at most one overlay is open at a time. Overlay states never push other overlays, and while an overlay is open the GreyBackground covers the toolbar.
+In practice at most one overlay is open at a time. Overlay states never push other overlays, and while an overlay is open the GreyBackground covers the dock.
+
+### HUD boards
+
+The log and the Goals board belong to `MainView` because both base views show them; each base state places them.
+
+- `ZoneViewState.enter()` puts the Goals board at `GOALS_POSITION` (24, 272) and the log slot at `LOG_POSITION` (24, 852).
+- `AdventureViewState.enter()` saves both positions, moves the log slot to (24, 24) and the Goals root to (1456, 24 − `GoalsPanel.CORDS_HEIGHT`), and calls `GoalsPanel.set_cords_visible(false)`, which also swaps the top slice for the hookless `lacquer_goals_top_plain_ai.png`. `exit()` puts both back and shows the cords. The left side is left to the adventure map's encounter panel.
+- Every overlay over the zone view (Inventory, Cycling, Path, Abilities, Character, Merchant) calls `scene_root.hide_hud_boards(self)` in `enter()` and `release_hud_boards(self)` in `exit()`. `MainView` counts the holders: the first one saves each board's visibility and hides it, and the boards get it back only when the last holder releases them, whatever order the overlays close in (the shop can leave from under cycling). The end card does not hide them; its backdrop dims them.
 
 ### States
 
 | State | Kind | `enter()` | `exit()` | Input handled | Leaves via |
 |-------|------|-----------|----------|---------------|------------|
-| `ZoneViewState` | Base (initial) | Shows `ZoneView`. Removes the input blocker. Finds `ZoneTransition` and calls `reset_camera()` to undo the adventure zoom. | Removes the input blocker. Hides `ZoneView`. | `open_inventory` → push Inventory; `open_path` → push PathTree; `open_abilities` → push Abilities; `open_character` → push Character. Ignored while the input blocker exists. | `start_adventure` (handled by `AdventureViewState`) |
-| `AdventureViewState` | Base | Shows `AdventureView`. Connects `AdventureView.adventure_completed`. | Hides `AdventureView` and disconnects. | None | End card return → `change_state(zone)` |
+| `ZoneViewState` | Base (initial) | Shows `ZoneView`. Places the Goals board and the log. Removes the input blocker. Finds `ZoneTransition` and calls `reset_camera()` to undo the adventure zoom. | Removes the input blocker. Hides `ZoneView`. | `open_inventory` → push Inventory; `open_path` → push PathTree; `open_abilities` → push Abilities; `open_character` → push Character. Ignored while the input blocker exists. | `start_adventure` (handled by `AdventureViewState`) |
+| `AdventureViewState` | Base | Shows `AdventureView`. Moves the log and the Goals board aside. Connects `AdventureView.adventure_completed`. | Hides `AdventureView`, puts the boards back and disconnects. | None | End card return → `change_state(zone)` |
 | `AdventureEndCardState` | Overlay on Adventure | Shows GreyBackground. `AdventureViewState` then calls `show_results()`. | Hides `AdventureEndCard` and GreyBackground. | None (the card's own Return button) | Popped by `AdventureViewState` |
-| `InventoryViewState` | Overlay (`BookViewState`) | Connects the book's close tab, then `grey_background.show_with_panel(inventory_view)` | Disconnects the close tab (the view is already hidden) | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
-| `CyclingViewState` | Overlay | Shows `CyclingView` and GreyBackground. | Hides both. | `close_cycling_view` → `ActionManager.stop_action()` | `ActionManager.stop_cycling` → `pop_state()` |
+| `InventoryViewState` | Overlay (`BookViewState`) | Hides the HUD boards. Connects the book's close tab, then `grey_background.show_with_panel(inventory_view)` | Disconnects the close tab (the view is already hidden). Releases the HUD boards | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
+| `CyclingViewState` | Overlay | Hides the HUD boards. Shows `CyclingView` and GreyBackground. | Hides both. Releases the HUD boards. | `close_cycling_view` → `ActionManager.stop_action()` | `ActionManager.stop_cycling` → `pop_state()` |
 | `PathTreeViewState` | Overlay (`BookViewState`) | Same as Inventory | Same | `ui_cancel` or `open_path`, the close tab, or a backdrop click → same close path | Same |
 | `AbilitiesViewState` | Overlay (`BookViewState`) | Same | Same | `ui_cancel` or `open_abilities`, the close tab, or a backdrop click → same close path | Same |
 | `CharacterViewState` | Overlay (`BookViewState`) | Same | Same | `ui_cancel` or `open_character`, the close tab, or a backdrop click → same close path | Same |
-| `MerchantViewState` | Overlay | Hides the log and quest windows (the shop would cut their text off), then `show_with_panel(merchant_view)` | Shows the log and quest windows again, as they were | `ui_cancel` → `ActionManager.stop_action()`; the Leave button (`MerchantView.close_requested`) does the same | `ActionManager.stop_merchant` → `hide_with_panel()`, then `remove_state(self)` on `panel_hidden`. If another state is above it, it hides `MerchantView` at once and removes itself without the fade. `start_merchant` while it is already on the stack only rebinds the stock |
+| `MerchantViewState` | Overlay | Hides the HUD boards (the shop would cut their text off), then `show_with_panel(merchant_view)` | Releases the HUD boards | `ui_cancel` → `ActionManager.stop_action()` while a merchant action is current; the Leave button (`MerchantView.close_requested`) does the same | `ActionManager.stop_merchant` → `hide_with_panel()`, then `remove_state(self)` on `panel_hidden`. If another state is above it, it hides `MerchantView` at once and removes itself without the fade. `start_merchant` while it is already on the stack only rebinds the stock |
 
 What each view shows:
 
 | View | Content | Doc |
 |------|---------|-----|
-| `ZoneView` | Hex zone map with parallax background, zone header, info panel, resource orbs, toolbar | [ZONES.md](../zones/ZONES.md) |
+| `ZoneView` | Hex zone map at zoom 2 with fog, plates and popovers; cultivator cabinet; zone chest (header, Now strip, activity cards); dock | [ZONES.md](../zones/ZONES.md) |
 | `AdventureView` | Adventure hex map, combat view, timer, player info panel | [ADVENTURING.md](../adventuring/ADVENTURING.md), [COMBAT.md](../combat/COMBAT.md) |
 | `AdventureEndCard` | Scroll with VICTORY/defeat title, run stats, loot slots, Return button | [ADVENTURING.md](../adventuring/ADVENTURING.md) |
 | `InventoryView` | Red book with Equipment, Consumables, Materials and Quest Items tabs | [INVENTORY.md](../inventory/INVENTORY.md) |
@@ -120,7 +127,7 @@ What each view shows:
 
 ### GreyBackground (modal backdrop)
 
-`GreyBackground` (`scenes/ui/grey_background/grey_background.gd`, class `GreyBackground`) is a full-rect `Panel` at z 2. Its stylebox is `assets/styleboxes/zones/grey_background.tres`, a flat slate fill `Color(0.176, 0.216, 0.216, 0.557)`. Because it uses the Panel's default mouse filter it blocks clicks to everything beneath it, including the toolbar. A left press on the backdrop itself emits `clicked`; the menu books close on it, and other users (the merchant) ignore it. States use it in two ways:
+`GreyBackground` (`scenes/ui/grey_background/grey_background.gd`, class `GreyBackground`) is a full-rect `Panel` at z 2. Its stylebox is `assets/styleboxes/zones/grey_background.tres`, a flat slate fill `Color(0.176, 0.216, 0.216, 0.557)`. Because it uses the Panel's default mouse filter it blocks clicks to everything beneath it, including the dock. A left press on the backdrop itself emits `clicked`; the menu books close on it, and other users (the merchant) ignore it. States use it in two ways:
 
 | Mode | Used by | Behaviour |
 |------|---------|-----------|
@@ -143,18 +150,20 @@ The state scripts connect to `ActionManager` themselves in `_ready()`. `MainView
 ```
 Zone action (cycling) ─► ActionManager.start_cycling ─► CyclingViewState: push_state(cycling)
 Esc / close button ─► close_cycling_view ─► ActionManager.stop_action() ─► stop_cycling ─► pop_state()
+                                                       └─► the zone's idle action resumes
 
 Zone action (merchant) ─► ActionManager.start_merchant ─► MerchantViewState: merchant_view.setup(action); push_state(merchant)
 Leave / Esc ─► ActionManager.stop_action() ─► stop_merchant ─► hide_with_panel ─► panel_hidden ─► remove_state(merchant)
 
 Zone action (adventure) ─► ActionManager.adventure_start_requested
    ├─► ZoneViewState: adds a full-rect Control (mouse Stop) to ZoneView and ignores keys
-   └─► ZoneTransition: FlyingParticle Madra drain from the Madra orb, then camera zoom to 3x
+   ├─► MapMarkers: hides the map's plates and glyphs
+   └─► ZoneTransition: MadraPellet drain from the cabinet's Madra orb, then camera zoom to 3x
          └─► ActionManager.confirm_adventure_start(data, budget) ─► start_adventure
                ├─► AdventureViewState: change_state(adventure)   (zone exit removes the blocker)
                └─► AdventureView.start_adventure()               (connected after the state)
 
-Run ends ─► ActionManager.stop_action() ─► stop_adventure
+Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's idle action resumes)
    ├─► AdventureViewState: no-op (waits for the result)
    └─► AdventureView.stop_adventure() ─► adventure_completed(result)
          └─► AdventureViewState: push_state(end_card); adventure_end_card.show_results(result)
@@ -166,11 +175,15 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure
 
 ### Input routing
 
-1. `MainGame._input()` runs before the GUI. It handles Ctrl+Shift+D and marks the event handled.
+1. `MainGame._input()` runs before the GUI. It handles Ctrl+Shift+D and marks the event handled. `ZonePanel._input()` also sees every left press, to close the lore at the end of the frame when the press lands outside it.
 2. GUI controls consume their own events, for example a focused `LineEdit`/`SpinBox`, button clicks and `gui_input` handlers.
-3. `_unhandled_input` reaches `MainView` (routed to the current state only), the combat `AbilitiesPanel` (Q/W/E/R while visible), and the camera controllers inside the tilemaps (zoom on both maps, pan on the zone map only).
+3. `_unhandled_input` reaches the nodes in reverse tree order, then `MainView`:
+   - `LogWindow` (while visible): L (`toggle_log`) opens or closes the full log; Escape closes it while open.
+   - `ZonePanel`: Escape closes the lore, only while it shows and `ZoneViewState` is MainView's current state, so an overlay opened over the zone view takes Escape first.
+   - Inside the zone SubViewport, `MapMarkers`: Escape closes a pinned map popover. Its `set_input_as_handled()` only marks the SubViewport's copy, so the same Escape still reaches `ZonePanel` and `MainView`.
+   - `MainView` (routed to the current state only), the combat `AbilitiesPanel` (Q/W/E/R while visible), and the camera controllers inside the tilemaps (zoom on both maps, pan on the zone map only).
 
-Escape is bound to three actions: `close_inventory`, `close_cycling_view` and the built-in `ui_cancel`. They never conflict because only the top state reads input. Menu shortcuts work only while `ZoneViewState` is current. `AdventureViewState.handle_input()` is empty, so I/A/C/P do nothing during an adventure.
+Escape is bound to three actions: `close_inventory`, `close_cycling_view` and the built-in `ui_cancel`. Inside the state machine they never conflict because only the top state reads input. Menu shortcuts work only while `ZoneViewState` is current. `AdventureViewState.handle_input()` is empty, so I/A/C/P do nothing during an adventure; L still opens the full log.
 
 ### Keybindings
 
@@ -184,6 +197,7 @@ Project actions from `project.godot` `[input]`. Key bindings use physical key po
 | `open_path_tree` | P | Nothing | Unused duplicate of `open_path` |
 | `open_abilities` | A | `ZoneViewState`, `AbilitiesViewState` | Open / close abilities view |
 | `open_character` | C | `ZoneViewState`, `CharacterViewState` | Open / close character view |
+| `toggle_log` | L | `LogWindow._unhandled_input()`, while the log is visible | Open / close the full log ([LOGGING.md](LOGGING.md#logwindow)) |
 | `close_cycling_view` | Escape | `CyclingViewState` (the cycling close button fires the same action) | `ActionManager.stop_action()` |
 | `center_zone_map_camera` | Space | Nothing | Unused, no script reads it |
 | `ability_slot_1` to `ability_slot_4` | Q, W, E, R | `AbilitiesPanel._unhandled_input()` (`scenes/ui/combat/abilities_panel.gd`), only while the panel is visible | Emits `ability_selected` for that slot's ability when its button is enabled. `CombatantInfoPanel` re-emits it, and `AdventureView` connects it to `AdventureCombat.on_player_ability_selected()`. |
@@ -193,59 +207,67 @@ Other inputs:
 
 | Input | Handled by | Effect |
 |-------|------------|--------|
-| Escape (built-in `ui_cancel`) | `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState` | Close the overlay (the merchant does it by stopping its action) |
+| Escape (built-in `ui_cancel`) | `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`; `LogWindow`, `ZonePanel`, `MapMarkers` outside the state machine | Close the overlay (the merchant does it by stopping its action); close the full log, the zone lore or the pinned map popover |
 | Ctrl+Shift+D (`KEY_D`, logical) | `MainGame._input()` | Dev password modal or dev panel toggle. No-op unless `user://dev_password.txt` exists. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md). |
 | Right mouse drag | `CameraPanController` on the zone tilemap camera only (the adventure camera follows the player and has no pan controller) | Pan the zone map |
-| Mouse wheel | `CameraZoomController`: zone 0.65 to 1.35 (default 0.729), adventure 0.3 to 1.3 (default 1.0) | Zoom |
+| Mouse wheel | `CameraZoomController`: zone 1.0 to 2.0 (default 2.0), adventure 0.3 to 1.3 (default 1.0); over the zone chest's list it scrolls the list instead | Zoom |
 | Left drag / wheel in path tree | `PathTreeView._on_tree_area_gui_input()` | Pan / zoom the tree |
 
-### Toolbar and SystemMenuButton
+### Dock and SystemMenuButton
 
-`Toolbar` (`scenes/ui/toolbar/toolbar.tscn` + `toolbar.gd`, class `Toolbar`) is a 1920x60 `PanelContainer` styled with `assets/styleboxes/ui/toolbar_panel.tres`. It holds four `SystemMenuButton` instances, a `VSeparator`, and a gold readout. The readout is `gold_icon.png` plus `GoldLabel` (`LabelSubheading` with a gold `#D4A84A` override), refreshed from `ResourceManager.gold_changed`. It is a child of `ZoneView`, so it exists only on the zone map. There is no `SystemMenu` node in `ZoneResourcePanel`.
+`Dock` (`scenes/ui/dock/dock.tscn` + `dock.gd`, class `Dock`) is the lacquer kit's 476x80 recessed shelf (§5.4), a child of `ZoneView` at (722, 976), so it exists only on the zone map. It holds four `SystemMenuButton`s at x 10, 126, 242 and 358 inside the shelf (Inventory, Abilities, Character, Path) and decides which are notified:
 
-`SystemMenuButton` (`scenes/zones/zone_resource_panel/system_menu/system_menu_button.tscn` + `.gd`) is a `Button` configured by one export, `menu_type: MenuType`. `MENU_CONFIG` maps each value:
+- **Path:** the brass ring and a cinnabar count seal (`lacquer_seal_count_ai`, over the top-left corner) while `PathManager.get_point_balance() > 0`, read in `_ready()` and on `points_changed`. This is how the game announces path points.
+- **Abilities:** the ring with no count while `AbilityManager.has_unequipped_unlocks()`, refreshed on `ability_unlocked` and `equipped_abilities_changed`.
+- Both are read again on `PersistenceManager.save_data_reset`.
 
-| `MenuType` | Value | Label | Shortcut hint | Input action | Icon (`assets/sprites/ui/system_menu/`) |
-|------------|-------|-------|---------------|--------------|------------------------------------------|
-| `INVENTORY` | 0 | INVENTORY | I | `open_inventory` | `inventory_icon.png` |
-| `ABILITIES` | 1 | ABILITIES | A | `open_abilities` | `ability_icon.png` |
-| `CHARACTER` | 2 | CHARACTER | C | `open_character` | `character_icon.png` |
-| `PATH` | 3 | PATH | P | `open_path` | `star_icon.png` |
+Gold left the bar for the cultivator cabinet.
 
-- **Press:** builds an `InputEventAction` (`action`, `pressed = true`) and calls `Input.parse_input_event()`. The event follows the same path as a key press, ending in `ZoneViewState.handle_input()`.
-- **Hover:** the name and shortcut labels turn `ThemeConstants.ACCENT_GOLD`.
-- **Badge:** a 12x12 gold `ColorRect`, shown on ABILITIES only, when `AbilityManager.has_unequipped_unlocks()` is true. It refreshes on `AbilityManager.ability_unlocked` and `equipped_abilities_changed`.
+`SystemMenuButton` (`scenes/ui/dock/system_menu_button/system_menu_button.tscn` + `.gd`) is a 108x64 lacquer button configured by one export, `menu_type: MenuType`. `MENU_CONFIG` maps each value:
+
+| `MenuType` | Value | Label | Shortcut hint | Input action | Icon (shown at 32x32) |
+|------------|-------|-------|---------------|--------------|------------------------|
+| `INVENTORY` | 0 | Inventory | I | `open_inventory` | `assets/sprites/ui/system_menu/inventory_icon.png` (16 px, at 2x) |
+| `ABILITIES` | 1 | Abilities | A | `open_abilities` | `assets/ui/lacquer/lacquer_ic_abilities_ai.png` |
+| `CHARACTER` | 2 | Character | C | `open_character` | `assets/sprites/ui/system_menu/character_icon.png` (64 px, at half size) |
+| `PATH` | 3 | Path | P | `open_path` | `assets/sprites/ui/system_menu/star_icon.png` (64 px, at half size) |
+
+- **Press:** builds an `InputEventAction` (`action`, `pressed = true`), calls `Input.parse_input_event()`, then sends the matching release, so the action is not left held. The press follows the same path as a key press, ending in `ZoneViewState.handle_input()`.
+- **Faces:** exactly one shows: `lacquer_btn_hover_ai` while hovered, else `lacquer_btn_ring_ai` while notified, else `lacquer_btn_ai`.
+- **Notification API:** `set_notification(active, count = 0)`, `has_notification()`, `get_notification_count()`. The count seal shows only for a count above zero.
 
 ### Shared widgets
 
 | Widget | Files | Used by | API / behaviour |
 |--------|-------|---------|-----------------|
-| `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `CyclingTechnique` (XP popups), `ResourceBar` (combat vitals deltas; per-bar `show_floating_text` export), `ForagingPresenter` (forage results) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
-| `FlyingParticle` | `scenes/ui/flying_particle/flying_particle.gd` (script only, created with `FlyingParticle.new()`) | `ZoneTransition` (Madra drain), `TrainingPresenter` (one Madra particle per tick), `CyclingView` (Madra/XP particles) | `launch(start, target, color, duration = 0.6, size = 5.0, on_arrive = Callable(), curve_spread = 60.0, curve_bias = 0.0)`. Quadratic bezier with ease-in and an 8-point fading trail, drawn with `draw_circle`. Calls `on_arrive`, then frees itself. |
-| `TickProgressBar` | `scenes/ui/tick_progress_bar/tick_progress_bar.tscn` + `.gd` | `TrainingPresenter` | `set_progress(current, total)` (`total <= 0` clears it), `set_fill_color(color)`, `flash_and_reset(flash_color, duration = 0.3)`. 2 px bar with 9 gradation marks (10% to 90%) and a `LabelSmall` counter (12 px override) to the right of the bar. |
+| `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `CyclingTechnique` (XP popups), `ResourceBar` and `ResourceOrb` (combat vitals deltas; per-bar `show_floating_text` export) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
+| `FlyingParticle` | `scenes/ui/flying_particle/flying_particle.gd` (script only, created with `FlyingParticle.new()`) | `CyclingView` (Madra/XP particles) | `launch(start, target, color, duration = 0.6, size = 5.0, on_arrive = Callable(), curve_spread = 60.0, curve_bias = 0.0)`. Quadratic bezier with ease-in and an 8-point fading trail, drawn with `draw_circle`. Calls `on_arrive`, then frees itself. The zone view's adventure drain uses `MadraPellet` instead ([ZONES.md](../zones/ZONES.md#adventure-start-zone-side)). |
+| `TickProgressBar` | `scenes/ui/tick_progress_bar/tick_progress_bar.tscn` + `.gd` | Nothing (the Now strip replaced it on the training card) | `set_progress(current, total)` (`total <= 0` clears it), `set_fill_color(color)`, `flash_and_reset(flash_color, duration = 0.3)`. 2 px bar with 9 gradation marks (10% to 90%) and a `LabelSmall` counter (12 px override) to the right of the bar. |
 | `InkbrushButton` | `scenes/ui/inkbrush_button/inkbrush_button.tscn` + `.gd` | Nothing (unused) | `TextureButton` with a random `action_button_1..3.png` texture and a `zone_action_button.gdshader` fill on hover. `setup(label, texture, fill_color)`. |
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | Main view states | See [GreyBackground](#greybackground-modal-backdrop) |
-| `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled`. See [LOGGING.md](LOGGING.md). |
-| `QuestWindow`, `QuestToast` | `scenes/ui/quest_window/`, `scenes/ui/quest_toast/` | `MainView` | Placement only here. Both have editor preview exports (`preview_*`). See [QUESTS.md](../progression/QUESTS.md). |
+| `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
+| `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | `MainView` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
+| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | Zone view panels, Goals and log boards | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
 
 Utilities:
 
 | Script | Status |
 |--------|--------|
-| `scripts/utils/theme_constants.gd` (`ThemeConstants`) | Colour palette and size constants for code. Only `ACCENT_GOLD`, `BORDER_PRIMARY` and `BG_MEDIUM` are referenced. See [UI_STYLING.md](../UI_STYLING.md#code-side-constants-themeconstants). |
+| `scripts/utils/theme_constants.gd` (`ThemeConstants`) | Colour palette and size constants for code. Referenced: `ACCENT_GOLD`, `BORDER_PRIMARY`, `BG_MEDIUM` and the `LACQUER_*` colours. See [UI_STYLING.md](../UI_STYLING.md#code-side-constants-themeconstants). |
+| `scripts/utils/lacquer_text.gd` (`LacquerText`) | `rate()` and `decimal_bbcode()` for lacquer text. See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view). |
 | `scripts/utils/text_effect_importer.gd` | A `Node` with `@export var _text_effect_scripts: Array[Script]` and `get_text_effect_instances()`, which instantiates each script as a `RichTextEffect`. Not referenced by any scene or script. |
 
 ### Project settings (`project.godot`)
 
 | Setting | Value |
 |---------|-------|
-| `config/features` | `"4.6", "Forward Plus"` (feature tags only) |
+| `config/features` | `"4.7", "Forward Plus"` (feature tags only) |
 | Renderer | `rendering_method = "gl_compatibility"` (desktop and mobile) |
 | Main scene | `uid://dyrsbe5x01lgo` = `res://scenes/main/main_game/main_game.tscn` |
 | Window | 1920x1080 viewport, `stretch/mode = "viewport"` |
-| Texture filter | `default_texture_filter = 0` (Nearest, for pixel art) |
-| Project theme | `gui/theme/custom = uid://yqkvsb5q7pab` = `res://assets/themes/pixel_theme.tres`. `MainView`, `AdventureView` and several sub-scenes also set it explicitly. |
-| Autoloads (17, in order) | PersistenceManager, CultivationManager, EventManager, CharacterManager, UnlockManager, ResourceManager, ZoneManager, ActionManager, InventoryManager, Dialogic, DialogueManager, PlayerManager, LogManager, CyclingManager, AbilityManager, PathManager, QuestManager |
+| Texture filter | `default_texture_filter = 0` (Nearest, for pixel art). The zone `SubViewport` sets its own `canvas_item_default_texture_filter = 0` too |
+| Project theme | `gui/theme/custom = uid://yqkvsb5q7pab` = `res://assets/themes/pixel_theme.tres`. `MainView`, `AdventureView` and several sub-scenes also set it explicitly. The zone-view panels and the HUD boards set `assets/themes/lacquer/lacquer_theme.tres` on their roots |
+| Autoloads (18, in order) | PersistenceManager, CultivationManager, EventManager, CharacterManager, UnlockManager, ResourceManager, ZoneManager, ActionManager, InventoryManager, Dialogic, DialogueManager, PlayerManager, LogManager, CyclingManager, AbilityManager, PathManager, QuestManager, MerchantManager |
 | Enabled editor plugins | AsepriteWizard, ResourcePlus, dialogic, godot_context_exporter, gut. `hexagon_tilemaplayer` and `script-ide` are installed but not enabled (script-ide was disabled in `39f1817`). |
 
 Autoload order matters. Signal handlers run in connection order, and each manager connects in `_ready()`, so for example `CultivationManager` reacts to `PersistenceManager.save_data_reset` before `EventManager` does.
@@ -254,16 +276,18 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 | System | Connection |
 |--------|------------|
-| ActionManager | `start_cycling`/`stop_cycling` → `CyclingViewState` push/pop. `start_merchant`/`stop_merchant` → `MerchantViewState` push / fade and remove. `adventure_start_requested` → `ZoneViewState` input blocker plus `ZoneTransition` drain. `start_adventure` → `AdventureViewState.change_state()`. `stop_action()` called by `CyclingViewState`. |
+| ActionManager | `start_cycling`/`stop_cycling` → `CyclingViewState` push/pop. `start_merchant`/`stop_merchant` → `MerchantViewState` push / fade and remove. `adventure_start_requested` → `ZoneViewState` input blocker plus `ZoneTransition` drain. `start_adventure` → `AdventureViewState.change_state()`. `stop_action()` called by `CyclingViewState` and `MerchantViewState`. |
 | AdventureView | `adventure_completed(result)` → end card push. `is_in_combat`, `force_win_combat()` and `set_show_whole_map()` are used by the dev panel. |
 | AdventureEndCard | `show_results(result)`, `return_requested` → pop + `change_state(zone)` |
 | InventoryView / PathTreeView / AbilitiesView / CharacterView | `MenuBookView`: `animate_open()` / `animate_close()` called through `GreyBackground`; `close_requested` (close tab) → the state's close path; `close_finished` → `GreyBackground` finishes hiding |
 | MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
 | ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain. |
-| ResourceManager | `Toolbar` gold label (`gold_changed`, `get_gold()`) |
-| AbilityManager | `SystemMenuButton` badge (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
+| GoalsPanel | Placed by `ZoneViewState` and `AdventureViewState`; `set_cords_visible()` in adventures; hidden under overlays |
+| ResourceManager | `CultivatorPlate` gold row (`gold_changed`, `get_gold()`) |
+| PathManager | `Dock` Path count seal (`points_changed`, `get_point_balance()`) |
+| AbilityManager | `Dock` Abilities ring (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
 | PersistenceManager | `SaveTimer` calls `save_data()` every 5 s |
-| LogManager / Log | `LogWindow` shows `message_logged`. `MainGame.log_print_level` → `Log.set_print_level()`. See [LOGGING.md](LOGGING.md). |
+| LogManager / Log | `LogWindow` shows `message_logged` and the history. `MainGame.log_print_level` → `Log.set_print_level()`. See [LOGGING.md](LOGGING.md). |
 | Dev tools | `MainGame` owns the Ctrl+Shift+D gate for `DevPasswordModal`/`DevPanel` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 
 ## Key Files
@@ -273,7 +297,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/main/main_game/main_game.tscn` | Entry scene, full UI tree |
 | `scenes/main/main_game/main_game.gd` | Dev hotkey gate, `log_print_level` export |
 | `scenes/main/main_game/save_timer.gd` | 5 s autosave |
-| `scenes/ui/main_view/main_view.gd` | `MainView`: state stack, `push_state`/`pop_state`/`remove_state`/`change_state`, input routing |
+| `scenes/ui/main_view/main_view.gd` | `MainView`: state stack, `push_state`/`pop_state`/`remove_state`/`change_state`, HUD board hiding, input routing |
 | `scenes/ui/main_view/states/main_view_state.gd` | `MainViewState` base class |
 | `scenes/ui/main_view/states/*.gd` | Zone, Adventure, AdventureEndCard, Inventory, Cycling states |
 | `scenes/path_progression/path_tree_view_state.gd` | Path tree overlay state |
@@ -282,9 +306,11 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/merchant/merchant_view_state.gd`, `merchant_view.tscn` | Merchant shop overlay state and view |
 | `scenes/ui/grey_background/grey_background.gd` | Modal backdrop and fade orchestration |
 | `scenes/ui/book_frame/book_frame.tscn`, `book_frame.gd`, `menu_book_view.gd` | Shared menu book and the menu views' base script |
-| `scenes/ui/main_view/states/book_view_state.gd` | Base state of the four menu books |
-| `scenes/ui/toolbar/toolbar.tscn`, `toolbar.gd` | Bottom navigation bar and gold readout |
-| `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | `SystemMenuButton` and `MenuType` config |
+| `scenes/ui/main_view/states/book_view_state.gd` | Base state of the four menu books (also hides the HUD boards while a book is open) |
+| `scenes/ui/dock/dock.tscn`, `dock.gd` | Bottom navigation dock and its notifications |
+| `scenes/ui/dock/system_menu_button/system_menu_button.gd` / `.tscn` | `SystemMenuButton` and `MenuType` config |
+| `scenes/ui/goals_panel/goals_panel.gd` / `.tscn` | Goals board |
+| `scenes/ui/log_window/log_window.gd` / `.tscn` | Log board and full log |
 | `scenes/zones/zone_transition/zone_transition.gd` | Adventure-entry drain and zoom; camera reset |
 | `scenes/ui/floating_text/`, `scenes/ui/flying_particle/`, `scenes/ui/tick_progress_bar/` | Shared feedback widgets |
 | `project.godot` | Autoloads, input map, window, renderer, theme |
@@ -297,27 +323,24 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 ### Missing Functionality
 
-- `[LOW]` `center_zone_map_camera` (Space) is declared in `project.godot` but no script reads it, so Space does nothing on the zone map.
+- `[LOW]` `center_zone_map_camera` (Space) is declared in `project.godot` but no script reads it, so Space does nothing on the zone map. Clicking the current zone's hex recentres the camera.
 - `[LOW]` `open_path_tree` (P) duplicates `open_path` and is never read.
-- `[LOW]` No log-window hotkey. `LogManager.toggle_window()` emits `visibility_toggled`, which `LogWindow` listens to, but nothing calls `toggle_window()` (also tracked in [LOGGING.md](LOGGING.md)).
 - `[LOW]` I/A/C/P are ignored during adventures because `AdventureViewState.handle_input()` is empty. It is unconfirmed whether this is intended.
 
 ### UI
 
 - `[LOW]` Overlays use two transition styles. Cycling and the end card toggle the backdrop instantly; the menu books and the merchant fade it through `GreyBackground.show_with_panel()`/`hide_with_panel()`. The zone-action pop-ups are the next consistency pass ("menus are books, action pop-ups are scrolls").
 - `[LOW]` `FloatingText._ready()` sets its size with `add_theme_constant_override("font_size", FONT_SIZE)`. Font sizes need `add_theme_font_size_override`, so `FONT_SIZE` never applies and the size comes from `LabelSubheading` (24 px). The script also uses `$Label` instead of `%Label`.
+- `[LOW]` The dock's Path count uses `LabelLacquerSeal`, whose 1 px letter spacing makes a two-digit count ("12") 1 px wider than the mock. A single digit matches.
 
 ### Tech Debt
 
-- `[LOW]` `MainView.change_state()` clears `state_stack` without calling `exit()` on stacked overlays. This is only safe because no overlay can be open when the base changes: `ZoneViewState` blocks input during the adventure transition, and the end card is popped first.
+- `[LOW]` `MainView.change_state()` clears `state_stack` without calling `exit()` on stacked overlays. This is only safe because no overlay can be open when the base changes: `ZoneViewState` blocks input during the adventure transition, and the end card is popped first. An overlay skipped this way would also never release the HUD boards.
 - `[LOW]` `CyclingViewState._on_stop_cycling()` pops whatever state is on top, not specifically the cycling state.
-- `[LOW]` `SystemMenuButton` issues:
-  - `BADGE_PROVIDER` is unused; `_wire_badge_listeners()` and `_refresh_badge()` hard-code ABILITIES/`AbilityManager`.
-  - The comment saying icon textures are null is stale; all four icons exist.
-  - The scene still lives under `scenes/zones/zone_resource_panel/system_menu/` although only `scenes/ui/toolbar/toolbar.tscn` uses it.
-- `[LOW]` `SystemMenuButton._on_pressed()` and `CyclingView._on_close_button_pressed()` send a pressed `InputEventAction` with no matching release event.
+- `[LOW]` `CyclingView._on_close_button_pressed()` sends a pressed `InputEventAction` with no matching release event.
 - `[LOW]` Dead code:
   - `InkbrushButton` has no references. It uses the root-level placeholder `res://32.png`, untyped constants, functions without return types, and `$MarginContainer/...` paths.
+  - `TickProgressBar` has no references since the lacquer training card replaced its footer.
   - `scripts/utils/text_effect_importer.gd` has no references, no `class_name` and no doc comment.
 - `[LOW]` Some nodes are created in code despite the scene-tree UI rule: the `ZoneViewState._add_input_blocker()` `Control.new()`, and `FlyingParticle`, which has no `.tscn`.
 - `[LOW]` Stale doc comments:
