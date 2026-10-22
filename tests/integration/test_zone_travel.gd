@@ -383,9 +383,11 @@ func test_lock_shake_moves_only_the_icon() -> void:
 		offsets.append(icon.position.x)
 	assert_eq(offsets, [-8.0, 8.0, -6.0, 4.0] as Array[float], "the padlock steps -8, 8, -6, 4 px")
 	assert_eq(glyph.position, glyph_position, "the glyph stays on its hex")
-	await _wait_until(started_usec, 0.52)
-	assert_eq(icon.position.x, 0.0, "and settles back")
+	# Wait for the tween itself, not the wall clock: under load the tween's
+	# frame time falls behind real time and a fixed 0.52 s wait ends mid-shake.
+	await wait_until(func() -> bool: return not glyph.is_shaking(), 2.0)
 	assert_false(glyph.is_shaking())
+	assert_eq(icon.position.x, 0.0, "and settles back")
 
 func test_click_uncharted_pins_never_travels() -> void:
 	ZoneManager.set_demo_zones_visible(true)
