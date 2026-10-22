@@ -219,6 +219,64 @@ func test_save_reset_during_walk_cancels_travel() -> void:
 	await wait_seconds(0.6)
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "and nothing arrives later")
 
+func test_outside_zone_change_during_walk_snaps_there() -> void:
+	# A zone change the map did not make (a dev switch, a save reset) ends the
+	# walk at once: the character, the camera and the map's own zone follow
+	# the real current zone, and nothing arrives later.
+	_add_fixture_zone()
+	_open_test_zone()
+	_map.click_zone(_zone(TEST_ZONE_ID))
+	await wait_seconds(0.2)
+	ZoneManager.set_current_zone_by_id(FIXTURE_ZONE_ID)
+	assert_false(_map.is_travelling(), "the walk ends")
+	assert_eq(_map.selected_zone, _zone(FIXTURE_ZONE_ID), "the map stands in the new zone")
+	assert_eq(_map.character_body.position, _stand(FIXTURE_ZONE_ID), "and so does the character")
+	var screen: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(FIXTURE_ZONE_ID)))
+	assert_almost_eq(screen.x, 960.0, 0.5, "framed at once")
+	assert_almost_eq(screen.y, 702.0, 0.5)
+	await wait_seconds(0.6)
+	assert_eq(ZoneManager.get_current_zone().zone_id, FIXTURE_ZONE_ID, "nothing arrives in Test Zone later")
+	assert_eq(_map.character_body.position, _stand(FIXTURE_ZONE_ID))
+
+func test_outside_change_to_the_zone_you_left_ends_the_walk() -> void:
+	# Even a zone change that names the zone the walk began in comes from
+	# outside the map: the walk ends there.
+	_open_test_zone()
+	_map.click_zone(_zone(TEST_ZONE_ID))
+	await wait_seconds(0.2)
+	ZoneManager.set_current_zone_by_id(SPIRIT_VALLEY_ID)
+	assert_false(_map.is_travelling(), "the walk ends")
+	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID), "back on the valley's stand")
+	await wait_seconds(0.6)
+	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "nothing arrives in Test Zone later")
+
+func test_save_reset_during_walk_ends_in_the_new_zone() -> void:
+	_add_fixture_zone()
+	_open_test_zone()
+	_map.click_zone(_zone(TEST_ZONE_ID))
+	await wait_seconds(0.2)
+	var save := SaveGameData.new()
+	save.current_selected_zone_id = FIXTURE_ZONE_ID
+	PersistenceManager.save_game_data = save
+	PersistenceManager.save_data_reset.emit()
+	assert_false(_map.is_travelling(), "the walk ends")
+	assert_eq(_map.selected_zone, ZoneManager.get_current_zone(), "the map follows the new save's zone")
+	assert_eq(_map.character_body.position, _stand(FIXTURE_ZONE_ID), "the character stands there")
+	await wait_seconds(0.6)
+	assert_eq(ZoneManager.get_current_zone().zone_id, FIXTURE_ZONE_ID, "nothing arrives in Test Zone later")
+
+func test_walk_ends_when_its_zone_leaves_the_map() -> void:
+	# The dev toggle hides Test Zone mid-walk: the character goes back to the
+	# valley instead of arriving in a zone the map no longer shows.
+	_open_test_zone()
+	_map.click_zone(_zone(TEST_ZONE_ID))
+	await wait_seconds(0.2)
+	ZoneManager.set_hidden_zones_visible(false)
+	assert_false(_map.is_travelling(), "the walk ends")
+	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID), "back on the valley's stand")
+	await wait_seconds(0.6)
+	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "nothing arrives off the map")
+
 func test_travel_closes_popover() -> void:
 	_open_test_zone()
 	ZoneManager.set_demo_zones_visible(true)

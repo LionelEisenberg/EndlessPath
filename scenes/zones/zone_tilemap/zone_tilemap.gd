@@ -21,8 +21,10 @@ extends Node2D
 ## keeps running; the zone changes (ZoneManager.set_current_zone) only on
 ## arrival, then the camera frames it. A second click during the walk
 ## retargets it (the zone you are in walks back home); starting a session
-## action (cycling, an adventure, dialogue, the merchant), a save reset or a
-## zone change from outside ends the walk where it began (Review Focus 2).
+## action (cycling, an adventure, dialogue, the merchant) or the target
+## leaving the map (a dev toggle) ends the walk where it began, and a zone
+## change the map did not make (a save reset, a dev switch) ends it in the
+## real current zone (Review Focus 2).
 
 ## Emitted when the player sets off for a zone (on the click; the zone itself
 ## changes on arrival).
@@ -473,12 +475,36 @@ func _travel_to(zone_data: ZoneData) -> void:
 func _cancel_travel() -> void:
 	if _travel_target == null:
 		return
+	_snap_to_zone(_selected_zone)
+
+## Ends any walk and puts the map in the zone at once: the character on its
+## stand, the camera framing it, its idle motion running. Nothing arrives
+## later.
+func _snap_to_zone(zone_data: ZoneData) -> void:
 	# Cleared first: stop_moving() reports the walk as completed.
 	_travel_target = null
 	character_body.stop_moving()
-	_place_character(_selected_zone)
-	frame_zone(_selected_zone)
+	# The backing field: ZoneManager already holds this zone, no re-emit.
+	_selected_zone = zone_data
+	_place_character(zone_data)
+	frame_zone(zone_data)
 	_start_idle_motion()
+
+## A walk whose target left the map (a dev toggle hid it) or can no longer be
+## travelled to ends where it began.
+func _cancel_travel_to_lost_target() -> void:
+	if is_travelling() and not _is_on_map_and_travelable(_travel_target):
+		_cancel_travel()
+
+## True when the zone is on the map and open (or the current zone).
+func _is_on_map_and_travelable(zone_data: ZoneData) -> bool:
+	var state: ZoneManager.ZoneMapState = ZoneManager.get_zone_map_state(zone_data)
+	if state != ZoneManager.ZoneMapState.OPEN and state != ZoneManager.ZoneMapState.CURRENT:
+		return false
+	for map_zone: ZoneData in ZoneManager.get_map_zones():
+		if map_zone.zone_id == zone_data.zone_id:
+			return true
+	return false
 
 ## The walk reached its stand. A new zone becomes the current zone (which
 ## stops the old action and resumes the new zone's idle action) and the
@@ -595,23 +621,21 @@ func _on_fog_tile_hovered(_tile_coord: Vector2i) -> void:
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	_rebuild_map()
+	_cancel_travel_to_lost_target()
 
 func _on_map_zones_changed() -> void:
 	_rebuild_map()
+	_cancel_travel_to_lost_target()
 
-## The current zone moved: its rim and the open hairlines follow. A change the
-## map did not make (a save reset, a dev switch) ends any walk and takes the
-## character and the camera there.
+## The current zone moved: its rim and the open hairlines follow. The map's
+## own change comes on arrival, after the walk is over; any other (a save
+## reset, a dev switch) ends a walk and takes the character, the camera and
+## the map's zone to the real current zone, even the zone the walk began in.
 func _on_zone_changed(zone_data: ZoneData) -> void:
 	_rebuild_map()
-	if zone_data == null or zone_data == _selected_zone:
+	if zone_data == null or (zone_data == _selected_zone and not is_travelling()):
 		return
-	_cancel_travel()
-	# The backing field: ZoneManager already holds this zone, no re-emit.
-	_selected_zone = zone_data
-	_place_character(zone_data)
-	frame_zone(zone_data)
-	_start_idle_motion()
+	_snap_to_zone(zone_data)
 
 ## The walk ended at its stand: arrive (a stop that cancelled the walk has
 ## already cleared the target), then the running idle action's motion starts.
