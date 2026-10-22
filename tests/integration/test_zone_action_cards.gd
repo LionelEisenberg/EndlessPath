@@ -21,6 +21,10 @@ const AURA_WELL_EVENT: String = "aura_well_discovered"
 const CARD_WIDTH: float = 392.0
 const SHORT_HEIGHT: float = 72.0
 const TALL_HEIGHT: float = 96.0
+## Kit §5.5: a detail line is at most 316 px, then ends in an ellipsis.
+const DETAIL_WIDTH: float = 316.0
+const ELLIPSIS: String = "…"
+const EULJIRO_PATH: String = "res://assets/fonts/BMEULJIROTTF.ttf"
 
 const FIXTURE_TECHNIQUE_ID: String = "test_zone_action_cards_technique"
 
@@ -119,6 +123,50 @@ func _equip_technique_named(technique_name: String) -> void:
 	index[FIXTURE_TECHNIQUE_ID] = technique
 	CyclingManager._techniques_by_id = index
 	PersistenceManager.save_game_data.equipped_cycling_technique_id = FIXTURE_TECHNIQUE_ID
+
+## The rich text labels of the card's detail line (training and foraging),
+## left to right.
+func _detail_rich_texts(card: ZoneActionButton) -> Array[RichTextLabel]:
+	var found: Array[RichTextLabel] = []
+	for node: Node in card.get_detail_slot().find_children("*", "RichTextLabel", true, false):
+		var rich := node as RichTextLabel
+		if rich.is_visible_in_tree():
+			found.append(rich)
+	return found
+
+## Spring Forest Foraging with a long tail: "every 12.25 s · 12.5 Madra / s".
+func _long_forage_fixture() -> ForageActionData:
+	var action := ZoneManager.get_action_by_id(FORAGING_ID).duplicate() as ForageActionData
+	action.foraging_interval_in_sec = 12.25
+	action.madra_cost_per_second = 12.5
+	return action
+
+## A training action whose detail runs far past 316 px:
+## "+15000000 Madra / s · each level +123456789 Spirit".
+func _long_training_fixture() -> TrainingActionData:
+	var action := ZoneManager.get_action_by_id(AURA_WELL_ID).duplicate() as TrainingActionData
+	var madra := AwardResourceEffectData.new()
+	madra.resource_type = ResourceManager.ResourceType.MADRA
+	madra.amount = 1.5
+	action.effects_per_tick = [madra] as Array[EffectData]
+	action.tick_interval_seconds = 0.0000001
+	var spirit := AwardAttributeEffectData.new()
+	spirit.attribute_type = CharacterAttributesData.AttributeType.SPIRIT
+	spirit.amount = 123456789.0
+	action.effects_on_level = [spirit] as Array[EffectData]
+	return action
+
+## Equips a fixture ring that adds this much Foundation: 10 Madra of capacity
+## per point.
+func _equip_foundation_ring(foundation: float) -> void:
+	var ring := EquipmentDefinitionData.new()
+	ring.item_id = "test_zone_action_cards_ring"
+	ring.item_name = "Fixture Ring"
+	ring.slot_type = EquipmentDefinitionData.EquipmentSlot.ACCESSORY
+	ring.attribute_bonuses = {CharacterAttributesData.AttributeType.FOUNDATION: foundation}
+	var instance := ItemInstanceData.new()
+	instance.item_definition = ring
+	InventoryManager.equip_item(instance, EquipmentDefinitionData.EquipmentSlot.ACCESSORY, -1, 0)
 
 func _story_fixture(action_name: String, description: String) -> ZoneActionData:
 	var action := ZoneActionData.new()
@@ -228,6 +276,35 @@ func test_foraging_detail_has_ranges_interval_and_cost() -> void:
 	assert_true(_has_text_containing(card, "1–5"), "Dewdrop Tear range")
 	assert_true(_has_text_containing(card, "2–6"), "Spirit Fern range")
 	assert_true(_has_text_containing(card, "every 5 s · free"))
+
+func test_foraging_icons_are_the_items_mini_icons() -> void:
+	var card: ZoneActionButton = _card(FORAGING_ID)
+	var icons: Array[Texture2D] = []
+	for node: Node in card.get_detail_slot().find_children("Icon", "TextureRect", true, false):
+		icons.append((node as TextureRect).texture)
+	var forage := ZoneManager.get_action_by_id(FORAGING_ID) as ForageActionData
+	var expected: Array[Texture2D] = []
+	for entry: LootTableEntry in forage.loot_table.entries:
+		expected.append(entry.item.mini_icon)
+	assert_eq(icons, expected, "each yield shows its item's mini icon")
+
+func test_foraging_icon_comes_from_the_item_data() -> void:
+	# Any material can carry a mini icon: none is looked up by its id.
+	var item := MaterialDefinitionData.new()
+	item.item_id = "test_zone_action_cards_material"
+	item.icon = PlaceholderTexture2D.new()
+	item.mini_icon = PlaceholderTexture2D.new()
+	var entry := LootTableEntry.new()
+	entry.item = item
+	entry.min_quantity = 1
+	entry.max_quantity = 2
+	var table := LootTable.new()
+	table.entries = [entry] as Array[LootTableEntry]
+	var action := ZoneManager.get_action_by_id(FORAGING_ID).duplicate() as ForageActionData
+	action.loot_table = table
+	var card: ZoneActionButton = _card_for(action)
+	var icon: TextureRect = card.get_detail_slot().find_child("Icon", true, false) as TextureRect
+	assert_eq(icon.texture, item.mini_icon)
 
 func test_foraging_cost_replaces_free() -> void:
 	var action := ZoneManager.get_action_by_id(FORAGING_ID).duplicate() as ForageActionData
@@ -350,6 +427,74 @@ func test_long_idle_detail_does_not_grow_the_card() -> void:
 	action.foraging_interval_in_sec = 987654321.0
 	var card: ZoneActionButton = _card_for(action)
 	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT), "an idle card never wraps or widens")
+
+func test_ellipsize_words_keeps_text_that_fits() -> void:
+	var font: Font = load(EULJIRO_PATH)
+	assert_eq(ZoneActionButton.ellipsize_words("every 5 s · free", font, 15, DETAIL_WIDTH), "every 5 s · free")
+
+func test_ellipsize_words_cuts_at_a_word() -> void:
+	var font: Font = load(EULJIRO_PATH)
+	var text: String = "2–6 · every 12.25 s · 12.5 Madra / s"
+	var cut: String = ZoneActionButton.ellipsize_words(text, font, 15, 200.0)
+	assert_true(cut.ends_with(ELLIPSIS), "ends in an ellipsis")
+	assert_lte(font.get_string_size(cut, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x, 200.0, "fits")
+	var head: String = cut.trim_suffix(ELLIPSIS)
+	assert_true(text.begins_with(head), "keeps the start of the line")
+	assert_true(text.substr(head.length()).begins_with(" "), "cut between words")
+	assert_false(head.ends_with("·") or head.ends_with("/") or head.ends_with(" "), "no dangling separator")
+
+func test_ellipsize_words_cuts_a_long_word() -> void:
+	var font: Font = load(EULJIRO_PATH)
+	var cut: String = ZoneActionButton.ellipsize_words("Supercalifragilistic", font, 15, 60.0)
+	assert_true(cut.ends_with(ELLIPSIS))
+	assert_lte(font.get_string_size(cut, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x, 60.0)
+
+func test_long_forage_detail_ends_in_an_ellipsis() -> void:
+	var card: ZoneActionButton = _card_for(_long_forage_fixture())
+	await wait_process_frames(1)
+	var texts: Array[RichTextLabel] = _detail_rich_texts(card)
+	var last: String = texts[-1].get_parsed_text()
+	assert_true(last.begins_with("2–6 · every 12.25 s"), "the line keeps its start")
+	assert_true(last.ends_with(ELLIPSIS), "and ends in an ellipsis")
+	assert_lte(card.get_detail_slot().get_combined_minimum_size().x, DETAIL_WIDTH, "inside 316 px")
+
+func test_long_training_detail_ends_in_an_ellipsis() -> void:
+	var card: ZoneActionButton = _card_for(_long_training_fixture())
+	await wait_process_frames(1)
+	var text: RichTextLabel = _detail_rich_texts(card)[0]
+	assert_true(text.get_parsed_text().begins_with("+15000000 Madra / s"))
+	assert_true(text.get_parsed_text().ends_with(ELLIPSIS))
+	assert_lte(text.get_content_width(), int(DETAIL_WIDTH))
+	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT), "an idle card stays short")
+
+func test_long_ready_line_ends_in_an_ellipsis() -> void:
+	var action := ZoneManager.get_action_by_id(ADVENTURE_ID).duplicate() as AdventureActionData
+	action.time_limit_seconds = 12345679
+	var card: ZoneActionButton = _card_for(action)
+	ResourceManager.set_madra(60.0)
+	await wait_process_frames(1)
+	var ready_text: RichTextLabel = card.get_footer_slot().find_child("ReadyText", true, false) as RichTextLabel
+	assert_true(ready_text.get_parsed_text().begins_with("Ready · carries up to 100 Madra"))
+	assert_true(ready_text.get_parsed_text().ends_with(ELLIPSIS))
+	assert_lte(ready_text.get_content_width(), int(DETAIL_WIDTH))
+
+#-----------------------------------------------------------------------------
+# ADVENTURE AND EQUIPMENT
+#-----------------------------------------------------------------------------
+
+func test_adventure_follows_equipment_capacity() -> void:
+	# Capacity is max Madra (Foundation x 10) and the threshold half of it, so
+	# gear that adds Foundation moves both without any Madra change.
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	ResourceManager.set_madra(60.0)
+	assert_eq(_tag_text(card), "ENTER", "precondition: 60 of 50 Madra is ready")
+	_equip_foundation_ring(5.0)
+	assert_eq(_tag_text(card), "ACTIVE", "the threshold is now 75")
+	assert_true(_has_text_containing(card, "Needs 75 Madra · you have 60"))
+	ResourceManager.set_madra(80.0)
+	assert_true(_has_text_containing(card, "carries up to 150 Madra"))
+	InventoryManager.unequip_item(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, 0)
+	assert_true(_has_text_containing(card, "carries up to 100 Madra"), "taking the ring off shrinks it again")
 
 #-----------------------------------------------------------------------------
 # FLASH

@@ -44,6 +44,10 @@ const TAG_RAISE: float = 1.0
 ## The detail line's width, and how many lines a long detail wraps onto.
 const DETAIL_WIDTH: float = 316.0
 const DETAIL_WRAP_LINES: int = 2
+## What a cut detail line ends in, and the joins it must not end on before it
+## (the " · " separator, "/ s", a range dash).
+const ELLIPSIS: String = "…"
+const TRAILING_JOINS: String = " ·/–-,"
 
 const FLASH_TIMES: int = 2
 const RUNNING_TAG_TEXT: String = "RUNNING"
@@ -146,9 +150,10 @@ func set_tall(tall: bool) -> void:
 	_apply_face()
 
 ## Uses the tall drawer's brass-edged ready face and lowers the title row to
-## the ready adventure's y+26 (kit §5.5). Only drawn on a tall card.
-func set_ready_edge(ready: bool) -> void:
-	_is_ready_edge = ready
+## the ready adventure's y+26 (kit §5.5) while at_threshold. Only drawn on a
+## tall card.
+func set_ready_edge(at_threshold: bool) -> void:
+	_is_ready_edge = at_threshold
 	_apply_face()
 	_layout_title_row()
 
@@ -164,6 +169,37 @@ func fit_detail_label(label: Label) -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wraps else TextServer.AUTOWRAP_OFF
 	label.max_lines_visible = DETAIL_WRAP_LINES if wraps else -1
 	set_tall(wraps)
+
+## Sets a RichTextLacquer detail line (the lines that may hold a decimal
+## point): text with its decimal points in Yatra One, cut at a word with an
+## ellipsis when it is wider than max_width (kit §5.5: max 316 px, ellipsis),
+## since RichTextLabel has no text_overrun_behavior. Returns the width the
+## shown line takes, measured with the label's own font.
+func fit_detail_rich_text(rich: RichTextLabel, text: String, max_width: float = DETAIL_WIDTH) -> float:
+	var font: Font = rich.get_theme_font(&"normal_font")
+	var font_size: int = rich.get_theme_font_size(&"normal_font_size")
+	var shown: String = ellipsize_words(text, font, font_size, max_width)
+	rich.text = LacquerText.decimal_bbcode(shown)
+	return _text_width(shown, font, font_size)
+
+## Returns text when it fits max_width at font_size. Otherwise returns its
+## longest run of whole words that fits with an ellipsis after it, with no
+## separator left before the ellipsis ("2–6 · every 12.25 s…"); a first word
+## too long on its own is cut letter by letter.
+static func ellipsize_words(text: String, font: Font, font_size: int, max_width: float) -> String:
+	if _text_width(text, font, font_size) <= max_width:
+		return text
+	var words: PackedStringArray = text.split(" ", false)
+	for count: int in range(words.size() - 1, 0, -1):
+		var head: String = " ".join(words.slice(0, count)).rstrip(TRAILING_JOINS)
+		if head != "" and _text_width(head + ELLIPSIS, font, font_size) <= max_width:
+			return head + ELLIPSIS
+	var letters: String = words[0] if not words.is_empty() else ""
+	while letters != "":
+		letters = letters.left(-1).rstrip(TRAILING_JOINS)
+		if letters != "" and _text_width(letters + ELLIPSIS, font, font_size) <= max_width:
+			return letters + ELLIPSIS
+	return ELLIPSIS if _text_width(ELLIPSIS, font, font_size) <= max_width else ""
 
 ## Flashes the brass frame over the card twice (300 ms on, 300 ms off).
 func flash() -> void:
@@ -271,6 +307,9 @@ func _mark_seen() -> void:
 		return
 	ZoneManager.mark_action_seen(action_data.action_id)
 	_refresh_new_seal()
+
+static func _text_width(text: String, font: Font, font_size: int) -> float:
+	return font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 
 func _is_idle_action() -> bool:
 	if action_data == null:

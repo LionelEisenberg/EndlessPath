@@ -6,7 +6,10 @@ extends ZoneActionPresenter
 ##     while a Madra action runs, else "train or cycle to fill" in tan; tag
 ##     ACTIVE.
 ##   at the threshold: the brass-edged ready drawer, "Ready · carries up to
-##     <capacity> Madra · <minutes> min run" in brass, and the ENTER tag.
+##     <capacity> Madra · <minutes> min run" in brass (an ellipsis past
+##     316 px), and the ENTER tag.
+## Capacity is the total max Madra and the threshold half of it, so gear that
+## adds Foundation changes both: the card follows equipment changes too.
 ## Gates activation on ResourceManager.can_start_adventure(); a rejected click
 ## shakes the Madra line in even-px steps and logs why.
 
@@ -35,6 +38,7 @@ func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	ResourceManager.madra_changed.connect(_on_madra_changed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
 	CharacterManager.base_attribute_changed.connect(_on_base_attribute_changed)
+	InventoryManager.inventory_changed.connect(_on_inventory_changed)
 	_update_state()
 
 ## Disconnects from the managers and stops a running shake.
@@ -45,6 +49,8 @@ func teardown() -> void:
 		ActionManager.current_action_changed.disconnect(_on_current_action_changed)
 	if CharacterManager.base_attribute_changed.is_connected(_on_base_attribute_changed):
 		CharacterManager.base_attribute_changed.disconnect(_on_base_attribute_changed)
+	if InventoryManager.inventory_changed.is_connected(_on_inventory_changed):
+		InventoryManager.inventory_changed.disconnect(_on_inventory_changed)
 	_stop_shake()
 
 ## True once Madra reaches the adventure threshold.
@@ -69,7 +75,7 @@ func _update_state() -> void:
 	button.set_ready_edge(_is_affordable)
 	if _is_affordable:
 		button.set_mode_tag("ENTER", ZoneActionButton.TagStyle.ENTER)
-		_ready_text.text = LacquerText.decimal_bbcode(_ready_line())
+		button.fit_detail_rich_text(_ready_text, _ready_line())
 	else:
 		button.set_mode_tag(ZoneActionGroups.mode_tag(action_data), ZoneActionButton.TagStyle.CARVED)
 		_update_need()
@@ -119,4 +125,9 @@ func _on_current_action_changed(_action: ZoneActionData) -> void:
 	_update_state()
 
 func _on_base_attribute_changed(_attribute_type: CharacterAttributesData.AttributeType, _new_value: float) -> void:
+	_update_state()
+
+## Equipping or removing gear changes the total attributes, so the capacity
+## and threshold. CharacterManager has no signal of its own for that.
+func _on_inventory_changed(_inventory: InventoryData) -> void:
 	_update_state()

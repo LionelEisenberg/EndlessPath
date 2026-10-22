@@ -4,7 +4,8 @@ extends ZoneActionPresenter
 ## the Madra the action trickles per second and the attribute each level
 ## grants (the first AwardAttributeEffectData in effects_on_level). Progress
 ## toward the next level lives in the Now strip, not on the card. The decimal
-## point is set in Yatra One (LacquerText.decimal_bbcode).
+## point is set in Yatra One, and a line wider than 316 px ends in an
+## ellipsis (ZoneActionButton.fit_detail_rich_text).
 
 const SEPARATOR: String = " · "
 
@@ -15,7 +16,7 @@ func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	action_data = data
 	button = owner_button
 	_detail_text.reparent(button.get_detail_slot(), false)
-	_detail_text.text = LacquerText.decimal_bbcode(_detail_line())
+	button.fit_detail_rich_text(_detail_text, _detail_line())
 
 ## Nothing to undo: the detail line never changes.
 func teardown() -> void:
