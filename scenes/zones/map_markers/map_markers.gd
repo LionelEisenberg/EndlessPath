@@ -506,12 +506,14 @@ func _current_map_zone_id() -> String:
 	return current.zone_id
 
 ## The ring shows the running idle action of a zone on the map; with none,
-## the ring and the floater hide outright.
+## the ring and the floater hide outright. A floater left from another action
+## (the Aura Well's last tick when foraging starts) hides with it; the same
+## action (a map rebuild) keeps its floater rising.
 func _show_idle_action(action: ZoneActionData) -> void:
 	var idle: ZoneActionData = action if _is_idle(action) and _current_map_zone_id() != "" else null
-	_ring.show_action(idle)
-	if idle == null:
+	if idle == null or idle != _ring.get_action():
 		_floater.stop()
+	_ring.show_action(idle)
 
 func _is_idle(action: ZoneActionData) -> bool:
 	return action is TrainingActionData or action is ForageActionData

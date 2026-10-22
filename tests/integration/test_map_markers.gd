@@ -605,6 +605,28 @@ func test_haul_floater_once_per_haul() -> void:
 	await wait_seconds(1.1)
 	assert_false(floater.visible, "hidden outright after its 1 s rise")
 
+func test_floater_stops_when_the_idle_action_changes() -> void:
+	# The Aura Well's last "+1.5 Madra" must not rise over the foraging ring.
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(AURA_WELL_ID))
+	var training: TrainingActionData = ActionManager.get_current_action() as TrainingActionData
+	assert_not_null(training, "precondition: the Aura Well runs")
+	var floater: MapFloater = _markers().get_floater()
+	ActionManager.training_tick_processed.emit(training, 1)
+	assert_true(floater.visible, "precondition: its tick's floater rises")
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	assert_true(ActionManager.get_current_action() is ForageActionData, "precondition: foraging runs now")
+	assert_true(_markers().get_action_ring().visible, "the ring shows foraging")
+	assert_false(floater.visible, "the Aura Well's floater went with it")
+
+func test_floater_keeps_rising_through_a_map_rebuild() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var floater: MapFloater = _markers().get_floater()
+	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
+	ZoneManager.set_demo_zones_visible(true)
+	assert_true(floater.visible, "the same action still runs: its floater keeps rising")
+
 func test_ring_and_floater_hide_when_the_idle_action_stops() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
