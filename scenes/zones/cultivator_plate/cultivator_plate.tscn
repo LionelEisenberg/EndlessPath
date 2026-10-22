@@ -1,0 +1,206 @@
+[gd_scene format=3 uid="uid://bkf2lc3oqlpf8"]
+
+[ext_resource type="Script" uid="uid://d0chi1hfchank" path="res://scenes/zones/cultivator_plate/cultivator_plate.gd" id="1_plate"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://dvs8vy5oej1sb" path="res://assets/ui/lacquer/lacquer_cult_ai.png" id="3_board"]
+[ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="4_strip"]
+[ext_resource type="Texture2D" uid="uid://buchwvpdtb5iw" path="res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png" id="5_madra"]
+[ext_resource type="Texture2D" uid="uid://c33tlokmqisik" path="res://assets/ui/lacquer/lacquer_orb_core_strip_ai.png" id="6_core"]
+[ext_resource type="Texture2D" uid="uid://dqku0g2ulqgfj" path="res://assets/ui/lacquer/lacquer_beads_xp_strip_ai.png" id="7_beads"]
+[ext_resource type="Texture2D" uid="uid://cvsx3a2hfquag" path="res://assets/ui/lacquer/lacquer_line_ai.png" id="8_line"]
+[ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="9_gold"]
+
+[node name="CultivatorPlate" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 464.0
+offset_bottom = 276.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_plate")
+
+[node name="Board" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 444.0
+offset_bottom = 256.0
+mouse_filter = 2
+texture = ExtResource("3_board")
+
+[node name="MadraOrb" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 18.0
+offset_top = 16.0
+offset_right = 98.0
+offset_bottom = 96.0
+mouse_filter = 2
+script = ExtResource("4_strip")
+strip = ExtResource("5_madra")
+frame_size = Vector2i(80, 80)
+
+[node name="MadraTitleLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 22.0
+offset_right = 160.0
+offset_bottom = 39.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Madra"
+
+[node name="MadraRow" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 45.0
+offset_right = 254.0
+offset_bottom = 79.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="MadraValueLabel" type="Label" parent="MadraRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerBig"
+text = "25"
+
+[node name="MadraMaxLabel" type="Label" parent="MadraRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerBig"
+theme_override_colors/font_color = Color(0.65882355, 0.5647059, 0.4392157, 1)
+text = " / 100"
+
+[node name="RateLabel" type="RichTextLabel" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 222.0
+offset_top = 56.0
+offset_right = 422.0
+offset_bottom = 77.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+theme_override_font_sizes/normal_font_size = 17
+bbcode_enabled = true
+text = "+1.5 / s"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+horizontal_alignment = 2
+
+[node name="CoreOrb" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 18.0
+offset_top = 108.0
+offset_right = 98.0
+offset_bottom = 188.0
+mouse_filter = 2
+script = ExtResource("4_strip")
+strip = ExtResource("6_core")
+frame_size = Vector2i(80, 80)
+
+[node name="SwirlTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 1.5
+autostart = true
+
+[node name="CoreTitleLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 110.0
+offset_right = 214.0
+offset_bottom = 127.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Core Density"
+
+[node name="StageLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 114.0
+offset_top = 128.0
+offset_right = 254.0
+offset_bottom = 160.0
+theme_type_variation = &"LabelLacquerStage"
+text = "Foundation"
+
+[node name="LevelLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 222.0
+offset_top = 136.0
+offset_right = 422.0
+offset_bottom = 156.0
+theme_type_variation = &"LabelLacquerName"
+text = "Level 0"
+horizontal_alignment = 2
+
+[node name="XpBeads" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 114.0
+offset_top = 168.0
+offset_right = 336.0
+offset_bottom = 180.0
+mouse_filter = 2
+script = ExtResource("4_strip")
+strip = ExtResource("7_beads")
+frame_size = Vector2i(222, 12)
+
+[node name="XpLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 222.0
+offset_top = 165.0
+offset_right = 422.0
+offset_bottom = 182.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "0 / 10 XP"
+horizontal_alignment = 2
+
+[node name="Divider" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 198.0
+offset_right = 424.0
+offset_bottom = 204.0
+mouse_filter = 2
+texture = ExtResource("8_line")
+
+[node name="GoldIcon" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 26.0
+offset_top = 208.0
+offset_right = 58.0
+offset_bottom = 240.0
+mouse_filter = 2
+texture = ExtResource("9_gold")
+expand_mode = 1
+
+[node name="GoldRow" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 68.0
+offset_top = 211.0
+offset_right = 160.0
+offset_bottom = 237.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="GoldValueLabel" type="Label" parent="GoldRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerGold"
+text = "0 "
+
+[node name="GoldWordMargin" type="MarginContainer" parent="GoldRow"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_top = 4
+
+[node name="GoldWordLabel" type="Label" parent="GoldRow/GoldWordMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerRate"
+text = "gold"
