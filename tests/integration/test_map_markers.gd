@@ -24,9 +24,10 @@ const FORAGING_ID: String = "sprint_forest_foraging_action"
 const CYCLING_ID: String = "wilderness_cycling_action"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 
-## The plate's status line slot, in the plate's own px (kit §6.5).
-const LINE_LEFT: float = 6.0
-const LINE_RIGHT: float = 242.0
+## The plate's status line slot, in the plate's own px (kit §6.5), 4 px in
+## from the side rivets at x 6 and 242.
+const LINE_LEFT: float = 10.0
+const LINE_RIGHT: float = 238.0
 
 var _map: ZoneTilemap
 
@@ -241,7 +242,7 @@ func test_long_action_name_ellipsizes_and_keeps_icon_and_rate() -> void:
 	assert_gte(icon_rect.position.x, LINE_LEFT, "with the icon inside the slot")
 	assert_lte(name_rect.end.x, rate_rect.position.x + 0.5, "the name ends before the rate")
 	assert_true(rate_shown)
-	assert_eq(rate_text, " · +1.5 Madra / s", "the rate whole")
+	assert_eq(rate_text, " +1.5 Madra / s", "the rate whole, the name's ellipsis standing in for the separator: one dot run, not two")
 	assert_gte(rate_rect.size.x, rate_content_width, "never squeezed")
 	assert_lte(rate_rect.end.x, LINE_RIGHT, "and inside the slot")
 
@@ -283,6 +284,7 @@ func test_status_line_is_centred_as_a_group() -> void:
 	var icon: Control = plate.get_node("%LineIcon") as Control
 	assert_eq(name_part.text, "Aura Well")
 	assert_gte(_rect_in_plate(plate, name_part).size.x, _text_width(name_part), "a short name is whole")
+	assert_eq(rate_part.get_parsed_text(), " · +1.5 Madra / s", "with its separator")
 	var left_gap: float = _rect_in_plate(plate, icon).position.x - LINE_LEFT
 	var right_gap: float = LINE_RIGHT - _rect_in_plate(plate, rate_part).end.x
 	assert_almost_eq(left_gap, right_gap, 1.0, "centred as a group")

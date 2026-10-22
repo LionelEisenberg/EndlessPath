@@ -63,9 +63,9 @@ text_overrun_behavior = 3
 unique_name_in_owner = true
 clip_contents = true
 layout_mode = 0
-offset_left = 6.0
+offset_left = 10.0
 offset_top = 26.0
-offset_right = 242.0
+offset_right = 238.0
 offset_bottom = 44.0
 mouse_filter = 2
 

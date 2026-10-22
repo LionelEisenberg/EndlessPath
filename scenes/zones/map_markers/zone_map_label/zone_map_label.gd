@@ -13,8 +13,10 @@ extends Control
 ##   icon. Uncharted zone: the blocker in tan, its name tan until hovered.
 ## The status line is the icon, a Label with the text and a RichTextLabel with
 ## the rate (" · +1.5 Madra / s", its decimal point in Yatra One), centred as
-## a group. A long action name or blocker ellipsizes in the Label, so the icon
-## and the rate stay whole and the plate never widens (Review Focus 4).
+## a group in a slot kept 4 px clear of the plate's side rivets. A long action
+## name or blocker ellipsizes in the Label, so the icon and the rate stay
+## whole and the plate never widens (Review Focus 4); a cut name's "···" takes
+## the place of the rate's " · ", so the line shows one dot run, not two.
 ## Hovered plates show their hover texture; a pinned plate (its popover is
 ## pinned) gets the brass frame. MapMarkers places the plate under its hex
 ## every frame, always at its kit size, and has it show its name only below
@@ -267,14 +269,26 @@ func _apply() -> void:
 	_line_name.text = _line_text
 	_line_name.visible = _line_text != ""
 	_line_name.add_theme_color_override("font_color", _line_color)
-	_line_rate.text = LacquerText.decimal_bbcode(_line_rate_text)
 	_line_rate.visible = _line_rate_text != ""
 	_line_rate.add_theme_color_override("default_color", _line_color)
-	_line_name.custom_minimum_size.x = _line_name_width()
+	_fit_line()
 
-## The text part's width: its whole text, or what the slot has left beside the
-## icon and the rate, where it ellipsizes.
-func _line_name_width() -> float:
+## Sizes the text part: its whole text, or what the slot has left beside the
+## icon and the rate, where it ellipsizes. A cut name's ellipsis stands in for
+## the rate's leading " · " (the rate then opens with a plain space); the room
+## that frees goes to the name, which stays cut, so it keeps its ellipsis.
+func _fit_line() -> void:
+	_line_rate.text = LacquerText.decimal_bbcode(_line_rate_text)
+	var text_width: float = _line_text_width()
+	var room: float = _line_name_room()
+	if text_width <= room or not _line_rate_text.begins_with(SEPARATOR):
+		_line_name.custom_minimum_size.x = clampf(text_width, 0.0, maxf(room, 0.0))
+		return
+	_line_rate.text = LacquerText.decimal_bbcode(" " + _line_rate_text.trim_prefix(SEPARATOR))
+	_line_name.custom_minimum_size.x = maxf(minf(_line_name_room(), text_width - 1.0), 0.0)
+
+## What the slot leaves the text part beside the icon and the rate.
+func _line_name_room() -> float:
 	var room: float = _line_area.size.x
 	if _icon_margin.visible:
 		room -= _icon_margin.get_combined_minimum_size().x
@@ -282,10 +296,13 @@ func _line_name_width() -> float:
 		room -= _line_rate.get_minimum_size().x
 	var separation: int = _line_row.get_theme_constant("separation")
 	room -= separation * (_visible_line_parts() - 1)
+	return room
+
+## The width the text part's whole text needs, in whole px.
+func _line_text_width() -> float:
 	var font: Font = _line_name.get_theme_font("font")
 	var font_size: int = _line_name.get_theme_font_size("font_size")
-	var text_width: float = ceilf(font.get_string_size(_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
-	return clampf(text_width, 0.0, maxf(room, 0.0))
+	return ceilf(font.get_string_size(_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
 
 ## How many of the icon, text and rate the line shows.
 func _visible_line_parts() -> int:
