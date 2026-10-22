@@ -1,0 +1,99 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/path_progression/path_details_card.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://c3j356ojanlsg" path="res://assets/sprites/path_progression/node_frames/keystone.png" id="2_key"]
+[ext_resource type="Texture2D" uid="uid://v6wqojakad61" path="res://assets/sprites/path_progression/node_frames/major.png" id="3_major"]
+[ext_resource type="Texture2D" uid="uid://c5niluk4uidka" path="res://assets/sprites/path_progression/node_frames/minor.png" id="4_minor"]
+[ext_resource type="Texture2D" uid="uid://bagg3hpuf63iv" path="res://assets/sprites/ui/system_menu/star_icon.png" id="5_star"]
+
+[node name="PathDetailsCard" type="PanelContainer"]
+mouse_filter = 2
+theme_type_variation = &"PanelBookCard"
+script = ExtResource("1_script")
+keystone_icon = ExtResource("2_key")
+major_icon = ExtResource("3_major")
+minor_icon = ExtResource("4_minor")
+repeatable_icon = ExtResource("4_minor")
+path_icon = ExtResource("5_star")
+
+[node name="DetailVBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="DetailVBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="IconSlot" type="PanelContainer" parent="DetailVBox/HeaderRow"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PanelBookSlot"
+
+[node name="DetailIcon" type="TextureRect" parent="DetailVBox/HeaderRow/IconSlot"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("5_star")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameBox" type="VBoxContainer" parent="DetailVBox/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="DetailName" type="Label" parent="DetailVBox/HeaderRow/NameBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookTitle"
+text = "Pure Madra"
+autowrap_mode = 3
+
+[node name="DetailType" type="Label" parent="DetailVBox/HeaderRow/NameBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookMuted"
+text = "Path"
+
+[node name="DetailSep" type="HSeparator" parent="DetailVBox"]
+layout_mode = 2
+theme_type_variation = &"HSeparatorItemDesc"
+
+[node name="DetailDescription" type="Label" parent="DetailVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookBody"
+text = "Description."
+autowrap_mode = 3
+
+[node name="DetailEffects" type="Label" parent="DetailVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"LabelBookPositive"
+autowrap_mode = 3
+
+[node name="DetailTraits" type="Label" parent="DetailVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookMuted"
+text = "Strengths: ..."
+autowrap_mode = 3
+
+[node name="FooterSpacer" type="Control" parent="DetailVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="DetailFooter" type="Label" parent="DetailVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"LabelBookMuted"
+autowrap_mode = 3
