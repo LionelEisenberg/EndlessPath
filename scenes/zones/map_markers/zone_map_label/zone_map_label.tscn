@@ -35,13 +35,21 @@ training_icon = ExtResource("11_mini_well")
 forage_icon = ExtResource("12_mini_forage")
 blocker_icon = ExtResource("13_mini_swords")
 
-[node name="PlateTexture" type="TextureRect" parent="."]
+[node name="PlateTexture" type="NinePatchRect" parent="."]
 unique_name_in_owner = true
-layout_mode = 0
-offset_right = 250.0
-offset_bottom = 54.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 2.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("3_current")
+patch_margin_left = 8
+patch_margin_right = 12
+axis_stretch_horizontal = 1
 
 [node name="PinnedFrame" parent="." instance=ExtResource("14_frame")]
 unique_name_in_owner = true
@@ -49,11 +57,14 @@ layout_mode = 1
 
 [node name="NameLabel" type="Label" parent="."]
 unique_name_in_owner = true
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
 offset_left = 6.0
 offset_top = 6.0
-offset_right = 242.0
+offset_right = -6.0
 offset_bottom = 24.0
+grow_horizontal = 2
 theme_type_variation = &"LabelLacquerPlateName"
 text = "Spirit Valley"
 horizontal_alignment = 1
@@ -62,11 +73,14 @@ text_overrun_behavior = 3
 [node name="LineArea" type="Control" parent="."]
 unique_name_in_owner = true
 clip_contents = true
-layout_mode = 0
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
 offset_left = 10.0
 offset_top = 26.0
-offset_right = 238.0
+offset_right = -10.0
 offset_bottom = 44.0
+grow_horizontal = 2
 mouse_filter = 2
 
 [node name="LineRow" type="HBoxContainer" parent="LineArea"]

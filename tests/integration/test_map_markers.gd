@@ -408,7 +408,8 @@ func test_plate_keeps_its_size_at_zoom_one() -> void:
 	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
 	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
 	assert_eq(plate.scale, Vector2.ONE, "the plate never shrinks")
-	assert_eq(plate.position, (centre + Vector2(-124, 49)).round(), "centred under its hex, its top 98 px down at zoom 2 and 49 at zoom 1")
+	assert_eq(plate.position.y, roundf(centre.y + 49.0), "its top 98 px under the hex centre at zoom 2, 49 at zoom 1")
+	assert_eq(plate.position.x + plate.size.x / 2.0, roundf(centre.x), "centred under its hex")
 
 func test_glyphs_follow_hexes_when_panned_to_the_clamp_edge() -> void:
 	ZoneManager.set_demo_zones_visible(true)
@@ -477,14 +478,15 @@ func test_overlapping_plates_hover_the_one_on_top() -> void:
 	# comes first in map order.
 	_open_test_zone()
 	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	# At zoom 1.25 the full plates (248 wide) are 205 px apart.
 	var camera: Camera2D = _map.get_camera()
-	camera.zoom = Vector2.ONE
+	camera.zoom = Vector2(1.25, 1.25)
 	_map.frame_zone(_zone(TEST_ZONE_ID))
 	await _settle()
 	var valley_rect: Rect2 = _markers().get_plate(SPIRIT_VALLEY_ID).get_global_rect()
 	var test_rect: Rect2 = _markers().get_plate(TEST_ZONE_ID).get_global_rect()
 	var overlap: Rect2 = valley_rect.intersection(test_rect)
-	assert_true(overlap.has_area(), "precondition: at zoom 1 the two plates overlap")
+	assert_true(overlap.has_area(), "precondition: at zoom 1.25 the two plates overlap")
 	assert_eq(_markers().get_plate_zone_id_at(overlap.get_center()), TEST_ZONE_ID, "the point belongs to the plate drawn on top")
 
 func test_plate_shows_name_only_below_zoom_1_25() -> void:
@@ -506,6 +508,41 @@ func test_plate_shows_name_only_below_zoom_1_25() -> void:
 	await _settle()
 	assert_true(plate.is_line_shown(), "zoomed back in, the line returns")
 	assert_true(line_area.visible)
+
+func test_name_only_plate_hugs_its_name() -> void:
+	# Below zoom 1.25 a plate is the name plus 16 px a side (even), centred on
+	# its hex, so row neighbours 164 px apart at zoom 1 no longer overlap.
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var camera: Camera2D = _map.get_camera()
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var name_label: Label = plate.get_node("%NameLabel") as Label
+	camera.zoom = Vector2.ONE
+	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
+	await _settle()
+	var expected_width: float = ceilf(_text_width(name_label)) + 32.0
+	expected_width += fposmod(expected_width, 2.0)
+	assert_eq(plate.size.x, expected_width, "the name plus 32, on the 2 px grid")
+	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
+	assert_eq(plate.position.x + plate.size.x / 2.0, roundf(centre.x), "centred on its hex")
+	var name_rect: Rect2 = _rect_in_plate(plate, name_label)
+	assert_gte(name_rect.position.x, 6.0, "the name clears the left rivet")
+	assert_lte(name_rect.end.x, plate.size.x - 6.0, "and the right one")
+	assert_eq(plate.get_node("%PlateTexture").size, plate.size + Vector2(2, 2), "the plate texture follows, with its 2 px shadow")
+	camera.zoom = Vector2(2.0, 2.0)
+	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
+	await _settle()
+	assert_eq(plate.size, Vector2(248, 52), "back at kit size with the status line")
+	assert_eq(plate.position, Vector2(836, 800), "kit §6.5")
+
+func test_row_neighbour_plates_do_not_overlap_at_zoom_one() -> void:
+	_open_test_zone()
+	var camera: Camera2D = _map.get_camera()
+	camera.zoom = Vector2.ONE
+	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
+	await _settle()
+	var valley_rect: Rect2 = _markers().get_plate(SPIRIT_VALLEY_ID).get_global_rect()
+	var test_rect: Rect2 = _markers().get_plate(TEST_ZONE_ID).get_global_rect()
+	assert_false(valley_rect.intersects(test_rect), "Test Zone's plate %s clears Spirit Valley's %s" % [test_rect, valley_rect])
 
 #-----------------------------------------------------------------------------
 # ROUTES

@@ -19,9 +19,12 @@ extends Control
 ## the place of the rate's " · ", so the line shows one dot run, not two.
 ## Hovered plates show their hover texture; a pinned plate (its popover is
 ## pinned) gets the brass frame. MapMarkers places the plate under its hex
-## every frame, always at its kit size, and has it show its name only below
-## zoom 1.25 (set_name_only); pressing it emits pressed (MapMarkers turns that
-## into plate_pressed).
+## every frame, at its kit size, and has it show its name only below zoom 1.25
+## (set_name_only). A name-only plate narrows to the name plus 16 px a side,
+## so row neighbours (164 px apart at zoom 1) stop overlapping: the texture is
+## a 9-slice whose middle tiles, so its grain is cut short, never squeezed.
+## Pressing the plate emits pressed (MapMarkers turns that into
+## plate_pressed).
 
 ## Emitted when the player clicks the plate.
 signal pressed
@@ -56,6 +59,11 @@ signal pressed
 const NAME_TOP: float = 6.0
 const NAME_ONLY_TOP: float = 17.0
 
+## The plate's kit width, and how much wider than its name a name-only plate
+## is (16 px a side, clear of the rivets).
+const PLATE_WIDTH: float = 248.0
+const NAME_ONLY_PADDING: float = 32.0
+
 const SEPARATOR: String = " · "
 const CLICK_TO_TRAVEL: String = "Click to travel"
 ## What foraging reads as on the plate, whatever the action's own name.
@@ -65,7 +73,7 @@ const FORAGING_WORD: String = "Foraging"
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var _plate_texture: TextureRect = %PlateTexture
+@onready var _plate_texture: NinePatchRect = %PlateTexture
 @onready var _pinned_frame: LacquerFrameOverlay = %PinnedFrame
 @onready var _name_label: Label = %NameLabel
 @onready var _line_area: Control = %LineArea
@@ -134,8 +142,9 @@ func set_pinned(pinned: bool) -> void:
 	_pinned = pinned
 	_apply()
 
-## Name only (the map is zoomed out below 1.25): the status line hides and
-## the name centres on the plate; the line comes back with false.
+## Name only (the map is zoomed out below 1.25): the status line hides, the
+## plate narrows to the name and the name centres on it; the line and the kit
+## width come back with false.
 func set_name_only(name_only: bool) -> void:
 	if name_only == _name_only:
 		return
@@ -263,6 +272,7 @@ func _apply() -> void:
 	_name_label.text = _zone_data.zone_name if _zone_data != null else ""
 	_name_label.add_theme_color_override("font_color", _name_color)
 	_name_label.position.y = NAME_TOP if is_line_shown() else NAME_ONLY_TOP
+	size.x = _plate_width()
 	_line_area.visible = is_line_shown()
 	_line_icon.texture = _line_icon_texture
 	_icon_margin.visible = _line_icon_texture != null
@@ -272,6 +282,17 @@ func _apply() -> void:
 	_line_rate.visible = _line_rate_text != ""
 	_line_rate.add_theme_color_override("default_color", _line_color)
 	_fit_line()
+
+## The kit's 248 px, or with the name only, the name plus NAME_ONLY_PADDING on
+## the 2 px grid (never wider than the kit's plate).
+func _plate_width() -> float:
+	if not _name_only:
+		return PLATE_WIDTH
+	var font: Font = _name_label.get_theme_font("font")
+	var font_size: int = _name_label.get_theme_font_size("font_size")
+	var width: float = ceilf(font.get_string_size(_name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x) + NAME_ONLY_PADDING
+	width += fposmod(width, 2.0)
+	return minf(width, PLATE_WIDTH)
 
 ## Sizes the text part: its whole text, or what the slot has left beside the
 ## icon and the rate, where it ellipsizes. A cut name's ellipsis stands in for

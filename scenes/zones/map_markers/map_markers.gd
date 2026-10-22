@@ -63,7 +63,8 @@ signal pointer_left_map
 ## The map zoom the kit's offsets and sizes are drawn for.
 const KIT_ZOOM: float = 2.0
 
-## Offsets from a hex's screen centre at zoom 2 (kit §6.4, §6.5, §0).
+## Offsets from a hex's screen centre at zoom 2 (kit §6.4, §6.5, §0). A
+## plate's x is half its width: -124 at kit size, less for a name-only plate.
 const PLATE_OFFSET_OPEN: Vector2 = Vector2(-124, 98)
 const PLATE_OFFSET_LOCKED: Vector2 = Vector2(-124, 11)
 const PLATE_OFFSET_UNCHARTED: Vector2 = Vector2(-124, 18)
@@ -395,7 +396,8 @@ static func marker_position(hex_centre: Vector2, kit_offset: Vector2, anchor: Ve
 
 ## Puts every marker at its kit offset from its hex's screen centre, at its
 ## kit size, its anchor following the hex (marker_position), in whole px.
-## Below zoom 1.25 the plates show their names only. The ring and the floater
+## Below zoom 1.25 the plates show their names only, on plates that hug
+## them. The ring and the floater
 ## lift when the ring would come within RING_PLATE_GAP of the current zone's
 ## plate (below about zoom 1.4).
 func _place_markers() -> void:
@@ -409,9 +411,10 @@ func _place_markers() -> void:
 
 	for zone_id: String in _plates:
 		var plate: ZoneMapLabel = _plates[zone_id]
-		var plate_offset: Vector2 = _plate_offset(plate.get_state())
-		plate.position = marker_position(canvas * _zone_centres[zone_id], plate_offset, _plate_anchor(plate_offset), hex_scale)
 		plate.set_name_only(name_only)
+		var plate_offset: Vector2 = _plate_offset(plate.get_state())
+		plate_offset.x = -plate.size.x / 2.0
+		plate.position = marker_position(canvas * _zone_centres[zone_id], plate_offset, _plate_anchor(plate_offset), hex_scale)
 	for zone_id: String in _glyphs:
 		var glyph: MapGlyph = _glyphs[zone_id]
 		var glyph_offset: Vector2 = _glyph_offset(glyph.get_state())
