@@ -16,10 +16,11 @@ extends Control
 ##
 ## The full log is a taller board in the same place with every line LogManager
 ## keeps (at most LogManager.HISTORY_LIMIT), scrolling, newest at the bottom,
-## 26 px apart in a text area of whole lines. Its rail's end caps are lit only
-## when the text can scroll that way (kit §4.4). L, Escape while it is open,
-## and LogManager.toggle_window() open and close it. It never opens while the
-## log is hidden (the merchant hides it), and hiding the log closes it.
+## 26 px apart in a text area of whole lines. A line too long for the board
+## wraps under its own text, hanging from its bullet. Its rail's end caps are
+## lit only when the text can scroll that way (kit §4.4). L, Escape while it is
+## open, and LogManager.toggle_window() open and close it. It never opens while
+## the log is hidden (the merchant hides it), and hiding the log closes it.
 
 #-----------------------------------------------------------------------------
 # TYPES
@@ -40,6 +41,11 @@ const LINE_HEIGHT: float = 26.0
 ## The full log's board: from the bottom line up to just under the Goals board
 ## in the zone view (1056 − 560 = 496).
 const FULL_LOG_HEIGHT: float = 560.0
+## Kit §5.3: a line's bullet at x 44 and its text at x 62. In the full log
+## every line of an entry, wrapped ones too, starts this far into the text.
+const FULL_LOG_TEXT_INDENT: float = 18.0
+## The inlaid bullets are 10x10 (kit §4.4).
+const BULLET_SIZE: float = 10.0
 ## Lines from age 2 on lose their tone (kit §5.3).
 const TAN_AGE: int = 2
 const DIM_AGE: int = 3
@@ -243,16 +249,27 @@ func _fill_full_log() -> void:
 
 ## One line in its tone with its bullet, under the lines already there, then
 ## the oldest lines go until no more than LogManager keeps are left. Lines in
-## the full log do not fade.
+## the full log do not fade. Each line is a one-row table, bullet cell then
+## text cell, so a line that wraps hangs from its bullet: its continuation
+## lines start under its text, not under the bullet. The RichTextLacquerLog
+## variant sets the table separations to 0 to keep the 26 px pitch.
 func _add_full_log_line(bbcode: String) -> void:
 	if _full_log_line_count > 0:
 		_full_log_text.newline()
 	_full_log_line_count += 1
 	var tone: Tone = tone_for(bbcode)
-	_full_log_text.add_image(_tone_bullet(tone), 10, 10)
-	_full_log_text.add_text("  ")
+	_full_log_text.push_table(2, INLINE_ALIGNMENT_TOP)
+	_full_log_text.set_table_column_expand(0, false)
+	_full_log_text.set_table_column_expand(1, true)
+	_full_log_text.push_cell()
+	_full_log_text.set_cell_padding(Rect2(0.0, 0.0, FULL_LOG_TEXT_INDENT - BULLET_SIZE, 0.0))
+	_full_log_text.add_image(_tone_bullet(tone), BULLET_SIZE, BULLET_SIZE)
+	_full_log_text.pop()
+	_full_log_text.push_cell()
 	_full_log_text.push_color(_tone_colour(tone))
 	_full_log_text.add_text(plain_text(bbcode))
+	_full_log_text.pop()
+	_full_log_text.pop()
 	_full_log_text.pop()
 	while _full_log_line_count > LogManager.HISTORY_LIMIT:
 		_full_log_text.remove_paragraph(0)

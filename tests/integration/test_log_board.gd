@@ -18,6 +18,10 @@ const ADVENTURE_SPOT: Vector2 = Vector2(24.0, 24.0)
 const ZONE_SPOT: Vector2 = Vector2(24.0, 852.0)
 const BOARD_WIDTH: float = 440.0
 const MAX_TEXT_WIDTH: float = 384.0
+## Kit §5.3: a line's bullet at x 44 and its text at x 62, 18 px further in.
+const TEXT_INDENT: float = 18.0
+## Kit §0: log lines are 26 px apart.
+const LINE_PITCH: float = 26.0
 
 ## Kit §2 palette, written out so the tests do not read the colours they check.
 const BRASS: Color = Color("#D4A84A")
@@ -325,6 +329,26 @@ func test_full_log_shows_whole_lines() -> void:
 	assert_eq(fmod(bar.page, 26.0), 0.0, "the text area is a whole number of lines tall")
 	assert_eq(bar.value, bar.max_value - bar.page, "precondition: scrolled to the bottom")
 	assert_eq(fmod(bar.value, 26.0), 0.0, "so the top line shows whole")
+
+func test_full_log_wraps_an_entry_under_its_text() -> void:
+	# A wrapped entry hangs from its bullet: every line of it starts in the
+	# text column (x 62), the continuation lines too, so the whole entry wraps
+	# as its text alone does in a column 18 px narrower than the text area,
+	# 26 px a line. Continuation lines that start under the bullet (x 44)
+	# have 18 px more room and need fewer lines.
+	var entry: String = "Gained 5 Madra. ".repeat(16).strip_edges()
+	_add_log()
+	_log_lines([entry, "After"])
+	_log.toggle_full_log()
+	await wait_process_frames(3)
+	var text: RichTextLabel = _node("FullLogText") as RichTextLabel
+	var column: TextParagraph = TextParagraph.new()
+	column.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+	column.add_string(entry, text.get_theme_font(&"normal_font"), text.get_theme_font_size(&"normal_font_size"))
+	column.width = text.size.x - TEXT_INDENT
+	assert_false(text.get_v_scroll_bar().visible, "precondition: the entry fits, so no rail takes width")
+	assert_eq(text.get_paragraph_offset(1), column.get_line_count() * LINE_PITCH,
+		"the entry takes the lines its text needs in the text column, 26 px each")
 
 func test_full_log_line_pitch_comes_from_a_theme_variant() -> void:
 	_add_log()

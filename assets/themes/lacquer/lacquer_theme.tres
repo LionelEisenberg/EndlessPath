@@ -169,3 +169,5 @@ RichTextLacquer/font_sizes/normal_font_size = 15
 RichTextLacquer/fonts/normal_font = ExtResource("1_ex2p2")
 RichTextLacquerLog/base_type = &"RichTextLacquer"
 RichTextLacquerLog/constants/line_separation = 9
+RichTextLacquerLog/constants/table_h_separation = 0
+RichTextLacquerLog/constants/table_v_separation = 0
