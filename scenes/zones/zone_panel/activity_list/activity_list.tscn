@@ -1,9 +1,9 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://fwisr8gt3pur"]
 
-[ext_resource type="Script" path="res://scenes/zones/zone_panel/activity_list/activity_list.gd" id="1_list"]
+[ext_resource type="Script" uid="uid://bf3h857xw1nho" path="res://scenes/zones/zone_panel/activity_list/activity_list.gd" id="1_list"]
 [ext_resource type="Texture2D" uid="uid://db40kk7d07ilk" path="res://assets/ui/lacquer/lacquer_lip_top_ai.png" id="2_lip_top"]
 [ext_resource type="Texture2D" uid="uid://c342oebwef0fi" path="res://assets/ui/lacquer/lacquer_lip_bottom_ai.png" id="3_lip_bottom"]
-[ext_resource type="PackedScene" path="res://scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn" id="4_rail"]
+[ext_resource type="PackedScene" uid="uid://btq3flqb0gdik" path="res://scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn" id="4_rail"]
 
 [node name="ActivityList" type="Control"]
 layout_mode = 3

@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cpys1vqwfilbb"]
 
-[ext_resource type="Script" path="res://scenes/zones/zone_panel/zone_panel.gd" id="1_panel"]
+[ext_resource type="Script" uid="uid://kwj34peteluc" path="res://scenes/zones/zone_panel/zone_panel.gd" id="1_panel"]
 [ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
 [ext_resource type="Texture2D" uid="uid://b0oxilq4a2deb" path="res://assets/ui/lacquer/lacquer_chest_top_ai.png" id="3_chest_top"]
 [ext_resource type="Texture2D" uid="uid://dt7a831tjgn74" path="res://assets/ui/lacquer/lacquer_chest_mid_ai.png" id="4_chest_mid"]
@@ -10,10 +10,10 @@
 [ext_resource type="Texture2D" uid="uid://bol0dgd52c2ql" path="res://assets/ui/lacquer/lacquer_about_open_ai.png" id="8_about_open"]
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="9_frame"]
 [ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="10_frame_hover"]
-[ext_resource type="PackedScene" path="res://scenes/zones/zone_panel/now_strip/now_strip.tscn" id="11_strip"]
+[ext_resource type="PackedScene" uid="uid://ch3ooi8dsnmux" path="res://scenes/zones/zone_panel/now_strip/now_strip.tscn" id="11_strip"]
 [ext_resource type="Texture2D" uid="uid://crbpnry223q5u" path="res://assets/ui/lacquer/lacquer_groove_ai.png" id="12_groove"]
 [ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="13_groove_end"]
-[ext_resource type="PackedScene" path="res://scenes/zones/zone_panel/activity_list/activity_list.tscn" id="14_list"]
+[ext_resource type="PackedScene" uid="uid://fwisr8gt3pur" path="res://scenes/zones/zone_panel/activity_list/activity_list.tscn" id="14_list"]
 [ext_resource type="Texture2D" uid="uid://dt1lk5srus118" path="res://assets/ui/lacquer/lacquer_lore_ai.png" id="15_lore"]
 
 [node name="ZonePanel" type="Control"]

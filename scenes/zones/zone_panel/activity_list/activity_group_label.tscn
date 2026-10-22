@@ -1,4 +1,4 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dgj2qeo784e7o"]
 
 [ext_resource type="Texture2D" uid="uid://crbpnry223q5u" path="res://assets/ui/lacquer/lacquer_groove_ai.png" id="1_groove"]
 [ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="2_groove_end"]

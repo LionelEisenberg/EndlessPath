@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://ch3ooi8dsnmux"]
 
-[ext_resource type="Script" path="res://scenes/zones/zone_panel/now_strip/now_strip.gd" id="1_strip"]
+[ext_resource type="Script" uid="uid://c41loauj8omd2" path="res://scenes/zones/zone_panel/now_strip/now_strip.gd" id="1_strip"]
 [ext_resource type="Texture2D" uid="uid://cf7fxxu8dkpho" path="res://assets/ui/lacquer/lacquer_now_tray_ai.png" id="2_tray"]
 [ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="3_strip_rect"]
 [ext_resource type="Texture2D" uid="uid://dle0gf5qw361r" path="res://assets/ui/lacquer/lacquer_ring_strip_ai.png" id="4_ring"]
