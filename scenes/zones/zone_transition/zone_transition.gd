@@ -24,6 +24,10 @@ const ZOOM_TARGET: float = 3.0
 # STATE
 #-----------------------------------------------------------------------------
 
+## Where the drain's pellets are added; null means the running scene, as in
+## the game. Tests, which have no current scene, set it.
+var pellet_parent: Node = null
+
 var _cultivator_plate: CultivatorPlate = null
 var _zone_tilemap: ZoneTilemap = null
 var _camera: Camera2D = null
@@ -117,7 +121,7 @@ func _spawn_next_drain_particle() -> void:
 	var offset: Vector2 = Vector2(randf_range(-15, 15), randf_range(-15, 15))
 	var duration: float = randf_range(DRAIN_PARTICLE_FLIGHT_TIME * 0.7, DRAIN_PARTICLE_FLIGHT_TIME)
 	var curve_spread: float = randf_range(80.0, 150.0)
-	get_tree().current_scene.add_child(pellet)
+	_get_pellet_parent().add_child(pellet)
 	pellet.launch(from_pos + offset, _drain_target_pos + offset, duration, curve_spread)
 
 	# The final particle carries the leftover deficit (when budget doesn't
@@ -176,3 +180,6 @@ func _get_camera() -> Camera2D:
 
 func _get_character() -> Node2D:
 	return _character
+
+func _get_pellet_parent() -> Node:
+	return pellet_parent if pellet_parent != null else get_tree().current_scene
