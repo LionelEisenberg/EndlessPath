@@ -433,11 +433,31 @@ func test_ring_and_floater_keep_their_size_at_zoom_one() -> void:
 	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
 	var ring: MapActionRing = _markers().get_action_ring()
 	var floater: MapFloater = _markers().get_floater()
+	var plate_top: float = _markers().get_plate(SPIRIT_VALLEY_ID).position.y
+	assert_eq(plate_top, centre.y + 49.0, "precondition: the plate's top 49 px under the hex centre")
 	assert_eq(ring.scale, Vector2.ONE, "the ring keeps its size")
-	assert_eq(ring.position, (centre + Vector2(19, 2)).round(), "its top-left at the kit's (38, 4) scaled to the hex")
+	assert_eq(ring.position.x, roundf(centre.x + 19.0), "its left at the kit's 38 scaled to the hex")
+	assert_eq(ring.position.y, plate_top - 66.0, "lifted 19 px off its kit spot (centre + 2) to sit 2 px above the plate")
 	assert_eq(floater.scale, Vector2.ONE, "the floater keeps its size")
 	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, centre.x + 25.0, 1.0, "centred 50 px right of the hex centre at zoom 2, 25 at zoom 1")
-	assert_eq(floater.position.y, centre.y - 28.0 - floater.get_rise(), "its token resting on the hex centre's height")
+	assert_eq(floater.position.y, centre.y - 28.0 - floater.get_rise() - 19.0, "its token lifted with the ring, off the hex centre's height")
+
+func test_ring_clears_the_current_plate_at_every_zoom() -> void:
+	# At zoom 2 the ring sits 30 px above the plate; nearer zoom 1 the hex
+	# shrinks round the kit-size ring and plate, and the ring would slide
+	# under the plate and lose its lower beads.
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var camera: Camera2D = _map.get_camera()
+	var ring: MapActionRing = _markers().get_action_ring()
+	var floater: MapFloater = _markers().get_floater()
+	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
+	for zoom: float in [1.0, 1.1, 1.25, 1.5, 2.0]:
+		camera.zoom = Vector2(zoom, zoom)
+		_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
+		await _settle()
+		var plate_top: float = _markers().get_plate(SPIRIT_VALLEY_ID).position.y
+		assert_lte(ring.position.y + ring.size.y + 2.0, plate_top, "zoom %s: the ring clears the plate by 2 px or more" % zoom)
+		assert_lte(floater.position.y + floater.get_rise() + floater.size.y - 2.0, ring.position.y, "zoom %s: the resting floater token stays above the ring" % zoom)
 
 func test_current_plate_draws_above_its_neighbours() -> void:
 	# Kit-size plates overlap their row neighbours below zoom 1.5 (164 px

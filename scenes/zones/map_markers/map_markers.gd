@@ -95,6 +95,11 @@ const POPOVER_ANCHOR_UNCHARTED: Vector2 = Vector2(168, 0)
 ## Below this map zoom the plates show their names only (spec, Open / deferred).
 const PLATE_NAME_ONLY_BELOW_ZOOM: float = 1.25
 
+## The least room between the ring's foot and the current zone's plate. Near
+## zoom 1 the hex shrinks round the kit-size ring and plate, so the ring (and
+## the floater above it) lift to keep it.
+const RING_PLATE_GAP: float = 2.0
+
 ## Between the items of a foraging haul on the floater.
 const HAUL_SEPARATOR: String = "  "
 
@@ -390,7 +395,9 @@ static func marker_position(hex_centre: Vector2, kit_offset: Vector2, anchor: Ve
 
 ## Puts every marker at its kit offset from its hex's screen centre, at its
 ## kit size, its anchor following the hex (marker_position), in whole px.
-## Below zoom 1.25 the plates show their names only.
+## Below zoom 1.25 the plates show their names only. The ring and the floater
+## lift when the ring would come within RING_PLATE_GAP of the current zone's
+## plate (below about zoom 1.4).
 func _place_markers() -> void:
 	if map == null or not map.is_inside_tree():
 		return
@@ -417,11 +424,13 @@ func _place_markers() -> void:
 	if current_id == "":
 		return
 	var centre: Vector2 = canvas * _zone_centres[current_id]
-	_ring.position = marker_position(centre, RING_OFFSET, RING_ANCHOR, hex_scale)
+	var ring_position: Vector2 = marker_position(centre, RING_OFFSET, RING_ANCHOR, hex_scale)
+	var lift: Vector2 = Vector2(0.0, maxf(ring_position.y + _ring.size.y + RING_PLATE_GAP - _plates[current_id].position.y, 0.0))
+	_ring.position = ring_position - lift
 	var floater_offset: Vector2 = Vector2(
 		snappedf(FLOATER_CENTRE_X - _floater.get_token_width() / 2.0, 2.0),
 		FLOATER_TOP - _floater.get_rise())
-	_floater.position = marker_position(centre, floater_offset, FLOATER_ANCHOR, hex_scale)
+	_floater.position = marker_position(centre, floater_offset, FLOATER_ANCHOR, hex_scale) - lift
 
 ## A plate hangs from its top centre: the kit's offsets centre the plate
 ## under its hex.
