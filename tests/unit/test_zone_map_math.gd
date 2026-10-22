@@ -63,6 +63,57 @@ func test_cell_to_cube_matches_the_odd_row_offset_layout() -> void:
 	assert_eq(ZoneMapMath.cell_to_cube(Vector2i(0, 1)), Vector3i(0, 1, -1))
 
 #-----------------------------------------------------------------------------
+# FOG ART
+#-----------------------------------------------------------------------------
+
+## Kit §6.2's hand-placed fog art on the 32 cells the default framing shows,
+## as fog pool indices (Basic 0, Mountains1 1, Clearing1 2, Lake1 3, Lake2 4,
+## Hole 5, Dead 6, Ravine 7, Cave 8). Every other listed cell is Basic.
+const KIT_FOG_FEATURES: Dictionary[Vector2i, int] = {
+	Vector2i(-1, -3): 2, Vector2i(1, -3): 5,
+	Vector2i(-1, -2): 7, Vector2i(0, -2): 3, Vector2i(1, -2): 1,
+	Vector2i(-2, -1): 4, Vector2i(1, -1): 6,
+	Vector2i(-1, 0): 3, Vector2i(1, 0): 7, Vector2i(2, 0): 2,
+	Vector2i(-2, 1): 8, Vector2i(0, 1): 4,
+}
+## The kit's rows and their first and last columns.
+const KIT_FOG_ROWS: Dictionary[int, Vector2i] = {
+	-3: Vector2i(-3, 2), -2: Vector2i(-3, 3), -1: Vector2i(-3, 2), 0: Vector2i(-3, 3), 1: Vector2i(-3, 2),
+}
+
+func _is_kit_cell(cell: Vector2i) -> bool:
+	return KIT_FOG_ROWS.has(cell.y) and cell.x >= KIT_FOG_ROWS[cell.y].x and cell.x <= KIT_FOG_ROWS[cell.y].y
+
+func test_fog_art_follows_the_kit_on_its_cells() -> void:
+	var cells: int = 0
+	for row: int in KIT_FOG_ROWS:
+		for col: int in range(KIT_FOG_ROWS[row].x, KIT_FOG_ROWS[row].y + 1):
+			var cell := Vector2i(col, row)
+			cells += 1
+			assert_eq(ZoneMapMath.fog_art_index(cell), KIT_FOG_FEATURES.get(cell, 0), "kit art on %s" % cell)
+	assert_eq(cells, 32, "the kit's 32 cells")
+
+func test_fog_art_beyond_the_kit_is_mostly_basic() -> void:
+	var basic: int = 0
+	var total: int = 0
+	var features: Dictionary[int, bool] = {}
+	for row: int in range(-12, 13):
+		for col: int in range(-12, 13):
+			var cell := Vector2i(col, row)
+			if _is_kit_cell(cell):
+				continue
+			var index: int = ZoneMapMath.fog_art_index(cell)
+			assert_true(index >= 0 and index < ZoneMapMath.FOG_POOL_SIZE, "index %d in the pool for %s" % [index, cell])
+			total += 1
+			if index == 0:
+				basic += 1
+			else:
+				features[index] = true
+	var share: float = float(basic) / total
+	assert_between(share, 0.5, 0.7, "about 60%% Basic like the kit's own cells, got %.2f" % share)
+	assert_eq(features.size(), ZoneMapMath.FOG_POOL_SIZE - 1, "every feature shows somewhere")
+
+#-----------------------------------------------------------------------------
 # FOG TIERS
 #-----------------------------------------------------------------------------
 

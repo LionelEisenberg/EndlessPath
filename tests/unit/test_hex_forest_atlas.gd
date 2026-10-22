@@ -60,3 +60,32 @@ func test_pick_from_spreads_across_the_pool() -> void:
 
 func test_pick_from_an_empty_pool_is_zero() -> void:
 	assert_eq(HEX_FOREST_ATLAS.pick_from(Vector3i(2, -1, -1), 0), 0)
+
+#-----------------------------------------------------------------------------
+# pick_weighted_from (fog pools with a plain tile)
+#-----------------------------------------------------------------------------
+
+func test_pick_weighted_from_is_deterministic_and_in_range() -> void:
+	for q in range(-6, 7):
+		for r in range(-6, 7):
+			var coord := Vector3i(q, r, -q - r)
+			var index: int = HEX_FOREST_ATLAS.pick_weighted_from(coord, 9, 60)
+			assert_eq(index, HEX_FOREST_ATLAS.pick_weighted_from(coord, 9, 60), "same cell for the same coord %s" % coord)
+			assert_true(index >= 0 and index < 9, "index %d out of [0, 9) for %s" % [index, coord])
+
+func test_pick_weighted_from_keeps_the_first_share() -> void:
+	var counts: Dictionary[int, int] = {}
+	var total: int = 0
+	for q in range(-12, 13):
+		for r in range(-12, 13):
+			var index: int = HEX_FOREST_ATLAS.pick_weighted_from(Vector3i(q, r, -q - r), 9, 60)
+			counts[index] = counts.get(index, 0) + 1
+			total += 1
+	var first_share: float = float(counts.get(0, 0)) / total
+	assert_between(first_share, 0.5, 0.7, "about 60%% of cells get the plain tile, got %.2f" % first_share)
+	for index: int in range(1, 9):
+		assert_true(counts.has(index), "feature %d is used too" % index)
+
+func test_pick_weighted_from_a_one_tile_pool_is_zero() -> void:
+	assert_eq(HEX_FOREST_ATLAS.pick_weighted_from(Vector3i(2, -1, -1), 1, 0), 0)
+	assert_eq(HEX_FOREST_ATLAS.pick_weighted_from(Vector3i(2, -1, -1), 0, 0), 0)

@@ -4,8 +4,8 @@ class_name ZoneMapMath
 ## Pure helpers for the zone map: where the camera goes so the current zone's
 ## centre lands at screen (960, 702) at any zoom (the upper half of the screen
 ## is kept for the road ahead), where the camera may go so a zone stays in the
-## free map window, the fog tier of a cell, the foraging wander and the Aura
-## Well's bob.
+## free map window, the fog tier and art of a cell, the foraging wander and
+## the Aura Well's bob.
 ## "World" is the ZoneTilemap's own space, where one art pixel is one unit.
 ## Statics only.
 
@@ -27,6 +27,29 @@ const FREE_MAP_WINDOW: Rect2 = Rect2(546, 95, 828, 786)
 
 ## Fog tiers run 1 (next to a charted zone) to this, the darkest.
 const MAX_FOG_TIER: int = 3
+
+## Each fog tier's atlas (the kit's lacquer_fog_t*_atlas_ai.png) holds its
+## natural-only pool in this order: Basic 0, Mountains1 1, Clearing1 2, Lake1 3,
+## Lake2 4, Hole 5, Dead 6, Ravine 7, Cave 8.
+const FOG_POOL_SIZE: int = 9
+const FOG_ART_BASIC: int = 0
+## Off the kit's cells, the share of fog cells that are plain Basic: about
+## the kit's own (19 of its 31 fog cells).
+const FOG_BASIC_PERCENT: int = 60
+
+## The fog art kit §6.2 places by hand on the cells the default framing shows
+## (its rows in KIT_FOG_ROWS); every other one of those cells is Basic.
+const KIT_FOG_FEATURES: Dictionary[Vector2i, int] = {
+	Vector2i(-1, -3): 2, Vector2i(1, -3): 5,
+	Vector2i(-1, -2): 7, Vector2i(0, -2): 3, Vector2i(1, -2): 1,
+	Vector2i(-2, -1): 4, Vector2i(1, -1): 6,
+	Vector2i(-1, 0): 3, Vector2i(1, 0): 7, Vector2i(2, 0): 2,
+	Vector2i(-2, 1): 8, Vector2i(0, 1): 4,
+}
+## Kit §6.2's 32 cells: per row, its first and last column.
+const KIT_FOG_ROWS: Dictionary[int, Vector2i] = {
+	-3: Vector2i(-3, 2), -2: Vector2i(-3, 3), -1: Vector2i(-3, 2), 0: Vector2i(-3, 3), 1: Vector2i(-3, 2),
+}
 
 ## One foraging haul, over which the character wanders west and back: out to
 ## -24 world px by 1.5 s (30%), back to -8 by 3.25 s (65%), home at 5 s.
@@ -75,6 +98,17 @@ static func camera_window_for(zone_world_centre: Vector2, zoom: float) -> Rect2:
 static func cell_to_cube(cell: Vector2i) -> Vector3i:
 	var x: int = cell.x - ((cell.y & ~1) >> 1)
 	return Vector3i(x, cell.y, -x - cell.y)
+
+## The fog art (an index into the fog pool) drawn on a cell: kit §6.2's
+## hand-placed art on its 32 cells, so the default framing matches the mock,
+## and past them Basic for about FOG_BASIC_PERCENT of cells and a natural
+## feature for the rest, the same for the same cell every time.
+static func fog_art_index(cell: Vector2i) -> int:
+	if KIT_FOG_FEATURES.has(cell):
+		return KIT_FOG_FEATURES[cell]
+	if KIT_FOG_ROWS.has(cell.y) and cell.x >= KIT_FOG_ROWS[cell.y].x and cell.x <= KIT_FOG_ROWS[cell.y].y:
+		return FOG_ART_BASIC
+	return HexForestAtlas.pick_weighted_from(cell_to_cube(cell), FOG_POOL_SIZE, FOG_BASIC_PERCENT)
 
 ## The fog tier of a cell: its hex distance to the nearest charted zone,
 ## capped at MAX_FOG_TIER, and MAX_FOG_TIER when nothing is charted.

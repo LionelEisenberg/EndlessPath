@@ -69,10 +69,6 @@ const FOREST_VARIANT_COUNT := 23
 const VEILED_CELL_SOURCE_ID: int = 0
 const VEILED_CELL_ALTERNATIVE_ID: int = 4
 
-## Each fog tier's atlas (fog_tileset.tres sources 1-3, one per tier) holds
-## this many natural tiles in one row.
-const FOG_POOL_SIZE: int = 9
-
 ## A hex tile's size in map space.
 const TILE_SIZE: Vector2 = Vector2(164, 190)
 
@@ -235,6 +231,11 @@ func frame_zone(zone_data: ZoneData, duration: float = 0.0) -> void:
 func get_fog_tier_at(cell: Vector2i) -> int:
 	return _fog_layer.get_cell_source_id(cell)
 
+## The fog art drawn on the cell (its index in the fog pool, the tier atlas's
+## column; ZoneMapMath.fog_art_index), or -1 when the cell has no fog.
+func get_fog_art_at(cell: Vector2i) -> int:
+	return _fog_layer.get_cell_atlas_coords(cell).x
+
 ## The rim (ZoneHexMarker) or veil (LockedZoneOverlay) drawn over the map
 ## zone, or null when the zone is not on the map.
 func get_hex_overlay(zone_id: String) -> Node2D:
@@ -362,7 +363,7 @@ func _draw_fog(map_zones: Array[ZoneData]) -> void:
 				continue
 			var cube: Vector3i = ZoneMapMath.cell_to_cube(cell)
 			var tier: int = ZoneMapMath.fog_tier(cube, charted_cubes)
-			_fog_layer.set_cell(cell, tier, Vector2i(HexForestAtlas.pick_from(cube, FOG_POOL_SIZE), 0))
+			_fog_layer.set_cell(cell, tier, Vector2i(ZoneMapMath.fog_art_index(cell), 0))
 
 ## Lays the current rim, the open hairline or the veil over each map zone.
 func _draw_hex_states(map_zones: Array[ZoneData]) -> void:

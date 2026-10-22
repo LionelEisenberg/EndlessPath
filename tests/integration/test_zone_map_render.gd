@@ -155,6 +155,17 @@ func test_fog_tiers_around_spirit_valley() -> void:
 	assert_eq(_map.get_fog_tier_at(Vector2i(3, 0)), 3, "three away is tier 3")
 	assert_eq(_map.get_fog_tier_at(Vector2i(0, 0)), -1, "a zone cell has no fog")
 
+func test_fog_draws_the_kit_art_around_spirit_valley() -> void:
+	# Kit §6.2: the ring round the valley is quiet Basic but for Ravine east
+	# and Lake2 south; the art index is the cell's place in the fog pool.
+	assert_eq(_map.get_fog_art_at(Vector2i(-1, -1)), 0, "north-west: Basic")
+	assert_eq(_map.get_fog_art_at(Vector2i(0, -1)), 0, "north-east: Basic")
+	assert_eq(_map.get_fog_art_at(Vector2i(1, 0)), 7, "east: Ravine")
+	assert_eq(_map.get_fog_art_at(Vector2i(-1, 1)), 0, "south-west: Basic")
+	assert_eq(_map.get_fog_art_at(Vector2i(0, 1)), 4, "south-east: Lake2")
+	assert_eq(_map.get_fog_art_at(Vector2i(-1, 0)), 3, "west (the hidden Test Zone's cell): Lake1")
+	assert_eq(_map.get_fog_art_at(Vector2i(0, 0)), -1, "a zone cell has no fog art")
+
 func test_fog_covers_screen_at_zoom_one() -> void:
 	# Review Focus 3: the camera's centre is clamped to the bounds, so at the
 	# lowest zoom (1.0), where they are widest, the screen reaches half a
