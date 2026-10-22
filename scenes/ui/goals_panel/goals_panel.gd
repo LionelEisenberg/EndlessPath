@@ -20,6 +20,9 @@ extends Control
 ## Board-local space under the last row: the milestone rod ends at 198 and the
 ## board at 220 (kit §5.2: screen 470 and 492).
 const BOTTOM_PADDING: float = 22.0
+## The strip at the top of the board's root that the cords hang in; the
+## board's body starts under it.
+const CORDS_HEIGHT: float = 20.0
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES

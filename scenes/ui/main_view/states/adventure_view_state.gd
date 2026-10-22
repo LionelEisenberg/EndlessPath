@@ -4,9 +4,11 @@ extends MainViewState
 
 ## Where the log window sits during an adventure, clear of the bottom HUD dock.
 const ADVENTURE_LOG_POSITION: Vector2 = Vector2(24.0, 24.0)
-## Where the Goals board sits during an adventure: the free top right. The
-## left side would cover the adventure map's EncounterInfoPanel.
-const ADVENTURE_GOALS_POSITION: Vector2 = Vector2(1456.0, 24.0)
+## Where the Goals board's root sits during an adventure: the free top right.
+## The left side would cover the adventure map's EncounterInfoPanel. The root's
+## top strip holds the cords, hidden here, so the root sits that much higher and
+## the board's body starts at y 24, level with the log.
+const ADVENTURE_GOALS_POSITION: Vector2 = Vector2(1456.0, 24.0 - GoalsPanel.CORDS_HEIGHT)
 
 var _log_window: Control
 var _saved_log_position: Vector2 = Vector2.ZERO

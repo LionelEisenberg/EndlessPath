@@ -18,7 +18,10 @@ const MERCHANT_ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/z
 ## tests do not read the constants they check.
 const ZONE_GOALS_POSITION: Vector2 = Vector2(24.0, 272.0)
 const ZONE_LOG_POSITION: Vector2 = Vector2(24.0, 852.0)
-const ADVENTURE_GOALS_POSITION: Vector2 = Vector2(1456.0, 24.0)
+## The Goals board's root: its top 20 px are the cords, hidden in an
+## adventure, so the board's body starts at y 24, level with the log.
+const ADVENTURE_GOALS_POSITION: Vector2 = Vector2(1456.0, 4.0)
+const ADVENTURE_GOALS_BODY_POSITION: Vector2 = Vector2(1456.0, 24.0)
 const ADVENTURE_LOG_POSITION: Vector2 = Vector2(24.0, 24.0)
 
 #-----------------------------------------------------------------------------
@@ -104,6 +107,17 @@ func test_adventure_hides_the_goals_cords_and_restores() -> void:
 	assert_false(cords.visible, "no cords at the top right")
 	state.exit()
 	assert_true(cords.visible, "the cords hang again under the cabinet")
+
+## With the cords hidden, the board's body (not its root, whose top 20 px are
+## the cords' strip) is what sits at 1456, 24, level with the log's top.
+func test_adventure_lines_the_goals_board_up_with_the_log() -> void:
+	var goals: GoalsPanel = add_child_autofree(GoalsPanelScene.instantiate())
+	_main_view.goals_panel = goals
+	_new_state(AdventureViewState.new()).enter()
+	await wait_process_frames(1)
+	var board_top: Control = goals.get_node("%BoardTop")
+	assert_eq(board_top.global_position, ADVENTURE_GOALS_BODY_POSITION, "the board's body starts at the top right")
+	assert_eq(board_top.global_position.y, ADVENTURE_LOG_POSITION.y, "level with the log")
 
 func test_back_from_an_adventure_the_zone_view_places_both_boards() -> void:
 	var zone_state: MainViewState = _new_state(ZoneViewState.new())
