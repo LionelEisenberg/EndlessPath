@@ -1,4 +1,4 @@
-[gd_resource type="TileSet" load_steps=7 format=3]
+[gd_resource type="TileSet" load_steps=7 format=3 uid="uid://ckss74jbn42lx"]
 
 [ext_resource type="Texture2D" uid="uid://dy2l1dl53w0yo" path="res://assets/ui/lacquer/map/lacquer_fog_t1_atlas_ai.png" id="1_fog_t1"]
 [ext_resource type="Texture2D" uid="uid://xbjgqigly72i" path="res://assets/ui/lacquer/map/lacquer_fog_t2_atlas_ai.png" id="2_fog_t2"]

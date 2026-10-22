@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=5 format=3 uid="uid://cnkdk5q4wsabr"]
 
 [ext_resource type="Script" uid="uid://cy7uqlvr28bx5" path="res://scenes/zones/zone_hex_marker/zone_hex_marker.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://b5iaj785gphie" path="res://assets/ui/lacquer/map/lacquer_hex_current_ai.png" id="2_current"]
