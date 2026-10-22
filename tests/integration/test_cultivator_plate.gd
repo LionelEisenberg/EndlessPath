@@ -5,6 +5,8 @@ extends GutTest
 ## their signals, and the frames it picks from the orb and bead strips.
 
 const PLATE_SCENE_PATH: String = "res://scenes/zones/cultivator_plate/cultivator_plate.tscn"
+## The cabinet's right text edge, local (kit §5.1: screen 446).
+const TEXT_RIGHT_EDGE: float = 422.0
 
 const AURA_WELL_ID: String = "aura_well_training"
 const CYCLING_ID: String = "wilderness_cycling_action"
@@ -169,6 +171,21 @@ func test_gold_text() -> void:
 	ResourceManager.set_gold(120.0)
 	assert_eq(_text("GoldValueLabel"), "120")
 	assert_eq(_text("GoldWordLabel"), "gold")
+
+## The gold row sits at the right of the bottom row: coin, number, "gold",
+## ending on the cabinet's right text edge whatever the number's width.
+func test_gold_row_ends_on_the_right_text_edge() -> void:
+	for gold: float in [0.0, 120.0, 98765.0]:
+		ResourceManager.set_gold(gold)
+		await wait_process_frames(2)
+		var coin: Rect2 = (_node("GoldIcon") as Control).get_global_rect()
+		var value: Rect2 = (_node("GoldValueLabel") as Control).get_global_rect()
+		var word: Rect2 = (_node("GoldWordLabel") as Control).get_global_rect()
+		var right_edge: float = _plate.global_position.x + TEXT_RIGHT_EDGE
+		assert_almost_eq(word.end.x, right_edge, 0.5, "the word ends on the right text edge (%d gold)" % gold)
+		assert_lt(coin.end.x, value.position.x, "the coin comes first")
+		assert_lt(value.position.x, word.position.x, "then the number, then the word")
+		assert_eq(coin.size, Vector2(32.0, 32.0), "the coin shows at 32x32")
 
 #-----------------------------------------------------------------------------
 # ROOT
