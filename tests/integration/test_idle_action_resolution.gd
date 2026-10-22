@@ -315,8 +315,20 @@ func test_unlock_during_session_action_waits_for_it() -> void:
 	_clear_log()
 	ActionManager.stop_action()
 	assert_eq(_current_id(), AURA_WELL_ID, "the new idle action resumes when cycling ends")
-	assert_eq(_logged, ["Started Aura Well"] as Array[String],
-		"the player never ran it, so its first start reads Started, not Resumed")
+	assert_eq(_logged, ["Resumed Aura Well"] as Array[String],
+		"every resume after a session action reads Resumed; only the auto-start on an unlock reads Started")
+
+## A save from before last idle ids were kept has none in its zones. The
+## resume after a session action still reads Resumed.
+func test_resume_without_a_saved_last_idle_logs_resumed() -> void:
+	_unlock_foraging()
+	assert_eq(_current_id(), FORAGING_ID, "precondition: foraging runs")
+	ZoneManager.set_last_idle_action_id(ZONE_ID, "")
+	ActionManager.select_action(_action(CYCLING_ID))
+	_clear_log()
+	ActionManager.stop_action()
+	assert_eq(_current_id(), FORAGING_ID)
+	assert_eq(_logged, ["Resumed Spring Forest Foraging"] as Array[String])
 
 func test_resume_after_a_first_start_logs_resumed() -> void:
 	ActionManager.select_action(_action(CYCLING_ID))

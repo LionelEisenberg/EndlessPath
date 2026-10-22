@@ -399,17 +399,16 @@ func _is_idle_action(action_data: ZoneActionData) -> bool:
 		ZoneActionData.ActionType.TRAIN_STATS,
 	]
 
-## Starts the current zone's idle action after a session action stopped. It
-## reads "Started" when the zone never ran an idle action (one that unlocked
-## during a dialogue or an adventure), else "Resumed".
+## Starts the current zone's idle action after a session action stopped and
+## logs "Resumed", even for an idle action that unlocked during the session
+## action or a zone with no saved last idle action. Only the auto-start on a
+## first idle unlock (_on_condition_unlocked) reads "Started".
 func _resume_idle_action() -> void:
-	var zone_id: String = _get_current_zone_id()
-	var idle_action: ZoneActionData = resolve_idle_action(zone_id)
+	var idle_action: ZoneActionData = resolve_idle_action(_get_current_zone_id())
 	if idle_action == null:
 		return
-	var first_time: bool = ZoneManager.get_last_idle_action_id(zone_id) == ""
 	select_action(idle_action)
-	_log(("Started %s" if first_time else "Resumed %s") % idle_action.action_name)
+	_log("Resumed %s" % idle_action.action_name)
 
 ## True when the zone's resolved idle action is the one already running.
 func _is_resolved_idle_running(zone_id: String) -> bool:
