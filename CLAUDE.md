@@ -154,7 +154,9 @@ Shared components used across multiple views:
 
 ## Git Workflow
 
-**When to commit:** After completing a feature, fixing a bug, or finishing a meaningful refactor — ask the user for confirmation before committing. Never commit without user approval.
+**When to commit:** Commit your own work as you go, once each logical step is done (a feature, a bug fix, a meaningful refactor, a plan task). You don't need to ask first.
+
+**Never merge:** not into `main`, not into any other branch, and not a pull request, unless the user explicitly asks.
 
 **Before committing:**
 - Run `git diff HEAD` to review all changes
