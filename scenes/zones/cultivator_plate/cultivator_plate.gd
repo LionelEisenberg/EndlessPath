@@ -6,7 +6,7 @@ extends Control
 ## the running action earns Madra, its rate; the Core Density orb with the
 ## stage, level and XP beads; gold. The orbs and beads are frames of the kit's
 ## strips. It reads everything once on _ready, then follows the managers'
-## signals. Replaces ZoneResourcePanel.
+## signals.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS

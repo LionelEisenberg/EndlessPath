@@ -131,8 +131,6 @@ Output: five lines of the form `uid://...`.
 | `log_print_level` | `MainGame` (`main_game.gd` export, set in `main_game.tscn`) | `0` (`Log.Event.INFO`) | Lowest `Log` event printed to the console. Every event is also written to `user://logs-<YYYY-MM-DD>.log`, which is truncated on each launch. See [LOGGING.md](../infrastructure/LOGGING.md). |
 | `is_debug_mode` | Player `CharacterBody2D` (`scenes/characters/main_character/character_body_2d.gd`) | `true` in `character_body_2d.tscn`; overridden to `false` in `zone_tilemap.tscn` and `adventure_tilemap.tscn` | When `true`, left-clicking anywhere walks the character to the cursor |
 | `preview_message` | `QuestToast` | `""` | Plays the message once when the scene runs alone (F6); skips `QuestManager` wiring |
-| `preview_active_quests`, `preview_completed_quests`, `preview_start_expanded` | `QuestWindow` | empty / `false` | F6 preview with authored quest data |
-| `preview_quest`, `preview_state`, `preview_step_index` | `QuestEntry` | unset | F6 preview of a single quest row |
 
 ## Editor Plugins
 

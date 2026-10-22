@@ -3,8 +3,7 @@ extends Control
 
 ## The lacquer dock (lacquer kit §5.4): the recessed shelf centred at the
 ## bottom of the zone view with the four SystemMenuButtons (Inventory,
-## Abilities, Character, Path). Replaces the Toolbar; gold moved to the
-## cultivator cabinet.
+## Abilities, Character, Path). Gold shows on the cultivator cabinet.
 ## It decides which buttons are notified: Path shows the brass ring and the
 ## count seal while path points are unspent, Abilities shows the ring with no
 ## count while an unlocked ability sits unequipped.

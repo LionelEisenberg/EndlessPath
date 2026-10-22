@@ -4,7 +4,7 @@ extends Control
 ## The zone chest at the zone view's top right (lacquer kit §5.5 and §0):
 ## the zone's header (tile thumbnail, name, About), the Now strip while an
 ## idle action runs, the Activities header with "N here", and the scrolling
-## activity list. Replaces ZoneInfoPanel and ZoneHeader.
+## activity list.
 ## The chest hugs its content: max(176, list top + list height + 24) tall.
 ## A list too long for the space down to local 992 scrolls, folds 8 px under
 ## its last whole drawer, keeps 40 px under it, and the chest snaps to the

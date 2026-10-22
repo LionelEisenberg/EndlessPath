@@ -8,7 +8,7 @@ extends Control
 ## Row 2 is the Breakthrough milestone: Core Density towards level 100 on a jade
 ## rod. With no active quest, row 1 and the divider hide and the milestone row
 ## moves up into their place (the Rows container does the move). The board
-## keeps its size. Replaces QuestWindow.
+## keeps its size.
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
