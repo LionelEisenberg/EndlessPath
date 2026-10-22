@@ -13,6 +13,7 @@ const TEST_ZONE_UNLOCK_ID: String = "celestial_intervener_dialogue_1"
 const ADVANCEMENT_DEMO_ID: String = "AdvancementZoneDemo"
 const UNCHARTED_DEMO_ID: String = "UnchartedZoneDemo"
 const FORAGING_UNLOCK_EVENT: String = "q_fill_core_completed"
+const AURA_WELL_EVENT: String = "aura_well_discovered"
 
 var _map: ZoneTilemap
 
@@ -52,6 +53,19 @@ func _zone(zone_id: String) -> ZoneData:
 func _to_screen(world: Vector2) -> Vector2:
 	var camera: Camera2D = _map.get_camera()
 	return ZoneMapMath.world_to_screen(world, camera.position, camera.zoom.x)
+
+## Where the character stands in the zone, in the map's world space.
+func _stand(zone_id: String) -> Vector2:
+	return _map.get_zone_world_centre(_zone(zone_id)) + ZoneTilemap.CHARACTER_STAND_OFFSET
+
+## Clicks the zone's cell on the map's zone layer.
+func _click_zone(zone_id: String) -> void:
+	_map.tile_map.tile_clicked.emit(_zone(zone_id).tilemap_location)
+
+## Shows the hidden Test Zone and unlocks it, so it is an open hex.
+func _open_test_zone() -> void:
+	ZoneManager.set_hidden_zones_visible(true)
+	UnlockManager.force_unlock_condition(TEST_ZONE_UNLOCK_ID)
 
 ## A cell's tile rect in the map's world space.
 func _cell_rect(cell: Vector2i) -> Rect2:
@@ -248,6 +262,81 @@ func test_foraging_wanders_west_of_the_stand() -> void:
 	assert_eq(position.x, roundf(position.x), "in whole world px (2 screen px steps)")
 	ActionManager.stop_action()
 	assert_eq(_map.character_body.position, stand, "stopping returns the character to its stand")
+
+func test_foraging_running_at_load_wanders_at_once() -> void:
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	assert_true(ActionManager.get_current_action() is ForageActionData, "precondition: foraging runs")
+	# A map opened while foraging already runs (a save whose idle action is
+	# foraging) hears no start_foraging, yet wanders from the first haul.
+	var map: ZoneTilemap = ZoneTilemapScene.instantiate()
+	add_child_autofree(map)
+	var stand: Vector2 = map.get_zone_world_centre(_zone(SPIRIT_VALLEY_ID)) + ZoneTilemap.CHARACTER_STAND_OFFSET
+	await wait_seconds(0.5)
+	assert_lt(map.character_body.position.x, stand.x, "the character wanders west before the first haul ends")
+
+func test_aura_well_bobs_the_character() -> void:
+	var stand: Vector2 = _map.character_body.position
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	assert_true(ActionManager.get_current_action() is TrainingActionData, "precondition: the Aura Well runs")
+	await wait_seconds(1.3)
+	var position: Vector2 = _map.character_body.position
+	assert_eq(position.x, stand.x, "the bob never moves sideways")
+	assert_lt(position.y, stand.y, "the character rises while it trains")
+	assert_gte(position.y, stand.y - 2.0, "by at most 2 world px (4 screen px)")
+	assert_eq(position.y, roundf(position.y), "in whole world px (2 screen px steps)")
+	ActionManager.stop_action()
+	assert_eq(_map.character_body.position, stand, "stopping returns the character to its stand")
+
+func test_travel_while_foraging_walks_to_the_new_zone() -> void:
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	assert_true(ActionManager.get_current_action() is ForageActionData, "precondition: foraging runs")
+	_open_test_zone()
+	var from_x: float = _stand(SPIRIT_VALLEY_ID).x
+	var to_x: float = _stand(TEST_ZONE_ID).x
+	_click_zone(TEST_ZONE_ID)
+	assert_true(_map.character_body.is_moving, "the click starts a walk, even though the zone change stops foraging")
+	await wait_seconds(0.1)
+	var x: float = _map.character_body.position.x
+	assert_true(_map.character_body.is_moving, "still walking 0.1 s in (an adjacent zone takes ~0.6 s)")
+	assert_true(x > to_x and x < from_x, "mid-walk the character is between the two stands, not snapped to one (x = %s)" % x)
+
+func test_idle_motion_starts_on_arrival() -> void:
+	_open_test_zone()
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	_click_zone(SPIRIT_VALLEY_ID)
+	await wait_for_signal(_map.character_body.movement_completed, 3.0)
+	assert_true(ActionManager.get_current_action() is TrainingActionData, "precondition: the Aura Well runs in Spirit Valley")
+	var stand: Vector2 = _stand(SPIRIT_VALLEY_ID)
+	assert_eq(_map.character_body.position, stand, "precondition: arrived at the stand")
+	await wait_seconds(1.3)
+	assert_lt(_map.character_body.position.y, stand.y, "the Aura Well's bob starts once the walk ends")
+
+#-----------------------------------------------------------------------------
+# ZONE CHANGES THE MAP DID NOT MAKE
+#-----------------------------------------------------------------------------
+
+func test_zone_change_from_outside_moves_the_character_and_camera() -> void:
+	_open_test_zone()
+	# A dev switch sets the zone without a click on the map.
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	assert_eq(_map.character_body.position, _stand(TEST_ZONE_ID), "the character stands in the new zone")
+	var screen: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(TEST_ZONE_ID)))
+	assert_almost_eq(screen.x, 960.0, 0.001, "and the camera frames it")
+	assert_almost_eq(screen.y, 702.0, 0.001)
+
+func test_save_reset_after_travel_brings_the_map_home() -> void:
+	_open_test_zone()
+	_click_zone(TEST_ZONE_ID)
+	await wait_for_signal(_map.character_body.movement_completed, 3.0)
+	assert_eq(_map.character_body.position, _stand(TEST_ZONE_ID), "precondition: arrived in Test Zone")
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
+	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "precondition: a fresh save starts in Spirit Valley")
+	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID), "the character goes back with the save")
+	var screen: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(SPIRIT_VALLEY_ID)))
+	assert_almost_eq(screen.x, 960.0, 0.001, "and the camera frames Spirit Valley again")
+	assert_almost_eq(screen.y, 702.0, 0.001)
 
 #-----------------------------------------------------------------------------
 # CAMERA CLAMP (centre mode)

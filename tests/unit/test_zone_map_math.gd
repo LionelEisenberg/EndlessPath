@@ -87,6 +87,17 @@ func test_forage_wander_keyframes() -> void:
 	assert_eq(ZoneMapMath.forage_wander_x(3.25), -8.0, "back to -8 at 65%")
 	assert_eq(ZoneMapMath.forage_wander_x(5.0), 0.0, "home at the haul")
 
+func test_training_bob_steps() -> void:
+	# Mock: bob 2.4 s steps(2, end), 0 -> -4 -> 0 screen px, so screen 0, -2,
+	# -4, -2 a step every 0.6 s: world 0, -1, -2, -1.
+	assert_eq(ZoneMapMath.training_bob_y(0.0), 0.0)
+	assert_eq(ZoneMapMath.training_bob_y(0.59), 0.0)
+	assert_eq(ZoneMapMath.training_bob_y(0.6), -1.0)
+	assert_eq(ZoneMapMath.training_bob_y(1.2), -2.0, "highest at half the cycle")
+	assert_eq(ZoneMapMath.training_bob_y(1.8), -1.0)
+	assert_eq(ZoneMapMath.training_bob_y(2.4), 0.0, "home at the end of the cycle")
+	assert_eq(ZoneMapMath.training_bob_y(3.6), -2.0, "and it repeats")
+
 func test_forage_wander_moves_west_only_in_whole_px() -> void:
 	var t: float = 0.0
 	while t < 5.0:

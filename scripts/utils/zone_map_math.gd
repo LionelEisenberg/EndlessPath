@@ -3,7 +3,8 @@ class_name ZoneMapMath
 ## ZoneMapMath
 ## Pure helpers for the zone map: where the camera goes so the current zone's
 ## centre lands at screen (960, 702) at any zoom (the upper half of the screen
-## is kept for the road ahead), the fog tier of a cell, and the foraging wander.
+## is kept for the road ahead), the fog tier of a cell, the foraging wander and
+## the Aura Well's bob.
 ## "World" is the ZoneTilemap's own space, where one art pixel is one unit.
 ## Statics only.
 
@@ -27,6 +28,13 @@ const _WANDER_OUT_END: float = 1.5
 const _WANDER_BACK_END: float = 3.25
 const _WANDER_FAR_X: float = 24.0
 const _WANDER_TURN_X: float = 8.0
+
+## One cycle of the Aura Well's bob (mock: bob 2.4 s steps(2, end)): four
+## steps of 0.6 s at these world px offsets (screen 0, -2, -4, -2).
+const TRAINING_BOB_SECONDS: float = 2.4
+const _BOB_STEPS_Y: Array[float] = [0.0, -1.0, -2.0, -1.0]
+## Absorbs float error at step boundaries (1.8 s is not an exact multiple of 0.6).
+const _BOB_STEP_EPSILON: float = 0.000001
 
 #-----------------------------------------------------------------------------
 # FRAMING
@@ -77,3 +85,16 @@ static func forage_wander_x(elapsed: float) -> float:
 		var back_steps: float = _WANDER_FAR_X - _WANDER_TURN_X
 		return -_WANDER_FAR_X + floorf((t - _WANDER_OUT_END) / (_WANDER_BACK_END - _WANDER_OUT_END) * back_steps)
 	return -_WANDER_TURN_X + floorf((t - _WANDER_BACK_END) / (FORAGE_WANDER_SECONDS - _WANDER_BACK_END) * _WANDER_TURN_X)
+
+#-----------------------------------------------------------------------------
+# TRAINING BOB
+#-----------------------------------------------------------------------------
+
+## The character's y offset from its stand, in whole world px, at elapsed
+## seconds into the Aura Well's bob: 0, -1, -2, -1, a step every 0.6 s,
+## repeating every 2.4 s (two screen px a step).
+static func training_bob_y(elapsed: float) -> float:
+	var step_seconds: float = TRAINING_BOB_SECONDS / _BOB_STEPS_Y.size()
+	var t: float = fposmod(elapsed, TRAINING_BOB_SECONDS)
+	var step: int = floori(t / step_seconds + _BOB_STEP_EPSILON) % _BOB_STEPS_Y.size()
+	return _BOB_STEPS_Y[step]

@@ -89,12 +89,17 @@ const ZoneHexMarkerScene: PackedScene = preload("res://scenes/zones/zone_hex_mar
 var _hex_overlays: Dictionary[String, Node2D] = {}
 var _camera_bounds: Rect2 = Rect2()
 var _frame_tween: Tween = null
-var _wander_tween: Tween = null
+## The character's idle motion (the foraging wander or the Aura Well's bob).
+var _idle_motion_tween: Tween = null
+var _selected_zone: ZoneData = null
 
-## variable that stores the tile the character is on
+## The zone the character stands in, or walks to. Setting it makes it the
+## current zone (ZoneManager.set_current_zone).
 var selected_zone: ZoneData:
+	get:
+		return _selected_zone
 	set(value):
-		selected_zone = value
+		_selected_zone = value
 		ZoneManager.set_current_zone(value)
 
 #-----------------------------------------------------------------------------
@@ -113,12 +118,19 @@ func _ready() -> void:
 	tile_map.tile_hovered.connect(_on_zone_tile_hovered)
 	tile_map.tile_unhovered.connect(_on_zone_tile_unhovered)
 
+	character_body.movement_completed.connect(_on_character_movement_completed)
 	ActionManager.start_foraging.connect(_on_start_foraging)
-	ActionManager.stop_foraging.connect(_on_stop_foraging)
+	ActionManager.stop_foraging.connect(_on_idle_action_stopped)
 	ActionManager.foraging_completed.connect(_on_foraging_completed)
+	ActionManager.start_training.connect(_on_start_training)
+	ActionManager.stop_training.connect(_on_idle_action_stopped)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	ZoneManager.zone_changed.connect(_on_zone_changed)
 	ZoneManager.map_zones_changed.connect(_on_map_zones_changed)
+
+	# An idle action already running (the save's, or one the zone change above
+	# resumed before these connections) sent its start signal unheard.
+	_start_idle_motion()
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -299,22 +311,32 @@ func _place_character(zone_data: ZoneData) -> void:
 func _move_character_to_zone(zone_data: ZoneData) -> void:
 	character_body.move_to_position(_get_stand_position(zone_data), CHARACTER_MOVE_SPEED)
 
-## Foraging: the character wanders west of its stand and back over each haul,
-## one world px (two screen px) a step. Never while walking to a zone.
-func _start_forage_wander() -> void:
-	_stop_forage_wander()
-	if character_body.is_moving:
+## The character's idle motion for the running action, around its stand, one
+## world px (two screen px) a step: foraging wanders west and back over one
+## haul (restarted each haul), the Aura Well bobs it up and down. Nothing while
+## it walks to a zone or while any other action runs.
+func _start_idle_motion() -> void:
+	_stop_idle_motion()
+	if character_body.is_moving or selected_zone == null:
 		return
-	_wander_tween = create_tween()
-	_wander_tween.tween_method(_apply_forage_wander, 0.0, ZoneMapMath.FORAGE_WANDER_SECONDS, ZoneMapMath.FORAGE_WANDER_SECONDS)
+	var action: ZoneActionData = ActionManager.get_current_action()
+	if action is ForageActionData:
+		_idle_motion_tween = create_tween()
+		_idle_motion_tween.tween_method(_apply_forage_wander, 0.0, ZoneMapMath.FORAGE_WANDER_SECONDS, ZoneMapMath.FORAGE_WANDER_SECONDS)
+	elif action is TrainingActionData:
+		_idle_motion_tween = create_tween().set_loops()
+		_idle_motion_tween.tween_method(_apply_training_bob, 0.0, ZoneMapMath.TRAINING_BOB_SECONDS, ZoneMapMath.TRAINING_BOB_SECONDS)
 
 func _apply_forage_wander(elapsed: float) -> void:
 	character_body.position = _get_stand_position(selected_zone) + Vector2(ZoneMapMath.forage_wander_x(elapsed), 0.0)
 
-func _stop_forage_wander() -> void:
-	if _wander_tween and _wander_tween.is_valid():
-		_wander_tween.kill()
-	_wander_tween = null
+func _apply_training_bob(elapsed: float) -> void:
+	character_body.position = _get_stand_position(selected_zone) + Vector2(0.0, ZoneMapMath.training_bob_y(elapsed))
+
+func _stop_idle_motion() -> void:
+	if _idle_motion_tween and _idle_motion_tween.is_valid():
+		_idle_motion_tween.kill()
+	_idle_motion_tween = null
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -331,9 +353,11 @@ func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 		return
 
 	zone_selected.emit(zone_data, tile_coord)
-	_stop_forage_wander()
-	update_zone_tile_state(zone_data)
+	_stop_idle_motion()
+	# Walk first: the zone change below stops and starts idle actions, and
+	# their handlers leave a walking character alone.
 	_move_character_to_zone(zone_data)
+	update_zone_tile_state(zone_data)
 	frame_zone(zone_data, camera_ease_duration)
 
 func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
@@ -352,17 +376,35 @@ func _on_condition_unlocked(_condition_id: String) -> void:
 func _on_map_zones_changed() -> void:
 	_rebuild_map()
 
-## The current zone moved: its rim and the open hairlines follow.
-func _on_zone_changed(_zone_data: ZoneData) -> void:
+## The current zone moved: its rim and the open hairlines follow. A change the
+## map did not make (a save reset, a dev switch) also takes the character and
+## the camera there, unless the character is walking to a zone.
+func _on_zone_changed(zone_data: ZoneData) -> void:
 	_rebuild_map()
+	if zone_data == null or zone_data == _selected_zone or character_body.is_moving:
+		return
+	# The backing field: ZoneManager already holds this zone, no re-emit.
+	_selected_zone = zone_data
+	_place_character(zone_data)
+	frame_zone(zone_data)
+	_start_idle_motion()
+
+## The walk ended at the zone's stand: the running idle action's motion starts.
+func _on_character_movement_completed() -> void:
+	_start_idle_motion()
 
 func _on_start_foraging() -> void:
-	_start_forage_wander()
+	_start_idle_motion()
 
-func _on_stop_foraging() -> void:
-	_stop_forage_wander()
+func _on_start_training(_action_data: TrainingActionData) -> void:
+	_start_idle_motion()
+
+## Foraging or training stopped: the character goes back to its stand, unless
+## it is walking to a zone.
+func _on_idle_action_stopped() -> void:
+	_stop_idle_motion()
 	if not character_body.is_moving:
 		_place_character(selected_zone)
 
 func _on_foraging_completed(_items: Dictionary) -> void:
-	_start_forage_wander()
+	_start_idle_motion()
