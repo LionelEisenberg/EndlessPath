@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://clockedoverlay01"]
+[gd_scene format=3 uid="uid://clockedoverlay01"]
 
 [ext_resource type="Script" uid="uid://clqsxvnpogmq" path="res://scenes/zones/locked_zone_overlay/locked_zone_overlay.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://c6a0gq2s8svhc" path="res://assets/ui/lacquer/map/lacquer_tile_locked_ai.png" id="2_locked"]
@@ -8,7 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://c7m58abwfsuuq" path="res://assets/ui/lacquer/map/lacquer_hex_hover_in_ai.png" id="6_hover_in"]
 [ext_resource type="Texture2D" uid="uid://dxpyrxi86wg53" path="res://assets/ui/lacquer/map/lacquer_hex_pinned_in_ai.png" id="7_pinned_in"]
 
-[node name="LockedZoneOverlay" type="Node2D"]
+[node name="LockedZoneOverlay" type="Node2D" unique_id=969201112]
 script = ExtResource("1_script")
 locked_texture = ExtResource("2_locked")
 locked_hover_texture = ExtResource("3_locked_hover")
@@ -17,11 +17,11 @@ uncharted_hover_texture = ExtResource("5_uncharted_hover")
 hover_rim_texture = ExtResource("6_hover_in")
 pinned_rim_texture = ExtResource("7_pinned_in")
 
-[node name="Tile" type="Sprite2D" parent="."]
+[node name="Tile" type="Sprite2D" parent="." unique_id=2066246661]
 unique_name_in_owner = true
 texture = ExtResource("2_locked")
 
-[node name="Rim" type="Sprite2D" parent="."]
+[node name="Rim" type="Sprite2D" parent="." unique_id=1852922631]
 unique_name_in_owner = true
 visible = false
 texture = ExtResource("6_hover_in")

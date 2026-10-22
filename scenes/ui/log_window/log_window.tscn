@@ -43,7 +43,7 @@ VScrollBar/styles/grabber_pressed = ExtResource("16_thumb")
 VScrollBar/styles/scroll = SubResource("StyleBoxTexture_rail_track")
 VScrollBar/styles/scroll_focus = SubResource("StyleBoxTexture_rail_track")
 
-[node name="LogWindow" type="Control"]
+[node name="LogWindow" type="Control" unique_id=332708016]
 layout_mode = 3
 anchors_preset = 0
 offset_left = 24.0
@@ -64,7 +64,7 @@ rail_up_off = ExtResource("17_up_off")
 rail_down_on = ExtResource("15_down")
 rail_down_off = ExtResource("18_down_off")
 
-[node name="Board" type="Control" parent="."]
+[node name="Board" type="Control" parent="." unique_id=1638891515]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_top = 1.0
@@ -73,7 +73,7 @@ offset_top = -204.0
 offset_right = 440.0
 grow_vertical = 0
 
-[node name="BoardTexture" type="TextureRect" parent="Board"]
+[node name="BoardTexture" type="TextureRect" parent="Board" unique_id=1878787905]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -88,7 +88,7 @@ texture = ExtResource("7_log5")
 expand_mode = 1
 stretch_mode = 2
 
-[node name="TitleLabel" type="Label" parent="Board"]
+[node name="TitleLabel" type="Label" parent="Board" unique_id=1629185423]
 layout_mode = 0
 offset_left = 18.0
 offset_top = 11.0
@@ -97,7 +97,7 @@ offset_bottom = 44.0
 theme_type_variation = &"LabelLacquerPanelTitle"
 text = "Log"
 
-[node name="HintLabel" type="Label" parent="Board"]
+[node name="HintLabel" type="Label" parent="Board" unique_id=56997454]
 layout_mode = 0
 offset_left = 222.0
 offset_top = 20.0
@@ -107,7 +107,7 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "Full log · L"
 horizontal_alignment = 2
 
-[node name="Line4" type="Control" parent="Board"]
+[node name="Line4" type="Control" parent="Board" unique_id=556815312]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_top = 1.0
@@ -119,7 +119,7 @@ offset_bottom = -128.0
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="LineBullet4" type="TextureRect" parent="Board/Line4"]
+[node name="LineBullet4" type="TextureRect" parent="Board/Line4" unique_id=1912682769]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 4.0
@@ -128,7 +128,7 @@ offset_bottom = 14.0
 mouse_filter = 2
 texture = ExtResource("12_dim")
 
-[node name="LineLabel4" type="Label" parent="Board/Line4"]
+[node name="LineLabel4" type="Label" parent="Board/Line4" unique_id=1384876957]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 18.0
@@ -139,7 +139,7 @@ theme_override_colors/font_color = Color(0.5803922, 0.5019608, 0.41568628, 1)
 text = "Found 2 Dewdrop Tear, 1 Spirit Fern"
 text_overrun_behavior = 3
 
-[node name="Line3" type="Control" parent="Board"]
+[node name="Line3" type="Control" parent="Board" unique_id=152243654]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_top = 1.0
@@ -151,7 +151,7 @@ offset_bottom = -102.0
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="LineBullet3" type="TextureRect" parent="Board/Line3"]
+[node name="LineBullet3" type="TextureRect" parent="Board/Line3" unique_id=397822064]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 4.0
@@ -160,7 +160,7 @@ offset_bottom = 14.0
 mouse_filter = 2
 texture = ExtResource("12_dim")
 
-[node name="LineLabel3" type="Label" parent="Board/Line3"]
+[node name="LineLabel3" type="Label" parent="Board/Line3" unique_id=1701909403]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 18.0
@@ -171,7 +171,7 @@ theme_override_colors/font_color = Color(0.5803922, 0.5019608, 0.41568628, 1)
 text = "Aura Well reached level 2 · +1 Spirit"
 text_overrun_behavior = 3
 
-[node name="Line2" type="Control" parent="Board"]
+[node name="Line2" type="Control" parent="Board" unique_id=802798348]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_top = 1.0
@@ -183,7 +183,7 @@ offset_bottom = -76.0
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="LineBullet2" type="TextureRect" parent="Board/Line2"]
+[node name="LineBullet2" type="TextureRect" parent="Board/Line2" unique_id=1156758539]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 4.0
@@ -192,7 +192,7 @@ offset_bottom = 14.0
 mouse_filter = 2
 texture = ExtResource("11_tan")
 
-[node name="LineLabel2" type="Label" parent="Board/Line2"]
+[node name="LineLabel2" type="Label" parent="Board/Line2" unique_id=301181876]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 18.0
@@ -202,7 +202,7 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "Travelled to Spirit Valley · resumed Aura Well"
 text_overrun_behavior = 3
 
-[node name="Line1" type="Control" parent="Board"]
+[node name="Line1" type="Control" parent="Board" unique_id=1303643959]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_top = 1.0
@@ -214,7 +214,7 @@ offset_bottom = -50.0
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="LineBullet1" type="TextureRect" parent="Board/Line1"]
+[node name="LineBullet1" type="TextureRect" parent="Board/Line1" unique_id=1689293990]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 4.0
@@ -223,7 +223,7 @@ offset_bottom = 14.0
 mouse_filter = 2
 texture = ExtResource("8_brass")
 
-[node name="LineLabel1" type="Label" parent="Board/Line1"]
+[node name="LineLabel1" type="Label" parent="Board/Line1" unique_id=742317774]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 18.0
@@ -234,7 +234,7 @@ theme_override_colors/font_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
 text = "Returned from The Shallow Woods · +34 gold"
 text_overrun_behavior = 3
 
-[node name="Line0" type="Control" parent="Board"]
+[node name="Line0" type="Control" parent="Board" unique_id=339391161]
 unique_name_in_owner = true
 layout_mode = 1
 anchor_top = 1.0
@@ -246,7 +246,7 @@ offset_bottom = -24.0
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="LineBullet0" type="TextureRect" parent="Board/Line0"]
+[node name="LineBullet0" type="TextureRect" parent="Board/Line0" unique_id=485442544]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 4.0
@@ -255,7 +255,7 @@ offset_bottom = 14.0
 mouse_filter = 2
 texture = ExtResource("11_tan")
 
-[node name="LineLabel0" type="Label" parent="Board/Line0"]
+[node name="LineLabel0" type="Label" parent="Board/Line0" unique_id=300901709]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 18.0
@@ -265,7 +265,7 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "Resumed Aura Well"
 text_overrun_behavior = 3
 
-[node name="FullBoard" type="Control" parent="."]
+[node name="FullBoard" type="Control" parent="." unique_id=214385379]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -275,7 +275,7 @@ offset_top = -560.0
 offset_right = 440.0
 grow_vertical = 0
 
-[node name="FullBoardTexture" type="Panel" parent="FullBoard"]
+[node name="FullBoardTexture" type="Panel" parent="FullBoard" unique_id=760741061]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -287,7 +287,7 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxTexture_full_board")
 
-[node name="FullTitleLabel" type="Label" parent="FullBoard"]
+[node name="FullTitleLabel" type="Label" parent="FullBoard" unique_id=1764947257]
 layout_mode = 0
 offset_left = 18.0
 offset_top = 11.0
@@ -296,7 +296,7 @@ offset_bottom = 44.0
 theme_type_variation = &"LabelLacquerPanelTitle"
 text = "Log"
 
-[node name="FullHintLabel" type="Label" parent="FullBoard"]
+[node name="FullHintLabel" type="Label" parent="FullBoard" unique_id=1674181769]
 layout_mode = 0
 offset_left = 222.0
 offset_top = 20.0
@@ -306,7 +306,7 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "Close · L"
 horizontal_alignment = 2
 
-[node name="FullLogText" type="RichTextLabel" parent="FullBoard"]
+[node name="FullLogText" type="RichTextLabel" parent="FullBoard" unique_id=1745217227]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 20.0

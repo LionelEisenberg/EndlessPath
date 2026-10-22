@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" path="res://scenes/zones/zone_action_button/presenters/merchant_presenter.gd" id="1_merchant"]
 
-[node name="MerchantPresenter" type="Node"]
+[node name="MerchantPresenter" type="Node" unique_id=1211618236]
 script = ExtResource("1_merchant")
 
-[node name="DetailLabel" type="Label" parent="."]
+[node name="DetailLabel" type="Label" parent="." unique_id=950902666]
 unique_name_in_owner = true
 size_flags_horizontal = 3
 size_flags_vertical = 0

@@ -1,10 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://hqg22u52rumd"]
+[gd_scene format=3 uid="uid://hqg22u52rumd"]
 
 [ext_resource type="Script" uid="uid://bsneu41v6b3bl" path="res://scenes/zones/zone_route/zone_route.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://crjwijkkdbneg" path="res://assets/ui/lacquer/map/lacquer_route_dot_ai.png" id="2_dot"]
 [ext_resource type="Texture2D" uid="uid://cyiii0e5qdbnn" path="res://assets/ui/lacquer/map/lacquer_route_dot_lit_ai.png" id="3_dot_lit"]
 
-[node name="ZoneRoute" type="Node2D"]
+[node name="ZoneRoute" type="Node2D" unique_id=1900971197]
 script = ExtResource("1_script")
 dot_texture = ExtResource("2_dot")
 lit_dot_texture = ExtResource("3_dot_lit")

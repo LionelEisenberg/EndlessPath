@@ -1,10 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://bct65erp7bgms"]
+[gd_scene format=3 uid="uid://bct65erp7bgms"]
 
 [ext_resource type="Script" uid="uid://cb87fvqoqn3i0" path="res://scenes/zones/map_markers/map_action_ring/map_action_ring.gd" id="1_script"]
 [ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="2_strip"]
 [ext_resource type="Texture2D" uid="uid://cn248kvxjwa2v" path="res://assets/ui/lacquer/lacquer_map_ring_strip_ai.png" id="3_ring"]
 
-[node name="MapActionRing" type="Control"]
+[node name="MapActionRing" type="Control" unique_id=2063367708]
 visible = false
 layout_mode = 3
 anchors_preset = 0
@@ -13,7 +13,7 @@ offset_bottom = 64.0
 mouse_filter = 2
 script = ExtResource("1_script")
 
-[node name="Ring" type="TextureRect" parent="."]
+[node name="Ring" type="TextureRect" parent="." unique_id=211206420]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 64.0
@@ -23,7 +23,7 @@ script = ExtResource("2_strip")
 strip = ExtResource("3_ring")
 frame_size = Vector2i(64, 64)
 
-[node name="ActionIcon" type="TextureRect" parent="."]
+[node name="ActionIcon" type="TextureRect" parent="." unique_id=673653772]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0

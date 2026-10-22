@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://pm6mp8lurdnh" path="res://assets/ui/lacquer/lacquer_dock_ai.png" id="3_shelf"]
 [ext_resource type="PackedScene" uid="uid://d0eha7yo0rjne" path="res://scenes/ui/dock/system_menu_button/system_menu_button.tscn" id="4_button"]
 
-[node name="Dock" type="Control"]
+[node name="Dock" type="Control" unique_id=6255061]
 layout_mode = 3
 anchors_preset = 0
 offset_left = 722.0
@@ -15,14 +15,14 @@ offset_bottom = 1056.0
 theme = ExtResource("2_theme")
 script = ExtResource("1_dock")
 
-[node name="Shelf" type="TextureRect" parent="."]
+[node name="Shelf" type="TextureRect" parent="." unique_id=1058671883]
 layout_mode = 0
 offset_right = 480.0
 offset_bottom = 84.0
 mouse_filter = 2
 texture = ExtResource("3_shelf")
 
-[node name="Buttons" type="HBoxContainer" parent="."]
+[node name="Buttons" type="HBoxContainer" parent="." unique_id=201677575]
 layout_mode = 0
 offset_left = 10.0
 offset_top = 8.0
@@ -31,21 +31,21 @@ offset_bottom = 72.0
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="InventoryButton" parent="Buttons" instance=ExtResource("4_button")]
+[node name="InventoryButton" parent="Buttons" unique_id=230252466 instance=ExtResource("4_button")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="AbilitiesButton" parent="Buttons" instance=ExtResource("4_button")]
+[node name="AbilitiesButton" parent="Buttons" unique_id=1517705306 instance=ExtResource("4_button")]
 unique_name_in_owner = true
 layout_mode = 2
 menu_type = 1
 
-[node name="CharacterButton" parent="Buttons" instance=ExtResource("4_button")]
+[node name="CharacterButton" parent="Buttons" unique_id=923247030 instance=ExtResource("4_button")]
 unique_name_in_owner = true
 layout_mode = 2
 menu_type = 2
 
-[node name="PathButton" parent="Buttons" instance=ExtResource("4_button")]
+[node name="PathButton" parent="Buttons" unique_id=1224969838 instance=ExtResource("4_button")]
 unique_name_in_owner = true
 layout_mode = 2
 menu_type = 3

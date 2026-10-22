@@ -8,7 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://bjw44pywbwfop" path="res://assets/ui/lacquer/lacquer_rail_down_on_ai.png" id="6_down_on"]
 [ext_resource type="Texture2D" uid="uid://2j2aglhv374m" path="res://assets/ui/lacquer/lacquer_rail_down_off_ai.png" id="7_down_off"]
 
-[node name="LacquerRail" type="Control"]
+[node name="LacquerRail" type="Control" unique_id=1177928257]
 visible = false
 layout_mode = 3
 anchors_preset = 0
@@ -17,7 +17,7 @@ offset_bottom = 200.0
 mouse_filter = 2
 script = ExtResource("1_rail")
 
-[node name="Track" type="TextureRect" parent="."]
+[node name="Track" type="TextureRect" parent="." unique_id=67235498]
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
@@ -31,7 +31,7 @@ texture = ExtResource("2_track")
 expand_mode = 1
 stretch_mode = 1
 
-[node name="Thumb" type="Panel" parent="."]
+[node name="Thumb" type="Panel" parent="." unique_id=1605638974]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 14.0
@@ -40,7 +40,7 @@ offset_bottom = 46.0
 mouse_default_cursor_shape = 2
 theme_override_styles/panel = ExtResource("3_thumb")
 
-[node name="UpCap" type="TextureButton" parent="."]
+[node name="UpCap" type="TextureButton" parent="." unique_id=1567933155]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 12.0
@@ -52,7 +52,7 @@ action_mode = 0
 texture_normal = ExtResource("4_up_on")
 texture_disabled = ExtResource("5_up_off")
 
-[node name="DownCap" type="TextureButton" parent="."]
+[node name="DownCap" type="TextureButton" parent="." unique_id=975178514]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = -1

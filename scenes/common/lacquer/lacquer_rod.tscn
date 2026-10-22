@@ -2,30 +2,30 @@
 
 [ext_resource type="Script" uid="uid://b5yu3aafsnsrq" path="res://scenes/common/lacquer/lacquer_rod.gd" id="1_rod"]
 
-[node name="LacquerRod" type="Control"]
+[node name="LacquerRod" type="Control" unique_id=1294140333]
 layout_mode = 3
 anchors_preset = 0
 mouse_filter = 2
 script = ExtResource("1_rod")
 
-[node name="Empty" type="TextureRect" parent="."]
+[node name="Empty" type="TextureRect" parent="." unique_id=795551140]
 unique_name_in_owner = true
 layout_mode = 0
 mouse_filter = 2
 
-[node name="FullClip" type="Control" parent="."]
+[node name="FullClip" type="Control" parent="." unique_id=1955675138]
 unique_name_in_owner = true
 clip_contents = true
 layout_mode = 0
 offset_right = 2.0
 mouse_filter = 2
 
-[node name="Full" type="TextureRect" parent="FullClip"]
+[node name="Full" type="TextureRect" parent="FullClip" unique_id=1907447226]
 unique_name_in_owner = true
 layout_mode = 0
 mouse_filter = 2
 
-[node name="End" type="TextureRect" parent="."]
+[node name="End" type="TextureRect" parent="." unique_id=1823889811]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0

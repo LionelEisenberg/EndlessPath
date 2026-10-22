@@ -1,10 +1,10 @@
 [gd_scene format=3]
 
-[node name="ForageYield" type="HBoxContainer"]
+[node name="ForageYield" type="HBoxContainer" unique_id=1742727675]
 mouse_filter = 2
 theme_override_constants/separation = 6
 
-[node name="Icon" type="TextureRect" parent="."]
+[node name="Icon" type="TextureRect" parent="." unique_id=1861920863]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(16, 20)
 layout_mode = 2
@@ -12,7 +12,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="RangeText" type="RichTextLabel" parent="."]
+[node name="RangeText" type="RichTextLabel" parent="." unique_id=253570825]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0

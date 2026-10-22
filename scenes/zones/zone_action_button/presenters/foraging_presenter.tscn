@@ -2,16 +2,16 @@
 
 [ext_resource type="Script" uid="uid://cyir5yi682ej4" path="res://scenes/zones/zone_action_button/presenters/foraging_presenter.gd" id="1_forage"]
 
-[node name="ForagingPresenter" type="Node"]
+[node name="ForagingPresenter" type="Node" unique_id=272557694]
 script = ExtResource("1_forage")
 
-[node name="YieldRow" type="HBoxContainer" parent="."]
+[node name="YieldRow" type="HBoxContainer" parent="." unique_id=206131569]
 unique_name_in_owner = true
 size_flags_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="TailText" type="RichTextLabel" parent="YieldRow"]
+[node name="TailText" type="RichTextLabel" parent="YieldRow" unique_id=1111286446]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2

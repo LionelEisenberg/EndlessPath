@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" uid="uid://ddou4n1nmu7x4" path="res://scenes/zones/zone_action_button/presenters/default_presenter.gd" id="1_default"]
 
-[node name="DefaultPresenter" type="Node"]
+[node name="DefaultPresenter" type="Node" unique_id=1489131548]
 script = ExtResource("1_default")
 
-[node name="DetailLabel" type="Label" parent="."]
+[node name="DetailLabel" type="Label" parent="." unique_id=1158358390]
 unique_name_in_owner = true
 size_flags_horizontal = 3
 size_flags_vertical = 0

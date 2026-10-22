@@ -17,7 +17,7 @@ focus_mode = 0
 flat = true
 script = ExtResource("1_wjy3w")
 
-[node name="FaceNormal" type="TextureRect" parent="."]
+[node name="FaceNormal" type="TextureRect" parent="." unique_id=1880488050]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 110.0
@@ -25,7 +25,7 @@ offset_bottom = 66.0
 mouse_filter = 2
 texture = ExtResource("3_btn")
 
-[node name="FaceRing" type="TextureRect" parent="."]
+[node name="FaceRing" type="TextureRect" parent="." unique_id=1145686093]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -34,7 +34,7 @@ offset_bottom = 66.0
 mouse_filter = 2
 texture = ExtResource("4_ring")
 
-[node name="FaceHover" type="TextureRect" parent="."]
+[node name="FaceHover" type="TextureRect" parent="." unique_id=635762740]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -75,7 +75,7 @@ theme_type_variation = &"LabelLacquerHotkey"
 text = "I"
 horizontal_alignment = 2
 
-[node name="CountSeal" type="Control" parent="."]
+[node name="CountSeal" type="Control" parent="." unique_id=635895500]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -85,14 +85,14 @@ offset_right = 18.0
 offset_bottom = 18.0
 mouse_filter = 2
 
-[node name="SealTexture" type="TextureRect" parent="CountSeal"]
+[node name="SealTexture" type="TextureRect" parent="CountSeal" unique_id=1857759811]
 layout_mode = 0
 offset_right = 24.0
 offset_bottom = 24.0
 mouse_filter = 2
 texture = ExtResource("6_seal")
 
-[node name="CountLabel" type="Label" parent="CountSeal"]
+[node name="CountLabel" type="Label" parent="CountSeal" unique_id=536199941]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 3.0

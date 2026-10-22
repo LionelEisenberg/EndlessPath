@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://bmfdcviqsgd5i"]
+[gd_scene format=3 uid="uid://bmfdcviqsgd5i"]
 
 [ext_resource type="Script" uid="uid://c7nn3x0kqoslj" path="res://scenes/zones/map_markers/zone_map_label/zone_map_label.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
@@ -15,7 +15,7 @@
 [ext_resource type="Texture2D" uid="uid://dpk2a4saepmy6" path="res://assets/ui/lacquer/lacquer_mini_swords_ai.png" id="13_mini_swords"]
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="14_frame"]
 
-[node name="ZoneMapLabel" type="Control"]
+[node name="ZoneMapLabel" type="Control" unique_id=1618011952]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 248.0
@@ -35,7 +35,7 @@ training_icon = ExtResource("11_mini_well")
 forage_icon = ExtResource("12_mini_forage")
 blocker_icon = ExtResource("13_mini_swords")
 
-[node name="PlateTexture" type="NinePatchRect" parent="."]
+[node name="PlateTexture" type="NinePatchRect" parent="." unique_id=1051036854]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -51,11 +51,11 @@ patch_margin_left = 8
 patch_margin_right = 12
 axis_stretch_horizontal = 1
 
-[node name="PinnedFrame" parent="." instance=ExtResource("14_frame")]
+[node name="PinnedFrame" parent="." unique_id=692260990 instance=ExtResource("14_frame")]
 unique_name_in_owner = true
 layout_mode = 1
 
-[node name="NameLabel" type="Label" parent="."]
+[node name="NameLabel" type="Label" parent="." unique_id=494962535]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
@@ -70,7 +70,7 @@ text = "Spirit Valley"
 horizontal_alignment = 1
 text_overrun_behavior = 3
 
-[node name="LineArea" type="Control" parent="."]
+[node name="LineArea" type="Control" parent="." unique_id=2080486224]
 unique_name_in_owner = true
 clip_contents = true
 layout_mode = 1
@@ -83,7 +83,7 @@ offset_bottom = 44.0
 grow_horizontal = 2
 mouse_filter = 2
 
-[node name="LineRow" type="HBoxContainer" parent="LineArea"]
+[node name="LineRow" type="HBoxContainer" parent="LineArea" unique_id=1216225567]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -95,7 +95,7 @@ mouse_filter = 2
 theme_override_constants/separation = 0
 alignment = 1
 
-[node name="IconMargin" type="MarginContainer" parent="LineArea/LineRow"]
+[node name="IconMargin" type="MarginContainer" parent="LineArea/LineRow" unique_id=18363711]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
@@ -105,13 +105,13 @@ theme_override_constants/margin_top = 2
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 0
 
-[node name="LineIcon" type="TextureRect" parent="LineArea/LineRow/IconMargin"]
+[node name="LineIcon" type="TextureRect" parent="LineArea/LineRow/IconMargin" unique_id=209758885]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 texture = ExtResource("11_mini_well")
 
-[node name="LineName" type="Label" parent="LineArea/LineRow"]
+[node name="LineName" type="Label" parent="LineArea/LineRow" unique_id=969246376]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0
@@ -121,7 +121,7 @@ text = "Aura Well"
 clip_text = true
 text_overrun_behavior = 3
 
-[node name="LineRate" type="RichTextLabel" parent="LineArea/LineRow"]
+[node name="LineRate" type="RichTextLabel" parent="LineArea/LineRow" unique_id=696295032]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0

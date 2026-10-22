@@ -1,15 +1,15 @@
-[gd_scene load_steps=5 format=3 uid="uid://0k6rbof0p2ve"]
+[gd_scene format=3 uid="uid://0k6rbof0p2ve"]
 
 [ext_resource type="Script" uid="uid://bk67aggyfbnqu" path="res://scenes/zones/map_markers/map_markers.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://bct65erp7bgms" path="res://scenes/zones/map_markers/map_action_ring/map_action_ring.tscn" id="2_ring"]
 [ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/zones/map_markers/map_floater/map_floater.tscn" id="3_floater"]
 [ext_resource type="PackedScene" uid="uid://dqgl61edrme6l" path="res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.tscn" id="4_popover"]
 
-[node name="MapMarkers" type="CanvasLayer"]
+[node name="MapMarkers" type="CanvasLayer" unique_id=1867243279]
 layer = 1
 script = ExtResource("1_script")
 
-[node name="Root" type="Control" parent="."]
+[node name="Root" type="Control" parent="." unique_id=1350865022]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -18,7 +18,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="ActionRing" parent="Root" instance=ExtResource("2_ring")]
+[node name="ActionRing" parent="Root" unique_id=585929260 instance=ExtResource("2_ring")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 998.0
@@ -26,7 +26,7 @@ offset_top = 706.0
 offset_right = 1062.0
 offset_bottom = 770.0
 
-[node name="Floater" parent="Root" instance=ExtResource("3_floater")]
+[node name="Floater" parent="Root" unique_id=925425858 instance=ExtResource("3_floater")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 956.0
@@ -34,7 +34,7 @@ offset_top = 674.0
 offset_right = 1068.0
 offset_bottom = 704.0
 
-[node name="GlyphContainer" type="Control" parent="Root"]
+[node name="GlyphContainer" type="Control" parent="Root" unique_id=433749128]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -44,7 +44,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="PlateContainer" type="Control" parent="Root"]
+[node name="PlateContainer" type="Control" parent="Root" unique_id=757562716]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -54,7 +54,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Popover" parent="Root" instance=ExtResource("4_popover")]
+[node name="Popover" parent="Root" unique_id=699980027 instance=ExtResource("4_popover")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -63,7 +63,7 @@ offset_top = 331.0
 offset_right = 956.0
 offset_bottom = 503.0
 
-[node name="PreviewTimer" type="Timer" parent="."]
+[node name="PreviewTimer" type="Timer" parent="." unique_id=1700144973]
 unique_name_in_owner = true
 wait_time = 0.15
 one_shot = true

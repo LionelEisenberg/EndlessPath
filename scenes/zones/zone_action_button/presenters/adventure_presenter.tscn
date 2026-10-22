@@ -7,10 +7,10 @@
 [ext_resource type="Texture2D" uid="uid://c0htmskhd3esn" path="res://assets/ui/lacquer/lacquer_rod_adv_full_ai.png" id="5_rod_full"]
 [ext_resource type="Texture2D" uid="uid://7jt6t37mty76" path="res://assets/ui/lacquer/lacquer_rod_adv_end_ai.png" id="6_rod_end"]
 
-[node name="AdventurePresenter" type="Node"]
+[node name="AdventurePresenter" type="Node" unique_id=657149722]
 script = ExtResource("1_adv")
 
-[node name="NeedGroup" type="Control" parent="."]
+[node name="NeedGroup" type="Control" parent="." unique_id=739958664]
 unique_name_in_owner = true
 layout_mode = 3
 anchors_preset = 0
@@ -18,7 +18,7 @@ offset_right = 392.0
 offset_bottom = 96.0
 mouse_filter = 2
 
-[node name="MadraIcon" type="TextureRect" parent="NeedGroup"]
+[node name="MadraIcon" type="TextureRect" parent="NeedGroup" unique_id=1980333421]
 layout_mode = 0
 offset_left = 64.0
 offset_top = 41.0
@@ -27,7 +27,7 @@ offset_bottom = 57.0
 mouse_filter = 2
 texture = ExtResource("2_mini_madra")
 
-[node name="NeedLabel" type="Label" parent="NeedGroup"]
+[node name="NeedLabel" type="Label" parent="NeedGroup" unique_id=349180391]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 86.0
@@ -38,7 +38,7 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "Needs 50 Madra · you have 25"
 text_overrun_behavior = 3
 
-[node name="MadraRod" parent="NeedGroup" instance=ExtResource("3_rod")]
+[node name="MadraRod" parent="NeedGroup" unique_id=1045174270 instance=ExtResource("3_rod")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 64.0
@@ -50,7 +50,7 @@ full_texture = ExtResource("5_rod_full")
 end_texture = ExtResource("6_rod_end")
 steps = 74
 
-[node name="HintLabel" type="Label" parent="NeedGroup"]
+[node name="HintLabel" type="Label" parent="NeedGroup" unique_id=2136324076]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 228.0
@@ -62,7 +62,7 @@ text = "train or cycle to fill"
 horizontal_alignment = 2
 text_overrun_behavior = 3
 
-[node name="ReadyText" type="RichTextLabel" parent="."]
+[node name="ReadyText" type="RichTextLabel" parent="." unique_id=1776932643]
 unique_name_in_owner = true
 visible = false
 offset_left = 64.0

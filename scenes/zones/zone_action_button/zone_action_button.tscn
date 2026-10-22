@@ -8,7 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="6_frame"]
 [ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="7_frame_hover"]
 
-[node name="ZoneActionButton" type="Control"]
+[node name="ZoneActionButton" type="Control" unique_id=1064901390]
 custom_minimum_size = Vector2(392, 72)
 layout_mode = 3
 anchors_preset = 0
@@ -20,7 +20,7 @@ mouse_default_cursor_shape = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_action_btn")
 
-[node name="Drawer" type="Control" parent="."]
+[node name="Drawer" type="Control" parent="." unique_id=1213143791]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 0
@@ -28,7 +28,7 @@ offset_right = 392.0
 offset_bottom = 72.0
 mouse_filter = 2
 
-[node name="Face" type="TextureRect" parent="Drawer"]
+[node name="Face" type="TextureRect" parent="Drawer" unique_id=1160324516]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 394.0
@@ -36,7 +36,7 @@ offset_bottom = 74.0
 mouse_filter = 2
 texture = ExtResource("3_drawer")
 
-[node name="Icon" type="TextureRect" parent="Drawer"]
+[node name="Icon" type="TextureRect" parent="Drawer" unique_id=2036834127]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0
@@ -46,7 +46,7 @@ offset_bottom = 52.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="Title" type="Label" parent="Drawer"]
+[node name="Title" type="Label" parent="Drawer" unique_id=1583331169]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 64.0
@@ -57,7 +57,7 @@ theme_type_variation = &"LabelLacquerName"
 text = "Action"
 text_overrun_behavior = 3
 
-[node name="NewSeal" type="TextureRect" parent="Drawer"]
+[node name="NewSeal" type="TextureRect" parent="Drawer" unique_id=1587228879]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -68,7 +68,7 @@ offset_bottom = 35.0
 mouse_filter = 2
 texture = ExtResource("4_seal_new")
 
-[node name="NewLabel" type="Label" parent="Drawer/NewSeal"]
+[node name="NewLabel" type="Label" parent="Drawer/NewSeal" unique_id=1617250156]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -80,7 +80,7 @@ text = "NEW"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Tag" type="TextureRect" parent="Drawer"]
+[node name="Tag" type="TextureRect" parent="Drawer" unique_id=2024902302]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 304.0
@@ -90,7 +90,7 @@ offset_bottom = 35.0
 mouse_filter = 2
 texture = ExtResource("5_tag")
 
-[node name="TagLabel" type="Label" parent="Drawer/Tag"]
+[node name="TagLabel" type="Label" parent="Drawer/Tag" unique_id=1594936268]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -103,7 +103,7 @@ text = "IDLE"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="DetailClip" type="Control" parent="Drawer"]
+[node name="DetailClip" type="Control" parent="Drawer" unique_id=61953982]
 clip_contents = true
 layout_mode = 0
 offset_left = 64.0
@@ -112,7 +112,7 @@ offset_right = 380.0
 offset_bottom = 74.0
 mouse_filter = 2
 
-[node name="DetailSlot" type="HBoxContainer" parent="Drawer/DetailClip"]
+[node name="DetailSlot" type="HBoxContainer" parent="Drawer/DetailClip" unique_id=880598870]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 316.0
@@ -120,7 +120,7 @@ offset_bottom = 18.0
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="FooterSlot" type="Control" parent="Drawer"]
+[node name="FooterSlot" type="Control" parent="Drawer" unique_id=942721303]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -130,11 +130,11 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="HoverFrame" parent="Drawer" instance=ExtResource("6_frame")]
+[node name="HoverFrame" parent="Drawer" unique_id=2059400580 instance=ExtResource("6_frame")]
 unique_name_in_owner = true
 layout_mode = 1
 theme_override_styles/panel = ExtResource("7_frame_hover")
 
-[node name="FlashFrame" parent="Drawer" instance=ExtResource("6_frame")]
+[node name="FlashFrame" parent="Drawer" unique_id=636126602 instance=ExtResource("6_frame")]
 unique_name_in_owner = true
 layout_mode = 1

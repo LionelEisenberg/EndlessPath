@@ -20,7 +20,7 @@ content_margin_top = 1.0
 RichTextLacquer/base_type = &"RichTextLabel"
 RichTextLacquer/styles/normal = SubResource("StyleBoxEmpty_yield_text")
 
-[node name="NowStrip" type="Control"]
+[node name="NowStrip" type="Control" unique_id=1983007221]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 408.0
@@ -28,14 +28,14 @@ offset_bottom = 88.0
 mouse_default_cursor_shape = 2
 script = ExtResource("1_strip")
 
-[node name="Tray" type="TextureRect" parent="."]
+[node name="Tray" type="TextureRect" parent="." unique_id=235033224]
 layout_mode = 0
 offset_right = 408.0
 offset_bottom = 88.0
 mouse_filter = 2
 texture = ExtResource("2_tray")
 
-[node name="Ring" type="TextureRect" parent="."]
+[node name="Ring" type="TextureRect" parent="." unique_id=2049021151]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 14.0
@@ -47,7 +47,7 @@ script = ExtResource("3_strip_rect")
 strip = ExtResource("4_ring")
 frame_size = Vector2i(56, 56)
 
-[node name="ActionIcon" type="TextureRect" parent="."]
+[node name="ActionIcon" type="TextureRect" parent="." unique_id=344305839]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 26.0
@@ -57,7 +57,7 @@ offset_bottom = 60.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="TrainingContent" type="Control" parent="."]
+[node name="TrainingContent" type="Control" parent="." unique_id=1445281778]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -67,7 +67,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="TopRow" type="HBoxContainer" parent="TrainingContent"]
+[node name="TopRow" type="HBoxContainer" parent="TrainingContent" unique_id=54599180]
 layout_mode = 0
 offset_left = 84.0
 offset_top = 12.0
@@ -76,7 +76,7 @@ offset_bottom = 34.0
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="TrainingName" type="Label" parent="TrainingContent/TopRow"]
+[node name="TrainingName" type="Label" parent="TrainingContent/TopRow" unique_id=860889385]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -85,14 +85,14 @@ theme_type_variation = &"LabelLacquerNowName"
 text = "Aura Well"
 text_overrun_behavior = 3
 
-[node name="RateGroup" type="HBoxContainer" parent="TrainingContent/TopRow"]
+[node name="RateGroup" type="HBoxContainer" parent="TrainingContent/TopRow" unique_id=1753204125]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 6
 
-[node name="MadraIconMargin" type="MarginContainer" parent="TrainingContent/TopRow/RateGroup"]
+[node name="MadraIconMargin" type="MarginContainer" parent="TrainingContent/TopRow/RateGroup" unique_id=991498686]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
@@ -101,12 +101,12 @@ theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = 0
 
-[node name="MadraIcon" type="TextureRect" parent="TrainingContent/TopRow/RateGroup/MadraIconMargin"]
+[node name="MadraIcon" type="TextureRect" parent="TrainingContent/TopRow/RateGroup/MadraIconMargin" unique_id=414489382]
 layout_mode = 2
 mouse_filter = 2
 texture = ExtResource("5_mini_madra")
 
-[node name="RateMargin" type="MarginContainer" parent="TrainingContent/TopRow/RateGroup"]
+[node name="RateMargin" type="MarginContainer" parent="TrainingContent/TopRow/RateGroup" unique_id=1289999399]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
@@ -115,7 +115,7 @@ theme_override_constants/margin_top = 2
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = 0
 
-[node name="RateText" type="RichTextLabel" parent="TrainingContent/TopRow/RateGroup/RateMargin"]
+[node name="RateText" type="RichTextLabel" parent="TrainingContent/TopRow/RateGroup/RateMargin" unique_id=1731430178]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
@@ -129,7 +129,7 @@ fit_content = true
 scroll_active = false
 autowrap_mode = 0
 
-[node name="BottomRow" type="HBoxContainer" parent="TrainingContent"]
+[node name="BottomRow" type="HBoxContainer" parent="TrainingContent" unique_id=698503584]
 layout_mode = 0
 offset_left = 84.0
 offset_top = 38.0
@@ -138,7 +138,7 @@ offset_bottom = 56.0
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="LevelLabel" type="Label" parent="TrainingContent/BottomRow"]
+[node name="LevelLabel" type="Label" parent="TrainingContent/BottomRow" unique_id=760794313]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -147,7 +147,7 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "Lv 0 → 1 · +1 Spirit"
 text_overrun_behavior = 3
 
-[node name="TicksLabel" type="Label" parent="TrainingContent/BottomRow"]
+[node name="TicksLabel" type="Label" parent="TrainingContent/BottomRow" unique_id=1015950846]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
@@ -155,7 +155,7 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "0 / 60"
 horizontal_alignment = 2
 
-[node name="WellRod" parent="TrainingContent" instance=ExtResource("6_rod")]
+[node name="WellRod" parent="TrainingContent" unique_id=1543338999 instance=ExtResource("6_rod")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 84.0
@@ -167,7 +167,7 @@ full_texture = ExtResource("8_rod_full")
 end_texture = ExtResource("9_rod_end")
 steps = 152
 
-[node name="ForageContent" type="Control" parent="."]
+[node name="ForageContent" type="Control" parent="." unique_id=1665792783]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -178,7 +178,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="ForageName" type="Label" parent="ForageContent"]
+[node name="ForageName" type="Label" parent="ForageContent" unique_id=2014383704]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 84.0
@@ -189,7 +189,7 @@ theme_type_variation = &"LabelLacquerNowName"
 text = "Spring Forest Foraging"
 text_overrun_behavior = 3
 
-[node name="YieldRow" type="HBoxContainer" parent="ForageContent"]
+[node name="YieldRow" type="HBoxContainer" parent="ForageContent" unique_id=789750200]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 84.0
@@ -200,7 +200,7 @@ mouse_filter = 2
 theme = SubResource("Theme_yield_row")
 theme_override_constants/separation = 12
 
-[node name="HaulLabel" type="Label" parent="ForageContent"]
+[node name="HaulLabel" type="Label" parent="ForageContent" unique_id=957469685]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 292.0
@@ -212,16 +212,16 @@ theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
 text = "haul in 5 s"
 horizontal_alignment = 2
 
-[node name="HoverFrame" parent="." instance=ExtResource("10_frame")]
+[node name="HoverFrame" parent="." unique_id=24910232 instance=ExtResource("10_frame")]
 unique_name_in_owner = true
 layout_mode = 1
 theme_override_styles/panel = ExtResource("11_frame_hover")
 
-[node name="FlashFrame" parent="." instance=ExtResource("10_frame")]
+[node name="FlashFrame" parent="." unique_id=818145527 instance=ExtResource("10_frame")]
 unique_name_in_owner = true
 layout_mode = 1
 
-[node name="NowPlate" type="TextureRect" parent="."]
+[node name="NowPlate" type="TextureRect" parent="." unique_id=643362406]
 layout_mode = 0
 offset_left = 12.0
 offset_top = -10.0
@@ -230,7 +230,7 @@ offset_bottom = 14.0
 mouse_filter = 2
 texture = ExtResource("12_plate")
 
-[node name="NowLabel" type="Label" parent="NowPlate"]
+[node name="NowLabel" type="Label" parent="NowPlate" unique_id=1903988598]
 layout_mode = 0
 offset_left = 1.0
 offset_right = 61.0

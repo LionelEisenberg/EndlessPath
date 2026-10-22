@@ -16,7 +16,7 @@
 [ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="14_frame_hover"]
 [ext_resource type="Texture2D" uid="uid://srwcx5rs5fk" path="res://assets/ui/lacquer/lacquer_tag_wide_ai.png" id="15_tag_wide"]
 
-[node name="ZoneMapPopover" type="Control"]
+[node name="ZoneMapPopover" type="Control" unique_id=45233431]
 layout_mode = 3
 anchors_preset = 0
 offset_right = 272.0
@@ -29,14 +29,14 @@ locked_preview_texture = ExtResource("4_locked_preview")
 uncharted_pinned_texture = ExtResource("5_uncharted")
 uncharted_preview_texture = ExtResource("6_uncharted_preview")
 
-[node name="LockedCard" type="TextureRect" parent="."]
+[node name="LockedCard" type="TextureRect" parent="." unique_id=1262023073]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 276.0
 offset_bottom = 176.0
 texture = ExtResource("3_locked")
 
-[node name="Seal" type="TextureRect" parent="LockedCard"]
+[node name="Seal" type="TextureRect" parent="LockedCard" unique_id=769079980]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 14.0
@@ -45,7 +45,7 @@ offset_bottom = 36.0
 mouse_filter = 2
 texture = ExtResource("7_seal")
 
-[node name="SealLock" type="TextureRect" parent="LockedCard"]
+[node name="SealLock" type="TextureRect" parent="LockedCard" unique_id=253278710]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 17.0
@@ -54,7 +54,7 @@ offset_bottom = 33.0
 mouse_filter = 2
 texture = ExtResource("8_mini_lock")
 
-[node name="SealLabel" type="Label" parent="LockedCard"]
+[node name="SealLabel" type="Label" parent="LockedCard" unique_id=391589843]
 layout_mode = 0
 offset_left = 42.0
 offset_top = 16.0
@@ -64,7 +64,7 @@ theme_type_variation = &"LabelLacquerSeal"
 text = "LOCKED"
 vertical_alignment = 1
 
-[node name="LockedTitle" type="Label" parent="LockedCard"]
+[node name="LockedTitle" type="Label" parent="LockedCard" unique_id=1911800118]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0
@@ -76,7 +76,7 @@ text = "Advancement Zone"
 clip_text = true
 text_overrun_behavior = 3
 
-[node name="LockedBody" type="Label" parent="LockedCard"]
+[node name="LockedBody" type="Label" parent="LockedCard" unique_id=824016235]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0
@@ -90,7 +90,7 @@ clip_text = true
 text_overrun_behavior = 3
 max_lines_visible = 2
 
-[node name="LockedClose" type="TextureButton" parent="LockedCard"]
+[node name="LockedClose" type="TextureButton" parent="LockedCard" unique_id=1528084601]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 220.0
@@ -102,7 +102,7 @@ mouse_default_cursor_shape = 2
 texture_normal = ExtResource("9_close")
 texture_hover = ExtResource("10_close_hover")
 
-[node name="ShowMeButton" type="TextureButton" parent="LockedCard"]
+[node name="ShowMeButton" type="TextureButton" parent="LockedCard" unique_id=1479488146]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0
@@ -115,7 +115,7 @@ texture_normal = ExtResource("11_showme")
 ignore_texture_size = true
 stretch_mode = 2
 
-[node name="ShowMeRow" type="HBoxContainer" parent="LockedCard/ShowMeButton"]
+[node name="ShowMeRow" type="HBoxContainer" parent="LockedCard/ShowMeButton" unique_id=1534441058]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -128,13 +128,13 @@ mouse_filter = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="ShowMeLabel" type="Label" parent="LockedCard/ShowMeButton/ShowMeRow"]
+[node name="ShowMeLabel" type="Label" parent="LockedCard/ShowMeButton/ShowMeRow" unique_id=1167607082]
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"LabelLacquerDock"
 text = "Show me"
 
-[node name="ChevMargin" type="MarginContainer" parent="LockedCard/ShowMeButton/ShowMeRow"]
+[node name="ChevMargin" type="MarginContainer" parent="LockedCard/ShowMeButton/ShowMeRow" unique_id=386368871]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
@@ -143,17 +143,17 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = 0
 
-[node name="Chev" type="TextureRect" parent="LockedCard/ShowMeButton/ShowMeRow/ChevMargin"]
+[node name="Chev" type="TextureRect" parent="LockedCard/ShowMeButton/ShowMeRow/ChevMargin" unique_id=964299934]
 layout_mode = 2
 mouse_filter = 2
 texture = ExtResource("12_chev")
 
-[node name="ShowMeHover" parent="LockedCard/ShowMeButton" instance=ExtResource("13_frame")]
+[node name="ShowMeHover" parent="LockedCard/ShowMeButton" unique_id=357360583 instance=ExtResource("13_frame")]
 unique_name_in_owner = true
 layout_mode = 1
 theme_override_styles/panel = ExtResource("14_frame_hover")
 
-[node name="UnchartedCard" type="TextureRect" parent="."]
+[node name="UnchartedCard" type="TextureRect" parent="." unique_id=1065250390]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -161,7 +161,7 @@ offset_right = 276.0
 offset_bottom = 116.0
 texture = ExtResource("5_uncharted")
 
-[node name="Tag" type="TextureRect" parent="UnchartedCard"]
+[node name="Tag" type="TextureRect" parent="UnchartedCard" unique_id=194322930]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 14.0
@@ -170,7 +170,7 @@ offset_bottom = 36.0
 mouse_filter = 2
 texture = ExtResource("15_tag_wide")
 
-[node name="TagLabel" type="Label" parent="UnchartedCard/Tag"]
+[node name="TagLabel" type="Label" parent="UnchartedCard/Tag" unique_id=796310665]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -184,7 +184,7 @@ text = "UNKNOWN"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="UnchartedTitle" type="Label" parent="UnchartedCard"]
+[node name="UnchartedTitle" type="Label" parent="UnchartedCard" unique_id=364844540]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 24.0
@@ -196,7 +196,7 @@ text = "Uncharted"
 clip_text = true
 text_overrun_behavior = 3
 
-[node name="UnchartedBody" type="Label" parent="UnchartedCard"]
+[node name="UnchartedBody" type="Label" parent="UnchartedCard" unique_id=1885561708]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 24.0
@@ -210,7 +210,7 @@ clip_text = true
 text_overrun_behavior = 3
 max_lines_visible = 2
 
-[node name="UnchartedClose" type="TextureButton" parent="UnchartedCard"]
+[node name="UnchartedClose" type="TextureButton" parent="UnchartedCard" unique_id=1751856077]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 228.0

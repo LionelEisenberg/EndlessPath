@@ -2,10 +2,10 @@
 
 [ext_resource type="Script" uid="uid://b2fmtgn5c7dx7" path="res://scenes/zones/zone_action_button/presenters/training_presenter.gd" id="1_train"]
 
-[node name="TrainingPresenter" type="Node"]
+[node name="TrainingPresenter" type="Node" unique_id=239117945]
 script = ExtResource("1_train")
 
-[node name="DetailText" type="RichTextLabel" parent="."]
+[node name="DetailText" type="RichTextLabel" parent="." unique_id=312058518]
 unique_name_in_owner = true
 size_flags_vertical = 0
 mouse_filter = 2
