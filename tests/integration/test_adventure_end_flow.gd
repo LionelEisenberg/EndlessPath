@@ -23,8 +23,12 @@ func before_each() -> void:
 	_view.adventure_completed.connect(func(result: AdventureResultData) -> void: _results.append(result))
 
 func after_each() -> void:
-	if ActionManager.get_current_action() != null:
+	if ActionManager.get_current_action() is AdventureActionData:
 		ActionManager.clear_current_action()
+	# Ending a run resumes the zone's idle action. Stop it properly, since
+	# clearing it would leave its tick timer connected for the next test.
+	while ActionManager.get_current_action() != null:
+		ActionManager.stop_action()
 	# AdventureTilemap creates its AdventureMapGenerator node with .new() and
 	# never frees it; free it here so these tests don't leave orphans.
 	if is_instance_valid(_view) and is_instance_valid(_view.adventure_tilemap.adventure_map_generator):

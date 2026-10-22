@@ -39,49 +39,120 @@ signal stop_merchant()
 
 var current_action: ZoneActionData = null
 
-## Idle action (foraging or training) that opening the merchant replaced.
-## Leaving the shop resumes it, the way closing a menu leaves it running.
-var _idle_action_to_resume: ZoneActionData = null
+## The zone the last zone_changed was handled for. It tells travel ("Travelled
+## to …") from a repeat signal for the same zone (the load sends two).
+var _last_resolved_zone_id: String = ""
 
 @onready var action_timer: Timer = Timer.new()
 
 func _ready() -> void:
 	action_timer.name = "ActionTimer"
 	add_child(action_timer)
-	
+
 	if ZoneManager:
 		ZoneManager.zone_changed.connect(_on_zone_changed)
 	else:
 		Log.critical("ActionManager: ZoneManager is not found")
 
-func _on_zone_changed(_zone_data: ZoneData) -> void:
-	# The idle action belongs to the zone being left; don't restart it.
-	_idle_action_to_resume = null
-	stop_action()
+	if UnlockManager:
+		UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
+	else:
+		Log.critical("ActionManager: UnlockManager is not found")
+
+## Arriving in a zone (travel, the load, a save reset) stops what runs and
+## starts the zone's idle action. A repeat signal for the zone whose idle
+## action already runs changes nothing.
+func _on_zone_changed(zone_data: ZoneData) -> void:
+	var zone_id: String = zone_data.zone_id if zone_data else ""
+	var previous_zone_id: String = _last_resolved_zone_id
+	_last_resolved_zone_id = zone_id
+	if zone_id == previous_zone_id and _is_resolved_idle_running(zone_id):
+		return
+
+	_stop_executing_current_action()
+	clear_current_action()
+	var idle_action: ZoneActionData = resolve_idle_action(zone_id)
+	if idle_action:
+		select_action(idle_action)
+
+	var travelled: bool = zone_data != null and previous_zone_id != "" and zone_id != previous_zone_id
+	if travelled and idle_action:
+		_log("Travelled to %s · resumed %s" % [zone_data.zone_name, idle_action.action_name])
+	elif travelled:
+		_log("Travelled to %s" % zone_data.zone_name)
+	elif idle_action:
+		_log("Resumed %s" % idle_action.action_name)
+
+## When a condition unlocks while nothing runs, the zone's idle action (the
+## first one to unlock) starts on its own. The save reset's empty ping is not
+## an unlock.
+func _on_condition_unlocked(condition_id: String) -> void:
+	if condition_id == "" or current_action != null:
+		return
+	var idle_action: ZoneActionData = resolve_idle_action(_get_current_zone_id())
+	if idle_action == null:
+		return
+	select_action(idle_action)
+	_log("Started %s" % idle_action.action_name)
 
 #-----------------------------------------------------------------------------
 # PUBLIC ACTION METHODS
 #-----------------------------------------------------------------------------
 
-## Select an action to execute.
+## Select an action to execute, replacing the current one, and mark it seen.
+## An idle action becomes its zone's last idle action. An adventure the player
+## can't afford is refused before anything stops, so the current action runs on.
 func select_action(action_data: ZoneActionData) -> void:
 	if not action_data:
 		Log.error("ActionManager: select_action called with null action_data")
 		return
 
-	var replaced_action := current_action
+	ZoneManager.mark_action_seen(action_data.action_id)
+	if action_data.action_type == ZoneActionData.ActionType.ADVENTURE and not ResourceManager.can_start_adventure():
+		Log.info("ActionManager: Cannot start adventure - need %.0f Madra, have %.0f" % [
+			ResourceManager.get_adventure_madra_threshold(), ResourceManager.get_madra()])
+		return
+
 	_stop_executing_current_action()
 	_set_current_action(action_data)
-	var opens_merchant := action_data.action_type == ZoneActionData.ActionType.MERCHANT
-	_idle_action_to_resume = replaced_action if opens_merchant and _is_idle_action(replaced_action) else null
+	if _is_idle_action(action_data):
+		var zone_id: String = _get_current_zone_id()
+		if zone_id != "":
+			ZoneManager.set_last_idle_action_id(zone_id, action_data.action_id)
 	_execute_action(action_data)
 
-## Stop the current action. Closing the merchant resumes the idle action it replaced.
+## Stop the current action. When a session action (cycling, an adventure,
+## dialogue, the merchant, a zone event) stops, the zone's idle action resumes.
+## Stopping an idle action resumes nothing.
 func stop_action(successful: bool = true) -> void:
 	var stopped_action := current_action
 	_stop_executing_current_action(successful)
 	clear_current_action()
-	_resume_idle_action_after(stopped_action)
+	if stopped_action != null and not _is_idle_action(stopped_action):
+		_resume_idle_action()
+
+## The idle action the zone runs when nothing else does: its saved last idle
+## action while that is still available, else the first available idle action
+## in activity list order (ZoneActionGroups), else null.
+func resolve_idle_action(zone_id: String) -> ZoneActionData:
+	if zone_id == "" or ZoneManager.get_zone_by_id(zone_id) == null:
+		return null
+	var available: Array[ZoneActionData] = ZoneManager.get_available_actions(zone_id)
+	var last_idle_id: String = ZoneManager.get_last_idle_action_id(zone_id)
+	if last_idle_id != "":
+		for action: ZoneActionData in available:
+			if action.action_id == last_idle_id and _is_idle_action(action):
+				return action
+	for action: ZoneActionData in ZoneActionGroups.sort_actions(available):
+		if _is_idle_action(action):
+			return action
+	return null
+
+## Madra per second the running action earns: a training action's trickle (the
+## Aura Well's 1.5), or 0 when anything else or nothing runs.
+func get_current_madra_per_second() -> float:
+	var training := current_action as TrainingActionData
+	return training.get_madra_per_second() if training else 0.0
 
 #-----------------------------------------------------------------------------
 # ACTION EXECUTION
@@ -180,15 +251,8 @@ func _on_forage_timer_finished(action_data: ForageActionData) -> void:
 
 
 ## Handle adventure action - request start (zone view plays drain animation first).
+## select_action() has already checked the Madra threshold.
 func _execute_adventure_action(action_data: AdventureActionData) -> void:
-	if not ResourceManager.can_start_adventure():
-		var threshold: float = ResourceManager.get_adventure_madra_threshold()
-		var current: float = ResourceManager.get_madra()
-		Log.info("ActionManager: Cannot start adventure - need %.0f Madra, have %.0f" % [threshold, current])
-		if LogManager:
-			LogManager.log_message("[color=red]Not enough Madra! Need %.0f, have %.0f[/color]" % [threshold, current])
-		_set_current_action(null)
-		return
 	Log.info("ActionManager: Adventure start requested: %s" % action_data.action_name)
 	adventure_start_requested.emit(action_data)
 
@@ -321,12 +385,29 @@ func _is_idle_action(action_data: ZoneActionData) -> bool:
 		ZoneActionData.ActionType.TRAIN_STATS,
 	]
 
-## Restarts the idle action the merchant replaced, once the merchant stops.
-func _resume_idle_action_after(stopped_action: ZoneActionData) -> void:
-	var to_resume := _idle_action_to_resume
-	_idle_action_to_resume = null
-	if to_resume and stopped_action and stopped_action.action_type == ZoneActionData.ActionType.MERCHANT:
-		select_action(to_resume)
+## Starts the current zone's idle action after a session action stopped.
+func _resume_idle_action() -> void:
+	var idle_action: ZoneActionData = resolve_idle_action(_get_current_zone_id())
+	if idle_action == null:
+		return
+	select_action(idle_action)
+	_log("Resumed %s" % idle_action.action_name)
+
+## True when the zone's resolved idle action is the one already running.
+func _is_resolved_idle_running(zone_id: String) -> bool:
+	if current_action == null:
+		return false
+	var idle_action: ZoneActionData = resolve_idle_action(zone_id)
+	return idle_action != null and idle_action.action_id == current_action.action_id
+
+func _get_current_zone_id() -> String:
+	var zone: ZoneData = ZoneManager.get_current_zone()
+	return zone.zone_id if zone else ""
+
+## Writes a line to the player's log.
+func _log(message: String) -> void:
+	if LogManager:
+		LogManager.log_message(message)
 
 func _reset_action_timer() -> void:
 	action_timer.stop()

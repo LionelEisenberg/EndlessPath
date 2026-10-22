@@ -8,6 +8,8 @@ extends GutTest
 const ZONE_ID: String = "SpiritValley"
 const ACTION_ID: String = "spirit_valley_merchant"
 const ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres"
+## The event whose unlock condition opens Spring Forest Foraging.
+const FORAGING_UNLOCK_EVENT: String = "q_fill_core_completed"
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -63,6 +65,8 @@ func test_second_stop_is_noop() -> void:
 	assert_signal_emit_count(ActionManager, "stop_merchant", 1, "Escape during the fade-out must not close twice")
 
 func test_shop_resumes_the_idle_action_it_replaced() -> void:
+	# Only an available idle action resumes, and a fresh save locks foraging.
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
 	var foraging := _foraging_action()
 	ActionManager.select_action(foraging)
 	ActionManager.select_action(_merchant_action())
@@ -74,6 +78,13 @@ func test_zone_change_does_not_resume_the_idle_action() -> void:
 	ActionManager.select_action(_merchant_action())
 	ZoneManager.zone_changed.emit(ZoneManager.get_current_zone())
 	assert_null(ActionManager.get_current_action(), "a zone change ends the visit without restarting the old zone's action")
+
+func test_zone_change_during_shop_resumes_destination_idle() -> void:
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	ActionManager.select_action(_foraging_action())
+	ActionManager.select_action(_merchant_action())
+	ZoneManager.zone_changed.emit(ZoneManager.get_current_zone())
+	assert_eq(ActionManager.get_current_action(), _foraging_action(), "arriving starts the destination's idle action")
 
 func test_shop_does_not_resume_cycling() -> void:
 	ActionManager.select_action(_cycling_action())

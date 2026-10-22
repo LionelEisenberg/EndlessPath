@@ -9,6 +9,7 @@ extends GutTest
 const FORAGING_ID: String = "sprint_forest_foraging_action"
 const CYCLING_ID: String = "wilderness_cycling_action"
 const FIRST_DIALOGUE_ID: String = "celestial_intervener_dialogue_1"
+const MERCHANT_ID: String = "spirit_valley_merchant"
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -57,9 +58,11 @@ func test_fresh_save_init_marks_only_the_first_dialogue() -> void:
 	assert_true(PersistenceManager.save_game_data.seen_actions_initialized)
 
 func test_init_runs_once() -> void:
-	UnlockManager.force_unlock_condition("q_fill_core_completed")
+	# The merchant, not foraging: an idle action that unlocks starts on its own
+	# (ActionManager), and starting an action marks it seen.
+	UnlockManager.force_unlock_condition("merchant_discovered")
 	PersistenceManager.save_data_reset.emit()
 	assert_true(ZoneManager.get_available_actions("SpiritValley").any(
-		func(action: ZoneActionData) -> bool: return action.action_id == FORAGING_ID),
-		"foraging is available after the unlock, so a second pass would have marked it")
-	assert_false(ZoneManager.is_action_seen(FORAGING_ID), "an action unlocked after the first pass stays NEW")
+		func(action: ZoneActionData) -> bool: return action.action_id == MERCHANT_ID),
+		"the merchant is available after the unlock, so a second pass would have marked it")
+	assert_false(ZoneManager.is_action_seen(MERCHANT_ID), "an action unlocked after the first pass stays NEW")
