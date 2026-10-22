@@ -149,7 +149,7 @@ func _show_forage(forage: ForageActionData) -> void:
 		var yield_item: Control = FORAGE_YIELD_SCENE.instantiate() as Control
 		_yield_row.add_child(yield_item)
 		var icon_rect: TextureRect = yield_item.get_node("%Icon") as TextureRect
-		icon_rect.texture = ForagingPresenter.MINI_ICONS.get(entry.item.item_id, entry.item.icon) as Texture2D
+		icon_rect.texture = entry.item.get_mini_icon()
 		icon_rect.visible = icon_rect.texture != null
 		(yield_item.get_node("%RangeText") as RichTextLabel).text = _range_text(entry)
 

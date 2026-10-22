@@ -268,6 +268,20 @@ func test_strip_shows_for_foraging() -> void:
 	assert_has(texts, "haul in 5 s")
 	assert_false((_strip_node("TrainingContent") as Control).visible)
 
+func test_strip_shows_each_items_mini_icon() -> void:
+	await _add_panel()
+	EventManager.trigger_event(FORAGING_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	await wait_process_frames(2)
+	var icons: Array[Texture2D] = []
+	for node: Node in _strip().find_children("Icon", "TextureRect", true, false):
+		if (node as TextureRect).is_visible_in_tree():
+			icons.append((node as TextureRect).texture)
+	var expected: Array[Texture2D] = []
+	for entry: LootTableEntry in (ZoneManager.get_action_by_id(FORAGING_ID) as ForageActionData).loot_table.entries:
+		expected.append(entry.item.get_mini_icon())
+	assert_eq(icons, expected, "the kit's mini dewdrop and fern, from the item data")
+
 func test_strip_hidden_while_cycling() -> void:
 	await _add_panel()
 	EventManager.trigger_event(AURA_WELL_EVENT)

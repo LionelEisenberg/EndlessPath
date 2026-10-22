@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="MaterialDefinitionData" load_steps=3 format=3 uid="uid://cr10k1108cnup"]
+[gd_resource type="Resource" script_class="MaterialDefinitionData" load_steps=4 format=3 uid="uid://cr10k1108cnup"]
 
 [ext_resource type="Script" uid="uid://b3bb03ghqbiu5" path="res://scripts/resource_definitions/items/material_definition_data.gd" id="1_ehedu"]
 [ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="1_rl130"]
+[ext_resource type="Texture2D" uid="uid://cs6fwo734bghx" path="res://assets/ui/lacquer/lacquer_mini_dewdrop_ai.png" id="2_mini"]
 
 [resource]
 script = ExtResource("1_ehedu")
@@ -12,4 +13,5 @@ item_id = "DewdropTear"
 item_name = "Dewdrop Tear"
 description = "Dewdrop Tear Description"
 icon = ExtResource("1_rl130")
+mini_icon = ExtResource("2_mini")
 metadata/_custom_type_script = "uid://b3bb03ghqbiu5"
