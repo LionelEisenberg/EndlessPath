@@ -4,7 +4,9 @@ extends GutTest
 ## between views (spec: Goals › Placement; plan Task 14). The zone view puts
 ## Goals under the cultivator cabinet and the log at the bottom left; the
 ## adventure view moves Goals to the free top right and the log to the top
-## left, and puts both back when it ends; the merchant hides both.
+## left, and puts both back when it ends; the merchant and every other overlay
+## over the zone view (cycling, inventory, abilities, character, path tree)
+## hide both and give them back their visibility when they close.
 ## The MainView is never added to the tree: each test fills in the views and
 ## boards it needs with plain Controls, as test_merchant_view_state.gd does.
 
@@ -127,3 +129,71 @@ func test_merchant_hides_goals() -> void:
 	assert_false(_main_view.goals_panel.visible, "the shop covers part of the Goals board")
 	state._on_stop_merchant()
 	assert_true(_main_view.goals_panel.visible, "Goals show again when the shop closes")
+
+#-----------------------------------------------------------------------------
+# OVERLAYS (polish: hide the HUD boards under every overlay)
+#-----------------------------------------------------------------------------
+
+## Fills in the views the overlay states open, with plain stand-ins.
+func _add_overlay_views() -> void:
+	_main_view.grey_background = autofree(FakeGreyBackground.new())
+	_main_view.cycling_view = autofree(Control.new())
+	_main_view.inventory_view = autofree(MenuBookView.new())
+	_main_view.abilities_view = autofree(MenuBookView.new())
+	_main_view.character_view = autofree(CharacterView.new())
+	_main_view.path_tree_view = autofree(PathTreeView.new())
+
+## Enters the overlay, checks both boards hide, exits it, checks both show.
+func _assert_overlay_hides_boards(state: MainViewState, overlay_name: String) -> void:
+	_add_overlay_views()
+	_main_view.goals_panel.visible = true
+	_main_view.log_window.visible = true
+	state.enter()
+	assert_false(_main_view.goals_panel.visible, "%s hides the Goals board" % overlay_name)
+	assert_false(_main_view.log_window.visible, "%s hides the log" % overlay_name)
+	state.exit()
+	assert_true(_main_view.goals_panel.visible, "the Goals board is back after %s" % overlay_name)
+	assert_true(_main_view.log_window.visible, "the log is back after %s" % overlay_name)
+
+func test_cycling_hides_the_boards() -> void:
+	_assert_overlay_hides_boards(_new_state(CyclingViewState.new()), "cycling")
+
+func test_inventory_hides_the_boards() -> void:
+	_assert_overlay_hides_boards(_new_state(InventoryViewState.new()), "the inventory")
+
+func test_abilities_hide_the_boards() -> void:
+	_assert_overlay_hides_boards(_new_state(AbilitiesViewState.new()), "the abilities view")
+
+func test_character_hides_the_boards() -> void:
+	_assert_overlay_hides_boards(_new_state(CharacterViewState.new()), "the character view")
+
+func test_path_tree_hides_the_boards() -> void:
+	_assert_overlay_hides_boards(_new_state(PathTreeViewState.new()), "the path tree")
+
+func test_overlay_restores_a_board_that_was_hidden() -> void:
+	_add_overlay_views()
+	_main_view.log_window.visible = false
+	var state: MainViewState = _new_state(CyclingViewState.new())
+	state.enter()
+	state.exit()
+	assert_false(_main_view.log_window.visible, "a log hidden before the overlay stays hidden")
+	assert_true(_main_view.goals_panel.visible)
+
+## The shop can leave while cycling still covers it (MerchantViewState removes
+## itself from under another view). The boards stay hidden until the last
+## overlay closes, and then come back as they were before the first.
+func test_boards_stay_hidden_until_the_last_overlay_closes() -> void:
+	_add_overlay_views()
+	_main_view.merchant_view = add_child_autofree(MerchantViewScene.instantiate())
+	var merchant: MerchantViewState = _new_state(MerchantViewState.new())
+	var cycling: MainViewState = _new_state(CyclingViewState.new())
+	_main_view.state_stack = []
+	merchant._on_start_merchant(load(MERCHANT_ACTION_PATH) as MerchantActionData)
+	_main_view.push_state(cycling)
+	merchant._on_stop_merchant()
+	assert_false(_main_view.state_stack.has(merchant), "precondition: the shop left from under cycling")
+	assert_false(_main_view.goals_panel.visible, "cycling still covers the Goals board")
+	assert_false(_main_view.log_window.visible, "cycling still covers the log")
+	_main_view.pop_state()
+	assert_true(_main_view.goals_panel.visible, "back once the last overlay closed")
+	assert_true(_main_view.log_window.visible)

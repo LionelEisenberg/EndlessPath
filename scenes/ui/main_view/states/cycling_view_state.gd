@@ -7,8 +7,10 @@ func _ready() -> void:
 		ActionManager.start_cycling.connect(_on_start_cycling)
 		ActionManager.stop_cycling.connect(_on_stop_cycling)
 
-## Called when entering this state.
+## Called when entering this state. The log and the Goals board hide under
+## the overlay.
 func enter() -> void:
+	scene_root.hide_hud_boards(self)
 	scene_root.cycling_view.visible = true
 	scene_root.grey_background.visible = true
 
@@ -16,6 +18,7 @@ func enter() -> void:
 func exit() -> void:
 	scene_root.cycling_view.visible = false
 	scene_root.grey_background.visible = false
+	scene_root.release_hud_boards(self)
 
 ## Handle input events in this state.
 func handle_input(event: InputEvent) -> void:
