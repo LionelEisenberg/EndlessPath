@@ -29,6 +29,9 @@ extends PanelContainer
 @onready var _force_win_button: Button = %ForceWinButton
 @onready var _show_whole_map_check: CheckButton = %ShowWholeMapCheck
 
+@onready var _demo_zones_check: CheckButton = %DemoZonesCheck
+@onready var _hidden_zones_check: CheckButton = %HiddenZonesCheck
+
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
@@ -53,6 +56,8 @@ func _ready() -> void:
 	_unlock_cycling_button.pressed.connect(_on_unlock_all_cycling)
 	_force_win_button.pressed.connect(_on_force_win)
 	_show_whole_map_check.toggled.connect(_on_show_whole_map_toggled)
+	_demo_zones_check.toggled.connect(_on_demo_zones_toggled)
+	_hidden_zones_check.toggled.connect(_on_hidden_zones_toggled)
 
 	_populate_condition_dropdown()
 	_force_win_button.visible = false
@@ -85,7 +90,7 @@ func _populate_condition_dropdown() -> void:
 		_condition_option.set_item_metadata(_condition_option.item_count - 1, c.condition_id)
 
 #-----------------------------------------------------------------------------
-# PRIVATE: drag behavior (mirrors LogWindow)
+# PRIVATE: drag behavior (drag the title bar)
 #-----------------------------------------------------------------------------
 
 func _on_titlebar_input(event: InputEvent) -> void:
@@ -157,6 +162,20 @@ func _on_show_whole_map_toggled(pressed: bool) -> void:
 	av.set_show_whole_map(pressed)
 	var state_text := "ON" if pressed else "OFF"
 	LogManager.log_message("[color=magenta][DEV][/color] Show Whole Map: %s" % state_text)
+
+## Shows or hides the two demo zones (a locked Advancement Zone and an
+## Uncharted hex) on the zone map. They live outside zone_data_list.tres and
+## never enter the save.
+func _on_demo_zones_toggled(pressed: bool) -> void:
+	ZoneManager.set_demo_zones_visible(pressed)
+	var state_text := "ON" if pressed else "OFF"
+	LogManager.log_message("[color=magenta][DEV][/color] Demo zones: %s" % state_text)
+
+## Shows or hides the zones the map hides (Test Zone).
+func _on_hidden_zones_toggled(pressed: bool) -> void:
+	ZoneManager.set_hidden_zones_visible(pressed)
+	var state_text := "ON" if pressed else "OFF"
+	LogManager.log_message("[color=magenta][DEV][/color] Show hidden zones: %s" % state_text)
 
 #-----------------------------------------------------------------------------
 # PRIVATE: adventure view lookup

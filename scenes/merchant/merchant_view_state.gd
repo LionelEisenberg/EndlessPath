@@ -68,10 +68,10 @@ func _stop_merchant_action() -> void:
 func _is_top_state() -> bool:
 	return not scene_root.state_stack.is_empty() and scene_root.state_stack.back() == self
 
-## Hides the log and quest windows. The shop covers part of them, so their
+## Hides the log and the Goals board. The shop covers part of them, so their
 ## text would show cut off at the panel's edge.
 func _hide_hud_windows() -> void:
-	for window: Control in [scene_root.log_window, scene_root.quest_window]:
+	for window: Control in [scene_root.log_window, scene_root.goals_panel]:
 		_hidden_hud_windows[window] = window.visible
 		window.visible = false
 

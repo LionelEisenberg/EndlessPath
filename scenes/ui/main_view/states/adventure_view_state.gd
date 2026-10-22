@@ -4,9 +4,14 @@ extends MainViewState
 
 ## Where the log window sits during an adventure, clear of the bottom HUD dock.
 const ADVENTURE_LOG_POSITION: Vector2 = Vector2(24.0, 24.0)
+## Where the Goals board sits during an adventure: the free top right. The
+## left side would cover the adventure map's EncounterInfoPanel.
+const ADVENTURE_GOALS_POSITION: Vector2 = Vector2(1456.0, 24.0)
 
 var _log_window: Control
 var _saved_log_position: Vector2 = Vector2.ZERO
+var _goals_panel: Control
+var _saved_goals_position: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	if ActionManager:
@@ -17,6 +22,7 @@ func _ready() -> void:
 func enter() -> void:
 	scene_root.adventure_view.visible = true
 	_move_log_window_aside()
+	_move_goals_panel_aside()
 	# Connect to adventure_completed to show end card
 	if not scene_root.adventure_view.adventure_completed.is_connected(_on_adventure_completed):
 		scene_root.adventure_view.adventure_completed.connect(_on_adventure_completed)
@@ -25,6 +31,7 @@ func enter() -> void:
 func exit() -> void:
 	scene_root.adventure_view.visible = false
 	_restore_log_window()
+	_restore_goals_panel()
 	if scene_root.adventure_view.adventure_completed.is_connected(_on_adventure_completed):
 		scene_root.adventure_view.adventure_completed.disconnect(_on_adventure_completed)
 
@@ -67,3 +74,19 @@ func _restore_log_window() -> void:
 	if _log_window and is_instance_valid(_log_window):
 		_log_window.position = _saved_log_position
 	_log_window = null
+
+## Moves the Goals board to the top-right corner for the adventure.
+func _move_goals_panel_aside() -> void:
+	if _goals_panel:
+		return # Already moved; keep the original saved position.
+	_goals_panel = scene_root.goals_panel
+	if not _goals_panel:
+		return
+	_saved_goals_position = _goals_panel.position
+	_goals_panel.position = ADVENTURE_GOALS_POSITION
+
+## Puts the Goals board back where it was before the adventure.
+func _restore_goals_panel() -> void:
+	if _goals_panel and is_instance_valid(_goals_panel):
+		_goals_panel.position = _saved_goals_position
+	_goals_panel = null

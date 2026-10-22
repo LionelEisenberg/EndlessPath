@@ -22,7 +22,7 @@ const ZOOM_TARGET: float = 3.0
 # STATE
 #-----------------------------------------------------------------------------
 
-var _zone_resource_panel: ZoneResourcePanel = null
+var _cultivator_plate: CultivatorPlate = null
 var _zone_tilemap: ZoneTilemap = null
 var _camera: Camera2D = null
 var _character: Node2D = null
@@ -44,7 +44,7 @@ var _saved_camera_position: Vector2 = Vector2.ZERO
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	_zone_resource_panel = get_parent().find_child("ZoneResourcePanel", true, false)
+	_cultivator_plate = get_parent().find_child("CultivatorPlate", true, false) as CultivatorPlate
 	_zone_tilemap = get_parent().find_child("ZoneTilemap", true, false)
 	ActionManager.adventure_start_requested.connect(_on_adventure_start_requested)
 
@@ -109,7 +109,7 @@ func _spawn_next_drain_particle() -> void:
 		get_tree().create_timer(DRAIN_PARTICLE_FLIGHT_TIME + 0.1).timeout.connect(_on_drain_complete)
 		return
 
-	var from_pos: Vector2 = _zone_resource_panel.get_madra_orb_global_position()
+	var from_pos: Vector2 = _cultivator_plate.get_madra_orb_global_position()
 	var base_size: float = lerpf(3.0, 6.0, _drain_budget_ratio)
 
 	var particle: FlyingParticle = FlyingParticle.new()

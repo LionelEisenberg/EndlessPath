@@ -18,7 +18,9 @@ extends Control
 ## View Components
 @onready var grey_background: GreyBackground = %GreyBackground
 @onready var log_window: Control = %LogWindow
-@onready var quest_window: Control = %QuestWindow
+## The Goals board, shared by the zone and adventure views; each view state
+## places it.
+@onready var goals_panel: Control = %GoalsPanel
 
 ## State machine states
 @onready var zone_view_state: MainViewState = %MainViewStateMachine/ZoneViewState
