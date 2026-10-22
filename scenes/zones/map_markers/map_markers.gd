@@ -56,6 +56,10 @@ signal pointer_left_map
 ## The zone map the markers follow.
 @export var map: ZoneTilemap
 
+## The MainView whose state stack decides whether Esc is the map's to take.
+## Found among the ancestors on ready; tests set it by hand.
+var main_view: MainView = null
+
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
@@ -163,6 +167,8 @@ func _ready() -> void:
 		card.mouse_entered.connect(marker_hover_changed.emit)
 		card.mouse_exited.connect(marker_hover_changed.emit)
 	_popover.hide()
+	if main_view == null:
+		main_view = _find_main_view()
 	_view_host = _find_view_host()
 	if _view_host != null:
 		_view_host.visibility_changed.connect(_on_view_host_visibility_changed)
@@ -180,13 +186,18 @@ func _process(_delta: float) -> void:
 		show()
 	_place_markers()
 
-## Esc closes the pinned popover before anything else hears it.
+## Esc closes the pinned popover while the player can see the map: the zone
+## view is the active state and no full log covers it. The map's SubViewport
+## (handle_input_locally off) hears keys during the root's _input, before
+## MainView, the overlays and the log; marking Esc handled here would take it
+## from them.
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or _popover_state.get_pinned_zone_id() == "":
 		return
-	if event.is_action_pressed(&"ui_cancel"):
-		close_popover()
-		get_viewport().set_input_as_handled()
+	if not event.is_action_pressed(&"ui_cancel") or not _is_map_in_front():
+		return
+	close_popover()
+	get_viewport().set_input_as_handled()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -543,6 +554,25 @@ func _is_camera_at_rest() -> bool:
 	if map == null or not map.is_node_ready():
 		return true
 	return map.get_camera().zoom.is_equal_approx(map.get_resting_zoom())
+
+## True when nothing covers the map: the zone view is MainView's active state
+## (no overlay pushed) and the full log is closed. True outside a MainView.
+func _is_map_in_front() -> bool:
+	if main_view == null:
+		return true
+	if not main_view.state_stack.is_empty() or main_view.base_current_state != main_view.zone_view_state:
+		return false
+	var log_window := main_view.log_window as LogWindow
+	return log_window == null or not log_window.is_full_log_open()
+
+## The nearest MainView among the layer's ancestors, or null.
+func _find_main_view() -> MainView:
+	var node: Node = get_parent()
+	while node != null:
+		if node is MainView:
+			return node as MainView
+		node = node.get_parent()
+	return null
 
 ## The SubViewportContainer that shows the map, found through the SubViewport
 ## the layer draws in.

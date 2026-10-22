@@ -686,6 +686,68 @@ func test_esc_closes_pinned_popover() -> void:
 	assert_false(_popover().visible, "Esc closes the pinned popover")
 	assert_eq(_state().get_pinned_zone_id(), "")
 
+## A MainView with the zone view as its base state, not in the tree, as
+## test_zone_panel.gd builds one.
+func _main_view_on_the_zone_view() -> MainView:
+	var main_view: MainView = autofree(MainView.new())
+	main_view.zone_view_state = autofree(ZoneViewState.new())
+	main_view.base_current_state = main_view.zone_view_state
+	main_view.state_stack = [] as Array[MainViewState]
+	return main_view
+
+## A LogWindow with its full log open, placed before the map in the tree so
+## the map hears Esc first, as it does in the game, where its SubViewport
+## hears keys during the root's _input.
+func _log_with_full_log_open() -> LogWindow:
+	var screen := Control.new()
+	screen.size = ZoneMapMath.VIEWPORT_SIZE
+	add_child_autofree(screen)
+	move_child(screen, 0)
+	var log_window: LogWindow = (load("res://scenes/ui/log_window/log_window.tscn") as PackedScene).instantiate()
+	screen.add_child(log_window)
+	log_window.toggle_full_log()
+	return log_window
+
+func test_esc_reaches_an_overlay_over_the_zone_view_first() -> void:
+	# The map's SubViewport hears Esc before MainView does. With the Character
+	# view pushed over the zone view (opened with C), Esc belongs to it, not to
+	# a popover pinned under it.
+	ZoneManager.set_demo_zones_visible(true)
+	var main_view: MainView = _main_view_on_the_zone_view()
+	_markers().main_view = main_view
+	_map.click_zone(_zone(ADVANCEMENT_DEMO_ID))
+	main_view.state_stack.append(autofree(MainViewState.new()))
+	Input.parse_input_event(_escape_event())
+	await _settle()
+	assert_eq(_state().get_pinned_zone_id(), ADVANCEMENT_DEMO_ID, "the overlay gets Esc; the pin stays")
+	main_view.state_stack.clear()
+	Input.parse_input_event(_escape_event())
+	await _settle()
+	assert_eq(_state().get_pinned_zone_id(), "", "with the overlay gone, Esc closes the popover")
+
+func test_esc_leaves_the_popover_while_another_base_view_shows() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	var main_view: MainView = _main_view_on_the_zone_view()
+	main_view.base_current_state = autofree(MainViewState.new())
+	_markers().main_view = main_view
+	_map.click_zone(_zone(ADVANCEMENT_DEMO_ID))
+	Input.parse_input_event(_escape_event())
+	await _settle()
+	assert_eq(_state().get_pinned_zone_id(), ADVANCEMENT_DEMO_ID, "the zone view is not the active state")
+
+func test_esc_closes_the_full_log_before_the_popover() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	var main_view: MainView = _main_view_on_the_zone_view()
+	var log_window: LogWindow = _log_with_full_log_open()
+	main_view.log_window = log_window
+	_markers().main_view = main_view
+	_map.click_zone(_zone(ADVANCEMENT_DEMO_ID))
+	assert_true(log_window.is_full_log_open())
+	Input.parse_input_event(_escape_event())
+	await _settle()
+	assert_false(log_window.is_full_log_open(), "the full log over the map closes first")
+	assert_eq(_state().get_pinned_zone_id(), ADVANCEMENT_DEMO_ID, "the pin waits for the next Esc")
+
 func test_click_outside_closes_pinned_popover() -> void:
 	# A press anywhere in the window that the map does not take (a panel, the
 	# dock) closes the popover at the end of the frame.
