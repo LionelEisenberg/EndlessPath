@@ -49,6 +49,7 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 position = Vector2(7, 32)
 is_debug_mode = false
+snap_walk_to_whole_px = true
 
 [node name="CharacterShadow" type="Sprite2D" parent="PlayerCharacter" unique_id=1530412874]
 z_index = -1

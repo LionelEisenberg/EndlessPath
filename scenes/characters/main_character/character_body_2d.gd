@@ -3,6 +3,11 @@ extends CharacterBody2D
 signal movement_completed # Emitted when the character reaches their target
 
 @export var is_debug_mode: bool = false
+## Walks in whole px steps: the walk keeps its exact position to itself and
+## stands the character on the nearest whole px every frame, at the same pace.
+## The zone map turns it on, so at its zoom 2 the walk moves in the lacquer
+## kit's 2 screen px steps. Off, the character slides smoothly.
+@export var snap_walk_to_whole_px: bool = false
 
 # Movement constants
 const DEFAULT_MOVE_SPEED = 200.0
@@ -24,13 +29,18 @@ const ANGLE_FULL_CIRCLE = 360.0
 var target_position: Vector2 = Vector2.ZERO
 var move_speed: float = 0.0
 var is_moving: bool = false
+## Where a whole-px walk really is; the character stands on it rounded.
+var _exact_position: Vector2 = Vector2.ZERO
 
 @onready var animation_player: AnimationPlayer = %AnimationPlayer
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if is_moving:
-		_update_movement()
+		if snap_walk_to_whole_px:
+			_update_whole_px_movement(delta)
+		else:
+			_update_movement()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_debug_mode and event is InputEventMouseButton:
@@ -42,6 +52,9 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Moves the character to the given position at the specified speed.
 ## Automatically plays the appropriate walk animation based on direction.
 func move_to_position(new_position: Vector2, speed: float = DEFAULT_MOVE_SPEED) -> void:
+	# A new target mid-walk turns the walk from where it really is.
+	if not is_moving:
+		_exact_position = global_position
 	target_position = new_position
 	move_speed = speed
 	is_moving = true
@@ -63,6 +76,16 @@ func _update_movement() -> void:
 	# Move towards the target
 	velocity = direction * move_speed
 	move_and_slide()
+
+## One frame of a whole-px walk: the exact position moves on at the walk's
+## pace and the character stands on it rounded to whole px.
+func _update_whole_px_movement(delta: float) -> void:
+	if _exact_position.distance_to(target_position) <= MOVEMENT_THRESHOLD:
+		global_position = target_position
+		_stop_movement()
+		return
+	_exact_position = _exact_position.move_toward(target_position, move_speed * delta)
+	global_position = _exact_position.round()
 
 ## Plays the walk animation that corresponds to the movement direction.
 ## Supports all 8 cardinal directions (N, NE, E, SE, S, SW, W, NW).
