@@ -1,0 +1,176 @@
+[gd_resource type="Theme" format=3 uid="uid://ciwq623bywp6n"]
+
+[ext_resource type="Texture2D" uid="uid://bwvdf7q8tmec3" path="res://assets/sprites/ui/book/book_card_2x_ai.png" id="1_card"]
+[ext_resource type="Texture2D" uid="uid://12uipim3ma5c" path="res://assets/sprites/ui/book/book_row_2x_ai.png" id="2_row"]
+[ext_resource type="Texture2D" uid="uid://6vl2b4eb0lr0" path="res://assets/sprites/ui/book/book_pill_2x_ai.png" id="3_pill"]
+[ext_resource type="Texture2D" uid="uid://dbxc4y1fmjued" path="res://assets/sprites/ui/book/book_plaque_2x_ai.png" id="4_plaque"]
+[ext_resource type="Texture2D" uid="uid://ctkfuhss2b865" path="res://assets/sprites/ui/book/book_slot_2x_ai.png" id="5_slot"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_key"]
+content_margin_left = 6.0
+content_margin_top = 1.0
+content_margin_right = 6.0
+content_margin_bottom = 2.0
+bg_color = Color(0.231, 0.165, 0.125, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_plaque"]
+content_margin_left = 18.0
+content_margin_top = 11.0
+content_margin_right = 18.0
+content_margin_bottom = 7.0
+texture = ExtResource("4_plaque")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_card"]
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+texture = ExtResource("1_card")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_inset"]
+content_margin_left = 6.0
+content_margin_top = 8.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+texture = ExtResource("3_pill")
+texture_margin_left = 12.0
+texture_margin_top = 16.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
+modulate_color = Color(0.45, 0.42, 0.42, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pill"]
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+texture = ExtResource("3_pill")
+texture_margin_left = 12.0
+texture_margin_top = 16.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_row"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
+texture = ExtResource("2_row")
+texture_margin_left = 8.0
+texture_margin_top = 6.0
+texture_margin_right = 8.0
+texture_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_row_selected"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
+texture = ExtResource("2_row")
+texture_margin_left = 8.0
+texture_margin_top = 6.0
+texture_margin_right = 8.0
+texture_margin_bottom = 10.0
+modulate_color = Color(1, 0.88, 0.66, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_slot"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+texture = ExtResource("5_slot")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_tile"]
+content_margin_left = 6.0
+content_margin_top = 8.0
+content_margin_right = 6.0
+content_margin_bottom = 14.0
+texture = ExtResource("1_card")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_tile_selected"]
+content_margin_left = 6.0
+content_margin_top = 8.0
+content_margin_right = 6.0
+content_margin_bottom = 14.0
+texture = ExtResource("1_card")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 14.0
+modulate_color = Color(1, 0.88, 0.66, 1)
+
+[resource]
+LabelBookBody/base_type = &"Label"
+LabelBookBody/colors/font_color = Color(0.231, 0.165, 0.125, 1)
+LabelBookBody/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookBody/font_sizes/font_size = 20
+LabelBookKey/base_type = &"Label"
+LabelBookKey/colors/font_color = Color(0.969, 0.902, 0.792, 1)
+LabelBookKey/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookKey/font_sizes/font_size = 14
+LabelBookKey/styles/normal = SubResource("StyleBoxFlat_key")
+LabelBookMuted/base_type = &"Label"
+LabelBookMuted/colors/font_color = Color(0.49, 0.373, 0.278, 1)
+LabelBookMuted/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookMuted/font_sizes/font_size = 16
+LabelBookPill/base_type = &"Label"
+LabelBookPill/colors/font_color = Color(0.957, 0.863, 0.749, 1)
+LabelBookPill/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookPill/font_sizes/font_size = 18
+LabelBookPlaque/base_type = &"Label"
+LabelBookPlaque/colors/font_color = Color(0.2, 0.149, 0.102, 1)
+LabelBookPlaque/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookPlaque/font_sizes/font_size = 20
+LabelBookPlaque/styles/normal = SubResource("StyleBoxTexture_plaque")
+LabelBookPositive/base_type = &"Label"
+LabelBookPositive/colors/font_color = Color(0.243, 0.478, 0.227, 1)
+LabelBookPositive/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookPositive/font_sizes/font_size = 18
+LabelBookTitle/base_type = &"Label"
+LabelBookTitle/colors/font_color = Color(0.2, 0.149, 0.102, 1)
+LabelBookTitle/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookTitle/font_sizes/font_size = 28
+LabelBookValue/base_type = &"Label"
+LabelBookValue/colors/font_color = Color(0.545, 0.412, 0.078, 1)
+LabelBookValue/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookValue/font_sizes/font_size = 20
+LabelBookValueLarge/base_type = &"Label"
+LabelBookValueLarge/colors/font_color = Color(0.545, 0.412, 0.078, 1)
+LabelBookValueLarge/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookValueLarge/font_sizes/font_size = 28
+PanelBookCard/base_type = &"PanelContainer"
+PanelBookCard/styles/panel = SubResource("StyleBoxTexture_card")
+PanelBookInset/base_type = &"PanelContainer"
+PanelBookInset/styles/panel = SubResource("StyleBoxTexture_inset")
+PanelBookPill/base_type = &"PanelContainer"
+PanelBookPill/styles/panel = SubResource("StyleBoxTexture_pill")
+PanelBookRow/base_type = &"PanelContainer"
+PanelBookRow/styles/panel = SubResource("StyleBoxTexture_row")
+PanelBookRowSelected/base_type = &"PanelContainer"
+PanelBookRowSelected/styles/panel = SubResource("StyleBoxTexture_row_selected")
+PanelBookSlot/base_type = &"PanelContainer"
+PanelBookSlot/styles/panel = SubResource("StyleBoxTexture_slot")
+PanelBookTile/base_type = &"PanelContainer"
+PanelBookTile/styles/panel = SubResource("StyleBoxTexture_tile")
+PanelBookTileSelected/base_type = &"PanelContainer"
+PanelBookTileSelected/styles/panel = SubResource("StyleBoxTexture_tile_selected")

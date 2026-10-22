@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BookStyleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resource_definitions/ui/book_style_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+cover_light = Color(0.3843, 0.5961, 0.502, 1)
+cover_mid = Color(0.2431, 0.4392, 0.3765, 1)
+cover_dark = Color(0.1647, 0.3137, 0.2824, 1)
+page_border = Color(0.298, 0.5725, 0.4706, 1)
+bookmark_dark = Color(0.1176, 0.3686, 0.2902, 1)
+bookmark_mid = Color(0.1961, 0.5333, 0.4157, 1)
+bookmark_light = Color(0.4078, 0.7294, 0.5804, 1)
