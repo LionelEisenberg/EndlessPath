@@ -47,7 +47,7 @@ The zone view is the game's hub. The player returns to it after every cycle, adv
 | Now strip | 88 px: ring timer, action name, one rate, at most one progress line. Clicking it scrolls to its card and flashes it. No Stop button, no session totals, no blinking dot | User: a separate display is good but must be compact | — |
 | Always in an action | Once any idle action is unlocked, one is always running. When cycling, an adventure, the merchant or dialogue ends, the zone's last idle action resumes. With no idle action running, the Now strip stays and shows an empty tray: "<idle action> · paused" while a session action stands in for it, "Nothing running" when the zone has none (fresh save, Test Zone). It never collapses: the header and the list keep their place | User (the collapse was reversed in the user's review on 2026-10-22: "the Now should always be there in the space that it takes up") | — |
 | Activity cards | Icon tile, title, a mode tag (IDLE, ACTIVE, SHOP, STORY; RUNNING when current; ENTER when an adventure is affordable), and one line of yield, cost and time. **Assumed** groups: TALK, CULTIVATE, GATHER, VENTURE, VISIT (TALK first, so a new story step is never below the fold). Icons come from the unused `ZoneActionData.icon` | Cards should support a choice | — |
-| Adventure affordability | "Needs 60 Madra · you have 46" with a bar, plus "ready in ~10 s" while a Madra-producing action runs, or "train or cycle to fill" otherwise. At or above the threshold: "Ready · carries up to 120 Madra · 5 min run" and an ENTER tag. The threshold is 50% of the adventure capacity (total FOUNDATION × 10), so 50 / 100 at default stats. 60 / 120 is the depicted save, with FOUNDATION 12 | Removes the number that reads like a second Madra maximum | Adventure costs change |
+| Adventure affordability | A Madra rod with "46 / 60" after it, plus "~10 s" while a Madra-producing action runs, and nothing more. At or above the threshold: "5 min run · carries 120 Madra", an ENTER tag and a steady brass frame. The card is a normal 72 px drawer in both states. The threshold is 50% of the adventure capacity (total FOUNDATION × 10), so 50 / 100 at default stats. 60 / 120 is the depicted save, with FOUNDATION 12 | Removes the number that reads like a second Madra maximum. User (review, 2026-10-22): the first build's sentences ("Needs 60 Madra · you have 46", "train or cycle to fill", "Ready · carries up to …") and tall drawer were "a little too much text for how little it tells the user" | Adventure costs change |
 | Cultivator plate | Madra orb (as today), then a Core Density orb drawn like the cycling view's, with `Level N` and an XP bar, then gold. Same order as `CyclingResourcePanel` | User: show both, matching the cycling view | — |
 | Goals | A self-contained panel that replaces `QuestWindow` in both the zone view and the adventure view. It shows the first active quest's current step plus the Breakthrough milestone (Core Density / 100), or the milestone alone when no quest is active. **Assumed** placement: the zone view puts it under the plate at (24, 292). The adventure view puts it top-right at (1456, 24), which is free; `QuestWindow` sits at x 1147–1467, y 28–271 today and stays put in adventures. The left side doesn't work there: (24, 244) would overlap the adventure map's `EncounterInfoPanel` (x 187–563, y 268–668) | User: keep it and make it consistent across views | The adventure HUD is redesigned |
 | Dock | Inventory, Abilities, Character, Path, centred at the bottom. A notification draws a static gold ring around the button plus a count pill in its top-left corner, leaving the hotkey letter visible. No Map button | User | More menus are added |
@@ -146,8 +146,8 @@ The dotted route brightens only toward a zone you can travel to, never toward a 
 | Plate of an open zone you are not in | "Open · N activities"; on hover, "Click to travel" in gold |
 | Locked plate, line 2 | The blocker in short ("Tribulation Guardian") |
 | Uncharted plate, line 2 | "After the Tribulation" |
-| Adventure card, below the threshold | "Needs 60 Madra · you have 46", then "ready in ~10 s" or "train or cycle to fill" |
-| Adventure card, at the threshold | "Ready · carries up to 120 Madra · 5 min run" |
+| Adventure card, below the threshold | "46 / 60" after the Madra rod, then "~10 s" while a Madra action runs (2026-10-22) |
+| Adventure card, at the threshold | "5 min run · carries 120 Madra" (2026-10-22) |
 | Empty activity list | "Nothing to do here yet." |
 
 ## Data and save changes
@@ -257,10 +257,10 @@ MainView
   |---|---|
   | Foraging | Yield icons and ranges, interval, cost |
   | Training | Madra rate and level reward |
-  | Adventure | Needs-Madra bar, "ready in ~N s", the ENTER state |
+  | Adventure | Madra rod, "<madra> / <threshold>", "~N s", the ENTER state and its brass frame |
   | Default | Description |
 
-  "Ready in ~N s" divides the missing Madra by the running action's Madra per second. The NEW tag needs to know whether a card has been seen (see Data).
+  "~N s" divides the missing Madra by the running action's Madra per second. The NEW tag needs to know whether a card has been seen (see Data).
 
 ### Cultivator plate (replaces `ZoneResourcePanel`)
 

@@ -9,6 +9,7 @@ The art kit for the map-first v2 zone view in the look the user picked on 2026-1
 - **Superseded rows.** §0 (revision 2) overrides §1–§8 wherever they differ. Files that §1–§8 still name but revision 2 removed: `lacquer_chest_ai`, `lacquer_log_ai`, both `lacquer_bracket_*`, `lacquer_glimmer_strip_ai`, `lacquer_ic_coin_ai`, `lacquer_ic_star_ai`, `lacquer_ic_swords_ai`, `lacquer_ic_character_ai` (use the user's `gold_icon`, `star_icon`, `combat_icon` and `character_icon`, 64 px files shown at 32x32).
 - **The Now tray never collapses** (the user's review, 2026-10-22, overriding the mock and the rows below that move the header to 102 and the list to 132). With no idle action running it is drawn empty: tray and plate as always, the ring at frame 0, no action icon, and one 15/18 tan line (`LabelLacquerDetail`) at 1556, top 142.
 - **Generators.** `docs/superpowers/mockups/zone-view-lacquer/gen/` holds the Python scripts that drew the kit and `import_kit.py`, which copied it into `assets/ui/lacquer/` (halving and shadow baking). Their paths point at the authoring session's scratch folder; change `lq_base.py` and `look.py` to rebuild.
+- **The adventure card is a normal 72 px drawer** (the user's review, 2026-10-22: too much text for what it told; supersedes the §4.2 and §5.5 rows marked 2026-10-22). Below the threshold its detail row is `mini_madra` at x+64, y+38, `rod_adv` at x+86, y+40, `46 / 60` (15/18 tan) at x+248, y+38 and, only while a Madra action runs, `~10 s` (15/18 cream) right-aligned at x+380, y+38. At the threshold the title and tag keep the y+14 row, the detail line reads `5 min run · carries 120 Madra` (15/18 brass, x+64, y+38), and `frame_brass` sits over the card steadily, with no animation, in place of `drawer_tall_ready`. A flash hides that frame for its 1.2 s, then it returns.
 
 ## 0. Revision 2 (after the design review; supersedes the rows it names below)
 
@@ -156,8 +157,8 @@ No text is smaller than 13 px.
 |---|---|---|
 | `lacquer_drawer_ai.png` | 392x72 | img, activity card. Carved 48x48 icon socket at (8, 12) |
 | `lacquer_drawer_run_ai.png` | 392x72 | img, running card: brass corner caps. Drawn **pulled out** at (x−2, y−2) with the 4 px shadow |
-| `lacquer_drawer_tall_ai.png` | 392x96 | img, adventure card below the threshold. Socket at (8, 12) |
-| `lacquer_drawer_tall_ready_ai.png` | 392x96 | img, adventure card at the threshold, with a brass edge |
+| `lacquer_drawer_tall_ai.png` | 392x96 | img, a non-idle card whose detail wraps (§0). Socket at (8, 12). No longer the adventure's (2026-10-22) |
+| `lacquer_drawer_tall_ready_ai.png` | 392x96 | img, adventure card at the threshold, with a brass edge. Unused since 2026-10-22: the ready card is a 72 px `drawer` under `frame_brass` |
 | `lacquer_frame_brass_ai.png` | 24x24 | **9-slice overlay:** `border: 8px solid transparent; border-image: url(lacquer_frame_brass_ai.png) 8 / 8px stretch;` on a box the size of the target, with no fill. Used for the flash (card and Now tray) and for pinned map plates |
 | `lacquer_frame_hover_ai.png` | 16x16 | **9-slice overlay**, `border-image: url(...) 4 / 4px stretch`. Hover on a drawer, the Now tray, Show me and About |
 | `lacquer_tag_ai.png` | 76x22 | img, carved recess for IDLE, ACTIVE, SHOP, STORY and RUNNING |
@@ -323,15 +324,15 @@ When no quest is active, hide the quest row and the divider and move the milesto
 
 | Piece | Position | Notes |
 |---|---|---|
-| Face | `drawer` (72) / `drawer_tall` (96) / `drawer_tall_ready` (96), 2 px shadow | Running: `drawer_run` at x−2, y−2 with the 4 px shadow, and all its children shift the same −2, −2 |
+| Face | `drawer` (72) / `drawer_tall` (96), 2 px shadow (`drawer_tall_ready` unused since 2026-10-22) | Running: `drawer_run` at x−2, y−2 with the 4 px shadow, and all its children shift the same −2, −2 |
 | Icon | x+16, y+20, 32x32 | In the carved socket |
-| Title | x+64, y+14 | 17/20 cream. Ready adventure: y+26 |
+| Title | x+64, y+14 | 17/20 cream, the ready adventure too (its y+26 was dropped on 2026-10-22) |
 | NEW | `seal_new_s` at x+64+titleWidth (rounded to even)+10, title top − 1 | `NEW` 13/22 cream centred. Cleared on first hover or use |
-| Mode tag | x+304, title top − 1 (y+13; ready y+25), 76x22 | `tag` with tan text, RUNNING in cream; ENTER uses `tag_enter` with ink text |
+| Mode tag | x+304, title top − 1 (y+13), 76x22 | `tag` with tan text, RUNNING in cream; ENTER uses `tag_enter` with ink text |
 | Detail | x+64, y+38 | 15/18 tan, max 316 px, ellipsis |
 | Foraging detail | `mini_dewdrop` x+64, y+40; `1–5` x+86, y+38; `mini_fern` x+120, y+40; `2–6 · every 5 s · free` x+142, y+38 | 15/18 tan |
-| Adventure, below threshold | `mini_madra` x+64, y+41; `Needs 60 Madra · you have 46` x+86, y+38 (15/20 tan); `rod_adv` x+64, y+70; hint right-aligned at x+380, top y+66 | Hint: `ready in ~10 s` cream while a Madra action runs, otherwise `train or cycle to fill` tan |
-| Adventure, ready | `Ready · carries up to 120 Madra · 5 min run` at x+64, y+54 | 15/18 brass, with the ENTER tag |
+| Adventure, below threshold (2026-10-22) | `mini_madra` x+64, y+38; `rod_adv` x+86, y+40; `46 / 60` x+248, y+38 (15/18 tan); hint right-aligned at x+380, top y+38 | Hint: `~10 s` cream, only while a Madra action runs; no hint otherwise. Drawer 72 |
+| Adventure, ready (2026-10-22) | `5 min run · carries 120 Madra` at x+64, y+38 | 15/18 brass, with the ENTER tag and a steady `frame_brass` over the 72 px drawer |
 | Hover | `frame_hover` 9-slice over the card | |
 | Flash | `frame_brass` 9-slice over the card: on 300 ms, off 300 ms, twice (`steps(1)`) | The Now tray flashes the same way, once |
 

@@ -12,9 +12,9 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
 
 ## Player Experience
 
-1. In Spirit Valley, once event `q_fill_core_completed` has fired, the zone chest shows **The Shallow Woods** under Venture, on a tall card measured against the adventure capacity:
-   - Below half the capacity, it reads "Needs <threshold> Madra · you have <madra>" with a Madra rod and "ready in ~N s" (while a Madra action runs) or "train or cycle to fill". Clicking shakes the Madra line and logs "Not enough Madra! Need X, have Y"; the running idle action keeps going.
-   - At half the capacity or more, the card's edge turns brass, it reads "Ready · carries up to <capacity> Madra · <minutes> min run", and its tag reads ENTER.
+1. In Spirit Valley, once event `q_fill_core_completed` has fired, the zone chest shows **The Shallow Woods** under Venture, on a normal 72 px card measured against the adventure capacity:
+   - Below half the capacity, its detail row is a Madra rod with `<madra> / <threshold>` after it, and a cream `~N s` at the right while a Madra action runs. Clicking shakes the row and logs "Not enough Madra! Need X, have Y"; the running idle action keeps going.
+   - At half the capacity or more, a brass frame holds steady around the card, it reads "<minutes> min run · carries <capacity> Madra", and its tag reads ENTER.
 2. On click, the zone view locks input and the map's plates hide. Between 8 and 25 Madra pellets fly in 2 px steps from the cultivator cabinet's Madra orb to the character while the budget (`min(capacity, current Madra)`) is spent. The camera then zooms to 3× over 0.5 s and the adventure view opens.
 3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at 1/s, and a `5:00` timer pill (hourglass icon) starts at top-centre; it turns red and ticks for the last 30 seconds. The adventure dock sits bottom-centre: Health and Madra orbs, the Stamina bar, and the four technique slots previewing the equipped loadout (hover a slot to read the technique and see its cost). The log board moves to the top-left and the Goals board to the top-right (cords hidden) for the adventure, clear of the dock and the encounter panel, and both go back afterwards.
 4. The player starts on the origin tile:
