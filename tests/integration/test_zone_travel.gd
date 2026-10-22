@@ -581,6 +581,44 @@ func test_late_marker_exit_brings_back_no_hover() -> void:
 	assert_eq(markers.get_popover_state().get_hovered_zone_id(), "", "nor does the popover's")
 	await _move_pointer_to_window_point(Vector2.ZERO)
 
+func test_arrival_glide_hovers_what_ends_up_under_the_still_pointer() -> void:
+	# The arrival glide moves Test Zone from under the pointer to the screen's
+	# centre; the pointer stays put, over the open fixture zone west of it by
+	# the end. Without a mouse move, the hover must follow the camera.
+	var map: ZoneTilemap = await _hosted_map()
+	_open_test_zone()
+	_add_fixture_zone(Vector2i(-2, 0))
+	map._rebuild_map()
+	await _settle()
+	var state: MapPopoverState = map.get_map_markers().get_popover_state()
+	await _move_pointer_to(map, _hosted_screen_point(map, TEST_ZONE_ID))
+	assert_eq(state.get_hovered_zone_id(), TEST_ZONE_ID, "precondition: the pointer hovers Test Zone")
+	map.click_zone(_zone(TEST_ZONE_ID))
+	await wait_for_signal(map.character_body.movement_completed, 3.0)
+	await wait_seconds(map.camera_ease_duration + 0.1)
+	await _settle()
+	assert_eq(ZoneManager.get_current_zone().zone_id, TEST_ZONE_ID, "precondition: arrived")
+	assert_eq(state.get_hovered_zone_id(), FIXTURE_ZONE_ID, "the zone now under the pointer is hovered")
+	assert_true(state.is_hovered_travelable(), "and reads as a zone you can travel to")
+	assert_true(map.get_route_to(FIXTURE_ZONE_ID).is_lit(), "its route lights")
+	await _move_pointer_to_window_point(Vector2.ZERO)
+
+func test_camera_move_under_a_still_pointer_clears_a_hover_left_behind() -> void:
+	# A wheel zoom or a recentre moves the cells under a still pointer; a hex
+	# the camera took away is no longer hovered.
+	var map: ZoneTilemap = await _hosted_map()
+	_open_test_zone()
+	await _settle()
+	var state: MapPopoverState = map.get_map_markers().get_popover_state()
+	await _move_pointer_to(map, _hosted_screen_point(map, TEST_ZONE_ID))
+	assert_eq(state.get_hovered_zone_id(), TEST_ZONE_ID, "precondition: the pointer hovers Test Zone")
+	map.get_camera().position += Vector2(-400, 0)
+	await _settle()
+	await _settle()
+	assert_eq(state.get_hovered_zone_id(), "", "fog is under the pointer now")
+	assert_false(map.get_route_to(TEST_ZONE_ID).is_lit(), "the route goes out")
+	await _move_pointer_to_window_point(Vector2.ZERO)
+
 func test_no_preview_while_pinned() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	_map.click_zone(_zone(UNCHARTED_DEMO_ID))

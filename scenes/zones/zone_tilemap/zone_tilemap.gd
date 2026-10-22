@@ -122,6 +122,10 @@ var _selected_zone: ZoneData = null
 var _travel_target: ZoneData = null
 ## The zone under the pointer's hex cell ("" over fog or off the map).
 var _hovered_cell_zone_id: String = ""
+## The map's canvas transform when the pointer's cell was last hit-tested.
+## The hex layers hit-test only on mouse motion, so when the camera moves
+## under a still pointer (the arrival glide, a wheel zoom) the map tests again.
+var _hover_canvas_transform: Transform2D = Transform2D()
 
 ## The zone the character stands in (the current zone). Setting it makes it
 ## the current zone (ZoneManager.set_current_zone).
@@ -173,6 +177,16 @@ func _ready() -> void:
 	# An idle action already running (the save's, or one the zone change above
 	# resumed before these connections) sent its start signal unheard.
 	_start_idle_motion()
+	_hover_canvas_transform = get_viewport().get_canvas_transform()
+
+## When the camera has moved since the last frame, hit-tests the pointer
+## again at the end of this frame, after the markers have followed the camera.
+func _process(_delta: float) -> void:
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	if canvas_transform == _hover_canvas_transform:
+		return
+	_hover_canvas_transform = canvas_transform
+	_rehover_pointer_cell.call_deferred()
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -615,6 +629,18 @@ func _refresh_hover() -> void:
 	if zone_id == "" and not _map_markers.is_point_on_popover(point):
 		zone_id = _hovered_cell_zone_id
 	_map_markers.hover_zone(zone_id)
+
+## Hit-tests the pointer's cell as a mouse motion would, for a camera that
+## moved under a still pointer, and keeps both hex layers in step with it.
+func _rehover_pointer_cell() -> void:
+	if not is_inside_tree() or not _map_markers.is_pointer_on_map():
+		return
+	var cell: Vector2i = tile_map.local_to_map(tile_map.get_local_mouse_position())
+	tile_map.set_hovered_cell(cell)
+	_fog_layer.set_hovered_cell(cell)
+	var zone_data: ZoneData = get_zone_at_tile(cell)
+	_hovered_cell_zone_id = zone_data.zone_id if zone_data != null else ""
+	_refresh_hover()
 
 ## Swaps the hex rims for the hovered and pinned zones (a travelable open hex
 ## gets the brighter rim, a veiled hex the thin or heavy inner rim) and lights

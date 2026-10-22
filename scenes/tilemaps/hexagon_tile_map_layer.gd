@@ -27,6 +27,12 @@ func set_cell_with_source_and_variant(source_id: int, variant_id: int, cell_coor
 func forget_hovered_cell() -> void:
 	_last_hovered_coord = _NO_HOVERED_COORD
 
+## Records `cell` as the hovered cell (none when this layer has no tile there)
+## after the owner hit-tested the pointer itself, e.g. once the camera moved
+## under a still pointer: the next motion over that cell reports nothing new.
+func set_hovered_cell(cell: Vector2i) -> void:
+	_last_hovered_coord = cell if get_cell_source_id(cell) != -1 else _NO_HOVERED_COORD
+
 func _ready() -> void:
 	if position != HEX_TILE_OFFSET:
 		Log.warn("HexagonalTileMapLayer: TileMapLayer is not in the right position, it won't look right!")
