@@ -67,6 +67,30 @@ func _open_test_zone() -> void:
 	ZoneManager.set_hidden_zones_visible(true)
 	UnlockManager.force_unlock_condition(TEST_ZONE_UNLOCK_ID)
 
+## The map camera's zoom controller.
+func _zoom_controller() -> CameraZoomController:
+	for child: Node in _map.get_camera().get_children():
+		if child is CameraZoomController:
+			return child
+	return null
+
+## The map camera's clamp controller.
+func _clamp_controller() -> CameraClampController:
+	for child: Node in _map.get_camera().get_children():
+		if child is CameraClampController:
+			return child
+	return null
+
+## Where the zone's centre lands on screen with the camera where it is now, at
+## the zoom the camera is easing to.
+func _zone_on_screen(zone_id: String) -> Vector2:
+	var zoom: float = _zoom_controller().target_zoom.x
+	return ZoneMapMath.world_to_screen(_map.get_zone_world_centre(_zone(zone_id)), _map.get_camera().position, zoom)
+
+## True when the screen point lies in the free map window (its edges count).
+func _in_free_window(screen: Vector2) -> bool:
+	return ZoneMapMath.FREE_MAP_WINDOW.grow(0.01).has_point(screen)
+
 ## A cell's tile rect in the map's world space.
 func _cell_rect(cell: Vector2i) -> Rect2:
 	var centre: Vector2 = _map.tile_map.map_to_local(cell) + _map.tile_map.position
@@ -103,16 +127,23 @@ func test_frame_zone_at_zoom_one() -> void:
 	assert_almost_eq(screen.x, 960.0, 0.001)
 	assert_almost_eq(screen.y, 702.0, 0.001)
 
-func test_camera_bounds_are_map_zones_plus_one_and_a_half_hexes() -> void:
-	# Spirit Valley's tile is (-82, -95) to (82, 95); 1.5 hexes is 246 x 285 more each side.
-	assert_eq(_map.get_camera_bounds(), Rect2(-328.0, -380.0, 656.0, 760.0))
+func test_camera_bounds_keep_spirit_valley_in_the_free_window() -> void:
+	# At zoom 2 the camera may sit 207 world px either side of Spirit Valley,
+	# 170.5 above it and 222.5 below it: its centre stays in the free map
+	# window (x 546-1374, y 95-881).
+	assert_eq(_map.get_camera_bounds(), Rect2(-207.0, -170.5, 414.0, 393.0))
 
 func test_camera_bounds_grow_with_the_demo_zones() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	var bounds: Rect2 = _map.get_camera_bounds()
 	var uncharted_centre: Vector2 = _map.get_zone_world_centre(_zone(UNCHARTED_DEMO_ID))
 	assert_true(bounds.has_point(uncharted_centre), "the uncharted demo hex is inside the clamp bounds")
-	assert_almost_eq(bounds.position.y, uncharted_centre.y - 95.0 - 285.0, 0.001)
+	assert_almost_eq(bounds.position.y, uncharted_centre.y - 170.5, 0.001)
+
+func test_camera_bounds_follow_the_zoom() -> void:
+	_zoom_controller().set_zoom_level(1.0)
+	assert_eq(_map.get_camera_bounds(), Rect2(-414.0, -341.0, 828.0, 786.0), "twice as far at zoom 1")
+	assert_eq(_map.get_camera_bounds_at_zoom(2.0), Rect2(-207.0, -170.5, 414.0, 393.0))
 
 #-----------------------------------------------------------------------------
 # FOG
@@ -126,8 +157,9 @@ func test_fog_tiers_around_spirit_valley() -> void:
 
 func test_fog_covers_screen_at_zoom_one() -> void:
 	# Review Focus 3: the camera's centre is clamped to the bounds, so at the
-	# lowest zoom (1.0) the screen reaches half a viewport past them.
-	var fog_rect: Rect2 = _map.get_camera_bounds().grow_individual(960.0, 540.0, 960.0, 540.0)
+	# lowest zoom (1.0), where they are widest, the screen reaches half a
+	# viewport past them.
+	var fog_rect: Rect2 = _map.get_camera_bounds_at_zoom(1.0).grow_individual(960.0, 540.0, 960.0, 540.0)
 	var zone_cells: Dictionary[Vector2i, bool] = {}
 	for zone: ZoneData in ZoneManager.get_map_zones():
 		zone_cells[zone.tilemap_location] = true
@@ -143,7 +175,7 @@ func test_fog_covers_screen_at_zoom_one() -> void:
 
 func test_fog_covers_screen_with_demo_zones() -> void:
 	ZoneManager.set_demo_zones_visible(true)
-	var fog_rect: Rect2 = _map.get_camera_bounds().grow_individual(960.0, 540.0, 960.0, 540.0)
+	var fog_rect: Rect2 = _map.get_camera_bounds_at_zoom(1.0).grow_individual(960.0, 540.0, 960.0, 540.0)
 	for row: int in range(-20, 21):
 		for col: int in range(-20, 21):
 			var cell := Vector2i(col, row)
@@ -379,3 +411,50 @@ func test_clamp_now_keeps_the_camera_centre_inside_the_bounds() -> void:
 	clamp.clamp_now()
 	var bounds: Rect2 = _map.get_camera_bounds()
 	assert_eq(camera.position, Vector2(bounds.end.x, bounds.position.y), "pulled back to the nearest bounds corner")
+
+## Panned as far as it goes in each of the eight directions.
+const FAR_PANS: Array[Vector2] = [
+	Vector2(-5000.0, -5000.0), Vector2(0.0, -5000.0), Vector2(5000.0, -5000.0),
+	Vector2(-5000.0, 0.0), Vector2(5000.0, 0.0),
+	Vector2(-5000.0, 5000.0), Vector2(0.0, 5000.0), Vector2(5000.0, 5000.0),
+]
+
+func test_clamp_keeps_spirit_valley_in_the_free_window_at_every_zoom() -> void:
+	var camera: Camera2D = _map.get_camera()
+	for zoom: float in [2.0, 1.5, 1.0]:
+		_zoom_controller().set_zoom_level(zoom)
+		for pan: Vector2 in FAR_PANS:
+			camera.position = pan
+			_clamp_controller().clamp_now()
+			var screen: Vector2 = _zone_on_screen(SPIRIT_VALLEY_ID)
+			assert_true(_in_free_window(screen), "zoom %s, panned %s: Spirit Valley at %s is out of the free window" % [zoom, pan, screen])
+		# Panned down and right as far as it goes, the valley sits on the free
+		# window's top-left corner: the clamp is no tighter than it has to be.
+		camera.position = Vector2(5000.0, 5000.0)
+		_clamp_controller().clamp_now()
+		var corner: Vector2 = _zone_on_screen(SPIRIT_VALLEY_ID)
+		assert_almost_eq(corner.x, 546.0, 0.01, "zoom %s: on the window's left edge" % zoom)
+		assert_almost_eq(corner.y, 95.0, 0.01, "zoom %s: on the window's top edge" % zoom)
+
+func test_clamp_keeps_a_zone_in_the_free_window_with_every_demo_zone() -> void:
+	_open_test_zone()
+	ZoneManager.set_demo_zones_visible(true)
+	var camera: Camera2D = _map.get_camera()
+	for zoom: float in [2.0, 1.5, 1.0]:
+		_zoom_controller().set_zoom_level(zoom)
+		for pan: Vector2 in FAR_PANS:
+			camera.position = pan
+			_clamp_controller().clamp_now()
+			var shown: Array[String] = []
+			for zone: ZoneData in ZoneManager.get_map_zones():
+				if _in_free_window(_zone_on_screen(zone.zone_id)):
+					shown.append(zone.zone_id)
+			assert_false(shown.is_empty(), "zoom %s, panned %s: no zone in the free window" % [zoom, pan])
+
+func test_zooming_in_at_the_edge_pulls_the_camera_back() -> void:
+	var camera: Camera2D = _map.get_camera()
+	_zoom_controller().set_zoom_level(1.0)
+	camera.position = Vector2(5000.0, 5000.0)
+	_clamp_controller().clamp_now()
+	_zoom_controller().set_zoom_level(2.0)
+	assert_true(_in_free_window(_zone_on_screen(SPIRIT_VALLEY_ID)), "back at zoom 2 the valley is still in the free window")

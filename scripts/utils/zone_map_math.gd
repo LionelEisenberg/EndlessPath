@@ -3,8 +3,9 @@ class_name ZoneMapMath
 ## ZoneMapMath
 ## Pure helpers for the zone map: where the camera goes so the current zone's
 ## centre lands at screen (960, 702) at any zoom (the upper half of the screen
-## is kept for the road ahead), the fog tier of a cell, the foraging wander and
-## the Aura Well's bob.
+## is kept for the road ahead), where the camera may go so a zone stays in the
+## free map window, the fog tier of a cell, the foraging wander and the Aura
+## Well's bob.
 ## "World" is the ZoneTilemap's own space, where one art pixel is one unit.
 ## Statics only.
 
@@ -17,6 +18,12 @@ const ZONE_SCREEN_ANCHOR: Vector2 = Vector2(960, 702)
 
 ## The zone view's viewport size.
 const VIEWPORT_SIZE: Vector2 = Vector2(1920, 1080)
+
+## The free map window, in screen px: the map between the cabinet column, the
+## zone chest, the top edge and the dock, where a zone centre leaves its whole
+## hex in view at zoom 2. The camera clamp keeps at least one map zone's
+## centre in it at every zoom.
+const FREE_MAP_WINDOW: Rect2 = Rect2(546, 95, 828, 786)
 
 ## Fog tiers run 1 (next to a charted zone) to this, the darkest.
 const MAX_FOG_TIER: int = 3
@@ -49,6 +56,13 @@ static func camera_position_for(zone_world_centre: Vector2, zoom: float) -> Vect
 ## (its screen centre) and zoom.
 static func world_to_screen(world: Vector2, camera_position: Vector2, zoom: float) -> Vector2:
 	return (world - camera_position) * zoom + VIEWPORT_SIZE / 2.0
+
+## The camera positions (its screen centre) that put the world point
+## zone_world_centre inside FREE_MAP_WINDOW at the given zoom: 414 / zoom
+## either side of it, 341 / zoom above it and 445 / zoom below it.
+static func camera_window_for(zone_world_centre: Vector2, zoom: float) -> Rect2:
+	var window_end_from_centre: Vector2 = FREE_MAP_WINDOW.end - VIEWPORT_SIZE / 2.0
+	return Rect2(zone_world_centre - window_end_from_centre / zoom, FREE_MAP_WINDOW.size / zoom)
 
 #-----------------------------------------------------------------------------
 # HEX CELLS AND FOG

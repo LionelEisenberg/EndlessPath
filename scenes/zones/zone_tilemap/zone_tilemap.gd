@@ -3,9 +3,11 @@ extends Node2D
 
 ## ZoneTilemap
 ## The zone view's hex map (spec: Map; kit §6). The camera opens at zoom 2 and
-## frames the current zone's centre at screen (960, 702). Every cell out to
-## half a viewport past the camera clamp is fog, its tier the hex distance to
-## the nearest charted zone. The zone layer holds only the map zones
+## frames the current zone's centre at screen (960, 702). The camera clamp
+## keeps at least one map zone's centre in the free map window between the
+## panels at every zoom (ZoneMapMath.FREE_MAP_WINDOW). Every cell out to half
+## a viewport past the widest clamp is fog, its tier the hex distance to the
+## nearest charted zone. The zone layer holds only the map zones
 ## (ZoneManager.get_map_zones()): the current zone gets the brass rim, an open
 ## zone the hairline, and locked and uncharted zones a veiled tile. Dotted
 ## routes lead from the current zone, neighbour to neighbour, to the other
@@ -71,9 +73,8 @@ const VEILED_CELL_ALTERNATIVE_ID: int = 4
 ## this many natural tiles in one row.
 const FOG_POOL_SIZE: int = 9
 
-## A hex tile's size in map space, and the clamp margin around the map zones.
+## A hex tile's size in map space.
 const TILE_SIZE: Vector2 = Vector2(164, 190)
-const CLAMP_MARGIN_HEXES: float = 1.5
 
 ## Where the character stands in its zone. Its 16x24 frame is centred with a
 ## (1, -1) offset, so its top-left is the body position + (-7, -13); this puts
@@ -114,6 +115,9 @@ var _routes: Dictionary[String, ZoneRoute] = {}
 ## The zone each route starts from, by the id of the zone it leads into.
 var _route_from: Dictionary[String, String] = {}
 var _camera_bounds: Rect2 = Rect2()
+## The map zones' centres in map space: the camera clamp keeps one of them in
+## the free map window.
+var _clamp_zone_centres: Array[Vector2] = []
 var _frame_tween: Tween = null
 ## The character's idle motion (the foraging wander or the Aura Well's bob).
 var _idle_motion_tween: Tween = null
@@ -156,6 +160,7 @@ func _ready() -> void:
 	_map_markers.marker_hover_changed.connect(_refresh_hover)
 	_map_markers.interaction_changed.connect(_apply_interaction)
 	_map_markers.pointer_left_map.connect(_on_pointer_left_map)
+	_zoom_controller.zoom_changed.connect(_on_zoom_changed)
 
 	character_body.movement_completed.connect(_on_character_movement_completed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
@@ -186,10 +191,22 @@ func get_camera() -> Camera2D:
 func get_resting_zoom() -> Vector2:
 	return _zoom_controller.target_zoom
 
-## The rect the camera's centre is clamped to: the map zones' tiles plus 1.5
-## hexes on every side, in map space.
+## The rect around every place the camera's centre may be at the zoom the
+## player left it at (get_camera_bounds_at_zoom), in map space.
 func get_camera_bounds() -> Rect2:
 	return _camera_bounds
+
+## The rect around every place the camera's centre may be at the zoom: the
+## camera windows of all map zones (ZoneMapMath.camera_window_for), each
+## keeping that zone's centre in the free map window. The clamp keeps the
+## camera in one of the windows, not just in this rect, so a corner of the
+## rect that no window covers is out of reach.
+func get_camera_bounds_at_zoom(zoom: float) -> Rect2:
+	var windows: Array[Rect2] = _camera_windows(zoom)
+	var bounds: Rect2 = windows[0]
+	for window: Rect2 in windows:
+		bounds = bounds.merge(window)
+	return bounds
 
 ## The centre of the zone's hex in map space.
 func get_zone_world_centre(zone_data: ZoneData) -> Vector2:
@@ -293,22 +310,38 @@ func _draw_zone_cells(map_zones: Array[ZoneData]) -> void:
 		else:
 			tile_map.set_cell(zone_data.tilemap_location, FOREST_ATLAS_SOURCE_ID, _get_zone_tile_atlas_coords(zone_data))
 
-## The camera's centre is clamped to the map zones' tiles plus 1.5 hexes.
+## The camera clamp follows the map zones: the camera's centre stays in one
+## of their camera windows at the zoom the player left it at.
 func _update_camera_bounds(map_zones: Array[ZoneData]) -> void:
-	var bounds: Rect2 = Rect2(-TILE_SIZE / 2.0, TILE_SIZE)
-	for index: int in map_zones.size():
-		var tile_rect: Rect2 = Rect2(get_zone_world_centre(map_zones[index]) - TILE_SIZE / 2.0, TILE_SIZE)
-		bounds = tile_rect if index == 0 else bounds.merge(tile_rect)
-	var margin: Vector2 = TILE_SIZE * CLAMP_MARGIN_HEXES
-	_camera_bounds = bounds.grow_individual(margin.x, margin.y, margin.x, margin.y)
+	_clamp_zone_centres.clear()
+	for zone_data: ZoneData in map_zones:
+		_clamp_zone_centres.append(get_zone_world_centre(zone_data))
+	_apply_camera_clamp(_zoom_controller.target_zoom.x)
+
+## Sets the clamp for the zoom (the windows shrink as the map zooms in) and
+## pulls the camera into it.
+func _apply_camera_clamp(zoom: float) -> void:
+	_camera_bounds = get_camera_bounds_at_zoom(zoom)
 	_clamp_controller.boundary_min = _camera_bounds.position
 	_clamp_controller.boundary_max = _camera_bounds.end
+	_clamp_controller.clamp_regions = _camera_windows(zoom)
 	_clamp_controller.clamp_now()
 
-## Fills every cell that reaches into the clamp bounds plus half a viewport at
-## the lowest zoom, so the screen is covered wherever the camera is clamped
-## (Review Focus 3). Map-zone cells are skipped; the uncharted zone charts
-## nothing, so fog tiers count only from charted zones.
+## One camera window per map zone at the zoom (the world origin's when the map
+## has no zones).
+func _camera_windows(zoom: float) -> Array[Rect2]:
+	var windows: Array[Rect2] = []
+	for centre: Vector2 in _clamp_zone_centres:
+		windows.append(ZoneMapMath.camera_window_for(centre, zoom))
+	if windows.is_empty():
+		windows.append(ZoneMapMath.camera_window_for(Vector2.ZERO, zoom))
+	return windows
+
+## Fills every cell that reaches into the clamp bounds at the lowest zoom
+## (the widest) plus half a viewport at that zoom, so the screen is covered
+## wherever the camera is clamped at any zoom (Review Focus 3). Map-zone cells
+## are skipped; the uncharted zone charts nothing, so fog tiers count only
+## from charted zones.
 func _draw_fog(map_zones: Array[ZoneData]) -> void:
 	_fog_layer.clear()
 	var zone_cells: Dictionary[Vector2i, bool] = {}
@@ -319,7 +352,7 @@ func _draw_fog(map_zones: Array[ZoneData]) -> void:
 			charted_cubes.append(ZoneMapMath.cell_to_cube(zone_data.tilemap_location))
 
 	var half_view: Vector2 = ZoneMapMath.VIEWPORT_SIZE / (2.0 * _zoom_controller.zoom_min)
-	var fog_rect: Rect2 = _camera_bounds.grow_individual(half_view.x, half_view.y, half_view.x, half_view.y)
+	var fog_rect: Rect2 = get_camera_bounds_at_zoom(_zoom_controller.zoom_min).grow_individual(half_view.x, half_view.y, half_view.x, half_view.y)
 	var first_cell: Vector2i = _fog_layer.local_to_map(fog_rect.position - _fog_layer.position)
 	var last_cell: Vector2i = _fog_layer.local_to_map(fog_rect.end - _fog_layer.position)
 	for row: int in range(first_cell.y - 1, last_cell.y + 2):
@@ -653,6 +686,10 @@ func _on_pointer_left_map() -> void:
 	_hovered_cell_zone_id = ""
 	tile_map.forget_hovered_cell()
 	_fog_layer.forget_hovered_cell()
+
+## The player zoomed: the clamp follows the zoom the camera is easing to.
+func _on_zoom_changed(new_zoom: Vector2) -> void:
+	_apply_camera_clamp(new_zoom.x)
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	_rebuild_map()

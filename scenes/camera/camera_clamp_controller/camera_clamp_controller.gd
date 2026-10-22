@@ -13,6 +13,11 @@ extends Node
 ## margin). When false, the whole view stays inside the boundary.
 @export var clamp_centre_only: bool = false
 
+## Centre mode only: when not empty, the camera's centre is kept inside one of
+## these rects (the nearest) instead of the boundary, so the clamp can follow a
+## shape no single rect covers (the zone map keeps at least one zone in view).
+var clamp_regions: Array[Rect2] = []
+
 var camera: Camera2D = null
 
 var camera_pan_controller : CameraPanController = null
@@ -53,6 +58,10 @@ func clamp_now() -> void:
 func clamp_camera_position(position: Vector2) -> void:
 	if not camera or not use_boundaries:
 		return
+
+	if clamp_centre_only and not clamp_regions.is_empty():
+		camera.position = nearest_point_in_rects(camera.position, clamp_regions)
+		return
 	
 	var limits = _get_clamped_limits()
 	
@@ -65,6 +74,19 @@ func clamp_camera_position(position: Vector2) -> void:
 		camera.position.y = clamp(camera.position.y, limits.min.y, limits.max.y)
 	else:
 		camera.position.y = (limits.min.y + limits.max.y) / 2.0
+
+## The point nearest to point inside any of the rects (point itself when one
+## holds it; the first rect wins a tie), or point when there are none.
+static func nearest_point_in_rects(point: Vector2, rects: Array[Rect2]) -> Vector2:
+	var nearest: Vector2 = point
+	var nearest_distance: float = INF
+	for rect: Rect2 in rects:
+		var candidate: Vector2 = point.clamp(rect.position, rect.end)
+		var distance: float = point.distance_squared_to(candidate)
+		if distance < nearest_distance:
+			nearest = candidate
+			nearest_distance = distance
+	return nearest
 
 func _get_clamped_limits() -> Dictionary:
 	if not camera:

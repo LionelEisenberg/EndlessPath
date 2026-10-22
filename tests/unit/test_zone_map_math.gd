@@ -27,6 +27,29 @@ func test_world_to_screen_scales_by_zoom() -> void:
 	assert_eq(ZoneMapMath.world_to_screen(Vector2(100.0, 0.0), Vector2.ZERO, 2.0), Vector2(1160.0, 540.0))
 
 #-----------------------------------------------------------------------------
+# CAMERA CLAMP WINDOWS
+#-----------------------------------------------------------------------------
+
+func test_camera_window_scales_with_the_zoom() -> void:
+	# The free map window is x 546-1374, y 95-881: from the screen centre
+	# (960, 540) that is 414 px either side, 445 up and 341 down. At zoom 2 the
+	# camera may sit 207 world px either side of the zone, 170.5 above it and
+	# 222.5 below it; at zoom 1 twice that.
+	assert_eq(ZoneMapMath.camera_window_for(Vector2.ZERO, 2.0), Rect2(-207.0, -170.5, 414.0, 393.0))
+	assert_eq(ZoneMapMath.camera_window_for(Vector2.ZERO, 1.0), Rect2(-414.0, -341.0, 828.0, 786.0))
+
+func test_camera_window_corners_put_the_zone_on_the_free_window_corners() -> void:
+	var centre := Vector2(82.0, -142.5)
+	for zoom: float in [1.0, 1.5, 2.0]:
+		var window: Rect2 = ZoneMapMath.camera_window_for(centre, zoom)
+		var at_top_left: Vector2 = ZoneMapMath.world_to_screen(centre, window.position, zoom)
+		var at_bottom_right: Vector2 = ZoneMapMath.world_to_screen(centre, window.end, zoom)
+		assert_almost_eq(at_top_left.x, ZoneMapMath.FREE_MAP_WINDOW.end.x, 0.001, "camera at the window's left: the zone on the free window's right edge (zoom %s)" % zoom)
+		assert_almost_eq(at_top_left.y, ZoneMapMath.FREE_MAP_WINDOW.end.y, 0.001, "camera at the window's top: the zone on the free window's bottom edge (zoom %s)" % zoom)
+		assert_almost_eq(at_bottom_right.x, ZoneMapMath.FREE_MAP_WINDOW.position.x, 0.001, "camera at the window's right: the zone on the free window's left edge (zoom %s)" % zoom)
+		assert_almost_eq(at_bottom_right.y, ZoneMapMath.FREE_MAP_WINDOW.position.y, 0.001, "camera at the window's bottom: the zone on the free window's top edge (zoom %s)" % zoom)
+
+#-----------------------------------------------------------------------------
 # CUBE COORDINATES
 #-----------------------------------------------------------------------------
 
