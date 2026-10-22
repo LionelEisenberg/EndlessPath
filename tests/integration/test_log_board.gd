@@ -187,7 +187,9 @@ func test_tone_for_reads_hex_and_other_names() -> void:
 	assert_eq(LogWindow.tone_for("[color=blue]x[/color]"), LogWindow.Tone.MADRA)
 	assert_eq(LogWindow.tone_for("[color=white]x[/color]"), LogWindow.Tone.CREAM)
 	assert_eq(LogWindow.tone_for("[color=lime]x[/color]"), LogWindow.Tone.CREAM)
-	assert_eq(LogWindow.tone_for("[color=light_gray]Looted 1x Fern[/color]"), LogWindow.Tone.TAN)
+	assert_eq(LogWindow.tone_for("[color=light_gray]Looted 1x Fern[/color]"), LogWindow.Tone.CREAM,
+		"kit §5.3: hauls are cream, and InventoryManager logs them light_gray")
+	assert_eq(LogWindow.tone_for("[color=gray]x[/color]"), LogWindow.Tone.TAN, "a mid grey stays a system line")
 	assert_eq(LogWindow.tone_for("[color=magenta][DEV][/color] Set Madra"), LogWindow.Tone.TAN)
 	assert_eq(LogWindow.tone_for("[color=not_a_colour]x[/color]"), LogWindow.Tone.TAN)
 	assert_eq(LogWindow.tone_for("[b]Rat[/b] took [color=red]3 Damage[/color]"), LogWindow.Tone.TAN,
@@ -210,6 +212,17 @@ func test_newest_lines_keep_their_tone() -> void:
 	assert_eq(_line_bullet(0).texture, _bullet("madra"))
 	assert_eq(_line_label(1).get_theme_color("font_color"), CREAM)
 	assert_eq(_line_bullet(1).texture, _bullet("cream"))
+
+func test_foraging_haul_lines_are_cream() -> void:
+	# Kit §5.3: the newest lines keep their tone, and a haul's is cream. A
+	# foraging haul logs through InventoryManager.award_items().
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
+	_add_log()
+	InventoryManager.award_items(load("res://resources/items/materials/spirit_fern.tres"), 4)
+	assert_string_contains(_line_label(0).text, "Spirit Fern", "precondition: the haul is the newest line")
+	assert_eq(_line_label(0).get_theme_color("font_color"), CREAM)
+	assert_eq(_line_bullet(0).texture, _bullet("cream"))
 
 #-----------------------------------------------------------------------------
 # FULL LOG

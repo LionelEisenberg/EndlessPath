@@ -62,7 +62,9 @@ const _NOT_A_COLOUR: Color = Color(-1.0, -1.0, -1.0, -1.0)
 ## Below this saturation a colour reads as white or grey, not by its hue.
 const _NEUTRAL_SATURATION: float = 0.15
 ## A neutral colour this bright reads as cream; darker greys read as tan.
-const _CREAM_VALUE: float = 0.85
+## light_gray (0.83), the colour InventoryManager logs material hauls in, is
+## cream (kit §5.3: cream for hauls); gray and silver (0.75) stay tan.
+const _CREAM_VALUE: float = 0.8
 ## Hue bands in degrees: orange to yellow is brass, yellow-green to green is
 ## cream, cyan to blue is Madra. Reds, magentas and purples fall outside.
 const _BRASS_HUE_FROM: float = 25.0
@@ -162,7 +164,7 @@ func is_full_log_open() -> bool:
 
 ## The tone of a logged line, from its first [color] tag: gold, yellow, orange
 ## and other brass hues are BRASS; cyan, blue and other blues are MADRA; green,
-## lime and white are CREAM; anything else, or no colour, is TAN.
+## lime, white and light_gray are CREAM; anything else, or no colour, is TAN.
 static func tone_for(bbcode: String) -> Tone:
 	if _color_tag_regex == null:
 		_color_tag_regex = RegEx.create_from_string(_COLOR_TAG_PATTERN)
