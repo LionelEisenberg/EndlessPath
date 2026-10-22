@@ -8,10 +8,10 @@ extends Control
 ## Row 2 is the Breakthrough milestone: Core Density towards level 100 on a jade
 ## rod. With no active quest, row 1 and the divider hide and the milestone row
 ## moves up into their place (the Rows container does the move).
-## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into its
-## cords and a top, a tiled middle and a bottom slice, so the board is 220 px
-## tall with a quest and 150 px with the milestone alone. The cords are their
-## own node, which the adventure view hides (set_cords_visible); their two
+## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into a
+## top, a tiled middle and a bottom slice, so the board is 220 px tall with a
+## quest and 150 px with the milestone alone. The cords are their own node and
+## texture, which the adventure view hides (set_cords_visible); their two
 ## brass hooks are drawn on the top slice, which then swaps for a hookless copy.
 
 #-----------------------------------------------------------------------------
@@ -22,7 +22,9 @@ extends Control
 ## board at 220 (kit §5.2: screen 470 and 492).
 const BOTTOM_PADDING: float = 22.0
 ## The strip at the top of the board's root that the cords hang in; the
-## board's body starts under it.
+## board's body starts under it. The cords (lacquer_goals_cords_ai.png, 24 px)
+## also reach 4 px above the root, since the zone view hangs the board 4 px
+## lower than the kit's 272 and they must still start at the cabinet's rings.
 const CORDS_HEIGHT: float = 20.0
 
 #-----------------------------------------------------------------------------

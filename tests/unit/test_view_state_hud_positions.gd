@@ -16,7 +16,9 @@ const MERCHANT_ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/z
 
 ## Kit §5.2, §5.3 and the spec's adventure placement, written out so the
 ## tests do not read the constants they check.
-const ZONE_GOALS_POSITION: Vector2 = Vector2(24.0, 272.0)
+## Goals hangs 4 px under the kit's 272, giving the cords that link it to the
+## cabinet more room (user review, 2026-10-22).
+const ZONE_GOALS_POSITION: Vector2 = Vector2(24.0, 276.0)
 const ZONE_LOG_POSITION: Vector2 = Vector2(24.0, 852.0)
 ## The Goals board's root: its top 20 px are the cords, hidden in an
 ## adventure, so the board's body starts at y 24, level with the log.

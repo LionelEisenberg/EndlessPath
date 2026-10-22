@@ -219,9 +219,9 @@ unique_name_in_owner = true
 z_index = 1
 layout_mode = 0
 offset_left = 24.0
-offset_top = 272.0
+offset_top = 276.0
 offset_right = 464.0
-offset_bottom = 492.0
+offset_bottom = 496.0
 
 [node name="QuestToast" parent="MainView" unique_id=531342223 instance=ExtResource("28_qt")]
 unique_name_in_owner = true

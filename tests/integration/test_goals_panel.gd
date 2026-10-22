@@ -9,6 +9,8 @@ const GOALS_SCENE_PATH: String = "res://scenes/ui/goals_panel/goals_panel.tscn"
 const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
 ## The board's top slice without the cords' two brass hooks.
 const PLAIN_TOP_PATH: String = "res://assets/ui/lacquer/lacquer_goals_top_plain_ai.png"
+## The two cords, 24 px long.
+const CORDS_PATH: String = "res://assets/ui/lacquer/lacquer_goals_cords_ai.png"
 
 const FILL_CORE_QUEST_ID: String = "q_fill_core"
 const FIRST_STEPS_QUEST_ID: String = "q_first_steps"
@@ -333,10 +335,16 @@ func test_board_is_full_height_with_a_quest() -> void:
 	assert_eq(_goals.size, Vector2(440.0, FULL_HEIGHT))
 	assert_eq(_board_art_bottom(), FULL_HEIGHT + SHADOW)
 
+## The cords fill the root's top 20 px and reach 4 px above it, so with the
+## root at y 276 they still start at the cabinet's rings (screen 272).
 func test_cords_hang_above_the_board() -> void:
 	_add_goals()
 	assert_true(_is_shown("Cords"))
-	assert_eq((_node("Cords") as Control).position, Vector2.ZERO, "the cords take the board's top 20 px")
+	var cords: TextureRect = _node("Cords")
+	assert_eq(cords.position, Vector2(0.0, -4.0), "the cords reach 4 px above the root")
+	assert_eq(cords.size, Vector2(444.0, 24.0), "down to the board's body at 20")
+	assert_eq(cords.texture.resource_path, CORDS_PATH)
+	assert_eq(cords.texture.get_size(), Vector2(444.0, 24.0), "drawn at file size")
 	_goals.set_cords_visible(false)
 	assert_false(_is_shown("Cords"))
 	_goals.set_cords_visible(true)

@@ -11,10 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://bsra35lmu7jxc" path="res://assets/ui/lacquer/lacquer_rod_goal_full_ai.png" id="9_rod_full"]
 [ext_resource type="Texture2D" uid="uid://cxn01d1umqedg" path="res://assets/ui/lacquer/lacquer_rod_goal_end_ai.png" id="10_rod_end"]
 [ext_resource type="Texture2D" uid="uid://72ttatdg3o7c" path="res://assets/ui/lacquer/lacquer_goals_top_plain_ai.png" id="11_top_plain"]
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_cords"]
-atlas = ExtResource("3_board")
-region = Rect2(0, 0, 444, 20)
+[ext_resource type="Texture2D" uid="uid://cr2ef3y5l2et" path="res://assets/ui/lacquer/lacquer_goals_cords_ai.png" id="12_cords"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_board_top"]
 atlas = ExtResource("3_board")
@@ -32,9 +29,9 @@ region = Rect2(0, 160, 444, 64)
 layout_mode = 3
 anchors_preset = 0
 offset_left = 24.0
-offset_top = 272.0
+offset_top = 276.0
 offset_right = 464.0
-offset_bottom = 492.0
+offset_bottom = 496.0
 theme = ExtResource("2_theme")
 script = ExtResource("1_goals")
 top_without_hooks = ExtResource("11_top_plain")
@@ -42,10 +39,11 @@ top_without_hooks = ExtResource("11_top_plain")
 [node name="Cords" type="TextureRect" parent="." unique_id=1605792223]
 unique_name_in_owner = true
 layout_mode = 0
+offset_top = -4.0
 offset_right = 444.0
 offset_bottom = 20.0
 mouse_filter = 2
-texture = SubResource("AtlasTexture_cords")
+texture = ExtResource("12_cords")
 
 [node name="Board" type="VBoxContainer" parent="." unique_id=483981492]
 layout_mode = 1
