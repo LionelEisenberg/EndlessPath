@@ -13,12 +13,12 @@ Both values live on the shared `SaveGameData` (`madra`, `gold`) and persist with
 
 ## Player Experience
 
-- **Madra orb (zone view):** the cultivator cabinet (`CultivatorPlate`) shows a stepped Madra orb (one of 33 frames) with `current / max`, and `+1.5 / s` while a training action trickles Madra. The cycling view's `CyclingResourcePanel` shows the same values (`Madra: current / max`).
+- **Madra orb (zone view):** the cultivator cabinet (`CultivatorPlate`) shows a Madra orb whose pixel-art liquid shader (`lacquer_madra_orb.gdshader`) fills to `current / max` with a moving surface, with `current / max` beside it, and `+1.5 / s` while a training action trickles Madra. The cycling view's `CyclingResourcePanel` shows the same values (`Madra: current / max`).
 - **Filling Madra:**
   - While cycling, Madra ticks up as long as the cursor stays inside the Madra ball.
   - The Aura Well training action adds 1.5 Madra per tick, quietly: no log line, but a "+1.5 Madra" floater on the map.
 - **Spending Madra:** Below the threshold the adventure card shows a Madra rod and `<madra> / <threshold>`; at it, a brass frame, "<minutes> min run · carries <capacity> Madra" and an ENTER tag. Clicking below the threshold shakes the Madra row and logs `Not enough Madra!`. Starting an adventure pours the budget from the cabinet's orb to the player as stepped Madra pellets.
-- **Gold:** The cultivator cabinet's gold row shows the total. Each combat victory adds gold and logs `Gained N Gold`. The Merchant's shop and its activity card show the same total; a purchase spends the price and logs `Spent N Gold`.
+- **Gold:** The cultivator cabinet's gold row, at the right of its bottom row, shows the total. Each combat victory adds gold and logs `Gained N Gold`. The Merchant's shop and its activity card show the same total; a purchase spends the price and logs `Spent N Gold`.
 - **Log lines:** `Gained N Madra` (cyan) for each Madra award that actually adds at least 1 (none for a quiet award or one the cap swallows), and `Gained/Spent N Gold` (gold) for every gold change made through `add_gold` / `spend_gold`.
 
 ## Architecture

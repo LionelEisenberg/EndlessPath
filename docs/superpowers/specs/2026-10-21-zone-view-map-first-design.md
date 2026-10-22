@@ -269,6 +269,8 @@ MainView
   - Core orb: column round(min(level, 100) / 100 × 16) of the 17-column strip, with the swirl phase (row 0–3) stepped every 1.5 s.
 
   The cycling view keeps its shader orbs (`CyclingResourcePanel`); round 3's idea of sharing the orb scenes between the two panels is dropped.
+
+  **Changed after the user's review (2026-10-22):** the orbs read as static, so each is now the strip's empty frame under a pixel-art shader that keeps the kit's grid, palette and stepped time: a flowing Madra liquid filled to Madra / max, and a turning Core Density spiral that grows from the centre to min(level, 100) / 100 (the dormant pebble at level 0). The swirl phase stepping is gone. See [ZONES.md](../../zones/ZONES.md#orb-shaders).
 - **Labels and signals.**
   - The XP bar listens to `CultivationManager.core_density_xp_updated`. Today's zone panel listens only to `core_density_level_updated`.
   - Gold listens to `ResourceManager.gold_changed`, which today feeds `toolbar.gd:15`.

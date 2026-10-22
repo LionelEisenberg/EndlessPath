@@ -93,7 +93,7 @@ MainView/ZoneView (Control, %ZoneView)        shown/hidden by ZoneViewState
 └── Dock (Control, 476×80 at (722, 976))                scenes/ui/dock/ — four SystemMenuButtons
 ```
 
-The Goals board (`GoalsPanel`, at (24, 272)) and the log board (`LogWindow`, slot at (24, 852)) are children of `MainView`, not of `ZoneView`, because the adventure view shows them too. `ZoneViewState.enter()` puts them there.
+The Goals board (`GoalsPanel`, at (24, 276), 4 px under the kit's 272 so its cords read; they reach 4 px above its root to the cabinet's rings) and the log board (`LogWindow`, slot at (24, 852)) are children of `MainView`, not of `ZoneView`, because the adventure view shows them too. `ZoneViewState.enter()` puts them there.
 
 `scenes/zones/zone_tilemap/zone_tilemap.tscn`:
 
@@ -300,8 +300,17 @@ Card behaviour:
 
 ### Cultivator cabinet and dock
 
-- **`CultivatorPlate`** (`scenes/zones/cultivator_plate/`, kit §5.1). The Madra orb shows frame `round(Madra / max × 32)` of its strip, with `Madra / max` beside it; `max` is `CultivationManager.get_max_madra()` (100 + 5 × Core Density level at Foundation). The rate `+1.5 / s` shows only while `ActionManager.get_current_madra_per_second() > 0`. The core orb shows column `round(min(level, 100) / 100 × 16)` and a swirl row stepped every 1.5 s, with the stage name, `Level N`, 18 XP beads (`round(xp / need × 18)`) and `xp / need XP`. Gold shows on its own row. It reads everything once on `_ready`, then follows `madra_changed`, `gold_changed`, `core_density_xp_updated`, `core_density_level_updated`, `advancement_stage_changed` and `current_action_changed`. `get_madra_orb_global_position()` is where `ZoneTransition` starts its drain.
+- **`CultivatorPlate`** (`scenes/zones/cultivator_plate/`, kit §5.1). The Madra orb is the empty frame of its strip under `assets/shaders/lacquer_madra_orb.gdshader`, filled to `Madra / max`, with `Madra / max` beside it; `max` is `CultivationManager.get_max_madra()` (100 + 5 × Core Density level at Foundation). The rate `+1.5 / s` shows only while `ActionManager.get_current_madra_per_second() > 0`. The core orb is a column of its strip under `assets/shaders/lacquer_core_orb.gdshader`, filled to `min(level, 100) / 100`: column 0 (the dormant pebble, no fill) at level 0, column 1 (the empty socket) from level 1. Beside it are the stage name, `Level N`, 18 XP beads (`floor(xp × 18 / need)`, so a bead lights only once its share is earned and the beads never run ahead of the floored figure) and `xp / need XP`. Gold is one right-aligned row (coin, number, `gold`) ending at the cabinet's right text edge (screen x 446). The script only sets each orb material's `progress`; the shaders animate on their own (see [Orb shaders](#orb-shaders)). It reads everything once on `_ready`, then follows `madra_changed`, `gold_changed`, `core_density_xp_updated`, `core_density_level_updated`, `advancement_stage_changed` and `current_action_changed`. `get_madra_orb_global_position()` is where `ZoneTransition` starts its drain.
 - **`Dock`** (`scenes/ui/dock/`) holds the four `SystemMenuButton`s and decides their notifications. Navigation behaviour is documented in [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#dock-and-systemmenubutton).
+
+#### Orb shaders
+
+The two cabinet orbs are the only shaders in the lacquer zone view. They take the cycling view's orbs (`liquid_wave`, `core_density_fill`) as their model but keep the kit's pixel rules (kit §1): each works out its colour per 2 px art cell (40x40 cells on the 80 px orb, from the rect's local position), uses only the Madra ramp, and steps time 10 times a second (`steps_per_second`), so the motion reads as hand-drawn frames. Wherever they draw nothing, the strip frame underneath shows, so the brass rim and the carved socket stay crisp. Each `ShaderMaterial` is local to its scene.
+
+| Shader | `progress` | What it draws |
+|---|---|---|
+| `lacquer_madra_orb` | `Madra / max` | A liquid in the socket (cells within √249 of the centre, rows 4–35): a surface of two summed sine waves with a 1 cell `#E8F6FD` crest and a `#849BE4` line under it, three 1 cell bubbles rising, a slanted sheen sliding across every 4 s, three undulating `#849BE4` current dashes drifting under the surface, a darker lower-right ring and a wavy deep band at the bottom. 1 fills the socket with no crest; 0 draws nothing |
+| `lacquer_core_orb` | `min(level, 100) / 100` | A disc from radius 2.5 cells (level 1) to 15.78 (level 100, the socket's rim): a two-arm spiral in three bands (`#BBD5E7`, `#849BE4`, `#1C2F60`) turning once every 12 s, a `#E8F6FD` core and a 1 cell `#E8F6FD` edge. 0 draws nothing, so the dormant pebble shows |
 
 ## Data Model
 
@@ -726,6 +735,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `scenes/zones/zone_action_button/zone_action_button.gd` / `.tscn` | Card shell and presenter factory |
 | `scenes/zones/zone_action_button/presenters/*_presenter.gd` / `.tscn`, `forage_yield.tscn` | Foraging, training, adventure, cycling, merchant and default presenters |
 | `scenes/zones/cultivator_plate/` | Madra, Core Density and gold cabinet |
+| `assets/shaders/lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader` | The cabinet's flowing Madra liquid and turning Core Density spiral |
 | `scenes/zones/zone_transition/zone_transition.gd`, `madra_pellet.gd` / `.tscn` | Adventure-start drain and zoom |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Zone view state, HUD placement and input blocker |
 | `scenes/tilemaps/hexagon_tile_map_layer.gd`, `tilemap_tileset.tres`, `fog_tileset.tres` | Shared hex layer and the two TileSets |
@@ -760,7 +770,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/integration/test_zone_walk_steps.gd` | 1 | The map's travel walk stands on whole world px |
 | `tests/integration/test_zone_panel.gd` | 48 | Header, Now strip variants and the haul countdown, the empty tray ("Nothing running", "<name> · paused" with the shop open or while cycling, Test Zone, clicks ignored), groups, count, empty zone, scroll and flash, rail and lips, lore, chest sizing |
 | `tests/integration/test_zone_action_cards.gd` | 45 | Mode tags, running drawer, NEW seal, each presenter's detail line, adventure states (72 px both ways, the figure, the hint only while a Madra action runs, the row's shake, the ready frame and the flash over it), tall drawer, ellipsis |
-| `tests/integration/test_cultivator_plate.gd` | 17 | Cabinet values, strip frames, rate visibility, orb position |
+| `tests/integration/test_cultivator_plate.gd` | 26 | Cabinet values, the fills handed to the orb shaders (and their per-cabinet materials), the core orb's pebble and socket columns, XP beads that light only for earned XP, rate visibility, the right-aligned gold row, orb position |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | Aura Well hidden before and visible after `aura_well_discovered` |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | 1 | Dialogue 4 appears at CD 10, map award, merchant card after `merchant_discovered` |
 | `tests/integration/test_merchant_shop_flow.gd` | 35 | The merchant action stays current until `stop_action()`, a second stop is a no-op, leaving resumes the zone's idle action (also after travel during the shop), and `MerchantView`'s rows, buying, Leave, theme and layout |
