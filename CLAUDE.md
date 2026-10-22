@@ -274,7 +274,7 @@ See `docs/infrastructure/LOGGING.md`.
 ### Key Input Bindings
 - `open_inventory` / `close_inventory` — I / I or Escape
 - `open_abilities` — A; `open_character` — C; `open_path` — P (Escape, i.e. `ui_cancel`, also closes these overlays). Menu shortcuts only work from the zone view
-- `toggle_log` — L: opens or closes the full log (handled by `LogWindow`, in the zone and adventure views; Escape also closes it)
+- `toggle_log` — L: opens or closes the full log (handled by `LogWindow`, in the zone and adventure views; Escape also closes it). An open menu book closes the full log and blocks L
 - `close_cycling_view` — Escape
 - `ability_slot_1`–`ability_slot_4` — Q / W / E / R (combat)
 - Dev panel — Ctrl+Shift+D, hard-coded in `MainGame._input`; requires `user://dev_password.txt` (see `docs/tooling/DEV_TOOLS.md`)

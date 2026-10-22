@@ -96,7 +96,7 @@ The log and the Goals board belong to `MainView` because both base views show th
 - `ZoneViewState.enter()` puts the Goals board at `GOALS_POSITION` (24, 272) and the log slot at `LOG_POSITION` (24, 852).
 - `AdventureViewState.enter()` saves both positions, moves the log slot to (24, 24) and the Goals root to (1456, 24 − `GoalsPanel.CORDS_HEIGHT`), and calls `GoalsPanel.set_cords_visible(false)`, which also swaps the top slice for the hookless `lacquer_goals_top_plain_ai.png`. `exit()` puts both back and shows the cords. The left side is left to the adventure map's encounter panel.
 - Cycling and the merchant shop call `scene_root.hide_hud_boards(self)` in `enter()` and `release_hud_boards(self)` in `exit()`. `MainView` counts the holders: the first one saves each board's visibility and hides it, and the boards get it back only when the last holder releases them, whatever order the overlays close in (the shop can leave from under cycling).
-- The menu books (`BookViewState`: Inventory, Abilities, Character, Path) and the end card do not hide them: the backdrop dims them with the rest of the view. A book covers the right end of the Goals board (its count and the end of its bar: from x 300 where the Inventory and Path tabs hang, from x 360 for the other two) and, once the log shows two lines or more, the log's top-right corner (the book ends near y 940). The menu books stopped hiding them after the first play review (2026-10-22), so the boards stay under a book like the cabinet and the zone chest.
+- The menu books (`BookViewState`: Inventory, Abilities, Character, Path) and the end card do not hide them: the backdrop dims them with the rest of the view. A book covers the right end of the Goals board (its count and the end of its bar: from x 300 where the Inventory and Path tabs hang, from x 360 for the other two) and, once the log shows two lines or more, the log's top-right corner (the book ends near y 940). The menu books stopped hiding them after the first play review (2026-10-22), so the boards stay under a book like the cabinet and the zone chest. The full log does not: `BookViewState.enter()` closes it if it is open and blocks it (`LogWindow.set_full_log_blocked(true)`), and `exit()` lifts the block. While a book is open L does nothing, so the first Escape always reaches the book (`LogWindow` gets `_unhandled_input` before `MainView`).
 
 ### States
 
@@ -105,7 +105,7 @@ The log and the Goals board belong to `MainView` because both base views show th
 | `ZoneViewState` | Base (initial) | Shows `ZoneView`. Places the Goals board and the log. Removes the input blocker. Finds `ZoneTransition` and calls `reset_camera()` to undo the adventure zoom. | Removes the input blocker. Hides `ZoneView`. | `open_inventory` → push Inventory; `open_path` → push PathTree; `open_abilities` → push Abilities; `open_character` → push Character. Ignored while the input blocker exists. | `start_adventure` (handled by `AdventureViewState`) |
 | `AdventureViewState` | Base | Shows `AdventureView`. Moves the log and the Goals board aside. Connects `AdventureView.adventure_completed`. | Hides `AdventureView`, puts the boards back and disconnects. | None | End card return → `change_state(zone)` |
 | `AdventureEndCardState` | Overlay on Adventure | Shows GreyBackground. `AdventureViewState` then calls `show_results()`. | Hides `AdventureEndCard` and GreyBackground. | None (the card's own Return button) | Popped by `AdventureViewState` |
-| `InventoryViewState` | Overlay (`BookViewState`) | Connects the book's close tab and the backdrop click, then `grey_background.show_with_panel(inventory_view)`. The HUD boards stay under the backdrop | Disconnects the close tab and the backdrop click (the view is already hidden) | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
+| `InventoryViewState` | Overlay (`BookViewState`) | Connects the book's close tab and the backdrop click, then `grey_background.show_with_panel(inventory_view)`. The HUD boards stay under the backdrop; the full log is closed and blocked | Disconnects the close tab and the backdrop click (the view is already hidden), and lifts the full-log block | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
 | `CyclingViewState` | Overlay | Hides the HUD boards. Shows `CyclingView` and GreyBackground. | Hides both. Releases the HUD boards. | `close_cycling_view` → `ActionManager.stop_action()` | `ActionManager.stop_cycling` → `pop_state()` |
 | `PathTreeViewState` | Overlay (`BookViewState`) | Same as Inventory | Same | `ui_cancel` or `open_path`, the close tab, or a backdrop click → same close path | Same |
 | `AbilitiesViewState` | Overlay (`BookViewState`) | Same | Same | `ui_cancel` or `open_abilities`, the close tab, or a backdrop click → same close path | Same |
@@ -179,12 +179,12 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's id
 1. `MainGame._input()` runs before the GUI. It handles Ctrl+Shift+D and marks the event handled. `ZonePanel._input()` also sees every left press, to close the lore at the end of the frame when the press lands outside it.
 2. GUI controls consume their own events, for example a focused `LineEdit`/`SpinBox`, button clicks and `gui_input` handlers.
 3. `_unhandled_input` reaches the nodes in reverse tree order, then `MainView`:
-   - `LogWindow` (while visible): L (`toggle_log`) opens or closes the full log; Escape closes it while open.
+   - `LogWindow` (while visible and no menu book is open): L (`toggle_log`) opens or closes the full log; Escape closes it while open. A book closes the full log and blocks it, so L does nothing under a book and Escape goes on to the book.
    - `ZonePanel`: Escape closes the lore, only while it shows and `ZoneViewState` is MainView's current state, so an overlay opened over the zone view takes Escape first.
    - Inside the zone SubViewport, `MapMarkers`: Escape closes a pinned map popover, only while `ZoneViewState` is current with no overlay pushed and the full log is closed. The `SubViewportContainer` hands keys to the SubViewport at its own place in this pass (after `LogWindow` and `ZonePanel`, which sit later in the tree), and the SubViewport has `handle_input_locally` off, so its `set_input_as_handled()` ends the event for `MainView` too. One Escape therefore closes the lore before the popover.
    - `MainView` (routed to the current state only), the combat `AbilitiesPanel` (Q/W/E/R while visible), and the camera controllers inside the tilemaps (zoom on both maps, pan on the zone map only).
 
-Escape is bound to three actions: `close_inventory`, `close_cycling_view` and the built-in `ui_cancel`. Inside the state machine they never conflict because only the top state reads input. Menu shortcuts work only while `ZoneViewState` is current. `AdventureViewState.handle_input()` is empty, so I/A/C/P do nothing during an adventure; L still opens the full log.
+Escape is bound to three actions: `close_inventory`, `close_cycling_view` and the built-in `ui_cancel`. Inside the state machine they never conflict because only the top state reads input. Menu shortcuts work only while `ZoneViewState` is current. `AdventureViewState.handle_input()` is empty, so I/A/C/P do nothing during an adventure; L still opens the full log. Under a menu book L does nothing.
 
 ### Keybindings
 
@@ -198,7 +198,7 @@ Project actions from `project.godot` `[input]`. Key bindings use physical key po
 | `open_path_tree` | P | Nothing | Unused duplicate of `open_path` |
 | `open_abilities` | A | `ZoneViewState`, `AbilitiesViewState` | Open / close abilities view |
 | `open_character` | C | `ZoneViewState`, `CharacterViewState` | Open / close character view |
-| `toggle_log` | L | `LogWindow._unhandled_input()`, while the log is visible | Open / close the full log ([LOGGING.md](LOGGING.md#logwindow)) |
+| `toggle_log` | L | `LogWindow._unhandled_input()`, while the log is visible and no menu book is open | Open / close the full log ([LOGGING.md](LOGGING.md#logwindow)) |
 | `close_cycling_view` | Escape | `CyclingViewState` (the cycling close button fires the same action) | `ActionManager.stop_action()` |
 | `center_zone_map_camera` | Space | Nothing | Unused, no script reads it |
 | `ability_slot_1` to `ability_slot_4` | Q, W, E, R | `AbilitiesPanel._unhandled_input()` (`scenes/ui/combat/abilities_panel.gd`), only while the panel is visible | Emits `ability_selected` for that slot's ability when its button is enabled. `CombatantInfoPanel` re-emits it, and `AdventureView` connects it to `AdventureCombat.on_player_ability_selected()`. |
@@ -283,7 +283,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | InventoryView / PathTreeView / AbilitiesView / CharacterView | `MenuBookView`: `animate_open()` / `animate_close()` called through `GreyBackground`; `close_requested` (close tab) → the state's close path; `close_finished` → `GreyBackground` finishes hiding |
 | MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
 | ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain. |
-| GoalsPanel | Placed by `ZoneViewState` and `AdventureViewState`; `set_cords_visible()` in adventures; hidden under overlays |
+| GoalsPanel | Placed by `ZoneViewState` and `AdventureViewState`; `set_cords_visible()` in adventures; hidden under cycling and the shop; dimmed under the menu books and the end card |
 | ResourceManager | `CultivatorPlate` gold row (`gold_changed`, `get_gold()`) |
 | PathManager | `Dock` Path count seal (`points_changed`, `get_point_balance()`) |
 | AbilityManager | `Dock` Abilities ring (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
