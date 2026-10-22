@@ -45,7 +45,7 @@ The zone view is the game's hub. The player returns to it after every cycle, adv
 | Travel | Click an open hex. **Assumed:** no confirmation. A left click travels, as today; panning stays on the right button, so it can't trigger travel. The walk to an adjacent zone takes about 0.6 s with the old action still running, then the destination's idle action starts. Travel stays a straight-line walk with no adjacency check, as today | User: clicking the map allows movement | Accidental travel in playtests, or zones far apart |
 | Right column | One full-height panel: zone header (hex thumbnail, name, About) → Now strip → scrolling activity list | User: zone identity above the current action; the list must scroll | — |
 | Now strip | 88 px: ring timer, action name, one rate, at most one progress line. Clicking it scrolls to its card and flashes it. No Stop button, no session totals, no blinking dot | User: a separate display is good but must be compact | — |
-| Always in an action | Once any idle action is unlocked, one is always running. When cycling, an adventure, the merchant or dialogue ends, the zone's last idle action resumes. With no idle action available (fresh save, or a zone with none), the Now strip collapses and the list moves up | User | — |
+| Always in an action | Once any idle action is unlocked, one is always running. When cycling, an adventure, the merchant or dialogue ends, the zone's last idle action resumes. With no idle action running, the Now strip stays and shows an empty tray: "<idle action> · paused" while a session action stands in for it, "Nothing running" when the zone has none (fresh save, Test Zone). It never collapses: the header and the list keep their place | User (the collapse was reversed in the user's review on 2026-10-22: "the Now should always be there in the space that it takes up") | — |
 | Activity cards | Icon tile, title, a mode tag (IDLE, ACTIVE, SHOP, STORY; RUNNING when current; ENTER when an adventure is affordable), and one line of yield, cost and time. **Assumed** groups: TALK, CULTIVATE, GATHER, VENTURE, VISIT (TALK first, so a new story step is never below the fold). Icons come from the unused `ZoneActionData.icon` | Cards should support a choice | — |
 | Adventure affordability | "Needs 60 Madra · you have 46" with a bar, plus "ready in ~10 s" while a Madra-producing action runs, or "train or cycle to fill" otherwise. At or above the threshold: "Ready · carries up to 120 Madra · 5 min run" and an ENTER tag. The threshold is 50% of the adventure capacity (total FOUNDATION × 10), so 50 / 100 at default stats. 60 / 120 is the depicted save, with FOUNDATION 12 | Removes the number that reads like a second Madra maximum | Adventure costs change |
 | Cultivator plate | Madra orb (as today), then a Core Density orb drawn like the cycling view's, with `Level N` and an XP bar, then gold. Same order as `CyclingResourcePanel` | User: show both, matching the cycling view | — |
@@ -69,8 +69,8 @@ The left and right columns are 440 px wide with 24 px margins, so the open map r
 | Zone panel (chest) | 1456, 24, 440, height hugs content (176 to 1032) | One panel that grows to the bottom line only when the list needs it (kit §0). A long list scrolls inside it and folds under its last whole card |
 | · Zone header | 1472, 38, 408, 52 | 46x52 brass-outlined thumbnail of the zone's tile; zone name in Yatra One 30 px brass; About button (88x36) |
 | · Now strip | 1472, 106, 408, 88 | A recessed tray with a brass `Now` plate on its top edge; 56 px bead ring with the action icon; name and rate; second line; optional progress rod |
-| · Activities header | 1472, 204, 408, 24 | `Activities` (Yatra One 20 px brass) and `N here`. Moves to y 102 when the strip collapses |
-| · Activity list | 1472, 232, 408, 808 | A scroll viewport (1472, 132, 408, 908 when the strip collapses). Cards are 392 wide, then a 4 px gap and a 12 px brass rail column. Dithered lips show at a scrolled edge |
+| · Activities header | 1472, 204, 408, 24 | `Activities` (Yatra One 20 px brass) and `N here`. It stays at y 204 when the strip is empty (the y 102 collapse was dropped on 2026-10-22) |
+| · Activity list | 1472, 232, 408, 808 | A scroll viewport that always starts at y 232, the strip empty or not. Cards are 392 wide, then a 4 px gap and a 12 px brass rail column. Dithered lips show at a scrolled edge |
 | Dock | 722, 976, 476, 80 | Four 108x64 buttons with a 32 px icon, a 14 px label and the hotkey letter at the top right |
 
 Text is never smaller than 13 px. Labels use theme variants ([UI_STYLING.md](../../UI_STYLING.md)) from a lacquer theme; the type scale is in the kit's §3.
@@ -95,7 +95,7 @@ The user picked this look on 2026-10-21 from three swatches of the same slice, a
 |---|---|---|---|---|
 | Aura Well | Jade beads light one by one over each 1 s tick | "Aura Well" · "+1.5 Madra / s" | "Lv 1 → 2 · +1 Spirit" · "214 / 300" | Ticks toward the next level |
 | Foraging | Jade beads light over the 5 s haul (the only haul timer) | "Spring Forest Foraging" | Dewdrop Tear icon "1–5", Spirit Fern icon "2–6" · "haul in N s" | None |
-| None available | The strip is not shown | | | |
+| None running (user review, 2026-10-22) | Dark (frame 0), no icon | "Aura Well · paused" (the idle action that resumes) while the shop, cycling, an adventure or dialogue runs; "Nothing running" when the zone has none. One tan line | | None |
 
 Clicking the strip scrolls the list until the running card is fully visible (24 px margin) and flashes a brass frame over the card twice (300 ms on, 300 ms off). Clicking the running card flashes the strip. The map repeats the same information around the character: the ring, "+1.5 Madra" floaters (or the haul text), and the plate's status line.
 
@@ -108,7 +108,7 @@ One rule picks the idle action whenever the zone view needs one:
 
 1. The zone's saved last idle action, if it is still available.
 2. Otherwise, the first available idle card in list order.
-3. Otherwise, nothing: the Now strip collapses.
+3. Otherwise, nothing: the Now strip shows its empty tray, "Nothing running".
 
 Every resume writes a log line ("Resumed the Aura Well"). Travel writes one merged line instead: "Travelled to Spirit Valley · resumed the Aura Well", or just "Travelled to Test Zone" when nothing resumes. Starting an idle action saves it as the zone's last idle action. **Assumed:** when the first idle action in a zone unlocks while nothing is running there, it starts automatically and the log says so.
 
@@ -238,11 +238,11 @@ MainView
 
   `ZoneHeader`'s job moves here (`zone_header.gd:7`).
 - **`NowStrip`.**
-  - It reads `ActionManager.current_action` and is visible only for an idle action (FORAGE or TRAIN_STATS).
+  - It reads `ActionManager.current_action` and shows an idle action (FORAGE or TRAIN_STATS); for anything else it is the empty tray, naming `ActionManager.resolve_idle_action()` for the current zone.
   - Training uses `TrainingActionData.get_current_level()` and `get_progress_within_level()`, and listens to `training_tick_processed` and `training_level_gained`.
   - The ring timers poll `ActionManager.action_timer`, as the presenters do today.
   - A click calls `ensure_control_visible()` on the running card and flashes it.
-  - When the strip hides, the list takes its space.
+  - It is always shown and keeps its space. With no idle action running it shows its empty tray (2026-10-22: the list no longer moves up to take its space).
 - **`ActivityList`.**
   - A `ScrollContainer` with its own scrollbar hidden, plus a brass rail beside it (caps lit when the list can scroll that way, a carved track, a thumb). Cards have a fixed width, so the rail column is always reserved.
   - Rebuild triggers are unchanged: `ZoneManager.zone_changed`, `action_completed` and `UnlockManager.condition_unlocked`, as in `zone_info_panel.gd:8-22`.

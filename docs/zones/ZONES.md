@@ -9,7 +9,7 @@ The zone view is the home base and the initial `MainView` state. Since the map-f
 - a 2D hex map (`ZoneTilemap`) at zoom 2 fills the screen. The current zone sits at screen (960, 702) inside a lattice of fog, and the player character stands on it;
 - the **cultivator cabinet** (`CultivatorPlate`) at the top left shows Madra, Core Density and gold;
 - the **Goals board** and the **log board** hang under it (both are `MainView` HUD, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md));
-- the **zone chest** (`ZonePanel`) at the top right holds the zone header, the **Now strip** for the running idle action, and the zone's **activity cards**, grouped Talk, Cultivate, Gather, Venture, Visit;
+- the **zone chest** (`ZonePanel`) at the top right holds the zone header, the **Now strip** (the running idle action, or an empty tray saying what is paused), and the zone's **activity cards**, grouped Talk, Cultivate, Gather, Venture, Visit;
 - the **dock** (`Dock`) at the bottom centre opens Inventory, Abilities, Character and Path.
 
 Clicking a card hands its `ZoneActionData` to `ActionManager`, which runs exactly one action at a time:
@@ -28,7 +28,7 @@ Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advanc
 
 ## Player Experience
 
-1. A fresh save opens on Spirit Valley with 25 Madra. The map shows only Spirit Valley, framed in fog. The only card is `Talk to the [INTERVENER]` under **Talk**, with no NEW seal: the save's first pass marks every action available at that moment as seen, so NEW lights only cards that unlock later. The Now strip is hidden because nothing idle is unlocked, so the Activities header sits at the top of the chest. The Goals board shows only the Breakthrough milestone ("Raise Core Density to 100", `0 / 100`).
+1. A fresh save opens on Spirit Valley with 25 Madra. The map shows only Spirit Valley, framed in fog. The only card is `Talk to the [INTERVENER]` under **Talk**, with no NEW seal: the save's first pass marks every action available at that moment as seen, so NEW lights only cards that unlock later. Nothing idle is unlocked, so the Now strip shows its empty tray, "Nothing running"; it keeps its space, so the Activities header sits under it as always. The Goals board shows only the Breakthrough milestone ("Raise Core Density to 100", `0 / 100`).
 2. Hovering the current zone's hex or plate brightens its plate. Locked and uncharted hexes (dev demo zones only, today) get a thin brass rim inside their veil and, after 150 ms, a preview popover with the requirement. Fog shows nothing.
 3. Clicking a hex:
    - **Open zone** (another unlocked zone): the character walks there at 275 map px/s in whole-px steps while the current action keeps running. On arrival the zone changes, the camera eases onto it (0.3 s), the chest switches to the new zone's cards, and the new zone's idle action starts. The log reads "Travelled to <zone> · resumed <action>", or "Travelled to <zone>" when nothing resumes. A second click during the walk retargets it.
@@ -134,7 +134,7 @@ ZonePanel (Control)                           zone_panel.gd (class ZonePanel), t
 ├── Thumb                                     the zone's tile thumbnail (river for Spirit Valley, basic otherwise)
 ├── ZoneNameLabel                             LabelLacquerZoneName
 ├── AboutButton                               toggles the lore; hidden when the zone has no description
-├── NowStrip                                  now_strip.tscn (class NowStrip) — shown only while an idle action runs
+├── NowStrip                                  now_strip.tscn (class NowStrip) — always shown; empty while no idle action runs
 ├── ActivitiesHeader                          "Activities", a carved groove, "<n> here"
 ├── ActivityList                              activity_list.tscn (class ActivityList) — ScrollContainer, group labels, cards, LacquerRail, lips
 └── LorePanel                                 LoreBoard + LoreText (LabelLacquerLore, 366 wide), hidden by default
@@ -258,7 +258,7 @@ The zone camera is a plain `Camera2D` with the three shared controllers from `sc
 ### Zone chest (`ZonePanel`)
 
 - **Header.** The tile thumbnail, the zone name and About. About is hidden when `ZoneData.description` is empty (Test Zone). It opens the lore inline under the Now strip and pushes the Activities header and the list down 276 px.
-- **Now strip** (`NowStrip`). Shown only while the current action is FORAGE or TRAIN_STATS. A 13-frame jade ring around the action icon fills over each timer cycle. Aura Well: name, "+1.5 Madra / s", "Lv n → n+1 · +1 Spirit", `<ticks in level> / <ticks for next>` and a rod (`steps 152`, from `TrainingActionData.get_ticks_in_level()` / `get_ticks_for_next_level()`). Foraging: name, each loot entry's mini icon and range, and "haul in N s". Clicking it emits `strip_pressed`. When it hides, the Activities header moves to screen y 102 and the list to 132.
+- **Now strip** (`NowStrip`). Always shown, and it always keeps its space: the Activities header (screen y 204) and the list (232) never move up to take it (the user's review, 2026-10-22). While the current action is FORAGE or TRAIN_STATS, a 13-frame jade ring around the action icon fills over each timer cycle. Aura Well: name, "+1.5 Madra / s", "Lv n → n+1 · +1 Spirit", `<ticks in level> / <ticks for next>` and a rod (`steps 152`, from `TrainingActionData.get_ticks_in_level()` / `get_ticks_for_next_level()`). Foraging: name, each loot entry's mini icon and range, and "haul in N s". Clicking it emits `strip_pressed`. While no idle action runs the tray is empty: the ring at frame 0, no icon, rate or rod, and one tan `LabelLacquerDetail` line (`%EmptyLabel`, centred on the ring). It reads "<idle action> · paused" while a session action (the shop, cycling, an adventure, dialogue) stands in for the zone's idle action, naming the one `ActionManager.resolve_idle_action()` gives for the current zone (the one that resumes), or "Nothing running" when the zone has none (a fresh save, Test Zone). It refreshes on `current_action_changed` and on `condition_unlocked`, so an idle action that unlocks mid-session shows as paused. The empty tray ignores the mouse: no hover frame, no pointing hand, and a click does nothing.
 - **Activity list** (`ActivityList`). `build(actions)` groups the cards with `ZoneActionGroups` under tan group labels (only non-empty groups). Flow: label row 18 + 6, cards 8 apart, groups 14 apart. An empty zone reads "Nothing to do here yet." The native scrollbar is hidden; `LacquerRail` stands in for it and shows only when the list overflows. Hard lips show at an edge the list is scrolled away from.
 - **Sizing.** The chest hugs its content: `max(176, list top + list height + 24)`. A list too long for the space down to local 992 scrolls, folds 8 px under its last whole drawer (never a cut card), and the chest snaps to the bottom line (local 1032) when it ends within 64 px of it.
 - **Focus.** `scroll_to_action(action_id)` scrolls only as far as needed to show the whole card with 24 px around it, then flashes the card's brass frame twice. `ZoneManager.action_focus_requested` and the Now strip call it.
@@ -757,7 +757,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/integration/test_zone_travel.gd` | 49 | Hover rims and routes (also after the camera moves under a still pointer), previews, pins, Show me, travel on arrival, retargeting, walks cut short, Esc (left to an overlay or the full log) and outside clicks |
 | `tests/integration/test_zone_transition.gd` | 3 | The drain's lookups in `main_game.tscn` and `zone_tilemap.tscn` (read, never instanced), and one whole drain: pellets, Madra spent, adventure confirmed |
 | `tests/integration/test_zone_walk_steps.gd` | 1 | The map's travel walk stands on whole world px |
-| `tests/integration/test_zone_panel.gd` | 43 | Header, Now strip variants and the haul countdown, groups, count, empty zone, scroll and flash, rail and lips, lore, chest sizing |
+| `tests/integration/test_zone_panel.gd` | 48 | Header, Now strip variants and the haul countdown, the empty tray ("Nothing running", "<name> · paused" with the shop open or while cycling, Test Zone, clicks ignored), groups, count, empty zone, scroll and flash, rail and lips, lore, chest sizing |
 | `tests/integration/test_zone_action_cards.gd` | 40 | Mode tags, running drawer, NEW seal, each presenter's detail line, adventure states, tall drawer, ellipsis |
 | `tests/integration/test_cultivator_plate.gd` | 17 | Cabinet values, strip frames, rate visibility, orb position |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | Aura Well hidden before and visible after `aura_well_discovered` |

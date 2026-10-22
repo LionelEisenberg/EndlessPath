@@ -153,7 +153,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerRate` | Euljiro 17 / 20 | Tan | The `gold` word after the cabinet's gold value. The cabinet's Madra rate (`+1.5 / s`) has a decimal point, so it is a 17 px `RichTextLacquer` (see below), not this variant |
 | `LabelLacquerNowName` | Euljiro 18 / 22 | Cream | Now strip action name |
 | `LabelLacquerNowRate` | Euljiro 16 / 22 | Cream | Now strip rate |
-| `LabelLacquerDetail` | Euljiro 15 / 18 | Tan | Labels, card detail lines, figures (`17 / 18 XP`), log lines, group labels |
+| `LabelLacquerDetail` | Euljiro 15 / 18 | Tan | Labels, card detail lines, figures (`17 / 18 XP`), log lines, group labels, the empty Now tray's line (`Aura Well · paused`, `Nothing running`) |
 | `LabelLacquerTag` | Euljiro 13 / 22, 1 px spacing | Tan | Mode tags (IDLE, ACTIVE, SHOP, STORY, UNKNOWN). RUNNING overrides to cream, ENTER to ink |
 | `LabelLacquerSeal` | Euljiro 13 / 22, 1 px spacing | Cream | Seals: NEW, LOCKED |
 | `LabelLacquerLegend` | Euljiro 14 / 22 | Ink | The `Now` legend on its brass plate |

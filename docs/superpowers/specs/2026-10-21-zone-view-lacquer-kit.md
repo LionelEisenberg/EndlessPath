@@ -7,6 +7,7 @@ The art kit for the map-first v2 zone view in the look the user picked on 2026-1
 - **Where the files are.** Screen-space textures are in `assets/ui/lacquer/` and show at their file size. Map-space textures (fog atlases, veiled tiles, hex rims, route dots, the character shadow) were drawn at 2x for the screen and are stored **halved** in `assets/ui/lacquer/map/`, because the zone camera's zoom 2 doubles them again. The seven placeholder action and material icons are in `assets/ui/lacquer/icons/` (16x16, show at 2x). The user's own files are used from their own paths (`assets/fonts/`, `assets/sprites/ui/...`, the hex atlas, the character sheet), never copied.
 - **Shadows are baked in.** Every piece that §1 rule 3 gives a hard shadow carries it in the project file, which is 4 px (big pieces) or 2 px (small pieces) wider and taller than the kit size: place it at the kit's top-left and it lands right. The zone chest's three slices carry the column's shadow between them, so `chest_mid` tiles cleanly and only `chest_bot` is taller. `lacquer_token_ai.png` (the floater's 9-slice) is 26x26: its margins are 6 on the left and top and 8 on the right and bottom.
 - **Superseded rows.** §0 (revision 2) overrides §1–§8 wherever they differ. Files that §1–§8 still name but revision 2 removed: `lacquer_chest_ai`, `lacquer_log_ai`, both `lacquer_bracket_*`, `lacquer_glimmer_strip_ai`, `lacquer_ic_coin_ai`, `lacquer_ic_star_ai`, `lacquer_ic_swords_ai`, `lacquer_ic_character_ai` (use the user's `gold_icon`, `star_icon`, `combat_icon` and `character_icon`, 64 px files shown at 32x32).
+- **The Now tray never collapses** (the user's review, 2026-10-22, overriding the mock and the rows below that move the header to 102 and the list to 132). With no idle action running it is drawn empty: tray and plate as always, the ring at frame 0, no action icon, and one 15/18 tan line (`LabelLacquerDetail`) at 1556, top 142.
 - **Generators.** `docs/superpowers/mockups/zone-view-lacquer/gen/` holds the Python scripts that drew the kit and `import_kit.py`, which copied it into `assets/ui/lacquer/` (halving and shadow baking). Their paths point at the authoring session's scratch folder; change `lq_base.py` and `look.py` to rebuild.
 
 ## 0. Revision 2 (after the design review; supersedes the rows it names below)
@@ -23,7 +24,7 @@ The repo mock-up (`docs/superpowers/mockups/zone-view-map-first-mockup.html`) is
   - The height (local to the chest at 1456, 24) is max(176, list top + list height + 24).
   - When the list is taller than the space down to local 992 (screen 1016), it scrolls. The list then folds 8 px under its last whole drawer, so no drawer is cut and no group label is left alone at the bottom. The chest keeps 40 px under the list, so the rail's end cap clears the corner strap by 8 px or more. It snaps to the bottom line (local 1032, screen 1056) when that is within 64 px.
 - **Log:** `lacquer_log1_ai.png` to `lacquer_log5_ai.png`, one per line count n, 74 + 26n px tall. Each is bottom-anchored at y 1056, so it grows upward. A line of age a has its top at (height − 42 − 26a). `lacquer_log_ai.png` is gone.
-- **Lore:** opens inline. The panel is at the old position (local y 182 with the strip, 80 without); the Activities header and the list move down 276 px (the 264 px panel plus 12).
+- **Lore:** opens inline. The panel is at the old position (local y 182, under the Now tray); the Activities header and the list move down 276 px (the 264 px panel plus 12).
 - **Cards:** a non-idle card whose detail line is wider than 316 px at 15 px uses `drawer_tall` (96) and wraps the detail onto two lines (316 px wide, 18 px lines, from y + 38). This happens to the fresh-save Wilderness Cycling card.
 
 **Map.**
@@ -303,17 +304,17 @@ When no quest is active, hide the quest row and the divider and move the milesto
 - zone name at 1530, 40 (Yatra 30/44 brass);
 - About at 1792, 46 (88x36), text 15 cream centred on a 36 line. Use `about_open` while the lore is open. Test Zone has no lore, so no About.
 
-**Now tray** (only while an idle action runs): tray at 1472, 106 (408x88); `Now` plate at 1484, 96 (60x22, 2 px shadow, `Now` 14/22 ink centred); ring at 1486, 122 (56x56); action icon 32x32 at 1498, 134. Text column x 1556, right edge 1864.
+**Now tray** (always drawn; empty while no idle action runs): tray at 1472, 106 (408x88); `Now` plate at 1484, 96 (60x22, 2 px shadow, `Now` 14/22 ink centred); ring at 1486, 122 (56x56); action icon 32x32 at 1498, 134. Text column x 1556, right edge 1864.
 
 | Variant | Line 1 (18/22 cream) | Right of line 1 | Line 2 (15/18) | Progress |
 |---|---|---|---|---|
 | Aura Well | `Aura Well` at top 118 | `mini_madra` + `+1.5 Madra / s` 16/22 cream, right 1864, top 118 | `Lv 1 → 2 · +1 Spirit` tan at 144, `214 / 300` tan right 1864 | `rod_well` at 1556, 170 |
 | Foraging | `Spring Forest Foraging` at top 124 | | `mini_dewdrop` at 1556, 156 + `1–5` at 1578; `mini_fern` at 1616, 156 + `2–6` at 1638 (tan, 15/20, top 154); `haul in 3 s` cream right 1864 | none |
-| None | the tray, plate and ring are not drawn | | | |
+| None (empty tray, user review 2026-10-22) | `Aura Well · paused` (the idle action that resumes) or `Nothing running`, 15/18 tan at 1556, top 142, centred on the ring | | | none; ring at frame 0, no action icon |
 
-**Activities header** (`Activities` Yatra 20/24 brass at 1472, 204; `N here` 15/20 tan right 1880, top 206): a groove runs from the title's end + 12 to the count's start − 18, at y 214, with `groove_end` after it. When the strip is collapsed, the header moves to y 102 (count at 104, groove at 112).
+**Activities header** (`Activities` Yatra 20/24 brass at 1472, 204; `N here` 15/20 tan right 1880, top 206): a groove runs from the title's end + 12 to the count's start − 18, at y 214, with `groove_end` after it. It stays here when the tray is empty (the y 102 collapse was dropped on 2026-10-22).
 
-**Activity list viewport:** 1472, 232, 408, 808 (collapsed: 1472, 132, 408, 908). Overflow is hidden. Cards fill x 1472–1864; the rail column is 1868–1880 (12 px), with a 4 px gap.
+**Activity list viewport:** 1472, 232, 408, 808, the tray empty or not. Overflow is hidden. Cards fill x 1472–1864; the rail column is 1868–1880 (12 px), with a 4 px gap.
 - **Flow from content y 0:**
   - group label row 18 tall (label 15/18 tan; groove from the label's end + 10 to x 1858 at the row's top + 7, `groove_end` at 1858), then a 6 px gap;
   - cards with 8 px between them, and 14 px between groups.
@@ -512,9 +513,9 @@ Dots under a plate are hidden by it, which is fine.
 |---|---|---|
 | state=well | Map ring and Madra floaters; plate line with `mini_well` | Now tray, Well variant; `+1.5 / s` on the cabinet; Aura Well card pulled out |
 | state=forage | Map ring (5 s), haul floater; plate line with `mini_forage` | Now tray, foraging variant; no rate on the cabinet; foraging card pulled out |
-| state=fresh | No ring or floater; plate name only | No Now tray (header at 102, list at 132); Madra 25 / 100; core frame 0; beads 3 / 10; quest `Awaken Your Core` with `25 / 100`; log 2 lines; only the Cycling card |
+| state=fresh | No ring or floater; plate name only | Empty Now tray, `Nothing running` (header at 204, list at 232; the mock's collapse to 102 and 132 was dropped on 2026-10-22); Madra 25 / 100; core frame 0; beads 3 / 10; quest `Awaken Your Core` with `25 / 100`; log 2 lines; only the Cycling card |
 | list=9 | | Talk group first; the list scrolls; rail, caps and lips show |
-| demo=1 | `fog_open`; Test Zone tile + `hex_open` + plate; west route | Travelling there: `hex_current` moves, the panel shows Test Zone (`thumb_basic`, no About, no tray, `0 here`, empty list), and the Valley plate becomes `plate_open` |
+| demo=1 | `fog_open`; Test Zone tile + `hex_open` + plate; west route | Travelling there: `hex_current` moves, the panel shows Test Zone (`thumb_basic`, no About, the empty tray reading `Nothing running`, `0 here`, empty list), and the Valley plate becomes `plate_open` |
 | locked=1 | `fog_locked` (or `fog_both`); the two veiled tiles, glyphs, plates, north route | |
 | popover / hover | Brackets, popovers, plate hover versions; pinned plates get the brass frame | "Show me ›" scrolls to The Shallow Woods card and flashes it |
 | lore=1 | | `lore` over the header and first cards; `about_open` |
