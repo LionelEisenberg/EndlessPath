@@ -128,6 +128,12 @@ func _escape_event() -> InputEventAction:
 func _hover_cell_of(zone_id: String) -> void:
 	_map.tile_map.tile_hovered.emit(_zone(zone_id).tilemap_location)
 
+## Waits until the given seconds have passed since started_usec.
+func _wait_until(started_usec: int, seconds: float) -> void:
+	var remaining: float = seconds - (Time.get_ticks_usec() - started_usec) / 1_000_000.0
+	if remaining > 0.0:
+		await wait_seconds(remaining)
+
 ## A second map shown, as in the game, through a full-size SubViewport. Its
 ## host sits on a canvas layer of its own, out of reach of the first map's
 ## camera, so the pointer finds it where it is drawn.
@@ -361,12 +367,18 @@ func test_lock_shake_moves_only_the_icon() -> void:
 	await _settle()
 	var glyph: MapGlyph = _markers().get_glyph(ADVANCEMENT_DEMO_ID) as MapGlyph
 	var glyph_position: Vector2 = glyph.position
-	glyph.shake()
-	await wait_seconds(0.12)
 	var icon: Control = glyph.get_node("%Icon") as Control
-	assert_eq(icon.position.x, -8.0, "the padlock jumps 8 px left")
+	var started_usec: int = Time.get_ticks_usec()
+	glyph.shake()
+	# The real shake, sampled halfway through each 0.088 s step, follows the
+	# keyframe table test_lock_shake_steps reads.
+	var offsets: Array[float] = []
+	for sample_at: float in [0.132, 0.22, 0.308, 0.396]:
+		await _wait_until(started_usec, sample_at)
+		offsets.append(icon.position.x)
+	assert_eq(offsets, [-8.0, 8.0, -6.0, 4.0] as Array[float], "the padlock steps -8, 8, -6, 4 px")
 	assert_eq(glyph.position, glyph_position, "the glyph stays on its hex")
-	await wait_seconds(0.4)
+	await _wait_until(started_usec, 0.52)
 	assert_eq(icon.position.x, 0.0, "and settles back")
 	assert_false(glyph.is_shaking())
 

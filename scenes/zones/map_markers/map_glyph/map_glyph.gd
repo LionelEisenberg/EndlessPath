@@ -6,9 +6,10 @@ extends Control
 ## padlock over a locked zone, or the tan "?" over an uncharted one with its
 ## pixel twinkle beside it. Every 4 s the twinkle plays frames 1, 2, 1 for
 ## 0.1, 0.2 and 0.1 s; the rest of the time it shows frame 0 (empty).
-## MapMarkers places and scales the glyph over its hex every frame, so the
-## lock shake (a click on the locked hex) moves %Icon instead: 0, -8, 8, -6, 4
-## and 0 px over 0.44 s, each step held until the next (kit §6.4).
+## MapMarkers places the glyph over its hex every frame, so the lock shake (a
+## click on the locked hex) moves %Icon instead: 0, -8, 8, -6, 4 and 0 px
+## over 0.44 s, each step held until the next (kit §6.4). The shake reads
+## its steps from shake_offset_at(), the one keyframe table.
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -29,10 +30,12 @@ const _TWINKLE_FRAME_1_START: float = 3.6
 const _TWINKLE_FRAME_2_START: float = 3.7
 const _TWINKLE_FRAME_1_AGAIN_START: float = 3.9
 
-## The lock shake's x offsets (px at zoom 2), one every SHAKE_STEP_SECONDS,
-## each held until the next: 0.44 s in all.
+## The lock shake's x offsets (px), one every SHAKE_STEP_SECONDS, each held
+## until the next: SHAKE_SECONDS (0.44 s) in all.
 const SHAKE_KEYFRAMES: Array[int] = [0, -8, 8, -6, 4, 0]
 const SHAKE_STEP_SECONDS: float = 0.088
+## One step per keyframe after the first.
+const SHAKE_SECONDS: float = SHAKE_STEP_SECONDS * 5.0
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -89,15 +92,13 @@ func shake() -> void:
 	if not is_inside_tree():
 		return
 	_shake_tween = create_tween()
-	for index: int in range(1, SHAKE_KEYFRAMES.size()):
-		_shake_tween.tween_interval(SHAKE_STEP_SECONDS)
-		_shake_tween.tween_callback(_set_icon_offset.bind(SHAKE_KEYFRAMES[index]))
+	_shake_tween.tween_method(_apply_shake, 0.0, SHAKE_SECONDS, SHAKE_SECONDS)
 
 ## True while the padlock is shaking.
 func is_shaking() -> bool:
 	return _shake_tween != null and _shake_tween.is_valid() and _shake_tween.is_running()
 
-## The padlock's x offset (px at zoom 2) at elapsed seconds into a shake.
+## The padlock's x offset (px) at elapsed seconds into a shake.
 static func shake_offset_at(elapsed: float) -> int:
 	if elapsed <= 0.0:
 		return SHAKE_KEYFRAMES[0]
@@ -119,6 +120,9 @@ static func twinkle_frame(elapsed: float) -> int:
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------
+
+func _apply_shake(elapsed: float) -> void:
+	_set_icon_offset(shake_offset_at(elapsed))
 
 func _set_icon_offset(offset_x: int) -> void:
 	_icon.position.x = offset_x
