@@ -2,9 +2,12 @@ extends GutTest
 
 ## Integration tests for the lacquer cultivator cabinet (CultivatorPlate,
 ## lacquer kit §5.1): what it reads from the managers on _ready, how it follows
-## their signals, and the frames it picks from the orb and bead strips.
+## their signals, the fills it hands the two orb shaders, the frames it picks
+## from the core orb and bead strips, and where the gold row sits.
 
 const PLATE_SCENE_PATH: String = "res://scenes/zones/cultivator_plate/cultivator_plate.tscn"
+const MADRA_ORB_SHADER_PATH: String = "res://assets/shaders/lacquer_madra_orb.gdshader"
+const CORE_ORB_SHADER_PATH: String = "res://assets/shaders/lacquer_core_orb.gdshader"
 ## The cabinet's right text edge, local (kit §5.1: screen 446).
 const TEXT_RIGHT_EDGE: float = 422.0
 
@@ -46,6 +49,10 @@ func _node(unique_name: String) -> Node:
 func _text(unique_name: String) -> String:
 	return (_node(unique_name) as Label).text.strip_edges()
 
+## The fill an orb's shader draws, 0 to 1.
+func _fill(unique_name: String) -> float:
+	return ((_node(unique_name) as CanvasItem).material as ShaderMaterial).get_shader_parameter("progress")
+
 ## A fresh save standing at a Core Density level and XP, loaded the way a save
 ## loads (the managers announce it through save_data_reset).
 func _load_core_density(level: float, xp: float) -> void:
@@ -66,13 +73,48 @@ func test_madra_follows_its_signal() -> void:
 	ResourceManager.set_madra(46.0)
 	assert_eq(_text("MadraValueLabel"), "46")
 
-func test_madra_orb_frame_follows_ratio() -> void:
+## The orb is the strip's empty socket (frame 0) under the flowing-liquid
+## shader, which draws the fill inside the brass rim.
+func test_madra_orb_draws_the_liquid_shader_on_the_empty_socket() -> void:
+	var orb: TextureRect = _node("MadraOrb")
+	var socket: AtlasTexture = orb.texture as AtlasTexture
+	assert_not_null(socket, "the empty frame of the strip")
+	assert_eq(socket.atlas.resource_path, "res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png")
+	assert_eq(socket.region, Rect2(0.0, 0.0, 80.0, 80.0))
+	assert_eq(((orb.material as ShaderMaterial).shader as Shader).resource_path, MADRA_ORB_SHADER_PATH)
+
+func test_fresh_save_madra_fill() -> void:
+	assert_almost_eq(_fill("MadraOrb"), 0.25, 0.0001, "25 of 100 Madra")
+
+func test_madra_fill_follows_ratio() -> void:
 	ResourceManager.set_madra(50.0)
-	assert_eq((_node("MadraOrb") as LacquerStripRect).get_frame(), Vector2i(16, 0))
+	assert_almost_eq(_fill("MadraOrb"), 0.5, 0.0001)
 
 func test_madra_orb_is_full_above_max() -> void:
 	ResourceManager.set_madra(250.0)
-	assert_eq((_node("MadraOrb") as LacquerStripRect).get_frame(), Vector2i(32, 0))
+	assert_almost_eq(_fill("MadraOrb"), 1.0, 0.0001)
+
+func test_madra_orb_is_empty_without_madra() -> void:
+	ResourceManager.set_madra(0.0)
+	assert_almost_eq(_fill("MadraOrb"), 0.0, 0.0001)
+
+## The max follows the Core Density level, so a level-up refills the orb
+## against the new max.
+func test_madra_fill_follows_max() -> void:
+	_load_core_density(32.0, 0.0)
+	ResourceManager.set_madra(130.0)
+	assert_almost_eq(_fill("MadraOrb"), 0.5, 0.0001, "130 of 260 Madra")
+	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
+	var max_madra: float = CultivationManager.get_max_madra()
+	assert_gt(max_madra, 260.0, "precondition: the level-up raised the max")
+	assert_almost_eq(_fill("MadraOrb"), 130.0 / max_madra, 0.0001)
+
+## Each cabinet fills its own materials, so one scene instance never moves
+## another's orbs.
+func test_orb_materials_are_per_cabinet() -> void:
+	var other: CultivatorPlate = _add_plate()
+	assert_ne((_node("MadraOrb") as CanvasItem).material, (other.get_node("%MadraOrb") as CanvasItem).material)
+	assert_ne((_node("CoreOrb") as CanvasItem).material, (other.get_node("%CoreOrb") as CanvasItem).material)
 
 func test_max_madra_follows_level() -> void:
 	_load_core_density(32.0, 0.0)
@@ -110,27 +152,32 @@ func test_level_and_stage_text() -> void:
 	assert_eq(_text("LevelLabel"), "Level 0")
 	assert_eq(_text("StageLabel"), "Foundation")
 
-func test_fresh_save_shows_the_dormant_core() -> void:
-	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame().x, 0)
+func test_core_orb_draws_the_spiral_shader() -> void:
+	var orb: CanvasItem = _node("CoreOrb")
+	assert_eq(((orb.material as ShaderMaterial).shader as Shader).resource_path, CORE_ORB_SHADER_PATH)
 
-func test_core_orb_column_follows_level() -> void:
+## Level 0 keeps the strip's dormant pebble (column 0) and draws no fill.
+func test_fresh_save_shows_the_dormant_core() -> void:
+	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame(), Vector2i(0, 0))
+	assert_almost_eq(_fill("CoreOrb"), 0.0, 0.0001)
+
+## From level 1 the orb is the empty socket (column 1, whose seed dot the
+## fill covers) and the spiral grows from the centre to level / 100.
+func test_core_fill_follows_level() -> void:
 	_load_core_density(32.0, 0.0)
-	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame().x, 5)
+	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame(), Vector2i(1, 0))
+	assert_almost_eq(_fill("CoreOrb"), 0.32, 0.0001)
 	assert_eq(_text("LevelLabel"), "Level 32")
 
-func test_core_orb_column_stops_at_breakthrough_level() -> void:
-	_load_core_density(140.0, 0.0)
-	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame().x, 16)
+func test_core_fill_follows_a_level_up() -> void:
+	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
+	assert_eq(_text("LevelLabel"), "Level 1", "precondition: one level up")
+	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame(), Vector2i(1, 0))
+	assert_almost_eq(_fill("CoreOrb"), 0.01, 0.0001)
 
-func test_swirl_steps_every_one_and_a_half_seconds() -> void:
-	var timer: Timer = _node("SwirlTimer")
-	assert_almost_eq(timer.wait_time, 1.5, 0.001)
-	assert_false(timer.is_stopped(), "the swirl runs")
-	var core: LacquerStripRect = _node("CoreOrb")
-	assert_eq(core.get_frame().y, 0)
-	for phase: int in [1, 2, 3, 0]:
-		timer.timeout.emit()
-		assert_eq(core.get_frame().y, phase, "swirl phase after a step")
+func test_core_fill_stops_at_breakthrough_level() -> void:
+	_load_core_density(140.0, 0.0)
+	assert_almost_eq(_fill("CoreOrb"), 1.0, 0.0001)
 
 func test_beads_follow_xp() -> void:
 	# Level 0 needs 10 XP for level 1: 5 XP lights half the 18 beads.

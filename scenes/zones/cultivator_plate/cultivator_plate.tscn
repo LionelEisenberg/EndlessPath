@@ -9,6 +9,20 @@
 [ext_resource type="Texture2D" uid="uid://dqku0g2ulqgfj" path="res://assets/ui/lacquer/lacquer_beads_xp_strip_ai.png" id="7_beads"]
 [ext_resource type="Texture2D" uid="uid://cvsx3a2hfquag" path="res://assets/ui/lacquer/lacquer_line_ai.png" id="8_line"]
 [ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="9_gold"]
+[ext_resource type="Shader" uid="uid://xa4htrskmfm7" path="res://assets/shaders/lacquer_madra_orb.gdshader" id="10_madra_orb"]
+[ext_resource type="Shader" uid="uid://csri7yobignr4" path="res://assets/shaders/lacquer_core_orb.gdshader" id="11_core_orb"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_madra_socket"]
+atlas = ExtResource("5_madra")
+region = Rect2(0, 0, 80, 80)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_madra"]
+resource_local_to_scene = true
+shader = ExtResource("10_madra_orb")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_core"]
+resource_local_to_scene = true
+shader = ExtResource("11_core_orb")
 
 [node name="CultivatorPlate" type="Control" unique_id=526514825]
 layout_mode = 3
@@ -29,15 +43,14 @@ texture = ExtResource("3_board")
 
 [node name="MadraOrb" type="TextureRect" parent="." unique_id=769371532]
 unique_name_in_owner = true
+material = SubResource("ShaderMaterial_madra")
 layout_mode = 0
 offset_left = 18.0
 offset_top = 16.0
 offset_right = 98.0
 offset_bottom = 96.0
 mouse_filter = 2
-script = ExtResource("4_strip")
-strip = ExtResource("5_madra")
-frame_size = Vector2i(80, 80)
+texture = SubResource("AtlasTexture_madra_socket")
 
 [node name="MadraTitleLabel" type="Label" parent="." unique_id=712051973]
 layout_mode = 0
@@ -90,6 +103,7 @@ horizontal_alignment = 2
 
 [node name="CoreOrb" type="TextureRect" parent="." unique_id=2084093515]
 unique_name_in_owner = true
+material = SubResource("ShaderMaterial_core")
 layout_mode = 0
 offset_left = 18.0
 offset_top = 108.0
@@ -99,11 +113,6 @@ mouse_filter = 2
 script = ExtResource("4_strip")
 strip = ExtResource("6_core")
 frame_size = Vector2i(80, 80)
-
-[node name="SwirlTimer" type="Timer" parent="." unique_id=2494381]
-unique_name_in_owner = true
-wait_time = 1.5
-autostart = true
 
 [node name="CoreTitleLabel" type="Label" parent="." unique_id=696145712]
 layout_mode = 0

@@ -4,20 +4,23 @@ extends Control
 ## The cultivator cabinet at the zone view's top left (lacquer kit §5.1).
 ## Three rows on the lacquer board: the Madra orb with Madra / max and, while
 ## the running action earns Madra, its rate; the Core Density orb with the
-## stage, level and XP beads; gold. The orbs and beads are frames of the kit's
-## strips. It reads everything once on _ready, then follows the managers'
-## signals.
+## stage, level and XP beads; gold, at the right of the bottom row.
+## The orbs are frames of the kit's strips under two pixel-art shaders that
+## animate the fill on their own (lacquer_madra_orb: flowing liquid,
+## lacquer_core_orb: a turning spiral); this script only hands them the fill.
+## The beads are rows of their strip. It reads everything once on _ready, then
+## follows the managers' signals.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## Last frame of the Madra orb strip: 33 frames, 0 empty and 32 full.
-const MADRA_ORB_LAST_FRAME: int = 32
-## Last column of the core orb strip: 17 columns, Core Density 0 to 100.
-const CORE_ORB_LAST_COLUMN: int = 16
-## Swirl phases of the core orb: the strip's 4 rows, stepped by SwirlTimer.
-const CORE_SWIRL_PHASES: int = 4
+## The shader parameter both orbs fill to, 0 to 1.
+const FILL_PARAMETER: StringName = &"progress"
+## Core orb strip columns: the dormant pebble shown at Core Density 0, and the
+## empty socket (with a seed dot the spiral covers) under the fill from level 1.
+const CORE_ORB_DORMANT_COLUMN: int = 0
+const CORE_ORB_SOCKET_COLUMN: int = 1
 ## Last row of the XP bead strip: 19 rows, 0 to 18 beads lit.
 const XP_BEADS_LAST_ROW: int = 18
 
@@ -25,23 +28,18 @@ const XP_BEADS_LAST_ROW: int = 18
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
-@onready var _madra_orb: LacquerStripRect = %MadraOrb
+@onready var _madra_orb: TextureRect = %MadraOrb
+@onready var _madra_fill: ShaderMaterial = _madra_orb.material
 @onready var _madra_value_label: Label = %MadraValueLabel
 @onready var _madra_max_label: Label = %MadraMaxLabel
 @onready var _rate_label: RichTextLabel = %RateLabel
 @onready var _core_orb: LacquerStripRect = %CoreOrb
-@onready var _swirl_timer: Timer = %SwirlTimer
+@onready var _core_fill: ShaderMaterial = _core_orb.material
 @onready var _stage_label: Label = %StageLabel
 @onready var _level_label: Label = %LevelLabel
 @onready var _xp_beads: LacquerStripRect = %XpBeads
 @onready var _xp_label: Label = %XpLabel
 @onready var _gold_value_label: Label = %GoldValueLabel
-
-#-----------------------------------------------------------------------------
-# STATE
-#-----------------------------------------------------------------------------
-
-var _swirl_phase: int = 0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -54,7 +52,6 @@ func _ready() -> void:
 	CultivationManager.core_density_level_updated.connect(_on_core_density_level_updated)
 	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
-	_swirl_timer.timeout.connect(_on_swirl_timer_timeout)
 	_update_all()
 
 #-----------------------------------------------------------------------------
@@ -76,13 +73,13 @@ func _update_all() -> void:
 	_update_core_density()
 	_update_gold()
 
-## Madra / max and the orb frame round(Madra / max × 32). The max follows the
-## Core Density level, so a level-up refreshes this too.
+## Madra / max and the orb's liquid at Madra / max. The max follows the Core
+## Density level, so a level-up refreshes this too.
 func _update_madra() -> void:
 	var madra: float = ResourceManager.get_madra()
 	var max_madra: float = CultivationManager.get_max_madra()
 	var fraction: float = clampf(madra / max_madra, 0.0, 1.0) if max_madra > 0.0 else 0.0
-	_madra_orb.set_frame(roundi(fraction * MADRA_ORB_LAST_FRAME))
+	_madra_fill.set_shader_parameter(FILL_PARAMETER, fraction)
 	_madra_value_label.text = str(floori(madra))
 	_madra_max_label.text = " / %d" % floori(max_madra)
 
@@ -93,18 +90,19 @@ func _update_rate() -> void:
 	if _rate_label.visible:
 		_rate_label.text = LacquerText.decimal_bbcode(LacquerText.rate(rate) + " / s")
 
-## Stage, level, the core orb column round(min(level, 100) / 100 × 16) and the
-## XP beads. A bead lights only once its share of the XP is earned,
-## floor(xp × 18 / need), so the beads never run ahead of the floored
-## "xp / need XP" figure.
+## Stage, level, the core orb's spiral at min(level, 100) / 100 (the dormant
+## pebble at level 0) and the XP beads. A bead lights only once its share of
+## the XP is earned, floor(xp × 18 / need), so the beads never run ahead of
+## the floored "xp / need XP" figure.
 func _update_core_density() -> void:
 	var level: int = floori(CultivationManager.get_core_density_level())
 	var xp: float = CultivationManager.get_core_density_xp()
 	var need: float = CultivationManager.get_xp_for_next_level()
 	_stage_label.text = CultivationManager.get_current_advancement_stage_name()
 	_level_label.text = "Level %d" % level
-	var level_fraction: float = float(mini(level, CultivationManager.BREAKTHROUGH_LEVEL)) / CultivationManager.BREAKTHROUGH_LEVEL
-	_core_orb.set_frame(roundi(level_fraction * CORE_ORB_LAST_COLUMN), _swirl_phase)
+	var level_fraction: float = float(clampi(level, 0, CultivationManager.BREAKTHROUGH_LEVEL)) / CultivationManager.BREAKTHROUGH_LEVEL
+	_core_orb.set_frame(CORE_ORB_SOCKET_COLUMN if level > 0 else CORE_ORB_DORMANT_COLUMN)
+	_core_fill.set_shader_parameter(FILL_PARAMETER, level_fraction)
 	var lit_beads: int = floori(xp * XP_BEADS_LAST_ROW / need) if need > 0.0 else 0
 	_xp_beads.set_frame(0, clampi(lit_beads, 0, XP_BEADS_LAST_ROW))
 	_xp_label.text = "%d / %d XP" % [floori(xp), floori(need)]
@@ -135,7 +133,3 @@ func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) 
 
 func _on_current_action_changed(_action_data: ZoneActionData) -> void:
 	_update_rate()
-
-func _on_swirl_timer_timeout() -> void:
-	_swirl_phase = (_swirl_phase + 1) % CORE_SWIRL_PHASES
-	_core_orb.set_frame(_core_orb.get_frame().x, _swirl_phase)
