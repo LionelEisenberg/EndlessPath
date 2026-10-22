@@ -262,6 +262,13 @@ func test_decimal_bbcode_wraps_only_between_digits() -> void:
 	assert_eq(LacquerText.decimal_bbcode("+1.5 Madra / s"), "+1" + YATRA_POINT + "5 Madra / s")
 	assert_eq(LacquerText.decimal_bbcode("Lv 1 → 2."), "Lv 1 → 2.")
 	assert_eq(LacquerText.decimal_bbcode("1.5 and 2.25"), "1" + YATRA_POINT + "5 and 2" + YATRA_POINT + "25")
+	assert_eq(LacquerText.decimal_bbcode("[x] 1.5"), "[lb]x] 1" + YATRA_POINT + "5", "a [ in the text is escaped")
+
+func test_decimal_bbcode_shows_brackets_as_text() -> void:
+	# The input is plain text: a name like "[b]old" must not turn into a tag
+	# and swallow the rest of the line.
+	var rich := _make_rich_text(LacquerText.decimal_bbcode("[b]old [url]Madra 1.5"))
+	assert_eq(rich.get_parsed_text(), "[b]old [url]Madra 1.5")
 
 func test_decimal_line_keeps_the_kit_line_height() -> void:
 	# Kit §3: RichTextLacquer lines are 15/18. Plain Yatra One would grow a

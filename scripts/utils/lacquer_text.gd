@@ -31,10 +31,11 @@ static func rate(value: float) -> String:
 		return sign_text + str(int(roundf(rounded)))
 	return sign_text + String.num(rounded, 2)
 
-## Returns text for a RichTextLabel with each decimal point (a "." between two
-## digits) set in Yatra One, trimmed so the line keeps its height at 13-18 px.
-## Other full stops are left alone.
+## Returns BBCode for a RichTextLabel from plain text: each "[" escaped as
+## "[lb]", so a name with a bracket shows as written instead of opening a tag,
+## and each decimal point (a "." between two digits) set in Yatra One, trimmed
+## so the line keeps its height at 13-18 px. Other full stops are left alone.
 static func decimal_bbcode(text: String) -> String:
 	if _decimal_point_regex == null:
 		_decimal_point_regex = RegEx.create_from_string(_DECIMAL_POINT_PATTERN)
-	return _decimal_point_regex.sub(text, DECIMAL_POINT_BBCODE, true)
+	return _decimal_point_regex.sub(text.replace("[", "[lb]"), DECIMAL_POINT_BBCODE, true)
