@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://mtjmtsaag6uw"]
+
+[ext_resource type="Script" uid="uid://dkwqpaoi306vh" path="res://scenes/common/lacquer/lacquer_frame_overlay.gd" id="1_overlay"]
+[ext_resource type="StyleBox" uid="uid://cchxbcte4y8ct" path="res://assets/styleboxes/lacquer/frame_brass.tres" id="2_brass"]
+
+[node name="LacquerFrameOverlay" type="Panel"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("2_brass")
+script = ExtResource("1_overlay")

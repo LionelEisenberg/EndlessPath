@@ -124,6 +124,70 @@ Base types without a variant:
 - `Panel` and `PanelContainer` default to `common/panel_tan.tres` (tan parchment texture).
 - `Button` uses `buttons/button_default_normal.tres`, `button_default_pressed.tres`, and `button_default_hover.tres` for both hover and disabled, with a gold hover/pressed font colour. `button_default_disabled.tres` is referenced only by `ability_card.tscn`.
 
+## Lacquer theme (zone view)
+
+The map-first zone view ("Lacquer and brass") has its own theme, `assets/themes/lacquer/lacquer_theme.tres`. Sizes and colours come from the art kit's §2 and §3 ([2026-10-21-zone-view-lacquer-kit.md](superpowers/specs/2026-10-21-zone-view-lacquer-kit.md)).
+
+**Rule:** every zone-view panel (cultivator cabinet, Goals board, log board, dock, zone chest, map plates and popovers) sets `theme = lacquer_theme.tres` on its root and gives its Labels the `LabelLacquer*` variants below. Everything else (base types, `pixel_theme.tres`'s own variants) still falls back to `pixel_theme.tres`.
+
+How the theme is built, so a reused piece inside a lacquer panel keeps its own look:
+
+- **No defaults.** The theme sets no `default_font` or `default_font_size`. A default would answer for every type, `pixel_theme.tres`'s variants included, before Godot reached them (the `LabelMerchantTitle` problem above). Each variant sets its own `font` and `font_size` instead. `test_theme_sets_no_defaults` guards this.
+- **Shadows.** `pixel_theme.tres`'s base `Label` draws a 1 px ink shadow. The four painted titles set the kit's hard 2 px shadow (`#150909`, offset 2, 2, `shadow_outline_size` 0). Every other lacquer variant sets a transparent `font_shadow_color`, so it draws none.
+- **Line pitch.** Each variant's `line_spacing` is the kit's line height minus the font's height at that size, so wrapped lines (lore, two-line card details, popover bodies) step by the kit's line height.
+- **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for the painted titles, BM Euljiro for everything else. Tags and seals use a `FontVariation` of BM Euljiro with 1 px letter spacing (`spacing_glyph = 1`).
+
+Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
+
+| Variant | Font, size / kit line height | Colour | Use for |
+|---------|------------------------------|--------|---------|
+| `LabelLacquerZoneName` | Yatra 30 / 44, shadow | Brass | Zone name in the chest header |
+| `LabelLacquerPanelTitle` | Yatra 22 / 28, shadow | Brass | Panel titles: Goals, Log |
+| `LabelLacquerSection` | Yatra 20 / 24, shadow | Brass | The Activities header |
+| `LabelLacquerStage` | Yatra 21 / 28, shadow | Cream | Stage name ("Foundation") |
+| `LabelLacquerBig` | Euljiro 30 / 36 | Cream | The Madra value |
+| `LabelLacquerGold` | Euljiro 22 / 28 | Cream | The gold value |
+| `LabelLacquerName` | Euljiro 17 / 20 | Cream | Card titles, quest and milestone names, `Level 32` |
+| `LabelLacquerRate` | Euljiro 17 / 20 | Tan | The cabinet's Madra rate (`+1.5 / s`) |
+| `LabelLacquerNowName` | Euljiro 18 / 22 | Cream | Now strip action name |
+| `LabelLacquerNowRate` | Euljiro 16 / 22 | Cream | Now strip rate |
+| `LabelLacquerDetail` | Euljiro 15 / 18 | Tan | Labels, card detail lines, figures (`17 / 18 XP`), log lines, group labels |
+| `LabelLacquerTag` | Euljiro 13 / 22, 1 px spacing | Tan | Mode tags (IDLE, ACTIVE, SHOP, STORY, UNKNOWN). RUNNING overrides to cream, ENTER to ink |
+| `LabelLacquerSeal` | Euljiro 13 / 22, 1 px spacing | Cream | Seals: NEW, LOCKED |
+| `LabelLacquerLegend` | Euljiro 14 / 22 | Ink | The `Now` legend on its brass plate |
+| `LabelLacquerDock` | Euljiro 14 / 18 | Cream | Dock button labels |
+| `LabelLacquerHotkey` | Euljiro 14 / 18 | Tan | Dock hotkeys |
+| `LabelLacquerLore` | Euljiro 16 / 22 | Cream | Zone lore text |
+| `LabelLacquerPlateName` | Euljiro 16 / 18 | Cream | Map plate zone names |
+| `LabelLacquerPlateLine` | Euljiro 14 / 18 | Cream | Map plate status lines |
+| `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |
+| `LabelLacquerPopoverBody` | Euljiro 15 / 20 | Cream | Map popover body text |
+| `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Map floaters on their lacquer token. No outline: the kit's §0 dropped it when the floaters moved onto the token. Madra floaters override to Madra blue |
+
+`RichTextLacquer` (base `RichTextLabel`): BM Euljiro 15, tan, `line_separation` for an 18 px line. Use it for the few lines with a decimal number: BM Euljiro's `.` sits low and reads as a comma at 15–17 px, so `LacquerText.decimal_bbcode()` sets each decimal point in Yatra One (kit §3, glyph gaps).
+
+Per-label colour overrides on top of these variants are expected where the kit colours by state: log lines by tone and age, plate names on hover, RUNNING and ENTER tags, Madra-blue text.
+
+### Lacquer styleboxes (`assets/styleboxes/lacquer/`)
+
+All `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at their file scale:
+
+| File | Texture | Margins | Fill | Use |
+|------|---------|---------|------|-----|
+| `frame_brass.tres` | `lacquer_frame_brass_ai.png` (24x24) | 8 | none | Flash frame on cards and the Now tray, pinned map plates |
+| `frame_hover.tres` | `lacquer_frame_hover_ai.png` (16x16) | 4 | none | Hover frame on cards, the Now tray, Show me, About |
+| `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` (12x12) | top and bottom 4 | yes | The activity list's rail thumb, any even height of 32 or more |
+| `token.tres` | `lacquer_token_ai.png` (26x26) | left and top 6, right and bottom 8 | yes | The map floater's token. The 2 px shadow is baked into the right and bottom edges |
+
+### Lacquer pieces (`scenes/common/lacquer/`)
+
+- **`LacquerStripRect`** (`lacquer_strip_rect.gd`, a `TextureRect` script): set `strip` and `frame_size`, then `set_frame(column, row)` shows that frame through the rect's own `AtlasTexture` (orbs, XP beads, timer rings). Frames clamp to the strip.
+- **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Aura Well 152, milestone 138, adventure 74.
+- **`LacquerFrameOverlay`** (`lacquer_frame_overlay.tscn`, a `Panel`): a full-rect frame over its parent, hidden, mouse ignored, brass by default. Override its `theme_override_styles/panel` with `frame_hover.tres` for the hover frame. `flash(times)` shows it 300 ms and hides it 300 ms, `times` times, and ends hidden.
+- **`LacquerText`** (`scripts/utils/lacquer_text.gd`): `rate(1.5)` → `"+1.5"`, `rate(2.0)` → `"+2"`; `decimal_bbcode(text)` for `RichTextLacquer`.
+
+Tests: `tests/unit/test_lacquer_pieces.gd` checks every variant's font, size, colour, shadow and line pitch, the styleboxes' margins, and the pieces.
+
 ## Pattern examples
 
 **Good — size matches a variant, color is unique to this context:**
@@ -189,6 +253,8 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | `BG_LIGHT`, `TINT_*`, `BORDER_SUBTLE`, `HOVER_BG`, `PRESSED_BG`, `DISABLED_*` | — | — | Unused |
 | `FONT_TITLE` 42 / `FONT_HEADING` 28 / `FONT_BODY` 20 / `FONT_LABEL` 16 / `FONT_CAPTION` 12 | — | **Do not match** the variant scale above | Unused |
 | `BORDER_WIDTH_*`, `CORNER_RADIUS_*`, `CONTENT_MARGIN_*` | — | — | Unused |
+| `LACQUER_INK` / `LACQUER_BRASS` / `LACQUER_CREAM` / `LACQUER_TAN` | `#150909` / `#D4A84A` / `#F0E8D8` / `#A89070` | The `LabelLacquer*` variants | Zone view panels (lacquer kit §2) |
+| `LACQUER_DIM` / `LACQUER_MADRA` / `LACQUER_VERMILION` | `#94806A` / `#BBD5E7` / `#A83C30` | — | Old log lines, Madra text, seals |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code.
 
@@ -196,11 +262,12 @@ Use the Label variants for sizes. Use `ThemeConstants` only for colours that mus
 
 | Path | Contents |
 |------|----------|
-| `assets/themes/pixel_theme.tres` | Project theme: base types, all variants above except the book and merchant ones |
+| `assets/themes/pixel_theme.tres` | Project theme: base types, all variants above except the book, merchant and lacquer ones |
 | `assets/themes/book_theme.tres` | Menu book page variants ([Menu book pages](#menu-book-pages)) |
+| `assets/themes/lacquer/lacquer_theme.tres` | Zone view theme: the `LabelLacquer*` variants and `RichTextLacquer` (see Lacquer theme) |
 | `assets/themes/pixel_ui_theme/` | Third-party pixel UI pack: `8x8_ui_elements*.png` and `8x8_ui_icons.png` atlases, `m5x7.ttf`, 8 colour-variant `PixelTheme-*.tres`, `TabContainer.tscn`. `pixel_theme.tres` uses only the two base atlases; the variant themes are not referenced by the game. |
-| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `cycling`, `inventory`, `textures`, `ui`, `zones` |
-| `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `Korean_Calligraphy.ttf`, `pixelmix.ttf`, `Ubage-woA3P.otf` and `YatraOne-Regular.ttf` are loaded only by the label testing scene. |
+| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `cycling`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
+| `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `YatraOne-Regular.ttf` (the lacquer theme's painted titles). `Korean_Calligraphy.ttf`, `pixelmix.ttf` and `Ubage-woA3P.otf` are loaded only by the label testing scene. |
 | `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `book` (menu book bookmark, close tab, stage icons, padlock, 2x panel art), `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
 | `assets/aseprite/` | Aseprite sources: `abilities`, `character_profiles`, `cycling`, `ui/{ability_button,buff_icon,resource_bar}`, `zones`, plus root `madra_circle.aseprite`, `Sprite-0003*.aseprite` and a stray `Sprite-0003.gif` |
 | `assets/shaders/` | 16 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |
