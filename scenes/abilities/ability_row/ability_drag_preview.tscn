@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/abilities/ability_row/ability_drag_preview.gd" id="1_script"]
+[ext_resource type="Theme" path="res://assets/themes/book_theme.tres" id="2_theme"]
+
+[node name="AbilityDragPreview" type="Control"]
+z_index = 100
+top_level = true
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="Slot" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = -38.0
+offset_top = -38.0
+offset_right = 38.0
+offset_bottom = 38.0
+mouse_filter = 2
+theme_type_variation = &"PanelBookSlot"
+
+[node name="Icon" type="TextureRect" parent="Slot"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5

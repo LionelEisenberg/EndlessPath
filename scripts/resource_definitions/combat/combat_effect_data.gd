@@ -83,6 +83,25 @@ enum DamageType {
 # CALCULATION
 #-----------------------------------------------------------------------------
 
+## How much of the caster's given attribute this effect adds per point.
+func get_scaling(attribute: CharacterAttributesData.AttributeType) -> float:
+	match attribute:
+		CharacterAttributesData.AttributeType.STRENGTH: return strength_scaling
+		CharacterAttributesData.AttributeType.BODY: return body_scaling
+		CharacterAttributesData.AttributeType.AGILITY: return agility_scaling
+		CharacterAttributesData.AttributeType.SPIRIT: return spirit_scaling
+		CharacterAttributesData.AttributeType.FOUNDATION: return foundation_scaling
+		CharacterAttributesData.AttributeType.CONTROL: return control_scaling
+		CharacterAttributesData.AttributeType.RESILIENCE: return resilience_scaling
+		CharacterAttributesData.AttributeType.WILLPOWER: return willpower_scaling
+	Log.error("CombatEffectData: Unknown attribute type %s" % attribute)
+	return 0.0
+
+## What the caster's given attribute adds to this effect's value: the
+## attribute times its scaling, as calculate_value() counts it. Doesn't log.
+func get_scaling_contribution(attribute: CharacterAttributesData.AttributeType, caster_attributes: CharacterAttributesData) -> float:
+	return caster_attributes.get_attribute(attribute) * get_scaling(attribute)
+
 ## Calculate the total effect value based on caster's attributes
 func calculate_value(caster_attributes: CharacterAttributesData) -> float:
 	if caster_attributes == null:
