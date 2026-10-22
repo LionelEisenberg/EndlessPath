@@ -151,6 +151,8 @@ func _on_mouse_exited() -> void:
 	_is_hovered = false
 	_update_notification_display()
 
+## Fires the button's input action as a key press would: pressed, then
+## released, so the action is not left held after the click.
 func _on_pressed() -> void:
 	var config: Dictionary = MENU_CONFIG.get(menu_type, {})
 	var action: StringName = config.get("input_action", &"")
@@ -158,7 +160,8 @@ func _on_pressed() -> void:
 		Log.warn("SystemMenuButton: No input_action for MenuType %s" % menu_type)
 		return
 
-	var event: InputEventAction = InputEventAction.new()
-	event.action = action
-	event.pressed = true
-	Input.parse_input_event(event)
+	for is_pressed: bool in [true, false]:
+		var event: InputEventAction = InputEventAction.new()
+		event.action = action
+		event.pressed = is_pressed
+		Input.parse_input_event(event)

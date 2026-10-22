@@ -4,7 +4,7 @@ extends GutTest
 ## SystemMenuButtons in kit order and place, the Path button's brass ring and
 ## count seal following the path point balance, the Abilities ring with no
 ## count while an unlocked ability sits unequipped, the hover face, and a press
-## parsing the button's input action.
+## parsing the button's input action, then releasing it.
 
 const DOCK_SCENE_PATH: String = "res://scenes/ui/dock/dock.tscn"
 
@@ -34,6 +34,16 @@ const SPARE_ABILITY_ID: String = "empty_palm"
 const TEST_PATH_NODE_ID: String = "dock_test_node"
 
 var _dock: Dock = null
+
+## Records the open_path presses the game's input handlers would see.
+class ActionProbe:
+	extends Node
+
+	var presses: int = 0
+
+	func _input(event: InputEvent) -> void:
+		if event.is_action_pressed(&"open_path"):
+			presses += 1
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -227,7 +237,16 @@ func test_hover_shows_the_hover_face() -> void:
 
 func test_pressing_parses_the_action() -> void:
 	_add_dock()
+	var probe: ActionProbe = add_child_autofree(ActionProbe.new())
 	_button("PathButton").pressed.emit()
 	# Input buffers parsed events until the next frame's flush.
 	await wait_process_frames(2)
-	assert_true(Input.is_action_pressed(&"open_path"), "the Path button fires open_path")
+	assert_eq(probe.presses, 1, "the Path button fires open_path once")
+
+## A parsed press with no release would leave open_path held for the rest of
+## the session (Input.is_action_pressed stays true).
+func test_pressing_releases_the_action() -> void:
+	_add_dock()
+	_button("PathButton").pressed.emit()
+	await wait_process_frames(2)
+	assert_false(Input.is_action_pressed(&"open_path"), "open_path is released again")
