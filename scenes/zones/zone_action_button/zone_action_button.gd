@@ -266,15 +266,20 @@ func _apply_height() -> void:
 	size = card_size
 	_drawer.size = card_size
 
+## Picks the drawer face and centres the icon on its height, where each face
+## draws its carved socket (y+20 in the 72 px drawers, y+32 in the tall one).
 func _apply_face() -> void:
 	_drawer.position = RUNNING_OFFSET if _is_running else Vector2.ZERO
+	var face_height: float = SHORT_HEIGHT
 	if _is_running:
 		_face.texture = DRAWER_RUN_TEXTURE
 	elif _is_tall:
 		_face.texture = DRAWER_TALL_TEXTURE
+		face_height = TALL_HEIGHT
 	else:
 		_face.texture = DRAWER_TEXTURE
 	_face.size = _face.texture.get_size()
+	_icon.position.y = (face_height - _icon.size.y) / 2.0
 
 func _apply_ready_frame() -> void:
 	_ready_frame.visible = _shows_ready_frame and _ready_frame_hold == null

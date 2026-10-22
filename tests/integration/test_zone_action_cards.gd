@@ -22,6 +22,8 @@ const AURA_WELL_EVENT: String = "aura_well_discovered"
 const CARD_WIDTH: float = 392.0
 const SHORT_HEIGHT: float = 72.0
 const TALL_HEIGHT: float = 96.0
+## The drawer face's rim (ink and lit or shaded edge, 2 art px each side).
+const DRAWER_RIM: int = 4
 ## Kit §5.5: a detail line is at most 316 px, then ends in an ellipsis.
 const DETAIL_WIDTH: float = 316.0
 const ELLIPSIS: String = "…"
@@ -185,6 +187,30 @@ func _story_fixture(action_name: String, description: String) -> ZoneActionData:
 	action.action_type = ZoneActionData.ActionType.NPC_DIALOGUE
 	action.description = description
 	return action
+
+## The centre row of the card's icon, in the drawer's space.
+func _icon_centre_y(card: ZoneActionButton) -> float:
+	var icon: TextureRect = card.get_node("%Icon") as TextureRect
+	return icon.position.y + icon.size.y / 2.0
+
+## The centre row of the carved socket drawn in the card's face, found down
+## the icon's centre column: the first and last rows inside the drawer's
+## 4 px rim that are not the raised lacquer.
+func _socket_centre_y(card: ZoneActionButton) -> float:
+	var face: TextureRect = card.get_node("%Face") as TextureRect
+	var icon: TextureRect = card.get_node("%Icon") as TextureRect
+	var image: Image = face.texture.get_image()
+	var column: int = int(icon.position.x + icon.size.x / 2.0)
+	var raised: Color = image.get_pixel(int(CARD_WIDTH / 2.0), int(card.size.y / 2.0))
+	var first: int = -1
+	var last: int = -1
+	for y: int in range(DRAWER_RIM, int(card.size.y) - DRAWER_RIM):
+		if not image.get_pixel(column, y).is_equal_approx(raised):
+			if first < 0:
+				first = y
+			last = y
+	assert_gte(first, 0, "precondition: the face has a socket in the icon's column")
+	return (first + last + 1) / 2.0
 
 #-----------------------------------------------------------------------------
 # MODE TAGS AND THE RUNNING DRAWER
@@ -508,6 +534,35 @@ func test_cycling_card_follows_the_equipped_technique() -> void:
 	CyclingManager.equipped_technique_changed.emit(technique)
 	assert_true(_has_text_containing(card, "Foundational Technique · Madra and Core"))
 	assert_eq(card.size.y, TALL_HEIGHT, "the longer line wraps in the tall drawer")
+
+func test_short_card_centres_its_icon_and_socket() -> void:
+	_equip_technique_named("Calm")
+	var card: ZoneActionButton = _card(CYCLING_ID)
+	assert_eq(_icon_centre_y(card), SHORT_HEIGHT / 2.0, "the icon sits on the drawer's middle row")
+	assert_eq(_socket_centre_y(card), SHORT_HEIGHT / 2.0, "the socket sits on the drawer's middle row")
+
+func test_tall_card_centres_its_icon() -> void:
+	# The user's review (2026-10-22): the icon sat at the top of the tall
+	# drawer, with 32 px of empty drawer under it.
+	_equip_technique_named("word ".repeat(40).strip_edges())
+	var card: ZoneActionButton = _card(CYCLING_ID)
+	assert_eq(card.size.y, TALL_HEIGHT, "precondition: the tall drawer")
+	assert_eq(_icon_centre_y(card), TALL_HEIGHT / 2.0)
+
+func test_tall_drawer_centres_its_socket_on_the_icon() -> void:
+	_equip_technique_named("word ".repeat(40).strip_edges())
+	var card: ZoneActionButton = _card(CYCLING_ID)
+	assert_eq(_socket_centre_y(card), TALL_HEIGHT / 2.0, "the socket sits on the drawer's middle row")
+	assert_eq(_socket_centre_y(card), _icon_centre_y(card), "the icon sits in the socket")
+
+func test_card_back_to_short_moves_its_icon_back_up() -> void:
+	_equip_technique_named("word ".repeat(40).strip_edges())
+	var card: ZoneActionButton = _card(CYCLING_ID)
+	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
+	technique.technique_name = "Calm"
+	CyclingManager.equipped_technique_changed.emit(technique)
+	assert_eq(card.size.y, SHORT_HEIGHT, "precondition: the short line fits the short drawer")
+	assert_eq(_icon_centre_y(card), SHORT_HEIGHT / 2.0)
 
 func test_long_idle_detail_does_not_grow_the_card() -> void:
 	var action := ZoneManager.get_action_by_id(FORAGING_ID).duplicate() as ForageActionData

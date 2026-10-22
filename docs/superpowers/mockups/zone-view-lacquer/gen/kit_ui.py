@@ -161,7 +161,9 @@ def drawer_face(w, h, rim='lacquer'):
             img.putpixel((x, y), c)
     for p in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
         put(img, p[0], p[1], CLEAR)
-    socket(img, 4, 6, 24)
+    # the socket sits on the drawer's middle row: y 6 in the 36 px drawers, 12 in the
+    # 48 px tall ones (the user's review, 2026-10-22: centre the icon in the card)
+    socket(img, 4, (h - 24) // 2, 24)
     return img
 
 
