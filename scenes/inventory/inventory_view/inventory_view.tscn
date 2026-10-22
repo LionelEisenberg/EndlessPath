@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://sra4pqjmj11a"]
 
 [ext_resource type="Script" uid="uid://bxs3eblygn8oo" path="res://scenes/inventory/inventory_view/inventory_view.gd" id="1_43eln"]
-[ext_resource type="Texture2D" uid="uid://bl4374rlugdsq" path="res://assets/sprites/inventory/book_opening_spritesheet.png" id="2_cs4ju"]
-[ext_resource type="Texture2D" uid="uid://2ht5lyu30god" path="res://assets/sprites/inventory/page_turning_spritesheet.png" id="2_wdr80"]
+[ext_resource type="PackedScene" path="res://scenes/ui/book_frame/book_frame.tscn" id="2_bookframe"]
+[ext_resource type="Resource" path="res://resources/ui/book_styles/inventory_book_style.tres" id="2_bookstyle"]
 [ext_resource type="PackedScene" uid="uid://dnkls2h5eaj10" path="res://scenes/inventory/inventory_view/tab_switcher/tab_button.tscn" id="3_eyvfv"]
 [ext_resource type="Script" uid="uid://bevd783gr5t7m" path="res://scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd" id="4_tabsw"]
 [ext_resource type="PackedScene" uid="uid://bf2mvtcm5vq52" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_tab.tscn" id="6_k51tu"]
@@ -14,57 +14,7 @@
 [ext_resource type="Texture2D" uid="uid://b2uhfp6uhvrjt" path="res://assets/sprites/inventory/tab_switcher/materials_tab.png" id="34_maticon"]
 [ext_resource type="Texture2D" uid="uid://g2by347othvt" path="res://assets/sprites/inventory/tab_switcher/quest_items_tab_icon.png" id="35_qicon"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_61p00"]
-atlas = ExtResource("2_cs4ju")
-region = Rect2(0, 0, 700, 450)
-
-[sub_resource type="Animation" id="Animation_cs4ju"]
-resource_name = "BookClosingAnimation"
-length = 0.3
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:texture:region")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.075, 0.15, 0.225, 0.3),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
-"update": 1,
-"values": [Rect2(0, 0, 700, 450), Rect2(700, 0, 700, 450), Rect2(1400, 0, 700, 450), Rect2(2100, 0, 700, 450), Rect2(2800, 0, 700, 450)]
-}
-
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_1vqu0"]
-_data = {
-&"BookClosingAnimation": SubResource("Animation_cs4ju")
-}
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_1vqu0"]
-atlas = ExtResource("2_wdr80")
-region = Rect2(6300, 0, 700, 450)
-
-[sub_resource type="Animation" id="Animation_pcbrs"]
-resource_name = "PageTurningAnimation"
-length = 0.54
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:texture:region")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.06, 0.12, 0.18, 0.24, 0.3, 0.36, 0.42, 0.48, 0.54),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
-"update": 1,
-"values": [Rect2(0, 0, 700, 450), Rect2(700, 0, 700, 450), Rect2(1400, 0, 700, 450), Rect2(2100, 0, 700, 450), Rect2(2800, 0, 700, 450), Rect2(3500, 0, 700, 450), Rect2(4200, 0, 700, 450), Rect2(4900, 0, 700, 450), Rect2(5600, 0, 700, 450), Rect2(6300, 0, 700, 450)]
-}
-
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_gsa2o"]
-_data = {
-&"PageTurningAnimation": SubResource("Animation_pcbrs")
-}
-
-[node name="InventoryView" type="Control" unique_id=212600376]
+[node name="InventoryView" type="Control" unique_id=212600376 node_paths=PackedStringArray("page_content")]
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5
@@ -75,8 +25,10 @@ grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(2, 2)
 script = ExtResource("1_43eln")
+page_content = [NodePath("BookContent")]
 
-[node name="BookBackground" type="TextureRect" parent="." unique_id=1690145843]
+[node name="BookFrame" parent="." instance=ExtResource("2_bookframe")]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -89,35 +41,25 @@ offset_right = 350.0
 offset_bottom = 225.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = SubResource("AtlasTexture_61p00")
+style = ExtResource("2_bookstyle")
 
-[node name="BookAnimationPlayer" type="AnimationPlayer" parent="BookBackground" unique_id=248638347]
-unique_name_in_owner = true
-libraries/ = SubResource("AnimationLibrary_1vqu0")
-
-[node name="PageTurningRect" type="TextureRect" parent="BookBackground" unique_id=1779734050]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = SubResource("AtlasTexture_1vqu0")
-
-[node name="PageTurningAnimationPlayer" type="AnimationPlayer" parent="BookBackground/PageTurningRect" unique_id=92742895]
-unique_name_in_owner = true
-libraries/ = SubResource("AnimationLibrary_gsa2o")
-
-[node name="BookContent" type="Control" parent="BookBackground" unique_id=717265145]
+[node name="BookContent" type="Control" parent="." unique_id=717265145]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -225.0
+offset_right = 350.0
+offset_bottom = 225.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
-[node name="TabSwitcher" type="Control" parent="BookBackground/BookContent" unique_id=8363853]
+[node name="TabSwitcher" type="Control" parent="BookContent" unique_id=8363853]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -125,9 +67,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("4_tabsw")
 
-[node name="EquipmentTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=615165500 instance=ExtResource("3_eyvfv")]
+[node name="EquipmentTabButton" parent="BookContent/TabSwitcher" unique_id=615165500 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -136,7 +79,7 @@ offset_right = 55.5
 offset_bottom = 95.0
 icon_texture = ExtResource("32_eqicon")
 
-[node name="ConsumablesTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=321563705 instance=ExtResource("3_eyvfv")]
+[node name="ConsumablesTabButton" parent="BookContent/TabSwitcher" unique_id=321563705 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -145,7 +88,7 @@ offset_right = 55.5
 offset_bottom = 144.0
 icon_texture = ExtResource("33_consicon")
 
-[node name="MaterialsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=1287899700 instance=ExtResource("3_eyvfv")]
+[node name="MaterialsTabButton" parent="BookContent/TabSwitcher" unique_id=1287899700 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -154,7 +97,7 @@ offset_right = 55.5
 offset_bottom = 193.0
 icon_texture = ExtResource("34_maticon")
 
-[node name="QuestItemsTabButton" parent="BookBackground/BookContent/TabSwitcher" unique_id=931205040 instance=ExtResource("3_eyvfv")]
+[node name="QuestItemsTabButton" parent="BookContent/TabSwitcher" unique_id=931205040 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -163,19 +106,19 @@ offset_right = 55.5
 offset_bottom = 242.0
 icon_texture = ExtResource("35_qicon")
 
-[node name="EquipmentTab" parent="BookBackground/BookContent" unique_id=697996180 instance=ExtResource("6_k51tu")]
+[node name="EquipmentTab" parent="BookContent" unique_id=697996180 instance=ExtResource("6_k51tu")]
 unique_name_in_owner = true
 layout_mode = 1
 
-[node name="ConsumablesTab" parent="BookBackground/BookContent" unique_id=923432901 instance=ExtResource("31_constab")]
+[node name="ConsumablesTab" parent="BookContent" unique_id=923432901 instance=ExtResource("31_constab")]
 unique_name_in_owner = true
 visible = false
 
-[node name="MaterialsTab" parent="BookBackground/BookContent" unique_id=47492188 instance=ExtResource("8_asm34")]
+[node name="MaterialsTab" parent="BookContent" unique_id=47492188 instance=ExtResource("8_asm34")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
 
-[node name="QuestItemsTab" parent="BookBackground/BookContent" unique_id=1012340856 instance=ExtResource("24_qtab")]
+[node name="QuestItemsTab" parent="BookContent" unique_id=1012340856 instance=ExtResource("24_qtab")]
 unique_name_in_owner = true
 visible = false
