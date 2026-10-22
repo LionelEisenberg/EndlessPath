@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>EndlessPath - Zone View Map-First Mockup</title>
+<!--
+  Zone view, map-first v2 mock (spec: docs/superpowers/specs/2026-10-21-zone-view-map-first-design.md).
+  The frame is 1:1 with the 1920x1080 game viewport. The bar above it holds mock controls
+  and is not part of the game.
+
+  Art direction: Lacquer and brass, chosen by the user on 2026-10-21. Opaque lacquered wood
+  and brass, drawn as pixel art on one 2x grid (1 art px = 2 screen px, nearest-neighbour
+  everywhere), with hard 2 or 4 px offset shadows and nothing else: no glow, blur, gradient,
+  translucency or opacity fade. Jade is only for progress fills; Madra quantities use the
+  Madra blue ramp. Animations move in whole steps (steps() timing, 2 px moves, frames from
+  strips) and things show and hide outright.
+
+  The map is drawn at zoom 2 (hex tiles 164x190 shown 328x380), not the spec's 1.5, which
+  blurs the ink tiles: pointy-top odd-r, column step 328, row step 285, odd rows +164, and
+  Spirit Valley's centre stays at screen 960,702.
+
+  What it shows: the hex map at the centre (current zone in tiered fog), the cultivator
+  cabinet with the Goals board hung under it and the Log board on the left, the zone chest
+  on the right (Now tray, About lore panel, grouped activity drawers in a scrolling list
+  with a brass rail and shelf lips at a scrolled edge) and the dock at the bottom.
+
+  Revision 2 of the look (after a design review): brass marks only state. The two anchor
+  panels (cabinet, zone chest) keep their chunky corner straps; Goals, Log, Dock, the lore
+  panel and the map popover previews are plain boards; brass corner caps stay on the running
+  drawer, pinned popovers and hovered dock buttons. The zone chest and the Log hug their
+  content (the chest grows to the bottom line only when the list has to scroll; the Log
+  grows upward from the bottom, one line at a time), so the map keeps the visual weight.
+  The lore opens inline under the Now tray and pushes the list down, so no drawer is cut.
+  Hovered and pinned hexes swap to a brighter brass rim instead of floating brackets, the
+  uncharted hex twinkles instead of a light sweep, the map ring sits on open grass in the
+  Madra orb's brass rim, floaters ride a small lacquer token, and route dots only cross the
+  shared rim between two zones. Icons are the user's own where they are 16 art px
+  (character, star, gold, combat); the abilities icon is the user's design redrawn at 16.
+
+  By default the map shows Spirit Valley alone, as the build will: every other cell is fog,
+  tiered by hex distance to the nearest charted zone, capped at 3. The locked & uncharted
+  demo adds the locked Advancement Zone and an Uncharted hex north of the valley, with hover
+  and click popovers and the dotted route joining them. That is machinery that ships unused
+  until Beats 7-10 add zones. Each demo state's fog is one pre-drawn texture
+  (lacquer_fog_<state>_ai.png); the locked zone charts the fog around it, the uncharted hex
+  doesn't, which reproduces the earlier hand-placed tiers.
+
+  It runs on a 1 s clock: the Aura Well adds 1.5 Madra a second and levels on
+  TrainingActionData ticks; foraging hauls every 5 s. Clicking an idle card switches the
+  running action, clicking the Now strip scrolls its card into view and flashes it, and
+  with the open-zone demo on, clicking the Test Zone hex walks there: the old action runs
+  for the 0.6 s walk, then the zone panel dissolves (a 200 ms dither, the look's crossfade)
+  and the strip collapses because nothing idle is available. Esc, a click outside, or travel
+  closes a popover.
+
+  Mock controls (also readable from the URL hash, for example
+  #state=forage&list=9&demo=1&locked=1&popover=advancement&hover=uncharted&lore=1&fit=1):
+    state   well | forage | fresh           list  5 | 9
+    demo    1 = open-zone demo hex          locked  1 = locked & uncharted demo
+    popover / hover  advancement | uncharted (| open); only open applies without locked=1
+    lore    1 = About popover open          fit   1 = scale the frame to the window
+
+  Assets: the fonts (BM Euljiro, Yatra One), the two hex tiles, the character spritesheet
+  (frame 20, at 2x) and the inventory, character, star, gold and combat icons (16 art px,
+  shown at 32 px) load by relative path from the repo
+  (../../../assets). Every other texture is agent-made pixel art in zone-view-lacquer/
+  (*_ai.png), from the Lacquer and brass kit. The 16x16 action icons (ic_*_ai.png) are
+  PLACEHOLDERS for ZoneActionData.icon until real art exists (see PLACEHOLDER_ICONS).
+  No CDN, no external requests, no build step.
+-->
+<style>
+  @font-face {
+    font-family: 'Euljiro';
+    src: url('../../../assets/fonts/BMEULJIROTTF.ttf') format('truetype');
+    font-display: block;
+  }
+  @font-face {
+    font-family: 'Yatra';
+    src: url('../../../assets/fonts/YatraOne-Regular.ttf') format('truetype');
+    font-display: block;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #090E0E; }
+  body { font-family: 'Euljiro', 'Trebuchet MS', sans-serif; color: #F0E8D8; }
+
+  /* ── Mock controls: outside the game frame ── */
+  .mock-bar {
+    width: 1920px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 22px;
+    padding: 10px 16px;
+    background: #230F0F;
+    border-bottom: 2px solid #150909;
+    font-size: 15px;
+    color: #F0E8D8;
+  }
+  .mock-bar .mock-title { font-size: 15px; letter-spacing: 1px; color: #A89070; }
+  .mock-bar label { display: flex; align-items: center; gap: 8px; white-space: nowrap; cursor: pointer; }
+  .mock-bar select {
+    font-family: 'Euljiro', 'Trebuchet MS', sans-serif;
+    font-size: 14px;
+    color: #F0E8D8;
+    background: #150909;
+    border: 2px solid #462020;
+    border-radius: 0;
+    padding: 4px 6px;
+  }
+  .mock-bar select:disabled { color: #7A654C; cursor: default; }
+  .mock-bar input[type="checkbox"] { accent-color: #D4A84A; width: 16px; height: 16px; margin: 0; }
+  html.fit .mock-bar { width: auto; }
+  html.fit, html.fit body { overflow: hidden; }
+
+  .stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+
+  /* ── Game frame (1920x1080) ── */
+  #frame {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: #090E0E;
+    color: #F0E8D8;
+    font-family: 'Euljiro', 'Trebuchet MS', sans-serif;
+    transform-origin: 0 0;
+  }
+  /* Every texture sits at its own position, nearest-neighbour, and never takes the pointer:
+     the button or panel under it does. Inline icons in a text row use .inl. */
+  #frame img { position: absolute; display: block; image-rendering: pixelated; pointer-events: none; }
+  #frame img.inl { position: static; flex: none; }
+  #frame button {
+    position: absolute;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  #frame button:focus-visible { outline: 2px solid #D4A84A; outline-offset: 0; }
+  #frame section, #frame nav { position: absolute; }
+  #frame h1, #frame p { margin: 0; font-weight: normal; }
+
+  .t { position: absolute; white-space: nowrap; }
+  .tex { position: absolute; background-repeat: no-repeat; image-rendering: pixelated; }
+
+  /* Hard offset shadows, cast by the sprite's own shape. Nothing else gets a filter. */
+  .sh4 { filter: drop-shadow(4px 4px 0 #050707); }
+  .sh2 { filter: drop-shadow(2px 2px 0 #150909); }
+
+  /* Type: painted titles in Yatra One, everything else in BM Euljiro. */
+  .ttl { font-family: 'Yatra', serif; color: #D4A84A; text-shadow: 2px 2px 0 #150909; }
+  .lbl { font-size: 15px; line-height: 18px; color: #A89070; }
+  .nm { font-size: 17px; line-height: 20px; color: #F0E8D8; }
+  /* Euljiro's decimal point sits low and reads as a comma: set it in Yatra One. */
+  .pt { font-family: 'Yatra', serif; line-height: 0; }
+  /* Map floaters ride a small lacquer token (9-slice), so they read on any ground. */
+  .token {
+    position: absolute;
+    height: 28px;
+    border: 6px solid transparent;
+    border-image: url('zone-view-lacquer/lacquer_token_ai.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+  .token .t { left: -6px; top: -2px; text-align: center; white-space: pre; font-size: 16px; line-height: 20px; }
+
+  /* 9-slice overlays: the hover frame and the brass flash frame. */
+  .hov, .brassframe { position: absolute; left: 0; top: 0; pointer-events: none; image-rendering: pixelated; }
+  .hov { display: none; border: 4px solid transparent; border-image: url('zone-view-lacquer/lacquer_frame_hover_ai.png') 4 / 4px stretch; }
+  #frame button:hover .hov { display: block; }
+  .brassframe { border: 8px solid transparent; border-image: url('zone-view-lacquer/lacquer_frame_brass_ai.png') 8 / 8px stretch; }
+  .flash { animation: blink 0.6s steps(1, end) 2 both; }
+  .flash1 { animation: blink 0.6s steps(1, end) 1 both; }
+
+  /* Hover swaps between two drawn states (dock buttons, the popover close). */
+  #frame .swap .on { display: none; }
+  #frame .swap:hover .on { display: block; }
+  #frame .swap:hover .off { display: none; }
+
+  /* Activity drawers. */
+  #frame button.card { position: relative; flex: none; width: 392px; }
+  .cardIn { position: absolute; width: 392px; }
+  .tagtxt { width: 76px; text-align: center; font-size: 13px; line-height: 22px; letter-spacing: 1px; text-indent: 1px; }
+  .seal-new {
+    flex: none;
+    width: 44px;
+    height: 22px;
+    margin-left: 10px;
+    background: url('zone-view-lacquer/lacquer_seal_new_s_ai.png') no-repeat;
+    image-rendering: pixelated;
+    font-size: 13px;
+    line-height: 22px;
+    letter-spacing: 1px;
+    text-indent: 1px;
+    text-align: center;
+    color: #F0E8D8;
+  }
+  .groove { background: url('zone-view-lacquer/lacquer_groove_ai.png') repeat-x; image-rendering: pixelated; }
+
+  /* The list scrolls under a drawn brass rail; the native scrollbar is hidden. */
+  .actList { scrollbar-width: none; }
+  .actList::-webkit-scrollbar { display: none; }
+  .railTrack { background: url('zone-view-lacquer/lacquer_rail_track_ai.png') repeat-y; }
+  .railThumb {
+    border-style: solid;
+    border-width: 4px 0;
+    border-image: url('zone-view-lacquer/lacquer_rail_thumb_ai.png') 4 0 4 0 fill / 4px 0 stretch;
+    cursor: grab;
+  }
+
+  /* Progress strips: one frame per step. */
+  .ring { width: 56px; height: 56px; background-image: url('zone-view-lacquer/lacquer_ring_strip_ai.png'); animation: ring56 1s steps(13, end) infinite; }
+  .mring { width: 64px; height: 64px; background-image: url('zone-view-lacquer/lacquer_map_ring_strip_ai.png'); animation: ring64 1s steps(13, end) infinite; }
+  .ring.r5, .mring.r5 { animation-duration: 5s; }
+  .orb { width: 80px; height: 80px; background-image: url('zone-view-lacquer/lacquer_orb_madra_strip_ai.png'); }
+  .core { width: 80px; height: 80px; background-image: url('zone-view-lacquer/lacquer_orb_core_strip_ai.png'); animation: corespin 6s steps(4, end) infinite; }
+  .beads { width: 222px; height: 12px; background-image: url('zone-view-lacquer/lacquer_beads_xp_strip_ai.png'); }
+  .twinkle { width: 14px; height: 14px; background-image: url('zone-view-lacquer/lacquer_glyph_twinkle_strip_ai.png'); animation: twinkle 4s steps(1, end) infinite; pointer-events: none; }
+  .chestMid { background: url('zone-view-lacquer/lacquer_chest_mid_ai.png') repeat-y; image-rendering: pixelated; }
+
+  /* Character: main_character_spritesheet.png (8x12 cells of 16x24), frame 20 (col 4, row 2), at 2x. */
+  .char-sprite {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 32px;
+    height: 48px;
+    background-image: url('../../../assets/sprites/character/main_character_spritesheet.png');
+    background-size: 256px 576px;
+    background-position: -128px -96px;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+  }
+
+  /* The panel the walk leaves behind dissolves through two dither masks (2 px cells). */
+  .dither-half {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0zM2 2h2v2H2z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0zM2 2h2v2H2z'/%3E%3C/svg%3E");
+    -webkit-mask-size: 4px 4px;
+    mask-size: 4px 4px;
+  }
+  .dither-quarter {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0z'/%3E%3C/svg%3E");
+    -webkit-mask-size: 4px 4px;
+    mask-size: 4px 4px;
+  }
+
+  @keyframes ring56 { from { background-position: 0 0; } to { background-position: -728px 0; } }
+  @keyframes ring64 { from { background-position: 0 0; } to { background-position: -832px 0; } }
+  @keyframes corespin { from { background-position-y: 0; } to { background-position-y: -320px; } }
+  /* The ? twinkles every 4 s: frames 1, 2, 1 (0.1 s, 0.2 s, 0.1 s), otherwise frame 0 (empty). */
+  @keyframes twinkle {
+    0%, 89.9% { background-position: 0 0; }
+    90% { background-position: -14px 0; }
+    92.5% { background-position: -28px 0; }
+    97.5% { background-position: -14px 0; }
+    100% { background-position: 0 0; }
+  }
+  /* Floaters rise 40 px in 1 s, 2 px a step, then are hidden at once. */
+  @keyframes rise { from { transform: translateY(0); } to { transform: translateY(-40px); } }
+  @keyframes haul {
+    0% { visibility: visible; transform: translateY(0); animation-timing-function: steps(20, end); }
+    20%, 100% { visibility: hidden; transform: translateY(-40px); }
+  }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  /* Foraging: the character wanders the grass west of the map ring and back, 2 px a step. */
+  @keyframes wander {
+    0% { transform: translateX(0); animation-timing-function: steps(24, end); }
+    30% { transform: translateX(-48px); animation-timing-function: steps(16, end); }
+    65% { transform: translateX(-16px); animation-timing-function: steps(8, end); }
+    100% { transform: translateX(0); }
+  }
+  /* Two identical shakes: alternating the name restarts the animation on every click. */
+  @keyframes shakeA { 0% { transform: translateX(-8px); } 20% { transform: translateX(8px); } 40% { transform: translateX(-6px); } 60% { transform: translateX(4px); } 80%, 100% { transform: translateX(0); } }
+  @keyframes shakeB { 0% { transform: translateX(-8px); } 20% { transform: translateX(8px); } 40% { transform: translateX(-6px); } 60% { transform: translateX(4px); } 80%, 100% { transform: translateX(0); } }
+  @keyframes blink { 0% { visibility: visible; } 50%, 100% { visibility: hidden; } }
+</style>
+</head>
+<body>
+
+<div class="mock-bar" id="mockbar">
+  <span class="mock-title">MOCK CONTROLS</span>
+  <label>Start state
+    <select id="c-start">
+      <option>Aura Well running</option>
+      <option>Foraging running</option>
+      <option>Fresh save (no idle action yet)</option>
+    </select>
+  </label>
+  <label>List size
+    <select id="c-list">
+      <option>5 actions</option>
+      <option>9 actions</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="c-demo"> Open-zone demo</label>
+  <label><input type="checkbox" id="c-locked"> Locked &amp; uncharted demo</label>
+  <label>Popover
+    <select id="c-popover">
+      <option>none</option>
+      <option>Advancement Zone</option>
+      <option>Uncharted</option>
+    </select>
+  </label>
+  <label>Hover preview
+    <select id="c-hover">
+      <option>none</option>
+      <option>Advancement Zone</option>
+      <option>Uncharted</option>
+      <option>Open zone</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="c-lore"> Show lore</label>
+  <label><input type="checkbox" id="c-fit"> Fit to window</label>
+</div>
+
+<div class="stage" id="stage"><div id="frame"></div></div>
+
+<script>
+(function () {
+  'use strict';
+
+  //---------------------------------------------------------------------------
+  // Assets and palette
+  //---------------------------------------------------------------------------
+
+  const A = '../../../assets/';
+  const KIT = 'zone-view-lacquer/';
+  const HEX_DIR = A + 'sprites/tilemap/hex_tiles/forest/';
+  // The user's own art, loaded from the repo. The 64 px icons are 16 art px drawn at 4x,
+  // so at 32 px they sit on the 2x grid.
+  const IMG = {
+    river: HEX_DIR + 'Hex_Forest_06_River.png',
+    basic: HEX_DIR + 'Hex_Forest_00_Basic.png',
+    inventory: A + 'sprites/ui/system_menu/inventory_icon.png',
+    character: A + 'sprites/ui/system_menu/character_icon.png',
+    star: A + 'sprites/ui/system_menu/star_icon.png',
+    gold: A + 'sprites/ui/resources/gold_icon.png',
+    combat: A + 'sprites/ui/stat_icons/combat_icon.png',
+  };
+
+  // A Lacquer and brass kit texture. Every lacquer_*_ai.png is drawn at 2x already, so it
+  // shows at its file size.
+  function T(name) {
+    return KIT + 'lacquer_' + name + '_ai.png';
+  }
+
+  // PLACEHOLDER icons (16x16, shown at 32x32), not in the repo's assets. They stand in for
+  // ZoneActionData.icon until real art exists.
+  const PLACEHOLDER_ICONS = {
+    cycle: KIT + 'ic_cycle_ai.png',
+    forage: KIT + 'ic_forage_ai.png',
+    well: KIT + 'ic_well_ai.png',
+    merchant: KIT + 'ic_merchant_ai.png',
+    story: KIT + 'ic_story_ai.png',
+  };
+  const PH = PLACEHOLDER_ICONS;
+
+  const CREAM = '#F0E8D8';
+  const TAN = '#A89070';
+  const DIM = '#94806A';
+  const BRASS = '#D4A84A';
+  const INK = '#150909';
+  const MADRA_BLUE = '#BBD5E7';
+
+  // Hover and pinned states swap textures; load them up front so the first swap is instant.
+  ['tile_locked_hover', 'tile_uncharted_hover', 'plate_current_hover', 'plate_open_hover',
+    'plate_locked_hover', 'plate_uncharted_hover', 'hex_hover', 'hex_hover_in', 'hex_pinned_in',
+    'pop_locked', 'pop_locked_preview', 'pop_uncharted', 'pop_uncharted_preview',
+    'about_open', 'route_dot_lit', 'drawer_run', 'drawer_tall_ready', 'tag_enter',
+    'rail_up_on', 'rail_down_on', 'lip_top', 'lip_bottom', 'fog_open', 'fog_locked', 'fog_both',
+    'log1', 'log2', 'log3', 'log4', 'log5'].forEach(function (name) {
+    const img = new Image();
+    img.src = T(name);
+  });
+
+  //---------------------------------------------------------------------------
+  // Mock controls (the source's data-props) and the URL hash
+  //---------------------------------------------------------------------------
+
+  const DEFAULT_PROPS = {
+    startState: 'Aura Well running',
+    listSize: '5 actions',
+    openZoneDemo: false,
+    lockedDemo: false,
+    popover: 'none',
+    hoverPreview: 'none',
+    showLore: false,
+  };
+
+  // Hash key -> [prop, { hash value: prop value }].
+  const HASH_KEYS = {
+    state: ['startState', { well: 'Aura Well running', forage: 'Foraging running', fresh: 'Fresh save (no idle action yet)' }],
+    list: ['listSize', { 5: '5 actions', 9: '9 actions' }],
+    demo: ['openZoneDemo', { 1: true, 0: false }],
+    locked: ['lockedDemo', { 1: true, 0: false }],
+    popover: ['popover', { none: 'none', advancement: 'Advancement Zone', uncharted: 'Uncharted' }],
+    hover: ['hoverPreview', { none: 'none', advancement: 'Advancement Zone', uncharted: 'Uncharted', open: 'Open zone' }],
+    lore: ['showLore', { 1: true, 0: false }],
+  };
+
+  function readHash() {
+    const next = Object.assign({}, DEFAULT_PROPS);
+    let fitOn = false;
+    const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+    params.forEach(function (value, key) {
+      if (key === 'fit') {
+        fitOn = value === '1';
+        return;
+      }
+      const spec = HASH_KEYS[key];
+      if (spec && Object.prototype.hasOwnProperty.call(spec[1], value)) {
+        next[spec[0]] = spec[1][value];
+      }
+    });
+    return { props: next, fit: fitOn };
+  }
+
+  function writeHash() {
+    const parts = [];
+    Object.keys(HASH_KEYS).forEach(function (key) {
+      const prop = HASH_KEYS[key][0];
+      const map = HASH_KEYS[key][1];
+      if (props[prop] === DEFAULT_PROPS[prop]) {
+        return;
+      }
+      const code = Object.keys(map).find(function (k) { return map[k] === props[prop]; });
+      parts.push(key + '=' + code);
+    });
+    if (fit) {
+      parts.push('fit=1');
+    }
+    const hash = parts.length ? '#' + parts.join('&') : '';
+    if (hash === location.hash) {
+      return;
+    }
+    try {
+      history.replaceState(null, '', hash || location.pathname + location.search);
+    } catch (err) {
+      location.hash = hash;
+    }
+  }
+
+  const frame = document.getElementById('frame');
+  const stage = document.getElementById('stage');
+  const controls = {
+    startState: document.getElementById('c-start'),
+    listSize: document.getElementById('c-list'),
+    openZoneDemo: document.getElementById('c-demo'),
+    lockedDemo: document.getElementById('c-locked'),
+    popover: document.getElementById('c-popover'),
+    hoverPreview: document.getElementById('c-hover'),
+    showLore: document.getElementById('c-lore'),
+  };
+  const fitControl = document.getElementById('c-fit');
+
+  const initial = readHash();
+  let props = initial.props;
+  let fit = initial.fit;
+
+  //---------------------------------------------------------------------------
+  // State (port of the source's Component)
+  //---------------------------------------------------------------------------
+
+  let valleyAction = 'well';
+  let clock = null;
+  let flashTimer = null;
+  let stripTimer = null;
+  let walkTimer = null;
+  let previewTimer = null;
+  let fadeTimer = null;
+  let scrollTimer = null;
+  let railDrag = null;
+
+  function scenario(choice) {
+    const fresh = choice === 'Fresh save (no idle action yet)';
+    const current = fresh ? null : (choice === 'Foraging running' ? 'forage' : 'well');
+    if (!fresh) {
+      valleyAction = current;
+    }
+    return {
+      fresh: fresh,
+      current: current,
+      madra: fresh ? 25 : 46,
+      cdLevel: fresh ? 0 : 32,
+      cdXp: fresh ? 3 : 17.7,
+      gold: fresh ? 0 : 120,
+      wellTicks: 274,
+      forageTick: 0,
+      lastHaul: '+3 Dewdrop Tear  +4 Spirit Fern',
+      feed: fresh
+        ? [{ text: 'Spoke with the Intervener', tone: 'gold' }, { text: 'Learned Wilderness Cycling', tone: 'muted' }]
+        : [
+          { text: 'Returned from The Shallow Woods · +34 gold', tone: 'gold' },
+          { text: 'Resumed ' + (current === 'forage' ? 'foraging' : 'the Aura Well'), tone: 'muted' },
+        ],
+    };
+  }
+
+  let state = Object.assign(scenario(props.startState), {
+    zone: 'valley',
+    walking: null,
+    pinned: shownKey(props.popover),
+    hover: shownKey(props.hoverPreview),
+    preview: shownKey(props.hoverPreview),
+    loreOpen: !!props.showLore,
+    seen: {},
+    flashCard: null,
+    flashStrip: false,
+    shakes: 0,
+    fadeTop: false,
+    fadeBottom: false,
+    rail: '',
+  });
+
+  //---------------------------------------------------------------------------
+  // Map geometry at zoom 2
+  //---------------------------------------------------------------------------
+
+  // Hex centres are (960 + 328 col + (odd row ? 164 : 0), 702 + 285 row): Spirit Valley
+  // (0, 0), Test Zone (-1, 0), Advancement Zone (0, -1), Uncharted (0, -2). Hover and
+  // pinned states are rim overlays laid at the tile's own top-left (centre - (164, 190)).
+  const CENTRES = { valley: [960, 702], test: [632, 702], advancement: [1124, 417], uncharted: [960, 132] };
+  const TILE_TL = { valley: [796, 512], test: [468, 512], advancement: [960, 227], uncharted: [796, -58] };
+
+  // A route between two neighbouring zones is a short run of 8x8 dots (24 px apart) that
+  // crosses the rim they share: six dots, centred on the rim, from 104 px out of one centre
+  // to 104 px short of the other. It never reaches a zone's middle, its glyph or its plate.
+  function routeDots(a, b) {
+    const ax = CENTRES[a][0];
+    const ay = CENTRES[a][1];
+    const dx = CENTRES[b][0] - ax;
+    const dy = CENTRES[b][1] - ay;
+    const len = Math.hypot(dx, dy);
+    const dots = [];
+    for (let i = -2.5; i <= 2.5; i += 1) {
+      const t = len / 2 + 24 * i;
+      dots.push([even(ax + dx * t / len - 4), even(ay + dy * t / len - 4)]);
+    }
+    return dots;
+  }
+
+  // Where the running action shows on the map: the ring on its brass disc stands on open
+  // grass east of the character, and the floater token rises from above it. Only Spirit
+  // Valley has idle actions, so these are fixed to its tile.
+  const CHAR_Y = 740;
+  const CHAR_X = { valley: 960, test: 632 };
+  const RING_TL = [998, 706];
+  const FLOAT_CX = 1010;
+
+  // North: Valley -> Advancement -> Uncharted (locked demo). West: Valley -> Test Zone.
+  const ROUTE_NORTH = routeDots('valley', 'advancement').concat(routeDots('advancement', 'uncharted'));
+  const ROUTE_WEST = routeDots('valley', 'test');
+
+  // Text widths for layout that depends on the copy (wrapping card details, floater tokens).
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  function textWidth(text, px) {
+    measureCtx.font = px + "px 'Euljiro'";
+    return measureCtx.measureText(text).width;
+  }
+
+  function zoneKey(label) {
+    if (label === 'Advancement Zone') return 'advancement';
+    if (label === 'Uncharted') return 'uncharted';
+    if (label === 'Open zone') return 'test';
+    return null;
+  }
+
+  // The locked and uncharted hexes are only on the map with their demo on, so a popover or
+  // hover preview of either one is ignored without it.
+  function shownKey(label) {
+    const key = zoneKey(label);
+    return (key === 'advancement' || key === 'uncharted') && !props.lockedDemo ? null : key;
+  }
+
+  // Core Density XP for the next level: AdvancementStageResource base 10, factor 1.02.
+  function xpNeeded(level) {
+    return 10 * Math.pow(1.02, level);
+  }
+
+  // Aura Well levels: TrainingActionData.ticks_per_level [60, 300, 600, 1200], tail x2.
+  function wellProgress(ticks) {
+    const costs = [60, 300, 600, 1200];
+    let level = 0;
+    let spent = 0;
+    for (;;) {
+      const cost = level < costs.length ? costs[level] : Math.round(costs[costs.length - 1] * Math.pow(2, level + 1 - costs.length));
+      if (spent + cost > ticks) {
+        return { level: level, into: ticks - spent, need: cost };
+      }
+      spent += cost;
+      level += 1;
+    }
+  }
+
+  function withEntry(feed, text, tone) {
+    return feed.concat([{ text: text, tone: tone }]).slice(-5);
+  }
+
+  function actionLabel(action) {
+    return action === 'well' ? 'the Aura Well' : 'foraging';
+  }
+
+  // Snaps to the 2 px grid.
+  function even(n) {
+    return Math.round(n / 2) * 2;
+  }
+
+  // Euljiro's decimal point reads as a comma: set it in Yatra One.
+  function dec(text) {
+    return String(text).replace(/(\d)\.(\d)/g, '$1<span class="pt">.</span>$2');
+  }
+
+  let renderQueued = false;
+  function setState(patch) {
+    state = Object.assign({}, state, patch);
+    if (!renderQueued) {
+      renderQueued = true;
+      Promise.resolve().then(function () {
+        renderQueued = false;
+        render();
+      });
+    }
+  }
+
+  function restartClock() {
+    clearInterval(clock);
+    clock = setInterval(tick, 1000);
+  }
+
+  function tick() {
+    const s = state;
+    if (s.current === 'well') {
+      const madra = Math.min(100 + 5 * s.cdLevel, s.madra + 1.5);
+      const before = wellProgress(s.wellTicks).level;
+      const after = wellProgress(s.wellTicks + 1).level;
+      setState({
+        madra: madra,
+        wellTicks: s.wellTicks + 1,
+        feed: after > before ? withEntry(s.feed, 'Aura Well reached level ' + after + ' · +1 Spirit', 'purple') : s.feed,
+      });
+    } else if (s.current === 'forage') {
+      if (s.forageTick + 1 < 5) {
+        setState({ forageTick: s.forageTick + 1 });
+        return;
+      }
+      const dew = 1 + Math.floor(Math.random() * 5);
+      const fern = 2 + Math.floor(Math.random() * 5);
+      setState({
+        forageTick: 0,
+        lastHaul: '+' + dew + ' Dewdrop Tear  +' + fern + ' Spirit Fern',
+        feed: withEntry(s.feed, 'Found ' + dew + ' Dewdrop Tear, ' + fern + ' Spirit Fern', 'green'),
+      });
+    }
+  }
+
+  function start(action) {
+    if (state.current === action) {
+      pulseStrip();
+      return;
+    }
+    if (state.zone === 'valley' && !state.fresh) {
+      valleyAction = action;
+    }
+    setState({ current: action, forageTick: 0, feed: withEntry(state.feed, 'Started ' + actionLabel(action), 'muted') });
+    restartClock();
+  }
+
+  // The character walks the route (0.6 s) while the old action keeps running; the zone
+  // only changes on arrival. Popovers close when the walk starts.
+  function travel(zone) {
+    const s = state;
+    if (s.walking) {
+      return;
+    }
+    if (s.zone === zone) {
+      setState({ pinned: null });
+      return;
+    }
+    clearTimeout(previewTimer);
+    setState({ walking: zone, pinned: null, preview: null, loreOpen: false });
+    clearTimeout(walkTimer);
+    walkTimer = setTimeout(function () { arrive(zone); }, 600);
+  }
+
+  function arrive(zone) {
+    const s = state;
+    clearTimeout(walkTimer);
+    if (s.zone === 'valley' && !s.fresh) {
+      valleyAction = s.current;
+    }
+    const next = zone === 'test' || s.fresh ? null : valleyAction;
+    const name = zone === 'test' ? 'Test Zone' : 'Spirit Valley';
+    const after = next ? ' · resumed ' + actionLabel(next) : '';
+    crossfadePanel();
+    setState({
+      zone: zone,
+      walking: null,
+      current: next,
+      forageTick: 0,
+      feed: withEntry(s.feed, 'Travelled to ' + name + after, 'muted'),
+    });
+    restartClock();
+    const list = listEl();
+    if (list) {
+      clearInterval(scrollTimer);
+      list.scrollTop = 0;
+    }
+  }
+
+  // A copy of the old zone panel lies over the new one for 200 ms and dissolves through two
+  // dither masks (whole 2 px cells, no opacity). It lives in the data-keep layer, which the
+  // patch leaves alone.
+  function crossfadePanel() {
+    const panel = frame.querySelector('[data-ref="panel"]');
+    const layer = frame.querySelector('[data-ref="xfade"]');
+    if (!panel || !layer) {
+      return;
+    }
+    const oldList = listEl();
+    const copy = panel.cloneNode(true);
+    copy.setAttribute('aria-hidden', 'true');
+    copy.setAttribute('inert', '');
+    layer.textContent = '';
+    layer.appendChild(copy);
+    const copyList = copy.querySelector('[data-ref="list"]');
+    if (oldList && copyList) {
+      copyList.scrollTop = oldList.scrollTop;
+    }
+    copy.removeAttribute('data-ref');
+    copy.querySelectorAll('[data-ref]').forEach(function (el) { el.removeAttribute('data-ref'); });
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(function () {
+      copy.classList.add('dither-half');
+      fadeTimer = setTimeout(function () {
+        copy.classList.remove('dither-half');
+        copy.classList.add('dither-quarter');
+        fadeTimer = setTimeout(function () { layer.textContent = ''; }, 66);
+      }, 67);
+    }, 67);
+  }
+
+  function listEl() {
+    return frame.querySelector('[data-ref="list"]');
+  }
+
+  // Scrolls the list to a target in six even-px steps (200 ms) instead of an eased scroll.
+  function stepScroll(list, top) {
+    clearInterval(scrollTimer);
+    const from = list.scrollTop;
+    const to = Math.max(0, Math.min(list.scrollHeight - list.clientHeight, top));
+    if (Math.abs(to - from) < 1) {
+      return;
+    }
+    let step = 0;
+    scrollTimer = setInterval(function () {
+      step += 1;
+      if (step >= 6) {
+        clearInterval(scrollTimer);
+        list.scrollTop = to;
+        return;
+      }
+      list.scrollTop = even(from + (to - from) * step / 6);
+    }, 33);
+  }
+
+  // Scrolls only as far as needed to show the whole card with a 24 px margin (not at all
+  // when it already shows), then flashes it.
+  function scrollToCard(id) {
+    const list = listEl();
+    const card = list ? list.querySelector('[data-card="' + id + '"]') : null;
+    if (card) {
+      const margin = 24;
+      const above = card.offsetTop - margin;
+      const below = card.offsetTop + card.offsetHeight + margin - list.clientHeight;
+      let top = list.scrollTop;
+      if (above < top) {
+        top = above;
+      } else if (below > top) {
+        top = below;
+      }
+      top = Math.max(0, Math.min(list.scrollHeight - list.clientHeight, top));
+      if (Math.abs(top - list.scrollTop) >= 1) {
+        stepScroll(list, top);
+      }
+    }
+    setState({ flashCard: id });
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () { setState({ flashCard: null }); }, 1300);
+  }
+
+  function pulseStrip() {
+    setState({ flashStrip: true });
+    clearTimeout(stripTimer);
+    stripTimer = setTimeout(function () { setState({ flashStrip: false }); }, 700);
+  }
+
+  // A NEW tag clears the first time its card is hovered or clicked (per session in the mock).
+  function markSeen(id) {
+    if (state.seen[id]) {
+      return;
+    }
+    const seen = Object.assign({}, state.seen);
+    seen[id] = true;
+    setState({ seen: seen });
+  }
+
+  // A click outside an open popover closes it. About toggles the lore popover itself, and
+  // a click on another hex pins that hex's popover after this closes the old one.
+  function dismissPopovers(target, action) {
+    const inside = target.closest ? target.closest('[data-popover]') : null;
+    const where = inside ? inside.getAttribute('data-popover') : null;
+    const patch = {};
+    if (state.pinned && where !== 'map') {
+      patch.pinned = null;
+    }
+    if (state.loreOpen && where !== 'lore' && action !== 'lore') {
+      patch.loreOpen = false;
+    }
+    if (Object.keys(patch).length) {
+      setState(patch);
+    }
+  }
+
+  // The rail thumb: its height shows how much of the list is in view, and it spans the
+  // track between the two 14 px end caps.
+  function thumbHeight(view, content) {
+    return Math.max(32, even((view - 28) * view / content));
+  }
+
+  // Reads the list's scroll to place the shelf lips, the lit rail caps and the thumb.
+  function measureList() {
+    const el = listEl();
+    if (!el) {
+      return;
+    }
+    const view = el.clientHeight;
+    const content = el.scrollHeight;
+    const top = el.scrollTop > 2;
+    const bottom = el.scrollTop + view < content - 2;
+    let rail = '';
+    if (content > view) {
+      const h = thumbHeight(view, content);
+      rail = h + ',' + (14 + even((view - 28 - h) * el.scrollTop / (content - view)));
+    }
+    if (top !== state.fadeTop || bottom !== state.fadeBottom || rail !== state.rail) {
+      setState({ fadeTop: top, fadeBottom: bottom, rail: rail });
+    }
+  }
+
+  //---------------------------------------------------------------------------
+  // Derived values (port of buildGroups and renderVals)
+  //---------------------------------------------------------------------------
+
+  function buildGroups(s, nine) {
+    const ready = s.madra >= 60;
+    const isWell = s.current === 'well';
+    const mk = function (o) {
+      const running = !!o.idle && s.current === o.id;
+      // A detail line too long for its 316 px wraps onto a second line in the tall drawer
+      // (only cards that never run: the running drawer is one height).
+      const wrap = !o.idle && !!o.sub && textWidth(o.sub, 15) > 316;
+      const tall = !!o.woodsNotReady || !!o.woodsReady || wrap;
+      const enter = o.tag === 'ENTER';
+      let face = 'drawer';
+      if (running) {
+        face = 'drawer_run';
+      } else if (tall) {
+        face = o.woodsReady ? 'drawer_tall_ready' : 'drawer_tall';
+      }
+      return {
+        id: o.id,
+        wrap: wrap,
+        height: tall ? 96 : 72,
+        // A running drawer is pulled out: drawn 2 px up and left with the big shadow.
+        shift: running ? -2 : 0,
+        face: T(face),
+        faceShadow: running ? 'sh4' : 'sh2',
+        flash: s.flashCard === o.id,
+        icon: o.icon,
+        title: o.title,
+        titleTop: o.woodsReady ? 26 : 14,
+        tag: running ? 'RUNNING' : o.tag,
+        tagTex: T(enter ? 'tag_enter' : 'tag'),
+        tagColor: enter ? INK : (running ? CREAM : TAN),
+        isNew: !!o.isNew && !s.seen[o.id],
+        hasText: !!o.sub,
+        sub: dec(o.sub || ''),
+        isForage: !!o.forageSub,
+        woodsNotReady: !!o.woodsNotReady,
+        woodsReady: !!o.woodsReady,
+        madraText: String(Math.floor(s.madra)),
+        advK: Math.min(74, Math.round((s.madra / 60) * 74)),
+        advHint: isWell ? 'ready in ~' + Math.ceil((60 - s.madra) / 1.5) + ' s' : 'train or cycle to fill',
+        advHintColor: isWell ? CREAM : TAN,
+      };
+    };
+    const ACTIVE = { tag: 'ACTIVE' };
+    const IDLE = { tag: 'IDLE' };
+    const STORY = { tag: 'STORY' };
+    const cycling = mk(Object.assign({
+      id: 'cycling', title: 'Wilderness Cycling', icon: PH.cycle,
+      sub: (s.fresh ? 'Foundational Technique' : 'Smooth Flow') + ' · Madra and Core Density XP',
+    }, ACTIVE));
+    if (s.zone === 'test') {
+      return [];
+    }
+    if (s.fresh) {
+      return [{ name: 'Cultivate', cards: [cycling] }];
+    }
+    const well = mk(Object.assign({
+      id: 'well', idle: true, title: 'Aura Well', icon: PH.well,
+      sub: '+1.5 Madra / s · each level +1 Spirit',
+    }, IDLE));
+    const forage = mk(Object.assign({
+      id: 'forage', idle: true, title: 'Spring Forest Foraging', icon: PH.forage,
+      forageSub: true,
+    }, IDLE));
+    const woods = mk({
+      id: 'woods', title: 'The Shallow Woods', icon: IMG.combat,
+      tag: ready ? 'ENTER' : 'ACTIVE',
+      woodsNotReady: !ready, woodsReady: ready,
+    });
+    const merchant = mk({
+      id: 'merchant', title: 'Traveling Merchant', icon: PH.merchant, isNew: true,
+      tag: 'SHOP',
+      sub: '7 wares · you have ' + s.gold + ' gold',
+    });
+    const placeholder = function (id, title, icon, tagSet) {
+      return mk(Object.assign({ id: id, title: title, icon: icon, sub: 'Placeholder' }, tagSet));
+    };
+    const groups = [];
+    if (nine) {
+      groups.push({ name: 'Talk', cards: [
+        mk(Object.assign({ id: 'talk1', title: 'The Intervener', icon: PH.story, isNew: true, sub: 'Your next story step' }, STORY)),
+        placeholder('talk2', 'A wandering cultivator', PH.story, STORY),
+      ] });
+    }
+    groups.push({ name: 'Cultivate', cards: [cycling, well] });
+    groups.push({ name: 'Gather', cards: nine
+      ? [forage, placeholder('gather2', 'Riverbank Gathering', PH.forage, IDLE)]
+      : [forage] });
+    groups.push({ name: 'Venture', cards: nine
+      ? [woods, placeholder('venture2', 'The Deep Thicket', IMG.combat, ACTIVE)]
+      : [woods] });
+    groups.push({ name: 'Visit', cards: [merchant] });
+    return groups;
+  }
+
+  // The list's content height and the places it may fold, from the same flow the markup
+  // uses: label row 18 (+6 to the first card), cards 8 apart, groups 14 apart, 4 px padding
+  // under the last card. A fold sits 8 px under a whole drawer, so a scrolled list never
+  // cuts through a drawer or leaves a group label alone at the bottom. An empty list holds
+  // one 26 px line.
+  function listLayout(groups) {
+    if (!groups.length) {
+      return { content: 30, folds: [] };
+    }
+    let y = 0;
+    const folds = [];
+    groups.forEach(function (g, i) {
+      if (i > 0) {
+        y += 14;
+      }
+      y += 24;
+      g.cards.forEach(function (c, j) {
+        y += (j > 0 ? 8 : 0) + c.height;
+        folds.push(y + 8);
+      });
+    });
+    return { content: y + 4, folds: folds };
+  }
+
+  function vals() {
+    const s = state;
+    const nine = props.listSize === '9 actions';
+    const demo = !!props.openZoneDemo;
+    const locked = !!props.lockedDemo;
+    const isWell = s.current === 'well';
+    const isForage = s.current === 'forage';
+    const hasCurrent = !!s.current;
+    const inTest = s.zone === 'test';
+    const well = wellProgress(s.wellTicks);
+    const cap = 100 + 5 * s.cdLevel;
+    const need = xpNeeded(s.cdLevel);
+    // Log lines step down in colour with age, never in opacity: the two newest keep their
+    // tone, the third is tan, the oldest two are dim.
+    const tones = { gold: [BRASS, 'brass'], green: [CREAM, 'cream'], purple: [MADRA_BLUE, 'madra'], muted: [TAN, 'tan'] };
+    const groups = buildGroups(s, nine);
+    // An open zone you are not in (and not already walking to) can be travelled to.
+    const canTravel = function (zone) {
+      return (zone === 'valley' || (zone === 'test' && demo)) && zone !== s.zone && !s.walking;
+    };
+    // Hover and pinned are rim swaps, never floating brackets. An open hex you can travel to
+    // swaps hex_open for the brighter hex_hover; the veiled hexes, whose own dashed or dotted
+    // rim sits outside them, take a brass rim just inside it.
+    const showHover = !!s.hover && s.hover !== s.pinned && (s.hover === 'advancement' || s.hover === 'uncharted' || canTravel(s.hover));
+    const hoverVeiled = showHover && (s.hover === 'advancement' || s.hover === 'uncharted');
+    const hoverSpot = hoverVeiled ? TILE_TL[s.hover] : null;
+    const pinSpot = TILE_TL[s.pinned];
+    const otherZone = inTest ? 'valley' : 'test';
+    const actionMini = T(isWell ? 'mini_well' : 'mini_forage');
+    const actionText = isWell ? 'Aura Well · +1.5 Madra / s' : 'Foraging · a haul every 5 s';
+    // The current zone's plate is brass-named and shows what runs there; hovering it only
+    // turns the name cream. An open plate reads "Click to travel" while hovered.
+    const plateFor = function (zone, activities) {
+      const here = s.zone === zone;
+      const hovered = s.hover === zone;
+      const plate = {
+        tex: T((here ? 'plate_current' : 'plate_open') + (hovered ? '_hover' : '')),
+        nameColor: here && !hovered ? BRASS : CREAM,
+        nameTop: 6,
+        hasLine: true,
+        hasIcon: false,
+        icon: '',
+        text: '',
+        color: TAN,
+      };
+      if (here && hasCurrent) {
+        plate.hasIcon = true;
+        plate.icon = actionMini;
+        plate.text = dec(actionText);
+        plate.color = CREAM;
+      } else if (here) {
+        plate.hasLine = false;
+        plate.nameTop = 17;
+      } else if (hovered && canTravel(zone)) {
+        plate.text = 'Click to travel';
+        plate.color = BRASS;
+      } else {
+        plate.text = 'Open · ' + activities;
+      }
+      return plate;
+    };
+    const advPinned = s.pinned === 'advancement';
+    const unchPinned = s.pinned === 'uncharted';
+    // Zone chest layout, local to the chest at (1456, 24). The lore opens inline under the
+    // Now tray and pushes the Activities header and the list down by its 264 px + 12.
+    const loreOpen = s.loreOpen && !inTest;
+    const loreTop = hasCurrent ? 182 : 80;
+    const actTop = (hasCurrent ? 180 : 78) + (loreOpen ? 276 : 0);
+    const listTop = actTop + (hasCurrent ? 28 : 30);
+    // The chest hugs its content (24 px under the list). A list too long for the space
+    // above the bottom line (local 992, screen 1016) scrolls: it folds under its last whole
+    // drawer, the chest keeps 40 px under it so the rail's end cap clears the corner strap
+    // by 8 px or more, and the chest snaps to the bottom line (1056 on screen) when that is
+    // within 64 px.
+    const layout = listLayout(groups);
+    const maxListHeight = 992 - listTop;
+    let listHeight = layout.content;
+    let chestH = Math.max(176, listTop + listHeight + 24);
+    if (layout.content > maxListHeight) {
+      listHeight = layout.folds.filter(function (f) { return f <= maxListHeight; }).pop() || maxListHeight;
+      chestH = listTop + listHeight + 40;
+      if (1032 - chestH <= 64) {
+        chestH = 1032;
+      }
+    }
+    // The Log hugs its lines and grows upward from the bottom line.
+    const logH = 74 + 26 * s.feed.length;
+    const rail = s.rail ? s.rail.split(',').map(Number) : null;
+    const floatText = isWell ? '+1.5 Madra' : s.lastHaul;
+    const floatW = even(Math.ceil(textWidth(floatText, 16)) + 28);
+    let fog = 'base';
+    if (demo && locked) {
+      fog = 'both';
+    } else if (demo) {
+      fog = 'open';
+    } else if (locked) {
+      fog = 'locked';
+    }
+    return {
+      fog: T('fog_' + fog),
+      demo: demo,
+      locked: locked,
+      isWell: isWell,
+      isForage: isForage,
+      hasCurrent: hasCurrent,
+      // Zone chest coordinates are local to the chest at (1456, 24).
+      chestH: chestH,
+      chestMidH: chestH - 176,
+      actTop: actTop,
+      listTop: listTop,
+      listHeight: listHeight,
+      lipBottomTop: listTop + listHeight - 10,
+      loreTop: loreTop,
+      listEmpty: groups.length === 0,
+      logH: logH,
+      logTop: 1056 - logH,
+      logTex: T('log' + s.feed.length),
+      currentX: inTest ? 468 : 796,
+      otherX: inTest ? 796 : 468,
+      otherRim: T(showHover && s.hover === otherZone ? 'hex_hover' : 'hex_open'),
+      actorX: CHAR_X[s.walking || s.zone],
+      actorY: CHAR_Y,
+      actorAnim: isForage ? 'wander 5s infinite' : (isWell ? 'bob 2.4s steps(2, end) infinite' : 'none'),
+      ringX: RING_TL[0],
+      ringY: RING_TL[1],
+      floatW: floatW,
+      floatX: even(FLOAT_CX - floatW / 2),
+      actionIcon: isWell ? PH.well : PH.forage,
+      ringClass: isWell ? 'r1' : 'r5',
+      lastHaul: s.lastHaul,
+      haulIn: 5 - s.forageTick,
+      // Only the route to a zone you can travel to lights; the road north never does.
+      routeWest: T(canTravel(s.hover) ? 'route_dot_lit' : 'route_dot'),
+      valleyPlate: plateFor('valley', '5 activities'),
+      testPlate: plateFor('test', 'nothing to do yet'),
+      advTile: T(s.hover === 'advancement' ? 'tile_locked_hover' : 'tile_locked'),
+      unchTile: T(s.hover === 'uncharted' ? 'tile_uncharted_hover' : 'tile_uncharted'),
+      advPlate: T(s.hover === 'advancement' ? 'plate_locked_hover' : 'plate_locked'),
+      unchPlate: T(s.hover === 'uncharted' ? 'plate_uncharted_hover' : 'plate_uncharted'),
+      unchPlateText: s.hover === 'uncharted' ? CREAM : TAN,
+      lockAnim: s.shakes === 0 ? 'none' : (s.shakes % 2 ? 'shakeA 0.44s steps(1, end) 1' : 'shakeB 0.44s steps(1, end) 1'),
+      showHoverIn: !!hoverSpot,
+      hoverX: hoverSpot ? hoverSpot[0] : 0,
+      hoverY: hoverSpot ? hoverSpot[1] : 0,
+      showPinned: !!pinSpot,
+      pinX: pinSpot ? pinSpot[0] : 0,
+      pinY: pinSpot ? pinSpot[1] : 0,
+      advPopover: advPinned || (s.hover === 'advancement' && s.preview === 'advancement' && !s.pinned),
+      advPinned: advPinned,
+      advPopTop: advPinned ? 331 : 351,
+      advPopHeight: advPinned ? 172 : 132,
+      advPopTex: T(advPinned ? 'pop_locked' : 'pop_locked_preview'),
+      advShowMe: advPinned && !s.fresh && !inTest,
+      unchPopover: unchPinned || (s.hover === 'uncharted' && s.preview === 'uncharted' && !s.pinned),
+      unchPinned: unchPinned,
+      unchPopTex: T(unchPinned ? 'pop_uncharted' : 'pop_uncharted_preview'),
+      madraText: String(Math.floor(s.madra)),
+      madraCap: cap,
+      madraFrame: -80 * Math.round(Math.min(1, s.madra / cap) * 32),
+      madraRate: isWell ? dec('+1.5 / s') : '',
+      cdLevel: s.cdLevel,
+      coreFrame: -80 * Math.round((Math.min(s.cdLevel, 100) / 100) * 16),
+      beadsRow: -12 * Math.round(Math.min(1, s.cdXp / need) * 18),
+      cdXpText: Math.floor(s.cdXp) + ' / ' + Math.floor(need),
+      goalK: Math.round((Math.min(s.cdLevel, 100) / 100) * 138),
+      gold: s.gold,
+      questName: s.fresh ? 'Awaken Your Core' : 'First Elite',
+      questStep: s.fresh ? 'Fill your Madra by cycling' : 'Defeat an elite in The Shallow Woods',
+      // Only a step that can measure progress shows a figure: the fresh-save quest fills
+      // Madra to its fixed target of 100. A defeat step has nothing to measure.
+      hasQuestProgress: s.fresh,
+      questProgress: s.fresh ? Math.min(100, Math.floor(s.madra)) + ' / 100' : '',
+      zoneName: inTest ? 'Test Zone' : 'Spirit Valley',
+      zoneThumb: T(inTest ? 'thumb_basic' : 'thumb'),
+      hasLore: !inTest,
+      loreOpen: loreOpen,
+      aboutTex: T(loreOpen ? 'about_open' : 'about'),
+      stripName: isWell ? 'Aura Well' : 'Spring Forest Foraging',
+      flashStrip: s.flashStrip,
+      wellLevel: well.level,
+      wellNext: well.level + 1,
+      wellInto: well.into,
+      wellNeed: well.need,
+      wellK: Math.round((well.into / well.need) * 152),
+      groups: groups,
+      cardCount: groups.reduce(function (n, g) { return n + g.cards.length; }, 0),
+      fadeTop: s.fadeTop,
+      fadeBottom: s.fadeBottom,
+      hasRail: !!rail,
+      railH: rail ? rail[0] : 32,
+      railY: listTop + (rail ? rail[1] : 14),
+      railTrackTop: listTop + 14,
+      railTrackHeight: listHeight - 28,
+      railDownTop: listTop + listHeight - 14,
+      railUp: T(s.fadeTop ? 'rail_up_on' : 'rail_up_off'),
+      railDown: T(s.fadeBottom ? 'rail_down_on' : 'rail_down_off'),
+      feed: s.feed.map(function (e, i) {
+        const age = s.feed.length - 1 - i;
+        let tone = tones[e.tone] || tones.muted;
+        if (age === 2) {
+          tone = tones.muted;
+        } else if (age > 2) {
+          tone = [DIM, 'dim'];
+        }
+        return { text: e.text, color: tone[0], bullet: T('bullet_' + tone[1]), top: logH - 42 - 26 * age };
+      }),
+    };
+  }
+
+  //---------------------------------------------------------------------------
+  // View: template literals, patched into the frame
+  //---------------------------------------------------------------------------
+
+  // A false branch renders an empty comment, so every conditional is always exactly one
+  // node and the siblings after it keep their positions (and their running animations).
+  function when(cond, html) {
+    return cond ? html.trim() : '<!---->';
+  }
+
+  // A list renders inside a display: contents wrapper, which takes no box of its own.
+  function list(items, fn) {
+    return '<div style="display: contents;">' + items.map(function (item) { return fn(item).trim(); }).join('') + '</div>';
+  }
+
+  // A run of locked & uncharted demo elements, wrapped the same way so when() sees one node
+  // and the elements keep their place in the stacking order.
+  function lockedGroup(html) {
+    return '<div style="display: contents;">' + html.trim() + '</div>';
+  }
+
+  const HEX_CLIP = 'clip-path: polygon(50% 2%, 97.5% 26%, 97.5% 74%, 50% 98%, 2.5% 74%, 2.5% 26%);';
+  const HEX_BTN = 'width: 328px; height: 380px; ' + HEX_CLIP;
+  const HEX_IMG = 'left: 0; top: 0; width: 328px; height: 380px;';
+  const PLATE_BTN = 'width: 248px; height: 52px;';
+  const PLATE_IMG = 'left: 0; top: 0; width: 248px; height: 52px;';
+  const PLATE_LINE = 'left: 0; top: 26px; width: 248px; display: flex; justify-content: center; align-items: flex-start; gap: 6px; font-size: 14px; line-height: 18px;';
+  const NAV = [
+    ['Inventory (I)', IMG.inventory, 'Inventory', 'I'],
+    ['Abilities (A)', T('ic_abilities'), 'Abilities', 'A'],
+    ['Character (C)', IMG.character, 'Character', 'C'],
+  ];
+
+  // The popover close: a carved x, cream on hover.
+  function closeBtn(x, y) {
+    return `<button class="swap" data-click="close" aria-label="Close" style="left: ${x}px; top: ${y}px; width: 28px; height: 28px;">
+      <img class="off" src="${T('close')}" alt="" style="left: 0; top: 0; width: 28px; height: 28px;">
+      <img class="on" src="${T('close_hover')}" alt="" style="left: 0; top: 0; width: 28px; height: 28px;">
+    </button>`;
+  }
+
+  // A jade or Madra-blue rod: the empty groove, the full rod clipped to 2 + 2k px, and the
+  // end cap at 2k once k >= 2 (k counts art px).
+  function rod(name, x, y, width, k) {
+    return `<div class="tex" style="left: ${x}px; top: ${y}px; width: ${width}px; height: 10px; background-image: url('${T('rod_' + name + '_empty')}');">
+      ${when(k > 0, `<div class="tex" style="left: 0; top: 0; width: ${2 + 2 * k}px; height: 10px; background-image: url('${T('rod_' + name + '_full')}');"></div>`)}
+      ${when(k >= 2, `<img src="${T('rod_' + name + '_end')}" alt="" style="left: ${2 * k}px; top: 0; width: 2px; height: 10px;">`)}
+    </div>`;
+  }
+
+  function plateLine(p) {
+    return when(p.hasIcon, `<img class="inl" src="${p.icon}" alt="" style="width: 16px; height: 16px; margin-top: 2px;">`) +
+      `<span>${p.text}</span>`;
+  }
+
+  function cardHtml(c) {
+    return `
+<button class="card" data-card="${c.id}" data-click="card:${c.id}" style="height: ${c.height}px;">
+  <img class="${c.faceShadow}" src="${c.face}" alt="" style="left: ${c.shift}px; top: ${c.shift}px; width: 392px; height: ${c.height}px;">
+  <span class="cardIn" style="left: ${c.shift}px; top: ${c.shift}px; height: ${c.height}px;">
+    <img src="${c.icon}" alt="" style="left: 16px; top: 20px; width: 32px; height: 32px;">
+    <span class="t" style="left: 64px; top: ${c.titleTop - 1}px; max-width: 232px; height: 22px; display: flex; align-items: flex-start;">
+      <span class="nm" style="min-width: 0; margin-top: 1px; overflow: hidden; text-overflow: ellipsis;">${c.title}</span>
+      ${when(c.isNew, `<span class="seal-new">NEW</span>`)}
+    </span>
+    <img src="${c.tagTex}" alt="" style="left: 304px; top: ${c.titleTop - 1}px; width: 76px; height: 22px;">
+    <span class="t tagtxt" style="left: 304px; top: ${c.titleTop - 1}px; color: ${c.tagColor};">${c.tag}</span>
+    ${when(c.hasText && !c.wrap, `<span class="t lbl" style="left: 64px; top: 38px; max-width: 316px; overflow: hidden; text-overflow: ellipsis;">${c.sub}</span>`)}
+    ${when(c.hasText && c.wrap, `<span class="t lbl" style="left: 64px; top: 38px; width: 316px; white-space: normal;">${c.sub}</span>`)}
+    ${when(c.isForage, `
+      <span style="display: contents;">
+        <img src="${T('mini_dewdrop')}" alt="Dewdrop Tear" style="left: 64px; top: 40px; width: 16px; height: 16px;">
+        <span class="t lbl" style="left: 86px; top: 38px;">1–5</span>
+        <img src="${T('mini_fern')}" alt="Spirit Fern" style="left: 120px; top: 40px; width: 16px; height: 16px;">
+        <span class="t lbl" style="left: 142px; top: 38px;">2–6 · every 5 s · free</span>
+      </span>`)}
+    ${when(c.woodsNotReady, `
+      <span style="display: contents;">
+        <img src="${T('mini_madra')}" alt="" style="left: 64px; top: 41px; width: 16px; height: 16px;">
+        <span class="t" style="left: 86px; top: 38px; font-size: 15px; line-height: 20px; color: ${TAN};">Needs 60 Madra · you have ${c.madraText}</span>
+        ${rod('adv', 64, 70, 152, c.advK)}
+        <span class="t" style="left: 180px; top: 66px; width: 200px; text-align: right; font-size: 15px; line-height: 18px; color: ${c.advHintColor};">${c.advHint}</span>
+      </span>`)}
+    ${when(c.woodsReady, `<span class="t" style="left: 64px; top: 54px; font-size: 15px; line-height: 18px; color: ${BRASS};">Ready · carries up to 120 Madra · 5 min run</span>`)}
+    <span class="hov" style="width: 392px; height: ${c.height}px;"></span>
+    ${when(c.flash, `<span class="brassframe flash" style="width: 392px; height: ${c.height}px;"></span>`)}
+  </span>
+</button>`;
+  }
+
+  // The Now tray, local to the zone chest; its contents are local to the tray at (16, 82).
+  function stripHtml(v) {
+    return `
+<div>
+  <button data-click="strip" aria-label="Current action: ${v.stripName}. Show its card" style="left: 16px; top: 82px; width: 408px; height: 88px;">
+    <img src="${T('now_tray')}" alt="" style="left: 0; top: 0; width: 408px; height: 88px;">
+    <div class="tex ring ${v.ringClass}" style="left: 14px; top: 16px;"></div>
+    <img src="${v.actionIcon}" alt="" style="left: 26px; top: 28px; width: 32px; height: 32px;">
+    ${when(v.isWell, `
+      <span style="display: contents;">
+        <span class="t" style="left: 84px; top: 12px; font-size: 18px; line-height: 22px;">Aura Well</span>
+        <span class="t" style="left: 84px; top: 12px; width: 308px; display: flex; justify-content: flex-end; align-items: flex-start; font-size: 16px; line-height: 22px;">
+          <img class="inl" src="${T('mini_madra')}" alt="" style="width: 16px; height: 16px; margin: 4px 6px 0 0;">
+          <span>${dec('+1.5 Madra / s')}</span>
+        </span>
+        <span class="t lbl" style="left: 84px; top: 38px;">Lv ${v.wellLevel} → ${v.wellNext} · +1 Spirit</span>
+        <span class="t lbl" style="left: 192px; top: 38px; width: 200px; text-align: right;">${v.wellInto} / ${v.wellNeed}</span>
+        ${rod('well', 84, 64, 308, v.wellK)}
+      </span>`)}
+    ${when(v.isForage, `
+      <span style="display: contents;">
+        <span class="t" style="left: 84px; top: 18px; font-size: 18px; line-height: 22px;">Spring Forest Foraging</span>
+        <img src="${T('mini_dewdrop')}" alt="Dewdrop Tear" style="left: 84px; top: 50px; width: 16px; height: 16px;">
+        <span class="t" style="left: 106px; top: 48px; font-size: 15px; line-height: 20px; color: ${TAN};">1–5</span>
+        <img src="${T('mini_fern')}" alt="Spirit Fern" style="left: 144px; top: 50px; width: 16px; height: 16px;">
+        <span class="t" style="left: 166px; top: 48px; font-size: 15px; line-height: 20px; color: ${TAN};">2–6</span>
+        <span class="t" style="left: 192px; top: 48px; width: 200px; text-align: right; font-size: 15px; line-height: 20px;">haul in ${v.haulIn} s</span>
+      </span>`)}
+    <span class="hov" style="width: 408px; height: 88px;"></span>
+    ${when(v.flashStrip, `<span class="brassframe flash1" style="width: 408px; height: 88px;"></span>`)}
+  </button>
+  <img class="sh2" src="${T('now_plate')}" alt="" style="left: 28px; top: 72px; width: 60px; height: 22px;">
+  <span class="t" style="left: 28px; top: 72px; width: 60px; text-align: center; font-size: 14px; line-height: 22px; color: ${INK}; pointer-events: none;">Now</span>
+</div>`;
+  }
+
+  function view(v) {
+    return `
+<div class="tex" style="left: 0; top: 0; width: 1920px; height: 1080px; background-image: url('${v.fog}');"></div>
+
+${when(v.locked, lockedGroup(`
+  <button data-click="pin:uncharted" data-hover="uncharted" aria-label="Uncharted zone" style="${HEX_BTN} left: 796px; top: -58px;">
+    <img src="${v.unchTile}" alt="" style="${HEX_IMG}">
+  </button>
+  <button data-click="pin:advancement" data-hover="advancement" aria-label="Advancement Zone, locked" style="${HEX_BTN} left: 960px; top: 227px;">
+    <img src="${v.advTile}" alt="" style="${HEX_IMG}">
+  </button>`))}
+<button data-click="travel:valley" data-hover="valley" aria-label="Spirit Valley" style="${HEX_BTN} left: 796px; top: 512px;">
+  <img src="${IMG.river}" alt="" style="${HEX_IMG}">
+</button>
+${when(v.demo, `
+  <button data-click="travel:test" data-hover="test" aria-label="Test Zone, open" style="${HEX_BTN} left: 468px; top: 512px;">
+    <img src="${IMG.basic}" alt="" style="${HEX_IMG}">
+  </button>`)}
+${when(v.demo, `<img src="${v.otherRim}" alt="" style="left: ${v.otherX}px; top: 512px; width: 328px; height: 380px;">`)}
+<img src="${T('hex_current')}" alt="" style="left: ${v.currentX}px; top: 512px; width: 328px; height: 380px;">
+${when(v.showHoverIn, `<img src="${T('hex_hover_in')}" alt="" style="left: ${v.hoverX}px; top: ${v.hoverY}px; width: 328px; height: 380px;">`)}
+${when(v.showPinned, `<img src="${T('hex_pinned_in')}" alt="" style="left: ${v.pinX}px; top: ${v.pinY}px; width: 328px; height: 380px;">`)}
+
+${when(v.locked, list(ROUTE_NORTH, (d) => `<img src="${T('route_dot')}" alt="" style="left: ${d[0]}px; top: ${d[1]}px; width: 8px; height: 8px;">`))}
+${when(v.demo, list(ROUTE_WEST, (d) => `<img src="${v.routeWest}" alt="" style="left: ${d[0]}px; top: ${d[1]}px; width: 8px; height: 8px;">`))}
+
+<div style="position: absolute; left: ${v.actorX}px; top: ${v.actorY}px; width: 32px; height: 48px; pointer-events: none; transition: left 0.6s steps(164, end); animation: ${v.actorAnim};">
+  <img src="${T('char_shadow')}" alt="" style="left: 2px; top: 42px; width: 28px; height: 6px;">
+  <div class="char-sprite" role="img" aria-label="Your character"></div>
+</div>
+${when(v.isWell, `
+  <div style="display: contents;">
+    <div class="tex mring r1" style="left: ${v.ringX}px; top: ${v.ringY}px;"></div>
+    <img src="${PH.well}" alt="" style="left: ${v.ringX + 16}px; top: ${v.ringY + 16}px; width: 32px; height: 32px;">
+    <div class="token sh2" style="left: ${v.floatX}px; top: 674px; width: ${v.floatW}px; animation: rise 1s steps(20, end) infinite;">
+      <span class="t" style="width: ${v.floatW}px; color: ${MADRA_BLUE};">${dec('+1.5 Madra')}</span>
+    </div>
+  </div>`)}
+${when(v.isForage, `
+  <div style="display: contents;">
+    <div class="tex mring r5" style="left: ${v.ringX}px; top: ${v.ringY}px;"></div>
+    <img src="${PH.forage}" alt="" style="left: ${v.ringX + 16}px; top: ${v.ringY + 16}px; width: 32px; height: 32px;">
+    <div class="token sh2" style="left: ${v.floatX}px; top: 674px; width: ${v.floatW}px; visibility: hidden; animation: haul 5s 5s infinite;">
+      <span class="t" style="width: ${v.floatW}px; color: ${CREAM};">${v.lastHaul}</span>
+    </div>
+  </div>`)}
+
+${when(v.locked, lockedGroup(`
+  <img src="${T('glyph_lock')}" alt="" style="left: 1102px; top: 356px; width: 44px; height: 52px; animation: ${v.lockAnim};">
+  <img src="${T('glyph_unknown')}" alt="" style="left: 946px; top: 92px; width: 28px; height: 36px;">
+  <div class="tex twinkle" style="left: 972px; top: 84px;"></div>`))}
+
+<button data-click="travel:valley" data-hover="valley" aria-label="Spirit Valley" style="${PLATE_BTN} left: 836px; top: 800px;">
+  <img class="sh2" src="${v.valleyPlate.tex}" alt="" style="${PLATE_IMG}">
+  <span class="t" style="left: 0; top: ${v.valleyPlate.nameTop}px; width: 248px; text-align: center; font-size: 16px; line-height: 18px; color: ${v.valleyPlate.nameColor};">Spirit Valley</span>
+  ${when(v.valleyPlate.hasLine, `<span class="t" style="${PLATE_LINE} color: ${v.valleyPlate.color};">${plateLine(v.valleyPlate)}</span>`)}
+</button>
+${when(v.demo, `
+  <button data-click="travel:test" data-hover="test" aria-label="Test Zone" style="${PLATE_BTN} left: 508px; top: 800px;">
+    <img class="sh2" src="${v.testPlate.tex}" alt="" style="${PLATE_IMG}">
+    <span class="t" style="left: 0; top: ${v.testPlate.nameTop}px; width: 248px; text-align: center; font-size: 16px; line-height: 18px; color: ${v.testPlate.nameColor};">Test Zone</span>
+    ${when(v.testPlate.hasLine, `<span class="t" style="${PLATE_LINE} color: ${v.testPlate.color};">${plateLine(v.testPlate)}</span>`)}
+  </button>`)}
+${when(v.locked, lockedGroup(`
+  <button data-click="pin:advancement" data-hover="advancement" aria-label="Advancement Zone, locked" style="${PLATE_BTN} left: 1000px; top: 428px;">
+    <img class="sh2" src="${v.advPlate}" alt="" style="${PLATE_IMG}">
+    ${when(v.advPinned, `<span class="brassframe" style="width: 248px; height: 52px;"></span>`)}
+    <span class="t" style="left: 0; top: 6px; width: 248px; text-align: center; font-size: 16px; line-height: 18px;">Advancement Zone</span>
+    <span class="t" style="${PLATE_LINE}">
+      <img class="inl" src="${T('mini_swords')}" alt="" style="width: 16px; height: 16px; margin-top: 2px;">
+      <span>Tribulation Guardian</span>
+    </span>
+  </button>
+  <button data-click="pin:uncharted" data-hover="uncharted" aria-label="Uncharted zone" style="${PLATE_BTN} left: 836px; top: 150px;">
+    <img class="sh2" src="${v.unchPlate}" alt="" style="${PLATE_IMG}">
+    ${when(v.unchPinned, `<span class="brassframe" style="width: 248px; height: 52px;"></span>`)}
+    <span class="t" style="left: 0; top: 6px; width: 248px; text-align: center; font-size: 16px; line-height: 18px; color: ${v.unchPlateText};">Uncharted</span>
+    <span class="t" style="${PLATE_LINE} color: ${TAN};">After the Tribulation</span>
+  </button>`))}
+
+${when(v.advPopover, `
+  <div role="dialog" aria-label="Advancement Zone" data-popover="map" style="position: absolute; left: 684px; top: ${v.advPopTop}px; width: 272px; height: ${v.advPopHeight}px;">
+    <img class="sh4" src="${v.advPopTex}" alt="" style="left: 0; top: 0; width: 272px; height: ${v.advPopHeight}px;">
+    <img src="${T('seal_locked')}" alt="" style="left: 16px; top: 14px; width: 88px; height: 22px;">
+    <img src="${T('mini_lock')}" alt="" style="left: 24px; top: 17px; width: 16px; height: 16px;">
+    <span class="t" style="left: 42px; top: 14px; font-size: 13px; line-height: 22px; letter-spacing: 1px;">LOCKED</span>
+    ${when(v.advPinned, closeBtn(220, 12))}
+    <span class="t" style="left: 16px; top: 46px; font-size: 18px; line-height: 22px;">Advancement Zone</span>
+    <span class="t" style="left: 16px; top: 74px; font-size: 15px; line-height: 20px;">Defeat the Tribulation Guardian</span>
+    <span class="t" style="left: 16px; top: 94px; font-size: 15px; line-height: 20px;">in The Shallow Woods</span>
+    ${when(v.advShowMe, `
+      <button data-click="showMe" style="left: 16px; top: 124px; width: 104px; height: 32px;">
+        <img class="sh2" src="${T('showme')}" alt="" style="left: 0; top: 0; width: 104px; height: 32px;">
+        <span class="t" style="left: 0; top: 0; width: 104px; display: flex; justify-content: center; align-items: flex-start; font-size: 14px; line-height: 32px;">
+          <span>Show me</span>
+          <img class="inl" src="${T('chev')}" alt="" style="width: 10px; height: 14px; margin: 10px 0 0 6px;">
+        </span>
+        <span class="hov" style="width: 104px; height: 32px;"></span>
+      </button>`)}
+  </div>`)}
+${when(v.unchPopover, `
+  <div role="dialog" aria-label="Uncharted zone" data-popover="map" style="position: absolute; left: 1128px; top: 76px; width: 272px; height: 112px;">
+    <img class="sh4" src="${v.unchPopTex}" alt="" style="left: 0; top: 0; width: 272px; height: 112px;">
+    <img src="${T('tag_wide')}" alt="" style="left: 24px; top: 14px; width: 88px; height: 22px;">
+    <span class="t" style="left: 24px; top: 14px; width: 88px; text-align: center; font-size: 13px; line-height: 22px; letter-spacing: 1px; text-indent: 1px; color: ${TAN};">UNKNOWN</span>
+    ${when(v.unchPinned, closeBtn(228, 12))}
+    <span class="t" style="left: 24px; top: 46px; font-size: 18px; line-height: 22px;">Uncharted</span>
+    <span class="t" style="left: 24px; top: 74px; font-size: 15px; line-height: 20px;">Revealed after the Tribulation.</span>
+  </div>`)}
+
+<section aria-label="Cultivation" style="left: 24px; top: 24px; width: 440px; height: 252px;">
+  <img class="sh4" src="${T('cult')}" alt="" style="left: 0; top: 0; width: 440px; height: 252px;">
+  <div class="tex orb" style="left: 18px; top: 16px; background-position: ${v.madraFrame}px 0;"></div>
+  <span class="t lbl" style="left: 114px; top: 22px;">Madra</span>
+  <span class="t" style="left: 114px; top: 44px; font-size: 30px; line-height: 36px;">${v.madraText} <span style="color: ${TAN};">/ ${v.madraCap}</span></span>
+  ${when(v.madraRate, `<span class="t" style="left: 222px; top: 56px; width: 200px; text-align: right; font-size: 17px; line-height: 20px; color: ${TAN};">${v.madraRate}</span>`)}
+  <div class="tex core" style="left: 18px; top: 108px; background-position-x: ${v.coreFrame}px;"></div>
+  <span class="t lbl" style="left: 114px; top: 110px;">Core Density</span>
+  <span class="t ttl" style="left: 114px; top: 130px; font-size: 21px; line-height: 28px; color: ${CREAM};">Foundation</span>
+  <span class="t nm" style="left: 222px; top: 136px; width: 200px; text-align: right;">Level ${v.cdLevel}</span>
+  <div class="tex beads" style="left: 114px; top: 168px; background-position: 0 ${v.beadsRow}px;"></div>
+  <span class="t lbl" style="left: 222px; top: 165px; width: 200px; text-align: right;">${v.cdXpText} XP</span>
+  <img src="${T('line')}" alt="" style="left: 16px; top: 198px; width: 408px; height: 6px;">
+  <img src="${IMG.gold}" alt="" style="left: 26px; top: 208px; width: 32px; height: 32px;">
+  <span class="t" style="left: 68px; top: 210px; font-size: 22px; line-height: 28px;">${v.gold} <span style="font-size: 17px; line-height: 22px; color: ${TAN};">gold</span></span>
+</section>
+
+<section aria-label="Goals" style="left: 24px; top: 272px; width: 440px; height: 220px;">
+  <img class="sh4" src="${T('goals')}" alt="" style="left: 0; top: 0; width: 440px; height: 220px;">
+  <span class="t ttl" style="left: 18px; top: 30px; font-size: 22px; line-height: 28px;">Goals</span>
+  <img src="${PH.story}" alt="" style="left: 20px; top: 68px; width: 32px; height: 32px;">
+  <span class="t nm" style="left: 64px; top: 66px;">${v.questName}</span>
+  ${when(v.hasQuestProgress, `<span class="t" style="left: 222px; top: 66px; width: 200px; text-align: right; font-size: 15px; line-height: 20px; color: ${TAN};">${v.questProgress}</span>`)}
+  <span class="t lbl" style="left: 64px; top: 88px;">${v.questStep}</span>
+  <img src="${T('line')}" alt="" style="left: 16px; top: 120px; width: 408px; height: 6px;">
+  <img src="${T('ic_core')}" alt="" style="left: 20px; top: 138px; width: 32px; height: 32px;">
+  <span class="t nm" style="left: 64px; top: 136px;">Breakthrough</span>
+  <span class="t lbl" style="left: 64px; top: 158px;">Raise Core Density to 100</span>
+  ${rod('goal', 64, 188, 280, v.goalK)}
+  <span class="t lbl" style="left: 222px; top: 184px; width: 200px; text-align: right;">${v.cdLevel} / 100</span>
+</section>
+
+<section aria-label="Log" style="left: 24px; top: ${v.logTop}px; width: 440px; height: ${v.logH}px;">
+  <img class="sh4" src="${v.logTex}" alt="" style="left: 0; top: 0; width: 440px; height: ${v.logH}px;">
+  <span class="t ttl" style="left: 18px; top: 14px; font-size: 22px; line-height: 28px;">Log</span>
+  <span class="t lbl" style="left: 222px; top: 20px; width: 200px; text-align: right;">Full log · L</span>
+  ${list(v.feed, (e) => `
+    <div style="position: absolute; left: 20px; top: ${e.top}px; width: 402px; height: 18px;">
+      <img src="${e.bullet}" alt="" style="left: 0; top: 4px; width: 10px; height: 10px;">
+      <span class="t" style="left: 18px; top: 0; max-width: 384px; overflow: hidden; text-overflow: ellipsis; font-size: 15px; line-height: 18px; color: ${e.color};">${e.text}</span>
+    </div>`)}
+</section>
+
+<section data-ref="panel" aria-label="Zone" style="left: 1456px; top: 24px; width: 440px; height: ${v.chestH}px;">
+  <div class="sh4" style="position: absolute; left: 0; top: 0; width: 440px; height: ${v.chestH}px;">
+    <img src="${T('chest_top')}" alt="" style="left: 0; top: 0; width: 440px; height: 128px;">
+    <div class="chestMid" style="position: absolute; left: 0; top: 128px; width: 440px; height: ${v.chestMidH}px;"></div>
+    <img src="${T('chest_bot')}" alt="" style="left: 0; top: ${v.chestH - 48}px; width: 440px; height: 48px;">
+  </div>
+  <img src="${v.zoneThumb}" alt="" style="left: 16px; top: 14px; width: 46px; height: 52px;">
+  <h1 class="t ttl" style="left: 74px; top: 16px; font-size: 30px; line-height: 44px;">${v.zoneName}</h1>
+  ${when(v.hasLore, `
+    <button data-click="lore" aria-expanded="${v.loreOpen}" style="left: 336px; top: 22px; width: 88px; height: 36px;">
+      <img class="${v.loreOpen ? '' : 'sh2'}" src="${v.aboutTex}" alt="" style="left: 0; top: 0; width: 88px; height: 36px;">
+      <span class="t" style="left: 0; top: ${v.loreOpen ? 2 : 0}px; width: 88px; text-align: center; font-size: 15px; line-height: 36px;">About</span>
+      <span class="hov" style="width: 88px; height: 36px;"></span>
+    </button>`)}
+
+  ${when(v.hasCurrent, stripHtml(v))}
+
+  <div style="position: absolute; left: 16px; top: ${v.actTop}px; width: 408px; height: 24px; display: flex; align-items: flex-start;">
+    <span class="ttl" style="font-size: 20px; line-height: 24px; white-space: nowrap;">Activities</span>
+    <span style="flex: 1; display: flex; height: 6px; margin: 10px 12px 0 12px;">
+      <span class="groove" style="flex: 1; height: 6px;"></span>
+      <img class="inl" src="${T('groove_end')}" alt="" style="width: 6px; height: 6px;">
+    </span>
+    <span style="margin-top: 2px; font-size: 15px; line-height: 20px; color: ${TAN}; white-space: nowrap;">${v.cardCount} here</span>
+  </div>
+
+  <div data-ref="list" class="actList" style="position: absolute; left: 12px; top: ${v.listTop}px; width: 400px; height: ${v.listHeight}px; padding-left: 4px; overflow-y: auto; overflow-x: hidden;">
+    <div style="display: flex; flex-direction: column; gap: 14px; width: 392px; padding-bottom: 4px;">
+      ${when(v.listEmpty, `<span class="lbl" style="padding-top: 8px;">Nothing to do here yet.</span>`)}
+      ${list(v.groups, (g) => `
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: flex-start; height: 18px; margin-bottom: -2px;">
+            <span class="lbl" style="white-space: nowrap;">${g.name}</span>
+            <span class="groove" style="flex: 1; height: 6px; margin: 7px 0 0 10px;"></span>
+            <img class="inl" src="${T('groove_end')}" alt="" style="width: 6px; height: 6px; margin-top: 7px;">
+          </div>
+          ${list(g.cards, cardHtml)}
+        </div>`)}
+    </div>
+  </div>
+  ${when(v.fadeTop, `<img src="${T('lip_top')}" alt="" style="left: 16px; top: ${v.listTop}px; width: 392px; height: 10px;">`)}
+  ${when(v.fadeBottom, `<img src="${T('lip_bottom')}" alt="" style="left: 16px; top: ${v.lipBottomTop}px; width: 392px; height: 10px;">`)}
+  ${when(v.hasRail, `
+    <div style="display: contents;">
+      <button data-click="rail:up" tabindex="-1" aria-hidden="true" style="left: 412px; top: ${v.listTop}px; width: 12px; height: 14px;">
+        <img src="${v.railUp}" alt="" style="left: 0; top: 0; width: 12px; height: 14px;">
+      </button>
+      <div class="tex railTrack" style="left: 412px; top: ${v.railTrackTop}px; width: 12px; height: ${v.railTrackHeight}px;"></div>
+      <div class="tex railThumb" data-rail="thumb" style="left: 412px; top: ${v.railY}px; width: 12px; height: ${v.railH}px;"></div>
+      <button data-click="rail:down" tabindex="-1" aria-hidden="true" style="left: 412px; top: ${v.railDownTop}px; width: 12px; height: 14px;">
+        <img src="${v.railDown}" alt="" style="left: 0; top: 0; width: 12px; height: 14px;">
+      </button>
+    </div>`)}
+
+  ${when(v.loreOpen, `
+    <div role="dialog" aria-label="About Spirit Valley" data-popover="lore" style="position: absolute; left: 16px; top: ${v.loreTop}px; width: 408px; height: 264px;">
+      <img class="sh4" src="${T('lore')}" alt="" style="left: 0; top: 0; width: 408px; height: 264px;">
+      <div style="position: absolute; left: 22px; top: 18px; width: 364px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 22px;">
+        <p>Deep at the heart of the world lies Spirit Valley, a sanctuary revered as the cradle of power. This lush basin overflows with vital aura, drawing young sacred artists to its peaks to meditate on the roots of their paths.</p>
+        <p>In this place of beginnings, aspiring masters temper their spirits, learning the fundamental techniques that will one day grant them the strength to shake the heavens.</p>
+      </div>
+    </div>`)}
+</section>
+<div data-ref="xfade" data-keep style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none;"></div>
+
+<nav aria-label="Menus" style="left: 722px; top: 976px; width: 476px; height: 80px;">
+  <img class="sh4" src="${T('dock')}" alt="" style="left: 0; top: 0; width: 476px; height: 80px;">
+  ${NAV.map((n, i) => `
+    <button class="swap" aria-label="${n[0]}" style="left: ${10 + 116 * i}px; top: 8px; width: 108px; height: 64px;">
+      <img class="sh2 off" src="${T('btn')}" alt="" style="left: 0; top: 0; width: 108px; height: 64px;">
+      <img class="sh2 on" src="${T('btn_hover')}" alt="" style="left: 0; top: 0; width: 108px; height: 64px;">
+      <img src="${n[1]}" alt="" style="left: 38px; top: 6px; width: 32px; height: 32px;">
+      <span class="t" style="left: 0; top: 40px; width: 108px; text-align: center; font-size: 14px; line-height: 18px;">${n[2]}</span>
+      <span class="t" style="left: 0; top: 4px; width: 96px; text-align: right; font-size: 14px; line-height: 18px; color: ${TAN};">${n[3]}</span>
+    </button>`).join('')}
+  <button class="swap" aria-label="Path (P), 1 point to spend" style="left: 358px; top: 8px; width: 108px; height: 64px;">
+    <img class="sh2 off" src="${T('btn_ring')}" alt="" style="left: 0; top: 0; width: 108px; height: 64px;">
+    <img class="sh2 on" src="${T('btn_hover')}" alt="" style="left: 0; top: 0; width: 108px; height: 64px;">
+    <img src="${IMG.star}" alt="" style="left: 38px; top: 6px; width: 32px; height: 32px;">
+    <span class="t" style="left: 0; top: 40px; width: 108px; text-align: center; font-size: 14px; line-height: 18px;">Path</span>
+    <span class="t" style="left: 0; top: 4px; width: 96px; text-align: right; font-size: 14px; line-height: 18px; color: ${TAN};">P</span>
+    <img src="${T('seal_count')}" alt="" style="left: -6px; top: -6px; width: 24px; height: 24px;">
+    <span class="t" style="left: -6px; top: -3px; width: 24px; text-align: center; font-size: 15px; line-height: 18px;">1</span>
+  </button>
+</nav>
+`;
+  }
+
+  //---------------------------------------------------------------------------
+  // Patch: keeps existing nodes (scroll position, running animations, transitions)
+  // and only rewrites the attributes and text that changed.
+  //---------------------------------------------------------------------------
+
+  function morph(parent, html) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    patchChildren(parent, tpl.content);
+  }
+
+  function patchChildren(oldParent, newParent) {
+    const oldNodes = Array.prototype.slice.call(oldParent.childNodes);
+    const newNodes = Array.prototype.slice.call(newParent.childNodes);
+    for (let i = 0; i < newNodes.length; i++) {
+      const n = newNodes[i];
+      const o = oldNodes[i];
+      if (!o) {
+        oldParent.appendChild(n);
+      } else if (o.nodeType !== n.nodeType || o.nodeName !== n.nodeName) {
+        oldParent.replaceChild(n, o);
+      } else if (n.nodeType === 1) {
+        patchAttributes(o, n);
+        // A data-keep element holds nodes the view doesn't own (the panel crossfade copy).
+        if (!n.hasAttribute('data-keep')) {
+          patchChildren(o, n);
+        }
+      } else if (o.nodeValue !== n.nodeValue) {
+        o.nodeValue = n.nodeValue;
+      }
+    }
+    for (let i = oldNodes.length - 1; i >= newNodes.length; i--) {
+      oldParent.removeChild(oldNodes[i]);
+    }
+  }
+
+  function patchAttributes(o, n) {
+    Array.prototype.slice.call(o.attributes).forEach(function (a) {
+      if (!n.hasAttribute(a.name)) {
+        o.removeAttribute(a.name);
+      }
+    });
+    Array.prototype.slice.call(n.attributes).forEach(function (a) {
+      if (o.getAttribute(a.name) !== a.value) {
+        o.setAttribute(a.name, a.value);
+      }
+    });
+  }
+
+  function render() {
+    morph(frame, view(vals()));
+    measureList();
+  }
+
+  //---------------------------------------------------------------------------
+  // Frame events (the source's onClick / onMouseEnter / onMouseLeave / onScroll)
+  //---------------------------------------------------------------------------
+
+  frame.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-click]');
+    const parts = el && frame.contains(el) ? el.getAttribute('data-click').split(':') : [];
+    dismissPopovers(e.target, parts[0]);
+    switch (parts[0]) {
+      case 'travel':
+        travel(parts[1]);
+        break;
+      case 'pin':
+        if (parts[1] === 'advancement') {
+          setState({ pinned: 'advancement', shakes: state.shakes + 1 });
+        } else {
+          setState({ pinned: parts[1] });
+        }
+        break;
+      case 'close':
+        setState({ pinned: null });
+        break;
+      case 'showMe':
+        scrollToCard('woods');
+        break;
+      case 'lore':
+        setState({ loreOpen: !state.loreOpen });
+        break;
+      case 'strip':
+        scrollToCard(state.current);
+        break;
+      case 'card':
+        markSeen(parts[1]);
+        if (parts[1] === 'well' || parts[1] === 'forage') {
+          start(parts[1]);
+        }
+        break;
+      case 'rail': {
+        // The lit end caps step the list by one drawer and its gap.
+        const list = listEl();
+        if (list) {
+          stepScroll(list, list.scrollTop + (parts[1] === 'up' ? -80 : 80));
+        }
+        break;
+      }
+    }
+  });
+
+  // Dragging the rail thumb scrolls the list, as the native scrollbar did.
+  frame.addEventListener('mousedown', function (e) {
+    const thumb = e.target.closest ? e.target.closest('[data-rail="thumb"]') : null;
+    const list = listEl();
+    if (!thumb || !list) {
+      return;
+    }
+    e.preventDefault();
+    clearInterval(scrollTimer);
+    railDrag = { y: e.clientY, top: list.scrollTop };
+  });
+  document.addEventListener('mousemove', function (e) {
+    const list = listEl();
+    if (!railDrag || !list) {
+      return;
+    }
+    const view = list.clientHeight;
+    const content = list.scrollHeight;
+    const travelPx = Math.max(1, view - 28 - thumbHeight(view, content));
+    const scale = frame.getBoundingClientRect().height / 1080;
+    list.scrollTop = railDrag.top + ((e.clientY - railDrag.y) / scale) * (content - view) / travelPx;
+  });
+  document.addEventListener('mouseup', function () {
+    railDrag = null;
+  });
+
+  // Esc closes the pinned map popover, otherwise the lore popover.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') {
+      return;
+    }
+    if (state.pinned) {
+      setState({ pinned: null });
+    } else if (state.loreOpen) {
+      setState({ loreOpen: false });
+    }
+  });
+
+  // mouseenter / mouseleave don't bubble, but they do pass through the capture phase.
+  frame.addEventListener('mouseenter', function (e) {
+    const card = e.target.getAttribute && e.target.getAttribute('data-card');
+    if (card) {
+      markSeen(card);
+    }
+    const zone = e.target.getAttribute && e.target.getAttribute('data-hover');
+    if (!zone || zone === state.hover) {
+      return;
+    }
+    // The locked and uncharted previews wait 150 ms, so a passing pointer doesn't open them.
+    clearTimeout(previewTimer);
+    setState({ hover: zone, preview: null });
+    if (zone === 'advancement' || zone === 'uncharted') {
+      previewTimer = setTimeout(function () {
+        if (state.hover === zone) {
+          setState({ preview: zone });
+        }
+      }, 150);
+    }
+  }, true);
+  frame.addEventListener('mouseleave', function (e) {
+    const zone = e.target.getAttribute && e.target.getAttribute('data-hover');
+    if (!zone) {
+      return;
+    }
+    // Moving between a hex and its own plate is one hover.
+    const into = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('[data-hover]') : null;
+    if (into && into.getAttribute('data-hover') === zone) {
+      return;
+    }
+    clearTimeout(previewTimer);
+    setState({ hover: null, preview: null });
+  }, true);
+  frame.addEventListener('scroll', function (e) {
+    if (e.target.getAttribute && e.target.getAttribute('data-ref') === 'list') {
+      measureList();
+    }
+  }, true);
+
+  //---------------------------------------------------------------------------
+  // Mock controls (the source's componentDidUpdate on props)
+  //---------------------------------------------------------------------------
+
+  function setProps(next) {
+    const prev = props;
+    props = Object.assign({}, props, next);
+    if (prev.startState !== props.startState) {
+      clearTimeout(walkTimer);
+      setState(Object.assign(scenario(props.startState), { zone: 'valley', walking: null }));
+      restartClock();
+    }
+    // Turning the demo off cancels a walk and brings the character home at once.
+    if (prev.openZoneDemo !== props.openZoneDemo && !props.openZoneDemo && (state.zone === 'test' || state.walking)) {
+      clearTimeout(walkTimer);
+      if (state.zone === 'test') {
+        arrive('valley');
+      } else {
+        setState({ walking: null });
+      }
+    }
+    // Toggling the locked & uncharted demo re-applies the popover and hover controls, since
+    // those hexes appear or disappear with it.
+    const lockedChanged = prev.lockedDemo !== props.lockedDemo;
+    if (lockedChanged) {
+      setState({ shakes: 0 });
+    }
+    if (prev.popover !== props.popover || lockedChanged) {
+      setState({ pinned: shownKey(props.popover) });
+    }
+    if (prev.hoverPreview !== props.hoverPreview || lockedChanged) {
+      clearTimeout(previewTimer);
+      setState({ hover: shownKey(props.hoverPreview), preview: shownKey(props.hoverPreview) });
+    }
+    if (prev.showLore !== props.showLore) {
+      setState({ loreOpen: !!props.showLore });
+    }
+    setState({});
+    syncControls();
+    writeHash();
+  }
+
+  function syncControls() {
+    controls.startState.value = props.startState;
+    controls.listSize.value = props.listSize;
+    controls.openZoneDemo.checked = !!props.openZoneDemo;
+    controls.lockedDemo.checked = !!props.lockedDemo;
+    controls.popover.value = props.popover;
+    controls.hoverPreview.value = props.hoverPreview;
+    // The popover and the locked and uncharted hover previews need the locked & uncharted demo.
+    controls.popover.disabled = !props.lockedDemo;
+    Array.prototype.forEach.call(controls.hoverPreview.options, function (option) {
+      option.disabled = !props.lockedDemo && (option.value === 'Advancement Zone' || option.value === 'Uncharted');
+    });
+    controls.showLore.checked = !!props.showLore;
+    fitControl.checked = fit;
+  }
+
+  Object.keys(controls).forEach(function (prop) {
+    const control = controls[prop];
+    control.addEventListener('change', function () {
+      const patch = {};
+      patch[prop] = control.type === 'checkbox' ? control.checked : control.value;
+      setProps(patch);
+    });
+  });
+
+  function applyFit() {
+    document.documentElement.classList.toggle('fit', fit);
+    if (!fit) {
+      frame.style.transform = '';
+      stage.style.width = '1920px';
+      stage.style.height = '1080px';
+      return;
+    }
+    const bar = document.getElementById('mockbar');
+    const width = document.documentElement.clientWidth;
+    const height = window.innerHeight - bar.offsetHeight;
+    const scale = Math.max(0.1, Math.min(width / 1920, height / 1080));
+    frame.style.transform = 'scale(' + scale + ')';
+    stage.style.width = (1920 * scale) + 'px';
+    stage.style.height = (1080 * scale) + 'px';
+  }
+
+  fitControl.addEventListener('change', function () {
+    fit = fitControl.checked;
+    applyFit();
+    writeHash();
+  });
+  window.addEventListener('resize', function () {
+    if (fit) {
+      applyFit();
+    }
+  });
+  window.addEventListener('hashchange', function () {
+    const parsed = readHash();
+    if (parsed.fit !== fit) {
+      fit = parsed.fit;
+      applyFit();
+    }
+    setProps(parsed.props);
+  });
+
+  //---------------------------------------------------------------------------
+  // Start
+  //---------------------------------------------------------------------------
+
+  syncControls();
+  applyFit();
+  render();
+  restartClock();
+  // Wrapped card details and the floater tokens are measured in Euljiro: lay out again
+  // once the fonts have loaded.
+  if (document.fonts && document.fonts.load) {
+    Promise.all([document.fonts.load("15px 'Euljiro'"), document.fonts.load("16px 'Yatra'")]).then(function () {
+      setState({});
+    });
+  }
+})();
+</script>
+</body>
+</html>
