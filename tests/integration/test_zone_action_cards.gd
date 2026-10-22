@@ -307,6 +307,18 @@ func test_long_action_name_ellipsizes() -> void:
 	assert_lte(title.size.x, 232.0, "the title stops before the tag")
 	assert_eq(title.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS)
 
+func test_card_keeps_its_width_in_a_wider_column() -> void:
+	# A container wider than the drawer must not stretch the card's hover and
+	# click area past it.
+	var column := VBoxContainer.new()
+	column.size = Vector2(500.0, 400.0)
+	add_child_autofree(column)
+	var card: ZoneActionButton = CARD_SCENE.instantiate() as ZoneActionButton
+	card.setup_action(ZoneManager.get_action_by_id(MERCHANT_ID))
+	column.add_child(card)
+	await wait_process_frames(2)
+	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT))
+
 func test_long_detail_wraps_in_tall_drawer() -> void:
 	_equip_technique_named("word ".repeat(40).strip_edges())
 	var card: ZoneActionButton = _card(CYCLING_ID)
