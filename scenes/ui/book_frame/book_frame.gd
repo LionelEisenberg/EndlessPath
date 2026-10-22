@@ -104,9 +104,16 @@ func _ready() -> void:
 ## Plays the open animation. Emits opened once the book lies open. Calling it
 ## while the book closes turns the motion around.
 func animate_open() -> void:
+	var is_turning_around: bool = is_moving()
 	_motion = _Motion.OPENING
 	_set_chrome_visible(false)
 	_book_animation_player.play_backwards(_CLOSE_ANIMATION)
+	if not is_turning_around:
+		# Played backwards, the close animation starts on its last key, and its
+		# discrete track only applies the keys it crosses. Seek onto that key so
+		# the book starts closed instead of on the frame it last showed: the
+		# open book, until it has closed once.
+		_book_animation_player.seek(_book_animation_player.current_animation_length, true)
 
 ## Plays the close animation and emits closed when it ends. Calling it while
 ## the book opens turns the motion around.
