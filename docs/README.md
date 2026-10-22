@@ -47,6 +47,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | Dialogue | [infrastructure/DIALOGUE.md](infrastructure/DIALOGUE.md) | DialogueManager, Dialogic setup, characters and timelines |
 | Logging | [infrastructure/LOGGING.md](infrastructure/LOGGING.md) | `Log` (diagnostics) vs `LogManager` (player-facing log), the log board and full log |
 | UI styling | [UI_STYLING.md](UI_STYLING.md) | Label theme-variant type scale, the lacquer theme and pieces, theme and asset files |
+| Style guide | [STYLE_GUIDE.md](STYLE_GUIDE.md) | The "Lacquer and brass" look: rules, palette, type, components, states, motion, Godot recipes, a review checklist, and the backlog of screens still to rework |
 | Authoring conventions | [progression/QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md](progression/QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md) | When to use an event, an unlock condition, or a quest step |
 
 ## Tooling and Testing

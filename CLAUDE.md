@@ -200,6 +200,8 @@ The user must be able to tell AI-made art from art they made or imported. Any im
 
 UI text uses a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`; the zone view's panels and the HUD boards use the lacquer theme (`assets/themes/lacquer/lacquer_theme.tres`, `LabelLacquer*` variants) on their roots instead. Before adding inline `theme_override_font_sizes` or `theme_override_colors` to a Label, read **`docs/UI_STYLING.md`** — it lists every available variant, the rule of thumb for when to use a variant vs a direct override, and copy-paste `.tscn` patterns.
 
+Before reworking or building any screen, read **`docs/STYLE_GUIDE.md`**: the game's "Lacquer and brass" look (rules, palette, components, motion, review checklist) and the backlog of screens still to move to it.
+
 ## GDScript Coding Standards
 
 **Scope**: Never modify files in `addons/`. Known exceptions, both in `addons/dialogic` (2.0-Alpha-19):
