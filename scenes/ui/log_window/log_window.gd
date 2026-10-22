@@ -20,7 +20,9 @@ extends Control
 ## wraps under its own text, hanging from its bullet. Its rail's end caps are
 ## lit only when the text can scroll that way (kit §4.4). L, Escape while it is
 ## open, and LogManager.toggle_window() open and close it. It never opens while
-## the log is hidden (the merchant hides it), and hiding the log closes it.
+## the log is hidden (the merchant hides it), and hiding the log closes it. A
+## menu book leaves the log in sight but blocks the full log while it is open
+## (set_full_log_blocked()), so Esc goes to the book.
 
 #-----------------------------------------------------------------------------
 # TYPES
@@ -110,6 +112,8 @@ static var _bbcode_tag_regex: RegEx = null
 #-----------------------------------------------------------------------------
 
 var _full_log_open: bool = false
+## True while a menu book is open: the full log stays shut.
+var _full_log_blocked: bool = false
 ## Lines in the full log's text since it was last filled.
 var _full_log_line_count: int = 0
 ## The board's current height, kept so a move can re-hang it.
@@ -134,7 +138,7 @@ func _ready() -> void:
 	_update_board()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not is_visible_in_tree():
+	if not is_visible_in_tree() or _full_log_blocked:
 		return
 	if event.is_action_pressed("toggle_log"):
 		toggle_full_log()
@@ -148,9 +152,10 @@ func _unhandled_input(event: InputEvent) -> void:
 #-----------------------------------------------------------------------------
 
 ## Opens the full log with every line LogManager keeps, or closes it and shows
-## the five-line board again. Does not open it while the log is hidden.
+## the five-line board again. Does not open it while the log is hidden or the
+## full log is blocked.
 func toggle_full_log() -> void:
-	if not _full_log_open and not is_visible_in_tree():
+	if not _full_log_open and (_full_log_blocked or not is_visible_in_tree()):
 		return
 	_full_log_open = not _full_log_open
 	if _full_log_open:
@@ -161,6 +166,16 @@ func toggle_full_log() -> void:
 ## True while the full log is open.
 func is_full_log_open() -> bool:
 	return _full_log_open
+
+## Keeps the full log shut, closing it if it is open, or lets it open again.
+## A menu book blocks it while the book is open: the log board stays in sight
+## under the book, but an open full log would take the Esc meant for the book
+## (the log gets _unhandled_input before MainView hands the key to the book).
+## While blocked, the log ignores L and Esc.
+func set_full_log_blocked(blocked: bool) -> void:
+	_full_log_blocked = blocked
+	if blocked and _full_log_open:
+		toggle_full_log()
 
 ## The tone of a logged line, from its first [color] tag: gold, yellow, orange
 ## and other brass hues are BRASS; cyan, blue and other blues are MADRA; green,

@@ -3,7 +3,8 @@ extends GutTest
 ## Integration tests for the lacquer Log board (LogWindow, lacquer kit §5.3 and
 ## §0): up to five lines, newest at the bottom, BBCode stripped, fading by
 ## colour steps with age; the board grows upward from the bottom line; and the
-## full log that L, Escape and LogManager.toggle_window() open and close.
+## full log that L, Escape and LogManager.toggle_window() open and close, and
+## that stays shut while a menu book is open.
 
 const LOG_SCENE_PATH: String = "res://scenes/ui/log_window/log_window.tscn"
 const BOARD_TEXTURE_PATH: String = "res://assets/ui/lacquer/lacquer_log%d_ai.png"
@@ -302,6 +303,86 @@ func test_hiding_a_parent_closes_the_full_log() -> void:
 	_log.toggle_full_log()
 	(_log.get_parent() as Control).visible = false
 	assert_false(_log.is_full_log_open())
+
+#-----------------------------------------------------------------------------
+# FULL LOG UNDER A BOOK
+#-----------------------------------------------------------------------------
+
+## Stands in for MainView's GreyBackground: shows and hides at once, then
+## emits panel_hidden like the real one at the end of its fade-out.
+class FakeGreyBackground:
+	extends GreyBackground
+
+	func show_with_panel(panel: Control) -> void:
+		visible = true
+		panel.visible = true
+
+	func hide_with_panel(panel: Control) -> void:
+		visible = false
+		panel.visible = false
+		panel_hidden.emit()
+
+## An inventory book over a MainView (kept out of the tree) whose log is the
+## one _add_log() put in the tree.
+func _new_book_over_log() -> BookViewState:
+	var main_view: MainView = autofree(MainView.new())
+	main_view.grey_background = autofree(FakeGreyBackground.new())
+	main_view.inventory_view = autofree(MenuBookView.new())
+	main_view.log_window = _log
+	var book: BookViewState = autofree(InventoryViewState.new())
+	book.scene_root = main_view
+	return book
+
+func test_blocking_the_full_log_closes_it() -> void:
+	_add_log()
+	_log.toggle_full_log()
+	_log.set_full_log_blocked(true)
+	assert_false(_log.is_full_log_open(), "a block closes the open full log")
+	assert_false((_node("FullBoard") as Control).visible)
+	assert_true(_board().visible, "the five-line board is back")
+
+func test_full_log_stays_shut_while_blocked() -> void:
+	_add_log()
+	_log.set_full_log_blocked(true)
+	_log.toggle_full_log()
+	assert_false(_log.is_full_log_open(), "toggle_full_log() does not open it")
+	_press_key(KEY_L)
+	assert_false(_log.is_full_log_open(), "nor does L")
+	LogManager.toggle_window()
+	assert_false(_log.is_full_log_open(), "nor LogManager.toggle_window()")
+
+func test_full_log_opens_again_once_unblocked() -> void:
+	_add_log()
+	_log.set_full_log_blocked(true)
+	_log.set_full_log_blocked(false)
+	_press_key(KEY_L)
+	assert_true(_log.is_full_log_open())
+
+## The log stays in sight under a book, but the full log must not: open, it
+## would take the first Esc meant for the book (LogWindow gets
+## _unhandled_input before MainView hands the key to the book).
+func test_opening_a_book_closes_the_full_log() -> void:
+	_add_log()
+	_log.toggle_full_log()
+	_new_book_over_log().enter()
+	assert_false(_log.is_full_log_open(), "the book closes the full log, so Esc closes the book")
+	assert_true(_log.visible, "the log board itself stays")
+
+func test_full_log_stays_shut_while_a_book_is_open() -> void:
+	_add_log()
+	_new_book_over_log().enter()
+	_press_key(KEY_L)
+	assert_false(_log.is_full_log_open(), "L does nothing under a book")
+	_log.toggle_full_log()
+	assert_false(_log.is_full_log_open(), "nor does toggle_full_log()")
+
+func test_full_log_opens_again_after_the_book_closes() -> void:
+	_add_log()
+	var book: BookViewState = _new_book_over_log()
+	book.enter()
+	book.exit()
+	_log.toggle_full_log()
+	assert_true(_log.is_full_log_open())
 
 #-----------------------------------------------------------------------------
 # FULL LOG TEXT
