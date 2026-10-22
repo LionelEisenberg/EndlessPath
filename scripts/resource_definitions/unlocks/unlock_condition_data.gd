@@ -28,8 +28,7 @@ func evaluate() -> bool:
 			return _compare_values(current_stage, target_value, comparison_op)
 
 		ConditionType.CULTIVATION_LEVEL:
-			var current_level = CultivationManager.get_core_density_level()
-			return _compare_values(current_level, target_value, comparison_op)
+			return _compare_values(get_current_value(), target_value, comparison_op)
 
 		ConditionType.ZONE_UNLOCKED:
 			Log.warn("UnlockConditionData: ZONE_UNLOCKED not yet implemented")
@@ -53,13 +52,7 @@ func evaluate() -> bool:
 			return InventoryManager.has_item(str(target_value))
 
 		ConditionType.RESOURCE_AMOUNT:
-			var resource_type = optional_params.get("resource_type", "madra")
-			var current_amount = 0.0
-			if resource_type == "madra":
-				current_amount = ResourceManager.get_madra()
-			elif resource_type == "gold":
-				current_amount = ResourceManager.get_gold()
-			return _compare_values(current_amount, target_value, comparison_op)
+			return _compare_values(get_current_value(), target_value, comparison_op)
 
 		ConditionType.ATTRIBUTE_VALUE:
 			var attribute_type: AttributeType = optional_params.get("attribute_type", AttributeType.STRENGTH)
@@ -68,6 +61,34 @@ func evaluate() -> bool:
 
 	return false
 
+## True when progress toward this condition can be shown as current / target:
+## RESOURCE_AMOUNT and CULTIVATION_LEVEL conditions.
+func is_measurable() -> bool:
+	return condition_type == ConditionType.RESOURCE_AMOUNT \
+		or condition_type == ConditionType.CULTIVATION_LEVEL
+
+## The value evaluate() compares against the target: the Madra or gold amount,
+## or the Core Density level. 0.0 for a condition that is not measurable.
+func get_current_value() -> float:
+	match condition_type:
+		ConditionType.CULTIVATION_LEVEL:
+			return CultivationManager.get_core_density_level()
+		ConditionType.RESOURCE_AMOUNT:
+			var resource_type: String = str(optional_params.get("resource_type", "madra"))
+			if resource_type == "madra":
+				return ResourceManager.get_madra()
+			if resource_type == "gold":
+				return ResourceManager.get_gold()
+	return 0.0
+
+## The target as a number. 0.0 for a condition that is not measurable or has no
+## numeric target.
+func get_target_value() -> float:
+	if not is_measurable():
+		return 0.0
+	if typeof(target_value) != TYPE_INT and typeof(target_value) != TYPE_FLOAT:
+		return 0.0
+	return float(target_value)
 
 # Compares current value (a) with target value (b) using the comparison operator (op)
 func _compare_values(a: Variant, b: Variant, op: String) -> bool:
