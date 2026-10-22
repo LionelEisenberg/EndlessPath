@@ -15,6 +15,7 @@ The art kit for the map-first v2 zone view in the look the user picked on 2026-1
   - **Goals hangs 4 px lower:** the board's root is at (24, 276), so its body starts at 300. The cords are `lacquer_goals_cords_ai.png` (444x24): the old 20 px cords with one more 4 px brass twist on top and the shadow baked from 4 px under the new top, placed 4 px above the root so they still start at the cabinet's rings (y 272).
 - **Generators.** `docs/superpowers/mockups/zone-view-lacquer/gen/` holds the Python scripts that drew the kit and `import_kit.py`, which copied it into `assets/ui/lacquer/` (halving and shadow baking). Their paths point at the authoring session's scratch folder; change `lq_base.py` and `look.py` to rebuild.
 - **The adventure card is a normal 72 px drawer** (the user's review, 2026-10-22: too much text for what it told; supersedes the §4.2 and §5.5 rows marked 2026-10-22). Below the threshold its detail row is `mini_madra` at x+64, y+38, `rod_adv` at x+86, y+40, `46 / 60` (15/18 tan) at x+248, y+38 and, only while a Madra action runs, `~10 s` (15/18 cream) right-aligned at x+380, y+38. At the threshold the title and tag keep the y+14 row, the detail line reads `5 min run · carries 120 Madra` (15/18 brass, x+64, y+38), and `frame_brass` sits over the card steadily, with no animation, in place of `drawer_tall_ready`. A flash hides that frame for its 1.2 s, then it returns.
+- **Card icons sit on the drawer's middle row** (the user's review, 2026-10-22: "the icon should be centered in the box"; supersedes the `drawer_tall` row in §4.2 and the Icon row in §5.5). `drawer_tall` draws its 48x48 socket at (8, 24) instead of (8, 12), and its icon sits at x+16, y+32; the 72 px drawers keep the socket at (8, 12) and the icon at y+20, already centred. `drawer_face` in `gen/kit_ui.py` centres the socket at any height. `drawer_tall_ready` (unused) was not redrawn.
 
 ## 0. Revision 2 (after the design review; supersedes the rows it names below)
 
@@ -162,7 +163,7 @@ No text is smaller than 13 px.
 |---|---|---|
 | `lacquer_drawer_ai.png` | 392x72 | img, activity card. Carved 48x48 icon socket at (8, 12) |
 | `lacquer_drawer_run_ai.png` | 392x72 | img, running card: brass corner caps. Drawn **pulled out** at (x−2, y−2) with the 4 px shadow |
-| `lacquer_drawer_tall_ai.png` | 392x96 | img, a non-idle card whose detail wraps (§0). Socket at (8, 12). No longer the adventure's (2026-10-22) |
+| `lacquer_drawer_tall_ai.png` | 392x96 | img, a non-idle card whose detail wraps (§0). Socket at (8, 24), on the middle row (2026-10-22; was (8, 12)). No longer the adventure's (2026-10-22) |
 | `lacquer_drawer_tall_ready_ai.png` | 392x96 | img, adventure card at the threshold, with a brass edge. Unused since 2026-10-22: the ready card is a 72 px `drawer` under `frame_brass` |
 | `lacquer_frame_brass_ai.png` | 24x24 | **9-slice overlay:** `border: 8px solid transparent; border-image: url(lacquer_frame_brass_ai.png) 8 / 8px stretch;` on a box the size of the target, with no fill. Used for the flash (card and Now tray) and for pinned map plates |
 | `lacquer_frame_hover_ai.png` | 16x16 | **9-slice overlay**, `border-image: url(...) 4 / 4px stretch`. Hover on a drawer, the Now tray, Show me and About |
@@ -330,7 +331,7 @@ When no quest is active, hide the quest row and the divider and move the milesto
 | Piece | Position | Notes |
 |---|---|---|
 | Face | `drawer` (72) / `drawer_tall` (96), 2 px shadow (`drawer_tall_ready` unused since 2026-10-22) | Running: `drawer_run` at x−2, y−2 with the 4 px shadow, and all its children shift the same −2, −2 |
-| Icon | x+16, y+20, 32x32 | In the carved socket |
+| Icon | x+16, y+20, 32x32; y+32 in `drawer_tall` (2026-10-22) | In the carved socket, on the drawer's middle row |
 | Title | x+64, y+14 | 17/20 cream, the ready adventure too (its y+26 was dropped on 2026-10-22) |
 | NEW | `seal_new_s` at x+64+titleWidth (rounded to even)+10, title top − 1 | `NEW` 13/22 cream centred. Cleared on first hover or use |
 | Mode tag | x+304, title top − 1 (y+13), 76x22 | `tag` with tan text, RUNNING in cream; ENTER uses `tag_enter` with ink text |
