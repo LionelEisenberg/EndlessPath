@@ -563,7 +563,9 @@ func _refresh_hover() -> void:
 
 ## Swaps the hex rims for the hovered and pinned zones (a travelable open hex
 ## gets the brighter rim, a veiled hex the thin or heavy inner rim) and lights
-## the route from the current zone to a hovered zone you can travel to.
+## the route from the current zone to a hovered zone you can travel to: each
+## segment back along the way while both its ends are open (or the current
+## zone), never one into or out of a locked or uncharted zone.
 func _apply_interaction() -> void:
 	var state: MapPopoverState = _map_markers.get_popover_state()
 	var hovered_id: String = state.get_hovered_zone_id()
@@ -579,11 +581,16 @@ func _apply_interaction() -> void:
 	var lit_ids: Dictionary[String, bool] = {}
 	if state.is_hovered_travelable():
 		var zone_id: String = hovered_id
-		while _route_from.has(zone_id) and not lit_ids.has(zone_id):
+		while _route_from.has(zone_id) and not lit_ids.has(zone_id) and _is_travelable_id(_route_from[zone_id]):
 			lit_ids[zone_id] = true
 			zone_id = _route_from[zone_id]
 	for zone_id: String in _routes:
 		_routes[zone_id].set_lit(lit_ids.has(zone_id))
+
+## True when the map zone is open or the current zone (its hex has a rim, not
+## a veil): a route may brighten up to it.
+func _is_travelable_id(zone_id: String) -> bool:
+	return _hex_overlays.get(zone_id, null) is ZoneHexMarker
 
 ## True when the pointer's press lands on a plate or the popover: those take
 ## the click themselves, so the hex under them must not.

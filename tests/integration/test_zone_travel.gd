@@ -92,13 +92,14 @@ func _open_test_zone() -> void:
 	ZoneManager.set_hidden_zones_visible(true)
 	UnlockManager.force_unlock_condition(TEST_ZONE_UNLOCK_ID)
 
-## A third open zone east of Spirit Valley, in memory only, so a walk can be
-## sent somewhere new halfway (Review Focus 2). Shown on the next map rebuild.
-func _add_fixture_zone() -> void:
+## A third open zone, in memory only (east of Spirit Valley unless told
+## otherwise), so a walk can be sent somewhere new halfway (Review Focus 2).
+## Shown on the next map rebuild.
+func _add_fixture_zone(cell: Vector2i = Vector2i(1, 0)) -> void:
 	_fixture_zone = ZoneData.new()
 	_fixture_zone.zone_id = FIXTURE_ZONE_ID
 	_fixture_zone.zone_name = "Fixture Ridge"
-	_fixture_zone.tilemap_location = Vector2i(1, 0)
+	_fixture_zone.tilemap_location = cell
 	ZoneManager.get_all_zones().append(_fixture_zone)
 
 func _remove_fixture_zone() -> void:
@@ -402,6 +403,32 @@ func test_hover_open_zone_brightens_rim_route_and_plate() -> void:
 	assert_string_contains(marker.get_rim_texture().resource_path, "lacquer_hex_open_ai")
 	assert_false(route.is_lit())
 	assert_ne(_markers().get_plate(TEST_ZONE_ID).get_line_text(), "Click to travel")
+
+func test_route_lights_every_open_segment_on_the_way() -> void:
+	# An open zone two hexes west, reached through Test Zone: hovering it
+	# lights both segments, the valley to Test Zone and Test Zone to it.
+	_add_fixture_zone(Vector2i(-2, 0))
+	_open_test_zone()
+	_hover_cell_of(FIXTURE_ZONE_ID)
+	assert_true(_map.get_route_to(FIXTURE_ZONE_ID).is_lit(), "the segment into the hovered zone")
+	assert_true(_map.get_route_to(TEST_ZONE_ID).is_lit(), "and the open zone on the way")
+
+func test_route_never_lights_into_or_out_of_a_locked_zone() -> void:
+	# Spec: a route brightens only toward a zone you can travel to, never
+	# toward a locked or uncharted one. An open zone whose route runs on from
+	# the locked demo zone lights neither segment.
+	_add_fixture_zone(Vector2i(1, -1))
+	ZoneManager.set_demo_zones_visible(true)
+	var route: ZoneRoute = _map.get_route_to(FIXTURE_ZONE_ID)
+	var locked_centre: Vector2 = _map.get_zone_world_centre(_zone(ADVANCEMENT_DEMO_ID)) - route.position
+	var fixture_centre: Vector2 = _map.get_zone_world_centre(_zone(FIXTURE_ZONE_ID)) - route.position
+	assert_eq(route.get_dot_positions(), ZoneRoute.dot_positions(locked_centre, fixture_centre), "precondition: its route runs on from the locked zone")
+	_hover_cell_of(FIXTURE_ZONE_ID)
+	var marker: ZoneHexMarker = _map.get_hex_overlay(FIXTURE_ZONE_ID) as ZoneHexMarker
+	assert_string_contains(marker.get_rim_texture().resource_path, "lacquer_hex_hover_ai", "precondition: hovered and travelable")
+	assert_false(route.is_lit(), "no segment out of the locked zone")
+	assert_false(_map.get_route_to(ADVANCEMENT_DEMO_ID).is_lit(), "and none into it")
+	assert_false(_map.get_route_to(UNCHARTED_DEMO_ID).is_lit())
 
 func test_hover_current_zone_brightens_its_plate_only() -> void:
 	_hover_cell_of(SPIRIT_VALLEY_ID)
