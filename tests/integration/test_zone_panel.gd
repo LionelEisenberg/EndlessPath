@@ -30,6 +30,10 @@ const LIST_TOP_COLLAPSED: float = 108.0
 const LORE_PUSH: float = 276.0
 const FULL_CHEST_HEIGHT: float = 1032.0
 const FOLD_GAP: float = 8.0
+const SCROLL_MARGIN: float = 24.0
+
+## GUT's output window's canvas layer.
+const GUT_LAYER: int = 128
 
 var _panel: ZonePanel = null
 
@@ -61,6 +65,17 @@ func after_each() -> void:
 func _add_panel() -> ZonePanel:
 	_panel = PANEL_SCENE.instantiate() as ZonePanel
 	add_child_autofree(_panel)
+	await wait_process_frames(2)
+	return _panel
+
+## Adds the panel on a canvas layer above GUT's output window, which covers
+## the screen on layer 128 and would take the clicks a test pushes.
+func _add_panel_above_gut() -> ZonePanel:
+	var layer := CanvasLayer.new()
+	layer.layer = GUT_LAYER + 1
+	add_child_autofree(layer)
+	_panel = PANEL_SCENE.instantiate() as ZonePanel
+	layer.add_child(_panel)
 	await wait_process_frames(2)
 	return _panel
 
@@ -137,6 +152,31 @@ func _escape_event() -> InputEventAction:
 	escape.pressed = true
 	return escape
 
+## Pushes a mouse button press (and, for a click, its release) at a point in
+## the viewport's own 1920x1080 space: the headless window is scaled down, so
+## the event goes in local coordinates.
+func _push_mouse_button(point: Vector2, button: MouseButton, with_release: bool) -> void:
+	var states: Array[bool] = [true]
+	if with_release:
+		states.append(false)
+	for pressed: bool in states:
+		var event := InputEventMouseButton.new()
+		event.button_index = button
+		event.pressed = pressed
+		event.position = point
+		event.global_position = point
+		get_viewport().push_input(event, true)
+
+func _click(point: Vector2) -> void:
+	_push_mouse_button(point, MOUSE_BUTTON_LEFT, true)
+
+## The flow ActivityList computes from its constants must be the height the
+## scenes' containers lay out, or the folds and scroll targets drift.
+func _assert_flow_matches_scenes() -> void:
+	var list: ActivityList = _list() as ActivityList
+	assert_eq(list.get_content_height(), _scroll().get_v_scroll_bar().max_value,
+		"the computed flow matches the laid-out content")
+
 #-----------------------------------------------------------------------------
 # ROOT AND HEADER
 #-----------------------------------------------------------------------------
@@ -153,6 +193,14 @@ func test_header_shows_zone_name() -> void:
 	assert_eq((_node("ZoneNameLabel") as Label).text, "Spirit Valley")
 	assert_eq((_node("Thumb") as TextureRect).texture, THUMB_RIVER, "Spirit Valley's river tile")
 	assert_true((_node("AboutButton") as Control).visible, "Spirit Valley has lore")
+
+func test_buttons_take_no_keyboard_focus() -> void:
+	# A clicked About or rail cap must not keep focus: Space or Enter
+	# (ui_accept) would then toggle the lore or step the list unseen.
+	await _add_panel()
+	var rail: Control = _list_node("Rail") as Control
+	for button: Control in [_node("AboutButton"), rail.get_node("%UpCap"), rail.get_node("%DownCap")]:
+		assert_eq(button.focus_mode, Control.FOCUS_NONE, "%s takes no focus" % button.name)
 
 func test_header_follows_zone_change() -> void:
 	await _add_panel()
@@ -291,6 +339,7 @@ func test_empty_zone_shows_nothing_to_do() -> void:
 	assert_eq(empty.text, "Nothing to do here yet.")
 	assert_eq((_node("CountLabel") as Label).text, "0 here")
 	assert_eq(_group_names(), [] as Array[String])
+	_assert_flow_matches_scenes()
 
 func test_rail_hidden_when_content_fits() -> void:
 	await _add_panel()
@@ -307,12 +356,14 @@ func test_chest_hugs_short_list() -> void:
 	assert_lt(_panel.size.y, 400.0)
 	var list: Control = _list()
 	assert_eq(_panel.size.y, maxf(176.0, list.position.y + list.size.y + 24.0), "24 px under the list")
+	_assert_flow_matches_scenes()
 
 func test_chest_fills_for_nine_cards() -> void:
 	await _add_panel()
 	_unlock_everything()
 	await wait_process_frames(2)
 	assert_eq(_panel.size.y, FULL_CHEST_HEIGHT, "a scrolling list snaps the chest to the bottom line")
+	_assert_flow_matches_scenes()
 	# The list folds 8 px under its last whole drawer: no drawer is cut.
 	var view: Rect2 = _scroll().get_global_rect()
 	var last_bottom: float = -1.0
@@ -391,6 +442,11 @@ func test_focus_request_scrolls() -> void:
 	await wait_seconds(0.4)
 	assert_true(_card_fully_visible(ADVENTURE_ID))
 	assert_true(_card_flashing(ADVENTURE_ID))
+	# The adventure sits mid-list, so its scroll is not clamped: it ends
+	# exactly 24 px above the viewport's bottom.
+	var view: Rect2 = _scroll().get_global_rect()
+	var card_rect: Rect2 = _panel.get_card(ADVENTURE_ID).get_global_rect()
+	assert_eq(view.end.y - card_rect.end.y, SCROLL_MARGIN, "24 px under the card")
 
 #-----------------------------------------------------------------------------
 # LORE
@@ -440,3 +496,37 @@ func test_zone_change_closes_lore() -> void:
 	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
 	await wait_process_frames(2)
 	assert_false((_node("LorePanel") as Control).visible)
+
+func test_click_outside_closes_lore() -> void:
+	await _add_panel_above_gut()
+	var about: BaseButton = _node("AboutButton") as BaseButton
+	about.button_pressed = true
+	await wait_process_frames(1)
+	_click(Vector2(400.0, 500.0))
+	await wait_process_frames(1)
+	assert_false((_node("LorePanel") as Control).visible)
+	assert_false(about.button_pressed, "About reads closed")
+
+func test_click_on_card_with_lore_open_starts_that_card() -> void:
+	# Closing the lore moves the list up 276 px. The click must reach the
+	# card the player saw under the cursor, not the one that slides there.
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	EventManager.trigger_event(FORAGING_EVENT)
+	await _add_panel_above_gut()
+	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well runs")
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	var center: Vector2 = _panel.get_card(FORAGING_ID).get_global_rect().get_center()
+	assert_true(_scroll().get_global_rect().has_point(center), "precondition: the foraging card shows under the lore")
+	_click(center)
+	await wait_process_frames(1)
+	assert_eq(_current_id(), FORAGING_ID, "the clicked card's action runs")
+	assert_false((_node("LorePanel") as Control).visible, "and the lore closes")
+
+func test_mouse_wheel_keeps_lore_open() -> void:
+	await _add_panel_above_gut()
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(1)
+	_push_mouse_button(_scroll().get_global_rect().get_center(), MOUSE_BUTTON_WHEEL_DOWN, false)
+	await wait_process_frames(1)
+	assert_true((_node("LorePanel") as Control).visible, "scrolling is not a click")

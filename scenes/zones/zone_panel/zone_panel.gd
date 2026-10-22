@@ -107,15 +107,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		_close_lore()
 		get_viewport().set_input_as_handled()
 
-## A click anywhere outside the lore and About closes the lore. The click
-## still reaches what it was aimed at.
+## A left click anywhere outside the lore and About closes the lore; the
+## wheel does not. The click still reaches what it was aimed at: the lore
+## closes at the end of the frame, after the GUI has hit-tested this press
+## against the layout the player saw (closing moves the list up 276 px).
 func _input(event: InputEvent) -> void:
 	var press := event as InputEventMouseButton
-	if press == null or not press.pressed:
+	if press == null or not press.pressed or press.button_index != MOUSE_BUTTON_LEFT:
 		return
 	if _contains_event(_lore_panel, press) or _contains_event(_about_button, press):
 		return
-	_close_lore()
+	_close_lore.call_deferred()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
