@@ -495,6 +495,14 @@ func test_lore_paragraphs_are_one_break_apart() -> void:
 	assert_false(text.contains("\n\n"), "no empty paragraph")
 	assert_eq(text.split("\n").size(), 2, "two paragraphs")
 
+func test_lore_paragraphs_end_their_sentences() -> void:
+	# The mock's Spirit Valley lore ends "...the strength to shake the
+	# heavens." with its full stop, and so does every paragraph before it.
+	await _add_panel()
+	var text: String = (_node("LoreText") as Label).text
+	for paragraph: String in text.split("\n"):
+		assert_true(paragraph.right(1) in [".", "!", "?"], "'%s' ends its sentence" % paragraph.right(24))
+
 func test_lore_text_is_a_lore_label() -> void:
 	# The lore has no decimal point, so it needs no RichTextLabel: the theme's
 	# LabelLacquerLore (16/22 cream) sets it, with one override for the kit's
