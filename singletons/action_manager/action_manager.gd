@@ -44,6 +44,10 @@ var current_action: ZoneActionData = null
 ## count a completion or run its effects in the new save.
 var _current_action_save: SaveGameData = null
 
+## The zone the current action started in. Travel stops the action after the
+## current zone already changed, so its completion counts here instead.
+var _current_action_zone_id: String = ""
+
 ## The zone the last zone_changed was handled for. It tells travel ("Travelled
 ## to …") from a repeat signal for the same zone (the load sends two).
 var _last_resolved_zone_id: String = ""
@@ -202,11 +206,14 @@ func _execute_action(action_data: ZoneActionData) -> void:
 			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
 ## Stop executing the current action. It counts a completion only in the save
-## it started under (see _current_action_save).
+## it started under (see _current_action_save), in the zone it started in.
 func _stop_executing_current_action(successful: bool = true) -> void:
 	if current_action:
 		if _is_current_action_in_live_save():
-			ZoneManager.increment_zone_progression_for_action(current_action.action_id)
+			if _current_action_zone_id != "":
+				ZoneManager.increment_zone_progression_for_action(current_action.action_id, _current_action_zone_id)
+			else:
+				ZoneManager.increment_zone_progression_for_action(current_action.action_id)
 
 		match current_action.action_type:
 			ZoneActionData.ActionType.FORAGE:
@@ -388,6 +395,7 @@ func clear_current_action() -> void:
 func _set_current_action(action_data: ZoneActionData) -> void:
 	current_action = action_data
 	_current_action_save = PersistenceManager.save_game_data if action_data else null
+	_current_action_zone_id = _get_current_zone_id() if action_data else ""
 	current_action_changed.emit(current_action)
 
 ## False when a save reset replaced the save since the current action started.

@@ -288,6 +288,14 @@ func test_travel_logs_merged_line() -> void:
 	assert_eq(_logged, ["Travelled to Test Zone · resumed Fixture Foraging"] as Array[String],
 		"travel writes one merged line, not a second Resumed line")
 
+## Travel stops the running action after the current zone already changed.
+## Its completion counts in the zone it ran in, not the destination.
+func test_travel_counts_the_stopped_action_in_its_own_zone() -> void:
+	ActionManager.select_action(_action(MERCHANT_ID))
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	assert_eq(_completions(MERCHANT_ID, ZONE_ID), 1, "the merchant's completion counts in Spirit Valley")
+	assert_eq(_completions(MERCHANT_ID, TEST_ZONE_ID), 0, "and not in Test Zone")
+
 #-----------------------------------------------------------------------------
 # UNLOCKS
 #-----------------------------------------------------------------------------
