@@ -1,0 +1,448 @@
+extends GutTest
+
+## The zone map's markers (Task 12 of the map-first zone view): a plate under
+## each map zone with its name and status line, the lock and "?" glyphs over
+## the veiled hexes, the dotted routes between zones, and the action ring and
+## floaters that repeat the running idle action on the map. Positions are the
+## lacquer kit's screen px at zoom 2 (kit §0, §6.3-6.5, §6.7); away from zoom
+## 2 the markers keep to their hexes (Review Focus 3), and a dev toggle or a
+## save reset leaves no orphan plate behind (Review Focus 5).
+
+const ZoneTilemapScene: PackedScene = preload("res://scenes/zones/zone_tilemap/zone_tilemap.tscn")
+const ZoneRouteScene: PackedScene = preload("res://scenes/zones/zone_route/zone_route.tscn")
+const ZoneMapLabelScene: PackedScene = preload("res://scenes/zones/map_markers/zone_map_label/zone_map_label.tscn")
+
+const SPIRIT_VALLEY_ID: String = "SpiritValley"
+const TEST_ZONE_ID: String = "TestZone"
+const TEST_ZONE_UNLOCK_ID: String = "celestial_intervener_dialogue_1"
+const ADVANCEMENT_DEMO_ID: String = "AdvancementZoneDemo"
+const UNCHARTED_DEMO_ID: String = "UnchartedZoneDemo"
+const FORAGING_UNLOCK_EVENT: String = "q_fill_core_completed"
+const AURA_WELL_EVENT: String = "aura_well_discovered"
+const AURA_WELL_ID: String = "aura_well_training"
+const FORAGING_ID: String = "sprint_forest_foraging_action"
+const CYCLING_ID: String = "wilderness_cycling_action"
+const ADVENTURE_ID: String = "shallow_woods_adventure_action"
+
+var _map: ZoneTilemap
+
+#-----------------------------------------------------------------------------
+# SETUP
+#-----------------------------------------------------------------------------
+
+func before_each() -> void:
+	# The map sets the current zone on load, which resumes idle actions and
+	# writes to the save: run on a fresh one, never the developer's save.
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
+	_map = ZoneTilemapScene.instantiate()
+	add_child_autofree(_map)
+	# The project's hex layer overrides _ready() without super(), so the addon
+	# sets up its conversions only when the shared TileSet emits `changed`.
+	_map.tile_map.tile_set.emit_changed()
+	await _settle()
+
+func after_each() -> void:
+	ZoneManager.set_demo_zones_visible(false)
+	ZoneManager.set_hidden_zones_visible(false)
+	while ActionManager.get_current_action() != null:
+		ActionManager.stop_action()
+	# Rebuilds queue the old plates and glyphs for deletion: let them go
+	# before GUT counts orphans.
+	await get_tree().process_frame
+
+#-----------------------------------------------------------------------------
+# HELPERS
+#-----------------------------------------------------------------------------
+
+## The markers place themselves every frame: let two frames run.
+func _settle() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+func _markers() -> MapMarkers:
+	return _map.get_map_markers()
+
+func _zone(zone_id: String) -> ZoneData:
+	for zone: ZoneData in ZoneManager.get_map_zones():
+		if zone.zone_id == zone_id:
+			return zone
+	return ZoneManager.get_zone_by_id(zone_id)
+
+## Shows the hidden Test Zone and unlocks it, so it is an open hex.
+func _open_test_zone() -> void:
+	ZoneManager.set_hidden_zones_visible(true)
+	UnlockManager.force_unlock_condition(TEST_ZONE_UNLOCK_ID)
+
+## The screen top-left of each dot of the route into the zone, with the map
+## camera as it is now.
+func _route_screen_dots(zone_id: String) -> Array[Vector2]:
+	var camera: Camera2D = _map.get_camera()
+	var route: ZoneRoute = _map.get_route_to(zone_id)
+	var dots: Array[Vector2] = []
+	for dot: Vector2 in route.get_dot_positions():
+		dots.append(ZoneMapMath.world_to_screen(route.position + dot, camera.position, camera.zoom.x))
+	return dots
+
+#-----------------------------------------------------------------------------
+# PLATES
+#-----------------------------------------------------------------------------
+
+func test_plate_per_map_zone() -> void:
+	var ids: Array[String] = _markers().get_plate_zone_ids()
+	assert_eq(ids.size(), 1, "one plate: Spirit Valley is the only map zone on a fresh save")
+	assert_eq(ids[0], SPIRIT_VALLEY_ID)
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	assert_eq(plate.get_zone_data().zone_id, SPIRIT_VALLEY_ID)
+	assert_eq(plate.get_state(), ZoneManager.ZoneMapState.CURRENT)
+	assert_null(_markers().get_plate(TEST_ZONE_ID), "the hidden Test Zone has no plate")
+
+func test_current_plate_sits_under_its_hex() -> void:
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	assert_eq(plate.position, Vector2(836, 800), "kit §6.5: Spirit Valley's plate top-left")
+	assert_eq(plate.scale, Vector2.ONE, "shown at file size at zoom 2")
+	assert_eq(plate.size, Vector2(248, 52))
+	assert_string_contains(plate.get_plate_texture().resource_path, "lacquer_plate_current_ai")
+
+func test_current_plate_line_follows_action() -> void:
+	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_line_text(), "", "nothing runs on a fresh save: name only")
+	assert_false(_markers().get_plate(SPIRIT_VALLEY_ID).is_line_shown())
+
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	assert_true(ActionManager.get_current_action() is TrainingActionData, "precondition: the Aura Well runs")
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	assert_eq(plate.get_line_text(), "Aura Well · +1.5 Madra / s")
+	assert_true(plate.is_line_shown())
+
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_line_text(), "Foraging · a haul every 5 s")
+
+	ActionManager.stop_action()
+	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_line_text(), "", "nothing runs: name only again")
+
+func test_current_plate_name_brightens_on_hover() -> void:
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	assert_eq(plate.get_name_color(), ThemeConstants.LACQUER_BRASS, "the current zone's name is brass")
+	_markers().set_hovered_zone(SPIRIT_VALLEY_ID)
+	assert_eq(plate.get_name_color(), ThemeConstants.LACQUER_CREAM, "hovering turns it cream")
+	assert_string_contains(plate.get_plate_texture().resource_path, "lacquer_plate_current_hover_ai")
+	_markers().set_hovered_zone("")
+	assert_eq(plate.get_name_color(), ThemeConstants.LACQUER_BRASS)
+
+func test_open_line_counts_activities() -> void:
+	assert_eq(ZoneMapLabel.open_line(0), "Open · nothing to do yet")
+	assert_eq(ZoneMapLabel.open_line(1), "Open · 1 activity")
+	assert_eq(ZoneMapLabel.open_line(5), "Open · 5 activities")
+
+func test_open_plate_counts_activities() -> void:
+	_open_test_zone()
+	var test_plate: ZoneMapLabel = _markers().get_plate(TEST_ZONE_ID)
+	assert_not_null(test_plate, "an unlocked, shown Test Zone gets a plate")
+	assert_eq(test_plate.get_state(), ZoneManager.ZoneMapState.OPEN)
+	assert_eq(test_plate.get_line_text(), "Open · nothing to do yet", "Test Zone has no activities (kit §6.5)")
+	assert_eq(test_plate.position, Vector2(508, 800), "kit §6.5: Test Zone's plate top-left")
+
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	var valley: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	assert_eq(valley.get_state(), ZoneManager.ZoneMapState.OPEN, "seen from Test Zone, the valley is open")
+	var count: int = ZoneManager.get_available_actions(SPIRIT_VALLEY_ID).size()
+	assert_eq(valley.get_line_text(), ZoneMapLabel.open_line(count))
+	assert_eq(valley.get_line_color(), ThemeConstants.LACQUER_TAN)
+
+func test_open_plate_reads_click_to_travel_on_hover() -> void:
+	_open_test_zone()
+	var plate: ZoneMapLabel = _markers().get_plate(TEST_ZONE_ID)
+	_markers().set_hovered_zone(TEST_ZONE_ID)
+	assert_eq(plate.get_line_text(), "Click to travel")
+	assert_eq(plate.get_line_color(), ThemeConstants.LACQUER_BRASS, "in brass")
+	assert_string_contains(plate.get_plate_texture().resource_path, "lacquer_plate_open_hover_ai")
+	_markers().set_hovered_zone("")
+	assert_eq(plate.get_line_text(), "Open · nothing to do yet")
+
+func test_plate_press_emits_plate_pressed() -> void:
+	var markers: MapMarkers = _markers()
+	watch_signals(markers)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	markers.get_plate(SPIRIT_VALLEY_ID).gui_input.emit(click)
+	assert_signal_emitted_with_parameters(markers, "plate_pressed", [_zone(SPIRIT_VALLEY_ID)])
+
+func test_long_zone_name_stays_on_the_plate() -> void:
+	# Review Focus 4: a long name ellipsizes inside the plate.
+	var plate: ZoneMapLabel = ZoneMapLabelScene.instantiate()
+	add_child_autofree(plate)
+	var zone := ZoneData.new()
+	zone.zone_id = "LongZone"
+	zone.zone_name = "The Exceedingly Long and Winding Valley of a Thousand Whispering Names"
+	zone.blocker_short_text = "Defeat every guardian of every peak of every mountain in the far north"
+	plate.setup(zone, ZoneManager.ZoneMapState.LOCKED)
+	await _settle()
+	assert_eq(plate.size, Vector2(248, 52), "the plate never widens")
+	var name_label: Label = plate.get_node("%NameLabel") as Label
+	assert_lte(name_label.position.x + name_label.size.x, 248.0, "the name stays inside the plate")
+	assert_ne(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "and ellipsizes")
+
+#-----------------------------------------------------------------------------
+# DEMO ZONES: PLATES AND GLYPHS
+#-----------------------------------------------------------------------------
+
+func test_demo_plates_and_glyphs() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	var markers: MapMarkers = _markers()
+	var locked: ZoneMapLabel = markers.get_plate(ADVANCEMENT_DEMO_ID)
+	var uncharted: ZoneMapLabel = markers.get_plate(UNCHARTED_DEMO_ID)
+	assert_eq(locked.get_state(), ZoneManager.ZoneMapState.LOCKED)
+	assert_eq(locked.get_line_text(), "Tribulation Guardian")
+	assert_string_contains(locked.get_plate_texture().resource_path, "lacquer_plate_locked_ai")
+	assert_eq(uncharted.get_state(), ZoneManager.ZoneMapState.UNCHARTED)
+	assert_eq(uncharted.get_line_text(), "After the Tribulation")
+	assert_eq(uncharted.get_name_color(), ThemeConstants.LACQUER_TAN, "the uncharted name is tan")
+
+	var lock_glyph: MapGlyph = markers.get_glyph(ADVANCEMENT_DEMO_ID) as MapGlyph
+	var unknown_glyph: MapGlyph = markers.get_glyph(UNCHARTED_DEMO_ID) as MapGlyph
+	assert_string_contains(lock_glyph.get_texture().resource_path, "lacquer_glyph_lock_ai")
+	assert_false(lock_glyph.has_twinkle())
+	assert_string_contains(unknown_glyph.get_texture().resource_path, "lacquer_glyph_unknown_ai")
+	assert_true(unknown_glyph.has_twinkle(), "the ? twinkles")
+	assert_null(markers.get_glyph(SPIRIT_VALLEY_ID), "a current or open zone has no glyph")
+
+func test_demo_markers_sit_at_kit_positions() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	await _settle()
+	var markers: MapMarkers = _markers()
+	assert_eq(markers.get_plate(ADVANCEMENT_DEMO_ID).position, Vector2(1000, 428), "kit §6.5")
+	assert_eq(markers.get_plate(UNCHARTED_DEMO_ID).position, Vector2(836, 150), "kit §6.5")
+	assert_eq(markers.get_glyph(ADVANCEMENT_DEMO_ID).position, Vector2(1102, 356), "kit §6.4")
+	assert_eq(markers.get_glyph(UNCHARTED_DEMO_ID).position, Vector2(946, 92), "kit §6.4")
+	var twinkle: Control = markers.get_glyph(UNCHARTED_DEMO_ID).get_node("%Twinkle") as Control
+	assert_eq(twinkle.global_position, Vector2(972, 84), "kit §0: the twinkle beside the ?")
+
+func test_veiled_plates_hover_and_pin() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	var markers: MapMarkers = _markers()
+	var locked: ZoneMapLabel = markers.get_plate(ADVANCEMENT_DEMO_ID)
+	var uncharted: ZoneMapLabel = markers.get_plate(UNCHARTED_DEMO_ID)
+	markers.set_hovered_zone(ADVANCEMENT_DEMO_ID)
+	assert_string_contains(locked.get_plate_texture().resource_path, "lacquer_plate_locked_hover_ai")
+	markers.set_hovered_zone(UNCHARTED_DEMO_ID)
+	assert_string_contains(locked.get_plate_texture().resource_path, "lacquer_plate_locked_ai", "one hover at a time")
+	assert_string_contains(uncharted.get_plate_texture().resource_path, "lacquer_plate_uncharted_hover_ai")
+	assert_eq(uncharted.get_name_color(), ThemeConstants.LACQUER_CREAM, "the uncharted name brightens on hover")
+	assert_eq(markers.get_hovered_zone_id(), UNCHARTED_DEMO_ID)
+
+	assert_false(locked.is_pinned_frame_shown())
+	markers.set_pinned_zone(ADVANCEMENT_DEMO_ID)
+	assert_true(locked.is_pinned_frame_shown(), "a pinned plate gets the brass frame")
+	markers.set_pinned_zone(UNCHARTED_DEMO_ID)
+	assert_false(locked.is_pinned_frame_shown(), "one pin at a time")
+	assert_true(uncharted.is_pinned_frame_shown())
+	markers.set_pinned_zone("")
+	assert_false(uncharted.is_pinned_frame_shown())
+
+func test_hover_and_pin_survive_a_rebuild() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	_markers().set_pinned_zone(ADVANCEMENT_DEMO_ID)
+	# Any unlock rebuilds the map and its plates.
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	assert_true(_markers().get_plate(ADVANCEMENT_DEMO_ID).is_pinned_frame_shown(), "the new plate keeps the pin")
+
+func test_hiding_demo_zones_removes_their_plates() -> void:
+	# Review Focus 5: the dev toggle leaves no orphan plate, glyph, route or pin.
+	ZoneManager.set_demo_zones_visible(true)
+	var markers: MapMarkers = _markers()
+	markers.set_hovered_zone(UNCHARTED_DEMO_ID)
+	markers.set_pinned_zone(ADVANCEMENT_DEMO_ID)
+	ZoneManager.set_demo_zones_visible(false)
+	assert_null(markers.get_plate(ADVANCEMENT_DEMO_ID))
+	assert_null(markers.get_plate(UNCHARTED_DEMO_ID))
+	assert_null(markers.get_glyph(ADVANCEMENT_DEMO_ID))
+	assert_null(markers.get_glyph(UNCHARTED_DEMO_ID))
+	assert_eq(markers.get_plate_zone_ids().size(), 1, "only Spirit Valley's plate is left in the layer")
+	assert_eq(markers.get_pinned_zone_id(), "", "the pin goes with its zone")
+	assert_eq(markers.get_hovered_zone_id(), "", "and so does the hover")
+	assert_null(_map.get_route_to(ADVANCEMENT_DEMO_ID))
+	assert_null(_map.get_route_to(UNCHARTED_DEMO_ID))
+
+func test_save_reset_rebuilds_plates_once() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
+	await _settle()
+	assert_eq(_markers().get_plate_zone_ids().size(), 3, "Spirit Valley and the two demo zones, no duplicates")
+
+#-----------------------------------------------------------------------------
+# ZOOM (Review Focus 3)
+#-----------------------------------------------------------------------------
+
+func test_plate_follows_hex_at_zoom_one() -> void:
+	var camera: Camera2D = _map.get_camera()
+	camera.zoom = Vector2.ONE
+	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
+	await _settle()
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
+	assert_eq(plate.position, centre + Vector2(-124, 98) * 0.5, "the kit's offset scales by zoom / 2")
+	assert_eq(plate.scale, Vector2(0.5, 0.5), "and so does the plate, so it stays centred on its hex")
+
+func test_glyphs_follow_hexes_when_panned_to_the_clamp_edge() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	var camera: Camera2D = _map.get_camera()
+	camera.zoom = Vector2(1.5, 1.5)
+	camera.position = _map.get_camera_bounds().position
+	await _settle()
+	var lock_centre: Vector2 = ZoneMapMath.world_to_screen(_map.get_zone_world_centre(_zone(ADVANCEMENT_DEMO_ID)), camera.position, 1.5)
+	var glyph: Control = _markers().get_glyph(ADVANCEMENT_DEMO_ID)
+	assert_almost_eq(glyph.position.x, lock_centre.x - 22.0 * 0.75, 1.0)
+	assert_almost_eq(glyph.position.y, lock_centre.y - 61.0 * 0.75, 1.0)
+	assert_almost_eq(glyph.scale.x, 0.75, 0.0001, "the glyph scales by zoom / 2")
+	assert_almost_eq(glyph.scale.y, 0.75, 0.0001)
+
+#-----------------------------------------------------------------------------
+# ROUTES
+#-----------------------------------------------------------------------------
+
+func test_route_lit_toggles() -> void:
+	var route: ZoneRoute = ZoneRouteScene.instantiate()
+	add_child_autofree(route)
+	route.set_points(Vector2.ZERO, Vector2(-164, 0))
+	assert_eq(route.get_dot_positions().size(), 6, "six dots across the shared rim")
+	assert_false(route.is_lit())
+	assert_string_contains(route.get_dot_texture().resource_path, "lacquer_route_dot_ai")
+	route.set_lit(true)
+	assert_true(route.is_lit())
+	assert_string_contains(route.get_dot_texture().resource_path, "lacquer_route_dot_lit_ai")
+	route.set_lit(false)
+	assert_string_contains(route.get_dot_texture().resource_path, "lacquer_route_dot_ai")
+
+func test_no_route_without_other_zones() -> void:
+	assert_null(_map.get_route_to(SPIRIT_VALLEY_ID), "no route into the zone you stand in")
+	assert_eq(_map.get_routes().size(), 0)
+
+func test_west_route_matches_the_kit() -> void:
+	_open_test_zone()
+	var expected: Array[Vector2] = [Vector2(852, 698), Vector2(828, 698), Vector2(804, 698), Vector2(780, 698), Vector2(756, 698), Vector2(732, 698)]
+	assert_eq(_route_screen_dots(TEST_ZONE_ID), expected, "kit §0: six dots from the valley toward Test Zone")
+
+func test_north_route_matches_the_kit() -> void:
+	ZoneManager.set_demo_zones_visible(true)
+	var to_locked: Array[Vector2] = [Vector2(1008, 608), Vector2(1020, 586), Vector2(1032, 566), Vector2(1044, 546), Vector2(1056, 524), Vector2(1068, 504)]
+	var to_uncharted: Array[Vector2] = [Vector2(1068, 322), Vector2(1056, 302), Vector2(1044, 280), Vector2(1032, 260), Vector2(1020, 240), Vector2(1008, 218)]
+	assert_eq(_route_screen_dots(ADVANCEMENT_DEMO_ID), to_locked, "kit §0: the valley to the locked zone")
+	assert_eq(_route_screen_dots(UNCHARTED_DEMO_ID), to_uncharted, "and on to the uncharted hex beyond it")
+	assert_false(_map.get_route_to(ADVANCEMENT_DEMO_ID).is_lit(), "routes start unlit")
+
+func test_routes_start_from_the_current_zone() -> void:
+	_open_test_zone()
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	assert_null(_map.get_route_to(TEST_ZONE_ID), "no route into the zone you stand in")
+	assert_not_null(_map.get_route_to(SPIRIT_VALLEY_ID), "a route back to the valley")
+
+#-----------------------------------------------------------------------------
+# ACTION RING AND FLOATERS
+#-----------------------------------------------------------------------------
+
+func test_ring_hidden_without_idle_action() -> void:
+	var ring: MapActionRing = _markers().get_action_ring()
+	assert_false(ring.visible, "nothing idle runs on a fresh save")
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _settle()
+	assert_true(ring.visible, "the Aura Well shows the ring")
+	assert_eq(ring.get_action().action_id, AURA_WELL_ID)
+	assert_eq(ring.position, Vector2(998, 706), "kit §0: the ring beside the character")
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	assert_false(ring.visible, "cycling is not an idle action")
+	ActionManager.stop_action()
+
+func test_ring_frame_steps() -> void:
+	assert_eq(MapActionRing.frame_for(0.0), 0)
+	assert_eq(MapActionRing.frame_for(0.5), 6)
+	assert_eq(MapActionRing.frame_for(0.99), 12)
+	assert_eq(MapActionRing.frame_for(1.0), 12, "never past the last frame")
+
+func test_floater_on_training_tick() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var training: TrainingActionData = ActionManager.get_current_action() as TrainingActionData
+	var floater: MapFloater = _markers().get_floater()
+	assert_false(floater.visible, "no floater before the first tick")
+	ActionManager.training_tick_processed.emit(training, 1)
+	await _settle()
+	assert_true(floater.visible)
+	assert_eq(floater.get_text(), "+1.5 Madra")
+	assert_eq(floater.get_color(), ThemeConstants.LACQUER_MADRA, "in Madra blue")
+	assert_gt(floater.get_token_width(), 28 + 40, "the token is as wide as its text plus 28")
+	assert_eq(floater.get_token_width() % 2, 0, "on the 2 px grid")
+	assert_eq(floater.position.y, 674.0 - floater.get_rise(), "kit §0: its top at 674, then rising")
+	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, 1010.0, 1.0, "centred on x 1010")
+
+func test_floater_rises_in_two_px_steps() -> void:
+	assert_eq(MapFloater.rise_at(0.0), 0)
+	assert_eq(MapFloater.rise_at(0.05), 2)
+	assert_eq(MapFloater.rise_at(0.51), 20)
+	assert_eq(MapFloater.rise_at(0.99), 38)
+	assert_eq(MapFloater.rise_at(1.0), 40)
+
+func test_haul_floater_once_per_haul() -> void:
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	var forage: ForageActionData = ActionManager.get_current_action() as ForageActionData
+	assert_not_null(forage, "precondition: foraging starts on unlock")
+	var haul: Dictionary = {}
+	var parts: Array[String] = []
+	var quantity: int = 3
+	for entry: LootTableEntry in forage.loot_table.entries:
+		haul[entry.item] = quantity
+		parts.append("+%d %s" % [quantity, entry.item.item_name])
+		quantity += 1
+	ActionManager.foraging_completed.emit(haul)
+	var floater: MapFloater = _markers().get_floater()
+	assert_true(floater.visible)
+	assert_eq(floater.get_text(), "  ".join(parts), "the haul, two spaces between items")
+	assert_eq(floater.get_color(), ThemeConstants.LACQUER_CREAM, "in cream")
+	await wait_seconds(1.1)
+	assert_false(floater.visible, "hidden outright after its 1 s rise")
+
+func test_ring_and_floater_hide_when_the_idle_action_stops() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
+	ActionManager.stop_action()
+	assert_false(_markers().get_action_ring().visible)
+	assert_false(_markers().get_floater().visible)
+
+#-----------------------------------------------------------------------------
+# GLYPH TWINKLE
+#-----------------------------------------------------------------------------
+
+func test_twinkle_frames() -> void:
+	assert_eq(MapGlyph.twinkle_frame(0.0), 0, "frame 0 is empty")
+	assert_eq(MapGlyph.twinkle_frame(3.5), 0)
+	assert_eq(MapGlyph.twinkle_frame(3.65), 1, "every 4 s: frame 1 for 0.1 s")
+	assert_eq(MapGlyph.twinkle_frame(3.8), 2, "frame 2 for 0.2 s")
+	assert_eq(MapGlyph.twinkle_frame(3.95), 1, "frame 1 for 0.1 s")
+	assert_eq(MapGlyph.twinkle_frame(4.0), 0)
+	assert_eq(MapGlyph.twinkle_frame(7.65), 1, "and again")
+
+#-----------------------------------------------------------------------------
+# ADVENTURE ZOOM
+#-----------------------------------------------------------------------------
+
+func test_layer_hides_for_the_adventure_zoom_and_returns_with_the_view() -> void:
+	# The zone view hosts the map in a SubViewport; the view state hides and
+	# shows that host when it exits and re-enters.
+	var host := Control.new()
+	var container := SubViewportContainer.new()
+	var viewport := SubViewport.new()
+	host.add_child(container)
+	container.add_child(viewport)
+	add_child_autofree(host)
+	var map: ZoneTilemap = ZoneTilemapScene.instantiate()
+	viewport.add_child(map)
+	await _settle()
+	var markers: MapMarkers = map.get_map_markers()
+	assert_true(markers.visible)
+	ActionManager.adventure_start_requested.emit(ZoneManager.get_action_by_id(ADVENTURE_ID) as AdventureActionData)
+	assert_false(markers.visible, "hidden while the camera zooms into the adventure")
+	host.hide()
+	assert_false(markers.visible)
+	host.show()
+	assert_true(markers.visible, "shown again when the zone view comes back")

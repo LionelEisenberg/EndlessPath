@@ -7,7 +7,10 @@ extends Node2D
 ## half a viewport past the camera clamp is fog, its tier the hex distance to
 ## the nearest charted zone. The zone layer holds only the map zones
 ## (ZoneManager.get_map_zones()): the current zone gets the brass rim, an open
-## zone the hairline, and locked and uncharted zones a veiled tile.
+## zone the hairline, and locked and uncharted zones a veiled tile. Dotted
+## routes join the current zone to the other charted zones and run on to the
+## uncharted ones; MapMarkers draws the plates, glyphs, ring and floaters over
+## the map in screen space.
 
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
@@ -66,6 +69,7 @@ const CHARACTER_MOVE_SPEED: float = 275.0
 
 const LockedZoneOverlayScene: PackedScene = preload("res://scenes/zones/locked_zone_overlay/locked_zone_overlay.tscn")
 const ZoneHexMarkerScene: PackedScene = preload("res://scenes/zones/zone_hex_marker/zone_hex_marker.tscn")
+const ZoneRouteScene: PackedScene = preload("res://scenes/zones/zone_route/zone_route.tscn")
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -80,6 +84,8 @@ const ZoneHexMarkerScene: PackedScene = preload("res://scenes/zones/zone_hex_mar
 @onready var _hover_selector: HexHoverSelector = %HoverSelector
 @onready var _veil_container: Node2D = %LockedOverlayContainer
 @onready var _marker_container: Node2D = %HexMarkerContainer
+@onready var _route_container: Node2D = %RouteContainer
+@onready var _map_markers: MapMarkers = %MapMarkers
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -87,6 +93,8 @@ const ZoneHexMarkerScene: PackedScene = preload("res://scenes/zones/zone_hex_mar
 
 ## The rim or veil drawn over each map zone, by zone id.
 var _hex_overlays: Dictionary[String, Node2D] = {}
+## The dotted route into each zone that has one, by that zone's id.
+var _routes: Dictionary[String, ZoneRoute] = {}
 var _camera_bounds: Rect2 = Rect2()
 var _frame_tween: Tween = null
 ## The character's idle motion (the foraging wander or the Aura Well's bob).
@@ -177,6 +185,21 @@ func get_fog_tier_at(cell: Vector2i) -> int:
 func get_hex_overlay(zone_id: String) -> Node2D:
 	return _hex_overlays.get(zone_id, null)
 
+## The screen-space plates, glyphs, ring and floaters drawn over the map.
+func get_map_markers() -> MapMarkers:
+	return _map_markers
+
+## The dotted route that leads into the zone (from the current zone, or for
+## an uncharted zone from the nearest charted one), or null when none does.
+func get_route_to(zone_id: String) -> ZoneRoute:
+	return _routes.get(zone_id, null) as ZoneRoute
+
+## Every dotted route on the map.
+func get_routes() -> Array[ZoneRoute]:
+	var routes: Array[ZoneRoute] = []
+	routes.assign(_routes.values())
+	return routes
+
 ## Returns the map zone at the given tile coordinate, or null if none.
 func get_zone_at_tile(tile_coord: Vector2i) -> ZoneData:
 	for zone_data: ZoneData in ZoneManager.get_map_zones():
@@ -195,14 +218,15 @@ func update_zone_tile_state(zone_data: ZoneData) -> void:
 # MAP BUILDING
 #-----------------------------------------------------------------------------
 
-## Redraws the zone layer, the camera bounds, the fog and the hex states for
-## the current map zones, then emits map_rebuilt.
+## Redraws the zone layer, the camera bounds, the fog, the hex states and the
+## routes for the current map zones, then emits map_rebuilt.
 func _rebuild_map() -> void:
 	var map_zones: Array[ZoneData] = ZoneManager.get_map_zones()
 	_draw_zone_cells(map_zones)
 	_update_camera_bounds(map_zones)
 	_draw_fog(map_zones)
 	_draw_hex_states(map_zones)
+	_draw_routes(map_zones)
 	map_rebuilt.emit()
 
 ## The zone layer holds only the map zones. Veiled zones get a transparent
@@ -277,6 +301,48 @@ func _draw_hex_states(map_zones: Array[ZoneData]) -> void:
 			marker.position = get_zone_world_centre(zone_data)
 			marker.setup(state)
 			_hex_overlays[zone_data.zone_id] = marker
+
+## Lays the dotted routes (kit §0, the road ahead): from the current zone to
+## every other charted map zone, and on to each uncharted zone from the
+## charted zone nearest it (the first in map order on a tie).
+func _draw_routes(map_zones: Array[ZoneData]) -> void:
+	for child: Node in _route_container.get_children():
+		_route_container.remove_child(child)
+		child.free()
+	_routes.clear()
+
+	var current: ZoneData = ZoneManager.get_current_zone()
+	var current_id: String = current.zone_id if current != null else ""
+	var charted: Array[ZoneData] = []
+	var current_on_map: ZoneData = null
+	for zone_data: ZoneData in map_zones:
+		if ZoneManager.is_zone_charted(zone_data):
+			charted.append(zone_data)
+			if zone_data.zone_id == current_id:
+				current_on_map = zone_data
+
+	for zone_data: ZoneData in map_zones:
+		if zone_data == current_on_map:
+			continue
+		var from_zone: ZoneData = current_on_map if charted.has(zone_data) else _nearest_zone(zone_data, charted)
+		if from_zone == null:
+			continue
+		var route: ZoneRoute = ZoneRouteScene.instantiate() as ZoneRoute
+		_route_container.add_child(route)
+		route.set_points(get_zone_world_centre(from_zone), get_zone_world_centre(zone_data))
+		_routes[zone_data.zone_id] = route
+
+## The zone in candidates with the fewest hexes to target, or null for none.
+func _nearest_zone(target: ZoneData, candidates: Array[ZoneData]) -> ZoneData:
+	var target_cube: Vector3i = ZoneMapMath.cell_to_cube(target.tilemap_location)
+	var nearest: ZoneData = null
+	var nearest_distance: int = 0
+	for candidate: ZoneData in candidates:
+		var distance: int = HexagonTileMap.cube_distance(target_cube, ZoneMapMath.cell_to_cube(candidate.tilemap_location))
+		if nearest == null or distance < nearest_distance:
+			nearest = candidate
+			nearest_distance = distance
+	return nearest
 
 func _is_veiled(zone_data: ZoneData) -> bool:
 	var state: ZoneManager.ZoneMapState = ZoneManager.get_zone_map_state(zone_data)

@@ -1,0 +1,54 @@
+[gd_scene load_steps=4 format=3 uid="uid://0k6rbof0p2ve"]
+
+[ext_resource type="Script" uid="uid://bk67aggyfbnqu" path="res://scenes/zones/map_markers/map_markers.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://bct65erp7bgms" path="res://scenes/zones/map_markers/map_action_ring/map_action_ring.tscn" id="2_ring"]
+[ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/zones/map_markers/map_floater/map_floater.tscn" id="3_floater"]
+
+[node name="MapMarkers" type="CanvasLayer"]
+layer = 1
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ActionRing" parent="Root" instance=ExtResource("2_ring")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 998.0
+offset_top = 706.0
+offset_right = 1062.0
+offset_bottom = 770.0
+
+[node name="Floater" parent="Root" instance=ExtResource("3_floater")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 956.0
+offset_top = 674.0
+offset_right = 1068.0
+offset_bottom = 704.0
+
+[node name="GlyphContainer" type="Control" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PlateContainer" type="Control" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
