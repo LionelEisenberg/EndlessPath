@@ -10,6 +10,29 @@ signal zone_changed(zone_data: ZoneData)
 # Zone Action Completed signals
 signal action_completed
 
+## Emitted when the set of zones the map shows changes (dev toggles for the
+## demo zones and the hidden zones).
+signal map_zones_changed()
+
+## Emitted when something asks the zone panel to scroll to and flash an
+## action's card, e.g. a map popover's "Show me ›".
+signal action_focus_requested(action_id: String)
+
+#-----------------------------------------------------------------------------
+# ENUMS AND CONSTANTS
+#-----------------------------------------------------------------------------
+
+## How the overworld map draws a zone. See get_zone_map_state().
+enum ZoneMapState { CURRENT, OPEN, LOCKED, UNCHARTED }
+
+## Dev-only zones that show the locked and uncharted map states. They are loaded
+## on demand by set_demo_zones_visible() and never enter zone_data_list.tres,
+## so a save can never stand in one.
+const DEMO_ZONE_PATHS: Array[String] = [
+	"res://resources/zones/dev/advancement_zone_demo.tres",
+	"res://resources/zones/dev/uncharted_zone_demo.tres",
+]
+
 #-----------------------------------------------------------------------------
 # VARIABLES
 #-----------------------------------------------------------------------------
@@ -17,6 +40,10 @@ signal action_completed
 @export var _all_zone_data: ZoneDataList = preload("res://resources/zones/zone_data_list.tres")
 
 var live_save_data: SaveGameData = PersistenceManager.save_game_data
+
+var _demo_zones_visible: bool = false
+var _hidden_zones_visible: bool = false
+var _demo_zones: Array[ZoneData] = []
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -29,9 +56,11 @@ func _ready() -> void:
 	else:
 		Log.critical("ZoneManager: Could not get save_game_data from PersistenceManager on ready!")
 		return
+	_initialize_seen_actions()
 
 func _initialize_from_save() -> void:
 	live_save_data = PersistenceManager.save_game_data
+	_initialize_seen_actions()
 	zone_changed.emit(get_current_zone())
 
 #-----------------------------------------------------------------------------
@@ -84,6 +113,82 @@ func increment_training_ticks(action_id: String, zone_id: String = get_current_z
 	var new_total: int = zp.training_tick_progress.get(action_id, 0) + amount
 	zp.training_tick_progress[action_id] = new_total
 	return new_total
+
+## Returns the id of the idle action last started in the zone, or "" if none.
+func get_last_idle_action_id(zone_id: String) -> String:
+	return get_zone_progression(zone_id).last_idle_action_id
+
+## Records the idle action last started in the zone, so the zone can resume it.
+func set_last_idle_action_id(zone_id: String, action_id: String) -> void:
+	get_zone_progression(zone_id).last_idle_action_id = action_id
+
+#-----------------------------------------------------------------------------
+# MAP STATE
+#-----------------------------------------------------------------------------
+
+## Returns the zones the overworld map shows, in zone list order. Zones with
+## hidden_on_map are skipped unless hidden zones are shown; the demo zones
+## come last when they are shown.
+func get_map_zones() -> Array[ZoneData]:
+	var zones: Array[ZoneData] = []
+	for zone: ZoneData in _all_zone_data.list:
+		if zone.hidden_on_map and not _hidden_zones_visible:
+			continue
+		zones.append(zone)
+	if _demo_zones_visible:
+		zones.append_array(_get_demo_zones())
+	return zones
+
+## Returns how the map draws the zone: UNCHARTED while its chart conditions
+## are unmet, LOCKED while its unlock conditions are unmet, CURRENT for the
+## zone the player stands in, OPEN otherwise.
+func get_zone_map_state(zone_data: ZoneData) -> ZoneMapState:
+	if not is_zone_charted(zone_data):
+		return ZoneMapState.UNCHARTED
+	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
+		return ZoneMapState.LOCKED
+	var current_zone: ZoneData = get_current_zone()
+	if current_zone != null and zone_data.zone_id == current_zone.zone_id:
+		return ZoneMapState.CURRENT
+	return ZoneMapState.OPEN
+
+## Returns true when every chart condition of the zone is met (or it has none).
+func is_zone_charted(zone_data: ZoneData) -> bool:
+	return UnlockManager.are_unlock_conditions_met(zone_data.chart_conditions)
+
+## DEV: shows or hides the two demo zones (locked and uncharted) on the map.
+## Emits map_zones_changed when the setting changes.
+func set_demo_zones_visible(visible: bool) -> void:
+	if visible == _demo_zones_visible:
+		return
+	_demo_zones_visible = visible
+	map_zones_changed.emit()
+
+## DEV: shows or hides zones marked hidden_on_map (Test Zone) on the map.
+## Emits map_zones_changed when the setting changes.
+func set_hidden_zones_visible(visible: bool) -> void:
+	if visible == _hidden_zones_visible:
+		return
+	_hidden_zones_visible = visible
+	map_zones_changed.emit()
+
+## Asks the zone panel to scroll to the action's card and flash it.
+func request_action_focus(action_id: String) -> void:
+	action_focus_requested.emit(action_id)
+
+#-----------------------------------------------------------------------------
+# SEEN ACTIONS
+#-----------------------------------------------------------------------------
+
+## Records that the player has seen the action, which clears its NEW tag.
+func mark_action_seen(action_id: String) -> void:
+	if action_id == "" or live_save_data.seen_action_ids.has(action_id):
+		return
+	live_save_data.seen_action_ids.append(action_id)
+
+## Returns true when the player has seen the action (no NEW tag).
+func is_action_seen(action_id: String) -> bool:
+	return live_save_data.seen_action_ids.has(action_id)
 
 #-----------------------------------------------------------------------------
 # ACTION PUBLIC FUNCTIONS
@@ -149,3 +254,24 @@ func get_unlocked_zones() -> Array[ZoneData]:
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## Loads the demo zones on first use.
+func _get_demo_zones() -> Array[ZoneData]:
+	if _demo_zones.is_empty():
+		for path: String in DEMO_ZONE_PATHS:
+			var zone: ZoneData = load(path) as ZoneData
+			if zone == null:
+				Log.error("ZoneManager: Could not load demo zone %s" % path)
+				continue
+			_demo_zones.append(zone)
+	return _demo_zones
+
+## On a save's first initialisation, marks every action available at that
+## moment as seen, so only actions unlocked later show the NEW tag.
+func _initialize_seen_actions() -> void:
+	if live_save_data == null or live_save_data.seen_actions_initialized:
+		return
+	for zone: ZoneData in _all_zone_data.list:
+		for action: ZoneActionData in get_available_actions(zone.zone_id):
+			mark_action_seen(action.action_id)
+	live_save_data.seen_actions_initialized = true

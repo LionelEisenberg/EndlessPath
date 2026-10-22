@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://cokj5uweh63tg" path="res://scripts/resource_definitions/effects/effect_data.gd" id="2_8ideb"]
 [ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_v40qa"]
 [ext_resource type="Resource" uid="uid://2or6sfbainjs" path="res://resources/unlocks/q_fill_core_completed.tres" id="6_qfcgt"]
+[ext_resource type="Texture2D" uid="uid://wjirmswchanp" path="res://assets/sprites/ui/stat_icons/combat_icon.png" id="20_icon"]
 
 [resource]
 script = ExtResource("1_bedlk")
@@ -14,5 +15,6 @@ action_id = "shallow_woods_adventure_action"
 action_name = "The Shallow Woods"
 action_type = 1
 description = "The beasts are few and the aura is thin, where aspiring masters take their first steps beyond the sanctuary"
+icon = ExtResource("20_icon")
 unlock_conditions = Array[ExtResource("2_v40qa")]([ExtResource("6_qfcgt")])
 metadata/_custom_type_script = "uid://cmmqjph50wohc"

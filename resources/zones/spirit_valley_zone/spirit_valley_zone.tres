@@ -23,4 +23,5 @@ description = "Deep at the heart of the world lies Spirit Valley, a sanctuary re
 In this place of beginnings, aspiring masters temper their spirits, learning the fundamental techniques that will one day grant them the strength to shake the heavens"
 icon = ExtResource("2_ym136")
 all_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_8fv6p"), ExtResource("3_4bje7"), ExtResource("3_4l7yp"), ExtResource("6_owjyk"), ExtResource("6_8sxt0"), ExtResource("7_spwtrain"), ExtResource("8_1xdtd"), ExtResource("9_npc4"), ExtResource("10_merch")])
+tile_variant_index = 6
 metadata/_custom_type_script = "uid://culb0p88pnexb"

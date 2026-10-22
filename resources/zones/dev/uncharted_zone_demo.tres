@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ZoneData" format=3 uid="uid://d7tkran534s41"]
+
+[ext_resource type="Script" uid="uid://culb0p88pnexb" path="res://scripts/resource_definitions/zones/zone_data/zone_data.gd" id="1_zone"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_cond"]
+[ext_resource type="Resource" uid="uid://dfoabx3u562q6" path="res://resources/zones/dev/dev_never_unlocked_condition.tres" id="3_never"]
+
+[resource]
+script = ExtResource("1_zone")
+zone_name = "Uncharted"
+zone_id = "UnchartedZoneDemo"
+description = "Dev demo zone for the map's uncharted state. Shown only by the dev panel's demo zones toggle; never in zone_data_list.tres."
+tilemap_location = Vector2i(0, -2)
+tile_variant_index = 8
+chart_conditions = Array[ExtResource("2_cond")]([ExtResource("3_never")])
+blocker_short_text = "After the Tribulation"
+requirement_text = "Revealed after the Tribulation."
+metadata/_custom_type_script = "uid://culb0p88pnexb"

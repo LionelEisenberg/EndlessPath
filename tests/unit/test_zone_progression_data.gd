@@ -23,6 +23,18 @@ func test_training_tick_progress_persists_via_resource_save_load() -> void:
 	assert_eq(loaded.training_tick_progress["other_training"], 99)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(tmp_path))
 
+func test_last_idle_action_id_round_trips() -> void:
+	var zp := ZoneProgressionData.new()
+	zp.zone_id = "SpiritValley"
+	zp.last_idle_action_id = "aura_well_training"
+
+	var tmp_path: String = "user://__test_zone_progression_last_idle.tres"
+	ResourceSaver.save(zp, tmp_path)
+	var loaded: ZoneProgressionData = ResourceLoader.load(tmp_path, "ZoneProgressionData", ResourceLoader.CACHE_MODE_IGNORE)
+
+	assert_eq(loaded.last_idle_action_id, "aura_well_training")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(tmp_path))
+
 #-----------------------------------------------------------------------------
 # ZoneManager.get_training_ticks / increment_training_ticks
 #-----------------------------------------------------------------------------

@@ -10,6 +10,8 @@ const SAVE_PATH : String = "user://save.tres"
 
 func _ready() -> void:
 	load_data()
+	# Migrate before verify(): a failed verify() wipes the whole save.
+	save_game_data.migrate()
 	if reset_save_data:
 		load_new_save_data()
 

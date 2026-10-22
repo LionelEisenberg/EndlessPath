@@ -12,4 +12,5 @@ zone_id = "TestZone"
 description = "test zone"
 zone_unlock_conditions = Array[ExtResource("3_ptkqb")]([ExtResource("4_0q1fc")])
 tilemap_location = Vector2i(0, 1)
+hidden_on_map = true
 metadata/_custom_type_script = "uid://culb0p88pnexb"
