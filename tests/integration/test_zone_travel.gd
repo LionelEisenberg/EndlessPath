@@ -125,6 +125,40 @@ func _escape_event() -> InputEventAction:
 func _hover_cell_of(zone_id: String) -> void:
 	_map.tile_map.tile_hovered.emit(_zone(zone_id).tilemap_location)
 
+## A second map shown, as in the game, through a full-size SubViewport. Its
+## host sits on a canvas layer of its own, out of reach of the first map's
+## camera, so the pointer finds it where it is drawn.
+func _hosted_map() -> ZoneTilemap:
+	var layer := CanvasLayer.new()
+	var host := SubViewportContainer.new()
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(ZoneMapMath.VIEWPORT_SIZE)
+	host.add_child(viewport)
+	layer.add_child(host)
+	add_child_autofree(layer)
+	var map: ZoneTilemap = ZoneTilemapScene.instantiate()
+	viewport.add_child(map)
+	map.tile_map.tile_set.emit_changed()
+	await _settle()
+	return map
+
+## Where the zone's hex centre lands in the hosted map's SubViewport.
+func _hosted_screen_point(map: ZoneTilemap, zone_id: String) -> Vector2:
+	return map.get_global_transform_with_canvas() * map.get_zone_world_centre(_zone(zone_id))
+
+## Moves the pointer, through the window as the player would, to a point in
+## the hosted map's SubViewport (headless, the window is not 1920x1080).
+func _move_pointer_to(map: ZoneTilemap, point: Vector2) -> void:
+	await _move_pointer_to_window_point(map.get_viewport().get_screen_transform() * point)
+
+func _move_pointer_to_window_point(window_point: Vector2) -> void:
+	var motion := InputEventMouseMotion.new()
+	motion.position = window_point
+	motion.global_position = window_point
+	Input.parse_input_event(motion)
+	Input.flush_buffered_events()
+	await get_tree().process_frame
+
 #-----------------------------------------------------------------------------
 # TRAVEL (Review Focus 2)
 #-----------------------------------------------------------------------------
@@ -489,6 +523,43 @@ func test_leaving_the_map_clears_the_hover() -> void:
 	assert_eq(markers.get_popover_state().get_hovered_zone_id(), "")
 	assert_false(markers.get_popover().visible, "the preview goes with the pointer")
 	assert_null((map.get_hex_overlay(ADVANCEMENT_DEMO_ID) as LockedZoneOverlay).get_rim_texture())
+
+func test_coming_back_onto_the_same_cell_hovers_again() -> void:
+	# The hex layers report a cell only when the pointer moves onto a new one:
+	# leaving the map must make them forget the last, or a pointer coming
+	# straight back onto it hovers nothing.
+	var map: ZoneTilemap = await _hosted_map()
+	var host: SubViewportContainer = map.get_viewport().get_parent() as SubViewportContainer
+	_open_test_zone()
+	var point: Vector2 = _hosted_screen_point(map, TEST_ZONE_ID)
+	await _move_pointer_to(map, point)
+	var state: MapPopoverState = map.get_map_markers().get_popover_state()
+	assert_eq(state.get_hovered_zone_id(), TEST_ZONE_ID, "precondition: the pointer hovers Test Zone")
+	host.mouse_exited.emit()
+	assert_eq(state.get_hovered_zone_id(), "", "precondition: leaving the map clears it")
+	host.mouse_entered.emit()
+	await _move_pointer_to(map, point + Vector2(2, 2))
+	assert_eq(state.get_hovered_zone_id(), TEST_ZONE_ID, "back on the same cell, it hovers again")
+	assert_true(map.get_route_to(TEST_ZONE_ID).is_lit())
+	await _move_pointer_to_window_point(Vector2.ZERO)
+
+func test_late_marker_exit_brings_back_no_hover() -> void:
+	# Leaving the map from a plate or the popover, their own mouse_exited can
+	# come after the map's: it must not hover the hex the pointer left.
+	var map: ZoneTilemap = await _hosted_map()
+	var host: SubViewportContainer = map.get_viewport().get_parent() as SubViewportContainer
+	_open_test_zone()
+	ZoneManager.set_demo_zones_visible(true)
+	var markers: MapMarkers = map.get_map_markers()
+	await _move_pointer_to(map, _hosted_screen_point(map, TEST_ZONE_ID))
+	assert_eq(markers.get_popover_state().get_hovered_zone_id(), TEST_ZONE_ID, "precondition: hovered")
+	host.mouse_exited.emit()
+	markers.get_plate(TEST_ZONE_ID).mouse_exited.emit()
+	assert_eq(markers.get_popover_state().get_hovered_zone_id(), "", "a plate's late exit hovers nothing")
+	assert_false(map.get_route_to(TEST_ZONE_ID).is_lit())
+	(markers.get_popover().get_node("%LockedCard") as Control).mouse_exited.emit()
+	assert_eq(markers.get_popover_state().get_hovered_zone_id(), "", "nor does the popover's")
+	await _move_pointer_to_window_point(Vector2.ZERO)
 
 func test_no_preview_while_pinned() -> void:
 	ZoneManager.set_demo_zones_visible(true)

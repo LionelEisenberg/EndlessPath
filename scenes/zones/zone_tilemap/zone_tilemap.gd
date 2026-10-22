@@ -155,6 +155,7 @@ func _ready() -> void:
 	_map_markers.plate_pressed.connect(click_zone)
 	_map_markers.marker_hover_changed.connect(_refresh_hover)
 	_map_markers.interaction_changed.connect(_apply_interaction)
+	_map_markers.pointer_left_map.connect(_on_pointer_left_map)
 
 	character_body.movement_completed.connect(_on_character_movement_completed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
@@ -553,8 +554,12 @@ func _stop_idle_motion() -> void:
 #-----------------------------------------------------------------------------
 
 ## Tells MapMarkers what the pointer is over: a plate's zone, nothing on the
-## popover, else the zone of the hex cell under it ("" over fog).
+## popover, else the zone of the hex cell under it ("" over fog); nothing at
+## all while the pointer is off the map.
 func _refresh_hover() -> void:
+	if not _map_markers.is_pointer_on_map():
+		_map_markers.hover_zone("")
+		return
 	var point: Vector2 = get_viewport().get_mouse_position()
 	var zone_id: String = _map_markers.get_plate_zone_id_at(point)
 	if zone_id == "" and not _map_markers.is_point_on_popover(point):
@@ -625,6 +630,13 @@ func _on_zone_tile_unhovered() -> void:
 func _on_fog_tile_hovered(_tile_coord: Vector2i) -> void:
 	_hovered_cell_zone_id = ""
 	_refresh_hover()
+
+## The pointer left the map: no cell is under it, and the hex layers forget
+## the last one, so coming straight back onto it hovers it again.
+func _on_pointer_left_map() -> void:
+	_hovered_cell_zone_id = ""
+	tile_map.forget_hovered_cell()
+	_fog_layer.forget_hovered_cell()
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	_rebuild_map()

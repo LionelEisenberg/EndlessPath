@@ -45,6 +45,10 @@ signal interaction_changed
 ## pointer is over may have changed without it crossing a hex cell.
 signal marker_hover_changed
 
+## Emitted when the pointer leaves the map for a panel or the dock, after the
+## hover is cleared: the map forgets the hex cell it was over.
+signal pointer_left_map
+
 #-----------------------------------------------------------------------------
 # EXPORTS
 #-----------------------------------------------------------------------------
@@ -129,6 +133,9 @@ var _popover_state: MapPopoverState = MapPopoverState.new()
 ## False from a left press anywhere in the window until the map or the popover
 ## takes it; a press nothing takes closes the pinned popover.
 var _press_claimed: bool = true
+## False while the pointer is off the map (over a panel or the dock): nothing
+## on the map is hovered then, whatever a late mouse_exited reports.
+var _pointer_on_map: bool = true
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -153,6 +160,7 @@ func _ready() -> void:
 	_view_host = _find_view_host()
 	if _view_host != null:
 		_view_host.visibility_changed.connect(_on_view_host_visibility_changed)
+		_view_host.mouse_entered.connect(_on_view_host_mouse_entered)
 		_view_host.mouse_exited.connect(_on_view_host_mouse_exited)
 	if map != null:
 		map.map_rebuilt.connect(_rebuild)
@@ -230,12 +238,16 @@ func get_popover() -> ZoneMapPopover:
 func get_popover_state() -> MapPopoverState:
 	return _popover_state
 
-## The pointer is over the zone's hex or plate ("" for none). Hovering a
-## locked or uncharted zone starts the 150 ms preview timer; a new hover
-## drops the old preview at once.
+## True unless the pointer has left the map for a panel or the dock.
+func is_pointer_on_map() -> bool:
+	return _pointer_on_map
+
+## The pointer is over the zone's hex or plate ("" for none; always none while
+## the pointer is off the map). Hovering a locked or uncharted zone starts the
+## 150 ms preview timer; a new hover drops the old preview at once.
 func hover_zone(zone_id: String) -> void:
 	var plate: ZoneMapLabel = get_plate(zone_id)
-	if plate == null:
+	if plate == null or not _pointer_on_map:
 		zone_id = ""
 	var previous_id: String = _popover_state.get_hovered_zone_id()
 	if zone_id == "":
@@ -577,9 +589,14 @@ func _on_window_input(event: InputEvent) -> void:
 	_close_unless_claimed.call_deferred()
 
 ## The pointer left the map for a panel or the dock: it is over no hex, even
-## when it skipped the fog between.
+## when it skipped the fog between, until it comes back.
 func _on_view_host_mouse_exited() -> void:
+	_pointer_on_map = false
 	hover_zone("")
+	pointer_left_map.emit()
+
+func _on_view_host_mouse_entered() -> void:
+	_pointer_on_map = true
 
 ## A save reset leaves no popover, hover or preview timer behind.
 func _on_save_data_reset() -> void:
