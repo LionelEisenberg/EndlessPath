@@ -21,3 +21,11 @@ static func pick(coord: Vector3i) -> Vector2i:
 	var idx: int = posmod(hash(coord), FOREST_VARIANT_COUNT)
 	@warning_ignore("integer_division")
 	return Vector2i(idx % FOREST_ATLAS_COLS, idx / FOREST_ATLAS_COLS)
+
+## Returns an index in [0, pool_size) for the given cube coord, the same for
+## the same coord every time. The zone map's fog uses it to pick a cell from a
+## tier's 9-cell atlas of natural tiles. Returns 0 for an empty pool.
+static func pick_from(coord: Vector3i, pool_size: int) -> int:
+	if pool_size <= 0:
+		return 0
+	return posmod(hash(coord), pool_size)

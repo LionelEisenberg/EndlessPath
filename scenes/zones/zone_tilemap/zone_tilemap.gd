@@ -1,7 +1,19 @@
 class_name ZoneTilemap
 extends Node2D
 
+## ZoneTilemap
+## The zone view's hex map (spec: Map; kit §6). The camera opens at zoom 2 and
+## frames the current zone's centre at screen (960, 702). Every cell out to
+## half a viewport past the camera clamp is fog, its tier the hex distance to
+## the nearest charted zone. The zone layer holds only the map zones
+## (ZoneManager.get_map_zones()): the current zone gets the brass rim, an open
+## zone the hairline, and locked and uncharted zones a veiled tile.
+
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
+
+## Emitted after the map redraws its zones, fog and hex states: on load, on a
+## zone change, an unlock, or a dev toggle that changes the map zones.
+signal map_rebuilt
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -12,41 +24,9 @@ signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 ## Higher = slower, more contemplative. Lower = snappier.
 @export_range(0.1, 3.0, 0.05) var camera_ease_duration: float = 0.65
 
-@export_group("Ghost Neighbors")
-## Color of the hex-shaped polygon overlays that sit around real zones
-## to frame the playable area (so zones don't look like they're floating
-## in the middle of nowhere). Dark near-black at ~74% alpha reads as
-## "edge of the known world" / bounds marker. Alpha 0 would make them
-## invisible.
-@export var ghost_neighbor_color: Color = Color(0.005910289, 0.0075441017, 0.018441157, 0.7411765)
-
 #-----------------------------------------------------------------------------
-# NODE REFERENCES
+# CONSTANTS
 #-----------------------------------------------------------------------------
-
-@onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
-@onready var character_body: CharacterBody2D = %PlayerCharacter
-@onready var _camera: Camera2D = %Camera2D
-@onready var _hover_selector: HexHoverSelector = %HoverSelector
-@onready var _locked_overlay_container: Node2D = %LockedOverlayContainer
-@onready var _glowing_path_container: Node2D = %GlowingPathContainer
-@onready var _ghost_neighbor_container: Node2D = %GhostNeighborContainer
-
-var _locked_overlays: Dictionary[Vector2i, LockedZoneOverlay] = {}
-
-# Hex polygon points for a ghost-neighbor tile. Matches the 164x190
-# tile grid so adjacent polygons touch edge-to-edge with no gaps.
-# Same geometry as LockedZoneOverlay.GreyBackground. Can't be a const
-# because PackedVector2Array(Vector2(...)) isn't a constant expression
-# in GDScript — but it's effectively immutable at the class level.
-var _ghost_hex_points: PackedVector2Array = PackedVector2Array([
-	Vector2(0, -95),
-	Vector2(82.2, -47.5),
-	Vector2(82.2, 47.5),
-	Vector2(0, 95),
-	Vector2(-82.2, 47.5),
-	Vector2(-82.2, -47.5),
-])
 
 # Forest tile atlas. All Hex_Forest_NN variants are packed into a single
 # TileSetAtlasSource (sources/8 in tilemap_tileset.tres) backed by
@@ -61,12 +41,55 @@ const FOREST_ATLAS_SOURCE_ID := 8
 const FOREST_ATLAS_COLS := 6
 const FOREST_VARIANT_COUNT := 23
 
-# Movement and display constants
-const CHARACTER_MOVE_SPEED = 150.0
-const FORAGE_POSITION_MARGIN = 32
+## A veiled (locked or uncharted) zone keeps a clickable cell on the zone layer
+## without drawing its raw tile under the veil: the base tile's transparent
+## alternative, as the adventure map uses for its hit cells.
+const VEILED_CELL_SOURCE_ID: int = 0
+const VEILED_CELL_ALTERNATIVE_ID: int = 4
 
-const LockedZoneOverlayScene := preload("res://scenes/zones/locked_zone_overlay/locked_zone_overlay.tscn")
-const GlowingPathScene := preload("res://scenes/zones/glowing_path/glowing_path.tscn")
+## Each fog tier's atlas (fog_tileset.tres sources 1-3, one per tier) holds
+## this many natural tiles in one row.
+const FOG_POOL_SIZE: int = 9
+
+## A hex tile's size in map space, and the clamp margin around the map zones.
+const TILE_SIZE: Vector2 = Vector2(164, 190)
+const CLAMP_MARGIN_HEXES: float = 1.5
+
+## Where the character stands in its zone. Its 16x24 frame is centred with a
+## (1, -1) offset, so its top-left is the body position + (-7, -13); this puts
+## that top-left at the zone centre + (0, 19), which is screen (960, 740) in
+## Spirit Valley at zoom 2 (kit §0).
+const CHARACTER_STAND_OFFSET: Vector2 = Vector2(7, 32)
+
+## Walking speed in map px a second: an adjacent zone (about 164 px) in ~0.6 s.
+const CHARACTER_MOVE_SPEED: float = 275.0
+
+const LockedZoneOverlayScene: PackedScene = preload("res://scenes/zones/locked_zone_overlay/locked_zone_overlay.tscn")
+const ZoneHexMarkerScene: PackedScene = preload("res://scenes/zones/zone_hex_marker/zone_hex_marker.tscn")
+
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
+@onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
+@onready var character_body: CharacterBody2D = %PlayerCharacter
+@onready var _fog_layer: TileMapLayer = %FogTileMapLayer
+@onready var _camera: Camera2D = %Camera2D
+@onready var _zoom_controller: CameraZoomController = %CameraZoomController
+@onready var _clamp_controller: CameraClampController = %CameraClampController
+@onready var _hover_selector: HexHoverSelector = %HoverSelector
+@onready var _veil_container: Node2D = %LockedOverlayContainer
+@onready var _marker_container: Node2D = %HexMarkerContainer
+
+#-----------------------------------------------------------------------------
+# STATE
+#-----------------------------------------------------------------------------
+
+## The rim or veil drawn over each map zone, by zone id.
+var _hex_overlays: Dictionary[String, Node2D] = {}
+var _camera_bounds: Rect2 = Rect2()
+var _frame_tween: Tween = null
+var _wander_tween: Tween = null
 
 ## variable that stores the tile the character is on
 var selected_zone: ZoneData:
@@ -74,36 +97,182 @@ var selected_zone: ZoneData:
 		selected_zone = value
 		ZoneManager.set_current_zone(value)
 
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
 func _ready() -> void:
 	selected_zone = ZoneManager.get_current_zone()
 
-	set_all_zones_in_tile_map()
-	update_zone_tile_state(selected_zone)
-	_refresh_locked_overlays()
-	_refresh_glowing_paths()
-	_move_character_to_tile_coord(selected_zone.tilemap_location)
+	_rebuild_map()
+	_place_character(selected_zone)
+	frame_zone(selected_zone)
 
 	# Connect to tile map layer for zone selection
-	if tile_map.has_signal("tile_clicked"):
-		tile_map.tile_clicked.connect(_on_zone_tile_clicked)
-	if tile_map.has_signal("tile_hovered"):
-		tile_map.tile_hovered.connect(_on_zone_tile_hovered)
-	if tile_map.has_signal("tile_unhovered"):
-		tile_map.tile_unhovered.connect(_on_zone_tile_unhovered)
-	
-	# Connect to ActionManager signals
-	if ActionManager:
-		ActionManager.start_foraging.connect(_on_start_foraging)
-		ActionManager.stop_foraging.connect(_on_stop_foraging)
-		ActionManager.foraging_completed.connect(_on_foraging_completed)
-	else:
-		Log.critical("ZoneTilemap: ActionManager is not loaded!")
-	
-	# Connect to UnlockManager signals
-	if UnlockManager:
-		UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
-	else:
-		Log.critical("ZoneTilemap: UnlockManager is not loaded!")
+	tile_map.tile_clicked.connect(_on_zone_tile_clicked)
+	tile_map.tile_hovered.connect(_on_zone_tile_hovered)
+	tile_map.tile_unhovered.connect(_on_zone_tile_unhovered)
+
+	ActionManager.start_foraging.connect(_on_start_foraging)
+	ActionManager.stop_foraging.connect(_on_stop_foraging)
+	ActionManager.foraging_completed.connect(_on_foraging_completed)
+	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
+	ZoneManager.zone_changed.connect(_on_zone_changed)
+	ZoneManager.map_zones_changed.connect(_on_map_zones_changed)
+
+#-----------------------------------------------------------------------------
+# PUBLIC FUNCTIONS
+#-----------------------------------------------------------------------------
+
+## The map's camera.
+func get_camera() -> Camera2D:
+	return _camera
+
+## The rect the camera's centre is clamped to: the map zones' tiles plus 1.5
+## hexes on every side, in map space.
+func get_camera_bounds() -> Rect2:
+	return _camera_bounds
+
+## The centre of the zone's hex in map space.
+func get_zone_world_centre(zone_data: ZoneData) -> Vector2:
+	return tile_map.position + tile_map.map_to_local(zone_data.tilemap_location)
+
+## Moves the camera so the zone's centre sits at screen (960, 702) at the
+## current zoom, gliding over duration seconds (0 = at once), then re-clamps.
+func frame_zone(zone_data: ZoneData, duration: float = 0.0) -> void:
+	if zone_data == null:
+		return
+	if _frame_tween and _frame_tween.is_valid():
+		_frame_tween.kill()
+	var zoom: float = _zoom_controller.target_zoom.x if _zoom_controller.is_zoom_active() else _camera.zoom.x
+	var target: Vector2 = ZoneMapMath.camera_position_for(get_zone_world_centre(zone_data), zoom)
+	if duration <= 0.0:
+		_camera.position = target
+		_clamp_controller.clamp_now()
+		return
+	_frame_tween = create_tween()
+	_frame_tween.set_trans(Tween.TRANS_CUBIC)
+	_frame_tween.set_ease(Tween.EASE_IN_OUT)
+	_frame_tween.tween_property(_camera, "position", target, duration)
+	_frame_tween.finished.connect(_clamp_controller.clamp_now)
+
+## The fog tier (1-3) drawn on the cell, or -1 when the cell has no fog.
+func get_fog_tier_at(cell: Vector2i) -> int:
+	return _fog_layer.get_cell_source_id(cell)
+
+## The rim (ZoneHexMarker) or veil (LockedZoneOverlay) drawn over the map
+## zone, or null when the zone is not on the map.
+func get_hex_overlay(zone_id: String) -> Node2D:
+	return _hex_overlays.get(zone_id, null)
+
+## Returns the map zone at the given tile coordinate, or null if none.
+func get_zone_at_tile(tile_coord: Vector2i) -> ZoneData:
+	for zone_data: ZoneData in ZoneManager.get_map_zones():
+		if zone_data.tilemap_location == tile_coord:
+			return zone_data
+	return null
+
+## Updates the selected_zone bookkeeping when the player moves.
+func update_zone_tile_state(zone_data: ZoneData) -> void:
+	if not zone_data:
+		return
+
+	selected_zone = zone_data
+
+#-----------------------------------------------------------------------------
+# MAP BUILDING
+#-----------------------------------------------------------------------------
+
+## Redraws the zone layer, the camera bounds, the fog and the hex states for
+## the current map zones, then emits map_rebuilt.
+func _rebuild_map() -> void:
+	var map_zones: Array[ZoneData] = ZoneManager.get_map_zones()
+	_draw_zone_cells(map_zones)
+	_update_camera_bounds(map_zones)
+	_draw_fog(map_zones)
+	_draw_hex_states(map_zones)
+	map_rebuilt.emit()
+
+## The zone layer holds only the map zones. Veiled zones get a transparent
+## cell, so they stay clickable while the veil draws the tile.
+func _draw_zone_cells(map_zones: Array[ZoneData]) -> void:
+	tile_map.clear()
+	for zone_data: ZoneData in map_zones:
+		if _is_veiled(zone_data):
+			tile_map.set_cell(zone_data.tilemap_location, VEILED_CELL_SOURCE_ID, Vector2i.ZERO, VEILED_CELL_ALTERNATIVE_ID)
+		else:
+			tile_map.set_cell(zone_data.tilemap_location, FOREST_ATLAS_SOURCE_ID, _get_zone_tile_atlas_coords(zone_data))
+
+## The camera's centre is clamped to the map zones' tiles plus 1.5 hexes.
+func _update_camera_bounds(map_zones: Array[ZoneData]) -> void:
+	var bounds: Rect2 = Rect2(-TILE_SIZE / 2.0, TILE_SIZE)
+	for index: int in map_zones.size():
+		var tile_rect: Rect2 = Rect2(get_zone_world_centre(map_zones[index]) - TILE_SIZE / 2.0, TILE_SIZE)
+		bounds = tile_rect if index == 0 else bounds.merge(tile_rect)
+	var margin: Vector2 = TILE_SIZE * CLAMP_MARGIN_HEXES
+	_camera_bounds = bounds.grow_individual(margin.x, margin.y, margin.x, margin.y)
+	_clamp_controller.boundary_min = _camera_bounds.position
+	_clamp_controller.boundary_max = _camera_bounds.end
+	_clamp_controller.clamp_now()
+
+## Fills every cell that reaches into the clamp bounds plus half a viewport at
+## the lowest zoom, so the screen is covered wherever the camera is clamped
+## (Review Focus 3). Map-zone cells are skipped; the uncharted zone charts
+## nothing, so fog tiers count only from charted zones.
+func _draw_fog(map_zones: Array[ZoneData]) -> void:
+	_fog_layer.clear()
+	var zone_cells: Dictionary[Vector2i, bool] = {}
+	var charted_cubes: Array[Vector3i] = []
+	for zone_data: ZoneData in map_zones:
+		zone_cells[zone_data.tilemap_location] = true
+		if ZoneManager.is_zone_charted(zone_data):
+			charted_cubes.append(ZoneMapMath.cell_to_cube(zone_data.tilemap_location))
+
+	var half_view: Vector2 = ZoneMapMath.VIEWPORT_SIZE / (2.0 * _zoom_controller.zoom_min)
+	var fog_rect: Rect2 = _camera_bounds.grow_individual(half_view.x, half_view.y, half_view.x, half_view.y)
+	var first_cell: Vector2i = _fog_layer.local_to_map(fog_rect.position - _fog_layer.position)
+	var last_cell: Vector2i = _fog_layer.local_to_map(fog_rect.end - _fog_layer.position)
+	for row: int in range(first_cell.y - 1, last_cell.y + 2):
+		for col: int in range(first_cell.x - 1, last_cell.x + 2):
+			var cell: Vector2i = Vector2i(col, row)
+			if zone_cells.has(cell) or not _get_cell_world_rect(cell).intersects(fog_rect):
+				continue
+			var cube: Vector3i = ZoneMapMath.cell_to_cube(cell)
+			var tier: int = ZoneMapMath.fog_tier(cube, charted_cubes)
+			_fog_layer.set_cell(cell, tier, Vector2i(HexForestAtlas.pick_from(cube, FOG_POOL_SIZE), 0))
+
+## Lays the current rim, the open hairline or the veil over each map zone.
+func _draw_hex_states(map_zones: Array[ZoneData]) -> void:
+	# Freed at once (they are plain sprites): the map never shows a stale
+	# rim for a frame, and nothing outlives the rebuild.
+	for container: Node2D in [_veil_container, _marker_container]:
+		for child: Node in container.get_children():
+			container.remove_child(child)
+			child.free()
+	_hex_overlays.clear()
+
+	for zone_data: ZoneData in map_zones:
+		var state: ZoneManager.ZoneMapState = ZoneManager.get_zone_map_state(zone_data)
+		if _is_veiled(zone_data):
+			var overlay: LockedZoneOverlay = LockedZoneOverlayScene.instantiate() as LockedZoneOverlay
+			_veil_container.add_child(overlay)
+			overlay.position = get_zone_world_centre(zone_data)
+			overlay.setup(state)
+			_hex_overlays[zone_data.zone_id] = overlay
+		else:
+			var marker: ZoneHexMarker = ZoneHexMarkerScene.instantiate() as ZoneHexMarker
+			_marker_container.add_child(marker)
+			marker.position = get_zone_world_centre(zone_data)
+			marker.setup(state)
+			_hex_overlays[zone_data.zone_id] = marker
+
+func _is_veiled(zone_data: ZoneData) -> bool:
+	var state: ZoneManager.ZoneMapState = ZoneManager.get_zone_map_state(zone_data)
+	return state == ZoneManager.ZoneMapState.LOCKED or state == ZoneManager.ZoneMapState.UNCHARTED
+
+## A cell's tile rect in map space.
+func _get_cell_world_rect(cell: Vector2i) -> Rect2:
+	return Rect2(_fog_layer.position + _fog_layer.map_to_local(cell) - TILE_SIZE / 2.0, TILE_SIZE)
 
 ## Returns the atlas cell coords for a given zone's forest variant.
 ## Variant index N maps to (N % FOREST_ATLAS_COLS, N / FOREST_ATLAS_COLS)
@@ -117,193 +286,83 @@ func _get_zone_tile_atlas_coords(zone_data: ZoneData) -> Vector2i:
 	@warning_ignore("integer_division")
 	return Vector2i(idx % FOREST_ATLAS_COLS, idx / FOREST_ATLAS_COLS)
 
-## Set all zones in the tile_map. All zones (locked or unlocked) render
-## with their assigned forest variant — locked zones get a grey+lock
-## overlay on top via _refresh_locked_overlays() rather than a different
-## tile source. Selected/unselected state has no tile-side difference;
-## the player character sprite is the only "you are here" indicator.
-func set_all_zones_in_tile_map() -> void:
-	var all_zones = ZoneManager.get_all_zones()
+#-----------------------------------------------------------------------------
+# CHARACTER
+#-----------------------------------------------------------------------------
 
-	for zone_data in all_zones:
-		tile_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, zone_data.tilemap_location, _get_zone_tile_atlas_coords(zone_data))
+func _get_stand_position(zone_data: ZoneData) -> Vector2:
+	return get_zone_world_centre(zone_data) + CHARACTER_STAND_OFFSET
 
-	_refresh_ghost_neighbors()
+func _place_character(zone_data: ZoneData) -> void:
+	character_body.position = _get_stand_position(zone_data)
 
+func _move_character_to_zone(zone_data: ZoneData) -> void:
+	character_body.move_to_position(_get_stand_position(zone_data), CHARACTER_MOVE_SPEED)
 
-## Returns the ZoneData at the given tile coordinate, or null if not found.
-func get_zone_at_tile(tile_coord: Vector2i) -> ZoneData:
-	for zone_data in ZoneManager.get_all_zones():
-		if zone_data.tilemap_location == tile_coord:
-			return zone_data
-	return null
-
-## Updates the selected_zone bookkeeping when the player moves. The tile
-## itself doesn't visually change between selected/unselected states —
-## the player character sprite is the only "you are here" indicator —
-## so we don't need to redraw the previous tile.
-func update_zone_tile_state(zone_data: ZoneData) -> void:
-	if not zone_data:
+## Foraging: the character wanders west of its stand and back over each haul,
+## one world px (two screen px) a step. Never while walking to a zone.
+func _start_forage_wander() -> void:
+	_stop_forage_wander()
+	if character_body.is_moving:
 		return
+	_wander_tween = create_tween()
+	_wander_tween.tween_method(_apply_forage_wander, 0.0, ZoneMapMath.FORAGE_WANDER_SECONDS, ZoneMapMath.FORAGE_WANDER_SECONDS)
 
-	selected_zone = zone_data
+func _apply_forage_wander(elapsed: float) -> void:
+	character_body.position = _get_stand_position(selected_zone) + Vector2(ZoneMapMath.forage_wander_x(elapsed), 0.0)
 
-## Rebuilds the hex-shaped ghost neighbor polygons that frame the zone
-## cluster. Uses TileMapLayer.get_surrounding_cells() so the 6 hex
-## neighbors are computed correctly regardless of row parity (the
-## previous hardcoded offsets only worked for one row parity).
-##
-## Ghost neighbors are rendered as solid-color Polygon2Ds (not tilemap
-## variants) so adjacent ghosts touch edge-to-edge with zero seams —
-## tilemap-based ghosts had anti-aliased edges that created visible
-## double-alpha seams where two ghost hexes met.
-func _refresh_ghost_neighbors() -> void:
-	for child in _ghost_neighbor_container.get_children():
-		child.queue_free()
-
-	# Build a set of real zone positions so we don't place a ghost over a zone.
-	var zone_coords := {}
-	for zone_data in ZoneManager.get_all_zones():
-		zone_coords[zone_data.tilemap_location] = true
-
-	# Collect unique ghost positions (a position adjacent to multiple zones
-	# should only get one polygon).
-	var ghost_coords := {}
-	for zone_data in ZoneManager.get_all_zones():
-		for neighbor_coord in tile_map.get_surrounding_cells(zone_data.tilemap_location):
-			if zone_coords.has(neighbor_coord):
-				continue
-			ghost_coords[neighbor_coord] = true
-
-	# Spawn one hex polygon per ghost coordinate.
-	for coord in ghost_coords.keys():
-		var polygon := Polygon2D.new()
-		polygon.polygon = _ghost_hex_points
-		polygon.color = ghost_neighbor_color
-		polygon.position = tile_map.map_to_local(coord) + tile_map.position
-		_ghost_neighbor_container.add_child(polygon)
-
-func _ease_camera_to(world_pos: Vector2) -> void:
-	# TRANS_CUBIC + EASE_IN_OUT gives a smooth slow-start / slow-end glide
-	# (no overshoot, no abrupt initial velocity). The previous TRANS_BACK
-	# overshoot felt sudden because EASE_OUT starts at maximum velocity.
-	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_CUBIC)
-	tween.set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(_camera, "position", world_pos, camera_ease_duration)
-
-## Called when a tile is clicked on the tile map.
-func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
-	var zone_data = get_zone_at_tile(tile_coord)
-	Log.info("ZoneTilemap: Zone tile clicked: %s" % tile_coord)
-	if not zone_data:
-		return
-
-	if zone_data == selected_zone:
-		return
-
-	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
-		# Locked — shake the lock icon as denied-feedback, don't move.
-		if _locked_overlays.has(tile_coord):
-			_locked_overlays[tile_coord].shake()
-		return
-
-	if zone_data:
-		zone_selected.emit(zone_data, tile_coord)
-		update_zone_tile_state(zone_data)
-
-	_move_character_to_tile_coord(tile_coord)
-	_ease_camera_to(tile_map.map_to_local(tile_coord) + tile_map.position)
-
-func _on_condition_unlocked(_condition_id: String) -> void:
-	set_all_zones_in_tile_map()
-	_refresh_locked_overlays()
-	_refresh_glowing_paths()
-
-## Rebuilds the grey-+-lock overlays for all currently-locked zones.
-## Runs at scene load and whenever an unlock condition changes. Overlays
-## sit above the tile (the underlying forest art is still rendered) so
-## players see "here's what this zone looks like, and here's why you
-## can't click it yet".
-func _refresh_locked_overlays() -> void:
-	for child in _locked_overlay_container.get_children():
-		child.queue_free()
-	_locked_overlays.clear()
-	for zone_data in ZoneManager.get_all_zones():
-		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
-			continue
-		var overlay := LockedZoneOverlayScene.instantiate() as LockedZoneOverlay
-		_locked_overlay_container.add_child(overlay)
-		overlay.position = tile_map.map_to_local(zone_data.tilemap_location) + tile_map.position
-		_locked_overlays[zone_data.tilemap_location] = overlay
-
-func _refresh_glowing_paths() -> void:
-	for child in _glowing_path_container.get_children():
-		child.queue_free()
-
-	var unlocked_coords := {}
-	for zone_data in ZoneManager.get_all_zones():
-		if UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
-			unlocked_coords[zone_data.tilemap_location] = zone_data
-
-	var seen := {}
-	for coord in unlocked_coords.keys():
-		for neighbor_coord in tile_map.get_surrounding_cells(coord):
-			if not unlocked_coords.has(neighbor_coord):
-				continue
-			var min_x := mini(coord.x, neighbor_coord.x)
-			var min_y := mini(coord.y, neighbor_coord.y)
-			var max_x := maxi(coord.x, neighbor_coord.x)
-			var max_y := maxi(coord.y, neighbor_coord.y)
-			var pair_key := "%d_%d_%d_%d" % [min_x, min_y, max_x, max_y]
-			if seen.has(pair_key):
-				continue
-			seen[pair_key] = true
-
-			var from_world := tile_map.map_to_local(coord) + tile_map.position
-			var to_world := tile_map.map_to_local(neighbor_coord) + tile_map.position
-			var path := GlowingPathScene.instantiate() as GlowingPath
-			_glowing_path_container.add_child(path)
-			path.setup(from_world, to_world)
-
-func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
-	var zone_data := get_zone_at_tile(tile_coord)
-	if not zone_data:
-		_hover_selector.hide()
-		return
-	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
-		_hover_selector.hide()
-		return
-	_hover_selector.show_at(tile_map.map_to_local(tile_coord) + tile_map.position)
-
-func _on_zone_tile_unhovered() -> void:
-	_hover_selector.hide()
-
-func _move_character_to_tile_coord(tile_coord: Vector2i) -> void:
-	var world_pos := tile_map.map_to_local(tile_coord) + tile_map.position
-	_move_character_to_position(world_pos)
-
-func _move_character_to_position(new_position: Vector2) -> void:
-	character_body.move_to_position(new_position, CHARACTER_MOVE_SPEED)
+func _stop_forage_wander() -> void:
+	if _wander_tween and _wander_tween.is_valid():
+		_wander_tween.kill()
+	_wander_tween = null
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
+## Called when a tile is clicked on the tile map. Only an open zone travels;
+## locked and uncharted zones get their popovers in the map interaction layer.
+func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
+	var zone_data: ZoneData = get_zone_at_tile(tile_coord)
+	Log.info("ZoneTilemap: Zone tile clicked: %s" % tile_coord)
+	if not zone_data or zone_data == selected_zone:
+		return
+	if ZoneManager.get_zone_map_state(zone_data) != ZoneManager.ZoneMapState.OPEN:
+		return
+
+	zone_selected.emit(zone_data, tile_coord)
+	_stop_forage_wander()
+	update_zone_tile_state(zone_data)
+	_move_character_to_zone(zone_data)
+	frame_zone(zone_data, camera_ease_duration)
+
+func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
+	var zone_data: ZoneData = get_zone_at_tile(tile_coord)
+	if not zone_data or ZoneManager.get_zone_map_state(zone_data) != ZoneManager.ZoneMapState.OPEN:
+		_hover_selector.hide()
+		return
+	_hover_selector.show_at(get_zone_world_centre(zone_data))
+
+func _on_zone_tile_unhovered() -> void:
+	_hover_selector.hide()
+
+func _on_condition_unlocked(_condition_id: String) -> void:
+	_rebuild_map()
+
+func _on_map_zones_changed() -> void:
+	_rebuild_map()
+
+## The current zone moved: its rim and the open hairlines follow.
+func _on_zone_changed(_zone_data: ZoneData) -> void:
+	_rebuild_map()
+
 func _on_start_foraging() -> void:
-	_character_move_to_new_foraging_location()
+	_start_forage_wander()
 
 func _on_stop_foraging() -> void:
-	_move_character_to_tile_coord(selected_zone.tilemap_location)
+	_stop_forage_wander()
+	if not character_body.is_moving:
+		_place_character(selected_zone)
 
 func _on_foraging_completed(_items: Dictionary) -> void:
-	_character_move_to_new_foraging_location()
-
-func _character_move_to_new_foraging_location() -> void:
-	# Get a random global position within the tilemap, accounting for a margin
-	var random_local_pos := tile_map.map_to_local(selected_zone.tilemap_location) + tile_map.position
-
-	random_local_pos.x += randf_range(-FORAGE_POSITION_MARGIN, FORAGE_POSITION_MARGIN)
-	random_local_pos.y += randf_range(-FORAGE_POSITION_MARGIN, FORAGE_POSITION_MARGIN)
-
-	_move_character_to_position(random_local_pos)
+	_start_forage_wander()

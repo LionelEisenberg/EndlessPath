@@ -38,3 +38,25 @@ func test_pick_index_stays_within_variant_count() -> void:
 			var idx: int = cell.y * HEX_FOREST_ATLAS.FOREST_ATLAS_COLS + cell.x
 			assert_lt(idx, HEX_FOREST_ATLAS.FOREST_VARIANT_COUNT,
 				"idx=%d exceeds FOREST_VARIANT_COUNT for coord (%d,%d)" % [idx, q, r])
+
+#-----------------------------------------------------------------------------
+# pick_from (fog pools)
+#-----------------------------------------------------------------------------
+
+func test_pick_from_is_deterministic_and_in_range() -> void:
+	for q in range(-6, 7):
+		for r in range(-6, 7):
+			var coord := Vector3i(q, r, -q - r)
+			var index: int = HEX_FOREST_ATLAS.pick_from(coord, 9)
+			assert_eq(index, HEX_FOREST_ATLAS.pick_from(coord, 9), "same cell for the same coord %s" % coord)
+			assert_true(index >= 0 and index < 9, "index %d out of [0, 9) for %s" % [index, coord])
+
+func test_pick_from_spreads_across_the_pool() -> void:
+	var uniques: Dictionary = {}
+	for q in range(-6, 7):
+		for r in range(-6, 7):
+			uniques[HEX_FOREST_ATLAS.pick_from(Vector3i(q, r, -q - r), 9)] = true
+	assert_gt(uniques.size(), 5, "a 9-cell pool should see most of its cells, got %d" % uniques.size())
+
+func test_pick_from_an_empty_pool_is_zero() -> void:
+	assert_eq(HEX_FOREST_ATLAS.pick_from(Vector3i(2, -1, -1), 0), 0)
