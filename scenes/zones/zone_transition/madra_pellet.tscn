@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://j6s7d0qrmhy4"]
+
+[ext_resource type="Script" uid="uid://kqlpy23kgc3j" path="res://scenes/zones/zone_transition/madra_pellet.gd" id="1_pellet"]
+[ext_resource type="Texture2D" uid="uid://b2pew5ecdohp" path="res://assets/ui/lacquer/lacquer_madra_pellet_ai.png" id="2_pellet"]
+
+[node name="MadraPellet" type="Node2D" unique_id=435197174]
+script = ExtResource("1_pellet")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=123578283]
+unique_name_in_owner = true
+position = Vector2(-6, -6)
+texture = ExtResource("2_pellet")
+centered = false

@@ -1,5 +1,5 @@
 # UI Styling
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 All UI text in the game flows through a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`. Use variants instead of inline size overrides so the type hierarchy stays consistent and global tuning is possible in one place.
 
@@ -25,7 +25,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 | Variant | Size | Color | Use for |
 |---------|------|-------|---------|
 | `LabelTitle` | 50px | Gold + shadow (black 60%, offset 2,2) | Main panel titles (path tree, abilities, character) |
-| `LabelTitleSmall` | 40px | Gold | Zone titles, secondary headers |
+| `LabelTitleSmall` | 40px | Gold | Secondary headers (the encounter panel, the consumables hotbar). The zone name now uses `LabelLacquerZoneName` |
 | `LabelHeading` | 36px | Gold | Subsection headings |
 | `LabelValueLarge` | 34px | Gold | Big value numbers |
 | `LabelBodyLarge` | 28px | Beige | Large body text (cycling resource panel; the unused InkbrushButton) |
@@ -56,7 +56,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
   - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Equipment" etc.); `GearSelector`'s "Gear Selector" title uses it with a 30px size override
   - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
 - **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
-  - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and quest windows sit under the shop, and their text reads through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`
+  - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and the Goals board sit under the shop's place (the shop hides them while it is open), and their text would read through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`
   - `MerchantRow` (PanelContainer) — translucent stock row with a thin luminous edge
   - `MerchantButton` (Button) — Buy and Leave, 20px; every state, disabled included. No StyleBoxFlat shadow: Godot draws it under a translucent box, which fills the button
   - `LabelMerchantTitle` (base `LabelTitle`) — `LabelTitle`'s gold colour and 2px drop shadow, inherited from `pixel_theme.tres`, plus a zone-coloured glow (10px outline at low alpha). It repeats `LabelTitle`'s 50px size: `pixel_theme.tres` sets `default_font_size = 14`, and Godot returns that default for `LabelMerchantTitle` before it reaches `LabelTitle`. Colours and constants have no theme default, so they inherit. `test_title_matches_label_title_in_game` fails if the two sizes drift apart
@@ -104,7 +104,7 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 - `HSeparatorTooltip` — 1px separator with **no inset**, muted brown `#6B4A30` at 50% alpha, separation 6. Use for tooltip and ability card detail dividers (ability card, path node tooltip, attribute tooltip).
 - `HSeparatorItemDesc` — 2px parchment `#E9CEAD`, no inset, separation 12. Top separator under the item type in `ItemDescriptionPanel`, `ItemDetailCard`, `QuestJournalCard`.
 - `HSeparatorItemDescThin` — 1px parchment `#E9CEAD`, inset 100px at each end, separation 10. Separates the description from the effects in the same panels.
-- `HSeparatorResourcePanel` — 2px gold `#D4A84A` at 60% alpha, no inset. Divider between the Madra and Core Density orbs in `ZoneResourcePanel`.
+- `HSeparatorResourcePanel` — 2px gold `#D4A84A` at 60% alpha, no inset. Unused since the lacquer cultivator cabinet replaced the zone view's old resource panel, whose orbs it divided.
 
 ## Other variants
 
@@ -123,6 +123,82 @@ Base types without a variant:
 
 - `Panel` and `PanelContainer` default to `common/panel_tan.tres` (tan parchment texture).
 - `Button` uses `buttons/button_default_normal.tres`, `button_default_pressed.tres`, and `button_default_hover.tres` for both hover and disabled, with a gold hover/pressed font colour. `button_default_disabled.tres` is referenced only by `ability_card.tscn`.
+
+## Lacquer theme (zone view)
+
+The map-first zone view ("Lacquer and brass") has its own theme, `assets/themes/lacquer/lacquer_theme.tres`. Sizes and colours come from the art kit's §2 and §3 ([2026-10-21-zone-view-lacquer-kit.md](superpowers/specs/2026-10-21-zone-view-lacquer-kit.md)).
+
+**Rule:** every zone-view panel (cultivator cabinet, Goals board, log board, dock, zone chest, map plates and popovers) sets `theme = lacquer_theme.tres` on its root and gives its Labels the `LabelLacquer*` variants below. Everything else (base types, `pixel_theme.tres`'s own variants) still falls back to `pixel_theme.tres`.
+
+How the theme is built, so a reused piece inside a lacquer panel keeps its own look:
+
+- **No defaults.** The theme sets no `default_font` or `default_font_size`. A default would answer for every type, `pixel_theme.tres`'s variants included, before Godot reached them (the `LabelMerchantTitle` problem above). Each variant sets its own `font` and `font_size` instead. `test_theme_sets_no_defaults` guards this.
+- **Shadows.** `pixel_theme.tres`'s base `Label` draws a 1 px ink shadow. The four painted titles set the kit's hard 2 px shadow (`#150909`, offset 2, 2, `shadow_outline_size` 0). Every other lacquer variant sets a transparent `font_shadow_color`, so it draws none.
+- **Line pitch.** Each variant's `line_spacing` is the kit's line height minus the font's height at that size, so wrapped lines (lore, two-line card details, popover bodies) step by the kit's line height. A single-line Label is only the font's height (17 px for 15 px BM Euljiro), not the kit's line height.
+- **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for the painted titles, BM Euljiro for everything else. Tags and seals use a `FontVariation` of BM Euljiro with 1 px letter spacing (`spacing_glyph = 1`).
+- **Tag and seal indent.** The 1 px letter spacing also trails the last letter, which would pull centred text 0.5 px left. Tags and seals therefore have a `normal` style of their own, a `StyleBoxEmpty` with a 1 px left content margin: the mock's `text-indent: 1px`. For the mode tags, NEW and UNKNOWN, give the Label the tag's or seal's full width (76 px for a tag) and centre the text. Add no offset of your own.
+- **The LOCKED seal is the exception.** Its word is left-aligned, not centred: `mini_lock` sits at seal +8, +3 and the word starts at seal +26 (kit §4.2; the mock has no `text-indent` there). The variant's 1 px indent still applies, so put the `LabelLacquerSeal` at seal-local x 25, left-aligned, and the word lands on +26. A Label placed at +26 draws its word at +27, off the 2 px grid.
+
+Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
+
+| Variant | Font, size / kit line height | Colour | Use for |
+|---------|------------------------------|--------|---------|
+| `LabelLacquerZoneName` | Yatra 30 / 44, shadow | Brass | Zone name in the chest header |
+| `LabelLacquerPanelTitle` | Yatra 22 / 28, shadow | Brass | Panel titles: Goals, Log |
+| `LabelLacquerSection` | Yatra 20 / 24, shadow | Brass | The Activities header |
+| `LabelLacquerStage` | Yatra 21 / 28, shadow | Cream | Stage name ("Foundation") |
+| `LabelLacquerBig` | Euljiro 30 / 36 | Cream | The Madra value. The cabinet's `/ max` after it uses it too, with a tan colour override |
+| `LabelLacquerGold` | Euljiro 22 / 28 | Cream | The gold value |
+| `LabelLacquerName` | Euljiro 17 / 20 | Cream | Card titles, quest and milestone names, `Level 32` |
+| `LabelLacquerRate` | Euljiro 17 / 20 | Tan | The `gold` word after the cabinet's gold value. The cabinet's Madra rate (`+1.5 / s`) has a decimal point, so it is a 17 px `RichTextLacquer` (see below), not this variant |
+| `LabelLacquerNowName` | Euljiro 18 / 22 | Cream | Now strip action name |
+| `LabelLacquerNowRate` | Euljiro 16 / 22 | Cream | Now strip rate |
+| `LabelLacquerDetail` | Euljiro 15 / 18 | Tan | Labels, card detail lines, figures (`17 / 18 XP`), log lines, group labels, the empty Now tray's line (`Aura Well · paused`, `Nothing running`) |
+| `LabelLacquerTag` | Euljiro 13 / 22, 1 px spacing | Tan | Mode tags (IDLE, ACTIVE, SHOP, STORY, UNKNOWN). RUNNING overrides to cream, ENTER to ink |
+| `LabelLacquerSeal` | Euljiro 13 / 22, 1 px spacing | Cream | Seals: NEW, LOCKED |
+| `LabelLacquerLegend` | Euljiro 14 / 22 | Ink | The `Now` legend on its brass plate |
+| `LabelLacquerDock` | Euljiro 14 / 18 | Cream | Dock button labels |
+| `LabelLacquerHotkey` | Euljiro 14 / 18 | Tan | Dock hotkeys |
+| `LabelLacquerLore` | Euljiro 16 / 22 | Cream | Zone lore text: the zone chest's `LoreText`, a wrapping Label whose one override, `paragraph_spacing` 10, is the kit's gap between paragraphs |
+| `LabelLacquerPlateName` | Euljiro 16 / 18 | Cream | Map plate zone names |
+| `LabelLacquerPlateLine` | Euljiro 14 / 18 | Cream | Map plate status lines |
+| `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |
+| `LabelLacquerPopoverBody` | Euljiro 15 / 20 | Cream | Map popover body text |
+| `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Map floaters on their lacquer token. No outline (`outline_size` set to 0): the kit's §0 dropped it when the floaters moved onto the token. A floater with a decimal (`+1.5 Madra`, Madra blue) needs the Yatra point, so it is a `RichTextLacquer` at 16 px instead (see below) |
+
+`RichTextLacquer` (base `RichTextLabel`): BM Euljiro 15, tan, `line_separation` 1, so each line is 18 px (15/18), the first included. Use it for the few lines with a decimal number: BM Euljiro's `.` sits low and reads as a comma at 15–17 px, so `LacquerText.decimal_bbcode()` sets each decimal point in Yatra One (kit §3, glyph gaps). Set `bbcode_enabled`, `fit_content` and, for one-line text, `autowrap_mode` off.
+
+- **The dot never grows its line.** Yatra One's ascent and descent run up to 3 px past BM Euljiro's, so a plain Yatra dot would make a 15 px line 24 px tall and drop its baseline 3 px. `decimal_bbcode()` writes the dot as `[font name=…YatraOne-Regular.ttf top_spacing=-3 bottom_spacing=-3]`, the mock's `.pt { line-height: 0 }`. At 13 to 18 px a line with a decimal is exactly as tall as the same line without one (`test_decimal_point_never_grows_a_line`). Above 18 px the trim is not enough: check the line height before using it there.
+- **Other sizes.** Override `normal_font_size` for the 16 px Now rate and floater or the 17 px cabinet rate, and the colour (`default_color`) where the kit colours the line. The line is then the font's height + 1: 20 px at 16, 21 at 17. The kit's cabinet rate is 17/20, but it is one line, so only its box is 1 px taller: the baseline is where a Label's would be.
+- **No `text_overrun_behavior`.** A `RichTextLabel` cannot ellipsize. An activity card's detail line goes through `ZoneActionButton.fit_detail_rich_text()`, which drops whole words until the line fits its width (316 px, kit §5.5), ends it in `…` with no separator left before it, and then applies `decimal_bbcode()`.
+- **Not `[font=path]` with a `FontVariation` file.** In Godot 4.7.2 a `[font=…]` tag that loads a `FontVariation` `.tres` drops its `spacing_top` / `spacing_bottom` (measured: the line still grows to 24 px), while `push_font()` with the same object keeps them. Put the spacing in the tag's options, as `decimal_bbcode()` does.
+
+`RichTextLacquerLog` (base `RichTextLacquer`): the same 15 px tan text with `line_separation` 9, so lines are 26 px apart, the first included: the log's line pitch (kit §0). The full log's `FullLogText` uses it; give such a text area a height that is a whole number of 26 px lines (it is 468, 18 lines), or a sliver of an older line shows at its top when it sits scrolled to the bottom.
+
+Per-label colour overrides on top of these variants are expected where the kit colours by state: log lines by tone and age, plate names on hover, RUNNING and ENTER tags, Madra-blue text.
+
+### Lacquer styleboxes (`assets/styleboxes/lacquer/`)
+
+All `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at their file scale:
+
+| File | Texture | Margins | Fill | Use |
+|------|---------|---------|------|-----|
+| `frame_brass.tres` | `lacquer_frame_brass_ai.png` (24x24) | 8 | none | Flash frame on cards and the Now tray, pinned map plates |
+| `frame_hover.tres` | `lacquer_frame_hover_ai.png` (16x16) | 4 | none | Hover frame on cards, the Now tray, Show me, About |
+| `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` (12x12) | top and bottom 4 | yes | The activity list's rail thumb, any even height of 32 or more |
+| `token.tres` | `lacquer_token_ai.png` (26x26) | left and top 6, right and bottom 8 | yes | The map floater's token. The 2 px shadow is baked into the right and bottom edges |
+
+`token.tres` also sets content margins 14, 4, 16 and 6 (left, top, right, bottom), so a `PanelContainer` with this style hugs one 20 px text line to the kit's token: 30 px tall (28 + the 2 px shadow), the text 14 px in and 4 px down, and text width + 30 wide (text + 28 + the shadow). A 16 px `RichTextLacquer` line is 20 px already (`test_token_hugs_a_floater_line`). A one-line `LabelLacquerFloater` is 19 px, so give it `custom_minimum_size.y = 20`. The kit rounds the token's width to even (`even(text + 28)`): the floater sets that width itself.
+
+### Lacquer pieces (`scenes/common/lacquer/`)
+
+- **`LacquerStripRect`** (`lacquer_strip_rect.gd`, a `TextureRect` script): set `strip` and `frame_size`, then `set_frame(column, row)` shows that frame through the rect's own `AtlasTexture` (orbs, XP beads, timer rings). Frames clamp to the strip. It is `@tool`, so a placed rect shows frame 0 in the editor. Its `texture` is derived and read-only, and is never saved into the scene: `strip` and `frame_size` are.
+- **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Aura Well 152, milestone 138, adventure 74. It is `@tool`: in the editor a placed rod is the groove's size and shows empty. Its minimum size comes from `empty_texture`, so leave its size and `custom_minimum_size` alone.
+- **`LacquerFrameOverlay`** (`lacquer_frame_overlay.tscn`, a `Panel`): a full-rect frame over its parent, hidden, mouse ignored, brass by default. Override its `theme_override_styles/panel` with `frame_hover.tres` for the hover frame. `flash(times)` shows it 300 ms and hides it 300 ms, `times` times, and ends hidden. The ready adventure card shows one steadily (`ZoneActionButton.set_ready_frame()`); never animate a steady frame.
+- **`LacquerText`** (`scripts/utils/lacquer_text.gd`): `rate(1.5)` → `"+1.5"`, `rate(2.0)` → `"+2"`; `decimal_bbcode(text)` for `RichTextLacquer`.
+- **`LacquerRail`** (`scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn`): the brass scroll rail (kit §4.4) that stands in for a `ScrollContainer`'s hidden scrollbar. `bind(host)` follows the host's scroll; it shows only while the content overflows, lights each end cap only when the list can scroll that way, sizes its thumb (`rail_thumb.tres`) from the visible share, and `step_to(target)` scrolls in six even-px steps over 200 ms. The zone chest's activity list uses it; the full log styles its own scrollbar's caps with the same textures.
+
+Tests: `tests/unit/test_lacquer_pieces.gd` checks every variant's font, size, colour and shadow, the line pitch measured on real Labels and RichTextLabels (decimal lines included), the tag indent, the styleboxes' margins, the token hugging a floater line, and the pieces.
 
 ## Pattern examples
 
@@ -180,7 +256,7 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 
 | Constant | Value | Matches in theme | Referenced in code |
 |----------|-------|------------------|--------------------|
-| `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | 8 times: `AbilitiesView`, `CyclingTechniqueSlot`, path tree nodes (`path_node_container.gd`, `path_node_ui.gd`), `SystemMenuButton` hover |
+| `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | 6 times: `AbilitiesView`, `CyclingTechniqueSlot`, path tree nodes (`path_node_container.gd`, `path_node_ui.gd`). The lacquer dock buttons swap textures on hover instead |
 | `BORDER_PRIMARY` | `#C4884A` | `LabelSeparatorDot`, base `HSeparator` | 3 times |
 | `BG_MEDIUM` | `#3D2E22` | — | 2 times |
 | `TEXT_LIGHT` / `TEXT_MUTED` / `TEXT_DARK` | `#F0E8D8` / `#A89070` / `#1A1208` | Beige / tan / Label shadow | Unused |
@@ -189,6 +265,8 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | `BG_LIGHT`, `TINT_*`, `BORDER_SUBTLE`, `HOVER_BG`, `PRESSED_BG`, `DISABLED_*` | — | — | Unused |
 | `FONT_TITLE` 42 / `FONT_HEADING` 28 / `FONT_BODY` 20 / `FONT_LABEL` 16 / `FONT_CAPTION` 12 | — | **Do not match** the variant scale above | Unused |
 | `BORDER_WIDTH_*`, `CORNER_RADIUS_*`, `CONTENT_MARGIN_*` | — | — | Unused |
+| `LACQUER_INK` / `LACQUER_BRASS` / `LACQUER_CREAM` / `LACQUER_TAN` | `#150909` / `#D4A84A` / `#F0E8D8` / `#A89070` | The `LabelLacquer*` variants | Zone view panels (lacquer kit §2) |
+| `LACQUER_DIM` / `LACQUER_MADRA` / `LACQUER_VERMILION` | `#94806A` / `#BBD5E7` / `#A83C30` | — | Old log lines, Madra text, seals |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code.
 
@@ -196,11 +274,12 @@ Use the Label variants for sizes. Use `ThemeConstants` only for colours that mus
 
 | Path | Contents |
 |------|----------|
-| `assets/themes/pixel_theme.tres` | Project theme: base types, all variants above except the book and merchant ones |
+| `assets/themes/pixel_theme.tres` | Project theme: base types, all variants above except the book, merchant and lacquer ones |
 | `assets/themes/book_theme.tres` | Menu book page variants ([Menu book pages](#menu-book-pages)) |
+| `assets/themes/lacquer/lacquer_theme.tres` | Zone view theme: the `LabelLacquer*` variants and `RichTextLacquer` (see Lacquer theme) |
 | `assets/themes/pixel_ui_theme/` | Third-party pixel UI pack: `8x8_ui_elements*.png` and `8x8_ui_icons.png` atlases, `m5x7.ttf`, 8 colour-variant `PixelTheme-*.tres`, `TabContainer.tscn`. `pixel_theme.tres` uses only the two base atlases; the variant themes are not referenced by the game. |
-| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `cycling`, `inventory`, `textures`, `ui`, `zones` |
-| `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `Korean_Calligraphy.ttf`, `pixelmix.ttf`, `Ubage-woA3P.otf` and `YatraOne-Regular.ttf` are loaded only by the label testing scene. |
+| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `cycling`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
+| `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `YatraOne-Regular.ttf` (the lacquer theme's painted titles). `Korean_Calligraphy.ttf`, `pixelmix.ttf` and `Ubage-woA3P.otf` are loaded only by the label testing scene. |
 | `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `book` (menu book bookmark, close tab, stage icons, padlock, 2x panel art), `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
 | `assets/aseprite/` | Aseprite sources: `abilities`, `character_profiles`, `cycling`, `ui/{ability_button,buff_icon,resource_bar}`, `zones`, plus root `madra_circle.aseprite`, `Sprite-0003*.aseprite` and a stray `Sprite-0003.gif` |
 | `assets/shaders/` | 16 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |
@@ -216,5 +295,5 @@ There is no `assets/audio/` folder; the project has no audio files. The 2026-04-
 - `[LOW]` `PanelDark` is defined but not used by any scene or script.
 - `[LOW]` `ThemeConstants.FONT_*` (42/28/20/16/12) disagree with the variant scale and are unused. The header's "single source of truth" claim conflicts with this doc.
 - `[LOW]` `pixel_theme.tres` still carries Godot 3-style item names inherited from the pixel UI pack, which Godot 4 does not read. Examples: `Button/colors/font_color_hover`, `font_color_pressed`, `font_color_disabled`, and `*/constants/hseparation`. The Godot 4 names (`font_hover_color`, etc.) are also present for `Button`.
-- `[LOW]` A few UI files still set sizes inline instead of using a variant. Examples: the dev panel title (`LabelHeading` + 20px), `TickProgressBar`'s counter (`LabelSmall` + 12px), and `scenes/tools/encounter_id_label.tscn` (bare Label + 11px).
+- `[LOW]` A few UI files still set sizes inline instead of using a variant. Examples: the dev panel title (`LabelHeading` + 20px), the now unused `TickProgressBar`'s counter (`LabelSmall` + 12px), and `scenes/tools/encounter_id_label.tscn` (bare Label + 11px).
 - `[LOW]` Some non-snake_case asset names remain outside the cleanup spec's rename list: `sprites/cycling/Cycling_Technique_Background.webp`, `sprites/cycling/Madra-Ball.png`, `aseprite/Sprite-0003*.aseprite`, `aseprite/ui/resource_bar/Sprite-0001.aseprite`. Also, `sprites/tilemap/hex_selector_spritesheet.aseprite` is a source file sitting in `sprites/`.

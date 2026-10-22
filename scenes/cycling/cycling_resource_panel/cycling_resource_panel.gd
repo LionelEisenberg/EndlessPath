@@ -111,9 +111,7 @@ func _update_madra_display() -> void:
 	if not ResourceManager or not CultivationManager:
 		return
 	var current: float = ResourceManager.get_madra()
-	var level: float = CultivationManager.get_core_density_level()
-	var stage_res: AdvancementStageResource = CultivationManager._get_current_stage_resource()
-	var max_madra: float = stage_res.get_max_madra(level) if stage_res else 0.0
+	var max_madra: float = CultivationManager.get_max_madra()
 	_madra_amount_label.text = "Madra: %d / %d" % [current, max_madra]
 
 	if _madra_circle:

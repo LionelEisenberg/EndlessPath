@@ -1,0 +1,97 @@
+[gd_scene format=3 uid="uid://fwisr8gt3pur"]
+
+[ext_resource type="Script" uid="uid://bf3h857xw1nho" path="res://scenes/zones/zone_panel/activity_list/activity_list.gd" id="1_list"]
+[ext_resource type="Texture2D" uid="uid://db40kk7d07ilk" path="res://assets/ui/lacquer/lacquer_lip_top_ai.png" id="2_lip_top"]
+[ext_resource type="Texture2D" uid="uid://c342oebwef0fi" path="res://assets/ui/lacquer/lacquer_lip_bottom_ai.png" id="3_lip_bottom"]
+[ext_resource type="PackedScene" uid="uid://btq3flqb0gdik" path="res://scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn" id="4_rail"]
+
+[node name="ActivityList" type="Control" unique_id=1709982608]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 412.0
+offset_bottom = 784.0
+mouse_filter = 2
+script = ExtResource("1_list")
+
+[node name="Scroll" type="ScrollContainer" parent="." unique_id=454362828]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_bottom = 1.0
+offset_right = 400.0
+grow_vertical = 2
+mouse_filter = 1
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="ContentMargin" type="MarginContainer" parent="Scroll" unique_id=797421586]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Body" type="VBoxContainer" parent="Scroll/ContentMargin" unique_id=882614727]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="EmptyMargin" type="MarginContainer" parent="Scroll/ContentMargin/Body" unique_id=53868913]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="EmptyLabel" type="Label" parent="Scroll/ContentMargin/Body/EmptyMargin" unique_id=635236913]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Nothing to do here yet."
+
+[node name="Content" type="VBoxContainer" parent="Scroll/ContentMargin/Body" unique_id=596686019]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="LipTop" type="TextureRect" parent="." unique_id=1659146086]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 4.0
+offset_right = 396.0
+offset_bottom = 10.0
+mouse_filter = 2
+texture = ExtResource("2_lip_top")
+
+[node name="LipBottom" type="TextureRect" parent="." unique_id=367867046]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -10.0
+offset_right = 396.0
+grow_vertical = 0
+mouse_filter = 2
+texture = ExtResource("3_lip_bottom")
+
+[node name="Rail" parent="." unique_id=888355952 instance=ExtResource("4_rail")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_bottom = 1.0
+offset_left = 400.0
+offset_right = 412.0
+offset_bottom = 0.0
+grow_vertical = 2

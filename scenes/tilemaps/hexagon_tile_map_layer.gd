@@ -6,8 +6,10 @@ signal tile_hovered(tile_coord: Vector2i)
 signal tile_unhovered()
 
 const HEX_TILE_OFFSET: Vector2 = Vector2(-82, -95)
+## No cell is hovered.
+const _NO_HOVERED_COORD: Vector2i = Vector2i(-9999, -9999)
 
-var _last_hovered_coord: Vector2i = Vector2i(-9999, -9999)
+var _last_hovered_coord: Vector2i = _NO_HOVERED_COORD
 
 ## Sets a tile cell from a TileSet atlas source. Defaults atlas_coords to
 ## (0, 0) so single-cell sources (like the adventure tilemap's
@@ -19,6 +21,17 @@ func set_cell_with_source_and_variant(source_id: int, variant_id: int, cell_coor
 	set_cell(cell_coords, source_id, atlas_coords, variant_id)
 	_draw_debug()
 	pathfinding_generate_points()
+
+## Forgets the hovered cell (the pointer left the map), so the next motion
+## over any cell, even the last one, reports tile_hovered again.
+func forget_hovered_cell() -> void:
+	_last_hovered_coord = _NO_HOVERED_COORD
+
+## Records `cell` as the hovered cell (none when this layer has no tile there)
+## after the owner hit-tested the pointer itself, e.g. once the camera moved
+## under a still pointer: the next motion over that cell reports nothing new.
+func set_hovered_cell(cell: Vector2i) -> void:
+	_last_hovered_coord = cell if get_cell_source_id(cell) != -1 else _NO_HOVERED_COORD
 
 func _ready() -> void:
 	if position != HEX_TILE_OFFSET:
@@ -36,8 +49,8 @@ func _input(event: InputEvent) -> void:
 				_last_hovered_coord = tile_coord
 				tile_hovered.emit(tile_coord)
 		else:
-			if _last_hovered_coord != Vector2i(-9999, -9999):
-				_last_hovered_coord = Vector2i(-9999, -9999)
+			if _last_hovered_coord != _NO_HOVERED_COORD:
+				_last_hovered_coord = _NO_HOVERED_COORD
 				tile_unhovered.emit()
 
 func cube_pathfind(from: Vector3i, to: Vector3i) -> Array[Vector3i]:

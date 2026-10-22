@@ -1,35 +1,65 @@
 class_name AdventurePresenter
 extends ZoneActionPresenter
-## Presenter for ADVENTURE actions. Owns the Madra badge (current / threshold or
-## current / capacity) and the shake-reject animation. Gates activation on
-## ResourceManager.can_start_adventure().
+## Presenter for ADVENTURE cards, on the normal 72 px drawer in both states:
+##   below the threshold: the Madra row, `mini_madra`, the Madra rod (Madra /
+##     threshold) and "<madra> / <threshold>" in tan, then "~<n> s" in cream,
+##     right-aligned, only while a Madra action runs; tag ACTIVE.
+##   at the threshold: "<minutes> min run · carries <capacity> Madra" in
+##     brass on the detail line (an ellipsis past 316 px), the card's steady
+##     brass ready frame and the ENTER tag.
+## Capacity is the total max Madra and the threshold half of it, so gear that
+## adds Foundation changes both: the card follows equipment changes too.
+## Gates activation on ResourceManager.can_start_adventure(); a rejected click
+## shakes the Madra row in even-px steps and logs why.
 
-@onready var _madra_badge_container: HBoxContainer = %MadraBadgeContainer
-@onready var _madra_badge: RichTextLabel = %MadraBadge
+## The reject shake: x offsets of the Madra row, one key every SHAKE_STEP s.
+const SHAKE_KEYS: Array[float] = [-8.0, 8.0, -6.0, 4.0, 0.0]
+const SHAKE_STEP_SECONDS: float = 0.088
 
-var _is_affordable: bool = true
+@onready var _need_group: Control = %NeedGroup
+@onready var _madra_rod: LacquerRod = %MadraRod
+@onready var _madra_figure: Label = %MadraFigure
+@onready var _hint_label: Label = %HintLabel
+@onready var _ready_text: RichTextLabel = %ReadyText
 
-func setup(data: ZoneActionData, owner_button: Control, _overlay_slot: Control, inline_slot: Control, _footer_slot: Control) -> void:
+var _is_affordable: bool = false
+var _shake_tween: Tween = null
+
+## Moves the Madra row into the card's footer and the ready line onto its
+## detail line, and shows the state for the current Madra.
+func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	action_data = data
 	button = owner_button
-	_madra_badge_container.reparent(inline_slot)
-	_madra_badge_container.visible = true
+	_need_group.reparent(button.get_footer_slot(), false)
+	_ready_text.reparent(button.get_detail_slot(), false)
 	ResourceManager.madra_changed.connect(_on_madra_changed)
+	ActionManager.current_action_changed.connect(_on_current_action_changed)
+	CharacterManager.base_attribute_changed.connect(_on_base_attribute_changed)
+	InventoryManager.inventory_changed.connect(_on_inventory_changed)
 	_update_state()
 
+## Disconnects from the managers and stops a running shake.
 func teardown() -> void:
 	if ResourceManager.madra_changed.is_connected(_on_madra_changed):
 		ResourceManager.madra_changed.disconnect(_on_madra_changed)
+	if ActionManager.current_action_changed.is_connected(_on_current_action_changed):
+		ActionManager.current_action_changed.disconnect(_on_current_action_changed)
+	if CharacterManager.base_attribute_changed.is_connected(_on_base_attribute_changed):
+		CharacterManager.base_attribute_changed.disconnect(_on_base_attribute_changed)
+	if InventoryManager.inventory_changed.is_connected(_on_inventory_changed):
+		InventoryManager.inventory_changed.disconnect(_on_inventory_changed)
+	_stop_shake()
 
+## True once Madra reaches the adventure threshold.
 func can_activate() -> bool:
 	return _is_affordable
 
+## Shakes the Madra row and logs the shortfall.
 func on_activation_rejected() -> void:
 	_shake_reject()
-	if LogManager:
-		var threshold: float = ResourceManager.get_adventure_madra_threshold()
-		var current: float = ResourceManager.get_madra()
-		LogManager.log_message("[color=red]Not enough Madra! Need %.0f, have %.0f[/color]" % [threshold, current])
+	var threshold: float = ResourceManager.get_adventure_madra_threshold()
+	var current: float = ResourceManager.get_madra()
+	LogManager.log_message("[color=red]Not enough Madra! Need %.0f, have %.0f[/color]" % [threshold, current])
 
 #-----------------------------------------------------------------------------
 # PRIVATE
@@ -37,30 +67,61 @@ func on_activation_rejected() -> void:
 
 func _update_state() -> void:
 	_is_affordable = ResourceManager.can_start_adventure()
-	_update_madra_badge()
-	button.set_text_dimmed(not _is_affordable)
-
-func _update_madra_badge() -> void:
-	var threshold: float = ResourceManager.get_adventure_madra_threshold()
-	var current: float = ResourceManager.get_madra()
-	var capacity: float = ResourceManager.get_adventure_madra_capacity()
-	if current >= threshold:
-		_madra_badge.text = "[right][font_size=20][color=#D4A84A]%.0f[/color][color=#7a6a52] / %.0f[/color][/font_size][/right]" % [current, capacity]
+	_need_group.visible = not _is_affordable
+	_ready_text.visible = _is_affordable
+	button.set_ready_frame(_is_affordable)
+	if _is_affordable:
+		button.set_mode_tag("ENTER", ZoneActionButton.TagStyle.ENTER)
+		button.fit_detail_rich_text(_ready_text, _ready_line())
 	else:
-		_madra_badge.text = "[right][font_size=20][color=#E06060]%.0f[/color][color=#7a6a52] / %.0f[/color][/font_size][/right]" % [current, threshold]
+		button.set_mode_tag(ZoneActionGroups.mode_tag(action_data), ZoneActionButton.TagStyle.CARVED)
+		_update_need()
+
+func _update_need() -> void:
+	var threshold: float = ResourceManager.get_adventure_madra_threshold()
+	var madra: float = ResourceManager.get_madra()
+	_madra_figure.text = "%d / %d" % [floori(madra), ceili(threshold)]
+	_madra_rod.set_fraction(madra / threshold if threshold > 0.0 else 0.0)
+	var rate: float = ActionManager.get_current_madra_per_second()
+	_hint_label.visible = rate > 0.0
+	if rate > 0.0:
+		_hint_label.text = "~%d s" % ceili(maxf(threshold - madra, 0.0) / rate)
+
+func _ready_line() -> String:
+	var capacity: int = floori(ResourceManager.get_adventure_madra_capacity())
+	var adventure := action_data as AdventureActionData
+	var minutes: float = adventure.time_limit_seconds / 60.0 if adventure else 0.0
+	return "%s min run · carries %d Madra" % [LacquerText.rate(minutes).trim_prefix("+"), capacity]
+
+## Shakes the Madra row left and right in whole even-px steps (no easing, no
+## scale), the map lock's 0, -8, 8, -6, 4, 0 over 0.44 s.
+func _shake_reject() -> void:
+	_stop_shake()
+	_need_group.position.x = 0.0
+	_shake_tween = create_tween()
+	for key: float in SHAKE_KEYS:
+		_shake_tween.tween_callback(_set_need_offset.bind(key)).set_delay(SHAKE_STEP_SECONDS)
+
+func _set_need_offset(x: float) -> void:
+	_need_group.position.x = x
+
+func _stop_shake() -> void:
+	if _shake_tween != null and _shake_tween.is_valid():
+		_shake_tween.kill()
+	_shake_tween = null
+	if is_instance_valid(_need_group):
+		_need_group.position.x = 0.0
 
 func _on_madra_changed(_amount: float) -> void:
 	_update_state()
 
-func _shake_reject() -> void:
-	_madra_badge_container.pivot_offset = _madra_badge_container.size * 0.5
-	var tween: Tween = create_tween()
-	var original_pos: Vector2 = _madra_badge_container.position
-	tween.tween_property(_madra_badge_container, "scale", Vector2(1.10, 1.10), 0.05)
-	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(-4, 0), 0.04)
-	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(4, 0), 0.04)
-	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(-3, 0), 0.04)
-	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(3, 0), 0.04)
-	tween.tween_property(_madra_badge_container, "position", original_pos + Vector2(-2, 0), 0.03)
-	tween.tween_property(_madra_badge_container, "position", original_pos, 0.05)
-	tween.tween_property(_madra_badge_container, "scale", Vector2(1.0, 1.0), 0.1)
+func _on_current_action_changed(_action: ZoneActionData) -> void:
+	_update_state()
+
+func _on_base_attribute_changed(_attribute_type: CharacterAttributesData.AttributeType, _new_value: float) -> void:
+	_update_state()
+
+## Equipping or removing gear changes the total attributes, so the capacity
+## and threshold. CharacterManager has no signal of its own for that.
+func _on_inventory_changed(_inventory: InventoryData) -> void:
+	_update_state()

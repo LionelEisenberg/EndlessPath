@@ -21,3 +21,29 @@ extends Resource
 ##
 ## See docs/zones/ZONES.md § Tile Variants for the full variant table.
 @export var tile_variant_index: int = 0
+
+#-----------------------------------------------------------------------------
+# MAP
+#-----------------------------------------------------------------------------
+
+## Keeps the zone off the overworld map (ZoneManager.get_map_zones()) unless
+## the dev panel shows hidden zones. The zone itself still exists, so saves
+## that name it stay valid.
+@export var hidden_on_map: bool = false
+
+## Conditions for the zone to be charted. While any is unmet the map shows the
+## zone as UNCHARTED (a dark veil and a "?"), whatever its unlock conditions
+## say. Empty means charted from the start.
+@export var chart_conditions: Array[UnlockConditionData] = []
+
+## Short blocker shown on a locked or uncharted zone's map plate, e.g.
+## "Tribulation Guardian". UnlockConditionData has no player-facing text.
+@export var blocker_short_text: String = ""
+
+## Full requirement sentence for the zone's map popover, e.g. "Defeat the
+## Tribulation Guardian in The Shallow Woods".
+@export_multiline var requirement_text: String = ""
+
+## action_id of the card that the popover's "Show me ›" scrolls to. Empty
+## means the popover has no "Show me" button.
+@export var requirement_action_id: String = ""

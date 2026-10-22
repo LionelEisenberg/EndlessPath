@@ -184,11 +184,12 @@ All of these live under `scripts/resource_definitions/items/`. Each subclass's `
 | `item_name` | `String` | `""` | |
 | `description` | `String` | `""` | |
 | `icon` | `Texture2D` | null | |
+| `mini_icon` | `Texture2D` | null | 16 px icon the zone view draws inline (forage card detail line, Now strip). `get_mini_icon()` falls back to `icon` |
 | `item_type` | `ItemType` | `MATERIAL` | |
 | `stack_size` | `int` | 99 | Not enforced anywhere |
 | `base_value` | `float` | 0.0 | Shown as "Worth" for materials only; no economy reads it |
 
-Methods: `_get_item_type()` returns "Material", "Consumable", "Equipment" or "Quest Item". `_get_item_effects() -> Array[String]` returns tooltip lines, and each subclass overrides it.
+Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `_get_item_type()` returns "Material", "Consumable", "Equipment" or "Quest Item". `_get_item_effects() -> Array[String]` returns tooltip lines, and each subclass overrides it.
 
 **Subclass fields**
 
@@ -395,7 +396,7 @@ These live in `resources/items/materials/`.
 | `SpiritFern` | Spirit Fern | "Spirit Valley — shaded hex" | "Reinforced Robes · Greenleaf Tonic" | Spring Forest Foraging, 2–6 per roll |
 | `DewdropTear` | Dewdrop Tear | "Glade pool, dawn only" | "Spirit Tea · Mirror Pill" | Spring Forest Foraging, 1–5 per roll |
 
-Both materials have `source_zone_ids = ["SpiritValley"]`, `base_value` 0, the placeholder icon `res://64.png`, and placeholder descriptions ("Spirit Fern Description", "Dewdrop Tear Description"). Spring Forest Foraging unlocks on the event `q_fill_core_completed`, which fires when the quest "Awaken Your Core" completes.
+Both materials have `source_zone_ids = ["SpiritValley"]`, `base_value` 0, the placeholder icon `res://64.png`, the lacquer kit's mini icon (`lacquer_mini_fern_ai.png`, `lacquer_mini_dewdrop_ai.png`) as `mini_icon`, and placeholder descriptions ("Spirit Fern Description", "Dewdrop Tear Description"). Spring Forest Foraging unlocks on the event `q_fill_core_completed`, which fires when the quest "Awaken Your Core" completes.
 
 ### Consumables
 

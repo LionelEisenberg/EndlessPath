@@ -1,6 +1,6 @@
 # Character, Player Vitals and Character View
 
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -14,7 +14,7 @@ Abilities are not part of this system. Unlocks and the 4-slot loadout live in `A
 
 ## Player Experience
 
-1. On the zone view, press **C** or click **CHARACTER** in the bottom `Toolbar`. A grey backdrop fades in while the indigo book opens.
+1. On the zone view, press **C** or click **Character** on the dock at the bottom. A grey backdrop fades in while the indigo book opens.
 2. The left page carries the "Character" title ribbon and two header plaques, each over a row of four attribute tiles (the icon at 64 px, the value in large gold and the name, centred on a small card):
    - **Physical:** Strength, Body, Agility, Resilience
    - **Spiritual:** Spirit, Foundation, Control, Willpower
@@ -180,7 +180,7 @@ TrainingActionData.effects_on_level (Aura Well) → AwardAttributeEffectData.pro
 ### Opening and closing the Character View
 
 ```
-C key / Toolbar CHARACTER button (SystemMenuButton MenuType.CHARACTER → Input.parse_input_event(open_character))
+C key / dock Character button (SystemMenuButton MenuType.CHARACTER → Input.parse_input_event(open_character), then its release)
   → MainView._unhandled_input → ZoneViewState.handle_input("open_character")
   → MainView.push_state(character_view_state) → CharacterViewState.enter()
   → GreyBackground.show_with_panel(character_view) → CharacterView.animate_open()
@@ -192,9 +192,10 @@ C / Esc / close tab / click outside the book (top state is CharacterViewState)
   → BookViewState._request_close() → GreyBackground.hide_with_panel(character_view)
   → CharacterView.animate_close() → pages hidden, book closes → close_finished
   → grey fade-out and book close both finished → both hidden → panel_hidden → MainView.pop_state()
+  → CharacterViewState.exit() (BookViewState) disconnects the close tab and the backdrop click
 ```
 
-Values are read only when the book opens. Nothing updates them while it is open. The state machine, `GreyBackground` and `Toolbar` are documented in [MAIN_VIEW.md](MAIN_VIEW.md).
+Values are read only when the book opens. Nothing updates them while it is open. The log and the Goals board stay showing under the backdrop. The state machine, `GreyBackground` and the dock are documented in [MAIN_VIEW.md](MAIN_VIEW.md).
 
 ## Integration Points
 
@@ -211,11 +212,11 @@ Values are read only when the book opens. Nothing updates them while it is open.
 | AbilitiesView, CombatAbilityTooltip | Damage previews from `get_total_attributes_data()` (see [ABILITIES.md](../abilities/ABILITIES.md)) |
 | AbilityManager | The Effects card lists the unlocked abilities that scale with the attribute |
 | PathManager | `PathEffectsSummary.attribute_bonuses` is computed but not consumed |
-| MainView / GreyBackground / Toolbar | Host the Character View and drive its modal flow |
+| MainView / GreyBackground / Dock | Host the Character View and drive its modal flow |
 
 ## Existing Content
 
-- **Attribute icons:** `assets/sprites/ui/attribute_icons/{strength,body,agility,spirit,foundation,control,resilience,willpower}_icon.png` (32 px art stored at 2×). The original Control art sits 6 px right of centre, so the books use `control_icon_ai.png`, a re-centred copy; the original is unchanged. The Abilities book's damage breakdown uses them too. The Toolbar's CHARACTER button uses `assets/sprites/ui/system_menu/character_icon.png`.
+- **Attribute icons:** `assets/sprites/ui/attribute_icons/{strength,body,agility,spirit,foundation,control,resilience,willpower}_icon.png` (32 px art stored at 2×). The original Control art sits 6 px right of centre, so the books use `control_icon_ai.png`, a re-centred copy; the original is unchanged. The Abilities book's damage breakdown uses them too. The dock's Character button uses `assets/sprites/ui/system_menu/character_icon.png`, shown at 32x32.
 - **Gear with attribute bonuses:** the 7 items in `resources/items/equipment/spirit_valley/`, listed in the attribute-usage table above. Most of them cannot be obtained on `main`:
   - The Dreadbeast Tooth Necklace is in the Ravenous Dreadbeast elite encounter's loot table.
   - The Makeshift Dagger and Iron Shortsword appear only in `test_loot_table_weapon.tres`, which is used only by the unreferenced `test_treasure_encounter.tres`.

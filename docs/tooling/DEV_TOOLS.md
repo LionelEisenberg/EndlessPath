@@ -1,11 +1,11 @@
 # Developer Tools
-Last updated: 2026-10-19
+Last updated: 2026-10-22
 
 ## Overview
 
 | Tool | Where | How to use | Purpose |
 |------|-------|------------|---------|
-| Dev Panel | `scenes/ui/dev_panel/` (in `main_game.tscn`) | Ctrl+Shift+D in game; needs a password file | Change Madra/Gold, CD XP, path points and unlocks; force combat wins; reveal adventure maps |
+| Dev Panel | `scenes/ui/dev_panel/` (in `main_game.tscn`) | Ctrl+Shift+D in game; needs a password file | Change Madra/Gold, CD XP, path points and unlocks; force combat wins; reveal adventure maps; show the demo and hidden zones on the zone map |
 | Map Preview | `scenes/tools/map_preview.tscn` + `scripts/tools/map_preview.gd` | Open in the editor and press **Generate** in the Inspector | Preview procedural adventure maps without running the game |
 | UID generator | `scripts/tools/generate_uid.gd` | Headless `-s` script | Print fresh `uid://` strings for hand-written `.tscn`/`.tres` |
 | Items generator | `scripts/tools/items_md_to_resources.gd`, `items_md_parser.gd` | Headless `-s` script | Generate equipment `.tres` files from `docs/inventory/ITEMS.md`. Documented in [ITEMS.md](../inventory/ITEMS.md). |
@@ -55,10 +55,11 @@ DevPanel (PanelContainer, min width 340, mouse Stop)   dev_panel.gd (class DevPa
     ├── "CULTIVATION" → XpRow (XpSpin, XpApply), PointsRow (PointsSpin, PointsApply)
     ├── "UNLOCKS"     → ConditionRow (ConditionOption, ConditionApply "Trigger"), UnlockCyclingButton
     ├── "COMBAT"      → ForceWinButton
-    └── "ADVENTURE"   → ShowWholeMapCheck (CheckButton)
+    ├── "ADVENTURE"   → ShowWholeMapCheck (CheckButton)
+    └── "ZONES"       → DemoZonesCheck, HiddenZonesCheck (CheckButtons)
 ```
 
-Both scenes are children of `MainView` at z 10. `main_game.tscn` places the panel at (0, 0). Dragging the title bar moves it; this copies the `LogWindow` drag code, and the position survives close/re-open within a session. The × button hides the panel.
+Both scenes are children of `MainView` at z 10. `main_game.tscn` places the panel at (0, 0). Dragging the title bar moves it, and the position survives close/re-open within a session. The × button hides the panel.
 
 ### Controls
 
@@ -67,13 +68,15 @@ Every action writes a `[DEV]` line (magenta tag) to the in-game log through `Log
 | Section | Control | Calls | Effect on game state |
 |---------|---------|-------|----------------------|
 | Resources | Madra (`MadraSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_madra(v)` | Sets Madra to `max(0, v)` and emits `madra_changed`. Not clamped to max Madra, so it can exceed orb capacity. Unlock conditions re-evaluate. |
-| Resources | Gold (`GoldSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_gold(v)` | Sets gold to `max(0, v)` and emits `gold_changed`, which updates the toolbar and re-evaluates unlocks. |
+| Resources | Gold (`GoldSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_gold(v)` | Sets gold to `max(0, v)` and emits `gold_changed`, which updates the cultivator cabinet's gold row and re-evaluates unlocks. |
 | Cultivation | Add CD XP (`XpSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `CultivationManager.add_core_density_xp(v)` | Normal XP path: loops level-ups, emits `core_density_level_updated` per level, and awards path points every 10 levels (1 per milestone at Foundation). The loop has no cap at level 100. |
 | Cultivation | Path Points (`PointsSpin`, 0 to 1000, integer) + Apply | `PathManager.add_points(int(v))` | Adds to the path point balance and emits `points_changed`. |
 | Unlocks | Condition (`ConditionOption`) + Trigger | `UnlockManager.force_unlock_condition(id)` | Appends the id to `unlock_progression.unlocked_condition_ids` and emits `condition_unlocked(id)`. Idempotent. The dropdown is filled once in `_ready()` from `UnlockManager.unlock_condition_list.list`, skipping null or empty ids. |
 | Unlocks | Unlock All Cycling Techniques | `CyclingManager.unlock_technique(id)` for every entry in `CyclingManager._technique_catalog.cycling_techniques` | Unlocks every catalog technique and emits `technique_unlocked` for newly unlocked ones. Idempotent. |
 | Combat | Force-Win Current Combat | `AdventureView.force_win_combat()` | Only shown while `AdventureView.is_in_combat`; `_process()` polls it every frame while the panel is visible. Emits `AdventureCombat.trigger_combat_end(true, 0)`, which ends the fight as a win with 0 gold. |
 | Adventure | Show Whole Map (toggle) | `AdventureView.set_show_whole_map(pressed)` → `AdventureTilemap.set_dev_reveal_all()` | Visual only: hides the fog rect, removes fog veils and shows every encounter icon. The visited/highlight dictionaries, stats and encounter resolution are unchanged. The flag stays on `AdventureTilemap` across adventures until toggled off. |
+| Zones | Demo zones (locked, uncharted) (toggle) | `ZoneManager.set_demo_zones_visible(pressed)` | Adds the two demo zones in `resources/zones/dev/` to the zone map: a locked Advancement Zone north-east of Spirit Valley and an Uncharted hex due north of Spirit Valley, beyond it, with their plates, glyphs, popovers and routes. They are loaded outside `zone_data_list.tres`, never enter the save, and are gone on the next launch. Emits `map_zones_changed`. |
+| Zones | Show hidden zones (Test Zone) (toggle) | `ZoneManager.set_hidden_zones_visible(pressed)` | Draws the zones marked `hidden_on_map` (Test Zone, west of Spirit Valley). Once it is unlocked you can travel there. Emits `map_zones_changed`. The flag is not saved and resets on the next launch; a save standing in Test Zone moves back to Spirit Valley on load (`SaveGameData.migrate()`). |
 
 Caveats:
 
@@ -128,8 +131,6 @@ Output: five lines of the form `uid://...`.
 | `log_print_level` | `MainGame` (`main_game.gd` export, set in `main_game.tscn`) | `0` (`Log.Event.INFO`) | Lowest `Log` event printed to the console. Every event is also written to `user://logs-<YYYY-MM-DD>.log`, which is truncated on each launch. See [LOGGING.md](../infrastructure/LOGGING.md). |
 | `is_debug_mode` | Player `CharacterBody2D` (`scenes/characters/main_character/character_body_2d.gd`) | `true` in `character_body_2d.tscn`; overridden to `false` in `zone_tilemap.tscn` and `adventure_tilemap.tscn` | When `true`, left-clicking anywhere walks the character to the cursor |
 | `preview_message` | `QuestToast` | `""` | Plays the message once when the scene runs alone (F6); skips `QuestManager` wiring |
-| `preview_active_quests`, `preview_completed_quests`, `preview_start_expanded` | `QuestWindow` | empty / `false` | F6 preview with authored quest data |
-| `preview_quest`, `preview_state`, `preview_step_index` | `QuestEntry` | unset | F6 preview of a single quest row |
 
 ## Editor Plugins
 

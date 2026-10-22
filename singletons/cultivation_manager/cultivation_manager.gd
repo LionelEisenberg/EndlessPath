@@ -32,6 +32,8 @@ const PATH_POINTS_PER_STAGE: Dictionary = {
 	AdvancementStage.JADE: 4,
 }
 const PATH_POINT_LEVEL_INTERVAL: int = 10
+## Core Density level the Breakthrough milestone asks for (the design's 0-100 per stage).
+const BREAKTHROUGH_LEVEL: int = 100
 
 #-----------------------------------------------------------------------------
 # PLAYER DATA (Held by this manager)
@@ -117,6 +119,14 @@ func get_core_density_level() -> float:
 	if live_save_data == null:
 		return 0.0
 	return live_save_data.core_density_level
+
+## Maximum Madra the player can hold: the current stage's curve at the current
+## Core Density level. 0.0 when there is no save or stage resource.
+func get_max_madra() -> float:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	if res == null:
+		return 0.0
+	return res.get_max_madra(int(get_core_density_level()))
 
 func get_current_advancement_stage() -> AdvancementStage:
 	if live_save_data == null:

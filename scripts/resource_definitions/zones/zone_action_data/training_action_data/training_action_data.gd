@@ -64,12 +64,31 @@ func get_current_level(accumulated_ticks: int) -> int:
 
 ## 0.0-1.0 progress toward the next level. 0.0 at tier boundary, ~1.0 just before next boundary.
 func get_progress_within_level(accumulated_ticks: int) -> float:
-	var current_level: int = get_current_level(accumulated_ticks)
-	var cumulative_to_current: int = 0
-	for i in range(1, current_level + 1):
-		cumulative_to_current += get_ticks_required_for_level(i)
-	var next_cost: int = get_ticks_required_for_level(current_level + 1)
+	var next_cost: int = get_ticks_for_next_level(accumulated_ticks)
 	if next_cost <= 0:
 		return 0.0
-	var progress_ticks: int = accumulated_ticks - cumulative_to_current
-	return clamp(float(progress_ticks) / float(next_cost), 0.0, 1.0)
+	return clamp(float(get_ticks_in_level(accumulated_ticks)) / float(next_cost), 0.0, 1.0)
+
+## Ticks done since the current level was reached (the "214" of "214 / 300").
+func get_ticks_in_level(accumulated_ticks: int) -> int:
+	var current_level: int = get_current_level(accumulated_ticks)
+	var cumulative_to_current: int = 0
+	for i: int in range(1, current_level + 1):
+		cumulative_to_current += get_ticks_required_for_level(i)
+	return maxi(accumulated_ticks - cumulative_to_current, 0)
+
+## Tick cost of the level being worked on (the "300" of "214 / 300").
+func get_ticks_for_next_level(accumulated_ticks: int) -> int:
+	return get_ticks_required_for_level(get_current_level(accumulated_ticks) + 1)
+
+## Madra added per second by the per-tick Madra awards: their amounts over
+## tick_interval_seconds. 0.0 when the action awards no Madra.
+func get_madra_per_second() -> float:
+	if tick_interval_seconds <= 0.0:
+		return 0.0
+	var madra_per_tick: float = 0.0
+	for effect: EffectData in effects_per_tick:
+		var award := effect as AwardResourceEffectData
+		if award and award.resource_type == ResourceManager.ResourceType.MADRA:
+			madra_per_tick += award.amount
+	return madra_per_tick / tick_interval_seconds

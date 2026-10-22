@@ -58,12 +58,13 @@ func _update_resources() -> void:
 # GENERAL RESOURCE MANAGEMENT
 #-----------------------------------------------------------------------------
 
-func award_resource(resource_type: ResourceType, amount: float) -> void:
+## Adds an amount of a resource. A quiet award skips the player-facing log line.
+func award_resource(resource_type: ResourceType, amount: float, quiet: bool = false) -> void:
 	match resource_type:
 		ResourceType.MADRA:
-			add_madra(amount)
+			add_madra(amount, quiet)
 		ResourceType.GOLD:
-			add_gold(amount)
+			add_gold(amount, quiet)
 		_:
 			Log.error("ResourceManager: Unknown resource type: %s" % resource_type)
 
@@ -71,17 +72,17 @@ func award_resource(resource_type: ResourceType, amount: float) -> void:
 # MADRA MANAGEMENT
 #-----------------------------------------------------------------------------
 
-func add_madra(amount: float) -> void:
-	var level = CultivationManager.get_core_density_level()
-	var stage_res = CultivationManager._get_current_stage_resource()
-	var max_madra = stage_res.get_max_madra(level) if stage_res else 0.0
-
-	# Cap madra value within [0, max_madra]
-	live_save_data.madra = clamp(live_save_data.madra + amount, 0.0, max_madra)
+## Adds Madra, capped to [0, max Madra]. Logs "Gained N Madra" with the amount
+## actually added, unless quiet or less than 1 was added (so a capped add is silent).
+func add_madra(amount: float, quiet: bool = false) -> void:
+	var before: float = live_save_data.madra
+	live_save_data.madra = clamp(before + amount, 0.0, CultivationManager.get_max_madra())
 	madra_changed.emit(live_save_data.madra)
-	
-	if LogManager and amount >= 1.0:
-		LogManager.log_message("[color=cyan]Gained %d Madra[/color]" % int(amount))
+
+	# Snapped: (63.1 + 1.0) - 63.1 is 0.99999... in floating point.
+	var added: float = snappedf(live_save_data.madra - before, 0.001)
+	if LogManager and not quiet and added >= 1.0:
+		LogManager.log_message("[color=cyan]Gained %d Madra[/color]" % int(added))
 
 func spend_madra(amount: float) -> bool:
 	if live_save_data.madra >= amount:
@@ -120,11 +121,12 @@ func can_start_adventure() -> bool:
 # GOLD MANAGEMENT
 #-----------------------------------------------------------------------------
 
-func add_gold(amount: float) -> void:
+## Adds gold. Logs "Gained N Gold" unless quiet.
+func add_gold(amount: float, quiet: bool = false) -> void:
 	live_save_data.gold += amount
 	gold_changed.emit(live_save_data.gold)
-	
-	if LogManager:
+
+	if LogManager and not quiet:
 		LogManager.log_message("[color=gold]Gained %d Gold[/color]" % int(amount))
 
 func spend_gold(amount: float) -> bool:

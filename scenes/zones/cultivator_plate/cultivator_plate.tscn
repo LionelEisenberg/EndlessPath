@@ -1,0 +1,226 @@
+[gd_scene format=3 uid="uid://bkf2lc3oqlpf8"]
+
+[ext_resource type="Script" uid="uid://d0chi1hfchank" path="res://scenes/zones/cultivator_plate/cultivator_plate.gd" id="1_plate"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://dvs8vy5oej1sb" path="res://assets/ui/lacquer/lacquer_cult_ai.png" id="3_board"]
+[ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="4_strip"]
+[ext_resource type="Texture2D" uid="uid://buchwvpdtb5iw" path="res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png" id="5_madra"]
+[ext_resource type="Texture2D" uid="uid://c33tlokmqisik" path="res://assets/ui/lacquer/lacquer_orb_core_strip_ai.png" id="6_core"]
+[ext_resource type="Texture2D" uid="uid://dqku0g2ulqgfj" path="res://assets/ui/lacquer/lacquer_beads_xp_strip_ai.png" id="7_beads"]
+[ext_resource type="Texture2D" uid="uid://cvsx3a2hfquag" path="res://assets/ui/lacquer/lacquer_line_ai.png" id="8_line"]
+[ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="9_gold"]
+[ext_resource type="Shader" uid="uid://xa4htrskmfm7" path="res://assets/shaders/lacquer_madra_orb.gdshader" id="10_madra_orb"]
+[ext_resource type="Shader" uid="uid://csri7yobignr4" path="res://assets/shaders/lacquer_core_orb.gdshader" id="11_core_orb"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_madra_socket"]
+atlas = ExtResource("5_madra")
+region = Rect2(0, 0, 80, 80)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_madra"]
+resource_local_to_scene = true
+shader = ExtResource("10_madra_orb")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_core"]
+resource_local_to_scene = true
+shader = ExtResource("11_core_orb")
+
+[node name="CultivatorPlate" type="Control" unique_id=526514825]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 464.0
+offset_bottom = 276.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_plate")
+
+[node name="Board" type="TextureRect" parent="." unique_id=459867142]
+layout_mode = 0
+offset_right = 444.0
+offset_bottom = 256.0
+mouse_filter = 2
+texture = ExtResource("3_board")
+
+[node name="MadraOrb" type="TextureRect" parent="." unique_id=769371532]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_madra")
+layout_mode = 0
+offset_left = 18.0
+offset_top = 16.0
+offset_right = 98.0
+offset_bottom = 96.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_madra_socket")
+
+[node name="MadraTitleLabel" type="Label" parent="." unique_id=712051973]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 22.0
+offset_right = 160.0
+offset_bottom = 39.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Madra"
+
+[node name="MadraRow" type="HBoxContainer" parent="." unique_id=1334957517]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 45.0
+offset_right = 254.0
+offset_bottom = 79.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="MadraValueLabel" type="Label" parent="MadraRow" unique_id=207444556]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerBig"
+text = "25"
+
+[node name="MadraMaxLabel" type="Label" parent="MadraRow" unique_id=245232893]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerBig"
+theme_override_colors/font_color = Color(0.65882355, 0.5647059, 0.4392157, 1)
+text = " / 100"
+
+[node name="RateLabel" type="RichTextLabel" parent="." unique_id=1773350547]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 222.0
+offset_top = 56.0
+offset_right = 422.0
+offset_bottom = 77.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+theme_override_font_sizes/normal_font_size = 17
+bbcode_enabled = true
+text = "+1.5 / s"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+horizontal_alignment = 2
+
+[node name="CoreOrb" type="TextureRect" parent="." unique_id=2084093515]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_core")
+layout_mode = 0
+offset_left = 18.0
+offset_top = 108.0
+offset_right = 98.0
+offset_bottom = 188.0
+mouse_filter = 2
+script = ExtResource("4_strip")
+strip = ExtResource("6_core")
+frame_size = Vector2i(80, 80)
+
+[node name="CoreTitleLabel" type="Label" parent="." unique_id=696145712]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 110.0
+offset_right = 214.0
+offset_bottom = 127.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Core Density"
+
+[node name="StageLabel" type="Label" parent="." unique_id=2046977898]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 114.0
+offset_top = 128.0
+offset_right = 254.0
+offset_bottom = 160.0
+theme_type_variation = &"LabelLacquerStage"
+text = "Foundation"
+
+[node name="LevelLabel" type="Label" parent="." unique_id=818338061]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 222.0
+offset_top = 136.0
+offset_right = 422.0
+offset_bottom = 156.0
+theme_type_variation = &"LabelLacquerName"
+text = "Level 0"
+horizontal_alignment = 2
+
+[node name="XpBeads" type="TextureRect" parent="." unique_id=1652062574]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 114.0
+offset_top = 168.0
+offset_right = 336.0
+offset_bottom = 180.0
+mouse_filter = 2
+script = ExtResource("4_strip")
+strip = ExtResource("7_beads")
+frame_size = Vector2i(222, 12)
+
+[node name="XpLabel" type="Label" parent="." unique_id=913893326]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 222.0
+offset_top = 165.0
+offset_right = 422.0
+offset_bottom = 182.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "0 / 10 XP"
+horizontal_alignment = 2
+
+[node name="Divider" type="TextureRect" parent="." unique_id=556889845]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 198.0
+offset_right = 424.0
+offset_bottom = 204.0
+mouse_filter = 2
+texture = ExtResource("8_line")
+
+[node name="GoldRow" type="HBoxContainer" parent="." unique_id=1308453468]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 208.0
+offset_right = 422.0
+offset_bottom = 240.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 2
+
+[node name="GoldIcon" type="TextureRect" parent="GoldRow" unique_id=1258692244]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("9_gold")
+expand_mode = 1
+
+[node name="GoldGap" type="Control" parent="GoldRow" unique_id=1559750401]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="GoldValueMargin" type="MarginContainer" parent="GoldRow" unique_id=857227433]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_top = 3
+
+[node name="GoldValueLabel" type="Label" parent="GoldRow/GoldValueMargin" unique_id=1117640813]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerGold"
+text = "0 "
+
+[node name="GoldWordMargin" type="MarginContainer" parent="GoldRow" unique_id=1411879430]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_top = 7
+
+[node name="GoldWordLabel" type="Label" parent="GoldRow/GoldWordMargin" unique_id=493563951]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerRate"
+text = "gold"

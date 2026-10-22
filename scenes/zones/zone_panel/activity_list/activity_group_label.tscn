@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://dgj2qeo784e7o"]
+
+[ext_resource type="Texture2D" uid="uid://crbpnry223q5u" path="res://assets/ui/lacquer/lacquer_groove_ai.png" id="1_groove"]
+[ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="2_groove_end"]
+
+[node name="ActivityGroupLabel" type="VBoxContainer" unique_id=1447737621]
+offset_right = 392.0
+offset_bottom = 24.0
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="LabelRow" type="HBoxContainer" parent="." unique_id=897497365]
+custom_minimum_size = Vector2(392, 18)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="GroupLabel" type="Label" parent="LabelRow" unique_id=2063185783]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Cultivate"
+
+[node name="GrooveMargin" type="MarginContainer" parent="LabelRow" unique_id=1844669003]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="GrooveRow" type="HBoxContainer" parent="LabelRow/GrooveMargin" unique_id=647355192]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Groove" type="TextureRect" parent="LabelRow/GrooveMargin/GrooveRow" unique_id=213646990]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("1_groove")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="GrooveEnd" type="TextureRect" parent="LabelRow/GrooveMargin/GrooveRow" unique_id=1786311172]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("2_groove_end")
+
+[node name="Cards" type="VBoxContainer" parent="." unique_id=1362266427]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8

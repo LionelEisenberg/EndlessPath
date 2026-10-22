@@ -28,7 +28,14 @@ func _create_test_tree(nodes: Array[PathNodeData]) -> PathTreeData:
 	tree.nodes = nodes
 	return tree
 
+## CyclingManager's real state, given back after each test so later files see
+## the real technique catalog.
+var _saved_cycling_save_data: SaveGameData = null
+var _saved_techniques_by_id: Dictionary = {}
+
 func before_each() -> void:
+	_saved_cycling_save_data = CyclingManager._live_save_data
+	_saved_techniques_by_id = CyclingManager._techniques_by_id
 	_save_data = SaveGameData.new()
 	PathManager._live_save_data = _save_data
 	PathManager._all_trees = {}
@@ -45,6 +52,10 @@ func before_each() -> void:
 	var _empty_palm := AbilityData.new()
 	_empty_palm.ability_id = "empty_palm"
 	AbilityManager._abilities_by_id = {"empty_palm": _empty_palm}
+
+func after_each() -> void:
+	CyclingManager._live_save_data = _saved_cycling_save_data
+	CyclingManager._techniques_by_id = _saved_techniques_by_id
 
 # ----- Point management -----
 

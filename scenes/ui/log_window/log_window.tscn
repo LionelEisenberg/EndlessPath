@@ -1,64 +1,318 @@
 [gd_scene format=3 uid="uid://b8q7j5y2k3m1n"]
 
 [ext_resource type="Script" uid="uid://dexm610tf5784" path="res://scenes/ui/log_window/log_window.gd" id="1_logwin"]
-[ext_resource type="StyleBox" uid="uid://dt2uc6nccjdh8" path="res://assets/styleboxes/ui/log_window.tres" id="2_lw"]
-[ext_resource type="StyleBox" uid="uid://d07lobj0fkrxr" path="res://assets/styleboxes/ui/log_titlebar.tres" id="3_tb"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://ddnpc4mnp4q2u" path="res://assets/ui/lacquer/lacquer_log1_ai.png" id="3_log1"]
+[ext_resource type="Texture2D" uid="uid://r057xu6brita" path="res://assets/ui/lacquer/lacquer_log2_ai.png" id="4_log2"]
+[ext_resource type="Texture2D" uid="uid://dhlnkcs8843yu" path="res://assets/ui/lacquer/lacquer_log3_ai.png" id="5_log3"]
+[ext_resource type="Texture2D" uid="uid://c5o37c6d7hlo0" path="res://assets/ui/lacquer/lacquer_log4_ai.png" id="6_log4"]
+[ext_resource type="Texture2D" uid="uid://bcojpn6a1nl07" path="res://assets/ui/lacquer/lacquer_log5_ai.png" id="7_log5"]
+[ext_resource type="Texture2D" uid="uid://d0r3mduo848ih" path="res://assets/ui/lacquer/lacquer_bullet_brass_ai.png" id="8_brass"]
+[ext_resource type="Texture2D" uid="uid://dseks2cbrkyw7" path="res://assets/ui/lacquer/lacquer_bullet_cream_ai.png" id="9_cream"]
+[ext_resource type="Texture2D" uid="uid://bth42a3ycxufc" path="res://assets/ui/lacquer/lacquer_bullet_madra_ai.png" id="10_madra"]
+[ext_resource type="Texture2D" uid="uid://b2tamasimkipr" path="res://assets/ui/lacquer/lacquer_bullet_tan_ai.png" id="11_tan"]
+[ext_resource type="Texture2D" uid="uid://q0h8umw8sgmv" path="res://assets/ui/lacquer/lacquer_bullet_dim_ai.png" id="12_dim"]
+[ext_resource type="Texture2D" uid="uid://cd0jml2h04rsc" path="res://assets/ui/lacquer/lacquer_rail_track_ai.png" id="13_track"]
+[ext_resource type="Texture2D" uid="uid://cku1l62eni047" path="res://assets/ui/lacquer/lacquer_rail_up_on_ai.png" id="14_up"]
+[ext_resource type="Texture2D" uid="uid://bjw44pywbwfop" path="res://assets/ui/lacquer/lacquer_rail_down_on_ai.png" id="15_down"]
+[ext_resource type="StyleBox" uid="uid://c4vwd2p2jsiav" path="res://assets/styleboxes/lacquer/rail_thumb.tres" id="16_thumb"]
+[ext_resource type="Texture2D" uid="uid://btykg6oeun4hg" path="res://assets/ui/lacquer/lacquer_rail_up_off_ai.png" id="17_up_off"]
+[ext_resource type="Texture2D" uid="uid://2j2aglhv374m" path="res://assets/ui/lacquer/lacquer_rail_down_off_ai.png" id="18_down_off"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_i3e3n"]
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_full_board"]
+texture = ExtResource("7_log5")
+texture_margin_left = 8.0
+texture_margin_top = 38.0
+texture_margin_right = 12.0
+texture_margin_bottom = 104.0
 
-[node name="LogWindow" type="PanelContainer" unique_id=1764718786]
-custom_minimum_size = Vector2(400, 0)
-offset_right = 400.0
-offset_bottom = 217.0
-size_flags_horizontal = 0
-size_flags_vertical = 0
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_rail_track"]
+texture = ExtResource("13_track")
+axis_stretch_vertical = 1
+
+[sub_resource type="Theme" id="Theme_rail"]
+VScrollBar/icons/decrement = ExtResource("14_up")
+VScrollBar/icons/decrement_highlight = ExtResource("14_up")
+VScrollBar/icons/decrement_pressed = ExtResource("14_up")
+VScrollBar/icons/increment = ExtResource("15_down")
+VScrollBar/icons/increment_highlight = ExtResource("15_down")
+VScrollBar/icons/increment_pressed = ExtResource("15_down")
+VScrollBar/styles/grabber = ExtResource("16_thumb")
+VScrollBar/styles/grabber_highlight = ExtResource("16_thumb")
+VScrollBar/styles/grabber_pressed = ExtResource("16_thumb")
+VScrollBar/styles/scroll = SubResource("StyleBoxTexture_rail_track")
+VScrollBar/styles/scroll_focus = SubResource("StyleBoxTexture_rail_track")
+
+[node name="LogWindow" type="Control" unique_id=332708016]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 852.0
+offset_right = 464.0
+offset_bottom = 1056.0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxEmpty_i3e3n")
+theme = ExtResource("2_theme")
 script = ExtResource("1_logwin")
+board_textures = Array[Texture2D]([ExtResource("3_log1"), ExtResource("4_log2"), ExtResource("5_log3"), ExtResource("6_log4"), ExtResource("7_log5")])
+brass_bullet = ExtResource("8_brass")
+cream_bullet = ExtResource("9_cream")
+madra_bullet = ExtResource("10_madra")
+tan_bullet = ExtResource("11_tan")
+dim_bullet = ExtResource("12_dim")
+rail_up_on = ExtResource("14_up")
+rail_up_off = ExtResource("17_up_off")
+rail_down_on = ExtResource("15_down")
+rail_down_off = ExtResource("18_down_off")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1748821923]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 0
-
-[node name="TitleBar" type="PanelContainer" parent="VBoxContainer" unique_id=617862878]
+[node name="Board" type="Control" parent="." unique_id=1638891515]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_styles/panel = ExtResource("3_tb")
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -204.0
+offset_right = 440.0
+grow_vertical = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TitleBar" unique_id=244625269]
-layout_mode = 2
+[node name="BoardTexture" type="TextureRect" parent="Board" unique_id=1878787905]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+texture = ExtResource("7_log5")
+expand_mode = 1
+stretch_mode = 2
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=1626426538]
-layout_mode = 2
-theme_type_variation = &"LabelHeading"
-theme_override_font_sizes/font_size = 20
+[node name="TitleLabel" type="Label" parent="Board" unique_id=1629185423]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 11.0
+offset_right = 118.0
+offset_bottom = 44.0
+theme_type_variation = &"LabelLacquerPanelTitle"
 text = "Log"
 
-[node name="Spacer" type="Control" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=944227504]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="HintLabel" type="Label" parent="Board" unique_id=56997454]
+layout_mode = 0
+offset_left = 222.0
+offset_top = 20.0
+offset_right = 422.0
+offset_bottom = 37.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Full log · L"
+horizontal_alignment = 2
+
+[node name="Line4" type="Control" parent="Board" unique_id=556815312]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -146.0
+offset_right = 422.0
+offset_bottom = -128.0
+grow_vertical = 0
 mouse_filter = 2
 
-[node name="CollapseButton" type="Button" parent="VBoxContainer/TitleBar/HBoxContainer" unique_id=1721329548]
+[node name="LineBullet4" type="TextureRect" parent="Board/Line4" unique_id=1912682769]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.57, 0.5, 1)
-theme_override_font_sizes/font_size = 16
-text = "▼"
-flat = true
+layout_mode = 0
+offset_top = 4.0
+offset_right = 10.0
+offset_bottom = 14.0
+mouse_filter = 2
+texture = ExtResource("12_dim")
 
-[node name="ContentPanel" type="PanelContainer" parent="VBoxContainer" unique_id=941861460]
+[node name="LineLabel4" type="Label" parent="Board/Line4" unique_id=1384876957]
 unique_name_in_owner = true
-clip_contents = true
-custom_minimum_size = Vector2(0, 180)
-layout_mode = 2
-theme_override_styles/panel = ExtResource("2_lw")
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.5803922, 0.5019608, 0.41568628, 1)
+text = "Found 2 Dewdrop Tear, 1 Spirit Fern"
+text_overrun_behavior = 3
 
-[node name="RichTextLabel" type="RichTextLabel" parent="VBoxContainer/ContentPanel" unique_id=957906466]
+[node name="Line3" type="Control" parent="Board" unique_id=152243654]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/normal_font_size = 18
-bbcode_enabled = true
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -120.0
+offset_right = 422.0
+offset_bottom = -102.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="LineBullet3" type="TextureRect" parent="Board/Line3" unique_id=397822064]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 4.0
+offset_right = 10.0
+offset_bottom = 14.0
+mouse_filter = 2
+texture = ExtResource("12_dim")
+
+[node name="LineLabel3" type="Label" parent="Board/Line3" unique_id=1701909403]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.5803922, 0.5019608, 0.41568628, 1)
+text = "Aura Well reached level 2 · +1 Spirit"
+text_overrun_behavior = 3
+
+[node name="Line2" type="Control" parent="Board" unique_id=802798348]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -94.0
+offset_right = 422.0
+offset_bottom = -76.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="LineBullet2" type="TextureRect" parent="Board/Line2" unique_id=1156758539]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 4.0
+offset_right = 10.0
+offset_bottom = 14.0
+mouse_filter = 2
+texture = ExtResource("11_tan")
+
+[node name="LineLabel2" type="Label" parent="Board/Line2" unique_id=301181876]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Travelled to Spirit Valley · resumed Aura Well"
+text_overrun_behavior = 3
+
+[node name="Line1" type="Control" parent="Board" unique_id=1303643959]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -68.0
+offset_right = 422.0
+offset_bottom = -50.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="LineBullet1" type="TextureRect" parent="Board/Line1" unique_id=1689293990]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 4.0
+offset_right = 10.0
+offset_bottom = 14.0
+mouse_filter = 2
+texture = ExtResource("8_brass")
+
+[node name="LineLabel1" type="Label" parent="Board/Line1" unique_id=742317774]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
+text = "Returned from The Shallow Woods · +34 gold"
+text_overrun_behavior = 3
+
+[node name="Line0" type="Control" parent="Board" unique_id=339391161]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -42.0
+offset_right = 422.0
+offset_bottom = -24.0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="LineBullet0" type="TextureRect" parent="Board/Line0" unique_id=485442544]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 4.0
+offset_right = 10.0
+offset_bottom = 14.0
+mouse_filter = 2
+texture = ExtResource("11_tan")
+
+[node name="LineLabel0" type="Label" parent="Board/Line0" unique_id=300901709]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 18.0
+offset_right = 402.0
+offset_bottom = 18.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Resumed Aura Well"
+text_overrun_behavior = 3
+
+[node name="FullBoard" type="Control" parent="." unique_id=214385379]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -560.0
+offset_right = 440.0
+grow_vertical = 0
+
+[node name="FullBoardTexture" type="Panel" parent="FullBoard" unique_id=760741061]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_full_board")
+
+[node name="FullTitleLabel" type="Label" parent="FullBoard" unique_id=1764947257]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 11.0
+offset_right = 118.0
+offset_bottom = 44.0
+theme_type_variation = &"LabelLacquerPanelTitle"
+text = "Log"
+
+[node name="FullHintLabel" type="Label" parent="FullBoard" unique_id=1674181769]
+layout_mode = 0
+offset_left = 222.0
+offset_top = 20.0
+offset_right = 422.0
+offset_bottom = 37.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Close · L"
+horizontal_alignment = 2
+
+[node name="FullLogText" type="RichTextLabel" parent="FullBoard" unique_id=1745217227]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 20.0
+offset_top = 64.0
+offset_right = 426.0
+offset_bottom = 532.0
+theme = SubResource("Theme_rail")
+theme_type_variation = &"RichTextLacquerLog"
 scroll_following = true

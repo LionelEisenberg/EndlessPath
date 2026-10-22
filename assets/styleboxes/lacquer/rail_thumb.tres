@@ -1,0 +1,8 @@
+[gd_resource type="StyleBoxTexture" format=3 uid="uid://c4vwd2p2jsiav"]
+
+[ext_resource type="Texture2D" uid="uid://bf8ge0a2ywnhb" path="res://assets/ui/lacquer/lacquer_rail_thumb_ai.png" id="1_n2fop"]
+
+[resource]
+texture = ExtResource("1_n2fop")
+texture_margin_top = 4.0
+texture_margin_bottom = 4.0
