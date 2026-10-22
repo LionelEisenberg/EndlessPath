@@ -2,9 +2,10 @@ extends GutTest
 
 ## Integration tests for the lacquer activity cards (ZoneActionButton and its
 ## presenters): mode tags, the running drawer, the NEW seal, each presenter's
-## detail line, the adventure's Madra states, the tall drawer for long details,
-## and long text never widening a card (Review Focus 4). Cards are built with
-## setup_action on a fresh save, as the zone panel builds them.
+## detail line, the adventure's Madra states and ready frame, the tall drawer
+## for long details, and long text never widening a card (Review Focus 4).
+## Cards are built with setup_action on a fresh save, as the zone panel builds
+## them.
 
 const CARD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/zone_action_button.tscn")
 
@@ -94,6 +95,9 @@ func _tag_text(card: ZoneActionButton) -> String:
 
 func _drawer(card: ZoneActionButton) -> Control:
 	return card.get_node("%Drawer") as Control
+
+func _ready_frame(card: ZoneActionButton) -> LacquerFrameOverlay:
+	return card.get_node("%ReadyFrame") as LacquerFrameOverlay
 
 func _click(card: ZoneActionButton) -> void:
 	var press := InputEventMouseButton.new()
@@ -342,17 +346,58 @@ func test_story_detail_is_the_description() -> void:
 # ADVENTURE
 #-----------------------------------------------------------------------------
 
-func test_adventure_below_threshold_copy() -> void:
+func test_adventure_below_threshold_shows_the_madra_figure() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
-	assert_true(_has_text_containing(card, "Needs 50 Madra · you have 25"))
-	assert_true(_has_text_containing(card, "train or cycle to fill"))
-	assert_eq(card.size.y, TALL_HEIGHT, "the adventure uses the tall drawer")
+	assert_true(_has_text_containing(card, "25 / 50"), "Madra / threshold beside the rod")
+	assert_false(_has_text_containing(card, "Needs"), "no sentence")
+	assert_false(_has_text_containing(card, "train or cycle"), "no hint without a Madra action")
+	assert_false(_has_text_containing(card, "~"), "no countdown without a Madra action")
+	var figure: Label = card.find_child("MadraFigure", true, false) as Label
+	assert_not_null(figure, "the figure is a Label")
+	if figure:
+		assert_eq(figure.get_theme_color(&"font_color"), ThemeConstants.LACQUER_TAN, "in tan")
 
-func test_adventure_hint_with_aura_well() -> void:
+func test_adventure_uses_the_short_drawer() -> void:
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT), "below the threshold")
+	assert_eq(card.custom_minimum_size.y, SHORT_HEIGHT)
+	ResourceManager.set_madra(60.0)
+	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT), "at the threshold")
+	assert_eq(card.custom_minimum_size.y, SHORT_HEIGHT)
+	assert_eq((card.get_node("%Title") as Label).position.y, 14.0, "the title keeps the title row")
+
+func test_adventure_hint_only_while_a_madra_action_runs() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	_run_aura_well()
-	assert_true(_has_text_containing(card, "ready in ~17 s"), "ceil((50 - 25) / 1.5) = 17")
-	assert_false(_has_text_containing(card, "train or cycle to fill"))
+	assert_true(_has_text_containing(card, "~17 s"), "ceil((50 - 25) / 1.5) = 17")
+	assert_false(_has_text_containing(card, "ready in"), "no sentence")
+	var hint: Label = card.find_child("HintLabel", true, false) as Label
+	assert_not_null(hint)
+	if hint:
+		assert_eq(hint.get_theme_color(&"font_color"), ThemeConstants.LACQUER_CREAM, "in cream")
+	EventManager.trigger_event(FORAGING_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	assert_eq(_current_id(), FORAGING_ID, "precondition: foraging runs, which makes no Madra")
+	assert_false(_has_text_containing(card, "~"), "the hint hides")
+
+func test_rejected_click_shakes_the_rod_row() -> void:
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	var row: Control = card.get_footer_slot().find_child("NeedGroup", true, false) as Control
+	assert_not_null(row, "the rod row sits in the footer")
+	if row == null:
+		return
+	assert_not_null(row.find_child("MadraRod", true, false), "the rod shakes with its row")
+	_click(card)
+	# Read the offsets frame by frame (the tween runs on frame time).
+	var offsets: Array[float] = [row.position.x]
+	var settled: bool = await wait_until(func() -> bool:
+		if row.position.x != offsets[-1]:
+			offsets.append(row.position.x)
+		return offsets.size() > 1 and row.position.x == 0.0, 2.0)
+	assert_true(settled, "the row settles back at 0")
+	assert_gt(offsets.size(), 2, "the row moved")
+	for offset: float in offsets:
+		assert_eq(fmod(offset, 2.0), 0.0, "every step is a whole even px: %s" % offset)
 
 func test_adventure_rod_follows_madra() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
@@ -366,17 +411,49 @@ func test_adventure_rod_follows_madra() -> void:
 func test_adventure_ready_copy_and_enter() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	ResourceManager.set_madra(60.0)
-	assert_true(_has_text_containing(card, "Ready · carries up to 100 Madra · 5 min run"))
+	assert_true(_has_text_containing(card, "5 min run · carries 100 Madra"))
+	assert_false(_has_text_containing(card, "Ready ·"), "no Ready prefix: the frame and ENTER say it")
 	assert_eq(_tag_text(card), "ENTER")
-	assert_false(_has_text_containing(card, "Needs"), "the Madra line hides at the threshold")
-	assert_eq(card.size.y, TALL_HEIGHT)
+	assert_false(_has_text_containing(card, "/ 50"), "the Madra row hides at the threshold")
+
+func test_adventure_ready_frame_shows_only_at_the_threshold() -> void:
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	var frame: LacquerFrameOverlay = _ready_frame(card)
+	assert_false(frame.visible, "below the threshold")
+	ResourceManager.set_madra(60.0)
+	assert_true(frame.visible, "at the threshold")
+	assert_false(frame.is_flashing(), "shown steadily, not flashed")
+	ResourceManager.set_madra(10.0)
+	assert_false(frame.visible, "back below the threshold")
+
+func test_ready_frame_is_only_for_the_adventure() -> void:
+	ResourceManager.set_madra(60.0)
+	assert_false(_ready_frame(_card(AURA_WELL_ID)).visible)
+	assert_false(_ready_frame(_card(MERCHANT_ID)).visible)
+
+func test_flash_blinks_over_the_ready_frame() -> void:
+	# The flash and the ready frame are the same brass frame, so the ready frame
+	# steps aside while the flash runs, or the flash would not show.
+	var card: ZoneActionButton = _card(ADVENTURE_ID)
+	ResourceManager.set_madra(60.0)
+	var ready: LacquerFrameOverlay = _ready_frame(card)
+	var flash: LacquerFrameOverlay = card.get_node("%FlashFrame") as LacquerFrameOverlay
+	card.flash()
+	assert_true(flash.visible, "the flash is on")
+	assert_false(ready.visible, "the ready frame steps aside")
+	ResourceManager.set_madra(70.0)
+	assert_false(ready.visible, "a Madra tick mid-flash does not bring it back")
+	var restored: bool = await wait_until(func() -> bool: return ready.visible, 3.0)
+	assert_true(restored, "the ready frame returns after the flash")
+	assert_false(flash.visible, "the flash ends hidden")
 
 func test_adventure_drops_back_below_threshold() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	ResourceManager.set_madra(60.0)
 	ResourceManager.set_madra(10.0)
 	assert_eq(_tag_text(card), "ACTIVE")
-	assert_true(_has_text_containing(card, "Needs 50 Madra · you have 10"))
+	assert_true(_has_text_containing(card, "10 / 50"))
+	assert_false(_has_text_containing(card, "min run"), "the ready line hides")
 
 #-----------------------------------------------------------------------------
 # LONG TEXT (Review Focus 4)
@@ -479,15 +556,20 @@ func test_long_training_detail_ends_in_an_ellipsis() -> void:
 	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT), "an idle card stays short")
 
 func test_long_ready_line_ends_in_an_ellipsis() -> void:
+	# 6e18 s is 1e17 min: "100000000000000000 min run · carries 100 Madra" is
+	# wider than 316 px.
 	var action := ZoneManager.get_action_by_id(ADVENTURE_ID).duplicate() as AdventureActionData
-	action.time_limit_seconds = 12345679
+	action.time_limit_seconds = 6000000000000000000
 	var card: ZoneActionButton = _card_for(action)
 	ResourceManager.set_madra(60.0)
 	await wait_process_frames(1)
-	var ready_text: RichTextLabel = card.get_footer_slot().find_child("ReadyText", true, false) as RichTextLabel
-	assert_true(ready_text.get_parsed_text().begins_with("Ready · carries up to 100 Madra"))
-	assert_true(ready_text.get_parsed_text().ends_with(ELLIPSIS))
+	var ready_text: RichTextLabel = card.find_child("ReadyText", true, false) as RichTextLabel
+	var shown: String = ready_text.get_parsed_text()
+	assert_true(shown.begins_with("100000000000000"), "the line keeps its start: %s" % shown)
+	assert_string_contains(shown, " min run")
+	assert_true(shown.ends_with(ELLIPSIS), "and ends in an ellipsis: %s" % shown)
 	assert_lte(ready_text.get_content_width(), int(DETAIL_WIDTH))
+	assert_eq(card.size.y, SHORT_HEIGHT, "a long ready line never grows the card")
 
 #-----------------------------------------------------------------------------
 # ADVENTURE AND EQUIPMENT
@@ -501,11 +583,11 @@ func test_adventure_follows_equipment_capacity() -> void:
 	assert_eq(_tag_text(card), "ENTER", "precondition: 60 of 50 Madra is ready")
 	_equip_foundation_ring(5.0)
 	assert_eq(_tag_text(card), "ACTIVE", "the threshold is now 75")
-	assert_true(_has_text_containing(card, "Needs 75 Madra · you have 60"))
+	assert_true(_has_text_containing(card, "60 / 75"))
 	ResourceManager.set_madra(80.0)
-	assert_true(_has_text_containing(card, "carries up to 150 Madra"))
+	assert_true(_has_text_containing(card, "carries 150 Madra"))
 	InventoryManager.unequip_item(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, 0)
-	assert_true(_has_text_containing(card, "carries up to 100 Madra"), "taking the ring off shrinks it again")
+	assert_true(_has_text_containing(card, "carries 100 Madra"), "taking the ring off shrinks it again")
 
 #-----------------------------------------------------------------------------
 # FLASH

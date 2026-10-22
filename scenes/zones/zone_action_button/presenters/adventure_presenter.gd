@@ -1,40 +1,37 @@
 class_name AdventurePresenter
 extends ZoneActionPresenter
-## Presenter for ADVENTURE cards, always on the tall drawer (lacquer kit §5.5):
-##   below the threshold: "Needs <threshold> Madra · you have <madra>", the
-##     Madra rod (Madra / threshold) and a hint, "ready in ~<n> s" in cream
-##     while a Madra action runs, else "train or cycle to fill" in tan; tag
-##     ACTIVE.
-##   at the threshold: the brass-edged ready drawer, "Ready · carries up to
-##     <capacity> Madra · <minutes> min run" in brass (an ellipsis past
-##     316 px), and the ENTER tag.
+## Presenter for ADVENTURE cards, on the normal 72 px drawer in both states:
+##   below the threshold: the Madra row, `mini_madra`, the Madra rod (Madra /
+##     threshold) and "<madra> / <threshold>" in tan, then "~<n> s" in cream,
+##     right-aligned, only while a Madra action runs; tag ACTIVE.
+##   at the threshold: "<minutes> min run · carries <capacity> Madra" in
+##     brass on the detail line (an ellipsis past 316 px), the card's steady
+##     brass ready frame and the ENTER tag.
 ## Capacity is the total max Madra and the threshold half of it, so gear that
 ## adds Foundation changes both: the card follows equipment changes too.
 ## Gates activation on ResourceManager.can_start_adventure(); a rejected click
-## shakes the Madra line in even-px steps and logs why.
+## shakes the Madra row in even-px steps and logs why.
 
-## The reject shake: x offsets of the Madra line, one key every SHAKE_STEP s.
+## The reject shake: x offsets of the Madra row, one key every SHAKE_STEP s.
 const SHAKE_KEYS: Array[float] = [-8.0, 8.0, -6.0, 4.0, 0.0]
 const SHAKE_STEP_SECONDS: float = 0.088
 
 @onready var _need_group: Control = %NeedGroup
-@onready var _need_label: Label = %NeedLabel
 @onready var _madra_rod: LacquerRod = %MadraRod
+@onready var _madra_figure: Label = %MadraFigure
 @onready var _hint_label: Label = %HintLabel
 @onready var _ready_text: RichTextLabel = %ReadyText
 
 var _is_affordable: bool = false
 var _shake_tween: Tween = null
 
-## Moves the Madra line, rod, hint and ready line into the card (always
-## tall) and shows the state for the current Madra.
+## Moves the Madra row into the card's footer and the ready line onto its
+## detail line, and shows the state for the current Madra.
 func setup(data: ZoneActionData, owner_button: ZoneActionButton) -> void:
 	action_data = data
 	button = owner_button
-	var footer: Control = button.get_footer_slot()
-	_need_group.reparent(footer, false)
-	_ready_text.reparent(footer, false)
-	button.set_tall(true)
+	_need_group.reparent(button.get_footer_slot(), false)
+	_ready_text.reparent(button.get_detail_slot(), false)
 	ResourceManager.madra_changed.connect(_on_madra_changed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
 	CharacterManager.base_attribute_changed.connect(_on_base_attribute_changed)
@@ -57,7 +54,7 @@ func teardown() -> void:
 func can_activate() -> bool:
 	return _is_affordable
 
-## Shakes the Madra line and logs the shortfall.
+## Shakes the Madra row and logs the shortfall.
 func on_activation_rejected() -> void:
 	_shake_reject()
 	var threshold: float = ResourceManager.get_adventure_madra_threshold()
@@ -72,7 +69,7 @@ func _update_state() -> void:
 	_is_affordable = ResourceManager.can_start_adventure()
 	_need_group.visible = not _is_affordable
 	_ready_text.visible = _is_affordable
-	button.set_ready_edge(_is_affordable)
+	button.set_ready_frame(_is_affordable)
 	if _is_affordable:
 		button.set_mode_tag("ENTER", ZoneActionButton.TagStyle.ENTER)
 		button.fit_detail_rich_text(_ready_text, _ready_line())
@@ -83,23 +80,20 @@ func _update_state() -> void:
 func _update_need() -> void:
 	var threshold: float = ResourceManager.get_adventure_madra_threshold()
 	var madra: float = ResourceManager.get_madra()
-	_need_label.text = "Needs %d Madra · you have %d" % [ceili(threshold), floori(madra)]
+	_madra_figure.text = "%d / %d" % [floori(madra), ceili(threshold)]
 	_madra_rod.set_fraction(madra / threshold if threshold > 0.0 else 0.0)
 	var rate: float = ActionManager.get_current_madra_per_second()
+	_hint_label.visible = rate > 0.0
 	if rate > 0.0:
-		_hint_label.text = "ready in ~%d s" % ceili(maxf(threshold - madra, 0.0) / rate)
-		_hint_label.add_theme_color_override(&"font_color", ThemeConstants.LACQUER_CREAM)
-	else:
-		_hint_label.text = "train or cycle to fill"
-		_hint_label.remove_theme_color_override(&"font_color")
+		_hint_label.text = "~%d s" % ceili(maxf(threshold - madra, 0.0) / rate)
 
 func _ready_line() -> String:
 	var capacity: int = floori(ResourceManager.get_adventure_madra_capacity())
 	var adventure := action_data as AdventureActionData
 	var minutes: float = adventure.time_limit_seconds / 60.0 if adventure else 0.0
-	return "Ready · carries up to %d Madra · %s min run" % [capacity, LacquerText.rate(minutes).trim_prefix("+")]
+	return "%s min run · carries %d Madra" % [LacquerText.rate(minutes).trim_prefix("+"), capacity]
 
-## Shakes the Madra line left and right in whole even-px steps (no easing, no
+## Shakes the Madra row left and right in whole even-px steps (no easing, no
 ## scale), the map lock's 0, -8, 8, -6, 4, 0 over 0.44 s.
 func _shake_reject() -> void:
 	_stop_shake()

@@ -7,9 +7,10 @@ extends Control
 ##
 ## The card owns the drawer, the tag, the running state (an idle action that
 ## runs is pulled out to (-2, -2) on the running drawer and tagged RUNNING),
-## hover, flash and click routing. A presenter scene picked by the action type
-## (PRESENTER_SCENES) fills the detail slot and the footer slot, and may change
-## the tag (the adventure's ENTER), the height and the ready edge.
+## hover, flash, the steady ready frame and click routing. A presenter scene
+## picked by the action type (PRESENTER_SCENES) fills the detail slot and the
+## footer slot, and may change the tag (the adventure's ENTER), the height and
+## the ready frame.
 
 ## Emitted when the player clicks the card of the idle action that is running.
 ## The activity list uses it to flash the Now strip.
@@ -30,11 +31,10 @@ const TALL_HEIGHT: float = 96.0
 ## Where the running drawer is drawn, pulled out of the list.
 const RUNNING_OFFSET: Vector2 = Vector2(-2, -2)
 
-## The title row: the title's left edge, its top (the ready adventure's lower
-## top), and the width the title and NEW seal share before the tag.
+## The title row: the title's left edge, its top, and the width the title and
+## NEW seal share before the tag.
 const TITLE_X: float = 64.0
 const TITLE_TOP: float = 14.0
-const READY_TITLE_TOP: float = 26.0
 const TITLE_ROW_WIDTH: float = 232.0
 const SEAL_GAP: float = 10.0
 ## The tag's left edge; the tag and seal sit 1 px above the title's top.
@@ -55,7 +55,6 @@ const RUNNING_TAG_TEXT: String = "RUNNING"
 const DRAWER_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_drawer_ai.png")
 const DRAWER_RUN_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_drawer_run_ai.png")
 const DRAWER_TALL_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_drawer_tall_ai.png")
-const DRAWER_TALL_READY_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_drawer_tall_ready_ai.png")
 const TAG_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_tag_ai.png")
 const TAG_ENTER_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_tag_enter_ai.png")
 
@@ -85,13 +84,17 @@ const PRESENTER_SCENES: Dictionary = {
 @onready var _tag_label: Label = %TagLabel
 @onready var _detail_slot: HBoxContainer = %DetailSlot
 @onready var _footer_slot: Control = %FooterSlot
+@onready var _ready_frame: LacquerFrameOverlay = %ReadyFrame
 @onready var _hover_frame: LacquerFrameOverlay = %HoverFrame
 @onready var _flash_frame: LacquerFrameOverlay = %FlashFrame
 
 var _presenter: ZoneActionPresenter = null
 var _is_running: bool = false
 var _is_tall: bool = false
-var _is_ready_edge: bool = false
+var _shows_ready_frame: bool = false
+## Keeps the ready frame hidden while a flash runs (both are the brass frame,
+## so the flash would not show over it). Null when no flash holds it.
+var _ready_frame_hold: Tween = null
 ## The tag shown while the action is not running (set_mode_tag).
 var _tag_text: String = ""
 var _tag_style: TagStyle = TagStyle.CARVED
@@ -149,13 +152,11 @@ func set_tall(tall: bool) -> void:
 	_apply_height()
 	_apply_face()
 
-## Uses the tall drawer's brass-edged ready face and lowers the title row to
-## the ready adventure's y+26 (kit §5.5) while at_threshold. Only drawn on a
-## tall card.
-func set_ready_edge(at_threshold: bool) -> void:
-	_is_ready_edge = at_threshold
-	_apply_face()
-	_layout_title_row()
+## Shows the brass frame over the card, steadily, while shown is true (the
+## adventure at its Madra threshold). A flash hides it until the flash ends.
+func set_ready_frame(shown: bool) -> void:
+	_shows_ready_frame = shown
+	_apply_ready_frame()
 
 ## Fits a one-line detail Label into the 316 px detail line (kit §0). On a card
 ## whose action is not idle, a line wider than 316 px wraps onto two lines in
@@ -201,9 +202,16 @@ static func ellipsize_words(text: String, font: Font, font_size: int, max_width:
 			return letters + ELLIPSIS
 	return ELLIPSIS if _text_width(ELLIPSIS, font, font_size) <= max_width else ""
 
-## Flashes the brass frame over the card twice (300 ms on, 300 ms off).
+## Flashes the brass frame over the card twice (300 ms on, 300 ms off). A
+## steady ready frame steps aside for the flash and returns after it.
 func flash() -> void:
 	_flash_frame.flash(FLASH_TIMES)
+	_end_ready_frame_hold()
+	if _shows_ready_frame and is_inside_tree():
+		_ready_frame_hold = create_tween()
+		_ready_frame_hold.tween_interval(FLASH_TIMES * 2.0 * LacquerFrameOverlay.FLASH_PHASE_SECONDS)
+		_ready_frame_hold.tween_callback(_end_ready_frame_hold)
+		_apply_ready_frame()
 
 ## Returns true while the NEW seal shows (the action has not been seen).
 func is_new_shown() -> bool:
@@ -219,7 +227,8 @@ func _apply_action() -> void:
 	_tag_text = ZoneActionGroups.mode_tag(action_data)
 	_tag_style = TagStyle.CARVED
 	_is_tall = false
-	_is_ready_edge = false
+	_shows_ready_frame = false
+	_apply_ready_frame()
 	_spawn_presenter()
 	_is_running = _is_running_idle_action()
 	if _presenter:
@@ -262,10 +271,19 @@ func _apply_face() -> void:
 	if _is_running:
 		_face.texture = DRAWER_RUN_TEXTURE
 	elif _is_tall:
-		_face.texture = DRAWER_TALL_READY_TEXTURE if _is_ready_edge else DRAWER_TALL_TEXTURE
+		_face.texture = DRAWER_TALL_TEXTURE
 	else:
 		_face.texture = DRAWER_TEXTURE
 	_face.size = _face.texture.get_size()
+
+func _apply_ready_frame() -> void:
+	_ready_frame.visible = _shows_ready_frame and _ready_frame_hold == null
+
+func _end_ready_frame_hold() -> void:
+	if _ready_frame_hold != null and _ready_frame_hold.is_valid():
+		_ready_frame_hold.kill()
+	_ready_frame_hold = null
+	_apply_ready_frame()
 
 func _apply_tag() -> void:
 	var text: String = RUNNING_TAG_TEXT if _is_running else _tag_text
@@ -284,7 +302,6 @@ func _apply_tag() -> void:
 ## its text (rounded to even px) and ellipsizes where the seal or the tag
 ## would start.
 func _layout_title_row() -> void:
-	var top: float = READY_TITLE_TOP if _is_ready_edge else TITLE_TOP
 	var font: Font = _title.get_theme_font(&"font")
 	var font_size: int = _title.get_theme_font_size(&"font_size")
 	var text_width: float = font.get_string_size(_title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
@@ -293,10 +310,10 @@ func _layout_title_row() -> void:
 	if _new_seal.visible:
 		max_width -= SEAL_GAP + _new_seal.size.x
 	var title_width: float = minf(even_width, max_width)
-	_title.position = Vector2(TITLE_X, top)
+	_title.position = Vector2(TITLE_X, TITLE_TOP)
 	_title.size = Vector2(title_width, _title.get_minimum_size().y)
-	_new_seal.position = Vector2(TITLE_X + title_width + SEAL_GAP, top - TAG_RAISE)
-	_tag.position = Vector2(TAG_X, top - TAG_RAISE)
+	_new_seal.position = Vector2(TITLE_X + title_width + SEAL_GAP, TITLE_TOP - TAG_RAISE)
+	_tag.position = Vector2(TAG_X, TITLE_TOP - TAG_RAISE)
 
 func _refresh_new_seal() -> void:
 	_new_seal.visible = action_data != null and not ZoneManager.is_action_seen(action_data.action_id)
