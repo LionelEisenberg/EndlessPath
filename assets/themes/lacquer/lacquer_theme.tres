@@ -167,3 +167,5 @@ RichTextLacquer/colors/font_shadow_color = Color(0, 0, 0, 0)
 RichTextLacquer/constants/line_separation = 1
 RichTextLacquer/font_sizes/normal_font_size = 15
 RichTextLacquer/fonts/normal_font = ExtResource("1_ex2p2")
+RichTextLacquerLog/base_type = &"RichTextLacquer"
+RichTextLacquerLog/constants/line_separation = 9

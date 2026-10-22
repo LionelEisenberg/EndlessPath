@@ -264,3 +264,90 @@ func test_l_does_nothing_while_the_log_is_hidden() -> void:
 	_log.visible = false
 	_press_key(KEY_L)
 	assert_false(_log.is_full_log_open(), "the merchant hides the log; L must not open it behind the shop")
+
+func test_toggle_window_does_nothing_while_the_log_is_hidden() -> void:
+	_add_log()
+	_log.visible = false
+	LogManager.toggle_window()
+	assert_false(_log.is_full_log_open(), "toggle_window() must not open the full log behind the shop")
+
+func test_hiding_the_log_closes_the_full_log() -> void:
+	_add_log()
+	_log.toggle_full_log()
+	_log.visible = false
+	assert_false(_log.is_full_log_open(), "a hidden log closes its full log")
+	_log.visible = true
+	assert_false(_log.is_full_log_open(), "and it stays closed when the log shows again")
+	assert_true(_board().visible, "the five-line board is back")
+
+func test_hiding_a_parent_closes_the_full_log() -> void:
+	_add_log()
+	_log.toggle_full_log()
+	(_log.get_parent() as Control).visible = false
+	assert_false(_log.is_full_log_open())
+
+#-----------------------------------------------------------------------------
+# FULL LOG TEXT
+#-----------------------------------------------------------------------------
+
+## Opens the full log over this many logged lines and waits for it to lay out
+## and scroll to the bottom.
+func _open_full_log_with(line_count: int) -> RichTextLabel:
+	_add_log()
+	for i: int in range(line_count):
+		LogManager.log_message("Entry %03d" % i)
+	_log.toggle_full_log()
+	await wait_process_frames(3)
+	return _node("FullLogText") as RichTextLabel
+
+func _rail_texture(direction: String, state: String) -> Texture2D:
+	return load("res://assets/ui/lacquer/lacquer_rail_%s_%s_ai.png" % [direction, state])
+
+func test_full_log_keeps_only_the_history_limit_while_open() -> void:
+	_add_log()
+	_log.toggle_full_log()
+	for i: int in range(LogManager.HISTORY_LIMIT + 5):
+		LogManager.log_message("Entry %03d" % i)
+	var text: RichTextLabel = _node("FullLogText") as RichTextLabel
+	assert_eq(text.get_paragraph_count(), LogManager.HISTORY_LIMIT, "as many lines as LogManager keeps")
+	var parsed: String = text.get_parsed_text()
+	assert_false(parsed.contains("Entry 004"), "the oldest lines are dropped")
+	assert_true(parsed.contains("Entry 005"), "the oldest kept line is still there")
+	assert_true(parsed.contains("Entry %03d" % (LogManager.HISTORY_LIMIT + 4)), "and the newest")
+
+func test_full_log_shows_whole_lines() -> void:
+	# Kit §0: log lines are 26 px apart. A text area that is not a whole
+	# number of lines shows a sliver of an older line under the title when
+	# the log sits scrolled to the bottom.
+	var text: RichTextLabel = await _open_full_log_with(40)
+	var bar: VScrollBar = text.get_v_scroll_bar()
+	assert_eq(text.get_line_offset(1) - text.get_line_offset(0), 26.0, "26 px between lines")
+	assert_eq(fmod(bar.page, 26.0), 0.0, "the text area is a whole number of lines tall")
+	assert_eq(bar.value, bar.max_value - bar.page, "precondition: scrolled to the bottom")
+	assert_eq(fmod(bar.value, 26.0), 0.0, "so the top line shows whole")
+
+func test_full_log_line_pitch_comes_from_a_theme_variant() -> void:
+	_add_log()
+	var text: RichTextLabel = _node("FullLogText") as RichTextLabel
+	assert_eq(text.theme_type_variation, &"RichTextLacquerLog")
+	assert_false(text.has_theme_constant_override(&"line_separation"), "no inline override")
+	assert_eq(text.get_theme_constant(&"line_separation"), 9, "17 px lines + 9 = the log's 26 px pitch")
+	assert_eq(text.get_theme_font_size(&"normal_font_size"), 15, "still RichTextLacquer's 15 px")
+
+func test_full_log_rail_caps_follow_the_scroll() -> void:
+	# Kit §4.4: each end cap is lit (on) only when the list can scroll that way.
+	var text: RichTextLabel = await _open_full_log_with(40)
+	var bar: VScrollBar = text.get_v_scroll_bar()
+	assert_eq(bar.get_theme_icon(&"decrement"), _rail_texture("up", "on"), "at the bottom: the list can scroll up")
+	assert_eq(bar.get_theme_icon(&"increment"), _rail_texture("down", "off"), "but not down")
+	assert_eq(bar.get_theme_icon(&"increment_highlight"), _rail_texture("down", "off"), "hover keeps the state")
+	assert_eq(bar.get_theme_icon(&"increment_pressed"), _rail_texture("down", "off"))
+	bar.value = 0.0
+	await wait_process_frames(1)
+	assert_eq(bar.get_theme_icon(&"decrement"), _rail_texture("up", "off"), "at the top: no more up")
+	assert_eq(bar.get_theme_icon(&"decrement_highlight"), _rail_texture("up", "off"))
+	assert_eq(bar.get_theme_icon(&"increment"), _rail_texture("down", "on"), "and the list can scroll down")
+	bar.value = 26.0 * 5.0
+	await wait_process_frames(1)
+	assert_eq(bar.get_theme_icon(&"decrement"), _rail_texture("up", "on"), "in the middle both caps are lit")
+	assert_eq(bar.get_theme_icon(&"increment"), _rail_texture("down", "on"))

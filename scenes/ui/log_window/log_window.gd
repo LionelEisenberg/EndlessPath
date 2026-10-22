@@ -15,8 +15,11 @@ extends Control
 ## takes the same colour.
 ##
 ## The full log is a taller board in the same place with every line LogManager
-## keeps, scrolling, newest at the bottom. L, Escape while it is open, and
-## LogManager.toggle_window() open and close it.
+## keeps (at most LogManager.HISTORY_LIMIT), scrolling, newest at the bottom,
+## 26 px apart in a text area of whole lines. Its rail's end caps are lit only
+## when the text can scroll that way (kit §4.4). L, Escape while it is open,
+## and LogManager.toggle_window() open and close it. It never opens while the
+## log is hidden (the merchant hides it), and hiding the log closes it.
 
 #-----------------------------------------------------------------------------
 # TYPES
@@ -75,6 +78,12 @@ static var _bbcode_tag_regex: RegEx = null
 @export var madra_bullet: Texture2D = null
 @export var tan_bullet: Texture2D = null
 @export var dim_bullet: Texture2D = null
+## The full log's rail end caps: lit (brass arrow) when the text can scroll
+## that way, carved when it can't.
+@export var rail_up_on: Texture2D = null
+@export var rail_up_off: Texture2D = null
+@export var rail_down_on: Texture2D = null
+@export var rail_down_off: Texture2D = null
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -97,6 +106,8 @@ var _full_log_open: bool = false
 var _full_log_line_count: int = 0
 ## The board's current height, kept so a move can re-hang it.
 var _board_height: float = BOARD_BASE_HEIGHT + LINE_HEIGHT
+## The full log's scrollbar, styled as the lacquer rail.
+var _full_log_bar: VScrollBar = null
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -106,7 +117,12 @@ func _ready() -> void:
 	LogManager.message_logged.connect(_on_message_logged)
 	LogManager.visibility_toggled.connect(toggle_full_log)
 	item_rect_changed.connect(_on_item_rect_changed)
+	visibility_changed.connect(_on_visibility_changed)
+	_full_log_bar = _full_log_text.get_v_scroll_bar()
+	_full_log_bar.value_changed.connect(_on_full_log_scrolled)
+	_full_log_bar.changed.connect(_refresh_rail_caps)
 	_full_board.visible = false
+	_refresh_rail_caps()
 	_update_board()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -124,8 +140,10 @@ func _unhandled_input(event: InputEvent) -> void:
 #-----------------------------------------------------------------------------
 
 ## Opens the full log with every line LogManager keeps, or closes it and shows
-## the five-line board again.
+## the five-line board again. Does not open it while the log is hidden.
 func toggle_full_log() -> void:
+	if not _full_log_open and not is_visible_in_tree():
+		return
 	_full_log_open = not _full_log_open
 	if _full_log_open:
 		_fill_full_log()
@@ -223,8 +241,9 @@ func _fill_full_log() -> void:
 	for bbcode: String in LogManager.get_history():
 		_add_full_log_line(bbcode)
 
-## One line in its tone with its bullet, under the lines already there. Lines
-## in the full log do not fade.
+## One line in its tone with its bullet, under the lines already there, then
+## the oldest lines go until no more than LogManager keeps are left. Lines in
+## the full log do not fade.
 func _add_full_log_line(bbcode: String) -> void:
 	if _full_log_line_count > 0:
 		_full_log_text.newline()
@@ -235,6 +254,21 @@ func _add_full_log_line(bbcode: String) -> void:
 	_full_log_text.push_color(_tone_colour(tone))
 	_full_log_text.add_text(plain_text(bbcode))
 	_full_log_text.pop()
+	while _full_log_line_count > LogManager.HISTORY_LIMIT:
+		_full_log_text.remove_paragraph(0)
+		_full_log_line_count -= 1
+
+## Lights each end cap of the rail when the text can scroll that way (kit
+## §4.4), in every button state.
+func _refresh_rail_caps() -> void:
+	var can_scroll_up: bool = _full_log_bar.value > _full_log_bar.min_value
+	var can_scroll_down: bool = _full_log_bar.value + _full_log_bar.page < _full_log_bar.max_value
+	_set_cap_icons(&"decrement", rail_up_on if can_scroll_up else rail_up_off)
+	_set_cap_icons(&"increment", rail_down_on if can_scroll_down else rail_down_off)
+
+func _set_cap_icons(cap: StringName, texture: Texture2D) -> void:
+	for state: String in ["", "_highlight", "_pressed"]:
+		_full_log_bar.add_theme_icon_override(StringName(cap + state), texture)
 
 #-----------------------------------------------------------------------------
 # TONES
@@ -274,3 +308,11 @@ func _on_message_logged(bbcode: String) -> void:
 ## A view state moved the slot: hang the boards from the right edge again.
 func _on_item_rect_changed() -> void:
 	_hang_boards()
+
+## A hidden log closes its full log: the board shows again when the log does.
+func _on_visibility_changed() -> void:
+	if _full_log_open and not is_visible_in_tree():
+		toggle_full_log()
+
+func _on_full_log_scrolled(_value: float) -> void:
+	_refresh_rail_caps()
