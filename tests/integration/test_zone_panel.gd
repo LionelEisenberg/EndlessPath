@@ -497,9 +497,8 @@ func test_lore_paragraphs_are_one_break_apart() -> void:
 
 func test_lore_text_is_a_lore_label() -> void:
 	# The lore has no decimal point, so it needs no RichTextLabel: the theme's
-	# LabelLacquerLore (16/22 cream) and its 10 px paragraph gap set it, with
-	# no overrides (kit §5.5: text 16/22 cream, width 364, 10 px between
-	# paragraphs).
+	# LabelLacquerLore (16/22 cream) sets it, with one override for the kit's
+	# 10 px between paragraphs (kit §5.5: text 16/22 cream, width 364).
 	await _add_panel()
 	var lore_text: Label = _node("LoreText") as Label
 	assert_not_null(lore_text, "LoreText is a Label")
@@ -507,8 +506,7 @@ func test_lore_text_is_a_lore_label() -> void:
 		return
 	assert_eq(lore_text.theme_type_variation, &"LabelLacquerLore")
 	assert_eq(lore_text.get_theme_constant(&"paragraph_spacing"), 10)
-	for constant: StringName in [&"line_spacing", &"paragraph_spacing"]:
-		assert_false(lore_text.has_theme_constant_override(constant), "no %s override" % constant)
+	assert_false(lore_text.has_theme_constant_override(&"line_spacing"), "the variant's 22 px pitch")
 	assert_false(lore_text.has_theme_color_override(&"font_color"), "no colour override")
 	assert_false(lore_text.has_theme_font_size_override(&"font_size"), "no size override")
 	assert_eq(lore_text.size.x, 364.0, "364 px wide")

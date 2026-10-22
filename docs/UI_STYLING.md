@@ -159,7 +159,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerLegend` | Euljiro 14 / 22 | Ink | The `Now` legend on its brass plate |
 | `LabelLacquerDock` | Euljiro 14 / 18 | Cream | Dock button labels |
 | `LabelLacquerHotkey` | Euljiro 14 / 18 | Tan | Dock hotkeys |
-| `LabelLacquerLore` | Euljiro 16 / 22, 10 px between paragraphs (`paragraph_spacing`) | Cream | Zone lore text (the zone chest's `LoreText`, a wrapping Label with no overrides) |
+| `LabelLacquerLore` | Euljiro 16 / 22 | Cream | Zone lore text: the zone chest's `LoreText`, a wrapping Label whose one override, `paragraph_spacing` 10, is the kit's gap between paragraphs |
 | `LabelLacquerPlateName` | Euljiro 16 / 18 | Cream | Map plate zone names |
 | `LabelLacquerPlateLine` | Euljiro 14 / 18 | Cream | Map plate status lines |
 | `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |

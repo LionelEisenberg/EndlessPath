@@ -214,4 +214,5 @@ offset_top = 20.0
 offset_right = 386.0
 offset_bottom = 248.0
 theme_type_variation = &"LabelLacquerLore"
+theme_override_constants/paragraph_spacing = 10
 autowrap_mode = 3
