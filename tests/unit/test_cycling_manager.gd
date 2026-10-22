@@ -5,6 +5,10 @@ extends GutTest
 var _save_data: SaveGameData
 var _technique_a: CyclingTechniqueData
 var _foundation: CyclingTechniqueData
+## CyclingManager's real state, given back after each test so later files see
+## the real technique catalog.
+var _saved_live_save_data: SaveGameData = null
+var _saved_techniques_by_id: Dictionary = {}
 
 func _create_test_technique(technique_id: String, technique_name: String) -> CyclingTechniqueData:
 	var t := CyclingTechniqueData.new()
@@ -13,6 +17,8 @@ func _create_test_technique(technique_id: String, technique_name: String) -> Cyc
 	return t
 
 func before_each() -> void:
+	_saved_live_save_data = CyclingManager._live_save_data
+	_saved_techniques_by_id = CyclingManager._techniques_by_id
 	_save_data = SaveGameData.new()
 	_foundation = _create_test_technique("foundation_technique", "Foundation Technique")
 	_technique_a = _create_test_technique("tech_a", "Technique A")
@@ -23,8 +29,8 @@ func before_each() -> void:
 	}
 
 func after_each() -> void:
-	CyclingManager._live_save_data = null
-	CyclingManager._techniques_by_id = {}
+	CyclingManager._live_save_data = _saved_live_save_data
+	CyclingManager._techniques_by_id = _saved_techniques_by_id
 
 # ----- Default state -----
 

@@ -231,7 +231,7 @@ New tests should call the real method on the autoload, with its state swapped as
 - `[LOW]` Remove the mirror helpers: `_create_manager()` (unused) in `test_resource_manager.gd`, `_simulate_add_xp()`, `_calculate_equipment_bonus()`, `_count_combats()`, `_add_to_first_slot()` (hard-codes 50 slots).
 - `[LOW]` `CountingEffect` is duplicated in `test_consumable_definition_data.gd` and `test_inventory_manager_consumables.gd`, and there is no shared helper module.
 - `[LOW]` `PathManager._test_stage_override` is a test hook in production code.
-- `[LOW]` `tests/unit/test_cycling_manager.gd`'s `after_each()` empties `CyclingManager._techniques_by_id`, so `test_fresh_save_cycling_card_wraps` in `tests/integration/test_zone_action_cards.gd` injects a fixture technique instead of the real fresh-save "Foundational Technique". Rebuilding the index in that `after_each()` (`CyclingManager._build_catalog_index()`) would let the card test use the real one.
+- `[LOW]` `tests/unit/test_path_manager.gd` swaps in a one-entry `AbilityManager._abilities_by_id` and never gives it back. It now restores `CyclingManager`'s index and save, as `test_cycling_manager.gd` does, and `test_fresh_save_cycling_card_wraps` rebuilds the real technique catalog for itself.
 - `[LOW]` Orphan `tests/label_testing_scene.gd.uid` sits at the `tests/` root.
 - `[LOW]` `tests/unit/test_dev_password_modal.gd` is indented with spaces, and its `const DevPasswordModal = preload(...)` shadows the global class name.
 - `[LOW]` A headless `--import` in a fresh checkout empties `[dialogic] directories/*` in `project.godot` (see [the gotcha](#first-run-in-a-fresh-checkout)).

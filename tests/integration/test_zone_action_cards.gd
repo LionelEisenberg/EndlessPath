@@ -28,8 +28,7 @@ const EULJIRO_PATH: String = "res://assets/fonts/BMEULJIROTTF.ttf"
 
 const FIXTURE_TECHNIQUE_ID: String = "test_zone_action_cards_technique"
 
-## CyclingManager's technique index while a test adds its fixture technique.
-## Other tests may leave the index empty, so these tests never rely on it.
+## CyclingManager's technique index while a test swaps or rebuilds it.
 var _saved_technique_index: Dictionary = {}
 var _technique_index_swapped: bool = false
 
@@ -123,6 +122,13 @@ func _equip_technique_named(technique_name: String) -> void:
 	index[FIXTURE_TECHNIQUE_ID] = technique
 	CyclingManager._techniques_by_id = index
 	PersistenceManager.save_game_data.equipped_cycling_technique_id = FIXTURE_TECHNIQUE_ID
+
+## Gives CyclingManager its real technique index for the test (the index is
+## restored after it).
+func _use_real_technique_catalog() -> void:
+	_saved_technique_index = CyclingManager._techniques_by_id.duplicate()
+	_technique_index_swapped = true
+	CyclingManager._build_catalog_index()
 
 ## The rich text labels of the card's detail line (training and foraging),
 ## left to right.
@@ -404,9 +410,14 @@ func test_long_detail_wraps_in_tall_drawer() -> void:
 	assert_eq(card.size.x, CARD_WIDTH)
 
 func test_fresh_save_cycling_card_wraps() -> void:
-	# Kit §0: "Foundational Technique · Madra and Core Density XP" is wider than 316 px.
-	_equip_technique_named("Foundational Technique")
-	assert_eq(_card(CYCLING_ID).size.y, TALL_HEIGHT)
+	# Kit §0: the fresh save's own technique, from the real catalog, makes
+	# "Foundational Technique · Madra and Core Density XP", wider than 316 px.
+	_use_real_technique_catalog()
+	assert_eq(PersistenceManager.save_game_data.equipped_cycling_technique_id, "foundation_technique",
+		"precondition: the fresh save's own technique")
+	var card: ZoneActionButton = _card(CYCLING_ID)
+	assert_has(_texts(card.get_detail_slot()), "Foundational Technique · Madra and Core Density XP")
+	assert_eq(card.size.y, TALL_HEIGHT)
 
 func test_short_detail_keeps_the_short_drawer() -> void:
 	_equip_technique_named("Calm")
