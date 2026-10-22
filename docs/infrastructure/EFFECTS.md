@@ -41,7 +41,7 @@ Execution is synchronous and context-free. `process()` takes no arguments; `Adve
 |---|---|---|
 | `ZoneActionData.success_effects` / `failure_effects` | `ActionManager._process_completion_effects(successful)` | When the current action stops: `stop_action(successful)`, or when `select_action()` replaces it (which counts as success). NPC dialogue stops on `DialogueManager.dialogue_ended`; the Merchant stops when the player leaves the shop; adventures stop with `false` on time-out. |
 | `TrainingActionData.effects_per_tick` | `ActionManager._on_train_timer_finished()` | Every `tick_interval_seconds` while the training action is selected |
-| `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` also reads the first `AwardAttributeEffectData` here for its "+N / M Attribute" badge. |
+| `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` and the Now strip also read the first `AwardAttributeEffectData` here for "each level +1 Spirit" and "Lv n → n+1 · +1 Spirit". |
 | `QuestData.completion_effects` | `QuestManager._complete_quest()` | After the last step advances, before `quest_completed` |
 | `EncounterChoice.success_effects` | `AdventureTilemap._on_choice_selected()` (plain choices), `_on_dialogue_ended()` (`DialogueChoice`) | Choice picked, or its timeline ended |
 | `CombatChoice.success_effects` / `failure_effects` | `AdventureTilemap.handle_combat_result()` | Combat won (after gold is added) or lost |
@@ -153,7 +153,7 @@ Attributes come from `CharacterManager.get_total_attributes_data()`.
 | EventManager | Target of `TriggerEventEffectData` |
 | ResourceManager / CharacterManager / PathManager / PlayerManager | Targets of the award and vitals effects |
 | Item tooltips | `ConsumableDefinitionData._get_item_effects()` calls `describe()` |
-| TrainingPresenter | Reads `AwardAttributeEffectData` from `effects_on_level` for its UI badge |
+| TrainingPresenter / NowStrip | Read `AwardAttributeEffectData` from `effects_on_level` for the level reward text; `TrainingActionData.get_madra_per_second()` reads the MADRA `AwardResourceEffectData` in `effects_per_tick` for the rate |
 
 ## Existing Content
 
