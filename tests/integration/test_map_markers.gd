@@ -439,6 +439,34 @@ func test_ring_and_floater_keep_their_size_at_zoom_one() -> void:
 	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, centre.x + 25.0, 1.0, "centred 50 px right of the hex centre at zoom 2, 25 at zoom 1")
 	assert_eq(floater.position.y, centre.y - 28.0 - floater.get_rise(), "its token resting on the hex centre's height")
 
+func test_current_plate_draws_above_its_neighbours() -> void:
+	# Kit-size plates overlap their row neighbours below zoom 1.5 (164 px
+	# apart at zoom 1, 248 wide): the zone you stand in always reads whole.
+	_open_test_zone()
+	var valley: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var test_plate: ZoneMapLabel = _markers().get_plate(TEST_ZONE_ID)
+	assert_gt(valley.get_index(), test_plate.get_index(), "Spirit Valley's plate is drawn over Test Zone's")
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	valley = _markers().get_plate(SPIRIT_VALLEY_ID)
+	test_plate = _markers().get_plate(TEST_ZONE_ID)
+	assert_gt(test_plate.get_index(), valley.get_index(), "standing in Test Zone, its plate is on top")
+	assert_eq(_markers().get_plate_zone_ids(), [SPIRIT_VALLEY_ID, TEST_ZONE_ID] as Array[String], "still listed in map order")
+
+func test_overlapping_plates_hover_the_one_on_top() -> void:
+	# Standing in Test Zone, its plate is drawn over the valley's, which
+	# comes first in map order.
+	_open_test_zone()
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	var camera: Camera2D = _map.get_camera()
+	camera.zoom = Vector2.ONE
+	_map.frame_zone(_zone(TEST_ZONE_ID))
+	await _settle()
+	var valley_rect: Rect2 = _markers().get_plate(SPIRIT_VALLEY_ID).get_global_rect()
+	var test_rect: Rect2 = _markers().get_plate(TEST_ZONE_ID).get_global_rect()
+	var overlap: Rect2 = valley_rect.intersection(test_rect)
+	assert_true(overlap.has_area(), "precondition: at zoom 1 the two plates overlap")
+	assert_eq(_markers().get_plate_zone_id_at(overlap.get_center()), TEST_ZONE_ID, "the point belongs to the plate drawn on top")
+
 func test_plate_shows_name_only_below_zoom_1_25() -> void:
 	# Spec, Open / deferred: plates are reduced to the name below zoom 1.25.
 	EventManager.trigger_event(AURA_WELL_EVENT)

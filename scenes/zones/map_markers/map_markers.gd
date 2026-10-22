@@ -198,10 +198,7 @@ func get_glyph(zone_id: String) -> Control:
 ## The ids of the zones whose plates are in the layer, in map order.
 func get_plate_zone_ids() -> Array[String]:
 	var ids: Array[String] = []
-	for child: Node in _plate_container.get_children():
-		var plate := child as ZoneMapLabel
-		if plate != null and not plate.is_queued_for_deletion() and plate.get_zone_data() != null:
-			ids.append(plate.get_zone_data().zone_id)
+	ids.assign(_plates.keys())
 	return ids
 
 ## The ring that shows the running idle action.
@@ -285,12 +282,16 @@ func close_popover() -> void:
 	_popover_state.close()
 	_apply_pin()
 
-## The zone whose plate is under the canvas point, or "".
+## The zone whose plate is under the canvas point, or "": where plates
+## overlap, the one drawn on top.
 func get_plate_zone_id_at(point: Vector2) -> String:
-	for zone_id: String in _plates:
-		var plate: ZoneMapLabel = _plates[zone_id]
+	var children: Array[Node] = _plate_container.get_children()
+	for index: int in range(children.size() - 1, -1, -1):
+		var plate := children[index] as ZoneMapLabel
+		if plate == null or plate.get_zone_data() == null or get_plate(plate.get_zone_data().zone_id) != plate:
+			continue
 		if plate.is_visible_in_tree() and plate.get_global_rect().has_point(point):
-			return zone_id
+			return plate.get_zone_data().zone_id
 	return ""
 
 ## True when the canvas point lies on the shown popover.
@@ -306,10 +307,12 @@ func is_point_on_marker(point: Vector2) -> bool:
 # BUILDING
 #-----------------------------------------------------------------------------
 
-## Lays a plate under every map zone and a glyph over every veiled one. A hover
-## or pin whose zone left the map goes with it (Review Focus 5). The old
-## plates and glyphs hide and stay in the layer until they are freed at the
-## end of the frame, so none is ever an orphan.
+## Lays a plate under every map zone and a glyph over every veiled one. The
+## current zone's plate is drawn last, over any neighbour's it overlaps (at
+## zoom 1 row neighbours are 164 px apart, a plate 248 wide). A hover or pin
+## whose zone left the map goes with it (Review Focus 5). The old plates and
+## glyphs hide and stay in the layer until they are freed at the end of the
+## frame, so none is ever an orphan.
 func _rebuild() -> void:
 	for container: Control in [_glyph_container, _plate_container]:
 		for child: Node in container.get_children():
@@ -336,6 +339,9 @@ func _rebuild() -> void:
 			_glyph_container.add_child(glyph)
 			glyph.setup(state)
 			_glyphs[zone_data.zone_id] = glyph
+	var current_id: String = _current_map_zone_id()
+	if current_id != "":
+		_plate_container.move_child(_plates[current_id], -1)
 
 	if not _plates.has(_hovered_zone_id):
 		_hovered_zone_id = ""
