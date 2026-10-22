@@ -23,6 +23,7 @@ func log_message(bbcode: String) -> void:
 func get_history() -> Array[String]:
 	return _history.duplicate()
 
-## Toggles the visibility of the log window.
+## Opens or closes the full log: LogWindow answers visibility_toggled the way
+## it answers L. It does nothing while the log is hidden (under an overlay).
 func toggle_window() -> void:
 	visibility_toggled.emit()
