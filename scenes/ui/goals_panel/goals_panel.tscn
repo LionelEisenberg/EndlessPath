@@ -1,0 +1,177 @@
+[gd_scene format=3 uid="uid://d3i2be1iw3sso"]
+
+[ext_resource type="Script" uid="uid://bu32lgy0dnruy" path="res://scenes/ui/goals_panel/goals_panel.gd" id="1_goals"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://diujrkpfhj27b" path="res://assets/ui/lacquer/lacquer_goals_ai.png" id="3_board"]
+[ext_resource type="Texture2D" uid="uid://lobvyu83antr" path="res://assets/ui/lacquer/icons/ic_story_ai.png" id="4_story"]
+[ext_resource type="Texture2D" uid="uid://cvsx3a2hfquag" path="res://assets/ui/lacquer/lacquer_line_ai.png" id="5_line"]
+[ext_resource type="Texture2D" uid="uid://cwubwjpwdtuc1" path="res://assets/ui/lacquer/lacquer_ic_core_ai.png" id="6_core"]
+[ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="7_rod"]
+[ext_resource type="Texture2D" uid="uid://dxpnc8htanohg" path="res://assets/ui/lacquer/lacquer_rod_goal_empty_ai.png" id="8_rod_empty"]
+[ext_resource type="Texture2D" uid="uid://bsra35lmu7jxc" path="res://assets/ui/lacquer/lacquer_rod_goal_full_ai.png" id="9_rod_full"]
+[ext_resource type="Texture2D" uid="uid://cxn01d1umqedg" path="res://assets/ui/lacquer/lacquer_rod_goal_end_ai.png" id="10_rod_end"]
+
+[node name="GoalsPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 272.0
+offset_right = 464.0
+offset_bottom = 492.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_goals")
+
+[node name="Board" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 444.0
+offset_bottom = 224.0
+mouse_filter = 2
+texture = ExtResource("3_board")
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 27.0
+offset_right = 118.0
+offset_bottom = 60.0
+theme_type_variation = &"LabelLacquerPanelTitle"
+text = "Goals"
+
+[node name="Rows" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_top = 66.0
+offset_right = 440.0
+offset_bottom = 198.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="QuestRow" type="Control" parent="Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="QuestIcon" type="TextureRect" parent="Rows/QuestRow"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 2.0
+offset_right = 52.0
+offset_bottom = 34.0
+mouse_filter = 2
+texture = ExtResource("4_story")
+expand_mode = 1
+
+[node name="NameRow" type="HBoxContainer" parent="Rows/QuestRow"]
+layout_mode = 0
+offset_left = 64.0
+offset_right = 422.0
+offset_bottom = 20.0
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="QuestNameLabel" type="Label" parent="Rows/QuestRow/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerName"
+text = "Awaken Your Core"
+text_overrun_behavior = 3
+
+[node name="QuestFigure" type="MarginContainer" parent="Rows/QuestRow/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_top = 1
+
+[node name="QuestFigureLabel" type="Label" parent="Rows/QuestRow/NameRow/QuestFigure"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "25 / 100"
+horizontal_alignment = 2
+
+[node name="QuestStepLabel" type="Label" parent="Rows/QuestRow"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 22.0
+offset_right = 422.0
+offset_bottom = 39.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Fill your Madra by cycling"
+text_overrun_behavior = 3
+
+[node name="Divider" type="Control" parent="Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="DividerLine" type="TextureRect" parent="Rows/Divider"]
+layout_mode = 0
+offset_left = 16.0
+offset_right = 424.0
+offset_bottom = 6.0
+mouse_filter = 2
+texture = ExtResource("5_line")
+
+[node name="MilestoneRow" type="Control" parent="Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MilestoneIcon" type="TextureRect" parent="Rows/MilestoneRow"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 2.0
+offset_right = 52.0
+offset_bottom = 34.0
+mouse_filter = 2
+texture = ExtResource("6_core")
+
+[node name="MilestoneNameLabel" type="Label" parent="Rows/MilestoneRow"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_right = 422.0
+offset_bottom = 20.0
+theme_type_variation = &"LabelLacquerName"
+text = "Breakthrough"
+text_overrun_behavior = 3
+
+[node name="MilestoneTextLabel" type="Label" parent="Rows/MilestoneRow"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 22.0
+offset_right = 422.0
+offset_bottom = 39.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Raise Core Density to 100"
+text_overrun_behavior = 3
+
+[node name="MilestoneRod" parent="Rows/MilestoneRow" instance=ExtResource("7_rod")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 52.0
+offset_right = 344.0
+offset_bottom = 62.0
+empty_texture = ExtResource("8_rod_empty")
+full_texture = ExtResource("9_rod_full")
+end_texture = ExtResource("10_rod_end")
+steps = 138
+
+[node name="MilestoneFigureLabel" type="Label" parent="Rows/MilestoneRow"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 222.0
+offset_top = 48.0
+offset_right = 422.0
+offset_bottom = 65.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "0 / 100"
+horizontal_alignment = 2
