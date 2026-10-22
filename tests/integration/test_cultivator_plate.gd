@@ -140,8 +140,9 @@ func test_xp_figures_round_down() -> void:
 	_load_core_density(32.0, 17.6)
 	var need: float = CultivationManager.get_xp_for_next_level()
 	assert_eq(_text("XpLabel"), "17 / %d XP" % int(need))
-	var row: int = roundi(17.6 / need * 18.0)
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, row))
+	# 17.6 XP of the more than 18.2 level 32 needs lights 17 of the 18 beads,
+	# as in the mock.
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 17))
 
 #-----------------------------------------------------------------------------
 # GOLD

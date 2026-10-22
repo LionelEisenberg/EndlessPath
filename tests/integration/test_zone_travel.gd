@@ -47,6 +47,9 @@ func before_each() -> void:
 	await _settle()
 
 func after_each() -> void:
+	# test_esc_closes_pinned_popover parses a ui_cancel press; leave the action
+	# released for the tests that run after this file.
+	Input.action_release(&"ui_cancel")
 	_remove_fixture_zone()
 	ZoneManager.set_demo_zones_visible(false)
 	ZoneManager.set_hidden_zones_visible(false)
