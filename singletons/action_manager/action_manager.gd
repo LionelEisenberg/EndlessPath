@@ -66,12 +66,13 @@ func _ready() -> void:
 
 ## Arriving in a zone (travel, the load, a save reset) stops what runs and
 ## starts the zone's idle action. A repeat signal for the zone whose idle
-## action already runs changes nothing.
+## action already runs in the live save changes nothing; after a save reset
+## the same idle action restarts, bound to the new save.
 func _on_zone_changed(zone_data: ZoneData) -> void:
 	var zone_id: String = zone_data.zone_id if zone_data else ""
 	var previous_zone_id: String = _last_resolved_zone_id
 	_last_resolved_zone_id = zone_id
-	if zone_id == previous_zone_id and _is_resolved_idle_running(zone_id):
+	if zone_id == previous_zone_id and _is_current_action_in_live_save() and _is_resolved_idle_running(zone_id):
 		return
 
 	_stop_executing_current_action()

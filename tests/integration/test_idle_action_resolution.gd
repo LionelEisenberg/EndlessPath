@@ -352,6 +352,21 @@ func test_save_reset_stops_and_resolves_once() -> void:
 	assert_eq(ActionManager.action_timer.timeout.get_connections().size(), 0, "no tick callback left connected")
 	assert_eq(_completions(AURA_WELL_ID), 0, "the old save's Aura Well must not count a completion in the fresh save")
 
+## A save reset whose new save resolves to the idle action already running
+## still restarts it, bound to the new save: the new save records it as the
+## zone's last idle action and counts its completion when it stops.
+func test_save_reset_to_the_same_idle_restarts_it_in_the_new_save() -> void:
+	_run_aura_well()
+	var next_save := SaveGameData.new()
+	next_save.unlock_progression.unlocked_condition_ids.append(AURA_WELL_EVENT)
+	PersistenceManager.save_game_data = next_save
+	PersistenceManager.save_data_reset.emit()
+	assert_eq(_current_id(), AURA_WELL_ID, "the Aura Well runs in the new save too")
+	assert_eq(ZoneManager.get_last_idle_action_id(ZONE_ID), AURA_WELL_ID, "the new save records it")
+	assert_eq(ActionManager.action_timer.timeout.get_connections().size(), 1, "one tick callback")
+	ActionManager.select_action(_action(CYCLING_ID))
+	assert_eq(_completions(AURA_WELL_ID), 1, "stopping it counts in the new save")
+
 #-----------------------------------------------------------------------------
 # LOAD
 #-----------------------------------------------------------------------------
