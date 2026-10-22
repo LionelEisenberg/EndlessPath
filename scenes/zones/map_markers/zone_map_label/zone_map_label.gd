@@ -16,9 +16,10 @@ extends Control
 ## a group. A long action name or blocker ellipsizes in the Label, so the icon
 ## and the rate stay whole and the plate never widens (Review Focus 4).
 ## Hovered plates show their hover texture; a pinned plate (its popover is
-## pinned) gets the brass frame. MapMarkers places and scales the plate under
-## its hex every frame; pressing it emits pressed (MapMarkers turns that into
-## plate_pressed).
+## pinned) gets the brass frame. MapMarkers places the plate under its hex
+## every frame, always at its kit size, and has it show its name only below
+## zoom 1.25 (set_name_only); pressing it emits pressed (MapMarkers turns that
+## into plate_pressed).
 
 ## Emitted when the player clicks the plate.
 signal pressed
@@ -80,6 +81,8 @@ var _zone_data: ZoneData = null
 var _state: ZoneManager.ZoneMapState = ZoneManager.ZoneMapState.OPEN
 var _hovered: bool = false
 var _pinned: bool = false
+## True while the map is zoomed out too far for the status line.
+var _name_only: bool = false
 
 ## What the plate shows, worked out by _compute() and drawn by _apply(). The
 ## line is its text part (ellipsized when long) and its rate part (kept whole).
@@ -129,6 +132,14 @@ func set_pinned(pinned: bool) -> void:
 	_pinned = pinned
 	_apply()
 
+## Name only (the map is zoomed out below 1.25): the status line hides and
+## the name centres on the plate; the line comes back with false.
+func set_name_only(name_only: bool) -> void:
+	if name_only == _name_only:
+		return
+	_name_only = name_only
+	_apply()
+
 ## The zone the plate names.
 func get_zone_data() -> ZoneData:
 	return _zone_data
@@ -137,13 +148,15 @@ func get_zone_data() -> ZoneData:
 func get_state() -> ZoneManager.ZoneMapState:
 	return _state
 
-## The status line as plain text, or "" when the plate shows the name alone.
+## The status line as plain text, or "" when the plate has none (nothing
+## idle runs in the current zone). Kept while the plate shows its name only.
 func get_line_text() -> String:
 	return _line
 
-## True when the plate shows a status line under the name.
+## True when the plate shows a status line under the name: it has one and
+## the map is not zoomed out to names only.
 func is_line_shown() -> bool:
-	return _line != ""
+	return _line != "" and not _name_only
 
 ## The colour the zone's name is drawn in now.
 func get_name_color() -> Color:

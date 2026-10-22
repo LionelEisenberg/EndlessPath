@@ -11,9 +11,13 @@ extends CanvasLayer
 ## - the one map popover (ZoneMapPopover) for a locked or uncharted zone.
 ## Draw order, back to front: ring, floater, glyphs, plates, popover (kit §6.1).
 ## Every frame each marker follows its hex through the map's canvas transform:
-## at zoom 2 it sits at the kit's offset from the hex centre at file size, and
-## at any other zoom both the offset and the marker scale by zoom / 2, so it
-## stays on its hex (Review Focus 3). The layer hides while the camera zooms
+## at zoom 2 it sits at the kit's offset from the hex centre. Markers keep
+## their kit size at every zoom, so no text drops under the 13 px floor; at
+## another zoom only the point each one hangs from (its anchor: a plate's top
+## centre, a glyph's centre, the ring's top-left, the floater's foot, the
+## popover's edge beside the hex) moves with the hex, by zoom / 2 (Review
+## Focus 3). Below zoom 1.25 the plates show their names only (spec, Open /
+## deferred), so their lines do not crowd. The layer hides while the camera zooms
 ## into an adventure and shows again when the zone view comes back and the
 ## camera has eased back to its resting zoom.
 ## Instanced by ZoneTilemap, which it reads through map; it rebuilds on the
@@ -72,6 +76,20 @@ const POPOVER_OFFSET_UNCHARTED: Vector2 = Vector2(168, -56)
 ## with its top 28 above the centre before it rises.
 const FLOATER_CENTRE_X: float = 50.0
 const FLOATER_TOP: float = -28.0
+
+## Where a marker hangs from its hex at zoom 2, from the hex centre: the point
+## that moves with the hex at other zooms while the marker keeps its size. The
+## ring hangs from its top-left, the floater from the foot of its token, a
+## popover from its edge beside the hex (4 px clear of the rim); a plate from
+## its top centre and a glyph from its own centre (_plate_anchor,
+## _glyph_anchor).
+const RING_ANCHOR: Vector2 = RING_OFFSET
+const FLOATER_ANCHOR: Vector2 = Vector2(FLOATER_CENTRE_X, 0)
+const POPOVER_ANCHOR_LOCKED: Vector2 = Vector2(-168, 0)
+const POPOVER_ANCHOR_UNCHARTED: Vector2 = Vector2(168, 0)
+
+## Below this map zoom the plates show their names only (spec, Open / deferred).
+const PLATE_NAME_ONLY_BELOW_ZOOM: float = 1.25
 
 ## Between the items of a foraging haul on the floater.
 const HAUL_SEPARATOR: String = "  "
@@ -345,39 +363,57 @@ func _apply_hover_and_pin() -> void:
 # PLACEMENT
 #-----------------------------------------------------------------------------
 
-## Puts every marker at its kit offset from its hex's screen centre, both
-## scaled by zoom / 2, in whole px.
+## Where a marker of fixed size goes: at zoom 2 (hex_scale 1) its kit offset
+## from the hex's screen centre; at any other zoom its anchor (a point at the
+## kit's distance from the hex centre) moves with the hex, by hex_scale =
+## zoom / 2, and the marker keeps its size around it. In whole px.
+static func marker_position(hex_centre: Vector2, kit_offset: Vector2, anchor: Vector2, hex_scale: float) -> Vector2:
+	return (hex_centre + kit_offset + anchor * (hex_scale - 1.0)).round()
+
+## Puts every marker at its kit offset from its hex's screen centre, at its
+## kit size, its anchor following the hex (marker_position), in whole px.
+## Below zoom 1.25 the plates show their names only.
 func _place_markers() -> void:
 	if map == null or not map.is_inside_tree():
 		return
 	var canvas: Transform2D = map.get_global_transform_with_canvas()
-	var marker_scale: float = canvas.get_scale().x / KIT_ZOOM
-	var scale_vector: Vector2 = Vector2(marker_scale, marker_scale)
+	var zoom: float = canvas.get_scale().x
+	var hex_scale: float = zoom / KIT_ZOOM
+	# The canvas scale comes back a hair off the camera's zoom.
+	var name_only: bool = zoom < PLATE_NAME_ONLY_BELOW_ZOOM and not is_equal_approx(zoom, PLATE_NAME_ONLY_BELOW_ZOOM)
 
 	for zone_id: String in _plates:
 		var plate: ZoneMapLabel = _plates[zone_id]
-		plate.position = (canvas * _zone_centres[zone_id] + _plate_offset(plate.get_state()) * marker_scale).round()
-		plate.scale = scale_vector
+		var plate_offset: Vector2 = _plate_offset(plate.get_state())
+		plate.position = marker_position(canvas * _zone_centres[zone_id], plate_offset, _plate_anchor(plate_offset), hex_scale)
+		plate.set_name_only(name_only)
 	for zone_id: String in _glyphs:
 		var glyph: MapGlyph = _glyphs[zone_id]
-		glyph.position = (canvas * _zone_centres[zone_id] + _glyph_offset(glyph.get_state()) * marker_scale).round()
-		glyph.scale = scale_vector
+		var glyph_offset: Vector2 = _glyph_offset(glyph.get_state())
+		glyph.position = marker_position(canvas * _zone_centres[zone_id], glyph_offset, glyph_offset + glyph.size / 2.0, hex_scale)
 	var popover_zone: ZoneData = _popover.get_zone_data()
 	if _popover.visible and popover_zone != null and _zone_centres.has(popover_zone.zone_id):
-		_popover.position = (canvas * _zone_centres[popover_zone.zone_id] + _popover_offset() * marker_scale).round()
-		_popover.scale = scale_vector
+		_popover.position = marker_position(canvas * _zone_centres[popover_zone.zone_id], _popover_offset(), _popover_anchor(), hex_scale)
 
 	var current_id: String = _current_map_zone_id()
 	if current_id == "":
 		return
 	var centre: Vector2 = canvas * _zone_centres[current_id]
-	_ring.position = (centre + RING_OFFSET * marker_scale).round()
-	_ring.scale = scale_vector
+	_ring.position = marker_position(centre, RING_OFFSET, RING_ANCHOR, hex_scale)
 	var floater_offset: Vector2 = Vector2(
 		snappedf(FLOATER_CENTRE_X - _floater.get_token_width() / 2.0, 2.0),
 		FLOATER_TOP - _floater.get_rise())
-	_floater.position = (centre + floater_offset * marker_scale).round()
-	_floater.scale = scale_vector
+	_floater.position = marker_position(centre, floater_offset, FLOATER_ANCHOR, hex_scale)
+
+## A plate hangs from its top centre: the kit's offsets centre the plate
+## under its hex.
+func _plate_anchor(plate_offset: Vector2) -> Vector2:
+	return Vector2(0.0, plate_offset.y)
+
+func _popover_anchor() -> Vector2:
+	if _popover.get_state() == ZoneManager.ZoneMapState.UNCHARTED:
+		return POPOVER_ANCHOR_UNCHARTED
+	return POPOVER_ANCHOR_LOCKED
 
 func _plate_offset(state: ZoneManager.ZoneMapState) -> Vector2:
 	match state:
@@ -553,7 +589,7 @@ func _on_save_data_reset() -> void:
 	close_popover()
 
 ## ZoneTransition zooms the camera into the zone before an adventure: the
-## plates and glyphs would swell with it, so the layer hides.
+## plates and glyphs would slide apart with the hexes, so the layer hides.
 func _on_adventure_start_requested(_action_data: AdventureActionData) -> void:
 	_waiting_for_camera = false
 	close_popover()

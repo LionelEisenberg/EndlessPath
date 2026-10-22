@@ -396,15 +396,17 @@ func test_save_reset_rebuilds_plates_once() -> void:
 # ZOOM (Review Focus 3)
 #-----------------------------------------------------------------------------
 
-func test_plate_follows_hex_at_zoom_one() -> void:
+func test_plate_keeps_its_size_at_zoom_one() -> void:
+	# The 13 px text floor: a plate is drawn at its kit size at every zoom;
+	# only where it hangs follows the hex.
 	var camera: Camera2D = _map.get_camera()
 	camera.zoom = Vector2.ONE
 	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
 	await _settle()
 	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
 	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
-	assert_eq(plate.position, centre + Vector2(-124, 98) * 0.5, "the kit's offset scales by zoom / 2")
-	assert_eq(plate.scale, Vector2(0.5, 0.5), "and so does the plate, so it stays centred on its hex")
+	assert_eq(plate.scale, Vector2.ONE, "the plate never shrinks")
+	assert_eq(plate.position, (centre + Vector2(-124, 49)).round(), "centred under its hex, its top 98 px down at zoom 2 and 49 at zoom 1")
 
 func test_glyphs_follow_hexes_when_panned_to_the_clamp_edge() -> void:
 	ZoneManager.set_demo_zones_visible(true)
@@ -414,10 +416,46 @@ func test_glyphs_follow_hexes_when_panned_to_the_clamp_edge() -> void:
 	await _settle()
 	var lock_centre: Vector2 = ZoneMapMath.world_to_screen(_map.get_zone_world_centre(_zone(ADVANCEMENT_DEMO_ID)), camera.position, 1.5)
 	var glyph: Control = _markers().get_glyph(ADVANCEMENT_DEMO_ID)
-	assert_almost_eq(glyph.position.x, lock_centre.x - 22.0 * 0.75, 1.0)
-	assert_almost_eq(glyph.position.y, lock_centre.y - 61.0 * 0.75, 1.0)
-	assert_almost_eq(glyph.scale.x, 0.75, 0.0001, "the glyph scales by zoom / 2")
-	assert_almost_eq(glyph.scale.y, 0.75, 0.0001)
+	assert_eq(glyph.scale, Vector2.ONE, "the glyph keeps its size")
+	# The 44x52 padlock's centre sits 35 px above the hex centre at zoom 2.
+	assert_almost_eq(glyph.position.x, lock_centre.x - 22.0, 1.0, "centred on its hex")
+	assert_almost_eq(glyph.position.y, lock_centre.y - 35.0 * 0.75 - 26.0, 1.0, "its centre's height above the hex scales with the hex")
+
+func test_ring_and_floater_keep_their_size_at_zoom_one() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var camera: Camera2D = _map.get_camera()
+	camera.zoom = Vector2.ONE
+	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
+	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
+	await _settle()
+	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
+	var ring: MapActionRing = _markers().get_action_ring()
+	var floater: MapFloater = _markers().get_floater()
+	assert_eq(ring.scale, Vector2.ONE, "the ring keeps its size")
+	assert_eq(ring.position, (centre + Vector2(19, 2)).round(), "its top-left at the kit's (38, 4) scaled to the hex")
+	assert_eq(floater.scale, Vector2.ONE, "the floater keeps its size")
+	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, centre.x + 25.0, 1.0, "centred 50 px right of the hex centre at zoom 2, 25 at zoom 1")
+	assert_eq(floater.position.y, centre.y - 28.0 - floater.get_rise(), "its token resting on the hex centre's height")
+
+func test_plate_shows_name_only_below_zoom_1_25() -> void:
+	# Spec, Open / deferred: plates are reduced to the name below zoom 1.25.
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var camera: Camera2D = _map.get_camera()
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var line_area: Control = plate.get_node("%LineArea") as Control
+	camera.zoom = Vector2(1.25, 1.25)
+	await _settle()
+	assert_true(plate.is_line_shown(), "at 1.25 the status line still shows")
+	assert_true(line_area.visible)
+	camera.zoom = Vector2(1.2, 1.2)
+	await _settle()
+	assert_false(plate.is_line_shown(), "below 1.25 the plate shows its name only")
+	assert_false(line_area.visible)
+	assert_eq(plate.get_line_text(), "Aura Well · +1.5 Madra / s", "the status is kept for when the map zooms back in")
+	camera.zoom = Vector2(2.0, 2.0)
+	await _settle()
+	assert_true(plate.is_line_shown(), "zoomed back in, the line returns")
+	assert_true(line_area.visible)
 
 #-----------------------------------------------------------------------------
 # ROUTES

@@ -443,8 +443,10 @@ func test_popover_follows_hex_at_zoom_one() -> void:
 	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
 	await _settle()
 	var centre: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(ADVANCEMENT_DEMO_ID)))
-	assert_eq(_popover().position, (centre + Vector2(-440, -86) * 0.5).round())
-	assert_eq(_popover().scale, Vector2(0.5, 0.5))
+	assert_eq(_popover().scale, Vector2.ONE, "the popover keeps its size: its text never drops under 13 px")
+	# At zoom 2 the card's right edge is 168 px left of the hex centre, 4 px
+	# clear of the rim; at zoom 1 it is 84 px left, centred on the hex height.
+	assert_eq(_popover().position, (centre + Vector2(-84 - 272, -86)).round(), "beside its hex")
 
 func test_show_me_only_for_action_in_current_zone() -> void:
 	ZoneManager.set_demo_zones_visible(true)
