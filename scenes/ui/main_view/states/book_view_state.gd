@@ -1,8 +1,9 @@
 ## Base for the states that show a menu book (Inventory, Abilities, Character,
 ## Path). Opens the book with the backdrop fade, and closes it on Esc, the
 ## menu's own key, the book's close tab or a click on the backdrop outside the
-## book; all of them take the same route. While a book is open, the log and the
-## Goals board hide under it. Subclasses name their view and their close keys.
+## book; all of them take the same route. The log and the Goals board stay
+## where they are while a book is open, under the backdrop. Subclasses name
+## their view and their close keys.
 class_name BookViewState
 extends MainViewState
 
@@ -12,7 +13,6 @@ extends MainViewState
 
 ## Called when entering this state.
 func enter() -> void:
-	scene_root.hide_hud_boards(self)
 	var view: MenuBookView = _get_view()
 	if not view.close_requested.is_connected(_request_close):
 		view.close_requested.connect(_request_close)
@@ -23,14 +23,12 @@ func enter() -> void:
 ## Called when exiting this state.
 ## Hiding is driven by grey_background.panel_hidden -> _on_close_finished -> pop_state,
 ## so by the time exit() runs the grey background and the view are already hidden.
-## The log and the Goals board come back now.
 func exit() -> void:
 	var view: MenuBookView = _get_view()
 	if view.close_requested.is_connected(_request_close):
 		view.close_requested.disconnect(_request_close)
 	if scene_root.grey_background.clicked.is_connected(_request_close):
 		scene_root.grey_background.clicked.disconnect(_request_close)
-	scene_root.release_hud_boards(self)
 
 ## Handle input events in this state.
 func handle_input(event: InputEvent) -> void:
