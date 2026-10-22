@@ -7,6 +7,12 @@
 base_font = ExtResource("1_ex2p2")
 spacing_glyph = 1
 
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_indent"]
+content_margin_left = 1.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
 [resource]
 LabelLacquerBig/base_type = &"Label"
 LabelLacquerBig/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
@@ -30,6 +36,7 @@ LabelLacquerFloater/base_type = &"Label"
 LabelLacquerFloater/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
 LabelLacquerFloater/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelLacquerFloater/constants/line_spacing = 1
+LabelLacquerFloater/constants/outline_size = 0
 LabelLacquerFloater/font_sizes/font_size = 16
 LabelLacquerFloater/fonts/font = ExtResource("1_ex2p2")
 LabelLacquerGold/base_type = &"Label"
@@ -119,6 +126,7 @@ LabelLacquerSeal/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelLacquerSeal/constants/line_spacing = 6
 LabelLacquerSeal/font_sizes/font_size = 13
 LabelLacquerSeal/fonts/font = SubResource("FontVariation_1s0ec")
+LabelLacquerSeal/styles/normal = SubResource("StyleBoxEmpty_indent")
 LabelLacquerSection/base_type = &"Label"
 LabelLacquerSection/colors/font_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
 LabelLacquerSection/colors/font_shadow_color = Color(0.08235294, 0.03529412, 0.03529412, 1)
@@ -143,6 +151,7 @@ LabelLacquerTag/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelLacquerTag/constants/line_spacing = 6
 LabelLacquerTag/font_sizes/font_size = 13
 LabelLacquerTag/fonts/font = SubResource("FontVariation_1s0ec")
+LabelLacquerTag/styles/normal = SubResource("StyleBoxEmpty_indent")
 LabelLacquerZoneName/base_type = &"Label"
 LabelLacquerZoneName/colors/font_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
 LabelLacquerZoneName/colors/font_shadow_color = Color(0.08235294, 0.03529412, 0.03529412, 1)

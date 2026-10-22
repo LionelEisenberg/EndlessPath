@@ -134,8 +134,9 @@ How the theme is built, so a reused piece inside a lacquer panel keeps its own l
 
 - **No defaults.** The theme sets no `default_font` or `default_font_size`. A default would answer for every type, `pixel_theme.tres`'s variants included, before Godot reached them (the `LabelMerchantTitle` problem above). Each variant sets its own `font` and `font_size` instead. `test_theme_sets_no_defaults` guards this.
 - **Shadows.** `pixel_theme.tres`'s base `Label` draws a 1 px ink shadow. The four painted titles set the kit's hard 2 px shadow (`#150909`, offset 2, 2, `shadow_outline_size` 0). Every other lacquer variant sets a transparent `font_shadow_color`, so it draws none.
-- **Line pitch.** Each variant's `line_spacing` is the kit's line height minus the font's height at that size, so wrapped lines (lore, two-line card details, popover bodies) step by the kit's line height.
+- **Line pitch.** Each variant's `line_spacing` is the kit's line height minus the font's height at that size, so wrapped lines (lore, two-line card details, popover bodies) step by the kit's line height. A single-line Label is only the font's height (17 px for 15 px BM Euljiro), not the kit's line height.
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for the painted titles, BM Euljiro for everything else. Tags and seals use a `FontVariation` of BM Euljiro with 1 px letter spacing (`spacing_glyph = 1`).
+- **Tag and seal indent.** The 1 px letter spacing also trails the last letter, which would pull centred text 0.5 px left. Tags and seals therefore have a `normal` style of their own, a `StyleBoxEmpty` with a 1 px left content margin: the mock's `text-indent: 1px`. Give the Label the tag's or seal's full width (76 px for a tag) and centre the text. Add no offset of your own.
 
 Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 
@@ -162,9 +163,13 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerPlateLine` | Euljiro 14 / 18 | Cream | Map plate status lines |
 | `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |
 | `LabelLacquerPopoverBody` | Euljiro 15 / 20 | Cream | Map popover body text |
-| `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Map floaters on their lacquer token. No outline: the kit's §0 dropped it when the floaters moved onto the token. Madra floaters override to Madra blue |
+| `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Map floaters on their lacquer token. No outline (`outline_size` set to 0): the kit's §0 dropped it when the floaters moved onto the token. A floater with a decimal (`+1.5 Madra`, Madra blue) needs the Yatra point, so it is a `RichTextLacquer` at 16 px instead (see below) |
 
-`RichTextLacquer` (base `RichTextLabel`): BM Euljiro 15, tan, `line_separation` for an 18 px line. Use it for the few lines with a decimal number: BM Euljiro's `.` sits low and reads as a comma at 15–17 px, so `LacquerText.decimal_bbcode()` sets each decimal point in Yatra One (kit §3, glyph gaps).
+`RichTextLacquer` (base `RichTextLabel`): BM Euljiro 15, tan, `line_separation` 1, so each line is 18 px (15/18), the first included. Use it for the few lines with a decimal number: BM Euljiro's `.` sits low and reads as a comma at 15–17 px, so `LacquerText.decimal_bbcode()` sets each decimal point in Yatra One (kit §3, glyph gaps). Set `bbcode_enabled`, `fit_content` and, for one-line text, `autowrap_mode` off.
+
+- **The dot never grows its line.** Yatra One's ascent and descent run up to 3 px past BM Euljiro's, so a plain Yatra dot would make a 15 px line 24 px tall and drop its baseline 3 px. `decimal_bbcode()` writes the dot as `[font name=…YatraOne-Regular.ttf top_spacing=-3 bottom_spacing=-3]`, the mock's `.pt { line-height: 0 }`. At 13 to 18 px a line with a decimal is exactly as tall as the same line without one (`test_decimal_point_never_grows_a_line`). Above 18 px the trim is not enough: check the line height before using it there.
+- **Other sizes.** Override `normal_font_size` for the 16 px Now rate and floater or the 17 px cabinet rate, and the colour (`default_color`) where the kit colours the line. The line is then the font's height + 1: 20 px at 16, 21 at 17. The kit's cabinet rate is 17/20, but it is one line, so only its box is 1 px taller: the baseline is where a Label's would be.
+- **Not `[font=path]` with a `FontVariation` file.** In Godot 4.7.2 a `[font=…]` tag that loads a `FontVariation` `.tres` drops its `spacing_top` / `spacing_bottom` (measured: the line still grows to 24 px), while `push_font()` with the same object keeps them. Put the spacing in the tag's options, as `decimal_bbcode()` does.
 
 Per-label colour overrides on top of these variants are expected where the kit colours by state: log lines by tone and age, plate names on hover, RUNNING and ENTER tags, Madra-blue text.
 
@@ -179,14 +184,16 @@ All `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 | `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` (12x12) | top and bottom 4 | yes | The activity list's rail thumb, any even height of 32 or more |
 | `token.tres` | `lacquer_token_ai.png` (26x26) | left and top 6, right and bottom 8 | yes | The map floater's token. The 2 px shadow is baked into the right and bottom edges |
 
+`token.tres` also sets content margins 14, 4, 16 and 6 (left, top, right, bottom), so a `PanelContainer` with this style hugs one 20 px text line to the kit's token: 30 px tall (28 + the 2 px shadow), the text 14 px in and 4 px down, and text width + 30 wide (text + 28 + the shadow). A 16 px `RichTextLacquer` line is 20 px already (`test_token_hugs_a_floater_line`). A one-line `LabelLacquerFloater` is 19 px, so give it `custom_minimum_size.y = 20`. The kit rounds the token's width to even (`even(text + 28)`): the floater sets that width itself.
+
 ### Lacquer pieces (`scenes/common/lacquer/`)
 
-- **`LacquerStripRect`** (`lacquer_strip_rect.gd`, a `TextureRect` script): set `strip` and `frame_size`, then `set_frame(column, row)` shows that frame through the rect's own `AtlasTexture` (orbs, XP beads, timer rings). Frames clamp to the strip.
-- **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Aura Well 152, milestone 138, adventure 74.
+- **`LacquerStripRect`** (`lacquer_strip_rect.gd`, a `TextureRect` script): set `strip` and `frame_size`, then `set_frame(column, row)` shows that frame through the rect's own `AtlasTexture` (orbs, XP beads, timer rings). Frames clamp to the strip. It is `@tool`, so a placed rect shows frame 0 in the editor. Its `texture` is derived and read-only, and is never saved into the scene: `strip` and `frame_size` are.
+- **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Aura Well 152, milestone 138, adventure 74. It is `@tool`: in the editor a placed rod is the groove's size and shows empty. Its minimum size comes from `empty_texture`, so leave its size and `custom_minimum_size` alone.
 - **`LacquerFrameOverlay`** (`lacquer_frame_overlay.tscn`, a `Panel`): a full-rect frame over its parent, hidden, mouse ignored, brass by default. Override its `theme_override_styles/panel` with `frame_hover.tres` for the hover frame. `flash(times)` shows it 300 ms and hides it 300 ms, `times` times, and ends hidden.
 - **`LacquerText`** (`scripts/utils/lacquer_text.gd`): `rate(1.5)` → `"+1.5"`, `rate(2.0)` → `"+2"`; `decimal_bbcode(text)` for `RichTextLacquer`.
 
-Tests: `tests/unit/test_lacquer_pieces.gd` checks every variant's font, size, colour, shadow and line pitch, the styleboxes' margins, and the pieces.
+Tests: `tests/unit/test_lacquer_pieces.gd` checks every variant's font, size, colour and shadow, the line pitch measured on real Labels and RichTextLabels (decimal lines included), the tag indent, the styleboxes' margins, the token hugging a floater line, and the pieces.
 
 ## Pattern examples
 

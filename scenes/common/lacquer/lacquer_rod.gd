@@ -1,3 +1,4 @@
+@tool
 class_name LacquerRod
 extends Control
 
@@ -7,11 +8,14 @@ extends Control
 ## and moves in whole 2 px steps, never scaled or eased.
 ## Kit rods: Aura Well (rod_well, 152 steps), milestone (rod_goal, 138) and
 ## adventure Madra (rod_adv, 74).
+## It runs in the editor (@tool), so a placed rod shows its groove at its
+## size; the editor shows it empty.
 
 ## The empty groove; the rod takes its size.
 @export var empty_texture: Texture2D = null:
 	set(value):
 		empty_texture = value
+		update_minimum_size()
 		_apply_textures()
 
 ## The full rod, drawn over the groove and clipped to the step.
@@ -48,6 +52,9 @@ func _ready() -> void:
 	_apply_textures()
 	_apply_step()
 
+func _get_minimum_size() -> Vector2:
+	return empty_texture.get_size() if empty_texture != null else Vector2.ZERO
+
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
@@ -71,7 +78,6 @@ func _apply_textures() -> void:
 	_empty.texture = empty_texture
 	_full.texture = full_texture
 	_end.texture = end_texture
-	custom_minimum_size = empty_texture.get_size() if empty_texture != null else Vector2.ZERO
 	_apply_step()
 
 func _apply_step() -> void:

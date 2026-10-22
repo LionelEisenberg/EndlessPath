@@ -1,3 +1,4 @@
+@tool
 class_name LacquerStripRect
 extends TextureRect
 
@@ -6,6 +7,9 @@ extends TextureRect
 ## AtlasTexture, so two rects on the same strip show different frames.
 ## Frames are counted in columns and rows of frame_size; set_frame clamps to
 ## the strip, so a ratio above 1 shows the last frame.
+## It runs in the editor (@tool) so placed rects show their frame. The
+## AtlasTexture it draws through is rebuilt from strip and frame_size, so it
+## is never saved into the scene.
 
 ## The strip texture: frames of frame_size laid out in columns and rows.
 @export var strip: Texture2D = null:
@@ -21,6 +25,15 @@ extends TextureRect
 
 var _frame: Vector2i = Vector2i.ZERO
 var _atlas: AtlasTexture = null
+
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
+func _validate_property(property: Dictionary) -> void:
+	# texture is derived from strip and frame_size: read-only, never saved.
+	if property.name == "texture":
+		property.usage = (property.usage & ~PROPERTY_USAGE_STORAGE) | PROPERTY_USAGE_READ_ONLY
 
 #-----------------------------------------------------------------------------
 # PUBLIC API

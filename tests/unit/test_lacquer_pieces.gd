@@ -16,7 +16,9 @@ const ROD_WELL_END: Texture2D = preload("res://assets/ui/lacquer/lacquer_rod_wel
 
 const YATRA_PATH: String = "res://assets/fonts/YatraOne-Regular.ttf"
 const EULJIRO_PATH: String = "res://assets/fonts/BMEULJIROTTF.ttf"
-const YATRA_POINT: String = "[font=res://assets/fonts/YatraOne-Regular.ttf].[/font]"
+## The decimal point in Yatra One, its ascent and descent trimmed by 3 px so
+## the dot never makes its line taller (the mock's `.pt { line-height: 0 }`).
+const YATRA_POINT: String = "[font name=res://assets/fonts/YatraOne-Regular.ttf top_spacing=-3 bottom_spacing=-3].[/font]"
 
 ## [variant, font path, font size, colour, kit line height] for every Label
 ## variant (kit §3). The line height is the kit's: wrapped lines step by it.
@@ -67,6 +69,30 @@ func _font_path(font: Font) -> String:
 	if font is FontVariation:
 		return (font as FontVariation).base_font.resource_path
 	return font.resource_path
+
+## A label in the lacquer theme, in the tree and laid out.
+func _make_label(variant: StringName, text: String) -> Label:
+	var label := Label.new()
+	label.theme = _theme()
+	label.theme_type_variation = variant
+	label.text = text
+	add_child_autofree(label)
+	return label
+
+## A RichTextLacquer label sized to its content, in the tree. A font_size
+## above 0 overrides the variant's 15 px.
+func _make_rich_text(bbcode: String, font_size: int = 0) -> RichTextLabel:
+	var rich := RichTextLabel.new()
+	rich.theme = _theme()
+	rich.theme_type_variation = &"RichTextLacquer"
+	if font_size > 0:
+		rich.add_theme_font_size_override(&"normal_font_size", font_size)
+	rich.bbcode_enabled = true
+	rich.fit_content = true
+	rich.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rich.text = bbcode
+	add_child_autofree(rich)
+	return rich
 
 func _make_well_rod() -> LacquerRod:
 	var rod: LacquerRod = ROD_SCENE.instantiate() as LacquerRod
@@ -121,6 +147,32 @@ func test_strip_rects_do_not_share_their_atlas() -> void:
 	first.set_frame(5)
 	assert_eq((second.texture as AtlasTexture).region, Rect2(0, 0, 80, 80), "each rect owns its AtlasTexture")
 
+func test_strip_rect_saves_its_strip_not_its_atlas() -> void:
+	# The rect runs in the editor (@tool), so its derived AtlasTexture must
+	# not be written into the scenes that place it: strip and frame_size are
+	# the saved state.
+	var owner_node := Control.new()
+	add_child_autofree(owner_node)
+	var rect := LacquerStripRect.new()
+	rect.strip = MADRA_STRIP
+	rect.frame_size = Vector2i(80, 80)
+	owner_node.add_child(rect)
+	rect.owner = owner_node
+	var packed := PackedScene.new()
+	assert_eq(packed.pack(owner_node), OK)
+	var state: SceneState = packed.get_state()
+	var saved: Array[StringName] = []
+	for i: int in state.get_node_property_count(1):
+		saved.append(state.get_node_property_name(1, i))
+	assert_does_not_have(saved, &"texture", "the AtlasTexture is rebuilt from strip and frame_size")
+	assert_has(saved, &"strip")
+	assert_has(saved, &"frame_size")
+
+func test_pieces_show_in_the_editor() -> void:
+	# Builders place strip rects and rods in .tscn files: they must draw there.
+	assert_true((load("res://scenes/common/lacquer/lacquer_strip_rect.gd") as Script).is_tool(), "LacquerStripRect is @tool")
+	assert_true((load("res://scenes/common/lacquer/lacquer_rod.gd") as Script).is_tool(), "LacquerRod is @tool")
+
 #-----------------------------------------------------------------------------
 # ROD
 #-----------------------------------------------------------------------------
@@ -156,6 +208,7 @@ func test_rod_clamps() -> void:
 func test_rod_is_the_size_of_its_groove() -> void:
 	var rod := _make_well_rod()
 	assert_eq(rod.get_combined_minimum_size(), Vector2(308, 10))
+	assert_eq(rod.custom_minimum_size, Vector2.ZERO, "the size comes from the groove, not a saved custom_minimum_size")
 	assert_true((rod.get_node("%FullClip") as Control).clip_contents, "the full rod is clipped, not scaled")
 
 #-----------------------------------------------------------------------------
@@ -210,6 +263,26 @@ func test_decimal_bbcode_wraps_only_between_digits() -> void:
 	assert_eq(LacquerText.decimal_bbcode("Lv 1 → 2."), "Lv 1 → 2.")
 	assert_eq(LacquerText.decimal_bbcode("1.5 and 2.25"), "1" + YATRA_POINT + "5 and 2" + YATRA_POINT + "25")
 
+func test_decimal_line_keeps_the_kit_line_height() -> void:
+	# Kit §3: RichTextLacquer lines are 15/18. Plain Yatra One would grow a
+	# line with a decimal to 24 px and drop its baseline 3 px.
+	var one := _make_rich_text(LacquerText.decimal_bbcode("+1.5 Madra / s"))
+	var two := _make_rich_text(LacquerText.decimal_bbcode("+1.5 Madra / s") + "\nTrain or cycle to fill")
+	await wait_process_frames(2)
+	assert_eq(one.get_parsed_text(), "+1.5 Madra / s", "the dot is still there")
+	assert_eq(one.get_content_height(), 18, "one decimal line is 18 px")
+	assert_eq(two.get_line_offset(1), 18.0, "the second line starts 18 px down")
+	assert_eq(two.get_content_height(), 36, "two lines step by 18 px")
+
+func test_decimal_point_never_grows_a_line() -> void:
+	# Card details (15), plate lines (14), the Now rate (16), the cabinet rate
+	# (17): the decimal line is as tall as the same line without the dot.
+	for font_size: int in [13, 14, 15, 16, 17, 18]:
+		var with_point := _make_rich_text(LacquerText.decimal_bbcode("+1.5 Madra / s"), font_size)
+		var plain := _make_rich_text("+15 Madra / s", font_size)
+		await wait_process_frames(2)
+		assert_eq(with_point.get_content_height(), plain.get_content_height(), "decimal line height at %d px" % font_size)
+
 #-----------------------------------------------------------------------------
 # THEME
 #-----------------------------------------------------------------------------
@@ -239,12 +312,23 @@ func test_theme_sets_no_defaults() -> void:
 	assert_false(theme.has_default_font_size())
 
 func test_wrapped_lines_step_by_the_kit_line_height() -> void:
-	var theme := _theme()
+	# Measured on real Labels: a second line adds exactly the kit's line height.
+	var pairs: Array[Array] = []
 	for row: Array in _label_variants:
-		var variant: StringName = row[0]
-		var font: Font = theme.get_font(&"font", variant)
-		var pitch: float = font.get_height(row[2]) + theme.get_constant(&"line_spacing", variant)
-		assert_eq(pitch, float(row[4]), "%s line pitch" % variant)
+		pairs.append([row, _make_label(row[0], "Ag"), _make_label(row[0], "Ag\nAg")])
+	await wait_process_frames(2)
+	for pair: Array in pairs:
+		var row: Array = pair[0]
+		var one: Label = pair[1]
+		var two: Label = pair[2]
+		var pitch: float = two.get_minimum_size().y - one.get_minimum_size().y
+		assert_eq(pitch, float(row[4]), "%s line pitch" % row[0])
+
+func test_rich_text_lines_step_by_18() -> void:
+	var rich := _make_rich_text("Ready in ~4 s\nTrain or cycle to fill")
+	await wait_process_frames(2)
+	assert_eq(rich.get_line_offset(1), 18.0)
+	assert_eq(rich.get_content_height(), 36)
 
 func test_only_painted_titles_cast_a_shadow() -> void:
 	var theme := _theme()
@@ -268,9 +352,30 @@ func test_tags_and_seals_are_letter_spaced() -> void:
 		assert_not_null(font, "%s uses a FontVariation" % variant)
 		assert_eq(font.spacing_glyph, 1, "%s letter spacing" % variant)
 
+func test_tags_and_seals_are_indented_1_px() -> void:
+	# The 1 px letter spacing also trails the last letter, which would pull
+	# centred text 0.5 px left. The mock adds text-indent: 1px; the theme gives
+	# tags and seals a 1 px left content margin to match.
+	var theme := _theme()
+	for variant: StringName in SPACED_VARIANTS:
+		var style: StyleBox = theme.get_stylebox(&"normal", variant)
+		assert_true(theme.has_stylebox(&"normal", variant), "%s sets its own normal style" % variant)
+		assert_true(style is StyleBoxEmpty, "%s draws nothing behind the text" % variant)
+		assert_eq(style.get_margin(SIDE_LEFT), 1.0, "%s text-indent" % variant)
+		assert_eq(style.get_margin(SIDE_RIGHT), 0.0, "%s right margin" % variant)
+		assert_eq(style.get_margin(SIDE_TOP), 0.0, "%s top margin" % variant)
+		assert_eq(style.get_margin(SIDE_BOTTOM), 0.0, "%s bottom margin" % variant)
+	var tag := _make_label(&"LabelLacquerTag", "IDLE")
+	await wait_process_frames(2)
+	var text_width: float = tag.get_theme_font(&"font").get_string_size("IDLE", HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+	assert_eq(tag.get_minimum_size().x, text_width + 1.0, "a tag is its text plus the 1 px indent")
+
 func test_floater_has_no_outline() -> void:
 	# Kit §0 (revision 2): map floaters ride a lacquer token, "with no outline".
-	assert_eq(_theme().get_constant(&"outline_size", &"LabelLacquerFloater"), 0)
+	# Set explicitly, so no outline from an ancestor theme can reach it.
+	var theme := _theme()
+	assert_true(theme.has_constant(&"outline_size", &"LabelLacquerFloater"), "the floater sets its outline size")
+	assert_eq(theme.get_constant(&"outline_size", &"LabelLacquerFloater"), 0)
 
 func test_rich_text_variant() -> void:
 	var theme := _theme()
@@ -307,6 +412,27 @@ func test_token_margins_skip_its_baked_shadow() -> void:
 	assert_eq(token.texture_margin_right, 8.0)
 	assert_eq(token.texture_margin_bottom, 8.0)
 	assert_true(token.draw_center)
+
+func test_token_hugs_a_floater_line() -> void:
+	# Kit §0: the token is 28 px tall plus its 2 px baked shadow, the text line
+	# (16/20) starts 4 px down, and the token is the text width + 28 wide.
+	var panel := PanelContainer.new()
+	panel.theme = _theme()
+	panel.add_theme_stylebox_override(&"panel", load("res://assets/styleboxes/lacquer/token.tres") as StyleBoxTexture)
+	add_child_autofree(panel)
+	var line := RichTextLabel.new()
+	line.theme_type_variation = &"RichTextLacquer"
+	line.add_theme_font_size_override(&"normal_font_size", 16)
+	line.bbcode_enabled = true
+	line.fit_content = true
+	line.autowrap_mode = TextServer.AUTOWRAP_OFF
+	line.text = LacquerText.decimal_bbcode("+1.5 Madra")
+	panel.add_child(line)
+	await wait_process_frames(2)
+	assert_eq(line.size.y, 20.0, "a 16 px RichTextLacquer line is 20 px")
+	assert_eq(line.position, Vector2(14, 4), "the text sits 14 px in and 4 px down")
+	assert_eq(panel.size.y, 30.0, "28 px token + 2 px shadow")
+	assert_eq(panel.size.x, line.size.x + 30.0, "text + 28, + 2 px shadow")
 
 #-----------------------------------------------------------------------------
 # THEME CONSTANTS
