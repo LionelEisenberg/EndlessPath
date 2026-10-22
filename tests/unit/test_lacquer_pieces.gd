@@ -239,14 +239,18 @@ func test_flash_toggles_and_ends_hidden() -> void:
 	assert_false(overlay.visible, "the flash ends hidden")
 
 func test_flash_restarts_cleanly() -> void:
+	# Restart in the middle of a longer flash: the first one would show the
+	# frame again at 1.2 s, after the new one has ended, if its tween lived on.
 	var overlay: LacquerFrameOverlay = FRAME_OVERLAY_SCENE.instantiate() as LacquerFrameOverlay
 	add_child_autofree(overlay)
-	overlay.flash(1)
+	overlay.flash(3)
 	await wait_seconds(0.45)
 	overlay.flash(1)
 	assert_true(overlay.visible, "a new flash shows the frame at once")
 	await wait_until(func() -> bool: return not overlay.is_flashing(), 2.0)
 	assert_false(overlay.visible)
+	await wait_seconds(0.3)
+	assert_false(overlay.visible, "the first flash's tween is gone")
 
 #-----------------------------------------------------------------------------
 # TEXT
