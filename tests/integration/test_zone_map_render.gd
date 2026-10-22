@@ -274,6 +274,33 @@ func test_foraging_running_at_load_wanders_at_once() -> void:
 	await wait_seconds(0.5)
 	assert_lt(map.character_body.position.x, stand.x, "the character wanders west before the first haul ends")
 
+func test_foraging_wander_is_phase_locked_to_the_haul() -> void:
+	# A map opened partway through a haul (a load, the zone view coming back)
+	# picks the wander up where the haul timer is, so the next haul never
+	# makes the character jump back to its stand.
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	assert_true(ActionManager.get_current_action() is ForageActionData, "precondition: foraging runs")
+	await wait_seconds(2.0)
+	var map: ZoneTilemap = ZoneTilemapScene.instantiate()
+	add_child_autofree(map)
+	var stand_x: float = map.get_zone_world_centre(_zone(SPIRIT_VALLEY_ID)).x + ZoneTilemap.CHARACTER_STAND_OFFSET.x
+	await get_tree().process_frame
+	assert_lt(map.character_body.position.x, stand_x - 8.0, "2 s into a 5 s haul the character is already well west")
+	watch_signals(ActionManager)
+	var largest_step: float = 0.0
+	var previous_x: float = map.character_body.position.x
+	var frames_after_haul: int = 0
+	var started_usec: int = Time.get_ticks_usec()
+	while frames_after_haul < 10 and Time.get_ticks_usec() - started_usec < 6_000_000:
+		await get_tree().process_frame
+		var x: float = map.character_body.position.x
+		largest_step = maxf(largest_step, absf(x - previous_x))
+		previous_x = x
+		if get_signal_emit_count(ActionManager, "foraging_completed") > 0:
+			frames_after_haul += 1
+	assert_signal_emitted(ActionManager, "foraging_completed", "precondition: a haul came in")
+	assert_lte(largest_step, 1.0, "never more than one world px (two screen px) a frame, through the haul")
+
 func test_aura_well_bobs_the_character() -> void:
 	var stand: Vector2 = _map.character_body.position
 	EventManager.trigger_event(AURA_WELL_EVENT)

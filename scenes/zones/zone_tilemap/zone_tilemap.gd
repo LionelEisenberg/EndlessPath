@@ -524,19 +524,35 @@ func _is_idle(action: ZoneActionData) -> bool:
 
 ## The character's idle motion for the running action, around its stand, one
 ## world px (two screen px) a step: foraging wanders west and back over one
-## haul (restarted each haul), the Aura Well bobs it up and down. Nothing while
-## it walks to a zone or while any other action runs.
+## haul, in phase with the haul timer (restarted each haul), the Aura Well
+## bobs it up and down. Nothing while it walks to a zone or while any other
+## action runs.
 func _start_idle_motion() -> void:
 	_stop_idle_motion()
 	if character_body.is_moving or selected_zone == null:
 		return
 	var action: ZoneActionData = ActionManager.get_current_action()
 	if action is ForageActionData:
-		_idle_motion_tween = create_tween()
-		_idle_motion_tween.tween_method(_apply_forage_wander, 0.0, ZoneMapMath.FORAGE_WANDER_SECONDS, ZoneMapMath.FORAGE_WANDER_SECONDS)
+		_start_forage_wander(action as ForageActionData)
 	elif action is TrainingActionData:
 		_idle_motion_tween = create_tween().set_loops()
 		_idle_motion_tween.tween_method(_apply_training_bob, 0.0, ZoneMapMath.TRAINING_BOB_SECONDS, ZoneMapMath.TRAINING_BOB_SECONDS)
+
+## Runs the wander from where the haul timer is to the haul's end, so a map
+## opened (or a walk ended) partway through a haul joins in step, from its
+## first frame, and the haul never makes the character jump. Before the
+## timer starts, from the top.
+func _start_forage_wander(forage: ForageActionData) -> void:
+	var haul_seconds: float = forage.foraging_interval_in_sec
+	var elapsed: float = 0.0
+	var timer: Timer = ActionManager.action_timer
+	if not timer.is_stopped():
+		haul_seconds = timer.wait_time
+		elapsed = clampf(timer.wait_time - timer.time_left, 0.0, haul_seconds)
+	var wander_from: float = elapsed / haul_seconds * ZoneMapMath.FORAGE_WANDER_SECONDS if haul_seconds > 0.0 else 0.0
+	_apply_forage_wander(wander_from)
+	_idle_motion_tween = create_tween()
+	_idle_motion_tween.tween_method(_apply_forage_wander, wander_from, ZoneMapMath.FORAGE_WANDER_SECONDS, maxf(haul_seconds - elapsed, 0.0))
 
 func _apply_forage_wander(elapsed: float) -> void:
 	character_body.position = _get_stand_position(selected_zone) + Vector2(ZoneMapMath.forage_wander_x(elapsed), 0.0)
