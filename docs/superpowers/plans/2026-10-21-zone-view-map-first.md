@@ -26,7 +26,7 @@ All 15 tasks are built on `feat/zone-view-redesign-4656b7` (not merged); the sui
 - **Drain (Task 14).** `ZoneTransition` pours opaque `MadraPellet`s (`lacquer_madra_pellet_ai.png`) in 2 px steps instead of glowing `FlyingParticle`s (`668783d`).
 - **Tests.** `test_foraging_detail_has_interval_and_cost` is `test_foraging_detail_has_ranges_interval_and_cost`; `test_fresh_save_cycling_card_wraps` uses a fixture technique because `test_cycling_manager.gd` empties the catalog index ([TESTING.md](../../testing/TESTING.md) Tech Debt).
 - **Open.** One Escape closes both a pinned map popover and the zone lore (the popover's `set_input_as_handled()` stays inside the SubViewport). A two-digit Path count is 1 px wider than the mock. Both are in the living docs' Work Remaining.
-- **Docs (Task 15).** Split into `docs(zones)`, `docs(logging)`, `docs(state)`, `docs(testing)` and a plain `docs:` commit for the system docs, plus this record.
+- **Docs (Task 15).** Split into `docs(zones)`, `docs(logging)`, `docs(state)`, `docs(testing)` and plain `docs:` commits for the other system docs that named the old view (quests, unlocks, abilities, path, character, cultivation, resources, cycling, effects, events, dialogue, styling, adventuring, combat, persistence), plus this record.
 
 ## Global Constraints
 
