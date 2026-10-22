@@ -94,7 +94,9 @@ func _update_rate() -> void:
 		_rate_label.text = LacquerText.decimal_bbcode(LacquerText.rate(rate) + " / s")
 
 ## Stage, level, the core orb column round(min(level, 100) / 100 × 16) and the
-## XP beads row round(xp / need × 18).
+## XP beads. A bead lights only once its share of the XP is earned,
+## floor(xp × 18 / need), so the beads never run ahead of the floored
+## "xp / need XP" figure.
 func _update_core_density() -> void:
 	var level: int = floori(CultivationManager.get_core_density_level())
 	var xp: float = CultivationManager.get_core_density_xp()
@@ -103,8 +105,8 @@ func _update_core_density() -> void:
 	_level_label.text = "Level %d" % level
 	var level_fraction: float = float(mini(level, CultivationManager.BREAKTHROUGH_LEVEL)) / CultivationManager.BREAKTHROUGH_LEVEL
 	_core_orb.set_frame(roundi(level_fraction * CORE_ORB_LAST_COLUMN), _swirl_phase)
-	var xp_fraction: float = clampf(xp / need, 0.0, 1.0) if need > 0.0 else 0.0
-	_xp_beads.set_frame(0, roundi(xp_fraction * XP_BEADS_LAST_ROW))
+	var lit_beads: int = floori(xp * XP_BEADS_LAST_ROW / need) if need > 0.0 else 0
+	_xp_beads.set_frame(0, clampi(lit_beads, 0, XP_BEADS_LAST_ROW))
 	_xp_label.text = "%d / %d XP" % [floori(xp), floori(need)]
 
 func _update_gold() -> void:

@@ -140,9 +140,25 @@ func test_xp_figures_round_down() -> void:
 	_load_core_density(32.0, 17.6)
 	var need: float = CultivationManager.get_xp_for_next_level()
 	assert_eq(_text("XpLabel"), "17 / %d XP" % int(need))
-	# 17.6 XP of the more than 18.2 level 32 needs lights 17 of the 18 beads,
-	# as in the mock.
-	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 17))
+	# 17.6 XP of the 18.8 level 32 needs is 16.8 beads' worth of the 18: 16
+	# light, since a bead lights only once its whole share is earned.
+	assert_almost_eq(need, 18.84, 0.01, "precondition: level 32 needs 18.84 XP")
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 16))
+
+## A bead lights only once its share of the XP is earned, so the beads never
+## run ahead of the figure: 0.9 of 22 XP reads "0 / 22 XP" and lights none.
+func test_beads_light_only_for_earned_xp() -> void:
+	_load_core_density(40.0, 0.9)
+	assert_eq(floori(CultivationManager.get_xp_for_next_level()), 22, "precondition: level 40 needs 22.08 XP")
+	assert_eq(_text("XpLabel"), "0 / 22 XP")
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0))
+
+func test_bead_lights_at_its_share() -> void:
+	# Level 0 needs 10 XP, so each of the 18 beads is 10 / 18 XP.
+	CultivationManager.add_core_density_xp(10.0 / 18.0 - 0.01)
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0), "just short of one bead")
+	CultivationManager.add_core_density_xp(0.01)
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 1), "one bead's share")
 
 #-----------------------------------------------------------------------------
 # GOLD
