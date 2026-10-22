@@ -43,8 +43,10 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Re-reads the first active quest's current step and the Breakthrough
-## milestone.
+## milestone. Does nothing before the board is ready; _ready refreshes it.
 func refresh() -> void:
+	if not is_node_ready():
+		return
 	_update_quest()
 	_update_milestone()
 
@@ -76,13 +78,14 @@ func _update_quest() -> void:
 		_quest_figure_label.text = "%d / %d" % [floori(condition.get_current_value()), floori(condition.get_target_value())]
 
 ## "Raise Core Density to 100", the rod at min(level, 100) / 100 and the
-## level / 100 figure.
+## min(level, 100) / 100 figure: Core Density has no cap in code, the
+## milestone does.
 func _update_milestone() -> void:
 	var level: int = floori(CultivationManager.get_core_density_level())
 	var breakthrough_level: int = CultivationManager.BREAKTHROUGH_LEVEL
 	_milestone_text_label.text = "Raise Core Density to %d" % breakthrough_level
 	_milestone_rod.set_fraction(float(level) / breakthrough_level)
-	_milestone_figure_label.text = "%d / %d" % [level, breakthrough_level]
+	_milestone_figure_label.text = "%d / %d" % [mini(level, breakthrough_level), breakthrough_level]
 
 #-----------------------------------------------------------------------------
 # PRIVATE

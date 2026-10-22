@@ -12,6 +12,7 @@ const FILL_CORE_QUEST_ID: String = "q_fill_core"
 const FIRST_STEPS_QUEST_ID: String = "q_first_steps"
 const FIRST_STEPS_ENEMY_EVENT: String = "q_first_steps_enemy_defeated"
 const FIRST_STEPS_RETURN_EVENT: String = "celestial_intervener_dialogue_3"
+const CORE_DENSITY_QUEST_ID: String = "q_reach_core_density_10"
 
 ## Board-local top of the milestone name with a quest row above it (kit §5.2:
 ## screen 408 − 272), and the 70 px it moves up without one.
@@ -94,6 +95,15 @@ func _use_single_quest(quest_name: String, step_description: String,
 	QuestManager._quest_catalog = catalog
 	QuestManager._build_catalog_index()
 	return quest.quest_id
+
+## Gold >= 50, measured as gold / 50.
+func _gold_condition() -> UnlockConditionData:
+	var condition := UnlockConditionData.new()
+	condition.condition_id = "test_goals_gold_50"
+	condition.condition_type = UnlockConditionData.ConditionType.RESOURCE_AMOUNT
+	condition.target_value = 50.0
+	condition.optional_params = {"resource_type": "gold"}
+	return condition
 
 ## Madra >= 100, measured as Madra / 100.
 func _madra_condition() -> UnlockConditionData:
@@ -184,6 +194,24 @@ func test_completed_quest_falls_back_to_milestone() -> void:
 	assert_false(_is_shown("QuestRow"))
 	assert_eq(_milestone_top(), MILESTONE_TOP_WITH_QUEST - MILESTONE_SHIFT)
 
+func test_core_density_step_figure_follows_level() -> void:
+	_add_goals()
+	QuestManager.start_quest(CORE_DENSITY_QUEST_ID)
+	assert_eq(_text("QuestFigureLabel"), "0 / 10")
+	var save: SaveGameData = PersistenceManager.save_game_data
+	save.core_density_level = 3.0
+	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
+	assert_eq(_text("QuestFigureLabel"), "3 / 10")
+
+func test_gold_step_figure_follows_gold() -> void:
+	var conditions: Array[UnlockConditionData] = [_gold_condition()]
+	var quest_id: String = _use_single_quest("Fill Your Purse", "Save up 50 gold", conditions)
+	_add_goals()
+	QuestManager.start_quest(quest_id)
+	assert_eq(_text("QuestFigureLabel"), "0 / 50", "precondition: a fresh save has no gold")
+	ResourceManager.add_gold(20.0)
+	assert_eq(_text("QuestFigureLabel"), "20 / 50")
+
 func test_refreshes_on_save_reset() -> void:
 	_add_goals()
 	QuestManager.start_quest(FILL_CORE_QUEST_ID)
@@ -215,6 +243,14 @@ func test_milestone_figure_and_rod() -> void:
 	_add_goals()
 	assert_eq(_text("MilestoneFigureLabel"), "32 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), roundi(0.32 * MILESTONE_ROD_STEPS))
+
+func test_milestone_figure_caps_at_breakthrough() -> void:
+	var save := SaveGameData.new()
+	save.core_density_level = 120.0
+	_use_fresh_save(save)
+	_add_goals()
+	assert_eq(_text("MilestoneFigureLabel"), "100 / 100", "Core Density has no cap, the milestone does")
+	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
 
 func test_milestone_follows_level_up() -> void:
 	_add_goals()
@@ -275,3 +311,11 @@ func test_root_is_the_board_and_stops_clicks() -> void:
 	assert_eq(_goals.size, Vector2(440.0, 220.0))
 	assert_eq(_goals.mouse_filter, Control.MOUSE_FILTER_STOP)
 	assert_eq(_goals.theme, load("res://assets/themes/lacquer/lacquer_theme.tres"))
+
+## refresh() is public, so a caller can reach it before the board enters the
+## tree. It then waits for _ready, which refreshes anyway.
+func test_refresh_before_ready_does_nothing() -> void:
+	var scene: PackedScene = load(GOALS_SCENE_PATH)
+	var goals: GoalsPanel = autofree(scene.instantiate())
+	goals.refresh()
+	assert_false(goals.is_node_ready(), "precondition: never entered the tree")
