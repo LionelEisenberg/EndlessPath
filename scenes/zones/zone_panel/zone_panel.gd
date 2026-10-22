@@ -10,7 +10,9 @@ extends Control
 ## its last whole drawer, keeps 40 px under it, and the chest snaps to the
 ## bottom line (local 1032) when that is within 64 px. About opens the lore
 ## inline under the Now strip and pushes the Activities header and the list
-## down 276 px; About, Esc or a click outside closes it.
+## down 276 px; About, Esc or a click outside closes it. Esc closes it only
+## while the zone view is MainView's active state: an overlay opened over the
+## zone view (the inventory, say) takes Esc first.
 ## It rebuilds on zone_changed, action_completed and condition_unlocked, and
 ## scrolls to a card when ZoneManager.action_focus_requested asks.
 
@@ -73,11 +75,16 @@ const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ba
 @onready var _count_label: Label = %CountLabel
 @onready var _activity_list: ActivityList = %ActivityList
 @onready var _lore_panel: Control = %LorePanel
-@onready var _lore_text: RichTextLabel = %LoreText
+@onready var _lore_text: Label = %LoreText
 
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
+
+## The MainView whose state stack says whether the zone view is the active
+## state. _ready finds it among the panel's ancestors when it is not set;
+## with none, the zone view counts as active while the chest shows.
+var main_view: MainView = null
 
 var _zone_id: String = ""
 var _rebuild_queued: bool = false
@@ -98,14 +105,21 @@ func _ready() -> void:
 	_now_strip.strip_pressed.connect(_on_strip_pressed)
 	_activity_list.layout_changed.connect(_relayout)
 	_activity_list.card_pressed_while_running.connect(_now_strip.flash)
+	if main_view == null:
+		main_view = find_main_view()
 	_set_lore_open(false)
 	_rebuild()
 
-## Esc closes the lore.
+## Esc closes the lore while the player can see it: the chest shows and the
+## zone view is the active state. Otherwise Esc goes on to MainView, which
+## hands it to the overlay on top.
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed(&"ui_cancel"):
-		_close_lore()
-		get_viewport().set_input_as_handled()
+	if not event.is_action_pressed(&"ui_cancel"):
+		return
+	if not _lore_panel.is_visible_in_tree() or not _is_zone_view_active():
+		return
+	_close_lore()
+	get_viewport().set_input_as_handled()
 
 ## A left click anywhere outside the lore and About closes the lore; the
 ## wheel does not. The click still reaches what it was aimed at: the lore
@@ -135,6 +149,15 @@ func get_card(action_id: String) -> Control:
 ## Returns true while the Now strip shows (an idle action runs).
 func is_now_strip_shown() -> bool:
 	return _now_strip.visible
+
+## Returns the nearest MainView among the panel's ancestors, or null.
+func find_main_view() -> MainView:
+	var node: Node = get_parent()
+	while node != null:
+		if node is MainView:
+			return node as MainView
+		node = node.get_parent()
+	return null
 
 #-----------------------------------------------------------------------------
 # BUILD
@@ -237,6 +260,13 @@ func _set_lore_open(open: bool) -> void:
 	set_process_input(open)
 	set_process_unhandled_input(open)
 	_relayout()
+
+## True when no overlay sits over the zone view: the zone view is MainView's
+## base state and nothing is pushed on top of it.
+func _is_zone_view_active() -> bool:
+	if main_view == null:
+		return true
+	return main_view.state_stack.is_empty() and main_view.base_current_state == main_view.zone_view_state
 
 func _contains_event(control: Control, press: InputEventMouseButton) -> bool:
 	if not control.is_visible_in_tree():

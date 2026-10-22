@@ -466,7 +466,7 @@ func test_lore_toggles() -> void:
 	assert_true(lore.visible)
 	assert_eq(header.position.y, header_y + LORE_PUSH, "the lore pushes the header down")
 	assert_eq(_list().position.y, list_y + LORE_PUSH, "and the list")
-	assert_string_contains((_node("LoreText") as RichTextLabel).get_parsed_text(), "Deep at the heart of the world")
+	assert_string_contains((_node("LoreText") as Label).text, "Deep at the heart of the world")
 
 	about.button_pressed = false
 	await wait_process_frames(1)
@@ -477,9 +477,37 @@ func test_lore_paragraphs_are_one_break_apart() -> void:
 	# The lore's paragraph gap is the label's own 10 px, so the blank line
 	# between Spirit Valley's two paragraphs must not add a third, empty one.
 	await _add_panel()
-	var text: String = (_node("LoreText") as RichTextLabel).get_parsed_text()
+	var text: String = (_node("LoreText") as Label).text
 	assert_false(text.contains("\n\n"), "no empty paragraph")
 	assert_eq(text.split("\n").size(), 2, "two paragraphs")
+
+func test_lore_text_is_a_lore_label() -> void:
+	# The lore has no decimal point, so it needs no RichTextLabel: the theme's
+	# LabelLacquerLore (16/22 cream) and its 10 px paragraph gap set it, with
+	# no overrides (kit §5.5: text 16/22 cream, width 364, 10 px between
+	# paragraphs).
+	await _add_panel()
+	var lore_text: Label = _node("LoreText") as Label
+	assert_not_null(lore_text, "LoreText is a Label")
+	if lore_text == null:
+		return
+	assert_eq(lore_text.theme_type_variation, &"LabelLacquerLore")
+	assert_eq(lore_text.get_theme_constant(&"paragraph_spacing"), 10)
+	for constant: StringName in [&"line_spacing", &"paragraph_spacing"]:
+		assert_false(lore_text.has_theme_constant_override(constant), "no %s override" % constant)
+	assert_false(lore_text.has_theme_color_override(&"font_color"), "no colour override")
+	assert_false(lore_text.has_theme_font_size_override(&"font_size"), "no size override")
+	assert_eq(lore_text.size.x, 364.0, "364 px wide")
+	assert_ne(lore_text.autowrap_mode, TextServer.AUTOWRAP_OFF, "it wraps")
+
+func test_lore_fits_its_panel() -> void:
+	await _add_panel()
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(1)
+	var lore_text: Control = _node("LoreText") as Control
+	var board: Rect2 = (_node("LorePanel") as Control).get_global_rect()
+	assert_lte(lore_text.get_minimum_size().y, lore_text.size.y, "Spirit Valley's lore shows whole")
+	assert_lte(lore_text.get_global_rect().end.y, board.end.y, "inside the lore board")
 
 func test_esc_closes_lore() -> void:
 	await _add_panel()
@@ -489,6 +517,61 @@ func test_esc_closes_lore() -> void:
 	await wait_process_frames(2)
 	assert_false((_node("LorePanel") as Control).visible)
 	assert_false(about.button_pressed, "About reads closed")
+
+## A MainView with the zone view as its base state, not in the tree, as
+## test_view_state_hud_positions.gd builds one.
+func _main_view_on_the_zone_view() -> MainView:
+	var main_view: MainView = autofree(MainView.new())
+	main_view.zone_view_state = autofree(ZoneViewState.new())
+	main_view.base_current_state = main_view.zone_view_state
+	main_view.state_stack = [] as Array[MainViewState]
+	return main_view
+
+func test_esc_reaches_an_overlay_over_the_zone_view_first() -> void:
+	# ZonePanel sits deeper than MainView, so it sees Esc first. With an
+	# overlay pushed over the zone view (the inventory opened with I), Esc
+	# belongs to the overlay, not to a lore the player cannot see.
+	await _add_panel()
+	var main_view: MainView = _main_view_on_the_zone_view()
+	_panel.main_view = main_view
+	var about: BaseButton = _node("AboutButton") as BaseButton
+	about.button_pressed = true
+	main_view.state_stack.append(autofree(MainViewState.new()))
+	Input.parse_input_event(_escape_event())
+	await wait_process_frames(2)
+	assert_true((_node("LorePanel") as Control).visible, "the overlay gets Esc; the lore stays open")
+	main_view.state_stack.clear()
+	Input.parse_input_event(_escape_event())
+	await wait_process_frames(2)
+	assert_false((_node("LorePanel") as Control).visible, "with the overlay gone, Esc closes the lore")
+	assert_false(about.button_pressed)
+
+func test_esc_leaves_the_lore_while_another_base_view_shows() -> void:
+	await _add_panel()
+	var main_view: MainView = _main_view_on_the_zone_view()
+	main_view.base_current_state = autofree(MainViewState.new())
+	_panel.main_view = main_view
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	Input.parse_input_event(_escape_event())
+	await wait_process_frames(2)
+	assert_true((_node("LorePanel") as Control).visible, "the zone view is not the active state")
+
+func test_esc_leaves_the_lore_while_the_chest_is_hidden() -> void:
+	await _add_panel()
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	_panel.visible = false
+	Input.parse_input_event(_escape_event())
+	await wait_process_frames(2)
+	assert_true((_node("LorePanel") as Control).visible, "a hidden chest does not take Esc")
+
+func test_finds_main_view_among_its_ancestors() -> void:
+	var main_view: MainView = autofree(MainView.new())
+	var holder: Control = autofree(Control.new())
+	main_view.add_child(holder)
+	_panel = PANEL_SCENE.instantiate() as ZonePanel
+	holder.add_child(_panel)
+	# Out of the tree the panel's _ready never runs, so ask the lookup it uses.
+	assert_eq(_panel.find_main_view(), main_view)
 
 func test_zone_change_closes_lore() -> void:
 	await _add_panel()
@@ -522,6 +605,44 @@ func test_click_on_card_with_lore_open_starts_that_card() -> void:
 	await wait_process_frames(1)
 	assert_eq(_current_id(), FORAGING_ID, "the clicked card's action runs")
 	assert_false((_node("LorePanel") as Control).visible, "and the lore closes")
+
+func test_rail_cap_click_lands_while_the_lore_closes() -> void:
+	# The press closes the lore at the end of the frame, which moves the list
+	# and its rail up 276 px. A cap that acted on release would miss a click
+	# whose mouse moved 1 px before the release: the caps act on the press.
+	await _add_panel_above_gut()
+	_unlock_everything()
+	await wait_process_frames(2)
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	var down_cap: BaseButton = (_list_node("Rail") as Control).get_node("%DownCap") as BaseButton
+	assert_true(down_cap.is_visible_in_tree(), "precondition: the list scrolls under the lore")
+	var point: Vector2 = down_cap.get_global_rect().get_center()
+	_push_mouse_button(point, MOUSE_BUTTON_LEFT, false)
+	await wait_process_frames(1)
+	var moved: Vector2 = point + Vector2(1.0, 0.0)
+	var motion := InputEventMouseMotion.new()
+	motion.position = moved
+	motion.global_position = moved
+	motion.relative = Vector2(1.0, 0.0)
+	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+	get_viewport().push_input(motion, true)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = moved
+	release.global_position = moved
+	get_viewport().push_input(release, true)
+	await wait_seconds(0.4)
+	assert_false((_node("LorePanel") as Control).visible, "the click closed the lore")
+	assert_eq(_scroll().scroll_vertical, 80, "and stepped the list one drawer")
+
+func test_rail_caps_act_on_press() -> void:
+	await _add_panel()
+	var rail: Control = _list_node("Rail") as Control
+	for cap_name: String in ["%UpCap", "%DownCap"]:
+		var cap: BaseButton = rail.get_node(cap_name) as BaseButton
+		assert_eq(cap.action_mode, BaseButton.ACTION_MODE_BUTTON_PRESS, "%s acts on the press" % cap_name)
 
 func test_mouse_wheel_keeps_lore_open() -> void:
 	await _add_panel_above_gut()

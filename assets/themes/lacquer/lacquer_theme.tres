@@ -61,6 +61,7 @@ LabelLacquerLore/base_type = &"Label"
 LabelLacquerLore/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
 LabelLacquerLore/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelLacquerLore/constants/line_spacing = 3
+LabelLacquerLore/constants/paragraph_spacing = 10
 LabelLacquerLore/font_sizes/font_size = 16
 LabelLacquerLore/fonts/font = ExtResource("1_ex2p2")
 LabelLacquerName/base_type = &"Label"
