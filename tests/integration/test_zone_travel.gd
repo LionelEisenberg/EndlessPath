@@ -27,6 +27,9 @@ const CYCLING_ID: String = "wilderness_cycling_action"
 ## The preview waits 150 ms; this is comfortably past it.
 const PREVIEW_WAIT: float = 0.25
 
+## GUT's output window's canvas layer.
+const GUT_OUTPUT_LAYER: int = 128
+
 var _map: ZoneTilemap
 var _fixture_zone: ZoneData = null
 
@@ -136,9 +139,11 @@ func _wait_until(started_usec: int, seconds: float) -> void:
 
 ## A second map shown, as in the game, through a full-size SubViewport. Its
 ## host sits on a canvas layer of its own, out of reach of the first map's
-## camera, so the pointer finds it where it is drawn.
+## camera and above GUT's output window (layer 128, full screen), so the
+## pointer finds it where it is drawn.
 func _hosted_map() -> ZoneTilemap:
 	var layer := CanvasLayer.new()
+	layer.layer = GUT_OUTPUT_LAYER + 1
 	var host := SubViewportContainer.new()
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(ZoneMapMath.VIEWPORT_SIZE)

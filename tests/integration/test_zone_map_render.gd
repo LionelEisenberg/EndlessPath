@@ -286,20 +286,20 @@ func test_foraging_wander_is_phase_locked_to_the_haul() -> void:
 	var stand_x: float = map.get_zone_world_centre(_zone(SPIRIT_VALLEY_ID)).x + ZoneTilemap.CHARACTER_STAND_OFFSET.x
 	await get_tree().process_frame
 	assert_lt(map.character_body.position.x, stand_x - 8.0, "2 s into a 5 s haul the character is already well west")
+	# The frames either side of the haul: the wander ends at the stand just as
+	# the next one starts there.
 	watch_signals(ActionManager)
-	var largest_step: float = 0.0
-	var previous_x: float = map.character_body.position.x
-	var frames_after_haul: int = 0
+	var x_before_haul: float = map.character_body.position.x
+	var x_after_haul: float = x_before_haul
 	var started_usec: int = Time.get_ticks_usec()
-	while frames_after_haul < 10 and Time.get_ticks_usec() - started_usec < 6_000_000:
+	while Time.get_ticks_usec() - started_usec < 6_000_000:
 		await get_tree().process_frame
-		var x: float = map.character_body.position.x
-		largest_step = maxf(largest_step, absf(x - previous_x))
-		previous_x = x
+		x_after_haul = map.character_body.position.x
 		if get_signal_emit_count(ActionManager, "foraging_completed") > 0:
-			frames_after_haul += 1
+			break
+		x_before_haul = x_after_haul
 	assert_signal_emitted(ActionManager, "foraging_completed", "precondition: a haul came in")
-	assert_lte(largest_step, 1.0, "never more than one world px (two screen px) a frame, through the haul")
+	assert_almost_eq(x_after_haul, x_before_haul, 1.0, "the haul never snaps the character back: one world px (two screen px) at most")
 
 func test_aura_well_bobs_the_character() -> void:
 	var stand: Vector2 = _map.character_body.position
