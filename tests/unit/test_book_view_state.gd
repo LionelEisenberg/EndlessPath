@@ -2,8 +2,9 @@ extends GutTest
 
 ## Unit tests for BookViewState, shared by the four menu books: Esc, the
 ## menu's own key, the book's close tab and a click on the backdrop outside
-## the book all close it the same way, and the state pops exactly once. Uses
-## the Character book as the example.
+## the book all close it the same way, and the state pops exactly once. The
+## backdrop only closes a book that has finished opening. Uses the Character
+## book as the example.
 
 const CharacterViewScene := preload("res://scenes/character/character_view.tscn")
 
@@ -79,6 +80,24 @@ func test_menu_key_pops_the_state() -> void:
 
 func test_clicking_the_backdrop_pops_the_state() -> void:
 	_main_view.grey_background.clicked.emit()
+	assert_true(_main_view.state_stack.is_empty())
+
+func test_clicking_the_backdrop_while_the_book_opens_keeps_it_open() -> void:
+	# The real GreyBackground starts the open; the fake leaves it to the test.
+	# A quick second click on the toolbar button lands on the backdrop here.
+	_main_view.character_view.animate_open()
+	_main_view.grey_background.clicked.emit()
+	assert_eq(_main_view.state_stack.size(), 1, "the book keeps opening")
+
+func test_clicking_the_backdrop_once_the_book_has_opened_closes_it() -> void:
+	_main_view.character_view.animate_open()
+	await wait_for_signal(_main_view.character_view.book_frame.opened, 2.0)
+	_main_view.grey_background.clicked.emit()
+	assert_true(_main_view.state_stack.is_empty())
+
+func test_escape_still_closes_a_book_that_is_opening() -> void:
+	_main_view.character_view.animate_open()
+	_state.handle_input(_action("ui_cancel"))
 	assert_true(_main_view.state_stack.is_empty())
 
 func test_exit_stops_listening_to_the_backdrop() -> void:
