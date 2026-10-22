@@ -1,6 +1,6 @@
 # Quest System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -9,17 +9,18 @@ Quests are linear, multi-step narrative signposts that tell the player what to d
 - `QuestManager` (autoload, last in load order) owns active and completed quest state, stored in `SaveGameData.quest_progression`.
 - Quests are started by `StartQuestEffectData`, which today sits only in NPC dialogue zone actions' `success_effects`.
 - Quests cannot fail, branch, be abandoned, or time out.
-- The player sees quests through `QuestWindow` (a collapsible tracker) and `QuestToast` (a top-center popup).
+- The player sees quests through the `GoalsPanel` (the lacquer Goals board, which shows the first active quest's current step) and `QuestToast` (a top-center popup).
 - Three quests are authored, all part of the Foundation beat chain. See [FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md).
 
 ## Player Experience
 
-1. At first launch the quest tracker is collapsed: a "Quests" title bar with a ▼ button. The list is empty, and expanding it shows "No active quests."
-2. Talking to the Celestial Intervener for the first time starts **Awaken Your Core**. A toast reads "Quest Started: Awaken Your Core" and an orange dot appears on the collapsed tracker's title bar.
-3. Expanding the tracker (▲) clears the dot. Each active quest shows its name and current step description. Completed quests are listed below with "✓ Complete" and are not visually dimmed.
-4. Each time a step advances, a toast shows "Quest Updated: <next step description>". On completion the toast reads "Quest Complete: <quest name>", and the quest's rewards apply (a path point, an item, or an event that unlocks new zone actions).
-5. Back-to-back updates queue and play one after another, about 3.1 s each.
-6. After **Harden Your Core** completes, no quest is active. The tracker lists the three completed quests.
+1. At first launch no quest is active. The Goals board under the cultivator cabinet shows only its Breakthrough milestone ("Raise Core Density to 100", `0 / 100`).
+2. Talking to the Celestial Intervener for the first time starts **Awaken Your Core**. A toast reads "Quest Started: Awaken Your Core", and the Goals board gains its quest row: the quest name, the current step ("Fill your Madra by cycling") and, because that step completes on a measurable condition, a figure on the name row (`25 / 100`) that follows Madra.
+3. Each time a step advances, a toast shows "Quest Updated: <next step description>" and the row shows the new step. On completion the toast reads "Quest Complete: <quest name>", and the quest's rewards apply (a path point, an item, or an event that unlocks new zone actions).
+4. Back-to-back updates queue and play one after another, about 3.1 s each.
+5. After **Harden Your Core** completes, no quest is active. The quest row and its divider hide, the milestone moves up, and the board shrinks to fit. Completed quests are not listed anywhere.
+
+The board is shared with the adventure view, which moves it to the top right; every overlay over the zone view hides it.
 
 ## Architecture
 
@@ -34,8 +35,7 @@ QuestManager (autoload #17, singletons/quest_manager/quest_manager.gd)
   emits:    quest_started / quest_step_advanced / quest_completed
 
 MainView (scenes/main/main_game/main_game.tscn)
-  QuestWindow (PanelContainer, z_index 1)   — scenes/ui/quest_window/quest_window.gd
-    QuestEntry × N (VBoxContainer)          — scenes/ui/quest_window/quest_entry/quest_entry.gd
+  GoalsPanel (Control, z_index 1)           — scenes/ui/goals_panel/goals_panel.gd
   QuestToast (PanelContainer, z_index 10)   — scenes/ui/quest_toast/quest_toast.gd
 ```
 
@@ -46,7 +46,7 @@ MainView (scenes/main/main_game/main_game.tscn)
 | Field | Type | Description |
 |---|---|---|
 | `quest_id` | `String` | Unique id; key in `QuestList` index and save data |
-| `quest_name` | `String` | Shown in `QuestEntry` and toasts |
+| `quest_name` | `String` | Shown on the Goals board and in toasts |
 | `description` | `String` (multiline) | Flavor text; **not displayed anywhere** |
 | `steps` | `Array[QuestStepData]` | Ordered steps; zero steps = completes on start |
 | `completion_effects` | `Array[EffectData]` | Processed in order when the last step advances |
@@ -160,34 +160,27 @@ Quest state lives in `SaveGameData.quest_progression` and is written with the re
 
 ## Quest UI
 
-### QuestWindow (`scenes/ui/quest_window/quest_window.tscn`, class `QuestWindow`)
+### GoalsPanel (`scenes/ui/goals_panel/goals_panel.tscn`, class `GoalsPanel`)
+
+The lacquer Goals board (kit §5.2), which replaced the old collapsible quest tracker in the map-first zone view. `theme = lacquer_theme.tres`, `mouse_filter` STOP.
 
 ```
-QuestWindow (PanelContainer, min 320×0, mouse_filter IGNORE, StyleBoxEmpty)
-  VBoxContainer
-    TitleBar %TitleBar (PanelContainer, quest_titlebar.tres)
-      HBoxContainer
-        TitleLabel ("Quests", LabelHeading + font_size 20 override)
-        BadgeDot %BadgeDot (ColorRect 10×10, Color(0.95, 0.55, 0.2))
-        Spacer
-        CollapseButton %CollapseButton (flat Button, "▼"/"▲")
-    ContentPanel %ContentPanel (PanelContainer, quest_window.tres, min height 200, clip_contents)
-      ScrollContainer
-        EntriesContainer %EntriesContainer (VBoxContainer, separation 8)
-          EmptyLabel %EmptyLabel ("No active quests.", LabelBodySmall)
+GoalsPanel (Control, 440 wide)
+  Cords %                       the two cords it hangs from (a 20 px strip, CORDS_HEIGHT, above the body)
+  Board (VBoxContainer)         BoardTop % / BoardMid (tiled) / BoardBottom: slices of lacquer_goals_ai.png
+  TitleLabel "Goals"            LabelLacquerPanelTitle
+  Rows % (VBoxContainer)
+    QuestRow %                  QuestIcon, NameRow (QuestNameLabel %, QuestFigure % with QuestFigureLabel %), QuestStepLabel %
+    Divider %
+    MilestoneRow                MilestoneIcon, "Breakthrough", MilestoneTextLabel %, MilestoneRod % (LacquerRod, steps 138), MilestoneFigureLabel %
 ```
 
-- Instanced under `MainView` in `main_game.tscn` with z_index 1. It is anchored with offsets 1147–1467 px horizontally, and its top edge sits 28 px below the top of the 1080 px viewport. It is non-draggable.
-- Starts collapsed (`preview_start_expanded = false`). `toggle_collapse()` (public) flips the content panel and clears the badge when the panel opens.
-- On `quest_started`, `quest_step_advanced`, or `quest_completed`, the whole list is rebuilt. Active quests appear first in start order, then completed quests in completion order. The badge dot shows if the window is collapsed.
-- `EmptyLabel` shows only when there are no active **and** no completed quests.
-- Editor preview: when `preview_active_quests` / `preview_completed_quests` are non-empty, the scene renders them and skips QuestManager wiring.
-
-### QuestEntry (`scenes/ui/quest_window/quest_entry/quest_entry.tscn`, class `QuestEntry`)
-
-- `VBoxContainer` (min height 48) with `TitleLabel` (`LabelBody`) and `DetailLabel` (`LabelBodySmall`, autowrap).
-- `enum State { ACTIVE, COMPLETED }`. `populate(quest, state, step_index)` sets the title to `quest_name`. For ACTIVE the detail is the current step's `description`. For COMPLETED it is "✓ Complete" and the code sets `self_modulate` alpha to 0.55, but that has no visible effect (see Work Remaining). A null quest renders "(unknown quest)".
-- Preview exports: `preview_quest`, `preview_state`, `preview_step_index`.
+- Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 272), under the cultivator cabinet. `AdventureViewState` moves its root to (1456, 4), so its body starts at (1456, 24), and calls `set_cords_visible(false)`, which hides the cords and swaps the top slice for the hookless `lacquer_goals_top_plain_ai.png`. Every overlay over the zone view hides it ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
+- **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both ellipsize in their slots). The `current / target` figure shows only when the step completes on conditions alone (no `completion_event_id`) and every condition `is_measurable()` (RESOURCE_AMOUNT or CULTIVATION_LEVEL); it reads the first condition's `get_current_value()` / `get_target_value()`.
+- **Milestone row:** "Breakthrough", "Raise Core Density to 100" (`CultivationManager.BREAKTHROUGH_LEVEL`), a jade rod at `level / 100`, and `min(level, 100) / 100` (Core Density has no cap in code; the figure does).
+- With no active quest, the quest row and the divider hide, the milestone moves up into their place, and the board hugs its rows: 220 px tall with a quest, 150 with the milestone alone.
+- It re-reads on `quest_started`, `quest_step_advanced`, `quest_completed`, `PersistenceManager.save_data_reset`, `CultivationManager.core_density_level_updated`, and `ResourceManager.madra_changed` / `gold_changed` (for a RESOURCE_AMOUNT figure). `refresh()` is public and does nothing before the board is ready.
+- Only the first active quest shows; completed quests are not listed.
 
 ### QuestToast (`scenes/ui/quest_toast/quest_toast.tscn`, class `QuestToast`)
 
@@ -260,10 +253,9 @@ Every "return" step is completed by an NPC action that only becomes visible once
 | `scripts/resource_definitions/effects/start_quest_effect_data.gd` | Effect that starts a quest |
 | `resources/quests/quest_list.tres` | The catalog |
 | `resources/quests/q_fill_core.tres`, `q_first_steps.tres`, `q_reach_core_density_10.tres` | Authored quests |
-| `scenes/ui/quest_window/quest_window.gd` / `.tscn` | Tracker panel |
-| `scenes/ui/quest_window/quest_entry/quest_entry.gd` / `.tscn` | Tracker row |
+| `scenes/ui/goals_panel/goals_panel.gd` / `.tscn` | Goals board (quest step and Breakthrough milestone) |
 | `scenes/ui/quest_toast/quest_toast.gd` / `.tscn` | Toast popup |
-| `assets/styleboxes/ui/quest_window.tres`, `quest_titlebar.tres`, `quest_toast.tres` | Quest UI styleboxes |
+| `assets/styleboxes/ui/quest_toast.tres` | Toast stylebox |
 
 ## Tests
 
@@ -273,36 +265,35 @@ Every "return" step is completed by an NPC action that only becomes visible once
 | `tests/unit/test_quest_progression_persistence.gd` | `QuestProgressionData` round-trip through `ResourceSaver`; `reset()` clears it |
 | `tests/unit/test_start_quest_effect_data.gd` | `process()` starts the quest; empty `quest_id` causes `push_error` |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | Real catalog: `q_reach_core_density_10` CD-10 advance, NPC 4 gate, map award, refugee-camp eligibility, Merchant unlock |
+| `tests/integration/test_goals_panel.gd` | The Goals board: milestone only with no quest, the quest row's step and figure (Madra, Core Density, gold), event steps without a figure, refreshes on advance and save reset, the capped milestone, long text, the board hugging its rows, the cords |
+| `tests/unit/test_unlock_condition_progress.gd` | `is_measurable()`, `get_current_value()`, `get_target_value()` |
 
-Untested: QuestWindow and QuestToast behavior; the Beat 1 → Beat 2 → Beat 3 chain with real data (only Beat 3b has an integration test); a data check that every authored `completion_event_id` has a producer.
+Untested: QuestToast behavior; the Beat 1 → Beat 2 → Beat 3 chain with real data (only Beat 3b has an integration test); a data check that every authored `completion_event_id` has a producer.
 
 ## Work Remaining
 
 ### Bugs
 
 - `[MEDIUM]` Steps are not re-checked after advancing. `_advance_step()` stores the new index but never evaluates the new step. An event step whose event already fired can never complete, and a condition step that is already true waits for an unrelated trigger. Normal Foundation play avoids this, but the dev panel can soft-lock a quest. For example, force-unlocking `q_first_steps_enemy_defeated` reveals NPC 3. Talking to NPC 3 fires `celestial_intervener_dialogue_3` while `q_first_steps` is still on step 0, so step 1 can never complete and the path point is never awarded. Fix: call `_retroactive_advance()` after every advance and once per active quest at the end of `_ready()`.
-- `[LOW]` Completed quests are not dimmed. `QuestEntry.populate()` sets `self_modulate` on the `VBoxContainer`, but `self_modulate` does not propagate to the child Labels and the container draws nothing. Use `modulate` or a muted Label variant.
 
 ### Missing Functionality
 
 - `[MEDIUM]` The catalog is maintained by hand. A quest `.tres` that is missing from `quest_list.tres` is unknown at runtime, and `start_quest` only reports it with `push_error`. The design spec called for scanning `resources/quests/`. Either scan the folder or add a test that every `resources/quests/q_*.tres` is listed.
-- `[LOW]` There is no per-step progress readout. Condition steps show static text such as "Reach Core Density level 10" with no current value.
+- `[LOW]` Only the first active quest shows. The Goals board has one quest row, so a second active quest (none today) would be invisible until the first completes, and completed quests are not listed anywhere.
 - `[LOW]` `QuestData.description` is authored but never displayed.
-- `[LOW]` Completed quests accumulate in QuestWindow forever. There is no pruning or collapsing of a "completed" group.
 - `[LOW]` Quest items have no link back to a quest. The Journal tab's wax seal is always "active". The comments in `quest_item_definition_data.gd`, `journal_row.gd`, and `quest_journal_card.gd` that say "until a QuestManager exists" are stale.
 
 ### Content
 
-- `[HIGH]` No quest exists after `q_reach_core_density_10`. Once the map is awarded, the Refugee Camp search, the Merchant, and the eventual breakthrough have no tracker guidance. Beats 4–10 ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md)) plan `q_first_elite`, `q_tribulation_guardian`, and `q_breakthrough_seek`, but none are authored.
-- `[MEDIUM]` Player-facing quest text contains the placeholder "[INTERVENER]": all three "Return to the Celestial [INTERVENER]" steps and the `q_reach_core_density_10` description. QuestEntry and QuestToast use plain Labels, so the brackets render literally.
+- `[HIGH]` No quest exists after `q_reach_core_density_10`. Once the map is awarded, the Refugee Camp search, the Merchant, and the eventual breakthrough have no quest on the Goals board (only its Breakthrough milestone). Beats 4–10 ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md)) plan `q_first_elite`, `q_tribulation_guardian`, and `q_breakthrough_seek`, but none are authored.
+- `[MEDIUM]` Player-facing quest text contains the placeholder "[INTERVENER]": all three "Return to the Celestial [INTERVENER]" steps and the `q_reach_core_density_10` description. The Goals board and QuestToast use plain Labels, so the brackets render literally.
 - `[MEDIUM]` The `reach_cd_10` step doesn't tell the player how to gain Core Density. The Foundational Technique has no cycling zones and yields 0 CD XP, so the player must buy Pure Core Awakening and equip Smooth Flow first. Only the dialogue hints at this.
 
 ### UI
 
-- `[LOW]` QuestWindow `TitleLabel` adds `theme_override_font_sizes/font_size = 20` on top of `LabelHeading`, and `CollapseButton` has inline font color and size overrides. Check them against [UI_STYLING.md](../UI_STYLING.md).
-- `[LOW]` The tracker starts collapsed and the first quest only announces itself with a 3 s toast and a 10 px dot. Consider auto-expanding the tracker the first time a quest starts.
+- `[LOW]` On a fresh save the Goals board shows only the Breakthrough milestone until the first dialogue starts a quest, so the first objective ("talk to the Intervener") is never written down.
 
 ### Tech Debt
 
 - `[LOW]` Mismatched ext_resource UIDs fall back to the path, and Godot warns each time one is loaded. `quest_list.tres` references `q_first_steps.tres` as `uid://bqfirststeps01`, but the file header is `uid://d1mcp5rsmbbwu`. `main_game.tscn` references `quest_toast.tscn` as `uid://crqcxy8168ohk`, but the header is `uid://b1quest1toast1`.
-- `[LOW]` Several quest resources use hand-written UIDs instead of Godot-generated ones: `uid://bquest1list00`, `uid://bqreachcdq001`, `uid://b1quest1win1`, `uid://b1quest1entry1`, `uid://b1quest1toast1`, `uid://quest_window_01`, `uid://quest_titlebar_01`, `uid://quest_toast_01`.
+- `[LOW]` Several quest resources use hand-written UIDs instead of Godot-generated ones: `uid://bquest1list00`, `uid://bqreachcdq001`, `uid://b1quest1toast1`, `uid://quest_toast_01`.

@@ -1,18 +1,18 @@
 # Unlock System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
 ## Overview
 
 Content gating is built on one resource class, `UnlockConditionData`: a named predicate over game state (event fired, Core Density level, Madra, item owned, and so on). It is consumed in two ways:
 
-- **Latched.** `UnlockManager` sweeps every condition registered in `resources/unlocks/unlock_condition_list.tres` whenever relevant state changes. A condition that evaluates true is recorded permanently in the save and announced with `condition_unlocked`. Zone tiles and zone actions gate on this latched set.
+- **Latched.** `UnlockManager` sweeps every condition registered in `resources/unlocks/unlock_condition_list.tres` whenever relevant state changes. A condition that evaluates true is recorded permanently in the save and announced with `condition_unlocked`. Zones (their map state) and zone actions gate on this latched set.
 - **Live.** Quest steps, adventure encounter eligibility, and encounter choice requirements call `UnlockConditionData.evaluate()` directly every time they check. Live checks don't need registration and never latch.
 
 ## Player Experience
 
-1. **Zone actions appear.** Spirit Valley starts with a single action, "Talk to the [INTERVENER]". More actions appear in the action panel as their conditions latch, and a latched action never disappears again.
-2. **Zone tiles unlock.** A locked zone tile shows a grey hex with a lock icon, and clicking it shakes the lock. Once the zone's conditions latch, the overlay is removed and glowing paths connect it to neighboring unlocked zones.
+1. **Zone actions appear.** Spirit Valley starts with a single action, "Talk to the [INTERVENER]". More cards appear in the zone chest's activity list as their conditions latch, each with a NEW seal until it is hovered or used, and a latched action never disappears again. When the zone's first idle action unlocks while nothing runs, it starts on its own.
+2. **Zone hexes unlock.** A zone whose `chart_conditions` haven't latched is UNCHARTED: a dark veil with a "?" glyph. A charted zone whose `zone_unlock_conditions` haven't latched is LOCKED: a veil with a padlock, a plate naming the blocker, and a popover with the full requirement (clicking shakes the lock). Once the conditions latch, the veil gives way to the zone's tile with a hairline rim, and a dotted route leads to it. Today only the dev demo zones use these states; Test Zone is gated too but hidden on the map.
 3. **Encounter choices gray out.** A choice whose `requirements` fail is disabled. A choice whose `completion_condition` holds is disabled and shows its `completed_label`. Example: "Mark down the location" becomes "✓ Location noted".
 4. **Encounters disappear.** An encounter whose `unlock_conditions` don't match is never placed on generated maps. The Refugee Camp only appears while the map is owned and the merchant is undiscovered.
 
@@ -31,8 +31,9 @@ UnlockManager (autoload #5, singletons/unlock_manager/unlock_manager.gd)
   emits:     condition_unlocked(condition_id: String)
 
 condition_unlocked listeners:
-  ZoneInfoPanel._on_condition_unlocked  → setup_zone_actions()
-  ZoneTilemap._on_condition_unlocked    → tiles + lock overlays + glowing paths
+  ZonePanel._on_condition_unlocked      → rebuild the zone chest's activity list
+  ZoneTilemap._on_condition_unlocked    → rebuild the map: zones, fog, hex states, routes, plates
+  ActionManager._on_condition_unlocked  → nothing running: start the zone's first idle action ("Started …")
   QuestManager._on_condition_unlocked   → re-check active condition steps
 ```
 
@@ -44,7 +45,7 @@ condition_unlocked listeners:
 | Registration in `unlock_condition_list.tres` | Required. An unregistered id never latches. | Not needed |
 | Keyed by | `condition_id` string only | The resource's own fields |
 | Can turn false again | No | Yes |
-| Consumers | `ZoneManager.get_available_actions()` (zone and action gates); `ZoneTilemap` (tile clickability, hover, lock overlays, glowing paths) | `QuestManager` condition steps; `AdventureEncounter.is_eligible()` (map generation); `EncounterChoice.evaluate_requirements()` / `is_completed()` (encounter panel) |
+| Consumers | `ZoneManager.get_available_actions()` (zone and action gates); `ZoneManager.get_zone_map_state()` (`chart_conditions` → UNCHARTED, `zone_unlock_conditions` → LOCKED), which `ZoneTilemap` and `MapMarkers` draw | `QuestManager` condition steps; `AdventureEncounter.is_eligible()` (map generation); `EncounterChoice.evaluate_requirements()` / `is_completed()` (encounter panel); the Goals board's step figure (`get_current_value()` / `get_target_value()`) |
 
 Consequences:
 
@@ -76,6 +77,14 @@ Consequences:
 | 5 | `ITEM_OWNED` | `InventoryManager.has_item(str(target_value))` | Matches `item_id` across materials (qty > 0), the equipment grid, equipped gear, equipped accessories, quest items (qty > 0), and consumables (qty > 0). `comparison_op` is ignored. |
 | 6 | `RESOURCE_AMOUNT` | `ResourceManager.get_madra()` or `get_gold()` `op` `target_value` | `optional_params.resource_type` is `"madra"` (default) or `"gold"`. Any other value compares against 0.0. |
 | 7 | `ATTRIBUTE_VALUE` | `CharacterManager.get_total_attributes_data().get_attribute(type)` `op` `target_value` | `optional_params.attribute_type` is an `AttributeType` int (default `STRENGTH`). Uses total attributes (base plus bonuses). |
+
+Progress getters, which the Goals board reads to show `current / target` under a quest step:
+
+| Method | Returns |
+|---|---|
+| `is_measurable() -> bool` | True for `RESOURCE_AMOUNT` and `CULTIVATION_LEVEL` |
+| `get_current_value() -> float` | The value `evaluate()` compares: Madra or gold, or the Core Density level. 0.0 when not measurable |
+| `get_target_value() -> float` | `target_value` as a number. 0.0 when not measurable or not numeric |
 
 ### UnlockConditionList (`scripts/resource_definitions/unlocks/unlock_condition_list.gd`)
 
@@ -132,8 +141,8 @@ Click "Talk to the [INTERVENER]" (celestial_intervener_dialogue_1, max_completio
 → DialogueManager.dialogue_ended → ActionManager.stop_action(true)
 → success_effects[0]: TriggerEventEffectData → EventManager.trigger_event("celestial_intervener_dialogue_1")
 → UnlockManager sweep → condition celestial_intervener_dialogue_1 latches → condition_unlocked
-     ZoneInfoPanel: "Wilderness Cycling" appears
-     ZoneTilemap:   Test Zone (0,1) lock overlay removed
+     ZonePanel:     "Wilderness Cycling" appears under Cultivate, with a NEW seal
+     ZoneManager:   Test Zone unlocks (it stays hidden on the map at (-1, 0) unless the dev panel shows hidden zones)
 → success_effects[1]: StartQuestEffectData → QuestManager.start_quest("q_fill_core")
 ```
 
@@ -146,8 +155,11 @@ The dev panel opens with Ctrl+Shift+D, and only when `user://dev_password.txt` e
 | System | Connection |
 |---|---|
 | ZoneManager | `get_available_actions()` drops a zone's actions if `zone_unlock_conditions` aren't latched, and drops any action whose `unlock_conditions` aren't latched. It also filters actions by `max_completions`. |
-| ZoneTilemap | Locked overlays, click and hover blocking, and glowing paths, refreshed on `condition_unlocked` |
-| ZoneInfoPanel | Rebuilds the action list on `condition_unlocked` |
+| ZoneManager map states | `get_zone_map_state()` reads a zone's `chart_conditions` (UNCHARTED until latched) and `zone_unlock_conditions` (LOCKED until latched) the latched way |
+| ZoneTilemap / MapMarkers | Redraw zones, fog tiers, veils, routes, plates and glyphs on `condition_unlocked` |
+| ZonePanel | Rebuilds the activity list on `condition_unlocked` |
+| ActionManager | On `condition_unlocked` with nothing running, starts the zone's first idle action and logs "Started <name>" |
+| GoalsPanel | Shows `current / target` for a quest step whose conditions are all measurable |
 | QuestManager | Re-checks condition steps on `condition_unlocked`. See [QUESTS.md](../progression/QUESTS.md). |
 | EventManager | Sweep trigger. Read live by `EVENT_TRIGGERED`. See [EVENTS.md](EVENTS.md). |
 | Adventure map generator | `AdventureEncounter.is_eligible()` filters `encounter_quotas` before placement (anchors, fillers, filler fallback). It always returns true in the editor. |
@@ -185,7 +197,8 @@ These are evaluated live only.
 | Gate | Conditions |
 |---|---|
 | Spirit Valley zone (`SpiritValley`, tile (0,0)) | None (always unlocked) |
-| Test Zone (`TestZone`, tile (0,1), no actions) | `celestial_intervener_dialogue_1` |
+| Test Zone (`TestZone`, tile (-1, 0) west of Spirit Valley, hidden on the map, no description, no actions) | `celestial_intervener_dialogue_1` |
+| Dev demo zones (`AdvancementZoneDemo` locked, `UnchartedZoneDemo` uncharted; dev toggle only) | `dev_demo_never_unlocked` (`resources/zones/dev/dev_never_unlocked_condition.tres`), deliberately **not** registered, so it never latches |
 | Talk to the [INTERVENER] (`celestial_intervener_dialogue_1`, max 1) | None |
 | Wilderness Cycling (`wilderness_cycling_action`) | `celestial_intervener_dialogue_1` |
 | Return to the [INTERVENER] (`celestial_intervener_dialogue_2`, max 1) | `q_fill_core_madra_full` |
@@ -209,7 +222,7 @@ These are evaluated live only.
 | `resources/unlocks/unlock_condition_list.tres` | The registry |
 | `resources/unlocks/*.tres` | Registered conditions (8) |
 | `singletons/zone_manager/zone_manager.gd` | `get_available_actions()` latched gating |
-| `scenes/zones/zone_tilemap/zone_tilemap.gd` | Tile lock overlays and gating |
+| `scenes/zones/zone_tilemap/zone_tilemap.gd` | Map rebuild on unlock: veils, fog tiers and routes |
 | `scripts/resource_definitions/adventure/encounters/adventure_encounter.gd` | `unlock_conditions` / `is_eligible()` |
 | `scripts/resource_definitions/adventure/choices/encounter_choice.gd` | `requirements` / `completion_condition` |
 | `scenes/ui/dev_panel/dev_panel.gd` | Force-unlock dropdown |
@@ -225,6 +238,9 @@ These are evaluated live only.
 | `tests/unit/test_adventure_map_generator.gd` | An ineligible encounter is skipped during placement |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | Aura Well action is hidden until `aura_well_discovered` fires, then visible (via `ZoneManager.get_available_actions`) |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | NPC 4 gated on CD 10; Merchant gated on `merchant_discovered`; Refugee Camp eligibility before and after discovery |
+| `tests/unit/test_unlock_condition_progress.gd` | `is_measurable()` and the current and target values for `RESOURCE_AMOUNT` and `CULTIVATION_LEVEL`; event conditions are not measurable |
+| `tests/unit/test_zone_map_state.gd` | Chart and unlock conditions turning into the UNCHARTED, LOCKED, CURRENT and OPEN map states |
+| `tests/integration/test_idle_action_resolution.gd` | The first idle unlock auto-starts; the save reset's empty `condition_unlocked("")` does not |
 
 Untested: the sweep itself (`_evaluate_all_conditions`), `CULTIVATION_STAGE`, `ATTRIBUTE_VALUE`, comparison operators other than `>=`, and a data check that every gate's condition is registered.
 

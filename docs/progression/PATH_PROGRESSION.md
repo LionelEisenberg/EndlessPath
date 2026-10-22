@@ -1,6 +1,6 @@
 # Path Progression System
 
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -22,8 +22,8 @@ The original design (paths as Madra types, tier gates, budget branching, ascensi
 
 ## Player Experience
 
-1. A new save starts on the Pure Madra tree with 0 points. The PATH button is always on the toolbar.
-2. From the zone view, press **P** or click **PATH**. A grey backdrop fades in while the ink-and-gold Path book opens (one of the four menu books, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)). Other views ignore P.
+1. A new save starts on the Pure Madra tree with 0 points. The Path button is always on the zone view's dock.
+2. From the zone view, press **P** or click **Path** on the dock. A grey backdrop fades in while the ink-and-gold Path book opens (one of the four menu books, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)). Other views ignore P.
 3. **Chapters.** Side tabs on the book's left edge hold the cultivation stages: Foundation, Copper, Iron and Jade. A stage the player hasn't reached shows a padlock, can't be opened, and its tooltip says "Reach <Stage> to open this chapter." The book opens at the highest stage reached (always Foundation today, since nothing advances the stage). Switching to another reached stage plays the page turn.
 4. **Left page:** the "Path" title ribbon, a plaque with the path's name ("Pure Madra"), and a card holding the open stage's tree on a dark inset, fitted to the card, with "Foundation · stage 1 of 4" above it. Only nodes whose `required_stage` is the open stage are shown, joined by prerequisite lines:
    - Keystones are hexagons with a swirling shader.
@@ -32,14 +32,14 @@ The original design (paths as Madra types, tier gates, budget branching, ascensi
    - A purchasable keystone pulses with a glow ring.
 5. **Right page:** a plaque and a card describing what was last pointed at. Hovering a node enlarges it to 1.15× and describes it: name (plus `(n/max)` on repeatables), type ("Major node"), description, green effect lines, and either `Cost: N point(s) · click the node to buy it` or `Purchased`. Hovering the path-name plaque describes the path itself (description, Strengths, Weaknesses, Cycling and Combat lines); that is also what shows when the book opens. The card keeps one height (300 px) whatever it describes, with the cost or "Purchased" line at its foot, so nothing below it moves. Below: an "Active Benefits" plaque over a card listing what each purchased node of every stage grants, one green "▲" line each ("▲ +25 Max Madra"), or "None yet. Buy a node on the tree." The list scrolls with the wheel, shows no scrollbar and has no tooltips. The points to spend sit in a small badge (star and number) in the right page's top-right corner, beside the plaque.
 6. Left-drag on empty space pans the tree. The mouse wheel zooms between 0.4× and 1.5× toward the cursor.
-7. Points come from finishing the quest "First Steps Out" (+1) and from every 10th Core Density level (+1 in Foundation). No in-game message announces them; the balance only shows inside this book.
+7. Points come from finishing the quest "First Steps Out" (+1) and from every 10th Core Density level (+1 in Foundation). While any point is unspent, the dock's Path button shows the brass ring and a cinnabar seal with the balance; no log line or toast announces a new point.
 8. Clicking an available node buys one level:
    - The point is deducted and node and line colors update.
    - Energy pulses run along lines that join two purchased nodes.
    - A particle burst plays on a node's first purchase.
    - The node appears under **Active Benefits**, and the points badge updates.
    - Clicking a node that can't be bought does nothing.
-9. Pure Core Awakening unlocks the Empty Palm ability and the Smooth Flow technique. Power Font unlocks the Power Font ability. Torrential Flow unlocks the Torrential Flow technique. The player equips them in the Abilities view (its toolbar button shows a badge) and in the cycling view.
+9. Pure Core Awakening unlocks the Empty Palm ability and the Smooth Flow technique. Power Font unlocks the Power Font ability. Torrential Flow unlocks the Torrential Flow technique. The player equips them in the Abilities view (its dock button shows a ring while one is unequipped) and in the cycling view.
 10. The other 11 nodes can be bought and are listed as active benefits, but they change nothing in play today.
 11. **Esc** (`ui_cancel`), **P**, the close tab on the book's top edge, or a click outside the book closes it.
 
@@ -335,8 +335,8 @@ Hovering `%PathPlaque` calls `show_path_info()`, which shows the path's descript
 
 **Benefits.** `BenefitsArea.rebuild()` writes one `"▲ " + benefit_summary` line (the description when the summary is empty) per purchased node of every stage, in `tree.nodes` order, into `%BenefitsLabel`; with none it shows `%BenefitsEmpty` instead. `get_purchased_count()` counts nodes at level ≥ 1. The points badge shows `PathManager.get_point_balance()` only; the spend total was dropped on 2026-10-21. The row-per-node `BenefitCard` scene was removed the same day.
 
-**Open/close.** `PathTreeViewState` is a `BookViewState`: `enter()` calls `GreyBackground.show_with_panel(path_tree_view)`; `ui_cancel`, `open_path`, the book's close tab or a backdrop click call `hide_with_panel()`, and `panel_hidden` pops the state once both the grey fade and the book's close animation have finished.
-- **Entry points.** `ZoneViewState.handle_input()` pushes the state on `open_path` (P). The toolbar's `PathButton` (`SystemMenuButton.MenuType.PATH`) fires `open_path` through `Input.parse_input_event()`.
+**Open/close.** `PathTreeViewState` is a `BookViewState`: `enter()` hides the HUD boards and calls `GreyBackground.show_with_panel(path_tree_view)`; `ui_cancel`, `open_path`, the book's close tab or a backdrop click call `hide_with_panel()`, and `panel_hidden` pops the state once both the grey fade and the book's close animation have finished.
+- **Entry points.** `ZoneViewState.handle_input()` pushes the state on `open_path` (P). The dock's `PathButton` (`SystemMenuButton.MenuType.PATH`) fires `open_path` through `Input.parse_input_event()`, then releases it.
 
 ### Layouts
 
@@ -357,11 +357,11 @@ A layout is a `Node2D` scene with one `Marker2D` per node. Each marker is **name
 | `CultivationManager` | → PathManager | `add_core_density_xp()` calls `PathManager.add_points(PATH_POINTS_PER_STAGE[stage])` on each level that is a multiple of 10 |
 | `CultivationManager` | ← PathManager | `_is_stage_reached()` reads `get_current_advancement_stage()`. `AdvancementStage` types `required_stage` |
 | `QuestManager` / `AwardPathPointEffectData` | → PathManager | `q_first_steps` completion → `add_points(1)` ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md) Beat 2) |
-| `AbilityManager` | ← PathManager | `purchase_node()` → `unlock_ability(id)`. The Abilities toolbar badge reflects new unlocks ([ABILITIES.md](../abilities/ABILITIES.md)) |
+| `AbilityManager` | ← PathManager | `purchase_node()` → `unlock_ability(id)`. The dock's Abilities ring reflects new unlocks ([ABILITIES.md](../abilities/ABILITIES.md)) |
 | `CyclingManager` | ← PathManager | `purchase_node()` → `unlock_technique(id)` ([CYCLING.md](../cycling/CYCLING.md)) |
 | `PersistenceManager` / `SaveGameData` | ↔ | Three save fields. `save_data_reset` → `_on_save_data_reset()` |
 | `MainView` / `ZoneViewState` / `PathTreeViewState` | → view | `open_path` (P) opens and closes. See [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md) |
-| `Toolbar` `PathButton` (`SystemMenuButton`, `MenuType.PATH`) | → input | Label "PATH", hint "P", `star_icon.png`. No badge |
+| `Dock` `PathButton` (`SystemMenuButton`, `MenuType.PATH`) | ← PathManager, → input | Label "Path", hint "P", `star_icon.png`. The `Dock` reads `get_point_balance()` on ready and listens to `points_changed`: ring plus count seal while the balance is above 0 |
 | `GreyBackground` | ↔ PathTreeView | `show_with_panel` / `hide_with_panel` ↔ `animate_open` / `animate_close`; waits for `close_finished` |
 | `DevPanel` | → PathManager | "Path Points" SpinBox (0–1000) → `add_points()` |
 | `ResourceManager`, `CharacterManager`, `CyclingTechnique`, `AdventureView`, combat | — | **Do not read** `PathEffectsSummary`; numeric perks are inert |
@@ -491,7 +491,7 @@ RGB(A) values from `resources/path_progression/themes/`. Alpha is 1 unless shown
 | `tests/integration/test_path_book.gd`, `test_tab_switcher.gd` | Chapters and locking, per-stage tree, right page (stays put between nodes), benefits (marked lines in one card, no scrollbar or tooltips), points badge, level labels under their nodes, tree fit; side tabs |
 | `scenes/ui/grey_background/grey_background.gd` | Shared modal backdrop |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Pushes `PathTreeViewState` on `open_path` |
-| `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` / `scenes/ui/toolbar/toolbar.tscn` | PATH toolbar button |
+| `scenes/ui/dock/dock.gd` / `scenes/ui/dock/system_menu_button/system_menu_button.gd` | The dock's Path button and its count seal |
 | `scenes/ui/dev_panel/dev_panel.gd` | Dev "Path Points" grant |
 
 ## Tests
@@ -501,6 +501,7 @@ RGB(A) values from `resources/path_progression/themes/`. Alpha is 1 unless shown
 | `tests/unit/test_path_manager.gd` | 25 | Point balance and signal; `set_path` (valid, invalid, clears state); purchase validation (points, max level, prerequisites, no path); purchase execution (deduct, level up, signal, failure); aggregation (additive, a single multiplicative level, repeatable additive stacking, 100% return cap); unlock tracking and dedupe; `reset_path` |
 | `tests/unit/test_award_path_point_effect_data.gd` | 4 | `process()` adds `amount`; 0 and negative are no-ops; `effect_type` is `AWARD_PATH_POINT` |
 | `tests/integration/test_path_tree_resource_loading.gd` | 3 | `pure_madra_tree.tres` loads and validates; `focused_strike` → `power_font` prerequisite ref; `madra_surge` has two prerequisites |
+| `tests/integration/test_dock.gd` | 12 | The dock's Path count seal follows `points_changed` and reads the balance on ready; the Path button fires `open_path`, then releases it |
 
 Untested gaps are listed under [Tech Debt](#tech-debt).
 
@@ -599,23 +600,21 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - A saved `current_path_id` that is missing from `path_tree_list.tres` leaves no tree loaded, with no fallback to `DEFAULT_PATH_ID`.
 - `[LOW]` **Energy pulses may not travel along the line (unverified).**
   - `path_connection_energy.gdshader` animates along `UV.x`, but `PathNodeContainer._add_energy_line()` creates `Line2D`s with the default `texture_mode` (none). Godot may not generate UVs in that mode, so the pulse would flash uniformly instead of flowing.
-  - Needs an in-game check. The zone `GlowingPath` uses the same pattern.
+  - Needs an in-game check.
 
 ### Missing Functionality
 - `[HIGH]` **Numeric perks do nothing.** `PathManager.get_effects()` and `effects_changed` have no callers outside tests. That makes 7 nodes (11 of 22 tree points) inert. Where each effect should plug in:
   - `MADRA_GENERATION_MULT` (Madra Surge): the cycling Madra award in `CyclingTechnique._process()` (`ResourceManager.add_madra(madra_per_particle)`).
-  - `MADRA_CAPACITY_BONUS` (Expanded Core): the max-Madra calculation. `AdvancementStageResource.get_max_madra()` is called from `ResourceManager.add_madra()`, `ZoneResourcePanel`, and `CyclingResourcePanel`.
+  - `MADRA_CAPACITY_BONUS` (Expanded Core): the max-Madra calculation. `CultivationManager.get_max_madra()` (the stage's `AdvancementStageResource.get_max_madra()`) is read by `ResourceManager.add_madra()`, the zone view's `CultivatorPlate`, and `CyclingResourcePanel`, so the bonus belongs there.
   - `CORE_DENSITY_XP_MULT` (Dedicated Cultivation): `CultivationManager.add_core_density_xp()`.
   - `MADRA_ON_LEVEL_UP` (Breakthrough Surge): the level-up loop in `CultivationManager.add_core_density_xp()`.
   - `CYCLING_ACCURACY_BONUS` (Cycling Focus): the zone hit/timing radius in `CyclingTechnique._handle_zone_click()`, which reads the zone collision `shape.radius`.
   - `ADVENTURE_MADRA_RETURN_PCT` (Madra Reclamation): `AdventureView.stop_adventure()`, by refunding a share of `PlayerManager.vitals_manager.current_madra`.
   - `STAMINA_RECOVERY_MULT` (Iron Will): `AdventureView._update_stamina_regen()`.
   - `ATTRIBUTE_BONUS` (no content uses it): `CharacterManager._get_attribute_bonuses()`, which only sums equipment.
-- `[HIGH]` **No path-point notification.**
-  - Neither `CultivationManager` nor `PathManager.add_points()` writes to the in-game `LogManager`.
-  - The balance is visible only inside the tree.
-  - The PATH toolbar button has no badge (`SystemMenuButton.BADGE_PROVIDER` maps only `ABILITIES`).
-  - FOUNDATION_PLAYTHROUGH Beat 6 depends on "path-point notification is the signal".
+- `[MEDIUM]` **Path points are announced only by the dock.**
+  - The dock's Path button shows a ring and a count seal while points are unspent, which is the signal FOUNDATION_PLAYTHROUGH Beat 6 relies on.
+  - Neither `CultivationManager` nor `PathManager.add_points()` writes to the in-game `LogManager`, and nothing shows a toast, so a point earned while cycling (the cycling view covers the dock) or in an adventure (the zone view is hidden) goes unseen until the zone view shows again.
 - `[HIGH]` **No effect type can modify an ability.** The upgrade nodes need per-ability cost, damage, cooldown, or duration modifiers that `PathNodeEffectData.EffectType` can't express, and combat (`CombatAbilityInstance` / `CombatEffectManager`) would have to read them.
 - `[MEDIUM]` **No ability-slot unlocks.** FOUNDATION_PLAYTHROUGH expects slots 3–4 to come from non-keystone nodes. `AbilityManager.MAX_SLOTS` is a fixed 4 with no gating, and there is no slot effect type.
 - `[MEDIUM]` **Tier gates show only as locked chapters.** Each stage is a chapter tab that unlocks when the stage is reached (re-checked each time the book opens), but a node blocked by its stage never says so, and a prerequisite in an earlier chapter shows no link across the page. `PathTreeView` doesn't listen to `CultivationManager.advancement_stage_changed`, so an open book keeps its tabs until it is reopened.
