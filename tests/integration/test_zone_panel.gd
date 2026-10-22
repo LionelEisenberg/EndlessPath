@@ -509,7 +509,10 @@ func test_lore_text_is_a_lore_label() -> void:
 	assert_false(lore_text.has_theme_constant_override(&"line_spacing"), "the variant's 22 px pitch")
 	assert_false(lore_text.has_theme_color_override(&"font_color"), "no colour override")
 	assert_false(lore_text.has_theme_font_size_override(&"font_size"), "no size override")
-	assert_eq(lore_text.size.x, 364.0, "364 px wide")
+	# The kit's 364 px plus 2: Godot counts the space at a line break against
+	# the width and the browser does not, so at 366 the lore breaks where the
+	# mock's does (06_open_zone_lore: "...cradle of power. This").
+	assert_eq(lore_text.size.x, 366.0, "the kit's 364 px, as Godot wraps it")
 	assert_ne(lore_text.autowrap_mode, TextServer.AUTOWRAP_OFF, "it wraps")
 
 func test_lore_fits_its_panel() -> void:
