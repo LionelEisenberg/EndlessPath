@@ -10,7 +10,9 @@ extends Node
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-const DRAIN_PARTICLE_COLOR: Color = Color(0.5, 0.78, 1.0, 0.85)
+## What the drain pours from the orb to the character: an opaque Madra pellet
+## that moves in 2 px steps (lacquer kit §1 rules 4 and 6).
+const DRAIN_PELLET_SCENE: PackedScene = preload("res://scenes/zones/zone_transition/madra_pellet.tscn")
 const DRAIN_MIN_PARTICLES: int = 8
 const DRAIN_MAX_PARTICLES: int = 25
 const DRAIN_SPAWN_INTERVAL: float = 0.04
@@ -110,15 +112,13 @@ func _spawn_next_drain_particle() -> void:
 		return
 
 	var from_pos: Vector2 = _cultivator_plate.get_madra_orb_global_position()
-	var base_size: float = lerpf(3.0, 6.0, _drain_budget_ratio)
 
-	var particle: FlyingParticle = FlyingParticle.new()
+	var pellet: MadraPellet = DRAIN_PELLET_SCENE.instantiate()
 	var offset: Vector2 = Vector2(randf_range(-15, 15), randf_range(-15, 15))
 	var duration: float = randf_range(DRAIN_PARTICLE_FLIGHT_TIME * 0.7, DRAIN_PARTICLE_FLIGHT_TIME)
-	var size: float = randf_range(base_size * 0.7, base_size * 1.3)
 	var curve_spread: float = randf_range(80.0, 150.0)
-	get_tree().current_scene.add_child(particle)
-	particle.launch(from_pos + offset, _drain_target_pos + offset, DRAIN_PARTICLE_COLOR, duration, size, Callable(), curve_spread)
+	get_tree().current_scene.add_child(pellet)
+	pellet.launch(from_pos + offset, _drain_target_pos + offset, duration, curve_spread)
 
 	# The final particle carries the leftover deficit (when budget doesn't
 	# divide evenly by base count). Every other particle spends the whole-
