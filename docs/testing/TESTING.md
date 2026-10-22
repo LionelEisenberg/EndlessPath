@@ -56,6 +56,8 @@ GUT's `class_name`s (`GutTest` and others) are only registered after the project
 git diff project.godot            # should print nothing
 ```
 
+Run the same import after pulling or merging new art, before the suite or the game. Neither a scene run nor the `-s` test command imports anything, so an item `.tres` the real save names can fail to load its new texture. `PersistenceManager` then keeps `save.tres` untouched, copies it to `save.unreadable.<time>.tres` and turns saving off for that run (see [PERSISTENCE.md](../infrastructure/PERSISTENCE.md)), but the run itself sees a default save.
+
 > **Fixed 2026-10-19:** In a fresh checkout this import used to rewrite the `[dialogic]` section of `project.godot`, emptying `directories/dch_directory` and `directories/dtl_directory` and dropping the registered characters and timeline. Dialogic's editor panel pruned every entry whose `.dch`/`.dtl` loader wasn't registered yet. A local patch in `addons/dialogic/Core/DialogicResourceUtil.gd` now prunes only files that are really missing (see the addon exceptions in `CLAUDE.md`). If `git diff project.godot` ever shows those keys emptied again, the patch was probably lost in a Dialogic upgrade. Running the test command by itself does not modify `project.godot`.
 
 ### Command line
@@ -167,7 +169,7 @@ New tests should call the real method on the autoload, with its state swapped as
 
 | Area | Test files (test count) | Exercised | Not covered |
 |------|-------------------------|-----------|-------------|
-| PersistenceManager / SaveGameData | `test_quest_progression_persistence` (3), `test_zone_progression_data` (8), `test_save_migration` (7), `test_seen_actions` (5) | `ResourceSaver`/`ResourceLoader` round-trips of quest and zone progression (`last_idle_action_id` included); `migrate()` (Test Zone → Spirit Valley); an old save loading the new fields' defaults; the seen-action record | `load_data()`, `save_data()`, `verify()`, `reset()`, `reset_save_data` |
+| PersistenceManager / SaveGameData | `test_quest_progression_persistence` (3), `test_zone_progression_data` (8), `test_save_migration` (7), `test_seen_actions` (5), `test_persistence_manager` (9) | `ResourceSaver`/`ResourceLoader` round-trips of quest and zone progression (`last_idle_action_id` included); `migrate()` (Test Zone → Spirit Valley); an old save loading the new fields' defaults; the seen-action record; `boot()`/`load_data()`/`save_data()` on a fresh PersistenceManager pointed at temporary files (an unreadable save kept, copied aside and never written; an invalid save copied aside before its reset; an unverifiable save not reset; the loaded save migrated) | `reset()` field by field, `reset_save_data` |
 | ResourceManager | `test_resource_manager` (37, mirror), `test_adventure_flow` (17, mirror), `test_quiet_madra` (13) | The real `add_madra()` / `award_resource()` log rules (quiet awards, capped adds, the amount actually added); `set_madra()` via `test_quest_manager`; the Madra trickle via `test_training_flow` | `spend_madra` clamping, adventure capacity/budget/threshold, signals |
 | CultivationManager | `test_cultivation_manager` (25, mirror), `test_cultivation_getters` (4) | `AdvancementStageResource.get_xp_for_level()`; `get_max_madra()`; `BREAKTHROUGH_LEVEL` pinned to 100 | The `add_core_density_xp()` level-up loop and path point awards |
 | CharacterManager | `test_character_manager` (23), `test_character_attributes_data` (3), `test_award_attribute_effect_data` (3), `test_change_vitals_effect_data` (6) | Attribute data, `get_total_attributes_data()` through effects | Real `_get_equipment_bonuses()`, including accessories |
@@ -215,7 +217,7 @@ New tests should call the real method on the autoload, with its state swapped as
 
 - `[HIGH]` The core singletons have no real-method tests. `ResourceManager`, `CultivationManager` and `CharacterManager._get_equipment_bonuses()` are covered by mirror tests that never call the singleton (see [Avoid mirror tests](#avoid-mirror-tests)). `CLAUDE.md` lists all three as must-test systems.
 - `[MEDIUM]` Little coverage of the UI shell's core. `MainView.remove_state()`, `MerchantViewState` and the HUD board placement and hiding are tested, but not the `MainView` push/pop/change semantics or `GreyBackground`. `ActionManager`'s forage loot awarding is untested.
-- `[MEDIUM]` No tests for `PersistenceManager` load/save/verify/reset or for `SaveGameData.verify()`/`reset()`.
+- `[LOW]` `SaveGameData.reset()` and the `reset_save_data` flag are untested. The `PersistenceManager` boot path is covered by `test_persistence_manager.gd`.
 - `[MEDIUM]` No tests for adventure runtime (`AdventureTilemap`, `AdventureView.stop_adventure()` result building, `AdventureEndCard`), `SimpleEnemyAI` or `LootTable`.
 - `[LOW]` Dev panel actions and the Ctrl+Shift+D gate are untested; the spec's planned `test_dev_panel_actions.gd` was never written.
 - `[LOW]` No CI. The suite only runs locally.
