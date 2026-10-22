@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://0k6rbof0p2ve"]
+[gd_scene load_steps=5 format=3 uid="uid://0k6rbof0p2ve"]
 
 [ext_resource type="Script" uid="uid://bk67aggyfbnqu" path="res://scenes/zones/map_markers/map_markers.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://bct65erp7bgms" path="res://scenes/zones/map_markers/map_action_ring/map_action_ring.tscn" id="2_ring"]
 [ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/zones/map_markers/map_floater/map_floater.tscn" id="3_floater"]
+[ext_resource type="PackedScene" uid="uid://b7mpopoverzm13" path="res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.tscn" id="4_popover"]
 
 [node name="MapMarkers" type="CanvasLayer"]
 layer = 1
@@ -52,3 +53,17 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="Popover" parent="Root" instance=ExtResource("4_popover")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 684.0
+offset_top = 331.0
+offset_right = 956.0
+offset_bottom = 503.0
+
+[node name="PreviewTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 0.15
+one_shot = true

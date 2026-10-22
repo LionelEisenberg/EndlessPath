@@ -7,8 +7,9 @@ extends CanvasLayer
 ## - a plate (ZoneMapLabel) under every map zone;
 ## - the padlock and "?" glyphs (MapGlyph) over the locked and uncharted hexes;
 ## - the action ring (MapActionRing) and the floater (MapFloater) that repeat
-##   the running idle action beside the character.
-## Draw order, back to front: ring, floater, glyphs, plates (kit §6.1).
+##   the running idle action beside the character;
+## - the one map popover (ZoneMapPopover) for a locked or uncharted zone.
+## Draw order, back to front: ring, floater, glyphs, plates, popover (kit §6.1).
 ## Every frame each marker follows its hex through the map's canvas transform:
 ## at zoom 2 it sits at the kit's offset from the hex centre at file size, and
 ## at any other zoom both the offset and the marker scale by zoom / 2, so it
@@ -17,10 +18,28 @@ extends CanvasLayer
 ## camera has eased back to its resting zoom.
 ## Instanced by ZoneTilemap, which it reads through map; it rebuilds on the
 ## map's map_rebuilt.
+##
+## Map interaction (spec: Behaviour › Map interaction; kit §6.6). The map
+## reports what the pointer is over (hover_zone) and what was clicked
+## (click_zone); a MapPopoverState decides, and this layer draws it: the
+## plates' hover and pinned looks, the lock shake, and the popover (a
+## preview 150 ms after a locked or uncharted hex is hovered, pinned on a
+## click). One popover at a time; its ×, Esc, a press anywhere the map and
+## the popover do not take, another hex, travel, a save reset or its zone
+## leaving the map closes it. interaction_changed tells the map to swap the
+## hex rims and light the route.
 
 ## Emitted when the player clicks a zone's plate (it does what a click on the
 ## zone's hex does; the map interaction layer decides what that is).
 signal plate_pressed(zone_data: ZoneData)
+
+## Emitted when the hovered or pinned zone changes, so the map can swap the
+## hexes' rims and light the route toward a zone you can travel to.
+signal interaction_changed
+
+## Emitted when the pointer enters or leaves a plate or the popover: what the
+## pointer is over may have changed without it crossing a hex cell.
+signal marker_hover_changed
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -43,6 +62,12 @@ const PLATE_OFFSET_UNCHARTED: Vector2 = Vector2(-124, 18)
 const GLYPH_OFFSET_LOCKED: Vector2 = Vector2(-22, -61)
 const GLYPH_OFFSET_UNCHARTED: Vector2 = Vector2(-14, -40)
 const RING_OFFSET: Vector2 = Vector2(38, 4)
+## Popover top-left offsets from its hex's centre at zoom 2 (kit §6.6): the
+## locked card left of the hex (the right side runs into the zone chest), the
+## uncharted card right of it, each centred on the hex's height.
+const POPOVER_OFFSET_LOCKED_PINNED: Vector2 = Vector2(-440, -86)
+const POPOVER_OFFSET_LOCKED_PREVIEW: Vector2 = Vector2(-440, -66)
+const POPOVER_OFFSET_UNCHARTED: Vector2 = Vector2(168, -56)
 ## The floater token is centred on the hex centre + 50 (snapped to even px),
 ## with its top 28 above the centre before it rises.
 const FLOATER_CENTRE_X: float = 50.0
@@ -62,6 +87,8 @@ const MapGlyphScene: PackedScene = preload("res://scenes/zones/map_markers/map_g
 @onready var _floater: MapFloater = %Floater
 @onready var _glyph_container: Control = %GlyphContainer
 @onready var _plate_container: Control = %PlateContainer
+@onready var _popover: ZoneMapPopover = %Popover
+@onready var _preview_timer: Timer = %PreviewTimer
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -79,6 +106,11 @@ var _view_host: Control = null
 ## True from the zone view's return after an adventure until the camera is
 ## back at its resting zoom, when the layer shows again.
 var _waiting_for_camera: bool = false
+## Which zone is hovered, previewed and pinned.
+var _popover_state: MapPopoverState = MapPopoverState.new()
+## False from a left press anywhere in the window until the map or the popover
+## takes it; a press nothing takes closes the pinned popover.
+var _press_claimed: bool = true
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -90,9 +122,20 @@ func _ready() -> void:
 	ActionManager.foraging_completed.connect(_on_foraging_completed)
 	ActionManager.adventure_start_requested.connect(_on_adventure_start_requested)
 	ZoneManager.action_completed.connect(_on_zone_action_completed)
+	PersistenceManager.save_data_reset.connect(_on_save_data_reset)
+	get_tree().root.window_input.connect(_on_window_input)
+	_preview_timer.timeout.connect(_on_preview_timer_timeout)
+	_popover.close_pressed.connect(close_popover)
+	_popover.show_me_pressed.connect(_on_show_me_pressed)
+	_popover.pressed_inside.connect(_claim_press)
+	for card: Control in _popover.get_cards():
+		card.mouse_entered.connect(marker_hover_changed.emit)
+		card.mouse_exited.connect(marker_hover_changed.emit)
+	_popover.hide()
 	_view_host = _find_view_host()
 	if _view_host != null:
 		_view_host.visibility_changed.connect(_on_view_host_visibility_changed)
+		_view_host.mouse_exited.connect(_on_view_host_mouse_exited)
 	if map != null:
 		map.map_rebuilt.connect(_rebuild)
 		if map.is_node_ready():
@@ -104,6 +147,14 @@ func _process(_delta: float) -> void:
 		_waiting_for_camera = false
 		show()
 	_place_markers()
+
+## Esc closes the pinned popover before anything else hears it.
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or _popover_state.get_pinned_zone_id() == "":
+		return
+	if event.is_action_pressed(&"ui_cancel"):
+		close_popover()
+		get_viewport().set_input_as_handled()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -153,6 +204,74 @@ func set_pinned_zone(zone_id: String) -> void:
 func get_pinned_zone_id() -> String:
 	return _pinned_zone_id
 
+## The map popover (hidden while no zone is previewed or pinned).
+func get_popover() -> ZoneMapPopover:
+	return _popover
+
+## Which zone is hovered, previewed and pinned.
+func get_popover_state() -> MapPopoverState:
+	return _popover_state
+
+## The pointer is over the zone's hex or plate ("" for none). Hovering a
+## locked or uncharted zone starts the 150 ms preview timer; a new hover
+## drops the old preview at once.
+func hover_zone(zone_id: String) -> void:
+	var plate: ZoneMapLabel = get_plate(zone_id)
+	if plate == null:
+		zone_id = ""
+	var previous_id: String = _popover_state.get_hovered_zone_id()
+	if zone_id == "":
+		_popover_state.unhover()
+	else:
+		_popover_state.hover(zone_id, ZoneManager.get_zone_map_state(plate.get_zone_data()))
+	if zone_id != previous_id:
+		_preview_timer.stop()
+		if zone_id != "" and _is_veiled(ZoneManager.get_zone_map_state(plate.get_zone_data())):
+			_preview_timer.start()
+	set_hovered_zone(zone_id)
+	_refresh_popover()
+	interaction_changed.emit()
+
+## A click on the zone's hex or plate ("" for fog): returns what the map has
+## to do (travel, recentre). Pinning shakes a locked zone's padlock.
+func click_zone(zone_id: String) -> MapPopoverState.ClickResult:
+	_claim_press()
+	var plate: ZoneMapLabel = get_plate(zone_id)
+	var state: ZoneManager.ZoneMapState = ZoneManager.ZoneMapState.OPEN
+	if plate == null:
+		zone_id = ""
+	else:
+		state = ZoneManager.get_zone_map_state(plate.get_zone_data())
+	var result: MapPopoverState.ClickResult = _popover_state.click(zone_id, state)
+	if result == MapPopoverState.ClickResult.PIN and state == ZoneManager.ZoneMapState.LOCKED:
+		var glyph: MapGlyph = _glyphs.get(zone_id, null) as MapGlyph
+		if glyph != null:
+			glyph.shake()
+	_apply_pin()
+	return result
+
+## Closes the pinned popover.
+func close_popover() -> void:
+	_popover_state.close()
+	_apply_pin()
+
+## The zone whose plate is under the canvas point, or "".
+func get_plate_zone_id_at(point: Vector2) -> String:
+	for zone_id: String in _plates:
+		var plate: ZoneMapLabel = _plates[zone_id]
+		if plate.is_visible_in_tree() and plate.get_global_rect().has_point(point):
+			return zone_id
+	return ""
+
+## True when the canvas point lies on the shown popover.
+func is_point_on_popover(point: Vector2) -> bool:
+	return visible and _popover.contains_point(point)
+
+## True when the canvas point lies on a plate or the popover, which take the
+## click themselves (the map leaves it to them).
+func is_point_on_marker(point: Vector2) -> bool:
+	return visible and (is_point_on_popover(point) or get_plate_zone_id_at(point) != "")
+
 #-----------------------------------------------------------------------------
 # BUILDING
 #-----------------------------------------------------------------------------
@@ -179,6 +298,8 @@ func _rebuild() -> void:
 		_plate_container.add_child(plate)
 		plate.setup(zone_data, state)
 		plate.pressed.connect(_on_plate_pressed.bind(zone_data))
+		plate.mouse_entered.connect(marker_hover_changed.emit)
+		plate.mouse_exited.connect(marker_hover_changed.emit)
 		_plates[zone_data.zone_id] = plate
 		if _is_veiled(state):
 			var glyph: MapGlyph = MapGlyphScene.instantiate() as MapGlyph
@@ -190,9 +311,29 @@ func _rebuild() -> void:
 		_hovered_zone_id = ""
 	if not _plates.has(_pinned_zone_id):
 		_pinned_zone_id = ""
+	_sync_popover_state()
 	_apply_hover_and_pin()
 	_show_idle_action(ActionManager.get_current_action())
+	_refresh_popover()
 	_place_markers()
+	interaction_changed.emit()
+
+## After a rebuild: a hover or pin whose zone left the map goes, and so does a
+## pin on a zone that is no longer locked or uncharted (with its plate's
+## frame). The hovered zone's map state is read again (it may have become the
+## current zone).
+func _sync_popover_state() -> void:
+	var pinned_id: String = _popover_state.get_pinned_zone_id()
+	if pinned_id != "" and (not _plates.has(pinned_id) or not _is_veiled(ZoneManager.get_zone_map_state(_plates[pinned_id].get_zone_data()))):
+		_popover_state.close()
+		if _pinned_zone_id == pinned_id:
+			_pinned_zone_id = ""
+	var hovered_id: String = _popover_state.get_hovered_zone_id()
+	if hovered_id != "" and not _plates.has(hovered_id):
+		_popover_state.unhover()
+		_preview_timer.stop()
+	elif hovered_id != "":
+		_popover_state.hover(hovered_id, ZoneManager.get_zone_map_state(_plates[hovered_id].get_zone_data()))
 
 func _apply_hover_and_pin() -> void:
 	for zone_id: String in _plates:
@@ -221,6 +362,10 @@ func _place_markers() -> void:
 		var glyph: MapGlyph = _glyphs[zone_id]
 		glyph.position = (canvas * _zone_centres[zone_id] + _glyph_offset(glyph.get_state()) * marker_scale).round()
 		glyph.scale = scale_vector
+	var popover_zone: ZoneData = _popover.get_zone_data()
+	if _popover.visible and popover_zone != null and _zone_centres.has(popover_zone.zone_id):
+		_popover.position = (canvas * _zone_centres[popover_zone.zone_id] + _popover_offset() * marker_scale).round()
+		_popover.scale = scale_vector
 
 	var current_id: String = _current_map_zone_id()
 	if current_id == "":
@@ -244,6 +389,56 @@ func _plate_offset(state: ZoneManager.ZoneMapState) -> Vector2:
 
 func _glyph_offset(state: ZoneManager.ZoneMapState) -> Vector2:
 	return GLYPH_OFFSET_UNCHARTED if state == ZoneManager.ZoneMapState.UNCHARTED else GLYPH_OFFSET_LOCKED
+
+func _popover_offset() -> Vector2:
+	if _popover.get_state() == ZoneManager.ZoneMapState.UNCHARTED:
+		return POPOVER_OFFSET_UNCHARTED
+	return POPOVER_OFFSET_LOCKED_PINNED if _popover.is_pinned() else POPOVER_OFFSET_LOCKED_PREVIEW
+
+#-----------------------------------------------------------------------------
+# POPOVER
+#-----------------------------------------------------------------------------
+
+## Shows the pinned zone's popover, else the previewed zone's, else none.
+func _refresh_popover() -> void:
+	var pinned_id: String = _popover_state.get_pinned_zone_id()
+	var zone_id: String = pinned_id if pinned_id != "" else _popover_state.get_preview_zone_id()
+	var plate: ZoneMapLabel = get_plate(zone_id)
+	if plate == null:
+		_popover.hide()
+		return
+	var zone_data: ZoneData = plate.get_zone_data()
+	var show_me: bool = _is_card_in_current_zone(zone_data.requirement_action_id)
+	_popover.setup(zone_data, ZoneManager.get_zone_map_state(zone_data), pinned_id != "", show_me)
+	_popover.show()
+	_place_markers()
+
+## Draws the pin on the plates and the popover, and tells the map.
+func _apply_pin() -> void:
+	set_pinned_zone(_popover_state.get_pinned_zone_id())
+	_refresh_popover()
+	interaction_changed.emit()
+
+## True when the action is a card in the current zone's activity list, so
+## "Show me" has something to scroll to.
+func _is_card_in_current_zone(action_id: String) -> bool:
+	var current: ZoneData = ZoneManager.get_current_zone()
+	if action_id == "" or current == null:
+		return false
+	for action: ZoneActionData in ZoneManager.get_available_actions(current.zone_id):
+		if action.action_id == action_id:
+			return true
+	return false
+
+func _claim_press() -> void:
+	_press_claimed = true
+
+## A left press nothing on the map took (a panel, the dock, empty window)
+## closes the pinned popover.
+func _close_unless_claimed() -> void:
+	if not _press_claimed:
+		_press_claimed = true
+		close_popover()
 
 #-----------------------------------------------------------------------------
 # PRIVATE
@@ -325,10 +520,43 @@ func _on_foraging_completed(items: Dictionary) -> void:
 func _on_plate_pressed(zone_data: ZoneData) -> void:
 	plate_pressed.emit(zone_data)
 
+func _on_preview_timer_timeout() -> void:
+	_popover_state.show_preview()
+	_refresh_popover()
+
+func _on_show_me_pressed(action_id: String) -> void:
+	if action_id != "":
+		ZoneManager.request_action_focus(action_id)
+
+## Every left press in the window, before anything handles it: unless the map
+## or the popover takes it this frame, the pinned popover closes at the end
+## of the frame (after the press has landed on what the player aimed at).
+func _on_window_input(event: InputEvent) -> void:
+	var press := event as InputEventMouseButton
+	if press == null or not press.pressed or press.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if _popover_state.get_pinned_zone_id() == "":
+		return
+	_press_claimed = false
+	_close_unless_claimed.call_deferred()
+
+## The pointer left the map for a panel or the dock: it is over no hex, even
+## when it skipped the fog between.
+func _on_view_host_mouse_exited() -> void:
+	hover_zone("")
+
+## A save reset leaves no popover, hover or preview timer behind.
+func _on_save_data_reset() -> void:
+	_preview_timer.stop()
+	_popover_state.unhover()
+	set_hovered_zone("")
+	close_popover()
+
 ## ZoneTransition zooms the camera into the zone before an adventure: the
 ## plates and glyphs would swell with it, so the layer hides.
 func _on_adventure_start_requested(_action_data: AdventureActionData) -> void:
 	_waiting_for_camera = false
+	close_popover()
 	hide()
 
 ## The zone view state shows its view again (after the adventure), then eases

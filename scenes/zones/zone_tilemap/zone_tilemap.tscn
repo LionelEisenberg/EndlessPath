@@ -8,7 +8,6 @@
 [ext_resource type="PackedScene" uid="uid://lt845ceb1dib" path="res://scenes/camera/camera_pan_controller/camera_pan_controller.tscn" id="6_3euei"]
 [ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="6_hxkky"]
 [ext_resource type="Texture2D" uid="uid://b4c6n4m45n8ya" path="res://assets/ui/lacquer/map/lacquer_char_shadow_ai.png" id="7_shadow"]
-[ext_resource type="PackedScene" uid="uid://cottn87ch2b4s" path="res://scenes/tilemaps/hex_hover_selector.tscn" id="9_hover"]
 [ext_resource type="PackedScene" uid="uid://0k6rbof0p2ve" path="res://scenes/zones/map_markers/map_markers.tscn" id="10_markers"]
 
 [node name="ZoneTilemap" type="Node2D" unique_id=731377091]
@@ -44,9 +43,6 @@ position = Vector2(-82, -95)
 unique_name_in_owner = true
 
 [node name="RouteContainer" type="Node2D" parent="." unique_id=1530412875]
-unique_name_in_owner = true
-
-[node name="HoverSelector" parent="." unique_id=1988282557 instance=ExtResource("9_hover")]
 unique_name_in_owner = true
 
 [node name="PlayerCharacter" parent="." unique_id=2019777538 instance=ExtResource("4_q6nfb")]

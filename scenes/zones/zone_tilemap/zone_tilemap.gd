@@ -10,8 +10,22 @@ extends Node2D
 ## zone the hairline, and locked and uncharted zones a veiled tile. Dotted
 ## routes lead from the current zone, neighbour to neighbour, to the other
 ## charted zones and run on to the uncharted ones; MapMarkers draws the
-## plates, glyphs, ring and floaters over the map in screen space.
+## plates, glyphs, ring, floaters and popover over the map in screen space.
+##
+## Map interaction (spec: Behaviour › Map interaction). Hovering a hex, its
+## plate or the popover is reported to MapMarkers, which decides through its
+## MapPopoverState; the map then swaps the hex rims (a travelable open hex's
+## brighter rim, a veiled hex's thin or heavy inner rim) and lights the route
+## toward a zone you can travel to. A click on an open hex (or its plate)
+## walks the character there at CHARACTER_MOVE_SPEED while the old action
+## keeps running; the zone changes (ZoneManager.set_current_zone) only on
+## arrival, then the camera frames it. A second click during the walk
+## retargets it (the zone you are in walks back home); starting a session
+## action (cycling, an adventure, dialogue, the merchant), a save reset or a
+## zone change from outside ends the walk where it began (Review Focus 2).
 
+## Emitted when the player sets off for a zone (on the click; the zone itself
+## changes on arrival).
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
 ## Emitted after the map redraws its zones, fog and hex states: on load, on a
@@ -23,9 +37,10 @@ signal map_rebuilt
 #-----------------------------------------------------------------------------
 
 @export_group("Camera")
-## How long the camera takes to glide to a newly-selected zone.
+## How long the camera takes to glide to a zone: the one the character just
+## walked into, or the current zone when its hex is clicked (recentre).
 ## Higher = slower, more contemplative. Lower = snappier.
-@export_range(0.1, 3.0, 0.05) var camera_ease_duration: float = 0.65
+@export_range(0.1, 3.0, 0.05) var camera_ease_duration: float = 0.3
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -77,11 +92,10 @@ const ZoneRouteScene: PackedScene = preload("res://scenes/zones/zone_route/zone_
 
 @onready var tile_map: HexagonTileMapLayer = %MainZoneTileMapLayer
 @onready var character_body: CharacterBody2D = %PlayerCharacter
-@onready var _fog_layer: TileMapLayer = %FogTileMapLayer
+@onready var _fog_layer: HexagonTileMapLayer = %FogTileMapLayer
 @onready var _camera: Camera2D = %Camera2D
 @onready var _zoom_controller: CameraZoomController = %CameraZoomController
 @onready var _clamp_controller: CameraClampController = %CameraClampController
-@onready var _hover_selector: HexHoverSelector = %HoverSelector
 @onready var _veil_container: Node2D = %LockedOverlayContainer
 @onready var _marker_container: Node2D = %HexMarkerContainer
 @onready var _route_container: Node2D = %RouteContainer
@@ -95,14 +109,20 @@ const ZoneRouteScene: PackedScene = preload("res://scenes/zones/zone_route/zone_
 var _hex_overlays: Dictionary[String, Node2D] = {}
 ## The dotted route into each zone that has one, by that zone's id.
 var _routes: Dictionary[String, ZoneRoute] = {}
+## The zone each route starts from, by the id of the zone it leads into.
+var _route_from: Dictionary[String, String] = {}
 var _camera_bounds: Rect2 = Rect2()
 var _frame_tween: Tween = null
 ## The character's idle motion (the foraging wander or the Aura Well's bob).
 var _idle_motion_tween: Tween = null
 var _selected_zone: ZoneData = null
+## The zone the character is walking to, or null while it stands.
+var _travel_target: ZoneData = null
+## The zone under the pointer's hex cell ("" over fog or off the map).
+var _hovered_cell_zone_id: String = ""
 
-## The zone the character stands in, or walks to. Setting it makes it the
-## current zone (ZoneManager.set_current_zone).
+## The zone the character stands in (the current zone). Setting it makes it
+## the current zone (ZoneManager.set_current_zone).
 var selected_zone: ZoneData:
 	get:
 		return _selected_zone
@@ -121,12 +141,22 @@ func _ready() -> void:
 	_place_character(selected_zone)
 	frame_zone(selected_zone)
 
-	# Connect to tile map layer for zone selection
+	# The zone layer holds the map zones and the fog layer every other cell, so
+	# each press or move on the map reaches exactly one of them. The fog
+	# layer's own "unhovered" is left out: it fires when the pointer moves onto
+	# a zone cell, after the zone layer has reported that cell.
 	tile_map.tile_clicked.connect(_on_zone_tile_clicked)
 	tile_map.tile_hovered.connect(_on_zone_tile_hovered)
 	tile_map.tile_unhovered.connect(_on_zone_tile_unhovered)
+	_fog_layer.tile_clicked.connect(_on_fog_tile_clicked)
+	_fog_layer.tile_hovered.connect(_on_fog_tile_hovered)
+	_map_markers.plate_pressed.connect(click_zone)
+	_map_markers.marker_hover_changed.connect(_refresh_hover)
+	_map_markers.interaction_changed.connect(_apply_interaction)
 
 	character_body.movement_completed.connect(_on_character_movement_completed)
+	ActionManager.current_action_changed.connect(_on_current_action_changed)
+	PersistenceManager.save_data_reset.connect(_on_save_data_reset)
 	ActionManager.start_foraging.connect(_on_start_foraging)
 	ActionManager.stop_foraging.connect(_on_idle_action_stopped)
 	ActionManager.foraging_completed.connect(_on_foraging_completed)
@@ -213,12 +243,27 @@ func get_zone_at_tile(tile_coord: Vector2i) -> ZoneData:
 			return zone_data
 	return null
 
-## Updates the selected_zone bookkeeping when the player moves.
-func update_zone_tile_state(zone_data: ZoneData) -> void:
-	if not zone_data:
-		return
+## Does what a click on the zone's hex does (null = fog): an open zone walks
+## there, a locked or uncharted one pins its popover, the current zone
+## recentres the camera (and turns a walk back home), fog closes the popover.
+func click_zone(zone_data: ZoneData) -> void:
+	var zone_id: String = zone_data.zone_id if zone_data != null else ""
+	match _map_markers.click_zone(zone_id):
+		MapPopoverState.ClickResult.TRAVEL:
+			_travel_to(zone_data)
+		MapPopoverState.ClickResult.RECENTRE:
+			if is_travelling():
+				_travel_to(_selected_zone)
+			frame_zone(_selected_zone, camera_ease_duration)
 
-	selected_zone = zone_data
+## True while the character walks to a zone (the current zone changes on
+## arrival).
+func is_travelling() -> bool:
+	return _travel_target != null
+
+## The zone the character is walking to, or null while it stands.
+func get_travel_target() -> ZoneData:
+	return _travel_target
 
 #-----------------------------------------------------------------------------
 # MAP BUILDING
@@ -318,6 +363,7 @@ func _draw_routes(map_zones: Array[ZoneData]) -> void:
 		_route_container.remove_child(child)
 		child.free()
 	_routes.clear()
+	_route_from.clear()
 
 	var current: ZoneData = ZoneManager.get_current_zone()
 	var current_id: String = current.zone_id if current != null else ""
@@ -350,6 +396,7 @@ func _add_route(from_zone: ZoneData, to_zone: ZoneData) -> void:
 	_route_container.add_child(route)
 	route.set_points(get_zone_world_centre(from_zone), get_zone_world_centre(to_zone))
 	_routes[to_zone.zone_id] = route
+	_route_from[to_zone.zone_id] = from_zone.zone_id
 
 ## The zones sorted by hex distance from origin, nearest first, keeping map
 ## order on a tie.
@@ -411,8 +458,42 @@ func _get_stand_position(zone_data: ZoneData) -> Vector2:
 func _place_character(zone_data: ZoneData) -> void:
 	character_body.position = _get_stand_position(zone_data)
 
-func _move_character_to_zone(zone_data: ZoneData) -> void:
+## Walks the character to the zone's stand (a new target retargets a walk
+## under way). The running action keeps running; the zone changes on arrival.
+func _travel_to(zone_data: ZoneData) -> void:
+	if zone_data == null:
+		return
+	_travel_target = zone_data
+	zone_selected.emit(zone_data, zone_data.tilemap_location)
+	_stop_idle_motion()
 	character_body.move_to_position(_get_stand_position(zone_data), CHARACTER_MOVE_SPEED)
+
+## Ends a walk where it began: the character stands in the current zone again
+## and the camera frames it. Nothing arrives later.
+func _cancel_travel() -> void:
+	if _travel_target == null:
+		return
+	# Cleared first: stop_moving() reports the walk as completed.
+	_travel_target = null
+	character_body.stop_moving()
+	_place_character(_selected_zone)
+	frame_zone(_selected_zone)
+	_start_idle_motion()
+
+## The walk reached its stand. A new zone becomes the current zone (which
+## stops the old action and resumes the new zone's idle action) and the
+## camera glides to it; a walk back home changes nothing.
+func _arrive(destination: ZoneData) -> void:
+	if destination != _selected_zone:
+		# The backing field first: the zone change stops the old idle action,
+		# whose handler puts the character on the selected zone's stand.
+		_selected_zone = destination
+		ZoneManager.set_current_zone(destination)
+		frame_zone(destination, camera_ease_duration)
+	_start_idle_motion()
+
+func _is_idle(action: ZoneActionData) -> bool:
+	return action is ForageActionData or action is TrainingActionData
 
 ## The character's idle motion for the running action, around its stand, one
 ## world px (two screen px) a step: foraging wanders west and back over one
@@ -442,36 +523,75 @@ func _stop_idle_motion() -> void:
 	_idle_motion_tween = null
 
 #-----------------------------------------------------------------------------
+# MAP INTERACTION
+#-----------------------------------------------------------------------------
+
+## Tells MapMarkers what the pointer is over: a plate's zone, nothing on the
+## popover, else the zone of the hex cell under it ("" over fog).
+func _refresh_hover() -> void:
+	var point: Vector2 = get_viewport().get_mouse_position()
+	var zone_id: String = _map_markers.get_plate_zone_id_at(point)
+	if zone_id == "" and not _map_markers.is_point_on_popover(point):
+		zone_id = _hovered_cell_zone_id
+	_map_markers.hover_zone(zone_id)
+
+## Swaps the hex rims for the hovered and pinned zones (a travelable open hex
+## gets the brighter rim, a veiled hex the thin or heavy inner rim) and lights
+## the route from the current zone to a hovered zone you can travel to.
+func _apply_interaction() -> void:
+	var state: MapPopoverState = _map_markers.get_popover_state()
+	var hovered_id: String = state.get_hovered_zone_id()
+	var pinned_id: String = state.get_pinned_zone_id()
+	for zone_id: String in _hex_overlays:
+		var marker := _hex_overlays[zone_id] as ZoneHexMarker
+		var veil := _hex_overlays[zone_id] as LockedZoneOverlay
+		if marker != null:
+			marker.set_hovered(zone_id == hovered_id and state.is_hovered_travelable())
+		elif veil != null:
+			veil.set_hovered(zone_id == hovered_id)
+			veil.set_pinned(zone_id == pinned_id)
+	var lit_ids: Dictionary[String, bool] = {}
+	if state.is_hovered_travelable():
+		var zone_id: String = hovered_id
+		while _route_from.has(zone_id) and not lit_ids.has(zone_id):
+			lit_ids[zone_id] = true
+			zone_id = _route_from[zone_id]
+	for zone_id: String in _routes:
+		_routes[zone_id].set_lit(lit_ids.has(zone_id))
+
+## True when the pointer's press lands on a plate or the popover: those take
+## the click themselves, so the hex under them must not.
+func _is_press_on_marker() -> bool:
+	return _map_markers.is_point_on_marker(get_viewport().get_mouse_position())
+
+#-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
-## Called when a tile is clicked on the tile map. Only an open zone travels;
-## locked and uncharted zones get their popovers in the map interaction layer.
+## A press on a map zone's cell: the zone's click (travel, pin, recentre).
 func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
-	var zone_data: ZoneData = get_zone_at_tile(tile_coord)
-	Log.info("ZoneTilemap: Zone tile clicked: %s" % tile_coord)
-	if not zone_data or zone_data == selected_zone:
+	if _is_press_on_marker():
 		return
-	if ZoneManager.get_zone_map_state(zone_data) != ZoneManager.ZoneMapState.OPEN:
-		return
+	click_zone(get_zone_at_tile(tile_coord))
 
-	zone_selected.emit(zone_data, tile_coord)
-	_stop_idle_motion()
-	# Walk first: the zone change below stops and starts idle actions, and
-	# their handlers leave a walking character alone.
-	_move_character_to_zone(zone_data)
-	update_zone_tile_state(zone_data)
-	frame_zone(zone_data, camera_ease_duration)
+## A press on fog closes the popover.
+func _on_fog_tile_clicked(_tile_coord: Vector2i) -> void:
+	if _is_press_on_marker():
+		return
+	click_zone(null)
 
 func _on_zone_tile_hovered(tile_coord: Vector2i) -> void:
 	var zone_data: ZoneData = get_zone_at_tile(tile_coord)
-	if not zone_data or ZoneManager.get_zone_map_state(zone_data) != ZoneManager.ZoneMapState.OPEN:
-		_hover_selector.hide()
-		return
-	_hover_selector.show_at(get_zone_world_centre(zone_data))
+	_hovered_cell_zone_id = zone_data.zone_id if zone_data != null else ""
+	_refresh_hover()
 
 func _on_zone_tile_unhovered() -> void:
-	_hover_selector.hide()
+	_hovered_cell_zone_id = ""
+	_refresh_hover()
+
+func _on_fog_tile_hovered(_tile_coord: Vector2i) -> void:
+	_hovered_cell_zone_id = ""
+	_refresh_hover()
 
 func _on_condition_unlocked(_condition_id: String) -> void:
 	_rebuild_map()
@@ -480,21 +600,39 @@ func _on_map_zones_changed() -> void:
 	_rebuild_map()
 
 ## The current zone moved: its rim and the open hairlines follow. A change the
-## map did not make (a save reset, a dev switch) also takes the character and
-## the camera there, unless the character is walking to a zone.
+## map did not make (a save reset, a dev switch) ends any walk and takes the
+## character and the camera there.
 func _on_zone_changed(zone_data: ZoneData) -> void:
 	_rebuild_map()
-	if zone_data == null or zone_data == _selected_zone or character_body.is_moving:
+	if zone_data == null or zone_data == _selected_zone:
 		return
+	_cancel_travel()
 	# The backing field: ZoneManager already holds this zone, no re-emit.
 	_selected_zone = zone_data
 	_place_character(zone_data)
 	frame_zone(zone_data)
 	_start_idle_motion()
 
-## The walk ended at the zone's stand: the running idle action's motion starts.
+## The walk ended at its stand: arrive (a stop that cancelled the walk has
+## already cleared the target), then the running idle action's motion starts.
 func _on_character_movement_completed() -> void:
+	var destination: ZoneData = _travel_target
+	_travel_target = null
+	if destination != null:
+		_arrive(destination)
+		return
 	_start_idle_motion()
+
+## A session action (cycling, an adventure, dialogue, the merchant) started
+## while the character walks: it belongs to the zone the walk began in, so
+## the walk ends there.
+func _on_current_action_changed(action: ZoneActionData) -> void:
+	if is_travelling() and action != null and not _is_idle(action):
+		_cancel_travel()
+
+## A save reset ends any walk where it began.
+func _on_save_data_reset() -> void:
+	_cancel_travel()
 
 func _on_start_foraging() -> void:
 	_start_idle_motion()
