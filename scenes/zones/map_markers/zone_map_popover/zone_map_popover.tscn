@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://b7mpopoverzm13"]
+[gd_scene format=3 uid="uid://dqgl61edrme6l"]
 
 [ext_resource type="Script" uid="uid://b1rbasxtvyakx" path="res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
