@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ckvr10ptgsd2l"
-path="res://.godot/imported/aura_glow.png-9d077062764a361a9443ada4949b7c7c.ctex"
+path="res://.godot/imported/aura_glow_ai.png-ea4e6d6809f5496788d7ebbc515f2c7d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/atmosphere/aura_glow.png"
-dest_files=["res://.godot/imported/aura_glow.png-9d077062764a361a9443ada4949b7c7c.ctex"]
+source_file="res://assets/sprites/atmosphere/aura_glow_ai.png"
+dest_files=["res://.godot/imported/aura_glow_ai.png-ea4e6d6809f5496788d7ebbc515f2c7d.ctex"]
 
 [params]
 
