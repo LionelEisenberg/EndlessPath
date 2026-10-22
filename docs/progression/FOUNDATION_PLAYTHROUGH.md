@@ -1,6 +1,6 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-19
+Last updated: 2026-10-22 (the map-first zone view on `feat/zone-view-redesign-4656b7`, not merged)
 
 > This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >
@@ -24,7 +24,7 @@ Last updated: 2026-10-19
 
 - **Adventure tiles are gated by difficulty, not by unlocking.** Combat and boss tiles are always on the map; early players die before reaching or surviving them. Special tiles are map anchors: every Shallow Woods map places exactly one Aura Well, and the Refugee Camp is placed only while its gate holds.
 - **Failure is the loop.** Adventures are meant to end in death or a clear, following incremental-genre convention. The code also ends a run at its 300 s time limit.
-- **Quests only where the next step is ambiguous.** A new zone action, a path point, or a tracker entry should be enough of a signal. By design, Beats 3a, 4, and 6 have no quest, and Beat 5's quest is optional.
+- **Quests only where the next step is ambiguous.** A new zone action, a path point, or a Goals board entry should be enough of a signal. By design, Beats 3a, 4, and 6 have no quest, and Beat 5's quest is optional.
 - **Chains live on NPC actions (Pattern B).** The NPC dialogue action that completes one quest starts the next. Quests never reference each other.
 - **One NPC.** The Celestial Intervener (Dialogic description: "Ashe"; display name "Intervener [Celestial]"; action names "[INTERVENER]") is the only character. Narratively, the Intervener leaves after the fourth talk. Names are placeholders.
 - **Path points in Foundation:** one freebie from `q_first_steps`, then +1 every 10 Core Density levels (`CultivationManager.PATH_POINTS_PER_STAGE[FOUNDATION] = 1`). That makes 11 points by CD 100.
@@ -39,25 +39,25 @@ Last updated: 2026-10-19
 |---|---|---|
 | Zone | Spirit Valley (`SpiritValley`, tile (0,0), always unlocked) | `zone_data_list.tres` (first entry) |
 | Available zone actions | "Talk to the [INTERVENER]" only | `ZoneManager.get_available_actions()` |
-| Locked tiles | Test Zone (0,1), gated on `celestial_intervener_dialogue_1` | `test_zone.tres` |
+| Map | Spirit Valley only, framed in fog. Test Zone (-1, 0), gated on `celestial_intervener_dialogue_1`, is hidden on the map (`hidden_on_map`) | `spirit_valley_zone.tres`, `test_zone.tres` |
 | Madra | 25, with a cap of 100 at CD 0 | `SaveGameData.madra`, `foundation_advancement_stage.tres` |
 | Core Density | Level 0, 0 XP | `SaveGameData` |
 | Path points | 0, with the path set to `pure_madra` | `PathManager.DEFAULT_PATH_ID` |
 | Abilities | `basic_strike` and `enforce`, unlocked and equipped | `SaveGameData` |
 | Cycling technique | `foundation_technique` (Foundational Technique) | `SaveGameData` |
-| Quests, events, conditions | None. The quest tracker is collapsed and empty. | — |
-| HUD | Madra bar and the Inventory, Abilities, Character, and Path menu buttons are visible from the first frame | — |
+| Quests, events, conditions | None. The Goals board shows only the Breakthrough milestone ("Raise Core Density to 100", `0 / 100`). | — |
+| HUD | The cultivator cabinet (Madra, Core Density, gold), the Goals and log boards, and the dock's Inventory, Abilities, Character, and Path buttons are visible from the first frame | — |
 
 ### Beat chain at a glance
 
 ```
 START  Spirit Valley: only "Talk to the [INTERVENER]"
-  │ NPC 1 (dialogue_1) ─ event celestial_intervener_dialogue_1 ─► Wilderness Cycling, Test Zone tile
+  │ NPC 1 (dialogue_1) ─ event celestial_intervener_dialogue_1 ─► Wilderness Cycling, Test Zone (hidden)
   │                    ─ start q_fill_core
 BEAT 1  cycle to 100 Madra ─ cond q_fill_core_madra_full ─► step 0 done, NPC 2 visible
   │ NPC 2 (dialogue_2) ─ event celestial_intervener_dialogue_2 ─► q_fill_core complete
   │                    ─ event q_fill_core_completed ─► The Shallow Woods, Spring Forest Foraging
-  │                    ─ start q_first_steps
+  │                    ─ start q_first_steps; the dialogue's end starts foraging (the zone's idle action)
 BEAT 2  win any combat ─ event q_first_steps_enemy_defeated ─► step 0 done, NPC 3 visible
   │ NPC 3 (dialogue_3) ─ event celestial_intervener_dialogue_3 ─► q_first_steps complete ─► +1 path point
   │                    ─ start q_reach_core_density_10
@@ -80,13 +80,14 @@ END OF AUTHORED CONTENT
 | # | Player does | What happens | Ids |
 |---|---|---|---|
 | 1 | Clicks **Talk to the [INTERVENER]** | Timeline `celestial_intervener_introduction_1` plays from label `dialogue_1` (2 lines). When it ends, the action is consumed (`max_completions` 1) and its `success_effects` run. | Action `celestial_intervener_dialogue_1` |
-| 2 | — | `TriggerEventEffectData` fires the event and the condition latches. **Wilderness Cycling** appears, and the **Test Zone** tile unlocks. The Test Zone has no actions. | Event and condition `celestial_intervener_dialogue_1` |
+| 2 | — | `TriggerEventEffectData` fires the event and the condition latches. **Wilderness Cycling** appears (with a NEW seal), and the **Test Zone** unlocks. The Test Zone has no actions and stays hidden on the map. | Event and condition `celestial_intervener_dialogue_1` |
 | 3 | — | `StartQuestEffectData` starts the quest. Toast: "Quest Started: Awaken Your Core". | Quest `q_fill_core`, step 0 `reach_max_madra` |
 | 4 | Cycles with the Foundational Technique | 8 s cycle and 50 base Madra per cycle, scaled by mouse-tracking accuracy. The technique has no cycling zones, so it gives no Core Density XP. | `foundation_technique` |
 | 5 | Reaches 100 Madra (the CD-0 cap) | The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and **Return to the [INTERVENER]** (NPC 2) appears | Condition `q_fill_core_madra_full` (RESOURCE_AMOUNT, madra ≥ 100.0) |
 | 6 | Clicks NPC 2 | Label `dialogue_2` plays, then the event fires and `q_fill_core` completes ("Quest Complete: Awaken Your Core") | Action and event `celestial_intervener_dialogue_2` |
 | 7 | — | `q_fill_core.completion_effects` fires an event, the condition latches, and **The Shallow Woods** and **Spring Forest Foraging** appear | Event and condition `q_fill_core_completed`; actions `shallow_woods_adventure_action`, `sprint_forest_foraging_action` |
 | 8 | — | NPC 2's second effect starts Beat 2 ("Quest Started: First Steps Out") | Quest `q_first_steps` |
+| 9 | — | The dialogue was a session action, so its end resumes the zone's idle action: Spring Forest Foraging starts on its own ("Resumed Spring Forest Foraging"), with the Now strip and the map ring | `ActionManager.resolve_idle_action()` |
 
 | Property | Value |
 |---|---|
@@ -99,7 +100,7 @@ Deviations from the original design:
 - The Madra bar is not gated; it is visible from the start.
 - Foraging unlocks together with Adventure through a temporary gate.
 - NPC 1 no longer awards a dagger.
-- NPC 1 also unlocks the empty Test Zone tile.
+- NPC 1 also unlocks the empty Test Zone, which is hidden on the map.
 
 ### Beat 2: First Steps Out `IMPLEMENTED`
 
@@ -109,9 +110,9 @@ Deviations from the original design:
 |---|---|---|---|
 | 1 | Starts **The Shallow Woods** | Requires Madra ≥ 50% of adventure capacity: FOUNDATION × 10 × 0.5 = 50 at default stats. The run has a 300 s limit. The map comes from `shallow_woods.tres` (see [ADVENTURING.md](../adventuring/ADVENTURING.md)): Starving Dreadbeast ×3 and Amorphous Spirit ×4 regular fights, Coalescing Spirit ×2 and Ravenous Dreadbeast ×2 elites, a Manifested Spirit boss (the regular `amorphous_spirit` enemy), one Aura Well, and the Refugee Camp when eligible. Enemy stats are in [COMBAT.md](../combat/COMBAT.md). | Adventure `shallow_woods` |
 | 2 | Wins any combat | On the first enemy death `AdventureCombat._on_enemy_health_changed()` fires the event. Step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), the condition latches, and NPC 3 appears in Spirit Valley. | Event and condition `q_first_steps_enemy_defeated` |
-| 3 | Clicks NPC 3 | Label `dialogue_3` plays, then the event fires and `q_first_steps` completes. `AwardPathPointEffectData(1)` adds the first path point ("Quest Complete: First Steps Out"). | Action and event `celestial_intervener_dialogue_3` |
+| 3 | Clicks NPC 3 | Label `dialogue_3` plays, then the event fires and `q_first_steps` completes. `AwardPathPointEffectData(1)` adds the first path point ("Quest Complete: First Steps Out"), and the dock's Path button shows its count seal. | Action and event `celestial_intervener_dialogue_3` |
 | 4 | — | NPC 3's second effect starts Beat 3b's quest ("Quest Started: Harden Your Core") | Quest `q_reach_core_density_10`, step 0 `reach_cd_10` |
-| 5 | Opens the Path tree and buys **Pure Core Awakening** | The keystone costs 1 point and is the only root, so it is the only purchase possible. It unlocks the ability `empty_palm` and the technique `smooth_flow` (see [ABILITIES.md](../abilities/ABILITIES.md)). The Abilities button shows a badge until Empty Palm is equipped. Smooth Flow has to be equipped by hand in the cycling view, with no badge. | Node `pure_core_awakening` |
+| 5 | Opens the Path tree and buys **Pure Core Awakening** | The keystone costs 1 point and is the only root, so it is the only purchase possible. It unlocks the ability `empty_palm` and the technique `smooth_flow` (see [ABILITIES.md](../abilities/ABILITIES.md)). The dock's Abilities button shows a ring until Empty Palm is equipped, and the Path button's seal clears with the spent point. Smooth Flow has to be equipped by hand in the cycling view, with no notification. | Node `pure_core_awakening` |
 
 | Property | Value |
 |---|---|
@@ -123,7 +124,7 @@ Deviations from the original design:
 Deviations from the original design:
 - There is no in-combat tutorial popup.
 - Quests chain from NPC actions rather than from adventure entry or keystone purchase.
-- Unlocks are equipped manually. Only the Abilities button has a badge: `CyclingManager.has_unequipped_unlocks()` exists, but no UI shows it.
+- Unlocks are equipped manually. Only the Abilities button has a notification ring: `CyclingManager.has_unequipped_unlocks()` exists, but no UI shows it.
 
 ### Beat 3a: Aura Well Discovery `IMPLEMENTED`
 
@@ -135,7 +136,7 @@ Deviations from the original design:
   - **Mark down the location:** the same rest plus `TriggerEventEffectData("aura_well_discovered")`. `requirements = {aura_well_discovered: false}` and `completion_condition = aura_well_discovered`. Once the event has fired, every Aura Well renders this choice disabled as "✓ Location noted".
 - **Unlock:** the event latches the condition `aura_well_discovered`, and the **Aura Well** training action (`aura_well_training`, TRAIN_STATS) appears in Spirit Valley.
 - **Training:** 1 s ticks award +1.5 Madra per tick (`aura_well_madra_trickle_effect.tres`), and each training level awards +1 SPIRIT (`aura_well_spirit_award_effect.tres`). Levels cost 60, 300, 600, and 1200 ticks, then ×2 per level (2400, 4800, …). That is about 1, 5, 10, 20, and 40 minutes, with no cap.
-- **No quest.** The new zone action is the only signal.
+- **No quest.** The new card, with its NEW seal, is the only signal. The Aura Well resolves before foraging only when the zone has no saved last idle action, so a player who forages keeps foraging until they pick the well.
 
 ### Beat 3b: Second Keystone + Merchant Unlock `IMPLEMENTED`
 
@@ -155,7 +156,7 @@ Deviations from the original design:
 
 **Trigger:** clicking **Traveling Merchant**, which Beat 3b unlocks. There is no quest. Decisions and the pricing test plan are in the [Merchant v1 spec](../superpowers/specs/2026-10-19-merchant-v1-design.md).
 
-- **Opening.** `ActionManager` emits `start_merchant` and the shop fades in over the zone view. The action stays current until the player presses Leave or Escape. That stops the action (`stop_merchant`) and fades the shop out; if another view has opened above the shop, it closes at once and that view stays open. A foraging or training action the visit replaced resumes when the shop closes, unless the zone changed. Every visit adds 1 to the action's completion count; the action has unlimited uses and no effects.
+- **Opening.** `ActionManager` emits `start_merchant` and the shop fades in over the zone view. The action stays current until the player presses Leave or Escape. That stops the action (`stop_merchant`) and fades the shop out; if another view has opened above the shop, it closes at once and that view stays open. When the shop closes, the zone's idle action resumes (the foraging or training the visit replaced, as the zone's last idle action). Every visit adds 1 to the action's completion count; the action has unlimited uses and no effects.
 - **Stock** (`resources/merchants/spirit_valley_merchant_stock.tres`). Each price is the item's `base_value`. All prices are starting values.
 
 | Item | Slot | Price | Limit |
@@ -176,7 +177,7 @@ Deviations from the original design:
   - No gold moves until every check passes.
   - Broken stock data never takes gold. An entry with no item gets no row, and the shop logs a warning. An entry whose item class doesn't match its `item_type` (so `InventoryManager.award_items()` couldn't place it) can't be bought.
   - The merchant buys nothing back.
-- **Look.** A dark teal panel with drifting mist, motes and a glowing edge, from `assets/themes/merchant/spirit_valley_merchant_theme.tres`. A merchant in another zone sets its own `shop_theme`. The log and quest windows are hidden while the shop is open, so the panel never cuts off their text. Leave sits beside the title; the gold sits in the footer, beside the status line.
+- **Look.** A dark teal panel with drifting mist, motes and a glowing edge, from `assets/themes/merchant/spirit_valley_merchant_theme.tres`. A merchant in another zone sets its own `shop_theme`. The log and Goals boards are hidden while the shop is open, so the panel never cuts off their text. Leave sits beside the title; the gold sits in the footer, beside the status line.
 
 | Property | Value |
 |---|---|
@@ -193,7 +194,7 @@ Deviations from the original design:
 
 After Beat 4:
 
-- No quest is active, and the tracker lists the three completed quests.
+- No quest is active, and the Goals board shows only the Breakthrough milestone.
 - No further NPC actions, events, or conditions exist, and the Intervener is gone. Gold buys the Merchant's six gear pieces once each; after that it only buys Crude Scales.
 - Only repeatable systems remain:
   - cycling (+1 path point per 10 CD levels)
@@ -204,7 +205,7 @@ After Beat 4:
   - consumables
   - Path tree purchases (14 nodes)
 - Core Density keeps rising past 100 with no effect. `CultivationManager.attempt_breakthrough()` is an empty stub, only the Foundation `AdvancementStageResource` exists, there is no Tribulation scene, and no CD-100 condition is registered.
-- The Test Zone tile can be selected but has no actions.
+- The Test Zone is hidden on the map and has no actions (the dev panel's "Show hidden zones" toggle can show it).
 
 ### Beat index
 
@@ -237,10 +238,10 @@ After Beat 4:
 ### Beat 6: Third Keystone `PLANNED`
 
 - **Design:** Core Density ~30 awards the third path point. The player picks Keystone #3, a combat burst or finisher that raises the damage ceiling for the Guardian. No quest; the path-point notification is the signal.
-- **Exists:** CD 30 awards a point.
+- **Exists:** CD 30 awards a point, and the dock's Path button shows the unspent balance on a count seal.
 - **Needs:**
   - a third KEYSTONE node and its ability on the Pure Madra tree
-  - a path-point notification, which doesn't exist (see Work Remaining → UI)
+  - a louder notification than the dock seal if playtests miss it (see Work Remaining → UI)
   - retuning, since CD 30 currently arrives about four perfect Smooth Flow cycles after Beat 2 (see [Economy](#loop-economy))
 
 ### Beat 7: The Tribulation Guardian `PLANNED`
@@ -256,7 +257,7 @@ After Beat 4:
 ### Beat 8: The Advancement Zone `PLANNED`
 
 - **Design:** A small, atmospheric zone centered on the Tribulation Site. `q_breakthrough_seek` ("Reach the Breakthrough Site and cultivate to full Core Density") progresses toward CD 100. No combat. The zone can be revisited before CD 100 without triggering the Tribulation.
-- **Exists:** gated zone tiles (`zone_unlock_conditions`, lock overlays). The Test Zone at (0,1) is an empty placeholder.
+- **Exists:** the map's LOCKED and UNCHARTED states (`zone_unlock_conditions`, `chart_conditions`), with plates naming the blocker and popovers giving the requirement and "Show me". The dev demo zones show them today: a locked "Advancement Zone" at (0, -1) ("Defeat the Tribulation Guardian in The Shallow Woods") and an uncharted hex beyond it. The Test Zone at (-1, 0) is an empty placeholder, hidden on the map.
 - **Needs:**
   - the zone's `ZoneData` and actions
   - the quest
@@ -429,7 +430,8 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 | `singletons/merchant_manager/merchant_manager.gd` | Beat 4 purchase rules and per-merchant ledgers |
 | `scenes/merchant/` | Beat 4 shop view, rows, atmosphere and view state |
 | `assets/themes/merchant/spirit_valley_merchant_theme.tres` | Beat 4 Spirit Valley shop look |
-| `resources/zones/test_zone/test_zone.tres` | Empty Test Zone (unlocks at NPC 1) |
+| `resources/zones/test_zone/test_zone.tres` | Empty Test Zone (unlocks at NPC 1, hidden on the map at (-1, 0), no description) |
+| `resources/zones/dev/` | Dev demo zones for the locked and uncharted map states (Beats 7–10's machinery) |
 | `resources/quests/q_fill_core.tres`, `q_first_steps.tres`, `q_reach_core_density_10.tres`, `quest_list.tres` | Quests |
 | `resources/unlocks/*.tres`, `unlock_condition_list.tres` | Conditions |
 | `resources/effects/trigger_event/celestial_intervener_dialogue_1.tres` | NPC 1 event effect |
@@ -469,16 +471,15 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
   - "[CORE]", "[DREADBEAST]", "[REMNANT]", "[TIMELINE ALTERING EVENT]", and "[REPORT REQUESTED]" in the timeline
   - The map's `from_source`, "Old Vesh, in the broken shrine", contradicts the Intervener handing it over.
   - The map's icon is the placeholder `res://64.png`.
-- `[MEDIUM]` The Test Zone tile unlocks at NPC 1 with the description "test zone" and no actions. Players see a dead tile.
 - `[LOW]` Spring Forest Foraging still uses the temporary Beat 1 gate (`q_fill_core_completed`) and `test_loot_table_foraging.tres`.
 - `[LOW]` The Tribulation Guardian is not authored. The boss slot holds Manifested Spirit, which reuses the regular `amorphous_spirit` enemy.
 
 ### UI
 
-- `[HIGH]` Path points are never announced. `PathManager.add_points()` emits `points_changed`, but only `path_tree_view.gd` listens, so the balance is visible only inside the Path panel. Nothing writes a LogWindow line or shows a toast, and the PATH button has no badge (`SystemMenuButton.BADGE_PROVIDER` maps only ABILITIES). The `q_first_steps` point shows only as "Quest Complete: First Steps Out". The CD-milestone points (`CultivationManager` +1 every 10 levels) are completely silent. Beat 6 is designed around a path-point notification that doesn't exist.
-- `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`, and cycling has no badge (`CyclingManager.has_unequipped_unlocks()` is unused).
-- `[MEDIUM]` The Aura Well discovery and the Refugee Camp search have no tracker guidance. The map's purpose is explained only in `dialogue_4` and the item description.
-- `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The quest tracker starts collapsed and empty.
+- `[MEDIUM]` Path points are announced only by the dock. While points are unspent, the Path button shows the brass ring and a count seal (the dock listens to `points_changed`), which is the signal Beat 6 relies on. Nothing writes a log line or shows a toast, so a CD-milestone point earned while cycling (the view covers the dock) or in an adventure goes unseen until the zone view returns. Playtest whether the seal is enough.
+- `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`, and cycling has no notification (`CyclingManager.has_unequipped_unlocks()` is unused).
+- `[MEDIUM]` The Aura Well discovery and the Refugee Camp search have no quest on the Goals board. The map's purpose is explained only in `dialogue_4` and the item description.
+- `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The Goals board shows only the Breakthrough milestone.
 - `[LOW]` Merchant gear purchases log as "Looted 1x …" (Crude Scales as "Obtained 1x …"), because the shop awards items through `InventoryManager.award_items()`.
 
 ### Tech Debt

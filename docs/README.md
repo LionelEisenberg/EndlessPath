@@ -1,8 +1,8 @@
 # EndlessPath Documentation
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
-Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18.
+Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view on `feat/zone-view-redesign-4656b7` (not merged).
 
 ## Start Here
 
@@ -22,7 +22,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 |---|---|---|
 | Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | Madra Ball mouse-tracking and cycling-zone clicks; techniques; Madra and Core Density XP |
 | Cultivation | [cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density levels, advancement stages, breakthrough status |
-| Zones and actions | [zones/ZONES.md](zones/ZONES.md) | Zone hex map, ZoneManager/ActionManager, foraging, training, NPC and merchant actions |
+| Zones and actions | [zones/ZONES.md](zones/ZONES.md) | The map-first lacquer zone view (map, cabinet, zone chest, cards), ZoneManager/ActionManager, idle-action resolution, foraging, training, NPC and merchant actions |
 | Adventuring | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex maps, fog, movement and stamina, encounters, end card |
 | Combat | [combat/COMBAT.md](combat/COMBAT.md) | Real-time combat: combatants, vitals, casts, buffs, damage formula, enemy AI, enemies |
 | Abilities | [abilities/ABILITIES.md](abilities/ABILITIES.md) | Ability data model, AbilityManager, 4-slot loadout, Abilities view |
@@ -37,7 +37,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 
 | Topic | Doc | Summary |
 |---|---|---|
-| UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, input routing, keybindings, toolbar |
+| UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, HUD boards, input routing, keybindings, dock |
 | Persistence | [infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | SaveGameData schema and owners, load/save/reset, auto-save, versioning |
 | Resources | [infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra and Gold, the two Madra caps, sources and sinks |
 | Character | [infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, derived stats, player vitals, the Character view |
@@ -45,8 +45,8 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | Events | [infrastructure/EVENTS.md](infrastructure/EVENTS.md) | One-shot event flags and every event id |
 | Effects | [infrastructure/EFFECTS.md](infrastructure/EFFECTS.md) | The `EffectData` hierarchy and where each effect is used |
 | Dialogue | [infrastructure/DIALOGUE.md](infrastructure/DIALOGUE.md) | DialogueManager, Dialogic setup, characters and timelines |
-| Logging | [infrastructure/LOGGING.md](infrastructure/LOGGING.md) | `Log` (diagnostics) vs `LogManager` (player-facing log) |
-| UI styling | [UI_STYLING.md](UI_STYLING.md) | Label theme-variant type scale, theme and asset files |
+| Logging | [infrastructure/LOGGING.md](infrastructure/LOGGING.md) | `Log` (diagnostics) vs `LogManager` (player-facing log), the log board and full log |
+| UI styling | [UI_STYLING.md](UI_STYLING.md) | Label theme-variant type scale, the lacquer theme and pieces, theme and asset files |
 | Authoring conventions | [progression/QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md](progression/QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md) | When to use an event, an unlock condition, or a quest step |
 
 ## Tooling and Testing
@@ -73,7 +73,7 @@ Point-in-time design and plan documents. Each carries a status banner. For curre
 
 | Doc | Status |
 |---|---|
-| [superpowers/README.md](superpowers/README.md) | Index of the 2026-04 → 2026-05 feature specs and plans, with each one's shipped status |
+| [superpowers/README.md](superpowers/README.md) | Index of the feature specs and plans (2026-04 onward, including the 2026-10 Merchant v1 and map-first zone view), with each one's shipped status |
 | [cycling/CYCLING_UI_REDESIGN.md](cycling/CYCLING_UI_REDESIGN.md), [cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md](cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md) | Implemented (PR #12) |
 | [inventory/EQUIPMENT_DESIGN.md](inventory/EQUIPMENT_DESIGN.md), [inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md](inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md) | Phase 1 implemented (PR #9); later phases partial or not started |
 | [infrastructure/MADRA_UNIFICATION_DESIGN.md](infrastructure/MADRA_UNIFICATION_DESIGN.md), [infrastructure/MADRA_UNIFICATION_PLAN.md](infrastructure/MADRA_UNIFICATION_PLAN.md) | Implemented (PR #16) |

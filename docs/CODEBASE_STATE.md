@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-10-20
+Last updated: 2026-10-22 (the map-first zone view on `feat/zone-view-redesign-4656b7`, not merged)
 
 This document covers the architecture of the EndlessPath codebase and the technical concerns that span several systems. The other entry points are:
 - [README.md](README.md): index of every doc.
@@ -16,11 +16,11 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~19.5k lines of game GDScript and ~6.4k lines of tests; 112 scenes; 98 authored `.tres` resources; 15 shaders |
+| Code | ~25.8k lines of game GDScript and ~14.7k lines of tests; 135 scenes; 102 authored `.tres` resources; 16 shaders (on the zone view branch) |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 68 scripts and 618 tests, all passing on 2026-10-20 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 97 scripts and 1128 tests, all passing on 2026-10-22 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
-| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR |
+| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/zone-view-redesign-4656b7`: the map-first lacquer zone view, built 2026-10-22 |
 
 ---
 
@@ -39,10 +39,10 @@ The codebase is signal-driven and data-forward. Its three layers are kept separa
 MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log print level
 ├── MainView (Control)            main_view.gd: state stack + input routing
 │   ├── MainViewStateMachine      9 state nodes (no script)
-│   ├── ZoneView                  base view: ZoneTransition, SubViewport (background + ZoneTilemap),
-│   │                             ZoneInfoPanel, ZoneResourcePanel, ZoneHeader, Toolbar
+│   ├── ZoneView                  base view: ZoneTransition, SubViewport (ZoneTilemap: map, fog, MapMarkers),
+│   │                             CultivatorPlate, ZonePanel (zone chest), Dock
 │   ├── AdventureView             adventure map + combat
-│   ├── LogWindow, QuestWindow    always-on HUD (z 1)
+│   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by the base state, hidden under overlays
 │   ├── QuestToast                z 10
 │   ├── GreyBackground            modal backdrop (z 2)
 │   ├── PathTreeView, AdventureEndCard, InventoryView, AbilitiesView, CharacterView, CyclingView (z 3)
@@ -55,11 +55,11 @@ The full tree, HUD placement and z-order are in [MAIN_VIEW.md](infrastructure/MA
 ### View State Machine
 
 `MainView` keeps a **base state** (`ZoneViewState` or `AdventureViewState`) and a **stack of overlay states**:
-- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `AdventureEndCardState`.
+- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `AdventureEndCardState`. All but the end card hide the HUD boards while open (`MainView.hide_hud_boards()`).
 - **Operations:** `change_state()` swaps the base and clears the stack, `push_state()` opens an overlay, and `pop_state()` closes it.
 - **Input:** only the current state receives it, through `_unhandled_input` → `handle_input()`.
 
-Menu overlays open from keyboard actions (I/A/C/P) or the bottom `Toolbar`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. Cycling, the merchant shop, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
+Menu overlays open from keyboard actions (I/A/C/P) or the zone view's `Dock`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. L opens the full log in either base view. Cycling, the merchant shop, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
 
 ### Singleton Managers
 
@@ -73,13 +73,13 @@ The 18 autoloads, in `project.godot` load order:
 | 4 | `CharacterManager` | Base attributes; totals including equipment bonuses | [CHARACTER](infrastructure/CHARACTER.md) |
 | 5 | `UnlockManager` | Unlock-condition catalog and latched unlocks | [UNLOCKS](infrastructure/UNLOCKS.md) |
 | 6 | `ResourceManager` | Madra and Gold; adventure Madra capacity and threshold | [RESOURCES](infrastructure/RESOURCES.md) |
-| 7 | `ZoneManager` | Selected zone, per-zone progression (completions, training ticks) | [ZONES](zones/ZONES.md) |
-| 8 | `ActionManager` | The single current zone action and its lifecycle signals (no queue) | [ZONES](zones/ZONES.md) |
+| 7 | `ZoneManager` | Selected zone, per-zone progression (completions, training ticks, last idle action), map zones and map states, seen actions | [ZONES](zones/ZONES.md) |
+| 8 | `ActionManager` | The single current zone action and its lifecycle signals (no queue); resolves and resumes the zone's idle action | [ZONES](zones/ZONES.md) |
 | 9 | `InventoryManager` | Equipment (paged), gear, materials, consumables and hotbar, quest items | [INVENTORY](inventory/INVENTORY.md) |
 | 10 | `Dialogic` | Dialogue addon (2.0-Alpha-19) | [DIALOGUE](infrastructure/DIALOGUE.md) |
 | 11 | `DialogueManager` | Dialogic wrapper; `dialogue_ended` | [DIALOGUE](infrastructure/DIALOGUE.md) |
 | 12 | `PlayerManager` | The persistent player `VitalsManager` (HP/Madra/Stamina) | [CHARACTER](infrastructure/CHARACTER.md) |
-| 13 | `LogManager` | Player-facing in-game log (`message_logged`) | [LOGGING](infrastructure/LOGGING.md) |
+| 13 | `LogManager` | Player-facing in-game log (`message_logged`, a 200-line history) | [LOGGING](infrastructure/LOGGING.md) |
 | 14 | `CyclingManager` | Unlocked/equipped cycling techniques, technique catalog | [CYCLING](cycling/CYCLING.md) |
 | 15 | `AbilityManager` | Unlocked abilities, 4-slot loadout, ability catalog | [ABILITIES](abilities/ABILITIES.md) |
 | 16 | `PathManager` | Path tree, point balance, purchases, perk aggregation (`PathEffectsSummary`) | [PATH_PROGRESSION](progression/PATH_PROGRESSION.md) |
@@ -123,7 +123,7 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 - **Unique names** (`%NodeName`) decouple scripts from the scene hierarchy. Use them instead of `$Path/To/Node`.
 - **Subscenes** package complex UI, e.g. `adventure_view.tscn` is instanced into `main_game.tscn`.
 - **No UI nodes in code:** UI structure lives in `.tscn` files, and scripts only set data.
-- **Label styling:** text uses the Label theme-variant type scale in `pixel_theme.tres` ([UI_STYLING.md](UI_STYLING.md)).
+- **Label styling:** text uses the Label theme-variant type scale in `pixel_theme.tres`; the zone view's panels and the HUD boards use `lacquer_theme.tres` and its `LabelLacquer*` variants ([UI_STYLING.md](UI_STYLING.md)).
 
 ### Key Shared Components
 
@@ -132,12 +132,12 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 | `Log` | `scripts/utils/log.gd` | Leveled diagnostic logging to console and file. `LogManager` is the player-facing log ([LOGGING.md](infrastructure/LOGGING.md)) |
 | `ThemeConstants` | `scripts/utils/theme_constants.gd` | Colour constants for code-side styling |
 | `GreyBackground` | `scenes/ui/grey_background/` | Modal backdrop with `show_with_panel()` / `hide_with_panel()` fade orchestration |
-| `SystemMenuButton` | `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | Toolbar nav button. Its `MenuType` enum drives label, shortcut, icon and input action |
-| `FlyingParticle` | `scenes/ui/flying_particle/` | Particle that flies to a target. Used by cycling Madra feedback, the adventure-start drain (`ZoneTransition`) and training ticks |
-| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. Used for combat damage numbers, foraging `+N Item` pop-ups and cycling feedback |
-| `TickProgressBar` | `scenes/ui/tick_progress_bar/` | Tick counter bar on training actions |
-| `Atmosphere` | `scenes/atmosphere/` | Vignette shader, drifting mist and floating motes. Used in the zone and adventure views, tuned per scene with `@export` |
-| `HexHoverSelector` | `scenes/tilemaps/hex_hover_selector.gd` | Animated ring that snaps to the hovered hex. Used by the zone and adventure tilemaps |
+| `SystemMenuButton` | `scenes/ui/dock/system_menu_button/system_menu_button.gd` | Dock nav button. Its `MenuType` enum drives label, shortcut, icon and input action; `set_notification()` shows the ring and count seal |
+| Lacquer pieces | `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd` | `LacquerStripRect` (strip frames), `LacquerRod` (stepped rod), `LacquerFrameOverlay` (brass or hover frame, flashed), `LacquerRail` (scroll rail) and `LacquerText`, for the zone view and the HUD boards ([UI_STYLING.md](UI_STYLING.md)) |
+| `FlyingParticle` | `scenes/ui/flying_particle/` | Particle that flies to a target. Used by cycling Madra feedback |
+| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. Used for combat damage numbers and cycling feedback |
+| `Atmosphere` | `scenes/atmosphere/` | Vignette shader, drifting mist and floating motes. Used in the adventure view, tuned per scene with `@export` |
+| `HexHoverSelector` | `scenes/tilemaps/hex_hover_selector.gd` | Animated ring that snaps to the hovered hex. Used by the adventure tilemap; the zone map swaps hex rims instead |
 | `EncounterIcon` | `scenes/adventure/encounter_icon/` | Glyph for each encounter type (animated boss and rest glyphs). Used by tile icons and the floating `AdventureMarker` |
 | `PathPreview` | `scenes/adventure/path_preview/` | Tiled-texture `Line2D` route, with a gradient fade behind the player during committed travel |
 | `ItemDisplaySlot` / `ItemDescriptionPanel` | `scenes/common/` | Read-only item icon with tooltip, and the item detail panel |
@@ -154,10 +154,10 @@ These issues span several systems, so no single system doc owns them. The detail
 |---|---|---|
 | **Modifiers nobody reads** | `PathManager` aggregates 7 numeric perk types into `PathEffectsSummary`, but no production code reads it. Other values are exported and never read: cycling action modifiers and foraging `madra_cost_per_second`. Player max vitals ignore equipment changes until a base attribute changes. See [PATH_PROGRESSION](progression/PATH_PROGRESSION.md), [CYCLING](cycling/CYCLING.md), [ZONES](zones/ZONES.md), [CHARACTER](infrastructure/CHARACTER.md) | HIGH |
 | **Missing stage data hangs the game** | `CultivationManager.add_core_density_xp()` loops forever if the current stage has no `AdvancementStageResource`, because `get_xp_for_next_level()` returns 0. `ResourceManager.add_madra()` likewise clamps Madra to 0. Guard both before adding any stage past Foundation. See [CULTIVATION](cultivation/CULTIVATION.md) | HIGH (blocks Copper) |
-| **Save robustness** | Saves have no version field and no migration, and two schema changes have already broken old saves. A failed `verify()` (e.g. a renamed zone id) or an unreadable file silently replaces the whole save. Nothing saves on quit, and wiping a save requires editing `reset_save_data` in the script. See [PERSISTENCE](infrastructure/PERSISTENCE.md) | HIGH (before any public build) |
+| **Save robustness** | Saves have no version field, and two schema changes have already broken old saves. The only migration is `SaveGameData.migrate()`, which moves listed zone ids (Test Zone → Spirit Valley) before `verify()`. A failed `verify()` (e.g. a renamed zone id) or an unreadable file silently replaces the whole save. Nothing saves on quit, and wiping a save requires editing `reset_save_data` in the script. See [PERSISTENCE](infrastructure/PERSISTENCE.md) | HIGH (before any public build) |
 | **Mirror tests** | About 114 tests in 5 files re-implement the logic they check instead of calling it: `test_resource_manager`, `test_cultivation_manager`, `test_character_manager`, `test_adventure_flow`, `test_adventure_combat_count`. ResourceManager, CultivationManager and CharacterManager are effectively untested. See [TESTING](testing/TESTING.md) | HIGH |
 | **Untyped ids** | Event ids, condition ids and unlock targets are strings, and no test checks that every gate's condition is registered, that every quest step's event has a producer, or that every path unlock id resolves. See [UNLOCKS](infrastructure/UNLOCKS.md), [EVENTS](infrastructure/EVENTS.md) | MEDIUM |
-| **Log volume** | `ResourceManager.add_madra()` logs every award, about 12 lines/s while cycling Smooth or Torrential Flow and once per second while training, into an unbounded `LogWindow`. Each `madra_changed` also re-evaluates every unlock condition. See [RESOURCES](infrastructure/RESOURCES.md), [LOGGING](infrastructure/LOGGING.md) | MEDIUM |
+| **Log volume** | `ResourceManager.add_madra()` logs every award that adds 1 Madra or more, about 12 lines/s while cycling Smooth or Torrential Flow, which push everything else off the five-line log board and out of `LogManager`'s 200-line history. The Aura Well trickle is quiet. Each `madra_changed` also re-evaluates every unlock condition. See [RESOURCES](infrastructure/RESOURCES.md), [LOGGING](infrastructure/LOGGING.md) | MEDIUM |
 | **Modal backdrop** | Found by code reading: after Path, Abilities or Character closes, `GreyBackground.self_modulate.a` stays 0. Later Inventory, Cycling and end-card overlays then show an invisible but click-blocking backdrop. See [MAIN_VIEW](infrastructure/MAIN_VIEW.md) | MEDIUM |
 | **Tooling gotchas** | The first headless `--import` in a fresh checkout rewrote `project.godot`'s `[dialogic]` directory registry to `{}`, so revert it before committing. Editor, exported builds and GUT runs share one `user://` dir (save file, logs, dev password file). Green test runs print SCRIPT ERRORs and 24 Dialogic orphans. See [TESTING](testing/TESTING.md), [DEV_TOOLS](tooling/DEV_TOOLS.md) | MEDIUM |
 | **Shipping gaps** | No `export_presets.cfg`, no CI, and no audio assets or audio code | MEDIUM |

@@ -1,8 +1,8 @@
 # Gameplay State
 
-Last updated: 2026-10-19
+Last updated: 2026-10-22
 
-This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
+This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. The zone view described here is the map-first "Lacquer and brass" view built on `feat/zone-view-redesign-4656b7` (2026-10-22, not merged); the content is the same as on `main`. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
 
 ---
 
@@ -13,17 +13,17 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
 1. **Start.** The zone view opens on Spirit Valley:
    - Resources: 25 Madra (cap `100 + 5 × Core Density level`), Core Density 0, 0 Path Points.
    - Loadout: Basic Strike and Enforce equipped; the Foundational Technique equipped for cycling.
-   - The only action card is *Talk to the [INTERVENER]*. The neighbouring Test Zone hex is locked.
-2. **NPC dialogue 1** (Dialogic). It unlocks Wilderness Cycling and the empty Test Zone, and starts quest **Awaken Your Core** (`q_fill_core`).
+   - The only action card is *Talk to the [INTERVENER]*. The zoom-2 map shows only Spirit Valley, framed in fog. The Goals board shows only the Breakthrough milestone (`0 / 100`).
+2. **NPC dialogue 1** (Dialogic). It unlocks Wilderness Cycling (and the empty Test Zone, which stays hidden on the map), and starts quest **Awaken Your Core** (`q_fill_core`), which the Goals board shows with a Madra figure (`25 / 100` on a new save).
 3. **Cycle.** Keep the cursor in the moving Madra Ball to earn Madra. The Foundational Technique has no cycling zones, so it earns **no Core Density XP**. Reaching 100 Madra completes step 1.
-4. **NPC dialogue 2.** It completes the quest, unlocks **Spring Forest Foraging** and **The Shallow Woods** adventure, and starts **First Steps Out** (`q_first_steps`).
-5. **Forage** (idle). Every 5 s the player gains Spirit Fern (2–6) and Dewdrop Tear (1–5). Foraging costs nothing, can't be toggled off, and the materials have no use yet.
+4. **NPC dialogue 2.** It completes the quest, unlocks **Spring Forest Foraging** and **The Shallow Woods** adventure, and starts **First Steps Out** (`q_first_steps`). When the dialogue ends, foraging starts on its own ("Resumed Spring Forest Foraging").
+5. **Forage** (idle). Every 5 s the player gains Spirit Fern (2–6) and Dewdrop Tear (1–5), shown in the Now strip and floated over the map. Foraging costs nothing, can't be toggled off, and the materials have no use yet. From now on an idle action always runs: it pauses for cycling, adventures, dialogue and the shop, and resumes when they end (and on load).
 6. **Adventure.** Starting a run needs Madra ≥ 50% of the adventure capacity (`FOUNDATION × 10`, so 50 of 100 on a new save). The whole budget drains into the run.
    - The map is a procedurally generated hex map with fog of war. Each step costs 5 Stamina, and Stamina regenerates 1/s.
    - The timer is 300 s. Fights are real-time, with Q/W/E/R for abilities.
    - The run ends on a boss win, a death, or a timeout. A scroll end card shows stats and loot.
 7. **Win any fight**, then **NPC dialogue 3**. This completes the quest, awards **+1 Path Point**, and starts **Harden Your Core** (`q_reach_core_density_10`).
-8. **Path tree** (P). Buying *Pure Core Awakening* unlocks Empty Palm and the Smooth Flow technique.
+8. **Path tree** (P). The dock's Path button shows a count seal while points are unspent. Buying *Pure Core Awakening* unlocks Empty Palm and the Smooth Flow technique.
    - The player must equip them by hand: Abilities view (A) and the cycling Techniques tab.
    - Smooth Flow has cycling zones, so cycling now earns Core Density XP. The only hint is a line of dialogue.
 9. **Aura Well** (one per map). Choosing *Mark down the location* unlocks **Aura Well** training: an idle action giving +1.5 Madra/s and +1 Spirit per level.
@@ -31,7 +31,7 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
 11. **Refugee Camp** encounter. It appears in later runs while the player holds the map. Visiting it reveals the **Traveling Merchant**, whose shop sells six gear pieces (once each per save) and Crude Scales for gold.
 12. **End of content.** No quest is active and no further beats exist. Cycling, adventures, foraging, training, the Merchant and the path tree remain as repeatable loops. Core Density keeps rising past 100 with no breakthrough, and the stage can never change.
 
-Other views, all opened from the zone view via keyboard or the bottom toolbar:
+Other views, all opened from the zone view via keyboard or the dock:
 
 | View | Key | Details |
 |---|---|---|
@@ -40,7 +40,7 @@ Other views, all opened from the zone view via keyboard or the bottom toolbar:
 | Character | C | 8 total attributes with tooltips. See [CHARACTER.md](infrastructure/CHARACTER.md) |
 | Path | P | Pure Madra skill tree. See [PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md) |
 
-A draggable log window and a quest tracker/toast give feedback. Progress auto-saves every 5 s to `user://save.tres` ([PERSISTENCE.md](infrastructure/PERSISTENCE.md)).
+A five-line log board (L opens the full log), the Goals board (the current quest step and the Breakthrough milestone) and quest toasts give feedback. The zone view is described in [ZONES.md](zones/ZONES.md). Progress auto-saves every 5 s to `user://save.tres` ([PERSISTENCE.md](infrastructure/PERSISTENCE.md)).
 
 ---
 
@@ -50,7 +50,7 @@ A draggable log window and a quest tracker/toast give feedback. Progress auto-sa
 | Zone | Actions | Unlock |
 |---|---|---|
 | Spirit Valley (`SpiritValley`) | 9 actions, listed below | Always |
-| Test Zone (`TestZone`) | None (placeholder, description "test zone") | Event `celestial_intervener_dialogue_1` |
+| Test Zone (`TestZone`) | None (placeholder, no description). Hidden on the map at (-1, 0), west of Spirit Valley; the dev panel can show it | Event `celestial_intervener_dialogue_1` |
 
 | Action (`action_id`) | Type | Unlock | What it does |
 |---|---|---|---|
@@ -183,7 +183,7 @@ Ranked by how much they stop the game from growing:
 4. **The gold sink runs dry.** Once the six gear pieces are bought (625 gold), gold only buys Crude Scales.
 5. **No real boss.** The Shallow Woods boss fights the regular Amorphous Spirit, and clearing a run records nothing.
 6. **Inert perks.** Most of the path tree, and every stat-multiplier hook, does nothing.
-7. **Onboarding.** Path Points and unlocks are silent, the Foundational Technique earns no XP with no clear prompt to switch, dialogue still has placeholder text (`[INTERVENER]`), and the empty Test Zone unlocks at the first dialogue.
+7. **Onboarding.** Unlocks are nearly silent (a static NEW seal on new cards; unspent Path Points show only on the dock), the Foundational Technique earns no XP with no clear prompt to switch, and dialogue still has placeholder text (`[INTERVENER]`).
 
 ## Recommended Next Steps
 
