@@ -8,7 +8,8 @@ extends Node
 signal zone_changed(zone_data: ZoneData)
 
 # Zone Action Completed signals
-signal action_completed
+## Emitted when a limited action (max_completions > 0) reaches its limit.
+signal action_completed(action_id: String)
 
 ## Emitted when the set of zones the map shows changes (dev toggles for the
 ## demo zones and the hidden zones).

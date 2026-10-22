@@ -166,6 +166,22 @@ func test_open_plate_counts_activities() -> void:
 	assert_eq(valley.get_line_text(), ZoneMapLabel.open_line(count))
 	assert_eq(valley.get_line_color(), ThemeConstants.LACQUER_TAN)
 
+func test_plates_refresh_when_a_limited_action_completes() -> void:
+	# ZoneManager.action_completed carries the action id. The dialogue's
+	# completion count is bumped silently, so only that signal can update the
+	# valley's activity count on its plate.
+	_open_test_zone()
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	await _settle()
+	var valley: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var count_before: int = ZoneManager.get_available_actions(SPIRIT_VALLEY_ID).size()
+	assert_eq(valley.get_line_text(), ZoneMapLabel.open_line(count_before))
+	PersistenceManager.save_game_data.increment_zone_progression_for_action(TEST_ZONE_UNLOCK_ID, SPIRIT_VALLEY_ID, 1)
+	var count_after: int = ZoneManager.get_available_actions(SPIRIT_VALLEY_ID).size()
+	assert_eq(count_after, count_before - 1, "the completed dialogue leaves the valley's list")
+	ZoneManager.action_completed.emit(TEST_ZONE_UNLOCK_ID)
+	assert_eq(valley.get_line_text(), ZoneMapLabel.open_line(count_after), "the plate re-counts on action_completed")
+
 func test_open_plate_reads_click_to_travel_on_hover() -> void:
 	_open_test_zone()
 	var plate: ZoneMapLabel = _markers().get_plate(TEST_ZONE_ID)

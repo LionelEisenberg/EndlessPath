@@ -560,7 +560,7 @@ func _on_current_action_changed(action: ZoneActionData) -> void:
 	_show_idle_action(action)
 	_refresh_plates()
 
-func _on_zone_action_completed() -> void:
+func _on_zone_action_completed(_action_id: String) -> void:
 	_refresh_plates()
 
 ## "+1.5 Madra" in Madra blue for each tick of the running training action.

@@ -282,7 +282,7 @@ func _on_zone_changed(_zone_data: ZoneData) -> void:
 	_close_lore()
 	_queue_rebuild()
 
-func _on_action_completed(_action_id: String = "") -> void:
+func _on_action_completed(_action_id: String) -> void:
 	_queue_rebuild()
 
 func _on_condition_unlocked(_condition_id: String) -> void:
