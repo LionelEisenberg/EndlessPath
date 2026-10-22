@@ -24,6 +24,10 @@ const FORAGING_ID: String = "sprint_forest_foraging_action"
 const CYCLING_ID: String = "wilderness_cycling_action"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 
+## The plate's status line slot, in the plate's own px (kit §6.5).
+const LINE_LEFT: float = 6.0
+const LINE_RIGHT: float = 242.0
+
 var _map: ZoneTilemap
 
 #-----------------------------------------------------------------------------
@@ -83,6 +87,17 @@ func _route_screen_dots(zone_id: String) -> Array[Vector2]:
 	for dot: Vector2 in route.get_dot_positions():
 		dots.append(ZoneMapMath.world_to_screen(route.position + dot, camera.position, camera.zoom.x))
 	return dots
+
+## The control's rect in the plate's own px (the plate is at scale 1).
+func _rect_in_plate(plate: ZoneMapLabel, control: Control) -> Rect2:
+	var rect: Rect2 = control.get_global_rect()
+	rect.position -= plate.global_position
+	return rect
+
+## The width the label's whole text needs, untrimmed.
+func _text_width(label: Label) -> float:
+	var font: Font = label.get_theme_font("font")
+	return font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label.get_theme_font_size("font_size")).x
 
 #-----------------------------------------------------------------------------
 # PLATES
@@ -156,6 +171,10 @@ func test_open_plate_reads_click_to_travel_on_hover() -> void:
 	_markers().set_hovered_zone(TEST_ZONE_ID)
 	assert_eq(plate.get_line_text(), "Click to travel")
 	assert_eq(plate.get_line_color(), ThemeConstants.LACQUER_BRASS, "in brass")
+	var name_part: Label = plate.get_node_or_null("%LineName") as Label
+	assert_not_null(name_part, "the line's text is a Label of its own")
+	if name_part != null:
+		assert_eq(name_part.get_theme_color("font_color"), ThemeConstants.LACQUER_BRASS, "drawn in brass")
 	assert_string_contains(plate.get_plate_texture().resource_path, "lacquer_plate_open_hover_ai")
 	_markers().set_hovered_zone("")
 	assert_eq(plate.get_line_text(), "Open · nothing to do yet")
@@ -183,6 +202,93 @@ func test_long_zone_name_stays_on_the_plate() -> void:
 	var name_label: Label = plate.get_node("%NameLabel") as Label
 	assert_lte(name_label.position.x + name_label.size.x, 248.0, "the name stays inside the plate")
 	assert_ne(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "and ellipsizes")
+
+func test_long_action_name_ellipsizes_and_keeps_icon_and_rate() -> void:
+	# Review Focus 4: on the current plate only the action's name gives way;
+	# the icon and the rate stay whole inside the line's slot.
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var training: TrainingActionData = ActionManager.get_current_action() as TrainingActionData
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var name_part: Label = plate.get_node_or_null("%LineName") as Label
+	var rate_part: RichTextLabel = plate.get_node_or_null("%LineRate") as RichTextLabel
+	var icon: Control = plate.get_node_or_null("%LineIcon") as Control
+	assert_not_null(name_part, "the line's text is a Label of its own")
+	assert_not_null(rate_part, "and its rate a RichTextLabel")
+	if name_part == null or rate_part == null:
+		return
+	# In memory only, and put back before any assert: the plate reads the
+	# running action's name.
+	var original_name: String = training.action_name
+	training.action_name = "Great Aura Well of the Ancestors of the Endless Path"
+	plate.refresh()
+	await _settle()
+	var line_text: String = plate.get_line_text()
+	var name_text_width: float = _text_width(name_part)
+	var name_rect: Rect2 = _rect_in_plate(plate, name_part)
+	var rate_rect: Rect2 = _rect_in_plate(plate, rate_part)
+	var icon_rect: Rect2 = _rect_in_plate(plate, icon)
+	var rate_shown: bool = rate_part.is_visible_in_tree()
+	var icon_shown: bool = icon.is_visible_in_tree()
+	var rate_text: String = rate_part.get_parsed_text()
+	var rate_content_width: float = rate_part.get_content_width()
+	training.action_name = original_name
+	plate.refresh()
+
+	assert_eq(line_text, "Great Aura Well of the Ancestors of the Endless Path · +1.5 Madra / s", "the line in full")
+	assert_eq(name_part.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS, "the name ellipsizes")
+	assert_lt(name_rect.size.x, name_text_width, "a long name is cut short")
+	assert_true(icon_shown, "the mini_well stays")
+	assert_gte(icon_rect.position.x, LINE_LEFT, "with the icon inside the slot")
+	assert_lte(name_rect.end.x, rate_rect.position.x + 0.5, "the name ends before the rate")
+	assert_true(rate_shown)
+	assert_eq(rate_text, " · +1.5 Madra / s", "the rate whole")
+	assert_gte(rate_rect.size.x, rate_content_width, "never squeezed")
+	assert_lte(rate_rect.end.x, LINE_RIGHT, "and inside the slot")
+
+func test_long_blocker_ellipsizes_inside_the_plate() -> void:
+	# Review Focus 4: a locked plate's long blocker ellipsizes after its icon.
+	var plate: ZoneMapLabel = ZoneMapLabelScene.instantiate()
+	add_child_autofree(plate)
+	var zone := ZoneData.new()
+	zone.zone_id = "LongBlocker"
+	zone.zone_name = "Far North"
+	zone.blocker_short_text = "Tribulation Guardian of the Far North and of Every Peak Beyond"
+	plate.setup(zone, ZoneManager.ZoneMapState.LOCKED)
+	await _settle()
+	var name_part: Label = plate.get_node_or_null("%LineName") as Label
+	var rate_part: RichTextLabel = plate.get_node_or_null("%LineRate") as RichTextLabel
+	assert_not_null(name_part, "the line's text is a Label of its own")
+	assert_not_null(rate_part, "and its rate a RichTextLabel")
+	if name_part == null or rate_part == null:
+		return
+	var icon: Control = plate.get_node("%LineIcon") as Control
+	assert_eq(name_part.text, zone.blocker_short_text, "the Label holds the whole blocker and trims it")
+	assert_lt(_rect_in_plate(plate, name_part).size.x, _text_width(name_part), "cut short")
+	assert_lte(_rect_in_plate(plate, name_part).end.x, LINE_RIGHT, "inside the slot")
+	assert_true(icon.is_visible_in_tree(), "the swords stay")
+	assert_gte(_rect_in_plate(plate, icon).position.x, LINE_LEFT)
+	assert_false(rate_part.visible, "no rate on a blocker")
+
+func test_status_line_is_centred_as_a_group() -> void:
+	# Kit §6.5: icon, name and rate centred together; a short name is not cut.
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _settle()
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var name_part: Label = plate.get_node_or_null("%LineName") as Label
+	var rate_part: RichTextLabel = plate.get_node_or_null("%LineRate") as RichTextLabel
+	assert_not_null(name_part, "the line's text is a Label of its own")
+	assert_not_null(rate_part, "and its rate a RichTextLabel")
+	if name_part == null or rate_part == null:
+		return
+	var icon: Control = plate.get_node("%LineIcon") as Control
+	assert_eq(name_part.text, "Aura Well")
+	assert_gte(_rect_in_plate(plate, name_part).size.x, _text_width(name_part), "a short name is whole")
+	var left_gap: float = _rect_in_plate(plate, icon).position.x - LINE_LEFT
+	var right_gap: float = LINE_RIGHT - _rect_in_plate(plate, rate_part).end.x
+	assert_almost_eq(left_gap, right_gap, 1.0, "centred as a group")
+	assert_eq(_rect_in_plate(plate, name_part).position.x - _rect_in_plate(plate, icon).end.x, 6.0, "the icon 6 px before the text")
+	assert_eq(name_part.get_theme_color("font_color"), ThemeConstants.LACQUER_CREAM, "the line is cream")
+	assert_eq(rate_part.get_theme_color("default_color"), ThemeConstants.LACQUER_CREAM, "rate included")
 
 #-----------------------------------------------------------------------------
 # DEMO ZONES: PLATES AND GLYPHS
@@ -265,6 +371,20 @@ func test_hiding_demo_zones_removes_their_plates() -> void:
 	assert_null(_map.get_route_to(ADVANCEMENT_DEMO_ID))
 	assert_null(_map.get_route_to(UNCHARTED_DEMO_ID))
 
+func test_rebuild_leaves_no_orphans() -> void:
+	# The old plates and glyphs wait, hidden, in the layer until they are
+	# freed at the end of the frame: none is ever an orphan, so tests that do
+	# not await a frame count none (Review Focus 5).
+	ZoneManager.set_demo_zones_visible(true)
+	await _settle()
+	var old_plate: ZoneMapLabel = _markers().get_plate(ADVANCEMENT_DEMO_ID)
+	var orphans_before: int = int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
+	ZoneManager.set_demo_zones_visible(false)
+	var orphans_after: int = int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
+	assert_eq(orphans_after, orphans_before, "no plate or glyph left outside the tree")
+	assert_false(old_plate.visible, "the old plate is hidden at once")
+	assert_eq(_markers().get_plate_zone_ids(), [SPIRIT_VALLEY_ID] as Array[String], "and not counted")
+
 func test_save_reset_rebuilds_plates_once() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	PersistenceManager.save_game_data = SaveGameData.new()
@@ -332,6 +452,21 @@ func test_north_route_matches_the_kit() -> void:
 	assert_eq(_route_screen_dots(ADVANCEMENT_DEMO_ID), to_locked, "kit §0: the valley to the locked zone")
 	assert_eq(_route_screen_dots(UNCHARTED_DEMO_ID), to_uncharted, "and on to the uncharted hex beyond it")
 	assert_false(_map.get_route_to(ADVANCEMENT_DEMO_ID).is_lit(), "routes start unlit")
+
+func test_routes_only_join_neighbours() -> void:
+	# Kit §0: a route crosses one shared rim. From Test Zone the way to the
+	# locked zone runs on from the valley instead of across it.
+	_open_test_zone()
+	ZoneManager.set_demo_zones_visible(true)
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	var route: ZoneRoute = _map.get_route_to(ADVANCEMENT_DEMO_ID)
+	assert_not_null(route)
+	var valley_centre: Vector2 = _map.get_zone_world_centre(_zone(SPIRIT_VALLEY_ID)) - route.position
+	var locked_centre: Vector2 = _map.get_zone_world_centre(_zone(ADVANCEMENT_DEMO_ID)) - route.position
+	assert_eq(route.get_dot_positions(), ZoneRoute.dot_positions(valley_centre, locked_centre), "from the valley to the locked zone")
+	assert_eq(_map.get_routes().size(), 3, "Test Zone - valley - locked - uncharted")
+	for each_route: ZoneRoute in _map.get_routes():
+		assert_eq(each_route.get_dot_positions().size(), 6, "six dots across one shared rim")
 
 func test_routes_start_from_the_current_zone() -> void:
 	_open_test_zone()
@@ -446,3 +581,32 @@ func test_layer_hides_for_the_adventure_zoom_and_returns_with_the_view() -> void
 	assert_false(markers.visible)
 	host.show()
 	assert_true(markers.visible, "shown again when the zone view comes back")
+
+func test_layer_waits_for_the_camera_to_zoom_back_out() -> void:
+	# ZoneTransition leaves the camera at zoom 3 and eases it back over 0.3 s
+	# once the zone view returns: the markers would shrink with it, so the
+	# layer shows only when the camera is back at its resting zoom.
+	var host := Control.new()
+	var container := SubViewportContainer.new()
+	var viewport := SubViewport.new()
+	host.add_child(container)
+	container.add_child(viewport)
+	add_child_autofree(host)
+	var map: ZoneTilemap = ZoneTilemapScene.instantiate()
+	viewport.add_child(map)
+	await _settle()
+	var markers: MapMarkers = map.get_map_markers()
+	var camera: Camera2D = map.get_camera()
+	var resting_zoom: Vector2 = camera.zoom
+	ActionManager.adventure_start_requested.emit(ZoneManager.get_action_by_id(ADVENTURE_ID) as AdventureActionData)
+	camera.zoom = Vector2(3.0, 3.0)
+	host.hide()
+	host.show()
+	await _settle()
+	assert_false(markers.visible, "still hidden while the camera is zoomed in")
+	camera.zoom = Vector2(2.5, 2.5)
+	await _settle()
+	assert_false(markers.visible, "and while it eases back")
+	camera.zoom = resting_zoom
+	await _settle()
+	assert_true(markers.visible, "shown once the camera is back")

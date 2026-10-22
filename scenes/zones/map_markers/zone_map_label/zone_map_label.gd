@@ -11,6 +11,10 @@ extends Control
 ##   hovered.
 ## - Locked zone: the blocker in short ("Tribulation Guardian") after a swords
 ##   icon. Uncharted zone: the blocker in tan, its name tan until hovered.
+## The status line is the icon, a Label with the text and a RichTextLabel with
+## the rate (" · +1.5 Madra / s", its decimal point in Yatra One), centred as
+## a group. A long action name or blocker ellipsizes in the Label, so the icon
+## and the rate stay whole and the plate never widens (Review Focus 4).
 ## Hovered plates show their hover texture; a pinned plate (its popover is
 ## pinned) gets the brass frame. MapMarkers places and scales the plate under
 ## its hex every frame; pressing it emits pressed (MapMarkers turns that into
@@ -62,9 +66,11 @@ const FORAGING_WORD: String = "Foraging"
 @onready var _pinned_frame: LacquerFrameOverlay = %PinnedFrame
 @onready var _name_label: Label = %NameLabel
 @onready var _line_area: Control = %LineArea
+@onready var _line_row: HBoxContainer = %LineRow
 @onready var _icon_margin: MarginContainer = %IconMargin
 @onready var _line_icon: TextureRect = %LineIcon
-@onready var _line_text: RichTextLabel = %LineText
+@onready var _line_name: Label = %LineName
+@onready var _line_rate: RichTextLabel = %LineRate
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -75,8 +81,11 @@ var _state: ZoneManager.ZoneMapState = ZoneManager.ZoneMapState.OPEN
 var _hovered: bool = false
 var _pinned: bool = false
 
-## What the plate shows, worked out by _compute() and drawn by _apply().
+## What the plate shows, worked out by _compute() and drawn by _apply(). The
+## line is its text part (ellipsized when long) and its rate part (kept whole).
 var _line: String = ""
+var _line_text: String = ""
+var _line_rate_text: String = ""
 var _line_icon_texture: Texture2D = null
 var _line_color: Color = ThemeConstants.LACQUER_CREAM
 var _name_color: Color = ThemeConstants.LACQUER_CREAM
@@ -167,44 +176,51 @@ static func open_line(count: int) -> String:
 
 ## Works out the line, its icon and the colours for the state and hover.
 func _compute() -> void:
-	_line = ""
+	_line_text = ""
+	_line_rate_text = ""
 	_line_icon_texture = null
 	_line_color = ThemeConstants.LACQUER_CREAM
 	_name_color = ThemeConstants.LACQUER_CREAM
-	if _zone_data == null:
-		return
+	if _zone_data != null:
+		_compute_for_state()
+	_line = _line_text + _line_rate_text
+
+## The line's parts, icon and colours for the plate's map state.
+func _compute_for_state() -> void:
 	match _state:
 		ZoneManager.ZoneMapState.CURRENT:
 			_name_color = ThemeConstants.LACQUER_CREAM if _hovered else ThemeConstants.LACQUER_BRASS
 			_compute_current_line()
 		ZoneManager.ZoneMapState.OPEN:
 			if _hovered:
-				_line = CLICK_TO_TRAVEL
+				_line_text = CLICK_TO_TRAVEL
 				_line_color = ThemeConstants.LACQUER_BRASS
 			else:
-				_line = open_line(ZoneManager.get_available_actions(_zone_data.zone_id).size())
+				_line_text = open_line(ZoneManager.get_available_actions(_zone_data.zone_id).size())
 				_line_color = ThemeConstants.LACQUER_TAN
 		ZoneManager.ZoneMapState.LOCKED:
-			_line = _zone_data.blocker_short_text
-			_line_icon_texture = blocker_icon if _line != "" else null
+			_line_text = _zone_data.blocker_short_text
+			_line_icon_texture = blocker_icon if _line_text != "" else null
 		ZoneManager.ZoneMapState.UNCHARTED:
 			_name_color = ThemeConstants.LACQUER_CREAM if _hovered else ThemeConstants.LACQUER_TAN
-			_line = _zone_data.blocker_short_text
+			_line_text = _zone_data.blocker_short_text
 			_line_color = ThemeConstants.LACQUER_TAN
 
-## The current zone's line: the running idle action, or nothing.
+## The current zone's line: the running idle action, or nothing. The name is
+## the text part; the rate or the haul interval is the rate part.
 func _compute_current_line() -> void:
 	var action: ZoneActionData = ActionManager.get_current_action()
 	var training := action as TrainingActionData
 	var forage := action as ForageActionData
 	if training != null:
-		_line = training.action_name
+		_line_text = training.action_name
 		var madra_per_second: float = training.get_madra_per_second()
 		if madra_per_second > 0.0:
-			_line += SEPARATOR + "%s Madra / s" % LacquerText.rate(madra_per_second)
+			_line_rate_text = SEPARATOR + "%s Madra / s" % LacquerText.rate(madra_per_second)
 		_line_icon_texture = training_icon
 	elif forage != null:
-		_line = FORAGING_WORD + SEPARATOR + "a haul every %s s" % _seconds_text(forage.foraging_interval_in_sec)
+		_line_text = FORAGING_WORD
+		_line_rate_text = SEPARATOR + "a haul every %s s" % _seconds_text(forage.foraging_interval_in_sec)
 		_line_icon_texture = forage_icon
 
 ## "5" for 5.0 s, "2.5" for 2.5 s.
@@ -233,10 +249,38 @@ func _apply() -> void:
 	_name_label.add_theme_color_override("font_color", _name_color)
 	_name_label.position.y = NAME_TOP if is_line_shown() else NAME_ONLY_TOP
 	_line_area.visible = is_line_shown()
-	_line_text.text = LacquerText.decimal_bbcode(_line)
-	_line_text.add_theme_color_override("default_color", _line_color)
 	_line_icon.texture = _line_icon_texture
 	_icon_margin.visible = _line_icon_texture != null
+	_line_name.text = _line_text
+	_line_name.visible = _line_text != ""
+	_line_name.add_theme_color_override("font_color", _line_color)
+	_line_rate.text = LacquerText.decimal_bbcode(_line_rate_text)
+	_line_rate.visible = _line_rate_text != ""
+	_line_rate.add_theme_color_override("default_color", _line_color)
+	_line_name.custom_minimum_size.x = _line_name_width()
+
+## The text part's width: its whole text, or what the slot has left beside the
+## icon and the rate, where it ellipsizes.
+func _line_name_width() -> float:
+	var room: float = _line_area.size.x
+	if _icon_margin.visible:
+		room -= _icon_margin.get_combined_minimum_size().x
+	if _line_rate.visible:
+		room -= _line_rate.get_minimum_size().x
+	var separation: int = _line_row.get_theme_constant("separation")
+	room -= separation * (_visible_line_parts() - 1)
+	var font: Font = _line_name.get_theme_font("font")
+	var font_size: int = _line_name.get_theme_font_size("font_size")
+	var text_width: float = ceilf(font.get_string_size(_line_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+	return clampf(text_width, 0.0, maxf(room, 0.0))
+
+## How many of the icon, text and rate the line shows.
+func _visible_line_parts() -> int:
+	var count: int = 0
+	for part: Control in [_icon_margin, _line_name, _line_rate]:
+		if part.visible:
+			count += 1
+	return count
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS

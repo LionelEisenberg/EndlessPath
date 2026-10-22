@@ -13,7 +13,8 @@ extends CanvasLayer
 ## at zoom 2 it sits at the kit's offset from the hex centre at file size, and
 ## at any other zoom both the offset and the marker scale by zoom / 2, so it
 ## stays on its hex (Review Focus 3). The layer hides while the camera zooms
-## into an adventure and shows again when the zone view comes back.
+## into an adventure and shows again when the zone view comes back and the
+## camera has eased back to its resting zoom.
 ## Instanced by ZoneTilemap, which it reads through map; it rebuilds on the
 ## map's map_rebuilt.
 
@@ -75,6 +76,9 @@ var _pinned_zone_id: String = ""
 ## The Control that shows the SubViewport the map draws in (the zone view's
 ## SubViewportContainer), or null outside one.
 var _view_host: Control = null
+## True from the zone view's return after an adventure until the camera is
+## back at its resting zoom, when the layer shows again.
+var _waiting_for_camera: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -96,6 +100,9 @@ func _ready() -> void:
 	_show_idle_action(ActionManager.get_current_action())
 
 func _process(_delta: float) -> void:
+	if _waiting_for_camera and _is_camera_at_rest():
+		_waiting_for_camera = false
+		show()
 	_place_markers()
 
 #-----------------------------------------------------------------------------
@@ -116,7 +123,7 @@ func get_plate_zone_ids() -> Array[String]:
 	var ids: Array[String] = []
 	for child: Node in _plate_container.get_children():
 		var plate := child as ZoneMapLabel
-		if plate != null and plate.get_zone_data() != null:
+		if plate != null and not plate.is_queued_for_deletion() and plate.get_zone_data() != null:
 			ids.append(plate.get_zone_data().zone_id)
 	return ids
 
@@ -151,11 +158,15 @@ func get_pinned_zone_id() -> String:
 #-----------------------------------------------------------------------------
 
 ## Lays a plate under every map zone and a glyph over every veiled one. A hover
-## or pin whose zone left the map goes with it (Review Focus 5).
+## or pin whose zone left the map goes with it (Review Focus 5). The old
+## plates and glyphs hide and stay in the layer until they are freed at the
+## end of the frame, so none is ever an orphan.
 func _rebuild() -> void:
 	for container: Control in [_glyph_container, _plate_container]:
 		for child: Node in container.get_children():
-			container.remove_child(child)
+			if child.is_queued_for_deletion():
+				continue
+			(child as CanvasItem).hide()
 			child.queue_free()
 	_plates.clear()
 	_glyphs.clear()
@@ -263,6 +274,13 @@ func _refresh_plates() -> void:
 	for plate: ZoneMapLabel in _plates.values():
 		plate.refresh()
 
+## True when the map's camera is at the zoom the player left it at, not on
+## ZoneTransition's adventure zoom or its way back.
+func _is_camera_at_rest() -> bool:
+	if map == null or not map.is_node_ready():
+		return true
+	return map.get_camera().zoom.is_equal_approx(map.get_resting_zoom())
+
 ## The SubViewportContainer that shows the map, found through the SubViewport
 ## the layer draws in.
 func _find_view_host() -> Control:
@@ -310,9 +328,16 @@ func _on_plate_pressed(zone_data: ZoneData) -> void:
 ## ZoneTransition zooms the camera into the zone before an adventure: the
 ## plates and glyphs would swell with it, so the layer hides.
 func _on_adventure_start_requested(_action_data: AdventureActionData) -> void:
+	_waiting_for_camera = false
 	hide()
 
-## The zone view state shows its view again (after the adventure).
+## The zone view state shows its view again (after the adventure), then eases
+## the camera back from the adventure zoom: the layer shows once it is back.
 func _on_view_host_visibility_changed() -> void:
-	if _view_host.is_visible_in_tree():
+	if not _view_host.is_visible_in_tree():
+		_waiting_for_camera = false
+		return
+	if _is_camera_at_rest():
 		show()
+	else:
+		_waiting_for_camera = true

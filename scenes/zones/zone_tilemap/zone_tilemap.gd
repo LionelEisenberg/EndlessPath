@@ -8,9 +8,9 @@ extends Node2D
 ## the nearest charted zone. The zone layer holds only the map zones
 ## (ZoneManager.get_map_zones()): the current zone gets the brass rim, an open
 ## zone the hairline, and locked and uncharted zones a veiled tile. Dotted
-## routes join the current zone to the other charted zones and run on to the
-## uncharted ones; MapMarkers draws the plates, glyphs, ring and floaters over
-## the map in screen space.
+## routes lead from the current zone, neighbour to neighbour, to the other
+## charted zones and run on to the uncharted ones; MapMarkers draws the
+## plates, glyphs, ring and floaters over the map in screen space.
 
 signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
 
@@ -148,6 +148,11 @@ func _ready() -> void:
 func get_camera() -> Camera2D:
 	return _camera
 
+## The zoom the player left the camera at (the zoom controller's target),
+## which the camera is back at once ZoneTransition's adventure zoom eases out.
+func get_resting_zoom() -> Vector2:
+	return _zoom_controller.target_zoom
+
 ## The rect the camera's centre is clamped to: the map zones' tiles plus 1.5
 ## hexes on every side, in map space.
 func get_camera_bounds() -> Rect2:
@@ -189,8 +194,9 @@ func get_hex_overlay(zone_id: String) -> Node2D:
 func get_map_markers() -> MapMarkers:
 	return _map_markers
 
-## The dotted route that leads into the zone (from the current zone, or for
-## an uncharted zone from the nearest charted one), or null when none does.
+## The dotted route that leads into the zone (from the current zone or the
+## charted zone next to it on the way, or for an uncharted zone from the
+## nearest charted one), or null when none does.
 func get_route_to(zone_id: String) -> ZoneRoute:
 	return _routes.get(zone_id, null) as ZoneRoute
 
@@ -302,9 +308,11 @@ func _draw_hex_states(map_zones: Array[ZoneData]) -> void:
 			marker.setup(state)
 			_hex_overlays[zone_data.zone_id] = marker
 
-## Lays the dotted routes (kit §0, the road ahead): from the current zone to
-## every other charted map zone, and on to each uncharted zone from the
-## charted zone nearest it (the first in map order on a tie).
+## Lays the dotted routes (kit §0, the road ahead). Each one joins two
+## neighbouring hexes and crosses only their shared rim: the charted map zones,
+## nearest the current zone first, each from the nearest zone already reached
+## (the current zone on a tie); then each uncharted zone from the charted zone
+## nearest it (the first in map order on a tie).
 func _draw_routes(map_zones: Array[ZoneData]) -> void:
 	for child: Node in _route_container.get_children():
 		_route_container.remove_child(child)
@@ -321,16 +329,45 @@ func _draw_routes(map_zones: Array[ZoneData]) -> void:
 			if zone_data.zone_id == current_id:
 				current_on_map = zone_data
 
+	# With the current zone off the map, no charted zone gets a route.
+	var reached: Array[ZoneData] = []
+	if current_on_map != null:
+		reached.append(current_on_map)
+		for zone_data: ZoneData in _by_distance_from(current_on_map, charted):
+			if zone_data == current_on_map:
+				continue
+			_add_route(_nearest_zone(zone_data, reached), zone_data)
+			reached.append(zone_data)
 	for zone_data: ZoneData in map_zones:
-		if zone_data == current_on_map:
-			continue
-		var from_zone: ZoneData = current_on_map if charted.has(zone_data) else _nearest_zone(zone_data, charted)
-		if from_zone == null:
-			continue
-		var route: ZoneRoute = ZoneRouteScene.instantiate() as ZoneRoute
-		_route_container.add_child(route)
-		route.set_points(get_zone_world_centre(from_zone), get_zone_world_centre(zone_data))
-		_routes[zone_data.zone_id] = route
+		if not charted.has(zone_data):
+			_add_route(_nearest_zone(zone_data, charted), zone_data)
+
+## Lays the dotted route from one zone into another.
+func _add_route(from_zone: ZoneData, to_zone: ZoneData) -> void:
+	if from_zone == null:
+		return
+	var route: ZoneRoute = ZoneRouteScene.instantiate() as ZoneRoute
+	_route_container.add_child(route)
+	route.set_points(get_zone_world_centre(from_zone), get_zone_world_centre(to_zone))
+	_routes[to_zone.zone_id] = route
+
+## The zones sorted by hex distance from origin, nearest first, keeping map
+## order on a tie.
+func _by_distance_from(origin: ZoneData, zones: Array[ZoneData]) -> Array[ZoneData]:
+	var origin_cube: Vector3i = ZoneMapMath.cell_to_cube(origin.tilemap_location)
+	var buckets: Dictionary[int, Array] = {}
+	for zone_data: ZoneData in zones:
+		var distance: int = HexagonTileMap.cube_distance(origin_cube, ZoneMapMath.cell_to_cube(zone_data.tilemap_location))
+		if not buckets.has(distance):
+			buckets[distance] = []
+		buckets[distance].append(zone_data)
+	var distances: Array[int] = []
+	distances.assign(buckets.keys())
+	distances.sort()
+	var sorted: Array[ZoneData] = []
+	for distance: int in distances:
+		sorted.append_array(buckets[distance])
+	return sorted
 
 ## The zone in candidates with the fewest hexes to target, or null for none.
 func _nearest_zone(target: ZoneData, candidates: Array[ZoneData]) -> ZoneData:
