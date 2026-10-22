@@ -3,7 +3,7 @@ Last updated: 2026-10-22
 
 ## Overview
 
-`main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, merchant shop, adventure end card), the HUD boards (the log and the Goals board; every overlay over the zone view hides them while it is open), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
+`main_game.tscn` is the only runtime scene. It hosts every full-screen view (zone map, adventure, inventory, cycling, path tree, abilities, character, merchant shop, adventure end card), the HUD boards (the log and the Goals board; cycling and the merchant shop hide them while open, the menu books leave them under the backdrop), and the dev tools. `MainView` decides which views are visible through a small state machine. There is one **base state**, Zone or Adventure. Modal **overlay states** are pushed on a stack above it.
 
 - Menu overlays (Inventory, Path, Abilities, Character) open from the keyboard or the dock at the bottom of the zone view. Both routes produce the same input action. All four are books built on one shared `BookFrame` scene and open and close the same way (see [Menu books](#menu-books)).
 - Cycling, the merchant shop, adventures and the end card are driven by `ActionManager` and `AdventureView` signals.
@@ -55,7 +55,7 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 └── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.save_data()
 ```
 
-Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under the GreyBackground (z 2), so the end card's backdrop dims them; the zone-view overlays hide them outright (see [HUD boards](#hud-boards)). QuestToast and the dev tools (z 10) draw above every modal.
+Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under the GreyBackground (z 2), so the backdrop of the end card and of the menu books dims them; cycling and the merchant shop hide them outright (see [HUD boards](#hud-boards)). QuestToast and the dev tools (z 10) draw above every modal.
 
 ### HUD placement
 
@@ -95,7 +95,8 @@ The log and the Goals board belong to `MainView` because both base views show th
 
 - `ZoneViewState.enter()` puts the Goals board at `GOALS_POSITION` (24, 272) and the log slot at `LOG_POSITION` (24, 852).
 - `AdventureViewState.enter()` saves both positions, moves the log slot to (24, 24) and the Goals root to (1456, 24 − `GoalsPanel.CORDS_HEIGHT`), and calls `GoalsPanel.set_cords_visible(false)`, which also swaps the top slice for the hookless `lacquer_goals_top_plain_ai.png`. `exit()` puts both back and shows the cords. The left side is left to the adventure map's encounter panel.
-- Every overlay over the zone view (Inventory, Cycling, Path, Abilities, Character, Merchant) calls `scene_root.hide_hud_boards(self)` in `enter()` and `release_hud_boards(self)` in `exit()`. `MainView` counts the holders: the first one saves each board's visibility and hides it, and the boards get it back only when the last holder releases them, whatever order the overlays close in (the shop can leave from under cycling). The end card does not hide them; its backdrop dims them.
+- Cycling and the merchant shop call `scene_root.hide_hud_boards(self)` in `enter()` and `release_hud_boards(self)` in `exit()`. `MainView` counts the holders: the first one saves each board's visibility and hides it, and the boards get it back only when the last holder releases them, whatever order the overlays close in (the shop can leave from under cycling).
+- The menu books (`BookViewState`: Inventory, Abilities, Character, Path) and the end card do not hide them: the backdrop dims them with the rest of the view. A book's tab column covers the right end of the Goals board (its count), and, once the log has grown to four or five lines, the log's top-right corner. The menu books stopped hiding them after the first play review (2026-10-22), so the boards stay under a book like the cabinet and the zone chest.
 
 ### States
 
@@ -104,7 +105,7 @@ The log and the Goals board belong to `MainView` because both base views show th
 | `ZoneViewState` | Base (initial) | Shows `ZoneView`. Places the Goals board and the log. Removes the input blocker. Finds `ZoneTransition` and calls `reset_camera()` to undo the adventure zoom. | Removes the input blocker. Hides `ZoneView`. | `open_inventory` → push Inventory; `open_path` → push PathTree; `open_abilities` → push Abilities; `open_character` → push Character. Ignored while the input blocker exists. | `start_adventure` (handled by `AdventureViewState`) |
 | `AdventureViewState` | Base | Shows `AdventureView`. Moves the log and the Goals board aside. Connects `AdventureView.adventure_completed`. | Hides `AdventureView`, puts the boards back and disconnects. | None | End card return → `change_state(zone)` |
 | `AdventureEndCardState` | Overlay on Adventure | Shows GreyBackground. `AdventureViewState` then calls `show_results()`. | Hides `AdventureEndCard` and GreyBackground. | None (the card's own Return button) | Popped by `AdventureViewState` |
-| `InventoryViewState` | Overlay (`BookViewState`) | Hides the HUD boards. Connects the book's close tab, then `grey_background.show_with_panel(inventory_view)` | Disconnects the close tab (the view is already hidden). Releases the HUD boards | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
+| `InventoryViewState` | Overlay (`BookViewState`) | Connects the book's close tab and the backdrop click, then `grey_background.show_with_panel(inventory_view)`. The HUD boards stay under the backdrop | Disconnects the close tab and the backdrop click (the view is already hidden) | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
 | `CyclingViewState` | Overlay | Hides the HUD boards. Shows `CyclingView` and GreyBackground. | Hides both. Releases the HUD boards. | `close_cycling_view` → `ActionManager.stop_action()` | `ActionManager.stop_cycling` → `pop_state()` |
 | `PathTreeViewState` | Overlay (`BookViewState`) | Same as Inventory | Same | `ui_cancel` or `open_path`, the close tab, or a backdrop click → same close path | Same |
 | `AbilitiesViewState` | Overlay (`BookViewState`) | Same | Same | `ui_cancel` or `open_abilities`, the close tab, or a backdrop click → same close path | Same |
@@ -306,7 +307,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/merchant/merchant_view_state.gd`, `merchant_view.tscn` | Merchant shop overlay state and view |
 | `scenes/ui/grey_background/grey_background.gd` | Modal backdrop and fade orchestration |
 | `scenes/ui/book_frame/book_frame.tscn`, `book_frame.gd`, `menu_book_view.gd` | Shared menu book and the menu views' base script |
-| `scenes/ui/main_view/states/book_view_state.gd` | Base state of the four menu books (also hides the HUD boards while a book is open) |
+| `scenes/ui/main_view/states/book_view_state.gd` | Base state of the four menu books: the backdrop fade and every close route |
 | `scenes/ui/dock/dock.tscn`, `dock.gd` | Bottom navigation dock and its notifications |
 | `scenes/ui/dock/system_menu_button/system_menu_button.gd` / `.tscn` | `SystemMenuButton` and `MenuType` config |
 | `scenes/ui/goals_panel/goals_panel.gd` / `.tscn` | Goals board |

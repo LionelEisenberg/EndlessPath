@@ -42,7 +42,7 @@ MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log pri
 │   ├── ZoneView                  base view: ZoneTransition, SubViewport (ZoneTilemap: map, fog, MapMarkers),
 │   │                             CultivatorPlate, ZonePanel (zone chest), Dock
 │   ├── AdventureView             adventure map + combat
-│   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by the base state, hidden under overlays
+│   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by the base state, hidden under cycling and the shop
 │   ├── QuestToast                z 10
 │   ├── GreyBackground            modal backdrop (z 2)
 │   ├── PathTreeView, AdventureEndCard, InventoryView, AbilitiesView, CharacterView, CyclingView (z 3)
@@ -55,7 +55,7 @@ The full tree, HUD placement and z-order are in [MAIN_VIEW.md](infrastructure/MA
 ### View State Machine
 
 `MainView` keeps a **base state** (`ZoneViewState` or `AdventureViewState`) and a **stack of overlay states**:
-- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `AdventureEndCardState`. All but the end card hide the HUD boards while open (`MainView.hide_hud_boards()`).
+- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `AdventureEndCardState`. Cycling and the merchant hide the HUD boards while open (`MainView.hide_hud_boards()`); the menu books and the end card leave them under the backdrop.
 - **Operations:** `change_state()` swaps the base and clears the stack, `push_state()` opens an overlay, and `pop_state()` closes it.
 - **Input:** only the current state receives it, through `_unhandled_input` → `handle_input()`.
 

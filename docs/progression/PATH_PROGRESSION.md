@@ -335,7 +335,7 @@ Hovering `%PathPlaque` calls `show_path_info()`, which shows the path's descript
 
 **Benefits.** `BenefitsArea.rebuild()` writes one `"▲ " + benefit_summary` line (the description when the summary is empty) per purchased node of every stage, in `tree.nodes` order, into `%BenefitsLabel`; with none it shows `%BenefitsEmpty` instead. `get_purchased_count()` counts nodes at level ≥ 1. The points badge shows `PathManager.get_point_balance()` only; the spend total was dropped on 2026-10-21. The row-per-node `BenefitCard` scene was removed the same day.
 
-**Open/close.** `PathTreeViewState` is a `BookViewState`: `enter()` hides the HUD boards and calls `GreyBackground.show_with_panel(path_tree_view)`; `ui_cancel`, `open_path`, the book's close tab or a backdrop click call `hide_with_panel()`, and `panel_hidden` pops the state once both the grey fade and the book's close animation have finished.
+**Open/close.** `PathTreeViewState` is a `BookViewState`: `enter()` calls `GreyBackground.show_with_panel(path_tree_view)` (the log and the Goals board stay under the backdrop); `ui_cancel`, `open_path`, the book's close tab or a backdrop click call `hide_with_panel()`, and `panel_hidden` pops the state once both the grey fade and the book's close animation have finished.
 - **Entry points.** `ZoneViewState.handle_input()` pushes the state on `open_path` (P). The dock's `PathButton` (`SystemMenuButton.MenuType.PATH`) fires `open_path` through `Input.parse_input_event()`, then releases it.
 
 ### Layouts

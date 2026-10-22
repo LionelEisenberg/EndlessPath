@@ -183,7 +183,6 @@ TrainingActionData.effects_on_level (Aura Well) → AwardAttributeEffectData.pro
 C key / dock Character button (SystemMenuButton MenuType.CHARACTER → Input.parse_input_event(open_character), then its release)
   → MainView._unhandled_input → ZoneViewState.handle_input("open_character")
   → MainView.push_state(character_view_state) → CharacterViewState.enter()
-  → MainView.hide_hud_boards() (the log and Goals boards hide)
   → GreyBackground.show_with_panel(character_view) → CharacterView.animate_open()
       → _before_open(): select_attribute(STRENGTH), refresh() reads
         CharacterManager.get_total_attributes_data() → each AttributeTile.set_value()
@@ -193,10 +192,10 @@ C / Esc / close tab / click outside the book (top state is CharacterViewState)
   → BookViewState._request_close() → GreyBackground.hide_with_panel(character_view)
   → CharacterView.animate_close() → pages hidden, book closes → close_finished
   → grey fade-out and book close both finished → both hidden → panel_hidden → MainView.pop_state()
-  → CharacterViewState.exit() (BookViewState) → MainView.release_hud_boards()
+  → CharacterViewState.exit() (BookViewState) disconnects the close tab and the backdrop click
 ```
 
-Values are read only when the book opens. Nothing updates them while it is open. The state machine, `GreyBackground` and the dock are documented in [MAIN_VIEW.md](MAIN_VIEW.md).
+Values are read only when the book opens. Nothing updates them while it is open. The log and the Goals board stay showing under the backdrop. The state machine, `GreyBackground` and the dock are documented in [MAIN_VIEW.md](MAIN_VIEW.md).
 
 ## Integration Points
 
