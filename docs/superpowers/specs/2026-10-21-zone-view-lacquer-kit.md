@@ -271,7 +271,7 @@ The spec's rects are kept apart from the deltas in §7. Positions are absolute i
 | Rod | 88, 460, 280x10 | `rod_goal_*` |
 | `32 / 100` | right 446, top 456 | 15/18 tan |
 
-When no quest is active, hide the quest row and the divider and move the milestone row up 70 px. The board shrinks by the same 70 px to 440x150, so it hugs its content as the spec says (polish pass, 2026-10-22). The game cuts `lacquer_goals_ai.png` into four slices with no new art: the cords (rows 0–20, their own node, hidden while the board sits at the adventure view's top right), a top slice (rows 20–86), a tiled middle (rows 86–160) and a bottom slice (rows 160–224). At full height the slices rebuild the file exactly; at 150 the middle shows its first 4 plain rows.
+When no quest is active, hide the quest row and the divider and move the milestone row up 70 px. The board shrinks by the same 70 px to 440x150, so it hugs its content as the spec says (polish pass, 2026-10-22). The game cuts `lacquer_goals_ai.png` into four slices with no new art: the cords (rows 0–20, their own node, hidden while the board sits at the adventure view's top right), a top slice (rows 20–86), a tiled middle (rows 86–160) and a bottom slice (rows 160–224). At full height the slices rebuild the file exactly; at 150 the middle shows its first 4 plain rows. The cords' two brass hooks are drawn on the top slice, so while the cords are hidden it swaps for `lacquer_goals_top_plain_ai.png`, and the adventure view puts the root at (1456, 4) so the body starts at y 24, level with the log (visual QA, 2026-10-22).
 
 ### 5.3 Log board `24, 852, 440, 204` (4 px shadow)
 
@@ -574,6 +574,7 @@ Dots under a plate are hidden by it, which is fine.
 | `lacquer_glyph_twinkle_strip_ai.png` | 42x14 | `assets/ui/lacquer/lacquer_glyph_twinkle_strip_ai.png` |
 | `lacquer_glyph_unknown_ai.png` | 28x36 | `assets/ui/lacquer/lacquer_glyph_unknown_ai.png` |
 | `lacquer_goals_ai.png` | 440x220 | `assets/ui/lacquer/lacquer_goals_ai.png`, 444x224 with its shadow baked in |
+| `lacquer_goals_top_plain_ai.png` | 440x66 | `assets/ui/lacquer/lacquer_goals_top_plain_ai.png`, 444x66: the Goals top slice (rows 20–86 of `lacquer_goals_ai.png`) with the cords' two brass hooks painted out, for the adventure view (visual QA, 2026-10-22) |
 | `lacquer_groove_ai.png` | 4x6 | `assets/ui/lacquer/lacquer_groove_ai.png` |
 | `lacquer_groove_end_ai.png` | 6x6 | `assets/ui/lacquer/lacquer_groove_end_ai.png` |
 | `lacquer_hex_current_ai.png` | 328x380 | `assets/ui/lacquer/map/lacquer_hex_current_ai.png`, halved to 164x190 (map space) |
@@ -592,6 +593,7 @@ Dots under a plate are hidden by it, which is fine.
 | `lacquer_log4_ai.png` | 440x178 | `assets/ui/lacquer/lacquer_log4_ai.png`, 444x182 with its shadow baked in |
 | `lacquer_log5_ai.png` | 440x204 | `assets/ui/lacquer/lacquer_log5_ai.png`, 444x208 with its shadow baked in |
 | `lacquer_lore_ai.png` | 408x264 | `assets/ui/lacquer/lacquer_lore_ai.png`, 412x268 with its shadow baked in |
+| `lacquer_madra_pellet_ai.png` | 12x12 | `assets/ui/lacquer/lacquer_madra_pellet_ai.png`: one pellet of the Madra drain before an adventure (6x6 art px, Madra ramp in an ink outline, no shadow), moved in 2 px steps (visual QA, 2026-10-22) |
 | `lacquer_map_ring_strip_ai.png` | 832x64 | `assets/ui/lacquer/lacquer_map_ring_strip_ai.png` |
 | `lacquer_mini_dewdrop_ai.png` | 16x16 | `assets/ui/lacquer/lacquer_mini_dewdrop_ai.png` |
 | `lacquer_mini_fern_ai.png` | 16x16 | `assets/ui/lacquer/lacquer_mini_fern_ai.png` |
