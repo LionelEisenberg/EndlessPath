@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://m26avynuswy"]
+
+[ext_resource type="Script" uid="uid://rp23jtqjpgx" path="res://scenes/character/attribute_tile/attribute_tile.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://4q335xxs2p" path="res://icon.svg" id="3_icon"]
+
+[node name="AttributeTile" type="PanelContainer"]
+custom_minimum_size = Vector2(110, 150)
+mouse_filter = 0
+theme_type_variation = &"PanelBookTile"
+script = ExtResource("1_script")
+
+[node name="TileVBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="TileVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+texture = ExtResource("3_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ValueLabel" type="Label" parent="TileVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookValueLarge"
+text = "10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="TileVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookMuted"
+text = "ATTRIBUTE"
+horizontal_alignment = 1
+vertical_alignment = 1

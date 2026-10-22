@@ -1,11 +1,14 @@
-class_name AttributeRow
+class_name AttributeTile
 extends PanelContainer
 
-## A single attribute display row with icon, name, and value.
-## Emits hover signals for tooltip management by the parent CharacterView.
+## One attribute in the Character book: its icon, value and name, centred on
+## a small card. Emits hovered so the CharacterView can describe it on the
+## right page, and shows the selected look while it is the one described.
 
-signal hovered(row: AttributeRow)
-signal unhovered()
+signal hovered(tile: AttributeTile)
+
+const _STYLE_NORMAL: StringName = &"PanelBookTile"
+const _STYLE_SELECTED: StringName = &"PanelBookTileSelected"
 
 @export var attribute_name: String = "ATTRIBUTE"
 @export var attribute_type: CharacterAttributesData.AttributeType = CharacterAttributesData.AttributeType.STRENGTH
@@ -17,7 +20,6 @@ signal unhovered()
 
 func _ready() -> void:
 	mouse_entered.connect(_on_mouse_entered)
-	mouse_exited.connect(_on_mouse_exited)
 	_name_label.text = attribute_name
 	if icon_texture:
 		_icon.texture = icon_texture
@@ -26,10 +28,13 @@ func _ready() -> void:
 func set_value(value: float) -> void:
 	_value_label.text = "%.0f" % value
 
-func _on_mouse_entered() -> void:
-	modulate = Color(1.15, 1.1, 1.05, 1.0)
-	hovered.emit(self)
+## Shows or clears the selected look.
+func set_selected(is_selected: bool) -> void:
+	theme_type_variation = _STYLE_SELECTED if is_selected else _STYLE_NORMAL
 
-func _on_mouse_exited() -> void:
-	modulate = Color.WHITE
-	unhovered.emit()
+## True while this tile has the selected look.
+func is_selected() -> bool:
+	return theme_type_variation == _STYLE_SELECTED
+
+func _on_mouse_entered() -> void:
+	hovered.emit(self)
