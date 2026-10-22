@@ -312,8 +312,20 @@ func test_unlock_during_session_action_waits_for_it() -> void:
 	ActionManager.select_action(_action(CYCLING_ID))
 	_unlock_aura_well()
 	assert_eq(_current_id(), CYCLING_ID, "an unlock never interrupts a running action")
+	_clear_log()
 	ActionManager.stop_action()
 	assert_eq(_current_id(), AURA_WELL_ID, "the new idle action resumes when cycling ends")
+	assert_eq(_logged, ["Started Aura Well"] as Array[String],
+		"the player never ran it, so its first start reads Started, not Resumed")
+
+func test_resume_after_a_first_start_logs_resumed() -> void:
+	ActionManager.select_action(_action(CYCLING_ID))
+	_unlock_aura_well()
+	ActionManager.stop_action()
+	ActionManager.select_action(_action(CYCLING_ID))
+	_clear_log()
+	ActionManager.stop_action()
+	assert_eq(_logged, ["Resumed Aura Well"] as Array[String], "the second start resumes it")
 
 #-----------------------------------------------------------------------------
 # SAVE RESET (Review Focus 5)
@@ -326,6 +338,24 @@ func test_save_reset_stops_and_resolves_once() -> void:
 	assert_null(ActionManager.get_current_action(), "the fresh save has no idle action unlocked")
 	assert_true(ActionManager.action_timer.is_stopped(), "no orphan timer")
 	assert_eq(ActionManager.action_timer.timeout.get_connections().size(), 0, "no tick callback left connected")
+	assert_eq(_completions(AURA_WELL_ID), 0, "the old save's Aura Well must not count a completion in the fresh save")
+
+#-----------------------------------------------------------------------------
+# LOAD
+#-----------------------------------------------------------------------------
+
+## On load nothing runs and ZoneTilemap._ready sends zone_changed twice for
+## the same zone: the idle action starts once and logs one line.
+func test_load_double_zone_changed_resumes_once() -> void:
+	_run_aura_well()
+	ActionManager.stop_action()
+	assert_null(ActionManager.get_current_action(), "precondition: nothing runs, as on load")
+	_clear_log()
+	ZoneManager.set_current_zone_by_id(ZONE_ID)
+	ZoneManager.set_current_zone_by_id(ZONE_ID)
+	assert_eq(_current_id(), AURA_WELL_ID, "the load resumes the zone's idle action")
+	assert_eq(_logged, ["Resumed Aura Well"] as Array[String], "one line, not one per zone_changed")
+	assert_eq(ActionManager.action_timer.timeout.get_connections().size(), 1, "one tick callback, not one per zone_changed")
 
 func test_save_reset_starts_the_new_saves_idle_once() -> void:
 	_unlock_foraging()

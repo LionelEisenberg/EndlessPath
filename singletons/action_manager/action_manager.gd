@@ -39,6 +39,11 @@ signal stop_merchant()
 
 var current_action: ZoneActionData = null
 
+## The save the current action started under. A save reset swaps the save
+## before ActionManager hears of it, so stopping that action then must not
+## count a completion or run its effects in the new save.
+var _current_action_save: SaveGameData = null
+
 ## The zone the last zone_changed was handled for. It tells travel ("Travelled
 ## to …") from a repeat signal for the same zone (the load sends two).
 var _last_resolved_zone_id: String = ""
@@ -195,10 +200,12 @@ func _execute_action(action_data: ZoneActionData) -> void:
 		_:
 			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
-## Stop executing the current action.
+## Stop executing the current action. It counts a completion only in the save
+## it started under (see _current_action_save).
 func _stop_executing_current_action(successful: bool = true) -> void:
 	if current_action:
-		ZoneManager.increment_zone_progression_for_action(current_action.action_id)
+		if _is_current_action_in_live_save():
+			ZoneManager.increment_zone_progression_for_action(current_action.action_id)
 
 		match current_action.action_type:
 			ZoneActionData.ActionType.FORAGE:
@@ -361,6 +368,8 @@ func _stop_merchant_action(successful: bool) -> void:
 	_process_completion_effects(successful)
 
 func _process_completion_effects(successful: bool) -> void:
+	if not _is_current_action_in_live_save():
+		return
 	var effects = current_action.success_effects if successful else current_action.failure_effects
 	for effect in effects:
 		effect.process()
@@ -377,7 +386,12 @@ func clear_current_action() -> void:
 
 func _set_current_action(action_data: ZoneActionData) -> void:
 	current_action = action_data
+	_current_action_save = PersistenceManager.save_game_data if action_data else null
 	current_action_changed.emit(current_action)
+
+## False when a save reset replaced the save since the current action started.
+func _is_current_action_in_live_save() -> bool:
+	return _current_action_save == PersistenceManager.save_game_data
 
 func _is_idle_action(action_data: ZoneActionData) -> bool:
 	return action_data != null and action_data.action_type in [
@@ -385,13 +399,17 @@ func _is_idle_action(action_data: ZoneActionData) -> bool:
 		ZoneActionData.ActionType.TRAIN_STATS,
 	]
 
-## Starts the current zone's idle action after a session action stopped.
+## Starts the current zone's idle action after a session action stopped. It
+## reads "Started" when the zone never ran an idle action (one that unlocked
+## during a dialogue or an adventure), else "Resumed".
 func _resume_idle_action() -> void:
-	var idle_action: ZoneActionData = resolve_idle_action(_get_current_zone_id())
+	var zone_id: String = _get_current_zone_id()
+	var idle_action: ZoneActionData = resolve_idle_action(zone_id)
 	if idle_action == null:
 		return
+	var first_time: bool = ZoneManager.get_last_idle_action_id(zone_id) == ""
 	select_action(idle_action)
-	_log("Resumed %s" % idle_action.action_name)
+	_log(("Started %s" if first_time else "Resumed %s") % idle_action.action_name)
 
 ## True when the zone's resolved idle action is the one already running.
 func _is_resolved_idle_running(zone_id: String) -> bool:

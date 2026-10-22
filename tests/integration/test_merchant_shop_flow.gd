@@ -10,6 +10,12 @@ const ACTION_ID: String = "spirit_valley_merchant"
 const ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres"
 ## The event whose unlock condition opens Spring Forest Foraging.
 const FORAGING_UNLOCK_EVENT: String = "q_fill_core_completed"
+const TEST_ZONE_ID: String = "TestZone"
+## Test Zone's own unlock condition (zone_unlock_conditions in test_zone.tres).
+const TEST_ZONE_UNLOCK_ID: String = "celestial_intervener_dialogue_1"
+
+## An idle action added to Test Zone (which has none) for the travel test.
+var _fixture_idle: ForageActionData = null
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -24,6 +30,35 @@ func after_each() -> void:
 	# resume the idle action it replaced, so stop until nothing is left.
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
+	if _fixture_idle != null:
+		ZoneManager.get_zone_by_id(TEST_ZONE_ID).all_actions.erase(_fixture_idle)
+		_fixture_idle = null
+
+## Gives Test Zone an idle action and unlocks the zone, so travel there has
+## something to resume.
+func _add_fixture_idle_to_test_zone() -> void:
+	_fixture_idle = ForageActionData.new()
+	_fixture_idle.action_id = "test_merchant_flow_fixture_forage"
+	_fixture_idle.action_name = "Fixture Foraging"
+	_fixture_idle.action_type = ZoneActionData.ActionType.FORAGE
+	ZoneManager.get_zone_by_id(TEST_ZONE_ID).all_actions.append(_fixture_idle)
+	UnlockManager.force_unlock_condition(TEST_ZONE_UNLOCK_ID)
+
+## Foraging runs, then the shop replaces it, as when the player visits the
+## merchant mid-forage.
+func _open_shop_over_foraging() -> ZoneActionData:
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	var foraging := _foraging_action()
+	ActionManager.select_action(foraging)
+	ActionManager.select_action(_merchant_action())
+	return foraging
+
+## An Escape press, as MerchantViewState.handle_input receives it.
+func _escape_event() -> InputEventAction:
+	var escape := InputEventAction.new()
+	escape.action = &"ui_cancel"
+	escape.pressed = true
+	return escape
 
 func _merchant_action() -> MerchantActionData:
 	return load(ACTION_PATH) as MerchantActionData
@@ -73,18 +108,38 @@ func test_shop_resumes_the_idle_action_it_replaced() -> void:
 	ActionManager.stop_action()
 	assert_eq(ActionManager.get_current_action(), foraging, "leaving the shop resumes foraging, like closing a menu")
 
-func test_zone_change_does_not_resume_the_idle_action() -> void:
+func test_zone_change_with_locked_idle_resumes_nothing() -> void:
 	ActionManager.select_action(_foraging_action())
 	ActionManager.select_action(_merchant_action())
 	ZoneManager.zone_changed.emit(ZoneManager.get_current_zone())
-	assert_null(ActionManager.get_current_action(), "a zone change ends the visit without restarting the old zone's action")
+	assert_null(ActionManager.get_current_action(), "foraging is locked on a fresh save, so nothing resumes")
 
 func test_zone_change_during_shop_resumes_destination_idle() -> void:
-	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
-	ActionManager.select_action(_foraging_action())
-	ActionManager.select_action(_merchant_action())
-	ZoneManager.zone_changed.emit(ZoneManager.get_current_zone())
-	assert_eq(ActionManager.get_current_action(), _foraging_action(), "arriving starts the destination's idle action")
+	_open_shop_over_foraging()
+	_add_fixture_idle_to_test_zone()
+	watch_signals(ActionManager)
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	assert_signal_emit_count(ActionManager, "stop_merchant", 1, "travel closes the shop")
+	assert_eq(ActionManager.get_current_action(), _fixture_idle, "arriving starts the destination's idle action, not the old zone's foraging")
+
+## Leave pressed twice during the shop's 0.2 s fade-out: the shop is still the
+## top state, so the second press must not stop the idle action the first one
+## resumed. A bare state (outside the tree) never connects to the view.
+func test_second_leave_keeps_the_resumed_idle_running() -> void:
+	var foraging := _open_shop_over_foraging()
+	var state: MerchantViewState = autofree(MerchantViewState.new())
+	state._on_close_requested()
+	state._on_close_requested()
+	assert_eq(ActionManager.get_current_action(), foraging, "the second Leave must not stop the resumed foraging")
+	assert_false(ActionManager.action_timer.is_stopped(), "foraging keeps ticking")
+
+func test_second_escape_keeps_the_resumed_idle_running() -> void:
+	var foraging := _open_shop_over_foraging()
+	var state: MerchantViewState = autofree(MerchantViewState.new())
+	state.handle_input(_escape_event())
+	state.handle_input(_escape_event())
+	assert_eq(ActionManager.get_current_action(), foraging, "the second Escape must not stop the resumed foraging")
+	assert_false(ActionManager.action_timer.is_stopped(), "foraging keeps ticking")
 
 func test_shop_does_not_resume_cycling() -> void:
 	ActionManager.select_action(_cycling_action())

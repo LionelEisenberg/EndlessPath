@@ -28,7 +28,7 @@ func exit() -> void:
 ## Handle input events in this state.
 func handle_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		ActionManager.stop_action()
+		_stop_merchant_action()
 
 func _on_start_merchant(action_data: MerchantActionData) -> void:
 	var merchant_view: MerchantView = scene_root.merchant_view
@@ -56,7 +56,14 @@ func _on_close_finished() -> void:
 	scene_root.remove_state(self)
 
 func _on_close_requested() -> void:
-	ActionManager.stop_action()
+	_stop_merchant_action()
+
+## Stops the merchant action, and only that. The shop stays the top state for
+## its whole fade-out, while the idle action it replaced already runs again: a
+## second Leave or Escape then must not stop that idle action.
+func _stop_merchant_action() -> void:
+	if ActionManager.get_current_action() is MerchantActionData:
+		ActionManager.stop_action()
 
 func _is_top_state() -> bool:
 	return not scene_root.state_stack.is_empty() and scene_root.state_stack.back() == self

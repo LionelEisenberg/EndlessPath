@@ -11,6 +11,10 @@ var _view: AdventureView
 var _results: Array[AdventureResultData] = []
 
 func before_each() -> void:
+	# Ending a run resumes the zone's idle action, which writes to the save.
+	# Run on a fresh one, never the developer's save loaded in memory.
+	PersistenceManager.save_game_data = SaveGameData.new()
+	PersistenceManager.save_data_reset.emit()
 	_results.clear()
 	_view = AdventureViewScene.instantiate()
 	add_child_autofree(_view)
