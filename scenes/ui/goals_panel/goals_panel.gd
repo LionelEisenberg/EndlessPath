@@ -14,6 +14,13 @@ extends Control
 ## quest and 150 px with the milestone alone. The cords are their own node and
 ## texture, which set_cords_visible() can hide; their two brass hooks are drawn
 ## on the top slice, which then swaps for a hookless copy.
+## No text is cut off: the quest's name and step and the milestone's name and
+## line wrap in their 358 px, and the rows grow to hold them (the rows are
+## containers, each text stacking under the one before it) and the board with
+## them. A name that shares its line with the figure wraps before the figure,
+## which stays at the right of the first line. Every row is an even number of px
+## tall (a name's lines are 20 px; a detail line's 18, with the 1 px pad of
+## wrap_pad.tres), so the board is too.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -27,6 +34,9 @@ const BOTTOM_PADDING: float = 22.0
 ## also reach 4 px above the root, since the zone view hangs the board 4 px
 ## lower than the kit's 272 and they must still start at the cabinet's rings.
 const CORDS_HEIGHT: float = 20.0
+## The quest name's line is shared with the figure: the gap between them (the
+## name row's separation).
+const NAME_FIGURE_GAP: float = 8.0
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -108,15 +118,15 @@ func _update_quest() -> void:
 	var has_quest: bool = step != null
 	_quest_row.visible = has_quest
 	_divider.visible = has_quest
+	if has_quest:
+		_quest_name_label.text = quest.quest_name
+		_quest_step_label.text = step.description
+		var condition: UnlockConditionData = _get_measured_condition(step)
+		_quest_figure.visible = condition != null
+		if condition != null:
+			_quest_figure_label.text = "%d / %d" % [floori(condition.get_current_value()), floori(condition.get_target_value())]
+		_fit_quest_name()
 	_fit_height()
-	if not has_quest:
-		return
-	_quest_name_label.text = quest.quest_name
-	_quest_step_label.text = step.description
-	var condition: UnlockConditionData = _get_measured_condition(step)
-	_quest_figure.visible = condition != null
-	if condition != null:
-		_quest_figure_label.text = "%d / %d" % [floori(condition.get_current_value()), floori(condition.get_target_value())]
 
 ## "Raise Core Density to 100", the rod at min(level, 100) / 100 and the
 ## min(level, 100) / 100 figure: Core Density has no cap in code, the
@@ -127,10 +137,25 @@ func _update_milestone() -> void:
 	_milestone_text_label.text = "Raise Core Density to %d" % breakthrough_level
 	_milestone_rod.set_fraction(float(level) / breakthrough_level)
 	_milestone_figure_label.text = "%d / %d" % [mini(level, breakthrough_level), breakthrough_level]
+	_fit_height()
 
-## Sizes the board to its visible rows; the board art's slices follow.
+## The quest name wraps in the row's 358 px, less the figure and its gap while the
+## figure shows. The width is set as a minimum and as the size, so the name's lines
+## are counted at it at once (a change of width otherwise leaves the last height
+## cached for the boxes above).
+func _fit_quest_name() -> void:
+	var room: float = _quest_step_label.custom_minimum_size.x
+	if _quest_figure.visible:
+		room -= NAME_FIGURE_GAP + _quest_figure.get_combined_minimum_size().x
+	room = maxf(room, 1.0)
+	_quest_name_label.custom_minimum_size.x = room
+	_quest_name_label.size.x = room
+	_quest_name_label.update_minimum_size()
+
+## Sizes the board to its visible rows, an even height; the board art's slices
+## follow.
 func _fit_height() -> void:
-	var rows_height: float = _rows.get_combined_minimum_size().y
+	var rows_height: float = ceilf(_rows.get_combined_minimum_size().y / 2.0) * 2.0
 	_rows.size = Vector2(_rows.size.x, rows_height)
 	size = Vector2(size.x, _rows.position.y + rows_height + BOTTOM_PADDING)
 
