@@ -1,6 +1,6 @@
 # Abilities System
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -73,7 +73,7 @@ AbilityStatsDisplay (HFlowContainer)            scenes/abilities/ability_stats_d
 └── StatLabel × N (stat_label.tscn) and "·" separator Labels
 ```
 
-`AbilityStatsDisplay` is now used only by the combat ability tooltip (`CombatAbilityTooltip`, modes `TIMING_COSTS` and `DAMAGE_TOTAL`). The Abilities book's details card has its own stat list.
+`AbilityStatsDisplay` has no user left: its only one, the combat ability tooltip (`CombatAbilityTooltip`, modes `TIMING_COSTS` and `DAMAGE_TOTAL`), was replaced by the technique dock's `TechniqueTooltip`, which formats the same figures through `AbilityRow.format_cost()`, `format_seconds()` and `format_damage()`. The Abilities book's details card has its own stat list. `AbilityStatsDisplay`, `StatLabel` and `StatTooltip` stay in `scenes/abilities/` for now (style guide B8).
 
 ## Data Model
 
@@ -111,7 +111,7 @@ Effect fields, damage types and buff fields are documented in [COMBAT.md](../com
 | `interrupts_target()` | a `CANCEL_CAST` effect is in `effects_on_target` | Card tag |
 | `strips_target_buffs()` | a `STRIP_BUFFS` effect is in `effects_on_target` | Card tag |
 | `get_total_self_heal(attrs)` | summed scaled value of self `HEAL` effects | `SimpleEnemyAI` heal gate |
-| `can_afford(vitals)` / `consume_costs(vitals)` | cost check / deduction against a `VitalsManager` | Combat gate and payment; `AbilityButton` affordability |
+| `can_afford(vitals)` / `consume_costs(vitals)` | cost check / deduction against a `VitalsManager` | Combat gate and payment; `TechniqueSlot` affordability |
 | `get_total_cost_display()` | `"Madra: 8"`-style string or `"Free"` | `_to_string()` only |
 | `validate()` | id and name set | Never called |
 
@@ -213,7 +213,7 @@ The filter is a `SortSubBanner` selector (`FILTER_OPTIONS`). The list is always 
 
 ### Loadout to combat
 
-At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.get_equipped_abilities()` (slot order, gaps skipped). Each `AbilityButton` asks `AbilityManager.get_ability_at_slot()` for its slot, so Q/W/E/R follow the slot even when an earlier slot is empty. Loadout changes take effect at the next fight.
+At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.get_equipped_abilities()` (slot order, gaps skipped). `TechniqueDock` asks `AbilityManager.get_ability_at_slot()` for each instance's slot (the first free slot otherwise), so Q/W/E/R follow the slot even when an earlier slot is empty; on the map it previews the equipped loadout the same way. Loadout changes take effect at the next fight.
 
 ### AbilityStatsDisplay
 
@@ -233,7 +233,7 @@ At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.
 |--------|-----------|------------|
 | `PersistenceManager` / `SaveGameData` | in / out | `unlocked_ability_ids`, `equipped_ability_ids`; `save_data_reset` re-binds |
 | `PathManager` | in | `purchase_node()` calls `unlock_ability(string_value)` for `UNLOCK_ABILITY` effects |
-| Combat (`AdventureCombat`, `AbilitiesPanel`) | out | `get_equipped_abilities()` for the player combatant; `get_ability_at_slot()` for key hints and key routing |
+| Combat (`AdventureCombat`, `TechniqueDock`) | out | `get_equipped_abilities()` for the player combatant; `get_ability_at_slot()` for key hints and key routing |
 | `Dock` (Abilities `SystemMenuButton`) | out | Listens to `ability_unlocked` and `equipped_abilities_changed` (and re-reads on save reset); ring = `has_unequipped_unlocks()`, via `SystemMenuButton.set_notification()` |
 | `MainView` state machine | in | `ZoneViewState` pushes `AbilitiesViewState` on `open_abilities` (A); `AbilitiesViewState` (`BookViewState`) closes on `ui_cancel`, `open_abilities`, the book's close tab or a backdrop click via `GreyBackground.hide_with_panel()` |
 | `CharacterManager` | in | Attribute totals for the details card's damage and the combat tooltip's pills; `base_attribute_changed` clears the book's damage previews |

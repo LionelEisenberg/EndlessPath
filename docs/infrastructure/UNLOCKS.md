@@ -1,6 +1,6 @@
 # Unlock System
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -162,7 +162,7 @@ The dev panel opens with Ctrl+Shift+D, and only when `user://dev_password.txt` e
 | QuestManager | Re-checks condition steps on `condition_unlocked`. See [QUESTS.md](../progression/QUESTS.md). |
 | EventManager | Sweep trigger. Read live by `EVENT_TRIGGERED`. See [EVENTS.md](EVENTS.md). |
 | Adventure map generator | `AdventureEncounter.is_eligible()` filters `encounter_quotas` before placement (anchors, fillers, filler fallback). It always returns true in the editor. |
-| EncounterInfoPanel | `EncounterChoice.evaluate_requirements()` and `is_completed()` set each button's disabled state and label |
+| `ChoiceDrawer` (the expedition page) | `EncounterChoice.evaluate_requirements()` and `is_completed()` set each drawer's locked or completed state and label |
 | CultivationManager / ResourceManager | Sweep triggers and evaluation sources |
 | InventoryManager / CharacterManager | Evaluation sources only (not sweep triggers) |
 | DevPanel | `force_unlock_condition()` |
