@@ -100,6 +100,11 @@ func _add_panel_above_gut() -> ZonePanel:
 func _node(unique_name: String) -> Node:
 	return _panel.get_node("%" + unique_name)
 
+## Waits a frame, so the drawers a technique list rebuild took out of the tree and
+## queue-freed are gone before GUT counts orphans.
+func _await_queued_frees() -> void:
+	await wait_process_frames(1)
+
 func _list() -> Control:
 	return _node("ActivityList") as Control
 
@@ -1086,6 +1091,7 @@ func test_a_hidden_technique_list_stays_current() -> void:
 	assert_eq(_panel.size.y, chest_height, "the chest still hugs the activities")
 	_panel.set_techniques_mode(true)
 	assert_eq(_drawer_ids(), [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID] as Array[String], "current the moment the mode turns on")
+	await _await_queued_frees()
 
 func test_equipping_a_technique_refreshes_every_drawer() -> void:
 	# The drawers do not listen to CyclingManager: the list refreshes them all,
@@ -1144,6 +1150,7 @@ func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:
 	list.build()
 	assert_eq(column.get_child_count(), 3, "one drawer each, none left over")
 	assert_eq(column.get_combined_minimum_size().y, list.get_content_height(), "the column measures only the new drawers")
+	await _await_queued_frees()
 
 func test_an_empty_technique_list_has_no_height() -> void:
 	await _add_panel()
@@ -1185,3 +1192,4 @@ func test_a_new_layout_from_the_technique_list_resizes_the_chest() -> void:
 	PersistenceManager.save_game_data.unlocked_cycling_technique_ids.append(SMOOTH_ID)
 	_technique_list().build()
 	assert_eq(_panel.size.y, LIST_TOP + 2.0 * DRAWER_HEIGHT + DRAWER_GAP + 24.0)
+	await _await_queued_frees()

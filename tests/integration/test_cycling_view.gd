@@ -88,6 +88,12 @@ func after_each() -> void:
 func _node(unique_name: String) -> Node:
 	return _view.get_node("%" + unique_name)
 
+## Waits a frame, so the nodes the board took out of the tree and queue-freed (a
+## switch's old zones and floaters, the pellets a hide frees) are gone before GUT
+## counts orphans.
+func _await_queued_frees() -> void:
+	await wait_process_frames(1)
+
 ## Steps `seconds` of frames at `fps`, with the cursor on the ball (the drawn
 ## centre) or far away.
 func _run(seconds: float, fps: float, track: bool) -> void:
@@ -232,6 +238,7 @@ func test_the_status_label_says_madra_is_full_for_a_technique_with_no_zones() ->
 	_technique.advance(FRAME, _technique.get_ball_global_position())
 	_view._process(0.0)
 	assert_eq(_view.get_status_text(), CyclingView.MADRA_FULL)
+	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
 # THE BOARD
@@ -342,6 +349,7 @@ func test_title_follows_the_equipped_technique() -> void:
 	CyclingManager.unlock_technique(TORRENTIAL_ID)
 	CyclingManager.equip_technique(TORRENTIAL_ID)
 	assert_eq(title.text, "Torrential Flow")
+	await _await_queued_frees()
 
 func test_the_technique_follows_the_equipped_technique() -> void:
 	assert_eq(_technique.technique_data.id, SMOOTH_ID)
@@ -352,6 +360,7 @@ func test_the_technique_follows_the_equipped_technique() -> void:
 	assert_eq(_technique.technique_data.id, TORRENTIAL_ID)
 	assert_eq(_technique.cycling_zones.size(), 1)
 	assert_eq(_floaters().size(), 1, "the floaters were rebuilt for the new zones")
+	await _await_queued_frees()
 
 func test_the_first_unlocked_technique_is_equipped_when_none_is() -> void:
 	PersistenceManager.save_game_data.equipped_cycling_technique_id = ""
@@ -359,6 +368,8 @@ func test_the_first_unlocked_technique_is_equipped_when_none_is() -> void:
 	add_child_autofree(second)
 	assert_eq(PersistenceManager.save_game_data.equipped_cycling_technique_id, FOUNDATION_ID, "the fallback equips the first unlocked technique")
 	assert_eq((second.get_node("%TitleLabel") as Label).text, "Foundational Technique")
+	# The fixture's board follows the equip too.
+	await _await_queued_frees()
 
 func test_a_save_with_no_techniques_leaves_the_board_idle() -> void:
 	PersistenceManager.save_game_data.unlocked_cycling_technique_ids.clear()
@@ -384,6 +395,7 @@ func test_switching_technique_ends_the_cycle_without_a_result() -> void:
 	assert_false(_technique.is_cycling(), "the cycle ended")
 	assert_eq(_view.get_result_text(), "", "no result line")
 	assert_signal_not_emitted(LogManager, "message_logged")
+	await _await_queued_frees()
 
 func test_switching_technique_clears_the_result_line_and_the_ready_text() -> void:
 	_technique.start_cycle()
@@ -394,6 +406,7 @@ func test_switching_technique_clears_the_result_line_and_the_ready_text() -> voi
 	_view._process(0.0)
 	assert_eq(_view.get_result_text(), "")
 	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "a new technique has not been cycled yet")
+	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
 # THE RESULT LINE AND THE LOG
@@ -531,6 +544,7 @@ func test_each_tier_pops_its_floater_and_sends_its_pellets() -> void:
 		assert_eq(floater.get_color(), CyclingRules.tier_color(case[0]))
 		assert_eq(_pellets_showing(TIER_PELLET_PATHS[case[0]]).size(), case[3], "%s sends %d pellets" % [case[2], case[3]])
 		assert_eq(_pellets().size(), case[3])
+	await _await_queued_frees()
 
 func test_xp_pellets_start_around_the_zone_and_land_in_the_core_orb() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
@@ -734,8 +748,7 @@ func test_hiding_the_view_hides_every_floater() -> void:
 	for floater: LacquerFloater in _floaters():
 		assert_false(floater.visible)
 		assert_false(floater.is_processing(), "and a hidden floater is not processed")
-	# Let the hit's pellets, freed with the board, go before GUT counts orphans.
-	await wait_process_frames(1)
+	await _await_queued_frees()
 
 func test_hiding_the_view_frees_the_pellets_in_flight() -> void:
 	# A pellet left flying under the hidden board would show up mid-flight if the
@@ -749,8 +762,7 @@ func test_hiding_the_view_frees_the_pellets_in_flight() -> void:
 	for pellet: MadraPellet in flying:
 		assert_true(pellet.is_queued_for_deletion(), "each pellet is freed, not just left out of the tree")
 	assert_eq(_floaters().size(), 4, "the floaters stay for the next cycle")
-	# Let the freed pellets go before GUT counts orphans.
-	await wait_process_frames(1)
+	await _await_queued_frees()
 
 func test_the_view_hidden_by_its_parent_stops_too() -> void:
 	var host := Control.new()
@@ -796,8 +808,7 @@ func test_reopening_starts_clean() -> void:
 	assert_eq((_technique.get_node("%CyclingGroove") as CyclingGroove).get_lit_count(), 0, "the groove is dark")
 	assert_eq(_technique.get_ball_global_position(), Vector2(320.0, 464.0) + _technique.global_position, "the ball waits at the start of the path")
 	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "and the status reads as the first time again")
-	# Let the hit's pellets, freed with the board, go before GUT counts orphans.
-	await wait_process_frames(1)
+	await _await_queued_frees()
 
 func test_showing_names_the_action_and_the_technique() -> void:
 	var cycling: ZoneActionData = ZoneManager.get_action_by_id(CYCLING_ACTION_ID)
@@ -823,6 +834,7 @@ func test_showing_names_the_technique_that_is_set_up() -> void:
 	_view.hide()
 	_view.show()
 	assert_eq((_node("TitleLabel") as Label).text, "Torrential Flow")
+	await _await_queued_frees()
 
 func test_close_stops_the_action() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)

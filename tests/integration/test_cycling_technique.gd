@@ -93,6 +93,11 @@ func _approach_zone_0(within: float) -> CyclingZone:
 	assert_true(reached, "precondition: the ball comes within %s px of zone 0" % within)
 	return zone
 
+## Waits a frame, so the old zones a setup() took out of the tree and queue-freed
+## are gone before GUT counts orphans.
+func _await_queued_frees() -> void:
+	await wait_process_frames(1)
+
 ## Counts the Madra pellets the technique requests from now on.
 func _count_pellets() -> Array[int]:
 	var count: Array[int] = [0]
@@ -486,6 +491,7 @@ func test_tracking_uses_the_drawn_ball() -> void:
 	_advance_straight_to(100.6, Vector2(71.0, 0.0))
 	assert_eq(_technique.get_ball_global_position(), Vector2(100.0, 0.0))
 	assert_true(_technique.is_tracking())
+	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
 # ZONES AND SCORING
@@ -508,6 +514,7 @@ func test_zone_overlap_uses_the_true_ball() -> void:
 	# drawn at 100, 50 px away.
 	_advance_straight_to(100.6, FAR)
 	assert_eq(zone.get_state(), CyclingZone.State.ACTIVE)
+	await _await_queued_frees()
 
 func test_scoring_an_active_zone_uses_the_tier_rule() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
@@ -542,6 +549,7 @@ func test_score_distance_uses_the_true_ball() -> void:
 	_advance_straight_to(100.6, FAR)
 	assert_true(_technique.try_score_zone(zone))
 	assert_eq(zone.get_state(), CyclingZone.State.PERFECT)
+	await _await_queued_frees()
 
 func test_inactive_or_scored_zones_ignore_clicks() -> void:
 	var zone: CyclingZone = _zone(0)
@@ -607,6 +615,7 @@ func test_switching_technique_mid_cycle_ends_quietly() -> void:
 	assert_eq(_technique.cycling_zones.size(), 0, "foundation has no zones")
 	assert_eq(_technique.get_ball_global_position(), Vector2(322.0, 400.0), "the ball waits at the new path's start")
 	assert_eq(CyclingManager.get_madra_rate(), 0.0)
+	await _await_queued_frees()
 
 func test_switching_rebuilds_the_zones() -> void:
 	var old_zone: CyclingZone = _zone(0)
@@ -619,6 +628,7 @@ func test_switching_rebuilds_the_zones() -> void:
 		if child is CyclingZone:
 			hanging += 1
 	assert_eq(hanging, 4, "only the new zones hang under the path")
+	await _await_queued_frees()
 
 func test_stop_resets_zones() -> void:
 	# Review Focus 5.
