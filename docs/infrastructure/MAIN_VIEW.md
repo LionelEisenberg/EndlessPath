@@ -267,7 +267,7 @@ Gold left the bar for the cultivator cabinet.
 
 | Widget | Files | Used by | API / behaviour |
 |--------|-------|---------|-----------------|
-| `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `ResourceBar` (combat vitals deltas; per-bar `show_floating_text` export) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
+| `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `ResourceBar` (vitals deltas behind a per-bar `show_floating_text` export, off on the enemy's Health bar, so nothing shows them now) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | Main view states | See [GreyBackground](#greybackground-modal-backdrop) |
 | `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
 | `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | `MainView` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |

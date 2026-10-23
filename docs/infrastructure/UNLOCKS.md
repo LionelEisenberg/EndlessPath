@@ -45,7 +45,7 @@ condition_unlocked listeners:
 | Registration in `unlock_condition_list.tres` | Required. An unregistered id never latches. | Not needed |
 | Keyed by | `condition_id` string only | The resource's own fields |
 | Can turn false again | No | Yes |
-| Consumers | `ZoneManager.get_available_actions()` (zone and action gates); `ZoneManager.get_zone_map_state()` (`chart_conditions` → UNCHARTED, `zone_unlock_conditions` → LOCKED), which `ZoneTilemap` and `MapMarkers` draw | `QuestManager` condition steps; `AdventureEncounter.is_eligible()` (map generation); `EncounterChoice.evaluate_requirements()` / `is_completed()` (encounter panel); the Goals board's step figure (`get_current_value()` / `get_target_value()`) |
+| Consumers | `ZoneManager.get_available_actions()` (zone and action gates); `ZoneManager.get_zone_map_state()` (`chart_conditions` → UNCHARTED, `zone_unlock_conditions` → LOCKED), which `ZoneTilemap` and `MapMarkers` draw | `QuestManager` condition steps; `AdventureEncounter.is_eligible()` (map generation); `EncounterChoice.evaluate_requirements()` / `is_completed()` (`ChoiceDrawer`); the Goals board's step figure (`get_current_value()` / `get_target_value()`) |
 
 Consequences:
 

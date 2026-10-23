@@ -84,7 +84,7 @@ AbilityStatsDisplay (HFlowContainer)            scenes/abilities/ability_stats_d
 | `ability_id` | `String` | `""` | Unique key used by the catalog, path unlocks and saves |
 | `ability_name` | `String` | `""` | Display name |
 | `description` | `String` (multiline) | `""` | Card details text |
-| `icon` | `Texture2D` | null | Card, slot, combat button, tooltip |
+| `icon` | `Texture2D` | null | Details card, row, loadout slot, technique dock slot |
 | `madra_type` | `MadraType` | `NONE` | Flavor badge; independent of `damage_type` |
 | `ability_source` | `AbilitySource` | `INNATE` | Badge text; no lifecycle logic reads it |
 | `health_cost` / `madra_cost` / `stamina_cost` | `float` | 0.0 | Paid when a cast starts |
@@ -220,8 +220,8 @@ At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.
 | Mode | Pills | Used by |
 |------|-------|---------|
 | `DAMAGE` | DMG total (pulsing gold border), Base, one `+contribution` pill per non-zero scaling | Nothing since the Abilities book got its own stat list |
-| `DAMAGE_TOTAL` | DMG total only | Combat ability tooltip |
-| `TIMING_COSTS` | CD, Cast (or "Cast: Instant"), `·`, non-zero Madra/Stamina/Health costs | Combat ability tooltip |
+| `DAMAGE_TOTAL` | DMG total only | Nothing since the technique dock's tooltip replaced the combat ability tooltip |
+| `TIMING_COSTS` | CD, Cast (or "Cast: Instant"), `·`, non-zero Madra/Stamina/Health costs | Nothing since the technique dock's tooltip replaced the combat ability tooltip |
 
 - Damage pills read only `effects_on_target[0]` and only when it has a base value or scaling; values are raw (`calculate_value`, before defense and modifiers) using `CharacterManager.get_total_attributes_data()`.
 - Hovering a pill shows `StatTooltip` with "Total Damage" (formula breakdown), "<ATTR> Scaling" (your value, %, contribution), "Base Damage", "Cooldown", "Cast Time" or "<Resource> Cost".
@@ -236,7 +236,7 @@ At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.
 | Combat (`AdventureCombat`, `TechniqueDock`) | out | `get_equipped_abilities()` for the player combatant; `get_ability_at_slot()` for key hints and key routing |
 | `Dock` (Abilities `SystemMenuButton`) | out | Listens to `ability_unlocked` and `equipped_abilities_changed` (and re-reads on save reset); ring = `has_unequipped_unlocks()`, via `SystemMenuButton.set_notification()` |
 | `MainView` state machine | in | `ZoneViewState` pushes `AbilitiesViewState` on `open_abilities` (A); `AbilitiesViewState` (`BookViewState`) closes on `ui_cancel`, `open_abilities`, the book's close tab or a backdrop click via `GreyBackground.hide_with_panel()` |
-| `CharacterManager` | in | Attribute totals for the details card's damage and the combat tooltip's pills; `base_attribute_changed` clears the book's damage previews |
+| `CharacterManager` | in | Attribute totals for the details card's damage and the technique tooltip's damage line; `base_attribute_changed` clears the book's damage previews |
 
 ## Existing Content
 
@@ -281,7 +281,7 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 | `scenes/abilities/scaling_part/scaling_part.gd` / `.tscn` | One attribute's icon and contribution in the damage breakdown |
 | `scenes/abilities/equip_slot/equip_slot.gd` / `.tscn` | Loadout slot (drag source and drop target) |
 | `scenes/common/drop_target_slot.gd` | Shared drop-target base (hover tint, drop routing) |
-| `scenes/abilities/ability_stats_display/ability_stats_display.gd` | Stat pills (combat ability tooltip) |
+| `scenes/abilities/ability_stats_display/ability_stats_display.gd` | Stat pills (no screen uses them now; style guide B8) |
 | `scenes/abilities/stat_label/stat_label.gd` / `.tscn` | Single stat pill |
 | `scenes/abilities/stat_tooltip/stat_tooltip.gd` | Pill tooltip |
 | `scenes/ui/dock/dock.gd`, `scenes/ui/dock/system_menu_button/system_menu_button.gd` | The dock's Abilities button and its notification ring |
@@ -291,9 +291,8 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 
 ### Bugs
 
-- `[MEDIUM]` Stat pills always use the player's attributes, including in the combat tooltip for enemy abilities (see [COMBAT.md](../combat/COMBAT.md#bugs)).
-- `[MEDIUM]` `AbilityStatsDisplay` leaks a tween on every `DAMAGE` / `DAMAGE_TOTAL` `setup()`: `_setup_damage_border_pulse()` starts an endless `set_loops()` tween with `create_tween()` on the display, not the label, and the tween keeps its `StyleBoxFlat` alive. Each call adds another tween that runs until the display is freed. The combat ability tooltip calls `setup()` on every hover. Creating the tween on the label (`label.create_tween()`) would let it die with the label.
-- `[LOW]` `CombatEffectData.calculate_value()` logs four or more INFO lines per call, so every damage preview (the Abilities book, the combat tooltip) writes to the log as if a hit landed.
+- `[LOW]` `AbilityStatsDisplay` leaks a tween on every `DAMAGE` / `DAMAGE_TOTAL` `setup()`: `_setup_damage_border_pulse()` starts an endless `set_loops()` tween with `create_tween()` on the display, not the label, and the tween keeps its `StyleBoxFlat` alive. Each call adds another tween that runs until the display is freed. Nothing calls `setup()` now that the combat ability tooltip is gone, so the leak only matters if the component is used again. Creating the tween on the label (`label.create_tween()`) would let it die with the label.
+- `[LOW]` `CombatEffectData.calculate_value()` logs four or more INFO lines per call, so every damage preview (the Abilities book, the technique tooltip's damage line) writes to the log as if a hit landed.
 - `[LOW]` Stale "resource path" wording for `UNLOCK_ABILITY`: the enum comment and `string_value` comment in `path_node_effect_data.gd` and `PathEffectsSummary.unlocked_abilities` say resource path; the value is an `ability_id`. The `power_font` node's `benefit_summary` still reads "Madra Strike unlocked".
 
 ### Missing Functionality
@@ -316,7 +315,6 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 - `[LOW]` The damage breakdown shows at most three scaling attributes (`ScalingPart1..3`); a fourth would be left out.
 - `[LOW]` Slots have no hover tooltip, and clicking a slot does not select its ability on the right page.
 - `[LOW]` UI is built in code, against the project's scene-tree rule: `StatTooltip` builds its whole tree in `_init()` (no `.tscn`) and `AbilityStatsDisplay._add_separator()` creates Labels.
-- `[LOW]` The combat tooltip's pulsing DMG border is a StyleBoxFlat tween; the spec's `damage_total_glow` shader was never added.
 
 ### Tech Debt
 

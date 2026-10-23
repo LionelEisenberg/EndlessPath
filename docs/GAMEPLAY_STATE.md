@@ -36,7 +36,7 @@ Other views, all opened from the zone view via keyboard or the dock:
 | View | Key | Details |
 |---|---|---|
 | Inventory | I | 4 tabs: Equipment (2 pages, filter, trash), Consumables (+ 4-slot hotbar), Materials, Journal. See [INVENTORY.md](inventory/INVENTORY.md) |
-| Abilities | A | 4-slot loadout with drag-drop, filter/sort and stat pills. See [ABILITIES.md](abilities/ABILITIES.md) |
+| Abilities | A | 4-slot loadout with drag-drop and right-click quick equip, a filter, and a details card with the damage breakdown. See [ABILITIES.md](abilities/ABILITIES.md) |
 | Character | C | 8 total attributes with tooltips. See [CHARACTER.md](infrastructure/CHARACTER.md) |
 | Path | P | Pure Madra skill tree. See [PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md) |
 

@@ -42,7 +42,7 @@ MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log pri
 │   ├── ZoneView                  base view: ZoneTransition, SubViewport (ZoneTilemap: map, fog, MapMarkers),
 │   │                             CultivatorPlate, ZonePanel (zone chest), Dock
 │   ├── AdventureView             adventure map + combat, framed by VitalsPlate, AdventureChest and TechniqueDock
-│   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by the base state, hidden under the shop
+│   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by ZoneViewState (the adventure leaves them), hidden under the shop
 │   ├── QuestToast                z 10
 │   ├── GreyBackground            modal backdrop (z 2)
 │   ├── PathTreeView, AdventureEndCard, InventoryView, AbilitiesView, CharacterView, CyclingView (z 3)
@@ -135,7 +135,7 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 | `SystemMenuButton` | `scenes/ui/dock/system_menu_button/system_menu_button.gd` | Dock nav button. Its `MenuType` enum drives label, shortcut, icon and input action; `set_notification()` shows the ring and count seal |
 | Lacquer pieces | `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd` | `LacquerStripRect` (strip frames), `LacquerRod` (stepped rod), `LacquerFrameOverlay` (brass or hover frame, flashed), `LacquerFloater` (a gain rising on a token), `LacquerRail` (scroll rail) and `LacquerText`, for the zone view, the cycling board, the adventure view's boards and the HUD boards ([UI_STYLING.md](UI_STYLING.md)) |
 | `MadraPellet` | `scenes/zones/zone_transition/` | Opaque pellet that flies along a curve in 2 px steps. The adventure drain's pellets and the cycling view's Madra and XP pellets (`set_texture()` for the tier colours) |
-| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. Used by the combat resource bars |
+| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. `ResourceBar` can show one per change, but the one bar left (the enemy's Health) has it off, so nothing shows it now; combat's damage numbers are `DamageNumber`s |
 | `Atmosphere` | `scenes/atmosphere/` | Vignette shader, drifting mist and floating motes. Only the adventure's fight instances it now (until the fight is reworked), tuned per scene with `@export` |
 | `AdventureMapMarkers` / `EncounterCoin` | `scenes/adventure/adventure_map_markers/` | The adventure map's screen-space layer of lacquer coins (glyph, carved "?", carved cleared, boss), the counterpart of the zone map's `MapMarkers` |
 | `AdventureRoute` | `scenes/adventure/adventure_route/` | Lit route dots laid hex to hex for a hovered or committed walk; the dots behind the character hide one at a time |
