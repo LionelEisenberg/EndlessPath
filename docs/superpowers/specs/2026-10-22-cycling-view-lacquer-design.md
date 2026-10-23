@@ -12,7 +12,7 @@
 
 ## As built (2026-10-23)
 
-Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 117 scripts and 1546 tests, all passing, and [CYCLING.md](../../cycling/CYCLING.md) describes the result. Where the build differs from this spec, or settles something it left open:
+Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 117 scripts and 1547 tests, all passing, and [CYCLING.md](../../cycling/CYCLING.md) describes the result. Where the build differs from this spec, or settles something it left open:
 
 - **Rate label.** The cabinet's rate label hides when the rate rounds to 0.0, so it never reads "+0 / s". The Now tray hides it below 0.05, the same threshold.
 - **Madra rate.** It is a time-weighted draw over the last second: per frame, the step rate while tracking below the cap, summed over the time covered. A plain "Madra added in the last second" alternated 12.8 and 13.9 at 60 FPS. An Auto restart carries the rate over.

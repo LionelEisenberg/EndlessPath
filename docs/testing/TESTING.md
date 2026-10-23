@@ -8,8 +8,8 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
 | Unit | `tests/unit/` | 77 | 819 |
-| Integration | `tests/integration/` | 40 | 727 |
-| **Total** | | **117** | **1546** |
+| Integration | `tests/integration/` | 40 | 728 |
+| **Total** | | **117** | **1547** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -23,13 +23,13 @@ Run on 2026-10-23, on `feat/cycling-view-styleguide-ea3170` after the lacquer cy
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 117 / 1546 |
-| Passing / failing / pending or risky | 1546 / 0 / 0 |
-| Asserts | 8427 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 117 / 1547 |
+| Passing / failing / pending or risky | 1547 / 0 / 0 |
+| Asserts | 8423 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | Exit code | 0 |
-| Wall time | About 74 s (GUT's `Time` line). The zone view's and the cycling view's scene tests await real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay) |
+| Wall time | About 77 s (GUT's `Time` line). The zone view's and the cycling view's scene tests await real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay) |
 
 Known noise in a green run:
 
@@ -182,7 +182,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | Combat | `test_combat_damage` (29), `test_combat_effect_types` (3), `test_combat_buff_manager_stacking` (7), `test_combat_buff_manager_strip` (4), `test_combat_ability_instance_cancel` (6), `test_empty_palm_interrupt` (2), `test_power_font_buff_strip` (2), `test_adventure_combat_victory_event` (2) | Damage formula, effect routing, buffs, cast cancel, victory event | `SimpleEnemyAI`, `VitalsManager` regen, gold reward |
 | Adventure | `test_adventure_map_generator` (9), `test_adventure_data` (9), `test_adventure_encounter` (5), `test_encounter_choice` (7), `test_encounter_quota` (2), `test_encounter_icon_config` (10), `test_hex_forest_atlas` (10), `test_adventure_result_data` (12), `test_adventure_combat_count` (12, mirror), `test_adventure_end_flow` (2) | Generator, validation, eligibility, icon config, result defaults; the real `AdventureView` end flow for a timeout and a boss win | `AdventureTilemap` (movement, fog, path preview), the rest of `AdventureView` (death, result building), `AdventureEndCard` |
 | AbilityManager | `test_ability_manager` (18), `test_path_manager` | Unlock/equip/loadout | `AbilitiesView` UI |
-| Cycling | `test_cycling_manager` (37), `test_cycling_rules` (7), `test_cycling_groove` (10), `test_cycling_technique_data` (4), `test_cycling_art` (14), `test_cycling_rate` (3), `test_cycling_technique` (64), `test_cycling_view` (64), `test_technique_drawer` (20), `test_path_manager` | Unlock, equip and catalog; the seen techniques and their first-init pass; the session snapshot and `madra_rate_changed`; the tiers, XP, pellet counts and result lines; the groove raster; the icons and the seen-technique save fields; the art's sizes and palettes; `ActionManager`'s cycling rate; the ball's play (Madra steps at 30, 60 and 144 FPS, the rate window, zones, scoring, Auto, a frame hitch, real physics picking); the board (status line, result and log line, pellets, floaters, Auto, show, hide and close, clicks through the board); the technique drawers | Content integrity (unique technique ids, path-node unlock ids matching the catalog); pixel placement (checked by captures, not tests) |
+| Cycling | `test_cycling_manager` (37), `test_cycling_rules` (7), `test_cycling_groove` (10), `test_cycling_technique_data` (4), `test_cycling_art` (14), `test_cycling_rate` (3), `test_cycling_technique` (65), `test_cycling_view` (64), `test_technique_drawer` (20), `test_path_manager` | Unlock, equip and catalog; the seen techniques and their first-init pass; the session snapshot and `madra_rate_changed`; the tiers, XP, pellet counts and result lines; the groove raster; the icons and the seen-technique save fields; the art's sizes and palettes; `ActionManager`'s cycling rate; the ball's play (Madra steps at 30, 60 and 144 FPS, the Madra a cycle counts, the rate window, zones, scoring, Auto, a frame hitch, real physics picking); the board (status line, result and log line, pellets, floaters, Auto, show, hide and close, clicks through the board); the technique drawers | Content integrity (unique technique ids, path-node unlock ids matching the catalog); pixel placement (checked by captures, not tests) |
 | PathManager | `test_path_manager` (25), `test_award_path_point_effect_data` (4), `test_path_tree_resource_loading` (3) | Purchases, prerequisites, effects, shipped Pure Madra tree | `PathTreeView` UI |
 | QuestManager | `test_quest_manager` (25), `test_start_quest_effect_data` (2), `test_quest_progression_persistence` (3), `test_beat_3b_merchant_unlock` (1), `test_goals_panel` (26) | Start/advance/complete, validation, persistence; the Goals board's quest row and figures | `QuestToast` |
 | UnlockManager / conditions | `test_unlock_manager` (3), `test_unlock_condition_item_owned` (2), `test_aura_well_discovery_unlock` (2), `test_beat_3b_merchant_unlock` (1), `test_unlock_condition_progress` (6) | `force_unlock_condition()`; `EVENT_TRIGGERED`, `ITEM_OWNED`, `RESOURCE_AMOUNT` conditions; `CULTIVATION_LEVEL` indirectly through the Beat 3b flow (`q_reach_cd_10`); `is_measurable()` and the current / target getters | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED`, `ATTRIBUTE_VALUE` have no direct tests |
