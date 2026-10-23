@@ -24,6 +24,9 @@ const CYCLE_SECONDS: float = 15.0
 ## The Madra one step draws: base_madra_per_cycle * 0.08 / cycle_duration.
 const MADRA_STEP: float = 200.0 * 0.08 / 15.0
 
+## The Madra steady tracking draws a second: base_madra_per_cycle / cycle_duration.
+const MADRA_RATE: float = 200.0 / 15.0
+
 ## Where the ball waits: the first point of smooth_path.tres, on even px.
 const START: Vector2 = Vector2(320.0, 464.0)
 
@@ -266,14 +269,116 @@ func test_cap_reached_mid_cycle() -> void:
 	assert_true(is_equal_approx(_technique.get_current_result().madra_added, 2.0))
 	assert_eq(ResourceManager.get_madra(), 100.0)
 
-func test_madra_rate_follows_the_last_second() -> void:
+#-----------------------------------------------------------------------------
+# THE MADRA RATE
+#-----------------------------------------------------------------------------
+
+## The rate the cabinet and the tray show is time-weighted over the last
+## RATE_WINDOW seconds of the cycle: the Madra the cursor drew in them over the
+## time they cover. It does not count the 0.08 s steps (a window holds 12 or 13 of
+## them, which would flicker between +12.8 and +13.9).
+
+func test_rate_holds_steady_while_tracking() -> void:
+	# Steady tracking reads base_madra_per_cycle / cycle_duration at any frame
+	# rate, from the first frame on (13.333 reads +13.3).
+	for fps: float in [30.0, 60.0, 144.0]:
+		_technique.stop_cycling()
+		ResourceManager.set_madra(25.0)
+		_technique.start_cycle()
+		var off: int = 0
+		var last: float = 0.0
+		for _frame: int in roundi(3.0 * fps):
+			_technique.advance(1.0 / fps, _technique.get_ball_global_position())
+			last = CyclingManager.get_madra_rate()
+			if not is_equal_approx(snappedf(last, 0.1), 13.3):
+				off += 1
+		assert_eq(off, 0, "frames of 3 s at %d FPS whose rate did not read 13.3" % fps)
+		assert_almost_eq(last, MADRA_RATE, 0.001, "exactly base_madra_per_cycle / cycle_duration at %d FPS" % fps)
+
+func test_rate_falls_to_zero_once_tracking_stops() -> void:
+	for fps: float in [30.0, 60.0, 144.0]:
+		_technique.stop_cycling()
+		ResourceManager.set_madra(25.0)
+		_technique.start_cycle()
+		_run(1.0, fps, true)
+		assert_gt(CyclingManager.get_madra_rate(), 0.0, "precondition: the cursor draws at %d FPS" % fps)
+		_run(CyclingTechnique.RATE_WINDOW + 1.0 / fps, fps, false)
+		assert_eq(CyclingManager.get_madra_rate(), 0.0, "RATE_WINDOW and a frame after the cursor left, at %d FPS" % fps)
+
+func test_rate_rises_and_falls_within_a_second() -> void:
+	# A window that is half tracked reads half the steady rate.
 	_technique.start_cycle()
+	_run(1.0, 60.0, false)
+	assert_eq(CyclingManager.get_madra_rate(), 0.0, "nothing is drawn yet")
+	_run(0.5, 60.0, true)
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second of tracking")
+	_run(0.5, 60.0, true)
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001, "a second of tracking")
+	_run(0.5, 60.0, false)
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE / 2.0, 0.1, "half a second after it stopped")
+
+func test_rate_reads_zero_at_the_cap() -> void:
+	ResourceManager.set_madra(100.0)
+	_technique.start_cycle()
+	_run(CyclingTechnique.RATE_WINDOW + FRAME, 60.0, true)
+	assert_eq(CyclingManager.get_madra_rate(), 0.0, "the cursor follows the ball but nothing is drawn")
+
+func test_rate_falls_to_zero_once_the_cap_is_met() -> void:
+	ResourceManager.set_madra(98.0)
+	_technique.start_cycle()
+	_run(0.5, 60.0, true)
+	assert_gt(CyclingManager.get_madra_rate(), 0.0, "precondition: the frames before the cap drew")
+	assert_eq(ResourceManager.get_madra(), 100.0, "precondition: the cap is met")
+	_run(CyclingTechnique.RATE_WINDOW + FRAME, 60.0, true)
+	assert_eq(CyclingManager.get_madra_rate(), 0.0)
+
+func test_the_frame_that_meets_the_cap_still_draws() -> void:
+	# A frame draws if there is room under the cap before its steps, so the frame
+	# whose own step fills the cap still counts.
+	ResourceManager.set_madra(99.5)
+	_technique.start_cycle()
+	_run(5.0 / 60.0, 60.0, true)
+	assert_eq(ResourceManager.get_madra(), 100.0, "precondition: the fifth frame's step filled the cap")
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001)
+
+func test_auto_restart_keeps_the_rate() -> void:
+	# The restart happens inside the advance() that ends the cycle. The cabinet
+	# reads the rate off the session each time it announces one, so a session
+	# that read 0 until the next frame would blink the label out for a frame.
+	PersistenceManager.save_game_data.core_density_level = 100.0
+	assert_eq(CultivationManager.get_max_madra(), 600.0, "precondition: a whole cycle of Madra fits under the cap")
+	var completed: Array[int] = [0]
+	_technique.cycle_completed.connect(func(_result: CycleResult) -> void: completed[0] += 1)
+	_technique.auto_cycle = true
+	_technique.start_cycle()
+	for _frame: int in roundi((CYCLE_SECONDS + 1.0) * 60.0):
+		_technique.advance(FRAME, _technique.get_ball_global_position())
+		if completed[0] > 0:
+			break
+	assert_eq(completed[0], 1, "precondition: the cycle ended")
+	assert_true(CyclingManager.is_cycle_running(), "the next cycle started in the same frame")
+	assert_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 13.3, "the rate carries into it")
+	_technique.advance(FRAME, _technique.get_ball_global_position())
+	assert_true(CyclingManager.is_cycle_running())
+	assert_eq(snappedf(CyclingManager.get_madra_rate(), 0.1), 13.3, "and the frame after")
+	assert_eq(completed[0], 1)
+
+func test_a_manual_start_begins_from_an_empty_window() -> void:
+	# A cycle that ends without Auto, like one that is stopped, leaves no rate
+	# behind for the next one.
+	PersistenceManager.save_game_data.core_density_level = 100.0
+	_technique.start_cycle()
+	_run(CYCLE_SECONDS + FRAME, 60.0, true)
+	assert_false(_technique.is_cycling(), "precondition: the cycle ended without Auto")
+	assert_eq(CyclingManager.get_madra_rate(), 0.0, "the session is over")
+	_technique.start_cycle()
+	_technique.advance(FRAME, FAR)
+	assert_eq(CyclingManager.get_madra_rate(), 0.0, "nothing was drawn in the new cycle")
 	_run(1.0, 60.0, true)
-	var drawing: float = CyclingManager.get_madra_rate()
-	# Each step is snapped to 0.001 by add_madra(), so allow that much per step.
-	assert_between(drawing, 12.0 * MADRA_STEP - 0.01, 13.0 * MADRA_STEP + 0.01, "12 or 13 steps in the window")
-	_run(2.0, 60.0, false)
-	assert_eq(CyclingManager.get_madra_rate(), 0.0, "a second after the cursor leaves, nothing is drawn")
+	_technique.stop_cycling()
+	_technique.start_cycle()
+	_technique.advance(FRAME, FAR)
+	assert_eq(CyclingManager.get_madra_rate(), 0.0, "a stopped cycle leaves nothing either")
 
 #-----------------------------------------------------------------------------
 # TRACKING AND THE RING

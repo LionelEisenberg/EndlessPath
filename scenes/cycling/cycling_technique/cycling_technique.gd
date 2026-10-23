@@ -50,7 +50,8 @@ const MADRA_PARTICLE_INTERVAL: float = 0.08
 const SWIRL_FRAMES: int = 8
 const SWIRL_FPS: float = 10.0
 
-## The seconds the Madra rate looks back over.
+## The seconds of cycle time the Madra rate is measured over: the Madra the cursor
+## drew in the newest frames that cover this long, over the time they cover.
 const RATE_WINDOW: float = 1.0
 
 ## The ball ring's frames: the steady ring around a ready ball, and the dotted
@@ -96,9 +97,12 @@ var _elapsed: float = 0.0
 var _swirl_clock: float = 0.0
 ## Seconds toward the next Madra step. It keeps its remainder between steps.
 var _madra_timer: float = 0.0
-## The Madra steps of the last RATE_WINDOW seconds: x is the cycle time of the
-## step and y the Madra it added.
-var _recent_madra: Array[Vector2] = []
+## The frames the Madra rate is measured over, oldest first: the newest frames that
+## cover RATE_WINDOW seconds of the cycle. x is the frame's seconds and y the Madra
+## the cursor drew in it: the technique's Madra per second times those seconds while
+## the cursor followed the ball with room under the cap, otherwise 0. It carries into
+## an auto cycle and is empty after any other ending.
+var _rate_window: Array[Vector2] = []
 ## The ball's centre as the player sees it: the true one snapped to even px.
 var _ball_drawn: Vector2 = Vector2.ZERO
 var _result: CycleResult = CycleResult.new()
@@ -136,7 +140,6 @@ func start_cycle() -> bool:
 	_cycling = true
 	_elapsed = 0.0
 	_madra_timer = 0.0
-	_recent_madra.clear()
 	_result = _new_result()
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
@@ -155,8 +158,9 @@ func stop_cycling() -> void:
 ## Moves the play on by `delta` seconds, with the cursor at `cursor_global`.
 ## While no cycle runs only the swirl moves and the ball waits at the start. While
 ## one runs, in this order: the ball moves and is drawn, the cursor draws Madra if
-## it is on the ball, the zones turn active or spent, the groove lights and the
-## session is updated. The cycle ends once its time is up.
+## it is on the ball, the zones turn active or spent, the groove lights, the frame
+## joins the rate window and the session is updated. The cycle ends once its time
+## is up.
 func advance(delta: float, cursor_global: Vector2) -> void:
 	_swirl_clock += delta
 	_show_swirl_frame()
@@ -168,11 +172,14 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	_draw_ball()
 	_tracking = cursor_global.distance_to(_ball_drawn) <= BALL_RADIUS
 	_ball_ring.visible = _tracking
+	# Whether the frame draws is judged before its steps can fill the cap.
+	var drawing: bool = _tracking and not _madra_full()
 	if _tracking:
 		_set_ring_frame(_RING_TRACKING)
 		_draw_madra(delta)
 	_update_zones()
 	_groove.set_lit_length(_follow.progress)
+	_record_rate(delta, drawing)
 	_update_session()
 	if _elapsed >= technique_data.cycle_duration:
 		_finish_cycle()
@@ -244,17 +251,20 @@ func _draw_madra(delta: float) -> void:
 		_madra_timer -= MADRA_PARTICLE_INTERVAL
 		_draw_madra_step()
 
+## Returns true when Madra is at or over the cap, so the cursor adds nothing.
+func _madra_full() -> bool:
+	return ResourceManager.get_madra() >= CultivationManager.get_max_madra()
+
 ## Draws one step of Madra. Nothing is added or requested at the cap, and Madra
 ## already over it is left alone. The step counts only for the Madra it really
 ## added, which is less than a full step when the cap cuts it short.
 func _draw_madra_step() -> void:
-	if ResourceManager.get_madra() >= CultivationManager.get_max_madra():
+	if _madra_full():
 		return
 	var added: float = ResourceManager.add_madra(_madra_per_step(), true)
 	if added <= 0.0:
 		return
 	_result.madra_added += added
-	_recent_madra.append(Vector2(_elapsed, added))
 	madra_particle_requested.emit(_ball_drawn)
 
 ## Returns the Madra one step adds: the technique's Madra per cycle spread over
@@ -278,21 +288,40 @@ func _update_zones() -> void:
 		elif zone.get_state() == CyclingZone.State.ACTIVE:
 			zone.set_state(CyclingZone.State.SPENT)
 
+## Adds a running frame to the rate window: its `delta` seconds and the Madra the
+## cursor drew in it, which is the technique's Madra per second over those seconds
+## when `drawing`, else 0. Then drops the oldest frames while the rest still cover
+## RATE_WINDOW, which leaves the shortest run of the newest frames that does.
+func _record_rate(delta: float, drawing: bool) -> void:
+	var drawn: float = (_madra_per_step() / MADRA_PARTICLE_INTERVAL * delta) if drawing else 0.0
+	_rate_window.append(Vector2(delta, drawn))
+	var covered: float = 0.0
+	for frame: Vector2 in _rate_window:
+		covered += frame.x
+	while not _rate_window.is_empty() and covered - _rate_window[0].x >= RATE_WINDOW:
+		covered -= _rate_window[0].x
+		_rate_window.pop_front()
+
 ## Writes the session snapshot: the time elapsed and the Madra rate, which is the
-## Madra added over the last RATE_WINDOW seconds spread over that window.
+## Madra drawn over the rate window divided by the time it covers (0 with nothing
+## in it). Steady tracking with room under the cap reads the technique's Madra per
+## second, base_madra_per_cycle / cycle_duration, at any frame rate. Within
+## RATE_WINDOW seconds of the cursor starting or stopping, or of the cap being
+## met, the rate rises to that or falls to 0.
 func _update_session() -> void:
-	var cutoff: float = _elapsed - RATE_WINDOW
-	while not _recent_madra.is_empty() and _recent_madra[0].x <= cutoff:
-		_recent_madra.pop_front()
+	var covered: float = 0.0
 	var drawn: float = 0.0
-	for step: Vector2 in _recent_madra:
-		drawn += step.y
-	CyclingManager.update_cycle_session(_elapsed, drawn / RATE_WINDOW)
+	for frame: Vector2 in _rate_window:
+		covered += frame.x
+		drawn += frame.y
+	CyclingManager.update_cycle_session(_elapsed, drawn / covered if covered > 0.0 else 0.0)
 
 ## Ends the cycle that has run its time: every zone still open is spent, the
 ## session ends, the ball goes back to the start and cycle_completed carries the
 ## result. The groove stays lit until the next cycle starts. With auto_cycle on,
-## the next cycle starts at once.
+## the next cycle starts at once and the rate window carries into it: the session
+## is updated again in the same frame, so the rate does not read 0 for a frame
+## between two cycles. Otherwise the window is emptied.
 func _finish_cycle() -> void:
 	for zone: CyclingZone in cycling_zones:
 		if zone.is_open():
@@ -304,6 +333,9 @@ func _finish_cycle() -> void:
 	cycle_completed.emit(_result)
 	if auto_cycle:
 		start_cycle()
+		_update_session()
+	else:
+		_rate_window.clear()
 
 ## Ends any cycle without a result and puts the play back to ready: no time, no
 ## Madra gathered, a fresh empty result, the zones IDLE, the groove dark, the ball
@@ -313,7 +345,7 @@ func _return_to_ready() -> void:
 	_tracking = false
 	_elapsed = 0.0
 	_madra_timer = 0.0
-	_recent_madra.clear()
+	_rate_window.clear()
 	_result = _new_result()
 	CyclingManager.end_cycle_session()
 	for zone: CyclingZone in cycling_zones:
