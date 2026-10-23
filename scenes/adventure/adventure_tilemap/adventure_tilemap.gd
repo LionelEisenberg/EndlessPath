@@ -167,6 +167,11 @@ var _has_committed_destination: bool = false
 ## The tile the hover rim was last put on.
 var _hover_rim_tile: Vector3i = Vector3i.ZERO
 
+## False while the pointer is off the map: over a board that covers the map's
+## container. The hex layer never reports the pointer leaving a tile then, and
+## the position it last heard is no tile under the pointer.
+var _pointer_on_map: bool = true
+
 ## The boss reveal's camera push while it runs, or null.
 var _camera_push_tween: Tween = null
 
@@ -183,6 +188,13 @@ func _ready() -> void:
 		visible_map.tile_unhovered.connect(_on_tile_unhovered)
 	else:
 		Log.critical("AdventureTilemap: Visible map is missing!")
+	
+	# The map's viewport hears the pointer only through its container, so the
+	# container says when the pointer leaves the map for a board.
+	var view_host: Control = _find_view_host()
+	if view_host != null:
+		view_host.mouse_entered.connect(_on_view_host_mouse_entered)
+		view_host.mouse_exited.connect(_on_view_host_mouse_exited)
 	
 	if character_body:
 		character_body.movement_completed.connect(_on_character_movement_completed)
@@ -603,6 +615,45 @@ func _on_tile_unhovered() -> void:
 		return
 	_clear_hover()
 
+## The pointer left the map for a board (or the window): it is over no tile until
+## it comes back, so the hover goes, as when it leaves a tile (a committed
+## walk's rim and route stay), and the hex layer forgets the last cell, so
+## coming straight back onto it hovers it again.
+func _on_view_host_mouse_exited() -> void:
+	_pointer_on_map = false
+	visible_map.forget_hovered_cell()
+	_on_tile_unhovered()
+
+## The pointer is back on the map.
+func _on_view_host_mouse_entered() -> void:
+	_pointer_on_map = true
+
+## The SubViewportContainer that shows the map, found through the SubViewport
+## the map draws in, or null outside one.
+func _find_view_host() -> Control:
+	var viewport: Viewport = get_viewport()
+	if viewport is SubViewport:
+		return viewport.get_parent() as Control
+	return null
+
+## Puts the hover where a fresh move of the pointer onto the cell it rests over
+## would: the rim on that tile and the route to it from the current tile, or
+## nothing when the pointer is off the map or over no tile. For a walk that ends
+## under a still pointer: the camera followed the character, so the pointer now
+## rests over another cell than the one it last moved onto. The hex layer is
+## told the cell too, so its next motion reports what is new from there.
+func _rehover_pointer_cell() -> void:
+	if not _pointer_on_map:
+		visible_map.forget_hovered_cell()
+		_on_tile_unhovered()
+		return
+	var cell: Vector2i = visible_map.local_to_map(visible_map.get_local_mouse_position())
+	visible_map.set_hovered_cell(cell)
+	if visible_map.get_cell_source_id(cell) != -1:
+		_on_tile_hovered(cell)
+	else:
+		_on_tile_unhovered()
+
 ## Puts the hover rim on the tile: the bright rim over a tile drawn in the
 ## forest atlas, the inner rim over one drawn in its veil.
 func _show_hover_rim(coord: Vector3i) -> void:
@@ -635,6 +686,8 @@ func _check_committed_arrival() -> void:
 ## mid-route, when the player runs out of stamina mid-route, and when the
 ## adventure tears down. The hover rim stays where it is until the next
 ## hover event, unless it now sits on the current tile or a choice waits.
+## (A walk stopped for Stamina lays the hover again right after, for the
+## pointer's tile: _rehover_pointer_cell().)
 func _release_committed_destination() -> void:
 	_has_committed_destination = false
 	_committed_destination = Vector3i.ZERO
@@ -731,6 +784,9 @@ func _process_next_visitation() -> void:
 			Log.info("AdventureTilemap: Out of stamina, stopping movement.")
 			_visitation_queue.clear()
 			_release_committed_destination()
+			# The walk's rim and route are gone, so the hover is laid again for
+			# the tile the pointer rests over now, rather than left half up.
+			_rehover_pointer_cell()
 			_refuse_walk(REFUSED_STAMINA, TOO_TIRED_LINE % int(MOVEMENT_STAMINA_COST))
 			return
 
