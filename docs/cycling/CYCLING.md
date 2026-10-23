@@ -66,7 +66,7 @@ TechniqueDrawer (Control, 392x72)                    — technique_drawer/techni
     Face, Icon (32x32 at 16, 20), Title, NewSeal, Tag (IN USE), Detail (at 64, 38), HoverFrame, FlashFrame
 ```
 
-`CyclingView` is instanced in `main_game.tscn` for the whole session and hidden. `MainView._ready()` hands it the cabinet (`cultivator_plate`, through `_hand_cabinet_to_cycling_view()`); with none, no pellet is sent. `CyclingTechnique.technique_data_input` is null in the scene, so `CyclingView._ready()` plays the equipped technique. Showing the view turns processing on for the view and the technique, and hiding it turns both off, ends a running cycle without a result and hides every floater, so reopening starts clean.
+`CyclingView` is instanced in `main_game.tscn` for the whole session and hidden. `MainView._ready()` hands it the cabinet (`cultivator_plate`, through `_hand_cabinet_to_cycling_view()`); with none, no pellet is sent. `CyclingTechnique.technique_data_input` is null in the scene, so `CyclingView._ready()` plays the equipped technique. Showing the view turns processing on for the view and the technique, and hiding it turns both off, ends a running cycle without a result, hides every floater and frees the pellets in flight, so reopening starts clean.
 
 The ball and the zones take their clicks through physics picking, which only sees a press the GUI left unhandled. The board and the figure box pass the mouse, the view's root and the effects layer ignore it, and the close button, the Auto toggle and the chest's drawers take it.
 

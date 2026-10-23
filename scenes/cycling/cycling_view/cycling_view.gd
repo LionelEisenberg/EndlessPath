@@ -12,8 +12,8 @@ extends Control
 ## the cabinet over in cultivator_plate; with none, no pellet is sent.
 ## The view shows and hides outright. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
-## once it hides both stop, the running cycle ends and every floater is
-## hidden, so reopening starts clean. The press on the ball and the zones
+## once it hides both stop, the running cycle ends, every floater is hidden and
+## the pellets in flight are freed, so reopening starts clean. The press on the ball and the zones
 ## reaches them through the board: the root and the effects layer ignore the
 ## mouse and the board and the figure box pass it, and only physics picking
 ## takes a press that no Control stopped.
@@ -229,6 +229,14 @@ func _add_pellet() -> MadraPellet:
 	_effects_layer.add_child(pellet)
 	return pellet
 
+## Frees every pellet in flight. Each leaves the effects layer at once, so the
+## layer holds none even before the frees land.
+func _free_pellets() -> void:
+	for child: Node in _effects_layer.get_children():
+		if child is MadraPellet:
+			_effects_layer.remove_child(child)
+			child.queue_free()
+
 ## Returns the XP pellets' art for a hit of `tier`.
 static func _pellet_texture(tier: CyclingRules.Tier) -> Texture2D:
 	match tier:
@@ -303,12 +311,13 @@ func _on_shown() -> void:
 	_update_status()
 
 ## The board hides: the running cycle ends without a result, so reopening finds
-## the zones idle, the groove dark and the ball at the start, and every floater
-## hides.
+## the zones idle, the groove dark and the ball at the start, every floater
+## hides and the pellets in flight are freed, so none shows up mid-flight.
 func _on_hidden() -> void:
 	_technique.stop_cycling()
 	for floater: LacquerFloater in _floaters:
 		floater.stop()
+	_free_pellets()
 
 func _on_equipped_technique_changed(technique: CyclingTechniqueData) -> void:
 	_apply_technique(technique)

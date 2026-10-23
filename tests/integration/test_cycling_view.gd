@@ -734,6 +734,23 @@ func test_hiding_the_view_hides_every_floater() -> void:
 	for floater: LacquerFloater in _floaters():
 		assert_false(floater.visible)
 		assert_false(floater.is_processing(), "and a hidden floater is not processed")
+	# Let the hit's pellets, freed with the board, go before GUT counts orphans.
+	await wait_process_frames(1)
+
+func test_hiding_the_view_frees_the_pellets_in_flight() -> void:
+	# A pellet left flying under the hidden board would show up mid-flight if the
+	# board reopened within its flight.
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_true(_technique.try_score_zone(zone))
+	var flying: Array[MadraPellet] = _pellets()
+	assert_gt(flying.size(), 0, "precondition: the hit's pellets are in flight")
+	_view.hide()
+	assert_eq(_pellets().size(), 0, "the effects layer holds no pellet")
+	for pellet: MadraPellet in flying:
+		assert_true(pellet.is_queued_for_deletion(), "each pellet is freed, not just left out of the tree")
+	assert_eq(_floaters().size(), 4, "the floaters stay for the next cycle")
+	# Let the freed pellets go before GUT counts orphans.
+	await wait_process_frames(1)
 
 func test_the_view_hidden_by_its_parent_stops_too() -> void:
 	var host := Control.new()
@@ -779,6 +796,8 @@ func test_reopening_starts_clean() -> void:
 	assert_eq((_technique.get_node("%CyclingGroove") as CyclingGroove).get_lit_count(), 0, "the groove is dark")
 	assert_eq(_technique.get_ball_global_position(), Vector2(320.0, 464.0) + _technique.global_position, "the ball waits at the start of the path")
 	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "and the status reads as the first time again")
+	# Let the hit's pellets, freed with the board, go before GUT counts orphans.
+	await wait_process_frames(1)
 
 func test_showing_names_the_action_and_the_technique() -> void:
 	var cycling: ZoneActionData = ZoneManager.get_action_by_id(CYCLING_ACTION_ID)
