@@ -25,7 +25,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 | Variant | Size | Color | Use for |
 |---------|------|-------|---------|
 | `LabelTitle` | 50px | Gold + shadow (black 60%, offset 2,2) | Main panel titles (path tree, abilities, character) |
-| `LabelTitleSmall` | 40px | Gold | Secondary headers (the encounter panel, the consumables hotbar). The zone name now uses `LabelLacquerZoneName` |
+| `LabelTitleSmall` | 40px | Gold | Secondary headers (the consumables hotbar). The zone name now uses `LabelLacquerZoneName` |
 | `LabelHeading` | 36px | Gold | Subsection headings |
 | `LabelValueLarge` | 34px | Gold | Big value numbers |
 | `LabelBodyLarge` | 28px | Beige | Large body text (nothing uses it today) |
@@ -47,9 +47,9 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
   - `LabelEndCardStatValue` 22px dark brown `#33261A`
   - `LabelEndCardStatName` 18px brown `#735926`
   - `LabelEndCardMuted` 12px muted brown `#806B54` at 80% alpha
-- **Ability tooltip and stat pill text** (all with a 2px `#1A1208` outline for legibility — don't substitute general variants): `LabelAbilityBody` 18px beige (stat pills, combat tooltips) / `LabelAbilityMuted` 16px tan (tooltips). `LabelAbilityTitle` 34px beige is unused since the ability cards were replaced by the Abilities book's rows
+- **Ability tooltip and stat pill text** (all with a 2px `#1A1208` outline for legibility — don't substitute general variants): `LabelAbilityBody` 18px beige (the stat pills, which no screen shows now, and the enemy plate's buff tooltip) / `LabelAbilityMuted` 16px tan (that tooltip). `LabelAbilityTitle` 34px beige is unused since the ability cards were replaced by the Abilities book's rows
 - **Item description panel** (light background): `LabelDescItemName` 32px black / `LabelDescItemType` 20px gray `#606060`
-- **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators (assigned in code by `ability_stats_display.gd`)
+- **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators (assigned in code by `ability_stats_display.gd`, which no screen shows now)
 - **Inventory chrome.** These labels set `scale = Vector2(0.5, 0.5)` to cancel the `InventoryView` root's 2x scale. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
   - `LabelInventoryCount` 24px dark ink `#33261A` — `GridToolbar` count text ("8 / 60" etc.) on the parchment background
   - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All", "Weapons" etc.) on the dark pill background
@@ -113,8 +113,8 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 | `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige | Nothing (`CyclingView` was its last user; the lacquer board has no tabs) |
 | `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border) | Nothing (`CyclingView` was its last user) |
 | `PanelLootTray` | `PanelContainer` | `common/panel_loot_tray.tres` (translucent parchment) | `AdventureEndCard` |
-| `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill) | `StatLabel` |
-| `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) | Ability/buff tooltips, `CombatantInfoPanel`, `StatTooltip` (set in code) |
+| `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill) | `StatLabel` (no screen shows it now) |
+| `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) | The enemy plate's `CombatBuffTooltip`; `StatTooltip` (set in code; no screen shows it now) |
 
 Base types without a variant:
 
@@ -125,13 +125,15 @@ Base types without a variant:
 
 The map-first zone view ("Lacquer and brass") has its own theme, `assets/themes/lacquer/lacquer_theme.tres`. Sizes and colours come from the art kit's §2 and §3 ([2026-10-21-zone-view-lacquer-kit.md](superpowers/specs/2026-10-21-zone-view-lacquer-kit.md)).
 
-**Rule:** every zone-view panel (cultivator cabinet, Goals board, log board, dock, zone chest, map plates and popovers), and the cycling board, sets `theme = lacquer_theme.tres` on its root and gives its Labels the `LabelLacquer*` variants below. Everything else (base types, `pixel_theme.tres`'s own variants) still falls back to `pixel_theme.tres`.
+**Rule:** every zone-view panel (cultivator cabinet, Goals board, log board, dock, zone chest, map plates and popovers), the cycling board and every adventure board (vitals cabinet, chest, technique dock and their tooltips) sets `theme = lacquer_theme.tres` on its root and gives its Labels the `LabelLacquer*` variants below. Everything else (base types, `pixel_theme.tres`'s own variants) still falls back to `pixel_theme.tres`.
 
 How the theme is built, so a reused piece inside a lacquer panel keeps its own look:
 
 - **No defaults.** The theme sets no `default_font` or `default_font_size`. A default would answer for every type, `pixel_theme.tres`'s variants included, before Godot reached them (the `LabelMerchantTitle` problem above). Each variant sets its own `font` and `font_size` instead. `test_theme_sets_no_defaults` guards this.
 - **Shadows.** `pixel_theme.tres`'s base `Label` draws a 1 px ink shadow. The four painted titles and `LabelLacquerCooldown` (a number painted over an icon) set the kit's hard 2 px shadow (`#150909`, offset 2, 2, `shadow_outline_size` 0). Every other lacquer variant sets a transparent `font_shadow_color`, so it draws none.
 - **Line pitch.** Each variant's `line_spacing` is the kit's line height minus the font's height at that size, so wrapped lines (lore, two-line card details, popover bodies) step by the kit's line height. A single-line Label is only the font's height (17 px for 15 px BM Euljiro), not the kit's line height.
+- **Placing a Label against the mock.** The mock's text sits in CSS line boxes, a Label is the font's height, so a Label's top is the mock's top plus (the kit's line height − the font's height) / 2. The cabinet's 30 px figures (a 36 px line) sit 1 px lower than the mock's top (y 44 and 132 where the CSS tops are 43 and 131). The adventure chest's Yatra 30 title (45 px tall on a 44 px line) sits 1 px higher (y 17 where the CSS top is 18), as the zone chest's name does (15 for 16). A font shorter than its line, centred in a fixed-height rect (the 18 px clock text in a 22 px line), needs no correction.
+- **Flowing rows on even y.** A wrapping `LabelLacquerLore` Label is 22 n − 3 px tall for n lines, so a flow pads it 2 px above and 1 px under (a `StyleBoxEmpty`), which makes n lines 22 n tall and seats the glyphs where the mock's 22 px line boxes do. A single-line `LabelLacquerDetail` row gets a minimum height of 18, because the Label alone is 17. Every row then stays on an even y (`ExpeditionPage`).
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for the painted titles, BM Euljiro for everything else. Tags and seals use a `FontVariation` of BM Euljiro with 1 px letter spacing (`spacing_glyph = 1`).
 - **Tag and seal indent.** The 1 px letter spacing also trails the last letter, which would pull centred text 0.5 px left. Tags and seals therefore have a `normal` style of their own, a `StyleBoxEmpty` with a 1 px left content margin: the mock's `text-indent: 1px`. For the mode tags, NEW and UNKNOWN, give the Label the tag's or seal's full width (76 px for a tag) and centre the text. Add no offset of your own.
 - **The LOCKED seal is the exception.** Its word is left-aligned, not centred: `mini_lock` sits at seal +8, +3 and the word starts at seal +26 (kit §4.2; the mock has no `text-indent` there). The variant's 1 px indent still applies, so put the `LabelLacquerSeal` at seal-local x 25, left-aligned, and the word lands on +26. A Label placed at +26 draws its word at +27, off the 2 px grid.
@@ -194,7 +196,7 @@ All `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 ### Lacquer pieces (`scenes/common/lacquer/`)
 
 - **`LacquerStripRect`** (`lacquer_strip_rect.gd`, a `TextureRect` script): set `strip` and `frame_size`, then `set_frame(column, row)` shows that frame through the rect's own `AtlasTexture` (orbs, XP beads, timer rings). Frames clamp to the strip. It is `@tool`, so a placed rect shows frame 0 in the editor. Its `texture` is derived and read-only, and is never saved into the scene: `strip` and `frame_size` are.
-- **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Aura Well 152, milestone 138, adventure 74. It is `@tool`: in the editor a placed rod is the groove's size and shows empty. Its minimum size comes from `empty_texture`, so leave its size and `custom_minimum_size` alone.
+- **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Aura Well 152, milestone 138, adventure 74, Stamina and cast 119. It is `@tool`: in the editor a placed rod is the groove's size and shows empty. Its minimum size comes from `empty_texture`, so leave its size and `custom_minimum_size` alone.
 - **`LacquerFrameOverlay`** (`lacquer_frame_overlay.tscn`, a `Panel`): a full-rect frame over its parent, hidden, mouse ignored, brass by default. Override its `theme_override_styles/panel` with `frame_hover.tres` for the hover frame. `flash(times)` shows it 300 ms and hides it 300 ms, `times` times, and ends hidden. The ready adventure card shows one steadily (`ZoneActionButton.set_ready_frame()`); never animate a steady frame.
 - **`LacquerText`** (`scripts/utils/lacquer_text.gd`): `rate(1.5)` → `"+1.5"`, `rate(2.0)` → `"+2"`; `decimal_bbcode(text)` for `RichTextLacquer`.
 - **`LacquerFloater`** (`scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn`, promoted from the map's floater when the cycling view needed one per zone): a short gain on a lacquer token (`token.tres`). `pop(text, color)` shows it and `stop()` hides it. It rises 40 px over 1 s in 2 px steps (`rise_at(elapsed)`, `get_rise()`), then hides outright. It does not move itself: the placer positions it each frame and raises it by `get_rise()` (`MapMarkers` for the map's floater, `CyclingView` for each zone's). Its text is a `RichTextLacquer` at 16 px (a `normal_font_size` override) through `decimal_bbcode()`, in the colour given to `pop()`, not a `LabelLacquerFloater` Label, so a decimal point gets its Yatra point. The token is 28 px tall and `even(text width + 28)` wide, plus the baked 2 px shadow.
@@ -264,7 +266,7 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | `LACQUER_RIM` | `#692F2F` | — | The lip under the cycling groove |
 | `LACQUER_DIM` / `LACQUER_VERMILION` | `#94806A` / `#A83C30` | — | Old log lines, seals |
 | `LACQUER_MADRA_HI` / `LACQUER_MADRA` / `LACQUER_MADRA_MID` | `#E8F6FD` / `#BBD5E7` / `#849BE4` | — | The lit cycling groove (top edge, body, bottom edge). `LACQUER_MADRA` is also Madra text |
-| `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | The text steps of the Health crimson and Stamina bamboo ramps: the adventure view's floaters |
+| `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | Nothing reads them yet (only `test_lacquer_pieces.gd`). The text steps of the Health crimson and Stamina bamboo ramps, kept for the fight's floaters |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code, and keep each value in step with its theme.
 
@@ -276,7 +278,7 @@ Use the Label variants for sizes. Use `ThemeConstants` only for colours that mus
 | `assets/themes/book_theme.tres` | Menu book page variants ([Menu book pages](#menu-book-pages)) |
 | `assets/themes/lacquer/lacquer_theme.tres` | Zone view theme: the `LabelLacquer*` variants and `RichTextLacquer` (see Lacquer theme) |
 | `assets/themes/pixel_ui_theme/` | Third-party pixel UI pack: `8x8_ui_elements*.png` and `8x8_ui_icons.png` atlases, `m5x7.ttf`, 8 colour-variant `PixelTheme-*.tres`, `TabContainer.tscn`. `pixel_theme.tres` uses only the two base atlases; the variant themes are not referenced by the game. |
-| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
+| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `buttons` (+`scroll`), `combat`, `common`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
 | `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `YatraOne-Regular.ttf` (the lacquer theme's painted titles). `Korean_Calligraphy.ttf`, `pixelmix.ttf` and `Ubage-woA3P.otf` are loaded only by the label testing scene. |
 | `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `book` (menu book bookmark, close tab, stage icons, padlock, 2x panel art), `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
 | `assets/aseprite/` | Aseprite sources: `abilities`, `character_profiles`, `cycling`, `ui/{ability_button,buff_icon,resource_bar}`, `zones`, plus root `madra_circle.aseprite`, `Sprite-0003*.aseprite` and a stray `Sprite-0003.gif` |

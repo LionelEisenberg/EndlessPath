@@ -95,7 +95,7 @@ MainView/ZoneView (Control, %ZoneView)        shown/hidden by ZoneViewState
 └── Dock (Control, 476×80 at (722, 976))                scenes/ui/dock/ — four SystemMenuButtons
 ```
 
-The Goals board (`GoalsPanel`, at (24, 276), 4 px under the kit's 272 so its cords read; they reach 4 px above its root to the cabinet's rings) and the log board (`LogWindow`, slot at (24, 852)) are children of `MainView`, not of `ZoneView`, because the adventure view shows them too. `ZoneViewState.enter()` puts them there.
+The Goals board (`GoalsPanel`, at (24, 276), 4 px under the kit's 272 so its cords read; they reach 4 px above its root to the cabinet's rings) and the log board (`LogWindow`, slot at (24, 852)) are children of `MainView`, not of `ZoneView`, because the adventure view shows them too. `ZoneViewState.enter()` puts them there, and the adventure view leaves them where they are.
 
 The cabinet, the chest, the dock and the map's SubViewport have unique names in `main_game.tscn` (`%CultivatorPlate`, `%ZonePanel`, `%Dock`, `%SubViewport`), and `MainView` holds a reference to each. Cycling mode needs them: `MainView.set_cycling_mode()` turns the chest, the dock and the map over, and `MainView._ready()` hands the cabinet to the `CyclingView`.
 
@@ -317,11 +317,11 @@ Card behaviour:
 
 #### Orb shaders
 
-The two cabinet orbs are the only shaders in the lacquer zone view. They took the liquid and radial orbs that the old cycling view drew as their model (the cycling view no longer has them; the combat orbs still run `liquid_wave`) but keep the kit's pixel rules (kit §1): each works out its colour per 2 px art cell (40x40 cells on the 80 px orb, from the rect's local position), uses only the Madra ramp, and steps time 10 times a second (`steps_per_second`), so the motion reads as hand-drawn frames. Wherever they draw nothing, the strip frame underneath shows, so the brass rim and the carved socket stay crisp. Each `ShaderMaterial` is local to its scene.
+The two cabinet orbs are the only shaders in the lacquer zone view. They took the liquid and radial orbs that the old cycling view drew as their model (the cycling view no longer has them, and the adventure's combat orbs went with its PR 1) but keep the kit's pixel rules (kit §1): each works out its colour per 2 px art cell (40x40 cells on the 80 px orb, from the rect's local position), uses only one kit ramp, and steps time 10 times a second (`steps_per_second`), so the motion reads as hand-drawn frames. Wherever they draw nothing, the strip frame underneath shows, so the brass rim and the carved socket stay crisp. Each `ShaderMaterial` is local to its scene. The Madra shader takes its three ramp colours as uniforms, `light` (`#E8F6FD`), `pale` (`#BBD5E7`) and `blue` (`#849BE4`), which default to the Madra ramp, so the cabinet sets nothing but `progress`; the adventure's Health orb sets the crimson ramp (`#FFD9D2 #E8737A #B8304A`) on its own material ([ADVENTURING.md](../adventuring/ADVENTURING.md#the-frame-cabinet-chest-and-dock)).
 
 | Shader | `progress` | What it draws |
 |---|---|---|
-| `lacquer_madra_orb` | `Madra / max` | A liquid in the socket (cells within √249 of the centre, rows 4–35): a surface of two summed sine waves with a 1 cell `#E8F6FD` crest and a `#849BE4` line under it, three 1 cell bubbles rising, a slanted sheen sliding across every 4 s, three undulating `#849BE4` current dashes drifting under the surface, a darker lower-right ring and a wavy deep band at the bottom. 1 fills the socket with no crest; 0 draws nothing |
+| `lacquer_madra_orb` | `Madra / max` (the adventure's Health orb: `Health / max`) | A liquid in the socket (cells within √249 of the centre, rows 4–35): a surface of two summed sine waves with a 1 cell `#E8F6FD` crest and a `#849BE4` line under it, three 1 cell bubbles rising, a slanted sheen sliding across every 4 s, three undulating `#849BE4` current dashes drifting under the surface, a darker lower-right ring and a wavy deep band at the bottom. 1 fills the socket with no crest; 0 draws nothing |
 | `lacquer_core_orb` | `min(level, 100) / 100` | A disc from radius 2.5 cells (level 1) to 15.78 (level 100, the socket's rim): a two-arm spiral in three bands (`#BBD5E7`, `#849BE4`, `#1C2F60`) turning once every 12 s, a `#E8F6FD` core and a 1 cell `#E8F6FD` edge. 0 draws nothing, so the dormant pebble shows |
 
 ## Data Model
@@ -746,7 +746,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `scenes/zones/zone_action_button/zone_action_button.gd` / `.tscn` | Card shell and presenter factory |
 | `scenes/zones/zone_action_button/presenters/*_presenter.gd` / `.tscn`, `forage_yield.tscn` | Foraging, training, adventure, cycling, merchant and default presenters |
 | `scenes/zones/cultivator_plate/` | Madra, Core Density and gold cabinet |
-| `assets/shaders/lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader` | The cabinet's flowing Madra liquid and turning Core Density spiral |
+| `assets/shaders/lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader` | The cabinet's flowing Madra liquid (also the adventure's Health and Madra orbs) and turning Core Density spiral |
 | `scenes/zones/zone_transition/zone_transition.gd`, `madra_pellet.gd` / `.tscn` | Adventure-start drain and zoom; `MadraPellet` also carries the cycling view's pellets |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Zone view state, HUD placement and input blocker |
 | `scenes/tilemaps/hexagon_tile_map_layer.gd`, `tilemap_tileset.tres`, `fog_tileset.tres` | Shared hex layer and the two TileSets |
@@ -769,7 +769,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/unit/test_zone_map_math.gd` | 15 | Framing at every zoom, camera windows, fog tiers and art, wander and bob |
 | `tests/unit/test_map_popover_state.gd` | 18 | Click results, one pinned popover, the preview delay |
 | `tests/unit/test_camera_clamp_controller.gd` | 5 | Clamping the centre into the nearest region |
-| `tests/unit/test_character_walk_steps.gd` | 5 | Whole-px walk steps at the same pace |
+| `tests/unit/test_character_walk_steps.gd` | 6 | Whole-px walk steps at the same pace (also the adventure map's 2 px steps) |
 | `tests/unit/test_hex_forest_atlas.gd` | 10 | Atlas picker shared with the adventure map; `pick_from()` |
 | `tests/unit/test_madra_pellet.gd` | 9 | Drain pellet colours, outline and 2 px steps, and `set_texture()` swapping in a centred, tier-coloured pellet |
 | `tests/integration/test_idle_action_resolution.gd` | 35 | Resolution order, resume after every session action, travel and save-reset cases, the log lines, auto-start on a first idle unlock, completions in the zone and save the action started in, `get_current_madra_per_second()` |
