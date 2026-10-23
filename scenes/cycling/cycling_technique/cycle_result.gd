@@ -2,8 +2,8 @@ class_name CycleResult
 extends RefCounted
 
 ## CycleResult
-## What one cycle came to, and the lines that report it: the board's footer
-## ("Last cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · +75 XP") and the log
+## What one cycle came to, and the lines that report it: the zone chest's line
+## under the Now tray ("Last cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · +75 XP") and the log
 ## ("Cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · +75 XP"). It holds the
 ## totals and writes the lines; the cycle that owns it keeps the totals up to
 ## date.
@@ -55,7 +55,7 @@ func summary() -> String:
 		parts.append("+%d XP" % xp)
 	return SEPARATOR.join(parts)
 
-## Returns the board footer's line: "Last cycle · " and the summary.
+## Returns the chest's line under the Now tray: "Last cycle · " and the summary.
 func result_line() -> String:
 	return "Last cycle" + SEPARATOR + summary()
 

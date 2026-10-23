@@ -815,7 +815,7 @@ func test_a_view_that_starts_hidden_does_not_process() -> void:
 	assert_false((hidden.get_node("%CyclingTechnique") as CyclingTechnique).is_processing())
 
 func test_reopening_starts_clean() -> void:
-	# A finished cycle leaves a result line on the board.
+	# A finished cycle leaves its result for the chest's line.
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
 	assert_ne(_last_line(), "", "precondition: a cycle left a result line")

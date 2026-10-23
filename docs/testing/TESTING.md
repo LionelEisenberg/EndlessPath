@@ -27,13 +27,13 @@ Run on 2026-10-23, on `feat/cycling-view-styleguide-ea3170` after the lacquer cy
 | Passing / failing / pending or risky | 1583 / 0 / 0 |
 | Asserts | 8950 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
-| GUT warnings | 3 (see below) |
+| GUT warnings | 1 (see below) |
 | Exit code | 0 |
 | Wall time | About 78 s (GUT's `Time` line, 77.6 s). The zone view's and the cycling view's scene tests await real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay) |
 
 Known noise in a green run:
 
-- **GUT warnings (3):** one is `Ignoring Inner Class TestRecordingEffect because it does not extend GutTest`. `tests/unit/test_quest_manager.gd` declares the helper `class TestRecordingEffect extends EffectData`. GUT treats inner classes whose names start with `Test` (its default inner-class prefix) as test classes. The other two are `Float/Int comparison. Got INT but expected FLOAT`, from `test_a_start_sweeps_the_old_light_away_ahead_of_the_ball` in `tests/integration/test_cycling_technique.gd`, which compares the groove's integer lit count with float thresholds. All three are harmless.
+- **GUT warning (1):** `Ignoring Inner Class TestRecordingEffect because it does not extend GutTest`. `tests/unit/test_quest_manager.gd` declares the helper `class TestRecordingEffect extends EffectData`. GUT treats inner classes whose names start with `Test` (its default inner-class prefix) as test classes. It is harmless.
 - **Orphans:** all 24 are Dialogic subsystem nodes (`subsystem_*.gd`, Timers, one `AudioStreamPlayer`) created as a side effect of the `Dialogic` autoload. GUT reports them as "Outside Tests" under `res://tests/unit/test_ability_manager.gd`, the first script it runs.
 - **Errors printed by passing tests:**
   - 18 copies of `SCRIPT ERROR: Invalid access to property or key 'event_progression' on a base object of type 'Nil'` at `event_manager.gd:35` (`has_event_triggered`): 10 under `tests/unit/test_quiet_madra.gd` and 8 under `tests/unit/test_unlock_condition_item_owned.gd`. The chain is `unlock_condition_data.gd evaluate()` ← `unlock_manager.gd _evaluate_all_conditions()` ← `cultivation_manager.gd _update_resources()` ← a `before_each()` that emits `PersistenceManager.save_data_reset`.
@@ -230,7 +230,6 @@ New tests should call the real method on the autoload, with its state swapped as
 - `[MEDIUM]` Test-order leak. `after_each()` in `tests/unit/test_quest_manager.gd` and `tests/unit/test_start_quest_effect_data.gd` sets `EventManager.live_save_data = null` (and nulls `QuestManager` state) instead of restoring the original. That is the likely source of the 18 `event_progression on Nil` errors printed under `tests/unit/test_quiet_madra.gd` and `tests/unit/test_unlock_condition_item_owned.gd`. Fix by saving and restoring the original reference.
 - `[MEDIUM]` Tests build `CombatantNode.new()` and add it to the tree before its manager children exist, which prints `Node not found: %VitalsManager ...`. Affects `tests/unit/test_combat_effect_types.gd`, `tests/integration/test_power_font_buff_strip.gd` and `tests/integration/test_empty_palm_interrupt.gd`. Instance the combatant scene, or add the managers before `add_child_autofree()`.
 - `[LOW]` Rename `TestRecordingEffect` in `tests/unit/test_quest_manager.gd`, for example to `RecordingEffect`, to clear the GUT inner-class warning.
-- `[LOW]` `test_a_start_sweeps_the_old_light_away_ahead_of_the_ball` (`tests/integration/test_cycling_technique.gd`) compares the groove's integer lit count with float thresholds (`total * 0.7`, `total * 0.3`), which prints two GUT `Float/Int comparison` warnings. Compare against ints to clear them.
 - `[LOW]` 24 Dialogic orphans per run come from the `Dialogic` autoload. GUT attributes them to `test_ability_manager.gd`.
 - `[LOW]` `test_pagination_bar.gd` (3 tests) and `test_trash_slot_flow.gd` (5 tests) still print per-test orphan lists (page buttons, item instances). The pagination bar's come from the same remove-then-queue-free pattern, so a frame's wait at the end of each test, as the cycling and chest tests do, would likely clear them; the trash flow's were not looked into.
 - `[LOW]` Remove the mirror helpers: `_create_manager()` (unused) in `test_resource_manager.gd`, `_simulate_add_xp()`, `_calculate_equipment_bonus()`, `_count_combats()`, `_add_to_first_slot()` (hard-codes 50 slots).

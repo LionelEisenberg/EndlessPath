@@ -13,8 +13,9 @@ extends Node2D
 ## Everything steps: the ball is drawn at its path position snapped to even px,
 ## its swirl steps through SWIRL_FRAMES frames at SWIRL_FPS, and a zone shows its
 ## state as a frame. While the ball waits for a press it breathes: it and its
-## brass ring step through three sizes and back once every BREATH_SECONDS. advance() moves the play on by one frame. _process() feeds it
-## the mouse, and tests feed it a chosen cursor.
+## brass ring step through three sizes and back once every BREATH_SECONDS.
+## advance() moves the play on by one frame. _process() feeds it the mouse, and
+## tests feed it a chosen cursor.
 ## Between cycles the groove shows lit, as a full cycle leaves it, so the path
 ## stands out from the carved figure. A cycle's start sweeps that light away in
 ## GROOVE_SWEEP_SECONDS, running along the path ahead of the ball, and the ball's
