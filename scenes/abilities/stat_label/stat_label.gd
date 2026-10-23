@@ -12,7 +12,6 @@ var _stat_value: float = 0.0
 var _stat_color: Color = Color.WHITE
 var _format_callback: Callable
 var _tooltip_data: Dictionary = {}
-var _value_tween: Tween = null
 
 @onready var _label: Label = %StatText
 
@@ -32,19 +31,6 @@ func setup(stat_name: String, value: float, color: Color, format_cb: Callable, t
 ## Returns tooltip data for this label.
 func get_tooltip_data() -> Dictionary:
 	return _tooltip_data
-
-## Animates the value to a new number over 0.3s.
-func set_value(new_val: float) -> void:
-	if _value_tween and _value_tween.is_valid():
-		_value_tween.kill()
-	_value_tween = create_tween()
-	_value_tween.set_ease(Tween.EASE_OUT)
-	_value_tween.set_trans(Tween.TRANS_CUBIC)
-	var start: float = _stat_value
-	_value_tween.tween_method(func(v: float) -> void:
-		_stat_value = v
-		_update_text()
-	, start, new_val, 0.3)
 
 func _update_text() -> void:
 	if _format_callback.is_valid():
