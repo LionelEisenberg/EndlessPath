@@ -2,7 +2,7 @@
 
 Last updated: 2026-10-23
 
-This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. The zone view described here is the map-first "Lacquer and brass" view built on `feat/zone-view-redesign-4656b7` (2026-10-22, not merged), and the cycling view is the lacquer board built on `feat/cycling-view-styleguide-ea3170` (2026-10-22 and 23, not merged); the content is the same as on `main`. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
+This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. The zone view described here is the map-first "Lacquer and brass" view (merged as PR #51, 2026-10-22), the cycling view is the lacquer board (merged as PR #57, 2026-10-23), and the adventure map and its frame are the same look as built on `feat/adventure-view-styleguide-1fc223` (2026-10-23, not merged); the content is the same as on `main`. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
 
 ---
 
@@ -19,8 +19,8 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
 4. **NPC dialogue 2.** It completes the quest, unlocks **Spring Forest Foraging** and **The Shallow Woods** adventure, and starts **First Steps Out** (`q_first_steps`). When the dialogue ends, foraging starts on its own ("Resumed Spring Forest Foraging").
 5. **Forage** (idle). Every 5 s the player gains Spirit Fern (2–6) and Dewdrop Tear (1–5), shown in the Now strip and floated over the map. Foraging costs nothing, can't be toggled off, and the materials have no use yet. From now on an idle action always runs: it pauses for cycling, adventures, dialogue and the shop, and resumes when they end (and on load).
 6. **Adventure.** Starting a run needs Madra ≥ 50% of the adventure capacity (`FOUNDATION × 10`, so 50 of 100 on a new save). The whole budget drains into the run.
-   - The map is a procedurally generated hex map with fog of war. Each step costs 5 Stamina, and Stamina regenerates 1/s.
-   - The timer is 300 s. Fights are real-time, with Q/W/E/R for abilities.
+   - The map is a procedurally generated hex map with fog of war, drawn like the zone map. Each step costs 5 Stamina, and Stamina regenerates 1/s. A click with too little Stamina logs "Too tired to walk" and shakes the Stamina row.
+   - The timer is 300 s, on the chest's clock. The chest names the tile you stand on and what each of its choices does, and keeps a Run ledger (fights, gold, tiles, loot). Fights are real-time, with Q/W/E/R for abilities on the technique dock.
    - The run ends on a boss win, a death, or a timeout. A scroll end card shows stats and loot.
 7. **Win any fight**, then **NPC dialogue 3**. This completes the quest, awards **+1 Path Point**, and starts **Harden Your Core** (`q_reach_core_density_10`).
 8. **Path tree** (P). The dock's Path button shows a count seal while points are unspent. Buying *Pure Core Awakening* unlocks Empty Palm and the Smooth Flow technique.

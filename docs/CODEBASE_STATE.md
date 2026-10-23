@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-10-23 (the lacquer cycling view on `feat/cycling-view-styleguide-ea3170`, not merged)
+Last updated: 2026-10-23
 
 This document covers the architecture of the EndlessPath codebase and the technical concerns that span several systems. The other entry points are:
 - [README.md](README.md): index of every doc.
@@ -16,11 +16,11 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~27k lines of game GDScript and ~21k lines of tests; 131 scenes; 106 authored `.tres` resources; 10 shaders |
+| Code | ~27k lines of game GDScript and ~24k lines of tests; 133 scenes; 106 authored `.tres` resources; 14 shaders |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 118 scripts and 1602 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 123 scripts and 1621 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
-| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/cycling-view-styleguide-ea3170`: the lacquer cycling view, built 2026-10-22 and 23 |
+| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/adventure-view-styleguide-1fc223`: the adventure view's map and frame in the lacquer look (PR 1 of 2; the fight is PR 2), built 2026-10-23 |
 
 ---
 
@@ -41,7 +41,7 @@ MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log pri
 │   ├── MainViewStateMachine      9 state nodes (no script)
 │   ├── ZoneView                  base view: ZoneTransition, SubViewport (ZoneTilemap: map, fog, MapMarkers),
 │   │                             CultivatorPlate, ZonePanel (zone chest), Dock
-│   ├── AdventureView             adventure map + combat
+│   ├── AdventureView             adventure map + combat, framed by VitalsPlate, AdventureChest and TechniqueDock
 │   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by the base state, hidden under the shop
 │   ├── QuestToast                z 10
 │   ├── GreyBackground            modal backdrop (z 2)
@@ -123,7 +123,7 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 - **Unique names** (`%NodeName`) decouple scripts from the scene hierarchy. Use them instead of `$Path/To/Node`.
 - **Subscenes** package complex UI, e.g. `adventure_view.tscn` is instanced into `main_game.tscn`.
 - **No UI nodes in code:** UI structure lives in `.tscn` files, and scripts only set data.
-- **Label styling:** text uses the Label theme-variant type scale in `pixel_theme.tres`; the zone view's panels and the HUD boards use `lacquer_theme.tres` and its `LabelLacquer*` variants ([UI_STYLING.md](UI_STYLING.md)).
+- **Label styling:** text uses the Label theme-variant type scale in `pixel_theme.tres`; the zone view's panels, the adventure view's boards and the HUD boards use `lacquer_theme.tres` and its `LabelLacquer*` variants ([UI_STYLING.md](UI_STYLING.md)).
 
 ### Key Shared Components
 
@@ -133,13 +133,14 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 | `ThemeConstants` | `scripts/utils/theme_constants.gd` | Colour constants for code-side styling |
 | `GreyBackground` | `scenes/ui/grey_background/` | Modal backdrop with `show_with_panel()` / `hide_with_panel()` fade orchestration |
 | `SystemMenuButton` | `scenes/ui/dock/system_menu_button/system_menu_button.gd` | Dock nav button. Its `MenuType` enum drives label, shortcut, icon and input action; `set_notification()` shows the ring and count seal |
-| Lacquer pieces | `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd` | `LacquerStripRect` (strip frames), `LacquerRod` (stepped rod), `LacquerFrameOverlay` (brass or hover frame, flashed), `LacquerFloater` (a gain rising on a token), `LacquerRail` (scroll rail) and `LacquerText`, for the zone view and the HUD boards ([UI_STYLING.md](UI_STYLING.md)) |
+| Lacquer pieces | `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd` | `LacquerStripRect` (strip frames), `LacquerRod` (stepped rod), `LacquerFrameOverlay` (brass or hover frame, flashed), `LacquerFloater` (a gain rising on a token), `LacquerRail` (scroll rail) and `LacquerText`, for the zone view, the cycling board, the adventure view's boards and the HUD boards ([UI_STYLING.md](UI_STYLING.md)) |
 | `MadraPellet` | `scenes/zones/zone_transition/` | Opaque pellet that flies along a curve in 2 px steps. The adventure drain's pellets and the cycling view's Madra and XP pellets (`set_texture()` for the tier colours) |
-| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. Used by the combat resource bars and orbs |
-| `Atmosphere` | `scenes/atmosphere/` | Vignette shader, drifting mist and floating motes. Used in the adventure view, tuned per scene with `@export` |
-| `HexHoverSelector` | `scenes/tilemaps/hex_hover_selector.gd` | Animated ring that snaps to the hovered hex. Used by the adventure tilemap; the zone map swaps hex rims instead |
-| `EncounterIcon` | `scenes/adventure/encounter_icon/` | Glyph for each encounter type (animated boss and rest glyphs). Used by tile icons and the floating `AdventureMarker` |
-| `PathPreview` | `scenes/adventure/path_preview/` | Tiled-texture `Line2D` route, with a gradient fade behind the player during committed travel |
+| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. Used by the combat resource bars |
+| `Atmosphere` | `scenes/atmosphere/` | Vignette shader, drifting mist and floating motes. Only the adventure's fight instances it now (until the fight is reworked), tuned per scene with `@export` |
+| `AdventureMapMarkers` / `EncounterCoin` | `scenes/adventure/adventure_map_markers/` | The adventure map's screen-space layer of lacquer coins (glyph, carved "?", carved cleared, boss), the counterpart of the zone map's `MapMarkers` |
+| `AdventureRoute` | `scenes/adventure/adventure_route/` | Lit route dots laid hex to hex for a hovered or committed walk; the dots behind the character hide one at a time |
+| `VitalsPlate`, `AdventureChest`, `ExpeditionPage`, `RunClock`, `TechniqueDock` | `scenes/adventure/`, `scenes/ui/combat/technique_dock/` | The adventure view's frame: the vitals cabinet, the chest (Here tray, choice drawers, Run ledger, run clock) and the technique dock with its cooldown sweep ([ADVENTURING.md](adventuring/ADVENTURING.md), [COMBAT.md](combat/COMBAT.md)) |
+| `EncounterIcon` | `scenes/adventure/encounter_icon/` | Glyph for each encounter type (animated boss and rest glyphs). Only the editor map preview uses it now; the coins use the same art |
 | `ItemDisplaySlot` / `ItemDescriptionPanel` | `scenes/common/` | Read-only item icon with tooltip, and the item detail panel |
 | `DropTargetSlot` | `scenes/common/drop_target_slot.gd` | Shared drag-and-drop target base, with drop highlight |
 | `InventoryScrollHost` and inventory chrome | `scenes/inventory/common/` | `InventoryGrid`, `InventoryList`, `GridToolbar`, `SortSubBanner`, `TabBanner`, `ScrollRail` and `ItemDetailCard`, shared by the inventory tabs ([INVENTORY.md](inventory/INVENTORY.md)) |
