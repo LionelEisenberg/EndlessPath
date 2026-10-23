@@ -13,10 +13,10 @@ extends Control
 ## The view shows and hides outright. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
-## the pellets in flight are freed, so reopening starts clean. The press on the
-## ball and the zones reaches them through the board: the root and the effects
-## layer ignore the mouse and the board and the figure box pass it, and only
-## physics picking takes a press that no Control stopped.
+## the pellets in flight are freed, so reopening starts clean. A press on the
+## ball reaches it through the board: the root and the effects layer ignore the
+## mouse and the board and the figure box pass it, and only physics picking
+## takes a press that no Control stopped.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS

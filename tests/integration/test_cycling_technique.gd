@@ -2,8 +2,8 @@ extends GutTest
 
 ## Integration tests for the play of a cycling technique: CyclingTechnique (the
 ## Madra ball travelling its groove, the Madra drawn while the cursor follows
-## it, the zones along the path, and a cycle's start, end and result) and
-## CyclingZone (its socket's state frames and its click). A cycle is stepped by
+## it, the zones along the path, a press on the ball, and a cycle's start, end
+## and result) and CyclingZone (its socket's state frames). A cycle is stepped by
 ## calling advance() with a chosen cursor, as _process() calls it with the
 ## mouse. The technique under test is smooth_flow unless a test says otherwise:
 ## a 15 s cycle of 200 Madra with 4 zones, on a fresh save (25 Madra, cap 100).
@@ -148,17 +148,22 @@ func _press_at(position: Vector2) -> void:
 ## zone, for the cases where the drawn and the true ball differ by a fraction
 ## of a px. Its cycle is 10 s.
 func _straight_technique(zone_position: Vector2) -> CyclingTechniqueData:
+	return _straight_technique_with_zones([zone_position])
+
+## The straight technique with a zone at each of `zone_positions`.
+func _straight_technique_with_zones(zone_positions: Array[Vector2]) -> CyclingTechniqueData:
 	var curve := Curve2D.new()
 	curve.add_point(Vector2.ZERO)
 	curve.add_point(Vector2(1000.0, 0.0))
-	var zone := CyclingZoneData.new()
-	zone.position = zone_position
 	var data := CyclingTechniqueData.new()
 	data.id = "test_straight"
 	data.path_curve = curve
 	data.cycle_duration = 10.0
 	data.base_madra_per_cycle = 100.0
-	data.cycling_zones.append(zone)
+	for zone_position: Vector2 in zone_positions:
+		var zone := CyclingZoneData.new()
+		zone.position = zone_position
+		data.cycling_zones.append(zone)
 	return data
 
 ## Runs the straight technique's cycle for one frame that carries the true ball
@@ -589,16 +594,18 @@ func test_a_scored_zone_shows_in_the_result() -> void:
 	assert_eq(result.xp, 25)
 	assert_eq(result.result_line(), "Last cycle · +0 Madra · 1 / 4 zones · 1 PERFECT · +25 XP")
 
-func test_pointer_over_the_ready_ball_and_active_zones() -> void:
+func test_pointer_over_the_ball_while_a_press_would_do_something() -> void:
 	var ball: Vector2 = _technique.get_ball_global_position()
-	assert_true(_technique.wants_pointer(ball), "over the ready ball")
+	assert_true(_technique.wants_pointer(ball), "over the ready ball: a press starts a cycle")
 	assert_true(_technique.wants_pointer(ball + Vector2(29.0, 0.0)), "inside the ball's radius")
 	assert_false(_technique.wants_pointer(ball + Vector2(40.0, 0.0)), "40 px away")
+	_technique.start_cycle()
+	_technique.advance(FRAME, FAR)
+	assert_false(_technique.wants_pointer(_technique.get_ball_global_position()), "no zone is active: a press does nothing")
 	var zone: CyclingZone = _approach_zone_0(0.0)
-	assert_true(_technique.wants_pointer(zone.global_position), "over an active zone")
-	assert_false(_technique.wants_pointer(zone.global_position + Vector2(25.0, 0.0)), "outside the zone")
-	assert_false(_technique.wants_pointer(_technique.get_ball_global_position()), "the ball takes no click mid-cycle")
-	assert_false(_technique.wants_pointer(_zone(1).global_position), "an idle zone takes none")
+	assert_true(_technique.wants_pointer(_technique.get_ball_global_position()), "over the ball while a zone is active: a press scores it")
+	assert_false(_technique.wants_pointer(zone.global_position), "the zone itself takes no press")
+	assert_false(_technique.wants_pointer(_zone(1).global_position), "nor does an idle one")
 
 #-----------------------------------------------------------------------------
 # ENDING, SWITCHING AND AUTO
@@ -826,22 +833,16 @@ func test_the_aura_well_rate_survives_closing_cycling() -> void:
 # THE SCENES
 #-----------------------------------------------------------------------------
 
-func test_zone_shape_radius_is_the_rule_radius() -> void:
-	assert_eq(((_zone(0).get_node("%CollisionShape2D") as CollisionShape2D).shape as CircleShape2D).radius, CyclingRules.ZONE_RADIUS)
-
 func test_ball_shape_radius_is_the_ball_radius() -> void:
 	var shape := (_node("MadraBall").get_node("CollisionShape2D") as CollisionShape2D).shape as CircleShape2D
 	assert_eq(shape.radius, CyclingTechnique.BALL_RADIUS)
 
-func test_zone_shapes_are_not_shared() -> void:
-	var first := (_zone(0).get_node("%CollisionShape2D") as CollisionShape2D).shape
-	var second := (_zone(1).get_node("%CollisionShape2D") as CollisionShape2D).shape
-	assert_ne(first, second, "each zone has its own circle")
-
-func test_ball_and_zones_are_pickable() -> void:
+func test_the_ball_is_the_only_click_target() -> void:
 	assert_true((_node("MadraBall") as Area2D).input_pickable)
 	for zone: CyclingZone in _technique.cycling_zones:
-		assert_true(zone.input_pickable, "%s is pickable" % zone.name)
+		var node: Node = zone
+		assert_false(node is CollisionObject2D, "%s takes no press of its own" % zone.name)
+		assert_eq(zone.find_children("*", "CollisionObject2D", true, false).size(), 0, "nor does anything inside it")
 
 func test_controls_inside_the_technique_ignore_the_mouse() -> void:
 	# A Control that stops the mouse marks the press handled, and physics
@@ -897,31 +898,8 @@ func test_zone_is_placed_at_its_data_position() -> void:
 		assert_eq(_zone(index).position, _zone(index).zone_data.position)
 		assert_eq(_zone(index).zone_data, (load(SMOOTH_FLOW_PATH) as CyclingTechniqueData).cycling_zones[index])
 
-func test_zone_click_needs_an_open_zone_and_a_left_press() -> void:
-	var zone: CyclingZone = _zone(0)
-	watch_signals(zone)
-	zone.input_event.emit(get_viewport(), _left_press(), 0)
-	assert_signal_emit_count(zone, "zone_clicked", 1)
-	assert_eq(get_signal_parameters(zone, "zone_clicked", 0), [zone])
-	var right := InputEventMouseButton.new()
-	right.button_index = MOUSE_BUTTON_RIGHT
-	right.pressed = true
-	zone.input_event.emit(get_viewport(), right, 0)
-	var release: InputEventMouseButton = _left_press()
-	release.pressed = false
-	zone.input_event.emit(get_viewport(), release, 0)
-	zone.input_event.emit(get_viewport(), InputEventMouseMotion.new(), 0)
-	assert_signal_emit_count(zone, "zone_clicked", 1, "a right press, a release and a move are not clicks")
-	zone.set_state(CyclingZone.State.ACTIVE)
-	zone.input_event.emit(get_viewport(), _left_press(), 0)
-	assert_signal_emit_count(zone, "zone_clicked", 2, "an active zone is open")
-	for closed: CyclingZone.State in [CyclingZone.State.SPENT, CyclingZone.State.PERFECT, CyclingZone.State.GOOD, CyclingZone.State.OK]:
-		zone.set_state(closed)
-		zone.input_event.emit(get_viewport(), _left_press(), 0)
-	assert_signal_emit_count(zone, "zone_clicked", 2, "a spent or scored zone takes no click")
-
 #-----------------------------------------------------------------------------
-# CLICKS ON THE BALL AND THE ZONES
+# PRESSES ON THE BALL
 #-----------------------------------------------------------------------------
 
 func test_a_left_press_on_the_ball_starts_a_cycle() -> void:
@@ -933,12 +911,38 @@ func test_a_left_press_on_the_ball_starts_a_cycle() -> void:
 	ball.input_event.emit(get_viewport(), _left_press(), 0)
 	assert_true(_technique.is_cycling())
 
-func test_a_zone_click_scores_the_zone() -> void:
+func test_a_press_on_the_ball_scores_the_active_zone() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
+	var tier: CyclingRules.Tier = CyclingRules.tier_for_distance(_distance_to(zone))
 	watch_signals(_technique)
-	zone.input_event.emit(get_viewport(), _left_press(), 0)
+	(_node("MadraBall") as Area2D).input_event.emit(get_viewport(), _left_press(), 0)
 	assert_signal_emit_count(_technique, "zone_scored", 1)
-	assert_true(not zone.is_open())
+	assert_eq(get_signal_parameters(_technique, "zone_scored", 0)[0], zone)
+	assert_eq(zone.get_state(), CyclingZone.state_for_tier(tier), "the tier still comes from the ball's distance to the zone")
+	assert_true(_technique.is_cycling(), "the cycle runs on")
+
+func test_press_ball_starts_from_ready_then_scores() -> void:
+	assert_true(_technique.press_ball(), "from ready it starts a cycle")
+	assert_true(_technique.is_cycling())
+	assert_false(_technique.press_ball(), "mid-cycle with no zone active it does nothing")
+	assert_true(_technique.is_cycling(), "and does not restart the cycle")
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_true(_technique.press_ball(), "over an active zone it scores it")
+	assert_false(zone.is_open())
+	assert_false(_technique.press_ball(), "a scored zone cannot score again")
+
+func test_a_press_scores_the_active_zone_nearest_the_ball() -> void:
+	# The true ball at x 100.6 has the zone at 70 30.6 px away and the zone at
+	# 140 39.4 px away: both are active, and the nearer one scores.
+	_technique.setup(_straight_technique_with_zones([Vector2(140.0, 0.0), Vector2(70.0, 0.0)]))
+	_technique.start_cycle()
+	_advance_straight_to(100.6, FAR)
+	assert_eq(_zone(0).get_state(), CyclingZone.State.ACTIVE, "precondition: the far zone is active")
+	assert_eq(_zone(1).get_state(), CyclingZone.State.ACTIVE, "precondition: the near zone is active")
+	assert_true(_technique.press_ball())
+	assert_false(_zone(1).is_open(), "the nearer zone scored")
+	assert_true(_zone(0).is_open(), "the farther one is still open")
+	await _await_queued_frees()
 
 func test_physics_picking_delivers_a_press_on_the_ball() -> void:
 	await _press_at(_technique.get_ball_global_position())
@@ -948,8 +952,16 @@ func test_physics_picking_ignores_a_press_off_the_ball() -> void:
 	await _press_at(_technique.get_ball_global_position() + Vector2(60.0, 0.0))
 	assert_false(_technique.is_cycling())
 
-func test_physics_picking_delivers_a_press_on_an_active_zone() -> void:
+func test_physics_picking_scores_through_the_ball() -> void:
+	_approach_zone_0(0.0)
+	watch_signals(_technique)
+	await _press_at(_technique.get_ball_global_position())
+	assert_signal_emit_count(_technique, "zone_scored", 1)
+
+func test_physics_picking_ignores_a_press_on_a_zone_off_the_ball() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_gt(zone.global_position.distance_to(_technique.get_ball_global_position()), CyclingTechnique.BALL_RADIUS, "precondition: the zone's centre is off the ball")
 	watch_signals(_technique)
 	await _press_at(zone.global_position)
-	assert_signal_emit_count(_technique, "zone_scored", 1)
+	assert_signal_not_emitted(_technique, "zone_scored")
+	assert_true(zone.is_open())

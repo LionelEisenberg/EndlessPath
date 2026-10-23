@@ -6,8 +6,10 @@ extends Node2D
 ## once per cycle, easing in and out with a sine, and the carved groove lights
 ## behind it. While the cursor is inside the ball it draws Madra, one step every
 ## MADRA_PARTICLE_INTERVAL. The zones along the path turn active as the ball
-## reaches them, and a click on an active zone scores it by how near the ball's
-## centre is to the zone's (see CyclingRules).
+## reaches them. The ball is the only thing the player presses: from ready a press
+## starts a cycle, and during one a press while the ball is over an active zone
+## scores that zone by how near the ball's centre is to the zone's (see
+## CyclingRules).
 ## Everything steps: the ball is drawn at its path position snapped to even px,
 ## its swirl steps through SWIRL_FRAMES frames at SWIRL_FPS, and a zone shows its
 ## state as a frame. advance() moves the play on by one frame. _process() feeds it
@@ -34,7 +36,7 @@ signal cycle_completed(result: CycleResult)
 ## Emitted each time the cursor draws a step of Madra, with the drawn ball's
 ## global centre, for the view to fly a pellet from.
 signal madra_particle_requested(from_pos: Vector2)
-## Emitted when a click scores a zone, with how well and the Core Density XP the
+## Emitted when a press scores a zone, with how well and the Core Density XP the
 ## zone paid.
 signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int)
 
@@ -202,6 +204,15 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	if _elapsed >= duration:
 		_finish_cycle()
 
+## The player pressed the ball. From ready it starts a cycle. During one it scores
+## the ACTIVE zone nearest the true ball, if any. Returns whether the press did
+## either.
+func press_ball() -> bool:
+	if not _cycling:
+		return start_cycle()
+	var zone: CyclingZone = _active_zone()
+	return zone != null and try_score_zone(zone)
+
 ## Scores `zone`, which succeeds only while a cycle runs and the zone is ACTIVE.
 ## The tier comes from how far the true ball is from the zone's centre. The XP
 ## goes to Core Density, the zone takes its stud and zone_scored is emitted.
@@ -221,16 +232,13 @@ func try_score_zone(zone: CyclingZone) -> bool:
 	zone_scored.emit(zone, tier, xp)
 	return true
 
-## Returns whether a click at `cursor_global` would do something: it would start a
-## cycle (no cycle runs and the cursor is on the ball), or score a zone (a cycle
-## runs and the cursor is on an ACTIVE zone). The view shows the pointer cursor then.
+## Returns whether a press at `cursor_global` would do something: the cursor is on
+## the ball, and either no cycle runs (the press starts one) or a zone is ACTIVE
+## (the press scores it). The view shows the pointer cursor then.
 func wants_pointer(cursor_global: Vector2) -> bool:
-	if not _cycling:
-		return technique_data != null and cursor_global.distance_to(_ball_drawn) <= BALL_RADIUS
-	for zone: CyclingZone in cycling_zones:
-		if zone.get_state() == CyclingZone.State.ACTIVE and cursor_global.distance_to(zone.global_position) <= CyclingRules.ZONE_RADIUS:
-			return true
-	return false
+	if technique_data == null or cursor_global.distance_to(_ball_drawn) > BALL_RADIUS:
+		return false
+	return not _cycling or _active_zone() != null
 
 ## Returns true while a cycle runs.
 func is_cycling() -> bool:
@@ -295,6 +303,19 @@ func _madra_per_step() -> float:
 	if technique_data.cycle_duration <= 0.0:
 		return 0.0
 	return technique_data.base_madra_per_cycle * MADRA_PARTICLE_INTERVAL / technique_data.cycle_duration
+
+## Returns the ACTIVE zone nearest the true ball, or null when none is active.
+func _active_zone() -> CyclingZone:
+	var nearest: CyclingZone = null
+	var nearest_distance: float = INF
+	for zone: CyclingZone in cycling_zones:
+		if zone.get_state() != CyclingZone.State.ACTIVE:
+			continue
+		var distance: float = _follow.global_position.distance_to(zone.global_position)
+		if distance < nearest_distance:
+			nearest = zone
+			nearest_distance = distance
+	return nearest
 
 ## Turns each open zone ACTIVE while the true ball is within reach of it (the
 ## ball's radius and the zone's, centres 49.5 px apart), and SPENT when an active
@@ -385,8 +406,8 @@ func _new_result() -> CycleResult:
 	return result
 
 ## Replaces the zones with one for each zone of the technique, IDLE and in place
-## under the path. The old zones leave the tree at once, so nothing of them can be
-## clicked and their names are free.
+## under the path. The old zones leave the tree at once, so nothing of them can
+## score and their names are free.
 func _build_zones() -> void:
 	for zone: CyclingZone in cycling_zones:
 		_path.remove_child(zone)
@@ -401,7 +422,6 @@ func _build_zones() -> void:
 		_path.add_child(zone)
 		zone.setup(data)
 		zone.position = data.position
-		zone.zone_clicked.connect(try_score_zone)
 		cycling_zones.append(zone)
 
 #-----------------------------------------------------------------------------
@@ -444,4 +464,4 @@ func _set_ring_frame(frame: int) -> void:
 func _on_ball_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	var press: InputEventMouseButton = event as InputEventMouseButton
 	if press != null and press.pressed and press.button_index == MOUSE_BUTTON_LEFT:
-		start_cycle()
+		press_ball()

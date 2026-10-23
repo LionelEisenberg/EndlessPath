@@ -4,8 +4,8 @@ extends GutTest
 ## and how the board keeps it, the board's layout and mouse filters, the title
 ## that follows the equipped technique, the result line and the one log line a
 ## cycle writes, the Madra and XP pellets and the zone floaters it draws over
-## the cabinet, the Auto toggle, the clicks that reach the ball and the zones
-## through the board, and what a close or a reopening leaves behind. The board
+## the cabinet, the Auto toggle, the presses that reach the ball through the
+## board, and what a close or a reopening leaves behind. The board
 ## is built the way MainView builds it: the cabinet beside it, the view shown
 ## and the cabinet handed over, and the technique stepped by hand with advance()
 ## (its own processing is off, so the real mouse never races a test). The
@@ -865,11 +865,15 @@ func test_the_figure_box_shows_a_hand_where_a_click_does_something() -> void:
 	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_ARROW)
 	_view._update_cursor(_technique.get_ball_global_position())
 	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_POINTING_HAND, "a click on the ready ball starts a cycle")
+	_technique.start_cycle()
+	_technique.advance(1.0 / 60.0, FAR)
+	_view._update_cursor(_technique.get_ball_global_position())
+	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_ARROW, "a click on the running ball with no zone active does nothing")
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	_view._update_cursor(_technique.get_ball_global_position())
-	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_ARROW, "a click on the running ball does nothing")
+	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_POINTING_HAND, "a click on the ball over an active zone scores it")
 	_view._update_cursor(zone.global_position)
-	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_POINTING_HAND, "a click on an active zone scores it")
+	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_ARROW, "the zone itself takes no click")
 	_view._update_cursor(FAR)
 	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_ARROW)
 
@@ -881,10 +885,10 @@ func test_a_press_beside_the_ball_starts_nothing() -> void:
 	await _press_at(_technique.get_ball_global_position() + Vector2(60.0, 0.0))
 	assert_false(_technique.is_cycling())
 
-func test_a_press_on_an_active_zone_reaches_it_through_the_board() -> void:
-	var zone: CyclingZone = _approach_zone_0(0.0)
+func test_a_press_on_the_ball_over_an_active_zone_scores_through_the_board() -> void:
+	_approach_zone_0(0.0)
 	watch_signals(_technique)
-	await _press_at(zone.global_position)
+	await _press_at(_technique.get_ball_global_position())
 	assert_signal_emit_count(_technique, "zone_scored", 1)
 
 #-----------------------------------------------------------------------------

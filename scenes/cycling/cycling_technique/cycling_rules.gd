@@ -3,10 +3,10 @@ extends RefCounted
 
 ## CyclingRules
 ## The cycling mini-game's scoring rules, pure and static so they test without
-## a scene. A click on a zone is PERFECT, GOOD or OK by how far the Madra
-## ball's centre is from the zone's centre: under 0.3 of the zone's 20 px
-## radius (6 px) is PERFECT, under 0.7 of it (14 px) is GOOD, and the rest of
-## the zone is OK. The tier sets the zone's XP, how many XP pellets fly to the
+## a scene. A press on the ball that scores a zone is PERFECT, GOOD or OK by how
+## far the Madra ball's centre is from the zone's centre: under 0.3 of the zone's
+## 20 px radius (6 px) is PERFECT, under 0.7 of it (14 px) is GOOD, and anything
+## farther is OK. The tier sets the zone's XP, how many XP pellets fly to the
 ## Core orb, and the name and colour of the hit's floater.
 ## Statics only.
 
