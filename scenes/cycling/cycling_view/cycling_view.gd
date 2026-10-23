@@ -29,17 +29,13 @@ const XP_PARTICLE_COUNT: int = 8
 
 func _ready() -> void:
 	# Technique change propagation
-	current_technique_changed.connect(cycling_technique_node.set_technique_data)
+	current_technique_changed.connect(cycling_technique_node.setup)
 	current_technique_changed.connect(cycling_resource_panel_node.set_technique_data)
 	current_technique_changed.connect(cycling_tab_panel.set_current_technique)
 
-	# Cycling state signals
-	cycling_technique_node.cycling_started.connect(cycling_resource_panel_node.on_cycling_started)
-	cycling_technique_node.cycle_completed.connect(cycling_resource_panel_node.on_cycle_completed)
-
 	# Particle feedback signals
 	cycling_technique_node.madra_particle_requested.connect(_on_madra_particle_requested)
-	cycling_technique_node.xp_particle_requested.connect(_on_xp_particle_requested)
+	cycling_technique_node.zone_scored.connect(_on_zone_scored)
 
 	# Tab panel technique change
 	cycling_tab_panel.technique_change_request.connect(_on_technique_change_request)
@@ -115,9 +111,11 @@ func _on_madra_particle_requested(from_pos: Vector2) -> void:
 	_spawn_particle(from_pos, target, MADRA_PARTICLE_COLOR, 0.5, MADRA_PARTICLE_SIZE,
 		cycling_resource_panel_node.pulse_madra_orb)
 
-func _on_xp_particle_requested(from_pos: Vector2, color: Color, quality: float) -> void:
+func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, _xp: int) -> void:
+	var from_pos: Vector2 = zone.global_position
+	var color: Color = CyclingRules.tier_color(tier)
 	var target: Vector2 = cycling_resource_panel_node.get_core_density_orb_global_position()
-	var count: int = int(XP_PARTICLE_COUNT * quality)
+	var count: int = CyclingRules.pellet_count(tier)
 	for i in count:
 		var offset: Vector2 = Vector2(randf_range(-15, 15), randf_range(-15, 15))
 		var duration: float = randf_range(0.4, 0.7)
