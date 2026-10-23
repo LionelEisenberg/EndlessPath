@@ -16,6 +16,12 @@ extends Node2D
 const GRID: float = 2.0
 
 #-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
+@onready var _sprite: Sprite2D = %Sprite
+
+#-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
 
@@ -52,6 +58,13 @@ func launch(start: Vector2, target: Vector2, duration: float, curve_spread: floa
 	var perpendicular: Vector2 = (target - start).orthogonal().normalized()
 	_control_point = midpoint + perpendicular * randf_range(-curve_spread, curve_spread)
 	global_position = _point_at(0.0)
+
+## Swaps the pellet's art, so the cycling view can send XP pellets in the tier
+## colours, and centres it on the pellet's point. An even-sized texture keeps
+## the art on the 2 px grid. Call it once the pellet is in the tree.
+func set_texture(texture: Texture2D) -> void:
+	_sprite.texture = texture
+	_sprite.position = -texture.get_size() / 2.0
 
 #-----------------------------------------------------------------------------
 # PRIVATE

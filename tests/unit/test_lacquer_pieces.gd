@@ -451,9 +451,12 @@ func test_token_hugs_a_floater_line() -> void:
 
 func test_lacquer_palette_matches_the_kit() -> void:
 	assert_eq(ThemeConstants.LACQUER_INK, Color("#150909"))
+	assert_eq(ThemeConstants.LACQUER_RIM, Color("#692F2F"))
 	assert_eq(ThemeConstants.LACQUER_BRASS, Color("#D4A84A"))
 	assert_eq(ThemeConstants.LACQUER_CREAM, Color("#F0E8D8"))
 	assert_eq(ThemeConstants.LACQUER_TAN, Color("#A89070"))
 	assert_eq(ThemeConstants.LACQUER_DIM, Color("#94806A"))
+	assert_eq(ThemeConstants.LACQUER_MADRA_HI, Color("#E8F6FD"))
 	assert_eq(ThemeConstants.LACQUER_MADRA, Color("#BBD5E7"))
+	assert_eq(ThemeConstants.LACQUER_MADRA_MID, Color("#849BE4"))
 	assert_eq(ThemeConstants.LACQUER_VERMILION, Color("#A83C30"))

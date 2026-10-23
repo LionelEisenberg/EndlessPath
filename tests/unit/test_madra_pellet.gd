@@ -7,6 +7,8 @@ extends GutTest
 
 const PELLET_SCENE_PATH: String = "res://scenes/zones/zone_transition/madra_pellet.tscn"
 const PELLET_TEXTURE_PATH: String = "res://assets/ui/lacquer/lacquer_madra_pellet_ai.png"
+## One of the cycling view's tier-coloured XP pellets (12x12, like the Madra one).
+const BRASS_PELLET_TEXTURE_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_brass_ai.png"
 
 ## Kit §2: the Madra ramp and ink, the only colours the pellet may use.
 const PELLET_PALETTE: Array[String] = ["e8f6fd", "bbd5e7", "849be4", "1c2f60", "16283e", "150909"]
@@ -78,6 +80,17 @@ func test_pellet_art_is_centred_on_the_grid() -> void:
 	assert_false(sprite.centered, "an explicit offset keeps the top-left even")
 	assert_eq(sprite.position, -sprite.texture.get_size() / 2.0)
 	assert_true(_is_on_grid(sprite.position))
+
+## The cycling view's tier-coloured XP pellets are this pellet with other art.
+## The sprite starts off centre because the scene already stands at (-6, -6),
+## which a 12x12 texture would match even if the setter never moved it.
+func test_set_texture_swaps_and_centres() -> void:
+	var pellet: MadraPellet = _add_pellet()
+	var sprite: Sprite2D = _sprite(pellet)
+	sprite.position = Vector2.ZERO
+	pellet.set_texture(load(BRASS_PELLET_TEXTURE_PATH))
+	assert_eq(sprite.texture.resource_path, BRASS_PELLET_TEXTURE_PATH)
+	assert_eq(sprite.position, Vector2(-6, -6))
 
 #-----------------------------------------------------------------------------
 # MOTION
