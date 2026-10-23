@@ -1,0 +1,125 @@
+[gd_scene format=3 uid="uid://6qmu40ycuxuy"]
+
+[ext_resource type="Script" uid="uid://bgrg34u4eap8w" path="res://scenes/cycling/technique_drawer/technique_drawer.gd" id="1_drawer"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://nnvglf075vy4" path="res://assets/ui/lacquer/lacquer_drawer_ai.png" id="3_drawer"]
+[ext_resource type="Texture2D" uid="uid://m4pexor8pgbc" path="res://assets/ui/lacquer/lacquer_seal_new_s_ai.png" id="4_seal_new"]
+[ext_resource type="Texture2D" uid="uid://dda0vvh4sqo74" path="res://assets/ui/lacquer/lacquer_tag_ai.png" id="5_tag"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="6_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="7_frame_hover"]
+
+[node name="TechniqueDrawer" type="Control" unique_id=746242882]
+custom_minimum_size = Vector2(392, 72)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 392.0
+offset_bottom = 72.0
+size_flags_horizontal = 0
+size_flags_vertical = 0
+mouse_default_cursor_shape = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_drawer")
+
+[node name="Drawer" type="Control" parent="." unique_id=1565441692]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+offset_right = 392.0
+offset_bottom = 72.0
+mouse_filter = 2
+
+[node name="Face" type="TextureRect" parent="Drawer" unique_id=1701626978]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 394.0
+offset_bottom = 74.0
+mouse_filter = 2
+texture = ExtResource("3_drawer")
+
+[node name="Icon" type="TextureRect" parent="Drawer" unique_id=2050157790]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 20.0
+offset_right = 48.0
+offset_bottom = 52.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Title" type="Label" parent="Drawer" unique_id=2085711859]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 14.0
+offset_right = 296.0
+offset_bottom = 34.0
+theme_type_variation = &"LabelLacquerName"
+text = "Technique"
+text_overrun_behavior = 3
+
+[node name="NewSeal" type="TextureRect" parent="Drawer" unique_id=816193256]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 186.0
+offset_top = 13.0
+offset_right = 230.0
+offset_bottom = 35.0
+mouse_filter = 2
+texture = ExtResource("4_seal_new")
+
+[node name="NewLabel" type="Label" parent="Drawer/NewSeal" unique_id=1677625121]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"LabelLacquerSeal"
+text = "NEW"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Tag" type="TextureRect" parent="Drawer" unique_id=361436082]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 304.0
+offset_top = 13.0
+offset_right = 380.0
+offset_bottom = 35.0
+mouse_filter = 2
+texture = ExtResource("5_tag")
+
+[node name="TagLabel" type="Label" parent="Drawer/Tag" unique_id=458966976]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"LabelLacquerTag"
+text = "IN USE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Detail" type="Label" parent="Drawer" unique_id=1776025463]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 38.0
+offset_right = 380.0
+offset_bottom = 56.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "200 Madra · 15 s cycle · 4 zones"
+text_overrun_behavior = 3
+
+[node name="HoverFrame" parent="Drawer" unique_id=635056038 instance=ExtResource("6_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("7_frame_hover")
+
+[node name="FlashFrame" parent="Drawer" unique_id=371676268 instance=ExtResource("6_frame")]
+unique_name_in_owner = true
+layout_mode = 1
