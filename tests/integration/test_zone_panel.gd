@@ -3,9 +3,10 @@ extends GutTest
 ## Integration tests for the zone chest (ZonePanel, lacquer kit §5.5 and §0):
 ## the header, the Now strip for each idle action, the grouped activity list,
 ## the chest hugging its list or folding a long list under its last whole
-## drawer, the rail and lips, scrolling to a card, the lore panel, and long
-## text never widening the chest (Review Focus 4). The panel is built on a
-## fresh save, as the zone view builds it.
+## drawer, the rail and lips, scrolling to a card, the lore panel, the
+## techniques mode a cycling session turns the chest to, and long text never
+## widening the chest (Review Focus 4). The panel is built on a fresh save, as
+## the zone view builds it.
 
 const PANEL_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/zone_panel.tscn")
 
@@ -21,6 +22,11 @@ const MERCHANT_ID: String = "spirit_valley_merchant"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
 const FORAGING_EVENT: String = "q_fill_core_completed"
 
+## The three cycling techniques the catalog ships, in unlock order.
+const FOUNDATION_ID: String = "foundation_technique"
+const SMOOTH_ID: String = "smooth_flow"
+const TORRENTIAL_ID: String = "torrential_flow"
+
 const THUMB_RIVER: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ai.png")
 const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_basic_ai.png")
 
@@ -33,6 +39,9 @@ const LORE_PUSH: float = 276.0
 const FULL_CHEST_HEIGHT: float = 1032.0
 const FOLD_GAP: float = 8.0
 const SCROLL_MARGIN: float = 24.0
+## A technique drawer is 72 tall, with 8 between drawers (kit §5.5).
+const DRAWER_HEIGHT: float = 72.0
+const DRAWER_GAP: float = 8.0
 
 ## GUT's output window's canvas layer.
 const GUT_LAYER: int = 128
@@ -771,3 +780,268 @@ func test_mouse_wheel_keeps_lore_open() -> void:
 	_push_mouse_button(_scroll().get_global_rect().get_center(), MOUSE_BUTTON_WHEEL_DOWN, false)
 	await wait_process_frames(1)
 	assert_true((_node("LorePanel") as Control).visible, "scrolling is not a click")
+
+#-----------------------------------------------------------------------------
+# TECHNIQUES MODE
+#-----------------------------------------------------------------------------
+
+func _technique_list() -> TechniqueList:
+	return _node("TechniqueList") as TechniqueList
+
+## The technique ids of the drawers in the list's column, top to bottom.
+func _drawer_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for drawer: Node in _technique_list().get_node("%Drawers").get_children():
+		ids.append((drawer as TechniqueDrawer).technique.id)
+	return ids
+
+## Unlocks the two techniques the foundation one starts without.
+func _unlock_all_techniques() -> void:
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	CyclingManager.unlock_technique(TORRENTIAL_ID)
+
+func _header_text() -> String:
+	return (_node("HeaderLabel") as Label).text
+
+func _count_text() -> String:
+	return (_node("CountLabel") as Label).text
+
+func test_techniques_mode_is_off_until_asked() -> void:
+	await _add_panel()
+	assert_false(_panel.is_techniques_mode())
+	assert_eq(_panel.get_technique_list(), _technique_list(), "the chest hands out its list")
+	assert_false(_technique_list().is_visible_in_tree(), "the techniques start hidden")
+	assert_true(_list().is_visible_in_tree(), "the activities show")
+	assert_eq(_header_text(), "Activities")
+	assert_eq(_count_text(), "1 here")
+
+func test_techniques_mode_lists_unlocked_techniques() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(1)
+	assert_true(_panel.is_techniques_mode())
+	assert_true(_technique_list().is_visible_in_tree(), "the techniques show")
+	assert_false(_list().is_visible_in_tree(), "the activities step aside")
+	assert_eq(_drawer_ids(), [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID] as Array[String], "one drawer each, in unlock order")
+	assert_eq(_header_text(), "Techniques")
+	assert_eq(_count_text(), "3 learned")
+
+func test_techniques_mode_chest_hugs_the_list() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	assert_eq(_technique_list().position, Vector2(16.0, LIST_TOP), "the list sits where the activities did")
+	assert_eq(_technique_list().size, Vector2(392.0, 232.0), "and is as tall as its three drawers")
+	assert_eq(_panel.size.y, 464.0, "208, three drawers (232) and 24 under them")
+	assert_eq((_node("ChestBottom") as Control).position.y, 464.0 - 48.0, "the bottom cap closes the chest")
+
+func test_leaving_techniques_mode_restores_activities() -> void:
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await _add_panel()
+	var chest_height: float = _panel.size.y
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	assert_ne(_panel.size.y, chest_height, "precondition: the chest hugged the techniques instead")
+	_panel.set_techniques_mode(false)
+	await wait_process_frames(2)
+	assert_false(_panel.is_techniques_mode())
+	assert_true(_list().is_visible_in_tree(), "the activities are back")
+	assert_false(_technique_list().is_visible_in_tree(), "the techniques are gone")
+	assert_eq(_header_text(), "Activities")
+	assert_eq(_count_text(), "1 here")
+	assert_eq(_list().position.y, LIST_TOP)
+	assert_eq(_panel.size.y, chest_height, "the chest hugs the activities again")
+
+func test_setting_the_mode_twice_changes_nothing() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	assert_eq(_drawer_ids(), [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID] as Array[String], "still one drawer each")
+	assert_eq(_count_text(), "3 learned")
+	assert_eq(_panel.size.y, 464.0)
+	_panel.set_techniques_mode(false)
+	_panel.set_techniques_mode(false)
+	await wait_process_frames(2)
+	assert_eq(_header_text(), "Activities")
+	assert_eq(_count_text(), "1 here")
+
+func test_unlock_in_techniques_mode_adds_a_drawer() -> void:
+	# Review Focus 4: a technique unlocked while the chest lists them joins the
+	# list, NEW, and the chest grows by a drawer and its gap.
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	var chest_height: float = _panel.size.y
+	assert_eq(_technique_list().get_drawer_count(), 2, "precondition: foundation and smooth")
+	CyclingManager.unlock_technique(TORRENTIAL_ID)
+	await wait_process_frames(2)
+	assert_eq(_technique_list().get_drawer_count(), 3)
+	assert_eq(_drawer_ids(), [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID] as Array[String], "the old drawers are replaced, not stacked")
+	assert_eq(_count_text(), "3 learned")
+	assert_true(_technique_list().get_drawer(TORRENTIAL_ID).is_new_shown(), "the new technique shows NEW")
+	assert_eq(_panel.size.y, chest_height + 80.0, "the chest grew a drawer and its 8 px gap")
+
+func test_a_rebuild_in_techniques_mode_keeps_the_header() -> void:
+	# UnlockManager re-evaluates its conditions as Madra changes, so a rebuild can
+	# land mid-cycle: it must neither bring "Activities" back nor measure the
+	# hidden activity list.
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	UnlockManager.condition_unlocked.emit("test")
+	await wait_process_frames(2)
+	assert_eq(_header_text(), "Techniques")
+	assert_eq(_count_text(), "2 learned")
+	assert_eq(_technique_list().position.y, LIST_TOP)
+	assert_eq(_panel.size.y, LIST_TOP + 2.0 * DRAWER_HEIGHT + DRAWER_GAP + 24.0, "the chest still hugs the techniques")
+
+func test_activity_count_follows_unlocks_made_in_techniques_mode() -> void:
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await wait_process_frames(2)
+	assert_eq(_count_text(), "1 learned", "the header keeps to the techniques")
+	_panel.set_techniques_mode(false)
+	assert_eq(_count_text(), "2 here", "and the activities count the Aura Well")
+
+func test_cycling_card_shows_new_after_a_technique_unlock() -> void:
+	# ZoneManager marks the cycling action unseen when a technique unlocks; the
+	# chest's rebuild is what shows the card's NEW seal again.
+	var cycling: ZoneActionData = ZoneManager.get_action_by_id(CYCLING_ID)
+	for condition: UnlockConditionData in cycling.unlock_conditions:
+		UnlockManager.force_unlock_condition(condition.condition_id)
+	ZoneManager.mark_action_seen(CYCLING_ID)
+	await _add_panel()
+	var card: ZoneActionButton = _panel.get_card(CYCLING_ID) as ZoneActionButton
+	assert_not_null(card, "precondition: the cycling card is listed")
+	assert_false(card.is_new_shown(), "precondition: the card counts as seen")
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await wait_process_frames(2)
+	assert_true((_panel.get_card(CYCLING_ID) as ZoneActionButton).is_new_shown())
+
+func test_the_lore_pushes_the_technique_list_down() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(1)
+	assert_eq(_technique_list().position.y, LIST_TOP + LORE_PUSH, "the list goes under the lore")
+	assert_eq(_panel.size.y, 464.0 + LORE_PUSH, "and the chest grows by as much")
+
+func test_a_hidden_technique_list_stays_current() -> void:
+	await _add_panel()
+	var chest_height: float = _panel.size.y
+	watch_signals(_technique_list())
+	_unlock_all_techniques()
+	await wait_process_frames(2)
+	assert_eq(_technique_list().get_drawer_count(), 3, "it rebuilt although it is hidden")
+	assert_signal_emit_count(_technique_list(), "layout_changed", 2, "one new layout per unlock")
+	assert_eq(_header_text(), "Activities", "the header is still the activities'")
+	assert_eq(_count_text(), "1 here")
+	assert_eq(_panel.size.y, chest_height, "the chest still hugs the activities")
+	_panel.set_techniques_mode(true)
+	assert_eq(_drawer_ids(), [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID] as Array[String], "current the moment the mode turns on")
+
+func test_equipping_a_technique_refreshes_every_drawer() -> void:
+	# The drawers do not listen to CyclingManager: the list refreshes them all,
+	# or the drawer that was in use would stay pulled out.
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(1)
+	var foundation: TechniqueDrawer = _technique_list().get_drawer(FOUNDATION_ID)
+	var smooth: TechniqueDrawer = _technique_list().get_drawer(SMOOTH_ID)
+	assert_eq((foundation.get_node("%Drawer") as Control).position, Vector2(-2, -2), "precondition: foundation is pulled out")
+	CyclingManager.equip_technique(SMOOTH_ID)
+	assert_eq((smooth.get_node("%Drawer") as Control).position, Vector2(-2, -2), "smooth is pulled out")
+	assert_true((smooth.get_node("%Tag") as Control).visible, "and tagged")
+	assert_eq((foundation.get_node("%Drawer") as Control).position, Vector2.ZERO, "foundation goes back in")
+	assert_false((foundation.get_node("%Tag") as Control).visible, "and loses its tag")
+
+func test_clicking_a_drawer_equips_its_technique() -> void:
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await _add_panel_above_gut()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	var smooth: TechniqueDrawer = _technique_list().get_drawer(SMOOTH_ID)
+	_click(smooth.get_global_rect().get_center())
+	await wait_process_frames(1)
+	assert_eq(PersistenceManager.save_game_data.equipped_cycling_technique_id, SMOOTH_ID, "the press reached the drawer")
+	assert_true(smooth.is_in_use())
+	var foundation: TechniqueDrawer = _technique_list().get_drawer(FOUNDATION_ID)
+	assert_eq((foundation.get_node("%Drawer") as Control).position, Vector2.ZERO, "the drawer that was in use goes back in")
+
+func test_technique_list_height_is_what_the_column_lays_out() -> void:
+	# As with ActivityList's flow: the height the zone panel reads must be the
+	# one the containers lay out, or the chest drifts from its drawers.
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	var list: TechniqueList = _technique_list()
+	assert_eq(list.get_content_height(), 232.0, "three drawers and two gaps")
+	assert_eq((list.get_node("%Drawers") as Control).size.y, list.get_content_height(), "the column lays out the same height")
+	var tops: Array[float] = []
+	for technique_id: String in [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID]:
+		tops.append(list.get_drawer(technique_id).position.y)
+	var pitch: float = DRAWER_HEIGHT + DRAWER_GAP
+	assert_eq(tops, [0.0, pitch, 2.0 * pitch] as Array[float], "a drawer and a gap apart")
+	assert_eq(list.get_drawer(SMOOTH_ID).size, Vector2(392.0, DRAWER_HEIGHT))
+
+func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:
+	# queue_free alone leaves the old drawers in the column until the end of the
+	# frame, and the column would measure them with the new ones.
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	var list: TechniqueList = _technique_list()
+	var column := list.get_node("%Drawers") as VBoxContainer
+	list.build()
+	assert_eq(column.get_child_count(), 3, "one drawer each, none left over")
+	assert_eq(column.get_combined_minimum_size().y, list.get_content_height(), "the column measures only the new drawers")
+
+func test_an_empty_technique_list_has_no_height() -> void:
+	await _add_panel()
+	PersistenceManager.save_game_data.unlocked_cycling_technique_ids.clear()
+	_panel.set_techniques_mode(true)
+	assert_eq(_technique_list().get_drawer_count(), 0)
+	assert_eq(_technique_list().get_content_height(), 0.0)
+	assert_eq(_count_text(), "0 learned")
+	assert_eq(_panel.size.y, LIST_TOP + 24.0, "the chest keeps its 24 px under the list top")
+
+func test_get_drawer_finds_a_drawer_by_technique_id() -> void:
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	var drawer: TechniqueDrawer = _technique_list().get_drawer(SMOOTH_ID)
+	assert_not_null(drawer)
+	assert_eq(drawer.technique.id, SMOOTH_ID)
+	assert_null(_technique_list().get_drawer(TORRENTIAL_ID), "a technique not unlocked has no drawer")
+	assert_null(_technique_list().get_drawer("no_such_technique"))
+
+func test_technique_list_and_its_column_pass_the_mouse() -> void:
+	# Each drawer keeps its own press and hand cursor; the list and the column
+	# around the drawers take nothing.
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	assert_eq(_technique_list().mouse_filter, Control.MOUSE_FILTER_IGNORE)
+	assert_eq((_technique_list().get_node("%Drawers") as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE)
+	for technique_id: String in [FOUNDATION_ID, SMOOTH_ID]:
+		var drawer: TechniqueDrawer = _technique_list().get_drawer(technique_id)
+		assert_eq(drawer.mouse_filter, Control.MOUSE_FILTER_STOP, "%s takes the press" % technique_id)
+		assert_eq(drawer.mouse_default_cursor_shape, Control.CURSOR_POINTING_HAND)
+
+func test_a_new_layout_from_the_technique_list_resizes_the_chest() -> void:
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	# Unlocked behind the manager's back, so that only the list's own
+	# layout_changed can tell the chest.
+	PersistenceManager.save_game_data.unlocked_cycling_technique_ids.append(SMOOTH_ID)
+	_technique_list().build()
+	assert_eq(_panel.size.y, LIST_TOP + 2.0 * DRAWER_HEIGHT + DRAWER_GAP + 24.0)

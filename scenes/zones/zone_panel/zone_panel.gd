@@ -14,7 +14,12 @@ extends Control
 ## down 276 px; About, Esc or a click outside closes it. Esc closes it only
 ## while the zone view is MainView's active state: an overlay opened over the
 ## zone view (the inventory, say) takes Esc first.
-## It rebuilds on zone_changed, action_completed and condition_unlocked, and
+## While the player cycles (set_techniques_mode), the header reads "Techniques"
+## with "N learned" and a TechniqueList, one drawer per unlocked cycling
+## technique, takes the activity list's place. It does not scroll or fold, so
+## the chest hugs it like a short list.
+## It rebuilds on zone_changed, action_completed, condition_unlocked and
+## technique_unlocked (which lights NEW on the cycling card again), and
 ## scrolls to a card when ZoneManager.action_focus_requested asks.
 
 #-----------------------------------------------------------------------------
@@ -42,6 +47,12 @@ const LIST_GAP: float = 28.0
 ## Yatra One at 20 px is 30 px tall on the header's 24 px line: its row sits
 ## 3 px above the line's top, as the mock's half-leading puts it.
 const HEADER_TEXT_RAISE: float = 3.0
+## The header and its count, by mode: the zone's activities, or the learned
+## techniques while the player cycles.
+const ACTIVITIES_HEADER: String = "Activities"
+const TECHNIQUES_HEADER: String = "Techniques"
+const HERE_FORMAT: String = "%d here"
+const LEARNED_FORMAT: String = "%d learned"
 
 ## The lore panel sits under the Now tray (local 182, set in the scene);
 ## opening it pushes the header and the list down by its 264 px and 12.
@@ -68,8 +79,10 @@ const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ba
 @onready var _about_hover: LacquerFrameOverlay = %AboutHover
 @onready var _now_strip: NowStrip = %NowStrip
 @onready var _activities_header: Control = %ActivitiesHeader
+@onready var _header_label: Label = %HeaderLabel
 @onready var _count_label: Label = %CountLabel
 @onready var _activity_list: ActivityList = %ActivityList
+@onready var _technique_list: TechniqueList = %TechniqueList
 @onready var _lore_panel: Control = %LorePanel
 @onready var _lore_text: Label = %LoreText
 
@@ -84,6 +97,11 @@ var main_view: MainView = null
 
 var _zone_id: String = ""
 var _rebuild_queued: bool = false
+## True while the chest lists the techniques instead of the activities.
+var _techniques_mode: bool = false
+## How many activities the zone lists, from the last rebuild: the "N here" the
+## header shows again when the techniques mode ends.
+var _activity_count: int = 0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -94,12 +112,14 @@ func _ready() -> void:
 	ZoneManager.action_completed.connect(_on_action_completed)
 	ZoneManager.action_focus_requested.connect(scroll_to_action)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
+	CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
 	_about_button.toggled.connect(_on_about_toggled)
 	_about_button.mouse_entered.connect(_about_hover.show)
 	_about_button.mouse_exited.connect(_about_hover.hide)
 	_now_strip.strip_pressed.connect(_on_strip_pressed)
 	_activity_list.layout_changed.connect(_relayout)
 	_activity_list.card_pressed_while_running.connect(_now_strip.flash)
+	_technique_list.layout_changed.connect(_relayout)
 	if main_view == null:
 		main_view = find_main_view()
 	_set_lore_open(false)
@@ -141,6 +161,28 @@ func scroll_to_action(action_id: String) -> void:
 func get_card(action_id: String) -> Control:
 	return _activity_list.get_card(action_id)
 
+## Turns the chest to the unlocked cycling techniques while the player cycles,
+## or back to the zone's activities. Turning it on builds the technique list
+## fresh from the current unlocks. Either way the list that shows takes the
+## list top, the header and its count follow, and the chest hugs the list.
+func set_techniques_mode(on: bool) -> void:
+	_techniques_mode = on
+	if on:
+		_technique_list.build()
+	_activity_list.visible = not on
+	_technique_list.visible = on
+	_apply_header()
+	_relayout()
+
+## Returns true while the chest lists the techniques instead of the activities.
+func is_techniques_mode() -> bool:
+	return _techniques_mode
+
+## Returns the list of technique drawers, which shows only in the techniques
+## mode.
+func get_technique_list() -> TechniqueList:
+	return _technique_list
+
 ## Returns the nearest MainView among the panel's ancestors, or null.
 func find_main_view() -> MainView:
 	var node: Node = get_parent()
@@ -177,16 +219,28 @@ func _rebuild() -> void:
 	if not _about_button.visible:
 		_close_lore()
 	var actions: Array[ZoneActionData] = ZoneManager.get_available_actions(zone.zone_id)
-	_count_label.text = "%d here" % actions.size()
+	_activity_count = actions.size()
+	_apply_header()
 	_activity_list.build(actions, same_zone)
 	_relayout()
+
+## Sets the header and its count for the mode: "Activities" with "N here", or
+## "Techniques" with "N learned".
+func _apply_header() -> void:
+	if _techniques_mode:
+		_header_label.text = TECHNIQUES_HEADER
+		_count_label.text = LEARNED_FORMAT % _technique_list.get_drawer_count()
+	else:
+		_header_label.text = ACTIVITIES_HEADER
+		_count_label.text = HERE_FORMAT % _activity_count
 
 #-----------------------------------------------------------------------------
 # LAYOUT
 #-----------------------------------------------------------------------------
 
-## Places the header and the list under the Now tray (and the lore, when it
-## is open), and sizes the list and the chest (kit §0).
+## Places the header and the list that shows (the techniques while the player
+## cycles) under the Now tray (and the lore, when it is open), and sizes the
+## list and the chest (kit §0).
 func _relayout() -> void:
 	if not is_node_ready():
 		return
@@ -194,6 +248,19 @@ func _relayout() -> void:
 	var list_top: float = header_top + LIST_GAP
 	_activities_header.position.y = header_top - HEADER_TEXT_RAISE
 
+	var chest_height: float
+	if _techniques_mode:
+		chest_height = _place_technique_list(list_top)
+	else:
+		chest_height = _place_activity_list(list_top)
+	size.y = chest_height
+	_chest_mid.size.y = chest_height - CHEST_TOP_HEIGHT - CHEST_BOTTOM_HEIGHT
+	_chest_bottom.position.y = chest_height - CHEST_BOTTOM_HEIGHT
+
+## Places the activity list at list_top and sizes it: a list too long for the
+## space scrolls and folds under its last whole drawer. Returns the chest
+## height that fits it.
+func _place_activity_list(list_top: float) -> float:
 	var content_height: float = _activity_list.get_content_height()
 	var max_list_height: float = LIST_BOTTOM_LIMIT - list_top
 	var list_height: float = content_height
@@ -205,9 +272,15 @@ func _relayout() -> void:
 			chest_height = FULL_CHEST_HEIGHT
 	_activity_list.position.y = list_top
 	_activity_list.size.y = list_height
-	size.y = chest_height
-	_chest_mid.size.y = chest_height - CHEST_TOP_HEIGHT - CHEST_BOTTOM_HEIGHT
-	_chest_bottom.position.y = chest_height - CHEST_BOTTOM_HEIGHT
+	return chest_height
+
+## Places the technique list at list_top and sizes it to its drawers. It never
+## scrolls or folds. Returns the chest height that hugs it.
+func _place_technique_list(list_top: float) -> float:
+	var content_height: float = _technique_list.get_content_height()
+	_technique_list.position.y = list_top
+	_technique_list.size.y = content_height
+	return maxf(MIN_CHEST_HEIGHT, list_top + content_height + GAP_UNDER_LIST)
 
 ## The tallest list height up to max_height that folds under a whole drawer,
 ## or max_height when not even the first drawer fits.
@@ -273,6 +346,11 @@ func _on_action_completed(_action_id: String) -> void:
 	_queue_rebuild()
 
 func _on_condition_unlocked(_condition_id: String) -> void:
+	_queue_rebuild()
+
+## ZoneManager has marked the cycling actions unseen by now; the rebuild shows
+## the cycling card's NEW seal again.
+func _on_technique_unlocked(_technique: CyclingTechniqueData) -> void:
 	_queue_rebuild()
 
 func _on_about_toggled(open: bool) -> void:
