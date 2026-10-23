@@ -113,6 +113,15 @@ func _before_draw() -> void:
 func _markers() -> AdventureMapMarkers:
 	return _tilemap.get_node_or_null("%AdventureMapMarkers") as AdventureMapMarkers
 
+## Zooms the map to the level the way the wheel does (through the map's zoom
+## controller) and waits until the camera has got there and the coins with it.
+func _zoom_to(level: float) -> void:
+	var controller := _tilemap.get_node("%CameraZoomController") as CameraZoomController
+	controller.set_zoom_level(level)
+	var arrived: bool = await wait_until(func() -> bool: return not controller.is_zoom_active(), 3.0)
+	assert_true(arrived, "the zoom to %s ends in time" % level)
+	await _settle()
+
 ## The z index a node draws at: its own, plus its ancestors' for as long as it is
 ## relative to them (a node that is not a canvas item has none).
 func _effective_z(node: Node) -> int:
@@ -496,6 +505,61 @@ func test_coins_are_on_whole_pixels() -> void:
 	for coord: Vector3i in coins:
 		var at: Vector2 = coins[coord]
 		assert_eq(at, at.round(), "%s: a coin sits on whole px" % coord)
+
+#-----------------------------------------------------------------------------
+# THE RISE AT EVERY ZOOM
+#-----------------------------------------------------------------------------
+
+## A coin keeps its place on a hex that grows with the zoom: its rise is 8 px times
+## the zoom (8 at zoom 1, 16 at zoom 2). Over the player's hex it is the disc's
+## half height, the character's head (16 px at zoom 1, 32 at zoom 2: the character
+## is drawn at the zoom) and 14 px of clearance: 56 px at zoom 1, 72 at zoom 2.
+func test_the_rise_grows_with_the_zoom() -> void:
+	assert_eq(AdventureMapMarkers.COIN_RISE, 8.0, "8 px at zoom 1")
+	assert_eq(AdventureMapMarkers.COIN_RISE_HERE, 56.0, "56 px at zoom 1 on the player's hex")
+	assert_eq(AdventureMapMarkers.rise_for(1.0, false), 8.0)
+	assert_eq(AdventureMapMarkers.rise_for(2.0, false), 16.0)
+	assert_almost_eq(AdventureMapMarkers.rise_for(1.5, false), 12.0, 0.0001, "in between, in proportion")
+	assert_eq(AdventureMapMarkers.rise_for(1.0, true), AdventureMapMarkers.COIN_RISE_HERE, "the constant is the player's hex's rise at zoom 1")
+	assert_eq(AdventureMapMarkers.rise_for(2.0, true), 26.0 + 2.0 * 16.0 + 14.0, "26 + 16 x zoom + 14")
+	assert_almost_eq(AdventureMapMarkers.rise_for(1.5, true), 26.0 + 1.5 * 16.0 + 14.0, 0.0001)
+
+## At every zoom each coin is where rise_for() puts it over its hex, so it sits at
+## the same place on the hex: its disc's centre is 8 hex-px-at-zoom-1 above the
+## hex's centre, the player's coin 56 above at zoom 1 and as far above the head
+## at the others.
+func test_coins_sit_at_the_same_place_on_their_hexes_at_every_zoom() -> void:
+	_start()
+	# REST, not FIGHT: arriving at FIGHT reveals the boss, and its camera push moves the view.
+	await _walk_to(REST)
+	await _settle()
+	for zoom: float in [1.0, 1.5, 2.0, 1.25]:
+		await _zoom_to(zoom)
+		assert_true(get_viewport().get_canvas_transform().get_scale().is_equal_approx(Vector2(zoom, zoom)), "precondition: the map is at zoom %s" % zoom)
+		for coord: Vector3i in [FIGHT, OPEN_NEAR, REST]:
+			var here: bool = coord == REST
+			var rise: float = AdventureMapMarkers.rise_for(zoom, here)
+			assert_eq(_coin(coord).position, _coin_position(coord, rise), "zoom %s, %s: %s px above its hex's centre" % [zoom, coord, rise])
+			if not here:
+				var disc_centre_above: float = _screen_centre(coord).y - (_coin(coord).position.y + COIN_HALF.y)
+				assert_almost_eq(disc_centre_above / zoom, 8.0, 0.5, "zoom %s, %s: the same 8 px of the hex at every zoom" % [zoom, coord])
+		assert_true(_coin(FIGHT).get_global_transform_with_canvas().get_scale().is_equal_approx(Vector2.ONE), "zoom %s: and every coin is drawn at its own size" % zoom)
+
+## The coin over the player's hex clears the character's head by the same space at
+## every zoom, though the character is twice as tall on screen at zoom 2.
+func test_the_coin_over_the_players_hex_clears_the_head_at_every_zoom() -> void:
+	_start()
+	await _walk_to(REST)
+	await _settle()
+	var clearance_at_zoom_one: float = _character_head_top() - (_coin(REST).position.y + _coin(REST).size.y)
+	assert_gt(clearance_at_zoom_one, 0.0, "precondition: at zoom 1 the coin's frame ends over the head")
+	for zoom: float in [1.5, 2.0, 1.25]:
+		await _zoom_to(zoom)
+		var coin: EncounterCoin = _coin(REST)
+		var head_top: float = _character_head_top()
+		assert_lt(head_top, _screen_centre(REST).y, "zoom %s: precondition: the head is above the hex's centre" % zoom)
+		assert_lt(coin.position.y + coin.size.y, head_top, "zoom %s: the coin's bottom, shadow and all, stays above the character's head" % zoom)
+		assert_almost_eq(head_top - (coin.position.y + coin.size.y), clearance_at_zoom_one, 1.5, "zoom %s: with the same clear space as at zoom 1" % zoom)
 
 #-----------------------------------------------------------------------------
 # A REDRAW

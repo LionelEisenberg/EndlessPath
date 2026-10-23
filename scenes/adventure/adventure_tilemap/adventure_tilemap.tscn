@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" uid="uid://bq7k2r0utedv4" path="res://scenes/adventure/adventure_route/adventure_route.tscn" id="8_route"]
 [ext_resource type="Texture2D" uid="uid://b4c6n4m45n8ya" path="res://assets/ui/lacquer/map/lacquer_char_shadow_ai.png" id="9_shadow"]
 [ext_resource type="PackedScene" uid="uid://dhdpu8b5bvy1b" path="res://scenes/adventure/adventure_map_markers/adventure_map_markers.tscn" id="13_markers"]
+[ext_resource type="PackedScene" uid="uid://cs1ystg6v3d2d" path="res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn" id="14_zoom"]
 
 [node name="AdventureTilemap" type="Node2D" unique_id=1090162291]
 script = ExtResource("1_b7v0o")
@@ -75,6 +76,12 @@ centered = false
 
 [node name="Camera2D" type="Camera2D" parent="CharacterBody2D" unique_id=690717049]
 unique_name_in_owner = true
+
+[node name="CameraZoomController" parent="CharacterBody2D/Camera2D" unique_id=1203947569 instance=ExtResource("14_zoom")]
+unique_name_in_owner = true
+zoom_min = 1.0
+zoom_max = 2.0
+zoom_default = 1.0
 
 [node name="CameraClampController" parent="CharacterBody2D/Camera2D" unique_id=1707357113 instance=ExtResource("4_yfmtn")]
 

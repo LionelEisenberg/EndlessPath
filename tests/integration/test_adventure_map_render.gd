@@ -125,21 +125,157 @@ func _is_even(value: float) -> bool:
 # CAMERA
 #-----------------------------------------------------------------------------
 
-func test_camera_is_fixed_at_zoom_one() -> void:
+func test_camera_opens_at_zoom_one_and_zooms_from_one_to_two() -> void:
 	var camera := _tilemap.character_body.get_node_or_null("Camera2D") as Camera2D
 	assert_not_null(camera, "the camera follows the character")
 	if camera == null:
 		return
-	assert_eq(camera.zoom, Vector2.ONE, "zoom 1: the tiles at their art size")
+	assert_eq(camera.zoom, Vector2.ONE, "zoom 1: the tiles at their art size, today's density")
 	assert_eq(camera.offset, Vector2(0, 70), "the current hex's centre at screen (960, 470)")
 	assert_eq(camera.offset, AdventureTilemap.CAMERA_OFFSET)
-	var has_zoom_controller: bool = false
-	var has_clamp_controller: bool = false
+	var zoom_controller: CameraZoomController = null
+	var clamp_controller: CameraClampController = null
 	for child: Node in camera.get_children():
-		has_zoom_controller = has_zoom_controller or child is CameraZoomController
-		has_clamp_controller = has_clamp_controller or child is CameraClampController
-	assert_false(has_zoom_controller, "no wheel zoom on the adventure map")
-	assert_true(has_clamp_controller, "the clamp controller stays (inert without boundaries)")
+		if child is CameraZoomController:
+			zoom_controller = child
+		elif child is CameraClampController:
+			clamp_controller = child
+	assert_not_null(zoom_controller, "the wheel zooms the map, as it zooms the zone map")
+	assert_not_null(clamp_controller, "the clamp controller stays")
+	if zoom_controller != null:
+		assert_same(_node("CameraZoomController"), zoom_controller, "found by its unique name")
+		assert_eq(zoom_controller.zoom_min, 1.0, "never below 1: the 1x map art loses its 1 px lines")
+		assert_eq(zoom_controller.zoom_max, 2.0, "to 2, as the zone map")
+		assert_eq(zoom_controller.zoom_default, 1.0, "and the adventure opens at today's density")
+		assert_eq(zoom_controller.target_zoom, Vector2.ONE, "so it is aimed at zoom 1 to begin with")
+	if clamp_controller != null:
+		assert_false(clamp_controller.use_boundaries, "inert: the camera follows the character, which never leaves the map")
+
+## The camera's offset is in world px, so what it moves the view by on screen is
+## the offset times the zoom: 70 px at every zoom keeps the current hex's centre
+## at screen (960, 470).
+func test_the_camera_offset_for_a_zoom_keeps_the_hex_at_the_same_screen_px() -> void:
+	assert_eq(AdventureTilemap.camera_offset_for(1.0), Vector2(0, 70), "zoom 1: as it has always been")
+	assert_eq(AdventureTilemap.camera_offset_for(2.0), Vector2(0, 35), "zoom 2: half the world px")
+	for zoom: float in [1.0, 1.1, 1.331, 1.5, 1.77, 2.0]:
+		var screen_shift: Vector2 = AdventureTilemap.camera_offset_for(zoom) * zoom
+		assert_almost_eq(screen_shift.x, 0.0, 0.0001, "zoom %s: no sideways shift" % zoom)
+		assert_almost_eq(screen_shift.y, 70.0, 0.0001, "zoom %s: 70 screen px" % zoom)
+
+#-----------------------------------------------------------------------------
+# ZOOM
+#-----------------------------------------------------------------------------
+
+## Where the tile's centre is on screen: its world centre through the map's canvas
+## transform, which carries the camera's position, offset and zoom.
+func _screen_centre(coord: Vector3i) -> Vector2:
+	return _tilemap.get_global_transform_with_canvas() * _centre(coord)
+
+## Where the current hex's centre belongs: 70 px above the screen's centre.
+func _hex_home() -> Vector2:
+	return get_viewport().get_visible_rect().size / 2.0 - Vector2(0, 70)
+
+func _zoom_controller() -> CameraZoomController:
+	return _node("CameraZoomController") as CameraZoomController
+
+func _camera() -> Camera2D:
+	return _tilemap.character_body.get_node("Camera2D") as Camera2D
+
+## Zooms the map to the level the way the wheel does (through the zoom
+## controller) and waits until the camera has got there.
+func _zoom_to(level: float) -> void:
+	var controller: CameraZoomController = _zoom_controller()
+	controller.set_zoom_level(level)
+	var arrived: bool = await wait_until(func() -> bool: return not controller.is_zoom_active(), 3.0)
+	assert_true(arrived, "the zoom to %s ends in time" % level)
+	# A frame on, so that what follows the camera (the coins) has caught up.
+	await wait_process_frames(2)
+
+func test_the_current_hex_stays_where_it_is_at_every_zoom() -> void:
+	_start()
+	await wait_process_frames(2)
+	assert_eq(_screen_centre(START), _hex_home(), "precondition: at zoom 1 the hex is 70 px above the centre")
+	assert_eq(_hex_home(), Vector2(960, 470), "precondition: (960, 470) in the 1920x1080 view")
+
+	for level: float in [2.0, 1.5, 1.0, 1.25, 2.0]:
+		await _zoom_to(level)
+		assert_true(_camera().zoom.is_equal_approx(Vector2(level, level)), "precondition: the camera is at zoom %s" % level)
+		assert_lt(_screen_centre(START).distance_to(_hex_home()), 0.01, "zoom %s: the current hex's centre is still at (960, 470), not at %s" % [level, _screen_centre(START)])
+
+## While the controller eases the zoom the offset follows the camera's own zoom,
+## frame by frame (not only the target it is easing to, and not a frame late), so
+## the current hex never leaves (960, 470) on the way.
+func test_the_hex_stays_put_in_every_frame_of_the_ease() -> void:
+	_start()
+	await wait_process_frames(2)
+	var controller: CameraZoomController = _zoom_controller()
+	controller.set_zoom_level(2.0)
+
+	var drifted: Array[String] = []
+	var frames: int = 0
+	while controller.is_zoom_active() and frames < 300:
+		await get_tree().process_frame
+		frames += 1
+		var off_by: float = _screen_centre(START).distance_to(_hex_home())
+		if off_by > 0.01:
+			drifted.append("frame %d (zoom %.3f): %.3f px" % [frames, _camera().zoom.x, off_by])
+
+	assert_gt(frames, 10, "precondition: the ease takes a good few frames")
+	assert_eq(_camera().zoom, Vector2(2, 2), "precondition: and ends at zoom 2")
+	assert_eq(drifted, [] as Array[String], "the hex is at (960, 470) in every frame of the ease")
+
+## A run opens at the zoom controller's default whatever zoom the last run was left
+## at: the map (and its camera) outlives a run.
+func test_a_new_run_opens_at_the_default_zoom() -> void:
+	_start()
+	await _zoom_to(2.0)
+	assert_eq(_camera().zoom, Vector2(2, 2), "precondition: the run was zoomed in")
+	_tilemap.stop_adventure()
+
+	_start()
+
+	assert_eq(_camera().zoom, Vector2.ONE, "the next run opens at zoom 1, at once")
+	assert_eq(_camera().offset, AdventureTilemap.CAMERA_OFFSET, "with the offset for it")
+	assert_eq(_zoom_controller().target_zoom, Vector2.ONE, "and the controller is aimed there")
+	await wait_process_frames(2)
+	assert_eq(_camera().zoom, Vector2.ONE, "it stays")
+	assert_eq(_screen_centre(START), _hex_home(), "the current hex is where it is at zoom 1")
+
+## The fog is sized for the widest view the map has, zoom 1 (the controller never
+## goes below it), so from the farthest tile of the map the whole screen is fog or
+## tiles the player sees at every zoom: a closer camera shows less of the world,
+## never more.
+func test_the_fog_covers_the_screen_at_every_zoom() -> void:
+	_start()
+	var reach: int = AdventureMapFixture.ADVENTURE_ACTION.adventure_data.max_distance_from_start
+	var farthest: Array[Vector3i] = [
+		Vector3i(reach, -reach, 0), Vector3i(-reach, reach, 0), Vector3i(reach, 0, -reach),
+		Vector3i(-reach, 0, reach), Vector3i(0, reach, -reach), Vector3i(0, -reach, reach),
+	]
+	var size: Vector2 = get_viewport().get_visible_rect().size
+	var edge_points: Array[Vector2] = []
+	for x: int in range(0, int(size.x), 40):
+		edge_points.append(Vector2(x, 0))
+		edge_points.append(Vector2(x, size.y - 1.0))
+	for y: int in range(0, int(size.y), 40):
+		edge_points.append(Vector2(0, y))
+		edge_points.append(Vector2(size.x - 1.0, y))
+	edge_points.append(Vector2(size.x - 1.0, size.y - 1.0))
+	var seen: Array[Vector3i] = _tilemap.get_seen_tiles()
+
+	for zoom: float in [1.0, 2.0]:
+		await _zoom_to(zoom)
+		for tile: Vector3i in farthest:
+			_tilemap.character_body.global_position = _tilemap.get_tile_world_centre(tile)
+			# The camera moves with the character at the end of the frame.
+			await wait_process_frames(2)
+			var bare: Array[String] = []
+			for point: Vector2 in edge_points:
+				var cell: Vector2i = _tilemap.visible_map.local_to_map(_tilemap.visible_map.get_global_transform_with_canvas().affine_inverse() * point)
+				var cube: Vector3i = _tilemap.visible_map.map_to_cube(cell)
+				if _tilemap.get_fog_tier_at(cube) == -1 and not seen.has(cube):
+					bare.append("%s at %s" % [cube, point])
+			assert_eq(bare, [] as Array[String], "zoom %s, the player on %s: no bare ground on screen" % [zoom, tile])
 
 #-----------------------------------------------------------------------------
 # FOG
@@ -464,6 +600,67 @@ func test_boss_push_returns_the_camera_to_its_offset() -> void:
 	assert_eq(_tilemap.get_current_tile(), START, "precondition: the walk went on to the start")
 	assert_eq(camera.offset, AdventureTilemap.CAMERA_OFFSET, "the push ends on the camera's own offset")
 	assert_eq(camera.position, Vector2.ZERO, "and the camera still sits on the character")
+
+## The same at zoom 2: the push starts from and returns to the offset for the
+## zoom, (0, 35), not the zoom 1 offset, so the current hex is back at
+## (960, 470) when it ends.
+func test_boss_push_returns_the_camera_to_the_zoom_correct_offset() -> void:
+	var camera: Camera2D = _camera()
+	_start()
+	await _zoom_to(2.0)
+	var home: Vector2 = AdventureTilemap.camera_offset_for(2.0)
+	assert_eq(camera.offset, home, "precondition: (0, 35) at zoom 2")
+	watch_signals(_tilemap)
+	await _walk_to(FIGHT)
+	assert_signal_emitted(_tilemap, "boss_revealed", "precondition: visiting FIGHT reveals the boss")
+	assert_lt(camera.offset.distance_to(home), 5.0, "the push starts from the zoom's offset")
+
+	await get_tree().create_timer(0.3, true, false, true).timeout
+	var view_from_character: Vector2 = camera.global_position + camera.offset - _tilemap.character_body.global_position
+	assert_gt(view_from_character.distance_to(home), 10.0, "precondition: mid-push, the view has moved toward the boss")
+
+	# The push takes 1.2 s of game time, its first 0.15 s of real time at a quarter speed.
+	await get_tree().create_timer(1.3, true, false, true).timeout
+	assert_eq(camera.zoom, Vector2(2, 2), "precondition: the zoom held")
+	assert_eq(camera.offset, home, "the push ends on the zoom's offset")
+	assert_lt(_screen_centre(FIGHT).distance_to(_hex_home()), 0.01, "so the current hex is at (960, 470)")
+
+## A zoom that starts while the push runs neither cancels the push nor is undone
+## by it: the offset is the zoom's own plus the push at every moment, so the
+## zoom's follow of the camera does not fight the tween, and the push still ends on
+## the offset for the zoom the camera ended at.
+func test_zooming_during_the_push_neither_fights_nor_cancels_it() -> void:
+	var camera: Camera2D = _camera()
+	_start()
+	watch_signals(_tilemap)
+	await _walk_to(FIGHT)
+	assert_signal_emitted(_tilemap, "boss_revealed", "precondition: visiting FIGHT reveals the boss")
+	_zoom_controller().set_zoom_level(2.0)
+
+	await get_tree().create_timer(0.4, true, false, true).timeout
+	var base: Vector2 = AdventureTilemap.camera_offset_for(camera.zoom.x)
+	assert_gt(camera.zoom.x, 1.8, "precondition: the zoom has all but arrived")
+	assert_lt(camera.zoom.x, 2.0, "precondition: and is still easing")
+	assert_gt(camera.offset.distance_to(base), 10.0, "the push goes on moving the view, on top of the zoom's offset, while the zoom eases")
+
+	await get_tree().create_timer(1.3, true, false, true).timeout
+	assert_eq(camera.zoom, Vector2(2, 2), "the zoom arrived")
+	assert_eq(camera.offset, AdventureTilemap.camera_offset_for(2.0), "and the push ended on the offset for it")
+
+## A stop at zoom 2 mid-push puts the camera back on the zoom's offset at once.
+func test_stop_mid_push_at_zoom_two_puts_the_camera_on_the_zooms_offset() -> void:
+	var camera: Camera2D = _camera()
+	_start()
+	await _zoom_to(2.0)
+	await _walk_to(FIGHT)
+	await get_tree().create_timer(0.3, true, false, true).timeout
+	assert_gt(camera.offset.distance_to(AdventureTilemap.camera_offset_for(2.0)), 10.0, "precondition: the push is under way")
+
+	_tilemap.stop_adventure()
+
+	assert_eq(camera.offset, AdventureTilemap.camera_offset_for(2.0), "the camera is back on the zoom's offset at once")
+	await get_tree().create_timer(1.0, true, false, true).timeout
+	assert_eq(camera.offset, AdventureTilemap.camera_offset_for(2.0), "and the push does not carry on")
 
 ## A run that stops mid-push leaves the camera on its offset, and the push
 ## does not carry on afterwards.

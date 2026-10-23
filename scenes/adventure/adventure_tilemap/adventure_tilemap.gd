@@ -8,13 +8,15 @@ extends Node2D
 ## boss reveal, redraws) through signals, and answers the boards' questions about
 ## the map through getters.
 ##
-## Draws the map in the zone map's lacquer look at a fixed zoom 1 (spec: The
-## map): the map ground; fog in three tiers around the tiles the player sees,
-## out past the map's reach, so the map's shape stays hidden; visited tiles in
-## the forest atlas and revealed ones in its veil; the current hex's brass rim
-## and a hover rim; the route dots of a hovered or committed walk; and the
-## character at 2x with the kit's shadow, walking in even px under a camera
-## that follows it with the current hex's centre at screen (960, 470). The
+## Draws the map in the zone map's lacquer look (spec: The map): the map
+## ground; fog in three tiers around the tiles the player sees, out past the
+## map's reach, so the map's shape stays hidden; visited tiles in the forest atlas
+## and revealed ones in its veil; the current hex's heavier brass rim and a hover
+## rim; the route dots of a hovered or committed walk; and the character at 2x
+## with the kit's shadow, walking in even px under a camera that follows it with
+## the current hex's centre at screen (960, 470). The camera opens at zoom 1 and
+## the wheel zooms it from 1 to 2 (a CameraZoomController, as the zone map's);
+## its offset follows the zoom so the current hex stays at (960, 470). The
 ## encounters are marked by the lacquer coins of the AdventureMapMarkers layer,
 ## a child that reads this map's getters and signals.
 
@@ -73,8 +75,10 @@ const VEIL_ATLAS_SOURCE_ID: int = 9
 ## covered wherever the camera follows the player.
 const FOG_MARGIN: int = 8
 
-## The camera's offset from the character it follows: at zoom 1 it puts the
-## current hex's centre at screen (960, 470), clear of the dock.
+## The camera's offset from the character it follows at zoom 1: it puts the
+## current hex's centre at screen (960, 470), clear of the dock. The offset is in
+## world px, so at other zooms camera_offset_for() gives the offset that keeps
+## the hex there.
 const CAMERA_OFFSET: Vector2 = Vector2(0, 70)
 
 # Character movement speeds
@@ -114,6 +118,7 @@ enum HighlightType {
 @onready var _hover_rim: Sprite2D = %HoverRim
 @onready var _route: AdventureRoute = %AdventureRoute
 @onready var _camera: Camera2D = %Camera2D
+@onready var _zoom_controller: CameraZoomController = %CameraZoomController
 
 var _boss_revealed: bool = false
 
@@ -175,6 +180,15 @@ var _pointer_on_map: bool = true
 ## The boss reveal's camera push while it runs, or null.
 var _camera_push_tween: Tween = null
 
+## How far the boss reveal's push has moved the camera's offset, in world px, on
+## top of the offset for the zoom (zero at rest). The push tweens this, not the
+## offset itself, so the offset is always the zoom's own plus the push: a zoom
+## that eases while a push runs, and the push, never fight over it.
+var _camera_push: Vector2 = Vector2.ZERO:
+	set(value):
+		_camera_push = value
+		_apply_camera_offset()
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -204,9 +218,11 @@ func _ready() -> void:
 	adventure_map_generator = AdventureMapGenerator.new()
 	adventure_map_generator.set_tile_map(full_map)
 	
-	# The camera follows the character at zoom 1 (its default; no zoom
-	# controller), offset so the current hex sits above the dock.
-	_camera.offset = CAMERA_OFFSET
+	# The camera follows the character, offset so the current hex sits above the
+	# dock at any zoom: the offset follows the camera's own zoom as the controller
+	# eases it.
+	_zoom_controller.zoom_applied.connect(_on_camera_zoom_applied)
+	_apply_camera_offset()
 
 ## While a walk is committed, hides the route dots the character has passed.
 func _process(_delta: float) -> void:
@@ -231,6 +247,7 @@ func start_adventure(action_data: AdventureActionData) -> void:
 ## caller's alone.
 func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictionary[Vector3i, AdventureEncounter]) -> void:
 	current_adventure_action_data = action_data
+	_reset_camera_zoom()
 	_encounter_tile_dictionary = encounters.duplicate()
 	# A new run has no fight or talk under way, whatever the last one ended in
 	# (a boss win ends the run before its fight lets go of its choice), so
@@ -428,6 +445,12 @@ func get_tile_world_centre(coord: Vector3i) -> Vector2:
 ## adventure runs.
 func get_fog_tier_at(coord: Vector3i) -> int:
 	return _fog_map.get_cell_source_id(full_map.cube_to_map(coord))
+
+## Returns the camera's offset for a zoom: CAMERA_OFFSET's 70 screen px as world
+## px. The offset moves the view by offset times zoom px on screen, so this keeps
+## the current hex's centre at screen (960, 470) at every zoom.
+static func camera_offset_for(zoom: float) -> Vector2:
+	return CAMERA_OFFSET / zoom
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS - Summaries
@@ -756,23 +779,49 @@ func _play_boss_reveal(boss_cube: Vector3i) -> void:
 	get_tree().create_timer(0.15 * 0.25).timeout.connect(func(): Engine.time_scale = 1.0)
 
 	# Camera push toward the boss and back: 45% of the way from the camera
-	# to the boss tile, eased through the camera's offset, so the camera
-	# stays on the character even when the walk goes on meanwhile.
+	# to the boss tile, eased through the camera's offset (on top of the zoom's
+	# own, see _camera_push), so the camera stays on the character even when the
+	# walk goes on meanwhile.
 	var push: Vector2 = (get_tile_world_centre(boss_cube) - _camera.global_position) * 0.45
 	_stop_camera_push()
 	_camera_push_tween = create_tween()
 	_camera_push_tween.set_trans(Tween.TRANS_CUBIC)
 	_camera_push_tween.set_ease(Tween.EASE_OUT)
-	_camera_push_tween.tween_property(_camera, "offset", CAMERA_OFFSET + push, 0.5)
-	_camera_push_tween.tween_property(_camera, "offset", CAMERA_OFFSET, 0.7)
+	_camera_push_tween.tween_property(self, "_camera_push", push, 0.5)
+	_camera_push_tween.tween_property(self, "_camera_push", Vector2.ZERO, 0.7)
 
 ## Ends the boss reveal's camera push at once (if one runs) and puts the
-## camera back on its offset.
+## camera back on the offset for its zoom.
 func _stop_camera_push() -> void:
 	if _camera_push_tween != null and _camera_push_tween.is_valid():
 		_camera_push_tween.kill()
 	_camera_push_tween = null
-	_camera.offset = CAMERA_OFFSET
+	_camera_push = Vector2.ZERO
+
+## Puts the camera's offset where the zoom it has now and the push in progress
+## call for: the offset for the zoom, plus the push.
+func _apply_camera_offset() -> void:
+	if _camera == null:
+		return
+	_camera.offset = camera_offset_for(_camera.zoom.x) + _camera_push
+
+## Puts the camera at the zoom the zoom controller opens at, at once. The map and
+## its camera outlive a run, and a run opens at today's density whatever zoom
+## the last one was left at.
+func _reset_camera_zoom() -> void:
+	var level: float = _zoom_controller.zoom_default
+	_camera.zoom = Vector2(level, level)
+	_zoom_controller.set_zoom_level(level)
+	_apply_camera_offset()
+
+## The camera's zoom changed a step: the offset follows at once, in the same
+## frame, before anything is drawn. The zoom moved the map under a still pointer,
+## so while a run is on the hover is laid again for the cell the pointer now rests
+## over, as it is when a walk ends.
+func _on_camera_zoom_applied(_zoom: Vector2) -> void:
+	_apply_camera_offset()
+	if current_adventure_action_data != null:
+		_rehover_pointer_cell()
 
 ## Process the next tile in the visitation queue
 func _process_next_visitation() -> void:

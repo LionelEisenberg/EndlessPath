@@ -20,7 +20,13 @@ extends Node
 # SIGNALS
 #-----------------------------------------------------------------------------
 
+## The target zoom changed: the zoom the camera is easing to.
 signal zoom_changed(new_zoom: Vector2)
+## The camera's own zoom changed: after every eased step and the final snap, with
+## the zoom the camera has now. Whatever must keep step with what is drawn, as
+## the adventure map's camera offset does, follows this one; zoom_changed only
+## says where the camera is heading.
+signal zoom_applied(new_zoom: Vector2)
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -122,3 +128,4 @@ func _update_zoom(delta: float) -> void:
 		camera.zoom = target_zoom
 	else:
 		camera.zoom = camera.zoom.slerp(target_zoom, zoom_speed * delta)
+	zoom_applied.emit(camera.zoom)

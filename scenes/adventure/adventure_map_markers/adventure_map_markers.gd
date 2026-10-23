@@ -19,9 +19,12 @@ extends Node2D
 ## camera's), so its children draw in the viewport's own px, crisp and at their
 ## own size at any zoom, and a coin's position is where it is drawn.
 ## Every frame each coin follows its hex through the map's canvas transform and
-## sits 8 px above the hex's centre, or COIN_RISE_HERE on the hex the player
-## stands on, clear of the character's head. Coins keep their size at the map's
-## zoom 1 and show and go outright: no pop-in, stagger or fade.
+## sits 8 px above the hex's centre at zoom 1, or COIN_RISE_HERE on the hex the
+## player stands on, clear of the character's head. Coins keep their size at any
+## zoom (the map zooms from 1 to 2); only their rise grows with it (rise_for()),
+## so a coin sits at the same place on its hex and the one over the player's hex
+## still clears the head, which is twice as high on screen at zoom 2. Coins show
+## and go outright: no pop-in, stagger or fade.
 ## Instanced by AdventureTilemap, which it reads through map. The camera that
 ## follows the map's character moves when the character does, ahead of _process,
 ## and when a tween eases its offset (the boss reveal's push), after it. So the
@@ -43,12 +46,23 @@ extends Node2D
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## How far a coin's centre sits above its hex's centre, in px.
+## How far a coin's centre sits above its hex's centre at zoom 1, in screen px. It
+## grows with the zoom (rise_for()).
 const COIN_RISE: float = 8.0
-## The same on the hex the player stands on. The game's character stands on its
-## tile's centre with its head 16 px above it, higher than the mock-up draws it,
-## so the coin rises 56 to keep 14 px clear of the head.
-const COIN_RISE_HERE: float = 56.0
+## The disc's half height, in px: a coin over the player's hex rises this far to
+## clear the head with its bottom edge.
+const COIN_HALF_HEIGHT: float = 26.0
+## How high the character's head is above its tile's centre at zoom 1, in screen px.
+## The game's character (scale 2) stands on its tile's centre with its head 16 px
+## above it, higher than the mock-up draws it, and the head is twice as high on
+## screen at zoom 2.
+const CHARACTER_HEAD: float = 16.0
+## How much clear space the coin keeps over the head, in screen px at any zoom.
+const HEAD_CLEARANCE: float = 14.0
+## The same rise on the hex the player stands on, at zoom 1: the disc's half height,
+## the character's head and the clearance, 56 px. It grows with the zoom
+## (rise_for()), through the head only.
+const COIN_RISE_HERE: float = COIN_HALF_HEIGHT + CHARACTER_HEAD + HEAD_CLEARANCE
 ## From a coin's top-left to the centre of its 52 px disc.
 const COIN_CENTRE: Vector2 = Vector2(26, 26)
 
@@ -110,6 +124,18 @@ func rebuild() -> void:
 func get_coin(coord: Vector3i) -> EncounterCoin:
 	return _coins.get(coord, null) as EncounterCoin
 
+## Returns how far a coin's centre sits above its hex's centre, in screen px, when
+## the map is drawn at `zoom`. On a hex the player is not on it is COIN_RISE times
+## the zoom, so the coin keeps its place on a hex that grows with the zoom. On the
+## player's hex (`on_the_players_hex`) it is the disc's half height, the
+## character's head (which grows with the zoom, the character being drawn at it)
+## and the clearance, so the coin never touches the head. At zoom 1 these are 8
+## and 56 px.
+static func rise_for(zoom: float, on_the_players_hex: bool) -> float:
+	if on_the_players_hex:
+		return COIN_HALF_HEIGHT + CHARACTER_HEAD * zoom + HEAD_CLEARANCE
+	return COIN_RISE * zoom
+
 ## How many coins are on the map.
 func get_coin_count() -> int:
 	return _coins.size()
@@ -150,20 +176,22 @@ func _remove_coin(coord: Vector3i) -> void:
 # PLACEMENT
 #-----------------------------------------------------------------------------
 
-## Puts every coin over its hex: the disc's centre COIN_RISE above the hex's
-## screen centre (COIN_RISE_HERE on the hex the player stands on), the 54 px
-## frame's top-left 26 px up and left of that, in whole px. The layer first
-## stands in screen space: its transform cancels the viewport's canvas
-## transform, so a coin's position is its screen position. Runs every frame
-## in _process and again just before the frame is drawn.
+## Puts every coin over its hex: the disc's centre rise_for() above the hex's
+## screen centre (more on the hex the player stands on), the 54 px frame's top-left
+## 26 px up and left of that, in whole px. The layer first stands in screen space:
+## its transform cancels the viewport's canvas transform, so a coin's position is
+## its screen position, and the canvas transform's scale is the zoom the rise
+## follows. Runs every frame in _process and again just before the frame is drawn.
 func _place_coins() -> void:
 	if _coins.is_empty() or map == null or not map.is_inside_tree() or not map.is_node_ready():
 		return
-	global_transform = get_viewport().get_canvas_transform().affine_inverse()
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	global_transform = canvas_transform.affine_inverse()
+	var zoom: float = canvas_transform.get_scale().x
 	var canvas: Transform2D = map.get_global_transform_with_canvas()
 	var here: Vector3i = map.get_current_tile()
 	for coord: Vector3i in _coins:
-		var rise: float = COIN_RISE_HERE if coord == here else COIN_RISE
+		var rise: float = rise_for(zoom, coord == here)
 		_coins[coord].position = ((canvas * map.get_tile_world_centre(coord)) - COIN_CENTRE - Vector2(0, rise)).round()
 
 #-----------------------------------------------------------------------------
