@@ -2,9 +2,9 @@ class_name ZoneTransition
 extends Node
 
 ## ZoneTransition
-## Handles animated transitions out of the zone view.
-## Coordinates particle effects, camera zoom, and Madra spending
-## before switching to another view (adventure, cycling, etc.).
+## Handles the animated transition out of the zone view into an adventure.
+## Coordinates the Madra pellet drain, camera zoom, and Madra spending
+## before the adventure view opens.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
