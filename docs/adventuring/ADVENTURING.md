@@ -20,7 +20,7 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
 2. On click, the zone view locks input and the map's plates hide. Between 8 and 25 Madra pellets fly in 2 px steps from the cultivator cabinet's Madra orb to the character while the budget (`min(capacity, current Madra)`) is spent. The camera then zooms to 3× over 0.5 s and the adventure view opens.
 3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at 1/s. The adventure view keeps the zone view's frame:
    - The vitals cabinet (top left) shows Health and Madra on orbs and Stamina on a rod, each with `current / max`. In a fight, up to three buff sockets sit beside the Health figures.
-   - The chest (top right) is titled with the adventure's name. It holds the run clock (`M:SS`, `5:00` at the start; the clock's recess becomes a vermilion seal for the last 30 seconds), the Here tray for the tile the player stands on, the tile's lore and choice drawers, and the Run ledger (fights won of the map's fights, gold earned, tiles explored, and the run's loot).
+   - The chest (top right) is titled with the adventure's name. It holds the run clock (`M:SS`, counting down from the time limit. The seconds are cut, not rounded: a 300 s run reads `4:59` through its first second (`5:00` only on its very first frame) and `0:00` through its last. The clock's recess becomes a vermilion seal for the last 30 seconds), the Here tray for the tile the player stands on, the tile's lore and choice drawers, and the Run ledger (the fights fought of the map's fights, gold earned, tiles explored, and the run's loot).
    - The technique dock (bottom centre) previews the equipped loadout on the map (hover a slot to read the technique and see its cost).
    - The log and the Goals board stay where the zone view puts them: the log at the bottom left, Goals under the cabinet with its cords showing.
 4. The player starts on the origin tile:
@@ -32,6 +32,7 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
    - Clicking commits to that destination: the rim and dots lock on, and the character walks the A* route one tile at a time in even-pixel steps. Each step costs 5 Stamina, and longer routes move faster.
    - The dots behind the character hide one at a time as it walks.
    - Clicks are ignored while the character is moving.
+   - The hover goes when the pointer leaves the map, onto a board or out of the window, and comes back with the pointer: the rim and the dots of a committed walk stay.
 6. Arriving on a new tile marks it visited: its veil lifts into forest art and new neighbours are revealed. The first time the boss is revealed, time slows to 25% for 0.15 s, the boss coin appears and shakes in even-pixel steps, and the camera pushes 45% of the way toward the boss and back. Nothing flashes.
 7. Stepping onto an unvisited encounter tile stops the trip:
    - The Here tray names the tile: its glyph, its name, a tag (FIGHT, ELITE, BOSS, REST, TREASURE or TRAP) and one line, such as "Fight · Amorphous Spirit · 100 Health". Under it come the encounter's lore, a divider and one drawer per choice.
@@ -43,7 +44,7 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
    - A loss ends the adventure.
    - Other choices resolve immediately. For example, the Aura Well's Rest restores HP and Madra, and "Mark down the location" fires an unlock event.
 9. A resolved tile's coin turns carved, with its glyph in the kit's locked veil, and the Here tray reads CLEARED with a one-line summary: "Won · 15 gold" for a fight, what the effects say ("+10 Health") for other choices, or "Done". The lore switches to the completed text, the drawers go, and a walk hint ("Click a hex to walk · 5 Stamina a step · 16 steps left") shows. Walking back onto the tile shows the same. Gold, items and events are banked the moment they are earned and are kept even if the run is lost.
-10. With less than 5 Stamina, a click starts nothing and says so: the log reads "Too tired to walk · 5 Stamina a step" and the cabinet's Stamina row shakes. A route that runs dry partway stops at the tile reached, with the same line and shake.
+10. With less than 5 Stamina, a click starts nothing and says so: the log reads "Too tired to walk · 5 Stamina a step" and the cabinet's Stamina row shakes. A route that runs dry partway stops at the tile reached, with the same line and shake. The walk's rim and dots go, and the hover is laid again for the tile under the pointer, if it is over one.
 11. The run ends when:
     - the boss is defeated (VICTORY),
     - HP reaches 0 in combat (DEFEAT), or
@@ -374,6 +375,12 @@ tile_hovered(coord) — ignored while a destination is committed
   else → HoverRim on the tile (the bright rim over a visited tile, the inner rim over a revealed one);
          AdventureRoute.set_route(cube_pathfind(current, target))
 
+the map's SubViewportContainer: mouse_exited (the pointer went onto a board, or out of the window)
+  — the map's viewport hears nothing from a board, so the hex layer cannot report it —
+  hover rim hidden and route cleared, unless a destination is committed (its rim and route stay);
+  the hex layer forgets its last cell, so coming back onto it hovers it again
+  mouse_entered → the pointer is on the map again
+
 tile_clicked(coord)
   movement locked → log "Choose what to do here first"; walk_refused(&"encounter")
   queue non-empty or character moving → ignore, silently
@@ -384,7 +391,9 @@ tile_clicked(coord)
 
 _process_next_visitation()
   stamina ≥ 5 → spend 5, pop next tile, move_to_position(tile, 150 × (1 + 0.2 × (remaining + 1)) px/s)
-  stamina < 5 → clear queue, release commitment, same log line, walk_refused(&"stamina")
+  stamina < 5 → clear queue, release commitment, lay the hover again for the cell under the pointer
+                (rim and route from the tile reached; nothing if the pointer is off the map or over no tile),
+                same log line, walk_refused(&"stamina")
 
 _process() each frame → AdventureRoute.hide_passed(character position) while committed
 
@@ -397,7 +406,7 @@ movement_completed → _visit(tile)
               revisited: queue continues (the Here tray shows the tile's summary)
 ```
 
-Routes come from A* over `AdventureVisibleMap`. They can pass through revealed but unvisited tiles, and an unvisited encounter on the route stops the trip there. The character is drawn at scale 2 with the kit's shadow and walks in whole-pixel steps on the 2 px grid (`snap_walk_to_whole_px`, `walk_snap_px = 2.0`). Every refusal goes through `_refuse_walk()`, which writes the log line and emits `walk_refused(reason)`; `AdventureView` turns it into a shake (see [The Frame](#the-frame-cabinet-chest-and-dock)). `stop_adventure()` clears the queue and releases the destination before it stops the character, so a hop in flight cannot restart during the teardown.
+Routes come from A* over `AdventureVisibleMap`. They can pass through revealed but unvisited tiles, and an unvisited encounter on the route stops the trip there. The character is drawn at scale 2 with the kit's shadow and walks in whole-pixel steps on the 2 px grid (`snap_walk_to_whole_px`, `walk_snap_px = 2.0`). Every refusal goes through `_refuse_walk()`, which writes the log line and emits `walk_refused(reason)`; `AdventureView` turns it into a shake (see [The Frame](#the-frame-cabinet-chest-and-dock)). `stop_adventure()` ends the run first (it clears `current_adventure_action_data`), then clears the queue and releases the destination before it stops the character. A hop in flight cannot restart during the teardown, and the hop it cuts short arrives nowhere: `_on_character_movement_completed()` ignores a hop that ends with no run on, so the teardown visits no tile, reveals no boss (no hit-stop, no coin shake), announces no arrival, and tells the boards only of the redraw that clears the map.
 
 ### Resolving Encounters and Combat Hand-off
 
@@ -445,9 +454,9 @@ AdventureCombat.trigger_combat_end(is_successful, gold)
 | `run_stats_changed` | `AdventureView` | `ExpeditionPage.set_run_stats(...)`. Fires after `map_changed`, a fight's end and an item award, while a run is on |
 | `ability_selected(instance)` | `TechniqueDock` | `AdventureCombat.on_player_ability_selected`, connected for each fight (see [COMBAT.md](../combat/COMBAT.md)) |
 
-- **Vitals cabinet** (`VitalsPlate`, at (24, 24), 440×252, `lacquer_cult_ai.png`). The Health and Madra orbs are the kit's orb frame under `lacquer_madra_orb.gdshader` (Health sets the crimson ramp `#FFD9D2 #E8737A #B8304A` on its own material, Madra keeps the shader's Madra colours), each with `current / max` beside it; Health shows `ceili(current)`, the others `floori(current)`. The Stamina row is a mini bolt, a `LacquerRod` (119 steps) and `current / max`. `setup_vitals(vitals_manager)` runs at every run's start and follows the three vitals signals. `bind_buffs(buff_manager)` and `unbind_buffs()` bracket a fight: up to three buff sockets (at (294, 52), (338, 52), (382, 52)) fill from the left, each with the buff's icon, a count seal while it stacks and a brass flash when it lands. Hovering one opens a `BuffTooltip` at the cabinet's right: the name, whole seconds left, stacks and `BuffEffectData.describe()`. The plate hides the tooltip when its buff ends.
+- **Vitals cabinet** (`VitalsPlate`, at (24, 24), 440×252, `lacquer_cult_ai.png`). The Health and Madra orbs are the kit's orb frame under `lacquer_madra_orb.gdshader` (Health sets the crimson ramp `#FFD9D2 #E8737A #B8304A` on its own material, Madra keeps the shader's Madra colours), each with `current / max` beside it; Health shows `ceili(current)`, the others `floori(current)`. The Stamina row is a mini bolt, a `LacquerRod` (119 steps) and `current / max`. `setup_vitals(vitals_manager)` runs at every run's start and follows the three vitals signals. `bind_buffs(buff_manager)` and `unbind_buffs()` bracket a fight: up to three buff sockets (at (294, 52), (338, 52), (382, 52)) fill from the left, each with the buff's icon, a count seal while it stacks and a brass flash when it lands. Hovering one opens a `BuffTooltip` at the cabinet's right: the name, whole seconds left, stacks and `BuffEffectData.describe()`, on a board 304 wide whose height is rounded up to an even number, so its bottom edge stays on the 2 px grid. The plate hides the tooltip when its buff ends.
 - **Chest** (`AdventureChest`, at (1456, 24), 440 wide). The zone chest's frame (a 128 px top, a tiled middle, a 48 px bottom), the title (the adventure's name in `LabelLacquerZoneName`, ellipsized at 312 px), the run clock and a page slot (408 wide at chest-local (16, 82)) holding the visible `AdventureChestPage`. The chest is `max(176, 82 + the page's content height + 24)` tall, rounded to an even number, and lays itself out again when the page emits `content_resized` or is shown or hidden. The expedition page is the only page today.
-- **Run clock** (`RunClock`, 88×36 at chest-local (336, 22)). `M:SS` from the run's Timer (`format_time()` cuts to whole seconds), read every frame while the Timer runs. At 30 s or less the carved recess becomes the vermilion seal, with the same cream text; nothing flashes. A stopped Timer leaves the last time showing.
+- **Run clock** (`RunClock`, 88×36 at chest-local (336, 22)). `M:SS` from the run's Timer (`format_time()` cuts to whole seconds). `bind_timer()` paints it at once, so a new run's first frame never shows the last one's end (after a timeout, `0:00` on the seal); then it is read every frame while the Timer runs. At 30 s or less the carved recess becomes the vermilion seal, with the same cream text; nothing flashes. A stopped Timer leaves the last time showing.
 - **Expedition page** (`ExpeditionPage`). The Here tray names the tile, and a flow under it holds the lore, the walk hint, a divider, the choice drawers and the Run ledger:
 
   | Standing on | Name | Tag | Line |
@@ -460,7 +469,7 @@ AdventureCombat.trigger_combat_end(is_successful, gold)
   - The glyph is the encounter's own, frame 0 (`EncounterCoin.glyph_for()`). The Health figure is `VitalsManager.max_health_for(enemy.attributes)` (Body × 10), the rule the fight itself uses.
   - An unresolved tile shows its `description` as lore, a divider and one `ChoiceDrawer` per choice (at most three; more are left out with a `Log.warn`). A resolved tile shows `text_description_completed` ("Encounter completed." when empty), the walk hint ("Click a hex to walk · 5 Stamina a step · <n> steps left", from the current Stamina, kept current as it changes) and no drawers. Open ground shows neither.
   - A drawer (`ChoiceDrawer`, 392×72, the zone chest's drawer face) shows the choice's glyph (the story icon for a `DialogueChoice`), its `label`, a tag (FIGHT for a `CombatChoice`, TALK for a `DialogueChoice`) and a detail line: the choice's `tooltip`, or for a combat choice without one "Uses <the enemy's techniques> · <gold> gold if you win". It is available, locked (`not evaluate_requirements()`: tan title, the LOCKED seal, no press) or completed (`is_completed()`: the `completed_label` in tan, no press). Completed outranks locked, because a choice such as the Aura Well's "Mark down the location" fails its own requirement the moment it is done. Hovering an available drawer frames it; pressing it emits `choice_selected`.
-  - The Run ledger shows fights won of the map's fights, gold earned this run, tiles explored of the map's tiles (each with its icon), and a "Loot" row of six sockets with the run's latest item awards, newest last. All six sockets are always there; empty ones are carved recesses.
+  - The Run ledger shows the fights fought of the map's fights (every fight that ends counts, and a lost one ends the run), gold earned this run, tiles explored of the map's tiles (each with its icon), and a "Loot" row of six sockets with the run's latest item awards, newest last. All six sockets are always there; empty ones are carved recesses.
   - `shake_here()` shakes the Here tray in the zone map's lock-shake steps.
 - **Technique dock** (`TechniqueDock`, at (722, 920)). On the map it previews the equipped loadout; in a fight it is the player's technique bar. See [COMBAT.md](../combat/COMBAT.md#technique-dock).
 
@@ -637,14 +646,14 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | 1 | Refugee camp eligibility before and after `merchant_discovered` |
 | `tests/integration/test_adventure_end_flow.gd` | 2 | The real `AdventureView`, started through `ActionManager`: a timeout ends the run with "Time ran out"; a boss win ends it once, as a victory, without the boss choice's failure effects |
 | `tests/integration/adventure_map_fixture.gd` | — | The shared fixture (no `test_` prefix, so GUT does not run it): a six-tile map with a fight, a rest site and a boss, plus the click and vitals helpers |
-| `tests/integration/test_adventure_tilemap_events.gd` | 20 | `AdventureTilemap`'s arrivals, refusals, resolutions and summaries, the map getters, the choice guard and stopping mid-walk |
+| `tests/integration/test_adventure_tilemap_events.gd` | 21 | `AdventureTilemap`'s arrivals, refusals, resolutions and summaries, the map getters, the choice guard and stopping mid-walk (also mid-hop into an unvisited tile: no arrival, boss reveal or hit-stop) |
 | `tests/integration/test_adventure_map_render.gd` | 19 | The zoom-1 map: camera, fog tiers and reach, veil and forest sources, rims, the route on hover, the 2x character on even px, the boss reveal's hit-stop and camera push |
 | `tests/integration/test_adventure_map_markers.gd` | 21 | The coin layer: a coin per seen tile and state, the current tile's rise, following the camera, the dev reveal round trip, stopping |
-| `tests/integration/test_vitals_plate.gd` | 38 | The cabinet: figures, orbs, buff sockets and their tooltip, the Stamina shake, layout |
-| `tests/integration/test_adventure_chest.gd` | 25 | The chest: title, run clock, hugging the visible page |
+| `tests/integration/test_vitals_plate.gd` | 39 | The cabinet: figures, orbs, buff sockets and their tooltip (an even height), the Stamina shake, layout |
+| `tests/integration/test_adventure_chest.gd` | 27 | The chest: title, run clock (painted when its timer is bound), hugging the visible page |
 | `tests/integration/test_expedition_page.gd` | 105 | The Here tray, the drawers and their states, the Run ledger, the shake, long texts |
 | `tests/integration/test_technique_dock.gd` | 31 | The dock: slot states, the sweep, the cast tray, refused and accepted presses, keys, the tooltip |
-| `tests/integration/test_adventure_view_frame.gd` | 14 | The real `AdventureView`: the boards' wiring, presses that stop at the boards, the fight's binding, the run's figures, a second run starting clean |
+| `tests/integration/test_adventure_view_frame.gd` | 19 | The real `AdventureView`: the boards' wiring, presses that stop at the boards, the hover going when the pointer leaves the map and laid again after a Stamina stop, the fight's binding, the run's figures, a second run starting clean |
 
 ### Related Design Docs
 

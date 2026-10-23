@@ -156,9 +156,10 @@ func show_resolved(summary: String) -> void:
 	_show_cleared(summary)
 	content_resized.emit()
 
-## Shows the run so far: fights won of the fights on the map, gold earned,
-## tiles explored of the tiles on the map, and the run's loot, oldest first. The
-## six sockets hold the latest six items; the rest are empty.
+## Shows the run so far: fights fought of the fights on the map (the view counts
+## every fight that ends, a lost one included), gold earned, tiles explored of
+## the tiles on the map, and the run's loot, oldest first. The six sockets hold
+## the latest six items; the rest are empty.
 func set_run_stats(fights: int, fights_total: int, gold: int, explored: int, explored_total: int, loot: Array[ItemDefinitionData]) -> void:
 	_fights_value.text = "%d / %d" % [fights, fights_total]
 	_gold_value.text = str(gold)
