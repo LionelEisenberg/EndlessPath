@@ -420,7 +420,7 @@ func test_arrival_fills_the_here_tray() -> void:
 	assert_eq(_page_text("NameLabel"), "Amorphous Spirit Attacks!", "the Here tray names the tile's encounter")
 	assert_true(_page_shows("Tag"), "with a tag")
 	assert_eq(_page_text("TagLabel"), "FIGHT", "for its kind")
-	assert_eq(_page_text("LineLabel"), "Fight · Amorphous Spirit · 100 Health", "and its line")
+	assert_eq(_page_text("LineLabel"), "Fight · Amorphous Spirit", "and its line")
 	var drawer: ChoiceDrawer = _page().get_drawer(0)
 	assert_true(drawer.visible, "a drawer offers its choice")
 	assert_eq((drawer.get_node("%Title") as Label).text, "Attack the Spirit")

@@ -6,10 +6,10 @@ extends AdventureChestPage
 ## 408 wide from the page slot's top-left corner:
 ## - The Here tray: the tile's name, a carved tag (the BOSS seal for a boss) and
 ##   one line, with the encounter's glyph in its socket. Standing on an
-##   unresolved encounter it names its kind (a fight also names the enemy and its
-##   Health); on a resolved one it reads CLEARED and the line is what the tile
-##   left behind; on open ground (a NoOp tile, or an encounter with no choices,
-##   as the map treats it) it reads "Open ground" in tan.
+##   unresolved encounter it names its kind (a fight also names the enemy); on a
+##   resolved one it reads CLEARED and the line is what the tile left behind; on
+##   open ground (a NoOp tile, or an encounter with no choices, as the map
+##   treats it) it reads "Open ground" in tan.
 ## - The encounter: its lore, then a divider and one ChoiceDrawer per choice (at
 ##   most MAX_DRAWERS) saying what each does. A resolved tile shows its completed
 ##   text and the walk hint instead, which counts the steps the player's Stamina
@@ -86,10 +86,8 @@ const NAME_GAP: float = 6.0
 # STATE
 #-----------------------------------------------------------------------------
 
-## The encounter the tray shows (show_resolved() resolves that one) and the
-## run's action, whose gold multiplier a fight's drawer counts in.
+## The encounter the tray shows (show_resolved() resolves that one).
 var _encounter: AdventureEncounter = null
-var _adventure_action: AdventureActionData = null
 ## The choices behind the shown drawers, in order, which a press picks from.
 var _shown_choices: Array[EncounterChoice] = []
 ## Where the tray rests, which the shake moves it from.
@@ -131,13 +129,14 @@ func _process(delta: float) -> void:
 #-----------------------------------------------------------------------------
 
 ## Shows the tile the player stands on. `encounter` is its encounter (null,
-## a NoOpEncounter, or one with no choices is open ground), `summary` the line
-## its resolved encounter left behind ("" while it is not resolved), and
-## `adventure_action` the run's action, whose gold multiplier a fight's drawer
-## counts in. Always replaces what the page showed, and emits content_resized.
-func show_tile(encounter: AdventureEncounter, summary: String, adventure_action: AdventureActionData) -> void:
+## a NoOpEncounter, or one with no choices is open ground) and `summary` the line
+## its resolved encounter left behind ("" while it is not resolved).
+## `_adventure_action` is the run's action, which the page no longer reads (a
+## fight's drawer used to count its gold multiplier in); it stays so the view's
+## call does not change. Always replaces what the page showed, and emits
+## content_resized.
+func show_tile(encounter: AdventureEncounter, summary: String, _adventure_action: AdventureActionData = null) -> void:
 	_encounter = encounter
-	_adventure_action = adventure_action
 	if _is_open_ground(encounter):
 		_show_open_ground()
 	elif summary.is_empty():
@@ -235,11 +234,11 @@ static func kind_tag(type: AdventureEncounter.EncounterType) -> String:
 	return ""
 
 ## Returns the Here tray's line for an unresolved encounter. A fight reads
-## "<kind> · <enemy> · <n> Health": the kind word, the name of the first enemy of
-## its first combat choice (the one AdventureCombat fights) and that enemy's max
-## Health as a whole number, by the same rule the fight uses
-## (VitalsManager.max_health_for()). Any other encounter, and a fight with no
-## enemy to name, reads its kind word.
+## "<kind> · <enemy>": the kind word and the name of the first enemy of its first
+## combat choice (the one AdventureCombat fights). The enemy's Health is left
+## out (it may come back as an unlockable; VitalsManager.max_health_for() is the
+## rule for it). Any other encounter, and a fight with no enemy to name, reads
+## its kind word.
 static func here_line(encounter: AdventureEncounter) -> String:
 	if encounter == null:
 		return ""
@@ -250,33 +249,18 @@ static func here_line(encounter: AdventureEncounter) -> String:
 		var combat := choice as CombatChoice
 		if combat == null or combat.enemy_pool.is_empty() or combat.enemy_pool[0] == null:
 			continue
-		var enemy: CombatantData = combat.enemy_pool[0]
-		var health: int = floori(VitalsManager.max_health_for(enemy.attributes))
-		return SEPARATOR.join([word, enemy.character_name, "%d Health" % health])
+		return SEPARATOR.join([word, combat.enemy_pool[0].character_name])
 	return word
 
-## Returns the detail line of a choice's drawer: its tooltip when it has one;
-## otherwise, for a combat choice, "Uses <techniques> · <gold> gold if you win",
-## with the first enemy's technique names and the gold the win pays
-## (AdventureCombat.gold_reward_for()); otherwise "". A fight against an enemy
-## with no techniques leaves the "Uses" part out, and one with no enemy at all
-## says nothing.
-static func choice_detail(choice: EncounterChoice, adventure_action: AdventureActionData) -> String:
+## Returns the detail line of a choice's drawer: its tooltip when it has one,
+## otherwise "". A fight says no more than any other choice: the techniques it
+## uses and the gold it pays are left out (AdventureCombat.gold_reward_for() is
+## the rule for the gold). `_adventure_action` is not read any more, since the
+## gold line was the only part of the line that depended on it.
+static func choice_detail(choice: EncounterChoice, _adventure_action: AdventureActionData = null) -> String:
 	if choice == null:
 		return ""
-	if choice.tooltip != "":
-		return choice.tooltip
-	var combat := choice as CombatChoice
-	if combat == null or combat.enemy_pool.is_empty() or combat.enemy_pool[0] == null:
-		return ""
-	var technique_names: PackedStringArray = PackedStringArray()
-	for ability: AbilityData in combat.enemy_pool[0].abilities:
-		if ability != null:
-			technique_names.append(ability.ability_name)
-	var gold_line: String = "%d gold if you win" % AdventureCombat.gold_reward_for(combat, adventure_action)
-	if technique_names.is_empty():
-		return gold_line
-	return SEPARATOR.join(["Uses " + ", ".join(technique_names), gold_line])
+	return choice.tooltip
 
 ## Returns the walk hint for the Stamina: the cost of a step and the whole
 ## steps the Stamina still buys.
@@ -358,7 +342,7 @@ func _set_up_drawers() -> void:
 			break
 		var index: int = _shown_choices.size()
 		_shown_choices.append(choice)
-		_drawers[index].setup(choice, _drawer_glyph(choice), _drawer_glyph_frame_size(choice), choice_detail(choice, _adventure_action))
+		_drawers[index].setup(choice, _drawer_glyph(choice), _drawer_glyph_frame_size(choice), choice_detail(choice))
 	_show_drawers(_shown_choices.size())
 
 ## Shows the first `count` drawers with the divider above them, and hides the rest.

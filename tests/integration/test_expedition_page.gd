@@ -20,7 +20,6 @@ const AMORPHOUS_SPIRIT_ENCOUNTER: AdventureEncounter = preload("res://resources/
 const COALESCING_SPIRIT_ENCOUNTER: AdventureEncounter = preload("res://resources/adventure/encounters/shallow_woods/combat_encounters/elite/coalescing_spirit_encounter.tres")
 const BOSS_ENCOUNTER: AdventureEncounter = preload("res://resources/adventure/encounters/shallow_woods/combat_encounters/manifested_spirit_encounter.tres")
 const AURA_WELL: AdventureEncounter = preload("res://resources/adventure/encounters/shallow_woods/special_encounters/aura_well_encounter.tres")
-const AMORPHOUS_SPIRIT: CombatantData = preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
 const SPIRIT_VALLEY_ADVENTURE: AdventureActionData = preload("res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres")
 const CRUDE_SCALE: ItemDefinitionData = preload("res://resources/items/consumables/crude_scale.tres")
 
@@ -290,22 +289,25 @@ func test_walk_hint_counts_whole_steps() -> void:
 	var cost: int = int(AdventureTilemap.MOVEMENT_STAMINA_COST)
 	assert_eq(ExpeditionPage.walk_hint(cost * 7.0), "Click a hex to walk · %d Stamina a step · 7 steps left" % cost, "the cost is the tilemap's")
 
-func test_here_line_for_a_fight_names_the_enemy_and_its_health() -> void:
+func test_here_line_for_a_fight_names_the_enemy() -> void:
 	var encounter: AdventureEncounter = _encounter(Type.COMBAT_REGULAR, "Wolves", [_combat_choice(_enemy("Grey Wolf", 12.0))])
-	assert_eq(ExpeditionPage.here_line(encounter), "Fight · Grey Wolf · 120 Health", "Body 12 is 120")
-	assert_eq(ExpeditionPage.here_line(AMORPHOUS_SPIRIT_ENCOUNTER), "Fight · Amorphous Spirit · 100 Health")
+	assert_eq(ExpeditionPage.here_line(encounter), "Fight · Grey Wolf")
+	assert_eq(ExpeditionPage.here_line(AMORPHOUS_SPIRIT_ENCOUNTER), "Fight · Amorphous Spirit")
 
-func test_here_line_health_is_the_rules_figure_as_a_whole_number() -> void:
+## The enemy's Health is not on the tray (it may come back as an unlockable). The
+## rule that finds it stays: VitalsManager.max_health_for(), tested in
+## test_fight_rules.gd.
+func test_here_line_leaves_the_enemys_health_out() -> void:
 	var enemy: CombatantData = _enemy("Big Beast", 10.15)
-	assert_eq(VitalsManager.max_health_for(enemy.attributes), 101.5, "precondition: Body 10.15 is 101.5 Health")
 	var encounter: AdventureEncounter = _encounter(Type.COMBAT_ELITE, "Beast", [_combat_choice(enemy)])
-	assert_eq(ExpeditionPage.here_line(encounter), "Elite · Big Beast · 101 Health", "shown whole, as the cabinet shows max Health")
+	assert_eq(ExpeditionPage.here_line(encounter), "Elite · Big Beast")
+	assert_false(ExpeditionPage.here_line(encounter).contains("Health"), "no Health figure")
 
 func test_here_line_uses_the_kind_of_the_encounter() -> void:
 	var enemy: CombatantData = _enemy("Grey Wolf")
-	assert_eq(ExpeditionPage.here_line(_encounter(Type.COMBAT_AMBUSH, "Ambush!", [_combat_choice(enemy)])), "Ambush · Grey Wolf · 100 Health")
-	assert_eq(ExpeditionPage.here_line(_encounter(Type.COMBAT_ELITE, "Alpha", [_combat_choice(enemy)])), "Elite · Grey Wolf · 100 Health")
-	assert_eq(ExpeditionPage.here_line(_encounter(Type.COMBAT_BOSS, "Boss", [_combat_choice(enemy)])), "Boss · Grey Wolf · 100 Health")
+	assert_eq(ExpeditionPage.here_line(_encounter(Type.COMBAT_AMBUSH, "Ambush!", [_combat_choice(enemy)])), "Ambush · Grey Wolf")
+	assert_eq(ExpeditionPage.here_line(_encounter(Type.COMBAT_ELITE, "Alpha", [_combat_choice(enemy)])), "Elite · Grey Wolf")
+	assert_eq(ExpeditionPage.here_line(_encounter(Type.COMBAT_BOSS, "Boss", [_combat_choice(enemy)])), "Boss · Grey Wolf")
 
 func test_here_line_for_the_rest_is_its_kind() -> void:
 	assert_eq(ExpeditionPage.here_line(AURA_WELL), "Rest")
@@ -322,34 +324,30 @@ func test_here_line_takes_the_first_combat_choice() -> void:
 	var first: CombatChoice = _combat_choice(_enemy("First", 11.0))
 	var second: CombatChoice = _combat_choice(_enemy("Second", 30.0))
 	var encounter: AdventureEncounter = _encounter(Type.COMBAT_REGULAR, "Two ways", [_plain_choice("Talk"), first, second])
-	assert_eq(ExpeditionPage.here_line(encounter), "Fight · First · 110 Health", "the first combat choice, not the first choice")
+	assert_eq(ExpeditionPage.here_line(encounter), "Fight · First", "the first combat choice, not the first choice")
 
 func test_choice_detail_prefers_the_tooltip() -> void:
 	var choice: CombatChoice = _combat_choice(_enemy("Wolf", 10.0, ["Bite"]), "Fight", "Wolves hunt in packs.")
 	assert_eq(ExpeditionPage.choice_detail(choice, null), "Wolves hunt in packs.", "the author's words win over the derived line")
 	assert_eq(ExpeditionPage.choice_detail(AURA_WELL.choices[0], null), "Draw on the well's aura to restore yourself.")
 
-func test_choice_detail_for_a_fight_lists_techniques_and_gold() -> void:
+## A fight says no more than any other choice: not the techniques its enemy uses
+## and not the gold a win pays (AdventureCombat.gold_reward_for(), tested in
+## test_fight_rules.gd, is no longer quoted here).
+func test_choice_detail_of_a_fight_is_empty_without_a_tooltip() -> void:
 	var choice: CombatChoice = _combat_choice(_enemy("Wolf", 10.0, ["Bite", "Howl"], 18))
-	assert_eq(ExpeditionPage.choice_detail(choice, null), "Uses Bite, Howl · 18 gold if you win")
-
-func test_choice_detail_gold_is_what_the_fight_pays() -> void:
-	var choice: CombatChoice = _combat_choice(_enemy("Wolf", 10.0, ["Bite"], 15), "Attack", "", 1.5)
+	assert_eq(ExpeditionPage.choice_detail(choice), "", "no techniques, no gold")
 	var action := AdventureActionData.new()
 	action.gold_multiplier = 2.0
-	assert_eq(AdventureCombat.gold_reward_for(choice, action), 45, "precondition: 15 x 1.5 x 2")
-	assert_eq(ExpeditionPage.choice_detail(choice, action), "Uses Bite · 45 gold if you win")
-	assert_eq(ExpeditionPage.choice_detail(choice, null), "Uses Bite · 22 gold if you win", "with no action, the action's x is 1")
+	assert_eq(ExpeditionPage.choice_detail(choice, action), "", "whatever the run's action pays")
+	assert_eq(ExpeditionPage.choice_detail(_combat_choice(_enemy("Statue", 10.0, [], 7))), "", "an enemy with no techniques")
+	assert_eq(ExpeditionPage.choice_detail(CombatChoice.new()), "", "nobody to fight")
 
 func test_choice_detail_of_other_choices_is_empty_without_a_tooltip() -> void:
 	assert_eq(ExpeditionPage.choice_detail(_plain_choice("Search"), null), "")
 	assert_eq(ExpeditionPage.choice_detail(_dialogue_choice("Talk"), null), "")
 	assert_eq(ExpeditionPage.choice_detail(_dialogue_choice("Talk", "Hear them out."), null), "Hear them out.")
 	assert_eq(ExpeditionPage.choice_detail(null, null), "")
-
-func test_choice_detail_of_a_fight_with_no_techniques_or_no_enemy() -> void:
-	assert_eq(ExpeditionPage.choice_detail(_combat_choice(_enemy("Statue", 10.0, [], 7)), null), "7 gold if you win", "nothing to list: just the gold")
-	assert_eq(ExpeditionPage.choice_detail(CombatChoice.new(), null), "", "nobody to fight, nothing to say")
 
 #-----------------------------------------------------------------------------
 # THE HERE TRAY
@@ -369,8 +367,6 @@ func test_a_new_page_starts_on_open_ground() -> void:
 	assert_eq(_shown_drawers(), 0)
 
 func test_fight_tile_here_tray() -> void:
-	var health: int = floori(VitalsManager.max_health_for(AMORPHOUS_SPIRIT.attributes))
-
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
 
 	assert_eq(_text("NameLabel"), "Amorphous Spirit Attacks!")
@@ -378,8 +374,7 @@ func test_fight_tile_here_tray() -> void:
 	assert_true(_shown("Tag"), "a fight carries its tag")
 	assert_eq(_text("TagLabel"), "FIGHT")
 	assert_false(_shown("BossSeal"))
-	assert_eq(_text("LineLabel"), "Fight · Amorphous Spirit · %d Health" % health)
-	assert_eq(_text("LineLabel"), "Fight · Amorphous Spirit · 100 Health", "Body 10")
+	assert_eq(_text("LineLabel"), "Fight · Amorphous Spirit", "the kind and the enemy, no Health")
 
 func test_fight_tile_shows_the_encounters_glyph_on_frame_zero() -> void:
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
@@ -434,14 +429,13 @@ func test_ambush_and_elite_tiles() -> void:
 	var enemy: CombatantData = _enemy("Grey Wolf", 12.0)
 	_page.show_tile(_encounter(Type.COMBAT_AMBUSH, "Ambush!", [_combat_choice(enemy)]), "", null)
 	assert_eq(_text("TagLabel"), "FIGHT", "an ambush is tagged as a fight")
-	assert_eq(_text("LineLabel"), "Ambush · Grey Wolf · 120 Health")
+	assert_eq(_text("LineLabel"), "Ambush · Grey Wolf")
 	assert_eq((_node("Glyph") as LacquerStripRect).strip, EncounterCoin.glyph_for(Type.COMBAT_AMBUSH, false), "it shows combat")
 
 	_page.show_tile(COALESCING_SPIRIT_ENCOUNTER, "", null)
 	assert_eq(_text("TagLabel"), "ELITE")
 	assert_true(_shown("Tag"))
-	assert_true(_text("LineLabel").begins_with("Elite · Coalescing Spirit · "))
-	assert_true(_text("LineLabel").ends_with(" Health"))
+	assert_eq(_text("LineLabel"), "Elite · Coalescing Spirit")
 
 func test_boss_tag_is_a_seal() -> void:
 	_page.show_tile(BOSS_ENCOUNTER, "", null)
@@ -449,7 +443,7 @@ func test_boss_tag_is_a_seal() -> void:
 	assert_true(_shown("BossSeal"), "the boss wears the vermilion seal")
 	assert_eq(_text("BossSealLabel"), "BOSS")
 	assert_false(_shown("Tag"), "not the carved tag")
-	assert_eq(_text("LineLabel"), "Boss · Amorphous Spirit · 100 Health")
+	assert_eq(_text("LineLabel"), "Boss · Amorphous Spirit")
 	assert_eq((_node("BossSeal") as TextureRect).texture.resource_path, SEAL_PATH)
 
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
@@ -615,26 +609,24 @@ func test_drawer_detail_uses_the_tooltip() -> void:
 	assert_eq(_drawer_detail(0), "Draw on the well's aura to restore yourself.")
 	assert_eq(_drawer_detail(1), "Commit the well's site to memory so you can find your way back.")
 
-func test_combat_drawer_lists_techniques_and_gold() -> void:
+## A fight's drawer has a title and a tag and nothing under the title: no
+## techniques, no gold (its choice has no tooltip).
+func test_combat_drawer_has_no_detail_without_a_tooltip() -> void:
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
 
 	assert_eq(_drawer_title(0), "Attack the Spirit")
-	assert_eq(_drawer_detail(0), "Uses Madra Lash · 15 gold if you win")
+	assert_eq(_drawer_detail(0), "")
 	assert_eq(_drawer_tag_text(0), "FIGHT")
 	assert_true(_drawer_tag_shown(0))
 
-func test_combat_drawer_gold_includes_the_adventure_actions_multiplier() -> void:
+func test_a_runs_action_changes_no_drawer() -> void:
 	var enemy: CombatantData = _enemy("Wolf", 10.0, ["Bite"], 15)
 	var action := AdventureActionData.new()
 	action.gold_multiplier = 2.0
 	_page.show_tile(_encounter(Type.COMBAT_REGULAR, "Wolf", [_combat_choice(enemy)]), "", action)
-	assert_eq(_drawer_detail(0), "Uses Bite · 30 gold if you win")
-
-	_page.show_tile(_encounter(Type.COMBAT_REGULAR, "Wolf", [_combat_choice(enemy)]), "", null)
-	assert_eq(_drawer_detail(0), "Uses Bite · 15 gold if you win", "with no action, x1")
-
+	assert_eq(_drawer_detail(0), "")
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", SPIRIT_VALLEY_ADVENTURE)
-	assert_eq(_drawer_detail(0), "Uses Madra Lash · %d gold if you win" % AdventureCombat.gold_reward_for(AMORPHOUS_SPIRIT_ENCOUNTER.choices[0], SPIRIT_VALLEY_ADVENTURE), "the real action's own multiplier")
+	assert_eq(_drawer_detail(0), "", "not the real action's either")
 
 func test_drawer_glyph_is_the_encounters_or_the_story_for_a_talk() -> void:
 	var encounter: AdventureEncounter = _encounter(Type.REST_SITE, "Camp", [_plain_choice("Rest"), _dialogue_choice("Talk to them")])

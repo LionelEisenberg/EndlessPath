@@ -1,12 +1,13 @@
 extends GutTest
 
-## The two rules a fight runs on and the adventure chest quotes: an enemy's max
-## Health (VitalsManager.max_health_for(), Body x 10) and what a win pays
+## The two rules a fight runs on: an enemy's max Health
+## (VitalsManager.max_health_for(), Body x 10) and what a win pays
 ## (AdventureCombat.gold_reward_for()). The chest's Here tray and choice drawers
-## ask these statics so the numbers they show are the numbers the fight uses.
-## The last test runs a real AdventureCombat fight, as
-## test_adventure_combat_victory_event.gd does, and checks that the gold the win
-## reports is the rule's.
+## no longer quote either figure (the developer asked for less in the chest), but
+## the rules stay for what may bring them back: the Health as an unlockable, the
+## gold on the opponent page's reward row. The last test runs a real
+## AdventureCombat fight, as test_adventure_combat_victory_event.gd does, and
+## checks that the gold the win reports is the rule's.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
