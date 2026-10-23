@@ -7,9 +7,9 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
-| Unit | `tests/unit/` | 71 | 751 |
+| Unit | `tests/unit/` | 71 | 754 |
 | Integration | `tests/integration/` | 37 | 541 |
-| **Total** | | **108** | **1292** |
+| **Total** | | **108** | **1295** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -23,14 +23,14 @@ Run on 2026-10-22, after the map-first zone view and the dead-code cleanup were 
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 108 / 1292 |
-| Passing / failing / pending or risky | 1292 / 0 / 0 |
-| Asserts | 6766 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 108 / 1295 |
+| Passing / failing / pending or risky | 1295 / 0 / 0 |
+| Asserts | 6795 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |
 | Exit code | 0 |
-| Wall time | About 70 s on this run (GUT's `Time` line). The zone view's scene tests await real frames and timers (walks, tweens, the 150 ms popover delay) |
+| Wall time | About 69 s on this run (GUT's `Time` line). The zone view's scene tests await real frames and timers (walks, tweens, the 150 ms popover delay) |
 
 Known noise in a green run:
 
@@ -140,7 +140,7 @@ tests/
 | Pattern | Example | Notes |
 |---------|---------|-------|
 | Fresh save per test | `_save_data = SaveGameData.new()` in `before_each()` | `SaveGameData.new()` appears in 51 files |
-| Swap one manager's save, restore it after | `test_award_attribute_effect_data.gd`, `test_zone_progression_data.gd`, `test_training_flow.gd` | Keep the original in a field and put it back in `after_each()`. This is the safe pattern. |
+| Swap one manager's save, restore it after | `test_award_attribute_effect_data.gd`, `test_zone_progression_data.gd`, `test_training_flow.gd`, `test_inventory_manager.gd` | Keep the original in a field and put it back in `after_each()`. This is the safe pattern. |
 | Bind several managers to one test save, restore them all after | `test_resource_manager.gd`, `tests/integration/test_adventure_flow.gd` | Swap every manager the code under test reaches, including the ones that react to its signals (`UnlockManager`, `EventManager`, `QuestManager`). Both also swap `CultivationManager.advancement_stage_resources` for a stub stage, so the caps don't depend on the developer's save |
 | Swap the global save and re-bind all managers | `PersistenceManager.save_game_data = SaveGameData.new()` then `PersistenceManager.save_data_reset.emit()` (`test_unlock_condition_item_owned.gd`; `test_change_vitals_effect_data.gd`, `test_cultivation_manager.gd`, `test_character_manager.gd` and `test_adventure_combat_victory_event.gd` also restore) | Handlers run in autoload order, so `CultivationManager` re-evaluates unlocks before `EventManager` re-binds |
 | Inject manager state directly | `CyclingManager._live_save_data`, `CyclingManager._techniques_by_id`, `QuestManager._quests_by_id`, `PathManager._all_trees`, `EventManager.live_save_data` | Some files null these in `after_each()` instead of restoring them, which leaks into later files. Nulling `EventManager.live_save_data` is behind the `event_progression on Nil` errors described above. |
@@ -162,11 +162,7 @@ The suite never uses GUT doubles, stubs or partial doubles (`double()`, `stub()`
 
 ### Avoid mirror tests
 
-A mirror test re-implements the production logic inside the test and asserts against that copy. The method itself is never called, so the test passes whatever production does. One file still has some:
-
-| File | Mirrored logic |
-|------|----------------|
-| `tests/unit/test_inventory_manager.gd` (12 of 31 tests) | The three `test_equip_item_*`, `test_unequip_to_specific_slot`, `test_unequip_empty_slot_does_nothing`, the two `test_move_equipment_*`, the three `test_award_material_*`, and `test_award_quest_item_new` / `_stacks` edit a local `InventoryData` by hand instead of calling `equip_item()`, `unequip_item_to_slot()`, `move_equipment()` or `award_items()` |
+A mirror test re-implements the production logic inside the test and asserts against that copy. The method itself is never called, so the test passes whatever production does. None are left: every suite calls the code it tests.
 
 New tests should call the real method on the autoload, with its state swapped as above. Keep the original reference and put it back in `after_each()`; never set an autoload's state to `null`.
 
@@ -178,7 +174,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | ResourceManager | `test_resource_manager` (39), `test_adventure_flow` (10), `test_quiet_madra` (13) | Madra add/spend/set with stage-cap clamping, gold, `award_resource()`, signals and log lines, the quiet-award and capped-add log rules, adventure capacity/budget/threshold and `can_start_adventure()`, capacity with an equipment Foundation bonus; `set_madra()` via `test_quest_manager` and the Madra trickle via `test_training_flow` | The known bugs in [RESOURCES.md](../infrastructure/RESOURCES.md#bugs): the 0 cap when the stage has no resource, `set_madra()` ignoring the cap |
 | CultivationManager | `test_cultivation_manager` (28), `test_cultivation_getters` (4) | The real `add_core_density_xp()` loop (carry-over, multi-level gains), its signals, path-point milestones per stage, stage names, `AdvancementStageResource.get_xp_for_level()`; `get_max_madra()`; `BREAKTHROUGH_LEVEL` pinned to 100 | The infinite loop when the stage has no resource, and the missing `SILVER` entry in `PATH_POINTS_PER_STAGE` ([CULTIVATION.md](../cultivation/CULTIVATION.md)) |
 | CharacterManager | `test_character_manager` (28), `test_character_attributes_data` (3), `test_award_attribute_effect_data` (3), `test_change_vitals_effect_data` (6), `test_character_book` (15) | Attribute data; the real `get_total_attributes_data()` with gear, both accessory slots, stacking and negative bonuses; equip/unequip; `add_base_attribute()` and its signal; the Character book | The `PlayerManager` / `VitalsManager` refresh on `base_attribute_changed` |
-| InventoryManager / InventoryData | `test_inventory_manager` (31), `_consumables` (14), `_consumable_hotbar` (7), `_pages` (3), `_restore` (4), `test_inventory_data_pagination` (4) | Unequip, unequip to a grid slot, accessory swap, award, `has_item`, quest items, consumables, hotbar, pages, restore | `move_equipment()` and `equip_item()`'s swap with an occupied slot (mirror tests only) |
+| InventoryManager / InventoryData | `test_inventory_manager` (34), `_consumables` (14), `_consumable_hotbar` (7), `_pages` (3), `_restore` (4), `test_inventory_data_pagination` (4) | Equip (including the swap with an occupied slot and the accessory slots), unequip, unequip to a grid slot, accessory swap, `move_equipment()`, awards of equipment, materials and quest items, `has_item`, consumables, hotbar, pages, restore | |
 | Inventory UI | `test_equipment_grid_pagination` (4), `test_equipment_drag_paging` (2), `test_equipment_filter` (4), `test_pagination_bar` (4), `test_sort_sub_banner` (2), `test_tab_banner_title` (2), `test_trash_slot_flow` (8), `test_item_detail_card` (2), `test_consumables_tab_hotbar_equip` (3), `test_journal_tab_render` (1) | Scene-level behaviour of tabs, grid, pagination, trash, detail card | `InventoryView` book open/close, materials tab |
 | Items | `test_equipment` (25), `test_consumable_definition_data` (7), `test_crude_scale_tres` (6), `test_quest_item_definition_data` (2), `test_item_definition_data` (5) | Definitions, tooltips, shipped Crude Scale values, `mini_icon` and its fallback | |
 | Items generator | `test_items_md_parser` (21) | `ItemsMdParser` | Writer `scripts/tools/items_md_to_resources.gd` |
@@ -228,7 +224,6 @@ New tests should call the real method on the autoload, with its state swapped as
 - `[MEDIUM]` Tests build `CombatantNode.new()` and add it to the tree before its manager children exist, which prints `Node not found: %VitalsManager ...`. Affects `tests/unit/test_combat_effect_types.gd`, `tests/integration/test_power_font_buff_strip.gd` and `tests/integration/test_empty_palm_interrupt.gd`. Instance the combatant scene, or add the managers before `add_child_autofree()`.
 - `[LOW]` Rename `TestRecordingEffect` in `tests/unit/test_quest_manager.gd`, for example to `RecordingEffect`, to clear the GUT inner-class warning.
 - `[LOW]` 24 Dialogic orphans per run come from the `Dialogic` autoload. GUT attributes them to `test_ability_manager.gd`.
-- `[LOW]` Rewrite the 12 mirror tests left in `test_inventory_manager.gd` to call the manager (see [Avoid mirror tests](#avoid-mirror-tests)).
 - `[LOW]` The book tests call GUT's deprecated `wait_frames()`, which prints 30 deprecation notices per run. GUT suggests `wait_physics_frames()` or `wait_process_frames()`.
 - `[LOW]` `CountingEffect` is duplicated in `test_consumable_definition_data.gd` and `test_inventory_manager_consumables.gd`, and there is no shared helper module.
 - `[LOW]` `PathManager._test_stage_override` is a test hook in production code.

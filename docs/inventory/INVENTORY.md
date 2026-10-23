@@ -456,7 +456,7 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
 
-Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`. That is 22 files and 158 tests.
+Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`. That is 22 files and 161 tests.
 
 ## Work Remaining
 
@@ -506,9 +506,7 @@ Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_d
 ### Tech Debt
 
 - `[MEDIUM]` **`EquipmentTab._remove_dragged_from_inventory_state()` mutates `InventoryData` directly** and emits `InventoryManager.inventory_changed` itself. Move this into an InventoryManager verb.
-- `[MEDIUM]` **`test_inventory_manager.gd` still has mirror tests.**
-  - 12 of its 31 tests edit a local `InventoryData` by hand instead of calling the manager: the three `test_equip_item_*`, `test_unequip_to_specific_slot`, `test_unequip_empty_slot_does_nothing`, the two `test_move_equipment_*`, the three `test_award_material_*`, and `test_award_quest_item_new` / `_stacks`. As a result, `move_equipment` and `equip_item`'s swap with an occupied slot are untested. `equip_item` into an empty slot is covered by `test_character_manager.gd` and `test_has_item_true_for_equipped_gear`.
-  - There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, `_quick_equip` (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
+- `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, `_quick_equip` (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
 - `[LOW]` **Two item-detail widgets exist.** `ItemDescriptionPanel` serves Equipment, Consumables and the end-card tooltip; `ItemDetailCard` serves only Materials. Their setup logic is duplicated, and `ItemDetailCard`'s doc comment wrongly says Consumables and the Journal use it.
 - `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop. The drag-preview code is duplicated in `ConsumableRow` and `HotbarSlot`.
 - `[LOW]` **Dead code:** `QuestJournalCard`'s `%Sub` label, which is always empty.
