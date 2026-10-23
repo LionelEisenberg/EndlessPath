@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-10-22 (the map-first zone view on `feat/zone-view-redesign-4656b7`, not merged)
+Last updated: 2026-10-23 (the lacquer cycling view on `feat/cycling-view-styleguide-ea3170`, not merged)
 
 This document covers the architecture of the EndlessPath codebase and the technical concerns that span several systems. The other entry points are:
 - [README.md](README.md): index of every doc.
@@ -16,11 +16,11 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~25.8k lines of game GDScript and ~14.7k lines of tests; 135 scenes; 102 authored `.tres` resources; 16 shaders (on the zone view branch) |
+| Code | ~25.8k lines of game GDScript and ~14.7k lines of tests; 135 scenes; 102 authored `.tres` resources (counted on the zone view branch); 15 shaders (counted on the cycling view branch) |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 99 scripts and 1148 tests, all passing on 2026-10-22 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 117 scripts and 1546 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
-| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/zone-view-redesign-4656b7`: the map-first lacquer zone view, built 2026-10-22 |
+| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/cycling-view-styleguide-ea3170`: the lacquer cycling view, built 2026-10-22 and 23 |
 
 ---
 
@@ -42,7 +42,7 @@ MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log pri
 │   ├── ZoneView                  base view: ZoneTransition, SubViewport (ZoneTilemap: map, fog, MapMarkers),
 │   │                             CultivatorPlate, ZonePanel (zone chest), Dock
 │   ├── AdventureView             adventure map + combat
-│   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by the base state, hidden under cycling and the shop
+│   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by the base state, hidden under the shop
 │   ├── QuestToast                z 10
 │   ├── GreyBackground            modal backdrop (z 2)
 │   ├── PathTreeView, AdventureEndCard, InventoryView, AbilitiesView, CharacterView, CyclingView (z 3)
@@ -55,11 +55,11 @@ The full tree, HUD placement and z-order are in [MAIN_VIEW.md](infrastructure/MA
 ### View State Machine
 
 `MainView` keeps a **base state** (`ZoneViewState` or `AdventureViewState`) and a **stack of overlay states**:
-- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `AdventureEndCardState`. Cycling and the merchant hide the HUD boards while open (`MainView.hide_hud_boards()`); the menu books and the end card leave them under the backdrop.
+- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `AdventureEndCardState`. The merchant hides the HUD boards while open (`MainView.hide_hud_boards()`); the menu books and the end card leave them under the backdrop. Cycling has no backdrop: its board sits in the map gap, and `MainView.set_cycling_mode()` turns the zone view's chest, dock and map over to it.
 - **Operations:** `change_state()` swaps the base and clears the stack, `push_state()` opens an overlay, and `pop_state()` closes it.
 - **Input:** only the current state receives it, through `_unhandled_input` → `handle_input()`.
 
-Menu overlays open from keyboard actions (I/A/C/P) or the zone view's `Dock`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. L opens the full log in either base view. Cycling, the merchant shop, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
+Menu overlays open from keyboard actions (I/A/C/P) or the zone view's `Dock`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. L opens the full log in either base view (not under a menu book or while cycling). Cycling, the merchant shop, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
 
 ### Singleton Managers
 
@@ -133,9 +133,9 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 | `ThemeConstants` | `scripts/utils/theme_constants.gd` | Colour constants for code-side styling |
 | `GreyBackground` | `scenes/ui/grey_background/` | Modal backdrop with `show_with_panel()` / `hide_with_panel()` fade orchestration |
 | `SystemMenuButton` | `scenes/ui/dock/system_menu_button/system_menu_button.gd` | Dock nav button. Its `MenuType` enum drives label, shortcut, icon and input action; `set_notification()` shows the ring and count seal |
-| Lacquer pieces | `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd` | `LacquerStripRect` (strip frames), `LacquerRod` (stepped rod), `LacquerFrameOverlay` (brass or hover frame, flashed), `LacquerRail` (scroll rail) and `LacquerText`, for the zone view and the HUD boards ([UI_STYLING.md](UI_STYLING.md)) |
-| `FlyingParticle` | `scenes/ui/flying_particle/` | Particle that flies to a target. Used by cycling Madra feedback |
-| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. Used for combat damage numbers and cycling feedback |
+| Lacquer pieces | `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd` | `LacquerStripRect` (strip frames), `LacquerRod` (stepped rod), `LacquerFrameOverlay` (brass or hover frame, flashed), `LacquerFloater` (a gain rising on a token), `LacquerRail` (scroll rail) and `LacquerText`, for the zone view and the HUD boards ([UI_STYLING.md](UI_STYLING.md)) |
+| `MadraPellet` | `scenes/zones/zone_transition/` | Opaque pellet that flies along a curve in 2 px steps. The adventure drain's pellets and the cycling view's Madra and XP pellets (`set_texture()` for the tier colours) |
+| `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. Used by the combat resource bars and orbs |
 | `Atmosphere` | `scenes/atmosphere/` | Vignette shader, drifting mist and floating motes. Used in the adventure view, tuned per scene with `@export` |
 | `HexHoverSelector` | `scenes/tilemaps/hex_hover_selector.gd` | Animated ring that snaps to the hovered hex. Used by the adventure tilemap; the zone map swaps hex rims instead |
 | `EncounterIcon` | `scenes/adventure/encounter_icon/` | Glyph for each encounter type (animated boss and rest glyphs). Used by tile icons and the floating `AdventureMarker` |
@@ -158,7 +158,7 @@ These issues span several systems, so no single system doc owns them. The detail
 | **Mirror tests** | About 114 tests in 5 files re-implement the logic they check instead of calling it: `test_resource_manager`, `test_cultivation_manager`, `test_character_manager`, `test_adventure_flow`, `test_adventure_combat_count`. ResourceManager, CultivationManager and CharacterManager are effectively untested. See [TESTING](testing/TESTING.md) | HIGH |
 | **Untyped ids** | Event ids, condition ids and unlock targets are strings, and no test checks that every gate's condition is registered, that every quest step's event has a producer, or that every path unlock id resolves. See [UNLOCKS](infrastructure/UNLOCKS.md), [EVENTS](infrastructure/EVENTS.md) | MEDIUM |
 | **Log volume** | `ResourceManager.add_madra()` logs every award that adds 1 Madra or more, about 12 lines/s while cycling Smooth or Torrential Flow, which push everything else off the five-line log board and out of `LogManager`'s 200-line history. The Aura Well trickle is quiet. Each `madra_changed` also re-evaluates every unlock condition. See [RESOURCES](infrastructure/RESOURCES.md), [LOGGING](infrastructure/LOGGING.md) | MEDIUM |
-| **Modal backdrop** | Found by code reading: after Path, Abilities or Character closes, `GreyBackground.self_modulate.a` stays 0. Later Inventory, Cycling and end-card overlays then show an invisible but click-blocking backdrop. See [MAIN_VIEW](infrastructure/MAIN_VIEW.md) | MEDIUM |
+| **Modal backdrop** | Found by code reading: after Path, Abilities or Character closes, `GreyBackground.self_modulate.a` stays 0. Later Inventory and end-card overlays then show an invisible but click-blocking backdrop. See [MAIN_VIEW](infrastructure/MAIN_VIEW.md) | MEDIUM |
 | **Tooling gotchas** | The first headless `--import` in a fresh checkout rewrote `project.godot`'s `[dialogic]` directory registry to `{}`, so revert it before committing. Editor, exported builds and GUT runs share one `user://` dir (save file, logs, dev password file). Green test runs print SCRIPT ERRORs and 24 Dialogic orphans. See [TESTING](testing/TESTING.md), [DEV_TOOLS](tooling/DEV_TOOLS.md) | MEDIUM |
 | **Shipping gaps** | No `export_presets.cfg`, no CI, and no audio assets or audio code | MEDIUM |
 
