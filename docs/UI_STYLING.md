@@ -1,5 +1,5 @@
 # UI Styling
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 All UI text in the game flows through a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`. Use variants instead of inline size overrides so the type hierarchy stays consistent and global tuning is possible in one place.
 
@@ -28,7 +28,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 | `LabelTitleSmall` | 40px | Gold | Secondary headers (the encounter panel, the consumables hotbar). The zone name now uses `LabelLacquerZoneName` |
 | `LabelHeading` | 36px | Gold | Subsection headings |
 | `LabelValueLarge` | 34px | Gold | Big value numbers |
-| `LabelBodyLarge` | 28px | Beige | Large body text (cycling resource panel; the unused InkbrushButton) |
+| `LabelBodyLarge` | 28px | Beige | Large body text (the unused InkbrushButton) |
 | `LabelMuted` | 26px | Tan | Secondary/muted text |
 | `LabelSubheading` | 24px | Tan | Subtitle text under titles |
 | `LabelBody` | 22px | Beige | Standard body text |
@@ -111,9 +111,9 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 | Variant | Base type | Style | Used by |
 |---------|-----------|-------|---------|
 | `ButtonEndCard` | `Button` | Scroll button styleboxes (`assets/styleboxes/buttons/scroll/`), 20px, cream font `#F0E0C2` | `AdventureEndCard` Return button |
-| `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige | `CyclingView` |
+| `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige | Nothing (the lacquer cycling board has no tabs; style guide row P1 clears it) |
 | `PanelAbilityCard` | `PanelContainer` | `abilities/card_normal.tres` (dark brown, 2px brown border) | Unused (the ability card it styled was replaced by `AbilityRow`) |
-| `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border) | `CyclingView` |
+| `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border) | Nothing (`CyclingView` was its last user) |
 | `PanelLootTray` | `PanelContainer` | `common/panel_loot_tray.tres` (translucent parchment) | `AdventureEndCard` |
 | `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill) | `StatLabel` |
 | `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) | Ability/buff tooltips, `CombatantInfoPanel`, `StatTooltip` (set in code) |
@@ -128,7 +128,7 @@ Base types without a variant:
 
 The map-first zone view ("Lacquer and brass") has its own theme, `assets/themes/lacquer/lacquer_theme.tres`. Sizes and colours come from the art kit's §2 and §3 ([2026-10-21-zone-view-lacquer-kit.md](superpowers/specs/2026-10-21-zone-view-lacquer-kit.md)).
 
-**Rule:** every zone-view panel (cultivator cabinet, Goals board, log board, dock, zone chest, map plates and popovers) sets `theme = lacquer_theme.tres` on its root and gives its Labels the `LabelLacquer*` variants below. Everything else (base types, `pixel_theme.tres`'s own variants) still falls back to `pixel_theme.tres`.
+**Rule:** every zone-view panel (cultivator cabinet, Goals board, log board, dock, zone chest, map plates and popovers), and the cycling board, sets `theme = lacquer_theme.tres` on its root and gives its Labels the `LabelLacquer*` variants below. Everything else (base types, `pixel_theme.tres`'s own variants) still falls back to `pixel_theme.tres`.
 
 How the theme is built, so a reused piece inside a lacquer panel keeps its own look:
 
@@ -145,7 +145,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 |---------|------------------------------|--------|---------|
 | `LabelLacquerZoneName` | Yatra 30 / 44, shadow | Brass | Zone name in the chest header |
 | `LabelLacquerPanelTitle` | Yatra 22 / 28, shadow | Brass | Panel titles: Goals, Log |
-| `LabelLacquerSection` | Yatra 20 / 24, shadow | Brass | The Activities header |
+| `LabelLacquerSection` | Yatra 20 / 24, shadow | Brass | The Activities and Techniques headers |
 | `LabelLacquerStage` | Yatra 21 / 28, shadow | Cream | Stage name ("Foundation") |
 | `LabelLacquerBig` | Euljiro 30 / 36 | Cream | The Madra value. The cabinet's `/ max` after it uses it too, with a tan colour override |
 | `LabelLacquerGold` | Euljiro 22 / 28 | Cream | The gold value |
@@ -164,7 +164,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerPlateLine` | Euljiro 14 / 18 | Cream | Map plate status lines |
 | `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |
 | `LabelLacquerPopoverBody` | Euljiro 15 / 20 | Cream | Map popover body text |
-| `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Map floaters on their lacquer token. No outline (`outline_size` set to 0): the kit's §0 dropped it when the floaters moved onto the token. A floater with a decimal (`+1.5 Madra`, Madra blue) needs the Yatra point, so it is a `RichTextLacquer` at 16 px instead (see below) |
+| `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Nothing today. `LacquerFloater` (the map's floater and the cycling zones') puts its text in a `RichTextLacquer` at 16 px instead (see below), so a decimal (`+1.5 Madra`, Madra blue) gets its Yatra point. No outline (`outline_size` set to 0): the kit's §0 dropped it when the floaters moved onto the token |
 
 `RichTextLacquer` (base `RichTextLabel`): BM Euljiro 15, tan, `line_separation` 1, so each line is 18 px (15/18), the first included. Use it for the few lines with a decimal number: BM Euljiro's `.` sits low and reads as a comma at 15–17 px, so `LacquerText.decimal_bbcode()` sets each decimal point in Yatra One (kit §3, glyph gaps). Set `bbcode_enabled`, `fit_content` and, for one-line text, `autowrap_mode` off.
 
@@ -183,10 +183,10 @@ All `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 
 | File | Texture | Margins | Fill | Use |
 |------|---------|---------|------|-----|
-| `frame_brass.tres` | `lacquer_frame_brass_ai.png` (24x24) | 8 | none | Flash frame on cards and the Now tray, pinned map plates |
-| `frame_hover.tres` | `lacquer_frame_hover_ai.png` (16x16) | 4 | none | Hover frame on cards, the Now tray, Show me, About |
+| `frame_brass.tres` | `lacquer_frame_brass_ai.png` (24x24) | 8 | none | Flash frame on cards, technique drawers and the Now tray, pinned map plates |
+| `frame_hover.tres` | `lacquer_frame_hover_ai.png` (16x16) | 4 | none | Hover frame on cards, technique drawers, the Now tray, the Auto toggle, Show me, About |
 | `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` (12x12) | top and bottom 4 | yes | The activity list's rail thumb, any even height of 32 or more |
-| `token.tres` | `lacquer_token_ai.png` (26x26) | left and top 6, right and bottom 8 | yes | The map floater's token. The 2 px shadow is baked into the right and bottom edges |
+| `token.tres` | `lacquer_token_ai.png` (26x26) | left and top 6, right and bottom 8 | yes | `LacquerFloater`'s token, for the map's floater and the cycling zones'. The 2 px shadow is baked into the right and bottom edges |
 
 `token.tres` also sets content margins 14, 4, 16 and 6 (left, top, right, bottom), so a `PanelContainer` with this style hugs one 20 px text line to the kit's token: 30 px tall (28 + the 2 px shadow), the text 14 px in and 4 px down, and text width + 30 wide (text + 28 + the shadow). A 16 px `RichTextLacquer` line is 20 px already (`test_token_hugs_a_floater_line`). A one-line `LabelLacquerFloater` is 19 px, so give it `custom_minimum_size.y = 20`. The kit rounds the token's width to even (`even(text + 28)`): the floater sets that width itself.
 
@@ -196,6 +196,8 @@ All `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 - **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Aura Well 152, milestone 138, adventure 74. It is `@tool`: in the editor a placed rod is the groove's size and shows empty. Its minimum size comes from `empty_texture`, so leave its size and `custom_minimum_size` alone.
 - **`LacquerFrameOverlay`** (`lacquer_frame_overlay.tscn`, a `Panel`): a full-rect frame over its parent, hidden, mouse ignored, brass by default. Override its `theme_override_styles/panel` with `frame_hover.tres` for the hover frame. `flash(times)` shows it 300 ms and hides it 300 ms, `times` times, and ends hidden. The ready adventure card shows one steadily (`ZoneActionButton.set_ready_frame()`); never animate a steady frame.
 - **`LacquerText`** (`scripts/utils/lacquer_text.gd`): `rate(1.5)` → `"+1.5"`, `rate(2.0)` → `"+2"`; `decimal_bbcode(text)` for `RichTextLacquer`.
+- **`LacquerFloater`** (`scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn`, promoted from the map's floater when the cycling view needed one per zone): a short gain on a lacquer token (`token.tres`). `pop(text, color)` shows it and `stop()` hides it. It rises 40 px over 1 s in 2 px steps (`rise_at(elapsed)`, `get_rise()`), then hides outright. It does not move itself: the placer positions it each frame and raises it by `get_rise()` (`MapMarkers` for the map's floater, `CyclingView` for each zone's). Its text is a `RichTextLacquer` at 16 px (a `normal_font_size` override) through `decimal_bbcode()`, in the colour given to `pop()`, not a `LabelLacquerFloater` Label, so a decimal point gets its Yatra point. The token is 28 px tall and `even(text width + 28)` wide, plus the baked 2 px shadow.
+- **Cycling pieces.** The cycling board sets `lacquer_theme.tres` on its root ([CYCLING.md](cycling/CYCLING.md)). Its action name and `Auto` label are `LabelLacquerDetail`, the technique's name `LabelLacquerPanelTitle`, `Esc` `LabelLacquerHotkey`, the status line `LabelLacquerName`, and the result line a `RichTextLacquer`. A `TechniqueDrawer` in the zone chest uses `LabelLacquerName` for the title, `LabelLacquerDetail` for the line, `LabelLacquerSeal` for NEW and `LabelLacquerTag` for IN USE (cream), with `frame_hover.tres` and `frame_brass.tres` overlays. `CyclingGroove` draws its cells in code from the `LACQUER_*` constants and needs no theme.
 - **`LacquerRail`** (`scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn`): the brass scroll rail (kit §4.4) that stands in for a `ScrollContainer`'s hidden scrollbar. `bind(host)` follows the host's scroll; it shows only while the content overflows, lights each end cap only when the list can scroll that way, sizes its thumb (`rail_thumb.tres`) from the visible share, and `step_to(target)` scrolls in six even-px steps over 200 ms. The zone chest's activity list uses it; the full log styles its own scrollbar's caps with the same textures.
 
 Tests: `tests/unit/test_lacquer_pieces.gd` checks every variant's font, size, colour and shadow, the line pitch measured on real Labels and RichTextLabels (decimal lines included), the tag indent, the styleboxes' margins, the token hugging a floater line, and the pieces.
@@ -256,7 +258,7 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 
 | Constant | Value | Matches in theme | Referenced in code |
 |----------|-------|------------------|--------------------|
-| `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | 6 times: `AbilitiesView`, `CyclingTechniqueSlot`, path tree nodes (`path_node_container.gd`, `path_node_ui.gd`). The lacquer dock buttons swap textures on hover instead |
+| `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | 3 times: the path tree nodes (`path_node_container.gd`, `path_node_ui.gd`). The lacquer dock buttons swap textures on hover instead |
 | `BORDER_PRIMARY` | `#C4884A` | `LabelSeparatorDot`, base `HSeparator` | 3 times |
 | `BG_MEDIUM` | `#3D2E22` | — | 2 times |
 | `TEXT_LIGHT` / `TEXT_MUTED` / `TEXT_DARK` | `#F0E8D8` / `#A89070` / `#1A1208` | Beige / tan / Label shadow | Unused |
@@ -265,8 +267,10 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | `BG_LIGHT`, `TINT_*`, `BORDER_SUBTLE`, `HOVER_BG`, `PRESSED_BG`, `DISABLED_*` | — | — | Unused |
 | `FONT_TITLE` 42 / `FONT_HEADING` 28 / `FONT_BODY` 20 / `FONT_LABEL` 16 / `FONT_CAPTION` 12 | — | **Do not match** the variant scale above | Unused |
 | `BORDER_WIDTH_*`, `CORNER_RADIUS_*`, `CONTENT_MARGIN_*` | — | — | Unused |
-| `LACQUER_INK` / `LACQUER_BRASS` / `LACQUER_CREAM` / `LACQUER_TAN` | `#150909` / `#D4A84A` / `#F0E8D8` / `#A89070` | The `LabelLacquer*` variants | Zone view panels (lacquer kit §2) |
-| `LACQUER_DIM` / `LACQUER_MADRA` / `LACQUER_VERMILION` | `#94806A` / `#BBD5E7` / `#A83C30` | — | Old log lines, Madra text, seals |
+| `LACQUER_INK` / `LACQUER_BRASS` / `LACQUER_CREAM` / `LACQUER_TAN` | `#150909` / `#D4A84A` / `#F0E8D8` / `#A89070` | The `LabelLacquer*` variants | Zone view panels (lacquer kit §2). The last three are also the cycling hit tiers (`CyclingRules.tier_color()`) |
+| `LACQUER_RIM` | `#692F2F` | — | The lip under the cycling groove |
+| `LACQUER_DIM` / `LACQUER_VERMILION` | `#94806A` / `#A83C30` | — | Old log lines, seals |
+| `LACQUER_MADRA_HI` / `LACQUER_MADRA` / `LACQUER_MADRA_MID` | `#E8F6FD` / `#BBD5E7` / `#849BE4` | — | The lit cycling groove (top edge, body, bottom edge). `LACQUER_MADRA` is also Madra text |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code.
 
@@ -278,11 +282,11 @@ Use the Label variants for sizes. Use `ThemeConstants` only for colours that mus
 | `assets/themes/book_theme.tres` | Menu book page variants ([Menu book pages](#menu-book-pages)) |
 | `assets/themes/lacquer/lacquer_theme.tres` | Zone view theme: the `LabelLacquer*` variants and `RichTextLacquer` (see Lacquer theme) |
 | `assets/themes/pixel_ui_theme/` | Third-party pixel UI pack: `8x8_ui_elements*.png` and `8x8_ui_icons.png` atlases, `m5x7.ttf`, 8 colour-variant `PixelTheme-*.tres`, `TabContainer.tscn`. `pixel_theme.tres` uses only the two base atlases; the variant themes are not referenced by the game. |
-| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `cycling`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
+| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
 | `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `YatraOne-Regular.ttf` (the lacquer theme's painted titles). `Korean_Calligraphy.ttf`, `pixelmix.ttf` and `Ubage-woA3P.otf` are loaded only by the label testing scene. |
 | `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `book` (menu book bookmark, close tab, stage icons, padlock, 2x panel art), `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
 | `assets/aseprite/` | Aseprite sources: `abilities`, `character_profiles`, `cycling`, `ui/{ability_button,buff_icon,resource_bar}`, `zones`, plus root `madra_circle.aseprite`, `Sprite-0003*.aseprite` and a stray `Sprite-0003.gif` |
-| `assets/shaders/` | 16 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |
+| `assets/shaders/` | 15 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |
 | `assets/scroll/` | Scroll art (and `parts/`) used by the adventure end card |
 | `assets/dialogue/` | Dialogic `characters/`, `styles/` (including `dialogue_backgrounds/custom_background_layer.gd`), `timelines/` |
 | `assets/colors/` | `default_color_palette.tres` (not referenced by game scenes or scripts) |

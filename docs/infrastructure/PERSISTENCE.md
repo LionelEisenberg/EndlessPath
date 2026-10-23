@@ -1,6 +1,6 @@
 # Persistence System
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -91,10 +91,12 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `quest_progression` | `QuestProgressionData` | `new()` | QuestManager | [QUESTS.md](../progression/QUESTS.md) |
 | `current_selected_zone_id` | `String` | `""` | ZoneManager | [ZONES.md](../zones/ZONES.md) |
 | `zone_progression_data` | `Dictionary[String, ZoneProgressionData]` | `{}` | ZoneManager (through the `SaveGameData` helpers) | [ZONES.md](../zones/ZONES.md) |
-| `seen_action_ids` | `Array[String]` | `[]` | ZoneManager (`mark_action_seen()`); an available action not in it shows NEW | [ZONES.md](../zones/ZONES.md) |
+| `seen_action_ids` | `Array[String]` | `[]` | ZoneManager (`mark_action_seen()`, `mark_action_unseen()`); an available action not in it shows NEW. A technique unlock takes the cycling actions' ids out again | [ZONES.md](../zones/ZONES.md) |
 | `seen_actions_initialized` | `bool` | `false` | ZoneManager: set once its first-init pass has marked every action available at that moment as seen | [ZONES.md](../zones/ZONES.md) |
 | `unlocked_cycling_technique_ids` | `Array[String]` | `["foundation_technique"]` | CyclingManager | [CYCLING.md](../cycling/CYCLING.md) |
 | `equipped_cycling_technique_id` | `String` | `"foundation_technique"` | CyclingManager | [CYCLING.md](../cycling/CYCLING.md) |
+| `seen_cycling_technique_ids` | `Array[String]` | `[]` | CyclingManager (`mark_technique_seen()`); an unlocked technique that is neither in it nor equipped shows NEW on its drawer. Cleared by `reset()` | [CYCLING.md](../cycling/CYCLING.md) |
+| `seen_cycling_techniques_initialized` | `bool` | `false` | CyclingManager: set once its first-init pass has marked every technique unlocked at that moment as seen. Cleared by `reset()` | [CYCLING.md](../cycling/CYCLING.md) |
 | `unlocked_ability_ids` | `Array[String]` | `["basic_strike", "enforce"]` | AbilityManager | [ABILITIES.md](../abilities/ABILITIES.md) |
 | `equipped_ability_ids` | `Array[String]` | `["basic_strike", "enforce", "", ""]` | AbilityManager | [ABILITIES.md](../abilities/ABILITIES.md) |
 | `current_path_id` | `String` | `""` | PathManager | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
@@ -164,6 +166,7 @@ main_game.tscn loads → MainGame._ready() (sets Log print level) → SaveTimer 
   - `PathManager._restore_current_path()` sets `current_path_id = "pure_madra"` (`DEFAULT_PATH_ID`) when it is empty.
   - `AbilityManager._ensure_equipped_array_size()` pads `equipped_ability_ids` to 4 slots.
   - `ZoneManager._initialize_seen_actions()` marks every action available at that moment as seen and sets `seen_actions_initialized`, once per save.
+  - `CyclingManager._initialize_seen_techniques()` marks every technique unlocked at that moment as seen and sets `seen_cycling_techniques_initialized`, once per save (again after a reset), so an older save shows no NEW seals.
   - `ActionManager` records the zone's `last_idle_action_id` whenever an idle action starts, including the one the load's `zone_changed` resumes.
 
 ### Auto-save
@@ -192,7 +195,8 @@ Only two things trigger a reset, both during boot: `reset_save_data = true`, or 
 | PathManager | `_on_save_data_reset` | Clears the tree and effects, then `_restore_current_path()`, which emits `path_set`, `effects_changed` and `points_changed` |
 | QuestManager | `_on_save_data_reset` | `_prune_unknown_active_quests()` |
 | AbilityManager | `_on_save_data_reset` | `_ensure_equipped_array_size()` |
-| CyclingManager, InventoryManager, EventManager | re-bind only | — |
+| CyclingManager | `_on_save_data_reset` | Re-binds, then runs the seen-technique first-init pass |
+| InventoryManager, EventManager | re-bind only | — |
 
 ### What is not saved
 
@@ -200,7 +204,7 @@ Only two things trigger a reset, both during boot: `reset_save_data = true`, or 
 |-------|----------------|
 | An in-progress adventure (map, tile, visited tiles, timer) | `AdventureView` / `AdventureTilemap` nodes |
 | Player vitals (health, stamina, combat Madra) | `PlayerManager.vitals_manager`. These are re-initialized at each adventure start |
-| The current action and its timers (cycling, foraging, training ticks in flight) | `ActionManager`, `CyclingView`. Completed training ticks are saved in `training_tick_progress`, and each zone's `last_idle_action_id` is, so the load restarts that idle action (nothing accrues while the game is closed) |
+| The current action and its timers (cycling, foraging, training ticks in flight) | `ActionManager`, `CyclingTechnique` (the running cycle, with its snapshot on `CyclingManager`; the Auto toggle is `CyclingView`'s). Completed training ticks are saved in `training_tick_progress`, and each zone's `last_idle_action_id` is, so the load restarts that idle action (nothing accrues while the game is closed) |
 | The log history (`LogManager`, 200 lines), the dev panel's position and unlock, the dev zone toggles | `LogManager`, scene nodes, `MainGame._dev_unlocked`, `ZoneManager` |
 | Dialogic state | Not used. Nothing calls `Dialogic.Save` |
 
@@ -245,7 +249,8 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 | `tests/unit/test_zone_progression_data.gd` | `ZoneProgressionData.training_tick_progress` and `last_idle_action_id` round trips |
 | `tests/unit/test_save_migration.gd` | `migrate()` and an old save loading the zone view's new fields with their defaults |
 | `tests/unit/test_persistence_manager.gd` | `boot()` / `load_data()` / `save_data()` on temporary paths: an unreadable save is kept, copied aside and never written; an invalid save is copied aside before its reset; an unverifiable save is not reset; `boot()` migrates the loaded save |
-| `tests/unit/test_seen_actions.gd` | `seen_action_ids` and the once-per-save first-init pass |
+| `tests/unit/test_seen_actions.gd` | `seen_action_ids`, the once-per-save first-init pass and `mark_action_unseen()` (a technique unlock lights the cycling card) |
+| `tests/unit/test_cycling_technique_data.gd`, `tests/unit/test_cycling_manager.gd` | The seen-technique fields: `reset()`, a save round trip, the first-init pass and its rerun on `save_data_reset` |
 | `tests/unit/test_merchant_data.gd` | `merchant_ledgers` round trip, `reset()`, and an old save without the field |
 | `tests/unit/test_inventory_manager_restore.gd` | `InventoryManager.restore_*` against the live save (in memory only) |
 

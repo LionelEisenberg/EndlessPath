@@ -1,11 +1,11 @@
 # Style Guide: Lacquer and Brass
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 The game's visual style, taken from the zone view rework, and the list of screens still to move to it. Read it before you rework a screen or build a new one.
 
 ## 1. What this is
 
-- **Status.** Distilled from the zone view rework on `feat/zone-view-redesign-4656b7` (built 2026-10-22, not merged). Only the zone view and the two HUD boards it shares with the adventure view (Log and Goals) use the look today. Everything in [§13](#13-cascade-backlog) is still to do. This doc changes no code.
+- **Status.** Distilled from the zone view rework on `feat/zone-view-redesign-4656b7` (built 2026-10-22, not merged). The zone view, the two HUD boards it shares with the adventure view (Log and Goals) and the cycling view (built 2026-10-22 and 23 on `feat/cycling-view-styleguide-ea3170`) use the look today. Everything in [§13](#13-cascade-backlog) is still to do. This doc changes no code.
 - **Use it as a reference in other branches.** Each later branch takes one area of the backlog, applies these rules, and deletes its rows here.
 - **The kit's files come with that branch.** The textures (`assets/ui/lacquer/`), the theme (`assets/themes/lacquer/lacquer_theme.tres`), the styleboxes (`assets/styleboxes/lacquer/`), the components (`scenes/common/lacquer/`, `LacquerRail`, `LacquerText`), the two orb shaders and the generators all arrive with `feat/zone-view-redesign-4656b7`. A branch cut from `main` before it merges does not have them.
 - **How it relates to the other docs:**
@@ -64,7 +64,7 @@ The user saw the finished zone view on 2026-10-22 and asked for the look to be c
 | Tint for selection or hover | Frame overlay or texture swap | `frame_hover`, dock button faces |
 | Alpha for disabled or locked | Palette state: tan text, carved "off" art, a seal | Rail caps off, LOCKED seal |
 | Rounded pill | Carved tag or cinnabar seal | Mode tags, NEW |
-| Glowing particles | Opaque pellets moving in 2 px steps | Madra drain pellets |
+| Glowing particles | Opaque pellets moving in 2 px steps | Madra drain pellets, the cycling view's Madra and XP pellets |
 | Vignette, mists, motes | Nothing: the opaque boards frame the view | Zone view (all dropped) |
 
 ## 4. Palette
@@ -103,21 +103,26 @@ The kit's §2, unchanged. Hex values are exact.
 
 **Contrast.** Text on lacquer stays at 4.56:1 or more (dim is the floor). Kit §3 lists the contrast of every text role.
 
-**From code.** `scripts/utils/theme_constants.gd` exposes seven lacquer colours for code that sets a colour at runtime (log tones, plate hover, floater colour):
+**From code.** `scripts/utils/theme_constants.gd` exposes ten lacquer colours for code that sets a colour at runtime (log tones, plate hover, floater colour, the cycling groove):
 
 | Constant | Value |
 |---|---|
 | `ThemeConstants.LACQUER_INK` | `#150909` |
+| `ThemeConstants.LACQUER_RIM` | `#692F2F` |
 | `ThemeConstants.LACQUER_BRASS` | `#D4A84A` |
 | `ThemeConstants.LACQUER_CREAM` | `#F0E8D8` |
 | `ThemeConstants.LACQUER_TAN` | `#A89070` |
 | `ThemeConstants.LACQUER_DIM` | `#94806A` |
+| `ThemeConstants.LACQUER_MADRA_HI` | `#E8F6FD` |
 | `ThemeConstants.LACQUER_MADRA` | `#BBD5E7` |
+| `ThemeConstants.LACQUER_MADRA_MID` | `#849BE4` |
 | `ThemeConstants.LACQUER_VERMILION` | `#A83C30` |
 
 Sizes and fonts always come from theme variants, never from code. When a reworked screen needs another palette colour from code, add a `LACQUER_*` constant with the kit's name.
 
-**Gaps.** The palette has no colour for health, stamina, damage taken, heals or gains. Combat, cycling and the merchant need them. The user must add them before those screens are reworked ([open questions](#open-questions)).
+**Hit tiers.** A cycling hit is PERFECT in brass, GOOD in cream and OK in tan (the user's call on 2026-10-22; green is dropped), for the floater, the stud on the zone and the XP pellets alike. `CyclingRules.tier_color()` maps the tiers to `LACQUER_BRASS`, `LACQUER_CREAM` and `LACQUER_TAN`.
+
+**Gaps.** The palette has no colour for health, stamina, damage taken, heals or gains. Combat and the merchant need them. The user must add them before those screens are reworked ([open questions](#open-questions)).
 
 ## 5. Type
 
@@ -146,7 +151,7 @@ No text is smaller than 13 px. The lacquer theme's variants (full table in [UI_S
 | Lore and long text | `LabelLacquerLore` | Euljiro 16 / 22 | cream |
 | Map plate name / line | `LabelLacquerPlateName` / `LabelLacquerPlateLine` | Euljiro 16 / 18, 14 / 18 | cream |
 | Popover title / body | `LabelLacquerPopoverTitle` / `LabelLacquerPopoverBody` | Euljiro 18 / 22, 15 / 20 | cream |
-| Floater on a token | `LabelLacquerFloater` | Euljiro 16 / 20 | cream |
+| Floater on a token | `RichTextLacquer` at 16 px (`LacquerFloater`; `LabelLacquerFloater` is defined but unused) | Euljiro 16 / 20 | the hit's colour |
 | Lines with a decimal number | `RichTextLacquer` | Euljiro 15 / 18 | tan |
 | Log text | `RichTextLacquerLog` | Euljiro 15, 26 px pitch | tan |
 
@@ -160,7 +165,7 @@ No text is smaller than 13 px. The lacquer theme's variants (full table in [UI_S
 
 **Ellipsis.**
 - A Label that can overflow sets `text_overrun_behavior` to ellipsis at a fixed width: log lines at 384 px, card details at 316 px, plate lines at 228 px.
-- A card title ellipsizes where its NEW seal or tag starts.
+- A card or drawer title ellipsizes where its NEW seal or tag starts. `ZoneActionButton.layout_title_row()` lays the row out for the activity cards and the technique drawers alike, so their title rows line up (a long name such as "Smooth Flow Technique" is cut while its seal shows).
 - Icons and figures stay whole: a plate line drops its name text, never its icon or rate.
 - A `RichTextLabel` cannot ellipsize. Use `ZoneActionButton.fit_detail_rich_text()`: drop whole words until the line fits, end it in `…` with no separator left before it, then apply `decimal_bbcode()`.
 
@@ -175,6 +180,7 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 | Component | Look | Kit files | Godot piece |
 |---|---|---|---|
 | Anchor furniture | Lacquer board with chunky brass corner straps, hand-placed grain, a gloss dash, 4 px shadow | `lacquer_cult_ai.png` (440x252); `lacquer_chest_top_ai.png`, `_mid_ai.png` (tiled), `_bot_ai.png` (440 wide) | `CultivatorPlate` (`scenes/zones/cultivator_plate/`), `ZonePanel` (`scenes/zones/zone_panel/`) |
+| Board in the map gap | A strapped board centred between the columns with a figure carved into it, 4 px shadow, laid out in absolute px | `lacquer_cyc_board_ai.png` (560x1032), `lacquer_cyc_body_carved_ai.png` (500x832) | `CyclingView` (`scenes/cycling/cycling_view/`) |
 | Plain board | Same lacquer, no caps, chamfered corners, 4 px shadow. Each board's gloss dash sits in a different place | `lacquer_goals_ai.png` (cut into slices), `lacquer_log1_ai.png` to `lacquer_log5_ai.png`, `lacquer_lore_ai.png`, `lacquer_dock_ai.png` | `GoalsPanel`, `LogWindow`, `Dock` |
 | Recessed tray | A carved-in field in deep `#230F0F` with a lit lower lip | `lacquer_now_tray_ai.png` (408x88), with `lacquer_now_plate_ai.png` (brass `Now` legend) on its top edge | `NowStrip` (`scenes/zones/zone_panel/now_strip/`) |
 
@@ -182,8 +188,8 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 
 | Component | Look | Kit files | Godot piece |
 |---|---|---|---|
-| Drawer (card) | 392x72 raised face with a carved 48x48 icon socket at (8, 12); icon 32x32 at x+16, y+20 | `lacquer_drawer_ai.png` | `ZoneActionButton` (`scenes/zones/zone_action_button/`) |
-| Running drawer | Pulled out to (−2, −2) with brass corner caps and the 4 px shadow; tag RUNNING in cream | `lacquer_drawer_run_ai.png` | `ZoneActionButton` running state |
+| Drawer (card) | 392x72 raised face with a carved 48x48 icon socket at (8, 12); icon 32x32 at x+16, y+20 | `lacquer_drawer_ai.png` | `ZoneActionButton` (`scenes/zones/zone_action_button/`), `TechniqueDrawer` (`scenes/cycling/technique_drawer/`) |
+| Running drawer | Pulled out to (−2, −2) with brass corner caps and the 4 px shadow; tag RUNNING (IN USE on a technique drawer) in cream | `lacquer_drawer_run_ai.png` | `ZoneActionButton` running state; `TechniqueDrawer` in use |
 | Tall drawer | 392x96, socket at (8, 24), icon at y+32, for a detail that wraps to two lines | `lacquer_drawer_tall_ai.png` | `ZoneActionButton.set_tall()` |
 | Mode tag | Carved recess, 76x22; brass plate for ENTER; 88x22 for UNKNOWN | `lacquer_tag_ai.png`, `lacquer_tag_enter_ai.png`, `lacquer_tag_wide_ai.png` | `LabelLacquerTag` |
 | Seal | Cinnabar chop: NEW 44x22, LOCKED 88x22 (with `mini_lock`), count 24x24 | `lacquer_seal_new_s_ai.png`, `lacquer_seal_locked_ai.png`, `lacquer_seal_count_ai.png` | `LabelLacquerSeal` |
@@ -205,13 +211,15 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 | Component | Look | Kit files | Godot piece |
 |---|---|---|---|
 | Divider | Carved line with brass pins, 408x6 | `lacquer_line_ai.png` | `TextureRect` |
-| Groove | A carved groove after a section label, with an end pin | `lacquer_groove_ai.png` (tiled) + `lacquer_groove_end_ai.png` | Activities header, group labels |
+| Groove | A carved groove after a section label, with an end pin | `lacquer_groove_ai.png` (tiled) + `lacquer_groove_end_ai.png` | Activities and Techniques headers, group labels |
 | Rail | 12 px carved track, brass thumb, end caps lit only when the list can scroll that way | `lacquer_rail_track_ai.png`, `lacquer_rail_thumb_ai.png`, `lacquer_rail_{up,down}_{on,off}_ai.png` | `LacquerRail` (`scenes/zones/zone_panel/lacquer_rail/`), `rail_thumb.tres` |
 | Lips | Hard shelf shadow with a 2-step dither at a scrolled edge | `lacquer_lip_top_ai.png`, `lacquer_lip_bottom_ai.png` | Activity list |
 | Hover frame | Thin 9-slice overlay, no fill | `lacquer_frame_hover_ai.png` (16x16, margin 4) | `frame_hover.tres` on a `LacquerFrameOverlay` |
 | Brass frame | Heavier 9-slice overlay for flash, ready and pinned | `lacquer_frame_brass_ai.png` (24x24, margin 8) | `frame_brass.tres`, `LacquerFrameOverlay` (brass by default) |
-| Token | Small lacquer 9-slice a floater rides on, 2 px shadow baked | `lacquer_token_ai.png` (26x26) | `token.tres`, `MapFloater` |
+| Token | Small lacquer 9-slice a floater rides on, 2 px shadow baked | `lacquer_token_ai.png` (26x26) | `token.tres`, `LacquerFloater` |
 | Bullets | 10x10 inlaid diamonds per tone | `lacquer_bullet_{brass,cream,madra,tan,dim}_ai.png` | `LogWindow` |
+| Carved path | A channel carved into a board and drawn per art pixel (2x2 px cells in ink, a rim lip below), lit cell by cell in the Madra ramp behind whatever travels it. No texture file | none | `CyclingGroove` (`scenes/cycling/cycling_groove/`) |
+| Strip pieces for play | A ball with an 8-frame swirl (60x60), its two rings (80x80), a zone socket in six states (48x48), an Auto tablet raised and pressed in (120x36) | `lacquer_cyc_{ball_strip,ball_rings,zone_strip,auto,auto_on}_ai.png` | `CyclingTechnique`, `CyclingZone`, `CyclingView` (`LacquerStripRect`, `TextureButton`) |
 
 ### Map pieces (zone map; reusable for the adventure map)
 
@@ -234,10 +242,10 @@ Never glow, tint, fade or scale to show a state.
 | Hover | A thin frame overlay, a hover texture, or a rim swap; text may step one palette tone: tan → cream (the close ×, the uncharted plate's name), brass → cream (the current plate's name), tan → brass (an open plate's line, `Click to travel`) (kit §6.5) | `LacquerFrameOverlay` with `frame_hover.tres`; texture swap | Drawers, Now tray, About; dock faces; hex rims; plates |
 | Pressed | The face drops its shadow and its content moves 2 px down | Texture swap | About while the lore is open |
 | Selected or pinned | A steady brass frame, a heavier rim, brass caps | `LacquerFrameOverlay` (brass), shown steadily | Pinned plates and popovers, the pinned veiled hex |
-| Running (the one current thing) | The drawer pulls out 2 px with brass caps and the 4 px shadow, tag RUNNING in cream | `lacquer_drawer_run_ai.png` | The running idle card |
+| Running (the one current thing) | The drawer pulls out 2 px with brass caps and the 4 px shadow, tag RUNNING in cream | `lacquer_drawer_run_ai.png` | The running idle card; the technique in use (tag IN USE) |
 | Ready (can act now) | A steady brass frame, the brass ENTER tag, a brass detail line. Never animate a steady frame | `ZoneActionButton.set_ready_frame()` | The adventure card at its threshold |
 | Disabled, locked, unaffordable | Palette, never alpha: tan text, carved "off" art, the LOCKED seal, a desaturated veil | Texture swap, `LabelLacquerSeal` | Rail caps off, locked hex and popover |
-| New or unseen | The NEW seal inline after the title; cleared on first hover or use | `lacquer_seal_new_s_ai.png` | New activity cards |
+| New or unseen | The NEW seal inline after the title; cleared on first hover or use | `lacquer_seal_new_s_ai.png` | New activity cards, new technique drawers |
 | Notification | A 2 px brass ring on the button, plus a count seal when there is a number | `lacquer_btn_ring_ai.png`, `lacquer_seal_count_ai.png` | Path (points), Abilities (unequipped unlock) |
 | Flash (look here, done) | The brass frame on for 300 ms and off for 300 ms, N times; ends hidden. A steady frame hides while a flash runs | `LacquerFrameOverlay.flash(times)` | Card twice, Now tray once |
 | Rejected | A shake in even-px keyframes 0, −8, 8, −6, 4, 0, each held 0.088 s, plus a log line | `MapGlyph.shake_offset_at()` pattern | Locked padlock; the adventure card's Madra row |
@@ -248,9 +256,9 @@ Never glow, tint, fade or scale to show a state.
 
 | Pattern | Rule | Zone view reference |
 |---|---|---|
-| Frame strips | Switch frames from a strip; never interpolate. Timing in whole steps | Rings: 13 frames over each action cycle (1 s Well, 5 s haul). Twinkle: frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s |
-| Stepped moves | Move in 2 px steps (1 map px at zoom 2) at constant speed. Compute the offset from elapsed time and quantise it | Floater: 40 px in 20 steps over 1 s, then hidden (`MapFloater.rise_at()`). Walk: `snap_walk_to_whole_px`. Well bob: 0, −1, −2, −1 map px every 0.6 s |
-| Snapped paths | A curve is fine; the drawn position snaps to even px every frame | `MadraPellet` drain into the adventure |
+| Frame strips | Switch frames from a strip; never interpolate. Timing in whole steps | Rings: 13 frames over each action cycle (1 s Well, 5 s haul). Twinkle: frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s. Cycling ball swirl: 8 frames, 10 a second |
+| Stepped moves | Move in 2 px steps (1 map px at zoom 2) at constant speed. Compute the offset from elapsed time and quantise it | Floater: 40 px in 20 steps over 1 s, then hidden (`LacquerFloater.rise_at()`). Walk: `snap_walk_to_whole_px`. Well bob: 0, −1, −2, −1 map px every 0.6 s |
+| Snapped paths | A curve is fine; the drawn position snaps to even px every frame | `MadraPellet` drain into the adventure; the cycling ball on its eased path and its pellets |
 | Scrolling | In a few even steps | `LacquerRail.step_to()`: six even-px steps over 200 ms |
 | Flash | `steps(1)` on and off | `LacquerFrameOverlay.flash()`: 300 ms on, 300 ms off |
 | Shake | Even-px keyframes, each held | `MapGlyph`: 0, −8, 8, −6, 4, 0 over 0.44 s |
@@ -313,7 +321,7 @@ void fragment() {
 | Dock | 722, 976, 476x80, bottom centre |
 | Overlays on the zone view | Fit in the map gap, about x 488 to 1432 (24 px inside each column), so the cabinet and the chest stay readable |
 | Insets | Content sits 16–18 px inside a board's edge (chest content at x 1472; the cabinet's orbs and the Goals and Log titles at x 42). The cabinet's text column after the orbs is at x 138 |
-| HUD boards under an overlay | On the zone view the Goals and Log boards are furniture, like the cabinet and the chest. The menu books leave them showing under the backdrop with the rest of the view, by the user's decision (commit `5e8d7394`, "keep the Goals board and the log under an open book"). Cycling and the merchant hide them today (`MainView.hide_hud_boards()`); whether they keep doing so is part of G1 |
+| HUD boards under an overlay | On the zone view the Goals and Log boards are furniture, like the cabinet and the chest. The menu books leave them showing under the backdrop with the rest of the view, by the user's decision (commit `5e8d7394`, "keep the Goals board and the log under an open book"). Cycling leaves them showing beside its board and blocks the full log, as a book does. Only the merchant hides them today (`MainView.hide_hud_boards()`); whether it keeps doing so is part of G1 |
 | Grid | Every position and size even |
 | Height | Boards hug their content: the chest is max(176, list top + list height + 24); the Log grows upward 26 px a line; Goals loses 70 px when no quest is active |
 
@@ -362,7 +370,7 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 | `LacquerFrameOverlay` (`scenes/common/lacquer/lacquer_frame_overlay.tscn`) | Full-rect frame over its parent, hidden, mouse ignored, brass by default. Override the panel style with `frame_hover.tres` for hover. `flash(times)` for a flash; show it for a steady frame |
 | `LacquerRail` (`scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn`) | `bind(host)` to a `ScrollContainer` whose scrollbar is hidden; `step_to(target)` scrolls in steps |
 | `LacquerText` (`scripts/utils/lacquer_text.gd`) | `rate()`, `decimal_bbcode()` |
-| `MapFloater`, `MapGlyph`, `MadraPellet` | Stepped rise, even-px shake and twinkle, snapped flight. `MapFloater` and `MapGlyph` expose static functions of elapsed time (`rise_at`, `shake_offset_at`, `twinkle_frame`) that tests call directly; `MadraPellet` snaps its point to even px every frame. Copy this shape for new stepped motion |
+| `LacquerFloater` (`scenes/common/lacquer/lacquer_floater/`), `MapGlyph`, `MadraPellet` | Stepped rise, even-px shake and twinkle, snapped flight. `LacquerFloater` and `MapGlyph` expose static functions of elapsed time (`rise_at`, `shake_offset_at`, `twinkle_frame`) that tests call directly; `MadraPellet` snaps its point to even px every frame, and `set_texture()` swaps its art for another 12x12 pellet (the cycling XP pellets). Copy this shape for new stepped motion |
 
 **Stepped motion in code.** Drive it from `_process` with an elapsed time, quantise the result (2 px, whole frames), and set `position` or the frame. Do not use a `Tween` with an ease. Show and hide with `visible`.
 
@@ -378,7 +386,7 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 | `import_kit.py` | Copies the kit into `assets/ui/lacquer/`: bakes shadows (`bake_shadow`, `bake_column`) and halves map art (`halve`) |
 | `look.py` | Tiles kit files onto one image for review |
 
-Their output paths point at the authoring session's scratch folder (`SCRATCH` and `OUT` in `lq_base.py`, `A` in `look.py`): change them to rebuild. Draw new pieces for the cascade with these primitives, so new boards share the same rims, grain and palette, and name them `_ai`.
+Their output paths point at the authoring session's scratch folder (`SCRATCH` and `OUT` in `lq_base.py`, `A` in `look.py`): change them to rebuild. The cycling pieces come from `docs/superpowers/mockups/cycling-view-lacquer/gen/`: `kit_cycling.py` draws them with these primitives, and `import_cycling.py` copies the used ones into `assets/ui/lacquer/cycling/` (the technique icons into `assets/ui/lacquer/icons/`) and bakes their shadows. Draw new pieces for the cascade with these primitives, so new boards share the same rims, grain and palette, and name them `_ai`.
 
 **Scenes, not code.** Every node goes in a `.tscn`. No `Node.new()`, `StyleBoxFlat.new()`, `ShaderMaterial.new()` or `add_theme_*_override()` for styling in scripts. Scripts may set text, textures, frames, visibility, a shader's `progress`, and a state colour from `ThemeConstants.LACQUER_*` (as `LogWindow` and `ZoneMapLabel` do).
 
@@ -416,13 +424,12 @@ Check every reworked screen against this list, ideally on a capture at 1920x1080
 
 ## 13. Cascade backlog
 
-Every surface the 2026-10-22 survey found outside the zone view, grouped by area. Surfaces that several surveys found (the backdrop, the floater, the flying particles) are one row each. F1–F3 are shared prerequisites drawn from the surveys' notes, not surfaces. IDs are for reference in branches and PRs. Sizes are rough: **S** a day or less, **M** a few days, **L** a week or more, or a lot of new art.
+Every surface the 2026-10-22 survey found outside the zone view, grouped by area. Surfaces that several surveys found (the backdrop, the floater) are one row each. F1–F3 are shared prerequisites drawn from the surveys' notes, not surfaces. IDs are for reference in branches and PRs. Sizes are rough: **S** a day or less, **M** a few days, **L** a week or more, or a lot of new art.
 
 | Area | IDs | Rows | S | M | L |
 |---|---|---|---|---|---|
 | Foundations (shared) | F1–F8 | 8 | 2 | 5 | 1 |
 | Zone view overlays | Z1–Z2 | 2 | 1 | 0 | 1 |
-| Cycling | C1–C11 | 11 | 5 | 6 | 0 |
 | Dialogue | D1 | 1 | 0 | 0 | 1 |
 | Combat HUD | B1–B9 | 9 | 2 | 6 | 1 |
 | Adventure map | A1–A9 | 9 | 5 | 3 | 1 |
@@ -430,7 +437,7 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 | End card | E1 | 1 | 0 | 0 | 1 |
 | Menu books | K1–K13 | 13 | 6 | 6 | 1 |
 | Project-wide | P1–P2 | 2 | 1 | 0 | 1 |
-| **Total** | | **59** | **23** | **27** | **9** |
+| **Total** | | **48** | **18** | **21** | **9** |
 
 **Taking a row in another branch:**
 1. Make sure the kit's files are there (the branch includes `feat/zone-view-redesign-4656b7`).
@@ -443,12 +450,12 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 
 | ID | Surface | What breaks the guide today | Lacquer treatment | Size | Key files |
 |---|---|---|---|---|---|
-| F1 | Palette additions | Combat, cycling and the merchant use colours with no kit slot: `#E86A5C` / `#7FD18B` (bars, orbs, damage numbers), `LabelRed` `#E06060` / `LabelGreen` `#7DCE82` (merchant), `Color.GOLD` / `GREEN` / `WHITE` (cycling tiers), `#7EA870` for Madra in item effect text, BBCode red and blue in the timeline | The user picks ramps for health, stamina, damage taken and gains or heals, and confirms the cycling tier tones. Add them to kit §2, this guide and `ThemeConstants.LACQUER_*`. Madra stays the Madra ramp | S | `scripts/utils/theme_constants.gd`, `scenes/combat/combatant/combatant_visual/combatant_visual.gd`, `scenes/ui/combat/resource_bar/resource_bar.gd`, `scenes/cycling/cycling_technique/cycling_technique.gd` |
+| F1 | Palette additions | Combat and the merchant use colours with no kit slot: `#E86A5C` / `#7FD18B` (bars, orbs, damage numbers), `LabelRed` `#E06060` / `LabelGreen` `#7DCE82` (merchant), `#7EA870` for Madra in item effect text, BBCode red and blue in the timeline | The user picks ramps for health, stamina, damage taken and gains or heals. Add them to kit §2, this guide and `ThemeConstants.LACQUER_*`. Madra stays the Madra ramp | S | `scripts/utils/theme_constants.gd`, `scenes/combat/combatant/combatant_visual/combatant_visual.gd`, `scenes/ui/combat/resource_bar/resource_bar.gd` |
 | F2 | Shared kit pieces (new art) | The kit has fixed-size boards and four 9-slices (`frame_brass`, `frame_hover`, `rail_thumb`, `token`). Almost every other screen needs pieces that grow | New `_ai` art from the generators: a plain board 9-slice (`board_base()`) and a strapped one (`strap()`), a small popover or tooltip 9-slice, a text-button set (normal, hover, pressed, disabled), a dither backdrop tile, a carved slot socket, a 22x22 key cap, rods for health, stamina, cast and intent, a cooldown strip, "off" arrow caps. Grain out of stretch zones; shadows baked | L | `docs/superpowers/mockups/zone-view-lacquer/gen/`, `assets/ui/lacquer/`, `assets/styleboxes/lacquer/` |
 | F3 | Lacquer base types | `lacquer_theme.tres` has only Label and RichText variants, so a Button, PanelContainer, tooltip or scrollbar in a lacquer root falls back to `pixel_theme.tres`: rounded `border_blend` buttons, tan parchment panels, the grey 8x8 pack at 1x | Add Button, PanelContainer, TooltipPanel and TooltipLabel, V/HScrollBar (rail textures, as the full log does), HSeparator (`lacquer_line_ai.png`) and ProgressBar (rod textures) to `lacquer_theme.tres`. Opt-in: only roots that set the theme get them. Keep "no defaults" | M | `assets/themes/lacquer/lacquer_theme.tres`, `tests/unit/test_lacquer_pieces.gd`, `docs/UI_STYLING.md` |
 | F4 | Render settings | The adventure's `TilemapSubviewport` and `CombatSubviewport` set no `canvas_item_default_texture_filter`, so they render linear. Three nodes force `texture_filter = 2` (merchant TopLight and SlotGlow, the combatant Shadow). Window stretch scales fractionally | Set the filter to 0 on both SubViewports. Remove the forced linear filters with their screens. Decide integer `scale_mode` (open question). Re-check the fog shader and smoke veils after the change | M | `scenes/adventure/adventure_view/adventure_view.tscn`, `project.godot`, `scenes/merchant/merchant_atmosphere/merchant_atmosphere.tscn`, `scenes/merchant/merchant_stock_row/merchant_stock_row.tscn`, `scenes/combat/combatant/combatant_visual/combatant_visual.tscn` |
-| F5 | Modal backdrop (`GreyBackground`) | A translucent teal-grey panel (`#2D3737` at 55.7%), shared by the four books, the merchant, cycling and the end card. The books and the merchant fade it in over 0.3 s and out over 0.2 s (`show_with_panel` / `hide_with_panel`); cycling and the end card toggle `visible` with no fade. Cycling and the merchant hide the HUD boards (`hide_hud_boards`); the books (the user's decision, `5e8d7394`) and the end card leave them dimmed under it. Its alpha is left at 0 after a fade-out (MAIN_VIEW.md bug). The Dialogic background (`#2D2D2D` at 82.7%) and the dev modal (black at 60%) are translucent too | An opaque 2-step `#050707` dither tile (new `lacquer_dither_backdrop_ai.png`) shown and hidden outright for every user. For cycling, the merchant and the end card only, the alternative is no backdrop with `MainView.hide_hud_boards()` (G1). The books keep the HUD boards under their backdrop. Keep `show_with_panel` / `hide_with_panel` / `panel_hidden` / `clicked`, so no state changes. Rewrite the fade-timing tests | M | `scenes/ui/grey_background/grey_background.gd`, `assets/styleboxes/zones/grey_background.tres`, `scenes/main/main_game/main_game.tscn`, `tests/unit/test_grey_background.gd` |
-| F6 | Shared floater (`FloatingText`) | 24 px text with a 5 px black outline, engine colours, a 100 px cubic-eased rise and an alpha fade; its `font_size` override is a no-op. Used by cycling hits and the combat bars and orbs | Promote `MapFloater` (token, `LabelLacquerFloater` or a 16 px `RichTextLacquer`, 40 px in 20 steps, hidden outright) to a shared lacquer floater in `scenes/common/lacquer/`. Point cycling and combat at it with palette colours; delete `FloatingText` | M | `scenes/ui/floating_text/`, `scenes/zones/map_markers/map_floater/`, `scenes/cycling/cycling_technique/cycling_technique.gd`, `scenes/ui/combat/resource_orb/resource_orb.gd` |
+| F5 | Modal backdrop (`GreyBackground`) | A translucent teal-grey panel (`#2D3737` at 55.7%), shared by the four books, the merchant and the end card. The books and the merchant fade it in over 0.3 s and out over 0.2 s (`show_with_panel` / `hide_with_panel`); the end card toggles `visible` with no fade. The merchant hides the HUD boards (`hide_hud_boards`); the books (the user's decision, `5e8d7394`) and the end card leave them dimmed under it. Cycling uses no backdrop: its board sits in the map gap with the HUD boards up. Its alpha is left at 0 after a fade-out (MAIN_VIEW.md bug). The Dialogic background (`#2D2D2D` at 82.7%) and the dev modal (black at 60%) are translucent too | An opaque 2-step `#050707` dither tile (new `lacquer_dither_backdrop_ai.png`) shown and hidden outright for every user. For the merchant and the end card only, the alternative is no backdrop with `MainView.hide_hud_boards()` (G1). The books keep the HUD boards under their backdrop. Keep `show_with_panel` / `hide_with_panel` / `panel_hidden` / `clicked`, so no state changes. Rewrite the fade-timing tests | M | `scenes/ui/grey_background/grey_background.gd`, `assets/styleboxes/zones/grey_background.tres`, `scenes/main/main_game/main_game.tscn`, `tests/unit/test_grey_background.gd` |
+| F6 | Shared floater (`FloatingText`) | Half done. The map's floater was promoted to `LacquerFloater` (`scenes/common/lacquer/lacquer_floater/`: a token with a 16 px `RichTextLacquer`, 40 px in 20 steps, hidden outright), and the map and each cycling zone use it. Still on `FloatingText`: the combat bars and orbs, with 24 px text, a 5 px black outline, engine colours, a 100 px cubic-eased rise and an alpha fade; its `font_size` override is a no-op | Point the combat bars and orbs at `LacquerFloater` with palette colours; delete `FloatingText` | M | `scenes/ui/floating_text/`, `scenes/ui/combat/resource_bar/resource_bar.gd`, `scenes/ui/combat/resource_orb/resource_orb.gd` |
 | F7 | Item hover tooltip (`ItemDisplaySlot`) | A parchment card stretched non-uniformly to 424x264 slides up 15 px with a cubic ease and fades in; black and grey text; tan and green effect lines at 2.5–2.8:1 on cream. Shows over the merchant and the end card | Over lacquer screens, a lacquer popover board (F2): `LabelLacquerPopoverTitle` name, `LabelLacquerDetail` type, `LabelLacquerPopoverBody` text, effects in `RichTextLacquer` via `decimal_bbcode()`. Even px; shown outright | M | `scenes/common/item_display_slot/`, `scenes/common/item_description_panel/` |
 | F8 | Dead UI | `TickProgressBar` (12 px text, alpha fade) and `InkbrushButton` (shader fill, placeholder `res://32.png`) are referenced by nothing | Delete both. `LacquerRod` is the lacquer tick bar | S | `scenes/ui/tick_progress_bar/`, `scenes/ui/inkbrush_button/` |
 
@@ -458,22 +465,6 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 |---|---|---|---|---|---|
 | Z1 | Merchant shop | Dark teal `StyleBoxFlat`s: panel 95%, rows 58%, buttons 55–85%, 1–2 px teal borders at 22–95%, 8 px corners, a 16 px teal glow shadow. `MerchantAtmosphere`: gradient light, mists at x3–3.5, cyan and green GPU motes. Radial slot glows. Title in Euljiro 50 with a teal outline glow. Open and close fades. Gold icon at 24 and 40 px. `LabelGreen` / `LabelRed`. `10.0s` in Euljiro. The 1000 px panel overlaps both columns by 4 px | A strapped lacquer board in the map gap (F2). Title `LabelLacquerZoneName` or `PanelTitle`, greeting `LabelLacquerLore`, `lacquer_line_ai.png` divider. Rows as wide drawers (carved socket, `LabelLacquerName`, effects in `RichTextLacquer`, `gold_icon` at 32 + `LabelLacquerGold`). Sold out as a carved tag, a blocked reason as a tan `LabelLacquerDetail` line (marked, if it needs one, by a vermilion seal with cream text, 5.1:1 per kit §3; never vermilion text on lacquer), a purchase as a `frame_brass` flash and a log line. Buy as a lacquer text button, Leave as `lacquer_close_ai.png` with an Esc hotkey. Footer like the cabinet's gold row. Delete the atmosphere, glows, linear filters and fades. Rewrite the tests that pin the old look | L | `scenes/merchant/`, `assets/themes/merchant/spirit_valley_merchant_theme.tres`, `assets/styleboxes/merchant/`, `tests/unit/test_spirit_valley_merchant_theme.gd`, `tests/integration/test_merchant_shop_flow.gd` |
 | Z2 | Quest toast | Near-black blue panel at 94%, 1 px gold border at 40%, 4 px rounded corners; 22 px text with the 1 px shadow; fades in while sliding 20 px on a cubic ease, fades out | A small lacquer board (F2) with a carved tag (`QUEST`, or the brass ENTER-style plate for completion) and a `LabelLacquerName` line. Shown outright, or dropped in 2 px steps. Optional `frame_brass` flash on the Goals board. Keep the queue | S | `scenes/ui/quest_toast/`, `assets/styleboxes/ui/quest_toast.tres` |
-
-### Cycling
-
-| ID | Surface | What breaks the guide today | Lacquer treatment | Size | Key files |
-|---|---|---|---|---|---|
-| C1 | View frame and backdrop | `panel_cycling_view.tres`: `#665440` at 95%, blended 5 px border, 8 px corners, 14 px soft shadow, over the teal veil (F5). Laid out by HBox ratios, nothing on even px. A second Madra readout next to the cabinet's | An opaque lacquer board on the grid (fixed, or top/mid/bottom slices), 4 px shadow baked, `lacquer_theme.tres` on the root, laid out absolutely like `CultivatorPlate` | M | `scenes/cycling/cycling_view/cycling_view.tscn`, `assets/styleboxes/cycling/panel_cycling_view.tres`, `scenes/ui/main_view/states/cycling_view_state.gd` |
-| C2 | Body diagram | The user's 500x600 antialiased line drawing at scale (1, 1.3867) under nearest, so line weight varies; pure black lines; an embedded `.godot` import | New `lacquer_cycling_body_ai.png` on the grid at the same 500x832 footprint, so every technique's curve and zones still land: a carved silhouette (deep, rim, ink) or a brass inlay. A `TextureRect` at file size. The user's file stays | M | `scenes/cycling/cycling_view/cycling_view.tscn`, `assets/sprites/cycling/cycling_technique_outline.png`, `resources/cycling/cycling_techniques/` |
-| C3 | Cycling path | Two antialiased `Line2D`s: 5 px pale blue at 90% over a 20 px glow line at 30%, round caps, alpha breathing from `path_pulse.gdshader`; odd width; materials built in code | One carved groove `Line2D` (antialiasing off, width 4 or 6, a new tiled `lacquer_cycling_groove_ai.png`), points on even px. Delete the glow line; retire `path_pulse.gdshader` | S | `scenes/cycling/cycling_technique/cycling_technique.gd`, `assets/shaders/path_pulse.gdshader` |
-| C4 | Madra ball | A 640 px painted cyan orb with a baked halo at scale 0.125; `madra_ball.gdshader` rotates its UVs, pulses its scale ±12% and adds an `exp()` glow; sine-eased, unsnapped motion | New `lacquer_madra_ball_strip_ai.png` (56 or 60 px frames, Madra ramp, ink outline) stepping at 10 frames a second, no rotation or glow; drawn position snapped to even px (`MadraPellet`); the idle cue as a brass ring shown outright. Retire `madra_ball.gdshader` | M | `scenes/cycling/cycling_technique/cycling_technique.tscn`, `assets/sprites/cycling/Madra-Ball.png`, `assets/shaders/madra_ball.gdshader` |
-| C5 | Cycling zones and hit tiers | `cycling_zone.gdshader` draws soft translucent discs, rings and an outer glow with a sine pulse; tiers in `Color.GOLD` / `GREEN` / `WHITE`; the hit flash never shows because `mark_as_used()` runs the same frame (CYCLING.md bug) | New `lacquer_cycling_zone_strip_ai.png` (about 48x48: idle socket with a dotted tan rim, active brass rim, used dark socket, PERFECT brass, GOOD cream, OK tan), frames swapped outright, a 300 ms flash. Fix the flash order. Retire `cycling_zone.gdshader` | M | `scenes/cycling/cycling_technique/cycling_zone.gd`, `assets/shaders/cycling_zone.gdshader` |
-| C6 | Resources tab | `liquid_wave` and `core_density_fill` orbs (continuous time, translucent swirls, white outlines), lerped fills, a 1.08 pulse with no pivot; a third-party `ProgressBar` reading `57%`; `+0.0/s` decimals in Euljiro; BBCode sizes and colours in code | Rebuild from the cabinet's pieces: the two orb strips under the lacquer orb shaders, XP beads (floor rule), `lacquer_line_ai.png`, `LabelLacquer*` labels, the rate via `LacquerText`. Set `progress` directly; no pulse. Keep the two orb-position getters the particles aim at. Retire `core_density_fill` and `ProgressShaderRect` | M | `scenes/cycling/cycling_resource_panel/`, `assets/shaders/liquid_wave.gdshader`, `assets/shaders/core_density_fill.gdshader` |
-| C7 | Tab bar | `TabContainer` with rounded, blended, translucent tabs and a 95% content panel with a soft shadow (the text colours are already the kit's) | One column (resources over technique drawers), or new carved and raised tab art with `frame_hover`. Content in an opaque recessed tray | S | `scenes/cycling/cycling_tab_panel/cycling_tab_panel.gd`, `assets/styleboxes/common/tab_*.tres`, `assets/styleboxes/cycling/panel_info_sidebar.tres` |
-| C8 | Technique slots | Rows on `panel_default.tres` (85%, blended border, rounded, soft shadow); the Godot logo as the icon; equipped and hover shown only by a text colour set in code | The zone chest's drawers (copy `ZoneActionButton`'s layout): equipped pulled out on `lacquer_drawer_run_ai.png` with an IN USE tag, hover `frame_hover`, equip flash `frame_brass`, NEW seal for unequipped unlocks. Icons via a new icon field, or `ic_cycle_ai.png` for all | M | `scenes/cycling/cycling_technique_slot/`, `scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd` |
-| C9 | Madra and XP particles (`FlyingParticle`) | Built in code: a glow disc at 25% alpha, a white centre, a fading trail, sub-pixel bezier positions, random 3–5 px sizes, engine tier colours; each arrival pulses the orb to 108% | Reuse `MadraPellet` (`lacquer_madra_pellet_ai.png`, even px, no trail) for Madra; new XP pellet art (jade or tier tones, open question) with a fixed count per tier. Drop the pulse. Delete `flying_particle.gd` | S | `scenes/ui/flying_particle/flying_particle.gd`, `scenes/cycling/cycling_view/cycling_view.gd`, `scenes/zones/zone_transition/madra_pellet.tscn` |
-| C10 | Close button and Auto toggle | `pixel_theme` buttons with rounded, blended borders; a typed `X ESC`; off-grid sizes; the toggle sits in a `Node2D` at a hard-coded offset | Close as `lacquer_close_ai.png` / `_hover` with an Esc `LabelLacquerHotkey`. Auto as the About pair used as a toggle, or a carved AUTO tag that turns brass. Move the toggle into the board's Control tree | S | `scenes/cycling/cycling_view/cycling_view.tscn`, `scenes/cycling/cycling_technique/cycling_technique.tscn` |
-| C11 | Cycle completion feedback | The rate reads `+0.0/s  0.0/cycle` through the first cycle and never returns to idle text; Euljiro decimals; the log gets "Gained N Madra" about 12 times a second (CYCLING.md bugs) | The rate as `RichTextLacquer` via `LacquerText` (`+13.3 Madra / s`). An optional one-line result. Fix the log flood before the lacquer log board shows it | S | `scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd`, `scenes/cycling/cycling_technique/cycling_technique.gd` |
 
 ### Dialogue
 
@@ -555,6 +546,7 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 | Surface | Why |
 |---|---|
 | Madra drain pellets (`MadraPellet`) | Already lacquer: opaque, snapped to even px, no trail |
+| The cycling view: board, groove, ball, zones, pellets, floaters, technique drawers | Already lacquer (built 2026-10-22 and 23) |
 | Log and Goals boards in the adventure view | Already lacquer. `LogWindow.tone_for()` maps each line's first `[color]` tag to a lacquer tone (brass, Madra, cream, or tan for anything else), so adventure and combat log lines need no change |
 | Book open, close and page-turn strips | Already stepped frame strips |
 | `palette_swap.gdshader`, the attribute icons | Reusable as they are |
@@ -564,17 +556,16 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 
 | Step | Rows | Why this order |
 |---|---|---|
-| 0. Decide | G1, G2, G4, K-Q1 | They block the most rows: the backdrop (every overlay), the palette (combat, cycling, merchant), icon sizes (inventory, merchant, end card, hotbars) and the books |
+| 0. Decide | G1, G2, G4, K-Q1 | They block the most rows: the backdrop (every overlay), the palette (combat, merchant), icon sizes (inventory, merchant, end card, hotbars) and the books |
 | 1. Foundations | F1–F8 | Shared art and theme types every later area needs. The render fix is cheap and global. The backdrop and the floater have three or more users each. Deleting dead UI shrinks the surface |
 | 2. Zone view overlays | Z1, Z2 | They sit on top of the finished zone view, so the clash is most visible there. The merchant is the first real user of the new board, button and tooltip pieces |
-| 3. Cycling | C1–C11 | The main active loop, opened from the zone view. Mostly reuse: cabinet orbs and shaders, pellets, drawers |
-| 4. Dialogue | D1 | Shown over the zone view and from encounters. One timeline today, so the risk is small, but it needs a custom Dialogic layer |
-| 5. Combat HUD | B1–B9 | Needs the palette decision. Large reuse (orb shader, rods, frames, tags) |
-| 6. Adventure map | A1–A9 | Reuses the zone map's machinery (fog tiers, rims, routes, glyphs, popovers). Depends on the zoom decision (A-Q4) |
-| 7. Adventure stage | S1–S3 | Needs new art, the combatant-art decision (A-Q8) and the ambient decision (A-Q2) |
-| 8. End card | E1 | Needs its metaphor decision and the item tooltip (F7) |
-| 9. Menu books | K1–K13 | Last or partly never, per K-Q1. **K8 and K9 are broken in the running game: fix them at any time on the book material, whatever the look decision** |
-| 10. Project-wide | P1, P2 | Switching the project theme last, once every area has opted in, keeps the blast radius small |
+| 3. Dialogue | D1 | Shown over the zone view and from encounters. One timeline today, so the risk is small, but it needs a custom Dialogic layer |
+| 4. Combat HUD | B1–B9 | Needs the palette decision. Large reuse (orb shader, rods, frames, tags) |
+| 5. Adventure map | A1–A9 | Reuses the zone map's machinery (fog tiers, rims, routes, glyphs, popovers). Depends on the zoom decision (A-Q4) |
+| 6. Adventure stage | S1–S3 | Needs new art, the combatant-art decision (A-Q8) and the ambient decision (A-Q2) |
+| 7. End card | E1 | Needs its metaphor decision and the item tooltip (F7) |
+| 8. Menu books | K1–K13 | Last or partly never, per K-Q1. **K8 and K9 are broken in the running game: fix them at any time on the book material, whatever the look decision** |
+| 9. Project-wide | P1, P2 | Switching the project theme last, once every area has opted in, keeps the blast radius small |
 
 ### Open questions
 
@@ -584,9 +575,8 @@ The user decides these. "Lean" is the survey's suggestion, not a decision.
 
 | # | Question | Options | Lean | Blocks |
 |---|---|---|---|---|
-| G1 | What dims the game behind a modal? | An opaque 2-step dither; translucency allowed for backdrops only; for cycling, the merchant and the end card only, no backdrop with the HUD boards hidden. Not for the books: the user decided they leave the Goals board and the log showing under the backdrop (`5e8d7394`), and that option would reverse it | Opaque dither | F5, Z1, C1, D1, E1, books |
+| G1 | What dims the game behind a modal? | An opaque 2-step dither; translucency allowed for backdrops only; for the merchant and the end card only, no backdrop with the HUD boards hidden (cycling already runs with no backdrop and the HUD boards up). Not for the books: the user decided they leave the Goals board and the log showing under the backdrop (`5e8d7394`), and that option would reverse it | Opaque dither | F5, Z1, D1, E1, books |
 | G2 | Which palette colours mean health, stamina, damage taken, heals and gains? Is there a warning or danger text colour? | New ramps (vermilion is for seals, jade for progress fills, brass for rewards). Vermilion cannot be text: `#A83C30` is 2.76:1 on lacquer and 2.25:1 on the raised face, under the 4.56:1 floor, so until a text colour exists warnings go on a vermilion seal or plate | — | F1, B1–B9, F6, Z1, A9 |
-| G3 | Cycling tier tones and XP pellets? | PERFECT brass, GOOD cream, OK tan (green dropped); XP pellets jade (beads are jade) or in the tier tones | Brass, cream, tan | C5, C9, F6 |
 | G4 | Item icon size? | The user's 64 px icons at 64 (bigger slots); at 32 like the cabinet's gold icon (some 2 px detail lost); `_ai` redraws at 16 art px | — | K5, K6, K7, Z1, E1, F7 |
 | G5 | Project theme: one cascade or opt in? | Make base types lacquer project-wide; each area opts in by setting `lacquer_theme` on its root. Are the cream book pages a sanctioned second material? | Opt in, decide P1 last | F3, P1 |
 | G6 | Integer window scaling? | `scale_mode` integer (letterboxes 2560x1440 and 1366x768); fractional | — | F4 |
@@ -604,19 +594,6 @@ The user decides these. "Lean" is the survey's suggestion, not a decision.
 | Z-Q2 | The shop over a backdrop, or in the map gap with the cabinet and chest left visible? | Backdrop; map gap | Z1 |
 | Z-Q3 | Keep the quest toast, or a Goals-board flash plus a log line? Quests write nothing to the log today | Toast; flash and log line | Z2 |
 | D-Q1 | How does the portrait sit on the grid? It is 513x679 1x pixel art (1358 px tall at 2x) | Show at 1x; crop to a framed bust; a smaller 2x `_ai` bust. Hide the HUD boards during dialogue? | D1 |
-
-**Cycling**
-
-| # | Question | Options | Blocks |
-|---|---|---|---|
-| C-Q1 | Layout? | A full-screen lacquer room; a board over the dimmed map; a smaller board beside the zone view's own cabinet | C1, C6 |
-| C-Q2 | Body figure and material? | The standing figure (keeps every curve and zone); the seated pose in the unused `Cycling_Technique_Background.webp` (re-author three techniques). Carved silhouette or brass line | C2 |
-| C-Q3 | Does the groove light up behind the ball? | No; jade (progress); Madra blue (Madra) | C3 |
-| C-Q4 | Ball motion? | Step at 10 frames a second; move every frame, snapped to 2 px (changes how mouse tracking feels) | C4 |
-| C-Q5 | Resources tab? | Rebuild from the cabinet's pieces; instance `CultivatorPlate`; drop the tab and keep the zone cabinet visible as the particle target | C6, C7 |
-| C-Q6 | Tabs? | Two tabs (new tab art); one column | C7 |
-| C-Q7 | Technique icons? | One `_ai` icon per technique plus a data field; `ic_cycle_ai.png` for all | C8 |
-| C-Q8 | A one-line cycle result (`+200 Madra · 3 / 4 zones · 1 PERFECT`)? | Yes; silent apart from the orbs | C11 |
 
 **Combat, adventure and end card**
 
@@ -653,12 +630,13 @@ The user decides these. "Lean" is the survey's suggestion, not a decision.
 | Zone view spec (art direction, decisions, review notes) | [superpowers/specs/2026-10-21-zone-view-map-first-design.md](superpowers/specs/2026-10-21-zone-view-map-first-design.md) |
 | Menu books spec | [superpowers/specs/2026-10-21-menu-books-design.md](superpowers/specs/2026-10-21-menu-books-design.md) |
 | Merchant v1 spec ("Ethereal shop") | [superpowers/specs/2026-10-19-merchant-v1-design.md](superpowers/specs/2026-10-19-merchant-v1-design.md) |
-| Reference render (open in a browser) | [superpowers/mockups/zone-view-map-first-mockup.html](superpowers/mockups/zone-view-map-first-mockup.html) |
-| Generators | `docs/superpowers/mockups/zone-view-lacquer/gen/` |
+| Reference renders (open in a browser) | [zone view](superpowers/mockups/zone-view-map-first-mockup.html), [cycling view](superpowers/mockups/cycling-view-lacquer-mockup.html) |
+| Generators | `docs/superpowers/mockups/zone-view-lacquer/gen/`, `docs/superpowers/mockups/cycling-view-lacquer/gen/` |
 | Theme variants, lacquer styleboxes and pieces | [UI_STYLING.md](UI_STYLING.md) |
 | The built zone view (map, chest, cards, orb shaders) | [zones/ZONES.md](zones/ZONES.md) |
 | UI shell, HUD boards, `GreyBackground`, dock | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) |
-| Cycling bugs named in C5 and C11 | [cycling/CYCLING.md](cycling/CYCLING.md) |
+| The built cycling view (board, groove, pellets, technique drawers) | [cycling/CYCLING.md](cycling/CYCLING.md) |
+| Cycling view spec (layout, hit tiers, the choices behind them) | [superpowers/specs/2026-10-22-cycling-view-lacquer-design.md](superpowers/specs/2026-10-22-cycling-view-lacquer-design.md) |
 | Built pieces | `assets/themes/lacquer/lacquer_theme.tres`, `assets/ui/lacquer/`, `assets/styleboxes/lacquer/`, `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd`, `scripts/utils/theme_constants.gd`, `assets/shaders/lacquer_madra_orb.gdshader`, `assets/shaders/lacquer_core_orb.gdshader` |
 | Piece tests | `tests/unit/test_lacquer_pieces.gd` |
 | Rules for agent-made art and scene-tree UI | [../CLAUDE.md](../CLAUDE.md) (AI-Generated Art, GDScript Coding Standards) |
