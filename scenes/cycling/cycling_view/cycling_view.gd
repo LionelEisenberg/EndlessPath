@@ -13,10 +13,10 @@ extends Control
 ## The view shows and hides outright. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
-## the pellets in flight are freed, so reopening starts clean. The press on the ball and the zones
-## reaches them through the board: the root and the effects layer ignore the
-## mouse and the board and the figure box pass it, and only physics picking
-## takes a press that no Control stopped.
+## the pellets in flight are freed, so reopening starts clean. The press on the
+## ball and the zones reaches them through the board: the root and the effects
+## layer ignore the mouse and the board and the figure box pass it, and only
+## physics picking takes a press that no Control stopped.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -40,7 +40,7 @@ const MADRA_FULL_ZONES: String = "Madra full · zones still pay XP"
 const AUTO_ON_TEXT: String = "Auto · on"
 const AUTO_OFF_TEXT: String = "Auto · off"
 
-## Px between a zone's centre and the bottom of its floater as it pops. The
+## Px between a zone's centre and the top of its floater as it pops. The
 ## floater rises from there by get_rise().
 const FLOATER_LIFT: float = 56.0
 
