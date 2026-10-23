@@ -13,9 +13,10 @@ extends Node2D
 ## state as a frame. advance() moves the play on by one frame. _process() feeds it
 ## the mouse, and tests feed it a chosen cursor.
 ## The ball has two positions. The drawn one, snapped to the 2 px grid, is what
-## the player sees, so tracking, the ring, the pellets and the groove use it. The
-## true one, the PathFollow2D's, is where the ball is on the path, so which zones
-## it overlaps and how near a click was use it.
+## the player sees, so tracking, the ring and the pellets use it. The true one,
+## the PathFollow2D's, is where the ball is on the path, so which zones it
+## overlaps and how near a click was use it, and the groove lights to its
+## travelled length (_follow.progress).
 ## While a cycle runs the technique writes CyclingManager's session snapshot, for
 ## the cabinet and the Now tray to read. The session belongs to the technique that
 ## started it: only that technique ends it, when its cycle ends, is stopped or cut
