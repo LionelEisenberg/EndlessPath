@@ -453,25 +453,26 @@ func test_boss_tag_is_a_seal() -> void:
 
 ## The seal is wider than the tag and starts 12 px sooner, so a long boss name
 ## stops short of it (6 px, as it does short of the tag) and wraps there instead of
-## running under it.
+## running under it. The text column starts at x 64, where the drawers' text does,
+## so the room is the drawers' title room: 250 beside the tag, 238 beside the seal.
 func test_the_name_leaves_room_for_the_boss_seal() -> void:
 	var name_label := _node("NameLabel") as Label
 	var column_x: float = _control("TextColumn").position.x
+	assert_eq(column_x, 64.0, "precondition: the drawers' text column")
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
-	assert_eq(name_label.size.x, 236.0, "beside the tag, the kit's 236")
-	assert_eq(name_label.custom_minimum_size.x, 236.0)
+	assert_eq(name_label.size.x, 250.0, "beside the tag, as wide as the drawer's title")
+	assert_eq(name_label.custom_minimum_size.x, 250.0)
 	assert_eq(column_x + name_label.size.x, _control("Tag").position.x - 6.0, "6 px short of the tag")
 
 	_page.show_tile(BOSS_ENCOUNTER, "", null)
-	assert_eq(name_label.size.x, 224.0, "beside the seal, 12 less")
-	assert_eq(name_label.custom_minimum_size.x, 224.0)
+	assert_eq(name_label.size.x, 238.0, "beside the seal, 12 less")
+	assert_eq(name_label.custom_minimum_size.x, 238.0)
 	assert_eq(column_x + name_label.size.x, _control("BossSeal").position.x - 6.0, "6 px short of the seal")
-	assert_gt(_text_width(name_label, BOSS_ENCOUNTER.encounter_name), 224.0, "the shipped boss's name needs more than that: it wraps")
 
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
-	assert_eq(name_label.size.x, 236.0, "and the next tile gives the room back")
+	assert_eq(name_label.size.x, 250.0, "and the next tile gives the room back")
 	_page.show_tile(NoOpEncounter.new(), "", null)
-	assert_eq(name_label.size.x, 236.0)
+	assert_eq(name_label.size.x, 250.0)
 
 func test_rest_tile_line_is_its_kind() -> void:
 	_page.show_tile(AURA_WELL, "", null)
@@ -986,7 +987,7 @@ func test_a_resolved_boss_is_cleared_not_sealed() -> void:
 	assert_true(_shown("Tag"))
 	assert_eq(_text("TagLabel"), "CLEARED")
 	assert_false(_shown("BossSeal"), "the seal belongs to the fight ahead")
-	assert_eq((_node("NameLabel") as Label).size.x, 236.0, "so the name has the tag's room")
+	assert_eq((_node("NameLabel") as Label).size.x, 250.0, "so the name has the tag's room")
 
 func test_completed_text_falls_back() -> void:
 	var plain: AdventureEncounter = _encounter(Type.TREASURE, "Cache", [_plain_choice("Open")], "A cache.", "")
@@ -1217,7 +1218,7 @@ func test_here_tray_pieces_sit_where_the_kit_puts_them() -> void:
 	assert_eq([tray.patch_margin_left, tray.patch_margin_top, tray.patch_margin_right, tray.patch_margin_bottom], [4, 4, 2, 2], "a 9-slice: 4 of ink top and left, a 2 px lit rim bottom and right")
 	assert_true(tray.draw_center)
 	var plate := _node("HerePlate") as TextureRect
-	assert_eq(_rect_of(plate), Rect2(12.0, -11.0, 62.0, 24.0), "the plate rides over the tray's top edge")
+	assert_eq(_rect_of(plate), Rect2(8.0, -11.0, 62.0, 24.0), "the plate rides over the tray's top edge, its left edge over the socket column")
 	assert_eq(plate.texture.resource_path, PLATE_PATH)
 	var plate_label := _node("HereLabel") as Label
 	assert_eq(plate_label.theme_type_variation, &"LabelLacquerLegend")
@@ -1225,15 +1226,15 @@ func test_here_tray_pieces_sit_where_the_kit_puts_them() -> void:
 	assert_eq(plate_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER)
 	assert_eq(plate_label.vertical_alignment, VERTICAL_ALIGNMENT_CENTER)
 	var socket := _node("Socket") as TextureRect
-	assert_eq(_rect_of(socket), Rect2(16.0, 20.0, 48.0, 48.0))
+	assert_eq(_rect_of(socket), Rect2(8.0, 20.0, 48.0, 48.0), "the socket in the drawers' column, at the tray's own y")
 	assert_eq(socket.texture.resource_path, SOCKET_PATH)
-	assert_eq(_rect_of(_control("Glyph")), Rect2(24.0, 28.0, 32.0, 32.0))
+	assert_eq(_rect_of(_control("Glyph")), Rect2(16.0, 28.0, 32.0, 32.0), "the glyph in theirs")
 	var column := _control("TextColumn")
-	assert_eq(column.position, Vector2(78.0, 18.0), "the text column under the tray's top")
-	assert_eq(column.size.x, 316.0, "to x 394")
+	assert_eq(column.position, Vector2(64.0, 18.0), "the text column starts where the drawers' text does")
+	assert_eq(column.size.x, 332.0, "to x 396, where a drawer's detail ends")
 	var name_label := _node("NameLabel") as Label
-	assert_eq(name_label.global_position - _page.global_position, Vector2(78.0, 18.0))
-	assert_eq(name_label.size.x, 236.0)
+	assert_eq(name_label.global_position - _page.global_position, Vector2(64.0, 18.0))
+	assert_eq(name_label.size.x, 250.0)
 	assert_eq(name_label.theme_type_variation, &"LabelLacquerNowName")
 	assert_eq(name_label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
 	assert_eq(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING)
@@ -1246,8 +1247,8 @@ func test_here_tray_pieces_sit_where_the_kit_puts_them() -> void:
 	assert_eq(seal.texture.resource_path, SEAL_PATH)
 	assert_eq((_node("BossSealLabel") as Label).theme_type_variation, &"LabelLacquerSeal")
 	var line := _node("LineLabel") as Label
-	assert_eq(line.global_position - _page.global_position, Vector2(78.0, 48.0), "the line 8 px under the name")
-	assert_eq(line.size.x, 316.0)
+	assert_eq(line.global_position - _page.global_position, Vector2(64.0, 48.0), "the line 8 px under the name")
+	assert_eq(line.size.x, 332.0, "to x 396")
 	assert_eq(line.theme_type_variation, &"LabelLacquerDetail")
 	assert_eq(line.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
 	assert_eq(line.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING)
@@ -1392,8 +1393,8 @@ func test_long_texts_wrap_and_do_not_widen_the_chest() -> void:
 	await wait_process_frames(2)
 
 	var name_label: Label = page.get_node("%NameLabel") as Label
-	assert_gt(_text_width(name_label, long_text), 236.0, "precondition: the name is wider than its slot")
-	assert_lte(name_label.size.x, 236.0, "the name stays in its 236 px, and wraps there")
+	assert_gt(_text_width(name_label, long_text), 250.0, "precondition: the name is wider than its slot")
+	assert_lte(name_label.size.x, 250.0, "the name stays in its 250 px, and wraps there")
 	assert_gt(name_label.get_line_count(), 1)
 	var title := page.get_drawer(0).get_node("%Title") as Label
 	assert_gt(_text_width(title, long_text), 250.0, "precondition: so is the drawer's label")
@@ -1403,7 +1404,7 @@ func test_long_texts_wrap_and_do_not_widen_the_chest() -> void:
 	assert_gt(_text_width(detail, long_text), 332.0, "precondition: and its detail")
 	assert_lte(detail.size.x, 332.0, "the detail stays in its 332 px")
 	assert_gt(detail.get_line_count(), 1)
-	assert_lte((page.get_node("%LineLabel") as Label).size.x, 316.0)
+	assert_lte((page.get_node("%LineLabel") as Label).size.x, 332.0)
 	assert_eq(page.size.x, 408.0, "the page stays 408 wide")
 	assert_eq((page.get_node("%Flow") as Control).size.x, 408.0, "so does its flow")
 	assert_eq(chest.size.x, 440.0, "and the chest 440")
@@ -1414,7 +1415,7 @@ func test_long_texts_wrap_and_do_not_widen_the_chest() -> void:
 	await wait_process_frames(2)
 	assert_eq(page.size.x, 408.0, "a long summary and completed text change nothing either")
 	assert_eq((page.get_node("%Flow") as Control).size.x, 408.0)
-	assert_lte((page.get_node("%LineLabel") as Label).size.x, 316.0)
+	assert_lte((page.get_node("%LineLabel") as Label).size.x, 332.0)
 	assert_eq(chest.size.x, 440.0)
 	assert_lte(_widest_right_edge(page), page.get_global_rect().end.x + 2.0)
 
@@ -1606,9 +1607,9 @@ func test_a_shake_goes_on_over_a_new_tile() -> void:
 # NO TEXT IS CUT OFF (the developer's rule: "increase the size, go to the next line")
 #-----------------------------------------------------------------------------
 
-## Long enough for three lines in the tray's name (236 px) and in a drawer's title (250 px).
+## Long enough for three lines in the tray's name and in a drawer's title (250 px each).
 const LONG_NAME: String = "The Starving Dreadbeast of the Misty Bamboo Hollow Attacks From The Dark"
-## Long enough for two lines in the tray's line (316 px), as a fight's summary can run.
+## Long enough for two lines in the tray's line (332 px), as a fight's summary can run.
 const LONG_LINE: String = "Rested · +80 Health · +24 Madra · +10 Spirit · +10 Body · +10 Mind · +10 Soul"
 ## Long enough for two or three lines in a drawer's detail (332 px).
 const LONG_DETAIL: String = "Commit the well's site to memory so you can find your way back, and mark every path you took to reach it."
@@ -1633,17 +1634,26 @@ func test_a_long_name_wraps_and_grows_the_tray() -> void:
 	_page.show_tile(_long_name_fight(), "", null)
 	var name_label := _node("NameLabel") as Label
 
-	assert_gt(_lines("NameLabel"), 2, "precondition: the name needs three lines in its 236 px")
+	assert_gt(_lines("NameLabel"), 2, "precondition: the name needs three lines in its 250 px")
 	assert_eq(name_label.text_overrun_behavior, NO_TRIMMING, "wrapped, never trimmed")
 	assert_eq(name_label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
 	assert_eq(_lines("LineLabel"), 1, "precondition: the line is short")
 	assert_eq(_tray_height(), 88.0 + 22.0 * (_lines("NameLabel") - 1), "every line after the first adds the name's 22 px")
 	assert_eq(fposmod(_tray_height(), 2.0), 0.0, "an even height")
 
-func test_the_real_dreadbeast_name_wraps_in_the_tray() -> void:
-	var dreadbeast: AdventureEncounter = load("res://resources/adventure/encounters/shallow_woods/combat_encounters/regular/starving_dreadbeast_encounter.tres")
-	assert_eq(dreadbeast.encounter_name, "Starving Dreadbeast Attacks!", "precondition: the name the developer saw cut off")
-	_page.show_tile(dreadbeast, "", null)
+## "Starving Dreadbeast Attacks!" is the name the developer saw cut off in a 236 px
+## name. The name has the drawers' 250 px now and takes it whole, 246 px on one
+## line; "Ravenous Dreadbeast Attacks!" is 254 px, wraps onto a second line, and the
+## tray grows by it.
+func test_the_dreadbeast_names_in_the_trays_wider_room() -> void:
+	var starving: AdventureEncounter = load("res://resources/adventure/encounters/shallow_woods/combat_encounters/regular/starving_dreadbeast_encounter.tres")
+	assert_eq(starving.encounter_name, "Starving Dreadbeast Attacks!", "precondition: the name the developer saw cut off")
+	_page.show_tile(starving, "", null)
+	assert_eq(_lines("NameLabel"), 1, "now whole on one line")
+	assert_eq(_tray_height(), 88.0)
+	var ravenous: AdventureEncounter = load("res://resources/adventure/encounters/shallow_woods/combat_encounters/elite/ravenous_dreadbeast_encounter.tres")
+	assert_eq(ravenous.encounter_name, "Ravenous Dreadbeast Attacks!", "precondition: the longer of the two")
+	_page.show_tile(ravenous, "", null)
 	assert_eq(_lines("NameLabel"), 2, "wrapped onto a second line")
 	assert_eq(_tray_height(), 110.0, "the tray one line taller: 88 + 22")
 
@@ -1651,7 +1661,7 @@ func test_a_long_line_wraps_and_grows_the_tray() -> void:
 	_page.show_tile(AURA_WELL, LONG_LINE, null)
 	var line := _node("LineLabel") as Label
 
-	assert_gt(_lines("LineLabel"), 1, "precondition: the line needs more than one line in its 316 px")
+	assert_gt(_lines("LineLabel"), 1, "precondition: the line needs more than one line in its 332 px")
 	assert_eq(line.text_overrun_behavior, NO_TRIMMING)
 	assert_eq(line.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
 	assert_eq(_tray_height(), 88.0 + 18.0 * (_lines("LineLabel") - 1), "every line after the first adds the line's 18 px")
@@ -1676,9 +1686,9 @@ func test_a_grown_tray_keeps_its_socket_glyph_plate_and_tag_at_the_top() -> void
 	_page.show_tile(_long_name_fight(), "", null)
 	await wait_process_frames(2)
 	assert_gt(_tray_height(), 88.0, "precondition: grown")
-	assert_eq(_rect_of(_control("Socket")), Rect2(16.0, 20.0, 48.0, 48.0))
-	assert_eq(_rect_of(_control("Glyph")), Rect2(24.0, 28.0, 32.0, 32.0))
-	assert_eq(_rect_of(_control("HerePlate")), Rect2(12.0, -11.0, 62.0, 24.0))
+	assert_eq(_rect_of(_control("Socket")), Rect2(8.0, 20.0, 48.0, 48.0))
+	assert_eq(_rect_of(_control("Glyph")), Rect2(16.0, 28.0, 32.0, 32.0))
+	assert_eq(_rect_of(_control("HerePlate")), Rect2(8.0, -11.0, 62.0, 24.0))
 	assert_eq(_rect_of(_control("Tag")), Rect2(320.0, 17.0, 76.0, 22.0))
 	_page.show_tile(BOSS_ENCOUNTER, "", null)
 	assert_eq(_rect_of(_control("BossSeal")), Rect2(308.0, 17.0, 88.0, 22.0))
@@ -1707,12 +1717,14 @@ func test_the_chest_grows_with_a_grown_tray() -> void:
 	assert_eq(chest.size.y, roundf((82.0 + page.get_content_height() + 24.0) / 2.0) * 2.0)
 
 func test_a_long_boss_name_wraps_beside_the_seal() -> void:
-	_page.show_tile(BOSS_ENCOUNTER, "", null)
+	var boss: AdventureEncounter = _encounter(Type.COMBAT_BOSS, "Manifested Spirit of the Endless Misty Bamboo Hollow", [_combat_choice(_enemy("Spirit"))])
+	_page.show_tile(boss, "", null)
 	var name_label := _node("NameLabel") as Label
-	assert_gt(_text_width(name_label, BOSS_ENCOUNTER.encounter_name), 224.0, "precondition: the boss's name needs more than the seal leaves")
-	assert_eq(_lines("NameLabel"), 2, "so it wraps instead of running under the seal")
+	assert_eq(name_label.size.x, 238.0, "the seal leaves 238 px")
+	assert_gt(_text_width(name_label, boss.encounter_name), 238.0, "precondition: the boss's name needs more than the seal leaves")
+	assert_gt(_lines("NameLabel"), 1, "so it wraps instead of running under the seal")
 	assert_eq(name_label.text_overrun_behavior, NO_TRIMMING)
-	assert_eq(_tray_height(), 110.0)
+	assert_eq(_tray_height(), 88.0 + 22.0 * (_lines("NameLabel") - 1))
 
 func test_a_long_drawer_title_wraps_and_grows_the_drawer() -> void:
 	_page.show_tile(_one_drawer(LONG_NAME, "Short."), "", null)
@@ -1861,6 +1873,39 @@ func test_the_drawers_are_as_wide_as_the_tray() -> void:
 		assert_eq(drawer.get_global_rect().end.x, tray.get_global_rect().end.x, "and ends where it does")
 		var face := _drawer_node(index, "Face") as Control
 		assert_eq(face.size.x, drawer.size.x + 2.0, "the face adds the 2 px shadow")
+
+## The tray's left columns are the drawers': its socket (the same 48 px piece) at
+## x 8, its glyph at x 16, its text at x 64 and its line to x 396 (where a drawer's
+## detail ends), and its "Here" plate's left edge is over the socket column. The
+## tray and every drawer under it share one column each for socket, glyph and text.
+func test_the_trays_socket_glyph_and_text_are_in_the_drawers_columns() -> void:
+	_page.show_tile(AURA_WELL, "", null)
+	await wait_process_frames(2)
+	var tray := _control("HereTray")
+	var socket := _control("Socket")
+	var glyph := _control("Glyph")
+	var name_label := _node("NameLabel") as Label
+	var line := _node("LineLabel") as Label
+	assert_true(glyph.visible, "precondition: the rest's glyph shows")
+	assert_gt(_shown_drawers(), 1, "precondition: more than one drawer")
+	var socket_x: float = socket.global_position.x - tray.global_position.x
+	var glyph_x: float = glyph.global_position.x - tray.global_position.x
+	var text_x: float = name_label.global_position.x - tray.global_position.x
+	assert_eq([socket_x, glyph_x, text_x], [8.0, 16.0, 64.0], "socket, glyph and text, from the tray's left edge")
+	assert_eq(_control("HerePlate").global_position.x - tray.global_position.x, socket_x, "the plate's left edge is over the socket column")
+	for index: int in _shown_drawers():
+		var drawer: ChoiceDrawer = _drawer(index)
+		var drawer_socket := _drawer_node(index, "Socket") as Control
+		var drawer_glyph := _drawer_node(index, "Glyph") as Control
+		var title := _drawer_node(index, "Title") as Label
+		var detail := _drawer_node(index, "Detail") as Label
+		assert_eq(drawer_socket.global_position.x - drawer.global_position.x, socket_x, "drawer %d's socket is in the tray's column" % index)
+		assert_eq(drawer_socket.size, socket.size, "the same 48 px piece")
+		assert_eq(drawer_glyph.global_position.x - drawer.global_position.x, glyph_x, "so is its glyph")
+		assert_eq(drawer_glyph.size, glyph.size)
+		assert_eq(title.global_position.x - drawer.global_position.x, text_x, "and its text")
+		assert_eq(title.size.x, name_label.size.x, "with the tray's name's room beside a tag")
+		assert_eq(detail.get_global_rect().end.x - drawer.global_position.x, line.get_global_rect().end.x - tray.global_position.x, "the tray's line reaches where the detail does")
 
 ## The tray's tag and the drawers' stand at the same x, to the same right edge.
 func test_the_drawers_tag_stands_where_the_trays_does() -> void:

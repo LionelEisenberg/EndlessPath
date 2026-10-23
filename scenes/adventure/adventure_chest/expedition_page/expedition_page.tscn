@@ -56,9 +56,9 @@ patch_margin_bottom = 2
 [node name="Socket" type="TextureRect" parent="HereTray" unique_id=1792358578]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 16.0
+offset_left = 8.0
 offset_top = 20.0
-offset_right = 64.0
+offset_right = 56.0
 offset_bottom = 68.0
 mouse_filter = 2
 texture = ExtResource("5_socket")
@@ -67,9 +67,9 @@ texture = ExtResource("5_socket")
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
-offset_left = 24.0
+offset_left = 16.0
 offset_top = 28.0
-offset_right = 56.0
+offset_right = 48.0
 offset_bottom = 60.0
 mouse_filter = 2
 expand_mode = 1
@@ -78,16 +78,16 @@ script = ExtResource("6_strip_rect")
 [node name="TextColumn" type="VBoxContainer" parent="HereTray" unique_id=1710553071]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 78.0
+offset_left = 64.0
 offset_top = 18.0
-offset_right = 394.0
+offset_right = 396.0
 offset_bottom = 18.0
 mouse_filter = 2
 theme_override_constants/separation = 8
 
 [node name="NameLabel" type="Label" parent="HereTray/TextColumn" unique_id=1009232570]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(236, 22)
+custom_minimum_size = Vector2(250, 22)
 layout_mode = 2
 size_flags_horizontal = 0
 theme_type_variation = &"LabelLacquerNowName"
@@ -97,7 +97,7 @@ autowrap_mode = 3
 
 [node name="LineLabel" type="Label" parent="HereTray/TextColumn" unique_id=1726513862]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(316, 18)
+custom_minimum_size = Vector2(332, 18)
 layout_mode = 2
 theme_type_variation = &"LabelLacquerDetail"
 theme_override_styles/normal = ExtResource("17_wrap_pad")
@@ -155,9 +155,9 @@ vertical_alignment = 1
 [node name="HerePlate" type="TextureRect" parent="HereTray" unique_id=513973622]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 12.0
+offset_left = 8.0
 offset_top = -11.0
-offset_right = 74.0
+offset_right = 70.0
 offset_bottom = 13.0
 mouse_filter = 2
 texture = ExtResource("4_plate")

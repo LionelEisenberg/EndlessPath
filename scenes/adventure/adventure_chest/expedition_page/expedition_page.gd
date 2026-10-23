@@ -5,7 +5,9 @@ extends AdventureChestPage
 ## player stands on, what it offers and the run so far. It holds three things,
 ## 408 wide from the page slot's top-left corner:
 ## - The Here tray: the tile's name, a carved tag (the BOSS seal for a boss) and
-##   one line, with the encounter's glyph in its socket. Standing on an
+##   one line, with the encounter's glyph in its socket. Its socket, glyph and text
+##   stand in the drawers' columns (socket at x 8, glyph at 16, text at 64, the
+##   line to x 396), as its tag and seal stand where the drawers' do. Standing on an
 ##   unresolved encounter it names its kind (a fight also names the enemy); on a
 ##   resolved one it reads CLEARED and the line is what the tile left behind; on
 ##   open ground (a NoOp tile, or an encounter with no choices, as the map
@@ -68,12 +70,12 @@ const STORY_GLYPH: Texture2D = preload("res://assets/ui/lacquer/icons/ic_story_a
 const STORY_GLYPH_FRAME_SIZE: Vector2i = Vector2i(16, 16)
 
 ## The tray's name stops this far short of the tag or seal beside it. Beside the
-## tag (at x 320, the name at x 78) that is the kit's 236 px; beside the wider
-## BOSS seal (at x 308) it is 224, so a long boss name wraps before the seal
-## instead of running under it.
+## tag (at x 320, the name at x 64, where the drawers' text starts) that is 250 px,
+## the drawers' title room; beside the wider BOSS seal (at x 308) it is 238, so a
+## long boss name wraps before the seal instead of running under it.
 const NAME_GAP: float = 6.0
-## The Here tray is the kit's 88 tall at least; its text column starts 18 under its
-## top and 22 px of tray stay under the column. The flow starts this far under the
+## The Here tray is the kit's 88 tall at least; its text column (x 64 to 396) starts
+## 18 under its top and 22 px of tray stay under the column. The flow starts this far under the
 ## tray, whatever the tray's height.
 const TRAY_MIN_HEIGHT: float = 88.0
 const TRAY_BOTTOM_ROOM: float = 22.0
