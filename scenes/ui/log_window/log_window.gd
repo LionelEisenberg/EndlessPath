@@ -27,7 +27,6 @@ var _drag_offset: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	LogManager.message_logged.connect(_on_message_logged)
-	LogManager.visibility_toggled.connect(toggle_collapse)
 	_collapse_button.pressed.connect(_on_collapse_pressed)
 	_title_bar.gui_input.connect(_on_titlebar_input)
 	_content_panel.visible = false

@@ -248,7 +248,7 @@ For the full skill list, invoke `godot-prompter:using-godot-prompter`.
 ## Development Notes
 
 ### Shaders
-Custom shaders (15) live in `assets/shaders/`. Notable shaders include: `liquid_wave` (Madra orb fill), `core_density_fill` (radial density display), `madra_ball` and `cycling_zone` (cycling mini-game), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), `flowing_path` (animated brightness wave for zone glowing paths), `action_card_sweep` (timed zone action card fill), and `path_connection_energy`, `path_node_border`, `path_node_keystone` (path tree). `tile_aura` (pulsing color overlay) is currently unreferenced, and `zone_action_button` is only used by the unused `InkbrushButton`.
+Custom shaders (14) live in `assets/shaders/`. Notable shaders include: `liquid_wave` (Madra orb fill), `core_density_fill` (radial density display), `madra_ball`, `cycling_zone` and `path_pulse` (cycling mini-game), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), `flowing_path` (animated brightness wave for zone glowing paths), `action_card_sweep` (timed zone action card fill), `palette_swap` (per-menu menu book colours), `hit_flash` (combat hit feedback), and `path_connection_energy`, `path_node_border`, `path_node_keystone` (path tree).
 
 ### Styling / Themes
 UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Custom styleboxes in `assets/styleboxes/`. Use existing theme tokens — do not introduce external UI frameworks. See `docs/UI_STYLING.md` for the Label variant type-scale and usage rules.

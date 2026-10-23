@@ -22,8 +22,8 @@ func use() -> void:
 	for effect: EffectData in effects:
 		effect.process()
 
-## Tooltip lines. Used by ItemInstanceData._to_description_box() to render the
-## consumable's effects in the inventory description panel.
+## Tooltip lines: the consumable's effects, as the item description panels
+## and merchant rows show them.
 func _get_item_effects() -> Array[String]:
 	var lines: Array[String] = []
 	for effect: EffectData in effects:

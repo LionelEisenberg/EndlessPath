@@ -53,7 +53,3 @@ func validate() -> bool:
 		push_error("PathNodeData: max_purchases must be >= 1 for node '%s'" % id)
 		return false
 	return true
-
-## Returns true if this node supports multiple purchases.
-func is_repeatable() -> bool:
-	return max_purchases > 1

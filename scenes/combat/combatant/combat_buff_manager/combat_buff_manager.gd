@@ -99,12 +99,6 @@ func apply_buff(buff_data: BuffEffectData) -> void:
 	if buff_data.buff_type == BuffEffectData.BuffType.DAMAGE_OVER_TIME and _dot_timer.is_stopped():
 		_dot_timer.start()
 
-## Remove a buff by ID.
-func remove_buff(buff_id: String) -> void:
-	var buff = _find_buff_by_id(buff_id)
-	if buff:
-		_remove_buff(buff)
-
 ## Clear all active buffs (called on combat end).
 func clear_all_buffs() -> void:
 	for buff in active_buffs:
@@ -139,30 +133,6 @@ func get_attribute_modifier(attr_type: CharacterAttributesData.AttributeType) ->
 		if buff.buff_data.buff_type == BuffEffectData.BuffType.ATTRIBUTE_MODIFIER_MULTIPLICATIVE:
 			if buff.buff_data.attribute_modifiers.has(attr_type):
 				total_modifier *= buff.buff_data.attribute_modifiers[attr_type]
-	
-	return total_modifier
-
-## Get the total outgoing damage modifier.
-## Returns 1.0 if no modifiers.
-func get_outgoing_damage_modifier() -> float:
-	var total_modifier: float = 1.0
-
-	for buff in active_buffs:
-		if buff.buff_data.buff_type == BuffEffectData.BuffType.OUTGOING_DAMAGE_MODIFIER:
-			if not buff.is_consumed:
-				total_modifier *= pow(buff.buff_data.damage_multiplier, buff.stack_count)
-
-	return total_modifier
-
-## Get the total incoming damage modifier.
-## Returns 1.0 if no modifiers.
-func get_incoming_damage_modifier() -> float:
-	var total_modifier: float = 1.0
-	
-	for buff in active_buffs:
-		if buff.buff_data.buff_type == BuffEffectData.BuffType.INCOMING_DAMAGE_MODIFIER:
-			if not buff.is_consumed:
-				total_modifier *= buff.buff_data.damage_multiplier
 	
 	return total_modifier
 

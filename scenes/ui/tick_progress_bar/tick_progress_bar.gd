@@ -11,7 +11,6 @@ const BAR_COLOR_BG: Color = Color(0.18, 0.18, 0.18, 0.9)
 const BAR_COLOR_FILL_DEFAULT: Color = Color(0.83, 0.75, 0.45, 1.0)
 const GRADATION_COLOR: Color = Color(0.0, 0.0, 0.0, 0.45)
 const GRADATION_WIDTH: float = 1.0
-const GRADATION_HEIGHT: float = 4.0  # slightly taller than the bar for visibility
 
 @onready var _bar_bg: ColorRect = %BarBg
 @onready var _bar_fill: ColorRect = %BarFill

@@ -24,7 +24,6 @@ signal adventure_completed(result_data: AdventureResultData)
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
 #-----------------------------------------------------------------------------
-var current_encounter: AdventureEncounter = null
 var current_action_data: AdventureActionData = null
 
 var is_in_combat: bool = false # Whether the player is currently in combat

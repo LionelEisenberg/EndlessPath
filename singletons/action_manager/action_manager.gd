@@ -24,8 +24,6 @@ signal start_adventure(action_data: AdventureActionData, madra_budget: float)
 signal stop_adventure()
 
 ## training signals
-signal start_training(action_data: TrainingActionData)
-signal stop_training()
 signal training_tick_processed(action_data: TrainingActionData, new_tick_count: int)
 signal training_level_gained(action_data: TrainingActionData, new_level: int)
 
@@ -220,7 +218,6 @@ func _execute_dialogue_action(action_data: NpcDialogueActionData) -> void:
 ## Handle training action - start periodic tick timer.
 func _execute_train_action(action_data: TrainingActionData) -> void:
 	Log.info("ActionManager: Executing training action: %s" % action_data.action_name)
-	start_training.emit(action_data)
 
 	action_timer.name = "TrainingTimer"
 	action_timer.timeout.connect(_on_train_timer_finished.bind(action_data))
@@ -286,7 +283,6 @@ func _stop_dialogue_action(successful: bool) -> void:
 ## Handle training action - stop and persist remaining progress.
 func _stop_train_action(successful: bool) -> void:
 	Log.info("ActionManager: Stopping training action")
-	stop_training.emit()
 	_reset_action_timer()
 	_process_completion_effects(successful)
 

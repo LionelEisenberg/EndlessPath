@@ -20,14 +20,7 @@ enum MenuType {
 # MENU CONFIG
 #-----------------------------------------------------------------------------
 
-## Maps MenuType to the singleton node name whose unequipped-unlocks state drives
-## the badge indicator. MenuTypes absent from this map never show a badge.
-const BADGE_PROVIDER: Dictionary = {
-	MenuType.ABILITIES: "AbilityManager",
-}
-
 ## Maps each MenuType to its display name, input action, shortcut hint, and icon.
-## Icon textures are null until pixel art is created — add paths here later.
 const MENU_CONFIG: Dictionary = {
 	MenuType.INVENTORY: {
 		"display_name": "INVENTORY",

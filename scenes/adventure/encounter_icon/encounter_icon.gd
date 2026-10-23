@@ -9,10 +9,8 @@ extends Node2D
 ##
 ## Visual states:
 ## - Default (just visited or revealed boss): full opacity, no checkmark
-## - Completed (visited and player moved away): Dimmable parent at 0.45
+## - Completed (visited and player moved away): Dimmable parent at 0.90
 ##   alpha, Checkmark badge visible
-##
-## set_visited() is independent and only drives trap-encounter reveal.
 
 @onready var _dimmable: Node2D = %Dimmable
 @onready var _glyph: Sprite2D = %Glyph
@@ -52,7 +50,6 @@ const REST_SPRITESHEET_HFRAMES: int = 5
 ## tense breathing pattern.
 const REST_ANIMATION_DURATION: float = 2.0
 
-var _is_visited: bool = false
 var _current_type: int = -1
 var _spritesheet_tween: Tween
 
@@ -109,17 +106,8 @@ func _apply_icon_scale() -> void:
 		return
 	_glyph.scale = Vector2(ICON_TARGET_SIZE / frame_size.x, ICON_TARGET_SIZE / frame_size.y)
 
-## Marks this icon as visited so traps get revealed on the next
-## configure_for_type call. Does NOT change the visual opacity — use
-## set_completed() for the "visited + moved on" visual state.
-func set_visited(visited: bool) -> void:
-	_is_visited = visited
-	# Re-run config so traps get revealed
-	if _current_type != -1:
-		configure_for_type(_current_type)
-
 ## Sets the icon's "visited + moved on" visual state. When completed,
-## the encounter icon is dimmed to roughly half opacity via the Dimmable
+## the encounter icon is dimmed slightly via the Dimmable
 ## wrapper and a green checkmark badge appears in the bottom-right.
 ## Used by adventure_tilemap to mark tiles the player has cleared.
 func set_completed(completed: bool) -> void:

@@ -41,13 +41,6 @@ func get_nodes_for_stage(stage: CultivationManager.AdvancementStage) -> Array[Pa
 			result.append(node)
 	return result
 
-## Returns the total point cost to purchase every node at max level.
-func get_total_tree_cost() -> int:
-	var total: int = 0
-	for node: PathNodeData in nodes:
-		total += node.point_cost * node.max_purchases
-	return total
-
 ## Validates all nodes in the tree. Returns true if all are valid.
 func validate() -> bool:
 	if path_id.is_empty():

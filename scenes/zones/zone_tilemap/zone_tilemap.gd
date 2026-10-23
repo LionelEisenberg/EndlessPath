@@ -1,8 +1,6 @@
 class_name ZoneTilemap
 extends Node2D
 
-signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
-
 #-----------------------------------------------------------------------------
 # EXPORTS
 #-----------------------------------------------------------------------------
@@ -209,7 +207,6 @@ func _on_zone_tile_clicked(tile_coord: Vector2i) -> void:
 		return
 
 	if zone_data:
-		zone_selected.emit(zone_data, tile_coord)
 		update_zone_tile_state(zone_data)
 
 	_move_character_to_tile_coord(tile_coord)

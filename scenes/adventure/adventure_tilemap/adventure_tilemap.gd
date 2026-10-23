@@ -40,7 +40,6 @@ const FOREST_ATLAS_SOURCE_ID := 8
 
 # Character movement speeds
 const CHARACTER_MOVE_SPEED = 150.0
-const INSTANT_MOVE_SPEED = 10000.0
 
 # TODO: Calculate this dynamically based on terrain/stats instead of a constant
 const MOVEMENT_STAMINA_COST = 5.0
@@ -389,8 +388,7 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	# Calculate the path using hexagonal line drawing
 	var path_cube_coords = visible_map.cube_pathfind(_current_tile, target_cube_coord)
 	
-	# Check stamina for the full path (approximation, actual deduction happens per step)
-	var _total_cost = (path_cube_coords.size() - 1) * MOVEMENT_STAMINA_COST
+	# Check stamina for one step; the deduction happens per step.
 	if PlayerManager.vitals_manager and PlayerManager.vitals_manager.current_stamina < MOVEMENT_STAMINA_COST:
 		Log.info("AdventureTilemap: Not enough stamina to move!")
 		# TODO: Show UI feedback
@@ -827,7 +825,6 @@ func _update_cell_highlight(coord: Vector3i) -> void:
 		_encounter_icons[coord] = icon
 
 	icon.position = full_map.cube_to_local(coord) + full_map.position
-	icon.set_visited(_visited_tile_dictionary.has(coord))
 	var should_show := icon.configure_for_type(encounter.encounter_type)
 	icon.visible = should_show
 

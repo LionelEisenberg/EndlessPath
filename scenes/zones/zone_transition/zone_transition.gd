@@ -52,10 +52,6 @@ func _ready() -> void:
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Whether a transition is currently in progress.
-func is_transitioning() -> bool:
-	return _is_transitioning
-
 ## Reset camera to pre-transition state (called when returning to zone view).
 func reset_camera(duration: float = 0.3) -> void:
 	if not _has_saved_camera:
