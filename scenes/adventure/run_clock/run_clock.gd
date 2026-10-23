@@ -5,9 +5,12 @@ extends Control
 ## mini hourglass and the time left as M:SS in cream. At 30 s or less the
 ## recess becomes the vermilion seal and the cream stays, so nothing but the
 ## recess changes; nothing flashes.
-## bind_timer() hands it the run's Timer. While that timer runs, _process
-## reads its time left every frame. A stopped timer leaves the clock as it
-## was: a run that ends with time left keeps showing it.
+## bind_timer() hands it the run's Timer and paints the clock from it at once:
+## a run starts from a tween callback, which steps after the frame's _process,
+## so the first frame of a run would otherwise show the last one's end (after a
+## timeout, 0:00 on the seal). While that timer runs, _process reads its time
+## left every frame. A stopped timer leaves the clock as it was: a run that
+## ends with time left keeps showing it.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -38,20 +41,17 @@ var _timer: Timer = null
 #-----------------------------------------------------------------------------
 
 func _process(_delta: float) -> void:
-	if not is_instance_valid(_timer) or _timer.is_stopped():
-		return
-	var seconds_left: float = _timer.time_left
-	_time_label.text = format_time(seconds_left)
-	_recess.texture = RECESS_LOW if is_low(seconds_left) else RECESS
+	_refresh()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Follows timer from now on, and the one bound before no longer. Null lets
-## the clock go.
+## Follows timer from now on, and the one bound before no longer, and shows its
+## time left at once if it runs. Null lets the clock go.
 func bind_timer(timer: Timer) -> void:
 	_timer = timer
+	_refresh()
 
 ## Returns true while the vermilion seal shows in place of the carved recess.
 func is_low_shown() -> bool:
@@ -66,3 +66,16 @@ static func format_time(seconds_left: float) -> String:
 ## fewer.
 static func is_low(seconds_left: float) -> bool:
 	return seconds_left <= LOW_SECONDS
+
+#-----------------------------------------------------------------------------
+# PRIVATE
+#-----------------------------------------------------------------------------
+
+## Paints the time left and the recess from the bound timer while it runs. A
+## stopped or missing timer leaves the clock as it was.
+func _refresh() -> void:
+	if not is_instance_valid(_timer) or _timer.is_stopped():
+		return
+	var seconds_left: float = _timer.time_left
+	_time_label.text = format_time(seconds_left)
+	_recess.texture = RECESS_LOW if is_low(seconds_left) else RECESS

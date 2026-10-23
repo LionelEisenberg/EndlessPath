@@ -173,6 +173,38 @@ func test_clock_follows_the_timer_it_was_bound_to_last() -> void:
 	assert_eq(_time_text(), "0:45", "the first no longer moves the clock")
 	assert_false(_clock().is_low_shown())
 
+## A new run starts from a tween callback, which steps after the frame's
+## _process, so a clock that painted only in _process would show the last run's
+## end for the first frame of the next: after a timeout, "0:00" on the vermilion
+## seal. Binding a timer paints the clock at once: nothing is awaited here.
+func test_binding_a_timer_paints_the_clock_before_any_frame_passes() -> void:
+	var timed_out: Timer = _held_timer(0.5)
+	_clock().bind_timer(timed_out)
+	await wait_process_frames(1)
+	assert_eq(_time_text(), "0:00", "precondition: the last run ended on 0:00")
+	assert_true(_clock().is_low_shown(), "precondition: on the seal")
+
+	_clock().bind_timer(_held_timer(300.0))
+
+	assert_eq(_time_text(), "5:00", "the fresh run's time shows before any frame passes")
+	assert_false(_clock().is_low_shown(), "on the normal recess")
+	assert_eq(_recess_path(), RECESS_PATH)
+
+## Binding a timer that is not running (stopped, or null) paints nothing: the
+## clock keeps what it showed, as it does when its timer stops.
+func test_binding_a_stopped_timer_leaves_the_clock_as_it_was() -> void:
+	_clock().bind_timer(_held_timer(45.0))
+	await wait_process_frames(1)
+	assert_eq(_time_text(), "0:45", "precondition")
+	var idle := Timer.new()
+	add_child_autofree(idle)
+
+	_clock().bind_timer(idle)
+	assert_eq(_time_text(), "0:45", "a timer that never started leaves the time as it was")
+	assert_false(_clock().is_low_shown())
+	_clock().bind_timer(null)
+	assert_eq(_time_text(), "0:45", "so does no timer at all")
+
 ## A clock with no timer, with its timer unbound (null) or with its timer freed
 ## sits still and raises no error (an engine error fails the test).
 func test_clock_without_a_live_timer_sits_still() -> void:
@@ -187,9 +219,10 @@ func test_clock_without_a_live_timer_sits_still() -> void:
 	await wait_process_frames(2)
 	assert_eq(_time_text(), "0:45", "unbound: the timer no longer reaches it")
 	_clock().bind_timer(timer)
+	assert_eq(_time_text(), "0:20", "bound again, the timer's time shows at once")
 	timer.free()
 	await wait_process_frames(2)
-	assert_eq(_time_text(), "0:45", "a freed timer leaves the clock as it was")
+	assert_eq(_time_text(), "0:20", "a freed timer leaves the clock as it was")
 
 #-----------------------------------------------------------------------------
 # TITLE
