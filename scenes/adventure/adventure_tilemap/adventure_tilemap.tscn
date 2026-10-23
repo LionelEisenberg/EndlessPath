@@ -11,7 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://b5iaj785gphie" path="res://assets/ui/lacquer/map/lacquer_hex_current_ai.png" id="7_current"]
 [ext_resource type="PackedScene" uid="uid://bq7k2r0utedv4" path="res://scenes/adventure/adventure_route/adventure_route.tscn" id="8_route"]
 [ext_resource type="Texture2D" uid="uid://b4c6n4m45n8ya" path="res://assets/ui/lacquer/map/lacquer_char_shadow_ai.png" id="9_shadow"]
-[ext_resource type="PackedScene" uid="uid://cadvmarkr0001" path="res://scenes/adventure/adventure_marker/adventure_marker.tscn" id="13_marker"]
+[ext_resource type="PackedScene" uid="uid://dhdpu8b5bvy1b" path="res://scenes/adventure/adventure_map_markers/adventure_map_markers.tscn" id="13_markers"]
 
 [node name="AdventureTilemap" type="Node2D" unique_id=1090162291]
 script = ExtResource("1_b7v0o")
@@ -79,12 +79,9 @@ unique_name_in_owner = true
 
 [node name="CameraClampController" parent="CharacterBody2D/Camera2D" unique_id=1707357113 instance=ExtResource("4_yfmtn")]
 
-[node name="EncounterIconContainer" type="Node2D" parent="." unique_id=953463062]
+[node name="AdventureMapMarkers" parent="." unique_id=1427716095 node_paths=PackedStringArray("map") instance=ExtResource("13_markers")]
 unique_name_in_owner = true
-z_index = 6
-
-[node name="AdventureMarker" parent="." unique_id=1900000003 instance=ExtResource("13_marker")]
-unique_name_in_owner = true
+map = NodePath("..")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2060548285]
 layer = 100

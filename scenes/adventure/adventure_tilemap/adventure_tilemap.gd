@@ -14,7 +14,9 @@ extends Node2D
 ## the forest atlas and revealed ones in its veil; the current hex's brass rim
 ## and a hover rim; the route dots of a hovered or committed walk; and the
 ## character at 2x with the kit's shadow, walking in even px under a camera
-## that follows it with the current hex's centre at screen (960, 470).
+## that follows it with the current hex's centre at screen (960, 470). The
+## encounters are marked by the lacquer coins of the AdventureMapMarkers layer,
+## a child that reads this map's getters and signals.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -53,8 +55,6 @@ signal boss_revealed(coord: Vector3i)
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
-
-const EncounterIconScene := preload("res://scenes/adventure/encounter_icon/encounter_icon.tscn")
 
 # Tilemap tile source IDs
 const BASE_TILE_SOURCE_ID = 0
@@ -115,19 +115,15 @@ enum HighlightType {
 @onready var _hover_rim: Sprite2D = %HoverRim
 @onready var _route: AdventureRoute = %AdventureRoute
 @onready var _camera: Camera2D = %Camera2D
-@onready var _encounter_icon_container: Node2D = %EncounterIconContainer
-@onready var _adventure_marker: AdventureMarker = %AdventureMarker
 
 var _boss_revealed: bool = false
 
 ## DEV-only visual override: when true, every encounter tile renders with
-## its forest art (revealed tiles lose their veil) and encounter icon, and
+## its forest art (revealed tiles lose their veil) and its glyph coin, and
 ## the fog leaves every map tile. _visited_tile_dictionary and
 ## _highlight_tile_dictionary are untouched so progression, stats, and
 ## encounter-resolution logic are unaffected.
 var _dev_reveal_all: bool = false
-
-var _encounter_icons: Dictionary[Vector3i, EncounterIcon] = {}
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -142,7 +138,7 @@ var _visited_tile_dictionary: Dictionary[Vector3i, bool] = {}
 var _highlight_tile_dictionary: Dictionary[Vector3i, HighlightType] = {}
 ## Tiles whose encounter has been resolved (won fight, looted treasure,
 ## finished dialogue, etc.). Separate from _visited_tile_dictionary
-## because we want the "completed" visual (dim icon + checkmark) to
+## because we want the "completed" visual (the carved coin) to
 ## apply the moment the encounter is resolved, even while the player is
 ## still standing on the tile. NoOp tiles never end up in here — there's
 ## nothing to complete.
@@ -248,9 +244,6 @@ func stop_adventure() -> void:
 	current_adventure_action_data = null
 	full_map.clear()
 	visible_map.clear()
-	for icon in _encounter_icons.values():
-		icon.queue_free()
-	_encounter_icons.clear()
 	_encounter_tile_dictionary.clear()
 	_visited_tile_dictionary.clear()
 	_highlight_tile_dictionary.clear()
@@ -327,7 +320,7 @@ func get_total_tile_count() -> int:
 	return _encounter_tile_dictionary.size()
 
 ## DEV-only: toggle a visual override that renders every encounter tile as
-## revealed (forest + icon, no veil) and lifts the fog off every map tile.
+## revealed (forest + glyph coin, no veil) and lifts the fog off every map tile.
 ## Does not touch _visited_tile_dictionary, so progression, stats, and
 ## encounter-resolution remain accurate. Called from the dev panel.
 func set_dev_reveal_all(enabled: bool) -> void:
@@ -445,13 +438,12 @@ func _visit(coord: Vector3i) -> void:
 	var was_already_visited := _visited_tile_dictionary.has(coord)
 
 	# Mark the tile visited the moment the player arrives — not after
-	# resolution — so its veil and fog lift and the encounter icon appears
-	# immediately. The encounter panel flow below uses the pre-arrival
-	# snapshot to decide whether to show the "already cleared" state.
-	# On revisits we skip _mark_tile_visited (nothing new to compute)
-	# but still need to re-render so the current rim and the
-	# AdventureMarker follow the player to the new _current_tile and the
-	# previously-current tile's flat encounter icon reappears.
+	# resolution — so its veil and fog lift and its coin shows the
+	# encounter's glyph immediately. The encounter panel flow below uses the
+	# pre-arrival snapshot to decide whether to show the "already cleared"
+	# state. On revisits we skip _mark_tile_visited (nothing new to compute)
+	# but still need to re-render so the current rim and the coin that
+	# rides above the player follow the player to the new _current_tile.
 	if not was_already_visited:
 		_mark_tile_visited(coord)
 	else:
@@ -512,8 +504,8 @@ func _complete_current_tile(summary: String) -> void:
 	_is_movement_locked = false
 	encounter_info_panel.show_completed_state()
 	# Promote the tile to "encounter completed" BEFORE re-rendering so
-	# the dimmed icon and checkmark appear immediately — not only once
-	# the player moves off to another tile.
+	# its coin turns carved immediately — not only once the player moves
+	# off to another tile.
 	_completed_encounter_tiles[_current_tile] = true
 	_tile_summaries[_current_tile] = summary
 	_mark_tile_visited(_current_tile)
@@ -670,31 +662,21 @@ func _mark_tile_visited(coord: Vector3i) -> void:
 			newly_revealed.append(c)
 
 	_update_visible_map()
-	_animate_reveal_stagger(newly_revealed)
+	_check_boss_reveal(newly_revealed)
 
-func _animate_reveal_stagger(coords: Array[Vector3i]) -> void:
-	var delay := 0.0
+## Boss-tile dramatic reveal, only the first time the boss tile is among the
+## tiles that just came into view. Called after the redraw, so the boss's coin
+## (drawn by map_changed) exists when boss_revealed tells the coin layer to shake it.
+func _check_boss_reveal(coords: Array[Vector3i]) -> void:
+	if _boss_revealed:
+		return
 	for cube in coords:
-		var icon: EncounterIcon = _encounter_icons.get(cube)
-		if icon:
-			icon.scale = Vector2(0.3, 0.3)
-			icon.modulate.a = 0.0
-			var tween := create_tween()
-			tween.tween_interval(delay)
-			tween.tween_property(icon, "scale", Vector2(1, 1), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-			var alpha_tween := create_tween()
-			alpha_tween.tween_interval(delay)
-			alpha_tween.tween_property(icon, "modulate:a", 1.0, 0.3)
-
-		# Boss-tile dramatic reveal (only the first time)
-		if not _boss_revealed:
-			var encounter: AdventureEncounter = _encounter_tile_dictionary.get(cube)
-			if encounter and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
-				_boss_revealed = true
-				boss_revealed.emit(cube)
-				_play_boss_reveal(cube)
-
-		delay += 0.05
+		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(cube)
+		if encounter and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
+			_boss_revealed = true
+			boss_revealed.emit(cube)
+			_play_boss_reveal(cube)
+			return
 
 func _play_boss_reveal(boss_cube: Vector3i) -> void:
 	# Hit-stop: slow time briefly
@@ -762,119 +744,31 @@ func _update_full_map() -> void:
 
 func _update_visible_map() -> void:
 	visible_map.clear()
-	# Don't clear _encounter_icons up front — we diff them below so
-	# visited icons persist across frames and smoothly switch between
-	# current/completed visual states.
 
 	var visible_coords: Array[Vector3i] = []
 	for coord in _visited_tile_dictionary.keys():
 		visible_coords.append(coord)
 
-	var revealed_coords: Array[Vector3i] = []
 	for highlight_coord in _highlight_tile_dictionary.keys():
 		if _highlight_tile_dictionary[highlight_coord] == HighlightType.VISIBLE_NEIGHBOUR:
 			visible_coords.append(highlight_coord)
-			revealed_coords.append(highlight_coord)
 
 	# DEV reveal: pull every remaining encounter tile into the visible set so
-	# it paints forest art + icon, without mutating the visited/highlight
-	# dicts that drive game state.
-	var dev_reveal_coords: Dictionary[Vector3i, bool] = {}
+	# it paints forest art (and, in the coin layer, its glyph coin), without
+	# mutating the visited/highlight dicts that drive game state.
 	if _dev_reveal_all:
 		for coord in _encounter_tile_dictionary.keys():
-			if _visited_tile_dictionary.has(coord):
+			if _visited_tile_dictionary.has(coord) or _highlight_tile_dictionary.has(coord):
 				continue
-			if _highlight_tile_dictionary.has(coord):
-				continue
-			dev_reveal_coords[coord] = true
 			visible_coords.append(coord)
 
 	# Every visible tile renders its deterministic-random forest variant:
 	# visited and dev-revealed tiles from the shared forest atlas, revealed
-	# tiles from its veil at the same atlas coordinates. Encounter icons get
-	# overlaid on top in the loops below; NoOp tiles show only the tile.
+	# tiles from its veil at the same atlas coordinates. What each tile holds
+	# is the coin layer's to show (AdventureMapMarkers, on map_changed).
 	for coord in visible_coords:
 		var source_id: int = VEIL_ATLAS_SOURCE_ID if _is_tile_veiled(coord) else FOREST_ATLAS_SOURCE_ID
 		visible_map.set_cell_with_source_and_variant(source_id, 0, full_map.cube_to_map(coord), HexForestAtlas.pick(coord))
-
-	# Visited tiles: spawn/update encounter icon and set completion state.
-	# NoOp visited tiles get no icon at all. The current tile's encounter
-	# is shown in the AdventureMarker above the player, not as a flat
-	# hex icon — so we skip spawning one here when coord == _current_tile.
-	var visited_with_icon: Dictionary[Vector3i, bool] = {}
-	for coord in _visited_tile_dictionary.keys():
-		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-		if not encounter or encounter is NoOpEncounter:
-			_despawn_encounter_icon(coord)
-			continue
-		if coord == _current_tile:
-			_despawn_encounter_icon(coord)
-			continue
-		_update_cell_highlight(coord)
-		var icon: EncounterIcon = _encounter_icons.get(coord)
-		if icon:
-			icon.set_completed(_completed_encounter_tiles.has(coord))
-		visited_with_icon[coord] = true
-
-	# Revealed neighbors: the veil hides what they hold, except on the boss
-	# tile, the visible-while-fogged exception (player needs a long-term
-	# goal marker). Dev reveal shows every revealed tile's icon.
-	for coord in revealed_coords:
-		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-		var is_boss: bool = encounter != null and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS
-		if _dev_reveal_all or is_boss:
-			_update_cell_highlight(coord)
-			var icon: EncounterIcon = _encounter_icons.get(coord)
-			if icon:
-				icon.set_completed(false)
-		else:
-			_despawn_encounter_icon(coord)
-
-	# DEV reveal: spawn icons for tiles that aren't visited OR in the normal
-	# revealed set. NoOp tiles have no icon, matching non-dev behavior.
-	for coord in dev_reveal_coords.keys():
-		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-		if not encounter or encounter is NoOpEncounter:
-			continue
-		_update_cell_highlight(coord)
-		var icon: EncounterIcon = _encounter_icons.get(coord)
-		if icon:
-			icon.set_completed(false)
-
-	# Despawn encounter icons whose coord is not visited-with-icon, not the
-	# revealed boss, not dev-revealed, and (under dev reveal) not any
-	# revealed neighbor.
-	var stale_icon_coords: Array[Vector3i] = []
-	for coord in _encounter_icons.keys():
-		var is_visited_icon := visited_with_icon.has(coord)
-		var is_revealed_non_veil := false
-		if revealed_coords.has(coord):
-			if _dev_reveal_all:
-				is_revealed_non_veil = true
-			else:
-				var enc: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-				if enc and enc.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
-					is_revealed_non_veil = true
-		var is_dev_revealed := dev_reveal_coords.has(coord)
-		if not is_visited_icon and not is_revealed_non_veil and not is_dev_revealed:
-			stale_icon_coords.append(coord)
-	for coord in stale_icon_coords:
-		_despawn_encounter_icon(coord)
-
-	# AdventureMarker: show the current tile's encounter glyph floating
-	# above the player via the marker pin, instead of as a flat icon on
-	# the hex. NoOp tiles have nothing to show, so hide the marker.
-	# If the encounter at the current tile has already been resolved,
-	# the marker renders in its completed state (dimmed glyph + check).
-	var current_encounter: AdventureEncounter = _encounter_tile_dictionary.get(_current_tile)
-	if current_encounter and not (current_encounter is NoOpEncounter):
-		_adventure_marker.show_at(
-			full_map.cube_to_local(_current_tile) + full_map.position,
-			current_encounter.encounter_type,
-			_completed_encounter_tiles.has(_current_tile),
-		)
-	else:
-		_adventure_marker.hide()
 
 	_draw_fog()
 	_place_current_rim()
@@ -917,26 +811,3 @@ func _tile_centres(coords: Array[Vector3i]) -> Array[Vector2]:
 	for coord: Vector3i in coords:
 		centres.append(get_tile_world_centre(coord))
 	return centres
-
-func _update_cell_highlight(coord: Vector3i) -> void:
-	var encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
-	if not encounter:
-		return
-
-	var icon: EncounterIcon = _encounter_icons.get(coord)
-	if icon == null:
-		icon = EncounterIconScene.instantiate()
-		_encounter_icon_container.add_child(icon)
-		_encounter_icons[coord] = icon
-
-	icon.position = full_map.cube_to_local(coord) + full_map.position
-	var should_show := icon.configure_for_type(encounter.encounter_type)
-	icon.visible = should_show
-
-## Despawns an EncounterIcon for the given cube coord if one is tracked.
-func _despawn_encounter_icon(coord: Vector3i) -> void:
-	var icon: EncounterIcon = _encounter_icons.get(coord)
-	if icon == null:
-		return
-	icon.queue_free()
-	_encounter_icons.erase(coord)
