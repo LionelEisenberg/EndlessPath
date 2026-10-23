@@ -28,6 +28,8 @@ GLYPHS = {
     'elite': ASSETS + 'sprites/adventure/encounter_glyphs/elite.png',
     'rest': ASSETS + 'sprites/adventure/encounter_glyphs/rest-sheet.png',      # frame 0 of 5
     'boss': ASSETS + 'sprites/adventure/encounter_glyphs/boss_spritesheet.png',  # frame 0 of 7
+    'treasure': ASSETS + 'sprites/adventure/encounter_glyphs/treasure.png',
+    'trap': ASSETS + 'sprites/adventure/encounter_glyphs/trap.png',            # 32x32 native art
 }
 
 # A Shallow Woods run (axial q, r) -> (encounter kind, forest variant). The boss is 5 from the start.
