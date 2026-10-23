@@ -419,3 +419,51 @@ func test_boss_reveal_keeps_the_hit_stop() -> void:
 	# 0.3 s of real time, whatever the time scale.
 	await get_tree().create_timer(0.3, true, false, true).timeout
 	assert_eq(Engine.time_scale, 1.0, "and runs at full speed again 0.3 s later")
+
+## The reveal's camera push eases toward the boss and back while the player
+## walks on, and leaves the camera on the character, at its offset.
+func test_boss_push_returns_the_camera_to_its_offset() -> void:
+	var camera := _tilemap.character_body.get_node_or_null("Camera2D") as Camera2D
+	assert_not_null(camera, "the camera follows the character")
+	if camera == null:
+		return
+	_start()
+	watch_signals(_tilemap)
+	await _walk_to(FIGHT)
+	assert_signal_emitted(_tilemap, "boss_revealed", "precondition: visiting FIGHT reveals the boss")
+
+	# Win the fight at once and walk back to the start while the push runs.
+	_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	_tilemap.handle_combat_result(true, 0)
+	_click(START)
+	assert_true(_tilemap.character_body.is_moving, "precondition: the walk goes on during the push")
+	await get_tree().create_timer(0.3, true, false, true).timeout
+	var view_from_character: Vector2 = camera.global_position + camera.offset - _tilemap.character_body.global_position
+	assert_gt(view_from_character.distance_to(AdventureTilemap.CAMERA_OFFSET), 10.0, "precondition: mid-push, the view has moved toward the boss")
+	await _wait_for_hop(START)
+
+	# The push takes 1.2 s of game time, its first 0.15 s of real time at a
+	# quarter speed (the hit-stop): over about 1.3 s after the reveal.
+	await get_tree().create_timer(0.5, true, false, true).timeout
+	assert_eq(_tilemap.get_current_tile(), START, "precondition: the walk went on to the start")
+	assert_eq(camera.offset, AdventureTilemap.CAMERA_OFFSET, "the push ends on the camera's own offset")
+	assert_eq(camera.position, Vector2.ZERO, "and the camera still sits on the character")
+
+## A run that stops mid-push leaves the camera on its offset, and the push
+## does not carry on afterwards.
+func test_stop_mid_push_puts_the_camera_back() -> void:
+	var camera := _tilemap.character_body.get_node_or_null("Camera2D") as Camera2D
+	assert_not_null(camera, "the camera follows the character")
+	if camera == null:
+		return
+	_start()
+	await _walk_to(FIGHT)
+	await get_tree().create_timer(0.3, true, false, true).timeout
+	assert_ne(camera.offset, AdventureTilemap.CAMERA_OFFSET, "precondition: the push is under way")
+
+	_tilemap.stop_adventure()
+
+	assert_eq(camera.offset, AdventureTilemap.CAMERA_OFFSET, "the stop puts the camera back on its offset at once")
+	await get_tree().create_timer(1.0, true, false, true).timeout
+	assert_eq(camera.offset, AdventureTilemap.CAMERA_OFFSET, "and the push does not carry on")
+	assert_eq(camera.position, Vector2.ZERO, "the camera still sits on the character")

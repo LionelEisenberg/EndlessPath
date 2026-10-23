@@ -172,6 +172,9 @@ var _has_committed_destination: bool = false
 ## The tile the hover rim was last put on.
 var _hover_rim_tile: Vector3i = Vector3i.ZERO
 
+## The boss reveal's camera push while it runs, or null.
+var _camera_push_tween: Tween = null
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -259,6 +262,7 @@ func stop_adventure() -> void:
 	_release_committed_destination()
 	_current_rim.hide()
 	_hover_rim.hide()
+	_stop_camera_push()
 	_draw_fog()
 	encounter_info_panel.visible = false
 	map_changed.emit()
@@ -697,17 +701,24 @@ func _play_boss_reveal(boss_cube: Vector3i) -> void:
 	Engine.time_scale = 0.25
 	get_tree().create_timer(0.15 * 0.25).timeout.connect(func(): Engine.time_scale = 1.0)
 
-	# Camera push toward boss
-	var camera := get_viewport().get_camera_2d()
-	if camera:
-		var boss_world := full_map.cube_to_local(boss_cube) + full_map.position
-		var current_pos := camera.global_position
-		var push_target := current_pos.lerp(boss_world, 0.45)
-		var push_tween := create_tween()
-		push_tween.set_trans(Tween.TRANS_CUBIC)
-		push_tween.set_ease(Tween.EASE_OUT)
-		push_tween.tween_property(camera, "global_position", push_target, 0.5)
-		push_tween.tween_property(camera, "global_position", current_pos, 0.7)
+	# Camera push toward the boss and back: 45% of the way from the camera
+	# to the boss tile, eased through the camera's offset, so the camera
+	# stays on the character even when the walk goes on meanwhile.
+	var push: Vector2 = (get_tile_world_centre(boss_cube) - _camera.global_position) * 0.45
+	_stop_camera_push()
+	_camera_push_tween = create_tween()
+	_camera_push_tween.set_trans(Tween.TRANS_CUBIC)
+	_camera_push_tween.set_ease(Tween.EASE_OUT)
+	_camera_push_tween.tween_property(_camera, "offset", CAMERA_OFFSET + push, 0.5)
+	_camera_push_tween.tween_property(_camera, "offset", CAMERA_OFFSET, 0.7)
+
+## Ends the boss reveal's camera push at once (if one runs) and puts the
+## camera back on its offset.
+func _stop_camera_push() -> void:
+	if _camera_push_tween != null and _camera_push_tween.is_valid():
+		_camera_push_tween.kill()
+	_camera_push_tween = null
+	_camera.offset = CAMERA_OFFSET
 
 ## Process the next tile in the visitation queue
 func _process_next_visitation() -> void:
