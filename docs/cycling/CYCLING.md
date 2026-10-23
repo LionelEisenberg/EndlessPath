@@ -360,7 +360,7 @@ All new pieces are agent-made (`_ai`), drawn on the zone kit's 2x grid by `docs/
 | `assets/ui/lacquer/cycling/`, `assets/ui/lacquer/icons/lacquer_ic_tech_*_ai.png` | The art above |
 | `tests/unit/test_cycling_manager.gd` | 37 `CyclingManager` tests (defaults, unlock, equip, errors, `has_unequipped_unlocks`, seen techniques, the session snapshot and `madra_rate_changed`) |
 | `tests/unit/test_cycling_rules.gd`, `test_cycling_groove.gd`, `test_cycling_technique_data.gd`, `test_cycling_art.gd`, `test_cycling_rate.gd`, `test_cycling_mode.gd` | 7, 10, 4, 14, 3 and 12 tests: the pure rules and result lines, the groove raster, the icons and seen fields, the art's sizes and palettes, the cycling rate on `ActionManager`, and cycling mode on `MainView` |
-| `tests/integration/test_cycling_technique.gd`, `test_cycling_view.gd`, `test_technique_drawer.gd` | 65, 64 and 20 tests: the play (Madra steps at 30, 60 and 144 FPS, the Madra a cycle counts, the rate, zones, scoring, real physics picking), the board, and the drawer |
+| `tests/integration/test_cycling_technique.gd`, `test_cycling_view.gd`, `test_technique_drawer.gd` | 71, 64 and 20 tests: the play (Madra steps at 30, 60 and 144 FPS, every step of a tracked 8 s cycle at any frame rate, a hitch through the end, the Madra a cycle counts, the rate, zones, scoring, session ownership, real physics picking), the board, and the drawer |
 
 ## Work Remaining
 

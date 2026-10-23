@@ -8,8 +8,8 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
 | Unit | `tests/unit/` | 77 | 819 |
-| Integration | `tests/integration/` | 40 | 728 |
-| **Total** | | **117** | **1547** |
+| Integration | `tests/integration/` | 40 | 734 |
+| **Total** | | **117** | **1553** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -17,19 +17,19 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-23, on `feat/cycling-view-styleguide-ea3170` after the lacquer cycling view was built and its review fixes landed, with the command from `CLAUDE.md`.
+Run on 2026-10-23, on `feat/cycling-view-styleguide-ea3170` after the lacquer cycling view was built and the final review's fix wave landed, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 117 / 1547 |
-| Passing / failing / pending or risky | 1547 / 0 / 0 |
-| Asserts | 8423 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 117 / 1553 |
+| Passing / failing / pending or risky | 1553 / 0 / 0 |
+| Asserts | 8467 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | Exit code | 0 |
-| Wall time | About 77 s (GUT's `Time` line). The zone view's and the cycling view's scene tests await real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay) |
+| Wall time | About 75 s (GUT's `Time` line). The zone view's and the cycling view's scene tests await real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay) |
 
 Known noise in a green run:
 
@@ -143,6 +143,7 @@ tests/
 | Pointer tests over a map | `_hosted_map()` in `test_zone_travel.gd` puts the map in a `CanvasLayer` above GUT's output window (layer 128) | In the full run GUT's window covers the screen and would take the pointer the hover tests move |
 | Real physics picking | `_press_at()` in `test_cycling_technique.gd`: `await wait_physics_frames(2)`, `push_input(event, true)` (local coordinates), then `await wait_physics_frames(2)` | The headless root window is 64 px square, so a `push_input` without the local flag is scaled and misses. An `Area2D`'s broadphase entry updates at the physics step, so an event pushed in the first physics iteration after the area was created or moved can miss |
 | Parsed input actions | A test that parses an `InputEventAction` releases it in `after_each()` (`Input.action_release(&"ui_cancel")`) | Otherwise `Input.is_action_pressed()` stays true for every later test |
+| Queued frees before the orphan count | `await _await_queued_frees()` (one `wait_process_frames(1)`) at the end of a test whose code takes nodes out of the tree and queue-frees them: a technique switch, a technique list rebuild, a hidden cycling board (`test_cycling_technique.gd`, `test_cycling_view.gd`, `test_zone_panel.gd`) | GUT counts a test's orphans before the frame that frees them ends, so without the wait the run prints a per-test orphan list |
 | Scenes with hex map layers | After `add_child_autofree()`, call `tile_set.emit_changed()` on one of the scene's layers (`test_adventure_end_flow.gd`, `test_zone_map_render.gd`) | The project's hex layer script skips the addon's `_ready()`. A layer built after the shared tileset's first `changed` therefore has no cube↔map conversion, and `cube_to_map()` errors. See [ADVENTURING.md](../adventuring/ADVENTURING.md) Tech Debt. |
 | Signals | `watch_signals(obj)` with `assert_signal_emitted`, `assert_signal_emitted_with_parameters`, `assert_signal_emit_count`, `assert_signal_not_emitted` | 16 files |
 | Expected errors | `assert_push_error("unknown technique_id")` | GUT 9.7 fails a test on unexpected engine errors and `push_error` by default, so negative-path tests must consume their `push_error` (7 files, 14 uses) |
@@ -182,7 +183,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | Combat | `test_combat_damage` (29), `test_combat_effect_types` (3), `test_combat_buff_manager_stacking` (7), `test_combat_buff_manager_strip` (4), `test_combat_ability_instance_cancel` (6), `test_empty_palm_interrupt` (2), `test_power_font_buff_strip` (2), `test_adventure_combat_victory_event` (2) | Damage formula, effect routing, buffs, cast cancel, victory event | `SimpleEnemyAI`, `VitalsManager` regen, gold reward |
 | Adventure | `test_adventure_map_generator` (9), `test_adventure_data` (9), `test_adventure_encounter` (5), `test_encounter_choice` (7), `test_encounter_quota` (2), `test_encounter_icon_config` (10), `test_hex_forest_atlas` (10), `test_adventure_result_data` (12), `test_adventure_combat_count` (12, mirror), `test_adventure_end_flow` (2) | Generator, validation, eligibility, icon config, result defaults; the real `AdventureView` end flow for a timeout and a boss win | `AdventureTilemap` (movement, fog, path preview), the rest of `AdventureView` (death, result building), `AdventureEndCard` |
 | AbilityManager | `test_ability_manager` (18), `test_path_manager` | Unlock/equip/loadout | `AbilitiesView` UI |
-| Cycling | `test_cycling_manager` (37), `test_cycling_rules` (7), `test_cycling_groove` (10), `test_cycling_technique_data` (4), `test_cycling_art` (14), `test_cycling_rate` (3), `test_cycling_technique` (65), `test_cycling_view` (64), `test_technique_drawer` (20), `test_path_manager` | Unlock, equip and catalog; the seen techniques and their first-init pass; the session snapshot and `madra_rate_changed`; the tiers, XP, pellet counts and result lines; the groove raster; the icons and the seen-technique save fields; the art's sizes and palettes; `ActionManager`'s cycling rate; the ball's play (Madra steps at 30, 60 and 144 FPS, the Madra a cycle counts, the rate window, zones, scoring, Auto, a frame hitch, real physics picking); the board (status line, result and log line, pellets, floaters, Auto, show, hide and close, clicks through the board); the technique drawers | Content integrity (unique technique ids, path-node unlock ids matching the catalog); pixel placement (checked by captures, not tests) |
+| Cycling | `test_cycling_manager` (37), `test_cycling_rules` (7), `test_cycling_groove` (10), `test_cycling_technique_data` (4), `test_cycling_art` (14), `test_cycling_rate` (3), `test_cycling_technique` (71), `test_cycling_view` (64), `test_technique_drawer` (20), `test_path_manager` | Unlock, equip and catalog; the seen techniques and their first-init pass; the session snapshot and `madra_rate_changed`; the tiers, XP, pellet counts and result lines; the groove raster; the icons and the seen-technique save fields; the art's sizes and palettes; `ActionManager`'s cycling rate; the ball's play (Madra steps at 30, 60 and 144 FPS, every step of a tracked 8 s cycle at 60, 120 and 144 FPS and at uneven frames, the Madra a cycle counts, the rate window, zones, scoring, Auto, a frame hitch and one through the cycle's end, the session owned by the technique that started it, real physics picking); the board (status line, result and log line, pellets, floaters, Auto, show, hide (the pellets in flight freed) and close, clicks through the board); the technique drawers (NEW cleared when the pointer leaves or on a press) | Content integrity (unique technique ids, path-node unlock ids matching the catalog); pixel placement (checked by captures, not tests) |
 | PathManager | `test_path_manager` (25), `test_award_path_point_effect_data` (4), `test_path_tree_resource_loading` (3) | Purchases, prerequisites, effects, shipped Pure Madra tree | `PathTreeView` UI |
 | QuestManager | `test_quest_manager` (25), `test_start_quest_effect_data` (2), `test_quest_progression_persistence` (3), `test_beat_3b_merchant_unlock` (1), `test_goals_panel` (26) | Start/advance/complete, validation, persistence; the Goals board's quest row and figures | `QuestToast` |
 | UnlockManager / conditions | `test_unlock_manager` (3), `test_unlock_condition_item_owned` (2), `test_aura_well_discovery_unlock` (2), `test_beat_3b_merchant_unlock` (1), `test_unlock_condition_progress` (6) | `force_unlock_condition()`; `EVENT_TRIGGERED`, `ITEM_OWNED`, `RESOURCE_AMOUNT` conditions; `CULTIVATION_LEVEL` indirectly through the Beat 3b flow (`q_reach_cd_10`); `is_measurable()` and the current / target getters | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED`, `ATTRIBUTE_VALUE` have no direct tests |
@@ -230,6 +231,7 @@ New tests should call the real method on the autoload, with its state swapped as
 - `[MEDIUM]` Tests build `CombatantNode.new()` and add it to the tree before its manager children exist, which prints `Node not found: %VitalsManager ...`. Affects `tests/unit/test_combat_effect_types.gd`, `tests/integration/test_power_font_buff_strip.gd` and `tests/integration/test_empty_palm_interrupt.gd`. Instance the combatant scene, or add the managers before `add_child_autofree()`.
 - `[LOW]` Rename `TestRecordingEffect` in `tests/unit/test_quest_manager.gd`, for example to `RecordingEffect`, to clear the GUT inner-class warning.
 - `[LOW]` 24 Dialogic orphans per run come from the `Dialogic` autoload. GUT attributes them to `test_ability_manager.gd`.
+- `[LOW]` `test_pagination_bar.gd` (3 tests) and `test_trash_slot_flow.gd` (5 tests) still print per-test orphan lists (page buttons, item instances). The pagination bar's come from the same remove-then-queue-free pattern, so a frame's wait at the end of each test, as the cycling and chest tests do, would likely clear them; the trash flow's were not looked into.
 - `[LOW]` Remove the mirror helpers: `_create_manager()` (unused) in `test_resource_manager.gd`, `_simulate_add_xp()`, `_calculate_equipment_bonus()`, `_count_combats()`, `_add_to_first_slot()` (hard-codes 50 slots).
 - `[LOW]` `CountingEffect` is duplicated in `test_consumable_definition_data.gd` and `test_inventory_manager_consumables.gd`, and there is no shared helper module.
 - `[LOW]` `PathManager._test_stage_override` is a test hook in production code.
