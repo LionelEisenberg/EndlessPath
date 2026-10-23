@@ -3,11 +3,13 @@
 [ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_zone_data.gd" id="1_3tspc"]
 [ext_resource type="Curve2D" uid="uid://de0uyefwjvnvx" path="res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_path.tres" id="5_q8mpw"]
 [ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd" id="6_anl3h"]
+[ext_resource type="Texture2D" uid="uid://cn451cm0nv41r" path="res://assets/ui/lacquer/icons/lacquer_ic_tech_foundation_ai.png" id="7_hy4pe"]
 
 [resource]
 script = ExtResource("6_anl3h")
 id = "foundation_technique"
 technique_name = "Foundational Technique"
+icon = ExtResource("7_hy4pe")
 path_curve = ExtResource("5_q8mpw")
 cycle_duration = 8.0
 base_madra_per_cycle = 50.0

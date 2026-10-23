@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://duv3r5hw7qtnd" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_zone_data.gd" id="1_21bxv"]
 [ext_resource type="Curve2D" uid="uid://c565mswer420e" path="res://resources/cycling/cycling_techniques/torrential_flow/torrential_curve.tres" id="2_7hh5c"]
 [ext_resource type="Script" uid="uid://7kr7phhtq16r" path="res://scripts/resource_definitions/cycling/cycling_technique/cycling_technique_data.gd" id="2_nkwtb"]
+[ext_resource type="Texture2D" uid="uid://busa8p00jfqxf" path="res://assets/ui/lacquer/icons/lacquer_ic_tech_torrent_ai.png" id="3_x6wbn"]
 
 [sub_resource type="Resource" id="Resource_nkwtb"]
 script = ExtResource("1_21bxv")
@@ -16,6 +17,7 @@ metadata/_custom_type_script = "uid://duv3r5hw7qtnd"
 script = ExtResource("2_nkwtb")
 id = "torrential_flow"
 technique_name = "Torrential Flow"
+icon = ExtResource("3_x6wbn")
 path_curve = ExtResource("2_7hh5c")
 cycle_duration = 8.0
 base_madra_per_cycle = 250.0
