@@ -58,7 +58,7 @@ Skills: `godot-prompter:assets-pipeline`.
 
 **Files:**
 - Create: `gen/import_adventure_kit.py`, `gen/veil_atlas.py`
-- Modify: `gen/map_render.py` (`GLYPHS` gains `treasure` and `trap`), `gen/build_all.py` (runs `veil_atlas.run()`)
+- Modify: `gen/map_render.py` (`GLYPHS` gains `treasure` and `trap`), `gen/build_all.py` (runs `veil_atlas.run()`), `docs/superpowers/mockups/zone-view-lacquer/gen/import_kit.py` (its argument parsing and `main()` move under `if __name__ == "__main__":`, so `bake_shadow()` can be imported; it behaves the same when run)
 - Create (by the scripts): `assets/ui/lacquer/lacquer_{tdock,slot,keycap,cast_tray,timer,timer_low,board9,socket_buff,socket_glyph,mini_health,mini_stamina,mini_hourglass,orb_health,marker_tokens}_ai.png`, `assets/ui/lacquer/lacquer_rod_{stamina,cast}_{empty,full,end}_ai.png`, `assets/sprites/adventure/encounter_glyphs/adv_glyph_{combat,elite,rest,boss,treasure,trap}_spent_light_ai.png`, `assets/sprites/tilemap/hex_tiles/forest/hex_forest_veil_atlas_ai.png`
 - Test: `tests/unit/test_adventure_kit_assets.gd`
 
@@ -93,7 +93,7 @@ Skills: `godot-prompter:godot-ui`, `godot-prompter:shader-basics`.
   - `ThemeConstants.LACQUER_HEALTH: Color = Color("#E8737A")`, `ThemeConstants.LACQUER_STAMINA: Color = Color("#C9DB86")`.
   - `lacquer_madra_orb.gdshader`: `uniform vec4 light : source_color`, `pale`, `blue`, defaulting to today's `MADRA_LIGHT` `#E8F6FD`, `MADRA_PALE` `#BBD5E7`, `MADRA_BLUE` `#849BE4` (the constants become these uniforms). `progress` stays the only uniform scripts set; the cultivator cabinet looks exactly as before.
 
-- [ ] **Step 1: Write the failing tests:** `test_cooldown_variant` (size 22, Euljiro, cream, shadow colour and 2/2 offsets); `test_board9_margins`; `test_vitals_colours`; `test_orb_colours_default_to_madra` (`RenderingServer.shader_get_parameter_default(shader.get_rid(), &"light")` and the other two equal the Madra colours).
+- [ ] **Step 1: Write the failing tests:** `test_cooldown_variant` (size 22, Euljiro, cream, shadow colour and 2/2 offsets); `test_board9_margins`; `test_vitals_colours`; `test_orb_colours_default_to_madra` (`get_shader_uniform_list()` holds `light`, `pale` and `blue` as colours, and the defaults declared in the shader's `code` parse to the three Madra colours: headless Godot returns no parameter defaults from `RenderingServer`, so read the declarations).
 - [ ] **Step 2: Run; expect failures.**
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run the file and `test_cultivator_plate.gd`; green.**
@@ -182,7 +182,7 @@ Rules:
   - `test_revealed_tile_uses_the_veil_source` (source 9 at `HexForestAtlas.pick(cube)`); `test_visited_tile_uses_the_forest_source` (source 8).
   - `test_current_rim_follows_the_player` (after a walk, at `get_tile_world_centre(current)`).
   - `test_hover_rims` (visited → hover texture; revealed → hover_in; fog → hidden).
-  - `test_hover_shows_the_route` (hovering `(0,2,-2)` from the start draws two hops' dots).
+  - `test_hover_shows_the_route` (walk to `(0,1,-1)`, then hover `(1,-1,0)`: the route runs through the start, two hops' dots).
   - `test_character_is_drawn_at_2x_with_the_kit_shadow`.
   - `test_walk_moves_in_even_px` (sampled each physics frame mid-walk, x and y are even).
   - `test_old_map_layers_are_gone` (no `FogLayer`, `FogVeilContainer`, `HoverSelector`, `PathPreview`, `Atmosphere`, `BossFlashLayer`, `AdventureHighlightMap`).
@@ -291,7 +291,7 @@ Skills: `godot-prompter:godot-ui`, `godot-prompter:hud-system`, `godot-prompter:
 
 **Files:**
 - Create: `scenes/adventure/adventure_chest/expedition_page/expedition_page.tscn` + `.gd`, `scenes/adventure/adventure_chest/choice_drawer/choice_drawer.tscn` + `.gd`
-- Modify: `scenes/adventure/adventure_chest/adventure_chest.tscn` (instances the page in `%PageSlot`), `scenes/combat/combatant/vitals_manager/vitals_manager.gd`, `scenes/combat/adventure_combat/adventure_combat.gd`
+- Modify: `scenes/adventure/adventure_chest/adventure_chest.tscn` (instances the page in `%PageSlot`) + `.gd` (`get_expedition_page()`), `scenes/combat/combatant/vitals_manager/vitals_manager.gd`, `scenes/combat/adventure_combat/adventure_combat.gd`
 - Test: `tests/unit/test_fight_rules.gd`, `tests/integration/test_expedition_page.gd`
 
 **Interfaces:**
@@ -362,7 +362,7 @@ Rules:
   - `test_preview_shows_the_equipped_loadout` (equipped slots PREVIEW with tan keys, the rest EMPTY).
   - `test_bind_activates_the_slots`; `test_initial_cooldown_shows_the_sweep` (right after bind: step < 24 and "2").
   - `test_cooldown_ready_flashes_the_slot`; `test_casting_shows_the_brass_frame_and_the_cast_tray` (Basic Strike's 0.5 s cast; hidden after).
-  - `test_refused_press_shakes_and_does_not_emit`; `test_ready_press_emits_ability_selected` (`Input.action_press("ability_slot_1")`, released in `after_each`).
+  - `test_refused_press_shakes_and_does_not_emit`; `test_ready_press_emits_ability_selected` (an `InputEventAction` for `ability_slot_1`, pressed, sent with `get_viewport().push_input()` so it reaches `_unhandled_input`; `Input.action_press()` sends no event).
   - `test_unaffordable_cost_turns_tan`.
   - `test_keys_do_nothing_outside_a_fight` (Review Focus 4).
   - `test_tooltip_sits_above_the_dock` (bottom 912, left slot x − 8; 860 with the cast tray shown); `test_tooltip_content` (Empty Palm: "Instant · Cooldown 3 s", "8 Madra", its damage line, its description).
