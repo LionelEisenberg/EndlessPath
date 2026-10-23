@@ -15,7 +15,7 @@ extends Control
 ## (can_cast_ability_instance(): not casting, not recharging, affordable).
 ## Refused, the slot shakes and nothing else happens: no log line, since the
 ## sweep, the cast tray and the tan cost already say why. Accepted, the dock
-## emits ability_selected for AdventureCombat to use, as PlayerHud did.
+## emits ability_selected for AdventureCombat to use.
 ## The root takes the pointer, so presses on the board never reach the map.
 
 ## Emitted when a press on a slot is accepted: the instance to use.

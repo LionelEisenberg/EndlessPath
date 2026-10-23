@@ -2,9 +2,8 @@ class_name ExpeditionPage
 extends AdventureChestPage
 
 ## The adventure chest's page for the map (spec: The right chest): the tile the
-## player stands on, what it offers and the run so far. It replaces the floating
-## EncounterInfoPanel and holds three things, 408 wide from the page slot's
-## top-left corner:
+## player stands on, what it offers and the run so far. It holds three things,
+## 408 wide from the page slot's top-left corner:
 ## - The Here tray: the tile's name, a carved tag (the BOSS seal for a boss) and
 ##   one line, with the encounter's glyph in its socket. Standing on an
 ##   unresolved encounter it names its kind (a fight also names the enemy and its
