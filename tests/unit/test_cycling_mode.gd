@@ -157,6 +157,29 @@ func test_stop_cycling_undoes_start_cycling() -> void:
 	assert_false(_main_view.zone_map_viewport.gui_disable_input, "the map takes input")
 
 #-----------------------------------------------------------------------------
+# THE CABINET HAND-OFF
+#-----------------------------------------------------------------------------
+
+## MainView._ready() hands the cultivator cabinet to the board through this
+## helper. Without it the board has no cabinet, and no Madra or XP pellet ever
+## flies. The cabinet and the board are script-only instances that never enter
+## the tree, so neither runs its _ready().
+func test_the_cabinet_is_handed_to_the_cycling_view() -> void:
+	var cabinet: CultivatorPlate = autofree(CultivatorPlate.new())
+	var board: CyclingView = autofree(CyclingView.new())
+	_main_view.cultivator_plate = cabinet
+	_main_view.cycling_view = board
+	_main_view._hand_cabinet_to_cycling_view()
+	assert_same(board.cultivator_plate, cabinet, "the board's pellets fly into the cabinet")
+
+## The view-state tests stand a plain Control in for the board (the fixture's
+## cycling_view is one): it has nowhere to keep a cabinet, so it is skipped.
+func test_handing_over_the_cabinet_skips_a_plain_control() -> void:
+	_main_view.cultivator_plate = autofree(CultivatorPlate.new())
+	_main_view._hand_cabinet_to_cycling_view()
+	assert_engine_error_count(0, "a view that is not a CyclingView is left alone, not cast and assigned to")
+
+#-----------------------------------------------------------------------------
 # MAIN_GAME.TSCN
 #-----------------------------------------------------------------------------
 

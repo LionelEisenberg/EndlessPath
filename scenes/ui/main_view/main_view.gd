@@ -64,9 +64,7 @@ func _ready() -> void:
 	character_view_state.scene_root = self
 	merchant_view_state.scene_root = self
 
-	# The cycling board sends its Madra and XP pellets into the cultivator cabinet.
-	if cycling_view is CyclingView:
-		(cycling_view as CyclingView).cultivator_plate = cultivator_plate
+	_hand_cabinet_to_cycling_view()
 
 	# Initialize view visibility based on initial state
 	change_state(zone_view_state)
@@ -157,6 +155,13 @@ func change_state(new_state: MainViewState) -> void:
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## The cycling board sends its Madra and XP pellets into the cultivator cabinet,
+## so it is handed the cabinet. A cycling_view that is not a CyclingView (the
+## view-state tests stand a plain Control in) is left alone.
+func _hand_cabinet_to_cycling_view() -> void:
+	if cycling_view is CyclingView:
+		(cycling_view as CyclingView).cultivator_plate = cultivator_plate
 
 ## The HUD boards the overlays hide: the log and the Goals board.
 func _get_hud_boards() -> Array[Control]:
