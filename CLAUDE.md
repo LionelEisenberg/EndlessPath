@@ -159,6 +159,8 @@ Shared components used across multiple views:
 
 **When to commit:** Commit your own work as you go, once each logical step is done (a feature, a bug fix, a meaningful refactor, a plan task). You don't need to ask first.
 
+**Never commit to `main`:** commit on a feature branch (a worktree's own branch counts). If you find yourself on `main`, create a branch before committing.
+
 **Never merge:** not into `main`, not into any other branch, and not a pull request, unless the user explicitly asks.
 
 **Before committing:**
