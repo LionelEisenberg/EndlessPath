@@ -2,11 +2,12 @@ extends GutTest
 
 ## Integration tests for the adventure's chest (AdventureChest) and the run
 ## clock in its header (RunClock): the clock following the run's Timer and
-## turning to the low-time seal, the title ellipsizing in its slot (Review
-## Focus 3), the chest hugging its visible page (never shorter than 176) and
-## following that page's content_resized, and where each piece sits. A plain
-## AdventureChestPage stands in for the pages the chest will hold. The clock's
-## two pure rules (M:SS and the 30 s threshold) are in test_run_clock.gd.
+## turning to the low-time seal, the title wrapping in its slot and pushing the
+## page down (the developer's rule: no text is cut off), the chest hugging its
+## visible page (never shorter than 176) and following that page's
+## content_resized, and where each piece sits. A plain AdventureChestPage stands
+## in for the pages the chest will hold. The clock's two pure rules (M:SS and the
+## 30 s threshold) are in test_run_clock.gd.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -234,21 +235,45 @@ func test_set_title() -> void:
 	_chest.set_title("Amorphous Spirit")
 	assert_eq(_title().text, "Amorphous Spirit", "a new title replaces it")
 
-## Review Focus 3: a long adventure name ellipsizes in its 312 px, never
-## widening the chest or running under the clock.
-func test_title_ellipsizes() -> void:
+## A long adventure name wraps in its 312 px, never widening the chest or running
+## under the clock, and the page under it moves down by the lines it adds (44 px
+## each: the title's line pitch), so the chest grows by as much.
+func test_a_long_title_wraps_and_pushes_the_page_down() -> void:
 	var long_title: String = ("The Shallow Woods Beyond The Edge Of The Known World ").repeat(2).left(60)
 	assert_eq(long_title.length(), 60, "precondition: 60 characters")
+	var page: AdventureChestPage = _add_page(300.0)
+	_chest.relayout()
+	var plain_height: float = _chest.size.y
+	assert_eq(plain_height, 406.0, "precondition: a one-line title leaves the page at 82")
+
 	_chest.set_title(long_title)
 	await wait_process_frames(2)
+
 	var label: Label = _title()
 	var font: Font = label.get_theme_font(&"font")
 	var natural_width: float = font.get_string_size(long_title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, label.get_theme_font_size(&"font_size")).x
 	assert_gt(natural_width, 312.0, "precondition: the text is wider than its slot")
-	assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS)
+	assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "wrapped, never trimmed")
+	assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
+	assert_gt(label.get_line_count(), 1, "the title takes more than one line")
 	assert_lte(label.size.x, 312.0, "the label stays within its 312 px")
 	assert_eq(_chest.size.x, 440.0, "and the chest stays 440 wide")
 	assert_lte(label.get_global_rect().end.x, _clock().get_global_rect().position.x, "the title stops before the clock")
+	var extra: float = 44.0 * (label.get_line_count() - 1)
+	assert_eq((_node("PageSlot") as Control).position.y, 82.0 + extra, "the page stands lower by each line's 44 px")
+	assert_eq(_chest.size.y, plain_height + extra, "and the chest is taller by as much")
+	assert_eq(fposmod(_chest.size.y, 2.0), 0.0, "an even height")
+	assert_eq(page.global_position.y - _chest.global_position.y, 82.0 + extra)
+
+func test_a_short_title_takes_the_page_back_up() -> void:
+	_add_page(300.0)
+	_chest.set_title("A Very Long Name For An Adventure ".repeat(3))
+	await wait_process_frames(2)
+	assert_gt(_chest.size.y, 406.0, "precondition: the title pushed the page down")
+	_chest.set_title("The Shallow Woods")
+	await wait_process_frames(2)
+	assert_eq(_chest.size.y, 406.0, "the chest is the kit's again")
+	assert_eq((_node("PageSlot") as Control).position.y, 82.0)
 
 #-----------------------------------------------------------------------------
 # HEIGHT

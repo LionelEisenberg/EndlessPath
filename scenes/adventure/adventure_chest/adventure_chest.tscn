@@ -57,6 +57,7 @@ texture = ExtResource("5_chest_bot")
 
 [node name="TitleLabel" type="Label" parent="." unique_id=740260135]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(312, 45)
 layout_mode = 0
 offset_left = 16.0
 offset_top = 17.0
@@ -64,7 +65,7 @@ offset_right = 328.0
 offset_bottom = 62.0
 theme_type_variation = &"LabelLacquerZoneName"
 text = "The Shallow Woods"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="RunClock" parent="." unique_id=942006620 instance=ExtResource("6_clock")]
 unique_name_in_owner = true
