@@ -10,6 +10,24 @@
 
 **Spec:** [2026-10-22-adventure-view-lacquer-design.md](../specs/2026-10-22-adventure-view-lacquer-design.md). Read it, Decisions table first, before any task. The mock-up [adventure-view-lacquer-mockup.html](../mockups/adventure-view-lacquer-mockup.html) is the visual reference (serve the repo root: `.claude/launch.json`, `adventure-mockup`); where the spec and the mock differ, the spec wins. Every piece follows [STYLE_GUIDE.md](../../STYLE_GUIDE.md) and the zone view's [lacquer kit](../specs/2026-10-21-zone-view-lacquer-kit.md).
 
+## As built (2026-10-23)
+
+All 11 tasks are built on `feat/adventure-view-styleguide-1fc223` (not merged); the suite ends at 123 scripts and 1621 tests, all passing (Task 1 ended at 109 and 1300). This is PR 1 only: the fight is [PR 2's plan](2026-10-22-adventure-view-lacquer-pr2-fight.md) and is not built. The living docs ([ADVENTURING.md](../../adventuring/ADVENTURING.md), [COMBAT.md](../../combat/COMBAT.md), [MAIN_VIEW.md](../../infrastructure/MAIN_VIEW.md), [STYLE_GUIDE.md](../../STYLE_GUIDE.md)) describe the result. Deviations from the task text that matter (`git log 0054dfb8..HEAD` has the rest):
+
+- **Before building (`5ed5f99`).** Five task details were corrected in this plan first: `import_kit.py`'s argument parsing and `main()` move under `if __name__ == "__main__":` so `bake_shadow()` imports cleanly; `AdventureChest.get_expedition_page()` is Task 8's; the orb-default test reads the shader's declarations, because headless Godot returns no parameter defaults from `RenderingServer`; Task 4's route test walks to (0,1,-1) before it hovers (1,-1,0), because the original target is fogged at the start; Task 9's key tests push an `InputEventAction` through `get_viewport().push_input()`, because `Input.action_press()` sends nothing to `_unhandled_input`.
+- **Art (Task 1, `b29c5a7`).** 27 new `_ai` PNGs under `assets/`: 20 screen pieces (the boards, sockets, minis, coin tokens and Health orb, plus the six rod files), six spent glyphs and the veil atlas. Three more `build_all.py` outputs (the veil atlas and the two new spent glyphs) are tracked in the mock folder, as every other output is.
+- **Theme and shader (Task 2, `10d611a`).** `LabelLacquerCooldown` sets no `line_spacing` (it is one line, so the spec's 28 pitch has nothing to apply to). The orb's three colour uniforms replaced the Madra constants, and a GPU capture shows the old and new shaders draw the Madra orb pixel for pixel.
+- **Map events (Task 3, `f83ee96`).** `start_adventure_on_map()` plays on a copy of the encounter dictionary, so stopping a run leaves a fixture alone. The stamina-stop test walks to (0,1,-1) first (the brief's (0,2,-2) is fogged), and the dialogue test calls `_on_dialogue_ended()` directly, because a second real Dialogic timeline in one run breaks `test_idle_action_resolution`. The fixture moved to `tests/integration/adventure_map_fixture.gd` for Tasks 4, 5 and 10.
+- **Map (Task 4, `db481f3`, `517510f`, `2a6f9e8`).** The coin over the player's tile rises 56 px, not 40: the game's character stands on its tile centre with its head 16 px above it, higher than the mock's (`2a6f9e8` amends the spec and Task 5). The boss reveal's camera push tweens `Camera2D.offset` toward the boss and back instead of the camera's position, so the camera stays on the character when the walk goes on (`517510f`; the old push left it offset). Under Show Whole Map, unvisited tiles draw on the forest source, not the veil. `CharacterBody2D.walk_snap_px` (default 1, 2 here) puts the adventure's walk on the 2 px grid.
+- **Coins (Task 5, `2e8c14e`).** The whole boss coin shakes on the reveal, token and glyph, not the glyph alone (it would slide 8 px across a 52 px coin). Coins are placed in `_process` and again on `RenderingServer.frame_pre_draw`, because the push is a tween that steps after `_process` and the coins trailed the tiles by a frame. `_animate_reveal_stagger()` became `_check_boss_reveal()`, since nothing staggers any more.
+- **Cabinet (Task 6, `df0c10b`).** The two big figure rows sit at y 44 and 132, not 43 and 131 (measured against the mock; the zone cabinet carries the same +1). The plate keeps its own list of buffs from the manager's signals, because `clear_all_buffs()` announces each removal before it empties its list, and it is the plate that closes a buff's tooltip when the buff ends.
+- **Chest (Task 7, `5e2a818`).** The title sits at (16, 17), not (16, 18), as the zone chest's name sits at 15 for the kit's 16. The height rounds to the nearest even number, as the mock's `fitChest()` does. The chest also relays out when a page is shown or hidden, and defers the first layout of a page that joins.
+- **Expedition page (Task 8, `dcf2c03`).** The Here tray's name is 224 px wide beside the BOSS seal (236 beside a tag), because at 236 the boss's name ran under the seal. The Run ledger always shows six loot sockets (the mock shows two). A completed choice outranks a locked one (the Aura Well's "Mark down the location" fails its own requirement once done), and the LOCKED seal carries the kit's lock icon. The lore and hint rows are padded so every row of the flow sits on an even y. The text rules are statics (`kind_word`, `kind_tag`, `here_line`, `choice_detail`, `walk_hint`) that the tests call.
+- **Dock (Task 9, `3bb1caa`, `6023445`, `0b1eac9`).** `TechniqueDock.get_technique_tooltip()` replaces the plan's `get_tooltip()`, which `Control` already defines. The tooltip's description wraps at 268, not 272, so the board stays 304 wide, and its height rounds up to an even number so its top stays on the 2 px grid (`6023445`). The cost line's box is 81 px wide, so one-digit costs land where the mock puts them. The shader rounds to the nearest step, `floor(progress * STEPS + 0.5)` (`0b1eac9`; this plan and the spec said `floor(progress * STEPS)`): the slot only sends k / 24, and for k = 7 and 14 the product lands exactly halfway between float32 values, which a bare `floor` leaves to the GPU's rounding. A 0.0001 rad bias keeps a cell whose centre sits on a step's edge veiled whatever `atan()` returns. On a GPU, 0 of 409,600 pixels differ from the mock's cooldown strips. A refused press still makes `can_cast_ability_instance()` write its own `Log.warn`; the player's log stays silent.
+- **Wiring (Task 10, `17a6d1b`, `cef48b8`).** The boards sit after the map with mouse STOP: the map's `SubViewport` hears the pointer only through its container, so a press on a board never clicks a hex (`test_press_on_a_board_does_not_reach_the_map` moves the real pointer, because `push_input()` alone never moves the pointer the hex layer reads). `select_choice()` ignores a pick while a fight or a talk is under way or the tile is resolved (the chest stays up through a fight), and `start_adventure_on_map()` clears an in-flight choice so a boss win cannot block the next run's picks. `stop_adventure()` clears the walk queue and releases the committed destination before `stop_moving()`, so a hop cannot restart during the teardown. `AdventureView` clears `current_action_data` before the tilemap stops, so the teardown changes no run figure and the Run ledger keeps its last numbers under the end card. Deleted with their `.uid` files: `PlayerHud`, `AbilitiesPanel`, `AbilityButton`, `CombatAbilityTooltip`, `ResourceOrb`, `TimerPanel`, `EncounterInfoPanel`, `EncounterChoiceButton` and eleven styleboxes. During the boss reveal's push the boss coin stays on its hex in every captured frame.
+- **Docs (Task 11).** Split into `docs(adventure)`, `docs(testing)`, `docs(style)`, `docs(state)` and plain `docs:` commits for the system docs that named the removed pieces (ability, character, dialogue, effects, resources, unlocks, breakthrough, `combat_architecture.md`), CLAUDE.md and this record. The style guide deleted rows A1–A9 and B1–B3, narrowed B4, B6, B7, S1 and S2 to the enemy and the fight, and answered G2, G7 and G9 for the adventure. The map-first zone view had been merged as PR #51 while several docs still called it unmerged; the docs touched here now say so.
+- **Open.** The fight keeps its old look until PR 2: the enemy's plate (its right end runs under the chest), the painted fighters, the parallax forest, `Atmosphere` and the 0.25 s fade-in. BM Euljiro has no ✓ (U+2713), so the Aura Well's "✓ Location noted" draws through a system-font fallback and shows a hex-code box where none exists; the data is unedited, and the choice is to drop the ✓ from `aura_well_encounter.tres` or draw the tick as a kit glyph. `AbilityStatsDisplay`, `StatLabel`, `StatTooltip` and `GoalsPanel.set_cords_visible()` lost their last users and stay in place. The minor findings the task reviews deferred are for the final review to triage.
+
 ## Global Constraints
 
 - **Project rules (CLAUDE.md, memory):** UI nodes live in `.tscn` scenes; scripts set text, textures, frames, visibility, shader parameters and state colours (`add_theme_color_override(&"font_color", ThemeConstants.LACQUER_*)`, as `ZoneActionButton` and `LogWindow` do). Fixed counts (slots, sockets, drawers, rows, tooltips) are built in the scene and shown or hidden; the only scene instanced from code is the map's coin, whose count depends on the generated map (as `MapMarkers` does for plates and glyphs). Label theme variants before overrides. Explicit types, `->` return types, `##` docs on the class and public functions, `_` on private ones, `%UniqueName` node references, `#-----` section headers, `Log.*` for diagnostics, `LogManager.log_message()` for the player's log, no `print()`.
@@ -67,12 +85,12 @@ Skills: `godot-prompter:assets-pipeline`.
 
 Rules. The import script copies from the mock folder and bakes shadows with the zone kit's `import_kit.bake_shadow()` (import it from `docs/superpowers/mockups/zone-view-lacquer/gen/`; do not copy it), crops frame 0 of `lacquer_orb_health_strip_ai.png`, and shadows each coin frame on its own. It stops with an error on a missing source. The veil atlas maps every opaque pixel of the user's `hex_forest_atlas.png` onto the uncharted veil ramp with `map_render.veil()` (luminance thresholds 40/100/150/170 on 0–255) and lays `map_render.rim_dots()` over each 164x190 cell, keeping the layout so `HexForestAtlas.pick()` coords work on both. Spent glyphs are `map_render.spent_light()` of frame 0 (a strip's first 64x64; `trap.png` at its file size).
 
-- [ ] **Step 1: Write the failing tests:** `test_screen_pieces_have_their_sizes` (each `assets/ui/lacquer/` file above, by the size list); `test_screen_pieces_sit_on_the_2x_grid` (every 2x2 block of each screen piece is one colour); `test_veil_atlas_matches_the_forest_atlas` (same size as `hex_forest_atlas.png`); `test_veil_atlas_uses_only_veil_colours` (every opaque pixel is one of `#0B1211 #16211F #1C2927 #243431 #2D3F3B #A89070 #7A654C`); `test_spent_glyphs_exist` (six files, 64x64, trap 32x32).
-- [ ] **Step 2: Run the file; expect failures** (files missing).
-- [ ] **Step 3: Write `veil_atlas.py`** (`run() -> None`, `save_as(atlas, 'hex_forest_veil_atlas_ai.png', s=1)`), extend `GLYPHS` and `build_all.py`, and write `import_adventure_kit.py`.
-- [ ] **Step 4: Run `build_all.py`, then `import_adventure_kit.py`, then `--import`.**
-- [ ] **Step 5: Run the file; expect green.**
-- [ ] **Step 6: Commit** `feat(adventure): import the lacquer textures for the map and the frame` (scripts, test, the new PNGs and their `.import` files). List every new `_ai` file in the task report.
+- [x] **Step 1: Write the failing tests:** `test_screen_pieces_have_their_sizes` (each `assets/ui/lacquer/` file above, by the size list); `test_screen_pieces_sit_on_the_2x_grid` (every 2x2 block of each screen piece is one colour); `test_veil_atlas_matches_the_forest_atlas` (same size as `hex_forest_atlas.png`); `test_veil_atlas_uses_only_veil_colours` (every opaque pixel is one of `#0B1211 #16211F #1C2927 #243431 #2D3F3B #A89070 #7A654C`); `test_spent_glyphs_exist` (six files, 64x64, trap 32x32).
+- [x] **Step 2: Run the file; expect failures** (files missing).
+- [x] **Step 3: Write `veil_atlas.py`** (`run() -> None`, `save_as(atlas, 'hex_forest_veil_atlas_ai.png', s=1)`), extend `GLYPHS` and `build_all.py`, and write `import_adventure_kit.py`.
+- [x] **Step 4: Run `build_all.py`, then `import_adventure_kit.py`, then `--import`.**
+- [x] **Step 5: Run the file; expect green.**
+- [x] **Step 6: Commit** `feat(adventure): import the lacquer textures for the map and the frame` (scripts, test, the new PNGs and their `.import` files). List every new `_ai` file in the task report.
 
 ---
 
@@ -93,11 +111,11 @@ Skills: `godot-prompter:godot-ui`, `godot-prompter:shader-basics`.
   - `ThemeConstants.LACQUER_HEALTH: Color = Color("#E8737A")`, `ThemeConstants.LACQUER_STAMINA: Color = Color("#C9DB86")`.
   - `lacquer_madra_orb.gdshader`: `uniform vec4 light : source_color`, `pale`, `blue`, defaulting to today's `MADRA_LIGHT` `#E8F6FD`, `MADRA_PALE` `#BBD5E7`, `MADRA_BLUE` `#849BE4` (the constants become these uniforms). `progress` stays the only uniform scripts set; the cultivator cabinet looks exactly as before.
 
-- [ ] **Step 1: Write the failing tests:** `test_cooldown_variant` (size 22, Euljiro, cream, shadow colour and 2/2 offsets); `test_board9_margins`; `test_vitals_colours`; `test_orb_colours_default_to_madra` (`get_shader_uniform_list()` holds `light`, `pale` and `blue` as colours, and the defaults declared in the shader's `code` parse to the three Madra colours: headless Godot returns no parameter defaults from `RenderingServer`, so read the declarations).
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the file and `test_cultivator_plate.gd`; green.**
-- [ ] **Step 5: Commit** `feat(ui): add the cooldown label, plain board and vitals colours`.
+- [x] **Step 1: Write the failing tests:** `test_cooldown_variant` (size 22, Euljiro, cream, shadow colour and 2/2 offsets); `test_board9_margins`; `test_vitals_colours`; `test_orb_colours_default_to_madra` (`get_shader_uniform_list()` holds `light`, `pale` and `blue` as colours, and the defaults declared in the shader's `code` parse to the three Madra colours: headless Godot returns no parameter defaults from `RenderingServer`, so read the declarations).
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the file and `test_cultivator_plate.gd`; green.**
+- [x] **Step 5: Commit** `feat(ui): add the cooldown label, plain board and vitals colours`.
 
 ---
 
@@ -128,7 +146,7 @@ Rules:
 
 Fixture for this file and Tasks 4–5 (cube coords; `ADVENTURE_ACTION` = `spirit_valley_adventure_action.tres`): `(0,0,0)` NoOp (start); `(1,-1,0)` a COMBAT_REGULAR encounter with one `CombatChoice` (enemy `amorphous_spirit.tres`); `(0,1,-1)` and `(0,2,-2)` NoOp; `(-1,1,0)` a REST_SITE encounter with one `EncounterChoice` whose success effect is a `ChangeVitalsEffectData` with `health_change = 10`; `(2,-2,0)` a COMBAT_BOSS encounter (revealed only once `(1,-1,0)` is visited). Click a tile with `visible_map.tile_clicked.emit(visible_map.cube_to_map(coord))`.
 
-- [ ] **Step 1: Write the failing tests** (an `adventure_tilemap.tscn` instance, `start_adventure_on_map(ADVENTURE_ACTION, fixture)`, `watch_signals`):
+- [x] **Step 1: Write the failing tests** (an `adventure_tilemap.tscn` instance, `start_adventure_on_map(ADVENTURE_ACTION, fixture)`, `watch_signals`):
   - `test_start_enters_the_start_tile` (`tile_entered` with `[Vector3i.ZERO, <start NoOp>, true, ""]`).
   - `test_arrival_emits_tile_entered_and_map_changed` (click `(0,1,-1)`, await the walk).
   - `test_low_stamina_click_is_refused` (Stamina 0: `walk_refused` `[&"stamina"]`, `LogManager.message_logged` with "Too tired to walk · 5 Stamina a step", the character does not move).
@@ -141,10 +159,10 @@ Fixture for this file and Tasks 4–5 (cube coords; `ADVENTURE_ACTION` = `spirit
   - `test_seen_tiles_and_dev_reveal` (start: the start tile plus its three map neighbours; dev reveal on: all six tiles; off: back).
   - `test_summary_for` (combat 15 and 0; ChangeVitals +10; a `TriggerEventEffectData` alone → "Done"; no effects → "Done").
   - `test_stop_clears_summaries_and_emits_map_changed`.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement.** `test_adventure_end_flow.gd` and `test_adventure_combat_count.gd` stay green.
-- [ ] **Step 4: Run the new file and both of those; green.**
-- [ ] **Step 5: Commit** `feat(adventure): emit the map's arrivals, refusals and resolutions`.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement.** `test_adventure_end_flow.gd` and `test_adventure_combat_count.gd` stay green.
+- [x] **Step 4: Run the new file and both of those; green.**
+- [x] **Step 5: Commit** `feat(adventure): emit the map's arrivals, refusals and resolutions`.
 
 ---
 
@@ -175,7 +193,7 @@ Rules:
 - Boss reveal keeps the hit-stop (`Engine.time_scale` 0.25 for 0.15 s real time) and the camera push; `BossFlashLayer` and `BossFlashRect` go.
 - `Atmosphere`, `FogLayer`/`FogOfWarRect`, `FogVeilContainer`, `HoverSelector`, `PathPreview`, `_update_fog_uniforms()` and the fog constants go. `EncounterIconContainer` and `AdventureMarker` stay until Task 5.
 
-- [ ] **Step 1: Write the failing tests.** Unit (`test_adventure_route.gd`): `test_route_dots_follow_each_hop` (two hops → `dot_positions(a, b) + dot_positions(b, c)`); `test_hide_passed_hides_first_hop_dots_one_at_a_time` (character at the hop's midpoint → three dots of the first hop hidden, the next hop's all visible); `test_clear_empties_the_route`. Integration (Task 3's fixture, `start_adventure_on_map`):
+- [x] **Step 1: Write the failing tests.** Unit (`test_adventure_route.gd`): `test_route_dots_follow_each_hop` (two hops → `dot_positions(a, b) + dot_positions(b, c)`); `test_hide_passed_hides_first_hop_dots_one_at_a_time` (character at the hop's midpoint → three dots of the first hop hidden, the next hop's all visible); `test_clear_empties_the_route`. Integration (Task 3's fixture, `start_adventure_on_map`):
   - `test_camera_is_fixed_at_zoom_one` (zoom `Vector2.ONE`, offset (0, 70), no `CameraZoomController` child).
   - `test_fog_tiers_around_seen_tiles` (a cell next to a revealed tile is tier 1, two away tier 2, far tier 3; seen cells have none).
   - `test_fog_reaches_past_the_map` (a cell at distance `max_distance_from_start + 8` has fog; one at + 9 has none).
@@ -187,10 +205,10 @@ Rules:
   - `test_walk_moves_in_even_px` (sampled each physics frame mid-walk, x and y are even).
   - `test_old_map_layers_are_gone` (no `FogLayer`, `FogVeilContainer`, `HoverSelector`, `PathPreview`, `Atmosphere`, `BossFlashLayer`, `AdventureHighlightMap`).
   - `test_boss_reveal_keeps_the_hit_stop` (`Engine.time_scale` 0.25 right after the reveal, 1.0 after 0.3 s).
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement; `--import`.** Task 3's file stays green; `test_zone_travel.gd` stays green (the walk default is unchanged).
-- [ ] **Step 4: Run the new files, Task 3's, `test_zone_travel.gd` and `test_adventure_end_flow.gd`; green. Capture `adventure_tilemap.tscn` in a scratch scene that starts the fixture (not committed) and compare with the mock's walk screen.**
-- [ ] **Step 5: Commit** `feat(adventure): draw the map at zoom 1 with fog tiers, veils, rims and route dots`.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement; `--import`.** Task 3's file stays green; `test_zone_travel.gd` stays green (the walk default is unchanged).
+- [x] **Step 4: Run the new files, Task 3's, `test_zone_travel.gd` and `test_adventure_end_flow.gd`; green. Capture `adventure_tilemap.tscn` in a scratch scene that starts the fixture (not committed) and compare with the mock's walk screen.**
+- [x] **Step 5: Commit** `feat(adventure): draw the map at zoom 1 with fog tiers, veils, rims and route dots`.
 
 ---
 
@@ -212,7 +230,7 @@ Skills: `godot-prompter:hud-system`, `godot-prompter:2d-essentials`, `godot-prom
 
 Rules: a coin for each tile in `map.get_seen_tiles()` that `needs_coin()` (dev revealed = `map.is_dev_reveal_all()` and not visited); its face from `face_for()`. Each frame every coin sits at `((canvas * map.get_tile_world_centre(coord)) - Vector2(26, 26 + rise)).round()` with `canvas = map.get_global_transform_with_canvas()` and rise `COIN_RISE_HERE` on the current tile, else `COIN_RISE`. Rebuild on `map_changed` and `encounter_resolved`; `boss_revealed(coord)` shakes that coin. Coins appear and go outright. `AdventureTilemap` instances the layer in its `.tscn` (`map` = its root) and drops `EncounterIconContainer`, `_encounter_icons`, `_update_cell_highlight()`, `_despawn_encounter_icon()`, the pop-in tweens of `_animate_reveal_stagger()` (its boss check stays) and `AdventureMarker`.
 
-- [ ] **Step 1: Write the failing tests.** Unit: `test_needs_coin`; `test_face_for_each_state`; `test_glyph_for_each_type`; `test_animated_glyphs` (boss 7 frames at 0.2 s, rest 5 at 0.4 s); `test_shake_steps` (after `shake()`, the coin's offset follows `MapGlyph.shake_offset_at()` at 0.1 and 0.2 s and is 0 after 0.44 s). Integration (Task 3's fixture):
+- [x] **Step 1: Write the failing tests.** Unit: `test_needs_coin`; `test_face_for_each_state`; `test_glyph_for_each_type`; `test_animated_glyphs` (boss 7 frames at 0.2 s, rest 5 at 0.4 s); `test_shake_steps` (after `shake()`, the coin's offset follows `MapGlyph.shake_offset_at()` at 0.1 and 0.2 s and is 0 after 0.44 s). Integration (Task 3's fixture):
   - `test_start_coins_are_unknown` (`(1,-1,0)`, `(0,1,-1)`, `(-1,1,0)` UNKNOWN; no coin on the start tile).
   - `test_visited_fight_shows_its_glyph`; `test_visited_noop_has_no_coin`; `test_resolved_tile_turns_carved`.
   - `test_boss_coin_appears_once_revealed_and_shakes`.
@@ -220,10 +238,10 @@ Rules: a coin for each tile in `map.get_seen_tiles()` that `needs_coin()` (dev r
   - `test_coins_follow_the_camera` (moving the character 100 px right moves every coin 100 px left).
   - `test_dev_reveal_toggle_round_trip` (Review Focus 2: on → every unvisited encounter tile has a GLYPH coin, the boss its BOSS coin, NoOp tiles none; off → the normal set).
   - `test_stop_removes_every_coin`.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement; `--import`.**
-- [ ] **Step 4: Run the new files and Tasks 3–4's; green. Capture against the mock's walk and encounter screens.**
-- [ ] **Step 5: Commit** `feat(adventure): mark encounters with lacquer coins`.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement; `--import`.**
+- [x] **Step 4: Run the new files and Tasks 3–4's; green. Capture against the mock's walk and encounter screens.**
+- [x] **Step 5: Commit** `feat(adventure): mark encounters with lacquer coins`.
 
 ---
 
@@ -245,7 +263,7 @@ Skills: `godot-prompter:hud-system`, `godot-prompter:godot-ui`, `godot-prompter:
 
 Layout (cabinet-local; screen = local + (24, 24)): board `lacquer_cult_ai.png` at (0, 0); `HealthOrb` 80x80 at (18, 16) (`lacquer_orb_health_ai.png`, a local-to-scene `ShaderMaterial` on `lacquer_madra_orb.gdshader` with light `#FFD9D2`, pale `#E8737A`, blue `#B8304A`); "Health" (`LabelLacquerDetail`) at (114, 22); a value row at (114, 43) built like `CultivatorPlate`'s Madra row (value `LabelLacquerBig` cream, " / max" tan); buff sockets at (294, 52), (338, 52), (382, 52) (`socket_buff`, icon 32x32 at +4, a `lacquer_seal_count_ai.png` count seal with `LabelLacquerSeal` at the socket's top right, a `frame_brass` `LacquerFrameOverlay` that flashes once when the buff lands), filled from the left; `MadraOrb` at (18, 108) (the zone's Madra strip, frame 0, default orb colours); "Madra" at (114, 110); value row at (114, 131); divider at (16, 198); `StaminaRow` at (0, 214): `lacquer_mini_stamina_ai.png` at (18, 5), "Stamina" at (40, 3), a `LacquerRod` (stamina rod, steps 119) at (112, 7), the value (`LabelLacquerName`, " / max" tan) right-aligned in (342, 0, 80, 20). Health shows `ceili(current)`, Madra and Stamina `floori(current)`, max `floori(max)`; orbs fill to `clamp(current / max)`. The buff tooltip opens with its top-left at screen (472, socket y). The sockets show only while bound.
 
-- [ ] **Step 1: Write the failing tests** (the plate with `PlayerManager.vitals_manager` on a fresh save; buffs on a `combatant_node.tscn` player set up as `test_adventure_combat_victory_event.gd` sets up its fight):
+- [x] **Step 1: Write the failing tests** (the plate with `PlayerManager.vitals_manager` on a fresh save; buffs on a `combatant_node.tscn` player set up as `test_adventure_combat_victory_event.gd` sets up its fight):
   - `test_shows_the_runs_vitals` (142 / 160, 80 / 120, 80 / 80).
   - `test_orbs_fill_to_the_fraction` (80 of 160 → health `progress` 0.5; 30 of 120 → Madra 0.25).
   - `test_health_orb_uses_the_crimson_ramp` (its material's light, pale and blue).
@@ -255,10 +273,10 @@ Layout (cabinet-local; screen = local + (24, 24)): board `lacquer_cult_ai.png` a
   - `test_hovering_a_buff_shows_its_tooltip` (name and "<n> s left"); `test_tooltip_hides_when_its_buff_ends`.
   - `test_stamina_shake_runs_in_even_steps` (x offset −8 at 0.1 s, 0 and not shaking after 0.5 s).
   - Unit: `test_describe_attribute_modifier`, `test_describe_damage_over_time`, `test_describe_outgoing_and_incoming`.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Build the scenes and scripts; `--import`.**
-- [ ] **Step 4: Run; green. Capture the cabinet alone and compare with the mock's left column.**
-- [ ] **Step 5: Commit** `feat(adventure): add the vitals cabinet and the lacquer buff tooltip`.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Build the scenes and scripts; `--import`.**
+- [x] **Step 4: Run; green. Capture the cabinet alone and compare with the mock's left column.**
+- [x] **Step 5: Commit** `feat(adventure): add the vitals cabinet and the lacquer buff tooltip`.
 
 ---
 
@@ -277,11 +295,11 @@ Skills: `godot-prompter:godot-ui`, `godot-prompter:hud-system`, `godot-prompter:
   - `class_name AdventureChest extends Control` (at (1456, 24), 440 wide, lacquer theme, mouse STOP): `set_title(text: String) -> void`; `get_run_clock() -> RunClock`; `relayout() -> void`; `const CHEST_TOP_HEIGHT: float = 128.0`, `CHEST_BOTTOM_HEIGHT: float = 48.0`, `MIN_CHEST_HEIGHT: float = 176.0`, `PAGE_TOP: float = 82.0`, `GAP_UNDER_PAGE: float = 24.0`. `%PageSlot` (408 wide at (16, 82)) holds the pages; height = max(176, 82 + page.get_content_height() + 24), relaid on the visible page's `content_resized`; `ChestTop`, tiled `ChestMid`, `ChestBottom` sized as `ZonePanel._relayout()` does. Title `LabelLacquerZoneName` at (16, 18), 312 wide, ellipsis.
   - `class_name RunClock extends Control` (88x36 at chest-local (336, 22)): `bind_timer(timer: Timer) -> void`; `is_low_shown() -> bool`; `const LOW_SECONDS: float = 30.0`; static `format_time(seconds_left: float) -> String` ("%d:%02d" of `floori(seconds_left / 60.0)` and `int(seconds_left) % 60`, as `TimerPanel` today); static `is_low(seconds_left: float) -> bool` (≤ `LOW_SECONDS`). Nodes: `Recess` (`lacquer_timer_ai.png`, `lacquer_timer_low_ai.png` when low), the hourglass mini at (12, 10), `TimeLabel` (`LabelLacquerNowName`, centred in (32, 7, 46, 22)), updated in `_process` while the timer runs. Nothing flashes.
 
-- [ ] **Step 1: Write the failing tests.** Unit: `test_format_time` (125.9 → "2:05", 59.9 → "0:59", 0 → "0:00", 600 → "10:00"); `test_low_at_thirty_not_thirty_one` (30.0 and 0 low; 30.4 and 31 not). Integration: `test_clock_follows_its_timer` (90 s → "1:30"); `test_clock_turns_to_the_seal_when_low`; `test_title_ellipsizes` (Review Focus 3: a 60-character title keeps its label within 312 px and the chest 440 wide); `test_hugs_its_page` (a plain `AdventureChestPage` 300 tall → chest 406, `ChestMid` 230, `ChestBottom` at 358); `test_never_shorter_than_176`; `test_relayouts_on_content_resized`.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Build; `--import`.**
-- [ ] **Step 4: Run; green.**
-- [ ] **Step 5: Commit** `feat(adventure): add the adventure chest and its run clock`.
+- [x] **Step 1: Write the failing tests.** Unit: `test_format_time` (125.9 → "2:05", 59.9 → "0:59", 0 → "0:00", 600 → "10:00"); `test_low_at_thirty_not_thirty_one` (30.0 and 0 low; 30.4 and 31 not). Integration: `test_clock_follows_its_timer` (90 s → "1:30"); `test_clock_turns_to_the_seal_when_low`; `test_title_ellipsizes` (Review Focus 3: a 60-character title keeps its label within 312 px and the chest 440 wide); `test_hugs_its_page` (a plain `AdventureChestPage` 300 tall → chest 406, `ChestMid` 230, `ChestBottom` at 358); `test_never_shorter_than_176`; `test_relayouts_on_content_resized`.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Build; `--import`.**
+- [x] **Step 4: Run; green.**
+- [x] **Step 5: Commit** `feat(adventure): add the adventure chest and its run clock`.
 
 ---
 
@@ -314,7 +332,7 @@ Rules:
 - `walk_hint(stamina)`: "Click a hex to walk · 5 Stamina a step · %d steps left" % floori(stamina / MOVEMENT_STAMINA_COST); refreshed on `PlayerManager.vitals_manager.stamina_changed`.
 - A drawer: available, or locked (`not evaluate_requirements()`: tan title, LOCKED seal, no press), or completed (`is_completed()`: `completed_label` in tan, no press). Only an available drawer's press emits `choice_selected`. Every content change emits `content_resized`.
 
-- [ ] **Step 1: Write the failing tests.** Unit (`test_fight_rules.gd`): `test_max_health_is_body_times_ten` (Body 12 → 120.0, equal to a `VitalsManager`'s `max_health` with those attributes after `_ready`); `test_gold_reward_multiplies_every_factor`; `test_gold_reward_without_an_action`; `test_gold_reward_empty_pool_is_zero`; `test_fight_pays_the_rule` (an `AdventureCombat` fight as in `test_adventure_combat_victory_event.gd`: the win reports `gold_reward_for(choice, null)`). Integration (the page alone, fresh save, encounters built in code or loaded from `resources/adventure/encounters/shallow_woods/`):
+- [x] **Step 1: Write the failing tests.** Unit (`test_fight_rules.gd`): `test_max_health_is_body_times_ten` (Body 12 → 120.0, equal to a `VitalsManager`'s `max_health` with those attributes after `_ready`); `test_gold_reward_multiplies_every_factor`; `test_gold_reward_without_an_action`; `test_gold_reward_empty_pool_is_zero`; `test_fight_pays_the_rule` (an `AdventureCombat` fight as in `test_adventure_combat_victory_event.gd`: the win reports `gold_reward_for(choice, null)`). Integration (the page alone, fresh save, encounters built in code or loaded from `resources/adventure/encounters/shallow_woods/`):
   - `test_fight_tile_here_tray` (Amorphous Spirit encounter: name, FIGHT, "Fight · Amorphous Spirit · <n> Health").
   - `test_boss_tag_is_a_seal`; `test_rest_tile_line_is_its_kind`; `test_noop_tile`.
   - `test_drawer_detail_uses_the_tooltip` (the Aura Well's "Rest": "Draw on the well's aura to restore yourself.").
@@ -325,10 +343,10 @@ Rules:
   - `test_run_ledger_values` ("1 / 13", "20", "3 / 23", the first loot socket shows the item's icon); `test_ledger_keeps_the_latest_six`.
   - `test_long_texts_do_not_widen_the_chest` (Review Focus 3: 80-character name, label and tooltip; the page stays 408 wide).
   - `test_here_shake_runs_in_even_steps`; `test_content_height_follows_the_tile` (two drawers vs none: heights differ and `content_resized` fires).
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement; `--import`.**
-- [ ] **Step 4: Run the new files, `test_adventure_combat_victory_event.gd` and the combat suites; green. Capture the chest with the page against the mock's encounter screen, and the Aura Well with its "Mark down the location" choice completed: if BM Euljiro draws a missing-glyph box for the ✓ in "✓ Location noted", tell the user (spec, Risks) instead of editing the data.**
-- [ ] **Step 5: Commit** `feat(adventure): show the tile, its choices and the run in the chest`.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement; `--import`.**
+- [x] **Step 4: Run the new files, `test_adventure_combat_victory_event.gd` and the combat suites; green. Capture the chest with the page against the mock's encounter screen, and the Aura Well with its "Mark down the location" choice completed: if BM Euljiro draws a missing-glyph box for the ✓ in "✓ Location noted", tell the user (spec, Risks) instead of editing the data.**
+- [x] **Step 5: Commit** `feat(adventure): show the tile, its choices and the run in the chest`.
 
 ---
 
@@ -349,7 +367,7 @@ Skills: `godot-prompter:hud-system`, `godot-prompter:godot-ui`, `godot-prompter:
   - `class_name CastTray extends Control` (476x44 at dock-local (0, −52)): `bind(ability_manager: CombatAbilityManager) -> void`; `unbind() -> void`.
   - `class_name TechniqueTooltip extends PanelContainer` (`board9.tres`, 304 wide, hugs its height): `show_for_ability(data: AbilityData, slot: Control, cast_tray_shown: bool) -> void`; `hide_tooltip() -> void`.
   - `class_name TechniqueDock extends Control` (at (722, 920), 476x136, lacquer theme, mouse STOP): `signal ability_selected(instance: CombatAbilityInstance)`; `show_loadout() -> void`; `bind(ability_manager: CombatAbilityManager, vitals_manager: VitalsManager) -> void`; `reset() -> void`; `is_active() -> bool`; `get_slot(index: int) -> TechniqueSlot`; `get_cast_tray() -> CastTray`; `get_tooltip() -> TechniqueTooltip`.
-  - `lacquer_cooldown_sweep.gdshader` (canvas_item): `uniform float progress : hint_range(0.0, 1.0) = 1.0`. Per 2 px cell of the 64x64 icon, the angle of the cell's centre around (32, 32), from 12 o'clock clockwise (`mod(atan(cx - 32.0, -(cy - 32.0)), TAU)`); a cell at or past `floor(progress * 24.0) / 24.0 * TAU` takes the colour of its luminance band (`0.2126 R + 0.7152 G + 0.0722 B` in 0–1: below 60/255 `#151A18`, 140/255 `#39423E`, 200/255 `#4B5550`, else `#5F6A65`), keeping its alpha; other cells keep the icon. No alpha blending, no `smoothstep`, no `TIME`. The mock's `adv_ability_*_cd_strip_ai.png` frames are its reference output.
+  - `lacquer_cooldown_sweep.gdshader` (canvas_item): `uniform float progress : hint_range(0.0, 1.0) = 1.0`. Per 2 px cell of the 64x64 icon, the angle of the cell's centre around (32, 32), from 12 o'clock clockwise (`mod(atan(cx - 32.0, -(cy - 32.0)), TAU)`); a cell at or past `floor(progress * 24.0 + 0.5) / 24.0 * TAU` takes the colour of its luminance band (`0.2126 R + 0.7152 G + 0.0722 B` in 0–1: below 60/255 `#151A18`, 140/255 `#39423E`, 200/255 `#4B5550`, else `#5F6A65`), keeping its alpha; other cells keep the icon. No alpha blending, no `smoothstep`, no `TIME`. The mock's `adv_ability_*_cd_strip_ai.png` frames are its reference output.
 
 Layout (dock-local; screen = local + (722, 920)): board `lacquer_tdock_ai.png` at (0, 0); slots at (30, 18), (142, 18), (254, 18), (366, 18). A slot: `lacquer_slot_ai.png` at (0, 0); the icon 64x64 at (8, 8) with a local-to-scene `ShaderMaterial` on the sweep shader; the seconds (`LabelLacquerCooldown`) centred in (8, 26, 64, 28); `lacquer_keycap_ai.png` at (−6, −6) with the key (`LabelLacquerHotkey`, "Q" "W" "E" "R" from the input map as `AbilityButton._get_key_label()` reads it); the cost line centred under the slot at y 90 (`lacquer_mini_madra_ai.png`, `lacquer_mini_stamina_ai.png` or `lacquer_mini_health_ai.png` at 16, the cost in `LabelLacquerDetail`); `CastFrame` and `ReadyFlash` (`frame_brass` `LacquerFrameOverlay`s) and `HoverFrame` (`frame_hover`). The cast tray: `lacquer_cast_tray_ai.png`, the name (`LabelLacquerName`) at (16, 12), a `LacquerRod` (cast rod, steps 119) at (170, 17), the time (`RichTextLacquer`, `LacquerText.decimal_bbcode("%.1f s")`) right-aligned in (300, 12, 160, 20). The tooltip: the name (`LabelLacquerPopoverTitle`); the timing ("Cast <t> s · Cooldown <c> s" or "Instant · Cooldown <c> s", with `AbilityRow.format_seconds()` and `decimal_bbcode`, `RichTextLacquer`); the cost row (mini icon + `AbilityRow.format_cost()` in cream); the damage line (`format_damage()` with `CharacterManager.get_total_attributes_data()`, hidden when empty); a divider; the description (`LabelLacquerPopoverBody`, wrapping at 272). Its bottom sits at screen y 912 (860 while the cast tray shows), its left at the slot's x − 8, kept on screen.
 
@@ -358,7 +376,7 @@ Rules:
 - The dock ports `AbilitiesPanel`: the loadout preview (`AbilityManager.get_equipped_abilities()` placed by `get_ability_at_slot()`), binding instances to their equip slots (first free slot otherwise), Q/W/E/R (`ability_slot_1`–`_4`) in `_unhandled_input` only while active and visible, and clicks. A press asks `ability_manager.can_cast_ability_instance(instance, null)`: refused → `slot.refuse()` and nothing else (no log line); accepted → `ability_selected`.
 - The cast tray shows outright on any bound instance's `cast_started` (name, rod at 1 − time_left / duration, time), steps on `cast_updated`, hides on `cast_finished` and `cast_cancelled`.
 
-- [ ] **Step 1: Write the failing tests.** Unit: `test_sweep_step_counts_24_steps` (3 of 3 → 0; 1.5 of 3 → 12; 0.01 of 3 → 23; 0 → 24; duration 0 → 24); `test_seconds_round_up` (2.1 → "3", 3.0 → "3", 0 → ""); `test_format_damage` (Basic Strike → "about <n> Physical damage" with `calculate_value`; Enforce → ""). Integration (the dock alone; fresh save; a player `combatant_node.tscn` set up with the equipped abilities and `PlayerManager.vitals_manager`):
+- [x] **Step 1: Write the failing tests.** Unit: `test_sweep_step_counts_24_steps` (3 of 3 → 0; 1.5 of 3 → 12; 0.01 of 3 → 23; 0 → 24; duration 0 → 24); `test_seconds_round_up` (2.1 → "3", 3.0 → "3", 0 → ""); `test_format_damage` (Basic Strike → "about <n> Physical damage" with `calculate_value`; Enforce → ""). Integration (the dock alone; fresh save; a player `combatant_node.tscn` set up with the equipped abilities and `PlayerManager.vitals_manager`):
   - `test_preview_shows_the_equipped_loadout` (equipped slots PREVIEW with tan keys, the rest EMPTY).
   - `test_bind_activates_the_slots`; `test_initial_cooldown_shows_the_sweep` (right after bind: step < 24 and "2").
   - `test_cooldown_ready_flashes_the_slot`; `test_casting_shows_the_brass_frame_and_the_cast_tray` (Basic Strike's 0.5 s cast; hidden after).
@@ -367,10 +385,10 @@ Rules:
   - `test_keys_do_nothing_outside_a_fight` (Review Focus 4).
   - `test_tooltip_sits_above_the_dock` (bottom 912, left slot x − 8; 860 with the cast tray shown); `test_tooltip_content` (Empty Palm: "Instant · Cooldown 3 s", "8 Madra", its damage line, its description).
   - `test_reset_returns_to_preview` (and the cast tray hides).
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Implement; `--import`.**
-- [ ] **Step 4: Run; green. Capture the dock alone mid-cooldown and compare with the mock (`demo=cd`).**
-- [ ] **Step 5: Commit** `feat(combat): add the technique dock with the radial cooldown sweep`.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Implement; `--import`.**
+- [x] **Step 4: Run; green. Capture the dock alone mid-cooldown and compare with the mock (`demo=cd`).**
+- [x] **Step 5: Commit** `feat(combat): add the technique dock with the radial cooldown sweep`.
 
 ---
 
@@ -395,7 +413,7 @@ Wiring in `AdventureView`:
 - `_on_stop_combat` and `stop_adventure`: disconnect, `technique_dock.reset()`, `vitals_plate.unbind_buffs()`; `stop_adventure` stops `%RunTimer` and reads it where it read `timer_panel.timer`.
 - The tilemap `SubViewport` gets `canvas_item_default_texture_filter = 0` (nearest). The combat `SubViewport` keeps today's filter until PR 2 draws the fighters at 2x. `_fade_in_combat_view()` and `ZoneViewBackground` stay until PR 2.
 
-- [ ] **Step 1: Write the failing tests** (`test_adventure_view_frame.gd`, the view instanced as in `test_adventure_end_flow.gd`; signal wiring tested by emitting the tilemap's signals; tile state through `start_adventure_on_map` with Task 3's fixture):
+- [x] **Step 1: Write the failing tests** (`test_adventure_view_frame.gd`, the view instanced as in `test_adventure_end_flow.gd`; signal wiring tested by emitting the tilemap's signals; tile state through `start_adventure_on_map` with Task 3's fixture):
   - `test_start_fills_the_frame` (title "The Shallow Woods", clock running, the run's Madra budget in the cabinet, the dock in preview).
   - `test_arrival_fills_the_here_tray`; `test_resolution_shows_cleared`.
   - `test_walk_refused_shakes_the_right_board`.
@@ -405,10 +423,10 @@ Wiring in `AdventureView`:
   - `test_map_viewport_filters_nearest`; `test_old_hud_is_gone` (no `%PlayerHud`, `%TimerPanel`, `%EncounterInfoPanel`).
   - `test_second_run_starts_clean` (Review Focus 1: start, enter a fight, `ActionManager.stop_action(false)`, start again: dock in preview, cast tray hidden, chest on the new start tile, clock reset, and the coin count equals the new map's seen tiles that pass `EncounterCoin.needs_coin()`).
   - `test_view_state_hud_positions.gd`: replace the four adventure tests with `test_adventure_leaves_goals_and_the_log_in_place` (positions unchanged on enter and exit) and `test_adventure_keeps_the_goals_cords`; keep `test_back_from_an_adventure_the_zone_view_places_both_boards`.
-- [ ] **Step 2: Run; expect failures.**
-- [ ] **Step 3: Wire it; delete the old scenes and styleboxes (grep each class and path: `PlayerHud`, `AbilitiesPanel`, `AbilityButton`, `CombatAbilityTooltip`, `ResourceOrb`, `TimerPanel`, `EncounterInfoPanel`, `EncounterChoiceButton`; none may remain); `--import`; check `git diff project.godot`.**
-- [ ] **Step 4: Run the suite; green. Back up the save; capture the adventure in a scratch scene (not committed) that instances `AdventureView`, starts the Shallow Woods on a fresh save and walks to a fight tile; check the save hash is unchanged; compare with the mock's walk and encounter screens and fix placement.**
-- [ ] **Step 5: Commit** `feat(adventure): put the lacquer frame into the adventure view`, then `refactor(adventure): remove the replaced adventure HUD` for the deletions.
+- [x] **Step 2: Run; expect failures.**
+- [x] **Step 3: Wire it; delete the old scenes and styleboxes (grep each class and path: `PlayerHud`, `AbilitiesPanel`, `AbilityButton`, `CombatAbilityTooltip`, `ResourceOrb`, `TimerPanel`, `EncounterInfoPanel`, `EncounterChoiceButton`; none may remain); `--import`; check `git diff project.godot`.**
+- [x] **Step 4: Run the suite; green. Back up the save; capture the adventure in a scratch scene (not committed) that instances `AdventureView`, starts the Shallow Woods on a fresh save and walks to a fight tile; check the save hash is unchanged; compare with the mock's walk and encounter screens and fix placement.**
+- [x] **Step 5: Commit** `feat(adventure): put the lacquer frame into the adventure view`, then `refactor(adventure): remove the replaced adventure HUD` for the deletions.
 
 ---
 
@@ -416,5 +434,5 @@ Wiring in `AdventureView`:
 
 **Files:**
 - Modify: `docs/adventuring/ADVENTURING.md` (the map, coins, chest, signals, flows), `docs/combat/COMBAT.md` (the dock, the sweep, the buff tooltip), `docs/infrastructure/MAIN_VIEW.md` (the adventure keeps Goals and the Log in place), `docs/STYLE_GUIDE.md` (delete the done rows A1–A9, B1, B2 and B3; note B4, B6 and B7 as done for the player and left for the enemy in PR 2, and S1 as done on the map; B8 stays for the Abilities book; F1 and F4 progress; the Health and Stamina ramps in §4; G2, G7 and G9 answered for the adventure), `docs/UI_STYLING.md` (if Task 2 left anything), `CLAUDE.md` (Reusable UI Components: the new pieces, `HexHoverSelector` and `PathPreview` gone; Hex Grid: the adventure map at zoom 1 with fog tiers and coins; Shaders), `docs/README.md`, the spec's Status line, this plan's checkboxes and an "As built" section.
-- [ ] **Step 1: Update each doc to the built state.**
-- [ ] **Step 2: Commit** `docs(adventure): document the lacquer map and frame`.
+- [x] **Step 1: Update each doc to the built state.**
+- [x] **Step 2: Commit** `docs(adventure): document the lacquer map and frame`.

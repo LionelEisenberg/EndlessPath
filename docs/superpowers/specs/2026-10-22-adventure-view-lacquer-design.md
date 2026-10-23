@@ -1,6 +1,6 @@
 # Adventure View in Lacquer and Brass: Design
 
-> **Status:** design written on 2026-10-22, after a two-round grill with mock reviews, and checked against the code the same day. Not built.
+> **Status:** design written on 2026-10-22, after a two-round grill with mock reviews, and checked against the code the same day. PR 1 (the map and the frame) was built on 2026-10-23 on `feat/adventure-view-styleguide-1fc223` (not merged); its plan's "As built" section lists the deviations. PR 2 (the fight) is not built.
 >
 > **Mock-up:** [adventure-view-lacquer-mockup.html](../mockups/adventure-view-lacquer-mockup.html) shows the decided design (1:1 with the 1920x1080 viewport, interactive, mock controls above the frame). Serve the repo root to view it (`.claude/launch.json`, `adventure-mockup`), because it loads the kit, the fonts and the user's art by relative path. Its textures are built by `docs/superpowers/mockups/adventure-view-lacquer/gen/` and drawn in Aseprite (`.../aseprite/`). Where this spec and the mock differ, this spec wins.
 >
@@ -299,7 +299,7 @@ The dock takes over `AbilitiesPanel`'s input: `ability_slot_1`–`ability_slot_4
 
 ### Shaders
 
-- **`lacquer_cooldown_sweep.gdshader`** (new, canvas_item, on the slot's icon): `uniform float progress`; `const float STEPS = 24.0`, `CELL = 2.0`. Per 2 px cell, the angle from 12 o'clock clockwise of the cell's centre around the icon's centre; a cell whose angle is at or past `floor(progress * STEPS) / STEPS * TAU` takes the icon's colour mapped by brightness onto the kit's locked veil ramp (`#151A18` `#39423E` `#4B5550` `#5F6A65`); others keep the icon. No alpha blending, no `smoothstep`, no `TIME`. The material is `resource_local_to_scene`. The mock's `adv_ability_*_cd_strip_ai.png` frames are its reference output.
+- **`lacquer_cooldown_sweep.gdshader`** (new, canvas_item, on the slot's icon): `uniform float progress`; `const float STEPS = 24.0`, `CELL = 2.0`. Per 2 px cell, the angle from 12 o'clock clockwise of the cell's centre around the icon's centre; a cell whose angle is at or past `floor(progress * STEPS + 0.5) / STEPS * TAU` takes the icon's colour mapped by brightness onto the kit's locked veil ramp (`#151A18` `#39423E` `#4B5550` `#5F6A65`); others keep the icon. No alpha blending, no `smoothstep`, no `TIME`. The material is `resource_local_to_scene`. The mock's `adv_ability_*_cd_strip_ai.png` frames are its reference output.
 - **`lacquer_madra_orb.gdshader`** gains three colour uniforms (`light`, `pale`, `blue`) whose defaults are today's Madra constants, so the cultivator cabinet does not change; the Health orb's material sets the crimson ramp. `progress` stays the only uniform the scripts touch.
 - **`dither_dissolve.gdshader`** (new, canvas_item): `uniform int dissolve_step` (not `step`, a built-in function name); from `FRAGCOORD` in 2 px cells, it discards half the cells (a checker) at 1 and a quarter at 2, so both of `CombatView`'s children (which use the parent's material) dither in one pattern. No alpha.
 - **Retired:** `fog_of_war.gdshader` (PR 1) and `vignette.gdshader` (PR 2, with `Atmosphere`), both adventure only. `liquid_wave.gdshader` stays (cycling uses it). `hit_flash.gdshader` stays, driven in whole frames.
