@@ -5,10 +5,9 @@
 [ext_resource type="PackedScene" uid="uid://bvgyusvjgbnbx" path="res://scenes/adventure/adventure_tilemap/adventure_tilemap.tscn" id="2_176xw"]
 [ext_resource type="PackedScene" uid="uid://bn6xsijn342nc" path="res://scenes/zones/zone_view_background/zone_view_background.tscn" id="3_wf87j"]
 [ext_resource type="PackedScene" uid="uid://blofb5opg1kdu" path="res://scenes/combat/adventure_combat/adventure_combat.tscn" id="5_a8cog"]
-[ext_resource type="PackedScene" path="res://scenes/ui/combat/player_hud/player_hud.tscn" id="6_a8cog"]
-[ext_resource type="Script" uid="uid://btelbuw52bmqs" path="res://scenes/adventure/adventure_view/timer_panel.gd" id="8_wf87j"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/adventure/panel_timer.tres" id="9_tmr"]
-[ext_resource type="Texture2D" uid="uid://bllskk3frps0" path="res://assets/sprites/ui/stat_icons/time_icon.png" id="10_time"]
+[ext_resource type="PackedScene" uid="uid://oloh0ovfkcoi" path="res://scenes/adventure/vitals_plate/vitals_plate.tscn" id="6_vitals"]
+[ext_resource type="PackedScene" uid="uid://bqbci8eogrm48" path="res://scenes/adventure/adventure_chest/adventure_chest.tscn" id="7_chest"]
+[ext_resource type="PackedScene" uid="uid://bl4ae4mmb5ywi" path="res://scenes/ui/combat/technique_dock/technique_dock.tscn" id="8_dock"]
 
 [node name="AdventureView" type="Control" unique_id=1962712565]
 layout_mode = 3
@@ -42,6 +41,7 @@ offset_bottom = 1080.0
 [node name="SubViewport" type="SubViewport" parent="TilemapView/TilemapSubviewportContainer" unique_id=86140891]
 transparent_bg = true
 handle_input_locally = false
+canvas_item_default_texture_filter = 0
 size = Vector2i(1920, 1080)
 render_target_update_mode = 4
 
@@ -74,60 +74,30 @@ render_target_update_mode = 0
 [node name="AdventureCombat" parent="CombatView/CombatSubviewportContainer/SubViewport" unique_id=1831882021 instance=ExtResource("5_a8cog")]
 unique_name_in_owner = true
 
-[node name="PlayerHud" parent="." unique_id=908648507 instance=ExtResource("6_a8cog")]
+[node name="VitalsPlate" parent="." unique_id=1706930705 instance=ExtResource("6_vitals")]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -350.0
-offset_top = -14.0
-offset_right = 350.0
-offset_bottom = -14.0
-grow_horizontal = 2
-grow_vertical = 0
+layout_mode = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 464.0
+offset_bottom = 276.0
 
-[node name="TimerPanel" type="PanelContainer" parent="." unique_id=2110103791]
+[node name="AdventureChest" parent="." unique_id=609272928 instance=ExtResource("7_chest")]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -70.0
-offset_top = 16.0
-offset_right = 70.0
-offset_bottom = 60.0
-grow_horizontal = 2
-tooltip_text = "Time left in this adventure"
-theme_override_styles/panel = ExtResource("9_tmr")
-script = ExtResource("8_wf87j")
+layout_mode = 0
+offset_left = 1456.0
+offset_top = 24.0
+offset_right = 1896.0
+offset_bottom = 200.0
 
-[node name="Row" type="HBoxContainer" parent="TimerPanel"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="TimeIcon" type="TextureRect" parent="TimerPanel/Row"]
-custom_minimum_size = Vector2(28, 28)
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-texture = ExtResource("10_time")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="TimerLabel" type="Label" parent="TimerPanel/Row" unique_id=1352746675]
+[node name="TechniqueDock" parent="." unique_id=1331518666 instance=ExtResource("8_dock")]
 unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"LabelValueMedium"
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-text = "4:56"
-vertical_alignment = 1
+layout_mode = 0
+offset_left = 722.0
+offset_top = 920.0
+offset_right = 1198.0
+offset_bottom = 1056.0
 
-[node name="Timer" type="Timer" parent="TimerPanel" unique_id=1543296091]
+[node name="RunTimer" type="Timer" parent="." unique_id=755042396]
 unique_name_in_owner = true
 one_shot = true

@@ -109,7 +109,6 @@ enum HighlightType {
 @onready var full_map: HexagonTileMapLayer = %AdventureFullMap
 @onready var visible_map: HexagonTileMapLayer = %AdventureVisibleMap
 @onready var character_body: CharacterBody2D = %CharacterBody2D
-@onready var encounter_info_panel: EncounterInfoPanel = %EncounterInfoPanel
 @onready var _fog_map: HexagonTileMapLayer = %AdventureFogMap
 @onready var _current_rim: Sprite2D = %CurrentRim
 @onready var _hover_rim: Sprite2D = %HoverRim
@@ -197,10 +196,6 @@ func _ready() -> void:
 	# controller), offset so the current hex sits above the dock.
 	_camera.offset = CAMERA_OFFSET
 
-	# Instantiate EncounterInfoPanel
-	encounter_info_panel.visible = false
-	encounter_info_panel.choice_selected.connect(select_choice)
-
 ## While a walk is committed, hides the route dots the character has passed.
 func _process(_delta: float) -> void:
 	if _has_committed_destination:
@@ -225,6 +220,13 @@ func start_adventure(action_data: AdventureActionData) -> void:
 func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictionary[Vector3i, AdventureEncounter]) -> void:
 	current_adventure_action_data = action_data
 	_encounter_tile_dictionary = encounters.duplicate()
+	# A new run has no fight or talk under way, whatever the last one ended in
+	# (a boss win ends the run before its fight lets go of its choice), so
+	# select_choice() takes its picks; and no talk left playing resolves its tiles.
+	_current_combat_choice = null
+	_current_dialogue_choice = null
+	if DialogueManager and DialogueManager.dialogue_ended.is_connected(_on_dialogue_ended):
+		DialogueManager.dialogue_ended.disconnect(_on_dialogue_ended)
 
 	_update_full_map()
 	
@@ -237,7 +239,11 @@ func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictio
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")
 	
-	# Stop character movement
+	# Drop the rest of the walk before stopping the character: stop_moving()
+	# ends the hop under way and announces it (movement_completed), so a walk
+	# still queued would set off its next hop now and land after the teardown.
+	_visitation_queue.clear()
+	_release_committed_destination()
 	character_body.stop_moving()
 	character_body.global_position = Vector2.ZERO
 	
@@ -249,15 +255,12 @@ func stop_adventure() -> void:
 	_highlight_tile_dictionary.clear()
 	_completed_encounter_tiles.clear()
 	_tile_summaries.clear()
-	_visitation_queue.clear()
 	_current_tile = Vector3i.ZERO
 	_is_movement_locked = false
-	_release_committed_destination()
 	_current_rim.hide()
 	_hover_rim.hide()
 	_stop_camera_push()
 	_draw_fog()
-	encounter_info_panel.visible = false
 	map_changed.emit()
 	
 
@@ -290,7 +293,16 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 ## Resolves the player's pick on the encounter they stand on: a combat choice
 ## starts the fight (start_combat), a dialogue choice starts its timeline, and any
 ## other choice applies its success effects and resolves the tile at once.
+## A pick while a fight or a talk it started is under way, or once the tile is
+## resolved, is ignored: the chest stays up through a fight, so a second press
+## on a drawer must not start a second one.
 func select_choice(choice: EncounterChoice) -> void:
+	if _current_combat_choice != null or _current_dialogue_choice != null:
+		Log.info("AdventureTilemap: Choice ignored while a fight or a talk is under way: %s" % choice.label)
+		return
+	if is_tile_completed(_current_tile):
+		Log.info("AdventureTilemap: Choice ignored, the encounter here is resolved: %s" % choice.label)
+		return
 	Log.info("AdventureTilemap: Choice selected: %s" % choice.label)
 
 	if choice is CombatChoice:
@@ -433,14 +445,14 @@ static func summary_for(choice: EncounterChoice, gold_earned: int) -> String:
 #-----------------------------------------------------------------------------
 
 func _visit(coord: Vector3i) -> void:
-	# Snapshot the pre-arrival state so the encounter panel can still
-	# distinguish "first visit" from "replay" after we promote the tile.
+	# Snapshot the pre-arrival state so the arrival can still tell the boards
+	# "first visit" from "replay" after we promote the tile.
 	var was_already_visited := _visited_tile_dictionary.has(coord)
 
 	# Mark the tile visited the moment the player arrives — not after
 	# resolution — so its veil and fog lift and its coin shows the
-	# encounter's glyph immediately. The encounter panel flow below uses the
-	# pre-arrival snapshot to decide whether to show the "already cleared"
+	# encounter's glyph immediately. The arrival below carries the
+	# pre-arrival snapshot, so the chest can show the "already cleared"
 	# state. On revisits we skip _mark_tile_visited (nothing new to compute)
 	# but still need to re-render so the current rim and the coin that
 	# rides above the player follow the player to the new _current_tile.
@@ -453,20 +465,15 @@ func _visit(coord: Vector3i) -> void:
 	# route clears; partway, the route is laid again from this tile.
 	_check_committed_arrival()
 
-	# Always show the panel if there's an encounter
 	if _encounter_tile_dictionary.has(coord):
 		var tile_encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
 
 		# Check for NoOpEncounter (or empty choices) and auto-complete
 		if tile_encounter is NoOpEncounter or tile_encounter.choices.is_empty():
 			Log.info("AdventureTilemap: Auto-completing NoOp/Empty encounter at %s" % coord)
-			encounter_info_panel.hide_panel()
 			_announce_arrival(coord, not was_already_visited)
 			_process_next_visitation()
 			return
-
-		encounter_info_panel.setup(tile_encounter, was_already_visited)
-		encounter_info_panel.show_panel()
 
 		if not was_already_visited:
 			_is_movement_locked = true
@@ -476,8 +483,6 @@ func _visit(coord: Vector3i) -> void:
 			# encounter the player will need to click again to decide
 			# where to go next.
 			_release_committed_destination()
-	else:
-		encounter_info_panel.hide_panel()
 
 	_announce_arrival(coord, not was_already_visited)
 
@@ -502,7 +507,6 @@ func _on_dialogue_ended(_resource: Resource = null) -> void:
 ## remembers `summary` for the tile and tells the boards (encounter_resolved).
 func _complete_current_tile(summary: String) -> void:
 	_is_movement_locked = false
-	encounter_info_panel.show_completed_state()
 	# Promote the tile to "encounter completed" BEFORE re-rendering so
 	# its coin turns carved immediately — not only once the player moves
 	# off to another tile.

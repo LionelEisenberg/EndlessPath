@@ -3,13 +3,14 @@ extends GutTest
 ## Unit tests for where each view state puts the HUD boards MainView shares
 ## between views (spec: Goals › Placement; plan Task 14). The zone view puts
 ## Goals under the cultivator cabinet and the log at the bottom left; the
-## adventure view moves Goals to the free top right and the log to the top
-## left, and puts both back when it ends; the merchant hides both and gives
-## them back their visibility when it closes. Cycling, whose board sits in the
-## map gap beside them, and the menu books (inventory, abilities, character,
-## path tree) leave both boards showing. MainView's hold-and-release counting
-## of the boards is tested with a stand-in covering state, since the shop is
-## the only real state left that hides them.
+## adventure view leaves both there, the Goals cords on, since its own cabinet
+## stands where the zone view's does (adventure spec: The left column); the
+## merchant hides both and gives them back their visibility when it closes.
+## Cycling, whose board sits in the map gap beside them, and the menu books
+## (inventory, abilities, character, path tree) leave both boards showing.
+## MainView's hold-and-release counting of the boards is tested with a
+## stand-in covering state, since the shop is the only real state left that
+## hides them.
 ## The MainView is never added to the tree: each test fills in the views and
 ## boards it needs with plain Controls, as test_merchant_view_state.gd does.
 
@@ -17,17 +18,11 @@ const MerchantViewScene := preload("res://scenes/merchant/merchant_view.tscn")
 const GoalsPanelScene := preload("res://scenes/ui/goals_panel/goals_panel.tscn")
 const MERCHANT_ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres"
 
-## Kit §5.2, §5.3 and the spec's adventure placement, written out so the
-## tests do not read the constants they check.
-## Goals hangs 4 px under the kit's 272, giving the cords that link it to the
-## cabinet more room (user review, 2026-10-22).
+## Kit §5.2 and §5.3, written out so the tests do not read the constants they
+## check. Goals hangs 4 px under the kit's 272, giving the cords that link it
+## to the cabinet more room (user review, 2026-10-22).
 const ZONE_GOALS_POSITION: Vector2 = Vector2(24.0, 276.0)
 const ZONE_LOG_POSITION: Vector2 = Vector2(24.0, 852.0)
-## The Goals board's root: its top 20 px are the cords, hidden in an
-## adventure, so the board's body starts at y 24, level with the log.
-const ADVENTURE_GOALS_POSITION: Vector2 = Vector2(1456.0, 4.0)
-const ADVENTURE_GOALS_BODY_POSITION: Vector2 = Vector2(1456.0, 24.0)
-const ADVENTURE_LOG_POSITION: Vector2 = Vector2(24.0, 24.0)
 
 #-----------------------------------------------------------------------------
 # FIXTURES
@@ -96,44 +91,34 @@ func test_zone_view_places_the_log_at_the_bottom_left() -> void:
 # ADVENTURE VIEW
 #-----------------------------------------------------------------------------
 
-func test_adventure_moves_goals_and_restores() -> void:
+## The adventure's cabinet stands where the zone view's does, so Goals stays
+## hung under it and the log stays at the bottom left, through the run and
+## after it.
+func test_adventure_leaves_goals_and_the_log_in_place() -> void:
 	_main_view.goals_panel.position = ZONE_GOALS_POSITION
-	var state: MainViewState = _new_state(AdventureViewState.new())
-	state.enter()
-	assert_eq(_main_view.goals_panel.position, ADVENTURE_GOALS_POSITION, "Goals sit at the free top right")
-	state.exit()
-	assert_eq(_main_view.goals_panel.position, ZONE_GOALS_POSITION, "Goals go back where they were")
-
-func test_adventure_moves_the_log_and_restores() -> void:
 	_main_view.log_window.position = ZONE_LOG_POSITION
 	var state: MainViewState = _new_state(AdventureViewState.new())
 	state.enter()
-	assert_eq(_main_view.log_window.position, ADVENTURE_LOG_POSITION)
+	assert_eq(_main_view.goals_panel.position, ZONE_GOALS_POSITION, "Goals stay under the cabinet in the adventure")
+	assert_eq(_main_view.log_window.position, ZONE_LOG_POSITION, "the log stays at the bottom left in the adventure")
 	state.exit()
-	assert_eq(_main_view.log_window.position, ZONE_LOG_POSITION)
+	assert_eq(_main_view.goals_panel.position, ZONE_GOALS_POSITION, "and after it")
+	assert_eq(_main_view.log_window.position, ZONE_LOG_POSITION, "and after it")
 
-## At the top right the cords would hang from nothing: the adventure hides
-## them and shows them again when it ends.
-func test_adventure_hides_the_goals_cords_and_restores() -> void:
+## The board still hangs from the cabinet's rings, so its cords (and the hooks
+## on its top slice) stay on.
+func test_adventure_keeps_the_goals_cords() -> void:
 	var goals: GoalsPanel = add_child_autofree(GoalsPanelScene.instantiate())
 	_main_view.goals_panel = goals
 	var cords: Control = goals.get_node("%Cords")
+	var board_top: TextureRect = goals.get_node("%BoardTop")
+	var hooked_top: Texture2D = board_top.texture
 	var state: MainViewState = _new_state(AdventureViewState.new())
 	state.enter()
-	assert_false(cords.visible, "no cords at the top right")
+	assert_true(cords.visible, "the cords hang in the adventure")
+	assert_eq(board_top.texture, hooked_top, "the top slice keeps the hooks they end in")
 	state.exit()
-	assert_true(cords.visible, "the cords hang again under the cabinet")
-
-## With the cords hidden, the board's body (not its root, whose top 20 px are
-## the cords' strip) is what sits at 1456, 24, level with the log's top.
-func test_adventure_lines_the_goals_board_up_with_the_log() -> void:
-	var goals: GoalsPanel = add_child_autofree(GoalsPanelScene.instantiate())
-	_main_view.goals_panel = goals
-	_new_state(AdventureViewState.new()).enter()
-	await wait_process_frames(1)
-	var board_top: Control = goals.get_node("%BoardTop")
-	assert_eq(board_top.global_position, ADVENTURE_GOALS_BODY_POSITION, "the board's body starts at the top right")
-	assert_eq(board_top.global_position.y, ADVENTURE_LOG_POSITION.y, "level with the log")
+	assert_true(cords.visible, "and after it")
 
 func test_back_from_an_adventure_the_zone_view_places_both_boards() -> void:
 	var zone_state: MainViewState = _new_state(ZoneViewState.new())

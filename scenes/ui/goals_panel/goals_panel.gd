@@ -2,7 +2,8 @@ class_name GoalsPanel
 extends Control
 
 ## The Goals board (lacquer kit §5.2), hung on its cords under the cultivator
-## cabinet in the zone view and moved to the top right in adventures.
+## cabinet in the zone view, and under the vitals cabinet that stands in its
+## place in adventures.
 ## Row 1 shows the first active quest's name and current step, with a
 ## current / target figure on the name row when the step can be measured.
 ## Row 2 is the Breakthrough milestone: Core Density towards level 100 on a jade
@@ -11,8 +12,8 @@ extends Control
 ## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into a
 ## top, a tiled middle and a bottom slice, so the board is 220 px tall with a
 ## quest and 150 px with the milestone alone. The cords are their own node and
-## texture, which the adventure view hides (set_cords_visible); their two
-## brass hooks are drawn on the top slice, which then swaps for a hookless copy.
+## texture, which set_cords_visible() can hide; their two brass hooks are drawn
+## on the top slice, which then swaps for a hookless copy.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -80,9 +81,8 @@ func refresh() -> void:
 	_update_milestone()
 
 ## Shows or hides the two cords the board hangs from, and the brass hooks they
-## end in. The zone view hangs the board under the cultivator cabinet; the
-## adventure view puts it at the top right, where the cords would hang from
-## nothing.
+## end in, for a place where they would hang from nothing. Both the zone view
+## and the adventure hang the board under a cabinet, cords on.
 func set_cords_visible(cords_visible: bool) -> void:
 	if not is_node_ready():
 		return

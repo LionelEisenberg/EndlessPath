@@ -1,7 +1,8 @@
 extends GutTest
 
 ## What AdventureTilemap tells the boards (arrivals, resolutions, refused walks,
-## the boss reveal, redraws) and the getters they read. Drives the real tilemap
+## the boss reveal, redraws), the getters they read, the picks it takes from
+## them and how a stop mid-walk ends the walk. Drives the real tilemap
 ## scene on the six-tile fixture map (AdventureMapFixture) and walks it by
 ## clicking tiles, the way the player does. A fight is not started: the tests
 ## answer it with handle_combat_result(), as AdventureView does when one ends.
@@ -20,6 +21,10 @@ const OPEN_NEAR := AdventureMapFixture.OPEN_NEAR
 const OPEN_FAR := AdventureMapFixture.OPEN_FAR
 const REST := AdventureMapFixture.REST
 const BOSS := AdventureMapFixture.BOSS
+
+## How far past the border between two hexes a walk must be to stand in the
+## second one, in px of distance difference (twice the distance past it).
+const PAST_THE_BORDER: float = 8.0
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -288,6 +293,66 @@ func test_dialogue_end_resolves_the_tile_with_its_summary() -> void:
 	assert_signal_emitted_with_parameters(_tilemap, "encounter_resolved", [REST, "+10 Health"])
 	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "the dialogue's effect was applied")
 
+## The chest stays up through a fight, so its drawer can be pressed again while
+## the fight runs: the second pick starts no second fight.
+func test_a_second_pick_while_the_fight_is_on_is_ignored() -> void:
+	_start()
+	await _walk_to(FIGHT)
+	watch_signals(_tilemap)
+
+	_tilemap.select_choice(_fight_choice)
+	_tilemap.select_choice(_fight_choice)
+
+	assert_signal_emit_count(_tilemap, "start_combat", 1, "one fight, however often it is picked")
+
+## While a talk plays, a pick is ignored as well.
+func test_a_pick_while_a_talk_plays_is_ignored() -> void:
+	_start()
+	await _walk_to(REST)
+	# Picking a dialogue choice would start a real Dialogic timeline (see
+	# test_dialogue_end_resolves_the_tile_with_its_summary), so stand in for one
+	# that plays: leave what select_choice() leaves while it does.
+	_tilemap._current_dialogue_choice = DialogueChoice.new()
+	watch_signals(_tilemap)
+
+	_tilemap.select_choice(_rest_choice)
+
+	assert_signal_not_emitted(_tilemap, "encounter_resolved", "the talk holds the tile")
+	assert_eq(PlayerManager.vitals_manager.current_health, 50.0, "the rest did not heal")
+
+## Once the tile is resolved its choices are spent: a second press on its
+## drawer does nothing.
+func test_a_pick_on_a_resolved_tile_is_ignored() -> void:
+	_start()
+	await _walk_to(REST)
+	_tilemap.select_choice(_rest_choice)
+	watch_signals(_tilemap)
+
+	_tilemap.select_choice(_rest_choice)
+
+	assert_signal_not_emitted(_tilemap, "encounter_resolved", "the tile is resolved once")
+	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "the rest healed once")
+
+## A boss win ends the run before the fight lets go of its choice. The next
+## run's picks must still count.
+func test_a_new_run_takes_picks_after_a_boss_win() -> void:
+	_start()
+	await _walk_to(FIGHT)
+	_tilemap.select_choice(_fight_choice)
+	_tilemap.handle_combat_result(true, 0)
+	await _walk_to(BOSS)
+	_tilemap.select_choice(_map[BOSS].choices[0])
+	_tilemap.handle_combat_result(true, 0)
+	# What the view does when the boss win ends the run.
+	_tilemap.stop_adventure()
+	_start()
+	await _walk_to(FIGHT)
+	watch_signals(_tilemap)
+
+	_tilemap.select_choice(_fight_choice)
+
+	assert_signal_emit_count(_tilemap, "start_combat", 1, "the new run's fight starts")
+
 func test_revisit_carries_the_summary() -> void:
 	_start()
 	await _walk_to(REST)
@@ -415,3 +480,41 @@ func test_stop_clears_summaries_and_emits_map_changed() -> void:
 	assert_false(_tilemap.is_tile_completed(REST))
 	assert_eq(_tilemap.get_seen_tiles().size(), 0, "nothing is seen on a cleared map")
 	assert_eq(_tilemap.get_current_tile(), START)
+
+## A run that stops while a walk is under way (the time runs out, the player
+## retreats) ends the walk where it stands: no hop sets off during the teardown,
+## and none lands after it.
+func test_stop_mid_walk_leaves_nothing_behind() -> void:
+	_start()
+	await _walk_to(OPEN_NEAR)
+	var markers: AdventureMapMarkers = _tilemap.get_node("%AdventureMapMarkers") as AdventureMapMarkers
+	# A two-hop walk to FIGHT through START, stopped once the first hop stands in
+	# START's hex: the stop then finishes that hop on START, where the walk
+	# would go on.
+	var start_centre: Vector2 = _tilemap.get_tile_world_centre(START)
+	var near_centre: Vector2 = _tilemap.get_tile_world_centre(OPEN_NEAR)
+	_click(FIGHT)
+	for frame: int in 120:
+		await wait_physics_frames(1)
+		var at: Vector2 = _tilemap.character_body.global_position
+		if at.distance_to(start_centre) + PAST_THE_BORDER < at.distance_to(near_centre):
+			break
+	var at_stop: Vector2 = _tilemap.character_body.global_position
+	assert_lt(at_stop.distance_to(start_centre) + PAST_THE_BORDER, at_stop.distance_to(near_centre), "precondition: the first hop stands in START's hex")
+	assert_true(_tilemap.character_body.is_moving, "precondition: the walk is under way")
+	_record_events()
+
+	_tilemap.stop_adventure()
+	var events_at_stop: int = _events.size()
+	# A hop set off again by the teardown would land within about a second.
+	await wait_seconds(1.5)
+
+	assert_eq(_tilemap.get_visited_tile_count(), 0, "no tile is visited after the stop")
+	assert_false(_tilemap.character_body.is_moving, "the character stands still")
+	assert_eq(markers.get_coin_count(), 0, "no coin is left")
+	assert_false((_tilemap.get_node("%CurrentRim") as CanvasItem).visible, "no current rim")
+	assert_false((_tilemap.get_node("%HoverRim") as CanvasItem).visible, "no hover rim")
+	assert_eq(_events.size(), events_at_stop, "nothing is announced after the stop")
+	var last_redraw: int = _events.rfind("map_changed")
+	assert_ne(last_redraw, -1, "the stop redraws the map")
+	assert_false(_events.slice(last_redraw + 1).has("tile_entered"), "no arrival after the stop's redraw")
