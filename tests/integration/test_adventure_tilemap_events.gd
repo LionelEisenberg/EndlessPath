@@ -2,37 +2,24 @@ extends GutTest
 
 ## What AdventureTilemap tells the boards (arrivals, resolutions, refused walks,
 ## the boss reveal, redraws) and the getters they read. Drives the real tilemap
-## scene on a six-tile fixture map and walks it by clicking tiles, the way the
-## player does. A fight is not started: the tests answer it with
-## handle_combat_result(), as AdventureView does when one ends.
+## scene on the six-tile fixture map (AdventureMapFixture) and walks it by
+## clicking tiles, the way the player does. A fight is not started: the tests
+## answer it with handle_combat_result(), as AdventureView does when one ends.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
 const AdventureTilemapScene := preload("res://scenes/adventure/adventure_tilemap/adventure_tilemap.tscn")
-const ADVENTURE_ACTION := preload("res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_adventure_action.tres")
-const AMORPHOUS_SPIRIT := preload("res://resources/combat/combatant_data/amorphous_spirit.tres")
+const AdventureMapFixture := preload("res://tests/integration/adventure_map_fixture.gd")
 
-# The fixture map, in cube coordinates. START and the two OPEN tiles hold nothing.
-# FIGHT sits next to START and BOSS behind FIGHT, so the boss is revealed only
-# once FIGHT is visited.
-const START := Vector3i(0, 0, 0)
-const FIGHT := Vector3i(1, -1, 0)
-const OPEN_NEAR := Vector3i(0, 1, -1)
-const OPEN_FAR := Vector3i(0, 2, -2)
-const REST := Vector3i(-1, 1, 0)
-const BOSS := Vector3i(2, -2, 0)
-
-## One hop between neighbouring tiles takes about a second; allow a few.
-const HOP_TIMEOUT_SECONDS := 3.0
-
-## The player's vitals are one persistent object shared by every test: the ones
-## these tests move, remembered and put back.
-const VITALS_FIELDS: Array[StringName] = [
-	&"max_health", &"current_health", &"max_stamina", &"current_stamina",
-	&"health_regen", &"stamina_regen",
-]
+# The fixture map's tiles (see AdventureMapFixture).
+const START := AdventureMapFixture.START
+const FIGHT := AdventureMapFixture.FIGHT
+const OPEN_NEAR := AdventureMapFixture.OPEN_NEAR
+const OPEN_FAR := AdventureMapFixture.OPEN_FAR
+const REST := AdventureMapFixture.REST
+const BOSS := AdventureMapFixture.BOSS
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -40,6 +27,8 @@ const VITALS_FIELDS: Array[StringName] = [
 
 var _tilemap: AdventureTilemap
 var _map: Dictionary[Vector3i, AdventureEncounter] = {}
+## The map's choices: a combat choice against one Amorphous Spirit on FIGHT,
+## and one that heals 10 Health on REST.
 var _fight_choice: CombatChoice
 var _rest_choice: EncounterChoice
 var _original_save: SaveGameData
@@ -55,10 +44,12 @@ func before_each() -> void:
 	_original_save = PersistenceManager.save_game_data
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
-	_swap_in_known_vitals()
+	_saved_vitals = AdventureMapFixture.swap_in_known_vitals()
 	_events.clear()
 	_visited_when_entered.clear()
-	_map = _build_map()
+	_map = AdventureMapFixture.build_map()
+	_fight_choice = AdventureMapFixture.fight_choice(_map)
+	_rest_choice = AdventureMapFixture.rest_choice(_map)
 	_tilemap = AdventureTilemapScene.instantiate()
 	add_child_autofree(_tilemap)
 	# The project's hex layer script overrides _ready() without super(), so the
@@ -71,7 +62,8 @@ func before_each() -> void:
 func after_each() -> void:
 	# The boss reveal slows time for a moment; the next test starts at full speed.
 	Engine.time_scale = 1.0
-	_restore_vitals()
+	AdventureMapFixture.restore_vitals(_saved_vitals)
+	_saved_vitals.clear()
 	# AdventureTilemap creates its AdventureMapGenerator node with .new() and
 	# never frees it; free it here so these tests don't leave orphans.
 	if is_instance_valid(_tilemap) and is_instance_valid(_tilemap.adventure_map_generator):
@@ -87,78 +79,22 @@ func after_each() -> void:
 # HELPERS
 #-----------------------------------------------------------------------------
 
-## The fixture map. Its choices are kept in fields: _fight_choice (a combat
-## choice against one Amorphous Spirit) and _rest_choice (heals 10 Health).
-func _build_map() -> Dictionary[Vector3i, AdventureEncounter]:
-	var map: Dictionary[Vector3i, AdventureEncounter] = {}
-	map[START] = NoOpEncounter.new()
-	map[OPEN_NEAR] = NoOpEncounter.new()
-	map[OPEN_FAR] = NoOpEncounter.new()
-
-	var pool: Array[CombatantData] = [AMORPHOUS_SPIRIT]
-	_fight_choice = CombatChoice.new()
-	_fight_choice.label = "Fight"
-	_fight_choice.enemy_pool = pool
-	map[FIGHT] = _encounter(AdventureEncounter.EncounterType.COMBAT_REGULAR, _fight_choice)
-
-	var heal := ChangeVitalsEffectData.new()
-	heal.health_change = 10.0
-	var heal_effects: Array[EffectData] = [heal]
-	_rest_choice = EncounterChoice.new()
-	_rest_choice.label = "Rest"
-	_rest_choice.success_effects = heal_effects
-	map[REST] = _encounter(AdventureEncounter.EncounterType.REST_SITE, _rest_choice)
-
-	var boss_choice := CombatChoice.new()
-	boss_choice.label = "Face the boss"
-	boss_choice.is_boss = true
-	boss_choice.enemy_pool = pool
-	map[BOSS] = _encounter(AdventureEncounter.EncounterType.COMBAT_BOSS, boss_choice)
-	return map
-
-## An encounter of the given type with one choice.
-func _encounter(type: AdventureEncounter.EncounterType, choice: EncounterChoice) -> AdventureEncounter:
-	var choices: Array[EncounterChoice] = [choice]
-	var encounter := AdventureEncounter.new()
-	encounter.encounter_type = type
-	encounter.choices = choices
-	return encounter
-
 ## Starts the run on the fixture map.
 func _start() -> void:
-	_tilemap.start_adventure_on_map(ADVENTURE_ACTION, _map)
-
-## Remembers the player's vitals, then sets known ones: Health 50 of 100, full
-## Stamina, no regeneration while a walk takes its time.
-func _swap_in_known_vitals() -> void:
-	var vitals: VitalsManager = PlayerManager.vitals_manager
-	for field in VITALS_FIELDS:
-		_saved_vitals[field] = vitals.get(field)
-	vitals.max_health = 100.0
-	vitals.current_health = 50.0
-	vitals.max_stamina = 100.0
-	vitals.current_stamina = 100.0
-	vitals.health_regen = 0.0
-	vitals.stamina_regen = 0.0
-
-func _restore_vitals() -> void:
-	var vitals: VitalsManager = PlayerManager.vitals_manager
-	for field in _saved_vitals:
-		vitals.set(field, _saved_vitals[field])
-	_saved_vitals.clear()
+	_tilemap.start_adventure_on_map(AdventureMapFixture.ADVENTURE_ACTION, _map)
 
 func _set_stamina(value: float) -> void:
 	PlayerManager.vitals_manager.current_stamina = value
 
 ## Clicks a tile the way the map layer reports a click: with the tile's map cell.
 func _click(coord: Vector3i) -> void:
-	_tilemap.visible_map.tile_clicked.emit(_tilemap.visible_map.cube_to_map(coord))
+	AdventureMapFixture.click(_tilemap, coord)
 
 ## Clicks a tile, then waits for the character to end its first hop: the whole
 ## walk, for a tile next door.
 func _walk_to(coord: Vector3i) -> void:
 	_click(coord)
-	var arrived: bool = await wait_for_signal(_tilemap.character_body.movement_completed, HOP_TIMEOUT_SECONDS)
+	var arrived: bool = await wait_for_signal(_tilemap.character_body.movement_completed, AdventureMapFixture.HOP_TIMEOUT_SECONDS)
 	assert_true(arrived, "the first hop of the walk to %s ends in time" % coord)
 
 ## Notes the order of the tilemap's announcements in _events, and whether each
@@ -272,7 +208,7 @@ func test_click_during_a_walk_stays_silent() -> void:
 	_click(REST)
 
 	assert_signal_not_emitted(_tilemap, "walk_refused")
-	await wait_for_signal(_tilemap.character_body.movement_completed, HOP_TIMEOUT_SECONDS)
+	await wait_for_signal(_tilemap.character_body.movement_completed, AdventureMapFixture.HOP_TIMEOUT_SECONDS)
 	assert_signal_emit_count(_tilemap, "walk_refused", 1, "only the walk's own stop is refused")
 
 func test_click_while_a_choice_waits_is_refused() -> void:
@@ -335,7 +271,7 @@ func test_dialogue_end_resolves_the_tile_with_its_summary() -> void:
 	var talk := DialogueChoice.new()
 	talk.label = "Talk"
 	talk.success_effects = heal_effects
-	_map[REST] = _encounter(AdventureEncounter.EncounterType.REST_SITE, talk)
+	_map[REST] = AdventureMapFixture.encounter(AdventureEncounter.EncounterType.REST_SITE, talk)
 	_start()
 	await _walk_to(REST)
 	watch_signals(_tilemap)
