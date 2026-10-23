@@ -4,6 +4,9 @@ extends Node2D
 ## AdventureTilemap
 ## Manages the adventure map grid, tile visitation, character movement, and encounter triggers
 ## Handles pathfinding, tile visibility, and encounter processing
+## Announces what happens on the map (arrivals, resolutions, refused walks, the
+## boss reveal, redraws) through signals, and answers the boards' questions about
+## the map through getters.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -11,6 +14,23 @@ extends Node2D
 
 signal start_combat(choice: CombatChoice)
 signal boss_defeated
+
+## The player arrived on a tile: every arrival, the start tile and tiles with
+## nothing on them included, announced once the tile counts as visited.
+## `encounter` is the tile's encounter (null when the map has none there),
+## `first_visit` whether the tile was unvisited until now, and `summary` the line
+## its resolved encounter left behind ("" until it is resolved).
+signal tile_entered(coord: Vector3i, encounter: AdventureEncounter, first_visit: bool, summary: String)
+## The encounter on `coord` was resolved; `summary` says how (see summary_for()).
+signal encounter_resolved(coord: Vector3i, summary: String)
+## The visited or revealed tiles changed: the map was redrawn, or cleared when
+## the adventure stopped.
+signal map_changed
+## A walk could not start, or stopped partway. `reason` is REFUSED_STAMINA or
+## REFUSED_ENCOUNTER, and the player's log says why in words.
+signal walk_refused(reason: StringName)
+## The boss tile came into view for the first time this adventure.
+signal boss_revealed(coord: Vector3i)
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -43,6 +63,17 @@ const CHARACTER_MOVE_SPEED = 150.0
 
 # TODO: Calculate this dynamically based on terrain/stats instead of a constant
 const MOVEMENT_STAMINA_COST = 5.0
+
+## walk_refused reason: too little Stamina for a step.
+const REFUSED_STAMINA: StringName = &"stamina"
+## walk_refused reason: an unresolved encounter on the current tile holds the
+## player until a choice is made.
+const REFUSED_ENCOUNTER: StringName = &"encounter"
+
+## The player's log line for REFUSED_STAMINA (%d: the Stamina a step costs).
+const TOO_TIRED_LINE: String = "Too tired to walk · %d Stamina a step"
+## The player's log line for REFUSED_ENCOUNTER.
+const CHOOSE_FIRST_LINE: String = "Choose what to do here first"
 
 # Fog-of-war shader array size (must match fog_of_war.gdshader MAX_CLEAR_POSITIONS)
 const FOG_MAX_CLEAR_POSITIONS := 64
@@ -111,6 +142,9 @@ var _highlight_tile_dictionary: Dictionary[Vector3i, HighlightType] = {}
 ## the player is still standing on the tile. NoOp tiles never end up in
 ## here — there's nothing to complete.
 var _completed_encounter_tiles: Dictionary[Vector3i, bool] = {}
+## The one line each resolved encounter left behind (see summary_for()), by tile.
+## Cleared when the adventure stops.
+var _tile_summaries: Dictionary[Vector3i, String] = {}
 
 ## Visitation queue - tiles the character will visit in order
 var _visitation_queue: Array[Vector3i] = []
@@ -154,22 +188,28 @@ func _ready() -> void:
 	
 	# Instantiate EncounterInfoPanel
 	encounter_info_panel.visible = false
-	encounter_info_panel.choice_selected.connect(_on_choice_selected)
+	encounter_info_panel.choice_selected.connect(select_choice)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
-## Starts the adventure with the given action data.
+## Starts the adventure with the given action data, on a freshly generated map.
 func start_adventure(action_data: AdventureActionData) -> void:
 	Log.info("AdventureTilemap: Starting adventure: %s" % action_data.action_name)
 
-	current_adventure_action_data = action_data
-
 	# Generate the adventure_tile_dictionary
-	adventure_map_generator.set_adventure_data(current_adventure_action_data.adventure_data)
-	_encounter_tile_dictionary = adventure_map_generator.generate_adventure_map()
-	
+	adventure_map_generator.set_adventure_data(action_data.adventure_data)
+	start_adventure_on_map(action_data, adventure_map_generator.generate_adventure_map())
+
+## Starts the adventure with the given action data on a map that already exists
+## (cube coordinate to encounter; the start tile is Vector3i.ZERO). The tilemap
+## plays on its own copy of the dictionary, so stopping the adventure leaves the
+## caller's alone.
+func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictionary[Vector3i, AdventureEncounter]) -> void:
+	current_adventure_action_data = action_data
+	_encounter_tile_dictionary = encounters.duplicate()
+
 	_update_full_map()
 	
 	# Initialize starting position
@@ -199,11 +239,13 @@ func stop_adventure() -> void:
 	_visited_tile_dictionary.clear()
 	_highlight_tile_dictionary.clear()
 	_completed_encounter_tiles.clear()
+	_tile_summaries.clear()
 	_visitation_queue.clear()
 	_current_tile = Vector3i.ZERO
 	_is_movement_locked = false
 	_release_committed_destination()
 	encounter_info_panel.visible = false
+	map_changed.emit()
 	
 
 ## Handles the result of a combat encounter.
@@ -224,13 +266,37 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 				ActionManager.stop_action(true)
 				return
 
-		_complete_current_tile()
+		_complete_current_tile(summary_for(_current_combat_choice, gold_earned))
 	else:
 		if _current_combat_choice:
 			_apply_effects(_current_combat_choice.failure_effects)
 		# Usually failure means death/end of run, handled by ActionManager or PlayerResourceManager
 	
 	_current_combat_choice = null
+
+## Resolves the player's pick on the encounter they stand on: a combat choice
+## starts the fight (start_combat), a dialogue choice starts its timeline, and any
+## other choice applies its success effects and resolves the tile at once.
+func select_choice(choice: EncounterChoice) -> void:
+	Log.info("AdventureTilemap: Choice selected: %s" % choice.label)
+
+	if choice is CombatChoice:
+		_current_combat_choice = choice
+		start_combat.emit(choice)
+		# Combat view will take over. _stop_combat will be called when done.
+
+	elif choice is DialogueChoice:
+		if DialogueManager:
+			_current_dialogue_choice = choice
+			DialogueManager.start_timeline(choice.timeline_name)
+			DialogueManager.dialogue_ended.connect(_on_dialogue_ended, CONNECT_ONE_SHOT)
+		else:
+			Log.error("AdventureTilemap: DialogueManager missing!")
+
+	else:
+		# Standard choice (e.g. Loot, Leave)
+		_apply_effects(choice.success_effects)
+		_complete_current_tile(summary_for(choice, 0))
 
 ## Returns the number of tiles the player has visited.
 func get_visited_tile_count() -> int:
@@ -265,6 +331,84 @@ func get_total_combat_count() -> int:
 		]:
 			count += 1
 	return count
+
+#-----------------------------------------------------------------------------
+# PUBLIC METHODS - Map Queries
+#-----------------------------------------------------------------------------
+
+## Returns the cube coordinate of the tile the player stands on.
+func get_current_tile() -> Vector3i:
+	return _current_tile
+
+## Returns the encounter placed on `coord`, or null when the map has no tile there.
+func get_encounter_at(coord: Vector3i) -> AdventureEncounter:
+	return _encounter_tile_dictionary.get(coord)
+
+## Returns true when the player has been on the tile.
+func is_tile_visited(coord: Vector3i) -> bool:
+	return _visited_tile_dictionary.has(coord)
+
+## Returns true when the tile is in view without having been visited: it touches
+## a visited tile. The dev override (set_dev_reveal_all) does not change this.
+func is_tile_revealed(coord: Vector3i) -> bool:
+	return _highlight_tile_dictionary.has(coord)
+
+## Returns true when the encounter on the tile has been resolved.
+func is_tile_completed(coord: Vector3i) -> bool:
+	return _completed_encounter_tiles.has(coord)
+
+## Returns the line the tile's resolved encounter left behind, or "" when it has
+## not been resolved (see summary_for()).
+func get_tile_summary(coord: Vector3i) -> String:
+	return _tile_summaries.get(coord, "")
+
+## Returns every tile the player can see: the visited ones, then the revealed
+## ones. Under the dev override (set_dev_reveal_all), every tile on the map.
+func get_seen_tiles() -> Array[Vector3i]:
+	var seen: Array[Vector3i] = []
+	if _dev_reveal_all:
+		seen.assign(_encounter_tile_dictionary.keys())
+		return seen
+	seen.assign(_visited_tile_dictionary.keys())
+	for coord in _highlight_tile_dictionary.keys():
+		seen.append(coord)
+	return seen
+
+## Returns true while the dev override shows the whole map.
+func is_dev_reveal_all() -> bool:
+	return _dev_reveal_all
+
+## Returns the tile's centre in the tilemap's own space, where the character and
+## the camera live.
+func get_tile_world_centre(coord: Vector3i) -> Vector2:
+	return full_map.cube_to_local(coord) + full_map.position
+
+#-----------------------------------------------------------------------------
+# PUBLIC METHODS - Summaries
+#-----------------------------------------------------------------------------
+
+## Returns the one line a resolved encounter leaves on its tile. A won fight reads
+## "Won · <gold> gold", or "Won" when it paid nothing. Any other choice lists what
+## its success effects say, joined with " · ", leaving out an effect that has
+## nothing to say (empty text, or only its debug string), and reads "Done" when
+## nothing is left. No choice reads as a choice with no effects.
+static func summary_for(choice: EncounterChoice, gold_earned: int) -> String:
+	if choice is CombatChoice:
+		if gold_earned > 0:
+			return "Won · %d gold" % gold_earned
+		return "Won"
+	var parts: PackedStringArray = PackedStringArray()
+	if choice != null:
+		for effect in choice.success_effects:
+			if effect == null:
+				continue
+			var text: String = effect.describe()
+			if text.is_empty() or text == str(effect):
+				continue
+			parts.append(text)
+	if parts.is_empty():
+		return "Done"
+	return " · ".join(parts)
 
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
@@ -302,6 +446,7 @@ func _visit(coord: Vector3i) -> void:
 		if tile_encounter is NoOpEncounter or tile_encounter.choices.is_empty():
 			Log.info("AdventureTilemap: Auto-completing NoOp/Empty encounter at %s" % coord)
 			encounter_info_panel.hide_panel()
+			_announce_arrival(coord, not was_already_visited)
 			_process_next_visitation()
 			return
 
@@ -319,54 +464,53 @@ func _visit(coord: Vector3i) -> void:
 	else:
 		encounter_info_panel.hide_panel()
 
+	_announce_arrival(coord, not was_already_visited)
+
 	if was_already_visited:
 		_process_next_visitation()
 
-func _on_choice_selected(choice: EncounterChoice) -> void:
-	Log.info("AdventureTilemap: Choice selected: %s" % choice.label)
-	
-	if choice is CombatChoice:
-		_current_combat_choice = choice
-		start_combat.emit(choice)
-		# Combat view will take over. _stop_combat will be called when done.
-		
-	elif choice is DialogueChoice:
-		if DialogueManager:
-			_current_dialogue_choice = choice
-			DialogueManager.start_timeline(choice.timeline_name)
-			DialogueManager.dialogue_ended.connect(_on_dialogue_ended, CONNECT_ONE_SHOT)
-		else:
-			Log.error("AdventureTilemap: DialogueManager missing!")
-			
-	else:
-		# Standard choice (e.g. Loot, Leave)
-		_apply_effects(choice.success_effects)
-		_complete_current_tile()
+## Tells the boards the player arrived on `coord`. Called once the tile is marked
+## visited and the lock on an unresolved encounter is set, and before the walk
+## goes on to its next tile, so the boards hear the arrivals of one walk in order.
+func _announce_arrival(coord: Vector3i, first_visit: bool) -> void:
+	tile_entered.emit(coord, _encounter_tile_dictionary.get(coord), first_visit, _tile_summaries.get(coord, ""))
 
 func _on_dialogue_ended(_resource: Resource = null) -> void:
 	Log.info("AdventureTilemap: Dialogue ended")
-	if _current_dialogue_choice:
-		_apply_effects(_current_dialogue_choice.success_effects)
+	var choice: DialogueChoice = _current_dialogue_choice
+	if choice:
+		_apply_effects(choice.success_effects)
 		_current_dialogue_choice = null
-	_complete_current_tile()
+	_complete_current_tile(summary_for(choice, 0))
 
-func _complete_current_tile() -> void:
+## Resolves the encounter on the tile the player stands on: unlocks movement,
+## remembers `summary` for the tile and tells the boards (encounter_resolved).
+func _complete_current_tile(summary: String) -> void:
 	_is_movement_locked = false
 	encounter_info_panel.show_completed_state()
 	# Promote the tile to "encounter completed" BEFORE re-rendering so
 	# the gray overlay, dimmed icon, and checkmark appear immediately —
 	# not only once the player moves off to another tile.
 	_completed_encounter_tiles[_current_tile] = true
+	_tile_summaries[_current_tile] = summary
 	_mark_tile_visited(_current_tile)
+	encounter_resolved.emit(_current_tile, summary)
 
 func _apply_effects(effects: Array[EffectData]) -> void:
 	for effect in effects:
 		if effect:
 			effect.process() # TODO: Pass context if needed (player, etc.)
 
+## Tells the boards why a walk cannot start or go on (walk_refused) and puts the
+## reason in the player's log.
+func _refuse_walk(reason: StringName, log_line: String) -> void:
+	LogManager.log_message(log_line)
+	walk_refused.emit(reason)
+
 func _on_tile_clicked(coord: Vector2i) -> void:
 	if _is_movement_locked:
 		Log.info("AdventureTilemap: Movement locked. Complete the encounter first.")
+		_refuse_walk(REFUSED_ENCOUNTER, CHOOSE_FIRST_LINE)
 		return
 
 	# Resolve the encounter on the clicked tile so logs name what's there —
@@ -391,7 +535,7 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	# Check stamina for one step; the deduction happens per step.
 	if PlayerManager.vitals_manager and PlayerManager.vitals_manager.current_stamina < MOVEMENT_STAMINA_COST:
 		Log.info("AdventureTilemap: Not enough stamina to move!")
-		# TODO: Show UI feedback
+		_refuse_walk(REFUSED_STAMINA, TOO_TIRED_LINE % int(MOVEMENT_STAMINA_COST))
 		return
 	
 	# Store as visitation queue (skip first tile as we're already there)
@@ -552,6 +696,7 @@ func _animate_reveal_stagger(coords: Array[Vector3i]) -> void:
 			var encounter: AdventureEncounter = _encounter_tile_dictionary.get(cube)
 			if encounter and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
 				_boss_revealed = true
+				boss_revealed.emit(cube)
 				_play_boss_reveal(cube)
 
 		delay += 0.05
@@ -654,6 +799,7 @@ func _process_next_visitation() -> void:
 			Log.info("AdventureTilemap: Out of stamina, stopping movement.")
 			_visitation_queue.clear()
 			_release_committed_destination()
+			_refuse_walk(REFUSED_STAMINA, TOO_TIRED_LINE % int(MOVEMENT_STAMINA_COST))
 			return
 
 	_visitation_queue.pop_front() # Actually remove it
@@ -812,6 +958,8 @@ func _update_visible_map() -> void:
 		)
 	else:
 		_adventure_marker.hide()
+
+	map_changed.emit()
 
 func _update_cell_highlight(coord: Vector3i) -> void:
 	var encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
