@@ -2,13 +2,16 @@ class_name TechniqueTooltip
 extends PanelContainer
 
 ## The lacquer tooltip a hovered technique slot opens above the technique dock
-## (spec: The technique dock, Tooltip): the plain board (board9.tres, 304 wide,
-## as tall as its text) holding the technique's name, its cast and cooldown
-## ("Cast 0.5 s · Cooldown 2 s", or "Instant · Cooldown 3 s"), its cost after
-## the resource's mini icon, roughly what it hits for when it deals damage
-## (AbilityRow.format_damage() for the character's attributes), a divider and
-## what it does. Numbers and costs go through AbilityRow's formatters, so the
-## dock reads like the Abilities book.
+## (spec: The technique dock, Tooltip): the plain board (board9.tres, 304 wide)
+## holding the technique's name, its cast and cooldown ("Cast 0.5 s · Cooldown
+## 2 s", or "Instant · Cooldown 3 s"), its cost after the resource's mini icon,
+## roughly what it hits for when it deals damage (AbilityRow.format_damage()
+## for the character's attributes), a divider and what it does. Numbers and
+## costs go through AbilityRow's formatters, so the dock reads like the
+## Abilities book.
+## The board is as tall as its text, rounded up to an even height: the rows add
+## up to an odd one (a 15 px BM Euljiro line is 17 px), and an odd height would
+## put the board's 2x art 1 px off the 2 px grid the dock and the tray sit on.
 ## It is a child of the dock, shown and hidden, never instanced. It is
 ## top-level, so show_for_ability() places it by screen position: its bottom
 ## 8 px above the dock (y 912), or above the cast tray while the tray shows
@@ -54,14 +57,15 @@ var _over_cast_tray: bool = false
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	resized.connect(_place)
+	resized.connect(_fit)
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
 ## Shows the tooltip for data over slot, above the cast tray when
-## cast_tray_shown. The board takes the height of the new text.
+## cast_tray_shown. The board takes the height of the new text, rounded up to
+## even.
 func show_for_ability(data: AbilityData, slot: Control, cast_tray_shown: bool) -> void:
 	_slot = slot
 	_over_cast_tray = cast_tray_shown
@@ -76,8 +80,7 @@ func show_for_ability(data: AbilityData, slot: Control, cast_tray_shown: bool) -
 	_damage_label.visible = damage != ""
 	_description_label.text = data.description
 	show()
-	reset_size()
-	_place()
+	_fit()
 
 ## Hides the tooltip and lets go of its slot.
 func hide_tooltip() -> void:
@@ -95,7 +98,17 @@ func _timing_line(data: AbilityData) -> String:
 		return CAST_TIMING_FORMAT % [AbilityRow.format_seconds(data.cast_time), cooldown]
 	return INSTANT_TIMING_FORMAT % cooldown
 
+## Hugs the content, the height rounded up to an even number of px, then places
+## the board. Runs again whenever the board resizes (its content grew).
+func _fit() -> void:
+	if not visible or not is_instance_valid(_slot):
+		return
+	var minimum: Vector2 = get_combined_minimum_size()
+	size = Vector2(minimum.x, ceilf(minimum.y / 2.0) * 2.0)
+	_place()
+
 ## Puts the bottom edge on its line and the left edge by the slot, on screen.
+## The height and both lines are even, so the top is too.
 func _place() -> void:
 	if not visible or not is_instance_valid(_slot):
 		return

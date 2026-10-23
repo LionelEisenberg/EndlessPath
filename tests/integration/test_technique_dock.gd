@@ -182,6 +182,15 @@ func _tray_node(unique_name: String) -> Node:
 func _tooltip_rect() -> Rect2:
 	return _dock.get_technique_tooltip().get_global_rect()
 
+## The board hugs its content, rounded up to an even height, and its corner
+## sits on the 2 px grid the dock and the cast tray sit on.
+func _assert_hugs_on_the_grid(tooltip: TechniqueTooltip, what: String) -> void:
+	var content_height: float = tooltip.get_combined_minimum_size().y
+	assert_eq(tooltip.size.y, ceilf(content_height / 2.0) * 2.0, "%s: as tall as its content, rounded up to even" % what)
+	assert_eq(fmod(tooltip.size.y, 2.0), 0.0, "%s: an even height" % what)
+	assert_eq(fmod(tooltip.global_position.y, 2.0), 0.0, "%s: its top on the 2 px grid" % what)
+	assert_eq(fmod(tooltip.global_position.x, 2.0), 0.0, "%s: its left on the 2 px grid" % what)
+
 ## Moves the pointer, through the window as the player would, to a point in
 ## the viewport (headless, the window is not 1920x1080).
 func _move_pointer_to(point: Vector2) -> void:
@@ -565,6 +574,7 @@ func test_tooltip_sits_above_the_dock() -> void:
 	_slot(1).mouse_entered.emit()
 	await wait_process_frames(2)
 	assert_eq(_tooltip_rect().end.y, 912.0, "its bottom 8 px above the dock")
+	assert_eq(fmod(_tooltip_rect().position.y, 2.0), 0.0, "its top on the 2 px grid")
 	assert_eq(_tooltip_rect().position.x, _slot(1).global_position.x - 8.0, "its left 8 px left of the slot's")
 	assert_eq(_tooltip_rect().position.x, 856.0)
 	_slot(1).mouse_exited.emit()
@@ -576,6 +586,7 @@ func test_tooltip_sits_above_the_dock() -> void:
 	_slot(0).mouse_entered.emit()
 	await wait_process_frames(2)
 	assert_eq(_tooltip_rect().end.y, 860.0, "above the cast tray while it shows")
+	assert_eq(fmod(_tooltip_rect().position.y, 2.0), 0.0, "its top on the 2 px grid there too")
 	assert_eq(_tooltip_rect().position.x, 744.0)
 
 ## A cast that starts or ends under an open tooltip moves it above or back
@@ -622,8 +633,10 @@ func test_tooltip_content() -> void:
 	assert_eq(timing.get_parsed_text(), "Cast 1 s · Cooldown 15 s", "whole seconds without a point")
 	assert_false(damage.visible, "a self-buff has no damage line")
 
-## The plain board, 304 wide and as tall as its content: a longer description
-## grows it, a shorter one takes it back. It never takes the pointer.
+## The plain board, 304 wide and as tall as its content rounded up to an even
+## height, its top on the 2 px grid: a longer description grows it, a shorter
+## one takes it back, and a technique without a damage line or a cost is
+## shorter still. It never takes the pointer.
 func test_tooltip_is_304_wide_and_hugs_its_height() -> void:
 	var tooltip: TechniqueTooltip = _dock.get_technique_tooltip()
 	assert_eq(tooltip.get_theme_stylebox(&"panel"), load(BOARD9_PATH), "the plain board")
@@ -635,14 +648,27 @@ func test_tooltip_is_304_wide_and_hugs_its_height() -> void:
 	tooltip.show_for_ability(EMPTY_PALM, _slot(0), false)
 	await wait_process_frames(2)
 	assert_eq(tooltip.size.x, 304.0)
-	assert_eq(tooltip.size.y, tooltip.get_combined_minimum_size().y, "as tall as its content")
+	assert_eq(fmod(tooltip.get_combined_minimum_size().y, 2.0), 1.0, "precondition: Empty Palm's rows add up to an odd height")
+	_assert_hugs_on_the_grid(tooltip, "Empty Palm")
 	var short_height: float = tooltip.size.y
 	tooltip.show_for_ability(POWER_FONT, _slot(0), false)
 	await wait_process_frames(2)
 	assert_gt(tooltip.size.y, short_height, "Power Font's longer description wraps onto more lines")
-	assert_eq(tooltip.size.y, tooltip.get_combined_minimum_size().y)
+	_assert_hugs_on_the_grid(tooltip, "Power Font")
 	assert_eq(tooltip.size.x, 304.0, "and the board stays 304 wide")
 	assert_eq(_tooltip_rect().end.y, 912.0, "its bottom stays put as it grows")
+	tooltip.show_for_ability(ENFORCE, _slot(0), false)
+	await wait_process_frames(2)
+	assert_false((_tooltip_node("DamageLabel") as Control).visible, "precondition: no damage line")
+	_assert_hugs_on_the_grid(tooltip, "Enforce")
+	var free_technique := AbilityData.new()
+	free_technique.ability_id = "breathe"
+	free_technique.ability_name = "Breathe"
+	free_technique.description = "Take a slow breath."
+	tooltip.show_for_ability(free_technique, _slot(0), false)
+	await wait_process_frames(2)
+	assert_false((_tooltip_node("CostRow") as Control).visible, "precondition: no cost row")
+	_assert_hugs_on_the_grid(tooltip, "a free technique")
 	tooltip.show_for_ability(EMPTY_PALM, _slot(0), false)
 	await wait_process_frames(2)
 	assert_eq(tooltip.size.y, short_height, "a shorter one takes it back")
