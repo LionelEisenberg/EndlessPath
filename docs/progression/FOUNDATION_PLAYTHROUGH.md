@@ -82,7 +82,7 @@ END OF AUTHORED CONTENT
 | 1 | Clicks **Talk to the [INTERVENER]** | Timeline `celestial_intervener_introduction_1` plays from label `dialogue_1` (2 lines). When it ends, the action is consumed (`max_completions` 1) and its `success_effects` run. | Action `celestial_intervener_dialogue_1` |
 | 2 | — | `TriggerEventEffectData` fires the event and the condition latches. **Wilderness Cycling** appears (with a NEW seal), and the **Test Zone** unlocks. The Test Zone has no actions and stays hidden on the map. | Event and condition `celestial_intervener_dialogue_1` |
 | 3 | — | `StartQuestEffectData` starts the quest. Toast: "Quest Started: Awaken Your Core". | Quest `q_fill_core`, step 0 `reach_max_madra` |
-| 4 | Cycles with the Foundational Technique | 8 s cycle and 50 base Madra per cycle, scaled by mouse-tracking accuracy. The technique has no cycling zones, so it gives no Core Density XP. | `foundation_technique` |
+| 4 | Cycles with the Foundational Technique | 8 s cycle and 50 base Madra per cycle, paid in 0.08 s steps while the cursor is on the ball. The technique has no cycling zones, so it gives no Core Density XP. | `foundation_technique` |
 | 5 | Reaches 100 Madra (the CD-0 cap) | The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and **Return to the [INTERVENER]** (NPC 2) appears | Condition `q_fill_core_madra_full` (RESOURCE_AMOUNT, madra ≥ 100.0) |
 | 6 | Clicks NPC 2 | Label `dialogue_2` plays, then the event fires and `q_fill_core` completes ("Quest Complete: Awaken Your Core") | Action and event `celestial_intervener_dialogue_2` |
 | 7 | — | `q_fill_core.completion_effects` fires an event, the condition latches, and **The Shallow Woods** and **Spring Forest Foraging** appear | Event and condition `q_fill_core_completed`; actions `shallow_woods_adventure_action`, `sprint_forest_foraging_action` |
@@ -295,7 +295,7 @@ After Beat 4:
 | Starting Madra / Foundation cap | 25 / 100 + 5 × CD level (100 at CD 0, 150 at CD 10, 600 at CD 100) | `SaveGameData`, `foundation_advancement_stage.tres` |
 | Adventure capacity / start threshold | FOUNDATION × 10 (100 at default) / 50% of capacity | `CharacterAttributesData.get_max_madra()`, `ResourceManager` |
 | Shallow Woods time limit | 300 s | `spirit_valley_adventure_action.tres` |
-| Foundational Technique | 8 s cycle, 50 base Madra (accuracy-scaled), no zones, so 0 CD XP | `foundation_cycling_technique.tres` |
+| Foundational Technique | 8 s cycle, 50 base Madra (paid while the cursor is on the ball), no zones, so 0 CD XP | `foundation_cycling_technique.tres` |
 | Smooth Flow | 15 s cycle, 200 base Madra, 4 zones; per-cycle CD XP is 125 perfect / 70 good / 25 ok | `smooth_flow.tres`, `cycling_zone_data/zone_1..4.tres` |
 | Torrential Flow | 8 s cycle, 250 base Madra, 1 zone (30 / 25 / 20 XP) | `torrential_flow.tres` |
 | CD XP to reach level L | 10 × 1.02^(L−1) | `core_density_base_xp_cost` (default 10) × `core_xp_scaling_factor` 1.02 |
@@ -347,7 +347,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Q-1: Cycles to fill the core in Beat 1
 
-- **ASSUMPTION:** 2–4 sessions to go from 25 to 100 Madra. The data allows at least 2 cycles at full accuracy (50 base per 8 s cycle).
+- **ASSUMPTION:** 2–4 sessions to go from 25 to 100 Madra. The data needs at least 2 cycles, with the cursor on the ball the whole time (50 base per 8 s cycle).
 - **IMPACT:** Sets the first impression of cycling.
 - **IF WRONG:** The intro is trivial, or it drags and the player bounces.
 - **VALIDATE:** Internal playtest; target about 3 cycles for average play.

@@ -274,7 +274,7 @@ Utilities:
 
 | Script | Status |
 |--------|--------|
-| `scripts/utils/theme_constants.gd` (`ThemeConstants`) | Colour palette and size constants for code. Referenced: `ACCENT_GOLD`, `BORDER_PRIMARY`, `BG_MEDIUM` and the `LACQUER_*` colours. See [UI_STYLING.md](../UI_STYLING.md#code-side-constants-themeconstants). |
+| `scripts/utils/theme_constants.gd` (`ThemeConstants`) | Colour palette and size constants for code. Referenced: `ACCENT_GOLD` and the `LACQUER_*` colours. See [UI_STYLING.md](../UI_STYLING.md#code-side-constants-themeconstants). |
 | `scripts/utils/lacquer_text.gd` (`LacquerText`) | `rate()` and `decimal_bbcode()` for lacquer text. See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view). |
 | `scripts/utils/text_effect_importer.gd` | A `Node` with `@export var _text_effect_scripts: Array[Script]` and `get_text_effect_instances()`, which instantiates each script as a `RichTextEffect`. Not referenced by any scene or script. |
 

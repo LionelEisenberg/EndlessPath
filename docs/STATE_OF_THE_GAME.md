@@ -37,7 +37,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 
 ## Health
 
-- **Size:** about 19.5k lines of game GDScript plus 6.4k lines of tests, 112 scenes, 98 data resources, 15 shaders. On the zone view branch: about 25.8k plus 14.7k, 135 scenes, 102 resources. On the cycling view branch: 15 shaders.
+- **Size:** about 19.5k lines of game GDScript plus 6.4k lines of tests, 112 scenes, 98 data resources, 15 shaders. On the cycling view branch (which includes the zone view): about 26.9k plus 20.3k, 139 scenes, 102 resources, 15 shaders.
 - **Tests:** 618/618 pass across 68 files in about 9 s (GUT 9.6.0). On the cycling view branch (which includes the zone view): 1546/1546 across 117 files in about 74 s (GUT 9.7.1). Several suites re-implement the logic they test instead of calling it: ResourceManager, CharacterManager, CultivationManager, and parts of inventory and adventure. Real coverage is lower than the count suggests ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.

@@ -315,7 +315,7 @@ Card behaviour:
 
 #### Orb shaders
 
-The two cabinet orbs are the only shaders in the lacquer zone view. They took the old cycling view's liquid and radial orbs (since deleted) as their model but keep the kit's pixel rules (kit §1): each works out its colour per 2 px art cell (40x40 cells on the 80 px orb, from the rect's local position), uses only the Madra ramp, and steps time 10 times a second (`steps_per_second`), so the motion reads as hand-drawn frames. Wherever they draw nothing, the strip frame underneath shows, so the brass rim and the carved socket stay crisp. Each `ShaderMaterial` is local to its scene.
+The two cabinet orbs are the only shaders in the lacquer zone view. They took the liquid and radial orbs that the old cycling view drew as their model (the cycling view no longer has them; the combat orbs still run `liquid_wave`) but keep the kit's pixel rules (kit §1): each works out its colour per 2 px art cell (40x40 cells on the 80 px orb, from the rect's local position), uses only the Madra ramp, and steps time 10 times a second (`steps_per_second`), so the motion reads as hand-drawn frames. Wherever they draw nothing, the strip frame underneath shows, so the brass rim and the carved socket stay crisp. Each `ShaderMaterial` is local to its scene.
 
 | Shader | `progress` | What it draws |
 |---|---|---|

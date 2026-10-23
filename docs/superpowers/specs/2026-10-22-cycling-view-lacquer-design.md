@@ -23,6 +23,7 @@ Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 1
 - **Text positions.** The board's title sits at y 57 and "Esc" at y 45, so their glyph rows match the mock. Text rects may sit on an odd y, as `ZonePanel.HEADER_TEXT_RAISE` does; art and boxes stay even.
 - **Hiding the board** ends a running cycle quietly.
 - **XP pellets** start at fixed offsets within ±7 px of the zone's centre.
+- **Groove.** It lights to the true ball's travelled length (`_follow.progress`), not to the drawn ball's path length that the `CyclingView` and `CyclingTechnique` notes name, because the snapped centre has no path length of its own. The lit front stays within one 2 px cell of the drawn ball.
 - **A technique switch** resets the ready line to the first-time text.
 - **Madra steps.** The spec's pure "Madra steps for a timer and a delta" helper was folded into `advance()`. Tests pin it at 30, 60 and 144 FPS.
 - **Map input.** The map is switched off with `SubViewport.gui_disable_input`, which `test_a_disabled_map_viewport_takes_no_clicks` pins. A real-scene run checked it too: a click beside the board registers before cycling, none while it runs, and one after. The `mouse_filter = IGNORE` fallback was not needed. `MapMarkers` still hears presses at the window level, so a click closes a pinned popover. Nothing travels.

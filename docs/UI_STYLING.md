@@ -111,7 +111,7 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 | Variant | Base type | Style | Used by |
 |---------|-----------|-------|---------|
 | `ButtonEndCard` | `Button` | Scroll button styleboxes (`assets/styleboxes/buttons/scroll/`), 20px, cream font `#F0E0C2` | `AdventureEndCard` Return button |
-| `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige | Nothing (the lacquer cycling board has no tabs; style guide row P1 clears it) |
+| `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige | Nothing (`CyclingView` was its last user; the lacquer board has no tabs) |
 | `PanelAbilityCard` | `PanelContainer` | `abilities/card_normal.tres` (dark brown, 2px brown border) | Unused (the ability card it styled was replaced by `AbilityRow`) |
 | `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border) | Nothing (`CyclingView` was its last user) |
 | `PanelLootTray` | `PanelContainer` | `common/panel_loot_tray.tres` (translucent parchment) | `AdventureEndCard` |
@@ -259,8 +259,8 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | Constant | Value | Matches in theme | Referenced in code |
 |----------|-------|------------------|--------------------|
 | `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | 3 times: the path tree nodes (`path_node_container.gd`, `path_node_ui.gd`). The lacquer dock buttons swap textures on hover instead |
-| `BORDER_PRIMARY` | `#C4884A` | `LabelSeparatorDot`, base `HSeparator` | 3 times |
-| `BG_MEDIUM` | `#3D2E22` | — | 2 times |
+| `BORDER_PRIMARY` | `#C4884A` | `LabelSeparatorDot`, base `HSeparator` | Unused |
+| `BG_MEDIUM` | `#3D2E22` | — | Unused |
 | `TEXT_LIGHT` / `TEXT_MUTED` / `TEXT_DARK` | `#F0E8D8` / `#A89070` / `#1A1208` | Beige / tan / Label shadow | Unused |
 | `ACCENT_GREEN` / `ACCENT_RED` | `#7DCE82` / `#E06060` | `LabelGreen` / `LabelRed` | Unused |
 | `BG_DARK` | `#2A1A12` | `RichTextLabelDark` | Unused |

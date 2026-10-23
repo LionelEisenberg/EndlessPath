@@ -16,7 +16,7 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~25.8k lines of game GDScript and ~14.7k lines of tests; 135 scenes; 102 authored `.tres` resources (counted on the zone view branch); 15 shaders (counted on the cycling view branch) |
+| Code | ~26.9k lines of game GDScript and ~20.3k lines of tests; 139 scenes; 102 authored `.tres` resources; 15 shaders (all counted on the cycling view branch on 2026-10-23) |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
 | Tests | GUT 9.7.1. 117 scripts and 1546 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
@@ -80,7 +80,7 @@ The 18 autoloads, in `project.godot` load order:
 | 11 | `DialogueManager` | Dialogic wrapper; `dialogue_ended` | [DIALOGUE](infrastructure/DIALOGUE.md) |
 | 12 | `PlayerManager` | The persistent player `VitalsManager` (HP/Madra/Stamina) | [CHARACTER](infrastructure/CHARACTER.md) |
 | 13 | `LogManager` | Player-facing in-game log (`message_logged`, a 200-line history) | [LOGGING](infrastructure/LOGGING.md) |
-| 14 | `CyclingManager` | Unlocked/equipped cycling techniques, technique catalog | [CYCLING](cycling/CYCLING.md) |
+| 14 | `CyclingManager` | Unlocked/equipped cycling techniques, technique catalog, seen techniques (the NEW seal), snapshot of the running cycle (read by the cabinet and the Now tray) | [CYCLING](cycling/CYCLING.md) |
 | 15 | `AbilityManager` | Unlocked abilities, 4-slot loadout, ability catalog | [ABILITIES](abilities/ABILITIES.md) |
 | 16 | `PathManager` | Path tree, point balance, purchases, perk aggregation (`PathEffectsSummary`) | [PATH_PROGRESSION](progression/PATH_PROGRESSION.md) |
 | 17 | `QuestManager` | Active/completed quests and step advancement | [QUESTS](progression/QUESTS.md) |
@@ -157,7 +157,6 @@ These issues span several systems, so no single system doc owns them. The detail
 | **Save robustness** | Saves have no version field, and two schema changes have already broken old saves. The only migration is `SaveGameData.migrate()`, which moves listed zone ids (Test Zone → Spirit Valley) before `verify()`. A failed `verify()` (e.g. a renamed zone id) or an unreadable file silently replaces the whole save. Nothing saves on quit, and wiping a save requires editing `reset_save_data` in the script. See [PERSISTENCE](infrastructure/PERSISTENCE.md) | HIGH (before any public build) |
 | **Mirror tests** | About 114 tests in 5 files re-implement the logic they check instead of calling it: `test_resource_manager`, `test_cultivation_manager`, `test_character_manager`, `test_adventure_flow`, `test_adventure_combat_count`. ResourceManager, CultivationManager and CharacterManager are effectively untested. See [TESTING](testing/TESTING.md) | HIGH |
 | **Untyped ids** | Event ids, condition ids and unlock targets are strings, and no test checks that every gate's condition is registered, that every quest step's event has a producer, or that every path unlock id resolves. See [UNLOCKS](infrastructure/UNLOCKS.md), [EVENTS](infrastructure/EVENTS.md) | MEDIUM |
-| **Log volume** | `ResourceManager.add_madra()` logs every award that adds 1 Madra or more, about 12 lines/s while cycling Smooth or Torrential Flow, which push everything else off the five-line log board and out of `LogManager`'s 200-line history. The Aura Well trickle is quiet. Each `madra_changed` also re-evaluates every unlock condition. See [RESOURCES](infrastructure/RESOURCES.md), [LOGGING](infrastructure/LOGGING.md) | MEDIUM |
 | **Modal backdrop** | Found by code reading: after Path, Abilities or Character closes, `GreyBackground.self_modulate.a` stays 0. Later Inventory and end-card overlays then show an invisible but click-blocking backdrop. See [MAIN_VIEW](infrastructure/MAIN_VIEW.md) | MEDIUM |
 | **Tooling gotchas** | The first headless `--import` in a fresh checkout rewrote `project.godot`'s `[dialogic]` directory registry to `{}`, so revert it before committing. Editor, exported builds and GUT runs share one `user://` dir (save file, logs, dev password file). Green test runs print SCRIPT ERRORs and 24 Dialogic orphans. See [TESTING](testing/TESTING.md), [DEV_TOOLS](tooling/DEV_TOOLS.md) | MEDIUM |
 | **Shipping gaps** | No `export_presets.cfg`, no CI, and no audio assets or audio code | MEDIUM |

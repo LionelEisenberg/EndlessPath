@@ -87,7 +87,7 @@ These are autoloaded in `project.godot` and provide global state:
 | `LogManager` | Player-facing in-game log, shown in `LogWindow`. Diagnostics use the `Log` utility |
 | `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training, merchant). No queue. Resolves and resumes the zone's idle action after every session action and on arrival in a zone |
 | `CharacterManager` | Player attributes (base + equipment bonuses) |
-| `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups) |
+| `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups, seen techniques for the NEW seal) and the running cycle's snapshot, which the cabinet and the Now tray read |
 | `PathManager` | Path progression tree, point balance, perk aggregation. Most numeric perks are not yet read by any system |
 | `AbilityManager` | Ability unlock/equip state (unlocked pool, 4-slot loadout, catalog) |
 | `MerchantManager` | Merchant purchases: stock limits, gold and equipment-space checks, per-merchant ledgers in `SaveGameData.merchant_ledgers` |
