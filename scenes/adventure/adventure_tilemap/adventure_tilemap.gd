@@ -446,6 +446,10 @@ func get_tile_world_centre(coord: Vector3i) -> Vector2:
 func get_fog_tier_at(coord: Vector3i) -> int:
 	return _fog_map.get_cell_source_id(full_map.cube_to_map(coord))
 
+#-----------------------------------------------------------------------------
+# PUBLIC METHODS - Camera
+#-----------------------------------------------------------------------------
+
 ## Returns the camera's offset for a zoom: CAMERA_OFFSET's 70 screen px as world
 ## px. The offset moves the view by offset times zoom px on screen, so this keeps
 ## the current hex's centre at screen (960, 470) at every zoom.
