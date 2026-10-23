@@ -20,6 +20,15 @@ extends Control
 ## line, "<idle action> · paused" while a session action (the shop, an
 ## adventure, dialogue) stands in for the zone's idle action, or
 ## "Nothing running" when the zone has none. The empty tray takes no clicks.
+## The strip is 392 wide, as the activity cards are (they keep their width beside
+## the list's rail), so its edges and theirs line up, and its contents end 16 px
+## short of where they ended in the 408 it was. No text in it is cut off: the
+## action's name, the level line, the forage name and the empty tray's line wrap
+## in what room their neighbours leave them, and the strip grows to hold them,
+## 88 tall at least and an even number of px. The ring and the action's icon stay
+## at the top. The tray's face is a NinePatchRect on the tray's art (a clean
+## 9-slice). The zone chest listens to resized, and stands the Activities header,
+## the list and the lore under the strip's bottom.
 
 ## Emitted when the player clicks the tray.
 signal strip_pressed
@@ -44,6 +53,17 @@ const CYCLE_READY_FORMAT: String = "%d s cycle"
 ## The cycle's rate is read to CyclingManager.RATE_STEP, as on the cabinet, and
 ## shows from half that step: below it the rate reads +0.
 const RATE_SHOWN_FROM: float = CyclingManager.RATE_STEP / 2.0
+
+## The strip is the kit's 88 tall at least. Under the text of each look the room
+## is what makes one line of each exactly that: the Aura Well's content starts 12
+## down and is 62 tall (14 under), the forage's starts 18 down and is 50 tall (20
+## under), and the empty tray's line starts 36 down and is 18 tall (34 under).
+const MIN_HEIGHT: float = 88.0
+const TRAINING_BOTTOM_ROOM: float = 14.0
+const FORAGE_BOTTOM_ROOM: float = 20.0
+const EMPTY_BOTTOM_ROOM: float = 34.0
+## The gap between the level line and the ticks in the bottom row.
+const ROW_GAP: float = 8.0
 
 const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/presenters/forage_yield.tscn")
 
@@ -131,6 +151,7 @@ func _show_action(action: ZoneActionData) -> void:
 	elif cycling:
 		_show_cycling()
 	_update_timer_display()
+	_fit()
 
 ## The empty tray: the ring at its dark frame, no icon, no content, and the
 ## one line.
@@ -148,6 +169,7 @@ func _update_empty_line() -> void:
 	var zone: ZoneData = ZoneManager.get_current_zone()
 	var idle: ZoneActionData = ActionManager.resolve_idle_action(zone.zone_id) if zone != null else null
 	_empty_label.text = PAUSED_FORMAT % idle.action_name if idle != null else NOTHING_RUNNING
+	_fit()
 
 ## "+1.5 Madra / s", "Lv 1 → 2 · +1 Spirit", "214 / 300" and the rod toward
 ## the next level.
@@ -173,6 +195,8 @@ func _update_training_progress() -> void:
 	_level_label.text = level_line
 	_ticks_label.text = "%d / %d" % [ticks_in_level, ticks_for_next]
 	_well_rod.set_fraction(float(ticks_in_level) / ticks_for_next if ticks_for_next > 0 else 0.0)
+	_fit_training_labels()
+	_fit()
 
 ## "+1 Spirit": the first attribute award each level grants.
 func _level_reward_text(training: TrainingActionData) -> String:
@@ -220,6 +244,36 @@ func _update_cycle_rate() -> void:
 	_rate_group.visible = rate >= RATE_SHOWN_FROM
 	if _rate_group.visible:
 		_rate_text.text = LacquerText.decimal_bbcode("%s Madra / s" % LacquerText.rate(snappedf(rate, CyclingManager.RATE_STEP)))
+
+## Sizes the strip to what shows in it (an even height, 88 at least): the Aura
+## Well's rows, the forage's name and yields, or the empty tray's line.
+func _fit() -> void:
+	var bottom: float = MIN_HEIGHT
+	if _training_content.visible:
+		bottom = _training_content.position.y + _training_content.get_combined_minimum_size().y + TRAINING_BOTTOM_ROOM
+	elif _forage_content.visible:
+		bottom = _forage_content.position.y + _forage_content.get_combined_minimum_size().y + FORAGE_BOTTOM_ROOM
+	elif _empty_label.visible:
+		bottom = _empty_label.position.y + _empty_label.get_combined_minimum_size().y + EMPTY_BOTTOM_ROOM
+	size.y = ceilf(maxf(MIN_HEIGHT, bottom) / 2.0) * 2.0
+
+## The action's name wraps in the row's room less the Madra rate beside it, and the
+## level line in its room less the ticks beside it. (A Label that shares its row
+## is given its width as a minimum and as the size, so its lines are counted at
+## that width at once.)
+func _fit_training_labels() -> void:
+	var rate_width: float = _rate_group.get_combined_minimum_size().x if _rate_group.visible else 0.0
+	_set_wrap_width(_training_name, _training_content.size.x - rate_width)
+	_set_wrap_width(_level_label, _training_content.size.x - ROW_GAP - _ticks_label.get_combined_minimum_size().x)
+
+## Gives `label` that width (at least 1 px) as its minimum and as its size, and has
+## the boxes above it ask again for its height: a change of width otherwise leaves
+## the last height cached.
+func _set_wrap_width(label: Label, width: float) -> void:
+	var room: float = maxf(width, 1.0)
+	label.custom_minimum_size.x = room
+	label.size.x = room
+	label.update_minimum_size()
 
 ## The action's name and one yield per loot entry (its 16 px icon and
 ## "min–max"). The haul countdown follows the timer every frame.

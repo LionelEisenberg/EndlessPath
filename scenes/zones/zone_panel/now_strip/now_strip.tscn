@@ -6,12 +6,13 @@
 [ext_resource type="Texture2D" uid="uid://dle0gf5qw361r" path="res://assets/ui/lacquer/lacquer_ring_strip_ai.png" id="4_ring"]
 [ext_resource type="Texture2D" uid="uid://dq702d707hd24" path="res://assets/ui/lacquer/lacquer_mini_madra_ai.png" id="5_mini_madra"]
 [ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="6_rod"]
-[ext_resource type="Texture2D" uid="uid://dmgfhsykecbt4" path="res://assets/ui/lacquer/lacquer_rod_well_empty_ai.png" id="7_rod_empty"]
-[ext_resource type="Texture2D" uid="uid://iqaov8du1b5p" path="res://assets/ui/lacquer/lacquer_rod_well_full_ai.png" id="8_rod_full"]
-[ext_resource type="Texture2D" uid="uid://b8yory4cxrchn" path="res://assets/ui/lacquer/lacquer_rod_well_end_ai.png" id="9_rod_end"]
+[ext_resource type="Texture2D" uid="uid://dfya2xw7ajam5" path="res://assets/ui/lacquer/lacquer_rod_now_empty_ai.png" id="7_rod_empty"]
+[ext_resource type="Texture2D" uid="uid://d1ltwmi27mt70" path="res://assets/ui/lacquer/lacquer_rod_now_full_ai.png" id="8_rod_full"]
+[ext_resource type="Texture2D" uid="uid://e2v5dpq7l5dm" path="res://assets/ui/lacquer/lacquer_rod_now_end_ai.png" id="9_rod_end"]
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="10_frame"]
 [ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="11_frame_hover"]
 [ext_resource type="Texture2D" uid="uid://i77lc785l1ls" path="res://assets/ui/lacquer/lacquer_now_plate_ai.png" id="12_plate"]
+[ext_resource type="StyleBox" uid="uid://bjz0pnis0z337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="13_wrap_pad"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_yield_text"]
 content_margin_top = 1.0
@@ -23,17 +24,25 @@ RichTextLacquer/styles/normal = SubResource("StyleBoxEmpty_yield_text")
 [node name="NowStrip" type="Control" unique_id=1983007221]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 408.0
+offset_right = 392.0
 offset_bottom = 88.0
 mouse_default_cursor_shape = 2
 script = ExtResource("1_strip")
 
-[node name="Tray" type="TextureRect" parent="." unique_id=235033224]
-layout_mode = 0
-offset_right = 408.0
-offset_bottom = 88.0
+[node name="Tray" type="NinePatchRect" parent="." unique_id=235033224]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("2_tray")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 2
+patch_margin_bottom = 2
 
 [node name="Ring" type="TextureRect" parent="." unique_id=2049021151]
 unique_name_in_owner = true
@@ -57,33 +66,31 @@ offset_bottom = 60.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="TrainingContent" type="Control" parent="." unique_id=1445281778]
+[node name="TrainingContent" type="VBoxContainer" parent="." unique_id=1445281778]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="TopRow" type="HBoxContainer" parent="TrainingContent" unique_id=54599180]
 layout_mode = 0
 offset_left = 84.0
 offset_top = 12.0
-offset_right = 392.0
-offset_bottom = 34.0
+offset_right = 376.0
+offset_bottom = 12.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="TopRow" type="HBoxContainer" parent="TrainingContent" unique_id=54599180]
+layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 
 [node name="TrainingName" type="Label" parent="TrainingContent/TopRow" unique_id=860889385]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 theme_type_variation = &"LabelLacquerNowName"
+theme_override_styles/normal = ExtResource("13_wrap_pad")
 text = "Aura Well"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="RateGroup" type="HBoxContainer" parent="TrainingContent/TopRow" unique_id=1753204125]
 unique_name_in_owner = true
@@ -129,25 +136,28 @@ fit_content = true
 scroll_active = false
 autowrap_mode = 0
 
-[node name="BottomRow" type="HBoxContainer" parent="TrainingContent" unique_id=698503584]
-layout_mode = 0
-offset_left = 84.0
-offset_top = 38.0
-offset_right = 392.0
-offset_bottom = 56.0
+[node name="BottomMargin" type="MarginContainer" parent="TrainingContent" unique_id=1604412957]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 4
+
+[node name="BottomRow" type="HBoxContainer" parent="TrainingContent/BottomMargin" unique_id=698503584]
+layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 8
 
-[node name="LevelLabel" type="Label" parent="TrainingContent/BottomRow" unique_id=760794313]
+[node name="LevelLabel" type="Label" parent="TrainingContent/BottomMargin/BottomRow" unique_id=760794313]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("13_wrap_pad")
 text = "Lv 0 → 1 · +1 Spirit"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
-[node name="TicksLabel" type="Label" parent="TrainingContent/BottomRow" unique_id=1015950846]
+[node name="TicksLabel" type="Label" parent="TrainingContent/BottomMargin/BottomRow" unique_id=1015950846]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
@@ -155,58 +165,68 @@ theme_type_variation = &"LabelLacquerDetail"
 text = "0 / 60"
 horizontal_alignment = 2
 
-[node name="WellRod" parent="TrainingContent" unique_id=1543338999 instance=ExtResource("6_rod")]
+[node name="RodMargin" type="MarginContainer" parent="TrainingContent" unique_id=1226190467]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 8
+
+[node name="WellRod" parent="TrainingContent/RodMargin" unique_id=1543338999 instance=ExtResource("6_rod")]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 84.0
-offset_top = 64.0
-offset_right = 392.0
-offset_bottom = 74.0
+layout_mode = 2
+size_flags_horizontal = 0
 empty_texture = ExtResource("7_rod_empty")
 full_texture = ExtResource("8_rod_full")
 end_texture = ExtResource("9_rod_end")
-steps = 152
+steps = 144
 
-[node name="ForageContent" type="Control" parent="." unique_id=1665792783]
+[node name="ForageContent" type="VBoxContainer" parent="." unique_id=1665792783]
 unique_name_in_owner = true
 visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="ForageName" type="Label" parent="ForageContent" unique_id=2014383704]
-unique_name_in_owner = true
 layout_mode = 0
 offset_left = 84.0
 offset_top = 18.0
-offset_right = 392.0
-offset_bottom = 39.0
-theme_type_variation = &"LabelLacquerNowName"
-text = "Spring Forest Foraging"
-text_overrun_behavior = 3
+offset_right = 376.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_constants/separation = 0
 
-[node name="YieldRow" type="HBoxContainer" parent="ForageContent" unique_id=789750200]
+[node name="ForageName" type="Label" parent="ForageContent" unique_id=2014383704]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 84.0
-offset_top = 48.0
-offset_right = 284.0
-offset_bottom = 68.0
+custom_minimum_size = Vector2(292, 22)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerNowName"
+theme_override_styles/normal = ExtResource("13_wrap_pad")
+text = "Spring Forest Foraging"
+autowrap_mode = 3
+
+[node name="YieldMargin" type="MarginContainer" parent="ForageContent" unique_id=1377812038]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 8
+
+[node name="YieldLine" type="HBoxContainer" parent="ForageContent/YieldMargin" unique_id=1915208352]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="YieldRow" type="HBoxContainer" parent="ForageContent/YieldMargin/YieldLine" unique_id=789750200]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme = SubResource("Theme_yield_row")
 theme_override_constants/separation = 12
 
-[node name="HaulLabel" type="Label" parent="ForageContent" unique_id=957469685]
+[node name="HaulMargin" type="MarginContainer" parent="ForageContent/YieldMargin/YieldLine" unique_id=1089733145]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_top = 1
+
+[node name="HaulLabel" type="Label" parent="ForageContent/YieldMargin/YieldLine/HaulMargin" unique_id=957469685]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 292.0
-offset_top = 49.0
-offset_right = 392.0
-offset_bottom = 66.0
+layout_mode = 2
 theme_type_variation = &"LabelLacquerDetail"
 theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
 text = "haul in 5 s"
@@ -215,14 +235,16 @@ horizontal_alignment = 2
 [node name="EmptyLabel" type="Label" parent="." unique_id=1730496182]
 unique_name_in_owner = true
 visible = false
+custom_minimum_size = Vector2(292, 18)
 layout_mode = 0
 offset_left = 84.0
 offset_top = 36.0
-offset_right = 392.0
-offset_bottom = 53.0
+offset_right = 376.0
+offset_bottom = 54.0
 theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("13_wrap_pad")
 text = "Aura Well · paused"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="HoverFrame" parent="." unique_id=24910232 instance=ExtResource("10_frame")]
 unique_name_in_owner = true

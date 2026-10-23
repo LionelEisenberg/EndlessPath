@@ -7,7 +7,10 @@ extends GutTest
 ## under its last whole drawer, the rail and lips, scrolling to a card, the
 ## lore panel, the techniques mode a cycling session turns the chest to, and
 ## long text never widening the chest (Review Focus 4). The panel is built on
-## a fresh save, as the zone view builds it.
+## a fresh save, as the zone view builds it. The Now strip is as wide as the
+## cards beside the list's rail (392, so both edges line up), and no text in it
+## is cut off: a name or line that needs more room wraps, the strip grows, and
+## the Activities header, the list and the lore move down with its bottom.
 
 const PANEL_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/zone_panel.tscn")
 
@@ -40,6 +43,17 @@ const LORE_PUSH: float = 276.0
 ## A finished cycle's line sits under the Now tray and pushes the rest down this far.
 const LAST_CYCLE_PUSH: float = 26.0
 const FULL_CHEST_HEIGHT: float = 1032.0
+## The Now strip: the kit's 88 tall and the cards' 392 wide, with each extra line
+## of a name 22 px (18 in a detail line) and its contents ending 16 px short of
+## the 408 it was.
+const STRIP_HEIGHT: float = 88.0
+const STRIP_WIDTH: float = 392.0
+const NAME_LINE: float = 22.0
+const DETAIL_LINE: float = 18.0
+## Long enough to need three lines in the strip's name (about 150 px beside the
+## rate) and its forage name (292 px), and two in its detail lines.
+const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit By The Cold Moon And A Hundred Silent Stars"
+const NO_TRIMMING: TextServer.OverrunBehavior = TextServer.OVERRUN_NO_TRIMMING
 const FOLD_GAP: float = 8.0
 const SCROLL_MARGIN: float = 24.0
 ## A technique drawer is 72 tall, with 8 between drawers (kit §5.5).
@@ -51,9 +65,10 @@ const GUT_LAYER: int = 128
 
 var _panel: ZonePanel = null
 
-## Zone names a test changed, restored after it.
+## Zone and action names a test changed, restored after it.
 var _renamed_zone: ZoneData = null
 var _original_zone_name: String = ""
+var _renamed_actions: Dictionary[ZoneActionData, String] = {}
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -76,6 +91,9 @@ func after_each() -> void:
 	if _renamed_zone != null:
 		_renamed_zone.zone_name = _original_zone_name
 		_renamed_zone = null
+	for action: ZoneActionData in _renamed_actions:
+		action.action_name = _renamed_actions[action]
+	_renamed_actions.clear()
 	_panel = null
 
 #-----------------------------------------------------------------------------
@@ -296,7 +314,7 @@ func test_strip_follows_training_ticks() -> void:
 	var texts: Array[String] = _texts(_strip())
 	assert_has(texts, "Lv 1 → 2 · +1 Spirit")
 	assert_has(texts, "15 / 300")
-	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), roundi(15.0 / 300.0 * 152.0))
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), roundi(15.0 / 300.0 * 144.0))
 
 func test_strip_shows_for_foraging() -> void:
 	await _add_panel()
@@ -563,6 +581,182 @@ func test_running_card_press_flashes_the_strip() -> void:
 	var card: ZoneActionButton = _panel.get_card(AURA_WELL_ID) as ZoneActionButton
 	card.card_pressed_while_running.emit()
 	assert_true((_strip_node("FlashFrame") as LacquerFrameOverlay).is_flashing())
+
+#-----------------------------------------------------------------------------
+# NOW STRIP: LINING UP WITH THE CARDS
+#-----------------------------------------------------------------------------
+
+## The strip is 392 wide, as the cards are (they keep their width: the list's rail
+## needs the room), so its edges and theirs line up: chest x 16 to 408.
+func test_the_strip_lines_up_with_the_cards() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	await wait_process_frames(2)
+	var card: Control = _panel.get_card(AURA_WELL_ID)
+	assert_not_null(card, "precondition: the Aura Well's card is listed")
+	assert_eq(card.size.x, 392.0, "the cards keep their 392")
+	assert_eq(_strip().size.x, STRIP_WIDTH, "the strip narrows to the same")
+	assert_eq(_strip().get_global_rect().position.x, card.get_global_rect().position.x, "one left edge")
+	assert_eq(_strip().get_global_rect().end.x, card.get_global_rect().end.x, "one right edge")
+	var face := _strip_node("Tray") as NinePatchRect
+	assert_eq(face.get_global_rect(), _strip().get_global_rect(), "the tray's face fills the strip")
+
+## Its contents' right edges moved in with it: 16 px short of where they were.
+func test_the_strips_contents_end_16_px_in() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	await wait_process_frames(2)
+	var right: float = _strip().get_global_rect().end.x - 16.0
+	assert_eq((_strip_node("WellRod") as Control).get_global_rect().end.x, right, "the rod ends 16 px in")
+	assert_eq((_strip_node("RateGroup") as Control).get_global_rect().end.x, right, "and the rate")
+	assert_eq((_strip_node("TicksLabel") as Control).get_global_rect().end.x, right, "and the ticks")
+	EventManager.trigger_event(FORAGING_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	await wait_process_frames(2)
+	assert_eq((_strip_node("HaulLabel") as Control).get_global_rect().end.x, right, "the haul line too")
+	ActionManager.stop_action()
+	await wait_process_frames(2)
+	var empty := _strip_node("EmptyLabel") as Control
+	assert_true(empty.is_visible_in_tree(), "precondition: the tray is empty")
+	assert_eq(empty.get_global_rect().end.x, right, "and the empty line's box")
+
+## The rod is the Aura Well's shortened by the same 16: 144 steps of 2 px.
+func test_the_rod_is_16_px_shorter() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	var rod := _strip_node("WellRod") as LacquerRod
+	assert_eq(rod.steps, 144)
+	assert_eq(rod.size.x, 292.0)
+	assert_eq(rod.empty_texture.resource_path, "res://assets/ui/lacquer/lacquer_rod_now_empty_ai.png")
+	assert_eq(rod.full_texture.resource_path, "res://assets/ui/lacquer/lacquer_rod_now_full_ai.png")
+	assert_eq(rod.end_texture.resource_path, "res://assets/ui/lacquer/lacquer_rod_now_end_ai.png")
+
+#-----------------------------------------------------------------------------
+# NOW STRIP: NO TEXT IS CUT OFF
+#-----------------------------------------------------------------------------
+
+func _rename_action(action_id: String, new_name: String) -> ZoneActionData:
+	var action: ZoneActionData = ZoneManager.get_action_by_id(action_id)
+	_renamed_actions[action] = action.action_name
+	action.action_name = new_name
+	return action
+
+## The header, the list and the lore stand where the strip's bottom puts them: 10,
+## 38 and 12 px under it.
+func _assert_chest_follows_the_strip() -> void:
+	var bottom: float = _strip().position.y + _strip().size.y
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, bottom + 10.0 - 3.0, "the header 10 px under the strip (its text 3 px up)")
+	assert_eq(_list().position.y, bottom + 38.0, "the list 38 px under it")
+	assert_eq((_node("LorePanel") as Control).position.y, bottom + 12.0, "and the lore 12")
+
+func test_a_long_training_name_wraps_and_grows_the_strip() -> void:
+	_rename_action(AURA_WELL_ID, LONG_NAME)
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	await wait_process_frames(2)
+	var name_label := _strip_node("TrainingName") as Label
+	assert_gt(name_label.get_line_count(), 2, "precondition: the name needs three lines beside the rate")
+	assert_eq(name_label.text_overrun_behavior, NO_TRIMMING, "wrapped, never trimmed")
+	assert_eq(name_label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
+	assert_lte(name_label.get_global_rect().end.x, (_strip_node("RateGroup") as Control).get_global_rect().position.x, "the name wraps before the rate")
+	assert_eq(_strip().size.y, STRIP_HEIGHT + NAME_LINE * (name_label.get_line_count() - 1), "every line after the first adds the name's 22 px")
+	assert_eq(fposmod(_strip().size.y, 2.0), 0.0, "an even height")
+	assert_eq((_strip_node("Tray") as Control).size.y, _strip().size.y, "the tray's face follows")
+	assert_eq((_strip_node("Ring") as Control).position, Vector2(14.0, 16.0), "the ring stays at the top")
+	assert_eq((_strip_node("ActionIcon") as Control).position, Vector2(26.0, 28.0))
+	_assert_chest_follows_the_strip()
+
+func test_the_chest_grows_with_the_strip() -> void:
+	_rename_action(AURA_WELL_ID, LONG_NAME)
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	await wait_process_frames(2)
+	var extra: float = _strip().size.y - STRIP_HEIGHT
+	assert_gt(extra, 0.0, "precondition: the strip grew")
+	assert_eq(_panel.size.y, LIST_TOP + extra + (_list() as ActivityList).get_content_height() + 24.0, "the chest hugs the list, which moved down")
+
+func test_the_strip_takes_its_height_back() -> void:
+	_rename_action(AURA_WELL_ID, LONG_NAME)
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	await wait_process_frames(2)
+	assert_gt(_strip().size.y, STRIP_HEIGHT, "precondition: grown")
+	_renamed_actions.keys()[0].action_name = "Aura Well"
+	ActionManager.stop_action()
+	await wait_process_frames(2)
+	assert_eq(_strip().size.y, STRIP_HEIGHT, "the empty tray is the kit's 88 again")
+	_assert_list_under_tray()
+
+func test_a_long_forage_name_wraps_and_grows_the_strip() -> void:
+	_rename_action(FORAGING_ID, LONG_NAME)
+	await _add_panel()
+	EventManager.trigger_event(FORAGING_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	await wait_process_frames(2)
+	var name_label := _strip_node("ForageName") as Label
+	assert_true(name_label.is_visible_in_tree(), "precondition: foraging runs")
+	assert_gt(name_label.get_line_count(), 1, "precondition: the name needs more than a line")
+	assert_eq(name_label.text_overrun_behavior, NO_TRIMMING)
+	assert_eq(_strip().size.y, STRIP_HEIGHT + NAME_LINE * (name_label.get_line_count() - 1))
+	assert_eq(fposmod(_strip().size.y, 2.0), 0.0)
+	_assert_chest_follows_the_strip()
+
+func test_a_long_paused_line_wraps_and_grows_the_strip() -> void:
+	_rename_action(AURA_WELL_ID, LONG_NAME)
+	var cycling: ZoneActionData = ZoneManager.get_action_by_id(CYCLING_ID)
+	for condition: UnlockConditionData in cycling.unlock_conditions:
+		UnlockManager.force_unlock_condition(condition.condition_id)
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	ActionManager.select_action(cycling)
+	await wait_process_frames(2)
+	var line := _strip_node("EmptyLabel") as Label
+	assert_true(line.is_visible_in_tree(), "precondition: the tray is empty and reads paused")
+	assert_gt(line.get_line_count(), 1, "precondition: the line needs more than one line in its 292 px")
+	assert_eq(line.text_overrun_behavior, NO_TRIMMING)
+	assert_eq(_strip().size.y, STRIP_HEIGHT + DETAIL_LINE * (line.get_line_count() - 1), "every line after the first adds the detail's 18 px")
+	assert_eq(fposmod(_strip().size.y, 2.0), 0.0)
+	_assert_chest_follows_the_strip()
+
+## The level line beside the ticks: wraps in what the ticks leave and grows the
+## strip. (The line is made of the level and its reward, which are never long,
+## so a long one is put on the label and the strip asked to fit again.)
+func test_a_long_level_line_wraps_and_grows_the_strip() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	await wait_process_frames(2)
+	var level := _strip_node("LevelLabel") as Label
+	level.text = "Lv 123456 → 123457 · +1 Spirit and a very long reward line that has to wrap around"
+	_strip()._fit()
+	await wait_process_frames(2)
+	assert_gt(level.get_line_count(), 1, "precondition: the line wraps")
+	assert_eq(level.text_overrun_behavior, NO_TRIMMING)
+	assert_lte(level.get_global_rect().end.x, (_strip_node("TicksLabel") as Control).get_global_rect().position.x, "before the ticks")
+	assert_eq(_strip().size.y, STRIP_HEIGHT + DETAIL_LINE * (level.get_line_count() - 1))
+	var rod := _strip_node("WellRod") as Control
+	assert_lt(rod.get_global_rect().end.y, _strip().get_global_rect().end.y, "the rod stays inside the strip")
+	_assert_chest_follows_the_strip()
+
+func test_a_grown_strip_pushes_the_open_lore_down() -> void:
+	_rename_action(AURA_WELL_ID, LONG_NAME)
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	var extra: float = _strip().size.y - STRIP_HEIGHT
+	assert_gt(extra, 0.0, "precondition: the strip grew")
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + LORE_PUSH + extra, "the lore and the strip both push the header")
+	assert_eq(_list().position.y, LIST_TOP + LORE_PUSH + extra)
+	assert_eq((_node("LorePanel") as Control).position.y, LORE_TOP + extra, "the lore opens under the grown strip")
+
+## No Label of the strip ellipsizes.
+func test_nothing_in_the_strip_keeps_an_ellipsis() -> void:
+	await _add_panel()
+	var checked: int = 0
+	for node: Node in _strip().find_children("*", "Label", true, false):
+		assert_eq((node as Label).text_overrun_behavior, NO_TRIMMING, "%s does not trim its text" % node.name)
+		checked += 1
+	assert_gt(checked, 5, "precondition: the walk met the strip's labels")
 
 #-----------------------------------------------------------------------------
 # ACTIVITY LIST

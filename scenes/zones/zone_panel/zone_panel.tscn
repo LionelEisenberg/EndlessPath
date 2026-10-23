@@ -118,7 +118,7 @@ unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0
 offset_top = 82.0
-offset_right = 424.0
+offset_right = 408.0
 offset_bottom = 170.0
 
 [node name="LastCycleLabel" type="Label" parent="." unique_id=1904271536]
