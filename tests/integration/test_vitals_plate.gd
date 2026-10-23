@@ -551,8 +551,8 @@ func test_tooltip_stays_when_another_buff_ends() -> void:
 	assert_true(_tooltip().visible, "the hovered buff is still on")
 	assert_eq(_tooltip_text("NameLabel"), "Enforce")
 
-## The board is 304 wide and as tall as its text: a long effect line grows it
-## and a short one takes it back.
+## The board is 304 wide and as tall as its text, rounded up to even: a long
+## effect line grows it and a short one takes it back.
 func test_tooltip_is_304_wide_and_hugs_its_height() -> void:
 	var tooltip: BuffTooltip = load(TOOLTIP_SCENE_PATH).instantiate()
 	add_child_autofree(tooltip)
@@ -576,17 +576,48 @@ func test_tooltip_is_304_wide_and_hugs_its_height() -> void:
 	tooltip.show_for_buff(ActiveBuff.new(short_buff), Vector2(100.0, 50.0))
 	await wait_process_frames(2)
 	assert_eq(tooltip.size.x, 304.0)
-	assert_eq(tooltip.size.y, tooltip.get_combined_minimum_size().y, "as tall as its content")
+	assert_eq(tooltip.size.y, ceilf(tooltip.get_combined_minimum_size().y / 2.0) * 2.0, "as tall as its content, rounded up to even")
 	assert_eq(tooltip.get_global_rect().position, Vector2(100.0, 50.0), "its top-left is the one it was given")
 	var short_height: float = tooltip.size.y
 	tooltip.show_for_buff(ActiveBuff.new(long_buff), Vector2(100.0, 50.0))
 	await wait_process_frames(2)
 	assert_gt(tooltip.size.y, short_height, "a long effect line wraps and the board grows")
-	assert_eq(tooltip.size.y, tooltip.get_combined_minimum_size().y)
+	assert_eq(tooltip.size.y, ceilf(tooltip.get_combined_minimum_size().y / 2.0) * 2.0)
 	tooltip.show_for_buff(ActiveBuff.new(short_buff), Vector2(100.0, 50.0))
 	await wait_process_frames(2)
 	assert_eq(tooltip.size.y, short_height, "and a short one takes it back")
 	assert_eq(tooltip.size.x, 304.0)
+
+## The board hangs from a socket's even y, so an odd height would put its bottom
+## edge, and the 2x art of its lower slice, 1 px off the 2 px grid. The rows add
+## up to 91 + 20 n px for a description of n lines (111 for one, 131 for two),
+## always odd, so the board's height is rounded up to an even one, as the
+## technique tooltip's is.
+func test_tooltip_height_is_even_whatever_the_description_takes() -> void:
+	var tooltip: BuffTooltip = load(TOOLTIP_SCENE_PATH).instantiate()
+	add_child_autofree(tooltip)
+	var one_line: BuffEffectData = _make_buff("enforce")
+	var two_lines := BuffEffectData.new()
+	two_lines.buff_id = "great_surge"
+	two_lines.duration = 10.0
+	two_lines.buff_type = BuffEffectData.BuffType.ATTRIBUTE_MODIFIER_MULTIPLICATIVE
+	two_lines.attribute_modifiers = {
+		CharacterAttributesData.AttributeType.STRENGTH: 1.5,
+		CharacterAttributesData.AttributeType.BODY: 1.5,
+		CharacterAttributesData.AttributeType.AGILITY: 1.5,
+		CharacterAttributesData.AttributeType.SPIRIT: 1.5,
+		CharacterAttributesData.AttributeType.FOUNDATION: 1.5,
+	}
+	var description: Label = tooltip.get_node("%DescriptionLabel")
+	var buffs: Dictionary[int, BuffEffectData] = {1: one_line, 2: two_lines}
+	for lines: int in buffs:
+		tooltip.show_for_buff(ActiveBuff.new(buffs[lines]), Vector2(100.0, 50.0))
+		await wait_process_frames(2)
+		assert_eq(description.get_line_count(), lines, "precondition: the description takes %d line(s)" % lines)
+		var content_height: float = tooltip.get_combined_minimum_size().y
+		assert_eq(tooltip.size.y, ceilf(content_height / 2.0) * 2.0, "%d line(s): as tall as its content, rounded up to even" % lines)
+		assert_eq(fmod(tooltip.size.y, 2.0), 0.0, "%d line(s): an even height" % lines)
+		assert_eq(fmod(tooltip.get_global_rect().end.y, 2.0), 0.0, "%d line(s): the bottom edge on the 2 px grid, as the top is" % lines)
 
 ## The tooltip draws above whatever sits beside the cabinet (it is top-level)
 ## and lets the pointer through to the sockets and the map.
