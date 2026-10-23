@@ -1,12 +1,13 @@
 extends GutTest
 
 ## Integration tests for the zone chest (ZonePanel, lacquer kit §5.5 and §0):
-## the header, the Now strip for each idle action, the grouped activity list,
-## the chest hugging its list or folding a long list under its last whole
-## drawer, the rail and lips, scrolling to a card, the lore panel, the
-## techniques mode a cycling session turns the chest to, and long text never
-## widening the chest (Review Focus 4). The panel is built on a fresh save, as
-## the zone view builds it.
+## the header, the Now strip for each idle action and for the cycle (read from
+## CyclingManager's session snapshot, which the tests drive directly), the
+## grouped activity list, the chest hugging its list or folding a long list
+## under its last whole drawer, the rail and lips, scrolling to a card, the
+## lore panel, the techniques mode a cycling session turns the chest to, and
+## long text never widening the chest (Review Focus 4). The panel is built on
+## a fresh save, as the zone view builds it.
 
 const PANEL_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/zone_panel.tscn")
 
@@ -64,6 +65,9 @@ func after_each() -> void:
 	# The Esc tests parse a ui_cancel press; leave the action released for the
 	# tests that run after this file (TESTING.md: parsed input actions).
 	Input.action_release(&"ui_cancel")
+	# The tray tests start a cycle session by hand: end it, so none leaks into
+	# the next test.
+	CyclingManager.end_cycle_session()
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 	if _renamed_zone != null:
@@ -324,14 +328,150 @@ func test_strip_shows_each_items_mini_icon() -> void:
 		expected.append(entry.item.get_mini_icon())
 	assert_eq(icons, expected, "the kit's mini dewdrop and fern, from the item data")
 
-func test_tray_reads_paused_while_cycling() -> void:
+func test_tray_shows_the_cycle_ready() -> void:
+	# Cycling is a session action, but the tray shows it instead of pausing: the
+	# action, the equipped technique and its cycle time, with the ring dark, the
+	# rod empty and no rate until a cycle draws Madra. The cycling card is not in
+	# the list while the player cycles, so the tray takes no clicks.
 	await _add_panel()
-	EventManager.trigger_event(AURA_WELL_EVENT)
-	_unlock_everything()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	await wait_process_frames(2)
-	_assert_empty_tray("Aura Well · paused")
+	assert_eq(_texts(_strip()), ["Wilderness Cycling", "Foundational Technique", "8 s cycle", "Now"] as Array[String])
+	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark")
+	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(CYCLING_ID).icon, "the action's icon")
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is empty")
+	assert_false((_strip_node("RateGroup") as Control).is_visible_in_tree(), "no Madra is drawn yet")
+	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	_assert_list_under_tray()
+
+func test_tray_follows_the_running_cycle() -> void:
+	# 9 s into a 15 s cycle: the ring lights floor(0.6 x 13) = 7 beads, the rod
+	# stands at round(0.6 x 152) = 91 steps, and the rate is the one drawn.
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	CyclingManager.start_cycle_session(15.0)
+	CyclingManager.update_cycle_session(9.0, 13.3)
+	await wait_process_frames(1)
+	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i(7, 0), "seven beads")
+	assert_eq((_strip_node("TicksLabel") as Label).text, "9 / 15 s")
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 91)
+	assert_true((_strip_node("RateGroup") as Control).is_visible_in_tree())
+	assert_eq((_strip_node("RateText") as RichTextLabel).get_parsed_text(), "+13.3 Madra / s")
+	assert_has(_texts(_strip()), "Foundational Technique", "the detail stays the technique's name")
+
+func test_tray_counts_whole_seconds_into_the_cycle() -> void:
+	# The seconds into the cycle count whole ones (9.9 s reads 9), and the cycle's
+	# length reads to the nearest second (14.6 s reads 15).
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	CyclingManager.start_cycle_session(14.6)
+	CyclingManager.update_cycle_session(9.9, 0.0)
+	await wait_process_frames(1)
+	assert_eq((_strip_node("TicksLabel") as Label).text, "9 / 15 s")
+
+func test_tray_lights_the_whole_ring_at_the_end_of_the_cycle() -> void:
+	# The strip has 13 frames: a finished cycle (progress 1) stops on the last
+	# one instead of running off the strip.
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	CyclingManager.start_cycle_session(8.0)
+	CyclingManager.update_cycle_session(8.0, 5.0)
+	await wait_process_frames(1)
+	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i(12, 0))
+	assert_eq((_strip_node("TicksLabel") as Label).text, "8 / 8 s")
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 152, "the rod is full")
+
+func test_tray_goes_back_to_ready_when_the_cycle_ends() -> void:
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	CyclingManager.start_cycle_session(8.0)
+	CyclingManager.update_cycle_session(6.0, 13.3)
+	await wait_process_frames(1)
+	assert_gt((_strip_node("Ring") as LacquerStripRect).get_frame().x, 0, "precondition: the ring is lit")
+	CyclingManager.end_cycle_session()
+	await wait_process_frames(1)
+	assert_eq(_texts(_strip()), ["Wilderness Cycling", "Foundational Technique", "8 s cycle", "Now"] as Array[String])
+	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark again")
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "and the rod empty")
+	assert_false((_strip_node("RateGroup") as Control).is_visible_in_tree(), "no Madra is drawn")
+
+func test_tray_shows_the_cycle_rate_from_a_twentieth() -> void:
+	# The rate reads to a tenth, as on the cabinet: 0.049 reads +0 and hides, and
+	# 0.05 reads +0.1.
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	CyclingManager.start_cycle_session(8.0)
+	var rate_group: Control = _strip_node("RateGroup") as Control
+	CyclingManager.update_cycle_session(1.0, 0.049)
+	await wait_process_frames(1)
+	assert_false(rate_group.is_visible_in_tree(), "0.049 reads +0")
+	CyclingManager.update_cycle_session(2.0, 0.05)
+	await wait_process_frames(1)
+	assert_true(rate_group.is_visible_in_tree(), "0.05 reads +0.1")
+	assert_eq((_strip_node("RateText") as RichTextLabel).get_parsed_text(), "+0.1 Madra / s")
+
+func test_tray_names_the_equipped_technique() -> void:
+	# The detail line and the ready figure follow the equipped technique at once,
+	# without waiting for a frame: Smooth Flow is the 15 s one.
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	await wait_process_frames(2)
+	assert_has(_texts(_strip()), "Foundational Technique", "precondition: the foundation technique is equipped")
+	CyclingManager.equip_technique(SMOOTH_ID)
+	var texts: Array[String] = _texts(_strip())
+	assert_has(texts, "Smooth Flow Technique")
+	assert_has(texts, "15 s cycle")
+	assert_does_not_have(texts, "Foundational Technique")
+	assert_does_not_have(texts, "8 s cycle")
+
+func test_cycling_tray_takes_no_clicks() -> void:
+	# A press on the running tray scrolls the chest to its card; the cycling card
+	# is not in the list, so while cycling the press does nothing.
+	await _add_panel_above_gut()
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await wait_process_frames(2)
+	watch_signals(_strip())
+	_click(_strip().get_global_rect().get_center())
+	await wait_process_frames(1)
+	assert_signal_emit_count(_strip(), "strip_pressed", 1, "precondition: the running Aura Well's tray takes the press")
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	await wait_process_frames(2)
+	_click(_strip().get_global_rect().get_center())
+	await wait_process_frames(1)
+	assert_signal_emit_count(_strip(), "strip_pressed", 1, "the cycling tray takes no press")
+
+func test_cycling_drops_the_trays_hover_frame() -> void:
+	# The tray stops taking the mouse while cycling, so it never hears the pointer
+	# leave: the hover frame the Aura Well's tray was showing goes with the switch.
+	await _add_panel()
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await wait_process_frames(2)
+	var hover: LacquerFrameOverlay = _strip_node("HoverFrame") as LacquerFrameOverlay
+	hover.show()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	await wait_process_frames(2)
+	assert_false(hover.visible, "no hover frame while cycling")
+
+func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
+	# The cycle and the Aura Well share the tray's name, detail, figure, rod and
+	# rate: when the cycle ends and the Aura Well resumes, the Aura Well's own
+	# texts, rod and rate come back, and the tray takes clicks again.
+	await _add_panel()
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	CyclingManager.start_cycle_session(8.0)
+	CyclingManager.update_cycle_session(4.0, 13.3)
+	await wait_process_frames(2)
+	assert_has(_texts(_strip()), "Wilderness Cycling", "precondition: the cycle shows")
+	CyclingManager.end_cycle_session()
+	ActionManager.stop_action()
+	await wait_process_frames(2)
+	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well resumed")
+	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 Madra / s", "Lv 0 → 1 · +1 Spirit", "0 / 60", "Now"] as Array[String])
+	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is the well's, empty")
+	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
 
 func test_tray_reads_paused_with_the_shop_open() -> void:
 	# The paused name is the idle action that resumes when the shop closes:
@@ -354,19 +494,19 @@ func test_tray_reads_paused_with_the_shop_open() -> void:
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
 
 func test_tray_reads_paused_when_an_idle_action_unlocks_mid_session() -> void:
-	# Cycling runs on a save with no idle action; the Aura Well unlocks while
-	# it runs, so it does not start, and the tray names it as the action that
-	# resumes after cycling.
-	var cycling: ZoneActionData = ZoneManager.get_action_by_id(CYCLING_ID)
-	for condition: UnlockConditionData in cycling.unlock_conditions:
+	# The shop opens on a save with no idle action; the Aura Well unlocks while
+	# it is open, so it does not start, and the tray names it as the action that
+	# resumes after the shop.
+	var shop: ZoneActionData = ZoneManager.get_action_by_id(MERCHANT_ID)
+	for condition: UnlockConditionData in shop.unlock_conditions:
 		UnlockManager.force_unlock_condition(condition.condition_id)
 	await _add_panel()
-	ActionManager.select_action(cycling)
+	ActionManager.select_action(shop)
 	await wait_process_frames(2)
 	_assert_empty_tray("Nothing running")
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	await wait_process_frames(2)
-	assert_eq(_current_id(), CYCLING_ID, "precondition: cycling still runs")
+	assert_eq(_current_id(), MERCHANT_ID, "precondition: the shop is still open")
 	_assert_empty_tray("Aura Well · paused")
 
 func test_test_zone_tray_reads_nothing_running() -> void:
