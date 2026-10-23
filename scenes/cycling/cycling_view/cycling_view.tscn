@@ -81,31 +81,33 @@ texture_hover = ExtResource("5_close_hover")
 [node name="FigureBox" type="Control" parent="." unique_id=1459021736]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 710.0
+offset_left = 698.0
 offset_top = 104.0
-offset_right = 1210.0
-offset_bottom = 936.0
+offset_right = 1222.0
+offset_bottom = 976.0
 mouse_filter = 1
 
 [node name="Body" type="TextureRect" parent="FigureBox" unique_id=887125304]
 unique_name_in_owner = true
 layout_mode = 0
-offset_right = 500.0
-offset_bottom = 832.0
+offset_right = 524.0
+offset_bottom = 872.0
 mouse_filter = 2
 texture = ExtResource("6_body")
 
 [node name="CyclingTechnique" parent="FigureBox" unique_id=1725340981 instance=ExtResource("7_technique")]
 unique_name_in_owner = true
 position = Vector2(-70, -24)
+path_scale = 1.048
+path_pivot = Vector2(70, 24)
 
 [node name="StatusLabel" type="Label" parent="." unique_id=319847265]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 710.0
-offset_top = 954.0
+offset_top = 990.0
 offset_right = 1078.0
-offset_bottom = 974.0
+offset_bottom = 1010.0
 theme_type_variation = &"LabelLacquerName"
 text = "Click the Madra ball to begin a cycle."
 text_overrun_behavior = 3
@@ -114,9 +116,9 @@ text_overrun_behavior = 3
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 1090.0
-offset_top = 946.0
+offset_top = 982.0
 offset_right = 1210.0
-offset_bottom = 982.0
+offset_bottom = 1018.0
 focus_mode = 0
 mouse_default_cursor_shape = 2
 toggle_mode = true

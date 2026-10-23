@@ -21,7 +21,8 @@ const TECH_TORRENT_PATH: String = "res://assets/ui/lacquer/icons/lacquer_ic_tech
 
 ## The 560x1032 board art plus its 4 px drop shadow, baked on the right and bottom.
 const BOARD_SIZE: Vector2i = Vector2i(564, 1036)
-const BODY_SIZE: Vector2i = Vector2i(500, 832)
+## The carved figure, re-traced at 1.048x its round-1 500 x 832.
+const BODY_SIZE: Vector2i = Vector2i(524, 872)
 ## Eight swirl frames across and three breathing sizes down, each in a 68 px cell:
 ## the ball at 60, 64 and 68 px.
 const BALL_STRIP_SIZE: Vector2i = Vector2i(544, 204)

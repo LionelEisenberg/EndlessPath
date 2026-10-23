@@ -781,6 +781,65 @@ func test_the_exported_technique_is_set_up_when_the_scene_loads() -> void:
 	assert_eq(loaded.get_ball_global_position(), START)
 
 #-----------------------------------------------------------------------------
+# A SCALED PATH
+#-----------------------------------------------------------------------------
+
+## Sets the fixture up on the straight technique, its path scaled 2x about (100, 0).
+func _scaled_straight(zone_position: Vector2) -> void:
+	_technique.path_scale = 2.0
+	_technique.path_pivot = Vector2(100.0, 0.0)
+	_technique.setup(_straight_technique(zone_position))
+
+func test_an_unscaled_path_is_the_techniques_own_curve() -> void:
+	assert_eq(_technique.path_scale, 1.0)
+	assert_eq(_technique.path_pivot, Vector2.ZERO)
+	assert_same((_node("CyclingPath2D") as Path2D).curve, (load(SMOOTH_FLOW_PATH) as CyclingTechniqueData).path_curve)
+
+func test_a_scaled_path_grows_about_its_pivot() -> void:
+	_scaled_straight(Vector2(150.0, 0.0))
+	var curve: Curve2D = (_node("CyclingPath2D") as Path2D).curve
+	assert_eq(curve.get_point_position(0), Vector2(-100.0, 0.0), "the start, 100 px left of the pivot, lands 200 px left of it")
+	assert_eq(curve.get_point_position(1), Vector2(1900.0, 0.0), "the end, 900 px right of it, lands 1800 px right")
+	assert_eq(_zone(0).position, Vector2(200.0, 0.0), "a zone 50 px right of the pivot sits 100 px right of it")
+	assert_eq(_technique.get_ball_global_position(), Vector2(-100.0, 0.0), "the ball waits at the scaled start")
+	await _await_queued_frees()
+
+func test_a_scaled_path_keeps_its_handles_in_proportion() -> void:
+	var curve := Curve2D.new()
+	curve.add_point(Vector2(0.0, 0.0), Vector2(-10.0, 0.0), Vector2(10.0, 20.0))
+	curve.add_point(Vector2(100.0, 0.0), Vector2(-10.0, -20.0), Vector2(10.0, 0.0))
+	var data: CyclingTechniqueData = _straight_technique(Vector2(5000.0, 0.0))
+	data.path_curve = curve
+	_technique.path_scale = 1.5
+	_technique.setup(data)
+	var scaled: Curve2D = (_node("CyclingPath2D") as Path2D).curve
+	assert_eq(scaled.get_point_out(0), Vector2(15.0, 30.0))
+	assert_eq(scaled.get_point_in(1), Vector2(-15.0, -30.0))
+	assert_same(data.path_curve, curve, "the technique keeps its own curve")
+	assert_eq(curve.get_point_position(1), Vector2(100.0, 0.0), "untouched")
+	await _await_queued_frees()
+
+func test_scaled_zones_sit_on_even_px() -> void:
+	# The board's own scale: smooth_flow's zones land between px before the snap.
+	_technique.path_scale = 1.048
+	_technique.path_pivot = Vector2(70.0, 24.0)
+	_technique.setup(load(SMOOTH_FLOW_PATH))
+	for zone: CyclingZone in _technique.cycling_zones:
+		var exact: Vector2 = _technique.path_pivot + (zone.zone_data.position - _technique.path_pivot) * 1.048
+		assert_lte(zone.position.distance_to(exact), sqrt(2.0), "%s stays at its scaled place" % zone.name)
+		assert_eq(fposmod(zone.position.x, 2.0), 0.0, "%s x is even" % zone.name)
+		assert_eq(fposmod(zone.position.y, 2.0), 0.0, "%s y is even" % zone.name)
+	await _await_queued_frees()
+
+func test_the_groove_follows_the_scaled_path() -> void:
+	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
+	var groove := _node("CyclingGroove") as CyclingGroove
+	var unscaled: int = groove.get_cell_count()
+	_scaled_straight(Vector2(5000.0, 0.0))
+	assert_almost_eq(float(groove.get_cell_count()), unscaled * 2.0, 8.0, "a path twice as long has about twice the cells")
+	await _await_queued_frees()
+
+#-----------------------------------------------------------------------------
 # DRAWING AND THE SNAPSHOT
 #-----------------------------------------------------------------------------
 

@@ -414,12 +414,16 @@ def dither():
 #   the ball rings: in 44 px cells, the brass ready ring, the tracking ring drawn
 #     solid (the checkerboard dots read as broken), and the ready ring grown by 1
 #     and 2 px for the breathing ball;
-#   the zone strip: the idle rim drawn solid, for the same reason.
+#   the zone strip: the idle rim drawn solid, for the same reason;
+#   the carved figure: traced again at 262 x 436 (524 x 872 on screen), 1.048x the
+#     round-1 footprint, into the row the result line left; the game scales every
+#     technique's path by the same 1.048 about the figure's top-left corner.
 # ----------------------------------------------------------------------------
 GAME_DIR = 'game'
 BREATH_SIZES = (30, 32, 34)
 GAME_BALL_CELL = 34
 GAME_RING_CELL = 44
+GAME_BODY = (262, 436)
 
 
 def _save_game(img, name):
@@ -465,7 +469,15 @@ def game_zones():
     _save_game(strip, 'cyc_zone_strip')
 
 
+def game_body():
+    std = REPO + 'assets/sprites/cycling/cycling_technique_outline.png'
+    w, h = GAME_BODY
+    sil = _fill(_line_from_alpha(std, (w, h), 96), w, h)
+    _save_game(carve(sil, w, h), 'cyc_body_carved')
+
+
 def game_kit():
+    game_body()
     game_ball()
     game_rings()
     game_zones()

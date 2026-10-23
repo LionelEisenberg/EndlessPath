@@ -27,7 +27,6 @@ ICONS = "icons"
 
 # Copied byte for byte: source name -> folder under the destination.
 COPY = {
-    "lacquer_cyc_body_carved_ai.png": CYCLING,
     "lacquer_cyc_pellet_brass_ai.png": CYCLING,
     "lacquer_cyc_pellet_cream_ai.png": CYCLING,
     "lacquer_cyc_pellet_tan_ai.png": CYCLING,
@@ -41,6 +40,7 @@ COPY = {
 # the destination.
 GAME_DIR = "game"
 GAME = {
+    "lacquer_cyc_body_carved_ai.png": CYCLING,
     "lacquer_cyc_ball_strip_ai.png": CYCLING,
     "lacquer_cyc_ball_rings_ai.png": CYCLING,
     "lacquer_cyc_zone_strip_ai.png": CYCLING,

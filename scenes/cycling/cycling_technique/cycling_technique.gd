@@ -107,6 +107,16 @@ const _ZONE_SCENE: PackedScene = preload("res://scenes/cycling/cycling_technique
 ## node calls setup().
 @export var technique_data_input: CyclingTechniqueData = null
 
+## How much larger than its data the path is drawn, about path_pivot: its points,
+## their handles and the zones all scale, so the play fits a figure drawn larger
+## than the footprint the techniques were authored on. The ball, the zones' size
+## and the scoring radii do not scale. setup() applies it.
+@export var path_scale: float = 1.0
+
+## The point of the technique's space that stays put when path_scale scales the
+## path: the figure's top-left corner on the board.
+@export var path_pivot: Vector2 = Vector2.ZERO
+
 ## When on, the next cycle starts as soon as one ends.
 var auto_cycle: bool = false
 
@@ -160,11 +170,12 @@ func _exit_tree() -> void:
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Sets the technique up: its path, its groove and its zones, all ready. A cycle
-## that runs ends without a result. A null technique leaves nothing to play.
+## Sets the technique up: its path scaled by path_scale, its groove and its zones,
+## all ready. A cycle that runs ends without a result. A null technique leaves
+## nothing to play.
 func setup(data: CyclingTechniqueData) -> void:
 	technique_data = data
-	var curve: Curve2D = data.path_curve if data != null else null
+	var curve: Curve2D = _scaled_curve(data.path_curve) if data != null else null
 	_path.curve = curve if curve != null else Curve2D.new()
 	_path_length = _path.curve.get_baked_length() if _path.curve.point_count > 0 else 0.0
 	_groove.setup(curve)
@@ -433,6 +444,25 @@ func _return_to_ready() -> void:
 	_breath_clock = 0.0
 	_show_ready()
 
+## Returns `curve` scaled by path_scale about path_pivot: a new curve, so the
+## technique's own is left as it is. At a scale of 1 it is `curve` itself.
+func _scaled_curve(curve: Curve2D) -> Curve2D:
+	if curve == null or is_equal_approx(path_scale, 1.0):
+		return curve
+	var scaled := Curve2D.new()
+	scaled.bake_interval = curve.bake_interval
+	for index: int in curve.point_count:
+		scaled.add_point(
+			_scaled_point(curve.get_point_position(index)),
+			curve.get_point_in(index) * path_scale,
+			curve.get_point_out(index) * path_scale)
+	return scaled
+
+## Returns `point`, in the technique's data space, scaled by path_scale about
+## path_pivot.
+func _scaled_point(point: Vector2) -> Vector2:
+	return path_pivot + (point - path_pivot) * path_scale
+
 ## Returns an empty result for a cycle of this technique.
 func _new_result() -> CycleResult:
 	var result: CycleResult = CycleResult.new()
@@ -440,8 +470,8 @@ func _new_result() -> CycleResult:
 	return result
 
 ## Replaces the zones with one for each zone of the technique, IDLE and in place
-## under the path. The old zones leave the tree at once, so nothing of them can
-## score and their names are free.
+## under the path, at their scaled positions snapped to even px. The old zones
+## leave the tree at once, so nothing of them can score and their names are free.
 func _build_zones() -> void:
 	for zone: CyclingZone in cycling_zones:
 		_path.remove_child(zone)
@@ -455,7 +485,9 @@ func _build_zones() -> void:
 		zone.name = "CyclingZone%d" % (index + 1)
 		_path.add_child(zone)
 		zone.setup(data)
-		zone.position = data.position
+		# A scaled position falls between px: snapped, the socket and its floater
+		# stay on the 2 px grid.
+		zone.position = _snap_even(_scaled_point(data.position))
 		cycling_zones.append(zone)
 
 #-----------------------------------------------------------------------------

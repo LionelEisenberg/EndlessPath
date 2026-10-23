@@ -97,6 +97,13 @@ func _await_queued_frees() -> void:
 
 ## Steps `seconds` of frames at `fps`, with the cursor on the ball (the drawn
 ## centre) or far away.
+## Where the ready ball waits on screen: smooth_flow's start, (320, 464) in curve
+## space, scaled about the figure's corner with the path, past the technique's
+## position, snapped to even px.
+func _ready_ball() -> Vector2:
+	var start: Vector2 = _technique.path_pivot + (Vector2(320.0, 464.0) - _technique.path_pivot) * _technique.path_scale
+	return ((_technique.global_position + start) / 2.0).round() * 2.0
+
 ## The last finished cycle's line as the chest shows it, or "" with none: the
 ## board records each cycle's result on CyclingManager.
 func _last_line() -> String:
@@ -253,8 +260,8 @@ func test_the_status_label_says_madra_is_full_for_a_technique_with_no_zones() ->
 
 func test_board_layout() -> void:
 	assert_eq((_node("Board") as Control).position, Vector2(680.0, 24.0))
-	assert_eq((_node("FigureBox") as Control).position, Vector2(710.0, 104.0))
-	assert_eq((_node("FigureBox") as Control).size, Vector2(500.0, 832.0))
+	assert_eq((_node("FigureBox") as Control).position, Vector2(698.0, 104.0))
+	assert_eq((_node("FigureBox") as Control).size, Vector2(524.0, 872.0))
 	assert_eq(_view.position, Vector2.ZERO, "the root fills the screen")
 	assert_eq([_view.anchor_left, _view.anchor_top, _view.anchor_right, _view.anchor_bottom], [0.0, 0.0, 1.0, 1.0])
 	assert_eq([_view.offset_left, _view.offset_top, _view.offset_right, _view.offset_bottom], [0.0, 0.0, 0.0, 0.0])
@@ -265,13 +272,28 @@ func test_board_layout() -> void:
 	assert_eq((_node("TitleLabel") as Control).position, Vector2(710.0, 57.0))
 	assert_eq((_node("CloseButton") as Control).position, Vector2(1182.0, 40.0))
 	assert_eq((_node("CloseButton") as Control).size, Vector2(28.0, 28.0))
-	assert_eq((_node("StatusLabel") as Control).position, Vector2(710.0, 954.0))
+	assert_eq((_node("StatusLabel") as Control).position, Vector2(710.0, 990.0))
 	assert_eq((_node("StatusLabel") as Control).size.x, 368.0)
-	assert_eq((_node("AutoToggle") as Control).position, Vector2(1090.0, 946.0))
+	assert_eq((_node("AutoToggle") as Control).position, Vector2(1090.0, 982.0))
 	assert_eq((_node("AutoToggle") as Control).size, Vector2(120.0, 36.0))
 	assert_eq((_node("Body") as Control).position, Vector2.ZERO)
-	assert_eq((_node("Body") as Control).size, Vector2(500.0, 832.0))
+	assert_eq((_node("Body") as Control).size, Vector2(524.0, 872.0))
 	assert_eq(_technique.position, Vector2(-70.0, -24.0), "curve space starts at (-70, -24) in the figure box")
+
+## The figure took the result line's row: it is 1.048x its round-1 size (500 x 832
+## to 524 x 872, re-traced from the user's outline), and the technique's path
+## scales with it about the figure's top-left corner, (70, 24) in curve space.
+func test_the_figure_grows_into_the_freed_row() -> void:
+	assert_eq(_technique.path_scale, 524.0 / 500.0)
+	assert_eq(_technique.path_pivot, Vector2(70.0, 24.0))
+	var box := _node("FigureBox") as Control
+	var status := _node("StatusLabel") as Control
+	var auto := _node("AutoToggle") as Control
+	assert_lt(box.position.y + box.size.y, status.position.y, "the figure ends above the status line")
+	assert_lt(box.position.y + box.size.y, auto.position.y, "and above the Auto toggle")
+	assert_lte(auto.position.y + auto.size.y + 2.0, 1046.0, "the toggle and its shadow stay inside the board's frame")
+	assert_eq(box.position.x - 680.0, 1240.0 - (box.position.x + box.size.x), "the figure is centred on the board's art")
+	assert_eq(_technique.get_ball_global_position(), _ready_ball(), "the ball waits at the scaled start of the path")
 
 func test_esc_label_is_right_aligned_before_the_close_button() -> void:
 	var esc := _node("EscLabel") as Label
@@ -287,7 +309,7 @@ func test_board_shows_its_art_at_file_size() -> void:
 	assert_eq(board.texture.get_size(), Vector2(564.0, 1036.0))
 	assert_eq(board.size, board.texture.get_size(), "the board and its 4 px shadow, at file size")
 	var body := _node("Body") as TextureRect
-	assert_eq(body.texture.get_size(), Vector2(500.0, 832.0))
+	assert_eq(body.texture.get_size(), Vector2(524.0, 872.0))
 	assert_eq(body.size, body.texture.get_size())
 	var close := _node("CloseButton") as TextureButton
 	assert_eq(close.texture_normal.resource_path, "res://assets/ui/lacquer/lacquer_close_ai.png")
@@ -814,7 +836,7 @@ func test_reopening_starts_clean() -> void:
 	assert_false(CyclingManager.is_cycle_running(), "and its session")
 	var groove := _technique.get_node("%CyclingGroove") as CyclingGroove
 	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "the groove shows lit, as between cycles")
-	assert_eq(_technique.get_ball_global_position(), Vector2(320.0, 464.0) + _technique.global_position, "the ball waits at the start of the path")
+	assert_eq(_technique.get_ball_global_position(), _ready_ball(), "the ball waits at the start of the path")
 	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "and the status reads as the first time again")
 	await _await_queued_frees()
 
