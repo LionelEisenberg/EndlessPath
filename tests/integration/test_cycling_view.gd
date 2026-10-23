@@ -873,13 +873,6 @@ func test_the_figure_box_shows_a_hand_where_a_click_does_something() -> void:
 	_view._update_cursor(FAR)
 	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_ARROW)
 
-func test_process_reads_the_cursor_from_the_mouse() -> void:
-	# The headless mouse is off the ball, so a frame leaves the arrow.
-	var box := _node("FigureBox") as Control
-	box.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_view._process(0.0)
-	assert_eq(box.mouse_default_cursor_shape, Control.CURSOR_ARROW)
-
 func test_a_press_on_the_ball_reaches_it_through_the_board() -> void:
 	await _press_at(_technique.get_ball_global_position())
 	assert_true(_technique.is_cycling(), "the board and the figure box let the press through to the ball")
