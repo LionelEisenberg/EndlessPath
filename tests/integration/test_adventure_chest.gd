@@ -35,6 +35,9 @@ var _chest: AdventureChest = null
 func before_each() -> void:
 	_chest = CHEST_SCENE.instantiate() as AdventureChest
 	add_child_autofree(_chest)
+	# The chest's scene holds the expedition page, which counts as the visible
+	# page. These tests stand plain pages in for the pages, so it is put away.
+	_chest.get_expedition_page().hide()
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -327,6 +330,7 @@ func test_a_joining_page_is_not_asked_for_its_height_before_it_is_ready() -> voi
 ## placed in the chest's scene is: hugged at once, and followed from then on.
 func test_a_page_already_in_the_slot_is_hugged_and_followed() -> void:
 	var chest := CHEST_SCENE.instantiate() as AdventureChest
+	chest.get_node("%ExpeditionPage").hide()
 	var page := AdventureChestPage.new()
 	page.size = Vector2(408.0, 300.0)
 	chest.get_node("%PageSlot").add_child(page)

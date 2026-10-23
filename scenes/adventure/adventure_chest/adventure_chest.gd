@@ -38,6 +38,7 @@ const GAP_UNDER_PAGE: float = 24.0
 @onready var _title_label: Label = %TitleLabel
 @onready var _run_clock: RunClock = %RunClock
 @onready var _page_slot: Control = %PageSlot
+@onready var _expedition_page: ExpeditionPage = %ExpeditionPage
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -61,6 +62,12 @@ func set_title(text: String) -> void:
 ## Returns the run clock in the header, for the run's Timer to be bound to.
 func get_run_clock() -> RunClock:
 	return _run_clock
+
+## Returns the expedition page, the page for the map: the Here tray, the
+## encounter's choices and the Run ledger. The view feeds it the tile the player
+## stands on and the run's figures, and listens to its choice_selected.
+func get_expedition_page() -> ExpeditionPage:
+	return _expedition_page
 
 ## Sizes the chest to the visible page (82 + its content height + 24, at
 ## least 176, rounded to an even number) and places the middle and the bottom
