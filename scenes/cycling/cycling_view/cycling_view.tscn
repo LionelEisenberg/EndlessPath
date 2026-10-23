@@ -110,19 +110,6 @@ theme_type_variation = &"LabelLacquerName"
 text = "Click the Madra ball to begin a cycle."
 text_overrun_behavior = 3
 
-[node name="ResultText" type="RichTextLabel" parent="." unique_id=1092837465]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 710.0
-offset_top = 996.0
-offset_right = 1210.0
-offset_bottom = 1014.0
-mouse_filter = 2
-theme_type_variation = &"RichTextLacquer"
-bbcode_enabled = true
-scroll_active = false
-autowrap_mode = 0
-
 [node name="AutoToggle" type="TextureButton" parent="." unique_id=1671329048]
 unique_name_in_owner = true
 layout_mode = 0

@@ -2,8 +2,8 @@ extends GutTest
 
 ## Integration tests for the cycling board (CyclingView): the status line's copy
 ## and how the board keeps it, the board's layout and mouse filters, the title
-## that follows the equipped technique, the result line and the one log line a
-## cycle writes, the Madra and XP pellets and the zone floaters it draws over
+## that follows the equipped technique, the result a cycle leaves for the chest
+## and the one log line it writes, the Madra and XP pellets and the zone floaters it draws over
 ## the cabinet, the Auto toggle, the presses that reach the ball through the
 ## board, and what a close or a reopening leaves behind. The board
 ## is built the way MainView builds it: the cabinet beside it, the view shown
@@ -74,8 +74,9 @@ func before_each() -> void:
 func after_each() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
-	# A cycle session left running would leak into later files.
+	# A cycle session or a last result left behind would leak into later files.
 	CyclingManager.end_cycle_session()
+	CyclingManager.clear_last_cycle_result()
 	_plate = null
 	_view = null
 	_technique = null
@@ -96,6 +97,12 @@ func _await_queued_frees() -> void:
 
 ## Steps `seconds` of frames at `fps`, with the cursor on the ball (the drawn
 ## centre) or far away.
+## The last finished cycle's line as the chest shows it, or "" with none: the
+## board records each cycle's result on CyclingManager.
+func _last_line() -> String:
+	var result: CycleResult = CyclingManager.get_last_cycle_result()
+	return result.result_line() if result != null else ""
+
 func _run(seconds: float, fps: float, track: bool) -> void:
 	for _frame: int in roundi(seconds * fps):
 		_technique.advance(1.0 / fps, _technique.get_ball_global_position() if track else FAR)
@@ -260,8 +267,6 @@ func test_board_layout() -> void:
 	assert_eq((_node("CloseButton") as Control).size, Vector2(28.0, 28.0))
 	assert_eq((_node("StatusLabel") as Control).position, Vector2(710.0, 954.0))
 	assert_eq((_node("StatusLabel") as Control).size.x, 368.0)
-	assert_eq((_node("ResultText") as Control).position, Vector2(710.0, 996.0))
-	assert_eq((_node("ResultText") as Control).size, Vector2(500.0, 18.0))
 	assert_eq((_node("AutoToggle") as Control).position, Vector2(1090.0, 946.0))
 	assert_eq((_node("AutoToggle") as Control).size, Vector2(120.0, 36.0))
 	assert_eq((_node("Body") as Control).position, Vector2.ZERO)
@@ -297,7 +302,6 @@ func test_board_uses_the_lacquer_theme_and_label_variants() -> void:
 	assert_eq((_node("TitleLabel") as Label).theme_type_variation, &"LabelLacquerPanelTitle")
 	assert_eq((_node("EscLabel") as Label).theme_type_variation, &"LabelLacquerHotkey")
 	assert_eq((_node("StatusLabel") as Label).theme_type_variation, &"LabelLacquerName")
-	assert_eq((_node("ResultText") as RichTextLabel).theme_type_variation, &"RichTextLacquer")
 	assert_eq((_node("AutoLabel") as Label).theme_type_variation, &"LabelLacquerDetail")
 
 func test_mouse_filters() -> void:
@@ -308,7 +312,7 @@ func test_mouse_filters() -> void:
 	assert_eq((_node("CloseButton") as Control).mouse_filter, Control.MOUSE_FILTER_STOP)
 	assert_eq((_node("AutoToggle") as Control).mouse_filter, Control.MOUSE_FILTER_STOP)
 	# Everything else on the board lets the press through to the Area2Ds.
-	for unique_name: String in ["Body", "ActionLabel", "TitleLabel", "EscLabel", "StatusLabel", "ResultText", "AutoLabel", "AutoHover"]:
+	for unique_name: String in ["Body", "ActionLabel", "TitleLabel", "EscLabel", "StatusLabel", "AutoLabel", "AutoHover"]:
 		assert_eq((_node(unique_name) as Control).mouse_filter, Control.MOUSE_FILTER_IGNORE, "%s ignores the mouse" % unique_name)
 
 func test_draw_order() -> void:
@@ -384,7 +388,7 @@ func test_a_save_with_no_techniques_leaves_the_board_idle() -> void:
 	assert_false(bare_technique.start_cycle(), "and no cycle starts")
 	bare.hide()
 	bare.show()
-	assert_eq(bare.get_result_text(), "")
+	assert_eq(_last_line(), "")
 
 func test_switching_technique_ends_the_cycle_without_a_result() -> void:
 	watch_signals(LogManager)
@@ -393,18 +397,18 @@ func test_switching_technique_ends_the_cycle_without_a_result() -> void:
 	CyclingManager.unlock_technique(TORRENTIAL_ID)
 	CyclingManager.equip_technique(TORRENTIAL_ID)
 	assert_false(_technique.is_cycling(), "the cycle ended")
-	assert_eq(_view.get_result_text(), "", "no result line")
+	assert_eq(_last_line(), "", "no result line")
 	assert_signal_not_emitted(LogManager, "message_logged")
 	await _await_queued_frees()
 
 func test_switching_technique_clears_the_result_line_and_the_ready_text() -> void:
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	assert_ne(_view.get_result_text(), "", "precondition: a cycle left a result line")
+	assert_ne(_last_line(), "", "precondition: a cycle left a result line")
 	CyclingManager.unlock_technique(TORRENTIAL_ID)
 	CyclingManager.equip_technique(TORRENTIAL_ID)
 	_view._process(0.0)
-	assert_eq(_view.get_result_text(), "")
+	assert_eq(_last_line(), "")
 	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "a new technique has not been cycled yet")
 	await _await_queued_frees()
 
@@ -412,11 +416,14 @@ func test_switching_technique_clears_the_result_line_and_the_ready_text() -> voi
 # THE RESULT LINE AND THE LOG
 #-----------------------------------------------------------------------------
 
+func test_the_board_has_no_result_line_of_its_own() -> void:
+	assert_null(_view.get_node_or_null("%ResultText"), "the last cycle shows in the chest, under the Now tray")
+
 func test_cycle_end_writes_the_result_and_one_log_line() -> void:
 	watch_signals(LogManager)
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	assert_eq(_view.get_result_text(), "Last cycle · +0 Madra · 0 / 4 zones")
+	assert_eq(_last_line(), "Last cycle · +0 Madra · 0 / 4 zones")
 	assert_signal_emit_count(LogManager, "message_logged", 1)
 	assert_eq(get_signal_parameters(LogManager, "message_logged", 0), ["[color=cyan]Cycle · +0 Madra · 0 / 4 zones[/color]"])
 
@@ -433,18 +440,18 @@ func test_a_tracked_cycle_reports_the_madra_it_drew() -> void:
 	# 6 s hold 75 whole steps of Madra. The step tolerance pays the 75th even when
 	# the float sum of the frames lands a hair under 6 s.
 	assert_almost_eq(result.madra_added, 80.0, 0.001, "precondition: the cursor drew Madra")
-	assert_eq(_view.get_result_text(), result.result_line(), "the board shows the cycle's own line")
-	assert_true(_view.get_result_text().begins_with("Last cycle · +%d Madra · 0 / 4 zones" % roundi(result.madra_added)), "and it names the Madra the cycle drew")
+	assert_eq(_last_line(), result.result_line(), "the cycle's own line goes to the chest")
+	assert_true(_last_line().begins_with("Last cycle · +%d Madra · 0 / 4 zones" % roundi(result.madra_added)), "and it names the Madra the cycle drew")
 	assert_signal_emit_count(LogManager, "message_logged", 1, "cycling writes no \"Gained N Madra\" lines")
 	assert_eq(get_signal_parameters(LogManager, "message_logged", 0), ["[color=cyan]%s[/color]" % result.log_line()])
 
 func test_the_result_line_stays_until_the_next_cycle_ends() -> void:
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	var first: String = _view.get_result_text()
+	var first: String = _last_line()
 	_technique.start_cycle()
 	_run(3.0, 60.0, false)
-	assert_eq(_view.get_result_text(), first, "a running cycle leaves the last result on the board")
+	assert_eq(_last_line(), first, "a running cycle leaves the last result showing")
 
 #-----------------------------------------------------------------------------
 # PELLETS
@@ -724,7 +731,7 @@ func test_auto_chains_the_next_cycle() -> void:
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
 	assert_signal_emit_count(_technique, "cycle_completed", 1)
 	assert_true(_technique.is_cycling(), "with Auto on the next cycle started at once")
-	assert_eq(_view.get_result_text(), "Last cycle · +0 Madra · 0 / 4 zones")
+	assert_eq(_last_line(), "Last cycle · +0 Madra · 0 / 4 zones")
 
 #-----------------------------------------------------------------------------
 # SHOWING, HIDING AND CLOSING
@@ -789,7 +796,7 @@ func test_reopening_starts_clean() -> void:
 	# A finished cycle leaves a result line on the board.
 	_technique.start_cycle()
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
-	assert_ne(_view.get_result_text(), "", "precondition: a cycle left a result line")
+	assert_ne(_last_line(), "", "precondition: a cycle left a result line")
 	# Then a second cycle, closed half way with a zone scored.
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	assert_true(_technique.try_score_zone(zone))
@@ -798,7 +805,7 @@ func test_reopening_starts_clean() -> void:
 	assert_true(_view.get_status_text().begins_with("Cycling · "), "precondition: the status line shows the cycle")
 	_view.hide()
 	_view.show()
-	assert_eq(_view.get_result_text(), "", "no stale result line")
+	assert_eq(_last_line(), "", "no stale result line")
 	for floater: LacquerFloater in _floaters():
 		assert_false(floater.visible, "no floater shows")
 	for each: CyclingZone in _technique.cycling_zones:

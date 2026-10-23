@@ -29,8 +29,9 @@ func before_each() -> void:
 	}
 
 func after_each() -> void:
-	# A cycle session left running would leak into later files.
+	# A cycle session or a last result left behind would leak into later files.
 	CyclingManager.end_cycle_session()
+	CyclingManager.clear_last_cycle_result()
 	CyclingManager._live_save_data = _saved_live_save_data
 	CyclingManager._techniques_by_id = _saved_techniques_by_id
 
@@ -286,3 +287,27 @@ func test_rate_signal_announces_a_drop_to_zero_once() -> void:
 	CyclingManager.update_cycle_session(2.0, 0.0)
 	CyclingManager.end_cycle_session()
 	assert_signal_emit_count(CyclingManager, "madra_rate_changed", 2)
+
+# ----- The last cycle -----
+
+func test_the_last_cycle_result_is_kept_until_cleared() -> void:
+	assert_null(CyclingManager.get_last_cycle_result(), "none before a cycle ends")
+	watch_signals(CyclingManager)
+	var result := CycleResult.new()
+	result.madra_added = 199.47
+	result.zones_total = 4
+	CyclingManager.set_last_cycle_result(result)
+	assert_same(CyclingManager.get_last_cycle_result(), result)
+	assert_signal_emit_count(CyclingManager, "last_cycle_changed", 1)
+	assert_eq(get_signal_parameters(CyclingManager, "last_cycle_changed", 0), [result])
+	CyclingManager.clear_last_cycle_result()
+	assert_null(CyclingManager.get_last_cycle_result())
+	assert_signal_emit_count(CyclingManager, "last_cycle_changed", 2)
+	assert_eq(get_signal_parameters(CyclingManager, "last_cycle_changed", 1), [null])
+	CyclingManager.clear_last_cycle_result()
+	assert_signal_emit_count(CyclingManager, "last_cycle_changed", 2, "clearing nothing announces nothing")
+
+func test_a_save_reset_forgets_the_last_cycle() -> void:
+	CyclingManager.set_last_cycle_result(CycleResult.new())
+	CyclingManager._on_save_data_reset()
+	assert_null(CyclingManager.get_last_cycle_result())

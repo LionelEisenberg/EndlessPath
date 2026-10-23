@@ -3,7 +3,8 @@ extends Node
 ## Manages cycling technique state — which techniques are unlocked and equipped.
 ## Authoritative owner of all cycling technique data. It also records which
 ## unlocked techniques the player has seen (the NEW seal on a technique drawer)
-## and holds a snapshot of the running cycle for the zone UI to read.
+## and holds a snapshot of the running cycle and the last finished cycle's result
+## for the zone UI to read.
 
 signal technique_unlocked(technique: CyclingTechniqueData)
 signal equipped_technique_changed(technique: CyclingTechniqueData)
@@ -11,6 +12,9 @@ signal equipped_technique_changed(technique: CyclingTechniqueData)
 ## rate snapped to RATE_STEP changes), including the drop to 0 when the session
 ## ends. The rate passed is the measured one, not snapped.
 signal madra_rate_changed(rate: float)
+## Emitted when the last finished cycle's result changes: a cycle ended, or the
+## board cleared it (null then).
+signal last_cycle_changed(result: CycleResult)
 
 ## The step the Madra rate is announced and shown in, a tenth: madra_rate_changed
 ## fires when the rate snapped to it changes, and the cabinet and the Now tray show
@@ -28,6 +32,9 @@ var _cycle_duration: float = 0.0
 var _madra_rate: float = 0.0
 # The rate madra_rate_changed last announced, snapped to RATE_STEP.
 var _announced_rate: float = 0.0
+# The last finished cycle's result, for the chest's line under the Now tray. It is
+# transient: never saved.
+var _last_cycle_result: CycleResult = null
 
 func _ready() -> void:
 	_build_catalog_index()
@@ -175,6 +182,26 @@ func get_cycle_duration() -> float:
 func get_madra_rate() -> float:
 	return _madra_rate
 
+# ----- The last cycle -----
+
+## Records `result` as the last finished cycle's, for the chest to show under the
+## Now tray. The cycling board calls it when a cycle ends.
+func set_last_cycle_result(result: CycleResult) -> void:
+	_last_cycle_result = result
+	last_cycle_changed.emit(result)
+
+## Forgets the last finished cycle, as the board does when it opens or switches
+## technique. Announces it only if there was one.
+func clear_last_cycle_result() -> void:
+	if _last_cycle_result == null:
+		return
+	_last_cycle_result = null
+	last_cycle_changed.emit(null)
+
+## Returns the last finished cycle's result, or null when none is kept.
+func get_last_cycle_result() -> CycleResult:
+	return _last_cycle_result
+
 # ----- Private -----
 
 func _build_catalog_index() -> void:
@@ -205,3 +232,4 @@ func _set_madra_rate(rate: float) -> void:
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data
 	_initialize_seen_techniques()
+	clear_last_cycle_result()

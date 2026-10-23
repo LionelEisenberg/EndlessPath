@@ -5,7 +5,8 @@ extends Control
 ## The cycling board: a lacquer board in the zone view's map gap, with the
 ## carved figure and the equipped technique's groove, ball and zones on it
 ## (CyclingTechnique), the action's name, the technique's name and a close
-## button above, and a status line, a result line and the Auto toggle below.
+## button above, and a status line and the Auto toggle below. A finished cycle's
+## result goes to CyclingManager, and the zone chest shows it under its Now tray.
 ## The cabinet on the left is the Madra and Core Density readout, so the view
 ## has none of its own: the Madra pellets fly from the ball into the cabinet's
 ## Madra orb and the XP pellets from a zone into its Core orb. MainView hands
@@ -13,7 +14,8 @@ extends Control
 ## The view shows and hides outright. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
-## the pellets in flight are freed, so reopening starts clean. A press on the
+## the pellets in flight are freed. Opening it again forgets the last cycle's
+## result, so reopening starts clean. A press on the
 ## ball reaches it through the board: the root and the effects layer ignore the
 ## mouse and the board and the figure box pass it, and only physics picking
 ## takes a press that no Control stopped.
@@ -87,7 +89,6 @@ const _AUTO_PRESS_DROP: float = 2.0
 @onready var _figure_box: Control = %FigureBox
 @onready var _technique: CyclingTechnique = %CyclingTechnique
 @onready var _status_label: Label = %StatusLabel
-@onready var _result_text: RichTextLabel = %ResultText
 @onready var _auto_toggle: TextureButton = %AutoToggle
 @onready var _auto_label: Label = %AutoLabel
 @onready var _auto_hover: LacquerFrameOverlay = %AutoHover
@@ -163,11 +164,6 @@ static func xp_pellet_offset(index: int) -> Vector2:
 func get_status_text() -> String:
 	return _status_label.text
 
-## Returns the result line's text as shown, without its BBCode. Empty until a
-## cycle ends.
-func get_result_text() -> String:
-	return _result_text.get_parsed_text()
-
 #-----------------------------------------------------------------------------
 # THE TECHNIQUE
 #-----------------------------------------------------------------------------
@@ -185,16 +181,13 @@ func _load_equipped_technique() -> void:
 
 ## Sets the board up for `technique`: the technique plays it, ready; the title
 ## names it; each zone gets a floater; and nothing is left of the last
-## technique's cycle, neither its result line nor its ready text.
+## technique's cycle, neither its result nor its ready text.
 func _apply_technique(technique: CyclingTechniqueData) -> void:
 	_technique.setup(technique)
 	_title_label.text = technique.technique_name
 	_rebuild_floaters()
-	_clear_result()
+	CyclingManager.clear_last_cycle_result()
 	_cycled_before = false
-
-func _clear_result() -> void:
-	_result_text.text = ""
 
 #-----------------------------------------------------------------------------
 # THE STATUS LINE AND THE CURSOR
@@ -299,14 +292,14 @@ func _on_visibility_changed() -> void:
 		_on_hidden()
 
 ## The board shows: the labels name the running action and the technique, and
-## the last session's result line and ready text are gone.
+## the last session's result and ready text are gone.
 func _on_shown() -> void:
 	var action: ZoneActionData = ActionManager.get_current_action()
 	if action != null:
 		_action_label.text = action.action_name
 	if _technique.technique_data != null:
 		_title_label.text = _technique.technique_data.technique_name
-	_clear_result()
+	CyclingManager.clear_last_cycle_result()
 	_cycled_before = false
 	_update_status()
 
@@ -322,10 +315,10 @@ func _on_hidden() -> void:
 func _on_equipped_technique_changed(technique: CyclingTechniqueData) -> void:
 	_apply_technique(technique)
 
-## A cycle ran to its end: its result goes on the board, one line goes to the
-## log and the ready line reads "another cycle".
+## A cycle ran to its end: its result goes to CyclingManager for the chest, one
+## line goes to the log and the ready line reads "another cycle".
 func _on_cycle_completed(result: CycleResult) -> void:
-	_result_text.text = LacquerText.decimal_bbcode(result.result_line())
+	CyclingManager.set_last_cycle_result(result)
 	LogManager.log_message("[color=cyan]%s[/color]" % result.log_line())
 	_cycled_before = true
 

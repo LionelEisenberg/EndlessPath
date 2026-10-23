@@ -121,6 +121,18 @@ offset_top = 82.0
 offset_right = 424.0
 offset_bottom = 170.0
 
+[node name="LastCycleLabel" type="Label" parent="." unique_id=1904271536]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 180.0
+offset_right = 424.0
+offset_bottom = 198.0
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerDetail"
+text_overrun_behavior = 3
+
 [node name="ActivitiesHeader" type="HBoxContainer" parent="." unique_id=797303341]
 unique_name_in_owner = true
 layout_mode = 0

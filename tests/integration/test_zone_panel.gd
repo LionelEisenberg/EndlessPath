@@ -37,6 +37,8 @@ const HEADER_TOP: float = 177.0
 const LIST_TOP: float = 208.0
 const LORE_TOP: float = 182.0
 const LORE_PUSH: float = 276.0
+## A finished cycle's line sits under the Now tray and pushes the rest down this far.
+const LAST_CYCLE_PUSH: float = 26.0
 const FULL_CHEST_HEIGHT: float = 1032.0
 const FOLD_GAP: float = 8.0
 const SCROLL_MARGIN: float = 24.0
@@ -68,6 +70,7 @@ func after_each() -> void:
 	# The tray tests start a cycle session by hand: end it, so none leaks into
 	# the next test.
 	CyclingManager.end_cycle_session()
+	CyclingManager.clear_last_cycle_result()
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 	if _renamed_zone != null:
@@ -980,6 +983,72 @@ func test_techniques_mode_chest_hugs_the_list() -> void:
 	assert_eq(_technique_list().size, Vector2(392.0, 232.0), "and is as tall as its three drawers")
 	assert_eq(_panel.size.y, 464.0, "208, three drawers (232) and 24 under them")
 	assert_eq((_node("ChestBottom") as Control).position.y, 464.0 - 48.0, "the bottom cap closes the chest")
+
+## A finished cycle's result, as the board records it on CyclingManager.
+func _last_cycle(madra: float, scored: int, total: int, perfect: int, xp: int) -> CycleResult:
+	var result := CycleResult.new()
+	result.madra_added = madra
+	result.zones_scored = scored
+	result.zones_total = total
+	result.perfect_count = perfect
+	result.xp = xp
+	return result
+
+func _last_cycle_label() -> Label:
+	return _node("LastCycleLabel") as Label
+
+func test_the_last_cycle_shows_under_the_now_tray_while_cycling() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	assert_false(_last_cycle_label().visible, "no line before a cycle ends")
+	CyclingManager.set_last_cycle_result(_last_cycle(199.47, 3, 4, 1, 75))
+	assert_true(_last_cycle_label().visible)
+	assert_eq(_last_cycle_label().text, "Last cycle · +199 Madra · 3 / 4 zones · 1 PERFECT · +75 XP")
+	assert_eq(_last_cycle_label().position, Vector2(16.0, 180.0), "right under the Now tray")
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + LAST_CYCLE_PUSH, "the header moves down to make room")
+	assert_eq(_technique_list().position.y, LIST_TOP + LAST_CYCLE_PUSH, "and the drawers with it")
+	assert_eq(_panel.size.y, 464.0 + LAST_CYCLE_PUSH, "the chest grows by the line")
+
+func test_the_last_cycle_line_is_tan_detail_text_across_the_tray() -> void:
+	await _add_panel()
+	var label: Label = _last_cycle_label()
+	assert_eq(label.theme_type_variation, &"LabelLacquerDetail")
+	assert_eq(label.size.x, 408.0, "as wide as the Now tray")
+	assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS)
+	assert_eq(label.mouse_filter, Control.MOUSE_FILTER_IGNORE)
+
+func test_the_last_cycle_line_shows_only_while_cycling() -> void:
+	await _add_panel()
+	var chest_height: float = _panel.size.y
+	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 0, 0, 0, 0))
+	assert_false(_last_cycle_label().visible, "the activities never show it")
+	assert_eq(_panel.size.y, chest_height, "and keep their layout")
+	_panel.set_techniques_mode(true)
+	assert_true(_last_cycle_label().visible)
+	_panel.set_techniques_mode(false)
+	assert_false(_last_cycle_label().visible)
+	assert_eq(_panel.size.y, chest_height)
+
+func test_clearing_the_last_cycle_closes_the_gap() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 0, 0, 0, 0))
+	CyclingManager.clear_last_cycle_result()
+	assert_false(_last_cycle_label().visible)
+	assert_eq(_technique_list().position.y, LIST_TOP)
+	assert_eq(_panel.size.y, 464.0)
+
+func test_the_lore_opens_under_the_last_cycle_line() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	CyclingManager.set_last_cycle_result(_last_cycle(50.0, 0, 0, 0, 0))
+	(_node("AboutButton") as TextureButton).button_pressed = true
+	assert_true((_node("LorePanel") as Control).visible, "precondition: the lore is open")
+	assert_eq((_node("LorePanel") as Control).position.y, LORE_TOP + LAST_CYCLE_PUSH)
+	assert_eq(_technique_list().position.y, LIST_TOP + LAST_CYCLE_PUSH + LORE_PUSH)
 
 func test_leaving_techniques_mode_restores_activities() -> void:
 	CyclingManager.unlock_technique(SMOOTH_ID)

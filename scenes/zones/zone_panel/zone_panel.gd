@@ -17,7 +17,9 @@ extends Control
 ## While the player cycles (set_techniques_mode), the header reads "Techniques"
 ## with "N learned" and a TechniqueList, one drawer per unlocked cycling
 ## technique, takes the activity list's place. It does not scroll or fold, so
-## the chest hugs it like a short list.
+## the chest hugs it like a short list. Once a cycle has ended, its result line
+## ("Last cycle · ...", from CyclingManager) sits right under the Now tray and
+## pushes the lore, the header and the list down 26 px.
 ## It rebuilds on zone_changed, action_completed, condition_unlocked and
 ## technique_unlocked (which lights NEW on the cycling card again), and
 ## scrolls to a card when ZoneManager.action_focus_requested asks.
@@ -54,9 +56,13 @@ const TECHNIQUES_HEADER: String = "Techniques"
 const HERE_FORMAT: String = "%d here"
 const LEARNED_FORMAT: String = "%d learned"
 
-## The lore panel sits under the Now tray (local 182, set in the scene);
+## The lore panel sits under the Now tray (local 182, as the scene sets it);
 ## opening it pushes the header and the list down by its 264 px and 12.
+const LORE_TOP: float = 182.0
 const LORE_PUSH: float = 276.0
+## The last cycle's line under the Now tray (local 180, set in the scene) pushes
+## the lore, the header and the list down by its 18 px and 8.
+const LAST_CYCLE_PUSH: float = 26.0
 ## About's word sits 2 px lower while it is pressed in (the lore is open).
 const ABOUT_TEXT_DROP: float = 2.0
 
@@ -78,6 +84,7 @@ const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ba
 @onready var _about_label: Label = %AboutLabel
 @onready var _about_hover: LacquerFrameOverlay = %AboutHover
 @onready var _now_strip: NowStrip = %NowStrip
+@onready var _last_cycle_label: Label = %LastCycleLabel
 @onready var _activities_header: Control = %ActivitiesHeader
 @onready var _header_label: Label = %HeaderLabel
 @onready var _count_label: Label = %CountLabel
@@ -113,6 +120,7 @@ func _ready() -> void:
 	ZoneManager.action_focus_requested.connect(scroll_to_action)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
+	CyclingManager.last_cycle_changed.connect(_on_last_cycle_changed)
 	_about_button.toggled.connect(_on_about_toggled)
 	_about_button.mouse_entered.connect(_about_hover.show)
 	_about_button.mouse_exited.connect(_about_hover.hide)
@@ -172,6 +180,7 @@ func set_techniques_mode(on: bool) -> void:
 	_activity_list.visible = not on
 	_technique_list.visible = on
 	_apply_header()
+	_apply_last_cycle()
 	_relayout()
 
 ## Returns true while the chest lists the techniques instead of the activities.
@@ -234,17 +243,26 @@ func _apply_header() -> void:
 		_header_label.text = ACTIVITIES_HEADER
 		_count_label.text = HERE_FORMAT % _activity_count
 
+## Shows the last finished cycle's line under the Now tray while the player
+## cycles and a cycle has ended, and hides it otherwise.
+func _apply_last_cycle() -> void:
+	var result: CycleResult = CyclingManager.get_last_cycle_result()
+	_last_cycle_label.visible = _techniques_mode and result != null
+	_last_cycle_label.text = result.result_line() if result != null else ""
+
 #-----------------------------------------------------------------------------
 # LAYOUT
 #-----------------------------------------------------------------------------
 
-## Places the header and the list that shows (the techniques while the player
-## cycles) under the Now tray (and the lore, when it is open), and sizes the
-## list and the chest (kit §0).
+## Places the lore, the header and the list that shows (the techniques while the
+## player cycles) under the Now tray (and the last cycle's line, when it shows),
+## and sizes the list and the chest (kit §0).
 func _relayout() -> void:
 	if not is_node_ready():
 		return
-	var header_top: float = HEADER_TOP + (LORE_PUSH if _lore_panel.visible else 0.0)
+	var last_cycle_push: float = LAST_CYCLE_PUSH if _last_cycle_label.visible else 0.0
+	_lore_panel.position.y = LORE_TOP + last_cycle_push
+	var header_top: float = HEADER_TOP + last_cycle_push + (LORE_PUSH if _lore_panel.visible else 0.0)
 	var list_top: float = header_top + LIST_GAP
 	_activities_header.position.y = header_top - HEADER_TEXT_RAISE
 
@@ -352,6 +370,10 @@ func _on_condition_unlocked(_condition_id: String) -> void:
 ## the cycling card's NEW seal again.
 func _on_technique_unlocked(_technique: CyclingTechniqueData) -> void:
 	_queue_rebuild()
+
+func _on_last_cycle_changed(_result: CycleResult) -> void:
+	_apply_last_cycle()
+	_relayout()
 
 func _on_about_toggled(open: bool) -> void:
 	_set_lore_open(open)
