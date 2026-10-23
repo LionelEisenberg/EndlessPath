@@ -1,6 +1,6 @@
 # Madra Pool Unification Design
 
-> **Status (2026-10-18):** Implemented. See [RESOURCES.md](RESOURCES.md) for current behaviour. This document is kept as a historical design record, and details below may be out of date. Since PR #16, the Madra badge has moved into `AdventurePresenter`, the drain spends whole-Madra chunks plus one remainder particle, the "out of scope" end card shipped (PR #19), and the Madra Reclamation return perk exists but is not applied.
+> **Status (2026-10-18):** Implemented. See [RESOURCES.md](RESOURCES.md) for current behaviour. This document is kept as a historical design record, and details below may be out of date. Since PR #16, the Madra badge has moved into `AdventurePresenter`, the drain spends whole-Madra chunks plus one remainder particle, the "out of scope" end card shipped (PR #19), and the Madra Reclamation return perk exists but is not applied. The drain now pours opaque `MadraPellet`s, and `FlyingParticle` was deleted with the old cycling view (2026-10-23).
 
 **Status:** Implemented (PR #16)
 

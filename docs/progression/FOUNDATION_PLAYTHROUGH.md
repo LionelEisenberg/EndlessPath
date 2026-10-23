@@ -1,6 +1,6 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-22 (the map-first zone view on `feat/zone-view-redesign-4656b7`, not merged)
+Last updated: 2026-10-23 (the lacquer cycling view on `feat/cycling-view-styleguide-ea3170`, not merged)
 
 > This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >
@@ -124,7 +124,7 @@ Deviations from the original design:
 Deviations from the original design:
 - There is no in-combat tutorial popup.
 - Quests chain from NPC actions rather than from adventure entry or keystone purchase.
-- Unlocks are equipped manually. Only the Abilities button has a notification ring: `CyclingManager.has_unequipped_unlocks()` exists, but no UI shows it.
+- Unlocks are equipped manually. The Abilities button has a notification ring. A new technique lights NEW on the Wilderness Cycling card and, once cycling is open, on its drawer in the zone chest (`CyclingManager.has_unequipped_unlocks()` exists, but no UI uses it).
 
 ### Beat 3a: Aura Well Discovery `IMPLEMENTED`
 
@@ -476,8 +476,8 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### UI
 
-- `[MEDIUM]` Path points are announced only by the dock. While points are unspent, the Path button shows the brass ring and a count seal (the dock listens to `points_changed`), which is the signal Beat 6 relies on. Nothing writes a log line or shows a toast, so a CD-milestone point earned while cycling (the view covers the dock) or in an adventure goes unseen until the zone view returns. Playtest whether the seal is enough.
-- `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`, and cycling has no notification (`CyclingManager.has_unequipped_unlocks()` is unused).
+- `[MEDIUM]` Path points are announced only by the dock. While points are unspent, the Path button shows the brass ring and a count seal (the dock listens to `points_changed`), which is the signal Beat 6 relies on. Nothing writes a log line or shows a toast, so a CD-milestone point earned while cycling (the dock hides) or in an adventure goes unseen until the zone view returns. Playtest whether the seal is enough.
+- `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`. After the unlock the Wilderness Cycling card lights NEW and Smooth Flow's drawer shows NEW inside cycling, but nothing tells the player to equip it.
 - `[MEDIUM]` The Aura Well discovery and the Refugee Camp search have no quest on the Goals board. The map's purpose is explained only in `dialogue_4` and the item description.
 - `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The Goals board shows only the Breakthrough milestone.
 - `[LOW]` Merchant gear purchases log as "Looted 1x …" (Crude Scales as "Obtained 1x …"), because the shop awards items through `InventoryManager.award_items()`.

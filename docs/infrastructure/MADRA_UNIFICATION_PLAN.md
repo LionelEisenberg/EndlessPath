@@ -1,6 +1,6 @@
 # Madra Pool Unification — Implementation Plan
 
-> **Status (2026-10-18):** Implemented (PR #16). See [RESOURCES.md](RESOURCES.md) for current behaviour. This plan is kept as a historical record, and file paths below may be out of date. The badge and shake-reject logic now live in `scenes/zones/zone_action_button/presenters/adventure_presenter.gd`.
+> **Status (2026-10-18):** Implemented (PR #16). See [RESOURCES.md](RESOURCES.md) for current behaviour. This plan is kept as a historical record, and file paths below may be out of date. The badge and shake-reject logic now live in `scenes/zones/zone_action_button/presenters/adventure_presenter.gd`. The drain now pours opaque `MadraPellet`s, and `FlyingParticle` was deleted with the old cycling view (2026-10-23).
 
 **Status:** Complete (PR #16)
 

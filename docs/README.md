@@ -1,8 +1,8 @@
 # EndlessPath Documentation
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
-Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view on `feat/zone-view-redesign-4656b7` (not merged).
+Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view on `feat/zone-view-redesign-4656b7` (not merged). The cycling, style guide, zones, UI shell, resources, logging, persistence, testing and related docs were updated on 2026-10-23 for the lacquer cycling view on `feat/cycling-view-styleguide-ea3170` (not merged).
 
 ## Start Here
 
@@ -20,9 +20,9 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 
 | System | Doc | Summary |
 |---|---|---|
-| Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | Madra Ball mouse-tracking and cycling-zone clicks; techniques; Madra and Core Density XP |
+| Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | The lacquer cycling board: the Madra ball on its lit groove, zone clicks and hit tiers, technique drawers in the zone chest; Madra and Core Density XP |
 | Cultivation | [cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density levels, advancement stages, breakthrough status |
-| Zones and actions | [zones/ZONES.md](zones/ZONES.md) | The map-first lacquer zone view (map, cabinet, zone chest, cards), ZoneManager/ActionManager, idle-action resolution, foraging, training, NPC and merchant actions |
+| Zones and actions | [zones/ZONES.md](zones/ZONES.md) | The map-first lacquer zone view (map, cabinet, zone chest and its techniques mode, cards), ZoneManager/ActionManager, idle-action resolution, foraging, training, NPC and merchant actions |
 | Adventuring | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex maps, fog, movement and stamina, encounters, end card |
 | Combat | [combat/COMBAT.md](combat/COMBAT.md) | Real-time combat: combatants, vitals, casts, buffs, damage formula, enemy AI, enemies |
 | Abilities | [abilities/ABILITIES.md](abilities/ABILITIES.md) | Ability data model, AbilityManager, 4-slot loadout, Abilities view |
@@ -37,7 +37,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 
 | Topic | Doc | Summary |
 |---|---|---|
-| UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, HUD boards, input routing, keybindings, dock |
+| UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, HUD boards, cycling mode, input routing, keybindings, dock |
 | Persistence | [infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | SaveGameData schema and owners, load/save/reset, auto-save, versioning |
 | Resources | [infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra and Gold, the two Madra caps, sources and sinks |
 | Character | [infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, derived stats, player vitals, the Character view |
@@ -74,8 +74,8 @@ Point-in-time design and plan documents. Each carries a status banner. For curre
 
 | Doc | Status |
 |---|---|
-| [superpowers/README.md](superpowers/README.md) | Index of the feature specs and plans (2026-04 onward, including the 2026-10 Merchant v1 and map-first zone view), with each one's shipped status |
-| [cycling/CYCLING_UI_REDESIGN.md](cycling/CYCLING_UI_REDESIGN.md), [cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md](cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md) | Implemented (PR #12) |
+| [superpowers/README.md](superpowers/README.md) | Index of the feature specs and plans (2026-04 onward, including the 2026-10 Merchant v1, map-first zone view and lacquer cycling view), with each one's shipped status |
+| [cycling/CYCLING_UI_REDESIGN.md](cycling/CYCLING_UI_REDESIGN.md), [cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md](cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md) | Implemented (PR #12), then superseded by the lacquer cycling view (2026-10-23) |
 | [inventory/EQUIPMENT_DESIGN.md](inventory/EQUIPMENT_DESIGN.md), [inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md](inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md) | Phase 1 implemented (PR #9); later phases partial or not started |
 | [infrastructure/MADRA_UNIFICATION_DESIGN.md](infrastructure/MADRA_UNIFICATION_DESIGN.md), [infrastructure/MADRA_UNIFICATION_PLAN.md](infrastructure/MADRA_UNIFICATION_PLAN.md) | Implemented (PR #16) |
 | [testing/TEST_SUITE_PROMPT.md](testing/TEST_SUITE_PROMPT.md) | Historical one-shot prompt that bootstrapped the test suite |

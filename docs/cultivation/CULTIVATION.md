@@ -1,6 +1,6 @@
 # Cultivation System
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -17,12 +17,12 @@ Only the Foundation stage is playable. Only Foundation has stage data, and there
 
 1. A new save starts at **Foundation**, Core Density level 0, 0 XP, 25 Madra, with a Madra cap of 100.
 2. Core Density XP comes only from scoring cycling zones (see [CYCLING.md](../cycling/CYCLING.md)). The starting Foundational Technique has no zones. The first XP-earning technique, Smooth Flow, comes from the `pure_core_awakening` path node. The player buys it with the path point awarded by the "First Steps Out" quest (`q_first_steps`).
-3. XP fills the bar in the cycling Resources tab (`Level: N`, `XP: x / y`). Each level costs 2% more XP than the previous one, starting at 10 XP for level 1. One scored zone can grant several levels.
+3. XP fills the cabinet's XP beads and its `xp / need XP` figure (a scored cycling zone also sends XP pellets into the cabinet's Core orb). Each level costs 2% more XP than the previous one, starting at 10 XP for level 1. One scored zone can grant several levels.
 4. Each level raises the Madra cap by 5.
 5. Every 10th level grants **1 path point** at Foundation, spent in the Path Tree.
 6. The quest "Harden Your Core" (`q_reach_core_density_10`) asks for level 10.
-7. Stage and level are shown in the cycling Resources tab (`Stage: Foundation`, plus a radial Core Density orb that is full at level 100) and in the zone view's resource panel (`Foundation` / `Lvl N`, plus the same orb).
-8. **At level 100 nothing happens.** There is no hint, no breakthrough and no cap. The orbs read full, levels keep going (each more expensive), path points keep coming every 10 levels, and the Madra cap keeps growing.
+7. Stage and level are shown on the zone view's cultivator cabinet (`Foundation` / `Level N`, plus the Core orb that is full at level 100). The cabinet stays up beside the cycling board, so cycling has no readout of its own.
+8. **At level 100 nothing happens.** There is no hint, no breakthrough and no cap. The Core orb reads full, levels keep going (each more expensive), path points keep coming every 10 levels, and the Madra cap keeps growing.
 
 ## Architecture
 
@@ -35,10 +35,9 @@ CultivationManager (autoload #2)                 — singletons/cultivation_mana
 AdvancementStageResource (Resource)              — scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd
 AdvancementStageList (Resource, never loaded)    — advancement_stage_list.gd + resources/cycling/advancement_stages/advancement_stage_list.tres
 
-Writers:  CyclingTechnique._handle_zone_click() → add_core_density_xp()
+Writers:  CyclingTechnique.try_score_zone() → add_core_density_xp()
           DevPanel "Add CD XP" → add_core_density_xp()
 Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra()
-          CyclingResourcePanel                  — level, XP, XP needed, stage name, Madra cap
           CultivatorPlate (zone view cabinet)   — stage name, level, XP beads, Madra cap, core orb up to BREAKTHROUGH_LEVEL
           GoalsPanel                            — the Breakthrough milestone, level / BREAKTHROUGH_LEVEL
           UnlockConditionData.evaluate()        — CULTIVATION_STAGE / CULTIVATION_LEVEL
@@ -93,7 +92,7 @@ Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra(
 | `get_current_advancement_stage()` | `AdvancementStage` | `FOUNDATION` without save data |
 | `get_current_advancement_stage_name()` | `String` | `"Unknown"` if the stage has no resource |
 | `get_advancement_stage_name(stage)` | `String` | `"Unknown"` if the stage has no resource |
-| `get_max_madra()` | `float` | The Madra pool cap: the current stage's `get_max_madra(level)`. `0.0` without a stage resource. `ResourceManager`, `CyclingResourcePanel` and `CultivatorPlate` read it |
+| `get_max_madra()` | `float` | The Madra pool cap: the current stage's `get_max_madra(level)`. `0.0` without a stage resource. `ResourceManager`, `CyclingTechnique` (its cap check) and `CultivatorPlate` read it |
 | `BREAKTHROUGH_LEVEL` (const) | `int` | 100. The Goals board's milestone and the cabinet's core orb read it; nothing enforces it |
 | `_get_current_stage_resource()` / `_get_stage_resource(stage)` | `AdvancementStageResource` | Private; only the manager calls them now |
 
@@ -116,7 +115,7 @@ add_core_density_xp(amount)                                   # cultivation_mana
 ```
 - Several level-ups from one award are handled by the `while` loop. Overflow XP carries into the next level.
 - Path points per milestone depend on the current stage, not a flat 1. Only Foundation is reachable, so in practice every 10th level gives 1 point.
-- **There is no level cap.** Neither `add_core_density_xp()` nor `AdvancementStageResource` has a maximum. The only "100" in the code is display: `CyclingResourcePanel.MAX_CORE_DENSITY_LEVEL` and `CultivationManager.BREAKTHROUGH_LEVEL` (read by the cabinet's core orb and the Goals board's milestone, both capped there) set when the orbs and the milestone read full.
+- **There is no level cap.** Neither `add_core_density_xp()` nor `AdvancementStageResource` has a maximum. The only "100" in the code is display: `CultivationManager.BREAKTHROUGH_LEVEL`, read by the cabinet's core orb and the Goals board's milestone (both capped there), sets when the orb and the milestone read full.
 - Path-perk hooks `CORE_DENSITY_XP_MULT` and `MADRA_ON_LEVEL_UP` would plug into this function, but are not applied (see [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md)).
 
 ### Madra Cap
@@ -124,7 +123,7 @@ Two different maximums exist:
 
 | Value | Formula (Foundation) | Enforced by | Shown in |
 |-------|----------------------|-------------|----------|
-| **Pool cap** (cultivation) | `get_max_madra(level)` = `100 + 5 × Core Density level` | `ResourceManager.add_madra()` clamps to `[0, cap]` | The cycling resource panel (`Madra: X / Y`) and the zone view's cultivator cabinet (`X / Y`) |
+| **Pool cap** (cultivation) | `get_max_madra(level)` = `100 + 5 × Core Density level` | `ResourceManager.add_madra()` clamps to `[0, cap]` | The zone view's cultivator cabinet (`X / Y`) |
 | **Adventure capacity** (character) | `CharacterAttributesData.get_max_madra()` = `FOUNDATION attribute × 10` (100 at the default 10) | `ResourceManager.get_adventure_madra_capacity()` / budget; combat `VitalsManager` | Adventure start |
 
 The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not added to either cap. See [RESOURCES.md](../infrastructure/RESOURCES.md) for the pool and adventure budget.
@@ -147,20 +146,20 @@ The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not adde
 
 | Signal | Emitted | Listeners |
 |--------|---------|-----------|
-| `core_density_xp_updated(xp, level)` | End of every `add_core_density_xp()`; `_update_resources()` | `CyclingResourcePanel`, `CultivatorPlate` |
+| `core_density_xp_updated(xp, level)` | End of every `add_core_density_xp()`; `_update_resources()` | `CultivatorPlate` |
 | `core_density_level_updated(xp, level)` | Each level gained; `_update_resources()` | `UnlockManager` (re-evaluates all conditions), `CultivatorPlate`, `GoalsPanel` |
-| `advancement_stage_changed(new_stage)` | `_update_resources()` only | `UnlockManager`, `CyclingResourcePanel`, `CultivatorPlate` |
+| `advancement_stage_changed(new_stage)` | `_update_resources()` only | `UnlockManager`, `CultivatorPlate` |
 
 ## Integration Points
 
 | System | Connection |
 |--------|------------|
-| Cycling | `CyclingTechnique._handle_zone_click()` → `add_core_density_xp(zone XP)`. This is the only gameplay XP source |
+| Cycling | `CyclingTechnique.try_score_zone()` → `add_core_density_xp(zone XP)`. This is the only gameplay XP source |
 | `ResourceManager` | `add_madra()` reads `get_max_madra()` for the pool cap |
 | `PathManager` | Receives `add_points()` every 10 levels. `_is_stage_reached()` compares node `required_stage` with the current stage (tests use `_test_stage_override`) |
 | `UnlockManager` / `UnlockConditionData` | Re-evaluates on `core_density_level_updated` and `advancement_stage_changed`. `CULTIVATION_STAGE` and `CULTIVATION_LEVEL` conditions query the manager |
 | `QuestManager` | `q_reach_core_density_10` step 1 completes when `q_reach_cd_10` unlocks |
-| UI | `CyclingResourcePanel` hardcodes 100 as the orb's full level; the zone view's `CultivatorPlate` and `GoalsPanel` read `BREAKTHROUGH_LEVEL` |
+| UI | The zone view's `CultivatorPlate` and `GoalsPanel` read `BREAKTHROUGH_LEVEL` |
 | `PersistenceManager` | Fields above persist in `user://save.tres` |
 | `DevPanel` (Ctrl+Shift+D, needs `user://dev_password.txt`) | "Add CD XP" calls `add_core_density_xp(value)`. There is no stage control |
 
@@ -211,7 +210,6 @@ Pacing derived from the authored values, counting cycle time only:
 | `resources/cycling/advancement_stages/` | Foundation stage and the unused list |
 | `singletons/persistence_manager/save_game_data.gd` | Persisted cultivation fields |
 | `singletons/resource_manager/resource_manager.gd` | Applies the Madra cap |
-| `scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd` | Level, XP and stage display (cycling view) |
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Stage, level, XP beads and Madra cap (zone view cabinet) |
 | `scenes/ui/goals_panel/goals_panel.gd` | Breakthrough milestone (Core Density toward 100) |
 | `tests/unit/test_cultivation_getters.gd` | 4 tests: `get_max_madra()` follows the level; `BREAKTHROUGH_LEVEL` is 100 |
@@ -222,13 +220,12 @@ Pacing derived from the authored values, counting cycle time only:
 ### Bugs
 
 - `[HIGH]` Infinite loop as soon as the stage moves past Foundation. This blocks Copper. `get_xp_for_next_level()` (`cultivation_manager.gd:106-111`) returns `0.0` when `_get_current_stage_resource()` is `null`, which happens for any stage missing from `advancement_stage_resources` (today, everything except `FOUNDATION`). The `while core_density_xp >= xp_needed_for_next_level` loop (line 83) then never exits, because XP never drops below 0 when 0 is subtracted. The game freezes on the first Core Density XP award: `core_density_level_updated` fires on every pass, and path points are added every 10th pass. With the same missing resource, `ResourceManager.add_madra()` clamps Madra to 0 (cap = 0). It is unreachable only because nothing changes the stage yet. Fix before or with the breakthrough: add the Copper resource and make the loop bail out when `needed <= 0`.
-- `[LOW]` Madra cap text lags in the cycling view. `CyclingResourcePanel` refreshes `Madra: X / Y` only on `madra_changed`, so the cap does not update on level-up. The zone view's cabinet refreshes it on every level-up.
 
 ### Missing Functionality
 
 - `[HIGH]` No breakthrough. `attempt_breakthrough()` is an empty stub and nothing changes `current_advancement_stage`. See "What a Foundation → Copper breakthrough still needs" and [breakthrough-tribulation.md](breakthrough-tribulation.md).
 - `[HIGH]` No Copper stage resource. `advancement_stage_resources` only preloads Foundation, and Foundation's `next_stage` is `null`.
-- `[MEDIUM]` No Core Density cap or overflow rule at 100. `AdvancementStageResource` has no `max_core_density_level`, and 100 is hardcoded in `CyclingResourcePanel.MAX_CORE_DENSITY_LEVEL` and `CultivationManager.BREAKTHROUGH_LEVEL` (display only). Path points keep accruing past 100.
+- `[MEDIUM]` No Core Density cap or overflow rule at 100. `AdvancementStageResource` has no `max_core_density_level`, and 100 is only the display constant `CultivationManager.BREAKTHROUGH_LEVEL`. Path points keep accruing past 100.
 - `[MEDIUM]` Cultivation path perks are not applied: `CORE_DENSITY_XP_MULT` (Dedicated Cultivation), `MADRA_ON_LEVEL_UP` (Breakthrough Surge) and `MADRA_CAPACITY_BONUS` (Expanded Core). `PathManager.get_effects()` has no gameplay reader.
 - `[MEDIUM]` No stage-gated content. No `CULTIVATION_STAGE` unlock conditions exist and no path node requires a stage above Foundation.
 - `[LOW]` `unlocking_mechanics`, `icon` and `next_stage` on `AdvancementStageResource` are exported but never read.
@@ -241,7 +238,7 @@ Pacing derived from the authored values, counting cycle time only:
 ### UI
 
 - `[MEDIUM]` Nothing tells the player what to do at Core Density 100. The Goals board's Breakthrough milestone ("Raise Core Density to 100") fills and stops at `100 / 100`, and nothing follows.
-- `[LOW]` The stage appears only as text (`Stage: Foundation` in the cycling view, the cabinet's painted stage name). There is no next-stage info and no stage badge or aura (the GDD calls for one).
+- `[LOW]` The stage appears only as text (the cabinet's painted stage name). There is no next-stage info and no stage badge or aura (the GDD calls for one).
 
 ### Tech Debt
 

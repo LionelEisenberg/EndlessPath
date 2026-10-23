@@ -1,6 +1,6 @@
 # Cycling View in Lacquer and Brass: Design
 
-> **Status:** approved by the user on 2026-10-22. The decisions below were settled with the user that day in two rounds of questions over a playable mock, plus one question from a builder check (the quest toast). While planning, two details were corrected against the code: the board and figure box pass the mouse instead of ignoring it, and the chest with three techniques is 464 px tall. Not built; the plan is [2026-10-22-cycling-view-lacquer.md](../plans/2026-10-22-cycling-view-lacquer.md).
+> **Status:** approved by the user on 2026-10-22. The decisions below were settled with the user that day in two rounds of questions over a playable mock, plus one question from a builder check (the quest toast). While planning, two details were corrected against the code: the board and figure box pass the mouse instead of ignoring it, and the chest with three techniques is 464 px tall. **Built** on 2026-10-22 and 23 on `feat/cycling-view-styleguide-ea3170`, not merged. The [As built](#as-built-2026-10-23) section lists where the build differs from this spec; the plan is [2026-10-22-cycling-view-lacquer.md](../plans/2026-10-22-cycling-view-lacquer.md).
 >
 > **Mock-up:** [cycling-view-lacquer-mockup.html](../mockups/cycling-view-lacquer-mockup.html). It is 1:1 with the 1920x1080 viewport and playable, with mock controls above the frame. Its defaults are the decisions; the options the user turned down stay in its bar for reference.
 >
@@ -9,6 +9,28 @@
 > **Scope:** the cycling view's look (style guide backlog rows C1–C11) plus the small feel changes the user chose: the groove lighting up behind the ball, zones shown between cycles, a cycle's tier marks kept until the next one, a result line, no pellets once Madra is full, and NEW seals for new techniques. Also the cycling bugs the new look would show ([CYCLING.md](../../cycling/CYCLING.md#bugs)).
 >
 > **Out of scope:** the cycling path perks (`MADRA_GENERATION_MULT`, `CYCLING_ACCURACY_BONUS`, `CORE_DENSITY_XP_MULT`), the unused `CyclingActionData` modifiers, `timing_window_ratio`, combos and streaks, a penalty for mistimed clicks, audio, Auto Cycle as a Copper reward, new techniques or zones, and balance. One balance note from the mock: at Core Density 32 a Smooth Flow cycle can gain about 5 levels (25–50 XP a zone against about 19 XP a level).
+
+## As built (2026-10-23)
+
+Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 117 scripts and 1546 tests, all passing, and [CYCLING.md](../../cycling/CYCLING.md) describes the result. Where the build differs from this spec, or settles something it left open:
+
+- **Rate label.** The cabinet's rate label hides when the rate rounds to 0.0, so it never reads "+0 / s". The Now tray hides it below 0.05, the same threshold.
+- **Madra rate.** It is a time-weighted draw over the last second: per frame, the step rate while tracking below the cap, summed over the time covered. A plain "Madra added in the last second" alternated 12.8 and 13.9 at 60 FPS. An Auto restart carries the rate over.
+- **Drawer titles.** The drawers share the activity cards' 232 px title row. "Smooth Flow Technique" therefore ellipsizes while its NEW seal shows, as the mock's row does.
+- **Techniques list.** It neither scrolls nor folds. Ten drawers fit, six with the lore open, and the catalog has three.
+- **Lore.** It stays as the player left it when cycling opens.
+- **Now tray.** It reuses `%TrainingContent` for the cycle instead of a separate `%CyclingContent` group. The layout is the same.
+- **Text positions.** The board's title sits at y 57 and "Esc" at y 45, so their glyph rows match the mock. Text rects may sit on an odd y, as `ZonePanel.HEADER_TEXT_RAISE` does; art and boxes stay even.
+- **Hiding the board** ends a running cycle quietly.
+- **XP pellets** start at fixed offsets within ±7 px of the zone's centre.
+- **A technique switch** resets the ready line to the first-time text.
+- **Madra steps.** The spec's pure "Madra steps for a timer and a delta" helper was folded into `advance()`. Tests pin it at 30, 60 and 144 FPS.
+- **Map input.** The map is switched off with `SubViewport.gui_disable_input`, which `test_a_disabled_map_viewport_takes_no_clicks` pins. A real-scene run checked it too: a click beside the board registers before cycling, none while it runs, and one after. The `mouse_filter = IGNORE` fallback was not needed. `MapMarkers` still hears presses at the window level, so a click closes a pinned popover. Nothing travels.
+- **`_on_start_cycling`** pushes `self`, as `MerchantViewState` does.
+- **Full-log block.** `_block_full_log` lives once, in `MainViewState`, shared by the book states and cycling.
+- **Cabinet hand-off.** `MainView._ready()` hands the cabinet to the `CyclingView` through `_hand_cabinet_to_cycling_view()`, which `test_cycling_mode.gd` pins.
+- **Scene tree.** `CyclingGroove` is a child of `CyclingTechnique` (at the curve's origin), not a sibling of it in the figure box, and the zones are children of `CyclingPath2D`.
+- **Art files.** The imported board is `lacquer_cyc_board_ai.png` (the mock's board A, 564x1036 with its 4 px shadow), and the Auto tablets are 122x38 with their 2 px shadow.
 
 ## Goal
 
