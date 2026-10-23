@@ -84,7 +84,7 @@ AbilityStatsDisplay (HFlowContainer)            scenes/abilities/ability_stats_d
 | `ability_id` | `String` | `""` | Unique key used by the catalog, path unlocks and saves |
 | `ability_name` | `String` | `""` | Display name |
 | `description` | `String` (multiline) | `""` | Card details text |
-| `icon` | `Texture2D` | null | Details card, row, loadout slot, technique dock slot |
+| `icon` | `Texture2D` | null | Details card, row, loadout slot, technique dock slot, and the enemy's intent tab (`CastBar`, until the fight rework's PR 2 replaces it) |
 | `madra_type` | `MadraType` | `NONE` | Flavor badge; independent of `damage_type` |
 | `ability_source` | `AbilitySource` | `INNATE` | Badge text; no lifecycle logic reads it |
 | `health_cost` / `madra_cost` / `stamina_cost` | `float` | 0.0 | Paid when a cast starts |
@@ -190,7 +190,7 @@ Both require the FOUNDATION stage (default). `PathManager.reset_path()` does not
 | Drag slot → slot | `swap_slots(from, to)` | Swapped (reorders keys) |
 | Drag slot → elsewhere | — | Nothing happens |
 
-After each action `AbilitiesView.refresh()` rebuilds the rows, the loadout and the details. A right-click equip is deferred one frame, because it rebuilds the row that is still handling the click. The list is also rebuilt when the book opens and when the filter or sort changes.
+After each action `AbilitiesView.refresh()` rebuilds the rows, the loadout and the details. A right-click equip is deferred one frame, because it rebuilds the row that is still handling the click. The list is also rebuilt when the book opens and when the filter changes (the order is fixed: there is no sort selector).
 
 ### Filter and order (`AbilitiesView`)
 
