@@ -324,8 +324,8 @@ func test_every_art_position_is_even() -> void:
 	var nodes: Array[Node] = _view.find_children("*", "Control", true, false)
 	assert_gt(nodes.size(), 20, "precondition: the board's controls and the technique's")
 	for node: Node in nodes:
-		if node.get_parent() is LacquerFloater:
-			# The floater's token and text are laid out by the floater's own scene.
+		if node.get_parent() is LacquerFloater and node.name == &"Text":
+			# The floater's only odd rect: its own scene sets its text at y 5.
 			continue
 		if String(node.name) in ODD_TEXT_RECTS:
 			continue
