@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://eomevugae50m"]
 
 [ext_resource type="Script" uid="uid://cot2oaolt25d7" path="res://scenes/characters/main_character/character_body_2d.gd" id="1_oymdk"]
-[ext_resource type="Texture2D" uid="uid://bpbehk6ko2uu3" path="res://assets/sprites/character/main_character_spritesheet.png" id="1_vnxra"]
+[ext_resource type="Texture2D" uid="uid://bc15qnhtd4v5i" path="res://assets/sprites/character/main_character_robes_spritesheet_ai.png" id="1_vnxra"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_fy8xs"]
 radius = 8.0
@@ -19,7 +19,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 1,
-"values": [20]
+"values": [12]
 }
 
 [sub_resource type="Animation" id="Animation_vnxra"]
@@ -36,7 +36,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [28, 20, 12]
+"values": [20, 12, 4]
 }
 
 [sub_resource type="Animation" id="Animation_walk_down_left"]
@@ -53,7 +53,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [29, 21, 13]
+"values": [21, 13, 5]
 }
 
 [sub_resource type="Animation" id="Animation_walk_down_right"]
@@ -70,7 +70,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [27, 19, 11]
+"values": [19, 11, 3]
 }
 
 [sub_resource type="Animation" id="Animation_walk_left"]
@@ -87,7 +87,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [30, 22, 14]
+"values": [22, 14, 6]
 }
 
 [sub_resource type="Animation" id="Animation_walk_right"]
@@ -104,7 +104,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [26, 18, 10]
+"values": [18, 10, 2]
 }
 
 [sub_resource type="Animation" id="Animation_vnxrq"]
@@ -121,7 +121,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [24, 16, 8]
+"values": [16, 8, 0]
 }
 
 [sub_resource type="Animation" id="Animation_walk_up_left"]
@@ -138,7 +138,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [31, 23, 15]
+"values": [23, 15, 7]
 }
 
 [sub_resource type="Animation" id="Animation_walk_up_right"]
@@ -155,7 +155,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.2, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [25, 17, 9]
+"values": [17, 9, 1]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_fy8xs"]
@@ -186,8 +186,8 @@ shape = SubResource("CapsuleShape2D_fy8xs")
 texture = ExtResource("1_vnxra")
 offset = Vector2(1, -1)
 hframes = 8
-vframes = 12
-frame = 20
+vframes = 3
+frame = 12
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=80036769]
 unique_name_in_owner = true
