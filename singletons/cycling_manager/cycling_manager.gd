@@ -8,9 +8,14 @@ extends Node
 signal technique_unlocked(technique: CyclingTechniqueData)
 signal equipped_technique_changed(technique: CyclingTechniqueData)
 ## Emitted when the running cycle's measured Madra rate moves to another tenth (the
-## rate snapped to 0.1 changes), including the drop to 0 when the session ends.
-## The rate passed is the measured one, not snapped.
+## rate snapped to RATE_STEP changes), including the drop to 0 when the session
+## ends. The rate passed is the measured one, not snapped.
 signal madra_rate_changed(rate: float)
+
+## The step the Madra rate is announced and shown in, a tenth: madra_rate_changed
+## fires when the rate snapped to it changes, and the cabinet and the Now tray show
+## the rate snapped to it.
+const RATE_STEP: float = 0.1
 
 var _live_save_data: SaveGameData = null
 var _technique_catalog: CyclingTechniqueList = preload("res://resources/cycling/cycling_techniques/cycling_technique_list.tres")
@@ -21,7 +26,7 @@ var _cycle_running: bool = false
 var _cycle_elapsed: float = 0.0
 var _cycle_duration: float = 0.0
 var _madra_rate: float = 0.0
-# The rate madra_rate_changed last announced, snapped to 0.1.
+# The rate madra_rate_changed last announced, snapped to RATE_STEP.
 var _announced_rate: float = 0.0
 
 func _ready() -> void:
@@ -187,11 +192,11 @@ func _initialize_seen_techniques() -> void:
 		mark_technique_seen(technique_id)
 	_live_save_data.seen_cycling_techniques_initialized = true
 
-## Stores the measured Madra rate, and emits madra_rate_changed when it has moved
-## to another tenth since the last announcement.
+## Stores the measured Madra rate, and emits madra_rate_changed when the rate
+## snapped to RATE_STEP has changed since the last announcement.
 func _set_madra_rate(rate: float) -> void:
 	_madra_rate = rate
-	var snapped_rate: float = snappedf(rate, 0.1)
+	var snapped_rate: float = snappedf(rate, RATE_STEP)
 	if is_equal_approx(snapped_rate, _announced_rate):
 		return
 	_announced_rate = snapped_rate

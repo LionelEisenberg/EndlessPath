@@ -41,10 +41,9 @@ const NOTHING_RUNNING: String = "Nothing running"
 ## runs, the length alone until one does.
 const CYCLE_TIME_FORMAT: String = "%d / %d s"
 const CYCLE_READY_FORMAT: String = "%d s cycle"
-## The cycle's rate is read to a tenth, as on the cabinet, and shows from half
-## that step: below it the rate reads +0.
-const RATE_STEP: float = 0.1
-const RATE_SHOWN_FROM: float = 0.05
+## The cycle's rate is read to CyclingManager.RATE_STEP, as on the cabinet, and
+## shows from half that step: below it the rate reads +0.
+const RATE_SHOWN_FROM: float = CyclingManager.RATE_STEP / 2.0
 
 const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/presenters/forage_yield.tscn")
 
@@ -220,7 +219,7 @@ func _update_cycle_rate() -> void:
 	var rate: float = CyclingManager.get_madra_rate()
 	_rate_group.visible = rate >= RATE_SHOWN_FROM
 	if _rate_group.visible:
-		_rate_text.text = LacquerText.decimal_bbcode("%s Madra / s" % LacquerText.rate(snappedf(rate, RATE_STEP)))
+		_rate_text.text = LacquerText.decimal_bbcode("%s Madra / s" % LacquerText.rate(snappedf(rate, CyclingManager.RATE_STEP)))
 
 ## The action's name and one yield per loot entry (its 16 px icon and
 ## "min–max"). The haul countdown follows the timer every frame.

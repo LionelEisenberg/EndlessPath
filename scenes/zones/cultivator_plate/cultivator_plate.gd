@@ -23,8 +23,6 @@ const CORE_ORB_DORMANT_COLUMN: int = 0
 const CORE_ORB_SOCKET_COLUMN: int = 1
 ## Last row of the XP bead strip: 19 rows, 0 to 18 beads lit.
 const XP_BEADS_LAST_ROW: int = 18
-## Rates are read to this step, a tenth: the step CyclingManager announces them in.
-const RATE_STEP: float = 0.1
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -92,10 +90,11 @@ func _update_madra() -> void:
 	_madra_max_label.text = " / %d" % floori(max_madra)
 
 ## "+1.5 / s" while the running action earns Madra (while cycling, the Madra the
-## ball is drawing); hidden otherwise. The rate is read to a tenth first, so a
-## rate that reads +0 hides the label instead of showing "+0 / s".
+## ball is drawing); hidden otherwise. The rate is read to CyclingManager.RATE_STEP
+## first, the step the manager announces it in, so a rate that reads +0 hides the
+## label instead of showing "+0 / s".
 func _update_rate() -> void:
-	var rate: float = snappedf(ActionManager.get_current_madra_per_second(), RATE_STEP)
+	var rate: float = snappedf(ActionManager.get_current_madra_per_second(), CyclingManager.RATE_STEP)
 	_rate_label.visible = rate > 0.0
 	if _rate_label.visible:
 		_rate_label.text = LacquerText.decimal_bbcode(LacquerText.rate(rate) + " / s")
