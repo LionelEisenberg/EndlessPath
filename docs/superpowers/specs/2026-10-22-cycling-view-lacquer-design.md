@@ -19,10 +19,13 @@ Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 1
 - **Drawer titles.** The drawers share the activity cards' 232 px title row. "Smooth Flow Technique" therefore ellipsizes while its NEW seal shows, as the mock's row does.
 - **Techniques list.** It neither scrolls nor folds. Ten drawers fit, six with the lore open, and the catalog has three.
 - **Lore.** It stays as the player left it when cycling opens.
-- **Now tray.** It reuses `%TrainingContent` for the cycle instead of a separate `%CyclingContent` group. The layout is the same.
+- **Now tray.** It reuses `%TrainingContent` for the cycle instead of a separate `%CyclingContent` group. The layout is the same. Its second line names the technique in full ("Smooth Flow Technique"), as the Now tray table asks; the mock shortens it to "Smooth Flow" and adds "· ready" between cycles.
 - **Text positions.** The board's title sits at y 57 and "Esc" at y 45, so their glyph rows match the mock. Text rects may sit on an odd y, as `ZonePanel.HEADER_TEXT_RAISE` does; art and boxes stay even.
 - **Hiding the board** ends a running cycle quietly.
 - **XP pellets** start at fixed offsets within ±7 px of the zone's centre.
+- **Pellet flights.** Both kinds are the adventure drain's `MadraPellet`, unchanged but for the XP tiers' art. A Madra pellet flies 0.6 s (the mock's 0.7 s). Each pellet bows a random amount, up to its spread, to a random side, and speeds up as it goes; the mock's alternate sides at the full spread and keep an even pace. A hit's XP pellets leave together, where the mock lets each leave 0.04 s after the one before.
+- **Zone floaters** are the map's `LacquerFloater` as promoted. Its token pads the text by 28 px (kit §6.3) where the mock's pads it by 13, so "OK +5 XP" rides a token 94 px wide instead of 76. The token's top, its rise and the text's place match the mock.
+- **Madra added.** A cycle sums what the Madra pool gained at each step. `add_madra()` still returns what it added, but snapped to 0.001, and a Smooth Flow cycle's 187 snapped steps came to 199.53, so the result line read "+200" for the 199.47 the cycle adds. The snapped figure now only decides whether a step added anything and sends a pellet.
 - **Groove.** It lights to the true ball's travelled length (`_follow.progress`), not to the drawn ball's path length that the `CyclingView` and `CyclingTechnique` notes name, because the snapped centre has no path length of its own. The lit front stays within one 2 px cell of the drawn ball.
 - **A technique switch** resets the ready line to the first-time text.
 - **Madra steps.** The spec's pure "Madra steps for a timer and a delta" helper was folded into `advance()`. Tests pin it at 30, 60 and 144 FPS.
@@ -32,6 +35,8 @@ Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 1
 - **Cabinet hand-off.** `MainView._ready()` hands the cabinet to the `CyclingView` through `_hand_cabinet_to_cycling_view()`, which `test_cycling_mode.gd` pins.
 - **Scene tree.** `CyclingGroove` is a child of `CyclingTechnique` (at the curve's origin), not a sibling of it in the figure box, and the zones are children of `CyclingPath2D`.
 - **Art files.** The imported board is `lacquer_cyc_board_ai.png` (the mock's board A, 564x1036 with its 4 px shadow), and the Auto tablets are 122x38 with their 2 px shadow.
+- **The mock's cabinet** draws gold at the left of its bottom row and flat orb fills. The game keeps the zone view's cabinet as built: gold at the right (kit §0, revision 2) and the two orb shaders.
+- **Checked in the game.** A windowed run of the real main scene (2026-10-23) played Smooth Flow from a scratch save and captured it at 1920x1080. Nine seconds into a cycle the frame matches the mock's `#demo=1&t=9` except for the points above, the chest's list 24 px higher (see Layout), the mock's illustrations (see Mock-up), the text's anti-aliasing, the ball's swirl frame and where the pellets are. Over a magenta ground no surface lets any of it through; outside its text, every even 2x2 block of the board is one colour; and the figure box, its floater aside, uses palette colours only.
 
 ## Goal
 
