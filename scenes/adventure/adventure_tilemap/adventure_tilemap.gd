@@ -239,15 +239,19 @@ func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictio
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")
 	
-	# Drop the rest of the walk before stopping the character: stop_moving()
-	# ends the hop under way and announces it (movement_completed), so a walk
-	# still queued would set off its next hop now and land after the teardown.
+	# The run is over from here on, and the teardown must not change it.
+	# stop_moving() ends the hop under way and announces it
+	# (movement_completed): with a run on, that is an arrival, which would visit
+	# the tile the character stands nearest, reveal the boss and tell the boards.
+	# So the run goes first, and the rest of the walk is dropped before the
+	# character stops, or a walk still queued would set off its next hop now and
+	# land after the teardown.
+	current_adventure_action_data = null
 	_visitation_queue.clear()
 	_release_committed_destination()
 	character_body.stop_moving()
 	character_body.global_position = Vector2.ZERO
 	
-	current_adventure_action_data = null
 	full_map.clear()
 	visible_map.clear()
 	_encounter_tile_dictionary.clear()
@@ -638,8 +642,12 @@ func _release_committed_destination() -> void:
 	if _is_movement_locked or _hover_rim_tile == _current_tile:
 		_hover_rim.hide()
 
-## Called when character completes movement to a tile
+## Called when character completes movement to a tile. A hop that ends with no
+## run on (stop_adventure() cuts it short) arrives nowhere.
 func _on_character_movement_completed() -> void:
+	if current_adventure_action_data == null:
+		return
+
 	# Update current tile position
 	var reached_tile = _get_current_tile_from_character_position()
 	

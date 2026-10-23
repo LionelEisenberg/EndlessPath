@@ -125,6 +125,22 @@ func _assert_same_tiles(actual: Array[Vector3i], expected: Array[Vector3i], what
 	for coord in expected:
 		assert_has(actual, coord, "%s: holds %s" % [what, coord])
 
+## Clicks `to`, then returns once the walk's first hop has crossed into
+## `through`'s hex (the walk's first tile; `to` itself on a one-hop walk), with
+## the character still walking. The hop's start is the tile the player stands on.
+func _walk_partway(through: Vector3i, to: Vector3i) -> void:
+	var from_centre: Vector2 = _tilemap.get_tile_world_centre(_tilemap.get_current_tile())
+	var through_centre: Vector2 = _tilemap.get_tile_world_centre(through)
+	_click(to)
+	for frame: int in 120:
+		await wait_physics_frames(1)
+		var at: Vector2 = _tilemap.character_body.global_position
+		if at.distance_to(through_centre) + PAST_THE_BORDER < at.distance_to(from_centre):
+			break
+	var at_end: Vector2 = _tilemap.character_body.global_position
+	assert_lt(at_end.distance_to(through_centre) + PAST_THE_BORDER, at_end.distance_to(from_centre), "precondition: the first hop stands in %s's hex" % through)
+	assert_true(_tilemap.character_body.is_moving, "precondition: the walk is under way")
+
 #-----------------------------------------------------------------------------
 # ARRIVALS
 #-----------------------------------------------------------------------------
@@ -491,17 +507,7 @@ func test_stop_mid_walk_leaves_nothing_behind() -> void:
 	# A two-hop walk to FIGHT through START, stopped once the first hop stands in
 	# START's hex: the stop then finishes that hop on START, where the walk
 	# would go on.
-	var start_centre: Vector2 = _tilemap.get_tile_world_centre(START)
-	var near_centre: Vector2 = _tilemap.get_tile_world_centre(OPEN_NEAR)
-	_click(FIGHT)
-	for frame: int in 120:
-		await wait_physics_frames(1)
-		var at: Vector2 = _tilemap.character_body.global_position
-		if at.distance_to(start_centre) + PAST_THE_BORDER < at.distance_to(near_centre):
-			break
-	var at_stop: Vector2 = _tilemap.character_body.global_position
-	assert_lt(at_stop.distance_to(start_centre) + PAST_THE_BORDER, at_stop.distance_to(near_centre), "precondition: the first hop stands in START's hex")
-	assert_true(_tilemap.character_body.is_moving, "precondition: the walk is under way")
+	await _walk_partway(START, FIGHT)
 	_record_events()
 
 	_tilemap.stop_adventure()
@@ -518,3 +524,23 @@ func test_stop_mid_walk_leaves_nothing_behind() -> void:
 	var last_redraw: int = _events.rfind("map_changed")
 	assert_ne(last_redraw, -1, "the stop redraws the map")
 	assert_false(_events.slice(last_redraw + 1).has("tile_entered"), "no arrival after the stop's redraw")
+
+## Once the stop starts, the run no longer changes. The hop it cuts short ends
+## with the character standing in FIGHT's hex, and ending a hop is an arrival
+## when a run is on: it would visit FIGHT, reveal the boss behind it (the
+## hit-stop, the coin's shake) and tell the boards. None of that happens; the
+## only thing announced is the redraw that clears the map.
+func test_stop_mid_hop_into_an_unvisited_tile_arrives_nowhere() -> void:
+	_start()
+	await _walk_partway(FIGHT, FIGHT)
+	assert_false(_tilemap.is_tile_visited(FIGHT), "precondition: the hop has not arrived yet")
+	watch_signals(_tilemap)
+
+	_tilemap.stop_adventure()
+
+	assert_signal_not_emitted(_tilemap, "tile_entered", "the hop cut short arrives nowhere")
+	assert_signal_not_emitted(_tilemap, "boss_revealed", "no boss is revealed")
+	assert_signal_not_emitted(_tilemap, "encounter_resolved")
+	assert_signal_emit_count(_tilemap, "map_changed", 1, "only the stop's own redraw")
+	assert_eq(Engine.time_scale, 1.0, "no hit-stop")
+	assert_eq(_tilemap.get_current_tile(), START, "the stop leaves the next run's start tile current")
