@@ -28,15 +28,22 @@ ICONS = "icons"
 # Copied byte for byte: source name -> folder under the destination.
 COPY = {
     "lacquer_cyc_body_carved_ai.png": CYCLING,
-    "lacquer_cyc_ball_strip_ai.png": CYCLING,
-    "lacquer_cyc_ball_rings_ai.png": CYCLING,
-    "lacquer_cyc_zone_strip_ai.png": CYCLING,
     "lacquer_cyc_pellet_brass_ai.png": CYCLING,
     "lacquer_cyc_pellet_cream_ai.png": CYCLING,
     "lacquer_cyc_pellet_tan_ai.png": CYCLING,
     "lacquer_ic_tech_foundation_ai.png": ICONS,
     "lacquer_ic_tech_smooth_ai.png": ICONS,
     "lacquer_ic_tech_torrent_ai.png": ICONS,
+}
+
+# The game's own versions, which differ from the mock's (kit_cycling.py game_kit()): copied
+# byte for byte from the mock folder's game/ subfolder, under the same name -> folder under
+# the destination.
+GAME_DIR = "game"
+GAME = {
+    "lacquer_cyc_ball_strip_ai.png": CYCLING,
+    "lacquer_cyc_ball_rings_ai.png": CYCLING,
+    "lacquer_cyc_zone_strip_ai.png": CYCLING,
 }
 
 # Given a drop shadow, in the cycling folder: source name -> (name there, shadow offset, shadow colour).
@@ -83,6 +90,7 @@ def main(argv: list) -> None:
     kit, dest = Path(argv[1]), Path(argv[2])
     wanted = [*COPY, *SHADOWS, *PADS]
     missing = [name for name in wanted if not (kit / name).is_file()]
+    missing += [f"{GAME_DIR}/{name}" for name in GAME if not (kit / GAME_DIR / name).is_file()]
     if missing:
         raise SystemExit(f"missing from {kit}: {missing}")
     for folder in (CYCLING, ICONS):
@@ -90,13 +98,17 @@ def main(argv: list) -> None:
     for name, folder in COPY.items():
         shutil.copy2(kit / name, dest / folder / name)
         print(f"copy {name} -> {folder}/")
+    for name, folder in GAME.items():
+        shutil.copy2(kit / GAME_DIR / name, dest / folder / name)
+        print(f"copy {GAME_DIR}/{name} -> {folder}/")
     for name, (out, offset, rgb) in SHADOWS.items():
         bake_shadow(kit / name, dest / CYCLING / out, offset, rgb)
     for name, (out, px) in PADS.items():
         pad(kit / name, dest / CYCLING / out, px)
     for src in sorted(kit.glob("*.png")):
         if src.name not in wanted:
-            print(f"skip {src.name}")
+            note = " (the game's version is in game/)" if src.name in GAME else ""
+            print(f"skip {src.name}{note}")
 
 
 if __name__ == "__main__":

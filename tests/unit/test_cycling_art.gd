@@ -22,10 +22,16 @@ const TECH_TORRENT_PATH: String = "res://assets/ui/lacquer/icons/lacquer_ic_tech
 ## The 560x1032 board art plus its 4 px drop shadow, baked on the right and bottom.
 const BOARD_SIZE: Vector2i = Vector2i(564, 1036)
 const BODY_SIZE: Vector2i = Vector2i(500, 832)
-## Eight frames of 60.
-const BALL_STRIP_SIZE: Vector2i = Vector2i(480, 60)
-## Two frames of 80: 0 is brass, 1 is the tan dots.
-const BALL_RINGS_SIZE: Vector2i = Vector2i(160, 80)
+## Eight swirl frames across and three breathing sizes down, each in a 68 px cell:
+## the ball at 60, 64 and 68 px.
+const BALL_STRIP_SIZE: Vector2i = Vector2i(544, 204)
+const BALL_CELL: int = 68
+## Four frames of 88: 0 is the brass ready ring, 1 the solid tan tracking ring, 2
+## and 3 the ready ring grown by 4 and 8 px for the breathing ball.
+const BALL_RINGS_SIZE: Vector2i = Vector2i(352, 88)
+const RING_CELL: int = 88
+## The tan of the tracking ring and of a zone's idle rim.
+const TAN_HTML: String = "a89070"
 ## Six frames of 48: idle, active, spent, perfect, good, ok.
 const ZONE_STRIP_SIZE: Vector2i = Vector2i(288, 48)
 const PELLET_SIZE: Vector2i = Vector2i(12, 12)
@@ -114,9 +120,57 @@ func test_technique_icons_are_thirty_two_px_square() -> void:
 	for path: String in TECH_ICON_PATHS:
 		_assert_size(path, TECH_ICON_SIZE)
 
+## Returns the width of the opaque pixels in the `cell`-px frame at `origin`.
+func _opaque_width(image: Image, origin: Vector2i, cell: int) -> int:
+	var left: int = cell
+	var right: int = -1
+	for y: int in cell:
+		for x: int in cell:
+			if image.get_pixel(origin.x + x, origin.y + y).a > 0.0:
+				left = mini(left, x)
+				right = maxi(right, x)
+	return right - left + 1
+
+## Counts the steps round a ring, a degree apart, with no tan pixel between
+## `inner` and `outer` px from `centre` in the frame at `origin`.
+func _ring_gaps(image: Image, origin: Vector2i, centre: Vector2, inner: float, outer: float) -> int:
+	var gaps: int = 0
+	for step: int in 360:
+		var direction: Vector2 = Vector2.from_angle(TAU * step / 360.0)
+		var found: bool = false
+		var radius: float = inner
+		while radius <= outer and not found:
+			var point: Vector2 = Vector2(origin) + centre + direction * radius
+			found = image.get_pixel(int(point.x), int(point.y)).to_html(false) == TAN_HTML
+			radius += 0.5
+		if not found:
+			gaps += 1
+	return gaps
+
 #-----------------------------------------------------------------------------
 # PIXELS
 #-----------------------------------------------------------------------------
+
+## Each row of the ball strip is the ball one breath larger: 60, 64 and 68 px.
+func test_the_ball_strip_rows_are_the_breathing_sizes() -> void:
+	var image: Image = _load_texture(BALL_STRIP_PATH).get_image()
+	for row: int in 3:
+		assert_eq(_opaque_width(image, Vector2i(0, row * BALL_CELL), BALL_CELL), 60 + 4 * row, "row %d" % row)
+
+## The ready ring grows with the ball, 4 px a breath.
+func test_the_ready_ring_grows_with_the_breath() -> void:
+	var image: Image = _load_texture(BALL_RINGS_PATH).get_image()
+	var base: int = _opaque_width(image, Vector2i(0, 0), RING_CELL)
+	assert_eq(_opaque_width(image, Vector2i(2 * RING_CELL, 0), RING_CELL), base + 4, "frame 2")
+	assert_eq(_opaque_width(image, Vector2i(3 * RING_CELL, 0), RING_CELL), base + 8, "frame 3")
+
+## The ball's tracking ring and a zone's idle rim are solid tan loops, with no gap
+## anywhere round them (checkerboard dots on a circle read as broken).
+func test_the_tracking_ring_and_the_idle_rim_are_unbroken() -> void:
+	var rings: Image = _load_texture(BALL_RINGS_PATH).get_image()
+	assert_eq(_ring_gaps(rings, Vector2i(RING_CELL, 0), Vector2(44.0, 44.0), 33.0, 36.0), 0, "the tracking ring")
+	var zones: Image = _load_texture(ZONE_STRIP_PATH).get_image()
+	assert_eq(_ring_gaps(zones, Vector2i(0, 0), Vector2(24.0, 24.0), 19.0, 22.0), 0, "the idle rim")
 
 func test_brass_pellet_is_opaque_and_in_its_palette() -> void:
 	_assert_opaque_or_clear(PELLET_BRASS_PATH, BRASS_PELLET_PALETTE)

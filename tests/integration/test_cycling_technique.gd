@@ -488,6 +488,54 @@ func test_ring_shows_ready_then_tracking_then_hides() -> void:
 	assert_false(ring.visible)
 	assert_false(_technique.is_tracking())
 
+#-----------------------------------------------------------------------------
+# THE READY BALL BREATHES
+#-----------------------------------------------------------------------------
+
+func test_breath_level_steps_up_and_back_down_each_period() -> void:
+	var levels: Array[int] = []
+	for seconds: float in [0.1, 0.5, 1.0, 1.5, 1.9, 2.1]:
+		levels.append(CyclingTechnique.breath_level(seconds))
+	assert_eq(CyclingTechnique.BREATH_SECONDS, 2.0)
+	assert_eq(levels, [0, 1, 2, 1, 0, 0], "small, up to the largest at half the period, and back")
+
+func test_the_ready_ball_breathes() -> void:
+	var sprite := _node("BallSprite") as LacquerStripRect
+	var ring := _node("BallRing") as LacquerStripRect
+	var rows: Array[int] = []
+	var rings: Array[int] = []
+	for _frame: int in 120:
+		_technique.advance(FRAME, FAR)
+		if rows.is_empty() or rows[-1] != sprite.get_frame().y:
+			rows.append(sprite.get_frame().y)
+		if rings.is_empty() or rings[-1] != ring.get_frame().x:
+			rings.append(ring.get_frame().x)
+		assert_eq(sprite.global_position + sprite.size / 2.0, START, "the ball stays centred on the start")
+		assert_eq(ring.global_position + ring.size / 2.0, START, "and so does its ring")
+	assert_eq(rows, [0, 1, 2, 1, 0], "60, 64, 68, 64 and back to 60 px over two seconds")
+	assert_eq(rings, [0, 2, 3, 2, 0], "the ready ring grows with it")
+	assert_true(ring.visible)
+
+func test_the_ball_keeps_its_size_while_cycling() -> void:
+	var sprite := _node("BallSprite") as LacquerStripRect
+	_technique.start_cycle()
+	for _frame: int in 120:
+		_technique.advance(FRAME, _technique.get_ball_global_position())
+		assert_eq(sprite.get_frame().y, 0)
+
+func test_each_wait_starts_the_breath_small() -> void:
+	var sprite := _node("BallSprite") as LacquerStripRect
+	_run(1.0, 60.0, false)
+	assert_eq(sprite.get_frame().y, 2, "precondition: mid-breath")
+	_technique.start_cycle()
+	_technique.stop_cycling()
+	assert_eq(sprite.get_frame().y, 0, "waiting again starts from the small ball")
+	_run(1.0, 60.0, false)
+	_technique.start_cycle()
+	_run(CYCLE_SECONDS + FRAME, 60.0, false)
+	assert_false(_technique.is_cycling(), "precondition: the cycle ended")
+	assert_eq(sprite.get_frame().y, 0, "and so does the wait after a cycle")
+
 func test_tracking_uses_the_drawn_ball() -> void:
 	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
 	_technique.start_cycle()

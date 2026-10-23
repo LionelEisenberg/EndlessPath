@@ -12,7 +12,8 @@ extends Node2D
 ## CyclingRules).
 ## Everything steps: the ball is drawn at its path position snapped to even px,
 ## its swirl steps through SWIRL_FRAMES frames at SWIRL_FPS, and a zone shows its
-## state as a frame. advance() moves the play on by one frame. _process() feeds it
+## state as a frame. While the ball waits for a press it breathes: it and its
+## brass ring step through three sizes and back once every BREATH_SECONDS. advance() moves the play on by one frame. _process() feeds it
 ## the mouse, and tests feed it a chosen cursor.
 ## Between cycles the groove shows lit, as a full cycle leaves it, so the path
 ## stands out from the carved figure. A cycle's start sweeps that light away in
@@ -74,10 +75,16 @@ const RATE_WINDOW: float = 1.0
 ## well ahead of it.
 const GROOVE_SWEEP_SECONDS: float = 0.5
 
-## The ball ring's frames: the steady ring around a ready ball, and the dotted
+## The seconds of one breath of the waiting ball: up from 60 px through 64 to
+## 68 and back (see breath_level()).
+const BREATH_SECONDS: float = 2.0
+
+## The ball ring's frames: the steady ring around a ready ball, and the solid tan
 ## ring while the cursor follows it.
 const _RING_READY: int = 0
 const _RING_TRACKING: int = 1
+## The ready ring's frame for each breath level: it grows with the ball.
+const _RING_READY_BY_BREATH: Array[int] = [_RING_READY, 2, 3]
 
 const _ZONE_SCENE: PackedScene = preload("res://scenes/cycling/cycling_technique/cycling_zone.tscn")
 
@@ -117,6 +124,9 @@ var _elapsed: float = 0.0
 var _path_length: float = 0.0
 ## Seconds the swirl has run. It runs whether or not a cycle does.
 var _swirl_clock: float = 0.0
+## Seconds the ball has waited for a press, which set its breath. It starts at 0
+## each time the ball comes back to wait.
+var _breath_clock: float = 0.0
 ## Seconds toward the next Madra step. It keeps its remainder between steps.
 var _madra_timer: float = 0.0
 ## The frames the Madra rate is measured over, oldest first: the newest frames that
@@ -195,10 +205,11 @@ func stop_cycling() -> void:
 ## left in the cycle, so a long hitch draws no Madra beyond it.
 func advance(delta: float, cursor_global: Vector2) -> void:
 	_swirl_clock += delta
-	_show_swirl_frame()
 	if not _cycling:
+		_breath_clock += delta
 		_show_ready()
 		return
+	_show_ball_frame(0)
 	var duration: float = technique_data.cycle_duration
 	var cycle_delta: float = minf(delta, duration - _elapsed)
 	_elapsed = minf(_elapsed + delta, duration)
@@ -246,6 +257,12 @@ func try_score_zone(zone: CyclingZone) -> bool:
 	zone.set_state(CyclingZone.state_for_tier(tier))
 	zone_scored.emit(zone, tier, xp)
 	return true
+
+## Returns the waiting ball's breath level `seconds` into its wait: 0, 1 or 2,
+## the ball at 60, 64 or 68 px. Each BREATH_SECONDS it steps up from 0 to 2 and
+## back, holding each size about a third of the time, the largest at the middle.
+static func breath_level(seconds: float) -> int:
+	return roundi(1.0 - cos(TAU * seconds / BREATH_SECONDS))
 
 ## Returns whether a press at `cursor_global` would do something: the cursor is on
 ## the ball, and either no cycle runs (the press starts one) or a zone is ACTIVE
@@ -387,6 +404,7 @@ func _finish_cycle() -> void:
 	_cycling = false
 	_tracking = false
 	CyclingManager.end_cycle_session()
+	_breath_clock = 0.0
 	_show_ready()
 	cycle_completed.emit(_result)
 	if auto_cycle:
@@ -412,6 +430,7 @@ func _return_to_ready() -> void:
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
 	_groove.light_all()
+	_breath_clock = 0.0
 	_show_ready()
 
 ## Returns an empty result for a cycle of this technique.
@@ -454,19 +473,23 @@ func _draw_ball() -> void:
 	_ball_sprite.global_position = _ball_drawn - Vector2(_ball_sprite.frame_size) / 2.0
 	_ball_ring.global_position = _ball_drawn - Vector2(_ball_ring.frame_size) / 2.0
 
-## Shows the ball at the start of the path inside its steady ring.
+## Shows the ball at the start of the path inside its steady ring, both at the
+## size of the breath.
 func _show_ready() -> void:
 	if _follow.progress != 0.0:
 		_follow.progress = 0.0
 	_draw_ball()
+	var level: int = breath_level(_breath_clock)
+	_show_ball_frame(level)
 	_ball_ring.visible = true
-	_set_ring_frame(_RING_READY)
+	_set_ring_frame(_RING_READY_BY_BREATH[level])
 
-## Shows the swirl frame for the swirl clock.
-func _show_swirl_frame() -> void:
-	var frame: int = floori(_swirl_clock * SWIRL_FPS) % SWIRL_FRAMES
-	if _ball_sprite.get_frame().x != frame:
-		_ball_sprite.set_frame(frame)
+## Shows the swirl frame for the swirl clock, from the row of the strip for
+## breath `level`: the ball at 60, 64 or 68 px.
+func _show_ball_frame(level: int) -> void:
+	var frame := Vector2i(floori(_swirl_clock * SWIRL_FPS) % SWIRL_FRAMES, level)
+	if _ball_sprite.get_frame() != frame:
+		_ball_sprite.set_frame(frame.x, frame.y)
 
 func _set_ring_frame(frame: int) -> void:
 	if _ball_ring.get_frame().x != frame:

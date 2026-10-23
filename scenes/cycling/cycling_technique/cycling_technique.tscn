@@ -32,18 +32,18 @@ shape = SubResource("CircleShape2D_ball")
 
 [node name="BallRing" type="TextureRect" parent="." unique_id=1087565277]
 unique_name_in_owner = true
-offset_right = 80.0
-offset_bottom = 80.0
+offset_right = 88.0
+offset_bottom = 88.0
 mouse_filter = 2
 script = ExtResource("3_strip")
 strip = ExtResource("4_rings")
-frame_size = Vector2i(80, 80)
+frame_size = Vector2i(88, 88)
 
 [node name="BallSprite" type="TextureRect" parent="." unique_id=127362351]
 unique_name_in_owner = true
-offset_right = 60.0
-offset_bottom = 60.0
+offset_right = 68.0
+offset_bottom = 68.0
 mouse_filter = 2
 script = ExtResource("3_strip")
 strip = ExtResource("5_ball")
-frame_size = Vector2i(60, 60)
+frame_size = Vector2i(68, 68)

@@ -5,6 +5,9 @@ with the same rules: every piece is drawn at native size (1 art px) and saved at
 with the _ai suffix, lit from the top-left, grain and gloss placed by hand, no randomness.
 Output goes to the folder above this one (docs/superpowers/mockups/cycling-view-lacquer/).
 
+The game's kit differs from the mock's in a few textures, written to game/ (see game_kit
+below): the mock keeps the approved round-1 art, and import_cycling.py takes those from game/.
+
 The body figures are traced from the user's own outlines, which stay untouched:
 assets/sprites/cycling/cycling_technique_outline.png (standing; the game shows it at 500x832,
 stretched 1.3867x down, and every technique's curve is authored on that footprint) and
@@ -155,9 +158,11 @@ def ball_frame(k, n=8, D=30):
                 else:
                     col = base
             img.putpixel((x, y), col)
-    # the glint stays put while the swirl turns: lit from the top-left
+    # the glint stays put while the swirl turns: lit from the top-left, and a
+    # larger ball moves it out with its edge
+    s = (D - 30) // 2
     for (gx, gy) in ((8, 6), (9, 6), (7, 7), (8, 7), (7, 8)):
-        put(img, gx, gy, M_HI)
+        put(img, gx + s, gy + s, M_HI)
     return img
 
 
@@ -170,10 +175,21 @@ def ball():
     # rings round the ball: frame 0 brass (ready: click to cycle), frame 1 tan dots (tracking)
     R = 40
     rings = new(R * 2, R)
+    _ready_ring(rings, 0, R, 0)
     c = (R - 1) / 2
     for y in range(R):
         for x in range(R):
-            r = math.hypot(x - c, y - c)
+            if 16.8 < math.hypot(x - c, y - c) <= 17.8 and (x + y) % 2 == 0:
+                rings.putpixel((R + x, y), TAN)
+    save(rings, 'cyc_ball_rings')
+
+
+def _ready_ring(img, ox, cell, grow):
+    """The brass ring round a ready ball, its radii grown by `grow` px, in the `cell` px frame at ox."""
+    c = (cell - 1) / 2
+    for y in range(cell):
+        for x in range(cell):
+            r = math.hypot(x - c, y - c) - grow
             light = math.cos(math.atan2(y - c, x - c) + math.pi * 0.75)
             col = None
             if 15.6 < r <= 16.6:
@@ -187,10 +203,7 @@ def ball():
             elif 18.6 < r <= 19.6:
                 col = INK
             if col:
-                rings.putpixel((x, y), col)
-            if 16.8 < r <= 17.8 and (x + y) % 2 == 0:
-                rings.putpixel((R + x, y), TAN)
-    save(rings, 'cyc_ball_rings')
+                img.putpixel((ox + x, y), col)
 
 
 # ----------------------------------------------------------------------------
@@ -204,7 +217,7 @@ STUDS = {
 }
 
 
-def zone_frame(kind, D=24):
+def zone_frame(kind, D=24, solid_idle=False):
     img = new(D, D)
     c = (D - 1) / 2
     for y in range(D):
@@ -223,7 +236,7 @@ def zone_frame(kind, D=24):
                         col = hi if light > 0.35 else (sh if light < -0.3 else mid)
                 elif kind in STUDS and r <= 7.1:
                     col = INK
-            elif kind == 'idle' and 9.6 < r <= 10.6 and (x + y) % 2 == 0:
+            elif kind == 'idle' and 9.6 < r <= 10.6 and (solid_idle or (x + y) % 2 == 0):
                 col = TAN
             elif kind == 'active':
                 if 8.6 < r <= 10.6:
@@ -392,6 +405,72 @@ def dither():
     B.SAVED.append(fn)
 
 
+# ----------------------------------------------------------------------------
+# The game's kit (the review of 2026-10-23). The mock keeps the approved round-1
+# art; these textures differ from it, so they go to game/, and import_cycling.py
+# copies them into the project from there.
+#   the ball strip: the eight swirl frames across and three breathing sizes down
+#     (30, 32 and 34 px balls, 60, 64 and 68 on screen), each centred in a 34 px cell;
+#   the ball rings: in 44 px cells, the brass ready ring, the tracking ring drawn
+#     solid (the checkerboard dots read as broken), and the ready ring grown by 1
+#     and 2 px for the breathing ball;
+#   the zone strip: the idle rim drawn solid, for the same reason.
+# ----------------------------------------------------------------------------
+GAME_DIR = 'game'
+BREATH_SIZES = (30, 32, 34)
+GAME_BALL_CELL = 34
+GAME_RING_CELL = 44
+
+
+def _save_game(img, name):
+    """Saves into game/ next to the mock's pieces, at 2x with the _ai suffix as save() does."""
+    out = B.OUT
+    B.OUT = os.path.join(out, GAME_DIR) + os.sep
+    os.makedirs(B.OUT, exist_ok=True)
+    try:
+        save(img, name)
+    finally:
+        B.OUT = out
+
+
+def game_ball():
+    n, cell = 8, GAME_BALL_CELL
+    strip = new(cell * n, cell * len(BREATH_SIZES))
+    for row, D in enumerate(BREATH_SIZES):
+        off = (cell - D) // 2
+        for k in range(n):
+            strip.paste(ball_frame(k, n, D), (k * cell + off, row * cell + off))
+    _save_game(strip, 'cyc_ball_strip')
+
+
+def game_rings():
+    cell = GAME_RING_CELL
+    rings = new(cell * 4, cell)
+    for frame, grow in ((0, 0), (2, 1), (3, 2)):
+        _ready_ring(rings, frame * cell, cell, grow)
+    c = (cell - 1) / 2
+    for y in range(cell):
+        for x in range(cell):
+            if 16.8 < math.hypot(x - c, y - c) <= 17.8:
+                rings.putpixel((cell + x, y), TAN)
+    _save_game(rings, 'cyc_ball_rings')
+
+
+def game_zones():
+    kinds = ['idle', 'active', 'spent', 'perfect', 'good', 'ok']
+    D = 24
+    strip = new(D * len(kinds), D)
+    for i, k in enumerate(kinds):
+        strip.paste(zone_frame(k, D, solid_idle=True), (i * D, 0))
+    _save_game(strip, 'cyc_zone_strip')
+
+
+def game_kit():
+    game_ball()
+    game_rings()
+    game_zones()
+
+
 def run():
     bodies()
     ball()
@@ -402,6 +481,7 @@ def run():
     boards()
     side_trays()
     dither()
+    game_kit()
 
 
 if __name__ == '__main__':
