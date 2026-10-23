@@ -8,10 +8,18 @@
 class_name CyclingViewState
 extends MainViewState
 
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
 func _ready() -> void:
 	if ActionManager:
 		ActionManager.start_cycling.connect(_on_start_cycling)
 		ActionManager.stop_cycling.connect(_on_stop_cycling)
+
+#-----------------------------------------------------------------------------
+# PUBLIC FUNCTIONS
+#-----------------------------------------------------------------------------
 
 ## Called when entering this state: the zone view is turned over to cycling, the
 ## board shows and the full log is blocked.
@@ -32,12 +40,9 @@ func handle_input(event: InputEvent) -> void:
 	if event.is_action_pressed("close_cycling_view"):
 		ActionManager.stop_action()
 
-## Keeps the full log shut while the board is open, or lets it open again. The
-## view-state tests stand a plain Control in for the log: it has no full log.
-func _block_full_log(blocked: bool) -> void:
-	var log_window: LogWindow = scene_root.log_window as LogWindow
-	if log_window != null:
-		log_window.set_full_log_blocked(blocked)
+#-----------------------------------------------------------------------------
+# SIGNAL HANDLERS
+#-----------------------------------------------------------------------------
 
 func _on_start_cycling(_data: Variant) -> void:
 	# Already on the stack: a second entry would outlive the close and stay on

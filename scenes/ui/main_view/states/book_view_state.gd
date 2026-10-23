@@ -55,13 +55,6 @@ func _is_close_event(_event: InputEvent) -> bool:
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Keeps the full log shut while the book is open, or lets it open again. The
-## view-state tests stand a plain Control in for the log: it has no full log.
-func _block_full_log(blocked: bool) -> void:
-	var log_window: LogWindow = scene_root.log_window as LogWindow
-	if log_window != null:
-		log_window.set_full_log_blocked(blocked)
-
 func _request_close() -> void:
 	if not scene_root.grey_background.panel_hidden.is_connected(_on_close_finished):
 		scene_root.grey_background.panel_hidden.connect(_on_close_finished, CONNECT_ONE_SHOT)
