@@ -130,7 +130,7 @@ The map-first zone view ("Lacquer and brass") has its own theme, `assets/themes/
 How the theme is built, so a reused piece inside a lacquer panel keeps its own look:
 
 - **No defaults.** The theme sets no `default_font` or `default_font_size`. A default would answer for every type, `pixel_theme.tres`'s variants included, before Godot reached them (the `LabelMerchantTitle` problem above). Each variant sets its own `font` and `font_size` instead. `test_theme_sets_no_defaults` guards this.
-- **Shadows.** `pixel_theme.tres`'s base `Label` draws a 1 px ink shadow. The four painted titles set the kit's hard 2 px shadow (`#150909`, offset 2, 2, `shadow_outline_size` 0). Every other lacquer variant sets a transparent `font_shadow_color`, so it draws none.
+- **Shadows.** `pixel_theme.tres`'s base `Label` draws a 1 px ink shadow. The four painted titles and `LabelLacquerCooldown` (a number painted over an icon) set the kit's hard 2 px shadow (`#150909`, offset 2, 2, `shadow_outline_size` 0). Every other lacquer variant sets a transparent `font_shadow_color`, so it draws none.
 - **Line pitch.** Each variant's `line_spacing` is the kit's line height minus the font's height at that size, so wrapped lines (lore, two-line card details, popover bodies) step by the kit's line height. A single-line Label is only the font's height (17 px for 15 px BM Euljiro), not the kit's line height.
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for the painted titles, BM Euljiro for everything else. Tags and seals use a `FontVariation` of BM Euljiro with 1 px letter spacing (`spacing_glyph = 1`).
 - **Tag and seal indent.** The 1 px letter spacing also trails the last letter, which would pull centred text 0.5 px left. Tags and seals therefore have a `normal` style of their own, a `StyleBoxEmpty` with a 1 px left content margin: the mock's `text-indent: 1px`. For the mode tags, NEW and UNKNOWN, give the Label the tag's or seal's full width (76 px for a tag) and centre the text. Add no offset of your own.
@@ -162,6 +162,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |
 | `LabelLacquerPopoverBody` | Euljiro 15 / 20 | Cream | Map popover body text |
 | `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Nothing today. `LacquerFloater` (the map's floater and the cycling zones') puts its text in a `RichTextLacquer` at 16 px instead (see below), so a decimal (`+1.5 Madra`, Madra blue) gets its Yatra point. No outline (`outline_size` set to 0): the kit's §0 dropped it when the floaters moved onto the token |
+| `LabelLacquerCooldown` | Euljiro 22, shadow | Cream | A technique's cooldown seconds, centred on its ability icon. The painted titles' 2 px ink shadow keeps the number readable over any icon. Single line only: it sets no `line_spacing`, so do not wrap it |
 
 `RichTextLacquer` (base `RichTextLabel`): BM Euljiro 15, tan, `line_separation` 1, so each line is 18 px (15/18), the first included. Use it for the few lines with a decimal number: BM Euljiro's `.` sits low and reads as a comma at 15–17 px, so `LacquerText.decimal_bbcode()` sets each decimal point in Yatra One (kit §3, glyph gaps). Set `bbcode_enabled`, `fit_content` and, for one-line text, `autowrap_mode` off.
 
@@ -180,12 +181,15 @@ All `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 
 | File | Texture | Margins | Fill | Use |
 |------|---------|---------|------|-----|
+| `board9.tres` | `lacquer_board9_ai.png` (28x28) | left and top 8, right and bottom 12 | yes | The plain board under the technique and buff tooltips. The 4 px shadow is baked into the right and bottom edges |
 | `frame_brass.tres` | `lacquer_frame_brass_ai.png` (24x24) | 8 | none | Flash frame on cards, technique drawers and the Now tray, pinned map plates |
 | `frame_hover.tres` | `lacquer_frame_hover_ai.png` (16x16) | 4 | none | Hover frame on cards, technique drawers, the Now tray, the Auto toggle, Show me, About |
 | `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` (12x12) | top and bottom 4 | yes | The activity list's rail thumb, any even height of 32 or more |
 | `token.tres` | `lacquer_token_ai.png` (26x26) | left and top 6, right and bottom 8 | yes | `LacquerFloater`'s token, for the map's floater and the cycling zones'. The 2 px shadow is baked into the right and bottom edges |
 
 `token.tres` also sets content margins 14, 4, 16 and 6 (left, top, right, bottom), so a `PanelContainer` with this style hugs one 20 px text line to the kit's token: 30 px tall (28 + the 2 px shadow), the text 14 px in and 4 px down, and text width + 30 wide (text + 28 + the shadow). A 16 px `RichTextLacquer` line is 20 px already (`test_token_hugs_a_floater_line`). A one-line `LabelLacquerFloater` is 19 px, so give it `custom_minimum_size.y = 20`. The kit rounds the token's width to even (`even(text + 28)`): the floater sets that width itself.
+
+`board9.tres` also sets content margins 16, 14, 20 and 18 (left, top, right, bottom): the text sits 16 px in and 14 px down, and the right and bottom margins are the same 16 and 14 plus the 4 px baked shadow. A `PanelContainer` with this style therefore pads its content 16 px left and right and 14 px top and bottom inside the board's visible edge, and is 4 px wider and taller than that board (`test_board9_margins`).
 
 ### Lacquer pieces (`scenes/common/lacquer/`)
 
@@ -197,7 +201,7 @@ All `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 - **Cycling pieces.** The cycling board sets `lacquer_theme.tres` on its root ([CYCLING.md](cycling/CYCLING.md)). Its action name and `Auto` label are `LabelLacquerDetail`, the technique's name `LabelLacquerPanelTitle`, `Esc` `LabelLacquerHotkey`, and the status line `LabelLacquerName`. The board has no result line: the zone chest shows the last cycle's under its Now tray, in a `LabelLacquerDetail` (`%LastCycleLabel`). Its Madra is a whole number, so it needs no `RichTextLacquer`. A `TechniqueDrawer` in the zone chest uses `LabelLacquerName` for the title, `LabelLacquerDetail` for the line, `LabelLacquerSeal` for NEW and `LabelLacquerTag` for IN USE (cream), with `frame_hover.tres` and `frame_brass.tres` overlays. `CyclingGroove` draws its cells in code from the `LACQUER_*` constants and needs no theme.
 - **`LacquerRail`** (`scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn`): the brass scroll rail (kit §4.4) that stands in for a `ScrollContainer`'s hidden scrollbar. `bind(host)` follows the host's scroll; it shows only while the content overflows, lights each end cap only when the list can scroll that way, sizes its thumb (`rail_thumb.tres`) from the visible share, and `step_to(target)` scrolls in six even-px steps over 200 ms. The zone chest's activity list uses it; the full log styles its own scrollbar's caps with the same textures.
 
-Tests: `tests/unit/test_lacquer_pieces.gd` checks every variant's font, size, colour and shadow, the line pitch measured on real Labels and RichTextLabels (decimal lines included), the tag indent, the styleboxes' margins, the token hugging a floater line, and the pieces.
+Tests: `tests/unit/test_lacquer_pieces.gd` checks every variant's font, size, colour and shadow, the line pitch measured on real Labels and RichTextLabels (decimal lines included), the tag indent, the styleboxes' margins (`board9.tres` included), the token hugging a floater line, the pieces, and the Madra orb shader's colour uniforms and their defaults.
 
 ## Pattern examples
 
@@ -260,6 +264,7 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | `LACQUER_RIM` | `#692F2F` | — | The lip under the cycling groove |
 | `LACQUER_DIM` / `LACQUER_VERMILION` | `#94806A` / `#A83C30` | — | Old log lines, seals |
 | `LACQUER_MADRA_HI` / `LACQUER_MADRA` / `LACQUER_MADRA_MID` | `#E8F6FD` / `#BBD5E7` / `#849BE4` | — | The lit cycling groove (top edge, body, bottom edge). `LACQUER_MADRA` is also Madra text |
+| `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | The text steps of the Health crimson and Stamina bamboo ramps: the adventure view's floaters |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code, and keep each value in step with its theme.
 

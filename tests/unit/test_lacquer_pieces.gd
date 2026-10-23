@@ -2,10 +2,11 @@ extends GutTest
 
 ## Unit tests for the lacquer theme and its shared pieces: the frame strip
 ## rect, the stepped rod, the brass frame overlay's flash, the floater, the
-## text helpers, the theme variants (kit §3) and the 9-slice styleboxes
-## (kit §4).
+## text helpers, the theme variants (kit §3), the 9-slice styleboxes (kit §4)
+## and the Madra orb shader's colour uniforms.
 
 const THEME_PATH: String = "res://assets/themes/lacquer/lacquer_theme.tres"
+const MADRA_ORB_SHADER_PATH: String = "res://assets/shaders/lacquer_madra_orb.gdshader"
 const ROD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_rod.tscn")
 const FRAME_OVERLAY_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_frame_overlay.tscn")
 const FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn")
@@ -104,6 +105,21 @@ func _make_well_rod() -> LacquerRod:
 	rod.steps = 152
 	add_child_autofree(rod)
 	return rod
+
+## The default a shader declares for a colour uniform, read from its code
+## (`uniform vec4 name : source_color = vec4(r, g, b, a);`), or null when the
+## code declares none. Headless Godot returns no parameter defaults from the
+## RenderingServer, so the declaration is the only place to read one.
+func _declared_colour(code: String, uniform_name: String) -> Variant:
+	var declaration := RegEx.new()
+	declaration.compile("uniform\\s+vec4\\s+" + uniform_name + "\\s*:\\s*source_color\\s*=\\s*vec4\\(([^)]*)\\)\\s*;")
+	var found: RegExMatch = declaration.search(code)
+	if found == null:
+		return null
+	var channels: PackedStringArray = found.get_string(1).split(",")
+	if channels.size() != 4:
+		return null
+	return Color(channels[0].to_float(), channels[1].to_float(), channels[2].to_float(), channels[3].to_float())
 
 #-----------------------------------------------------------------------------
 # STRIP RECT
@@ -406,6 +422,23 @@ func test_floater_has_no_outline() -> void:
 	assert_true(theme.has_constant(&"outline_size", &"LabelLacquerFloater"), "the floater sets its outline size")
 	assert_eq(theme.get_constant(&"outline_size", &"LabelLacquerFloater"), 0)
 
+func test_cooldown_variant() -> void:
+	# A technique's cooldown seconds sit on its icon: Euljiro 22 in cream with the
+	# painted titles' hard 2 px ink shadow, so the number reads over any icon.
+	var theme := _theme()
+	var variant: StringName = &"LabelLacquerCooldown"
+	assert_eq(theme.get_type_variation_base(variant), &"Label", "a Label variant")
+	assert_true(theme.has_font_size(&"font_size", variant), "sets its own size")
+	assert_eq(theme.get_font_size(&"font_size", variant), 22, "size")
+	assert_true(theme.has_font(&"font", variant), "sets its own font")
+	assert_eq(_font_path(theme.get_font(&"font", variant)), EULJIRO_PATH, "font")
+	assert_eq(theme.get_color(&"font_color", variant), ThemeConstants.LACQUER_CREAM, "colour")
+	assert_eq(theme.get_color(&"font_shadow_color", variant), ThemeConstants.LACQUER_INK, "shadow colour")
+	assert_eq(theme.get_constant(&"shadow_offset_x", variant), 2, "shadow x")
+	assert_eq(theme.get_constant(&"shadow_offset_y", variant), 2, "shadow y")
+	assert_true(theme.has_constant(&"shadow_outline_size", variant), "sets its shadow outline")
+	assert_eq(theme.get_constant(&"shadow_outline_size", variant), 0, "the shadow is a hard copy, not grown")
+
 func test_rich_text_variant() -> void:
 	var theme := _theme()
 	assert_eq(theme.get_type_variation_base(&"RichTextLacquer"), &"RichTextLabel")
@@ -463,6 +496,27 @@ func test_token_hugs_a_floater_line() -> void:
 	assert_eq(panel.size.y, 30.0, "28 px token + 2 px shadow")
 	assert_eq(panel.size.x, line.size.x + 30.0, "text + 28, + 2 px shadow")
 
+func test_board9_margins() -> void:
+	# The plain board under the tooltips: a 24x24 board with its 4 px shadow baked
+	# into the right and bottom of a 28x28 file, so the slices are 8 px on the
+	# left and top and 12 px on the right and bottom. The content margins keep the
+	# text 16 px in and 14 px down, with the shadow's 4 px added on the far sides.
+	var board: StyleBoxTexture = load("res://assets/styleboxes/lacquer/board9.tres") as StyleBoxTexture
+	assert_not_null(board, "board9.tres loads as a StyleBoxTexture")
+	if board == null:
+		return
+	assert_eq(board.texture.resource_path, "res://assets/ui/lacquer/lacquer_board9_ai.png")
+	assert_eq(board.texture.get_size(), Vector2(28, 28), "a 24x24 board plus its 4 px shadow")
+	assert_eq(board.texture_margin_left, 8.0, "texture margin left")
+	assert_eq(board.texture_margin_top, 8.0, "texture margin top")
+	assert_eq(board.texture_margin_right, 12.0, "texture margin right skips the shadow")
+	assert_eq(board.texture_margin_bottom, 12.0, "texture margin bottom skips the shadow")
+	assert_eq(board.content_margin_left, 16.0, "content margin left")
+	assert_eq(board.content_margin_top, 14.0, "content margin top")
+	assert_eq(board.content_margin_right, 20.0, "content margin right")
+	assert_eq(board.content_margin_bottom, 18.0, "content margin bottom")
+	assert_true(board.draw_center)
+
 #-----------------------------------------------------------------------------
 # THEME CONSTANTS
 #-----------------------------------------------------------------------------
@@ -478,3 +532,37 @@ func test_lacquer_palette_matches_the_kit() -> void:
 	assert_eq(ThemeConstants.LACQUER_MADRA, Color("#BBD5E7"))
 	assert_eq(ThemeConstants.LACQUER_MADRA_MID, Color("#849BE4"))
 	assert_eq(ThemeConstants.LACQUER_VERMILION, Color("#A83C30"))
+
+func test_vitals_colours() -> void:
+	# The text colours of the Health crimson and Stamina bamboo ramps.
+	assert_eq(ThemeConstants.LACQUER_HEALTH, Color("#E8737A"))
+	assert_eq(ThemeConstants.LACQUER_STAMINA, Color("#C9DB86"))
+
+#-----------------------------------------------------------------------------
+# MADRA ORB SHADER
+#-----------------------------------------------------------------------------
+
+func test_orb_colours_default_to_madra() -> void:
+	# The liquid's ramp is three colour uniforms so the Health orb can set its own
+	# crimson on its material. Their defaults are the Madra ramp, which keeps the
+	# cultivator cabinet's orb as it was without setting anything but `progress`.
+	var shader: Shader = load(MADRA_ORB_SHADER_PATH) as Shader
+	assert_not_null(shader, "the Madra orb shader loads")
+	if shader == null:
+		return
+	var uniform_types: Dictionary = {}
+	for uniform: Dictionary in shader.get_shader_uniform_list():
+		uniform_types[uniform["name"]] = uniform["type"]
+	var madra_ramp: Dictionary = {
+		"light": Color("#E8F6FD"),
+		"pale": Color("#BBD5E7"),
+		"blue": Color("#849BE4"),
+	}
+	for uniform_name: String in madra_ramp:
+		assert_true(uniform_types.has(uniform_name), "%s is a shader uniform" % uniform_name)
+		assert_eq(uniform_types.get(uniform_name), TYPE_COLOR, "%s is a colour" % uniform_name)
+		var declared: Variant = _declared_colour(shader.code, uniform_name)
+		assert_not_null(declared, "%s declares its default in the shader code" % uniform_name)
+		if declared != null:
+			var expected: Color = madra_ramp[uniform_name]
+			assert_true((declared as Color).is_equal_approx(expected), "%s defaults to %s, the shader declares %s" % [uniform_name, expected, declared])
