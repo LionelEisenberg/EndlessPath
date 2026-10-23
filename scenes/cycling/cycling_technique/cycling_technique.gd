@@ -14,6 +14,10 @@ extends Node2D
 ## its swirl steps through SWIRL_FRAMES frames at SWIRL_FPS, and a zone shows its
 ## state as a frame. advance() moves the play on by one frame. _process() feeds it
 ## the mouse, and tests feed it a chosen cursor.
+## Between cycles the groove shows lit, as a full cycle leaves it, so the path
+## stands out from the carved figure. A cycle's start sweeps that light away in
+## GROOVE_SWEEP_SECONDS, running along the path ahead of the ball, and the ball's
+## trail lights the groove again behind it.
 ## The ball has two positions. The drawn one, snapped to the 2 px grid, is what
 ## the player sees, so tracking, the ring and the pellets use it. The true one,
 ## the PathFollow2D's, is where the ball is on the path, so which zones it
@@ -65,6 +69,11 @@ const SWIRL_FPS: float = 10.0
 ## drew in the newest frames that cover this long, over the time they cover.
 const RATE_WINDOW: float = 1.0
 
+## The seconds a cycle's start takes to sweep the last cycle's light off the
+## groove, at an even pace along the path. The ball eases in, so the sweep runs
+## well ahead of it.
+const GROOVE_SWEEP_SECONDS: float = 0.5
+
 ## The ball ring's frames: the steady ring around a ready ball, and the dotted
 ## ring while the cursor follows it.
 const _RING_READY: int = 0
@@ -104,6 +113,8 @@ var _cycling: bool = false
 var _tracking: bool = false
 ## Seconds into the running cycle.
 var _elapsed: float = 0.0
+## The path's length in px, which the groove's sweep runs over.
+var _path_length: float = 0.0
 ## Seconds the swirl has run. It runs whether or not a cycle does.
 var _swirl_clock: float = 0.0
 ## Seconds toward the next Madra step. It keeps its remainder between steps.
@@ -145,12 +156,14 @@ func setup(data: CyclingTechniqueData) -> void:
 	technique_data = data
 	var curve: Curve2D = data.path_curve if data != null else null
 	_path.curve = curve if curve != null else Curve2D.new()
+	_path_length = _path.curve.get_baked_length() if _path.curve.point_count > 0 else 0.0
 	_groove.setup(curve)
 	_build_zones()
 	_return_to_ready()
 
 ## Starts a cycle, from ready only. Every zone goes back to IDLE (clearing the
-## last cycle's studs) and the groove goes dark. Returns whether a cycle started.
+## last cycle's studs), and the groove keeps the last cycle's light for the
+## sweep to clear. Returns whether a cycle started.
 func start_cycle() -> bool:
 	if _cycling or technique_data == null:
 		return false
@@ -161,13 +174,14 @@ func start_cycle() -> bool:
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
 	_groove.set_lit_length(-1.0)
+	_groove.set_swept_length(-1.0)
 	_ball_ring.visible = false
 	CyclingManager.start_cycle_session(technique_data.cycle_duration)
 	cycling_started.emit()
 	return true
 
 ## Ends a running cycle without a result and puts everything back to ready: the
-## zones IDLE, the groove dark, the ball at the start of the path and the cycle's
+## zones IDLE, the groove lit, the ball at the start of the path and the cycle's
 ## session over. It does this after a finished cycle too, which clears its studs.
 func stop_cycling() -> void:
 	_return_to_ready()
@@ -175,10 +189,10 @@ func stop_cycling() -> void:
 ## Moves the play on by `delta` seconds, with the cursor at `cursor_global`.
 ## While no cycle runs only the swirl moves and the ball waits at the start. While
 ## one runs, in this order: the ball moves and is drawn, the cursor draws Madra if
-## it is on the ball, the zones turn active or spent, the groove lights, the frame
-## joins the rate window and the session is updated. The cycle ends once its time
-## is up. A frame that runs past the end counts only the time left in the cycle,
-## so a long hitch draws no Madra beyond it.
+## it is on the ball, the zones turn active or spent, the groove's sweep and trail
+## move on, the frame joins the rate window and the session is updated. The cycle
+## ends once its time is up. A frame that runs past the end counts only the time
+## left in the cycle, so a long hitch draws no Madra beyond it.
 func advance(delta: float, cursor_global: Vector2) -> void:
 	_swirl_clock += delta
 	_show_swirl_frame()
@@ -198,6 +212,7 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 		_set_ring_frame(_RING_TRACKING)
 		_draw_madra(cycle_delta)
 	_update_zones()
+	_groove.set_swept_length(_path_length * minf(_elapsed / GROOVE_SWEEP_SECONDS, 1.0))
 	_groove.set_lit_length(_follow.progress)
 	_record_rate(cycle_delta, drawing)
 	_update_session()
@@ -361,7 +376,7 @@ func _update_session() -> void:
 
 ## Ends the cycle that has run its time: every zone still open is spent, the
 ## session ends, the ball goes back to the start and cycle_completed carries the
-## result. The groove stays lit until the next cycle starts. With auto_cycle on,
+## result. The groove stays lit until the next cycle's sweep. With auto_cycle on,
 ## the next cycle starts at once and the rate window carries into it: the session
 ## is updated again in the same frame, so the rate does not read 0 for a frame
 ## between two cycles. Otherwise the window is emptied.
@@ -381,7 +396,7 @@ func _finish_cycle() -> void:
 		_rate_window.clear()
 
 ## Ends any cycle without a result and puts the play back to ready: no time, no
-## Madra gathered, a fresh empty result, the zones IDLE, the groove dark and the
+## Madra gathered, a fresh empty result, the zones IDLE, the groove lit and the
 ## ball waiting at the start of the path. The session ends only if this technique
 ## was cycling: a session another technique started is left running.
 func _return_to_ready() -> void:
@@ -396,7 +411,7 @@ func _return_to_ready() -> void:
 		CyclingManager.end_cycle_session()
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
-	_groove.set_lit_length(-1.0)
+	_groove.light_all()
 	_show_ready()
 
 ## Returns an empty result for a cycle of this technique.

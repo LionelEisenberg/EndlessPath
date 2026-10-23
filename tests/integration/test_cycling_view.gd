@@ -805,7 +805,8 @@ func test_reopening_starts_clean() -> void:
 		assert_eq(each.get_state(), CyclingZone.State.IDLE, "%s is idle" % each.name)
 	assert_false(_technique.is_cycling(), "the cycle ended")
 	assert_false(CyclingManager.is_cycle_running(), "and its session")
-	assert_eq((_technique.get_node("%CyclingGroove") as CyclingGroove).get_lit_count(), 0, "the groove is dark")
+	var groove := _technique.get_node("%CyclingGroove") as CyclingGroove
+	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "the groove shows lit, as between cycles")
 	assert_eq(_technique.get_ball_global_position(), Vector2(320.0, 464.0) + _technique.global_position, "the ball waits at the start of the path")
 	assert_eq(_view.get_status_text(), CyclingView.READY_FIRST, "and the status reads as the first time again")
 	await _await_queued_frees()

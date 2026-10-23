@@ -7,9 +7,13 @@ extends Node2D
 ## however the path turns, which a rotated line texture could not do.
 ## setup() rasterises the technique's curve once. Each point of the path covers
 ## a 2 x 2 block of cells, so the channel is about two cells (4 px) thick, and
-## the cell under each of its bottom-edge cells is its lip. Cells are ink, and
-## light in the Madra ramp behind the ball: set_lit_length() lights every cell
-## the path reaches within the length the ball has travelled.
+## the cell under each of its bottom-edge cells is its lip. Cells are ink, or lit
+## in the Madra ramp. Two lengths along the path decide which: set_lit_length()
+## is the ball's trail, every cell within the length the ball has travelled, and
+## set_swept_length() is the sweep that clears the last cycle's light as a new
+## cycle starts. A cell is lit while the trail covers it or the sweep has not
+## reached it yet. light_all() shows the whole groove lit, as a full cycle leaves
+## it.
 ## The node draws in its own space, which is the curve's space. Place it on an
 ## even screen px (a multiple of CELL), or its cells leave the 2 px grid.
 
@@ -39,8 +43,11 @@ var _cell_lengths: PackedFloat64Array = PackedFloat64Array()
 var _lit_colors: PackedColorArray = PackedColorArray()
 ## The top-left corner of each lip cell.
 var _lip_origins: PackedVector2Array = PackedVector2Array()
-## How many cells, counting from the start of the path, are lit.
+## How many cells, counting from the start of the path, the ball's trail lights.
 var _lit_count: int = 0
+## How many cells, counting from the start of the path, the sweep has cleared of
+## the last cycle's light. The cells past them still show it.
+var _swept_count: int = 0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -50,10 +57,9 @@ func _draw() -> void:
 	var cell_size: Vector2 = Vector2(CELL, CELL)
 	for origin: Vector2 in _lip_origins:
 		draw_rect(Rect2(origin, cell_size), ThemeConstants.LACQUER_RIM)
-	for index: int in _lit_count:
-		draw_rect(Rect2(_cell_origins[index], cell_size), _lit_colors[index])
-	for index: int in range(_lit_count, _cell_origins.size()):
-		draw_rect(Rect2(_cell_origins[index], cell_size), ThemeConstants.LACQUER_INK)
+	for index: int in _cell_origins.size():
+		var lit: bool = index < _lit_count or index >= _swept_count
+		draw_rect(Rect2(_cell_origins[index], cell_size), _lit_colors[index] if lit else ThemeConstants.LACQUER_INK)
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -89,20 +95,22 @@ static func lip_cells(cells: Dictionary) -> Array[Vector2i]:
 	return lips
 
 ## Rasterises `curve`, the technique's path in this node's space, and leaves the
-## groove dark. A null curve, or one with no points, leaves it without cells.
+## groove dark: no trail, and the whole path swept. A null curve, or one with no
+## points, leaves it without cells.
 func setup(curve: Curve2D) -> void:
 	_cell_origins = PackedVector2Array()
 	_cell_lengths = PackedFloat64Array()
 	_lit_colors = PackedColorArray()
 	_lip_origins = PackedVector2Array()
-	_lit_count = 0
 	if curve != null and curve.point_count > 0:
 		_store(build_cells(_sample_points(curve)))
+	_lit_count = 0
+	_swept_count = _cell_lengths.size()
 	queue_redraw()
 
-## Lights every cell whose path length is at or under `length`, the distance the
-## ball has travelled along the path. A negative length lights none. It only
-## redraws when the number of lit cells changes.
+## Lights the ball's trail: every cell whose path length is at or under `length`,
+## the distance the ball has travelled along the path. A negative length lights
+## none. It only redraws when the trail's cell count changes.
 func set_lit_length(length: float) -> void:
 	var count: int = _cell_lengths.bsearch(length, false)
 	if count == _lit_count:
@@ -110,9 +118,26 @@ func set_lit_length(length: float) -> void:
 	_lit_count = count
 	queue_redraw()
 
-## Returns how many cells are lit.
+## Clears the last cycle's light from every cell whose path length is at or under
+## `length`, how far the sweep has run. The cells past it keep their light, and
+## the trail still lights the cells it covers. A negative length clears none, so
+## every cell past the trail shows lit. It only redraws when the swept cell count
+## changes.
+func set_swept_length(length: float) -> void:
+	var count: int = _cell_lengths.bsearch(length, false)
+	if count == _swept_count:
+		return
+	_swept_count = count
+	queue_redraw()
+
+## Shows every cell lit, as a full cycle leaves the groove.
+func light_all() -> void:
+	set_lit_length(INF)
+
+## Returns how many cells show lit: those the trail covers and those past the
+## sweep.
 func get_lit_count() -> int:
-	return _lit_count
+	return _lit_count + maxi(0, _cell_lengths.size() - maxi(_swept_count, _lit_count))
 
 ## Returns how many cells the path has, lit or not. The lips are not counted.
 func get_cell_count() -> int:
@@ -145,7 +170,7 @@ static func _sample_points(curve: Curve2D) -> PackedVector2Array:
 
 ## Stores `cells`, as build_cells() returns them, sorted by path length with
 ## each cell's lit colour, and stores their lips. Sorting once here is what lets
-## set_lit_length() light a prefix of the cells.
+## set_lit_length() and set_swept_length() each cover a prefix of the cells.
 func _store(cells: Dictionary) -> void:
 	var ordered: Array = cells.keys()
 	ordered.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return cells[a] < cells[b])

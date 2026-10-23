@@ -648,13 +648,13 @@ func test_stop_resets_zones() -> void:
 	_technique.stop_cycling()
 	for other: CyclingZone in _technique.cycling_zones:
 		assert_eq(other.get_state(), CyclingZone.State.IDLE, "%s is idle" % other.name)
-	assert_eq(groove.get_lit_count(), 0)
+	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "the groove shows lit again, as between cycles")
 	assert_eq(_technique.get_ball_global_position(), START)
 	assert_false(_technique.is_cycling())
 	assert_false(CyclingManager.is_cycle_running())
 	assert_signal_not_emitted(_technique, "cycle_completed")
 
-func test_stop_after_a_cycle_clears_the_studs_and_the_groove() -> void:
+func test_stop_after_a_cycle_clears_the_studs_and_keeps_the_groove_lit() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	assert_true(_technique.try_score_zone(zone))
 	_run(CYCLE_SECONDS + FRAME, 60.0, false)
@@ -662,7 +662,7 @@ func test_stop_after_a_cycle_clears_the_studs_and_the_groove() -> void:
 	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "precondition: the whole groove is lit")
 	_technique.stop_cycling()
 	assert_eq(zone.get_state(), CyclingZone.State.IDLE)
-	assert_eq(groove.get_lit_count(), 0)
+	assert_eq(groove.get_lit_count(), groove.get_cell_count())
 
 func test_auto_chains_cycles() -> void:
 	watch_signals(_technique)
@@ -768,17 +768,40 @@ func test_swirl_steps_ten_frames_a_second_ready_or_cycling() -> void:
 			_technique.advance(0.1, FAR)
 			assert_eq(sprite.get_frame().x, (step + (10 if running else 0)) % 8, "frame at step %d (running %s)" % [step, running])
 
+func test_the_groove_shows_lit_before_the_first_cycle() -> void:
+	var groove := _node("CyclingGroove") as CyclingGroove
+	assert_gt(groove.get_cell_count(), 0, "precondition: the path has cells")
+	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "lit as a full cycle leaves it")
+	_technique.advance(FRAME, FAR)
+	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "and it stays lit while the ball waits")
+
 func test_groove_lights_behind_the_ball() -> void:
 	var groove := _node("CyclingGroove") as CyclingGroove
+	var total: int = groove.get_cell_count()
 	_technique.start_cycle()
-	assert_eq(groove.get_lit_count(), 0, "dark at the start")
-	_run(5.0, 60.0, false)
-	assert_gt(groove.get_lit_count(), 0)
-	assert_lt(groove.get_lit_count(), groove.get_cell_count())
+	assert_eq(groove.get_lit_count(), total, "the last cycle's light shows as the cycle starts")
+	_run(1.0, 60.0, false)
+	var trail: int = groove.get_lit_count()
+	assert_gt(trail, 0, "once the sweep is done the ball's trail is lit")
+	assert_lt(trail, total / 10, "and only that, still short a second in")
+	_run(4.0, 60.0, false)
+	assert_gt(groove.get_lit_count(), trail, "the trail grows behind the ball")
+	assert_lt(groove.get_lit_count(), total)
 	_run(CYCLE_SECONDS - 5.0 + FRAME, 60.0, false)
-	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "the whole groove is lit at the end")
+	assert_eq(groove.get_lit_count(), total, "the whole groove is lit at the end")
 	_technique.start_cycle()
-	assert_eq(groove.get_lit_count(), 0, "dark again when the next cycle starts")
+	assert_eq(groove.get_lit_count(), total, "and it stays lit as the next cycle starts, until the sweep")
+
+func test_a_start_sweeps_the_old_light_away_ahead_of_the_ball() -> void:
+	var groove := _node("CyclingGroove") as CyclingGroove
+	var total: int = groove.get_cell_count()
+	_technique.start_cycle()
+	_run(CyclingTechnique.GROOVE_SWEEP_SECONDS / 2.0, 60.0, false)
+	var mid_sweep: int = groove.get_lit_count()
+	assert_lt(mid_sweep, total * 0.7, "half way through the sweep, about half the groove is dark")
+	assert_gt(mid_sweep, total * 0.3, "and the far half keeps the old light")
+	_run(CyclingTechnique.GROOVE_SWEEP_SECONDS / 2.0 + FRAME, 60.0, false)
+	assert_lt(groove.get_lit_count(), total / 10, "the sweep is done in GROOVE_SWEEP_SECONDS, leaving the trail")
 
 func test_ball_follows_the_eased_path() -> void:
 	_technique.start_cycle()

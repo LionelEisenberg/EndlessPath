@@ -3,7 +3,8 @@ extends GutTest
 ## Unit tests for CyclingGroove, the carved channel the Madra ball travels: the
 ## art-pixel cells a path covers (each point covers a 2 x 2 block, so a straight
 ## line is two cells thick), the lip under its bottom edge, the Madra colour of
-## a lit cell, and how many cells a travelled length lights.
+## a lit cell, how many cells a travelled length lights, and the sweep that
+## darkens the last cycle's light as a new cycle starts.
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -114,6 +115,8 @@ func test_no_curve_has_no_cells() -> void:
 	assert_eq(groove.get_cell_count(), 0, "a curve with no points")
 	groove.set_lit_length(1e9)
 	assert_eq(groove.get_lit_count(), 0, "nothing to light")
+	groove.light_all()
+	assert_eq(groove.get_lit_count(), 0, "nothing to light at all")
 
 ## Setting up again, when another technique is equipped, replaces the cells and
 ## leaves the groove dark.
@@ -171,3 +174,67 @@ func test_redraws_only_when_the_lit_count_changes() -> void:
 	groove.set_lit_length(60.0)
 	await wait_process_frames(2)
 	assert_signal_emit_count(groove, "draw", 2, "a changed lit count does again")
+
+#-----------------------------------------------------------------------------
+# THE SWEEP
+#-----------------------------------------------------------------------------
+
+## light_all() shows every cell lit, as a finished cycle leaves the groove.
+func test_light_all_lights_every_cell() -> void:
+	var groove: CyclingGroove = _groove_on(_curve(Vector2(0, 10), Vector2(100, 10)))
+	assert_eq(groove.get_lit_count(), 0, "precondition: a new groove is dark")
+	groove.light_all()
+	assert_eq(groove.get_lit_count(), groove.get_cell_count())
+
+## With nothing swept the cells past the trail keep the last cycle's light. The
+## sweep darkens the cells at or under its length, and the cells past it stay lit
+## until it reaches them. A full sweep leaves only the trail.
+func test_a_sweep_darkens_the_cells_it_has_passed() -> void:
+	var groove: CyclingGroove = _groove_on(_curve(Vector2(0, 10), Vector2(100, 10)))
+	var total: int = groove.get_cell_count()
+	groove.set_lit_length(-1.0)
+	groove.set_swept_length(-1.0)
+	assert_eq(groove.get_lit_count(), total, "nothing swept: the old light shows on every cell")
+	groove.set_swept_length(50.0)
+	var unswept: int = groove.get_lit_count()
+	assert_gt(unswept, 0, "the cells past the sweep keep their light")
+	assert_lt(unswept, total, "the cells it passed went dark")
+	groove.set_swept_length(75.0)
+	assert_lt(groove.get_lit_count(), unswept, "the dark grows as the sweep goes on")
+	groove.set_swept_length(1e9)
+	assert_eq(groove.get_lit_count(), 0, "a full sweep leaves only the trail, empty here")
+
+## A cell is lit while the trail covers it or the sweep has not reached it, so the
+## trail lights through the swept part and the old light lies past the sweep.
+func test_the_trail_lights_through_the_swept_part() -> void:
+	var groove: CyclingGroove = _groove_on(_curve(Vector2(0, 10), Vector2(100, 10)))
+	groove.set_swept_length(1e9)
+	groove.set_lit_length(20.0)
+	var trail: int = groove.get_lit_count()
+	groove.set_lit_length(-1.0)
+	groove.set_swept_length(50.0)
+	var unswept: int = groove.get_lit_count()
+	groove.set_lit_length(20.0)
+	assert_eq(groove.get_lit_count(), trail + unswept, "the trail behind the sweep and the old light past it")
+	groove.set_lit_length(1e9)
+	assert_eq(groove.get_lit_count(), groove.get_cell_count(), "a trail over the whole path lights it all")
+
+## Setting up a new path leaves it dark, whatever the old one showed.
+func test_setup_after_a_sweep_starts_dark() -> void:
+	var groove: CyclingGroove = _groove_on(_curve(Vector2(0, 10), Vector2(100, 10)))
+	groove.set_lit_length(-1.0)
+	groove.set_swept_length(-1.0)
+	groove.setup(_curve(Vector2(0, 10), Vector2(20, 10)))
+	assert_eq(groove.get_lit_count(), 0)
+
+## A changed swept count redraws, the same one does not.
+func test_redraws_only_when_the_swept_count_changes() -> void:
+	var groove: CyclingGroove = _groove_on(_curve(Vector2(0, 10), Vector2(100, 10)))
+	await wait_process_frames(2)
+	watch_signals(groove)
+	groove.set_swept_length(50.25)
+	await wait_process_frames(2)
+	assert_signal_emit_count(groove, "draw", 1, "a new swept count redraws")
+	groove.set_swept_length(50.75)
+	await wait_process_frames(2)
+	assert_signal_emit_count(groove, "draw", 1, "the same swept count does not")
