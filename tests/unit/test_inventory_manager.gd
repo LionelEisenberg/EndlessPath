@@ -8,9 +8,24 @@ extends GutTest
 #-----------------------------------------------------------------------------
 
 var _inventory: InventoryData
+## InventoryManager's save before _bind_inventory_to_manager() swapped it.
+var _original_manager_save: SaveGameData = null
 
 func before_each() -> void:
 	_inventory = InventoryData.new()
+
+func after_each() -> void:
+	if _original_manager_save != null:
+		InventoryManager.live_save_data = _original_manager_save
+		_original_manager_save = null
+
+## Points InventoryManager at a fresh save holding _inventory, so its real
+## methods act on this test's inventory. after_each() puts the original back.
+func _bind_inventory_to_manager() -> void:
+	_original_manager_save = InventoryManager.live_save_data
+	var save := SaveGameData.new()
+	save.inventory = _inventory
+	InventoryManager.live_save_data = save
 
 func _make_equipment(slot: EquipmentDefinitionData.EquipmentSlot, name: String = "Test Item") -> EquipmentDefinitionData:
 	var def = EquipmentDefinitionData.new()
@@ -23,12 +38,6 @@ func _make_instance(def: ItemDefinitionData) -> ItemInstanceData:
 	inst.item_definition = def
 	inst.quantity = 1
 	return inst
-
-func _add_to_first_slot(inventory: InventoryData, item: ItemInstanceData) -> void:
-	for i in 50:
-		if not inventory.equipment.has(i):
-			inventory.equipment[i] = item
-			return
 
 #-----------------------------------------------------------------------------
 # EQUIP ITEM
@@ -92,19 +101,15 @@ func test_equip_item_all_singular_slots() -> void:
 #-----------------------------------------------------------------------------
 
 func test_unequip_item_moves_to_grid() -> void:
-	var def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ARMOR)
-	var inst = _make_instance(def)
-	_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.ARMOR] = inst
+	_bind_inventory_to_manager()
+	var slot := EquipmentDefinitionData.EquipmentSlot.ARMOR
+	var inst := _make_instance(_make_equipment(slot))
+	_inventory.equipped_gear[slot] = inst
 
-	# Simulate unequip
-	var slot = EquipmentDefinitionData.EquipmentSlot.ARMOR
-	var item = _inventory.equipped_gear[slot]
-	_inventory.equipped_gear.erase(slot)
-	_add_to_first_slot(_inventory, item)
+	InventoryManager.unequip_item(slot)
 
 	assert_false(_inventory.equipped_gear.has(slot), "gear slot should be empty")
-	assert_true(_inventory.equipment.has(0), "item should be in first grid slot")
-	assert_eq(_inventory.equipment[0], inst)
+	assert_eq(_inventory.equipment.get(0), inst, "item should be in first grid slot")
 
 func test_unequip_to_specific_slot() -> void:
 	var def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.HEAD)
@@ -161,47 +166,41 @@ func test_unequip_to_slot_rejects_incompatible_swap() -> void:
 #-----------------------------------------------------------------------------
 
 func test_swap_accessory_slots_both_occupied() -> void:
-	var acc1_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring A")
-	var acc1_inst = _make_instance(acc1_def)
-	var acc2_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring B")
-	var acc2_inst = _make_instance(acc2_def)
+	_bind_inventory_to_manager()
+	var ring_a := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring A"))
+	var ring_b := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring B"))
+	_inventory.equipped_accessories[0] = ring_a
+	_inventory.equipped_accessories[1] = ring_b
+	watch_signals(InventoryManager)
 
-	_inventory.equipped_accessories[0] = acc1_inst
-	_inventory.equipped_accessories[1] = acc2_inst
+	InventoryManager.swap_accessory_slots(0, 1)
 
-	# Simulate swap (mirrors InventoryManager.swap_accessory_slots logic)
-	var from_index = 0
-	var to_index = 1
-	var from_item = _inventory.equipped_accessories.get(from_index, null)
-	var to_item = _inventory.equipped_accessories.get(to_index, null)
-
-	_inventory.equipped_accessories[to_index] = from_item
-	if to_item:
-		_inventory.equipped_accessories[from_index] = to_item
-	else:
-		_inventory.equipped_accessories.erase(from_index)
-
-	assert_eq(_inventory.equipped_accessories[0], acc2_inst, "items should be swapped")
-	assert_eq(_inventory.equipped_accessories[1], acc1_inst)
+	assert_eq(_inventory.equipped_accessories.get(0), ring_b, "slot 0 should now hold Ring B")
+	assert_eq(_inventory.equipped_accessories.get(1), ring_a, "slot 1 should now hold Ring A")
+	assert_signal_emitted(InventoryManager, "inventory_changed")
 
 func test_swap_accessory_slots_target_empty() -> void:
-	var acc1_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring")
-	var acc1_inst = _make_instance(acc1_def)
-	_inventory.equipped_accessories[0] = acc1_inst
+	_bind_inventory_to_manager()
+	var ring := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring"))
+	_inventory.equipped_accessories[0] = ring
 
-	var from_index = 0
-	var to_index = 1
-	var from_item = _inventory.equipped_accessories.get(from_index, null)
-	var to_item = _inventory.equipped_accessories.get(to_index, null)
+	InventoryManager.swap_accessory_slots(0, 1)
 
-	_inventory.equipped_accessories[to_index] = from_item
-	if to_item:
-		_inventory.equipped_accessories[from_index] = to_item
-	else:
-		_inventory.equipped_accessories.erase(from_index)
+	assert_false(_inventory.equipped_accessories.has(0), "source should be empty")
+	assert_eq(_inventory.equipped_accessories.get(1), ring, "target should have the item")
 
-	assert_false(_inventory.equipped_accessories.has(from_index), "source should be empty")
-	assert_eq(_inventory.equipped_accessories[to_index], acc1_inst, "target should have the item")
+func test_swap_accessory_slots_empty_source_changes_nothing() -> void:
+	_bind_inventory_to_manager()
+	var ring := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.ACCESSORY, "Ring"))
+	_inventory.equipped_accessories[1] = ring
+	watch_signals(InventoryManager)
+
+	# Prints an expected Log.error with a backtrace; Log.error does not push_error.
+	InventoryManager.swap_accessory_slots(0, 1)
+
+	assert_false(_inventory.equipped_accessories.has(0), "empty source stays empty")
+	assert_eq(_inventory.equipped_accessories.get(1), ring, "target keeps its item")
+	assert_signal_not_emitted(InventoryManager, "inventory_changed")
 
 #-----------------------------------------------------------------------------
 # MOVE EQUIPMENT (grid reorder)
@@ -238,54 +237,37 @@ func test_move_equipment_swap_with_occupied() -> void:
 	assert_eq(_inventory.equipment[3], inst_a, "slot 3 should have item A")
 
 #-----------------------------------------------------------------------------
-# GET EQUIPPED ITEM
-#-----------------------------------------------------------------------------
-
-func test_get_equipped_item_returns_item() -> void:
-	var def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND)
-	var inst = _make_instance(def)
-	_inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.MAIN_HAND] = inst
-
-	var result = _inventory.equipped_gear.get(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, null)
-	assert_eq(result, inst)
-
-func test_get_equipped_item_empty_returns_null() -> void:
-	var result = _inventory.equipped_gear.get(EquipmentDefinitionData.EquipmentSlot.HEAD, null)
-	assert_null(result, "empty slot should return null")
-
-#-----------------------------------------------------------------------------
 # AWARD ITEMS - EQUIPMENT
 #-----------------------------------------------------------------------------
 
 func test_award_equipment_creates_instances() -> void:
-	var def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, "Sword")
+	_bind_inventory_to_manager()
+	var def := _make_equipment(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, "Sword")
 
-	# Simulate _award_equipment logic
-	for i in 3:
-		var instance = ItemInstanceData.new()
-		instance.item_definition = def
-		instance.quantity = 1
-		_add_to_first_slot(_inventory, instance)
+	InventoryManager.award_items(def, 3)
 
 	assert_eq(_inventory.equipment.size(), 3, "should have 3 separate instances")
-	assert_eq(_inventory.equipment[0].item_definition, def)
-	assert_eq(_inventory.equipment[1].item_definition, def)
-	assert_eq(_inventory.equipment[2].item_definition, def)
+	for i: int in 3:
+		var instance: ItemInstanceData = _inventory.equipment.get(i)
+		assert_not_null(instance, "slot %d should be filled" % i)
+		if instance != null:
+			assert_eq(instance.item_definition, def)
+			assert_eq(instance.quantity, 1, "each instance holds one item")
+	assert_ne(_inventory.equipment.get(0), _inventory.equipment.get(1), "each copy is its own instance")
 
 func test_award_equipment_fills_slots_sequentially() -> void:
-	# Pre-fill slot 0
-	var existing_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.HEAD, "Existing")
-	var existing = _make_instance(existing_def)
+	_bind_inventory_to_manager()
+	var existing := _make_instance(_make_equipment(EquipmentDefinitionData.EquipmentSlot.HEAD, "Existing"))
 	_inventory.equipment[0] = existing
+	var new_def := _make_equipment(EquipmentDefinitionData.EquipmentSlot.ARMOR, "New")
 
-	var new_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.ARMOR, "New")
-	var new_inst = ItemInstanceData.new()
-	new_inst.item_definition = new_def
-	new_inst.quantity = 1
-	_add_to_first_slot(_inventory, new_inst)
+	InventoryManager.award_items(new_def, 1)
 
-	assert_eq(_inventory.equipment[0], existing, "slot 0 should keep existing item")
-	assert_eq(_inventory.equipment[1], new_inst, "new item should go to first available (slot 1)")
+	assert_eq(_inventory.equipment.get(0), existing, "slot 0 should keep existing item")
+	var awarded: ItemInstanceData = _inventory.equipment.get(1)
+	assert_not_null(awarded, "new item should go to first available (slot 1)")
+	if awarded != null:
+		assert_eq(awarded.item_definition, new_def)
 
 #-----------------------------------------------------------------------------
 # AWARD ITEMS - MATERIALS
@@ -330,21 +312,8 @@ func test_inventory_starts_empty() -> void:
 	assert_eq(_inventory.equipped_accessories.size(), 0, "equipped accessories should start empty")
 	assert_eq(_inventory.materials.size(), 0, "materials should start empty")
 
-func test_inventory_max_50_slots() -> void:
-	# Fill all 50 slots
-	for i in 50:
-		var def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, "Item %d" % i)
-		var inst = _make_instance(def)
-		_inventory.equipment[i] = inst
-
-	assert_eq(_inventory.equipment.size(), 50, "should fill all 50 slots")
-
-	# 51st item should fail to find slot with _add_to_first_slot
-	var overflow_def = _make_equipment(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, "Overflow")
-	var overflow_inst = _make_instance(overflow_def)
-	_add_to_first_slot(_inventory, overflow_inst)
-	# If inventory was full, the 51st wasn't added (size stays 50)
-	assert_eq(_inventory.equipment.size(), 50, "full inventory should not grow beyond 50")
+# Equipment capacity (unlocked pages x InventoryData.SLOTS_PER_PAGE) is covered
+# by test_inventory_data_pagination.gd and test_inventory_manager_pages.gd.
 
 #-----------------------------------------------------------------------------
 # ITEM_AWARDED SIGNAL CONTRACT
