@@ -132,7 +132,7 @@ Sizes and fonts always come from theme variants, never from code. When a reworke
 
 Two fonts, both in `assets/fonts/`:
 - **Yatra One** (`YatraOne-Regular.ttf`) for painted titles only, with a hard 2 px `#150909` shadow.
-- **BM Euljiro** (`BMEULJIROTTF.ttf`) for everything else, with no shadow and no outline.
+- **BM Euljiro** (`BMEULJIROTTF.ttf`) for everything else, with no shadow and no outline. The one exception is `LabelLacquerCooldown`, the seconds painted over a technique's icon, which takes the painted titles' hard 2 px `#150909` shadow (offset 2, 2) so the number reads over any icon.
 
 No text is smaller than 13 px. The lacquer theme's variants (full table in [UI_STYLING.md](UI_STYLING.md#lacquer-theme-zone-view)):
 
