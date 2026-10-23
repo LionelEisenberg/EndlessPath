@@ -275,6 +275,14 @@ There are two channels:
 
 See `docs/infrastructure/LOGGING.md`.
 
+### Aseprite MCP
+`.mcp.json` registers the `aseprite` MCP server ([diivi/aseprite-mcp](https://github.com/diivi/aseprite-mcp)): 123 tools that draw, animate, inspect and export sprites by running the Steam copy of Aseprite in batch mode, so Aseprite doesn't need to be open. Pass it absolute paths: relative ones resolve against whatever directory Claude Code started the server in. Everything it writes is AI-made art, so the AI-Generated Art rules apply (`_ai` suffix, never save over the user's files).
+
+The server lives outside the repo, cloned to `C:\Users\lione\source\repos\aseprite-mcp`; `.mcp.json` runs that clone's `.venv` Python directly, with `PYTHONPATH` pointing at the clone. The Claude desktop app is an MSIX package and redirects new `AppData` folders into its private storage, which breaks uv's default Python install, so uv keeps Python 3.13 and its cache in `C:\Users\lione\.uv` instead. To update or reinstall, from the clone:
+```bash
+git pull && UV_PYTHON_INSTALL_DIR='C:\Users\lione\.uv\python' UV_CACHE_DIR='C:\Users\lione\.uv\cache' uv sync --frozen
+```
+
 ### Key Input Bindings
 - `open_inventory` / `close_inventory` — I / I or Escape
 - `open_abilities` — A; `open_character` — C; `open_path` — P (Escape, i.e. `ui_cancel`, also closes these overlays). Menu shortcuts only work from the zone view
