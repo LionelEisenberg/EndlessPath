@@ -12,7 +12,7 @@
 
 ## As built (2026-10-23)
 
-Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 118 scripts and 1555 tests, all passing, and [CYCLING.md](../../cycling/CYCLING.md) describes the result. Where the build differs from this spec, or settles something it left open:
+Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 118 scripts and 1583 tests, all passing (1555 before the review round at the end of this list), and [CYCLING.md](../../cycling/CYCLING.md) describes the result. Where the build differs from this spec, or settles something it left open:
 
 - **Rate label.** The cabinet's rate label hides when the rate rounds to 0.0, so it never reads "+0 / s". The Now tray hides it below 0.05, the same threshold.
 - **Madra rate.** It is a time-weighted draw over the last second: per frame, the step rate while tracking below the cap, summed over the time covered. A plain "Madra added in the last second" alternated 12.8 and 13.9 at 60 FPS. An Auto restart carries the rate over.
@@ -40,6 +40,18 @@ Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 1
 - **Art files.** The imported board is `lacquer_cyc_board_ai.png` (the mock's board A, 564x1036 with its 4 px shadow), and the Auto tablets are 122x38 with their 2 px shadow.
 - **The mock's cabinet** draws gold at the left of its bottom row and flat orb fills. The game keeps the zone view's cabinet as built: gold at the right (kit §0, revision 2) and the two orb shaders.
 - **Checked in the game.** A scripted, windowed run of the real main scene (2026-10-23) ran Smooth Flow from a scratch save and captured it at 1920x1080. No one played it: the script injected the presses through the viewport (`push_input()`), and with the technique's `_process` off it fed `advance()` the cursor each frame. Nine seconds into a cycle the frame matches the mock's `#demo=1&t=9` except for the points above, the chest's list 24 px higher (see Layout), the mock's illustrations (see Mock-up), the text's anti-aliasing, the ball's swirl frame and where the pellets are. Over a magenta ground no surface lets any of it through; outside its text, every even 2x2 block of the board is one colour; and the figure box, its floater aside, uses palette colours only.
+
+### Review of 2026-10-23
+
+The user played the build and asked for five changes, made the same day (commits `c66af9b2`, `f85cefea`, `d3886895`, `8c5f7cb0` and `5716439c`). The body below stays as approved. Where it speaks of zone clicks, dotted rings, a dark groove between cycles, the footer's result line or the 500x832 figure, these lines win.
+
+- **Presses go through the ball.** The player presses the ball and nothing else. During a cycle a press on the ball scores the active zone nearest it, by the ball's distance as before (PERFECT under 6 px, GOOD under 14, OK otherwise), and does nothing when no zone is active. From ready it starts the cycle. The hand cursor shows over the ball only while a press would do something. The user found the zone presses missing: a zone was its own click target and smaller than the ball, so a press on the ball over a zone missed unless it also landed inside the zone. `CyclingZone` is now a plain `Node2D` with no shape and no `zone_clicked`, and `CyclingTechnique.press_ball()` is the press.
+- **The groove stays lit between cycles.** The path shows lit before the first cycle and after any end, stop or switch, as a full cycle leaves it. A cycle's start sweeps that light away along the path in half a second (`GROOVE_SWEEP_SECONDS`), well ahead of the easing-in ball, and the ball's trail lights it again behind it. The user found the figure's outline hard to read against a dark path.
+- **The ready ball breathes.** While it waits for a press the ball steps 60 → 64 → 68 → 64 → 60 px every 2 s (`BREATH_SECONDS`) and its brass ring grows with it, starting from the small ball at each wait. While it cycles it stays 60 px. The sizes are whole steps, so the art stays on the 2 px grid.
+- **Solid rings.** The tracking ring and a zone's idle rim are solid tan loops. The checkerboard dots laid on a circle read as broken to the user. The ball strip is now 544x204 (8 swirl frames across, 3 sizes down, in 68 px cells), the rings 352x88 (four 88 px frames) and the zone strip is still 288x48. `kit_cycling.py`'s `game_kit()` writes the game's versions of these three and of the carved figure to the mock folder's `game/` subfolder, and `import_cycling.py` copies them from there, so the mock keeps its approved art.
+- **The last cycle moves under the Now tray, and the figure grows.** The board has no result line. The zone chest shows the last cycle's result in one tan line right under the Now tray (`CyclingManager` keeps it), next to the tray that already reads the running cycle, and pushes the lore, the header and the list down 26 px. The figure takes the freed footer row: traced again from the user's outline at 524x872, 1.048x its first size and the same ratio, centred on the board, with the status line and the Auto toggle moved down. The techniques' paths and zones are scaled by the same 1.048 about the figure's top-left corner (`CyclingTechnique.path_scale` and `path_pivot`).
+
+The user also asked that zone size become a variable of each technique later. It stays a static 20 px for now ([CYCLING.md](../../cycling/CYCLING.md), Work Remaining).
 
 ## Goal
 

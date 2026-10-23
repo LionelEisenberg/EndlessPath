@@ -204,7 +204,7 @@ Only two things trigger a reset, both during boot: `reset_save_data = true`, or 
 |-------|----------------|
 | An in-progress adventure (map, tile, visited tiles, timer) | `AdventureView` / `AdventureTilemap` nodes |
 | Player vitals (health, stamina, combat Madra) | `PlayerManager.vitals_manager`. These are re-initialized at each adventure start |
-| The current action and its timers (cycling, foraging, training ticks in flight) | `ActionManager`, `CyclingTechnique` (the running cycle, with its snapshot on `CyclingManager`; the Auto toggle is `CyclingView`'s). Completed training ticks are saved in `training_tick_progress`, and each zone's `last_idle_action_id` is, so the load restarts that idle action (nothing accrues while the game is closed) |
+| The current action and its timers (cycling, foraging, training ticks in flight) | `ActionManager`, `CyclingTechnique` (the running cycle, with its snapshot and the last finished cycle's result on `CyclingManager`; the Auto toggle is `CyclingView`'s). Completed training ticks are saved in `training_tick_progress`, and each zone's `last_idle_action_id` is, so the load restarts that idle action (nothing accrues while the game is closed) |
 | The log history (`LogManager`, 200 lines), the dev panel's position and unlock, the dev zone toggles | `LogManager`, scene nodes, `MainGame._dev_unlocked`, `ZoneManager` |
 | Dialogic state | Not used. Nothing calls `Dialogic.Save` |
 

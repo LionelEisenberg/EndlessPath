@@ -125,7 +125,7 @@ What each view shows:
 | `AdventureView` | Adventure hex map, combat view, timer, player info panel | [ADVENTURING.md](../adventuring/ADVENTURING.md), [COMBAT.md](../combat/COMBAT.md) |
 | `AdventureEndCard` | Scroll with VICTORY/defeat title, run stats, loot slots, Return button | [ADVENTURING.md](../adventuring/ADVENTURING.md) |
 | `InventoryView` | Red book with Equipment, Consumables, Materials and Quest Items tabs | [INVENTORY.md](../inventory/INVENTORY.md) |
-| `CyclingView` | The cycling board in the map gap: the carved figure with the Madra ball, groove and zones, the status and result lines, the Auto toggle and the close button. The Madra and Core Density readout is the cultivator cabinet, and the techniques are in the zone chest | [CYCLING.md](../cycling/CYCLING.md) |
+| `CyclingView` | The cycling board in the map gap: the carved figure with the Madra ball, groove and zones, the status line, the Auto toggle and the close button. The Madra and Core Density readout is the cultivator cabinet, and the techniques and the last cycle's result are in the zone chest | [CYCLING.md](../cycling/CYCLING.md) |
 | `PathTreeView` | Ink-and-gold book: a chapter tab per cultivation stage, the open stage's tree (left-drag pan, wheel zoom), node or path details, active benefits, points | [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md) |
 | `AbilitiesView` | Jade book: filtered and sorted ability rows, 4-slot loadout, details of the ability pointed at | [ABILITIES.md](../abilities/ABILITIES.md) |
 | `CharacterView` | Indigo book: 8 attributes in Physical (STR, BODY, AGI, RES) and Spiritual (SPI, FND, CTRL, WILL) groups, and the attribute pointed at described on the right page | [CHARACTER.md](CHARACTER.md) |
@@ -146,7 +146,7 @@ Cycling is the one overlay with no backdrop. Its board (x 680 to 1240) sits in t
 
 | Piece | While cycling | How |
 |-------|---------------|-----|
-| Zone chest | Lists the learned techniques ("Techniques", "N learned") instead of the activities | `ZonePanel.set_techniques_mode(on)` |
+| Zone chest | Lists the learned techniques ("Techniques", "N learned") instead of the activities, with the last cycle's line under the Now tray once a cycle has ended | `ZonePanel.set_techniques_mode(on)` |
 | Dock | Hidden (the board covers its place) | `dock.visible = not on` |
 | Map | Takes no clicks, hover or wheel zoom | `zone_map_viewport.gui_disable_input = on`. The `SubViewportContainer` hands a press to its SubViewport with `push_input()`, which a viewport with its input off drops |
 

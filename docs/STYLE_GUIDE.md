@@ -180,7 +180,7 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 | Component | Look | Kit files | Godot piece |
 |---|---|---|---|
 | Anchor furniture | Lacquer board with chunky brass corner straps, hand-placed grain, a gloss dash, 4 px shadow | `lacquer_cult_ai.png` (440x252); `lacquer_chest_top_ai.png`, `_mid_ai.png` (tiled), `_bot_ai.png` (440 wide) | `CultivatorPlate` (`scenes/zones/cultivator_plate/`), `ZonePanel` (`scenes/zones/zone_panel/`) |
-| Board in the map gap | A strapped board centred between the columns with a figure carved into it, 4 px shadow, laid out in absolute px | `lacquer_cyc_board_ai.png` (560x1032), `lacquer_cyc_body_carved_ai.png` (500x832) | `CyclingView` (`scenes/cycling/cycling_view/`) |
+| Board in the map gap | A strapped board centred between the columns with a figure carved into it, 4 px shadow, laid out in absolute px | `lacquer_cyc_board_ai.png` (560x1032), `lacquer_cyc_body_carved_ai.png` (524x872) | `CyclingView` (`scenes/cycling/cycling_view/`) |
 | Plain board | Same lacquer, no caps, chamfered corners, 4 px shadow. Each board's gloss dash sits in a different place | `lacquer_goals_ai.png` (cut into slices), `lacquer_log1_ai.png` to `lacquer_log5_ai.png`, `lacquer_lore_ai.png`, `lacquer_dock_ai.png` | `GoalsPanel`, `LogWindow`, `Dock` |
 | Recessed tray | A carved-in field in deep `#230F0F` with a lit lower lip | `lacquer_now_tray_ai.png` (408x88), with `lacquer_now_plate_ai.png` (brass `Now` legend) on its top edge | `NowStrip` (`scenes/zones/zone_panel/now_strip/`) |
 
@@ -218,8 +218,8 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 | Brass frame | Heavier 9-slice overlay for flash, ready and pinned | `lacquer_frame_brass_ai.png` (24x24, margin 8) | `frame_brass.tres`, `LacquerFrameOverlay` (brass by default) |
 | Token | Small lacquer 9-slice a floater rides on, 2 px shadow baked | `lacquer_token_ai.png` (26x26) | `token.tres`, `LacquerFloater` |
 | Bullets | 10x10 inlaid diamonds per tone | `lacquer_bullet_{brass,cream,madra,tan,dim}_ai.png` | `LogWindow` |
-| Carved path | A channel carved into a board and drawn per art pixel (2x2 px cells in ink, a rim lip below), lit cell by cell in the Madra ramp behind whatever travels it. No texture file | none | `CyclingGroove` (`scenes/cycling/cycling_groove/`) |
-| Strip pieces for play | A ball with an 8-frame swirl (60x60), its two rings (80x80), a zone socket in six states (48x48), an Auto tablet raised and pressed in (120x36) | `lacquer_cyc_{ball_strip,ball_rings,zone_strip,auto,auto_on}_ai.png` | `CyclingTechnique`, `CyclingZone`, `CyclingView` (`LacquerStripRect`, `TextureButton`) |
+| Carved path | A channel carved into a board and drawn per art pixel (2x2 px cells in ink, a rim lip below), lit cell by cell in the Madra ramp behind whatever travels it, and lit whole when nothing does, so the path stands out from the carving. No texture file | none | `CyclingGroove` (`scenes/cycling/cycling_groove/`) |
+| Strip pieces for play | A ball with an 8-frame swirl in three breathing sizes (68x68 cells, the ball 60, 64 and 68 px), its four rings (88x88: the ready ring, the solid tracking ring and the ready ring grown twice), a zone socket in six states (48x48, its idle rim a solid loop), an Auto tablet raised and pressed in (120x36) | `lacquer_cyc_{ball_strip,ball_rings,zone_strip,auto,auto_on}_ai.png` | `CyclingTechnique`, `CyclingZone`, `CyclingView` (`LacquerStripRect`, `TextureButton`) |
 
 ### Map pieces (zone map; reusable for the adventure map)
 
@@ -256,7 +256,7 @@ Never glow, tint, fade or scale to show a state.
 
 | Pattern | Rule | Zone view reference |
 |---|---|---|
-| Frame strips | Switch frames from a strip; never interpolate. Timing in whole steps | Rings: 13 frames over each action cycle (1 s Well, 5 s haul). Twinkle: frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s. Cycling ball swirl: 8 frames, 10 a second |
+| Frame strips | Switch frames from a strip; never interpolate. Timing in whole steps | Rings: 13 frames over each action cycle (1 s Well, 5 s haul). Twinkle: frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s. Cycling ball swirl: 8 frames, 10 a second. The waiting ball's breath: 60, 64, 68, 64, 60 px over 2 s, in whole steps |
 | Stepped moves | Move in 2 px steps (1 map px at zoom 2) at constant speed. Compute the offset from elapsed time and quantise it | Floater: 40 px in 20 steps over 1 s, then hidden (`LacquerFloater.rise_at()`). Walk: `snap_walk_to_whole_px`. Well bob: 0, −1, −2, −1 map px every 0.6 s |
 | Snapped paths | A curve is fine; the drawn position snaps to even px every frame | `MadraPellet` drain into the adventure; the cycling ball on its eased path and its pellets |
 | Scrolling | In a few even steps | `LacquerRail.step_to()`: six even-px steps over 200 ms |
@@ -386,7 +386,7 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 | `import_kit.py` | Copies the kit into `assets/ui/lacquer/`: bakes shadows (`bake_shadow`, `bake_column`) and halves map art (`halve`) |
 | `look.py` | Tiles kit files onto one image for review |
 
-Their output paths point at the authoring session's scratch folder (`SCRATCH` and `OUT` in `lq_base.py`, `A` in `look.py`): change them to rebuild. The cycling pieces come from `docs/superpowers/mockups/cycling-view-lacquer/gen/`: `kit_cycling.py` draws them with these primitives, and `import_cycling.py` copies the used ones into `assets/ui/lacquer/cycling/` (the technique icons into `assets/ui/lacquer/icons/`) and bakes their shadows. Draw new pieces for the cascade with these primitives, so new boards share the same rims, grain and palette, and name them `_ai`.
+Their output paths point at the authoring session's scratch folder (`SCRATCH` and `OUT` in `lq_base.py`, `A` in `look.py`): change them to rebuild. The cycling pieces come from `docs/superpowers/mockups/cycling-view-lacquer/gen/`: `kit_cycling.py` draws them with these primitives, and `import_cycling.py` copies the used ones into `assets/ui/lacquer/cycling/` (the technique icons into `assets/ui/lacquer/icons/`) and bakes their shadows. The four pieces the game draws differently from the approved mock (the ball strip, the ball rings, the zone strip and the carved figure) are written to the mock folder's `game/` subfolder by `game_kit()`, and the import copies those from there. Draw new pieces for the cascade with these primitives, so new boards share the same rims, grain and palette, and name them `_ai`.
 
 **Scenes, not code.** Every node goes in a `.tscn`. No `Node.new()`, `StyleBoxFlat.new()`, `ShaderMaterial.new()` or `add_theme_*_override()` for styling in scripts. Scripts may set text, textures, frames, visibility, a shader's `progress`, and a state colour from `ThemeConstants.LACQUER_*` (as `LogWindow` and `ZoneMapLabel` do).
 

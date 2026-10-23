@@ -87,7 +87,7 @@ These are autoloaded in `project.godot` and provide global state:
 | `LogManager` | Player-facing in-game log, shown in `LogWindow`. Diagnostics use the `Log` utility |
 | `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training, merchant). No queue. Resolves and resumes the zone's idle action after every session action and on arrival in a zone |
 | `CharacterManager` | Player attributes (base + equipment bonuses) |
-| `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups, seen techniques for the NEW seal) and the running cycle's snapshot, which the cabinet and the Now tray read |
+| `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups, seen techniques for the NEW seal), the running cycle's snapshot, which the cabinet and the Now tray read, and the last cycle's result, which the chest shows under the Now tray |
 | `PathManager` | Path progression tree, point balance, perk aggregation. Most numeric perks are not yet read by any system |
 | `AbilityManager` | Ability unlock/equip state (unlocked pool, 4-slot loadout, catalog) |
 | `MerchantManager` | Merchant purchases: stock limits, gold and equipment-space checks, per-merchant ledgers in `SaveGameData.merchant_ledgers` |
@@ -141,7 +141,7 @@ Shared components used across multiple views:
 - `TechniqueDrawer` (`scenes/cycling/technique_drawer/`) and `TechniqueList` (`scenes/zones/zone_panel/technique_list/`) — The zone chest's drawers for the learned cycling techniques while cycling (`ZonePanel.set_techniques_mode()`)
 
 ### Game Systems
-1. **Cycling** — A lacquer board in the zone view's map gap: click the Madra Ball and keep the cursor in it as it travels a carved path on a body figure (Madra), and click the zones as it passes for PERFECT / GOOD / OK hits (Core Density XP). The cultivator cabinet is the readout, and the zone chest's drawers swap techniques
+1. **Cycling** — A lacquer board in the zone view's map gap: click the Madra Ball and keep the cursor in it as it travels a carved path on a body figure (Madra), and press the ball as it passes a cycling zone for PERFECT / GOOD / OK hits (Core Density XP). The cultivator cabinet is the readout, and the zone chest's drawers swap techniques
 2. **Zones & idle actions** — Map-first lacquer zone view (zoom-2 hex map with fog, cultivator cabinet, zone chest with a Now strip and grouped activity cards, dock); foraging and training (Aura Well) idle actions, which resume after every session action, NPC dialogue, merchant shop (gold for gear and Crude Scales; look themed per zone)
 3. **Adventuring** — Procedurally generated hex maps with fog-of-war (shader + FogVeilSprite smoke overlays), per-type encounter icons, floating AdventureMarker, tiled-texture path preview with committed-destination system (gradient fade behind player), real-time combat, scroll end card with stats/loot
 4. **Combat** — Real-time; abilities cost Health/Madra/Stamina (no AP pool) and have cooldowns, cast times, buffs, and interrupts; simple enemy AI

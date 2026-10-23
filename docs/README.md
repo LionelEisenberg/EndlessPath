@@ -20,7 +20,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 
 | System | Doc | Summary |
 |---|---|---|
-| Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | The lacquer cycling board: the Madra ball on its lit groove, zone clicks and hit tiers, technique drawers in the zone chest; Madra and Core Density XP |
+| Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | The lacquer cycling board: the Madra ball on its lit groove, zones scored by pressing the ball, technique drawers and the last cycle's line in the zone chest; Madra and Core Density XP |
 | Cultivation | [cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density levels, advancement stages, breakthrough status |
 | Zones and actions | [zones/ZONES.md](zones/ZONES.md) | The map-first lacquer zone view (map, cabinet, zone chest and its techniques mode, cards), ZoneManager/ActionManager, idle-action resolution, foraging, training, NPC and merchant actions |
 | Adventuring | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex maps, fog, movement and stamina, encounters, end card |

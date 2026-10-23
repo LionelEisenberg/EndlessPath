@@ -608,7 +608,7 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - `MADRA_CAPACITY_BONUS` (Expanded Core): the max-Madra calculation. `CultivationManager.get_max_madra()` (the stage's `AdvancementStageResource.get_max_madra()`) is read by `ResourceManager.add_madra()`, the zone view's `CultivatorPlate` and `CyclingTechnique`'s cap check, so the bonus belongs there.
   - `CORE_DENSITY_XP_MULT` (Dedicated Cultivation): `CultivationManager.add_core_density_xp()`.
   - `MADRA_ON_LEVEL_UP` (Breakthrough Surge): the level-up loop in `CultivationManager.add_core_density_xp()`.
-  - `CYCLING_ACCURACY_BONUS` (Cycling Focus): the zone radius, `CyclingRules.ZONE_RADIUS` (20). `CyclingRules.tier_for_distance()` and `CyclingTechnique._update_zones()` read it, and each `CyclingZone`'s `CircleShape2D` (radius 20 in the scene) is pinned to it by a test.
+  - `CYCLING_ACCURACY_BONUS` (Cycling Focus): the zone radius, `CyclingRules.ZONE_RADIUS` (20). `CyclingRules.tier_for_distance()` and `CyclingTechnique._update_zones()` read it. The zones have no shape of their own.
   - `ADVENTURE_MADRA_RETURN_PCT` (Madra Reclamation): `AdventureView.stop_adventure()`, by refunding a share of `PlayerManager.vitals_manager.current_madra`.
   - `STAMINA_RECOVERY_MULT` (Iron Will): `AdventureView._update_stamina_regen()`.
   - `ATTRIBUTE_BONUS` (no content uses it): `CharacterManager._get_attribute_bonuses()`, which only sums equipment.

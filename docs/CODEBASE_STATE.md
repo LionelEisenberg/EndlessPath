@@ -18,7 +18,7 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
 | Code | ~26.9k lines of game GDScript and ~20.3k lines of tests; 139 scenes; 102 authored `.tres` resources; 15 shaders (all counted on the cycling view branch on 2026-10-23) |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 118 scripts and 1555 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 118 scripts and 1583 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
 | In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/cycling-view-styleguide-ea3170`: the lacquer cycling view, built 2026-10-22 and 23 |
 
@@ -80,7 +80,7 @@ The 18 autoloads, in `project.godot` load order:
 | 11 | `DialogueManager` | Dialogic wrapper; `dialogue_ended` | [DIALOGUE](infrastructure/DIALOGUE.md) |
 | 12 | `PlayerManager` | The persistent player `VitalsManager` (HP/Madra/Stamina) | [CHARACTER](infrastructure/CHARACTER.md) |
 | 13 | `LogManager` | Player-facing in-game log (`message_logged`, a 200-line history) | [LOGGING](infrastructure/LOGGING.md) |
-| 14 | `CyclingManager` | Unlocked/equipped cycling techniques, technique catalog, seen techniques (the NEW seal), snapshot of the running cycle (read by the cabinet and the Now tray) | [CYCLING](cycling/CYCLING.md) |
+| 14 | `CyclingManager` | Unlocked/equipped cycling techniques, technique catalog, seen techniques (the NEW seal), snapshot of the running cycle (read by the cabinet and the Now tray), the last cycle's result (read by the chest) | [CYCLING](cycling/CYCLING.md) |
 | 15 | `AbilityManager` | Unlocked abilities, 4-slot loadout, ability catalog | [ABILITIES](abilities/ABILITIES.md) |
 | 16 | `PathManager` | Path tree, point balance, purchases, perk aggregation (`PathEffectsSummary`) | [PATH_PROGRESSION](progression/PATH_PROGRESSION.md) |
 | 17 | `QuestManager` | Active/completed quests and step advancement | [QUESTS](progression/QUESTS.md) |
