@@ -100,7 +100,7 @@ Only `foundation_advancement_stage.tres` exists (`max_madra_base = 100.0`, `max_
 | Aura Well training | 1.5 per training tick (the tick interval defaults to 1.0 s) | `aura_well_training_action.tres` → `effects_per_tick` → `aura_well_madra_trickle_effect.tres` (`AwardResourceEffectData`, `quiet = true`), which calls `award_resource(MADRA, 1.5, true)`. `TrainingActionData.get_madra_per_second()` reads the same effect for the cabinet's and the Now strip's rate |
 | Dev panel | Sets an absolute value | `set_madra()` |
 
-A full cycle with the cursor on the ball the whole time pays `base_madra_per_cycle`: the steps carry their remainder, so the frame rate does not change it. `cycle_completed` reports what the steps really added (`CycleResult.madra_added`); it is not awarded a second time. Every step is quiet, and the finished cycle writes one log line. Per-step amounts for each technique:
+A full cycle with the cursor on the ball the whole time pays `base_madra_per_cycle` to within one step: it pays the whole 0.08 s steps its `cycle_duration` holds, all 100 for the 8 s techniques, and 187 (199.47 Madra) for Smooth Flow, whose 15 s hold 187.5. The frame rate does not change the step count: the steps carry their remainder, the frame that ends the cycle counts only the time left in it, and a step pays to within 1e-6 s of its 0.08 s, so float error cannot drop the last one. `cycle_completed` reports what the steps really added (`CycleResult.madra_added`); it is not awarded a second time. Every step is quiet, and the finished cycle writes one log line. Per-step amounts for each technique:
 
 | Technique | `base_madra_per_cycle` / `cycle_duration` | Per step |
 |-----------|-------------------------------------------|----------|

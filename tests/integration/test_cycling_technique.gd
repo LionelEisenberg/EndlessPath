@@ -99,6 +99,26 @@ func _count_pellets() -> Array[int]:
 	_technique.madra_particle_requested.connect(func(_from_pos: Vector2) -> void: count[0] += 1)
 	return count
 
+## Swaps the fixture's technique for a new one playing foundation_technique: an 8 s
+## cycle of 50 Madra in 100 steps of 0.5, no zones, on a path that ends where it
+## starts. It is built with the technique, so no old zones are thrown away.
+func _use_foundation() -> void:
+	_technique = TECHNIQUE_SCENE.instantiate() as CyclingTechnique
+	_technique.technique_data_input = load(FOUNDATION_PATH)
+	add_child_autofree(_technique)
+	_technique.set_process(false)
+
+## Plays one cycle from ready with the cursor on the ball, each frame
+## `next_delta.call()` seconds long, until it ends. Returns the Madra steps it paid.
+func _track_one_cycle(next_delta: Callable) -> int:
+	var pellets: Array[int] = _count_pellets()
+	_technique.start_cycle()
+	for _frame: int in 100000:
+		if not _technique.is_cycling():
+			break
+		_technique.advance(next_delta.call(), _technique.get_ball_global_position())
+	return pellets[0]
+
 func _left_press() -> InputEventMouseButton:
 	var event := InputEventMouseButton.new()
 	event.button_index = MOUSE_BUTTON_LEFT
@@ -282,6 +302,47 @@ func test_the_result_counts_the_madra_the_pool_gained() -> void:
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
 	assert_almost_eq(result.madra_added, ResourceManager.get_madra() - 46.0, 0.000001, "the result holds what the pool gained")
 	assert_eq(result.result_line(), "Last cycle · +199 Madra · 0 / 4 zones")
+
+func test_a_tracked_8_s_cycle_pays_its_last_step_at_120_fps() -> void:
+	# An 8 s cycle holds exactly 100 steps of 0.08 s, so its 100th step falls on
+	# its last instant. Float error in 960 frames of 1 / 120 s must not cost it.
+	_use_foundation()
+	assert_eq(_track_one_cycle(func() -> float: return 1.0 / 120.0), 100, "100 steps at 120 FPS")
+	assert_almost_eq(_technique.get_current_result().madra_added, 50.0, 0.000001, "the cycle's 50 Madra")
+
+func test_a_tracked_8_s_cycle_pays_100_steps_at_60_and_144_fps() -> void:
+	for fps: float in [60.0, 144.0]:
+		ResourceManager.set_madra(25.0)
+		_use_foundation()
+		assert_eq(_track_one_cycle(func() -> float: return 1.0 / fps), 100, "100 steps at %d FPS" % fps)
+
+func test_a_tracked_8_s_cycle_pays_100_steps_at_uneven_frame_times() -> void:
+	# Frames of 1 / 120 to 1 / 40 s, drawn from fixed seeds.
+	var rng := RandomNumberGenerator.new()
+	for seed_value: int in [1, 2, 3, 4, 5]:
+		rng.seed = seed_value
+		ResourceManager.set_madra(25.0)
+		_use_foundation()
+		assert_eq(_track_one_cycle(func() -> float: return rng.randf_range(0.5, 1.5) / 60.0), 100, "100 steps with seed %d" % seed_value)
+
+func test_a_hitch_through_the_end_pays_only_the_steps_left() -> void:
+	# 2 s of tracking pay 25 of the cycle's 100 steps. A 16 s frame then covers 200
+	# steps with the cursor on the ball (the path ends where it starts), but only
+	# 6 s of it, 75 steps, were left in the cycle.
+	PersistenceManager.save_game_data.core_density_level = 100.0
+	assert_eq(CultivationManager.get_max_madra(), 600.0, "precondition: the cap does not bound the hitch")
+	_use_foundation()
+	var curve: Curve2D = _technique.technique_data.path_curve
+	assert_eq(curve.get_point_position(curve.point_count - 1), curve.get_point_position(0), "precondition: the path ends where it starts")
+	var path_end: Vector2 = _technique.get_ball_global_position()
+	var pellets: Array[int] = _count_pellets()
+	_technique.start_cycle()
+	_run(2.0, 60.0, true)
+	assert_eq(pellets[0], 25, "precondition: 2 s of tracking paid 25 steps")
+	_technique.advance(16.0, path_end)
+	assert_false(_technique.is_cycling(), "precondition: the frame ended the cycle")
+	assert_eq(pellets[0], 100, "the 75 steps left in the cycle, not the 200 the frame covers")
+	assert_almost_eq(_technique.get_current_result().madra_added, 50.0, 0.000001)
 
 #-----------------------------------------------------------------------------
 # THE MADRA RATE

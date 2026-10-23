@@ -46,6 +46,12 @@ const BALL_RADIUS: float = 29.5
 ## Seconds between two steps of Madra while the cursor follows the ball.
 const MADRA_PARTICLE_INTERVAL: float = 0.08
 
+## How far short of MADRA_PARTICLE_INTERVAL the Madra timer may be and still pay
+## its step. It absorbs float error: an 8 s cycle holds exactly 100 steps, so its
+## last step falls on the cycle's last instant, and the frames' sum can miss it
+## by a hair at some frame rates.
+const _STEP_EPSILON: float = 0.000001
+
 ## The frames of the ball's swirl, and how many of them play each second.
 const SWIRL_FRAMES: int = 8
 const SWIRL_FPS: float = 10.0
@@ -160,14 +166,17 @@ func stop_cycling() -> void:
 ## one runs, in this order: the ball moves and is drawn, the cursor draws Madra if
 ## it is on the ball, the zones turn active or spent, the groove lights, the frame
 ## joins the rate window and the session is updated. The cycle ends once its time
-## is up.
+## is up. A frame that runs past the end counts only the time left in the cycle,
+## so a long hitch draws no Madra beyond it.
 func advance(delta: float, cursor_global: Vector2) -> void:
 	_swirl_clock += delta
 	_show_swirl_frame()
 	if not _cycling:
 		_show_ready()
 		return
-	_elapsed += delta
+	var duration: float = technique_data.cycle_duration
+	var cycle_delta: float = minf(delta, duration - _elapsed)
+	_elapsed = minf(_elapsed + delta, duration)
 	_follow.progress_ratio = _eased_ratio()
 	_draw_ball()
 	_tracking = cursor_global.distance_to(_ball_drawn) <= BALL_RADIUS
@@ -176,12 +185,12 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	var drawing: bool = _tracking and not _madra_full()
 	if _tracking:
 		_set_ring_frame(_RING_TRACKING)
-		_draw_madra(delta)
+		_draw_madra(cycle_delta)
 	_update_zones()
 	_groove.set_lit_length(_follow.progress)
-	_record_rate(delta, drawing)
+	_record_rate(cycle_delta, drawing)
 	_update_session()
-	if _elapsed >= technique_data.cycle_duration:
+	if _elapsed >= duration:
 		_finish_cycle()
 
 ## Scores `zone`, which succeeds only while a cycle runs and the zone is ACTIVE.
@@ -244,10 +253,11 @@ func _eased_ratio() -> float:
 	return 0.5 - 0.5 * cos(PI * fraction)
 
 ## Adds the Madra the cursor draws in `delta` seconds: a step for every
-## MADRA_PARTICLE_INTERVAL the timer has gathered.
+## MADRA_PARTICLE_INTERVAL the timer has gathered, to within _STEP_EPSILON. The
+## timer keeps the remainder, which a step paid a hair early leaves just below 0.
 func _draw_madra(delta: float) -> void:
 	_madra_timer += delta
-	while _madra_timer >= MADRA_PARTICLE_INTERVAL:
+	while _madra_timer >= MADRA_PARTICLE_INTERVAL - _STEP_EPSILON:
 		_madra_timer -= MADRA_PARTICLE_INTERVAL
 		_draw_madra_step()
 

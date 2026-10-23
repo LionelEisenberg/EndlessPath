@@ -129,10 +129,11 @@ MadraBall.input_event (left press) → start_cycle()          [only while ready,
   → every zone IDLE (last cycle's studs clear), the groove goes dark, the ring hides
   → CyclingManager.start_cycle_session(cycle_duration); cycling_started.emit()
 advance(delta, cursor) while cycling, in this order:
-  1. elapsed += delta; the ball moves to the eased share of the path (0.5 - 0.5 cos(PI × elapsed / duration))
+  1. elapsed += delta, up to cycle_duration (a frame that runs past the end counts only the time left);
+     the ball moves to the eased share of the path (0.5 - 0.5 cos(PI × elapsed / duration))
      and is drawn at that position snapped to even px
   2. the cursor within 29.5 px of the drawn ball is "tracking": the dotted ring shows, otherwise it hides
-  3. while tracking, the Madra timer gathers delta and draws a step per 0.08 s (below)
+  3. while tracking, the Madra timer gathers the frame's time and draws a step per 0.08 s (below)
   4. zones turn ACTIVE or SPENT (below); the groove lights up to the true ball's path length
   5. the frame joins the rate window and the session snapshot is updated
   6. once elapsed reaches cycle_duration: _finish_cycle()
@@ -145,7 +146,7 @@ ActionManager.stop_cycling → CyclingView._on_stop_cycling() → CyclingTechniq
 
 The ball has two positions. The **drawn** one, snapped to the 2 px grid, is what the player sees, so tracking, the ring and the pellets use it. The **true** one, the `PathFollow2D`'s, is where the ball is on the path, so which zones it overlaps, how near a click was and how far the groove is lit use it.
 
-A cycle that is stopped, or cut off by switching technique, emits nothing. After a frame hitch (one long `delta`) the Madra steps it covered are all drawn, up to the cap, and a zone the ball jumped past ends the cycle SPENT, never stuck IDLE or ACTIVE.
+A cycle that is stopped, or cut off by switching technique, emits nothing. After a frame hitch (one long `delta`) the Madra steps it covered are all drawn, up to the cycle's end, and a zone the ball jumped past ends the cycle SPENT, never stuck IDLE or ACTIVE.
 
 ### CyclingTechnique and CyclingZone API
 | Member | Behaviour |
@@ -162,7 +163,8 @@ A cycle that is stopped, or cut off by switching technique, emits nothing. After
 | `CyclingZone.setup(data)`, `set_state(state)`, `get_state()`, `is_open()`, `state_for_tier(tier)` | The zone's data and `State`; `is_open()` is IDLE or ACTIVE; `state_for_tier()` is static and gives a tier's stud |
 
 ### Madra Generation
-- While the cursor is tracking, `_madra_timer` gathers `delta`. Each time it passes `MADRA_PARTICLE_INTERVAL` (0.08 s) it subtracts the interval, keeping the remainder, and draws one step. Income is therefore the nominal rate at any frame rate (tests run 30, 60 and 144 FPS).
+- While the cursor is tracking, `_madra_timer` gathers the frame's time. Each time it reaches `MADRA_PARTICLE_INTERVAL` (0.08 s) it subtracts the interval, keeping the remainder, and draws one step. Income is therefore the nominal rate at any frame rate (tests run 30, 60 and 144 FPS).
+- The frame that ends a cycle gives the timer only the time left in the cycle, so a long hitch draws no step past the end. A step pays once the timer is within `_STEP_EPSILON` (1e-6 s) of the interval, which absorbs float error: an 8 s cycle holds exactly 100 steps, so its 100th falls on the cycle's last instant, and without the tolerance 1/120 s frames paid 99. A fully tracked cycle therefore pays the same whole steps at any frame rate: 100 for the 8 s techniques, and 187 for Smooth Flow (199.47 Madra; its 15 s hold 187.5 steps). Tests run 60, 120 and 144 FPS, uneven frames and a 16 s hitch.
 - A step is `ResourceManager.add_madra(base_madra_per_cycle × 0.08 / cycle_duration, true)`: quiet, so nothing reaches the log. It does nothing at or above the cap, so Madra already over the cap is left alone and no pellet flies. It counts only for the Madra it really added, which is less than a full step when the cap cuts it short. A step that added something goes into `CycleResult.madra_added` and emits `madra_particle_requested(drawn ball centre)`.
 - `ResourceManager.add_madra()` clamps the pool to the stage cap (`100 + 5 × Core Density level` at Foundation; see [CULTIVATION.md](../cultivation/CULTIVATION.md#madra-cap)).
 - Madra is added as the pellet leaves the ball, so the cabinet's orb leads the pellets by their flight time.
@@ -362,7 +364,7 @@ All new pieces are agent-made (`_ai`), drawn on the zone kit's 2x grid by `docs/
 
 ### Bugs
 
-- `[LOW]` A long frame hitch pays every Madra step it covered in one frame while the cursor is on the ball, including steps past the cycle's end: the last frame's whole `delta` reaches `_draw_madra()`, and only the Madra cap bounds it. It takes a stall of seconds. The delta could be clamped to the time left in the cycle.
+None known.
 
 ### Missing Functionality
 

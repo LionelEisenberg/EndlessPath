@@ -417,8 +417,9 @@ func test_a_tracked_cycle_reports_the_madra_it_drew() -> void:
 	_run(CYCLE_SECONDS - 6.0 + FRAME, 60.0, false)
 	assert_signal_emit_count(_technique, "cycle_completed", 1)
 	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
-	# 75 steps of Madra, or 74 when the float sum of the frames lands a hair under 6 s.
-	assert_almost_eq(result.madra_added, 80.0, 1.2, "precondition: the cursor drew Madra")
+	# 6 s hold 75 whole steps of Madra. The step tolerance pays the 75th even when
+	# the float sum of the frames lands a hair under 6 s.
+	assert_almost_eq(result.madra_added, 80.0, 0.001, "precondition: the cursor drew Madra")
 	assert_eq(_view.get_result_text(), result.result_line(), "the board shows the cycle's own line")
 	assert_true(_view.get_result_text().begins_with("Last cycle · +%d Madra · 0 / 4 zones" % roundi(result.madra_added)), "and it names the Madra the cycle drew")
 	assert_signal_emit_count(LogManager, "message_logged", 1, "cycling writes no \"Gained N Madra\" lines")
