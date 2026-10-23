@@ -3,9 +3,12 @@ extends Node2D
 
 ## One pellet of the Madra drain that runs when an adventure starts: it flies
 ## from the cultivator's Madra orb to the character along a curve, then frees
-## itself. Lacquer kit §1 rules 4 and 6: an opaque Madra-blue pellet with an
-## ink outline (no glow, halo, trail or fade) that moves in 2 px steps, its
-## position snapped to even screen px every frame.
+## itself. The cycling view sends the same pellet too: Madra pellets from the
+## ball into the Madra orb, and XP pellets in the tier colours (set_texture)
+## from a zone into the Core orb. Lacquer kit §1 rules 4 and 6: an opaque
+## pellet (Madra blue unless set_texture swaps the art) with an ink outline (no
+## glow, halo, trail or fade) that moves in 2 px steps, its position snapped to
+## even screen px every frame.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS

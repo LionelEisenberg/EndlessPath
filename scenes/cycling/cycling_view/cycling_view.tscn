@@ -1,16 +1,16 @@
 [gd_scene format=3 uid="uid://b1rl1n8ceijc8"]
 
-[ext_resource type="Script" uid="uid://dyha47vkmqg5o" path="res://scenes/cycling/cycling_view/cycling_view.gd" id="1_ob5ct"]
-[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="2_8tk3k"]
-[ext_resource type="StyleBox" uid="uid://81c7cqhh1qo7" path="res://assets/styleboxes/cycling/panel_cycling_view.tres" id="3_4g8xi"]
-[ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/cycling/cycling_technique/cycling_technique.tscn" id="3_hypg5"]
-[ext_resource type="PackedScene" uid="uid://b2c0qwss02xti" path="res://scenes/cycling/cycling_resource_panel/cycling_resource_panel.tscn" id="4_3nchs"]
-[ext_resource type="StyleBox" uid="uid://dfld4jy3188gf" path="res://assets/styleboxes/cycling/panel_info_sidebar.tres" id="5_4g8xi"]
-[ext_resource type="Script" uid="uid://cvudatk537dno" path="res://scenes/cycling/cycling_tab_panel/cycling_tab_panel.gd" id="5_8tk3k"]
-[ext_resource type="Resource" uid="uid://bamglfy16qig4" path="res://resources/cycling/cycling_techniques/foundation_cycling_technique/foundation_cycling_technique.tres" id="5_waxhc"]
-
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_0j2st"]
-load_path = "res://.godot/imported/cycling_technique_outline.png-85eefb7e3ae9022069b8b8d30d9a844b.ctex"
+[ext_resource type="Script" uid="uid://dyha47vkmqg5o" path="res://scenes/cycling/cycling_view/cycling_view.gd" id="1_view"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://ce76a3f1g3ha0" path="res://assets/ui/lacquer/cycling/lacquer_cyc_board_ai.png" id="3_board"]
+[ext_resource type="Texture2D" uid="uid://l358sphy02ff" path="res://assets/ui/lacquer/lacquer_close_ai.png" id="4_close"]
+[ext_resource type="Texture2D" uid="uid://cwx6nj0fy42qx" path="res://assets/ui/lacquer/lacquer_close_hover_ai.png" id="5_close_hover"]
+[ext_resource type="Texture2D" uid="uid://pgsljhm0rngj" path="res://assets/ui/lacquer/cycling/lacquer_cyc_body_carved_ai.png" id="6_body"]
+[ext_resource type="PackedScene" uid="uid://cnbav6qrqwcux" path="res://scenes/cycling/cycling_technique/cycling_technique.tscn" id="7_technique"]
+[ext_resource type="Texture2D" uid="uid://dvl5pejsd5xxr" path="res://assets/ui/lacquer/cycling/lacquer_cyc_auto_ai.png" id="8_auto"]
+[ext_resource type="Texture2D" uid="uid://bd3hcxpotahpw" path="res://assets/ui/lacquer/cycling/lacquer_cyc_auto_on_ai.png" id="9_auto_on"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="10_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="11_frame_hover"]
 
 [node name="CyclingView" type="Control" unique_id=368495127]
 layout_mode = 3
@@ -19,101 +19,146 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_horizontal = 6
-size_flags_vertical = 6
 mouse_filter = 2
-script = ExtResource("1_ob5ct")
+theme = ExtResource("2_theme")
+script = ExtResource("1_view")
 
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=860410385]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 150
-theme_override_constants/margin_top = 100
-theme_override_constants/margin_right = 150
-theme_override_constants/margin_bottom = 100
-
-[node name="Panel" type="Panel" parent="MarginContainer" unique_id=564752966]
-layout_mode = 2
-mouse_filter = 2
-theme = ExtResource("2_8tk3k")
-theme_type_variation = &"PanelAccent"
-theme_override_styles/panel = ExtResource("3_4g8xi")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/Panel" unique_id=569617877]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="CyclingTechniqueOutline" type="Sprite2D" parent="MarginContainer/Panel/HBoxContainer" unique_id=411273347]
-position = Vector2(537, 452)
-scale = Vector2(1, 1.3866667)
-texture = SubResource("CompressedTexture2D_0j2st")
-
-[node name="CyclingBackground" type="TextureRect" parent="MarginContainer/Panel/HBoxContainer" unique_id=564596054]
-layout_mode = 2
-size_flags_horizontal = 6
-size_flags_vertical = 4
-size_flags_stretch_ratio = 0.66
-mouse_filter = 2
-
-[node name="CyclingTechnique" parent="MarginContainer/Panel/HBoxContainer/CyclingBackground" unique_id=1193719417 instance=ExtResource("3_hypg5")]
-unique_name_in_owner = true
-position = Vector2(-322, -428)
-technique_data_input = ExtResource("5_waxhc")
-
-[node name="InfoPanelArea" type="MarginContainer" parent="MarginContainer/Panel/HBoxContainer" unique_id=596135546]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.33
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 12
-
-[node name="CyclingTabPanel" type="TabContainer" parent="MarginContainer/Panel/HBoxContainer/InfoPanelArea" unique_id=242227923]
-unique_name_in_owner = true
-layout_mode = 2
-theme = ExtResource("2_8tk3k")
-theme_type_variation = &"CyclingTabContainer"
-theme_override_font_sizes/font_size = 28
-theme_override_styles/panel = ExtResource("5_4g8xi")
-current_tab = 0
-script = ExtResource("5_8tk3k")
-
-[node name="CyclingResourcePanel" parent="MarginContainer/Panel/HBoxContainer/InfoPanelArea/CyclingTabPanel" unique_id=855671840 instance=ExtResource("4_3nchs")]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 0.33
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 5
-metadata/_tab_index = 0
-
-[node name="TechniquesScrollContainer" type="ScrollContainer" parent="MarginContainer/Panel/HBoxContainer/InfoPanelArea/CyclingTabPanel" unique_id=2142081570]
-visible = false
-layout_mode = 2
-metadata/_tab_index = 1
-
-[node name="TechniqueListContainer" type="VBoxContainer" parent="MarginContainer/Panel/HBoxContainer/InfoPanelArea/CyclingTabPanel/TechniquesScrollContainer" unique_id=853899232]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 2
-
-[node name="CloseButton" type="Button" parent="MarginContainer/Panel" unique_id=2005087943]
+[node name="Board" type="TextureRect" parent="." unique_id=1584902117]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 71.0
-offset_bottom = 46.0
-theme = ExtResource("2_8tk3k")
-text = "X ESC"
+offset_left = 680.0
+offset_top = 24.0
+offset_right = 1244.0
+offset_bottom = 1060.0
+mouse_filter = 1
+texture = ExtResource("3_board")
+
+[node name="ActionLabel" type="Label" parent="." unique_id=1203746581]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 40.0
+offset_right = 1106.0
+offset_bottom = 57.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Wilderness Cycling"
+text_overrun_behavior = 3
+
+[node name="TitleLabel" type="Label" parent="." unique_id=1938475620]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 57.0
+offset_right = 1178.0
+offset_bottom = 90.0
+theme_type_variation = &"LabelLacquerPanelTitle"
+text = "Smooth Flow Technique"
+text_overrun_behavior = 3
+
+[node name="EscLabel" type="Label" parent="." unique_id=640918273]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1114.0
+offset_top = 45.0
+offset_right = 1174.0
+offset_bottom = 63.0
+theme_type_variation = &"LabelLacquerHotkey"
+text = "Esc"
+horizontal_alignment = 2
+
+[node name="CloseButton" type="TextureButton" parent="." unique_id=2076153804]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1182.0
+offset_top = 40.0
+offset_right = 1210.0
+offset_bottom = 68.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("4_close")
+texture_hover = ExtResource("5_close_hover")
+
+[node name="FigureBox" type="Control" parent="." unique_id=1459021736]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 104.0
+offset_right = 1210.0
+offset_bottom = 936.0
+mouse_filter = 1
+
+[node name="Body" type="TextureRect" parent="FigureBox" unique_id=887125304]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 832.0
+mouse_filter = 2
+texture = ExtResource("6_body")
+
+[node name="CyclingTechnique" parent="FigureBox" unique_id=1725340981 instance=ExtResource("7_technique")]
+unique_name_in_owner = true
+position = Vector2(-70, -24)
+
+[node name="StatusLabel" type="Label" parent="." unique_id=319847265]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 954.0
+offset_right = 1078.0
+offset_bottom = 974.0
+theme_type_variation = &"LabelLacquerName"
+text = "Click the Madra ball to begin a cycle."
+text_overrun_behavior = 3
+
+[node name="ResultText" type="RichTextLabel" parent="." unique_id=1092837465]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 710.0
+offset_top = 996.0
+offset_right = 1210.0
+offset_bottom = 1014.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+bbcode_enabled = true
+scroll_active = false
+autowrap_mode = 0
+
+[node name="AutoToggle" type="TextureButton" parent="." unique_id=1671329048]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1090.0
+offset_top = 946.0
+offset_right = 1210.0
+offset_bottom = 982.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+toggle_mode = true
+texture_normal = ExtResource("8_auto")
+texture_pressed = ExtResource("9_auto_on")
+ignore_texture_size = true
+stretch_mode = 2
+
+[node name="AutoLabel" type="Label" parent="AutoToggle" unique_id=514760293]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 120.0
+offset_bottom = 36.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Auto · off"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AutoHover" parent="AutoToggle" unique_id=1846203957 instance=ExtResource("10_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("11_frame_hover")
+
+[node name="EffectsLayer" type="Control" parent="." unique_id=730459182]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

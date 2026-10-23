@@ -7,7 +7,8 @@ extends Control
 ## is 28 px tall and even(text width + 28) wide, its 2 px shadow baked into the
 ## 9-slice. It rises 40 px over 1 s in 2 px steps, then hides outright. It does
 ## not move itself: the placer positions it each frame and raises it by
-## get_rise() (MapMarkers today, the cycling view later).
+## get_rise() (MapMarkers for the map's floater, the cycling view for the
+## floater of each zone).
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
