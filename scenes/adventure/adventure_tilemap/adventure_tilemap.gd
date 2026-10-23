@@ -686,8 +686,8 @@ func _check_committed_arrival() -> void:
 ## mid-route, when the player runs out of stamina mid-route, and when the
 ## adventure tears down. The hover rim stays where it is until the next
 ## hover event, unless it now sits on the current tile or a choice waits.
-## (A walk stopped for Stamina lays the hover again right after, for the
-## pointer's tile: _rehover_pointer_cell().)
+## (Whatever ends a walk, the hover is laid again for the pointer's cell once
+## the hop is handled: _on_character_movement_completed().)
 func _release_committed_destination() -> void:
 	_has_committed_destination = false
 	_committed_destination = Vector3i.ZERO
@@ -709,6 +709,13 @@ func _on_character_movement_completed() -> void:
 		Log.info("AdventureTilemap: Character reached tile: %s" % _current_tile)
 		
 		_visit(_current_tile)
+		
+		# No hop left to walk: the walk is over, whether it reached its
+		# destination, an encounter stopped the trip or the Stamina ran out. Its
+		# rim and route are gone and the camera followed the character, so the
+		# hover is laid again for the cell the pointer rests over now.
+		if not character_body.is_moving:
+			_rehover_pointer_cell()
 
 func _mark_tile_visited(coord: Vector3i) -> void:
 	var previous_highlights := _highlight_tile_dictionary.keys()
@@ -784,9 +791,6 @@ func _process_next_visitation() -> void:
 			Log.info("AdventureTilemap: Out of stamina, stopping movement.")
 			_visitation_queue.clear()
 			_release_committed_destination()
-			# The walk's rim and route are gone, so the hover is laid again for
-			# the tile the pointer rests over now, rather than left half up.
-			_rehover_pointer_cell()
 			_refuse_walk(REFUSED_STAMINA, TOO_TIRED_LINE % int(MOVEMENT_STAMINA_COST))
 			return
 

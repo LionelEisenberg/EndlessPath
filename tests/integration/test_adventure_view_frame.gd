@@ -221,6 +221,13 @@ func _dots_between(from: Vector3i, to: Vector3i) -> PackedVector2Array:
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	return ZoneRoute.dot_positions(tilemap.get_tile_world_centre(from), tilemap.get_tile_world_centre(to))
 
+## The route dots of a walk through the tiles, hop by hop.
+func _dots_through(coords: Array[Vector3i]) -> PackedVector2Array:
+	var dots := PackedVector2Array()
+	for index: int in range(1, coords.size()):
+		dots.append_array(_dots_between(coords[index - 1], coords[index]))
+	return dots
+
 ## Starts the run on the fixture map and stands the player on OPEN_NEAR with the
 ## Stamina for one hop only, so that a walk to FIGHT, two hops through START,
 ## stops at START. Stamina does not regenerate while the test walks.
@@ -621,6 +628,45 @@ func test_a_stamina_stop_leaves_no_hover_with_the_pointer_off_the_map() -> void:
 	await _wait_for_the_stamina_stop()
 
 	assert_false(_hover_rim().visible, "no rim")
+	assert_eq(_route().get_dot_positions().size(), 0, "and no route")
+
+## One rule holds after any walk ends: the hover shows what a fresh move of the
+## pointer onto the cell it rests over would show. A walk that ends at its
+## destination drops its rim and dots, and the camera, which followed the
+## character, has moved under the still pointer, so the pointer rests over
+## another tile in view. The hover for that tile takes the walk's place, with
+## the route from where the walk ended. The pointer rests where FIGHT will be
+## once the camera has followed the character to OPEN_NEAR, a hex away.
+func test_a_walk_that_ends_lays_the_hover_for_the_tile_under_the_pointer() -> void:
+	_start_run()
+	await wait_process_frames(2)
+	var tilemap: AdventureTilemap = _view.adventure_tilemap
+	var where_fight_will_be: Vector2 = _screen_point_of(START) + tilemap.get_tile_world_centre(FIGHT) - tilemap.get_tile_world_centre(OPEN_NEAR)
+	await _move_pointer_to(where_fight_will_be)
+	assert_false(_hover_rim().visible, "precondition: before the walk the pointer rests over no tile")
+
+	await _walk_to(OPEN_NEAR)
+
+	assert_eq(tilemap.get_current_tile(), OPEN_NEAR, "precondition: the walk ended at its destination")
+	assert_true(_hover_rim().visible, "the rim is on the tile under the pointer")
+	assert_eq(_hover_rim().position, tilemap.get_tile_world_centre(FIGHT))
+	var through_start: Array[Vector3i] = [OPEN_NEAR, START, FIGHT]
+	assert_eq(_route().get_dot_positions(), _dots_through(through_start), "and the route runs to it from where the walk ended")
+
+## While a choice waits, a fresh move of the pointer hovers nothing, so a walk
+## that ends on an encounter lays no hover under the pointer either, though the
+## pointer rests over a tile in view (START, once the camera is on FIGHT).
+func test_a_walk_that_ends_on_an_encounter_lays_no_hover_under_the_pointer() -> void:
+	_start_run()
+	await wait_process_frames(2)
+	var tilemap: AdventureTilemap = _view.adventure_tilemap
+	var where_start_will_be: Vector2 = _screen_point_of(START) + tilemap.get_tile_world_centre(START) - tilemap.get_tile_world_centre(FIGHT)
+	await _move_pointer_to(where_start_will_be)
+
+	await _walk_to(FIGHT)
+
+	assert_eq(tilemap.get_current_tile(), FIGHT, "precondition: the walk ended on the encounter")
+	assert_false(_hover_rim().visible, "a choice waits: no rim")
 	assert_eq(_route().get_dot_positions().size(), 0, "and no route")
 
 #-----------------------------------------------------------------------------
