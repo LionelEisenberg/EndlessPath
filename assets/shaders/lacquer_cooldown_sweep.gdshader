@@ -17,7 +17,11 @@ shader_type canvas_item;
 // output (cooldown_sweep() in the mock's gen/kit_adventure.py).
 // The rect must show the icon at 64x64.
 
-// Recharged steps / 24, 0 to 1: 0 veils the whole icon, 1 shows it plain.
+// Recharged steps / 24, 0 to 1: 0 veils the whole icon, 1 shows it plain. The
+// script only sets whole steps (k / 24), and the shader rounds progress x 24 to
+// the nearest step rather than flooring it: for steps 7 and 14 that product
+// lands exactly halfway between k and the float32 below it, so a floor would
+// depend on how the GPU rounds the multiply.
 uniform float progress : hint_range(0.0, 1.0) = 1.0;
 
 const float STEPS = 24.0;
@@ -66,6 +70,6 @@ void fragment() {
 	vec4 icon = texture(TEXTURE, UV);
 	vec2 cell_centre = floor(local_px / CELL) * CELL + CELL * 0.5;
 	float angle = mod(atan(cell_centre.x - CENTRE.x, -(cell_centre.y - CENTRE.y)), TAU);
-	float recharged = floor(progress * STEPS) / STEPS * TAU;
+	float recharged = floor(progress * STEPS + 0.5) / STEPS * TAU;
 	COLOR = angle >= recharged - EDGE_BIAS ? vec4(veil(icon.rgb), icon.a) : icon;
 }
