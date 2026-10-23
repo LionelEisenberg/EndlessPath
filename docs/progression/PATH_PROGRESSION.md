@@ -1,6 +1,6 @@
 # Path Progression System
 
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -120,7 +120,6 @@ Exported wiring in `path_tree_view.tscn`:
 Methods:
 - `get_node_by_id(id)`.
 - `get_nodes_for_stage(stage)`, unused in production.
-- `get_total_tree_cost()`, which sums `point_cost × max_purchases`; unused in production.
 - `validate()`, which requires a non-empty `path_id` and valid nodes, unique ids, and prerequisites that are non-null and in the tree.
 
 ### PathNodeData (`Resource`)
@@ -134,7 +133,7 @@ Methods:
 | `prerequisites` | `Array[PathNodeData]` | `[]` | Direct resource references. All must be at level ≥ 1 (AND) |
 | `required_stage` | `CultivationManager.AdvancementStage` | `FOUNDATION` | Tier gate, compared with `>=` |
 | `point_cost` | `int` | `1` | Cost per purchase (≥ 1) |
-| `max_purchases` | `int` | `1` | `> 1` makes the node repeatable (`is_repeatable()`) |
+| `max_purchases` | `int` | `1` | `> 1` makes the node repeatable |
 | `effects` | `Array[PathNodeEffectData]` | `[]` | Applied once per purchased level |
 | `benefit_summary` | `String` | `""` | Sidebar value text; falls back to `description` |
 
@@ -614,7 +613,7 @@ The built system merges the advancement tree and Paths into one per-path tree av
 - `[HIGH]` **No path-point notification.**
   - Neither `CultivationManager` nor `PathManager.add_points()` writes to the in-game `LogManager`.
   - The balance is visible only inside the tree.
-  - The PATH toolbar button has no badge (`SystemMenuButton.BADGE_PROVIDER` maps only `ABILITIES`).
+  - The PATH toolbar button has no badge; only ABILITIES has one.
   - FOUNDATION_PLAYTHROUGH Beat 6 depends on "path-point notification is the signal".
 - `[HIGH]` **No effect type can modify an ability.** The upgrade nodes need per-ability cost, damage, cooldown, or duration modifiers that `PathNodeEffectData.EffectType` can't express, and combat (`CombatAbilityInstance` / `CombatEffectManager`) would have to read them.
 - `[MEDIUM]` **No ability-slot unlocks.** FOUNDATION_PLAYTHROUGH expects slots 3–4 to come from non-keystone nodes. `AbilityManager.MAX_SLOTS` is a fixed 4 with no gating, and there is no slot effect type.
@@ -668,7 +667,7 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - `PathEffectsSummary.unlocked_abilities` / `unlocked_cycling_techniques` say "Not yet consumed… (wired during ability rework)".
   - The `PathNodeContainer` class comment says lines meet node edges; `_draw()` draws center to center.
 - `[LOW]` **Unused API and nodes:**
-  - `get_unlocked_abilities()`, `get_unlocked_cycling_techniques()`, `get_total_tree_cost()`, and `PathNodeData.is_repeatable()` have no production callers.
+  - `get_unlocked_abilities()` and `get_unlocked_cycling_techniques()` have no production callers.
   - `PathThemeData.panel_accent_color` and `PathNodeContainer._node_radii` are never read.
   - The `PathNodeUI` `%Border` panel is always hidden.
   - The `open_path_tree` input action duplicates `open_path` (both bound to P) and is unused.

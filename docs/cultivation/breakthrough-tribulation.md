@@ -273,7 +273,7 @@ elif choice is BreakthroughChoice:
 
 ### Map Overlay
 
-The adventure map no longer marks encounter types with per-type highlight-map overlays. `EncounterIcon` (`scenes/adventure/encounter_icon/`) picks a glyph per `EncounterType` (combat, elite, boss, rest, treasure, trap, unknown), and the highlight map only carries the gray "completed" overlay. `PulseNode` is not used on the adventure map. The breakthrough tile needs a new `EncounterIcon` glyph branch for `BREAKTHROUGH` with a distinct, unmissable visual: bright gold or white, possibly animated like the existing boss and rest spritesheet glyphs.
+The adventure map no longer marks encounter types with per-type highlight-map overlays. `EncounterIcon` (`scenes/adventure/encounter_icon/`) picks a glyph per `EncounterType` (combat, elite, boss, rest, treasure, trap, unknown), and the highlight map only carries the gray "completed" overlay. The breakthrough tile needs a new `EncounterIcon` glyph branch for `BREAKTHROUGH` with a distinct, unmissable visual: bright gold or white, possibly animated like the existing boss and rest spritesheet glyphs.
 
 ---
 

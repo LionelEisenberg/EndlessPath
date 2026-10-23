@@ -1,6 +1,6 @@
 # Cultivation System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -210,7 +210,7 @@ Pacing derived from the authored values, counting cycle time only:
 | `singletons/resource_manager/resource_manager.gd` | Applies the Madra cap |
 | `scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd` | Level, XP and stage display (cycling view) |
 | `scenes/zones/zone_resource_panel/zone_resource_panel.gd` | Stage and level display (zone view) |
-| `tests/unit/test_cultivation_manager.gd` | 25 tests of the XP curve and level loop (simulated) |
+| `tests/unit/test_cultivation_manager.gd` | 28 tests: the real `add_core_density_xp()` level-up loop (carry-over, multi-level gains), its signals, path-point milestones per stage, stage names, and the XP curve |
 
 ## Work Remaining
 
@@ -240,7 +240,6 @@ Pacing derived from the authored values, counting cycle time only:
 
 ### Tech Debt
 
-- `[MEDIUM]` Tests do not exercise the manager. `test_cultivation_manager.gd` re-implements the level loop (`_simulate_add_xp`) and only calls `AdvancementStageResource`. `add_core_density_xp()`, its path-point awards and signals, and `get_xp_for_next_level()` are untested, although the file header says "signals" are covered.
 - `[LOW]` `_get_current_stage_resource()` is private but used by `ResourceManager.add_madra()`, `CyclingResourcePanel._update_madra_display()` and `ZoneResourcePanel._update_madra()`. It needs a public API, for example `get_max_madra()` on the manager.
 - `[LOW]` The stage list is duplicated. The `@export advancement_stage_resources` preload on the autoload script cannot be edited in the inspector, and `AdvancementStageList` / `advancement_stage_list.tres` sits unused.
 - `[LOW]` Coding standards:

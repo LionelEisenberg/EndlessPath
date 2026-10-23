@@ -1,6 +1,6 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-19
+Last updated: 2026-10-22
 
 > This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >
@@ -475,7 +475,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### UI
 
-- `[HIGH]` Path points are never announced. `PathManager.add_points()` emits `points_changed`, but only `path_tree_view.gd` listens, so the balance is visible only inside the Path panel. Nothing writes a LogWindow line or shows a toast, and the PATH button has no badge (`SystemMenuButton.BADGE_PROVIDER` maps only ABILITIES). The `q_first_steps` point shows only as "Quest Complete: First Steps Out". The CD-milestone points (`CultivationManager` +1 every 10 levels) are completely silent. Beat 6 is designed around a path-point notification that doesn't exist.
+- `[HIGH]` Path points are never announced. `PathManager.add_points()` emits `points_changed`, but only `path_tree_view.gd` listens, so the balance is visible only inside the Path panel. Nothing writes a LogWindow line or shows a toast, and the PATH button has no badge (only the ABILITIES button has one). The `q_first_steps` point shows only as "Quest Complete: First Steps Out". The CD-milestone points (`CultivationManager` +1 every 10 levels) are completely silent. Beat 6 is designed around a path-point notification that doesn't exist.
 - `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`, and cycling has no badge (`CyclingManager.has_unequipped_unlocks()` is unused).
 - `[MEDIUM]` The Aura Well discovery and the Refugee Camp search have no tracker guidance. The map's purpose is explained only in `dialogue_4` and the item description.
 - `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The quest tracker starts collapsed and empty.

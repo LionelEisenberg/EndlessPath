@@ -1,6 +1,6 @@
 # Persistence System
 
-Last updated: 2026-10-19
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -65,7 +65,6 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `load_data()` | If the file is missing, it creates `SaveGameData.new()`, saves it, and logs info. It then calls `ResourceLoader.load(SAVE_PATH)`. If that returns null, it creates `SaveGameData.new()`, saves it over the file, and calls `Log.warn` |
 | `save_data() -> Error` | `ResourceSaver.save(save_game_data, SAVE_PATH)` |
 | `load_new_save_data()` | Calls `save_game_data.reset()` (in place, so all references stay valid), then `save_data()` (`Log.critical` on error), then emits `save_data_reset` |
-| `is_base_game_save() -> bool` | Compares every property with a fresh `SaveGameData`. Nothing calls it (see Work Remaining) |
 
 ### SaveGameData fields and owners
 
@@ -238,7 +237,6 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 
 - `[MEDIUM]` A failed `verify()` wipes the entire save. `PersistenceManager._ready()` calls `load_new_save_data()` when `current_selected_zone_id` names an unknown zone (for example, after a zone id is renamed). It should repair that one field to `""` instead.
 - `[MEDIUM]` An unreadable save is silently overwritten. When `ResourceLoader.load()` returns null, `load_data()` saves a fresh `SaveGameData` over `save.tres` with no backup copy and no message to the player.
-- `[LOW]` `is_base_game_save()` compares sub-resources (`inventory`, `character_attributes`, …) by object identity, so it returns `false` for any real save. It has no callers. Delete it or rewrite it.
 
 ### Missing Functionality
 

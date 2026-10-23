@@ -1,5 +1,5 @@
 # UI Styling
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 All UI text in the game flows through a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`. Use variants instead of inline size overrides so the type hierarchy stays consistent and global tuning is possible in one place.
 
@@ -28,7 +28,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 | `LabelTitleSmall` | 40px | Gold | Zone titles, secondary headers |
 | `LabelHeading` | 36px | Gold | Subsection headings |
 | `LabelValueLarge` | 34px | Gold | Big value numbers |
-| `LabelBodyLarge` | 28px | Beige | Large body text (cycling resource panel; the unused InkbrushButton) |
+| `LabelBodyLarge` | 28px | Beige | Large body text (cycling resource panel) |
 | `LabelMuted` | 26px | Tan | Secondary/muted text |
 | `LabelSubheading` | 24px | Tan | Subtitle text under titles |
 | `LabelBody` | 22px | Beige | Standard body text |
@@ -101,7 +101,6 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 ## HSeparator variants
 
 - Base `HSeparator` (no variant) — 2px copper `#C4884A` line, inset 8px at each end.
-- `HSeparatorTooltip` — 1px separator with **no inset**, muted brown `#6B4A30` at 50% alpha, separation 6. Use for tooltip and ability card detail dividers (ability card, path node tooltip, attribute tooltip).
 - `HSeparatorItemDesc` — 2px parchment `#E9CEAD`, no inset, separation 12. Top separator under the item type in `ItemDescriptionPanel`, `ItemDetailCard`, `QuestJournalCard`.
 - `HSeparatorItemDescThin` — 1px parchment `#E9CEAD`, inset 100px at each end, separation 10. Separates the description from the effects in the same panels.
 - `HSeparatorResourcePanel` — 2px gold `#D4A84A` at 60% alpha, no inset. Divider between the Madra and Core Density orbs in `ZoneResourcePanel`.
@@ -112,17 +111,15 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 |---------|-----------|-------|---------|
 | `ButtonEndCard` | `Button` | Scroll button styleboxes (`assets/styleboxes/buttons/scroll/`), 20px, cream font `#F0E0C2` | `AdventureEndCard` Return button |
 | `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige | `CyclingView` |
-| `PanelAbilityCard` | `PanelContainer` | `abilities/card_normal.tres` (dark brown, 2px brown border) | Unused (the ability card it styled was replaced by `AbilityRow`) |
 | `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border) | `CyclingView` |
 | `PanelLootTray` | `PanelContainer` | `common/panel_loot_tray.tres` (translucent parchment) | `AdventureEndCard` |
 | `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill) | `StatLabel` |
 | `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) | Ability/buff tooltips, `CombatantInfoPanel`, `StatTooltip` (set in code) |
-| `PanelDark` | `PanelContainer` | `common/panel_dark.tres` (dark texture) | Unused |
 
 Base types without a variant:
 
 - `Panel` and `PanelContainer` default to `common/panel_tan.tres` (tan parchment texture).
-- `Button` uses `buttons/button_default_normal.tres`, `button_default_pressed.tres`, and `button_default_hover.tres` for both hover and disabled, with a gold hover/pressed font colour. `button_default_disabled.tres` is referenced only by `ability_card.tscn`.
+- `Button` uses `buttons/button_default_normal.tres`, `button_default_pressed.tres`, and `button_default_hover.tres` for both hover and disabled, with a gold hover/pressed font colour.
 
 ## Pattern examples
 
@@ -176,21 +173,13 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 
 ## Code-side constants (ThemeConstants)
 
-`scripts/utils/theme_constants.gd` (`class_name ThemeConstants`) mirrors the palette for code that sets colours at runtime. Its header calls it the "single source of truth"; in practice the theme file is.
+`scripts/utils/theme_constants.gd` (`class_name ThemeConstants`) holds colours for code that sets them at runtime. Its header names `pixel_theme.tres` as the source of truth for the palette.
 
 | Constant | Value | Matches in theme | Referenced in code |
 |----------|-------|------------------|--------------------|
-| `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | 8 times: `AbilitiesView`, `CyclingTechniqueSlot`, path tree nodes (`path_node_container.gd`, `path_node_ui.gd`), `SystemMenuButton` hover |
-| `BORDER_PRIMARY` | `#C4884A` | `LabelSeparatorDot`, base `HSeparator` | 3 times |
-| `BG_MEDIUM` | `#3D2E22` | — | 2 times |
-| `TEXT_LIGHT` / `TEXT_MUTED` / `TEXT_DARK` | `#F0E8D8` / `#A89070` / `#1A1208` | Beige / tan / Label shadow | Unused |
-| `ACCENT_GREEN` / `ACCENT_RED` | `#7DCE82` / `#E06060` | `LabelGreen` / `LabelRed` | Unused |
-| `BG_DARK` | `#2A1A12` | `RichTextLabelDark` | Unused |
-| `BG_LIGHT`, `TINT_*`, `BORDER_SUBTLE`, `HOVER_BG`, `PRESSED_BG`, `DISABLED_*` | — | — | Unused |
-| `FONT_TITLE` 42 / `FONT_HEADING` 28 / `FONT_BODY` 20 / `FONT_LABEL` 16 / `FONT_CAPTION` 12 | — | **Do not match** the variant scale above | Unused |
-| `BORDER_WIDTH_*`, `CORNER_RADIUS_*`, `CONTENT_MARGIN_*` | — | — | Unused |
+| `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | 7 times: `CyclingTechniqueSlot`, path tree nodes (`path_node_container.gd`, `path_node_ui.gd`), `SystemMenuButton` hover |
 
-Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code.
+`ACCENT_GOLD` is the only constant. Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code, and keep each value in step with the theme.
 
 ## Theme and asset files
 
@@ -203,7 +192,7 @@ Use the Label variants for sizes. Use `ThemeConstants` only for colours that mus
 | `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `Korean_Calligraphy.ttf`, `pixelmix.ttf`, `Ubage-woA3P.otf` and `YatraOne-Regular.ttf` are loaded only by the label testing scene. |
 | `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `book` (menu book bookmark, close tab, stage icons, padlock, 2x panel art), `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
 | `assets/aseprite/` | Aseprite sources: `abilities`, `character_profiles`, `cycling`, `ui/{ability_button,buff_icon,resource_bar}`, `zones`, plus root `madra_circle.aseprite`, `Sprite-0003*.aseprite` and a stray `Sprite-0003.gif` |
-| `assets/shaders/` | 16 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |
+| `assets/shaders/` | 14 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |
 | `assets/scroll/` | Scroll art (and `parts/`) used by the adventure end card |
 | `assets/dialogue/` | Dialogic `characters/`, `styles/` (including `dialogue_backgrounds/custom_background_layer.gd`), `timelines/` |
 | `assets/colors/` | `default_color_palette.tres` (not referenced by game scenes or scripts) |
@@ -213,8 +202,7 @@ There is no `assets/audio/` folder; the project has no audio files. The 2026-04-
 ## Known issues
 
 - `[MEDIUM]` The label testing scene is stale (see above).
-- `[LOW]` `PanelDark` is defined but not used by any scene or script.
-- `[LOW]` `ThemeConstants.FONT_*` (42/28/20/16/12) disagree with the variant scale and are unused. The header's "single source of truth" claim conflicts with this doc.
+- `[LOW]` `assets/styleboxes/textures/panel_dark_texture.png` and `bamboo_panel_texture.png` are unreferenced: the styleboxes that used them were deleted as dead code. Delete or reuse the textures.
 - `[LOW]` `pixel_theme.tres` still carries Godot 3-style item names inherited from the pixel UI pack, which Godot 4 does not read. Examples: `Button/colors/font_color_hover`, `font_color_pressed`, `font_color_disabled`, and `*/constants/hseparation`. The Godot 4 names (`font_hover_color`, etc.) are also present for `Button`.
 - `[LOW]` A few UI files still set sizes inline instead of using a variant. Examples: the dev panel title (`LabelHeading` + 20px), `TickProgressBar`'s counter (`LabelSmall` + 12px), and `scenes/tools/encounter_id_label.tscn` (bare Label + 11px).
 - `[LOW]` Some non-snake_case asset names remain outside the cleanup spec's rename list: `sprites/cycling/Cycling_Technique_Background.webp`, `sprites/cycling/Madra-Ball.png`, `aseprite/Sprite-0003*.aseprite`, `aseprite/ui/resource_bar/Sprite-0001.aseprite`. Also, `sprites/tilemap/hex_selector_spritesheet.aseprite` is a source file sitting in `sprites/`.

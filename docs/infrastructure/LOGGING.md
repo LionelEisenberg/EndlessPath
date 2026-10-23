@@ -1,6 +1,6 @@
 # Logging
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -66,9 +66,7 @@ Usage in `singletons/`, `scenes/` and `scripts/`: 254 `Log.*` calls (115 `info`,
 | Member | Behaviour |
 |--------|-----------|
 | `signal message_logged(bbcode_message: String)` | Emitted by `log_message()` |
-| `signal visibility_toggled()` | Emitted by `toggle_window()`. `LogWindow` responds by toggling collapse |
 | `log_message(bbcode: String)` | Emits `message_logged`. No levels, no buffering, no history |
-| `toggle_window()` | Emits `visibility_toggled`. Nothing has called it since the toolbar log toggle was removed (commit `ae52802`) |
 
 ## LogWindow
 
@@ -83,7 +81,7 @@ LogWindow (PanelContainer, StyleBoxEmpty, mouse_filter IGNORE)
       RichTextLabel % (bbcode_enabled, scroll_following, 18 px)
 ```
 
-- It starts collapsed, with only the title bar showing. `CollapseButton` or `LogManager.visibility_toggled` shows and hides `ContentPanel` through `toggle_collapse()`.
+- It starts collapsed, with only the title bar showing. `CollapseButton` shows and hides `ContentPanel` through `toggle_collapse()`.
 - Dragging the title bar with the left mouse button moves the window anywhere.
 - Each `message_logged` appends `bbcode + "\n"`. The history is never trimmed or cleared.
 - It sits below `GreyBackground` (z 2), so modal views cover it.
@@ -110,7 +108,7 @@ Callers format their own strings as single lines, and the window adds the newlin
 | System | Connection |
 |--------|------------|
 | `MainGame` | Sets the console print level from `log_print_level` |
-| `LogWindow` | The only listener of `message_logged` and `visibility_toggled` |
+| `LogWindow` | The only listener of `message_logged` |
 | ResourceManager, InventoryManager, ActionManager, AdventureView, CombatEffectManager, AdventurePresenter, TrashSlot, ZoneViewBackground, DevPanel | Send player-facing messages through `LogManager.log_message()` |
 | Every singleton and most scenes | Developer diagnostics through `Log.*` |
 | Godot engine | `Log` is registered with `OS.add_logger()` and receives engine errors and `print()` output |
@@ -141,7 +139,6 @@ Callers format their own strings as single lines, and the window adds the newlin
 ### Tech Debt
 
 - `[LOW]` The `Log.Event` order puts `INFO` (0) below `DEBUG` (1), the reverse of the usual severity order. `MainGame`'s script default (`DEBUG`) would hide INFO lines, and only the scene override to `INFO` avoids that.
-- `[LOW]` `LogManager.toggle_window()` and `visibility_toggled` have no callers, and the names are misleading because they toggle collapse, not visibility.
 - `[LOW]` A developer error goes to the player log. `ZoneViewBackground` reports `Failed to load layer %s` through `LogManager` instead of `Log.error`.
 - `[LOW]` There is heavy `Log.info` in hot paths. `CombatEffectData.calculate_value()` logs at least 3 lines per call (plus one per non-zero scaling term), and `calculate_damage()` adds defense lines on top. This includes calls made when `AbilityStatsDisplay` renders stats, and all of it reaches the console at the `INFO` print level.
 - `[LOW]` There are no tests for `Log`, `LogManager` or `LogWindow`.

@@ -10,7 +10,7 @@ Endless Path is a cultivation idle/incremental game with active mini-games, insp
 - a procedurally generated adventure with real-time combat;
 - inventory and gear, an ability loadout, a character sheet, and a skill tree.
 
-The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 618 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
+The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 733 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
 
 ## Where Each System Stands
 
@@ -35,8 +35,8 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 
 ## Health
 
-- **Size:** about 19.5k lines of game GDScript plus 6.4k lines of tests, 112 scenes, 98 data resources, 15 shaders.
-- **Tests:** 618/618 pass across 68 files in about 9 s (GUT 9.6.0). Several suites re-implement the logic they test instead of calling it: ResourceManager, CharacterManager, CultivationManager, and parts of inventory and adventure. Real coverage is lower than the count suggests ([TESTING.md](testing/TESTING.md)).
+- **Size:** about 21k lines of game GDScript plus 9k lines of tests, 118 scenes, 103 data resources, 14 shaders.
+- **Tests:** 733/733 pass across 77 files (GUT 9.7.1, Godot 4.7.2, run on 2026-10-22). The ResourceManager, CultivationManager and CharacterManager suites call the real singletons. Some `test_inventory_manager.gd` tests still re-implement the logic they check ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.
   - One unmerged branch, `feat/infallible-chaum-58f8ad`, adds in-combat consumables (20 commits, no PR).
@@ -74,7 +74,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
    - an audio pass;
    - enemy and combat art;
    - export presets and CI;
-   - rewrite the tests that don't call production code.
+   - rewrite the inventory tests that don't call production code.
 
 ## Decisions Needed
 

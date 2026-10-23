@@ -1,6 +1,6 @@
 # Zones & Actions
 
-Last updated: 2026-10-19
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -143,7 +143,6 @@ ZoneInfoPanel (PanelContainer)                zone_info_panel.gd
 | `get_available_actions(zone_id = current)` | `Array[ZoneActionData]` | See [Unlock gating](#unlock-gating) |
 | `get_action_by_id(action_id)` | `ZoneActionData` | Searches every zone |
 | `get_zone_by_id(zone_id)`, `get_all_zones()` | `ZoneData`, `Array[ZoneData]` | |
-| `get_unlocked_zones()` | `Array[ZoneData]` | Stub that always returns `[]`; no callers |
 
 `ActionManager` public API: `select_action(action_data)`, `stop_action(successful = true)`, `confirm_adventure_start(action_data, madra_budget)`, `get_current_action()`, `clear_current_action()`, plus the public vars `current_action` and `action_timer` (a `Timer` child that foraging and training reuse; the presenters poll it).
 
@@ -197,7 +196,6 @@ To add a variant:
 | `HexHoverSelector` | `scenes/tilemaps/hex_hover_selector.gd` (`Sprite2D`) | Shared with the adventure map; steps through spritesheet frames at `hover_fps` |
 | `Atmosphere` | `scenes/atmosphere/atmosphere.gd` | Shared with the adventure map |
 | `ZoneViewBackground` | `scenes/zones/zone_view_background/zone_view_background.gd` | Loads `layer_00.png`–`layer_11.png` from `assets/sprites/zones/backgrounds/spirit_valley/`. Layer i gets `scroll_scale = i / 11 × 0.2` (`MAX_SCROLL_SCALE`). The sky layer is scaled 15×; the others use `LAYER_SCALE` (6×). Nearest filtering. It always shows Spirit Valley, whatever zone is selected |
-| `tile_aura.gdshader` | `assets/shaders/tile_aura.gdshader` | A pulsing tint shader that no scene references |
 
 ### Camera
 
@@ -455,7 +453,6 @@ Every stop adds 1 to `action_completion_count`, under the zone that is current a
 | `adventure_start_requested(action_data)` | `_execute_adventure_action()` when affordable | `ZoneViewState` (input blocker), `ZoneTransition` |
 | `start_adventure(action_data, madra_budget)` | `confirm_adventure_start()` | `AdventureViewState` (change state), `AdventureView.start_adventure` |
 | `stop_adventure()` | `_stop_adventure_action()` | `AdventureView.stop_adventure` (→ `adventure_completed` → end card), `AdventureViewState` (no-op) |
-| `start_training(action_data)`, `stop_training()` | Training start / stop | None |
 | `training_tick_processed(action_data, new_tick_count)` | Every training tick | `TrainingPresenter` |
 | `training_level_gained(action_data, new_level)` | Once per level crossed | `TrainingPresenter` |
 | `start_merchant(action_data)` | `_execute_merchant_action()` | `MerchantViewState` (binds the shop, pushes the overlay) |
@@ -467,8 +464,6 @@ Other signals the zone code consumes:
 - `tile_clicked`, `tile_hovered` and `tile_unhovered` from `scenes/tilemaps/hexagon_tile_map_layer.gd` (`ZoneTilemap`).
 - `ResourceManager.madra_changed` (`AdventurePresenter`, `ZoneResourcePanel`).
 
-`ZoneTilemap.zone_selected(zone_data, tile_coord)` is emitted on travel, but nothing listens to it.
-
 ### Zone selection
 
 ```
@@ -476,7 +471,7 @@ hexagon_tile_map_layer.gd _input (left click on a cell that has a tile)
   └─ tile_clicked(coord) → ZoneTilemap._on_zone_tile_clicked
        ├─ no zone, or the current zone → return
        ├─ locked → LockedZoneOverlay.shake(), return
-       ├─ zone_selected.emit (no listeners); update_zone_tile_state → selected_zone setter
+       ├─ update_zone_tile_state → selected_zone setter
        │     └─ ZoneManager.set_current_zone → stores current_selected_zone_id → zone_changed
        │           ├─ ActionManager.stop_action()
        │           ├─ ZoneInfoPanel.setup_zone_actions()
@@ -500,14 +495,14 @@ Foraging charges no Madra. `forage_active` and `forage_start_time` are never set
 
 ### Training
 
-1. `_execute_train_action()` emits `start_training` and starts the timer at `tick_interval_seconds`.
+1. `_execute_train_action()` starts the timer at `tick_interval_seconds`.
 2. On each tick, `_on_train_timer_finished`:
    1. Reads the previous tick count for the current zone and computes the previous level.
    2. Calls `ZoneManager.increment_training_ticks()`.
    3. Runs `effects_per_tick`.
    4. Emits `training_tick_processed(action, new_ticks)`.
    5. For each level from `prev_level + 1` to `new_level`: runs `effects_on_level`, then emits `training_level_gained(action, level)`.
-3. On stop, `stop_training` is emitted, the timer resets and the completion effects run. Ticks stay in `training_tick_progress`, so the next session continues from the same total.
+3. On stop, the timer resets and the completion effects run. Ticks stay in `training_tick_progress`, so the next session continues from the same total.
 
 ### Adventure start (zone side)
 
@@ -751,11 +746,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 ### Tech Debt
 
 - `[MEDIUM]` Removing or renaming a zone id wipes the whole save. `PersistenceManager._ready()` resets all data when `SaveGameData.verify()` (`_verify_current_selected_zone_id()`) fails. Renaming an `action_id` silently drops its completion count, so one-time dialogues reappear. A migration path is needed before Test Zone is replaced.
-- `[LOW]` Dead code and assets:
-  - `ZoneManager.get_unlocked_zones()` always returns `[]` and has no callers.
-  - `ZoneTilemap.zone_selected`, `ActionManager.start_training` and `ActionManager.stop_training` have no listeners.
-  - `assets/shaders/tile_aura.gdshader`, `scenes/tilemaps/pulse_node.gd` / `.tscn` with `assets/shaders/pulse_node.gdshader`, and `scenes/tilemaps/tile_map_layer.tscn` are not referenced anywhere.
-  - Nothing reads `ZoneData.icon` or `ZoneActionData.icon`, and nothing calls `AdventureActionData.is_valid()`.
+- `[LOW]` Dead code: nothing reads `ZoneData.icon` or `ZoneActionData.icon`, and nothing calls `AdventureActionData.is_valid()`.
 - `[LOW]` Signal declarations don't match their emits. `start_foraging(action_data)` is emitted with no argument. `ZoneManager.action_completed` is declared without parameters but emitted with `action_id`.
 - `[LOW]` Duplicated constants. Category colours are defined in both `ZoneActionTypeSection._populate_header()` and `CATEGORY_COLORS` in `zone_action_button.gd`. `FOREST_ATLAS_COLS` and `FOREST_VARIANT_COUNT` are defined in both `zone_tilemap.gd` and `HexForestAtlas`.
 - `[LOW]` `ForageActionData`, `CyclingActionData` and `NpcDialogueActionData` don't set `action_type` in `_init()`.

@@ -1,5 +1,5 @@
 # Main View (UI Shell and Navigation)
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -132,7 +132,7 @@ What each view shows:
 The four menus are books (`docs/superpowers/specs/2026-10-21-menu-books-design.md`):
 
 - `BookFrame` (`scenes/ui/book_frame/book_frame.tscn` + `.gd`) is the shared book: the inventory's book spritesheet with its open, close and page-turn animations, the close tab on the top edge of the right page, and the bookmark. The close tab is the side-tab art standing up, showing 22 book px above the page near its corner. Its X is a `CloseGlyph` label in the game font (the same X as the cycling view's "X ESC"), and like the side tabs it has no hover art, tooltip or hand cursor. The bookmark hangs about 27 book px below the page stack, centred at x 583 (between its first spot and the book's right edge). It sits in a `BookmarkClip` whose top is the top page's bottom edge, and once the book lies open it slides down out of it in `BOOKMARK_SLIDE_SECONDS` (0.45 s, ease out), as if pulled from between the pages; it hides at once when the book starts closing. One palette-swap shader (`assets/shaders/palette_swap.gdshader`) recolours the cover edge, the page border line, the turning page and the bookmark from a `BookStyleData` (`scripts/resource_definitions/ui/book_style_data.gd`; one per book in `resources/ui/book_styles/`). The close tab and bookmark only show while the book lies open. A `BookHitArea` over the open book's art, (48, 24)-(652, 432), and the bookmark catch clicks, so only a click outside the book reaches the backdrop and closes it; the transparent margins of the 700 × 450 frame count as outside. `animate_open()` plays the close animation backwards, and unless it is turning a close around, it first seeks onto that animation's last key (the closed book): the track is discrete, so playback only applies keys it crosses, and a book that has never closed would otherwise start on its open frame and snap shut before opening. Signals: `opened`, `closed`, `close_requested`, `page_turned`.
-- `MenuBookView` (`scenes/ui/book_frame/menu_book_view.gd`) is the base script of the four views. `animate_open()` and `animate_close()` drive the `%BookFrame`; the nodes in its `page_content` export are shown only while the book lies open. It re-emits the close tab as `close_requested` and emits `close_finished` when the book has closed. Hooks: `_before_open()`, `_after_open()`, `_before_close()`, `_after_close()`.
+- `MenuBookView` (`scenes/ui/book_frame/menu_book_view.gd`) is the base script of the four views. `animate_open()` and `animate_close()` drive the `%BookFrame`; the nodes in its `page_content` export are shown only while the book lies open. It re-emits the close tab as `close_requested` and emits `close_finished` when the book has closed. Hooks: `_before_open()`, `_after_open()`, `_after_close()`.
 - `BookViewState` (`scenes/ui/main_view/states/book_view_state.gd`) is the base of the four states. Subclasses name the view (`_get_view()`) and their close keys (`_is_close_event()`); Esc, the menu's key, the close tab and `GreyBackground.clicked` (connected in `enter()`, disconnected in `exit()`) all call `_request_close()`. A backdrop click only counts once the book lies open: `_on_backdrop_clicked()` ignores it while `BookFrame.is_moving()`, so a quick second click on the toolbar button, which lands on the backdrop, can't shut the book mid-open. Esc and the menu's key still close a book that is opening.
 - Inventory keeps its own pages in book units (its text widgets counter-scaled to 0.5). The other three books draw their pages at screen resolution in a `PageLayer`, styled by `assets/themes/book_theme.tres` (see [UI_STYLING.md](../UI_STYLING.md#menu-book-pages)), with the inventory's title ribbon (`TabBanner`), selector (`SortSubBanner`) and side tabs reused at book scale.
 
@@ -223,17 +223,15 @@ Other inputs:
 | `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `CyclingTechnique` (XP popups), `ResourceBar` (combat vitals deltas; per-bar `show_floating_text` export), `ForagingPresenter` (forage results) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
 | `FlyingParticle` | `scenes/ui/flying_particle/flying_particle.gd` (script only, created with `FlyingParticle.new()`) | `ZoneTransition` (Madra drain), `TrainingPresenter` (one Madra particle per tick), `CyclingView` (Madra/XP particles) | `launch(start, target, color, duration = 0.6, size = 5.0, on_arrive = Callable(), curve_spread = 60.0, curve_bias = 0.0)`. Quadratic bezier with ease-in and an 8-point fading trail, drawn with `draw_circle`. Calls `on_arrive`, then frees itself. |
 | `TickProgressBar` | `scenes/ui/tick_progress_bar/tick_progress_bar.tscn` + `.gd` | `TrainingPresenter` | `set_progress(current, total)` (`total <= 0` clears it), `set_fill_color(color)`, `flash_and_reset(flash_color, duration = 0.3)`. 2 px bar with 9 gradation marks (10% to 90%) and a `LabelSmall` counter (12 px override) to the right of the bar. |
-| `InkbrushButton` | `scenes/ui/inkbrush_button/inkbrush_button.tscn` + `.gd` | Nothing (unused) | `TextureButton` with a random `action_button_1..3.png` texture and a `zone_action_button.gdshader` fill on hover. `setup(label, texture, fill_color)`. |
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | Main view states | See [GreyBackground](#greybackground-modal-backdrop) |
-| `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled`. See [LOGGING.md](LOGGING.md). |
+| `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged`. See [LOGGING.md](LOGGING.md). |
 | `QuestWindow`, `QuestToast` | `scenes/ui/quest_window/`, `scenes/ui/quest_toast/` | `MainView` | Placement only here. Both have editor preview exports (`preview_*`). See [QUESTS.md](../progression/QUESTS.md). |
 
 Utilities:
 
 | Script | Status |
 |--------|--------|
-| `scripts/utils/theme_constants.gd` (`ThemeConstants`) | Colour palette and size constants for code. Only `ACCENT_GOLD`, `BORDER_PRIMARY` and `BG_MEDIUM` are referenced. See [UI_STYLING.md](../UI_STYLING.md#code-side-constants-themeconstants). |
-| `scripts/utils/text_effect_importer.gd` | A `Node` with `@export var _text_effect_scripts: Array[Script]` and `get_text_effect_instances()`, which instantiates each script as a `RichTextEffect`. Not referenced by any scene or script. |
+| `scripts/utils/theme_constants.gd` (`ThemeConstants`) | Colours that code sets at runtime. It holds one constant, `ACCENT_GOLD`. See [UI_STYLING.md](../UI_STYLING.md#code-side-constants-themeconstants). |
 
 ### Project settings (`project.godot`)
 
@@ -299,7 +297,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 - `[LOW]` `center_zone_map_camera` (Space) is declared in `project.godot` but no script reads it, so Space does nothing on the zone map.
 - `[LOW]` `open_path_tree` (P) duplicates `open_path` and is never read.
-- `[LOW]` No log-window hotkey. `LogManager.toggle_window()` emits `visibility_toggled`, which `LogWindow` listens to, but nothing calls `toggle_window()` (also tracked in [LOGGING.md](LOGGING.md)).
+- `[LOW]` No log-window hotkey. Only the title bar's `CollapseButton` expands or collapses the log.
 - `[LOW]` I/A/C/P are ignored during adventures because `AdventureViewState.handle_input()` is empty. It is unconfirmed whether this is intended.
 
 ### UI
@@ -312,14 +310,8 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 - `[LOW]` `MainView.change_state()` clears `state_stack` without calling `exit()` on stacked overlays. This is only safe because no overlay can be open when the base changes: `ZoneViewState` blocks input during the adventure transition, and the end card is popped first.
 - `[LOW]` `CyclingViewState._on_stop_cycling()` pops whatever state is on top, not specifically the cycling state.
-- `[LOW]` `SystemMenuButton` issues:
-  - `BADGE_PROVIDER` is unused; `_wire_badge_listeners()` and `_refresh_badge()` hard-code ABILITIES/`AbilityManager`.
-  - The comment saying icon textures are null is stale; all four icons exist.
-  - The scene still lives under `scenes/zones/zone_resource_panel/system_menu/` although only `scenes/ui/toolbar/toolbar.tscn` uses it.
+- `[LOW]` The `SystemMenuButton` scene still lives under `scenes/zones/zone_resource_panel/system_menu/` although only `scenes/ui/toolbar/toolbar.tscn` uses it.
 - `[LOW]` `SystemMenuButton._on_pressed()` and `CyclingView._on_close_button_pressed()` send a pressed `InputEventAction` with no matching release event.
-- `[LOW]` Dead code:
-  - `InkbrushButton` has no references. It uses the root-level placeholder `res://32.png`, untyped constants, functions without return types, and `$MarginContainer/...` paths.
-  - `scripts/utils/text_effect_importer.gd` has no references, no `class_name` and no doc comment.
 - `[LOW]` Some nodes are created in code despite the scene-tree UI rule: the `ZoneViewState._add_input_blocker()` `Control.new()`, and `FlyingParticle`, which has no `.tscn`.
 - `[LOW]` Stale doc comments:
   - The `MainView` class comment lists 4 views; there are 9 states.

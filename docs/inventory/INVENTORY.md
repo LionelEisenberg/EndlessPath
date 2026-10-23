@@ -1,6 +1,6 @@
 # Inventory System
 
-Last updated: 2026-10-21
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -262,7 +262,6 @@ Each entry rolls independently: `randf() <= drop_chance`, then `randi_range(min,
 | `unequip_item_to_slot(slot, target_index, accessory_index = -1) -> bool` | Swaps with a compatible grid item. Returns false and changes nothing when the occupant doesn't fit the slot |
 | `swap_accessory_slots(from_index, to_index)` | Moves or swaps accessory 0 ↔ 1 |
 | `move_equipment(from_index, to_index)` | Moves or swaps within the grid. No bounds or capacity check |
-| `get_equipped_item(slot, accessory_index = -1)` | Accessor (no callers) |
 | `has_item(item_id) -> bool` | Scans materials, grid, equipped gear, accessories, quest items and consumables (count > 0) |
 | `use_consumable(def) -> bool` | Calls `def.use()`, then decrements or erases the stack. No cooldown check. No caller on `main` |
 | `restore_equipment_instance(instance, target_slot_index = -1)` | Trash restore: uses the target if it is valid, empty and below capacity, otherwise the first free slot. No log |
@@ -456,7 +455,7 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
 
-Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`. That is 22 files and 160 tests.
+Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`. That is 22 files and 158 tests.
 
 ## Work Remaining
 
@@ -506,21 +505,16 @@ Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_d
 ### Tech Debt
 
 - `[MEDIUM]` **`EquipmentTab._remove_dragged_from_inventory_state()` mutates `InventoryData` directly** and emits `InventoryManager.inventory_changed` itself. Move this into an InventoryManager verb.
-- `[MEDIUM]` **`test_inventory_manager.gd` tests less than its count suggests.**
-  - About 20 of its 33 tests re-implement the logic on a local `InventoryData` instead of calling the manager. As a result, `equip_item`, `unequip_item`, `move_equipment` and `swap_accessory_slots` are effectively untested.
-  - `test_inventory_max_50_slots` checks a 50-slot rule that no longer exists.
+- `[MEDIUM]` **`test_inventory_manager.gd` still has mirror tests.**
+  - 12 of its 31 tests edit a local `InventoryData` by hand instead of calling the manager: the three `test_equip_item_*`, `test_unequip_to_specific_slot`, `test_unequip_empty_slot_does_nothing`, the two `test_move_equipment_*`, the three `test_award_material_*`, and `test_award_quest_item_new` / `_stacks`. As a result, `move_equipment` and `equip_item`'s swap with an occupied slot are untested. `equip_item` into an empty slot is covered by `test_character_manager.gd` and `test_has_item_true_for_equipped_gear`.
   - There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, `_quick_equip` (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
 - `[LOW]` **Two item-detail widgets exist.** `ItemDescriptionPanel` serves Equipment, Consumables and the end-card tooltip; `ItemDetailCard` serves only Materials. Their setup logic is duplicated, and `ItemDetailCard`'s doc comment wrongly says Consumables and the Journal use it.
 - `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop. The drag-preview code is duplicated in `ConsumableRow` and `HotbarSlot`.
-- `[LOW]` **Dead code:**
-  - `quest_item_row.tscn/.gd`, replaced by `JournalRow`
-  - `ItemInstanceData._to_description_box()` (no caller; `ConsumableDefinitionData`'s comment still points at it)
-  - `GridToolbar.set_count()`
-  - `QuestJournalCard`'s `%Sub` label, which is always empty
+- `[LOW]` **Dead code:** `QuestJournalCard`'s `%Sub` label, which is always empty.
 - `[LOW]` **UI nodes built in code.** `SortSubBanner._redraw()` creates its dot `TextureRect`s in code and frees the four authored `Dot0-3` nodes.
 - `[LOW]` **Coding-standard gaps:**
   - `$MarginContainer/SlotBackground` in `gear_slot.gd` should use a `%` unique name
   - untyped variables (for example `var inventory = get_inventory()` in `inventory_manager.gd`) and an untyped `func _input(event)` in `equipment_tab.gd`
-  - no `##` docs on `get_inventory`, `get_material_items`, `award_items`, `unequip_item`, `move_equipment` and `get_equipped_item`
+  - no `##` docs on `get_inventory`, `get_material_items`, `award_items`, `unequip_item` and `move_equipment`
   - `_get_item_type()` and `_get_item_effects()` start with `_` but are called from other classes
 - `[LOW]` **`GearSelector` finds its slots through the global "GearSlots" group**, so a second GearSelector in the tree would pick up both sets.
