@@ -179,6 +179,12 @@ Shared components used across multiple views:
 
 Use `/ship` to review, commit, and get a summary in one step.
 
+**Worktrees in Godot's project list:** the SessionStart hook in `.claude/settings.json` runs `.claude/hooks/godot_project_list.ps1 sync`. It lists every live worktree in Godot's project manager through a junction in `C:\worktrees\EndlessPath-godot\` named after a one-liner of its feature, which Godot shows on the path line under the "EndlessPath" title. It drops worktrees that are gone or merged into main, and never touches the main checkout's entry. New entries are named after their branch: once you know what your session is building, rename yours to a one-liner of the feature, and again if the work changes direction:
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/godot_project_list.ps1 label "Zone view redesign"
+```
+Never delete one of those junctions with `Remove-Item -Recurse`: on a junction, Windows PowerShell deletes the worktree's own files.
+
 ## Parallel Agents
 
 Multiple Claude Code agents may run simultaneously on this codebase. Follow these rules to avoid conflicts:
