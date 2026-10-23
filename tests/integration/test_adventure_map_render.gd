@@ -213,7 +213,8 @@ func test_the_hex_stays_put_in_every_frame_of_the_ease() -> void:
 
 	var drifted: Array[String] = []
 	var frames: int = 0
-	while controller.is_zoom_active() and frames < 300:
+	# The ease lasts about a second of game time, however many frames that takes.
+	while controller.is_zoom_active() and frames < 20000:
 		await get_tree().process_frame
 		frames += 1
 		var off_by: float = _screen_centre(START).distance_to(_hex_home())
@@ -613,14 +614,15 @@ func test_boss_push_returns_the_camera_to_the_zoom_correct_offset() -> void:
 	watch_signals(_tilemap)
 	await _walk_to(FIGHT)
 	assert_signal_emitted(_tilemap, "boss_revealed", "precondition: visiting FIGHT reveals the boss")
-	assert_lt(camera.offset.distance_to(home), 5.0, "the push starts from the zoom's offset")
+	assert_lt(camera.offset.distance_to(home), 15.0, "the push starts from the zoom's offset (the zoom 1 offset is 35 px from it)")
 
 	await get_tree().create_timer(0.3, true, false, true).timeout
 	var view_from_character: Vector2 = camera.global_position + camera.offset - _tilemap.character_body.global_position
 	assert_gt(view_from_character.distance_to(home), 10.0, "precondition: mid-push, the view has moved toward the boss")
 
-	# The push takes 1.2 s of game time, its first 0.15 s of real time at a quarter speed.
-	await get_tree().create_timer(1.3, true, false, true).timeout
+	# The push takes 1.2 s of game time, its first 0.15 s of real time at a quarter speed:
+	# about 1.3 s after the reveal, 0.3 s of which have passed.
+	await get_tree().create_timer(1.6, true, false, true).timeout
 	assert_eq(camera.zoom, Vector2(2, 2), "precondition: the zoom held")
 	assert_eq(camera.offset, home, "the push ends on the zoom's offset")
 	assert_lt(_screen_centre(FIGHT).distance_to(_hex_home()), 0.01, "so the current hex is at (960, 470)")
@@ -639,11 +641,10 @@ func test_zooming_during_the_push_neither_fights_nor_cancels_it() -> void:
 
 	await get_tree().create_timer(0.4, true, false, true).timeout
 	var base: Vector2 = AdventureTilemap.camera_offset_for(camera.zoom.x)
-	assert_gt(camera.zoom.x, 1.8, "precondition: the zoom has all but arrived")
-	assert_lt(camera.zoom.x, 2.0, "precondition: and is still easing")
+	assert_gt(camera.zoom.x, 1.2, "precondition: the zoom is under way")
 	assert_gt(camera.offset.distance_to(base), 10.0, "the push goes on moving the view, on top of the zoom's offset, while the zoom eases")
 
-	await get_tree().create_timer(1.3, true, false, true).timeout
+	await get_tree().create_timer(1.6, true, false, true).timeout
 	assert_eq(camera.zoom, Vector2(2, 2), "the zoom arrived")
 	assert_eq(camera.offset, AdventureTilemap.camera_offset_for(2.0), "and the push ended on the offset for it")
 

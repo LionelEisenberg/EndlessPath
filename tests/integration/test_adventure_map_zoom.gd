@@ -395,7 +395,9 @@ func test_a_committed_walk_keeps_its_rim_and_route_through_a_zoom() -> void:
 	assert_true(tilemap.character_body.is_moving, "precondition: the press set the walk off")
 
 	_zoom_controller().set_zoom_level(1.5)
-	await wait_process_frames(10)
+	# A moment of real time, not a count of frames: the zoom is about 0.4 of the way
+	# there and the hop (0.9 s) is far from over, at any frame rate.
+	await wait_seconds(0.15)
 
 	assert_true(tilemap.character_body.is_moving, "precondition: the walk is still under way")
 	assert_lt(_camera().zoom.x, 1.5, "precondition: and so is the zoom")
