@@ -7,11 +7,12 @@ extends GutTest
 ## (AdventureTilemap), the real fight (AdventureCombat) and the run's Timer.
 ## The view is instanced as test_adventure_end_flow.gd does, on a canvas layer
 ## above GUT's own window so that a press reaches it, and each run starts the
-## way the zone starts one, through ActionManager. Wiring is tested by emitting
-## the map's signals; tile state comes from the shared fixture map
-## (AdventureMapFixture), played on once the view has started its run. Walks
-## are real, and so is the pointer where the map reads it: a press, a hover
-## and the pointer leaving the map for a board.
+## way the zone starts one, through ActionManager, on a fixed map: the tilemap
+## is handed a generator that returns the shared fixture map
+## (AdventureMapFixture) or the map a test builds, so no test generates a random
+## one. Wiring is tested by emitting the map's signals. Walks are real, and so
+## is the pointer where the map reads it: a press, a hover and the pointer
+## leaving the map for a board.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -116,30 +117,21 @@ class FixedMapGenerator extends AdventureMapGenerator:
 		return map
 
 ## Starts the Shallow Woods the way the zone does once its Madra drain ends: the
-## action becomes the current one and the run is confirmed with its budget.
-## A time limit of 0 keeps the action's own.
+## action becomes the current one and the run is confirmed with its budget. The
+## run plays on `_map` (the fixture map, unless the test set another): the
+## tilemap is handed a generator that returns it, so no random map is generated
+## and none can fail. A time limit of 0 keeps the action's own.
 func _start_run(time_limit_seconds: int = 0) -> void:
-	var action: AdventureActionData = ADVENTURE_ACTION.duplicate()
-	if time_limit_seconds > 0:
-		action.time_limit_seconds = time_limit_seconds
-	ActionManager._set_current_action(action)
-	ActionManager.confirm_adventure_start(action, MADRA_BUDGET)
-
-## Starts the run as _start_run() does, on the fixture map: the tilemap is handed
-## a generator that returns it, so no random map is generated and none can fail.
-func _start_run_on_the_fixture_map() -> void:
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	var generator := FixedMapGenerator.new()
 	generator.map = _map
 	tilemap.adventure_map_generator.free()
 	tilemap.adventure_map_generator = generator
-	_start_run()
-
-## Plays the run on the fixture map from here on. The view started it on a
-## generated map, so that map is cleared first, as a run's end clears it.
-func _play_on_fixture_map() -> void:
-	_view.adventure_tilemap.stop_adventure()
-	_view.adventure_tilemap.start_adventure_on_map(_view.current_action_data, _map)
+	var action: AdventureActionData = ADVENTURE_ACTION.duplicate()
+	if time_limit_seconds > 0:
+		action.time_limit_seconds = time_limit_seconds
+	ActionManager._set_current_action(action)
+	ActionManager.confirm_adventure_start(action, MADRA_BUDGET)
 
 func _stop_every_action() -> void:
 	while ActionManager.get_current_action() != null:
@@ -233,7 +225,7 @@ func _dots_between(from: Vector3i, to: Vector3i) -> PackedVector2Array:
 ## Stamina for one hop only, so that a walk to FIGHT, two hops through START,
 ## stops at START. Stamina does not regenerate while the test walks.
 func _stand_on_open_near_with_one_hop_of_stamina() -> void:
-	_start_run_on_the_fixture_map()
+	_start_run()
 	await _walk_to(OPEN_NEAR)
 	await wait_process_frames(2)
 	PlayerManager.vitals_manager.stamina_regen = 0.0
@@ -429,7 +421,6 @@ func test_arrival_fills_the_here_tray() -> void:
 
 func test_resolution_shows_cleared() -> void:
 	_start_run()
-	_play_on_fixture_map()
 	await _walk_to(REST)
 	assert_eq(_page_text("TagLabel"), "REST", "precondition: the rest waits for a choice")
 
@@ -462,7 +453,6 @@ func test_walk_refused_shakes_the_right_board() -> void:
 ## which resolves the tile.
 func test_choice_from_the_chest_reaches_the_tilemap() -> void:
 	_start_run()
-	_play_on_fixture_map()
 	await _walk_to(REST)
 	# The page's containers place the new drawers at the end of the frame.
 	await wait_process_frames(2)
@@ -482,7 +472,6 @@ func test_choice_from_the_chest_reaches_the_tilemap() -> void:
 ## from the pointer: the same presses with the boards hidden prove each would
 ## otherwise have clicked a hex.
 func test_press_on_a_board_does_not_reach_the_map() -> void:
-	_start_run()
 	await wait_process_frames(2)
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	var boards: Array[Control] = [_view.vitals_plate, _view.adventure_chest, _view.technique_dock]
@@ -490,12 +479,12 @@ func test_press_on_a_board_does_not_reach_the_map() -> void:
 	for board: Control in boards:
 		points.append(board.get_global_rect().get_center())
 	# A map with a tile under each press, every tile shown (the dev panel's Show
-	# Whole Map), so that each press is over a drawn hex that would take it.
-	var map: Dictionary[Vector3i, AdventureEncounter] = {START: NoOpEncounter.new()}
+	# Whole Map), so that each press is over a drawn hex that would take it. The
+	# camera stands where the run will start, so the tiles are found before it.
+	_map = {START: NoOpEncounter.new()}
 	for point: Vector2 in points:
-		map[_cube_under(point)] = NoOpEncounter.new()
-	tilemap.stop_adventure()
-	tilemap.start_adventure_on_map(_view.current_action_data, map)
+		_map[_cube_under(point)] = NoOpEncounter.new()
+	_start_run()
 	_view.set_show_whole_map(true)
 	await wait_process_frames(2)
 	for index: int in points.size():
@@ -543,7 +532,7 @@ func test_old_hud_is_gone() -> void:
 ## back onto it hovers it again. The pointer really moves, as in
 ## test_press_on_a_board_does_not_reach_the_map.
 func test_the_hover_goes_when_the_pointer_moves_onto_a_board() -> void:
-	_start_run_on_the_fixture_map()
+	_start_run()
 	await wait_process_frames(2)
 	var over_fight: Vector2 = _screen_point_of(FIGHT)
 	await _move_pointer_to(over_fight)
@@ -564,7 +553,7 @@ func test_the_hover_goes_when_the_pointer_moves_onto_a_board() -> void:
 ## Only the hover goes with the pointer: a walk the player committed to keeps its
 ## rim and its route, which belong to the walk.
 func test_a_committed_walk_keeps_its_rim_and_route_when_the_pointer_leaves_the_map() -> void:
-	_start_run_on_the_fixture_map()
+	_start_run()
 	await wait_process_frames(2)
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	var over_fight: Vector2 = _screen_point_of(FIGHT)
@@ -640,7 +629,6 @@ func test_a_stamina_stop_leaves_no_hover_with_the_pointer_off_the_map() -> void:
 
 func test_fight_binds_the_dock_and_buffs() -> void:
 	_start_run()
-	_play_on_fixture_map()
 	await _walk_to(FIGHT)
 
 	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
@@ -667,7 +655,6 @@ func test_fight_binds_the_dock_and_buffs() -> void:
 
 func test_run_stats_follow_the_run() -> void:
 	_start_run()
-	_play_on_fixture_map()
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	var fights_total: int = tilemap.get_total_combat_count()
 	var tiles_total: int = tilemap.get_total_tile_count()
@@ -696,7 +683,6 @@ func test_run_stats_follow_the_run() -> void:
 ## teardown (which clears the map) leaves the run's last figures standing.
 func test_the_ledger_keeps_the_runs_last_figures() -> void:
 	_start_run()
-	_play_on_fixture_map()
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
 	await _walk_to(FIGHT)
 	tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
@@ -716,7 +702,6 @@ func test_the_ledger_keeps_the_runs_last_figures() -> void:
 func test_second_run_starts_clean() -> void:
 	# A short first run, so that its clock shows the low seal.
 	_start_run(SHORT_TIME_LIMIT)
-	_play_on_fixture_map()
 	await _walk_to(FIGHT)
 	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
 	await _cast_the_first_technique()
@@ -729,6 +714,7 @@ func test_second_run_starts_clean() -> void:
 
 	ActionManager.stop_action(false)
 	_stop_every_action()
+	_map = AdventureMapFixture.build_map()
 	_start_run()
 	await wait_process_frames(1)
 
@@ -738,12 +724,12 @@ func test_second_run_starts_clean() -> void:
 ## walk goes on into the new run.
 func test_second_run_after_a_stop_mid_walk_starts_clean() -> void:
 	_start_run(SHORT_TIME_LIMIT)
-	_play_on_fixture_map()
 	await _walk_to(OPEN_NEAR)
 	await _walk_partway(START, FIGHT)
 
 	ActionManager.stop_action(false)
 	_stop_every_action()
+	_map = AdventureMapFixture.build_map()
 	_start_run()
 	await wait_process_frames(1)
 
