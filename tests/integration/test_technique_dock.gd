@@ -6,7 +6,10 @@ extends GutTest
 ## (the cooldown sweep and its seconds, the ready flash, the steady brass frame
 ## while casting, the cost that turns tan while unaffordable), Q/W/E/R and
 ## clicks (a refused press shakes the slot and emits nothing; keys do nothing
-## outside a fight), the cast tray over the dock and the lacquer tooltip.
+## outside a fight), the cast tray over the dock and the lacquer tooltip. A
+## technique's name that needs more room than its board gives it wraps there and
+## grows the board (the developer's rule: no text is cut off): the cast tray
+## upward from the dock, the tooltip with its text.
 ## The dock is tested alone, on a fresh save, against a real player combatant
 ## (combatant_node.tscn) set up as AdventureCombat sets one up, with the
 ## player's own VitalsManager.
@@ -30,6 +33,9 @@ const FRAME_BRASS_PATH: String = "res://assets/styleboxes/lacquer/frame_brass.tr
 const FRAME_HOVER_PATH: String = "res://assets/styleboxes/lacquer/frame_hover.tres"
 const BOARD9_PATH: String = "res://assets/styleboxes/lacquer/board9.tres"
 const SLOT_ACTIONS: Array[StringName] = [&"ability_slot_1", &"ability_slot_2", &"ability_slot_3", &"ability_slot_4"]
+## A technique's name that needs three lines in the cast tray's 150 px and in the
+## tooltip's 268.
+const LONG_TECHNIQUE: String = "Flowing River Strike of the Endless Misty Bamboo Hollow, Lit By The Cold Moon And The Hundred Silent Stars Above"
 ## Where the dock stands on screen, and its slots in it (spec: Layout).
 const DOCK_HOME: Vector2 = Vector2(722.0, 920.0)
 const SLOT_POSITIONS: Array[Vector2] = [Vector2(30.0, 18.0), Vector2(142.0, 18.0), Vector2(254.0, 18.0), Vector2(366.0, 18.0)]
@@ -412,6 +418,104 @@ func test_a_cancelled_cast_hides_the_tray_and_frame() -> void:
 	assert_false((_slot_node(0, "CastFrame") as Control).visible)
 	assert_lt(_slot(0).get_sweep_step(), TechniqueSlot.SWEEP_STEPS, "a cancelled cast still starts the cooldown")
 
+## A technique with a long name, cast: the player's combatant carries a copy of
+## Basic Strike under that name.
+func _cast_long_named_technique() -> CombatAbilityInstance:
+	var long_strike := BASIC_STRIKE.duplicate() as AbilityData
+	long_strike.ability_name = LONG_TECHNIQUE
+	_add_player([long_strike] as Array[AbilityData])
+	_dock.bind(_player.ability_manager, _vitals)
+	var instance: CombatAbilityInstance = _instance(0)
+	instance.cast_started.emit(instance, 1.0)
+	return instance
+
+## A name that needs more than the tray's 150 px wraps there and the tray grows
+## by its 20 px a line, never ellipsizing: 44 for one line, an even height for
+## any.
+func test_a_long_technique_name_wraps_and_grows_the_cast_tray() -> void:
+	_cast_long_named_technique()
+	var tray: CastTray = _dock.get_cast_tray()
+	var name_label: Label = _tray_node("NameLabel")
+	assert_true(tray.visible, "precondition: casting")
+	assert_gt(name_label.get_line_count(), 2, "precondition: the name needs three lines")
+	assert_eq(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING)
+	assert_eq(tray.size.y, 44.0 + 20.0 * (name_label.get_line_count() - 1), "every line after the first adds the name's 20 px")
+	assert_eq(fmod(tray.size.y, 2.0), 0.0, "an even height")
+	await wait_process_frames(2)
+	assert_eq((tray.get_node("Tray") as Control).size, tray.size, "the face follows the tray")
+
+## It grows upward: the bottom edge stays 8 px over the dock, and the rod and the
+## time stay at the top beside the name's first line.
+func test_the_cast_tray_grows_upward_from_the_dock() -> void:
+	var tray: CastTray = _dock.get_cast_tray()
+	var rod: Control = _tray_node("CastRod")
+	var time_text: Control = _tray_node("TimeText")
+	var bottom: float = tray.get_global_rect().end.y
+	assert_eq(bottom, 912.0, "precondition: 8 px over the dock at y 920")
+	_cast_long_named_technique()
+	assert_gt(tray.size.y, 44.0, "precondition: grown")
+	assert_eq(tray.get_global_rect().end.y, bottom, "the bottom edge does not move")
+	assert_eq(tray.get_global_rect().position.y, bottom - tray.size.y, "the top rises")
+	assert_eq(fmod(tray.position.y, 2.0), 0.0, "on the 2 px grid")
+	assert_eq(rod.position, Vector2(170.0, 17.0), "the rod stays beside the first line")
+	assert_eq(time_text.position, Vector2(300.0, 12.0), "and so does the time")
+
+func test_the_cast_tray_takes_its_height_back_for_a_short_name() -> void:
+	var instance: CombatAbilityInstance = _cast_long_named_technique()
+	var tray: CastTray = _dock.get_cast_tray()
+	assert_gt(tray.size.y, 44.0, "precondition: grown")
+	instance.cast_finished.emit(instance)
+	instance.ability_data.ability_name = "Strike"
+	instance.cast_started.emit(instance, 1.0)
+	assert_eq(tray.size.y, 44.0, "the kit's 44 for a short name")
+	assert_eq(tray.position.y, -52.0, "in its place over the dock")
+
+## The tooltip over a grown tray stands 8 px over its top, not over the 44 px
+## tray's.
+func test_the_tooltip_rises_over_a_grown_cast_tray() -> void:
+	_cast_long_named_technique()
+	var tray: CastTray = _dock.get_cast_tray()
+	assert_gt(tray.size.y, 44.0, "precondition: grown")
+	_slot(0).mouse_entered.emit()
+	await wait_process_frames(2)
+	assert_eq(_tooltip_rect().end.y, tray.get_global_rect().position.y - 8.0, "8 px over the tray's top")
+	assert_lt(_tooltip_rect().end.y, 860.0, "higher than over the kit's tray")
+	assert_eq(fmod(_tooltip_rect().position.y, 2.0), 0.0, "its top on the 2 px grid")
+
+## A tray that grows under an open tooltip pushes it up.
+func test_a_cast_tray_that_grows_pushes_an_open_tooltip_up() -> void:
+	var long_strike := BASIC_STRIKE.duplicate() as AbilityData
+	long_strike.ability_name = LONG_TECHNIQUE
+	_add_player([long_strike] as Array[AbilityData])
+	_dock.bind(_player.ability_manager, _vitals)
+	var instance: CombatAbilityInstance = _instance(0)
+	_slot(0).mouse_entered.emit()
+	await wait_process_frames(2)
+	assert_eq(_tooltip_rect().end.y, 912.0, "precondition: over the dock")
+	instance.cast_started.emit(instance, 1.0)
+	await wait_process_frames(2)
+	assert_eq(_tooltip_rect().end.y, _dock.get_cast_tray().get_global_rect().position.y - 8.0, "over the grown tray")
+
+## A name longer than the tooltip's 268 px wraps there and the board grows with
+## it, still an even height on the grid and 304 wide.
+func test_a_long_technique_name_wraps_and_grows_the_tooltip() -> void:
+	var long_strike := BASIC_STRIKE.duplicate() as AbilityData
+	long_strike.ability_name = LONG_TECHNIQUE
+	var tooltip: TechniqueTooltip = _dock.get_technique_tooltip()
+	tooltip.show_for_ability(BASIC_STRIKE, _slot(0), false)
+	await wait_process_frames(2)
+	var short_height: float = tooltip.size.y
+	tooltip.show_for_ability(long_strike, _slot(0), false)
+	await wait_process_frames(2)
+	var name_label: Label = _tooltip_node("NameLabel")
+	assert_gt(name_label.get_line_count(), 1, "precondition: the name needs more than one line")
+	assert_eq(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "wrapped, never trimmed")
+	assert_eq(name_label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
+	assert_gt(tooltip.size.y, short_height, "the board grew")
+	assert_eq(tooltip.size.x, 304.0, "and stayed 304 wide")
+	_assert_hugs_on_the_grid(tooltip, "a long name")
+	assert_eq(_tooltip_rect().end.y, 912.0, "its bottom stays over the dock")
+
 #-----------------------------------------------------------------------------
 # PRESSES
 #-----------------------------------------------------------------------------
@@ -781,9 +885,14 @@ func test_cast_tray_layout_matches_the_kit() -> void:
 	assert_false(tray.visible, "hidden until the player casts")
 	assert_eq(Rect2(tray.position, tray.size), Rect2(0.0, -52.0, 476.0, 44.0), "over the dock: screen (722, 868)")
 	assert_eq(tray.mouse_filter, Control.MOUSE_FILTER_IGNORE)
-	assert_eq((tray.get_node("Tray") as TextureRect).texture.resource_path, KIT_PATH % "cast_tray")
+	var face := tray.get_node("Tray") as NinePatchRect
+	assert_eq(face.texture.resource_path, KIT_PATH % "cast_tray")
+	assert_eq([face.patch_margin_left, face.patch_margin_top, face.patch_margin_right, face.patch_margin_bottom], [4, 4, 2, 2], "a 9-slice on the tray's art, so it can grow")
 	var name_label: Label = _tray_node("NameLabel")
 	assert_eq(name_label.position, Vector2(16.0, 12.0))
+	assert_eq(name_label.size.x, 150.0, "the name has 150 px and wraps there")
+	assert_eq(name_label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
+	assert_eq(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "no ellipsis")
 	assert_eq(name_label.theme_type_variation, &"LabelLacquerName")
 	var rod: LacquerRod = _tray_node("CastRod")
 	assert_eq(rod.position, Vector2(170.0, 17.0))

@@ -8,6 +8,11 @@ extends Control
 ## outright when the cast lands or is cancelled. bind() follows every ability
 ## instance of the player's CombatAbilityManager; unbind() lets them go and
 ## hides the tray. It never takes the pointer.
+## No text is cut off: a name that needs more than its 150 px wraps, and the tray
+## grows to hold it, 44 tall at least and an even number of px. It grows upward,
+## its bottom edge staying 8 px over the dock, and the rod and the time stay at
+## the top, beside the name's first line. The face is a NinePatchRect on the
+## tray's art (a clean 9-slice).
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -15,6 +20,10 @@ extends Control
 
 ## The time left, to a tenth of a second.
 const TIME_FORMAT: String = "%.1f s"
+## The tray is the kit's 44 tall at least: the name starts 12 under the top and 12
+## px of tray stay under it.
+const MIN_HEIGHT: float = 44.0
+const BOTTOM_ROOM: float = 12.0
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -33,6 +42,15 @@ var _bound_instances: Array[CombatAbilityInstance] = []
 ## The instance whose cast the tray shows, and that cast's length.
 var _active: CombatAbilityInstance = null
 var _duration: float = 0.0
+## Where the tray's bottom edge stands, which it keeps as it grows upward.
+var _bottom: float = 0.0
+
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
+func _ready() -> void:
+	_bottom = position.y + size.y
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
@@ -73,6 +91,14 @@ func unbind() -> void:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
+## Makes the tray as tall as its name asks (an even height, 44 at least), growing
+## upward from its bottom edge.
+func _fit() -> void:
+	var height: float = maxf(MIN_HEIGHT, _name_label.position.y + _name_label.get_combined_minimum_size().y + BOTTOM_ROOM)
+	height = ceilf(height / 2.0) * 2.0
+	size.y = height
+	position.y = _bottom - height
+
 ## The rod at 1 - time left / the cast's length, and the time left.
 func _show_time_left(time_left: float) -> void:
 	_cast_rod.set_fraction(1.0 - time_left / _duration if _duration > 0.0 else 1.0)
@@ -86,6 +112,7 @@ func _on_cast_started(instance: CombatAbilityInstance, duration: float) -> void:
 	_active = instance
 	_duration = duration
 	_name_label.text = instance.ability_data.ability_name
+	_fit()
 	_show_time_left(duration)
 	show()
 

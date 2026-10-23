@@ -12,11 +12,14 @@ extends PanelContainer
 ## The board is as tall as its text, rounded up to an even height: the rows add
 ## up to an odd one (a 15 px BM Euljiro line is 17 px), and an odd height would
 ## put the board's 2x art 1 px off the 2 px grid the dock and the tray sit on.
+## No text is cut off: a name that needs more than the board's 268 px wraps, and
+## the board grows to hold it.
 ## It is a child of the dock, shown and hidden, never instanced. It is
 ## top-level, so show_for_ability() places it by screen position: its bottom
-## 8 px above the dock (y 912), or above the cast tray while the tray shows
-## (y 860), and its left 8 px left of the hovered slot's, kept on screen. It
-## stays there as it resizes, and it never takes the pointer.
+## 8 px above the dock (y 912), or 8 px above the cast tray while the tray shows
+## (y 860 over the tray's own 44 px, higher when a long name has grown it), and
+## its left 8 px left of the hovered slot's, kept on screen. It stays there as it
+## resizes, and it never takes the pointer.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -25,7 +28,10 @@ extends PanelContainer
 ## Where the tooltip's bottom edge sits on screen: 8 px above the dock (at
 ## y 920), or above the cast tray (at y 868) while it shows (spec: Layout).
 const BOTTOM_Y: float = 912.0
-const BOTTOM_Y_OVER_CAST_TRAY: float = 860.0
+## How far the tooltip's bottom stands over the cast tray's top, and where that
+## top is (y 868) while the tray is its 44 px.
+const GAP_OVER_CAST_TRAY: float = 8.0
+const CAST_TRAY_TOP_Y: float = 868.0
 ## How far left of the hovered slot's left edge the tooltip's starts.
 const SLOT_INSET_X: float = 8.0
 ## The timing line of a technique with a cast time and of an instant one.
@@ -48,9 +54,10 @@ const INSTANT_TIMING_FORMAT: String = "Instant · Cooldown %s"
 # STATE
 #-----------------------------------------------------------------------------
 
-## The slot the tooltip stands over, and whether the cast tray shows.
+## The slot the tooltip stands over, and where the bottom edge goes: 8 px over the
+## dock, or over the cast tray's top while the tray shows.
 var _slot: Control = null
-var _over_cast_tray: bool = false
+var _bottom_y: float = BOTTOM_Y
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -64,11 +71,12 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Shows the tooltip for data over slot, above the cast tray when
-## cast_tray_shown. The board takes the height of the new text, rounded up to
-## even.
-func show_for_ability(data: AbilityData, slot: Control, cast_tray_shown: bool) -> void:
+## cast_tray_shown (its top is `cast_tray_top` on screen: y 868 for the kit's
+## 44 px tray, higher for one a long name has grown). The board takes the height
+## of the new text, rounded up to even.
+func show_for_ability(data: AbilityData, slot: Control, cast_tray_shown: bool, cast_tray_top: float = CAST_TRAY_TOP_Y) -> void:
 	_slot = slot
-	_over_cast_tray = cast_tray_shown
+	_bottom_y = cast_tray_top - GAP_OVER_CAST_TRAY if cast_tray_shown else BOTTOM_Y
 	_name_label.text = data.ability_name
 	_timing_text.text = LacquerText.decimal_bbcode(_timing_line(data))
 	var cost: String = AbilityRow.format_cost(data)
@@ -112,8 +120,7 @@ func _fit() -> void:
 func _place() -> void:
 	if not visible or not is_instance_valid(_slot):
 		return
-	var bottom: float = BOTTOM_Y_OVER_CAST_TRAY if _over_cast_tray else BOTTOM_Y
 	var screen: Vector2 = get_viewport_rect().size
 	var left: float = clampf(_slot.global_position.x - SLOT_INSET_X, 0.0, maxf(screen.x - size.x, 0.0))
-	var top: float = clampf(bottom - size.y, 0.0, maxf(screen.y - size.y, 0.0))
+	var top: float = clampf(_bottom_y - size.y, 0.0, maxf(screen.y - size.y, 0.0))
 	global_position = Vector2(left, top)

@@ -18,15 +18,23 @@ mouse_filter = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_script")
 
-[node name="Tray" type="TextureRect" parent="." unique_id=678782252]
-layout_mode = 0
-offset_right = 476.0
-offset_bottom = 44.0
+[node name="Tray" type="NinePatchRect" parent="." unique_id=678782252]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("3_tray")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 2
+patch_margin_bottom = 2
 
 [node name="NameLabel" type="Label" parent="." unique_id=1421786535]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 20)
 layout_mode = 0
 offset_left = 16.0
 offset_top = 12.0
@@ -34,7 +42,7 @@ offset_right = 166.0
 offset_bottom = 32.0
 theme_type_variation = &"LabelLacquerName"
 text = "Basic Strike"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="CastRod" parent="." unique_id=1456945863 instance=ExtResource("4_rod")]
 unique_name_in_owner = true

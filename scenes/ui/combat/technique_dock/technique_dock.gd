@@ -58,6 +58,7 @@ func _ready() -> void:
 		slot.hovered.connect(_on_slot_hovered.bind(slot))
 		slot.unhovered.connect(_on_slot_unhovered.bind(slot))
 	_cast_tray.visibility_changed.connect(_on_cast_tray_visibility_changed)
+	_cast_tray.resized.connect(_on_cast_tray_visibility_changed)
 	show_loadout()
 
 #-----------------------------------------------------------------------------
@@ -181,14 +182,14 @@ func _hide_tooltip() -> void:
 func _on_slot_hovered(ability_data: AbilityData, slot: TechniqueSlot) -> void:
 	_hovered_slot = slot
 	_hovered_data = ability_data
-	_tooltip.show_for_ability(ability_data, slot, _cast_tray.visible)
+	_tooltip.show_for_ability(ability_data, slot, _cast_tray.visible, _cast_tray.get_global_rect().position.y)
 
 func _on_slot_unhovered(slot: TechniqueSlot) -> void:
 	if slot == _hovered_slot:
 		_hide_tooltip()
 
 ## A cast starting or ending under an open tooltip moves it above or back
-## below the tray.
+## below the tray, and a tray that grows (a long name) pushes it higher.
 func _on_cast_tray_visibility_changed() -> void:
 	if _hovered_slot != null and _tooltip.visible:
-		_tooltip.show_for_ability(_hovered_data, _hovered_slot, _cast_tray.visible)
+		_tooltip.show_for_ability(_hovered_data, _hovered_slot, _cast_tray.visible, _cast_tray.get_global_rect().position.y)
