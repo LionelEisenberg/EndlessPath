@@ -33,6 +33,7 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
    - The dots behind the character hide one at a time as it walks.
    - Clicks are ignored while the character is moving.
    - The hover goes when the pointer leaves the map, onto a board or out of the window, and comes back with the pointer: the rim and the dots of a committed walk stay.
+   - When a walk ends (it reached its destination, an encounter stopped it, or the Stamina ran out), its rim and dots go, and the hover shows what a fresh move of the pointer onto the cell it rests over would: the camera has followed the character, so that is usually another tile than the one the pointer was on, with the route to it from where the walk ended. Nothing hovers while a choice waits, or when the pointer is off the map or over no tile.
 6. Arriving on a new tile marks it visited: its veil lifts into forest art and new neighbours are revealed. The first time the boss is revealed, time slows to 25% for 0.15 s, the boss coin appears and shakes in even-pixel steps, and the camera pushes 45% of the way toward the boss and back. Nothing flashes.
 7. Stepping onto an unvisited encounter tile stops the trip:
    - The Here tray names the tile: its glyph, its name, a tag (FIGHT, ELITE, BOSS, REST, TREASURE or TRAP) and one line, such as "Fight · Amorphous Spirit · 100 Health". Under it come the encounter's lore, a divider and one drawer per choice.
@@ -44,7 +45,7 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
    - A loss ends the adventure.
    - Other choices resolve immediately. For example, the Aura Well's Rest restores HP and Madra, and "Mark down the location" fires an unlock event.
 9. A resolved tile's coin turns carved, with its glyph in the kit's locked veil, and the Here tray reads CLEARED with a one-line summary: "Won · 15 gold" for a fight, what the effects say ("+10 Health") for other choices, or "Done". The lore switches to the completed text, the drawers go, and a walk hint ("Click a hex to walk · 5 Stamina a step · 16 steps left") shows. Walking back onto the tile shows the same. Gold, items and events are banked the moment they are earned and are kept even if the run is lost.
-10. With less than 5 Stamina, a click starts nothing and says so: the log reads "Too tired to walk · 5 Stamina a step" and the cabinet's Stamina row shakes. A route that runs dry partway stops at the tile reached, with the same line and shake. The walk's rim and dots go, and the hover is laid again for the tile under the pointer, if it is over one.
+10. With less than 5 Stamina, a click starts nothing and says so: the log reads "Too tired to walk · 5 Stamina a step" and the cabinet's Stamina row shakes. A route that runs dry partway stops at the tile reached, with the same line and shake, and the hover follows the rule above.
 11. The run ends when:
     - the boss is defeated (VICTORY),
     - HP reaches 0 in combat (DEFEAT), or
@@ -391,9 +392,7 @@ tile_clicked(coord)
 
 _process_next_visitation()
   stamina ≥ 5 → spend 5, pop next tile, move_to_position(tile, 150 × (1 + 0.2 × (remaining + 1)) px/s)
-  stamina < 5 → clear queue, release commitment, lay the hover again for the cell under the pointer
-                (rim and route from the tile reached; nothing if the pointer is off the map or over no tile),
-                same log line, walk_refused(&"stamina")
+  stamina < 5 → clear queue, release commitment, same log line, walk_refused(&"stamina")
 
 _process() each frame → AdventureRoute.hide_passed(character position) while committed
 
@@ -404,6 +403,11 @@ movement_completed → _visit(tile)
   NoOp / no choices → continue the queue
   encounter → unvisited: lock movement, clear queue, release commitment (trip hijacked)
               revisited: queue continues (the Here tray shows the tile's summary)
+  hop handled and the character is not walking on (destination reached, trip hijacked, Stamina out)
+    → _rehover_pointer_cell(): the hover as a fresh pointer move onto the pointer's cell would give it —
+      HoverRim on that tile and the route to it from the tile reached; nothing while movement is locked,
+      if the pointer is off the map or over no tile. A hop that walks on, the run's start and a stop's
+      teardown lay no hover.
 ```
 
 Routes come from A* over `AdventureVisibleMap`. They can pass through revealed but unvisited tiles, and an unvisited encounter on the route stops the trip there. The character is drawn at scale 2 with the kit's shadow and walks in whole-pixel steps on the 2 px grid (`snap_walk_to_whole_px`, `walk_snap_px = 2.0`). Every refusal goes through `_refuse_walk()`, which writes the log line and emits `walk_refused(reason)`; `AdventureView` turns it into a shake (see [The Frame](#the-frame-cabinet-chest-and-dock)). `stop_adventure()` ends the run first (it clears `current_adventure_action_data`), then clears the queue and releases the destination before it stops the character. A hop in flight cannot restart during the teardown, and the hop it cuts short arrives nowhere: `_on_character_movement_completed()` ignores a hop that ends with no run on, so the teardown visits no tile, reveals no boss (no hit-stop, no coin shake), announces no arrival, and tells the boards only of the redraw that clears the map.
@@ -653,7 +657,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 | `tests/integration/test_adventure_chest.gd` | 27 | The chest: title, run clock (painted when its timer is bound), hugging the visible page |
 | `tests/integration/test_expedition_page.gd` | 105 | The Here tray, the drawers and their states, the Run ledger, the shake, long texts |
 | `tests/integration/test_technique_dock.gd` | 31 | The dock: slot states, the sweep, the cast tray, refused and accepted presses, keys, the tooltip |
-| `tests/integration/test_adventure_view_frame.gd` | 19 | The real `AdventureView`: the boards' wiring, presses that stop at the boards, the hover going when the pointer leaves the map and laid again after a Stamina stop, the fight's binding, the run's figures, a second run starting clean |
+| `tests/integration/test_adventure_view_frame.gd` | 21 | The real `AdventureView`, every run on a fixed map: the boards' wiring, presses that stop at the boards, the hover going when the pointer leaves the map and laid again when a walk ends, the fight's binding, the run's figures, a second run starting clean |
 
 ### Related Design Docs
 
