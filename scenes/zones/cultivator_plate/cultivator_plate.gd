@@ -143,5 +143,7 @@ func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) 
 func _on_current_action_changed(_action_data: ZoneActionData) -> void:
 	_update_rate()
 
+## Ignores the payload and re-reads ActionManager, so the order of a session's
+## end and the idle action's resume cannot leave a stale rate.
 func _on_madra_rate_changed(_rate: float) -> void:
 	_update_rate()
