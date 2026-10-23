@@ -12,6 +12,6 @@ extends Resource
 @export var icon: Texture2D
 @export var path_curve: Curve2D  # The path shape
 @export var cycle_duration: float = 10.0 # Seconds for one complete cycle
-@export var base_madra_per_cycle: float = 25.0  # Base madra awarded per cycle (scaled by mouse tracking accuracy)
+@export var base_madra_per_cycle: float = 25.0  # Madra a cycle pays, in 0.08 s steps while the cursor is on the ball
 
 @export var cycling_zones: Array[CyclingZoneData] = []
