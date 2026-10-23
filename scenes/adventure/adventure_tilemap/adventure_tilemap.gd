@@ -180,10 +180,13 @@ var _pointer_on_map: bool = true
 ## The boss reveal's camera push while it runs, or null.
 var _camera_push_tween: Tween = null
 
-## How far the boss reveal's push has moved the camera's offset, in world px, on
-## top of the offset for the zoom (zero at rest). The push tweens this, not the
-## offset itself, so the offset is always the zoom's own plus the push: a zoom
-## that eases while a push runs, and the push, never fight over it.
+## How far the boss reveal's push has moved the view, in screen px, on top of the
+## offset for the zoom (zero at rest). In screen px, so that the push moves the
+## view as far at every zoom as it does at zoom 1 instead of twice as far at zoom 2
+## (the offset takes it as world px by dividing it by the camera's zoom, so it keeps
+## that distance on screen even if the zoom changes while it runs). The push tweens
+## this, not the offset itself, so the offset is always the zoom's own plus the push:
+## a zoom that eases while a push runs, and the push, never fight over it.
 var _camera_push: Vector2 = Vector2.ZERO:
 	set(value):
 		_camera_push = value
@@ -782,10 +785,13 @@ func _play_boss_reveal(boss_cube: Vector3i) -> void:
 	Engine.time_scale = 0.25
 	get_tree().create_timer(0.15 * 0.25).timeout.connect(func(): Engine.time_scale = 1.0)
 
-	# Camera push toward the boss and back: 45% of the way from the camera
-	# to the boss tile, eased through the camera's offset (on top of the zoom's
-	# own, see _camera_push), so the camera stays on the character even when the
-	# walk goes on meanwhile.
+	# Camera push toward the boss and back: 45% of the way from the camera to the
+	# boss tile as the map looks at zoom 1 (a map px is a screen px there: the boss
+	# is a hex, 164 px, off, so the view moves 74 px). It is in screen px, so the view
+	# moves that far at every zoom and the character never leaves the screen at zoom
+	# 2. Eased through the camera's offset (on top of the zoom's own, see
+	# _camera_push), so the camera stays on the character even when the walk goes on
+	# meanwhile.
 	var push: Vector2 = (get_tile_world_centre(boss_cube) - _camera.global_position) * 0.45
 	_stop_camera_push()
 	_camera_push_tween = create_tween()
@@ -803,11 +809,12 @@ func _stop_camera_push() -> void:
 	_camera_push = Vector2.ZERO
 
 ## Puts the camera's offset where the zoom it has now and the push in progress
-## call for: the offset for the zoom, plus the push.
+## call for: the offset for the zoom, plus the push, which is in screen px and so
+## a zoom-th of that in world px.
 func _apply_camera_offset() -> void:
 	if _camera == null:
 		return
-	_camera.offset = camera_offset_for(_camera.zoom.x) + _camera_push
+	_camera.offset = camera_offset_for(_camera.zoom.x) + _camera_push / _camera.zoom.x
 
 ## Puts the camera at the zoom the zoom controller opens at, at once. The map and
 ## its camera outlive a run, and a run opens at today's density whatever zoom

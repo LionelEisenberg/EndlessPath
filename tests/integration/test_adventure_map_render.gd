@@ -627,6 +627,64 @@ func test_boss_push_returns_the_camera_to_the_zoom_correct_offset() -> void:
 	assert_eq(camera.offset, home, "the push ends on the zoom's offset")
 	assert_lt(_screen_centre(FIGHT).distance_to(_hex_home()), 0.01, "so the current hex is at (960, 470)")
 
+## Watches the boss reveal's push for the whole of it (1.3 s after the reveal, plus
+## room), once the character has walked to FIGHT, which reveals the boss one hex
+## away: how far, at most, the character, who stands still in the world, moved from
+## its place on screen, and every frame in which any of its sprite was off the screen.
+func _watch_the_push() -> Dictionary:
+	var screen: Rect2 = get_viewport().get_visible_rect()
+	var sprite := _tilemap.character_body.get_node("Sprite2D") as Sprite2D
+	var peak: float = 0.0
+	var off_screen: Array[String] = []
+	var started: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - started < 1800:
+		await get_tree().process_frame
+		var at: Vector2 = _tilemap.character_body.get_global_transform_with_canvas().origin
+		peak = maxf(peak, at.distance_to(_hex_home()))
+		var sprite_rect: Rect2 = sprite.get_global_transform_with_canvas() * sprite.get_rect()
+		if not screen.encloses(sprite_rect):
+			off_screen.append(str(sprite_rect))
+	return {"peak": peak, "off_screen": off_screen}
+
+## Starts a run with the map at the zoom, walks to FIGHT and watches the push.
+func _watch_the_push_at(level: float) -> Dictionary:
+	_start()
+	await _zoom_to(level)
+	await _walk_to(FIGHT)
+	return await _watch_the_push()
+
+## The push is in screen px: it moves the view as far on screen at every zoom as it
+## does at zoom 1, 45% of the hex to the boss (74 px), instead of twice as far at
+## zoom 2, where a hex is twice as wide. So the character, whose whole sprite is
+## measured every frame, never leaves the screen at zoom 2.
+func test_the_boss_push_moves_the_view_as_far_on_screen_at_zoom_two_as_at_zoom_one() -> void:
+	var at_one: Dictionary = await _watch_the_push_at(1.0)
+	_tilemap.stop_adventure()
+	var at_two: Dictionary = await _watch_the_push_at(2.0)
+
+	var one_hex: float = (_centre(BOSS) - _centre(FIGHT)).length()
+	assert_gt(at_one["peak"], 60.0, "precondition: at zoom 1 the push moves the view a good way")
+	assert_almost_eq(at_one["peak"], one_hex * 0.45, 1.0, "precondition: 45% of the way to the boss, one hex off")
+	assert_almost_eq(at_two["peak"], at_one["peak"], 1.0, "at zoom 2 the push peaks at the same screen offset, %s px, not %s" % [at_one["peak"], at_two["peak"]])
+	assert_eq(at_one["off_screen"], [] as Array[String], "the character's sprite stays on screen through the push at zoom 1")
+	assert_eq(at_two["off_screen"], [] as Array[String], "and at zoom 2")
+
+## The push stays that far on screen even when the zoom changes while it runs: the
+## offset divides the push by the camera's own zoom at every moment (a push turned
+## into world px once, at the reveal, would move the view twice as far as the zoom
+## eased from 1 to 2 under it).
+func test_a_zoom_that_starts_during_the_push_does_not_change_how_far_it_moves_the_view() -> void:
+	_start()
+	await _walk_to(FIGHT)
+	_zoom_controller().set_zoom_level(2.0)
+
+	var seen: Dictionary = await _watch_the_push()
+
+	var one_hex: float = (_centre(BOSS) - _centre(FIGHT)).length()
+	assert_eq(_camera().zoom, Vector2(2, 2), "precondition: the zoom arrived while the push was watched")
+	assert_almost_eq(seen["peak"], one_hex * 0.45, 1.0, "the push peaked at 45% of the hex to the boss on screen, whatever the zoom did under it")
+	assert_eq(seen["off_screen"], [] as Array[String], "and the character stayed on screen")
+
 ## A zoom that starts while the push runs neither cancels the push nor is undone
 ## by it: the offset is the zoom's own plus the push at every moment, so the
 ## zoom's follow of the camera does not fight the tween, and the push still ends on
