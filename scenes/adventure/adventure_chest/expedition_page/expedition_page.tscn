@@ -208,6 +208,16 @@ theme_override_styles/normal = ExtResource("17_wrap_pad")
 text = "Click a hex to walk · 5 Stamina a step · 16 steps left"
 autowrap_mode = 3
 
+[node name="LockLine" type="Label" parent="Flow/HintRow" unique_id=1431906442]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(408, 18)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("17_wrap_pad")
+text = "Choose what to do here before you walk on"
+autowrap_mode = 3
+
 [node name="DividerRow" type="MarginContainer" parent="Flow" unique_id=560787016]
 unique_name_in_owner = true
 visible = false

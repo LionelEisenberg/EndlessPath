@@ -456,6 +456,38 @@ func test_walk_refused_shakes_the_right_board() -> void:
 	assert_true(_page().is_here_shaking(), "a choice waits: the Here tray shakes")
 	assert_false(_view.vitals_plate.is_stamina_shaking(), "not the Stamina row")
 
+## The whole refusal, end to end: standing on a rest that waits for a choice, a
+## click on another tile is refused. The Here tray shakes and the lock line, which
+## says the choices hold the player, turns to the warning colour for the length of
+## the shake and then back.
+func test_a_refused_click_turns_the_lock_line_to_the_warning_colour_and_back() -> void:
+	_start_run()
+	await _walk_to(REST)
+	var lock := _page().get_node("%LockLine") as Label
+	assert_true(lock.is_visible_in_tree(), "precondition: the rest holds the player, and the line says so")
+	assert_eq(lock.text, ExpeditionPage.LOCK_LINE)
+	assert_false(lock.has_theme_color_override(&"font_color"), "precondition: its own tan")
+
+	AdventureMapFixture.click(_view.adventure_tilemap, OPEN_NEAR)
+
+	assert_true(_page().is_here_shaking(), "the refused click shakes the Here tray")
+	assert_eq(lock.get_theme_color(&"font_color"), ExpeditionPage.LOCK_WARNING_COLOUR, "and turns the lock line to the warning colour")
+	await wait_seconds(MapGlyph.SHAKE_SECONDS + 0.15)
+	assert_false(_page().is_here_shaking(), "precondition: the shake is over")
+	assert_false(lock.has_theme_color_override(&"font_color"), "the line is its own colour again")
+
+## Once the choice is made the lock line goes and the walk hint takes its place.
+func test_resolving_the_tile_swaps_the_lock_line_for_the_walk_hint() -> void:
+	_start_run()
+	await _walk_to(REST)
+	assert_true((_page().get_node("%LockLine") as Label).is_visible_in_tree(), "precondition: the lock line shows")
+	assert_false((_page().get_node("%WalkHint") as Label).is_visible_in_tree())
+
+	_view.adventure_tilemap.select_choice(AdventureMapFixture.rest_choice(_map))
+
+	assert_false((_page().get_node("%LockLine") as Label).is_visible_in_tree(), "the tile lets go of the player")
+	assert_true((_page().get_node("%WalkHint") as Label).is_visible_in_tree(), "and the walk hint shows")
+
 ## A real press on the rest's drawer: the chest hands the choice to the map,
 ## which resolves the tile.
 func test_choice_from_the_chest_reaches_the_tilemap() -> void:

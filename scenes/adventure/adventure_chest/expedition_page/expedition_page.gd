@@ -10,10 +10,11 @@ extends AdventureChestPage
 ##   resolved one it reads CLEARED and the line is what the tile left behind; on
 ##   open ground (a NoOp tile, or an encounter with no choices, as the map
 ##   treats it) it reads "Open ground" in tan.
-## - The encounter: its lore, then a divider and one ChoiceDrawer per choice (at
-##   most MAX_DRAWERS) saying what each does. A resolved tile shows its completed
-##   text and the walk hint instead, which counts the steps the player's Stamina
-##   still buys and follows it.
+## - The encounter: its lore, then the hint row (while the encounter holds the
+##   player, the line that says so; on a resolved tile, the walk hint, which
+##   counts the steps the player's Stamina still buys and follows it), a divider
+##   and one ChoiceDrawer per choice (at most MAX_DRAWERS) saying what each does.
+##   A resolved tile shows its completed text and the walk hint, and no drawers.
 ## - The Run ledger: fights, gold, tiles explored, and the run's latest loot.
 ## The page does not hear the map: the view calls show_tile(), show_resolved()
 ## and set_run_stats(). The lore, hint, divider and drawers flow in a
@@ -26,9 +27,11 @@ extends AdventureChestPage
 ## the top. Every height is an even number of px, as the mock's are: the lore
 ## Label is padded 2 px above and 1 under (a StyleBoxEmpty in the scene), which
 ## makes n wrapped lines 22 n tall and seats their glyphs as the mock's 22 px
-## line boxes do; the tray's name and line and the walk hint are padded 1 px
-## under (wrap_pad.tres), which makes their lines 22 n and 18 n tall; the walk
-## hint's row is 10 + that.
+## line boxes do; the tray's name and line, the walk hint and the lock line are
+## padded 1 px under (wrap_pad.tres), which makes their lines 22 n and 18 n tall;
+## the walk hint's row is 10 + that.
+## A refused click (the encounter on the tile holds the player) shakes the tray
+## and turns the lock line to the warning colour for the length of the shake.
 ## The text rules are statics, so the tests and the page ask the same code.
 
 ## Emitted when the player presses an available drawer: the choice it stands for.
@@ -51,6 +54,14 @@ const SEPARATOR: String = " · "
 const WALK_LINE_FORMAT: String = "Click a hex to walk · %d Stamina a step"
 ## The walk hint (%d, %d: the Stamina a step costs, the steps Stamina buys).
 const WALK_HINT_FORMAT: String = "Click a hex to walk · %d Stamina a step · %d steps left"
+## The hint row's line while the encounter on the tile holds the player, in the
+## walk hint's style.
+const LOCK_LINE: String = "Choose what to do here before you walk on"
+## What the lock line turns to for the length of a refused click's shake. The
+## palette's red for a warning is vermilion, #A83C30, but it is a seal's colour and
+## reads at 2.8:1 on the lacquer, under the 4.56:1 floor for text; the red text
+## colour is the crimson step the Health text uses, 5.9:1.
+const LOCK_WARNING_COLOUR: Color = ThemeConstants.LACQUER_HEALTH
 
 ## The glyph of a talk: the story icon, 16 px art shown at 32.
 const STORY_GLYPH: Texture2D = preload("res://assets/ui/lacquer/icons/ic_story_ai.png")
@@ -85,6 +96,7 @@ const TRAY_GAP: float = 16.0
 @onready var _lore_label: Label = %LoreLabel
 @onready var _hint_row: Control = %HintRow
 @onready var _walk_hint: Label = %WalkHint
+@onready var _lock_line: Label = %LockLine
 @onready var _divider_row: Control = %DividerRow
 @onready var _drawer_rows: Control = %DrawerRows
 @onready var _drawers: Array[ChoiceDrawer] = [%ChoiceDrawer1, %ChoiceDrawer2, %ChoiceDrawer3]
@@ -123,6 +135,7 @@ func _ready() -> void:
 	if vitals != null:
 		vitals.stamina_changed.connect(_on_stamina_changed)
 		_walk_hint.text = walk_hint(vitals.current_stamina)
+	_lock_line.text = LOCK_LINE
 	_show_open_ground()
 	_fit_tray()
 	_announced_height = get_content_height()
@@ -139,6 +152,7 @@ func _process(delta: float) -> void:
 	_here_tray.position.x = _here_home.x + MapGlyph.shake_offset_at(_shake_elapsed)
 	if _shake_elapsed >= MapGlyph.SHAKE_SECONDS:
 		_shake_elapsed = -1.0
+		_lock_line.remove_theme_color_override(&"font_color")
 		set_process(false)
 
 #-----------------------------------------------------------------------------
@@ -190,11 +204,13 @@ func set_run_stats(fights: int, fights_total: int, gold: int, explored: int, exp
 		_loot_icons[index].visible = icon != null
 
 ## Shakes the Here tray side to side in the zone map's lock-shake steps, to say
-## a click did nothing because an encounter on the tile waits for a choice. The
-## rest of the page stays put. A new shake restarts it.
+## a click did nothing because an encounter on the tile waits for a choice, and
+## turns the lock line to the warning colour until the shake is over. The rest of
+## the page stays put. A new shake restarts it.
 func shake_here() -> void:
 	_shake_elapsed = 0.0
 	_here_tray.position.x = _here_home.x + MapGlyph.shake_offset_at(0.0)
+	_lock_line.add_theme_color_override(&"font_color", LOCK_WARNING_COLOUR)
 	set_process(true)
 
 ## Returns true while the Here tray is shaking.
@@ -305,13 +321,13 @@ func _show_open_ground() -> void:
 	_show_drawers(0)
 
 ## An unresolved encounter: its name, glyph and kind (a boss wears the seal), its
-## lore, and one drawer per choice.
+## lore, the line that says it holds the player, and one drawer per choice.
 func _show_unresolved() -> void:
 	_show_encounter_name_and_glyph()
 	_show_tag(kind_tag(_encounter.encounter_type), _encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS)
 	_line_label.text = here_line(_encounter)
 	_show_lore(_encounter.description)
-	_hint_row.visible = false
+	_show_hint(false)
 	_set_up_drawers()
 
 ## A resolved encounter: CLEARED and the summary under its name, the completed
@@ -323,7 +339,7 @@ func _show_cleared(summary: String) -> void:
 	var completed_text: String = _encounter.text_description_completed
 	_show_lore(completed_text if completed_text != "" else COMPLETED_TEXT_FALLBACK)
 	_walk_hint.text = walk_hint(_player_stamina())
-	_hint_row.visible = true
+	_show_hint(true)
 	_show_drawers(0)
 
 func _show_encounter_name_and_glyph() -> void:
@@ -335,6 +351,13 @@ func _show_encounter_name_and_glyph() -> void:
 	_glyph.frame_size = EncounterCoin.glyph_frame_size_for(type)
 	_glyph.set_frame(0)
 	_glyph.visible = glyph != null
+
+## Shows the hint row's line: the walk hint on a resolved tile (walk_hint), the
+## lock line on an unresolved encounter.
+func _show_hint(resolved: bool) -> void:
+	_walk_hint.visible = resolved
+	_lock_line.visible = not resolved
+	_hint_row.visible = true
 
 ## Shows `text` on the tag, or on the BOSS seal in its place; "" shows neither.
 ## The name is as wide as the room the tag or the seal leaves it, and wraps there.

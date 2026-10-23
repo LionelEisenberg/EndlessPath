@@ -553,7 +553,9 @@ func test_unresolved_tile_shows_the_lore_and_one_drawer_per_choice() -> void:
 
 	assert_true(_shown("LoreLabel"))
 	assert_eq(_text("LoreLabel"), "The air here is thick with aura, recover briefly from the chaos beyond.")
-	assert_false(_shown("HintRow"), "the walk hint waits until the tile is resolved")
+	assert_true(_shown("HintRow"), "the hint row stands under the lore")
+	assert_false(_shown("WalkHint"), "the walk hint waits until the tile is resolved")
+	assert_true(_shown("LockLine"), "and the lock line says the choices hold the player")
 	assert_true(_shown("DividerRow"))
 	assert_true(_shown("DrawerRows"))
 	assert_eq(_shown_drawers(), 2, "the Aura Well has two choices")
@@ -1001,7 +1003,8 @@ func test_a_new_tile_after_a_resolved_one_starts_over() -> void:
 
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
 
-	assert_false(_shown("HintRow"), "the hint goes with the resolved tile")
+	assert_false(_shown("WalkHint"), "the walk hint goes with the resolved tile")
+	assert_true(_shown("LockLine"), "the next encounter holds the player")
 	assert_eq(_text("TagLabel"), "FIGHT")
 	assert_eq(_text("LoreLabel"), AMORPHOUS_SPIRIT_ENCOUNTER.description)
 	assert_true(_shown("DividerRow"))
@@ -1258,8 +1261,8 @@ func test_the_plate_is_drawn_over_the_tray_and_the_tray_under_its_pieces() -> vo
 	assert_eq(names.back(), "HerePlate", "and the plate is on top of it")
 
 ## Given a lore of one line, the flow stacks as the brief says: the lore (22), the
-## divider 14 under it, the first drawer 12 under the divider, the drawers 8 apart
-## and the ledger 28 under the last of them.
+## lock line 10 under it (18 tall), the divider 14 under that, the first drawer 12
+## under the divider, the drawers 8 apart and the ledger 28 under the last of them.
 func test_the_flow_stacks_as_the_kit_says() -> void:
 	_page.show_tile(_encounter(Type.TREASURE, "Cache", [_plain_choice("A"), _plain_choice("B")], "Short lore."), "", null)
 	await wait_process_frames(2)
@@ -1269,10 +1272,12 @@ func test_the_flow_stacks_as_the_kit_says() -> void:
 	var top: float = flow.global_position.y
 	assert_eq(_control("LoreLabel").global_position.y - top, 0.0, "the lore starts the flow")
 	assert_eq(_control("LoreLabel").size.y, 22.0, "one line of lore")
-	assert_eq(_control("Divider").global_position.y - top, 22.0 + 14.0, "the divider 14 under the lore")
+	assert_eq(_control("LockLine").global_position.y - top, 22.0 + 10.0, "the lock line 10 under the lore")
+	assert_eq(_control("HintRow").size.y, 28.0, "10 and an 18 px line")
+	assert_eq(_control("Divider").global_position.y - top, 22.0 + 28.0 + 14.0, "the divider 14 under the hint row")
 	assert_eq(_control("Divider").size, Vector2(408.0, 6.0))
 	assert_eq((_node("Divider") as TextureRect).texture.resource_path, DIVIDER_PATH)
-	assert_eq(_drawer(0).global_position.y - top, 22.0 + 14.0 + 6.0 + 12.0, "the first drawer 12 under the divider")
+	assert_eq(_drawer(0).global_position.y - top, 22.0 + 28.0 + 14.0 + 6.0 + 12.0, "the first drawer 12 under the divider")
 	assert_eq(_drawer(1).global_position.y - _drawer(0).global_position.y, 72.0 + 8.0, "the drawers are 8 apart")
 	assert_eq(_control("RunLedger").global_position.y - (_drawer(1).global_position.y + 72.0), 28.0, "the ledger 28 under the last drawer")
 	assert_eq(_control("RunLedger").size, Vector2(408.0, 128.0))
@@ -1448,8 +1453,8 @@ func test_content_height_follows_the_tile() -> void:
 	var two_height: float = _page.get_content_height()
 	assert_signal_emit_count(_page, "content_resized", 3)
 
-	assert_eq(one_height, 386.0, "one line of lore (22), the divider (14 + 6), one drawer (12 + 72), the ledger (156)")
-	assert_eq(two_height, 466.0, "a second drawer adds 8 + 72")
+	assert_eq(one_height, 414.0, "one line of lore (22), the lock line (10 + 18), the divider (14 + 6), one drawer (12 + 72), the ledger (156)")
+	assert_eq(two_height, 494.0, "a second drawer adds 8 + 72")
 	assert_ne(two_height, open_height, "two drawers and none differ")
 	assert_gt(two_height, one_height)
 	assert_gt(one_height, open_height)
@@ -1897,3 +1902,110 @@ func test_the_detail_reaches_the_trays_edge_and_the_title_stops_short_of_the_tag
 		var neighbour: Control = _drawer_node(index, "LockedSeal" if index == 1 else "Tag") as Control
 		assert_eq(neighbour.get_global_rect().position.x - title.get_global_rect().end.x, 6.0, "drawer %d's title stops 6 px short of its %s" % [index, neighbour.name])
 		assert_eq(title.get_global_rect().position.x - drawer.global_position.x, 64.0)
+
+#-----------------------------------------------------------------------------
+# THE LOCK
+#-----------------------------------------------------------------------------
+
+func test_the_lock_line_reads_as_the_developer_asked() -> void:
+	assert_eq(ExpeditionPage.LOCK_LINE, "Choose what to do here before you walk on")
+	var lock := _node("LockLine") as Label
+	assert_eq(lock.text, ExpeditionPage.LOCK_LINE)
+	assert_eq(lock.theme_type_variation, &"LabelLacquerDetail", "in the walk hint's style")
+	assert_eq(lock.theme_type_variation, (_node("WalkHint") as Label).theme_type_variation)
+	assert_false(lock.has_theme_color_override(&"font_color"), "its own tan until a click is refused")
+	assert_eq(_font_color_hex(lock), TAN_HEX)
+
+## It shows while the encounter holds the player (an unresolved one) and nowhere
+## else: not on open ground, not on a tile that is done.
+func test_the_lock_line_shows_on_an_unresolved_encounter_only() -> void:
+	var lock := _node("LockLine") as Label
+	var hint := _node("WalkHint") as Label
+	assert_false(lock.is_visible_in_tree(), "a new page stands on open ground")
+	assert_false(hint.is_visible_in_tree())
+
+	_page.show_tile(AURA_WELL, "", null)
+	assert_true(lock.is_visible_in_tree(), "an unresolved encounter holds the player")
+	assert_false(hint.is_visible_in_tree(), "the walk hint waits")
+
+	_page.show_resolved("Rested")
+	assert_false(lock.is_visible_in_tree(), "resolved, it lets go")
+	assert_true(hint.is_visible_in_tree(), "and the walk hint shows as it always did")
+
+	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
+	assert_true(lock.is_visible_in_tree(), "the next encounter holds the player again")
+
+	_page.show_tile(AURA_WELL, "Rested", null)
+	assert_false(lock.is_visible_in_tree(), "a resolved tile revisited: no lock")
+	assert_true(hint.is_visible_in_tree())
+
+	_page.show_tile(NoOpEncounter.new(), "", null)
+	assert_false(lock.is_visible_in_tree(), "open ground: no lock")
+	assert_false(hint.is_visible_in_tree(), "and no walk hint, as before")
+
+	_page.show_tile(null, "", null)
+	assert_false(lock.is_visible_in_tree())
+
+## The hint row's place, between the lore and the divider.
+func test_the_lock_line_sits_between_the_lore_and_the_divider() -> void:
+	_page.show_tile(AURA_WELL, "", null)
+	await wait_process_frames(2)
+	var lore := _control("LoreLabel")
+	var lock := _node("LockLine") as Label
+	var divider := _control("DividerRow")
+	assert_true(lore.global_position.y < lock.global_position.y, "under the lore")
+	assert_true(lock.global_position.y < divider.global_position.y, "over the divider")
+	assert_eq(lock.global_position.y - (lore.global_position.y + lore.size.y), 10.0, "10 px under the lore, where the walk hint stands")
+	assert_eq(_control("HintRow").get_parent(), _control("Flow"))
+	assert_eq(_control("HintRow").size.y, 28.0, "10 and an 18 px line")
+
+## A refused click: the lock line turns to the warning colour for the length of
+## the shake and then back to its own.
+func test_a_refused_click_turns_the_lock_line_to_the_warning_colour_and_back() -> void:
+	_page.show_tile(AURA_WELL, "", null)
+	var lock := _node("LockLine") as Label
+	assert_eq(_font_color_hex(lock), TAN_HEX, "precondition: tan")
+
+	_page.shake_here()
+	assert_eq(lock.get_theme_color(&"font_color"), ExpeditionPage.LOCK_WARNING_COLOUR, "the warning colour as the shake starts")
+	assert_true(lock.has_theme_color_override(&"font_color"), "a font_color override, as other state colours are set")
+
+	simulate(_page, 1, 0.2)
+	simulate(_page, 1, 0.2)
+	assert_true(_page.is_here_shaking(), "precondition: 0.4 s in, still shaking")
+	assert_eq(lock.get_theme_color(&"font_color"), ExpeditionPage.LOCK_WARNING_COLOUR, "warm for as long as the shake lasts")
+
+	simulate(_page, 1, 0.1)
+	assert_false(_page.is_here_shaking(), "0.5 s: the shake is over")
+	assert_eq(_font_color_hex(lock), TAN_HEX, "and the line is its own tan again")
+	assert_false(lock.has_theme_color_override(&"font_color"), "with the override gone")
+
+func test_a_new_refusal_restarts_the_warm_colour() -> void:
+	_page.show_tile(AURA_WELL, "", null)
+	var lock := _node("LockLine") as Label
+	_page.shake_here()
+	simulate(_page, 1, 0.4)
+	_page.shake_here()
+	simulate(_page, 1, 0.3)
+	assert_eq(lock.get_theme_color(&"font_color"), ExpeditionPage.LOCK_WARNING_COLOUR, "0.7 s after the first click, 0.3 s after the second: still warm")
+	simulate(_page, 1, 0.2)
+	assert_eq(_font_color_hex(lock), TAN_HEX)
+
+## The warning colour reads on the board: the kit's floor for text on lacquer is
+## 4.56:1 (STYLE_GUIDE, Palette), against the field of the board the line sits on.
+func test_the_warning_colour_reads_on_the_board() -> void:
+	var field := Color("#2C1414")
+	assert_gte(_contrast(ExpeditionPage.LOCK_WARNING_COLOUR, field), 4.56, "the lock line's warning colour on the lacquer field")
+	assert_gte(_contrast(Color(TAN_HEX), field), 4.56, "precondition: the tan it replaces")
+
+## The WCAG contrast ratio of two colours.
+func _contrast(a: Color, b: Color) -> float:
+	var lighter: float = maxf(_luminance(a), _luminance(b))
+	var darker: float = minf(_luminance(a), _luminance(b))
+	return (lighter + 0.05) / (darker + 0.05)
+
+func _luminance(colour: Color) -> float:
+	var channels: Array[float] = []
+	for value: float in [colour.r, colour.g, colour.b]:
+		channels.append(value / 12.92 if value <= 0.03928 else pow((value + 0.055) / 1.055, 2.4))
+	return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
