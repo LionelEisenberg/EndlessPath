@@ -56,6 +56,8 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 └── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.save_data()
 ```
 
+The cabinet, the chest, the dock, the log and the Goals board take their places from their own scenes' roots. Their instances in `main_game.tscn` are in Anchors layout mode with top-left anchors. Don't switch them to Position mode: setting Position mode snaps a control to its parent's top-left corner, and an editor save drops the offsets that used to put it back, so every panel lands at (0, 0). `test_main_game_layout.gd` checks the places, also after an editor save.
+
 Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under the GreyBackground (z 2), so the backdrop of the end card and of the menu books dims them; the merchant shop hides them outright, and cycling, which has no backdrop, leaves them as they are (see [HUD boards](#hud-boards)). QuestToast and the dev tools (z 10) draw above every modal.
 
 ### HUD placement

@@ -8,8 +8,8 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
 | Unit | `tests/unit/` | 77 | 819 |
-| Integration | `tests/integration/` | 40 | 734 |
-| **Total** | | **117** | **1553** |
+| Integration | `tests/integration/` | 41 | 736 |
+| **Total** | | **118** | **1555** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -23,9 +23,9 @@ Run on 2026-10-23, on `feat/cycling-view-styleguide-ea3170` after the lacquer cy
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 117 / 1553 |
-| Passing / failing / pending or risky | 1553 / 0 / 0 |
-| Asserts | 8467 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 118 / 1555 |
+| Passing / failing / pending or risky | 1555 / 0 / 0 |
+| Asserts | 8479 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | Exit code | 0 |
@@ -111,7 +111,7 @@ The enabled GUT plugin adds a GUT bottom panel. It can run all tests, a single s
 ```
 tests/
 ├── unit/                         77 scripts: one system, resource or manager per file
-├── integration/                  40 scripts: content flows and scene-level UI behaviour
+├── integration/                  41 scripts: content flows and scene-level UI behaviour
 ├── label_tests/
 │   ├── label_testing_scene.tscn  visual Label-variant reference (run with F6)
 │   └── label_testing_scene.gd
@@ -195,7 +195,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | EventManager | None dedicated | `trigger_event()` used inside quest, encounter and content tests | `trigger_event()`/`has_event_triggered()` contract |
 | LogManager / log board | `test_log_manager_history` (5), `test_log_board` (33) | The bounded history; the five-line board (order, growth, tones and fading, cream haul lines, BBCode stripping, ellipsis); the full log (L, Escape, `toggle_window()`, trimming, rail caps, closing when hidden, closed and kept shut under a menu book) | |
 | DialogueManager, PlayerManager, `Log` | None | | All |
-| UI shell | `test_merchant_view_state` (9), `test_view_state_hud_positions` (15), `test_cycling_mode` (12), `test_grey_background` (5), `test_book_view_state` (12), `test_dock` (12) | `MainView.remove_state()` and `MerchantViewState` on a `MainView` that never enters the tree; where each view state puts the Goals and log boards, the shop hiding and restoring them (a `FakeCoveringState` is the second holder), and cycling and the menu books leaving them showing; cycling mode (the chest, dock and map turned over and back, the map taking no clicks, the full log blocked, a second `start_cycling` pushing once, the cabinet handed to the `CyclingView`, the unique names in `main_game.tscn`); `GreyBackground`'s fade-out and backdrop click; the menu books' shared close routes; the dock's buttons, notifications and parsed actions | `MainView` push/pop/change semantics ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)); the call to the cabinet hand-off from `MainView._ready()` (the helper is tested; the call is checked in a headless run of the real scene) |
+| UI shell | `test_merchant_view_state` (9), `test_view_state_hud_positions` (15), `test_cycling_mode` (12), `test_main_game_layout` (2), `test_grey_background` (5), `test_book_view_state` (12), `test_dock` (12) | `MainView.remove_state()` and `MerchantViewState` on a `MainView` that never enters the tree; where each view state puts the Goals and log boards, the shop hiding and restoring them (a `FakeCoveringState` is the second holder), and cycling and the menu books leaving them showing; cycling mode (the chest, dock and map turned over and back, the map taking no clicks, the full log blocked, a second `start_cycling` pushing once, the cabinet handed to the `CyclingView`, the unique names in `main_game.tscn`); the zone furniture's places in `main_game.tscn`, also after an editor save; `GreyBackground`'s fade-out and backdrop click; the menu books' shared close routes; the dock's buttons, notifications and parsed actions | `MainView` push/pop/change semantics ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)); the call to the cabinet hand-off from `MainView._ready()` (the helper is tested; the call is checked in a headless run of the real scene) |
 | Dev tools | `test_dev_password_modal` (5), `test_unlock_manager` (3), `test_dev_panel_zone_toggles` (4) | `DevPasswordModal.check_password()`, `force_unlock_condition()`, the two Zones toggles | Other dev panel actions, Ctrl+Shift+D gate, Map Preview, UID tool ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 | Loot | None | | `LootTable` rolls (no test references `LootTable`) |
 
