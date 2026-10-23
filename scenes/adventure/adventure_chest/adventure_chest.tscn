@@ -1,0 +1,83 @@
+[gd_scene format=3 uid="uid://bqbci8eogrm48"]
+
+[ext_resource type="Script" uid="uid://bi7jumxjacynr" path="res://scenes/adventure/adventure_chest/adventure_chest.gd" id="1_chest"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://b0oxilq4a2deb" path="res://assets/ui/lacquer/lacquer_chest_top_ai.png" id="3_chest_top"]
+[ext_resource type="Texture2D" uid="uid://dt7a831tjgn74" path="res://assets/ui/lacquer/lacquer_chest_mid_ai.png" id="4_chest_mid"]
+[ext_resource type="Texture2D" uid="uid://cyjxlicpjfjkk" path="res://assets/ui/lacquer/lacquer_chest_bot_ai.png" id="5_chest_bot"]
+[ext_resource type="PackedScene" uid="uid://esymg1m3jh8s" path="res://scenes/adventure/run_clock/run_clock.tscn" id="6_clock"]
+
+[node name="AdventureChest" type="Control" unique_id=127451146]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 1456.0
+offset_top = 24.0
+offset_right = 1896.0
+offset_bottom = 200.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_chest")
+
+[node name="ChestFrame" type="Control" parent="." unique_id=274540552]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ChestTop" type="TextureRect" parent="ChestFrame" unique_id=607510054]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 444.0
+offset_bottom = 128.0
+mouse_filter = 2
+texture = ExtResource("3_chest_top")
+
+[node name="ChestMid" type="TextureRect" parent="ChestFrame" unique_id=642560482]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 128.0
+offset_right = 444.0
+offset_bottom = 128.0
+mouse_filter = 2
+texture = ExtResource("4_chest_mid")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="ChestBottom" type="TextureRect" parent="ChestFrame" unique_id=689684577]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 128.0
+offset_right = 444.0
+offset_bottom = 180.0
+mouse_filter = 2
+texture = ExtResource("5_chest_bot")
+
+[node name="TitleLabel" type="Label" parent="." unique_id=740260135]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 17.0
+offset_right = 328.0
+offset_bottom = 62.0
+theme_type_variation = &"LabelLacquerZoneName"
+text = "The Shallow Woods"
+text_overrun_behavior = 3
+
+[node name="RunClock" parent="." unique_id=942006620 instance=ExtResource("6_clock")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 336.0
+offset_top = 22.0
+offset_right = 424.0
+offset_bottom = 58.0
+
+[node name="PageSlot" type="Control" parent="." unique_id=1131882884]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 82.0
+offset_right = 424.0
+offset_bottom = 82.0
+mouse_filter = 2
