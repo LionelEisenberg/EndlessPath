@@ -243,7 +243,6 @@ Gold left the bar for the cultivator cabinet.
 |--------|-------|---------|-----------------|
 | `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `CyclingTechnique` (XP popups), `ResourceBar` and `ResourceOrb` (combat vitals deltas; per-bar `show_floating_text` export) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
 | `FlyingParticle` | `scenes/ui/flying_particle/flying_particle.gd` (script only, created with `FlyingParticle.new()`) | `CyclingView` (Madra/XP particles) | `launch(start, target, color, duration = 0.6, size = 5.0, on_arrive = Callable(), curve_spread = 60.0, curve_bias = 0.0)`. Quadratic bezier with ease-in and an 8-point fading trail, drawn with `draw_circle`. Calls `on_arrive`, then frees itself. The zone view's adventure drain uses `MadraPellet` instead ([ZONES.md](../zones/ZONES.md#adventure-start-zone-side)). |
-| `TickProgressBar` | `scenes/ui/tick_progress_bar/tick_progress_bar.tscn` + `.gd` | Nothing (the Now strip replaced it on the training card) | `set_progress(current, total)` (`total <= 0` clears it), `set_fill_color(color)`, `flash_and_reset(flash_color, duration = 0.3)`. 2 px bar with 9 gradation marks (10% to 90%) and a `LabelSmall` counter (12 px override) to the right of the bar. |
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | Main view states | See [GreyBackground](#greybackground-modal-backdrop) |
 | `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
 | `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | `MainView` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
@@ -311,7 +310,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/ui/goals_panel/goals_panel.gd` / `.tscn` | Goals board |
 | `scenes/ui/log_window/log_window.gd` / `.tscn` | Log board and full log |
 | `scenes/zones/zone_transition/zone_transition.gd` | Adventure-entry drain and zoom; camera reset |
-| `scenes/ui/floating_text/`, `scenes/ui/flying_particle/`, `scenes/ui/tick_progress_bar/` | Shared feedback widgets |
+| `scenes/ui/floating_text/`, `scenes/ui/flying_particle/` | Shared feedback widgets |
 | `project.godot` | Autoloads, input map, window, renderer, theme |
 
 ## Work Remaining
@@ -338,11 +337,8 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 - `[LOW]` `MainView.change_state()` clears `state_stack` without calling `exit()` on stacked overlays. This is only safe because no overlay can be open when the base changes: `ZoneViewState` blocks input during the adventure transition, and the end card is popped first. An overlay skipped this way would also never release the HUD boards.
 - `[LOW]` `CyclingViewState._on_stop_cycling()` pops whatever state is on top, not specifically the cycling state.
 - `[LOW]` `CyclingView._on_close_button_pressed()` sends a pressed `InputEventAction` with no matching release event.
-- `[LOW]` Dead code: `TickProgressBar` has no references since the lacquer training card replaced its footer.
 - `[LOW]` Some nodes are created in code despite the scene-tree UI rule: the `ZoneViewState._add_input_blocker()` `Control.new()`, and `FlyingParticle`, which has no `.tscn`.
-- `[LOW]` Stale doc comments:
-  - The `MainView` class comment lists 4 views; there are 9 states.
-  - `TickProgressBar` says the counter is "below the bar"; the scene places it to the right.
+- `[LOW]` Stale doc comment: the `MainView` class comment lists 4 views; there are 9 states.
 - `[LOW]` `MainGame.log_print_level` is set to `0` (`Log.Event.INFO`) in `main_game.tscn`; the script default is `DEBUG`. `Log.Event` orders `INFO`(0) before `DEBUG`(1), so INFO prints every level and DEBUG would hide INFO lines (see [LOGGING.md](LOGGING.md)).
 - `[LOW]` `project.godot` mismatches:
   - `[dialogic] extensions_folder = "res://addons/dialogic_additions"` points to a folder that does not exist.

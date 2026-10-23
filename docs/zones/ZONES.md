@@ -818,7 +818,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 
 - `[MEDIUM]` Removing a zone id still wipes the whole save. `PersistenceManager._ready()` resets all data when `SaveGameData.verify()` (`_verify_current_selected_zone_id()`) fails; only ids listed in `SaveGameData.ZONE_ID_MIGRATIONS` are moved first. Renaming an `action_id` silently drops its completion count, last idle action and seen record, so one-time dialogues reappear.
 - `[LOW]` Dead code and assets:
-  - The old zone view leftovers: `scenes/zones/glowing_path/` with `assets/shaders/flowing_path.gdshader`, `assets/shaders/action_card_sweep.gdshader`, `assets/styleboxes/zones/action_card_selected.tres`, `scenes/ui/tick_progress_bar/` (`TickProgressBar`) and `assets/sprites/ui/lock_icon.png` are no longer referenced.
+  - `assets/sprites/ui/lock_icon.png`, the old zone view's lock icon, is no longer referenced.
   - Nothing reads `ZoneData.icon`, and nothing calls `AdventureActionData.is_valid()`.
 - `[LOW]` A signal declaration doesn't match its emit: `start_foraging(action_data)` is emitted with no argument.
 - `[LOW]` `FOREST_ATLAS_COLS` and `FOREST_VARIANT_COUNT` are defined in both `zone_tilemap.gd` and `HexForestAtlas`.

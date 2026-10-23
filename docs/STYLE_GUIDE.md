@@ -420,7 +420,7 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 
 | Area | IDs | Rows | S | M | L |
 |---|---|---|---|---|---|
-| Foundations (shared) | F1–F8 | 8 | 2 | 5 | 1 |
+| Foundations (shared) | F1–F7 | 7 | 1 | 5 | 1 |
 | Zone view overlays | Z1–Z2 | 2 | 1 | 0 | 1 |
 | Cycling | C1–C11 | 11 | 5 | 6 | 0 |
 | Dialogue | D1 | 1 | 0 | 0 | 1 |
@@ -430,7 +430,7 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 | End card | E1 | 1 | 0 | 0 | 1 |
 | Menu books | K1–K13 | 13 | 6 | 6 | 1 |
 | Project-wide | P1–P2 | 2 | 1 | 0 | 1 |
-| **Total** | | **59** | **23** | **27** | **9** |
+| **Total** | | **58** | **22** | **27** | **9** |
 
 **Taking a row in another branch:**
 1. Make sure the kit's files are there (the branch includes `feat/zone-view-redesign-4656b7`).
@@ -450,7 +450,6 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 | F5 | Modal backdrop (`GreyBackground`) | A translucent teal-grey panel (`#2D3737` at 55.7%), shared by the four books, the merchant, cycling and the end card. The books and the merchant fade it in over 0.3 s and out over 0.2 s (`show_with_panel` / `hide_with_panel`); cycling and the end card toggle `visible` with no fade. Cycling and the merchant hide the HUD boards (`hide_hud_boards`); the books (the user's decision, `5e8d7394`) and the end card leave them dimmed under it. Its alpha is left at 0 after a fade-out (MAIN_VIEW.md bug). The Dialogic background (`#2D2D2D` at 82.7%) and the dev modal (black at 60%) are translucent too | An opaque 2-step `#050707` dither tile (new `lacquer_dither_backdrop_ai.png`) shown and hidden outright for every user. For cycling, the merchant and the end card only, the alternative is no backdrop with `MainView.hide_hud_boards()` (G1). The books keep the HUD boards under their backdrop. Keep `show_with_panel` / `hide_with_panel` / `panel_hidden` / `clicked`, so no state changes. Rewrite the fade-timing tests | M | `scenes/ui/grey_background/grey_background.gd`, `assets/styleboxes/zones/grey_background.tres`, `scenes/main/main_game/main_game.tscn`, `tests/unit/test_grey_background.gd` |
 | F6 | Shared floater (`FloatingText`) | 24 px text with a 5 px black outline, engine colours, a 100 px cubic-eased rise and an alpha fade; its `font_size` override is a no-op. Used by cycling hits and the combat bars and orbs | Promote `MapFloater` (token, `LabelLacquerFloater` or a 16 px `RichTextLacquer`, 40 px in 20 steps, hidden outright) to a shared lacquer floater in `scenes/common/lacquer/`. Point cycling and combat at it with palette colours; delete `FloatingText` | M | `scenes/ui/floating_text/`, `scenes/zones/map_markers/map_floater/`, `scenes/cycling/cycling_technique/cycling_technique.gd`, `scenes/ui/combat/resource_orb/resource_orb.gd` |
 | F7 | Item hover tooltip (`ItemDisplaySlot`) | A parchment card stretched non-uniformly to 424x264 slides up 15 px with a cubic ease and fades in; black and grey text; tan and green effect lines at 2.5–2.8:1 on cream. Shows over the merchant and the end card | Over lacquer screens, a lacquer popover board (F2): `LabelLacquerPopoverTitle` name, `LabelLacquerDetail` type, `LabelLacquerPopoverBody` text, effects in `RichTextLacquer` via `decimal_bbcode()`. Even px; shown outright | M | `scenes/common/item_display_slot/`, `scenes/common/item_description_panel/` |
-| F8 | Dead UI | `TickProgressBar` (12 px text, alpha fade) is referenced by nothing | Delete it. `LacquerRod` is the lacquer tick bar | S | `scenes/ui/tick_progress_bar/` |
 
 ### Zone view overlays
 
@@ -565,7 +564,7 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 | Step | Rows | Why this order |
 |---|---|---|
 | 0. Decide | G1, G2, G4, K-Q1 | They block the most rows: the backdrop (every overlay), the palette (combat, cycling, merchant), icon sizes (inventory, merchant, end card, hotbars) and the books |
-| 1. Foundations | F1–F8 | Shared art and theme types every later area needs. The render fix is cheap and global. The backdrop and the floater have three or more users each. Deleting dead UI shrinks the surface |
+| 1. Foundations | F1–F7 | Shared art and theme types every later area needs. The render fix is cheap and global. The backdrop and the floater have three or more users each |
 | 2. Zone view overlays | Z1, Z2 | They sit on top of the finished zone view, so the clash is most visible there. The merchant is the first real user of the new board, button and tooltip pieces |
 | 3. Cycling | C1–C11 | The main active loop, opened from the zone view. Mostly reuse: cabinet orbs and shaders, pellets, drawers |
 | 4. Dialogue | D1 | Shown over the zone view and from encounters. One timeline today, so the risk is small, but it needs a custom Dialogic layer |
