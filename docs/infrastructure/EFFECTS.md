@@ -1,6 +1,6 @@
 # Effects (EffectData)
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -41,7 +41,7 @@ Execution is synchronous and context-free. `process()` takes no arguments; `Adve
 |---|---|---|
 | `ZoneActionData.success_effects` / `failure_effects` | `ActionManager._process_completion_effects(successful)` | When the current action stops: `stop_action(successful)`, or when `select_action()` replaces it (which counts as success). NPC dialogue stops on `DialogueManager.dialogue_ended`; the Merchant stops when the player leaves the shop; adventures stop with `false` on time-out. |
 | `TrainingActionData.effects_per_tick` | `ActionManager._on_train_timer_finished()` | Every `tick_interval_seconds` while the training action is selected |
-| `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` also reads the first `AwardAttributeEffectData` here for its "+N / M Attribute" badge. |
+| `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` and the Now strip also read the first `AwardAttributeEffectData` here for "each level +1 Spirit" and "Lv n → n+1 · +1 Spirit". |
 | `QuestData.completion_effects` | `QuestManager._complete_quest()` | After the last step advances, before `quest_completed` |
 | `EncounterChoice.success_effects` | `AdventureTilemap._on_choice_selected()` (plain choices), `_on_dialogue_ended()` (`DialogueChoice`) | Choice picked, or its timeline ended |
 | `CombatChoice.success_effects` / `failure_effects` | `AdventureTilemap.handle_combat_result()` | Combat won (after gold is added) or lost |
@@ -76,8 +76,9 @@ Four subclasses set `effect_type` in `_init()`: StartQuest, AwardAttribute, Awar
 |---|---|---|
 | `resource_type` | `ResourceManager.ResourceType` (`MADRA` 0, `GOLD` 1) | `MADRA` |
 | `amount` | `float` | `0.0` |
+| `quiet` | `bool` | `false`. True skips the player-facing log line (the Aura Well trickle) |
 
-`process()`: `ResourceManager.award_resource(resource_type, amount)` → `add_madra()` or `add_gold()`. Madra is clamped to `[0, stage max]`, where the Foundation max is 100 + 5 × Core Density level, and every call with `amount ≥ 1` logs `Gained <int(amount)> Madra`.
+`process()`: `ResourceManager.award_resource(resource_type, amount, quiet)` → `add_madra()` or `add_gold()`. Madra is clamped to `[0, stage max]`, where the Foundation max is 100 + 5 × Core Density level. Unless the award is quiet, a Madra award logs `Gained <N> Madra` with the amount actually added, only when that is at least 1, and a gold award logs `Gained <N> Gold`.
 
 ### AwardItemEffectData
 
@@ -152,7 +153,7 @@ Attributes come from `CharacterManager.get_total_attributes_data()`.
 | EventManager | Target of `TriggerEventEffectData` |
 | ResourceManager / CharacterManager / PathManager / PlayerManager | Targets of the award and vitals effects |
 | Item tooltips | `ConsumableDefinitionData._get_item_effects()` calls `describe()` |
-| TrainingPresenter | Reads `AwardAttributeEffectData` from `effects_on_level` for its UI badge |
+| TrainingPresenter / NowStrip | Read `AwardAttributeEffectData` from `effects_on_level` for the level reward text; `TrainingActionData.get_madra_per_second()` reads the MADRA `AwardResourceEffectData` in `effects_per_tick` for the rate |
 
 ## Existing Content
 
@@ -168,7 +169,7 @@ Every authored effect instance:
 | `q_fill_core.tres` `completion_effects` | TriggerEvent | `q_fill_core_completed` |
 | `q_first_steps.tres` `completion_effects` | AwardPathPoint | `amount` 1 |
 | `q_reach_core_density_10.tres` `completion_effects` | AwardItem | `refugee_camp_map` × 1 |
-| `aura_well_madra_trickle_effect.tres` (Aura Well `effects_per_tick`) | AwardResource | MADRA, 1.5 |
+| `aura_well_madra_trickle_effect.tres` (Aura Well `effects_per_tick`) | AwardResource | MADRA, 1.5, quiet |
 | `aura_well_spirit_award_effect.tres` (Aura Well `effects_on_level`) | AwardAttribute | SPIRIT (3), 1.0 |
 | `aura_well_encounter.tres` "Rest" choice | ChangeVitals | `body_hp_multiplier` 5.0, `foundation_madra_multiplier` 2.0 (+50 HP and +20 Madra at the default 10 BODY / 10 FOUNDATION) |
 | `aura_well_encounter.tres` "Mark down the location" choice | ChangeVitals (same sub-resource as Rest) → TriggerEvent | `aura_well_discovered` |
@@ -207,13 +208,12 @@ Authoring conventions:
 | `tests/unit/test_consumable_definition_data.gd` | `use()` processes effects in order; tooltip lines (uses a stub effect) |
 | `tests/unit/test_crude_scale_tres.gd` | Crude Scale's single ChangeVitals effect is +20 Madra |
 
-Untested: `TriggerEventEffectData`, `AwardResourceEffectData`, `AwardItemEffectData`, `AwardLootTableEffectData`, `ChangeVitalsEffectData.process()` and `describe()`.
+`AwardResourceEffectData`'s `quiet` flag is covered by `tests/unit/test_quiet_madra.gd`. Untested: `TriggerEventEffectData`, the rest of `AwardResourceEffectData`, `AwardItemEffectData`, `AwardLootTableEffectData`, `ChangeVitalsEffectData.process()` and `describe()`.
 
 ## Work Remaining
 
 ### Bugs
 
-- `[LOW]` The Aura Well floods the log. Each 1.5-Madra tick goes through `ResourceManager.add_madra()`, which logs "Gained 1 Madra" (truncated with `int()`) into the LogWindow once per second for as long as the player trains.
 - `[LOW]` `AwardItemEffectData.process()` has no null guard. A null `item` reaches `InventoryManager.award_items()`, which emits `item_awarded(null, …)` and then dereferences `item.item_type`.
 
 ### Missing Functionality

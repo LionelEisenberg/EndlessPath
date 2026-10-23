@@ -11,7 +11,7 @@ The player starts at the **Foundation** stage, cycling Madra through their body 
 | System | Type | Status | Description |
 |--------|------|--------|-------------|
 | **Cycling** | Active mini-game | Playable | Keep the cursor on a Madra ball to earn Madra; click cycling zones on time for Core Density XP |
-| **Zones and idle actions** | Map + idle | Playable | Hex zone map with foraging, training, NPC dialogue and adventure actions |
+| **Zones and idle actions** | Map + idle | Playable | Map-first hex zone view with foraging, training, NPC dialogue, merchant and adventure actions; an idle action always resumes |
 | **Adventuring** | Exploration | Playable | Procedurally generated hex maps with fog of war, encounters and an end-of-run summary |
 | **Combat** | Real-time | Playable | Abilities cost Health/Madra/Stamina, with cooldowns, cast times, buffs and interrupts |
 | **Inventory** | Management | Playable | Paginated equipment grid, gear slots, consumables hotbar, materials, quest journal |
@@ -76,9 +76,10 @@ scripts/
 
 scenes/
   main/main_game/             Entry scene, save timer
-  ui/                         MainView state machine, toolbar, log window, dev panel, quest
-                              window/toast, combat UI, shared widgets
-  zones/                      Zone tilemap, info panel, action buttons + presenters
+  ui/                         MainView state machine, dock, log board, Goals board, dev panel,
+                              quest toast, combat UI, shared widgets
+  zones/                      Zone map (fog, markers, popovers, routes), cultivator cabinet, zone
+                              chest (Now strip, activity list), activity cards + presenters
   cycling/                    Cycling mini-game
   adventure/                  Adventure view, tilemap, map generator, encounter UI, end card
   combat/                     Combatants, ability/buff/effect managers, enemy AI
@@ -86,9 +87,10 @@ scenes/
   abilities/                  Abilities view (cards, loadout slots, stats display)
   character/                  Character (attributes) view
   path_progression/           Path tree view
-  common/                     Shared item display / description components, DropTargetSlot
-  atmosphere/                 Vignette + mist + motes overlay
-  tilemaps/                   Hex tilemap extensions, hover selector
+  common/                     Shared item display / description components, DropTargetSlot,
+                              lacquer pieces (strip rect, rod, frame overlay)
+  atmosphere/                 Vignette + mist + motes overlay (adventure view)
+  tilemaps/                   Hex tilemap extensions, hover selector, fog tileset
   camera/                     Camera clamp/pan/zoom controllers
   characters/                 Player character body
   tools/                      Map preview scene

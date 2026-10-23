@@ -64,7 +64,7 @@ See `docs/testing/TESTING.md` for test conventions, the coverage map, and why te
 | `singletons/` | 17 manager singletons (global game state). They are autoloads along with Dialogic, 18 in total |
 | `scenes/` | Godot `.tscn` scene files + attached scripts |
 | `resources/` | `.tres` data files (abilities, adventures and encounters, enemies, cycling, items, path tree, quests, unlocks, zones and their loot tables) |
-| `assets/` | Art (sprites, Aseprite sources), shaders, themes, styleboxes, fonts, dialogue data. No audio yet |
+| `assets/` | Art (sprites, Aseprite sources, the zone view's lacquer kit in `ui/lacquer/`), shaders, themes, styleboxes, fonts, dialogue data. No audio yet |
 | `addons/` | Godot plugins (Dialogic, AsepriteWizard, ResourcePlus, hexagon_tilemaplayer, script-ide, godot_context_exporter, gut) |
 | `tests/` | GUT tests: `unit/`, `integration/`, `label_tests/` |
 | `docs/` | Game and system documentation. Start at `docs/README.md` |
@@ -78,14 +78,14 @@ These are autoloaded in `project.godot` and provide global state:
 | `ResourceManager` | Madra and Gold, plus adventure Madra capacity/threshold. Core Density lives in `CultivationManager` |
 | `CultivationManager` | Core Density XP and levels, advancement stage, path-point milestones. `attempt_breakthrough()` is still a stub |
 | `InventoryManager` | Equipment (paged grid), gear and accessories, materials, consumables and the 4-slot hotbar, quest items |
-| `ZoneManager` | Selected zone and per-zone progression (completions, training ticks) |
+| `ZoneManager` | Selected zone and per-zone progression (completions, training ticks, last idle action); the map's zones and their map states, the dev demo and hidden-zone toggles, seen actions (NEW) |
 | `UnlockManager` | Feature unlock gates (condition catalog, latched unlocks) |
 | `EventManager` | Persistent one-shot narrative event flags (not a general event bus) |
 | `QuestManager` | Multi-step quests: active/completed quests, step advancement |
 | `DialogueManager` | Dialogic integration |
 | `PlayerManager` | Holds the persistent player `VitalsManager` (HP/Madra/Stamina) |
 | `LogManager` | Player-facing in-game log, shown in `LogWindow`. Diagnostics use the `Log` utility |
-| `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training, merchant). No queue |
+| `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training, merchant). No queue. Resolves and resumes the zone's idle action after every session action and on arrival in a zone |
 | `CharacterManager` | Player attributes (base + equipment bonuses) |
 | `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups) |
 | `PathManager` | Path progression tree, point balance, perk aggregation. Most numeric perks are not yet read by any system |
@@ -120,14 +120,17 @@ These are autoloaded in `project.godot` and provide global state:
 
 Menu overlays are switched via input actions (`open_inventory`, `open_abilities`, `open_character`, `open_path`), which only the current state handles. Cycling, adventure, the merchant, and the end card are driven by signals instead: the state scripts connect to `ActionManager`/`AdventureView` themselves. The state machine supports `change_state` for base views and `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view).
 
-The `Toolbar` (`scenes/ui/toolbar/`, at the bottom of `ZoneView`) holds the nav buttons, which fire the same input actions via `Input.parse_input_event()`. `SystemMenuButton` (script in `scenes/zones/zone_resource_panel/system_menu/`) uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown. See `docs/infrastructure/MAIN_VIEW.md`.
+The `Dock` (`scenes/ui/dock/`, at the bottom centre of `ZoneView`) holds the four nav buttons, which fire the same input actions via `Input.parse_input_event()` (a press, then its release). It also decides their notifications: the Path count seal while path points are unspent, the Abilities ring while an unlocked ability is unequipped. `SystemMenuButton` (`scenes/ui/dock/system_menu_button/`) uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown, and exposes `set_notification()`.
+
+The `GoalsPanel` (`scenes/ui/goals_panel/`: the first active quest's step and the Breakthrough milestone) and the `LogWindow` are `MainView` HUD boards shared by the zone and adventure views. Each base state places them (`ZoneViewState` under the cultivator cabinet, `AdventureViewState` in the top corners), cycling and the merchant shop hide them through `MainView.hide_hud_boards()` / `release_hud_boards()`; the menu books leave them showing under their backdrop. The zone view itself (cultivator cabinet, zone chest, map) is described in `docs/zones/ZONES.md`. See `docs/infrastructure/MAIN_VIEW.md`.
 
 ### Reusable UI Components (`scenes/common/` and shared scenes)
 Shared components used across multiple views:
 - `ItemDisplaySlot` — Read-only item icon with hover tooltip, used in end card loot and anywhere items need display
 - `ItemDescriptionPanel` — Item detail panel (icon, name, type, description, effects), shared between inventory sidebar and end card tooltips
-- `Atmosphere` (`scenes/atmosphere/`) — Vignette shader + drifting mist sprites + floating mote particles; instanced in both zone and adventure views with per-scene `@export` tuning
-- `HexHoverSelector` (`scenes/tilemaps/`) — Animated spritesheet ring that snaps to the hovered hex tile; shared between zone and adventure tilemaps
+- Lacquer pieces (`scenes/common/lacquer/`) for the zone view's "Lacquer and brass" look: `LacquerStripRect` (shows one frame of an orb, bead or ring strip), `LacquerRod` (stepped 2 + 2k progress rod with an end cap), `LacquerFrameOverlay` (brass or hover 9-slice frame over its parent, flashed outright). `LacquerRail` (`scenes/zones/zone_panel/lacquer_rail/`) is the brass scroll rail bound to a `ScrollContainer`, and `LacquerText` (`scripts/utils/lacquer_text.gd`) formats rates and sets decimal points in Yatra One. They go with the lacquer theme, `assets/themes/lacquer/lacquer_theme.tres` (`LabelLacquer*` and `RichTextLacquer*` variants, kit textures in `assets/ui/lacquer/`); see `docs/UI_STYLING.md`
+- `Atmosphere` (`scenes/atmosphere/`) — Vignette shader + drifting mist sprites + floating mote particles; instanced in the adventure view (adventure tilemap and combat) with per-scene `@export` tuning. The lacquer zone view does not use it
+- `HexHoverSelector` (`scenes/tilemaps/`) — Animated spritesheet ring that snaps to the hovered hex tile; used by the adventure tilemap. The zone map shows hover by swapping hex rims instead
 - `EncounterIcon` (`scenes/adventure/encounter_icon/`) — Per-type glyph renderer (combat, elite, boss, rest, treasure, trap, unknown) with a completed state and animated boss and rest-site glyphs; reused inside both flat tile icons and the floating `AdventureMarker`
 - `PathPreview` (`scenes/adventure/path_preview/`) — Tiled-texture `Line2D` showing the route from player to target; supports gradient-based fade that hides the section behind the player during committed travel
 - `DropTargetSlot` (`scenes/common/drop_target_slot.gd`) — Shared drag-and-drop target base with drop highlight
@@ -136,7 +139,7 @@ Shared components used across multiple views:
 
 ### Game Systems
 1. **Cycling** — Mouse-following Madra Ball + timed clicks on cycling zones along a body diagram (Madra and Core Density XP); swappable techniques
-2. **Zones & idle actions** — Hex zone map; foraging and training (Aura Well) idle actions, NPC dialogue, merchant shop (gold for gear and Crude Scales; look themed per zone)
+2. **Zones & idle actions** — Map-first lacquer zone view (zoom-2 hex map with fog, cultivator cabinet, zone chest with a Now strip and grouped activity cards, dock); foraging and training (Aura Well) idle actions, which resume after every session action, NPC dialogue, merchant shop (gold for gear and Crude Scales; look themed per zone)
 3. **Adventuring** — Procedurally generated hex maps with fog-of-war (shader + FogVeilSprite smoke overlays), per-type encounter icons, floating AdventureMarker, tiled-texture path preview with committed-destination system (gradient fade behind player), real-time combat, scroll end card with stats/loot
 4. **Combat** — Real-time; abilities cost Health/Madra/Stamina (no AP pool) and have cooldowns, cast times, buffs, and interrupts; simple enemy AI
 5. **Inventory** — Book-style UI: paged equipment grid, gear slots, consumables hotbar, materials, quest journal
@@ -154,7 +157,9 @@ Shared components used across multiple views:
 
 ## Git Workflow
 
-**When to commit:** After completing a feature, fixing a bug, or finishing a meaningful refactor — ask the user for confirmation before committing. Never commit without user approval.
+**When to commit:** Commit your own work as you go, once each logical step is done (a feature, a bug fix, a meaningful refactor, a plan task). You don't need to ask first.
+
+**Never merge:** not into `main`, not into any other branch, and not a pull request, unless the user explicitly asks.
 
 **Before committing:**
 - Run `git diff HEAD` to review all changes
@@ -193,7 +198,9 @@ The user must be able to tell AI-made art from art they made or imported. Any im
 
 ## UI Styling
 
-UI text uses a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`. Before adding inline `theme_override_font_sizes` or `theme_override_colors` to a Label, read **`docs/UI_STYLING.md`** — it lists every available variant, the rule of thumb for when to use a variant vs a direct override, and copy-paste `.tscn` patterns.
+UI text uses a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`; the zone view's panels and the HUD boards use the lacquer theme (`assets/themes/lacquer/lacquer_theme.tres`, `LabelLacquer*` variants) on their roots instead. Before adding inline `theme_override_font_sizes` or `theme_override_colors` to a Label, read **`docs/UI_STYLING.md`** — it lists every available variant, the rule of thumb for when to use a variant vs a direct override, and copy-paste `.tscn` patterns.
+
+Before reworking or building any screen, read **`docs/STYLE_GUIDE.md`**: the game's "Lacquer and brass" look (rules, palette, components, motion, review checklist) and the backlog of screens still to move to it.
 
 ## GDScript Coding Standards
 
@@ -248,7 +255,7 @@ For the full skill list, invoke `godot-prompter:using-godot-prompter`.
 ## Development Notes
 
 ### Shaders
-Custom shaders (14) live in `assets/shaders/`. Notable shaders include: `liquid_wave` (Madra orb fill), `core_density_fill` (radial density display), `madra_ball`, `cycling_zone` and `path_pulse` (cycling mini-game), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), `flowing_path` (animated brightness wave for zone glowing paths), `action_card_sweep` (timed zone action card fill), `palette_swap` (per-menu menu book colours), `hit_flash` (combat hit feedback), and `path_connection_energy`, `path_node_border`, `path_node_keystone` (path tree).
+Custom shaders (16) live in `assets/shaders/`. Notable shaders include: `liquid_wave` (Madra orb fill), `core_density_fill` (radial density display), `madra_ball`, `cycling_zone` and `path_pulse` (cycling mini-game), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), `palette_swap` (per-menu menu book colours), `hit_flash` (combat hit feedback), and `path_connection_energy`, `path_node_border`, `path_node_keystone` (path tree). `flowing_path` (the old zone glowing paths) and `action_card_sweep` (the old zone card fill) are currently unreferenced. In the lacquer zone view, only the cultivator cabinet's two orbs use shaders (`lacquer_madra_orb`, `lacquer_core_orb`: pixel-grid, kit-palette, stepped-time fills over the strip art); every other fill there is a frame of a texture strip.
 
 ### Styling / Themes
 UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Custom styleboxes in `assets/styleboxes/`. Use existing theme tokens — do not introduce external UI frameworks. See `docs/UI_STYLING.md` for the Label variant type-scale and usage rules.
@@ -257,18 +264,19 @@ UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Cust
 Dialogic addon handles narrative/dialogue. Timeline and character data in `assets/dialogue/`.
 
 ### Hex Grid
-Both zone and adventure maps use the `hexagon_tilemaplayer` addon for hex-based tile rendering. The zone map renders per-zone forest variants via `ZoneData.tile_variant_index`. The adventure map uses a 23-variant forest atlas (`hex_forest_atlas.png`) with deterministic-random per-tile selection. Hover feedback uses a shared `HexHoverSelector` animated spritesheet. Zone connections between unlocked tiles are drawn with `GlowingPath` (Line2D + flowing shader). Locked zones are overlaid with `LockedZoneOverlay` (grey hex + lock icon with shake-on-click).
+Both zone and adventure maps use the `hexagon_tilemaplayer` addon for hex-based tile rendering. The zone map (camera zoom 1–2, default 2) draws only the map zones (`ZoneManager.get_map_zones()`, so hidden zones such as Test Zone stay off it) with per-zone forest variants via `ZoneData.tile_variant_index`. Every other cell is fog on a second layer (`scenes/tilemaps/fog_tileset.tres`) in three tiers by hex distance to the nearest charted zone. Hex states are rim swaps, never glows: `ZoneHexMarker` draws the current zone's brass rim and an open zone's hairline (brighter on hover), and `LockedZoneOverlay` the veiled tile of a locked or uncharted zone (a thin inner rim on hover, a heavy one when its popover is pinned). Dotted `ZoneRoute`s join neighbouring zones and turn cream toward a hovered zone you can travel to. `MapMarkers`, a screen-space CanvasLayer, draws the plates, the lock and "?" glyphs, the action ring, floaters and the map popover. The adventure map uses a 23-variant forest atlas (`hex_forest_atlas.png`) with deterministic-random per-tile selection and the `HexHoverSelector` animated spritesheet for hover.
 
 ### Logging
 There are two channels:
 - **`Log`** (`scripts/utils/log.gd`): leveled diagnostics (INFO/DEBUG/WARN/ERROR/CRITICAL) to the console and a daily `user://logs-*.log` file.
-- **`LogManager`**: the player-facing log. It emits `message_logged` signals for in-game display in `LogWindow`; call `LogManager.log_message(bbcode)`. It has no levels; callers format their own BBCode strings.
+- **`LogManager`**: the player-facing log. It emits `message_logged` signals for in-game display in `LogWindow`; call `LogManager.log_message(bbcode)`. It has no levels; callers format their own BBCode strings. It keeps the last `HISTORY_LIMIT` (200) messages (`get_history()`), which the five-line log board and the full log (L) read.
 
 See `docs/infrastructure/LOGGING.md`.
 
 ### Key Input Bindings
 - `open_inventory` / `close_inventory` — I / I or Escape
 - `open_abilities` — A; `open_character` — C; `open_path` — P (Escape, i.e. `ui_cancel`, also closes these overlays). Menu shortcuts only work from the zone view
+- `toggle_log` — L: opens or closes the full log (handled by `LogWindow`, in the zone and adventure views; Escape also closes it). An open menu book closes the full log and blocks L
 - `close_cycling_view` — Escape
 - `ability_slot_1`–`ability_slot_4` — Q / W / E / R (combat)
 - Dev panel — Ctrl+Shift+D, hard-coded in `MainGame._input`; requires `user://dev_password.txt` (see `docs/tooling/DEV_TOOLS.md`)

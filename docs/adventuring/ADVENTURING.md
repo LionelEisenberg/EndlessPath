@@ -12,11 +12,11 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
 
 ## Player Experience
 
-1. In Spirit Valley, once event `q_fill_core_completed` has fired, the zone panel shows **The Shallow Woods** with a Madra badge:
-   - When the player has at least half their adventure capacity, the badge shows `current / capacity` in gold.
-   - Otherwise it shows `current / threshold` in red, the button text is dimmed, and clicking shakes the badge and logs "Not enough Madra! Need X, have Y".
-2. On click, the zone view locks input. Between 8 and 25 Madra particles fly from the Madra orb to the character while the budget (`min(capacity, current Madra)`) is spent. The camera then zooms to 3× over 0.5 s and the adventure view opens.
-3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at 1/s, and a `5:00` timer pill (hourglass icon) starts at top-centre; it turns red and ticks for the last 30 seconds. The adventure dock sits bottom-centre: Health and Madra orbs, the Stamina bar, and the four technique slots previewing the equipped loadout (hover a slot to read the technique and see its cost). The log window moves to the top-left for the adventure, clear of the dock, and goes back afterwards.
+1. In Spirit Valley, once event `q_fill_core_completed` has fired, the zone chest shows **The Shallow Woods** under Venture, on a normal 72 px card measured against the adventure capacity:
+   - Below half the capacity, its detail row is a Madra rod with `<madra> / <threshold>` after it, and a cream `~N s` at the right while a Madra action runs. Clicking shakes the row and logs "Not enough Madra! Need X, have Y"; the running idle action keeps going.
+   - At half the capacity or more, a brass frame holds steady around the card, it reads "<minutes> min run · carries <capacity> Madra", and its tag reads ENTER.
+2. On click, the zone view locks input and the map's plates hide. Between 8 and 25 Madra pellets fly in 2 px steps from the cultivator cabinet's Madra orb to the character while the budget (`min(capacity, current Madra)`) is spent. The camera then zooms to 3× over 0.5 s and the adventure view opens.
+3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at 1/s, and a `5:00` timer pill (hourglass icon) starts at top-centre; it turns red and ticks for the last 30 seconds. The adventure dock sits bottom-centre: Health and Madra orbs, the Stamina bar, and the four technique slots previewing the equipped loadout (hover a slot to read the technique and see its cost). The log board moves to the top-left and the Goals board to the top-right (cords hidden) for the adventure, clear of the dock and the encounter panel, and both go back afterwards.
 4. The player starts on the origin tile:
    - Adjacent map tiles are revealed as forest tiles under a swirling smoke veil with a "?", so their type stays hidden.
    - The boss is the exception: once revealed it shows its animated skull glyph through the fog.
@@ -111,7 +111,7 @@ The main view state machine ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)) has
 | `AdventureMarker` (`scenes/adventure/adventure_marker/`) | Node2D, z 15 | A pin sprite (scale 0.5) holding an `InnerEncounterIcon` at scale 0.7. It floats `TILE_OFFSET_Y = -35` above the current tile. The glyph is only reconfigured when the encounter type changes, so the boss animation does not restart. |
 | `FogVeilSprite` (`scenes/adventure/fog_veil_sprite.*`) | Sprite2D | Smoke spritesheet (5×5 frames, 0.5 fps scene override, scale 1.5, alpha 0.92) with a `QuestionMark` child sprite. Each instance starts on a random frame. `fade_and_free(0.25)` tweens `self_modulate:a` to 0, then frees the node. |
 | `PathPreview` (`scenes/adventure/path_preview/`) | Line2D | Width 20 with `LINE_TEXTURE_TILE` and `path_line_texture.png`. `show_path()` and `clear_path()` set the points. `set_fade_behind(pos)` moves a two-stop gradient (transparent → opaque, 18 px band) to the closest point on the line. |
-| `HexHoverSelector` (`scenes/tilemaps/`) | Sprite2D, z 5 | 8-frame `hex_selector_spritesheet.png` at 8 fps. `show_at(world_pos)` snaps the ring to the tile and restarts at frame 0 if it was hidden. Shared with the zone map. |
+| `HexHoverSelector` (`scenes/tilemaps/`) | Sprite2D, z 5 | 8-frame `hex_selector_spritesheet.png` at 8 fps. `show_at(world_pos)` snaps the ring to the tile and restarts at frame 0 if it was hidden. Only the adventure map uses it now; the zone map swaps hex rims instead. |
 | `HexagonTileMapLayer` (`scenes/tilemaps/hexagon_tile_map_layer.gd`) | Extends the addon's layer | Emits `tile_clicked(Vector2i)`, `tile_hovered(Vector2i)` and `tile_unhovered()` from `_input`, but only for painted cells. Also provides `cube_pathfind()` (A* id path → cube coords) and `set_cell_with_source_and_variant()`. |
 | `HexForestAtlas` (`scripts/utils/hex_forest_atlas.gd`) | Static helper | `pick(cube)` returns `posmod(hash(cube), 23)` mapped to a 6-column atlas cell, so each tile always shows the same forest variant. |
 | `Atmosphere` (`scenes/atmosphere/`) | CanvasLayer 5 | Vignette, three drifting mist sprites and two mote emitters. It is tuned per instance; adventure combat creates its own copy in code. |
@@ -265,15 +265,17 @@ This is a plain `Resource` with no exports. `AdventureView._build_result_data()`
 ```
 ZoneActionButton click
   → AdventurePresenter.can_activate()                         — ResourceManager.can_start_adventure()
-    (false → on_activation_rejected(): badge shake + "Not enough Madra!" log)
-  → ActionManager.select_action(action)                       — stops any current action (successful = true)
-    → _execute_adventure_action()                             — re-checks can_start_adventure()
+    (false → on_activation_rejected(): Madra line shake + "Not enough Madra!" log)
+  → ActionManager.select_action(action)                       — re-checks can_start_adventure() first (refused: nothing stops),
+                                                                then stops any current action (successful = true)
+    → _execute_adventure_action()
     → adventure_start_requested(action)
         ├→ ZoneViewState: add full-rect input blocker
+        ├→ MapMarkers: hide until the zone view returns
         └→ ZoneTransition._on_adventure_start_requested()
              budget = ResourceManager.get_adventure_madra_budget()
-             particles = lerp(8, 25, budget / capacity); each spends floor(budget / n) Madra,
-             plus one extra particle carrying the remainder
+             pellets = lerp(8, 25, budget / capacity); each spends floor(budget / n) Madra,
+             plus one extra pellet carrying the remainder (MadraPellet, from the cabinet's Madra orb)
              → camera zoom to 3.0 over 0.5 s
              → ActionManager.confirm_adventure_start(action, budget)
   → start_adventure(action, budget)
@@ -416,7 +418,8 @@ AdventureCombat.trigger_combat_end(is_successful, gold)
 - `ZoneManager.increment_zone_progression_for_action(action_id)`, on every stop;
 - `stop_adventure` signal;
 - the action's `success_effects` or `failure_effects` (none authored for Shallow Woods);
-- `clear_current_action()`.
+- `clear_current_action()`;
+- the zone's idle action resumes ("Resumed <name>"), so it is already running when the player returns from the end card.
 
 `AdventureView.stop_adventure()`:
 1. Picks the end reason:
@@ -432,7 +435,7 @@ After that:
 - `AdventureViewState._on_adventure_completed()` pushes `AdventureEndCardState` and calls `AdventureEndCard.show_results()`. That populates the card, plays `scroll_animation` backwards to unroll it, then sets content alpha to 1.
 - **RETURN** plays the animation forwards and emits `return_requested` (connected one-shot). `AdventureViewState` then pops the overlay and changes to `ZoneViewState`, whose `enter()` calls `ZoneTransition.reset_camera()`.
 
-Other ways a run stops: a `ZoneManager.zone_changed` signal calls `ActionManager.stop_action()` (successful = true), and `select_action()` stops the current action first. The zone view is hidden and input-blocked during a run, so the player cannot reach either path.
+Other ways a run stops: a `ZoneManager.zone_changed` signal stops the current action (successful = true), and `select_action()` stops the current action first. The zone view is hidden and input-blocked during a run, so the player cannot reach either path.
 
 ### Dev Hooks
 
@@ -448,7 +451,7 @@ The editor-only map preview (`scenes/tools/map_preview.tscn`, `scripts/tools/map
 |--------|------------|
 | `ActionManager` | `adventure_start_requested(action)`, `confirm_adventure_start(action, budget)` → `start_adventure(action, budget)`, `stop_action(successful)` → `stop_adventure` plus the action's completion effects |
 | `ResourceManager` | `get_adventure_madra_capacity/budget/threshold()`, `can_start_adventure()`, `spend_madra()` during the drain, `add_gold()` on combat wins |
-| Zones (`ZoneTransition`, `ZoneViewState`, `AdventurePresenter`) | Madra drain and camera zoom, input blocker, Madra badge and reject shake ([ZONES.md](../zones/ZONES.md)) |
+| Zones (`ZoneTransition`, `ZoneViewState`, `AdventurePresenter`, `MapMarkers`) | Madra pellet drain and camera zoom, input blocker, the adventure card's Madra line and reject shake, hiding the map markers ([ZONES.md](../zones/ZONES.md)) |
 | `MainView` state machine | `AdventureViewState` (`change_state` on `start_adventure`, pushes the end card on `adventure_completed`, moves `MainView.log_window` to the top-left on enter and restores it on exit); `AdventureEndCardState` (grey background) |
 | `PlayerManager.vitals_manager` | `initialize_current_values(budget)`, `stamina_regen`, Stamina deducted per step, `ChangeVitalsEffectData`, HP for end conditions and the end card |
 | Combat (`AdventureCombat`) | `initialize_combat(choice, action)`, `start()`, `stop()`, `trigger_combat_end(is_successful, gold)` ([COMBAT.md](../combat/COMBAT.md)) |
@@ -540,7 +543,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 | `scenes/ui/main_view/states/adventure_view_state.gd`, `adventure_end_card_state.gd` | View states |
 | `singletons/action_manager/action_manager.gd` | Adventure start/stop routing |
 | `scenes/zones/zone_transition/zone_transition.gd` | Madra drain and camera zoom before start |
-| `scenes/zones/zone_action_button/presenters/adventure_presenter.gd` | Madra badge and affordability gate |
+| `scenes/zones/zone_action_button/presenters/adventure_presenter.gd` | The adventure card's Madra line, rod, ready state and affordability gate |
 | `scripts/resource_definitions/adventure/adventure_data.gd` | `AdventureData` + `validate()` |
 | `scripts/resource_definitions/adventure/encounter_quota.gd` | `EncounterQuota` |
 | `scripts/resource_definitions/adventure/encounters/adventure_encounter.gd`, `no_op_encounter.gd` | Encounter base (+ enums, `is_eligible()`) and NoOp |

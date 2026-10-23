@@ -1,6 +1,6 @@
 # Cycling System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -220,10 +220,10 @@ Path perks are authored and priced in [PATH_PROGRESSION.md](../progression/PATH_
 
 | System | Connection |
 |--------|------------|
-| `ActionManager` | Selecting a `CYCLING` zone action stops the current action and emits `start_cycling`. `stop_action()` emits `stop_cycling`, increments zone progression for the action and runs its `success_effects` (none authored) |
+| `ActionManager` | Selecting a `CYCLING` zone action stops the current action and emits `start_cycling`. `stop_action()` emits `stop_cycling`, increments zone progression for the action, runs its `success_effects` (none authored), and resumes the zone's idle action ("Resumed <name>") |
 | `MainView` / `CyclingViewState` | Push/pop modal state. `handle_input()` maps `close_cycling_view` (Esc) to `ActionManager.stop_action()` |
 | `ResourceManager` | `add_madra()` per particle. `madra_changed` refreshes the panel |
-| `CultivationManager` | `add_core_density_xp()` per scored zone. The panel reads level, XP, the XP needed and the stage name. Madra cap via `_get_current_stage_resource()` |
+| `CultivationManager` | `add_core_density_xp()` per scored zone. The panel reads level, XP, the XP needed and the stage name. Madra cap via `get_max_madra()` |
 | `CyclingManager` | Unlocked/equipped state. Queried by `CyclingView` |
 | `PathManager` | `purchase_node()` → `CyclingManager.unlock_technique()` |
 | `PersistenceManager` | Technique IDs, Madra and Core Density persist in `SaveGameData` |
@@ -277,7 +277,7 @@ Every zone sits on its technique's curve, and the ball passes Smooth Flow's zone
 | `scenes/cycling/cycling_tab_panel/cycling_tab_panel.gd` | Resources/Techniques `TabContainer` and slot list |
 | `scenes/cycling/cycling_technique_slot/cycling_technique_slot.gd` / `.tscn` | Technique list entry |
 | `scenes/cycling/cycling_resource_panel/cycling_resource_panel.gd` / `.tscn` | Madra, Core Density and technique summary |
-| `scenes/cycling/cycling_resource_panel/progress_shader_rect.gd` | `ProgressShaderRect`: lerps a shader `progress` uniform (also used by `ZoneResourcePanel`) |
+| `scenes/cycling/cycling_resource_panel/progress_shader_rect.gd` | `ProgressShaderRect`: lerps a shader `progress` uniform (only the cycling panel uses it since the zone view's cabinet switched to texture strips) |
 | `scenes/ui/main_view/states/cycling_view_state.gd` | Modal state: show/hide, Esc handling |
 | `singletons/cycling_manager/cycling_manager.gd` | Unlocked/equipped technique state and catalog |
 | `scripts/resource_definitions/cycling/cycling_technique/*.gd` | `CyclingTechniqueData`, `CyclingZoneData`, `CyclingTechniqueList` |
@@ -305,7 +305,7 @@ Every zone sits on its technique's curve, and the ball passes Smooth Flow's zone
 - `[HIGH]` `CyclingActionData` modifiers (`madra_multiplier`, `cycle_duration_modifier`, `xp_multiplier`, `madra_cost_per_cycle`) are never applied. The action data is also dropped: `CyclingViewState._on_start_cycling()` ignores it and `CyclingView.initialize_cycling_action_data()` is never called. Every cycling action behaves identically.
 - `[MEDIUM]` `CyclingZoneData.timing_window_ratio` is never read. `CyclingZone.setup()` hardcodes the radius to 20 (the `.tscn` says 26), so zone difficulty cannot vary. When this is wired up, make the zone's `CircleShape2D` local to scene: the sub-resource in `cycling_zone.tscn` is shared by every instance and `setup()` mutates it.
 - `[MEDIUM]` No combo or streak reward for consecutive PERFECT/GOOD clicks.
-- `[MEDIUM]` No "new technique" signal to the player. `CyclingManager.has_unequipped_unlocks()` has no caller (only the Abilities menu button is badged), and an unlock from the Path Tree shows no notification.
+- `[MEDIUM]` No "new technique" signal to the player. `CyclingManager.has_unequipped_unlocks()` has no caller (only the dock's Abilities button gets a notification ring), and an unlock from the Path Tree shows no notification.
 - `[LOW]` No penalty for mis-timed clicks. Clicks while the ball is not over a zone are ignored, so spam-clicking a zone guarantees at least OK.
 - `[LOW]` Auto Cycle is free from the start and only chains cycles. The GDD frames auto-cycling as a Copper Scripting reward, and there is no idle or offline cycling.
 
@@ -329,7 +329,7 @@ Every zone sits on its technique's curve, and the ball passes Smooth Flow's zone
 - `[LOW]` `cycling_technique_slot.tscn` points its script at the deleted `scenes/cycling/cycling_technique_selector/cycling_technique_slot.gd`. It still loads because the UID (`uid://behnplj43lkoe`) resolves.
 - `[LOW]` `cycling_view.tscn` embeds the outline as a `CompressedTexture2D` with `load_path` into `.godot/imported/…ctex` instead of an `ext_resource` to `cycling_technique_outline.png` (`uid://b0ulqvd4yyp07`).
 - `[LOW]` `cycling_technique.tscn` defaults `technique_data_input` to `torrential_flow.tres`. That value is always overridden, so the default is misleading.
-- `[LOW]` Private access across classes. `DevPanel` reads `CyclingManager._technique_catalog`, and `CyclingResourcePanel` calls `CultivationManager._get_current_stage_resource()`.
+- `[LOW]` Private access across classes. `DevPanel` reads `CyclingManager._technique_catalog`.
 - `[LOW]` Coding-standard gaps in `cycling_technique.gd`:
   - untyped constants and locals;
   - `is_mouse_in_madra_ball()` uses `get_node("CollisionShape2D")` and `_handle_zone_click()` uses `zone.get_child(0).shape.radius` instead of `%` references;

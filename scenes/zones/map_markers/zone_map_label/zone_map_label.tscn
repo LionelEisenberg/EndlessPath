@@ -1,0 +1,135 @@
+[gd_scene format=3 uid="uid://bmfdcviqsgd5i"]
+
+[ext_resource type="Script" uid="uid://c7nn3x0kqoslj" path="res://scenes/zones/map_markers/zone_map_label/zone_map_label.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://12lyp20npbh1" path="res://assets/ui/lacquer/lacquer_plate_current_ai.png" id="3_current"]
+[ext_resource type="Texture2D" uid="uid://coludlfphd82f" path="res://assets/ui/lacquer/lacquer_plate_current_hover_ai.png" id="4_current_hover"]
+[ext_resource type="Texture2D" uid="uid://c5srm3t5lfr6u" path="res://assets/ui/lacquer/lacquer_plate_open_ai.png" id="5_open"]
+[ext_resource type="Texture2D" uid="uid://bargg1lia4m1w" path="res://assets/ui/lacquer/lacquer_plate_open_hover_ai.png" id="6_open_hover"]
+[ext_resource type="Texture2D" uid="uid://6bhvo7apnv7l" path="res://assets/ui/lacquer/lacquer_plate_locked_ai.png" id="7_locked"]
+[ext_resource type="Texture2D" uid="uid://dbedn51xr7t5j" path="res://assets/ui/lacquer/lacquer_plate_locked_hover_ai.png" id="8_locked_hover"]
+[ext_resource type="Texture2D" uid="uid://13le5oe06x3d" path="res://assets/ui/lacquer/lacquer_plate_uncharted_ai.png" id="9_uncharted"]
+[ext_resource type="Texture2D" uid="uid://5jgo8ew5s1fw" path="res://assets/ui/lacquer/lacquer_plate_uncharted_hover_ai.png" id="10_uncharted_hover"]
+[ext_resource type="Texture2D" uid="uid://bunmjp88jq5f0" path="res://assets/ui/lacquer/lacquer_mini_well_ai.png" id="11_mini_well"]
+[ext_resource type="Texture2D" uid="uid://b8nx3e2h16v0c" path="res://assets/ui/lacquer/lacquer_mini_forage_ai.png" id="12_mini_forage"]
+[ext_resource type="Texture2D" uid="uid://dpk2a4saepmy6" path="res://assets/ui/lacquer/lacquer_mini_swords_ai.png" id="13_mini_swords"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="14_frame"]
+
+[node name="ZoneMapLabel" type="Control" unique_id=1618011952]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 248.0
+offset_bottom = 52.0
+mouse_default_cursor_shape = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+current_texture = ExtResource("3_current")
+current_hover_texture = ExtResource("4_current_hover")
+open_texture = ExtResource("5_open")
+open_hover_texture = ExtResource("6_open_hover")
+locked_texture = ExtResource("7_locked")
+locked_hover_texture = ExtResource("8_locked_hover")
+uncharted_texture = ExtResource("9_uncharted")
+uncharted_hover_texture = ExtResource("10_uncharted_hover")
+training_icon = ExtResource("11_mini_well")
+forage_icon = ExtResource("12_mini_forage")
+blocker_icon = ExtResource("13_mini_swords")
+
+[node name="PlateTexture" type="NinePatchRect" parent="." unique_id=1051036854]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 2.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_current")
+patch_margin_left = 8
+patch_margin_right = 12
+axis_stretch_horizontal = 1
+
+[node name="PinnedFrame" parent="." unique_id=692260990 instance=ExtResource("14_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="NameLabel" type="Label" parent="." unique_id=494962535]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = 24.0
+grow_horizontal = 2
+theme_type_variation = &"LabelLacquerPlateName"
+text = "Spirit Valley"
+horizontal_alignment = 1
+text_overrun_behavior = 3
+
+[node name="LineArea" type="Control" parent="." unique_id=2080486224]
+unique_name_in_owner = true
+clip_contents = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 10.0
+offset_top = 26.0
+offset_right = -10.0
+offset_bottom = 44.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="LineRow" type="HBoxContainer" parent="LineArea" unique_id=1216225567]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="IconMargin" type="MarginContainer" parent="LineArea/LineRow" unique_id=18363711]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 0
+
+[node name="LineIcon" type="TextureRect" parent="LineArea/LineRow/IconMargin" unique_id=209758885]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("11_mini_well")
+
+[node name="LineName" type="Label" parent="LineArea/LineRow" unique_id=969246376]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerPlateLine"
+text = "Aura Well"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="LineRate" type="RichTextLabel" parent="LineArea/LineRow" unique_id=696295032]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+theme_override_font_sizes/normal_font_size = 14
+bbcode_enabled = true
+text = " · +1.5 Madra / s"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0

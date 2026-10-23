@@ -243,7 +243,7 @@ func _fade_in_combat_view() -> void:
 # PRIVATE METHODS - Resource Management
 #-----------------------------------------------------------------------------
 
-## Initialize resource values. Madra already spent by drain animation in ZoneResourcePanel.
+## Initialize resource values. Madra already spent by the drain animation in ZoneTransition.
 func _initialize_combat_resources(madra_budget: float) -> void:
 	PlayerManager.vitals_manager.initialize_current_values(madra_budget)
 	player_hud.setup_vitals(PlayerManager.vitals_manager)

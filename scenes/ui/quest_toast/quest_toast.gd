@@ -2,7 +2,7 @@ class_name QuestToast
 extends PanelContainer
 ## Single-line toast popup for quest updates. Anchored top-center. Plays a
 ## fade+slide animation on each message. Queues messages when busy so multiple
-## rapid updates don't clobber each other. Independent of QuestWindow state.
+## rapid updates don't clobber each other. Independent of the Goals board.
 ##
 ## Preview: set `preview_message` to any string and launch this scene (F6) to
 ## see the animation play once. Preview mode skips QuestManager signal wiring.

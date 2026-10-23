@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ZoneData" format=3 uid="uid://c0fb4finjflbl"]
+
+[ext_resource type="Script" uid="uid://culb0p88pnexb" path="res://scripts/resource_definitions/zones/zone_data/zone_data.gd" id="1_zone"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_cond"]
+[ext_resource type="Resource" uid="uid://dfoabx3u562q6" path="res://resources/zones/dev/dev_never_unlocked_condition.tres" id="3_never"]
+
+[resource]
+script = ExtResource("1_zone")
+zone_name = "Advancement Zone"
+zone_id = "AdvancementZoneDemo"
+description = "Dev demo zone for the map's locked state. Shown only by the dev panel's demo zones toggle; never in zone_data_list.tres."
+zone_unlock_conditions = Array[ExtResource("2_cond")]([ExtResource("3_never")])
+tilemap_location = Vector2i(0, -1)
+tile_variant_index = 20
+blocker_short_text = "Tribulation Guardian"
+requirement_text = "Defeat the Tribulation Guardian in The Shallow Woods"
+requirement_action_id = "shallow_woods_adventure_action"
+metadata/_custom_type_script = "uid://culb0p88pnexb"

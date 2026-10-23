@@ -5,6 +5,7 @@
 [ext_resource type="Resource" uid="uid://bunlock_mrch_discov" path="res://resources/unlocks/merchant_discovered.tres" id="3_discov"]
 [ext_resource type="Resource" path="res://resources/merchants/spirit_valley_merchant_stock.tres" id="4_stock"]
 [ext_resource type="Theme" path="res://assets/themes/merchant/spirit_valley_merchant_theme.tres" id="5_theme"]
+[ext_resource type="Texture2D" uid="uid://d3gqxk8vy7oce" path="res://assets/ui/lacquer/icons/ic_merchant_ai.png" id="20_icon"]
 
 [resource]
 script = ExtResource("1_action")
@@ -15,6 +16,7 @@ action_id = "spirit_valley_merchant"
 action_name = "Traveling Merchant"
 action_type = 3
 description = "The refugee-camp merchant has set up a small stall in the valley."
+icon = ExtResource("20_icon")
 unlock_conditions = Array[ExtResource("2_cond")]([ExtResource("3_discov")])
 max_completions = 0
 metadata/_custom_type_script = "uid://dwbaolqbq70v5"

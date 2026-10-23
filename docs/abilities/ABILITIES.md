@@ -17,8 +17,8 @@ Enemy abilities use the same `AbilityData` class but are referenced directly by 
 ## Player Experience
 
 1. A new save starts with Basic Strike (slot 1, Q) and Enforce (slot 2, W) unlocked and equipped; slots 3 and 4 are empty but usable.
-2. Buying Pure Core Awakening on the Pure Madra path tree unlocks Empty Palm; buying the Power Font node unlocks Power Font. Unlocks are never auto-equipped. While any unlocked ability is not in a slot, the ABILITIES button in the system menu shows a badge.
-3. On the zone view the player presses A (or clicks ABILITIES). A grey backdrop fades in while the jade Abilities book opens (one of the four menu books, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)).
+2. Buying Pure Core Awakening on the Pure Madra path tree unlocks Empty Palm; buying the Power Font node unlocks Power Font. Unlocks are never auto-equipped. While any unlocked ability is not in a slot, the Abilities button on the zone view's dock shows the brass notification ring (no count).
+3. On the zone view the player presses A (or clicks Abilities on the dock). A grey backdrop fades in while the jade Abilities book opens (one of the four menu books, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)).
 4. **Left page:** the "Abilities" title ribbon, the inventory's arrows-and-dots filter selector (All / Offensive / Buff / Equipped), and a scrolling list of unlocked abilities on row bars (icon, name, a cost line such as "10 Madra · 15 s · 1 s cast", and the slot's key chip when equipped). The list is in loadout order: the equipped abilities in Q, W, E, R order, then the rest by name. There is no sort selector.
 5. **Right page:** a "Loadout" plaque over a card with the 4 slots (96 px, the ability icon at 72 px, key chips Q/W/E/R) and "n / 4 equipped", then a details card for the ability pointed at. Every ability gets the same layout, so pointing around never moves anything:
    - **Header:** icon, name, Madra-type and source badges ("Pure · Path"), targeting plus any extras ("Targeted · Strips buffs"; "Interrupts", "Heals you", "Buffs you", "Debuffs"), and at the right a type icon for what it mainly does: crossed swords for damage, a heart for healing, a gold up arrow for a buff, a purple down arrow for a debuff.
@@ -154,7 +154,7 @@ Target shape, shown as a card tag:
 | `swap_slots(a, b)` | Swaps two slots (empty allowed), emits; silently ignores out-of-range indices |
 | `is_ability_unlocked(id)` / `is_ability_equipped(id)` | Membership checks |
 | `get_max_slots()` / `get_filled_slot_count()` | 4 / non-empty slot count |
-| `has_unequipped_unlocks()` | Any unlocked id not in a slot; drives the system-menu badge |
+| `has_unequipped_unlocks()` | Any unlocked id not in a slot; drives the dock's Abilities notification ring |
 
 Signals: `ability_unlocked(ability: AbilityData)`, `equipped_abilities_changed()`.
 
@@ -168,7 +168,7 @@ PathTreeView purchase → PathManager.purchase_node(node_id)
   │     └─ _apply_effect(UNLOCK_ABILITY) → PathEffectsSummary.unlocked_abilities (read-only aggregate)
   └─ for each node effect with effect_type == UNLOCK_ABILITY:
         AbilityManager.unlock_ability(effect.string_value)   # string_value is an ability_id
-            └─ ability_unlocked → SystemMenuButton._refresh_badge()
+            └─ ability_unlocked → Dock._on_ability_unlocked() → Abilities button ring
 ```
 
 `purchase_node()` makes the `AbilityManager.unlock_ability()` call itself. `_apply_effect()` only aggregates into `PathEffectsSummary` (exposed by `PathManager.get_unlocked_abilities()`) and never calls `AbilityManager`; `AbilityManager` is the source of truth for unlock state.
@@ -234,7 +234,7 @@ At fight start `AdventureCombat` sets the player's abilities to `AbilityManager.
 | `PersistenceManager` / `SaveGameData` | in / out | `unlocked_ability_ids`, `equipped_ability_ids`; `save_data_reset` re-binds |
 | `PathManager` | in | `purchase_node()` calls `unlock_ability(string_value)` for `UNLOCK_ABILITY` effects |
 | Combat (`AdventureCombat`, `AbilitiesPanel`) | out | `get_equipped_abilities()` for the player combatant; `get_ability_at_slot()` for key hints and key routing |
-| `SystemMenuButton` (ABILITIES) | out | Listens to `ability_unlocked` and `equipped_abilities_changed`; badge = `has_unequipped_unlocks()` |
+| `Dock` (Abilities `SystemMenuButton`) | out | Listens to `ability_unlocked` and `equipped_abilities_changed` (and re-reads on save reset); ring = `has_unequipped_unlocks()`, via `SystemMenuButton.set_notification()` |
 | `MainView` state machine | in | `ZoneViewState` pushes `AbilitiesViewState` on `open_abilities` (A); `AbilitiesViewState` (`BookViewState`) closes on `ui_cancel`, `open_abilities`, the book's close tab or a backdrop click via `GreyBackground.hide_with_panel()` |
 | `CharacterManager` | in | Attribute totals for the details card's damage and the combat tooltip's pills; `base_attribute_changed` clears the book's damage previews |
 
@@ -284,7 +284,7 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 | `scenes/abilities/ability_stats_display/ability_stats_display.gd` | Stat pills (combat ability tooltip) |
 | `scenes/abilities/stat_label/stat_label.gd` / `.tscn` | Single stat pill |
 | `scenes/abilities/stat_tooltip/stat_tooltip.gd` | Pill tooltip |
-| `scenes/zones/zone_resource_panel/system_menu/system_menu_button.gd` | ABILITIES menu button and badge |
+| `scenes/ui/dock/dock.gd`, `scenes/ui/dock/system_menu_button/system_menu_button.gd` | The dock's Abilities button and its notification ring |
 | `tests/unit/test_ability_manager.gd` | AbilityManager unit tests |
 
 ## Work Remaining

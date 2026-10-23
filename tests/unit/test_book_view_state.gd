@@ -84,7 +84,7 @@ func test_clicking_the_backdrop_pops_the_state() -> void:
 
 func test_clicking_the_backdrop_while_the_book_opens_keeps_it_open() -> void:
 	# The real GreyBackground starts the open; the fake leaves it to the test.
-	# A quick second click on the toolbar button lands on the backdrop here.
+	# A quick second click on the dock button lands on the backdrop here.
 	_main_view.character_view.animate_open()
 	_main_view.grey_background.clicked.emit()
 	assert_eq(_main_view.state_stack.size(), 1, "the book keeps opening")

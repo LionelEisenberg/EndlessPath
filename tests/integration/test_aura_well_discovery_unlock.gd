@@ -12,6 +12,12 @@ func before_each() -> void:
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
 
+func after_each() -> void:
+	# Discovering the Aura Well starts it (the first idle unlock auto-starts),
+	# so stop it or its tick timer runs into the next test.
+	while ActionManager.get_current_action() != null:
+		ActionManager.stop_action()
+
 func _has_aura_well_action() -> bool:
 	var actions: Array = ZoneManager.get_available_actions(ZONE_ID)
 	for a in actions:

@@ -1,0 +1,223 @@
+[gd_scene format=3 uid="uid://dqgl61edrme6l"]
+
+[ext_resource type="Script" uid="uid://b1rbasxtvyakx" path="res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://eboiu7gn1kd1" path="res://assets/ui/lacquer/lacquer_pop_locked_ai.png" id="3_locked"]
+[ext_resource type="Texture2D" uid="uid://dpy23wa4jehvh" path="res://assets/ui/lacquer/lacquer_pop_locked_preview_ai.png" id="4_locked_preview"]
+[ext_resource type="Texture2D" uid="uid://bbkstkodkrmoo" path="res://assets/ui/lacquer/lacquer_pop_uncharted_ai.png" id="5_uncharted"]
+[ext_resource type="Texture2D" uid="uid://deh8tgls2hter" path="res://assets/ui/lacquer/lacquer_pop_uncharted_preview_ai.png" id="6_uncharted_preview"]
+[ext_resource type="Texture2D" uid="uid://ojxggfpipf2d" path="res://assets/ui/lacquer/lacquer_seal_locked_ai.png" id="7_seal"]
+[ext_resource type="Texture2D" uid="uid://ytueiattwprh" path="res://assets/ui/lacquer/lacquer_mini_lock_ai.png" id="8_mini_lock"]
+[ext_resource type="Texture2D" uid="uid://l358sphy02ff" path="res://assets/ui/lacquer/lacquer_close_ai.png" id="9_close"]
+[ext_resource type="Texture2D" uid="uid://cwx6nj0fy42qx" path="res://assets/ui/lacquer/lacquer_close_hover_ai.png" id="10_close_hover"]
+[ext_resource type="Texture2D" uid="uid://ctyhkbaeeo2ir" path="res://assets/ui/lacquer/lacquer_showme_ai.png" id="11_showme"]
+[ext_resource type="Texture2D" uid="uid://mrqd1m1oighg" path="res://assets/ui/lacquer/lacquer_chev_ai.png" id="12_chev"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="13_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="14_frame_hover"]
+[ext_resource type="Texture2D" uid="uid://srwcx5rs5fk" path="res://assets/ui/lacquer/lacquer_tag_wide_ai.png" id="15_tag_wide"]
+
+[node name="ZoneMapPopover" type="Control" unique_id=45233431]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 272.0
+offset_bottom = 172.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+locked_pinned_texture = ExtResource("3_locked")
+locked_preview_texture = ExtResource("4_locked_preview")
+uncharted_pinned_texture = ExtResource("5_uncharted")
+uncharted_preview_texture = ExtResource("6_uncharted_preview")
+
+[node name="LockedCard" type="TextureRect" parent="." unique_id=1262023073]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 276.0
+offset_bottom = 176.0
+texture = ExtResource("3_locked")
+
+[node name="Seal" type="TextureRect" parent="LockedCard" unique_id=769079980]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = 104.0
+offset_bottom = 36.0
+mouse_filter = 2
+texture = ExtResource("7_seal")
+
+[node name="SealLock" type="TextureRect" parent="LockedCard" unique_id=253278710]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 17.0
+offset_right = 40.0
+offset_bottom = 33.0
+mouse_filter = 2
+texture = ExtResource("8_mini_lock")
+
+[node name="SealLabel" type="Label" parent="LockedCard" unique_id=391589843]
+layout_mode = 0
+offset_left = 42.0
+offset_top = 16.0
+offset_right = 104.0
+offset_bottom = 38.0
+theme_type_variation = &"LabelLacquerSeal"
+text = "LOCKED"
+vertical_alignment = 1
+
+[node name="LockedTitle" type="Label" parent="LockedCard" unique_id=1911800118]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 48.0
+offset_right = 248.0
+offset_bottom = 70.0
+theme_type_variation = &"LabelLacquerPopoverTitle"
+text = "Advancement Zone"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="LockedBody" type="Label" parent="LockedCard" unique_id=824016235]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 76.0
+offset_right = 248.0
+offset_bottom = 116.0
+theme_type_variation = &"LabelLacquerPopoverBody"
+text = "Defeat the Tribulation Guardian in The Shallow Woods"
+autowrap_mode = 3
+clip_text = true
+text_overrun_behavior = 3
+max_lines_visible = 2
+
+[node name="LockedClose" type="TextureButton" parent="LockedCard" unique_id=1528084601]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 220.0
+offset_top = 12.0
+offset_right = 248.0
+offset_bottom = 40.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("9_close")
+texture_hover = ExtResource("10_close_hover")
+
+[node name="ShowMeButton" type="TextureButton" parent="LockedCard" unique_id=1479488146]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 124.0
+offset_right = 120.0
+offset_bottom = 156.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("11_showme")
+ignore_texture_size = true
+stretch_mode = 2
+
+[node name="ShowMeRow" type="HBoxContainer" parent="LockedCard/ShowMeButton" unique_id=1534441058]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 2.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="ShowMeLabel" type="Label" parent="LockedCard/ShowMeButton/ShowMeRow" unique_id=1167607082]
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LabelLacquerDock"
+text = "Show me"
+
+[node name="ChevMargin" type="MarginContainer" parent="LockedCard/ShowMeButton/ShowMeRow" unique_id=386368871]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="Chev" type="TextureRect" parent="LockedCard/ShowMeButton/ShowMeRow/ChevMargin" unique_id=964299934]
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("12_chev")
+
+[node name="ShowMeHover" parent="LockedCard/ShowMeButton" unique_id=357360583 instance=ExtResource("13_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("14_frame_hover")
+
+[node name="UnchartedCard" type="TextureRect" parent="." unique_id=1065250390]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_right = 276.0
+offset_bottom = 116.0
+texture = ExtResource("5_uncharted")
+
+[node name="Tag" type="TextureRect" parent="UnchartedCard" unique_id=194322930]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 14.0
+offset_right = 112.0
+offset_bottom = 36.0
+mouse_filter = 2
+texture = ExtResource("15_tag_wide")
+
+[node name="TagLabel" type="Label" parent="UnchartedCard/Tag" unique_id=796310665]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 2.0
+offset_bottom = 2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"LabelLacquerTag"
+text = "UNKNOWN"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="UnchartedTitle" type="Label" parent="UnchartedCard" unique_id=364844540]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 24.0
+offset_top = 48.0
+offset_right = 248.0
+offset_bottom = 70.0
+theme_type_variation = &"LabelLacquerPopoverTitle"
+text = "Uncharted"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="UnchartedBody" type="Label" parent="UnchartedCard" unique_id=1885561708]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 24.0
+offset_top = 76.0
+offset_right = 248.0
+offset_bottom = 116.0
+theme_type_variation = &"LabelLacquerPopoverBody"
+text = "Revealed after the Tribulation."
+autowrap_mode = 3
+clip_text = true
+text_overrun_behavior = 3
+max_lines_visible = 2
+
+[node name="UnchartedClose" type="TextureButton" parent="UnchartedCard" unique_id=1751856077]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 228.0
+offset_top = 12.0
+offset_right = 256.0
+offset_bottom = 40.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("9_close")
+texture_hover = ExtResource("10_close_hover")

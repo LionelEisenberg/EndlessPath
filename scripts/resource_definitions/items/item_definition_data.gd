@@ -12,9 +12,16 @@ enum ItemType {
 @export var item_name: String = ""
 @export var description: String = ""
 @export var icon: Texture2D
+## A 16 px icon for inline use in the zone view (activity card detail lines,
+## the Now strip). An item without one shows its icon there.
+@export var mini_icon: Texture2D
 @export var item_type: ItemType = ItemType.MATERIAL
 @export var stack_size: int = 99  # Max stack size
 @export var base_value: float = 0.0  # Base gold value
+
+## The item's inline 16 px icon: mini_icon, or icon when it has none.
+func get_mini_icon() -> Texture2D:
+	return mini_icon if mini_icon != null else icon
 
 func _to_string() -> String:
 	return "ItemDefinitionData(item_id: %s, item_name: %s, description: %s, icon: %s, item_type: %s, stack_size: %s, base_value: %s)" % [

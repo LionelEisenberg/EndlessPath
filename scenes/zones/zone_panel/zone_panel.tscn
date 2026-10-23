@@ -1,0 +1,218 @@
+[gd_scene format=3 uid="uid://cpys1vqwfilbb"]
+
+[ext_resource type="Script" uid="uid://kwj34peteluc" path="res://scenes/zones/zone_panel/zone_panel.gd" id="1_panel"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://b0oxilq4a2deb" path="res://assets/ui/lacquer/lacquer_chest_top_ai.png" id="3_chest_top"]
+[ext_resource type="Texture2D" uid="uid://dt7a831tjgn74" path="res://assets/ui/lacquer/lacquer_chest_mid_ai.png" id="4_chest_mid"]
+[ext_resource type="Texture2D" uid="uid://cyjxlicpjfjkk" path="res://assets/ui/lacquer/lacquer_chest_bot_ai.png" id="5_chest_bot"]
+[ext_resource type="Texture2D" uid="uid://bvh3i4rdcvmdc" path="res://assets/ui/lacquer/lacquer_thumb_ai.png" id="6_thumb"]
+[ext_resource type="Texture2D" uid="uid://b3k8fa8wbun8t" path="res://assets/ui/lacquer/lacquer_about_ai.png" id="7_about"]
+[ext_resource type="Texture2D" uid="uid://bol0dgd52c2ql" path="res://assets/ui/lacquer/lacquer_about_open_ai.png" id="8_about_open"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="9_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="10_frame_hover"]
+[ext_resource type="PackedScene" uid="uid://ch3ooi8dsnmux" path="res://scenes/zones/zone_panel/now_strip/now_strip.tscn" id="11_strip"]
+[ext_resource type="Texture2D" uid="uid://crbpnry223q5u" path="res://assets/ui/lacquer/lacquer_groove_ai.png" id="12_groove"]
+[ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="13_groove_end"]
+[ext_resource type="PackedScene" uid="uid://fwisr8gt3pur" path="res://scenes/zones/zone_panel/activity_list/activity_list.tscn" id="14_list"]
+[ext_resource type="Texture2D" uid="uid://dt1lk5srus118" path="res://assets/ui/lacquer/lacquer_lore_ai.png" id="15_lore"]
+
+[node name="ZonePanel" type="Control" unique_id=478649513]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 1456.0
+offset_top = 24.0
+offset_right = 1896.0
+offset_bottom = 356.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_panel")
+
+[node name="Chest" type="Control" parent="." unique_id=520020737]
+layout_mode = 0
+offset_right = 444.0
+offset_bottom = 336.0
+mouse_filter = 2
+
+[node name="ChestTop" type="TextureRect" parent="Chest" unique_id=2052087803]
+layout_mode = 0
+offset_right = 444.0
+offset_bottom = 128.0
+mouse_filter = 2
+texture = ExtResource("3_chest_top")
+
+[node name="ChestMid" type="TextureRect" parent="Chest" unique_id=298129052]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 128.0
+offset_right = 444.0
+offset_bottom = 284.0
+mouse_filter = 2
+texture = ExtResource("4_chest_mid")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="ChestBottom" type="TextureRect" parent="Chest" unique_id=177114300]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 284.0
+offset_right = 444.0
+offset_bottom = 336.0
+mouse_filter = 2
+texture = ExtResource("5_chest_bot")
+
+[node name="Thumb" type="TextureRect" parent="." unique_id=237679403]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = 62.0
+offset_bottom = 66.0
+mouse_filter = 2
+texture = ExtResource("6_thumb")
+
+[node name="ZoneNameLabel" type="Label" parent="." unique_id=531866436]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 74.0
+offset_top = 15.0
+offset_right = 328.0
+offset_bottom = 60.0
+theme_type_variation = &"LabelLacquerZoneName"
+text = "Spirit Valley"
+text_overrun_behavior = 3
+
+[node name="AboutButton" type="TextureButton" parent="." unique_id=1739975879]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 336.0
+offset_top = 22.0
+offset_right = 424.0
+offset_bottom = 58.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+toggle_mode = true
+texture_normal = ExtResource("7_about")
+texture_pressed = ExtResource("8_about_open")
+ignore_texture_size = true
+stretch_mode = 2
+
+[node name="AboutLabel" type="Label" parent="AboutButton" unique_id=343224831]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1.0
+offset_right = 89.0
+offset_bottom = 36.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+text = "About"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AboutHover" parent="AboutButton" unique_id=1222207850 instance=ExtResource("9_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("10_frame_hover")
+
+[node name="NowStrip" parent="." unique_id=1512782913 instance=ExtResource("11_strip")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 82.0
+offset_right = 424.0
+offset_bottom = 170.0
+
+[node name="ActivitiesHeader" type="HBoxContainer" parent="." unique_id=797303341]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 177.0
+offset_right = 425.0
+offset_bottom = 207.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="ActivitiesLabel" type="Label" parent="ActivitiesHeader" unique_id=838217074]
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerSection"
+text = "Activities"
+
+[node name="GrooveMargin" type="MarginContainer" parent="ActivitiesHeader" unique_id=264818110]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 13
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 0
+
+[node name="GrooveRow" type="HBoxContainer" parent="ActivitiesHeader/GrooveMargin" unique_id=737243866]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Groove" type="TextureRect" parent="ActivitiesHeader/GrooveMargin/GrooveRow" unique_id=1301525753]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("12_groove")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="GrooveEnd" type="TextureRect" parent="ActivitiesHeader/GrooveMargin/GrooveRow" unique_id=1694796323]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("13_groove_end")
+
+[node name="CountMargin" type="MarginContainer" parent="ActivitiesHeader" unique_id=1047469226]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="CountLabel" type="Label" parent="ActivitiesHeader/CountMargin" unique_id=1040916315]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "1 here"
+
+[node name="ActivityList" parent="." unique_id=593821855 instance=ExtResource("14_list")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 12.0
+offset_top = 208.0
+offset_right = 424.0
+offset_bottom = 308.0
+
+[node name="LorePanel" type="Control" parent="." unique_id=187218867]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 182.0
+offset_right = 424.0
+offset_bottom = 446.0
+
+[node name="LoreBoard" type="TextureRect" parent="LorePanel" unique_id=1732561138]
+layout_mode = 0
+offset_right = 412.0
+offset_bottom = 268.0
+mouse_filter = 2
+texture = ExtResource("15_lore")
+
+[node name="LoreText" type="Label" parent="LorePanel" unique_id=1596558255]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 22.0
+offset_top = 20.0
+offset_right = 388.0
+offset_bottom = 248.0
+theme_type_variation = &"LabelLacquerLore"
+theme_override_constants/paragraph_spacing = 10
+autowrap_mode = 3

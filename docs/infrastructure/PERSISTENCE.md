@@ -11,8 +11,9 @@ Last updated: 2026-10-22
 | Situation | Result |
 |-----------|--------|
 | `reset_save_data` set to `true` in the script | The save is wiped on every boot. It was `true` from 2026-05-23 (`a0bc58d`) to 2026-05-28, and the flag has changed 7 times since it was added in Nov 2025 |
-| `SaveGameData.verify()` fails (an unknown `current_selected_zone_id`) | The whole save is reset and overwritten, with `Log.critical` |
-| `save.tres` exists but `ResourceLoader.load()` returns null | It is replaced by a fresh `SaveGameData` and overwritten (`Log.warn`). No backup is kept |
+| `SaveGameData.verify()` fails (an unknown `current_selected_zone_id`) | The file is first copied to `save.invalid.<unix time>.tres`, then the whole save is reset and overwritten, with `Log.critical`. `migrate()` runs first, so an id listed in `ZONE_ID_MIGRATIONS` (Test Zone) moves instead |
+| `save.tres` exists but does not load as a `SaveGameData` | The file is copied to `save.unreadable.<unix time>.tres` and left untouched. The session runs on a default save in memory, and `save_data()` refuses to write (`ERR_LOCKED`) until the game restarts. `Log.critical` names the copy |
+| `ZoneManager` failed to load, so `verify()` cannot run | The loaded save is kept in memory but not checked, and saving is off for the session (`Log.critical`). Nothing is reset |
 | The save predates the 2026-05-23/24 schema changes | Incompatible, with no migration. See [Versioning](#versioning) |
 | The game quits less than 5 s after a change | That change is lost, because nothing saves on quit |
 
@@ -21,6 +22,7 @@ Last updated: 2026-10-22
 - There is no save/load UI, no save slots, and no "New Game" option. Progress saves silently every 5 seconds and is restored on launch.
 - Quitting mid-adventure loses the adventure: the map, position, vitals and timer. The Madra drained to start it, and any gold or loot already awarded, stay as they were at the last 5 s tick.
 - To start over, a developer sets `reset_save_data = true` for one launch, or deletes `save.tres`.
+- After pulling or merging new art, run `--headless --import` before running the game or the tests. Without it, an item `.tres` the save names can fail to load its new texture, which makes the whole save unreadable. PersistenceManager then keeps the file and turns saving off, so the run shows a fresh game, but nothing is lost: re-import and launch again.
 
 ## Architecture
 
@@ -58,12 +60,16 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `SAVE_PATH` | `const String` | `"user://save.tres"` |
 | `reset_save_data` | `@export bool` | `false`. When `true`, `_ready()` calls `load_new_save_data()` on every boot. The autoload is a bare script, not a scene, so this can only be changed by editing the script default |
 | `save_game_data` | `SaveGameData` | The live save shared by all managers |
+| `save_path` | `String` | `SAVE_PATH`. Where the manager reads and writes. Only tests point it elsewhere |
+| `_save_blocked` | `bool` | Set when the save could not be read or checked this session. `save_data()` then refuses to write |
 | `save_data_reset` | signal | Emitted by `load_new_save_data()` after a reset |
 
 | Function | Behaviour |
 |----------|-----------|
-| `load_data()` | If the file is missing, it creates `SaveGameData.new()`, saves it, and logs info. It then calls `ResourceLoader.load(SAVE_PATH)`. If that returns null, it creates `SaveGameData.new()`, saves it over the file, and calls `Log.warn` |
-| `save_data() -> Error` | `ResourceSaver.save(save_game_data, SAVE_PATH)` |
+| `boot()` | Called by `_ready()`: `load_data()`, `migrate()`, the `reset_save_data` reset, then `verify()` (see [Boot and load](#boot-and-load)). It stops after `load_data()` when the save could not be read |
+| `load_data()` | If the file is missing, it creates `SaveGameData.new()`, saves it, and logs info. It then calls `ResourceLoader.load(save_path)`. If that does not return a `SaveGameData`, it copies the file aside as `<name>.unreadable.<unix time>.tres`, blocks saving for the session, and runs on `SaveGameData.new()` in memory (`Log.critical`) |
+| `save_data() -> Error` | `ResourceSaver.save(save_game_data, save_path)`, or `ERR_LOCKED` without writing while saving is blocked |
+| `is_save_blocked() -> bool` | True when the save on disk could not be read or checked this session |
 | `load_new_save_data()` | Calls `save_game_data.reset()` (in place, so all references stay valid), then `save_data()` (`Log.critical` on error), then emits `save_data_reset` |
 
 ### SaveGameData fields and owners
@@ -84,6 +90,8 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `quest_progression` | `QuestProgressionData` | `new()` | QuestManager | [QUESTS.md](../progression/QUESTS.md) |
 | `current_selected_zone_id` | `String` | `""` | ZoneManager | [ZONES.md](../zones/ZONES.md) |
 | `zone_progression_data` | `Dictionary[String, ZoneProgressionData]` | `{}` | ZoneManager (through the `SaveGameData` helpers) | [ZONES.md](../zones/ZONES.md) |
+| `seen_action_ids` | `Array[String]` | `[]` | ZoneManager (`mark_action_seen()`); an available action not in it shows NEW | [ZONES.md](../zones/ZONES.md) |
+| `seen_actions_initialized` | `bool` | `false` | ZoneManager: set once its first-init pass has marked every action available at that moment as seen | [ZONES.md](../zones/ZONES.md) |
 | `unlocked_cycling_technique_ids` | `Array[String]` | `["foundation_technique"]` | CyclingManager | [CYCLING.md](../cycling/CYCLING.md) |
 | `equipped_cycling_technique_id` | `String` | `"foundation_technique"` | CyclingManager | [CYCLING.md](../cycling/CYCLING.md) |
 | `unlocked_ability_ids` | `Array[String]` | `["basic_strike", "enforce"]` | AbilityManager | [ABILITIES.md](../abilities/ABILITIES.md) |
@@ -102,6 +110,7 @@ Apart from tests, each field is read and written only by its owning singleton. `
 | `get_zone_progression_data(zone_id) -> ZoneProgressionData` | Returns the zone's entry, creating and storing one on first access |
 | `get_merchant_ledger(merchant_id) -> MerchantLedgerData` | Returns the merchant's ledger, creating and storing an empty one on first access |
 | `increment_zone_progression_for_action(action_id, zone_id, quantity) -> int` | Adds `quantity` to `action_completion_count[action_id]` (creating the zone entry if needed) and returns the new total |
+| `migrate()` | Moves `current_selected_zone_id` through `ZONE_ID_MIGRATIONS` (`{"TestZone": "SpiritValley"}`), so a save standing in the now hidden Test Zone moves to Spirit Valley. Runs after loading and before `verify()` |
 | `verify() -> bool` | Returns `_verify_current_selected_zone_id()`: true if the id is `""` or `ZoneManager.has_zone(id)`. This is the only validation performed |
 | `reset()` | Sets every field back to its default. The defaults are written out a second time here |
 | `_to_string()` | Multi-line debug summary |
@@ -117,7 +126,7 @@ Each of these is embedded in `save.tres` as a `sub_resource`.
 | `UnlockProgressionData` | `singletons/persistence_manager/unlock_progression_data.gd` | `unlocked_condition_ids: Array[String]` | UnlockManager |
 | `EventProgressionData` | `singletons/persistence_manager/event_progression_data.gd` | `triggered_events: Array[String]` | EventManager |
 | `QuestProgressionData` | `singletons/persistence_manager/quest_progression_data.gd` | `active_quests: Dictionary[String, int]` (quest_id → 0-based step index); `completed_quest_ids: Array[String]` | QuestManager |
-| `ZoneProgressionData` | `singletons/persistence_manager/zone_progression_data.gd` | `zone_id: String`; `action_completion_count: Dictionary[String, int]`; `forage_active: bool`; `forage_start_time: float`; `training_tick_progress: Dictionary[String, int]` | ZoneManager |
+| `ZoneProgressionData` | `singletons/persistence_manager/zone_progression_data.gd` | `zone_id: String`; `action_completion_count: Dictionary[String, int]`; `forage_active: bool`; `forage_start_time: float`; `training_tick_progress: Dictionary[String, int]`; `last_idle_action_id: String` (the idle action the zone resumes) | ZoneManager |
 | `MerchantLedgerData` | `singletons/persistence_manager/merchant_ledger_data.gd` | `merchant_id: String`; `purchase_counts: Dictionary[String, int]` (`MerchantStockEntry.entry_id` → copies bought); `get_count()`, `add_purchase()` | MerchantManager |
 
 Item definitions are not copied into the save. The keys of the `InventoryData` dictionaries and `ItemInstanceData.item_definition` are saved as `ext_resource` references to the item `.tres` files under `res://resources/items/`. `ItemInstanceData` itself (`item_definition`, `quantity`, `instance_id`, `metadata`) is embedded.
@@ -131,10 +140,13 @@ Godot instantiates all 17 autoloads (member initializers run), then adds them
 to the tree in project.godot order, running each one's _ready():
 
  1. PersistenceManager._ready()
-      load_data()                        missing → create + save; null load → replace + save
-      if reset_save_data:  load_new_save_data()
-      if not save_game_data.verify():
-          Log.critical("...invalid. Resetting to default.");  load_new_save_data()
+      boot()
+        load_data()                      missing → create + save; unreadable → copy aside, block saving, stop
+        save_game_data.migrate()         listed zone ids move before verify() (Test Zone → Spirit Valley)
+        if reset_save_data:  load_new_save_data()
+        if ZoneManager did not load:     block saving, stop (the save cannot be checked)
+        if not save_game_data.verify():
+            copy the file aside;  Log.critical("...invalid. Resetting to default.");  load_new_save_data()
  2–17. CultivationManager, EventManager, CharacterManager, UnlockManager, ResourceManager,
       ZoneManager, ActionManager, InventoryManager, Dialogic, DialogueManager, PlayerManager,
       LogManager, CyclingManager, AbilityManager, PathManager, QuestManager
@@ -150,13 +162,15 @@ main_game.tscn loads → MainGame._ready() (sets Log print level) → SaveTimer 
   - `ZoneManager.get_current_zone()` sets `current_selected_zone_id` to the first zone in `zone_data_list.tres` when it is empty.
   - `PathManager._restore_current_path()` sets `current_path_id = "pure_madra"` (`DEFAULT_PATH_ID`) when it is empty.
   - `AbilityManager._ensure_equipped_array_size()` pads `equipped_ability_ids` to 4 slots.
+  - `ZoneManager._initialize_seen_actions()` marks every action available at that moment as seen and sets `seen_actions_initialized`, once per save.
+  - `ActionManager` records the zone's `last_idle_action_id` whenever an idle action starts, including the one the load's `zone_changed` resumes.
 
 ### Auto-save
 
 `SaveTimer.timeout` calls `PersistenceManager.save_data()`, which calls `ResourceSaver.save(save_game_data, "user://save.tres")`.
 
 - The interval is **5 seconds**, set as `wait_time = 5.0` with `autostart = true` on the `SaveTimer` node (`scenes/main/main_game/main_game.tscn:332-333`). `save_timer.gd` only connects `timeout`, and no code changes `wait_time`. Older docs said Godot's 1 s default applied, but the 5 s value has been set since `f6bcc53` (PR #6, 2026-04-06).
-- The whole file is written every 5 s on the main thread, straight to `save.tres` with no backup copy.
+- The whole file is written every 5 s on the main thread, straight to `save.tres` with no backup copy. While saving is blocked (an unreadable or unverifiable save at boot), each tick returns `ERR_LOCKED` and writes nothing.
 - The returned `Error` is ignored on timer saves.
 - There is no save on quit (no `NOTIFICATION_WM_CLOSE_REQUEST` handler) and no immediate save after important events.
 - `SaveTimer` exists only in `main_game.tscn`. Running another scene directly loads the save but never writes it.
@@ -185,13 +199,13 @@ Only two things trigger a reset, both during boot: `reset_save_data = true`, or 
 |-------|----------------|
 | An in-progress adventure (map, tile, visited tiles, timer) | `AdventureView` / `AdventureTilemap` nodes |
 | Player vitals (health, stamina, combat Madra) | `PlayerManager.vitals_manager`. These are re-initialized at each adventure start |
-| The current action and its timers (cycling, foraging, training ticks in flight) | `ActionManager`, `CyclingView`. Completed training ticks are saved in `training_tick_progress` |
-| Log window history, window positions, dev-panel unlock | Scene nodes and `MainGame._dev_unlocked` |
+| The current action and its timers (cycling, foraging, training ticks in flight) | `ActionManager`, `CyclingView`. Completed training ticks are saved in `training_tick_progress`, and each zone's `last_idle_action_id` is, so the load restarts that idle action (nothing accrues while the game is closed) |
+| The log history (`LogManager`, 200 lines), the dev panel's position and unlock, the dev zone toggles | `LogManager`, scene nodes, `MainGame._dev_unlocked`, `ZoneManager` |
 | Dialogic state | Not used. Nothing calls `Dialogic.Save` |
 
 ## Versioning
 
-`SaveGameData` has no version field and there is no migration code. When a schema changes:
+`SaveGameData` has no version field. The only migration code is `migrate()`, which moves listed zone ids before `verify()`. When a schema changes:
 
 - An added field loads with its declared default.
 - A field whose stored shape changes is not converted. Commit `1ce7ecd` (2026-05-23) replaced `CharacterAttributesData.attributes` (a dictionary) with 8 float fields. Its message says old saves "are incompatible and must be reset (no migration shim)", which is why `reset_save_data` was switched on that day.
@@ -227,7 +241,10 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 | `scripts/resource_definitions/character/character_attributes_data.gd` | Attribute sub-resource |
 | `scenes/main/main_game/save_timer.gd` | Auto-save timer script (node in `main_game.tscn`) |
 | `tests/unit/test_quest_progression_persistence.gd` | `QuestProgressionData` save/load round trip and `reset()` |
-| `tests/unit/test_zone_progression_data.gd` | `ZoneProgressionData.training_tick_progress` round trip |
+| `tests/unit/test_zone_progression_data.gd` | `ZoneProgressionData.training_tick_progress` and `last_idle_action_id` round trips |
+| `tests/unit/test_save_migration.gd` | `migrate()` and an old save loading the zone view's new fields with their defaults |
+| `tests/unit/test_persistence_manager.gd` | `boot()` / `load_data()` / `save_data()` on temporary paths: an unreadable save is kept, copied aside and never written; an invalid save is copied aside before its reset; an unverifiable save is not reset; `boot()` migrates the loaded save |
+| `tests/unit/test_seen_actions.gd` | `seen_action_ids` and the once-per-save first-init pass |
 | `tests/unit/test_merchant_data.gd` | `merchant_ledgers` round trip, `reset()`, and an old save without the field |
 | `tests/unit/test_inventory_manager_restore.gd` | `InventoryManager.restore_*` against the live save (in memory only) |
 
@@ -235,12 +252,12 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 
 ### Bugs
 
-- `[MEDIUM]` A failed `verify()` wipes the entire save. `PersistenceManager._ready()` calls `load_new_save_data()` when `current_selected_zone_id` names an unknown zone (for example, after a zone id is renamed). It should repair that one field to `""` instead.
-- `[MEDIUM]` An unreadable save is silently overwritten. When `ResourceLoader.load()` returns null, `load_data()` saves a fresh `SaveGameData` over `save.tres` with no backup copy and no message to the player.
+- `[MEDIUM]` A failed `verify()` wipes the entire save. `PersistenceManager._ready()` calls `load_new_save_data()` when `current_selected_zone_id` names an unknown zone (for example, after a zone id is renamed without an entry in `SaveGameData.ZONE_ID_MIGRATIONS`). It should repair that one field to `""` instead.
+- `[LOW]` An unreadable save is kept and copied aside, but the player is not told. The session silently runs on a default save with saving off; only the console and log file say why.
 
 ### Missing Functionality
 
-- `[HIGH]` No save versioning or migration. Schema changes have already broken saves twice (`1ce7ecd`, `0652b49`). This blocks giving builds to players whose saves must survive updates. Add a `save_version` field and a migration step in `load_data()`.
+- `[HIGH]` No save versioning, and no general migration. Schema changes have already broken saves twice (`1ce7ecd`, `0652b49`). This blocks giving builds to players whose saves must survive updates. `SaveGameData.migrate()` is the hook to grow: add a `save_version` field and per-version steps there (today it only moves listed zone ids).
 - `[MEDIUM]` No save on quit. Saves happen only on the 5 s timer, so add a `NOTIFICATION_WM_CLOSE_REQUEST` handler that calls `save_data()`.
 - `[MEDIUM]` No runtime reset or new-game path. A wipe needs a script edit (`reset_save_data`), which is easy to forget and ship (it was on for five days in May 2026). Add the deferred dev-panel "Save wipe / force-save / reload" actions, or a command-line flag, and keep the script default `false`.
 - `[LOW]` In-progress adventures and action timers are not saved (see [What is not saved](#what-is-not-saved)). Quitting mid-adventure forfeits the Madra drained at its start.
@@ -249,7 +266,7 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 
 ### Tech Debt
 
-- `[MEDIUM]` Missing tests. Nothing covers `PersistenceManager.load_data()`, the `verify()` reset path, or a full `SaveGameData` round trip (typed dictionaries keyed by resources in `InventoryData`, `equipped_accessories`, enum fields). Only the quest progression, `ZoneProgressionData` and merchant ledger round trips are tested.
+- `[MEDIUM]` Missing tests. `test_persistence_manager.gd` covers the boot path on temporary files, but nothing covers a full `SaveGameData` round trip (typed dictionaries keyed by resources in `InventoryData`, `equipped_accessories`, enum fields). Only the quest progression, `ZoneProgressionData` and merchant ledger round trips are tested.
 - `[LOW]` Defaults are duplicated. Each field's default is declared on its `@export` and again in `SaveGameData.reset()`, and must also be added to `_to_string()`. `reset()` could copy from `SaveGameData.new()` instead.
 - `[LOW]` `ZoneProgressionData.forage_active` and `forage_start_time` are saved but never read or written anywhere.
 - `[LOW]` `verify()` depends on autoload timing. It runs before `ZoneManager._ready()` and relies on `_all_zone_data` being a preloaded member default. Moving that load into `_ready()` would make every save with a selected zone fail validation and get wiped.

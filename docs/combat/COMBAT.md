@@ -19,7 +19,7 @@ This doc covers the combat side. How a fight is triggered from the map and how r
 5. The player clicks a slot or presses its key. Instant abilities fire immediately; abilities with a cast time fill the player's cast bar above the dock while the casting slot glows gold. The slots stay visible throughout. Only one cast runs at a time. Unaffordable abilities dim to 35% and the missing resource's cost turns red.
 6. The enemy acts on its own. Its casts show in the intent tab on its plate (icon, name, time left, and a bar that ramps from orange to red and throbs in the last 0.6 s), which is the window for Empty Palm's interrupt. An interrupted cast shows "Interrupted" with a shake. Enemy abilities with no cooldown can start casting on the first frame and repeat back to back.
 7. Hovering a slot shows a tooltip above it (icon, name, CD, cast time, costs, and a pre-defense DMG total for the first target effect) and previews the cost: a line on the Health or Madra orb at the level it would leave, a highlighted segment on the Stamina bar, red when unaffordable. Hovering a buff icon shows its name, effect, live remaining time and stacks.
-8. When an ability executes the caster lunges (self-only abilities give a gold pulse instead); the target flashes white, recoils, and a damage number pops over its head (heals in green). The orbs and the enemy Health bar trail recent losses with a pale ghost, and the Health orb's ring pulses red at 30% or below. The log window (moved to the top-left for the adventure) records damage taken, heals, interrupts and buff strips.
+8. When an ability executes the caster lunges (self-only abilities give a gold pulse instead); the target flashes white, recoils, and a damage number pops over its head (heals in green). The orbs and the enemy Health bar trail recent losses with a pale ghost, and the Health orb's ring pulses red at 30% or below. The log board (moved to the top-left for the adventure; L opens the full log) records damage taken, heals, interrupts and buff strips.
 9. When the enemy reaches 0 Health the player wins gold and returns to the map; beating the boss ends the adventure as a victory. When the player reaches 0 Health the adventure ends in defeat. Either way the end card shows when the adventure ends.
 10. Health, Madra and Stamina carry over to the next fight in the same adventure. Buffs and cooldowns do not.
 
@@ -457,7 +457,7 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 - `[LOW]` The ability tooltip only shows the raw total of the first target effect; heals (Coalesce), interrupts, strips and descriptions are not shown.
 - `[LOW]` The enemy plate does not mark elites or bosses; the encounter type never reaches `AdventureCombat` (elites are only drawn larger).
 - `[LOW]` The quest window, when expanded, overlaps the top of an elite's plate.
-- `[LOW]` The combat backdrop is the shared zone background plus Atmosphere values hardcoded in `_setup_atmosphere()`; there is no per-zone backdrop.
+- `[LOW]` The combat backdrop is the Spirit Valley parallax background (`ZoneViewBackground`, which only the adventure view uses since the lacquer zone view dropped it) plus Atmosphere values hardcoded in `_setup_atmosphere()`; there is no per-zone backdrop.
 - `[LOW]` The cooldown overlay divides by `base_cooldown`, so the 1.5 s opening cooldown renders as a fraction of the full cooldown (10% for Enforce).
 
 ### Tech Debt

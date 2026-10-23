@@ -54,6 +54,18 @@ extends Resource
 @export var current_selected_zone_id: String = ""
 @export var zone_progression_data: Dictionary[String, ZoneProgressionData] = {}
 
+## action_ids the player has already seen. An available action missing from
+## this list shows a NEW tag on its card until it is first hovered or used.
+@export var seen_action_ids: Array[String] = []
+## Set once ZoneManager has marked every action available at the time as seen,
+## so a save from before the NEW tag doesn't light it on every card.
+@export var seen_actions_initialized: bool = false
+
+## Zone ids a save may no longer stand in, mapped to where it moves on load.
+## Test Zone is hidden from the map but kept in the zone list, so verify()
+## still accepts it; the move only stops a player being stranded on a hidden hex.
+const ZONE_ID_MIGRATIONS: Dictionary = {"TestZone": "SpiritValley"}
+
 
 func get_zone_progression_data(zone_id: String) -> ZoneProgressionData:
 	if zone_id in zone_progression_data:
@@ -163,6 +175,14 @@ func _to_string() -> String:
 func verify() -> bool:
 	return _verify_current_selected_zone_id()
 
+## Moves fields that point at retired or hidden content to their replacements.
+## PersistenceManager runs it after loading and before verify().
+func migrate() -> void:
+	if ZONE_ID_MIGRATIONS.has(current_selected_zone_id):
+		var new_zone_id: String = ZONE_ID_MIGRATIONS[current_selected_zone_id]
+		Log.info("SaveGameData: Moved the current zone from %s to %s" % [current_selected_zone_id, new_zone_id])
+		current_selected_zone_id = new_zone_id
+
 ## Resets all save data to default values.
 func reset() -> void:
 	# Resource Manager
@@ -186,7 +206,9 @@ func reset() -> void:
 	# Zone Manager
 	zone_progression_data = {}
 	current_selected_zone_id = ""
-	
+	seen_action_ids = []
+	seen_actions_initialized = false
+
 	# Inventory Manager
 	inventory = InventoryData.new()
 

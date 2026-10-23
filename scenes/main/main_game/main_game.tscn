@@ -9,17 +9,14 @@
 [ext_resource type="PackedScene" uid="uid://sra4pqjmj11a" path="res://scenes/inventory/inventory_view/inventory_view.tscn" id="3_k2uxu"]
 [ext_resource type="PackedScene" uid="uid://b8q7j5y2k3m1n" path="res://scenes/ui/log_window/log_window.tscn" id="3_wyoa6"]
 [ext_resource type="Script" uid="uid://blsdqgbv3bgin" path="res://scenes/main/main_game/save_timer.gd" id="4_11so6"]
-[ext_resource type="PackedScene" uid="uid://bfqx2ov3bib3u" path="res://scenes/zones/zone_info_panel/zone_info_panel.tscn" id="4_tvvcy"]
 [ext_resource type="Script" uid="uid://b6v160h5lsx3" path="res://scenes/ui/main_view/states/cycling_view_state.gd" id="4_wyoa6"]
 [ext_resource type="Script" uid="uid://t6j7xu45pr3y" path="res://scenes/ui/main_view/states/inventory_view_state.gd" id="5_a5o3s"]
 [ext_resource type="Script" uid="uid://c6cvq5n61a2sw" path="res://scenes/ui/main_view/states/zone_view_state.gd" id="6_cp3p8"]
 [ext_resource type="PackedScene" uid="uid://cwb0nnj7np102" path="res://scenes/adventure/adventure_view/adventure_view.tscn" id="7_up6bt"]
 [ext_resource type="Script" uid="uid://dfwnxr83f5s5n" path="res://scenes/zones/zone_transition/zone_transition.gd" id="8_ohlfh"]
-[ext_resource type="PackedScene" uid="uid://bn6xsijn342nc" path="res://scenes/zones/zone_view_background/zone_view_background.tscn" id="9_b61p0"]
-[ext_resource type="PackedScene" uid="uid://c1pbcdgvnut8p" path="res://scenes/zones/zone_resource_panel/zone_resource_panel.tscn" id="11_wyoa6"]
-[ext_resource type="PackedScene" uid="uid://dwoh4801askaa" path="res://scenes/zones/zone_header/zone_header.tscn" id="12_zh"]
-[ext_resource type="PackedScene" uid="uid://bdd1ahrewppuc" path="res://scenes/ui/toolbar/toolbar.tscn" id="13_zt"]
-[ext_resource type="StyleBox" path="res://assets/styleboxes/common/panel_floating.tres" id="14_lb8xr"]
+[ext_resource type="PackedScene" uid="uid://bkf2lc3oqlpf8" path="res://scenes/zones/cultivator_plate/cultivator_plate.tscn" id="11_plate"]
+[ext_resource type="PackedScene" uid="uid://cpys1vqwfilbb" path="res://scenes/zones/zone_panel/zone_panel.tscn" id="12_panel"]
+[ext_resource type="PackedScene" uid="uid://b5elrn51q3prb" path="res://scenes/ui/dock/dock.tscn" id="13_dock"]
 [ext_resource type="StyleBox" path="res://assets/styleboxes/zones/grey_background.tres" id="15_grybg"]
 [ext_resource type="Script" path="res://scenes/ui/main_view/states/adventure_end_card_state.gd" id="16_endcs"]
 [ext_resource type="PackedScene" uid="uid://1sxjui5v2n0j" path="res://scenes/adventure/adventure_end_card/adventure_end_card.tscn" id="17_endcn"]
@@ -30,7 +27,7 @@
 [ext_resource type="Script" uid="uid://cj636cki5h3is" path="res://scenes/ui/grey_background/grey_background.gd" id="24_grybg_script"]
 [ext_resource type="PackedScene" uid="uid://ckq28b0kkipr" path="res://scenes/character/character_view.tscn" id="25_cv"]
 [ext_resource type="Script" uid="uid://2yrvi0rkqcvb" path="res://scenes/character/character_view_state.gd" id="26_cvs"]
-[ext_resource type="PackedScene" uid="uid://b1quest1win1" path="res://scenes/ui/quest_window/quest_window.tscn" id="27_qw"]
+[ext_resource type="PackedScene" uid="uid://d3i2be1iw3sso" path="res://scenes/ui/goals_panel/goals_panel.tscn" id="27_goals"]
 [ext_resource type="PackedScene" uid="uid://crqcxy8168ohk" path="res://scenes/ui/quest_toast/quest_toast.tscn" id="28_qt"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_panel.tscn" id="30_dp"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_password_modal.tscn" id="31_dpm"]
@@ -176,56 +173,32 @@ grow_vertical = 2
 [node name="SubViewport" type="SubViewport" parent="MainView/ZoneView/SubViewportContainer" unique_id=1166320537]
 transparent_bg = true
 handle_input_locally = false
+canvas_item_default_texture_filter = 0
 size = Vector2i(1920, 1080)
 render_target_update_mode = 4
 
-[node name="ZoneViewBackground" parent="MainView/ZoneView/SubViewportContainer/SubViewport" unique_id=1102711138 instance=ExtResource("9_b61p0")]
-position = Vector2(960, 500)
-
 [node name="ZoneTilemap" parent="MainView/ZoneView/SubViewportContainer/SubViewport" unique_id=903827960 instance=ExtResource("3_1i3v0")]
 
-[node name="ZoneInfoPanel" parent="MainView/ZoneView" unique_id=1819263091 instance=ExtResource("4_tvvcy")]
-custom_minimum_size = Vector2(200, 80)
-layout_mode = 1
-anchors_preset = 6
-anchor_left = 1.0
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = -450.0
-offset_top = -540.0
-offset_bottom = 480.0
-grow_horizontal = 0
-size_flags_vertical = 3
+[node name="CultivatorPlate" parent="MainView/ZoneView" unique_id=719653768 instance=ExtResource("11_plate")]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 464.0
+offset_bottom = 276.0
 
-[node name="ZoneResourcePanel" parent="MainView/ZoneView" unique_id=2120600450 instance=ExtResource("11_wyoa6")]
-layout_mode = 1
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 28.0
-offset_top = -198.0
-offset_right = 206.0
-offset_bottom = 230.0
-grow_vertical = 2
+[node name="ZonePanel" parent="MainView/ZoneView" unique_id=645235928 instance=ExtResource("12_panel")]
+layout_mode = 0
+offset_left = 1456.0
+offset_top = 24.0
+offset_right = 1896.0
+offset_bottom = 224.0
 
-[node name="ZoneHeader" parent="MainView/ZoneView" unique_id=618100488 instance=ExtResource("12_zh")]
-custom_minimum_size = Vector2(360, 0)
-layout_mode = 1
-offset_left = 28.0
-offset_top = 28.0
-offset_right = 424.0
-offset_bottom = 245.0
-theme_override_styles/panel = ExtResource("14_lb8xr")
-
-[node name="Toolbar" parent="MainView/ZoneView" unique_id=1615253691 instance=ExtResource("13_zt")]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -60.0
-grow_horizontal = 2
-grow_vertical = 0
+[node name="Dock" parent="MainView/ZoneView" unique_id=626934651 instance=ExtResource("13_dock")]
+layout_mode = 0
+offset_left = 722.0
+offset_top = 976.0
+offset_right = 1198.0
+offset_bottom = 1056.0
 
 [node name="AdventureView" parent="MainView" unique_id=1872924392 instance=ExtResource("7_up6bt")]
 unique_name_in_owner = true
@@ -235,25 +208,20 @@ layout_mode = 1
 [node name="LogWindow" parent="MainView" unique_id=1053696094 instance=ExtResource("3_wyoa6")]
 unique_name_in_owner = true
 z_index = 1
-custom_minimum_size = Vector2(400, 217)
 layout_mode = 0
-offset_left = 736.0
-offset_top = 781.0
-offset_right = 1136.0
-offset_bottom = 1008.0
+offset_left = 24.0
+offset_top = 852.0
+offset_right = 464.0
+offset_bottom = 1056.0
 
-[node name="QuestWindow" parent="MainView" unique_id=249076138 instance=ExtResource("27_qw")]
+[node name="GoalsPanel" parent="MainView" unique_id=1374701200 instance=ExtResource("27_goals")]
 unique_name_in_owner = true
 z_index = 1
-layout_mode = 1
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_left = 1147.0
-offset_top = -512.0
-offset_right = 1467.0
-offset_bottom = -269.0
-grow_vertical = 2
+layout_mode = 0
+offset_left = 24.0
+offset_top = 276.0
+offset_right = 464.0
+offset_bottom = 496.0
 
 [node name="QuestToast" parent="MainView" unique_id=531342223 instance=ExtResource("28_qt")]
 unique_name_in_owner = true

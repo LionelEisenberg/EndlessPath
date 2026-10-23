@@ -1,6 +1,6 @@
 # Dialogue (DialogueManager + Dialogic)
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
 ## Overview
 
@@ -122,8 +122,9 @@ ZoneActionButton click
   → Dialogic.timeline_ended → DialogueManager.dialogue_ended
   → ActionManager.stop_action(true)
       → ZoneManager.increment_zone_progression_for_action(action_id)
-           (count >= max_completions → action_completed → ZoneInfoPanel rebuild)
+           (count >= max_completions → action_completed → ZonePanel rebuild: the card goes)
       → success_effects in order, e.g. TriggerEvent("celestial_intervener_dialogue_N") → StartQuest(...)
+      → the zone's idle action resumes ("Resumed <name>")
 ```
 
 ### How timelines reach game state

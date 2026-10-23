@@ -183,3 +183,18 @@ text = "ADVENTURE"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Show Whole Map"
+
+[node name="ZonesHeader" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "ZONES"
+
+[node name="DemoZonesCheck" type="CheckButton" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Demo zones (locked, uncharted)"
+
+[node name="HiddenZonesCheck" type="CheckButton" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Show hidden zones (Test Zone)"

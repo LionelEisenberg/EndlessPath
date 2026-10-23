@@ -37,7 +37,7 @@ func before_each() -> void:
 	_main_view.grey_background = autofree(FakeGreyBackground.new())
 	_main_view.merchant_view = add_child_autofree(MerchantViewScene.instantiate())
 	_main_view.log_window = autofree(Control.new())
-	_main_view.quest_window = autofree(Control.new())
+	_main_view.goals_panel = autofree(Control.new())
 	_state = autofree(MerchantViewState.new())
 	_state.scene_root = _main_view
 	_other = autofree(MainViewState.new())
@@ -102,24 +102,24 @@ func test_close_finished_never_pops_another_state() -> void:
 # HUD WINDOWS
 #-----------------------------------------------------------------------------
 
-func test_open_hides_the_log_and_quest_windows() -> void:
+func test_open_hides_the_log_and_goals() -> void:
 	# The shop covers part of them, so their text would be cut off at its edge.
 	_set_stack([])
 	_state._on_start_merchant(_merchant_action())
 	assert_false(_main_view.log_window.visible, "log window")
-	assert_false(_main_view.quest_window.visible, "quest window")
+	assert_false(_main_view.goals_panel.visible, "goals")
 
-func test_close_shows_the_log_and_quest_windows_again() -> void:
+func test_close_shows_the_log_and_goals_again() -> void:
 	_set_stack([])
 	_state._on_start_merchant(_merchant_action())
 	_state._on_stop_merchant()
 	assert_true(_main_view.log_window.visible, "log window")
-	assert_true(_main_view.quest_window.visible, "quest window")
+	assert_true(_main_view.goals_panel.visible, "goals")
 
 func test_close_leaves_a_hidden_window_hidden() -> void:
-	_main_view.quest_window.visible = false
+	_main_view.goals_panel.visible = false
 	_set_stack([])
 	_state._on_start_merchant(_merchant_action())
 	_state._on_stop_merchant()
-	assert_false(_main_view.quest_window.visible, "the shop restores what was there, not more")
+	assert_false(_main_view.goals_panel.visible, "the shop restores what was there, not more")
 	assert_true(_main_view.log_window.visible)

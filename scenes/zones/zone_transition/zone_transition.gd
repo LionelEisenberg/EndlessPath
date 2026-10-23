@@ -10,7 +10,9 @@ extends Node
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-const DRAIN_PARTICLE_COLOR: Color = Color(0.5, 0.78, 1.0, 0.85)
+## What the drain pours from the orb to the character: an opaque Madra pellet
+## that moves in 2 px steps (lacquer kit §1 rules 4 and 6).
+const DRAIN_PELLET_SCENE: PackedScene = preload("res://scenes/zones/zone_transition/madra_pellet.tscn")
 const DRAIN_MIN_PARTICLES: int = 8
 const DRAIN_MAX_PARTICLES: int = 25
 const DRAIN_SPAWN_INTERVAL: float = 0.04
@@ -22,7 +24,11 @@ const ZOOM_TARGET: float = 3.0
 # STATE
 #-----------------------------------------------------------------------------
 
-var _zone_resource_panel: ZoneResourcePanel = null
+## Where the drain's pellets are added; null means the running scene, as in
+## the game. Tests, which have no current scene, set it.
+var pellet_parent: Node = null
+
+var _cultivator_plate: CultivatorPlate = null
 var _zone_tilemap: ZoneTilemap = null
 var _camera: Camera2D = null
 var _character: Node2D = null
@@ -44,13 +50,17 @@ var _saved_camera_position: Vector2 = Vector2.ZERO
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	_zone_resource_panel = get_parent().find_child("ZoneResourcePanel", true, false)
+	_cultivator_plate = get_parent().find_child("CultivatorPlate", true, false) as CultivatorPlate
 	_zone_tilemap = get_parent().find_child("ZoneTilemap", true, false)
 	ActionManager.adventure_start_requested.connect(_on_adventure_start_requested)
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## Whether a transition is currently in progress.
+func is_transitioning() -> bool:
+	return _is_transitioning
 
 ## Reset camera to pre-transition state (called when returning to zone view).
 func reset_camera(duration: float = 0.3) -> void:
@@ -105,16 +115,14 @@ func _spawn_next_drain_particle() -> void:
 		get_tree().create_timer(DRAIN_PARTICLE_FLIGHT_TIME + 0.1).timeout.connect(_on_drain_complete)
 		return
 
-	var from_pos: Vector2 = _zone_resource_panel.get_madra_orb_global_position()
-	var base_size: float = lerpf(3.0, 6.0, _drain_budget_ratio)
+	var from_pos: Vector2 = _cultivator_plate.get_madra_orb_global_position()
 
-	var particle: FlyingParticle = FlyingParticle.new()
+	var pellet: MadraPellet = DRAIN_PELLET_SCENE.instantiate()
 	var offset: Vector2 = Vector2(randf_range(-15, 15), randf_range(-15, 15))
 	var duration: float = randf_range(DRAIN_PARTICLE_FLIGHT_TIME * 0.7, DRAIN_PARTICLE_FLIGHT_TIME)
-	var size: float = randf_range(base_size * 0.7, base_size * 1.3)
 	var curve_spread: float = randf_range(80.0, 150.0)
-	get_tree().current_scene.add_child(particle)
-	particle.launch(from_pos + offset, _drain_target_pos + offset, DRAIN_PARTICLE_COLOR, duration, size, Callable(), curve_spread)
+	_get_pellet_parent().add_child(pellet)
+	pellet.launch(from_pos + offset, _drain_target_pos + offset, duration, curve_spread)
 
 	# The final particle carries the leftover deficit (when budget doesn't
 	# divide evenly by base count). Every other particle spends the whole-
@@ -172,3 +180,6 @@ func _get_camera() -> Camera2D:
 
 func _get_character() -> Node2D:
 	return _character
+
+func _get_pellet_parent() -> Node:
+	return pellet_parent if pellet_parent != null else get_tree().current_scene

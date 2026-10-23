@@ -18,7 +18,9 @@ extends Control
 ## View Components
 @onready var grey_background: GreyBackground = %GreyBackground
 @onready var log_window: Control = %LogWindow
-@onready var quest_window: Control = %QuestWindow
+## The Goals board, shared by the zone and adventure views; each view state
+## places it.
+@onready var goals_panel: Control = %GoalsPanel
 
 ## State machine states
 @onready var zone_view_state: MainViewState = %MainViewStateMachine/ZoneViewState
@@ -34,6 +36,11 @@ extends Control
 ## State stack
 @onready var state_stack: Array[MainViewState] = []
 var base_current_state: MainViewState = null
+
+## The overlay states that hide the HUD boards (log and Goals), and the
+## visibility each board had before the first of them hid it.
+var _hud_board_holders: Array[MainViewState] = []
+var _hud_board_visibility: Dictionary[Control, bool] = {}
 
 func _ready() -> void:
 	zone_view_state.scene_root = self
@@ -81,6 +88,31 @@ func remove_state(state: MainViewState) -> void:
 	state_stack.erase(state)
 	state.exit()
 
+## Hides the log and the Goals board while `holder` covers the view. An
+## overlay calls it on enter, and release_hud_boards() on exit.
+func hide_hud_boards(holder: MainViewState) -> void:
+	if _hud_board_holders.has(holder):
+		return
+	if _hud_board_holders.is_empty():
+		for board: Control in _get_hud_boards():
+			_hud_board_visibility[board] = board.visible
+			board.visible = false
+	_hud_board_holders.append(holder)
+
+## Lets `holder` stop hiding the HUD boards. Once no overlay hides them, they
+## get back the visibility they had before the first one did, whatever order
+## the overlays closed in.
+func release_hud_boards(holder: MainViewState) -> void:
+	if not _hud_board_holders.has(holder):
+		return
+	_hud_board_holders.erase(holder)
+	if not _hud_board_holders.is_empty():
+		return
+	for board: Control in _hud_board_visibility:
+		if is_instance_valid(board):
+			board.visible = _hud_board_visibility[board]
+	_hud_board_visibility.clear()
+
 ## Change the base state, clearing the stack.
 func change_state(new_state: MainViewState) -> void:
 	if base_current_state == new_state:
@@ -96,6 +128,14 @@ func change_state(new_state: MainViewState) -> void:
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## The HUD boards the overlays hide: the log and the Goals board.
+func _get_hud_boards() -> Array[Control]:
+	var boards: Array[Control] = []
+	for board: Control in [log_window, goals_panel]:
+		if board != null:
+			boards.append(board)
+	return boards
 
 func _get_current_state() -> MainViewState:
 	if not state_stack.is_empty():

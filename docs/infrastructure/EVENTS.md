@@ -12,7 +12,7 @@ EventManager is **not** a general pub/sub bus. It has one signal, it deduplicate
 
 Players never see events directly. They see what events unlock:
 
-1. The first talk with the Celestial Intervener (`celestial_intervener_dialogue_1`) makes Wilderness Cycling appear and unlocks the Test Zone tile.
+1. The first talk with the Celestial Intervener (`celestial_intervener_dialogue_1`) makes Wilderness Cycling appear and unlocks the Test Zone (hidden on the map).
 2. Returning to the Intervener (`celestial_intervener_dialogue_2/3/4`) advances the current quest.
 3. Winning any combat for the first time (`q_first_steps_enemy_defeated`) reveals the next "Return to the [INTERVENER]" action.
 4. Choosing "Mark down the location" at an Aura Well (`aura_well_discovered`) adds the Aura Well training action and grays that choice on every later Aura Well tile.
@@ -65,7 +65,8 @@ Zone action stops / quest completes / encounter choice resolves
           → event_triggered.emit("some_id")
               1. UnlockManager._evaluate_all_conditions()
                    EVENT_TRIGGERED conditions targeting "some_id" latch
-                   → condition_unlocked → ZoneInfoPanel / ZoneTilemap refresh,
+                   → condition_unlocked → ZonePanel / ZoneTilemap refresh,
+                                          ActionManager may start a first idle action,
                                           QuestManager re-checks condition steps
               2. QuestManager._on_event_triggered("some_id")
                    event steps whose completion_event_id == "some_id" advance;
