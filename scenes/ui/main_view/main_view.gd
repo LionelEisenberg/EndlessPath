@@ -3,6 +3,9 @@ extends Control
 ## Main View Manager.
 ##
 ## Handles switching between different main views (Zone, Adventure, Inventory, Cycling) using a State Machine pattern.
+## Cycling is the one overlay with no backdrop: its board sits in the map gap
+## with the zone view still up around it, so set_cycling_mode() turns the zone
+## view's own furniture over to it (see CyclingViewState).
 
 ## Main Views
 @onready var zone_view: Control = %ZoneView
@@ -14,6 +17,14 @@ extends Control
 @onready var abilities_view: Control = %AbilitiesView
 @onready var character_view: CharacterView = %CharacterView
 @onready var merchant_view: MerchantView = %MerchantView
+
+## The zone view's furniture the cycling board works with. The cabinet takes the
+## board's pellets (it is handed to the CyclingView in _ready()); the chest, the
+## dock and the map's SubViewport are turned over by set_cycling_mode().
+@onready var cultivator_plate: CultivatorPlate = %CultivatorPlate
+@onready var zone_panel: ZonePanel = %ZonePanel
+@onready var dock: Control = %Dock
+@onready var zone_map_viewport: SubViewport = %SubViewport
 
 ## View Components
 @onready var grey_background: GreyBackground = %GreyBackground
@@ -52,6 +63,10 @@ func _ready() -> void:
 	abilities_view_state.scene_root = self
 	character_view_state.scene_root = self
 	merchant_view_state.scene_root = self
+
+	# The cycling board sends its Madra and XP pellets into the cultivator cabinet.
+	if cycling_view is CyclingView:
+		(cycling_view as CyclingView).cultivator_plate = cultivator_plate
 
 	# Initialize view visibility based on initial state
 	change_state(zone_view_state)
@@ -112,6 +127,20 @@ func release_hud_boards(holder: MainViewState) -> void:
 		if is_instance_valid(board):
 			board.visible = _hud_board_visibility[board]
 	_hud_board_visibility.clear()
+
+## Turns the zone view's furniture over to the cycling board, or gives it back.
+## While cycling, the chest lists the techniques, the dock hides and the map's
+## SubViewport takes no input: the SubViewportContainer pushes a press into it
+## with push_input(), which a viewport with its input off drops, so a click on
+## the map beside the board travels nowhere. Each piece is skipped when it is
+## missing, as it is on the MainViews the view-state tests build.
+func set_cycling_mode(on: bool) -> void:
+	if zone_panel != null:
+		zone_panel.set_techniques_mode(on)
+	if dock != null:
+		dock.visible = not on
+	if zone_map_viewport != null:
+		zone_map_viewport.gui_disable_input = on
 
 ## Change the base state, clearing the stack.
 func change_state(new_state: MainViewState) -> void:
