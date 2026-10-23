@@ -245,7 +245,7 @@ Never glow, tint, fade or scale to show a state.
 | Running (the one current thing) | The drawer pulls out 2 px with brass caps and the 4 px shadow, tag RUNNING in cream | `lacquer_drawer_run_ai.png` | The running idle card; the technique in use (tag IN USE) |
 | Ready (can act now) | A steady brass frame, the brass ENTER tag, a brass detail line. Never animate a steady frame | `ZoneActionButton.set_ready_frame()` | The adventure card at its threshold |
 | Disabled, locked, unaffordable | Palette, never alpha: tan text, carved "off" art, the LOCKED seal, a desaturated veil | Texture swap, `LabelLacquerSeal` | Rail caps off, locked hex and popover |
-| New or unseen | The NEW seal inline after the title; cleared on first hover or use | `lacquer_seal_new_s_ai.png` | New activity cards, new technique drawers |
+| New or unseen | The NEW seal inline after the title; cleared on first hover or use (a technique drawer's when the pointer leaves it, since the drawers can turn up under the cursor) | `lacquer_seal_new_s_ai.png` | New activity cards, new technique drawers |
 | Notification | A 2 px brass ring on the button, plus a count seal when there is a number | `lacquer_btn_ring_ai.png`, `lacquer_seal_count_ai.png` | Path (points), Abilities (unequipped unlock) |
 | Flash (look here, done) | The brass frame on for 300 ms and off for 300 ms, N times; ends hidden. A steady frame hides while a flash runs | `LacquerFrameOverlay.flash(times)` | Card twice, Now tray once |
 | Rejected | A shake in even-px keyframes 0, −8, 8, −6, 4, 0, each held 0.088 s, plus a log line | `MapGlyph.shake_offset_at()` pattern | Locked padlock; the adventure card's Madra row |

@@ -2,9 +2,10 @@ extends GutTest
 
 ## Integration tests for the technique drawer (TechniqueDrawer), the zone chest's
 ## drawer for one learned cycling technique: its detail line, icon and name, the
-## drawer in use pulled out and tagged IN USE, the NEW seal and the title row it
-## shares with the activity cards, equip on click with a brass flash (and
-## nothing on the drawer in use), hover, and long text never widening a drawer.
+## drawer in use pulled out and tagged IN USE, the NEW seal (cleared when the
+## pointer leaves the drawer or on a press) and the title row it shares with the
+## activity cards, equip on click with a brass flash (and nothing on the drawer
+## in use), hover, and long text never widening a drawer.
 ## Drawers are built with setup on a fresh save with smooth_flow unlocked, as
 ## the technique list builds them; foundation_technique stays equipped.
 
@@ -12,6 +13,7 @@ const DRAWER_SCENE: PackedScene = preload("res://scenes/cycling/technique_drawer
 
 const FOUNDATION_ID: String = "foundation_technique"
 const SMOOTH_ID: String = "smooth_flow"
+const TORRENTIAL_ID: String = "torrential_flow"
 const FIXTURE_ID: String = "test_technique_drawer_technique"
 
 const DRAWER_PATH: String = "res://assets/ui/lacquer/lacquer_drawer_ai.png"
@@ -241,12 +243,25 @@ func test_new_seal_shows_for_an_unseen_technique() -> void:
 	assert_true(_drawer(SMOOTH_ID).is_new_shown(), "smooth was unlocked after the save was first initialised")
 	assert_false(_drawer(FOUNDATION_ID).is_new_shown(), "the technique in use is never NEW")
 
-func test_new_seal_clears_on_hover() -> void:
-	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
-	assert_true(drawer.is_new_shown(), "precondition: smooth is NEW")
-	drawer.mouse_entered.emit()
-	assert_false(drawer.is_new_shown())
+func test_new_seal_clears_when_the_pointer_leaves_or_on_a_press() -> void:
+	# The chest can turn to the drawers under a cursor that has just clicked the
+	# Wilderness Cycling card, so the pointer's first move can land on a drawer
+	# the player has not looked at yet. Hover keeps NEW; the pointer leaving the
+	# drawer clears it, and so does a press that equips its technique.
+	CyclingManager.unlock_technique(TORRENTIAL_ID)
+	var smooth: TechniqueDrawer = _drawer(SMOOTH_ID)
+	assert_true(smooth.is_new_shown(), "precondition: smooth is NEW")
+	smooth.mouse_entered.emit()
+	assert_true(smooth.is_new_shown(), "NEW stays while the pointer is on the drawer")
+	assert_false(CyclingManager.is_technique_seen(SMOOTH_ID), "and the technique is not seen yet")
+	smooth.mouse_exited.emit()
+	assert_false(smooth.is_new_shown(), "the pointer leaving clears it")
 	assert_true(CyclingManager.is_technique_seen(SMOOTH_ID))
+	var torrential: TechniqueDrawer = _drawer(TORRENTIAL_ID)
+	torrential.mouse_entered.emit()
+	assert_true(torrential.is_new_shown(), "precondition: torrential is hovered and NEW")
+	_press(torrential)
+	assert_false(torrential.is_new_shown(), "a press that equips it clears NEW at once")
 
 func test_title_row_is_laid_out_like_the_cards() -> void:
 	var drawer: TechniqueDrawer = _drawer(SMOOTH_ID)
@@ -257,7 +272,8 @@ func test_title_row_is_laid_out_like_the_cards() -> void:
 	assert_eq(title.position, TITLE_POSITION)
 	assert_eq(seal.position, Vector2(title.position.x + title.size.x + SEAL_GAP, TAG_POSITION.y))
 	assert_eq(tag.position, TAG_POSITION)
-	drawer.mouse_entered.emit()
+	drawer.mouse_exited.emit()
+	assert_false(drawer.is_new_shown(), "precondition: the pointer leaving cleared the seal")
 	assert_eq(title.position, TITLE_POSITION, "the title stays when the seal clears")
 
 func test_long_name_ellipsizes_before_the_seal_and_tag() -> void:
@@ -270,7 +286,7 @@ func test_long_name_ellipsizes_before_the_seal_and_tag() -> void:
 	assert_eq(title.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS)
 	assert_eq(title.size.x, TITLE_ROW_WIDTH - SEAL_GAP - SEAL_WIDTH, "the title stops where the seal starts")
 	assert_lte(seal.position.x + seal.size.x, tag.position.x, "the seal ends before the tag")
-	drawer.mouse_entered.emit()
+	drawer.mouse_exited.emit()
 	assert_eq(title.size.x, TITLE_ROW_WIDTH, "without the seal the title runs up to the tag")
 
 #-----------------------------------------------------------------------------

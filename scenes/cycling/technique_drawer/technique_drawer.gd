@@ -9,8 +9,11 @@ extends Control
 ## The drawer in use (the equipped technique) is pulled out to (-2, -2) on the
 ## running face and tagged IN USE. A left press on any other drawer equips its
 ## technique through CyclingManager and flashes the brass frame; a press on the
-## drawer in use does nothing. Hover shows the hover frame and marks the
-## technique seen, which clears its NEW seal.
+## drawer in use does nothing. Hover shows the hover frame. The NEW seal clears
+## when the pointer leaves the drawer (the technique is marked seen then), or at
+## once on a press that equips it, but never as the pointer arrives: the chest
+## turns to the drawers under the cursor that has just clicked the Wilderness
+## Cycling card, so its first move could land on a seal the player never saw.
 ##
 ## The drawer does not listen to CyclingManager: the list that holds the
 ## drawers calls refresh() on every one of them when the equipped technique
@@ -154,7 +157,7 @@ func _on_gui_input(event: InputEvent) -> void:
 
 func _on_mouse_entered() -> void:
 	_hover_frame.show()
-	_mark_seen()
 
 func _on_mouse_exited() -> void:
 	_hover_frame.hide()
+	_mark_seen()

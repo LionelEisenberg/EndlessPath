@@ -16,6 +16,7 @@ Built on `feat/cycling-view-styleguide-ea3170` (not merged). The suite ends at 1
 
 - **Rate label.** The cabinet's rate label hides when the rate rounds to 0.0, so it never reads "+0 / s". The Now tray hides it below 0.05, the same threshold.
 - **Madra rate.** It is a time-weighted draw over the last second: per frame, the step rate while tracking below the cap, summed over the time covered. A plain "Madra added in the last second" alternated 12.8 and 13.9 at 60 FPS. An Auto restart carries the rate over.
+- **NEW on a drawer** (final review). A drawer's NEW seal clears when the pointer leaves the drawer, and still at once on a press that equips it, not on first hover. Clicking the Wilderness Cycling card turns the chest to the drawers under the cursor that just clicked, so the first pixel of motion could hover a drawer and clear a seal the player never saw. The activity cards keep first hover.
 - **Drawer titles.** The drawers share the activity cards' 232 px title row. "Smooth Flow Technique" therefore ellipsizes while its NEW seal shows, as the mock's row does.
 - **Techniques list.** It neither scrolls nor folds. Ten drawers fit, six with the lore open, and the catalog has three.
 - **Lore.** It stays as the player left it when cycling opens.
