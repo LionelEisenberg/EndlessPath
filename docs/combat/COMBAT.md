@@ -1,6 +1,6 @@
 # Combat System
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -14,12 +14,12 @@ This doc covers the combat side. How a fight is triggered from the map and how r
 
 1. On the adventure map the player reaches a combat tile (regular, elite or boss) and picks its combat choice, e.g. "Attack the Spirit".
 2. The map hides and the combat view fades in: the zone background with a vignette, drifting mist and motes. The player's sprite stands on the left and the enemy's on the right, both sliding in from their own side. Sprites are scaled to a shared height (elites 15% larger); every enemy currently uses the placeholder `test_enemy_sprite.png`.
-3. The bottom-centre dock (`PlayerHud`) stays where it was on the map: Health orb (left), Madra orb (right), the Stamina bar and four technique slots. Above the enemy floats its plate: a red intent tab (only while it casts), a card with its name and Health bar, and a row of buff icons. The player's buffs sit above the Health orb.
-4. Slots show the bound key (read from the InputMap: Q/W/E/R by loadout slot), a cost strip with a coloured pip per resource (Madra blue, Stamina gold, Health red), and a cooldown sweep with seconds left. Empty loadout slots show only their frame and key. Every player ability starts the fight on a 1.5 s cooldown.
-5. The player clicks a slot or presses its key. Instant abilities fire immediately; abilities with a cast time fill the player's cast bar above the dock while the casting slot glows gold. The slots stay visible throughout. Only one cast runs at a time. Unaffordable abilities dim to 35% and the missing resource's cost turns red.
+3. The adventure's frame stays up. The vitals cabinet (top left) keeps showing Health, Madra and Stamina, and shows the player's buffs in up to three sockets beside the Health figures. The chest (top right) keeps the expedition page and the run clock. The technique dock (bottom centre) binds its four slots to the player's techniques. Above the enemy floats its older plate: a red intent tab (only while it casts), a card with its name and Health bar, and a row of buff icons. The plate's right end runs under the chest until the fight is reworked.
+4. Slots show the bound key on a key cap (read from the InputMap: Q/W/E/R by loadout slot; cream in a fight, tan in the map's preview), and under the slot its cost with the resource's mini icon (cream, or tan while unaffordable). A cooldown shows as a sweep: the part of the icon still to recharge is drawn in the kit's dark locked veil, uncovered clockwise from 12 o'clock in 24 whole steps, with the whole seconds left in the centre. Empty loadout slots show only their socket and key cap. Every player ability starts the fight on a 1.5 s cooldown.
+5. The player clicks a slot or presses its key. Instant abilities fire immediately; abilities with a cast time show the cast tray above the dock (the technique's name, a rod filling toward release and the time left) while the casting slot wears a steady brass frame. The slots stay visible throughout. Only one cast runs at a time. A press that cannot cast (casting, cooling down, too little of a resource) shakes the slot and does nothing else, with no log line. When a cooldown ends, the slot's brass frame flashes once.
 6. The enemy acts on its own. Its casts show in the intent tab on its plate (icon, name, time left, and a bar that ramps from orange to red and throbs in the last 0.6 s), which is the window for Empty Palm's interrupt. An interrupted cast shows "Interrupted" with a shake. Enemy abilities with no cooldown can start casting on the first frame and repeat back to back.
-7. Hovering a slot shows a tooltip above it (icon, name, CD, cast time, costs, and a pre-defense DMG total for the first target effect) and previews the cost: a line on the Health or Madra orb at the level it would leave, a highlighted segment on the Stamina bar, red when unaffordable. Hovering a buff icon shows its name, effect, live remaining time and stacks.
-8. When an ability executes the caster lunges (self-only abilities give a gold pulse instead); the target flashes white, recoils, and a damage number pops over its head (heals in green). The orbs and the enemy Health bar trail recent losses with a pale ghost, and the Health orb's ring pulses red at 30% or below. The log board (moved to the top-left for the adventure; L opens the full log) records damage taken, heals, interrupts and buff strips.
+7. Hovering a slot shows a tooltip above the dock: the name, "Cast 1.2 s · Cooldown 3 s" (or "Instant · Cooldown 3 s"), the cost with its mini icon, a damage line such as "about 9 Physical damage" for a technique whose first target effect deals damage (before the target's defense), and the description. The cost is not previewed on the cabinet. Hovering a buff socket on the cabinet shows the buff's name, whole seconds left, stacks and effect; hovering a buff icon on the enemy's plate shows the older tooltip with its live remaining time and stacks.
+8. When an ability executes the caster lunges (self-only abilities give a gold pulse instead); the target flashes white, recoils, and a damage number pops over its head (heals in green). The enemy's Health bar trails recent losses with a pale ghost. The cabinet's orbs and rod simply follow the player's vitals. The log board (at the bottom left, as in the zone view; L opens the full log) records damage taken, heals, interrupts and buff strips.
 9. When the enemy reaches 0 Health the player wins gold and returns to the map; beating the boss ends the adventure as a victory. When the player reaches 0 Health the adventure ends in defeat. Either way the end card shows when the adventure ends.
 10. Health, Madra and Stamina carry over to the next fight in the same adventure. Buffs and cooldowns do not.
 
@@ -29,7 +29,7 @@ This doc covers the combat side. How a fight is triggered from the map and how r
 
 ```
 AdventureView (Control)                          adventure_view.gd (adventure-owned host)
-├── ZoneViewBackground                           parallax backdrop, visible behind map and combat
+├── ZoneViewBackground                           parallax backdrop, visible behind combat (the map's ground covers it)
 ├── TilemapView/…/AdventureTilemap               emits start_combat(choice)
 ├── CombatView (Control, hidden outside combat; fades in when a fight starts)
 │   └── CombatSubviewportContainer/SubViewport   1920x1080
@@ -41,8 +41,10 @@ AdventureView (Control)                          adventure_view.gd (adventure-ow
 │           ├── PlayerCombatant (CombatantNode)  created per fight
 │           └── EnemyCombatant (CombatantNode)   created per fight
 │               └── EnemyAI (SimpleEnemyAI)      added by _create_enemy_combatant()
-├── PlayerHud                                    persistent dock, bottom-centre; slots activate in combat
-└── TimerPanel                                   adventure timer pill, top-centre
+├── VitalsPlate                                  vitals cabinet, top left; binds the player's buffs in a fight
+├── AdventureChest                               chest, top right; the expedition page stays up through a fight
+├── TechniqueDock                                technique bar, bottom centre; its slots activate in combat
+└── RunTimer (Timer)                             the run's time limit
 ```
 
 ### CombatantNode (`combatant_node.tscn`)
@@ -66,24 +68,34 @@ CombatantNode (Node2D)                 combatant_node.gd
 
 `CombatantNode._update_visuals()` passes `CombatantData.texture`, `scale` and `offset` to `CombatantVisual.setup()`, which scales the sprite to `display_height × scale` (280 px at 1.0) and mirrors enemies to face the player. The node then listens to its `VitalsManager.health_changed` (a loss of at least 0.5 → `play_hit()`: white flash, recoil, damage number; a gain of at least 1 → `play_heal()`) and to each ability's `executed` signal (`play_attack()` lunge for abilities with target effects, `play_buff()` gold pulse for self-only ones). The thresholds keep regen ticks from triggering reactions.
 
-### PlayerHud (`player_hud.tscn`)
+### Technique dock
 
-The adventure dock. It is visible for the whole adventure: on the map the slots preview the equipped loadout (dimmed, hover to read a technique); `setup_combatant()` binds them to the fight and `reset_combat()` returns them to the preview.
+The player's technique bar (`technique_dock.tscn`), in the zone view's dock place. It is visible for the whole adventure: on the map the slots preview the equipped loadout (`show_loadout()`: each technique in its loadout slot with its icon, cost and a tan key; unequipped slots show only the socket and key cap); `bind(ability_manager, vitals_manager)` binds them to a fight and `reset()` returns them to the preview (and hides the cast tray and the tooltip).
 
 ```
-PlayerHud (VBox, bottom-centre of AdventureView, grows upward)   player_hud.gd
-├── AboveRow
-│   ├── BuffBar (HFlowContainer)          player buffs, above the Health orb
-│   └── CastBar                           player cast; fades when idle but keeps its space
-└── Dock (panel_dock.tres)
-    ├── HealthOrb (ResourceOrb)           red liquid, ring pulses at 30% or below
-    ├── Center
-    │   ├── StaminaBar (ResourceBar, compact)
-    │   └── AbilitiesPanel                4 static AbilityButton slots + CombatAbilityTooltip
-    └── MadraOrb (ResourceOrb)            the zone resource panel's liquid orb
+TechniqueDock (Control, (722, 920), 476×136)     technique_dock.gd, mouse STOP, lacquer theme
+├── Board                                        lacquer_tdock_ai.png
+├── Slot1 … Slot4 (TechniqueSlot, 80×80)         at x 30, 142, 254, 366; y 18   technique_slot.gd
+│   ├── Body → Socket, Icon (sweep material), SecondsLabel, HoverFrame, CastFrame, ReadyFlash
+│   ├── KeyCap → KeyLabel                        Q / W / E / R from the InputMap
+│   └── CostLine → CostIcon, CostLabel           centred under the slot
+├── CastTray (476×44, dock-local (0, −52))       cast_tray.gd: name, cast rod, time left
+└── TechniqueTooltip (PanelContainer, 304 wide)  technique_tooltip.gd, top level, on board9.tres
 ```
+
+- **Slot states** (`TechniqueSlot.SlotState`): EMPTY (socket and key cap), PREVIEW (icon, cost, tan key) and ACTIVE (cream key; the cost cream, or tan while unaffordable, checked each frame while the slot is neither cooling nor casting).
+- **Cooldown sweep.** The icon has a local-to-scene `ShaderMaterial` on `lacquer_cooldown_sweep.gdshader`, whose one uniform is `progress` (0 to 1). Per 2 px cell of the 64×64 icon, a cell whose centre angle (clockwise from 12 o'clock) is at or past `floor(progress × 24 + 0.5) / 24 × TAU` takes the kit's locked-veil colour for its luminance band (`#151A18 #39423E #4B5550 #5F6A65`) and keeps its alpha; the other cells keep the icon. There is no blending, `smoothstep` or `TIME`. The `+ 0.5` rounds to the nearest step, because `progress` is always k / 24 and for k = 7 and 14 the product lands exactly halfway between float32 values, which a bare `floor` would leave to the GPU's rounding; a 0.0001 rad bias does the same for cells whose centre falls on a step's edge. The slot sets `progress = sweep_step(time_left, duration) / 24` on `bind()` (it reads the running opening cooldown) and on `cooldown_started` / `cooldown_updated`, and shows `seconds_text(time_left)` (`ceili`, empty at 0). `sweep_step()` is `clampi(floori((1 − time_left / duration) × 24 + 1e-6), 0, 24)`. `cooldown_ready` shows the plain icon, hides the seconds and flashes the brass frame once.
+- **Casting.** `CastFrame` is shown from `cast_started` to `cast_finished` / `cast_cancelled`. The cast tray shows outright on any bound instance's `cast_started` (the rod at 1 − time left / duration), steps on `cast_updated` and hides on `cast_finished` / `cast_cancelled`.
+- **Input.** Q/W/E/R (`ability_slot_1` to `_4`) are read in `TechniqueDock._unhandled_input`, only while the dock is active and visible, and a click on a slot does the same. A press asks `CombatAbilityManager.can_cast_ability_instance(instance, null)`: accepted, the dock emits `ability_selected(instance)`; refused, `TechniqueSlot.refuse()` shakes the slot on `MapGlyph.shake_offset_at()` and nothing else happens. The manager still writes its own `Log.warn` for a refusal (a diagnostic; the player's log stays silent). A slot key is marked handled during a fight even when its slot is empty.
+- **Tooltip.** `TechniqueTooltip.show_for_ability(data, slot, cast_tray_shown)` fills the name (`LabelLacquerPopoverTitle`), the timing ("Cast <t> s · Cooldown <c> s" or "Instant · Cooldown <c> s", through `AbilityRow.format_seconds()` and `LacquerText.decimal_bbcode()`), the cost row (mini icon and `AbilityRow.format_cost()`), the damage line (`AbilityRow.format_damage(data, CharacterManager.get_total_attributes_data())`, hidden when the technique deals no damage), a divider and the description. It is 304 wide and hugs its height rounded up to an even number, so its top stays on the 2 px grid. Its bottom sits at screen y 912 (860 while the cast tray shows) and its left 8 px left of the hovered slot, kept on screen.
+
+### Vitals cabinet and buffs in a fight
+
+`VitalsPlate` shows the player's vitals on the map and in a fight ([ADVENTURING.md](../adventuring/ADVENTURING.md#the-frame-cabinet-chest-and-dock)). `AdventureView` calls `bind_buffs(player.buff_manager)` when a fight starts and `unbind_buffs()` when it ends: up to three sockets fill from the left as buffs land (a socket flashes its brass frame once), with a count seal while a buff stacks. Hovering a socket opens a `BuffTooltip` at the cabinet's right edge: the buff's name, "<n> s left" (rounded up) with " · ×<stacks>", a divider and `BuffEffectData.describe()`. The plate keeps its own list of buffs from `buff_applied` / `buff_removed` / `buff_stacked`, because `clear_all_buffs()` announces each removal before it empties the manager's list, and hides the tooltip when its buff ends.
 
 ### EnemyNameplate (`enemy_nameplate.tscn`)
+
+The enemy's plate is the fight's last piece of the older HUD; the opponent page in the chest replaces it in PR 2 of the lacquer rework.
 
 ```
 EnemyNameplate (VBox)                     enemy_nameplate.gd
@@ -92,20 +104,14 @@ EnemyNameplate (VBox)                     enemy_nameplate.gd
 └── BuffMargin → BuffBar                  enemy buffs and debuffs
 ```
 
-### Ability button and buff icon
+### Buff icon
 
 ```
-AbilityButton (MarginContainer)              ability_button.gd; EMPTY / PREVIEW / ACTIVE slot
-└── BackgroundRect (TextureRect, border art)
-    ├── Button (TextureButton, ability icon; takes no keyboard focus)
-    │   └── CooldownProgressBar → CooldownLabel
-    ├── CastGlow (slot_cast_glow.tres)       pulses while this slot's ability casts
-    ├── KeyHintPanel (panel_keyhint.tres) → KeyHintLabel
-    └── CostStrip (panel_keyhint.tres) → a pip + cost label per resource
-
 BuffIcon (MarginContainer)                   buff_icon.gd
 └── BackgroundRect → BuffTexture → DurationProgressBar, StackLabel; DurationLabel under the icon
 ```
+
+`BuffIcon`s fill the enemy plate's `BuffBar`. The player's buffs show in the cabinet's sockets instead.
 
 ## Data Model
 
@@ -191,7 +197,7 @@ Costs (`health_cost`, `madra_cost`, `stamina_cost`), `base_cooldown`, `cast_time
 
 | Value | Formula | Regen |
 |-------|---------|-------|
-| Max Health | `BODY × 10` | `health_regen` (always 0) |
+| Max Health | `BODY × 10` (`VitalsManager.max_health_for()`, which the Here tray's Health figure calls too) | `health_regen` (always 0) |
 | Max Stamina | `BODY × 5` | `stamina_regen`: `1.0 × AdventureActionData.stamina_regen_modifier` during an adventure, 0 otherwise (set by `AdventureView._update_stamina_regen()`) |
 | Max Madra | `CharacterAttributesData.get_max_madra()` = `FOUNDATION × 10` | `madra_regen` (always 0) |
 
@@ -202,7 +208,7 @@ Costs (`health_cost`, `madra_cost`, `stamina_cost`), `base_cooldown`, `cast_time
 
 ### Ability lifecycle
 
-1. **Request.** `AbilitiesPanel` emits `ability_selected(instance)` on click or key; `PlayerHud` re-emits it; `AdventureCombat.on_player_ability_selected()` calls `player.ability_manager.use_ability_instance(instance, enemy)`. The AI calls the same method.
+1. **Request.** `TechniqueDock` emits `ability_selected(instance)` on a click or key that `can_cast_ability_instance()` would accept (a refused press only shakes the slot); `AdventureView` has connected it to `AdventureCombat.on_player_ability_selected()`, which calls `player.ability_manager.use_ability_instance(instance, enemy)`. The AI calls the same method.
 2. **Gate** — `CombatAbilityManager.can_cast_ability_instance()`: the instance belongs to this manager; no instance of this combatant is casting (global lock); the instance is ready (cooldown timer stopped and not casting); `AbilityData.can_afford(vitals)`. Failures log a warning and return false.
 3. **Pay.** `AbilityData.consume_costs(vitals)` deducts all costs at cast start. Cancelled casts are not refunded.
 4. **Cast.** `CombatAbilityInstance.start_cast(target)`. If `cast_time > 0`: `is_casting = true`, cast timer starts, `cast_started` emits, and `cast_updated` emits every frame; on timeout `execute_ability()` runs, then `cast_finished` emits. If `cast_time == 0`: `execute_ability()` runs immediately.
@@ -273,14 +279,14 @@ There is no targeting choice, priority list, or reaction to the player's casts. 
 Start — `AdventureView._on_start_combat(choice)`:
 1. `AdventureCombat.initialize_combat(choice, action_data)` stores the context and connects `PlayerManager.vitals_manager.health_changed` (once; never disconnected).
 2. `AdventureCombat.start()` → `_create_player_combatant()` (placed on `PlayerSpot`, `setup(data, PlayerManager.vitals_manager, true)`, `play_enter()`) then `_create_enemy_combatant()`: `enemy_pool[0]`, own vitals, placed on `EnemySpot` and slid in, `EnemyNameplate.setup()` (positioned above the sprite on the next frame), `SimpleEnemyAI` child, enemy `health_changed` connection.
-3. `AdventureView` calls `PlayerHud.setup_combatant()` (buffs, cast bar, slots bound to the player's abilities), connects `ability_selected` → `on_player_ability_selected`, swaps the tilemap view for the combat view and fades it in.
+3. `AdventureView` calls `TechniqueDock.bind(ability_manager, vitals_manager)` (slots bound to the player's abilities, cast tray bound) and `VitalsPlate.bind_buffs(buff_manager)`, connects `ability_selected` → `on_player_ability_selected`, swaps the tilemap view for the combat view and fades it in.
 
 End:
 - Enemy Health ≤ 0 → `_calculate_gold_reward()` → `EventManager.trigger_event("q_first_steps_enemy_defeated")` (every victory; EventManager de-duplicates) → `trigger_combat_end(true, gold)`.
 - Player Health ≤ 0 → `trigger_combat_end(false, 0)`.
-- `AdventureView._on_stop_combat()` disconnects the player HUD (`PlayerHud.reset_combat()` puts the slots back into loadout preview), restores the map view and clears `is_in_combat`. It then calls `AdventureCombat.stop()`, which resets `EnemyNameplate`, runs `clear_all_buffs()` on both sides and `queue_free()`s both combatants. Next it calls `AdventureTilemap.handle_combat_result(successful, gold)`, and on defeat `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`. Because `is_in_combat` is already false at that point, `stop_adventure()` doesn't end the fight a second time.
+- `AdventureView._on_stop_combat()` lets the dock and the cabinet go (`TechniqueDock.reset()` puts the slots back into loadout preview and hides the cast tray; `VitalsPlate.unbind_buffs()` clears the sockets), restores the map view and clears `is_in_combat`. It then calls `AdventureCombat.stop()`, which resets `EnemyNameplate`, runs `clear_all_buffs()` on both sides and `queue_free()`s both combatants. Next it calls `AdventureTilemap.handle_combat_result(successful, gold)`, and on defeat `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`. Because `is_in_combat` is already false at that point, `stop_adventure()` doesn't end the fight a second time.
 
-Gold: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())`. All three multipliers are 1.0 in current content (`get_gold_multiplier()` is a stub).
+Gold is the static `AdventureCombat.gold_reward_for(choice, action)`: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())` for the first enemy of the pool (0 for an empty pool; the action's multiplier counts 1 with no action). `_calculate_gold_reward()` returns it and writes the log line, and the chest's fight drawer shows the same figure as "<gold> gold if you win". All three multipliers are 1.0 in current content (`get_gold_multiplier()` is a stub).
 
 ### Signals
 
@@ -288,42 +294,42 @@ Gold: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionDa
 |---------|--------|----------|
 | `AdventureTilemap` | `start_combat(choice)` | `AdventureView._on_start_combat` |
 | `AdventureCombat` | `trigger_combat_end(is_successful, gold_earned)` | `AdventureView._on_stop_combat` |
-| `VitalsManager` | `health_changed`, `madra_changed`, `stamina_changed` | `PlayerHud` (orbs, Stamina bar); `EnemyNameplate` (Health); `CombatantNode` (hit/heal reactions); `AdventureCombat` death checks (health) |
-| `CombatAbilityInstance` | `cooldown_started`, `cooldown_updated`, `cooldown_ready` | `AbilityButton` |
-| `CombatAbilityInstance` | `cast_started`, `cast_updated`, `cast_finished`, `cast_cancelled` | `CastBar` (player cast bar, enemy intent tab); `AbilityButton` (casting glow, affordability) |
+| `VitalsManager` | `health_changed`, `madra_changed`, `stamina_changed` | `VitalsPlate` (the player's orbs, rod and figures); `EnemyNameplate` (Health); `CombatantNode` (hit/heal reactions); `AdventureCombat` death checks (health) |
+| `CombatAbilityInstance` | `cooldown_started`, `cooldown_updated`, `cooldown_ready` | `TechniqueSlot` |
+| `CombatAbilityInstance` | `cast_started`, `cast_updated`, `cast_finished`, `cast_cancelled` | `CastBar` (enemy intent tab); `CastTray` and `TechniqueSlot` (the player's cast tray and casting frame) |
 | `CombatAbilityInstance` | `executed(instance)` | `CombatantNode` (lunge or buff pulse) |
-| `CombatBuffManager` | `buff_applied`, `buff_removed`, `buff_refreshed`, `buff_stacked` | `BuffBar` |
-| `AbilityButton` | `pressed`, `hovered(ability_data)`, `unhovered` | `AbilitiesPanel` |
-| `AbilitiesPanel` / `PlayerHud` | `ability_selected(instance)` | `AdventureCombat.on_player_ability_selected` |
-| `AbilitiesPanel` | `ability_hovered(ability_data)`, `ability_unhovered` | `PlayerHud` (cost previews) |
+| `CombatBuffManager` | `buff_applied`, `buff_removed`, `buff_refreshed`, `buff_stacked` | `VitalsPlate` (the player's sockets; it ignores `buff_refreshed`); `BuffBar` (the enemy's) |
+| `TechniqueSlot` | `pressed`, `hovered(ability_data)`, `unhovered` | `TechniqueDock` |
+| `TechniqueDock` | `ability_selected(instance)` | `AdventureCombat.on_player_ability_selected` |
 | `BuffIcon` | `hovered(buff_data)`, `unhovered` | `BuffBar` (buff tooltip) |
 
 ## Combat UI
 
 | Component | Script | Behavior |
 |-----------|--------|----------|
-| `PlayerHud` | `player_hud.gd` | The dock. `setup_vitals()` and `show_loadout()` at adventure start, `setup_combatant()` / `reset_combat()` around each fight. Forwards slot hovers to the orbs and Stamina bar as cost previews. Disables the Health orb's floating text during fights (damage numbers pop over the sprite instead) |
-| `ResourceOrb` | `resource_orb.gd` | `liquid_wave` shader on `madra_circle.png` (the zone panel's orb) with a pale ghost liquid that holds 0.45 s after a loss, a gold ring that pulses at or below `low_threshold`, value labels, and a regen tooltip. `preview_cost()` draws a line at the level a cost would leave (red if unaffordable) |
-| `ResourceBar` | `resource_bar.gd` | Flat `ProgressBar` (fill stylebox per resource) with the name on the left and `cur / max` on the right; regen is in its tooltip. Losses tween the bar and hold a ghost for 0.45 s before it drains; gains move both. Optional floating `-N`/`+N` text; `compact` for thin bars; `preview_cost()` highlights the segment a cost would spend |
-| `CastBar` | `cast_bar.gd` | Binds to a `CombatAbilityManager`: icon, name, time left, and a bar that fills toward release. Fades when idle but keeps its layout space; flashes on release; "Interrupted" and a shake on cancel. `danger_color` ramps the fill and `imminent_time` throbs the panel (used by `intent_bar.tscn`) |
+| `TechniqueDock` | `technique_dock.gd` | The player's technique bar. `show_loadout()` at adventure start, `bind(ability_manager, vitals_manager)` / `reset()` around each fight. Reads Q/W/E/R and clicks, emits `ability_selected` for a press the manager would accept and shakes the slot for one it would refuse. Owns the cast tray and the tooltip |
+| `TechniqueSlot` | `technique_slot.gd` | One slot: EMPTY (socket and key cap), PREVIEW (icon, cost, tan key) or ACTIVE. Key hint read from the `ability_slot_N` InputMap actions; the cost under the slot with the resource's mini icon (tan while unaffordable); the cooldown sweep with whole seconds left; a steady brass frame while casting; a brass flash when the cooldown ends; the hover frame; a shake when a press is refused |
+| `CastTray` | `cast_tray.gd` | The player's cast: the technique's name, a rod that fills toward release and the time left (`"%.1f s"` through `LacquerText.decimal_bbcode()`). Shows outright on `cast_started`, hides on `cast_finished` and `cast_cancelled` |
+| `TechniqueTooltip` | `technique_tooltip.gd` | The board above the dock: name, timing, cost, damage line, divider and description (see [Technique dock](#technique-dock)) |
+| `VitalsPlate` | `scenes/adventure/vitals_plate/vitals_plate.gd` | The vitals cabinet: Health and Madra orbs, the Stamina rod and three buff sockets for the player's buffs (see [Vitals cabinet and buffs in a fight](#vitals-cabinet-and-buffs-in-a-fight)) |
+| `BuffTooltip` | `buff_tooltip.gd` | The cabinet's buff tooltip: the name (`buff_id.capitalize()`), whole seconds left with `×N` stacks, a divider and `BuffEffectData.describe()`. The plate hides it when its buff ends |
+| `ResourceBar` | `resource_bar.gd` | Flat `ProgressBar` (fill stylebox per resource) with the name on the left and `cur / max` on the right; regen is in its tooltip. Losses tween the bar and hold a ghost for 0.45 s before it drains; gains move both. Optional floating `-N`/`+N` text; `compact` for thin bars. Only the enemy plate's Health bar uses it now, and nothing calls its `preview_cost()` since the dock dropped cost previews |
+| `CastBar` | `cast_bar.gd` | Binds to a `CombatAbilityManager`: icon, name, time left, and a bar that fills toward release. Fades when idle but keeps its layout space; flashes on release; "Interrupted" and a shake on cancel. `danger_color` ramps the fill and `imminent_time` throbs the panel (used by `intent_bar.tscn`, the enemy's intent tab, its only user now) |
 | `EnemyNameplate` | `enemy_nameplate.gd` | Intent tab, name, Health bar and buffs for the enemy. `setup(combatant)` / `reset()` |
 | `DamageNumber` | `damage_number.gd` | Pops from 40% scale, rises 70 px with a random drift and fades over 0.9 s |
-| `FloatingText` | `scenes/ui/floating_text/floating_text.gd` | Rises 100 px over 1.5 s, starts fading after 0.45 s, frees itself. Used by the Health orb on the map and by `ResourceBar` |
-| `AbilitiesPanel` | `abilities_panel.gd` | Four static slots. `show_loadout()` previews the equipped techniques; `bind()` maps each ability instance to its loadout slot (`AbilityManager.get_ability_at_slot()`, first free slot as a fallback) and enables Q/W/E/R. Owns the ability tooltip |
-| `AbilityButton` | `ability_button.gd` | One slot: EMPTY (frame and key), PREVIEW (dimmed icon and costs) or ACTIVE. Key hint read from the `ability_slot_N` InputMap actions; cost strip with resource pips; cooldown sweep (`time_left / base_cooldown`) and `"%.1f"` label; gold glow while casting; when ready and unaffordable: icon alpha 0.35, border `#553333`, missing costs `#E06060`. Hover, press and cooldown-ready feedback |
-| `BuffBar` | `buff_bar.gd` | Wrapping row of `BuffIcon`s mirroring a `CombatBuffManager` (durations synced from `ActiveBuff.time_remaining` every frame); hosts the buff tooltip |
+| `FloatingText` | `scenes/ui/floating_text/floating_text.gd` | Rises 100 px over 1.5 s, starts fading after 0.45 s, frees itself. Used by `ResourceBar` and by cycling |
+| `BuffBar` | `buff_bar.gd` | Wrapping row of `BuffIcon`s mirroring a `CombatBuffManager` (durations synced from `ActiveBuff.time_remaining` every frame); hosts the buff tooltip. The enemy plate's |
 | `BuffIcon` | `buff_icon.gd` | Icon, duration sweep, `"%.1fs"` under the icon, stack count when > 1 |
-| `CombatAbilityTooltip` | `combat_ability_tooltip.gd` | Icon, name, `AbilityStatsDisplay` in `TIMING_COSTS` and `DAMAGE_TOTAL` modes; damage row hidden for abilities with no target effects. Positioned above the hovered slot and re-anchored when its layout resizes. Hidden on unhover or key press |
-| `CombatBuffTooltip` | `combat_buff_tooltip.gd` | Name (`buff_id.capitalize()`), generated effect text, live `x.xs remaining`, `xN stacks` |
+| `CombatBuffTooltip` | `combat_buff_tooltip.gd` | The enemy plate's buff tooltip: name (`buff_id.capitalize()`), effect text from `BuffEffectData.describe()`, live `x.xs remaining`, `xN stacks` |
 
 Keybindings (`project.godot`, physical keys):
 
 | Action | Key | Handler |
 |--------|-----|---------|
-| `ability_slot_1` … `ability_slot_4` | Q / W / E / R | `AbilitiesPanel._unhandled_input` → ability in loadout slot 0–3 while the slots are bound for a fight (ignored if its button is disabled) |
+| `ability_slot_1` … `ability_slot_4` | Q / W / E / R | `TechniqueDock._unhandled_input` → ability in loadout slot 0–3 while the slots are bound for a fight (a press the manager would refuse shakes the slot) |
 | `open_abilities` | A | Opens/closes the Abilities view from the zone view (not available during adventures) |
 
-Styleboxes in use (`assets/styleboxes/combat/`): `panel_dock.tres` (dock plate), `orb_ring.tres` / `orb_shine.tres` (orbs), `panel_intent.tres` (enemy intent tab), `panel_nameplate.tres` (enemy card and player cast bar), `slot_cast_glow.tres`, `bar_track.tres`, `bar_fill_{health,stamina,ghost}.tres`, `cast_bar_fill.tres` / `cast_bar_fill_enemy.tres`, `cost_preview.tres` / `cost_line.tres`, and `panel_keyhint.tres` (key hint and cost strip, also the loadout slot hint).
+Styleboxes in use (`assets/styleboxes/combat/`, all for the enemy's plate and `ResourceBar`): `panel_intent.tres` (enemy intent tab), `panel_nameplate.tres` (enemy card), `bar_track.tres`, `bar_fill_{health,ghost}.tres`, `cast_bar_fill.tres` / `cast_bar_fill_enemy.tres` and `cost_preview.tres`. The player's side is built from the lacquer kit, and both tooltips sit on `assets/styleboxes/lacquer/board9.tres`.
 
 ## Integration Points
 
@@ -398,25 +404,26 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 | `scenes/combat/combatant/combatant_visual/combatant_visual.gd` / `.tscn` | Fighter sprite, shadow, hit flash, lunge, damage numbers |
 | `scenes/combat/combatant/combatant_visual/damage_number.gd` | Floating damage number |
 | `assets/shaders/hit_flash.gdshader` | White/gold flash on the fighter sprite |
-| `scenes/ui/combat/player_hud/player_hud.gd` | The adventure dock |
+| `scenes/ui/combat/technique_dock/technique_dock.gd` (with `technique_slot/`, `cast_tray/`, `technique_tooltip/`) | The technique dock, its slots, cast tray and tooltip |
+| `assets/shaders/lacquer_cooldown_sweep.gdshader` | The cooldown sweep on a slot's icon |
+| `scenes/adventure/vitals_plate/vitals_plate.gd` | The vitals cabinet: orbs, Stamina rod, the player's buff sockets |
+| `scenes/ui/combat/buff_tooltip/buff_tooltip.gd` | The cabinet's buff tooltip |
+| `scenes/abilities/ability_row/ability_row.gd` | `format_cost()`, `format_seconds()` and `format_damage()`, shared with the Abilities book |
 | `scenes/ui/combat/enemy_nameplate/enemy_nameplate.gd` | Enemy plate (intent, name, Health, buffs) |
-| `scenes/ui/combat/resource_orb/resource_orb.gd` | Health and Madra orbs |
-| `scenes/ui/combat/resource_bar/resource_bar.gd` | Flat vitals bar with ghost trail and cost preview |
-| `scenes/ui/combat/cast_bar/cast_bar.gd`, `intent_bar.tscn` | Player cast bar and enemy intent tab |
-| `scenes/ui/combat/abilities_panel/abilities_panel.gd` | Technique slots and keybindings |
-| `scenes/ui/combat/ability_button/ability_button.gd` | Technique slot |
-| `scenes/ui/combat/buff_bar/buff_bar.gd` | Buff row and buff tooltip host |
+| `scenes/ui/combat/resource_bar/resource_bar.gd` | Flat vitals bar with ghost trail (the enemy's Health bar) |
+| `scenes/ui/combat/cast_bar/cast_bar.gd`, `intent_bar.tscn` | Enemy intent tab |
+| `scenes/ui/combat/buff_bar/buff_bar.gd` | The enemy plate's buff row and buff tooltip host |
 | `scenes/ui/combat/buff_icon/buff_icon.gd` | Buff icon |
-| `scenes/ui/combat/combat_ability_tooltip/combat_ability_tooltip.gd` | Ability tooltip |
-| `scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd` | Buff tooltip |
+| `scenes/ui/combat/combat_buff_tooltip/combat_buff_tooltip.gd` | The enemy plate's buff tooltip |
 | `scripts/resource_definitions/combat/combatant_data.gd` | `CombatantData` |
 | `scripts/resource_definitions/combat/combat_effect_data.gd` | `CombatEffectData`, damage formula |
 | `scripts/resource_definitions/combat/buff_effect_data.gd` | `BuffEffectData` |
 | `scripts/resource_definitions/abilities/ability_data.gd` | `AbilityData`, costs, predicates |
 | `singletons/player_manager/player_manager.gd` | Owns the persistent player `VitalsManager` |
 | `resources/combat/combatant_data/` | Enemy definitions and enemy abilities |
-| `tests/unit/test_combat_damage.gd`, `test_combat_effect_data.gd`, `test_combat_effect_types.gd`, `test_combat_buff_manager_stacking.gd`, `test_combat_buff_manager_strip.gd`, `test_combat_ability_instance_cancel.gd`, `test_adventure_combat_victory_event.gd`, `test_adventure_combat_count.gd` | Unit tests |
+| `tests/unit/test_combat_damage.gd`, `test_combat_effect_data.gd`, `test_combat_effect_types.gd`, `test_combat_buff_manager_stacking.gd`, `test_combat_buff_manager_strip.gd`, `test_combat_ability_instance_cancel.gd`, `test_adventure_combat_victory_event.gd`, `test_adventure_combat_count.gd`, `test_fight_rules.gd`, `test_buff_effect_describe.gd`, `test_technique_slot_math.gd` | Unit tests |
 | `tests/integration/test_empty_palm_interrupt.gd`, `test_power_font_buff_strip.gd` | Integration tests (real `.tres` through the effect pipeline) |
+| `tests/integration/test_technique_dock.gd`, `test_vitals_plate.gd` | Integration tests (the dock's slots, sweep, cast tray, presses and tooltip; the cabinet's figures, orbs and buff sockets) |
 
 ## Work Remaining
 
@@ -424,7 +431,6 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 
 - `[MEDIUM]` Equipment never updates the player's vitals maxima. The player `VitalsManager` recomputes max Health/Stamina/Madra only on `CharacterManager.base_attribute_changed` (`vitals_manager.gd` `_ready`). Equipping Reinforced Robes (+4 BODY) or Leeching Ring (+2 FOUNDATION) leaves max Health/Madra unchanged until a base attribute changes or the game restarts, while damage and defense already use the new totals.
 - `[MEDIUM]` Defense ignores buffs. `CombatEffectManager.process_effect()` passes the target's unmodified `combatant_data.attributes` to `calculate_damage()`, so RESILIENCE/SPIRIT/WILLPOWER attribute buffs do nothing defensively.
-- `[MEDIUM]` Enemy ability tooltips show the player's numbers. `AbilityStatsDisplay` always reads `CharacterManager.get_total_attributes_data()`, so hovering Coalescing Spirit's Madra Lash shows a DMG value from the player's SPIRIT (10 on a new save) instead of the spirit's 25.
 - `[LOW]` 0 s-cooldown abilities skip the opening cooldown and the post-interrupt cooldown (`CombatAbilityInstance._start_cooldown()` returns early when `base_cooldown <= 0`). Madra Lash and Famishing Bite start casting on frame 1, and an Empty Palm interrupt only restarts their cast.
 - `[LOW]` `AdventureCombat._on_player_health_changed` stays connected to the player `VitalsManager` after combat. A lethal non-combat Health change during an adventure (e.g. a trap's `ChangeVitalsEffectData`) is reported as a combat defeat (`_combats_fought` + 1, `handle_combat_result(false)`). Latent: `test_trap_encounter` (−10 Health) is not in any adventure.
 - `[LOW]` `FloatingText._ready()` sets font size with `add_theme_constant_override("font_size", 24)`, which does not change a Label's font size (needs a font-size override).
@@ -453,17 +459,16 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 
 ### UI
 
-- `[MEDIUM]` Buff tooltip misstates stacked buffs: "Outgoing damage x1.5" regardless of stacks (actual 1.5^stacks), DoT text ignores stacks, and `consume_on_use` and `effect_description` are not shown.
-- `[LOW]` The ability tooltip only shows the raw total of the first target effect; heals (Coalesce), interrupts, strips and descriptions are not shown.
+- `[MEDIUM]` Buff tooltips (`BuffEffectData.describe()`, in the cabinet's and the enemy plate's tooltips) misstate stacked buffs: "Outgoing damage x1.5" regardless of stacks (actual 1.5^stacks), DoT text ignores stacks, and `consume_on_use` and `effect_description` are not shown.
+- `[LOW]` The technique tooltip's damage line covers only a first target effect that deals damage; heals (Coalesce), interrupts and strips show only through the description text.
 - `[LOW]` The enemy plate does not mark elites or bosses; the encounter type never reaches `AdventureCombat` (elites are only drawn larger).
-- `[LOW]` The quest window, when expanded, overlaps the top of an elite's plate.
+- `[LOW]` The enemy plate's right end runs under the chest during a fight (about x 1120 to 1460) until the opponent page replaces the plate.
 - `[LOW]` The combat backdrop is the Spirit Valley parallax background (`ZoneViewBackground`, which only the adventure view uses since the lacquer zone view dropped it) plus Atmosphere values hardcoded in `_setup_atmosphere()`; there is no per-zone backdrop.
-- `[LOW]` The cooldown overlay divides by `base_cooldown`, so the 1.5 s opening cooldown renders as a fraction of the full cooldown (10% for Enforce).
 
 ### Tech Debt
 
-- `[LOW]` Dead code: the unused child `VitalsManager` on the player's `CombatantNode`, and art the old info panel used: `assets/sprites/ui/resource_bar/*.png` and `assets/sprites/character/base_player.png`.
-- `[LOW]` `AbilitiesPanel._unhandled_input` marks a slot key handled during a fight even when that slot is empty.
+- `[LOW]` Dead code: the unused child `VitalsManager` on the player's `CombatantNode`, art the old info panel used (`assets/sprites/ui/resource_bar/*.png`, `assets/sprites/character/base_player.png`), and `AbilityStatsDisplay`, `StatLabel` and `StatTooltip` (`scenes/abilities/`), which lost their last user with the old ability tooltip. The user's `ability_button_border.png` and `ability_button_overlay.png` are unused too and stay until the user says to delete them.
+- `[LOW]` `TechniqueDock._unhandled_input` marks a slot key handled during a fight even when that slot is empty.
 - `[LOW]` `AbilityEquipSlot.KEY_LABELS` hardcodes Q/W/E/R; the combat slots read their keys from the InputMap.
 - `[LOW]` Public functions without `##` doc comments (CLAUDE.md): `VitalsManager.initialize_current_values()`/`apply_vitals_change()`, `CombatAbilityManager.can_cast_ability_instance()`, `AdventureCombat.on_player_ability_selected()`.
-- `[LOW]` Test gaps: nothing covers `SimpleEnemyAI`, `VitalsManager`, `execute_ability()` (modifier consumption, effect order), incoming modifiers, DoT ticks, the gold formula, or `AdventureCombat.stop()`. `test_adventure_combat_victory_event.gd` starts a real `AdventureCombat` but only checks how the fight ends.
+- `[LOW]` Test gaps: nothing covers `SimpleEnemyAI`, `VitalsManager`, `execute_ability()` (modifier consumption, effect order), incoming modifiers, DoT ticks, or `AdventureCombat.stop()`. (`max_health_for()` and `gold_reward_for()` are tested in `test_fight_rules.gd`.) `test_adventure_combat_victory_event.gd` starts a real `AdventureCombat` but only checks how the fight ends.
