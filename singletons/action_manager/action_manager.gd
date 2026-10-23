@@ -158,9 +158,12 @@ func resolve_idle_action(zone_id: String) -> ZoneActionData:
 			return action
 	return null
 
-## Madra per second the running action earns: a training action's trickle (the
-## Aura Well's 1.5), or 0 when anything else or nothing runs.
+## Madra per second the running action earns: the running cycle's measured rate
+## while the cycling action runs (0 while no cycle is drawing Madra), a training
+## action's trickle (the Aura Well's 1.5), or 0 when anything else or nothing runs.
 func get_current_madra_per_second() -> float:
+	if current_action != null and current_action.action_type == ZoneActionData.ActionType.CYCLING:
+		return CyclingManager.get_madra_rate()
 	var training := current_action as TrainingActionData
 	return training.get_madra_per_second() if training else 0.0
 

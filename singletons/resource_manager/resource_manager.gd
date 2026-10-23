@@ -72,9 +72,10 @@ func award_resource(resource_type: ResourceType, amount: float, quiet: bool = fa
 # MADRA MANAGEMENT
 #-----------------------------------------------------------------------------
 
-## Adds Madra, capped to [0, max Madra]. Logs "Gained N Madra" with the amount
-## actually added, unless quiet or less than 1 was added (so a capped add is silent).
-func add_madra(amount: float, quiet: bool = false) -> void:
+## Adds Madra, capped to [0, max Madra], and returns the amount actually added
+## (0 at the cap). Logs "Gained N Madra" with that amount, unless quiet or less
+## than 1 was added (so a capped add is silent).
+func add_madra(amount: float, quiet: bool = false) -> float:
 	var before: float = live_save_data.madra
 	live_save_data.madra = clamp(before + amount, 0.0, CultivationManager.get_max_madra())
 	madra_changed.emit(live_save_data.madra)
@@ -83,6 +84,7 @@ func add_madra(amount: float, quiet: bool = false) -> void:
 	var added: float = snappedf(live_save_data.madra - before, 0.001)
 	if LogManager and not quiet and added >= 1.0:
 		LogManager.log_message("[color=cyan]Gained %d Madra[/color]" % int(added))
+	return added
 
 func spend_madra(amount: float) -> bool:
 	if live_save_data.madra >= amount:
