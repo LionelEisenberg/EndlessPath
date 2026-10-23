@@ -15,14 +15,6 @@ extends Node
 ## 3. If checks pass:
 ##    - Resources are consumed immediately.
 ##    - Ability instance start_cast() is called.
-##    - Internal signals emitted.
-
-#-----------------------------------------------------------------------------
-# SIGNALS
-#-----------------------------------------------------------------------------
-
-signal ability_registered(instance: CombatAbilityInstance)
-signal ability_used(instance: CombatAbilityInstance, target: CombatantNode)
 
 #-----------------------------------------------------------------------------
 # COMPONENTS
@@ -53,8 +45,6 @@ func _create_ability_instance(ability_data: AbilityData) -> void:
 	var instance = CombatAbilityInstance.new(ability_data, owner_combatant)
 	add_child(instance)
 	abilities.append(instance)
-	
-	ability_registered.emit(instance)
 	Log.info("CombatAbilityManager: %s: Registered ability %s" % [owner_combatant.combatant_data.character_name, ability_data.ability_name])
 
 #-----------------------------------------------------------------------------
@@ -77,16 +67,6 @@ func cancel_current_cast() -> bool:
 			ability.cancel_cast()
 			return true
 	return false
-
-## Returns the number of abilities.
-func get_ability_count() -> int:
-	return abilities.size()
-
-## Returns the ability instance at the given index from the abilities array.
-func get_ability(index: int) -> CombatAbilityInstance:
-	if index >= 0 and index < abilities.size():
-		return abilities[index]
-	return null
 
 func can_cast_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode) -> bool:
 	if not instance in abilities:
@@ -125,5 +105,4 @@ func use_ability_instance(instance: CombatAbilityInstance, enemy: CombatantNode)
 	Log.info("CombatAbilityManager: %s: Triggering ability %s on %s" % [owner_combatant.combatant_data.character_name, instance.ability_data.ability_name, target_name])
 
 	instance.start_cast(enemy)
-	ability_used.emit(instance) # Emitted when usage is accepted/started
 	return true

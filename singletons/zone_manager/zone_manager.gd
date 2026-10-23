@@ -248,10 +248,6 @@ func get_zone_by_id(zone_id: String) -> ZoneData:
 func get_all_zones() -> Array[ZoneData]:
 	return _all_zone_data.list
 
-## Returns all unlocked zones.
-func get_unlocked_zones() -> Array[ZoneData]:
-	return []
-
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
 #-----------------------------------------------------------------------------

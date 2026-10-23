@@ -172,7 +172,6 @@ Each card is `scenes/zones/zone_action_button/zone_action_button.tscn` (class `Z
 | `get_available_actions(zone_id = current)` | `Array[ZoneActionData]` | See [Unlock gating](#unlock-gating) |
 | `get_action_by_id(action_id)` | `ZoneActionData` | Searches every zone in the list |
 | `get_zone_by_id(zone_id)`, `get_all_zones()` | `ZoneData`, `Array[ZoneData]` | The list only; demo zones are not in it |
-| `get_unlocked_zones()` | `Array[ZoneData]` | Stub that always returns `[]`; no callers |
 
 `ActionManager` public API: `select_action(action_data)`, `stop_action(successful = true)`, `resolve_idle_action(zone_id) -> ZoneActionData`, `get_current_madra_per_second() -> float` (a running training action's Madra per second, else 0), `confirm_adventure_start(action_data, madra_budget)`, `get_current_action()`, `clear_current_action()`, plus the public vars `current_action` and `action_timer` (a `Timer` child that foraging and training reuse; the Now strip and the map ring read it every frame).
 
@@ -512,8 +511,6 @@ Other signals the zone code consumes:
 - `ResourceManager.madra_changed` (`AdventurePresenter`, `CultivatorPlate`) and `gold_changed` (`CultivatorPlate`, `MerchantPresenter`).
 - `PersistenceManager.save_data_reset` (`ZoneTilemap` ends a walk, `MapMarkers` closes the popover).
 
-`ZoneTilemap.zone_selected(zone_data, tile_coord)` is emitted when a walk starts, but nothing listens to it.
-
 ### Zone selection (travel)
 
 ```
@@ -521,7 +518,6 @@ hexagon_tile_map_layer.gd _input (left click on a cell)           or a plate pre
   └─ tile_clicked(coord) → ZoneTilemap._on_zone_tile_clicked → click_zone(zone)
        └─ MapMarkers.click_zone(zone_id) → MapPopoverState.click(zone_id, map state)
             ├─ TRAVEL (open zone): close the popover; _travel_to(zone)
-            │     ├─ zone_selected.emit (no listeners)
             │     └─ PlayerCharacter.move_to_position(stand, 275 map px/s, whole-px steps)   # the old action keeps running
             │           └─ movement_completed → _arrive(zone)
             │                 ├─ selected_zone setter → ZoneManager.set_current_zone → zone_changed
@@ -548,14 +544,14 @@ Foraging charges no Madra. `forage_active` and `forage_start_time` are never set
 
 ### Training
 
-1. `_execute_train_action()` emits `start_training` and starts the timer at `tick_interval_seconds`.
+1. `_execute_train_action()` starts the timer at `tick_interval_seconds`.
 2. On each tick, `_on_train_timer_finished`:
    1. Reads the previous tick count for the current zone and computes the previous level.
    2. Calls `ZoneManager.increment_training_ticks()`.
    3. Runs `effects_per_tick`. The Aura Well trickle (`AwardResourceEffectData`, `quiet = true`) adds Madra without a log line.
    4. Emits `training_tick_processed(action, new_ticks)`.
    5. For each level from `prev_level + 1` to `new_level`: runs `effects_on_level`, then emits `training_level_gained(action, level)`.
-3. On stop, `stop_training` is emitted, the timer resets and the completion effects run. Ticks stay in `training_tick_progress`, so the next session continues from the same total.
+3. On stop, the timer resets and the completion effects run. Ticks stay in `training_tick_progress`, so the next session continues from the same total.
 
 ### Adventure start (zone side)
 
@@ -822,10 +818,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 
 - `[MEDIUM]` Removing a zone id still wipes the whole save. `PersistenceManager._ready()` resets all data when `SaveGameData.verify()` (`_verify_current_selected_zone_id()`) fails; only ids listed in `SaveGameData.ZONE_ID_MIGRATIONS` are moved first. Renaming an `action_id` silently drops its completion count, last idle action and seen record, so one-time dialogues reappear.
 - `[LOW]` Dead code and assets:
-  - `ZoneManager.get_unlocked_zones()` always returns `[]` and has no callers.
-  - `ZoneTilemap.zone_selected` has no listeners.
-  - The old zone view leftovers: `scenes/zones/glowing_path/` with `assets/shaders/flowing_path.gdshader`, `assets/shaders/action_card_sweep.gdshader`, `assets/styleboxes/zones/action_card_selected.tres`, `scenes/ui/tick_progress_bar/` (`TickProgressBar`) and `assets/sprites/ui/lock_icon.png` are no longer referenced.
-  - `assets/shaders/tile_aura.gdshader`, `scenes/tilemaps/pulse_node.gd` / `.tscn` with `assets/shaders/pulse_node.gdshader`, and `scenes/tilemaps/tile_map_layer.tscn` are not referenced anywhere.
+  - `assets/sprites/ui/lock_icon.png`, the old zone view's lock icon, is no longer referenced.
   - Nothing reads `ZoneData.icon`, and nothing calls `AdventureActionData.is_valid()`.
 - `[LOW]` A signal declaration doesn't match its emit: `start_foraging(action_data)` is emitted with no argument.
 - `[LOW]` `FOREST_ATLAS_COLS` and `FOREST_VARIANT_COUNT` are defined in both `zone_tilemap.gd` and `HexForestAtlas`.

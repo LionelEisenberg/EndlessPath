@@ -320,6 +320,5 @@ Costs, timings, scaling and effects for all seven: [ABILITIES_MATRIX.md](ABILITI
 
 ### Tech Debt
 
-- `[LOW]` Unused: `StatLabel.set_value()`, and the `PanelAbilityCard` theme variant and `assets/styleboxes/abilities/pill_tag.tres` (the ability card that used them was replaced by `AbilityRow`).
 - `[LOW]` Public functions without `##` doc comments: `AbilityData.validate()`, `AbilityData.get_total_cost_display()`.
 - `[LOW]` `test_ability_manager.gd` does not cover `swap_slots`, `equip_ability_at_slot` (move/overwrite), `get_ability_at_slot` bounds or save reset, and it replaces `AbilityManager._live_save_data` without restoring it. No tests cover `AbilityData` predicates or `can_afford`/`consume_costs`.

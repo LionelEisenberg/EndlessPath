@@ -109,7 +109,6 @@ Stored as `SaveGameData.unlock_progression`. `reset()` replaces it with a fresh 
 | `signal condition_unlocked(condition_id: String)` | Emitted once per newly latched id. Also emitted with `""` on init and on save reset so that listeners refresh. |
 | `are_unlock_conditions_met(unlock_conditions: Array[UnlockConditionData]) -> bool` | True if every condition's id is latched |
 | `is_condition_unlocked(condition_id: String) -> bool` | Latched-set membership |
-| `get_achieved_conditions() -> Array[String]` | The latched list. It has no callers. |
 | `force_unlock_condition(condition_id: String) -> void` | Dev-only. Latches the id and emits `condition_unlocked`. Idempotent. |
 
 ### Sweep
@@ -268,7 +267,7 @@ Untested: the sweep itself (`_evaluate_all_conditions`), `CULTIVATION_STAGE`, `A
 
 ### Tech Debt
 
-- `[LOW]` UnlockManager has dead code: `_get_conditions_for_type()`, `_compare_values()` (a duplicate of `UnlockConditionData._compare_values()`), and `get_achieved_conditions()` have no callers. The public `are_unlock_conditions_met()` has no `##` doc comment.
+- `[LOW]` The public `UnlockManager.are_unlock_conditions_met()` has no `##` doc comment.
 - `[LOW]` `comparison_op` is never validated. Event conditions are authored with `""` or `"=="` (both ignored), but an empty or unknown op on a comparison type silently evaluates `false`.
 - `[LOW]` Mismatched ext_resource UIDs fall back to the path, and Godot warns on load. `q_first_steps_enemy_defeated.tres` (header `uid://bqfsendefeat01`) is referenced as `uid://d1vxkodelucwu`, and `q_reach_cd_10.tres` (header `uid://bqreachcd10001`) as `uid://i2xnqd3pem53`. `merchant_discovered.tres` uses the hand-written `uid://bunlock_mrch_discov`.
 - `[LOW]` No data-validation test ensures that every condition used by a zone or action gate is registered. An unregistered gate hides its action forever.

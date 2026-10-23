@@ -21,14 +21,14 @@ func _make_outgoing_buff(buff_id: String, multiplier: float, duration: float = 1
 
 func test_outgoing_modifier_single_application_returns_base_multiplier() -> void:
 	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
-	assert_almost_eq(_manager.get_outgoing_damage_modifier(), 1.5, 0.0001,
+	assert_almost_eq(_manager.consume_outgoing_modifier(), 1.5, 0.0001,
 		"Single stack of 1.5x should return 1.5")
 
 func test_outgoing_modifier_stacks_multiplicatively_on_reapply() -> void:
 	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
 	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
 	_manager.apply_buff(_make_outgoing_buff("hunger", 1.5))
-	assert_almost_eq(_manager.get_outgoing_damage_modifier(), 1.5 * 1.5 * 1.5, 0.0001,
+	assert_almost_eq(_manager.consume_outgoing_modifier(), 1.5 * 1.5 * 1.5, 0.0001,
 		"Three stacks of 1.5x should compound to 3.375x")
 
 func test_outgoing_modifier_reapply_keeps_single_active_buff_entry() -> void:

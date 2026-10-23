@@ -71,7 +71,6 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `save_data() -> Error` | `ResourceSaver.save(save_game_data, save_path)`, or `ERR_LOCKED` without writing while saving is blocked |
 | `is_save_blocked() -> bool` | True when the save on disk could not be read or checked this session |
 | `load_new_save_data()` | Calls `save_game_data.reset()` (in place, so all references stay valid), then `save_data()` (`Log.critical` on error), then emits `save_data_reset` |
-| `is_base_game_save() -> bool` | Compares every property with a fresh `SaveGameData`. Nothing calls it (see Work Remaining) |
 
 ### SaveGameData fields and owners
 
@@ -255,7 +254,6 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 
 - `[MEDIUM]` A failed `verify()` wipes the entire save. `PersistenceManager._ready()` calls `load_new_save_data()` when `current_selected_zone_id` names an unknown zone (for example, after a zone id is renamed without an entry in `SaveGameData.ZONE_ID_MIGRATIONS`). It should repair that one field to `""` instead.
 - `[LOW]` An unreadable save is kept and copied aside, but the player is not told. The session silently runs on a default save with saving off; only the console and log file say why.
-- `[LOW]` `is_base_game_save()` compares sub-resources (`inventory`, `character_attributes`, …) by object identity, so it returns `false` for any real save. It has no callers. Delete it or rewrite it.
 
 ### Missing Functionality
 

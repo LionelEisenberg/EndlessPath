@@ -1,6 +1,6 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-22 (the map-first zone view on `feat/zone-view-redesign-4656b7`, not merged)
+Last updated: 2026-10-22
 
 > This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >

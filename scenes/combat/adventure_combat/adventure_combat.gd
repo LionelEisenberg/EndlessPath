@@ -30,12 +30,6 @@ var enemy_combatant: CombatantNode
 var _atmosphere: Node
 
 #-----------------------------------------------------------------------------
-# TODO: DELETE DEBUG
-#-----------------------------------------------------------------------------
-
-@export var enable_ai: bool = true
-
-#-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
 
@@ -154,9 +148,8 @@ func _create_enemy_combatant() -> void:
 	# Setup AI
 	var ai = SimpleEnemyAI.new()
 	ai.name = "EnemyAI"
-	if enable_ai:
-		enemy_combatant.add_child(ai)
-		ai.setup(enemy_combatant, player_combatant)
+	enemy_combatant.add_child(ai)
+	ai.setup(enemy_combatant, player_combatant)
 	
 	# Connect player_resource_manager to the trigger_combat_end signal
 	enemy_combatant.vitals_manager.health_changed.connect(_on_enemy_health_changed)

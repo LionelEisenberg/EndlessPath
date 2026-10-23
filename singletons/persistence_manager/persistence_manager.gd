@@ -76,16 +76,6 @@ func load_data() -> void :
 func is_save_blocked() -> bool:
 	return _save_blocked
 
-func is_base_game_save() -> bool:
-	var _base_game_save = SaveGameData.new()
-	for property in  _base_game_save.get_property_list():
-		if property["name"] == "resource_path":
-			continue
-		if _base_game_save.get(property["name"]) != save_game_data.get(property["name"]):
-			return false
-
-	return true
-
 #-----------------------------------------------------------------------------
 # SAVE SAFETY
 #-----------------------------------------------------------------------------
