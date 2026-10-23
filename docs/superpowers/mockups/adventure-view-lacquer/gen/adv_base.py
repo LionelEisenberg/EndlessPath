@@ -24,6 +24,7 @@ import lq_base as B  # noqa: E402
 import kit_ui as K   # noqa: E402
 
 B.OUT = OUT          # lq_base.save() writes lacquer_<name>_ai.png here
+B.TILES = ASSETS + 'sprites/tilemap/hex_tiles/forest/'   # the user's forest tiles the zone kit's helpers read (kit_map.mask()): this repo's, not the zone kit's authoring session's
 
 from lq_base import (CLEAR, INK, DEEP, LAC, GRAIN, GRAIN2, RAISED, RIM_S, RIM, BRASS,  # noqa: E402,F401
                      BRASS_SH, CREAM, TAN, JADE_HI, JADE, JADE_SH, JADE_OL, M_HI, M_PALE, M_MID,

@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://c7m58abwfsuuq" path="res://assets/ui/lacquer/map/lacquer_hex_hover_in_ai.png" id="3_hover_in"]
 [ext_resource type="PackedScene" uid="uid://df31gdo3jg7rp" path="res://scenes/camera/camera_clamp_controller/camera_clamp_controller.tscn" id="4_yfmtn"]
 [ext_resource type="TileSet" uid="uid://ckss74jbn42lx" path="res://scenes/tilemaps/fog_tileset.tres" id="5_fog"]
-[ext_resource type="Texture2D" uid="uid://b5iaj785gphie" path="res://assets/ui/lacquer/map/lacquer_hex_current_ai.png" id="7_current"]
+[ext_resource type="Texture2D" uid="uid://b4ehix7lrb4n4" path="res://assets/ui/lacquer/map/lacquer_hex_current_heavy_ai.png" id="7_current"]
 [ext_resource type="PackedScene" uid="uid://bq7k2r0utedv4" path="res://scenes/adventure/adventure_route/adventure_route.tscn" id="8_route"]
 [ext_resource type="Texture2D" uid="uid://b4c6n4m45n8ya" path="res://assets/ui/lacquer/map/lacquer_char_shadow_ai.png" id="9_shadow"]
 [ext_resource type="PackedScene" uid="uid://dhdpu8b5bvy1b" path="res://scenes/adventure/adventure_map_markers/adventure_map_markers.tscn" id="13_markers"]

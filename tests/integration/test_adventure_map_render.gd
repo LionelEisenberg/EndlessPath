@@ -16,7 +16,9 @@ extends GutTest
 const AdventureTilemapScene := preload("res://scenes/adventure/adventure_tilemap/adventure_tilemap.tscn")
 const AdventureMapFixture := preload("res://tests/integration/adventure_map_fixture.gd")
 
-const CURRENT_RIM_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/map/lacquer_hex_current_ai.png")
+const CURRENT_RIM_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/map/lacquer_hex_current_heavy_ai.png")
+## The zone map's current rim, which the adventure's replaces.
+const ZONE_CURRENT_RIM_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/map/lacquer_hex_current_ai.png")
 const HOVER_RIM_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/map/lacquer_hex_hover_ai.png")
 const HOVER_IN_RIM_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/map/lacquer_hex_hover_in_ai.png")
 const SHADOW_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/map/lacquer_char_shadow_ai.png")
@@ -246,13 +248,27 @@ func test_current_rim_follows_the_player() -> void:
 		return
 	_start()
 	assert_true(rim.visible, "shown once the run starts")
-	assert_eq(rim.texture, CURRENT_RIM_TEXTURE, "the brass rim with its lacquer collar")
+	assert_eq(rim.texture, CURRENT_RIM_TEXTURE, "the heavier brass rim with its lacquer collar")
 	assert_eq(rim.position, _centre(START), "on the start tile")
 
 	await _walk_to(OPEN_NEAR)
 
 	assert_eq(rim.position, _centre(_tilemap.get_current_tile()), "on the tile the player stands on")
 	assert_eq(_tilemap.get_current_tile(), OPEN_NEAR, "precondition: the walk arrived")
+
+## The player's hex wears a rim two px heavier than the zone map's: its own
+## file, of the tile's own size so that it lies on the hex as the zone's does.
+## The zone map keeps the lighter rim.
+func test_current_rim_is_the_heavy_rim_at_the_tiles_size() -> void:
+	var rim := _node("CurrentRim") as Sprite2D
+	assert_not_null(rim, "the map has a current rim")
+	if rim == null:
+		return
+	assert_eq(rim.texture.resource_path, "res://assets/ui/lacquer/map/lacquer_hex_current_heavy_ai.png", "the adventure's own rim")
+	assert_eq(rim.texture.get_size(), Vector2(164, 190), "164x190, the tile's size, as the zone's rim is")
+	assert_ne(rim.texture, ZONE_CURRENT_RIM_TEXTURE, "not the zone map's rim")
+	assert_eq(ZONE_CURRENT_RIM_TEXTURE.get_size(), rim.texture.get_size(), "which is the same size, so either lies on a hex alike")
+	assert_true(rim.centered, "centred on the tile, as the zone's rim is")
 
 func test_hover_rims() -> void:
 	var rim := _node("HoverRim") as Sprite2D
