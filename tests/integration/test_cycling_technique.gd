@@ -681,6 +681,31 @@ func test_a_long_hitch_lights_the_whole_groove() -> void:
 	assert_false(_technique.is_cycling())
 	assert_eq(groove.get_lit_count(), groove.get_cell_count())
 
+func test_a_technique_set_up_while_another_cycles_leaves_its_session() -> void:
+	# The session belongs to the technique that started it. Another technique's
+	# setup() (the one its _ready() runs, too) and stop end only a session of its own.
+	_technique.start_cycle()
+	_run(1.0, 60.0, true)
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001, "precondition: the session shows the cycle's rate")
+	var other: CyclingTechnique = TECHNIQUE_SCENE.instantiate() as CyclingTechnique
+	other.technique_data_input = load(FOUNDATION_PATH)
+	add_child_autofree(other)
+	other.set_process(false)
+	assert_true(CyclingManager.is_cycle_running(), "another technique loading leaves the session")
+	other.setup(load(SMOOTH_FLOW_PATH))
+	other.stop_cycling()
+	assert_true(CyclingManager.is_cycle_running(), "and so do its setup() and stop_cycling()")
+	assert_almost_eq(CyclingManager.get_madra_rate(), MADRA_RATE, 0.001, "the rate is still the cycle's")
+	assert_almost_eq(CyclingManager.get_cycle_elapsed(), 1.0, 0.001, "and so is the time")
+
+func test_a_technique_freed_mid_cycle_ends_its_session() -> void:
+	_technique.start_cycle()
+	_run(1.0, 60.0, true)
+	assert_true(CyclingManager.is_cycle_running(), "precondition: the session runs")
+	_technique.free()
+	assert_false(CyclingManager.is_cycle_running(), "the session ends with the technique")
+	assert_eq(CyclingManager.get_madra_rate(), 0.0)
+
 func test_the_exported_technique_is_set_up_when_the_scene_loads() -> void:
 	var loaded: CyclingTechnique = TECHNIQUE_SCENE.instantiate() as CyclingTechnique
 	loaded.technique_data_input = load(SMOOTH_FLOW_PATH)

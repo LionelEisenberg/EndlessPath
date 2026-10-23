@@ -17,7 +17,9 @@ extends Node2D
 ## true one, the PathFollow2D's, is where the ball is on the path, so which zones
 ## it overlaps and how near a click was use it.
 ## While a cycle runs the technique writes CyclingManager's session snapshot, for
-## the cabinet and the Now tray to read.
+## the cabinet and the Now tray to read. The session belongs to the technique that
+## started it: only that technique ends it, when its cycle ends, is stopped or cut
+## off by a switch, or when it leaves the tree mid-cycle.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -124,6 +126,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	advance(delta, get_global_mouse_position())
 
+## A technique that leaves the tree mid-cycle ends its session, so the snapshot
+## never outlives the technique that writes it.
+func _exit_tree() -> void:
+	if _cycling:
+		CyclingManager.end_cycle_session()
+
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
@@ -156,8 +164,8 @@ func start_cycle() -> bool:
 	return true
 
 ## Ends a running cycle without a result and puts everything back to ready: the
-## zones IDLE, the groove dark, the ball at the start of the path and the session
-## over. It does this after a finished cycle too, which clears its studs.
+## zones IDLE, the groove dark, the ball at the start of the path and the cycle's
+## session over. It does this after a finished cycle too, which clears its studs.
 func stop_cycling() -> void:
 	_return_to_ready()
 
@@ -351,16 +359,19 @@ func _finish_cycle() -> void:
 		_rate_window.clear()
 
 ## Ends any cycle without a result and puts the play back to ready: no time, no
-## Madra gathered, a fresh empty result, the zones IDLE, the groove dark, the ball
-## waiting at the start of the path and the session over.
+## Madra gathered, a fresh empty result, the zones IDLE, the groove dark and the
+## ball waiting at the start of the path. The session ends only if this technique
+## was cycling: a session another technique started is left running.
 func _return_to_ready() -> void:
+	var was_cycling: bool = _cycling
 	_cycling = false
 	_tracking = false
 	_elapsed = 0.0
 	_madra_timer = 0.0
 	_rate_window.clear()
 	_result = _new_result()
-	CyclingManager.end_cycle_session()
+	if was_cycling:
+		CyclingManager.end_cycle_session()
 	for zone: CyclingZone in cycling_zones:
 		zone.set_state(CyclingZone.State.IDLE)
 	_groove.set_lit_length(-1.0)

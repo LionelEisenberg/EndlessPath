@@ -140,7 +140,8 @@ advance(delta, cursor) while cycling, in this order:
 _finish_cycle()
   → open zones SPENT, the session ends, the ball goes back to the start in its steady ring
   → cycle_completed(result); with auto_cycle on, start_cycle() at once and the rate window carries over
-stop_cycling() / setup(technique) → ready: no result, zones IDLE, groove dark, session ended
+stop_cycling() / setup(technique) → ready: no result, zones IDLE, groove dark, its session ended if it was cycling
+_exit_tree() mid-cycle → its session ended
 ActionManager.stop_cycling → CyclingView._on_stop_cycling() → CyclingTechnique.stop_cycling()
 ```
 
@@ -224,6 +225,7 @@ A cycle that is stopped, or cut off by switching technique, emits nothing. After
 - **On load:** `CyclingView._load_equipped_technique()` plays the equipped technique. If there is none, it equips the first unlocked one.
 - **Seen techniques:** the first time a save is initialised (`seen_cycling_techniques_initialized` false), every technique unlocked at that moment counts as seen, so an old save shows no NEW seals. A drawer marks its technique seen when it is hovered and when it is pressed to equip it.
 - **The session snapshot** is written by `CyclingTechnique` each frame of a cycle and read by `NowStrip` (ring, rod, figure, rate), `CultivatorPlate` (through `ActionManager.get_current_madra_per_second()`) and `CyclingView` (the status line). `madra_rate_changed(rate)` fires when the measured rate moves to another tenth, and on the drop to 0 when a session ends.
+- **The session belongs to the technique that started it.** `setup()` and `stop_cycling()` end it only if that technique was cycling, so another `CyclingTechnique` loading (its `_ready()` runs `setup()`) leaves a running session alone; the Tribulation design reuses cycling components. A technique that leaves the tree mid-cycle ends its own session in `_exit_tree()`.
 
 ### The Chest While Cycling
 `MainView.set_cycling_mode(true)` calls `ZonePanel.set_techniques_mode(true)`. The header reads "Techniques" and "3 learned" and a `TechniqueList` takes the activity list's place; the chest hugs it (464 px tall with three techniques). The list neither scrolls nor folds. Each `TechniqueDrawer` is a 392x72 drawer on `ZoneActionButton`'s layout, whose static `layout_title_row()` it shares with the cards:
