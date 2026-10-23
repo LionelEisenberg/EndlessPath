@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bk67aggyfbnqu" path="res://scenes/zones/map_markers/map_markers.gd" id="1_script"]
 [ext_resource type="PackedScene" uid="uid://bct65erp7bgms" path="res://scenes/zones/map_markers/map_action_ring/map_action_ring.tscn" id="2_ring"]
-[ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/zones/map_markers/map_floater/map_floater.tscn" id="3_floater"]
+[ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn" id="3_floater"]
 [ext_resource type="PackedScene" uid="uid://dqgl61edrme6l" path="res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.tscn" id="4_popover"]
 
 [node name="MapMarkers" type="CanvasLayer" unique_id=1867243279]

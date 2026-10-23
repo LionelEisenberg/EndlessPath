@@ -1,12 +1,13 @@
-class_name MapFloater
+class_name LacquerFloater
 extends Control
 
-## MapFloater
-## A short gain rising off the zone map (kit §0, §6.3): "+1.5 Madra" in Madra
-## blue on each Aura Well tick, or a foraging haul in cream, on a small
-## lacquer token. The token is 28 px tall and even(text width + 28) wide, its
-## 2 px shadow baked into the 9-slice. It rises 40 px over 1 s in 2 px steps,
-## then hides outright. MapMarkers places it above the action ring.
+## LacquerFloater
+## A short gain rising on a small lacquer token (kit §0, §6.3): a few words
+## such as "+1.5 Madra" in Madra blue, or a foraging haul in cream. The token
+## is 28 px tall and even(text width + 28) wide, its 2 px shadow baked into the
+## 9-slice. It rises 40 px over 1 s in 2 px steps, then hides outright. It does
+## not move itself: the placer positions it each frame and raises it by
+## get_rise() (MapMarkers today, the cycling view later).
 
 #-----------------------------------------------------------------------------
 # CONSTANTS

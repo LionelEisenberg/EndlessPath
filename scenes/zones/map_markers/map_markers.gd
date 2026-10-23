@@ -6,8 +6,8 @@ extends CanvasLayer
 ## on canvas layer 1 inside the zone view's SubViewport:
 ## - a plate (ZoneMapLabel) under every map zone;
 ## - the padlock and "?" glyphs (MapGlyph) over the locked and uncharted hexes;
-## - the action ring (MapActionRing) and the floater (MapFloater) that repeat
-##   the running idle action beside the character;
+## - the action ring (MapActionRing) and the floater (LacquerFloater) that
+##   repeat the running idle action beside the character;
 ## - the one map popover (ZoneMapPopover) for a locked or uncharted zone.
 ## Draw order, back to front: ring, floater, glyphs, plates, popover (kit §6.1).
 ## Every frame each marker follows its hex through the map's canvas transform:
@@ -116,7 +116,7 @@ const MapGlyphScene: PackedScene = preload("res://scenes/zones/map_markers/map_g
 #-----------------------------------------------------------------------------
 
 @onready var _ring: MapActionRing = %ActionRing
-@onready var _floater: MapFloater = %Floater
+@onready var _floater: LacquerFloater = %Floater
 @onready var _glyph_container: Control = %GlyphContainer
 @onready var _plate_container: Control = %PlateContainer
 @onready var _popover: ZoneMapPopover = %Popover
@@ -223,7 +223,7 @@ func get_action_ring() -> MapActionRing:
 	return _ring
 
 ## The floater that rises on each Aura Well tick or foraging haul.
-func get_floater() -> MapFloater:
+func get_floater() -> LacquerFloater:
 	return _floater
 
 ## Shows the zone's plate as hovered ("" for none); one zone at a time.

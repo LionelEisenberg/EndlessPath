@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://sl04evwu81v5"]
 
-[ext_resource type="Script" uid="uid://cf5rlc6pwstrs" path="res://scenes/zones/map_markers/map_floater/map_floater.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cf5rlc6pwstrs" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
 [ext_resource type="StyleBox" uid="uid://bkak8mmbend1m" path="res://assets/styleboxes/lacquer/token.tres" id="3_token"]
 
-[node name="MapFloater" type="Control" unique_id=1697765900]
+[node name="LacquerFloater" type="Control" unique_id=1697765900]
 visible = false
 layout_mode = 3
 anchors_preset = 0
