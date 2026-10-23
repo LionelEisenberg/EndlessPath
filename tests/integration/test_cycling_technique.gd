@@ -269,6 +269,20 @@ func test_cap_reached_mid_cycle() -> void:
 	assert_true(is_equal_approx(_technique.get_current_result().madra_added, 2.0))
 	assert_eq(ResourceManager.get_madra(), 100.0)
 
+func test_the_result_counts_the_madra_the_pool_gained() -> void:
+	# add_madra() reports each step snapped to 0.001 (1.067 for 1.0667), and a
+	# full cycle's 187 snapped steps sum to 199.53: "+200" for the 199.47 it adds.
+	PersistenceManager.save_game_data.core_density_level = 40.0
+	ResourceManager.set_madra(46.0)
+	assert_gt(CultivationManager.get_max_madra(), 46.0 + 200.0, "precondition: the cycle never meets the cap")
+	watch_signals(_technique)
+	_technique.start_cycle()
+	_run(CYCLE_SECONDS + FRAME, 60.0, true)
+	assert_signal_emit_count(_technique, "cycle_completed", 1)
+	var result := get_signal_parameters(_technique, "cycle_completed", 0)[0] as CycleResult
+	assert_almost_eq(result.madra_added, ResourceManager.get_madra() - 46.0, 0.000001, "the result holds what the pool gained")
+	assert_eq(result.result_line(), "Last cycle · +199 Madra · 0 / 4 zones")
+
 #-----------------------------------------------------------------------------
 # THE MADRA RATE
 #-----------------------------------------------------------------------------

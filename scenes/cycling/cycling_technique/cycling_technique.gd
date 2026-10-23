@@ -261,10 +261,13 @@ func _madra_full() -> bool:
 func _draw_madra_step() -> void:
 	if _madra_full():
 		return
-	var added: float = ResourceManager.add_madra(_madra_per_step(), true)
-	if added <= 0.0:
+	var before: float = ResourceManager.get_madra()
+	if ResourceManager.add_madra(_madra_per_step(), true) <= 0.0:
 		return
-	_result.madra_added += added
+	# What the pool gained, not add_madra()'s figure: that is snapped to 0.001,
+	# and the snaps add up (Smooth Flow's 187 steps sum to 199.53 for the 199.47
+	# they add, which the result line would round to +200).
+	_result.madra_added += ResourceManager.get_madra() - before
 	madra_particle_requested.emit(_ball_drawn)
 
 ## Returns the Madra one step adds: the technique's Madra per cycle spread over
