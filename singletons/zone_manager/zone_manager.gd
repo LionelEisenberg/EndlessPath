@@ -54,6 +54,7 @@ func _ready() -> void:
 	if PersistenceManager and PersistenceManager.save_game_data:
 		live_save_data = PersistenceManager.save_game_data
 		PersistenceManager.save_data_reset.connect(_initialize_from_save)
+		CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
 	else:
 		Log.critical("ZoneManager: Could not get save_game_data from PersistenceManager on ready!")
 		return
@@ -187,6 +188,10 @@ func mark_action_seen(action_id: String) -> void:
 		return
 	live_save_data.seen_action_ids.append(action_id)
 
+## Forgets that the player has seen the action, which lights its NEW tag again.
+func mark_action_unseen(action_id: String) -> void:
+	live_save_data.seen_action_ids.erase(action_id)
+
 ## Returns true when the player has seen the action (no NEW tag).
 func is_action_seen(action_id: String) -> bool:
 	return live_save_data.seen_action_ids.has(action_id)
@@ -276,3 +281,11 @@ func _initialize_seen_actions() -> void:
 		for action: ZoneActionData in get_available_actions(zone.zone_id):
 			mark_action_seen(action.action_id)
 	live_save_data.seen_actions_initialized = true
+
+## A technique unlocking gives cycling something new, so every cycling action
+## shows its NEW tag again until the player hovers its card or opens cycling.
+func _on_technique_unlocked(_technique: CyclingTechniqueData) -> void:
+	for zone: ZoneData in _all_zone_data.list:
+		for action: ZoneActionData in zone.all_actions:
+			if action.action_type == ZoneActionData.ActionType.CYCLING:
+				mark_action_unseen(action.action_id)
