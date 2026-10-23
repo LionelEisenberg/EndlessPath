@@ -28,10 +28,6 @@ func setup(def: MaterialDefinitionData, qty: int) -> void:
 func get_definition() -> MaterialDefinitionData:
 	return _def
 
-## Returns the quantity currently displayed.
-func get_quantity() -> int:
-	return _qty
-
 func _on_gui_input(event: InputEvent) -> void:
 	clicked.emit(self, event)
 

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "aseprite": {
+      "type": "stdio",
+      "command": "C:/Users/lione/source/repos/aseprite-mcp/.venv/Scripts/python.exe",
+      "args": ["-m", "aseprite_mcp"],
+      "env": {
+        "PYTHONPATH": "C:/Users/lione/source/repos/aseprite-mcp",
+        "ASEPRITE_PATH": "C:/Program Files (x86)/Steam/steamapps/common/Aseprite/Aseprite.exe"
+      }
+    }
+  }
+}

@@ -54,8 +54,6 @@ Writers                                          Readers / listeners
 | `0` | `MADRA` | `AwardResourceEffectData.resource_type`, `award_resource()` |
 | `1` | `GOLD` | Same as MADRA. No content uses it yet |
 
-`RESOURCE_NAMES` (a static dict mapping `ResourceType` to a display name) has no readers.
-
 ### Madra caps
 
 Two separate limits apply to Madra.
@@ -67,6 +65,8 @@ Two separate limits apply to Madra.
 
 Only `foundation_advancement_stage.tres` exists (`max_madra_base = 100.0`, `max_madra_per_core_density_level = 5.0`). `CultivationManager.advancement_stage_resources` preloads only that resource.
 
+The two caps are independent. The adventure threshold is half the capacity (`FOUNDATION × 5`), so it can be higher than the pool cap. In the Foundation stage, once the total FOUNDATION attribute is above `20 + level`, even a full pool cannot start an adventure (see Work Remaining).
+
 ### Public API
 
 | Function | Behaviour |
@@ -74,7 +74,7 @@ Only `foundation_advancement_stage.tres` exists (`max_madra_base = 100.0`, `max_
 | `add_madra(amount, quiet = false) -> float` | `madra = clamp(madra + amount, 0, CultivationManager.get_max_madra())`, then emits `madra_changed`. Returns the amount actually added, snapped to 0.001: 0 at the cap, and negative when the pool was above the cap and is clamped down. Logs `[color=cyan]Gained %d Madra[/color]` with that amount, only when it is at least 1.0 and the award is not quiet, so a capped add is silent |
 | `spend_madra(amount) -> bool` | All or nothing: deducts and emits only if `madra >= amount` |
 | `set_madra(amount)` | `madra = max(0, amount)`, with no cap. Used by the dev panel only |
-| `get_madra() -> float` / `can_afford_madra(amount) -> bool` | Read helpers |
+| `get_madra() -> float` | Read helper |
 | `get_adventure_madra_capacity() -> float` | `CharacterManager.get_total_attributes_data().get_max_madra()` |
 | `get_adventure_madra_budget() -> float` | `min(capacity, madra)` |
 | `get_adventure_madra_threshold() -> float` | `capacity × 0.5` |
@@ -201,7 +201,8 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Zone Madra orb, Madra rate and gold display |
 | `singletons/cultivation_manager/cultivation_manager.gd` | `get_max_madra()` (pool cap) |
 | `scenes/combat/adventure_combat/adventure_combat.gd` | Gold reward formula (`_calculate_gold_reward`) |
-| `tests/unit/test_resource_manager.gd` | See Tech Debt: does not call `ResourceManager` |
+| `tests/unit/test_resource_manager.gd` | 39 tests of the real singleton: Madra with stage-cap clamping, gold, `award_resource()`, signals, log lines, adventure capacity, budget and threshold |
+| `tests/integration/test_adventure_flow.gd` | 10 tests of the adventure Madra gate through the real singletons, including a Foundation bonus from equipment |
 | `tests/unit/test_quiet_madra.gd` | Calls the real `add_madra()` / `award_resource()`: quiet awards add without a log line, capped adds log nothing, and the returned amount is what was added |
 | `tests/unit/test_cultivation_getters.gd` | `CultivationManager.get_max_madra()` follows the level |
 
@@ -211,6 +212,7 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 
 - `[LOW]` `add_madra()` clamps to 0 when the current stage has no `AdvancementStageResource`, because the cap falls back to `0.0`. Only the Foundation resource exists, so this will empty the pool when a Copper breakthrough ships.
 - `[LOW]` `set_madra()` ignores the pool cap. This is dev-panel only, and the next `add_madra()` pulls the value back to the cap.
+- `[LOW]` The adventure threshold can exceed the pool cap. The threshold is `FOUNDATION × 5` and the Foundation-stage pool cap is `100 + 5 × level`, so once the total FOUNDATION attribute is above `20 + level` the pool can never reach the threshold and no adventure can start. Shipped content stays well below that: base FOUNDATION is 10, and only the Leeching Ring adds to it (+2). Raise the pool cap with Foundation, or base the threshold on the pool.
 
 ### Missing Functionality
 
@@ -220,6 +222,5 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 
 ### Tech Debt
 
-- `[MEDIUM]` `tests/unit/test_resource_manager.gd` (37 tests) never calls `ResourceManager`. Each test repeats the arithmetic inline on a bare `SaveGameData`, and the `_create_manager()` helper is unused. The capacity tests assert `50 + FOUNDATION × 10` (150) while the code computes `FOUNDATION × 10` (100), so the suite passes whatever the production code does. Rewrite it against the real script, with stubbed stage and attribute data.
 - `[LOW]` UnlockManager re-evaluates every unlock condition on each `madra_changed`, which is high-frequency during cycling and the drain.
-- `[LOW]` `RESOURCE_NAMES` is untyped (`static var RESOURCE_NAMES = {...}`) and unused. The public functions have no `##` doc comments, and the locals in `add_madra()` are untyped.
+- `[LOW]` `award_resource()` and the Madra and gold functions have no `##` doc comments, and the locals in `add_madra()` are untyped.

@@ -161,7 +161,7 @@ Cycling is the one overlay with no backdrop. Its board (x 680 to 1240) sits in t
 The four menus are books (`docs/superpowers/specs/2026-10-21-menu-books-design.md`):
 
 - `BookFrame` (`scenes/ui/book_frame/book_frame.tscn` + `.gd`) is the shared book: the inventory's book spritesheet with its open, close and page-turn animations, the close tab on the top edge of the right page, and the bookmark. The close tab is the side-tab art standing up, showing 22 book px above the page near its corner. Its X is a `CloseGlyph` label in the game font, and like the side tabs it has no hover art, tooltip or hand cursor. The bookmark hangs about 27 book px below the page stack, centred at x 583 (between its first spot and the book's right edge). It sits in a `BookmarkClip` whose top is the top page's bottom edge, and once the book lies open it slides down out of it in `BOOKMARK_SLIDE_SECONDS` (0.45 s, ease out), as if pulled from between the pages; it hides at once when the book starts closing. One palette-swap shader (`assets/shaders/palette_swap.gdshader`) recolours the cover edge, the page border line, the turning page and the bookmark from a `BookStyleData` (`scripts/resource_definitions/ui/book_style_data.gd`; one per book in `resources/ui/book_styles/`). The close tab and bookmark only show while the book lies open. A `BookHitArea` over the open book's art, (48, 24)-(652, 432), and the bookmark catch clicks, so only a click outside the book reaches the backdrop and closes it; the transparent margins of the 700 × 450 frame count as outside. `animate_open()` plays the close animation backwards, and unless it is turning a close around, it first seeks onto that animation's last key (the closed book): the track is discrete, so playback only applies keys it crosses, and a book that has never closed would otherwise start on its open frame and snap shut before opening. Signals: `opened`, `closed`, `close_requested`, `page_turned`.
-- `MenuBookView` (`scenes/ui/book_frame/menu_book_view.gd`) is the base script of the four views. `animate_open()` and `animate_close()` drive the `%BookFrame`; the nodes in its `page_content` export are shown only while the book lies open. It re-emits the close tab as `close_requested` and emits `close_finished` when the book has closed. Hooks: `_before_open()`, `_after_open()`, `_before_close()`, `_after_close()`.
+- `MenuBookView` (`scenes/ui/book_frame/menu_book_view.gd`) is the base script of the four views. `animate_open()` and `animate_close()` drive the `%BookFrame`; the nodes in its `page_content` export are shown only while the book lies open. It re-emits the close tab as `close_requested` and emits `close_finished` when the book has closed. Hooks: `_before_open()`, `_after_open()`, `_after_close()`.
 - `BookViewState` (`scenes/ui/main_view/states/book_view_state.gd`) is the base of the four states. Subclasses name the view (`_get_view()`) and their close keys (`_is_close_event()`); Esc, the menu's key, the close tab and `GreyBackground.clicked` (connected in `enter()`, disconnected in `exit()`) all call `_request_close()`. A backdrop click only counts once the book lies open: `_on_backdrop_clicked()` ignores it while `BookFrame.is_moving()`, so a quick second click on the dock button, which lands on the backdrop, can't shut the book mid-open. Esc and the menu's key still close a book that is opening. `enter()` and `exit()` block and unblock the full log through `MainViewState._block_full_log()`, which `CyclingViewState` shares.
 - Inventory keeps its own pages in book units (its text widgets counter-scaled to 0.5). The other three books draw their pages at screen resolution in a `PageLayer`, styled by `assets/themes/book_theme.tres` (see [UI_STYLING.md](../UI_STYLING.md#menu-book-pages)), with the inventory's title ribbon (`TabBanner`), selector (`SortSubBanner`) and side tabs reused at book scale.
 
@@ -265,8 +265,6 @@ Gold left the bar for the cultivator cabinet.
 | Widget | Files | Used by | API / behaviour |
 |--------|-------|---------|-----------------|
 | `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `ResourceBar` and `ResourceOrb` (combat vitals deltas; per-bar `show_floating_text` export) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
-| `TickProgressBar` | `scenes/ui/tick_progress_bar/tick_progress_bar.tscn` + `.gd` | Nothing (the Now strip replaced it on the training card) | `set_progress(current, total)` (`total <= 0` clears it), `set_fill_color(color)`, `flash_and_reset(flash_color, duration = 0.3)`. 2 px bar with 9 gradation marks (10% to 90%) and a `LabelSmall` counter (12 px override) to the right of the bar. |
-| `InkbrushButton` | `scenes/ui/inkbrush_button/inkbrush_button.tscn` + `.gd` | Nothing (unused) | `TextureButton` with a random `action_button_1..3.png` texture and a `zone_action_button.gdshader` fill on hover. `setup(label, texture, fill_color)`. |
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | Main view states | See [GreyBackground](#greybackground-modal-backdrop) |
 | `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
 | `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | `MainView` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
@@ -276,9 +274,8 @@ Utilities:
 
 | Script | Status |
 |--------|--------|
-| `scripts/utils/theme_constants.gd` (`ThemeConstants`) | Colour palette and size constants for code. Referenced: `ACCENT_GOLD` and the `LACQUER_*` colours. See [UI_STYLING.md](../UI_STYLING.md#code-side-constants-themeconstants). |
+| `scripts/utils/theme_constants.gd` (`ThemeConstants`) | Colours that code sets at runtime: `ACCENT_GOLD` and the `LACQUER_*` colours. See [UI_STYLING.md](../UI_STYLING.md#code-side-constants-themeconstants). |
 | `scripts/utils/lacquer_text.gd` (`LacquerText`) | `rate()` and `decimal_bbcode()` for lacquer text. See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view). |
-| `scripts/utils/text_effect_importer.gd` | A `Node` with `@export var _text_effect_scripts: Array[Script]` and `get_text_effect_instances()`, which instantiates each script as a `RichTextEffect`. Not referenced by any scene or script. |
 
 ### Project settings (`project.godot`)
 
@@ -336,7 +333,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/ui/goals_panel/goals_panel.gd` / `.tscn` | Goals board |
 | `scenes/ui/log_window/log_window.gd` / `.tscn` | Log board and full log |
 | `scenes/zones/zone_transition/zone_transition.gd` | Adventure-entry drain and zoom; camera reset |
-| `scenes/ui/floating_text/`, `scenes/ui/tick_progress_bar/` | Shared feedback widgets |
+| `scenes/ui/floating_text/` | Shared feedback widget |
 | `project.godot` | Autoloads, input map, window, renderer, theme |
 
 ## Work Remaining
@@ -363,14 +360,8 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 - `[LOW]` `MainView.change_state()` clears `state_stack` without calling `exit()` on stacked overlays. This is only safe because no overlay can be open when the base changes: `ZoneViewState` blocks input during the adventure transition, and the end card is popped first. An overlay skipped this way would also never release the HUD boards.
 - `[LOW]` `CyclingViewState._on_stop_cycling()` pops whatever state is on top, not specifically the cycling state.
 - `[LOW]` `LogWindow._full_log_blocked` is a bool, not a counter. A menu book and the cycling board cannot be open together today (menu keys are inert under cycling and the dock is hidden), so nothing nests. If that ever changes, it needs a counter.
-- `[LOW]` Dead code:
-  - `InkbrushButton` has no references. It uses the root-level placeholder `res://32.png`, untyped constants, functions without return types, and `$MarginContainer/...` paths.
-  - `TickProgressBar` has no references since the lacquer training card replaced its footer.
-  - `scripts/utils/text_effect_importer.gd` has no references, no `class_name` and no doc comment.
 - `[LOW]` Some nodes are created in code despite the scene-tree UI rule: the `ZoneViewState._add_input_blocker()` `Control.new()`.
-- `[LOW]` Stale doc comments:
-  - The `MainView` class comment lists 4 views; there are 9 states.
-  - `TickProgressBar` says the counter is "below the bar"; the scene places it to the right.
+- `[LOW]` Stale doc comment: the `MainView` class comment lists 4 views; there are 9 states.
 - `[LOW]` `MainGame.log_print_level` is set to `0` (`Log.Event.INFO`) in `main_game.tscn`; the script default is `DEBUG`. `Log.Event` orders `INFO`(0) before `DEBUG`(1), so INFO prints every level and DEBUG would hide INFO lines (see [LOGGING.md](LOGGING.md)).
 - `[LOW]` `project.godot` mismatches:
   - `[dialogic] extensions_folder = "res://addons/dialogic_additions"` points to a folder that does not exist.

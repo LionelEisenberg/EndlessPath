@@ -50,9 +50,6 @@ var _index: int = 0
 var current_label: String:
 	get: return _options[_index] if _index < _options.size() else ""
 
-var current_index: int:
-	get: return _index
-
 #-----------------------------------------------------------------------------
 # LIFECYCLE
 #-----------------------------------------------------------------------------

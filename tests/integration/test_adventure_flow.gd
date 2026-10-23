@@ -1,149 +1,182 @@
 extends GutTest
 
-## Integration tests for adventure start flow
-## Tests madra threshold checks, budget calculation, and signal flow
+## Integration tests for the Madra side of starting an adventure: the stage
+## pool cap (CultivationManager), the adventure capacity from total Foundation
+## (CharacterManager, including equipment from InventoryManager), and
+## ResourceManager's threshold gate, budget and spend. Every test calls the real
+## singletons, bound to a fresh save and a stub Foundation stage.
+
+#-----------------------------------------------------------------------------
+# FIXTURES
+#-----------------------------------------------------------------------------
+
+## Stub stage: the pool cap is 100 at Core Density level 0, +10 per level.
+const STAGE_MAX_MADRA_BASE: float = 100.0
+const STAGE_MAX_MADRA_PER_LEVEL: float = 10.0
+## Foundation granted by the test helmet.
+const FOUNDATION_BONUS: float = 5.0
+
+var _save: SaveGameData
+var _stage: AdvancementStageResource
+
+var _original_resource_save: SaveGameData
+var _original_cultivation_save: SaveGameData
+var _original_stage_resources: Array[AdvancementStageResource]
+var _original_character_save: SaveGameData
+var _original_inventory_save: SaveGameData
+var _original_unlock_save: SaveGameData
+var _original_event_save: SaveGameData
+var _original_quest_save: SaveGameData
+
+func before_each() -> void:
+	_save = SaveGameData.new()
+	_save.madra = 0.0
+	_save.core_density_level = 0.0
+	_save.current_advancement_stage = CultivationManager.AdvancementStage.FOUNDATION
+	_save.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+
+	_stage = AdvancementStageResource.new()
+	_stage.stage_name = "Test Foundation"
+	_stage.stage_id = CultivationManager.AdvancementStage.FOUNDATION
+	_stage.max_madra_base = STAGE_MAX_MADRA_BASE
+	_stage.max_madra_per_core_density_level = STAGE_MAX_MADRA_PER_LEVEL
+
+	# ResourceManager reads the pool cap from CultivationManager and the
+	# adventure capacity from CharacterManager, whose equipment bonuses come
+	# from InventoryManager. Every madra_changed also makes UnlockManager
+	# evaluate all conditions (reading EventManager) and QuestManager react to
+	# new unlocks, so those use the test save too.
+	_original_resource_save = ResourceManager.live_save_data
+	_original_cultivation_save = CultivationManager.live_save_data
+	_original_stage_resources = CultivationManager.advancement_stage_resources
+	_original_character_save = CharacterManager.live_save_data
+	_original_inventory_save = InventoryManager.live_save_data
+	_original_unlock_save = UnlockManager.live_save_data
+	_original_event_save = EventManager.live_save_data
+	_original_quest_save = QuestManager._live_save_data
+
+	var stages: Array[AdvancementStageResource] = [_stage]
+	ResourceManager.live_save_data = _save
+	CultivationManager.live_save_data = _save
+	CultivationManager.advancement_stage_resources = stages
+	CharacterManager.live_save_data = _save
+	InventoryManager.live_save_data = _save
+	UnlockManager.live_save_data = _save
+	EventManager.live_save_data = _save
+	QuestManager._live_save_data = _save
+
+func after_each() -> void:
+	ResourceManager.live_save_data = _original_resource_save
+	CultivationManager.live_save_data = _original_cultivation_save
+	CultivationManager.advancement_stage_resources = _original_stage_resources
+	CharacterManager.live_save_data = _original_character_save
+	InventoryManager.live_save_data = _original_inventory_save
+	UnlockManager.live_save_data = _original_unlock_save
+	EventManager.live_save_data = _original_event_save
+	QuestManager._live_save_data = _original_quest_save
 
 #-----------------------------------------------------------------------------
 # HELPERS
 #-----------------------------------------------------------------------------
 
-var _save_data: SaveGameData
-var _stage_resource: AdvancementStageResource
+## The Madra pool cap for the save's current Core Density level, from the stub stage.
+func _pool_cap() -> float:
+	return _stage.get_max_madra(int(_save.core_density_level))
 
-func before_each() -> void:
-	_save_data = SaveGameData.new()
-	_save_data.madra = 0.0
-	_save_data.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0)
+## The adventure capacity for the save's base attributes, with no equipment.
+func _base_capacity() -> float:
+	return _save.character_attributes.get_max_madra()
 
-	_stage_resource = AdvancementStageResource.new()
-	_stage_resource.stage_name = "Foundation"
-	_stage_resource.stage_id = CultivationManager.AdvancementStage.FOUNDATION
-	_stage_resource.max_madra_base = 100.0
-	_stage_resource.max_madra_per_core_density_level = 10.0
+func _set_foundation(value: float) -> void:
+	_save.character_attributes.set_attribute(CharacterAttributesData.AttributeType.FOUNDATION, value)
 
-func _get_foundation() -> float:
-	return _save_data.character_attributes.get_attribute(CharacterAttributesData.AttributeType.FOUNDATION)
-
-func _get_adventure_madra_capacity() -> float:
-	return 50.0 + _get_foundation() * 10.0
-
-func _get_adventure_madra_budget() -> float:
-	return min(_get_adventure_madra_capacity(), _save_data.madra)
-
-func _get_adventure_madra_threshold() -> float:
-	return _get_adventure_madra_capacity() * 0.5
-
-func _can_start_adventure() -> bool:
-	return _save_data.madra >= _get_adventure_madra_threshold()
+## Equips a helmet that grants FOUNDATION_BONUS Foundation.
+func _equip_foundation_helmet() -> void:
+	var helmet := EquipmentDefinitionData.new()
+	helmet.item_id = "test_foundation_helmet"
+	helmet.item_name = "Test Foundation Helmet"
+	helmet.slot_type = EquipmentDefinitionData.EquipmentSlot.HEAD
+	helmet.attribute_bonuses = {CharacterAttributesData.AttributeType.FOUNDATION: FOUNDATION_BONUS}
+	var instance := ItemInstanceData.new()
+	instance.item_definition = helmet
+	_save.inventory.equipped_gear[EquipmentDefinitionData.EquipmentSlot.HEAD] = instance
 
 #-----------------------------------------------------------------------------
-# ADVENTURE BLOCKED WHEN BELOW THRESHOLD
+# THRESHOLD GATE
 #-----------------------------------------------------------------------------
 
-func test_adventure_blocked_zero_madra() -> void:
-	_save_data.madra = 0.0
-	assert_false(_can_start_adventure(), "should block adventure with zero madra")
+func test_adventure_blocked_with_no_madra() -> void:
+	assert_false(ResourceManager.can_start_adventure())
+	assert_eq(ResourceManager.get_adventure_madra_budget(), 0.0)
 
-func test_adventure_blocked_below_threshold() -> void:
-	# Threshold = 150 * 0.5 = 75
-	_save_data.madra = 50.0
-	assert_false(_can_start_adventure(), "should block adventure below threshold")
+func test_madra_below_threshold_blocks_adventure() -> void:
+	ResourceManager.add_madra(_base_capacity() * 0.5 - 1.0)
+	assert_false(ResourceManager.can_start_adventure())
+	assert_eq(ResourceManager.get_adventure_madra_budget(), _save.madra,
+		"the budget still reports current Madra for the badge while blocked")
 
-func test_adventure_blocked_just_below_threshold() -> void:
-	var threshold = _get_adventure_madra_threshold()
-	_save_data.madra = threshold - 0.1
-	assert_false(_can_start_adventure(), "should block adventure just below threshold")
+func test_cycling_up_to_threshold_allows_adventure_with_partial_budget() -> void:
+	var threshold: float = ResourceManager.get_adventure_madra_threshold()
+	ResourceManager.add_madra(threshold - 10.0)
+	assert_false(ResourceManager.can_start_adventure())
+	ResourceManager.add_madra(10.0)
+	assert_true(ResourceManager.can_start_adventure())
+	assert_eq(ResourceManager.get_adventure_madra_budget(), threshold,
+		"below capacity the whole pool is the budget")
 
-#-----------------------------------------------------------------------------
-# ADVENTURE PROCEEDS WHEN ABOVE THRESHOLD
-#-----------------------------------------------------------------------------
-
-func test_adventure_allowed_above_threshold() -> void:
-	_save_data.madra = 100.0
-	assert_true(_can_start_adventure(), "should allow adventure above threshold")
-
-func test_adventure_allowed_at_threshold() -> void:
-	_save_data.madra = _get_adventure_madra_threshold()
-	assert_true(_can_start_adventure(), "should allow adventure at exact threshold")
-
-func test_adventure_allowed_at_max_madra() -> void:
-	_save_data.madra = 500.0
-	assert_true(_can_start_adventure(), "should allow adventure with excess madra")
+func test_full_stage_pool_allows_adventure() -> void:
+	ResourceManager.add_madra(1000.0)
+	assert_eq(_save.madra, _pool_cap(), "cycling stops at the stage pool cap")
+	assert_true(ResourceManager.can_start_adventure())
+	assert_eq(ResourceManager.get_adventure_madra_budget(), _pool_cap(),
+		"at level 0 the stub pool cap fits within the Foundation-10 capacity, so the whole pool is the budget")
 
 #-----------------------------------------------------------------------------
-# MADRA BUDGET CALCULATION
+# BUDGET AND SPEND
 #-----------------------------------------------------------------------------
 
-func test_budget_equals_madra_when_below_capacity() -> void:
-	# Capacity = 50 + 10*10 = 150
-	_save_data.madra = 80.0
-	var budget = _get_adventure_madra_budget()
-	assert_eq(budget, 80.0, "budget should equal current madra when below capacity")
+func test_budget_capped_at_capacity_when_pool_exceeds_it() -> void:
+	_save.core_density_level = 10.0
+	ResourceManager.add_madra(1000.0)
+	assert_gt(_save.madra, _base_capacity(), "precondition: the level-10 pool holds more than one adventure")
+	assert_eq(ResourceManager.get_adventure_madra_budget(), _base_capacity())
 
-func test_budget_equals_capacity_when_above() -> void:
-	_save_data.madra = 300.0
-	var budget = _get_adventure_madra_budget()
-	var capacity = _get_adventure_madra_capacity()
-	assert_eq(budget, capacity, "budget should be capped at capacity")
+func test_spending_budget_keeps_excess_madra_in_pool() -> void:
+	_save.core_density_level = 10.0
+	ResourceManager.add_madra(1000.0)
+	var pool_before: float = _save.madra
+	var budget: float = ResourceManager.get_adventure_madra_budget()
+	assert_true(ResourceManager.spend_madra(budget))
+	assert_eq(_save.madra, pool_before - budget)
 
-func test_budget_equals_capacity_when_exact() -> void:
-	var capacity = _get_adventure_madra_capacity()
-	_save_data.madra = capacity
-	var budget = _get_adventure_madra_budget()
-	assert_eq(budget, capacity, "budget should equal capacity when madra equals capacity")
-
-func test_budget_is_min_of_capacity_and_current() -> void:
-	_save_data.madra = 120.0
-	var capacity = _get_adventure_madra_capacity()
-	var budget = _get_adventure_madra_budget()
-	assert_eq(budget, min(capacity, _save_data.madra))
-
-func test_budget_zero_when_no_madra() -> void:
-	_save_data.madra = 0.0
-	var budget = _get_adventure_madra_budget()
-	assert_eq(budget, 0.0, "budget should be 0 with no madra")
+func test_spending_full_budget_below_capacity_empties_pool() -> void:
+	ResourceManager.add_madra(_base_capacity() * 0.75)
+	assert_true(ResourceManager.spend_madra(ResourceManager.get_adventure_madra_budget()))
+	assert_eq(_save.madra, 0.0)
+	assert_false(ResourceManager.can_start_adventure(), "an empty pool must be refilled before the next adventure")
 
 #-----------------------------------------------------------------------------
 # CAPACITY SCALES WITH FOUNDATION
 #-----------------------------------------------------------------------------
 
-func test_capacity_with_high_foundation() -> void:
-	_save_data.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 30.0, 10.0, 10.0, 10.0)
-	var capacity = _get_adventure_madra_capacity()
-	assert_eq(capacity, 350.0, "capacity should scale: 50 + 30*10 = 350")
+func test_higher_foundation_raises_threshold() -> void:
+	_save.madra = _base_capacity() * 0.5
+	assert_true(ResourceManager.can_start_adventure(), "precondition: enough at Foundation 10")
+	_set_foundation(20.0)
+	assert_false(ResourceManager.can_start_adventure(), "the same Madra falls short at Foundation 20")
 
-func test_capacity_with_low_foundation() -> void:
-	_save_data.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 1.0, 10.0, 10.0, 10.0)
-	var capacity = _get_adventure_madra_capacity()
-	assert_eq(capacity, 60.0, "capacity should scale: 50 + 1*10 = 60")
+func test_higher_foundation_raises_budget_ceiling() -> void:
+	_save.core_density_level = 10.0
+	ResourceManager.add_madra(1000.0)
+	var budget_at_foundation_10: float = ResourceManager.get_adventure_madra_budget()
+	_set_foundation(20.0)
+	assert_eq(ResourceManager.get_adventure_madra_budget(), _base_capacity())
+	assert_gt(ResourceManager.get_adventure_madra_budget(), budget_at_foundation_10,
+		"the same full pool carries more Madra into an adventure at Foundation 20")
 
-func test_threshold_scales_with_foundation() -> void:
-	_save_data.character_attributes = CharacterAttributesData.new(10.0, 10.0, 10.0, 10.0, 20.0, 10.0, 10.0, 10.0)
-	var threshold = _get_adventure_madra_threshold()
-	# Capacity = 50 + 20*10 = 250, threshold = 125
-	assert_eq(threshold, 125.0, "threshold should be 50% of scaled capacity")
-
-#-----------------------------------------------------------------------------
-# COMPLETE FLOW SCENARIOS
-#-----------------------------------------------------------------------------
-
-func test_full_flow_barely_enough_madra() -> void:
-	var threshold = _get_adventure_madra_threshold()
-	_save_data.madra = threshold  # Exactly at threshold
-	assert_true(_can_start_adventure(), "should be able to start")
-	var budget = _get_adventure_madra_budget()
-	assert_eq(budget, threshold, "budget should equal madra (below capacity)")
-
-func test_full_flow_wealthy_player() -> void:
-	_save_data.madra = 1000.0
-	assert_true(_can_start_adventure(), "wealthy player should start adventure")
-	var budget = _get_adventure_madra_budget()
-	var capacity = _get_adventure_madra_capacity()
-	assert_eq(budget, capacity, "budget capped at capacity even with excess madra")
-
-func test_full_flow_poor_player() -> void:
-	_save_data.madra = 10.0
-	assert_false(_can_start_adventure(), "poor player should not start adventure")
-	# Budget still calculated even if can't start
-	var budget = _get_adventure_madra_budget()
-	assert_eq(budget, 10.0, "budget reflects current madra even when blocked")
+func test_equipment_foundation_bonus_raises_capacity() -> void:
+	_equip_foundation_helmet()
+	var total := CharacterAttributesData.new()
+	total.foundation = _save.character_attributes.foundation + FOUNDATION_BONUS
+	assert_eq(ResourceManager.get_adventure_madra_capacity(), total.get_max_madra())
+	assert_gt(ResourceManager.get_adventure_madra_capacity(), _base_capacity())

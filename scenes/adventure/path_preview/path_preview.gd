@@ -24,9 +24,6 @@ extends Line2D
 
 ## Where the tileable stroke texture lives on disk. Drop a 64×16 (or
 ## similarly sized) RGBA PNG here and the next scene load picks it up.
-## Shared with the zone map's GlowingPath if that ever adopts the same
-## visual treatment — hence living under sprites/tilemap/ rather than
-## under the path_preview folder.
 const TEXTURE_PATH := "res://assets/sprites/tilemap/path_line_texture.png"
 
 ## Width of the fade region (in screen pixels of the line) between the

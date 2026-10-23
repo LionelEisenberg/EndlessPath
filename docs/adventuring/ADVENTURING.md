@@ -567,9 +567,9 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 | `tests/unit/test_encounter_icon_config.gd` | 10 | `configure_for_type()` per type, `set_completed()` |
 | `tests/unit/test_hex_forest_atlas.gd` | 4 | `pick()` determinism and bounds |
 | `tests/unit/test_adventure_result_data.gd` | 12 | Field defaults and assignment |
-| `tests/unit/test_adventure_combat_count.gd` | 12 | Re-implements the combat-type filter; never calls `get_total_combat_count()` |
-| `tests/unit/test_adventure_combat_victory_event.gd` | 2 | Fires the event itself; never exercises `AdventureCombat` |
-| `tests/integration/test_adventure_flow.gd` | 17 | Re-implements the Madra math with a stale `50 + FOUNDATION × 10` capacity; never calls `ResourceManager` |
+| `tests/unit/test_adventure_combat_count.gd` | 12 | `AdventureTilemap.get_total_combat_count()` for each encounter type and for mixed maps, on a tilemap built from its script outside the tree |
+| `tests/unit/test_adventure_combat_victory_event.gd` | 2 | The real `adventure_combat.tscn`: a win fires `q_first_steps_enemy_defeated` before `trigger_combat_end`, and a loss does not |
+| `tests/integration/test_adventure_flow.gd` | 10 | The real Madra gate: `can_start_adventure()` against the threshold, the budget and its spend, and capacity from total Foundation, including an equipment bonus |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | `aura_well_discovered` gates the Aura Well zone action |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | 1 | Refugee camp eligibility before and after `merchant_discovered` |
 | `tests/integration/test_adventure_end_flow.gd` | 2 | The real `AdventureView`, started through `ActionManager`: a timeout ends the run with "Time ran out"; a boss win ends it once, as a victory, without the boss choice's failure effects |
@@ -609,7 +609,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 - `[MEDIUM]` **There are no "seen" or "reached" hooks on encounters.** Effects only run when a choice resolves; nothing fires when a tile is revealed or first entered. [FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md) needs both: Beat 5's `q_first_elite` starts when the elite is first seen, and Beat 7's quest starts when the player first reaches the Guardian tile.
 - `[MEDIUM]` **No difficulty scaling.** `difficulty_modifier` and `experience_multiplier` on `AdventureActionData` are never read, and nothing scales by distance from the origin. Both are needed before Copper-tier adventures.
 - `[MEDIUM]` **Fights always use the first enemy.** `AdventureCombat._create_enemy_combatant()` uses `enemy_pool[0]` (TODO at `adventure_combat.gd:132`), so every encounter authors a single enemy (see [COMBAT.md](../combat/COMBAT.md)).
-- `[LOW]` **Movement cost is fixed.** `MOVEMENT_STAMINA_COST` is the constant 5.0 (TODO at `adventure_tilemap.gd:45`), with no terrain or stat scaling.
+- `[LOW]` **Movement cost is fixed.** `MOVEMENT_STAMINA_COST` is the constant 5.0 (TODO at `adventure_tilemap.gd:44`), with no terrain or stat scaling.
 - `[LOW]` **No seeded generation in-game.** The generator uses the global RNG, so a bad map reported by a player cannot be reproduced. Only the map preview accepts a seed.
 - `[LOW]` **Ambush and trap types have no behaviour.** `COMBAT_AMBUSH` and `TRAP` only change the glyph; ambush renders as regular combat.
 - `[LOW]` **No fixed-position encounters.** Every anchor position is re-rolled each run, so nothing can be pinned to a coordinate. FOUNDATION_PLAYTHROUGH Beat 5 refers to the elite's "fixed adventure tile".
@@ -627,10 +627,10 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 
 ### UI
 
-- `[MEDIUM]` **No feedback when Stamina blocks movement.** `_on_tile_clicked()` returns silently (`# TODO: Show UI feedback`, `adventure_tilemap.gd:396`), and `_process_next_visitation()` silently drops the rest of a route. Only the Stamina bar shows why.
+- `[MEDIUM]` **No feedback when Stamina blocks movement.** `_on_tile_clicked()` returns silently (`# TODO: Show UI feedback`, `adventure_tilemap.gd:394`), and `_process_next_visitation()` silently drops the rest of a route. Only the Stamina bar shows why.
 - `[LOW]` **Clicks are ignored while walking.** `_on_tile_clicked()` returns while the queue is non-empty or `is_moving`, so the player cannot change destination mid-route.
 - `[LOW]` **Choice cards drop authored detail.** `EncounterChoice.tooltip` is authored (Aura Well, Refugee Camp) but never shown. `EncounterChoiceButton.setup()` ignores its texture and fill-colour parameters, so the `Color.DARK_RED` computed for combat choices is thrown away.
-- `[LOW]` **Animated glyphs restart on every map refresh.** `_update_cell_highlight()` runs `configure_for_type()` twice (via `set_visited()`), so flat boss and rest icons restart their spritesheet on each tile arrival. `AdventureMarker` avoids this by caching `_last_type`.
+- `[LOW]` **Animated glyphs restart on every map refresh.** `_update_cell_highlight()` calls `configure_for_type()` on each refresh, and `configure_for_type()` always restarts the spritesheet tween, so flat boss and rest icons jump back to their first frame on each tile arrival. `AdventureMarker` avoids this by caching `_last_type`.
 - `[LOW]` **The fog veil's "?" pops instead of fading.** `FogVeilSprite.fade_and_free()` fades `self_modulate`, which does not reach the `QuestionMark` child.
 - `[LOW]` **The end card has no keyboard dismiss** (`AdventureEndCardState.handle_input()` is empty), and it opens over an already-cleared map rather than the final explored state.
 
@@ -639,12 +639,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 #### Dead Code
 - `[LOW]` Unused `AdventureActionData` members: `completion_time_modifier`, `cooldown_seconds`, `daily_limit` (mobile-style pacing gates), and `is_valid()`.
 - `[LOW]` `AdventureData.adventure_id`, `adventure_name` and `adventure_description` are never read at runtime.
-- `[LOW]` Unused members in adventure scripts:
-  - `AdventureTilemap.INSTANT_MOVE_SPEED`, the `_total_cost` local in `_on_tile_clicked()`, and the one-value `HighlightType` enum;
-  - `AdventureView.current_encounter`;
-  - `EncounterIcon._is_visited` and `set_visited()`, which no longer have a visual effect. Their doc comments still describe trap reveal and a 0.45 completed alpha; the code uses 0.90.
-- `[LOW]` `AdventureCombat.enable_ai` debug export with `# TODO: DELETE DEBUG` (`adventure_combat.gd:33-36`) is still present.
-- `[LOW]` Unreferenced scenes: `scenes/tilemaps/pulse_node.gd` / `.tscn` and `scenes/tilemaps/tile_map_layer.tscn` (legacy layer with an inline script).
+- `[LOW]` `AdventureTilemap.HighlightType` is a one-value enum.
 - `[LOW]` The three `test_*_encounter.tres` placeholders (see Content).
 
 #### Code Quality
@@ -666,11 +661,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 - `[LOW]` Open TODOs: `_apply_effects()` (`# TODO: Pass context if needed`) and `_update_stamina_regen()` (`# TODO: ... more complex calculation logic`).
 
 #### Tests
-- `[MEDIUM]` **Several tests check their own copies of the logic, not production code.**
-  - `test_adventure_combat_count.gd` re-implements the combat filter instead of calling `AdventureTilemap.get_total_combat_count()`.
-  - `test_adventure_combat_victory_event.gd` fires the event itself.
-  - `tests/integration/test_adventure_flow.gd` (and the adventure cases in `test_resource_manager.gd`) use a `50 + FOUNDATION × 10` capacity that production no longer uses. Production is `FOUNDATION × 10`, and none of these tests call `ResourceManager`.
-  - `test_min_fillers_on_path_guaranteed` counts NoOp tiles as fillers (they inherit `placement = FILLER`), so it passes even if Phase 4 is broken.
+- `[MEDIUM]` `test_min_fillers_on_path_guaranteed` counts NoOp tiles as fillers (they inherit `placement = FILLER`), so it passes even if Phase 4 is broken.
 - `[MEDIUM]` **Core scene logic is untested.** There are no tests for:
   - `AdventureTilemap` (visit/complete, Stamina gating, committed path);
   - `AdventureView` beyond the timeout and boss-win paths in `test_adventure_end_flow.gd` (death, result building);

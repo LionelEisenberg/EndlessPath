@@ -14,7 +14,6 @@ const DEFAULT_MOVE_SPEED = 200.0
 const MOVEMENT_THRESHOLD = 5.0 # Distance at which we consider arrival
 
 # Animation angle boundaries (degrees) - for 8-directional movement
-const ANGLE_SLICE = 45.0 # 360 / 8 directions
 const ANGLE_EAST_MIN = 337.5
 const ANGLE_SOUTHEAST_MIN = 22.5
 const ANGLE_SOUTH_MIN = 67.5

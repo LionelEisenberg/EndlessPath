@@ -17,11 +17,6 @@ enum ResourceType {
 	GOLD
 }
 
-static var RESOURCE_NAMES = {
-	ResourceType.MADRA: "Madra",
-	ResourceType.GOLD: "Gold"
-}
-
 #-----------------------------------------------------------------------------
 # RESOURCE DATA (Held by this manager)
 #-----------------------------------------------------------------------------
@@ -99,9 +94,6 @@ func set_madra(amount: float) -> void:
 
 func get_madra() -> float:
 	return live_save_data.madra
-
-func can_afford_madra(amount: float) -> bool:
-	return get_madra() >= amount
 
 ## Get the maximum Madra the player can bring into an adventure (Foundation capacity).
 func get_adventure_madra_capacity() -> float:

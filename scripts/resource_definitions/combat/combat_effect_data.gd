@@ -107,32 +107,20 @@ func calculate_value(caster_attributes: CharacterAttributesData) -> float:
 	if caster_attributes == null:
 		return base_value
 	
-	var scaled_value = base_value
+	var scaled_value: float = base_value
 	Log.info("CombatEffectData: Calculating value for '%s'." % effect_name)
 	Log.info("	Base: %.1f" % base_value)
 	
 	# Add attribute scaling
-	var attr_types = {
-		CharacterAttributesData.AttributeType.STRENGTH: ["Strength", strength_scaling],
-		CharacterAttributesData.AttributeType.BODY: ["Body", body_scaling],
-		CharacterAttributesData.AttributeType.AGILITY: ["Agility", agility_scaling],
-		CharacterAttributesData.AttributeType.SPIRIT: ["Spirit", spirit_scaling],
-		CharacterAttributesData.AttributeType.FOUNDATION: ["Foundation", foundation_scaling],
-		CharacterAttributesData.AttributeType.CONTROL: ["Control", control_scaling],
-		CharacterAttributesData.AttributeType.RESILIENCE: ["Resilience", resilience_scaling],
-		CharacterAttributesData.AttributeType.WILLPOWER: ["Willpower", willpower_scaling]
-	}
-	
-	for attr_type in attr_types:
-		var info = attr_types[attr_type]
-		var name = info[0]
-		var scaling = info[1]
-		
+	for attribute: int in CharacterAttributesData.AttributeType.values():
+		var attr_type: CharacterAttributesData.AttributeType = attribute as CharacterAttributesData.AttributeType
+		var scaling: float = get_scaling(attr_type)
 		if scaling != 0.0:
-			var attr_val = caster_attributes.get_attribute(attr_type)
-			var added_val = attr_val * scaling
+			var attr_val: float = caster_attributes.get_attribute(attr_type)
+			var added_val: float = attr_val * scaling
 			scaled_value += added_val
-			Log.info("  + %s Scaling: %.1f (Attr: %.1f * Scale: %.2f)" % [name, added_val, attr_val, scaling])
+			var attr_name: String = CharacterAttributesData.AttributeType.keys()[attr_type].capitalize()
+			Log.info("  + %s Scaling: %.1f (Attr: %.1f * Scale: %.2f)" % [attr_name, added_val, attr_val, scaling])
 	
 	Log.info("  = Total Scaled Value: %.1f" % scaled_value)
 	return scaled_value

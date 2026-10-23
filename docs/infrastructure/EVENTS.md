@@ -124,7 +124,7 @@ Naming conventions (same id for an event and the condition that wraps it, `q_<qu
 
 ## Tests
 
-There is no dedicated EventManager test file. EventManager is exercised indirectly by `test_quest_manager.gd`, `test_encounter_choice.gd`, `test_adventure_encounter.gd`, `tests/integration/test_aura_well_discovery_unlock.gd`, and `tests/integration/test_beat_3b_merchant_unlock.gd`. `test_adventure_combat_victory_event.gd` calls `EventManager.trigger_event()` itself and never runs `AdventureCombat`, so the combat-to-event bridge is untested.
+There is no dedicated EventManager test file. EventManager is exercised indirectly by `test_quest_manager.gd`, `test_encounter_choice.gd`, `test_adventure_encounter.gd`, `tests/integration/test_aura_well_discovery_unlock.gd`, and `tests/integration/test_beat_3b_merchant_unlock.gd`. `test_adventure_combat_victory_event.gd` covers the combat-to-event bridge: it drives the real `adventure_combat.tscn` and checks that a win fires `q_first_steps_enemy_defeated` by the time `trigger_combat_end` is emitted, and that a loss does not.
 
 ## Work Remaining
 
@@ -137,5 +137,4 @@ There is no dedicated EventManager test file. EventManager is exercised indirect
 
 - `[MEDIUM]` Event ids are magic strings repeated across `.tres` files and code. A typo silently breaks a chain. Add a data-validation test: every `completion_event_id`, and every `EVENT_TRIGGERED` condition `target_value`, must match a `TriggerEventEffectData.event_id` somewhere in `resources/` or a known code producer.
 - `[LOW]` `adventure_combat.gd` hardcodes the quest-scoped id `"q_first_steps_enemy_defeated"` inside generic combat code. Every victory calls it, even though only the first call matters. A generic `enemy_defeated` event, or effects on the encounter, would decouple combat from Beat 2.
-- `[LOW]` `test_adventure_combat_victory_event.gd` is tautological. It triggers the event itself instead of driving `AdventureCombat`.
 - `[LOW]` `trigger_event()` and `has_event_triggered()` dereference `live_save_data` without a null check. Tests set `EventManager.live_save_data = null` in `after_each`. The class also has no `##` doc comment.

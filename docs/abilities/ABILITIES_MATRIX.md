@@ -1,6 +1,6 @@
 # Abilities Matrix
 
-Last updated: 2026-10-18
+Last updated: 2026-10-22
 
 Every `AbilityData` resource in the project, player and enemy, with values read from the `.tres` files. This is the reference for ability numbers. For how abilities are unlocked, equipped and executed, see [ABILITIES.md](ABILITIES.md) and [COMBAT.md](../combat/COMBAT.md).
 
@@ -12,7 +12,7 @@ Every `AbilityData` resource in the project, player and enemy, with values read 
 - **Damage type** (defense used): `PHYSICAL` (target RESILIENCE), `SPIRIT` (target SPIRIT), `MIXED` (average of RESILIENCE and WILLPOWER), `TRUE` (none).
 - **Scaling**: `value = base + Σ(caster attribute × coefficient)`; then `× 100 / (100 + defense)` for damage. `—` = 0.
 - **Default math** assumes caster and target attributes of 10 (new save, no gear). Health 100, Stamina 50, Madra up to 100 per adventure.
-- **Tags**: what the Abilities view card shows (`AbilityCard._compute_effect_tags()` + target shape).
+- **Type / Tags**: what the Abilities book's details card would show. The type is its icon (`AbilitiesView._get_kind()`). The tags are the target shape plus any side effects (`AbilitiesView._describe_tags()`). Enemy abilities never appear in the book; their entries show what it would print.
 - Unset fields in a `.tres` take the class default (effect type `DAMAGE`, damage type `PHYSICAL`, base 0, buff duration 5.0, `consume_on_use` false) and are listed here at that value.
 
 ## Catalog Check
@@ -28,15 +28,15 @@ Every `AbilityData` resource in the project, player and enemy, with values read 
 
 ## Summary
 
-| Ability | Name | Used by | Source / Madra | Cost | CD / Cast | On target | On self | Tags |
+| Ability | Name | Used by | Source / Madra | Cost | CD / Cast | On target | On self | Type / Tags |
 |---------|------|---------|----------------|------|-----------|-----------|---------|------|
-| `basic_strike` | Basic Strike | Player | INNATE / NONE | 3 S | 2.0 / 0.5 | PHYSICAL damage | — | Damage · Targeted |
-| `enforce` | Enforce | Player | INNATE / NONE | 10 M | 15.0 / 1.0 | — | Outgoing ×1.5 buff, consumed | Buff · Self-Cast |
-| `empty_palm` | Empty Palm | Player | PATH / PURE | 8 M | 3.0 / 0 | SPIRIT damage + cancel cast | — | Damage, Interrupt · Targeted |
-| `power_font` | Power Font | Player | PATH / PURE | 30 M | 25.0 / 3.0 | SPIRIT damage + strip buffs | — | Damage, Strip · Targeted |
-| `madra_lash` | Madra Lash | Amorphous Spirit, Coalescing Spirit | (defaults) | free | 0 / 2.0 | SPIRIT damage | — | Damage · Targeted |
-| `famishing_bite` | Famishing Bite | Starving Dreadbeast, Ravenous Dreadbeast | (defaults) | free | 0 / 3.0 | PHYSICAL damage | Hunger: stacking outgoing ×1.5 | Damage, Buff · Mixed |
-| `coalesce` | Coalesce | Coalescing Spirit | (defaults) | free | 30.0 / 5.0 | — | Heal | Heal · Self-Cast |
+| `basic_strike` | Basic Strike | Player | INNATE / NONE | 3 S | 2.0 / 0.5 | PHYSICAL damage | — | Damage / Targeted |
+| `enforce` | Enforce | Player | INNATE / NONE | 10 M | 15.0 / 1.0 | — | Outgoing ×1.5 buff, consumed | Buff / Self-cast |
+| `empty_palm` | Empty Palm | Player | PATH / PURE | 8 M | 3.0 / 0 | SPIRIT damage + cancel cast | — | Damage / Targeted · Interrupts |
+| `power_font` | Power Font | Player | PATH / PURE | 30 M | 25.0 / 3.0 | SPIRIT damage + strip buffs | — | Damage / Targeted · Strips buffs |
+| `madra_lash` | Madra Lash | Amorphous Spirit, Coalescing Spirit | (defaults) | free | 0 / 2.0 | SPIRIT damage | — | Damage / Targeted |
+| `famishing_bite` | Famishing Bite | Starving Dreadbeast, Ravenous Dreadbeast | (defaults) | free | 0 / 3.0 | PHYSICAL damage | Hunger: stacking outgoing ×1.5 | Damage / Mixed · Buffs you |
+| `coalesce` | Coalesce | Coalescing Spirit | (defaults) | free | 30.0 / 5.0 | — | Heal | Heal / Self-cast |
 
 ## Damage at Default Attributes
 

@@ -184,10 +184,6 @@ func move_equipment(from_index: int, to_index: int) -> void:
 			
 		inventory_changed.emit(inventory)
 
-func get_equipped_item(slot: EquipmentDefinitionData.EquipmentSlot, accessory_index: int = -1) -> ItemInstanceData:
-	var inventory = get_inventory()
-	return _get_equipped(inventory, slot, accessory_index)
-
 ## Returns true if the player owns at least one item with the given item_id
 ## across materials, unequipped gear, equipped gear, equipped accessories,
 ## quest items, or consumables.

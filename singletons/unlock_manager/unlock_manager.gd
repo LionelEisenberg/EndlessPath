@@ -73,12 +73,6 @@ func is_condition_unlocked(condition_id: String) -> bool:
 		return false
 	return condition_id in live_save_data.unlock_progression.unlocked_condition_ids
 
-## Returns the list of achieved condition IDs
-func get_achieved_conditions() -> Array[String]:
-	if live_save_data == null:
-		return []
-	return live_save_data.unlock_progression.unlocked_condition_ids
-
 #-----------------------------------------------------------------------------
 # PRIVATE UNLOCK CONDITION EVALUATION
 #-----------------------------------------------------------------------------
@@ -108,21 +102,3 @@ func _unlock_condition(condition_id: String) -> void:
 ## Used by the dev panel; do not call from gameplay code.
 func force_unlock_condition(condition_id: String) -> void:
 	_unlock_condition(condition_id)
-
-#-----------------------------------------------------------------------------
-# PRIVATE UTILITY FUNCTIONS
-#-----------------------------------------------------------------------------
-
-func _get_conditions_for_type(condition_type: UnlockConditionData.ConditionType) -> Array[UnlockConditionData]:
-	return unlock_condition_list.list.filter(func(condition: UnlockConditionData): return condition.condition_type == condition_type)
-
-# Compares current value (a) with target value (b) using the comparison operator (op)
-func _compare_values(a: Variant, b: Variant, op: String) -> bool:
-	match op:
-		">=": return a >= b
-		">":  return a > b
-		"<=": return a <= b
-		"<":  return a < b
-		"==": return a == b
-		"!=": return a != b
-		_: return false

@@ -35,10 +35,6 @@ func clear_slot() -> void:
 	_ability_data = null
 	_update_display()
 
-## Returns the ability in this slot, or null if empty.
-func get_ability() -> AbilityData:
-	return _ability_data
-
 # ----- Drag source -----
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
@@ -64,7 +60,6 @@ func _update_display() -> void:
 		_icon.texture = _ability_data.icon
 		_icon.visible = true
 		_empty_label.visible = false
-		_icon.modulate = Color.WHITE
 	else:
 		_icon.texture = null
 		_icon.visible = false

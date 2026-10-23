@@ -40,7 +40,7 @@ AdventureView (Control)                          adventure_view.gd (adventure-ow
 │           │   └── EnemyNameplate               placed above the enemy sprite by _place_nameplate()
 │           ├── PlayerCombatant (CombatantNode)  created per fight
 │           └── EnemyCombatant (CombatantNode)   created per fight
-│               └── EnemyAI (SimpleEnemyAI)      added when enable_ai is true
+│               └── EnemyAI (SimpleEnemyAI)      added by _create_enemy_combatant()
 ├── PlayerHud                                    persistent dock, bottom-centre; slots activate in combat
 └── TimerPanel                                   adventure timer pill, top-centre
 ```
@@ -152,7 +152,7 @@ The `AttributeType` doc comments describe roles that are not implemented (AGILIT
 | `strength_scaling` … `willpower_scaling` | `float` ×8 | 0.0 | Added as `caster_attribute × coefficient` |
 | `damage_type` | `DamageType` | `PHYSICAL` | `PHYSICAL`, `SPIRIT`, `TRUE`, `MIXED` |
 
-`calculate_value(caster)` returns `base_value + Σ(attribute × scaling)` and logs each term. `calculate_damage(caster, target)` applies defense (below).
+`calculate_value(caster)` returns `base_value + Σ(attribute × get_scaling(attribute))` and logs each term. `calculate_damage(caster, target)` applies defense (below).
 
 ### BuffEffectData (`buff_effect_data.gd`, extends CombatEffectData)
 
@@ -292,7 +292,6 @@ Gold: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionDa
 | `CombatAbilityInstance` | `cooldown_started`, `cooldown_updated`, `cooldown_ready` | `AbilityButton` |
 | `CombatAbilityInstance` | `cast_started`, `cast_updated`, `cast_finished`, `cast_cancelled` | `CastBar` (player cast bar, enemy intent tab); `AbilityButton` (casting glow, affordability) |
 | `CombatAbilityInstance` | `executed(instance)` | `CombatantNode` (lunge or buff pulse) |
-| `CombatAbilityManager` | `ability_registered`, `ability_used` | none |
 | `CombatBuffManager` | `buff_applied`, `buff_removed`, `buff_refreshed`, `buff_stacked` | `BuffBar` |
 | `AbilityButton` | `pressed`, `hovered(ability_data)`, `unhovered` | `AbilitiesPanel` |
 | `AbilitiesPanel` / `PlayerHud` | `ability_selected(instance)` | `AdventureCombat.on_player_ability_selected` |
@@ -324,7 +323,7 @@ Keybindings (`project.godot`, physical keys):
 | `ability_slot_1` … `ability_slot_4` | Q / W / E / R | `AbilitiesPanel._unhandled_input` → ability in loadout slot 0–3 while the slots are bound for a fight (ignored if its button is disabled) |
 | `open_abilities` | A | Opens/closes the Abilities view from the zone view (not available during adventures) |
 
-Styleboxes in use (`assets/styleboxes/combat/`): `panel_dock.tres` (dock plate), `orb_ring.tres` / `orb_shine.tres` (orbs), `panel_intent.tres` (enemy intent tab), `panel_nameplate.tres` (enemy card and player cast bar), `slot_cast_glow.tres`, `bar_track.tres`, `bar_fill_{health,madra,stamina,ghost}.tres`, `cast_bar_fill.tres` / `cast_bar_fill_enemy.tres`, `cost_preview.tres` / `cost_line.tres`, and `panel_keyhint.tres` (key hint and cost strip, also the loadout slot hint). `panel_vitals.tres`, `panel_abilities.tres` and `panel_buffs.tres` are unreferenced.
+Styleboxes in use (`assets/styleboxes/combat/`): `panel_dock.tres` (dock plate), `orb_ring.tres` / `orb_shine.tres` (orbs), `panel_intent.tres` (enemy intent tab), `panel_nameplate.tres` (enemy card and player cast bar), `slot_cast_glow.tres`, `bar_track.tres`, `bar_fill_{health,stamina,ghost}.tres`, `cast_bar_fill.tres` / `cast_bar_fill_enemy.tres`, `cost_preview.tres` / `cost_line.tres`, and `panel_keyhint.tres` (key hint and cost strip, also the loadout slot hint).
 
 ## Integration Points
 
@@ -416,7 +415,7 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 | `scripts/resource_definitions/abilities/ability_data.gd` | `AbilityData`, costs, predicates |
 | `singletons/player_manager/player_manager.gd` | Owns the persistent player `VitalsManager` |
 | `resources/combat/combatant_data/` | Enemy definitions and enemy abilities |
-| `tests/unit/test_combat_damage.gd`, `test_combat_effect_types.gd`, `test_combat_buff_manager_stacking.gd`, `test_combat_buff_manager_strip.gd`, `test_combat_ability_instance_cancel.gd`, `test_adventure_combat_victory_event.gd`, `test_adventure_combat_count.gd` | Unit tests |
+| `tests/unit/test_combat_damage.gd`, `test_combat_effect_data.gd`, `test_combat_effect_types.gd`, `test_combat_buff_manager_stacking.gd`, `test_combat_buff_manager_strip.gd`, `test_combat_ability_instance_cancel.gd`, `test_adventure_combat_victory_event.gd`, `test_adventure_combat_count.gd` | Unit tests |
 | `tests/integration/test_empty_palm_interrupt.gd`, `test_power_font_buff_strip.gd` | Integration tests (real `.tres` through the effect pipeline) |
 
 ## Work Remaining
@@ -463,9 +462,8 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 
 ### Tech Debt
 
-- `[MEDIUM]` `enable_ai` debug export under `# TODO: DELETE DEBUG` is still in `adventure_combat.gd` (lines 33–36); earlier docs wrongly said PR #15 removed it.
-- `[LOW]` Dead code: `combat_ability_instance.tscn` (unused; root node misspelled `CombatAbilitiyInstance`), `CombatAbilityManager.ability_registered`/`ability_used` (no listeners; `ability_used` declared with two args, emitted with one), `CombatBuffManager.get_outgoing_damage_modifier()` (tests only) and `get_incoming_damage_modifier()` (unused), the unused child `VitalsManager` on the player's `CombatantNode`, and assets the old info panel used: `panel_vitals.tres`, `panel_abilities.tres`, `panel_buffs.tres`, `assets/sprites/ui/resource_bar/*.png` and `assets/sprites/character/base_player.png`.
+- `[LOW]` Dead code: the unused child `VitalsManager` on the player's `CombatantNode`, and art the old info panel used: `assets/sprites/ui/resource_bar/*.png` and `assets/sprites/character/base_player.png`.
 - `[LOW]` `AbilitiesPanel._unhandled_input` marks a slot key handled during a fight even when that slot is empty.
 - `[LOW]` `AbilityEquipSlot.KEY_LABELS` hardcodes Q/W/E/R; the combat slots read their keys from the InputMap.
 - `[LOW]` Public functions without `##` doc comments (CLAUDE.md): `VitalsManager.initialize_current_values()`/`apply_vitals_change()`, `CombatAbilityManager.can_cast_ability_instance()`, `AdventureCombat.on_player_ability_selected()`.
-- `[LOW]` Test gaps: nothing covers `SimpleEnemyAI`, `VitalsManager`, `execute_ability()` (modifier consumption, effect order), incoming modifiers, DoT ticks, the gold formula, or `AdventureCombat` start/stop. `test_adventure_combat_victory_event.gd` only calls `EventManager` directly, and `test_adventure_combat_count.gd` re-implements the counting logic instead of calling `AdventureTilemap.get_total_combat_count()`.
+- `[LOW]` Test gaps: nothing covers `SimpleEnemyAI`, `VitalsManager`, `execute_ability()` (modifier consumption, effect order), incoming modifiers, DoT ticks, the gold formula, or `AdventureCombat.stop()`. `test_adventure_combat_victory_event.gd` starts a real `AdventureCombat` but only checks how the fight ends.

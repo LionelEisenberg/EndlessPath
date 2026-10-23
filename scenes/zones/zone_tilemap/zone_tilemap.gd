@@ -28,10 +28,6 @@ extends Node2D
 ## change the map did not make (a save reset, a dev switch) ends it in the
 ## real current zone (Review Focus 2).
 
-## Emitted when the player sets off for a zone (on the click; the zone itself
-## changes on arrival).
-signal zone_selected(zone_data: ZoneData, tile_coord: Vector2i)
-
 ## Emitted after the map redraws its zones, fog and hex states: on load, on a
 ## zone change, an unlock, or a dev toggle that changes the map zones.
 signal map_rebuilt
@@ -515,7 +511,6 @@ func _travel_to(zone_data: ZoneData) -> void:
 	if zone_data == null:
 		return
 	_travel_target = zone_data
-	zone_selected.emit(zone_data, zone_data.tilemap_location)
 	_stop_idle_motion()
 	character_body.move_to_position(_get_stand_position(zone_data), CHARACTER_MOVE_SPEED)
 

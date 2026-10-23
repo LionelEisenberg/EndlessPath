@@ -16,9 +16,9 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~26.9k lines of game GDScript and ~20.3k lines of tests; 139 scenes; 102 authored `.tres` resources; 15 shaders (all counted on the cycling view branch on 2026-10-23) |
+| Code | ~27k lines of game GDScript and ~21k lines of tests; 131 scenes; 106 authored `.tres` resources; 10 shaders |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 118 scripts and 1583 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 118 scripts and 1587 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
 | In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/cycling-view-styleguide-ea3170`: the lacquer cycling view, built 2026-10-22 and 23 |
 
@@ -155,7 +155,6 @@ These issues span several systems, so no single system doc owns them. The detail
 | **Modifiers nobody reads** | `PathManager` aggregates 7 numeric perk types into `PathEffectsSummary`, but no production code reads it. Other values are exported and never read: cycling action modifiers and foraging `madra_cost_per_second`. Player max vitals ignore equipment changes until a base attribute changes. See [PATH_PROGRESSION](progression/PATH_PROGRESSION.md), [CYCLING](cycling/CYCLING.md), [ZONES](zones/ZONES.md), [CHARACTER](infrastructure/CHARACTER.md) | HIGH |
 | **Missing stage data hangs the game** | `CultivationManager.add_core_density_xp()` loops forever if the current stage has no `AdvancementStageResource`, because `get_xp_for_next_level()` returns 0. `ResourceManager.add_madra()` likewise clamps Madra to 0. Guard both before adding any stage past Foundation. See [CULTIVATION](cultivation/CULTIVATION.md) | HIGH (blocks Copper) |
 | **Save robustness** | Saves have no version field, and two schema changes have already broken old saves. The only migration is `SaveGameData.migrate()`, which moves listed zone ids (Test Zone → Spirit Valley) before `verify()`. A failed `verify()` (e.g. a renamed zone id) or an unreadable file silently replaces the whole save. Nothing saves on quit, and wiping a save requires editing `reset_save_data` in the script. See [PERSISTENCE](infrastructure/PERSISTENCE.md) | HIGH (before any public build) |
-| **Mirror tests** | About 114 tests in 5 files re-implement the logic they check instead of calling it: `test_resource_manager`, `test_cultivation_manager`, `test_character_manager`, `test_adventure_flow`, `test_adventure_combat_count`. ResourceManager, CultivationManager and CharacterManager are effectively untested. See [TESTING](testing/TESTING.md) | HIGH |
 | **Untyped ids** | Event ids, condition ids and unlock targets are strings, and no test checks that every gate's condition is registered, that every quest step's event has a producer, or that every path unlock id resolves. See [UNLOCKS](infrastructure/UNLOCKS.md), [EVENTS](infrastructure/EVENTS.md) | MEDIUM |
 | **Modal backdrop** | Found by code reading: after Path, Abilities or Character closes, `GreyBackground.self_modulate.a` stays 0. Later Inventory and end-card overlays then show an invisible but click-blocking backdrop. See [MAIN_VIEW](infrastructure/MAIN_VIEW.md) | MEDIUM |
 | **Tooling gotchas** | The first headless `--import` in a fresh checkout rewrote `project.godot`'s `[dialogic]` directory registry to `{}`, so revert it before committing. Editor, exported builds and GUT runs share one `user://` dir (save file, logs, dev password file). Green test runs print SCRIPT ERRORs and 24 Dialogic orphans. See [TESTING](testing/TESTING.md), [DEV_TOOLS](tooling/DEV_TOOLS.md) | MEDIUM |

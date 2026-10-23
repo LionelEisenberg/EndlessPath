@@ -162,6 +162,8 @@ Shared components used across multiple views:
 
 **When to commit:** Commit your own work as you go, once each logical step is done (a feature, a bug fix, a meaningful refactor, a plan task). You don't need to ask first.
 
+**Never commit to `main`:** commit on a feature branch (a worktree's own branch counts). If you find yourself on `main`, create a branch before committing.
+
 **Never merge:** not into `main`, not into any other branch, and not a pull request, unless the user explicitly asks.
 
 **Before committing:**
@@ -179,6 +181,12 @@ Shared components used across multiple views:
 - Keep `.godot/` cache and user data out of commits (already in `.gitignore`)
 
 Use `/ship` to review, commit, and get a summary in one step.
+
+**Worktrees in Godot's project list:** the SessionStart hook in `.claude/settings.json` runs `.claude/hooks/godot_project_list.ps1 sync`. It lists every live worktree in Godot's project manager through a junction in `C:\worktrees\EndlessPath-godot\` named after a one-liner of its feature, which Godot shows on the path line under the "EndlessPath" title. It drops worktrees that are gone or merged into main, and never touches the main checkout's entry. New entries are named after their branch: once you know what your session is building, rename yours to a one-liner of the feature, and again if the work changes direction:
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/godot_project_list.ps1 label "Zone view redesign"
+```
+Never delete one of those junctions with `Remove-Item -Recurse`: on a junction, Windows PowerShell deletes the worktree's own files.
 
 ## Parallel Agents
 
@@ -258,7 +266,7 @@ For the full skill list, invoke `godot-prompter:using-godot-prompter`.
 ## Development Notes
 
 ### Shaders
-Custom shaders (15) live in `assets/shaders/`. Notable shaders include: `liquid_wave` (the combat orbs' liquid fill), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), and `path_connection_energy`, `path_node_border`, `path_node_keystone` (path tree). `tile_aura` (pulsing color overlay), `flowing_path` (the old zone glowing paths) and `action_card_sweep` (the old zone card fill) are currently unreferenced, and `zone_action_button` is only used by the unused `InkbrushButton`. In the lacquer zone view, only the cultivator cabinet's two orbs use shaders (`lacquer_madra_orb`, `lacquer_core_orb`: pixel-grid, kit-palette, stepped-time fills over the strip art); every other fill there is a frame of a texture strip. The cycling board uses none: its groove is drawn per art pixel by `CyclingGroove`, and the ball, rings and zones are strip frames.
+Custom shaders (10) live in `assets/shaders/`. Notable shaders include: `liquid_wave` (the combat orbs' liquid fill), `vignette` (screen-edge darkening for atmosphere), `fog_of_war` (per-tile clear zones with zoom-scaled radius), `palette_swap` (per-menu menu book colours), `hit_flash` (combat hit feedback), and `path_connection_energy`, `path_node_border`, `path_node_keystone` (path tree). In the lacquer zone view, only the cultivator cabinet's two orbs use shaders (`lacquer_madra_orb`, `lacquer_core_orb`: pixel-grid, kit-palette, stepped-time fills over the strip art); every other fill there is a frame of a texture strip. The cycling board uses none: its groove is drawn per art pixel by `CyclingGroove`, and the ball, rings and zones are strip frames.
 
 ### Styling / Themes
 UI themes are defined in `assets/themes/` as Godot `.tres` theme resources. Custom styleboxes in `assets/styleboxes/`. Use existing theme tokens — do not introduce external UI frameworks. See `docs/UI_STYLING.md` for the Label variant type-scale and usage rules.
@@ -275,6 +283,14 @@ There are two channels:
 - **`LogManager`**: the player-facing log. It emits `message_logged` signals for in-game display in `LogWindow`; call `LogManager.log_message(bbcode)`. It has no levels; callers format their own BBCode strings. It keeps the last `HISTORY_LIMIT` (200) messages (`get_history()`), which the five-line log board and the full log (L) read.
 
 See `docs/infrastructure/LOGGING.md`.
+
+### Aseprite MCP
+`.mcp.json` registers the `aseprite` MCP server ([diivi/aseprite-mcp](https://github.com/diivi/aseprite-mcp)): 123 tools that draw, animate, inspect and export sprites by running the Steam copy of Aseprite in batch mode, so Aseprite doesn't need to be open. Pass it absolute paths: relative ones resolve against whatever directory Claude Code started the server in. Everything it writes is AI-made art, so the AI-Generated Art rules apply (`_ai` suffix, never save over the user's files).
+
+The server lives outside the repo, cloned to `C:\Users\lione\source\repos\aseprite-mcp`; `.mcp.json` runs that clone's `.venv` Python directly, with `PYTHONPATH` pointing at the clone. The Claude desktop app is an MSIX package and redirects new `AppData` folders into its private storage, which breaks uv's default Python install, so uv keeps Python 3.13 and its cache in `C:\Users\lione\.uv` instead. To update or reinstall, from the clone:
+```bash
+git pull && UV_PYTHON_INSTALL_DIR='C:\Users\lione\.uv\python' UV_CACHE_DIR='C:\Users\lione\.uv\cache' uv sync --frozen
+```
 
 ### Key Input Bindings
 - `open_inventory` / `close_inventory` — I / I or Escape

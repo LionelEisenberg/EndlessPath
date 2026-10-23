@@ -17,10 +17,6 @@ extends HBoxContainer
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Set the count as a "<used> / <total>" formatted string.
-func set_count(used: int, total: int) -> void:
-	count_label.text = "%d / %d" % [used, total]
-
 ## Set the count to an arbitrary string ("9 stacks", "3 kinds collected", etc.).
 func set_count_text(text: String) -> void:
 	count_label.text = text

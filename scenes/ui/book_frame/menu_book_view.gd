@@ -56,7 +56,6 @@ func animate_open() -> void:
 
 ## Closes the book. Emits close_finished once it has closed.
 func animate_close() -> void:
-	_before_close()
 	_set_pages_visible(false)
 	book_frame.animate_close()
 
@@ -70,10 +69,6 @@ func _before_open() -> void:
 
 ## Called once the book lies open and its pages are shown.
 func _after_open() -> void:
-	pass
-
-## Called before the book closes. Hide anything that floats over the pages.
-func _before_close() -> void:
 	pass
 
 ## Called once the book has closed, before close_finished.
