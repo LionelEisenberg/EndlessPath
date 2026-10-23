@@ -1,15 +1,23 @@
 class_name AdventureMapMarkers
-extends CanvasLayer
+extends Node2D
 
 ## AdventureMapMarkers
-## The adventure map's coins (spec: The map, Coins), drawn over the map on canvas
-## layer 1 in screen space, as MapMarkers draws the zone map's plates and glyphs.
+## The adventure map's coins (spec: The map, Coins), drawn over the map in screen
+## space, as MapMarkers draws the zone map's plates and glyphs.
 ## A coin (EncounterCoin) marks every tile the player sees that has something to
 ## show: a "?" on a revealed tile (an empty one too, so a coin never gives away
 ## an empty tile), the encounter's glyph once the tile is visited, a carved coin
 ## once it is resolved, and the boss's own coin from the moment its tile comes
 ## into view, shaking as it does. A visited empty tile has none. Under the dev
 ## panel's Show Whole Map every unvisited encounter tile shows its glyph.
+## The layer is a node of the map's own canvas, not a canvas layer, so the
+## character can draw over it: its z index (50) puts it over the tiles, the rims,
+## the fog and the route (all at 0) and under the character's shadow and the
+## character (99 and 100), and the character walks over a coin instead of behind
+## it. It stays in screen space all the same: in every placement pass its
+## transform is set to the inverse of the viewport's canvas transform (the
+## camera's), so its children draw in the viewport's own px, crisp and at their
+## own size at any zoom, and a coin's position is where it is drawn.
 ## Every frame each coin follows its hex through the map's canvas transform and
 ## sits 8 px above the hex's centre, or COIN_RISE_HERE on the hex the player
 ## stands on, clear of the character's head. Coins keep their size at the map's
@@ -21,7 +29,8 @@ extends CanvasLayer
 ## (RenderingServer.frame_pre_draw), and never trail the tiles.
 ## It redraws on the map's map_changed and encounter_resolved, and keeps the
 ## coins that are still wanted, so a shake or an animated glyph is never cut off
-## or started over by a redraw.
+## or started over by a redraw. No coin takes the pointer: the hexes under the
+## coins stay hoverable and clickable.
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -44,12 +53,6 @@ const COIN_RISE_HERE: float = 56.0
 const COIN_CENTRE: Vector2 = Vector2(26, 26)
 
 const EncounterCoinScene: PackedScene = preload("res://scenes/adventure/adventure_map_markers/encounter_coin/encounter_coin.tscn")
-
-#-----------------------------------------------------------------------------
-# NODE REFERENCES
-#-----------------------------------------------------------------------------
-
-@onready var _coin_container: Control = %CoinContainer
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -121,7 +124,7 @@ func _show_coin(coord: Vector3i, encounter: AdventureEncounter, face: EncounterC
 	var coin: EncounterCoin = _coins.get(coord, null) as EncounterCoin
 	if coin == null:
 		coin = EncounterCoinScene.instantiate() as EncounterCoin
-		_coin_container.add_child(coin)
+		add_child(coin)
 		_coins[coord] = coin
 	if face == EncounterCoin.Face.UNKNOWN:
 		coin.setup(face, null, Vector2i.ZERO, 1, 0.0)
@@ -149,11 +152,14 @@ func _remove_coin(coord: Vector3i) -> void:
 
 ## Puts every coin over its hex: the disc's centre COIN_RISE above the hex's
 ## screen centre (COIN_RISE_HERE on the hex the player stands on), the 54 px
-## frame's top-left 26 px up and left of that, in whole px. Runs every frame
+## frame's top-left 26 px up and left of that, in whole px. The layer first
+## stands in screen space: its transform cancels the viewport's canvas
+## transform, so a coin's position is its screen position. Runs every frame
 ## in _process and again just before the frame is drawn.
 func _place_coins() -> void:
 	if _coins.is_empty() or map == null or not map.is_inside_tree() or not map.is_node_ready():
 		return
+	global_transform = get_viewport().get_canvas_transform().affine_inverse()
 	var canvas: Transform2D = map.get_global_transform_with_canvas()
 	var here: Vector3i = map.get_current_tile()
 	for coord: Vector3i in _coins:

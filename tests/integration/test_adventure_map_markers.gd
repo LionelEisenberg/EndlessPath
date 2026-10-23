@@ -4,10 +4,12 @@ extends GutTest
 ## Coins): a coin on each tile the player sees that has something to show, its
 ## face by what the player knows of the tile, its place over its hex in screen
 ## space (higher on the hex the player stands on, where it clears the character's
-## head), how it follows the camera, the boss coin's shake when the boss comes
-## into view, the dev panel's Show Whole Map, and the stop. Drives the real
-## tilemap scene on the six-tile fixture map (AdventureMapFixture) and walks it by
-## clicking tiles, the way the player does.
+## head), how it follows the camera at any zoom, where the layer draws (over the
+## tiles, rims, fog and route, under the character) and that it never takes the
+## pointer, the boss coin's shake when the boss comes into view, the dev panel's
+## Show Whole Map, and the stop. Drives the real tilemap scene on the six-tile
+## fixture map (AdventureMapFixture) and walks it by clicking tiles, the way the
+## player does.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -111,6 +113,14 @@ func _before_draw() -> void:
 func _markers() -> AdventureMapMarkers:
 	return _tilemap.get_node_or_null("%AdventureMapMarkers") as AdventureMapMarkers
 
+## The z index a node draws at: its own, plus its ancestors' for as long as it is
+## relative to them (a node that is not a canvas item has none).
+func _effective_z(node: Node) -> int:
+	if not node is CanvasItem:
+		return 0
+	var item: CanvasItem = node as CanvasItem
+	return item.z_index + (_effective_z(item.get_parent()) if item.z_as_relative else 0)
+
 ## The coin on the tile, or null.
 func _coin(coord: Vector3i) -> EncounterCoin:
 	var markers: AdventureMapMarkers = _markers()
@@ -175,11 +185,92 @@ func test_the_map_instances_the_coin_layer() -> void:
 	assert_not_null(markers, "the map has a coin layer")
 	if markers == null:
 		return
-	assert_eq(markers.layer, 1, "above the map, under the boards")
+	var node: Node = markers
+	assert_false(node is CanvasLayer, "a node of the map's own canvas: a canvas layer draws over all of it, the character included")
+	assert_true(node is Node2D, "a node of the map's canvas, drawn by its z index")
 	assert_eq(markers.map, _tilemap, "it reads the map it is a child of")
 	assert_eq(markers.get_coin_count(), 0, "no coins before a run")
-	var container := markers.get_node("%CoinContainer") as Control
-	assert_eq(container.mouse_filter, Control.MOUSE_FILTER_IGNORE, "the hexes under the coins stay hoverable and clickable")
+
+## The hexes under the coins stay hoverable and clickable: nothing a coin is
+## made of takes the pointer.
+func test_coins_ignore_the_pointer() -> void:
+	var markers: AdventureMapMarkers = _markers()
+	assert_not_null(markers, "the map has a coin layer")
+	if markers == null:
+		return
+	_start()
+	var controls: Array[Node] = markers.find_children("*", "Control", true, false)
+	assert_gt(controls.size(), 3, "precondition: three coins and what they are made of")
+	var takers: Array[String] = []
+	for control: Node in controls:
+		if (control as Control).mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			takers.append(str(markers.get_path_to(control)))
+	assert_eq(takers, [] as Array[String], "no control of the layer takes the pointer")
+
+## The coins draw over the tiles, the rims, the fog and the route and under the
+## character and its shadow, so the character walks over a coin instead of
+## behind it. (The layer draws by its z index, in the map's own canvas.)
+func test_the_character_draws_over_the_coins() -> void:
+	_start()
+	var markers: AdventureMapMarkers = _markers()
+	assert_not_null(markers, "the map has a coin layer")
+	if markers == null:
+		return
+	var coin_z: int = _effective_z(markers)
+	var under_the_coins: Array[Node] = [
+		_tilemap.get_node("%AdventureFogMap"), _tilemap.get_node("%AdventureFullMap"), _tilemap.get_node("%AdventureVisibleMap"),
+		_tilemap.get_node("%CurrentRim"), _tilemap.get_node("%HoverRim"), _tilemap.get_node("%AdventureRoute"),
+	]
+	for piece: Node in under_the_coins:
+		assert_lt(_effective_z(piece), coin_z, "%s draws under the coins" % piece.name)
+	assert_lt(coin_z, _effective_z(_tilemap.get_node("%CharacterShadow")), "the character's shadow draws over the coins")
+	assert_lt(coin_z, _effective_z(_tilemap.character_body), "and so does the character")
+	var coin: EncounterCoin = _coin(FIGHT)
+	assert_not_null(coin, "precondition: the fight tile has its coin")
+	if coin != null:
+		assert_eq(_effective_z(coin), coin_z, "a coin draws where its layer does")
+
+## The coin layer stands in the screen's space whatever the camera does: its own
+## transform cancels the camera's, so a coin's position is its screen position and
+## its 54 px stay 54 px at any zoom, over the middle of its hex. (The zoom is set
+## on the camera here; the map's wheel zoom is tested with the view.)
+func test_coins_keep_their_size_and_their_hexes_when_the_zoom_changes() -> void:
+	var camera := _tilemap.character_body.get_node("Camera2D") as Camera2D
+	var markers: AdventureMapMarkers = _markers()
+	assert_not_null(markers, "the map has a coin layer")
+	if markers == null:
+		return
+	_start()
+	await _settle()
+	for zoom: float in [1.0, 1.5, 2.0]:
+		camera.zoom = Vector2(zoom, zoom)
+		await _settle()
+		assert_true(get_viewport().get_canvas_transform().get_scale().is_equal_approx(Vector2(zoom, zoom)), "precondition: the map is drawn at zoom %s" % zoom)
+		assert_true(markers.get_global_transform_with_canvas().is_equal_approx(Transform2D.IDENTITY), "zoom %s: the layer's transform cancels the camera's" % zoom)
+		for coord: Vector3i in [FIGHT, OPEN_NEAR, REST]:
+			var on_screen: Transform2D = _coin(coord).get_global_transform_with_canvas()
+			assert_true(on_screen.get_scale().is_equal_approx(Vector2.ONE), "zoom %s, %s: the coin is drawn at its own size" % [zoom, coord])
+			assert_almost_eq(on_screen.origin.x + COIN_HALF.x, _screen_centre(coord).x, 1.0, "zoom %s, %s: over the middle of its hex" % [zoom, coord])
+			assert_lt(on_screen.origin.y + COIN_HALF.y, _screen_centre(coord).y, "zoom %s, %s: and above its centre" % [zoom, coord])
+
+## The layer sets its transform again just before the frame is drawn, as it places
+## its coins: a camera that changed after the frame's _process (a tween) leaves it
+## cancelling the camera's transform all the same.
+func test_the_layer_cancels_the_camera_again_before_the_frame_is_drawn() -> void:
+	var camera := _tilemap.character_body.get_node("Camera2D") as Camera2D
+	var markers: AdventureMapMarkers = _markers()
+	assert_not_null(markers, "the map has a coin layer")
+	if markers == null:
+		return
+	_start()
+	await _settle()
+
+	camera.zoom = Vector2(1.5, 1.5)
+	camera.offset += Vector2(30, 20)
+	_before_draw()
+
+	assert_true(markers.get_global_transform_with_canvas().is_equal_approx(Transform2D.IDENTITY), "the pass just before the draw cancels the camera's new transform")
+	assert_eq(_coin(FIGHT).get_global_transform_with_canvas().origin.round(), _coin(FIGHT).position, "so a coin's position is where it is drawn")
 
 func test_old_icon_layers_are_gone() -> void:
 	for node_name: String in ["EncounterIconContainer", "AdventureMarker"]:
