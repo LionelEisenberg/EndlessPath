@@ -30,7 +30,6 @@ offset_left = 680.0
 offset_top = 24.0
 offset_right = 1244.0
 offset_bottom = 1060.0
-mouse_filter = 1
 texture = ExtResource("3_board")
 
 [node name="ActionLabel" type="Label" parent="." unique_id=1203746581]
@@ -80,7 +79,7 @@ texture_hover = ExtResource("5_close_hover")
 
 [node name="FigureBox" type="Control" parent="." unique_id=1459021736]
 unique_name_in_owner = true
-layout_mode = 0
+anchors_preset = 0
 offset_left = 698.0
 offset_top = 104.0
 offset_right = 1222.0
@@ -125,7 +124,6 @@ toggle_mode = true
 texture_normal = ExtResource("8_auto")
 texture_pressed = ExtResource("9_auto_on")
 ignore_texture_size = true
-stretch_mode = 2
 
 [node name="AutoLabel" type="Label" parent="AutoToggle" unique_id=514760293]
 unique_name_in_owner = true
