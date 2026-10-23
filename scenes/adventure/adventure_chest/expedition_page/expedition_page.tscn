@@ -16,6 +16,7 @@
 [ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="14_gold"]
 [ext_resource type="Texture2D" uid="uid://fr1ueqq6cg6y" path="res://assets/sprites/ui/stat_icons/map_icon.png" id="15_map"]
 [ext_resource type="Texture2D" uid="uid://yk2panbupqdl" path="res://assets/ui/lacquer/lacquer_socket_buff_ai.png" id="16_loot_socket"]
+[ext_resource type="StyleBox" uid="uid://bjz0pnis0z337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="17_wrap_pad"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lore"]
 content_margin_top = 2.0
@@ -31,18 +32,26 @@ script = ExtResource("1_page")
 
 [node name="HereTray" type="Control" parent="." unique_id=1518320476]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(408, 88)
 layout_mode = 0
 offset_right = 408.0
 offset_bottom = 88.0
 mouse_filter = 2
 
-[node name="Tray" type="TextureRect" parent="HereTray" unique_id=1358363550]
+[node name="Tray" type="NinePatchRect" parent="HereTray" unique_id=1358363550]
 unique_name_in_owner = true
-layout_mode = 0
-offset_right = 408.0
-offset_bottom = 88.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("3_tray")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 2
+patch_margin_bottom = 2
 
 [node name="Socket" type="TextureRect" parent="HereTray" unique_id=1792358578]
 unique_name_in_owner = true
@@ -66,16 +75,34 @@ mouse_filter = 2
 expand_mode = 1
 script = ExtResource("6_strip_rect")
 
-[node name="NameLabel" type="Label" parent="HereTray" unique_id=1009232570]
+[node name="TextColumn" type="VBoxContainer" parent="HereTray" unique_id=1710553071]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 78.0
 offset_top = 18.0
-offset_right = 314.0
-offset_bottom = 40.0
+offset_right = 394.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="NameLabel" type="Label" parent="HereTray/TextColumn" unique_id=1009232570]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(236, 22)
+layout_mode = 2
+size_flags_horizontal = 0
 theme_type_variation = &"LabelLacquerNowName"
+theme_override_styles/normal = ExtResource("17_wrap_pad")
 text = "Open ground"
-text_overrun_behavior = 3
+autowrap_mode = 3
+
+[node name="LineLabel" type="Label" parent="HereTray/TextColumn" unique_id=1726513862]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(316, 18)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("17_wrap_pad")
+text = "Click a hex to walk · 5 Stamina a step"
+autowrap_mode = 3
 
 [node name="Tag" type="TextureRect" parent="HereTray" unique_id=1166198171]
 unique_name_in_owner = true
@@ -124,17 +151,6 @@ theme_type_variation = &"LabelLacquerSeal"
 text = "BOSS"
 horizontal_alignment = 1
 vertical_alignment = 1
-
-[node name="LineLabel" type="Label" parent="HereTray" unique_id=1726513862]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 78.0
-offset_top = 48.0
-offset_right = 394.0
-offset_bottom = 66.0
-theme_type_variation = &"LabelLacquerDetail"
-text = "Click a hex to walk · 5 Stamina a step"
-text_overrun_behavior = 3
 
 [node name="HerePlate" type="TextureRect" parent="HereTray" unique_id=513973622]
 unique_name_in_owner = true
@@ -185,11 +201,12 @@ theme_override_constants/margin_top = 10
 
 [node name="WalkHint" type="Label" parent="Flow/HintRow" unique_id=1034314087]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 18)
+custom_minimum_size = Vector2(408, 18)
 layout_mode = 2
 theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("17_wrap_pad")
 text = "Click a hex to walk · 5 Stamina a step · 16 steps left"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="DividerRow" type="MarginContainer" parent="Flow" unique_id=560787016]
 unique_name_in_owner = true

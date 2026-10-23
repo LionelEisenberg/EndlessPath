@@ -19,10 +19,16 @@ extends AdventureChestPage
 ## and set_run_stats(). The lore, hint, divider and drawers flow in a
 ## VBoxContainer under the tray, so the page's content height is that box's
 ## bottom, and every change of tile emits content_resized for the chest to hug.
-## Every row of the flow is an even number of px tall, as the mock's are: the
-## lore Label is padded 2 px above and 1 under (a StyleBoxEmpty in the scene),
-## which makes n wrapped lines 22 n tall and seats their glyphs as the mock's
-## 22 px line boxes do; the walk hint's row is 10 + an 18 px line.
+## No text is cut off: the tray's name and line, the hint and the drawers' texts
+## wrap, and what holds them grows. The tray is as tall as its text column asks
+## (88 at least), and the flow stands 16 px under its bottom, so everything under
+## the tray moves down with it; the socket, glyph, plate, tag and seal stay at
+## the top. Every height is an even number of px, as the mock's are: the lore
+## Label is padded 2 px above and 1 under (a StyleBoxEmpty in the scene), which
+## makes n wrapped lines 22 n tall and seats their glyphs as the mock's 22 px
+## line boxes do; the tray's name and line and the walk hint are padded 1 px
+## under (wrap_pad.tres), which makes their lines 22 n and 18 n tall; the walk
+## hint's row is 10 + that.
 ## The text rules are statics, so the tests and the page ask the same code.
 
 ## Emitted when the player presses an available drawer: the choice it stands for.
@@ -52,9 +58,15 @@ const STORY_GLYPH_FRAME_SIZE: Vector2i = Vector2i(16, 16)
 
 ## The tray's name stops this far short of the tag or seal beside it. Beside the
 ## tag (at x 320, the name at x 78) that is the kit's 236 px; beside the wider
-## BOSS seal (at x 308) it is 224, so a long boss name ellipsizes before the seal
+## BOSS seal (at x 308) it is 224, so a long boss name wraps before the seal
 ## instead of running under it.
 const NAME_GAP: float = 6.0
+## The Here tray is the kit's 88 tall at least; its text column starts 18 under its
+## top and 22 px of tray stay under the column. The flow starts this far under the
+## tray, whatever the tray's height.
+const TRAY_MIN_HEIGHT: float = 88.0
+const TRAY_BOTTOM_ROOM: float = 22.0
+const TRAY_GAP: float = 16.0
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -62,6 +74,7 @@ const NAME_GAP: float = 6.0
 
 @onready var _here_tray: Control = %HereTray
 @onready var _glyph: LacquerStripRect = %Glyph
+@onready var _text_column: Control = %TextColumn
 @onready var _name_label: Label = %NameLabel
 @onready var _tag: Control = %Tag
 @onready var _tag_label: Label = %TagLabel
@@ -94,6 +107,8 @@ var _shown_choices: Array[EncounterChoice] = []
 var _here_home: Vector2 = Vector2.ZERO
 ## Seconds into the tray's shake, or -1 while it is not shaking.
 var _shake_elapsed: float = -1.0
+## The content height the chest was last told (content_resized).
+var _announced_height: float = 0.0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -109,6 +124,8 @@ func _ready() -> void:
 		vitals.stamina_changed.connect(_on_stamina_changed)
 		_walk_hint.text = walk_hint(vitals.current_stamina)
 	_show_open_ground()
+	_fit_tray()
+	_announced_height = get_content_height()
 
 func _exit_tree() -> void:
 	var vitals: VitalsManager = PlayerManager.vitals_manager
@@ -143,7 +160,8 @@ func show_tile(encounter: AdventureEncounter, summary: String, _adventure_action
 		_show_unresolved()
 	else:
 		_show_cleared(summary)
-	content_resized.emit()
+	_fit_tray()
+	_emit_content_resized()
 
 ## Shows the tile the page last showed as resolved, with `summary` as the line
 ## it left behind: the CLEARED tag, the completed text, the walk hint, and no
@@ -153,7 +171,8 @@ func show_resolved(summary: String) -> void:
 	if _is_open_ground(_encounter):
 		return
 	_show_cleared(summary)
-	content_resized.emit()
+	_fit_tray()
+	_emit_content_resized()
 
 ## Shows the run so far: fights fought of the fights on the map (the view counts
 ## every fight that ends, a lost one included), gold earned, tiles explored of
@@ -273,7 +292,7 @@ static func walk_hint(stamina: float) -> String:
 #-----------------------------------------------------------------------------
 
 ## Open ground: a tan name, no glyph, tag or seal, the walk line, and nothing
-## under the tray but the ledger.
+## under the tray but the ledger (no hint row: the line in the tray says it).
 func _show_open_ground() -> void:
 	_name_label.text = OPEN_GROUND_NAME
 	_name_label.add_theme_color_override(&"font_color", ThemeConstants.LACQUER_TAN)
@@ -318,14 +337,20 @@ func _show_encounter_name_and_glyph() -> void:
 	_glyph.visible = glyph != null
 
 ## Shows `text` on the tag, or on the BOSS seal in its place; "" shows neither.
-## The name is as wide as the room the tag or the seal leaves it.
+## The name is as wide as the room the tag or the seal leaves it, and wraps there.
+## (The width is set as a minimum and as the size, so the name's lines are counted
+## at the new width at once.)
 func _show_tag(text: String, as_seal: bool) -> void:
 	_tag.visible = text != "" and not as_seal
 	_tag_label.text = text
 	_boss_seal.visible = text != "" and as_seal
 	_boss_seal_label.text = text
 	var right_neighbour: Control = _boss_seal if text != "" and as_seal else _tag
-	_name_label.size.x = right_neighbour.position.x - NAME_GAP - _name_label.position.x
+	var room: float = right_neighbour.position.x - NAME_GAP - _text_column.position.x
+	_name_label.custom_minimum_size.x = room
+	_name_label.size.x = room
+	# A change of width leaves the label's last height cached for the boxes above.
+	_name_label.update_minimum_size()
 
 func _show_lore(text: String) -> void:
 	_lore_label.text = text
@@ -353,6 +378,20 @@ func _show_drawers(count: int) -> void:
 	_drawer_rows.visible = count > 0
 	for index: int in MAX_DRAWERS:
 		_drawers[index].visible = index < count
+
+## Sizes the Here tray to its text column (an even number of px, 88 at least) and
+## stands the flow 16 px under it.
+func _fit_tray() -> void:
+	var height: float = maxf(TRAY_MIN_HEIGHT, _text_column.position.y + _text_column.get_combined_minimum_size().y + TRAY_BOTTOM_ROOM)
+	height = ceilf(height / 2.0) * 2.0
+	_here_tray.custom_minimum_size.y = height
+	_here_tray.size.y = height
+	_flow.position.y = height + TRAY_GAP
+
+## Tells the chest the content changed, and remembers the height it was told.
+func _emit_content_resized() -> void:
+	_announced_height = get_content_height()
+	content_resized.emit()
 
 ## A talk shows the story glyph; any other choice shows the encounter's own.
 func _drawer_glyph(choice: EncounterChoice) -> Texture2D:
@@ -396,5 +435,9 @@ func _on_drawer_pressed(index: int) -> void:
 	if index < _shown_choices.size() and _drawers[index].is_available():
 		choice_selected.emit(_shown_choices[index])
 
+## The walk hint follows the Stamina; when it wraps a line more or less than it did,
+## the page's height changed and the chest is told.
 func _on_stamina_changed(new_stamina: float) -> void:
 	_walk_hint.text = walk_hint(new_stamina)
+	if not is_equal_approx(get_content_height(), _announced_height):
+		_emit_content_resized()
