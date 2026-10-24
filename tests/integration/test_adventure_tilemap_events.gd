@@ -21,6 +21,8 @@ const OPEN_NEAR := AdventureMapFixture.OPEN_NEAR
 const OPEN_FAR := AdventureMapFixture.OPEN_FAR
 const REST := AdventureMapFixture.REST
 const BOSS := AdventureMapFixture.BOSS
+## One 60 FPS frame, for stepping the walk by hand.
+const FRAME: float = 1.0 / 60.0
 
 ## How far past the border between two hexes a walk must be to stand in the
 ## second one, in px of distance difference (twice the distance past it).
@@ -95,12 +97,47 @@ func _set_stamina(value: float) -> void:
 func _click(coord: Vector3i) -> void:
 	AdventureMapFixture.click(_tilemap, coord)
 
-## Clicks a tile, then waits for the character to end its first hop: the whole
-## walk, for a tile next door.
+## Moves every running tween in the tree on by `delta`, as a frame does.
+func _step_tweens(delta: float) -> void:
+	for tween: Tween in get_tree().get_processed_tweens():
+		if tween.is_valid() and tween.is_running():
+			tween.custom_step(delta)
+
+## One 60 FPS frame stepped by hand, in the tree's order: the character's
+## physics step (the walk), the camera following it (the tree's transform update),
+## then the tweens. The walk is taken off the physics clock, so only the test
+## moves it.
+func _step_frame() -> void:
+	_tilemap.character_body.set_physics_process(false)
+	simulate(_tilemap.character_body, 1, FRAME)
+	(_tilemap.character_body.get_node("Camera2D") as Camera2D).force_update_scroll()
+	_step_tweens(FRAME)
+
+## Steps `seconds` of 60 FPS frames.
+func _run(seconds: float) -> void:
+	for _frame: int in roundi(seconds / FRAME):
+		_step_frame()
+
+## Steps frames until the character ends the hop it is on, then lets a frame run,
+## so what the tree does at the end of a frame has caught up.
+func _wait_for_hop(toward: Vector3i) -> void:
+	var ended: Array[bool] = [false]
+	var on_end := func() -> void: ended[0] = true
+	_tilemap.character_body.movement_completed.connect(on_end, CONNECT_ONE_SHOT)
+	for _frame: int in roundi(AdventureMapFixture.HOP_TIMEOUT_SECONDS / FRAME):
+		if ended[0]:
+			break
+		_step_frame()
+	if not ended[0]:
+		_tilemap.character_body.movement_completed.disconnect(on_end)
+	assert_true(ended[0], "a hop of the walk to %s ends in time" % toward)
+	await get_tree().process_frame
+
+## Clicks a tile, then steps frames until the character ends its first hop: the
+## whole walk, for a tile next door.
 func _walk_to(coord: Vector3i) -> void:
 	_click(coord)
-	var arrived: bool = await wait_for_signal(_tilemap.character_body.movement_completed, AdventureMapFixture.HOP_TIMEOUT_SECONDS)
-	assert_true(arrived, "the first hop of the walk to %s ends in time" % coord)
+	await _wait_for_hop(coord)
 
 ## Notes the order of the tilemap's announcements in _events, and whether each
 ## tile counted as visited when it was announced in _visited_when_entered.
@@ -133,13 +170,14 @@ func _walk_partway(through: Vector3i, to: Vector3i) -> void:
 	var through_centre: Vector2 = _tilemap.get_tile_world_centre(through)
 	_click(to)
 	for frame: int in 120:
-		await wait_physics_frames(1)
+		_step_frame()
 		var at: Vector2 = _tilemap.character_body.global_position
 		if at.distance_to(through_centre) + PAST_THE_BORDER < at.distance_to(from_centre):
 			break
 	var at_end: Vector2 = _tilemap.character_body.global_position
 	assert_lt(at_end.distance_to(through_centre) + PAST_THE_BORDER, at_end.distance_to(from_centre), "precondition: the first hop stands in %s's hex" % through)
 	assert_true(_tilemap.character_body.is_moving, "precondition: the walk is under way")
+	await get_tree().process_frame
 
 #-----------------------------------------------------------------------------
 # ARRIVALS
@@ -190,7 +228,7 @@ func test_low_stamina_click_is_refused() -> void:
 	assert_signal_emitted_with_parameters(_tilemap, "walk_refused", [&"stamina"])
 	assert_signal_emitted_with_parameters(LogManager, "message_logged", ["Too tired to walk · 5 Stamina a step"])
 	# A walk that had started would have moved the character by now.
-	await wait_physics_frames(5)
+	_run(5 * FRAME)
 	assert_false(_tilemap.character_body.is_moving, "the character does not set off")
 	assert_eq(_tilemap.character_body.global_position, standing_at, "the character does not move")
 	assert_eq(_tilemap.get_current_tile(), START)
@@ -213,7 +251,7 @@ func test_walk_stopped_by_stamina_is_refused() -> void:
 	assert_signal_emitted_with_parameters(LogManager, "message_logged", ["Too tired to walk · 5 Stamina a step"])
 	assert_lt(_events.find("tile_entered"), _events.find("walk_refused"), "the refusal comes after the first arrival")
 	assert_eq(_tilemap.get_current_tile(), START, "the walk stopped on the first hop's tile")
-	await wait_physics_frames(5)
+	_run(5 * FRAME)
 	assert_false(_tilemap.character_body.is_moving, "the walk does not go on")
 	assert_signal_emit_count(_tilemap, "tile_entered", 1, "no second arrival")
 
@@ -229,7 +267,7 @@ func test_click_during_a_walk_stays_silent() -> void:
 	_click(REST)
 
 	assert_signal_not_emitted(_tilemap, "walk_refused")
-	await wait_for_signal(_tilemap.character_body.movement_completed, AdventureMapFixture.HOP_TIMEOUT_SECONDS)
+	await _wait_for_hop(FIGHT)
 	assert_signal_emit_count(_tilemap, "walk_refused", 1, "only the walk's own stop is refused")
 
 func test_click_while_a_choice_waits_is_refused() -> void:
@@ -513,7 +551,7 @@ func test_stop_mid_walk_leaves_nothing_behind() -> void:
 	_tilemap.stop_adventure()
 	var events_at_stop: int = _events.size()
 	# A hop set off again by the teardown would land within about a second.
-	await wait_seconds(1.5)
+	_run(1.5)
 
 	assert_eq(_tilemap.get_visited_tile_count(), 0, "no tile is visited after the stop")
 	assert_false(_tilemap.character_body.is_moving, "the character stands still")
