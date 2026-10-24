@@ -12,7 +12,7 @@ Endless Path is a cultivation idle/incremental game with active mini-games, insp
 - a procedurally generated adventure with real-time combat;
 - inventory and gear, an ability loadout, a character sheet, and a skill tree.
 
-The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 2285 tests pass. However, **progression stops at Foundation's ending**. The Tribulation (on `feat/gameplay-priorities-c64b38`, not merged) breaks through to a thin Copper stage that unlocks nothing yet, there is no content after the third quest, and many numbers the player sees or pays for are never applied.
+The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 2290 tests pass. However, **progression stops at Foundation's ending**. The Tribulation (on `feat/gameplay-priorities-c64b38`, not merged) breaks through to a thin Copper stage that unlocks nothing yet, there is no content after the third quest, and many numbers the player sees or pays for are never applied.
 
 ## Where Each System Stands
 
@@ -37,8 +37,8 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 
 ## Health
 
-- **Size:** about 28k lines of game GDScript plus 31k lines of tests, 135 scenes, 110 data resources, 10 shaders.
-- **Tests:** 2285/2285 pass across 147 files in about 254 s (GUT 9.7.1, Godot 4.7.2, run on 2026-10-24). Every suite calls the code it tests, including the ResourceManager, CultivationManager, CharacterManager and InventoryManager suites ([TESTING.md](testing/TESTING.md)).
+- **Size:** about 30k lines of game GDScript plus 35k lines of tests, 135 scenes, 110 data resources, 10 shaders.
+- **Tests:** 2290/2290 pass across 147 files in about 240 s (GUT 9.7.1, Godot 4.7.2, run on 2026-10-24). Every suite calls the code it tests, including the ResourceManager, CultivationManager, CharacterManager and InventoryManager suites ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.
   - One unmerged branch, `feat/infallible-chaum-58f8ad`, adds in-combat consumables (20 commits, no PR).

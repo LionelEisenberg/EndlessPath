@@ -16,9 +16,9 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~28k lines of game GDScript and ~31k lines of tests; 135 scenes; 110 authored `.tres` resources; 10 shaders |
+| Code | ~30k lines of game GDScript and ~35k lines of tests; 135 scenes; 110 authored `.tres` resources; 10 shaders |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 147 scripts and 2285 tests, all passing on 2026-10-24 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 147 scripts and 2290 tests, all passing on 2026-10-24 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
 | In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/adventure-view-styleguide-1fc223`: the adventure view's map and frame in the lacquer look (PR 1 of 2; the fight is PR 2), built 2026-10-23 and changed by its first review round the same day. Unmerged branch `feat/gameplay-priorities-c64b38`: the Tribulation, the Foundation → Copper breakthrough (the Core Density cap, the Copper stage, a Spirit Valley action and its board), built 2026-10-23 and 24 |
 
@@ -55,7 +55,7 @@ The full tree, HUD placement and z-order are in [MAIN_VIEW.md](infrastructure/MA
 ### View State Machine
 
 `MainView` keeps a **base state** (`ZoneViewState` or `AdventureViewState`) and a **stack of overlay states**:
-- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `TribulationViewState`, `AdventureEndCardState`. The merchant and the Tribulation hide the HUD boards while open (`MainView.hide_hud_boards()`); the menu books and the end card leave them under the backdrop. Cycling and the Tribulation have no backdrop: their boards sit in the map gap, and `MainView.set_cycling_mode()` (cycling) or `MainView.set_board_mode()` (both) turns the zone view's chest, dock and map over to them.
+- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `TribulationViewState`, `AdventureEndCardState`. The merchant and the Tribulation hide the HUD boards while open (`MainView.hide_hud_boards()`); the menu books and the end card leave them under the backdrop. Cycling and the Tribulation have no backdrop: their boards sit in the map gap. `MainView.set_board_mode()` turns the zone view's dock and map off for both, and `MainView.set_cycling_mode()` (cycling only) also turns the chest over to the techniques.
 - **Operations:** `change_state()` swaps the base and clears the stack, `push_state()` opens an overlay, and `pop_state()` closes it.
 - **Input:** only the current state receives it, through `_unhandled_input` → `handle_input()`.
 
