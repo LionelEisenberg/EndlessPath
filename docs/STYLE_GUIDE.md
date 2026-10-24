@@ -163,9 +163,10 @@ No text is smaller than 13 px. The lacquer theme's variants (full table in [UI_S
 - The LOCKED seal's word is left-aligned after its `mini_lock`: put the `LabelLacquerSeal` at seal-local x 25, so the indent lands the word on +26 (UI_STYLING.md, "The LOCKED seal is the exception").
 - The count seal's number is 15 px (15/18), centred across the seal's 24 px at top +3 (kit §3 and §5.4; the dock's `CountLabel`).
 
-**Ellipsis.**
+**Long text.**
+- No text is cut off. A label that runs out of room wraps, and the board, drawer or tray around it grows to fit. The cycling board, the technique drawers and the last cycle's line do so (CYCLING.md). The older pieces in the bullets below still ellipsize and are due the same change.
 - A Label that can overflow sets `text_overrun_behavior` to ellipsis at a fixed width: log lines at 384 px, card details at 316 px, plate lines at 228 px.
-- A card or drawer title ellipsizes where its NEW seal or tag starts. `ZoneActionButton.layout_title_row()` lays the row out for the activity cards and the technique drawers alike, so their title rows line up (a long name such as "Smooth Flow Technique" is cut while its seal shows).
+- A card's title ellipsizes where its NEW seal or tag starts; a technique drawer's wraps there instead, and with no tag its row runs on to the detail line's 316 px. `ZoneActionButton.layout_title_row()` lays the row out for both, so their title rows line up.
 - Icons and figures stay whole: a plate line drops its name text, never its icon or rate.
 - A `RichTextLabel` cannot ellipsize. Use `ZoneActionButton.fit_detail_rich_text()`: drop whole words until the line fits, end it in `…` with no separator left before it, then apply `decimal_bbcode()`.
 
@@ -408,6 +409,7 @@ Check every reworked screen against this list, ideally on a capture at 1920x1080
 - [ ] The root sets `lacquer_theme.tres`; every Label uses a `LabelLacquer*` variant; numbers with a decimal use `RichTextLacquer`.
 - [ ] Text is 13 px or larger and at least 4.56:1 on its background.
 - [ ] Panels hug their content.
+- [ ] No text is cut off: a line too long for its width wraps, and its board grows.
 - [ ] New art is `_ai`; the user's files are untouched; nearest filtering everywhere, SubViewports included.
 - [ ] UI nodes are in the `.tscn`; scripts set data only.
 
