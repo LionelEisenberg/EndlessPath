@@ -39,7 +39,7 @@ MainGame (main_game.tscn)
 
 ### Save file location
 
-The save file is `user://save.tres`, in Godot's text-resource format, written by `ResourceSaver.save()`. The project does not set `application/config/use_custom_user_dir`, so `user://` is Godot's default per-project folder (on Windows, `%APPDATA%\Godot\app_userdata\EndlessPath\`). Editor runs, exported builds and headless GUT runs all share this folder. It also holds `logs-YYYY-MM-DD.log` (see [LOGGING.md](LOGGING.md)) and the optional `dev_password.txt` that gates the dev panel.
+The save file is `user://save.tres`, in Godot's text-resource format, written by `ResourceSaver.save()`. The project does not set `application/config/use_custom_user_dir`, so `user://` is Godot's default per-project folder (on Windows, `%APPDATA%\Godot\app_userdata\EndlessPath\`). Editor runs, exported builds and headless GUT runs all share this folder. It also holds `logs-YYYY-MM-DD.log` (see [LOGGING.md](LOGGING.md)).
 
 ### Manager access pattern
 

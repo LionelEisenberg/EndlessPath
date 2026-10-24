@@ -28,6 +28,9 @@ extends PanelContainer
 
 @onready var _force_win_button: Button = %ForceWinButton
 @onready var _show_whole_map_check: CheckButton = %ShowWholeMapCheck
+@onready var _exit_adventure_row: HBoxContainer = %ExitAdventureRow
+@onready var _exit_victory_button: Button = %ExitVictoryButton
+@onready var _exit_defeat_button: Button = %ExitDefeatButton
 
 @onready var _demo_zones_check: CheckButton = %DemoZonesCheck
 @onready var _hidden_zones_check: CheckButton = %HiddenZonesCheck
@@ -56,16 +59,20 @@ func _ready() -> void:
 	_unlock_cycling_button.pressed.connect(_on_unlock_all_cycling)
 	_force_win_button.pressed.connect(_on_force_win)
 	_show_whole_map_check.toggled.connect(_on_show_whole_map_toggled)
+	_exit_victory_button.pressed.connect(_on_exit_adventure.bind(true))
+	_exit_defeat_button.pressed.connect(_on_exit_adventure.bind(false))
 	_demo_zones_check.toggled.connect(_on_demo_zones_toggled)
 	_hidden_zones_check.toggled.connect(_on_hidden_zones_toggled)
 
 	_populate_condition_dropdown()
 	_force_win_button.visible = false
+	_exit_adventure_row.visible = false
 
 func _process(_delta: float) -> void:
 	if not visible:
 		return
 	_force_win_button.visible = _get_is_in_combat()
+	_exit_adventure_row.visible = _get_is_adventure_running()
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -155,6 +162,15 @@ func _on_force_win() -> void:
 	av.force_win_combat()
 	LogManager.log_message("[color=magenta][DEV][/color] Force-won current combat")
 
+## Ends the running adventure as a victory or a defeat, with its end card.
+func _on_exit_adventure(victory: bool) -> void:
+	var av: Node = _get_adventure_view()
+	if av == null:
+		return
+	av.force_end_adventure(victory)
+	var result_text := "victory" if victory else "defeat"
+	LogManager.log_message("[color=magenta][DEV][/color] Exited adventure as a %s" % result_text)
+
 func _on_show_whole_map_toggled(pressed: bool) -> void:
 	var av: Node = _get_adventure_view()
 	if av == null:
@@ -191,3 +207,9 @@ func _get_is_in_combat() -> bool:
 	if av == null:
 		return false
 	return av.is_in_combat
+
+func _get_is_adventure_running() -> bool:
+	var av: Node = _get_adventure_view()
+	if av == null:
+		return false
+	return av.is_adventure_running()
