@@ -92,12 +92,14 @@ func unbind() -> void:
 #-----------------------------------------------------------------------------
 
 ## Makes the tray as tall as its name asks (an even height, 44 at least), growing
-## upward from its bottom edge.
+## upward from its bottom edge. The top moves before the height changes: the dock
+## places the tooltip when the tray announces its new size (resized fires inside
+## the size change), and it reads the tray's top then.
 func _fit() -> void:
 	var height: float = maxf(MIN_HEIGHT, _name_label.position.y + _name_label.get_combined_minimum_size().y + BOTTOM_ROOM)
 	height = ceilf(height / 2.0) * 2.0
-	size.y = height
 	position.y = _bottom - height
+	size.y = height
 
 ## The rod at 1 - time left / the cast's length, and the time left.
 func _show_time_left(time_left: float) -> void:

@@ -496,6 +496,50 @@ func test_a_cast_tray_that_grows_pushes_an_open_tooltip_up() -> void:
 	await wait_process_frames(2)
 	assert_eq(_tooltip_rect().end.y, _dock.get_cast_tray().get_global_rect().position.y - 8.0, "over the grown tray")
 
+## A tray that is already showing and grows under an open tooltip pushes it up as
+## it resizes. No show() follows to announce the new top again, so the tray has to
+## stand at its new top by the time it announces its new size: the tooltip is over
+## it in the same frame, with nothing awaited.
+func test_a_showing_cast_tray_that_grows_pushes_an_open_tooltip_up_at_once() -> void:
+	var strike := BASIC_STRIKE.duplicate() as AbilityData
+	strike.ability_name = "Strike"
+	_add_player([strike] as Array[AbilityData])
+	_dock.bind(_player.ability_manager, _vitals)
+	var instance: CombatAbilityInstance = _instance(0)
+	var tray: CastTray = _dock.get_cast_tray()
+	instance.cast_started.emit(instance, 1.0)
+	_slot(0).mouse_entered.emit()
+	await wait_process_frames(2)
+	assert_true(tray.visible, "precondition: the tray is showing")
+	assert_eq(tray.size.y, 44.0, "precondition: the kit's tray")
+	assert_eq(_tooltip_rect().end.y, 860.0, "precondition: 8 px over the kit's tray")
+
+	instance.ability_data.ability_name = LONG_TECHNIQUE
+	instance.cast_started.emit(instance, 1.0)
+
+	assert_gt(tray.size.y, 44.0, "precondition: the tray grew")
+	assert_eq(_tooltip_rect().end.y, tray.get_global_rect().position.y - 8.0, "8 px over the grown tray's top at once")
+
+## The same when the tray takes its height back.
+func test_a_showing_cast_tray_that_shrinks_lets_an_open_tooltip_down_at_once() -> void:
+	var strike := BASIC_STRIKE.duplicate() as AbilityData
+	strike.ability_name = LONG_TECHNIQUE
+	_add_player([strike] as Array[AbilityData])
+	_dock.bind(_player.ability_manager, _vitals)
+	var instance: CombatAbilityInstance = _instance(0)
+	var tray: CastTray = _dock.get_cast_tray()
+	instance.cast_started.emit(instance, 1.0)
+	_slot(0).mouse_entered.emit()
+	await wait_process_frames(2)
+	assert_gt(tray.size.y, 44.0, "precondition: the tray is grown")
+	assert_eq(_tooltip_rect().end.y, tray.get_global_rect().position.y - 8.0, "precondition: over the grown tray")
+
+	instance.ability_data.ability_name = "Strike"
+	instance.cast_started.emit(instance, 1.0)
+
+	assert_eq(tray.size.y, 44.0, "precondition: the tray is the kit's again")
+	assert_eq(_tooltip_rect().end.y, 860.0, "8 px over the kit's tray at once")
+
 ## A name longer than the tooltip's 268 px wraps there and the board grows with
 ## it, still an even height on the grid and 304 wide.
 func test_a_long_technique_name_wraps_and_grows_the_tooltip() -> void:
