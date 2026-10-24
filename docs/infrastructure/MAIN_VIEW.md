@@ -51,7 +51,6 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 │   ├── CharacterView           z 3        character_view.tscn (menu book; z and visible=false set on the scene root)
 │   ├── MerchantView            z 3        merchant_view.tscn (z, visible=false and the Spirit Valley theme set on the scene root)
 │   ├── CyclingView             z 3        cycling_view.tscn (the board in the map gap; no backdrop)
-│   ├── DevPasswordModal        z 10       dev_password_modal.tscn, hidden
 │   └── DevPanel                z 10       dev_panel.tscn, hidden, top-left 340x400
 └── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.save_data()
 ```
@@ -235,7 +234,7 @@ Other inputs:
 | Input | Handled by | Effect |
 |-------|------------|--------|
 | Escape (built-in `ui_cancel`) | `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`; `LogWindow`, `ZonePanel`, `MapMarkers` outside the state machine | Close the overlay (the merchant does it by stopping its action); close the full log, the zone lore or the pinned map popover |
-| Ctrl+Shift+D (`KEY_D`, logical) | `MainGame._input()` | Dev password modal or dev panel toggle. No-op unless `user://dev_password.txt` exists. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md). |
+| Ctrl+Shift+D (`KEY_D`, logical) | `MainGame._input()` | Dev panel toggle. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md). |
 | Right mouse drag | `CameraPanController` on the zone tilemap camera only (the adventure camera follows the player and has no pan controller) | Pan the zone map |
 | Mouse wheel | `CameraZoomController` on each map, 10% a tick, eased: the zone map 1.0 to 2.0 (default 2.0); the adventure map 1.0 to 2.0 (default 1.0, and every run opens there). Over the zone chest's list it scrolls the list instead; over an adventure board, or during a fight, it does nothing | Zoom |
 | Left drag / wheel in path tree | `PathTreeView._on_tree_area_gui_input()` | Pan / zoom the tree |
@@ -312,7 +311,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | AbilityManager | `Dock` Abilities ring (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
 | PersistenceManager | `SaveTimer` calls `save_data()` every 5 s |
 | LogManager / Log | `LogWindow` shows `message_logged` and the history. `MainGame.log_print_level` → `Log.set_print_level()`. See [LOGGING.md](LOGGING.md). |
-| Dev tools | `MainGame` owns the Ctrl+Shift+D gate for `DevPasswordModal`/`DevPanel` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
+| Dev tools | `MainGame` owns the Ctrl+Shift+D toggle for `DevPanel` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 
 ## Key Files
 

@@ -301,7 +301,7 @@ git pull && UV_PYTHON_INSTALL_DIR='C:\Users\lione\.uv\python' UV_CACHE_DIR='C:\U
 - `toggle_log` — L: opens or closes the full log (handled by `LogWindow`, in the zone and adventure views; Escape also closes it). An open menu book or the cycling board closes the full log and blocks L
 - `close_cycling_view` — Escape
 - `ability_slot_1`–`ability_slot_4` — Q / W / E / R (combat; read by `TechniqueDock` while it is bound to a fight)
-- Dev panel — Ctrl+Shift+D, hard-coded in `MainGame._input`; requires `user://dev_password.txt` (see `docs/tooling/DEV_TOOLS.md`)
+- Dev panel — Ctrl+Shift+D, hard-coded in `MainGame._input`, open to anyone (see `docs/tooling/DEV_TOOLS.md`)
 - `center_zone_map_camera` — Space (bound, but nothing handles it); `open_path_tree` — P (unused duplicate of `open_path`)
 - `dialogic_default_action` — Enter, Click, Space, X, Gamepad A
 

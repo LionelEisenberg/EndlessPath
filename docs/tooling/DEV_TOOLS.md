@@ -5,7 +5,7 @@ Last updated: 2026-10-23
 
 | Tool | Where | How to use | Purpose |
 |------|-------|------------|---------|
-| Dev Panel | `scenes/ui/dev_panel/` (in `main_game.tscn`) | Ctrl+Shift+D in game; needs a password file | Change Madra/Gold, CD XP, path points and unlocks; force combat wins; reveal adventure maps; show the demo and hidden zones on the zone map |
+| Dev Panel | `scenes/ui/dev_panel/` (in `main_game.tscn`) | Ctrl+Shift+D in game | Change Madra/Gold, CD XP, path points and unlocks; force combat wins; end adventures as a victory or defeat; reveal adventure maps; show the demo and hidden zones on the zone map |
 | Map Preview | `scenes/tools/map_preview.tscn` + `scripts/tools/map_preview.gd` | Open in the editor and press **Generate** in the Inspector | Preview procedural adventure maps without running the game |
 | UID generator | `scripts/tools/generate_uid.gd` | Headless `-s` script | Print fresh `uid://` strings for hand-written `.tscn`/`.tres` |
 | Items generator | `scripts/tools/items_md_to_resources.gd`, `items_md_parser.gd` | Headless `-s` script | Generate equipment `.tres` files from `docs/inventory/ITEMS.md`. Documented in [ITEMS.md](../inventory/ITEMS.md). |
@@ -15,39 +15,21 @@ Last updated: 2026-10-23
 
 ## Dev Panel
 
-A password-gated floating panel shipped in the game binary. It calls existing singleton APIs, so its changes go through the same signals as gameplay and are written to `user://save.tres` by the 5 s autosave (`SaveTimer` in `main_game.tscn`). Reloading does not undo them.
+A floating panel shipped in the game binary, open to anyone who presses the hotkey (no password; exported builds included). It calls existing singleton APIs, so its changes go through the same signals as gameplay and are written to `user://save.tres` by the 5 s autosave (`SaveTimer` in `main_game.tscn`). Reloading does not undo them.
 
 ### Opening it
 
 ```
 Ctrl+Shift+D (MainGame._input)
-  └─ user://dev_password.txt missing?  → nothing happens (no modal, no log)
-  └─ not unlocked this session          → DevPasswordModal.open()
-        └─ Submit / Enter → modal hides
-              ├─ match    → unlocked (MainGame._dev_unlocked = true) → DevPanel.open()
-              └─ mismatch → closes silently
-  └─ unlocked, panel visible            → hide panel
-  └─ unlocked, panel hidden             → DevPanel.open()
+  └─ panel visible → hide panel
+  └─ panel hidden  → DevPanel.open()
 ```
 
-- **Where the password is configured.** Nothing in the repository or `project.godot` holds it. `DevPasswordModal.check_password(entered, path = PASSWORD_FILE_PATH)` reads the file at `PASSWORD_FILE_PATH` (`user://dev_password.txt`, a constant in `scenes/ui/dev_panel/dev_password_modal.gd`) and compares the trimmed contents with the trimmed entry. Each machine creates its own file. On Windows `user://` is `%APPDATA%\Godot\app_userdata\EndlessPath\`, so the file is `%APPDATA%\Godot\app_userdata\EndlessPath\dev_password.txt`. Put a passphrase of your choice in it.
-- `MainGame._on_dev_hotkey()` checks that the file exists before showing anything. That path is hard-coded separately in `main_game.gd`.
-- The unlock lives only in memory (`MainGame._dev_unlocked`). A new process asks for the password again.
-- The modal has no cancel control. Submit an empty or wrong entry to dismiss it. Pressing Ctrl+Shift+D again just clears and refocuses it.
-- The password `LineEdit` is `secret = true`. While it has focus, typed keys don't reach the menu shortcuts.
+Until 2026-10-23 the hotkey did nothing unless `user://dev_password.txt` existed, and then asked for its contents in a `DevPasswordModal`. Both are gone; an old `dev_password.txt` is now ignored.
 
 ### Scene structure
 
 ```
-DevPasswordModal (Control, full rect, mouse Stop)      dev_password_modal.gd (class DevPasswordModal)
-├── Background (ColorRect, black 60%)
-└── CenterContainer
-    └── PanelContainer
-        └── VBoxContainer
-            ├── TitleLabel "Dev Access" (LabelHeading)
-            ├── PasswordInput (LineEdit, secret)
-            └── SubmitButton
-
 DevPanel (PanelContainer, min width 340, mouse Stop)   dev_panel.gd (class DevPanel)
 └── VBoxContainer
     ├── TitleBar (PanelContainer: drag handle) → TitleLabel "Dev Panel", CloseButton "×"
@@ -55,7 +37,7 @@ DevPanel (PanelContainer, min width 340, mouse Stop)   dev_panel.gd (class DevPa
     ├── "CULTIVATION" → XpRow (XpSpin, XpApply), PointsRow (PointsSpin, PointsApply)
     ├── "UNLOCKS"     → ConditionRow (ConditionOption, ConditionApply "Trigger"), UnlockCyclingButton
     ├── "COMBAT"      → ForceWinButton
-    ├── "ADVENTURE"   → ShowWholeMapCheck (CheckButton)
+    ├── "ADVENTURE"   → ShowWholeMapCheck (CheckButton), ExitAdventureRow (ExitVictoryButton, ExitDefeatButton)
     └── "ZONES"       → DemoZonesCheck, HiddenZonesCheck (CheckButtons)
 ```
 
@@ -75,12 +57,14 @@ Every action writes a `[DEV]` line (magenta tag) to the in-game log through `Log
 | Unlocks | Unlock All Cycling Techniques | `CyclingManager.unlock_technique(id)` for every entry in `CyclingManager._technique_catalog.cycling_techniques` | Unlocks every catalog technique and emits `technique_unlocked` for newly unlocked ones. Idempotent. |
 | Combat | Force-Win Current Combat | `AdventureView.force_win_combat()` | Only shown while `AdventureView.is_in_combat`; `_process()` polls it every frame while the panel is visible. Emits `AdventureCombat.trigger_combat_end(true, 0)`, which ends the fight as a win with 0 gold. |
 | Adventure | Show Whole Map (toggle) | `AdventureView.set_show_whole_map(pressed)` → `AdventureTilemap.set_dev_reveal_all()` | Visual only: lifts the fog off every map tile, paints every tile in forest art (no veils) and shows each unvisited encounter tile's glyph coin (the boss its boss coin). The visited/highlight dictionaries, stats and encounter resolution are unchanged, and switching it off puts the normal coins and fog back. The flag stays on `AdventureTilemap` across adventures until toggled off. |
+| Adventure | Exit: Victory / Defeat | `AdventureView.force_end_adventure(victory)` | Only shown while an adventure runs (`AdventureView.is_adventure_running()`, polled like Force-Win). Victory takes the boss-win path: `ActionManager.stop_action(true)` with `_pending_victory` set, so the adventure's success effects run, the zone completion counts and the victory end card shows. Defeat calls `stop_action(false)`: failure effects and a "You retreated from the adventure" end card. Works on the map or mid-fight. |
 | Zones | Demo zones (locked, uncharted) (toggle) | `ZoneManager.set_demo_zones_visible(pressed)` | Adds the two demo zones in `resources/zones/dev/` to the zone map: a locked Advancement Zone north-east of Spirit Valley and an Uncharted hex due north of Spirit Valley, beyond it, with their plates, glyphs, popovers and routes. They are loaded outside `zone_data_list.tres`, never enter the save, and are gone on the next launch. Emits `map_zones_changed`. |
 | Zones | Show hidden zones (Test Zone) (toggle) | `ZoneManager.set_hidden_zones_visible(pressed)` | Draws the zones marked `hidden_on_map` (Test Zone, west of Spirit Valley). Once it is unlocked you can travel there. Emits `map_zones_changed`. The flag is not saved and resets on the next launch; a save standing in Test Zone moves back to Spirit Valley on load (`SaveGameData.migrate()`). |
 
 Caveats:
 
 - **Force-Win skips victory side effects.** It bypasses `AdventureCombat._on_enemy_health_changed()`, so the gold reward and `EventManager.trigger_event("q_first_steps_enemy_defeated")` never run.
+- **Exit: Victory skips the boss's own rewards.** The boss encounter's `success_effects` and the fight's gold never run, only the adventure action's. Exiting mid-fight first closes the fight as a loss (a "Combat Defeat..." log line; no encounter has failure effects today).
 - **Forced conditions only satisfy some systems.** Zone and zone-action gates check `UnlockManager.are_unlock_conditions_met()`, so they accept forced ids. Quest steps (`QuestManager`), encounter choices and encounter eligibility call `UnlockConditionData.evaluate()` directly and ignore them. The underlying event is not triggered either.
 
 ## Map Preview
@@ -171,16 +155,14 @@ Output: five lines of the form `uid://...`.
 
 | File | Purpose |
 |------|---------|
-| `scenes/main/main_game/main_game.gd` | Hotkey, password-file check, session unlock |
-| `scenes/ui/dev_panel/dev_password_modal.gd` / `.tscn` | `DevPasswordModal`, `check_password()`, `PASSWORD_FILE_PATH` |
+| `scenes/main/main_game/main_game.gd` | Ctrl+Shift+D hotkey |
 | `scenes/ui/dev_panel/dev_panel.gd` / `.tscn` | `DevPanel` controls and drag |
 | `singletons/unlock_manager/unlock_manager.gd` | `force_unlock_condition()` |
-| `scenes/adventure/adventure_view/adventure_view.gd` | `force_win_combat()`, `set_show_whole_map()` |
+| `scenes/adventure/adventure_view/adventure_view.gd` | `force_win_combat()`, `force_end_adventure()`, `set_show_whole_map()` |
 | `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` | `set_dev_reveal_all()`, `_dev_reveal_all` rendering paths |
 | `scripts/tools/map_preview.gd`, `scenes/tools/map_preview.tscn`, `scenes/tools/encounter_id_label.tscn` | Map Preview |
 | `scripts/tools/generate_uid.gd` | UID generator |
 | `scripts/tools/items_md_to_resources.gd`, `scripts/tools/items_md_parser.gd` | Items generator |
-| `tests/unit/test_dev_password_modal.gd` | `check_password()` tests (5) |
 | `tests/unit/test_unlock_manager.gd` | `force_unlock_condition()` tests (3) |
 
 ## Work Remaining
@@ -191,23 +173,20 @@ Output: five lines of the form `uid://...`.
 
 ### Missing Functionality
 
-- `[MEDIUM]` No tests cover the panel's actions or the hotkey gate. The spec's planned `test_dev_panel_actions.gd` integration test was never written; only `check_password()` and `force_unlock_condition()` are tested.
+- `[MEDIUM]` No tests cover the panel's actions or the hotkey gate. The spec's planned `test_dev_panel_actions.gd` integration test was never written; only `force_unlock_condition()` and the two Zones toggles are tested.
 - `[LOW]` "Trigger" for a condition does not help with quest steps, encounter choices or encounter eligibility, which evaluate conditions themselves. It also does not trigger the backing event.
 - `[LOW]` The spec's v2 list is not started: system unlocks, stage change, item grants, ability unlock/equip, technique equip, zone teleport, combat vitals controls, quest controls, save wipe/force-save/reload, path point respec.
 - `[LOW]` Map Preview has none of the follow-ups the spec mentions: no batch statistics mode (NG3) and no overlays such as MST edges or distance labels (G5).
 
 ### UI
 
-- `[LOW]` `DevPasswordModal` has no Escape handling or close button; it can only be dismissed by submitting.
 - `[LOW]` The spec's `HSeparator`s between panel sections are missing.
 - `[LOW]` "Unlock All Cycling Techniques" logs the catalog size, not the number of newly unlocked techniques.
 
 ### Tech Debt
 
-- `[LOW]` The password path is duplicated. `MainGame._on_dev_hotkey()` hard-codes `"user://dev_password.txt"` instead of using `DevPasswordModal.PASSWORD_FILE_PATH`.
 - `[LOW]` `DevPanel._get_adventure_view()` uses the absolute path `MainGame/MainView/AdventureView`, and `_on_unlock_all_cycling()` reads the private `CyclingManager._technique_catalog`.
-- `[LOW]` `dev_password_modal.gd` and `tests/unit/test_dev_password_modal.gd` indent with spaces; the rest of the project uses tabs. The test's `const DevPasswordModal = preload(...)` shadows the global class name.
-- `[LOW]` `dev_panel.tscn` and `dev_password_modal.tscn` have hand-written placeholder UIDs (`uid://dev_panel_001`, `uid://dev_pwmod_001`). `main_game.tscn` references both scenes by path only. `generate_uid.gd` can produce real ones.
+- `[LOW]` `dev_panel.tscn` has a hand-written placeholder UID (`uid://dev_panel_001`). `main_game.tscn` references it by path only. `generate_uid.gd` can produce real ones.
 - `[LOW]` Pressing Generate in Map Preview and then saving rewrites the committed snapshot in `scenes/tools/map_preview.tscn` (`tile_map_data` and stats text), which makes noisy diffs.
 - `[LOW]` `generate_uid.gd` has no doc comment and a fixed count of 5.
 - `[LOW]` The `zone-mockup` launch configuration serves `mockups/`, which is gitignored and not present in the repository.

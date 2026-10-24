@@ -7,9 +7,9 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
-| Unit | `tests/unit/` | 87 | 918 |
+| Unit | `tests/unit/` | 86 | 913 |
 | Integration | `tests/integration/` | 52 | 1146 |
-| **Total** | | **139** | **2064** |
+| **Total** | | **138** | **2059** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -17,15 +17,15 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-23, on `feat/adventure-view-styleguide-1fc223` after the adventure view's map and frame rework (PR 1 of the lacquer rework, not merged), its pre-merge touch-up, the first review round and that round's review fixes, the second review round's soft shake for refused buttons, rebased onto `main` after the lacquer cycling view (#57) merged, with the command from `CLAUDE.md`.
+Run on 2026-10-23, on `feat/adventure-view-styleguide-1fc223` after the adventure view's map and frame rework (PR 1 of the lacquer rework, not merged), its pre-merge touch-up, the first review round and that round's review fixes, the second review round's soft shake for refused buttons, rebased onto `main` after the lacquer cycling view (#57) merged and with `main`'s dev tools (#59) merged in, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 139 / 2064 |
-| Passing / failing / pending or risky | 2064 / 0 / 0 |
-| Asserts | 14428 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 138 / 2059 |
+| Passing / failing / pending or risky | 2059 / 0 / 0 |
+| Asserts | 14423 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |
@@ -123,7 +123,7 @@ The enabled GUT plugin adds a GUT bottom panel. It can run all tests, a single s
 
 ```
 tests/
-├── unit/                         87 scripts: one system, resource or manager per file
+├── unit/                         86 scripts: one system, resource or manager per file
 ├── integration/                  52 scripts: content flows and scene-level UI behaviour (plus `adventure_map_fixture.gd`, a shared helper GUT does not collect)
 └── label_tests/
     ├── label_testing_scene.tscn  visual Label-variant reference (run with F6)
@@ -164,7 +164,7 @@ tests/
 | Signals | `watch_signals(obj)` with `assert_signal_emitted`, `assert_signal_emitted_with_parameters`, `assert_signal_emit_count`, `assert_signal_not_emitted` | 47 files |
 | Expected errors | `assert_push_error("unknown technique_id")` | GUT 9.7 fails a test on unexpected engine errors and `push_error` by default, so negative-path tests must consume their `push_error` (7 files, 14 uses) |
 | Fakes | Inner classes extending `EffectData`, such as `CountingEffect` (in 2 files); `FakeGreyBackground` extends `GreyBackground` and shows and hides at once (`test_merchant_view_state.gd`); `FakeCoveringState` stands in for a second overlay that hides the HUD boards (`test_view_state_hud_positions.gd`); `FixedMapGenerator` extends `AdventureMapGenerator` and returns the map it was given (`test_adventure_view_frame.gd` and `test_adventure_map_zoom.gd`, installed by `_start_run()`) | Don't start inner class names with `Test` |
-| Temporary files | `user://test_*.tres` / `user://__test_*.tres`, removed with `DirAccess.remove_absolute(ProjectSettings.globalize_path(path))` | `test_quest_progression_persistence.gd`, `test_zone_progression_data.gd`, `test_dev_password_modal.gd` |
+| Temporary files | `user://test_*.tres` / `user://__test_*.tres`, removed with `DirAccess.remove_absolute(ProjectSettings.globalize_path(path))` | `test_quest_progression_persistence.gd`, `test_zone_progression_data.gd` |
 | Content lock | Loads shipped `.tres` and asserts on field values | `test_crude_scale_tres.gd`, `test_path_tree_resource_loading.gd` |
 
 The suite never uses GUT doubles, stubs or partial doubles (`double()`, `stub()`, `partial_double()`).
@@ -205,7 +205,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | LogManager / log board | `test_log_manager_history` (5), `test_log_board` (33) | The bounded history; the five-line board (order, growth, tones and fading, cream haul lines, BBCode stripping, ellipsis); the full log (L, Escape, `toggle_window()`, trimming, rail caps, closing when hidden, closed and kept shut under a menu book) | |
 | DialogueManager, PlayerManager, `Log` | None | | All |
 | UI shell | `test_merchant_view_state` (9), `test_view_state_hud_positions` (13), `test_cycling_mode` (12), `test_main_game_layout` (2), `test_dock` (12), `test_book_view_state` (12), `test_grey_background` (5), `test_book_frame` (22), `test_book_style_data` (7), `test_tab_switcher` (5) | `MainView.remove_state()` and `MerchantViewState` on a `MainView` that never enters the tree; where each view state puts the Goals and log boards (the adventure leaves them in place), the shop hiding and restoring them (a `FakeCoveringState` is the second holder), and cycling and the menu books leaving them showing; cycling mode (the chest, dock and map turned over and back, the map taking no clicks, the full log blocked, a second `start_cycling` pushing once, the cabinet handed to the `CyclingView`, the unique names in `main_game.tscn`); the zone furniture's places in `main_game.tscn`, also after an editor save; `GreyBackground`'s fade-out and backdrop click; the menu books' shared close routes; the dock's buttons, notifications and parsed actions; `BookFrame` signals, chrome and palette; the books' side tabs | `MainView` push/pop/change semantics, `GreyBackground`'s fade-in ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md)); the call to the cabinet hand-off from `MainView._ready()` (the helper is tested; the call is checked in a headless run of the real scene) |
-| Dev tools | `test_dev_password_modal` (5), `test_unlock_manager` (3), `test_dev_panel_zone_toggles` (4) | `DevPasswordModal.check_password()`, `force_unlock_condition()`, the two Zones toggles | Other dev panel actions, Ctrl+Shift+D gate, Map Preview, UID tool ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
+| Dev tools | `test_unlock_manager` (3), `test_dev_panel_zone_toggles` (4) | `force_unlock_condition()`, the two Zones toggles | Other dev panel actions, Ctrl+Shift+D toggle, Map Preview, UID tool ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 | Loot | None | | `LootTable` rolls (no test references `LootTable`) |
 
 ## Key Files
@@ -240,5 +240,4 @@ New tests should call the real method on the autoload, with its state swapped as
 - `[LOW]` `CountingEffect` is duplicated in `test_consumable_definition_data.gd` and `test_inventory_manager_consumables.gd`, and there is no shared helper module.
 - `[LOW]` `PathManager._test_stage_override` is a test hook in production code.
 - `[LOW]` `tests/unit/test_path_manager.gd` swaps in a one-entry `AbilityManager._abilities_by_id` and never gives it back. It now restores `CyclingManager`'s index and save, as `test_cycling_manager.gd` does, and `test_fresh_save_cycling_card_wraps` rebuilds the real technique catalog for itself.
-- `[LOW]` `tests/unit/test_dev_password_modal.gd` is indented with spaces, and its `const DevPasswordModal = preload(...)` shadows the global class name.
 - `[LOW]` A headless `--import` in a fresh checkout empties `[dialogic] directories/*` in `project.godot` (see [the gotcha](#first-run-in-a-fresh-checkout)).

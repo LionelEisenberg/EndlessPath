@@ -147,7 +147,7 @@ Click "Talk to the [INTERVENER]" (celestial_intervener_dialogue_1, max_completio
 
 ### Dev tooling
 
-The dev panel opens with Ctrl+Shift+D, and only when `user://dev_password.txt` exists and the password modal has been passed. It fills a dropdown with every `condition_id` in `unlock_condition_list.list`. "Apply" calls `UnlockManager.force_unlock_condition(id)` and logs `[DEV] Force-triggered condition '<id>'`.
+The dev panel opens with Ctrl+Shift+D. It fills a dropdown with every `condition_id` in `unlock_condition_list.list`. "Apply" calls `UnlockManager.force_unlock_condition(id)` and logs `[DEV] Force-triggered condition '<id>'`.
 
 ## Integration Points
 

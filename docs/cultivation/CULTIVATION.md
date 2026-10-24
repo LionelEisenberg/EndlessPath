@@ -161,7 +161,7 @@ The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not adde
 | `QuestManager` | `q_reach_core_density_10` step 1 completes when `q_reach_cd_10` unlocks |
 | UI | The zone view's `CultivatorPlate` and `GoalsPanel` read `BREAKTHROUGH_LEVEL` |
 | `PersistenceManager` | Fields above persist in `user://save.tres` |
-| `DevPanel` (Ctrl+Shift+D, needs `user://dev_password.txt`) | "Add CD XP" calls `add_core_density_xp(value)`. There is no stage control |
+| `DevPanel` (Ctrl+Shift+D) | "Add CD XP" calls `add_core_density_xp(value)`. There is no stage control |
 
 ## Existing Content
 

@@ -192,6 +192,20 @@ func force_win_combat() -> void:
 		return
 	combat.trigger_combat_end.emit(true, 0)
 
+## DEV-only: end the running adventure at once, as a victory (the boss-win
+## path: success effects, the victory end card) or a defeat (failure effects,
+## a retreat end card). No-op if no adventure is running.
+## Used by the dev panel; do not call from gameplay code.
+func force_end_adventure(victory: bool) -> void:
+	if current_action_data == null:
+		return
+	_pending_victory = victory
+	ActionManager.stop_action(victory)
+
+## Whether an adventure is running.
+func is_adventure_running() -> bool:
+	return current_action_data != null
+
 ## DEV-only: toggle a visual fog-of-war override that reveals every tile
 ## on the current adventure map. Purely visual — progression state is
 ## unaffected. Used by the dev panel; do not call from gameplay code.
