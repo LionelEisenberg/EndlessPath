@@ -11,8 +11,9 @@ extends Control
 ## over 0.44 s, each step held until the next (kit §6.4). The shake reads
 ## its steps from shake_offset_at(), the one function that steps through a
 ## keyframe set. There are two sets: SHAKE_KEYFRAMES (the lock shake, which the
-## adventure's coins, Stamina row and Here tray share) and SOFT_SHAKE_KEYFRAMES,
-## which the adventure's buttons shake by when a press is refused (TechniqueSlot).
+## adventure's boss coin shares as it comes into view) and SOFT_SHAKE_KEYFRAMES,
+## the soft shake of a refusal: a technique slot, the Here tray and the Stamina
+## row in the adventure, and the zone chest's Adventure card.
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -36,10 +37,13 @@ const _TWINKLE_FRAME_1_AGAIN_START: float = 3.9
 ## The lock shake's x offsets (px), one every SHAKE_STEP_SECONDS, each held
 ## until the next: SHAKE_SECONDS (0.44 s) in all.
 const SHAKE_KEYFRAMES: Array[int] = [0, -8, 8, -6, 4, 0]
-## The soft shake of a button that was pressed when it could not act: the lock
-## shake's rhythm (six keyframes, so SHAKE_SECONDS ends it too) at half its
-## travel, in whole even px (-2 where half of -6 would be the odd -3). Buttons
-## get pressed again and again in a fight, and the lock shake's 8 px was too much.
+## The soft shake of a refusal: a technique slot pressed when it cannot act, the
+## Here tray and the Stamina row when a walk is refused, the zone chest's
+## Adventure card clicked without enough Madra. The lock shake's rhythm (six
+## keyframes, so SHAKE_SECONDS ends it too) at half its travel, in whole even px
+## (-2 where half of -6 would be the odd -3). Refusals come again and again (a
+## fight presses its slots over and over), and the lock shake's 8 px was too
+## much; the padlock keeps it.
 const SOFT_SHAKE_KEYFRAMES: Array[int] = [0, -4, 4, -2, 2, 0]
 const SHAKE_STEP_SECONDS: float = 0.088
 ## One step per keyframe after the first. Both sets have six keyframes.
@@ -108,7 +112,7 @@ func is_shaking() -> bool:
 
 ## The x offset (px) at elapsed seconds into a shake over keyframes, each held
 ## for SHAKE_STEP_SECONDS: the lock shake (SHAKE_KEYFRAMES) by default, or
-## SOFT_SHAKE_KEYFRAMES for a button. Shakes call this instead of stepping
+## SOFT_SHAKE_KEYFRAMES for a refusal. Shakes call this instead of stepping
 ## through a set themselves.
 static func shake_offset_at(elapsed: float, keyframes: Array[int] = SHAKE_KEYFRAMES) -> int:
 	if elapsed <= 0.0:

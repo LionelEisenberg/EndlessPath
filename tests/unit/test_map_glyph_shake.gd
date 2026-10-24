@@ -2,11 +2,11 @@ extends GutTest
 
 ## Unit tests for MapGlyph's shake: the two keyframe sets and shake_offset_at(),
 ## the one function that steps through them. SHAKE_KEYFRAMES is the lock shake
-## (0, -8, 8, -6, 4, 0; the padlock, the adventure's coins, Stamina row and Here
-## tray), SOFT_SHAKE_KEYFRAMES the shake of a button that was pressed when it
-## could not act (0, -4, 4, -2, 2, 0; the technique slots). The lock shake's
-## numbers are pinned in test_zone_travel.gd, the padlock's own shake there and
-## the slots' in test_technique_dock.gd.
+## (0, -8, 8, -6, 4, 0; the padlock and the adventure's boss coin),
+## SOFT_SHAKE_KEYFRAMES the soft shake of a refusal (0, -4, 4, -2, 2, 0; the
+## technique slots, the Here tray, the Stamina row and the zone chest's Adventure
+## card). The lock shake's numbers are pinned in test_zone_travel.gd, the
+## padlock's own shake there, and each refusal's in its board's tests.
 
 #-----------------------------------------------------------------------------
 # THE SOFT SHAKE

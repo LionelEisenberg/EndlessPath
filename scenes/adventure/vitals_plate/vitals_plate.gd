@@ -11,8 +11,8 @@ extends Control
 ## Both orbs are the kit's socket art under lacquer_madra_orb.gdshader (the
 ## Health orb hands that shader the crimson ramp on its own material, the Madra
 ## orb keeps the shader's Madra colours); this script only hands them the
-## fill. The Stamina row shakes in the zone map's lock-shake steps when a walk
-## is refused.
+## fill. The Stamina row shakes in the soft shake's steps (the zone map's lock
+## shake at half its travel) when a walk is refused.
 ## setup_vitals() reads the figures once and then follows the VitalsManager's
 ## signals; the AdventureView calls it at every run's start. bind_buffs() and
 ## unbind_buffs() bracket a fight.
@@ -127,9 +127,9 @@ func unbind_buffs() -> void:
 	_hide_buff_tooltip()
 	_refresh_buff_sockets()
 
-## Shakes the Stamina row side to side in whole steps (the zone map's
-## lock-shake keyframes); a new shake restarts it. The rest of the cabinet
-## stays put.
+## Shakes the Stamina row side to side in whole steps (the soft shake's
+## keyframes, MapGlyph.SOFT_SHAKE_KEYFRAMES); a new shake restarts it. The rest
+## of the cabinet stays put.
 func shake_stamina() -> void:
 	_stop_stamina_shake()
 	if not is_inside_tree():
@@ -187,7 +187,7 @@ func _update_stamina() -> void:
 #-----------------------------------------------------------------------------
 
 func _apply_stamina_shake(elapsed: float) -> void:
-	_stamina_row.position.x = _stamina_home_x + MapGlyph.shake_offset_at(elapsed)
+	_stamina_row.position.x = _stamina_home_x + MapGlyph.shake_offset_at(elapsed, MapGlyph.SOFT_SHAKE_KEYFRAMES)
 
 func _stop_stamina_shake() -> void:
 	if _stamina_shake_tween != null and _stamina_shake_tween.is_valid():

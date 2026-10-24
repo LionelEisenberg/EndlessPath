@@ -1529,6 +1529,8 @@ func test_the_page_carries_the_lacquer_theme_itself() -> void:
 # THE SHAKE
 #-----------------------------------------------------------------------------
 
+## A refused click shakes the tray softly, as a refused technique shakes its
+## slot (review round 2: the lock shake's 8 px was too much for a refusal).
 func test_here_shake_runs_in_even_steps() -> void:
 	var tray: Control = _control("HereTray")
 	var home_x: float = tray.position.x
@@ -1538,15 +1540,16 @@ func test_here_shake_runs_in_even_steps() -> void:
 	assert_true(_page.is_here_shaking())
 	assert_eq(tray.position.x, home_x, "a shake starts at home")
 
-	# MapGlyph's keyframes: 0, -8, 8, -6, 4, 0, each held 0.088 s.
+	# MapGlyph's soft keyframes (the lock shake's rhythm at half its travel):
+	# 0, -4, 4, -2, 2, 0, each held 0.088 s.
 	simulate(_page, 1, 0.1)
-	assert_eq(tray.position.x, home_x - 8.0, "0.1 s in")
+	assert_eq(tray.position.x, home_x - 4.0, "0.1 s in")
 	simulate(_page, 1, 0.1)
-	assert_eq(tray.position.x, home_x + 8.0, "0.2 s in")
+	assert_eq(tray.position.x, home_x + 4.0, "0.2 s in")
 	simulate(_page, 1, 0.1)
-	assert_eq(tray.position.x, home_x - 6.0, "0.3 s in")
+	assert_eq(tray.position.x, home_x - 2.0, "0.3 s in")
 	simulate(_page, 1, 0.1)
-	assert_eq(tray.position.x, home_x + 4.0, "0.4 s in")
+	assert_eq(tray.position.x, home_x + 2.0, "0.4 s in")
 	assert_true(_page.is_here_shaking())
 	simulate(_page, 1, 0.045)
 	assert_eq(tray.position.x, home_x, "back home after 0.44 s")
@@ -1564,7 +1567,7 @@ func test_here_shake_only_ever_shows_the_keyframes() -> void:
 		if not seen.has(tray.position.x):
 			seen.append(tray.position.x)
 	seen.sort()
-	assert_eq(seen, [-8.0, -6.0, 0.0, 4.0, 8.0] as Array[float], "whole even steps, the keyframes and no others")
+	assert_eq(seen, [-4.0, -2.0, 0.0, 2.0, 4.0] as Array[float], "whole even steps, the soft keyframes and no others")
 
 func test_here_shake_moves_only_the_tray() -> void:
 	_page.show_tile(AURA_WELL, "", null)
@@ -1580,12 +1583,12 @@ func test_here_shake_again_restarts_it() -> void:
 	var tray: Control = _control("HereTray")
 	_page.shake_here()
 	simulate(_page, 1, 0.3)
-	assert_eq(tray.position.x, -6.0, "precondition: mid-shake")
+	assert_eq(tray.position.x, -2.0, "precondition: mid-shake")
 
 	_page.shake_here()
 	assert_eq(tray.position.x, 0.0, "a new shake starts from home")
 	simulate(_page, 1, 0.1)
-	assert_eq(tray.position.x, -8.0, "and runs from its first keyframe")
+	assert_eq(tray.position.x, -4.0, "and runs from its first keyframe")
 
 func test_here_shake_does_not_hold_the_page_awake() -> void:
 	assert_false(_page.is_processing(), "a page at rest does no work each frame")
@@ -1601,7 +1604,7 @@ func test_a_shake_goes_on_over_a_new_tile() -> void:
 	_page.show_tile(AMORPHOUS_SPIRIT_ENCOUNTER, "", null)
 	assert_true(_page.is_here_shaking(), "a new tile does not cut it short")
 	simulate(_page, 1, 0.1)
-	assert_eq(tray.position.x, 8.0)
+	assert_eq(tray.position.x, 4.0)
 
 #-----------------------------------------------------------------------------
 # NO TEXT IS CUT OFF (the developer's rule: "increase the size, go to the next line")

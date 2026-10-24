@@ -17,7 +17,7 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-23, on `feat/adventure-view-styleguide-1fc223` after the adventure view's map and frame rework (PR 1 of the lacquer rework, not merged), its pre-merge touch-up, the first review round and that round's review fixes, the second review round's soft shake for refused buttons, rebased onto `main` after the lacquer cycling view (#57) merged and with `main`'s dev tools (#59) merged in, with the command from `CLAUDE.md`.
+Run on 2026-10-23, on `feat/adventure-view-styleguide-1fc223` after the adventure view's map and frame rework (PR 1 of the lacquer rework, not merged), its pre-merge touch-up, the first review round and that round's review fixes, the second review round's soft shake for refusals (the technique slots, then the Here tray, the Stamina row and the zone view's Adventure card), rebased onto `main` after the lacquer cycling view (#57) merged and with `main`'s dev tools (#59) merged in, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
@@ -25,7 +25,7 @@ Run on 2026-10-23, on `feat/adventure-view-styleguide-1fc223` after the adventur
 | GUT | 9.7.1 |
 | Scripts / tests | 138 / 2059 |
 | Passing / failing / pending or risky | 2059 / 0 / 0 |
-| Asserts | 14423 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Asserts | 14417 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |

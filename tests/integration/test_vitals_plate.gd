@@ -274,10 +274,10 @@ func test_setup_vitals_follows_the_latest_manager() -> void:
 # STAMINA SHAKE
 #-----------------------------------------------------------------------------
 
-## A refused walk shakes the Stamina row through the zone map's lock-shake
-## steps (0, -8, 8, -6, 4, 0 px, each held 0.088 s), read frame by frame:
-## every offset is a whole even step, in the keyframe order, and the row ends
-## at home and not shaking.
+## A refused walk shakes the Stamina row through the soft shake's steps (the
+## zone map's lock shake at half its travel, review round 2: 0, -4, 4, -2, 2,
+## 0 px, each held 0.088 s), read frame by frame: every offset is a whole even
+## step, in the keyframe order, and the row ends at home and not shaking.
 func test_stamina_shake_runs_in_even_steps() -> void:
 	var row: Control = _node("StaminaRow")
 	assert_false(_plate.is_stamina_shaking(), "still before the shake")
@@ -291,7 +291,7 @@ func test_stamina_shake_runs_in_even_steps() -> void:
 			offsets.append(row.position.x)
 		return not _plate.is_stamina_shaking(), 2.0)
 	assert_true(settled, "the shake ends by itself")
-	assert_eq(offsets, [0.0, -8.0, 8.0, -6.0, 4.0, 0.0] as Array[float], "the keyframes in order, each a whole even px")
+	assert_eq(offsets, [0.0, -4.0, 4.0, -2.0, 2.0, 0.0] as Array[float], "the soft keyframes in order, each a whole even px")
 	assert_eq(row.position.x, 0.0, "and the row is back home")
 
 ## The rod, the icon and the figures shake with their row; the orbs and the
@@ -302,8 +302,8 @@ func test_stamina_shake_moves_only_the_stamina_row() -> void:
 	var rod_home: Vector2 = (_node("StaminaRod") as Control).global_position
 	await _start_in_a_fresh_frame()
 	_plate.shake_stamina()
-	await wait_until(func() -> bool: return (_node("StaminaRow") as Control).position.x == -8.0, 2.0)
-	assert_eq((_node("StaminaRod") as Control).global_position, rod_home + Vector2(-8.0, 0.0), "the rod goes with its row")
+	await wait_until(func() -> bool: return (_node("StaminaRow") as Control).position.x == -4.0, 2.0)
+	assert_eq((_node("StaminaRod") as Control).global_position, rod_home + Vector2(-4.0, 0.0), "the rod goes with its row")
 	assert_eq(health_orb.position, health_home, "the orbs stay")
 	assert_eq(_plate.position, PLATE_HOME, "and so does the cabinet")
 

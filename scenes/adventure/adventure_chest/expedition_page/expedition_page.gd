@@ -33,7 +33,8 @@ extends AdventureChestPage
 ## padded 1 px under (wrap_pad.tres), which makes their lines 22 n and 18 n tall;
 ## the walk hint's row is 10 + that.
 ## A refused click (the encounter on the tile holds the player) shakes the tray
-## and turns the lock line to the warning colour for the length of the shake.
+## softly and turns the lock line to the warning colour for the length of the
+## shake.
 ## The text rules are statics, so the tests and the page ask the same code.
 
 ## Emitted when the player presses an available drawer: the choice it stands for.
@@ -151,7 +152,7 @@ func _process(delta: float) -> void:
 	if not is_here_shaking():
 		return
 	_shake_elapsed += delta
-	_here_tray.position.x = _here_home.x + MapGlyph.shake_offset_at(_shake_elapsed)
+	_here_tray.position.x = _here_home.x + MapGlyph.shake_offset_at(_shake_elapsed, MapGlyph.SOFT_SHAKE_KEYFRAMES)
 	if _shake_elapsed >= MapGlyph.SHAKE_SECONDS:
 		_shake_elapsed = -1.0
 		_lock_line.remove_theme_color_override(&"font_color")
@@ -205,13 +206,14 @@ func set_run_stats(fights: int, fights_total: int, gold: int, explored: int, exp
 		_loot_icons[index].texture = icon
 		_loot_icons[index].visible = icon != null
 
-## Shakes the Here tray side to side in the zone map's lock-shake steps, to say
-## a click did nothing because an encounter on the tile waits for a choice, and
-## turns the lock line to the warning colour until the shake is over. The rest of
-## the page stays put. A new shake restarts it.
+## Shakes the Here tray side to side in the soft shake's steps (the zone map's
+## lock shake at half its travel), to say a click did nothing because an
+## encounter on the tile waits for a choice, and turns the lock line to the
+## warning colour until the shake is over. The rest of the page stays put. A new
+## shake restarts it.
 func shake_here() -> void:
 	_shake_elapsed = 0.0
-	_here_tray.position.x = _here_home.x + MapGlyph.shake_offset_at(0.0)
+	_here_tray.position.x = _here_home.x + MapGlyph.shake_offset_at(0.0, MapGlyph.SOFT_SHAKE_KEYFRAMES)
 	_lock_line.add_theme_color_override(&"font_color", LOCK_WARNING_COLOUR)
 	set_process(true)
 
