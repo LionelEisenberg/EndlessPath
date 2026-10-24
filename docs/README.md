@@ -2,7 +2,7 @@
 
 Last updated: 2026-10-23
 
-Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view (merged as PR #51). The cycling, style guide, zones, UI shell, resources, logging, persistence, testing and related docs were updated on 2026-10-23 for the lacquer cycling view (merged as PR #57). The adventuring and combat docs, the style guide and the testing docs were updated on 2026-10-23 for the adventure view's map and frame on `feat/adventure-view-styleguide-1fc223` (PR 1 of 2, not merged).
+Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view (merged as PR #51). The cycling, style guide, zones, UI shell, resources, logging, persistence, testing and related docs were updated on 2026-10-23 for the lacquer cycling view (merged as PR #57). The adventuring and combat docs, the style guide and the testing docs were updated on 2026-10-23 for the adventure view's map and frame on `feat/adventure-view-styleguide-1fc223` (PR 1 of 2, not merged), and again the same day for that PR's first review round (the wheel zoom, text that is never cut off, a leaner chest).
 
 ## Start Here
 

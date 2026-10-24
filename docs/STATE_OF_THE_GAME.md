@@ -12,7 +12,7 @@ Endless Path is a cultivation idle/incremental game with active mini-games, insp
 - a procedurally generated adventure with real-time combat;
 - inventory and gear, an ability loadout, a character sheet, and a skill tree.
 
-The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 1632 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
+The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 1728 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
 
 ## Where Each System Stands
 
@@ -20,7 +20,7 @@ The engineering base is healthy: it is data-driven, has 17 manager singletons, a
 |---|---|---|
 | Cycling | Playable | 3 techniques. The starting technique earns Madra but **no Core Density XP**. A lacquer board in the map gap with the cabinet as its readout, a lit groove, tier-coloured hits and the techniques as drawers in the zone chest |
 | Zone map and idle actions | Playable | 1 real zone with 9 actions. A map-first lacquer view (zoom-2 hex map with fog, cultivator cabinet, Goals board, zone chest, dock), and an idle action always resumes after cycling, adventures, dialogue and the shop. Foraging is free, and its materials have no use |
-| Adventuring | Playable | 1 procedural adventure with 7 encounter types. On the adventure branch: the map and its frame (vitals cabinet, chest with the Here tray and Run ledger, technique dock) are in the lacquer look; the fight keeps its old look until PR 2. The "boss" is a regular enemy, and a clear records nothing |
+| Adventuring | Playable | 1 procedural adventure with 7 encounter types. On the adventure branch: the map (the wheel zooms it from 1 to 2) and its frame (vitals cabinet, chest with the Here tray and Run ledger, technique dock) are in the lacquer look, and none of their text is cut off; the fight keeps its old look until PR 2. The "boss" is a regular enemy, and a clear records nothing |
 | Combat | Playable | Real-time, with 4 player abilities and 4 enemies. No enemy art, VFX or SFX |
 | Inventory and items | Playable, thin | 12 items. The Merchant sells six gear pieces and Crude Scales; consumables can't be used in combat on `main` |
 | Abilities and loadout | Playable | 4-slot drag-drop loadout; abilities unlock through the path tree |
@@ -37,8 +37,8 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 
 ## Health
 
-- **Size:** about 27k lines of game GDScript plus 24k lines of tests, 133 scenes, 106 data resources, 14 shaders.
-- **Tests:** 1632/1632 pass across 123 files in about 152 s (GUT 9.7.1, Godot 4.7.2, run on 2026-10-23). Every suite calls the code it tests, including the ResourceManager, CultivationManager, CharacterManager and InventoryManager suites ([TESTING.md](testing/TESTING.md)).
+- **Size:** about 27k lines of game GDScript plus 26k lines of tests, 133 scenes, 106 data resources, 14 shaders.
+- **Tests:** 1728/1728 pass across 127 files in about 200 s (GUT 9.7.1, Godot 4.7.2, run on 2026-10-23). Every suite calls the code it tests, including the ResourceManager, CultivationManager, CharacterManager and InventoryManager suites ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.
   - One unmerged branch, `feat/infallible-chaum-58f8ad`, adds in-combat consumables (20 commits, no PR).

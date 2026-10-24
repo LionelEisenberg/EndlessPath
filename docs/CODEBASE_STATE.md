@@ -16,11 +16,11 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~27k lines of game GDScript and ~24k lines of tests; 133 scenes; 106 authored `.tres` resources; 14 shaders |
+| Code | ~27k lines of game GDScript and ~26k lines of tests; 133 scenes; 106 authored `.tres` resources; 14 shaders |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 123 scripts and 1632 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 127 scripts and 1728 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
-| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/adventure-view-styleguide-1fc223`: the adventure view's map and frame in the lacquer look (PR 1 of 2; the fight is PR 2), built 2026-10-23 |
+| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/adventure-view-styleguide-1fc223`: the adventure view's map and frame in the lacquer look (PR 1 of 2; the fight is PR 2), built 2026-10-23 and changed by its first review round the same day |
 
 ---
 
@@ -123,7 +123,7 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 - **Unique names** (`%NodeName`) decouple scripts from the scene hierarchy. Use them instead of `$Path/To/Node`.
 - **Subscenes** package complex UI, e.g. `adventure_view.tscn` is instanced into `main_game.tscn`.
 - **No UI nodes in code:** UI structure lives in `.tscn` files, and scripts only set data.
-- **Label styling:** text uses the Label theme-variant type scale in `pixel_theme.tres`; the zone view's panels, the adventure view's boards and the HUD boards use `lacquer_theme.tres` and its `LabelLacquer*` variants ([UI_STYLING.md](UI_STYLING.md)).
+- **Label styling:** text uses the Label theme-variant type scale in `pixel_theme.tres`; the zone view's panels, the adventure view's boards and the HUD boards use `lacquer_theme.tres` and its `LabelLacquer*` variants ([UI_STYLING.md](UI_STYLING.md)). On those boards no text is cut off: a Label wraps and its board grows ([STYLE_GUIDE.md](STYLE_GUIDE.md), rule 14), though some older screens still trim.
 
 ### Key Shared Components
 
@@ -137,9 +137,9 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 | `MadraPellet` | `scenes/zones/zone_transition/` | Opaque pellet that flies along a curve in 2 px steps. The adventure drain's pellets and the cycling view's Madra and XP pellets (`set_texture()` for the tier colours) |
 | `FloatingText` | `scenes/ui/floating_text/` | Rising, fading label. `ResourceBar` can show one per change, but the one bar left (the enemy's Health) has it off, so nothing shows it now; combat's damage numbers are `DamageNumber`s |
 | `Atmosphere` | `scenes/atmosphere/` | Vignette shader, drifting mist and floating motes. Only the adventure's fight instances it now (until the fight is reworked), tuned per scene with `@export` |
-| `AdventureMapMarkers` / `EncounterCoin` | `scenes/adventure/adventure_map_markers/` | The adventure map's screen-space layer of lacquer coins (glyph, carved "?", carved cleared, boss), the counterpart of the zone map's `MapMarkers` |
+| `AdventureMapMarkers` / `EncounterCoin` | `scenes/adventure/adventure_map_markers/` | The adventure map's layer of lacquer coins (glyph, carved "?", carved cleared, boss), the counterpart of the zone map's `MapMarkers`. A `Node2D` at z 50 in the map's own canvas, kept in screen space and drawn under the character |
 | `AdventureRoute` | `scenes/adventure/adventure_route/` | Lit route dots laid hex to hex for a hovered or committed walk; the dots behind the character hide one at a time |
-| `VitalsPlate`, `AdventureChest`, `ExpeditionPage`, `RunClock`, `TechniqueDock` | `scenes/adventure/`, `scenes/ui/combat/technique_dock/` | The adventure view's frame: the vitals cabinet, the chest (Here tray, choice drawers, Run ledger, run clock) and the technique dock with its cooldown sweep ([ADVENTURING.md](adventuring/ADVENTURING.md), [COMBAT.md](combat/COMBAT.md)) |
+| `VitalsPlate`, `AdventureChest`, `ExpeditionPage`, `RunClock`, `TechniqueDock` | `scenes/adventure/`, `scenes/ui/combat/technique_dock/` | The adventure view's frame: the vitals cabinet, the chest (Here tray, choice drawers, Run ledger, run clock; its text wraps and its boards grow) and the technique dock with its cooldown sweep ([ADVENTURING.md](adventuring/ADVENTURING.md), [COMBAT.md](combat/COMBAT.md)) |
 | `EncounterIcon` | `scenes/adventure/encounter_icon/` | Glyph for each encounter type (animated boss and rest glyphs). Only the editor map preview uses it now; the coins use the same art |
 | `ItemDisplaySlot` / `ItemDescriptionPanel` | `scenes/common/` | Read-only item icon with tooltip, and the item detail panel |
 | `DropTargetSlot` | `scenes/common/drop_target_slot.gd` | Shared drag-and-drop target base, with drop highlight |
