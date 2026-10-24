@@ -17,7 +17,10 @@ All commands are run from the project root.
 # Run the game from CLI
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
 
-# Run the test suite
+# Run the test suite in 6 Godot processes at once (-Processes N for another count)
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
+
+# Run the test suite in one process, to confirm a failure from the parallel run
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 
 # Export (example: Linux). Requires an export preset; no export_presets.cfg is committed yet
@@ -32,6 +35,8 @@ The project uses **GUT v9.7.1** for unit and integration tests. Test files live 
 - After completing any feature or bug fix, before committing
 - When a bug is suspected in a system that has tests — run tests first to see if anything is already failing
 - After modifying any singleton manager, resource class, or combat formula
+
+**How to run them:** `tests/run_tests.ps1` (the first test command above) splits the suite across 6 Godot processes and takes about 30 s; one process takes about 75 s. A test that depends on frame timing can fail on a busy machine, and the parallel run makes the machine busy, so before investigating a failure, rerun the failing files in one process with the command the runner prints (`-gconfig= -gtest=<files>`). The runner also fails a run when a test script runs no tests: GUT skips a script that does not parse with only a warning, and the one-process command still exits 0.
 
 **Write new tests** when adding logic to: `ResourceManager`, `CultivationManager`, `CharacterManager`, `InventoryManager`, `CombatEffectData`, `EquipmentDefinitionData`, or any new system with testable pure logic.
 
@@ -66,7 +71,7 @@ See `docs/testing/TESTING.md` for test conventions, the coverage map, and why te
 | `resources/` | `.tres` data files (abilities, adventures and encounters, enemies, cycling, items, path tree, quests, unlocks, zones and their loot tables) |
 | `assets/` | Art (sprites, Aseprite sources, the zone view's lacquer kit in `ui/lacquer/`), shaders, themes, styleboxes, fonts, dialogue data. No audio yet |
 | `addons/` | Godot plugins (Dialogic, AsepriteWizard, ResourcePlus, hexagon_tilemaplayer, script-ide, godot_context_exporter, gut) |
-| `tests/` | GUT tests: `unit/`, `integration/`, `label_tests/` |
+| `tests/` | GUT tests: `unit/`, `integration/`, `label_tests/`, and `run_tests.ps1`, which runs the suite in parallel Godot processes |
 | `docs/` | Game and system documentation. Start at `docs/README.md` |
 
 ### Singleton Managers (`singletons/`)

@@ -17,7 +17,7 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-23, on `feat/test-suite-runtime-cf3d8e` after the idle motion, training tick and map floater tests moved onto a hand-stepped clock, with the command from `CLAUDE.md`.
+Run on 2026-10-23, on `feat/test-suite-runtime-cf3d8e` after the idle motion, training tick and map floater tests moved onto a hand-stepped clock, with the one-process command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
@@ -30,7 +30,7 @@ Run on 2026-10-23, on `feat/test-suite-runtime-cf3d8e` after the idle motion, tr
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |
 | Exit code | 0 |
-| Wall time | About 68 s on this run (GUT's `Time` line, 68.0 s; 76 s for the whole Godot process). Most of it is the zone view's and the cycling view's scene tests awaiting real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay): `test_zone_travel.gd` takes 14 s, `test_zone_panel.gd` 8 s. The idle motion, training tick and floater tests step their own clock (see [Patterns](#patterns-used-in-the-suite)) |
+| Wall time | About 68 s on this run (GUT's `Time` line, 68.0 s; 76 s for the whole Godot process). Most of it is the zone view's and the cycling view's scene tests awaiting real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay): `test_zone_travel.gd` takes 14 s, `test_zone_panel.gd` 8 s. The idle motion, training tick and floater tests step their own clock (see [Patterns](#patterns-used-in-the-suite)). The [parallel runner](#parallel-runner) at 6 processes takes 25-30 s |
 
 Known noise in a green run:
 
@@ -64,9 +64,30 @@ Run the same import after pulling or merging new art, before the suite or the ga
 
 > **Fixed 2026-10-19:** In a fresh checkout this import used to rewrite the `[dialogic]` section of `project.godot`, emptying `directories/dch_directory` and `directories/dtl_directory` and dropping the registered characters and timeline. Dialogic's editor panel pruned every entry whose `.dch`/`.dtl` loader wasn't registered yet. A local patch in `addons/dialogic/Core/DialogicResourceUtil.gd` now prunes only files that are really missing (see the addon exceptions in `CLAUDE.md`). If `git diff project.godot` ever shows those keys emptied again, the patch was probably lost in a Dialogic upgrade. Running the test command by itself does not modify `project.godot`.
 
-### Command line
+### Parallel runner
 
-From the project root:
+`tests/run_tests.ps1` runs the suite in several headless Godot processes at once, 6 by default, and prints one result. From the project root, in any shell:
+
+```bash
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
+```
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| `-Processes N` | `6` | How many Godot processes run at once (1-32) |
+| `-Godot <path>` | the Godot 4.7.2 console build in `C:\Program Files (x86)\Godot\` | The Godot console executable |
+
+- It takes the test scripts from `.gutconfig.json`'s `dirs` and splits them into groups of about equal time, longest first, using each script's time from the last run. Each group runs with a copy of `.gutconfig.json` that lists its scripts in place of the `dirs`, so every other GUT setting still applies.
+- The times are saved after each run in `gut_test_times.json` in the repository's shared git folder (`git rev-parse --git-common-dir`), so every worktree on the machine starts from them. A script with no time yet counts as the median; with no times at all the groups are about equal in size, and the first run is slower (about 40 s instead of 25-30 s).
+- Each process's config, output (`process_N.log`), errors (`process_N.errors.log`) and JUnit file go to `.godot/test_runs/`, replaced every run.
+- It prints a line as each process finishes, then either `All N tests passed` or each failing test with its message, the processes' log paths, and the one-process command that confirms the failing files.
+- It also fails the run when a test script runs no tests. GUT treats a test script that does not parse as one that does not extend `GutTest`: it prints a warning, skips the script, and still reports `All tests passed!` with exit code 0, so in one process the only signs are one script fewer and one more warning.
+- Exit code `0` when every test passes, `1` when a test fails or a script runs no tests, `2` when the run cannot start (no Godot at `-Godot`, a checkout that has not been imported, no test scripts).
+- Several processes make the machine busy, and a test that depends on how long frames take can fail under load (see the real-time waits under [Tech Debt](#tech-debt)). Confirm a failure in one process before acting on it. Ctrl+C ends the Godot processes still running.
+
+### One process
+
+From the project root, the whole suite:
 
 ```bash
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
@@ -121,6 +142,7 @@ The enabled GUT plugin adds a GUT bottom panel. It can run all tests, a single s
 tests/
 ├── unit/                         77 scripts: one system, resource or manager per file
 ├── integration/                  41 scripts: content flows and scene-level UI behaviour
+├── run_tests.ps1                 the parallel runner
 └── label_tests/
     ├── label_testing_scene.tscn  visual Label-variant reference (run with F6)
     └── label_testing_scene.gd
@@ -207,6 +229,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | `.gutconfig.json` | GUT defaults (directories, prefix, log level) |
 | `addons/gut/` | GUT 9.7.1 (read-only third-party code) |
 | `addons/gut/gut_cmdln.gd` | CLI entry point |
+| `tests/run_tests.ps1` | Parallel runner: the suite in several Godot processes, one result ([Parallel runner](#parallel-runner)) |
 | `tests/unit/`, `tests/integration/` | Test scripts |
 | `tests/label_tests/label_testing_scene.tscn` | Visual Label-variant reference |
 | `docs/testing/TEST_SUITE_PROMPT.md` | Historical one-shot prompt that created the suite (2026-04-10, commit `2f6d5bf`) |
