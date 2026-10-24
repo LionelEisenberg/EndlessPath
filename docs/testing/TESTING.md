@@ -17,7 +17,7 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-23, on `feat/test-suite-runtime-cf3d8e` after the idle motion, training tick, map floater, zone travel, zone panel and frame flash tests moved onto a hand-stepped clock, with the one-process command from `CLAUDE.md`.
+Run on 2026-10-23, on `feat/test-suite-runtime-cf3d8e` after the idle motion, training tick, map floater, zone travel, zone panel and frame flash tests moved onto a hand-stepped clock and the quest tests stopped nulling `QuestManager` and `EventManager`, with the one-process command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
@@ -25,12 +25,12 @@ Run on 2026-10-23, on `feat/test-suite-runtime-cf3d8e` after the idle motion, tr
 | GUT | 9.7.1 |
 | Scripts / tests | 118 / 1611 |
 | Passing / failing / pending or risky | 1611 / 0 / 0 |
-| Asserts | 9264 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Asserts | 9268 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |
 | Exit code | 0 |
-| Wall time | About 55 s on this run (GUT's `Time` line, 54.7 s; 66 s for the whole Godot process). No script takes more than 5 s: the slowest are `test_cycling_technique.gd` (physics frames for real picking), `test_zone_panel.gd` (layout frames), `test_zone_map_render.gd`, and `test_book_frame.gd` (the book's animations, in real time). The walk, idle motion, timer, tween and floater tests step their own clock (see [Patterns](#patterns-used-in-the-suite)). The [parallel runner](#parallel-runner) at 6 processes takes about 25 s |
+| Wall time | About 53 s on this run (GUT's `Time` line, 52.9 s; 61 s for the whole Godot process). No script takes more than 5 s: the slowest are `test_cycling_technique.gd` (physics frames for real picking), `test_zone_panel.gd` (layout frames), `test_zone_map_render.gd`, and `test_book_frame.gd` (the book's animations, in real time). The walk, idle motion, timer, tween and floater tests step their own clock (see [Patterns](#patterns-used-in-the-suite)). The [parallel runner](#parallel-runner) at 6 processes takes about 25 s |
 
 Known noise in a green run:
 
@@ -38,8 +38,6 @@ Known noise in a green run:
 - **Deprecation notices:** 30 lines of `[DEPRECATED]: wait_frames has been replaced with wait_physics_frames…`, from the `wait_frames()` calls in the book tests (`test_abilities_book.gd`, `test_book_frame.gd`, `test_character_book.gd`, `test_path_book.gd`).
 - **Orphans:** all 24 are Dialogic subsystem nodes (`subsystem_*.gd`, Timers, one `AudioStreamPlayer`) created as a side effect of the `Dialogic` autoload. GUT reports them as "Outside Tests" under `res://tests/unit/test_ability_manager.gd`, the first script it runs.
 - **Errors printed by passing tests:**
-  - 18 copies of `SCRIPT ERROR: Invalid access to property or key 'event_progression' on a base object of type 'Nil'` at `event_manager.gd:35` (`has_event_triggered`): 10 under `tests/unit/test_quiet_madra.gd` and 8 under `tests/unit/test_unlock_condition_item_owned.gd`. The chain is `unlock_condition_data.gd evaluate()` ← `unlock_manager.gd _evaluate_all_conditions()` ← `cultivation_manager.gd _update_resources()` ← a `before_each()` that emits `PersistenceManager.save_data_reset`.
-    - Likely cause, from reading the code: `tests/unit/test_quest_manager.gd` and `tests/unit/test_start_quest_effect_data.gd` set `EventManager.live_save_data = null` in `after_each()`, and both run earlier in alphabetical order. On `save_data_reset`, `CultivationManager`'s handler (autoload 2) runs before `EventManager`'s re-bind lambda (autoload 3). It emits `core_density_level_updated` and `advancement_stage_changed`, and each one evaluates the `EVENT_TRIGGERED` conditions against the null save. `test_quiet_madra.gd` now sorts between those files and `test_unlock_condition_item_owned.gd`, so it takes the first share of the errors.
   - `tests/unit/test_combat_effect_types.gd` and `tests/integration/test_power_font_buff_strip.gd` print `Node not found: %VitalsManager / %CombatEffectManager / %CombatBuffManager / %CombatAbilityManager`. They build `CombatantNode.new()` from the script and `add_child_autofree()` it before attaching manager children, so the `@onready %` lookups fail. `tests/integration/test_empty_palm_interrupt.gd` uses the same construction.
   - `tests/unit/test_persistence_manager.gd` prints the engine's load errors for its unreadable fixture save (`Cannot open file 'res://__missing_for_test_persistence/missing_item.tres'`, `Parse Error: [ext_resource] referenced non-existent resource`) and `PersistenceManager`'s CRITICAL lines. The tests mark the engine errors as expected.
   - Expected negative-path logs:
@@ -83,7 +81,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
 - It prints a line as each process finishes, then either `All N tests passed` or each failing test with its message, the processes' log paths, and the one-process command that confirms the failing files.
 - It also fails the run when a test script runs no tests. GUT treats a test script that does not parse as one that does not extend `GutTest`: it prints a warning, skips the script, and still reports `All tests passed!` with exit code 0, so in one process the only signs are one script fewer and one more warning.
 - Exit code `0` when every test passes, `1` when a test fails or a script runs no tests, `2` when the run cannot start (no Godot at `-Godot`, a checkout that has not been imported, no test scripts).
-- Several processes make the machine busy, and a test that depends on how long frames take can fail under load (see the real-time waits under [Tech Debt](#tech-debt)). Each process also runs its scripts in another order than one process does, so a test that depends on what ran before it can fail in one and not the other (see the test-order leak under [Tech Debt](#tech-debt)). Confirm a failure in one process before acting on it. Ctrl+C ends the Godot processes still running.
+- Several processes make the machine busy, and a test that depends on how long frames take can fail under load (see the real-time waits under [Tech Debt](#tech-debt)). Each process also runs its scripts in another order than one process does, so a test that depends on what an earlier script left behind can fail in one and not the other (see "Inject manager state directly" under [Patterns](#patterns-used-in-the-suite)). Confirm a failure in one process before acting on it. Ctrl+C ends the Godot processes still running.
 
 ### One process
 
@@ -165,7 +163,7 @@ tests/
 | Swap one manager's save, restore it after | `test_award_attribute_effect_data.gd`, `test_zone_progression_data.gd`, `test_training_flow.gd`, `test_inventory_manager.gd` | Keep the original in a field and put it back in `after_each()`. This is the safe pattern. |
 | Bind several managers to one test save, restore them all after | `test_resource_manager.gd`, `tests/integration/test_adventure_flow.gd` | Swap every manager the code under test reaches, including the ones that react to its signals (`UnlockManager`, `EventManager`, `QuestManager`). Both also swap `CultivationManager.advancement_stage_resources` for a stub stage, so the caps don't depend on the developer's save |
 | Swap the global save and re-bind all managers | `PersistenceManager.save_game_data = SaveGameData.new()` then `PersistenceManager.save_data_reset.emit()` (`test_unlock_condition_item_owned.gd`; `test_change_vitals_effect_data.gd`, `test_cultivation_manager.gd`, `test_character_manager.gd` and `test_adventure_combat_victory_event.gd` also restore) | Handlers run in autoload order, so `CultivationManager` re-evaluates unlocks before `EventManager` re-binds |
-| Inject manager state directly | `CyclingManager._live_save_data`, `CyclingManager._techniques_by_id`, `QuestManager._quests_by_id`, `PathManager._all_trees`, `EventManager.live_save_data` | Some files null these in `after_each()` instead of restoring them, which leaks into later files. Nulling `EventManager.live_save_data` is behind the `event_progression on Nil` errors described above. |
+| Inject manager state directly | `CyclingManager._live_save_data`, `CyclingManager._techniques_by_id`, `QuestManager._quests_by_id`, `PathManager._all_trees`, `EventManager.live_save_data` | Keep the original in a field in `before_each()` and put it back in `after_each()`, as `test_quest_manager.gd`, `test_start_quest_effect_data.gd` and `test_cycling_manager.gd` do. A state nulled or left behind leaks into every later file, and into different files in each process of the parallel runner: until 2026-10-23 the two quest files nulled `EventManager.live_save_data`, which printed 18 `event_progression on Nil` errors in a one-process run and once failed a test in the runner |
 | Test-only hook in production code | `PathManager._test_stage_override` | The only one. `PathManager._is_stage_reached()` checks it first. |
 | Mutate the loaded save in place | `PersistenceManager.save_game_data.inventory = InventoryData.new()` (inventory integration tests) | Changes only in-memory state, but the rest of the developer's save stays loaded |
 | Instance a scene | `const X := preload("res://...tscn")`, `X.instantiate()`, `add_child_autofree(node)`, then `await get_tree().process_frame` before reading `@onready` nodes | 62 `await get_tree().process_frame` calls across 19 files |
@@ -246,7 +244,6 @@ New tests should call the real method on the autoload, with its state swapped as
 
 ### Tech Debt
 
-- `[MEDIUM]` Test-order leak. `after_each()` in `tests/unit/test_quest_manager.gd` and `tests/unit/test_start_quest_effect_data.gd` sets `EventManager.live_save_data = null` (and nulls `QuestManager` state) instead of restoring the original. That is the likely source of the 18 `event_progression on Nil` errors printed under `tests/unit/test_quiet_madra.gd` and `tests/unit/test_unlock_condition_item_owned.gd`. In the parallel runner, whose processes run the scripts in another order, it can fail a test outright: on 2026-10-23 one process ran `test_start_quest_effect_data.gd`, then `test_unlock_manager.gd`, then `test_award_path_point_effect_data.gd`, whose `test_process_calls_path_manager_add_points` failed on 10 of these errors (it passes alone and in the one-process order). Fix by saving and restoring the original reference.
 - `[MEDIUM]` Tests build `CombatantNode.new()` and add it to the tree before its manager children exist, which prints `Node not found: %VitalsManager ...`. Affects `tests/unit/test_combat_effect_types.gd`, `tests/integration/test_power_font_buff_strip.gd` and `tests/integration/test_empty_palm_interrupt.gd`. Instance the combatant scene, or add the managers before `add_child_autofree()`.
 - `[LOW]` Rename `TestRecordingEffect` in `tests/unit/test_quest_manager.gd`, for example to `RecordingEffect`, to clear the GUT inner-class warning.
 - `[LOW]` 24 Dialogic orphans per run come from the `Dialogic` autoload. GUT attributes them to `test_ability_manager.gd`.

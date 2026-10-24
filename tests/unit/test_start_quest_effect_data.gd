@@ -3,7 +3,16 @@ extends GutTest
 var _save_data: SaveGameData
 var _test_quest: QuestData
 
+## QuestManager's and EventManager's real state, given back after each test so
+## later files see the real quest catalog and save.
+var _saved_quest_save_data: SaveGameData = null
+var _saved_quests_by_id: Dictionary[String, QuestData] = {}
+var _saved_event_save_data: SaveGameData = null
+
 func before_each() -> void:
+	_saved_quest_save_data = QuestManager._live_save_data
+	_saved_quests_by_id = QuestManager._quests_by_id
+	_saved_event_save_data = EventManager.live_save_data
 	_save_data = SaveGameData.new()
 	var step := QuestStepData.new()
 	step.step_id = "s1"
@@ -17,9 +26,9 @@ func before_each() -> void:
 	EventManager.live_save_data = _save_data
 
 func after_each() -> void:
-	QuestManager._live_save_data = null
-	QuestManager._quests_by_id = {}
-	EventManager.live_save_data = null
+	QuestManager._live_save_data = _saved_quest_save_data
+	QuestManager._quests_by_id = _saved_quests_by_id
+	EventManager.live_save_data = _saved_event_save_data
 
 func test_process_starts_the_quest() -> void:
 	var effect := StartQuestEffectData.new()

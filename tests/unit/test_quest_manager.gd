@@ -8,6 +8,13 @@ var _quest_b: QuestData
 var _step_talk_eel: QuestStepData
 var _step_visit_forest: QuestStepData
 
+## QuestManager's and EventManager's real state, given back after each test so
+## later files see the real quest catalog and save.
+var _saved_quest_save_data: SaveGameData = null
+var _saved_quests_by_id: Dictionary[String, QuestData] = {}
+var _saved_quest_catalog: QuestList = null
+var _saved_event_save_data: SaveGameData = null
+
 func _create_step(step_id: String, description: String, event_id: String = "") -> QuestStepData:
 	var s := QuestStepData.new()
 	s.step_id = step_id
@@ -23,6 +30,10 @@ func _create_quest(quest_id: String, quest_name: String, steps: Array[QuestStepD
 	return q
 
 func before_each() -> void:
+	_saved_quest_save_data = QuestManager._live_save_data
+	_saved_quests_by_id = QuestManager._quests_by_id
+	_saved_quest_catalog = QuestManager._quest_catalog
+	_saved_event_save_data = EventManager.live_save_data
 	_save_data = SaveGameData.new()
 	_step_talk_eel = _create_step("talk_eel", "Talk to the Wisened Dirt Eel", "eel_dialogue_done")
 	_step_visit_forest = _create_step("visit_forest", "Visit the Spring Forest", "spring_forest_visited")
@@ -36,9 +47,10 @@ func before_each() -> void:
 	EventManager.live_save_data = _save_data
 
 func after_each() -> void:
-	QuestManager._live_save_data = null
-	QuestManager._quests_by_id = {}
-	EventManager.live_save_data = null
+	QuestManager._live_save_data = _saved_quest_save_data
+	QuestManager._quests_by_id = _saved_quests_by_id
+	QuestManager._quest_catalog = _saved_quest_catalog
+	EventManager.live_save_data = _saved_event_save_data
 
 # ----- start_quest: basic -----
 
