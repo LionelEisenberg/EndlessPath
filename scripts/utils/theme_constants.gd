@@ -38,3 +38,7 @@ const LACQUER_MADRA: Color = Color("#BBD5E7")
 const LACQUER_MADRA_MID: Color = Color("#849BE4")
 ## Seals (NEW, LOCKED, the count)
 const LACQUER_VERMILION: Color = Color("#A83C30")
+## Health text (floaters): the second step of the crimson ramp
+const LACQUER_HEALTH: Color = Color("#E8737A")
+## Stamina text (floaters): the second step of the bamboo ramp
+const LACQUER_STAMINA: Color = Color("#C9DB86")

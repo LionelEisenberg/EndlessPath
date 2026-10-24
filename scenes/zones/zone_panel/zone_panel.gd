@@ -4,15 +4,18 @@ extends Control
 ## The zone chest at the zone view's top right (lacquer kit §5.5 and §0):
 ## the zone's header (tile thumbnail, name, About), the Now tray, the
 ## Activities header with "N here", and the scrolling activity list.
-## The Now tray always keeps its space, empty or not, so the Activities
-## header and the list never move up to take its place.
+## The Now strip always keeps its space, empty or not (88 px, more while a long
+## name wraps in it), so the Activities header and the list never move up to take
+## its place. The strip is 392 wide, as the cards are, so their edges line up.
 ## The chest hugs its content: max(176, list top + list height + 24) tall.
 ## A list too long for the space down to local 992 scrolls, folds 8 px under
 ## its last whole drawer, keeps 40 px under it, and the chest snaps to the
 ## bottom line (local 1032) when that is within 64 px. About opens the lore
-## inline under the Now tray and pushes the Activities header and the list
-## down 276 px; About, Esc or a click outside closes it. Esc closes it only
-## while the zone view is MainView's active state: an overlay opened over the
+## inline under the Now tray, as wide as the strip and the cards (392, chest x 16
+## to 408), and pushes the Activities header and the list down by its board and
+## 12 px; About, Esc or a click outside closes it. The lore wraps inside its board
+## and the board grows with it (264 tall at least, an even height). Esc closes it
+## only while the zone view is MainView's active state: an overlay opened over the
 ## zone view (the inventory, say) takes Esc first.
 ## While the player cycles (set_techniques_mode), the header reads "Techniques"
 ## with "N learned" and a TechniqueList, one drawer per unlocked cycling
@@ -42,9 +45,11 @@ const SNAP_DISTANCE: float = 64.0
 const GAP_UNDER_LIST: float = 24.0
 const GAP_UNDER_SCROLLING_LIST: float = 40.0
 
-## The Activities header's top under the Now tray and the gap from it to the
-## list (kit §0: header at screen 204, list at 232).
-const HEADER_TOP: float = 180.0
+## The Activities header's top under the Now strip's bottom and the gap from it to
+## the list (kit §0: header at screen 204, list at 232, under the strip's 88 px).
+## The strip grows when a long name wraps, and the header, the list and the lore
+## stand under its bottom wherever it is.
+const HEADER_GAP_UNDER_STRIP: float = 10.0
 const LIST_GAP: float = 28.0
 ## Yatra One at 20 px is 30 px tall on the header's 24 px line: its row sits
 ## 3 px above the line's top, as the mock's half-leading puts it.
@@ -56,13 +61,17 @@ const TECHNIQUES_HEADER: String = "Techniques"
 const HERE_FORMAT: String = "%d here"
 const LEARNED_FORMAT: String = "%d learned"
 
-## The lore panel sits under the Now tray (local 182, as the scene sets it);
-## opening it pushes the header and the list down by its 264 px and 12.
-const LORE_TOP: float = 182.0
-const LORE_PUSH: float = 276.0
-## The last cycle's line under the Now tray (local 180, set in the scene) pushes
-## the lore, the header and the list down by its height (18 px a line, on even
-## px: a line too long for the tray wraps) and this gap.
+## The lore panel sits 12 px under the Now strip's bottom (local 182 under the
+## strip's 88 px); opening it pushes the header and the list down by its board and
+## 12. The board is 264 tall at least and as tall as its text asks above that, with
+## 16 px of board under the last line (its text starts 20 px down).
+const LORE_GAP_UNDER_STRIP: float = 12.0
+const LORE_GAP_UNDER_LORE: float = 12.0
+const LORE_MIN_HEIGHT: float = 264.0
+const LORE_BOTTOM_ROOM: float = 16.0
+## The last cycle's line, 10 px under the Now strip, pushes the lore, the header
+## and the list down by its height (18 px a line, on even px: a line too long
+## for the tray wraps) and this gap.
 const LAST_CYCLE_GAP: float = 8.0
 ## About's word sits 2 px lower while it is pressed in (the lore is open).
 const ABOUT_TEXT_DROP: float = 2.0
@@ -126,6 +135,7 @@ func _ready() -> void:
 	_about_button.mouse_entered.connect(_about_hover.show)
 	_about_button.mouse_exited.connect(_about_hover.hide)
 	_now_strip.strip_pressed.connect(_on_strip_pressed)
+	_now_strip.resized.connect(_relayout)
 	_activity_list.layout_changed.connect(_relayout)
 	_activity_list.card_pressed_while_running.connect(_now_strip.flash)
 	_technique_list.layout_changed.connect(_relayout)
@@ -148,7 +158,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## A left click anywhere outside the lore and About closes the lore; the
 ## wheel does not. The click still reaches what it was aimed at: the lore
 ## closes at the end of the frame, after the GUI has hit-tested this press
-## against the layout the player saw (closing moves the list up 276 px).
+## against the layout the player saw (closing moves the list up by the lore).
 func _input(event: InputEvent) -> void:
 	var press := event as InputEventMouseButton
 	if press == null or not press.pressed or press.button_index != MOUSE_BUTTON_LEFT:
@@ -225,6 +235,7 @@ func _rebuild() -> void:
 	_zone_name_label.text = zone.zone_name
 	_thumb.texture = THUMB_RIVER if zone.tile_variant_index == RIVER_TILE_VARIANT else THUMB_BASIC
 	_lore_text.text = _lore_paragraphs(zone.description)
+	_fit_lore()
 	_about_button.visible = zone.description != ""
 	if not _about_button.visible:
 		_close_lore()
@@ -257,15 +268,19 @@ func _apply_last_cycle() -> void:
 # LAYOUT
 #-----------------------------------------------------------------------------
 
-## Places the lore, the header and the list that shows (the techniques while the
-## player cycles) under the Now tray (and the last cycle's line, when it shows),
-## and sizes the list and the chest (kit §0).
+## Places the last cycle's line (when it shows), the lore (when it is open), the
+## header and the list that shows (the techniques while the player cycles)
+## under the Now strip's bottom, and sizes the list and the chest (kit §0). The
+## last cycle's line stands where the header would, 10 px under the strip.
 func _relayout() -> void:
 	if not is_node_ready():
 		return
+	var strip_bottom: float = _now_strip.position.y + _now_strip.size.y
+	_last_cycle_label.position.y = strip_bottom + HEADER_GAP_UNDER_STRIP
 	var last_cycle_push: float = _last_cycle_label.size.y + LAST_CYCLE_GAP if _last_cycle_label.visible else 0.0
-	_lore_panel.position.y = LORE_TOP + last_cycle_push
-	var header_top: float = HEADER_TOP + last_cycle_push + (LORE_PUSH if _lore_panel.visible else 0.0)
+	_lore_panel.position.y = strip_bottom + LORE_GAP_UNDER_STRIP + last_cycle_push
+	var lore_push: float = _lore_panel.size.y + LORE_GAP_UNDER_LORE if _lore_panel.visible else 0.0
+	var header_top: float = strip_bottom + HEADER_GAP_UNDER_STRIP + last_cycle_push + lore_push
 	var list_top: float = header_top + LIST_GAP
 	_activities_header.position.y = header_top - HEADER_TEXT_RAISE
 
@@ -326,6 +341,14 @@ func _lore_paragraphs(description: String) -> String:
 		if line.strip_edges() != "":
 			paragraphs.append(line.strip_edges())
 	return "\n".join(paragraphs)
+
+## Makes the lore board as tall as its text asks (an even height, 264 at least).
+## The board's art is anchored to the panel and follows.
+func _fit_lore() -> void:
+	var text_height: float = _lore_text.get_combined_minimum_size().y
+	_lore_text.size.y = text_height
+	var height: float = maxf(LORE_MIN_HEIGHT, _lore_text.position.y + text_height + LORE_BOTTOM_ROOM)
+	_lore_panel.size.y = ceilf(height / 2.0) * 2.0
 
 func _close_lore() -> void:
 	if _about_button.button_pressed:

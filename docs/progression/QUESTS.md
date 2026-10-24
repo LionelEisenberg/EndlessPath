@@ -20,7 +20,7 @@ Quests are linear, multi-step narrative signposts that tell the player what to d
 4. Back-to-back updates queue and play one after another, about 3.1 s each.
 5. After **Harden Your Core** completes, no quest is active. The quest row and its divider hide, the milestone moves up, and the board shrinks to fit. Completed quests are not listed anywhere.
 
-The board is shared with the adventure view, which moves it to the top right; the merchant shop hides it, cycling leaves it showing beside its board, and the menu books leave it under their backdrop.
+The board is shared with the adventure view, which leaves it where the zone view hangs it, under the vitals cabinet; the merchant shop hides it, cycling leaves it showing beside its board, and the menu books leave it under their backdrop.
 
 ## Architecture
 
@@ -170,15 +170,16 @@ GoalsPanel (Control, 440 wide)
   Board (VBoxContainer)         BoardTop % / BoardMid (tiled) / BoardBottom: slices of lacquer_goals_ai.png
   TitleLabel "Goals"            LabelLacquerPanelTitle
   Rows % (VBoxContainer)
-    QuestRow %                  QuestIcon, NameRow (QuestNameLabel %, QuestFigure % with QuestFigureLabel %), QuestStepLabel %
+    QuestRow %                  MarginContainer: IconSlot (QuestIcon) + TextColumn (NameRow: QuestNameLabel %, QuestFigure % with QuestFigureLabel %; QuestStepLabel %)
     Divider %
-    MilestoneRow                MilestoneIcon, "Breakthrough", MilestoneTextLabel %, MilestoneRod % (LacquerRod, steps 138), MilestoneFigureLabel %
+    MilestoneRow %              MarginContainer: IconSlot (MilestoneIcon) + TextColumn (MilestoneNameLabel % "Breakthrough", MilestoneTextLabel %, ProgressRow: MilestoneRod % (LacquerRod, steps 138), MilestoneFigureLabel %)
 ```
 
-- Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` moves its root to (1456, 4), so its body starts at (1456, 24), and calls `set_cords_visible(false)`, which hides the cords and swaps the top slice for the hookless `lacquer_goals_top_plain_ai.png`. The merchant shop hides it; cycling leaves it showing beside its board, and the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
-- **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both ellipsize in their slots). The `current / target` figure shows only when the step completes on conditions alone (no `completion_event_id`) and every condition `is_measurable()` (RESOURCE_AMOUNT or CULTIVATION_LEVEL); it reads the first condition's `get_current_value()` / `get_target_value()`.
+- Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` leaves it there, cords showing, because the adventure's vitals cabinet stands where the cultivator cabinet does. The merchant shop hides it; cycling leaves it showing beside its board, and the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
+- **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both wrap in the row's 358 px, the name before the figure, which stays at the right of its first line). The `current / target` figure shows only when the step completes on conditions alone (no `completion_event_id`) and every condition `is_measurable()` (RESOURCE_AMOUNT or CULTIVATION_LEVEL); it reads the first condition's `get_current_value()` / `get_target_value()`.
 - **Milestone row:** "Breakthrough", "Raise Core Density to 100" (`CultivationManager.BREAKTHROUGH_LEVEL`), a jade rod at `level / 100`, and `min(level, 100) / 100` (Core Density has no cap in code; the figure does).
-- With no active quest, the quest row and the divider hide, the milestone moves up into their place, and the board hugs its rows: 220 px tall with a quest, 150 with the milestone alone.
+- With no active quest, the quest row and the divider hide, the milestone moves up into their place, and the board hugs its rows: 220 px tall with a quest, 150 with the milestone alone, when every text is one line.
+- **No text is cut off.** The quest's name and step and the milestone's name and line wrap in 358 px (a `wrap_pad.tres` pad under the 15/18 lines), and the rows are containers, so a wrapped line pushes what is under it down and the board, cut into a top, a tiled middle and a bottom slice, grows by it. Each row is an even number of px tall (a name's lines are 20 px, a detail line's 18), so the board is too. The row heights are re-fitted after every text change, so the board takes its height back when the text shortens (the adventure rework's review round 1, 2026-10-23).
 - It re-reads on `quest_started`, `quest_step_advanced`, `quest_completed`, `PersistenceManager.save_data_reset`, `CultivationManager.core_density_level_updated`, and `ResourceManager.madra_changed` / `gold_changed` (for a RESOURCE_AMOUNT figure). `refresh()` is public and does nothing before the board is ready.
 - Only the first active quest shows; completed quests are not listed.
 
@@ -265,7 +266,7 @@ Every "return" step is completed by an NPC action that only becomes visible once
 | `tests/unit/test_quest_progression_persistence.gd` | `QuestProgressionData` round-trip through `ResourceSaver`; `reset()` clears it |
 | `tests/unit/test_start_quest_effect_data.gd` | `process()` starts the quest; empty `quest_id` causes `push_error` |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | Real catalog: `q_reach_core_density_10` CD-10 advance, NPC 4 gate, map award, refugee-camp eligibility, Merchant unlock |
-| `tests/integration/test_goals_panel.gd` | The Goals board: milestone only with no quest, the quest row's step and figure (Madra, Core Density, gold), event steps without a figure, refreshes on advance and save reset, the capped milestone, long text, the board hugging its rows, the cords |
+| `tests/integration/test_goals_panel.gd` | The Goals board: milestone only with no quest, the quest row's step and figure (Madra, Core Density, gold), event steps without a figure, refreshes on advance and save reset, the capped milestone, long text wrapping and growing the board (a long step, a long name beside its figure, a long milestone line pushing the rod down, the board taking its height back, every grown height even, no ellipsis), the board hugging its rows, the cords |
 | `tests/unit/test_unlock_condition_progress.gd` | `is_measurable()`, `get_current_value()`, `get_target_value()` |
 
 Untested: QuestToast behavior; the Beat 1 → Beat 2 → Beat 3 chain with real data (only Beat 3b has an integration test); a data check that every authored `completion_event_id` has a producer.

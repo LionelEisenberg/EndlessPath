@@ -1,6 +1,6 @@
 # Dialogue (DialogueManager + Dialogic)
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -37,7 +37,7 @@ Dialogic (autoload #10, uid://ds2q0uclmolvu → addons/dialogic/Core/DialogicGam
 | Caller | Starts | On `dialogue_ended` |
 |---|---|---|
 | `ActionManager._execute_dialogue_action(NpcDialogueActionData)` | `DialogueManager.start_timeline(dialogue_timeline_name, dialogue_timeline_label_jump)`, after connecting `dialogue_ended → stop_action` with `CONNECT_ONE_SHOT` | `stop_action(true)`: increments zone progression for the action id (which can emit `ZoneManager.action_completed`), runs `success_effects` in order, then clears the current action |
-| `AdventureTilemap._on_choice_selected(DialogueChoice)` | `DialogueManager.start_timeline(choice.timeline_name)` (no label) and connects `_on_dialogue_ended` with `CONNECT_ONE_SHOT` | Runs `choice.success_effects`, then `_complete_current_tile()` |
+| `AdventureTilemap.select_choice(DialogueChoice)` | `DialogueManager.start_timeline(choice.timeline_name)` (no label) and connects `_on_dialogue_ended` with `CONNECT_ONE_SHOT` | Runs `choice.success_effects`, then `_complete_current_tile(summary)` |
 
 No authored encounter uses `DialogueChoice` yet.
 

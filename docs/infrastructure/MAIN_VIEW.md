@@ -55,7 +55,7 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 └── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.save_data()
 ```
 
-The cabinet, the chest, the dock, the log and the Goals board take their places from their own scenes' roots. Their instances in `main_game.tscn` are in Anchors layout mode with top-left anchors. Don't switch them to Position mode: setting Position mode snaps a control to its parent's top-left corner, and an editor save drops the offsets that used to put it back, so every panel lands at (0, 0). `test_main_game_layout.gd` checks the places, also after an editor save.
+The cabinet, the chest, the dock, the log and the Goals board take their places from their own scenes' roots. Their instances in `main_game.tscn` are in Anchors layout mode with top-left anchors. Don't switch them to Position mode: setting Position mode snaps a control to its parent's top-left corner, and an editor save drops the offsets that used to put it back, so every panel lands at (0, 0). `test_main_game_layout.gd` checks the places, also after an editor save. The adventure's vitals cabinet, chest and technique dock are instanced the same way in `adventure_view.tscn`, for the same reason (`test_adventure_view_layout.gd`).
 
 Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under the GreyBackground (z 2), so the backdrop of the end card and of the menu books dims them; the merchant shop hides them outright, and cycling, which has no backdrop, leaves them as they are (see [HUD boards](#hud-boards)). QuestToast and the dev tools (z 10) draw above every modal.
 
@@ -66,8 +66,11 @@ Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under 
 | `CultivatorPlate` | `ZoneView` | (24, 24), 440x252 | Madra orb is the drain pellets' source and the cycling Madra pellets' target; the Core orb is the cycling XP pellets' target. Hidden with the zone view during adventures |
 | `ZonePanel` | `ZoneView` | (1456, 24), 440 wide, height hugs its content (176 to 1032) | Zone header, Now strip, activity list (the technique list while cycling) |
 | `Dock` | `ZoneView` | (722, 976), 476x80 | Four 108x64 buttons. Hidden with the zone view during adventures, and while cycling |
-| `GoalsPanel` | `MainView` | Zone view: (24, 276), hung on its cords under the cabinet (the 24 px cords reach 4 px above the root, to the cabinet's rings at y 272). Adventure view: root at (1456, 4), body at (1456, 24), cords and hooks hidden | 220 px tall with a quest, 150 with the milestone alone. Not draggable |
-| `LogWindow` | `MainView` | Zone view: its 440x204 slot at (24, 852), the board on the slot's bottom edge (screen 1056) growing upward. Adventure view: slot at (24, 24), the board hanging from its top edge | 74 + 26 px per line, up to 5 lines. The full log is a 440x560 board in the same place |
+| `VitalsPlate` | `AdventureView` | (24, 24), 440x252 | The adventure's cabinet, where `CultivatorPlate` stands in the zone view: Health, Madra, Stamina and, in a fight, buffs |
+| `AdventureChest` | `AdventureView` | (1456, 24), 440 wide, height hugs its page and its title's lines (176 minimum) | Where `ZonePanel` stands: title (it wraps), run clock, the expedition page. The page and its Here tray and drawers wrap their text and grow |
+| `TechniqueDock` | `AdventureView` | (722, 920), 476x136 | The four technique slots; its cast tray sits 52 px above it (44 px tall, 8 px clear of the dock) and grows upward when a long technique name wraps |
+| `GoalsPanel` | `MainView` | (24, 276), hung on its cords under the cabinet (the 24 px cords reach 4 px above the root, to the cabinet's rings at y 272), in the zone view and in adventures (under the vitals cabinet) | 220 px tall with a quest, 150 with the milestone alone, when each text is one line; a wrapped line adds its height and the board grows with its rows. Not draggable |
+| `LogWindow` | `MainView` | Its 440x204 slot at (24, 852), the board on the slot's bottom edge (screen 1056) growing upward, in both base views | 74 + 26 px per line, up to 5 lines. The full log is a 440x560 board in the same place |
 | `QuestToast` | `MainView` | Top-centre, 350x60 at y 28 | `mouse_filter` Ignore; queues messages |
 | `DevPanel` | `MainView` | (0, 0), 340x400 | Draggable; see [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) |
 
@@ -95,10 +98,10 @@ In practice at most one overlay is open at a time. Overlay states never push oth
 
 ### HUD boards
 
-The log and the Goals board belong to `MainView` because both base views show them; each base state places them.
+The log and the Goals board belong to `MainView` because both base views show them. `ZoneViewState` places them, and `AdventureViewState` leaves them where they are.
 
 - `ZoneViewState.enter()` puts the Goals board at `GOALS_POSITION` (24, 276), 4 px under the kit's 272 so the cords between the cabinet and the board read (user review, 2026-10-22), and the log slot at `LOG_POSITION` (24, 852).
-- `AdventureViewState.enter()` saves both positions, moves the log slot to (24, 24) and the Goals root to (1456, 24 − `GoalsPanel.CORDS_HEIGHT`), and calls `GoalsPanel.set_cords_visible(false)`, which also swaps the top slice for the hookless `lacquer_goals_top_plain_ai.png`. `exit()` puts both back and shows the cords. The left side is left to the adventure map's encounter panel.
+- `AdventureViewState` moves nothing and hides no cords: the adventure's vitals cabinet, chest and technique dock stand where the zone view's cabinet, chest and dock stand, so the Goals board stays under the cabinet with its cords showing and the log stays at the bottom left. `GoalsPanel.set_cords_visible()` and `top_without_hooks` (the hookless `lacquer_goals_top_plain_ai.png`) have no caller in the game now, only `test_goals_panel.gd`.
 - The merchant shop calls `scene_root.hide_hud_boards(self)` in `enter()` and `release_hud_boards(self)` in `exit()`. `MainView` counts the holders: the first one saves each board's visibility and hides it, and the boards get it back only when the last holder releases them, whatever order the overlays close in. Cycling no longer holds them (its board sits beside them), so `FakeCoveringState` in `test_view_state_hud_positions.gd` stands in for a second holder in the counting tests.
 - The menu books (`BookViewState`: Inventory, Abilities, Character, Path) and the end card do not hide them: the backdrop dims them with the rest of the view. A book covers the right end of the Goals board (its count and the end of its bar: from x 300 where the Inventory and Path tabs hang, from x 360 for the other two) and, once the log shows two lines or more, the log's top-right corner (the book ends near y 940). The menu books stopped hiding them after the first play review (2026-10-22), so the boards stay under a book like the cabinet and the zone chest. The full log does not stay open: `BookViewState.enter()` and `CyclingViewState.enter()` close it if it is open and block it (`MainViewState._block_full_log(true)`, which calls `LogWindow.set_full_log_blocked(true)`), and `exit()` lifts the block. While a book or the cycling board is open L does nothing, so the first Escape always reaches it (`LogWindow` gets `_unhandled_input` before `MainView`).
 
@@ -107,7 +110,7 @@ The log and the Goals board belong to `MainView` because both base views show th
 | State | Kind | `enter()` | `exit()` | Input handled | Leaves via |
 |-------|------|-----------|----------|---------------|------------|
 | `ZoneViewState` | Base (initial) | Shows `ZoneView`. Places the Goals board and the log. Removes the input blocker. Finds `ZoneTransition` and calls `reset_camera()` to undo the adventure zoom. | Removes the input blocker. Hides `ZoneView`. | `open_inventory` → push Inventory; `open_path` → push PathTree; `open_abilities` → push Abilities; `open_character` → push Character. Ignored while the input blocker exists. | `start_adventure` (handled by `AdventureViewState`) |
-| `AdventureViewState` | Base | Shows `AdventureView`. Moves the log and the Goals board aside. Connects `AdventureView.adventure_completed`. | Hides `AdventureView`, puts the boards back and disconnects. | None | End card return → `change_state(zone)` |
+| `AdventureViewState` | Base | Shows `AdventureView`. Connects `AdventureView.adventure_completed`. The log and the Goals board stay where they are. | Hides `AdventureView` and disconnects. | None | End card return → `change_state(zone)` |
 | `AdventureEndCardState` | Overlay on Adventure | Shows GreyBackground. `AdventureViewState` then calls `show_results()`. | Hides `AdventureEndCard` and GreyBackground. | None (the card's own Return button) | Popped by `AdventureViewState` |
 | `InventoryViewState` | Overlay (`BookViewState`) | Connects the book's close tab and the backdrop click, then `grey_background.show_with_panel(inventory_view)`. The HUD boards stay under the backdrop; the full log is closed and blocked | Disconnects the close tab and the backdrop click (the view is already hidden), and lifts the full-log block | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
 | `CyclingViewState` | Overlay | `set_cycling_mode(true)`, shows `CyclingView`, blocks the full log. No backdrop; the HUD boards stay | Lifts the full-log block, hides `CyclingView`, `set_cycling_mode(false)` | `close_cycling_view` → `ActionManager.stop_action()` | `ActionManager.stop_cycling` → `pop_state()`. `start_cycling` pushes the state only if it is not already on the stack |
@@ -121,7 +124,7 @@ What each view shows:
 | View | Content | Doc |
 |------|---------|-----|
 | `ZoneView` | Hex zone map at zoom 2 with fog, plates and popovers; cultivator cabinet; zone chest (header, Now strip, activity cards); dock | [ZONES.md](../zones/ZONES.md) |
-| `AdventureView` | Adventure hex map, combat view, timer, player info panel | [ADVENTURING.md](../adventuring/ADVENTURING.md), [COMBAT.md](../combat/COMBAT.md) |
+| `AdventureView` | Adventure hex map with its coins, the combat view, the vitals cabinet, the chest (run clock, Here tray, choice drawers, Run ledger) and the technique dock | [ADVENTURING.md](../adventuring/ADVENTURING.md), [COMBAT.md](../combat/COMBAT.md) |
 | `AdventureEndCard` | Scroll with VICTORY/defeat title, run stats, loot slots, Return button | [ADVENTURING.md](../adventuring/ADVENTURING.md) |
 | `InventoryView` | Red book with Equipment, Consumables, Materials and Quest Items tabs | [INVENTORY.md](../inventory/INVENTORY.md) |
 | `CyclingView` | The cycling board in the map gap: the carved figure with the Madra ball, groove and zones, the status line, the Auto toggle and the close button. The Madra and Core Density readout is the cultivator cabinet, and the techniques and the last cycle's result are in the zone chest | [CYCLING.md](../cycling/CYCLING.md) |
@@ -204,7 +207,7 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's id
    - `LogWindow` (while visible and neither a menu book nor the cycling board is open): L (`toggle_log`) opens or closes the full log; Escape closes it while open. A book or the cycling board closes the full log and blocks it, so L does nothing under them and Escape goes on to the book or the board.
    - `ZonePanel`: Escape closes the lore, only while it shows and `ZoneViewState` is MainView's current state, so an overlay opened over the zone view takes Escape first.
    - Inside the zone SubViewport, `MapMarkers`: Escape closes a pinned map popover, only while `ZoneViewState` is current with no overlay pushed and the full log is closed. The `SubViewportContainer` hands keys to the SubViewport at its own place in this pass (after `LogWindow` and `ZonePanel`, which sit later in the tree), and the SubViewport has `handle_input_locally` off, so its `set_input_as_handled()` ends the event for `MainView` too. One Escape therefore closes the lore before the popover.
-   - `MainView` (routed to the current state only), the combat `AbilitiesPanel` (Q/W/E/R while visible), and the camera controllers inside the tilemaps (zoom on both maps, pan on the zone map only).
+   - `MainView` (routed to the current state only), the combat `TechniqueDock` (Q/W/E/R while active and visible), and the camera controllers inside the maps (the zone tilemap's zoom and pan; the adventure tilemap's zoom, which has no pan). A wheel over an adventure board never reaches the map (the boards are `MOUSE_FILTER_STOP`), and the map is hidden during a fight, so neither zooms it.
 
 Escape is bound to three actions: `close_inventory`, `close_cycling_view` and the built-in `ui_cancel`. Inside the state machine they never conflict because only the top state reads input. Menu shortcuts work only while `ZoneViewState` is current. `AdventureViewState.handle_input()` is empty, so I/A/C/P do nothing during an adventure; L still opens the full log. Under a menu book, and while cycling, L does nothing.
 
@@ -223,7 +226,7 @@ Project actions from `project.godot` `[input]`. Key bindings use physical key po
 | `toggle_log` | L | `LogWindow._unhandled_input()`, while the log is visible and neither a menu book nor the cycling board is open | Open / close the full log ([LOGGING.md](LOGGING.md#logwindow)) |
 | `close_cycling_view` | Escape | `CyclingViewState` (the board's × calls `ActionManager.stop_action()` directly) | `ActionManager.stop_action()` |
 | `center_zone_map_camera` | Space | Nothing | Unused, no script reads it |
-| `ability_slot_1` to `ability_slot_4` | Q, W, E, R | `AbilitiesPanel._unhandled_input()` (`scenes/ui/combat/abilities_panel.gd`), only while the panel is visible | Emits `ability_selected` for that slot's ability when its button is enabled. `CombatantInfoPanel` re-emits it, and `AdventureView` connects it to `AdventureCombat.on_player_ability_selected()`. |
+| `ability_slot_1` to `ability_slot_4` | Q, W, E, R | `TechniqueDock._unhandled_input()` (`scenes/ui/combat/technique_dock/technique_dock.gd`), only while the dock is bound to a fight and visible | Emits `ability_selected` for that slot's ability when `can_cast_ability_instance()` accepts it, and shakes the slot when it refuses. `AdventureView` connects it to `AdventureCombat.on_player_ability_selected()` for each fight. |
 | `dialogic_default_action` | Enter, Space, X (logical keys), left mouse button, joypad button 0 | Dialogic addon (its plugin adds this action) | Advance dialogue |
 
 Other inputs:
@@ -233,7 +236,7 @@ Other inputs:
 | Escape (built-in `ui_cancel`) | `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`; `LogWindow`, `ZonePanel`, `MapMarkers` outside the state machine | Close the overlay (the merchant does it by stopping its action); close the full log, the zone lore or the pinned map popover |
 | Ctrl+Shift+D (`KEY_D`, logical) | `MainGame._input()` | Dev panel toggle. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md). |
 | Right mouse drag | `CameraPanController` on the zone tilemap camera only (the adventure camera follows the player and has no pan controller) | Pan the zone map |
-| Mouse wheel | `CameraZoomController`: zone 1.0 to 2.0 (default 2.0), adventure 0.3 to 1.3 (default 1.0); over the zone chest's list it scrolls the list instead | Zoom |
+| Mouse wheel | `CameraZoomController` on each map, 10% a tick, eased: the zone map 1.0 to 2.0 (default 2.0); the adventure map 1.0 to 2.0 (default 1.0, and every run opens there). Over the zone chest's list it scrolls the list instead; over an adventure board, or during a fight, it does nothing | Zoom |
 | Left drag / wheel in path tree | `PathTreeView._on_tree_area_gui_input()` | Pan / zoom the tree |
 
 ### Dock and SystemMenuButton
@@ -263,11 +266,11 @@ Gold left the bar for the cultivator cabinet.
 
 | Widget | Files | Used by | API / behaviour |
 |--------|-------|---------|-----------------|
-| `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `ResourceBar` and `ResourceOrb` (combat vitals deltas; per-bar `show_floating_text` export) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
+| `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `ResourceBar` (vitals deltas behind a per-bar `show_floating_text` export, off on the enemy's Health bar, so nothing shows them now) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | Main view states | See [GreyBackground](#greybackground-modal-backdrop) |
 | `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
 | `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | `MainView` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
-| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | Zone view panels, Goals and log boards, the cycling board | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
+| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | Zone view panels, Goals and log boards, the cycling board, the adventure's cabinet, chest and dock | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
 
 Utilities:
 
@@ -301,7 +304,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | InventoryView / PathTreeView / AbilitiesView / CharacterView | `MenuBookView`: `animate_open()` / `animate_close()` called through `GreyBackground`; `close_requested` (close tab) → the state's close path; `close_finished` → `GreyBackground` finishes hiding |
 | MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
 | ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain. |
-| GoalsPanel | Placed by `ZoneViewState` and `AdventureViewState`; `set_cords_visible()` in adventures; hidden under the shop; left showing beside cycling; dimmed under the menu books and the end card |
+| GoalsPanel | Placed by `ZoneViewState` (and left in place by `AdventureViewState`); hidden under the shop; left showing beside cycling; dimmed under the menu books and the end card |
 | CultivatorPlate / ZonePanel / Dock / zone SubViewport | `set_cycling_mode()` turns the chest, dock and map over; the `CyclingView` flies its pellets into the cabinet |
 | ResourceManager | `CultivatorPlate` gold row (`gold_changed`, `get_gold()`) |
 | PathManager | `Dock` Path count seal (`points_changed`, `get_point_balance()`) |

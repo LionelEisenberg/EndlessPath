@@ -3,8 +3,9 @@ extends GutTest
 ## Unit tests for the player character's walk in whole px. Lacquer kit §0 and
 ## §1 rule 6: the zone map's travel walk is 328 screen px in 0.6 s in
 ## steps(164), so at the zone camera's zoom 2 the character stands on whole
-## world px every frame while keeping its pace. The adventure map, which this
-## character also walks, keeps its smooth walk unless it asks otherwise.
+## world px every frame while keeping its pace. The adventure map, whose zoom 1
+## draws the character at 2x, asks for 2 px steps (walk_snap_px). A character
+## that asks for neither walks smoothly.
 
 const CharacterScene: PackedScene = preload("res://scenes/characters/main_character/character_body_2d.tscn")
 
@@ -88,6 +89,18 @@ func test_retarget_mid_walk_stays_on_whole_px() -> void:
 	assert_eq(_off_grid(positions).size(), 0, "off the grid: %s" % [_off_grid(positions)])
 	assert_eq(positions.back(), START + SLANTED_WALK, "ends on the new stand")
 
+## In 2 px steps (the adventure map) the character stands on even px every
+## frame of the walk, and still ends exactly on its target, odd as it may be.
+func test_walk_in_two_px_steps_stands_on_even_px_every_frame() -> void:
+	var character: CharacterBody2D = _add_character(true)
+	character.walk_snap_px = 2.0
+	var positions: Array[Vector2] = _walk(character, SLANTED_WALK)
+	assert_eq(positions.back(), START + SLANTED_WALK, "on the target, whose y is odd")
+	var walking: Array[Vector2] = positions.slice(0, positions.size() - 1)
+	assert_gt(walking.size(), 2, "precondition: the walk takes several frames")
+	var off_even: Array[Vector2] = walking.filter(func(point: Vector2) -> bool: return point != (point / 2.0).round() * 2.0)
+	assert_eq(off_even.size(), 0, "off the 2 px grid: %s" % [off_even])
+
 #-----------------------------------------------------------------------------
 # DEFAULT
 #-----------------------------------------------------------------------------
@@ -95,4 +108,5 @@ func test_retarget_mid_walk_stays_on_whole_px() -> void:
 func test_walk_is_smooth_unless_asked() -> void:
 	var character: CharacterBody2D = CharacterScene.instantiate()
 	autofree(character)
-	assert_false(character.snap_walk_to_whole_px, "the adventure map keeps its smooth walk")
+	assert_false(character.snap_walk_to_whole_px, "the character walks smoothly unless its map asks for whole px")
+	assert_eq(character.walk_snap_px, 1.0, "in whole px steps when asked, unless the map asks for larger ones")

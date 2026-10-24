@@ -1,0 +1,92 @@
+[gd_scene format=3 uid="uid://klfmru3exit4"]
+
+[ext_resource type="Script" uid="uid://d0v083ewxo3b7" path="res://scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" uid="uid://d3fvgoxl3gr7m" path="res://assets/styleboxes/lacquer/board9.tres" id="3_board"]
+[ext_resource type="Texture2D" uid="uid://dq702d707hd24" path="res://assets/ui/lacquer/lacquer_mini_madra_ai.png" id="4_mini"]
+[ext_resource type="Texture2D" uid="uid://cvsx3a2hfquag" path="res://assets/ui/lacquer/lacquer_line_ai.png" id="5_line"]
+
+[node name="TechniqueTooltip" type="PanelContainer" unique_id=1461764573]
+visible = false
+top_level = true
+custom_minimum_size = Vector2(304, 0)
+mouse_filter = 2
+theme = ExtResource("2_theme")
+theme_override_styles/panel = ExtResource("3_board")
+script = ExtResource("1_script")
+
+[node name="Content" type="VBoxContainer" parent="." unique_id=1728921577]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="NameLabel" type="Label" parent="Content" unique_id=1766093087]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(268, 26)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerPopoverTitle"
+text = "Empty Palm"
+autowrap_mode = 3
+
+[node name="TimingText" type="RichTextLabel" parent="Content" unique_id=860964774]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+bbcode_enabled = true
+text = "Instant · Cooldown 3 s"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+
+[node name="CostRow" type="HBoxContainer" parent="Content" unique_id=725452544]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="CostIcon" type="TextureRect" parent="Content/CostRow" unique_id=1886202271]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 8
+mouse_filter = 2
+texture = ExtResource("4_mini")
+
+[node name="CostLabel" type="Label" parent="Content/CostRow" unique_id=1364047225]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+text = "8 Madra"
+
+[node name="DamageLabel" type="Label" parent="Content" unique_id=1204937546]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "about 28 Spirit damage"
+
+[node name="DividerRow" type="Control" parent="Content" unique_id=259440159]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Divider" type="NinePatchRect" parent="Content/DividerRow" unique_id=1259686379]
+layout_mode = 0
+offset_top = 10.0
+offset_right = 268.0
+offset_bottom = 16.0
+mouse_filter = 2
+texture = ExtResource("5_line")
+patch_margin_left = 6
+patch_margin_right = 6
+
+[node name="DescriptionLabel" type="Label" parent="Content" unique_id=1053714014]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(268, 0)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerPopoverBody"
+text = "A focused Pure Madra strike. Cancels the target's current cast if any."
+autowrap_mode = 3

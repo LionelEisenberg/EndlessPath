@@ -13,9 +13,6 @@ from pathlib import Path
 
 from PIL import Image
 
-KIT = Path(sys.argv[1])
-DEST = Path(sys.argv[2])
-
 MAP_FILES = [
     "lacquer_fog_t1_atlas_ai.png", "lacquer_fog_t2_atlas_ai.png", "lacquer_fog_t3_atlas_ai.png",
     "lacquer_tile_locked_ai.png", "lacquer_tile_locked_hover_ai.png",
@@ -129,4 +126,8 @@ def main() -> None:
         raise SystemExit(f"missing map files: {missing}")
 
 
-main()
+if __name__ == "__main__":
+    # KIT and DEST are read by main(); bake_shadow() and the SHADOW_* tables import cleanly.
+    KIT = Path(sys.argv[1])
+    DEST = Path(sys.argv[2])
+    main()

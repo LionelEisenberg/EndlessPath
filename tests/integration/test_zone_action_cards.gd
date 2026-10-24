@@ -406,6 +406,9 @@ func test_adventure_hint_only_while_a_madra_action_runs() -> void:
 	assert_eq(_current_id(), FORAGING_ID, "precondition: foraging runs, which makes no Madra")
 	assert_false(_has_text_containing(card, "~"), "the hint hides")
 
+## A refused click shakes the rod row softly, as a refused technique shakes its
+## slot (review round 2): MapGlyph's soft keyframes, the lock shake's rhythm at
+## half its travel, 0, -4, 4, -2, 2, 0 px, each held 0.088 s.
 func test_rejected_click_shakes_the_rod_row() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	var row: Control = card.get_footer_slot().find_child("NeedGroup", true, false) as Control
@@ -413,6 +416,10 @@ func test_rejected_click_shakes_the_rod_row() -> void:
 	if row == null:
 		return
 	assert_not_null(row.find_child("MadraRod", true, false), "the rod shakes with its row")
+	# A tween's first step carries the whole frame it starts in, and the frame
+	# that built the card can be long enough to skip a keyframe: click in a
+	# fresh one.
+	await wait_process_frames(2)
 	_click(card)
 	# Read the offsets frame by frame (the tween runs on frame time).
 	var offsets: Array[float] = [row.position.x]
@@ -421,9 +428,7 @@ func test_rejected_click_shakes_the_rod_row() -> void:
 			offsets.append(row.position.x)
 		return offsets.size() > 1 and row.position.x == 0.0, 2.0)
 	assert_true(settled, "the row settles back at 0")
-	assert_gt(offsets.size(), 2, "the row moved")
-	for offset: float in offsets:
-		assert_eq(fmod(offset, 2.0), 0.0, "every step is a whole even px: %s" % offset)
+	assert_eq(offsets, [0.0, -4.0, 4.0, -2.0, 2.0, 0.0] as Array[float], "the soft keyframes in order, each a whole even px")
 
 func test_adventure_rod_follows_madra() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)

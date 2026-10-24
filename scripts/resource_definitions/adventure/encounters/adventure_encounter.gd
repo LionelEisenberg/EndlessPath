@@ -36,7 +36,7 @@ enum Placement {
 ## The name of the encounter (e.g., "Village Elder", "Spirit Well")
 @export var encounter_name: String = ""
 
-## Description shown to player in the EncounterInfoPanel
+## Description shown to player in the adventure chest's expedition page
 @export_multiline var description: String = ""
 
 ## Description shown to player AFTER the encounter is completed

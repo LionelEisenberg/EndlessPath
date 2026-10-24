@@ -1,6 +1,6 @@
 # Effects (EffectData)
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -43,7 +43,7 @@ Execution is synchronous and context-free. `process()` takes no arguments; `Adve
 | `TrainingActionData.effects_per_tick` | `ActionManager._on_train_timer_finished()` | Every `tick_interval_seconds` while the training action is selected |
 | `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` and the Now strip also read the first `AwardAttributeEffectData` here for "each level +1 Spirit" and "Lv n → n+1 · +1 Spirit". |
 | `QuestData.completion_effects` | `QuestManager._complete_quest()` | After the last step advances, before `quest_completed` |
-| `EncounterChoice.success_effects` | `AdventureTilemap._on_choice_selected()` (plain choices), `_on_dialogue_ended()` (`DialogueChoice`) | Choice picked, or its timeline ended |
+| `EncounterChoice.success_effects` | `AdventureTilemap.select_choice()` (plain choices), `_on_dialogue_ended()` (`DialogueChoice`) | Choice picked, or its timeline ended |
 | `CombatChoice.success_effects` / `failure_effects` | `AdventureTilemap.handle_combat_result()` | Combat won (after gold is added) or lost |
 | `ConsumableDefinitionData.effects` | `ConsumableDefinitionData.use()`, called from `InventoryManager.use_consumable()` | Consumable used. `_get_item_effects()` renders `describe()` lines in tooltips. |
 

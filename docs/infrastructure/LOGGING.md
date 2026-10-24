@@ -74,7 +74,7 @@ Usage in `singletons/`, `scenes/` and `scripts/` (counted 2026-10-18, before the
 
 ## LogWindow
 
-`scenes/ui/log_window/log_window.tscn` / `log_window.gd` (`class_name LogWindow extends Control`), the lacquer log board (kit §5.3 and §0). It is instanced in `main_game.tscn` as `MainView/LogWindow` (`%LogWindow`), `z_index` 1, `mouse_filter` IGNORE, `theme = lacquer_theme.tres`. The root is the log's 440x204 slot: `ZoneViewState` puts it at (24, 852) and `AdventureViewState` at (24, 24).
+`scenes/ui/log_window/log_window.tscn` / `log_window.gd` (`class_name LogWindow extends Control`), the lacquer log board (kit §5.3 and §0). It is instanced in `main_game.tscn` as `MainView/LogWindow` (`%LogWindow`), `z_index` 1, `mouse_filter` IGNORE, `theme = lacquer_theme.tres`. The root is the log's 440x204 slot: `ZoneViewState` puts it at (24, 852), and `AdventureViewState` leaves it there.
 
 ```
 LogWindow (Control, the 440x204 slot)
@@ -117,7 +117,7 @@ Callers format their own strings as single lines. The board strips the tags and 
 |--------|------------|
 | `MainGame` | Sets the console print level from `log_print_level` |
 | `LogWindow` | The only listener of `message_logged` and `visibility_toggled`; reads `get_history()` |
-| `MainView` / view states | Place the log slot per view, hide it under the merchant shop and block the full log under a menu book or cycling ([MAIN_VIEW.md](MAIN_VIEW.md#hud-boards)) |
+| `MainView` / view states | `ZoneViewState` places the log slot (the adventure leaves it there); the merchant shop hides it, and a menu book or cycling blocks the full log ([MAIN_VIEW.md](MAIN_VIEW.md#hud-boards)) |
 | ResourceManager, InventoryManager, ActionManager, AdventureView, CyclingView, CombatEffectManager, AdventurePresenter, TrashSlot, ZoneViewBackground, DevPanel | Send player-facing messages through `LogManager.log_message()` |
 | Every singleton and most scenes | Developer diagnostics through `Log.*` |
 | Godot engine | `Log` is registered with `OS.add_logger()` and receives engine errors and `print()` output |
@@ -148,5 +148,5 @@ Callers format their own strings as single lines. The board strips the tags and 
 - `[LOW]` The `Log.Event` order puts `INFO` (0) below `DEBUG` (1), the reverse of the usual severity order. `MainGame`'s script default (`DEBUG`) would hide INFO lines, and only the scene override to `INFO` avoids that.
 - `[LOW]` `LogManager.toggle_window()` has no caller outside the tests, and the names `toggle_window` and `visibility_toggled` are misleading: they open the full log, they don't show or hide the log.
 - `[LOW]` A developer error goes to the player log. `ZoneViewBackground` reports `Failed to load layer %s` through `LogManager` instead of `Log.error`.
-- `[LOW]` There is heavy `Log.info` in hot paths. `CombatEffectData.calculate_value()` logs at least 3 lines per call (plus one per non-zero scaling term), and `calculate_damage()` adds defense lines on top. This includes calls made when `AbilityStatsDisplay` renders stats, and all of it reaches the console at the `INFO` print level.
+- `[LOW]` There is heavy `Log.info` in hot paths. `CombatEffectData.calculate_value()` logs at least 3 lines per call (plus one per non-zero scaling term), and `calculate_damage()` adds defense lines on top. This includes the damage previews: the Abilities book's details card calls `calculate_value()` for its figure, and the technique tooltip's damage line does through `AbilityRow.format_damage()` (neither reaches `calculate_damage()`). All of it reaches the console at the `INFO` print level.
 - `[LOW]` There are no tests for `Log`. `LogManager`'s history (`test_log_manager_history.gd`) and the log board and full log (`test_log_board.gd`) are tested.

@@ -2,7 +2,7 @@
 
 Last updated: 2026-10-23
 
-Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view on `feat/zone-view-redesign-4656b7` (not merged). The cycling, style guide, zones, UI shell, resources, logging, persistence, testing and related docs were updated on 2026-10-23 for the lacquer cycling view on `feat/cycling-view-styleguide-ea3170` (not merged).
+Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view (merged as PR #51). The cycling, style guide, zones, UI shell, resources, logging, persistence, testing and related docs were updated on 2026-10-23 for the lacquer cycling view (merged as PR #57). The adventuring and combat docs, the style guide and the testing docs were updated on 2026-10-23 for the adventure view's map and frame on `feat/adventure-view-styleguide-1fc223` (PR 1 of 2, not merged), and again the same day for that PR's first review round (the wheel zoom, text that is never cut off, a leaner chest).
 
 ## Start Here
 
@@ -23,8 +23,8 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | The lacquer cycling board: the Madra ball on its lit groove, zones scored by pressing the ball, technique drawers and the last cycle's line in the zone chest; Madra and Core Density XP |
 | Cultivation | [cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density levels, advancement stages, breakthrough status |
 | Zones and actions | [zones/ZONES.md](zones/ZONES.md) | The map-first lacquer zone view (map, cabinet, zone chest and its techniques mode, cards), ZoneManager/ActionManager, idle-action resolution, foraging, training, NPC and merchant actions |
-| Adventuring | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex maps, fog, movement and stamina, encounters, end card |
-| Combat | [combat/COMBAT.md](combat/COMBAT.md) | Real-time combat: combatants, vitals, casts, buffs, damage formula, enemy AI, enemies |
+| Adventuring | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex maps in the lacquer look (fog tiers, coins, rims, route dots), the vitals cabinet, chest and run clock, movement and stamina, encounters, end card |
+| Combat | [combat/COMBAT.md](combat/COMBAT.md) | Real-time combat: combatants, vitals, casts, buffs, damage formula, enemy AI, enemies, the technique dock |
 | Abilities | [abilities/ABILITIES.md](abilities/ABILITIES.md) | Ability data model, AbilityManager, 4-slot loadout, Abilities view |
 | Ability stats | [abilities/ABILITIES_MATRIX.md](abilities/ABILITIES_MATRIX.md) | Exact values for every player and enemy ability |
 | Inventory | [inventory/INVENTORY.md](inventory/INVENTORY.md) | Book UI (Equipment, Consumables, Materials, Journal), InventoryManager, loot |

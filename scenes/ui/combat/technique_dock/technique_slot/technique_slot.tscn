@@ -1,0 +1,121 @@
+[gd_scene format=3 uid="uid://dtj1yovg262ov"]
+
+[ext_resource type="Script" uid="uid://cys8vj52lkqqg" path="res://scenes/ui/combat/technique_dock/technique_slot/technique_slot.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://5ji1s0keod5u" path="res://assets/ui/lacquer/lacquer_slot_ai.png" id="3_socket"]
+[ext_resource type="Shader" uid="uid://cp84etdr6lub4" path="res://assets/shaders/lacquer_cooldown_sweep.gdshader" id="4_sweep"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="5_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="6_frame_hover"]
+[ext_resource type="Texture2D" uid="uid://b48eg06y2loyo" path="res://assets/ui/lacquer/lacquer_keycap_ai.png" id="7_keycap"]
+[ext_resource type="Texture2D" uid="uid://ctv1nbwhbqrsi" path="res://assets/ui/lacquer/lacquer_mini_stamina_ai.png" id="8_mini"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sweep"]
+resource_local_to_scene = true
+shader = ExtResource("4_sweep")
+shader_parameter/progress = 1.0
+
+[node name="TechniqueSlot" type="Control" unique_id=179660628]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 80.0
+offset_bottom = 80.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="Body" type="Control" parent="." unique_id=747967087]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 80.0
+offset_bottom = 80.0
+mouse_filter = 2
+
+[node name="Socket" type="TextureRect" parent="Body" unique_id=643483813]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 82.0
+offset_bottom = 82.0
+mouse_filter = 2
+texture = ExtResource("3_socket")
+
+[node name="Icon" type="TextureRect" parent="Body" unique_id=246490190]
+unique_name_in_owner = true
+visible = false
+material = SubResource("ShaderMaterial_sweep")
+layout_mode = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 72.0
+offset_bottom = 72.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="SecondsLabel" type="Label" parent="Body" unique_id=1311200355]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 8.0
+offset_top = 26.0
+offset_right = 72.0
+offset_bottom = 54.0
+theme_type_variation = &"LabelLacquerCooldown"
+text = "2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HoverFrame" parent="Body" unique_id=638781375 instance=ExtResource("5_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("6_frame_hover")
+
+[node name="CastFrame" parent="Body" unique_id=1322513378 instance=ExtResource("5_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="ReadyFlash" parent="Body" unique_id=1860187798 instance=ExtResource("5_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="KeyCap" type="TextureRect" parent="." unique_id=1401663630]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -6.0
+offset_top = -6.0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+texture = ExtResource("7_keycap")
+
+[node name="KeyLabel" type="Label" parent="KeyCap" unique_id=1201754202]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 2.0
+offset_right = 22.0
+offset_bottom = 20.0
+theme_type_variation = &"LabelLacquerHotkey"
+text = "Q"
+horizontal_alignment = 1
+
+[node name="CostLine" type="HBoxContainer" parent="." unique_id=216193819]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 90.0
+offset_right = 81.0
+offset_bottom = 108.0
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="CostIcon" type="TextureRect" parent="CostLine" unique_id=1630303633]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("8_mini")
+
+[node name="CostLabel" type="Label" parent="CostLine" unique_id=1518284966]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "3"
