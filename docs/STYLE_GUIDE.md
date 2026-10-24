@@ -258,7 +258,7 @@ Never glow, tint, fade or scale to show a state.
 | Pattern | Rule | Zone view reference |
 |---|---|---|
 | Frame strips | Switch frames from a strip; never interpolate. Timing in whole steps | Rings: 13 frames over each action cycle (1 s Well, 5 s haul). Twinkle: frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s. Cycling ball swirl: 8 frames, 10 a second. The waiting ball's breath: 60, 64, 68, 64, 60 px over 2 s, in whole steps |
-| Stepped moves | Move in 2 px steps (1 map px at zoom 2) at constant speed. Compute the offset from elapsed time and quantise it | Floater: 40 px in 20 steps over 1 s, then hidden (`LacquerFloater.rise_at()`). Walk: `snap_walk_to_whole_px`. Well bob: 0, −1, −2, −1 map px every 0.6 s |
+| Stepped moves | Move in 2 px steps (1 map px at zoom 2) at constant speed. Compute the offset from elapsed time and quantise it | Floater: 40 px in 20 steps over 1 s, then hidden (`LacquerFloater.rise_at()`). Walk: `snap_walk_to_whole_px`. The character's idle motion: whole-map-px offsets and frame clips from `ZoneMapMath` (the Aura Well's teleport is a drawn dither dissolve, then hidden outright) |
 | Snapped paths | A curve is fine; the drawn position snaps to even px every frame | `MadraPellet` drain into the adventure; the cycling ball on its eased path and its pellets |
 | Scrolling | In a few even steps | `LacquerRail.step_to()`: six even-px steps over 200 ms |
 | Flash | `steps(1)` on and off | `LacquerFrameOverlay.flash()`: 300 ms on, 300 ms off |

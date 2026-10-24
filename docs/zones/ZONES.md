@@ -38,8 +38,8 @@ Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advanc
    - **Uncharted zone:** the popover pins (UNKNOWN); it never travels.
    - **Fog:** closes any popover.
 4. Cards are 392 px lacquer drawers: icon, title, a mode tag (IDLE, ACTIVE, SHOP, STORY) and one detail line. Clicking a card starts that action. An idle card that runs is pulled out 2 px and tagged RUNNING; clicking it again flashes the Now strip instead of restarting it.
-5. **Foraging:** the card reads `[dewdrop] 1–5  [fern] 2–6 · every 5 s · free`. While it runs, the Now strip shows each loot range and "haul in N s", and a jade bead ring fills over each 5 s haul. Each haul rolls the loot table, floats the haul ("+3 Dewdrop Tear  +4 Spirit Fern") over the character on a lacquer token, and the character wanders west and back.
-6. **Training (Aura Well):** the card reads `+1.5 Madra / s · each level +1 Spirit`. While it runs, the Now strip shows the rate, "Lv n → n+1 · +1 Spirit", the ticks into the level (`214 / 300`) and a jade rod; the cabinet shows `+1.5 / s`; each 1 s tick floats "+1.5 Madra" in Madra blue and the character bobs. The trickle writes nothing to the log.
+5. **Foraging:** the card reads `[dewdrop] 1–5  [fern] 2–6 · every 5 s · free`. While it runs, the Now strip shows each loot range and "haul in N s", and a jade bead ring fills over each 5 s haul. Each haul rolls the loot table, floats the haul ("+3 Dewdrop Tear  +4 Spirit Fern") over the character on a lacquer token. Over each haul the character walks west, kneels to search the grass, pulls up a sprig, walks home and holds a fern up as the haul comes in.
+6. **Training (Aura Well):** the card reads `+1.5 Madra / s · each level +1 Spirit`. While it runs, the Now strip shows the rate, "Lv n → n+1 · +1 Spirit", the ticks into the level (`214 / 300`) and a jade rod; the cabinet shows `+1.5 / s`; each 1 s tick floats "+1.5 Madra" in Madra blue. The character sits cross-legged and breathes with a Madra pearl in its hands; after three breaths it dissolves into Madra, is gone for a moment, and re-forms at the next of four spots on the hex. The trickle writes nothing to the log.
 7. **Adventure:** the card is a normal 72 px drawer, measured against the **adventure capacity** (total FOUNDATION × 10, equipment included), not the Madra pool cap on the cabinet.
    - Below the threshold (50% of capacity), tag ACTIVE: the detail row is the Madra icon, a Madra rod and `25 / 50` in tan, plus a cream `~17 s` at the right while a Madra action runs (the Aura Well); nothing else. A click shakes the row and logs `Not enough Madra! Need X, have Y`; nothing stops.
    - At the threshold: a steady brass frame around the card, "5 min run · carries 100 Madra" in brass and the ENTER tag. A click starts the transition: zone input is blocked, the budget (`min(capacity, current Madra)`) pours from the cabinet's Madra orb to the character as stepped Madra pellets, the map markers hide, the camera zooms ×3 onto the character, and the adventure view opens. Leaving the end card restores the camera. See [ADVENTURING.md § Starting an Adventure](../adventuring/ADVENTURING.md#starting-an-adventure).
@@ -192,7 +192,7 @@ Each card is `scenes/zones/zone_action_button/zone_action_button.tscn` (class `Z
 - **Hex states.** The current zone gets the brass rim and lacquer collar, and an open zone a dull brass hairline (`ZoneHexMarker`). A locked or uncharted zone gets a veiled tile with its dashed vermilion or dotted tan rim baked in (`LockedZoneOverlay`). Hover and pin are rim swaps, never glows: an open hex hovered gets the brighter rim; a veiled hex gets a thin inner rim on hover and a heavy one while pinned.
 - **Routes.** `ZoneRoute` draws six 4×4 map-space dots, 12 map px apart, across the shared rim of two neighbouring hexes. Routes run from the current zone, neighbour to neighbour, to the other charted map zones, and on to the uncharted ones. Hovering a zone you can travel to turns the dots on its way cream, stopping at the first zone that is not open or current.
 - **Markers.** `MapMarkers` places every marker each frame from the SubViewport's canvas transform. At zoom 2 each sits at the kit's offset from its hex centre; at other zooms only its anchor follows the hex (by zoom / 2) and the marker keeps its kit size, so no text drops under 13 px. Below zoom 1.25 a plate shows its name only and narrows to the name plus 16 px a side. The current zone's plate draws over its neighbours. The whole layer hides during the adventure zoom-in and returns once the camera is back at its resting zoom.
-- **Character.** At scale 1 with a hard shadow, its top-left at the zone centre + (0, 19) map px (screen (960, 740) in Spirit Valley). Foraging wanders west and back (0 → −24 → −8 → 0 map px over the 5 s haul, phase-locked to the haul timer); the Aura Well bobs (0, −1, −2, −1 map px every 0.6 s). The travel walk stands on whole map px every physics frame (`snap_walk_to_whole_px`), so it moves in 2 screen px steps.
+- **Character.** At scale 1 with a hard shadow, its top-left at the zone centre + (0, 19) map px (screen (960, 740) in Spirit Valley). Its idle motion is a choreography of clips and whole-map-px offsets from `ZoneMapMath`, played by the character's `AnimationPlayer` (see [Character idle motion](#character-idle-motion)). The travel walk stands on whole map px every physics frame (`snap_walk_to_whole_px`), so it moves in 2 screen px steps.
 
 Plate lines (`ZoneMapLabel`):
 
@@ -202,6 +202,25 @@ Plate lines (`ZoneMapLabel`):
 | Open | Cream | "Open · N activities" in tan ("Open · 1 activity", "Open · nothing to do yet"); "Click to travel" in brass on hover |
 | Locked | Cream | Swords icon + `ZoneData.blocker_short_text` |
 | Uncharted | Tan until hovered | `blocker_short_text` in tan |
+
+### Character idle motion
+
+While an idle action runs, `ZoneTilemap` tweens an elapsed time and, every step, puts the character at its stand plus a whole-map-px offset and calls `show_pose(clip, seconds_in)` on it. `ZoneMapMath` holds the choreography as segments (each one's end and clip), and the character's `AnimationPlayer` (`character_body_2d.tscn`) holds the clips. `show_pose()` starts a clip only when it changes, seeking to the time into its segment, so a map opened partway through a haul joins in step. The new frames are rows 3 and 4 of `main_character_robes_spritesheet_ai.png` (drawn in `assets/aseprite/character/main_character_robes_ai.aseprite`, frames 25–37); the walk frames above them are unchanged.
+
+| Action | Segment | Seconds | Offset (map px) | Clip |
+|---|---|---|---|---|
+| Foraging (one 5 s haul, phase-locked to the haul timer) | Walk out | 0–1.2 | 0 → −24 in whole px | `walk_left` |
+| | Search | 1.2–3.0 | −24 | `forage_search`: kneel, rummage (a leaf flicks), kneel, rummage, kneel, pull up a sprig |
+| | Walk home | 3.0–4.2 | −24 → 0 | `walk_right` |
+| | Hold up the find | 4.2–5.0, then the haul | 0 | `forage_present`: a fern raised beside the head, pumped up 1 art px |
+| Aura Well (8.4 s a spot, round four spots) | Re-form | 0–0.45 | the spot | `teleport_in`: the dissolve backwards |
+| | Meditate | 0.45–7.65 | the spot | `meditate`: seated cross-legged, three 2.4 s breaths (the body rises 1 art px, a Madra pearl swells in the hands) |
+| | Dissolve | 7.65–8.1 | the spot | `teleport_out`: a 2x2 ordered dither into the Madra ramp, a Madra ghost drifting up 1 px, then rising motes |
+| | Gone | 8.1–8.4 | the spot, then the next | none: the character (and its shadow) is hidden |
+
+- **Aura Well spots** (`ZoneMapMath.AURA_WELL_SPOTS`, from the stand): (0, 0), (−51, −45) left of the river, (−25, −72) top middle, (32, −78) top right. They sit on Spirit Valley's grass, clear of the river, the ring, the plate and the floater's rise; the last one sits on the plateau's far edge, because any lower the floater would rise over it. The motion starts at 0.45 s, meditating at the stand, so starting the well sits the character down at once instead of re-forming it.
+- **No opacity fade.** The dissolve is drawn frames (the style guide's dither dissolve), and the gap shows and hides the character outright (`visible`).
+- **Stopping** an idle action (another action, travel, an adventure: `select_action()` stops the idle action before `adventure_start_requested`, so the drain pours into a character back on its stand) kills the tween, shows the character and plays `RESET` unless it is walking.
 
 A long action name or blocker ellipsizes inside the plate's 228 px line slot; the icon and the rate stay whole.
 
@@ -250,7 +269,7 @@ To add a variant:
 | `LacquerFloater` | `scenes/common/lacquer/lacquer_floater/` | `pop(text, colour)` on `token.tres`; rises 40 px over 1 s in 2 px steps, then hides. The map's floater stops when the idle action changes. The cycling view has one per zone ([CYCLING.md](../cycling/CYCLING.md)) |
 | `ZoneMapPopover` | `scenes/zones/map_markers/zone_map_popover/` | Locked card (LOCKED chop, name, requirement; pinned: ×, "Show me ›") left of the hex, uncharted card (UNKNOWN) right of it. Emits `close_pressed`, `show_me_pressed(action_id)` |
 | `MapPopoverState` | `scripts/ui/map_popover_state.gd` (`RefCounted`) | Hovered, preview and pinned zone ids. `click(zone_id, state)` returns TRAVEL, PIN, RECENTRE or CLOSE |
-| `ZoneMapMath` | `scripts/utils/zone_map_math.gd` (statics) | `camera_position_for()`, `world_to_screen()`, `camera_window_for()`, `cell_to_cube()`, `fog_tier()`, `fog_art_index()`, the forage wander and training bob offsets |
+| `ZoneMapMath` | `scripts/utils/zone_map_math.gd` (statics) | `camera_position_for()`, `world_to_screen()`, `camera_window_for()`, `cell_to_cube()`, `fog_tier()`, `fog_art_index()`, and the character's idle motion: `forage_wander_x()`, `forage_animation()`, `aura_well_spot()`, `aura_well_animation()`, `is_aura_well_gone()` |
 
 ### Camera
 
@@ -503,15 +522,15 @@ Every stop adds 1 to `action_completion_count`, under the zone the action starte
 | Signal | Emitted by | Listeners |
 |---|---|---|
 | `current_action_changed(action_data)` | `_set_current_action()` | Every action card, `NowStrip`, `CultivatorPlate` (rate; it also follows `CyclingManager.madra_rate_changed`), `MapMarkers` (ring, plate line), `ZoneTilemap` (idle motion), `AdventurePresenter` |
-| `start_foraging(action_data)` (emitted with no argument) | `_execute_forage_action()` | `ZoneTilemap` (wander) |
-| `foraging_completed(items: Dictionary)` | Every forage timeout | `ZoneTilemap` (wander), `MapMarkers` (haul floater) |
+| `start_foraging(action_data)` (emitted with no argument) | `_execute_forage_action()` | `ZoneTilemap` (foraging round) |
+| `foraging_completed(items: Dictionary)` | Every forage timeout | `ZoneTilemap` (foraging round), `MapMarkers` (haul floater) |
 | `stop_foraging()` | `_stop_forage_action()` | `ZoneTilemap` (character returns to its stand) |
 | `start_cycling(action_data)` | `_execute_cycling_action()` | `CyclingViewState` (pushes the cycling view) |
 | `stop_cycling()` | `_stop_cycling_action()` | `CyclingViewState` (pops), `CyclingView` |
 | `adventure_start_requested(action_data)` | `_execute_adventure_action()` | `ZoneViewState` (input blocker), `ZoneTransition`, `MapMarkers` (hides) |
 | `start_adventure(action_data, madra_budget)` | `confirm_adventure_start()` | `AdventureViewState` (change state), `AdventureView.start_adventure` |
 | `stop_adventure()` | `_stop_adventure_action()` | `AdventureView.stop_adventure` (→ `adventure_completed` → end card), `AdventureViewState` (no-op) |
-| `start_training(action_data)`, `stop_training()` | Training start / stop | `ZoneTilemap` (bob) |
+| `start_training(action_data)`, `stop_training()` | Training start / stop | `ZoneTilemap` (meditation and teleports; on stop the character returns to its stand, in sight) |
 | `training_tick_processed(action_data, new_tick_count)` | Every training tick | `NowStrip`, `MapMarkers` ("+1.5 Madra" floater) |
 | `training_level_gained(action_data, new_level)` | Once per level crossed | `NowStrip` |
 | `start_merchant(action_data)` | `_execute_merchant_action()` | `MerchantViewState` (binds the shop, pushes the overlay) |
@@ -735,7 +754,8 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `scripts/resource_definitions/zones/zone_action_data/zone_action_data.gd` | Base action class and `ActionType` |
 | `scripts/resource_definitions/zones/zone_action_data/*/*_action_data.gd` | Forage, cycling, adventure, NPC dialogue, training and merchant subclasses |
 | `scripts/utils/zone_action_groups.gd` | Groups, list order and mode tags |
-| `scripts/utils/zone_map_math.gd` | Camera framing and windows, fog tiers and art, wander and bob |
+| `scripts/utils/zone_map_math.gd` | Camera framing and windows, fog tiers and art, the character's idle motion (foraging round, Aura Well spots and clips) |
+| `scenes/characters/main_character/character_body_2d.gd` / `.tscn` | The robed character: 8-direction walks, the idle clips, `show_pose()` and `stand()` |
 | `scripts/ui/zone_action_presenter.gd` | Abstract presenter base |
 | `scripts/ui/map_popover_state.gd` | Hover, preview and pin state for the map popover |
 | `scenes/zones/zone_tilemap/zone_tilemap.gd` / `.tscn` | Hex map: zones, fog, hex states, routes, camera, travel, idle motion |
@@ -766,7 +786,8 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/unit/test_training_action_data.gd` | 18 | Cost-curve, level and progress functions; `_init` action type |
 | `tests/unit/test_training_action_helpers.gd` | 7 | `get_madra_per_second()`, ticks in and for the level |
 | `tests/unit/test_award_attribute_effect_data.gd` | 3 | The effect that grants training's level reward |
-| `tests/unit/test_zone_map_math.gd` | 15 | Framing at every zoom, camera windows, fog tiers and art, wander and bob |
+| `tests/unit/test_zone_map_math.gd` | 22 | Framing at every zoom, camera windows, fog tiers and art, the foraging round (offsets, clips, time into a clip) and the Aura Well (spots in turn, moves only while gone, segments, the breath's loop) |
+| `tests/unit/test_character_idle_clips.gd` | 5 | The idle clips exist, last as long as their segments, `teleport_in` reverses `teleport_out`, every frame is a drawn cell of the sheet |
 | `tests/unit/test_map_popover_state.gd` | 18 | Click results, one pinned popover, the preview delay |
 | `tests/unit/test_camera_clamp_controller.gd` | 5 | Clamping the centre into the nearest region |
 | `tests/unit/test_character_walk_steps.gd` | 5 | Whole-px walk steps at the same pace |
@@ -774,7 +795,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/unit/test_madra_pellet.gd` | 9 | Drain pellet colours, outline and 2 px steps, and `set_texture()` swapping in a centred, tier-coloured pellet |
 | `tests/integration/test_idle_action_resolution.gd` | 35 | Resolution order, resume after every session action, travel and save-reset cases, the log lines, auto-start on a first idle unlock, completions in the zone and save the action started in, `get_current_madra_per_second()` |
 | `tests/integration/test_training_flow.gd` | 1 | `select_action` → ticks, Madra trickle, level-ups, persistence across stop and restart |
-| `tests/integration/test_zone_map_render.gd` | 33 | Camera framing and clamp, fog tiers and coverage at zoom 1, hex states, the character's stand and idle motion, outside zone changes |
+| `tests/integration/test_zone_map_render.gd` | 35 | Camera framing and clamp, fog tiers and coverage at zoom 1, hex states, the character's stand and idle motion (the foraging round's clips, the Aura Well's meditation, teleport and stop while gone), outside zone changes |
 | `tests/integration/test_map_markers.gd` | 46 | Plates and their lines (re-counted on `action_completed`), glyphs, routes, ring and floaters, positions at other zooms, name-only plates, demo toggles |
 | `tests/integration/test_zone_travel.gd` | 49 | Hover rims and routes (also after the camera moves under a still pointer), previews, pins, Show me, travel on arrival, retargeting, walks cut short, Esc (left to an overlay or the full log) and outside clicks |
 | `tests/integration/test_zone_transition.gd` | 3 | The drain's lookups in `main_game.tscn` and `zone_tilemap.tscn` (read, never instanced), and one whole drain: pellets, Madra spent, adventure confirmed |
