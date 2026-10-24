@@ -64,6 +64,19 @@ func _update_resources() -> void:
 		Log.critical("CultivationManager: live_save_data is null in _update_resources!")
 		return
 	
+	# A save from before the cap can stand past it: it loads at the cap, without XP
+	var cap: int = get_core_density_cap()
+	if cap > 0 and live_save_data.core_density_level > cap:
+		Log.info("CultivationManager: Core Density %d is past the stage's cap of %d. Loaded at the cap, with no XP" % [int(live_save_data.core_density_level), cap])
+		live_save_data.core_density_level = cap
+		live_save_data.core_density_xp = 0.0
+
+	# A save from before the milestones were recorded was paid each one up to its
+	# level, so seed from the level. The clamp comes first: the cap is the most it can hold
+	var stage: AdvancementStage = live_save_data.current_advancement_stage
+	if not live_save_data.core_density_milestones.has(stage):
+		live_save_data.core_density_milestones[stage] = floori(live_save_data.core_density_level / PATH_POINT_LEVEL_INTERVAL) * PATH_POINT_LEVEL_INTERVAL
+
 	core_density_xp_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
 	core_density_level_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
 	advancement_stage_changed.emit(live_save_data.current_advancement_stage)
@@ -102,7 +115,9 @@ func add_core_density_xp(amount: float) -> void:
 				AdvancementStage.find_key(live_save_data.current_advancement_stage),
 			])
 			break
-		# Nothing levels past the cap
+		# Nothing levels past the cap. With a positive cap the entry check and the
+		# break after core_filled stop every run before it gets here, so this is the
+		# backstop for a misconfigured cap (0 or less)
 		if live_save_data.core_density_level >= cap:
 			break
 
@@ -117,11 +132,8 @@ func add_core_density_xp(amount: float) -> void:
 		# Emit level up signal
 		core_density_level_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
 
-		# Award path points every PATH_POINT_LEVEL_INTERVAL levels
-		if int(live_save_data.core_density_level) % PATH_POINT_LEVEL_INTERVAL == 0 and int(live_save_data.core_density_level) > 0:
-			var points: int = PATH_POINTS_PER_STAGE.get(live_save_data.current_advancement_stage, 1)
-			if PathManager:
-				PathManager.add_points(points)
+		# Award path points every PATH_POINT_LEVEL_INTERVAL levels, once per stage
+		_pay_milestone(int(live_save_data.core_density_level))
 
 		if reached_cap:
 			core_filled.emit(live_save_data.current_advancement_stage)
@@ -209,6 +221,20 @@ func get_advancement_stage_name(stage: AdvancementStage) -> String:
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## Pays the stage's path points for reaching `level` when it is a milestone the
+## stage has not paid yet, and records it. Regaining a level that was lost (a
+## failed breakthrough) pays nothing: the first crossing already did.
+func _pay_milestone(level: int) -> void:
+	var stage: AdvancementStage = live_save_data.current_advancement_stage
+	var paid: int = live_save_data.core_density_milestones.get(stage, 0)
+	if level % PATH_POINT_LEVEL_INTERVAL != 0 or level <= 0 or level <= paid:
+		return
+
+	var points: int = PATH_POINTS_PER_STAGE.get(stage, 1)
+	if PathManager:
+		PathManager.add_points(points)
+		live_save_data.core_density_milestones[stage] = level
 
 func _get_stage_resource(stage: AdvancementStage) -> AdvancementStageResource:
 	for i in range(advancement_stage_resources.size()):

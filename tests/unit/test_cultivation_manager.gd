@@ -2,16 +2,19 @@ extends GutTest
 
 ## Unit tests for CultivationManager: the real add_core_density_xp() level-up
 ## loop (single and multi-level gains, XP carry-over), its signals, the path
-## point milestone awards it hands to PathManager, the Core Density cap (levels
-## and XP stop at the stage's cap, core_filled, the full-core log line, losing
-## levels), the stage-name lookups, and the AdvancementStageResource XP curve
-## it reads.
+## point milestone awards it hands to PathManager (each paid once per stage,
+## even when a failed breakthrough takes the levels back), the Core Density cap
+## (levels and XP stop at the stage's cap, core_filled, the full-core log line,
+## losing levels), what loading a save does (a level past the cap is clamped to
+## it, a save with no milestone ledger is seeded from its level), the stage-name
+## lookups, and the AdvancementStageResource XP curve it reads.
 ##
 ## Each test runs on a fresh SaveGameData that every manager is re-bound to,
 ## with CultivationManager's stage list swapped for deterministic test stages.
 ## Both are restored in after_each().
 
 const Stage := CultivationManager.AdvancementStage
+const TMP_SAVE_PATH: String = "user://test_cultivation_manager_save.tres"
 
 #-----------------------------------------------------------------------------
 # FIXTURES
@@ -40,6 +43,16 @@ func after_each() -> void:
 	CultivationManager.advancement_stage_resources = _original_stage_resources
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
+	if FileAccess.file_exists(TMP_SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TMP_SAVE_PATH))
+
+## Makes `save` the live save, the way PersistenceManager does once it has loaded
+## one: every manager re-binds to it, and CultivationManager checks it against its
+## stage (the level clamp and the milestone seed).
+func _load(save: SaveGameData) -> void:
+	PersistenceManager.save_game_data = save
+	PersistenceManager.save_data_reset.emit()
+	_save = save
 
 func _make_stage(stage: Stage, stage_name: String, base_cost: float, scaling: float) -> AdvancementStageResource:
 	var res := AdvancementStageResource.new()
@@ -50,7 +63,8 @@ func _make_stage(stage: Stage, stage_name: String, base_cost: float, scaling: fl
 	return res
 
 ## Every stage the save can be on must have a resource here: with none,
-## get_xp_for_next_level() returns 0 and add_core_density_xp() never returns.
+## get_xp_for_next_level() returns 0, so add_core_density_xp() logs an error and
+## levels nothing.
 func _use_stages(stages: Array[AdvancementStageResource]) -> void:
 	CultivationManager.advancement_stage_resources = stages
 
@@ -215,6 +229,29 @@ func test_milestone_points_scale_with_stage() -> void:
 		assert_eq(PathManager.get_point_balance(), expected_points[stage],
 			"level 10 at %s" % Stage.keys()[stage])
 
+## A failed breakthrough takes 5 levels back; climbing them again must not pay
+## the level-100 point a second time.
+func test_regaining_a_paid_milestone_pays_nothing() -> void:
+	_use_flat_curve()
+	CultivationManager.add_core_density_xp(100.0)
+	assert_eq(PathManager.get_point_balance(), 10, "levels 10 to 100 pay a point each")
+
+	CultivationManager.lose_core_density_levels(5)
+	CultivationManager.add_core_density_xp(5.0)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0, "the five levels are back")
+	assert_eq(PathManager.get_point_balance(), 10, "level 100 was paid the first time")
+
+func test_new_milestones_still_pay_after_a_loss() -> void:
+	_use_flat_curve()
+	CultivationManager.add_core_density_xp(20.0)
+	assert_eq(PathManager.get_point_balance(), 2, "levels 10 and 20")
+
+	CultivationManager.lose_core_density_levels(5)
+	assert_eq(CultivationManager.get_core_density_level(), 15.0)
+	CultivationManager.add_core_density_xp(15.0)
+	assert_eq(CultivationManager.get_core_density_level(), 30.0)
+	assert_eq(PathManager.get_point_balance(), 3, "level 20 was paid before; only level 30 is new")
+
 #-----------------------------------------------------------------------------
 # CORE DENSITY CAP
 #-----------------------------------------------------------------------------
@@ -336,6 +373,67 @@ func test_has_next_stage() -> void:
 	assert_false(CultivationManager.has_next_stage(), "the fixture's Foundation leads nowhere")
 	_stage_resource.next_stage = _make_stage(Stage.COPPER, "Test Copper", 10.0, 1.0)
 	assert_true(CultivationManager.has_next_stage())
+
+#-----------------------------------------------------------------------------
+# SAVE DATA
+#-----------------------------------------------------------------------------
+
+## Under the old rule a save paid every milestone up to its level, so a save from
+## before the ledger must not pay them again when it loads.
+func test_an_old_save_is_seeded_from_its_level() -> void:
+	_use_flat_curve()
+	var old_save := SaveGameData.new()
+	old_save.core_density_level = 45.0
+	_load(old_save)
+	assert_eq(_save.core_density_milestones.get(Stage.FOUNDATION, -1), 40, "levels 10 to 40 were paid; 45 rounds down to 40")
+
+	CultivationManager.add_core_density_xp(5.0)
+	assert_eq(CultivationManager.get_core_density_level(), 50.0)
+	assert_eq(PathManager.get_point_balance(), 1, "only level 50 is new")
+
+## A save from before the cap can stand past it. It loads at the cap with no XP
+## and keeps the path points it earned on the way up.
+func test_a_save_past_the_cap_loads_at_the_cap() -> void:
+	var long_save := SaveGameData.new()
+	long_save.core_density_level = 130.0
+	long_save.core_density_xp = 12.5
+	long_save.path_points = 13
+	_load(long_save)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0, "the stage's cap, not the 130 it was saved at")
+	assert_eq(CultivationManager.get_core_density_xp(), 0.0, "a full core holds no XP")
+	assert_eq(PathManager.get_point_balance(), 13, "the points were earned; the clamp does not take them back")
+	assert_eq(_save.core_density_milestones.get(Stage.FOUNDATION, -1), 100, "seeded from the clamped level, not the saved one")
+
+func test_no_clamp_without_a_stage() -> void:
+	var no_stages: Array[AdvancementStageResource] = []
+	_use_stages(no_stages)
+	var long_save := SaveGameData.new()
+	long_save.core_density_level = 130.0
+	_load(long_save)
+	assert_eq(CultivationManager.get_core_density_level(), 130.0, "no stage resource, no cap to clamp to")
+
+## The flow the ledger exists for: a failed breakthrough, a restart, then the
+## levels climbed again. The ledger must reach the save file, and the load must
+## keep it instead of seeding it from level 95, or level 100 would pay twice.
+func test_the_ledger_survives_a_restart() -> void:
+	_use_flat_curve()
+	CultivationManager.add_core_density_xp(100.0)
+	CultivationManager.lose_core_density_levels(5)
+	assert_eq(ResourceSaver.save(_save, TMP_SAVE_PATH), OK)
+
+	_load(ResourceLoader.load(TMP_SAVE_PATH, "", ResourceLoader.CACHE_MODE_IGNORE) as SaveGameData)
+	assert_eq(CultivationManager.get_core_density_level(), 95.0)
+	assert_eq(_save.core_density_milestones.get(Stage.FOUNDATION, -1), 100, "saved with the level, and not seeded again from level 95")
+
+	CultivationManager.add_core_density_xp(5.0)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0)
+	assert_eq(PathManager.get_point_balance(), 10, "level 100 was paid before the restart")
+
+func test_reset_clears_the_milestones() -> void:
+	var data := SaveGameData.new()
+	data.core_density_milestones[Stage.FOUNDATION] = 40
+	data.reset()
+	assert_true(data.core_density_milestones.is_empty(), "a new game has paid nothing")
 
 #-----------------------------------------------------------------------------
 # STAGE NAMES
