@@ -483,7 +483,7 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 | End card | E1 | 1 | 0 | 0 | 1 |
 | Menu books | K1–K13 | 13 | 6 | 6 | 1 |
 | Project-wide | P1–P2 | 2 | 1 | 0 | 1 |
-| **Total** | | **46** | **18** | **21** | **7** |
+| **Total** | | **35** | **13** | **15** | **7** |
 
 **Taking a row in another branch:**
 1. Make sure the kit's files are there (the branch is cut after PR #51, and after `feat/adventure-view-styleguide-1fc223` for the adventure's pieces).
