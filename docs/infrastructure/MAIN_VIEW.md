@@ -68,9 +68,9 @@ Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under 
 | `ZonePanel` | `ZoneView` | (1456, 24), 440 wide, height hugs its content (176 to 1032) | Zone header, Now strip, activity list (the technique list while cycling) |
 | `Dock` | `ZoneView` | (722, 976), 476x80 | Four 108x64 buttons. Hidden with the zone view during adventures, and while cycling |
 | `VitalsPlate` | `AdventureView` | (24, 24), 440x252 | The adventure's cabinet, where `CultivatorPlate` stands in the zone view: Health, Madra, Stamina and, in a fight, buffs |
-| `AdventureChest` | `AdventureView` | (1456, 24), 440 wide, height hugs its page (176 minimum) | Where `ZonePanel` stands: title, run clock, the expedition page |
-| `TechniqueDock` | `AdventureView` | (722, 920), 476x136 | The four technique slots; its cast tray sits 52 px above it |
-| `GoalsPanel` | `MainView` | (24, 276), hung on its cords under the cabinet (the 24 px cords reach 4 px above the root, to the cabinet's rings at y 272), in the zone view and in adventures (under the vitals cabinet) | 220 px tall with a quest, 150 with the milestone alone. Not draggable |
+| `AdventureChest` | `AdventureView` | (1456, 24), 440 wide, height hugs its page and its title's lines (176 minimum) | Where `ZonePanel` stands: title (it wraps), run clock, the expedition page. The page and its Here tray and drawers wrap their text and grow |
+| `TechniqueDock` | `AdventureView` | (722, 920), 476x136 | The four technique slots; its cast tray sits 52 px above it (44 px tall, 8 px clear of the dock) and grows upward when a long technique name wraps |
+| `GoalsPanel` | `MainView` | (24, 276), hung on its cords under the cabinet (the 24 px cords reach 4 px above the root, to the cabinet's rings at y 272), in the zone view and in adventures (under the vitals cabinet) | 220 px tall with a quest, 150 with the milestone alone, when each text is one line; a wrapped line adds its height and the board grows with its rows. Not draggable |
 | `LogWindow` | `MainView` | Its 440x204 slot at (24, 852), the board on the slot's bottom edge (screen 1056) growing upward, in both base views | 74 + 26 px per line, up to 5 lines. The full log is a 440x560 board in the same place |
 | `QuestToast` | `MainView` | Top-centre, 350x60 at y 28 | `mouse_filter` Ignore; queues messages |
 | `DevPanel` | `MainView` | (0, 0), 340x400 | Draggable; see [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) |
@@ -208,7 +208,7 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's id
    - `LogWindow` (while visible and neither a menu book nor the cycling board is open): L (`toggle_log`) opens or closes the full log; Escape closes it while open. A book or the cycling board closes the full log and blocks it, so L does nothing under them and Escape goes on to the book or the board.
    - `ZonePanel`: Escape closes the lore, only while it shows and `ZoneViewState` is MainView's current state, so an overlay opened over the zone view takes Escape first.
    - Inside the zone SubViewport, `MapMarkers`: Escape closes a pinned map popover, only while `ZoneViewState` is current with no overlay pushed and the full log is closed. The `SubViewportContainer` hands keys to the SubViewport at its own place in this pass (after `LogWindow` and `ZonePanel`, which sit later in the tree), and the SubViewport has `handle_input_locally` off, so its `set_input_as_handled()` ends the event for `MainView` too. One Escape therefore closes the lore before the popover.
-   - `MainView` (routed to the current state only), the combat `TechniqueDock` (Q/W/E/R while active and visible), and the camera controllers inside the zone tilemap (zoom and pan; the adventure camera has none).
+   - `MainView` (routed to the current state only), the combat `TechniqueDock` (Q/W/E/R while active and visible), and the camera controllers inside the maps (the zone tilemap's zoom and pan; the adventure tilemap's zoom, which has no pan). A wheel over an adventure board never reaches the map (the boards are `MOUSE_FILTER_STOP`), and the map is hidden during a fight, so neither zooms it.
 
 Escape is bound to three actions: `close_inventory`, `close_cycling_view` and the built-in `ui_cancel`. Inside the state machine they never conflict because only the top state reads input. Menu shortcuts work only while `ZoneViewState` is current. `AdventureViewState.handle_input()` is empty, so I/A/C/P do nothing during an adventure; L still opens the full log. Under a menu book, and while cycling, L does nothing.
 
@@ -237,7 +237,7 @@ Other inputs:
 | Escape (built-in `ui_cancel`) | `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`; `LogWindow`, `ZonePanel`, `MapMarkers` outside the state machine | Close the overlay (the merchant does it by stopping its action); close the full log, the zone lore or the pinned map popover |
 | Ctrl+Shift+D (`KEY_D`, logical) | `MainGame._input()` | Dev password modal or dev panel toggle. No-op unless `user://dev_password.txt` exists. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md). |
 | Right mouse drag | `CameraPanController` on the zone tilemap camera only (the adventure camera follows the player and has no pan controller) | Pan the zone map |
-| Mouse wheel | `CameraZoomController` on the zone map: 1.0 to 2.0 (default 2.0); over the zone chest's list it scrolls the list instead. The adventure map's zoom is fixed at 1 | Zoom |
+| Mouse wheel | `CameraZoomController` on each map, 10% a tick, eased: the zone map 1.0 to 2.0 (default 2.0); the adventure map 1.0 to 2.0 (default 1.0, and every run opens there). Over the zone chest's list it scrolls the list instead; over an adventure board, or during a fight, it does nothing | Zoom |
 | Left drag / wheel in path tree | `PathTreeView._on_tree_area_gui_input()` | Pan / zoom the tree |
 
 ### Dock and SystemMenuButton
