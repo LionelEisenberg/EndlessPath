@@ -46,9 +46,10 @@ func after_each() -> void:
 	if FileAccess.file_exists(TMP_SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(TMP_SAVE_PATH))
 
-## Makes `save` the live save, the way PersistenceManager does once it has loaded
-## one: every manager re-binds to it, and CultivationManager checks it against its
-## stage (the level clamp and the milestone seed).
+## Makes `save` the live save, as if it had just been loaded: `save_data_reset`
+## re-binds every manager, and CultivationManager checks the save against its
+## stage (the level clamp and the milestone seed), as its `_ready()` does on a
+## real boot.
 func _load(save: SaveGameData) -> void:
 	PersistenceManager.save_game_data = save
 	PersistenceManager.save_data_reset.emit()
