@@ -424,17 +424,17 @@ func test_a_save_reset_mid_trial_closes_the_board() -> void:
 # CLICKS ON THE ZONE CHEST (Review Focus 5)
 #-----------------------------------------------------------------------------
 
-## A zone action card, as the chest lists it, and the board over it, both on a CanvasLayer
-## above GUT's own window (which would otherwise cover the screen and take the click), the
-## board after the card in the tree and at z 3 as main_game.tscn has it. The board is built
-## but not opened.
-func _host_card_under_board() -> ZoneActionButton:
+## A zone action card, as the chest lists it (at `at`: the zone chest's column unless told
+## otherwise), and the board over it, both on a CanvasLayer above GUT's own window (which
+## would otherwise cover the screen and take the click), the board after the card in the
+## tree and at z 3 as main_game.tscn has it. The board is built but not opened.
+func _host_card_under_board(at: Vector2 = CARD_AT) -> ZoneActionButton:
 	var layer := CanvasLayer.new()
 	layer.layer = GUT_OUTPUT_LAYER + 1
 	add_child_autofree(layer)
 	var card: ZoneActionButton = CARD_SCENE.instantiate() as ZoneActionButton
 	card.setup_action(ZoneManager.get_action_by_id(MERCHANT_ID))
-	card.position = CARD_AT
+	card.position = at
 	layer.add_child(card)
 	_build_board(layer)
 	_view.z_index = 3
@@ -462,7 +462,9 @@ func test_a_click_reaches_a_card_when_no_board_is_up() -> void:
 	assert_false(card.is_new_shown(), "and the card heard it")
 
 ## A click on the zone chest while the trial is open never reaches a card, so no other
-## action can replace the trial. The board takes it instead: the click begins the run.
+## action can replace the trial. The board takes the click and, the card being outside its
+## own rect, does nothing with it (Ruling S): the intro stays up, as it must for the second
+## click of a double click on the Tribulation's own card.
 func test_a_click_on_a_card_during_the_trial_selects_nothing() -> void:
 	var card: ZoneActionButton = _host_card_under_board()
 	_fill_core()
@@ -476,4 +478,25 @@ func test_a_click_on_a_card_during_the_trial_selects_nothing() -> void:
 	assert_signal_not_emitted(ActionManager, "start_merchant", "the card selected nothing")
 	assert_signal_not_emitted(ActionManager, "stop_tribulation", "and the trial was not stopped")
 	assert_true(card.is_new_shown(), "the card never heard the click")
-	assert_eq(_view.get_mode(), Mode.RUNNING, "the board took it: a click anywhere begins the run")
+	assert_eq(_view.get_mode(), Mode.INTRO, "the board took it and left the intro up: only a click on the board begins the run")
+
+## The same wherever the card stands: under the board's own rect the click does begin the run,
+## and the card still hears nothing, so the trial stays the current action either way.
+func test_a_click_on_a_card_under_the_board_selects_nothing() -> void:
+	var card: ZoneActionButton = _host_card_under_board()
+	_fill_core()
+	ActionManager.select_action(_tribulation())
+	await wait_process_frames(2)
+	var board_rect: Rect2 = (_view.get_node("%Board") as Control).get_global_rect()
+	var click_at: Vector2 = board_rect.position + Vector2(48.0, 48.0)
+	card.position = click_at - Vector2(16.0, 16.0)
+	assert_true(board_rect.has_point(click_at), "precondition: the click is on the board")
+	assert_true(card.get_global_rect().has_point(click_at), "and the card stands under it")
+	assert_true(card.is_new_shown(), "precondition: the merchant is unseen")
+	watch_signals(ActionManager)
+	_click(click_at)
+	assert_eq(_current_id(), TRIBULATION_ID, "the trial is still the current action")
+	assert_signal_not_emitted(ActionManager, "start_merchant", "the card selected nothing")
+	assert_signal_not_emitted(ActionManager, "stop_tribulation", "and the trial was not stopped")
+	assert_true(card.is_new_shown(), "the card never heard the click")
+	assert_eq(_view.get_mode(), Mode.RUNNING, "the board took it: a click on the board begins the run")

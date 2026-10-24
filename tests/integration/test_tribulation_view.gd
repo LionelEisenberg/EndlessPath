@@ -2,7 +2,8 @@ extends GutTest
 
 ## Integration tests for the Tribulation board (TribulationView), the breathing trial
 ## a full core faces in the zone view's map gap. The board opens on its intro, and a
-## press (Space or a click anywhere) begins the run. The press is judged against the
+## press (Space, or a click on the board) begins the run; a click anywhere else on the
+## intro does nothing, though the board still takes it. The press is judged against the
 ## board's clock when it arrives, and the frames judge the beats that pass. Each
 ## judgement shows itself: a floater word, the ring's flash and a burst of pellets for
 ## a hit, a lit pip and a shake for a crack. The last breath ends in a hold, which
@@ -107,11 +108,14 @@ func _press(down: bool = true) -> InputEventAction:
 	event.pressed = down
 	return event
 
-## A left mouse button going down, or coming up.
-func _mouse(down: bool) -> InputEventMouseButton:
+## A left mouse button going down, or coming up, at `at`. The view fills the screen from
+## (0, 0), so its own space is the screen's, and the event's position is the same in both.
+func _mouse(down: bool, at: Vector2 = Vector2.ZERO) -> InputEventMouseButton:
 	var event := InputEventMouseButton.new()
 	event.button_index = MOUSE_BUTTON_LEFT
 	event.pressed = down
+	event.position = at
+	event.global_position = at
 	return event
 
 ## The time of beat `index` of the running trial.
@@ -244,8 +248,56 @@ func test_the_view_stops_every_click_beneath_it() -> void:
 		if (node as Control).mouse_filter != Control.MOUSE_FILTER_IGNORE:
 			takers.append(String(node.name))
 	assert_eq(takers.size(), 0, "every node but the board and the buttons lets a click through to the root, not %s" % [takers])
-	_view._gui_input(_mouse(true))
-	assert_eq(_view.get_mode(), Mode.RUNNING, "a click anywhere begins the run from the intro")
+
+## Ruling S: on the intro only a click on the board begins the trial. The second click of a
+## double click on the card that opened it lands outside the board, and a run cannot be left
+## once it starts, so a click there must skip neither the rules nor Not yet.
+func test_a_click_outside_the_board_on_the_intro_does_nothing() -> void:
+	await wait_process_frames(2)
+	var board_rect: Rect2 = (_node("Board") as Control).get_global_rect()
+	var around: Array[Vector2] = [
+		Vector2.ZERO,
+		Vector2(board_rect.position.x - 24.0, board_rect.get_center().y),
+		Vector2(board_rect.end.x + 24.0, board_rect.get_center().y),
+		Vector2(board_rect.get_center().x, board_rect.end.y + 24.0),
+	]
+	for point: Vector2 in around:
+		assert_false(board_rect.has_point(point), "precondition: %s is off the board %s" % [point, board_rect])
+		_view._gui_input(_mouse(true, point))
+		_view._gui_input(_mouse(false, point))
+		assert_eq(_view.get_mode(), Mode.INTRO, "a click at %s leaves the intro up" % point)
+	assert_null(_view.get_run(), "no run began")
+	assert_true((_node("IntroPanel") as Control).visible, "and the rules still show")
+
+func test_a_click_on_the_board_on_the_intro_begins_the_run() -> void:
+	await wait_process_frames(2)
+	var board_rect: Rect2 = (_node("Board") as Control).get_global_rect()
+	var on_the_board: Array[Vector2] = [
+		board_rect.get_center(),
+		board_rect.position + Vector2(2.0, 2.0),
+		board_rect.end - Vector2(2.0, 2.0),
+	]
+	for point: Vector2 in on_the_board:
+		_view.setup(_data, ZONE_NAME)
+		assert_true(board_rect.has_point(point), "precondition: %s is on the board %s" % [point, board_rect])
+		_view._gui_input(_mouse(true, point))
+		assert_eq(_view.get_mode(), Mode.RUNNING, "a click at %s begins the run" % point)
+		assert_not_null(_view.get_run(), "a run has begun")
+
+## Space begins the run wherever the pointer is: a key has no position to be off the board.
+func test_space_begins_the_run_wherever_the_pointer_is() -> void:
+	var space := InputEventKey.new()
+	space.physical_keycode = KEY_SPACE
+	space.pressed = true
+	assert_true(_view.handle_press_event(space), "the board takes the key")
+	assert_eq(_view.get_mode(), Mode.RUNNING, "Space begins the run")
+
+## Once the run goes on, nothing changes: a click anywhere is a press, as the brief says.
+func test_a_click_anywhere_is_still_a_press_while_the_run_goes_on() -> void:
+	_view.begin()
+	_at(_beat(0))
+	_view._gui_input(_mouse(true, Vector2.ZERO))
+	assert_eq(_view.get_run().perfect_count, 1, "a click at the screen's corner hits the beat")
 
 func test_buttons_take_no_focus() -> void:
 	for button_name: String in ["BeginButton", "NotYetButton", "ContinueButton"]:

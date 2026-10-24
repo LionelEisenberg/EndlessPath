@@ -15,10 +15,14 @@ extends Control
 ## harder for the crack that fails the run. Only the newest feedback shows: a pop hides the
 ## pair of floaters before it. Every timed effect reads clock_usec, never a frame's delta.
 ##
-## The root covers the screen and stops every click, so none reaches the zone chest: a
-## mouse press anywhere is judged in _gui_input(), and keys come from the view state
-## through handle_press_event(). The hold belongs to the kind of input that started it,
-## key or mouse button: only that kind coming up lets it go, and a focus loss always does.
+## The root covers the screen and stops every click, so none reaches the zone chest: every
+## mouse press goes to _gui_input(), which judges it and accepts it, and keys come from the
+## view state through handle_press_event(). While the run goes on, a press counts wherever
+## it lands. On the intro only Space or a click on the board begins the run: the second
+## click of a double click on the card that opened the trial lands outside the board, and
+## it must skip neither the rules nor Not yet, since a run cannot be left once it starts.
+## The hold belongs to the kind of input that started it, key or mouse button: only that
+## kind coming up lets it go, and a focus loss always does.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -209,7 +213,8 @@ func _process(_delta: float) -> void:
 	_place_floaters()
 
 ## Every mouse event that reaches the root, on the board or anywhere around it, is the
-## board's: a press of the trial's button is judged, and nothing passes beneath.
+## board's: a press of the trial's button is judged (on the intro, only one on the board
+## begins the run), and nothing passes beneath.
 func _gui_input(event: InputEvent) -> void:
 	handle_press_event(event)
 	accept_event()
@@ -279,16 +284,20 @@ func close() -> void:
 	hide()
 
 ## Takes an event of the trial's input (tribulation_press) and returns true for each one
-## of them, false for any other event. A key's repeats are not presses. On the intro a
-## press begins the run. While it runs, a press is judged, and a release lets go of the
-## hold when it comes from the kind of input that started it, each on clock_usec as it
-## arrives. On the result panel nothing happens: only Continue closes it.
+## of them, false for any other event. A key's repeats are not presses. On the intro a key
+## press begins the run, wherever the pointer is, and a mouse press begins it only on the
+## board (see _press_begins_the_run()); a click anywhere else on the intro does nothing,
+## though _gui_input() still accepts it, so it reaches nothing beneath. While the run goes
+## on, a press is judged wherever it lands, and a release lets go of the hold when it comes
+## from the kind of input that started it, each on clock_usec as it arrives. On the result
+## panel nothing happens: only Continue closes it.
 func handle_press_event(event: InputEvent) -> bool:
 	if not event.is_action(PRESS_ACTION):
 		return false
 	if event.is_action_pressed(PRESS_ACTION):
 		if _mode == Mode.INTRO:
-			begin()
+			if _press_begins_the_run(event):
+				begin()
 		elif _mode == Mode.RUNNING:
 			_on_press(event)
 	elif event.is_action_released(PRESS_ACTION) and _mode == Mode.RUNNING:
@@ -306,6 +315,15 @@ func get_run() -> TribulationRun:
 #-----------------------------------------------------------------------------
 # JUDGING
 #-----------------------------------------------------------------------------
+
+## Returns whether a press of the trial's input begins the run from the intro. A key does,
+## wherever the pointer is. A mouse button does only when it lands on the board. Its position
+## is the one the event carries (in the view's canvas, as the board's global rect is), not
+## where the pointer is by now. A click on what lies around the board, the card that opened
+## the trial among it, begins nothing.
+func _press_begins_the_run(event: InputEvent) -> bool:
+	var click := event as InputEventMouseButton
+	return click == null or _board.get_global_rect().has_point(click.global_position)
 
 ## Returns the trial's time now, in seconds from its start.
 func _trial_time() -> float:
