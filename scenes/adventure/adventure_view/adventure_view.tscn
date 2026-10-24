@@ -76,27 +76,15 @@ unique_name_in_owner = true
 
 [node name="VitalsPlate" parent="." unique_id=1706930705 instance=ExtResource("6_vitals")]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = 464.0
-offset_bottom = 276.0
+layout_mode = 1
 
 [node name="AdventureChest" parent="." unique_id=609272928 instance=ExtResource("7_chest")]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 1456.0
-offset_top = 24.0
-offset_right = 1896.0
-offset_bottom = 200.0
+layout_mode = 1
 
 [node name="TechniqueDock" parent="." unique_id=1331518666 instance=ExtResource("8_dock")]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 722.0
-offset_top = 920.0
-offset_right = 1198.0
-offset_bottom = 1056.0
+layout_mode = 1
 
 [node name="RunTimer" type="Timer" parent="." unique_id=755042396]
 unique_name_in_owner = true
