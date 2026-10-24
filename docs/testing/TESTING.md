@@ -7,9 +7,9 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
-| Unit | `tests/unit/` | 77 | 840 |
-| Integration | `tests/integration/` | 41 | 762 |
-| **Total** | | **118** | **1602** |
+| Unit | `tests/unit/` | 77 | 847 |
+| Integration | `tests/integration/` | 41 | 764 |
+| **Total** | | **118** | **1611** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -17,20 +17,20 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-23, on `feat/character-animations-spring-orwell-a47d16` after the character's idle motion (the foraging round and the Aura Well's meditation and teleports) was added, with the command from `CLAUDE.md`.
+Run on 2026-10-23, on `feat/test-suite-runtime-cf3d8e` after the idle motion, training tick and map floater tests moved onto a hand-stepped clock, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 119 / 1616 |
-| Passing / failing / pending or risky | 1616 / 0 / 0 |
-| Asserts | 9267 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 118 / 1611 |
+| Passing / failing / pending or risky | 1611 / 0 / 0 |
+| Asserts | 9273 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |
 | Exit code | 0 |
-| Wall time | About 101 s on this run (GUT's `Time` line, 101.0 s). The zone view's and the cycling view's scene tests await real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay, and up to 9 s for the Aura Well's first teleport) |
+| Wall time | About 68 s on this run (GUT's `Time` line, 68.0 s; 76 s for the whole Godot process). Most of it is the zone view's and the cycling view's scene tests awaiting real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay): `test_zone_travel.gd` takes 14 s, `test_zone_panel.gd` 8 s. The idle motion, training tick and floater tests step their own clock (see [Patterns](#patterns-used-in-the-suite)) |
 
 Known noise in a green run:
 
@@ -146,7 +146,8 @@ tests/
 | Inject manager state directly | `CyclingManager._live_save_data`, `CyclingManager._techniques_by_id`, `QuestManager._quests_by_id`, `PathManager._all_trees`, `EventManager.live_save_data` | Some files null these in `after_each()` instead of restoring them, which leaks into later files. Nulling `EventManager.live_save_data` is behind the `event_progression on Nil` errors described above. |
 | Test-only hook in production code | `PathManager._test_stage_override` | The only one. `PathManager._is_stage_reached()` checks it first. |
 | Mutate the loaded save in place | `PersistenceManager.save_game_data.inventory = InventoryData.new()` (inventory integration tests) | Changes only in-memory state, but the rest of the developer's save stays loaded |
-| Instance a scene | `const X := preload("res://...tscn")`, `X.instantiate()`, `add_child_autofree(node)`, then `await get_tree().process_frame` before reading `@onready` nodes | 48 `await get_tree().process_frame` calls across 13 files |
+| Instance a scene | `const X := preload("res://...tscn")`, `X.instantiate()`, `add_child_autofree(node)`, then `await get_tree().process_frame` before reading `@onready` nodes | 62 `await get_tree().process_frame` calls across 19 files |
+| Step the clock by hand | Hold `ActionManager.action_timer` (`paused = true`) and emit its `timeout` for each tick or haul (`_tick()` in `test_training_flow.gd`, `_finish_haul()` in `test_zone_map_render.gd`); pause a tween and `custom_step()` it a 60 FPS frame at a time (`_run()`, `_step_until()` in `test_zone_map_render.gd`, on the map's `_idle_motion_tween`); take a node off the frame clock with `set_process(false)` and run its `_process` with `simulate()` (`_advance_floater()` in `test_map_markers.gd`) | A test that waits real seconds is slow, and if its checks depend on how long frames take it fails on a loaded machine: a floater placed a frame before its rise crossed a 2 px step, fewer ticks than the wait allows. `start(time_left)` then putting the haul's length back as `wait_time` holds a timer partway through (`_hold_haul_at()`). Release a held timer in `after_each()`: `ActionManager` is an autoload, so a paused timer would stop every later tick and haul |
 | A view state without the main scene | `test_merchant_view_state.gd`: `MainView.new()` that never enters the tree, a hand-built `state_stack`, and `merchant_view` / `grey_background` assigned directly | Call the state's signal handlers (`_on_start_merchant()`, `_on_stop_merchant()`, `_on_close_finished()`) instead of emitting `ActionManager` signals, since the state is never in the tree to connect them |
 | Zone view fixture | `PersistenceManager.save_game_data = SaveGameData.new()`, then `PersistenceManager.save_data_reset.emit()`; end with `while ActionManager.get_current_action() != null: ActionManager.stop_action()` (`test_idle_action_resolution.gd`, `test_zone_panel.gd`, `test_zone_travel.gd`) | Every action, card and map test starts from a fresh save and stops what it started, so no idle tick timer leaks into the next test. Never instance `main_game.tscn`: its `SaveTimer` writes the real save |
 | Pointer tests over a map | `_hosted_map()` in `test_zone_travel.gd` puts the map in a `CanvasLayer` above GUT's output window (layer 128) | In the full run GUT's window covers the screen and would take the pointer the hover tests move |
@@ -227,6 +228,7 @@ New tests should call the real method on the autoload, with its state swapped as
 - `[LOW]` Rename `TestRecordingEffect` in `tests/unit/test_quest_manager.gd`, for example to `RecordingEffect`, to clear the GUT inner-class warning.
 - `[LOW]` 24 Dialogic orphans per run come from the `Dialogic` autoload. GUT attributes them to `test_ability_manager.gd`.
 - `[LOW]` `test_pagination_bar.gd` (3 tests) and `test_trash_slot_flow.gd` (5 tests) still print per-test orphan lists (page buttons, item instances). The pagination bar's come from the same remove-then-queue-free pattern, so a frame's wait at the end of each test, as the cycling and chest tests do, would likely clear them; the trash flow's were not looked into.
+- `[MEDIUM]` Most scene tests still wait real seconds: `test_zone_travel.gd` (14 s, walks), `test_zone_panel.gd` (8 s), `test_book_frame.gd` and `test_cycling_technique.gd` (4 s each), `test_lacquer_pieces.gd` (3 s). Stepping their clocks by hand, as above, would shorten the run and keep any frame-length-dependent check steady on a loaded machine.
 - `[LOW]` The book tests call GUT's deprecated `wait_frames()`, which prints 30 deprecation notices per run. GUT suggests `wait_physics_frames()` or `wait_process_frames()`.
 - `[LOW]` `CountingEffect` is duplicated in `test_consumable_definition_data.gd` and `test_inventory_manager_consumables.gd`, and there is no shared helper module.
 - `[LOW]` `PathManager._test_stage_override` is a test hook in production code.
