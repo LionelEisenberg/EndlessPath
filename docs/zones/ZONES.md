@@ -245,7 +245,7 @@ To add a variant:
 | `LockedZoneOverlay` | `scenes/zones/locked_zone_overlay/` (`Node2D`) | Veiled tile for LOCKED or UNCHARTED (`map/lacquer_tile_locked_ai`, `lacquer_tile_uncharted_ai`, lighter on hover), inner rims `lacquer_hex_hover_in_ai` and `lacquer_hex_pinned_in_ai`. `setup(state)`, `set_hovered()`, `set_pinned()`. The veil art bakes the demo zones' tiles |
 | `ZoneRoute` | `scenes/zones/zone_route/` (`Node2D`) | `set_points(from, to)`, `set_lit(lit)`; draws `map/lacquer_route_dot_ai` (lit: the cream dot) in `_draw()` |
 | `ZoneMapLabel` | `scenes/zones/map_markers/zone_map_label/` | The plate. `setup(zone_data, state)`, `set_hovered()`, `set_pinned()` (brass frame), `set_name_only()`, `get_line_text()`; emits `pressed` |
-| `MapGlyph` | `scenes/zones/map_markers/map_glyph/` | Padlock or "?" with a twinkle (frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s). `shake()` moves the icon 0, −8, 8, −6, 4, 0 px over 0.44 s, each step held |
+| `MapGlyph` | `scenes/zones/map_markers/map_glyph/` | Padlock or "?" with a twinkle (frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s). `shake()` moves the icon 0, −8, 8, −6, 4, 0 px over 0.44 s, each step held. `shake_offset_at(elapsed, keyframes)` steps any keyframe set, `SHAKE_KEYFRAMES` (the lock shake) by default; `SOFT_SHAKE_KEYFRAMES`, 0, −4, 4, −2, 2, 0, is the shake of the adventure's technique slots when a press is refused |
 | `MapActionRing` | `scenes/zones/map_markers/map_action_ring/` | 13-frame jade ring; frame `floor(progress × 13)`, at most 12, from `action_timer`. Shown only while an idle action runs |
 | `LacquerFloater` | `scenes/common/lacquer/lacquer_floater/` | `pop(text, colour)` on `token.tres`; rises 40 px over 1 s in 2 px steps, then hides. The map's floater stops when the idle action changes. The cycling view has one per zone ([CYCLING.md](../cycling/CYCLING.md)) |
 | `ZoneMapPopover` | `scenes/zones/map_markers/zone_map_popover/` | Locked card (LOCKED chop, name, requirement; pinned: ×, "Show me ›") left of the hex, uncharted card (UNKNOWN) right of it. Emits `close_pressed`, `show_me_pressed(action_id)` |
@@ -768,6 +768,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/unit/test_award_attribute_effect_data.gd` | 3 | The effect that grants training's level reward |
 | `tests/unit/test_zone_map_math.gd` | 15 | Framing at every zoom, camera windows, fog tiers and art, wander and bob |
 | `tests/unit/test_map_popover_state.gd` | 18 | Click results, one pinned popover, the preview delay |
+| `tests/unit/test_map_glyph_shake.gd` | 7 | `MapGlyph`'s shake keyframe sets (the lock shake's, and the soft set the adventure's technique slots use) and `shake_offset_at()`; the padlock's own shake is in `test_zone_travel.gd` |
 | `tests/unit/test_camera_clamp_controller.gd` | 5 | Clamping the centre into the nearest region |
 | `tests/unit/test_character_walk_steps.gd` | 6 | Whole-px walk steps at the same pace (also the adventure map's 2 px steps) |
 | `tests/unit/test_hex_forest_atlas.gd` | 10 | Atlas picker shared with the adventure map; `pick_from()` |

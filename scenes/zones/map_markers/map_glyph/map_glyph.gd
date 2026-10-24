@@ -9,7 +9,10 @@ extends Control
 ## MapMarkers places the glyph over its hex every frame, so the lock shake (a
 ## click on the locked hex) moves %Icon instead: 0, -8, 8, -6, 4 and 0 px
 ## over 0.44 s, each step held until the next (kit §6.4). The shake reads
-## its steps from shake_offset_at(), the one keyframe table.
+## its steps from shake_offset_at(), the one function that steps through a
+## keyframe set. There are two sets: SHAKE_KEYFRAMES (the lock shake, which the
+## adventure's coins, Stamina row and Here tray share) and SOFT_SHAKE_KEYFRAMES,
+## which the adventure's buttons shake by when a press is refused (TechniqueSlot).
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -33,8 +36,13 @@ const _TWINKLE_FRAME_1_AGAIN_START: float = 3.9
 ## The lock shake's x offsets (px), one every SHAKE_STEP_SECONDS, each held
 ## until the next: SHAKE_SECONDS (0.44 s) in all.
 const SHAKE_KEYFRAMES: Array[int] = [0, -8, 8, -6, 4, 0]
+## The soft shake of a button that was pressed when it could not act: the lock
+## shake's rhythm (six keyframes, so SHAKE_SECONDS ends it too) at half its
+## travel, in whole even px (-2 where half of -6 would be the odd -3). Buttons
+## get pressed again and again in a fight, and the lock shake's 8 px was too much.
+const SOFT_SHAKE_KEYFRAMES: Array[int] = [0, -4, 4, -2, 2, 0]
 const SHAKE_STEP_SECONDS: float = 0.088
-## One step per keyframe after the first.
+## One step per keyframe after the first. Both sets have six keyframes.
 const SHAKE_SECONDS: float = SHAKE_STEP_SECONDS * 5.0
 
 #-----------------------------------------------------------------------------
@@ -98,13 +106,16 @@ func shake() -> void:
 func is_shaking() -> bool:
 	return _shake_tween != null and _shake_tween.is_valid() and _shake_tween.is_running()
 
-## The padlock's x offset (px) at elapsed seconds into a shake.
-static func shake_offset_at(elapsed: float) -> int:
+## The x offset (px) at elapsed seconds into a shake over keyframes, each held
+## for SHAKE_STEP_SECONDS: the lock shake (SHAKE_KEYFRAMES) by default, or
+## SOFT_SHAKE_KEYFRAMES for a button. Shakes call this instead of stepping
+## through a set themselves.
+static func shake_offset_at(elapsed: float, keyframes: Array[int] = SHAKE_KEYFRAMES) -> int:
 	if elapsed <= 0.0:
-		return SHAKE_KEYFRAMES[0]
+		return keyframes[0]
 	# The small bias keeps a time on a keyframe (0.44 s) from flooring short.
 	var index: int = floori(elapsed / SHAKE_STEP_SECONDS + 0.0001)
-	return SHAKE_KEYFRAMES[mini(index, SHAKE_KEYFRAMES.size() - 1)]
+	return keyframes[mini(index, keyframes.size() - 1)]
 
 ## The twinkle strip frame (0-2) at elapsed seconds into its 4 s cycle.
 static func twinkle_frame(elapsed: float) -> int:

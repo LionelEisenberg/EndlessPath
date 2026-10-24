@@ -574,19 +574,43 @@ func test_refused_press_shakes_and_does_not_emit() -> void:
 	assert_false(_slot(1).is_shaking(), "only the pressed slot")
 	assert_signal_not_emitted(_dock, "ability_selected")
 	assert_signal_not_emitted(LogManager, "message_logged", "no log line: the sweep already says why")
-	# MapGlyph's keyframes: 0, -8, 8, -6, 4, 0, each held 0.088 s.
+	# MapGlyph's soft keyframes (the lock shake's rhythm at half its travel):
+	# 0, -4, 4, -2, 2, 0, each held 0.088 s.
 	var body: Control = _slot_node(0, "Body")
 	simulate(_slot(0), 1, 0.1)
-	assert_eq(body.position.x, -8.0, "0.1 s in")
+	assert_eq(body.position.x, -4.0, "0.1 s in")
 	simulate(_slot(0), 1, 0.1)
-	assert_eq(body.position.x, 8.0, "0.2 s in")
+	assert_eq(body.position.x, 4.0, "0.2 s in")
 	simulate(_slot(0), 1, 0.1)
-	assert_eq(body.position.x, -6.0, "0.3 s in")
+	assert_eq(body.position.x, -2.0, "0.3 s in")
 	simulate(_slot(0), 1, 0.1)
-	assert_eq(body.position.x, 4.0, "0.4 s in")
+	assert_eq(body.position.x, 2.0, "0.4 s in")
 	simulate(_slot(0), 1, 0.045)
 	assert_eq(body.position.x, 0.0, "home after 0.44 s")
 	assert_false(_slot(0).is_shaking(), "and done")
+
+## The refusal is a soft shake (review round 2: the lock shake's 8 px was too
+## much for a button): at every moment of its 0.44 s, not only in the middle of
+## each step the test above samples, the socket is in whole even px and never
+## more than 4 px from home, and it does go the full 4 px each way.
+func test_the_refusal_shake_stays_within_4_even_px() -> void:
+	_start_fight()
+	var body: Control = _slot_node(0, "Body")
+	_slot(0).refuse()
+	var offsets: Array[float] = [body.position.x]
+	for _frame: int in 100:
+		if not _slot(0).is_shaking():
+			break
+		simulate(_slot(0), 1, 0.01)
+		offsets.append(body.position.x)
+	assert_false(_slot(0).is_shaking(), "precondition: the shake ended while it was sampled")
+	assert_gt(offsets.size(), 40, "precondition: sampled every 10 ms through the 0.44 s")
+	for offset: float in offsets:
+		assert_between(offset, -4.0, 4.0, "never more than 4 px from home")
+		assert_eq(fmod(offset, 2.0), 0.0, "whole even px (%s)" % offset)
+	assert_has(offsets, -4.0, "it goes the full 4 px left")
+	assert_has(offsets, 4.0, "and the full 4 px right")
+	assert_eq(offsets[offsets.size() - 1], 0.0, "and ends at home")
 
 ## The socket shakes; the slot itself (what the pointer hovers), its key cap and
 ## its cost line stay put, as the mock's button shakes alone.
@@ -598,14 +622,14 @@ func test_the_shake_moves_the_socket_not_the_slot() -> void:
 	var cost_line_home: Vector2 = cost_line.position
 	_slot(0).refuse()
 	simulate(_slot(0), 1, 0.1)
-	assert_eq((_slot_node(0, "Body") as Control).position, Vector2(-8.0, 0.0), "precondition: mid-shake")
+	assert_eq((_slot_node(0, "Body") as Control).position, Vector2(-4.0, 0.0), "precondition: mid-shake")
 	assert_eq(_slot(0).position, SLOT_POSITIONS[0], "the slot stays")
 	assert_eq(key_cap.position, key_cap_home, "the key cap stays")
 	assert_eq(cost_line.position, cost_line_home, "the cost line stays")
 	_slot(0).refuse()
 	assert_eq((_slot_node(0, "Body") as Control).position.x, 0.0, "a new shake starts from home")
 	simulate(_slot(0), 1, 0.1)
-	assert_eq((_slot_node(0, "Body") as Control).position.x, -8.0, "and runs from its first keyframe")
+	assert_eq((_slot_node(0, "Body") as Control).position.x, -4.0, "and runs from its first keyframe")
 
 ## Too little of the resource, or another technique casting, refuses a press
 ## the same way, as can_cast_ability_instance() decides. A key over an empty

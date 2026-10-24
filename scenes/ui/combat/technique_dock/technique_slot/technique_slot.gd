@@ -20,9 +20,11 @@ extends Control
 ## binds them, so bind() reads the running timer.
 ## Hover shows the hover frame and emits hovered (the dock opens the tooltip);
 ## a left press on an ACTIVE slot emits pressed, and the dock decides. A refused
-## press shakes the socket in the zone map's lock-shake steps (refuse()), as
-## the mock's button shakes alone: the slot (what the pointer hovers), its key
-## cap and its cost line stay put.
+## press shakes the socket in the soft shake's steps (refuse()): the zone map's
+## lock shake at half its travel (MapGlyph.SOFT_SHAKE_KEYFRAMES, 4 px at most),
+## since a fight presses a slot again and again. As the mock's button shakes
+## alone, the slot (what the pointer hovers), its key cap and its cost line stay
+## put.
 ## The cost line (the resource's mini icon and the amount) is centred under the
 ## slot in a box 81 px wide, not 80: a BoxContainer floors a centre that falls
 ## on a half pixel, and the extra pixel makes it round up instead, as the mock's
@@ -154,11 +156,12 @@ func bind(instance: CombatAbilityInstance, slot_index: int, vitals_manager: Vita
 		_show_cooldown(instance.cooldown_timer.time_left)
 	_refresh()
 
-## Shakes the socket side to side in the zone map's lock-shake steps, to say a
-## press was refused. A new shake restarts it.
+## Shakes the socket side to side in the soft shake's steps (the lock shake's
+## rhythm at half its travel), to say a press was refused. A new shake restarts
+## it.
 func refuse() -> void:
 	_shake_elapsed = 0.0
-	_body.position.x = MapGlyph.shake_offset_at(_shake_elapsed)
+	_apply_shake_offset()
 	_update_processing()
 
 ## Returns true while the socket is shaking.
@@ -301,11 +304,15 @@ func _unbind_instance() -> void:
 
 func _step_shake(delta: float) -> void:
 	_shake_elapsed += delta
-	_body.position.x = MapGlyph.shake_offset_at(_shake_elapsed)
+	_apply_shake_offset()
 	if _shake_elapsed >= MapGlyph.SHAKE_SECONDS:
 		_shake_elapsed = -1.0
 		_body.position.x = 0.0
 		_update_processing()
+
+## Puts the socket where the soft shake is, _shake_elapsed seconds into it.
+func _apply_shake_offset() -> void:
+	_body.position.x = MapGlyph.shake_offset_at(_shake_elapsed, MapGlyph.SOFT_SHAKE_KEYFRAMES)
 
 ## Processes only while there is something to do each frame.
 func _update_processing() -> void:
