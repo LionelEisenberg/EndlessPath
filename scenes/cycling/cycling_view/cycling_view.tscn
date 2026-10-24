@@ -23,14 +23,17 @@ mouse_filter = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_view")
 
-[node name="Board" type="TextureRect" parent="." unique_id=1584902117]
+[node name="Board" type="NinePatchRect" parent="." unique_id=1584902117]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 680.0
 offset_top = 24.0
 offset_right = 1244.0
 offset_bottom = 1060.0
+mouse_filter = 1
 texture = ExtResource("3_board")
+patch_margin_top = 132
+patch_margin_bottom = 500
 
 [node name="ActionLabel" type="Label" parent="." unique_id=1203746581]
 unique_name_in_owner = true
@@ -41,7 +44,7 @@ offset_right = 1106.0
 offset_bottom = 57.0
 theme_type_variation = &"LabelLacquerDetail"
 text = "Wilderness Cycling"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="TitleLabel" type="Label" parent="." unique_id=1938475620]
 unique_name_in_owner = true
@@ -52,7 +55,7 @@ offset_right = 1178.0
 offset_bottom = 90.0
 theme_type_variation = &"LabelLacquerPanelTitle"
 text = "Smooth Flow Technique"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="EscLabel" type="Label" parent="." unique_id=640918273]
 unique_name_in_owner = true
@@ -109,7 +112,7 @@ offset_right = 1078.0
 offset_bottom = 1010.0
 theme_type_variation = &"LabelLacquerName"
 text = "Click the Madra ball to begin a cycle."
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="AutoToggle" type="TextureButton" parent="." unique_id=1671329048]
 unique_name_in_owner = true

@@ -5,8 +5,10 @@ extends Control
 ## The cycling board: a lacquer board in the zone view's map gap, with the
 ## carved figure and the equipped technique's groove, ball and zones on it
 ## (CyclingTechnique), the action's name, the technique's name and a close
-## button above, and a status line and the Auto toggle below. A finished cycle's
-## result goes to CyclingManager, and the zone chest shows it under its Now tray.
+## button above, and a status line and the Auto toggle below. A name or a status
+## line too long for its line wraps, never cut, and the board grows under it.
+## A finished cycle's result goes to CyclingManager, and the zone chest shows
+## it under its Now tray.
 ## The cabinet on the left is the Madra and Core Density readout, so the view
 ## has none of its own: the Madra pellets fly from the ball into the cabinet's
 ## Madra orb and the XP pellets from a zone into its Core orb. MainView hands
@@ -79,10 +81,23 @@ const _PELLET_TAN: Texture2D = preload("res://assets/ui/lacquer/cycling/lacquer_
 ## The Auto label sits this many px lower while the toggle is pressed in.
 const _AUTO_PRESS_DROP: float = 2.0
 
+## The board's rows from its top. The figure box stands at FIGURE_TOP, or lower
+## to stay FIGURE_GAP under the title's last line, and the footer (the status
+## line beside the Auto toggle) FOOTER_GAP under the figure. The board keeps its
+## art's height until the footer comes within BOARD_ROOM of its bottom (the
+## bottom frame, the corner brackets and the shadow), then grows to keep that
+## room, so a two-line name and a two-line status line together still end on
+## screen.
+const FIGURE_TOP: float = 104.0
+const FIGURE_GAP: float = 14.0
+const FOOTER_GAP: float = 6.0
+const BOARD_ROOM: float = 30.0
+
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
+@onready var _board: NinePatchRect = %Board
 @onready var _action_label: Label = %ActionLabel
 @onready var _title_label: Label = %TitleLabel
 @onready var _close_button: TextureButton = %CloseButton
@@ -185,6 +200,7 @@ func _load_equipped_technique() -> void:
 func _apply_technique(technique: CyclingTechniqueData) -> void:
 	_technique.setup(technique)
 	_title_label.text = technique.technique_name
+	_relayout_board()
 	_rebuild_floaters()
 	CyclingManager.clear_last_cycle_result()
 	_cycled_before = false
@@ -193,10 +209,11 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 # THE STATUS LINE AND THE CURSOR
 #-----------------------------------------------------------------------------
 
-## Shows the status line for the technique's state this frame.
+## Shows the status line for the technique's state this frame, and lays the
+## board out again when the line changes.
 func _update_status() -> void:
 	var madra_full: bool = ResourceManager.get_madra() >= CultivationManager.get_max_madra()
-	_status_label.text = status_line(
+	var line: String = status_line(
 		_cycled_before,
 		_technique.is_cycling(),
 		CyclingManager.get_cycle_elapsed(),
@@ -204,6 +221,10 @@ func _update_status() -> void:
 		_technique.is_tracking(),
 		madra_full,
 		not _technique.cycling_zones.is_empty())
+	if line == _status_label.text:
+		return
+	_status_label.text = line
+	_relayout_board()
 
 ## Gives the figure box the pointing hand while a click at `cursor_global` would
 ## do something (start a cycle or score a zone), the arrow otherwise.
@@ -211,6 +232,34 @@ func _update_cursor(cursor_global: Vector2) -> void:
 	var shape: Control.CursorShape = Control.CURSOR_POINTING_HAND if _technique.wants_pointer(cursor_global) else Control.CURSOR_ARROW
 	if _figure_box.mouse_default_cursor_shape != shape:
 		_figure_box.mouse_default_cursor_shape = shape
+
+#-----------------------------------------------------------------------------
+# THE BOARD'S LAYOUT
+#-----------------------------------------------------------------------------
+
+## Stacks the board from its top: the action's name, the technique's name, the
+## figure, then the footer, where the status line sits beside the Auto toggle,
+## the shorter centred on the taller. A name or a status line too long for its
+## line wraps and pushes what is under it down, and the board grows by as much
+## from its art's height (its plain middle stretches). With a line each, the
+## rows stand where the scene puts them.
+func _relayout_board() -> void:
+	_fit_lines(_action_label)
+	_title_label.position.y = _action_label.position.y + _action_label.size.y
+	_fit_lines(_title_label)
+	var title_bottom: float = _title_label.position.y + _title_label.size.y
+	_figure_box.position.y = maxf(FIGURE_TOP, 2.0 * ceilf((title_bottom + FIGURE_GAP) / 2.0))
+	var footer_top: float = _figure_box.position.y + _figure_box.size.y + FOOTER_GAP
+	_fit_lines(_status_label)
+	var footer_height: float = maxf(_auto_toggle.size.y, _status_label.size.y)
+	_auto_toggle.position.y = footer_top + (footer_height - _auto_toggle.size.y) / 2.0
+	_status_label.position.y = footer_top + (footer_height - _status_label.size.y) / 2.0
+	var board_bottom: float = footer_top + footer_height + BOARD_ROOM
+	_board.size.y = maxf(_board.texture.get_size().y, board_bottom - _board.position.y)
+
+## Makes a label as tall as its lines at its width.
+static func _fit_lines(label: Label) -> void:
+	label.size.y = label.get_minimum_size().y
 
 #-----------------------------------------------------------------------------
 # PELLETS AND FLOATERS
@@ -302,6 +351,7 @@ func _on_shown() -> void:
 	CyclingManager.clear_last_cycle_result()
 	_cycled_before = false
 	_update_status()
+	_relayout_board()
 
 ## The board hides: the running cycle ends without a result, so reopening finds
 ## the zones idle, the groove dark and the ball at the start, every floater

@@ -39,6 +39,18 @@ const MADRA_PELLET_PATH: String = "res://assets/ui/lacquer/lacquer_madra_pellet_
 ## grid. Every other node of the board stands on even px.
 const ODD_TEXT_RECTS: Array[String] = ["EscLabel", "TitleLabel"]
 
+## The board grows by stretching its plain middle: rows 132 to 535 of its art,
+## which are all the same.
+const BOARD_STRETCH_TOP: int = 132
+const BOARD_STRETCH_BOTTOM: int = 535
+
+## A technique name and a status line too long for one line of the board.
+const LONG_TITLE: String = "The Heaven-Shaking Thousandfold Smooth Flow Technique"
+const LONG_STATUS: String = "Cycling · 12 / 15 s · follow the ball · Madra full · zones still pay XP"
+## The room the board keeps under its footer for its bottom frame, corner
+## brackets and shadow once it grows; with one line each it has 42.
+const ROOM_UNDER_FOOTER: float = 30.0
+
 ## A cursor far from the ball and from every zone.
 const FAR: Vector2 = Vector2(-9999.0, -9999.0)
 
@@ -305,7 +317,7 @@ func test_esc_label_is_right_aligned_before_the_close_button() -> void:
 	assert_eq(esc.horizontal_alignment, HORIZONTAL_ALIGNMENT_RIGHT)
 
 func test_board_shows_its_art_at_file_size() -> void:
-	var board := _node("Board") as TextureRect
+	var board := _node("Board") as NinePatchRect
 	assert_eq(board.texture.get_size(), Vector2(564.0, 1036.0))
 	assert_eq(board.size, board.texture.get_size(), "the board and its 4 px shadow, at file size")
 	var body := _node("Body") as TextureRect
@@ -317,6 +329,83 @@ func test_board_shows_its_art_at_file_size() -> void:
 	var auto := _node("AutoToggle") as TextureButton
 	assert_eq(auto.texture_normal.resource_path, "res://assets/ui/lacquer/cycling/lacquer_cyc_auto_ai.png")
 	assert_eq(auto.texture_pressed.resource_path, "res://assets/ui/lacquer/cycling/lacquer_cyc_auto_on_ai.png")
+
+func test_the_board_grows_by_stretching_only_its_plain_middle() -> void:
+	var board := _node("Board") as NinePatchRect
+	var height: int = int(board.texture.get_size().y)
+	assert_eq(board.patch_margin_top, BOARD_STRETCH_TOP, "the top's corners, frame and grain stay as drawn")
+	assert_eq(board.patch_margin_bottom, height - BOARD_STRETCH_BOTTOM - 1, "and so does the bottom")
+	assert_eq([board.patch_margin_left, board.patch_margin_right], [0, 0], "it never stretches across")
+	var image: Image = board.texture.get_image()
+	var first: PackedByteArray = image.get_region(Rect2i(0, BOARD_STRETCH_TOP, image.get_width(), 1)).get_data()
+	var differing: Array[int] = []
+	for y: int in range(BOARD_STRETCH_TOP + 1, BOARD_STRETCH_BOTTOM + 1):
+		if image.get_region(Rect2i(0, y, image.get_width(), 1)).get_data() != first:
+			differing.append(y)
+	assert_eq(differing, [] as Array[int], "every row of the band is the same, so stretching it shows nothing")
+
+func test_no_board_text_is_cut_off() -> void:
+	for unique_name: String in ["ActionLabel", "TitleLabel", "StatusLabel"]:
+		var label := _node(unique_name) as Label
+		assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "%s never ends in an ellipsis" % unique_name)
+		assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "%s wraps instead" % unique_name)
+
+func test_a_long_title_wraps_and_pushes_the_board_down() -> void:
+	var data: CyclingTechniqueData = _technique.technique_data.duplicate() as CyclingTechniqueData
+	data.technique_name = LONG_TITLE
+	_technique.setup(data)
+	_view.hide()
+	_view.show()
+	var title := _node("TitleLabel") as Label
+	var figure := _node("FigureBox") as Control
+	var board := _node("Board") as Control
+	assert_eq(title.text, LONG_TITLE, "the whole name")
+	assert_eq(title.get_line_count(), 2, "it wraps")
+	assert_eq(title.get_visible_line_count(), 2, "and both lines show")
+	assert_eq(title.position, Vector2(710.0, 57.0), "from where one line stands")
+	var drop: float = figure.position.y - 104.0
+	assert_gt(drop, 0.0, "the figure moves down under the second line")
+	assert_eq(figure.position.y, 2.0 * ceilf((title.position.y + title.size.y + 14.0) / 2.0), "14 px under it, on even px")
+	assert_eq((_node("StatusLabel") as Control).position.y, 990.0 + drop, "the status line follows")
+	assert_eq((_node("AutoToggle") as Control).position.y, 982.0 + drop, "and so does the Auto toggle")
+	assert_eq(board.position, Vector2(680.0, 24.0), "the board stays where it stands")
+	var auto := _node("AutoToggle") as Control
+	assert_eq(board.position.y + board.size.y, auto.position.y + auto.size.y + ROOM_UNDER_FOOTER, "and grows to keep its bottom frame clear of the footer")
+	assert_lte(board.position.y + board.size.y, 1080.0, "on screen")
+	_technique.advance(FRAME, FAR)
+	assert_eq(_technique.get_ball_global_position(), _ready_ball(), "a frame on, the ball waits on the moved figure")
+	await _await_queued_frees()
+
+func test_a_long_status_line_wraps_into_the_room_under_the_footer() -> void:
+	var status := _node("StatusLabel") as Label
+	var auto := _node("AutoToggle") as Control
+	status.text = LONG_STATUS
+	_view._relayout_board()
+	assert_eq(status.get_line_count(), 2, "the line wraps")
+	assert_eq(status.get_visible_line_count(), 2, "and both lines show")
+	var row: float = status.size.y
+	assert_gt(row, auto.size.y, "precondition: two lines stand taller than the toggle")
+	assert_eq(status.position, Vector2(710.0, 982.0), "the lines start at the footer's top")
+	assert_eq(auto.position.y, 982.0 + (row - auto.size.y) / 2.0, "the toggle centres on them")
+	assert_eq((_node("FigureBox") as Control).position.y, 104.0, "the figure stays")
+	assert_eq((_node("Board") as Control).size.y, 1036.0, "the footer takes the room over the board's bottom frame, and the board keeps its height")
+	assert_lte(status.position.y + status.size.y + ROOM_UNDER_FOOTER, 1060.0, "with the frame still clear")
+
+func test_a_long_name_and_a_long_status_line_still_end_on_screen() -> void:
+	var data: CyclingTechniqueData = _technique.technique_data.duplicate() as CyclingTechniqueData
+	data.technique_name = LONG_TITLE
+	_technique.setup(data)
+	_view.hide()
+	_view.show()
+	var status := _node("StatusLabel") as Label
+	status.text = LONG_STATUS
+	_view._relayout_board()
+	assert_eq((_node("TitleLabel") as Label).get_line_count(), 2, "precondition: the name takes two lines")
+	assert_eq(status.get_line_count(), 2, "precondition: and so does the status line")
+	var board := _node("Board") as Control
+	assert_lte(board.position.y + board.size.y, 1080.0, "the board, its frame and its shadow still end on screen")
+	assert_lte(status.position.y + status.size.y + ROOM_UNDER_FOOTER, board.position.y + board.size.y, "with the status line clear of the bottom frame")
+	await _await_queued_frees()
 
 func test_board_uses_the_lacquer_theme_and_label_variants() -> void:
 	assert_eq(_view.theme.resource_path, "res://assets/themes/lacquer/lacquer_theme.tres")
