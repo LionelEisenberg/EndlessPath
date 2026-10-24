@@ -7,6 +7,8 @@ extends Node
 #-----------------------------------------------------------------------------
 signal core_density_xp_updated(xp: float, level: float)
 signal core_density_level_updated(xp: float, level: float)
+## Emitted once, on the level-up that reaches the stage's Core Density cap.
+signal core_filled(stage: AdvancementStage)
 signal advancement_stage_changed(new_stage: AdvancementStage)
 
 #-----------------------------------------------------------------------------
@@ -34,6 +36,8 @@ const PATH_POINTS_PER_STAGE: Dictionary = {
 const PATH_POINT_LEVEL_INTERVAL: int = 10
 ## Core Density level the Breakthrough milestone asks for (the design's 0-100 per stage).
 const BREAKTHROUGH_LEVEL: int = 100
+## Written to the player's log when the core fills and a next stage waits.
+const CORE_FULL_LOG: String = "Your core is full. The Tribulation waits in Spirit Valley."
 
 #-----------------------------------------------------------------------------
 # PLAYER DATA (Held by this manager)
@@ -67,23 +71,48 @@ func _update_resources() -> void:
 #-----------------------------------------------------------------------------
 # PUBLIC LOGIC FUNCTIONS
 #-----------------------------------------------------------------------------
-## Add XP to core density and handle level progression.
-func add_core_density_xp(amount: float):
+## Add XP to core density and handle level progression. A full core takes none:
+## the XP is lost. The level-up that reaches the stage's cap drops the XP left
+## over, then announces the full core.
+func add_core_density_xp(amount: float) -> void:
 	if live_save_data == null:
 		Log.error("CultivationManager: Cannot add XP - live_save_data is null")
 		return
 	
+	# A full core holds no XP, so what arrives (and what an older save held) is lost
+	if is_core_full():
+		live_save_data.core_density_xp = 0.0
+		core_density_xp_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
+		return
+
 	# Add XP to current amount
 	live_save_data.core_density_xp += amount
 	
 	# Check for level progression
-	var xp_needed_for_next_level = get_xp_for_next_level()
+	var cap: int = get_core_density_cap()
+	var xp_needed_for_next_level: float = get_xp_for_next_level()
 	
 	# Level up if we have enough XP
 	while live_save_data.core_density_xp >= xp_needed_for_next_level:
+		# A free level, or a stage with no resource, costs 0 XP and passes every
+		# check: stop here instead of levelling for nothing (or forever)
+		if xp_needed_for_next_level <= 0.0:
+			Log.error("CultivationManager: Cannot level - level %d of stage %s costs no XP (a free level or a missing stage resource)" % [
+				int(live_save_data.core_density_level) + 1,
+				AdvancementStage.find_key(live_save_data.current_advancement_stage),
+			])
+			break
+		# Nothing levels past the cap
+		if live_save_data.core_density_level >= cap:
+			break
+
 		# Level up
 		live_save_data.core_density_level += 1
 		live_save_data.core_density_xp -= xp_needed_for_next_level
+		var reached_cap: bool = live_save_data.core_density_level >= cap
+		if reached_cap:
+			# The core is full: the XP left over is lost
+			live_save_data.core_density_xp = 0.0
 
 		# Emit level up signal
 		core_density_level_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
@@ -94,10 +123,28 @@ func add_core_density_xp(amount: float):
 			if PathManager:
 				PathManager.add_points(points)
 
+		if reached_cap:
+			core_filled.emit(live_save_data.current_advancement_stage)
+			if has_next_stage() and LogManager:
+				LogManager.log_message(CORE_FULL_LOG)
+			break
+
 		# Get XP needed for next level
 		xp_needed_for_next_level = get_xp_for_next_level()
 	
 	# Always emit XP updated signal for UI updates
+	core_density_xp_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
+
+## Take `count` levels of Core Density away, never below level 0. The XP towards
+## the next level goes with them. The path points stay: they were already earned.
+func lose_core_density_levels(count: int) -> void:
+	if live_save_data == null:
+		Log.error("CultivationManager: Cannot lose levels - live_save_data is null")
+		return
+
+	live_save_data.core_density_level = maxf(0.0, live_save_data.core_density_level - count)
+	live_save_data.core_density_xp = 0.0
+	core_density_level_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
 	core_density_xp_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
 
 func attempt_breakthrough():
@@ -119,6 +166,22 @@ func get_core_density_level() -> float:
 	if live_save_data == null:
 		return 0.0
 	return live_save_data.core_density_level
+
+## The highest Core Density level of the current stage, where XP stops. 0 when
+## there is no save or no stage resource.
+func get_core_density_cap() -> int:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.max_core_density_level if res else 0
+
+## True when Core Density has reached the current stage's cap.
+func is_core_full() -> bool:
+	var cap: int = get_core_density_cap()
+	return cap > 0 and get_core_density_level() >= cap
+
+## True when the current stage has a next stage to break through to.
+func has_next_stage() -> bool:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res != null and res.next_stage != null
 
 ## Maximum Madra the player can hold: the current stage's curve at the current
 ## Core Density level. 0.0 when there is no save or stage resource.

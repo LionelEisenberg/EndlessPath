@@ -2,8 +2,10 @@ extends GutTest
 
 ## Unit tests for CultivationManager: the real add_core_density_xp() level-up
 ## loop (single and multi-level gains, XP carry-over), its signals, the path
-## point milestone awards it hands to PathManager, the stage-name lookups, and
-## the AdvancementStageResource XP curve it reads.
+## point milestone awards it hands to PathManager, the Core Density cap (levels
+## and XP stop at the stage's cap, core_filled, the full-core log line, losing
+## levels), the stage-name lookups, and the AdvancementStageResource XP curve
+## it reads.
 ##
 ## Each test runs on a fresh SaveGameData that every manager is re-bound to,
 ## with CultivationManager's stage list swapped for deterministic test stages.
@@ -55,6 +57,15 @@ func _use_stages(stages: Array[AdvancementStageResource]) -> void:
 ## Swaps in a flat curve where every level costs 1 XP, so N XP gives N levels.
 func _use_flat_curve() -> void:
 	_use_stages([_make_stage(Stage.FOUNDATION, "Flat Foundation", 1.0, 1.0)])
+
+## The lines LogManager announced since watch_signals(LogManager) that contain `text`.
+func _logged_lines_with(text: String) -> Array[String]:
+	var lines: Array[String] = []
+	for index: int in maxi(get_signal_emit_count(LogManager, "message_logged"), 0):
+		var line: String = get_signal_parameters(LogManager, "message_logged", index)[0]
+		if line.contains(text):
+			lines.append(line)
+	return lines
 
 #-----------------------------------------------------------------------------
 # NEW SAVE
@@ -203,6 +214,128 @@ func test_milestone_points_scale_with_stage() -> void:
 		CultivationManager.add_core_density_xp(10.0)
 		assert_eq(PathManager.get_point_balance(), expected_points[stage],
 			"level 10 at %s" % Stage.keys()[stage])
+
+#-----------------------------------------------------------------------------
+# CORE DENSITY CAP
+#-----------------------------------------------------------------------------
+
+func test_levels_stop_at_the_cap() -> void:
+	_use_flat_curve()
+	CultivationManager.add_core_density_xp(150.0)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0, "100 of the 150 XP buy levels 1 to 100")
+	assert_eq(CultivationManager.get_core_density_xp(), 0.0, "the other 50 are lost, not kept")
+
+## A save from before the cap can stand at it with XP in hand: the next award
+## drops that too.
+func test_xp_at_the_cap_is_lost() -> void:
+	_save.core_density_level = 100.0
+	_save.core_density_xp = 3.0
+	watch_signals(CultivationManager)
+	CultivationManager.add_core_density_xp(50.0)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0)
+	assert_eq(CultivationManager.get_core_density_xp(), 0.0, "the 3 held and the 50 earned are both lost")
+	assert_signal_not_emitted(CultivationManager, "core_density_level_updated")
+	assert_signal_emit_count(CultivationManager, "core_density_xp_updated", 1)
+	assert_signal_emitted_with_parameters(CultivationManager, "core_density_xp_updated", [0.0, 100.0])
+
+func test_cap_comes_from_the_stage() -> void:
+	var short_stage := _make_stage(Stage.FOUNDATION, "Short Foundation", 1.0, 1.0)
+	short_stage.max_core_density_level = 20
+	_use_stages([short_stage])
+	assert_eq(CultivationManager.get_core_density_cap(), 20)
+	CultivationManager.add_core_density_xp(50.0)
+	assert_eq(CultivationManager.get_core_density_level(), 20.0, "the stage's cap, not the default 100")
+
+func test_is_core_full() -> void:
+	_save.core_density_level = 99.0
+	assert_false(CultivationManager.is_core_full(), "one level short")
+	_save.core_density_level = 100.0
+	assert_true(CultivationManager.is_core_full())
+
+func test_core_filled_once_at_the_cap() -> void:
+	_use_flat_curve()
+	watch_signals(CultivationManager)
+	CultivationManager.add_core_density_xp(150.0)
+	assert_signal_emit_count(CultivationManager, "core_filled", 1)
+	assert_signal_emitted_with_parameters(CultivationManager, "core_filled", [Stage.FOUNDATION])
+	CultivationManager.add_core_density_xp(10.0)
+	assert_signal_emit_count(CultivationManager, "core_filled", 1, "a full core does not fill again")
+
+func test_full_core_log_line_needs_a_next_stage() -> void:
+	var flat := _make_stage(Stage.FOUNDATION, "Flat Foundation", 1.0, 1.0)
+	_use_stages([flat])
+	watch_signals(LogManager)
+
+	CultivationManager.add_core_density_xp(100.0)
+	assert_eq(_logged_lines_with(CultivationManager.CORE_FULL_LOG).size(), 0, "no stage waits, so a full core says nothing")
+
+	_save.core_density_level = 0.0
+	flat.next_stage = _make_stage(Stage.COPPER, "Test Copper", 10.0, 1.0)
+	CultivationManager.add_core_density_xp(100.0)
+	var said: Array[String] = _logged_lines_with(CultivationManager.CORE_FULL_LOG)
+	assert_eq(said.size(), 1, "a stage waits, so the full core says so once")
+	assert_eq(said.front(), CultivationManager.CORE_FULL_LOG, "as plain text, with no colour tag")
+
+## A cost of 0 passes every XP check. The guard stops there; without it the
+## call would climb to the cap for nothing.
+func test_a_free_level_does_not_level() -> void:
+	_use_stages([_make_stage(Stage.FOUNDATION, "Free", 0.0, 1.0)])
+	CultivationManager.add_core_density_xp(5.0)
+	assert_eq(CultivationManager.get_core_density_level(), 0.0)
+
+func test_no_stage_resource_does_not_level() -> void:
+	var no_stages: Array[AdvancementStageResource] = []
+	_use_stages(no_stages)
+	CultivationManager.add_core_density_xp(5.0)
+	assert_eq(CultivationManager.get_core_density_level(), 0.0)
+	assert_eq(CultivationManager.get_core_density_cap(), 0, "no stage resource, no cap")
+	assert_false(CultivationManager.is_core_full(), "and a cap of 0 is not a full core")
+
+## The level that fills the core drops the spare XP before it announces itself,
+## so the cabinet never sees a full core holding XP.
+func test_the_filling_level_up_announces_an_empty_core() -> void:
+	_use_flat_curve()
+	watch_signals(CultivationManager)
+	CultivationManager.add_core_density_xp(150.0)
+	assert_signal_emit_count(CultivationManager, "core_density_level_updated", 100)
+	assert_signal_emitted_with_parameters(CultivationManager, "core_density_level_updated", [51.0, 99.0], 98)
+	assert_signal_emitted_with_parameters(CultivationManager, "core_density_level_updated", [0.0, 100.0], 99)
+
+func test_the_level_that_fills_the_core_pays_its_milestone() -> void:
+	_use_flat_curve()
+	_save.core_density_level = 99.0
+	CultivationManager.add_core_density_xp(1.0)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0)
+	assert_eq(PathManager.get_point_balance(), 1, "level 100 is a milestone like any other")
+
+func test_losing_levels() -> void:
+	_save.core_density_level = 100.0
+	watch_signals(CultivationManager)
+	CultivationManager.lose_core_density_levels(5)
+	assert_eq(CultivationManager.get_core_density_level(), 95.0)
+	assert_eq(CultivationManager.get_core_density_xp(), 0.0)
+	assert_signal_emit_count(CultivationManager, "core_density_level_updated", 1)
+	assert_signal_emitted_with_parameters(CultivationManager, "core_density_level_updated", [0.0, 95.0])
+	assert_signal_emit_count(CultivationManager, "core_density_xp_updated", 1)
+	assert_signal_emitted_with_parameters(CultivationManager, "core_density_xp_updated", [0.0, 95.0])
+
+func test_losing_more_levels_than_held_stops_at_zero() -> void:
+	_save.core_density_level = 3.0
+	_save.core_density_xp = 4.0
+	CultivationManager.lose_core_density_levels(5)
+	assert_eq(CultivationManager.get_core_density_level(), 0.0, "never below level 0")
+	assert_eq(CultivationManager.get_core_density_xp(), 0.0, "the partial level goes with the levels")
+
+func test_losing_levels_keeps_path_points() -> void:
+	_save.core_density_level = 100.0
+	_save.path_points = 7
+	CultivationManager.lose_core_density_levels(5)
+	assert_eq(PathManager.get_point_balance(), 7, "the points were earned; losing the levels does not take them back")
+
+func test_has_next_stage() -> void:
+	assert_false(CultivationManager.has_next_stage(), "the fixture's Foundation leads nowhere")
+	_stage_resource.next_stage = _make_stage(Stage.COPPER, "Test Copper", 10.0, 1.0)
+	assert_true(CultivationManager.has_next_stage())
 
 #-----------------------------------------------------------------------------
 # STAGE NAMES
