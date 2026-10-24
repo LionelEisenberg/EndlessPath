@@ -638,6 +638,17 @@ func test_scoring_pops_the_zone_floater_and_pellets() -> void:
 	for other: LacquerFloater in _floaters().slice(1):
 		assert_false(other.visible, "only the scored zone's floater shows")
 
+func test_a_full_core_floater_sends_no_pellets() -> void:
+	PersistenceManager.save_game_data.core_density_level = 100.0
+	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_true(_technique.try_score_zone(zone))
+	var floater: LacquerFloater = _floaters()[0]
+	assert_true(floater.visible)
+	assert_eq(floater.get_text(), "OK · Core full", "the tier and the core's state in place of the XP")
+	assert_eq(floater.get_color(), CyclingRules.tier_color(CyclingRules.Tier.OK))
+	assert_eq(_pellets().size(), 0, "a full core takes no XP, so none flies to it")
+
 func test_each_tier_pops_its_floater_and_sends_its_pellets() -> void:
 	var scored: Array = []
 	_technique.zone_scored.connect(func(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> void:

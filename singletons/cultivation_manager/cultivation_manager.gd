@@ -37,6 +37,8 @@ const PATH_POINTS_PER_STAGE: Dictionary = {
 const PATH_POINT_LEVEL_INTERVAL: int = 10
 ## Written to the player's log when the core fills and a next stage waits.
 const CORE_FULL_LOG: String = "Your core is full. The Tribulation waits in Spirit Valley."
+## The short "Core full" text the cabinet, the cycle line and the zone floaters show while the core is full.
+const CORE_FULL_TEXT: String = "Core full"
 
 #-----------------------------------------------------------------------------
 # PLAYER DATA (Held by this manager)

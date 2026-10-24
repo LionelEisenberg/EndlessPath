@@ -11,8 +11,9 @@ extends Control
 ## it under its Now tray.
 ## The cabinet on the left is the Madra and Core Density readout, so the view
 ## has none of its own: the Madra pellets fly from the ball into the cabinet's
-## Madra orb and the XP pellets from a zone into its Core orb. MainView hands
-## the cabinet over in cultivator_plate; with none, no pellet is sent.
+## Madra orb and the XP pellets from a zone into its Core orb (none while the
+## core is full, which takes no XP). MainView hands the cabinet over in
+## cultivator_plate; with none, no pellet is sent.
 ## The view shows and hides outright. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
@@ -380,13 +381,19 @@ func _on_madra_particle_requested(from_pos: Vector2) -> void:
 	pellet.launch(from_pos, cultivator_plate.get_madra_orb_global_position(), MADRA_PELLET_FLIGHT, MADRA_PELLET_SPREAD)
 
 ## A zone scored: its floater pops with the hit and its XP in the tier's colour,
-## and the tier's pellets fly from the zone to the cabinet's Core orb.
+## and the tier's pellets fly from the zone to the cabinet's Core orb. A full
+## core takes no XP, so the floater says "Core full" where the XP would be
+## ("PERFECT · Core full") and no pellet flies.
 func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> void:
+	var core_full: bool = CultivationManager.is_core_full()
 	var zone_index: int = _technique.cycling_zones.find(zone)
 	if zone_index >= 0 and zone_index < _floaters.size():
-		_floaters[zone_index].pop("%s +%d XP" % [CyclingRules.tier_name(tier), xp], CyclingRules.tier_color(tier))
+		var hit_text: String = "%s +%d XP" % [CyclingRules.tier_name(tier), xp]
+		if core_full:
+			hit_text = "%s · %s" % [CyclingRules.tier_name(tier), CultivationManager.CORE_FULL_TEXT]
+		_floaters[zone_index].pop(hit_text, CyclingRules.tier_color(tier))
 		_place_floater(zone_index)
-	if cultivator_plate == null:
+	if cultivator_plate == null or core_full:
 		return
 	var target: Vector2 = cultivator_plate.get_core_orb_global_position()
 	var texture: Texture2D = _pellet_texture(tier)

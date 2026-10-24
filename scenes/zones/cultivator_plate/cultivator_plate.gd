@@ -115,7 +115,7 @@ func _update_core_density() -> void:
 	_core_fill.set_shader_parameter(FILL_PARAMETER, level_fraction)
 	if CultivationManager.is_core_full():
 		_xp_beads.set_frame(0, XP_BEADS_LAST_ROW)
-		_xp_label.text = "Core full"
+		_xp_label.text = CultivationManager.CORE_FULL_TEXT
 	else:
 		var xp: float = CultivationManager.get_core_density_xp()
 		var need: float = CultivationManager.get_xp_for_next_level()
