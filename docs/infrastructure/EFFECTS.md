@@ -1,6 +1,6 @@
 # Effects (EffectData)
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Overview
 
@@ -78,7 +78,7 @@ Four subclasses set `effect_type` in `_init()`: StartQuest, AwardAttribute, Awar
 | `amount` | `float` | `0.0` |
 | `quiet` | `bool` | `false`. True skips the player-facing log line (the Aura Well trickle) |
 
-`process()`: `ResourceManager.award_resource(resource_type, amount, quiet)` → `add_madra()` or `add_gold()`. Madra is clamped to `[0, stage max]`, where the Foundation max is 100 + 5 × Core Density level. Unless the award is quiet, a Madra award logs `Gained <N> Madra` with the amount actually added, only when that is at least 1, and a gold award logs `Gained <N> Gold`.
+`process()`: `ResourceManager.award_resource(resource_type, amount, quiet)` → `add_madra()` or `add_gold()`. A Madra gain stops at the stage max (Foundation 100 + 5 × Core Density level, Copper 600 + 10 × level), and a pool already above it is kept: `add_madra()` never lowers it. Unless the award is quiet, a Madra award logs `Gained <N> Madra` with the amount actually added, only when that is at least 1, and a gold award logs `Gained <N> Gold`.
 
 ### AwardItemEffectData
 
@@ -219,7 +219,7 @@ Authoring conventions:
 ### Missing Functionality
 
 - `[MEDIUM]` Effects receive no context: `process()` takes no source, target, or combatant. Effects that target a specific combatant, or scale with the source, would require an API change.
-- `[MEDIUM]` No effect can advance the cultivation stage or unlock a zone. The planned breakthrough (Beat 9) needs a stage-advance path. `CultivationManager.attempt_breakthrough()` is an empty stub.
+- `[MEDIUM]` No effect can advance the cultivation stage, change Core Density or unlock a zone. The Tribulation (Beat 9) does not use one: `TribulationView._end()` calls `CultivationManager.advance_to_next_stage()` or `lose_core_density_levels()` itself the moment the run ends. An action's `success_effects` and `failure_effects` run in `stop_action()`, when the player presses Continue, so closing the game on the result panel would have skipped the penalty (`tribulation_view.gd:442-460`).
 - `[LOW]` Only `ChangeVitalsEffectData` overrides `describe()`. Any other effect shown in a tooltip, for example a consumable that awards a resource, would display the multi-line debug `_to_string()` text.
 
 ### Content
