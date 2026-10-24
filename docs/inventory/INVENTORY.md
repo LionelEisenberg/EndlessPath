@@ -138,21 +138,21 @@ QuestItemsTab (Control)                    — quest_items_tab.gd
 
 ### Shared components
 
-| Component | Location | Used by |
-|---|---|---|
-| `InventoryScrollHost` (base: `add_slot` / `clear_slots` / `get_slots`, binds ScrollRail) | `scenes/inventory/common/inventory_scroll_host.gd` | InventoryGrid, InventoryList |
-| `InventoryGrid` (GridContainer content, `columns` export, default 6) | `scenes/inventory/common/inventory_grid/` | Materials |
-| `InventoryList` (VBoxContainer content) | `scenes/inventory/common/inventory_list/` | Consumables |
-| `ScrollRail` (custom grabber; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` | InventoryGrid, InventoryList |
-| `SortSubBanner` (arrows + dots, `option_changed(index)`, `enabled`) | `scenes/inventory/common/sort_sub_banner/` | Equipment (enabled), Materials and Consumables (disabled) |
-| `GridToolbar` (count label + TrashSlot) | `scenes/inventory/common/grid_toolbar/` | Materials |
-| `TabBanner` (`@tool`; `title`, `title_font_size` exports) | `scenes/inventory/common/tab_banner/` | Equipment, Consumables, Journal |
-| `ItemDetailCard` | `scenes/inventory/common/item_detail_card/` | Base of MaterialDetailCard only |
-| `ItemDescriptionPanel` | `scenes/common/item_description_panel/` | Equipment and Consumables description boxes, ItemDisplaySlot tooltip |
-| `ItemDisplaySlot` (read-only icon + hover tooltip) | `scenes/common/item_display_slot/` | Adventure end card loot row |
-| `DropTargetSlot` (native drag-and-drop target, hover tint) | `scenes/common/drop_target_slot.gd` | HotbarSlot, ability loadout EquipSlot |
-| `ItemInstance` (icon visual for an `ItemInstanceData`) | `scenes/inventory/item_instance/` | InventorySlot / GearSlot / TrashSlot, ItemDisplaySlot |
-| `InventorySlot` → `GearSlot`, `TrashSlot` | `scenes/inventory/inventory_view/equipment_tab/` | Equipment tab |
+| Component | Location |
+|---|---|
+| `InventoryScrollHost` (base: `add_slot` / `clear_slots` / `get_slots`, binds ScrollRail) | `scenes/inventory/common/inventory_scroll_host.gd` |
+| `InventoryGrid` (GridContainer content, `columns` export, default 6) | `scenes/inventory/common/inventory_grid/` |
+| `InventoryList` (VBoxContainer content) | `scenes/inventory/common/inventory_list/` |
+| `ScrollRail` (custom grabber; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` |
+| `SortSubBanner` (arrows + dots, `option_changed(index)`, `enabled`) | `scenes/inventory/common/sort_sub_banner/` |
+| `GridToolbar` (count label + TrashSlot) | `scenes/inventory/common/grid_toolbar/` |
+| `TabBanner` (`@tool`; `title`, `title_font_size` exports) | `scenes/inventory/common/tab_banner/` |
+| `ItemDetailCard` | `scenes/inventory/common/item_detail_card/` |
+| `ItemDescriptionPanel` | `scenes/common/item_description_panel/` |
+| `ItemDisplaySlot` (read-only icon + hover tooltip) | `scenes/common/item_display_slot/` |
+| `DropTargetSlot` (native drag-and-drop target, hover tint) | `scenes/common/drop_target_slot.gd` |
+| `ItemInstance` (icon visual for an `ItemInstanceData`) | `scenes/inventory/item_instance/` |
+| `InventorySlot` → `GearSlot`, `TrashSlot` | `scenes/inventory/inventory_view/equipment_tab/` |
 
 ## Data Model
 

@@ -142,10 +142,10 @@ What each view shows:
 
 `GreyBackground` (`scenes/ui/grey_background/grey_background.gd`, class `GreyBackground`) is a full-rect `Panel` at z 2. Its stylebox is `assets/styleboxes/zones/grey_background.tres`, a flat slate fill `Color(0.176, 0.216, 0.216, 0.557)`. Because it uses the Panel's default mouse filter it blocks clicks to everything beneath it, including the dock. A left press on the backdrop itself emits `clicked`; the menu books close on it, and other users (the merchant) ignore it. States use it in two ways:
 
-| Mode | Used by | Behaviour |
-|------|---------|-----------|
-| Direct toggle | AdventureEndCard state | `grey_background.visible = true/false`, with no animation |
-| Fade orchestration | Inventory, PathTree, Abilities, Character, Merchant states | `show_with_panel(panel)` sets `self_modulate.a = 0`, shows backdrop and panel, plays `grey_fade_in`, and calls `panel.animate_open()` if it exists. `hide_with_panel(panel)` plays `grey_fade_out` and calls `panel.animate_close()` if it exists. It then hides both nodes and emits `panel_hidden` once the grey fade-out has finished and, for a panel with a `close_finished` signal (the menu books), once that panel's own close has finished too. A panel without the signal (the merchant shop) is done when the fade ends. |
+| Mode | Behaviour |
+|------|-----------|
+| Direct toggle | `grey_background.visible = true/false`, with no animation |
+| Fade orchestration | `show_with_panel(panel)` sets `self_modulate.a = 0`, shows backdrop and panel, plays `grey_fade_in`, and calls `panel.animate_open()` if it exists. `hide_with_panel(panel)` plays `grey_fade_out` and calls `panel.animate_close()` if it exists. It then hides both nodes and emits `panel_hidden` once the grey fade-out has finished and, for a panel with a `close_finished` signal (the menu books), once that panel's own close has finished too. A panel without the signal (the merchant shop) is done when the fade ends. |
 
 ### Cycling mode
 
@@ -297,13 +297,13 @@ Gold left the bar for the cultivator cabinet.
 
 ### Shared widgets
 
-| Widget | Files | Used by | API / behaviour |
-|--------|-------|---------|-----------------|
-| `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | `ResourceBar` (vitals deltas behind a per-bar `show_floating_text` export, off on the enemy's Health bar, so nothing shows them now) | `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
-| `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | Main view states | See [GreyBackground](#greybackground-modal-backdrop) |
-| `LogWindow` | `scenes/ui/log_window/` | `MainView` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
-| `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | `MainView` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
-| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | Zone view panels, Goals and log boards, the cycling board, the adventure's cabinet, chest and dock | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
+| Widget | Files | API / behaviour |
+|--------|-------|-----------------|
+| `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | No screen shows one now. `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
+| `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | See [GreyBackground](#greybackground-modal-backdrop) |
+| `LogWindow` | `scenes/ui/log_window/` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
+| `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
+| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
 
 Utilities:
 

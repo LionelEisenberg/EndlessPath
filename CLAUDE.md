@@ -212,7 +212,7 @@ Multiple Claude Code agents may run simultaneously on this codebase. Follow thes
 
 Living docs follow "Keeping Docs Current" in `docs/README.md`, because two open branches that edit the same doc line make a merge conflict. In short:
 - Each fact has one home, the system doc that owns it. Other docs, this file included, link to it instead of restating it.
-- No counts of tests, scripts, scenes, resources, shaders or lines, no test run results or times, no `Last updated:` lines, no "Used by" lists.
+- No counts of tests, scripts, scenes, resources, shaders or lines, no test run results or times, no `Last updated:` lines, no "Used by" lists of a shared widget's or variant's users.
 - A doc describes `main` as it will be once the PR merges: no branch names, no "not merged", no "in flight".
 - `docs/STATE_OF_THE_GAME.md`, `docs/GAMEPLAY_STATE.md` and `docs/CODEBASE_STATE.md` are refreshed at milestones, on `main`, not in feature PRs.
 - Merge `main` into a branch when you need its code and once before the PR merges, not after every merge to `main`.

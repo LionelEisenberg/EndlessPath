@@ -106,14 +106,14 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 
 ## Other variants
 
-| Variant | Base type | Style | Used by |
-|---------|-----------|-------|---------|
-| `ButtonEndCard` | `Button` | Scroll button styleboxes (`assets/styleboxes/buttons/scroll/`), 20px, cream font `#F0E0C2` | `AdventureEndCard` Return button |
-| `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige | Nothing (`CyclingView` was its last user; the lacquer board has no tabs) |
-| `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border) | Nothing (`CyclingView` was its last user) |
-| `PanelLootTray` | `PanelContainer` | `common/panel_loot_tray.tres` (translucent parchment) | `AdventureEndCard` |
-| `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill) | `StatLabel` (no screen shows it now) |
-| `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) | The enemy plate's `CombatBuffTooltip`; `StatTooltip` (set in code; no screen shows it now) |
+| Variant | Base type | Style |
+|---------|-----------|-------|
+| `ButtonEndCard` | `Button` | Scroll button styleboxes (`assets/styleboxes/buttons/scroll/`), 20px, cream font `#F0E0C2` |
+| `CyclingTabContainer` | `TabContainer` | `common/tab_*` styleboxes; selected gold, unselected tan, hovered beige. Unused |
+| `PanelAccent` | `PanelContainer` | `common/panel_accent.tres` (brown 92%, 3px copper border). Unused |
+| `PanelLootTray` | `PanelContainer` | `common/panel_loot_tray.tres` (translucent parchment) |
+| `PanelStatPill` | `PanelContainer` | `abilities/stat_pill.tres` (small dark pill). No screen shows it |
+| `PanelTooltip` | `PanelContainer` | `abilities/tooltip_panel.tres` (dark brown, 2px copper border) |
 
 Base types without a variant:
 
@@ -264,14 +264,14 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 
 `scripts/utils/theme_constants.gd` (`class_name ThemeConstants`) holds colours for code that sets them at runtime. Its header names the themes (`pixel_theme.tres` and `lacquer/lacquer_theme.tres`) as the source of truth.
 
-| Constant | Value | Matches in theme | Referenced in code |
+| Constant | Value | Matches in theme | For |
 |----------|-------|------------------|--------------------|
-| `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | 3 times: the path tree nodes (`path_node_container.gd`, `path_node_ui.gd`). The lacquer dock buttons swap textures on hover instead |
-| `LACQUER_INK` / `LACQUER_BRASS` / `LACQUER_CREAM` / `LACQUER_TAN` | `#150909` / `#D4A84A` / `#F0E8D8` / `#A89070` | The `LabelLacquer*` variants | Zone view panels (lacquer kit §2). The last three are also the cycling hit tiers (`CyclingRules.tier_color()`) |
+| `ACCENT_GOLD` | `#D4A84A` | Gold Label variants | Gold highlights set from code (the path tree). The lacquer dock buttons swap textures on hover instead |
+| `LACQUER_INK` / `LACQUER_BRASS` / `LACQUER_CREAM` / `LACQUER_TAN` | `#150909` / `#D4A84A` / `#F0E8D8` / `#A89070` | The `LabelLacquer*` variants | The lacquer views (lacquer kit §2). The last three are also the cycling hit tiers |
 | `LACQUER_RIM` | `#692F2F` | — | The lip under the cycling groove |
 | `LACQUER_DIM` / `LACQUER_VERMILION` | `#94806A` / `#A83C30` | — | Old log lines, seals |
 | `LACQUER_MADRA_HI` / `LACQUER_MADRA` / `LACQUER_MADRA_MID` | `#E8F6FD` / `#BBD5E7` / `#849BE4` | — | The lit cycling groove (top edge, body, bottom edge). `LACQUER_MADRA` is also Madra text |
-| `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | Nothing reads them yet (only `test_lacquer_pieces.gd`). The text steps of the Health crimson and Stamina bamboo ramps, kept for the fight's floaters |
+| `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | The text steps of the Health crimson and Stamina bamboo ramps, kept for the fight's floaters. Nothing reads them yet |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code, and keep each value in step with its theme.
 
