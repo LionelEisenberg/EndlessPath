@@ -12,7 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="10_frame"]
 [ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="11_frame_hover"]
 [ext_resource type="Texture2D" uid="uid://i77lc785l1ls" path="res://assets/ui/lacquer/lacquer_now_plate_ai.png" id="12_plate"]
-[ext_resource type="StyleBox" uid="uid://bjz0pnis0z337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="13_wrap_pad"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="13_wrap_pad"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_yield_text"]
 content_margin_top = 1.0

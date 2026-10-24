@@ -16,7 +16,7 @@
 [ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="14_gold"]
 [ext_resource type="Texture2D" uid="uid://fr1ueqq6cg6y" path="res://assets/sprites/ui/stat_icons/map_icon.png" id="15_map"]
 [ext_resource type="Texture2D" uid="uid://yk2panbupqdl" path="res://assets/ui/lacquer/lacquer_socket_buff_ai.png" id="16_loot_socket"]
-[ext_resource type="StyleBox" uid="uid://bjz0pnis0z337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="17_wrap_pad"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="17_wrap_pad"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lore"]
 content_margin_top = 2.0

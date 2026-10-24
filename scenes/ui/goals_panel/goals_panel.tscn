@@ -12,7 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://cxn01d1umqedg" path="res://assets/ui/lacquer/lacquer_rod_goal_end_ai.png" id="10_rod_end"]
 [ext_resource type="Texture2D" uid="uid://72ttatdg3o7c" path="res://assets/ui/lacquer/lacquer_goals_top_plain_ai.png" id="11_top_plain"]
 [ext_resource type="Texture2D" uid="uid://cr2ef3y5l2et" path="res://assets/ui/lacquer/lacquer_goals_cords_ai.png" id="12_cords"]
-[ext_resource type="StyleBox" uid="uid://bjz0pnis0z337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="13_wrap_pad"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="13_wrap_pad"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_board_top"]
 atlas = ExtResource("3_board")

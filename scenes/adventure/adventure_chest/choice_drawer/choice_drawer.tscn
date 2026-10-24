@@ -10,7 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="8_frame"]
 [ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="9_frame_hover"]
 [ext_resource type="Texture2D" uid="uid://727dej2is3t7" path="res://assets/ui/lacquer/lacquer_socket_drawer_ai.png" id="10_socket"]
-[ext_resource type="StyleBox" uid="uid://bjz0pnis0z337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="11_wrap_pad"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="11_wrap_pad"]
 
 [node name="ChoiceDrawer" type="Control" unique_id=1841213323]
 custom_minimum_size = Vector2(408, 72)
