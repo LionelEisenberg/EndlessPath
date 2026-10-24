@@ -1,6 +1,6 @@
 # Path Progression System
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -39,7 +39,7 @@ The original design (paths as Madra types, tier gates, budget branching, ascensi
    - A particle burst plays on a node's first purchase.
    - The node appears under **Active Benefits**, and the points badge updates.
    - Clicking a node that can't be bought does nothing.
-9. Pure Core Awakening unlocks the Empty Palm ability and the Smooth Flow technique. Power Font unlocks the Power Font ability. Torrential Flow unlocks the Torrential Flow technique. The player equips them in the Abilities view (its dock button shows a ring while one is unequipped) and in the cycling view.
+9. Pure Core Awakening unlocks the Empty Palm ability and the Smooth Flow technique. Power Font unlocks the Power Font ability. Torrential Flow unlocks the Torrential Flow technique. The player equips them in the Abilities view (its dock button shows a ring while one is unequipped) and from the technique drawers in the zone chest while cycling.
 10. The other 11 nodes can be bought and are listed as active benefits, but they change nothing in play today.
 11. **Esc** (`ui_cancel`), **P**, the close tab on the book's top edge, or a click outside the book closes it.
 
@@ -603,17 +603,17 @@ The built system merges the advancement tree and Paths into one per-path tree av
 
 ### Missing Functionality
 - `[HIGH]` **Numeric perks do nothing.** `PathManager.get_effects()` and `effects_changed` have no callers outside tests. That makes 7 nodes (11 of 22 tree points) inert. Where each effect should plug in:
-  - `MADRA_GENERATION_MULT` (Madra Surge): the cycling Madra award in `CyclingTechnique._process()` (`ResourceManager.add_madra(madra_per_particle)`).
-  - `MADRA_CAPACITY_BONUS` (Expanded Core): the max-Madra calculation. `CultivationManager.get_max_madra()` (the stage's `AdvancementStageResource.get_max_madra()`) is read by `ResourceManager.add_madra()`, the zone view's `CultivatorPlate`, and `CyclingResourcePanel`, so the bonus belongs there.
+  - `MADRA_GENERATION_MULT` (Madra Surge): the cycling Madra step, `CyclingTechnique._madra_per_step()` (paid by `_draw_madra_step()` through `ResourceManager.add_madra(amount, true)`).
+  - `MADRA_CAPACITY_BONUS` (Expanded Core): the max-Madra calculation. `CultivationManager.get_max_madra()` (the stage's `AdvancementStageResource.get_max_madra()`) is read by `ResourceManager.add_madra()`, the zone view's `CultivatorPlate` and `CyclingTechnique`'s cap check, so the bonus belongs there.
   - `CORE_DENSITY_XP_MULT` (Dedicated Cultivation): `CultivationManager.add_core_density_xp()`.
   - `MADRA_ON_LEVEL_UP` (Breakthrough Surge): the level-up loop in `CultivationManager.add_core_density_xp()`.
-  - `CYCLING_ACCURACY_BONUS` (Cycling Focus): the zone hit/timing radius in `CyclingTechnique._handle_zone_click()`, which reads the zone collision `shape.radius`.
+  - `CYCLING_ACCURACY_BONUS` (Cycling Focus): the zone radius, `CyclingRules.ZONE_RADIUS` (20). `CyclingRules.tier_for_distance()` and `CyclingTechnique._update_zones()` read it. The zones have no shape of their own.
   - `ADVENTURE_MADRA_RETURN_PCT` (Madra Reclamation): `AdventureView.stop_adventure()`, by refunding a share of `PlayerManager.vitals_manager.current_madra`.
   - `STAMINA_RECOVERY_MULT` (Iron Will): `AdventureView._update_stamina_regen()`.
   - `ATTRIBUTE_BONUS` (no content uses it): `CharacterManager._get_attribute_bonuses()`, which only sums equipment.
 - `[MEDIUM]` **Path points are announced only by the dock.**
   - The dock's Path button shows a ring and a count seal while points are unspent, which is the signal FOUNDATION_PLAYTHROUGH Beat 6 relies on.
-  - Neither `CultivationManager` nor `PathManager.add_points()` writes to the in-game `LogManager`, and nothing shows a toast, so a point earned while cycling (the cycling view covers the dock) or in an adventure (the zone view is hidden) goes unseen until the zone view shows again.
+  - Neither `CultivationManager` nor `PathManager.add_points()` writes to the in-game `LogManager`, and nothing shows a toast, so a point earned while cycling (the dock hides) or in an adventure (the zone view is hidden) goes unseen until the zone view shows again.
 - `[HIGH]` **No effect type can modify an ability.** The upgrade nodes need per-ability cost, damage, cooldown, or duration modifiers that `PathNodeEffectData.EffectType` can't express, and combat (`CombatAbilityInstance` / `CombatEffectManager`) would have to read them.
 - `[MEDIUM]` **No ability-slot unlocks.** FOUNDATION_PLAYTHROUGH expects slots 3–4 to come from non-keystone nodes. `AbilityManager.MAX_SLOTS` is a fixed 4 with no gating, and there is no slot effect type.
 - `[MEDIUM]` **Tier gates show only as locked chapters.** Each stage is a chapter tab that unlocks when the stage is reached (re-checked each time the book opens), but a node blocked by its stage never says so, and a prerequisite in an earlier chapter shows no link across the page. `PathTreeView` doesn't listen to `CultivationManager.advancement_stage_changed`, so an open book keeps its tabs until it is reopened.

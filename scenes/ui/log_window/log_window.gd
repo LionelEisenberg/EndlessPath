@@ -21,8 +21,9 @@ extends Control
 ## lit only when the text can scroll that way (kit §4.4). L, Escape while it is
 ## open, and LogManager.toggle_window() open and close it. It never opens while
 ## the log is hidden (the merchant hides it), and hiding the log closes it. A
-## menu book leaves the log in sight but blocks the full log while it is open
-## (set_full_log_blocked()), so Esc goes to the book.
+## menu book or the cycling board leaves the log in sight but blocks the full
+## log while it is open (set_full_log_blocked()), so Esc goes to the book or the
+## board.
 
 #-----------------------------------------------------------------------------
 # TYPES
@@ -112,7 +113,7 @@ static var _bbcode_tag_regex: RegEx = null
 #-----------------------------------------------------------------------------
 
 var _full_log_open: bool = false
-## True while a menu book is open: the full log stays shut.
+## True while a menu book or the cycling board is open: the full log stays shut.
 var _full_log_blocked: bool = false
 ## Lines in the full log's text since it was last filled.
 var _full_log_line_count: int = 0
@@ -168,9 +169,10 @@ func is_full_log_open() -> bool:
 	return _full_log_open
 
 ## Keeps the full log shut, closing it if it is open, or lets it open again.
-## A menu book blocks it while the book is open: the log board stays in sight
-## under the book, but an open full log would take the Esc meant for the book
-## (the log gets _unhandled_input before MainView hands the key to the book).
+## A menu book or the cycling board blocks it while it is open: the log board
+## stays in sight (under the book's backdrop, or beside the cycling board), but
+## an open full log would take the Esc meant for the book or the board (the log
+## gets _unhandled_input before MainView hands the key to the open state).
 ## While blocked, the log ignores L and Esc.
 func set_full_log_blocked(blocked: bool) -> void:
 	_full_log_blocked = blocked

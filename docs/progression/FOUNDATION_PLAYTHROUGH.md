@@ -1,6 +1,6 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23 (the lacquer cycling view on `feat/cycling-view-styleguide-ea3170`, not merged)
 
 > This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >
@@ -82,7 +82,7 @@ END OF AUTHORED CONTENT
 | 1 | Clicks **Talk to the [INTERVENER]** | Timeline `celestial_intervener_introduction_1` plays from label `dialogue_1` (2 lines). When it ends, the action is consumed (`max_completions` 1) and its `success_effects` run. | Action `celestial_intervener_dialogue_1` |
 | 2 | — | `TriggerEventEffectData` fires the event and the condition latches. **Wilderness Cycling** appears (with a NEW seal), and the **Test Zone** unlocks. The Test Zone has no actions and stays hidden on the map. | Event and condition `celestial_intervener_dialogue_1` |
 | 3 | — | `StartQuestEffectData` starts the quest. Toast: "Quest Started: Awaken Your Core". | Quest `q_fill_core`, step 0 `reach_max_madra` |
-| 4 | Cycles with the Foundational Technique | 8 s cycle and 50 base Madra per cycle, scaled by mouse-tracking accuracy. The technique has no cycling zones, so it gives no Core Density XP. | `foundation_technique` |
+| 4 | Cycles with the Foundational Technique | 8 s cycle and 50 base Madra per cycle, paid in 0.08 s steps while the cursor is on the ball. The technique has no cycling zones, so it gives no Core Density XP. | `foundation_technique` |
 | 5 | Reaches 100 Madra (the CD-0 cap) | The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and **Return to the [INTERVENER]** (NPC 2) appears | Condition `q_fill_core_madra_full` (RESOURCE_AMOUNT, madra ≥ 100.0) |
 | 6 | Clicks NPC 2 | Label `dialogue_2` plays, then the event fires and `q_fill_core` completes ("Quest Complete: Awaken Your Core") | Action and event `celestial_intervener_dialogue_2` |
 | 7 | — | `q_fill_core.completion_effects` fires an event, the condition latches, and **The Shallow Woods** and **Spring Forest Foraging** appear | Event and condition `q_fill_core_completed`; actions `shallow_woods_adventure_action`, `sprint_forest_foraging_action` |
@@ -124,7 +124,7 @@ Deviations from the original design:
 Deviations from the original design:
 - There is no in-combat tutorial popup.
 - Quests chain from NPC actions rather than from adventure entry or keystone purchase.
-- Unlocks are equipped manually. Only the Abilities button has a notification ring: `CyclingManager.has_unequipped_unlocks()` exists, but no UI shows it.
+- Unlocks are equipped manually. The Abilities button has a notification ring. A new technique lights NEW on the Wilderness Cycling card and, once cycling is open, on its drawer in the zone chest (`CyclingManager.has_unequipped_unlocks()` exists, but no UI uses it).
 
 ### Beat 3a: Aura Well Discovery `IMPLEMENTED`
 
@@ -295,7 +295,7 @@ After Beat 4:
 | Starting Madra / Foundation cap | 25 / 100 + 5 × CD level (100 at CD 0, 150 at CD 10, 600 at CD 100) | `SaveGameData`, `foundation_advancement_stage.tres` |
 | Adventure capacity / start threshold | FOUNDATION × 10 (100 at default) / 50% of capacity | `CharacterAttributesData.get_max_madra()`, `ResourceManager` |
 | Shallow Woods time limit | 300 s | `spirit_valley_adventure_action.tres` |
-| Foundational Technique | 8 s cycle, 50 base Madra (accuracy-scaled), no zones, so 0 CD XP | `foundation_cycling_technique.tres` |
+| Foundational Technique | 8 s cycle, 50 base Madra (paid while the cursor is on the ball), no zones, so 0 CD XP | `foundation_cycling_technique.tres` |
 | Smooth Flow | 15 s cycle, 200 base Madra, 4 zones; per-cycle CD XP is 125 perfect / 70 good / 25 ok | `smooth_flow.tres`, `cycling_zone_data/zone_1..4.tres` |
 | Torrential Flow | 8 s cycle, 250 base Madra, 1 zone (30 / 25 / 20 XP) | `torrential_flow.tres` |
 | CD XP to reach level L | 10 × 1.02^(L−1) | `core_density_base_xp_cost` (default 10) × `core_xp_scaling_factor` 1.02 |
@@ -347,7 +347,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Q-1: Cycles to fill the core in Beat 1
 
-- **ASSUMPTION:** 2–4 sessions to go from 25 to 100 Madra. The data allows at least 2 cycles at full accuracy (50 base per 8 s cycle).
+- **ASSUMPTION:** 2–4 sessions to go from 25 to 100 Madra. The data needs at least 2 cycles, with the cursor on the ball the whole time (50 base per 8 s cycle).
 - **IMPACT:** Sets the first impression of cycling.
 - **IF WRONG:** The intro is trivial, or it drags and the player bounces.
 - **VALIDATE:** Internal playtest; target about 3 cycles for average play.
@@ -476,8 +476,8 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### UI
 
-- `[MEDIUM]` Path points are announced only by the dock. While points are unspent, the Path button shows the brass ring and a count seal (the dock listens to `points_changed`), which is the signal Beat 6 relies on. Nothing writes a log line or shows a toast, so a CD-milestone point earned while cycling (the view covers the dock) or in an adventure goes unseen until the zone view returns. Playtest whether the seal is enough.
-- `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`, and cycling has no notification (`CyclingManager.has_unequipped_unlocks()` is unused).
+- `[MEDIUM]` Path points are announced only by the dock. While points are unspent, the Path button shows the brass ring and a count seal (the dock listens to `points_changed`), which is the signal Beat 6 relies on. Nothing writes a log line or shows a toast, so a CD-milestone point earned while cycling (the dock hides) or in an adventure goes unseen until the zone view returns. Playtest whether the seal is enough.
+- `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`. After the unlock the Wilderness Cycling card lights NEW and Smooth Flow's drawer shows NEW inside cycling, but nothing tells the player to equip it.
 - `[MEDIUM]` The Aura Well discovery and the Refugee Camp search have no quest on the Goals board. The map's purpose is explained only in `dialogue_4` and the item description.
 - `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The Goals board shows only the Breakthrough milestone.
 - `[LOW]` Merchant gear purchases log as "Looted 1x …" (Crude Scales as "Obtained 1x …"), because the shop awards items through `InventoryManager.award_items()`.

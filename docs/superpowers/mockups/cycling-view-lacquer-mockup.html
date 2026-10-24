@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>EndlessPath - Cycling View (Lacquer) Mockup</title>
+<!--
+  Cycling view in the Lacquer and brass look, round 1 (2026-10-22). Not a spec yet: a mock to
+  choose from. The frame is 1:1 with the 1920x1080 game viewport; the bar above it holds mock
+  controls and is not part of the game.
+
+  It is playable: click the Madra ball to start a cycle, keep the cursor inside the ball to
+  draw Madra (pellets pour into the Madra orb), and click a zone while the ball passes over it
+  (PERFECT, GOOD or OK, by how close the ball is to the zone's centre). Numbers follow the
+  game: the techniques' curves, durations, Madra per cycle and zone XP come from
+  resources/cycling/cycling_techniques/, the Madra cap is 100 + 5 x level, and a level needs
+  10 x 1.02^level XP.
+
+  Layouts (style guide C-Q1):
+    A  In the map gap: the board hugs the figure where the map was; the cabinet, Goals and Log
+       stay; the zone chest lists the techniques; the dock hides.
+    B  Modal board: an opaque 2-step dither over the zone view (G1's lean), one board with
+       the figure, the readouts and the techniques; Goals and Log hidden.
+    C  Full-screen room: no zone view; resources and the Breakthrough goal on the left,
+       techniques on the right.
+
+  Rules (docs/STYLE_GUIDE.md): one 2x grid, opaque materials, hard shadows, brass only for
+  state, jade only for progress, Madra blue only for Madra, motion in whole steps, things show
+  and hide outright. The ball's drawn position snaps to even px every frame (or steps at
+  10 a second, to compare); its swirl switches frames at 10 a second.
+
+  Assets: the fonts and the gold icon load from the repo (../../../assets). The zone kit's
+  textures come from zone-view-lacquer/. New pieces for this mock are in
+  cycling-view-lacquer/ (*_ai.png), drawn by cycling-view-lacquer/gen/kit_cycling.py with the
+  zone kit's primitives. The body figures are traced from the user's outlines
+  (assets/sprites/cycling/), which stay untouched. Layout B shows the zone view mock in an
+  iframe under the dither. No CDN, no build step.
+
+  Decided with the user on 2026-10-22 (rounds 1 and 2; the spec's Decisions table has them all):
+  layout A, the carved figure, a Madra-blue groove behind the ball, the ball snapped to 2 px
+  every frame, tier-coloured XP pellets, one icon per technique, zones shown between cycles, a
+  result line, and no pellets once Madra is full. The other options stay in the bar for
+  reference; the defaults are the decisions.
+
+  URL hash: #layout=A|B|C (and the other controls' names) to open on a given setup. Capture
+  helpers: #bar=0 hides this bar, #demo=1&t=9&freeze=1 plays 9 s by itself and stops,
+  #madra=255 starts near the cap, #tech=foundation|smooth|torrent.
+-->
+<style>
+  @font-face {
+    font-family: 'Euljiro';
+    src: url('../../../assets/fonts/BMEULJIROTTF.ttf') format('truetype');
+    font-display: block;
+  }
+  @font-face {
+    font-family: 'Yatra';
+    src: url('../../../assets/fonts/YatraOne-Regular.ttf') format('truetype');
+    font-display: block;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #090E0E; }
+  body { font-family: 'Euljiro', 'Trebuchet MS', sans-serif; color: #F0E8D8; }
+
+  /* -- Mock controls: outside the game frame -- */
+  .mock-bar {
+    width: 1920px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 20px;
+    padding: 10px 16px;
+    background: #230F0F;
+    border-bottom: 2px solid #150909;
+    font-size: 15px;
+    color: #F0E8D8;
+  }
+  .mock-bar .mock-title { font-size: 15px; letter-spacing: 1px; color: #A89070; }
+  .mock-bar label { display: flex; align-items: center; gap: 8px; white-space: nowrap; cursor: pointer; }
+  .mock-bar select {
+    font-family: 'Euljiro', 'Trebuchet MS', sans-serif;
+    font-size: 14px;
+    color: #F0E8D8;
+    background: #150909;
+    border: 2px solid #462020;
+    border-radius: 0;
+    padding: 4px 6px;
+  }
+  .mock-bar input[type="checkbox"] { accent-color: #D4A84A; width: 16px; height: 16px; margin: 0; }
+  .mock-bar .about { flex-basis: 100%; color: #A89070; font-size: 15px; line-height: 20px; }
+  .mock-bar .about b { color: #D4A84A; font-weight: normal; }
+  html.fit .mock-bar { width: auto; }
+  html.fit, html.fit body { overflow: hidden; }
+
+  .stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+
+  /* -- Game frame (1920x1080) -- */
+  #frame {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: #090E0E;
+    color: #F0E8D8;
+    font-family: 'Euljiro', 'Trebuchet MS', sans-serif;
+    transform-origin: 0 0;
+    user-select: none;
+  }
+  #frame img { position: absolute; display: block; image-rendering: pixelated; pointer-events: none; }
+  #frame img.inl { position: static; flex: none; }
+  #frame button {
+    position: absolute;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  #frame button:focus-visible { outline: 2px solid #D4A84A; outline-offset: 0; }
+  #frame section { position: absolute; }
+  .layer { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  #play, #fx { pointer-events: none; }
+  #arena { position: absolute; width: 500px; height: 832px; pointer-events: auto; }
+  #arena canvas { position: absolute; left: 0; top: 0; width: 500px; height: 832px; image-rendering: pixelated; }
+
+  .t { position: absolute; white-space: nowrap; }
+  .tex { position: absolute; background-repeat: no-repeat; image-rendering: pixelated; }
+
+  /* Hard offset shadows, cast by the sprite's own shape. Nothing else gets a filter. */
+  .sh4 { filter: drop-shadow(4px 4px 0 #050707); }
+  .sh2 { filter: drop-shadow(2px 2px 0 #150909); }
+
+  /* Type: painted titles in Yatra One, everything else in BM Euljiro. */
+  .ttl { font-family: 'Yatra', serif; color: #D4A84A; text-shadow: 2px 2px 0 #150909; }
+  .lbl { font-size: 15px; line-height: 18px; color: #A89070; }
+  .nm { font-size: 17px; line-height: 20px; color: #F0E8D8; }
+  .pt { font-family: 'Yatra', serif; line-height: 0; }
+
+  .token {
+    position: absolute;
+    height: 28px;
+    border: 6px solid transparent;
+    border-image: url('zone-view-lacquer/lacquer_token_ai.png') 6 fill / 6px stretch;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+  .token .t { left: -6px; top: -2px; text-align: center; white-space: pre; font-size: 16px; line-height: 20px; }
+
+  .hov, .brassframe { position: absolute; left: 0; top: 0; pointer-events: none; image-rendering: pixelated; }
+  .hov { display: none; border: 4px solid transparent; border-image: url('zone-view-lacquer/lacquer_frame_hover_ai.png') 4 / 4px stretch; }
+  #frame button:hover .hov { display: block; }
+  .brassframe { border: 8px solid transparent; border-image: url('zone-view-lacquer/lacquer_frame_brass_ai.png') 8 / 8px stretch; }
+  .flash { animation: blink 0.6s steps(1, end) 2 both; }
+
+  #frame .swap .on { display: none; }
+  #frame .swap:hover .on { display: block; }
+  #frame .swap:hover .off { display: none; }
+
+  .cardIn { position: absolute; width: 392px; }
+  .tagtxt { width: 76px; text-align: center; font-size: 13px; line-height: 22px; letter-spacing: 1px; text-indent: 1px; }
+  .seal-new {
+    flex: none;
+    width: 44px;
+    height: 22px;
+    margin-left: 10px;
+    background: url('zone-view-lacquer/lacquer_seal_new_s_ai.png') no-repeat;
+    image-rendering: pixelated;
+    font-size: 13px;
+    line-height: 22px;
+    letter-spacing: 1px;
+    text-indent: 1px;
+    text-align: center;
+    color: #F0E8D8;
+  }
+  .groove { background: url('zone-view-lacquer/lacquer_groove_ai.png') repeat-x; image-rendering: pixelated; }
+  .chestMid { background: url('zone-view-lacquer/lacquer_chest_mid_ai.png') repeat-y; image-rendering: pixelated; }
+  .dither { background: url('cycling-view-lacquer/lacquer_cyc_dither_ai.png') repeat; image-rendering: pixelated; }
+  /* A recessed tray that hugs its content: the tray art as a 9-slice (its field is flat). */
+  .tray { position: absolute; border: 4px solid transparent; border-image: url('cycling-view-lacquer/lacquer_cyc_tray_side_ai.png') 4 fill / 4px stretch; image-rendering: pixelated; }
+
+  .ring { width: 56px; height: 56px; background-image: url('zone-view-lacquer/lacquer_ring_strip_ai.png'); }
+  .orb { width: 80px; height: 80px; background-image: url('zone-view-lacquer/lacquer_orb_madra_strip_ai.png'); }
+  .core { width: 80px; height: 80px; background-image: url('zone-view-lacquer/lacquer_orb_core_strip_ai.png'); animation: corespin 6s steps(4, end) infinite; }
+  .beads { width: 222px; height: 12px; background-image: url('zone-view-lacquer/lacquer_beads_xp_strip_ai.png'); }
+  .ball { position: absolute; width: 60px; height: 60px; background-image: url('cycling-view-lacquer/lacquer_cyc_ball_strip_ai.png'); image-rendering: pixelated; pointer-events: none; }
+  .bring { position: absolute; width: 80px; height: 80px; background-image: url('cycling-view-lacquer/lacquer_cyc_ball_rings_ai.png'); image-rendering: pixelated; pointer-events: none; }
+  .zone { position: absolute; width: 48px; height: 48px; background-image: url('cycling-view-lacquer/lacquer_cyc_zone_strip_ai.png'); image-rendering: pixelated; pointer-events: none; }
+  .pel { position: absolute; left: 0; top: 0; width: 12px; height: 12px; image-rendering: pixelated; }
+
+  @keyframes corespin { from { background-position-y: 0; } to { background-position-y: -320px; } }
+  @keyframes blink { 0% { visibility: visible; } 50%, 100% { visibility: hidden; } }
+</style>
+</head>
+<body>
+
+<div class="mock-bar" id="mockbar">
+  <span class="mock-title">MOCK CONTROLS</span>
+  <label>Layout
+    <select id="c-layout">
+      <option value="A">A · In the map gap</option>
+      <option value="B">B · Modal board</option>
+      <option value="C">C · Full-screen room</option>
+    </select>
+  </label>
+  <label>Body
+    <select id="c-body">
+      <option value="carved">Carved figure</option>
+      <option value="brass">Brass inlay</option>
+      <option value="seated">Seated (paths redrawn)</option>
+    </select>
+  </label>
+  <label>Groove behind the ball
+    <select id="c-trail">
+      <option value="madra">Madra blue</option>
+      <option value="jade">Jade</option>
+      <option value="none">Stays carved</option>
+    </select>
+  </label>
+  <label>Ball motion
+    <select id="c-motion">
+      <option value="snap">Every frame, snapped to 2 px</option>
+      <option value="step">Stepped, 10 a second</option>
+    </select>
+  </label>
+  <label>XP pellets
+    <select id="c-xp">
+      <option value="tier">Tier tones</option>
+      <option value="jade">Jade</option>
+    </select>
+  </label>
+  <label>Technique icons
+    <select id="c-icons">
+      <option value="each">One per technique</option>
+      <option value="one">One shared icon</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="c-zones" checked> Zones shown between cycles</label>
+  <label><input type="checkbox" id="c-result" checked> Cycle result line</label>
+  <label><input type="checkbox" id="c-fit"> Fit to window</label>
+  <div class="about" id="about"></div>
+</div>
+
+<div class="stage" id="stage">
+  <div id="frame" aria-label="Cycling view mock, 1920 by 1080">
+    <div class="layer" id="bg"></div>
+    <div class="layer" id="furn"></div>
+    <div class="layer" id="play"><div id="arena"><img id="body" src="" alt=""><canvas id="groove" width="250" height="416"></canvas></div></div>
+    <div class="layer" id="fx"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  //---------------------------------------------------------------------------
+  // Paths, palette
+  //---------------------------------------------------------------------------
+  const Z = 'zone-view-lacquer/';
+  const CY = 'cycling-view-lacquer/';
+  const A = '../../../assets/';
+  const zt = (n) => Z + 'lacquer_' + n + '_ai.png';
+  const ct = (n) => CY + 'lacquer_' + n + '_ai.png';
+  const GOLD_ICON = A + 'sprites/ui/resources/gold_icon.png';
+  const MADRA_PELLET = A + 'ui/lacquer/lacquer_madra_pellet_ai.png';
+  const PH = { cycle: Z + 'ic_cycle_ai.png', story: Z + 'ic_story_ai.png' };
+
+  const INK = '#150909';
+  const CREAM = '#F0E8D8';
+  const TAN = '#A89070';
+  const DIM = '#94806A';
+  const BRASS = '#D4A84A';
+  const MADRA_BLUE = '#BBD5E7';
+  const GROOVE = {
+    ink: '#150909', lip: '#692F2F',
+    madra: ['#E8F6FD', '#BBD5E7', '#849BE4'],
+    jade: ['#AAECCE', '#5CC4A0', '#2F6B4A'],
+  };
+
+  // The figure box is the game's 500x832 outline footprint. Curve points are in CyclingPath2D
+  // space; in the game today that space sits 70 px left of and 24 px above the outline.
+  const OFF_X = 70;
+  const OFF_Y = 24;
+  const BALL_R = 29.5;
+  const ZONE_R = 20;
+  const PELLET_EVERY = 0.08;
+
+  //---------------------------------------------------------------------------
+  // Techniques (resources/cycling/cycling_techniques/): Curve2D points as in, out, position
+  //---------------------------------------------------------------------------
+  const TECHS = [
+    {
+      id: 'foundation', name: 'Foundational Technique', short: 'Foundational', dur: 8, madra: 50,
+      icon: ct('ic_tech_foundation'), detail: '50 Madra · 8 s cycle · no zones',
+      pts: [122.0912, -77.8616, -122.0912, 77.8616, 322.5, 400, -158.6552, 0, 158.6552, 0, 322.5, 700,
+        132.035, 76.6656, -132.035, -76.6656, 322.5, 400, -158.655, 0, 158.655, 0, 322.5, 100,
+        132.035, -76.667, 0, 0, 322.5, 400],
+      zones: [],
+    },
+    {
+      id: 'smooth', name: 'Smooth Flow Technique', short: 'Smooth Flow', dur: 15, madra: 200,
+      icon: ct('ic_tech_smooth'), detail: '200 Madra · 15 s cycle · 4 zones',
+      pts: [1, -5, -1, 5, 320, 464, 17, 21, -17, -21, 264, 440, -45, 20, 45, -20, 320, 340,
+        -21, -68, 21, 68, 464, 416, 91, -21, -91, 21, 320, 616, 22, 113, -22, -113, 110, 430,
+        -139.63637, -1.272726, 139.63637, 1.272726, 320, 180, 22, -113, -22, 113, 530, 430,
+        91, 21, -91, -21, 320, 616, -21, 68, 21, -68, 176, 416, -45, -20, 45, 20, 320, 340,
+        17, -21, -17, 21, 376, 440, 1, 5, -1, -5, 320, 464],
+      zones: [
+        { x: 464, y: 416, p: 25, g: 15, o: 5 },
+        { x: 110, y: 430, p: 25, g: 15, o: 5 },
+        { x: 320, y: 180, p: 50, g: 25, o: 10 },
+        { x: 530, y: 430, p: 25, g: 15, o: 5 },
+      ],
+    },
+    {
+      id: 'torrent', name: 'Torrential Flow', short: 'Torrential Flow', dur: 8, madra: 250, isNew: true,
+      icon: ct('ic_tech_torrent'), detail: '250 Madra · 8 s cycle · 1 zone',
+      pts: [89.41628, -80.2201, -89.41628, 80.2201, 320, 464, -10.859653, 25.575396, 10.859653, -25.575396, 256, 416,
+        -33.31093, 1.2337382, 33.31093, -1.2337382, 320, 344, 15.490908, -72.509094, -15.490908, 72.509094, 384, 416,
+        -14.545453, -46.54545, 14.545453, 46.54545, 432, 512, 42.909084, 10.90909, -42.909084, -10.90909, 320, 576,
+        0.43636417, 174.83636, -0.43636417, -174.83636, 128, 440, -45.818176, -4.363636, 45.818176, 4.363636, 320, 256,
+        -27.636362, -85.090904, 27.636362, 85.090904, 512, 416, 46.545456, -23.272728, -46.545456, 23.272728, 448, 640,
+        48.727272, 47.999996, -48.727272, -47.999996, 320, 640, 0, 0, 0, 0, 320, 464],
+      zones: [{ x: 322, y: 256, p: 30, g: 25, o: 20 }],
+    },
+  ];
+  const techById = (id) => TECHS.find((t) => t.id === id);
+
+  //---------------------------------------------------------------------------
+  // Layouts: where the board, the figure and the readouts sit
+  //---------------------------------------------------------------------------
+  const LAYOUTS = {
+    A: {
+      about: '<b>A · In the map gap.</b> The board hugs the figure where the map was. The cabinet stays as the readout, so Madra pours into its orb; Goals and Log stay; the zone chest lists the techniques until you close the board. The dock hides.',
+      board: { x: 680, w: 560, tex: 'cyc_board_a' },
+      arena: [710, 104],
+      madraOrb: [24 + 18, 24 + 16],
+      coreOrb: [24 + 18, 24 + 108],
+    },
+    B: {
+      about: '<b>B · Modal board.</b> An opaque 2-step dither covers the zone view; one board holds the figure, Madra, Core Density, the techniques and the Breakthrough goal. Goals and Log are hidden, as today, and the cabinet still shows through the dither as a second Madra readout.',
+      board: { x: 440, w: 1040, tex: 'cyc_board_b' },
+      arena: [470, 104],
+      madraOrb: [1010, 104],
+      coreOrb: [1010, 196],
+    },
+    C: {
+      about: '<b>C · Full-screen room.</b> No zone view: the whole screen is the cycling room, in three compartments. Resources, the Breakthrough goal and this session on the left; techniques on the right.',
+      board: { x: 24, w: 1872, tex: 'cyc_board_c' },
+      arena: [710, 104],
+      madraOrb: [66, 116],
+      coreOrb: [66, 208],
+    },
+  };
+
+  //---------------------------------------------------------------------------
+  // State
+  //---------------------------------------------------------------------------
+  const S = {
+    layout: 'A', body: 'carved', trail: 'madra', motion: 'snap', xp: 'tier', icons: 'each',
+    zones: true, result: true, fit: false,
+    tech: 'smooth', seen: {}, auto: false,
+    madra: 46, level: 32, cdXp: 11, gold: 120,
+    feed: [
+      { text: 'Returned from The Shallow Woods · +34 gold', tone: 'gold' },
+      { text: 'Resumed the Aura Well', tone: 'muted' },
+      { text: 'Started Wilderness Cycling · Aura Well paused', tone: 'muted' },
+    ],
+    session: { cycles: 0, madra: 0, xp: 0 },
+    flashTech: null,
+  };
+  const G = {
+    cycling: false, elapsed: 0, s: 0, drawnS: 0, bx: 0, by: 0, drawX: 0, drawY: 0, lastStep: 0,
+    pTimer: 0, tracking: false, zoneState: [], cycleMadra: 0, cycleXp: 0, tiers: [],
+    status: '', statusUntil: 0, lastResult: '', rateWindow: [], cycled: false,
+  };
+  let baked = null;
+  let groove = null;
+  let lit = 0;
+  let NOW = performance.now();      // ms; the loop sets it each step (simulated in a fast-forward)
+  let mouse = { x: -999, y: -999, inFrame: false };
+  let scale = 1;
+  const pellets = [];
+
+  const cap = () => 100 + 5 * S.level;
+  const need = () => 10 * Math.pow(1.02, S.level);
+  const snap2 = (v) => 2 * Math.round(v / 2);
+  const even = (v) => 2 * Math.floor(v / 2);
+  const dec = (text) => String(text).replace(/(\d)\.(\d)/g, '$1<span class="pt">.</span>$2');
+  const when = (c, html) => (c ? html : '');
+  const tech = () => techById(S.tech);
+
+  //---------------------------------------------------------------------------
+  // Curve baking and the groove raster (one art px = 2 screen px)
+  //---------------------------------------------------------------------------
+  function bake(t) {
+    const P = t.pts;
+    const n = P.length / 6;
+    const pts = [];
+    let len = 0;
+    let prev = null;
+    for (let i = 0; i < n - 1; i++) {
+      const b = i * 6;
+      const c = (i + 1) * 6;
+      const p0 = [P[b + 4], P[b + 5]];
+      const c1 = [P[b + 4] + P[b + 2], P[b + 5] + P[b + 3]];
+      const p1 = [P[c + 4], P[c + 5]];
+      const c2 = [P[c + 4] + P[c], P[c + 5] + P[c + 1]];
+      for (let k = i === 0 ? 0 : 1; k <= 240; k++) {
+        const u = k / 240;
+        const v = 1 - u;
+        const x = v * v * v * p0[0] + 3 * v * v * u * c1[0] + 3 * v * u * u * c2[0] + u * u * u * p1[0] - OFF_X;
+        const y = v * v * v * p0[1] + 3 * v * v * u * c1[1] + 3 * v * u * u * c2[1] + u * u * u * p1[1] - OFF_Y;
+        if (prev) len += Math.hypot(x - prev[0], y - prev[1]);
+        pts.push([x, y, len]);
+        prev = [x, y];
+      }
+    }
+    return { pts: pts, len: len };
+  }
+
+  function pointAt(s) {
+    const p = baked.pts;
+    let lo = 0;
+    let hi = p.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (p[mid][2] < s) lo = mid + 1; else hi = mid;
+    }
+    if (lo === 0) return [p[0][0], p[0][1]];
+    const a = p[lo - 1];
+    const b = p[lo];
+    const f = b[2] > a[2] ? (s - a[2]) / (b[2] - a[2]) : 0;
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+  }
+
+  function rasterGroove() {
+    const W = 250;
+    const cells = new Map();
+    baked.pts.forEach(function (q) {
+      const ax = Math.floor(q[0] / 2 - 0.5);
+      const ay = Math.floor(q[1] / 2 - 0.5);
+      [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (d) {
+        const k = (ay + d[1]) * W + (ax + d[0]);
+        if (!cells.has(k) || cells.get(k) > q[2]) cells.set(k, q[2]);
+      });
+    });
+    const core = [];
+    const lips = [];
+    cells.forEach(function (s, k) {
+      const ax = k % W;
+      const ay = (k - ax) / W;
+      const top = !cells.has(k - W);
+      const bottom = !cells.has(k + W);
+      core.push({ ax: ax, ay: ay, s: s, top: top, bottom: bottom });
+      if (bottom) lips.push({ ax: ax, ay: ay + 1 });
+    });
+    core.sort(function (a, b) { return a.s - b.s; });
+    return { core: core, lips: lips };
+  }
+
+  function drawGrooveUnlit() {
+    const ctx = document.getElementById('groove').getContext('2d');
+    ctx.clearRect(0, 0, 250, 416);
+    lit = 0;
+    if (S.body === 'seated') return;
+    ctx.fillStyle = GROOVE.lip;
+    groove.lips.forEach(function (c) { ctx.fillRect(c.ax, c.ay, 1, 1); });
+    ctx.fillStyle = GROOVE.ink;
+    groove.core.forEach(function (c) { ctx.fillRect(c.ax, c.ay, 1, 1); });
+  }
+
+  function lightGrooveTo(s) {
+    if (S.trail === 'none' || S.body === 'seated') return;
+    const ramp = GROOVE[S.trail];
+    const ctx = document.getElementById('groove').getContext('2d');
+    while (lit < groove.core.length && groove.core[lit].s <= s) {
+      const c = groove.core[lit];
+      ctx.fillStyle = c.top ? ramp[0] : (c.bottom ? ramp[2] : ramp[1]);
+      ctx.fillRect(c.ax, c.ay, 1, 1);
+      lit++;
+    }
+  }
+
+  //---------------------------------------------------------------------------
+  // Furniture: template literals, rebuilt on discrete changes
+  //---------------------------------------------------------------------------
+  function rod(name, x, y, width, k) {
+    return `<div class="tex" style="left: ${x}px; top: ${y}px; width: ${width}px; height: 10px; background-image: url('${zt('rod_' + name + '_empty')}');">
+      ${when(k > 0, `<div class="tex" style="left: 0; top: 0; width: ${2 + 2 * k}px; height: 10px; background-image: url('${zt('rod_' + name + '_full')}');"></div>`)}
+      ${when(k >= 2, `<img src="${zt('rod_' + name + '_end')}" alt="" style="left: ${2 * k}px; top: 0; width: 2px; height: 10px;">`)}
+    </div>`;
+  }
+
+  // The Madra and Core Density rows of the cabinet, drawn at (x, y) = the Madra orb's corner.
+  function readoutsHtml(x, y, rightEdge) {
+    const rw = 200;
+    return `
+      <div class="tex orb" data-ref="orb" style="left: ${x}px; top: ${y}px;"></div>
+      <span class="t lbl" style="left: ${x + 96}px; top: ${y + 6}px;">Madra</span>
+      <span class="t" data-ref="madra" style="left: ${x + 96}px; top: ${y + 28}px; font-size: 30px; line-height: 36px;"></span>
+      <span class="t" data-ref="rate" style="left: ${rightEdge - rw}px; top: ${y + 40}px; width: ${rw}px; text-align: right; font-size: 17px; line-height: 20px; color: ${TAN};"></span>
+      <div class="tex core" data-ref="core" style="left: ${x}px; top: ${y + 92}px;"></div>
+      <span class="t lbl" style="left: ${x + 96}px; top: ${y + 94}px;">Core Density</span>
+      <span class="t ttl" style="left: ${x + 96}px; top: ${y + 114}px; font-size: 21px; line-height: 28px; color: ${CREAM};">Foundation</span>
+      <span class="t nm" data-ref="level" style="left: ${rightEdge - rw}px; top: ${y + 120}px; width: ${rw}px; text-align: right;"></span>
+      <div class="tex beads" data-ref="beads" style="left: ${x + 96}px; top: ${y + 152}px;"></div>
+      <span class="t lbl" data-ref="xp" style="left: ${rightEdge - rw}px; top: ${y + 149}px; width: ${rw}px; text-align: right;"></span>`;
+  }
+
+  function cabinetHtml() {
+    return `
+<section aria-label="Cultivation" style="left: 24px; top: 24px; width: 440px; height: 252px;">
+  <img class="sh4" src="${zt('cult')}" alt="" style="left: 0; top: 0; width: 440px; height: 252px;">
+  ${readoutsHtml(18, 16, 422)}
+  <img src="${zt('line')}" alt="" style="left: 16px; top: 198px; width: 408px; height: 6px;">
+  <img src="${GOLD_ICON}" alt="" style="left: 26px; top: 208px; width: 32px; height: 32px;">
+  <span class="t" style="left: 68px; top: 210px; font-size: 22px; line-height: 28px;">${S.gold} <span style="font-size: 17px; line-height: 22px; color: ${TAN};">gold</span></span>
+</section>`;
+  }
+
+  function goalsHtml() {
+    const k = Math.round((Math.min(S.level, 100) / 100) * 138);
+    return `
+<section aria-label="Goals" style="left: 24px; top: 272px; width: 440px; height: 220px;">
+  <img class="sh4" src="${zt('goals')}" alt="" style="left: 0; top: 0; width: 440px; height: 220px;">
+  <span class="t ttl" style="left: 18px; top: 30px; font-size: 22px; line-height: 28px;">Goals</span>
+  <img src="${PH.story}" alt="" style="left: 20px; top: 68px; width: 32px; height: 32px;">
+  <span class="t nm" style="left: 64px; top: 66px;">First Elite</span>
+  <span class="t lbl" style="left: 64px; top: 88px;">Defeat an elite in The Shallow Woods</span>
+  <img src="${zt('line')}" alt="" style="left: 16px; top: 120px; width: 408px; height: 6px;">
+  <img src="${zt('ic_core')}" alt="" style="left: 20px; top: 138px; width: 32px; height: 32px;">
+  <span class="t nm" style="left: 64px; top: 136px;">Breakthrough</span>
+  <span class="t lbl" style="left: 64px; top: 158px;">Raise Core Density to 100</span>
+  ${rod('goal', 64, 188, 280, k)}
+  <span class="t lbl" style="left: 222px; top: 184px; width: 200px; text-align: right;">${S.level} / 100</span>
+</section>`;
+  }
+
+  function logHtml() {
+    const tones = { gold: [BRASS, 'brass'], madra: [MADRA_BLUE, 'madra'], cream: [CREAM, 'cream'], muted: [TAN, 'tan'] };
+    const feed = S.feed.slice(-5);
+    const h = 74 + 26 * feed.length;
+    return `
+<section aria-label="Log" style="left: 24px; top: ${1056 - h}px; width: 440px; height: ${h}px;">
+  <img class="sh4" src="${zt('log' + feed.length)}" alt="" style="left: 0; top: 0; width: 440px; height: ${h}px;">
+  <span class="t ttl" style="left: 18px; top: 14px; font-size: 22px; line-height: 28px;">Log</span>
+  <span class="t lbl" style="left: 222px; top: 20px; width: 200px; text-align: right;">Full log · L</span>
+  ${feed.map(function (e, i) {
+    const age = feed.length - 1 - i;
+    let tone = tones[e.tone] || tones.muted;
+    if (age === 2) tone = tones.muted;
+    else if (age > 2) tone = [DIM, 'dim'];
+    return `<div style="position: absolute; left: 20px; top: ${h - 42 - 26 * age}px; width: 402px; height: 18px;">
+      <img src="${zt('bullet_' + tone[1])}" alt="" style="left: 0; top: 4px; width: 10px; height: 10px;">
+      <span class="t" style="left: 18px; top: 0; max-width: 384px; overflow: hidden; text-overflow: ellipsis; font-size: 15px; line-height: 18px; color: ${tone[0]};">${dec(e.text)}</span>
+    </div>`;
+  }).join('')}
+</section>`;
+  }
+
+  function techCard(t, x, y) {
+    const inUse = t.id === S.tech;
+    const shift = inUse ? -2 : 0;
+    const isNew = t.isNew && !S.seen[t.id];
+    const icon = S.icons === 'each' ? t.icon : PH.cycle;
+    return `
+<button class="drw" data-tech="${t.id}" aria-label="${t.name}${inUse ? ', in use' : ''}" style="left: ${x}px; top: ${y}px; width: 392px; height: 72px;">
+  <img class="${inUse ? 'sh4' : 'sh2'}" src="${zt(inUse ? 'drawer_run' : 'drawer')}" alt="" style="left: ${shift}px; top: ${shift}px; width: 392px; height: 72px;">
+  <span class="cardIn" style="left: ${shift}px; top: ${shift}px; height: 72px;">
+    <img src="${icon}" alt="" style="left: 16px; top: 20px; width: 32px; height: 32px;">
+    <span class="t" style="left: 64px; top: 13px; max-width: 232px; height: 22px; display: flex; align-items: flex-start;">
+      <span class="nm" style="min-width: 0; margin-top: 1px; overflow: hidden; text-overflow: ellipsis;">${t.name}</span>
+      ${when(isNew, `<span class="seal-new">NEW</span>`)}
+    </span>
+    ${when(inUse, `<img src="${zt('tag')}" alt="" style="left: 304px; top: 13px; width: 76px; height: 22px;">
+      <span class="t tagtxt" style="left: 304px; top: 13px; color: ${CREAM};">IN USE</span>`)}
+    <span class="t lbl" style="left: 64px; top: 38px; max-width: 316px; overflow: hidden; text-overflow: ellipsis;">${t.detail}</span>
+    <span class="hov" style="width: 392px; height: 72px;"></span>
+    ${when(S.flashTech === t.id, `<span class="brassframe flash" style="width: 392px; height: 72px;"></span>`)}
+  </span>
+</button>`;
+  }
+
+  function techHeader(x, y, w) {
+    return `
+<div style="position: absolute; left: ${x}px; top: ${y}px; width: ${w}px; height: 24px; display: flex; align-items: flex-start;">
+  <span class="ttl" style="font-size: 20px; line-height: 24px; white-space: nowrap;">Techniques</span>
+  <span style="flex: 1; display: flex; height: 6px; margin: 10px 12px 0 12px;">
+    <span class="groove" style="flex: 1; height: 6px;"></span>
+    <img class="inl" src="${zt('groove_end')}" alt="" style="width: 6px; height: 6px;">
+  </span>
+  <span style="margin-top: 2px; font-size: 15px; line-height: 20px; color: ${TAN}; white-space: nowrap;">${TECHS.length} learned</span>
+</div>`;
+  }
+
+  function nowTrayHtml() {
+    return `
+<div>
+  <div style="position: absolute; left: 16px; top: 82px; width: 408px; height: 88px;">
+    <img src="${zt('now_tray')}" alt="" style="left: 0; top: 0; width: 408px; height: 88px;">
+    <div class="tex ring" data-ref="nowRing" style="left: 14px; top: 16px;"></div>
+    <img src="${PH.cycle}" alt="" style="left: 26px; top: 28px; width: 32px; height: 32px;">
+    <span class="t" style="left: 84px; top: 12px; font-size: 18px; line-height: 22px;">Wilderness Cycling</span>
+    <span class="t" data-ref="nowRate" style="left: 84px; top: 12px; width: 308px; display: flex; justify-content: flex-end; align-items: flex-start; font-size: 16px; line-height: 22px;"></span>
+    <span class="t lbl" data-ref="nowLine" style="left: 84px; top: 38px;"></span>
+    <span class="t lbl" data-ref="nowTime" style="left: 192px; top: 38px; width: 200px; text-align: right;"></span>
+    <div data-ref="nowRod" style="position: absolute; left: 84px; top: 64px; width: 308px; height: 10px;"></div>
+  </div>
+  <img class="sh2" src="${zt('now_plate')}" alt="" style="left: 28px; top: 72px; width: 60px; height: 22px;">
+  <span class="t" style="left: 28px; top: 72px; width: 60px; text-align: center; font-size: 14px; line-height: 22px; color: ${INK};">Now</span>
+</div>`;
+  }
+
+  function chestHtml() {
+    const listTop = 232;
+    const listH = TECHS.length * 72 + (TECHS.length - 1) * 8;
+    const h = listTop + listH + 28;
+    return `
+<section aria-label="Zone" style="left: 1456px; top: 24px; width: 440px; height: ${h}px;">
+  <div class="sh4" style="position: absolute; left: 0; top: 0; width: 440px; height: ${h}px;">
+    <img src="${zt('chest_top')}" alt="" style="left: 0; top: 0; width: 440px; height: 128px;">
+    <div class="chestMid" style="position: absolute; left: 0; top: 128px; width: 440px; height: ${h - 176}px;"></div>
+    <img src="${zt('chest_bot')}" alt="" style="left: 0; top: ${h - 48}px; width: 440px; height: 48px;">
+  </div>
+  <img src="${zt('thumb')}" alt="" style="left: 16px; top: 14px; width: 46px; height: 52px;">
+  <span class="t ttl" style="left: 74px; top: 16px; font-size: 30px; line-height: 44px;">Spirit Valley</span>
+  <img class="sh2" src="${zt('about')}" alt="" style="left: 336px; top: 22px; width: 88px; height: 36px;">
+  <span class="t" style="left: 336px; top: 22px; width: 88px; text-align: center; font-size: 15px; line-height: 36px;">About</span>
+  ${nowTrayHtml()}
+  ${techHeader(16, 204, 408)}
+  ${TECHS.map(function (t, i) { return techCard(t, 16, listTop + i * 80); }).join('')}
+</section>`;
+  }
+
+  function boardHtml() {
+    const L = LAYOUTS[S.layout];
+    const b = L.board;
+    const ax = L.arena[0];
+    const right = b.x + b.w - 30;
+    const autoX = ax + 500 - 120;
+    return `
+<img class="sh4" src="${ct(b.tex)}" alt="" style="left: ${b.x}px; top: 24px; width: ${b.w}px; height: 1032px;">
+<span class="t lbl" style="left: ${ax}px; top: 40px;">Wilderness Cycling</span>
+<span class="t ttl" style="left: ${ax}px; top: 60px; font-size: 22px; line-height: 28px;">${tech().name}</span>
+<span class="t" style="left: ${right - 28 - 8 - 60}px; top: 45px; width: 60px; text-align: right; font-size: 14px; line-height: 18px; color: ${TAN};">Esc</span>
+<button class="swap" data-click="close" aria-label="Close (Esc)" style="left: ${right - 28}px; top: 40px; width: 28px; height: 28px;">
+  <img class="off" src="${zt('close')}" alt="" style="left: 0; top: 0; width: 28px; height: 28px;">
+  <img class="on" src="${zt('close_hover')}" alt="" style="left: 0; top: 0; width: 28px; height: 28px;">
+</button>
+<span class="t nm" data-ref="status" style="left: ${ax}px; top: 954px; max-width: 360px; overflow: hidden; text-overflow: ellipsis;"></span>
+<span class="t" data-ref="result" style="left: ${ax}px; top: 996px; max-width: 500px; overflow: hidden; text-overflow: ellipsis; font-size: 15px; line-height: 18px; color: ${TAN};"></span>
+<button data-click="auto" aria-pressed="${S.auto}" aria-label="Auto cycle" style="left: ${autoX}px; top: 946px; width: 120px; height: 36px;">
+  <img class="${S.auto ? '' : 'sh2'}" src="${ct(S.auto ? 'cyc_auto_on' : 'cyc_auto')}" alt="" style="left: 0; top: 0; width: 120px; height: 36px;">
+  <span class="t" style="left: 0; top: ${S.auto ? 2 : 0}px; width: 120px; text-align: center; font-size: 15px; line-height: 36px; color: ${S.auto ? CREAM : TAN};">Auto · ${S.auto ? 'on' : 'off'}</span>
+  <span class="hov" style="width: 120px; height: 36px;"></span>
+</button>`;
+  }
+
+  function sessionHtml(x, y) {
+    const sx = S.session;
+    return `
+<span class="t ttl" style="left: ${x}px; top: ${y}px; font-size: 20px; line-height: 24px;">This session</span>
+<span class="t lbl" style="left: ${x}px; top: ${y + 34}px;">Cycles</span>
+<span class="t nm" style="left: ${x + 240}px; top: ${y + 33}px; width: 200px; text-align: right;">${sx.cycles}</span>
+<span class="t lbl" style="left: ${x}px; top: ${y + 60}px;">Madra drawn</span>
+<span class="t nm" style="left: ${x + 240}px; top: ${y + 59}px; width: 200px; text-align: right; color: ${MADRA_BLUE};">+${Math.round(sx.madra)}</span>
+<span class="t lbl" style="left: ${x}px; top: ${y + 86}px;">Core Density XP</span>
+<span class="t nm" style="left: ${x + 240}px; top: ${y + 85}px; width: 200px; text-align: right;">+${sx.xp}</span>`;
+  }
+
+  function breakthroughHtml(x, y) {
+    const k = Math.round((Math.min(S.level, 100) / 100) * 138);
+    return `
+<img src="${zt('ic_core')}" alt="" style="left: ${x + 2}px; top: ${y + 2}px; width: 32px; height: 32px;">
+<span class="t nm" style="left: ${x + 46}px; top: ${y}px;">Breakthrough</span>
+<span class="t lbl" style="left: ${x + 46}px; top: ${y + 22}px;">Raise Core Density to 100</span>
+${rod('goal', x + 46, y + 52, 280, k)}
+<span class="t lbl" style="left: ${x + 240}px; top: ${y + 48}px; width: 200px; text-align: right;">${S.level} / 100</span>`;
+  }
+
+  // The ground under the furniture, rebuilt only when the layout changes (B's iframe would
+  // reload on every render otherwise).
+  function backgroundHtml() {
+    if (S.layout === 'A') {
+      return `<div class="tex" style="left: 0; top: 0; width: 1920px; height: 1080px; background-image: url('${zt('fog_base')}');"></div>`;
+    }
+    if (S.layout === 'B') {
+      return `
+<iframe id="zoneframe" title="Zone view behind the dither" src="zone-view-map-first-mockup.html" tabindex="-1" aria-hidden="true"
+  style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; pointer-events: none;"></iframe>
+<div class="dither" style="position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;"></div>`;
+    }
+    return '';
+  }
+
+  let bgLayout = null;
+  function buildBackground() {
+    if (bgLayout === S.layout) return;
+    bgLayout = S.layout;
+    const bg = document.getElementById('bg');
+    bg.innerHTML = backgroundHtml();
+    const ifr = document.getElementById('zoneframe');
+    if (ifr) {
+      ifr.addEventListener('load', function () {
+        try {
+          const bar = ifr.contentDocument.getElementById('mockbar');
+          if (bar) bar.style.display = 'none';
+        } catch (e) { /* file:// or a cross-origin load: the bar shows at the top */ }
+      });
+    }
+  }
+
+  function furnitureHtml() {
+    const L = S.layout;
+    if (L === 'A') {
+      return `
+${cabinetHtml()}
+${goalsHtml()}
+${logHtml()}
+${boardHtml()}
+${chestHtml()}`;
+    }
+    if (L === 'B') {
+      return `
+${boardHtml()}
+${readoutsHtml(1010, 104, 1450)}
+<img src="${zt('line')}" alt="" style="left: 1010px; top: 286px; width: 408px; height: 6px;">
+${techHeader(1010, 310, 440)}
+${TECHS.map(function (t, i) { return techCard(t, 1010, 346 + i * 80); }).join('')}
+<img src="${zt('line')}" alt="" style="left: 1010px; top: 610px; width: 408px; height: 6px;">
+${breakthroughHtml(1010, 634)}
+<img src="${zt('line')}" alt="" style="left: 1010px; top: 724px; width: 408px; height: 6px;">
+${sessionHtml(1010, 748)}`;
+    }
+    return `
+${boardHtml()}
+<div class="tray" style="left: 48px; top: 96px; width: 440px; height: 476px;"></div>
+<div class="tray" style="left: 1432px; top: 96px; width: 440px; height: 312px;"></div>
+${readoutsHtml(66, 116, 470)}
+<img src="${zt('line')}" alt="" style="left: 64px; top: 298px; width: 408px; height: 6px;">
+${breakthroughHtml(66, 322)}
+<img src="${zt('line')}" alt="" style="left: 64px; top: 412px; width: 408px; height: 6px;">
+${sessionHtml(66, 436)}
+${techHeader(1456, 116, 392)}
+${TECHS.map(function (t, i) { return techCard(t, 1456, 152 + i * 80); }).join('')}`;
+  }
+
+  //---------------------------------------------------------------------------
+  // Live refs: the readouts the loop writes to
+  //---------------------------------------------------------------------------
+  let R = {};
+  const last = {};
+  function grabRefs() {
+    R = {};
+    document.querySelectorAll('#furn [data-ref]').forEach(function (el) { R[el.getAttribute('data-ref')] = el; });
+    Object.keys(last).forEach(function (k) { delete last[k]; });
+  }
+  function put(key, html) {
+    if (!R[key] || last[key] === html) return;
+    last[key] = html;
+    R[key].innerHTML = html;
+  }
+  function style(key, prop, value) {
+    const id = key + ':' + prop;
+    if (!R[key] || last[id] === value) return;
+    last[id] = value;
+    R[key].style[prop] = value;
+  }
+
+  function rateNow() {
+    const now = NOW / 1000;
+    G.rateWindow = G.rateWindow.filter(function (e) { return now - e[0] <= 1.0; });
+    return G.rateWindow.reduce(function (a, e) { return a + e[1]; }, 0);
+  }
+
+  function readouts() {
+    const c = cap();
+    const n = need();
+    put('madra', `${Math.floor(S.madra)} <span style="color: ${TAN};">/ ${c}</span>`);
+    const r = rateNow();
+    put('rate', r > 0.05 ? dec('+' + r.toFixed(1) + ' / s') : '');
+    style('orb', 'backgroundPosition', `${-80 * Math.round(Math.min(1, S.madra / c) * 32)}px 0`);
+    style('core', 'backgroundPositionX', `${-80 * Math.round((Math.min(S.level, 100) / 100) * 16)}px`);
+    style('beads', 'backgroundPosition', `0 ${-12 * Math.min(18, Math.floor((S.cdXp * 18) / n))}px`);
+    put('level', `Level ${S.level}`);
+    put('xp', `${Math.floor(S.cdXp)} / ${Math.floor(n)} XP`);
+
+    const t = tech();
+    const prog = G.cycling ? Math.min(1, G.elapsed / t.dur) : 0;
+    style('nowRing', 'backgroundPosition', `${-56 * Math.min(12, Math.floor(prog * 13))}px 0`);
+    put('nowRate', r > 0.05
+      ? `<img class="inl" src="${zt('mini_madra')}" alt="" style="width: 16px; height: 16px; margin: 4px 6px 0 0;"><span>${dec('+' + r.toFixed(1) + ' Madra / s')}</span>`
+      : '');
+    put('nowLine', t.short + (G.cycling ? '' : ' · ready'));
+    put('nowTime', G.cycling ? `${Math.floor(G.elapsed)} / ${t.dur} s` : `${t.dur} s cycle`);
+    put('nowRod', rod('well', 0, 0, 308, Math.round(prog * 152)));
+
+    const now = NOW;
+    let status;
+    if (S.body === 'seated') status = 'Seated pose: every path would be redrawn.';
+    else if (now < G.statusUntil) status = G.status;
+    else if (G.cycling && S.madra >= cap()) status = 'Madra full' + (t.zones.length ? ' · zones still pay XP' : '');
+    else if (G.cycling) status = `Cycling · ${Math.floor(G.elapsed)} / ${t.dur} s` + (G.tracking ? '' : ' · follow the ball');
+    else if (G.cycled) status = 'Click the ball for another cycle.';
+    else status = 'Click the Madra ball to begin a cycle.';
+    put('status', status);
+    put('result', S.result && G.lastResult ? dec(G.lastResult) : '');
+  }
+
+  //---------------------------------------------------------------------------
+  // Arena: the figure, the zones and the ball
+  //---------------------------------------------------------------------------
+  const arena = document.getElementById('arena');
+  const bodyImg = document.getElementById('body');
+  let ballEl = null;
+  let ringEl = null;
+  let zoneEls = [];
+
+  function buildArena() {
+    const L = LAYOUTS[S.layout];
+    arena.style.left = L.arena[0] + 'px';
+    arena.style.top = L.arena[1] + 'px';
+    if (S.body === 'seated') {
+      bodyImg.src = ct('cyc_body_seated');
+      Object.assign(bodyImg.style, { left: '0px', top: '332px', width: '500px', height: '500px' });
+    } else {
+      bodyImg.src = ct(S.body === 'brass' ? 'cyc_body_brass' : 'cyc_body_carved');
+      Object.assign(bodyImg.style, { left: '0px', top: '0px', width: '500px', height: '832px' });
+    }
+    arena.querySelectorAll('.zone, .ball, .bring').forEach(function (el) { el.remove(); });
+    zoneEls = tech().zones.map(function (z) {
+      const el = document.createElement('div');
+      el.className = 'zone';
+      el.style.left = snap2(z.x - OFF_X - 24) + 'px';
+      el.style.top = snap2(z.y - OFF_Y - 24) + 'px';
+      arena.appendChild(el);
+      return el;
+    });
+    ringEl = document.createElement('div');
+    ringEl.className = 'bring';
+    arena.appendChild(ringEl);
+    ballEl = document.createElement('div');
+    ballEl.className = 'ball';
+    arena.appendChild(ballEl);
+    baked = bake(tech());
+    groove = rasterGroove();
+    drawGrooveUnlit();
+    resetCycle();
+  }
+
+  function placeBall(x, y) {
+    G.drawX = snap2(x);
+    G.drawY = snap2(y);
+    ballEl.style.left = (G.drawX - 30) + 'px';
+    ballEl.style.top = (G.drawY - 30) + 'px';
+    ringEl.style.left = (G.drawX - 40) + 'px';
+    ringEl.style.top = (G.drawY - 40) + 'px';
+  }
+
+  function resetCycle() {
+    G.cycling = false;
+    G.elapsed = 0;
+    G.s = 0;
+    G.drawnS = 0;
+    G.zoneState = tech().zones.map(function () { return 'idle'; });
+    const p = pointAt(0);
+    G.bx = p[0];
+    G.by = p[1];
+    placeBall(p[0], p[1]);
+    drawGrooveUnlit();
+  }
+
+  function startCycle() {
+    if (G.cycling || S.body === 'seated') return;
+    G.cycling = true;
+    G.elapsed = 0;
+    G.pTimer = 0;
+    G.cycleMadra = 0;
+    G.cycleXp = 0;
+    G.tiers = [];
+    G.zoneState = tech().zones.map(function () { return 'idle'; });
+    drawGrooveUnlit();
+  }
+
+  function endCycle() {
+    const t = tech();
+    G.cycling = false;
+    G.cycled = true;
+    S.session.cycles++;
+    const parts = ['+' + Math.round(G.cycleMadra) + ' Madra'];
+    if (t.zones.length) {
+      parts.push(G.tiers.length + ' / ' + t.zones.length + ' zones');
+      const perfect = G.tiers.filter(function (x) { return x === 'PERFECT'; }).length;
+      if (perfect) parts.push(perfect + ' PERFECT');
+      if (G.cycleXp) parts.push('+' + G.cycleXp + ' XP');
+    } else {
+      parts.push('no zones');
+    }
+    G.lastResult = 'Last cycle · ' + parts.join(' · ');
+    S.feed.push({ text: 'Cycle · ' + parts.join(' · '), tone: 'madra' });
+    if (S.feed.length > 5) S.feed.shift();
+    if (!S.zones) G.zoneState = t.zones.map(function () { return 'idle'; });
+    render();
+    if (S.auto) startCycle();
+  }
+
+  //---------------------------------------------------------------------------
+  // Pellets and floaters (stepped: positions snap to even px every frame)
+  //---------------------------------------------------------------------------
+  const fx = document.getElementById('fx');
+
+  function arenaOrigin() { return LAYOUTS[S.layout].arena; }
+
+  function spawnPellet(src, from, to, dur, bend, delay) {
+    const el = document.createElement('img');
+    el.className = 'pel';
+    el.src = src;
+    el.alt = '';
+    el.style.visibility = 'hidden';
+    fx.appendChild(el);
+    const mx = (from[0] + to[0]) / 2;
+    const my = (from[1] + to[1]) / 2;
+    const dx = to[0] - from[0];
+    const dy = to[1] - from[1];
+    const d = Math.hypot(dx, dy) || 1;
+    pellets.push({
+      el: el, x0: from[0], y0: from[1], x1: to[0], y1: to[1],
+      cx: mx - (dy / d) * bend, cy: my + (dx / d) * bend,
+      t: -(delay || 0), dur: dur,
+    });
+  }
+
+  function stepPellets(dt) {
+    for (let i = pellets.length - 1; i >= 0; i--) {
+      const p = pellets[i];
+      p.t += dt;
+      if (p.t < 0) continue;
+      const u = Math.min(1, p.t / p.dur);
+      const v = 1 - u;
+      const x = v * v * p.x0 + 2 * v * u * p.cx + u * u * p.x1;
+      const y = v * v * p.y0 + 2 * v * u * p.cy + u * u * p.y1;
+      p.el.style.visibility = 'visible';
+      p.el.style.transform = `translate(${snap2(x - 6)}px, ${snap2(y - 6)}px)`;
+      if (u >= 1) {
+        p.el.remove();
+        pellets.splice(i, 1);
+      }
+    }
+  }
+
+  // A floater rides a lacquer token: 40 px up in 20 steps over 1 s, then it is hidden at once.
+  const floaters = [];
+  function floater(text, color, x, y) {
+    const el = document.createElement('div');
+    el.className = 'token sh2';
+    el.style.left = '0px';
+    el.style.top = '0px';
+    el.style.visibility = 'hidden';
+    const span = document.createElement('span');
+    span.className = 't';
+    span.style.color = color;
+    span.textContent = text;
+    el.appendChild(span);
+    fx.appendChild(el);
+    const w = even(span.getBoundingClientRect().width / scale + 13);
+    el.style.width = w + 'px';
+    span.style.width = w + 'px';
+    el.style.left = snap2(x - w / 2) + 'px';
+    el.style.top = snap2(y) + 'px';
+    el.style.visibility = 'visible';
+    floaters.push({ el: el, age: 0 });
+  }
+
+  function stepFloaters(dt) {
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      const f = floaters[i];
+      f.age += dt;
+      if (f.age >= 1) {
+        f.el.remove();
+        floaters.splice(i, 1);
+        continue;
+      }
+      f.el.style.transform = `translateY(${-2 * Math.floor(f.age * 20)}px)`;
+    }
+  }
+
+  //---------------------------------------------------------------------------
+  // Play: tracking, zone clicks
+  //---------------------------------------------------------------------------
+  function addMadra(amount) {
+    const before = S.madra;
+    S.madra = Math.min(cap(), S.madra + amount);
+    const gained = S.madra - before;
+    G.cycleMadra += amount;
+    S.session.madra += gained;
+    G.rateWindow.push([NOW / 1000, amount]);
+  }
+
+  function addXp(amount) {
+    S.cdXp += amount;
+    S.session.xp += amount;
+    let leveled = false;
+    while (S.cdXp >= need()) {
+      S.cdXp -= need();
+      S.level++;
+      leveled = true;
+    }
+    if (leveled || S.layout !== 'A') render();
+  }
+
+  function tryZoneClick(lx, ly) {
+    if (!G.cycling) return false;
+    const t = tech();
+    for (let i = 0; i < t.zones.length; i++) {
+      const z = t.zones[i];
+      const zx = z.x - OFF_X;
+      const zy = z.y - OFF_Y;
+      if (Math.hypot(lx - zx, ly - zy) > ZONE_R + 4) continue;
+      if (G.zoneState[i] !== 'active') return true;
+      const d = Math.hypot(G.bx - zx, G.by - zy);
+      const ratio = Math.min(1, d / ZONE_R);
+      let tier = 'OK';
+      let xp = z.o;
+      let color = TAN;
+      let tone = 'tan';
+      let count = 3;
+      if (ratio < 0.3) { tier = 'PERFECT'; xp = z.p; color = BRASS; tone = 'brass'; count = 8; } else if (ratio < 0.7) { tier = 'GOOD'; xp = z.g; color = CREAM; tone = 'cream'; count = 5; }
+      G.zoneState[i] = tier.toLowerCase();
+      G.tiers.push(tier);
+      G.cycleXp += xp;
+      const o = arenaOrigin();
+      const from = [o[0] + zx, o[1] + zy];
+      const core = LAYOUTS[S.layout].coreOrb;
+      const to = [core[0] + 40, core[1] + 40];
+      const src = ct('cyc_pellet_' + (S.xp === 'jade' ? 'jade' : tone));
+      for (let k = 0; k < count; k++) {
+        spawnPellet(src, [from[0] + ((k * 7) % 15) - 7, from[1] + ((k * 11) % 15) - 7], to, 0.55 + 0.03 * k, (k % 2 ? 1 : -1) * (40 + 10 * k), 0.04 * k);
+      }
+      floater(tier + ' +' + xp + ' XP', color, from[0], from[1] - 56);
+      addXp(xp);
+      return true;
+    }
+    return false;
+  }
+
+  //---------------------------------------------------------------------------
+  // The loop
+  //---------------------------------------------------------------------------
+  let lastNow = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - lastNow) / 1000);
+    lastNow = now;
+    step(dt, now);
+    requestAnimationFrame(loop);
+  }
+
+  function step(dt, now) {
+    NOW = now;
+    const t = tech();
+    const o = arenaOrigin();
+    demoStep();
+    const mlx = mouse.x - o[0];
+    const mly = mouse.y - o[1];
+
+    ballEl.style.backgroundPosition = `${-60 * (Math.floor(now / 100) % 8)}px 0`;
+
+    if (G.cycling) {
+      G.elapsed += dt;
+      const r = Math.min(1, G.elapsed / t.dur);
+      const p = 0.5 - 0.5 * Math.cos(Math.PI * r);
+      G.s = p * baked.len;
+      const pos = pointAt(G.s);
+      G.bx = pos[0];
+      G.by = pos[1];
+      if (S.motion === 'snap' || now - G.lastStep >= 100 || r >= 1) {
+        G.lastStep = now;
+        G.drawnS = G.s;
+        placeBall(G.bx, G.by);
+      }
+      lightGrooveTo(G.drawnS);
+
+      G.tracking = mouse.inFrame && Math.hypot(mlx - G.drawX, mly - G.drawY) <= BALL_R;
+      // At the cap nothing is drawn, so no pellets fly (the status line says why).
+      if (G.tracking && S.madra < cap()) {
+        G.pTimer += dt;
+        while (G.pTimer >= PELLET_EVERY) {
+          G.pTimer -= PELLET_EVERY;
+          addMadra((t.madra * PELLET_EVERY) / t.dur);
+          const orb = LAYOUTS[S.layout].madraOrb;
+          const flip = (Math.floor(G.elapsed / PELLET_EVERY) % 2) ? 1 : -1;
+          spawnPellet(MADRA_PELLET, [o[0] + G.drawX, o[1] + G.drawY], [orb[0] + 40, orb[1] + 40], 0.7, flip * 60, 0);
+        }
+      }
+      t.zones.forEach(function (z, i) {
+        const st = G.zoneState[i];
+        if (st !== 'idle' && st !== 'active') return;
+        const near = Math.hypot(G.bx - (z.x - OFF_X), G.by - (z.y - OFF_Y)) <= BALL_R + ZONE_R;
+        G.zoneState[i] = near ? 'active' : 'idle';
+        if (!near && st === 'active') G.zoneState[i] = 'spent';
+      });
+      if (r >= 1) endCycle();
+    } else {
+      G.tracking = false;
+    }
+
+    const frames = { idle: 0, active: 1, spent: 2, perfect: 3, good: 4, ok: 5 };
+    zoneEls.forEach(function (el, i) {
+      const st = G.zoneState[i] || 'idle';
+      el.style.backgroundPosition = `${-48 * frames[st]}px 0`;
+      el.style.visibility = (S.body !== 'seated' && (G.cycling || S.zones)) ? 'visible' : 'hidden';
+    });
+    const showBall = S.body !== 'seated';
+    ballEl.style.visibility = showBall ? 'visible' : 'hidden';
+    ringEl.style.visibility = showBall && (!G.cycling || G.tracking) ? 'visible' : 'hidden';
+    ringEl.style.backgroundPosition = G.cycling ? '-80px 0' : '0 0';
+
+    const overBall = !G.cycling && Math.hypot(mlx - G.drawX, mly - G.drawY) <= BALL_R;
+    const overZone = G.cycling && t.zones.some(function (z, i) {
+      return G.zoneState[i] === 'active' && Math.hypot(mlx - (z.x - OFF_X), mly - (z.y - OFF_Y)) <= ZONE_R + 4;
+    });
+    arena.style.cursor = (overBall && showBall) || overZone ? 'pointer' : 'default';
+
+    stepPellets(dt);
+    stepFloaters(dt);
+    readouts();
+  }
+
+  //---------------------------------------------------------------------------
+  // Render, input
+  //---------------------------------------------------------------------------
+  const furn = document.getElementById('furn');
+  function render() {
+    buildBackground();
+    furn.innerHTML = furnitureHtml();
+    grabRefs();
+    document.getElementById('about').innerHTML = LAYOUTS[S.layout].about +
+      ' &nbsp;Play: click the ball, keep the cursor inside it, click a zone as the ball passes.';
+    readouts();
+  }
+
+  function localPoint(e) {
+    const rect = document.getElementById('frame').getBoundingClientRect();
+    return [(e.clientX - rect.left) / scale, (e.clientY - rect.top) / scale];
+  }
+
+  const frame = document.getElementById('frame');
+  frame.addEventListener('mousemove', function (e) {
+    const p = localPoint(e);
+    mouse = { x: p[0], y: p[1], inFrame: true };
+  });
+  frame.addEventListener('mouseleave', function () { mouse.inFrame = false; });
+
+  arena.addEventListener('mousedown', function (e) {
+    if (e.button !== 0 || S.body === 'seated') return;
+    const p = localPoint(e);
+    const o = arenaOrigin();
+    const lx = p[0] - o[0];
+    const ly = p[1] - o[1];
+    if (tryZoneClick(lx, ly)) return;
+    if (!G.cycling && Math.hypot(lx - G.drawX, ly - G.drawY) <= BALL_R) startCycle();
+  });
+
+  function closeView() {
+    resetCycle();
+    G.cycled = false;
+    G.status = S.layout === 'A' ? 'Closed: the map and the activities return.' : 'Closed: the zone view returns.';
+    G.statusUntil = NOW + 2500;
+    if (S.layout === 'A') {
+      S.feed.push({ text: 'Stopped cycling · resumed the Aura Well', tone: 'muted' });
+      if (S.feed.length > 5) S.feed.shift();
+    }
+    render();
+  }
+
+  frame.addEventListener('click', function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.getAttribute('data-tech');
+    const click = btn.getAttribute('data-click');
+    if (id) {
+      S.seen[id] = true;
+      if (id !== S.tech) {
+        S.tech = id;
+        S.flashTech = id;
+        G.cycled = false;
+        G.lastResult = '';
+        buildArena();
+        setTimeout(function () { if (S.flashTech === id) { S.flashTech = null; render(); } }, 1300);
+      }
+      render();
+    } else if (click === 'auto') {
+      S.auto = !S.auto;
+      render();
+    } else if (click === 'close') {
+      closeView();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeView();
+  });
+
+  //---------------------------------------------------------------------------
+  // Mock controls and the URL hash
+  //---------------------------------------------------------------------------
+  const controls = {
+    layout: document.getElementById('c-layout'),
+    body: document.getElementById('c-body'),
+    trail: document.getElementById('c-trail'),
+    motion: document.getElementById('c-motion'),
+    xp: document.getElementById('c-xp'),
+    icons: document.getElementById('c-icons'),
+    zones: document.getElementById('c-zones'),
+    result: document.getElementById('c-result'),
+    fit: document.getElementById('c-fit'),
+  };
+
+  // Capture helpers: #bar=0 hides the mock bar; #demo=1 plays by itself (the cursor rides the
+  // ball and clicks each zone for a set tier), so a still can show a cycle in progress.
+  const extra = new URLSearchParams(location.hash.slice(1));
+  const DEMO = extra.get('demo') === '1';
+  const DEMO_TIERS = ['PERFECT', 'GOOD', 'PERFECT', 'OK'];
+  if (extra.get('bar') === '0') document.getElementById('mockbar').style.display = 'none';
+  if (extra.has('tech')) S.tech = extra.get('tech');
+  if (extra.has('madra')) S.madra = parseFloat(extra.get('madra')) || 0;
+  if (extra.has('auto')) S.auto = extra.get('auto') === '1';
+
+  function demoStep() {
+    if (!DEMO || S.body === 'seated') return;
+    const o = arenaOrigin();
+    if (!G.cycling && !G.cycled) startCycle();
+    if (!G.cycling) return;
+    mouse = { x: o[0] + G.drawX + 6, y: o[1] + G.drawY - 4, inFrame: true };
+    tech().zones.forEach(function (z, i) {
+      if (G.zoneState[i] !== 'active') return;
+      const d = Math.hypot(G.bx - (z.x - OFF_X), G.by - (z.y - OFF_Y));
+      const want = DEMO_TIERS[i % DEMO_TIERS.length];
+      if ((want === 'PERFECT' && d < 5) || (want === 'GOOD' && d >= 7 && d < 12) || (want === 'OK' && d >= 24 && d < 40)) {
+        tryZoneClick(z.x - OFF_X, z.y - OFF_Y);
+      }
+    });
+  }
+
+  function readHash() {
+    const h = new URLSearchParams(location.hash.slice(1));
+    Object.keys(controls).forEach(function (k) {
+      if (!h.has(k)) return;
+      const v = h.get(k);
+      if (typeof S[k] === 'boolean') S[k] = v === '1' || v === 'true';
+      else S[k] = v;
+    });
+  }
+  function writeHash() {
+    const h = new URLSearchParams();
+    h.set('layout', S.layout);
+    ['body', 'trail', 'motion', 'xp', 'icons'].forEach(function (k) { h.set(k, S[k]); });
+    ['zones', 'result', 'fit'].forEach(function (k) { h.set(k, S[k] ? '1' : '0'); });
+    history.replaceState(null, '', '#' + h.toString());
+  }
+  function syncControls() {
+    Object.keys(controls).forEach(function (k) {
+      const c = controls[k];
+      if (c.type === 'checkbox') c.checked = !!S[k];
+      else c.value = S[k];
+    });
+  }
+  Object.keys(controls).forEach(function (k) {
+    controls[k].addEventListener('change', function () {
+      const c = controls[k];
+      S[k] = c.type === 'checkbox' ? c.checked : c.value;
+      writeHash();
+      if (k === 'fit') { applyFit(); return; }
+      if (k === 'layout' || k === 'body') buildArena();
+      if (k === 'trail') { drawGrooveUnlit(); if (G.cycling) lightGrooveTo(G.drawnS); }
+      render();
+    });
+  });
+
+  function applyFit() {
+    const stage = document.getElementById('stage');
+    document.documentElement.classList.toggle('fit', S.fit);
+    if (S.fit) {
+      const bar = document.getElementById('mockbar').getBoundingClientRect().height;
+      scale = Math.min(window.innerWidth / 1920, (window.innerHeight - bar) / 1080);
+    } else {
+      scale = 1;
+    }
+    frame.style.transform = scale === 1 ? '' : `scale(${scale})`;
+    stage.style.width = (1920 * scale) + 'px';
+    stage.style.height = (1080 * scale) + 'px';
+  }
+  window.addEventListener('resize', function () { if (S.fit) applyFit(); });
+
+  //---------------------------------------------------------------------------
+  // Start
+  //---------------------------------------------------------------------------
+  readHash();
+  syncControls();
+  applyFit();
+  buildArena();
+  render();
+
+  // #demo=1&t=9 plays 9 s at once (60 steps a second) before showing; #freeze=1 then stops the
+  // clock, for a still.
+  function begin() {
+    render();
+    const ff = DEMO ? parseFloat(extra.get('t') || '0') : 0;
+    if (ff > 0) {
+      let sim = performance.now() - ff * 1000;
+      for (let i = 0; i < Math.round(ff * 60); i++) {
+        sim += 1000 / 60;
+        step(1 / 60, sim);
+      }
+    }
+    lastNow = performance.now();
+    if (extra.get('freeze') !== '1') requestAnimationFrame(loop);
+  }
+  if (document.fonts && document.fonts.load) {
+    Promise.all([document.fonts.load("15px 'Euljiro'"), document.fonts.load("16px 'Yatra'")]).then(begin, begin);
+  } else {
+    begin();
+  }
+})();
+</script>
+</body>
+</html>

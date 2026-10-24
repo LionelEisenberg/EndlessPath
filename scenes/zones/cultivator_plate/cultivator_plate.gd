@@ -52,6 +52,7 @@ func _ready() -> void:
 	CultivationManager.core_density_level_updated.connect(_on_core_density_level_updated)
 	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
 	ActionManager.current_action_changed.connect(_on_current_action_changed)
+	CyclingManager.madra_rate_changed.connect(_on_madra_rate_changed)
 	_update_all()
 
 #-----------------------------------------------------------------------------
@@ -62,6 +63,11 @@ func _ready() -> void:
 ## particles fly to.
 func get_madra_orb_global_position() -> Vector2:
 	return _madra_orb.global_position + _madra_orb.size * 0.5
+
+## Returns the global position of the Core orb's centre, where Core Density XP
+## particles fly to.
+func get_core_orb_global_position() -> Vector2:
+	return _core_orb.global_position + _core_orb.size * 0.5
 
 #-----------------------------------------------------------------------------
 # DISPLAY UPDATES
@@ -83,9 +89,12 @@ func _update_madra() -> void:
 	_madra_value_label.text = str(floori(madra))
 	_madra_max_label.text = " / %d" % floori(max_madra)
 
-## "+1.5 / s" while the running action earns Madra; hidden otherwise.
+## "+1.5 / s" while the running action earns Madra (while cycling, the Madra the
+## ball is drawing); hidden otherwise. The rate is read to CyclingManager.RATE_STEP
+## first, the step the manager announces it in, so a rate that reads +0 hides the
+## label instead of showing "+0 / s".
 func _update_rate() -> void:
-	var rate: float = ActionManager.get_current_madra_per_second()
+	var rate: float = snappedf(ActionManager.get_current_madra_per_second(), CyclingManager.RATE_STEP)
 	_rate_label.visible = rate > 0.0
 	if _rate_label.visible:
 		_rate_label.text = LacquerText.decimal_bbcode(LacquerText.rate(rate) + " / s")
@@ -132,4 +141,9 @@ func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) 
 	_update_madra()
 
 func _on_current_action_changed(_action_data: ZoneActionData) -> void:
+	_update_rate()
+
+## Ignores the payload and re-reads ActionManager, so the order of a session's
+## end and the idle action's resume cannot leave a stale rate.
+func _on_madra_rate_changed(_rate: float) -> void:
 	_update_rate()

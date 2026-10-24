@@ -28,6 +28,8 @@ func before_each() -> void:
 func after_each() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
+	# A cycle session left running would leak into later files.
+	CyclingManager.end_cycle_session()
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -144,6 +146,32 @@ func test_rate_shows_while_aura_well_runs() -> void:
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	assert_false(rate.visible, "hidden while cycling runs")
 
+## While the cycling action runs, the rate is the Madra the ball is drawing,
+## read to a tenth (13.333 reads +13.3), and it goes when the cycle ends.
+func test_rate_shows_the_cycling_rate() -> void:
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	var rate: RichTextLabel = _node("RateLabel")
+	assert_false(rate.visible, "precondition: no cycle draws Madra yet")
+
+	CyclingManager.start_cycle_session(15.0)
+	CyclingManager.update_cycle_session(5.0, 13.333)
+	assert_true(rate.visible, "shown while the ball draws Madra")
+	assert_eq(rate.get_parsed_text(), "+13.3 / s")
+
+	CyclingManager.end_cycle_session()
+	assert_false(rate.visible, "hidden once the cycle ends")
+
+## A rate that reads +0 a second hides the label instead of showing "+0 / s".
+func test_rate_hides_when_it_rounds_to_nothing() -> void:
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	CyclingManager.start_cycle_session(15.0)
+	CyclingManager.update_cycle_session(5.0, 13.3)
+	var rate: RichTextLabel = _node("RateLabel")
+	assert_true(rate.visible, "precondition: shown while the ball draws Madra")
+
+	CyclingManager.update_cycle_session(6.0, 0.04)
+	assert_false(rate.visible, "0.04 a second reads +0")
+
 #-----------------------------------------------------------------------------
 # CORE DENSITY
 #-----------------------------------------------------------------------------
@@ -155,6 +183,12 @@ func test_level_and_stage_text() -> void:
 func test_core_orb_draws_the_spiral_shader() -> void:
 	var orb: CanvasItem = _node("CoreOrb")
 	assert_eq(((orb.material as ShaderMaterial).shader as Shader).resource_path, CORE_ORB_SHADER_PATH)
+
+func test_core_orb_position_is_orb_centre() -> void:
+	var orb: Control = _node("CoreOrb")
+	var centre: Vector2 = _plate.get_core_orb_global_position()
+	assert_true(orb.get_global_rect().has_point(centre), "inside the orb's rect")
+	assert_eq(centre, orb.global_position + Vector2(40.0, 40.0))
 
 ## Level 0 keeps the strip's dormant pebble (column 0) and draws no fill.
 func test_fresh_save_shows_the_dormant_core() -> void:

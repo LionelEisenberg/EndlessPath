@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://sl04evwu81v5"]
+
+[ext_resource type="Script" uid="uid://cf5rlc6pwstrs" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" uid="uid://bkak8mmbend1m" path="res://assets/styleboxes/lacquer/token.tres" id="3_token"]
+
+[node name="LacquerFloater" type="Control" unique_id=1697765900]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 112.0
+offset_bottom = 30.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="Token" type="Panel" parent="." unique_id=864305961]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 112.0
+offset_bottom = 30.0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("3_token")
+
+[node name="Text" type="RichTextLabel" parent="." unique_id=1707668552]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 5.0
+offset_right = 110.0
+offset_bottom = 25.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+text = "+1.5 Madra"
+scroll_active = false
+autowrap_mode = 0
+horizontal_alignment = 1

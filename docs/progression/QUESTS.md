@@ -1,6 +1,6 @@
 # Quest System
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -20,7 +20,7 @@ Quests are linear, multi-step narrative signposts that tell the player what to d
 4. Back-to-back updates queue and play one after another, about 3.1 s each.
 5. After **Harden Your Core** completes, no quest is active. The quest row and its divider hide, the milestone moves up, and the board shrinks to fit. Completed quests are not listed anywhere.
 
-The board is shared with the adventure view, which moves it to the top right; cycling and the merchant shop hide it, and the menu books leave it under their backdrop.
+The board is shared with the adventure view, which moves it to the top right; the merchant shop hides it, cycling leaves it showing beside its board, and the menu books leave it under their backdrop.
 
 ## Architecture
 
@@ -175,7 +175,7 @@ GoalsPanel (Control, 440 wide)
     MilestoneRow                MilestoneIcon, "Breakthrough", MilestoneTextLabel %, MilestoneRod % (LacquerRod, steps 138), MilestoneFigureLabel %
 ```
 
-- Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` moves its root to (1456, 4), so its body starts at (1456, 24), and calls `set_cords_visible(false)`, which hides the cords and swaps the top slice for the hookless `lacquer_goals_top_plain_ai.png`. Cycling and the merchant shop hide it; the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
+- Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` moves its root to (1456, 4), so its body starts at (1456, 24), and calls `set_cords_visible(false)`, which hides the cords and swaps the top slice for the hookless `lacquer_goals_top_plain_ai.png`. The merchant shop hides it; cycling leaves it showing beside its board, and the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
 - **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both ellipsize in their slots). The `current / target` figure shows only when the step completes on conditions alone (no `completion_event_id`) and every condition `is_measurable()` (RESOURCE_AMOUNT or CULTIVATION_LEVEL); it reads the first condition's `get_current_value()` / `get_target_value()`.
 - **Milestone row:** "Breakthrough", "Raise Core Density to 100" (`CultivationManager.BREAKTHROUGH_LEVEL`), a jade rod at `level / 100`, and `min(level, 100) / 100` (Core Density has no cap in code; the figure does).
 - With no active quest, the quest row and the divider hide, the milestone moves up into their place, and the board hugs its rows: 220 px tall with a quest, 150 with the milestone alone.

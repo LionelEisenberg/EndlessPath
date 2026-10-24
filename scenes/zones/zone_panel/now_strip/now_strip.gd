@@ -2,17 +2,23 @@ class_name NowStrip
 extends Control
 
 ## The Now tray at the top of the zone chest (lacquer kit §5.5): what the
-## zone's idle action is doing right now. It always shows and keeps its
-## space in the chest.
+## zone's idle action, or the cycle, is doing right now. It always shows and
+## keeps its space in the chest.
 ## While an idle action (FORAGE or TRAIN_STATS) runs, a jade bead ring lights
 ## over each timer cycle (one Aura Well tick, one foraging haul), around the
 ## action's icon. The Aura Well variant shows its Madra rate,
 ## "Lv n → n+1 · +1 Spirit", the ticks into the level and a rod; the foraging
 ## variant shows each loot entry's range and "haul in N s". Clicking the tray
 ## emits strip_pressed (the chest scrolls to the running card and flashes it).
+## While the player cycles, the tray shows the cycle in the Aura Well's layout,
+## read from CyclingManager's session snapshot: the ring lights over the
+## cycle, "Wilderness Cycling" with the Madra drawn per second, the equipped
+## technique with "9 / 15 s" (its length, "15 s cycle", until a cycle runs)
+## and the rod filling. The cycling card is not in the list while the player
+## cycles, so the cycling tray takes no clicks.
 ## While none runs, the tray is empty: the ring dark, no icon, and one tan
-## line, "<idle action> · paused" while a session action (the shop, cycling,
-## an adventure, dialogue) stands in for the zone's idle action, or
+## line, "<idle action> · paused" while a session action (the shop, an
+## adventure, dialogue) stands in for the zone's idle action, or
 ## "Nothing running" when the zone has none. The empty tray takes no clicks.
 
 ## Emitted when the player clicks the tray.
@@ -31,6 +37,13 @@ const SEPARATOR: String = " · "
 ## The empty tray's line: the idle action that resumes, or none.
 const PAUSED_FORMAT: String = "%s · paused"
 const NOTHING_RUNNING: String = "Nothing running"
+## The cycle's figure: the seconds into the cycle and its length while a cycle
+## runs, the length alone until one does.
+const CYCLE_TIME_FORMAT: String = "%d / %d s"
+const CYCLE_READY_FORMAT: String = "%d s cycle"
+## The cycle's rate is read to CyclingManager.RATE_STEP, as on the cabinet, and
+## shows from half that step: below it the rate reads +0.
+const RATE_SHOWN_FROM: float = CyclingManager.RATE_STEP / 2.0
 
 const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/presenters/forage_yield.tscn")
 
@@ -59,7 +72,7 @@ const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_
 # STATE
 #-----------------------------------------------------------------------------
 
-## The idle action shown, or null while the tray is empty.
+## The idle or cycling action shown, or null while the tray is empty.
 var _action: ZoneActionData = null
 
 #-----------------------------------------------------------------------------
@@ -71,6 +84,7 @@ func _ready() -> void:
 	ActionManager.training_tick_processed.connect(_on_training_tick_processed)
 	ActionManager.training_level_gained.connect(_on_training_level_gained)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
+	CyclingManager.equipped_technique_changed.connect(_on_equipped_technique_changed)
 	gui_input.connect(_on_gui_input)
 	mouse_entered.connect(_hover_frame.show)
 	mouse_exited.connect(_hover_frame.hide)
@@ -91,12 +105,16 @@ func flash() -> void:
 # PRIVATE
 #-----------------------------------------------------------------------------
 
-## Shows the action when it is idle; empties the tray otherwise.
+## Shows the action when it is idle or cycling; empties the tray otherwise.
 func _show_action(action: ZoneActionData) -> void:
-	_action = action if _is_idle(action) else null
+	var idle: bool = _is_idle(action)
+	var cycling: bool = _is_cycling(action)
+	_action = action if idle or cycling else null
 	var running: bool = _action != null
 	set_process(running)
-	mouse_filter = MOUSE_FILTER_STOP if running else MOUSE_FILTER_IGNORE
+	# A press on the tray scrolls the chest to the running card, so only an idle
+	# action takes clicks: the cycling card is not in the list while cycling.
+	mouse_filter = MOUSE_FILTER_STOP if idle else MOUSE_FILTER_IGNORE
 	_empty_label.visible = not running
 	if not running:
 		_show_empty()
@@ -104,12 +122,14 @@ func _show_action(action: ZoneActionData) -> void:
 	_action_icon.texture = _action.icon
 	var training := _action as TrainingActionData
 	var forage := _action as ForageActionData
-	_training_content.visible = training != null
+	_training_content.visible = training != null or cycling
 	_forage_content.visible = forage != null
 	if training != null:
 		_show_training(training)
 	elif forage != null:
 		_show_forage(forage)
+	elif cycling:
+		_show_cycling()
 	_update_timer_display()
 
 ## The empty tray: the ring at its dark frame, no icon, no content, and the
@@ -162,6 +182,45 @@ func _level_reward_text(training: TrainingActionData) -> String:
 			return "%s %s" % [LacquerText.rate(award.amount), CharacterManager.get_attribute_display_name(award.attribute_type)]
 	return ""
 
+## The cycling action in the Aura Well's layout: its name, and the equipped
+## technique where the level line goes. The figure, the rod and the rate follow
+## the session snapshot every frame. The tray takes no clicks while cycling, so
+## no hover frame stays from the idle action's tray.
+func _show_cycling() -> void:
+	_hover_frame.hide()
+	_training_name.text = _action.action_name
+	_update_technique()
+
+## The equipped technique's name, where the Aura Well shows its level line.
+func _update_technique() -> void:
+	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
+	_level_label.text = technique.technique_name if technique != null else ""
+
+## The ring, the figure, the rod and the rate, read from the session snapshot.
+func _update_cycle_display() -> void:
+	var progress: float = CyclingManager.get_cycle_progress()
+	_light_ring(progress)
+	_well_rod.set_fraction(progress)
+	_update_cycle_figure()
+	_update_cycle_rate()
+
+## "9 / 15 s" while a cycle runs; until one does, the equipped technique's
+## length, "15 s cycle".
+func _update_cycle_figure() -> void:
+	if CyclingManager.is_cycle_running():
+		_ticks_label.text = CYCLE_TIME_FORMAT % [floori(CyclingManager.get_cycle_elapsed()), roundi(CyclingManager.get_cycle_duration())]
+		return
+	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
+	_ticks_label.text = CYCLE_READY_FORMAT % roundi(technique.cycle_duration) if technique != null else ""
+
+## "+13.3 Madra / s" while the cycle draws Madra; hidden otherwise. The rate
+## is read to a tenth, so a rate that reads +0 hides instead of showing "+0".
+func _update_cycle_rate() -> void:
+	var rate: float = CyclingManager.get_madra_rate()
+	_rate_group.visible = rate >= RATE_SHOWN_FROM
+	if _rate_group.visible:
+		_rate_text.text = LacquerText.decimal_bbcode("%s Madra / s" % LacquerText.rate(snappedf(rate, CyclingManager.RATE_STEP)))
+
 ## The action's name and one yield per loot entry (its 16 px icon and
 ## "min–max"). The haul countdown follows the timer every frame.
 func _show_forage(forage: ForageActionData) -> void:
@@ -188,26 +247,37 @@ func _range_text(entry: LootTableEntry) -> String:
 
 ## The ring lights floor(progress × 13) beads, at most 12, where progress is
 ## how far the action timer is through its cycle; foraging also counts down
-## to the haul.
+## to the haul. While cycling, progress is how far the session snapshot is
+## through the cycle, and the figure, the rod and the rate follow it too.
 func _update_timer_display() -> void:
 	if _action == null:
+		return
+	if _is_cycling(_action):
+		_update_cycle_display()
 		return
 	var timer: Timer = ActionManager.action_timer
 	var progress: float = 0.0
 	if not timer.is_stopped() and timer.wait_time > 0.0:
 		progress = clampf(1.0 - timer.time_left / timer.wait_time, 0.0, 1.0)
-	var ring_frame: int = mini(floori(progress * RING_FRAME_COUNT), RING_LAST_FRAME)
-	if ring_frame != _ring.get_frame().x:
-		_ring.set_frame(ring_frame)
+	_light_ring(progress)
 	if _forage_content.visible:
 		var seconds_left: int = ceili(timer.time_left) if not timer.is_stopped() else ceili(timer.wait_time)
 		_haul_label.text = "haul in %d s" % seconds_left
+
+## Lights floor(progress × 13) beads of the ring, at most 12.
+func _light_ring(progress: float) -> void:
+	var ring_frame: int = mini(floori(progress * RING_FRAME_COUNT), RING_LAST_FRAME)
+	if ring_frame != _ring.get_frame().x:
+		_ring.set_frame(ring_frame)
 
 func _is_idle(action: ZoneActionData) -> bool:
 	if action == null:
 		return false
 	return action.action_type == ZoneActionData.ActionType.FORAGE \
 		or action.action_type == ZoneActionData.ActionType.TRAIN_STATS
+
+func _is_cycling(action: ZoneActionData) -> bool:
+	return action != null and action.action_type == ZoneActionData.ActionType.CYCLING
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -230,6 +300,13 @@ func _on_training_tick_processed(training: TrainingActionData, _new_tick_count: 
 func _on_training_level_gained(training: TrainingActionData, _new_level: int) -> void:
 	if training == _action:
 		_update_training_progress()
+
+## The detail line and the ready figure follow the equipped technique at once,
+## not at the next frame.
+func _on_equipped_technique_changed(_technique: CyclingTechniqueData) -> void:
+	if _is_cycling(_action):
+		_update_technique()
+		_update_cycle_figure()
 
 func _on_gui_input(event: InputEvent) -> void:
 	var press := event as InputEventMouseButton

@@ -3,7 +3,9 @@ extends GutTest
 ## Unit tests for the quiet flag on ResourceManager's Madra and resource awards.
 ## The Aura Well trickles Madra every second; it must add the Madra without
 ## writing "Gained N Madra" to the player log each tick, and an add that the
-## cap swallows writes nothing. A fresh save holds 25 Madra with a max of 100.
+## cap swallows writes nothing. add_madra() also returns the Madra it actually
+## added, 0 when the cap swallows the add. A fresh save holds 25 Madra with a
+## max of 100.
 
 const AURA_WELL_TRICKLE_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/aura_well_madra_trickle_effect.tres"
 
@@ -64,6 +66,16 @@ func test_sub_one_add_logs_nothing() -> void:
 	ResourceManager.add_madra(0.5)
 	assert_signal_not_emitted(LogManager, "message_logged")
 	assert_eq(ResourceManager.get_madra(), 25.5)
+
+func test_add_returns_what_it_added() -> void:
+	assert_eq(ResourceManager.add_madra(5.0, true), 5.0)
+
+func test_capped_add_returns_what_fit() -> void:
+	assert_eq(ResourceManager.add_madra(90.0, true), 75.0, "25 + 90 stops at the cap of 100, so 75 fit")
+
+func test_add_at_the_cap_returns_zero() -> void:
+	ResourceManager.set_madra(100.0)
+	assert_eq(ResourceManager.add_madra(1.0, true), 0.0)
 
 #-----------------------------------------------------------------------------
 # AWARD RESOURCE

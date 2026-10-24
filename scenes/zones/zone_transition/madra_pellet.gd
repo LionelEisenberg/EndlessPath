@@ -3,9 +3,12 @@ extends Node2D
 
 ## One pellet of the Madra drain that runs when an adventure starts: it flies
 ## from the cultivator's Madra orb to the character along a curve, then frees
-## itself. Lacquer kit §1 rules 4 and 6: an opaque Madra-blue pellet with an
-## ink outline (no glow, halo, trail or fade) that moves in 2 px steps, its
-## position snapped to even screen px every frame.
+## itself. The cycling view sends the same pellet too: Madra pellets from the
+## ball into the Madra orb, and XP pellets in the tier colours (set_texture)
+## from a zone into the Core orb. Lacquer kit §1 rules 4 and 6: an opaque
+## pellet (Madra blue unless set_texture swaps the art) with an ink outline (no
+## glow, halo, trail or fade) that moves in 2 px steps, its position snapped to
+## even screen px every frame.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -14,6 +17,12 @@ extends Node2D
 ## One art px of the kit is this many screen px; the pellet only ever stands
 ## on multiples of it.
 const GRID: float = 2.0
+
+#-----------------------------------------------------------------------------
+# NODE REFERENCES
+#-----------------------------------------------------------------------------
+
+@onready var _sprite: Sprite2D = %Sprite
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -52,6 +61,13 @@ func launch(start: Vector2, target: Vector2, duration: float, curve_spread: floa
 	var perpendicular: Vector2 = (target - start).orthogonal().normalized()
 	_control_point = midpoint + perpendicular * randf_range(-curve_spread, curve_spread)
 	global_position = _point_at(0.0)
+
+## Swaps the pellet's art, so the cycling view can send XP pellets in the tier
+## colours, and centres it on the pellet's point. An even-sized texture keeps
+## the art on the 2 px grid. Call it once the pellet is in the tree.
+func set_texture(texture: Texture2D) -> void:
+	_sprite.texture = texture
+	_sprite.position = -texture.get_size() / 2.0
 
 #-----------------------------------------------------------------------------
 # PRIVATE

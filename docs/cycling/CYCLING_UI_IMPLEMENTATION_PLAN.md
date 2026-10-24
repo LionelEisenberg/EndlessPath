@@ -1,5 +1,7 @@
 # Cycling View UI Redesign — Implementation Plan
 
+> **Superseded (2026-10-23):** the lacquer cycling view replaced this tabbed view. The tabs, the resource panel and the technique slots were deleted, the Auto toggle moved onto the board, and the cultivator cabinet is the readout now. See [the cycling view spec](../superpowers/specs/2026-10-22-cycling-view-lacquer-design.md) and [CYCLING.md](CYCLING.md).
+>
 > **Status (2026-10-18):** Implemented in PR #12. See [CYCLING.md](CYCLING.md) for current behaviour. This is kept as a historical plan, so details below may be out of date. Changes since:
 > - The technique slot lives in `scenes/cycling/cycling_technique_slot/`.
 > - `CyclingTabPanel` extends `TabContainer` and has no `.tscn` of its own.

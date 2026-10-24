@@ -1,6 +1,6 @@
 # Design Specs and Implementation Plans
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 This folder is the **historical record** of feature work. Each feature usually has a design spec (`specs/`) and a step-by-step implementation plan (`plans/`), written before the work started. They are not updated after a feature ships, and many plans still have unticked checkboxes. **For current behaviour, read the living system doc** linked in each row. Statuses were verified against the code on `main` (`21b3cb2`) during the 2026-10-18 documentation audit.
 
@@ -43,6 +43,7 @@ Status key:
 | 2026-10-19 | Merchant v1 (Beat 4) | [spec](specs/2026-10-19-merchant-v1-design.md) | [plan](plans/2026-10-19-merchant-v1.md) | Shipped\* | Built on a feature branch, not yet on `main`. Per-merchant ledgers and zone themes added during review; row padding comes from the stylebox, the atmosphere clips itself, buttons have no glow shadow. Mock: [mockups/merchant-shop-mockup.html](mockups/merchant-shop-mockup.html) | [FOUNDATION_PLAYTHROUGH](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
 | 2026-10-21 | Menu books (Inventory, Abilities, Character, Path) | [spec](specs/2026-10-21-menu-books-design.md) | [plan](plans/2026-10-21-menu-books.md) | Shipped\* | Built on a feature branch, not yet on `main` (which has since moved to Godot 4.7). Sort options became "By loadout / By name / By Madra / By cooldown"; the path tree sits on a dark inset so its node art reads as before | [MAIN_VIEW](../infrastructure/MAIN_VIEW.md#menu-books) |
 | 2026-10-21 | Map-first zone view (Lacquer and brass) | [spec](specs/2026-10-21-zone-view-map-first-design.md), [art kit](specs/2026-10-21-zone-view-lacquer-kit.md) | [plan](plans/2026-10-21-zone-view-map-first.md) | Shipped\* | Built 2026-10-22 on `feat/zone-view-redesign-4656b7`, not merged. Deviations are in the plan's "As built" section (fixed-size map markers, per-zone camera windows, hugging Goals board, cycling and the shop hiding the HUD boards, among others). Mock: [mockups/zone-view-map-first-mockup.html](mockups/zone-view-map-first-mockup.html) | [ZONES](../zones/ZONES.md) |
+| 2026-10-22 | Cycling view in Lacquer and brass | [spec](specs/2026-10-22-cycling-view-lacquer-design.md) | [plan](plans/2026-10-22-cycling-view-lacquer.md) | Shipped\* | Built 2026-10-22 and 23 on `feat/cycling-view-styleguide-ea3170`, not merged. Deviations are in the spec's "As built" section (a time-weighted Madra rate, the map switched off with `SubViewport.gui_disable_input`, the Now tray reusing `%TrainingContent`, the board's title at y 57 instead of the spec's 60, among others), which ends with the user's review round of 2026-10-23 (presses through the ball, a groove lit between cycles, a breathing ready ball, solid rings, and the last cycle under the Now tray with a larger figure). Mock: [mockups/cycling-view-lacquer-mockup.html](mockups/cycling-view-lacquer-mockup.html) | [CYCLING](../cycling/CYCLING.md) |
 
 **Not on `main`:** a combat-consumables spec and plan exist only on the unmerged branch `feat/infallible-chaum-58f8ad`.
 

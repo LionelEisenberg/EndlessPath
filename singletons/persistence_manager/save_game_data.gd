@@ -94,6 +94,13 @@ func _verify_current_selected_zone_id() -> bool:
 
 @export var unlocked_cycling_technique_ids: Array[String] = ["foundation_technique"]
 @export var equipped_cycling_technique_id: String = "foundation_technique"
+## technique_ids the player has already seen. An unlocked technique missing from
+## this list shows a NEW seal on its drawer until the pointer leaves the drawer or
+## the technique is equipped.
+@export var seen_cycling_technique_ids: Array[String] = []
+## Set once CyclingManager has marked every technique unlocked at the time as seen,
+## so a save from before the NEW seal doesn't light it on every drawer.
+@export var seen_cycling_techniques_initialized: bool = false
 
 #-----------------------------------------------------------------------------
 # ABILITY MANAGER
@@ -218,6 +225,8 @@ func reset() -> void:
 	# Cycling Manager
 	unlocked_cycling_technique_ids = ["foundation_technique"]
 	equipped_cycling_technique_id = "foundation_technique"
+	seen_cycling_technique_ids = []
+	seen_cycling_techniques_initialized = false
 
 	# Ability Manager
 	unlocked_ability_ids = ["basic_strike", "enforce"]

@@ -12,6 +12,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "3789", "--directory", "docs/superpowers/mockups/inventory-redesign"],
       "port": 3789
+    },
+    {
+      "name": "lacquer-mockups",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3791", "--bind", "127.0.0.1"],
+      "port": 3791
     }
   ]
 }

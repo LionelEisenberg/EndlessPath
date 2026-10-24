@@ -126,7 +126,7 @@ func setup_action(data: ZoneActionData) -> void:
 		_apply_action()
 
 #-----------------------------------------------------------------------------
-# PUBLIC API (presenters and the activity list)
+# PUBLIC API (presenters, the activity list and the technique drawer)
 #-----------------------------------------------------------------------------
 
 ## Sets the tag shown while the action is not running. While an idle action
@@ -201,6 +201,32 @@ static func ellipsize_words(text: String, font: Font, font_size: int, max_width:
 		if letters != "" and _text_width(letters + ELLIPSIS, font, font_size) <= max_width:
 			return letters + ELLIPSIS
 	return ELLIPSIS if _text_width(ELLIPSIS, font, font_size) <= max_width else ""
+
+## Places a drawer's title, the NEW seal right after it and the tag. The title
+## hugs its text (rounded to even px) up to where the seal or the tag would
+## start, and the activity cards ellipsize it there. With wraps (the technique
+## drawers) it wraps there instead and hugs its widest line, the seal stays
+## beside its first line, and with the tag hidden the row runs on to the
+## detail line's width. The activity cards and the technique drawers share it,
+## so their title rows line up.
+static func layout_title_row(title: Label, new_seal: Control, tag: Control, wraps: bool = false) -> void:
+	var font: Font = title.get_theme_font(&"font")
+	var font_size: int = title.get_theme_font_size(&"font_size")
+	var max_width: float = DETAIL_WIDTH if wraps and not tag.visible else TITLE_ROW_WIDTH
+	if new_seal.visible:
+		max_width -= SEAL_GAP + new_seal.size.x
+	var text_width: float
+	if wraps:
+		text_width = font.get_multiline_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, max_width, font_size).x
+	else:
+		text_width = font.get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var title_width: float = minf(2.0 * ceilf(text_width / 2.0), max_width)
+	title.position = Vector2(TITLE_X, TITLE_TOP)
+	# The width first: a wrapping title's height depends on it.
+	title.size = Vector2(title_width, title.size.y)
+	title.size = Vector2(title_width, title.get_minimum_size().y)
+	new_seal.position = Vector2(TITLE_X + title_width + SEAL_GAP, TITLE_TOP - TAG_RAISE)
+	tag.position = Vector2(TAG_X, TITLE_TOP - TAG_RAISE)
 
 ## Flashes the brass frame over the card twice (300 ms on, 300 ms off). A
 ## steady ready frame steps aside for the flash and returns after it.
@@ -303,22 +329,8 @@ func _apply_tag() -> void:
 		_:
 			_tag_label.remove_theme_color_override(&"font_color")
 
-## Places the title, the NEW seal right after it and the tag. The title hugs
-## its text (rounded to even px) and ellipsizes where the seal or the tag
-## would start.
 func _layout_title_row() -> void:
-	var font: Font = _title.get_theme_font(&"font")
-	var font_size: int = _title.get_theme_font_size(&"font_size")
-	var text_width: float = font.get_string_size(_title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-	var even_width: float = 2.0 * ceilf(text_width / 2.0)
-	var max_width: float = TITLE_ROW_WIDTH
-	if _new_seal.visible:
-		max_width -= SEAL_GAP + _new_seal.size.x
-	var title_width: float = minf(even_width, max_width)
-	_title.position = Vector2(TITLE_X, TITLE_TOP)
-	_title.size = Vector2(title_width, _title.get_minimum_size().y)
-	_new_seal.position = Vector2(TITLE_X + title_width + SEAL_GAP, TITLE_TOP - TAG_RAISE)
-	_tag.position = Vector2(TAG_X, TITLE_TOP - TAG_RAISE)
+	layout_title_row(_title, _new_seal, _tag)
 
 func _refresh_new_seal() -> void:
 	_new_seal.visible = action_data != null and not ZoneManager.is_action_seen(action_data.action_id)

@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://bmqbtx5prppv8"]
+
+[ext_resource type="Script" uid="uid://ckbu0r7lhyi4t" path="res://scenes/zones/zone_panel/technique_list/technique_list.gd" id="1_list"]
+
+[node name="TechniqueList" type="Control" unique_id=1184058752]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 392.0
+offset_bottom = 72.0
+mouse_filter = 2
+script = ExtResource("1_list")
+
+[node name="Drawers" type="VBoxContainer" parent="." unique_id=835439471]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 392.0
+offset_bottom = 72.0
+mouse_filter = 2
+theme_override_constants/separation = 8

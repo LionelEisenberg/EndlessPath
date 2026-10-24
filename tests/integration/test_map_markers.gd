@@ -449,7 +449,7 @@ func test_ring_and_floater_keep_their_size_at_zoom_one() -> void:
 	await _settle()
 	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
 	var ring: MapActionRing = _markers().get_action_ring()
-	var floater: MapFloater = _markers().get_floater()
+	var floater: LacquerFloater = _markers().get_floater()
 	var plate_top: float = _markers().get_plate(SPIRIT_VALLEY_ID).position.y
 	assert_eq(plate_top, centre.y + 49.0, "precondition: the plate's top 49 px under the hex centre")
 	assert_eq(ring.scale, Vector2.ONE, "the ring keeps its size")
@@ -466,7 +466,7 @@ func test_ring_clears_the_current_plate_at_every_zoom() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	var camera: Camera2D = _map.get_camera()
 	var ring: MapActionRing = _markers().get_action_ring()
-	var floater: MapFloater = _markers().get_floater()
+	var floater: LacquerFloater = _markers().get_floater()
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
 	for zoom: float in [1.0, 1.1, 1.25, 1.5, 2.0]:
 		camera.zoom = Vector2(zoom, zoom)
@@ -640,7 +640,7 @@ func test_ring_frame_steps() -> void:
 func test_floater_on_training_tick() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	var training: TrainingActionData = ActionManager.get_current_action() as TrainingActionData
-	var floater: MapFloater = _markers().get_floater()
+	var floater: LacquerFloater = _markers().get_floater()
 	assert_false(floater.visible, "no floater before the first tick")
 	ActionManager.training_tick_processed.emit(training, 1)
 	await _settle()
@@ -653,11 +653,11 @@ func test_floater_on_training_tick() -> void:
 	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, 1010.0, 1.0, "centred on x 1010")
 
 func test_floater_rises_in_two_px_steps() -> void:
-	assert_eq(MapFloater.rise_at(0.0), 0)
-	assert_eq(MapFloater.rise_at(0.05), 2)
-	assert_eq(MapFloater.rise_at(0.51), 20)
-	assert_eq(MapFloater.rise_at(0.99), 38)
-	assert_eq(MapFloater.rise_at(1.0), 40)
+	assert_eq(LacquerFloater.rise_at(0.0), 0)
+	assert_eq(LacquerFloater.rise_at(0.05), 2)
+	assert_eq(LacquerFloater.rise_at(0.51), 20)
+	assert_eq(LacquerFloater.rise_at(0.99), 38)
+	assert_eq(LacquerFloater.rise_at(1.0), 40)
 
 func test_haul_floater_once_per_haul() -> void:
 	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
@@ -671,7 +671,7 @@ func test_haul_floater_once_per_haul() -> void:
 		parts.append("+%d %s" % [quantity, entry.item.item_name])
 		quantity += 1
 	ActionManager.foraging_completed.emit(haul)
-	var floater: MapFloater = _markers().get_floater()
+	var floater: LacquerFloater = _markers().get_floater()
 	assert_true(floater.visible)
 	assert_eq(floater.get_text(), "  ".join(parts), "the haul, two spaces between items")
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_CREAM, "in cream")
@@ -685,7 +685,7 @@ func test_floater_stops_when_the_idle_action_changes() -> void:
 	ActionManager.select_action(ZoneManager.get_action_by_id(AURA_WELL_ID))
 	var training: TrainingActionData = ActionManager.get_current_action() as TrainingActionData
 	assert_not_null(training, "precondition: the Aura Well runs")
-	var floater: MapFloater = _markers().get_floater()
+	var floater: LacquerFloater = _markers().get_floater()
 	ActionManager.training_tick_processed.emit(training, 1)
 	assert_true(floater.visible, "precondition: its tick's floater rises")
 	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
@@ -695,7 +695,7 @@ func test_floater_stops_when_the_idle_action_changes() -> void:
 
 func test_floater_keeps_rising_through_a_map_rebuild() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
-	var floater: MapFloater = _markers().get_floater()
+	var floater: LacquerFloater = _markers().get_floater()
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
 	ZoneManager.set_demo_zones_visible(true)
 	assert_true(floater.visible, "the same action still runs: its floater keeps rising")

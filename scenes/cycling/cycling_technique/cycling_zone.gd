@@ -1,117 +1,81 @@
 class_name CyclingZone
-extends Area2D
+extends Node2D
+
+## CyclingZone
+## One scoring zone along a cycling technique's path: a 48 px socket the Madra
+## ball passes over. The zone holds a State and shows it as one frame of the zone
+## strip, so the idle rim, the active rim, the spent socket and the scored studs
+## are all frames: nothing fades or tweens. A zone never hides, so the studs of
+## the last cycle stay up until the next one starts.
+## The zone takes no press of its own: the player presses the ball while it is
+## over the zone. Where the ball is, which zone is active and the scoring belong
+## to CyclingTechnique, which also places the zone. The socket ignores the mouse,
+## so it never stops a press meant for the ball.
 
 #-----------------------------------------------------------------------------
-# SIGNALS
+# ENUMS
 #-----------------------------------------------------------------------------
-signal zone_clicked(zone: CyclingZone, zone_data: CyclingZoneData)
+
+## What the zone shows, in the order of the zone strip's frames. IDLE is a tan
+## rim: between cycles, and during one until the ball reaches the zone. ACTIVE is
+## a brass rim: the ball is over the zone. SPENT is a bare socket: the ball left
+## it unscored. PERFECT, GOOD and OK are the studs a press on the ball over an
+## active zone leaves.
+enum State { IDLE, ACTIVE, SPENT, PERFECT, GOOD, OK }
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
-@onready var collision_shape: CollisionShape2D = %CollisionShape2D
-@onready var zone_sprite: Sprite2D = %Sprite2D
+
+@onready var _socket: LacquerStripRect = %Socket
 
 #-----------------------------------------------------------------------------
-# ZONE DATA
-#-----------------------------------------------------------------------------
-var zone_data: CyclingZoneData
-var is_used: bool = false
-
-var _zone_shader: Shader = preload("res://assets/shaders/cycling_zone.gdshader")
-var _shader_material: ShaderMaterial = null
-var _default_active_color: Color = Color(0.85, 0.95, 1.0, 0.95)
-
-#-----------------------------------------------------------------------------
-# INITIALIZATION
+# STATE
 #-----------------------------------------------------------------------------
 
-## Configure this zone with the provided data.
+## The zone's data: the XP it pays. Set by setup().
+var zone_data: CyclingZoneData = null
+
+var _state: State = State.IDLE
+
+#-----------------------------------------------------------------------------
+# LIFECYCLE
+#-----------------------------------------------------------------------------
+
+func _ready() -> void:
+	_socket.set_frame(_state)
+
+#-----------------------------------------------------------------------------
+# PUBLIC API
+#-----------------------------------------------------------------------------
+
+## Returns the state a hit of `tier` leaves the zone in: its stud.
+static func state_for_tier(tier: CyclingRules.Tier) -> State:
+	match tier:
+		CyclingRules.Tier.PERFECT:
+			return State.PERFECT
+		CyclingRules.Tier.GOOD:
+			return State.GOOD
+		_:
+			return State.OK
+
+## Gives the zone its data and sets it IDLE.
 func setup(data: CyclingZoneData) -> void:
 	zone_data = data
+	set_state(State.IDLE)
 
-	# Configure collision shape radius
-	var circle_shape: CircleShape2D = collision_shape.shape as CircleShape2D
-	circle_shape.radius = 20
-
-	# Enable input detection
-	input_pickable = true
-	monitoring = true
-
-	# Connect input events
-	input_event.connect(_on_input_event)
-
-	# Apply shader material to sprite
-	_shader_material = ShaderMaterial.new()
-	_shader_material.shader = _zone_shader
-	zone_sprite.material = _shader_material
-	_set_state(0.0)
-
-	# Initially hide the zone
-	visible = false
-
-#-----------------------------------------------------------------------------
-# SIGNAL HANDLERS
-#-----------------------------------------------------------------------------
-
-## Handle clicking on this zone.
-func _on_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if not is_used:
-			zone_clicked.emit(self, zone_data)
-			get_viewport().set_input_as_handled()
-
-#-----------------------------------------------------------------------------
-# PUBLIC METHODS
-#-----------------------------------------------------------------------------
-
-## Set whether this zone is currently active (ball is inside).
-func set_active(active: bool) -> void:
-	if is_used:
+## Shows `state`: its frame of the zone strip.
+func set_state(state: State) -> void:
+	if state == _state:
 		return
-	_set_state(1.0 if active else 0.0)
+	_state = state
+	if is_node_ready():
+		_socket.set_frame(_state)
 
-## Mark this zone as used for the current cycle.
-func mark_as_used() -> void:
-	is_used = true
-	input_pickable = false
-	_set_state(-1.0)
+## Returns the state the zone is in.
+func get_state() -> State:
+	return _state
 
-## Reset this zone for a new cycle.
-func reset_for_new_cycle() -> void:
-	is_used = false
-	input_pickable = true
-	monitoring = true
-	_set_state(0.0)
-	visible = false
-
-## Show this zone (called when cycle starts).
-func show_zone() -> void:
-	visible = true
-
-## Hide this zone (called when cycle ends).
-func hide_zone() -> void:
-	visible = false
-
-## Flash this zone with a specific color on successful click.
-func flash_zone(color: Color) -> void:
-	if _shader_material:
-		# Temporarily override the active color for the flash
-		_shader_material.set_shader_parameter("active_color", color)
-		_set_state(1.0)
-	await get_tree().create_timer(0.4).timeout
-	# Restore default active color
-	if _shader_material:
-		_shader_material.set_shader_parameter("active_color", _default_active_color)
-	if is_used:
-		_set_state(-1.0)
-	else:
-		_set_state(0.0)
-
-#-----------------------------------------------------------------------------
-# PRIVATE METHODS
-#-----------------------------------------------------------------------------
-
-func _set_state(value: float) -> void:
-	if _shader_material:
-		_shader_material.set_shader_parameter("state", value)
+## Returns true while the zone can still score: IDLE or ACTIVE.
+func is_open() -> bool:
+	return _state == State.IDLE or _state == State.ACTIVE

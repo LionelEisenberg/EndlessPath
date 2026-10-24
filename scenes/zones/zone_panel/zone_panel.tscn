@@ -15,6 +15,7 @@
 [ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="13_groove_end"]
 [ext_resource type="PackedScene" uid="uid://fwisr8gt3pur" path="res://scenes/zones/zone_panel/activity_list/activity_list.tscn" id="14_list"]
 [ext_resource type="Texture2D" uid="uid://dt1lk5srus118" path="res://assets/ui/lacquer/lacquer_lore_ai.png" id="15_lore"]
+[ext_resource type="PackedScene" uid="uid://bmqbtx5prppv8" path="res://scenes/zones/zone_panel/technique_list/technique_list.tscn" id="16_techniques"]
 
 [node name="ZonePanel" type="Control" unique_id=478649513]
 layout_mode = 3
@@ -120,6 +121,18 @@ offset_top = 82.0
 offset_right = 424.0
 offset_bottom = 170.0
 
+[node name="LastCycleLabel" type="Label" parent="." unique_id=1904271536]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 180.0
+offset_right = 424.0
+offset_bottom = 198.0
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerDetail"
+autowrap_mode = 3
+
 [node name="ActivitiesHeader" type="HBoxContainer" parent="." unique_id=797303341]
 unique_name_in_owner = true
 layout_mode = 0
@@ -130,7 +143,8 @@ offset_bottom = 207.0
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="ActivitiesLabel" type="Label" parent="ActivitiesHeader" unique_id=838217074]
+[node name="HeaderLabel" type="Label" parent="ActivitiesHeader" unique_id=838217074]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
 theme_type_variation = &"LabelLacquerSection"
@@ -189,6 +203,15 @@ offset_left = 12.0
 offset_top = 208.0
 offset_right = 424.0
 offset_bottom = 308.0
+
+[node name="TechniqueList" parent="." unique_id=1695010446 instance=ExtResource("16_techniques")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 208.0
+offset_right = 408.0
+offset_bottom = 280.0
 
 [node name="LorePanel" type="Control" parent="." unique_id=187218867]
 unique_name_in_owner = true

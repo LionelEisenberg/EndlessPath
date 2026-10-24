@@ -1,8 +1,8 @@
 # Gameplay State
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
-This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. The zone view described here is the map-first "Lacquer and brass" view built on `feat/zone-view-redesign-4656b7` (2026-10-22, not merged); the content is the same as on `main`. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
+This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. The zone view described here is the map-first "Lacquer and brass" view built on `feat/zone-view-redesign-4656b7` (2026-10-22, not merged), and the cycling view is the lacquer board built on `feat/cycling-view-styleguide-ea3170` (2026-10-22 and 23, not merged); the content is the same as on `main`. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
 
 ---
 
@@ -15,7 +15,7 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
    - Loadout: Basic Strike and Enforce equipped; the Foundational Technique equipped for cycling.
    - The only action card is *Talk to the [INTERVENER]*. The zoom-2 map shows only Spirit Valley, framed in fog. The Goals board shows only the Breakthrough milestone (`0 / 100`).
 2. **NPC dialogue 1** (Dialogic). It unlocks Wilderness Cycling (and the empty Test Zone, which stays hidden on the map), and starts quest **Awaken Your Core** (`q_fill_core`), which the Goals board shows with a Madra figure (`25 / 100` on a new save).
-3. **Cycle.** Keep the cursor in the moving Madra Ball to earn Madra. The Foundational Technique has no cycling zones, so it earns **no Core Density XP**. Reaching 100 Madra completes step 1.
+3. **Cycle.** Click the Madra Ball and keep the cursor in it as it travels its path to earn Madra. The Foundational Technique has no cycling zones, so it earns **no Core Density XP**. Reaching 100 Madra completes step 1.
 4. **NPC dialogue 2.** It completes the quest, unlocks **Spring Forest Foraging** and **The Shallow Woods** adventure, and starts **First Steps Out** (`q_first_steps`). When the dialogue ends, foraging starts on its own ("Resumed Spring Forest Foraging").
 5. **Forage** (idle). Every 5 s the player gains Spirit Fern (2–6) and Dewdrop Tear (1–5), shown in the Now strip and floated over the map. Foraging costs nothing, can't be toggled off, and the materials have no use yet. From now on an idle action always runs: it pauses for cycling, adventures, dialogue and the shop, and resumes when they end (and on load).
 6. **Adventure.** Starting a run needs Madra ≥ 50% of the adventure capacity (`FOUNDATION × 10`, so 50 of 100 on a new save). The whole budget drains into the run.
@@ -24,7 +24,7 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
    - The run ends on a boss win, a death, or a timeout. A scroll end card shows stats and loot.
 7. **Win any fight**, then **NPC dialogue 3**. This completes the quest, awards **+1 Path Point**, and starts **Harden Your Core** (`q_reach_core_density_10`).
 8. **Path tree** (P). The dock's Path button shows a count seal while points are unspent. Buying *Pure Core Awakening* unlocks Empty Palm and the Smooth Flow technique.
-   - The player must equip them by hand: Abilities view (A) and the cycling Techniques tab.
+   - The player must equip them by hand: Abilities view (A) and the technique drawers in the zone chest while cycling. A new technique lights NEW on the Wilderness Cycling card and on its drawer.
    - Smooth Flow has cycling zones, so cycling now earns Core Density XP. The only hint is a line of dialogue.
 9. **Aura Well** (one per map). Choosing *Mark down the location* unlocks **Aura Well** training: an idle action giving +1.5 Madra/s and +1 Spirit per level.
 10. **Reach Core Density 10** (+1 Path Point), then **NPC dialogue 4**. This completes the quest and awards the **Refugee Camp Map**.
@@ -55,7 +55,7 @@ A five-line log board (L opens the full log), the Goals board (the current quest
 | Action (`action_id`) | Type | Unlock | What it does |
 |---|---|---|---|
 | `celestial_intervener_dialogue_1` | NPC dialogue (once) | — | Starts `q_fill_core` |
-| `wilderness_cycling_action` | Cycling | `celestial_intervener_dialogue_1` | Opens the cycling view |
+| `wilderness_cycling_action` | Cycling | `celestial_intervener_dialogue_1` | Opens the cycling board in the map gap; the chest lists the techniques |
 | `celestial_intervener_dialogue_2` | NPC dialogue (once) | Madra ≥ 100 | Completes `q_fill_core`, starts `q_first_steps` |
 | `sprint_forest_foraging_action` (sic) | Forage | `q_fill_core_completed` | Spirit Fern + Dewdrop Tear every 5 s |
 | `shallow_woods_adventure_action` | Adventure | `q_fill_core_completed` | The Shallow Woods, 300 s limit |

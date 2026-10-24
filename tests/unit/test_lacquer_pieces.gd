@@ -1,12 +1,14 @@
 extends GutTest
 
 ## Unit tests for the lacquer theme and its shared pieces: the frame strip
-## rect, the stepped rod, the brass frame overlay's flash, the text helpers,
-## the theme variants (kit §3) and the 9-slice styleboxes (kit §4).
+## rect, the stepped rod, the brass frame overlay's flash, the floater, the
+## text helpers, the theme variants (kit §3) and the 9-slice styleboxes
+## (kit §4).
 
 const THEME_PATH: String = "res://assets/themes/lacquer/lacquer_theme.tres"
 const ROD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_rod.tscn")
 const FRAME_OVERLAY_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_frame_overlay.tscn")
+const FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn")
 
 const CORE_STRIP: Texture2D = preload("res://assets/ui/lacquer/lacquer_orb_core_strip_ai.png")
 const MADRA_STRIP: Texture2D = preload("res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png")
@@ -253,6 +255,22 @@ func test_flash_restarts_cleanly() -> void:
 	assert_false(overlay.visible, "the first flash's tween is gone")
 
 #-----------------------------------------------------------------------------
+# FLOATER
+#-----------------------------------------------------------------------------
+
+func test_floater_pops_on_an_even_token() -> void:
+	# The floater stands on its own, without MapMarkers: a cycling-style hit
+	# line ("PERFECT +25 XP") pops onto a token on the kit's 2 px grid.
+	var floater: LacquerFloater = FLOATER_SCENE.instantiate() as LacquerFloater
+	add_child_autofree(floater)
+	floater.pop("PERFECT +25 XP", ThemeConstants.LACQUER_BRASS)
+	assert_true(floater.visible, "pop shows the floater")
+	assert_gt(floater.get_token_width(), LacquerFloater.TOKEN_TEXT_PADDING, "the text was measured: the token is wider than its padding")
+	assert_eq(floater.get_token_width() % 2, 0, "the token is an even width, on the 2 px grid")
+	assert_eq(floater.get_color(), ThemeConstants.LACQUER_BRASS)
+	assert_eq(LacquerFloater.rise_at(0.05), 2, "the first 2 px step comes at 50 ms")
+
+#-----------------------------------------------------------------------------
 # TEXT
 #-----------------------------------------------------------------------------
 
@@ -451,9 +469,12 @@ func test_token_hugs_a_floater_line() -> void:
 
 func test_lacquer_palette_matches_the_kit() -> void:
 	assert_eq(ThemeConstants.LACQUER_INK, Color("#150909"))
+	assert_eq(ThemeConstants.LACQUER_RIM, Color("#692F2F"))
 	assert_eq(ThemeConstants.LACQUER_BRASS, Color("#D4A84A"))
 	assert_eq(ThemeConstants.LACQUER_CREAM, Color("#F0E8D8"))
 	assert_eq(ThemeConstants.LACQUER_TAN, Color("#A89070"))
 	assert_eq(ThemeConstants.LACQUER_DIM, Color("#94806A"))
+	assert_eq(ThemeConstants.LACQUER_MADRA_HI, Color("#E8F6FD"))
 	assert_eq(ThemeConstants.LACQUER_MADRA, Color("#BBD5E7"))
+	assert_eq(ThemeConstants.LACQUER_MADRA_MID, Color("#849BE4"))
 	assert_eq(ThemeConstants.LACQUER_VERMILION, Color("#A83C30"))
