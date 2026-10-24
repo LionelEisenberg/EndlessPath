@@ -23,6 +23,8 @@ const AURA_WELL_ID: String = "aura_well_training"
 const FORAGING_ID: String = "sprint_forest_foraging_action"
 const CYCLING_ID: String = "wilderness_cycling_action"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
+## One 60 FPS frame, for running the floater by hand.
+const FRAME: float = 1.0 / 60.0
 
 ## The plate's status line slot, in the plate's own px (kit §6.5), 4 px in
 ## from the side rivets at x 6 and 242.
@@ -48,6 +50,9 @@ func before_each() -> void:
 	await _settle()
 
 func after_each() -> void:
+	# A test that held the action timer lets it go, or no later tick or haul
+	# would ever come.
+	ActionManager.action_timer.paused = false
 	ZoneManager.set_demo_zones_visible(false)
 	ZoneManager.set_hidden_zones_visible(false)
 	while ActionManager.get_current_action() != null:
@@ -64,6 +69,16 @@ func after_each() -> void:
 func _settle() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+## Takes the floater off the frame clock and runs `seconds` of it by hand in
+## 60 FPS frames. The markers place it each frame before it moves on, so on the
+## frame clock the rise it reports can be a 2 px step past the one it was
+## placed with. Holds the action timer too: no real tick or haul pops it again.
+func _advance_floater(seconds: float) -> void:
+	ActionManager.action_timer.paused = true
+	var floater: LacquerFloater = _markers().get_floater()
+	floater.set_process(false)
+	simulate(floater, roundi(seconds / FRAME), FRAME)
 
 func _markers() -> MapMarkers:
 	return _map.get_map_markers()
@@ -446,10 +461,12 @@ func test_ring_and_floater_keep_their_size_at_zoom_one() -> void:
 	camera.zoom = Vector2.ONE
 	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
+	_advance_floater(0.5)
 	await _settle()
 	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
 	var ring: MapActionRing = _markers().get_action_ring()
 	var floater: LacquerFloater = _markers().get_floater()
+	assert_eq(floater.get_rise(), 20, "precondition: halfway up its 40 px rise")
 	var plate_top: float = _markers().get_plate(SPIRIT_VALLEY_ID).position.y
 	assert_eq(plate_top, centre.y + 49.0, "precondition: the plate's top 49 px under the hex centre")
 	assert_eq(ring.scale, Vector2.ONE, "the ring keeps its size")
@@ -468,6 +485,7 @@ func test_ring_clears_the_current_plate_at_every_zoom() -> void:
 	var ring: MapActionRing = _markers().get_action_ring()
 	var floater: LacquerFloater = _markers().get_floater()
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
+	_advance_floater(0.5)
 	for zoom: float in [1.0, 1.1, 1.25, 1.5, 2.0]:
 		camera.zoom = Vector2(zoom, zoom)
 		_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
@@ -643,6 +661,7 @@ func test_floater_on_training_tick() -> void:
 	var floater: LacquerFloater = _markers().get_floater()
 	assert_false(floater.visible, "no floater before the first tick")
 	ActionManager.training_tick_processed.emit(training, 1)
+	_advance_floater(0.5)
 	await _settle()
 	assert_true(floater.visible)
 	assert_eq(floater.get_text(), "+1.5 Madra")
@@ -675,7 +694,7 @@ func test_haul_floater_once_per_haul() -> void:
 	assert_true(floater.visible)
 	assert_eq(floater.get_text(), "  ".join(parts), "the haul, two spaces between items")
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_CREAM, "in cream")
-	await wait_seconds(1.1)
+	_advance_floater(1.1)
 	assert_false(floater.visible, "hidden outright after its 1 s rise")
 
 func test_floater_stops_when_the_idle_action_changes() -> void:

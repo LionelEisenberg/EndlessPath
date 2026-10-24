@@ -50,6 +50,8 @@ const VITALS_FIELDS: Array[StringName] = [
 ## How far past the border between two hexes a walk must be to stand in the
 ## second one, in px of distance difference (twice the distance past it).
 const PAST_THE_BORDER: float = 8.0
+## One 60 FPS frame, for stepping the walk, the tweens and the shakes by hand.
+const FRAME: float = 1.0 / 60.0
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -137,11 +139,51 @@ func _stop_every_action() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
 
-## Clicks a tile the way the map layer reports a click, then waits for the
-## character's first hop to end: the whole walk, for a tile next door.
+## Moves every running tween in the tree on by `delta`, as a frame does: the
+## Stamina row's shake, the boss reveal's push.
+func _step_tweens(delta: float) -> void:
+	for tween: Tween in get_tree().get_processed_tweens():
+		if tween.is_valid() and tween.is_running():
+			tween.custom_step(delta)
+
+## One 60 FPS frame stepped by hand, in the tree's order: the character's
+## physics step (the walk), the camera following it (the tree's transform update),
+## then the tweens. The walk is taken off the physics clock, so only the test
+## moves it.
+func _step_frame() -> void:
+	var character: CharacterBody2D = _view.adventure_tilemap.character_body
+	character.set_physics_process(false)
+	simulate(character, 1, FRAME)
+	(character.get_node("Camera2D") as Camera2D).force_update_scroll()
+	_step_tweens(FRAME)
+
+## Steps `seconds` of 60 FPS frames.
+func _run(seconds: float) -> void:
+	for _frame: int in roundi(seconds / FRAME):
+		_step_frame()
+
+## Steps frames until the character ends the hop it is on, then lets a frame run,
+## so what the tree does at the end of a frame (a hover laid again) has caught up.
+## Returns whether the hop ended.
+func _wait_for_hop() -> bool:
+	var character: CharacterBody2D = _view.adventure_tilemap.character_body
+	var ended: Array[bool] = [false]
+	var on_end := func() -> void: ended[0] = true
+	character.movement_completed.connect(on_end, CONNECT_ONE_SHOT)
+	for _frame: int in roundi(AdventureMapFixture.HOP_TIMEOUT_SECONDS / FRAME):
+		if ended[0]:
+			break
+		_step_frame()
+	if not ended[0]:
+		character.movement_completed.disconnect(on_end)
+	await get_tree().process_frame
+	return ended[0]
+
+## Clicks a tile the way the map layer reports a click, then steps frames until
+## the character's first hop ends: the whole walk, for a tile next door.
 func _walk_to(coord: Vector3i) -> void:
 	AdventureMapFixture.click(_view.adventure_tilemap, coord)
-	var arrived: bool = await wait_for_signal(_view.adventure_tilemap.character_body.movement_completed, AdventureMapFixture.HOP_TIMEOUT_SECONDS)
+	var arrived: bool = await _wait_for_hop()
 	assert_true(arrived, "the walk to %s ends in time" % coord)
 
 ## Clicks `to`, two hops away through `through`, and returns once the first hop
@@ -152,13 +194,14 @@ func _walk_partway(through: Vector3i, to: Vector3i) -> void:
 	var through_centre: Vector2 = tilemap.get_tile_world_centre(through)
 	AdventureMapFixture.click(tilemap, to)
 	for frame: int in 120:
-		await wait_physics_frames(1)
+		_step_frame()
 		var at: Vector2 = tilemap.character_body.global_position
 		if at.distance_to(through_centre) + PAST_THE_BORDER < at.distance_to(from_centre):
 			break
 	var at_end: Vector2 = tilemap.character_body.global_position
 	assert_lt(at_end.distance_to(through_centre) + PAST_THE_BORDER, at_end.distance_to(from_centre), "precondition: the first hop crossed into %s's hex" % through)
 	assert_true(tilemap.character_body.is_moving, "precondition: the walk is under way")
+	await get_tree().process_frame
 
 ## Moves the real pointer to a point in the viewport, as the player's mouse
 ## would. The map's hex layers find the hex under a press from the pointer, not
@@ -238,10 +281,10 @@ func _stand_on_open_near_with_one_hop_of_stamina() -> void:
 	PlayerManager.vitals_manager.stamina_regen = 0.0
 	PlayerManager.vitals_manager.current_stamina = AdventureTilemap.MOVEMENT_STAMINA_COST
 
-## Waits for the walk's first hop to end, where the Stamina stop is.
+## Steps frames until the walk's first hop ends, where the Stamina stop is.
 func _wait_for_the_stamina_stop() -> void:
 	var tilemap: AdventureTilemap = _view.adventure_tilemap
-	var stopped: bool = await wait_for_signal(tilemap.character_body.movement_completed, AdventureMapFixture.HOP_TIMEOUT_SECONDS)
+	var stopped: bool = await _wait_for_hop()
 	assert_true(stopped, "precondition: the first hop ends in time")
 	assert_eq(tilemap.get_current_tile(), START, "precondition: the walk stopped partway, on START")
 	assert_false(tilemap.character_body.is_moving, "precondition: and does not go on")
@@ -448,7 +491,7 @@ func test_walk_refused_shakes_the_right_board() -> void:
 
 	assert_true(_view.vitals_plate.is_stamina_shaking(), "too tired: the cabinet's Stamina row shakes")
 	assert_false(_page().is_here_shaking(), "not the Here tray")
-	await wait_seconds(MapGlyph.SHAKE_SECONDS + 0.1)
+	_run(MapGlyph.SHAKE_SECONDS + 0.1)
 	assert_false(_view.vitals_plate.is_stamina_shaking(), "precondition: the shake is over")
 
 	_view.adventure_tilemap.walk_refused.emit(AdventureTilemap.REFUSED_ENCOUNTER)
@@ -472,7 +515,8 @@ func test_a_refused_click_turns_the_lock_line_to_the_warning_colour_and_back() -
 
 	assert_true(_page().is_here_shaking(), "the refused click shakes the Here tray")
 	assert_eq(lock.get_theme_color(&"font_color"), ExpeditionPage.LOCK_WARNING_COLOUR, "and turns the lock line to the warning colour")
-	await wait_seconds(MapGlyph.SHAKE_SECONDS + 0.15)
+	# The Here tray's shake runs in the page's _process: run it a frame at a time.
+	simulate(_page(), roundi((MapGlyph.SHAKE_SECONDS + 0.15) / FRAME), FRAME)
 	assert_false(_page().is_here_shaking(), "precondition: the shake is over")
 	assert_false(lock.has_theme_color_override(&"font_color"), "the line is its own colour again")
 
@@ -812,8 +856,8 @@ func test_second_run_after_a_stop_mid_walk_starts_clean() -> void:
 	await wait_process_frames(1)
 
 	_assert_a_clean_start()
-	# A hop the old run's end set off again would land about now.
-	await wait_seconds(1.5)
+	# A hop the old run's end set off again would land within this.
+	_run(1.5)
 	assert_eq(_view.adventure_tilemap.get_current_tile(), START, "nobody walks on into the new run")
 	assert_eq(_view.adventure_tilemap.get_visited_tile_count(), 1, "the new run has visited only its start")
 	assert_false(_view.adventure_tilemap.character_body.is_moving)

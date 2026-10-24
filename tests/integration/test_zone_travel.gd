@@ -24,8 +24,10 @@ const SHALLOW_WOODS_UNLOCK_EVENT: String = "q_fill_core_completed"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const CYCLING_ID: String = "wilderness_cycling_action"
 
-## The preview waits 150 ms; this is comfortably past it.
-const PREVIEW_WAIT: float = 0.25
+## One 60 FPS frame, for stepping the walk and the tweens by hand.
+const FRAME: float = 1.0 / 60.0
+## Longer than any walk between neighbouring zones.
+const WALK_LIMIT: float = 3.0
 
 ## GUT's output window's canvas layer.
 const GUT_OUTPUT_LAYER: int = 128
@@ -131,11 +133,40 @@ func _escape_event() -> InputEventAction:
 func _hover_cell_of(zone_id: String) -> void:
 	_map.tile_map.tile_hovered.emit(_zone(zone_id).tilemap_location)
 
-## Waits until the given seconds have passed since started_usec.
-func _wait_until(started_usec: int, seconds: float) -> void:
-	var remaining: float = seconds - (Time.get_ticks_usec() - started_usec) / 1_000_000.0
-	if remaining > 0.0:
-		await wait_seconds(remaining)
+## Moves every running tween in the tree on by `delta`, as a frame does: the
+## camera's glide, the lock's shake, the idle motion.
+func _step_tweens(delta: float) -> void:
+	for tween: Tween in get_tree().get_processed_tweens():
+		if tween.is_valid() and tween.is_running():
+			tween.custom_step(delta)
+
+## One 60 FPS frame stepped by hand, in the tree's order: the walk's physics
+## step, then the tweens. The walk is taken off the physics clock, so only the
+## test moves it.
+func _step_frame(map: ZoneTilemap) -> void:
+	map.character_body.set_physics_process(false)
+	simulate(map.character_body, 1, FRAME)
+	_step_tweens(FRAME)
+
+## Steps `seconds` of 60 FPS frames.
+func _run(map: ZoneTilemap, seconds: float) -> void:
+	for _frame: int in roundi(seconds / FRAME):
+		_step_frame(map)
+
+## Steps 60 FPS frames until the walk ends, for at most WALK_LIMIT seconds.
+func _walk_until_arrival(map: ZoneTilemap) -> void:
+	for _frame: int in roundi(WALK_LIMIT / FRAME):
+		if not map.character_body.is_moving:
+			return
+		_step_frame(map)
+
+## Lets the hover preview's 150 ms run out: the markers' one-shot preview
+## timer times out now if it is running.
+func _run_out_preview_delay(markers: MapMarkers) -> void:
+	var timer: Timer = markers._preview_timer
+	if not timer.is_stopped():
+		timer.stop()
+		timer.timeout.emit()
 
 ## A second map shown, as in the game, through a full-size SubViewport. Its
 ## host sits on a canvas layer of its own, out of reach of the first map's
@@ -184,7 +215,7 @@ func test_travel_changes_zone_on_arrival_only() -> void:
 	assert_true(_map.is_travelling(), "the click starts a walk")
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "the zone does not change on the click")
 	assert_signal_not_emitted(ZoneManager, "zone_changed")
-	await wait_for_signal(_map.character_body.movement_completed, 3.0)
+	_walk_until_arrival(_map)
 	assert_eq(ZoneManager.get_current_zone().zone_id, TEST_ZONE_ID, "it changes on arrival")
 	assert_signal_emit_count(ZoneManager, "zone_changed", 1)
 	assert_false(_map.is_travelling())
@@ -198,8 +229,8 @@ func test_tile_click_travels() -> void:
 func test_arrival_frames_the_new_zone() -> void:
 	_open_test_zone()
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_for_signal(_map.character_body.movement_completed, 3.0)
-	await wait_seconds(_map.camera_ease_duration + 0.1)
+	_walk_until_arrival(_map)
+	_run(_map, _map.camera_ease_duration + 0.1)
 	var screen: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(TEST_ZONE_ID)))
 	assert_almost_eq(screen.x, 960.0, 0.5, "after a short ease the new zone sits at x 960")
 	assert_almost_eq(screen.y, 702.0, 0.5, "and y 702")
@@ -209,10 +240,10 @@ func test_old_action_runs_during_walk() -> void:
 	assert_true(ActionManager.get_current_action() is TrainingActionData, "precondition: the Aura Well runs")
 	_open_test_zone()
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.3)
+	_run(_map, 0.3)
 	assert_true(_map.is_travelling(), "still walking 0.3 s in")
 	assert_true(ActionManager.get_current_action() is TrainingActionData, "the Aura Well keeps running mid-walk")
-	await wait_for_signal(_map.character_body.movement_completed, 3.0)
+	_walk_until_arrival(_map)
 	assert_null(ActionManager.get_current_action(), "Test Zone has no idle action to resume")
 
 func test_second_click_during_walk_retargets() -> void:
@@ -221,12 +252,12 @@ func test_second_click_during_walk_retargets() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	watch_signals(ZoneManager)
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.2)
+	_run(_map, 0.2)
 	_map.click_zone(_zone(FIXTURE_ZONE_ID))
 	assert_true(_map.is_travelling(), "the walk turns toward the second zone")
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "the zone still has not changed")
 	assert_true(ActionManager.get_current_action() is TrainingActionData, "one action runs: the Aura Well")
-	await wait_for_signal(_map.character_body.movement_completed, 3.0)
+	_walk_until_arrival(_map)
 	assert_eq(ZoneManager.get_current_zone().zone_id, FIXTURE_ZONE_ID, "the walk ends in the second zone")
 	assert_signal_emit_count(ZoneManager, "zone_changed", 1, "one zone change, on the final arrival")
 	assert_eq(_map.character_body.position, _stand(FIXTURE_ZONE_ID))
@@ -237,9 +268,9 @@ func test_click_current_during_walk_walks_home() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	watch_signals(ZoneManager)
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.2)
+	_run(_map, 0.2)
 	_map.click_zone(_zone(SPIRIT_VALLEY_ID))
-	await wait_for_signal(_map.character_body.movement_completed, 3.0)
+	_walk_until_arrival(_map)
 	assert_false(_map.is_travelling())
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID)
 	assert_signal_not_emitted(ZoneManager, "zone_changed", "turning back never changes the zone")
@@ -249,23 +280,23 @@ func test_click_current_during_walk_walks_home() -> void:
 func test_session_action_during_walk_cancels_travel() -> void:
 	_open_test_zone()
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.2)
+	_run(_map, 0.2)
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	assert_false(_map.is_travelling(), "cycling here stops the walk")
 	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID), "the character is back in the valley")
-	await wait_seconds(0.6)
+	_run(_map, 0.6)
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "no arrival in Test Zone")
 	assert_eq(ActionManager.get_current_action().action_id, CYCLING_ID, "cycling still runs")
 
 func test_save_reset_during_walk_cancels_travel() -> void:
 	_open_test_zone()
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.2)
+	_run(_map, 0.2)
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
 	assert_false(_map.is_travelling(), "a save reset ends the walk")
 	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID))
-	await wait_seconds(0.6)
+	_run(_map, 0.6)
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "and nothing arrives later")
 
 func test_outside_zone_change_during_walk_snaps_there() -> void:
@@ -275,7 +306,7 @@ func test_outside_zone_change_during_walk_snaps_there() -> void:
 	_add_fixture_zone()
 	_open_test_zone()
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.2)
+	_run(_map, 0.2)
 	ZoneManager.set_current_zone_by_id(FIXTURE_ZONE_ID)
 	assert_false(_map.is_travelling(), "the walk ends")
 	assert_eq(_map.selected_zone, _zone(FIXTURE_ZONE_ID), "the map stands in the new zone")
@@ -283,7 +314,7 @@ func test_outside_zone_change_during_walk_snaps_there() -> void:
 	var screen: Vector2 = _to_screen(_map.get_zone_world_centre(_zone(FIXTURE_ZONE_ID)))
 	assert_almost_eq(screen.x, 960.0, 0.5, "framed at once")
 	assert_almost_eq(screen.y, 702.0, 0.5)
-	await wait_seconds(0.6)
+	_run(_map, 0.6)
 	assert_eq(ZoneManager.get_current_zone().zone_id, FIXTURE_ZONE_ID, "nothing arrives in Test Zone later")
 	assert_eq(_map.character_body.position, _stand(FIXTURE_ZONE_ID))
 
@@ -292,18 +323,18 @@ func test_outside_change_to_the_zone_you_left_ends_the_walk() -> void:
 	# outside the map: the walk ends there.
 	_open_test_zone()
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.2)
+	_run(_map, 0.2)
 	ZoneManager.set_current_zone_by_id(SPIRIT_VALLEY_ID)
 	assert_false(_map.is_travelling(), "the walk ends")
 	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID), "back on the valley's stand")
-	await wait_seconds(0.6)
+	_run(_map, 0.6)
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "nothing arrives in Test Zone later")
 
 func test_save_reset_during_walk_ends_in_the_new_zone() -> void:
 	_add_fixture_zone()
 	_open_test_zone()
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.2)
+	_run(_map, 0.2)
 	var save := SaveGameData.new()
 	save.current_selected_zone_id = FIXTURE_ZONE_ID
 	PersistenceManager.save_game_data = save
@@ -311,7 +342,7 @@ func test_save_reset_during_walk_ends_in_the_new_zone() -> void:
 	assert_false(_map.is_travelling(), "the walk ends")
 	assert_eq(_map.selected_zone, ZoneManager.get_current_zone(), "the map follows the new save's zone")
 	assert_eq(_map.character_body.position, _stand(FIXTURE_ZONE_ID), "the character stands there")
-	await wait_seconds(0.6)
+	_run(_map, 0.6)
 	assert_eq(ZoneManager.get_current_zone().zone_id, FIXTURE_ZONE_ID, "nothing arrives in Test Zone later")
 
 func test_walk_ends_when_its_zone_leaves_the_map() -> void:
@@ -319,11 +350,11 @@ func test_walk_ends_when_its_zone_leaves_the_map() -> void:
 	# valley instead of arriving in a zone the map no longer shows.
 	_open_test_zone()
 	_map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_seconds(0.2)
+	_run(_map, 0.2)
 	ZoneManager.set_hidden_zones_visible(false)
 	assert_false(_map.is_travelling(), "the walk ends")
 	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID), "back on the valley's stand")
-	await wait_seconds(0.6)
+	_run(_map, 0.6)
 	assert_eq(ZoneManager.get_current_zone().zone_id, SPIRIT_VALLEY_ID, "nothing arrives off the map")
 
 func test_travel_closes_popover() -> void:
@@ -373,19 +404,18 @@ func test_lock_shake_moves_only_the_icon() -> void:
 	var glyph: MapGlyph = _markers().get_glyph(ADVANCEMENT_DEMO_ID) as MapGlyph
 	var glyph_position: Vector2 = glyph.position
 	var icon: Control = glyph.get_node("%Icon") as Control
-	var started_usec: int = Time.get_ticks_usec()
 	glyph.shake()
 	# The real shake, sampled halfway through each 0.088 s step, follows the
 	# keyframe table test_lock_shake_steps reads.
 	var offsets: Array[float] = []
+	var elapsed: float = 0.0
 	for sample_at: float in [0.132, 0.22, 0.308, 0.396]:
-		await _wait_until(started_usec, sample_at)
+		_step_tweens(sample_at - elapsed)
+		elapsed = sample_at
 		offsets.append(icon.position.x)
 	assert_eq(offsets, [-8.0, 8.0, -6.0, 4.0] as Array[float], "the padlock steps -8, 8, -6, 4 px")
 	assert_eq(glyph.position, glyph_position, "the glyph stays on its hex")
-	# Wait for the tween itself, not the wall clock: under load the tween's
-	# frame time falls behind real time and a fixed 0.52 s wait ends mid-shake.
-	await wait_until(func() -> bool: return not glyph.is_shaking(), 2.0)
+	_step_tweens(MapGlyph.SHAKE_SECONDS)
 	assert_false(glyph.is_shaking())
 	assert_eq(icon.position.x, 0.0, "and settles back")
 
@@ -420,7 +450,7 @@ func test_click_current_recentres_and_closes() -> void:
 	_map.click_zone(_zone(SPIRIT_VALLEY_ID))
 	assert_false(_popover().visible, "recentring closes the popover")
 	assert_false(_map.is_travelling(), "and never walks")
-	await wait_seconds(_map.camera_ease_duration + 0.1)
+	_run(_map, _map.camera_ease_duration + 0.1)
 	var screen: Vector2 = _to_screen(Vector2.ZERO)
 	assert_almost_eq(screen.x, 960.0, 0.5, "the valley is framed again")
 	assert_almost_eq(screen.y, 702.0, 0.5)
@@ -508,7 +538,8 @@ func test_hover_locked_shows_preview_after_delay() -> void:
 	assert_string_contains(overlay.get_tile_texture().resource_path, "lacquer_tile_locked_hover_ai")
 	assert_false(_map.get_route_to(ADVANCEMENT_DEMO_ID).is_lit(), "routes never brighten toward a locked zone")
 	assert_false(_popover().visible, "no preview before 150 ms")
-	await wait_seconds(PREVIEW_WAIT)
+	assert_almost_eq(_markers()._preview_timer.wait_time, 0.15, 0.0001, "the preview waits 150 ms")
+	_run_out_preview_delay(_markers())
 	assert_true(_popover().visible, "the preview shows")
 	assert_false(_popover().is_pinned())
 	assert_string_contains(_popover().get_card_texture().resource_path, "lacquer_pop_locked_preview_ai")
@@ -521,9 +552,9 @@ func test_hover_locked_shows_preview_after_delay() -> void:
 func test_passing_pointer_opens_no_preview() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	_hover_cell_of(ADVANCEMENT_DEMO_ID)
-	await wait_seconds(0.05)
+	# Off the hex again before its 150 ms run out.
 	_map.tile_map.tile_unhovered.emit()
-	await wait_seconds(PREVIEW_WAIT)
+	_run_out_preview_delay(_markers())
 	assert_false(_popover().visible)
 
 func test_leaving_the_map_clears_the_hover() -> void:
@@ -538,8 +569,8 @@ func test_leaving_the_map_clears_the_hover() -> void:
 	await _settle()
 	ZoneManager.set_demo_zones_visible(true)
 	map.tile_map.tile_hovered.emit(_zone(ADVANCEMENT_DEMO_ID).tilemap_location)
-	await wait_seconds(PREVIEW_WAIT)
 	var markers: MapMarkers = map.get_map_markers()
+	_run_out_preview_delay(markers)
 	assert_true(markers.get_popover().visible, "precondition: the preview shows")
 	host.mouse_exited.emit()
 	assert_eq(markers.get_popover_state().get_hovered_zone_id(), "")
@@ -596,8 +627,8 @@ func test_arrival_glide_hovers_what_ends_up_under_the_still_pointer() -> void:
 	await _move_pointer_to(map, _hosted_screen_point(map, TEST_ZONE_ID))
 	assert_eq(state.get_hovered_zone_id(), TEST_ZONE_ID, "precondition: the pointer hovers Test Zone")
 	map.click_zone(_zone(TEST_ZONE_ID))
-	await wait_for_signal(map.character_body.movement_completed, 3.0)
-	await wait_seconds(map.camera_ease_duration + 0.1)
+	_walk_until_arrival(map)
+	_run(map, map.camera_ease_duration + 0.1)
 	await _settle()
 	assert_eq(ZoneManager.get_current_zone().zone_id, TEST_ZONE_ID, "precondition: arrived")
 	assert_eq(state.get_hovered_zone_id(), FIXTURE_ZONE_ID, "the zone now under the pointer is hovered")
@@ -625,7 +656,7 @@ func test_no_preview_while_pinned() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	_map.click_zone(_zone(UNCHARTED_DEMO_ID))
 	_hover_cell_of(ADVANCEMENT_DEMO_ID)
-	await wait_seconds(PREVIEW_WAIT)
+	_run_out_preview_delay(_markers())
 	assert_eq(_popover().get_zone_data().zone_id, UNCHARTED_DEMO_ID, "the pinned popover stays the only one")
 	assert_true(_popover().is_pinned())
 
@@ -646,7 +677,7 @@ func test_popovers_sit_at_kit_positions() -> void:
 	assert_eq(_popover().get_close_button().get_global_rect().position, Vector2(1356, 88), "× at X+228, Y+12")
 	_markers().close_popover()
 	_hover_cell_of(ADVANCEMENT_DEMO_ID)
-	await wait_seconds(PREVIEW_WAIT)
+	_run_out_preview_delay(_markers())
 	await _settle()
 	assert_eq(_popover().position, Vector2(684, 351), "kit §6.6: the locked preview")
 
@@ -827,7 +858,7 @@ func test_hiding_demo_zones_closes_their_popover() -> void:
 	assert_false(_popover().visible, "the popover closes with its zone")
 	assert_eq(_state().get_pinned_zone_id(), "")
 	assert_eq(_state().get_hovered_zone_id(), "", "the hover goes too")
-	await wait_seconds(PREVIEW_WAIT)
+	_run_out_preview_delay(_markers())
 	assert_false(_popover().visible, "and no preview timer opens one later")
 
 func test_save_reset_closes_popover() -> void:

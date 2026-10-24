@@ -29,6 +29,8 @@ const OPEN_FAR := AdventureMapFixture.OPEN_FAR
 const REST := AdventureMapFixture.REST
 const BOSS := AdventureMapFixture.BOSS
 const FIXTURE_TILES: Array[Vector3i] = [START, FIGHT, OPEN_NEAR, OPEN_FAR, REST, BOSS]
+## One 60 FPS frame, for stepping the walk, the zoom's ease and the shakes by hand.
+const FRAME: float = 1.0 / 60.0
 
 ## A coin's top-left sits 26 px left of its centre and 26 up, before it rises.
 const COIN_HALF: Vector2 = Vector2(26, 26)
@@ -87,12 +89,39 @@ func _start() -> void:
 func _click(coord: Vector3i) -> void:
 	AdventureMapFixture.click(_tilemap, coord)
 
-## Clicks a tile, then waits for the character to end its first hop: the whole
-## walk, for a tile next door.
+## Moves every running tween in the tree on by `delta`, as a frame does: the
+## boss reveal's push.
+func _step_tweens(delta: float) -> void:
+	for tween: Tween in get_tree().get_processed_tweens():
+		if tween.is_valid() and tween.is_running():
+			tween.custom_step(delta)
+
+## One 60 FPS frame stepped by hand, in the tree's order: the character's
+## physics step (the walk) and its camera's controllers (the zoom's ease), the
+## camera following it (the tree's transform update), then the tweens. The walk is
+## taken off the physics clock, so only the test moves it.
+func _step_frame() -> void:
+	_tilemap.character_body.set_physics_process(false)
+	simulate(_tilemap.character_body, 1, FRAME)
+	(_tilemap.character_body.get_node("Camera2D") as Camera2D).force_update_scroll()
+	_step_tweens(FRAME)
+
+## Clicks a tile, then steps frames until the character ends its first hop (the
+## whole walk, for a tile next door) and lets a frame run, so what the tree does at
+## the end of a frame has caught up.
 func _walk_to(coord: Vector3i) -> void:
+	var ended: Array[bool] = [false]
+	var on_end := func() -> void: ended[0] = true
+	_tilemap.character_body.movement_completed.connect(on_end, CONNECT_ONE_SHOT)
 	_click(coord)
-	var arrived: bool = await wait_for_signal(_tilemap.character_body.movement_completed, AdventureMapFixture.HOP_TIMEOUT_SECONDS)
-	assert_true(arrived, "the first hop of the walk to %s ends in time" % coord)
+	for _frame: int in roundi(AdventureMapFixture.HOP_TIMEOUT_SECONDS / FRAME):
+		if ended[0]:
+			break
+		_step_frame()
+	if not ended[0]:
+		_tilemap.character_body.movement_completed.disconnect(on_end)
+	assert_true(ended[0], "the first hop of the walk to %s ends in time" % coord)
+	await get_tree().process_frame
 
 ## Waits out a whole frame after the last step of a walk: the first await ends
 ## before a frame's processing and the second after it, by when the camera and
@@ -114,12 +143,16 @@ func _markers() -> AdventureMapMarkers:
 	return _tilemap.get_node_or_null("%AdventureMapMarkers") as AdventureMapMarkers
 
 ## Zooms the map to the level the way the wheel does (through the map's zoom
-## controller) and waits until the camera has got there and the coins with it.
+## controller), steps frames until the camera has got there, and waits for the
+## coins to follow it.
 func _zoom_to(level: float) -> void:
 	var controller := _tilemap.get_node("%CameraZoomController") as CameraZoomController
 	controller.set_zoom_level(level)
-	var arrived: bool = await wait_until(func() -> bool: return not controller.is_zoom_active(), 3.0)
-	assert_true(arrived, "the zoom to %s ends in time" % level)
+	for _frame: int in roundi(3.0 / FRAME):
+		if not controller.is_zoom_active():
+			break
+		_step_frame()
+	assert_false(controller.is_zoom_active(), "the zoom to %s ends in time" % level)
 	await _settle()
 
 ## The z index a node draws at: its own, plus its ancestors' for as long as it is
@@ -382,9 +415,12 @@ func test_boss_coin_appears_once_revealed_and_shakes() -> void:
 	assert_false(_coin(REST).is_shaking(), "no other coin does")
 	assert_false(_coin(FIGHT).is_shaking())
 
-	# The shake runs its course (a quarter-speed hit-stop slows its start) and
-	# the coin settles back home.
-	await wait_until(func() -> bool: return not coin.is_shaking(), 3.0)
+	# The shake runs its course and the coin settles back home. The coin's own
+	# _process steps the shake, so it is run a frame at a time.
+	for _frame: int in roundi(3.0 / FRAME):
+		if not coin.is_shaking():
+			break
+		simulate(coin, 1, FRAME)
 	assert_false(coin.is_shaking(), "the shake ends")
 	assert_eq((coin.get_node("%Token") as Control).position.x, 0.0, "back on its hex")
 
