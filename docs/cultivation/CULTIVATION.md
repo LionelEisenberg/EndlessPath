@@ -17,7 +17,7 @@ Foundation and Copper have stage data. Foundation ends in the **Tribulation**: o
 
 1. A new save starts at **Foundation**, Core Density level 0, 0 XP, 25 Madra, with a Madra cap of 100.
 2. Core Density XP comes only from scoring cycling zones (see [CYCLING.md](../cycling/CYCLING.md)). The starting Foundational Technique has no zones. The first XP-earning technique, Smooth Flow, comes from the `pure_core_awakening` path node. The player buys it with the path point awarded by the "First Steps Out" quest (`q_first_steps`).
-3. XP fills the cabinet's XP beads and its `xp / need XP` figure (a scored cycling zone also sends XP pellets into the cabinet's Core orb). Each level costs 2% more XP than the previous one, starting at 10 XP for level 1. One scored zone can grant several levels.
+3. XP fills the cabinet's XP beads and its `xp / need XP` figure (a scored cycling zone also sends XP pellets into the cabinet's Core orb, unless the core is full: see 8). Each level costs 2% more XP than the previous one, starting at 10 XP for level 1. One scored zone can grant several levels.
 4. Each level raises the Madra cap by 5.
 5. Every 10th level grants **1 path point** at Foundation, spent in the Path Tree. A stage pays each milestone once.
 6. The quest "Harden Your Core" (`q_reach_core_density_10`) asks for level 10.
