@@ -10,8 +10,9 @@
 [ext_resource type="Resource" uid="uid://i2xnqd3pem53" path="res://resources/unlocks/q_reach_cd_10.tres" id="7_qrcd"]
 [ext_resource type="Resource" uid="uid://g51gy61ho7ji" path="res://resources/unlocks/aura_well_discovered.tres" id="8_awd"]
 [ext_resource type="Resource" uid="uid://bunlock_mrch_discov" path="res://resources/unlocks/merchant_discovered.tres" id="9_mrch"]
+[ext_resource type="Resource" uid="uid://b77fd2axp2c13" path="res://resources/unlocks/core_density_full.tres" id="10_cdfull"]
 
 [resource]
 script = ExtResource("2_2uato")
-list = Array[ExtResource("1_aq0o0")]([ExtResource("2_tsp8q"), ExtResource("3_pa8gf"), ExtResource("4_qfcm1"), ExtResource("5_qfc01"), ExtResource("6_qfsed"), ExtResource("7_qrcd"), ExtResource("8_awd"), ExtResource("9_mrch")])
+list = Array[ExtResource("1_aq0o0")]([ExtResource("2_tsp8q"), ExtResource("3_pa8gf"), ExtResource("4_qfcm1"), ExtResource("5_qfc01"), ExtResource("6_qfsed"), ExtResource("7_qrcd"), ExtResource("8_awd"), ExtResource("9_mrch"), ExtResource("10_cdfull")])
 metadata/_custom_type_script = "uid://dskgt7ri3i7p3"

@@ -1,6 +1,6 @@
 # Codebase State
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 This document covers the architecture of the EndlessPath codebase and the technical concerns that span several systems. The other entry points are:
 - [README.md](README.md): index of every doc.
@@ -16,11 +16,11 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~28k lines of game GDScript and ~31k lines of tests; 131 scenes; 106 authored `.tres` resources; 10 shaders |
+| Code | ~30k lines of game GDScript and ~35k lines of tests; 135 scenes; 110 authored `.tres` resources; 10 shaders |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 139 scripts and 2073 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 147 scripts and 2290 tests, all passing on 2026-10-24 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
-| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/adventure-view-styleguide-1fc223`: the adventure view's map and frame in the lacquer look (PR 1 of 2; the fight is PR 2), built 2026-10-23 and changed by its first review round the same day |
+| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/adventure-view-styleguide-1fc223`: the adventure view's map and frame in the lacquer look (PR 1 of 2; the fight is PR 2), built 2026-10-23 and changed by its first review round the same day. Unmerged branch `feat/gameplay-priorities-c64b38`: the Tribulation, the Foundation → Copper breakthrough (the Core Density cap, the Copper stage, a Spirit Valley action and its board), built 2026-10-23 and 24 |
 
 ---
 
@@ -38,14 +38,14 @@ The codebase is signal-driven and data-forward. Its three layers are kept separa
 ```
 MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log print level
 ├── MainView (Control)            main_view.gd: state stack + input routing
-│   ├── MainViewStateMachine      9 state nodes (no script)
+│   ├── MainViewStateMachine      10 state nodes (no script)
 │   ├── ZoneView                  base view: ZoneTransition, SubViewport (ZoneTilemap: map, fog, MapMarkers),
 │   │                             CultivatorPlate, ZonePanel (zone chest), Dock
 │   ├── AdventureView             adventure map + combat, framed by VitalsPlate, AdventureChest and TechniqueDock
 │   ├── LogWindow, GoalsPanel     HUD boards (z 1), placed by ZoneViewState (the adventure leaves them), hidden under the shop
 │   ├── QuestToast                z 10
 │   ├── GreyBackground            modal backdrop (z 2)
-│   ├── PathTreeView, AdventureEndCard, InventoryView, AbilitiesView, CharacterView, CyclingView (z 3)
+│   ├── PathTreeView, AdventureEndCard, InventoryView, AbilitiesView, CharacterView, CyclingView, TribulationView (z 3)
 │   └── DevPanel                                                                              (z 10)
 └── SaveTimer                     5 s auto-save → PersistenceManager.save_data()
 ```
@@ -55,11 +55,11 @@ The full tree, HUD placement and z-order are in [MAIN_VIEW.md](infrastructure/MA
 ### View State Machine
 
 `MainView` keeps a **base state** (`ZoneViewState` or `AdventureViewState`) and a **stack of overlay states**:
-- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `AdventureEndCardState`. The merchant hides the HUD boards while open (`MainView.hide_hud_boards()`); the menu books and the end card leave them under the backdrop. Cycling has no backdrop: its board sits in the map gap, and `MainView.set_cycling_mode()` turns the zone view's chest, dock and map over to it.
+- **Overlays:** `InventoryViewState`, `CyclingViewState`, `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `TribulationViewState`, `AdventureEndCardState`. The merchant and the Tribulation hide the HUD boards while open (`MainView.hide_hud_boards()`); the menu books and the end card leave them under the backdrop. Cycling and the Tribulation have no backdrop: their boards sit in the map gap. `MainView.set_board_mode()` turns the zone view's dock and map off for both, and `MainView.set_cycling_mode()` (cycling only) also turns the chest over to the techniques.
 - **Operations:** `change_state()` swaps the base and clears the stack, `push_state()` opens an overlay, and `pop_state()` closes it.
 - **Input:** only the current state receives it, through `_unhandled_input` → `handle_input()`.
 
-Menu overlays open from keyboard actions (I/A/C/P) or the zone view's `Dock`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. L opens the full log in either base view (not under a menu book or while cycling). Cycling, the merchant shop, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
+Menu overlays open from keyboard actions (I/A/C/P) or the zone view's `Dock`, whose `SystemMenuButton`s fire the same actions via `Input.parse_input_event()`. L opens the full log in either base view (not under a menu book, while cycling or in the Tribulation). Cycling, the merchant shop, the Tribulation, adventure and the end card are driven by signals: the **state scripts** connect to `ActionManager` and `AdventureView` themselves, and `MainView` connects to nothing. Details and the keybinding table: [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md).
 
 ### Singleton Managers
 
@@ -68,13 +68,13 @@ The 18 autoloads, in `project.godot` load order:
 | # | Autoload | Owns | Doc |
 |---|---|---|---|
 | 1 | `PersistenceManager` | Loads/saves `SaveGameData` (`user://save.tres`); `save_data_reset` signal | [PERSISTENCE](infrastructure/PERSISTENCE.md) |
-| 2 | `CultivationManager` | Core Density XP and level, advancement stage, path-point milestones | [CULTIVATION](cultivation/CULTIVATION.md) |
+| 2 | `CultivationManager` | Core Density XP and level (capped per stage), advancement stage and the breakthrough to the next one, path-point milestones (paid once per stage) | [CULTIVATION](cultivation/CULTIVATION.md) |
 | 3 | `EventManager` | Persistent one-shot event flags (not a general event bus) | [EVENTS](infrastructure/EVENTS.md) |
 | 4 | `CharacterManager` | Base attributes; totals including equipment bonuses | [CHARACTER](infrastructure/CHARACTER.md) |
 | 5 | `UnlockManager` | Unlock-condition catalog and latched unlocks | [UNLOCKS](infrastructure/UNLOCKS.md) |
 | 6 | `ResourceManager` | Madra and Gold; adventure Madra capacity and threshold | [RESOURCES](infrastructure/RESOURCES.md) |
 | 7 | `ZoneManager` | Selected zone, per-zone progression (completions, training ticks, last idle action), map zones and map states, seen actions | [ZONES](zones/ZONES.md) |
-| 8 | `ActionManager` | The single current zone action and its lifecycle signals (no queue); resolves and resumes the zone's idle action | [ZONES](zones/ZONES.md) |
+| 8 | `ActionManager` | The single current zone action and its lifecycle signals (no queue); refuses an adventure the Madra can't fund and a Tribulation the core isn't ready for; resolves and resumes the zone's idle action | [ZONES](zones/ZONES.md) |
 | 9 | `InventoryManager` | Equipment (paged), gear, materials, consumables and hotbar, quest items | [INVENTORY](inventory/INVENTORY.md) |
 | 10 | `Dialogic` | Dialogue addon (2.0-Alpha-19) | [DIALOGUE](infrastructure/DIALOGUE.md) |
 | 11 | `DialogueManager` | Dialogic wrapper; `dialogue_ended` | [DIALOGUE](infrastructure/DIALOGUE.md) |
@@ -140,6 +140,7 @@ Catalog lists are hand-maintained: `ability_list.tres`, `cycling_technique_list.
 | `AdventureMapMarkers` / `EncounterCoin` | `scenes/adventure/adventure_map_markers/` | The adventure map's layer of lacquer coins (glyph, carved "?", carved cleared, boss), the counterpart of the zone map's `MapMarkers`. A `Node2D` at z 50 in the map's own canvas, kept in screen space and drawn under the character |
 | `AdventureRoute` | `scenes/adventure/adventure_route/` | Lit route dots laid hex to hex for a hovered or committed walk; the dots behind the character hide one at a time |
 | `VitalsPlate`, `AdventureChest`, `ExpeditionPage`, `RunClock`, `TechniqueDock` | `scenes/adventure/`, `scenes/ui/combat/technique_dock/` | The adventure view's frame: the vitals cabinet, the chest (Here tray, choice drawers, Run ledger, run clock; its text wraps and its boards grow) and the technique dock with its cooldown sweep ([ADVENTURING.md](adventuring/ADVENTURING.md), [COMBAT.md](combat/COMBAT.md)) |
+| `TribulationRun`, `TribulationView`, `TribulationStage` | `scripts/tribulation/`, `scenes/tribulation/` | The Tribulation: `TribulationRun` is a pure `RefCounted` that builds the beat schedule from a `TribulationData` and judges presses, releases and time (the tests drive it with exact times); `TribulationView` is the lacquer board that reads it every frame, draws it and applies the result; `TribulationStage` draws the breathing spheres and the hold arc per 2 px cell. The data is `TribulationData` / `TribulationPhaseData` (`scripts/resource_definitions/tribulation/`, `resources/tribulation/`). See [breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) |
 | `EncounterIcon` | `scenes/adventure/encounter_icon/` | Glyph for each encounter type (animated boss and rest glyphs). Only the editor map preview uses it now; the coins use the same art |
 | `ItemDisplaySlot` / `ItemDescriptionPanel` | `scenes/common/` | Read-only item icon with tooltip, and the item detail panel |
 | `DropTargetSlot` | `scenes/common/drop_target_slot.gd` | Shared drag-and-drop target base, with drop highlight |
@@ -154,8 +155,7 @@ These issues span several systems, so no single system doc owns them. The detail
 | Concern | Details | Priority |
 |---|---|---|
 | **Modifiers nobody reads** | `PathManager` aggregates 7 numeric perk types into `PathEffectsSummary`, but no production code reads it. Other values are exported and never read: cycling action modifiers and foraging `madra_cost_per_second`. Player max vitals ignore equipment changes until a base attribute changes. See [PATH_PROGRESSION](progression/PATH_PROGRESSION.md), [CYCLING](cycling/CYCLING.md), [ZONES](zones/ZONES.md), [CHARACTER](infrastructure/CHARACTER.md) | HIGH |
-| **Missing stage data hangs the game** | `CultivationManager.add_core_density_xp()` loops forever if the current stage has no `AdvancementStageResource`, because `get_xp_for_next_level()` returns 0. `ResourceManager.add_madra()` likewise clamps Madra to 0. Guard both before adding any stage past Foundation. See [CULTIVATION](cultivation/CULTIVATION.md) | HIGH (blocks Copper) |
-| **Save robustness** | Saves have no version field, and two schema changes have already broken old saves. The only migration is `SaveGameData.migrate()`, which moves listed zone ids (Test Zone → Spirit Valley) before `verify()`. A failed `verify()` (e.g. a renamed zone id) or an unreadable file silently replaces the whole save. Nothing saves on quit, and wiping a save requires editing `reset_save_data` in the script. See [PERSISTENCE](infrastructure/PERSISTENCE.md) | HIGH (before any public build) |
+| **Save robustness** | Saves have no version field, and two schema changes have already broken old saves. The only migration is `SaveGameData.migrate()`, which moves listed zone ids (Test Zone → Spirit Valley) before `verify()`; `CultivationManager._update_resources()` also repairs a level past the stage's cap and seeds the milestone ledger. A save that has reached Copper still hangs a build from before the Tribulation (no Copper stage, an endless level-up loop). A failed `verify()` (e.g. a renamed zone id) or an unreadable file silently replaces the whole save. Nothing saves on quit, and wiping a save requires editing `reset_save_data` in the script. See [PERSISTENCE](infrastructure/PERSISTENCE.md) | HIGH (before any public build) |
 | **Untyped ids** | Event ids, condition ids and unlock targets are strings, and no test checks that every gate's condition is registered, that every quest step's event has a producer, or that every path unlock id resolves. See [UNLOCKS](infrastructure/UNLOCKS.md), [EVENTS](infrastructure/EVENTS.md) | MEDIUM |
 | **Modal backdrop** | Found by code reading: after Path, Abilities or Character closes, `GreyBackground.self_modulate.a` stays 0. Later Inventory and end-card overlays then show an invisible but click-blocking backdrop. See [MAIN_VIEW](infrastructure/MAIN_VIEW.md) | MEDIUM |
 | **Tooling gotchas** | The first headless `--import` in a fresh checkout rewrote `project.godot`'s `[dialogic]` directory registry to `{}`, so revert it before committing. Editor, exported builds and GUT runs share one `user://` dir (save file, logs). Green test runs print SCRIPT ERRORs and 24 Dialogic orphans. See [TESTING](testing/TESTING.md), [DEV_TOOLS](tooling/DEV_TOOLS.md) | MEDIUM |

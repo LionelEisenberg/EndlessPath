@@ -6,9 +6,11 @@ extends Control
 ## place in adventures.
 ## Row 1 shows the first active quest's name and current step, with a
 ## current / target figure on the name row when the step can be measured.
-## Row 2 is the Breakthrough milestone: Core Density towards level 100 on a jade
-## rod. With no active quest, row 1 and the divider hide and the milestone row
-## moves up into their place (the Rows container does the move).
+## Row 2 is the Breakthrough milestone on a jade rod, in three states: Core
+## Density towards the stage's cap (level / cap), "Face the Tribulation" once the
+## core is full, and "<Stage> reached" on a full rod, with no figure, once the
+## stage has no next stage. With no active quest, row 1 and the divider hide and
+## the milestone row moves up into their place (the Rows container does the move).
 ## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into a
 ## top, a tiled middle and a bottom slice, so the board is 220 px tall with a
 ## quest and 150 px with the milestone alone. The cords are their own node and
@@ -74,6 +76,7 @@ func _ready() -> void:
 	QuestManager.quest_completed.connect(_on_quest_changed)
 	PersistenceManager.save_data_reset.connect(_on_save_data_reset)
 	CultivationManager.core_density_level_updated.connect(_on_core_density_level_updated)
+	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
 	ResourceManager.madra_changed.connect(_on_resource_changed)
 	ResourceManager.gold_changed.connect(_on_resource_changed)
 	refresh()
@@ -128,15 +131,26 @@ func _update_quest() -> void:
 		_fit_quest_name()
 	_fit_height()
 
-## "Raise Core Density to 100", the rod at min(level, 100) / 100 and the
-## min(level, 100) / 100 figure: Core Density has no cap in code, the
-## milestone does.
+## The milestone row, in one of three states. A stage with no next stage reads
+## "<Stage> reached" on a full rod, with no figure. A full core reads "Face the
+## Tribulation" on a full rod, with the figure at cap / cap. Otherwise it asks to
+## "Raise Core Density to <cap>", with the rod and the figure at level / cap.
 func _update_milestone() -> void:
-	var level: int = floori(CultivationManager.get_core_density_level())
-	var breakthrough_level: int = CultivationManager.BREAKTHROUGH_LEVEL
-	_milestone_text_label.text = "Raise Core Density to %d" % breakthrough_level
-	_milestone_rod.set_fraction(float(level) / breakthrough_level)
-	_milestone_figure_label.text = "%d / %d" % [mini(level, breakthrough_level), breakthrough_level]
+	var cap: int = CultivationManager.get_core_density_cap()
+	var reached: bool = not CultivationManager.has_next_stage()
+	if reached:
+		_milestone_text_label.text = "%s reached" % CultivationManager.get_current_advancement_stage_name()
+		_milestone_rod.set_fraction(1.0)
+	elif CultivationManager.is_core_full():
+		_milestone_text_label.text = "Face the Tribulation"
+		_milestone_rod.set_fraction(1.0)
+		_milestone_figure_label.text = "%d / %d" % [cap, cap]
+	else:
+		var level: int = floori(CultivationManager.get_core_density_level())
+		_milestone_text_label.text = "Raise Core Density to %d" % cap
+		_milestone_rod.set_fraction(float(level) / cap)
+		_milestone_figure_label.text = "%d / %d" % [level, cap]
+	_milestone_figure_label.visible = not reached
 	_fit_height()
 
 ## The quest name wraps in the row's 358 px, less the figure and its gap while the
@@ -190,6 +204,11 @@ func _on_save_data_reset() -> void:
 
 ## A level-up moves the milestone and any Core Density figure.
 func _on_core_density_level_updated(_xp: float, _level: float) -> void:
+	refresh()
+
+## The breakthrough changes the stage: the milestone reads the new stage's cap,
+## or that it has been reached.
+func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) -> void:
 	refresh()
 
 ## Madra and gold feed the figure of a RESOURCE_AMOUNT step.

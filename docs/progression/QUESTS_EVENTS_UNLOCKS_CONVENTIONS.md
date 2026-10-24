@@ -1,6 +1,6 @@
 # Quests, Events, and Unlock Conditions: Authoring Conventions
 
-Last updated: 2026-10-18
+Last updated: 2026-10-24
 
 > A one-page reference for choosing a primitive and wiring a story beat. For mechanics, see [QUESTS.md](QUESTS.md), [EVENTS.md](../infrastructure/EVENTS.md), [UNLOCKS.md](../infrastructure/UNLOCKS.md), and [EFFECTS.md](../infrastructure/EFFECTS.md).
 
@@ -62,6 +62,7 @@ A moment happens in the game.
 | First combat won | `q_first_steps_enemy_defeated` (code, `AdventureCombat`) | `q_first_steps_enemy_defeated` (registered) | Quest step 0 advances on the event; NPC 3 gates on the condition |
 | NPC 3 / NPC 4 talked | `celestial_intervener_dialogue_3` / `_4` | *(none)* | Only the quests' `return_to_npc` steps consume them |
 | Core Density reaches 10 | *(none: a state)* | `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10, registered) | Quest step 0 and NPC 4 visibility |
+| Core Density reaches 100 (the core is full) | *(none: a state)* | `core_density_full` (CULTIVATION_LEVEL ≥ 100, registered) | Gates the Tribulation card (latched, so the card stays after a failure costs levels) |
 | Aura Well "Mark down the location" | `aura_well_discovered` | `aura_well_discovered` (registered) | Gates the training action (latched). Also the choice's `requirements` (expected `false`) and `completion_condition` (live). |
 | Refugee Camp approached | `merchant_discovered` | `merchant_discovered` (registered) | Gates the Merchant action (latched). The camp's own `unlock_conditions` use an inline copy (expected `false`). |
 | Player owns the map | *(none: a state)* | `refugee_camp_map_owned` (ITEM_OWNED, inline, unregistered) | Only map generation reads it, live, so registration isn't needed |

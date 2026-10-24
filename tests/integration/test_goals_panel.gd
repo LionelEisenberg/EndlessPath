@@ -2,10 +2,12 @@ extends GutTest
 
 ## Integration tests for the lacquer Goals board (GoalsPanel, lacquer kit
 ## §5.2): the first active quest's current step with a progress figure only for
-## measurable steps, the Breakthrough milestone, the milestone moving up when
-## no quest is active, and the board hugging its rows (spec: Goals). No text is
-## cut off (the developer's rule): a name, a step or a milestone line that needs
-## more than its 358 px wraps there, and the board grows to hold it.
+## measurable steps, the Breakthrough milestone in its three states (Core
+## Density towards the stage's cap, a full core that faces the Tribulation, a
+## stage with no next stage), the milestone moving up when no quest is active,
+## and the board hugging its rows (spec: Goals). No text is cut off (the
+## developer's rule): a name, a step or a milestone line that needs more than
+## its 358 px wraps there, and the board grows to hold it.
 
 const GOALS_SCENE_PATH: String = "res://scenes/ui/goals_panel/goals_panel.tscn"
 const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
@@ -42,18 +44,21 @@ const LONG_NAME: String = "A Quest Whose Name Runs Far Past The Board's Edge And
 const LONG_STEP: String = "Walk the long road through the misty bamboo hollow and back again before the moon sets over the valley"
 
 var _goals: GoalsPanel = null
+var _original_stage_resources: Array[AdvancementStageResource] = []
 
 #-----------------------------------------------------------------------------
 # SETUP
 #-----------------------------------------------------------------------------
 
 func before_each() -> void:
+	_original_stage_resources = CultivationManager.advancement_stage_resources
 	_restore_quest_catalog()
 	_use_fresh_save()
 
 func after_each() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
+	CultivationManager.advancement_stage_resources = _original_stage_resources
 	_restore_quest_catalog()
 
 #-----------------------------------------------------------------------------
@@ -69,6 +74,20 @@ func _restore_quest_catalog() -> void:
 func _use_fresh_save(save: SaveGameData = SaveGameData.new()) -> void:
 	PersistenceManager.save_game_data = save
 	PersistenceManager.save_data_reset.emit()
+
+## Swaps in a Foundation that fills at `cap`, with a Copper after it. Call it
+## before the save loads; after_each() restores the real stages.
+func _use_a_short_stage(cap: int) -> void:
+	var copper := AdvancementStageResource.new()
+	copper.stage_id = CultivationManager.AdvancementStage.COPPER
+	copper.stage_name = "Test Copper"
+	var short_stage := AdvancementStageResource.new()
+	short_stage.stage_id = CultivationManager.AdvancementStage.FOUNDATION
+	short_stage.stage_name = "Short Foundation"
+	short_stage.max_core_density_level = cap
+	short_stage.next_stage = copper
+	var stages: Array[AdvancementStageResource] = [short_stage, copper]
+	CultivationManager.advancement_stage_resources = stages
 
 func _add_goals() -> GoalsPanel:
 	var scene: PackedScene = load(GOALS_SCENE_PATH)
@@ -270,13 +289,60 @@ func test_milestone_figure_and_rod() -> void:
 	assert_eq(_text("MilestoneFigureLabel"), "32 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), roundi(0.32 * MILESTONE_ROD_STEPS))
 
-func test_milestone_figure_caps_at_breakthrough() -> void:
+## Core Density has a cap: a save past it loads at it, and the full core asks to
+## face the Tribulation.
+func test_milestone_at_the_cap_asks_for_the_tribulation() -> void:
 	var save := SaveGameData.new()
 	save.core_density_level = 120.0
 	_use_fresh_save(save)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0, "precondition: the save loaded at the cap")
 	_add_goals()
-	assert_eq(_text("MilestoneFigureLabel"), "100 / 100", "Core Density has no cap, the milestone does")
+	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
+	assert_true(_is_shown("MilestoneFigureLabel"))
+	assert_eq(_text("MilestoneFigureLabel"), "100 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
+
+## Copper has no next stage: the milestone is met, so the rod stays full and the
+## figure goes.
+func test_milestone_after_the_breakthrough() -> void:
+	var save := SaveGameData.new()
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	_use_fresh_save(save)
+	_add_goals()
+	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
+	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
+	assert_false(_is_shown("MilestoneFigureLabel"), "nothing is left to raise")
+
+## A stage with no next stage has no Tribulation to face, even with its core full.
+func test_a_full_copper_core_still_reads_reached() -> void:
+	var save := SaveGameData.new()
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	save.core_density_level = 100.0
+	_use_fresh_save(save)
+	_add_goals()
+	assert_true(CultivationManager.is_core_full(), "precondition: the Copper core is full")
+	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
+	assert_false(_is_shown("MilestoneFigureLabel"))
+
+## The full figure never reads past the cap. The manager clamps a level on load,
+## so only a signal can leave one past the cap on the board.
+func test_the_full_figure_never_passes_the_cap() -> void:
+	_add_goals()
+	var save: SaveGameData = PersistenceManager.save_game_data
+	save.core_density_level = 120.0
+	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
+	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
+	assert_eq(_text("MilestoneFigureLabel"), "100 / 100")
+	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
+
+## The line names the stage the save stands on, not a fixed word.
+func test_the_reached_line_names_the_stage() -> void:
+	_use_a_short_stage(40)
+	var save := SaveGameData.new()
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	_use_fresh_save(save)
+	_add_goals()
+	assert_eq(_text("MilestoneTextLabel"), "Test Copper reached")
 
 func test_milestone_follows_level_up() -> void:
 	_add_goals()
@@ -285,6 +351,44 @@ func test_milestone_follows_level_up() -> void:
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
 	assert_eq(_text("MilestoneFigureLabel"), "50 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), 69)
+
+## The stage changes under a board that is already up, and only
+## advancement_stage_changed says so.
+func test_milestone_follows_the_stage_change() -> void:
+	_add_goals()
+	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100", "precondition: Foundation")
+	var save: SaveGameData = PersistenceManager.save_game_data
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	CultivationManager.advancement_stage_changed.emit(save.current_advancement_stage)
+	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
+
+## A new save under a board that stood on Copper brings the figure back.
+func test_the_figure_returns_with_a_new_save() -> void:
+	var copper_save := SaveGameData.new()
+	copper_save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	_use_fresh_save(copper_save)
+	_add_goals()
+	assert_false(_is_shown("MilestoneFigureLabel"), "precondition: no figure on Copper")
+	_use_fresh_save()
+	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100")
+	assert_true(_is_shown("MilestoneFigureLabel"))
+	assert_eq(_text("MilestoneFigureLabel"), "0 / 100")
+
+## The cap is the stage's own: a stage that fills at 40 asks for 40, and its full
+## core reads 40 / 40.
+func test_milestone_reads_the_stages_cap() -> void:
+	_use_a_short_stage(40)
+	var save := SaveGameData.new()
+	save.core_density_level = 20.0
+	_use_fresh_save(save)
+	_add_goals()
+	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 40")
+	assert_eq(_text("MilestoneFigureLabel"), "20 / 40")
+	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), roundi(0.5 * MILESTONE_ROD_STEPS))
+	save.core_density_level = 40.0
+	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
+	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
+	assert_eq(_text("MilestoneFigureLabel"), "40 / 40")
 
 #-----------------------------------------------------------------------------
 # LONG TEXT (Review Focus 4)

@@ -1,6 +1,6 @@
 # Persistence System
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Overview
 
@@ -85,6 +85,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `core_density_xp` | `float` | `0.0` | CultivationManager | [CULTIVATION.md](../cultivation/CULTIVATION.md) |
 | `core_density_level` | `float` | `0.0` | CultivationManager | [CULTIVATION.md](../cultivation/CULTIVATION.md) |
 | `current_advancement_stage` | `CultivationManager.AdvancementStage` | `FOUNDATION` | CultivationManager | [CULTIVATION.md](../cultivation/CULTIVATION.md) |
+| `core_density_milestones` | `Dictionary[int, int]` | `{}` | CultivationManager (`_pay_milestone()`, seeded in `_update_resources()`): stage → the highest milestone level already paid, so a level lost and regained pays no second path point. Missing on older saves. Cleared by `reset()` | [CULTIVATION.md](../cultivation/CULTIVATION.md) |
 | `unlock_progression` | `UnlockProgressionData` | `new()` | UnlockManager | [UNLOCKS.md](UNLOCKS.md) |
 | `event_progression` | `EventProgressionData` | `new()` | EventManager | [EVENTS.md](EVENTS.md) |
 | `quest_progression` | `QuestProgressionData` | `new()` | QuestManager | [QUESTS.md](../progression/QUESTS.md) |
@@ -187,7 +188,7 @@ Only two things trigger a reset, both during boot: `reset_save_data = true`, or 
 | Manager | Handler | Re-emits / extra work |
 |---------|---------|-----------------------|
 | ResourceManager | `_update_resources` | `madra_changed`, `gold_changed` |
-| CultivationManager | `_update_resources` | `core_density_xp_updated`, `core_density_level_updated`, `advancement_stage_changed` |
+| CultivationManager | `_update_resources` | `core_density_xp_updated`, `core_density_level_updated`, `advancement_stage_changed`. Before them it sets a level past the stage's cap to the cap with no XP (`Log.info`), then seeds a stage with no ledger entry from `floor(level / 10) × 10` |
 | CharacterManager | `_update_resources` | `base_attribute_changed` for all 8 attributes |
 | ZoneManager | `_initialize_from_save` | `zone_changed(get_current_zone())` |
 | UnlockManager | `_initialize_from_save` | `condition_unlocked("")` |
@@ -211,9 +212,11 @@ Only two things trigger a reset, both during boot: `reset_save_data = true`, or 
 
 `SaveGameData` has no version field. The only migration code is `migrate()`, which moves listed zone ids before `verify()`. When a schema changes:
 
-- An added field loads with its declared default.
+- An added field loads with its declared default. `CultivationManager._update_resources()` then repairs what the default cannot know: a save from before `core_density_milestones` gets the ledger seeded from its level (so no milestone pays twice), and a level past the stage's cap (Core Density was uncapped) loads at the cap with no XP (`cultivation_manager.gd:62-83`). Path points already earned stay.
 - A field whose stored shape changes is not converted. Commit `1ce7ecd` (2026-05-23) replaced `CharacterAttributesData.attributes` (a dictionary) with 8 float fields. Its message says old saves "are incompatible and must be reset (no migration shim)", which is why `reset_save_data` was switched on that day.
 - Enum values are stored as integers. Commit `0652b49` (2026-05-24) collapsed `EquipmentSlot.ACCESSORY_1`/`ACCESSORY_2` (4/5) into a single `ACCESSORY` (4) and moved equipped accessories into the new `equipped_accessories` dictionary. Accessories already saved in `equipped_gear` under keys 4 and 5 are not moved across.
+
+The reverse direction is not covered: a save that has reached Copper, opened in a build from before the Tribulation, still hits the endless level-up loop (no Copper stage resource, so each level costs 0 XP). The loop guard only protects builds that have it.
 
 Some managers tolerate stale ids in their own way, which partly makes up for the missing migrations:
 
@@ -251,6 +254,7 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 | `tests/unit/test_seen_actions.gd` | `seen_action_ids`, the once-per-save first-init pass and `mark_action_unseen()` (a technique unlock lights the cycling card) |
 | `tests/unit/test_cycling_technique_data.gd`, `tests/unit/test_cycling_manager.gd` | The seen-technique fields: `reset()`, a save round trip, the first-init pass and its rerun on `save_data_reset` |
 | `tests/unit/test_merchant_data.gd` | `merchant_ledgers` round trip, `reset()`, and an old save without the field |
+| `tests/unit/test_cultivation_manager.gd` | `core_density_milestones`: a save round trip through `ResourceSaver` (the ledger is written, so a regained level pays nothing after a restart), `reset()`, the seed for an old save, and a save past the cap loading at it with its path points kept |
 | `tests/unit/test_inventory_manager_restore.gd` | `InventoryManager.restore_*` against the live save (in memory only) |
 
 ## Work Remaining

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**EndlessPath** is an incremental/idle game blended with active mini-games, built in **Godot 4.7** using **GDScript**. Inspired by the "Cradle" book series, it follows a sacred artist cultivating power through a Wuxia-inspired cultivation system. Players progress through stages (Foundation, Copper, Iron, Jade), managing resources like Madra and Core Density through interconnected gameplay loops. Only the Foundation stage is implemented today. See `docs/STATE_OF_THE_GAME.md` for current status, and `docs/README.md` for the documentation index.
+**EndlessPath** is an incremental/idle game blended with active mini-games, built in **Godot 4.7** using **GDScript**. Inspired by the "Cradle" book series, it follows a sacred artist cultivating power through a Wuxia-inspired cultivation system. Players progress through stages (Foundation, Copper, Iron, Jade), managing resources like Madra and Core Density through interconnected gameplay loops. Only the Foundation stage has content today: its ending, the Tribulation, breaks through to a thin Copper stage that unlocks nothing yet. See `docs/STATE_OF_THE_GAME.md` for current status, and `docs/README.md` for the documentation index.
 
 ## Common Commands
 
@@ -65,11 +65,11 @@ See `docs/testing/TESTING.md` for test conventions, the coverage map, and why te
 ### Directory Structure
 | Directory | Purpose |
 |-----------|---------|
-| `scripts/` | GDScript source: resource definitions (`resource_definitions/`), utilities (`utils/`), editor/CLI tools (`tools/`), and the zone action presenter base (`ui/`) |
+| `scripts/` | GDScript source: resource definitions (`resource_definitions/`), utilities (`utils/`), editor/CLI tools (`tools/`), the Tribulation's judge (`tribulation/`), and the zone action presenter base (`ui/`) |
 | `singletons/` | 17 manager singletons (global game state). They are autoloads along with Dialogic, 18 in total |
 | `scenes/` | Godot `.tscn` scene files + attached scripts |
-| `resources/` | `.tres` data files (abilities, adventures and encounters, enemies, cycling, items, path tree, quests, unlocks, zones and their loot tables) |
-| `assets/` | Art (sprites, Aseprite sources, the lacquer kit in `ui/lacquer/` for the zone view and the adventure's map and frame), shaders, themes, styleboxes, fonts, dialogue data. No audio yet |
+| `resources/` | `.tres` data files (abilities, adventures and encounters, enemies, cycling, items, path tree, quests, the Tribulation, unlocks, zones and their loot tables) |
+| `assets/` | Art (sprites, Aseprite sources, the lacquer kit in `ui/lacquer/` for the zone view, the adventure's map and frame and the Tribulation board), shaders, themes, styleboxes, fonts, dialogue data. No audio yet |
 | `addons/` | Godot plugins (Dialogic, AsepriteWizard, ResourcePlus, hexagon_tilemaplayer, script-ide, godot_context_exporter, gut) |
 | `tests/` | GUT tests: `unit/`, `integration/`, `label_tests/`, and `run_tests.ps1`, which runs the suite in parallel Godot processes |
 | `docs/` | Game and system documentation. Start at `docs/README.md` |
@@ -80,8 +80,8 @@ These are autoloaded in `project.godot` and provide global state:
 | Manager | Purpose |
 |---------|---------|
 | `PersistenceManager` | Save/load system with `SaveGameData` resource (auto-saved every 5 s by `SaveTimer`) |
-| `ResourceManager` | Madra and Gold, plus adventure Madra capacity/threshold. Core Density lives in `CultivationManager` |
-| `CultivationManager` | Core Density XP and levels, advancement stage, path-point milestones. `attempt_breakthrough()` is still a stub |
+| `ResourceManager` | Madra and Gold, plus adventure Madra capacity/threshold. `add_madra()` never lowers a pool that sits above the cap. Core Density lives in `CultivationManager` |
+| `CultivationManager` | Core Density XP and levels (capped per stage by `max_core_density_level`; XP at the cap is lost), advancement stage, path-point milestones (paid once per stage). `lose_core_density_levels()` and `advance_to_next_stage()` are the Tribulation's failure and pass |
 | `InventoryManager` | Equipment (paged grid), gear and accessories, materials, consumables and the 4-slot hotbar, quest items |
 | `ZoneManager` | Selected zone and per-zone progression (completions, training ticks, last idle action); the map's zones and their map states, the dev demo and hidden-zone toggles, seen actions (NEW) |
 | `UnlockManager` | Feature unlock gates (condition catalog, latched unlocks) |
@@ -90,7 +90,7 @@ These are autoloaded in `project.godot` and provide global state:
 | `DialogueManager` | Dialogic integration |
 | `PlayerManager` | Holds the persistent player `VitalsManager` (HP/Madra/Stamina) |
 | `LogManager` | Player-facing in-game log, shown in `LogWindow`. Diagnostics use the `Log` utility |
-| `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training, merchant). No queue. Resolves and resumes the zone's idle action after every session action and on arrival in a zone |
+| `ActionManager` | Lifecycle of the single current zone action (cycling, foraging, adventure, dialogue, training, merchant, Tribulation). No queue. Refuses an adventure the Madra can't fund and a Tribulation the core isn't ready for before anything stops. Resolves and resumes the zone's idle action after every session action and on arrival in a zone |
 | `CharacterManager` | Player attributes (base + equipment bonuses) |
 | `CyclingManager` | Cycling technique state (unlocked list, equipped technique, catalog lookups, seen techniques for the NEW seal), the running cycle's snapshot, which the cabinet and the Now tray read, and the last cycle's result, which the chest shows under the Now tray |
 | `PathManager` | Path progression tree, point balance, perk aggregation. Most numeric perks are not yet read by any system |
@@ -112,7 +112,7 @@ These are autoloaded in `project.godot` and provide global state:
 - Right-click to quick equip/unequip; the description box shows the dragged item during a drag
 
 ### View Architecture
-`MainView` (class) implements the state stack. Its 9 state nodes live under a script-less `MainViewStateMachine` child node:
+`MainView` (class) implements the state stack. Its 10 state nodes live under a script-less `MainViewStateMachine` child node:
 - `ZoneViewState` — Exploration/map view (initial base state)
 - `AdventureViewState` — Combat exploration (base state)
 - `CyclingViewState` — Cycling board overlay with no backdrop: the board sits in the map gap and `MainView.set_cycling_mode()` turns the zone view's chest, dock and map over to it
@@ -122,14 +122,15 @@ These are autoloaded in `project.godot` and provide global state:
 - `AbilitiesViewState` — Ability management with loadout and drag-drop equipping
 - `CharacterViewState` — Character attributes overlay
 - `MerchantViewState` — Merchant shop overlay (`MerchantView`), opened and closed by `ActionManager.start_merchant` / `stop_merchant`
+- `TribulationViewState` — Tribulation board overlay (`TribulationView`) with no backdrop, opened and closed by `ActionManager.start_tribulation` / `stop_tribulation`: the board sits in the map gap, and `MainView.set_board_mode()` turns the dock and the map off
 
-Menu overlays are switched via input actions (`open_inventory`, `open_abilities`, `open_character`, `open_path`), which only the current state handles. Cycling, adventure, the merchant, and the end card are driven by signals instead: the state scripts connect to `ActionManager`/`AdventureView` themselves. The state machine supports `change_state` for base views and `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view).
+Menu overlays are switched via input actions (`open_inventory`, `open_abilities`, `open_character`, `open_path`), which only the current state handles. Cycling, adventure, the merchant, the Tribulation, and the end card are driven by signals instead: the state scripts connect to `ActionManager`/`AdventureView` themselves. The state machine supports `change_state` for base views and `push_state`/`pop_state` for modal overlays (e.g., end card on top of adventure view).
 
 The `Dock` (`scenes/ui/dock/`, at the bottom centre of `ZoneView`) holds the four nav buttons, which fire the same input actions via `Input.parse_input_event()` (a press, then its release). It also decides their notifications: the Path count seal while path points are unspent, the Abilities ring while an unlocked ability is unequipped. `SystemMenuButton` (`scenes/ui/dock/system_menu_button/`) uses a `MenuType` enum that auto-configures label, shortcut, icon, and input action from a single dropdown, and exposes `set_notification()`.
 
-The `GoalsPanel` (`scenes/ui/goals_panel/`: the first active quest's step and the Breakthrough milestone) and the `LogWindow` are `MainView` HUD boards shared by the zone and adventure views. `ZoneViewState` places them (Goals under the cultivator cabinet, the log at the bottom left) and `AdventureViewState` leaves them where they are, because the adventure's own cabinet, chest and dock stand where the zone view's stand. The merchant shop hides them through `MainView.hide_hud_boards()` / `release_hud_boards()`; the menu books leave them showing under their backdrop, and cycling leaves them showing beside its board. The zone view itself (cultivator cabinet, zone chest, map) is described in `docs/zones/ZONES.md`. See `docs/infrastructure/MAIN_VIEW.md`.
+The `GoalsPanel` (`scenes/ui/goals_panel/`: the first active quest's step and the Breakthrough milestone) and the `LogWindow` are `MainView` HUD boards shared by the zone and adventure views. `ZoneViewState` places them (Goals under the cultivator cabinet, the log at the bottom left) and `AdventureViewState` leaves them where they are, because the adventure's own cabinet, chest and dock stand where the zone view's stand. The merchant shop and the Tribulation hide them through `MainView.hide_hud_boards()` / `release_hud_boards()`; the menu books leave them showing under their backdrop, and cycling leaves them showing beside its board. The zone view itself (cultivator cabinet, zone chest, map) is described in `docs/zones/ZONES.md`. See `docs/infrastructure/MAIN_VIEW.md`.
 
-`MainView` holds the zone view's cabinet, chest, dock and map SubViewport (`%CultivatorPlate`, `%ZonePanel`, `%Dock`, `%SubViewport` in `main_game.tscn`). Cycling is the one overlay that does not show `GreyBackground`: `CyclingViewState` calls `MainView.set_cycling_mode(true)` (the chest lists the techniques, the dock hides, the map takes no input) and blocks the full log, and `MainView._ready()` hands the cabinet to the `CyclingView` so its Madra and XP pellets fly into the orbs.
+`MainView` holds the zone view's cabinet, chest, dock and map SubViewport (`%CultivatorPlate`, `%ZonePanel`, `%Dock`, `%SubViewport` in `main_game.tscn`). Cycling and the Tribulation are the overlays that do not show `GreyBackground`, and both block the full log. `CyclingViewState` calls `MainView.set_cycling_mode(true)` (the chest lists the techniques, and `set_board_mode(true)` hides the dock and takes the map's input), and `MainView._ready()` hands the cabinet to the `CyclingView` so its Madra and XP pellets fly into the orbs. `TribulationViewState` calls `set_board_mode(true)` after it hides the log and the Goals board. The `TribulationView`'s root covers the screen and stops every click, judges its own mouse presses, and gets the keys from the state's `handle_input()` (`docs/cultivation/breakthrough-tribulation.md`).
 
 `AdventureView` is built in the same frame (`scenes/adventure/adventure_view/adventure_view.tscn`): `VitalsPlate` (top left), `AdventureChest` (top right: the `RunClock`, and the `ExpeditionPage` with the Here tray, the tile's choice drawers and the Run ledger) and `TechniqueDock` (bottom centre) sit over the map and the fight and hold the pointer, so a press on a board never reaches the hexes. `AdventureView` feeds them from `AdventureTilemap`'s signals (`tile_entered`, `encounter_resolved`, `map_changed`, `walk_refused`) and binds the dock and the cabinet's buff sockets to the player's combatant for each fight. The coin layer (`AdventureMapMarkers`) takes `map_changed`, `encounter_resolved` and `boss_revealed` (which shakes the boss coin) from the tilemap itself; it is a `Node2D` at z 50 in the map's own canvas, so the character (z 100) draws over the coins. The wheel zooms the map from 1 to 2 over the map only, never over a board or during a fight. See `docs/adventuring/ADVENTURING.md`.
 
@@ -145,7 +146,7 @@ Shared components used across multiple views:
 - `EncounterIcon` (`scenes/adventure/encounter_icon/`) — Per-type glyph renderer (combat, elite, boss, rest, treasure, trap, unknown) with a completed state and animated boss and rest-site glyphs; no longer on the map (the coins replaced it), but the editor map preview (`scripts/tools/map_preview.gd`) still uses it
 - `DropTargetSlot` (`scenes/common/drop_target_slot.gd`) — Shared drag-and-drop target base with drop highlight
 - Inventory chrome (`scenes/inventory/common/`) — `InventoryScrollHost` base plus `InventoryGrid`, `InventoryList`, `GridToolbar`, `SortSubBanner`, `TabBanner`, `ScrollRail`, `ItemDetailCard`, shared by the inventory tabs
-- `GreyBackground` (`scenes/ui/grey_background/`) — Modal backdrop for the menu books, the merchant and the end card (cycling uses none); `show_with_panel()`/`hide_with_panel()` orchestrate overlay fades
+- `GreyBackground` (`scenes/ui/grey_background/`) — Modal backdrop for the menu books, the merchant and the end card (cycling and the Tribulation use none); `show_with_panel()`/`hide_with_panel()` orchestrate overlay fades
 - `TechniqueDrawer` (`scenes/cycling/technique_drawer/`) and `TechniqueList` (`scenes/zones/zone_panel/technique_list/`) — The zone chest's drawers for the learned cycling techniques while cycling (`ZonePanel.set_techniques_mode()`)
 
 ### Game Systems
@@ -156,15 +157,16 @@ Shared components used across multiple views:
 5. **Inventory** — Book-style UI: paged equipment grid, gear slots, consumables hotbar, materials, quest journal
 6. **Path Progression** — Pure Madra skill tree; Path Points unlock abilities and cycling techniques
 7. **Quests** — Multi-step quests driven by events and unlock conditions (Celestial Intervener questline)
-8. **Scripting** — Calligraphy/character tracing (planned)
-9. **Elixir Making** — Multi-stage crafting (planned)
-10. **Soulsmithing** — Tetris-like assembly puzzle (planned)
+8. **Tribulation** — The Foundation → Copper breakthrough: a Spirit Valley action that opens when Core Density first reaches 100 and runs the Breath of the Core, a 38 s breathing trial on a lacquer board in the map gap. Press (Space or a click) as the bright sphere shrinks across the brass ring, and hold through the last breath. `TribulationRun` judges, `TribulationView` draws it and applies the result. A pass moves the player to Copper; 4 cracks fail it and cost 5 levels
+9. **Scripting** — Calligraphy/character tracing (planned)
+10. **Elixir Making** — Multi-stage crafting (planned)
+11. **Soulsmithing** — Tetris-like assembly puzzle (planned)
 
 ### Progression
 - Madra: currency generated from Cycling (and Aura Well training)
-- Core Density: integer level with no cap in code. The design calls for 0–100 per stage
-- Breakthrough mechanic with Tribulation challenge: designed (`docs/cultivation/breakthrough-tribulation.md`), not implemented
-- Cultivation stages unlock new systems: planned. Only Foundation exists, and its systems are gated by quests and unlock conditions instead
+- Core Density: an integer level capped per stage (`max_core_density_level`, 100 in Foundation and Copper). XP at the cap is lost, and a save past the cap loads at it
+- Breakthrough: the Tribulation (`docs/cultivation/breakthrough-tribulation.md`). The first time Core Density reaches 100 its card appears in Spirit Valley. A pass calls `CultivationManager.advance_to_next_stage()`; a failure takes 5 levels (`lose_core_density_levels()`)
+- Cultivation stages unlock new systems: planned. Foundation and a thin Copper exist, Copper unlocks nothing yet, and Foundation's systems are gated by quests and unlock conditions instead
 
 ## Git Workflow
 
@@ -303,8 +305,9 @@ git pull && UV_PYTHON_INSTALL_DIR='C:\Users\lione\.uv\python' UV_CACHE_DIR='C:\U
 ### Key Input Bindings
 - `open_inventory` / `close_inventory` — I / I or Escape
 - `open_abilities` — A; `open_character` — C; `open_path` — P (Escape, i.e. `ui_cancel`, also closes these overlays). Menu shortcuts only work from the zone view
-- `toggle_log` — L: opens or closes the full log (handled by `LogWindow`, in the zone and adventure views; Escape also closes it). An open menu book or the cycling board closes the full log and blocks L
+- `toggle_log` — L: opens or closes the full log (handled by `LogWindow`, in the zone and adventure views; Escape also closes it). An open menu book, the cycling board or the Tribulation board closes the full log and blocks L
 - `close_cycling_view` — Escape
+- `tribulation_press` — Space or left click, the Tribulation's one input. Keys reach `TribulationView` through `TribulationViewState.handle_input()`, and its root judges mouse presses in `_gui_input()`. On the intro Space begins the run and so does a click on the board, but not a click beside it. Escape (`ui_cancel`) turns the trial down from the intro and does nothing once the run has begun
 - `ability_slot_1`–`ability_slot_4` — Q / W / E / R (combat; read by `TechniqueDock` while it is bound to a fight)
 - Dev panel — Ctrl+Shift+D, hard-coded in `MainGame._input`, open to anyone (see `docs/tooling/DEV_TOOLS.md`)
 - `center_zone_map_camera` — Space (bound, but nothing handles it); `open_path_tree` — P (unused duplicate of `open_path`)

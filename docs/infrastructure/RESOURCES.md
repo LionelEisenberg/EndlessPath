@@ -1,6 +1,6 @@
 # Resource Tracking (Madra and Gold)
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Overview
 
@@ -44,7 +44,7 @@ Writers                                          Readers / listeners
 
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
-| `madra` | `float` | `25.0` | Kept in `[0, stage cap]` by `add_madra()` only |
+| `madra` | `float` | `25.0` | Never below 0, and never raised past the stage cap, by `add_madra()` only. A pool already above the cap (a failed Tribulation lowers the level, and so the cap) is kept until it is spent |
 | `gold` | `float` | `0.0` | Uncapped; kept at 0 or above by `set_gold()` and the `spend_gold()` check |
 
 ### `ResourceManager.ResourceType`
@@ -63,7 +63,7 @@ Two separate limits apply to Madra.
 | **Pool cap** (zone Madra) | `max_madra_base + max_madra_per_core_density_level × core_density_level` | `CultivationManager.get_max_madra()`: `AdvancementStageResource.get_max_madra(level)` for the current stage | Foundation: `100 + 5 × level`, which is 100 at level 0 and 150 at level 10 |
 | **Adventure capacity** (and combat Madra max) | `FOUNDATION × 10`, using the total Foundation including equipment | `CharacterAttributesData.get_max_madra()` | 100 (Foundation 10) |
 
-Only `foundation_advancement_stage.tres` exists (`max_madra_base = 100.0`, `max_madra_per_core_density_level = 5.0`). `CultivationManager.advancement_stage_resources` preloads only that resource.
+Two stage resources exist, both preloaded by `CultivationManager.advancement_stage_resources`: `foundation_advancement_stage.tres` (`max_madra_base = 100.0`, `max_madra_per_core_density_level = 5.0`) and `copper_advancement_stage.tres` (`600.0` and `10.0`). Copper starts at the 600 that Foundation ends on, so the breakthrough never drops the cap. A failed Tribulation does lower it, by 5 levels' worth (25 Madra in Foundation), which can leave a full pool above the cap.
 
 The two caps are independent. The adventure threshold is half the capacity (`FOUNDATION × 5`), so it can be higher than the pool cap. In the Foundation stage, once the total FOUNDATION attribute is above `20 + level`, even a full pool cannot start an adventure (see Work Remaining).
 
@@ -71,7 +71,7 @@ The two caps are independent. The adventure threshold is half the capacity (`FOU
 
 | Function | Behaviour |
 |----------|-----------|
-| `add_madra(amount, quiet = false) -> float` | `madra = clamp(madra + amount, 0, CultivationManager.get_max_madra())`, then emits `madra_changed`. Returns the amount actually added, snapped to 0.001: 0 at the cap, and negative when the pool was above the cap and is clamped down. Logs `[color=cyan]Gained %d Madra[/color]` with that amount, only when it is at least 1.0 and the award is not quiet, so a capped add is silent |
+| `add_madra(amount, quiet = false) -> float` | `madra = clampf(before + amount, 0, maxf(CultivationManager.get_max_madra(), before))`, then emits `madra_changed` (`resource_manager.gd:75-84`). The cap is the larger of the stage's and the pool already held, so a gain stops at the cap, a pool above it is kept (a gain is lost, never trimmed) and a negative amount still lowers it. Returns the amount actually added, snapped to 0.001: 0 at the cap or above it. Logs `[color=cyan]Gained %d Madra[/color]` with that amount, only when it is at least 1.0 and the award is not quiet, so a capped add is silent |
 | `spend_madra(amount) -> bool` | All or nothing: deducts and emits only if `madra >= amount` |
 | `set_madra(amount)` | `madra = max(0, amount)`, with no cap. Used by the dev panel only |
 | `get_madra() -> float` | Read helper |
@@ -201,7 +201,7 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Zone Madra orb, Madra rate and gold display |
 | `singletons/cultivation_manager/cultivation_manager.gd` | `get_max_madra()` (pool cap) |
 | `scenes/combat/adventure_combat/adventure_combat.gd` | Gold reward formula (the static `gold_reward_for()`; `_calculate_gold_reward` returns it) |
-| `tests/unit/test_resource_manager.gd` | 39 tests of the real singleton: Madra with stage-cap clamping, gold, `award_resource()`, signals, log lines, adventure capacity, budget and threshold |
+| `tests/unit/test_resource_manager.gd` | 41 tests of the real singleton: Madra with stage-cap clamping (and a pool above a lowered cap kept, still spent by a negative amount), gold, `award_resource()`, signals, log lines, adventure capacity, budget and threshold |
 | `tests/integration/test_adventure_flow.gd` | 10 tests of the adventure Madra gate through the real singletons, including a Foundation bonus from equipment |
 | `tests/unit/test_quiet_madra.gd` | Calls the real `add_madra()` / `award_resource()`: quiet awards add without a log line, capped adds log nothing, and the returned amount is what was added |
 | `tests/unit/test_cultivation_getters.gd` | `CultivationManager.get_max_madra()` follows the level |
@@ -210,8 +210,8 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 
 ### Bugs
 
-- `[LOW]` `add_madra()` clamps to 0 when the current stage has no `AdvancementStageResource`, because the cap falls back to `0.0`. Only the Foundation resource exists, so this will empty the pool when a Copper breakthrough ships.
-- `[LOW]` `set_madra()` ignores the pool cap. This is dev-panel only, and the next `add_madra()` pulls the value back to the cap.
+- `[LOW]` `set_madra()` ignores the pool cap. This is dev-panel only, and the next `add_madra()` keeps the value: a gain above the cap is lost, and the pool stays where the dev panel put it until it is spent.
+- `[LOW]` When the current stage has no `AdvancementStageResource` the cap falls back to `0.0`, so `add_madra()` adds nothing (the pool is kept). Foundation and Copper have resources and nothing reaches another stage, but a later stage needs its resource before its Tribulation.
 - `[LOW]` The adventure threshold can exceed the pool cap. The threshold is `FOUNDATION × 5` and the Foundation-stage pool cap is `100 + 5 × level`, so once the total FOUNDATION attribute is above `20 + level` the pool can never reach the threshold and no adventure can start. Shipped content stays well below that: base FOUNDATION is 10, and only the Leeching Ring adds to it (+2). Raise the pool cap with Foundation, or base the threshold on the pool.
 
 ### Missing Functionality

@@ -1,6 +1,6 @@
 # Zones & Actions
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Overview
 
@@ -11,21 +11,22 @@ The zone view is the home base and the initial `MainView` state. Since the map-f
 - the **Goals board** and the **log board** hang under it (both are `MainView` HUD, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md));
 - the **zone chest** (`ZonePanel`) at the top right holds the zone header, the **Now strip** (the running idle action or cycle, or an empty tray saying what is paused), and the zone's **activity cards**, grouped Talk, Cultivate, Gather, Venture, Visit;
 - the **dock** (`Dock`) at the bottom centre opens Inventory, Abilities, Character and Path;
-- **cycling** puts its board in the gap between the cabinet and the chest ([CYCLING.md](../cycling/CYCLING.md)). The map takes no input meanwhile, the chest lists the learned techniques instead of the cards, the dock hides, and the cabinet, the Goals board and the log stay up.
+- **cycling** puts its board in the gap between the cabinet and the chest ([CYCLING.md](../cycling/CYCLING.md)). The map takes no input meanwhile, the chest lists the learned techniques instead of the cards, the dock hides, and the cabinet, the Goals board and the log stay up;
+- the **Tribulation** puts its board in the same gap once the core is full ([breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md)). The log and the Goals board hide too, and the dock and the map are turned off the same way; the cabinet and the chest stay.
 
 Clicking a card hands its `ZoneActionData` to `ActionManager`, which runs exactly one action at a time:
 
 - Idle actions (foraging, training) run in place on the zone view.
-- Session actions (cycling, adventure, NPC dialogue, the merchant) hand off to their own views or to Dialogic. When one ends, the zone's idle action resumes on its own ("always in an idle action").
+- Session actions (cycling, adventure, NPC dialogue, the merchant, the Tribulation) hand off to their own views or to Dialogic. When one ends, the zone's idle action resumes on its own ("always in an idle action").
 
 `ZoneManager` owns the current zone, per-zone progression (completion counts, training ticks, the last idle action), the map's zone list and map states, and the seen-action record behind the NEW seal. Zones and actions are gated by `UnlockConditionData` ids that `UnlockManager` latches.
 
 There are two zones in `zone_data_list.tres` today:
 
-- **Spirit Valley** is playable and has 9 actions. It is the only zone on the map.
+- **Spirit Valley** is playable and has 10 actions. It is the only zone on the map.
 - **Test Zone** is a placeholder with no actions. It is hidden on the map (`hidden_on_map`), west of Spirit Valley at (-1, 0), with no description. The dev panel can show it.
 
-Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advancement Zone and an Uncharted hex. They show the locked and uncharted map states until Beats 7–10 add real zones.
+Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advancement Zone and an Uncharted hex. They show the locked and uncharted map states until real zones use them.
 
 ## Player Experience
 
@@ -37,7 +38,7 @@ Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advanc
    - **Locked zone:** the padlock shakes (0.44 s, whole steps), a heavy brass rim marks the hex, and the popover pins with ×. "Show me ›" appears when the requirement names a card in the current zone; it scrolls the list to that card and flashes it.
    - **Uncharted zone:** the popover pins (UNKNOWN); it never travels.
    - **Fog:** closes any popover.
-4. Cards are 392 px lacquer drawers: icon, title, a mode tag (IDLE, ACTIVE, SHOP, STORY) and one detail line. Clicking a card starts that action. An idle card that runs is pulled out 2 px and tagged RUNNING; clicking it again flashes the Now strip instead of restarting it.
+4. Cards are 392 px lacquer drawers: icon, title, a mode tag (IDLE, ACTIVE, SHOP, TRIAL, STORY) and one detail line. Clicking a card starts that action. An idle card that runs is pulled out 2 px and tagged RUNNING; clicking it again flashes the Now strip instead of restarting it.
 5. **Foraging:** the card reads `[dewdrop] 1–5  [fern] 2–6 · every 5 s · free`. While it runs, the Now strip shows each loot range and "haul in N s", and a jade bead ring fills over each 5 s haul. Each haul rolls the loot table, floats the haul ("+3 Dewdrop Tear  +4 Spirit Fern") over the character on a lacquer token. Over each haul the character walks west, kneels to search the grass, pulls up a sprig, walks home and holds a fern up as the haul comes in.
 6. **Training (Aura Well):** the card reads `+1.5 Madra / s · each level +1 Spirit`. While it runs, the Now strip shows the rate, "Lv n → n+1 · +1 Spirit", the ticks into the level (`214 / 300`) and a jade rod; the cabinet shows `+1.5 / s`; each 1 s tick floats "+1.5 Madra" in Madra blue. The character sits cross-legged and breathes with a Madra pearl in its hands; after three breaths it dissolves into Madra, is gone for a moment, and re-forms at the next of four spots on the hex. The trickle writes nothing to the log.
 7. **Adventure:** the card is a normal 72 px drawer, measured against the **adventure capacity** (total FOUNDATION × 10, equipment included), not the Madra pool cap on the cabinet.
@@ -47,6 +48,7 @@ Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advanc
    - **Cycling** (ACTIVE): "<equipped technique> · Madra and Core Density XP". Opens the cycling board in the map gap. The chest turns to the techniques ("Techniques", "<n> learned"), the dock hides, the map takes no clicks, the Now tray shows the cycle (and, once a cycle has ended, a line under it reports the last one) and the cabinet takes the Madra and XP pellets. Escape or the board's × closes it and ends the action.
    - **Dialogue** (STORY): the description as the detail line. Plays a Dialogic timeline over the zone view. These cards are one-time: the card disappears when the timeline ends.
    - **Traveling Merchant** (SHOP): "<n> wares · you have <gold> gold". Opens the shop over the zone view; Leave or Escape closes it. Stock, prices and rules are in [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented).
+   - **The Tribulation** (TRIAL, then ENTER): the card appears, with a NEW seal, the first time Core Density reaches 100, and stays. Below 100 it shows a core rod and `Core 95 / 100`; a click shakes the row softly and logs `Your core must be full to face the Tribulation (95 / 100).`, and nothing stops. At 100 the detail line reads `About 38 s · a failure costs 5 levels` in brass, with the steady brass frame. A click opens the Tribulation board in the map gap: the log, the Goals board and the dock hide, the map takes no input, and the board stops every click, so no card can replace the trial. A pass moves the player to Copper and the card leaves the list; a failure takes 5 levels and leaves it. How the trial plays is in [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md).
 
    When any of them ends, the zone's idle action resumes and the log reads "Resumed <action>".
 9. New cards appear as soon as a condition unlocks, with a NEW seal until first hovered or used. A new cycling technique lights NEW on the Wilderness Cycling card again, until the player hovers it or opens cycling. When the first idle action of a zone unlocks while nothing runs, it starts on its own ("Started <action>").
@@ -73,9 +75,11 @@ Foraging and training keep running while the Inventory, Path, Abilities or Chara
 | Right-drag | Pan the camera | `CameraPanController` |
 | Mouse wheel over the map | Zoom 1.0–2.0 (default 2.0, 10% per tick) | `CameraZoomController` |
 | I / A / C / P, or dock buttons | Open Inventory / Abilities / Character / Path | `ZoneViewState.handle_input()`; see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md) |
-| L | Open or close the full log (nothing under a menu book or while cycling) | `LogWindow._unhandled_input()` |
+| L | Open or close the full log (nothing under a menu book, while cycling or in the Tribulation) | `LogWindow._unhandled_input()` |
 | Escape (in the cycling view) | Close cycling and stop the action | `CyclingViewState.handle_input()` |
-| Left-click, hover or wheel on the map (while cycling) | Nothing: the map's SubViewport takes no input. `MapMarkers` still hears presses at the window level, so a click closes a pinned popover, but nothing travels | `MainView.set_cycling_mode()` (`SubViewport.gui_disable_input`) |
+| Left-click, hover or wheel on the map (while cycling or in the Tribulation) | Nothing: the map's SubViewport takes no input. `MapMarkers` still hears presses at the window level, so a click closes a pinned popover, but nothing travels | `MainView.set_board_mode()` (`SubViewport.gui_disable_input`), which `set_cycling_mode()` calls |
+| Space, or a left-click (Tribulation board) | `tribulation_press`: on the intro, Space or a click on the board begins the run (a click beside the board does nothing); while the run goes on, a press is judged wherever it lands; on the result panel it does nothing | `TribulationViewState.handle_input()` for keys, `TribulationView._gui_input()` for the mouse |
+| Escape (Tribulation intro) | Turn the trial down, with nothing changed. Once the run has begun it does nothing | `TribulationViewState.handle_input()` |
 | Space (`center_zone_map_camera`) | Bound in `project.godot`, but no handler exists | — |
 
 ## Architecture
@@ -97,7 +101,7 @@ MainView/ZoneView (Control, %ZoneView)        shown/hidden by ZoneViewState
 
 The Goals board (`GoalsPanel`, at (24, 276), 4 px under the kit's 272 so its cords read; they reach 4 px above its root to the cabinet's rings) and the log board (`LogWindow`, slot at (24, 852)) are children of `MainView`, not of `ZoneView`, because the adventure view shows them too. `ZoneViewState.enter()` puts them there, and the adventure view leaves them where they are.
 
-The cabinet, the chest, the dock and the map's SubViewport have unique names in `main_game.tscn` (`%CultivatorPlate`, `%ZonePanel`, `%Dock`, `%SubViewport`), and `MainView` holds a reference to each. Cycling mode needs them: `MainView.set_cycling_mode()` turns the chest, the dock and the map over, and `MainView._ready()` hands the cabinet to the `CyclingView`.
+The cabinet, the chest, the dock and the map's SubViewport have unique names in `main_game.tscn` (`%CultivatorPlate`, `%ZonePanel`, `%Dock`, `%SubViewport`), and `MainView` holds a reference to each. Cycling mode needs them: `MainView.set_cycling_mode()` turns the chest, the dock and the map over, and `MainView._ready()` hands the cabinet to the `CyclingView`. The Tribulation needs two of them: `MainView.set_board_mode()` hides the dock and turns the map's SubViewport off (`set_cycling_mode()` calls it after the chest).
 
 `scenes/zones/zone_tilemap/zone_tilemap.tscn`:
 
@@ -153,7 +157,7 @@ Each card is `scenes/zones/zone_action_button/zone_action_button.tscn` (class `Z
 | Singleton | File | Owns |
 |---|---|---|
 | `ZoneManager` | `singletons/zone_manager/zone_manager.gd` | Zone catalog (`ZoneDataList`), current zone id, per-zone `ZoneProgressionData`, action availability, map zones and map states, dev zone toggles, seen actions, focus requests |
-| `ActionManager` | `singletons/action_manager/action_manager.gd` | The single `current_action`, routing by `ActionType`, the shared `action_timer`, foraging and training tick handlers, idle-action resolution and its log lines |
+| `ActionManager` | `singletons/action_manager/action_manager.gd` | The single `current_action`, routing by `ActionType`, the shared `action_timer`, foraging and training tick handlers, the adventure and Tribulation gates, idle-action resolution and its log lines |
 
 `ActionManager` has no queue. It holds one `current_action`, and selecting another action stops the current one.
 
@@ -175,13 +179,13 @@ Each card is `scenes/zones/zone_action_button/zone_action_button.tscn` (class `Z
 | `set_demo_zones_visible(visible)`, `set_hidden_zones_visible(visible)` | `void` | Dev toggles. Emit `map_zones_changed` when the setting changes. Not saved |
 | `mark_action_seen(action_id)`, `mark_action_unseen(action_id)`, `is_action_seen(action_id)` | `void`, `void`, `bool` | `SaveGameData.seen_action_ids`; an unseen available action shows NEW. `mark_action_unseen()` takes the id out again: every `CYCLING` action when a technique unlocks (`CyclingManager.technique_unlocked`), so the cycling card shows NEW until it is hovered or cycling opens (`select_action()` marks it seen) |
 | `request_action_focus(action_id)` | `void` | Emits `action_focus_requested` (the popover's "Show me") |
-| `get_available_actions(zone_id = current)` | `Array[ZoneActionData]` | See [Unlock gating](#unlock-gating) |
+| `get_available_actions(zone_id = current)` | `Array[ZoneActionData]` | See [Unlock gating](#unlock-gating). A `TribulationActionData` whose stage has been reached (`is_passed()`) is left out (`zone_manager.gd:227-230`) |
 | `get_action_by_id(action_id)` | `ZoneActionData` | Searches every zone in the list |
 | `get_zone_by_id(zone_id)`, `get_all_zones()` | `ZoneData`, `Array[ZoneData]` | The list only; demo zones are not in it |
 
-`ActionManager` public API: `select_action(action_data)`, `stop_action(successful = true)`, `resolve_idle_action(zone_id) -> ZoneActionData`, `get_current_madra_per_second() -> float` (the running cycle's measured rate while the cycling action runs, a running training action's Madra per second, else 0), `confirm_adventure_start(action_data, madra_budget)`, `get_current_action()`, `clear_current_action()`, plus the public vars `current_action` and `action_timer` (a `Timer` child that foraging and training reuse; the Now strip and the map ring read it every frame. Cycling never starts it: the Now strip reads `CyclingManager`'s session snapshot instead).
+`ActionManager` public API: `select_action(action_data)` (it refuses an adventure the Madra can't fund and a Tribulation the core isn't ready for, `TribulationActionData.can_attempt()`, before anything stops, `action_manager.gd:120-135`), `stop_action(successful = true)`, `resolve_idle_action(zone_id) -> ZoneActionData`, `get_current_madra_per_second() -> float` (the running cycle's measured rate while the cycling action runs, a running training action's Madra per second, else 0), `confirm_adventure_start(action_data, madra_budget)`, `get_current_action()`, `clear_current_action()`, plus the public vars `current_action` and `action_timer` (a `Timer` child that foraging and training reuse; the Now strip and the map ring read it every frame. Cycling never starts it: the Now strip reads `CyclingManager`'s session snapshot instead).
 
-`ZoneActionGroups` (`scripts/utils/zone_action_groups.gd`, statics) holds the list order and the tags: `group_of(action_type)` (TALK = NPC_DIALOGUE; CULTIVATE = CYCLING, TRAIN_STATS; GATHER = FORAGE; VENTURE = ADVENTURE; VISIT = MERCHANT, ZONE_EVENT), `label(group)`, `sort_actions(actions)` (stable: by group, list order within a group) and `mode_tag(action)` (IDLE for FORAGE and TRAIN_STATS, ACTIVE for CYCLING and ADVENTURE, SHOP for MERCHANT, STORY for NPC_DIALOGUE and ZONE_EVENT).
+`ZoneActionGroups` (`scripts/utils/zone_action_groups.gd`, statics) holds the list order and the tags: `group_of(action_type)` (TALK = NPC_DIALOGUE; CULTIVATE = CYCLING, TRAIN_STATS, TRIBULATION; GATHER = FORAGE; VENTURE = ADVENTURE; VISIT = MERCHANT, ZONE_EVENT), `label(group)`, `sort_actions(actions)` (stable: by group, list order within a group) and `mode_tag(action)` (IDLE for FORAGE and TRAIN_STATS, ACTIVE for CYCLING and ADVENTURE, SHOP for MERCHANT, TRIAL for TRIBULATION, STORY for NPC_DIALOGUE and ZONE_EVENT).
 
 ### Zone map rendering
 
@@ -297,6 +301,7 @@ The zone camera is a plain `Camera2D` with the three shared controllers from `sc
 | `ZoneManager.zone_changed` | A new zone starts the list at the top; the same zone keeps its scroll |
 | `ZoneManager.action_completed` | Drops actions that reached `max_completions` |
 | `UnlockManager.condition_unlocked` | Adds newly unlocked actions; also fires with `""` on save reset |
+| `CultivationManager.advancement_stage_changed` | A breakthrough: the card of the Tribulation that led to the new stage leaves the list at once, as the result shows, not after Continue |
 | `CyclingManager.technique_unlocked` | Lights NEW on the cycling card again (`ZoneManager` has marked the cycling actions unseen by then). The `TechniqueList` rebuilds itself on the same signal |
 | `CyclingManager.last_cycle_changed` | Not a rebuild: the last cycle's line under the Now tray shows or hides, and the chest lays out again at once (the lore, the header and the list move 26 px) |
 
@@ -327,11 +332,12 @@ Card behaviour:
 | `AdventurePresenter` | `presenters/adventure_presenter.tscn` | ADVENTURE | Below the threshold, the `NeedGroup` row in the footer slot: `mini_madra` (x+64, y+38), the Madra rod (x+86, y+40, `steps 74`), then `<madra> / <threshold>` (`MadraFigure`, tan) at x+248 and, only while `ActionManager.get_current_madra_per_second() > 0`, `~<n> s` (`HintLabel`, cream, right edge x+380). At it: "<minutes> min run · carries <capacity> Madra" in brass on the detail line (`ReadyText`, ellipsized past 316 px), the ready frame and the ENTER tag | 72 px in both states. Refreshes on `madra_changed`, `current_action_changed`, `base_attribute_changed` and `InventoryManager.inventory_changed` (gear changes capacity). `can_activate()` = `ResourceManager.can_start_adventure()`; a rejected click shakes the Madra row by `MapGlyph.SOFT_SHAKE_KEYFRAMES` (even px, 4 px at most) and logs `Not enough Madra!` |
 | `CyclingPresenter` | `presenters/cycling_presenter.tscn` | CYCLING | "<equipped technique> · Madra and Core Density XP"; follows the equipped technique | The fresh save's "Foundational Technique" wraps in the tall drawer |
 | `MerchantPresenter` | `presenters/merchant_presenter.tscn` | MERCHANT | "<n> wares · you have <gold> gold" (stock lines not yet sold out) | Follows gold and purchases |
+| `TribulationPresenter` | `presenters/tribulation_presenter.tscn` | TRIBULATION | Not ready, the `NeedGroup` row in the footer slot: the core rod (x+64, y+40, `steps 74`, `lacquer_rod_core_*`) and `Core <level> / <cap>` (`CoreFigure`, tan) at x+226, with the TRIAL tag. Ready (`can_attempt()`: the stage before the target, core full): "About <n> s · a failure costs <levels> levels" in brass on the detail line (`ReadyLabel`, fitted by `fit_detail_label()`), the ready frame and the ENTER tag | 72 px in both states unless the ready line wraps in the tall drawer, which it leaves again below the cap. Follows `core_density_level_updated` and `advancement_stage_changed`. `can_activate()` = `TribulationActionData.can_attempt()`; a rejected click shakes the Core row by `MapGlyph.SOFT_SHAKE_KEYFRAMES` (a copy of the adventure card's wrapper) and logs `Your core must be full to face the Tribulation (%d / %d).` |
 | `DefaultZoneActionPresenter` | `presenters/default_presenter.tscn` | NPC_DIALOGUE, ZONE_EVENT, any other | The action's description | Tag STORY |
 
 ### Cultivator cabinet and dock
 
-- **`CultivatorPlate`** (`scenes/zones/cultivator_plate/`, kit §5.1). The Madra orb is the empty frame of its strip under `assets/shaders/lacquer_madra_orb.gdshader`, filled to `Madra / max`, with `Madra / max` beside it; `max` is `CultivationManager.get_max_madra()` (100 + 5 × Core Density level at Foundation). The rate `+1.5 / s` shows only while `ActionManager.get_current_madra_per_second()`, read to a tenth (`CyclingManager.RATE_STEP`, the step the manager announces the cycle's rate in), is above 0: the Aura Well's trickle, or the Madra the cycling ball is drawing (`+13.3 / s`, a rate measured over the last second and weighted by time, so it holds steady). It hides when the rate rounds to 0.0, so it never reads `+0 / s`. The core orb is a column of its strip under `assets/shaders/lacquer_core_orb.gdshader`, filled to `min(level, 100) / 100`: column 0 (the dormant pebble, no fill) at level 0, column 1 (the empty socket) from level 1. Beside it are the stage name, `Level N`, 18 XP beads (`floor(xp × 18 / need)`, so a bead lights only once its share is earned and the beads never run ahead of the floored figure) and `xp / need XP`. Gold is one right-aligned row (coin, number, `gold`) ending at the cabinet's right text edge (screen x 446). The script only sets each orb material's `progress`; the shaders animate on their own (see [Orb shaders](#orb-shaders)). It reads everything once on `_ready`, then follows `madra_changed`, `gold_changed`, `core_density_xp_updated`, `core_density_level_updated`, `advancement_stage_changed` and `current_action_changed`, and the rate also on `CyclingManager.madra_rate_changed`. `get_madra_orb_global_position()` is where `ZoneTransition` starts its drain and where the cycling Madra pellets land; `get_core_orb_global_position()` is where the cycling XP pellets land.
+- **`CultivatorPlate`** (`scenes/zones/cultivator_plate/`, kit §5.1). The Madra orb is the empty frame of its strip under `assets/shaders/lacquer_madra_orb.gdshader`, filled to `Madra / max`, with `Madra / max` beside it; `max` is `CultivationManager.get_max_madra()` (100 + 5 × Core Density level at Foundation). The rate `+1.5 / s` shows only while `ActionManager.get_current_madra_per_second()`, read to a tenth (`CyclingManager.RATE_STEP`, the step the manager announces the cycle's rate in), is above 0: the Aura Well's trickle, or the Madra the cycling ball is drawing (`+13.3 / s`, a rate measured over the last second and weighted by time, so it holds steady). It hides when the rate rounds to 0.0, so it never reads `+0 / s`. The core orb is a column of its strip under `assets/shaders/lacquer_core_orb.gdshader`, filled to `min(level, cap) / cap` (`CultivationManager.get_core_density_cap()`, 100 in Foundation and Copper; no fill when there is no cap): column 0 (the dormant pebble, no fill) at level 0, column 1 (the empty socket) from level 1. Beside it are the stage name, `Level N`, 18 XP beads (`floor(xp × 18 / need)`, so a bead lights only once its share is earned and the beads never run ahead of the floored figure) and `xp / need XP`. While the core is full all 18 beads are lit and the figure reads "Core full" (`CultivationManager.CORE_FULL_TEXT`). Gold is one right-aligned row (coin, number, `gold`) ending at the cabinet's right text edge (screen x 446). The script only sets each orb material's `progress`; the shaders animate on their own (see [Orb shaders](#orb-shaders)). It reads everything once on `_ready`, then follows `madra_changed`, `gold_changed`, `core_density_xp_updated`, `core_density_level_updated`, `advancement_stage_changed` and `current_action_changed`, and the rate also on `CyclingManager.madra_rate_changed`. `get_madra_orb_global_position()` is where `ZoneTransition` starts its drain and where the cycling Madra pellets land; `get_core_orb_global_position()` is where the cycling XP pellets land.
 - **`Dock`** (`scenes/ui/dock/`) holds the four `SystemMenuButton`s and decides their notifications. Navigation behaviour is documented in [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#dock-and-systemmenubutton).
 
 #### Orb shaders
@@ -341,7 +347,7 @@ The two cabinet orbs are the only shaders in the lacquer zone view. They took th
 | Shader | `progress` | What it draws |
 |---|---|---|
 | `lacquer_madra_orb` | `Madra / max` (the adventure's Health orb: `Health / max`) | A liquid in the socket (cells within √249 of the centre, rows 4–35): a surface of two summed sine waves with a 1 cell `#E8F6FD` crest and a `#849BE4` line under it, three 1 cell bubbles rising, a slanted sheen sliding across every 4 s, three undulating `#849BE4` current dashes drifting under the surface, a darker lower-right ring and a wavy deep band at the bottom. 1 fills the socket with no crest; 0 draws nothing |
-| `lacquer_core_orb` | `min(level, 100) / 100` | A disc from radius 2.5 cells (level 1) to 15.78 (level 100, the socket's rim): a two-arm spiral in three bands (`#BBD5E7`, `#849BE4`, `#1C2F60`) turning once every 12 s, a `#E8F6FD` core and a 1 cell `#E8F6FD` edge. 0 draws nothing, so the dormant pebble shows |
+| `lacquer_core_orb` | `min(level, cap) / cap` | A disc from radius 2.5 cells (level 1) to 15.78 (the cap, the socket's rim): a two-arm spiral in three bands (`#BBD5E7`, `#849BE4`, `#1C2F60`) turning once every 12 s, a `#E8F6FD` core and a 1 cell `#E8F6FD` edge. 0 draws nothing, so the dormant pebble shows |
 
 ## Data Model
 
@@ -394,8 +400,9 @@ The two cabinet orbs are the only shaders in the lacquer zone view. They took th
 | 4 | `TRAIN_STATS` | `TrainingActionData` | `_execute_train_action`: repeating tick timer | `TrainingPresenter` | Cultivate / IDLE | Implemented |
 | 5 | `CYCLING` | `CyclingActionData` | `_execute_cycling_action`: `start_cycling` | `CyclingPresenter` | Cultivate / ACTIVE | Implemented |
 | 6 | `ZONE_EVENT` | — | None. `_execute_action()` logs "Unknown action type" | Default | Visit / STORY | Not implemented |
+| 7 | `TRIBULATION` | `TribulationActionData` | `_execute_tribulation_action`: emits `start_tribulation`; the board's `finished` calls `stop_action(passed)`. `select_action()` first refuses unless `can_attempt()` | `TribulationPresenter` | Cultivate / TRIAL | Implemented |
 
-FORAGE and TRAIN_STATS are the **idle** types; every other type is a **session** action. If the data class doesn't match the type (for example `action_type = FORAGE` on a resource that isn't a `ForageActionData`), the handler logs an error and does nothing. Only `AdventureActionData._init()`, `TrainingActionData._init()` and `MerchantActionData._init()` set `action_type`; the other subclasses rely on the value saved in the `.tres`.
+FORAGE and TRAIN_STATS are the **idle** types; every other type is a **session** action. If the data class doesn't match the type (for example `action_type = FORAGE` on a resource that isn't a `ForageActionData`), the handler logs an error and does nothing. Only `AdventureActionData._init()`, `TrainingActionData._init()`, `MerchantActionData._init()` and `TribulationActionData._init()` set `action_type`; the other subclasses rely on the value saved in the `.tres`. `TRIBULATION` is appended as 7 (`zone_action_data.gd:12`): `.tres` files store the number, so a type is never inserted.
 
 ### Subclasses
 
@@ -423,6 +430,9 @@ FORAGE and TRAIN_STATS are the **idle** types; every other type is a **session**
 | `MerchantActionData` | `stock` | `MerchantStock` | `null` | `MerchantView` rows, `MerchantManager` purchases, the merchant card's ware count |
 | | `greeting` | `String` (multiline) | `""` | Flavour text under the shop title, in smaller text that wraps across the header; hidden when empty |
 | | `shop_theme` | `Theme` | `null` | `MerchantView.setup()` sets it as the shop's root theme; null keeps the scene default (Spirit Valley) |
+| `TribulationActionData` | `tribulation` | `TribulationData` | `null` | `TribulationView.setup()` (through `TribulationViewState`), the card's ready line and `can_attempt()` / `is_passed()` |
+
+`TribulationActionData.is_passed()` is true once the player's stage is at or past the trial's `target_stage`, and `can_attempt()` once they stand in the stage before it with a full core. Both are false without a `tribulation`, so a half-configured action is never offered as passed and never starts.
 
 `AdventureActionData.is_valid()` exists but nothing calls it.
 
@@ -469,6 +479,7 @@ Card click
   └─ ActionManager.select_action(action)
        ├─ ZoneManager.mark_action_seen(action.action_id)
        ├─ ADVENTURE and not ResourceManager.can_start_adventure() → return (nothing stops)
+       ├─ TRIBULATION and not can_attempt() → return (nothing stops; Log.info names the level and the cap)
        ├─ _stop_executing_current_action(true)           # only if something is running
        │     ├─ ZoneManager.increment_zone_progression_for_action(old.action_id, zone it started in)   # only in the save it started under
        │     │     └─ action_completed(action_id)         # if max_completions > 0 and count >= max
@@ -503,6 +514,7 @@ What ends an action:
 | `AdventureView._on_stop_combat()` | Combat lost | `false` |
 | `AdventureView._on_adventure_timer_timeout()` | Time limit reached | `false` |
 | `MerchantViewState` (Leave button or Escape) | The player leaves the shop; it stops only a merchant action | `true` |
+| `TribulationViewState` (`TribulationView.finished`) | Continue on the result panel, or Not yet or Escape on the intro; it stops only a Tribulation action. A stop from outside (a save reset, the dev panel) closes the board and applies nothing | `passed` (`false` for Not yet and Escape) |
 
 Every stop adds 1 to `action_completion_count`, under the zone the action started in and only in the save it started under (a save reset swaps the save first, so that stop counts nothing). This happens whether the action succeeded, failed or was replaced, so `max_completions` counts attempts, not successes.
 
@@ -535,6 +547,8 @@ Every stop adds 1 to `action_completion_count`, under the zone the action starte
 | `training_level_gained(action_data, new_level)` | Once per level crossed | `NowStrip` |
 | `start_merchant(action_data)` | `_execute_merchant_action()` | `MerchantViewState` (binds the shop, pushes the overlay) |
 | `stop_merchant()` | `_stop_merchant_action()` | `MerchantViewState` (fades the shop out, then removes only itself from the stack; closes at once if another view sits above the shop) |
+| `start_tribulation(action_data)` | `_execute_tribulation_action()` | `TribulationViewState` (sets the board up for the action's `TribulationData` and the zone's name, then pushes the overlay once) |
+| `stop_tribulation()` | `_stop_tribulation_action()` | `TribulationViewState` (closes the board, gives the HUD boards, the dock and the map back, and removes only itself from the stack) |
 
 Other signals the zone code consumes:
 
@@ -601,15 +615,16 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
 5. `start_adventure` triggers `AdventureViewState.change_state()`, whose `ZoneViewState.exit()` removes the blocker, and `AdventureView.start_adventure()`.
 6. When the player leaves the end card (`change_state(zone_view_state)`), `ZoneViewState.enter()` calls `ZoneTransition.reset_camera()`. The adventure's stop already resumed the zone's idle action.
 
-### Cycling, dialogue, merchant
+### Cycling, dialogue, merchant, Tribulation
 
 - **Cycling.** `start_cycling(action)` makes `CyclingViewState` push the cycling view. `MainView.set_cycling_mode(true)` turns the zone view over (the chest lists the techniques, the dock hides, the map's SubViewport takes no input), the board shows in the map gap and the full log is blocked; the cabinet, the Goals board and the log stay up. Escape or the board's × calls `stop_action()`, which emits `stop_cycling`; the view is popped, the zone view is given back and the idle action resumes. The `CyclingActionData` never reaches the view, which reads only the action's name. See [CYCLING.md](../cycling/CYCLING.md).
 - **NPC dialogue.** The handler connects `DialogueManager.dialogue_ended` to `stop_action` (one-shot), then calls `DialogueManager.start_timeline(dialogue_timeline_name, dialogue_timeline_label_jump)`. When the timeline ends, the success effects run (events and quest starts), the one-time card disappears, and the idle action resumes.
 - **Merchant.** `_execute_merchant_action()` emits `start_merchant(action)`. `MerchantViewState` binds the action's stock to `MerchantView` and pushes the overlay, which fades in with the grey backdrop and hides the log and Goals boards; a second `start_merchant` while the shop is open only rebinds the stock. The action stays current while the shop is open. Leave (`MerchantView.close_requested`) or Escape calls `stop_action()` while the merchant is the current action, which emits `stop_merchant` and resumes the zone's idle action at once. The state fades the shop out, then removes only itself from the stack (`MainView.remove_state()`), so a view pushed during the fade stays open. If another view already sits above the shop, the shop closes at once without the fade. Each visit adds 1 to the completion count; no effects are authored. Purchases go through `MerchantManager` (see [RESOURCES.md](../infrastructure/RESOURCES.md#gold-sink-the-merchant)).
+- **Tribulation.** The card's `unlock_conditions` hold `core_density_full` (Core Density ≥ 100), which latches, so the card stays after a failure; `get_available_actions()` drops it once `is_passed()`. `select_action()` refuses unless `can_attempt()`, so a click below the cap stops nothing. Otherwise `_execute_tribulation_action()` emits `start_tribulation(action)`: `TribulationViewState` sets the board up (`TribulationView.setup(action.tribulation, zone name)`) and pushes the overlay, which hides the HUD boards and the dock, turns the map off and blocks the full log. The action stays current while the board is up. `TribulationView` applies the result itself the moment the run ends (`advance_to_next_stage()` or `lose_core_density_levels()`), and its `finished(passed)` calls `stop_action(passed)` on Continue, or `false` on Not yet or Escape; that emits `stop_tribulation`, the state removes itself, and the zone's idle action resumes. The action has `max_completions` 0, so counting the completion each stop adds never hides it. A stop from outside (a save reset, the dev panel) closes the board mid-trial and applies nothing. See [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md).
 
 ### Unlock gating
 
-- `ZoneManager.get_available_actions(zone_id)` returns `[]` if the zone's `zone_unlock_conditions` aren't met. Otherwise it returns every action whose `unlock_conditions` are met and whose completion count is below `max_completions` (or whose `max_completions` is 0).
+- `ZoneManager.get_available_actions(zone_id)` returns `[]` if the zone's `zone_unlock_conditions` aren't met. Otherwise it returns every action whose `unlock_conditions` are met and whose completion count is below `max_completions` (or whose `max_completions` is 0). A `TribulationActionData` that `is_passed()` is skipped as well: a latched condition cannot hide its card once the stage is reached.
 - `get_zone_map_state()` reads `chart_conditions` and `zone_unlock_conditions` the same latched way.
 - `UnlockManager.are_unlock_conditions_met()` only checks ids that are already latched in `UnlockProgressionData.unlocked_condition_ids`. It never evaluates a condition itself.
 - Conditions latch in `UnlockManager._evaluate_all_conditions()`. That function only walks `resources/unlocks/unlock_condition_list.tres`, and only runs on these signals:
@@ -636,10 +651,11 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
 | `AdventureCombat` | Fires `q_first_steps_enemy_defeated` on any combat win (this gates dialogue 3); reads `gold_multiplier` |
 | `ResourceManager` | Adventure Madra gate, budget and drain; the quiet training Madra trickle (`AwardResourceEffectData`); the cabinet and merchant card |
 | `CharacterManager` / `InventoryManager` | Training attribute grants (`AwardAttributeEffectData`); total FOUNDATION (equipment included) × 10 sets the adventure capacity; forage loot via `award_items()`; items' `mini_icon` |
-| `CultivationManager` | Cabinet stage, level, XP and `get_max_madra()`; `BREAKTHROUGH_LEVEL` for the Goals milestone; the `q_reach_cd_10` gate |
+| `CultivationManager` | Cabinet stage, level, XP and `get_max_madra()`; `get_core_density_cap()` and `is_core_full()` for the cabinet, the Goals milestone and the Tribulation card; the `q_reach_cd_10` and `core_density_full` gates; `advancement_stage_changed` rebuilds the chest |
 | `PersistenceManager` | `current_selected_zone_id`, `zone_progression_data`, `seen_action_ids`; `migrate()` before `verify()`; a save reset re-emits `zone_changed` |
 | `LogManager` | "Resumed", "Travelled to", "Started" lines; adventure rejection messages |
 | `MerchantViewState` / `MerchantView` / `MerchantManager` | Driven by `start_merchant` and `stop_merchant`. The shop calls `stop_action()` on Leave or Escape and buys through `MerchantManager` |
+| `TribulationViewState` / `TribulationView` | Driven by `start_tribulation` and `stop_tribulation`. The board calls `CultivationManager` for the result and, through its `finished` signal, `stop_action()` ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#tribulation-board)) |
 | Dev panel | `UnlockManager.force_unlock_condition()`; the Zones toggles call `ZoneManager.set_demo_zones_visible()` and `set_hidden_zones_visible()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 
 ## Existing Content
@@ -650,7 +666,7 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
 
 | Order | `zone_id` | Name | `tilemap_location` | Variant | On map | Unlock | Actions |
 |---|---|---|---|---|---|---|---|
-| 0 (start) | `SpiritValley` | Spirit Valley | (0, 0) | 6 River | Yes | None | 9 |
+| 0 (start) | `SpiritValley` | Spirit Valley | (0, 0) | 6 River | Yes | None | 10 |
 | 1 | `TestZone` | Test Zone | (-1, 0), west of Spirit Valley | 0 Basic | Hidden (`hidden_on_map`); the dev panel shows it | `celestial_intervener_dialogue_1` | None; no description, so no About |
 
 Dev demo zones, `resources/zones/dev/` (never in the list, shown by the dev panel's "Demo zones" toggle):
@@ -675,8 +691,9 @@ Dev demo zones, `resources/zones/dev/` (never in the list, shown by the dev pane
 | 7 | `celestial_intervener_dialogue_3` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_first_steps_enemy_defeated` | 1 | Label `dialogue_3` | Event `celestial_intervener_dialogue_3`; start `q_reach_core_density_10` |
 | 8 | `celestial_intervener_dialogue_4` | `Return to the [INTERVENER]` | NPC_DIALOGUE | `q_reach_cd_10` | 1 | Label `dialogue_4` | Event `celestial_intervener_dialogue_4` |
 | 9 | `spirit_valley_merchant` | `Traveling Merchant` | MERCHANT | `merchant_discovered` | 0 | `MerchantActionData`: `resources/merchants/spirit_valley_merchant_stock.tres` (7 entries), `spirit_valley_merchant_theme.tres` | — |
+| 10 | `spirit_valley_tribulation` | `The Tribulation` | TRIBULATION | `core_density_full` | 0 | `TribulationActionData`: `resources/tribulation/foundation_tribulation.tres` (target Copper), icon `lacquer_ic_core_ai.png`; the description "Your core is full. Face the Tribulation and break through to Copper." is not shown (the presenter's ready line stands in) | — (the board applies the result) |
 
-In the chest these show grouped: Talk (the dialogues), Cultivate (Wilderness Cycling, Aura Well), Gather (Spring Forest Foraging), Venture (The Shallow Woods), Visit (Traveling Merchant). With both idle actions unlocked and none saved, the Aura Well resolves first.
+In the chest these show grouped: Talk (the dialogues), Cultivate (Wilderness Cycling, Aura Well, The Tribulation), Gather (Spring Forest Foraging), Venture (The Shallow Woods), Visit (Traveling Merchant). With both idle actions unlocked and none saved, the Aura Well resolves first.
 
 Notes:
 
@@ -707,7 +724,7 @@ Each 5 s roll yields on average 3 Dewdrop Tears and 4 Spirit Ferns. No system co
 | 5 | 2400 (tail) | 4560 | 76 min | +5 |
 | 6 | 4800 (tail) | 9360 | 156 min | +6 |
 
-The trickle gives 90 Madra/min. `ResourceManager.add_madra()` clamps the total to the stage cap, and writes no log line for the quiet trickle.
+The trickle gives 90 Madra/min. `ResourceManager.add_madra()` stops it at the stage cap (and never lowers a pool above the cap), and writes no log line for the quiet trickle.
 
 ### Unlock conditions used by zones
 
@@ -722,6 +739,7 @@ All of these live in `resources/unlocks/` and are registered in `unlock_conditio
 | `q_reach_cd_10` | CULTIVATION_LEVEL | Core Density level ≥ 10 | Cycling |
 | `aura_well_discovered` | EVENT_TRIGGERED | Event `aura_well_discovered` | Shallow Woods "Aura Well" encounter, "Mark down the location" choice |
 | `merchant_discovered` | EVENT_TRIGGERED | Event `merchant_discovered` | Shallow Woods "Refugee Camp" encounter, "Approach the camp" (eligible once `refugee_camp_map` is owned) |
+| `core_density_full` | CULTIVATION_LEVEL | Core Density level ≥ 100 | Cycling, as the zones it scores fill the core. Gates the Tribulation card |
 
 `resources/zones/dev/dev_never_unlocked_condition.tres` (EVENT_TRIGGERED, `dev_demo_never_unlocked`) is not registered, so it never latches: the demo zones stay locked and uncharted.
 
@@ -739,6 +757,8 @@ Dialogue 3             → q_first_steps completes (path point); q_reach_core_de
 Core Density ≥ 10      → q_reach_cd_10 → Dialogue 4 card
 Dialogue 4             → q_reach_core_density_10 completes → Refugee Camp Map item
 Refugee Camp encounter → merchant_discovered → Traveling Merchant card
+Core Density 100       → core_density_full → The Tribulation card (NEW); the log says the core is full
+Tribulation pass       → Copper: the stage change drops the card (the condition stays latched)
 ```
 
 Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md).
@@ -752,7 +772,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `singletons/persistence_manager/zone_progression_data.gd`, `save_game_data.gd` | Per-zone save data; seen actions and `migrate()` |
 | `scripts/resource_definitions/zones/zone_data/zone_data.gd`, `zone_data_list.gd` | Zone resources |
 | `scripts/resource_definitions/zones/zone_action_data/zone_action_data.gd` | Base action class and `ActionType` |
-| `scripts/resource_definitions/zones/zone_action_data/*/*_action_data.gd` | Forage, cycling, adventure, NPC dialogue, training and merchant subclasses |
+| `scripts/resource_definitions/zones/zone_action_data/*/*_action_data.gd` | Forage, cycling, adventure, NPC dialogue, training, merchant and Tribulation subclasses |
 | `scripts/utils/zone_action_groups.gd` | Groups, list order and mode tags |
 | `scripts/utils/zone_map_math.gd` | Camera framing and windows, fog tiers and art, the character's idle motion (foraging round, Aura Well spots and clips) |
 | `scenes/characters/main_character/character_body_2d.gd` / `.tscn` | The robed character: 8-direction walks, the idle clips, `show_pose()` and `stand()` |
@@ -764,7 +784,8 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `scenes/zones/zone_panel/**` | The zone chest: header, lore, `NowStrip`, `ActivityList`, `TechniqueList`, `LacquerRail` |
 | `scenes/cycling/technique_drawer/` | `TechniqueDrawer`, a technique in the chest while cycling |
 | `scenes/zones/zone_action_button/zone_action_button.gd` / `.tscn` | Card shell and presenter factory |
-| `scenes/zones/zone_action_button/presenters/*_presenter.gd` / `.tscn`, `forage_yield.tscn` | Foraging, training, adventure, cycling, merchant and default presenters |
+| `scenes/zones/zone_action_button/presenters/*_presenter.gd` / `.tscn`, `forage_yield.tscn` | Foraging, training, adventure, cycling, merchant, Tribulation and default presenters |
+| `scenes/tribulation/`, `scripts/tribulation/tribulation_run.gd` | The Tribulation board, its state, its stage and its judge ([breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md)) |
 | `scenes/zones/cultivator_plate/` | Madra, Core Density and gold cabinet |
 | `assets/shaders/lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader` | The cabinet's flowing Madra liquid (also the adventure's Health and Madra orbs) and turning Core Density spiral |
 | `scenes/zones/zone_transition/zone_transition.gd`, `madra_pellet.gd` / `.tscn` | Adventure-start drain and zoom; `MadraPellet` also carries the cycling view's pellets |
@@ -782,7 +803,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/unit/test_zone_map_state.gd` | 18 | The four map states, hidden and demo zones in `get_map_zones()`, `map_zones_changed`, per-zone last idle action, `request_action_focus()`, Test Zone at (-1, 0) with no description |
 | `tests/unit/test_seen_actions.gd` | 9 | `mark_action_seen()` / `mark_action_unseen()` / `is_action_seen()`, the once-per-save first-init pass, and a technique unlock lighting NEW on the cycling card only (opening cycling clears it again) |
 | `tests/unit/test_save_migration.gd` | 7 | `migrate()` moves a Test Zone save to Spirit Valley; old saves load the new fields' defaults |
-| `tests/unit/test_zone_action_groups.gd` | 7 | Groups, list order, labels, mode tags |
+| `tests/unit/test_zone_action_groups.gd` | 7 | Groups, list order, labels, mode tags (the Tribulation under Cultivate, tagged TRIAL) |
 | `tests/unit/test_training_action_data.gd` | 18 | Cost-curve, level and progress functions; `_init` action type |
 | `tests/unit/test_training_action_helpers.gd` | 7 | `get_madra_per_second()`, ticks in and for the level |
 | `tests/unit/test_award_attribute_effect_data.gd` | 3 | The effect that grants training's level reward |
@@ -801,10 +822,12 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `tests/integration/test_zone_travel.gd` | 49 | Hover rims and routes (also after the camera moves under a still pointer), previews, pins, Show me, travel on arrival, retargeting, walks cut short, Esc (left to an overlay or the full log) and outside clicks |
 | `tests/integration/test_zone_transition.gd` | 3 | The drain's lookups in `main_game.tscn` and `zone_tilemap.tscn` (read, never instanced), and one whole drain: pellets, Madra spent, adventure confirmed |
 | `tests/integration/test_zone_walk_steps.gd` | 1 | The map's travel walk stands on whole world px |
-| `tests/integration/test_zone_panel.gd` | 103 | Header, Now strip variants and the haul countdown (its width kept as the digits change), the empty tray ("Nothing running", "<name> · paused" with the shop open, Test Zone, clicks ignored), the cycle tray (ready, running, ending, the rate from 0.05, the equipped technique, no clicks or hover, the hand back to the Aura Well), the strip lining up with the cards (both edges, its contents ending 16 px in from its right edge, the rod 292 px and 144 steps), long names and lines wrapping and growing the strip with the header, list and lore moving down, six yields wrapping onto rows and the strip growing and shrinking with them, groups, count, empty zone, scroll and flash, rail and lips, lore (the board lining up with the strip and the cards, wrapping inside its board, growing with a long lore and taking its height back, the tiled 9-slice), chest sizing, and the techniques mode (header and count, one drawer per technique, hugging height, no scrolling, rebuilds on unlock and equip, NEW on the cycling card after an unlock, the last cycle's line under the Now tray: shown only while cycling, pushing the lore, header and list 26 px, a long one wrapping and pushing them by both lines, gone when cleared; the chest growing with a drawer whose name wraps) |
+| `tests/integration/test_zone_panel.gd` | 104 | Header, Now strip variants and the haul countdown (its width kept as the digits change), the empty tray ("Nothing running", "<name> · paused" with the shop open, Test Zone, clicks ignored), the cycle tray (ready, running, ending, the rate from 0.05, the equipped technique, no clicks or hover, the hand back to the Aura Well), the strip lining up with the cards (both edges, its contents ending 16 px in from its right edge, the rod 292 px and 144 steps), long names and lines wrapping and growing the strip with the header, list and lore moving down, six yields wrapping onto rows and the strip growing and shrinking with them, groups, count, empty zone, scroll and flash, rail and lips, lore (the board lining up with the strip and the cards, wrapping inside its board, growing with a long lore and taking its height back, the tiled 9-slice), chest sizing, and the techniques mode (header and count, one drawer per technique, hugging height, no scrolling, rebuilds on unlock and equip, NEW on the cycling card after an unlock, the last cycle's line under the Now tray: shown only while cycling, pushing the lore, header and list 26 px, a long one wrapping and pushing them by both lines, gone when cleared; the chest growing with a drawer whose name wraps; the chest rebuilding on a stage change, so a passed Tribulation's card leaves) |
 | `tests/integration/test_technique_drawer.gd` | 25 | The chest's technique drawers: detail line, icon and name, the drawer in use, the NEW seal (cleared when the pointer leaves or on a press) and the title row it shares with the cards, equip on click with a flash (and nothing on the drawer in use), hover, long names and detail lines that wrap while the drawer grows (never wider), the faces' stretched band |
 | `tests/integration/test_zone_action_cards.gd` | 49 | Mode tags, running drawer, NEW seal, each presenter's detail line, adventure states (72 px both ways, the figure, the hint only while a Madra action runs, the row's soft shake, the ready frame and the flash over it), tall drawer, the icon and socket on the drawer's middle row, ellipsis |
-| `tests/integration/test_cultivator_plate.gd` | 29 | Cabinet values, the fills handed to the orb shaders (and their per-cabinet materials), the core orb's pebble and socket columns, XP beads that light only for earned XP, rate visibility (also while the ball draws Madra, and hidden when it rounds to 0), the right-aligned gold row, both orbs' positions |
+| `tests/integration/test_tribulation_card.gd` | 13 | The Tribulation card: its presenter registered, the Core row below the cap, the ready line, frame and ENTER tag at it (and its data-driven numbers), a rejected click logging why and shaking the row, a click starting the trial, the card following a lost level, a filled core and a stage change, the short drawer in both states (and the tall one shrinking back), and `teardown()` disconnecting |
+| `tests/integration/test_tribulation_flow.gd` | 20 | The card revealed when Core Density reaches 100, `select_action()` refusing below it, a pass and a failure through the real `ActionManager`, state and board (Copper and the card gone; 95 and the card kept), Not yet and Escape, Continue closing the board at once, a stop or a save reset mid-trial applying nothing, the idle action resuming, and a click on a zone card during the trial reaching nothing |
+| `tests/integration/test_cultivator_plate.gd` | 34 | Cabinet values, the fills handed to the orb shaders (and their per-cabinet materials, following the stage's cap and never passing full), the core orb's pebble and socket columns, XP beads that light only for earned XP, "Core full" with every bead lit and back to "Level 95" after a failed Tribulation, rate visibility (also while the ball draws Madra, and hidden when it rounds to 0), the right-aligned gold row, both orbs' positions |
 | `tests/integration/test_aura_well_discovery_unlock.gd` | 2 | Aura Well hidden before and visible after `aura_well_discovered` |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | 1 | Dialogue 4 appears at CD 10, map award, merchant card after `merchant_discovered` |
 | `tests/integration/test_merchant_shop_flow.gd` | 35 | The merchant action stays current until `stop_action()`, a second stop is a no-op, leaving resumes the zone's idle action (also after travel during the shop), and `MerchantView`'s rows, buying, Leave, theme and layout |
@@ -820,17 +843,18 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | [2026-04-17 presenter refactor spec](../superpowers/specs/2026-04-17-zone-action-button-presenter-refactor-design.md), [pass 1](../superpowers/plans/2026-04-17-zone-action-button-presenter-refactor-pass-1.md) and [pass 2](../superpowers/plans/2026-04-17-zone-action-button-presenter-refactor-pass-2.md) | Both passes shipped in PR #29. The presenter split survives; the slots changed in the 2026-10-21 rebuild |
 | [2026-10-21 map-first zone view spec](../superpowers/specs/2026-10-21-zone-view-map-first-design.md), [lacquer art kit](../superpowers/specs/2026-10-21-zone-view-lacquer-kit.md), [mock-up](../superpowers/mockups/zone-view-map-first-mockup.html) and [plan](../superpowers/plans/2026-10-21-zone-view-map-first.md) | Built 2026-10-22 on `feat/zone-view-redesign-4656b7` and merged as PR #51. The plan's "As built" section lists the deviations |
 | [2026-10-22 cycling view spec](../superpowers/specs/2026-10-22-cycling-view-lacquer-design.md), [mock-up](../superpowers/mockups/cycling-view-lacquer-mockup.html) and [plan](../superpowers/plans/2026-10-22-cycling-view-lacquer.md) | Built 2026-10-22 and 23 on `feat/cycling-view-styleguide-ea3170` and merged as PR #57. The spec's "As built" section lists the deviations |
+| [2026-10-23 Tribulation spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), [prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html) and [plan](../superpowers/plans/2026-10-23-tribulation-breath-of-the-core.md) | Built 2026-10-23 and 24 on `feat/gameplay-priorities-c64b38`, not merged. The plan's "As built (2026-10-24)" section lists the deviations |
 
 ## Work Remaining
 
 ### Bugs
 
 - `[MEDIUM]` Dialogue 4 can appear out of order. `celestial_intervener_dialogue_4.tres` is gated only by `q_reach_cd_10` (Core Density ≥ 10). A player who reaches CD 10 before finishing dialogue 3 sees two `Return to the [INTERVENER]` cards, and can play `dialogue_4` before `q_reach_core_density_10` has started. Fix: add a second condition on the `celestial_intervener_dialogue_3` event, registered in `unlock_condition_list.tres`.
-- `[MEDIUM]` `max_completions` counts attempts, not successes. `_stop_executing_current_action()` adds to `action_completion_count` on every stop, including `stop_action(false)` and replacement by another action. A failed run would use up a one-shot boss adventure (Foundation Beat 7).
+- `[MEDIUM]` `max_completions` counts attempts, not successes. `_stop_executing_current_action()` adds to `action_completion_count` on every stop, including `stop_action(false)` and replacement by another action. A failed run would use up a one-shot adventure. The Tribulation sets `max_completions` 0 for this reason: a failure, Not yet and Escape each count a completion that never hides the card.
 
 ### Missing Functionality
 
-- `[HIGH]` `ZONE_EVENT` has no handler. `_execute_action()` logs "Unknown action type", but the action stays current (nothing running, no idle action resumed) until another action replaces it, and `_stop_executing_current_action()` skips its completion effects. Story events such as the Tribulation site (Beats 8–9) need this.
+- `[HIGH]` `ZONE_EVENT` has no handler. `_execute_action()` logs "Unknown action type", but the action stays current (nothing running, no idle action resumed) until another action replaces it, and `_stop_executing_current_action()` skips its completion effects. Story events such as a Zone 2 arrival need this (the Tribulation has its own type).
 - `[MEDIUM]` Foraging is free. `ForageActionData.madra_cost_per_second` only feeds the card's detail line, but the GDD calls for a small continuous Madra cost.
 - `[MEDIUM]` Foraging and training can't be toggled off. A click on the running card flashes the Now strip, and an idle action ends only when another action replaces it or the zone changes. The map-first spec makes "always in an idle action" the rule; the GDD specifies an ON/OFF toggle. Decide which wins.
 - `[MEDIUM]` Idle actions don't run offline or alongside session actions. The load restarts the zone's last idle action, but nothing accrues while the game is closed (`forage_active` / `forage_start_time` are never written), and cycling, an adventure, a dialogue or the merchant pause the idle action until they end.
@@ -841,7 +865,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 
 ### Content
 
-- `[HIGH]` Only one real zone. `TestZone` is a placeholder (name "Test Zone", no description, no actions) kept in the list but hidden on the map; travelling there (dev toggle) only stops the running action. Foundation Beats 8–10 need the Advancement Zone and a Zone 2. The demo zones show where they will go.
+- `[HIGH]` Only one real zone. `TestZone` is a placeholder (name "Test Zone", no description, no actions) kept in the list but hidden on the map; travelling there (dev toggle) only stops the running action. Foundation Beat 10 needs a Zone 2. The demo zones show the map states it will use.
 - `[MEDIUM]` Foraged materials have no use. Dewdrop Tear and Spirit Fern list `used_in` recipes, but no system consumes them. There is only one forage action and one loot table.
 - `[MEDIUM]` There is no `ZONE_EVENT` content.
 - `[LOW]` Art made for the demo layout only: `LockedZoneOverlay`'s veils bake the Stones and Mountains2 tiles, and the chest has thumbnails only for the River tile and Basic. A real locked zone, or a zone on another tile, needs its own `_ai` textures.

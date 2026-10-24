@@ -5,6 +5,8 @@ class_name AdvancementStageResource
 @export var stage_id: CultivationManager.AdvancementStage = CultivationManager.AdvancementStage.FOUNDATION
 @export var core_density_base_xp_cost: float = 10.0
 @export var core_xp_scaling_factor: float = 1.0
+## The highest Core Density level of the stage. XP earned there is lost.
+@export var max_core_density_level: int = 100
 @export var unlocking_mechanics: Array[String] = []
 @export var max_madra_base: float = 0.0
 @export var max_madra_per_core_density_level: float = 0.0

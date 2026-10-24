@@ -1,8 +1,8 @@
 # EndlessPath Documentation
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
-Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view (merged as PR #51). The cycling, style guide, zones, UI shell, resources, logging, persistence, testing and related docs were updated on 2026-10-23 for the lacquer cycling view (merged as PR #57). The adventuring and combat docs, the style guide and the testing docs were updated on 2026-10-23 for the adventure view's map and frame on `feat/adventure-view-styleguide-1fc223` (PR 1 of 2, not merged), and again the same day for that PR's first review round (the wheel zoom, text that is never cut off, a leaner chest).
+Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view (merged as PR #51). The cycling, style guide, zones, UI shell, resources, logging, persistence, testing and related docs were updated on 2026-10-23 for the lacquer cycling view (merged as PR #57). The adventuring and combat docs, the style guide and the testing docs were updated on 2026-10-23 for the adventure view's map and frame on `feat/adventure-view-styleguide-1fc223` (PR 1 of 2, not merged), and again the same day for that PR's first review round (the wheel zoom, text that is never cut off, a leaner chest). The cultivation, zones, UI shell, cycling, unlocks, resources, persistence, logging, path progression, state and testing docs were updated on 2026-10-24 for the Tribulation, the Foundation → Copper breakthrough, built on `feat/gameplay-priorities-c64b38` (not merged).
 
 ## Start Here
 
@@ -21,7 +21,8 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | System | Doc | Summary |
 |---|---|---|
 | Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | The lacquer cycling board: the Madra ball on its lit groove, zones scored by pressing the ball, technique drawers and the last cycle's line in the zone chest; Madra and Core Density XP |
-| Cultivation | [cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density levels, advancement stages, breakthrough status |
+| Cultivation | [cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density levels and cap, advancement stages (Foundation, Copper), the breakthrough |
+| Tribulation | [cultivation/breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | The Foundation → Copper breakthrough: a Spirit Valley action at a full core that runs the Breath of the Core mini-game, and where its code lives. Built on `feat/gameplay-priorities-c64b38` (not merged); designed in the [spec](superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md) |
 | Zones and actions | [zones/ZONES.md](zones/ZONES.md) | The map-first lacquer zone view (map, cabinet, zone chest and its techniques mode, cards), ZoneManager/ActionManager, idle-action resolution, foraging, training, NPC and merchant actions |
 | Adventuring | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex maps in the lacquer look (fog tiers, coins, rims, route dots), the vitals cabinet, chest and run clock, movement and stamina, encounters, end card |
 | Combat | [combat/COMBAT.md](combat/COMBAT.md) | Real-time combat: combatants, vitals, casts, buffs, damage formula, enemy AI, enemies, the technique dock |
@@ -37,7 +38,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 
 | Topic | Doc | Summary |
 |---|---|---|
-| UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, HUD boards, cycling mode, input routing, keybindings, dock |
+| UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, HUD boards, cycling mode, the Tribulation board, input routing, keybindings, dock |
 | Persistence | [infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | SaveGameData schema and owners, load/save/reset, auto-save, versioning |
 | Resources | [infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra and Gold, the two Madra caps, sources and sinks |
 | Character | [infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, derived stats, player vitals, the Character view |
@@ -63,10 +64,9 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 
 | System | Doc | Unlocks at | Blocked on |
 |---|---|---|---|
-| Scripting | [planned/SCRIPTING.md](planned/SCRIPTING.md) | Copper | Breakthrough; out-of-combat buff system |
-| Elixir Making | [planned/ELIXIR_MAKING.md](planned/ELIXIR_MAKING.md) | Copper | Breakthrough; out-of-combat buff system; a way to spend materials |
-| Soulsmithing | [planned/SOULSMITHING.md](planned/SOULSMITHING.md) | Iron | Breakthrough; Sacred Resources |
-| Breakthrough / Tribulation | [cultivation/breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | Foundation → Copper | Not started; design conflicts with FOUNDATION_PLAYTHROUGH Beats 7–9 |
+| Scripting | [planned/SCRIPTING.md](planned/SCRIPTING.md) | Copper | Copper gates nothing yet (the Tribulation reaches it); out-of-combat buff system |
+| Elixir Making | [planned/ELIXIR_MAKING.md](planned/ELIXIR_MAKING.md) | Copper | Copper gates nothing yet; out-of-combat buff system; a way to spend materials |
+| Soulsmithing | [planned/SOULSMITHING.md](planned/SOULSMITHING.md) | Iron | A Copper → Iron breakthrough and an Iron stage; Sacred Resources |
 
 ## Design Records (historical)
 
@@ -74,7 +74,7 @@ Point-in-time design and plan documents. Each carries a status banner. For curre
 
 | Doc | Status |
 |---|---|
-| [superpowers/README.md](superpowers/README.md) | Index of the feature specs and plans (2026-04 onward, including the 2026-10 Merchant v1, map-first zone view and lacquer cycling view), with each one's shipped status |
+| [superpowers/README.md](superpowers/README.md) | Index of the feature specs and plans (2026-04 onward, including the 2026-10 Merchant v1, map-first zone view, lacquer cycling view and Tribulation), with each one's shipped status |
 | [cycling/CYCLING_UI_REDESIGN.md](cycling/CYCLING_UI_REDESIGN.md), [cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md](cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md) | Implemented (PR #12), then superseded by the lacquer cycling view (2026-10-23) |
 | [inventory/EQUIPMENT_DESIGN.md](inventory/EQUIPMENT_DESIGN.md), [inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md](inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md) | Phase 1 implemented (PR #9); later phases partial or not started |
 | [infrastructure/MADRA_UNIFICATION_DESIGN.md](infrastructure/MADRA_UNIFICATION_DESIGN.md), [infrastructure/MADRA_UNIFICATION_PLAN.md](infrastructure/MADRA_UNIFICATION_PLAN.md) | Implemented (PR #16) |

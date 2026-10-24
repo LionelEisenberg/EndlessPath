@@ -2,10 +2,11 @@ class_name MainView
 extends Control
 ## Main View Manager.
 ##
-## Handles switching between different main views (Zone, Adventure, Inventory, Cycling) using a State Machine pattern.
-## Cycling is the one overlay with no backdrop: its board sits in the map gap
-## with the zone view still up around it, so set_cycling_mode() turns the zone
-## view's own furniture over to it (see CyclingViewState).
+## Handles switching between different main views (Zone, Adventure, Inventory, Cycling, Tribulation) using a State Machine pattern.
+## Cycling and the Tribulation are the overlays with no backdrop: their boards sit
+## in the map gap with the zone view still up around them, so set_cycling_mode()
+## and set_board_mode() turn the zone view's own furniture over to them (see
+## CyclingViewState and TribulationViewState).
 
 ## Main Views
 @onready var zone_view: Control = %ZoneView
@@ -17,10 +18,12 @@ extends Control
 @onready var abilities_view: Control = %AbilitiesView
 @onready var character_view: CharacterView = %CharacterView
 @onready var merchant_view: MerchantView = %MerchantView
+@onready var tribulation_view: TribulationView = %TribulationView
 
-## The zone view's furniture the cycling board works with. The cabinet takes the
-## board's pellets (it is handed to the CyclingView in _ready()); the chest, the
-## dock and the map's SubViewport are turned over by set_cycling_mode().
+## The zone view's furniture the boards in the map gap work with. The cabinet takes
+## the cycling board's pellets (it is handed to the CyclingView in _ready()); the
+## chest, the dock and the map's SubViewport are turned over by set_cycling_mode(),
+## and the dock and the SubViewport by set_board_mode().
 @onready var cultivator_plate: CultivatorPlate = %CultivatorPlate
 @onready var zone_panel: ZonePanel = %ZonePanel
 @onready var dock: Control = %Dock
@@ -43,6 +46,7 @@ extends Control
 @onready var abilities_view_state: MainViewState = %MainViewStateMachine/AbilitiesViewState
 @onready var character_view_state: MainViewState = %MainViewStateMachine/CharacterViewState
 @onready var merchant_view_state: MainViewState = %MainViewStateMachine/MerchantViewState
+@onready var tribulation_view_state: MainViewState = %MainViewStateMachine/TribulationViewState
 
 ## State stack
 @onready var state_stack: Array[MainViewState] = []
@@ -63,6 +67,7 @@ func _ready() -> void:
 	abilities_view_state.scene_root = self
 	character_view_state.scene_root = self
 	merchant_view_state.scene_root = self
+	tribulation_view_state.scene_root = self
 
 	_hand_cabinet_to_cycling_view()
 
@@ -127,14 +132,21 @@ func release_hud_boards(holder: MainViewState) -> void:
 	_hud_board_visibility.clear()
 
 ## Turns the zone view's furniture over to the cycling board, or gives it back.
-## While cycling, the chest lists the techniques, the dock hides and the map's
-## SubViewport takes no input: the SubViewportContainer pushes a press into it
-## with push_input(), which a viewport with its input off drops, so a click on
-## the map beside the board travels nowhere. Each piece is skipped when it is
-## missing, as it is on the MainViews the view-state tests build.
+## While cycling, the chest lists the techniques, and the dock and the map are
+## turned off as for any board in the map gap (see set_board_mode()). The chest is
+## skipped when it is missing, as it is on the MainViews the view-state tests build.
 func set_cycling_mode(on: bool) -> void:
 	if zone_panel != null:
 		zone_panel.set_techniques_mode(on)
+	set_board_mode(on)
+
+## Turns the zone view's dock and map off for a board that stands in the map gap
+## (the cycling board, the Tribulation board), or gives them back. The dock hides
+## and the map's SubViewport takes no input: the SubViewportContainer pushes a
+## press into it with push_input(), which a viewport with its input off drops, so
+## a click on the map beside the board travels nowhere. Each piece is skipped when
+## it is missing, as it is on the MainViews the view-state tests build.
+func set_board_mode(on: bool) -> void:
 	if dock != null:
 		dock.visible = not on
 	if zone_map_viewport != null:

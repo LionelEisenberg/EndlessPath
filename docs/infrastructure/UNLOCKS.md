@@ -1,6 +1,6 @@
 # Unlock System
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Overview
 
@@ -11,7 +11,7 @@ Content gating is built on one resource class, `UnlockConditionData`: a named pr
 
 ## Player Experience
 
-1. **Zone actions appear.** Spirit Valley starts with a single action, "Talk to the [INTERVENER]". More cards appear in the zone chest's activity list as their conditions latch, each with a NEW seal until it is hovered or used, and a latched action never disappears again. When the zone's first idle action unlocks while nothing runs, it starts on its own.
+1. **Zone actions appear.** Spirit Valley starts with a single action, "Talk to the [INTERVENER]". More cards appear in the zone chest's activity list as their conditions latch, each with a NEW seal until it is hovered or used, and a latched action never disappears again (a passed Tribulation is the one card that goes: see below). When the zone's first idle action unlocks while nothing runs, it starts on its own. When Core Density first reaches 100, `core_density_full` latches and "The Tribulation" appears among them.
 2. **Zone hexes unlock.** A zone whose `chart_conditions` haven't latched is UNCHARTED: a dark veil with a "?" glyph. A charted zone whose `zone_unlock_conditions` haven't latched is LOCKED: a veil with a padlock, a plate naming the blocker, and a popover with the full requirement (clicking shakes the lock). Once the conditions latch, the veil gives way to the zone's tile with a hairline rim, and a dotted route leads to it. Today only the dev demo zones use these states; Test Zone is gated too but hidden on the map.
 3. **Encounter choices gray out.** A choice whose `requirements` fail is disabled. A choice whose `completion_condition` holds is disabled and shows its `completed_label`. Example: "Mark down the location" becomes "✓ Location noted".
 4. **Encounters disappear.** An encounter whose `unlock_conditions` don't match is never placed on generated maps. The Refugee Camp only appears while the map is owned and the merchant is undiscovered.
@@ -49,7 +49,8 @@ condition_unlocked listeners:
 
 Consequences:
 
-- Latched gates never re-lock. "Return to the [INTERVENER]" (NPC 2) stays visible after Madra drops below 100.
+- Latched gates never re-lock. "Return to the [INTERVENER]" (NPC 2) stays visible after Madra drops below 100. The Tribulation's card stays after a failed trial drops Core Density below 100 (the card's own `can_attempt()` then refuses it).
+- A latched gate also cannot hide a card once it has done its job, so `ZoneManager.get_available_actions()` drops a passed Tribulation itself (`TribulationActionData.is_passed()`, the stage is at or past its target) instead of using a `CULTIVATION_STAGE` condition.
 - An empty `unlock_conditions` array counts as met in `are_unlock_conditions_met()`.
 - `force_unlock_condition()` writes to the latched set only. A forced `EVENT_TRIGGERED` condition shows its zone actions, but quest event steps and live checks still see the event as unfired.
 
@@ -153,7 +154,7 @@ The dev panel opens with Ctrl+Shift+D. It fills a dropdown with every `condition
 
 | System | Connection |
 |---|---|
-| ZoneManager | `get_available_actions()` drops a zone's actions if `zone_unlock_conditions` aren't latched, and drops any action whose `unlock_conditions` aren't latched. It also filters actions by `max_completions`. |
+| ZoneManager | `get_available_actions()` drops a zone's actions if `zone_unlock_conditions` aren't latched, and drops any action whose `unlock_conditions` aren't latched. It also filters actions by `max_completions`, and drops a Tribulation whose stage has been reached. |
 | ZoneManager map states | `get_zone_map_state()` reads a zone's `chart_conditions` (UNCHARTED until latched) and `zone_unlock_conditions` (LOCKED until latched) the latched way |
 | ZoneTilemap / MapMarkers | Redraw zones, fog tiers, veils, routes, plates and glyphs on `condition_unlocked` |
 | ZonePanel | Rebuilds the activity list on `condition_unlocked` |
@@ -181,6 +182,7 @@ The dev panel opens with Ctrl+Shift+D. It fills a dropdown with every `condition
 | 6 | `q_reach_cd_10` | CULTIVATION_LEVEL | 10 | `>=` | `q_reach_core_density_10` step `reach_cd_10`; `celestial_intervener_dialogue_4.unlock_conditions` |
 | 7 | `aura_well_discovered` | EVENT_TRIGGERED | `"aura_well_discovered"` | `"=="` (ignored) | `aura_well_training.unlock_conditions`; `aura_well_encounter` "Mark down the location" `requirements` (`false`) and `completion_condition` |
 | 8 | `merchant_discovered` | EVENT_TRIGGERED | `"merchant_discovered"` | `"=="` (ignored) | `spirit_valley_merchant.unlock_conditions` |
+| 9 | `core_density_full` | CULTIVATION_LEVEL | 100 | `>=` | `tribulation_action.unlock_conditions` (`spirit_valley_tribulation`) |
 
 ### Unregistered (inline) conditions
 
@@ -207,6 +209,7 @@ These are evaluated live only.
 | Return to the [INTERVENER] (`celestial_intervener_dialogue_4`, max 1) | `q_reach_cd_10` |
 | Aura Well (`aura_well_training`) | `aura_well_discovered` |
 | Traveling Merchant (`spirit_valley_merchant`) | `merchant_discovered` |
+| The Tribulation (`spirit_valley_tribulation`) | `core_density_full`. The card then shows until the stage reaches its target (`is_passed()`), and starts only while the core is full (`can_attempt()`) |
 | Refugee Camp encounter (map generation) | Map owned = true AND `merchant_discovered` = false (live) |
 | Aura Well "Mark down the location" choice | `aura_well_discovered` = false (live). It shows as completed once the condition is true. |
 
@@ -219,7 +222,7 @@ These are evaluated live only.
 | `scripts/resource_definitions/unlocks/unlock_condition_list.gd` | Registry class |
 | `singletons/persistence_manager/unlock_progression_data.gd` | Saved latched ids |
 | `resources/unlocks/unlock_condition_list.tres` | The registry |
-| `resources/unlocks/*.tres` | Registered conditions (8) |
+| `resources/unlocks/*.tres` | Registered conditions (9) |
 | `singletons/zone_manager/zone_manager.gd` | `get_available_actions()` latched gating |
 | `scenes/zones/zone_tilemap/zone_tilemap.gd` | Map rebuild on unlock: veils, fog tiers and routes |
 | `scripts/resource_definitions/adventure/encounters/adventure_encounter.gd` | `unlock_conditions` / `is_eligible()` |
@@ -240,6 +243,8 @@ These are evaluated live only.
 | `tests/unit/test_unlock_condition_progress.gd` | `is_measurable()` and the current and target values for `RESOURCE_AMOUNT` and `CULTIVATION_LEVEL`; event conditions are not measurable |
 | `tests/unit/test_zone_map_state.gd` | Chart and unlock conditions turning into the UNCHARTED, LOCKED, CURRENT and OPEN map states |
 | `tests/integration/test_idle_action_resolution.gd` | The first idle unlock auto-starts; the save reset's empty `condition_unlocked("")` does not |
+| `tests/unit/test_foundation_tribulation_data.gd` | `core_density_full` is a `CULTIVATION_LEVEL` ≥ 100 condition, is in the registry, and gates the Tribulation action |
+| `tests/integration/test_tribulation_flow.gd` | Reaching 100 latches it and lists the card; the card stays after a failure and goes after a pass |
 
 Untested: the sweep itself (`_evaluate_all_conditions`), `CULTIVATION_STAGE`, `ATTRIBUTE_VALUE`, comparison operators other than `>=`, and a data check that every gate's condition is registered.
 
@@ -251,9 +256,9 @@ Untested: the sweep itself (`_evaluate_all_conditions`), `CULTIVATION_STAGE`, `A
 
 ### Missing Functionality
 
-- `[MEDIUM]` `ZONE_UNLOCKED` and `ADVENTURE_COMPLETED` always return `false` and `Log.warn` on every evaluation. Registering either would log a warning on every sweep, which happens at least once per second while at the Aura Well. Planned Beats 7–8 (Guardian, Advancement Zone) need one of these, or a dedicated event.
+- `[MEDIUM]` `ZONE_UNLOCKED` and `ADVENTURE_COMPLETED` always return `false` and `Log.warn` on every evaluation. Registering either would log a warning on every sweep, which happens at least once per second while at the Aura Well.
 - `[MEDIUM]` The sweep doesn't listen to `InventoryManager.inventory_changed` or `CharacterManager.base_attribute_changed`. Registered `ITEM_OWNED` and `ATTRIBUTE_VALUE` conditions latch late, and quest steps that use them only re-check on unrelated triggers.
-- `[LOW]` No conditions are registered yet for the breakthrough and Copper gates (`CULTIVATION_LEVEL ≥ 100`, `CULTIVATION_STAGE ≥ COPPER`), although the evaluation code supports both.
+- `[LOW]` No `CULTIVATION_STAGE ≥ COPPER` condition is registered, although the evaluation code supports it. Copper gates nothing yet; the breakthrough's own gate, `core_density_full` (`CULTIVATION_LEVEL ≥ 100`), is registered.
 - `[LOW]` `ITEM_OWNED` behaves differently in the two modes: it latches when registered but reverts in live checks once the item is gone. This is harmless today because the Refugee Camp Map is never consumed.
 
 ### Content
@@ -263,7 +268,7 @@ Untested: the sweep itself (`_evaluate_all_conditions`), `CULTIVATION_STAGE`, `A
 
 ### Performance
 
-- `[LOW]` `_evaluate_all_conditions()` evaluates every registered condition on every listened signal. `madra_changed` fires on every Aura Well tick (1 s), during cycling, and on adventure spending. With 8 conditions this is cheap, but at scale the sweep should be filtered by the signal's relevant condition types.
+- `[LOW]` `_evaluate_all_conditions()` evaluates every registered condition on every listened signal. `madra_changed` fires on every Aura Well tick (1 s), during cycling, and on adventure spending. With 9 conditions this is cheap, but at scale the sweep should be filtered by the signal's relevant condition types.
 
 ### Tech Debt
 

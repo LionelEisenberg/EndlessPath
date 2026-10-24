@@ -1,5 +1,5 @@
 # Developer Tools
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Overview
 
@@ -51,7 +51,7 @@ Every action writes a `[DEV]` line (magenta tag) to the in-game log through `Log
 |---------|---------|-------|----------------------|
 | Resources | Madra (`MadraSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_madra(v)` | Sets Madra to `max(0, v)` and emits `madra_changed`. Not clamped to max Madra, so it can exceed orb capacity. Unlock conditions re-evaluate. |
 | Resources | Gold (`GoldSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_gold(v)` | Sets gold to `max(0, v)` and emits `gold_changed`, which updates the cultivator cabinet's gold row and re-evaluates unlocks. |
-| Cultivation | Add CD XP (`XpSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `CultivationManager.add_core_density_xp(v)` | Normal XP path: loops level-ups, emits `core_density_level_updated` per level, and awards path points every 10 levels (1 per milestone at Foundation). The loop has no cap at level 100. |
+| Cultivation | Add CD XP (`XpSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `CultivationManager.add_core_density_xp(v)` | Normal XP path: loops level-ups, emits `core_density_level_updated` per level, and awards path points every 10 levels, once per stage (1 per milestone at Foundation). The loop stops at the stage's cap (level 100), where XP is lost, so it can fill the core to reveal the Tribulation card. |
 | Cultivation | Path Points (`PointsSpin`, 0 to 1000, integer) + Apply | `PathManager.add_points(int(v))` | Adds to the path point balance and emits `points_changed`. |
 | Unlocks | Condition (`ConditionOption`) + Trigger | `UnlockManager.force_unlock_condition(id)` | Appends the id to `unlock_progression.unlocked_condition_ids` and emits `condition_unlocked(id)`. Idempotent. The dropdown is filled once in `_ready()` from `UnlockManager.unlock_condition_list.list`, skipping null or empty ids. |
 | Unlocks | Unlock All Cycling Techniques | `CyclingManager.unlock_technique(id)` for every entry in `CyclingManager._technique_catalog.cycling_techniques` | Unlocks every catalog technique and emits `technique_unlocked` for newly unlocked ones. Idempotent. |

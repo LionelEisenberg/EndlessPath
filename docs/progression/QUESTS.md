@@ -1,6 +1,6 @@
 # Quest System
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Overview
 
@@ -20,7 +20,7 @@ Quests are linear, multi-step narrative signposts that tell the player what to d
 4. Back-to-back updates queue and play one after another, about 3.1 s each.
 5. After **Harden Your Core** completes, no quest is active. The quest row and its divider hide, the milestone moves up, and the board shrinks to fit. Completed quests are not listed anywhere.
 
-The board is shared with the adventure view, which leaves it where the zone view hangs it, under the vitals cabinet; the merchant shop hides it, cycling leaves it showing beside its board, and the menu books leave it under their backdrop.
+The board is shared with the adventure view, which leaves it where the zone view hangs it, under the vitals cabinet; the merchant shop and the Tribulation hide it, cycling leaves it showing beside its board, and the menu books leave it under their backdrop. At Core Density 100 its milestone reads "Face the Tribulation", and after a pass "Copper reached".
 
 ## Architecture
 
@@ -175,12 +175,12 @@ GoalsPanel (Control, 440 wide)
     MilestoneRow %              MarginContainer: IconSlot (MilestoneIcon) + TextColumn (MilestoneNameLabel % "Breakthrough", MilestoneTextLabel %, ProgressRow: MilestoneRod % (LacquerRod, steps 138), MilestoneFigureLabel %)
 ```
 
-- Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` leaves it there, cords showing, because the adventure's vitals cabinet stands where the cultivator cabinet does. The merchant shop hides it; cycling leaves it showing beside its board, and the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
+- Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` leaves it there, cords showing, because the adventure's vitals cabinet stands where the cultivator cabinet does. The merchant shop and the Tribulation hide it; cycling leaves it showing beside its board, and the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
 - **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both wrap in the row's 358 px, the name before the figure, which stays at the right of its first line). The `current / target` figure shows only when the step completes on conditions alone (no `completion_event_id`) and every condition `is_measurable()` (RESOURCE_AMOUNT or CULTIVATION_LEVEL); it reads the first condition's `get_current_value()` / `get_target_value()`.
-- **Milestone row:** "Breakthrough", "Raise Core Density to 100" (`CultivationManager.BREAKTHROUGH_LEVEL`), a jade rod at `level / 100`, and `min(level, 100) / 100` (Core Density has no cap in code; the figure does).
+- **Milestone row:** "Breakthrough", in three states, checked in this order (`_update_milestone()`, `goals_panel.gd:138-154`). With no next stage (Copper) it reads "<Stage> reached" on a full jade rod, with no figure. With the core full (`CultivationManager.is_core_full()`) it reads "Face the Tribulation" on a full rod, with `cap / cap` ("100 / 100"). Otherwise it reads "Raise Core Density to <cap>" (`CultivationManager.get_core_density_cap()`, 100 in Foundation), with the rod and the figure at `level / cap`. Core Density stops at the cap, and a save past it loads at it, so the figure never passes it.
 - With no active quest, the quest row and the divider hide, the milestone moves up into their place, and the board hugs its rows: 220 px tall with a quest, 150 with the milestone alone, when every text is one line.
 - **No text is cut off.** The quest's name and step and the milestone's name and line wrap in 358 px (a `wrap_pad.tres` pad under the 15/18 lines), and the rows are containers, so a wrapped line pushes what is under it down and the board, cut into a top, a tiled middle and a bottom slice, grows by it. Each row is an even number of px tall (a name's lines are 20 px, a detail line's 18), so the board is too. The row heights are re-fitted after every text change, so the board takes its height back when the text shortens (the adventure rework's review round 1, 2026-10-23).
-- It re-reads on `quest_started`, `quest_step_advanced`, `quest_completed`, `PersistenceManager.save_data_reset`, `CultivationManager.core_density_level_updated`, and `ResourceManager.madra_changed` / `gold_changed` (for a RESOURCE_AMOUNT figure). `refresh()` is public and does nothing before the board is ready.
+- It re-reads on `quest_started`, `quest_step_advanced`, `quest_completed`, `PersistenceManager.save_data_reset`, `CultivationManager.core_density_level_updated`, `CultivationManager.advancement_stage_changed` (the breakthrough), and `ResourceManager.madra_changed` / `gold_changed` (for a RESOURCE_AMOUNT figure). `refresh()` is public and does nothing before the board is ready.
 - Only the first active quest shows; completed quests are not listed.
 
 ### QuestToast (`scenes/ui/quest_toast/quest_toast.tscn`, class `QuestToast`)
@@ -266,7 +266,7 @@ Every "return" step is completed by an NPC action that only becomes visible once
 | `tests/unit/test_quest_progression_persistence.gd` | `QuestProgressionData` round-trip through `ResourceSaver`; `reset()` clears it |
 | `tests/unit/test_start_quest_effect_data.gd` | `process()` starts the quest; empty `quest_id` causes `push_error` |
 | `tests/integration/test_beat_3b_merchant_unlock.gd` | Real catalog: `q_reach_core_density_10` CD-10 advance, NPC 4 gate, map award, refugee-camp eligibility, Merchant unlock |
-| `tests/integration/test_goals_panel.gd` | The Goals board: milestone only with no quest, the quest row's step and figure (Madra, Core Density, gold), event steps without a figure, refreshes on advance and save reset, the capped milestone, long text wrapping and growing the board (a long step, a long name beside its figure, a long milestone line pushing the rod down, the board taking its height back, every grown height even, no ellipsis), the board hugging its rows, the cords |
+| `tests/integration/test_goals_panel.gd` | The Goals board: milestone only with no quest, the quest row's step and figure (Madra, Core Density, gold), event steps without a figure, refreshes on advance and save reset, the milestone in its three states (a save past the cap loading at it and reading "Face the Tribulation", "Copper reached" after the breakthrough and following the stage change, the stage's own cap, a figure that never passes it), long text wrapping and growing the board (a long step, a long name beside its figure, a long milestone line pushing the rod down, the board taking its height back, every grown height even, no ellipsis), the board hugging its rows, the cords |
 | `tests/unit/test_unlock_condition_progress.gd` | `is_measurable()`, `get_current_value()`, `get_target_value()` |
 
 Untested: QuestToast behavior; the Beat 1 → Beat 2 → Beat 3 chain with real data (only Beat 3b has an integration test); a data check that every authored `completion_event_id` has a producer.
@@ -286,7 +286,7 @@ Untested: QuestToast behavior; the Beat 1 → Beat 2 → Beat 3 chain with real 
 
 ### Content
 
-- `[HIGH]` No quest exists after `q_reach_core_density_10`. Once the map is awarded, the Refugee Camp search, the Merchant, and the eventual breakthrough have no quest on the Goals board (only its Breakthrough milestone). Beats 4–10 ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md)) plan `q_first_elite`, `q_tribulation_guardian`, and `q_breakthrough_seek`, but none are authored.
+- `[HIGH]` No quest exists after `q_reach_core_density_10`. Once the map is awarded, the Refugee Camp search, the Merchant, and the Tribulation have no quest on the Goals board (only its Breakthrough milestone, which reads "Face the Tribulation" at Core Density 100). Beat 5 ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md)) plans an optional `q_first_elite`, but it is not authored.
 - `[MEDIUM]` Player-facing quest text contains the placeholder "[INTERVENER]": all three "Return to the Celestial [INTERVENER]" steps and the `q_reach_core_density_10` description. The Goals board and QuestToast use plain Labels, so the brackets render literally.
 - `[MEDIUM]` The `reach_cd_10` step doesn't tell the player how to gain Core Density. The Foundational Technique has no cycling zones and yields 0 CD XP, so the player must buy Pure Core Awakening and equip Smooth Flow first. Only the dialogue hints at this.
 

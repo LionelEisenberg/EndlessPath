@@ -1,6 +1,6 @@
 # Design Specs and Implementation Plans
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 This folder is the **historical record** of feature work. Each feature usually has a design spec (`specs/`) and a step-by-step implementation plan (`plans/`), written before the work started. They are not updated after a feature ships, and many plans still have unticked checkboxes. **For current behaviour, read the living system doc** linked in each row. Statuses were verified against the code on `main` (`21b3cb2`) during the 2026-10-18 documentation audit.
 
@@ -9,6 +9,7 @@ Status key:
 - **Shipped\*:** built, with deviations listed in Notes.
 - **Partial:** some of the scope is unbuilt.
 - **Superseded:** shipped, then later replaced.
+- **Not built:** designed, with no code yet.
 
 | Date | Feature | Spec | Plan | Status | Notes | Living doc |
 |---|---|---|---|---|---|---|
@@ -45,6 +46,7 @@ Status key:
 | 2026-10-21 | Map-first zone view (Lacquer and brass) | [spec](specs/2026-10-21-zone-view-map-first-design.md), [art kit](specs/2026-10-21-zone-view-lacquer-kit.md) | [plan](plans/2026-10-21-zone-view-map-first.md) | Shipped\* | Built 2026-10-22 on `feat/zone-view-redesign-4656b7` and merged as PR #51. Deviations are in the plan's "As built" section (fixed-size map markers, per-zone camera windows, hugging Goals board, cycling and the shop hiding the HUD boards, among others). Mock: [mockups/zone-view-map-first-mockup.html](mockups/zone-view-map-first-mockup.html) | [ZONES](../zones/ZONES.md) |
 | 2026-10-22 | Cycling view in Lacquer and brass | [spec](specs/2026-10-22-cycling-view-lacquer-design.md) | [plan](plans/2026-10-22-cycling-view-lacquer.md) | Shipped\* | Built 2026-10-22 and 23 on `feat/cycling-view-styleguide-ea3170` and merged as PR #57. Deviations are in the spec's "As built" section (a time-weighted Madra rate, the map switched off with `SubViewport.gui_disable_input`, the Now tray reusing `%TrainingContent`, the board's title at y 57 instead of the spec's 60, among others), which ends with the user's review round of 2026-10-23 (presses through the ball, a groove lit between cycles, a breathing ready ball, solid rings, and the last cycle under the Now tray with a larger figure). Mock: [mockups/cycling-view-lacquer-mockup.html](mockups/cycling-view-lacquer-mockup.html) | [CYCLING](../cycling/CYCLING.md) |
 | 2026-10-22 | Adventure view in Lacquer and brass | [spec](specs/2026-10-22-adventure-view-lacquer-design.md) | [PR 1: the map and the frame](plans/2026-10-22-adventure-view-lacquer-pr1-map-and-frame.md), [PR 2: the fight](plans/2026-10-22-adventure-view-lacquer-pr2-fight.md) | Partial | PR 1 (the map, zooming 1 to 2 and opening at 1, with fog tiers, veils, rims, route dots and coins; the vitals cabinet, the chest with the Here tray, choice drawers and Run ledger; the technique dock with the cooldown sweep) was built 2026-10-23 on `feat/adventure-view-styleguide-1fc223`, not merged, and changed by its first review round the same day (wheel zoom, no text cut off, a leaner chest, a heavier rim). Deviations are in its plan's "As built" section. PR 2 (the opponent page, combat stage, new fighters, stepped motion, floaters, dither dissolve) is not built. Mock: [mockups/adventure-view-lacquer-mockup.html](mockups/adventure-view-lacquer-mockup.html) | [ADVENTURING](../adventuring/ADVENTURING.md), [COMBAT](../combat/COMBAT.md) |
+| 2026-10-23 | Tribulation: Breath of the Core | [spec](specs/2026-10-23-tribulation-breath-of-the-core-design.md) | [plan](plans/2026-10-23-tribulation-breath-of-the-core.md) | Shipped\* | Built 2026-10-23 and 24 on `feat/gameplay-priorities-c64b38`, not yet merged. The Foundation → Copper breakthrough as a Spirit Valley action with its own breathing mini-game, plus the Core Density cap (100 per stage), a thin Copper stage and path points paid once per stage. Replaces the 2025 breakthrough design and FOUNDATION_PLAYTHROUGH Beats 7–8 (Guardian, Advancement Zone). Deviations are in the plan's "As built (2026-10-24)" section (on the intro only a click on the board begins the run, the intro and result panels stack a `NinePatchRect` face instead of using a stylebox, the cycling status line drops "zones still pay XP" at a full core, and the word floaters stand 8 px further right, among others). Not yet played through by the user. Playable prototype: [mockups/tribulation-breath-of-the-core-prototype.html](mockups/tribulation-breath-of-the-core-prototype.html) | [breakthrough-tribulation](../cultivation/breakthrough-tribulation.md), [FOUNDATION_PLAYTHROUGH](../progression/FOUNDATION_PLAYTHROUGH.md#beat-9-the-tribulation-implemented) |
 
 **Not on `main`:** a combat-consumables spec and plan exist only on the unmerged branch `feat/infallible-chaum-58f8ad`.
 
@@ -55,7 +57,8 @@ Status key:
 - `consumable-combat-slots-mockup.html`
 - `consumable-inventory-equip-mockup.html`
 - `inventory-redesign/` (served by the `inventory-redesign` entry in `.claude/launch.json`)
+- `tribulation-breath-of-the-core-prototype.html` (playable; open it in a browser)
 
 ## Older design docs outside this folder
 
-Several system folders hold earlier design/plan pairs that predate this folder. Each now carries a status banner: [CYCLING_UI_REDESIGN](../cycling/CYCLING_UI_REDESIGN.md), [CYCLING_UI_IMPLEMENTATION_PLAN](../cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md), [EQUIPMENT_DESIGN](../inventory/EQUIPMENT_DESIGN.md), [EQUIPMENT_IMPLEMENTATION_PLAN](../inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md), [MADRA_UNIFICATION_DESIGN](../infrastructure/MADRA_UNIFICATION_DESIGN.md), [MADRA_UNIFICATION_PLAN](../infrastructure/MADRA_UNIFICATION_PLAN.md), and the unbuilt [breakthrough-tribulation](../cultivation/breakthrough-tribulation.md).
+Several system folders hold earlier design/plan pairs that predate this folder. Each now carries a status banner: [CYCLING_UI_REDESIGN](../cycling/CYCLING_UI_REDESIGN.md), [CYCLING_UI_IMPLEMENTATION_PLAN](../cycling/CYCLING_UI_IMPLEMENTATION_PLAN.md), [EQUIPMENT_DESIGN](../inventory/EQUIPMENT_DESIGN.md), [EQUIPMENT_IMPLEMENTATION_PLAN](../inventory/EQUIPMENT_IMPLEMENTATION_PLAN.md), [MADRA_UNIFICATION_DESIGN](../infrastructure/MADRA_UNIFICATION_DESIGN.md), and [MADRA_UNIFICATION_PLAN](../infrastructure/MADRA_UNIFICATION_PLAN.md).

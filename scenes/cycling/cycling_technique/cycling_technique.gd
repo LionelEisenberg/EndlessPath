@@ -44,7 +44,8 @@ signal cycle_completed(result: CycleResult)
 ## global centre, for the view to fly a pellet from.
 signal madra_particle_requested(from_pos: Vector2)
 ## Emitted when a press scores a zone, with how well and the Core Density XP the
-## zone paid.
+## zone was worth. The XP has gone to Core Density by then (a full core takes
+## none), so a listener reading the core finds it as this hit left it.
 signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int)
 
 #-----------------------------------------------------------------------------
@@ -260,8 +261,8 @@ func press_ball() -> bool:
 
 ## Scores `zone`, which succeeds only while a cycle runs and the zone is ACTIVE.
 ## The tier comes from how far the true ball is from the zone's centre. The XP
-## goes to Core Density, the zone takes its stud and zone_scored is emitted.
-## Returns whether it scored.
+## goes to Core Density (a full core takes none, and the result notes it), the
+## zone takes its stud and zone_scored is emitted. Returns whether it scored.
 func try_score_zone(zone: CyclingZone) -> bool:
 	if not _cycling or not cycling_zones.has(zone) or zone.get_state() != CyclingZone.State.ACTIVE:
 		return false
@@ -271,6 +272,8 @@ func try_score_zone(zone: CyclingZone) -> bool:
 	CultivationManager.add_core_density_xp(xp)
 	_result.zones_scored += 1
 	_result.xp += xp
+	# Read after the XP is in: the zone that fills the core marks the result too.
+	_result.core_full = CultivationManager.is_core_full()
 	if tier == CyclingRules.Tier.PERFECT:
 		_result.perfect_count += 1
 	zone.set_state(CyclingZone.state_for_tier(tier))

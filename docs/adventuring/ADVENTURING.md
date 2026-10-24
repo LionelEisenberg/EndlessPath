@@ -700,11 +700,11 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 - `[HIGH]` **Nothing records a completed adventure.**
   - A boss win only calls `ActionManager.stop_action(true)`. Shallow Woods has no `success_effects` and no event fires on boss defeat.
   - `UnlockConditionData.ConditionType.ADVENTURE_COMPLETED` logs "not yet implemented" and returns false.
-  - As a result, no quest, zone or Foundation beat (such as Beat 7's Tribulation Guardian → Advancement Zone) can be gated on clearing an adventure.
+  - As a result, no quest, zone or Foundation beat can be gated on clearing an adventure.
 - `[HIGH]` **Path perks that target adventures do nothing.**
   - Madra Reclamation (`ADVENTURE_MADRA_RETURN_PCT`, +10% per purchase, up to 5) and Iron Will (`STAMINA_RECOVERY_MULT`, ×1.2) can be bought, and `PathManager` computes their values.
   - But `AdventureView.stop_adventure()` never refunds unspent Madra, and `_update_stamina_regen()` reads only `stamina_regen_modifier`. Players spend path points for no effect.
-- `[MEDIUM]` **There are no "seen" or "reached" hooks on encounters.** Effects only run when a choice resolves; nothing fires when a tile is revealed or first entered. [FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md) needs both: Beat 5's `q_first_elite` starts when the elite is first seen, and Beat 7's quest starts when the player first reaches the Guardian tile.
+- `[MEDIUM]` **There are no "seen" or "reached" hooks on encounters.** Effects only run when a choice resolves; nothing fires when a tile is revealed or first entered. [FOUNDATION_PLAYTHROUGH.md](../progression/FOUNDATION_PLAYTHROUGH.md) needs one: Beat 5's `q_first_elite` starts when the elite is first seen.
 - `[MEDIUM]` **No difficulty scaling.** `difficulty_modifier` and `experience_multiplier` on `AdventureActionData` are never read, and nothing scales by distance from the origin. Both are needed before Copper-tier adventures.
 - `[MEDIUM]` **Fights always use the first enemy.** `AdventureCombat._create_enemy_combatant()` uses `enemy_pool[0]` (TODO at `adventure_combat.gd:144`), so every encounter authors a single enemy (see [COMBAT.md](../combat/COMBAT.md)).
 - `[LOW]` **Movement cost is fixed.** `MOVEMENT_STAMINA_COST` is the constant 5.0 (TODO at `adventure_tilemap.gd:83`), with no terrain or stat scaling.
@@ -715,7 +715,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 
 ### Content
 
-- `[HIGH]` **The boss reuses a regular enemy.** `manifested_spirit_encounter` fights `amorphous_spirit.tres`, the same `CombatantData` as `amorphous_spirit_encounter` (same name, stats and 15 gold). The map-generation spec called for boss-appropriate stats, and the Foundation plan calls for a Tribulation Guardian boss.
+- `[HIGH]` **The boss reuses a regular enemy.** `manifested_spirit_encounter` fights `amorphous_spirit.tres`, the same `CombatantData` as `amorphous_spirit_encounter` (same name, stats and 15 gold). The map-generation spec called for boss-appropriate stats.
 - `[HIGH]` **Only one adventure exists.** `shallow_woods` is the only adventure, in the only zone, with no Zone 2 or Copper adventure. Encounter folders are already organised per adventure (`resources/adventure/encounters/<adventure>/`).
 - `[MEDIUM]` **No treasure, trap or generic rest encounters.** None appear in any adventure; the three `test_*_encounter.tres` placeholders are unreferenced and incomplete. Run rewards are combat gold plus one 25% necklace drop.
 - `[MEDIUM]` **Elite rewards are thin.** Coalescing Spirit gives 0 gold (`coalescing_spirit.tres` has no `base_gold_drop`) and has no success effects. Elite rewards do not yet match Beat 5's "equipment tier bump".
