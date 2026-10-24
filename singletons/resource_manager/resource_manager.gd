@@ -68,11 +68,13 @@ func award_resource(resource_type: ResourceType, amount: float, quiet: bool = fa
 #-----------------------------------------------------------------------------
 
 ## Adds Madra, capped to [0, max Madra], and returns the amount actually added
-## (0 at the cap). Logs "Gained N Madra" with that amount, unless quiet or less
-## than 1 was added (so a capped add is silent).
+## (0 at the cap). A pool already above the cap (the cap can drop when Core
+## Density falls) is kept: a gain is lost, but a negative amount still lowers it.
+## Logs "Gained N Madra" with that amount, unless quiet or less than 1 was added
+## (so a capped add is silent).
 func add_madra(amount: float, quiet: bool = false) -> float:
 	var before: float = live_save_data.madra
-	live_save_data.madra = clamp(before + amount, 0.0, CultivationManager.get_max_madra())
+	live_save_data.madra = clampf(before + amount, 0.0, maxf(CultivationManager.get_max_madra(), before))
 	madra_changed.emit(live_save_data.madra)
 
 	# Snapped: (63.1 + 1.0) - 63.1 is 0.99999... in floating point.
