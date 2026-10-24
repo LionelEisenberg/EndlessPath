@@ -5,8 +5,9 @@ shader_type canvas_item;
 // dark socket and its gloss), which shows wherever no liquid is.
 //
 // Pixel art rules (kit §1): every pixel is worked out on the 2 px art grid
-// (40x40 cells on the 80 px orb), colours come only from the Madra ramp, and
-// time advances in whole steps, so it reads as hand-animated frames:
+// (40x40 cells on the 80 px orb), colours come only from the three ramp
+// colours below (Madra's unless a material sets others), and time advances in
+// whole steps, so it reads as hand-animated frames:
 // - a wavy surface (two summed waves) with a 1 cell bright crest and a darker
 //   line under it;
 // - three bubbles rising, a sheen that slides across every 4 s and three
@@ -28,10 +29,12 @@ const float SOCKET_R2 = 249.0;
 const float TOP = 4.0;
 const float BOTTOM = 36.0;
 
-// The kit's Madra ramp, light to dark.
-const vec4 MADRA_LIGHT = vec4(0.909804, 0.964706, 0.992157, 1.0); // #E8F6FD
-const vec4 MADRA_PALE = vec4(0.733333, 0.835294, 0.905882, 1.0); // #BBD5E7
-const vec4 MADRA_BLUE = vec4(0.517647, 0.607843, 0.894118, 1.0); // #849BE4
+// The liquid's ramp, light to dark. The defaults are the kit's Madra ramp, so
+// the cultivator cabinet's orb sets none of them; another orb (the adventure
+// view's Health orb) sets its own on its material.
+uniform vec4 light : source_color = vec4(0.909804, 0.964706, 0.992157, 1.0); // #E8F6FD
+uniform vec4 pale : source_color = vec4(0.733333, 0.835294, 0.905882, 1.0); // #BBD5E7
+uniform vec4 blue : source_color = vec4(0.517647, 0.607843, 0.894118, 1.0); // #849BE4
 
 // Bubbles: column, rise speed in cells per second, phase.
 const vec3 BUBBLES[3] = vec3[3](vec3(11.0, 5.0, 0.0), vec3(22.0, 4.0, 0.45), vec3(29.0, 6.0, 0.8));
@@ -63,10 +66,10 @@ vec4 liquid(vec2 cell, float t) {
 		return vec4(0.0);
 	}
 	if (depth < 0.5) {
-		return MADRA_LIGHT;
+		return light;
 	}
 	if (depth < 1.5) {
-		return MADRA_BLUE;
+		return blue;
 	}
 	float span = BOTTOM - TOP;
 	for (int i = 0; i < 3; i++) {
@@ -74,31 +77,31 @@ vec4 liquid(vec2 cell, float t) {
 		float row = BOTTOM - 1.0 - floor(fract(t * bubble.y / span + bubble.z) * span);
 		float side_step = floor(fract(t * 0.9 + bubble.z) * 2.0);
 		if (cell.x == bubble.x + side_step && cell.y == row && depth > 2.5) {
-			return MADRA_LIGHT;
+			return light;
 		}
 	}
 	float sheen_x = -12.0 + fract(t / 4.0 + 0.1) * 64.0;
 	float slant = cell.x - (BOTTOM - cell.y) * 0.5;
 	if (slant >= sheen_x && slant < sheen_x + 1.0 && depth > 2.5 && depth < 7.5) {
-		return MADRA_LIGHT;
+		return light;
 	}
 	for (int k = 0; k < 3; k++) {
 		vec4 current = CURRENTS[k];
 		float row = floor(level + current.x + 0.8 * sin(cell.x * 0.4 + t * 1.7 + float(k) * 2.1) + 0.5);
 		if (cell.y == row && depth > 2.5 && cell.y < BOTTOM - 9.0) {
 			if (fract((cell.x + t * current.y) / current.z + float(k) * 0.37) * current.z < current.w) {
-				return MADRA_BLUE;
+				return blue;
 			}
 		}
 	}
 	if (dot(d, d) > 13.6 * 13.6 && d.x + d.y > 6.0) {
-		return MADRA_BLUE;
+		return blue;
 	}
 	float deep = floor(BOTTOM - 7.0 + 0.9 * sin(cell.x * 0.5 - t * 1.3) + 0.5);
 	if (cell.y >= deep) {
-		return MADRA_BLUE;
+		return blue;
 	}
-	return MADRA_PALE;
+	return pale;
 }
 
 void fragment() {

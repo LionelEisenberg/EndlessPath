@@ -79,6 +79,20 @@ static func format_cost(ability_data: AbilityData) -> String:
 static func format_seconds(seconds: float) -> String:
 	return "%s s" % format_number(seconds)
 
+## Roughly what the ability hits for, for example "about 25 Physical damage":
+## its first effect on the target, valued for the caster's attributes
+## (CombatEffectData.calculate_value(), before the target's defence), rounded,
+## with its damage type. "" when that first effect is not damage, or when the
+## ability has no effect on a target.
+static func format_damage(ability_data: AbilityData, caster_attributes: CharacterAttributesData) -> String:
+	if ability_data.effects_on_target.is_empty():
+		return ""
+	var effect: CombatEffectData = ability_data.effects_on_target[0]
+	if effect == null or effect.effect_type != CombatEffectData.EffectType.DAMAGE:
+		return ""
+	var damage_type: String = (CombatEffectData.DamageType.keys()[effect.damage_type] as String).capitalize()
+	return "about %d %s damage" % [roundi(effect.calculate_value(caster_attributes)), damage_type]
+
 ## Whole numbers without a decimal point ("3"), others with up to two ("0.5").
 static func format_number(value: float) -> String:
 	if is_equal_approx(value, roundf(value)):

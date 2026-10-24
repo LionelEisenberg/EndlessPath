@@ -6,8 +6,8 @@ extends Control
 ## full rod clipped to width 2 + 2k, and a 2 px end cap at x = 2k once
 ## k >= 2, where k = round(fraction x steps). The rod shows at its file size
 ## and moves in whole 2 px steps, never scaled or eased.
-## Kit rods: Aura Well (rod_well, 152 steps), milestone (rod_goal, 138) and
-## adventure Madra (rod_adv, 74).
+## Kit rods: the Now strip's (rod_now, 144 steps), milestone (rod_goal, 138)
+## and adventure Madra (rod_adv, 74).
 ## It runs in the editor (@tool), so a placed rod shows its groove at its
 ## size; the editor shows it empty.
 

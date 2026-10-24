@@ -19,9 +19,9 @@ When a player's Core Density reaches level 100, they become eligible to advance 
 ### Phase B: Seeking the Breakthrough Site
 
 4. When Core Density is 100, adventure maps in the player's current zone gain a **Breakthrough Encounter** -- a special tile placed on the map alongside the usual encounter distribution.
-5. The breakthrough tile has a distinct marker on the hex grid: a new `EncounterIcon` glyph for `BREAKTHROUGH`, e.g. a glowing golden/white icon distinct from the boss, combat and treasure glyphs (see Map Overlay in section 6).
+5. The breakthrough tile has a distinct marker on the hex grid: a new glyph for `BREAKTHROUGH` on its `EncounterCoin` (`EncounterCoin.glyph_for()`), e.g. a bright gold or white icon distinct from the boss, combat and treasure glyphs (see Map Overlay in section 6).
 6. The player navigates the adventure map normally -- spending stamina, fighting enemies, etc. -- until they reach the breakthrough tile.
-7. Reaching the tile opens the `EncounterInfoPanel` with the encounter name (e.g., "Place of Dense Aura") and a single choice: "Begin Tribulation".
+7. Reaching the tile fills the chest's Here tray with the encounter name (e.g., "Place of Dense Aura") and a single choice drawer: "Begin Tribulation".
 
 ### Phase C: Narrative Beat
 
@@ -222,7 +222,7 @@ This means the breakthrough site only appears when the player is ready. If they 
 
 **Alternative: Always Present, Gated by Choice Requirements**
 
-The breakthrough encounter is always placed on maps but the "Begin Tribulation" choice has a requirement (`UnlockConditionData` checking Core Density >= 100). If not met, the choice is visible but grayed out. This already works today: `EncounterChoice.requirements` exists and `EncounterInfoPanel` disables choices whose requirements fail. This is simpler but clutters maps with an unusable tile for most of the player's Foundation experience.
+The breakthrough encounter is always placed on maps but the "Begin Tribulation" choice has a requirement (`UnlockConditionData` checking Core Density >= 100). If not met, the choice is visible but locked (tan title and the LOCKED seal). This already works today: `EncounterChoice.requirements` exists and `ChoiceDrawer` locks choices whose requirements fail. This is simpler but clutters maps with an unusable tile for most of the player's Foundation experience.
 
 ### Encounter & Choice Structure
 
@@ -262,7 +262,7 @@ A new resource class holding the tuning parameters for a specific Tribulation:
 
 ### AdventureTilemap Integration
 
-`_on_choice_selected()` in `AdventureTilemap` needs a new branch:
+`select_choice()` in `AdventureTilemap` needs a new branch:
 
 ```
 elif choice is BreakthroughChoice:
@@ -273,7 +273,7 @@ elif choice is BreakthroughChoice:
 
 ### Map Overlay
 
-The adventure map no longer marks encounter types with per-type highlight-map overlays. `EncounterIcon` (`scenes/adventure/encounter_icon/`) picks a glyph per `EncounterType` (combat, elite, boss, rest, treasure, trap, unknown), and the highlight map only carries the gray "completed" overlay. The breakthrough tile needs a new `EncounterIcon` glyph branch for `BREAKTHROUGH` with a distinct, unmissable visual: bright gold or white, possibly animated like the existing boss and rest spritesheet glyphs.
+The adventure map marks encounters with lacquer coins (`AdventureMapMarkers` and `EncounterCoin`, `scenes/adventure/adventure_map_markers/`), not per-type highlight-map overlays. `EncounterCoin.glyph_for()` picks a glyph per `EncounterType` (combat, elite, boss, rest, treasure, trap), and a resolved tile's coin turns carved with its glyph in the kit's locked veil (`adv_glyph_<kind>_spent_light_ai.png`). The breakthrough tile needs a new `glyph_for()` branch for `BREAKTHROUGH` (with its spent glyph) with a distinct, unmissable visual: bright gold or white, possibly animated like the existing boss and rest spritesheet glyphs. The lacquer look has no glow.
 
 ---
 
@@ -399,7 +399,7 @@ Foundation to Copper is the player's first breakthrough. Harsh penalties here ri
 | `CyclingTechnique` | Mouse tracking logic (`_process`), `MadraBall`, `Path2D`/`PathFollow2D`, `is_mouse_in_madra_ball()` | Need a mode or subclass that skips zone creation, skips Madra generation, and exposes accuracy for external consumption. |
 | `CyclingTechnique.mouse_tracking_accuracy` | Direct reuse of the accuracy calculation | None -- the math is identical. |
 | `AdventureEncounter` / `EncounterChoice` | Encounter/choice pattern | Add new `EncounterType.BREAKTHROUGH` enum value. Create `BreakthroughChoice` subclass. |
-| `AdventureTilemap._on_choice_selected()` | Choice dispatch pattern | Add `elif choice is BreakthroughChoice` branch. |
+| `AdventureTilemap.select_choice()` | Choice dispatch pattern | Add `elif choice is BreakthroughChoice` branch. |
 | `AdventureView` | View transition pattern (tilemap <-> combat) | Add tribulation view transition (tilemap <-> tribulation), analogous to combat. |
 | `CultivationManager` | `attempt_breakthrough()` stub, `advancement_stage_changed` signal | Fill in the stub with real logic. |
 | `UnlockManager` / `UnlockConditionData` | Stage-gated conditions auto-evaluate on `advancement_stage_changed` | Author `CULTIVATION_STAGE >= COPPER` conditions and wire them to Scripting/Elixir Making unlocks. |
@@ -419,7 +419,7 @@ Foundation to Copper is the player's first breakthrough. Harsh penalties here ri
 | Copper AdvancementStageResource `.tres` | Stage resource for the Copper stage. |
 | Dialogic timelines | Pre-tribulation, post-success, post-failure timelines. |
 | Visual effects | Screen shake, particle emitter, vignette shader/overlay. |
-| Breakthrough tile glyph | New `EncounterIcon` glyph for `EncounterType.BREAKTHROUGH`. |
+| Breakthrough tile glyph | New `EncounterCoin.glyph_for()` branch (and spent glyph) for `EncounterType.BREAKTHROUGH`. |
 | UI hint system | Mechanism to show "Your core is full..." messaging when Core Density hits 100. |
 
 ### Rough Build Order

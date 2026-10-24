@@ -4,6 +4,21 @@ extends Node2D
 ## AdventureTilemap
 ## Manages the adventure map grid, tile visitation, character movement, and encounter triggers
 ## Handles pathfinding, tile visibility, and encounter processing
+## Announces what happens on the map (arrivals, resolutions, refused walks, the
+## boss reveal, redraws) through signals, and answers the boards' questions about
+## the map through getters.
+##
+## Draws the map in the zone map's lacquer look (spec: The map): the map
+## ground; fog in three tiers around the tiles the player sees, out past the
+## map's reach, so the map's shape stays hidden; visited tiles in the forest atlas
+## and revealed ones in its veil; the current hex's heavier brass rim and a hover
+## rim; the route dots of a hovered or committed walk; and the character at 2x
+## with the kit's shadow, walking in even px under a camera that follows it with
+## the current hex's centre at screen (960, 470). The camera opens at zoom 1 and
+## the wheel zooms it from 1 to 2 (a CameraZoomController, as the zone map's);
+## its offset follows the zoom so the current hex stays at (960, 470). The
+## encounters are marked by the lacquer coins of the AdventureMapMarkers layer,
+## a child that reads this map's getters and signals.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -12,31 +27,59 @@ extends Node2D
 signal start_combat(choice: CombatChoice)
 signal boss_defeated
 
+## The player arrived on a tile: every arrival, the start tile and tiles with
+## nothing on them included, announced once the tile counts as visited.
+## `encounter` is the tile's encounter (null when the map has none there),
+## `first_visit` whether the tile was unvisited until now, and `summary` the line
+## its resolved encounter left behind ("" until it is resolved).
+signal tile_entered(coord: Vector3i, encounter: AdventureEncounter, first_visit: bool, summary: String)
+## The encounter on `coord` was resolved; `summary` says how (see summary_for()).
+signal encounter_resolved(coord: Vector3i, summary: String)
+## The visited or revealed tiles changed: the map was redrawn, or cleared when
+## the adventure stopped.
+signal map_changed
+## A walk could not start, or stopped partway. `reason` is REFUSED_STAMINA or
+## REFUSED_ENCOUNTER, and the player's log says why in words.
+signal walk_refused(reason: StringName)
+## The boss tile came into view for the first time this adventure.
+signal boss_revealed(coord: Vector3i)
+
+#-----------------------------------------------------------------------------
+# EXPORTS
+#-----------------------------------------------------------------------------
+
+## The hover rim over a visited tile: the bright brass rim (map space, the
+## tile's own size).
+@export var hover_rim_texture: Texture2D
+## The hover rim over a revealed tile: an inner rim inside its veil's dotted one.
+@export var hover_in_rim_texture: Texture2D
+
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-const EncounterIconScene := preload("res://scenes/adventure/encounter_icon/encounter_icon.tscn")
-const FogVeilSpriteScene := preload("res://scenes/adventure/fog_veil_sprite.tscn")
-
 # Tilemap tile source IDs
 const BASE_TILE_SOURCE_ID = 0
 const TRANSPARENT_TILE_VARIANT_ID = 4
-## Dim dark-gray overlay variant painted on the highlight_map over
-## visited-but-not-current tiles so the player can see where they've
-## already been at a glance. Defined in tilemap_tileset.tres on the
-## base_tile source as alternative id 5 with a ~35% alpha dark modulate.
-const GRAY_OVERLAY_VARIANT_ID = 5
-
-## How long a fog veil takes to fade out when it despawns (because the
-## tile became visited or fell out of reveal range). Short enough to
-## feel responsive, long enough to read as "smoke dissipating" rather
-## than "sprite popping away".
-const FOG_VEIL_FADE_OUT_SECONDS := 0.25
 
 # Forest atlas source id — variants are picked via HexForestAtlas.pick().
 # Keep in sync with ZoneTilemap.FOREST_ATLAS_SOURCE_ID.
 const FOREST_ATLAS_SOURCE_ID := 8
+## The forest atlas's veil (hex_forest_veil_atlas_ai.png): the same 23 variants
+## at the same atlas coordinates in the kit's uncharted veil ramp, with its
+## dotted rim, for the tiles the player has revealed but not visited.
+const VEIL_ATLAS_SOURCE_ID: int = 9
+
+## The fog covers every cell this many tiles past the map's reach
+## (AdventureData.max_distance_from_start) from the start, so the screen stays
+## covered wherever the camera follows the player.
+const FOG_MARGIN: int = 8
+
+## The camera's offset from the character it follows at zoom 1: it puts the
+## current hex's centre at screen (960, 470), clear of the dock. The offset is in
+## world px, so at other zooms camera_offset_for() gives the offset that keeps
+## the hex there.
+const CAMERA_OFFSET: Vector2 = Vector2(0, 70)
 
 # Character movement speeds
 const CHARACTER_MOVE_SPEED = 150.0
@@ -44,17 +87,16 @@ const CHARACTER_MOVE_SPEED = 150.0
 # TODO: Calculate this dynamically based on terrain/stats instead of a constant
 const MOVEMENT_STAMINA_COST = 5.0
 
-# Fog-of-war shader array size (must match fog_of_war.gdshader MAX_CLEAR_POSITIONS)
-const FOG_MAX_CLEAR_POSITIONS := 64
+## walk_refused reason: too little Stamina for a step.
+const REFUSED_STAMINA: StringName = &"stamina"
+## walk_refused reason: an unresolved encounter on the current tile holds the
+## player until a choice is made.
+const REFUSED_ENCOUNTER: StringName = &"encounter"
 
-## Desired fog-clear radius in WORLD units (hex tile is 164 wide, so ~180
-## gives each visited tile a clear zone a hair larger than a full tile
-## — enough that adjacent visited tiles always have overlapping clear
-## zones regardless of camera zoom). Scaled by camera.zoom.x inside
-## _update_fog_uniforms so the shader's screen-space clear_radius tracks
-## the current zoom: zoom in → bigger screen radius, zoom out → smaller
-## screen radius, constant world coverage.
-const FOG_CLEAR_WORLD_RADIUS: float = 180.0
+## The player's log line for REFUSED_STAMINA (%d: the Stamina a step costs).
+const TOO_TIRED_LINE: String = "Too tired to walk · %d Stamina a step"
+## The player's log line for REFUSED_ENCOUNTER.
+const CHOOSE_FIRST_LINE: String = "Choose what to do here first"
 
 #-----------------------------------------------------------------------------
 # ENUMS
@@ -70,28 +112,22 @@ enum HighlightType {
 
 @onready var full_map: HexagonTileMapLayer = %AdventureFullMap
 @onready var visible_map: HexagonTileMapLayer = %AdventureVisibleMap
-@onready var highlight_map: HexagonTileMapLayer = %AdventureHighlightMap
 @onready var character_body: CharacterBody2D = %CharacterBody2D
-@onready var encounter_info_panel: EncounterInfoPanel = %EncounterInfoPanel
-@onready var _hover_selector: HexHoverSelector = %HoverSelector
-@onready var _encounter_icon_container: Node2D = %EncounterIconContainer
-@onready var _fog_veil_container: Node2D = %FogVeilContainer
-@onready var _adventure_marker: AdventureMarker = %AdventureMarker
-@onready var _fog_rect: ColorRect = %FogOfWarRect
-@onready var _path_preview: PathPreview = %PathPreview
-@onready var _boss_flash_rect: ColorRect = %BossFlashRect
+@onready var _fog_map: HexagonTileMapLayer = %AdventureFogMap
+@onready var _current_rim: Sprite2D = %CurrentRim
+@onready var _hover_rim: Sprite2D = %HoverRim
+@onready var _route: AdventureRoute = %AdventureRoute
+@onready var _camera: Camera2D = %Camera2D
+@onready var _zoom_controller: CameraZoomController = %CameraZoomController
 
 var _boss_revealed: bool = false
 
 ## DEV-only visual override: when true, every encounter tile renders with
-## its forest art and encounter icon, the fog-of-war ColorRect is hidden,
-## and fog veils are suppressed. _visited_tile_dictionary and
+## its forest art (revealed tiles lose their veil) and its glyph coin, and
+## the fog leaves every map tile. _visited_tile_dictionary and
 ## _highlight_tile_dictionary are untouched so progression, stats, and
 ## encounter-resolution logic are unaffected.
 var _dev_reveal_all: bool = false
-
-var _encounter_icons: Dictionary[Vector3i, EncounterIcon] = {}
-var _fog_veil_sprites: Dictionary[Vector3i, FogVeilSprite] = {}
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -106,11 +142,14 @@ var _visited_tile_dictionary: Dictionary[Vector3i, bool] = {}
 var _highlight_tile_dictionary: Dictionary[Vector3i, HighlightType] = {}
 ## Tiles whose encounter has been resolved (won fight, looted treasure,
 ## finished dialogue, etc.). Separate from _visited_tile_dictionary
-## because we want the "completed" visual (gray overlay + dim icon +
-## checkmark) to apply the moment the encounter is resolved, even while
-## the player is still standing on the tile. NoOp tiles never end up in
-## here — there's nothing to complete.
+## because we want the "completed" visual (the carved coin) to
+## apply the moment the encounter is resolved, even while the player is
+## still standing on the tile. NoOp tiles never end up in here — there's
+## nothing to complete.
 var _completed_encounter_tiles: Dictionary[Vector3i, bool] = {}
+## The one line each resolved encounter left behind (see summary_for()), by tile.
+## Cleared when the adventure stops.
+var _tile_summaries: Dictionary[Vector3i, String] = {}
 
 ## Visitation queue - tiles the character will visit in order
 var _visitation_queue: Array[Vector3i] = []
@@ -120,15 +159,38 @@ var _is_movement_locked: bool = false
 var _current_combat_choice: CombatChoice = null # Store for post-combat processing
 var _current_dialogue_choice: DialogueChoice = null # Store for post-dialogue processing
 
-## When the player clicks a tile to commit to a destination, the path
-## preview locks in and the hover selector snaps onto that tile — neither
-## moves in response to hovering until the player arrives, gets hijacked
-## by an unvisited encounter along the way, or the adventure ends. Each
-## arrival along the route shrinks the preview by one point so the line
-## walks forward with the player. See _refresh_committed_path_preview and
-## _release_committed_destination.
+## When the player clicks a tile to commit to a destination, the route
+## locks in and the hover rim snaps onto that tile — neither moves in
+## response to hovering until the player arrives, gets hijacked by an
+## unvisited encounter along the way, runs out of Stamina, or the
+## adventure ends. Each arrival along the way lays the route again from
+## the tile reached, so it walks forward with the player. See
+## _check_committed_arrival and _release_committed_destination.
 var _committed_destination: Vector3i = Vector3i.ZERO
 var _has_committed_destination: bool = false
+
+## The tile the hover rim was last put on.
+var _hover_rim_tile: Vector3i = Vector3i.ZERO
+
+## False while the pointer is off the map: over a board that covers the map's
+## container. The hex layer never reports the pointer leaving a tile then, and
+## the position it last heard is no tile under the pointer.
+var _pointer_on_map: bool = true
+
+## The boss reveal's camera push while it runs, or null.
+var _camera_push_tween: Tween = null
+
+## How far the boss reveal's push has moved the view, in screen px, on top of the
+## offset for the zoom (zero at rest). In screen px, so that the push moves the
+## view as far at every zoom as it does at zoom 1 instead of twice as far at zoom 2
+## (the offset takes it as world px by dividing it by the camera's zoom, so it keeps
+## that distance on screen even if the zoom changes while it runs). The push tweens
+## this, not the offset itself, so the offset is always the zoom's own plus the push:
+## a zoom that eases while a push runs, and the push, never fight over it.
+var _camera_push: Vector2 = Vector2.ZERO:
+	set(value):
+		_camera_push = value
+		_apply_camera_offset()
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -144,6 +206,13 @@ func _ready() -> void:
 	else:
 		Log.critical("AdventureTilemap: Visible map is missing!")
 	
+	# The map's viewport hears the pointer only through its container, so the
+	# container says when the pointer leaves the map for a board.
+	var view_host: Control = _find_view_host()
+	if view_host != null:
+		view_host.mouse_entered.connect(_on_view_host_mouse_entered)
+		view_host.mouse_exited.connect(_on_view_host_mouse_exited)
+	
 	if character_body:
 		character_body.movement_completed.connect(_on_character_movement_completed)
 	else:
@@ -152,24 +221,45 @@ func _ready() -> void:
 	adventure_map_generator = AdventureMapGenerator.new()
 	adventure_map_generator.set_tile_map(full_map)
 	
-	# Instantiate EncounterInfoPanel
-	encounter_info_panel.visible = false
-	encounter_info_panel.choice_selected.connect(_on_choice_selected)
+	# The camera follows the character, offset so the current hex sits above the
+	# dock at any zoom: the offset follows the camera's own zoom as the controller
+	# eases it.
+	_zoom_controller.zoom_applied.connect(_on_camera_zoom_applied)
+	_apply_camera_offset()
+
+## While a walk is committed, hides the route dots the character has passed.
+func _process(_delta: float) -> void:
+	if _has_committed_destination:
+		_route.hide_passed(character_body.position)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
 #-----------------------------------------------------------------------------
 
-## Starts the adventure with the given action data.
+## Starts the adventure with the given action data, on a freshly generated map.
 func start_adventure(action_data: AdventureActionData) -> void:
 	Log.info("AdventureTilemap: Starting adventure: %s" % action_data.action_name)
 
-	current_adventure_action_data = action_data
-
 	# Generate the adventure_tile_dictionary
-	adventure_map_generator.set_adventure_data(current_adventure_action_data.adventure_data)
-	_encounter_tile_dictionary = adventure_map_generator.generate_adventure_map()
-	
+	adventure_map_generator.set_adventure_data(action_data.adventure_data)
+	start_adventure_on_map(action_data, adventure_map_generator.generate_adventure_map())
+
+## Starts the adventure with the given action data on a map that already exists
+## (cube coordinate to encounter; the start tile is Vector3i.ZERO). The tilemap
+## plays on its own copy of the dictionary, so stopping the adventure leaves the
+## caller's alone.
+func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictionary[Vector3i, AdventureEncounter]) -> void:
+	current_adventure_action_data = action_data
+	_reset_camera_zoom()
+	_encounter_tile_dictionary = encounters.duplicate()
+	# A new run has no fight or talk under way, whatever the last one ended in
+	# (a boss win ends the run before its fight lets go of its choice), so
+	# select_choice() takes its picks; and no talk left playing resolves its tiles.
+	_current_combat_choice = null
+	_current_dialogue_choice = null
+	if DialogueManager and DialogueManager.dialogue_ended.is_connected(_on_dialogue_ended):
+		DialogueManager.dialogue_ended.disconnect(_on_dialogue_ended)
+
 	_update_full_map()
 	
 	# Initialize starting position
@@ -181,29 +271,33 @@ func start_adventure(action_data: AdventureActionData) -> void:
 func stop_adventure() -> void:
 	Log.info("AdventureTilemap: Stopping adventure")
 	
-	# Stop character movement
+	# The run is over from here on, and the teardown must not change it.
+	# stop_moving() ends the hop under way and announces it
+	# (movement_completed): with a run on, that is an arrival, which would visit
+	# the tile the character stands nearest, reveal the boss and tell the boards.
+	# So the run goes first, and the rest of the walk is dropped before the
+	# character stops, or a walk still queued would set off its next hop now and
+	# land after the teardown.
+	current_adventure_action_data = null
+	_visitation_queue.clear()
+	_release_committed_destination()
 	character_body.stop_moving()
 	character_body.global_position = Vector2.ZERO
 	
-	current_adventure_action_data = null
 	full_map.clear()
 	visible_map.clear()
-	highlight_map.clear()
-	for icon in _encounter_icons.values():
-		icon.queue_free()
-	_encounter_icons.clear()
-	for veil in _fog_veil_sprites.values():
-		veil.queue_free()
-	_fog_veil_sprites.clear()
 	_encounter_tile_dictionary.clear()
 	_visited_tile_dictionary.clear()
 	_highlight_tile_dictionary.clear()
 	_completed_encounter_tiles.clear()
-	_visitation_queue.clear()
+	_tile_summaries.clear()
 	_current_tile = Vector3i.ZERO
 	_is_movement_locked = false
-	_release_committed_destination()
-	encounter_info_panel.visible = false
+	_current_rim.hide()
+	_hover_rim.hide()
+	_stop_camera_push()
+	_draw_fog()
+	map_changed.emit()
 	
 
 ## Handles the result of a combat encounter.
@@ -224,13 +318,46 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 				ActionManager.stop_action(true)
 				return
 
-		_complete_current_tile()
+		_complete_current_tile(summary_for(_current_combat_choice, gold_earned))
 	else:
 		if _current_combat_choice:
 			_apply_effects(_current_combat_choice.failure_effects)
 		# Usually failure means death/end of run, handled by ActionManager or PlayerResourceManager
 	
 	_current_combat_choice = null
+
+## Resolves the player's pick on the encounter they stand on: a combat choice
+## starts the fight (start_combat), a dialogue choice starts its timeline, and any
+## other choice applies its success effects and resolves the tile at once.
+## A pick while a fight or a talk it started is under way, or once the tile is
+## resolved, is ignored: the chest stays up through a fight, so a second press
+## on a drawer must not start a second one.
+func select_choice(choice: EncounterChoice) -> void:
+	if _current_combat_choice != null or _current_dialogue_choice != null:
+		Log.info("AdventureTilemap: Choice ignored while a fight or a talk is under way: %s" % choice.label)
+		return
+	if is_tile_completed(_current_tile):
+		Log.info("AdventureTilemap: Choice ignored, the encounter here is resolved: %s" % choice.label)
+		return
+	Log.info("AdventureTilemap: Choice selected: %s" % choice.label)
+
+	if choice is CombatChoice:
+		_current_combat_choice = choice
+		start_combat.emit(choice)
+		# Combat view will take over. _stop_combat will be called when done.
+
+	elif choice is DialogueChoice:
+		if DialogueManager:
+			_current_dialogue_choice = choice
+			DialogueManager.start_timeline(choice.timeline_name)
+			DialogueManager.dialogue_ended.connect(_on_dialogue_ended, CONNECT_ONE_SHOT)
+		else:
+			Log.error("AdventureTilemap: DialogueManager missing!")
+
+	else:
+		# Standard choice (e.g. Loot, Leave)
+		_apply_effects(choice.success_effects)
+		_complete_current_tile(summary_for(choice, 0))
 
 ## Returns the number of tiles the player has visited.
 func get_visited_tile_count() -> int:
@@ -241,9 +368,9 @@ func get_total_tile_count() -> int:
 	return _encounter_tile_dictionary.size()
 
 ## DEV-only: toggle a visual override that renders every encounter tile as
-## revealed (forest + icon) and hides the fog ColorRect. Does not touch
-## _visited_tile_dictionary, so progression, stats, and encounter-resolution
-## remain accurate. Called from the dev panel.
+## revealed (forest + glyph coin, no veil) and lifts the fog off every map tile.
+## Does not touch _visited_tile_dictionary, so progression, stats, and
+## encounter-resolution remain accurate. Called from the dev panel.
 func set_dev_reveal_all(enabled: bool) -> void:
 	if _dev_reveal_all == enabled:
 		return
@@ -251,7 +378,6 @@ func set_dev_reveal_all(enabled: bool) -> void:
 	if current_adventure_action_data == null:
 		return
 	_update_visible_map()
-	_update_fog_uniforms()
 
 ## Returns the total number of combat encounters on the map.
 func get_total_combat_count() -> int:
@@ -267,46 +393,133 @@ func get_total_combat_count() -> int:
 	return count
 
 #-----------------------------------------------------------------------------
+# PUBLIC METHODS - Map Queries
+#-----------------------------------------------------------------------------
+
+## Returns the cube coordinate of the tile the player stands on.
+func get_current_tile() -> Vector3i:
+	return _current_tile
+
+## Returns the encounter placed on `coord`, or null when the map has no tile there.
+func get_encounter_at(coord: Vector3i) -> AdventureEncounter:
+	return _encounter_tile_dictionary.get(coord)
+
+## Returns true when the player has been on the tile.
+func is_tile_visited(coord: Vector3i) -> bool:
+	return _visited_tile_dictionary.has(coord)
+
+## Returns true when the tile is in view without having been visited: it touches
+## a visited tile. The dev override (set_dev_reveal_all) does not change this.
+func is_tile_revealed(coord: Vector3i) -> bool:
+	return _highlight_tile_dictionary.has(coord)
+
+## Returns true when the encounter on the tile has been resolved.
+func is_tile_completed(coord: Vector3i) -> bool:
+	return _completed_encounter_tiles.has(coord)
+
+## Returns the line the tile's resolved encounter left behind, or "" when it has
+## not been resolved (see summary_for()).
+func get_tile_summary(coord: Vector3i) -> String:
+	return _tile_summaries.get(coord, "")
+
+## Returns every tile the player can see: the visited ones, then the revealed
+## ones. Under the dev override (set_dev_reveal_all), every tile on the map.
+func get_seen_tiles() -> Array[Vector3i]:
+	var seen: Array[Vector3i] = []
+	if _dev_reveal_all:
+		seen.assign(_encounter_tile_dictionary.keys())
+		return seen
+	seen.assign(_visited_tile_dictionary.keys())
+	for coord in _highlight_tile_dictionary.keys():
+		seen.append(coord)
+	return seen
+
+## Returns true while the dev override shows the whole map.
+func is_dev_reveal_all() -> bool:
+	return _dev_reveal_all
+
+## Returns the tile's centre in the tilemap's own space, where the character and
+## the camera live.
+func get_tile_world_centre(coord: Vector3i) -> Vector2:
+	return full_map.cube_to_local(coord) + full_map.position
+
+## Returns the fog tier (1-3) drawn on the tile, or -1 when it has no fog: a
+## tile the player sees, one past the fog's reach, or any tile while no
+## adventure runs.
+func get_fog_tier_at(coord: Vector3i) -> int:
+	return _fog_map.get_cell_source_id(full_map.cube_to_map(coord))
+
+#-----------------------------------------------------------------------------
+# PUBLIC METHODS - Camera
+#-----------------------------------------------------------------------------
+
+## Returns the camera's offset for a zoom: CAMERA_OFFSET's 70 screen px as world
+## px. The offset moves the view by offset times zoom px on screen, so this keeps
+## the current hex's centre at screen (960, 470) at every zoom.
+static func camera_offset_for(zoom: float) -> Vector2:
+	return CAMERA_OFFSET / zoom
+
+#-----------------------------------------------------------------------------
+# PUBLIC METHODS - Summaries
+#-----------------------------------------------------------------------------
+
+## Returns the one line a resolved encounter leaves on its tile. A won fight reads
+## "Won · <gold> gold", or "Won" when it paid nothing. Any other choice lists what
+## its success effects say, joined with " · ", leaving out an effect that has
+## nothing to say (empty text, or only its debug string), and reads "Done" when
+## nothing is left. No choice reads as a choice with no effects.
+static func summary_for(choice: EncounterChoice, gold_earned: int) -> String:
+	if choice is CombatChoice:
+		if gold_earned > 0:
+			return "Won · %d gold" % gold_earned
+		return "Won"
+	var parts: PackedStringArray = PackedStringArray()
+	if choice != null:
+		for effect in choice.success_effects:
+			if effect == null:
+				continue
+			var text: String = effect.describe()
+			if text.is_empty() or text == str(effect):
+				continue
+			parts.append(text)
+	if parts.is_empty():
+		return "Done"
+	return " · ".join(parts)
+
+#-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------
 
 func _visit(coord: Vector3i) -> void:
-	# Snapshot the pre-arrival state so the encounter panel can still
-	# distinguish "first visit" from "replay" after we promote the tile.
+	# Snapshot the pre-arrival state so the arrival can still tell the boards
+	# "first visit" from "replay" after we promote the tile.
 	var was_already_visited := _visited_tile_dictionary.has(coord)
 
 	# Mark the tile visited the moment the player arrives — not after
-	# resolution — so the fog veil clears and the encounter icon appears
-	# immediately. The encounter panel flow below uses the pre-arrival
-	# snapshot to decide whether to show the "already cleared" state.
-	# On revisits we skip _mark_tile_visited (nothing new to compute)
-	# but still need to re-render so the AdventureMarker follows the
-	# player to the new _current_tile and the previously-current tile's
-	# flat encounter icon reappears.
+	# resolution — so its veil and fog lift and its coin shows the
+	# encounter's glyph immediately. The arrival below carries the
+	# pre-arrival snapshot, so the chest can show the "already cleared"
+	# state. On revisits we skip _mark_tile_visited (nothing new to compute)
+	# but still need to re-render so the current rim and the coin that
+	# rides above the player follow the player to the new _current_tile.
 	if not was_already_visited:
 		_mark_tile_visited(coord)
 	else:
 		_update_visible_map()
 
 	# If this arrival is the committed destination, drop the lock so the
-	# path clears. Intermediate arrivals are a no-op — the static line
-	# keeps leading to the destination and the per-frame gradient fade
-	# handles visually retreating it behind the player.
+	# route clears; partway, the route is laid again from this tile.
 	_check_committed_arrival()
 
-	# Always show the panel if there's an encounter
 	if _encounter_tile_dictionary.has(coord):
 		var tile_encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
 
 		# Check for NoOpEncounter (or empty choices) and auto-complete
 		if tile_encounter is NoOpEncounter or tile_encounter.choices.is_empty():
 			Log.info("AdventureTilemap: Auto-completing NoOp/Empty encounter at %s" % coord)
-			encounter_info_panel.hide_panel()
+			_announce_arrival(coord, not was_already_visited)
 			_process_next_visitation()
 			return
-
-		encounter_info_panel.setup(tile_encounter, was_already_visited)
-		encounter_info_panel.show_panel()
 
 		if not was_already_visited:
 			_is_movement_locked = true
@@ -316,57 +529,53 @@ func _visit(coord: Vector3i) -> void:
 			# encounter the player will need to click again to decide
 			# where to go next.
 			_release_committed_destination()
-	else:
-		encounter_info_panel.hide_panel()
+
+	_announce_arrival(coord, not was_already_visited)
 
 	if was_already_visited:
 		_process_next_visitation()
 
-func _on_choice_selected(choice: EncounterChoice) -> void:
-	Log.info("AdventureTilemap: Choice selected: %s" % choice.label)
-	
-	if choice is CombatChoice:
-		_current_combat_choice = choice
-		start_combat.emit(choice)
-		# Combat view will take over. _stop_combat will be called when done.
-		
-	elif choice is DialogueChoice:
-		if DialogueManager:
-			_current_dialogue_choice = choice
-			DialogueManager.start_timeline(choice.timeline_name)
-			DialogueManager.dialogue_ended.connect(_on_dialogue_ended, CONNECT_ONE_SHOT)
-		else:
-			Log.error("AdventureTilemap: DialogueManager missing!")
-			
-	else:
-		# Standard choice (e.g. Loot, Leave)
-		_apply_effects(choice.success_effects)
-		_complete_current_tile()
+## Tells the boards the player arrived on `coord`. Called once the tile is marked
+## visited and the lock on an unresolved encounter is set, and before the walk
+## goes on to its next tile, so the boards hear the arrivals of one walk in order.
+func _announce_arrival(coord: Vector3i, first_visit: bool) -> void:
+	tile_entered.emit(coord, _encounter_tile_dictionary.get(coord), first_visit, _tile_summaries.get(coord, ""))
 
 func _on_dialogue_ended(_resource: Resource = null) -> void:
 	Log.info("AdventureTilemap: Dialogue ended")
-	if _current_dialogue_choice:
-		_apply_effects(_current_dialogue_choice.success_effects)
+	var choice: DialogueChoice = _current_dialogue_choice
+	if choice:
+		_apply_effects(choice.success_effects)
 		_current_dialogue_choice = null
-	_complete_current_tile()
+	_complete_current_tile(summary_for(choice, 0))
 
-func _complete_current_tile() -> void:
+## Resolves the encounter on the tile the player stands on: unlocks movement,
+## remembers `summary` for the tile and tells the boards (encounter_resolved).
+func _complete_current_tile(summary: String) -> void:
 	_is_movement_locked = false
-	encounter_info_panel.show_completed_state()
 	# Promote the tile to "encounter completed" BEFORE re-rendering so
-	# the gray overlay, dimmed icon, and checkmark appear immediately —
-	# not only once the player moves off to another tile.
+	# its coin turns carved immediately — not only once the player moves
+	# off to another tile.
 	_completed_encounter_tiles[_current_tile] = true
+	_tile_summaries[_current_tile] = summary
 	_mark_tile_visited(_current_tile)
+	encounter_resolved.emit(_current_tile, summary)
 
 func _apply_effects(effects: Array[EffectData]) -> void:
 	for effect in effects:
 		if effect:
 			effect.process() # TODO: Pass context if needed (player, etc.)
 
+## Tells the boards why a walk cannot start or go on (walk_refused) and puts the
+## reason in the player's log.
+func _refuse_walk(reason: StringName, log_line: String) -> void:
+	LogManager.log_message(log_line)
+	walk_refused.emit(reason)
+
 func _on_tile_clicked(coord: Vector2i) -> void:
 	if _is_movement_locked:
 		Log.info("AdventureTilemap: Movement locked. Complete the encounter first.")
+		_refuse_walk(REFUSED_ENCOUNTER, CHOOSE_FIRST_LINE)
 		return
 
 	# Resolve the encounter on the clicked tile so logs name what's there —
@@ -391,7 +600,7 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 	# Check stamina for one step; the deduction happens per step.
 	if PlayerManager.vitals_manager and PlayerManager.vitals_manager.current_stamina < MOVEMENT_STAMINA_COST:
 		Log.info("AdventureTilemap: Not enough stamina to move!")
-		# TODO: Show UI feedback
+		_refuse_walk(REFUSED_STAMINA, TOO_TIRED_LINE % int(MOVEMENT_STAMINA_COST))
 		return
 	
 	# Store as visitation queue (skip first tile as we're already there)
@@ -399,111 +608,129 @@ func _on_tile_clicked(coord: Vector2i) -> void:
 		_visitation_queue = path_cube_coords.slice(1) # Skip current tile
 		Log.info("AdventureTilemap: Created visitation queue with %d tiles" % _visitation_queue.size())
 
-		# Commit to this destination: the path preview and hover selector
-		# both lock onto the clicked tile until arrival. Snap the selector
-		# explicitly in case the click landed without a prior hover event.
+		# Commit to this destination: the route and the hover rim both
+		# lock onto the clicked tile until arrival. Put the rim there
+		# explicitly in case the click landed without a prior hover event,
+		# and lay the exact route the walk will take.
 		_committed_destination = target_cube_coord
 		_has_committed_destination = true
-		_hover_selector.show_at(visible_map.map_to_local(coord) + visible_map.position)
-		# Seed the full static route. This replaces whatever the hover
-		# preview was showing with the exact cube-pathfind route from
-		# here to the destination. Points stay fixed for the whole trip.
-		_seed_committed_path_preview()
+		_show_hover_rim(target_cube_coord)
+		_route.set_route(_tile_centres(path_cube_coords))
 
 		_process_next_visitation()
 	else:
 		Log.info("AdventureTilemap: Path is empty or only contains current tile")
 
+## Hovering a tile the player sees shows the hover rim on it and the route to
+## it from the current tile. Over fog, over the current tile and while a choice
+## waits, neither shows.
 func _on_tile_hovered(tile_coord: Vector2i) -> void:
-	if _is_movement_locked:
-		_hover_selector.hide()
-		return
-	# While a destination is committed, both the path preview and the
-	# hover selector stay locked onto the clicked tile — hovering over
-	# anything else is a no-op until the player arrives or the trip
-	# gets aborted.
+	# While a destination is committed, the route and the hover rim stay
+	# locked onto the clicked tile — hovering anything else is a no-op
+	# until the player arrives or the trip gets aborted.
 	if _has_committed_destination:
 		return
 	var target_cube := visible_map.map_to_cube(tile_coord)
-	if not _visited_tile_dictionary.has(target_cube) and not _highlight_tile_dictionary.has(target_cube):
-		# Hovering a fog-of-war tile — no path preview, no selector ring.
-		_hover_selector.hide()
-		_path_preview.clear_path()
+	if _is_movement_locked or target_cube == _current_tile or not get_seen_tiles().has(target_cube):
+		_clear_hover()
 		return
-
-	# Snap the animated selector ring onto the hovered tile.
-	_hover_selector.show_at(visible_map.map_to_local(tile_coord) + visible_map.position)
-
-	# Compute path from current tile to hover target
-	var path: Array[Vector3i] = visible_map.cube_pathfind(_current_tile, target_cube)
-	var world_points: Array[Vector2] = []
-	for c in path:
-		var world_pos := full_map.cube_to_local(c) + full_map.position
-		world_points.append(world_pos)
-	_path_preview.show_path(world_points)
+	_show_hover_rim(target_cube)
+	_route.set_route(_tile_centres(visible_map.cube_pathfind(_current_tile, target_cube)))
 
 func _on_tile_unhovered() -> void:
-	# Mouse leaving a tile mid-trip must not clear the locked preview or
-	# the locked selector — those are pinned to the committed destination
-	# and only release on arrival / abort.
+	# Mouse leaving a tile mid-trip must not clear the locked route or the
+	# locked rim — those are pinned to the committed destination and only
+	# release on arrival / abort.
 	if _has_committed_destination:
 		return
-	_hover_selector.hide()
-	_path_preview.clear_path()
+	_clear_hover()
 
-## Seeds the committed path preview with the full cube-pathfind route
-## from the player's current tile to the committed destination. Called
-## exactly once per trip from _on_tile_clicked, after the commit flags
-## are set. The line's points then stay static for the whole trip —
-## _update_committed_path_visibility slides a gradient over them
-## instead of editing the point list, which keeps the tiled texture
-## UVs stable and avoids rendering artifacts from per-frame segment
-## resizing.
-func _seed_committed_path_preview() -> void:
-	var path: Array[Vector3i] = visible_map.cube_pathfind(_current_tile, _committed_destination)
-	var world_points: Array[Vector2] = []
-	for c in path:
-		var world_pos := full_map.cube_to_local(c) + full_map.position
-		world_points.append(world_pos)
-	_path_preview.show_path(world_points)
+## The pointer left the map for a board (or the window): it is over no tile until
+## it comes back, so the hover goes, as when it leaves a tile (a committed
+## walk's rim and route stay), and the hex layer forgets the last cell, so
+## coming straight back onto it hovers it again.
+func _on_view_host_mouse_exited() -> void:
+	_pointer_on_map = false
+	visible_map.forget_hovered_cell()
+	_on_tile_unhovered()
 
-## Fires on every tile arrival via _visit. If the player has reached
-## the committed destination, drops the commit and clears the path. On
-## intermediate arrivals this is a no-op — the static line continues
-## to lead to the destination and the per-frame gradient update takes
-## care of visually retreating it behind the player.
+## The pointer is back on the map.
+func _on_view_host_mouse_entered() -> void:
+	_pointer_on_map = true
+
+## The SubViewportContainer that shows the map, found through the SubViewport
+## the map draws in, or null outside one.
+func _find_view_host() -> Control:
+	var viewport: Viewport = get_viewport()
+	if viewport is SubViewport:
+		return viewport.get_parent() as Control
+	return null
+
+## Puts the hover where a fresh move of the pointer onto the cell it rests over
+## would: the rim on that tile and the route to it from the current tile, or
+## nothing when the pointer is off the map or over no tile. For a walk that ends
+## under a still pointer: the camera followed the character, so the pointer now
+## rests over another cell than the one it last moved onto. The hex layer is
+## told the cell too, so its next motion reports what is new from there.
+func _rehover_pointer_cell() -> void:
+	if not _pointer_on_map:
+		visible_map.forget_hovered_cell()
+		_on_tile_unhovered()
+		return
+	var cell: Vector2i = visible_map.local_to_map(visible_map.get_local_mouse_position())
+	visible_map.set_hovered_cell(cell)
+	if visible_map.get_cell_source_id(cell) != -1:
+		_on_tile_hovered(cell)
+	else:
+		_on_tile_unhovered()
+
+## Puts the hover rim on the tile: the bright rim over a tile drawn in the
+## forest atlas, the inner rim over one drawn in its veil.
+func _show_hover_rim(coord: Vector3i) -> void:
+	_hover_rim_tile = coord
+	_hover_rim.texture = hover_in_rim_texture if _is_tile_veiled(coord) else hover_rim_texture
+	_hover_rim.position = get_tile_world_centre(coord)
+	_hover_rim.show()
+
+## Hides the hover rim and takes the route away.
+func _clear_hover() -> void:
+	_hover_rim.hide()
+	_route.clear()
+
+## Fires on every tile arrival via _visit. If the player has reached the
+## committed destination, drops the commit and clears the route. On
+## intermediate arrivals the route is laid again from the tile reached,
+## along the rest of the queued walk.
 func _check_committed_arrival() -> void:
 	if not _has_committed_destination:
 		return
 	if _current_tile == _committed_destination:
 		_release_committed_destination()
+		return
+	var rest_of_walk: Array[Vector3i] = [_current_tile]
+	rest_of_walk.append_array(_visitation_queue)
+	_route.set_route(_tile_centres(rest_of_walk))
 
-## Drops the committed-destination state and hides the path preview.
-## Called on arrival at the destination, when an unvisited encounter
-## hijacks the trip mid-route, when the player runs out of stamina
-## mid-route, and when the adventure tears down. The hover selector
-## is intentionally left where it is — the next hover event updates it.
+## Drops the committed-destination state and clears the route. Called on
+## arrival at the destination, when an unvisited encounter hijacks the trip
+## mid-route, when the player runs out of stamina mid-route, and when the
+## adventure tears down. The hover rim stays where it is until the next
+## hover event, unless it now sits on the current tile or a choice waits.
+## (Whatever ends a walk, the hover is laid again for the pointer's cell once
+## the hop is handled: _on_character_movement_completed().)
 func _release_committed_destination() -> void:
 	_has_committed_destination = false
 	_committed_destination = Vector3i.ZERO
-	_path_preview.clear_path()
+	_route.clear()
+	if _is_movement_locked or _hover_rim_tile == _current_tile:
+		_hover_rim.hide()
 
-## Runs every frame while a destination is committed. The path's points
-## are static — this call only nudges the Line2D's two gradient stops
-## to fade out the portion behind the character's current position,
-## keeping the tile centers ahead of the player fully opaque. Both
-## PathPreview and character_body live in AdventureTilemap's local
-## space, so character_body.position can be handed in directly without
-## a coordinate transform.
-func _update_committed_path_visibility() -> void:
-	if not _has_committed_destination:
-		return
-	if _path_preview.get_point_count() < 2:
-		return
-	_path_preview.set_fade_behind(character_body.position)
-
-## Called when character completes movement to a tile
+## Called when character completes movement to a tile. A hop that ends with no
+## run on (stop_adventure() cuts it short) arrives nowhere.
 func _on_character_movement_completed() -> void:
+	if current_adventure_action_data == null:
+		return
+
 	# Update current tile position
 	var reached_tile = _get_current_tile_from_character_position()
 	
@@ -512,6 +739,13 @@ func _on_character_movement_completed() -> void:
 		Log.info("AdventureTilemap: Character reached tile: %s" % _current_tile)
 		
 		_visit(_current_tile)
+		
+		# No hop left to walk: the walk is over, whether it reached its
+		# destination, an encounter stopped the trip or the Stamina ran out. Its
+		# rim and route are gone and the camera followed the character, so the
+		# hover is laid again for the cell the pointer rests over now.
+		if not character_body.is_moving:
+			_rehover_pointer_cell()
 
 func _mark_tile_visited(coord: Vector3i) -> void:
 	var previous_highlights := _highlight_tile_dictionary.keys()
@@ -530,112 +764,75 @@ func _mark_tile_visited(coord: Vector3i) -> void:
 			newly_revealed.append(c)
 
 	_update_visible_map()
-	_update_fog_uniforms()
-	_animate_reveal_stagger(newly_revealed)
+	_check_boss_reveal(newly_revealed)
 
-func _animate_reveal_stagger(coords: Array[Vector3i]) -> void:
-	var delay := 0.0
+## Boss-tile dramatic reveal, only the first time the boss tile is among the
+## tiles that just came into view. Called after the redraw, so the boss's coin
+## (drawn by map_changed) exists when boss_revealed tells the coin layer to shake it.
+func _check_boss_reveal(coords: Array[Vector3i]) -> void:
+	if _boss_revealed:
+		return
 	for cube in coords:
-		var icon: EncounterIcon = _encounter_icons.get(cube)
-		if icon:
-			icon.scale = Vector2(0.3, 0.3)
-			icon.modulate.a = 0.0
-			var tween := create_tween()
-			tween.tween_interval(delay)
-			tween.tween_property(icon, "scale", Vector2(1, 1), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-			var alpha_tween := create_tween()
-			alpha_tween.tween_interval(delay)
-			alpha_tween.tween_property(icon, "modulate:a", 1.0, 0.3)
-
-		# Boss-tile dramatic reveal (only the first time)
-		if not _boss_revealed:
-			var encounter: AdventureEncounter = _encounter_tile_dictionary.get(cube)
-			if encounter and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
-				_boss_revealed = true
-				_play_boss_reveal(cube)
-
-		delay += 0.05
+		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(cube)
+		if encounter and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
+			_boss_revealed = true
+			boss_revealed.emit(cube)
+			_play_boss_reveal(cube)
+			return
 
 func _play_boss_reveal(boss_cube: Vector3i) -> void:
 	# Hit-stop: slow time briefly
 	Engine.time_scale = 0.25
 	get_tree().create_timer(0.15 * 0.25).timeout.connect(func(): Engine.time_scale = 1.0)
 
-	# Screen flash
-	_boss_flash_rect.color = Color(0.55, 0.78, 1.0, 0.6)
-	var flash_tween := create_tween()
-	flash_tween.tween_property(_boss_flash_rect, "color:a", 0.0, 0.4)
+	# Camera push toward the boss and back: 45% of the way from the camera to the
+	# boss tile as the map looks at zoom 1 (a map px is a screen px there: the boss
+	# is a hex, 164 px, off, so the view moves 74 px). It is in screen px, so the view
+	# moves that far at every zoom and the character never leaves the screen at zoom
+	# 2. Eased through the camera's offset (on top of the zoom's own, see
+	# _camera_push), so the camera stays on the character even when the walk goes on
+	# meanwhile.
+	var push: Vector2 = (get_tile_world_centre(boss_cube) - _camera.global_position) * 0.45
+	_stop_camera_push()
+	_camera_push_tween = create_tween()
+	_camera_push_tween.set_trans(Tween.TRANS_CUBIC)
+	_camera_push_tween.set_ease(Tween.EASE_OUT)
+	_camera_push_tween.tween_property(self, "_camera_push", push, 0.5)
+	_camera_push_tween.tween_property(self, "_camera_push", Vector2.ZERO, 0.7)
 
-	# Camera push toward boss
-	var camera := get_viewport().get_camera_2d()
-	if camera:
-		var boss_world := full_map.cube_to_local(boss_cube) + full_map.position
-		var current_pos := camera.global_position
-		var push_target := current_pos.lerp(boss_world, 0.45)
-		var push_tween := create_tween()
-		push_tween.set_trans(Tween.TRANS_CUBIC)
-		push_tween.set_ease(Tween.EASE_OUT)
-		push_tween.tween_property(camera, "global_position", push_target, 0.5)
-		push_tween.tween_property(camera, "global_position", current_pos, 0.7)
+## Ends the boss reveal's camera push at once (if one runs) and puts the
+## camera back on the offset for its zoom.
+func _stop_camera_push() -> void:
+	if _camera_push_tween != null and _camera_push_tween.is_valid():
+		_camera_push_tween.kill()
+	_camera_push_tween = null
+	_camera_push = Vector2.ZERO
 
-func _process(_delta: float) -> void:
-	# Fog-of-war uniforms are in screen space, so they must be refreshed
-	# every frame to stay in sync with camera pan/zoom. The committed
-	# path preview's gradient fade also needs per-frame attention so the
-	# section of the static line behind the character stays hidden while
-	# the section ahead remains fully visible.
+## Puts the camera's offset where the zoom it has now and the push in progress
+## call for: the offset for the zoom, plus the push, which is in screen px and so
+## a zoom-th of that in world px.
+func _apply_camera_offset() -> void:
+	if _camera == null:
+		return
+	_camera.offset = camera_offset_for(_camera.zoom.x) + _camera_push / _camera.zoom.x
+
+## Puts the camera at the zoom the zoom controller opens at, at once. The map and
+## its camera outlive a run, and a run opens at today's density whatever zoom
+## the last one was left at.
+func _reset_camera_zoom() -> void:
+	var level: float = _zoom_controller.zoom_default
+	_camera.zoom = Vector2(level, level)
+	_zoom_controller.set_zoom_level(level)
+	_apply_camera_offset()
+
+## The camera's zoom changed a step: the offset follows at once, in the same
+## frame, before anything is drawn. The zoom moved the map under a still pointer,
+## so while a run is on the hover is laid again for the cell the pointer now rests
+## over, as it is when a walk ends.
+func _on_camera_zoom_applied(_zoom: Vector2) -> void:
+	_apply_camera_offset()
 	if current_adventure_action_data != null:
-		_update_fog_uniforms()
-		_update_committed_path_visibility()
-
-func _update_fog_uniforms() -> void:
-	if _fog_rect == null or _fog_rect.material == null:
-		return
-
-	if _dev_reveal_all:
-		_fog_rect.visible = false
-		return
-	_fog_rect.visible = true
-
-	var camera := get_viewport().get_camera_2d()
-	var viewport_size := get_viewport_rect().size
-
-	var positions: Array[Vector2] = []
-	var tiles_to_clear: Array[Vector3i] = []
-	for c in _visited_tile_dictionary.keys():
-		tiles_to_clear.append(c)
-	for c in _highlight_tile_dictionary.keys():
-		tiles_to_clear.append(c)
-
-	for c in tiles_to_clear:
-		var world_pos := full_map.cube_to_local(c) + full_map.position
-		var screen_pos: Vector2
-		if camera:
-			screen_pos = (world_pos - camera.global_position) * camera.zoom + viewport_size * 0.5
-		else:
-			screen_pos = world_pos
-		positions.append(screen_pos)
-		if positions.size() >= FOG_MAX_CLEAR_POSITIONS:
-			Log.warn("AdventureTilemap: fog clear positions reached cap (%d)" % FOG_MAX_CLEAR_POSITIONS)
-			break
-
-	var clear_count := positions.size()
-	# Pad to cap (shader uniform array is fixed-size)
-	while positions.size() < FOG_MAX_CLEAR_POSITIONS:
-		positions.append(Vector2(-99999, -99999))
-
-	_fog_rect.material.set_shader_parameter("clear_positions", positions)
-	_fog_rect.material.set_shader_parameter("clear_count", clear_count)
-
-	# Scale the clear radius by the camera's current zoom so the cleared
-	# WORLD area stays constant. Without this, zooming out makes a tile's
-	# clear zone cover 4-5 tiles worth of world space, and zooming in
-	# leaves gaps between adjacent visited tiles because each one's
-	# screen-space circle shrinks below the center-to-center distance.
-	var zoom_scale := 1.0
-	if camera:
-		zoom_scale = camera.zoom.x
-	_fog_rect.material.set_shader_parameter("clear_radius", FOG_CLEAR_WORLD_RADIUS * zoom_scale)
+		_rehover_pointer_cell()
 
 ## Process the next tile in the visitation queue
 func _process_next_visitation() -> void:
@@ -654,6 +851,7 @@ func _process_next_visitation() -> void:
 			Log.info("AdventureTilemap: Out of stamina, stopping movement.")
 			_visitation_queue.clear()
 			_release_committed_destination()
+			_refuse_walk(REFUSED_STAMINA, TOO_TIRED_LINE % int(MOVEMENT_STAMINA_COST))
 			return
 
 	_visitation_queue.pop_front() # Actually remove it
@@ -678,184 +876,70 @@ func _update_full_map() -> void:
 
 func _update_visible_map() -> void:
 	visible_map.clear()
-	highlight_map.clear()
-	# Don't clear _encounter_icons or _fog_veil_sprites up front — we diff
-	# them below so visited icons persist across frames and smoothly switch
-	# between current/completed visual states.
 
 	var visible_coords: Array[Vector3i] = []
 	for coord in _visited_tile_dictionary.keys():
 		visible_coords.append(coord)
 
-	var revealed_coords: Array[Vector3i] = []
 	for highlight_coord in _highlight_tile_dictionary.keys():
 		if _highlight_tile_dictionary[highlight_coord] == HighlightType.VISIBLE_NEIGHBOUR:
 			visible_coords.append(highlight_coord)
-			revealed_coords.append(highlight_coord)
 
 	# DEV reveal: pull every remaining encounter tile into the visible set so
-	# it paints forest art + icon, without mutating the visited/highlight
-	# dicts that drive game state.
-	var dev_reveal_coords: Dictionary[Vector3i, bool] = {}
+	# it paints forest art (and, in the coin layer, its glyph coin), without
+	# mutating the visited/highlight dicts that drive game state.
 	if _dev_reveal_all:
 		for coord in _encounter_tile_dictionary.keys():
-			if _visited_tile_dictionary.has(coord):
+			if _visited_tile_dictionary.has(coord) or _highlight_tile_dictionary.has(coord):
 				continue
-			if _highlight_tile_dictionary.has(coord):
-				continue
-			dev_reveal_coords[coord] = true
 			visible_coords.append(coord)
 
-	# Every visible tile renders as a deterministic-random forest variant
-	# from the shared forest atlas. Encounter icons and fog veils get
-	# overlaid on top in the loops below; NoOp tiles show only the forest
-	# art and no icon.
+	# Every visible tile renders its deterministic-random forest variant:
+	# visited and dev-revealed tiles from the shared forest atlas, revealed
+	# tiles from its veil at the same atlas coordinates. What each tile holds
+	# is the coin layer's to show (AdventureMapMarkers, on map_changed).
 	for coord in visible_coords:
-		visible_map.set_cell_with_source_and_variant(FOREST_ATLAS_SOURCE_ID, 0, full_map.cube_to_map(coord), HexForestAtlas.pick(coord))
+		var source_id: int = VEIL_ATLAS_SOURCE_ID if _is_tile_veiled(coord) else FOREST_ATLAS_SOURCE_ID
+		visible_map.set_cell_with_source_and_variant(source_id, 0, full_map.cube_to_map(coord), HexForestAtlas.pick(coord))
 
-	# Tiles with a RESOLVED encounter (not merely visited) get a dim
-	# gray overlay on the highlight map so the player can see their
-	# progress at a glance. NoOp tiles and unresolved-but-arrived tiles
-	# stay clean. The gray appears the moment _complete_current_tile
-	# runs, even while the player is still standing on the tile.
-	for coord in _completed_encounter_tiles.keys():
-		highlight_map.set_cell_with_source_and_variant(BASE_TILE_SOURCE_ID, GRAY_OVERLAY_VARIANT_ID, full_map.cube_to_map(coord))
+	_draw_fog()
+	_place_current_rim()
+	map_changed.emit()
 
-	# Visited tiles: spawn/update encounter icon and set completion state.
-	# NoOp visited tiles get no icon at all. The current tile's encounter
-	# is shown in the AdventureMarker above the player, not as a flat
-	# hex icon — so we skip spawning one here when coord == _current_tile.
-	var visited_with_icon: Dictionary[Vector3i, bool] = {}
-	for coord in _visited_tile_dictionary.keys():
-		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-		if not encounter or encounter is NoOpEncounter:
-			_despawn_encounter_icon(coord)
+## True when the tile draws in the forest atlas's veil: revealed and not yet
+## visited, unless the dev override shows the whole map.
+func _is_tile_veiled(coord: Vector3i) -> bool:
+	return _highlight_tile_dictionary.has(coord) and not _dev_reveal_all
+
+## Fills every cell within the fog's reach of the start (the map's reach plus
+## FOG_MARGIN) that the player does not see with fog, its tier the hex distance
+## to the nearest seen tile (capped at 3), its art from the tier's pool, as
+## ZoneTilemap fills its fog. Unseen map tiles look like any other fog. Leaves
+## the layer empty while no adventure runs. The fog layer has its own TileSet,
+## so the cells come from the map layers' conversion.
+func _draw_fog() -> void:
+	_fog_map.clear()
+	if current_adventure_action_data == null:
+		return
+	var seen: Array[Vector3i] = get_seen_tiles()
+	var seen_set: Dictionary[Vector3i, bool] = {}
+	for coord: Vector3i in seen:
+		seen_set[coord] = true
+	var reach: int = current_adventure_action_data.adventure_data.max_distance_from_start + FOG_MARGIN
+	for cube: Vector3i in HexagonTileMap.cube_range(Vector3i.ZERO, reach):
+		if seen_set.has(cube):
 			continue
-		if coord == _current_tile:
-			_despawn_encounter_icon(coord)
-			continue
-		_update_cell_highlight(coord)
-		var icon: EncounterIcon = _encounter_icons.get(coord)
-		if icon:
-			icon.set_completed(_completed_encounter_tiles.has(coord))
-		visited_with_icon[coord] = true
+		var cell: Vector2i = full_map.cube_to_map(cube)
+		_fog_map.set_cell(cell, ZoneMapMath.fog_tier(cube, seen), Vector2i(ZoneMapMath.fog_art_index(cell), 0))
 
-	# Revealed neighbors: fog veils, except for the boss tile which is the
-	# visible-while-fogged exception (player needs a long-term goal marker).
-	# Dev reveal also suppresses veils — every revealed tile shows its icon.
-	var revealed_with_veil: Dictionary[Vector3i, bool] = {}
-	for coord in revealed_coords:
-		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-		var is_boss: bool = encounter != null and encounter.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS
-		if _dev_reveal_all or is_boss:
-			_despawn_fog_veil(coord)
-			_update_cell_highlight(coord)
-			var icon: EncounterIcon = _encounter_icons.get(coord)
-			if icon:
-				icon.set_completed(false)
-		else:
-			# Normal revealed tile: fog veil hides the encounter type
-			_despawn_encounter_icon(coord)
-			_spawn_fog_veil(coord)
-			revealed_with_veil[coord] = true
+## Puts the current hex's brass rim on the tile the player stands on.
+func _place_current_rim() -> void:
+	_current_rim.position = get_tile_world_centre(_current_tile)
+	_current_rim.show()
 
-	# DEV reveal: spawn icons for tiles that aren't visited OR in the normal
-	# revealed set. NoOp tiles have no icon, matching non-dev behavior.
-	for coord in dev_reveal_coords.keys():
-		var encounter: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-		if not encounter or encounter is NoOpEncounter:
-			continue
-		_update_cell_highlight(coord)
-		var icon: EncounterIcon = _encounter_icons.get(coord)
-		if icon:
-			icon.set_completed(false)
-
-	# Despawn fog veils whose coord is no longer revealed (or transitioned to visited).
-	var stale_veil_coords: Array[Vector3i] = []
-	for coord in _fog_veil_sprites.keys():
-		if not revealed_with_veil.has(coord):
-			stale_veil_coords.append(coord)
-	for coord in stale_veil_coords:
-		_despawn_fog_veil(coord)
-
-	# Despawn encounter icons whose coord is not visited-with-icon, not the
-	# revealed boss, not dev-revealed, and (under dev reveal) not any
-	# revealed neighbor.
-	var stale_icon_coords: Array[Vector3i] = []
-	for coord in _encounter_icons.keys():
-		var is_visited_icon := visited_with_icon.has(coord)
-		var is_revealed_non_veil := false
-		if revealed_coords.has(coord):
-			if _dev_reveal_all:
-				is_revealed_non_veil = true
-			else:
-				var enc: AdventureEncounter = _encounter_tile_dictionary.get(coord)
-				if enc and enc.encounter_type == AdventureEncounter.EncounterType.COMBAT_BOSS:
-					is_revealed_non_veil = true
-		var is_dev_revealed := dev_reveal_coords.has(coord)
-		if not is_visited_icon and not is_revealed_non_veil and not is_dev_revealed:
-			stale_icon_coords.append(coord)
-	for coord in stale_icon_coords:
-		_despawn_encounter_icon(coord)
-
-	# AdventureMarker: show the current tile's encounter glyph floating
-	# above the player via the marker pin, instead of as a flat icon on
-	# the hex. NoOp tiles have nothing to show, so hide the marker.
-	# If the encounter at the current tile has already been resolved,
-	# the marker renders in its completed state (dimmed glyph + check).
-	var current_encounter: AdventureEncounter = _encounter_tile_dictionary.get(_current_tile)
-	if current_encounter and not (current_encounter is NoOpEncounter):
-		_adventure_marker.show_at(
-			full_map.cube_to_local(_current_tile) + full_map.position,
-			current_encounter.encounter_type,
-			_completed_encounter_tiles.has(_current_tile),
-		)
-	else:
-		_adventure_marker.hide()
-
-func _update_cell_highlight(coord: Vector3i) -> void:
-	var encounter: AdventureEncounter = _encounter_tile_dictionary[coord]
-	if not encounter:
-		return
-
-	var icon: EncounterIcon = _encounter_icons.get(coord)
-	if icon == null:
-		icon = EncounterIconScene.instantiate()
-		_encounter_icon_container.add_child(icon)
-		_encounter_icons[coord] = icon
-
-	icon.position = full_map.cube_to_local(coord) + full_map.position
-	var should_show := icon.configure_for_type(encounter.encounter_type)
-	icon.visible = should_show
-
-## Spawns a FogVeilSprite at the given cube coord if one isn't already
-## tracked. Called from _update_visible_map for revealed-but-not-visited
-## tiles that aren't the boss exception.
-func _spawn_fog_veil(coord: Vector3i) -> void:
-	if _fog_veil_sprites.has(coord):
-		return
-	var veil: FogVeilSprite = FogVeilSpriteScene.instantiate()
-	_fog_veil_container.add_child(veil)
-	veil.position = full_map.cube_to_local(coord) + full_map.position
-	_fog_veil_sprites[coord] = veil
-
-## Despawns a FogVeilSprite for the given cube coord if one is tracked.
-## The veil fades over FOG_VEIL_FADE_OUT_SECONDS rather than popping out,
-## so walking onto a fogged tile (or revealing it to visited) dissolves
-## the smoke smoothly. The dictionary entry is cleared immediately so
-## subsequent _update_visible_map calls don't double-process the fading
-## sprite.
-func _despawn_fog_veil(coord: Vector3i) -> void:
-	var veil: FogVeilSprite = _fog_veil_sprites.get(coord)
-	if veil == null:
-		return
-	_fog_veil_sprites.erase(coord)
-	veil.fade_and_free(FOG_VEIL_FADE_OUT_SECONDS)
-
-## Despawns an EncounterIcon for the given cube coord if one is tracked.
-func _despawn_encounter_icon(coord: Vector3i) -> void:
-	var icon: EncounterIcon = _encounter_icons.get(coord)
-	if icon == null:
-		return
-	icon.queue_free()
-	_encounter_icons.erase(coord)
+## The tiles' centres in the tilemap's space, in the same order.
+func _tile_centres(coords: Array[Vector3i]) -> Array[Vector2]:
+	var centres: Array[Vector2] = []
+	for coord: Vector3i in coords:
+		centres.append(get_tile_world_centre(coord))
+	return centres

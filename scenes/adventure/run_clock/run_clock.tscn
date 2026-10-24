@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://esymg1m3jh8s"]
+
+[ext_resource type="Script" uid="uid://bhranjlc3pol0" path="res://scenes/adventure/run_clock/run_clock.gd" id="1_clock"]
+[ext_resource type="Texture2D" uid="uid://dp563xpqrhaqg" path="res://assets/ui/lacquer/lacquer_timer_ai.png" id="2_recess"]
+[ext_resource type="Texture2D" uid="uid://c4i51tkrd45rx" path="res://assets/ui/lacquer/lacquer_mini_hourglass_ai.png" id="3_hourglass"]
+
+[node name="RunClock" type="Control" unique_id=229592684]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 88.0
+offset_bottom = 36.0
+mouse_filter = 2
+script = ExtResource("1_clock")
+
+[node name="Recess" type="TextureRect" parent="." unique_id=392049884]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 88.0
+offset_bottom = 36.0
+mouse_filter = 2
+texture = ExtResource("2_recess")
+
+[node name="Hourglass" type="TextureRect" parent="." unique_id=762813929]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 28.0
+offset_bottom = 26.0
+mouse_filter = 2
+texture = ExtResource("3_hourglass")
+
+[node name="TimeLabel" type="Label" parent="." unique_id=1004480512]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 32.0
+offset_top = 7.0
+offset_right = 78.0
+offset_bottom = 29.0
+theme_type_variation = &"LabelLacquerNowName"
+text = "0:00"
+horizontal_alignment = 1
+vertical_alignment = 1

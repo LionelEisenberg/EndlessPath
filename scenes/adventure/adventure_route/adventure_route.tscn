@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bq7k2r0utedv4"]
+
+[ext_resource type="Script" uid="uid://spk6dt6uykpt" path="res://scenes/adventure/adventure_route/adventure_route.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://cyiii0e5qdbnn" path="res://assets/ui/lacquer/map/lacquer_route_dot_lit_ai.png" id="2_dot"]
+
+[node name="AdventureRoute" type="Node2D" unique_id=1418820367]
+script = ExtResource("1_script")
+dot_texture = ExtResource("2_dot")

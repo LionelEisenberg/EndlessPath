@@ -83,6 +83,9 @@ func _tick(count: int) -> void:
 	for _i: int in count:
 		ActionManager.action_timer.timeout.emit()
 
+## ActionManager's Timer fires at most once a frame, so on a busy machine (frames
+## longer than the 0.05 s tick) the ticks lag the clock: the test holds the timer
+## and times it out itself, never waiting on a window of time.
 func test_training_ticks_fire_effects_and_level_up() -> void:
 	ActionManager.select_action(_training_data)
 	var timer: Timer = ActionManager.action_timer
@@ -109,6 +112,10 @@ func test_training_ticks_fire_effects_and_level_up() -> void:
 
 	assert_eq(_tick_signal_count, 6, "tick signal should have fired more times after restart")
 	assert_true(_level_signal_levels.has(2), "level 2 should have been gained after tick 6")
+	# A restart that started over would cross level 1 again on its way to level 2.
+	assert_eq(_level_signal_levels, [1, 2] as Array[int], "the restart counts on from the kept ticks")
+	assert_eq(ZoneManager.get_training_ticks("test_training", "SpiritValley"), _tick_signal_count,
+		"every tick, before and after the restart, is kept")
 	assert_eq(_get_spirit(), 12.0, "Spirit should be 12 after two level-ups")
 
 	ActionManager.stop_action()

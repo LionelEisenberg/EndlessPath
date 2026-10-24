@@ -1,6 +1,6 @@
 # Character, Player Vitals and Character View
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -143,7 +143,7 @@ These are not included in totals:
 
 | Stat | Formula | Computed in |
 |------|---------|-------------|
-| Max Health | `BODY × 10` | `VitalsManager._get_max_health()` |
+| Max Health | `BODY × 10` | `VitalsManager.max_health_for()` (static; `_get_max_health()` returns it) |
 | Max Stamina | `BODY × 5` | `VitalsManager._get_max_stamina()` |
 | Max combat Madra | `FOUNDATION × 10` | `CharacterAttributesData.get_max_madra()` |
 | Adventure Madra capacity / threshold | `FOUNDATION × 10` / 50% of that | `ResourceManager` (see [RESOURCES.md](RESOURCES.md)) |
@@ -209,7 +209,7 @@ Values are read only when the book opens. Nothing updates them while it is open.
 | ChangeVitalsEffectData | Reads total BODY and FOUNDATION and applies the result to `PlayerManager.vitals_manager` (encounters, consumables) |
 | AwardAttributeEffectData | The only caller of `add_base_attribute()` (see [EFFECTS.md](EFFECTS.md)) |
 | UnlockConditionData | `ATTRIBUTE_VALUE` conditions read totals. UnlockManager does not listen to `base_attribute_changed`, so these conditions are only re-checked when another signal fires (Madra, gold, event, cultivation) |
-| AbilitiesView, CombatAbilityTooltip | Damage previews from `get_total_attributes_data()` (see [ABILITIES.md](../abilities/ABILITIES.md)) |
+| AbilitiesView, `TechniqueTooltip` | Damage previews from `get_total_attributes_data()` (see [ABILITIES.md](../abilities/ABILITIES.md)) |
 | AbilityManager | The Effects card lists the unlocked abilities that scale with the attribute |
 | PathManager | `PathEffectsSummary.attribute_bonuses` is computed but not consumed |
 | MainView / GreyBackground / Dock | Host the Character View and drive its modal flow |

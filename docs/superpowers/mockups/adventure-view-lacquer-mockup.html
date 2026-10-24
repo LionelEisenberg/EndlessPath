@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>EndlessPath - Adventure View Lacquer Mockup</title>
+<!--
+  Adventure view in Lacquer and brass: the decided design after grill rounds 1 and 2 (2026-10-22).
+  The frame is 1:1 with the 1920x1080 game viewport. The bar above it holds mock controls
+  and is not part of the game. Decisions: docs/superpowers/specs/2026-10-22-adventure-view-lacquer-design.md.
+
+  Layout (columns): the zone view's frame stays for the adventure. The cabinet on the left holds
+  the run's vitals (Health, Madra, Stamina) with Goals hung under it and the Log at the bottom,
+  where they sit at home. The chest on the right holds the run (header with the clock, a Here tray,
+  the encounter and its choices, a Run ledger) and, in a fight, the opponent (Health, its cast, its
+  techniques, the reward; its buffs only when it has one). The dock holds the four techniques.
+
+  Map: zoom 1, fixed. The zone map's machinery (style guide A1-A6): the user's forest tiles where
+  you have been, a veil with a dotted tan rim over revealed tiles, fog tiers beyond, the brass
+  current-hex rim, the zone map's route dots. Encounter markers are lacquer coins in a screen-space
+  layer on the kit's 2x grid: the user's glyph in a brass-rimmed coin; a carved coin with a tan ?
+  for an unknown tile; a carved coin with the glyph in the locked veil once cleared; a vermilion
+  inner ring for the boss, which shows through the fog once revealed.
+
+  Fight: a static stage per zone (the Shallow Woods: a moonlit bamboo grove in the fog tiers), no
+  ambient motion. Technique cooldown: a radial sweep shadows the button (the part still to
+  recharge shows the icon in the kit's dark locked veil, never alpha), uncovering it clockwise in 24
+  steps, with the whole seconds left in the centre; a brass flash when it is ready. Entering a fight
+  dissolves the map through two dither steps (200 ms). Health (crimson) and Stamina (bamboo)
+  ramps were adopted for style guide question G2; floaters take the colour of the resource.
+
+  The end card is not part of this rework (the user's call, 2026-10-22). The end screens here show
+  round 1's paper scroll, kept as the starting point for when it is taken up.
+
+  The fighters, the bamboo stage and the coins are agent-made placeholders drawn in Aseprite
+  (adventure-view-lacquer/aseprite/*_ai.aseprite). The build draws the fighters about 210 px tall;
+  these placeholders are 168 px. The ability icons are the user's own, kept as they are.
+
+  The fight runs: Q W E R or a click uses a technique (costs, cast, cooldown); the Amorphous
+  Spirit casts Madra Lash every 3 s; Empty Palm (W) during its cast interrupts it. Win and the end
+  card shows. On the map, click the hovered ? hex to walk into the encounter; pick "Attack the
+  Spirit".
+
+  Mock controls (also in the URL hash, e.g. #screen=combat&demo=cd):
+    screen  walk | encounter | combat | victory | defeat
+    today   1 = today's capture of this screen        fit  1 = fit to the window
+    demo    cd = use the four techniques on load (for captures of running cooldowns)
+
+  Assets: fonts, glyphs, icons, item icons, forest tiles and the character load from the repo
+  (../../../assets). Kit textures load from zone-view-lacquer/ (the zone view's kit). Every
+  other texture is agent-made (*_ai.png) in adventure-view-lacquer/, built by its gen/ scripts
+  from the Aseprite sources and the zone kit's generators. Serve the repo root to view it (the
+  adventure-mockup entry in .claude/launch.json). No CDN, no external requests, no build step.
+-->
+<style>
+  @font-face { font-family: 'Euljiro'; src: url('../../../assets/fonts/BMEULJIROTTF.ttf') format('truetype'); font-display: block; }
+  @font-face { font-family: 'Yatra'; src: url('../../../assets/fonts/YatraOne-Regular.ttf') format('truetype'); font-display: block; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #090E0E; }
+  body { font-family: 'Euljiro', 'Trebuchet MS', sans-serif; color: #F0E8D8; }
+
+  .mock-bar {
+    width: 1920px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px;
+    padding: 10px 16px; background: #230F0F; border-bottom: 2px solid #150909; font-size: 15px; color: #F0E8D8;
+  }
+  .mock-bar .mock-title { font-size: 15px; letter-spacing: 1px; color: #A89070; }
+  .mock-bar label { display: flex; align-items: center; gap: 8px; white-space: nowrap; cursor: pointer; }
+  .mock-bar select {
+    font-family: 'Euljiro', 'Trebuchet MS', sans-serif; font-size: 14px; color: #F0E8D8; background: #150909;
+    border: 2px solid #462020; border-radius: 0; padding: 4px 6px;
+  }
+  .mock-bar input[type="checkbox"] { accent-color: #D4A84A; }
+  .mock-bar .note { color: #A89070; font-size: 14px; }
+
+  #frame {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #090E0E;
+    color: #F0E8D8; font-family: 'Euljiro', 'Trebuchet MS', sans-serif; transform-origin: 0 0;
+  }
+  #frame img { position: absolute; display: block; image-rendering: pixelated; pointer-events: none; }
+  #frame img.inl { position: static; flex: none; }
+  #frame button {
+    position: absolute; display: block; margin: 0; padding: 0; border: none; background: none;
+    font: inherit; color: inherit; text-align: left; cursor: pointer;
+  }
+  #frame button:focus-visible { outline: 2px solid #D4A84A; outline-offset: 0; }
+  .t { position: absolute; white-space: nowrap; }
+  /* Inside a .flow block, children stack in normal flow (the chest measures it to hug). */
+  .flow > *, #frame .flow > button { position: relative; display: block; }
+  .tex { position: absolute; background-repeat: no-repeat; image-rendering: pixelated; }
+  .sh4 { filter: drop-shadow(4px 4px 0 #050707); }
+  .sh2 { filter: drop-shadow(2px 2px 0 #150909); }
+  .ttl { font-family: 'Yatra', serif; color: #D4A84A; text-shadow: 2px 2px 0 #150909; }
+  .lbl { font-size: 15px; line-height: 18px; color: #A89070; }
+  .nm { font-size: 17px; line-height: 20px; color: #F0E8D8; }
+  .big { font-size: 30px; line-height: 36px; color: #F0E8D8; }
+  .lore { font-size: 16px; line-height: 22px; color: #F0E8D8; white-space: normal; }
+  .pt { font-family: 'Yatra', serif; line-height: 0; }
+  .tagtxt { width: 76px; text-align: center; font-size: 13px; line-height: 22px; letter-spacing: 1px; text-indent: 1px; color: #A89070; }
+  .legend { text-align: center; font-size: 14px; line-height: 22px; color: #150909; }
+  .groove { position: absolute; height: 6px; background: url('zone-view-lacquer/lacquer_groove_ai.png') repeat-x; image-rendering: pixelated; }
+  .chestMid { position: absolute; background: url('zone-view-lacquer/lacquer_chest_mid_ai.png') repeat-y; image-rendering: pixelated; }
+  .paper { position: absolute; background: url('adventure-view-lacquer/lacquer_scroll_paper_ai.png') repeat-y; image-rendering: pixelated; }
+  .board9 {
+    position: absolute; border: 8px solid transparent;
+    border-image: url('adventure-view-lacquer/lacquer_board9_ai.png') 8 fill / 8px stretch; image-rendering: pixelated;
+  }
+  .token {
+    position: absolute; height: 28px; border: 6px solid transparent;
+    border-image: url('zone-view-lacquer/lacquer_token_ai.png') 6 fill / 6px stretch; image-rendering: pixelated; pointer-events: none;
+  }
+  .token .t { left: -6px; top: -2px; text-align: center; white-space: pre; font-size: 16px; line-height: 20px; }
+  .backdrop { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: url('adventure-view-lacquer/lacquer_dither_backdrop_ai.png') repeat; image-rendering: pixelated; }
+  .orb { position: absolute; width: 80px; height: 80px; background-repeat: no-repeat; image-rendering: pixelated; }
+  /* The cooldown's seconds sit on the icon with the painted titles' hard 2 px shadow. */
+  .cdsecs { position: absolute; left: 0; top: 26px; width: 80px; text-align: center; font-size: 22px; line-height: 28px; color: #F0E8D8; text-shadow: 2px 2px 0 #150909; pointer-events: none; }
+
+  .hov, .brassframe { position: absolute; left: 0; top: 0; pointer-events: none; image-rendering: pixelated; }
+  .hov { display: none; border: 4px solid transparent; border-image: url('zone-view-lacquer/lacquer_frame_hover_ai.png') 4 / 4px stretch; }
+  #frame button:hover .hov { display: block; }
+  .brassframe { border: 8px solid transparent; border-image: url('zone-view-lacquer/lacquer_frame_brass_ai.png') 8 / 8px stretch; }
+  .flash1 { animation: blink 0.6s steps(1, end) 1 both; }
+  #frame .swap .on { display: none; }
+  #frame .swap:hover .on { display: block; }
+  #frame .swap:hover .off { display: none; }
+
+  /* The map dissolves into a fight through two dither masks (2 px cells), 100 ms each. */
+  .dither-half {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0zM2 2h2v2H2z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0zM2 2h2v2H2z'/%3E%3C/svg%3E");
+    -webkit-mask-size: 4px 4px; mask-size: 4px 4px;
+  }
+  .dither-quarter {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h2v2H0z'/%3E%3C/svg%3E");
+    -webkit-mask-size: 4px 4px; mask-size: 4px 4px;
+  }
+
+  /* Floaters ride a token and rise 40 px in 20 steps over 1 s, then are hidden. */
+  .floater { animation: rise 1s steps(20, end) both; }
+  .shake { animation: shake 0.44s steps(1, end) both; }
+  @keyframes rise { 0% { transform: translateY(0); visibility: visible; } 99.9% { transform: translateY(-40px); visibility: visible; } 100% { visibility: hidden; } }
+  @keyframes blink { 0% { visibility: visible; } 50%, 100% { visibility: hidden; } }
+  @keyframes shake { 0% { transform: translateX(-8px); } 20% { transform: translateX(8px); } 40% { transform: translateX(-6px); } 60% { transform: translateX(4px); } 80%, 100% { transform: translateX(0); } }
+  /* The spirit bobs in held steps: 0, -2, -4, -2 px. */
+  @keyframes bob { 0% { transform: translateY(0); } 25% { transform: translateY(-2px); } 50% { transform: translateY(-4px); } 75% { transform: translateY(-2px); } }
+  .bob { animation: bob 2.4s steps(1, end) infinite; }
+</style>
+</head>
+<body>
+
+<div class="mock-bar" id="mockbar">
+  <span class="mock-title">MOCK CONTROLS</span>
+  <label>Screen
+    <select id="c-screen">
+      <option value="walk">Map: walking</option>
+      <option value="encounter">Map: encounter</option>
+      <option value="combat">Combat</option>
+      <option value="victory">End card: victory (not in this rework)</option>
+      <option value="defeat">End card: defeat (not in this rework)</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="c-today"> Today's capture</label>
+  <label><input type="checkbox" id="c-fit"> Fit to window</label>
+  <span class="note">Combat: Q W E R. Map: click the hovered ? hex.</span>
+</div>
+
+<div class="stage" id="stage"><div id="frame"></div></div>
+
+<script src="adventure-view-lacquer/adv_map_markers.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const Z = 'zone-view-lacquer/';
+  const A = 'adventure-view-lacquer/';
+  const S = '../../../assets/';
+  const z = (n) => Z + 'lacquer_' + n + '_ai.png';
+  const a = (n) => A + 'lacquer_' + n + '_ai.png';
+  const IC = {
+    combat: S + 'sprites/ui/stat_icons/combat_icon.png',
+    health: S + 'sprites/ui/stat_icons/health_icon.png',
+    map: S + 'sprites/ui/stat_icons/map_icon.png',
+    gold: S + 'sprites/ui/resources/gold_icon.png',
+    madra: S + 'sprites/ui/resources/madra_icon.png',
+    rest: S + 'sprites/adventure/encounter_glyphs/rest-sheet.png',
+    scale: S + 'sprites/items/consumables/crude_scale.png',
+    dagger: S + 'sprites/items/equipment/makeshift_dagger.png',
+  };
+  const INK = '#150909', CREAM = '#F0E8D8', TAN = '#A89070', DIM = '#94806A', BRASS = '#D4A84A';
+  const MADRA = '#BBD5E7', HEALTH = '#E8737A', TAN_SH = '#7A654C';
+
+  const ABIL = [
+    { key: 'Q', id: 'basic_strike', name: 'Basic Strike', cost: 3, res: 'stam', cd: 2.0, cast: 0.5, dmg: 23, text: '23 Physical damage' },
+    { key: 'W', id: 'empty_palm', name: 'Empty Palm', cost: 8, res: 'madra', cd: 3.0, cast: 0, dmg: 26, text: '26 Spirit damage · interrupts a cast', interrupt: true },
+    { key: 'E', id: 'enforce', name: 'Enforce', cost: 10, res: 'madra', cd: 15.0, cast: 1.0, dmg: 0, text: 'Your next hit deals 1.5x damage' },
+    { key: 'R', id: 'power_font', name: 'Power Font', cost: 30, res: 'madra', cd: 25.0, cast: 3.0, dmg: 46, text: '46 Spirit damage · strips buffs' },
+  ];
+  const RES_ICON = { stam: a('mini_stamina'), madra: z('mini_madra') };
+  const LASH = { name: 'Madra Lash', cast: 2.0, idle: 1.0, dmg: 9 };
+  const SWEEP_STEPS = 24;
+  const sweepStrip = (ab) => A + 'adv_ability_' + ab.id + '_cd_strip_ai.png';
+
+  // ── State ──
+  const HASH = { screen: 'walk', today: '0', fit: '0' };
+  let ui = Object.assign({}, HASH);
+  let sim;
+
+  function freshSim() {
+    return {
+      clock: 281, sub: 0, hp: 142, hpMax: 160, madra: 80, madraMax: 120, stam: 80, stamMax: 80,
+      enHp: 100, enMax: 100, cds: [1.5, 1.5, 1.5, 1.5], cdMax: [1.5, 1.5, 1.5, 1.5], pcast: null,
+      ecast: { on: false, t: 0, idle: 1.2, interrupted: 0 }, enforce: false, over: 0,
+      wasCooling: [false, false, false, false],
+      log: [
+        ['Adventure started: The Shallow Woods', CREAM],
+        ['Defeated the Starving Dreadbeast · +20 gold', BRASS],
+        ['Rested at the Aura Well', HEALTH],
+        ['+80 Health · +24 Madra', MADRA],
+        ['Walked on · 5 Stamina a step', TAN],
+      ],
+    };
+  }
+  sim = freshSim();
+
+  function readHash() {
+    const params = new URLSearchParams(location.hash.slice(1));
+    params.forEach((v, k) => { if (k in HASH) ui[k] = v; });
+  }
+  function writeHash() {
+    const p = new URLSearchParams();
+    Object.keys(HASH).forEach((k) => { if (ui[k] !== HASH[k]) p.set(k, ui[k]); });
+    history.replaceState(null, '', p.toString() ? '#' + p.toString() : location.pathname);
+  }
+
+  // ── Helpers ──
+  const even = (n) => Math.round(n / 2) * 2;
+  const when = (c, h) => (c ? h : '');
+  const dec = (text) => String(text).replace(/(\d)\.(\d)/g, '$1<span class="pt">.</span>$2');
+  const mmss = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  // A rod: the empty groove, the full rod clipped to 2 + 2k px, the end cap at 2k once k >= 2.
+  function rodFill(name, k) {
+    const t = name === 'goal' ? z : a;
+    return when(k > 0, `<div class="tex" style="left: 0; top: 0; width: ${2 + 2 * k}px; height: 10px; background-image: url('${t('rod_' + name + '_full')}');"></div>`) +
+      when(k >= 2, `<img src="${t('rod_' + name + '_end')}" alt="" style="left: ${2 * k}px; top: 0; width: 2px; height: 10px;">`);
+  }
+  function rod(name, x, y, width, frac, id) {
+    const t = name === 'goal' ? z : a;
+    const steps = (width - 2) / 2;
+    const k = Math.max(0, Math.min(steps, Math.floor(frac * steps + 1e-6)));
+    return `<div class="tex" ${id ? `id="${id}"` : ''} style="left: ${x}px; top: ${y}px; width: ${width}px; height: 10px; background-image: url('${t('rod_' + name + '_empty')}');">${rodFill(name, k)}</div>`;
+  }
+  const orbFrame = (v, max) => Math.max(0, Math.min(32, Math.round(32 * v / max)));
+  function orb(kind, x, y, id) {
+    const strip = kind === 'hp' ? a('orb_health_strip') : z('orb_madra_strip');
+    return `<div class="orb" id="${id}" style="left: ${x}px; top: ${y}px; background-image: url('${strip}');"></div>`;
+  }
+  function tag(x, y, text) {
+    return `<img src="${z('tag')}" alt="" style="left: ${x}px; top: ${y}px; width: 76px; height: 22px;">
+      <span class="t tagtxt" style="left: ${x}px; top: ${y}px;">${text}</span>`;
+  }
+  function plateLegend(x, y, text, tex, w) {
+    return `<img class="sh2" src="${tex}" alt="" style="left: ${x}px; top: ${y}px; width: ${w}px; height: 22px;">
+      <span class="t legend" style="left: ${x}px; top: ${y}px; width: ${w}px;">${text}</span>`;
+  }
+  function section(x, y, w, title, right) {
+    return `<span class="t ttl" style="left: ${x}px; top: ${y}px; font-size: 20px; line-height: 24px;">${title}</span>
+      <div class="groove" style="left: ${x + 8 + title.length * 11}px; top: ${y + 10}px; width: ${w - title.length * 11 - 18 - (right ? right.length * 8 + 10 : 0)}px;"></div>
+      ${when(right, `<span class="t lbl" style="left: ${x}px; top: ${y + 4}px; width: ${w}px; text-align: right;">${right}</span>`)}`;
+  }
+
+  // ── Left column: vitals cabinet, Goals hung under it, the Log at the bottom ──
+  function vitalsCabinet() {
+    return `<img class="sh4" src="${z('cult')}" alt="" style="left: 24px; top: 24px; width: 440px; height: 252px;">
+      ${orb('hp', 42, 40, 'hpOrb')}
+      <span class="t lbl" style="left: 138px; top: 46px;">Health</span>
+      <span class="t big" id="hpVal" style="left: 138px; top: 67px;"></span>
+      <div id="buffs" style="position: absolute; left: 318px; top: 76px;"></div>
+      ${orb('madra', 42, 132, 'mdOrb')}
+      <span class="t lbl" style="left: 138px; top: 134px;">Madra</span>
+      <span class="t big" id="mdVal" style="left: 138px; top: 155px;"></span>
+      <img src="${z('line')}" alt="" style="left: 40px; top: 222px; width: 408px; height: 6px;">
+      <img src="${a('mini_stamina')}" alt="" style="left: 42px; top: 243px; width: 16px; height: 16px;">
+      <span class="t lbl" style="left: 64px; top: 241px;">Stamina</span>
+      ${rod('stamina', 136, 245, 240, 1, 'stRod')}
+      <span class="t nm" id="stVal" style="left: 366px; top: 238px; width: 80px; text-align: right;"></span>`;
+  }
+  // The kit's Goals board cut into its cords and top and its bottom (GoalsPanel's slicing): with no
+  // quest row the board is 150 tall, not 200.
+  function goalsBoard() {
+    return `<div class="sh4" style="position: absolute; left: 24px; top: 272px; width: 440px; height: 170px;">
+        <div style="position: absolute; left: 0; top: 0; width: 440px; height: 140px; overflow: hidden;">
+          <img src="${z('goals')}" alt="" style="left: 0; top: 0; width: 440px; height: 220px;">
+        </div>
+        <div style="position: absolute; left: 0; top: 140px; width: 440px; height: 30px; overflow: hidden;">
+          <img src="${z('goals')}" alt="" style="left: 0; top: -190px; width: 440px; height: 220px;">
+        </div>
+      </div>
+      <span class="t ttl" style="left: 42px; top: 304px; font-size: 22px; line-height: 28px;">Goals</span>
+      <img src="${z('ic_core')}" alt="" style="left: 42px; top: 344px; width: 32px; height: 32px;">
+      <span class="t nm" style="left: 86px; top: 342px;">Breakthrough</span>
+      <span class="t lbl" style="left: 86px; top: 364px;">Raise Core Density to 100</span>
+      ${rod('goal', 86, 396, 280, 0.43)}
+      <span class="t lbl" style="left: 42px; top: 389px; width: 404px; text-align: right;">43 / 100</span>`;
+  }
+  function logBoard(lines) {
+    const h = 74 + 26 * lines.length;
+    return `<div style="position: absolute; left: 24px; top: ${1056 - h}px; width: 440px; height: ${h}px;">
+      <img class="sh4" src="${z('log' + lines.length)}" alt="" style="left: 0; top: 0; width: 440px; height: ${h}px;">
+      <span class="t ttl" style="left: 18px; top: 12px; font-size: 22px; line-height: 28px;">Log</span>
+      <span class="t lbl" style="left: 18px; top: 18px; width: 404px; text-align: right;">Full log · L</span>
+      <div id="logLines">${logLines(lines, h)}</div>
+    </div>`;
+  }
+  function logLines(lines, h) {
+    const n = lines.length;
+    return lines.map((l, i) => {
+      const age = n - 1 - i;
+      const tone = age === 0 ? l[1] : age < 3 ? TAN : DIM;
+      const bullet = age === 0 ? (l[1] === BRASS ? 'brass' : l[1] === MADRA ? 'madra' : 'cream') : age < 3 ? 'tan' : 'dim';
+      const y = h - 42 - 26 * age;
+      return `<img src="${z('bullet_' + bullet)}" alt="" style="left: 20px; top: ${y + 4}px; width: 10px; height: 10px;">
+        <span class="t" style="left: 38px; top: ${y}px; max-width: 384px; overflow: hidden; text-overflow: ellipsis; font-size: 15px; line-height: 18px; color: ${tone};">${l[0]}</span>`;
+    }).join('');
+  }
+
+  // ── Right column: the chest (the run, or the opponent in a fight) ──
+  function chest(inner) {
+    return `<div class="sh4" id="chestWrap" style="position: absolute; left: 1456px; top: 24px; width: 440px; height: 400px;">
+      <img src="${z('chest_top')}" alt="" style="left: 0; top: 0; width: 440px; height: 128px;">
+      <div class="chestMid" id="chestMid" style="left: 0; top: 128px; width: 440px; height: 224px;"></div>
+      <img id="chestBot" src="${z('chest_bot')}" alt="" style="left: 0; top: 352px; width: 440px; height: 48px;">
+    </div>${inner}`;
+  }
+  // The chest hugs its content: max(176, flow bottom + 24), like the zone chest.
+  function fitChest() {
+    const flow = document.getElementById('chestFlow');
+    const wrap = document.getElementById('chestWrap');
+    if (!flow || !wrap) return;
+    const height = even(Math.max(176, flow.offsetTop + flow.offsetHeight));
+    wrap.style.height = height + 'px';
+    document.getElementById('chestMid').style.height = Math.max(0, height - 176) + 'px';
+    document.getElementById('chestBot').style.top = (height - 48) + 'px';
+  }
+  function chestHeader(title) {
+    return `<span class="t ttl" style="left: 1472px; top: 42px; max-width: 312px; overflow: hidden; text-overflow: ellipsis; font-size: 30px; line-height: 44px;">${title}</span>
+      <img id="timerTex" src="${a('timer')}" alt="" style="left: 1792px; top: 46px; width: 88px; height: 36px;">
+      <img src="${a('mini_hourglass')}" alt="" style="left: 1804px; top: 56px; width: 16px; height: 16px;">
+      <span class="t" id="timerTxt" style="left: 1824px; top: 53px; width: 46px; text-align: center; font-size: 18px; line-height: 22px;"></span>`;
+  }
+  function runLedger() {
+    return `<div style="height: 128px;">
+      ${section(0, 0, 408, 'Run', '3 of 23 tiles')}
+      <img src="${IC.combat}" alt="" style="left: 0; top: 36px; width: 32px; height: 32px;">
+      <span class="t nm" style="left: 40px; top: 34px;">1 / 13</span><span class="t lbl" style="left: 40px; top: 54px;">fights</span>
+      <img src="${IC.gold}" alt="" style="left: 140px; top: 36px; width: 32px; height: 32px;">
+      <span class="t nm" style="left: 180px; top: 34px;">20</span><span class="t lbl" style="left: 180px; top: 54px;">gold</span>
+      <img src="${IC.map}" alt="" style="left: 280px; top: 36px; width: 32px; height: 32px;">
+      <span class="t nm" style="left: 320px; top: 34px;">3 / 23</span><span class="t lbl" style="left: 320px; top: 54px;">explored</span>
+      <span class="t lbl" style="left: 0; top: 96px;">Loot</span>
+      <img src="${a('socket_buff')}" alt="" style="left: 48px; top: 86px; width: 40px; height: 40px;">
+      <img src="${IC.scale}" alt="Crude Scale" style="left: 52px; top: 90px; width: 32px; height: 32px;">
+      <img src="${a('socket_buff')}" alt="" style="left: 94px; top: 86px; width: 40px; height: 40px;">
+    </div>`;
+  }
+  function hereTray(glyphHtml, name, tagText, line2) {
+    const y = 106;
+    return `<img src="${z('now_tray')}" alt="" style="left: 1472px; top: ${y}px; width: 408px; height: 88px;">
+      ${plateLegend(1484, y - 11, 'Here', z('now_plate'), 60)}
+      <img src="${a('socket_glyph')}" alt="" style="left: 1488px; top: ${y + 20}px; width: 48px; height: 48px;">
+      ${glyphHtml}
+      <span class="t" style="left: 1550px; top: ${y + 18}px; max-width: 236px; overflow: hidden; text-overflow: ellipsis; font-size: 18px; line-height: 22px;">${name}</span>
+      ${tag(1792, y + 17, tagText)}
+      <span class="t lbl" style="left: 1550px; top: ${y + 48}px; max-width: 316px; overflow: hidden; text-overflow: ellipsis;">${line2}</span>`;
+  }
+  function choiceDrawer(title, tagText, detail, icon, click) {
+    return `<button data-click="${click}" style="left: 0; top: 0; width: 392px; height: 72px;">
+      <img class="sh2" src="${z('drawer')}" alt="" style="left: 0; top: 0; width: 392px; height: 72px;">
+      <img src="${icon}" alt="" style="left: 16px; top: 20px; width: 32px; height: 32px;">
+      <span class="t nm" style="left: 64px; top: 14px; max-width: 232px; overflow: hidden; text-overflow: ellipsis;">${title}</span>
+      ${tag(304, 13, tagText)}
+      <span class="t lbl" style="left: 64px; top: 38px; max-width: 316px; overflow: hidden; text-overflow: ellipsis;">${detail}</span>
+      <span class="hov" style="width: 392px; height: 72px;"></span>
+    </button>`;
+  }
+  function expeditionChest(screen) {
+    let inner = chestHeader('The Shallow Woods');
+    if (screen === 'encounter') {
+      inner += hereTray(`<img src="${IC.combat}" alt="" style="left: 1496px; top: 134px; width: 32px; height: 32px;">`,
+        'Amorphous Spirit Attacks!', 'FIGHT', 'Fight · Amorphous Spirit · 100 Health');
+      inner += `<div class="flow" id="chestFlow" style="position: absolute; left: 1472px; top: 210px; width: 408px;">
+        <span class="lore">You happen upon a blob of a creature, barely formed enough to materialize a threat, but it lashes its madra out unpredictably.</span>
+        <img src="${z('line')}" alt="" style="width: 408px; height: 6px; margin-top: 14px;">
+        <div style="height: 72px; margin-top: 12px;">${choiceDrawer('Attack the Spirit', 'FIGHT', 'Madra Lash every 3 s · 15 gold if you win', IC.combat, 'fight')}</div>
+        <div style="height: 28px;"></div>
+        ${runLedger()}
+      </div>`;
+    } else {
+      inner += hereTray(`<div class="tex" style="left: 1496px; top: 134px; width: 32px; height: 32px; background-image: url('${IC.rest}'); background-size: 160px 32px;"></div>`,
+        'Aura Well', 'CLEARED', 'Rested · +80 Health · +24 Madra');
+      inner += `<div class="flow" id="chestFlow" style="position: absolute; left: 1472px; top: 210px; width: 408px;">
+        <span class="lore">Diminished as the aura is, nothing to do now but move on.</span>
+        <span class="lbl" style="margin-top: 10px;">Click a hex to walk · 5 Stamina a step · 16 steps left</span>
+        <div style="height: 28px;"></div>
+        ${runLedger()}
+      </div>`;
+    }
+    return chest(inner);
+  }
+  // In a fight the chest is the opponent's. Its buffs and debuffs (a Dreadbeast's Hunger stacks, a
+  // damage over time you put on it) get a "Buffs" row only when it has one; this spirit has none.
+  function opponentChest() {
+    let inner = chestHeader('Amorphous Spirit');
+    inner += `<span class="t lbl" style="left: 1472px; top: 108px;">Health</span>
+      ${rod('health', 1540, 112, 260, 1, 'enRod')}
+      <span class="t nm" id="enVal" style="left: 1800px; top: 104px; width: 80px; text-align: right;"></span>
+      <div id="icast" style="position: absolute; left: 1472px; top: 146px; width: 408px; height: 88px;">
+        <img src="${z('now_tray')}" alt="" style="left: 0; top: 0; width: 408px; height: 88px;">
+        <div id="icastBody"></div>
+      </div>
+      ${plateLegend(1484, 135, 'Casting', a('plate_casting'), 88)}
+      <div class="flow" id="chestFlow" style="position: absolute; left: 1472px; top: 254px; width: 408px;">
+        <div style="height: 58px;">
+          ${section(0, 0, 408, 'Techniques', '')}
+          <span class="t nm" style="left: 0; top: 32px;">Madra Lash</span>
+          <span class="t lbl" style="left: 0; top: 33px; width: 408px; text-align: right;">2 s cast · about 9 Spirit damage</span>
+        </div>
+        <img src="${z('line')}" alt="" style="width: 408px; height: 6px; margin-top: 8px;">
+        <div style="height: 48px; margin-top: 10px;">
+          <img src="${IC.gold}" alt="" style="left: 0; top: 0; width: 32px; height: 32px;">
+          <span class="t nm" style="left: 42px; top: 6px;">15 gold</span>
+          <span class="t lbl" style="left: 118px; top: 8px;">if you win</span>
+        </div>
+      </div>`;
+    return chest(inner);
+  }
+
+  // ── The technique dock ──
+  // While a technique recharges, a radial sweep shadows its button: the part still to recharge
+  // shows the icon in the kit's dark locked veil (a frame of a 25-frame strip, never alpha) and the
+  // whole seconds left sit in the centre.
+  function slotHtml(i, x, y, inCombat) {
+    const ab = ABIL[i];
+    return `<button data-click="use:${i}" data-tip="${i}" id="slot${i}" style="left: ${x}px; top: ${y}px; width: 80px; height: 80px;">
+      <img class="sh2" src="${a('slot')}" alt="" style="left: 0; top: 0; width: 80px; height: 80px;">
+      <div class="tex" id="ic${i}" role="img" aria-label="${ab.name}" style="left: 8px; top: 8px; width: 64px; height: 64px; background-image: url('${sweepStrip(ab)}'); background-position: ${-64 * SWEEP_STEPS}px 0;"></div>
+      <span class="cdsecs" id="cds${i}"></span>
+      <span class="hov" style="width: 80px; height: 80px;"></span>
+      <span class="brassframe" id="cf${i}" style="width: 80px; height: 80px; display: none;"></span>
+      <span class="brassframe" id="cr${i}" style="width: 80px; height: 80px; display: none;"></span>
+    </button>
+    <img class="sh2" src="${a('keycap')}" alt="" style="left: ${x - 6}px; top: ${y - 6}px; width: 22px; height: 22px;">
+    <span class="t" id="kc${i}" style="left: ${x - 6}px; top: ${y - 4}px; width: 22px; text-align: center; font-size: 14px; line-height: 18px; color: ${inCombat ? CREAM : TAN};">${ab.key}</span>
+    <span class="t" style="left: ${x}px; top: ${y + 90}px; width: 80px; display: flex; justify-content: center; gap: 4px; font-size: 15px; line-height: 18px;">
+      <img class="inl" src="${RES_ICON[ab.res]}" alt="" style="width: 16px; height: 16px; margin-top: 1px;">
+      <span id="cost${i}" style="color: ${CREAM};">${ab.cost}</span>
+    </span>`;
+  }
+  function techniqueDock(inCombat) {
+    let h = `<img class="sh4" src="${a('tdock')}" alt="" style="left: 722px; top: 920px; width: 476px; height: 136px;">`;
+    [752, 864, 976, 1088].forEach((x, i) => { h += slotHtml(i, x, 938, inCombat); });
+    return h + `<div id="pcast" style="position: absolute; left: 722px; top: 868px; width: 476px; height: 44px; display: none;">
+      <img src="${a('cast_tray')}" alt="" style="left: 0; top: 0; width: 476px; height: 44px;">
+      <span class="t nm" id="pcastName" style="left: 16px; top: 12px;"></span>
+      <div id="pcastRod" style="position: absolute; left: 170px; top: 17px;"></div>
+      <span class="t" id="pcastTime" style="left: 300px; top: 12px; width: 160px; text-align: right; font-size: 17px; line-height: 20px;"></span>
+    </div>
+    <div class="board9" id="tip" style="display: none; width: 304px; height: 184px;"></div>`;
+  }
+  function tooltip(i) {
+    const ab = ABIL[i];
+    return `<span class="t" style="left: 16px; top: 14px; font-size: 18px; line-height: 22px;">${ab.name}</span>
+      <span class="t lbl" style="left: 16px; top: 40px;">${ab.cast ? dec('Cast ' + ab.cast.toFixed(1) + ' s') + ' · ' : 'Instant · '}Cooldown ${ab.cd} s</span>
+      <img src="${RES_ICON[ab.res]}" alt="" style="left: 16px; top: 66px; width: 16px; height: 16px;">
+      <span class="t lbl" style="left: 38px; top: 64px; color: ${CREAM};">${ab.cost} ${ab.res === 'stam' ? 'Stamina' : 'Madra'}</span>
+      <img src="${z('line')}" alt="" style="left: 16px; top: 92px; width: 272px; height: 6px; object-fit: cover; object-position: left;">
+      <span class="t lore" style="left: 16px; top: 106px; width: 272px;">${ab.text}</span>`;
+  }
+
+  // ── The world: the map (zoom 1) with its coins, or the fight's stage ──
+  const GLYPH = {
+    combat: { src: IC.combat, strip: 0 },
+    elite: { src: S + 'sprites/adventure/encounter_glyphs/elite.png', strip: 0 },
+    rest: { src: IC.rest, strip: 5 },
+    boss: { src: S + 'sprites/adventure/encounter_glyphs/boss_spritesheet.png', strip: 7 },
+  };
+  function glyphImg(kind, cleared, x, y) {
+    const g = GLYPH[kind];
+    if (cleared) return `<img src="${A}adv_glyph_${kind}_spent_light_ai.png" alt="" style="left: ${x}px; top: ${y}px; width: 32px; height: 32px;">`;
+    if (g.strip) return `<div class="tex" style="left: ${x}px; top: ${y}px; width: 32px; height: 32px; background-image: url('${g.src}'); background-size: ${32 * g.strip}px 32px;"></div>`;
+    return `<img src="${g.src}" alt="" style="left: ${x}px; top: ${y}px; width: 32px; height: 32px;">`;
+  }
+  // A coin per encounter tile, in screen space; on the hex you stand on it rides above the character.
+  function marker(m) {
+    const here = m.state === 'current' || m.state === 'cleared_here';
+    const cx = m.x, cy = m.y - (here ? 40 : 8);
+    const cleared = m.state === 'cleared' || m.state === 'cleared_here';
+    const frame = m.state === 'unknown' ? 1 : cleared ? 2 : m.kind === 'boss' ? 3 : 0;
+    return `<div class="tex sh2" style="left: ${cx - 26}px; top: ${cy - 26}px; width: 52px; height: 52px; background-image: url('${a('marker_tokens')}'); background-position: ${-52 * frame}px 0;"></div>` +
+      (m.state === 'unknown' ? '' : glyphImg(m.kind, cleared, cx - 16, cy - 16));
+  }
+  function world(screen) {
+    if (screen === 'combat') {
+      return `<img src="${A}adv_stage_bamboo_ai.png" alt="" style="left: 0; top: 0; width: 1920px; height: 1080px;">
+        <img src="${A}adv_shadow_player_ai.png" alt="" style="left: 668px; top: 834px; width: 60px; height: 12px;">
+        <img src="${A}adv_fighter_player_ai.png" alt="" style="left: 644px; top: 680px; width: 112px; height: 168px;">
+        <img src="${A}adv_shadow_spirit_ai.png" alt="" style="left: 1172px; top: 834px; width: 100px; height: 12px;">
+        <img class="bob" src="${A}adv_fighter_spirit_ai.png" alt="" style="left: 1140px; top: 700px; width: 144px; height: 128px;">
+        <div id="flo"></div>`;
+    }
+    const st = screen === 'encounter' ? 'encounter' : 'walk';
+    const data = window.ADV_MAP[st + '_z1'];
+    let h = `<img src="${A}adv_map_${st}_z1_ai.png" alt="" style="left: 0; top: 0; width: 1920px; height: 1080px;">`;
+    h += data.markers.map(marker).join('');
+    if (data.hover) {
+      const c = data.hover;
+      h += `<button data-click="walk" aria-label="Walk to the unknown hex" style="left: ${c.x - data.tile_w / 2}px; top: ${c.y - data.tile_h / 2}px; width: ${data.tile_w}px; height: ${data.tile_h}px; clip-path: polygon(50% 2%, 97.5% 26%, 97.5% 74%, 50% 98%, 2.5% 74%, 2.5% 26%);"></button>`;
+    }
+    return h;
+  }
+
+  // ── End card: not part of this rework. Round 1's paper scroll, kept for when it is taken up ──
+  function endCard(victory) {
+    const reason = victory ? 'The Manifested Spirit is dispelled.' : 'Your health reached zero';
+    const stats = [
+      [IC.combat, 'Fights', victory ? '6 / 13' : '3 / 13'], [IC.gold, 'Gold', victory ? '+95' : '+40'], [a('ic_hourglass'), 'Time', victory ? '3:12' : '2:40'],
+      [IC.health, 'Health', victory ? '96 / 160' : '0 / 160'], [IC.map, 'Explored', victory ? '17 / 23' : '9 / 23'], [IC.madra, 'Madra spent', '80'],
+    ];
+    const x = 620, w = 680, y0 = 150, paperH = 600;
+    let h = `<div class="backdrop"></div>
+      <div class="sh4" style="position: absolute; left: 0; top: 0;">
+        <div class="paper" style="left: ${x}px; top: ${y0 + 22}px; width: ${w}px; height: ${paperH}px;"></div>
+        <img src="${a('scroll_shade')}" alt="" style="left: ${x}px; top: ${y0 + 22}px; width: ${w}px; height: 8px;">
+        <img src="${a('scroll_shade')}" alt="" style="left: ${x}px; top: ${y0 + 14 + paperH}px; width: ${w}px; height: 8px; transform: scaleY(-1);">
+        <img src="${a('scroll_roll')}" alt="" style="left: ${x - 40}px; top: ${y0}px; width: 760px; height: 44px;">
+        <img src="${a('scroll_roll')}" alt="" style="left: ${x - 40}px; top: ${y0 + paperH}px; width: 760px; height: 44px;">
+      </div>`;
+    if (victory) {
+      h += `<span class="t" style="left: ${x}px; top: ${y0 + 66}px; width: ${w}px; text-align: center; font-family: 'Yatra', serif; font-size: 44px; line-height: 52px; color: ${INK};">Victory</span>`;
+    } else {
+      h += `<img class="sh2" src="${a('seal_defeat')}" alt="" style="left: ${x + w / 2 - 70}px; top: ${y0 + 70}px; width: 140px; height: 44px;">
+        <span class="t" style="left: ${x}px; top: ${y0 + 70}px; width: ${w}px; text-align: center; font-family: 'Yatra', serif; font-size: 30px; line-height: 44px; color: ${CREAM};">Defeat</span>`;
+    }
+    h += `<span class="t lore" style="left: ${x}px; top: ${y0 + 128}px; width: ${w}px; text-align: center; color: ${INK};">${reason}</span>
+      <span class="t" style="left: ${x}px; top: ${y0 + 152}px; width: ${w}px; text-align: center; font-size: 15px; line-height: 18px; color: ${TAN_SH};">The Shallow Woods</span>`;
+    stats.forEach((s, i) => {
+      const cx = x + 64 + (i % 3) * 196, cy = y0 + 204 + Math.floor(i / 3) * 64;
+      h += `<img src="${s[0]}" alt="" style="left: ${cx}px; top: ${cy + 4}px; width: 32px; height: 32px;">
+        <span class="t" style="left: ${cx + 44}px; top: ${cy}px; font-size: 15px; line-height: 18px; color: ${TAN_SH};">${s[1]}</span>
+        <span class="t" style="left: ${cx + 44}px; top: ${cy + 20}px; font-size: 22px; line-height: 28px; color: ${INK};">${s[2]}</span>`;
+    });
+    h += `<span class="t" style="left: ${x}px; top: ${y0 + 360}px; width: ${w}px; text-align: center; font-family: 'Yatra', serif; font-size: 20px; line-height: 24px; color: ${INK};">Loot</span>`;
+    const loot = victory ? [IC.scale, IC.dagger, IC.scale] : [IC.scale];
+    const lx = x + w / 2 - (loot.length * 80 - 8) / 2;
+    loot.forEach((src, i) => {
+      h += `<img src="${a('socket_loot')}" alt="" style="left: ${lx + i * 80}px; top: ${y0 + 394}px; width: 72px; height: 72px;">
+        <img src="${src}" alt="" style="left: ${lx + i * 80 + 4}px; top: ${y0 + 398}px; width: 64px; height: 64px;">`;
+    });
+    h += `<button class="swap" data-click="return" style="left: ${x + w / 2 - 76}px; top: ${y0 + 500}px; width: 152px; height: 44px;">
+        <img class="off sh2" src="${a('btn_wide')}" alt="" style="left: 0; top: 0; width: 152px; height: 44px;">
+        <img class="on sh2" src="${a('btn_wide_hover')}" alt="" style="left: 0; top: 0; width: 152px; height: 44px;">
+        <span class="t nm" style="left: 0; top: 12px; width: 152px; text-align: center;">Return</span>
+      </button>`;
+    return h;
+  }
+
+  // ── Compose ──
+  const frame = document.getElementById('frame');
+  const stage = document.getElementById('stage');
+  function render() {
+    const s = ui.screen;
+    const end = s === 'victory' || s === 'defeat';
+    const base = end ? 'combat' : s;
+    const combat = base === 'combat';
+    let h = world(base);
+    h += vitalsCabinet() + goalsBoard() + logBoard(sim.log);
+    h += combat ? opponentChest() : expeditionChest(base);
+    h += techniqueDock(combat);
+    if (end) h += endCard(s === 'victory');
+    if (ui.today === '1') {
+      const cap = { walk: 'walk', encounter: 'encounter', combat: 'combat', victory: 'end', defeat: 'end' }[s];
+      h += `<img src="${A}today_${cap}_ai.jpg" alt="Today's adventure view" style="left: 0; top: 0; width: 1920px; height: 1080px;">
+        <span class="t" style="left: 760px; top: 1040px; width: 400px; text-align: center; font-size: 15px; line-height: 22px; color: ${INK}; background: ${BRASS};">TODAY (captured 2026-10-22)</span>`;
+    }
+    frame.innerHTML = h;
+    fitChest();
+    update();
+  }
+  // Entering a fight: the map stays on top for two dither steps (half its pixels, then a quarter).
+  function dissolveFrom(oldHtml) {
+    const layer = document.createElement('div');
+    layer.style.cssText = 'position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none;';
+    layer.innerHTML = oldHtml.replace(/ id="[^"]*"/g, '');
+    layer.className = 'dither-half';
+    frame.appendChild(layer);
+    setTimeout(() => { layer.className = 'dither-quarter'; }, 100);
+    setTimeout(() => layer.remove(), 200);
+  }
+
+  // ── Live values ──
+  function setText(id, html) {
+    const el = document.getElementById(id);
+    if (el && el.innerHTML !== html) el.innerHTML = html;
+  }
+  function setRod(id, name, width, frac) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const steps = (width - 2) / 2;
+    el.innerHTML = rodFill(name, Math.max(0, Math.min(steps, Math.floor(frac * steps + 1e-6))));
+  }
+  function update() {
+    setText('timerTxt', mmss(sim.clock));
+    const tt = document.getElementById('timerTex');
+    if (tt) tt.src = sim.clock <= 30 ? a('timer_low') : a('timer');
+    const hp = document.getElementById('hpOrb');
+    if (hp) hp.style.backgroundPosition = (-80 * orbFrame(sim.hp, sim.hpMax)) + 'px 0';
+    const md = document.getElementById('mdOrb');
+    if (md) md.style.backgroundPosition = (-80 * orbFrame(sim.madra, sim.madraMax)) + 'px 0';
+    setText('hpVal', `${Math.ceil(sim.hp)}<span style="color: ${TAN};"> / ${sim.hpMax}</span>`);
+    setText('mdVal', `${Math.floor(sim.madra)}<span style="color: ${TAN};"> / ${sim.madraMax}</span>`);
+    setRod('stRod', 'stamina', 240, sim.stam / sim.stamMax);
+    setText('stVal', `${Math.floor(sim.stam)}<span style="color: ${TAN};"> / ${sim.stamMax}</span>`);
+    setText('buffs', sim.enforce ? `<img src="${a('socket_buff')}" alt="" style="left: 0; top: 0; width: 40px; height: 40px;">
+      <img src="${S}sprites/abilities/enforce.png" alt="Enforce" style="left: 4px; top: 4px; width: 32px; height: 32px;">` : '');
+    setRod('enRod', 'health', 260, sim.enHp / sim.enMax);
+    setText('enVal', `${Math.ceil(sim.enHp)}<span style="color: ${TAN};"> / ${sim.enMax}</span>`);
+    const body = document.getElementById('icastBody');
+    if (body) {
+      const e = sim.ecast;
+      let html;
+      if (e.interrupted > 0) {
+        html = `<span class="t shake" style="left: 18px; top: 32px; font-size: 18px; line-height: 22px; color: ${BRASS};">Interrupted</span>`;
+      } else if (e.on) {
+        html = `<span class="t" style="left: 18px; top: 16px; font-size: 18px; line-height: 22px;">${LASH.name}</span>
+          <span class="t" style="left: 18px; top: 16px; width: 372px; text-align: right; font-size: 17px; line-height: 22px;">${dec(Math.max(0, LASH.cast - e.t).toFixed(1) + ' s')}</span>
+          <span class="t lbl" style="left: 18px; top: 40px;">About 9 Spirit damage</span>
+          ${rod('intent', 18, 64, 256, e.t / LASH.cast)}`;
+      } else {
+        html = `<span class="t lbl" style="left: 18px; top: 34px;">Gathering its madra</span>`;
+      }
+      if (body.innerHTML !== html) body.innerHTML = html;
+    }
+    const pc = document.getElementById('pcast');
+    if (pc) {
+      if (sim.pcast) {
+        const ab = ABIL[sim.pcast.i];
+        pc.style.display = 'block';
+        setText('pcastName', ab.name);
+        setText('pcastTime', dec(Math.max(0, ab.cast - sim.pcast.t).toFixed(1) + ' s'));
+        document.getElementById('pcastRod').innerHTML = rod('cast', 0, 0, 240, sim.pcast.t / ab.cast);
+      } else {
+        pc.style.display = 'none';
+      }
+    }
+    const inCombat = ui.screen === 'combat';
+    ABIL.forEach((ab, i) => {
+      const icon = document.getElementById('ic' + i);
+      if (!icon) return;
+      const left = inCombat ? sim.cds[i] : 0;
+      const cooling = left > 0;
+      const step = cooling ? Math.floor((1 - left / sim.cdMax[i]) * SWEEP_STEPS + 1e-6) : SWEEP_STEPS;
+      icon.style.backgroundPosition = (-64 * step) + 'px 0';
+      setText('cds' + i, cooling ? String(Math.ceil(left)) : '');
+      if (sim.wasCooling[i] && !cooling) {
+        const fl = document.getElementById('cr' + i);
+        fl.style.display = 'block';
+        fl.classList.remove('flash1');
+        void fl.offsetWidth;
+        fl.classList.add('flash1');
+      }
+      sim.wasCooling[i] = cooling;
+      const ok = (ab.res === 'stam' ? sim.stam : sim.madra) >= ab.cost;
+      document.getElementById('cost' + i).style.color = ok ? CREAM : TAN;
+      document.getElementById('kc' + i).style.color = inCombat && ok ? CREAM : TAN;
+      document.getElementById('cf' + i).style.display = sim.pcast && sim.pcast.i === i ? 'block' : 'none';
+    });
+  }
+
+  // ── The fight ──
+  function floater(text, color, x, y) {
+    const flo = document.getElementById('flo');
+    if (!flo) return;
+    const w = even(text.length * 9 + 28);
+    const el = document.createElement('div');
+    el.className = 'token floater';
+    el.style.cssText = `left: ${x - w / 2}px; top: ${y}px; width: ${w}px;`;
+    el.innerHTML = `<span class="t" style="width: ${w}px; color: ${color};">${text}</span>`;
+    flo.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+  function addLog(text, tone) {
+    sim.log.push([text, tone]);
+    if (sim.log.length > 5) sim.log.shift();
+    const el = document.getElementById('logLines');
+    if (el) el.innerHTML = logLines(sim.log, 74 + 26 * sim.log.length);
+  }
+  function shakeEl(el) {
+    if (!el) return;
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+  function useAbility(i) {
+    if (ui.screen !== 'combat' || sim.over) return;
+    const ab = ABIL[i];
+    const have = ab.res === 'stam' ? sim.stam : sim.madra;
+    if (sim.cds[i] > 0 || sim.pcast || have < ab.cost) {
+      shakeEl(document.getElementById('slot' + i));
+      if (have < ab.cost) addLog('Not enough ' + (ab.res === 'stam' ? 'Stamina' : 'Madra') + ' for ' + ab.name, TAN);
+      return;
+    }
+    if (ab.res === 'stam') sim.stam -= ab.cost; else sim.madra -= ab.cost;
+    if (ab.cast > 0) sim.pcast = { i: i, t: 0 };
+    else resolve(i);
+    update();
+  }
+  function resolve(i) {
+    const ab = ABIL[i];
+    sim.cds[i] = ab.cd;
+    sim.cdMax[i] = ab.cd;
+    if (ab.interrupt && sim.ecast.on) {
+      sim.ecast.on = false;
+      sim.ecast.t = 0;
+      sim.ecast.idle = LASH.idle + 0.6;
+      sim.ecast.interrupted = 0.6;
+      addLog('Interrupted Madra Lash', BRASS);
+    }
+    if (ab.dmg > 0) {
+      const dmg = Math.round(ab.dmg * (sim.enforce ? 1.5 : 1));
+      sim.enforce = false;
+      sim.enHp = Math.max(0, sim.enHp - dmg);
+      floater('-' + dmg, CREAM, 1220, 676);
+      addLog(ab.name + ' hits for ' + dmg, CREAM);
+      if (sim.enHp <= 0) {
+        sim.over = 1.0;
+        addLog('Defeated the Amorphous Spirit · +15 gold', BRASS);
+      }
+    } else {
+      sim.enforce = true;
+      addLog('Enforce: your next hit deals 1.5x', CREAM);
+    }
+  }
+  function tick() {
+    if (ui.screen === 'combat') {
+      const dt = 0.1;
+      if (sim.over > 0) {
+        sim.over -= dt;
+        if (sim.over <= 0) { setScreen('victory'); return; }
+      } else {
+        for (let i = 0; i < 4; i++) sim.cds[i] = Math.max(0, sim.cds[i] - dt);
+        sim.stam = Math.min(sim.stamMax, sim.stam + dt);
+        if (sim.pcast) {
+          sim.pcast.t += dt;
+          if (sim.pcast.t >= ABIL[sim.pcast.i].cast - 1e-6) { const i = sim.pcast.i; sim.pcast = null; resolve(i); }
+        }
+        const e = sim.ecast;
+        if (e.interrupted > 0) e.interrupted = Math.max(0, e.interrupted - dt);
+        if (e.on) {
+          e.t += dt;
+          if (e.t >= LASH.cast - 1e-6) {
+            e.on = false; e.t = 0; e.idle = LASH.idle;
+            sim.hp = Math.max(0, sim.hp - LASH.dmg);
+            floater('-' + LASH.dmg, HEALTH, 700, 648);
+            addLog('Madra Lash hits you for ' + LASH.dmg, HEALTH);
+            if (sim.hp <= 0) { setScreen('defeat'); return; }
+          }
+        } else {
+          e.idle -= dt;
+          if (e.idle <= 0) { e.on = true; e.t = 0; }
+        }
+      }
+    }
+    if (ui.screen !== 'victory' && ui.screen !== 'defeat') {
+      sim.sub += 1;
+      if (sim.sub >= 10) { sim.sub = 0; sim.clock = Math.max(0, sim.clock - 1); }
+    }
+    update();
+  }
+
+  // ── Controls ──
+  function syncBar() {
+    document.getElementById('c-screen').value = ui.screen;
+    document.getElementById('c-today').checked = ui.today === '1';
+    document.getElementById('c-fit').checked = ui.fit === '1';
+    applyFit();
+  }
+  function applyFit() {
+    if (ui.fit === '1') {
+      const s = Math.min(1, window.innerWidth / 1920);
+      frame.style.transform = 'scale(' + s + ')';
+      stage.style.height = (1080 * s) + 'px';
+      stage.style.overflow = 'hidden';
+    } else {
+      frame.style.transform = '';
+      stage.style.height = '';
+    }
+  }
+  function setScreen(s) {
+    const from = ui.screen;
+    const old = frame.innerHTML;
+    if (s === 'combat' && from !== 'combat') {
+      const keep = { clock: sim.clock, log: sim.log };
+      sim = freshSim();
+      sim.clock = keep.clock;
+      sim.log = keep.log;
+      addLog('Encounter: Attack the Spirit', CREAM);
+    }
+    if (s === 'walk' && (from === 'victory' || from === 'defeat')) sim = freshSim();
+    ui.screen = s;
+    writeHash();
+    syncBar();
+    render();
+    if (s === 'combat' && (from === 'encounter' || from === 'walk')) dissolveFrom(old);
+  }
+  document.getElementById('c-screen').addEventListener('change', (e) => setScreen(e.target.value));
+  document.getElementById('c-today').addEventListener('change', (e) => { ui.today = e.target.checked ? '1' : '0'; writeHash(); render(); });
+  document.getElementById('c-fit').addEventListener('change', (e) => { ui.fit = e.target.checked ? '1' : '0'; writeHash(); applyFit(); });
+  window.addEventListener('resize', applyFit);
+  frame.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-click]');
+    if (!b) return;
+    const c = b.getAttribute('data-click');
+    if (c === 'walk') setScreen('encounter');
+    else if (c === 'fight') setScreen('combat');
+    else if (c === 'return') setScreen('walk');
+    else if (c.indexOf('use:') === 0) useAbility(+c.slice(4));
+  });
+  frame.addEventListener('mouseover', (e) => {
+    const tip = document.getElementById('tip');
+    if (!tip) return;
+    const b = e.target.closest('[data-tip]');
+    if (!b) { tip.style.display = 'none'; return; }
+    tip.innerHTML = tooltip(+b.getAttribute('data-tip'));
+    tip.style.left = Math.min(1600, parseInt(b.style.left, 10) - 8) + 'px';
+    tip.style.top = (920 - 192) + 'px';
+    tip.style.display = 'block';
+  });
+  frame.addEventListener('mouseleave', () => { const tip = document.getElementById('tip'); if (tip) tip.style.display = 'none'; });
+  document.addEventListener('keydown', (e) => {
+    const i = 'qwer'.indexOf(e.key.toLowerCase());
+    if (i >= 0) useAbility(i);
+  });
+
+  readHash();
+  syncBar();
+  document.fonts.ready.then(() => {
+    render();
+    setInterval(tick, 100);
+    // #demo=cd uses all four techniques on load, so a capture shows cooldowns running.
+    if (new URLSearchParams(location.hash.slice(1)).get('demo') === 'cd' && ui.screen === 'combat') {
+      setTimeout(() => useAbility(3), 1600);
+      setTimeout(() => useAbility(1), 4700);
+      setTimeout(() => useAbility(0), 4900);
+      setTimeout(() => useAbility(2), 5500);
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -92,6 +92,12 @@ func apply_vitals_change(health_amount: float = 0.0, stamina_amount: float = 0.0
 	_apply_stamina_change(stamina_amount)
 	_apply_madra_change(madra_amount)
 
+## Returns the maximum Health the attributes give: Body x 10. A combatant's
+## manager uses it for its own max_health, and the adventure chest quotes it
+## for an enemy it has not met yet, so both read the one rule.
+static func max_health_for(attributes: CharacterAttributesData) -> float:
+	return attributes.get_attribute(AttributeType.BODY) * 10.0
+
 
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
@@ -123,7 +129,7 @@ func _apply_madra_change(amount: float) -> void:
 
 ## Calculate maximum health based on Body attribute
 func _get_max_health() -> float:
-	return character_attributes_data.get_attribute(AttributeType.BODY) * 10.0
+	return max_health_for(character_attributes_data)
 
 ## Calculate maximum stamina based on Body attribute
 func _get_max_stamina() -> float:

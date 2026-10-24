@@ -1,6 +1,6 @@
 # Unlock System
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
 ## Overview
 
@@ -45,7 +45,7 @@ condition_unlocked listeners:
 | Registration in `unlock_condition_list.tres` | Required. An unregistered id never latches. | Not needed |
 | Keyed by | `condition_id` string only | The resource's own fields |
 | Can turn false again | No | Yes |
-| Consumers | `ZoneManager.get_available_actions()` (zone and action gates); `ZoneManager.get_zone_map_state()` (`chart_conditions` → UNCHARTED, `zone_unlock_conditions` → LOCKED), which `ZoneTilemap` and `MapMarkers` draw | `QuestManager` condition steps; `AdventureEncounter.is_eligible()` (map generation); `EncounterChoice.evaluate_requirements()` / `is_completed()` (encounter panel); the Goals board's step figure (`get_current_value()` / `get_target_value()`) |
+| Consumers | `ZoneManager.get_available_actions()` (zone and action gates); `ZoneManager.get_zone_map_state()` (`chart_conditions` → UNCHARTED, `zone_unlock_conditions` → LOCKED), which `ZoneTilemap` and `MapMarkers` draw | `QuestManager` condition steps; `AdventureEncounter.is_eligible()` (map generation); `EncounterChoice.evaluate_requirements()` / `is_completed()` (`ChoiceDrawer`); the Goals board's step figure (`get_current_value()` / `get_target_value()`) |
 
 Consequences:
 
@@ -162,7 +162,7 @@ The dev panel opens with Ctrl+Shift+D. It fills a dropdown with every `condition
 | QuestManager | Re-checks condition steps on `condition_unlocked`. See [QUESTS.md](../progression/QUESTS.md). |
 | EventManager | Sweep trigger. Read live by `EVENT_TRIGGERED`. See [EVENTS.md](EVENTS.md). |
 | Adventure map generator | `AdventureEncounter.is_eligible()` filters `encounter_quotas` before placement (anchors, fillers, filler fallback). It always returns true in the editor. |
-| EncounterInfoPanel | `EncounterChoice.evaluate_requirements()` and `is_completed()` set each button's disabled state and label |
+| `ChoiceDrawer` (the expedition page) | `EncounterChoice.evaluate_requirements()` and `is_completed()` set each drawer's locked or completed state and label |
 | CultivationManager / ResourceManager | Sweep triggers and evaluation sources |
 | InventoryManager / CharacterManager | Evaluation sources only (not sweep triggers) |
 | DevPanel | `force_unlock_condition()` |

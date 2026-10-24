@@ -200,7 +200,7 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | `scenes/zones/zone_action_button/presenters/adventure_presenter.gd` | Adventure card's Madra line, rod and threshold UX |
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Zone Madra orb, Madra rate and gold display |
 | `singletons/cultivation_manager/cultivation_manager.gd` | `get_max_madra()` (pool cap) |
-| `scenes/combat/adventure_combat/adventure_combat.gd` | Gold reward formula (`_calculate_gold_reward`) |
+| `scenes/combat/adventure_combat/adventure_combat.gd` | Gold reward formula (the static `gold_reward_for()`; `_calculate_gold_reward` returns it) |
 | `tests/unit/test_resource_manager.gd` | 39 tests of the real singleton: Madra with stage-cap clamping, gold, `award_resource()`, signals, log lines, adventure capacity, budget and threshold |
 | `tests/integration/test_adventure_flow.gd` | 10 tests of the adventure Madra gate through the real singletons, including a Foundation bonus from equipment |
 | `tests/unit/test_quiet_madra.gd` | Calls the real `add_madra()` / `award_resource()`: quiet awards add without a log line, capped adds log nothing, and the returned amount is what was added |
