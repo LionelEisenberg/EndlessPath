@@ -53,7 +53,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 
 | Doc | Summary |
 |---|---|
-| [testing/TESTING.md](testing/TESTING.md) | Running GUT (including the first-run `--import` gotcha), conventions, coverage map, gaps |
+| [testing/TESTING.md](testing/TESTING.md) | Running GUT (including the first-run `--import` gotcha), the noise a passing run prints, conventions, coverage gaps |
 | [tooling/DEV_TOOLS.md](tooling/DEV_TOOLS.md) | Dev panel (Ctrl+Shift+D), map preview, UID generator, debug switches |
 | [../resources/loot_tables/README.md](../resources/loot_tables/README.md) | Authoring loot tables |
 | [../scenes/combat/combat_architecture.md](../scenes/combat/combat_architecture.md) | Short orientation to the combat scene code (points to COMBAT.md) |

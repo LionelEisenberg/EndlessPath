@@ -49,7 +49,7 @@ If the project has never been imported in the current environment, run `--import
 
 A fresh-checkout `--import` used to rewrite `project.godot`'s `[dialogic]` `directories/dch_directory` and `directories/dtl_directory` to `{}`. The local Dialogic patch listed under GDScript Coding Standards → Scope prevents that. If `git diff project.godot` ever shows those keys emptied again, the patch was probably lost in a Dialogic upgrade: restore the file and re-apply the patch before committing.
 
-See `docs/testing/TESTING.md` for test conventions, the coverage map, and why tests must call production code instead of re-implementing ("mirroring") it.
+See `docs/testing/TESTING.md` for test conventions, the coverage gaps, and why tests must call production code instead of re-implementing ("mirroring") it.
 
 ## Architecture
 
