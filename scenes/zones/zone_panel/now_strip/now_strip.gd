@@ -213,11 +213,13 @@ func _level_reward_text(training: TrainingActionData) -> String:
 ## The cycling action in the Aura Well's layout: its name, and the equipped
 ## technique where the level line goes. The figure, the rod and the rate follow
 ## the session snapshot every frame. The tray takes no clicks while cycling, so
-## no hover frame stays from the idle action's tray.
+## no hover frame stays from the idle action's tray. The name and the technique
+## wrap in the Aura Well's rows, so they get their room as the well's do.
 func _show_cycling() -> void:
 	_hover_frame.hide()
 	_training_name.text = _action.action_name
 	_update_technique()
+	_fit_training_labels()
 
 ## The equipped technique's name, where the Aura Well shows its level line.
 func _update_technique() -> void:
@@ -225,12 +227,21 @@ func _update_technique() -> void:
 	_level_label.text = technique.technique_name if technique != null else ""
 
 ## The ring, the figure, the rod and the rate, read from the session snapshot.
+## The name wraps beside the rate and the technique beside the figure, so when
+## either changes the rows get their room again and the strip fits; on the
+## frames between, nothing is laid out.
 func _update_cycle_display() -> void:
 	var progress: float = CyclingManager.get_cycle_progress()
 	_light_ring(progress)
 	_well_rod.set_fraction(progress)
+	var figure_before: String = _ticks_label.text
+	var rate_before: String = _rate_text.text if _rate_group.visible else ""
 	_update_cycle_figure()
 	_update_cycle_rate()
+	var rate_after: String = _rate_text.text if _rate_group.visible else ""
+	if _ticks_label.text != figure_before or rate_after != rate_before:
+		_fit_training_labels()
+		_fit()
 
 ## "9 / 15 s" while a cycle runs; until one does, the equipped technique's
 ## length, "15 s cycle".
@@ -384,6 +395,8 @@ func _on_equipped_technique_changed(_technique: CyclingTechniqueData) -> void:
 	if _is_cycling(_action):
 		_update_technique()
 		_update_cycle_figure()
+		_fit_training_labels()
+		_fit()
 
 func _on_gui_input(event: InputEvent) -> void:
 	var press := event as InputEventMouseButton

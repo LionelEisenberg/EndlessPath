@@ -80,6 +80,7 @@ var _original_zone_name: String = ""
 var _relored_zone: ZoneData = null
 var _original_description: String = ""
 var _renamed_actions: Dictionary[ZoneActionData, String] = {}
+var _renamed_techniques: Dictionary[CyclingTechniqueData, String] = {}
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -108,6 +109,9 @@ func after_each() -> void:
 	for action: ZoneActionData in _renamed_actions:
 		action.action_name = _renamed_actions[action]
 	_renamed_actions.clear()
+	for technique: CyclingTechniqueData in _renamed_techniques:
+		technique.technique_name = _renamed_techniques[technique]
+	_renamed_techniques.clear()
 	_panel = null
 
 #-----------------------------------------------------------------------------
@@ -397,7 +401,8 @@ func test_tray_shows_the_cycle_ready() -> void:
 
 func test_tray_follows_the_running_cycle() -> void:
 	# 9 s into a 15 s cycle: the ring lights floor(0.6 x 13) = 7 beads, the rod
-	# stands at round(0.6 x 152) = 91 steps, and the rate is the one drawn.
+	# (the strip's, 144 steps) stands at round(0.6 x 144) = 86, and the rate is
+	# the one drawn.
 	await _add_panel()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	CyclingManager.start_cycle_session(15.0)
@@ -405,7 +410,7 @@ func test_tray_follows_the_running_cycle() -> void:
 	await wait_process_frames(1)
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i(7, 0), "seven beads")
 	assert_eq((_strip_node("TicksLabel") as Label).text, "9 / 15 s")
-	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 91)
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 86)
 	assert_true((_strip_node("RateGroup") as Control).is_visible_in_tree())
 	assert_eq((_strip_node("RateText") as RichTextLabel).get_parsed_text(), "+13.3 Madra / s")
 	assert_has(_texts(_strip()), "Foundational Technique", "the detail stays the technique's name")
@@ -430,7 +435,7 @@ func test_tray_lights_the_whole_ring_at_the_end_of_the_cycle() -> void:
 	await wait_process_frames(1)
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i(12, 0))
 	assert_eq((_strip_node("TicksLabel") as Label).text, "8 / 8 s")
-	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 152, "the rod is full")
+	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 144, "the rod is full")
 
 func test_tray_goes_back_to_ready_when_the_cycle_ends() -> void:
 	await _add_panel()
@@ -807,19 +812,39 @@ func test_the_strip_takes_its_height_back_from_many_yields() -> void:
 	assert_eq(_strip().size.y, STRIP_HEIGHT, "the kit's 88 again")
 	_assert_chest_follows_the_strip()
 
+## The shop pauses the idle action (cycling shows itself in the tray instead).
 func test_a_long_paused_line_wraps_and_grows_the_strip() -> void:
 	_rename_action(AURA_WELL_ID, LONG_NAME)
-	var cycling: ZoneActionData = ZoneManager.get_action_by_id(CYCLING_ID)
-	for condition: UnlockConditionData in cycling.unlock_conditions:
+	var shop: ZoneActionData = ZoneManager.get_action_by_id(MERCHANT_ID)
+	for condition: UnlockConditionData in shop.unlock_conditions:
 		UnlockManager.force_unlock_condition(condition.condition_id)
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	await _add_panel()
-	ActionManager.select_action(cycling)
+	ActionManager.select_action(shop)
 	await wait_process_frames(2)
 	var line := _strip_node("EmptyLabel") as Label
 	assert_true(line.is_visible_in_tree(), "precondition: the tray is empty and reads paused")
 	assert_gt(line.get_line_count(), 1, "precondition: the line needs more than one line in its 292 px")
 	assert_eq(line.text_overrun_behavior, NO_TRIMMING)
+	assert_eq(_strip().size.y, STRIP_HEIGHT + DETAIL_LINE * (line.get_line_count() - 1), "every line after the first adds the detail's 18 px")
+	assert_eq(fposmod(_strip().size.y, 2.0), 0.0)
+	_assert_chest_follows_the_strip()
+
+## While cycling, the equipped technique stands where the Aura Well's level line
+## goes: a long name wraps in what the cycle's figure leaves and grows the strip,
+## and the header, the list and the lore move down with it. (The techniques mode
+## is MainView's to turn on, so the panel alone keeps its activity list.)
+func test_a_long_technique_name_wraps_and_grows_the_cycling_strip() -> void:
+	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
+	_renamed_techniques[technique] = technique.technique_name
+	technique.technique_name = "The Foundational Technique of the Endless Misty Bamboo Hollow, Breathed Under A Cold Moon"
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	await wait_process_frames(2)
+	var line := _strip_node("LevelLabel") as Label
+	assert_gt(line.get_line_count(), 1, "precondition: the name needs more than one line")
+	assert_eq(line.text_overrun_behavior, NO_TRIMMING)
+	assert_lte(line.get_global_rect().end.x, (_strip_node("TicksLabel") as Control).get_global_rect().position.x, "before the cycle's figure")
 	assert_eq(_strip().size.y, STRIP_HEIGHT + DETAIL_LINE * (line.get_line_count() - 1), "every line after the first adds the detail's 18 px")
 	assert_eq(fposmod(_strip().size.y, 2.0), 0.0)
 	_assert_chest_follows_the_strip()
