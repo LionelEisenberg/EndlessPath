@@ -38,7 +38,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 ## Health
 
 - **Size:** about 28k lines of game GDScript plus 31k lines of tests, 131 scenes, 106 data resources, 10 shaders.
-- **Tests:** 2073/2073 pass across 139 files in about 255 s (GUT 9.7.1, Godot 4.7.2, run on 2026-10-23). Every suite calls the code it tests, including the ResourceManager, CultivationManager, CharacterManager and InventoryManager suites ([TESTING.md](testing/TESTING.md)).
+- **Tests:** 2073/2073 pass across 139 files in about 234 s (GUT 9.7.1, Godot 4.7.2, run on 2026-10-23). Every suite calls the code it tests, including the ResourceManager, CultivationManager, CharacterManager and InventoryManager suites ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.
   - One unmerged branch, `feat/infallible-chaum-58f8ad`, adds in-combat consumables (20 commits, no PR).
