@@ -1,7 +1,5 @@
 # Inventory System
 
-Last updated: 2026-10-22
-
 ## Overview
 
 The inventory holds what the player owns and what they have equipped:
@@ -456,7 +454,7 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
 
-Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`. That is 22 files and 161 tests.
+Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`.
 
 ## Work Remaining
 

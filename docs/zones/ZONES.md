@@ -1,10 +1,8 @@
 # Zones & Actions
 
-Last updated: 2026-10-24
-
 ## Overview
 
-The zone view is the home base and the initial `MainView` state. Since the map-first rebuild (2026-10-22, branch `feat/zone-view-redesign-4656b7`, [spec](../superpowers/specs/2026-10-21-zone-view-map-first-design.md), [art kit](../superpowers/specs/2026-10-21-zone-view-lacquer-kit.md)) it is drawn in the **Lacquer and brass** look:
+The zone view is the home base and the initial `MainView` state. Since the map-first rebuild (PR #51, [spec](../superpowers/specs/2026-10-21-zone-view-map-first-design.md), [art kit](../superpowers/specs/2026-10-21-zone-view-lacquer-kit.md)) it is drawn in the **Lacquer and brass** look:
 
 - a 2D hex map (`ZoneTilemap`) at zoom 2 fills the screen. The current zone sits at screen (960, 702) inside a lattice of fog, and the player character stands on it;
 - the **cultivator cabinet** (`CultivatorPlate`) at the top left shows Madra, Core Density and gold;
@@ -841,9 +839,9 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | [2026-04-10 zone action button visuals spec](../superpowers/specs/2026-04-10-zone-action-button-visuals-design.md) and [plan](../superpowers/plans/2026-04-10-zone-action-button-visuals.md) | Shipped in PR #18, then reworked into presenters in PR #29. Superseded by the 2026-10-21 lacquer cards |
 | [2026-04-17 training action infrastructure spec](../superpowers/specs/2026-04-17-training-action-infrastructure-design.md) and [plan](../superpowers/plans/2026-04-17-training-action-infrastructure.md) | Shipped in PR #29. The content was renamed Spirit Well → Aura Well and gated by an event (PR #36) |
 | [2026-04-17 presenter refactor spec](../superpowers/specs/2026-04-17-zone-action-button-presenter-refactor-design.md), [pass 1](../superpowers/plans/2026-04-17-zone-action-button-presenter-refactor-pass-1.md) and [pass 2](../superpowers/plans/2026-04-17-zone-action-button-presenter-refactor-pass-2.md) | Both passes shipped in PR #29. The presenter split survives; the slots changed in the 2026-10-21 rebuild |
-| [2026-10-21 map-first zone view spec](../superpowers/specs/2026-10-21-zone-view-map-first-design.md), [lacquer art kit](../superpowers/specs/2026-10-21-zone-view-lacquer-kit.md), [mock-up](../superpowers/mockups/zone-view-map-first-mockup.html) and [plan](../superpowers/plans/2026-10-21-zone-view-map-first.md) | Built 2026-10-22 on `feat/zone-view-redesign-4656b7` and merged as PR #51. The plan's "As built" section lists the deviations |
-| [2026-10-22 cycling view spec](../superpowers/specs/2026-10-22-cycling-view-lacquer-design.md), [mock-up](../superpowers/mockups/cycling-view-lacquer-mockup.html) and [plan](../superpowers/plans/2026-10-22-cycling-view-lacquer.md) | Built 2026-10-22 and 23 on `feat/cycling-view-styleguide-ea3170` and merged as PR #57. The spec's "As built" section lists the deviations |
-| [2026-10-23 Tribulation spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), [prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html) and [plan](../superpowers/plans/2026-10-23-tribulation-breath-of-the-core.md) | Built 2026-10-23 and 24 on `feat/gameplay-priorities-c64b38`, not merged. The plan's "As built (2026-10-24)" section lists the deviations |
+| [2026-10-21 map-first zone view spec](../superpowers/specs/2026-10-21-zone-view-map-first-design.md), [lacquer art kit](../superpowers/specs/2026-10-21-zone-view-lacquer-kit.md), [mock-up](../superpowers/mockups/zone-view-map-first-mockup.html) and [plan](../superpowers/plans/2026-10-21-zone-view-map-first.md) | Built as PR #51. The plan's "As built" section lists the deviations |
+| [2026-10-22 cycling view spec](../superpowers/specs/2026-10-22-cycling-view-lacquer-design.md), [mock-up](../superpowers/mockups/cycling-view-lacquer-mockup.html) and [plan](../superpowers/plans/2026-10-22-cycling-view-lacquer.md) | Built as PR #57. The spec's "As built" section lists the deviations |
+| [2026-10-23 Tribulation spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), [prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html) and [plan](../superpowers/plans/2026-10-23-tribulation-breath-of-the-core.md) | Built as PR #62. The plan's "As built (2026-10-24)" section lists the deviations |
 
 ## Work Remaining
 

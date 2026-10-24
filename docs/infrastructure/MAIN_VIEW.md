@@ -1,5 +1,4 @@
 # Main View (UI Shell and Navigation)
-Last updated: 2026-10-24
 
 ## Overview
 

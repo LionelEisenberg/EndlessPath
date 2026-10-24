@@ -1,7 +1,5 @@
 # LootTable Guide
 
-Last updated: 2026-10-18
-
 ## Overview
 
 A `LootTable` is a list of entries. Each entry rolls on its own, so one roll can award several items at once.

@@ -1,13 +1,12 @@
 # Style Guide: Lacquer and Brass
-Last updated: 2026-10-24
 
 The game's visual style, taken from the zone view rework, and the list of screens still to move to it. Read it before you rework a screen or build a new one.
 
 ## 1. What this is
 
-- **Status.** Distilled from the zone view rework (`feat/zone-view-redesign-4656b7`, built 2026-10-22, merged as PR #51). The zone view, the two HUD boards it shares with the adventure view (Log and Goals), the cycling view (merged as PR #57) and, since the adventure rework's PR 1 on `feat/adventure-view-styleguide-1fc223` (built 2026-10-23, not merged), the adventure view's map and frame (vitals cabinet, chest, technique dock) and, on `feat/gameplay-priorities-c64b38` (built 2026-10-23 and 24, not merged), the Tribulation board use the look today. The rest of [§13](#13-cascade-backlog) is still to do, the adventure's fight view and end card included. This doc changes no code.
+- **Status.** Distilled from the zone view rework (PR #51). The zone view, the two HUD boards it shares with the adventure view (Log and Goals), the cycling view, the adventure view's map and frame (vitals cabinet, chest, technique dock) and the Tribulation board use the look today. The rest of [§13](#13-cascade-backlog) is still to do, the adventure's fight view and end card included. This doc changes no code.
 - **Use it as a reference in other branches.** Each later branch takes one area of the backlog, applies these rules, and deletes its rows here.
-- **The kit's files come with that branch.** The textures (`assets/ui/lacquer/`), the theme (`assets/themes/lacquer/lacquer_theme.tres`), the styleboxes (`assets/styleboxes/lacquer/`), the components (`scenes/common/lacquer/`, `LacquerRail`, `LacquerText`), the two orb shaders and the generators all arrived with `feat/zone-view-redesign-4656b7` (PR #51). A branch cut from `main` before that merge does not have them. The adventure's pieces (the technique dock's slot and key cap, the buff and glyph sockets, the tooltip board, the coin tokens, the veil atlas, the cooldown sweep shader and their generators in `docs/superpowers/mockups/adventure-view-lacquer/gen/`) arrive with `feat/adventure-view-styleguide-1fc223`, which is not merged yet.
+- **The kit's files come with that branch.** The textures (`assets/ui/lacquer/`), the theme (`assets/themes/lacquer/lacquer_theme.tres`), the styleboxes (`assets/styleboxes/lacquer/`), the components (`scenes/common/lacquer/`, `LacquerRail`, `LacquerText`), the two orb shaders and the generators all arrived with PR #51, and the adventure's pieces (the technique dock's slot and key cap, the buff and glyph sockets, the tooltip board, the coin tokens, the veil atlas, the cooldown sweep shader and their generators in `docs/superpowers/mockups/adventure-view-lacquer/gen/`) with PR #58. A branch cut from `main` before those merges does not have them.
 - **How it relates to the other docs:**
 
 | Doc | What it holds | Who wins |
@@ -484,10 +483,9 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 | End card | E1 | 1 | 0 | 0 | 1 |
 | Menu books | K1–K13 | 13 | 6 | 6 | 1 |
 | Project-wide | P1–P2 | 2 | 1 | 0 | 1 |
-| **Total** | | **35** | **13** | **15** | **7** |
 
 **Taking a row in another branch:**
-1. Make sure the kit's files are there (the branch is cut after PR #51, and after `feat/adventure-view-styleguide-1fc223` for the adventure's pieces).
+1. Make sure the kit's files are there (the branch is cut after PR #51, and after PR #58 for the adventure's pieces).
 2. Settle the row's open questions with the user before building.
 3. Build to §3–§11 and check the result against §12 on a 1920x1080 capture.
 4. Add any new variant or stylebox to UI_STYLING.md and `tests/unit/test_lacquer_pieces.gd`; rewrite the tests that pin the old look.

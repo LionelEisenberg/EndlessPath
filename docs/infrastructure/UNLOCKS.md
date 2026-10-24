@@ -1,7 +1,5 @@
 # Unlock System
 
-Last updated: 2026-10-24
-
 ## Overview
 
 Content gating is built on one resource class, `UnlockConditionData`: a named predicate over game state (event fired, Core Density level, Madra, item owned, and so on). It is consumed in two ways:

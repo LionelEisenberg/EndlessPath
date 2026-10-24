@@ -1,7 +1,5 @@
 # Combat System
 
-Last updated: 2026-10-23
-
 ## Overview
 
 Combat is a real-time, one-versus-one fight that runs inside an adventure. When the player picks a `CombatChoice` on an adventure tile, the hex map hides and `AdventureCombat` builds two `CombatantNode`s: the player (attributes snapshot + equipped loadout) and the first enemy in the choice's `enemy_pool`. Each side casts abilities that cost Health, Madra or Stamina, may have a cast time, then go on cooldown. Effects deal damage, heal, apply buffs, interrupt casts, or strip buffs. The enemy is driven by `SimpleEnemyAI`. The fight ends the moment either side's Health reaches 0.

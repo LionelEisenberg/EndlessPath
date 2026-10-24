@@ -1,7 +1,5 @@
 # Character, Player Vitals and Character View
 
-Last updated: 2026-10-23
-
 ## Overview
 
 Three pieces make up the player's persistent identity outside of abilities:
@@ -240,8 +238,8 @@ Values are read only when the book opens. Nothing updates them while it is open.
 | `scenes/character/attribute_tile/attribute_tile.tscn` / `.gd` | Tile subscene |
 | `tests/integration/test_character_book.gd` | Tiles four to a row, right page follows hover, opens on Strength, values from `CharacterManager`, effects share the details pane and stay put, match the code and list only unlocked abilities, pages wait for the open book |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Pushes `CharacterViewState` on `open_character` |
-| `tests/unit/test_character_attributes_data.gd` | `get_max_madra()` (3 tests) |
-| `tests/unit/test_character_manager.gd` | 28 tests: `CharacterAttributesData` getters, and the real `get_total_attributes_data()` with gear, both accessory slots, stacking and negative bonuses, equip/unequip through `InventoryManager`, and `add_base_attribute()` with its signal |
+| `tests/unit/test_character_attributes_data.gd` | `get_max_madra()` |
+| `tests/unit/test_character_manager.gd` | `CharacterAttributesData` getters, and the real `get_total_attributes_data()` with gear, both accessory slots, stacking and negative bonuses, equip/unequip through `InventoryManager`, and `add_base_attribute()` with its signal |
 | `tests/unit/test_award_attribute_effect_data.gd` | `AwardAttributeEffectData` → `add_base_attribute()` against the real singleton |
 | `tests/unit/test_change_vitals_effect_data.gd` | BODY / FOUNDATION scaling through the real `get_total_attributes_data()` |
 

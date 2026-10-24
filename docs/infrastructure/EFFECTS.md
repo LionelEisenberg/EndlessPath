@@ -1,7 +1,5 @@
 # Effects (EffectData)
 
-Last updated: 2026-10-24
-
 ## Overview
 
 `EffectData` is the game's world-side "do something" primitive. It is an abstract `Resource` with a `process()` method. Subclasses award resources, items, attributes, or path points, fire [events](EVENTS.md), start [quests](../progression/QUESTS.md), or change vitals. Effects are authored in `.tres` files, usually as inline sub-resources inside the action, quest, encounter, or item that owns them. Each owner keeps them in an `Array[EffectData]`, and runners call `process()` on each entry in order.

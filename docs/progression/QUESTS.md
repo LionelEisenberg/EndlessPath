@@ -1,7 +1,5 @@
 # Quest System
 
-Last updated: 2026-10-24
-
 ## Overview
 
 Quests are linear, multi-step narrative signposts that tell the player what to do next. They hold no gameplay logic of their own: each step subscribes to an event ([EventManager](../infrastructure/EVENTS.md)) or to a set of [`UnlockConditionData`](../infrastructure/UNLOCKS.md) predicates. When the last step advances, the quest's `completion_effects` fire through the [EffectData](../infrastructure/EFFECTS.md) chain.

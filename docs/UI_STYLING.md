@@ -1,5 +1,4 @@
 # UI Styling
-Last updated: 2026-10-24
 
 All UI text in the game flows through a **Label theme variant type-scale** defined in `assets/themes/pixel_theme.tres`. Use variants instead of inline size overrides so the type hierarchy stays consistent and global tuning is possible in one place.
 

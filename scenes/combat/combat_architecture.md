@@ -1,7 +1,5 @@
 # Combat Architecture
 
-Last updated: 2026-10-23
-
 Short orientation for the code in `scenes/combat/`. The maintained reference (data model, damage formula, buffs, AI, UI, enemy content, open work) is [docs/combat/COMBAT.md](../../docs/combat/COMBAT.md).
 
 > Earlier versions of this file described a `CombatantResourceManager`, a `CombatView` script, `CombatEncounter` and `character_abilities_data`. None of those exist: the resource manager became `VitalsManager` (2025-11-29), the fight is hosted by `AdventureView`, encounters use `CombatChoice`, and the loadout comes from `AbilityManager`.

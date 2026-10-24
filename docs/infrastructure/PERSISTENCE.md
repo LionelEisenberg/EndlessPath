@@ -1,7 +1,5 @@
 # Persistence System
 
-Last updated: 2026-10-24
-
 ## Overview
 
 `PersistenceManager` (autoload #1) owns the game's single save object, a `SaveGameData` resource. It loads `user://save.tres` at boot and validates it. The `SaveTimer` node in `main_game.tscn` writes it back every 5 seconds. Every other manager holds a live reference to the same `SaveGameData` instance and reads and writes its own fields directly. There is no per-manager serialization step.
@@ -232,7 +230,7 @@ Some managers tolerate stale ids in their own way, which partly makes up for the
 | `ZoneManager` | `has_zone()` backs `SaveGameData.verify()`; it uses the `SaveGameData` zone helpers |
 | `MainGame` / `SaveTimer` | The 5 s auto-save |
 | `Log` | Boot diagnostics (`Log.info` / `Log.warn` / `Log.critical`) |
-| Tests | 11 test files replace `PersistenceManager.save_game_data` with `SaveGameData.new()` and emit `save_data_reset`, and several more replace the inventory or a manager's `live_save_data`. None call `save_data()` |
+| Tests | Test files replace `PersistenceManager.save_game_data` with `SaveGameData.new()` and emit `save_data_reset`, and several more replace the inventory or a manager's `live_save_data`. None call `save_data()` |
 
 ## Key Files
 

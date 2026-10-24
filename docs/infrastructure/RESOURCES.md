@@ -1,7 +1,5 @@
 # Resource Tracking (Madra and Gold)
 
-Last updated: 2026-10-24
-
 ## Overview
 
 `ResourceManager` is the global singleton for the game's two currencies:
@@ -201,8 +199,8 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Zone Madra orb, Madra rate and gold display |
 | `singletons/cultivation_manager/cultivation_manager.gd` | `get_max_madra()` (pool cap) |
 | `scenes/combat/adventure_combat/adventure_combat.gd` | Gold reward formula (the static `gold_reward_for()`; `_calculate_gold_reward` returns it) |
-| `tests/unit/test_resource_manager.gd` | 41 tests of the real singleton: Madra with stage-cap clamping (and a pool above a lowered cap kept, still spent by a negative amount), gold, `award_resource()`, signals, log lines, adventure capacity, budget and threshold |
-| `tests/integration/test_adventure_flow.gd` | 10 tests of the adventure Madra gate through the real singletons, including a Foundation bonus from equipment |
+| `tests/unit/test_resource_manager.gd` | The real singleton: Madra with stage-cap clamping (and a pool above a lowered cap kept, still spent by a negative amount), gold, `award_resource()`, signals, log lines, adventure capacity, budget and threshold |
+| `tests/integration/test_adventure_flow.gd` | The adventure Madra gate through the real singletons, including a Foundation bonus from equipment |
 | `tests/unit/test_quiet_madra.gd` | Calls the real `add_madra()` / `award_resource()`: quiet awards add without a log line, capped adds log nothing, and the returned amount is what was added |
 | `tests/unit/test_cultivation_getters.gd` | `CultivationManager.get_max_madra()` follows the level |
 

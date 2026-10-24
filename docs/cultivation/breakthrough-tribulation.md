@@ -1,8 +1,6 @@
 # Breakthrough and Tribulation
 
-Last updated: 2026-10-24
-
-> **Status:** built on `feat/gameplay-priorities-c64b38` (2026-10-23 and 24), not merged, and not yet played through by the user. The design is [2026-10-23-tribulation-breath-of-the-core-design.md](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), settled with the user on 2026-10-23, with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html). The [plan](../superpowers/plans/2026-10-23-tribulation-breath-of-the-core.md) ends with an "As built (2026-10-24)" section that lists where the build differs from the plan's text. Core Density caps at 100 in Foundation, a pass moves the player to a thin Copper stage, and every number below is a starting value kept in data (see [CULTIVATION.md](CULTIVATION.md)).
+> **Status:** built (PR #62), and not yet played through by the user. The design is [2026-10-23-tribulation-breath-of-the-core-design.md](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), settled with the user on 2026-10-23, with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html). The [plan](../superpowers/plans/2026-10-23-tribulation-breath-of-the-core.md) ends with an "As built (2026-10-24)" section that lists where the build differs from the plan's text. Core Density caps at 100 in Foundation, a pass moves the player to a thin Copper stage, and every number below is a starting value kept in data (see [CULTIVATION.md](CULTIVATION.md)).
 
 ## How it plays
 

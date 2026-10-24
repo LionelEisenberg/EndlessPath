@@ -1,7 +1,5 @@
 # Dialogue (DialogueManager + Dialogic)
 
-Last updated: 2026-10-23
-
 ## Overview
 
 Narrative dialogue runs on the **Dialogic** addon (`addons/dialogic/`, version `2.0-Alpha-19 (Godot 4.4+)`, autoloaded as `Dialogic`). The game wraps it in the thin `DialogueManager` autoload, which starts a timeline (optionally jumping to a label) and re-broadcasts Dialogic's `timeline_ended` as `dialogue_ended`.

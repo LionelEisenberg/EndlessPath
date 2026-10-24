@@ -1,7 +1,5 @@
 # Logging
 
-Last updated: 2026-10-24
-
 ## Overview
 
 The game has two separate logging channels, and neither feeds the other:
@@ -21,8 +19,6 @@ The game has two separate logging channels, and neither feeds the other:
 | Something the player should read (rewards, combat events, rejections) | `LogManager.log_message("[color=…]…[/color]")` |
 | Both | Call both. For example, `AdventureView.start_adventure()` calls `Log.info` and `LogManager.log_message` |
 | Never in game code | Bare `print()`. Only the headless CLI tools in `scripts/tools/` (`extends SceneTree`) still use it |
-
-Usage in `singletons/`, `scenes/` and `scripts/` (counted 2026-10-18, before the zone view rebuild): 254 `Log.*` calls (115 `info`, 30 `warn`, 74 `error`, 35 `critical`, 0 `debug`) and 29 `LogManager.log_message` calls across 9 files.
 
 ## Log Utility
 

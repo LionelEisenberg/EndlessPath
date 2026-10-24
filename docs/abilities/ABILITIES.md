@@ -1,7 +1,5 @@
 # Abilities System
 
-Last updated: 2026-10-23
-
 ## Overview
 
 Abilities are the actions combatants use in [combat](../combat/COMBAT.md). Each one is an `AbilityData` resource: costs, cooldown, cast time, and two lists of `CombatEffectData` — `effects_on_target` (sent to the enemy) and `effects_on_self` (sent to the caster). What an ability "is" (damage, heal, buff, interrupt…) is derived from those lists; there is no type tag.

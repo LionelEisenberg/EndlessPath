@@ -1,7 +1,5 @@
 # Event System
 
-Last updated: 2026-10-22
-
 ## Overview
 
 `EventManager` is a persistent store of one-shot story flags. An event is a bare string id. Triggering it records the id permanently in the save and emits `event_triggered` once. Firing the same id again does nothing, and no API un-triggers an event.

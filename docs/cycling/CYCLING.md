@@ -1,7 +1,5 @@
 # Cycling System
 
-Last updated: 2026-10-24
-
 ## Overview
 
 Cycling is the Foundation-stage active mini-game and the main source of Madra. The player clicks the Madra ball to send it once around a technique's path, a carved groove on a body figure. Keeping the cursor on the ball, out to the edge of the ring around it, draws Madra continuously. Techniques that define **cycling zones** (inflection points) also award Core Density XP when the player clicks the ball again while it is over a zone. The zones take no clicks of their own. Rewards depend on how near the ball's centre is to the zone's centre: PERFECT, GOOD or OK.
@@ -388,8 +386,8 @@ The mock keeps its approved first-round art. Four of the game's pieces differ fr
 | `resources/cycling/cycling_techniques/` | Technique, curve and zone content |
 | `assets/ui/lacquer/cycling/`, `assets/ui/lacquer/icons/lacquer_ic_tech_*_ai.png` | The art above |
 | `tests/unit/test_cycling_manager.gd` | 39 `CyclingManager` tests (defaults, unlock, equip, errors, `has_unequipped_unlocks`, seen techniques, the session snapshot, `madra_rate_changed`, and the last cycle's result with its reset) |
-| `tests/unit/test_cycling_rules.gd`, `test_cycling_groove.gd`, `test_cycling_technique_data.gd`, `test_cycling_art.gd`, `test_cycling_rate.gd`, `test_cycling_mode.gd` | 8, 15, 4, 17, 3 and 14 tests: the pure rules and result lines (a full core's "Core full" line included), the groove raster with its trail and sweep, the icons and seen fields, the art's sizes, palettes, breathing sizes and unbroken rings, the cycling rate on `ActionManager`, and cycling mode and board mode on `MainView` |
-| `tests/integration/test_cycling_technique.gd`, `test_cycling_view.gd`, `test_technique_drawer.gd` | 87, 73 and 25 tests: the play (Madra steps at 30, 60 and 144 FPS, every step of a tracked 8 s cycle at any frame rate, a hitch through the end, the Madra a cycle counts, the rate, the breath, zones, scoring by pressing the ball, the zone that fills the core marking the result, the cursor's reach out to the ring's edge, the groove's sweep, the path scale, session ownership, real physics picking), the board (its text wrapping and the board growing, still on screen, the full-core floater with no pellets, the status line dropping "zones still pay XP"), and the drawer (long text wrapping, the drawer growing) |
+| `tests/unit/test_cycling_rules.gd`, `test_cycling_groove.gd`, `test_cycling_technique_data.gd`, `test_cycling_art.gd`, `test_cycling_rate.gd`, `test_cycling_mode.gd` | The pure rules and result lines (a full core's "Core full" line included), the groove raster with its trail and sweep, the icons and seen fields, the art's sizes, palettes, breathing sizes and unbroken rings, the cycling rate on `ActionManager`, and cycling mode and board mode on `MainView` |
+| `tests/integration/test_cycling_technique.gd`, `test_cycling_view.gd`, `test_technique_drawer.gd` | The play (Madra steps at 30, 60 and 144 FPS, every step of a tracked 8 s cycle at any frame rate, a hitch through the end, the Madra a cycle counts, the rate, the breath, zones, scoring by pressing the ball, the zone that fills the core marking the result, the cursor's reach out to the ring's edge, the groove's sweep, the path scale, session ownership, real physics picking), the board (its text wrapping and the board growing, still on screen, the full-core floater with no pellets, the status line dropping "zones still pay XP"), and the drawer (long text wrapping, the drawer growing) |
 
 ## Work Remaining
 

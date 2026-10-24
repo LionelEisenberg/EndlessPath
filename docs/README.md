@@ -1,8 +1,6 @@
 # EndlessPath Documentation
 
-Last updated: 2026-10-24
-
-Start here. All docs below were audited against the code on `main` (`21b3cb2`) on 2026-10-18. The zone view, UI shell, logging, quest UI and related docs were updated on 2026-10-22 for the map-first zone view (merged as PR #51). The cycling, style guide, zones, UI shell, resources, logging, persistence, testing and related docs were updated on 2026-10-23 for the lacquer cycling view (merged as PR #57). The adventuring and combat docs, the style guide and the testing docs were updated on 2026-10-23 for the adventure view's map and frame on `feat/adventure-view-styleguide-1fc223` (PR 1 of 2, not merged), and again the same day for that PR's first review round (the wheel zoom, text that is never cut off, a leaner chest). The cultivation, zones, UI shell, cycling, unlocks, resources, persistence, logging, path progression, state and testing docs were updated on 2026-10-24 for the Tribulation, the Foundation → Copper breakthrough, built on `feat/gameplay-priorities-c64b38` (not merged).
+Start here. The living docs below describe the code on `main`, and the rules for keeping them that way are under [Keeping Docs Current](#keeping-docs-current).
 
 ## Start Here
 
@@ -22,7 +20,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 |---|---|---|
 | Cycling | [cycling/CYCLING.md](cycling/CYCLING.md) | The lacquer cycling board: the Madra ball on its lit groove, zones scored by pressing the ball, technique drawers and the last cycle's line in the zone chest; Madra and Core Density XP |
 | Cultivation | [cultivation/CULTIVATION.md](cultivation/CULTIVATION.md) | Core Density levels and cap, advancement stages (Foundation, Copper), the breakthrough |
-| Tribulation | [cultivation/breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | The Foundation → Copper breakthrough: a Spirit Valley action at a full core that runs the Breath of the Core mini-game, and where its code lives. Built on `feat/gameplay-priorities-c64b38` (not merged); designed in the [spec](superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md) |
+| Tribulation | [cultivation/breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | The Foundation → Copper breakthrough: a Spirit Valley action at a full core that runs the Breath of the Core mini-game, and where its code lives. Designed in the [spec](superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md) |
 | Zones and actions | [zones/ZONES.md](zones/ZONES.md) | The map-first lacquer zone view (map, cabinet, zone chest and its techniques mode, cards), ZoneManager/ActionManager, idle-action resolution, foraging, training, NPC and merchant actions |
 | Adventuring | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md) | Procedural hex maps in the lacquer look (fog tiers, coins, rims, route dots), the vitals cabinet, chest and run clock, movement and stamina, encounters, end card |
 | Combat | [combat/COMBAT.md](combat/COMBAT.md) | Real-time combat: combatants, vitals, casts, buffs, damage formula, enemy AI, enemies, the technique dock |
@@ -87,7 +85,7 @@ Several branches are usually open at once, and every line that two of them edit 
 - When a change alters behaviour, update the living doc that owns it in the same PR: its tables, its flows, and its **Work Remaining** list (delete fixed items rather than striking them through).
 - **One home per fact.** Each behaviour, API or rule is described in one doc, the system doc that owns it. Other docs link to it instead of restating it, so a change edits one doc, not five. [CLAUDE.md](../CLAUDE.md) holds rules, commands and pointers, not system detail.
 - **Nothing a command can tell you.** No counts of tests, scripts, scenes, resources, shaders or lines, and no test run results or times: the test runner prints those. No `Last updated:` line and no record of which PR changed a doc: `git log -- <doc>` has both. No "Used by" lists or columns: a search finds the users, and the list changes whenever one of them does.
-- **Describe `main`, not your branch.** Write each doc as it will read once the PR merges. No branch names, no "on this branch" or "not merged", no "in flight" entries. Work in progress belongs in the PR description and in its spec or plan.
+- **Describe `main`, not your branch.** Write each doc as it will read once the PR merges. No branch names, no "on this branch" or "not merged", no "in flight" entries. Work in progress belongs in the PR description and in its spec or plan. The one exception is a dormant branch that holds unfinished work, which the Work Remaining item that would pick it up may name.
 - New specs and plans go in `superpowers/specs/` and `superpowers/plans/`. Add a row to [superpowers/README.md](superpowers/README.md) and update its status when the work ships. A spec or plan is a point-in-time record, so these rules do not apply to it.
 - [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md), [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) and [CODEBASE_STATE.md](CODEBASE_STATE.md) are refreshed at milestones, in a pass of their own on `main`, not in feature PRs.
 - A sweep across many docs (a rename, a reformat, a cleanup) goes in a PR of its own, opened while no other PR is open.

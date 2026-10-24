@@ -1,10 +1,8 @@
 # Soulsmithing System
 
-Last updated: 2026-10-24
-
 > **Status: Planned, not started.** No code exists for this system. This document records the design intent from the Game Design Document.
 >
-> **Blocked on Iron:** Soulsmithing unlocks at the Iron stage. Foundation and Copper are reachable (the Tribulation breaks through from one to the other, on `feat/gameplay-priorities-c64b38`, not merged), but there is no stage data past Copper and no Copper-to-Iron breakthrough ([CULTIVATION.md](../cultivation/CULTIVATION.md)). No Sacred Resources (Remnants, Beast Parts) exist yet ([ADVENTURING.md](../adventuring/ADVENTURING.md)).
+> **Blocked on Iron:** Soulsmithing unlocks at the Iron stage. Foundation and Copper are reachable (the Tribulation breaks through from one to the other), but there is no stage data past Copper and no Copper-to-Iron breakthrough ([CULTIVATION.md](../cultivation/CULTIVATION.md)). No Sacred Resources (Remnants, Beast Parts) exist yet ([ADVENTURING.md](../adventuring/ADVENTURING.md)).
 
 ## Design Intent
 

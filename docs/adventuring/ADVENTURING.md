@@ -1,7 +1,5 @@
 # Adventuring System
 
-Last updated: 2026-10-23
-
 ## Overview
 
 Adventuring is a timed exploration run on a procedurally generated hex map. The player spends Madra to enter, walks tile by tile (5 Stamina per step) through fog of war, and resolves encounters through the choice drawers in the chest: fights hand off to the real-time combat view, while rest sites and special tiles apply effects directly. Defeating the boss ends the run as a victory. Losing a fight or running out of time ends it as a defeat. A scroll-themed end card then summarises the run.
@@ -681,7 +679,7 @@ These figures are estimates from an offline Python port of `AdventureMapGenerato
 | [2026-04-15 fog-of-war redesign](../superpowers/specs/2026-04-15-fog-of-war-redesign-design.md) | Shipped and iterated, then superseded for the map by the lacquer rework below: the fog shader, smoke veils, grey overlay, map-pin marker and 0.25 s veil fade-out are gone. A tile still counts as completed when it is resolved, not when the player walks away. |
 | [2026-04-21 map generation rework](../superpowers/specs/2026-04-21-map-generation-rework-design.md) | Shipped. Shallow Woods was retuned in May (radius 5, sparse 1, 4 extra edges, 4 elite anchors). Not done: a boss with its own stats, the anchor-density warning, logging of skipped ineligible encounters. |
 | [2026-04-23 map preview tool](../superpowers/specs/2026-04-23-map-preview-tool-design.md) | Shipped ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)). |
-| [2026-10-22 adventure view in lacquer and brass](../superpowers/specs/2026-10-22-adventure-view-lacquer-design.md) (plans: [PR 1](../superpowers/plans/2026-10-22-adventure-view-lacquer-pr1-map-and-frame.md), [PR 2](../superpowers/plans/2026-10-22-adventure-view-lacquer-pr2-fight.md)) | PR 1 (the map and the frame) is built on `feat/adventure-view-styleguide-1fc223`, not merged; this doc describes it, and the plan's "As built" section lists the deviations, review round 1 (2026-10-23: wheel zoom, no cut-off text, a leaner chest, a heavier rim, the character over the coins) included. PR 2 (the fight) is not built. |
+| [2026-10-22 adventure view in lacquer and brass](../superpowers/specs/2026-10-22-adventure-view-lacquer-design.md) (plans: [PR 1](../superpowers/plans/2026-10-22-adventure-view-lacquer-pr1-map-and-frame.md), [PR 2](../superpowers/plans/2026-10-22-adventure-view-lacquer-pr2-fight.md)) | PR 1 (the map and the frame) merged as PR #58; this doc describes it, and the plan's "As built" section lists the deviations, review round 1 (2026-10-23: wheel zoom, no cut-off text, a leaner chest, a heavier rim, the character over the coins) included. PR 2 (the fight) is not built. |
 
 ## Work Remaining
 

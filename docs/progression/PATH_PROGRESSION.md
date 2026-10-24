@@ -1,14 +1,12 @@
 # Path Progression System
 
-Last updated: 2026-10-24
-
 ## Overview
 
 Path Progression is a per-path skill tree. The player earns **Path Points** and spends them on nodes in the **Pure Madra** tree, which `PathManager` selects automatically on a new save. One node purchase can unlock combat abilities and cycling techniques, or add numeric perks (Madra generation, max Madra, Core Density XP, and so on).
 
 Status at a glance:
 
-| Area | State on this branch |
+| Area | State |
 |------|----------------------|
 | Trees | 1 (`pure_madra`), Tier 1 / Foundation only. 14 nodes, 22 points to max everything |
 | Node mix | 2 keystone, 4 major, 5 minor, 3 repeatable |

@@ -1,8 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-10-24
-
-This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. The zone view described here is the map-first "Lacquer and brass" view (merged as PR #51, 2026-10-22), the cycling view is the lacquer board (merged as PR #57, 2026-10-23), and the adventure map and its frame are the same look as built on `feat/adventure-view-styleguide-1fc223` (2026-10-23, not merged); the content is the same as on `main`, except for the Tribulation (Core Density stops at 100, and a Spirit Valley action breaks through to Copper), which is built on `feat/gameplay-priorities-c64b38` (2026-10-24, not merged) and described here. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
+This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
 
 ---
 

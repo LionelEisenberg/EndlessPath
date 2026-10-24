@@ -1,8 +1,6 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-24 (Beat 9, the Breath of the Core Tribulation, built)
-
-> This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock; Beat 9 is built on `feat/gameplay-priorities-c64b38` and not merged, and is described with them. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
+> This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >
 > System mechanics live in [QUESTS.md](QUESTS.md), [EVENTS.md](../infrastructure/EVENTS.md), [UNLOCKS.md](../infrastructure/UNLOCKS.md), [EFFECTS.md](../infrastructure/EFFECTS.md), and [DIALOGUE.md](../infrastructure/DIALOGUE.md). Authoring rules are in [QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md](QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md).
 

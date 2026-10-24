@@ -1,7 +1,5 @@
 # Cultivation System
 
-Last updated: 2026-10-24
-
 ## Overview
 
 Cultivation tracks the player's power on two axes:
@@ -240,10 +238,10 @@ Pacing derived from the authored values, counting cycle time only:
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Stage, level, XP beads and Madra cap (zone view cabinet), "Core full" |
 | `scenes/ui/goals_panel/goals_panel.gd` | Breakthrough milestone (level / cap, "Face the Tribulation", "<Stage> reached") |
 | `scripts/tribulation/`, `scenes/tribulation/`, `resources/tribulation/` | The Tribulation: judge, board and data. See [breakthrough-tribulation.md](breakthrough-tribulation.md) |
-| `tests/unit/test_cultivation_getters.gd` | 4 tests: `get_max_madra()` follows the level and caps `add_madra()`; Foundation's cap is 100 |
-| `tests/unit/test_cultivation_manager.gd` | 55 tests: the real `add_core_density_xp()` level-up loop (carry-over, multi-level gains), the cap and the XP lost at it, `core_filled` once and the log line, the guard against a free level or a missing stage, `lose_core_density_levels()`, `advance_to_next_stage()` (stage, signals, Madra cap, log, refusal), its signals, path-point milestones per stage and once per stage (a regained level pays nothing, an old save is seeded, a save past the cap loads at it), stage names, and the XP curve |
-| `tests/unit/test_foundation_tribulation_data.gd` | 16 tests on the shipped data: Foundation leads to Copper, Copper's values and registration, the Madra cap not dropping at the breakthrough, the Tribulation `.tres`, and the Spirit Valley action and its `core_density_full` condition |
-| `tests/integration/test_tribulation_flow.gd` | 20 tests: the card revealed at 100, the refusal below it, a pass and a failure end to end, the idle action resuming, a stop or save reset mid-trial applying nothing, and a click on a card during the trial |
+| `tests/unit/test_cultivation_getters.gd` | `get_max_madra()` follows the level and caps `add_madra()`; Foundation's cap is 100 |
+| `tests/unit/test_cultivation_manager.gd` | The real `add_core_density_xp()` level-up loop (carry-over, multi-level gains), the cap and the XP lost at it, `core_filled` once and the log line, the guard against a free level or a missing stage, `lose_core_density_levels()`, `advance_to_next_stage()` (stage, signals, Madra cap, log, refusal), its signals, path-point milestones per stage and once per stage (a regained level pays nothing, an old save is seeded, a save past the cap loads at it), stage names, and the XP curve |
+| `tests/unit/test_foundation_tribulation_data.gd` | The shipped data: Foundation leads to Copper, Copper's values and registration, the Madra cap not dropping at the breakthrough, the Tribulation `.tres`, and the Spirit Valley action and its `core_density_full` condition |
+| `tests/integration/test_tribulation_flow.gd` | The card revealed at 100, the refusal below it, a pass and a failure end to end, the idle action resuming, a stop or save reset mid-trial applying nothing, and a click on a card during the trial |
 
 ## Work Remaining
 

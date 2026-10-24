@@ -1,7 +1,5 @@
 # Quests, Events, and Unlock Conditions: Authoring Conventions
 
-Last updated: 2026-10-24
-
 > A one-page reference for choosing a primitive and wiring a story beat. For mechanics, see [QUESTS.md](QUESTS.md), [EVENTS.md](../infrastructure/EVENTS.md), [UNLOCKS.md](../infrastructure/UNLOCKS.md), and [EFFECTS.md](../infrastructure/EFFECTS.md).
 
 ## The three primitives
