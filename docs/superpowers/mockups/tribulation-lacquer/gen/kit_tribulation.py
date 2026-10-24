@@ -184,9 +184,10 @@ SWIRL_TWIST = 1.1                    # core_orb's: radians a px out, so the arms
 
 # One tone ramp per state, darkest to lightest. The whole core's is the Madra ramp and the
 # others swap it colour for colour: the passed core is the whole one in brass, and the spent
-# one carved lacquer with no highlight (its lit zone stays raised), a tan rim and dull cracks.
+# one carved lacquer (its lit zone's arms in the rim shade, so the carving carries through the
+# light), with a tan rim and dull cracks.
 MADRA_RAMP = (M_DEEP, M_MID, M_PALE, M_HI)
-CARVED_RAMP = (SOCKET, DEEP, RAISED, RAISED)
+CARVED_RAMP = (SOCKET, DEEP, RAISED, RIM_S)
 BRASS_RAMP = (WARM_OL, BRASS_SH, BRASS, CREAM)
 
 
@@ -224,7 +225,61 @@ def core_tones(r):
             tones[(x, y)] = ground + (1 if _on_arm(x, y) else 0)
             if d < 1.2:
                 tones[(x, y)] = 3            # core_orb's bright centre
+    _fill_slivers(tones)
+    _fill_specks(tones)
     return tones
+
+
+SLIVER_PASSES = 8
+SPECK_CELLS = 4
+
+
+def _fill_slivers(tones):
+    """Gives every 1-cell sliver the tone its two agreeing neighbours share: a cell whose left and
+    right (or, failing those, upper and lower) neighbours agree on another tone. The light zones
+    leave such slivers where they cut the swirl's arms (the swirl alone leaves none), and in the
+    shade they draw stepped dark hairlines that read as cracks on a whole core. Each pass reads
+    the last one's tones, so the result does not depend on the order of the cells."""
+    for _ in range(SLIVER_PASSES):
+        fills = {}
+        for (x, y), tone in tones.items():
+            if tone is None:
+                continue
+            for dx, dy in ((1, 0), (0, 1)):
+                a, b = tones.get((x - dx, y - dy)), tones.get((x + dx, y + dy))
+                if a is not None and a == b and a != tone:
+                    fills[(x, y)] = a
+                    break
+        if not fills:
+            return
+        tones.update(fills)
+    raise AssertionError(f'core: slivers left after {SLIVER_PASSES} passes')
+
+
+def _fill_specks(tones):
+    """Gives a speck of up to SPECK_CELLS cells the tone round it, when one tone encloses it: what
+    a sliver's fill can leave of a hairline (a dark dot on the r = 17 core), a pit on a whole core.
+    The bright centre is core_orb's and stays."""
+    seen = set()
+    for start, tone in list(tones.items()):
+        if tone is None or start in seen:
+            continue
+        speck, queue = [start], [start]
+        seen.add(start)
+        while queue:
+            x, y = queue.pop()
+            for n in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if n not in seen and tones.get(n) == tone:
+                    seen.add(n)
+                    speck.append(n)
+                    queue.append(n)
+        cells = set(speck)
+        around = {tones.get(n, None) for x, y in speck
+                  for n in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)) if n not in cells}
+        if len(speck) <= SPECK_CELLS and len(around) == 1 and None not in around and (0, 0) not in cells:
+            fill = around.pop()
+            for cell in speck:
+                tones[cell] = fill
 
 
 def _crack_cells(angle, r):

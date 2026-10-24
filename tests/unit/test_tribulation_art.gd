@@ -18,9 +18,7 @@ const ROD_CORE_EMPTY_PATH: String = "res://assets/ui/lacquer/lacquer_rod_core_em
 const ROD_CORE_FULL_PATH: String = "res://assets/ui/lacquer/lacquer_rod_core_full_ai.png"
 const ROD_GOAL_EMPTY_PATH: String = "res://assets/ui/lacquer/lacquer_rod_goal_empty_ai.png"
 const ROD_GOAL_FULL_PATH: String = "res://assets/ui/lacquer/lacquer_rod_goal_full_ai.png"
-const DRAWER_FACE_PATH: String = "res://assets/ui/lacquer/lacquer_drawer9_ai.png"
 const BOARD_STYLE_PATH: String = "res://assets/styleboxes/lacquer/trib_board9.tres"
-const DRAWER_STYLE_PATH: String = "res://assets/styleboxes/lacquer/drawer9.tres"
 
 ## Every file with its size: the 160 px board plus its 4 px shadow, baked on the
 ## right and bottom; two ring frames of 272; 4 x 6 core frames of 128; two pips of
@@ -57,6 +55,11 @@ const RING_SPARE_PX: float = 0.1
 
 ## One core frame, 64 art px.
 const CORE_CELL: int = 128
+const CORE_ART: int = 64
+## The core strip's rows with no cracks drawn on them: whole and passed.
+const UNCRACKED_CORE_ROWS: Array[int] = [0, 5]
+## Ink, the only colour of an uncracked core's outline.
+const INK_HTML: String = "150909"
 ## Each column's core across, its ink outline included: 2 (r + 1) art px for the
 ## radii 17, 21, 25 and 29, at 2 px an art px.
 const CORE_WIDTHS: Array[int] = [72, 88, 104, 120]
@@ -72,13 +75,10 @@ const ROD_KEPT: int = 76
 const GOAL_ROD_RIGHT_FROM: int = 204
 const ROD_HEIGHT: int = 10
 
-## The styleboxes' margins, left, top, right and bottom. The board's slices are its
-## 28 art px corners, plus the shadow on the right and bottom; the drawer face's
-## are its 2 px rim and outline, plus its 2 px shadow.
+## The board stylebox's margins, left, top, right and bottom: its slices are the
+## board's 28 art px corners, plus the shadow on the right and bottom.
 const BOARD_TEXTURE_MARGINS: Array[float] = [56.0, 56.0, 60.0, 60.0]
 const BOARD_CONTENT_MARGINS: Array[float] = [24.0, 20.0, 28.0, 24.0]
-const DRAWER_TEXTURE_MARGINS: Array[float] = [4.0, 4.0, 6.0, 6.0]
-const DRAWER_CONTENT_MARGINS: Array[float] = [20.0, 16.0, 22.0, 18.0]
 const SIDES: Array[Side] = [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]
 
 ## How many stray pixels a failure lists. The core strip has over a third of a
@@ -145,6 +145,11 @@ func _opaque_width(image: Image, origin: Vector2i, cell: int) -> int:
 ## (x, y). The band rule measures a cell from its centre, as the stage's 2 px cells do.
 func _art_pixel_centre(x: int, y: int) -> Vector2:
 	return Vector2(x - x % 2 + 1, y - y % 2 + 1)
+
+## The colour of the art pixel (x, y) of the frame at `origin`, or "" where it is clear.
+func _art_colour(image: Image, origin: Vector2i, x: int, y: int) -> String:
+	var pixel: Color = image.get_pixel(origin.x + 2 * x, origin.y + 2 * y)
+	return "" if is_zero_approx(pixel.a) else pixel.to_html(false)
 
 ## Two pixels are one colour when they match, or when both are fully clear (the
 ## import may leave different RGB under alpha 0).
@@ -229,6 +234,31 @@ func test_core_sizes() -> void:
 	for column: int in CORE_WIDTHS.size():
 		assert_eq(_opaque_width(image, Vector2i(column * CORE_CELL, 0), CORE_CELL), CORE_WIDTHS[column], "column %d" % column)
 
+## The uncracked cores, whole and passed, have no 1 px sliver where the light zones
+## cut the swirl's arms: no art pixel inside the outline differs from both its
+## neighbours along a row or a column while those two agree. In the shade such
+## slivers drew stepped dark hairlines that read as cracks.
+func test_uncracked_cores_have_no_slivers() -> void:
+	var image: Image = _load_image(CORE_STRIP_PATH)
+	if image == null:
+		return
+	var slivers: Array[String] = []
+	for row: int in UNCRACKED_CORE_ROWS:
+		for column: int in CORE_WIDTHS.size():
+			var origin := Vector2i(column * CORE_CELL, row * CORE_CELL)
+			for y: int in range(1, CORE_ART - 1):
+				for x: int in range(1, CORE_ART - 1):
+					var colour: String = _art_colour(image, origin, x, y)
+					if colour.is_empty() or colour == INK_HTML:
+						continue
+					for step: Vector2i in [Vector2i(1, 0), Vector2i(0, 1)]:
+						var before: String = _art_colour(image, origin, x - step.x, y - step.y)
+						var after: String = _art_colour(image, origin, x + step.x, y + step.y)
+						if before == after and before != colour and not before.is_empty() and before != INK_HTML:
+							slivers.append("row %d column %d: %d,%d" % [row, column, x, y])
+							break
+	assert_eq(slivers.size(), 0, "%d 1 px slivers, first %s" % [slivers.size(), slivers.slice(0, STRAYS_SHOWN)])
+
 ## The board's 9-slice middle is uniform, so the slices stretch on the grid without a
 ## seam: across [56, 104) every row is one colour, and down [56, 104) every column is.
 func test_board_middle_is_uniform() -> void:
@@ -272,8 +302,8 @@ func test_core_rod_is_the_goal_rod_less_its_middle() -> void:
 # STYLEBOXES
 #-----------------------------------------------------------------------------
 
-## The board's stylebox slices the strapped board at its corners, and the drawer's
-## slices the drawer face at its rim; both keep their baked shadows out of the stretch.
+## The board's stylebox slices the strapped board at its corners and keeps its baked
+## shadow out of the stretch. (The panels' drawer faces stand on a NinePatchRect
+## instead, as STYLE_GUIDE §11 has growing faces do, so they have no stylebox.)
 func test_styleboxes() -> void:
 	_assert_stylebox(BOARD_STYLE_PATH, BOARD_PATH, BOARD_TEXTURE_MARGINS, BOARD_CONTENT_MARGINS)
-	_assert_stylebox(DRAWER_STYLE_PATH, DRAWER_FACE_PATH, DRAWER_TEXTURE_MARGINS, DRAWER_CONTENT_MARGINS)
