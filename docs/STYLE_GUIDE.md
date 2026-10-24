@@ -551,7 +551,7 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 | Log and Goals boards in the adventure view | Already lacquer. `LogWindow.tone_for()` maps each line's first `[color]` tag to a lacquer tone (brass, Madra, cream, or tan for anything else), so adventure and combat log lines need no change |
 | Book open, close and page-turn strips | Already stepped frame strips |
 | `palette_swap.gdshader`, the attribute icons | Reusable as they are |
-| Dev panel and dev password modal | Players never see them. Exempt (confirm, G11); they change for free if P1 lands |
+| Dev panel | Players never see them. Exempt (confirm, G11); they change for free if P1 lands |
 
 ### Suggested order
 

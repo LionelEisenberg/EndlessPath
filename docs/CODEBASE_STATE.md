@@ -46,7 +46,7 @@ MainGame (Node2D)                 main_game.gd: Ctrl+Shift+D dev hotkey, log pri
 │   ├── QuestToast                z 10
 │   ├── GreyBackground            modal backdrop (z 2)
 │   ├── PathTreeView, AdventureEndCard, InventoryView, AbilitiesView, CharacterView, CyclingView (z 3)
-│   └── DevPasswordModal, DevPanel                                                            (z 10)
+│   └── DevPanel                                                                              (z 10)
 └── SaveTimer                     5 s auto-save → PersistenceManager.save_data()
 ```
 
@@ -157,7 +157,7 @@ These issues span several systems, so no single system doc owns them. The detail
 | **Save robustness** | Saves have no version field, and two schema changes have already broken old saves. The only migration is `SaveGameData.migrate()`, which moves listed zone ids (Test Zone → Spirit Valley) before `verify()`. A failed `verify()` (e.g. a renamed zone id) or an unreadable file silently replaces the whole save. Nothing saves on quit, and wiping a save requires editing `reset_save_data` in the script. See [PERSISTENCE](infrastructure/PERSISTENCE.md) | HIGH (before any public build) |
 | **Untyped ids** | Event ids, condition ids and unlock targets are strings, and no test checks that every gate's condition is registered, that every quest step's event has a producer, or that every path unlock id resolves. See [UNLOCKS](infrastructure/UNLOCKS.md), [EVENTS](infrastructure/EVENTS.md) | MEDIUM |
 | **Modal backdrop** | Found by code reading: after Path, Abilities or Character closes, `GreyBackground.self_modulate.a` stays 0. Later Inventory and end-card overlays then show an invisible but click-blocking backdrop. See [MAIN_VIEW](infrastructure/MAIN_VIEW.md) | MEDIUM |
-| **Tooling gotchas** | The first headless `--import` in a fresh checkout rewrote `project.godot`'s `[dialogic]` directory registry to `{}`, so revert it before committing. Editor, exported builds and GUT runs share one `user://` dir (save file, logs, dev password file). Green test runs print SCRIPT ERRORs and 24 Dialogic orphans. See [TESTING](testing/TESTING.md), [DEV_TOOLS](tooling/DEV_TOOLS.md) | MEDIUM |
+| **Tooling gotchas** | The first headless `--import` in a fresh checkout rewrote `project.godot`'s `[dialogic]` directory registry to `{}`, so revert it before committing. Editor, exported builds and GUT runs share one `user://` dir (save file, logs). Green test runs print SCRIPT ERRORs and 24 Dialogic orphans. See [TESTING](testing/TESTING.md), [DEV_TOOLS](tooling/DEV_TOOLS.md) | MEDIUM |
 | **Shipping gaps** | No `export_presets.cfg`, no CI, and no audio assets or audio code | MEDIUM |
 
 ---
