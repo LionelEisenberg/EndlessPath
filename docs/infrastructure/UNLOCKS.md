@@ -251,7 +251,7 @@ Untested: the sweep itself (`_evaluate_all_conditions`), `CULTIVATION_STAGE`, `A
 
 ### Missing Functionality
 
-- `[MEDIUM]` `ZONE_UNLOCKED` and `ADVENTURE_COMPLETED` always return `false` and `Log.warn` on every evaluation. Registering either would log a warning on every sweep, which happens at least once per second while at the Aura Well. Planned Beats 7–8 (Guardian, Advancement Zone) need one of these, or a dedicated event.
+- `[MEDIUM]` `ZONE_UNLOCKED` and `ADVENTURE_COMPLETED` always return `false` and `Log.warn` on every evaluation. Registering either would log a warning on every sweep, which happens at least once per second while at the Aura Well.
 - `[MEDIUM]` The sweep doesn't listen to `InventoryManager.inventory_changed` or `CharacterManager.base_attribute_changed`. Registered `ITEM_OWNED` and `ATTRIBUTE_VALUE` conditions latch late, and quest steps that use them only re-check on unrelated triggers.
 - `[LOW]` No conditions are registered yet for the breakthrough and Copper gates (`CULTIVATION_LEVEL ≥ 100`, `CULTIVATION_STAGE ≥ COPPER`), although the evaluation code supports both.
 - `[LOW]` `ITEM_OWNED` behaves differently in the two modes: it latches when registered but reverts in live checks once the item is gone. This is harmless today because the Refugee Camp Map is never consumed.

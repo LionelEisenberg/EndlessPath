@@ -25,7 +25,7 @@ There are two zones in `zone_data_list.tres` today:
 - **Spirit Valley** is playable and has 9 actions. It is the only zone on the map.
 - **Test Zone** is a placeholder with no actions. It is hidden on the map (`hidden_on_map`), west of Spirit Valley at (-1, 0), with no description. The dev panel can show it.
 
-Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advancement Zone and an Uncharted hex. They show the locked and uncharted map states until Beats 7–10 add real zones.
+Two more zones exist only as dev demos (`resources/zones/dev/`): a locked Advancement Zone and an Uncharted hex. They show the locked and uncharted map states until real zones use them.
 
 ## Player Experience
 
@@ -841,7 +841,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 
 ### Content
 
-- `[HIGH]` Only one real zone. `TestZone` is a placeholder (name "Test Zone", no description, no actions) kept in the list but hidden on the map; travelling there (dev toggle) only stops the running action. Foundation Beats 8–10 need the Advancement Zone and a Zone 2. The demo zones show where they will go.
+- `[HIGH]` Only one real zone. `TestZone` is a placeholder (name "Test Zone", no description, no actions) kept in the list but hidden on the map; travelling there (dev toggle) only stops the running action. Foundation Beat 10 needs a Zone 2. The demo zones show the map states it will use.
 - `[MEDIUM]` Foraged materials have no use. Dewdrop Tear and Spirit Fern list `used_in` recipes, but no system consumes them. There is only one forage action and one loot table.
 - `[MEDIUM]` There is no `ZONE_EVENT` content.
 - `[LOW]` Art made for the demo layout only: `LockedZoneOverlay`'s veils bake the Stones and Mountains2 tiles, and the chest has thumbnails only for the River tile and Basic. A real locked zone, or a zone on another tile, needs its own `_ai` textures.

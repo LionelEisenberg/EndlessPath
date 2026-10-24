@@ -11,7 +11,7 @@ Cultivation tracks the player's power on two axes:
 
 `CultivationManager` (autoload) owns both, storing them in `SaveGameData`. Each stage's numbers come from an `AdvancementStageResource`.
 
-Only the Foundation stage is playable. Only Foundation has stage data, and there is no way to change stage: `CultivationManager.attempt_breakthrough()` is an empty stub with no callers. The designed breakthrough flow (adventure site, then a Tribulation mini-game, then Copper) is documented in [breakthrough-tribulation.md](breakthrough-tribulation.md) and is not implemented.
+Only the Foundation stage is playable. Only Foundation has stage data, and there is no way to change stage: `CultivationManager.attempt_breakthrough()` is an empty stub with no callers. The designed breakthrough (a Spirit Valley action at Core Density 100 that runs the Breath of the Core mini-game, then Copper) is summarised in [breakthrough-tribulation.md](breakthrough-tribulation.md) and is not implemented.
 
 ## Player Experience
 
@@ -136,10 +136,10 @@ The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not adde
 
 **What a Foundation → Copper breakthrough still needs:**
 1. A Copper `AdvancementStageResource` `.tres` (`stage_id = COPPER`, XP curve, Madra cap) added to `advancement_stage_resources`. This has to land before any code can change the stage.
-2. A rule for level 100: a cap or `max_core_density_level`, and what happens to overflow XP.
-3. A real `attempt_breakthrough()` (or Tribulation result handler) that sets the stage, resets level and XP, and emits `advancement_stage_changed` plus the Core Density signals.
-4. The Tribulation mini-game and its adventure integration: `TribulationData`, `BreakthroughChoice`, `EncounterType.BREAKTHROUGH`, a Tribulation view and HUD, encounter content and Dialogic timelines. None exist.
-5. An eligibility hint at level 100.
+2. The level cap, decided on 2026-10-23: `max_core_density_level` (100) on the stage resource, with XP earned at the cap discarded.
+3. An `advance_to_next_stage()` (replacing `attempt_breakthrough()`) that sets the stage, resets level and XP, and emits `advancement_stage_changed` plus the Core Density signals, and a `lose_core_density_levels()` for the failure penalty.
+4. The Tribulation itself: a Spirit Valley `TribulationActionData`, `TribulationData`, `TribulationRun`, and a Tribulation view and state. None exist. See the [Tribulation spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md).
+5. Path-point milestones paid once per stage. Today they re-pay, so 100 → 95 → 100 would pay the level-100 point twice.
 6. Something for Copper to unlock. No `CULTIVATION_STAGE` unlock conditions exist, no path node requires a stage above Foundation, and Scripting and Elixir Making are not built.
 
 ## Signals

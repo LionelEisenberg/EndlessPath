@@ -69,7 +69,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 
 ### 2. Break through to Copper (next)
 1. Guard the Core Density loop, then author the Copper `AdvancementStageResource`.
-2. **Beats 7–9:** a real boss (the Tribulation Guardian), the Advancement Zone, and the Tribulation itself, through a working `attempt_breakthrough()`. First reconcile the two conflicting designs: [FOUNDATION_PLAYTHROUGH.md](progression/FOUNDATION_PLAYTHROUGH.md) vs [breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md).
+2. **Beat 9, the Tribulation:** a Spirit Valley action at Core Density 100 that runs the Breath of the Core mini-game, then moves the player to Copper. Designed on 2026-10-23 in the [Tribulation spec](superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), which replaced the Guardian and Advancement Zone. It also caps Core Density at 100 and stops path points re-paying.
 3. **Copper content (Beat 10 onward):** a second zone and adventure, Tier 2 path nodes, Copper-tier items and enemies.
 4. **An out-of-combat buff/modifier system.** Scripting and Elixirs both need it.
 
@@ -87,6 +87,6 @@ Each of these is a place where the built game and the [GDD](../Endless%20Path%20
 
 - **Gating:** Adventuring and the path tree are live at Foundation. The GDD puts Adventuring at Iron and Paths at Jade or later. Update the GDD, or re-gate?
 - **Combat model:** combat uses HP/Madra/Stamina costs and has a basic attack. The GDD specifies a regenerating AP pool, a "Cycle" skill, and no basic attack.
-- **Core Density cap:** it has no cap and nothing happens at 100. The GDD says 0–100 per stage, with a breakthrough at 100.
+- **Core Density cap:** decided on 2026-10-23 to follow the GDD: 0–100 per stage, with the breakthrough at 100 (designed in the [Tribulation spec](superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), not built). Today it still has no cap.
 - **Auto-cycle:** the Auto toggle is available from the start. The GDD makes Auto-Cycle a Copper Scripting reward.
 - **Pacing:** the Core Density curve is far faster than the playthrough's pacing targets. CD 100 takes about 25 perfect Smooth Flow cycles.

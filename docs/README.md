@@ -66,7 +66,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | Scripting | [planned/SCRIPTING.md](planned/SCRIPTING.md) | Copper | Breakthrough; out-of-combat buff system |
 | Elixir Making | [planned/ELIXIR_MAKING.md](planned/ELIXIR_MAKING.md) | Copper | Breakthrough; out-of-combat buff system; a way to spend materials |
 | Soulsmithing | [planned/SOULSMITHING.md](planned/SOULSMITHING.md) | Iron | Breakthrough; Sacred Resources |
-| Breakthrough / Tribulation | [cultivation/breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | Foundation → Copper | Not started; design conflicts with FOUNDATION_PLAYTHROUGH Beats 7–9 |
+| Breakthrough / Tribulation | [cultivation/breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md) | Foundation → Copper | Not started; designed on 2026-10-23 ([spec](superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md)) |
 
 ## Design Records (historical)
 

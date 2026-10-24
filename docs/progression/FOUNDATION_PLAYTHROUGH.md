@@ -1,6 +1,6 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-23 (the lacquer cycling view on `feat/cycling-view-styleguide-ea3170`, not merged)
+Last updated: 2026-10-23 (Beats 7–9 replaced by the Breath of the Core Tribulation design)
 
 > This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >
@@ -218,9 +218,9 @@ After Beat 4:
 | 4 | Merchant shop | Gold buys gear (once per save each) and Crude Scales | `IMPLEMENTED` |
 | 5 | Elite Gear Drop | First elite defeated; tier-bump gear | `STUBBED` |
 | 6 | Third Keystone | Keystone #3 at CD ~30 | `PLANNED` |
-| 7 | Tribulation Guardian | Boss defeated, Advancement Zone accessible | `PLANNED` |
-| 8 | Advancement Zone | Tribulation Site; `q_breakthrough_seek` | `PLANNED` |
-| 9 | Tribulation | CD 100 plus Tribulation, then Copper | `PLANNED` |
+| 7 | Tribulation Guardian (dropped) | Replaced on 2026-10-23 by a Spirit Valley action | — |
+| 8 | Advancement Zone (dropped) | Replaced on 2026-10-23 by a Spirit Valley action | — |
+| 9 | The Tribulation | CD 100 reveals the Tribulation in Spirit Valley; a pass reaches Copper, a failure costs 5 levels | `PLANNED` ([spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md)) |
 | 10 | Zone 2 Onramp | Zone 2 accessible | `PLANNED` (sketch) |
 
 ## Planned beats (5–10)
@@ -237,54 +237,43 @@ After Beat 4:
 
 ### Beat 6: Third Keystone `PLANNED`
 
-- **Design:** Core Density ~30 awards the third path point. The player picks Keystone #3, a combat burst or finisher that raises the damage ceiling for the Guardian. No quest; the path-point notification is the signal.
+- **Design:** Core Density ~30 awards the third path point. The player picks Keystone #3, a combat burst or finisher that raises the damage ceiling against elites. No quest; the path-point notification is the signal.
 - **Exists:** CD 30 awards a point, and the dock's Path button shows the unspent balance on a count seal.
 - **Needs:**
   - a third KEYSTONE node and its ability on the Pure Madra tree
   - a louder notification than the dock seal if playtests miss it (see Work Remaining → UI)
   - retuning, since CD 30 currently arrives about four perfect Smooth Flow cycles after Beat 2 (see [Economy](#loop-economy))
 
-### Beat 7: The Tribulation Guardian `PLANNED`
+### Beats 7 and 8: dropped
 
-- **Design:** The Guardian has always been on the map. `q_tribulation_guardian` ("Defeat the Tribulation Guardian") starts the first time the player enters an adventure with Keystone #3, or first reaches the Guardian tile. This is the marquee Foundation fight. Defeating the Guardian makes the Advancement Zone accessible.
-- **Exists:** the Shallow Woods boss slot. Today it is `manifested_spirit_encounter` (COMBAT_BOSS, `min_distance_from_origin` 5), which fights the regular `amorphous_spirit` enemy. A boss win ends the adventure with `stop_action(true)`, and **nothing records the clear**: the boss `CombatChoice` has no `success_effects`, `spirit_valley_adventure_action.tres` has no `success_effects`, no event fires, and `ADVENTURE_COMPLETED` always evaluates false. No beat can be gated on "clear the Shallow Woods" yet. Encounter details are in [ADVENTURING.md](../adventuring/ADVENTURING.md).
-- **Needs:**
-  - the Guardian encounter and enemy
-  - the quest
-  - a boss-defeated event: a TriggerEvent in the boss `CombatChoice.success_effects`, or an implementation of `ADVENTURE_COMPLETED`
-  - a trigger for "has Keystone #3", which needs a node-purchased event or condition type; neither exists
+On 2026-10-23 the user replaced the Tribulation Guardian (Beat 7) and the Advancement Zone (Beat 8) with a Spirit Valley action (Beat 9). The Shallow Woods boss slot still holds Manifested Spirit, a copy of the regular `amorphous_spirit` enemy, and nothing records a clear (see [ADVENTURING.md](../adventuring/ADVENTURING.md)). The dev demo zones still show a locked "Advancement Zone", but only to demonstrate the map's states.
 
-### Beat 8: The Advancement Zone `PLANNED`
+### Beat 9: The Tribulation `PLANNED`
 
-- **Design:** A small, atmospheric zone centered on the Tribulation Site. `q_breakthrough_seek` ("Reach the Breakthrough Site and cultivate to full Core Density") progresses toward CD 100. No combat. The zone can be revisited before CD 100 without triggering the Tribulation.
-- **Exists:** the map's LOCKED and UNCHARTED states (`zone_unlock_conditions`, `chart_conditions`), with plates naming the blocker and popovers giving the requirement and "Show me". The dev demo zones show them today: a locked "Advancement Zone" at (0, -1) ("Defeat the Tribulation Guardian in The Shallow Woods") and an uncharted hex beyond it. The Test Zone at (-1, 0) is an empty placeholder, hidden on the map.
-- **Needs:**
-  - the zone's `ZoneData` and actions
-  - the quest
-  - a gating event from Beat 7. Note that `ZONE_UNLOCKED` is unimplemented.
-
-### Beat 9: Tribulation `PLANNED`
-
-- **Design:** At the Tribulation Site with CD ≥ 100, the Tribulation mini-game runs. Success advances the player to Copper and ends Foundation. Failure is open (Q-5).
-- **Conflicting design:** [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md) gates the breakthrough only on CD 100, which adds a Breakthrough Encounter tile to regular adventure maps. That flow is a Dialogic beat, then a 15–30 s mouse-tracking Tribulation, then on success Copper with a CD reset to 0 and Scripting and Elixir Making unlocked through `CULTIVATION_STAGE` conditions. Failure has no penalty. Beats 7–9 here instead route through a Guardian and an Advancement Zone, and Q-5 leans toward a partial penalty. Reconcile the two before building.
+- **Design:** [the Breath of the Core spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html).
+- **Trigger:** Core Density reaches 100, which becomes Foundation's cap. "The Tribulation" appears in Spirit Valley's Cultivate group and stays.
+- **The trial:** about 38 s:
+  - An aura sphere breathes around the core, and the player presses space or clicks as the bright sphere crosses a brass ring.
+  - Five phases: Steady breath, Heartbeat, Echo (two spheres), Quickening, and the last breath, which ends in a hold.
+  - 4 cracks fail it.
+- **Pass:** Copper:
+  - the stage changes and Core Density restarts at 0 on Copper's curve;
+  - the card goes away. Nothing changes on the map yet.
+- **Fail:** the core loses 5 levels (100 → 95). The card stays, showing "Core 95 / 100", until the player cycles back to 100.
 - **Exists:**
-  - `CultivationManager.attempt_breakthrough()` (empty)
-  - the `AdvancementStage` enum (FOUNDATION through SILVER)
-  - `PATH_POINTS_PER_STAGE[COPPER] = 2`
-  - the `CULTIVATION_STAGE` condition type
-  - UnlockManager's sweep on `advancement_stage_changed`
-- **Needs:**
-  - a Tribulation scene
-  - a stage-advance method
-  - a Copper `AdvancementStageResource`
-  - a CD-100 condition
-  - dialogue timelines
-  - Copper unlock conditions and content
+  - the `AdvancementStage` enum and `PATH_POINTS_PER_STAGE[COPPER] = 2`;
+  - the `CULTIVATION_STAGE` and `CULTIVATION_LEVEL` condition types and UnlockManager's sweep on `advancement_stage_changed`;
+  - the map's LOCKED and UNCHARTED states.
+- **Needs:** everything in the spec, including:
+  - the cap;
+  - a path-point fix: milestones re-pay today, so 100 → 95 → 100 would pay twice;
+  - the Copper stage resource;
+  - a guard against the endless level-up loop.
 
 ### Beat 10: Zone 2 Onramp `PLANNED` (sketch)
 
-- **Design:** A successful Tribulation makes Zone 2 visible. A short spirit-NPC moment acknowledges that the disaster is spreading and the player must follow. Full Zone 2 content belongs in a future doc.
-- **Needs:** Zone 2 `ZoneData` and tile, the gating event, the NPC and timeline.
+- **Design:** After the Tribulation, Zone 2 becomes reachable. A short spirit-NPC moment acknowledges the spreading disaster. A map teaser was considered for the Tribulation and left for Zone 2's own design. Full Zone 2 content belongs in a future doc.
+- **Needs:** Zone 2's `ZoneData`, tile and content, the gating condition, the NPC and the timeline.
 
 ## Loop Economy
 
@@ -337,8 +326,6 @@ After Beat 4:
 | Beat 4 (Merchant shop) | 10–18 | |
 | Beat 5 (Elite defeated) | 15–25 | |
 | Beat 6 (Keystone #3 at CD ~30) | 20–30 | Computed: CD 30 ≈ 4 Smooth Flow cycles |
-| Beat 7 (Guardian defeated) | 25–45 | |
-| Beat 8 (Advancement Zone entered) | 30–50 | |
 | Beat 9 (Tribulation success, Copper) | 35–60 | Whole Foundation over 75 min is too slow |
 
 ## Open Tuning Questions
@@ -379,11 +366,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Q-5: Tribulation failure consequence
 
-- **ASSUMPTION:** Undecided between (a) a full reset with unlocks kept, (b) a free retry, and (c) a drop to about CD 90. This doc leans toward (c). [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md) specifies (b), no penalty.
-- **IMPACT:** The weight of the climax.
-- **IF WRONG:** The climax feels weightless, or players quit.
-- **VALIDATE:** Pick one design, playtest, and observe the retry feel.
-- **STATUS:** Open. The two docs conflict and must be reconciled.
+- **STATUS:** Resolved on 2026-10-23. A failure costs 5 Core Density levels (a starting value), and the Tribulation can be retried once the core is full again. Values and their test plan are in the [Tribulation spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md#starting-values-and-test-plan).
 
 ### Q-6: Path points vs tree size
 
@@ -454,10 +437,9 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Missing Functionality
 
-- `[HIGH]` There is no breakthrough: `CultivationManager.attempt_breakthrough()` is empty, and there is no Copper stage resource, no Tribulation scene, and no CD-100 gate. This blocks Beats 8–10 and the Copper milestone.
+- `[HIGH]` There is no breakthrough: `CultivationManager.attempt_breakthrough()` is empty, and there is no Copper stage resource, no Tribulation scene, and no CD-100 gate. This blocks Beats 9–10 and the Copper milestone. Designed in the [Tribulation spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md).
 - `[MEDIUM]` Once the six gear pieces are bought (625 gold), gold only buys Crude Scales. The next gold sink needs new stock (for example a Copper merchant) or rotation.
-- `[MEDIUM]` No events or working condition types exist for an elite defeated, the boss defeated, an adventure completed, or a zone unlocked. `ADVENTURE_COMPLETED` and `ZONE_UNLOCKED` always return false. Beats 5, 7, and 8 depend on them.
-- `[MEDIUM]` There is no "path node purchased" event or condition, which Beat 7's quest trigger ("enters an adventure with Keystone #3") needs.
+- `[MEDIUM]` No events or working condition types exist for an elite defeated, the boss defeated, an adventure completed, or a zone unlocked. `ADVENTURE_COMPLETED` and `ZONE_UNLOCKED` always return false. Beat 5 depends on the elite one.
 - `[LOW]` The Madra bar is not gated behind Beat 1 as the original design intended.
 
 ### Content
@@ -472,7 +454,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
   - The map's `from_source`, "Old Vesh, in the broken shrine", contradicts the Intervener handing it over.
   - The map's icon is the placeholder `res://64.png`.
 - `[LOW]` Spring Forest Foraging still uses the temporary Beat 1 gate (`q_fill_core_completed`) and `test_loot_table_foraging.tres`.
-- `[LOW]` The Tribulation Guardian is not authored. The boss slot holds Manifested Spirit, which reuses the regular `amorphous_spirit` enemy.
+- `[LOW]` The Shallow Woods boss slot holds Manifested Spirit, which reuses the regular `amorphous_spirit` enemy.
 
 ### UI
 

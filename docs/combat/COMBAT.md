@@ -451,7 +451,7 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 
 ### Content
 
-- `[HIGH]` No real boss. `manifested_spirit_encounter` (the Shallow Woods boss) fights the regular `amorphous_spirit` (100 Health, 9 damage per lash, 15 gold). The Foundation Beat 7 Tribulation Guardian does not exist.
+- `[HIGH]` No real boss. `manifested_spirit_encounter` (the Shallow Woods boss) fights the regular `amorphous_spirit` (100 Health, 9 damage per lash, 15 gold).
 - `[MEDIUM]` Coalescing Spirit (elite) has no `base_gold_drop` and its encounter has no loot.
 - `[MEDIUM]` No enemy art. Every enemy uses the placeholder `test_enemy_sprite.png` and the player uses `test_character_sprite.png`, both high-resolution images drawn with the project's nearest filter. Madra Lash and Coalesce have no icon, so the intent tab shows no icon for them.
 - `[MEDIUM]` Four enemies, all for The Shallow Woods; nothing for later Foundation beats or Copper.
