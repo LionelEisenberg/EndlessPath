@@ -242,6 +242,24 @@ func test_early_press_is_a_miss() -> void:
 	assert_eq(run.advance(b0 + 0.5).size(), 0, "the beat was judged by the early press: it is not missed again")
 	assert_eq(run.cracks, 1)
 
+## The edge of the good window is written once. A press exactly the good window after a
+## beat, as a float (beat + window), is judged by the same subtraction that settles the beat
+## as late: it is a hit, or the beat was already lost, and never an early miss with a positive
+## offset, which the board would read as "Too early" for a late press. On the shipped beats
+## beat + window rounds a hair past the window for some (0, 4 and 5). Each beat gets a run of
+## its own that has hit the beats before it, so it is the beat under test that the press finds.
+func test_a_press_at_the_edge_of_the_good_window_is_never_early_after_the_beat() -> void:
+	var good_window: float = (load(FOUNDATION_TRIBULATION_PATH) as TribulationData).good_window
+	var times: PackedFloat64Array = _run().get_beat_times()
+	assert_eq(times.size(), BEAT_COUNT, "precondition: the shipped beats")
+	for index: int in BEAT_COUNT:
+		var run: TribulationRun = _run()
+		if index > 0:
+			_hit_through(run, index - 1)
+		var res: Dictionary = run.press(times[index] + good_window)
+		var early_after_the_beat: bool = res["result"] == Result.EARLY_MISS and res["offset"] > 0.0
+		assert_false(early_after_the_beat, "beat %d: a press %s s after it is not an early miss (offset %s)" % [index, String.num(good_window, 17), String.num(res["offset"], 17)])
+
 func test_press_far_from_any_beat_is_ignored() -> void:
 	var run: TribulationRun = _run()
 	var b0: float = _beat_time(run, 0)

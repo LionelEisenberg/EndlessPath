@@ -402,7 +402,9 @@ func _add_breath(breath: Breath) -> Beat:
 
 ## Judges every unjudged beat that `t` has left more than the good window behind
 ## as a LATE_MISS, in beat order, and returns those events. It stops at the
-## crack that fails the run.
+## crack that fails the run. "Behind" is `t - beat.time`, the very subtraction
+## press() classifies a press with, so at the window's edge a press is a hit or
+## the beat is already lost, never an early miss for a press after the beat.
 func _settle_late_beats(t: float) -> Array[Dictionary]:
 	var events: Array[Dictionary] = []
 	for beat: Beat in _beats:
@@ -410,7 +412,7 @@ func _settle_late_beats(t: float) -> Array[Dictionary]:
 			break
 		if beat.judged:
 			continue
-		if t <= beat.time + _data.good_window:
+		if t - beat.time <= _data.good_window:
 			break
 		beat.judged = true
 		_add_crack()

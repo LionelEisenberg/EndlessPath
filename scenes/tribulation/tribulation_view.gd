@@ -438,11 +438,16 @@ func _show_crack(word: String, reason: String) -> void:
 ## Ends the run and applies its result at once: the breakthrough to the next stage, or
 ## the levels a failure costs (the level before and after go in the fail line). The
 ## result panel shows the copy, the grade and the counts; the core turns brass or
-## spent, and the stage empties.
+## spent, and the stage empties. What the panel shows of the run is read before the
+## manager is called, and the run is not touched after: a listener of the manager's
+## signals can stop the action, and the stop's close() drops the run.
 func _end(passed: bool) -> void:
 	_mode = Mode.RESULT
 	_passed = passed
 	_update_hud(_trial_time())
+	var grade: String = _run.grade()
+	var stats: String = STATS_FORMAT % [_run.perfect_count, _run.good_count, _run.cracks]
+	var core_column: int = _core_column()
 	if passed:
 		if not CultivationManager.advance_to_next_stage():
 			Log.warn("TribulationView: the trial was passed, but the stage has no next stage")
@@ -453,9 +458,9 @@ func _end(passed: bool) -> void:
 		CultivationManager.lose_core_density_levels(_data.failure_level_loss)
 		_result_title.text = _data.fail_title
 		_result_text.text = _data.get_fail_line(before, int(CultivationManager.get_core_density_level()))
-	_grade_label.text = _run.grade()
-	_stats_label.text = STATS_FORMAT % [_run.perfect_count, _run.good_count, _run.cracks]
-	_core.set_frame(_core_column(), PASSED_CORE_ROW if passed else SPENT_CORE_ROW)
+	_grade_label.text = grade
+	_stats_label.text = stats
+	_core.set_frame(core_column, PASSED_CORE_ROW if passed else SPENT_CORE_ROW)
 	_stage.clear()
 	_result_panel.show()
 

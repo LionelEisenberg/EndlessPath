@@ -619,6 +619,48 @@ func test_pass_breaks_through() -> void:
 	assert_eq(_core_frame(), Vector2i(3, 5), "the biggest core, in brass")
 	assert_eq((_node("ProgressRod") as LacquerRod).get_step(), 138, "the rod is full")
 
+## A listener of the manager's signals can stop the action while the result is applied
+## (Copper's systems will hook advancement_stage_changed), and the stop closes the board and
+## drops the run. The end reads what the panel shows from the run before it calls the
+## manager, so a pass still finishes: the stage moves on and the panel is filled in. One crack
+## keeps the grade and the counts apart from the scene's own placeholder texts.
+func test_a_listener_that_closes_the_board_does_not_cut_a_pass_short() -> void:
+	var close_board := func(_new_stage: Stage) -> void: _view.close()
+	CultivationManager.advancement_stage_changed.connect(close_board, CONNECT_ONE_SHOT)
+	_view.begin()
+	_hit_beats(1, _last_beat())
+	_at(_beat(_last_beat()) + _view.get_run().get_hold_seconds() + PAST)
+	_view.handle_press_event(_press(false))
+	_at_the_end()
+	if CultivationManager.advancement_stage_changed.is_connected(close_board):
+		CultivationManager.advancement_stage_changed.disconnect(close_board)
+	assert_eq(_view.get_mode(), Mode.CLOSED, "precondition: the listener closed the board as the stage changed")
+	assert_null(_view.get_run(), "and dropped the run")
+	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.COPPER, "the breakthrough was applied")
+	assert_eq(_text_of("ResultTitle"), "Breakthrough")
+	assert_eq(_text_of("GradeLabel"), "Clean", "the grade came from the run, not from nothing")
+	assert_eq(_text_of("StatsLabel"), "24 perfect · 0 good · 1 missed")
+	assert_eq(_core_frame(), Vector2i(3, 5), "the core turned brass")
+	# close() queued the pellets in flight to be freed: let that happen before GUT counts orphans.
+	await wait_process_frames(2)
+
+## The same for a failure, stopped from the level update the penalty sends.
+func test_a_listener_that_closes_the_board_does_not_cut_a_fail_short() -> void:
+	var close_board := func(_xp: float, _level: float) -> void: _view.close()
+	CultivationManager.core_density_level_updated.connect(close_board, CONNECT_ONE_SHOT)
+	_view.begin()
+	_at(_beat(3) + 0.15)
+	if CultivationManager.core_density_level_updated.is_connected(close_board):
+		CultivationManager.core_density_level_updated.disconnect(close_board)
+	assert_eq(_view.get_mode(), Mode.CLOSED, "precondition: the listener closed the board as the levels fell")
+	assert_null(_view.get_run(), "and dropped the run")
+	assert_eq(CultivationManager.get_core_density_level(), 95.0, "the penalty was applied")
+	assert_eq(_text_of("ResultTitle"), "Your core cracks")
+	assert_eq(_text_of("ResultText"), "Core Density falls from 100 to 95.")
+	assert_eq(_text_of("GradeLabel"), "Failed", "the grade came from the run")
+	assert_eq(_text_of("StatsLabel"), "0 perfect · 0 good · 4 missed")
+	assert_eq(_core_frame(), Vector2i(0, 4), "the spent core")
+
 func test_continue_finishes_with_the_result() -> void:
 	watch_signals(_view)
 	_view.begin()
