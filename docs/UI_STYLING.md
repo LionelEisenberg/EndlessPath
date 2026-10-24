@@ -86,10 +86,61 @@ The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](i
 | `PanelBookSlot` | PanelContainer | The inventory's slot art | Icon slots and loadout slots |
 | `PanelBookPill` | PanelContainer | The inventory's dark category pill | Small status pills (the path points badge) |
 | `PanelBookInset` | PanelContainer | The dark pill art, darkened | The path tree's map window |
+| `LabelBookPageTitle` | Label | Yatra One 38px dark ink `#33261A`, line pitch 44 | Page titles: "Equipment", "Gear", a material's or quest item's name |
+| `LabelBookItemName` | Label | Yatra One 30px dark ink `#33261A`, pitch 34 | The item's name in a details panel |
+| `LabelBookQuestName` | Label | Yatra One 26px dark ink `#33261A`, pitch 30 | A quest's name |
+| `LabelBookDropCap` | Label | Yatra One 46px vermilion `#A83C30`, pitch 52 | The Journal's drop cap |
+| `LabelBookInk` | Label | BM Euljiro 18px ink `#3B2A20`, pitch 26 | Body text and descriptions |
+| `LabelBookInkDark` | Label | BM Euljiro 18px dark ink `#33261A`, pitch 26 | Row names, values, "You have 4,600", the hotbar's key numbers |
+| `LabelBookDetail` | Label | BM Euljiro 15px muted ink `#765A43`, pitch 20 | Row details, hints ("Right-click to wear it"), the equipment count |
+| `LabelBookDetailDark` | Label | BM Euljiro 15px dark ink `#33261A`, pitch 20 | The number printed in a page button |
+| `LabelBookFlavor` | Label | BM Euljiro 16px muted ink `#765A43`, pitch 22 | A quest's flavour text |
+| `LabelBookStep` | Label | BM Euljiro 16px ink `#3B2A20`, pitch 22 | A quest's steps |
+| `LabelBookCount` | Label | BM Euljiro 20px dark ink `#33261A`, pitch 24 | The count in a list row (`×7`) |
+| `LabelBookCaps` | Label | Eul+1 13px muted ink `#765A43`, pitch 18 | Labels in capitals: `HEAD`, `STRENGTH`, `CONSUMABLE · IN SLOT 1`. The page writes the text in capitals |
+| `LabelBookTag` | Label | BM Euljiro 13px dark ink `#33261A`, pitch 18, `normal` = `paper_tag.tres` | The count on a paper tag (`×4600`) |
+| `LabelBookSeal` | Label | Eul+1 13px seal text `#F0E8D8`, pitch 18, `normal` = `seal.tres` | The word on a seal (`DONE`). Give the Label the seal's 66x26 size and centre the text |
+| `LabelBookFilter` | Label | Eul+1 13px muted ink `#765A43`, pitch 18, `normal` = an empty style with 10/4/10/4 content margins | A filter word that is not in use |
+| `LabelBookFilterOn` | Label | Eul+1 13px dark ink `#33261A`, pitch 18, `normal` = `pressed_lozenge.tres` | The filter word in use. Its margins match `LabelBookFilter`'s, so swapping the two moves nothing |
+| `RichTextBookDetail` | RichTextLabel | BM Euljiro 15px muted ink `#765A43` (`default_color`), `line_separation` 3, pitch 20 | Detail lines with BBCode: a consumable's effect, a bonus's value |
+| `PanelPressed` | PanelContainer | `pressed_panel.tres`: the pressed panel, 16px content margins | The details panels |
+| `PanelBookBare` | PanelContainer | An empty style: draws nothing | A `PanelContainer` that must show no panel (the base type draws `panel_tan.tres`) |
+| `PanelPrinterMarks` | Panel | `printer_marks.tres`: four vermilion corner marks, no fill | The printer's marks around the item the player picked, laid over it |
+| `HSeparatorPressed` | HSeparator | `pressed_rule.tres`: a pressed 4px rule, `separation` 4 | Rules between sections and under rows |
 
 The panel art is drawn at the book's own pixel density (one art pixel = 2 screen pixels). Their 9-slice styleboxes use 2x nearest-neighbour copies in `assets/sprites/ui/book/` (`book_card_2x_ai.png`, `book_row_2x_ai.png`, `book_pill_2x_ai.png`, `book_plaque_2x_ai.png`, `book_slot_2x_ai.png`) of the inventory originals, so stretched panels keep crisp, matching edges. Separators on cards use `HSeparatorItemDesc` from `pixel_theme.tres`.
 
 Each book's own colours are not theme items: a `BookStyleData` resource per book (`resources/ui/book_styles/`) recolours the cover edge, page border, turning page and bookmark through `assets/shaders/palette_swap.gdshader`.
+
+### Pressed pages
+
+The rows from `LabelBookPageTitle` down are the "pressed paper" pieces for the Inventory's four tabs ([design](superpowers/specs/2026-10-23-inventory-pressed-pages-design.md)). They follow the rules above (their own size, no drop shadow) and add these:
+
+- **One muted ink.** Every new muted variant is `#765A43`: 5.17:1 on the paper and 4.72:1 on a panel's floor (`#EFDCBB`). `LabelBookMuted` keeps `#7D5F47` for the other books, which is 4.34:1 on a panel.
+- **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for titles and names, BM Euljiro for everything else. "Eul+1" is one `FontVariation` of BM Euljiro with 1px letter spacing (`spacing_glyph = 1`), shared by `LabelBookCaps`, `LabelBookSeal`, `LabelBookFilter` and `LabelBookFilterOn`.
+- **Line pitch.** `line_spacing` is the pitch minus the font's height at that size, so wrapped lines step by the pitch, as in the lacquer theme. Heights: Yatra One 46 / 38 / 30 / 26 is 69 / 57 / 45 / 39px (spacing -17 / -13 / -11 / -9); BM Euljiro 20 / 18 / 16 / 15 / 13 is 23 / 21 / 19 / 17 / 16px (spacing +1 / +5 / +3 / +3 / +2). `RichTextBookDetail` gets its 20px pitch from `line_separation` 3.
+- **One line is only the font's height.** A single-line Label is as tall as its font, not its pitch. A bare `LabelBookTag` is 18px tall (16 + its 1px margins) and a `LabelBookFilter` or `LabelBookFilterOn` 24px (16 + 4 + 4), not the 20 and 26px of the art. Set `custom_minimum_size.y` where the page needs the art's height.
+
+Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, colour, base type, cleared shadow and line pitch, the letter-spaced font, the styleboxes, the rule's height and the text contrast.
+
+### Pressed pieces (`assets/styleboxes/book/`)
+
+`StyleBoxTexture` 9-slices of the pressed art in `assets/sprites/ui/book/pressed/`, drawn with nearest filtering at their file scale. Every content margin is set, 0 included: a content margin left unset falls back to the texture margin, which would inset the content by up to 10px on `printer_marks.tres`.
+
+| File | Texture | Texture margins L/T/R/B | Content margins L/T/R/B | Fill | Use |
+|------|---------|-------------------------|-------------------------|------|-----|
+| `pressed_panel.tres` | `pressed_panel_ai.png` (32x32) | 8/8/8/8 | 16/16/16/16 | yes | `PanelPressed` |
+| `pressed_lozenge.tres` | `pressed_lozenge_ai.png` (24x26) | 8/0/8/0 | 10/4/10/4 | yes | `LabelBookFilterOn`, the filter in use |
+| `pressed_rule.tres` | `pressed_rule_ai.png` (8x4) | 2/0/2/0 | 0/2/0/2 | yes | `HSeparatorPressed`. Its 2px top and bottom content margins give the rule its 4px height (see below) |
+| `printer_marks.tres` | `printer_marks_ai.png` (32x32) | 10/10/10/10 | 0 | none | `PanelPrinterMarks` |
+| `paper_tag.tres` | `paper_tag_ai.png` (12x20) | 4/4/4/4 | 5/1/5/1 | yes | `LabelBookTag` |
+| `seal.tres` | `seal_ai.png` (66x26) | 0 | 0 | yes | `LabelBookSeal`. No 9-slice: size the Label to 66x26 |
+| `pressed_groove.tres` | `pressed_groove_ai.png` (10x24) | 0/6/0/6 | 0 | yes | The scroll groove, stretched between its 6px ends. No variant uses it |
+| `pressed_thumb.tres` | `pressed_thumb_ai.png` (4x8) | 0/2/0/2 | 0 | yes | The groove's thumb, stretched between its 2px ends. No variant uses it |
+
+**A separator's style needs margins that add up to its height.** An `HSeparator` draws its style at the style's minimum height, centred in its `separation`, and a `StyleBoxTexture` has no height of its own beyond its margins. With top and bottom margins of 0 the rule is 0px tall and never draws (measured in 4.7.2), so `pressed_rule.tres` carries 2px content margins top and bottom, the 4px of its art, and `HSeparatorPressed` has `separation` 4. `test_pressed_rule_is_as_tall_as_its_separator` guards it. Any other `StyleBoxTexture` used as a separator needs the same.
+
+The theme's other two new styleboxes are `StyleBoxEmpty` sub-resources inside `book_theme.tres`: the one `PanelBookBare` draws, and `LabelBookFilter`'s, with 10/4/10/4 content margins.
 
 ## RichTextLabel variants
 
@@ -271,8 +322,8 @@ Use the Label variants for sizes. Use `ThemeConstants` only for colours that mus
 | `assets/themes/book_theme.tres` | Menu book page variants ([Menu book pages](#menu-book-pages)) |
 | `assets/themes/lacquer/lacquer_theme.tres` | Zone view theme: the `LabelLacquer*` variants and `RichTextLacquer` (see Lacquer theme) |
 | `assets/themes/pixel_ui_theme/` | Third-party pixel UI pack: `8x8_ui_elements*.png` and `8x8_ui_icons.png` atlases, `m5x7.ttf`, 8 colour-variant `PixelTheme-*.tres`, `TabContainer.tscn`. `pixel_theme.tres` uses only the two base atlases; the variant themes are not referenced by the game. |
-| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `buttons` (+`scroll`), `combat`, `common`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
-| `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `YatraOne-Regular.ttf` (the lacquer theme's painted titles). `Korean_Calligraphy.ttf`, `pixelmix.ttf` and `Ubage-woA3P.otf` are loaded only by the label testing scene. |
+| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `adventure`, `book` (the pressed pieces), `buttons` (+`scroll`), `combat`, `common`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
+| `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `YatraOne-Regular.ttf` (the lacquer theme's painted titles and the book theme's pressed-page titles). `Korean_Calligraphy.ttf`, `pixelmix.ttf` and `Ubage-woA3P.otf` are loaded only by the label testing scene. |
 | `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `book` (menu book bookmark, close tab, stage icons, padlock, 2x panel art), `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
 | `assets/aseprite/` | Aseprite sources: `abilities`, `character_profiles`, `cycling`, `ui/{ability_button,buff_icon,resource_bar}`, `zones`, plus root `madra_circle.aseprite`, `Sprite-0003*.aseprite` and a stray `Sprite-0003.gif` |
 | `assets/shaders/` | 10 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |
