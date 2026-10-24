@@ -1,10 +1,10 @@
 # Scripting System
 
-Last updated: 2026-10-18
+Last updated: 2026-10-24
 
 > **Status: Planned, not started.** No code exists for this system. This document records the design intent from the Game Design Document.
 >
-> **Blocked on Copper:** Scripting unlocks at the Copper stage, and the game can't reach Copper yet. `CultivationManager.attempt_breakthrough()` is an empty stub, and only the Foundation `AdvancementStageResource` exists. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
+> **Unlocks at Copper, which nothing is gated on yet:** Scripting unlocks at the Copper stage. The Foundation → Copper breakthrough is built (the Tribulation, on `feat/gameplay-priorities-c64b38`, not merged), and `CultivationManager.advance_to_next_stage()` puts the player in a thin Copper stage, but no unlock condition, zone, path node or action checks for it. See [CULTIVATION.md](../cultivation/CULTIVATION.md) and [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md).
 
 ## Design Intent
 
@@ -55,7 +55,7 @@ What exists:
 
 What's missing:
 - **Buffs outside combat:** there is no system for them. `BuffEffectData` and `CombatBuffManager` only run inside a fight, and `CharacterManager.get_total_attributes_data()` has a TODO for active buffs. Short-duration Script buffs that act outside combat (e.g. on cycling) need a timed-modifier system first. The same hookup problem leaves the path tree's numeric perks inert ([PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md)).
-- **Zone action:** no `ScriptActionData` subclass of `ZoneActionData` exists. `ZoneActionData.ActionType` is `FORAGE`, `ADVENTURE`, `NPC_DIALOGUE`, `MERCHANT`, `TRAIN_STATS`, `CYCLING`, `ZONE_EVENT`. A new `SCRIPTING` type (or `ZONE_EVENT`) could route it through `ActionManager` ([ZONES.md](../zones/ZONES.md)).
+- **Zone action:** no `ScriptActionData` subclass of `ZoneActionData` exists. `ZoneActionData.ActionType` is `FORAGE`, `ADVENTURE`, `NPC_DIALOGUE`, `MERCHANT`, `TRAIN_STATS`, `CYCLING`, `ZONE_EVENT`, `TRIBULATION`. A new `SCRIPTING` type (or `ZONE_EVENT`) could route it through `ActionManager` ([ZONES.md](../zones/ZONES.md)).
 - **Tracing input:** the calligraphy mechanic likely needs a custom `Path2D`-based input system, similar to how Cycling uses paths ([CYCLING.md](../cycling/CYCLING.md)).
 
 ## Open Design Questions

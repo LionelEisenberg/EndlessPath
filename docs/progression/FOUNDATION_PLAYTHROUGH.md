@@ -1,17 +1,17 @@
 # Foundation Stage Playthrough
 
-Last updated: 2026-10-23 (Beats 7–9 replaced by the Breath of the Core Tribulation design)
+Last updated: 2026-10-24 (Beat 9, the Breath of the Core Tribulation, built)
 
-> This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
+> This document is the authoritative walkthrough of the Foundation stage in Zone 1 (Spirit Valley). It first describes the beats as they play on `main` today, with every trigger, id, reward, and unlock; Beat 9 is built on `feat/gameplay-priorities-c64b38` and not merged, and is described with them. It then covers the designed but unbuilt beats, the economy numbers, and open tuning questions.
 >
 > System mechanics live in [QUESTS.md](QUESTS.md), [EVENTS.md](../infrastructure/EVENTS.md), [UNLOCKS.md](../infrastructure/UNLOCKS.md), [EFFECTS.md](../infrastructure/EFFECTS.md), and [DIALOGUE.md](../infrastructure/DIALOGUE.md). Authoring rules are in [QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md](QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md).
 
 ## Overview
 
 - **Target:** 30–60 minutes of committed play across 10 beats, ending with the Foundation → Copper breakthrough (Tribulation).
-- **Built:** Beats 1, 2, 3a, 3b and 4. Beat 3b unlocks the Merchant; Beat 4 is its shop (Merchant v1).
-- **Content ends** after the Merchant. See [Where content ends](#where-content-ends).
-- **Planned:** Beats 5–10. See [Planned beats](#planned-beats-510).
+- **Built:** Beats 1, 2, 3a, 3b, 4 and 9. Beat 3b unlocks the Merchant; Beat 4 is its shop (Merchant v1); Beat 9 is the Tribulation, which breaks through to Copper.
+- **Content ends** after the Merchant and the Tribulation. See [Where content ends](#where-content-ends).
+- **Planned:** Beats 5, 6 and 10 (7 and 8 were dropped). See [Planned beats](#planned-beats-510).
 
 | Status tag | Meaning |
 |---|---|
@@ -70,6 +70,9 @@ BEAT 3b CD 10 ─ cond q_reach_cd_10 ─► step 0 done, NPC 4 visible   (+1 pat
   │ next Shallow Woods map places the Refugee Camp ─ "Approach the camp"
   │                    ─ event merchant_discovered ─► Traveling Merchant
 BEAT 4  Traveling Merchant ─ shop: gold buys 6 gear pieces (once per save each) and Crude Scales
+BEAT 9  CD 100 ─ cond core_density_full ─► The Tribulation card (NEW)   (the core is full; XP at the cap is lost)
+  │ the trial: pass ─► Copper, level 0, the card gone
+  │            fail ─► CD 100 → 95, the card stays (retry once the core is full again)
 END OF AUTHORED CONTENT
 ```
 
@@ -190,21 +193,48 @@ Deviations from the original design:
 - Stock does not rotate in v1.
 - The Refugee Camp discovery shipped with Beat 3b.
 
+### Beat 9: The Tribulation `IMPLEMENTED`
+
+**Trigger:** Core Density reaches 100, which is now Foundation's cap. There is no quest and no dialogue. The design is [the Breath of the Core spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html). How it plays and where its code lives is in [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md).
+
+| # | Player does | What happens | Ids |
+|---|---|---|---|
+| 1 | Cycles to level 100 | The level-up that reaches the cap drops the leftover XP, and the log writes "Your core is full. The Tribulation waits in Spirit Valley." From then on XP is lost: the cabinet's figure reads "Core full", cycling says "Core full" where it would say "+N XP", and the Goals board's milestone reads "Face the Tribulation". | `CultivationManager.core_filled`, `CORE_FULL_LOG` |
+| 2 | — | The condition latches, and **The Tribulation** appears under Cultivate with a NEW seal and the tag TRIAL. It shows `Core 95 / 100` and refuses a click until the core is full. | Condition `core_density_full` (CULTIVATION_LEVEL ≥ 100); action `spirit_valley_tribulation` (`ActionType.TRIBULATION` = 7) |
+| 3 | Clicks the card at 100 | The board opens in the map gap: the HUD boards and the dock hide and the map takes no input. The intro panel gives the rules ("4 cracks end the trial and cost 5 levels of Core Density.") with **Begin** and **Not yet**. Space or a click on the board begins; Not yet or Escape closes it with nothing changed. | `ActionManager.start_tribulation`, `TribulationViewState`, `TribulationView` |
+| 4 | Plays the Breath of the Core | About 38 s and 25 beats in five phases (Steady breath, Heartbeat, Echo, Quickening, the last breath with its hold). Space or a click as the bright sphere crosses the ring: PERFECT within ±70 ms, GOOD within ±140 ms. Every miss is a crack, and 4 cracks end the trial at once. Once it starts there is no way out, and losing focus does not pause it. | `foundation_tribulation.tres`, `TribulationRun` |
+| 5 | Passes | Applied before the panel shows: the stage becomes Copper at level 0 with no XP, and the Madra cap follows Copper's curve (600 at level 0). The log reads "You break through to Copper." The card goes away at once, and the Goals board's milestone reads "Copper reached". The panel reads "Breakthrough" with the grade (Flawless, Clean or Scraped through). | `CultivationManager.advance_to_next_stage()`, `copper_advancement_stage.tres` |
+| 6 | Fails | The core loses 5 levels (100 → 95) and keeps its path points; the panel reads "Your core cracks". The card stays with `Core 95 / 100`, and the player cycles back to 100 to try again. Regaining the levels pays no second path point. | `lose_core_density_levels(5)`, `core_density_milestones` |
+| 7 | Clicks **Continue** | The action stops, the board closes and the zone's idle action resumes. | `TribulationView.finished` → `ActionManager.stop_action()` |
+
+| Property | Value |
+|---|---|
+| Player goal (fiction) | Break through to the next stage |
+| Player goal (mechanical) | Press on the beat for 38 s, and hold through the last breath |
+| Systems exercised | Cultivation (the cap, the stage change), zone actions, a board in the map gap, path points |
+| Exit gate | A pass: the stage is Copper |
+
+Deviations from the original design:
+- A Spirit Valley action replaced the Tribulation Guardian (Beat 7) and the Advancement Zone (Beat 8), and the trial is not built on cycling.
+- The copy is placeholder and there is no sound.
+- Copper is a thin stage: it unlocks nothing yet. No map teaser for Zone 2 was built.
+- The numbers are starting values, and the user has not played it through yet (see the targets under [Loop Economy](#loop-economy)).
+
 ### Where content ends
 
-After Beat 4:
+After Beat 4 and the Tribulation:
 
-- No quest is active, and the Goals board shows only the Breakthrough milestone.
+- No quest is active, and the Goals board shows only its milestone (it reads "Face the Tribulation" at Core Density 100, and "Copper reached" after a pass).
 - No further NPC actions, events, or conditions exist, and the Intervener is gone. Gold buys the Merchant's six gear pieces once each; after that it only buys Crude Scales.
 - Only repeatable systems remain:
-  - cycling (+1 path point per 10 CD levels)
+  - cycling (+1 path point per 10 CD levels, up to level 100)
   - Shallow Woods runs (elites, the Manifested Spirit boss, Aura Well rests, loot)
   - Aura Well training
   - Spring Forest Foraging
   - the Merchant (Crude Scales, and gear until it sells out)
   - consumables
   - Path tree purchases (14 nodes)
-- Core Density keeps rising past 100 with no effect. `CultivationManager.attempt_breakthrough()` is an empty stub, only the Foundation `AdvancementStageResource` exists, there is no Tribulation scene, and no CD-100 condition is registered.
+- Core Density stops at 100, where the Tribulation waits. A pass reaches Copper, which has stage data and nothing else: no Copper zone, quest, path node or content is gated on it yet.
 - The Test Zone is hidden on the map and has no actions (the dev panel's "Show hidden zones" toggle can show it).
 
 ### Beat index
@@ -220,7 +250,7 @@ After Beat 4:
 | 6 | Third Keystone | Keystone #3 at CD ~30 | `PLANNED` |
 | 7 | Tribulation Guardian (dropped) | Replaced on 2026-10-23 by a Spirit Valley action | — |
 | 8 | Advancement Zone (dropped) | Replaced on 2026-10-23 by a Spirit Valley action | — |
-| 9 | The Tribulation | CD 100 reveals the Tribulation in Spirit Valley; a pass reaches Copper, a failure costs 5 levels | `PLANNED` ([spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md)) |
+| 9 | The Tribulation | CD 100 reveals the Tribulation in Spirit Valley; a pass reaches Copper, a failure costs 5 levels | `IMPLEMENTED` ([spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md)) |
 | 10 | Zone 2 Onramp | Zone 2 accessible | `PLANNED` (sketch) |
 
 ## Planned beats (5–10)
@@ -246,29 +276,7 @@ After Beat 4:
 
 ### Beats 7 and 8: dropped
 
-On 2026-10-23 the user replaced the Tribulation Guardian (Beat 7) and the Advancement Zone (Beat 8) with a Spirit Valley action (Beat 9). The Shallow Woods boss slot still holds Manifested Spirit, a copy of the regular `amorphous_spirit` enemy, and nothing records a clear (see [ADVENTURING.md](../adventuring/ADVENTURING.md)). The dev demo zones still show a locked "Advancement Zone", but only to demonstrate the map's states.
-
-### Beat 9: The Tribulation `PLANNED`
-
-- **Design:** [the Breath of the Core spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html).
-- **Trigger:** Core Density reaches 100, which becomes Foundation's cap. "The Tribulation" appears in Spirit Valley's Cultivate group and stays.
-- **The trial:** about 38 s:
-  - An aura sphere breathes around the core, and the player presses space or clicks as the bright sphere crosses a brass ring.
-  - Five phases: Steady breath, Heartbeat, Echo (two spheres), Quickening, and the last breath, which ends in a hold.
-  - 4 cracks fail it.
-- **Pass:** Copper:
-  - the stage changes and Core Density restarts at 0 on Copper's curve;
-  - the card goes away. Nothing changes on the map yet.
-- **Fail:** the core loses 5 levels (100 → 95). The card stays, showing "Core 95 / 100", until the player cycles back to 100.
-- **Exists:**
-  - the `AdvancementStage` enum and `PATH_POINTS_PER_STAGE[COPPER] = 2`;
-  - the `CULTIVATION_STAGE` and `CULTIVATION_LEVEL` condition types and UnlockManager's sweep on `advancement_stage_changed`;
-  - the map's LOCKED and UNCHARTED states.
-- **Needs:** everything in the spec, including:
-  - the cap;
-  - a path-point fix: milestones re-pay today, so 100 → 95 → 100 would pay twice;
-  - the Copper stage resource;
-  - a guard against the endless level-up loop.
+On 2026-10-23 the user replaced the Tribulation Guardian (Beat 7) and the Advancement Zone (Beat 8) with a Spirit Valley action ([Beat 9](#beat-9-the-tribulation-implemented)). The Shallow Woods boss slot still holds Manifested Spirit, a copy of the regular `amorphous_spirit` enemy, and nothing records a clear (see [ADVENTURING.md](../adventuring/ADVENTURING.md)). The dev demo zones still show a locked "Advancement Zone", but only to demonstrate the map's states.
 
 ### Beat 10: Zone 2 Onramp `PLANNED` (sketch)
 
@@ -289,14 +297,17 @@ On 2026-10-23 the user replaced the Tribulation Guardian (Beat 7) and the Advanc
 | Torrential Flow | 8 s cycle, 250 base Madra, 1 zone (30 / 25 / 20 XP) | `torrential_flow.tres` |
 | CD XP to reach level L | 10 × 1.02^(L−1) | `core_density_base_xp_cost` (default 10) × `core_xp_scaling_factor` 1.02 |
 | Cumulative CD XP | CD 10 ≈ 110; CD 30 ≈ 406; CD 50 ≈ 846; CD 100 ≈ 3,122 | Computed |
-| Path points by CD 100 | 11 (1 quest + 10 milestones) | `q_first_steps`, `CultivationManager` |
+| Path points by CD 100 | 11 (1 quest + 10 milestones), each milestone paid once per stage | `q_first_steps`, `CultivationManager` |
+| Core Density cap | 100 in Foundation and Copper; XP earned at the cap is lost | `max_core_density_level` in the stage resources |
+| The Tribulation | About 38 s and 25 beats; windows ±70 ms (perfect) and ±140 ms (good); 4 cracks fail; a failure costs 5 levels; the Tribulation card appears at CD 100 | `foundation_tribulation.tres` |
+| Copper | 20 × 1.02^(L−1) XP to reach level L (about 6,245 to level 100); Madra cap 600 + 10 × L; 2 path points per milestone. Placeholders until Copper is designed | `copper_advancement_stage.tres` |
 | Pure Madra tree capacity | 14 nodes at 1 point each = 22 purchases (repeatables max 3 / 5 / 3) | `resources/path_progression/pure_madra/nodes/` |
 | Aura Well training | +1.5 Madra per 1 s tick; +1 SPIRIT per level; 60 / 300 / 600 / 1200 ticks, then ×2 | `aura_well_training_action.tres`, `TrainingActionData` defaults |
 | Aura Well rest | +5 × BODY HP, +2 × FOUNDATION Madra | `aura_well_encounter.tres` |
 | Consumables | Crude Scale and Barely Coalesced Scale: +20 Madra (10 s cooldown, not enforced) | `resources/items/consumables/` |
 | Merchant prices | Crude Scale 10, Cultivator's Cowl 40, Makeshift Dagger 60, Scripted Bark 75, Leeching Ring 120, Iron Shortsword 150, Reinforced Robes 180 (starting values; all gear 625) | Item `base_value`; stock in `spirit_valley_merchant_stock.tres` |
 
-**Pacing reality (computed):** No Core Density XP multiplier is applied in code. `PathEffectsSummary.core_density_xp_mult` and `CyclingActionData.xp_multiplier` are never read. With Smooth Flow, CD 10 takes about 1 perfect cycle (≈15 s), CD 30 about 4 cycles, and CD 100 about 25 perfect or 45 good cycles, which is roughly 6–11 minutes of cycling. That is far ahead of the [pacing targets](#progression-pacing-targets) (Beat 3b at 6–15 min, Beat 6 at 20–30 min, Beat 9 at 35–60 min). The curve must be retuned before Beats 6–9 ship.
+**Pacing reality (computed):** No Core Density XP multiplier is applied in code. `PathEffectsSummary.core_density_xp_mult` and `CyclingActionData.xp_multiplier` are never read. With Smooth Flow, CD 10 takes about 1 perfect cycle (≈15 s), CD 30 about 4 cycles, and CD 100 about 25 perfect or 45 good cycles, which is roughly 6–11 minutes of cycling. That is far ahead of the [pacing targets](#progression-pacing-targets) (Beat 3b at 6–15 min, Beat 6 at 20–30 min, Beat 9 at 35–60 min). The curve must be retuned before Beat 6 and the Tribulation reach players. It also sets what the Tribulation's penalty weighs: the 5 levels from 96 to 100 cost about 342 XP, which is 40–75 s of Smooth Flow cycling today.
 
 ### Targets to validate
 
@@ -314,6 +325,10 @@ On 2026-10-23 the user replaced the Tribulation Guardian (Beat 7) and the Advanc
 | Rewards | Adventures between meaningful drops | TBD | More than 4 empty runs in a row |
 | Rewards | Concurrent quests | TBD | More than 3 overloads the early tracker |
 | Rewards | Merchant gear price | ~3–5 adventures of gold | Unaffordable, or bought on the first visit (Q-8) |
+| Tribulation | Passes in five first attempts by a player who has played for a while | 2–3 | All five pass: widen the good window to ±120 ms, or fail at 3 cracks. Zero or one pass: ±160 ms |
+| Tribulation | Mashing Space through a run | Fails | It passes: widen the early-miss reach |
+| Tribulation | Release tolerance (0.05 s) | Holding to the end never reads "Released too early" | Raise it to 0.10 s |
+| Tribulation | Length (about 38 s) | It does not drag | Cut Steady breath to 4 breaths |
 
 ### Progression pacing targets
 
@@ -404,7 +419,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 | File | Role in the chain |
 |---|---|
-| `resources/zones/spirit_valley_zone/spirit_valley_zone.tres` | Spirit Valley and its 9 actions |
+| `resources/zones/spirit_valley_zone/spirit_valley_zone.tres` | Spirit Valley and its 10 actions |
 | `resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_{1..4}.tres` | NPC beats (events and quest starts) |
 | `resources/zones/spirit_valley_zone/zone_actions/wilderness_cycling_action.tres`, `spirit_valley_adventure_action.tres`, `spring_forest_foraging_action.tres` | Beat 1 unlocks |
 | `resources/zones/spirit_valley_zone/zone_actions/aura_well_training_action.tres` (+ `aura_well_madra_trickle_effect.tres`, `aura_well_spirit_award_effect.tres`) | Beat 3a training |
@@ -413,8 +428,11 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 | `singletons/merchant_manager/merchant_manager.gd` | Beat 4 purchase rules and per-merchant ledgers |
 | `scenes/merchant/` | Beat 4 shop view, rows, atmosphere and view state |
 | `assets/themes/merchant/spirit_valley_merchant_theme.tres` | Beat 4 Spirit Valley shop look |
+| `resources/zones/spirit_valley_zone/zone_actions/tribulation_action.tres`, `resources/tribulation/foundation_tribulation.tres`, `resources/unlocks/core_density_full.tres` | Beat 9 action, trial data and unlock condition |
+| `resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres` | Beat 9 destination: the Copper stage |
+| `scenes/tribulation/`, `scripts/tribulation/tribulation_run.gd` | Beat 9 board, state, stage and judge |
 | `resources/zones/test_zone/test_zone.tres` | Empty Test Zone (unlocks at NPC 1, hidden on the map at (-1, 0), no description) |
-| `resources/zones/dev/` | Dev demo zones for the locked and uncharted map states (Beats 7–10's machinery) |
+| `resources/zones/dev/` | Dev demo zones for the locked and uncharted map states (the machinery for a locked Zone 2) |
 | `resources/quests/q_fill_core.tres`, `q_first_steps.tres`, `q_reach_core_density_10.tres`, `quest_list.tres` | Quests |
 | `resources/unlocks/*.tres`, `unlock_condition_list.tres` | Conditions |
 | `resources/effects/trigger_event/celestial_intervener_dialogue_1.tres` | NPC 1 event effect |
@@ -424,9 +442,10 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 | `resources/items/quest_items/refugee_camp_map.tres` | Beat 3b reward |
 | `resources/path_progression/pure_madra/nodes/pure_core_awakening.tres`, `power_font.tres` | Keystones #1 and #2 |
 | `scenes/combat/adventure_combat/adventure_combat.gd` | `q_first_steps_enemy_defeated` producer |
-| `singletons/cultivation_manager/cultivation_manager.gd` | CD milestone path points; `attempt_breakthrough()` stub |
+| `singletons/cultivation_manager/cultivation_manager.gd` | CD cap and milestone path points (paid once per stage); `advance_to_next_stage()` and `lose_core_density_levels()` (Beat 9) |
 | `tests/integration/test_aura_well_discovery_unlock.gd`, `test_beat_3b_merchant_unlock.gd` | Beat 3a and 3b integration tests |
 | `tests/unit/test_merchant_manager.gd`, `test_merchant_data.gd`, `test_merchant_view_state.gd`, `test_spirit_valley_merchant_stock.gd`, `test_spirit_valley_merchant_theme.gd`, `tests/integration/test_merchant_shop_flow.gd` | Beat 4 tests |
+| `tests/unit/test_tribulation_run.gd`, `test_tribulation_stage.gd`, `test_tribulation_art.gd`, `test_tribulation_view_state.gd`, `test_foundation_tribulation_data.gd`, `tests/integration/test_tribulation_view.gd`, `test_tribulation_card.gd`, `test_tribulation_flow.gd` | Beat 9 tests, the flow included end to end |
 
 ## Work Remaining
 
@@ -437,14 +456,15 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Missing Functionality
 
-- `[HIGH]` There is no breakthrough: `CultivationManager.attempt_breakthrough()` is empty, and there is no Copper stage resource, no Tribulation scene, and no CD-100 gate. This blocks Beats 9–10 and the Copper milestone. Designed in the [Tribulation spec](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md).
+- `[HIGH]` Copper unlocks nothing. The Tribulation reaches it, but no zone, quest, path node, Scripting or Elixir Making is gated on the stage yet, so a pass ends in an empty stage. This blocks Beat 10 and the Copper milestone.
+- `[MEDIUM]` The Tribulation is untuned and unplayed by the user: its windows, length and 5-level penalty are starting values, and its copy is placeholder. Run the targets under [Loop Economy](#targets-to-validate) (the spec's [test plan](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md#starting-values-and-test-plan)).
 - `[MEDIUM]` Once the six gear pieces are bought (625 gold), gold only buys Crude Scales. The next gold sink needs new stock (for example a Copper merchant) or rotation.
 - `[MEDIUM]` No events or working condition types exist for an elite defeated, the boss defeated, an adventure completed, or a zone unlocked. `ADVENTURE_COMPLETED` and `ZONE_UNLOCKED` always return false. Beat 5 depends on the elite one.
 - `[LOW]` The Madra bar is not gated behind Beat 1 as the original design intended.
 
 ### Content
 
-- `[HIGH]` Nothing narrative exists after Beat 3b: no quest, dialogue, or NPC leads toward Beats 4–10 or the breakthrough.
+- `[HIGH]` Nothing narrative exists after Beat 3b: no quest, dialogue, or NPC leads toward Beats 4–10 or the Tribulation. Its intro and result panels carry placeholder lines.
 - `[HIGH]` Keystone #3 (burst or finisher) is not on the Pure Madra tree, which has only two KEYSTONE nodes.
 - `[HIGH]` The Core Density curve undercuts the pacing targets. CD 10 arrives within about one Smooth Flow cycle, and CD 100 within about 6–11 minutes of cycling (see [Economy](#loop-economy)).
 - `[MEDIUM]` Player-facing names are placeholders:
@@ -466,4 +486,4 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Tech Debt
 
-- `[LOW]` Only Beats 3a and 3b have integration tests. The Beat 1–2 chain is untested end to end: NPC 1 → `q_fill_core` → NPC 2 → `q_first_steps` → combat event → NPC 3 → path point. The combat-to-event test is tautological.
+- `[LOW]` Only Beats 3a, 3b and 9 have integration tests. The Beat 1–2 chain is untested end to end: NPC 1 → `q_fill_core` → NPC 2 → `q_first_steps` → combat event → NPC 3 → path point. The combat-to-event test is tautological.

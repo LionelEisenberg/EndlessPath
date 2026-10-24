@@ -1,6 +1,6 @@
 # Path Progression System
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Overview
 
@@ -12,7 +12,7 @@ Status at a glance:
 |------|----------------------|
 | Trees | 1 (`pure_madra`), Tier 1 / Foundation only. 14 nodes, 22 points to max everything |
 | Node mix | 2 keystone, 4 major, 5 minor, 3 repeatable |
-| Point sources | Every 10th Core Density level (1/2/3/4 points by stage); quest "First Steps Out" (+1); dev panel |
+| Point sources | Every 10th Core Density level, once per stage (1/2/3/4 points by stage); quest "First Steps Out" (+1); dev panel |
 | Perks that work in play | 3 unlock nodes. They grant 2 abilities (Empty Palm, Power Font) and 2 cycling techniques (Smooth Flow, Torrential Flow) |
 | Perks that do nothing yet | 7 numeric nodes: aggregated into `PathEffectsSummary`, but no system reads it. 4 nodes have no effects at all |
 | Tier gates | Enforced in `PathManager.can_purchase_node()`, with no UI. Every node is Foundation |
@@ -227,16 +227,16 @@ Constants and hooks:
 
 | Source | Amount | Trigger |
 |--------|--------|---------|
-| Core Density milestone | `CultivationManager.PATH_POINTS_PER_STAGE[stage]`: Foundation 1, Copper 2, Iron 3, Jade 4; any other stage (Silver) falls back to 1 | Each level-up in `CultivationManager.add_core_density_xp()` where `level % PATH_POINT_LEVEL_INTERVAL (10) == 0` |
+| Core Density milestone | `CultivationManager.PATH_POINTS_PER_STAGE[stage]`: Foundation 1, Copper 2, Iron 3, Jade 4; any other stage (Silver) falls back to 1 | Each level-up in `CultivationManager.add_core_density_xp()` where `level % PATH_POINT_LEVEL_INTERVAL (10) == 0` and the level is above the stage's entry in `SaveGameData.core_density_milestones` (`_pay_milestone()`, `cultivation_manager.gd:248-257`). A level lost to a failed Tribulation and regained pays nothing again |
 | Quest `q_first_steps` ("First Steps Out") | 1 | `completion_effects` → `AwardPathPointEffectData` (default `amount = 1`) |
 | Dev panel "Path Points" row | 0–1000 | `DevPanel._on_apply_points()` → `add_points()` |
 
 The quest awards its point after two steps: defeat an enemy, then return to the Celestial Intervener.
 
 Budget facts:
-- The player can't leave Foundation: `CultivationManager.attempt_breakthrough()` is a stub, nothing writes `current_advancement_stage`, and only the Foundation `AdvancementStageResource` exists. Every milestone therefore pays 1 point.
+- The player leaves Foundation only through the Tribulation (`CultivationManager.advance_to_next_stage()`, [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md)). Until then every milestone pays Foundation's 1 point. Copper pays 2 per milestone, counted from its own level 10: the ledger has one entry per stage.
 - Through CD 100 a Foundation player can earn 11 points: 10 milestones plus the quest. The tree costs 22 to max, so that is 50% completion.
-- Core Density has no level cap in code, and Breakthrough is unimplemented, so milestone points keep coming past CD 100. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
+- Core Density stops at 100 in each stage, so the milestones are finite: a stage pays at most 10, and a level regained after a failed Tribulation pays nothing. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
 - There are no refunds, respecs, or point sinks outside the tree.
 
 ### Purchase Flow
@@ -353,7 +353,7 @@ A layout is a `Node2D` scene with one `Marker2D` per node. Each marker is **name
 
 | System | Direction | Interaction |
 |--------|-----------|-------------|
-| `CultivationManager` | → PathManager | `add_core_density_xp()` calls `PathManager.add_points(PATH_POINTS_PER_STAGE[stage])` on each level that is a multiple of 10 |
+| `CultivationManager` | → PathManager | `add_core_density_xp()` calls `_pay_milestone()`, which calls `PathManager.add_points(PATH_POINTS_PER_STAGE[stage])` on each level that is a multiple of 10 and that the stage has not paid before |
 | `CultivationManager` | ← PathManager | `_is_stage_reached()` reads `get_current_advancement_stage()`. `AdvancementStage` types `required_stage` |
 | `QuestManager` / `AwardPathPointEffectData` | → PathManager | `q_first_steps` completion → `add_points(1)` ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md) Beat 2) |
 | `AbilityManager` | ← PathManager | `purchase_node()` → `unlock_ability(id)`. The dock's Abilities ring reflects new unlocks ([ABILITIES.md](../abilities/ABILITIES.md)) |
@@ -469,8 +469,8 @@ RGB(A) values from `resources/path_progression/themes/`. Alpha is 1 unless shown
 | `scripts/resource_definitions/path_progression/path_effects_summary.gd` | `PathEffectsSummary` (RefCounted) |
 | `scripts/resource_definitions/path_progression/path_theme_data.gd` | `PathThemeData` |
 | `scripts/resource_definitions/effects/award_path_point_effect_data.gd` | `AwardPathPointEffectData` |
-| `singletons/cultivation_manager/cultivation_manager.gd` | `PATH_POINTS_PER_STAGE`, `PATH_POINT_LEVEL_INTERVAL`, milestone award |
-| `singletons/persistence_manager/save_game_data.gd` | `current_path_id`, `path_node_purchases`, `path_points` |
+| `singletons/cultivation_manager/cultivation_manager.gd` | `PATH_POINTS_PER_STAGE`, `PATH_POINT_LEVEL_INTERVAL`, the milestone award (`_pay_milestone()`) |
+| `singletons/persistence_manager/save_game_data.gd` | `current_path_id`, `path_node_purchases`, `path_points`; and `core_density_milestones`, the ledger of paid milestones (owned by `CultivationManager`) |
 | `resources/path_progression/path_tree_list.tres` | Registry (Pure Madra only) |
 | `resources/path_progression/pure_madra/pure_madra_tree.tres` | Pure Madra tree |
 | `resources/path_progression/pure_madra/nodes/*.tres` | 14 node resources (effects as sub-resources) |
@@ -633,9 +633,9 @@ The built system merges the advancement tree and Paths into one per-path tree av
 - `[MEDIUM]` **Madra Surge sits behind two stubs.** `madra_surge`, a cycling repeatable, requires both `efficient_palm` and `lingering_silence`, so reaching it costs 2 points that buy nothing.
 - `[MEDIUM]` **Foundation budget doesn't match the targets.**
   - 11 points through CD 100 against a 22-point tree is 50% completion; the target is 60–70%.
-  - With no CD cap, points keep accruing indefinitely.
+  - Core Density stops at 100, so Foundation pays no more than those 11. Copper's milestones pay 2 each but no Copper node exists to spend them on.
 - `[MEDIUM]` **Keystone #3 is missing.** The Beat 6 burst/finisher ability from [FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md) isn't authored.
-- `[MEDIUM]` **Only Tier 1 exists.** All 14 nodes are `FOUNDATION`; there are no Copper nodes.
+- `[MEDIUM]` **Only Tier 1 exists.** All 14 nodes are `FOUNDATION`; there are no Copper nodes. A player who passes the Tribulation opens the Path book's Copper chapter (`is_stage_unlocked()` reads the current stage) onto an empty tree, and Copper's path points pile up unspent.
 - `[LOW]` **One tree only.** `path_tree_list.tres` lists only Pure Madra. `blackflame_theme.tres` and `earth_theme.tres` are referenced by nothing.
 - `[LOW]` **Text mismatches:**
   - `power_font.benefit_summary` reads "Madra Strike unlocked"; the ability is Power Font.
@@ -655,7 +655,6 @@ The built system merges the advancement tree and Paths into one per-path tree av
 
 ### Tech Debt
 - `[MEDIUM]` **Missing tests:**
-  - The Core Density milestone award in `CultivationManager.add_core_density_xp()` (tested nowhere).
   - Tier gates (`_test_stage_override` is always `JADE`).
   - `_restore_current_path()` auto-select and restore.
   - The unlock calls `purchase_node()` makes to AbilityManager and CyclingManager.
