@@ -92,6 +92,10 @@ const PASSED_CORE_ROW: int = 5
 const PIP_UNLIT: int = 0
 const PIP_LIT: int = 1
 
+## A button's word sits this many px lower while the button is pressed in (STYLE_GUIDE
+## section 7), as the chest's About button's does (ZonePanel.ABOUT_TEXT_DROP).
+const PRESSED_TEXT_DROP: float = 2.0
+
 ## The floater words.
 const PERFECT_WORD: String = "Perfect"
 const GOOD_WORD: String = "Good"
@@ -126,8 +130,10 @@ const _BRASS_PELLET: Texture2D = preload("res://assets/ui/lacquer/cycling/lacque
 @onready var _intro_text: Label = %IntroText
 @onready var _rules_label: Label = %RulesLabel
 @onready var _begin_button: TextureButton = %BeginButton
+@onready var _begin_label: Label = %BeginLabel
 @onready var _begin_hover: LacquerFrameOverlay = %BeginHover
 @onready var _not_yet_button: TextureButton = %NotYetButton
+@onready var _not_yet_label: Label = %NotYetLabel
 @onready var _not_yet_hover: LacquerFrameOverlay = %NotYetHover
 @onready var _result_panel: Control = %ResultPanel
 @onready var _result_title: Label = %ResultTitle
@@ -135,6 +141,7 @@ const _BRASS_PELLET: Texture2D = preload("res://assets/ui/lacquer/cycling/lacque
 @onready var _grade_label: Label = %GradeLabel
 @onready var _stats_label: Label = %StatsLabel
 @onready var _continue_button: TextureButton = %ContinueButton
+@onready var _continue_label: Label = %ContinueLabel
 @onready var _continue_hover: LacquerFrameOverlay = %ContinueHover
 @onready var _phase_name_label: Label = %PhaseNameLabel
 @onready var _phase_tip_label: Label = %PhaseTipLabel
@@ -197,6 +204,9 @@ func _ready() -> void:
 	_connect_hover(_begin_button, _begin_hover)
 	_connect_hover(_not_yet_button, _not_yet_hover)
 	_connect_hover(_continue_button, _continue_hover)
+	_connect_press_drop(_begin_button, _begin_label)
+	_connect_press_drop(_not_yet_button, _not_yet_label)
+	_connect_press_drop(_continue_button, _continue_label)
 	visibility_changed.connect(_on_visibility_changed)
 	_on_visibility_changed()
 
@@ -252,6 +262,8 @@ func setup(data: TribulationData, zone_name: String) -> void:
 	_core.set_frame(0, 0)
 	for hover: LacquerFrameOverlay in [_begin_hover, _not_yet_hover, _continue_hover]:
 		hover.hide()
+	for label: Label in [_begin_label, _not_yet_label, _continue_label]:
+		_drop_word(label, false)
 	_result_panel.hide()
 	_intro_panel.show()
 	show()
@@ -600,6 +612,16 @@ func _clear_effects() -> void:
 func _connect_hover(button: TextureButton, hover: LacquerFrameOverlay) -> void:
 	button.mouse_entered.connect(hover.show)
 	button.mouse_exited.connect(hover.hide)
+
+## The button's pressed face (its texture swap) takes its word down with it: the word
+## sits PRESSED_TEXT_DROP px lower from button_down to button_up.
+func _connect_press_drop(button: TextureButton, label: Label) -> void:
+	button.button_down.connect(_drop_word.bind(label, true))
+	button.button_up.connect(_drop_word.bind(label, false))
+
+## Stands `label` PRESSED_TEXT_DROP px lower when `dropped`, or home.
+func _drop_word(label: Label, dropped: bool) -> void:
+	label.position.y = PRESSED_TEXT_DROP if dropped else 0.0
 
 ## The board runs its frames only while it shows.
 func _on_visibility_changed() -> void:

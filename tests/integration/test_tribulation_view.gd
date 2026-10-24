@@ -303,6 +303,40 @@ func test_buttons_take_no_focus() -> void:
 	for button_name: String in ["BeginButton", "NotYetButton", "ContinueButton"]:
 		assert_eq((_node(button_name) as Control).focus_mode, Control.FOCUS_NONE, "%s takes no focus, so Space never presses it" % button_name)
 
+## STYLE_GUIDE section 7, Pressed: the face drops its shadow (the button's texture swap) and its
+## word sits 2 px lower, as the chest's About does while it is pressed in. Each button moves
+## its own word, and only while it is down.
+func test_a_pressed_button_drops_its_word_2_px() -> void:
+	var words: Dictionary[String, String] = {
+		"BeginButton": "BeginLabel",
+		"NotYetButton": "NotYetLabel",
+		"ContinueButton": "ContinueLabel",
+	}
+	for button_name: String in words:
+		var button := _node(button_name) as TextureButton
+		var label := _node(words[button_name]) as Label
+		assert_eq(label.position.y, 0.0, "%s: the word starts at home" % button_name)
+		button.button_down.emit()
+		assert_eq(label.position.y, 2.0, "%s: the word sits 2 px lower while the button is down" % button_name)
+		for other_button: String in words:
+			if other_button != button_name:
+				assert_eq((_node(words[other_button]) as Label).position.y, 0.0, "%s's word stays home while %s is down" % [other_button, button_name])
+		button.button_up.emit()
+		assert_eq(label.position.y, 0.0, "%s: and returns when the button comes up" % button_name)
+
+## A button hidden while it is down may never see its release (Space begins the run under a
+## held click, and the intro hides), so setup() puts every word back home, as it hides the
+## hover frames.
+func test_setup_puts_the_pressed_words_back_home() -> void:
+	var labels: Array[String] = ["BeginLabel", "NotYetLabel", "ContinueLabel"]
+	for button_name: String in ["BeginButton", "NotYetButton", "ContinueButton"]:
+		(_node(button_name) as TextureButton).button_down.emit()
+	for label_name: String in labels:
+		assert_eq((_node(label_name) as Label).position.y, 2.0, "precondition: %s is down" % label_name)
+	_view.setup(_data, ZONE_NAME)
+	for label_name: String in labels:
+		assert_eq((_node(label_name) as Label).position.y, 0.0, "%s is back home" % label_name)
+
 func test_a_press_on_the_intro_begins() -> void:
 	assert_true(_view.handle_press_event(_press()), "the board takes the press")
 	assert_eq(_view.get_mode(), Mode.RUNNING)
