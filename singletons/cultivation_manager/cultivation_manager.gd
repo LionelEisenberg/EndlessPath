@@ -35,8 +35,6 @@ const PATH_POINTS_PER_STAGE: Dictionary = {
 	AdvancementStage.JADE: 4,
 }
 const PATH_POINT_LEVEL_INTERVAL: int = 10
-## Core Density level the Breakthrough milestone asks for (the design's 0-100 per stage).
-const BREAKTHROUGH_LEVEL: int = 100
 ## Written to the player's log when the core fills and a next stage waits.
 const CORE_FULL_LOG: String = "Your core is full. The Tribulation waits in Spirit Valley."
 
