@@ -150,27 +150,19 @@ func test_fog_tier_uses_the_nearest_charted_zone() -> void:
 	assert_eq(ZoneMapMath.fog_tier(ZoneMapMath.cell_to_cube(Vector2i(1, -3)), charted), 2)
 
 #-----------------------------------------------------------------------------
-# FORAGING WANDER
+# FORAGING
 #-----------------------------------------------------------------------------
 
 func test_forage_wander_keyframes() -> void:
-	# Kit §0: 0 -> -24 -> -8 -> 0 world px over the 5 s haul (screen 0 -> -48 -> -16 -> 0).
+	# Out to -24 world px by 1.2 s, searching there until 3 s, home by 4.2 s,
+	# then the find held up at the stand until the haul at 5 s.
 	assert_eq(ZoneMapMath.forage_wander_x(0.0), 0.0)
-	assert_eq(ZoneMapMath.forage_wander_x(0.75), -12.0, "halfway out")
-	assert_eq(ZoneMapMath.forage_wander_x(1.5), -24.0, "furthest west at 30%")
-	assert_eq(ZoneMapMath.forage_wander_x(3.25), -8.0, "back to -8 at 65%")
+	assert_eq(ZoneMapMath.forage_wander_x(0.6), -12.0, "halfway out")
+	assert_eq(ZoneMapMath.forage_wander_x(1.2), -24.0, "furthest west as the search starts")
+	assert_eq(ZoneMapMath.forage_wander_x(2.99), -24.0, "still there as the search ends")
+	assert_eq(ZoneMapMath.forage_wander_x(3.6), -12.0, "halfway home")
+	assert_eq(ZoneMapMath.forage_wander_x(4.2), 0.0, "home")
 	assert_eq(ZoneMapMath.forage_wander_x(5.0), 0.0, "home at the haul")
-
-func test_training_bob_steps() -> void:
-	# Mock: bob 2.4 s steps(2, end), 0 -> -4 -> 0 screen px, so screen 0, -2,
-	# -4, -2 a step every 0.6 s: world 0, -1, -2, -1.
-	assert_eq(ZoneMapMath.training_bob_y(0.0), 0.0)
-	assert_eq(ZoneMapMath.training_bob_y(0.59), 0.0)
-	assert_eq(ZoneMapMath.training_bob_y(0.6), -1.0)
-	assert_eq(ZoneMapMath.training_bob_y(1.2), -2.0, "highest at half the cycle")
-	assert_eq(ZoneMapMath.training_bob_y(1.8), -1.0)
-	assert_eq(ZoneMapMath.training_bob_y(2.4), 0.0, "home at the end of the cycle")
-	assert_eq(ZoneMapMath.training_bob_y(3.6), -2.0, "and it repeats")
 
 func test_forage_wander_moves_west_only_in_whole_px() -> void:
 	var t: float = 0.0
@@ -179,3 +171,77 @@ func test_forage_wander_moves_west_only_in_whole_px() -> void:
 		assert_true(x <= 0.0 and x >= -24.0, "x %s at %s s" % [x, t])
 		assert_eq(x, roundf(x), "whole world px at %s s" % t)
 		t += 0.05
+
+func test_forage_animation_follows_the_haul() -> void:
+	assert_eq(ZoneMapMath.forage_animation(0.0), &"walk_left")
+	assert_eq(ZoneMapMath.forage_animation(1.19), &"walk_left")
+	assert_eq(ZoneMapMath.forage_animation(1.2), &"forage_search", "kneels where the walk ends")
+	assert_eq(ZoneMapMath.forage_animation(3.0), &"walk_right")
+	assert_eq(ZoneMapMath.forage_animation(4.2), &"forage_present", "home, the find held up")
+	assert_eq(ZoneMapMath.forage_animation(4.99), &"forage_present", "still held up as the haul comes in")
+	assert_eq(ZoneMapMath.forage_animation(5.0), &"walk_left", "and the next haul sets out again")
+
+func test_forage_animation_position_is_the_time_into_its_segment() -> void:
+	assert_almost_eq(ZoneMapMath.forage_animation_position(0.5), 0.5, 0.0001)
+	assert_almost_eq(ZoneMapMath.forage_animation_position(2.0), 0.8, 0.0001)
+	assert_almost_eq(ZoneMapMath.forage_animation_position(4.5), 0.3, 0.0001)
+	assert_almost_eq(ZoneMapMath.forage_animation_position(6.0), 1.0, 0.0001, "the next haul starts over")
+
+#-----------------------------------------------------------------------------
+# AURA WELL
+#-----------------------------------------------------------------------------
+
+func test_aura_well_starts_meditating_at_the_stand() -> void:
+	var start: float = ZoneMapMath.AURA_WELL_START_SECONDS
+	assert_eq(ZoneMapMath.AURA_WELL_SPOTS[0], Vector2.ZERO, "the first spot is the stand")
+	assert_eq(ZoneMapMath.aura_well_spot(start), Vector2.ZERO)
+	assert_eq(ZoneMapMath.aura_well_animation(start), &"meditate", "sits down at once, without re-forming")
+	assert_false(ZoneMapMath.is_aura_well_gone(start))
+
+func test_aura_well_spot_sequence() -> void:
+	# One spot: re-forms (0.45 s), three breaths (7.2 s), dissolves (0.45 s), gone (0.3 s).
+	assert_eq(ZoneMapMath.aura_well_animation(0.0), &"teleport_in")
+	assert_eq(ZoneMapMath.aura_well_animation(0.44), &"teleport_in")
+	assert_eq(ZoneMapMath.aura_well_animation(0.45), &"meditate")
+	assert_eq(ZoneMapMath.aura_well_animation(7.64), &"meditate")
+	assert_eq(ZoneMapMath.aura_well_animation(7.65), &"teleport_out")
+	assert_false(ZoneMapMath.is_aura_well_gone(8.09), "still dissolving")
+	assert_true(ZoneMapMath.is_aura_well_gone(8.1))
+	assert_true(ZoneMapMath.is_aura_well_gone(8.39))
+	assert_false(ZoneMapMath.is_aura_well_gone(8.4))
+	assert_eq(ZoneMapMath.aura_well_animation(8.4), &"teleport_in", "re-forms at the next spot")
+
+func test_aura_well_visits_every_spot_in_turn() -> void:
+	var spot_seconds: float = ZoneMapMath.AURA_WELL_SPOT_SECONDS
+	for i: int in ZoneMapMath.AURA_WELL_SPOTS.size():
+		assert_eq(ZoneMapMath.aura_well_spot(i * spot_seconds + 1.0), ZoneMapMath.AURA_WELL_SPOTS[i], "spot %d" % i)
+	assert_eq(ZoneMapMath.aura_well_cycle_seconds(), spot_seconds * ZoneMapMath.AURA_WELL_SPOTS.size())
+	assert_eq(ZoneMapMath.aura_well_spot(ZoneMapMath.aura_well_cycle_seconds() + 1.0), ZoneMapMath.AURA_WELL_SPOTS[0], "and round again")
+
+func test_aura_well_moves_only_out_of_sight() -> void:
+	# Each spot change comes right after the gap: never under a visible character.
+	# The step is shorter than the gap and does not divide the spot's 8.4 s,
+	# so no sample lands on a boundary.
+	var step: float = 0.047
+	var last: Vector2 = ZoneMapMath.aura_well_spot(0.0)
+	var changes: int = 0
+	var i: int = 1
+	while i * step < ZoneMapMath.aura_well_cycle_seconds() * 1.5:
+		var t: float = i * step
+		var spot: Vector2 = ZoneMapMath.aura_well_spot(t)
+		if spot != last:
+			changes += 1
+			assert_true(ZoneMapMath.is_aura_well_gone(t - step), "gone just before the move at %s s" % t)
+			assert_eq(ZoneMapMath.aura_well_animation(t), &"teleport_in", "and re-forming just after it")
+			last = spot
+		i += 1
+	assert_gt(changes, ZoneMapMath.AURA_WELL_SPOTS.size(), "precondition: went round every spot")
+
+func test_aura_well_spots_are_whole_px() -> void:
+	for spot: Vector2 in ZoneMapMath.AURA_WELL_SPOTS:
+		assert_eq(spot, spot.round(), "spot %s on whole world px" % spot)
+
+func test_aura_well_animation_position_loops_the_breath() -> void:
+	assert_almost_eq(ZoneMapMath.aura_well_animation_position(0.2), 0.2, 0.0001, "into the re-forming")
+	assert_almost_eq(ZoneMapMath.aura_well_animation_position(0.45 + 2.5), 0.1, 0.0001, "the breath loops every 2.4 s")
+	assert_almost_eq(ZoneMapMath.aura_well_animation_position(7.75), 0.1, 0.0001, "into the dissolve")
