@@ -100,7 +100,7 @@ The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](i
 | `LabelBookCaps` | Label | Eul+1 13px muted ink `#765A43`, pitch 18 | Labels in capitals: `HEAD`, `STRENGTH`, `CONSUMABLE · IN SLOT 1`. The page writes the text in capitals |
 | `LabelBookTag` | Label | BM Euljiro 13px dark ink `#33261A`, pitch 18, `normal` = `paper_tag.tres` | The count on a paper tag (`×4600`) |
 | `LabelBookSeal` | Label | Eul+1 13px seal text `#F0E8D8`, pitch 18, `normal` = `seal.tres` | The word on a seal (`DONE`). Give the Label the seal's 66x26 size and centre the text |
-| `LabelBookFilter` | Label | Eul+1 13px muted ink `#765A43`, pitch 18, `normal` = an empty style with 10/4/10/4 content margins | A filter word that is not in use |
+| `LabelBookFilter` | Label | Eul+1 13px muted ink `#765A43`, pitch 18, `normal` = an empty style with 10/5/10/5 content margins | A filter word that is not in use |
 | `LabelBookFilterOn` | Label | Eul+1 13px dark ink `#33261A`, pitch 18, `normal` = `pressed_lozenge.tres` | The filter word in use. Its margins match `LabelBookFilter`'s, so swapping the two moves nothing |
 | `RichTextBookDetail` | RichTextLabel | BM Euljiro 15px muted ink `#765A43` (`default_color`), `line_separation` 3, pitch 20 | Detail lines with BBCode: a consumable's effect, a bonus's value |
 | `PanelPressed` | PanelContainer | `pressed_panel.tres`: the pressed panel, 16px content margins | The details panels |
@@ -119,9 +119,9 @@ The rows from `LabelBookPageTitle` down are the "pressed paper" pieces for the I
 - **One muted ink.** Every new muted variant is `#765A43`: 5.17:1 on the paper and 4.72:1 on a panel's floor (`#EFDCBB`). `LabelBookMuted` keeps `#7D5F47` for the other books, which is 4.34:1 on a panel.
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for titles and names, BM Euljiro for everything else. "Eul+1" is one `FontVariation` of BM Euljiro with 1px letter spacing (`spacing_glyph = 1`), shared by `LabelBookCaps`, `LabelBookSeal`, `LabelBookFilter` and `LabelBookFilterOn`.
 - **Line pitch.** `line_spacing` is the pitch minus the font's height at that size, so wrapped lines step by the pitch, as in the lacquer theme. Heights: Yatra One 46 / 38 / 30 / 26 is 69 / 57 / 45 / 39px (spacing -17 / -13 / -11 / -9); BM Euljiro 20 / 18 / 16 / 15 / 13 is 23 / 21 / 19 / 17 / 16px (spacing +1 / +5 / +3 / +3 / +2). `RichTextBookDetail` gets its 20px pitch from `line_separation` 3.
-- **One line is only the font's height.** A single-line Label is as tall as its font, not its pitch. A bare `LabelBookTag` is 18px tall (16 + its 1px margins) and a `LabelBookFilter` or `LabelBookFilterOn` 24px (16 + 4 + 4), not the 20 and 26px of the art. Set `custom_minimum_size.y` where the page needs the art's height.
+- **One line is only the font's height.** A single-line Label is as tall as its font (16px at 13px), not its pitch, so a style's content margins make up the rest. They are sized so a `LabelBookTag` is 20px tall (16 + 2 + 2, the paper tag's art) and a `LabelBookFilter` or `LabelBookFilterOn` 26px (16 + 5 + 5, the lozenge's art), with the text centred and no `custom_minimum_size.y` needed. Size the margins of any new styled Label from the font's height, not from the pitch. `LabelBookFilter` and `LabelBookFilterOn` are the same size, so selecting a word moves nothing.
 
-Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, colour, base type, cleared shadow and line pitch, the letter-spaced font, the styleboxes, the rule's height and the text contrast.
+Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, colour, base type, cleared shadow and line pitch, the letter-spaced font, the styleboxes, the rule's height, the one-line heights of tags and filter words and the text contrast.
 
 ### Pressed pieces (`assets/styleboxes/book/`)
 
@@ -130,17 +130,17 @@ Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, col
 | File | Texture | Texture margins L/T/R/B | Content margins L/T/R/B | Fill | Use |
 |------|---------|-------------------------|-------------------------|------|-----|
 | `pressed_panel.tres` | `pressed_panel_ai.png` (32x32) | 8/8/8/8 | 16/16/16/16 | yes | `PanelPressed` |
-| `pressed_lozenge.tres` | `pressed_lozenge_ai.png` (24x26) | 8/0/8/0 | 10/4/10/4 | yes | `LabelBookFilterOn`, the filter in use |
+| `pressed_lozenge.tres` | `pressed_lozenge_ai.png` (24x26) | 8/0/8/0 | 10/5/10/5 | yes | `LabelBookFilterOn`, the filter in use. The 5px top and bottom margins make a one-line word 26px tall, the art's height |
 | `pressed_rule.tres` | `pressed_rule_ai.png` (8x4) | 2/0/2/0 | 0/2/0/2 | yes | `HSeparatorPressed`. Its 2px top and bottom content margins give the rule its 4px height (see below) |
 | `printer_marks.tres` | `printer_marks_ai.png` (32x32) | 10/10/10/10 | 0 | none | `PanelPrinterMarks` |
-| `paper_tag.tres` | `paper_tag_ai.png` (12x20) | 4/4/4/4 | 5/1/5/1 | yes | `LabelBookTag` |
+| `paper_tag.tres` | `paper_tag_ai.png` (12x20) | 4/4/4/4 | 5/2/5/2 | yes | `LabelBookTag`. The 2px top and bottom margins make a one-line count 20px tall, the art's height |
 | `seal.tres` | `seal_ai.png` (66x26) | 0 | 0 | yes | `LabelBookSeal`. No 9-slice: size the Label to 66x26 |
 | `pressed_groove.tres` | `pressed_groove_ai.png` (10x24) | 0/6/0/6 | 0 | yes | The scroll groove, stretched between its 6px ends. No variant uses it |
 | `pressed_thumb.tres` | `pressed_thumb_ai.png` (4x8) | 0/2/0/2 | 0 | yes | The groove's thumb, stretched between its 2px ends. No variant uses it |
 
 **A separator's style needs margins that add up to its height.** An `HSeparator` draws its style at the style's minimum height, centred in its `separation`, and a `StyleBoxTexture` has no height of its own beyond its margins. With top and bottom margins of 0 the rule is 0px tall and never draws (measured in 4.7.2), so `pressed_rule.tres` carries 2px content margins top and bottom, the 4px of its art, and `HSeparatorPressed` has `separation` 4. `test_pressed_rule_is_as_tall_as_its_separator` guards it. Any other `StyleBoxTexture` used as a separator needs the same.
 
-The theme's other two new styleboxes are `StyleBoxEmpty` sub-resources inside `book_theme.tres`: the one `PanelBookBare` draws, and `LabelBookFilter`'s, with 10/4/10/4 content margins.
+The theme's other two new styleboxes are `StyleBoxEmpty` sub-resources inside `book_theme.tres`: the one `PanelBookBare` draws, and `LabelBookFilter`'s, with the same 10/5/10/5 content margins as `pressed_lozenge.tres`.
 
 ## RichTextLabel variants
 

@@ -170,3 +170,30 @@ func test_pressed_rule_is_as_tall_as_its_separator() -> void:
 	var separation: float = BOOK_THEME.get_constant(&"separation", &"HSeparatorPressed")
 	assert_eq(rule.get_minimum_size().y, separation, "the rule's height")
 	assert_eq(rule.get_minimum_size().y, float(rule.texture.get_height()), "the whole 4 px of art is drawn")
+
+## A Label in the book theme, in the tree.
+func _make_label(variant: StringName, text: String) -> Label:
+	var label := Label.new()
+	label.theme = BOOK_THEME
+	label.theme_type_variation = variant
+	label.text = text
+	add_child_autofree(label)
+	return label
+
+## A one-line Label is as tall as its font (16 px at 13 px), not its 18 px line
+## pitch, so the style's margins must make up the rest: the paper tag's art is
+## 20 px tall.
+func test_a_one_line_tag_is_as_tall_as_its_art() -> void:
+	var tag: Label = _make_label(&"LabelBookTag", "7")
+	await wait_process_frames(2)
+	assert_eq(tag.get_combined_minimum_size().y, 20.0, "tag height")
+
+## The same for a filter word and the 26 px lozenge behind the one in use. The
+## two styles are the same size, so selecting a word moves nothing.
+func test_a_one_line_filter_word_is_as_tall_as_its_lozenge() -> void:
+	var word: Label = _make_label(&"LabelBookFilter", "ALL")
+	var word_in_use: Label = _make_label(&"LabelBookFilterOn", "ALL")
+	await wait_process_frames(2)
+	assert_eq(word.get_combined_minimum_size().y, 26.0, "filter word height")
+	assert_eq(word_in_use.get_combined_minimum_size().y, 26.0, "filter word in use height")
+	assert_eq(word.get_combined_minimum_size(), word_in_use.get_combined_minimum_size(), "same footprint")
