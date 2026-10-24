@@ -9,6 +9,8 @@ const THEME_PATH: String = "res://assets/themes/lacquer/lacquer_theme.tres"
 const ROD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_rod.tscn")
 const FRAME_OVERLAY_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_frame_overlay.tscn")
 const FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn")
+## One 60 FPS frame, for stepping the flash's tween by hand.
+const FRAME: float = 1.0 / 60.0
 
 const CORE_STRIP: Texture2D = preload("res://assets/ui/lacquer/lacquer_orb_core_strip_ai.png")
 const MADRA_STRIP: Texture2D = preload("res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png")
@@ -226,17 +228,33 @@ func test_frame_overlay_starts_hidden_and_ignores_the_mouse() -> void:
 	assert_not_null(style, "the overlay draws a 9-slice texture")
 	assert_false(style.draw_center, "the frame has no fill")
 
+## Moves every running tween in the tree on by `seconds`, a 60 FPS frame at a
+## time, as frames would.
+func _run_tweens(seconds: float) -> void:
+	for _frame: int in roundi(seconds / FRAME):
+		for tween: Tween in get_tree().get_processed_tweens():
+			if tween.is_valid() and tween.is_running():
+				tween.custom_step(FRAME)
+
+## Runs 60 FPS frames of tweens until `done` returns true or `limit` seconds
+## pass.
+func _run_tweens_until(done: Callable, limit: float) -> void:
+	for _frame: int in roundi(limit / FRAME):
+		if done.call():
+			return
+		_run_tweens(FRAME)
+
 func test_flash_toggles_and_ends_hidden() -> void:
 	var overlay: LacquerFrameOverlay = FRAME_OVERLAY_SCENE.instantiate() as LacquerFrameOverlay
 	add_child_autofree(overlay)
 	overlay.flash(2)
 	assert_true(overlay.visible, "shown at once")
 	assert_true(overlay.is_flashing())
-	await wait_seconds(0.45)
+	_run_tweens(0.45)
 	assert_false(overlay.visible, "hidden in the first off phase (0.3 to 0.6 s)")
-	await wait_seconds(0.3)
+	_run_tweens(0.3)
 	assert_true(overlay.visible, "shown again for the second flash (0.6 to 0.9 s)")
-	await wait_until(func() -> bool: return not overlay.is_flashing(), 2.0)
+	_run_tweens_until(func() -> bool: return not overlay.is_flashing(), 2.0)
 	assert_false(overlay.is_flashing())
 	assert_false(overlay.visible, "the flash ends hidden")
 
@@ -246,12 +264,12 @@ func test_flash_restarts_cleanly() -> void:
 	var overlay: LacquerFrameOverlay = FRAME_OVERLAY_SCENE.instantiate() as LacquerFrameOverlay
 	add_child_autofree(overlay)
 	overlay.flash(3)
-	await wait_seconds(0.45)
+	_run_tweens(0.45)
 	overlay.flash(1)
 	assert_true(overlay.visible, "a new flash shows the frame at once")
-	await wait_until(func() -> bool: return not overlay.is_flashing(), 2.0)
+	_run_tweens_until(func() -> bool: return not overlay.is_flashing(), 2.0)
 	assert_false(overlay.visible)
-	await wait_seconds(0.3)
+	_run_tweens(0.3)
 	assert_false(overlay.visible, "the first flash's tween is gone")
 
 #-----------------------------------------------------------------------------
