@@ -5,7 +5,9 @@ extends GutTest
 ## point milestone awards it hands to PathManager (each paid once per stage,
 ## even when a failed breakthrough takes the levels back), the Core Density cap
 ## (levels and XP stop at the stage's cap, core_filled, the full-core log line,
-## losing levels), what loading a save does (a level past the cap is clamped to
+## losing levels), the breakthrough (advance_to_next_stage(): the stage, level
+## and XP it sets, its signals and log line, the new stage's own Madra cap and
+## milestones), what loading a save does (a level past the cap is clamped to
 ## it, a save with no milestone ledger is seeded from its level), the stage-name
 ## lookups, and the AdvancementStageResource XP curve it reads.
 ##
@@ -72,6 +74,16 @@ func _use_stages(stages: Array[AdvancementStageResource]) -> void:
 ## Swaps in a flat curve where every level costs 1 XP, so N XP gives N levels.
 func _use_flat_curve() -> void:
 	_use_stages([_make_stage(Stage.FOUNDATION, "Flat Foundation", 1.0, 1.0)])
+
+## Makes the fixture's Foundation lead to a flat "Test Copper" stage (1 XP a level,
+## 600 Madra plus 10 a level) and lists both stages. Returns Copper.
+func _with_copper() -> AdvancementStageResource:
+	var copper := _make_stage(Stage.COPPER, "Test Copper", 1.0, 1.0)
+	copper.max_madra_base = 600.0
+	copper.max_madra_per_core_density_level = 10.0
+	_stage_resource.next_stage = copper
+	_use_stages([_stage_resource, copper])
+	return copper
 
 ## The lines LogManager announced since watch_signals(LogManager) that contain `text`.
 func _logged_lines_with(text: String) -> Array[String]:
@@ -374,6 +386,67 @@ func test_has_next_stage() -> void:
 	assert_false(CultivationManager.has_next_stage(), "the fixture's Foundation leads nowhere")
 	_stage_resource.next_stage = _make_stage(Stage.COPPER, "Test Copper", 10.0, 1.0)
 	assert_true(CultivationManager.has_next_stage())
+
+#-----------------------------------------------------------------------------
+# BREAKTHROUGH
+#-----------------------------------------------------------------------------
+
+## The core holds 3 XP, which a full core never does in play: the breakthrough
+## must reset the XP itself, not rely on it being 0 already.
+func test_breakthrough_moves_to_the_next_stage() -> void:
+	_with_copper()
+	_save.core_density_level = 100.0
+	_save.core_density_xp = 3.0
+	assert_true(CultivationManager.advance_to_next_stage())
+	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.COPPER)
+	assert_eq(CultivationManager.get_core_density_level(), 0.0, "Copper starts with an empty core")
+	assert_eq(CultivationManager.get_core_density_xp(), 0.0)
+
+func test_breakthrough_signals() -> void:
+	_with_copper()
+	_save.core_density_level = 100.0
+	watch_signals(CultivationManager)
+	CultivationManager.advance_to_next_stage()
+	assert_signal_emit_count(CultivationManager, "advancement_stage_changed", 1)
+	assert_signal_emitted_with_parameters(CultivationManager, "advancement_stage_changed", [Stage.COPPER])
+	assert_signal_emit_count(CultivationManager, "core_density_level_updated", 1)
+	assert_signal_emitted_with_parameters(CultivationManager, "core_density_level_updated", [0.0, 0.0])
+	assert_signal_emit_count(CultivationManager, "core_density_xp_updated", 1)
+	assert_signal_emitted_with_parameters(CultivationManager, "core_density_xp_updated", [0.0, 0.0])
+
+func test_breakthrough_logs() -> void:
+	_with_copper()
+	_save.core_density_level = 100.0
+	watch_signals(LogManager)
+	CultivationManager.advance_to_next_stage()
+	assert_eq(_logged_lines_with("You break through to Test Copper.").size(), 1, "the line names the new stage")
+
+func test_no_breakthrough_without_a_next_stage() -> void:
+	_save.core_density_level = 100.0
+	watch_signals(CultivationManager)
+	watch_signals(LogManager)
+	assert_false(CultivationManager.advance_to_next_stage(), "the fixture's Foundation leads nowhere")
+	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.FOUNDATION)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0)
+	assert_signal_not_emitted(CultivationManager, "advancement_stage_changed")
+	assert_eq(_logged_lines_with("You break through").size(), 0, "a refused breakthrough says nothing")
+
+func test_madra_cap_follows_the_new_stage() -> void:
+	_with_copper()
+	_save.core_density_level = 100.0
+	CultivationManager.advance_to_next_stage()
+	assert_eq(CultivationManager.get_max_madra(), 600.0, "Test Copper's base, at its level 0")
+
+## Foundation's ledger already stands at 100 for a player who paid it all. Copper
+## keeps its own, so it still pays from its level 10.
+func test_the_new_stage_pays_its_own_milestones() -> void:
+	_with_copper()
+	_save.core_density_level = 100.0
+	_save.core_density_milestones[Stage.FOUNDATION] = 100
+	CultivationManager.advance_to_next_stage()
+	CultivationManager.add_core_density_xp(10.0)
+	assert_eq(CultivationManager.get_core_density_level(), 10.0)
+	assert_eq(PathManager.get_point_balance(), 2, "level 10 at Copper is worth 2 points")
 
 #-----------------------------------------------------------------------------
 # SAVE DATA

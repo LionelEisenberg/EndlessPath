@@ -23,7 +23,8 @@ enum AdvancementStage {
 }
 
 @export var advancement_stage_resources: Array[AdvancementStageResource] = [
-	preload("res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres")
+	preload("res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres"),
+	preload("res://resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres"),
 ]
 
 ## Points awarded per Core Density level milestone, indexed by advancement stage.
@@ -159,8 +160,27 @@ func lose_core_density_levels(count: int) -> void:
 	core_density_level_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
 	core_density_xp_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
 
-func attempt_breakthrough():
-	return
+## Breaks through to the current stage's next stage: the stage changes and Core
+## Density starts over at level 0 with no XP. Returns false, changing nothing,
+## when the stage has no next stage. The caller decides when the player has
+## earned it: nothing here checks that the core is full.
+func advance_to_next_stage() -> bool:
+	if not has_next_stage():
+		return false
+
+	var next_stage: AdvancementStageResource = _get_current_stage_resource().next_stage
+	live_save_data.current_advancement_stage = next_stage.stage_id
+	live_save_data.core_density_level = 0.0
+	live_save_data.core_density_xp = 0.0
+
+	# Logged before the signals: what the new stage unlocks logs its own lines when
+	# they fire, and those should read after the breakthrough, not before it
+	if LogManager:
+		LogManager.log_message("You break through to %s." % next_stage.stage_name)
+	core_density_level_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
+	core_density_xp_updated.emit(live_save_data.core_density_xp, live_save_data.core_density_level)
+	advancement_stage_changed.emit(live_save_data.current_advancement_stage)
+	return true
 
 func get_xp_for_next_level() -> float:
 	if live_save_data == null:
