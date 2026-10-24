@@ -2,11 +2,12 @@ extends GutTest
 
 ## Unit tests for the lacquer theme and its shared pieces: the frame strip
 ## rect, the stepped rod, the brass frame overlay's flash, the floater, the
-## text helpers, the theme variants (kit §3), the 9-slice styleboxes (kit §4)
-## and the Madra orb shader's colour uniforms.
+## text helpers, the theme variants (kit §3), the 9-slice styleboxes (kit §4),
+## the wrapped Label's 1 px pad and the Madra orb shader's colour uniforms.
 
 const THEME_PATH: String = "res://assets/themes/lacquer/lacquer_theme.tres"
 const MADRA_ORB_SHADER_PATH: String = "res://assets/shaders/lacquer_madra_orb.gdshader"
+const WRAP_PAD_PATH: String = "res://assets/styleboxes/lacquer/wrap_pad.tres"
 const ROD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_rod.tscn")
 const FRAME_OVERLAY_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_frame_overlay.tscn")
 const FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn")
@@ -120,6 +121,16 @@ func _declared_colour(code: String, uniform_name: String) -> Variant:
 	if channels.size() != 4:
 		return null
 	return Color(channels[0].to_float(), channels[1].to_float(), channels[2].to_float(), channels[3].to_float())
+
+## Every .tscn under a folder, subfolders included.
+func _scene_files(folder: String) -> Array[String]:
+	var found: Array[String] = []
+	for subfolder: String in DirAccess.get_directories_at(folder):
+		found.append_array(_scene_files(folder.path_join(subfolder)))
+	for file: String in DirAccess.get_files_at(folder):
+		if file.ends_with(".tscn"):
+			found.append(folder.path_join(file))
+	return found
 
 #-----------------------------------------------------------------------------
 # STRIP RECT
@@ -516,6 +527,35 @@ func test_board9_margins() -> void:
 	assert_eq(board.content_margin_right, 20.0, "content margin right")
 	assert_eq(board.content_margin_bottom, 18.0, "content margin bottom")
 	assert_true(board.draw_center)
+
+func test_wrap_pad_is_a_one_pixel_bottom_pad() -> void:
+	# The `normal` style of a wrapped 15/18 or 18/22 Label: n lines come to 18 n or
+	# 22 n instead of 18 n - 1 or 22 n - 1, so every row stays on an even y. It draws
+	# nothing, adds one pixel under the text and nothing on the other three sides.
+	var pad: StyleBox = load(WRAP_PAD_PATH) as StyleBox
+	assert_not_null(pad, "wrap_pad.tres loads as a StyleBox")
+	if pad == null:
+		return
+	assert_true(pad is StyleBoxEmpty, "it draws nothing")
+	assert_eq(pad.get_margin(SIDE_BOTTOM), 1.0, "one pixel under the text")
+	for side: int in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT]:
+		assert_eq(pad.get_margin(side), 0.0, "nothing on side %d" % side)
+	assert_eq(pad.get_minimum_size(), Vector2(0, 1), "so a Label grows by a pixel and no width")
+
+## A scene that uses wrap_pad.tres names it by the uid the file declares, in the
+## text Godot writes (an id written with another alphabet decodes to the same
+## number but is not what the editor saves, and the next save rewrites it).
+func test_every_scene_names_wrap_pad_by_its_own_uid() -> void:
+	var id: int = ResourceLoader.get_resource_uid(WRAP_PAD_PATH)
+	assert_ne(id, ResourceUID.INVALID_ID, "precondition: wrap_pad.tres declares a uid")
+	var uid_text: String = ResourceUID.id_to_text(id)
+	var named: int = 0
+	for path: String in _scene_files("res://scenes"):
+		for line: String in FileAccess.get_file_as_string(path).split("\n"):
+			if line.begins_with("[ext_resource") and line.contains("path=\"%s\"" % WRAP_PAD_PATH):
+				named += 1
+				assert_true(line.contains("uid=\"%s\"" % uid_text), "%s names wrap_pad.tres as %s" % [path.get_file(), uid_text])
+	assert_gte(named, 4, "precondition: the walk met the scenes that use it (the drawer, the page, the Goals board, the Now strip)")
 
 #-----------------------------------------------------------------------------
 # THEME CONSTANTS
