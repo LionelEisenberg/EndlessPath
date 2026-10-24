@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://dqhnahipr1pqe" path="res://assets/ui/lacquer/cycling/lacquer_cyc_ball_strip_ai.png" id="5_ball"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_ball"]
-radius = 29.5
+radius = 36.0
 
 [node name="CyclingTechnique" type="Node2D" unique_id=1273419378]
 script = ExtResource("1_j38ga")

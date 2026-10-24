@@ -19,6 +19,10 @@ const FAR: Vector2 = Vector2(-9999.0, -9999.0)
 ## One frame at 60 FPS. A cycle is run for its duration plus one frame, because
 ## 900 sums of 1 / 60 can land a hair under 15.
 const FRAME: float = 1.0 / 60.0
+
+## The ring strip and its frames' size: frame 1 is the solid tracking ring.
+const RING_STRIP_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_ball_rings_ai.png"
+const RING_CELL: int = 88
 const CYCLE_SECONDS: float = 15.0
 
 ## The Madra one step draws: base_madra_per_cycle * 0.08 / cycle_duration.
@@ -484,7 +488,7 @@ func test_ring_shows_ready_then_tracking_then_hides() -> void:
 	assert_true(ring.visible)
 	assert_eq(ring.get_frame(), Vector2i(1, 0), "the solid tan ring shows while tracking")
 	assert_true(_technique.is_tracking())
-	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(CyclingTechnique.BALL_RADIUS + 1.0, 0.0))
+	_technique.advance(FRAME, _technique.get_ball_global_position() + Vector2(CyclingTechnique.CURSOR_REACH + 1.0, 0.0))
 	assert_false(ring.visible)
 	assert_false(_technique.is_tracking())
 
@@ -539,11 +543,23 @@ func test_each_wait_starts_the_breath_small() -> void:
 func test_tracking_uses_the_drawn_ball() -> void:
 	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
 	_technique.start_cycle()
-	# The true ball is at x 100.6 and is drawn at 100. A cursor at x 71 is 29 px
-	# from the drawn ball (inside 29.5) and 29.6 px from the true one.
-	_advance_straight_to(100.6, Vector2(71.0, 0.0))
+	# The true ball is at x 100.6 and is drawn at 100. A cursor at x 64 is 36 px
+	# from the drawn ball (on the ring's outer edge) and 36.6 px from the true one.
+	_advance_straight_to(100.6, Vector2(64.0, 0.0))
 	assert_eq(_technique.get_ball_global_position(), Vector2(100.0, 0.0))
 	assert_true(_technique.is_tracking())
+	await _await_queued_frees()
+
+func test_the_cursor_tracks_on_the_ring_and_not_past_it() -> void:
+	# The solid ring the player follows is drawn out to 36 px, past the ball's own
+	# 29.5, so a cursor on the ring tracks and one past it does not.
+	_technique.setup(_straight_technique(Vector2(5000.0, 0.0)))
+	_technique.start_cycle()
+	_advance_straight_to(100.6, Vector2(100.0, 33.0))
+	assert_eq(_technique.get_ball_global_position(), Vector2(100.0, 0.0), "precondition: the ball is drawn at x 100")
+	assert_true(_technique.is_tracking(), "33 px off, on the ring, the cursor tracks")
+	_technique.advance(0.0, Vector2(100.0, 37.0))
+	assert_false(_technique.is_tracking(), "37 px off, past the ring, it does not")
 	await _await_queued_frees()
 
 #-----------------------------------------------------------------------------
@@ -646,6 +662,7 @@ func test_pointer_over_the_ball_while_a_press_would_do_something() -> void:
 	var ball: Vector2 = _technique.get_ball_global_position()
 	assert_true(_technique.wants_pointer(ball), "over the ready ball: a press starts a cycle")
 	assert_true(_technique.wants_pointer(ball + Vector2(29.0, 0.0)), "inside the ball's radius")
+	assert_true(_technique.wants_pointer(ball + Vector2(35.0, 0.0)), "over the ring, past the ball itself")
 	assert_false(_technique.wants_pointer(ball + Vector2(40.0, 0.0)), "40 px away")
 	_technique.start_cycle()
 	_technique.advance(FRAME, FAR)
@@ -963,9 +980,22 @@ func test_the_aura_well_rate_survives_closing_cycling() -> void:
 # THE SCENES
 #-----------------------------------------------------------------------------
 
-func test_ball_shape_radius_is_the_ball_radius() -> void:
+func test_the_press_area_reaches_the_ring() -> void:
 	var shape := (_node("MadraBall").get_node("CollisionShape2D") as CollisionShape2D).shape as CircleShape2D
-	assert_eq(shape.radius, CyclingTechnique.BALL_RADIUS)
+	assert_eq(shape.radius, CyclingTechnique.CURSOR_REACH, "a press lands as far out as the cursor tracks")
+
+func test_the_reach_is_the_tracking_ring_s_outer_edge() -> void:
+	# What counts is what the player sees: the solid tracking ring, frame 1 of
+	# the ring strip, ends 36 px from the ball's centre.
+	var image: Image = (load(RING_STRIP_PATH) as Texture2D).get_image()
+	var centre := Vector2(RING_CELL * 1.5, RING_CELL / 2.0)
+	var outer: float = 0.0
+	for y: int in RING_CELL:
+		for x: int in range(RING_CELL, 2 * RING_CELL):
+			if image.get_pixel(x, y).a > 0.0:
+				outer = maxf(outer, (Vector2(x, y) + Vector2(0.5, 0.5)).distance_to(centre))
+	assert_gt(CyclingTechnique.CURSOR_REACH, CyclingTechnique.BALL_RADIUS, "the cursor reaches past the ball itself")
+	assert_almost_eq(CyclingTechnique.CURSOR_REACH, outer, 1.0, "out to the solid ring's outer edge")
 
 func test_the_ball_is_the_only_click_target() -> void:
 	assert_true((_node("MadraBall") as Area2D).input_pickable)
@@ -1088,9 +1118,15 @@ func test_physics_picking_scores_through_the_ball() -> void:
 	await _press_at(_technique.get_ball_global_position())
 	assert_signal_emit_count(_technique, "zone_scored", 1)
 
+func test_physics_picking_scores_a_press_on_the_ring() -> void:
+	_approach_zone_0(0.0)
+	watch_signals(_technique)
+	await _press_at(_technique.get_ball_global_position() + Vector2(0.0, 34.0))
+	assert_signal_emit_count(_technique, "zone_scored", 1, "a press on the ring lands on the ball")
+
 func test_physics_picking_ignores_a_press_on_a_zone_off_the_ball() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
-	assert_gt(zone.global_position.distance_to(_technique.get_ball_global_position()), CyclingTechnique.BALL_RADIUS, "precondition: the zone's centre is off the ball")
+	assert_gt(zone.global_position.distance_to(_technique.get_ball_global_position()), CyclingTechnique.CURSOR_REACH, "precondition: the zone's centre is past the cursor's reach")
 	watch_signals(_technique)
 	await _press_at(zone.global_position)
 	assert_signal_not_emitted(_technique, "zone_scored")

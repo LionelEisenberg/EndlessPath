@@ -4,9 +4,10 @@ extends Node2D
 ## CyclingTechnique
 ## The play of one cycling technique. The Madra ball travels the technique's path
 ## once per cycle, easing in and out with a sine, and the carved groove lights
-## behind it. While the cursor is inside the ball it draws Madra, one step every
-## MADRA_PARTICLE_INTERVAL. The zones along the path turn active as the ball
-## reaches them. The ball is the only thing the player presses: from ready a press
+## behind it. While the cursor is on the ball, out to the edge of the ring around
+## it (CURSOR_REACH), it draws Madra, one step every MADRA_PARTICLE_INTERVAL.
+## The zones along the path turn active as the ball reaches them. The ball is
+## the only thing the player presses: from ready a press
 ## starts a cycle, and during one a press while the ball is over an active zone
 ## scores that zone by how near the ball's centre is to the zone's (see
 ## CyclingRules).
@@ -50,9 +51,15 @@ signal zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int)
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## The ball's radius in px: how near the cursor must be to draw Madra, and the
-## radius of the ball's click area.
+## The ball's own radius in px (its art reaches 29.8): a zone opens when the
+## ball's edge reaches the zone's.
 const BALL_RADIUS: float = 29.5
+
+## How far from the drawn ball's centre the cursor counts as on the ball: there
+## it tracks and draws Madra, a press lands on the ball, and the hand cursor
+## shows. It is the solid tracking ring's outer edge, so what counts is what the
+## player sees. The ball's press area, its CircleShape2D, has the same radius.
+const CURSOR_REACH: float = 36.0
 
 ## Seconds between two steps of Madra while the cursor follows the ball.
 const MADRA_PARTICLE_INTERVAL: float = 0.08
@@ -227,7 +234,7 @@ func advance(delta: float, cursor_global: Vector2) -> void:
 	_elapsed = minf(_elapsed + delta, duration)
 	_follow.progress_ratio = _eased_ratio()
 	_draw_ball()
-	_tracking = cursor_global.distance_to(_ball_drawn) <= BALL_RADIUS
+	_tracking = cursor_global.distance_to(_ball_drawn) <= CURSOR_REACH
 	_ball_ring.visible = _tracking
 	# Whether the frame draws is judged before its steps can fill the cap.
 	var drawing: bool = _tracking and not _madra_full()
@@ -280,7 +287,7 @@ static func breath_level(seconds: float) -> int:
 ## the ball, and either no cycle runs (the press starts one) or a zone is ACTIVE
 ## (the press scores it). The view shows the pointer cursor then.
 func wants_pointer(cursor_global: Vector2) -> bool:
-	if technique_data == null or cursor_global.distance_to(_ball_drawn) > BALL_RADIUS:
+	if technique_data == null or cursor_global.distance_to(_ball_drawn) > CURSOR_REACH:
 		return false
 	return not _cycling or _active_zone() != null
 
