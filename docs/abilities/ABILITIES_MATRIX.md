@@ -1,7 +1,5 @@
 # Abilities Matrix
 
-Last updated: 2026-10-22
-
 Every `AbilityData` resource in the project, player and enemy, with values read from the `.tres` files. This is the reference for ability numbers. For how abilities are unlocked, equipped and executed, see [ABILITIES.md](ABILITIES.md) and [COMBAT.md](../combat/COMBAT.md).
 
 ## Legend

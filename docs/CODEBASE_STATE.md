@@ -1,7 +1,5 @@
 # Codebase State
 
-Last updated: 2026-10-24
-
 This document covers the architecture of the EndlessPath codebase and the technical concerns that span several systems. The other entry points are:
 - [README.md](README.md): index of every doc.
 - [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md): one-page status and roadmap.
@@ -16,11 +14,8 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | | |
 |---|---|
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
-| Code | ~30k lines of game GDScript and ~35k lines of tests; 135 scenes; 110 authored `.tres` resources; 10 shaders |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 147 scripts and 2290 tests, all passing on 2026-10-24 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
-| History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
-| In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/adventure-view-styleguide-1fc223`: the adventure view's map and frame in the lacquer look (PR 1 of 2; the fight is PR 2), built 2026-10-23 and changed by its first review round the same day. Unmerged branch `feat/gameplay-priorities-c64b38`: the Tribulation, the Foundation → Copper breakthrough (the Core Density cap, the Copper stage, a Spirit Valley action and its board), built 2026-10-23 and 24 |
+| Tests | GUT 9.7.1. See [TESTING.md](testing/TESTING.md) |
 
 ---
 

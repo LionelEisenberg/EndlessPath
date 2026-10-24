@@ -1,10 +1,8 @@
 # Scripting System
 
-Last updated: 2026-10-24
-
 > **Status: Planned, not started.** No code exists for this system. This document records the design intent from the Game Design Document.
 >
-> **Unlocks at Copper, which nothing is gated on yet:** Scripting unlocks at the Copper stage. The Foundation → Copper breakthrough is built (the Tribulation, on `feat/gameplay-priorities-c64b38`, not merged), and `CultivationManager.advance_to_next_stage()` puts the player in a thin Copper stage, but no unlock condition, zone, path node or action checks for it. See [CULTIVATION.md](../cultivation/CULTIVATION.md) and [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md).
+> **Unlocks at Copper, which nothing is gated on yet:** Scripting unlocks at the Copper stage. The Foundation → Copper breakthrough is built (the Tribulation), and `CultivationManager.advance_to_next_stage()` puts the player in a thin Copper stage, but no unlock condition, zone, path node or action checks for it. See [CULTIVATION.md](../cultivation/CULTIVATION.md) and [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md).
 
 ## Design Intent
 

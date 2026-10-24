@@ -1,8 +1,6 @@
 # Breakthrough and Tribulation
 
-Last updated: 2026-10-24
-
-> **Status:** built on `feat/gameplay-priorities-c64b38` (2026-10-23 and 24), not merged, and not yet played through by the user. The design is [2026-10-23-tribulation-breath-of-the-core-design.md](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), settled with the user on 2026-10-23, with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html). The [plan](../superpowers/plans/2026-10-23-tribulation-breath-of-the-core.md) ends with an "As built (2026-10-24)" section that lists where the build differs from the plan's text. Core Density caps at 100 in Foundation, a pass moves the player to a thin Copper stage, and every number below is a starting value kept in data (see [CULTIVATION.md](CULTIVATION.md)).
+> **Status:** built (PR #62), and not yet played through by the user. The design is [2026-10-23-tribulation-breath-of-the-core-design.md](../superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md), with a [playable prototype](../superpowers/mockups/tribulation-breath-of-the-core-prototype.html). The [plan](../superpowers/plans/2026-10-23-tribulation-breath-of-the-core.md) ends with an "As built (2026-10-24)" section that lists where the build differs from the plan's text. Core Density caps at 100 in Foundation, a pass moves the player to a thin Copper stage, and every number below is a starting value kept in data (see [CULTIVATION.md](CULTIVATION.md)).
 
 ## How it plays
 
@@ -25,19 +23,19 @@ Last updated: 2026-10-24
 
 | Piece | File | Notes |
 |---|---|---|
-| The cap, the pass and the failure | `singletons/cultivation_manager/cultivation_manager.gd` | `add_core_density_xp()` `:88-149`, `lose_core_density_levels()` `:153-161`, `advance_to_next_stage()` `:167-183`, `_pay_milestone()` `:248-257`. The stage data: `resources/cycling/advancement_stages/` (Foundation's `next_stage` is Copper) |
+| The cap, the pass and the failure | `singletons/cultivation_manager/cultivation_manager.gd` | `add_core_density_xp()` `:88-149`, `lose_core_density_levels()` `:153-161`, `advance_to_next_stage()` `:167-183`, the milestone payout `:248-257`. The stage data: `resources/cycling/advancement_stages/` (Foundation's `next_stage` is Copper) |
 | The data | `scripts/resource_definitions/tribulation/tribulation_data.gd`, `tribulation_phase_data.gd`; `resources/tribulation/foundation_tribulation.tres` | Every timing, window, penalty and line of copy. `get_early_reach()` `:146`, `get_rules_line()` `:150`, `get_fail_line()` `:154` |
 | The judge | `scripts/tribulation/tribulation_run.gd` (`TribulationRun`, a `RefCounted`) | No nodes. Builds the beat schedule in `_init()` `:181`, then `press()` `:195`, `release()` `:224`, `advance()` `:239`, `is_failed()` `:249`, `is_finished()` `:258`, `grade()` `:263`, and the drawing queries `spheres_at()` `:325`, `hold_progress()` `:335` |
 | The action | `scripts/resource_definitions/zones/zone_action_data/tribulation_action_data/tribulation_action_data.gd`; `resources/zones/spirit_valley_zone/zone_actions/tribulation_action.tres`; `resources/unlocks/core_density_full.tres` | `ActionType.TRIBULATION` is 7. `is_passed()` `:29` (the stage is at or past the target; `ZoneManager.get_available_actions()` drops the card, `zone_manager.gd:227-230`) and `can_attempt()` `:38` (the stage before the target, with a full core) |
 | The gate and the signals | `singletons/action_manager/action_manager.gd` | The refusal in `select_action()` `:130-135`, before anything stops; `start_tribulation` and `stop_tribulation` `:37-38`; the handlers `:357` and `:409`. TRIBULATION is not an idle action, so stopping it resumes the zone's idle action |
 | The card | `scenes/zones/zone_action_button/presenters/tribulation_presenter.gd` and `.tscn`; `scripts/utils/zone_action_groups.gd` | The Core row and the ready line (`setup()` `:26`), the gate (`can_activate()` `:45`) and the refusal's shake and log (`on_activation_rejected()` `:49`). Group Cultivate, tag TRIAL |
-| The board | `scenes/tribulation/tribulation_view.gd` (`TribulationView`) and `.tscn` | Judges input and applies the result: `setup()` `:244`, `begin()` `:272`, `handle_press_event()` `:306`, `_gui_input()` `:228`, `_end()` `:456`. Emits `finished(passed)` |
+| The board | `scenes/tribulation/tribulation_view.gd` (`TribulationView`) and `.tscn` | Judges input and applies the result: `setup()` `:244`, `begin()` `:272`, `handle_press_event()` `:306`, `_gui_input()` `:228`, the run's end `:456`. Emits `finished(passed)` |
 | The stage | `scenes/tribulation/tribulation_stage.gd` (`TribulationStage`) | Draws the spheres and the hold arc per 2 px cell from the band rule the ring art uses: `show_frame()` `:137`, `band_runs()` `:97` |
 | The state | `scenes/tribulation/tribulation_view_state.gd`; `MainView.set_board_mode()` (`scenes/ui/main_view/main_view.gd:149`); the two nodes in `scenes/main/main_game/main_game.tscn` | Pushed by `start_tribulation`, removed by `stop_tribulation`. Escape turns the trial down from the intro. See [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#tribulation-board) |
 | The input | `project.godot` `tribulation_press` (`:144`): Space and the left mouse button | Every button on the board sets `focus_mode = FOCUS_NONE`, so Space never presses one |
 | The art | `assets/ui/lacquer/tribulation/` (board, ring, core and pip strips), `assets/ui/lacquer/lacquer_rod_core_{empty,full}_ai.png`, `assets/styleboxes/lacquer/trib_board9.tres` | All `_ai`. Drawn by `docs/superpowers/mockups/tribulation-lacquer/gen/kit_tribulation.py` |
 
-Tests: `test_tribulation_run.gd` (39), `test_tribulation_stage.gd` (15), `test_tribulation_art.gd` (8), `test_tribulation_view.gd` (42), `test_tribulation_view_state.gd` (15), `test_tribulation_card.gd` (13), `test_tribulation_flow.gd` (20) and `test_foundation_tribulation_data.gd` (16), plus the Core Density cases in `test_cultivation_manager.gd`. See [TESTING.md](../testing/TESTING.md).
+Tests: `tests/unit/test_tribulation_*.gd` and `tests/integration/test_tribulation_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Open
 

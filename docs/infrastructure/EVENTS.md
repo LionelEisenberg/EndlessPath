@@ -1,7 +1,5 @@
 # Event System
 
-Last updated: 2026-10-22
-
 ## Overview
 
 `EventManager` is a persistent store of one-shot story flags. An event is a bare string id. Triggering it records the id permanently in the save and emits `event_triggered` once. Firing the same id again does nothing, and no API un-triggers an event.
@@ -26,8 +24,8 @@ EventManager (autoload #3, singletons/event_manager/event_manager.gd)
   signal event_triggered(event_id: String)
 
 Producers                                   Consumers (connection order)
-  TriggerEventEffectData.process()  ──┐       1. UnlockManager._evaluate_all_conditions()
-  AdventureCombat (hardcoded id)    ──┼──►    2. QuestManager._on_event_triggered(event_id)
+  TriggerEventEffectData.process()  ──┐       1. UnlockManager (full condition sweep)
+  AdventureCombat (hardcoded id)    ──┼──►    2. QuestManager (quest steps)
   tests                             ──┘     Live readers: UnlockConditionData.EVENT_TRIGGERED
                                               (EventManager.has_event_triggered)
 ```
@@ -63,12 +61,12 @@ Zone action stops / quest completes / encounter choice resolves
       → EventManager.trigger_event("some_id")        (does nothing if already fired)
           → event_progression.triggered_events.append("some_id")
           → event_triggered.emit("some_id")
-              1. UnlockManager._evaluate_all_conditions()
+              1. UnlockManager sweeps every condition
                    EVENT_TRIGGERED conditions targeting "some_id" latch
                    → condition_unlocked → ZonePanel / ZoneTilemap refresh,
                                           ActionManager may start a first idle action,
                                           QuestManager re-checks condition steps
-              2. QuestManager._on_event_triggered("some_id")
+              2. QuestManager receives "some_id"
                    event steps whose completion_event_id == "some_id" advance;
                    condition steps are re-evaluated too
 ```
@@ -80,7 +78,7 @@ UnlockManager connects in autoload #5 and QuestManager in #17, so conditions lat
 | Producer | Where |
 |---|---|
 | `TriggerEventEffectData` | Zone action `success_effects`, quest `completion_effects`, and encounter choice `success_effects`. This is the standard path. See [EFFECTS.md](EFFECTS.md). |
-| `AdventureCombat._on_enemy_health_changed()` | Calls `EventManager.trigger_event("q_first_steps_enemy_defeated")` whenever an enemy's health reaches 0, before emitting `trigger_combat_end(true, gold)`. Only the first call has any effect. |
+| `AdventureCombat` | Calls `EventManager.trigger_event("q_first_steps_enemy_defeated")` whenever an enemy's health reaches 0, before emitting `trigger_combat_end(true, gold)`. Only the first call has any effect. |
 
 Dialogic timelines do not fire events. `Dialogic.signal_event` is not connected. Events tied to dialogue fire from the NPC action's `success_effects` after the timeline ends. See [DIALOGUE.md](DIALOGUE.md).
 
@@ -103,7 +101,7 @@ Every event id the game can fire:
 | `celestial_intervener_dialogue_1` | `resources/effects/trigger_event/celestial_intervener_dialogue_1.tres`, in `celestial_intervener_dialogue_1.success_effects` (NPC 1) | Condition `celestial_intervener_dialogue_1`, which gates Wilderness Cycling and the Test Zone |
 | `celestial_intervener_dialogue_2` | Inline `TriggerEventEffectData` in `celestial_intervener_dialogue_2.success_effects` (NPC 2) | `q_fill_core` step `return_to_npc` |
 | `q_fill_core_completed` | Inline in `q_fill_core.completion_effects` | Condition `q_fill_core_completed`, which gates The Shallow Woods and Spring Forest Foraging |
-| `q_first_steps_enemy_defeated` | `AdventureCombat._on_enemy_health_changed()` (code) | `q_first_steps` step `defeat_enemy`; condition `q_first_steps_enemy_defeated`, which gates NPC 3 |
+| `q_first_steps_enemy_defeated` | `AdventureCombat`, when an enemy's health reaches 0 (code) | `q_first_steps` step `defeat_enemy`; condition `q_first_steps_enemy_defeated`, which gates NPC 3 |
 | `celestial_intervener_dialogue_3` | Inline in `celestial_intervener_dialogue_3.success_effects` (NPC 3) | `q_first_steps` step `return_to_npc` |
 | `celestial_intervener_dialogue_4` | Inline in `celestial_intervener_dialogue_4.success_effects` (NPC 4) | `q_reach_core_density_10` step `return_to_npc` |
 | `aura_well_discovered` | Inline in `aura_well_encounter.tres`, choice "Mark down the location" | Condition `aura_well_discovered`: gates the Aura Well training action, is the Mark choice's `requirements` (expected `false`), and is its `completion_condition` |
@@ -122,9 +120,7 @@ Naming conventions (same id for an event and the condition that wraps it, `q_<qu
 | `scripts/resource_definitions/effects/trigger_event_effect_data.gd` | Effect that fires an event |
 | `scenes/combat/adventure_combat/adventure_combat.gd` | Hardcoded `q_first_steps_enemy_defeated` producer |
 
-## Tests
-
-There is no dedicated EventManager test file. EventManager is exercised indirectly by `test_quest_manager.gd`, `test_encounter_choice.gd`, `test_adventure_encounter.gd`, `tests/integration/test_aura_well_discovery_unlock.gd`, and `tests/integration/test_beat_3b_merchant_unlock.gd`. `test_adventure_combat_victory_event.gd` covers the combat-to-event bridge: it drives the real `adventure_combat.tscn` and checks that a win fires `q_first_steps_enemy_defeated` by the time `trigger_combat_end` is emitted, and that a loss does not.
+Tests: EventManager has no test file of its own; `tests/unit/test_quest_manager.gd` and `tests/integration/test_beat_3b_merchant_unlock.gd`, among others named after what they check, exercise it; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
 

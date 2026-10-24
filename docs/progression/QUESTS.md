@@ -1,7 +1,5 @@
 # Quest System
 
-Last updated: 2026-10-24
-
 ## Overview
 
 Quests are linear, multi-step narrative signposts that tell the player what to do next. They hold no gameplay logic of their own: each step subscribes to an event ([EventManager](../infrastructure/EVENTS.md)) or to a set of [`UnlockConditionData`](../infrastructure/UNLOCKS.md) predicates. When the last step advances, the quest's `completion_effects` fire through the [EffectData](../infrastructure/EFFECTS.md) chain.
@@ -29,9 +27,9 @@ QuestManager (autoload #17, singletons/quest_manager/quest_manager.gd)
   _quest_catalog: QuestList        ← preload("res://resources/quests/quest_list.tres")
   _quests_by_id: Dictionary[String, QuestData]
   _live_save_data: SaveGameData    → quest_progression: QuestProgressionData
-  listens:  EventManager.event_triggered      → _on_event_triggered(event_id)
-            UnlockManager.condition_unlocked  → _on_condition_unlocked(condition_id)
-            PersistenceManager.save_data_reset → _on_save_data_reset()
+  listens:  EventManager.event_triggered      → advances event steps
+            UnlockManager.condition_unlocked  → re-checks condition steps
+            PersistenceManager.save_data_reset → rebinds and prunes
   emits:    quest_started / quest_step_advanced / quest_completed
 
 MainView (scenes/main/main_game/main_game.tscn)
@@ -60,7 +58,7 @@ MainView (scenes/main/main_game/main_game.tscn)
 | `completion_event_id` | `String` | Event-based step: advances when this event fires |
 | `completion_conditions` | `Array[UnlockConditionData]` | Condition-based step: advances when **all** evaluate true |
 
-Set exactly one of `completion_event_id` / `completion_conditions`. If both are set, the event takes precedence. If neither is set, the step auto-advances. `_validate_catalog()` reports both cases with `push_error` at boot.
+Set exactly one of `completion_event_id` / `completion_conditions`. If both are set, the event takes precedence. If neither is set, the step auto-advances. QuestManager reports both cases with `push_error` at boot.
 
 ### QuestList (`scripts/resource_definitions/quests/quest_list.gd`)
 
@@ -96,10 +94,10 @@ Stored as `SaveGameData.quest_progression`. `SaveGameData.reset()` replaces it w
 
 ### Boot (`_ready`)
 
-1. `_build_catalog_index()` indexes `quest_list.tres` by `quest_id` and skips null entries and entries with empty ids.
-2. `_validate_catalog()` calls `push_error` for null steps and for steps that have both or neither completion criteria. It never modifies data.
+1. Indexes `quest_list.tres` by `quest_id` and skips null entries and entries with empty ids.
+2. Validates the catalog: `push_error` for null steps and for steps that have both or neither completion criteria. It never modifies data.
 3. Binds `_live_save_data` and connects `save_data_reset`, `EventManager.event_triggered`, and `UnlockManager.condition_unlocked`.
-4. `_prune_unknown_active_quests()` drops active entries whose id is not in the catalog (`Log.warn`). Completed ids are kept.
+4. Drops active entries whose id is not in the catalog (`Log.warn`). Completed ids are kept.
 
 QuestManager does not re-check active steps at boot or on load. The saved step index is authoritative.
 
@@ -113,29 +111,29 @@ StartQuestEffectData.process()
       already active       → Log.warn, return
       already completed    → Log.warn, return
       active_quests[quest_id] = 0 → quest_started.emit
-      zero steps           → _complete_quest()
-      else                 → _retroactive_advance()
+      zero steps           → complete the quest
+      else                 → retroactive pass
 ```
 
-`_retroactive_advance()` walks forward while the current step is already satisfied. An event step is satisfied if `EventManager.has_event_triggered(completion_event_id)`. A condition step is satisfied if every condition's `evaluate()` returns true. A step with no criteria is always satisfied. The pass stops at the first unsatisfied step or when the quest completes.
+The retroactive pass walks forward while the current step is already satisfied. An event step is satisfied if `EventManager.has_event_triggered(completion_event_id)`. A condition step is satisfied if every condition's `evaluate()` returns true. A step with no criteria is always satisfied. The pass stops at the first unsatisfied step or when the quest completes.
 
 ### Step advancement
 
 ```
 EventManager.event_triggered(event_id)
-  → _on_event_triggered(event_id): for each active quest (copied list)
-        _try_advance_step(quest_id, event_id)
+  → for each active quest (copied list)
+        try to advance it with event_id
 
 UnlockManager.condition_unlocked(condition_id)
-  → _on_condition_unlocked(_): for each active quest
-        _try_advance_step(quest_id, "")        # only condition steps can pass
+  → for each active quest
+        try to advance it with no event        # only condition steps can pass
 
-_try_advance_step → _is_step_satisfied(step, triggering_event_id)
+try to advance → is the current step satisfied by triggering_event_id?
     event step     → step.completion_event_id == triggering_event_id
     no criteria    → true
     condition step → every cond.evaluate() is true (evaluated live, not from the latched set)
-  → _advance_step(quest_id)
-        index + 1 >= steps.size() → _complete_quest()
+  → advance the step
+        index + 1 >= steps.size() → complete the quest
         else store index, Log.info, quest_step_advanced.emit
 ```
 
@@ -144,11 +142,11 @@ Rules that follow from this code:
 - Each trigger advances a quest by at most one step. The newly current step is not re-checked until the next `event_triggered` or `condition_unlocked`.
 - An event step only matches an event that fires **while that step is current**. If its event already fired earlier, the step can never complete, because EventManager never re-fires an event. Only `start_quest()` consults event history.
 - Condition steps are evaluated live, so the conditions do not need to be registered in `unlock_condition_list.tres`. However, the step is only re-checked on an event or a `condition_unlocked` signal, and unregistered conditions never emit `condition_unlocked`. Any event re-checks condition steps.
-- UnlockManager is connected to `event_triggered` before QuestManager. For a single event, conditions latch and `_on_condition_unlocked` runs first, then `_on_event_triggered` runs.
+- UnlockManager is connected to `event_triggered` before QuestManager. For a single event, conditions latch and QuestManager's `condition_unlocked` handler runs first, then its `event_triggered` handler runs.
 
 ### Completion
 
-`_complete_quest()` erases the quest from `active_quests` and appends it to `completed_quest_ids`. It then logs, processes each non-null `completion_effects` entry in order, and emits `quest_completed`. Completion effects can fire events that cascade into UnlockManager and other quests. The completed quest has already left the active list, so its own events cannot re-advance it.
+Completion erases the quest from `active_quests` and appends it to `completed_quest_ids`. It then logs, processes each non-null `completion_effects` entry in order, and emits `quest_completed`. Completion effects can fire events that cascade into UnlockManager and other quests. The completed quest has already left the active list, so its own events cannot re-advance it.
 
 ### Chaining quests (Pattern B)
 
@@ -177,9 +175,9 @@ GoalsPanel (Control, 440 wide)
 
 - Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` leaves it there, cords showing, because the adventure's vitals cabinet stands where the cultivator cabinet does. The merchant shop and the Tribulation hide it; cycling leaves it showing beside its board, and the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
 - **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both wrap in the row's 358 px, the name before the figure, which stays at the right of its first line). The `current / target` figure shows only when the step completes on conditions alone (no `completion_event_id`) and every condition `is_measurable()` (RESOURCE_AMOUNT or CULTIVATION_LEVEL); it reads the first condition's `get_current_value()` / `get_target_value()`.
-- **Milestone row:** "Breakthrough", in three states, checked in this order (`_update_milestone()`, `goals_panel.gd:138-154`). With no next stage (Copper) it reads "<Stage> reached" on a full jade rod, with no figure. With the core full (`CultivationManager.is_core_full()`) it reads "Face the Tribulation" on a full rod, with `cap / cap` ("100 / 100"). Otherwise it reads "Raise Core Density to <cap>" (`CultivationManager.get_core_density_cap()`, 100 in Foundation), with the rod and the figure at `level / cap`. Core Density stops at the cap, and a save past it loads at it, so the figure never passes it.
+- **Milestone row:** "Breakthrough", in three states, checked in this order (`goals_panel.gd:138-154`). With no next stage (Copper) it reads "<Stage> reached" on a full jade rod, with no figure. With the core full (`CultivationManager.is_core_full()`) it reads "Face the Tribulation" on a full rod, with `cap / cap` ("100 / 100"). Otherwise it reads "Raise Core Density to <cap>" (`CultivationManager.get_core_density_cap()`, 100 in Foundation), with the rod and the figure at `level / cap`. Core Density stops at the cap, and a save past it loads at it, so the figure never passes it.
 - With no active quest, the quest row and the divider hide, the milestone moves up into their place, and the board hugs its rows: 220 px tall with a quest, 150 with the milestone alone, when every text is one line.
-- **No text is cut off.** The quest's name and step and the milestone's name and line wrap in 358 px (a `wrap_pad.tres` pad under the 15/18 lines), and the rows are containers, so a wrapped line pushes what is under it down and the board, cut into a top, a tiled middle and a bottom slice, grows by it. Each row is an even number of px tall (a name's lines are 20 px, a detail line's 18), so the board is too. The row heights are re-fitted after every text change, so the board takes its height back when the text shortens (the adventure rework's review round 1, 2026-10-23).
+- **No text is cut off.** The quest's name and step and the milestone's name and line wrap in 358 px (a `wrap_pad.tres` pad under the 15/18 lines), and the rows are containers, so a wrapped line pushes what is under it down and the board, cut into a top, a tiled middle and a bottom slice, grows by it. Each row is an even number of px tall (a name's lines are 20 px, a detail line's 18), so the board is too. The row heights are re-fitted after every text change, so the board takes its height back when the text shortens.
 - It re-reads on `quest_started`, `quest_step_advanced`, `quest_completed`, `PersistenceManager.save_data_reset`, `CultivationManager.core_density_level_updated`, `CultivationManager.advancement_stage_changed` (the breakthrough), and `ResourceManager.madra_changed` / `gold_changed` (for a RESOURCE_AMOUNT figure). `refresh()` is public and does nothing before the board is ready.
 - Only the first active quest shows; completed quests are not listed.
 
@@ -258,24 +256,13 @@ Every "return" step is completed by an NPC action that only becomes visible once
 | `scenes/ui/quest_toast/quest_toast.gd` / `.tscn` | Toast popup |
 | `assets/styleboxes/ui/quest_toast.tres` | Toast stylebox |
 
-## Tests
-
-| File | Covers |
-|---|---|
-| `tests/unit/test_quest_manager.gd` | Start guards (unknown, active, completed); event and condition advancement; partial conditions; retroactive pass; completion effects, signal, and order; zero-step quests; pruning; both and neither validation errors; the `condition_unlocked` listener |
-| `tests/unit/test_quest_progression_persistence.gd` | `QuestProgressionData` round-trip through `ResourceSaver`; `reset()` clears it |
-| `tests/unit/test_start_quest_effect_data.gd` | `process()` starts the quest; empty `quest_id` causes `push_error` |
-| `tests/integration/test_beat_3b_merchant_unlock.gd` | Real catalog: `q_reach_core_density_10` CD-10 advance, NPC 4 gate, map award, refugee-camp eligibility, Merchant unlock |
-| `tests/integration/test_goals_panel.gd` | The Goals board: milestone only with no quest, the quest row's step and figure (Madra, Core Density, gold), event steps without a figure, refreshes on advance and save reset, the milestone in its three states (a save past the cap loading at it and reading "Face the Tribulation", "Copper reached" after the breakthrough and following the stage change, the stage's own cap, a figure that never passes it), long text wrapping and growing the board (a long step, a long name beside its figure, a long milestone line pushing the rod down, the board taking its height back, every grown height even, no ellipsis), the board hugging its rows, the cords |
-| `tests/unit/test_unlock_condition_progress.gd` | `is_measurable()`, `get_current_value()`, `get_target_value()` |
-
-Untested: QuestToast behavior; the Beat 1 → Beat 2 → Beat 3 chain with real data (only Beat 3b has an integration test); a data check that every authored `completion_event_id` has a producer.
+Tests: `tests/unit/test_quest_*.gd` and `tests/integration/test_goals_panel.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
 
 ### Bugs
 
-- `[MEDIUM]` Steps are not re-checked after advancing. `_advance_step()` stores the new index but never evaluates the new step. An event step whose event already fired can never complete, and a condition step that is already true waits for an unrelated trigger. Normal Foundation play avoids this, but the dev panel can soft-lock a quest. For example, force-unlocking `q_first_steps_enemy_defeated` reveals NPC 3. Talking to NPC 3 fires `celestial_intervener_dialogue_3` while `q_first_steps` is still on step 0, so step 1 can never complete and the path point is never awarded. Fix: call `_retroactive_advance()` after every advance and once per active quest at the end of `_ready()`.
+- `[MEDIUM]` Steps are not re-checked after advancing. Advancing stores the new index but never evaluates the new step. An event step whose event already fired can never complete, and a condition step that is already true waits for an unrelated trigger. Normal Foundation play avoids this, but the dev panel can soft-lock a quest. For example, force-unlocking `q_first_steps_enemy_defeated` reveals NPC 3. Talking to NPC 3 fires `celestial_intervener_dialogue_3` while `q_first_steps` is still on step 0, so step 1 can never complete and the path point is never awarded. Fix: run the retroactive pass after every advance and once per active quest at the end of `_ready()`.
 
 ### Missing Functionality
 
