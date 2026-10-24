@@ -36,8 +36,9 @@ const READY_AGAIN: String = "Click the ball for another cycle."
 const CYCLING_FORMAT: String = "Cycling · %d / %d s"
 const FOLLOW_SUFFIX: String = " · follow the ball"
 
-## The status line while a cycle runs with Madra at the cap: no Madra is drawn,
-## and a technique with zones still pays XP for them.
+## The status line while a cycle runs with Madra at the cap: no Madra is drawn.
+## MADRA_FULL_ZONES is for a technique whose zones still pay XP: it has zones and
+## the core has room for the XP (a full core takes none).
 const MADRA_FULL: String = "Madra full"
 const MADRA_FULL_ZONES: String = "Madra full · zones still pay XP"
 
@@ -158,13 +159,15 @@ func _process(_delta: float) -> void:
 ## READY_FIRST, or READY_AGAIN once a cycle has ended. While one runs it is
 ## "Cycling · 9 / 15 s" (the whole seconds gone, floored, and the cycle's
 ## length), with FOLLOW_SUFFIX added while the cursor is off the ball. With
-## Madra at the cap it says so instead (MADRA_FULL_ZONES when the technique has
-## zones, MADRA_FULL when it has none), whether or not the cursor follows.
-static func status_line(cycled_before: bool, running: bool, elapsed: float, duration: float, tracking: bool, madra_full: bool, has_zones: bool) -> String:
+## Madra at the cap it says so instead (MADRA_FULL_ZONES when `zones_pay_xp`,
+## MADRA_FULL when not), whether or not the cursor follows. `zones_pay_xp` is
+## true for a technique with zones while the core is not full: a full core takes
+## no XP, so then its zones pay none and the line must not say they do.
+static func status_line(cycled_before: bool, running: bool, elapsed: float, duration: float, tracking: bool, madra_full: bool, zones_pay_xp: bool) -> String:
 	if not running:
 		return READY_AGAIN if cycled_before else READY_FIRST
 	if madra_full:
-		return MADRA_FULL_ZONES if has_zones else MADRA_FULL
+		return MADRA_FULL_ZONES if zones_pay_xp else MADRA_FULL
 	var line: String = CYCLING_FORMAT % [floori(elapsed), roundi(duration)]
 	return line if tracking else line + FOLLOW_SUFFIX
 
@@ -214,6 +217,7 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 ## board out again when the line changes.
 func _update_status() -> void:
 	var madra_full: bool = ResourceManager.get_madra() >= CultivationManager.get_max_madra()
+	var zones_pay_xp: bool = not _technique.cycling_zones.is_empty() and not CultivationManager.is_core_full()
 	var line: String = status_line(
 		_cycled_before,
 		_technique.is_cycling(),
@@ -221,7 +225,7 @@ func _update_status() -> void:
 		CyclingManager.get_cycle_duration(),
 		_technique.is_tracking(),
 		madra_full,
-		not _technique.cycling_zones.is_empty())
+		zones_pay_xp)
 	if line == _status_label.text:
 		return
 	_status_label.text = line
