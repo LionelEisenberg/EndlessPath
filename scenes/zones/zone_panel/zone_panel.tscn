@@ -219,22 +219,34 @@ visible = false
 layout_mode = 0
 offset_left = 16.0
 offset_top = 182.0
-offset_right = 424.0
+offset_right = 408.0
 offset_bottom = 446.0
 
-[node name="LoreBoard" type="TextureRect" parent="LorePanel" unique_id=1732561138]
-layout_mode = 0
-offset_right = 412.0
-offset_bottom = 268.0
+[node name="LoreBoard" type="NinePatchRect" parent="LorePanel" unique_id=1732561138]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = ExtResource("15_lore")
+patch_margin_left = 8
+patch_margin_top = 8
+patch_margin_right = 10
+patch_margin_bottom = 10
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
 
 [node name="LoreText" type="Label" parent="LorePanel" unique_id=1596558255]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 22.0
 offset_top = 20.0
-offset_right = 388.0
+offset_right = 372.0
 offset_bottom = 248.0
 theme_type_variation = &"LabelLacquerLore"
 theme_override_constants/paragraph_spacing = 10

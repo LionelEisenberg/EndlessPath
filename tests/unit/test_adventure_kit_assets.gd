@@ -7,7 +7,8 @@ extends GutTest
 ## docs/superpowers/mockups/adventure-view-lacquer/gen/ (build_all.py, then
 ## import_adventure_kit.py). The review round's growing boards stand on
 ## 9-slices: the two trays are clean as they are, the drawer and the Now
-## strip's narrower rod come from kit_chest9.py.
+## strip's narrower rod come from kit_chest9.py, and the zone chest's lore board
+## tiles the art it always had.
 
 const LACQUER_DIR: String = "res://assets/ui/lacquer/"
 const GLYPH_DIR: String = "res://assets/sprites/adventure/encounter_glyphs/"
@@ -59,6 +60,15 @@ const TRAY_MARGINS: Array[int] = [4, 4, 2, 2]
 ## The drawer's face without its socket: the 2 px rim and outline on every side,
 ## the shaded sides and the baked shadow making the bottom and right 6.
 const DRAWER_MARGINS: Array[int] = [4, 4, 6, 6]
+## The lore board's art, the 4 px shadow in it: ink and a lit rim 6 px thick on
+## every side, the chamfered corners making the left and top 8 and the shadow the
+## right and bottom 10 (the smallest margins that leave the edges flat). Its middle
+## holds the board's gloss dashes, so the board tiles it (a stretch would thicken them).
+const LORE_FILE: String = "lacquer_lore_ai.png"
+const LORE_MARGINS: Array[int] = [8, 8, 10, 10]
+## The lore board is 392 wide and the art 412 less its 4 px shadow, 16 px more:
+## the middle is cropped on the right by that much, so no dash may reach it.
+const LORE_CROP: int = 16
 ## The zone card's drawer, whose carved socket the new drawer's socket is.
 const ZONE_DRAWER_FILE: String = "lacquer_drawer_ai.png"
 const SOCKET_BOX := Rect2i(8, 12, 48, 48)
@@ -139,8 +149,9 @@ func test_screen_pieces_sit_on_the_2x_grid() -> void:
 
 ## What stops the image from being a clean 9-slice with the margins (left, top,
 ## right, bottom): the edges must be flat along their length and the middle one
-## colour, so a stretch leaves no seam. Empty when it is clean.
-func _nine_slice_problems(image: Image, margins: Array[int]) -> Array[String]:
+## colour, so a stretch leaves no seam. Empty when it is clean. `flat_middle` false
+## leaves the middle unchecked, for art whose middle is tiled.
+func _nine_slice_problems(image: Image, margins: Array[int], flat_middle: bool = true) -> Array[String]:
 	var problems: Array[String] = []
 	var left: int = margins[0]
 	var top: int = margins[1]
@@ -164,6 +175,8 @@ func _nine_slice_problems(image: Image, margins: Array[int]) -> Array[String]:
 				if not _same_colour(image.get_pixel(x, y), image.get_pixel(x, top)):
 					problems.append("the %s edge changes at (%d, %d)" % [edge, x, y])
 					break
+	if not flat_middle:
+		return problems
 	var middle: Color = image.get_pixel(left, top)
 	for y: int in range(top, height - bottom):
 		for x: int in range(left, width - right):
@@ -201,6 +214,27 @@ func test_the_drawer_socket_is_the_zone_cards() -> void:
 	var region: Image = card.get_region(SOCKET_BOX)
 	assert_eq(region.get_size(), socket.get_size())
 	assert_eq(region.get_data(), socket.get_data(), "the card's pixels at (8, 12)")
+
+## The lore board is a NinePatchRect on the art the board always had: its edges are
+## flat along their length, its middle (the gloss dashes) is tiled, and no dash sits
+## in the 16 px a 392-wide board crops from the right of the middle.
+func test_the_lore_board_art_is_a_nine_slice_that_tiles() -> void:
+	var image: Image = _load_image(LACQUER_DIR + LORE_FILE)
+	if image == null:
+		return
+	assert_eq(image.get_size(), Vector2i(412, 268), "the 408x264 board and its 4 px shadow")
+	assert_eq(_nine_slice_problems(image, LORE_MARGINS, false), [] as Array[String], "flat edges with margins %s" % [LORE_MARGINS])
+	var middle: Color = image.get_pixel(LORE_MARGINS[0], LORE_MARGINS[1])
+	var crop_from: int = image.get_width() - LORE_MARGINS[2] - LORE_CROP
+	var dashes: int = 0
+	for y: int in range(LORE_MARGINS[1], image.get_height() - LORE_MARGINS[3]):
+		for x: int in range(LORE_MARGINS[0], image.get_width() - LORE_MARGINS[2]):
+			if not _same_colour(image.get_pixel(x, y), middle):
+				dashes += 1
+				assert_lt(x, crop_from, "the dash at (%d, %d) is out of reach of the crop" % [x, y])
+				if x >= crop_from:
+					return
+	assert_gt(dashes, 0, "precondition: the middle holds the board's gloss dashes")
 
 ## The Now strip's rod is the Aura Well's with 16 px of its flat middle taken
 ## out: the same ends, 144 steps instead of 152.

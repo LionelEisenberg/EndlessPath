@@ -42,6 +42,12 @@ const LORE_TOP: float = 182.0
 const LORE_PUSH: float = 276.0
 ## A finished cycle's line sits under the Now tray and pushes the rest down this far.
 const LAST_CYCLE_PUSH: float = 26.0
+## The lore board's 264 tall at least (it grows with its text), and the 12 px
+## under it before the header.
+const LORE_MIN_HEIGHT: float = 264.0
+const LORE_GAP_UNDER: float = 12.0
+## The art's baked shadow beyond the board's right and bottom edges.
+const BOARD_SHADOW: float = 4.0
 const FULL_CHEST_HEIGHT: float = 1032.0
 ## The Now strip: the kit's 88 tall and the cards' 392 wide, with each extra line
 ## of a name 22 px (18 in a detail line) and its contents ending 16 px short of
@@ -53,6 +59,9 @@ const DETAIL_LINE: float = 18.0
 ## Long enough to need three lines in the strip's name (about 150 px beside the
 ## rate) and its forage name (292 px), and two in its detail lines.
 const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit By The Cold Moon And A Hundred Silent Stars"
+## A lore of three long paragraphs: many more lines than the shipped one, which takes
+## about ten.
+const LONG_LORE: String = "The old road climbs out of the valley between two shoulders of grey stone, and every pilgrim who walks it says each step is paid for in breath. Those who reach the first ridge look back at a sea of mist and understand why the cradle was built where it was.\n\nBeyond the ridge the aura thins and then thickens again, pooling in hollows where the bamboo grows thicker than a man can reach around. Sacred artists have sat in those hollows for ten thousand years, and the stones remember every one of them.\n\nOnly the patient are shown the third path, the one that leaves no footprints and ends where it began."
 const NO_TRIMMING: TextServer.OverrunBehavior = TextServer.OVERRUN_NO_TRIMMING
 const FOLD_GAP: float = 8.0
 const SCROLL_MARGIN: float = 24.0
@@ -68,6 +77,8 @@ var _panel: ZonePanel = null
 ## Zone and action names a test changed, restored after it.
 var _renamed_zone: ZoneData = null
 var _original_zone_name: String = ""
+var _relored_zone: ZoneData = null
+var _original_description: String = ""
 var _renamed_actions: Dictionary[ZoneActionData, String] = {}
 
 #-----------------------------------------------------------------------------
@@ -91,6 +102,9 @@ func after_each() -> void:
 	if _renamed_zone != null:
 		_renamed_zone.zone_name = _original_zone_name
 		_renamed_zone = null
+	if _relored_zone != null:
+		_relored_zone.description = _original_description
+		_relored_zone = null
 	for action: ZoneActionData in _renamed_actions:
 		action.action_name = _renamed_actions[action]
 	_renamed_actions.clear()
@@ -137,6 +151,17 @@ func _strip() -> NowStrip:
 
 func _strip_node(unique_name: String) -> Node:
 	return _strip().get_node("%" + unique_name)
+
+## What opening the lore pushes the header and the list down by: its board and
+## the 12 px under it.
+func _lore_push() -> float:
+	return (_node("LorePanel") as Control).size.y + LORE_GAP_UNDER
+
+## Gives Spirit Valley another lore for the test, restored after it.
+func _set_lore(description: String) -> void:
+	_relored_zone = ZoneManager.get_zone_by_id(SPIRIT_VALLEY_ID)
+	_original_description = _relored_zone.description
+	_relored_zone.description = description
 
 func _current_id() -> String:
 	var current: ZoneActionData = ActionManager.get_current_action()
@@ -826,8 +851,8 @@ func test_a_grown_strip_pushes_the_open_lore_down() -> void:
 	await wait_process_frames(2)
 	var extra: float = _strip().size.y - STRIP_HEIGHT
 	assert_gt(extra, 0.0, "precondition: the strip grew")
-	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + LORE_PUSH + extra, "the lore and the strip both push the header")
-	assert_eq(_list().position.y, LIST_TOP + LORE_PUSH + extra)
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + _lore_push() + extra, "the lore and the strip both push the header")
+	assert_eq(_list().position.y, LIST_TOP + _lore_push() + extra)
 	assert_eq((_node("LorePanel") as Control).position.y, LORE_TOP + extra, "the lore opens under the grown strip")
 
 ## No Label of the strip ellipsizes.
@@ -1007,8 +1032,8 @@ func test_lore_toggles() -> void:
 	about.button_pressed = true
 	await wait_process_frames(1)
 	assert_true(lore.visible)
-	assert_eq(header.position.y, header_y + LORE_PUSH, "the lore pushes the header down")
-	assert_eq(_list().position.y, list_y + LORE_PUSH, "and the list")
+	assert_eq(header.position.y, header_y + _lore_push(), "the lore pushes the header down by its board and 12")
+	assert_eq(_list().position.y, list_y + _lore_push(), "and the list")
 	assert_string_contains((_node("LoreText") as Label).text, "Deep at the heart of the world")
 
 	about.button_pressed = false
@@ -1035,7 +1060,8 @@ func test_lore_paragraphs_end_their_sentences() -> void:
 func test_lore_text_is_a_lore_label() -> void:
 	# The lore has no decimal point, so it needs no RichTextLabel: the theme's
 	# LabelLacquerLore (16/22 cream) sets it, with one override for the kit's
-	# 10 px between paragraphs (kit §5.5: text 16/22 cream, width 364).
+	# 10 px between paragraphs (kit §5.5: text 16/22 cream, width 364 in its 408
+	# board, 348 in the 392 one the lore has now).
 	await _add_panel()
 	var lore_text: Label = _node("LoreText") as Label
 	assert_not_null(lore_text, "LoreText is a Label")
@@ -1046,10 +1072,10 @@ func test_lore_text_is_a_lore_label() -> void:
 	assert_false(lore_text.has_theme_constant_override(&"line_spacing"), "the variant's 22 px pitch")
 	assert_false(lore_text.has_theme_color_override(&"font_color"), "no colour override")
 	assert_false(lore_text.has_theme_font_size_override(&"font_size"), "no size override")
-	# The kit's 364 px plus 2: Godot counts the space at a line break against
-	# the width and the browser does not, so at 366 the lore breaks where the
-	# mock's does (06_open_zone_lore: "...cradle of power. This").
-	assert_eq(lore_text.size.x, 366.0, "the kit's 364 px, as Godot wraps it")
+	# The kit's 348 px (the board is 392 wide now, 22 px of margin each side) plus 2:
+	# Godot counts the space at a line break against the width and the browser does
+	# not.
+	assert_eq(lore_text.size.x, 350.0, "the kit's 348 px, as Godot wraps it")
 	assert_ne(lore_text.autowrap_mode, TextServer.AUTOWRAP_OFF, "it wraps")
 
 func test_lore_fits_its_panel() -> void:
@@ -1060,6 +1086,89 @@ func test_lore_fits_its_panel() -> void:
 	var board: Rect2 = (_node("LorePanel") as Control).get_global_rect()
 	assert_lte(lore_text.get_minimum_size().y, lore_text.size.y, "Spirit Valley's lore shows whole")
 	assert_lte(lore_text.get_global_rect().end.y, board.end.y, "inside the lore board")
+
+## The lore board is as wide as the Now strip and the cards, so their edges line up:
+## chest x 16 to 408. (The board's art carries a 4 px shadow beyond its right and
+## bottom edges, which is no part of the edge.)
+func test_the_lore_board_lines_up_with_the_strip_and_the_cards() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _add_panel()
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	var board: Rect2 = (_node("LoreBoard") as Control).get_global_rect()
+	var strip: Rect2 = _strip().get_global_rect()
+	var card: Rect2 = _panel.get_card(AURA_WELL_ID).get_global_rect()
+	assert_eq(board.position.x, strip.position.x, "one left edge with the strip")
+	assert_eq(board.end.x - BOARD_SHADOW, strip.end.x, "one right edge with the strip")
+	assert_eq(board.position.x, card.position.x, "one left edge with the cards")
+	assert_eq(board.end.x - BOARD_SHADOW, card.end.x, "one right edge with the cards")
+	assert_eq((_node("LorePanel") as Control).size.x, STRIP_WIDTH, "the panel (what a click on the lore hits) is the strip's 392")
+
+## The lore board's face is a NinePatchRect on the art it always had, tiling its
+## middle (the gloss dashes) instead of stretching it, so the board grows in either
+## direction with the dashes at their size.
+func test_the_lore_board_tiles_its_art() -> void:
+	await _add_panel()
+	var face := _node("LoreBoard") as NinePatchRect
+	assert_not_null(face, "the lore board's face is a NinePatchRect")
+	if face == null:
+		return
+	assert_eq(face.texture.resource_path, "res://assets/ui/lacquer/lacquer_lore_ai.png")
+	assert_eq([face.patch_margin_left, face.patch_margin_top, face.patch_margin_right, face.patch_margin_bottom], [8, 8, 10, 10], "the corners in 8 px, the shadow in the right and bottom margins")
+	assert_eq(face.axis_stretch_horizontal, NinePatchRect.AXIS_STRETCH_MODE_TILE)
+	assert_eq(face.axis_stretch_vertical, NinePatchRect.AXIS_STRETCH_MODE_TILE)
+	assert_eq(face.mouse_filter, Control.MOUSE_FILTER_IGNORE, "the face takes no clicks")
+
+## The lore wraps inside its board, 22 px from the left edge and 20 from the right
+## (the kit's 22 each side, 2 of them for the space Godot counts at a line break),
+## and nothing is cut off.
+func test_the_lore_wraps_inside_its_board() -> void:
+	await _add_panel()
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	var text := _node("LoreText") as Label
+	var board: Rect2 = (_node("LorePanel") as Control).get_global_rect()
+	assert_eq(text.text_overrun_behavior, NO_TRIMMING, "wrapped, never trimmed")
+	assert_eq(text.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
+	assert_gt(text.get_line_count(), 8, "precondition: the shipped lore takes many lines at that width")
+	assert_eq(text.get_global_rect().position.x - board.position.x, 22.0, "22 px in from the left edge")
+	assert_eq(board.end.x - text.get_global_rect().end.x, 20.0, "20 px in from the right edge")
+	assert_eq(text.size.y, text.get_combined_minimum_size().y, "the label is as tall as its lines")
+	assert_lte(text.get_global_rect().end.y, board.end.y, "inside the board")
+
+## A lore that needs more than the board's 264 px grows it: the board is as tall as
+## the text asks (an even height, 16 px under the last line), its art covers it and
+## its shadow, and the header and the list stand under it.
+func test_a_long_lore_grows_the_board_and_pushes_the_chest() -> void:
+	_set_lore(LONG_LORE)
+	await _add_panel()
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	var board := _node("LorePanel") as Control
+	var text := _node("LoreText") as Label
+	assert_gt(text.get_line_count(), 14, "precondition: many more lines than the shipped lore")
+	assert_gt(board.size.y, LORE_MIN_HEIGHT, "the board grew")
+	assert_eq(fposmod(board.size.y, 2.0), 0.0, "an even height")
+	assert_eq(text.position.y, 20.0, "the text stays 20 px under the top")
+	assert_gte(board.size.y - (text.position.y + text.size.y), 16.0, "with 16 px of board under its last line")
+	assert_eq((_node("LoreBoard") as Control).size, board.size + Vector2(BOARD_SHADOW, BOARD_SHADOW), "the art covers the board and its shadow")
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + _lore_push(), "the header stands under the grown board")
+	assert_eq(_list().position.y, LIST_TOP + _lore_push(), "and the list")
+	assert_gte(_panel.size.y, _list().position.y + _list().size.y, "the chest holds the list")
+
+## The board takes its 264 back when the lore gets short again.
+func test_the_lore_board_takes_its_height_back() -> void:
+	_set_lore(LONG_LORE)
+	await _add_panel()
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	var board := _node("LorePanel") as Control
+	assert_gt(board.size.y, LORE_MIN_HEIGHT, "precondition: grown")
+	_relored_zone.description = "A short lore."
+	_panel._rebuild()
+	await wait_process_frames(2)
+	assert_eq(board.size.y, LORE_MIN_HEIGHT, "the kit's 264 again")
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + LORE_MIN_HEIGHT + LORE_GAP_UNDER, "the header is back under it")
 
 func test_esc_closes_lore() -> void:
 	await _add_panel()
@@ -1143,8 +1252,8 @@ func test_click_outside_closes_lore() -> void:
 	assert_false(about.button_pressed, "About reads closed")
 
 func test_click_on_card_with_lore_open_starts_that_card() -> void:
-	# Closing the lore moves the list up 276 px. The click must reach the
-	# card the player saw under the cursor, not the one that slides there.
+	# Closing the lore moves the list up by the lore's height. The click must
+	# reach the card the player saw under the cursor, not the one that slides there.
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	EventManager.trigger_event(FORAGING_EVENT)
 	await _add_panel_above_gut()
@@ -1160,7 +1269,7 @@ func test_click_on_card_with_lore_open_starts_that_card() -> void:
 
 func test_rail_cap_click_lands_while_the_lore_closes() -> void:
 	# The press closes the lore at the end of the frame, which moves the list
-	# and its rail up 276 px. A cap that acted on release would miss a click
+	# and its rail up by the lore's height. A cap that acted on release would miss a click
 	# whose mouse moved 1 px before the release: the caps act on the press.
 	await _add_panel_above_gut()
 	_unlock_everything()
