@@ -134,6 +134,18 @@ func _stored(scene_state: SceneState, node_index: int, property: StringName) -> 
 			return scene_state.get_node_property_value(node_index, slot)
 	return null
 
+## Whether a scene's node starts visible: the value the scene stores for it, else the value
+## the scene it instances stores for its root (an editor save drops an override that only
+## repeats that), else a CanvasItem's default.
+func _starts_visible(scene_state: SceneState, node_index: int) -> bool:
+	var stored: Variant = _stored(scene_state, node_index, &"visible")
+	if stored != null:
+		return stored
+	var instanced: PackedScene = scene_state.get_node_instance(node_index)
+	if instanced != null:
+		return _starts_visible(instanced.get_state(), 0)
+	return true
+
 #-----------------------------------------------------------------------------
 # OPENING
 #-----------------------------------------------------------------------------
@@ -281,7 +293,9 @@ func test_stop_mid_run_applies_nothing() -> void:
 ## MainView finds the board and its state by unique name and path. A scene that lost one
 ## would break the zone view at start-up, so the scene is read for them, never instanced.
 ## The board stands after CyclingView and before DevPanel, so it takes the click before the
-## overlays ahead of it do, and the dev panel stays above it for input.
+## overlays ahead of it do, and the dev panel stays above it for input. It starts hidden,
+## whether main_game.tscn stores that or leaves it to the board's own scene, as an editor
+## save does.
 func test_main_game_holds_the_board_and_its_state() -> void:
 	var scene_state: SceneState = (load(MAIN_GAME_SCENE_PATH) as PackedScene).get_state()
 	var view_index: int = _node_index(scene_state, "MainView/TribulationView")
@@ -292,7 +306,7 @@ func test_main_game_holds_the_board_and_its_state() -> void:
 		return
 	assert_eq(scene_state.get_node_instance(view_index).resource_path, VIEW_SCENE_PATH, "the board is the Tribulation view's scene")
 	assert_eq(_stored(scene_state, view_index, &"unique_name_in_owner"), true, "MainView finds the board by its unique name")
-	assert_eq(_stored(scene_state, view_index, &"visible"), false, "the board starts hidden")
+	assert_false(_starts_visible(scene_state, view_index), "the board starts hidden")
 	assert_eq(_stored(scene_state, view_index, &"z_index"), 3, "at z 3, with the other overlays")
 	var script: Script = _stored(scene_state, state_index, &"script") as Script
 	assert_not_null(script, "the state has a script")
