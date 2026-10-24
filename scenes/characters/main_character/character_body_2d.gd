@@ -146,3 +146,17 @@ func _stop_movement() -> void:
 func stop_moving() -> void:
 	if is_moving:
 		_stop_movement()
+
+## Plays one of the idle-motion clips the zone map runs (meditate,
+## teleport_in, teleport_out, forage_search, forage_present, or a walk),
+## starting at_seconds in so it joins its segment in step. The clip already
+## playing runs on untouched, so calling this every frame is safe.
+func show_pose(animation: StringName, at_seconds: float = 0.0) -> void:
+	if animation_player.current_animation == animation:
+		return
+	animation_player.play(animation)
+	animation_player.seek(at_seconds, true)
+
+## Stands the character still on its idle frame.
+func stand() -> void:
+	animation_player.play("RESET")

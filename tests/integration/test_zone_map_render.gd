@@ -58,6 +58,20 @@ func _to_screen(world: Vector2) -> Vector2:
 func _stand(zone_id: String) -> Vector2:
 	return _map.get_zone_world_centre(_zone(zone_id)) + ZoneTilemap.CHARACTER_STAND_OFFSET
 
+## The clip the character is playing.
+func _animation() -> StringName:
+	return (_map.character_body.get_node("AnimationPlayer") as AnimationPlayer).current_animation
+
+## Waits a frame at a time until the condition holds or the time runs out;
+## returns whether it held.
+func _wait_until(condition: Callable, timeout_seconds: float) -> bool:
+	var started_usec: int = Time.get_ticks_usec()
+	while Time.get_ticks_usec() - started_usec < int(timeout_seconds * 1_000_000):
+		if condition.call():
+			return true
+		await get_tree().process_frame
+	return condition.call()
+
 ## Clicks the zone's cell on the map's zone layer.
 func _click_zone(zone_id: String) -> void:
 	_map.tile_map.tile_clicked.emit(_zone(zone_id).tilemap_location)
@@ -300,11 +314,22 @@ func test_foraging_wanders_west_of_the_stand() -> void:
 	await wait_seconds(0.5)
 	var position: Vector2 = _map.character_body.position
 	assert_lt(position.x, stand.x, "the character walks west while foraging")
+	assert_eq(_animation(), &"walk_left", "on its west walk cycle")
 	assert_gte(position.x, stand.x - 24.0, "no further than 24 world px")
 	assert_eq(position.y, stand.y, "only west, never up or down")
 	assert_eq(position.x, roundf(position.x), "in whole world px (2 screen px steps)")
 	ActionManager.stop_action()
 	assert_eq(_map.character_body.position, stand, "stopping returns the character to its stand")
+	assert_eq(_animation(), &"RESET", "standing still")
+
+func test_foraging_kneels_to_search_then_holds_up_the_find() -> void:
+	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
+	assert_true(ActionManager.get_current_action() is ForageActionData, "precondition: foraging runs")
+	await wait_seconds(2.0)
+	assert_eq(_animation(), &"forage_search", "2 s into the haul the character searches the grass")
+	await wait_seconds(2.6)
+	assert_eq(_animation(), &"forage_present", "and holds the find up at the stand before the haul")
+	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID))
 
 func test_foraging_running_at_load_wanders_at_once() -> void:
 	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
@@ -344,18 +369,33 @@ func test_foraging_wander_is_phase_locked_to_the_haul() -> void:
 	assert_signal_emitted(ActionManager, "foraging_completed", "precondition: a haul came in")
 	assert_almost_eq(x_after_haul, x_before_haul, 1.0, "the haul never snaps the character back: one world px (two screen px) at most")
 
-func test_aura_well_bobs_the_character() -> void:
+func test_aura_well_meditates_then_teleports() -> void:
 	var stand: Vector2 = _map.character_body.position
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_true(ActionManager.get_current_action() is TrainingActionData, "precondition: the Aura Well runs")
-	await wait_seconds(1.3)
-	var position: Vector2 = _map.character_body.position
-	assert_eq(position.x, stand.x, "the bob never moves sideways")
-	assert_lt(position.y, stand.y, "the character rises while it trains")
-	assert_gte(position.y, stand.y - 2.0, "by at most 2 world px (4 screen px)")
-	assert_eq(position.y, roundf(position.y), "in whole world px (2 screen px steps)")
+	await wait_seconds(0.5)
+	assert_eq(_map.character_body.position, stand, "it sits down where it stands")
+	assert_eq(_animation(), &"meditate")
+	assert_true(_map.character_body.visible)
+	# After three breaths it dissolves into Madra and is gone for a moment.
+	var gone: bool = await _wait_until(func() -> bool: return not _map.character_body.visible, 9.0)
+	assert_true(gone, "the character vanishes after meditating a while")
+	assert_eq(_map.character_body.position, stand, "from the stand")
+	var back: bool = await _wait_until(func() -> bool: return _map.character_body.visible, 1.0)
+	assert_true(back, "and comes back")
+	assert_eq(_map.character_body.position, stand + ZoneMapMath.AURA_WELL_SPOTS[1], "at the next spot")
+	assert_eq(_animation(), &"teleport_in", "re-forming out of Madra")
 	ActionManager.stop_action()
 	assert_eq(_map.character_body.position, stand, "stopping returns the character to its stand")
+	assert_eq(_animation(), &"RESET", "standing")
+
+func test_stopping_the_aura_well_while_gone_shows_the_character() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var gone: bool = await _wait_until(func() -> bool: return not _map.character_body.visible, 9.0)
+	assert_true(gone, "precondition: the character dissolved")
+	ActionManager.stop_action()
+	assert_true(_map.character_body.visible, "it stands on its stand again, in sight")
+	assert_eq(_map.character_body.position, _stand(SPIRIT_VALLEY_ID))
 
 func test_travel_while_foraging_walks_to_the_new_zone() -> void:
 	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
@@ -379,8 +419,8 @@ func test_idle_motion_starts_on_arrival() -> void:
 	assert_true(ActionManager.get_current_action() is TrainingActionData, "precondition: the Aura Well runs in Spirit Valley")
 	var stand: Vector2 = _stand(SPIRIT_VALLEY_ID)
 	assert_eq(_map.character_body.position, stand, "precondition: arrived at the stand")
-	await wait_seconds(1.3)
-	assert_lt(_map.character_body.position.y, stand.y, "the Aura Well's bob starts once the walk ends")
+	await wait_seconds(0.1)
+	assert_eq(_animation(), &"meditate", "the Aura Well's meditation starts once the walk ends")
 
 #-----------------------------------------------------------------------------
 # ZONE CHANGES THE MAP DID NOT MAKE

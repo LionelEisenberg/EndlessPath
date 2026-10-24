@@ -111,7 +111,8 @@ var _camera_bounds: Rect2 = Rect2()
 ## the free map window.
 var _clamp_zone_centres: Array[Vector2] = []
 var _frame_tween: Tween = null
-## The character's idle motion (the foraging wander or the Aura Well's bob).
+## The character's idle motion (the foraging round or the Aura Well's
+## meditation and teleports).
 var _idle_motion_tween: Tween = null
 var _selected_zone: ZoneData = null
 ## The zone the character is walking to, or null while it stands.
@@ -566,10 +567,12 @@ func _is_idle(action: ZoneActionData) -> bool:
 	return action is ForageActionData or action is TrainingActionData
 
 ## The character's idle motion for the running action, around its stand, one
-## world px (two screen px) a step: foraging wanders west and back over one
-## haul, in phase with the haul timer (restarted each haul), the Aura Well
-## bobs it up and down. Nothing while it walks to a zone or while any other
-## action runs.
+## world px (two screen px) a step, with the clip each part plays
+## (ZoneMapMath): foraging walks west, kneels to search, walks home and holds
+## the find up over one haul, in phase with the haul timer (restarted each
+## haul); the Aura Well meditates at a spot, dissolves into Madra and re-forms
+## at the next one, starting with a meditation at the stand. Nothing while it
+## walks to a zone or while any other action runs.
 func _start_idle_motion() -> void:
 	_stop_idle_motion()
 	if character_body.is_moving or selected_zone == null:
@@ -578,12 +581,15 @@ func _start_idle_motion() -> void:
 	if action is ForageActionData:
 		_start_forage_wander(action as ForageActionData)
 	elif action is TrainingActionData:
+		var start: float = ZoneMapMath.AURA_WELL_START_SECONDS
+		var cycle: float = ZoneMapMath.aura_well_cycle_seconds()
+		_apply_aura_well(start)
 		_idle_motion_tween = create_tween().set_loops()
-		_idle_motion_tween.tween_method(_apply_training_bob, 0.0, ZoneMapMath.TRAINING_BOB_SECONDS, ZoneMapMath.TRAINING_BOB_SECONDS)
+		_idle_motion_tween.tween_method(_apply_aura_well, start, start + cycle, cycle)
 
-## Runs the wander from where the haul timer is to the haul's end, so a map
-## opened (or a walk ended) partway through a haul joins in step, from its
-## first frame, and the haul never makes the character jump. Before the
+## Runs the foraging round from where the haul timer is to the haul's end, so
+## a map opened (or a walk ended) partway through a haul joins in step, from
+## its first frame, and the haul never makes the character jump. Before the
 ## timer starts, from the top.
 func _start_forage_wander(forage: ForageActionData) -> void:
 	var haul_seconds: float = forage.foraging_interval_in_sec
@@ -599,14 +605,25 @@ func _start_forage_wander(forage: ForageActionData) -> void:
 
 func _apply_forage_wander(elapsed: float) -> void:
 	character_body.position = _get_stand_position(selected_zone) + Vector2(ZoneMapMath.forage_wander_x(elapsed), 0.0)
+	character_body.show_pose(ZoneMapMath.forage_animation(elapsed), ZoneMapMath.forage_animation_position(elapsed))
 
-func _apply_training_bob(elapsed: float) -> void:
-	character_body.position = _get_stand_position(selected_zone) + Vector2(0.0, ZoneMapMath.training_bob_y(elapsed))
+## The character hides only in the gap between two spots; the dissolve and
+## the re-forming are frames of its clips (the style guide's dither dissolve,
+## never an opacity fade).
+func _apply_aura_well(elapsed: float) -> void:
+	character_body.position = _get_stand_position(selected_zone) + ZoneMapMath.aura_well_spot(elapsed)
+	character_body.visible = not ZoneMapMath.is_aura_well_gone(elapsed)
+	character_body.show_pose(ZoneMapMath.aura_well_animation(elapsed), ZoneMapMath.aura_well_animation_position(elapsed))
 
+## Ends the idle motion: the character is in sight again and, unless it is
+## walking, stands still on its idle frame.
 func _stop_idle_motion() -> void:
 	if _idle_motion_tween and _idle_motion_tween.is_valid():
 		_idle_motion_tween.kill()
 	_idle_motion_tween = null
+	character_body.visible = true
+	if not character_body.is_moving:
+		character_body.stand()
 
 #-----------------------------------------------------------------------------
 # MAP INTERACTION

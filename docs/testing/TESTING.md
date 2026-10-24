@@ -7,9 +7,9 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
-| Unit | `tests/unit/` | 86 | 913 |
-| Integration | `tests/integration/` | 52 | 1146 |
-| **Total** | | **138** | **2059** |
+| Unit | `tests/unit/` | 87 | 925 |
+| Integration | `tests/integration/` | 52 | 1148 |
+| **Total** | | **139** | **2073** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -17,20 +17,20 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-23, on `feat/adventure-view-styleguide-1fc223` after the adventure view's map and frame rework (PR 1 of the lacquer rework, not merged), its pre-merge touch-up, the first review round and that round's review fixes, the second review round's soft shake for refusals (the technique slots, then the Here tray, the Stamina row and the zone view's Adventure card), rebased onto `main` after the lacquer cycling view (#57) merged and with `main`'s dev tools (#59) merged in, with the command from `CLAUDE.md`.
+Run on 2026-10-23, on `feat/adventure-view-styleguide-1fc223` after the adventure view's map and frame rework (PR 1 of the lacquer rework, not merged), its pre-merge touch-up, the first review round and that round's review fixes, the second review round's soft shake for refusals (the technique slots, then the Here tray, the Stamina row and the zone view's Adventure card), rebased onto `main` after the lacquer cycling view (#57) merged and with `main`'s dev tools (#59) and the character's idle motion (#60) merged in, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 138 / 2059 |
-| Passing / failing / pending or risky | 2059 / 0 / 0 |
-| Asserts | 14417 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 139 / 2073 |
+| Passing / failing / pending or risky | 2073 / 0 / 0 |
+| Asserts | 14529 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |
 | Exit code | 0 |
-| Wall time | About 216 s on this run (GUT's `Time` line). The zone, cycling and adventure scene tests await real frames and timers (walks at about a second a hop, tweens, the 150 ms popover delay) |
+| Wall time | About 255 s on this run (GUT's `Time` line). The zone, cycling and adventure scene tests await real frames and timers (walks at about a second a hop, tweens, physics frames for picking, the 150 ms popover delay, and up to 9 s for the Aura Well's first teleport) |
 
 Known noise in a green run:
 
@@ -123,7 +123,7 @@ The enabled GUT plugin adds a GUT bottom panel. It can run all tests, a single s
 
 ```
 tests/
-├── unit/                         86 scripts: one system, resource or manager per file
+├── unit/                         87 scripts: one system, resource or manager per file
 ├── integration/                  52 scripts: content flows and scene-level UI behaviour (plus `adventure_map_fixture.gd`, a shared helper GUT does not collect)
 └── label_tests/
     ├── label_testing_scene.tscn  visual Label-variant reference (run with F6)
@@ -199,7 +199,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | ZoneManager / training | `test_zone_progression_data` (8), `test_zone_map_state` (18), `test_seen_actions` (9), `test_training_action_data` (18), `test_training_action_helpers` (7), `test_training_flow` (1), `test_aura_well_discovery_unlock` (2), `test_zone_action_groups` (7) | Training ticks/levels and helpers, action availability, map zones and the four map states, the dev zone toggles, per-zone last idle action, seen actions, groups and mode tags | `max_completions` filtering in `get_available_actions()` |
 | ActionManager | `test_idle_action_resolution` (35), `test_training_flow` (1), `test_adventure_end_flow` (2), `test_merchant_shop_flow` (35) | Idle-action resolution and resumes after cycling, adventures (win and loss), dialogue and the merchant; travel and its log lines; save resets; the auto-start on a first idle unlock; completions counted in the zone and save an action started in; the adventure Madra check before anything stops; `TRAIN_STATS`; `MERCHANT` start/stop | `FORAGE` loot awarding; the Dialogic timeline itself (the tests emit `dialogue_ended`) |
 | Zone view panels | `test_cultivator_plate` (29), `test_goals_panel` (33), `test_zone_panel` (103), `test_zone_action_cards` (49), `test_lacquer_pieces` (39) | The cabinet's values, the fills it hands the orb shaders, its core and bead strip frames and its gold row, the Goals board and its cords (its text wrapping and growing it), the zone chest (Now strip lining up with the cards and growing with its text and its rows of yields, the countdown's width never moving them, its empty tray and the cycle tray, groups, scrolling, rail, the lore board lining up with the strip and the cards, wrapping, growing and tiling its art, sizing, the techniques mode, the last cycle's line under the Now tray and a long one wrapping, the chest growing with a drawer), every card presenter and state, the lacquer theme's variants and line pitch, `wrap_pad.tres` (its 1 px bottom pad and the uid every scene names it by), the strip rect, rod, frame overlay and text helpers | Pixel placement against the mock (checked by movie captures, not tests) |
-| Zone map | `test_zone_map_math` (15), `test_zone_map_render` (33), `test_map_markers` (46), `test_map_popover_state` (18), `test_map_glyph_shake` (7), `test_zone_travel` (49), `test_zone_walk_steps` (1), `test_character_walk_steps` (6), `test_camera_clamp_controller` (5), `test_madra_pellet` (9), `test_zone_transition` (3) | Framing and the camera clamp at every zoom, fog tiers and coverage, hex states, plates, glyphs (and the two shake keyframe sets, the lock shake's and the soft one the technique slots use), routes, ring and floaters, hover (also after the camera moves under a still pointer), popovers and who hears Esc, travel on arrival and walks cut short, whole-px walk steps, drain pellets; the drain's lookups in `main_game.tscn` and one whole drain into a confirmed adventure | `ZoneTransition`'s per-pellet arithmetic and its camera reset |
+| Zone map | `test_zone_map_math` (22), `test_zone_map_render` (35), `test_map_markers` (46), `test_map_popover_state` (18), `test_map_glyph_shake` (7), `test_zone_travel` (49), `test_zone_walk_steps` (1), `test_character_walk_steps` (6), `test_character_idle_clips` (5), `test_camera_clamp_controller` (5), `test_madra_pellet` (9), `test_zone_transition` (3) | Framing and the camera clamp at every zoom, fog tiers and coverage, hex states, plates, glyphs (and the two shake keyframe sets: the lock shake's, and the soft one a refusal shakes by), routes, ring and floaters, hover (also after the camera moves under a still pointer), popovers and who hears Esc, travel on arrival and walks cut short, whole-px walk steps, the character's idle motion (the foraging round, the Aura Well's spots, meditation and teleports, and the clips that play them), drain pellets; the drain's lookups in `main_game.tscn` and one whole drain into a confirmed adventure | `ZoneTransition`'s per-pellet arithmetic and its camera reset |
 | MerchantManager / shop | `test_merchant_manager` (14), `test_merchant_data` (12), `test_spirit_valley_merchant_stock` (8), `test_spirit_valley_merchant_theme` (5), `test_merchant_view_state` (9), `test_merchant_shop_flow` (most of 35) | Purchase rules (sold out, gold, equipment space, item class vs `item_type`), per-merchant ledgers, their save round trip and debug string, the shipped stock and theme entries (including a panel opaque enough to hide the HUD under it, and an atmosphere mask that matches its corners), `MerchantView` rows (including "Equipment full" and broken stock data), buying, Buy without keyboard focus, Leave, the zone theme, the title's `LabelTitle` inheritance, the mock's header and footer padding with a panel that fits its rows, an atmosphere that fills the panel inside its border, Leave beside the title with the gold in the footer, a greeting that wraps at the header's width in smaller text, the gold preview while Buy is hovered, a closed shop skipping refreshes, and `MerchantViewState`'s push and close paths, including hiding and restoring the log and Goals boards | The real `GreyBackground` fade and Escape routing through `MainView` (checked in play) |
 | EventManager | None dedicated | `trigger_event()` used inside quest, encounter and content tests | `trigger_event()`/`has_event_triggered()` contract |
 | LogManager / log board | `test_log_manager_history` (5), `test_log_board` (33) | The bounded history; the five-line board (order, growth, tones and fading, cream haul lines, BBCode stripping, ellipsis); the full log (L, Escape, `toggle_window()`, trimming, rail caps, closing when hidden, closed and kept shut under a menu book) | |
