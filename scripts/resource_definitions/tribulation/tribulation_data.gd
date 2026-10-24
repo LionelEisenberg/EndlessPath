@@ -5,9 +5,9 @@ extends Resource
 ## One stage's Tribulation: the trial a full core faces to break through to the
 ## next stage. It holds the trial's copy, its schedule of phases, the spheres'
 ## geometry, the judging windows and the penalty for a failure. Each stage's
-## breakthrough reads its own file; Foundation's is
-## resources/tribulation/foundation_tribulation.tres, and the defaults below
-## are its numbers.
+## breakthrough reads its own file. Foundation's is
+## resources/tribulation/foundation_tribulation.tres, which holds the shipped
+## values; the defaults below start from Foundation's numbers.
 ##
 ## Durations are in seconds at tempo 1.0. A ratio is a multiple of R, the
 ## radius of the brass ring a beat is judged on.

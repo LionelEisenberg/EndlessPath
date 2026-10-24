@@ -9,9 +9,9 @@ extends ZoneActionPresenter
 ## the trial's target with a full core. It follows the core's level and the
 ## stage, and gates activation on the same question. A rejected click shakes the
 ## Core row softly in even-px steps (MapGlyph's soft shake) and logs why.
-## The card is the normal 72 px drawer in both states. The ready line is one
-## Label fitted by ZoneActionButton.fit_detail_label(), so a line wider than the
-## detail slot wraps in the tall drawer instead of being cut; the card is short
+## The card is the normal 72 px drawer unless the ready line wraps. The ready line
+## is one Label fitted by ZoneActionButton.fit_detail_label(), so a line wider than
+## the detail slot wraps in the tall drawer instead of being cut; the card is short
 ## again once it is not ready.
 
 @onready var _need_group: Control = %NeedGroup

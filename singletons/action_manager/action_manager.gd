@@ -143,8 +143,8 @@ func select_action(action_data: ZoneActionData) -> void:
 	_execute_action(action_data)
 
 ## Stop the current action. When a session action (cycling, an adventure,
-## dialogue, the merchant, a zone event) stops, the zone's idle action resumes.
-## Stopping an idle action resumes nothing.
+## dialogue, the merchant, the Tribulation, a zone event) stops, the zone's idle
+## action resumes. Stopping an idle action resumes nothing.
 func stop_action(successful: bool = true) -> void:
 	var stopped_action := current_action
 	_stop_executing_current_action(successful)

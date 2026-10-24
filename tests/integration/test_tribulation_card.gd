@@ -302,11 +302,18 @@ func test_card_follows_a_stage_change() -> void:
 #-----------------------------------------------------------------------------
 
 ## A ready line wider than the detail line wraps in the tall drawer instead of
-## being cut, and the card is short again once it is not ready.
+## being cut, and the card is short again once it is not ready. Label.text holds the
+## whole line whatever fit_detail_label() does to it (an ellipsis, two lines at most),
+## so the label's own lines are counted once it has been laid out: every one shows.
 func test_a_long_ready_line_grows_the_card_and_it_shrinks_back() -> void:
 	_set_core_level(FULL_CORE)
 	var card: ZoneActionButton = _card_for(_action_with_trial(SLOW_TEMPO, HEAVY_PENALTY))
-	assert_true(_has_text_containing(card, "a failure costs 123456789 levels"), "the whole line is there")
+	await wait_process_frames(2)
+	var line: Label = _ready_label(card)
+	assert_not_null(line, "the ready line sits on the detail line")
+	if line:
+		assert_gt(line.get_line_count(), 1, "the line wraps")
+		assert_eq(line.get_visible_line_count(), line.get_line_count(), "and no line of it is cut")
 	assert_eq(card.size.y, TALL_HEIGHT, "the line wraps in the tall drawer")
 	CultivationManager.lose_core_density_levels(5)
 	assert_eq(card.size.y, SHORT_HEIGHT, "below the cap the card is short again")
