@@ -8,8 +8,8 @@ EndlessPath uses **GUT 9.7.1** (`addons/gut/`, editor plugin enabled) for unit a
 | Suite | Directory | Scripts | Tests |
 |-------|-----------|---------|-------|
 | Unit | `tests/unit/` | 77 | 840 |
-| Integration | `tests/integration/` | 41 | 759 |
-| **Total** | | **118** | **1599** |
+| Integration | `tests/integration/` | 41 | 762 |
+| **Total** | | **118** | **1602** |
 
 Tests run inside the full project, so all 18 autoloads are loaded before the first test. `PersistenceManager._ready()` loads the developer's real `user://save.tres`, and creates it if it is missing. Tests then swap in fresh `SaveGameData` objects in memory. No test calls `PersistenceManager.save_data()` and the autosave `SaveTimer` lives only in `main_game.tscn`, so a test run does not write the save file.
 
@@ -17,20 +17,20 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-23, on `feat/cycling-view-styleguide-ea3170` after `main` (the dead-code cleanup and the real-singleton tests) was merged into the lacquer cycling view and the branch's cut-off text was made to wrap, with the command from `CLAUDE.md`.
+Run on 2026-10-23, on `feat/cycling-view-styleguide-ea3170` after `main` (the dead-code cleanup and the real-singleton tests) was merged into the lacquer cycling view the branch's cut-off text was made to wrap and the cursor's reach grew to the tracking ring's edge, with the command from `CLAUDE.md`.
 
 | Item | Result |
 |------|--------|
 | Engine | Godot v4.7.2.stable.official.ed1daf0bf |
 | GUT | 9.7.1 |
-| Scripts / tests | 118 / 1599 |
-| Passing / failing / pending or risky | 1599 / 0 / 0 |
-| Asserts | 9157 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Scripts / tests | 118 / 1602 |
+| Passing / failing / pending or risky | 1602 / 0 / 0 |
+| Asserts | 9158 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |
 | Exit code | 0 |
-| Wall time | About 78 s on this run (GUT's `Time` line, 77.9 s). The zone view's and the cycling view's scene tests await real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay) |
+| Wall time | About 79 s on this run (GUT's `Time` line, 78.8 s). The zone view's and the cycling view's scene tests await real frames and timers (walks, tweens, physics frames for picking, the 150 ms popover delay) |
 
 Known noise in a green run:
 
@@ -183,7 +183,7 @@ New tests should call the real method on the autoload, with its state swapped as
 | Combat | `test_combat_damage` (29), `test_combat_effect_data` (4), `test_combat_effect_types` (3), `test_combat_buff_manager_stacking` (7), `test_combat_buff_manager_strip` (4), `test_combat_ability_instance_cancel` (6), `test_empty_palm_interrupt` (2), `test_power_font_buff_strip` (2), `test_adventure_combat_victory_event` (2) | Damage formula, scaling parts, effect routing, buffs, cast cancel; the real `AdventureCombat` scene firing the victory event on a win and not on a loss | `SimpleEnemyAI`, `VitalsManager` regen, gold reward |
 | Adventure | `test_adventure_map_generator` (9), `test_adventure_data` (9), `test_adventure_encounter` (5), `test_encounter_choice` (7), `test_encounter_quota` (2), `test_encounter_icon_config` (10), `test_hex_forest_atlas` (10), `test_adventure_result_data` (12), `test_adventure_combat_count` (12), `test_adventure_end_flow` (2) | Generator, validation, eligibility, icon config, result defaults, `AdventureTilemap.get_total_combat_count()`; the real `AdventureView` end flow for a timeout and a boss win | `AdventureTilemap` (movement, fog, path preview), the rest of `AdventureView` (death, result building), `AdventureEndCard` |
 | AbilityManager | `test_ability_manager` (18), `test_path_manager`, `test_abilities_book` (26) | Unlock/equip/loadout; the Abilities book's filter, rows, quick equip and details | Dragging abilities onto loadout slots |
-| Cycling | `test_cycling_manager` (39), `test_cycling_rules` (7), `test_cycling_groove` (15), `test_cycling_technique_data` (4), `test_cycling_art` (17), `test_cycling_rate` (3), `test_cycling_technique` (82), `test_cycling_view` (71), `test_technique_drawer` (25), `test_path_manager` | Unlock, equip and catalog; the seen techniques and their first-init pass; the session snapshot and `madra_rate_changed`; the last cycle's result and its reset; the tiers, XP, pellet counts and result lines; the groove raster, its trail and its sweep; the icons and the seen-technique save fields; the art's sizes and palettes, the breathing sizes and the unbroken rings; `ActionManager`'s cycling rate; the ball's play (Madra steps at 30, 60 and 144 FPS, every step of a tracked 8 s cycle at 60, 120 and 144 FPS and at uneven frames, the Madra a cycle counts, the rate window, the breath, zones, scoring by a press on the ball, Auto, a frame hitch and one through the cycle's end, the session owned by the technique that started it, the path scale, real physics picking); the board (status line, the result handed to `CyclingManager` and one log line, no result line of its own, the figure's size and place, pellets, floaters, Auto, show, hide (the pellets in flight freed) and close, presses through the board, its text wrapping with the figure and footer pushed down and the board grown, still on screen); the technique drawers (NEW cleared when the pointer leaves or on a press, long names and detail lines wrapping while the drawer grows) | Content integrity (unique technique ids, path-node unlock ids matching the catalog); pixel placement (checked by captures, not tests) |
+| Cycling | `test_cycling_manager` (39), `test_cycling_rules` (7), `test_cycling_groove` (15), `test_cycling_technique_data` (4), `test_cycling_art` (17), `test_cycling_rate` (3), `test_cycling_technique` (85), `test_cycling_view` (71), `test_technique_drawer` (25), `test_path_manager` | Unlock, equip and catalog; the seen techniques and their first-init pass; the session snapshot and `madra_rate_changed`; the last cycle's result and its reset; the tiers, XP, pellet counts and result lines; the groove raster, its trail and its sweep; the icons and the seen-technique save fields; the art's sizes and palettes, the breathing sizes and the unbroken rings; `ActionManager`'s cycling rate; the ball's play (Madra steps at 30, 60 and 144 FPS, every step of a tracked 8 s cycle at 60, 120 and 144 FPS and at uneven frames, the Madra a cycle counts, the rate window, the breath, zones, scoring by a press on the ball, the cursor's reach out to the tracking ring's edge for tracking, presses and the hand cursor, Auto, a frame hitch and one through the cycle's end, the session owned by the technique that started it, the path scale, real physics picking); the board (status line, the result handed to `CyclingManager` and one log line, no result line of its own, the figure's size and place, pellets, floaters, Auto, show, hide (the pellets in flight freed) and close, presses through the board, its text wrapping with the figure and footer pushed down and the board grown, still on screen); the technique drawers (NEW cleared when the pointer leaves or on a press, long names and detail lines wrapping while the drawer grows) | Content integrity (unique technique ids, path-node unlock ids matching the catalog); pixel placement (checked by captures, not tests) |
 | PathManager | `test_path_manager` (25), `test_award_path_point_effect_data` (4), `test_path_tree_resource_loading` (3), `test_path_book` (18) | Purchases, prerequisites, effects, shipped Pure Madra tree; the Path book's stage chapters, node and path details, benefits and points badge | Buying a node from the book |
 | QuestManager | `test_quest_manager` (25), `test_start_quest_effect_data` (2), `test_quest_progression_persistence` (3), `test_beat_3b_merchant_unlock` (1), `test_goals_panel` (26) | Start/advance/complete, validation, persistence; the Goals board's quest row and figures | `QuestToast` |
 | UnlockManager / conditions | `test_unlock_manager` (3), `test_unlock_condition_item_owned` (2), `test_aura_well_discovery_unlock` (2), `test_beat_3b_merchant_unlock` (1), `test_unlock_condition_progress` (6) | `force_unlock_condition()`; `EVENT_TRIGGERED`, `ITEM_OWNED`, `RESOURCE_AMOUNT` conditions; `CULTIVATION_LEVEL` indirectly through the Beat 3b flow (`q_reach_cd_10`); `is_measurable()` and the current / target getters | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED`, `ATTRIBUTE_VALUE` have no direct tests |

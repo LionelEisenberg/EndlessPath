@@ -18,7 +18,7 @@ Bugs, missing functionality and tech debt for a single system live in that syste
 | Engine | Godot 4.7, GDScript, GL Compatibility renderer (`config/features` also lists "Forward Plus") |
 | Code | ~27k lines of game GDScript and ~21k lines of tests; 131 scenes; 106 authored `.tres` resources; 10 shaders |
 | Autoloads | 18: 17 manager singletons in `singletons/`, plus Dialogic |
-| Tests | GUT 9.7.1. 118 scripts and 1599 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
+| Tests | GUT 9.7.1. 118 scripts and 1602 tests, all passing on 2026-10-23 with Godot 4.7.2. See [TESTING.md](testing/TESTING.md) |
 | History | 709 commits and 43 merged PRs, from 2025-10-26 to 2026-06-01 |
 | In flight | Unmerged branch `feat/infallible-chaum-58f8ad`: in-combat consumables, 20 commits, no PR. Unmerged branch `feat/cycling-view-styleguide-ea3170`: the lacquer cycling view, built 2026-10-22 and 23 |
 
