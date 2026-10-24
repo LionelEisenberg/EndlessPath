@@ -80,3 +80,38 @@ func test_a_controller_at_rest_announces_nothing() -> void:
 	simulate(controller, 5, 0.05)
 
 	assert_signal_not_emitted(controller, "zoom_applied", "no zoom is changing")
+
+#-----------------------------------------------------------------------------
+# A LONG FRAME
+#-----------------------------------------------------------------------------
+
+## A frame longer than 1 / zoom_speed (a stall, a hitch while the window is
+## dragged) asks for a step of more than the whole way. The weight of the step
+## stops at 1, so the camera lands on the target and never passes it.
+func test_a_long_frame_zooming_in_lands_on_the_target_and_not_past_it() -> void:
+	var pair: Array = _camera_with_controller()
+	var camera: Camera2D = pair[0]
+	var controller: CameraZoomController = pair[1]
+	simulate(controller, 1, 0.1)
+	watch_signals(controller)
+	controller.set_zoom_level(2.0)
+
+	simulate(controller, 1, 0.5)
+
+	assert_almost_eq(camera.zoom.x, 2.0, 0.0001, "it lands on the target, 5 times the whole way is still the whole way")
+	assert_lte(camera.zoom.x, controller.zoom_max + 0.0001, "and never reaches past the largest zoom")
+	assert_eq(_announced_zooms(controller).back(), camera.zoom.x, "zoom_applied carries the zoom it landed on")
+
+func test_a_long_frame_zooming_out_lands_on_the_target_and_not_past_it() -> void:
+	var pair: Array = _camera_with_controller()
+	var camera: Camera2D = pair[0]
+	var controller: CameraZoomController = pair[1]
+	simulate(controller, 1, 0.1)
+	camera.zoom = Vector2(2, 2)
+	controller.set_zoom_level(1.0)
+
+	simulate(controller, 1, 0.5)
+
+	assert_almost_eq(camera.zoom.x, 1.0, 0.0001, "it lands on the target")
+	assert_gte(camera.zoom.x, controller.zoom_min - 0.0001, "and never falls under the smallest zoom (past it the zoom is zero, then turns negative)")
+	assert_gt(camera.zoom.y, 0.0, "the camera keeps a zoom it can draw with")

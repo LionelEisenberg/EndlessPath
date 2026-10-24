@@ -127,5 +127,8 @@ func _update_zoom(delta: float) -> void:
 		is_zooming = false
 		camera.zoom = target_zoom
 	else:
-		camera.zoom = camera.zoom.slerp(target_zoom, zoom_speed * delta)
+		# The weight stops at 1. A frame longer than 1 / zoom_speed would
+		# otherwise extrapolate past the target: out to a zoom beyond the
+		# largest one, or through zero to a negative zoom when zooming out.
+		camera.zoom = camera.zoom.slerp(target_zoom, clampf(zoom_speed * delta, 0.0, 1.0))
 	zoom_applied.emit(camera.zoom)
