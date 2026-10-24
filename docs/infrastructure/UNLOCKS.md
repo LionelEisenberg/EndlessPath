@@ -29,10 +29,10 @@ UnlockManager (autoload #5, singletons/unlock_manager/unlock_manager.gd)
   emits:     condition_unlocked(condition_id: String)
 
 condition_unlocked listeners:
-  ZonePanel._on_condition_unlocked      → rebuild the zone chest's activity list
-  ZoneTilemap._on_condition_unlocked    → rebuild the map: zones, fog, hex states, routes, plates
-  ActionManager._on_condition_unlocked  → nothing running: start the zone's first idle action ("Started …")
-  QuestManager._on_condition_unlocked   → re-check active condition steps
+  ZonePanel      → rebuild the zone chest's activity list
+  ZoneTilemap    → rebuild the map: zones, fog, hex states, routes, plates
+  ActionManager  → nothing running: start the zone's first idle action ("Started …")
+  QuestManager   → re-check active condition steps
 ```
 
 ### Latched vs live evaluation
@@ -114,22 +114,22 @@ Stored as `SaveGameData.unlock_progression`. `reset()` replaces it with a fresh 
 
 ```
 <listened signal>
-  → _evaluate_all_conditions()
+  → UnlockManager sweep
       for condition in unlock_condition_list.list:
           skip if is_condition_unlocked(condition.condition_id)
           if condition.evaluate():
-              _unlock_condition(id): append to unlocked_condition_ids,
-                                     condition_unlocked.emit(id),
-                                     Log.info("UnlockManager: Condition permanently unlocked: …")
+              latch: append id to unlocked_condition_ids,
+                     condition_unlocked.emit(id),
+                     Log.info("UnlockManager: Condition permanently unlocked: …")
 ```
 
 UnlockManager does **not** listen to `InventoryManager.inventory_changed`, `CharacterManager.base_attribute_changed`, or `CultivationManager.core_density_xp_updated`. A registered `ITEM_OWNED` or `ATTRIBUTE_VALUE` condition therefore latches on the next Madra, Gold, Core Density level, stage, or event signal after it becomes true.
 
 ### Boot and save reset
 
-- `_ready()` binds the save. If `unlock_progression` is null it creates one and logs `Log.critical`. It then calls `_initialize_from_save()`, which rebinds and emits `condition_unlocked("")`, and connects the sweep signals.
+- `_ready()` binds the save. If `unlock_progression` is null it creates one and logs `Log.critical`. It then rebinds and emits `condition_unlocked("")`, and connects the sweep signals.
 - The first sweep at boot happens when ResourceManager (autoload #6) emits its initial `madra_changed` and `gold_changed`. QuestManager connects later (#17), so it misses `condition_unlocked` emissions from that boot sweep.
-- On `save_data_reset`, `_initialize_from_save()` rebinds and emits `condition_unlocked("")`. ResourceManager then re-emits Madra and Gold, which triggers a sweep.
+- On `save_data_reset`, UnlockManager rebinds and emits `condition_unlocked("")`. ResourceManager then re-emits Madra and Gold, which triggers a sweep.
 
 ### Example gate flow (first NPC talk)
 
@@ -227,24 +227,7 @@ These are evaluated live only.
 | `scripts/resource_definitions/adventure/choices/encounter_choice.gd` | `requirements` / `completion_condition` |
 | `scenes/ui/dev_panel/dev_panel.gd` | Force-unlock dropdown |
 
-## Tests
-
-| File | Covers |
-|---|---|
-| `tests/unit/test_unlock_manager.gd` | `force_unlock_condition` adds the id, is idempotent, and emits `condition_unlocked` |
-| `tests/unit/test_unlock_condition_item_owned.gd` | `ITEM_OWNED` is false when the item is missing and true after awarding a quest item |
-| `tests/unit/test_encounter_choice.gd` | `requirements` with expected true, false, and mixed values; `is_completed()` |
-| `tests/unit/test_adventure_encounter.gd` | `is_eligible()` with no conditions, with an event required, and with expected `false` |
-| `tests/unit/test_adventure_map_generator.gd` | An ineligible encounter is skipped during placement |
-| `tests/integration/test_aura_well_discovery_unlock.gd` | Aura Well action is hidden until `aura_well_discovered` fires, then visible (via `ZoneManager.get_available_actions`) |
-| `tests/integration/test_beat_3b_merchant_unlock.gd` | NPC 4 gated on CD 10; Merchant gated on `merchant_discovered`; Refugee Camp eligibility before and after discovery |
-| `tests/unit/test_unlock_condition_progress.gd` | `is_measurable()` and the current and target values for `RESOURCE_AMOUNT` and `CULTIVATION_LEVEL`; event conditions are not measurable |
-| `tests/unit/test_zone_map_state.gd` | Chart and unlock conditions turning into the UNCHARTED, LOCKED, CURRENT and OPEN map states |
-| `tests/integration/test_idle_action_resolution.gd` | The first idle unlock auto-starts; the save reset's empty `condition_unlocked("")` does not |
-| `tests/unit/test_foundation_tribulation_data.gd` | `core_density_full` is a `CULTIVATION_LEVEL` ≥ 100 condition, is in the registry, and gates the Tribulation action |
-| `tests/integration/test_tribulation_flow.gd` | Reaching 100 latches it and lists the card; the card stays after a failure and goes after a pass |
-
-Untested: the sweep itself (`_evaluate_all_conditions`), `CULTIVATION_STAGE`, `ATTRIBUTE_VALUE`, comparison operators other than `>=`, and a data check that every gate's condition is registered.
+Tests: `tests/unit/test_unlock_*.gd` and `tests/integration/test_*_unlock.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover. The save reset's empty `condition_unlocked("")` does not start an idle action.
 
 ## Work Remaining
 
@@ -266,7 +249,7 @@ Untested: the sweep itself (`_evaluate_all_conditions`), `CULTIVATION_STAGE`, `A
 
 ### Performance
 
-- `[LOW]` `_evaluate_all_conditions()` evaluates every registered condition on every listened signal. `madra_changed` fires on every Aura Well tick (1 s), during cycling, and on adventure spending. With 9 conditions this is cheap, but at scale the sweep should be filtered by the signal's relevant condition types.
+- `[LOW]` The sweep evaluates every registered condition on every listened signal. `madra_changed` fires on every Aura Well tick (1 s), during cycling, and on adventure spending. With 9 conditions this is cheap, but at scale the sweep should be filtered by the signal's relevant condition types.
 
 ### Tech Debt
 

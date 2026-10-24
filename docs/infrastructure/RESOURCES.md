@@ -85,7 +85,7 @@ The two caps are independent. The adventure threshold is half the capacity (`FOU
 
 | Signal | Emitted |
 |--------|---------|
-| `madra_changed(new_amount: float)` | On every Madra mutation, and from `_update_resources()` in `_ready()` and on `save_data_reset` |
+| `madra_changed(new_amount: float)` | On every Madra mutation, and from `_ready()` and on `save_data_reset` |
 | `gold_changed(new_amount: float)` | On every gold mutation, from the same two places |
 
 ## Core Flows
@@ -94,7 +94,7 @@ The two caps are independent. The adventure threshold is half the capacity (`FOU
 
 | Source | Amount | Path |
 |--------|--------|------|
-| Cycling | `base_madra_per_cycle × 0.08 / cycle_duration` per step, every `MADRA_PARTICLE_INTERVAL` (0.08 s, the remainder carried) while the cursor is inside the Madra ball. Nothing at or above the cap | `CyclingTechnique.advance()` (from `_process`) → `_draw_madra_step()` calls `ResourceManager.add_madra(amount, true)` (quiet) |
+| Cycling | `base_madra_per_cycle × 0.08 / cycle_duration` per step, every `MADRA_PARTICLE_INTERVAL` (0.08 s, the remainder carried) while the cursor is inside the Madra ball. Nothing at or above the cap | `CyclingTechnique.advance()` (from `_process`) calls `ResourceManager.add_madra(amount, true)` (quiet) for each step |
 | Aura Well training | 1.5 per training tick (the tick interval defaults to 1.0 s) | `aura_well_training_action.tres` → `effects_per_tick` → `aura_well_madra_trickle_effect.tres` (`AwardResourceEffectData`, `quiet = true`), which calls `award_resource(MADRA, 1.5, true)`. `TrainingActionData.get_madra_per_second()` reads the same effect for the cabinet's and the Now strip's rate |
 | Dev panel | Sets an absolute value | `set_madra()` |
 
@@ -111,8 +111,8 @@ A full cycle with the cursor on the ball the whole time pays `base_madra_per_cyc
 ```
 AdventurePresenter.can_activate()          ── false below threshold → shake + "Not enough Madra!"
 ActionManager.select_action()              ── re-checks can_start_adventure() before stopping anything
-  → _execute_adventure_action() → adventure_start_requested(action_data)
-ZoneTransition._on_adventure_start_requested()
+  → adventure_start_requested(action_data)
+ZoneTransition, on adventure_start_requested
   budget = get_adventure_madra_budget()
   8–25 MadraPellets (scaled by budget / capacity) from the cabinet's orb; each spawn calls
   spend_madra(floor(budget / count)), plus one final pellet for the remainder
@@ -126,11 +126,11 @@ Combat then spends Madra from the player's `VitalsManager`, not from `ResourceMa
 ### Gold source: combat victory
 
 ```
-AdventureCombat._on_enemy_health_changed(<= 0)
+AdventureCombat: the enemy's health reaches 0
   gold = floor(enemy.base_gold_drop × CombatChoice.gold_multiplier
                × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())
   → trigger_combat_end(true, gold)
-AdventureView._on_stop_combat → AdventureTilemap.handle_combat_result(true, gold)
+AdventureView → AdventureTilemap.handle_combat_result(true, gold)
   → ResourceManager.add_gold(gold)   (only when gold > 0)
 ```
 
@@ -165,7 +165,7 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | GoalsPanel | Shows a RESOURCE_AMOUNT quest step's `current / target` (`madra_changed`, `gold_changed`) |
 | MerchantManager / MerchantView | `MerchantManager` checks `can_afford_gold()` and calls `spend_gold()` on a purchase. `MerchantView` shows the gold total and refreshes every row on `gold_changed` |
 | AdventureTilemap / AdventureCombat | Calculate and award gold on victory |
-| UnlockManager | Calls `_evaluate_all_conditions` on every `madra_changed` and `gold_changed`. That is about 12 times a second while cycling, once per Aura Well tick, and once per drain pellet |
+| UnlockManager | Re-evaluates every unlock condition on every `madra_changed` and `gold_changed`. That is about 12 times a second while cycling, once per Aura Well tick, and once per drain pellet |
 | UnlockConditionData | `RESOURCE_AMOUNT` conditions read `get_madra()` / `get_gold()` (for example, `q_fill_core_madra_full` needs Madra >= 100) |
 | AwardResourceEffectData | `process()` calls `award_resource(resource_type, amount, quiet)` (see [EFFECTS.md](EFFECTS.md)) |
 | VitalsManager (via PlayerManager) | Holds combat Madra, seeded with the adventure budget |
@@ -198,11 +198,9 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | `scenes/zones/zone_action_button/presenters/adventure_presenter.gd` | Adventure card's Madra line, rod and threshold UX |
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Zone Madra orb, Madra rate and gold display |
 | `singletons/cultivation_manager/cultivation_manager.gd` | `get_max_madra()` (pool cap) |
-| `scenes/combat/adventure_combat/adventure_combat.gd` | Gold reward formula (the static `gold_reward_for()`; `_calculate_gold_reward` returns it) |
-| `tests/unit/test_resource_manager.gd` | The real singleton: Madra with stage-cap clamping (and a pool above a lowered cap kept, still spent by a negative amount), gold, `award_resource()`, signals, log lines, adventure capacity, budget and threshold |
-| `tests/integration/test_adventure_flow.gd` | The adventure Madra gate through the real singletons, including a Foundation bonus from equipment |
-| `tests/unit/test_quiet_madra.gd` | Calls the real `add_madra()` / `award_resource()`: quiet awards add without a log line, capped adds log nothing, and the returned amount is what was added |
-| `tests/unit/test_cultivation_getters.gd` | `CultivationManager.get_max_madra()` follows the level |
+| `scenes/combat/adventure_combat/adventure_combat.gd` | Gold reward formula (the static `gold_reward_for()`) |
+
+Tests: `tests/unit/test_resource_manager.gd` and `tests/unit/test_quiet_madra.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
 
@@ -214,7 +212,7 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 
 ### Missing Functionality
 
-- `[HIGH]` Path Madra perks are not applied. `PathManager._recalculate_effects()` fills in `PathEffectsSummary.madra_capacity_bonus` (Expanded Core "+25 Max Madra"), `madra_generation_mult` (Madra Surge "+10% Madra Gen"), `adventure_madra_return_pct` (Madra Reclamation "+10% Madra Return") and `madra_on_level_up` (Breakthrough Surge "+10 Madra on Level Up"), but no production code reads `PathManager.get_effects()`. Players spend path points on these perks for no effect. See [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md).
+- `[HIGH]` Path Madra perks are not applied. `PathManager` fills in `PathEffectsSummary.madra_capacity_bonus` (Expanded Core "+25 Max Madra"), `madra_generation_mult` (Madra Surge "+10% Madra Gen"), `adventure_madra_return_pct` (Madra Reclamation "+10% Madra Return") and `madra_on_level_up` (Breakthrough Surge "+10 Madra on Level Up"), but no production code reads `PathManager.get_effects()`. Players spend path points on these perks for no effect. See [PATH_PROGRESSION.md](../progression/PATH_PROGRESSION.md).
 - `[LOW]` `CharacterManager.get_gold_multiplier()` always returns `1.0` (a `TODO`).
 - `[LOW]` Madra is not transferred atomically. `ZoneTransition` deducts the budget pellet by pellet and ignores the `bool` returned by `spend_madra()`. If anything else spends Madra mid-drain, the budget passed to combat can exceed what was actually deducted. Deduct once up front and animate the drain separately.
 

@@ -197,8 +197,9 @@ A test file's name says which system or flow it checks (`tests/unit/test_<system
 | AbilityManager | Dragging abilities onto loadout slots |
 | Cycling | Content integrity (unique technique ids, path-node unlock ids matching the catalog); pixel placement (checked by captures, not tests) |
 | PathManager | Buying a node from the book |
-| QuestManager | `QuestToast` |
-| UnlockManager / conditions | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED` and `ATTRIBUTE_VALUE` have no direct tests. `CULTIVATION_LEVEL` is tested only through the Beat 3b and Tribulation flows |
+| QuestManager | `QuestToast`; the Beat 1 → Beat 2 → Beat 3 chain with real data (only Beat 3b has an integration test); a data check that every authored `completion_event_id` has a producer |
+| Effects | `TriggerEventEffectData`, `AwardResourceEffectData` apart from its `quiet` flag, `AwardItemEffectData`, `AwardLootTableEffectData`, `ChangeVitalsEffectData.process()` and `describe()` |
+| UnlockManager / conditions | `CULTIVATION_STAGE`, `ZONE_UNLOCKED`, `ADVENTURE_COMPLETED` and `ATTRIBUTE_VALUE` have no direct tests. `CULTIVATION_LEVEL` is tested only through the Beat 3b and Tribulation flows. The evaluation sweep itself, and comparison operators other than `>=` |
 | ZoneManager / training | `max_completions` filtering in `get_available_actions()` |
 | ActionManager | `FORAGE` loot awarding; the Dialogic timeline itself (the tests emit `dialogue_ended`) |
 | Zone view panels | Pixel placement against the mock (checked by movie captures, not tests) |

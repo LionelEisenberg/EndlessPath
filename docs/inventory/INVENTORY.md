@@ -84,7 +84,7 @@ MainView
       QuestItemsTab                              — quest_items_tab.tscn/.gd (the Journal)
 ```
 
-`InventoryView` turns pages through `BookFrame.turn_page()` and shows the new tab on `page_turned`. Its `_after_close()` hook flushes the trash slots.
+`InventoryView` turns pages through `BookFrame.turn_page()` and shows the new tab on `page_turned`. Once the book has closed, it flushes the trash slots.
 
 ### Equipment tab
 
@@ -187,7 +187,7 @@ All of these live under `scripts/resource_definitions/items/`. Each subclass's `
 | `stack_size` | `int` | 99 | Not enforced anywhere |
 | `base_value` | `float` | 0.0 | Shown as "Worth" for materials only; no economy reads it |
 
-Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `_get_item_type()` returns "Material", "Consumable", "Equipment" or "Quest Item". `_get_item_effects() -> Array[String]` returns tooltip lines, and each subclass overrides it.
+Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `ItemDefinitionData` also returns the type's name ("Material", "Consumable", "Equipment" or "Quest Item") and the tooltip lines (`Array[String]`), which each subclass overrides.
 
 **Subclass fields**
 
@@ -275,7 +275,7 @@ The Equipment tab uses a manual drag system, not Godot's built-in drag-and-drop:
 
 - Slots forward `gui_input` as `clicked(slot, event)`.
 - `EquipmentTab._input()` moves the floating `ItemInstance` (re-parented to the tab, 28×28) and handles the button release.
-- `_get_slot_under_mouse()` hit-tests visible grid slots first, then gear slots, then the trash slot.
+- The tab hit-tests visible grid slots first, then gear slots, then the trash slot.
 - The global index is `current_page * slots_per_page() + slot.get_index()`. The origin index is captured at pickup, so flipping pages mid-drag is safe.
 
 | Drag | Result |
@@ -291,7 +291,7 @@ The Equipment tab uses a manual drag system, not Godot's built-in drag-and-drop:
 | Trash → nowhere | Item goes back into the hold-buffer |
 | Origin slot, or nowhere | Item returns to its origin |
 
-Right-click calls `_quick_equip()`, which ignores the trash slot: a held item is rescued only by dragging it out. `GearSlot.is_valid_item()` passes only `EquipmentDefinitionData` whose `slot_type` matches the gear slot. `GearSelector._validate_slot_coverage()` logs an error if a singular slot type, or accessory index 0 or 1, has no gear slot.
+Right-click quick-equip ignores the trash slot: a held item is rescued only by dragging it out. `GearSlot.is_valid_item()` passes only `EquipmentDefinitionData` whose `slot_type` matches the gear slot. `GearSelector` logs an error if a singular slot type, or accessory index 0 or 1, has no gear slot.
 
 ### Trash hold-buffer
 
@@ -313,13 +313,13 @@ The Materials tab has a trash slot, but nothing is wired to it. The Consumables 
 - `PaginationBar.setup(unlocked_pages, active_page)` rebuilds the page buttons. `page_selected(index)` fires on click and `page_hovered(index)` on mouse-enter. The tab flips pages on hover only while a drag is in progress.
 
 **Category filter (Equipment only)**
-- `_build_categories()` builds a list of `{label, match: Callable}` entries:
+- `EquipmentTab` builds a list of `{label, match: Callable}` entries:
   - All: everything
   - Weapons: `MAIN_HAND`, `OFF_HAND`
   - Armor: `HEAD`, `ARMOR`
   - Accessories: `ACCESSORY`
 - `SortSubBanner.option_changed(index)` calls `EquipmentGrid.set_category_filter(match)`.
-- `_update_grid()` sets each slot's `modulate.a` to 1.0 or `DIM_ALPHA` (0.3). Empty slots count as non-matching. The dimming re-applies on every page flip and inventory change.
+- `EquipmentGrid` sets each slot's `modulate.a` to 1.0 or `DIM_ALPHA` (0.3). Empty slots count as non-matching. The dimming re-applies on every page flip and inventory change.
 
 ### Consumable hotbar
 
@@ -358,8 +358,8 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | System | Connection |
 |---|---|
 | MainView / ZoneViewState | `open_inventory` (`I`) in `ZoneViewState` pushes `InventoryViewState`. `close_inventory` (`I` or `Escape`) or `open_inventory` plays the close animation, then pops the state. The SystemMenu INVENTORY button fires the same action |
-| CharacterManager | `_get_attribute_bonuses()` → `_get_equipment_bonuses()` sums `attribute_bonuses` from `equipped_gear` and `equipped_accessories`. This feeds every attribute getter and `get_total_attributes_data()` |
-| ActionManager (foraging) | `_on_forage_timer_finished()` rolls `ForageActionData.loot_table` and awards the result |
+| CharacterManager | Sums `attribute_bonuses` from `equipped_gear` and `equipped_accessories`. This feeds every attribute getter and `get_total_attributes_data()` |
+| ActionManager (foraging) | Each time the forage timer finishes, rolls `ForageActionData.loot_table` and awards the result |
 | Adventure encounters | `AwardLootTableEffectData` / `AwardItemEffectData` in choice `success_effects`. `AdventureView` listens to `item_awarded` for the end-card loot (one entry per award call; quantity ignored) |
 | QuestManager | A quest's `completion_effects` can award items (`q_reach_core_density_10` → Refugee Camp Map) |
 | UnlockConditionData `ITEM_OWNED` (5) | Returns `InventoryManager.has_item(str(target_value))`. `comparison_op` is ignored. `AdventureEncounter.is_eligible()` evaluates it directly. `UnlockManager` does not listen to `inventory_changed` |
@@ -376,7 +376,7 @@ These seven items live in `resources/items/equipment/spirit_valley/` and are gen
 
 | id | Name | Slot | Bonuses | base_value | How the player gets it on `main` |
 |---|---|---|---|---|---|
-| `makeshift_dagger` | Makeshift Dagger | MAIN_HAND | STRENGTH +3, AGILITY +2 | 60 | Merchant, once per save (the NPC award was removed on 2026-04-19, d934de4) |
+| `makeshift_dagger` | Makeshift Dagger | MAIN_HAND | STRENGTH +3, AGILITY +2 | 60 | Merchant, once per save |
 | `iron_shortsword` | Iron Shortsword | MAIN_HAND | STRENGTH +5, AGILITY +2 | 150 | Merchant, once per save |
 | `cultivators_cowl` | Cultivator's Cowl | HEAD | WILLPOWER +3, SPIRIT +1 | 40 | Merchant, once per save |
 | `reinforced_robes` | Reinforced Robes | ARMOR | BODY +4, RESILIENCE +2 | 180 | Merchant, once per save |
@@ -454,7 +454,7 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
 
-Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_definition_data.gd`, `test_crude_scale_tres.gd`, `test_items_md_parser.gd`, `test_quest_item_definition_data.gd`, `test_unlock_condition_item_owned.gd`; `tests/integration/test_consumables_tab_hotbar_equip.gd`, `test_equipment_drag_paging.gd`, `test_equipment_filter.gd`, `test_equipment_grid_pagination.gd`, `test_item_detail_card.gd`, `test_journal_tab_render.gd`, `test_pagination_bar.gd`, `test_sort_sub_banner.gd`, `test_tab_banner_title.gd`, `test_trash_slot_flow.gd`.
+Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
 
@@ -465,8 +465,8 @@ Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_d
   - Page 2 shows global indices 42–83. Awards fill only 0–71, then log "Equipment full (72/72)" while 12 slots still look empty.
   - `move_equipment()` and `unequip_item_to_slot()` have no capacity check, so items can be parked at 72–83, past capacity.
   - The grid tests use the bare `equipment_grid.tscn` (6 × 6), so they don't catch this.
-- `[MEDIUM]` **The Materials detail card snaps back to the first material** whenever the inventory changes. `MaterialsTab._rebuild()` re-creates every slot and calls `setup_from_definition(first_def)` on every `inventory_changed`, including each foraging roll (every 5 s) and every equipment move. `ConsumablesTab._rebuild()` resets its selection the same way whenever stacks change.
-- `[LOW]` **Equipment overflow is silently dropped.** `_add_to_first_available_slot()` only logs a warning, and `item_awarded` has already fired, so the adventure end card lists an item the player never received.
+- `[MEDIUM]` **The Materials detail card snaps back to the first material** whenever the inventory changes. `MaterialsTab` re-creates every slot and calls `setup_from_definition(first_def)` on every `inventory_changed`, including each foraging roll (every 5 s) and every equipment move. `ConsumablesTab` resets its selection the same way whenever stacks change.
+- `[LOW]` **Equipment overflow is silently dropped.** With every slot full, `award_items()` only logs a warning, and `item_awarded` has already fired, so the adventure end card lists an item the player never received.
 - `[LOW]` **`use_consumable()` leaves an empty stack on the hotbar.** It erases the stack at zero but leaves the definition in `equipped_consumables`, so the hotbar would show `x0`. This is latent on `main` because nothing calls `use_consumable()`.
 - `[LOW]` **An item in the trash is already erased from `InventoryData`.** The SaveTimer autosave (every 5 s) persists that state, so quitting with the inventory open and an item in the trash loses the item.
 
@@ -503,15 +503,15 @@ Tests: `tests/unit/test_inventory_*.gd`, `test_equipment.gd`, `test_consumable_d
 
 ### Tech Debt
 
-- `[MEDIUM]` **`EquipmentTab._remove_dragged_from_inventory_state()` mutates `InventoryData` directly** and emits `InventoryManager.inventory_changed` itself. Move this into an InventoryManager verb.
-- `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, `_quick_equip` (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
+- `[MEDIUM]` **`EquipmentTab` mutates `InventoryData` directly** when it erases a trashed item, and emits `InventoryManager.inventory_changed` itself. Move this into an InventoryManager verb.
+- `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, right-click quick-equip (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
 - `[LOW]` **Two item-detail widgets exist.** `ItemDescriptionPanel` serves Equipment, Consumables and the end-card tooltip; `ItemDetailCard` serves only Materials. Their setup logic is duplicated, and `ItemDetailCard`'s doc comment wrongly says Consumables and the Journal use it.
 - `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop. The drag-preview code is duplicated in `ConsumableRow` and `HotbarSlot`.
 - `[LOW]` **Dead code:** `QuestJournalCard`'s `%Sub` label, which is always empty.
-- `[LOW]` **UI nodes built in code.** `SortSubBanner._redraw()` creates its dot `TextureRect`s in code and frees the four authored `Dot0-3` nodes.
+- `[LOW]` **UI nodes built in code.** `SortSubBanner` creates its dot `TextureRect`s in code and frees the four authored `Dot0-3` nodes.
 - `[LOW]` **Coding-standard gaps:**
   - `$MarginContainer/SlotBackground` in `gear_slot.gd` should use a `%` unique name
   - untyped variables (for example `var inventory = get_inventory()` in `inventory_manager.gd`) and an untyped `func _input(event)` in `equipment_tab.gd`
   - no `##` docs on `get_inventory`, `get_material_items`, `award_items`, `unequip_item` and `move_equipment`
-  - `_get_item_type()` and `_get_item_effects()` start with `_` but are called from other classes
+  - `ItemDefinitionData`'s type-name and tooltip-line getters start with `_` but are called from other classes
 - `[LOW]` **`GearSelector` finds its slots through the global "GearSlots" group**, so a second GearSelector in the tree would pick up both sets.
