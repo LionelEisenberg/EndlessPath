@@ -36,7 +36,7 @@ The project uses **GUT v9.7.1** for unit and integration tests. Test files live 
 - When a bug is suspected in a system that has tests — run tests first to see if anything is already failing
 - After modifying any singleton manager, resource class, or combat formula
 
-**How to run them:** `tests/run_tests.ps1` (the first test command above) splits the suite across 6 Godot processes and takes about 2 minutes; one process takes about 4 minutes. A test that depends on frame timing can fail on a busy machine, and the parallel run makes the machine busy, so before investigating a failure, rerun the failing files in one process with the command the runner prints (`-gconfig= -gtest=<files>`). The runner also fails a run when a test script runs no tests: GUT skips a script that does not parse with only a warning, and the one-process command still exits 0.
+**How to run them:** `tests/run_tests.ps1` (the first test command above) splits the suite across 6 Godot processes and takes about 35 s; one process takes about 100 s. A test that depends on frame timing can fail on a busy machine, and the parallel run makes the machine busy, so before investigating a failure, rerun the failing files in one process with the command the runner prints (`-gconfig= -gtest=<files>`). The runner also fails a run when a test script runs no tests: GUT skips a script that does not parse with only a warning, and the one-process command still exits 0.
 
 **Write new tests** when adding logic to: `ResourceManager`, `CultivationManager`, `CharacterManager`, `InventoryManager`, `CombatEffectData`, `EquipmentDefinitionData`, or any new system with testable pure logic.
 
