@@ -61,8 +61,9 @@ const LEARNED_FORMAT: String = "%d learned"
 const LORE_TOP: float = 182.0
 const LORE_PUSH: float = 276.0
 ## The last cycle's line under the Now tray (local 180, set in the scene) pushes
-## the lore, the header and the list down by its 18 px and 8.
-const LAST_CYCLE_PUSH: float = 26.0
+## the lore, the header and the list down by its height (18 px a line, on even
+## px: a line too long for the tray wraps) and this gap.
+const LAST_CYCLE_GAP: float = 8.0
 ## About's word sits 2 px lower while it is pressed in (the lore is open).
 const ABOUT_TEXT_DROP: float = 2.0
 
@@ -244,11 +245,13 @@ func _apply_header() -> void:
 		_count_label.text = HERE_FORMAT % _activity_count
 
 ## Shows the last finished cycle's line under the Now tray while the player
-## cycles and a cycle has ended, and hides it otherwise.
+## cycles and a cycle has ended, and hides it otherwise. The line's box is as
+## tall as its lines, on even px.
 func _apply_last_cycle() -> void:
 	var result: CycleResult = CyclingManager.get_last_cycle_result()
 	_last_cycle_label.visible = _techniques_mode and result != null
 	_last_cycle_label.text = result.result_line() if result != null else ""
+	_last_cycle_label.size.y = 2.0 * ceilf(_last_cycle_label.get_minimum_size().y / 2.0)
 
 #-----------------------------------------------------------------------------
 # LAYOUT
@@ -260,7 +263,7 @@ func _apply_last_cycle() -> void:
 func _relayout() -> void:
 	if not is_node_ready():
 		return
-	var last_cycle_push: float = LAST_CYCLE_PUSH if _last_cycle_label.visible else 0.0
+	var last_cycle_push: float = _last_cycle_label.size.y + LAST_CYCLE_GAP if _last_cycle_label.visible else 0.0
 	_lore_panel.position.y = LORE_TOP + last_cycle_push
 	var header_top: float = HEADER_TOP + last_cycle_push + (LORE_PUSH if _lore_panel.visible else 0.0)
 	var list_top: float = header_top + LIST_GAP

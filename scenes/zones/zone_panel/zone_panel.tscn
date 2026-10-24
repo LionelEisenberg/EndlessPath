@@ -131,7 +131,7 @@ offset_right = 424.0
 offset_bottom = 198.0
 mouse_filter = 2
 theme_type_variation = &"LabelLacquerDetail"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="ActivitiesHeader" type="HBoxContainer" parent="." unique_id=797303341]
 unique_name_in_owner = true

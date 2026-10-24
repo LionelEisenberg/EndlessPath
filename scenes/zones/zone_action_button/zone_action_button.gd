@@ -203,19 +203,27 @@ static func ellipsize_words(text: String, font: Font, font_size: int, max_width:
 	return ELLIPSIS if _text_width(ELLIPSIS, font, font_size) <= max_width else ""
 
 ## Places a drawer's title, the NEW seal right after it and the tag. The title
-## hugs its text (rounded to even px) and ellipsizes where the seal or the tag
-## would start. The activity cards and the technique drawers share it, so their
-## title rows line up.
-static func layout_title_row(title: Label, new_seal: Control, tag: Control) -> void:
+## hugs its text (rounded to even px) up to where the seal or the tag would
+## start, and the activity cards ellipsize it there. With wraps (the technique
+## drawers) it wraps there instead and hugs its widest line, the seal stays
+## beside its first line, and with the tag hidden the row runs on to the
+## detail line's width. The activity cards and the technique drawers share it,
+## so their title rows line up.
+static func layout_title_row(title: Label, new_seal: Control, tag: Control, wraps: bool = false) -> void:
 	var font: Font = title.get_theme_font(&"font")
 	var font_size: int = title.get_theme_font_size(&"font_size")
-	var text_width: float = font.get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-	var even_width: float = 2.0 * ceilf(text_width / 2.0)
-	var max_width: float = TITLE_ROW_WIDTH
+	var max_width: float = DETAIL_WIDTH if wraps and not tag.visible else TITLE_ROW_WIDTH
 	if new_seal.visible:
 		max_width -= SEAL_GAP + new_seal.size.x
-	var title_width: float = minf(even_width, max_width)
+	var text_width: float
+	if wraps:
+		text_width = font.get_multiline_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, max_width, font_size).x
+	else:
+		text_width = font.get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var title_width: float = minf(2.0 * ceilf(text_width / 2.0), max_width)
 	title.position = Vector2(TITLE_X, TITLE_TOP)
+	# The width first: a wrapping title's height depends on it.
+	title.size = Vector2(title_width, title.size.y)
 	title.size = Vector2(title_width, title.get_minimum_size().y)
 	new_seal.position = Vector2(TITLE_X + title_width + SEAL_GAP, TITLE_TOP - TAG_RAISE)
 	tag.position = Vector2(TAG_X, TITLE_TOP - TAG_RAISE)

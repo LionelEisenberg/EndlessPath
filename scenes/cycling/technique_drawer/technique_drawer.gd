@@ -3,8 +3,10 @@ extends Control
 ## A technique drawer in the zone chest while the player cycles: a lacquer
 ## drawer with one learned technique's icon, name, NEW seal, IN USE tag and one
 ## detail line. It copies ZoneActionButton's nodes and positions (lacquer kit
-## §5.5 › Card internals, positions local to the drawer), and it is a fixed
-## 392 x 72, so long text never widens it.
+## §5.5 › Card internals, positions local to the drawer). It is 392 x 72 while
+## its name and its detail line fit a line each. A longer one wraps, never cut,
+## and the drawer grows by its extra lines, never wider: its face stretches the
+## plain band under the icon socket, and the list that holds it re-measures.
 ##
 ## The drawer in use (the equipped technique) is pulled out to (-2, -2) on the
 ## running face and tagged IN USE. A left press on any other drawer equips its
@@ -19,6 +21,10 @@ extends Control
 ## drawers calls refresh() on every one of them when the equipped technique
 ## changes.
 
+## Emitted when the drawer's height changes: its name or its detail line took
+## more lines or fewer.
+signal height_changed
+
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
@@ -27,6 +33,19 @@ const IN_USE_TAG_TEXT: String = "IN USE"
 const FLASH_TIMES: int = 2
 ## Where the drawer in use is drawn, pulled out of the list.
 const IN_USE_OFFSET: Vector2 = Vector2(-2, -2)
+
+## The drawer's width, and its height with one line of name and one of detail.
+const DRAWER_WIDTH: float = 392.0
+const SHORT_HEIGHT: float = 72.0
+## The detail line starts this far under the name's last line, and the drawer
+## ends this far under the detail line's (kit §5.5: the name at y 14, the
+## detail at 38).
+const DETAIL_GAP: float = 4.0
+const ROOM_UNDER_DETAIL: float = 16.0
+## The faces grow by stretching their rows 60 and 61, the plain band under the
+## icon socket, which match: the rows above and under them show as drawn.
+const FACE_STRETCH_ROW: int = 60
+const FACE_STRETCH_ROWS: int = 2
 
 const DRAWER_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_drawer_ai.png")
 const DRAWER_RUN_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_drawer_run_ai.png")
@@ -40,7 +59,7 @@ const DRAWER_RUN_TEXTURE: Texture2D = preload("res://assets/ui/lacquer/lacquer_d
 var technique: CyclingTechniqueData = null
 
 @onready var _drawer: Control = %Drawer
-@onready var _face: TextureRect = %Face
+@onready var _face: NinePatchRect = %Face
 @onready var _icon: TextureRect = %Icon
 @onready var _title: Label = %Title
 @onready var _new_seal: TextureRect = %NewSeal
@@ -87,15 +106,14 @@ static func detail_text(data: CyclingTechniqueData) -> String:
 	return "%d Madra · %d s cycle · %s" % [roundi(data.base_madra_per_cycle), roundi(data.cycle_duration), zones]
 
 ## Re-applies what depends on state: the face and its offset, the IN USE tag and
-## its colour, and the NEW seal with the title row. The list calls it on every
-## drawer when the equipped technique changes.
+## its colour, and the NEW seal with the text laid out around it. The list
+## calls it on every drawer when the equipped technique changes.
 func refresh() -> void:
 	if not is_node_ready() or technique == null:
 		return
 	var in_use: bool = is_in_use()
 	_drawer.position = IN_USE_OFFSET if in_use else Vector2.ZERO
 	_face.texture = DRAWER_RUN_TEXTURE if in_use else DRAWER_TEXTURE
-	_face.size = _face.texture.get_size()
 	_tag.visible = in_use
 	_tag_label.text = IN_USE_TAG_TEXT
 	if in_use:
@@ -126,11 +144,36 @@ func _apply_technique() -> void:
 	_detail.text = detail_text(technique)
 	refresh()
 
-## Shows the NEW seal while the technique is unseen, then places the title row
+## Shows the NEW seal while the technique is unseen, then lays the text out
 ## around it.
 func _refresh_new_seal() -> void:
 	_new_seal.visible = not CyclingManager.is_technique_seen(technique.id)
-	ZoneActionButton.layout_title_row(_title, _new_seal, _tag)
+	_layout_text()
+
+## Lays the text out: the title row the activity cards share, wrapping, then the
+## detail line under the name's last line, wrapping inside its width, and the
+## drawer tall enough for both, on even px. Tells the list when the height
+## changes.
+func _layout_text() -> void:
+	ZoneActionButton.layout_title_row(_title, _new_seal, _tag, true)
+	_detail.position.y = _title.position.y + _title.size.y + DETAIL_GAP
+	_detail.size = Vector2(_detail.size.x, 2.0 * ceilf(_detail.get_minimum_size().y / 2.0))
+	var height: float = maxf(SHORT_HEIGHT, _detail.position.y + _detail.size.y + ROOM_UNDER_DETAIL)
+	var changed: bool = height != custom_minimum_size.y
+	custom_minimum_size = Vector2(DRAWER_WIDTH, height)
+	size = custom_minimum_size
+	_drawer.size = custom_minimum_size
+	_fit_face()
+	if changed:
+		height_changed.emit()
+
+## Fits the face to the drawer: its texture at file size, taller by what the
+## drawer grew, which the band under the socket takes.
+func _fit_face() -> void:
+	var texture_size: Vector2 = _face.texture.get_size()
+	_face.patch_margin_top = FACE_STRETCH_ROW
+	_face.patch_margin_bottom = int(texture_size.y) - FACE_STRETCH_ROW - FACE_STRETCH_ROWS
+	_face.size = texture_size + Vector2(0.0, custom_minimum_size.y - SHORT_HEIGHT)
 
 func _mark_seen() -> void:
 	if technique == null:

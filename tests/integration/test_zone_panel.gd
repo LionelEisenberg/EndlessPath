@@ -1010,12 +1010,30 @@ func test_the_last_cycle_shows_under_the_now_tray_while_cycling() -> void:
 	assert_eq(_technique_list().position.y, LIST_TOP + LAST_CYCLE_PUSH, "and the drawers with it")
 	assert_eq(_panel.size.y, 464.0 + LAST_CYCLE_PUSH, "the chest grows by the line")
 
+func test_a_long_last_cycle_line_wraps_and_pushes_the_rest_down() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	CyclingManager.set_last_cycle_result(_last_cycle(12345.0, 10, 12, 10, 99999))
+	var label: Label = _last_cycle_label()
+	assert_eq(label.text, "Last cycle · +12345 Madra · 10 / 12 zones · 10 PERFECT · +99999 XP", "the whole line")
+	assert_eq(label.get_line_count(), 2, "wider than the tray, it wraps")
+	assert_eq(label.get_visible_line_count(), 2, "and both lines show")
+	assert_gte(label.size.y, label.get_minimum_size().y, "its box holds both lines")
+	assert_eq(fposmod(label.size.y, 2.0), 0.0, "on even px")
+	var push: float = label.size.y + 8.0
+	assert_gt(push, LAST_CYCLE_PUSH, "precondition: two lines push further than one")
+	assert_eq((_node("ActivitiesHeader") as Control).position.y, HEADER_TOP + push, "the header moves down under both lines")
+	assert_eq(_technique_list().position.y, LIST_TOP + push, "and the drawers with it")
+	assert_eq(_panel.size.y, 464.0 + push, "the chest grows by both lines")
+
 func test_the_last_cycle_line_is_tan_detail_text_across_the_tray() -> void:
 	await _add_panel()
 	var label: Label = _last_cycle_label()
 	assert_eq(label.theme_type_variation, &"LabelLacquerDetail")
 	assert_eq(label.size.x, 408.0, "as wide as the Now tray")
-	assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS)
+	assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "it never ends in an ellipsis")
+	assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "a long line wraps instead")
 	assert_eq(label.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 
 func test_the_last_cycle_line_shows_only_while_cycling() -> void:
@@ -1207,6 +1225,26 @@ func test_technique_list_height_is_what_the_column_lays_out() -> void:
 	var pitch: float = DRAWER_HEIGHT + DRAWER_GAP
 	assert_eq(tops, [0.0, pitch, 2.0 * pitch] as Array[float], "a drawer and a gap apart")
 	assert_eq(list.get_drawer(SMOOTH_ID).size, Vector2(392.0, DRAWER_HEIGHT))
+
+func test_the_chest_grows_with_a_drawer_whose_name_wraps() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	var list: TechniqueList = _technique_list()
+	var chest_height: float = _panel.size.y
+	watch_signals(list)
+	var drawer: TechniqueDrawer = list.get_drawer(SMOOTH_ID)
+	var long_named := CyclingTechniqueData.new()
+	long_named.id = "test_zone_panel_long_named_technique"
+	long_named.technique_name = "The Exceedingly Long and Winding Name of a Technique"
+	drawer.setup(long_named)
+	var grown: float = drawer.size.y - DRAWER_HEIGHT
+	assert_gt(grown, 0.0, "precondition: the long name wraps and the drawer grows")
+	assert_signal_emitted(list, "layout_changed", "the list tells the chest")
+	assert_eq(list.get_content_height(), 3.0 * DRAWER_HEIGHT + 2.0 * DRAWER_GAP + grown, "it measures the taller drawer")
+	assert_eq(_panel.size.y, chest_height + grown, "the chest grows with the drawer")
+	await wait_process_frames(1)
+	assert_eq((list.get_node("%Drawers") as Control).size.y, list.get_content_height(), "the column lays out the same height")
 
 func test_a_rebuild_takes_the_old_drawers_out_of_the_column_at_once() -> void:
 	# queue_free alone leaves the old drawers in the column until the end of the

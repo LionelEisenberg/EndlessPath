@@ -28,13 +28,15 @@ offset_right = 392.0
 offset_bottom = 72.0
 mouse_filter = 2
 
-[node name="Face" type="TextureRect" parent="Drawer" unique_id=1701626978]
+[node name="Face" type="NinePatchRect" parent="Drawer" unique_id=1701626978]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 394.0
 offset_bottom = 74.0
 mouse_filter = 2
 texture = ExtResource("3_drawer")
+patch_margin_top = 60
+patch_margin_bottom = 12
 
 [node name="Icon" type="TextureRect" parent="Drawer" unique_id=2050157790]
 unique_name_in_owner = true
@@ -55,7 +57,7 @@ offset_right = 296.0
 offset_bottom = 34.0
 theme_type_variation = &"LabelLacquerName"
 text = "Technique"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="NewSeal" type="TextureRect" parent="Drawer" unique_id=816193256]
 unique_name_in_owner = true
@@ -113,7 +115,7 @@ offset_right = 380.0
 offset_bottom = 56.0
 theme_type_variation = &"LabelLacquerDetail"
 text = "200 Madra · 15 s cycle · 4 zones"
-text_overrun_behavior = 3
+autowrap_mode = 3
 
 [node name="HoverFrame" parent="Drawer" unique_id=635056038 instance=ExtResource("6_frame")]
 unique_name_in_owner = true

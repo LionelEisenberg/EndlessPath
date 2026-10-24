@@ -3,13 +3,15 @@ extends Control
 
 ## The zone chest's list of technique drawers while the player cycles (lacquer
 ## kit §5.5): one TechniqueDrawer per unlocked cycling technique, in unlock
-## order, a drawer (72) and a gap (8) apart. It neither scrolls nor folds: the
-## zone panel places it under the header and the chest hugs it.
+## order, a drawer (72, taller while its text takes more lines) and a gap (8)
+## apart. It neither scrolls nor folds: the zone panel places it under the
+## header and the chest hugs it.
 ## It rebuilds when a technique unlocks, shown or not, so it is current the
 ## moment the chest turns to it. It refreshes every drawer when the equipped
 ## technique changes, because the drawers do not listen to CyclingManager.
 
-## Emitted when the drawers are rebuilt, which changes the list's height.
+## Emitted when the drawers are rebuilt or one of them changes height, which
+## changes the list's height.
 signal layout_changed
 
 #-----------------------------------------------------------------------------
@@ -18,8 +20,7 @@ signal layout_changed
 
 const DRAWER_SCENE: PackedScene = preload("res://scenes/cycling/technique_drawer/technique_drawer.tscn")
 
-## A drawer's height and the gap between two drawers (kit §5.5).
-const DRAWER_HEIGHT: float = 72.0
+## The gap between two drawers (kit §5.5).
 const DRAWER_GAP: float = 8.0
 
 #-----------------------------------------------------------------------------
@@ -54,16 +55,20 @@ func build() -> void:
 		var drawer: TechniqueDrawer = DRAWER_SCENE.instantiate() as TechniqueDrawer
 		drawer.setup(technique)
 		_column.add_child(drawer)
+		drawer.height_changed.connect(_on_drawer_height_changed)
 		_drawers.append(drawer)
 	layout_changed.emit()
 
-## Returns the height of the drawers and the gaps between them: n x 72 plus
-## (n - 1) x 8, or 0 for none.
+## Returns the height of the drawers and the gaps between them: each drawer's
+## height (72 for one line of name and one of detail) plus (n - 1) x 8, or 0
+## for none.
 func get_content_height() -> float:
-	var count: int = _drawers.size()
-	if count == 0:
+	if _drawers.is_empty():
 		return 0.0
-	return count * DRAWER_HEIGHT + (count - 1) * DRAWER_GAP
+	var height: float = (_drawers.size() - 1) * DRAWER_GAP
+	for drawer: TechniqueDrawer in _drawers:
+		height += drawer.custom_minimum_size.y
+	return height
 
 ## Returns the drawer of the technique, or null when the list has none.
 func get_drawer(technique_id: String) -> TechniqueDrawer:
@@ -94,6 +99,9 @@ func _clear() -> void:
 
 func _on_technique_unlocked(_technique: CyclingTechniqueData) -> void:
 	build()
+
+func _on_drawer_height_changed() -> void:
+	layout_changed.emit()
 
 func _on_equipped_technique_changed(_technique: CyclingTechniqueData) -> void:
 	for drawer: TechniqueDrawer in _drawers:
