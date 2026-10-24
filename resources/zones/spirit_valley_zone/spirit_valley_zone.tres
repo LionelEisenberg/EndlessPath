@@ -13,6 +13,7 @@
 [ext_resource type="Resource" uid="uid://cnpc30act001" path="res://resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_3.tres" id="8_1xdtd"]
 [ext_resource type="Resource" uid="uid://cnpc40act001" path="res://resources/zones/spirit_valley_zone/zone_actions/celestial_intervener_dialogue_4.tres" id="9_npc4"]
 [ext_resource type="Resource" uid="uid://cspirit_merchant_act" path="res://resources/zones/spirit_valley_zone/zone_actions/spirit_valley_merchant_action.tres" id="10_merch"]
+[ext_resource type="Resource" uid="uid://crr0x4xrcfjos" path="res://resources/zones/spirit_valley_zone/zone_actions/tribulation_action.tres" id="11_trib"]
 
 [resource]
 script = ExtResource("5_owjyk")
@@ -22,6 +23,6 @@ description = "Deep at the heart of the world lies Spirit Valley, a sanctuary re
 
 In this place of beginnings, aspiring masters temper their spirits, learning the fundamental techniques that will one day grant them the strength to shake the heavens."
 icon = ExtResource("2_ym136")
-all_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_8fv6p"), ExtResource("3_4bje7"), ExtResource("3_4l7yp"), ExtResource("6_owjyk"), ExtResource("6_8sxt0"), ExtResource("7_spwtrain"), ExtResource("8_1xdtd"), ExtResource("9_npc4"), ExtResource("10_merch")])
+all_actions = Array[ExtResource("1_gfpen")]([ExtResource("2_8fv6p"), ExtResource("3_4bje7"), ExtResource("3_4l7yp"), ExtResource("6_owjyk"), ExtResource("6_8sxt0"), ExtResource("7_spwtrain"), ExtResource("8_1xdtd"), ExtResource("9_npc4"), ExtResource("10_merch"), ExtResource("11_trib")])
 tile_variant_index = 6
 metadata/_custom_type_script = "uid://culb0p88pnexb"

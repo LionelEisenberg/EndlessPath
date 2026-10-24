@@ -22,6 +22,10 @@ const AURA_WELL_ID: String = "aura_well_training"
 const FORAGING_ID: String = "sprint_forest_foraging_action"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const MERCHANT_ID: String = "spirit_valley_merchant"
+const TRIBULATION_ID: String = "spirit_valley_tribulation"
+
+## The unlock condition that reveals the Tribulation's card.
+const FULL_CORE_CONDITION: String = "core_density_full"
 
 const AURA_WELL_EVENT: String = "aura_well_discovered"
 const FORAGING_EVENT: String = "q_fill_core_completed"
@@ -171,7 +175,7 @@ func _current_id() -> String:
 	var current: ZoneActionData = ActionManager.get_current_action()
 	return current.action_id if current else ""
 
-## Latches every unlock condition of every Spirit Valley action, so all nine
+## Latches every unlock condition of every Spirit Valley action, so all ten
 ## of its actions are listed, then runs the Aura Well.
 func _unlock_everything() -> void:
 	var valley: ZoneData = ZoneManager.get_zone_by_id(SPIRIT_VALLEY_ID)
@@ -905,7 +909,7 @@ func test_count_label() -> void:
 	assert_eq((_node("CountLabel") as Label).text, "1 here")
 	_unlock_everything()
 	await wait_process_frames(2)
-	assert_eq((_node("CountLabel") as Label).text, "9 here")
+	assert_eq((_node("CountLabel") as Label).text, "10 here")
 
 func test_rebuilds_on_unlock() -> void:
 	await _add_panel()
@@ -913,6 +917,18 @@ func test_rebuilds_on_unlock() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	await wait_process_frames(2)
 	assert_not_null(_panel.get_card(AURA_WELL_ID))
+
+## The Tribulation's card hides once the breakthrough has moved the stage on,
+## so the chest rebuilds when the stage changes.
+func test_rebuilds_on_stage_change() -> void:
+	await _add_panel()
+	UnlockManager.force_unlock_condition(FULL_CORE_CONDITION)
+	CultivationManager.live_save_data.core_density_level = 100.0
+	await wait_process_frames(2)
+	assert_not_null(_panel.get_card(TRIBULATION_ID), "precondition: a full core lists the Tribulation")
+	assert_true(CultivationManager.advance_to_next_stage(), "precondition: the breakthrough moves the stage on")
+	await wait_process_frames(2)
+	assert_null(_panel.get_card(TRIBULATION_ID), "the passed Tribulation is no longer listed")
 
 func test_empty_zone_shows_nothing_to_do() -> void:
 	await _add_panel()
@@ -951,7 +967,7 @@ func test_chest_height_on_a_fresh_save() -> void:
 	assert_eq(_list().position.y, LIST_TOP)
 	assert_eq(_panel.size.y, LIST_TOP + content + 24.0, "the list top under the tray, then 24 px")
 
-func test_chest_fills_for_nine_cards() -> void:
+func test_chest_fills_for_ten_cards() -> void:
 	await _add_panel()
 	_unlock_everything()
 	await wait_process_frames(2)

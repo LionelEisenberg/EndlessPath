@@ -4,9 +4,11 @@ extends GutTest
 ## stand-ins. Foundation leads to Copper, Copper has the designed XP curve,
 ## Madra and cap, a full Foundation core holds as much Madra as an empty Copper
 ## one (the breakthrough never costs Madra), Copper is registered in
-## CultivationManager's stages and in the stage list, and the Foundation
+## CultivationManager's stages and in the stage list, the Foundation
 ## Tribulation holds the designed phases, timing, judging windows, penalty and
-## copy.
+## copy, and Spirit Valley lists The Tribulation as an action: the action's
+## type and wiring, the "core_density_full" condition that reveals it, and that
+## condition's place in the unlock list.
 ##
 ## A change to one of these numbers is a design change: edit it here too.
 
@@ -15,6 +17,10 @@ const FOUNDATION_PATH: String = "res://resources/cycling/advancement_stages/foun
 const COPPER_PATH: String = "res://resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres"
 const STAGE_LIST_PATH: String = "res://resources/cycling/advancement_stages/advancement_stage_list.tres"
 const FOUNDATION_TRIBULATION_PATH: String = "res://resources/tribulation/foundation_tribulation.tres"
+const TRIBULATION_ACTION_PATH: String = "res://resources/zones/spirit_valley_zone/zone_actions/tribulation_action.tres"
+const CORE_DENSITY_FULL_PATH: String = "res://resources/unlocks/core_density_full.tres"
+const UNLOCK_LIST_PATH: String = "res://resources/unlocks/unlock_condition_list.tres"
+const SPIRIT_VALLEY_PATH: String = "res://resources/zones/spirit_valley_zone/spirit_valley_zone.tres"
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -51,6 +57,19 @@ func _load_phases() -> Array[TribulationPhaseData]:
 	if tribulation.phases.size() == 4:
 		phases = tribulation.phases
 	return phases
+
+## The shipped Spirit Valley action. Fails the test and returns null when it won't load.
+func _load_action() -> TribulationActionData:
+	var action: TribulationActionData = load(TRIBULATION_ACTION_PATH) as TribulationActionData
+	assert_not_null(action, "%s loads as a TribulationActionData" % TRIBULATION_ACTION_PATH)
+	return action
+
+## The shipped "core_density_full" condition. Fails the test and returns null
+## when it won't load.
+func _load_condition() -> UnlockConditionData:
+	var condition: UnlockConditionData = load(CORE_DENSITY_FULL_PATH) as UnlockConditionData
+	assert_not_null(condition, "%s loads as an UnlockConditionData" % CORE_DENSITY_FULL_PATH)
+	return condition
 
 #-----------------------------------------------------------------------------
 # FOUNDATION TO COPPER
@@ -214,3 +233,72 @@ func test_copy() -> void:
 	assert_eq(tribulation.pass_text, "Your core condenses into Copper.")
 	assert_eq(tribulation.fail_title, "Your core cracks")
 	assert_eq(tribulation.get_fail_line(100, 95), "Core Density falls from 100 to 95.")
+
+#-----------------------------------------------------------------------------
+# THE SPIRIT VALLEY ACTION
+#-----------------------------------------------------------------------------
+
+## A saved .tres stores the enum number, so TRIBULATION is appended after
+## ZONE_EVENT and never inserted: every number before it keeps its meaning.
+func test_tribulation_type_is_seven() -> void:
+	assert_eq(ZoneActionData.ActionType.TRIBULATION, 7, "appended after ZONE_EVENT, which is 6")
+	assert_eq(ZoneActionData.ActionType.ZONE_EVENT, 6, "and the types before it keep their numbers")
+
+func test_tribulation_action_is_wired() -> void:
+	var action: TribulationActionData = _load_action()
+	if action == null:
+		return
+	assert_eq(action.action_id, "spirit_valley_tribulation")
+	assert_eq(action.action_name, "The Tribulation")
+	assert_eq(action.action_type, ZoneActionData.ActionType.TRIBULATION, "the type is the Tribulation's")
+	assert_eq(action.description, "Your core is full. Face the Tribulation and break through to Copper.")
+	assert_eq(action.max_completions, 0, "a failed trial can be faced again: the card hides by stage, not by a completion count")
+
+	assert_not_null(action.icon, "the card has an icon")
+	if action.icon != null:
+		assert_eq(action.icon.resource_path, "res://assets/ui/lacquer/lacquer_ic_core_ai.png", "the core icon")
+
+	assert_not_null(action.tribulation, "the action leads into a Tribulation")
+	if action.tribulation != null:
+		assert_eq(action.tribulation.resource_path, FOUNDATION_TRIBULATION_PATH, "the Foundation one")
+
+	assert_eq(action.unlock_conditions.size(), 1, "one condition reveals the card")
+	if action.unlock_conditions.size() == 1:
+		assert_eq(action.unlock_conditions[0].condition_id, "core_density_full")
+
+func test_core_density_full_condition() -> void:
+	var condition: UnlockConditionData = _load_condition()
+	if condition == null:
+		return
+	assert_eq(condition.condition_id, "core_density_full")
+	assert_eq(condition.condition_type, UnlockConditionData.ConditionType.CULTIVATION_LEVEL, "it reads Core Density")
+	assert_eq(condition.target_value, 100, "a full Foundation core")
+	assert_eq(condition.comparison_op, ">=")
+
+## UnlockManager only evaluates the conditions the list names, so a condition
+## missing from it would never unlock and the card would never show.
+func test_the_condition_is_registered() -> void:
+	var list: UnlockConditionList = load(UNLOCK_LIST_PATH) as UnlockConditionList
+	assert_not_null(list, "the unlock list loads")
+	if list == null:
+		return
+	var listed: UnlockConditionData = null
+	for condition: UnlockConditionData in list.list:
+		if condition.condition_id == "core_density_full":
+			listed = condition
+	assert_not_null(listed, "the unlock list names core_density_full")
+	if listed != null:
+		assert_eq(listed.resource_path, CORE_DENSITY_FULL_PATH, "and it is the shipped file")
+
+func test_spirit_valley_lists_the_tribulation() -> void:
+	var valley: ZoneData = load(SPIRIT_VALLEY_PATH) as ZoneData
+	assert_not_null(valley, "Spirit Valley loads")
+	if valley == null:
+		return
+	var listed: ZoneActionData = null
+	for action: ZoneActionData in valley.all_actions:
+		if action.action_id == "spirit_valley_tribulation":
+			listed = action
+	assert_not_null(listed, "Spirit Valley lists The Tribulation")
+	if listed != null:
+		assert_eq(listed.resource_path, TRIBULATION_ACTION_PATH, "and it is the shipped file")
