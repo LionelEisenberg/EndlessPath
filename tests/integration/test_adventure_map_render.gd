@@ -30,6 +30,8 @@ const OPEN_NEAR := AdventureMapFixture.OPEN_NEAR
 const OPEN_FAR := AdventureMapFixture.OPEN_FAR
 const REST := AdventureMapFixture.REST
 const BOSS := AdventureMapFixture.BOSS
+## One 60 FPS frame, for stepping the walk, the zoom's ease and the push by hand.
+const FRAME: float = 1.0 / 60.0
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -89,16 +91,60 @@ func _click(coord: Vector3i) -> void:
 func _hover(coord: Vector3i) -> void:
 	_tilemap.visible_map.tile_hovered.emit(_tilemap.visible_map.cube_to_map(coord))
 
-## Clicks a tile, then waits for the character to end its first hop: the whole
-## walk, for a tile next door.
+## Moves every running tween in the tree on by `delta`, as a frame does: the
+## boss reveal's push.
+func _step_tweens(delta: float) -> void:
+	for tween: Tween in get_tree().get_processed_tweens():
+		if tween.is_valid() and tween.is_running():
+			tween.custom_step(delta)
+
+## One 60 FPS frame stepped by hand, in the tree's order: the character's
+## physics step (the walk) and its camera's controllers (the zoom's ease), the
+## camera following it (the tree's transform update), then the tweens. The walk is
+## taken off the physics clock, so only the test moves it.
+func _step_frame() -> void:
+	_tilemap.character_body.set_physics_process(false)
+	simulate(_tilemap.character_body, 1, FRAME)
+	_camera().force_update_scroll()
+	_step_tweens(FRAME)
+
+## Steps `seconds` of 60 FPS frames.
+func _run(seconds: float) -> void:
+	for _frame: int in roundi(seconds / FRAME):
+		_step_frame()
+
+## Clicks a tile, then steps frames until the character ends its first hop: the
+## whole walk, for a tile next door.
 func _walk_to(coord: Vector3i) -> void:
 	_click(coord)
 	await _wait_for_hop(coord)
 
-## Waits for the character to end the hop it is on.
+## Steps frames until the character ends the hop it is on. Returns whether it did.
+func _step_to_the_hop_end() -> bool:
+	var ended: Array[bool] = [false]
+	var on_end := func() -> void: ended[0] = true
+	_tilemap.character_body.movement_completed.connect(on_end, CONNECT_ONE_SHOT)
+	for _frame: int in roundi(AdventureMapFixture.HOP_TIMEOUT_SECONDS / FRAME):
+		if ended[0]:
+			break
+		_step_frame()
+	if not ended[0]:
+		_tilemap.character_body.movement_completed.disconnect(on_end)
+	return ended[0]
+
+## Steps frames until the character ends the hop it is on, then lets a frame run,
+## so what the tree does at the end of a frame (the camera following, a deferred
+## hover) has caught up.
 func _wait_for_hop(toward: Vector3i) -> void:
-	var arrived: bool = await wait_for_signal(_tilemap.character_body.movement_completed, AdventureMapFixture.HOP_TIMEOUT_SECONDS)
-	assert_true(arrived, "a hop of the walk to %s ends in time" % toward)
+	assert_true(_step_to_the_hop_end(), "a hop of the walk to %s ends in time" % toward)
+	await get_tree().process_frame
+
+## Lets the boss reveal's hit-stop run out: time runs at a quarter for 0.15 s of
+## real time, on a SceneTreeTimer no test can step, so this is the one real wait.
+## The push moves on by 0.04 s of game time meanwhile.
+func _wait_out_the_hit_stop() -> void:
+	var over: bool = await wait_until(func() -> bool: return Engine.time_scale == 1.0, 1.0)
+	assert_true(over, "precondition: the hit-stop ends")
 
 ## The tilemap's node by its unique name, or null when the scene has none.
 func _node(unique_name: String) -> Node:
@@ -182,12 +228,15 @@ func _camera() -> Camera2D:
 	return _tilemap.character_body.get_node("Camera2D") as Camera2D
 
 ## Zooms the map to the level the way the wheel does (through the zoom
-## controller) and waits until the camera has got there.
+## controller) and steps frames until the camera has got there.
 func _zoom_to(level: float) -> void:
 	var controller: CameraZoomController = _zoom_controller()
 	controller.set_zoom_level(level)
-	var arrived: bool = await wait_until(func() -> bool: return not controller.is_zoom_active(), 3.0)
-	assert_true(arrived, "the zoom to %s ends in time" % level)
+	for _frame: int in roundi(3.0 / FRAME):
+		if not controller.is_zoom_active():
+			break
+		_step_frame()
+	assert_false(controller.is_zoom_active(), "the zoom to %s ends in time" % level)
 	# A frame on, so that what follows the camera (the coins) has caught up.
 	await wait_process_frames(2)
 
@@ -213,9 +262,9 @@ func test_the_hex_stays_put_in_every_frame_of_the_ease() -> void:
 
 	var drifted: Array[String] = []
 	var frames: int = 0
-	# The ease lasts about a second of game time, however many frames that takes.
+	# The ease lasts about a second of game time, stepped a frame at a time.
 	while controller.is_zoom_active() and frames < 20000:
-		await get_tree().process_frame
+		_step_frame()
 		frames += 1
 		var off_by: float = _screen_centre(START).distance_to(_hex_home())
 		if off_by > 0.01:
@@ -481,8 +530,10 @@ func test_committed_route_walks_with_the_player() -> void:
 	assert_true(rim.visible)
 
 	# A third of a second in, the character is about 70 px into the 164 px
-	# hop (210 px/s with a hop queued behind it), past its first two dots.
-	await wait_physics_frames(20)
+	# hop (210 px/s with a hop queued behind it), past its first two dots. The
+	# route hides them in the map's _process: a frame runs for it.
+	_run(20 * FRAME)
+	await get_tree().process_frame
 	assert_lt(route.get_visible_dot_count(), 12, "the dots the character has passed hide")
 	assert_gt(route.get_visible_dot_count(), 6, "only dots of the hop it is on")
 
@@ -538,7 +589,7 @@ func test_walk_moves_in_even_px() -> void:
 	var off_grid: Array[Vector2] = []
 	var frames: int = 0
 	while character.is_moving and frames < 180:
-		await wait_physics_frames(1)
+		_step_frame()
 		frames += 1
 		if character.is_moving and not (_is_even(character.position.x) and _is_even(character.position.y)):
 			off_grid.append(character.position)
@@ -565,7 +616,10 @@ func test_boss_reveal_keeps_the_hit_stop() -> void:
 	_start()
 	watch_signals(_tilemap)
 
-	await _walk_to(FIGHT)
+	# Read before any real frame runs: the hit-stop's timer runs on real frames, and
+	# a slow one could outlast its 0.15 s.
+	_click(FIGHT)
+	assert_true(_step_to_the_hop_end(), "precondition: the walk to FIGHT ends")
 
 	assert_signal_emitted(_tilemap, "boss_revealed", "precondition: visiting FIGHT reveals the boss")
 	assert_eq(Engine.time_scale, 0.25, "time slows right after the reveal")
@@ -590,14 +644,14 @@ func test_boss_push_returns_the_camera_to_its_offset() -> void:
 	_tilemap.handle_combat_result(true, 0)
 	_click(START)
 	assert_true(_tilemap.character_body.is_moving, "precondition: the walk goes on during the push")
-	await get_tree().create_timer(0.3, true, false, true).timeout
+	await _wait_out_the_hit_stop()
+	_run(0.15)
 	var view_from_character: Vector2 = camera.global_position + camera.offset - _tilemap.character_body.global_position
 	assert_gt(view_from_character.distance_to(AdventureTilemap.CAMERA_OFFSET), 10.0, "precondition: mid-push, the view has moved toward the boss")
 	await _wait_for_hop(START)
 
-	# The push takes 1.2 s of game time, its first 0.15 s of real time at a
-	# quarter speed (the hit-stop): over about 1.3 s after the reveal.
-	await get_tree().create_timer(0.5, true, false, true).timeout
+	# The push takes 1.2 s of game time: the hop and half a second more are past it.
+	_run(0.5)
 	assert_eq(_tilemap.get_current_tile(), START, "precondition: the walk went on to the start")
 	assert_eq(camera.offset, AdventureTilemap.CAMERA_OFFSET, "the push ends on the camera's own offset")
 	assert_eq(camera.position, Vector2.ZERO, "and the camera still sits on the character")
@@ -616,29 +670,30 @@ func test_boss_push_returns_the_camera_to_the_zoom_correct_offset() -> void:
 	assert_signal_emitted(_tilemap, "boss_revealed", "precondition: visiting FIGHT reveals the boss")
 	assert_lt(camera.offset.distance_to(home), 15.0, "the push starts from the zoom's offset (the zoom 1 offset is 35 px from it)")
 
-	await get_tree().create_timer(0.3, true, false, true).timeout
+	await _wait_out_the_hit_stop()
+	_run(0.15)
 	var view_from_character: Vector2 = camera.global_position + camera.offset - _tilemap.character_body.global_position
 	assert_gt(view_from_character.distance_to(home), 10.0, "precondition: mid-push, the view has moved toward the boss")
 
-	# The push takes 1.2 s of game time, its first 0.15 s of real time at a quarter speed:
-	# about 1.3 s after the reveal, 0.3 s of which have passed.
-	await get_tree().create_timer(1.6, true, false, true).timeout
+	# The push takes 1.2 s of game time: run past its end.
+	_run(1.2)
 	assert_eq(camera.zoom, Vector2(2, 2), "precondition: the zoom held")
 	assert_eq(camera.offset, home, "the push ends on the zoom's offset")
 	assert_lt(_screen_centre(FIGHT).distance_to(_hex_home()), 0.01, "so the current hex is at (960, 470)")
 
-## Watches the boss reveal's push for the whole of it (1.3 s after the reveal, plus
-## room), once the character has walked to FIGHT, which reveals the boss one hex
-## away: how far, at most, the character, who stands still in the world, moved from
-## its place on screen, and every frame in which any of its sprite was off the screen.
+## Watches the boss reveal's push for the whole of it, once the character has
+## walked to FIGHT, which reveals the boss one hex away: the hit-stop runs out, then
+## 1.8 s of frames (the push's 1.2 s, plus room) are stepped by hand. Returns how
+## far, at most, the character, who stands still in the world, moved from its place
+## on screen, and every frame in which any of its sprite was off the screen.
 func _watch_the_push() -> Dictionary:
+	await _wait_out_the_hit_stop()
 	var screen: Rect2 = get_viewport().get_visible_rect()
 	var sprite := _tilemap.character_body.get_node("Sprite2D") as Sprite2D
 	var peak: float = 0.0
 	var off_screen: Array[String] = []
-	var started: int = Time.get_ticks_msec()
-	while Time.get_ticks_msec() - started < 1800:
-		await get_tree().process_frame
+	for _frame: int in roundi(1.8 / FRAME):
+		_step_frame()
 		var at: Vector2 = _tilemap.character_body.get_global_transform_with_canvas().origin
 		peak = maxf(peak, at.distance_to(_hex_home()))
 		var sprite_rect: Rect2 = sprite.get_global_transform_with_canvas() * sprite.get_rect()
@@ -697,12 +752,13 @@ func test_zooming_during_the_push_neither_fights_nor_cancels_it() -> void:
 	assert_signal_emitted(_tilemap, "boss_revealed", "precondition: visiting FIGHT reveals the boss")
 	_zoom_controller().set_zoom_level(2.0)
 
-	await get_tree().create_timer(0.4, true, false, true).timeout
+	await _wait_out_the_hit_stop()
+	_run(0.25)
 	var base: Vector2 = AdventureTilemap.camera_offset_for(camera.zoom.x)
 	assert_gt(camera.zoom.x, 1.2, "precondition: the zoom is under way")
 	assert_gt(camera.offset.distance_to(base), 10.0, "the push goes on moving the view, on top of the zoom's offset, while the zoom eases")
 
-	await get_tree().create_timer(1.6, true, false, true).timeout
+	_run(1.6)
 	assert_eq(camera.zoom, Vector2(2, 2), "the zoom arrived")
 	assert_eq(camera.offset, AdventureTilemap.camera_offset_for(2.0), "and the push ended on the offset for it")
 
@@ -712,13 +768,14 @@ func test_stop_mid_push_at_zoom_two_puts_the_camera_on_the_zooms_offset() -> voi
 	_start()
 	await _zoom_to(2.0)
 	await _walk_to(FIGHT)
-	await get_tree().create_timer(0.3, true, false, true).timeout
+	await _wait_out_the_hit_stop()
+	_run(0.15)
 	assert_gt(camera.offset.distance_to(AdventureTilemap.camera_offset_for(2.0)), 10.0, "precondition: the push is under way")
 
 	_tilemap.stop_adventure()
 
 	assert_eq(camera.offset, AdventureTilemap.camera_offset_for(2.0), "the camera is back on the zoom's offset at once")
-	await get_tree().create_timer(1.0, true, false, true).timeout
+	_run(1.0)
 	assert_eq(camera.offset, AdventureTilemap.camera_offset_for(2.0), "and the push does not carry on")
 
 ## A run that stops mid-push leaves the camera on its offset, and the push
@@ -730,12 +787,13 @@ func test_stop_mid_push_puts_the_camera_back() -> void:
 		return
 	_start()
 	await _walk_to(FIGHT)
-	await get_tree().create_timer(0.3, true, false, true).timeout
+	await _wait_out_the_hit_stop()
+	_run(0.15)
 	assert_ne(camera.offset, AdventureTilemap.CAMERA_OFFSET, "precondition: the push is under way")
 
 	_tilemap.stop_adventure()
 
 	assert_eq(camera.offset, AdventureTilemap.CAMERA_OFFSET, "the stop puts the camera back on its offset at once")
-	await get_tree().create_timer(1.0, true, false, true).timeout
+	_run(1.0)
 	assert_eq(camera.offset, AdventureTilemap.CAMERA_OFFSET, "and the push does not carry on")
 	assert_eq(camera.position, Vector2.ZERO, "the camera still sits on the character")

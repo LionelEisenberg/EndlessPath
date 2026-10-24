@@ -76,6 +76,9 @@ const DRAWER_GAP: float = 8.0
 ## GUT's output window's canvas layer.
 const GUT_LAYER: int = 128
 
+## One 60 FPS frame, for stepping the tweens by hand.
+const FRAME: float = 1.0 / 60.0
+
 var _panel: ZonePanel = null
 
 ## Zone and action names a test changed, restored after it.
@@ -98,6 +101,9 @@ func after_each() -> void:
 	# The Esc tests parse a ui_cancel press; leave the action released for the
 	# tests that run after this file (TESTING.md: parsed input actions).
 	Input.action_release(&"ui_cancel")
+	# A test that held the action timer lets it go, or no later haul or tick
+	# would ever come.
+	ActionManager.action_timer.paused = false
 	# The tray tests start a cycle session by hand: end it, so none leaks into
 	# the next test.
 	CyclingManager.end_cycle_session()
@@ -147,6 +153,24 @@ func _node(unique_name: String) -> Node:
 ## queue-freed are gone before GUT counts orphans.
 func _await_queued_frees() -> void:
 	await wait_process_frames(1)
+
+## Holds the action timer `elapsed` seconds into its interval, so the strip
+## reads a time left that no frame moves on. start() sets the time left;
+## putting the interval back as wait_time leaves the time left be.
+func _hold_action_timer_at(elapsed: float) -> void:
+	var timer: Timer = ActionManager.action_timer
+	var interval: float = timer.wait_time
+	timer.paused = true
+	timer.start(interval - elapsed)
+	timer.wait_time = interval
+
+## Moves every running tween in the tree on by `seconds`, a 60 FPS frame at a
+## time, as frames would: the rail's scroll steps and the card's flash.
+func _run_tweens(seconds: float) -> void:
+	for _frame: int in roundi(seconds / FRAME):
+		for tween: Tween in get_tree().get_processed_tweens():
+			if tween.is_valid() and tween.is_running():
+				tween.custom_step(FRAME)
 
 func _list() -> Control:
 	return _node("ActivityList") as Control
@@ -369,7 +393,8 @@ func test_strip_haul_counts_down() -> void:
 	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
 	await wait_process_frames(2)
 	assert_has(_texts(_strip()), "haul in 5 s", "precondition: a fresh haul")
-	await wait_seconds(1.2)
+	_hold_action_timer_at(1.2)
+	await wait_process_frames(2)
 	assert_eq(ActionManager.action_timer.wait_time, 5.0, "precondition: still the 5 s interval")
 	assert_has(_texts(_strip()), "haul in 4 s")
 
@@ -541,7 +566,8 @@ func test_tray_reads_paused_with_the_shop_open() -> void:
 	_unlock_everything()
 	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
 	ActionManager.action_timer.start(1.0)
-	await wait_seconds(0.5)
+	_hold_action_timer_at(0.5)
+	await wait_process_frames(2)
 	assert_gt((_strip_node("Ring") as LacquerStripRect).get_frame().x, 0, "precondition: the ring is lit")
 	ActionManager.select_action(ZoneManager.get_action_by_id(MERCHANT_ID))
 	await wait_process_frames(2)
@@ -595,11 +621,13 @@ func test_ring_frame_follows_the_action_timer() -> void:
 	var ring: LacquerStripRect = _strip_node("Ring") as LacquerStripRect
 	var timer: Timer = ActionManager.action_timer
 	timer.start(1.0)
+	_hold_action_timer_at(0.0)
 	await wait_process_frames(1)
 	assert_lte(ring.get_frame().x, 1, "a fresh tick lights no more than one bead")
-	await wait_seconds(0.5)
-	# floor((1 - time_left / wait_time) x 13), about 6 or 7 half way through the tick.
-	assert_between(ring.get_frame().x, 3, 10, "the ring lights beads as the tick runs")
+	_hold_action_timer_at(0.5)
+	await wait_process_frames(1)
+	# floor((1 - time_left / wait_time) x 13): 6 half way through the tick.
+	assert_eq(ring.get_frame().x, 6, "the ring lights beads as the tick runs")
 
 func test_strip_press_flashes_the_running_card() -> void:
 	await _add_panel()
@@ -1016,7 +1044,7 @@ func test_down_cap_steps_one_drawer() -> void:
 	await wait_process_frames(2)
 	var rail: Control = _list_node("Rail") as Control
 	(rail.get_node("%DownCap") as BaseButton).pressed.emit()
-	await wait_seconds(0.4)
+	_run_tweens(0.4)
 	assert_eq(_scroll().scroll_vertical, 80, "one drawer and its gap")
 
 #-----------------------------------------------------------------------------
@@ -1029,7 +1057,9 @@ func test_scroll_to_action_makes_card_visible() -> void:
 	await wait_process_frames(2)
 	assert_false(_card_fully_visible(MERCHANT_ID), "precondition: the last card is below the fold")
 	_panel.scroll_to_action(MERCHANT_ID)
-	await wait_seconds(0.4)
+	_run_tweens(0.4)
+	# The scroll container lays the cards out at the end of a frame.
+	await wait_process_frames(2)
 	assert_true(_card_fully_visible(MERCHANT_ID))
 	assert_true(_card_flashing(MERCHANT_ID))
 
@@ -1038,7 +1068,7 @@ func test_scroll_to_visible_card_does_not_scroll() -> void:
 	_unlock_everything()
 	await wait_process_frames(2)
 	_panel.scroll_to_action(CYCLING_ID)
-	await wait_seconds(0.4)
+	_run_tweens(0.4)
 	assert_eq(_scroll().scroll_vertical, 0)
 	assert_true(_card_flashing(CYCLING_ID))
 
@@ -1048,7 +1078,9 @@ func test_focus_request_scrolls() -> void:
 	await wait_process_frames(2)
 	assert_false(_card_fully_visible(ADVENTURE_ID), "precondition: the adventure is below the fold")
 	ZoneManager.request_action_focus(ADVENTURE_ID)
-	await wait_seconds(0.4)
+	_run_tweens(0.4)
+	# The scroll container lays the cards out at the end of a frame.
+	await wait_process_frames(2)
 	assert_true(_card_fully_visible(ADVENTURE_ID))
 	assert_true(_card_flashing(ADVENTURE_ID))
 	# The adventure sits mid-list, so its scroll is not clamped: it ends
@@ -1335,7 +1367,8 @@ func test_rail_cap_click_lands_while_the_lore_closes() -> void:
 	release.position = moved
 	release.global_position = moved
 	get_viewport().push_input(release, true)
-	await wait_seconds(0.4)
+	await wait_process_frames(1)
+	_run_tweens(0.4)
 	assert_false((_node("LorePanel") as Control).visible, "the click closed the lore")
 	assert_eq(_scroll().scroll_vertical, 80, "and stepped the list one drawer")
 
