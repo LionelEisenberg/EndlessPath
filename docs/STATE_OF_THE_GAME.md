@@ -12,7 +12,7 @@ Endless Path is a cultivation idle/incremental game with active mini-games, insp
 - a procedurally generated adventure with real-time combat;
 - inventory and gear, an ability loadout, a character sheet, and a skill tree.
 
-The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 1728 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
+The engineering base is healthy: it is data-driven, has 17 manager singletons, and all 1746 tests pass. However, **progression stops at Foundation**. There is no breakthrough, no content after the third quest, and many numbers the player sees or pays for are never applied.
 
 ## Where Each System Stands
 
@@ -38,7 +38,7 @@ Details: [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) (player view and content) and [C
 ## Health
 
 - **Size:** about 27k lines of game GDScript plus 26k lines of tests, 133 scenes, 106 data resources, 14 shaders.
-- **Tests:** 1728/1728 pass across 127 files in about 200 s (GUT 9.7.1, Godot 4.7.2, run on 2026-10-23). Every suite calls the code it tests, including the ResourceManager, CultivationManager, CharacterManager and InventoryManager suites ([TESTING.md](testing/TESTING.md)).
+- **Tests:** 1746/1746 pass across 127 files in about 200 s (GUT 9.7.1, Godot 4.7.2, run on 2026-10-23). Every suite calls the code it tests, including the ResourceManager, CultivationManager, CharacterManager and InventoryManager suites ([TESTING.md](testing/TESTING.md)).
 - **Activity:**
   - 709 commits and 43 merged PRs, mostly in April–May 2026. Nothing since 2026-06-01.
   - One unmerged branch, `feat/infallible-chaum-58f8ad`, adds in-combat consumables (20 commits, no PR).
