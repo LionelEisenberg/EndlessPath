@@ -209,14 +209,15 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="YieldRow" type="HBoxContainer" parent="ForageContent/YieldMargin/YieldLine" unique_id=789750200]
+[node name="YieldRow" type="HFlowContainer" parent="ForageContent/YieldMargin/YieldLine" unique_id=789750200]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme = SubResource("Theme_yield_row")
-theme_override_constants/separation = 12
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 0
 
 [node name="HaulMargin" type="MarginContainer" parent="ForageContent/YieldMargin/YieldLine" unique_id=1089733145]
 layout_mode = 2

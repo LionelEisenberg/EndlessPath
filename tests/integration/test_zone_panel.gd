@@ -701,6 +701,87 @@ func test_a_long_forage_name_wraps_and_grows_the_strip() -> void:
 	assert_eq(fposmod(_strip().size.y, 2.0), 0.0)
 	_assert_chest_follows_the_strip()
 
+## A copy of the foraging action whose loot table holds one entry per range ([min,
+## max]), the real table's items again and again, so the strip has as many yields
+## as a wide table would give it.
+func _forage_with_yields(ranges: Array[Vector2i]) -> ForageActionData:
+	var real := ZoneManager.get_action_by_id(FORAGING_ID) as ForageActionData
+	var forage := real.duplicate() as ForageActionData
+	forage.loot_table = LootTable.new()
+	for index: int in ranges.size():
+		var entry := LootTableEntry.new()
+		entry.item = real.loot_table.entries[index % real.loot_table.entries.size()].item
+		entry.min_quantity = ranges[index].x
+		entry.max_quantity = ranges[index].y
+		forage.loot_table.entries.append(entry)
+	return forage
+
+## More yields than the row has room for wrap onto a second row, in the room the haul
+## countdown leaves them, and the strip grows by the row: nothing passes its right
+## edge, the countdown keeps its place, its height stays even and the chest follows.
+func test_many_yields_wrap_and_grow_the_strip() -> void:
+	await _add_panel()
+	var forage := _forage_with_yields([
+		Vector2i(1, 5), Vector2i(2, 6), Vector2i(10, 12), Vector2i(20, 40), Vector2i(100, 250), Vector2i(1, 3),
+	] as Array[Vector2i])
+	_strip()._show_action(forage)
+	await wait_process_frames(3)
+	var yields: Array[Node] = _strip_node("YieldRow").get_children()
+	var haul := _strip_node("HaulLabel") as Control
+	assert_eq(yields.size(), 6, "precondition: one yield per entry")
+	assert_true(haul.is_visible_in_tree(), "precondition: foraging shows")
+	var rows: Dictionary[float, bool] = {}
+	var lowest: float = 0.0
+	for node: Node in yields:
+		var yield_rect: Rect2 = (node as Control).get_global_rect()
+		rows[yield_rect.position.y] = true
+		lowest = maxf(lowest, yield_rect.end.y)
+		assert_lte(yield_rect.end.x, haul.get_global_rect().position.x, "every yield ends before the haul countdown")
+		assert_lte(yield_rect.end.x, _strip().get_global_rect().end.x - 16.0, "and 16 px short of the strip's right edge")
+	assert_gt(rows.size(), 1, "precondition: they do not all fit on one row")
+	assert_eq(_strip().size.y, STRIP_HEIGHT + 20.0 * (rows.size() - 1), "every row after the first adds the yields' 20 px")
+	assert_eq(fposmod(_strip().size.y, 2.0), 0.0, "an even height")
+	assert_eq(_strip().get_global_rect().end.y - lowest, 20.0, "20 px of tray under the last row, as under the only row of two yields")
+	assert_eq(haul.get_global_rect().end.x, _strip().get_global_rect().end.x - 16.0, "the countdown keeps its place")
+	assert_eq((_strip_node("Tray") as Control).size.y, _strip().size.y, "the tray's face follows")
+	_assert_chest_follows_the_strip()
+
+## The countdown is as wide as its widest reading, so the room the yields wrap in
+## does not change as the digits do (a digit is 1 or 2 px wider than another, and a
+## yield that fits by less would jump between rows every second, with the whole
+## chest moving under it). A cycle of 12 s has a two-digit reading, 8 px wider.
+func test_the_haul_countdown_keeps_the_yields_room_as_its_digits_change() -> void:
+	await _add_panel()
+	var haul := _strip_node("HaulLabel") as Label
+	var room := _strip_node("YieldRow") as Control
+	for interval: float in [5.0, 12.0]:
+		var forage := _forage_with_yields([Vector2i(1, 5), Vector2i(2, 6)] as Array[Vector2i])
+		forage.foraging_interval_in_sec = interval
+		_strip()._show_action(forage)
+		_strip().set_process(false)  # so the countdown shows what the test sets, not the timer's
+		await wait_process_frames(3)
+		var widths: Dictionary[float, bool] = {}
+		for seconds: int in range(1, int(interval) + 1):
+			haul.text = "haul in %d s" % seconds
+			await wait_process_frames(2)
+			widths[room.size.x] = true
+		assert_eq(widths.size(), 1, "the yields' room is one width for every reading of a %d s cycle" % int(interval))
+		assert_eq(haul.get_global_rect().end.x, _strip().get_global_rect().end.x - 16.0, "the countdown still ends 16 px in")
+
+## A strip that grew for its yields takes its height back for a table of two.
+func test_the_strip_takes_its_height_back_from_many_yields() -> void:
+	await _add_panel()
+	var many := _forage_with_yields([
+		Vector2i(1, 5), Vector2i(2, 6), Vector2i(10, 12), Vector2i(20, 40), Vector2i(100, 250), Vector2i(1, 3),
+	] as Array[Vector2i])
+	_strip()._show_action(many)
+	await wait_process_frames(3)
+	assert_gt(_strip().size.y, STRIP_HEIGHT, "precondition: grown")
+	_strip()._show_action(ZoneManager.get_action_by_id(FORAGING_ID))
+	await wait_process_frames(3)
+	assert_eq(_strip().size.y, STRIP_HEIGHT, "the kit's 88 again")
+	_assert_chest_follows_the_strip()
+
 func test_a_long_paused_line_wraps_and_grows_the_strip() -> void:
 	_rename_action(AURA_WELL_ID, LONG_NAME)
 	var cycling: ZoneActionData = ZoneManager.get_action_by_id(CYCLING_ID)

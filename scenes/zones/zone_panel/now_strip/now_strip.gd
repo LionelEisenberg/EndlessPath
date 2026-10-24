@@ -25,10 +25,11 @@ extends Control
 ## short of where they ended in the 408 it was. No text in it is cut off: the
 ## action's name, the level line, the forage name and the empty tray's line wrap
 ## in what room their neighbours leave them, and the strip grows to hold them,
-## 88 tall at least and an even number of px. The ring and the action's icon stay
-## at the top. The tray's face is a NinePatchRect on the tray's art (a clean
-## 9-slice). The zone chest listens to resized, and stands the Activities header,
-## the list and the lore under the strip's bottom.
+## 88 tall at least and an even number of px. The foraging yields wrap onto
+## further rows of 20 px when a loot table has more than the row holds. The ring
+## and the action's icon stay at the top. The tray's face is a NinePatchRect on
+## the tray's art (a clean 9-slice). The zone chest listens to resized, and stands
+## the Activities header, the list and the lore under the strip's bottom.
 
 ## Emitted when the player clicks the tray.
 signal strip_pressed
@@ -53,6 +54,8 @@ const CYCLE_READY_FORMAT: String = "%d s cycle"
 ## The cycle's rate is read to CyclingManager.RATE_STEP, as on the cabinet, and
 ## shows from half that step: below it the rate reads +0.
 const RATE_SHOWN_FROM: float = CyclingManager.RATE_STEP / 2.0
+## The foraging haul's countdown.
+const HAUL_FORMAT: String = "haul in %d s"
 
 ## The strip is the kit's 88 tall at least. Under the text of each look the room
 ## is what makes one line of each exactly that: the Aura Well's content starts 12
@@ -82,7 +85,7 @@ const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_
 @onready var _well_rod: LacquerRod = %WellRod
 @onready var _forage_content: Control = %ForageContent
 @onready var _forage_name: Label = %ForageName
-@onready var _yield_row: HBoxContainer = %YieldRow
+@onready var _yield_row: HFlowContainer = %YieldRow
 @onready var _haul_label: Label = %HaulLabel
 @onready var _empty_label: Label = %EmptyLabel
 @onready var _hover_frame: LacquerFrameOverlay = %HoverFrame
@@ -108,6 +111,7 @@ func _ready() -> void:
 	gui_input.connect(_on_gui_input)
 	mouse_entered.connect(_hover_frame.show)
 	mouse_exited.connect(_hover_frame.hide)
+	_yield_row.sort_children.connect(_on_yield_row_sorted)
 	_show_action(ActionManager.get_current_action())
 
 func _process(_delta: float) -> void:
@@ -279,6 +283,7 @@ func _set_wrap_width(label: Label, width: float) -> void:
 ## "min–max"). The haul countdown follows the timer every frame.
 func _show_forage(forage: ForageActionData) -> void:
 	_forage_name.text = forage.action_name
+	_fit_haul_column(forage)
 	for child: Node in _yield_row.get_children():
 		_yield_row.remove_child(child)
 		child.queue_free()
@@ -293,6 +298,18 @@ func _show_forage(forage: ForageActionData) -> void:
 		icon_rect.texture = entry.item.get_mini_icon()
 		icon_rect.visible = icon_rect.texture != null
 		(yield_item.get_node("%RangeText") as RichTextLabel).text = _range_text(entry)
+
+## Gives the haul countdown the width of its widest reading ("haul in N s" for any
+## N of a cycle), so the yields wrapping beside it keep the room they have as the
+## digits change from one second to the next (a digit is a pixel or two wider than
+## another, and a yield that fits by less would jump between rows).
+func _fit_haul_column(forage: ForageActionData) -> void:
+	var font: Font = _haul_label.get_theme_font(&"font")
+	var font_size: int = _haul_label.get_theme_font_size(&"font_size")
+	var widest: float = 0.0
+	for seconds: int in range(1, ceili(forage.foraging_interval_in_sec) + 1):
+		widest = maxf(widest, font.get_string_size(HAUL_FORMAT % seconds, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+	_haul_label.custom_minimum_size.x = widest
 
 func _range_text(entry: LootTableEntry) -> String:
 	if entry.min_quantity == entry.max_quantity:
@@ -316,7 +333,7 @@ func _update_timer_display() -> void:
 	_light_ring(progress)
 	if _forage_content.visible:
 		var seconds_left: int = ceili(timer.time_left) if not timer.is_stopped() else ceili(timer.wait_time)
-		_haul_label.text = "haul in %d s" % seconds_left
+		_haul_label.text = HAUL_FORMAT % seconds_left
 
 ## Lights floor(progress × 13) beads of the ring, at most 12.
 func _light_ring(progress: float) -> void:
@@ -346,6 +363,12 @@ func _on_current_action_changed(action: ZoneActionData) -> void:
 func _on_condition_unlocked(_condition_id: String) -> void:
 	if _action == null:
 		_update_empty_line()
+
+## The yields wrap in the room the haul countdown leaves them, and how many rows
+## they make is known only once the flow has sorted at that width (the strip's
+## first fit comes before it), so the strip fits again when the flow has sorted.
+func _on_yield_row_sorted() -> void:
+	_fit()
 
 func _on_training_tick_processed(training: TrainingActionData, _new_tick_count: int) -> void:
 	if training == _action:
