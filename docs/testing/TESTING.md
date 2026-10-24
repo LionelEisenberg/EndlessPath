@@ -17,7 +17,7 @@ Tests run inside the full project, so all 18 autoloads are loaded before the fir
 
 ## Current Suite Status
 
-Run on 2026-10-24, on `feat/gameplay-priorities-c64b38` after the Tribulation (not merged), with `main` merged in after #61 (the scene tests on a hand-stepped clock, the quest tests no longer nulling `QuestManager` and `EventManager`, and the parallel runner), with the one-process command from `CLAUDE.md`. The suite was 2073 tests in 139 files before the Tribulation. The Tribulation added 217: 168 in 8 new files and 49 in 9 existing ones.
+Run on 2026-10-24, on `feat/gameplay-priorities-c64b38` with the code of `e73e2653`, after the Tribulation (not merged), with `main` merged in after #61 (the scene tests on a hand-stepped clock, the quest tests no longer nulling `QuestManager` and `EventManager`, and the parallel runner), with the one-process command from `CLAUDE.md`. The suite was 2073 tests in 139 files before the Tribulation. The Tribulation added 217: 168 in 8 new files and 49 in 9 existing ones.
 
 | Item | Result |
 |------|--------|
@@ -25,12 +25,12 @@ Run on 2026-10-24, on `feat/gameplay-priorities-c64b38` after the Tribulation (n
 | GUT | 9.7.1 |
 | Scripts / tests | 147 / 2290 |
 | Passing / failing / pending or risky | 2290 / 0 / 0 |
-| Asserts | 16757 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
+| Asserts | 16760 on this run. The count varies between runs: for example, `test_adventure_map_generator.gd` asserts once per element of a randomly generated map. |
 | Orphans | 24 |
 | GUT warnings | 1 |
 | GUT deprecation notices | 30 |
 | Exit code | 0 |
-| Wall time | About 91 s on this run (GUT's `Time` line, 90.9 s; 101 s for the whole Godot process). No script takes more than 7 s: the slowest are `test_adventure_map_zoom.gd` (the wheel's zoom on real frames), `test_zone_panel.gd` (layout frames), `test_cycling_technique.gd` (physics frames for real picking), `test_zone_map_render.gd`, `test_technique_dock.gd`, `test_expedition_page.gd` and `test_book_frame.gd` (the book's animations, in real time). The walk, zoom, push, idle motion, timer, tween, floater, shake and Tribulation tests step their own clock (see [Patterns](#patterns-used-in-the-suite)). The [parallel runner](#parallel-runner) at 6 processes takes about 35 s (34.1 s once its split has the scripts' times) |
+| Wall time | About 93 s on this run (GUT's `Time` line, 92.6 s; 104 s for the whole Godot process). No script takes more than 7 s: the slowest are `test_adventure_map_zoom.gd` (the wheel's zoom on real frames), `test_zone_panel.gd` (layout frames), `test_cycling_technique.gd` (physics frames for real picking), `test_zone_map_render.gd`, `test_technique_dock.gd`, `test_expedition_page.gd` and `test_book_frame.gd` (the book's animations, in real time). The walk, zoom, push, idle motion, timer, tween, floater, shake and Tribulation tests step their own clock (see [Patterns](#patterns-used-in-the-suite)). The [parallel runner](#parallel-runner) at 6 processes takes about 40 s (37.5 s once its split has the scripts' times), with other programs using about 30% of the CPU |
 
 Known noise in a green run:
 
