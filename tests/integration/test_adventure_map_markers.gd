@@ -425,8 +425,8 @@ func test_coin_rides_above_the_character_here() -> void:
 	var centre: Vector2 = _screen_centre(REST)
 	assert_eq(centre, get_viewport().get_visible_rect().size / 2.0 - Vector2(0, 70), "precondition: the current hex sits 70 px above the screen centre")
 
-	assert_eq(AdventureMapMarkers.COIN_RISE_HERE, 56.0)
-	assert_eq(coin.position.y, centre.y - 56.0 - 26.0, "the top-left 56 + 26 px above the hex's centre")
+	assert_eq(AdventureMapMarkers.COIN_RISE_HERE, 64.0)
+	assert_eq(coin.position.y, centre.y - 64.0 - 26.0, "the top-left 64 + 26 px above the hex's centre")
 	assert_eq(coin.position.x, centre.x - 26.0, "and centred on it")
 
 	var head_top: float = _character_head_top()
@@ -512,21 +512,21 @@ func test_coins_are_on_whole_pixels() -> void:
 
 ## A coin keeps its place on a hex that grows with the zoom: its rise is 8 px times
 ## the zoom (8 at zoom 1, 16 at zoom 2). Over the player's hex it is the disc's
-## half height, the character's head (16 px at zoom 1, 32 at zoom 2: the character
-## is drawn at the zoom) and 14 px of clearance: 56 px at zoom 1, 72 at zoom 2.
+## half height, the character's head (24 px at zoom 1, 48 at zoom 2: the character
+## is drawn at the zoom) and 14 px of clearance: 64 px at zoom 1, 88 at zoom 2.
 func test_the_rise_grows_with_the_zoom() -> void:
 	assert_eq(AdventureMapMarkers.COIN_RISE, 8.0, "8 px at zoom 1")
-	assert_eq(AdventureMapMarkers.COIN_RISE_HERE, 56.0, "56 px at zoom 1 on the player's hex")
+	assert_eq(AdventureMapMarkers.COIN_RISE_HERE, 64.0, "64 px at zoom 1 on the player's hex")
 	assert_eq(AdventureMapMarkers.rise_for(1.0, false), 8.0)
 	assert_eq(AdventureMapMarkers.rise_for(2.0, false), 16.0)
 	assert_almost_eq(AdventureMapMarkers.rise_for(1.5, false), 12.0, 0.0001, "in between, in proportion")
 	assert_eq(AdventureMapMarkers.rise_for(1.0, true), AdventureMapMarkers.COIN_RISE_HERE, "the constant is the player's hex's rise at zoom 1")
-	assert_eq(AdventureMapMarkers.rise_for(2.0, true), 26.0 + 2.0 * 16.0 + 14.0, "26 + 16 x zoom + 14")
-	assert_almost_eq(AdventureMapMarkers.rise_for(1.5, true), 26.0 + 1.5 * 16.0 + 14.0, 0.0001)
+	assert_eq(AdventureMapMarkers.rise_for(2.0, true), 26.0 + 2.0 * 24.0 + 14.0, "26 + 24 x zoom + 14")
+	assert_almost_eq(AdventureMapMarkers.rise_for(1.5, true), 26.0 + 1.5 * 24.0 + 14.0, 0.0001)
 
 ## At every zoom each coin is where rise_for() puts it over its hex, so it sits at
 ## the same place on the hex: its disc's centre is 8 hex-px-at-zoom-1 above the
-## hex's centre, the player's coin 56 above at zoom 1 and as far above the head
+## hex's centre, the player's coin 64 above at zoom 1 and as far above the head
 ## at the others.
 func test_coins_sit_at_the_same_place_on_their_hexes_at_every_zoom() -> void:
 	_start()

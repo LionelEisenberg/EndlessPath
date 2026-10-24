@@ -53,14 +53,14 @@ const COIN_RISE: float = 8.0
 ## clear the head with its bottom edge.
 const COIN_HALF_HEIGHT: float = 26.0
 ## How high the character's head is above its tile's centre at zoom 1, in screen px.
-## The game's character (scale 2) stands on its tile's centre with its head 16 px
-## above it, higher than the mock-up draws it, and the head is twice as high on
-## screen at zoom 2.
-const CHARACTER_HEAD: float = 16.0
+## The game's character (scale 2, in its wuxia robes) stands on its tile's centre
+## with its head 24 px above it, higher than the mock-up draws it, and the head is
+## twice as high on screen at zoom 2. A new character model means a new figure here.
+const CHARACTER_HEAD: float = 24.0
 ## How much clear space the coin keeps over the head, in screen px at any zoom.
 const HEAD_CLEARANCE: float = 14.0
 ## The same rise on the hex the player stands on, at zoom 1: the disc's half height,
-## the character's head and the clearance, 56 px. It grows with the zoom
+## the character's head and the clearance, 64 px. It grows with the zoom
 ## (rise_for()), through the head only.
 const COIN_RISE_HERE: float = COIN_HALF_HEIGHT + CHARACTER_HEAD + HEAD_CLEARANCE
 ## From a coin's top-left to the centre of its 52 px disc.
