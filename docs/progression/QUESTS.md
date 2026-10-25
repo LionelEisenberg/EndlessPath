@@ -91,6 +91,7 @@ Stored as `SaveGameData.quest_progression`. `SaveGameData.reset()` replaces it w
 | `get_completed_quest_ids() -> Array[String]` | Copy, in completion order |
 | `get_current_step_index(quest_id: String) -> int` | Step index, or `-1` if not active |
 | `get_quest_data(quest_id: String) -> QuestData` | Catalog lookup, or `null` |
+| `get_all_quests() -> Array[QuestData]` | Every quest in the catalog, in catalog order |
 
 ### Boot (`_ready`)
 

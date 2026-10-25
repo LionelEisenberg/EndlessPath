@@ -205,6 +205,8 @@ An aggregated snapshot that `PathManager` rebuilds from scratch. Defaults are th
 | `add_points(amount)` | `void` | No sign check. Emits `points_changed` |
 | `get_node_purchase_count(node_id)` | `int` | 0 if never purchased |
 | `can_purchase_node(node_id)` | `bool` | Checks, in order: tree set → node exists → level < `max_purchases` → points ≥ `point_cost` → stage ≥ `required_stage` → all prerequisites at level ≥ 1 |
+| `is_stage_reached(required)` | `bool` | True when the player's stage has reached `required`, a node's tier gate. Honors the test-only stage override. `can_purchase_node()` asks it |
+| `get_unmet_prerequisite(node)` | `PathNodeData` | The first prerequisite of the node that has not been bought, or `null` when all have. `can_purchase_node()` asks it |
 | `purchase_node(node_id)` | `bool` | See [Purchase Flow](#purchase-flow) |
 | `get_effects()` | `PathEffectsSummary` | Cached summary. Only tests call it |
 | `get_unlocked_abilities()` / `get_unlocked_cycling_techniques()` | `Array[String]` | Aggregated unlock ids. Tests only |
@@ -361,6 +363,7 @@ A layout is a `Node2D` scene with one `Marker2D` per node. Each marker is **name
 | `Dock` `PathButton` (`SystemMenuButton`, `MenuType.PATH`) | ← PathManager, → input | Label "Path", hint "P", `star_icon.png`. The `Dock` reads `get_point_balance()` on ready and listens to `points_changed`: ring plus count seal while the balance is above 0 |
 | `GreyBackground` | ↔ PathTreeView | `show_with_panel` / `hide_with_panel` ↔ `animate_open` / `animate_close`; waits for `close_finished` |
 | `DevPanel` | → PathManager | "Path Points" SpinBox (0–1000) → `add_points()` |
+| `DevCommands` | → PathManager | `buy_path_node()` checks `is_stage_reached()` and `get_unmet_prerequisite()`, grants only the points the balance is short of with `add_points()`, then buys with `purchase_node()`; the story route buys `pure_core_awakening` this way ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-commands)) |
 | `ResourceManager`, `CharacterManager`, `CyclingTechnique`, `AdventureView`, combat | — | **Do not read** `PathEffectsSummary`; numeric perks are inert |
 
 ## Existing Content

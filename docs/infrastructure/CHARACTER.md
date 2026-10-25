@@ -96,7 +96,7 @@ The same class is used for enemy stat blocks (`CombatantData.attributes`). Until
 
 ### PlayerManager and VitalsManager
 
-`PlayerManager._ready()` creates `VitalsManager.new()` named `PlayerVitalsManager`, sets `is_player = true`, and adds it as a child. Code reaches it through `PlayerManager.vitals_manager`. None of this state is saved.
+`PlayerManager._ready()` creates `VitalsManager.new()` named `PlayerVitalsManager`, sets `is_player = true`, and adds it as a child. Code reaches it through `PlayerManager.vitals_manager`. None of this state is saved. `PlayerManager.reset_vitals()` replaces it with a new one built the same way, so nothing of a run carries over (not its Health, Stamina or Madra, nor its regen): the old one leaves the tree at once and is freed at the end of the frame, and a board that bound it follows the new one when the main scene loads again. A dev session switch calls it.
 
 | VitalsManager behaviour (player) | Detail |
 |----------------------------------|--------|

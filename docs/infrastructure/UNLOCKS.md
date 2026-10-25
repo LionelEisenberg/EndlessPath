@@ -108,6 +108,7 @@ Stored as `SaveGameData.unlock_progression`. `reset()` replaces it with a fresh 
 | `signal condition_unlocked(condition_id: String)` | Emitted once per newly latched id. Also emitted with `""` on init and on save reset so that listeners refresh. |
 | `are_unlock_conditions_met(unlock_conditions: Array[UnlockConditionData]) -> bool` | True if every condition's id is latched |
 | `is_condition_unlocked(condition_id: String) -> bool` | Latched-set membership |
+| `get_unlocked_condition_ids() -> Array[String]` | The ids of every condition latched in the live save, in the order they latched. A copy: changing it leaves the save as it is. Empty while no save is bound |
 | `force_unlock_condition(condition_id: String) -> void` | Dev-only. Latches the id and emits `condition_unlocked`. Idempotent. |
 
 ### Sweep

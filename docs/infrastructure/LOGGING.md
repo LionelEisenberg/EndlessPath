@@ -66,6 +66,7 @@ The game has two separate logging channels, and neither feeds the other:
 | `const HISTORY_LIMIT: int = 200` | The most messages `get_history()` keeps |
 | `log_message(bbcode: String)` | Appends to the history (dropping the oldest past `HISTORY_LIMIT`), then emits `message_logged`. No levels, no buffering |
 | `get_history() -> Array[String]` | A copy of the kept messages, oldest first. `LogWindow` reads it in `_ready()`, so lines logged before it existed still show |
+| `clear_history()` | Empties the history and emits nothing: the log board reads the history when it is built and when the next line is logged, the full log when it opens. A preset launch and a dev session switch call it, so the new session's log starts clean |
 | `toggle_window()` | Emits `visibility_toggled`: opens or closes the full log, like L. Only tests call it today |
 
 ## LogWindow

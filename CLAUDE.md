@@ -20,6 +20,9 @@ All commands are run from the project root.
 # Run it on its own save file. A plain run (above) plays the user's real user://save.tres, backs it up at boot and takes its lock, so agents add --save=. Options: docs/infrastructure/PERSISTENCE.md
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --save=user://dev/runs/<name>.tres
 
+# Run it in a save preset, a starting point of the story (the list: docs/tooling/DEV_TOOLS.md). The session lives in memory and never reads or writes the user's save; an agent adds --save=user://dev/runs/<name>.tres to keep the run's file
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --preset=tribulation_ready
+
 # Run the test suite in 6 Godot processes at once (-Processes N for another count)
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
 
@@ -69,7 +72,7 @@ See `docs/testing/TESTING.md` for test conventions, the coverage gaps, and why t
 | Directory | Purpose |
 |-----------|---------|
 | `scripts/` | GDScript source: resource definitions (`resource_definitions/`), utilities (`utils/`), editor/CLI tools (`tools/`), and code that belongs to no scene |
-| `singletons/` | 17 manager singletons (global game state). They are autoloads along with Dialogic, 18 in total |
+| `singletons/` | 18 manager singletons (global game state). They are autoloads along with Dialogic, 19 in total |
 | `scenes/` | Godot `.tscn` scene files + attached scripts |
 | `resources/` | `.tres` data files, one folder per system |
 | `assets/` | Art (sprites, Aseprite sources, the lacquer kit in `ui/lacquer/`), shaders, themes, styleboxes, fonts, dialogue data. No audio yet |

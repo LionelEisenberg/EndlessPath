@@ -322,7 +322,7 @@ Utilities:
 | Window | 1920x1080 viewport, `stretch/mode = "viewport"` |
 | Texture filter | `default_texture_filter = 0` (Nearest, for pixel art). The zone `SubViewport` sets its own `canvas_item_default_texture_filter = 0` too |
 | Project theme | `gui/theme/custom = uid://yqkvsb5q7pab` = `res://assets/themes/pixel_theme.tres`. `MainView`, `AdventureView` and several sub-scenes also set it explicitly. The zone-view panels and the HUD boards set `assets/themes/lacquer/lacquer_theme.tres` on their roots |
-| Autoloads (18, in order) | PersistenceManager, CultivationManager, EventManager, CharacterManager, UnlockManager, ResourceManager, ZoneManager, ActionManager, InventoryManager, Dialogic, DialogueManager, PlayerManager, LogManager, CyclingManager, AbilityManager, PathManager, QuestManager, MerchantManager |
+| Autoloads (in order) | PersistenceManager, CultivationManager, EventManager, CharacterManager, UnlockManager, ResourceManager, ZoneManager, ActionManager, InventoryManager, Dialogic, DialogueManager, PlayerManager, LogManager, CyclingManager, AbilityManager, PathManager, QuestManager, MerchantManager, DevManager |
 | Enabled editor plugins | AsepriteWizard, ResourcePlus, dialogic, godot_context_exporter, gut. `hexagon_tilemaplayer` and `script-ide` are installed but not enabled (script-ide was disabled in `39f1817`). |
 
 Autoload order matters. Signal handlers run in connection order, and each manager connects in `_ready()`, so for example `CultivationManager` reacts to `PersistenceManager.save_data_reset` before `EventManager` does.

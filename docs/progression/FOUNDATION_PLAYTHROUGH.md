@@ -484,4 +484,4 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Tech Debt
 
-- `[LOW]` Only Beats 3a, 3b and 9 have integration tests. The Beat 1–2 chain is untested end to end: NPC 1 → `q_fill_core` → NPC 2 → `q_first_steps` → combat event → NPC 3 → path point. The combat-to-event test is tautological.
+- `[LOW]` Only Beats 3a, 3b and 9 have integration tests of their own. The Beat 1–2 chain (NPC 1 → `q_fill_core` → NPC 2 → `q_first_steps` → combat event → NPC 3 → path point) is played end to end only by the story route ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#the-story-route)), through dev commands, not real play: each step's effects run, but not the clicks, timers and screens between them, and the combat event is fired directly. The combat-to-event test is tautological.

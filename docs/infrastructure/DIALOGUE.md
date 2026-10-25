@@ -21,7 +21,7 @@ All authored dialogue today is the Celestial Intervener's four-part conversation
 DialogueManager (autoload #11, singletons/dialogue_manager/dialogue_manager.gd)
   signal dialogue_started(timeline_name: String)     — no listeners
   signal dialogue_ended                              — one-shot listeners: ActionManager, AdventureTilemap
-  var current_timeline_name: String                  — set on start, cleared on end; no readers
+  var current_timeline_name: String                  — set on start, cleared on end; end_dialogue_now() reads it
   start_timeline(timeline_name, label_or_idx = "") → Dialogic.start(...)
   dialogue_ended.emit()  ← Dialogic.timeline_ended
 
@@ -64,9 +64,10 @@ Extends `EncounterChoice`.
 | Member | Description |
 |---|---|
 | `start_timeline(timeline_name: String, label_or_idx: Variant = "") -> void` | Logs, calls `Dialogic.start()`, marks the triggering input as handled, emits `dialogue_started`, and stores `current_timeline_name` |
+| `end_dialogue_now() -> void` | Ends the running timeline at once, without Dialogic's ending timeline (`Dialogic.end_timeline(true)`), and forgets it. Does nothing while no timeline runs. Dialogic still sends `timeline_ended` a frame later, and `dialogue_ended` follows, so a caller that must not hear that end disconnects from `dialogue_ended` first (`ActionManager.cancel_current_action()` does, for a dialogue action). A timeline started in this same frame has not begun yet, since Dialogic begins it at the end of the frame, once its layout is ready: `timeline_ended` then comes at once and the timeline still plays. A dev session switch calls it, so a dialogue an adventure encounter started cannot play on over the next session |
 | `signal dialogue_started(timeline_name: String)` | Emitted after `Dialogic.start()`. Nothing listens. |
 | `signal dialogue_ended` | Re-emits `Dialogic.timeline_ended` |
-| `current_timeline_name: String` | Bookkeeping only |
+| `current_timeline_name: String` | The timeline that runs, `""` when none. `end_dialogue_now()` reads it |
 
 ## Dialogic Setup
 
@@ -219,5 +220,5 @@ No tests cover DialogueManager, the Dialogic setup, or the dialogue-end → effe
 
 - `[LOW]` `wisened_dirt_eel.dch` and its portrait are registered in `dch_directory` but no timeline uses them.
 - `[LOW]` `extensions_folder` points at `res://addons/dialogic_additions`, which doesn't exist.
-- `[LOW]` DialogueManager has dead surface (`dialogue_started` has no listeners and `current_timeline_name` has no readers) and no class `##` doc comment.
+- `[LOW]` DialogueManager has dead surface (`dialogue_started` has no listeners) and no class `##` doc comment.
 - `[LOW]` Dialogic is pinned to a pre-release, `2.0-Alpha-19`. Upgrading needs a check of the style layers and `start()` and label-jump behavior.

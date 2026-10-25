@@ -4,7 +4,7 @@
 
 `PersistenceManager` (the first autoload) owns the run's save, a `SaveGameData` resource, and the file it is written to. Every other manager holds a live reference to the same `SaveGameData` instance and reads and writes its own fields directly. There is no per-manager serialization step. The `SaveTimer` node in `main_game.tscn` calls `PersistenceManager.tick()` every 5 seconds, and the window's close request saves once more.
 
-A run plays one **session**: the user's own save (`user://save.tres`), another file chosen with `--save=<path>`, or a save in memory that nothing writes (every GUT run). Every write goes through a temp file, one run at a time writes a save, and a save that cannot be read, checked or safely written is never replaced. See [Sessions and launch options](#sessions-and-launch-options).
+A run plays one **session**: the user's own save (`user://save.tres`), another file chosen with `--save=<path>`, a preset that `DevManager` builds on a fresh save (in memory, or in the `--save` file), or a save in memory that nothing writes (every GUT run). Every write goes through a temp file, one run at a time writes a save, and a save that cannot be read, checked or safely written is never replaced. See [Sessions and launch options](#sessions-and-launch-options).
 
 **Does progress persist between launches?** Yes. The save is written every 5 seconds while the main scene runs, and when the window closes, and it loads unchanged on the next launch. The exceptions are:
 
@@ -12,6 +12,7 @@ A run plays one **session**: the user's own save (`user://save.tres`), another f
 |-----------|--------|
 | The process is killed (the editor's Stop button, a crash) | The changes since the last 5 s tick are lost: only the tick and the close request write |
 | The run was launched with `--no-autosave`, or is a GUT run | The tick and the close write nothing. A GUT run also has no file to write |
+| The run plays a preset: `--preset`, a pinned preset on a plain launch, or one played in game | The save is a fresh one the preset is built on, in memory. The user's save is not read and nothing is written, unless `--save` names a file. See [Sessions and launch options](#sessions-and-launch-options) |
 | `save.tres` exists but does not load as a `SaveGameData` | The file is copied to `save.unreadable.<unix time>.tres` and left untouched. The session runs on a new save in memory, and saving is blocked until the game restarts. `Log.critical` names the copy |
 | `ZoneManager` failed to load, so the save cannot be checked | The save is migrated but kept unchecked, and saving is blocked for the session (`Log.critical`). Nothing is repaired |
 | A newer build wrote the save | It is played as loaded, unmigrated, with saving blocked (`Log.critical`): writing it back would drop what this build does not know |
@@ -24,7 +25,7 @@ A run plays one **session**: the user's own save (`user://save.tres`), another f
 
 - There is no save/load UI, no save slots, and no "New Game" option. Progress saves silently every 5 seconds and when the window closes, and is restored on launch.
 - Quitting mid-adventure loses the adventure: the map, position, vitals and timer. The Madra drained to start it, and any gold or loot already awarded, stay as they were when the window closed (or at the last 5 s tick, when the process is killed).
-- To start over, delete `save.tres`, or play another file with `--save=`: a path with no file starts a new save.
+- To start over, delete `save.tres`, or play another file with `--save=`: a path with no file starts a new save. `--preset=fresh` plays a new game that leaves `save.tres` alone.
 - Each launch on `save.tres` first copies it to `user://backups/`, and the newest 10 copies are kept. To go back to one, copy it over `save.tres` with the game closed.
 - After pulling or merging new art, run `--headless --import` before running the game or the tests. Without it, an item `.tres` the save names can fail to load its new texture, which makes the whole save unreadable. PersistenceManager then keeps the file and turns saving off, so the run shows a fresh game, but nothing is lost: re-import and launch again.
 
@@ -32,13 +33,16 @@ A run plays one **session**: the user's own save (`user://save.tres`), another f
 
 ```
 LaunchOptions (RefCounted)                   scripts/utils/launch_options.gd
-  --save=<path>, --no-autosave, is_test_run()
+  --save=<path>, --preset=<id>, --no-autosave, the checkout's pinned preset, is_test_run()
 
 PersistenceManager (autoload Node)           singletons/persistence_manager/persistence_manager.gd
   save_game_data: SaveGameData  ── same instance ──►  live_save_data / _live_save_data in the save-owning managers
   signal save_data_reset
   SaveFiles (statics)                        singletons/persistence_manager/save_files.gd: temp-file writes, loads, copies, backups
   SaveLock (statics)                         singletons/persistence_manager/save_lock.gd: one writer per save
+
+DevManager (the last autoload)               singletons/dev_manager/dev_manager.gd
+  builds a preset on the fresh save a preset launch binds, and switches sessions in game (DEV_TOOLS.md)
 
 MainGame (main_game.tscn)
   _process(delta) ──► save_game_data.stats.add_play_time(delta)
@@ -49,24 +53,30 @@ MainGame (main_game.tscn)
 
 ### Sessions and launch options
 
-`LaunchOptions` reads the user arguments after `--` on the command line (`OS.get_cmdline_user_args()`). `LaunchOptions.current()` parses them once; `parse()` takes any list, so a test can feed it one. Anything else after `--`, and a `--save` with no `=`, is ignored.
+`LaunchOptions` reads the user arguments after `--` on the command line (`OS.get_cmdline_user_args()`) and the checkout's pinned preset. `LaunchOptions.current()` parses them once; `parse()` takes any list and a pinned preset id, so a test can feed it both. Anything else after `--`, and a `--save` or `--preset` with no `=`, is ignored. An option given twice keeps its last value.
 
 | Option | Effect |
 |--------|--------|
-| `--save=<path>` | Play and write that file instead of `user://save.tres`. A path with no file starts a new save there |
+| `--preset=<id>` | Start a preset session: a fresh save that `DevManager` builds the preset on, instead of the user's save. It lives in memory unless `--save` is given too. See [Launching into a preset](../tooling/DEV_TOOLS.md#launching-into-a-preset) |
+| `--save=<path>` | Play and write that file instead of `user://save.tres`. A path with no file starts a new save there. With `--preset`, the built session is written there |
 | `--no-autosave` | The `SaveTimer`'s tick and the window's close write nothing. `save_data()` still writes when something calls it, and the save lock still holds |
+
+A preset pinned for the checkout stands in for `--preset` on a **plain** launch, one with neither `--preset` nor `--save`: a launch with `--save` is a file session, which the pinned preset would otherwise be built over, and `--preset` names its own. `--no-autosave` names no save, so it leaves the pin on. The pin is one preset id in `res://.dev_settings.cfg` (gitignored, one per checkout) for a run from the editor binary, or `user://dev_settings.cfg` in an exported build ([The pin](../tooling/DEV_TOOLS.md#the-pin)).
 
 A run plays one session:
 
 | Session | Chosen by | `save_path` | Lock | Boot backup | Written |
 |---------|-----------|-------------|------|-------------|---------|
-| The user's own save | No `--save` | `user://save.tres`, which is also `main_save_path` | Yes | Yes | By the tick and the close |
-| A file | `--save=<path>` | The path | Yes | No | By the tick and the close |
+| The user's own save | No `--save`, no `--preset`, no pinned preset | `user://save.tres`, which is also `main_save_path` | Yes | Yes | By the tick and the close |
+| A file | `--save=<path>`, no `--preset` | The path | Yes | No | By the tick and the close |
+| A preset | `--preset=<id>`, or a pinned preset on a plain launch; `DevManager` in game | `""`, or the `--save` path when a launch gave one | Only with `--save` | Only when the `--save` path is `main_save_path` | Only with `--save`, by the tick and the close |
 | In memory | A GUT run | `""` | No | No | Never: `save_data()` returns `ERR_UNAVAILABLE` |
+
+A preset session reads no file. `boot()` binds a fresh `SaveGameData.new_current()` to the `--save` path (`""` for none), and `DevManager` builds the preset on it in its own `_ready()`, once every other autoload is ready. A preset written over the user's own save (`--preset=<id> --save=user://save.tres`) is backed up first, under the lock, as a launch on that save is, so a preset never overwrites the user's save without a backup; it still reads nothing from it. How a preset is built, what happens when it does not build, and how `DevManager` switches sessions in game are in [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#save-presets).
 
 A GUT run is detected by `LaunchOptions.is_test_run()`: `addons/gut/` appears in the engine arguments (the CLI's `-s addons/gut/gut_cmdln.gd`, and the editor panel's `--scene res://addons/gut/gui/run_from_editor.tscn`). The user arguments are not engine arguments, so a `--save=` path cannot make a normal launch look like one. `PersistenceManager._ready()` boots a GUT run on `SaveGameData.new_current()` in memory, with `main_save_path` set to `""` (no main save to open or back up) and `autosave_enabled` false. No test run reads or writes `user://save.tres`, its lock or `user://backups/`.
 
-Any run of the project that is not a GUT run (the main scene, any other scene, a headless `-s` script) plays the user's real save unless it passes `--save=`: it backs the save up at boot and takes its lock, and a run with a window saves it and gives up the lock when the window closes. The command for a run on its own file is in `CLAUDE.md`.
+Any run of the project that is not a GUT run (the main scene, any other scene, a headless `-s` script) plays the user's real save unless it passes `--save=` or `--preset=`, or a preset is pinned for the checkout: it backs the save up at boot and takes its lock, and a run with a window saves it and gives up the lock when the window closes. The command for a run on its own file is in `CLAUDE.md`.
 
 ### Save file location
 
@@ -102,7 +112,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `BACKUP_DIR` | `const String` | `"user://backups"`, where the main save's backups go |
 | `BACKUPS_KEPT` | `const int` | `10` |
 | `save_game_data` | `SaveGameData` | The live save shared by all managers |
-| `save_path` | `String` | Where the session writes. `""` is a session in memory. It starts as `SAVE_PATH`, and `--save=` replaces it |
+| `save_path` | `String` | Where the session writes. `""` is a session in memory. It starts as `SAVE_PATH`; `--save=` replaces it, and a preset session sets it to the `--save` path, or `""` |
 | `main_save_path` | `String` | The user's own save, `SAVE_PATH`. `""` in a GUT run, which has none. A session on it is backed up at boot |
 | `backup_dir` | `String` | Where the main save's backups go. `BACKUP_DIR` |
 | `autosave_enabled` | `bool` | False after `--no-autosave` and in a GUT run: the tick and the close then write nothing |
@@ -110,7 +120,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 
 | Function | Behaviour |
 |----------|-----------|
-| `boot(options)` | Starts the run's session from its launch options (`null` reads `LaunchOptions.current()`): sets `autosave_enabled` and `save_path`, backs the main save up when the session is on it, then calls `open_save_file()`. `_ready()` calls it, except in a GUT run |
+| `boot(options)` | Starts the run's session from its launch options (`null` reads `LaunchOptions.current()`): sets `autosave_enabled` and `save_path`, backs the main save up when the session is on it, then calls `open_save_file()`. With a preset (`options.preset_id`) it reads no file: it backs the main save up only when the `--save` path is the main save, then calls `use_save()` with a fresh save and that path (`""` for none), and `DevManager` builds the preset on it next. `_ready()` calls it, except in a GUT run |
 | `open_save_file(path)` | Makes the file at `path` the session: the one way a file becomes it. Clears any block, moves the lock to `path`, loads the save as [Boot and load](#boot-and-load) says, and ends with `save_data_reset` |
 | `use_save(save, path)` | Makes the `SaveGameData` object `save` the session's save, written to `path` (`""` keeps it in memory), then emits `save_data_reset`. Any block clears, and the lock moves to `path` |
 | `save_data() -> Error` | Stamps `save_version`, then writes the save to `save_path` through a temp file. `ERR_UNAVAILABLE` for a session in memory, `ERR_LOCKED` while saving is blocked or once the lock's heartbeat finds the lock lost, writing nothing; otherwise what `SaveFiles.write_atomically()` returns |
@@ -120,7 +130,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `is_in_memory() -> bool` | True when `save_path` is `""` |
 | `is_save_blocked() -> bool` | True when the save could not be read or checked, a newer build wrote it, or another run holds its lock or took it over. Nothing writes it until another save becomes the session's |
 | `get_block_reason() -> String` | Why saving is blocked, or `""` |
-| `backup_main_save() -> String` | Copies the main save into `backup_dir` and keeps its newest `BACKUPS_KEPT`. Returns the copy's path, or `""` when there is no main save file or the copy failed. Nothing in the game calls it today |
+| `backup_main_save() -> String` | Copies the main save into `backup_dir` and keeps its newest `BACKUPS_KEPT`. Returns the copy's path, or `""` when there is no main save file or the copy failed. `DevManager` calls it before a switch writes the user's save |
 | `list_backups() -> PackedStringArray` | The main save's backups in `backup_dir`, newest first. Nothing in the game calls it today |
 
 ### Helper classes
@@ -129,8 +139,8 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 
 | Class | File | Public functions |
 |-------|------|------------------|
-| `LaunchOptions` | `scripts/utils/launch_options.gd` | `parse(user_args)` (returns an object with `save_path`, empty when `--save` was not given, and `no_autosave`), `current()` (this process's own, parsed once), `is_test_run()` |
-| `SaveFiles` | `singletons/persistence_manager/save_files.gd` | `temp_path_for(path)`, `write_atomically(resource, path)`, `load_save(path)`, `copy_aside(path, reason)`, `backup(path, backup_dir, keep)`, `list_backups(path, backup_dir)` |
+| `LaunchOptions` | `scripts/utils/launch_options.gd` | `parse(user_args, pinned_preset_id = "")` (returns an object with `save_path`, empty when `--save` was not given, `preset_id`, empty for no preset, `preset_from_pin` and `no_autosave`), `current()` (this process's own, parsed once, with the checkout's pin), `is_test_run()`, and the pin: `pin_file_path()`, `read_pin()`, `write_pin(preset_id)`. The static `pin_path_override` points the pin at another file, for tests only |
+| `SaveFiles` | `singletons/persistence_manager/save_files.gd` | `temp_path_for(path)`, `write_atomically(resource, path)`, `write_bytes_atomically(bytes, path)` (the same temp-file write for raw bytes: it puts a copy of a save file in place of another, byte for byte), `load_save(path)`, `copy_aside(path, reason)`, `backup(path, backup_dir, keep)`, `list_backups(path, backup_dir)` |
 | `SaveLock` | `singletons/persistence_manager/save_lock.gd` | `lock_path_for(save_path)`, `acquire(save_path)`, `refresh(save_path)`, `release(save_path)`, `holder_pid(save_path)`, `is_process_alive(pid)`. `STALE_AFTER_SECONDS` is 60 |
 
 ### SaveGameData fields and owners
@@ -167,7 +177,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `merchant_ledgers` | `Dictionary[String, MerchantLedgerData]` | `{}` | MerchantManager (through `get_merchant_ledger()`) | [FOUNDATION_PLAYTHROUGH.md Beat 4](../progression/FOUNDATION_PLAYTHROUGH.md#beat-4-merchant-shop-implemented) |
 | `stats` | `PlayStatsData` | `new()` | The systems that record it | [Play stats](#play-stats) |
 
-Apart from tests, each field is read and written only by its owning singleton, except `stats`, which several systems record into. `DevPanel` changes state only through manager APIs.
+Apart from tests, each field is read and written only by its owning singleton, except `stats`, which several systems record into. The dev tools change state only through manager APIs (`DevCommands`). The one exception is `DevManager`, which makes the saves it plays: it sets `stats.built_from_preset` on the save it builds, and `save_as_preset()` copies the whole save.
 
 ### SaveGameData methods
 
@@ -190,7 +200,7 @@ Each of these is embedded in `save.tres` as a `sub_resource`.
 
 | Class | File | Fields | Owner |
 |-------|------|--------|-------|
-| `InventoryData` | `singletons/persistence_manager/inventory_data.gd` | `materials: Dictionary[MaterialDefinitionData, int]`; `equipment: Dictionary` (slot index → `ItemInstanceData`); `equipped_gear: Dictionary` (`EquipmentSlot` → `ItemInstanceData`, for MAIN_HAND/OFF_HAND/HEAD/ARMOR); `equipped_accessories: Dictionary` (0/1 → `ItemInstanceData`); `quest_items: Dictionary[ItemDefinitionData, int]`; `consumables: Dictionary[ConsumableDefinitionData, int]`; `equipped_consumables: Dictionary[int, ConsumableDefinitionData]` (hotbar 0–3); `unlocked_equipment_pages: int = 2`. Constants: `PAGE_ROWS = 6`, `PAGE_COLUMNS = 6`, `SLOTS_PER_PAGE = 36`; `equipment_capacity()`, `has_free_equipment_slot()` | InventoryManager |
+| `InventoryData` | `singletons/persistence_manager/inventory_data.gd` | `materials: Dictionary[MaterialDefinitionData, int]`; `equipment: Dictionary` (slot index → `ItemInstanceData`); `equipped_gear: Dictionary` (`EquipmentSlot` → `ItemInstanceData`, for MAIN_HAND/OFF_HAND/HEAD/ARMOR); `equipped_accessories: Dictionary` (0/1 → `ItemInstanceData`); `quest_items: Dictionary[ItemDefinitionData, int]`; `consumables: Dictionary[ConsumableDefinitionData, int]`; `equipped_consumables: Dictionary[int, ConsumableDefinitionData]` (hotbar 0–3); `unlocked_equipment_pages: int = 2`. Constants: `PAGE_ROWS = 6`, `PAGE_COLUMNS = 6`, `SLOTS_PER_PAGE = 36`; `equipment_capacity()`, `free_equipment_slots()`, `has_free_equipment_slot()` | InventoryManager |
 | `CharacterAttributesData` | `scripts/resource_definitions/character/character_attributes_data.gd` | 8 `float` fields: `strength` … `willpower` | CharacterManager |
 | `UnlockProgressionData` | `singletons/persistence_manager/unlock_progression_data.gd` | `unlocked_condition_ids: Array[String]` | UnlockManager |
 | `EventProgressionData` | `singletons/persistence_manager/event_progression_data.gd` | `triggered_events: Array[String]` | EventManager |
@@ -213,6 +223,9 @@ to the tree in project.godot order, running each one's _ready():
       GUT run:    use_save(SaveGameData.new_current(), "")     a save in memory; nothing below runs
       otherwise:  boot()
         autosave_enabled = not --no-autosave;  save_path = --save=<path> when given
+        --preset=<id> or a pinned preset:  (back the main save up first when the --save path is the main save)
+                                           use_save(SaveGameData.new_current(), the --save path or "")
+                                           no file is read; open_save_file() and the rest of this step do not run
         a session on the main save:  take its lock, then back it up (no backup when another run holds the lock)
         open_save_file(save_path)
           move the lock to save_path      another live run holds it → saving blocked, the save still loads
@@ -224,6 +237,8 @@ to the tree in project.godot order, running each one's _ready():
           save_data_reset                 reaches no one yet
  2. The other autoloads, in order. The ones that own save state (the Owner column under Data Model)
       grab the live reference, connect save_data_reset, and emit or derive their initial state
+ 3. DevManager._ready(), the last autoload (nothing in a GUT run)
+      a preset launch: builds the preset on the save step 1 bound, then clears the player's log
 
 main_game.tscn loads → MainGame._ready() (sets Log print level) → SaveTimer starts
 ```
@@ -276,7 +291,7 @@ One run at a time writes a save. A session on a file holds that save's lock, `<s
 
 ### Switching the save
 
-A save becomes the session's through `open_save_file()` (boot, and any later switch to a file) or `use_save()` (a `SaveGameData` object and the path it writes to). Both end by emitting `save_data_reset`, and each listener re-binds to `PersistenceManager.save_game_data` and does the following:
+A save becomes the session's through `open_save_file()` (boot, and any later switch to a file) or `use_save()` (a `SaveGameData` object and the path it writes to). Apart from boot, only `DevManager` calls them: it builds a preset at launch and switches sessions in game ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#switching-sessions)). Both end by emitting `save_data_reset`, and each listener re-binds to `PersistenceManager.save_game_data` and does the following:
 
 | Manager | Re-emits / extra work |
 |---------|-----------------------|
@@ -301,7 +316,7 @@ A save becomes the session's through `open_save_file()` (boot, and any later swi
 | Player vitals (health, stamina, combat Madra) | `PlayerManager.vitals_manager`. These are re-initialized at each adventure start |
 | The current action and its timers (cycling, foraging, training ticks in flight) | `ActionManager`, `CyclingTechnique` (the running cycle, with its snapshot and the last finished cycle's result on `CyclingManager`; the Auto toggle is `CyclingView`'s). Completed training ticks are saved in `training_tick_progress`, and each zone's `last_idle_action_id` is, so the load restarts that idle action (nothing accrues while the game is closed) |
 | The log history (`LogManager`, 200 lines), the dev panel's position, the dev zone toggles | `LogManager`, the `DevPanel` node, `ZoneManager` |
-| Which session is running, why saving is blocked, and the lock | `PersistenceManager` (`save_path`, `is_save_blocked()`, `get_block_reason()`) and the lock file |
+| Which session is running, why saving is blocked, and the lock | `PersistenceManager` (`save_path`, `is_save_blocked()`, `get_block_reason()`) and the lock file. `DevManager` keeps what the session plays (`get_session_kind()`, `get_session_preset()`); a save names its preset only in `stats.built_from_preset` |
 | `PlayStatsData.recording_paused` | The `PlayStatsData` instance: a plain `var`, not an `@export` |
 | Dialogic state | Not used. Nothing calls `Dialogic.Save` |
 
@@ -346,11 +361,11 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 | `adventures_won`, `adventures_lost`, `adventures_timed_out` | Adventures that ended in a win (the boss fell), with the player's Health at 0, or when the run's time ran out | `AdventureView.stop_adventure()`, only while a run is on (`is_adventure_running()`). A retreat counts nothing, and neither does a stop before the run starts (the Madra drain) |
 | `fights_won` | Fights won, boss fights included, each counted once | `AdventureTilemap.handle_combat_result()`, while the fight's choice is still pending: `AdventureCombat` can report a win again, and the repeat finds the choice cleared |
 | `gold_earned` | Gold earned: every positive amount added, never a set, a spend or a take-away | `ResourceManager.add_gold()` |
-| `built_from_preset` | The id of the preset the save was built from, `""` for real play, so a preset's stats are never read as a playtest's. Nothing sets it today | Nothing |
+| `built_from_preset` | The id of the preset the save was built from, `""` for real play, so a preset's stats are never read as a playtest's | `DevManager.build_preset()` |
 
 `first_time_of(id)` returns the `play_time` at which the event with that id first fired, else the one at which the condition with that id first latched, else `-1.0`.
 
-`recording_paused` is a flag for code that runs game logic on the player's behalf, which must not count as play (a dev command, say). It is a plain `var`, so it is never saved, and nothing sets it today. While it is true the `record_*`, `count_*` and `add_gold_earned()` functions record nothing. `add_play_time()` ignores it: time passes whatever a command does.
+`recording_paused` is a flag for code that runs game logic on the player's behalf, which must not count as play (a dev command, say). Each `DevCommands` command sets it for the game code it runs and puts it back as it found it, and `DevManager.build_preset()` sets it for the whole build of a preset. It is a plain `var`, so it is never saved. While it is true the `record_*`, `count_*` and `add_gold_earned()` functions record nothing. `add_play_time()` ignores it: time passes whatever a command does.
 
 `SaveGameData.reset()` hands back a new, empty `PlayStatsData`.
 
@@ -363,6 +378,7 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 | `ActionManager` | Remembers the save its current action started under (see [Switching the save](#switching-the-save)); counts an adventure start in the play stats |
 | `MainGame` / `SaveTimer` | `SaveTimer` calls `PersistenceManager.tick()` every 5 s; `MainGame._process()` adds each frame to the playtime |
 | The play stats recorders | `EventManager`, `UnlockManager`, `CyclingManager`, `AdventureView`, `AdventureTilemap` and `ResourceManager` (see [Play stats](#play-stats)) |
+| `DevManager` | Builds a preset session (`use_save()` on a save it makes), switches sessions in game (`open_save_file()`, `use_save()`, `autosave()`, `backup_main_save()`, `save_data()`), copies the session's save into a snapshot preset and sets `stats.built_from_preset`. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#devmanager) |
 | `Log` | Boot diagnostics (`Log.info` / `Log.warn` / `Log.error` / `Log.critical`) |
 | Tests | A GUT run plays a save in memory, so no test reads or writes the real save. Test files replace `PersistenceManager.save_game_data` with `SaveGameData.new()` and emit `save_data_reset`, and several more replace the inventory or a manager's `live_save_data`. The `PersistenceManager` tests build their own instances on temporary files ([TESTING.md](../testing/TESTING.md)) |
 
@@ -373,7 +389,7 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 | `singletons/persistence_manager/persistence_manager.gd` | Sessions, load, repair, write, backups, the lock |
 | `singletons/persistence_manager/save_files.gd` | Temp-file writes, loads, copies aside, backups |
 | `singletons/persistence_manager/save_lock.gd` | One writer per save |
-| `scripts/utils/launch_options.gd` | Launch options and test-run detection |
+| `scripts/utils/launch_options.gd` | Launch options, the pin and test-run detection |
 | `singletons/persistence_manager/save_game_data.gd` | Root save schema, version, `migrate()`, `repair()`, `verify()`, `reset()`, zone helpers |
 | `singletons/persistence_manager/play_stats_data.gd` | Play stats sub-resource |
 | `singletons/persistence_manager/inventory_data.gd` | Inventory sub-resource |
@@ -394,7 +410,7 @@ Tests: `tests/unit/test_persistence_manager.gd` and `tests/unit/test_save_migrat
 
 ### Missing Functionality
 
-- `[MEDIUM]` No runtime new-game path. Starting over means deleting the save file or playing another one with `--save=`. Nothing in the game starts a new save while it runs: after boot, nothing calls `use_save()`, `open_save_file()`, `backup_main_save()`, `list_backups()` or `SaveGameData.reset()`.
+- `[MEDIUM]` No screen starts a new game, restores a backup or goes back to the user's save. `DevManager` has the switches (`new_game()`, `restore_backup()`, `back_to_my_save()`), and nothing calls them yet. Starting over still means deleting the save file, playing another one with `--save=`, or `--preset=fresh`. Nothing calls `SaveGameData.reset()` or `list_backups()`.
 - `[LOW]` In-progress adventures and action timers are not saved (see [What is not saved](#what-is-not-saved)). Quitting mid-adventure forfeits the Madra drained at its start.
 - `[LOW]` A player has one save, the user's own `user://save.tres`. Another file is reachable only through `--save=`.
 - `[LOW]` The lock's heartbeat runs only in `main_game.tscn`, the one scene with a `SaveTimer`. A run of any other scene holds its lock for 60 s at most. After that another run may take the save over, and the first run then blocks itself and writes nothing when its window closes.
@@ -403,4 +419,5 @@ Tests: `tests/unit/test_persistence_manager.gd` and `tests/unit/test_save_migrat
 
 - `[LOW]` `ZoneProgressionData.forage_active` and `forage_start_time` are saved but the game never reads or writes them.
 - `[LOW]` The zone check depends on autoload timing. `repair()` makes it before `ZoneManager._ready()` and relies on `_all_zone_data` being a preloaded member default. Moving that load into `_ready()` would make every save with a selected zone fail the check, and `repair()` would send each one back to the first zone.
+- `[LOW]` `boot()` recognises the main save by comparing path strings, so a `--save` that names the same file another way (`user://./save.tres`, or its absolute path) is a plain file session: no boot backup, and a lock file under another name.
 - `[LOW]` The save is a `.tres` resource. Godot resource files can embed scripts, so a shared or edited save file could run code when loaded. Consider a data-only format before saves are exchanged between players.

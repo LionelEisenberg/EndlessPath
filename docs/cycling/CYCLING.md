@@ -223,6 +223,8 @@ A cycle that is stopped, or cut off by switching technique, emits nothing. After
 ### Technique Unlock and Equip (`CyclingManager`)
 | Method | Returns | Behaviour |
 |--------|---------|-----------|
+| `get_all_techniques()` | `Array[CyclingTechniqueData]` | Every technique in the catalog, in catalog order |
+| `has_technique(technique_id)` | `bool` | Whether the catalog has the ID. An unknown ID gives false, with no error |
 | `get_unlocked_techniques()` | `Array[CyclingTechniqueData]` | Resolves saved IDs against the catalog in unlock order and skips unknown IDs |
 | `get_equipped_technique()` | `CyclingTechniqueData` | `null` if none or unknown |
 | `unlock_technique(technique_id)` | `void` | Idempotent. Calls `push_error` for an unknown ID. Otherwise appends to save data and emits `technique_unlocked` |

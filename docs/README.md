@@ -8,7 +8,7 @@ Start here. The living docs below describe the code on `main`, and the rules for
 |---|---|
 | [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md) | One page: where the game stands, what's broken, what to build next, which design decisions are open |
 | [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) | What a player can do today, the full content inventory, what blocks progression |
-| [CODEBASE_STATE.md](CODEBASE_STATE.md) | Architecture: scene tree, state machine, the 17 autoloads, data-driven content, cross-cutting concerns |
+| [CODEBASE_STATE.md](CODEBASE_STATE.md) | Architecture: scene tree, state machine, the autoloads, data-driven content, cross-cutting concerns |
 | [Game Design Document](../Endless%20Path%20Game%20Design%20Document%20%5Bv0.1%5D.txt) | The original design vision (v0.1, 2025-10-26) |
 | [CLAUDE.md](../CLAUDE.md) | Coding standards, testing rules, git workflow for contributors and agents |
 
@@ -54,7 +54,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | Doc | Summary |
 |---|---|
 | [testing/TESTING.md](testing/TESTING.md) | Running GUT (including the first-run `--import` gotcha), the noise a passing run prints, conventions, coverage gaps |
-| [tooling/DEV_TOOLS.md](tooling/DEV_TOOLS.md) | Dev panel (Ctrl+Shift+D), map preview, UID generator, debug switches |
+| [tooling/DEV_TOOLS.md](tooling/DEV_TOOLS.md) | Save presets, the story route, `DevManager` and `DevCommands` (launch with `--preset=<id>`), dev panel (Ctrl+Shift+D), map preview, UID generator, debug switches |
 | [../resources/loot_tables/README.md](../resources/loot_tables/README.md) | Authoring loot tables |
 | [../scenes/combat/combat_architecture.md](../scenes/combat/combat_architecture.md) | Short orientation to the combat scene code (points to COMBAT.md) |
 
