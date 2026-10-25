@@ -34,3 +34,8 @@ func trigger_event(event_id: String) -> void:
 ## Returns true if the event has been triggered, false otherwise.
 func has_event_triggered(event_id: String) -> bool:
 	return event_id in live_save_data.event_progression.triggered_events
+
+## Returns the ids of every event triggered in the live save, in the order they
+## fired. A copy: changing it leaves the save as it is.
+func get_triggered_events() -> Array[String]:
+	return live_save_data.event_progression.triggered_events.duplicate()

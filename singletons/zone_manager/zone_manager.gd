@@ -174,6 +174,15 @@ func set_hidden_zones_visible(visible: bool) -> void:
 	_hidden_zones_visible = visible
 	map_zones_changed.emit()
 
+## DEV: true while the map shows the demo zones (set_demo_zones_visible()).
+func are_demo_zones_visible() -> bool:
+	return _demo_zones_visible
+
+## DEV: true while the map shows the zones marked hidden_on_map
+## (set_hidden_zones_visible()).
+func are_hidden_zones_visible() -> bool:
+	return _hidden_zones_visible
+
 ## Asks the zone panel to scroll to the action's card and flash it.
 func request_action_focus(action_id: String) -> void:
 	action_focus_requested.emit(action_id)

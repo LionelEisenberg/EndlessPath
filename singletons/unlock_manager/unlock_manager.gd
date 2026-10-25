@@ -73,6 +73,13 @@ func is_condition_unlocked(condition_id: String) -> bool:
 		return false
 	return condition_id in live_save_data.unlock_progression.unlocked_condition_ids
 
+## Returns the ids of every condition latched in the live save, in the order
+## they latched. A copy: changing it leaves the save as it is.
+func get_unlocked_condition_ids() -> Array[String]:
+	if live_save_data == null:
+		return []
+	return live_save_data.unlock_progression.unlocked_condition_ids.duplicate()
+
 #-----------------------------------------------------------------------------
 # PRIVATE UNLOCK CONDITION EVALUATION
 #-----------------------------------------------------------------------------

@@ -111,6 +111,13 @@ func get_current_step_index(quest_id: String) -> int:
 func get_quest_data(quest_id: String) -> QuestData:
 	return _quests_by_id.get(quest_id, null)
 
+## Returns every quest in the catalog, in catalog order.
+func get_all_quests() -> Array[QuestData]:
+	var result: Array[QuestData] = []
+	for quest: QuestData in _quests_by_id.values():
+		result.append(quest)
+	return result
+
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------

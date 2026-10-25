@@ -23,6 +23,19 @@ func _ready() -> void:
 
 # ----- Public API -----
 
+## Returns every ability in the catalog, in catalog order: the ones has_ability()
+## knows.
+func get_all_abilities() -> Array[AbilityData]:
+	var result: Array[AbilityData] = []
+	for ability: AbilityData in _abilities_by_id.values():
+		result.append(ability)
+	return result
+
+## Returns true if the catalog has an ability with this ID. An unknown ID gives
+## false, with no error.
+func has_ability(ability_id: String) -> bool:
+	return _abilities_by_id.has(ability_id)
+
 ## Returns full resource data for all unlocked ability IDs.
 func get_unlocked_abilities() -> Array[AbilityData]:
 	var result: Array[AbilityData] = []

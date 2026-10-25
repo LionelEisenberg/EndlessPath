@@ -47,6 +47,19 @@ func _ready() -> void:
 
 # ----- Public API -----
 
+## Returns every cycling technique in the catalog, in catalog order: the ones
+## has_technique() knows.
+func get_all_techniques() -> Array[CyclingTechniqueData]:
+	var result: Array[CyclingTechniqueData] = []
+	for technique: CyclingTechniqueData in _techniques_by_id.values():
+		result.append(technique)
+	return result
+
+## Returns true if the catalog has a technique with this ID. An unknown ID gives
+## false, with no error.
+func has_technique(technique_id: String) -> bool:
+	return _techniques_by_id.has(technique_id)
+
 ## Returns full resource data for all unlocked technique IDs.
 func get_unlocked_techniques() -> Array[CyclingTechniqueData]:
 	var result: Array[CyclingTechniqueData] = []
