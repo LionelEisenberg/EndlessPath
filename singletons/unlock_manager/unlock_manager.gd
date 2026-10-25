@@ -94,6 +94,7 @@ func _evaluate_all_conditions() -> void:
 func _unlock_condition(condition_id: String) -> void:
 	if not condition_id in live_save_data.unlock_progression.unlocked_condition_ids:
 		live_save_data.unlock_progression.unlocked_condition_ids.append(condition_id)
+		live_save_data.stats.record_condition(condition_id)
 		condition_unlocked.emit(condition_id)
 
 		Log.info("UnlockManager: Condition permanently unlocked: %s" % condition_id)

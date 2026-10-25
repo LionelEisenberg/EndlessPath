@@ -28,6 +28,7 @@ func _ready() -> void:
 func trigger_event(event_id: String) -> void:
 	if event_id not in live_save_data.event_progression.triggered_events:
 		live_save_data.event_progression.triggered_events.append(event_id)
+		live_save_data.stats.record_event(event_id)
 		event_triggered.emit(event_id)
 
 ## Returns true if the event has been triggered, false otherwise.

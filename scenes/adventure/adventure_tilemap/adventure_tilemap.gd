@@ -310,6 +310,11 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 			ResourceManager.add_gold(gold_earned)
 		
 		if _current_combat_choice:
+			# The save's play stats count the fight here, while its choice is still
+			# pending. AdventureCombat reports a win again when its enemy takes another
+			# hit at 0 Health: for a fight that is not the boss's, that repeat finds
+			# the choice cleared at the end of this function, so the fight counts once.
+			PersistenceManager.save_game_data.stats.count_fight_won()
 			_apply_effects(_current_combat_choice.success_effects)
 			
 			if _current_combat_choice.is_boss:

@@ -185,9 +185,13 @@ func get_madra_rate() -> float:
 # ----- The last cycle -----
 
 ## Records `result` as the last finished cycle's, for the chest to show under the
-## Now tray. The cycling board calls it when a cycle ends.
+## Now tray, and counts it as a finished cycle in the save's play stats. The
+## cycling board calls it when a cycle ends. A null result is no cycle and counts
+## nothing.
 func set_last_cycle_result(result: CycleResult) -> void:
 	_last_cycle_result = result
+	if result != null and _live_save_data:
+		_live_save_data.stats.count_cycle_finished()
 	last_cycle_changed.emit(result)
 
 ## Forgets the last finished cycle, as the board does when it opens or switches

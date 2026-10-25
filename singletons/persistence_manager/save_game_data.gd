@@ -153,6 +153,15 @@ func get_merchant_ledger(merchant_id: String) -> MerchantLedgerData:
 		merchant_ledgers[merchant_id] = ledger
 	return merchant_ledgers[merchant_id]
 
+#-----------------------------------------------------------------------------
+# PLAY STATS
+#-----------------------------------------------------------------------------
+
+## How this save has been played: its playtime, when each event fired and each
+## unlock condition latched, and a few counts. The systems that own those moments
+## record them here.
+@export var stats: PlayStatsData = PlayStatsData.new()
+
 func _to_string() -> String:
 	var zone_progression_data_str := ""
 	if typeof(zone_progression_data) == TYPE_DICTIONARY:

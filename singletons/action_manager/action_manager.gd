@@ -292,9 +292,12 @@ func _execute_adventure_action(action_data: AdventureActionData) -> void:
 	Log.info("ActionManager: Adventure start requested: %s" % action_data.action_name)
 	adventure_start_requested.emit(action_data)
 
-## Confirm adventure start after drain animation completes.
+## Confirm adventure start after drain animation completes. This is the real
+## start, so it is the one that counts in the save's play stats: the request
+## (adventure_start_requested) can repeat.
 func confirm_adventure_start(action_data: AdventureActionData, madra_budget: float) -> void:
 	Log.info("ActionManager: Confirming adventure start: %s (budget: %.1f)" % [action_data.action_name, madra_budget])
+	PersistenceManager.save_game_data.stats.count_adventure_started()
 	start_adventure.emit(action_data, madra_budget)
 
 ## Handle cycling action - switch to cycling view.

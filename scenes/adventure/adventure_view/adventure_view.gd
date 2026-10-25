@@ -142,16 +142,28 @@ func stop_adventure() -> void:
 	if LogManager:
 		LogManager.log_message("[color=cyan]Adventure Ended[/color]")
 
-	# Determine end condition from current state
+	# Determine end condition from current state. The save's play stats count a win,
+	# Health at 0 and a timeout; a retreat counts nothing. Neither does a stop with
+	# no run on: the adventure action is current while its Madra drains, before the
+	# run starts, and a save switch can stop it then, with the timer stopped and
+	# Health as the last run left it.
 	var is_victory: bool = false
 	var defeat_reason: String = ""
+	var stats: PlayStatsData = PersistenceManager.save_game_data.stats
+	var run_is_on: bool = is_adventure_running()
 
 	if _pending_victory:
 		is_victory = true
+		if run_is_on:
+			stats.count_adventure_won()
 	elif PlayerManager.vitals_manager.current_health <= 0.0:
 		defeat_reason = "Your health reached zero"
+		if run_is_on:
+			stats.count_adventure_lost()
 	elif _run_timer.is_stopped() or _run_timer.time_left <= 0.0:
 		defeat_reason = "Time ran out"
+		if run_is_on:
+			stats.count_adventure_timed_out()
 	else:
 		defeat_reason = "You retreated from the adventure"
 
