@@ -277,7 +277,7 @@ Other inputs:
 
 `Dock` (`scenes/ui/dock/dock.tscn` + `dock.gd`, class `Dock`) is the lacquer kit's 476x80 recessed shelf (§5.4), a child of `ZoneView` at (722, 976), so it exists only on the zone map. It holds four `SystemMenuButton`s at x 10, 126, 242 and 358 inside the shelf (Inventory, Abilities, Character, Path) and decides which are notified:
 
-- **Path:** the brass ring and a cinnabar count seal (`lacquer_seal_count_ai`, over the top-left corner) while `PathManager.get_point_balance() > 0`, read in `_ready()` and on `points_changed`. This is how the game announces path points.
+- **Path:** the brass ring and a cinnabar count seal (a `LacquerCountSeal` over the top-left corner, widening rightward for a long count) while `PathManager.get_point_balance() > 0`, read in `_ready()` and on `points_changed`. This is how the game announces path points.
 - **Abilities:** the ring with no count while `AbilityManager.has_unequipped_unlocks()`, refreshed on `ability_unlocked` and `equipped_abilities_changed`.
 - Both are read again on `PersistenceManager.save_data_reset`.
 
@@ -304,7 +304,7 @@ Gold left the bar for the cultivator cabinet.
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | See [GreyBackground](#greybackground-modal-backdrop) |
 | `LogWindow` | `scenes/ui/log_window/` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
 | `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
-| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
+| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerCountSeal`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
 
 Utilities:
 

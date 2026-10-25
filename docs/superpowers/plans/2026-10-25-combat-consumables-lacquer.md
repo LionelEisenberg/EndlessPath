@@ -301,3 +301,22 @@ Leave `STATE_OF_THE_GAME.md`, `GAMEPLAY_STATE.md` and `CODEBASE_STATE.md` alone;
 - [ ] **Step 1: Run the full suite.** It passes, and every script runs tests. Rerun any failure in one process before investigating.
 - [ ] **Step 2: Capture the adventure view at 1920x1080** with a scratch capture scene (outside the commit): the map with a filled hotbar, then a fight with a socket recharging and one at `0`. Check the capture against the spec's Layout and the style guide's §12 checklist, and fix what is off.
 - [ ] **Step 3: Request a whole-branch review** (superpowers:requesting-code-review), then fix what it finds.
+
+## As built (2026-10-25)
+
+The tasks above are the plan as written. The build changed it in these places:
+
+- **After the first in-game capture.** The count seal moved from the socket's top right to its bottom right (top +30), and the seconds dropped to `LabelLacquerCooldown` at 15 px. The 22 px seconds filled the 32 px icon and ran into the seal.
+- **After the branch review.** Tests were added for:
+  - a press after the last one is used;
+  - the `Instant` timing line;
+  - the effects line wrapping.
+
+  Three stale doc lines were fixed.
+- **A cleanup pass, at the user's request.** The changes:
+  - `DockSlot` (`scenes/ui/combat/technique_dock/dock_slot.gd`) is now the base of both `TechniqueSlot` and `ConsumableSlot`. It holds the states, the key cap, the cooldown sweep, the ready flash, hover, the press and the refusal shake. `sweep_step()`, `seconds_text()` and `key_label()` moved there.
+  - Every count seal is one `LacquerCountSeal` (`scenes/common/lacquer/lacquer_count_seal.tscn`): the cabinet's buff sockets, the zone dock's buttons and the consumable sockets. It shows the zone kit's `lacquer_seal_count_ai.png`, redrawn so its middle stretches, and `lacquer_seal_count9_ai.png` was deleted.
+  - The consumable socket is the kit's `lacquer_socket_glyph_ai.png`, and `lacquer_slot_consumable_ai.png` was deleted.
+  - `CombatConsumableManager.consumable_used` and `CombatConsumableInstance.use_count` were unused, and went.
+  - `ConsumableSlot.seal_width()`, `get_consumable_data()` and `get_count()` went.
+  - The slot tests shrank to what only `ConsumableSlot` does. The rest is tested through the technique slots, the dock and the seal's own test (`test_lacquer_count_seal.gd`).

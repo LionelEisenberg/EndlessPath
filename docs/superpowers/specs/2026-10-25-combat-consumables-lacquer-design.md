@@ -2,6 +2,14 @@
 
 > **Status:** written on 2026-10-25. It carries the June combat-consumables design onto the lacquer adventure view. The user skipped the questions ("Put the consumables where you think they fit the lacquer frame best"), so every new choice below is Claude's and is marked as such.
 >
+> **Cleanup, same day.** The user asked whether the branch reused enough, and then asked for a cleanup. The changes:
+> - the two slots now share `DockSlot`;
+> - every count seal in the game is one stretchable `LacquerCountSeal` on the zone kit's own seal, which was redrawn so its middle stretches;
+> - the consumable socket is the kit's existing glyph socket;
+> - an unused signal and counter were removed.
+>
+> The sections below describe the result.
+>
 > **Builds on:**
 > - the June design, `docs/superpowers/specs/2026-06-01-combat-consumables-design.md` on the unmerged branch `feat/infallible-chaum-58f8ad` (20 commits, 2026-06-01). Its behaviour is kept. Its code and its look are not: it put a strip on the player's `CombatantInfoPanel`, which the adventure rework removed;
 > - the [adventure view's lacquer design](2026-10-22-adventure-view-lacquer-design.md) (the technique dock, its tooltip and the cast tray);
@@ -37,7 +45,7 @@ The inventory can put four consumables on its hotbar ("carry it into combat"), b
 | Tooltip | The dock's own tooltip (the `board9` board). It shows the name, `Instant · Cooldown 10 s` (`Instant` with no cooldown), one line per effect (`EffectData.describe()`, `+20 Madra`), a divider and the description | Claude (June reused `ItemDescriptionPanel`, which has the old look) |
 | A refused press | Pressing a socket that is recharging or has none left shakes it softly (`MapGlyph.SOFT_SHAKE_KEYFRAMES`), as a refused technique does. There is no log line, because the sweep and the seal already say why. An empty socket does nothing | Claude, following the technique slot |
 | Ready again | One brass flash, as for a technique. A socket with none left does not flash | Claude, following the technique slot |
-| The count | A vermilion count seal hanging off the socket's bottom right corner, where the inventory's hotbar puts its stack count. It grows leftward to fit the number, so a count is never cut off. The first capture had the seal at the top right, as on the cabinet's buff sockets, but there it crowded the key cap and ran into the seconds | Claude (style guide rule 14) |
+| The count | A vermilion count seal hanging off the socket's bottom right corner, where the inventory's hotbar puts its stack count. It grows leftward to fit the number, so a count is never cut off. It is the kit's one count seal, `LacquerCountSeal`, which the buff sockets and the dock's buttons share. The first capture had the seal at the top right, as on the cabinet's buff sockets, but there it crowded the key cap and ran into the seconds | Claude (style guide rule 14) |
 | Log | No line when a consumable is used. Techniques log none either; the cabinet's orbs show the gain | Claude |
 
 ## Layout (1920x1080)
@@ -48,7 +56,7 @@ The inventory can put four consumables on its hotbar ("carry it into combat"), b
 | Consumable sockets | Dock-local x 46, 158, 270, 382; y 18; 48x48 | Centred on the technique slots' centres (70, 182, 294, 406). On screen: 768, 880, 992 and 1104, at y 874 |
 | · Icon | Socket +8, +8; 32x32 | The item's 64 px icon at 32 (style guide §9: on the grid at 32 or 64), with the cooldown sweep |
 | · Key cap | Socket −6, −6; 22x22 | `lacquer_keycap_ai.png`. The key is read from the input map, in `LabelLacquerHotkey` |
-| · Count seal | Right edge at socket +52, top at +30 (4 px past the socket's right edge, 6 px below its bottom); 24x24 at least | `lacquer_seal_count9_ai.png` on a `NinePatchRect` (margins 6 left and right). Count in `LabelLacquerSeal` at 15 px, as on the other count seals. Width is max(24, the text's width + 8, rounded up to even) |
+| · Count seal | Right edge at socket +52, top at +30 (4 px past the socket's right edge, 6 px below its bottom); 24x24 at least | A `LacquerCountSeal`: `lacquer_seal_count_ai.png` on a `NinePatchRect` (margins 6 left and right), the count in `LabelLacquerSeal` at 15 px. Width is max(24, the text's width + 8, rounded up to even) |
 | · Seconds | Centred on the icon | `LabelLacquerCooldown` at 15 px (a cooldown timer's direct size override, UI_STYLING's rule of thumb): the variant's 22 px filled the 32 px icon and ran into the seal. Whole seconds rounded up, as on a technique |
 | Technique slots | Dock-local x 30, 142, 254, 366; y 82 (was 18) | Key caps at y 76; cost lines at +90, as before |
 | Cast tray | Dock-local 0, −52 (screen 722, 804, 476x44) | Unchanged relative to the dock. It still grows upward, now from y 848 |
@@ -68,7 +76,7 @@ CombatantNode (per fight, freed when the fight ends)
 
 TechniqueDock (scenes/ui/combat/technique_dock/)
 ├── Board                              lacquer_tdock_consumables_ai.png
-├── ConsumableSlot1..4                 new scene: scenes/ui/combat/technique_dock/consumable_slot/
+├── ConsumableSlot1..4                 new scene: scenes/ui/combat/technique_dock/consumable_slot/ (on DockSlot, as TechniqueSlot is)
 ├── Slot1..4                           TechniqueSlot, moved down 64 px
 ├── CastTray
 └── TechniqueTooltip                   gains show_for_consumable()
@@ -90,13 +98,12 @@ TechniqueDock (scenes/ui/combat/technique_dock/)
 
 ## Art
 
-New `_ai` files. They are drawn by the adventure kit's generator (`docs/superpowers/mockups/adventure-view-lacquer/gen/kit_adventure.py`, `consumable_pieces()`) and imported by `import_adventure_kit.py`:
+The board is new `_ai` art from the adventure kit's generator (`docs/superpowers/mockups/adventure-view-lacquer/gen/kit_adventure.py`, `technique_dock_consumables()`), imported by `import_adventure_kit.py`. The sockets are the kit's existing 48 px glyph sockets (`lacquer_socket_glyph_ai.png`). The count seal is the kit's own, redrawn:
 
 | File | What | Shadow |
 |---|---|---|
-| `assets/ui/lacquer/lacquer_slot_consumable_ai.png` | The technique slot's carved socket with its raised lip, at 24 art px (48x48) | 2 px `#150909` (50x50) |
 | `assets/ui/lacquer/lacquer_tdock_consumables_ai.png` | The plain dock board at 238x100 art px (476x200), with its own grain and gloss | 4 px `#050707` (480x204) |
-| `assets/ui/lacquer/lacquer_seal_count9_ai.png` | The count seal (12x12 art px) with its worn bites kept to the outer three columns, so its middle stretches | None, like the count seal |
+| `assets/ui/lacquer/lacquer_seal_count_ai.png` (redrawn) | The zone kit's count seal (12x12 art px) with its worn bites moved into its outer three columns, so its middle stretches. Drawn by the zone kit's generator (`kit_ui.py`) | None |
 
 `lacquer_tdock_ai.png` leaves `assets/` because nothing uses it any more. The mock keeps its own copy, since its page still draws the old dock.
 
