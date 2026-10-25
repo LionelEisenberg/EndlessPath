@@ -252,6 +252,5 @@ A test file's name says which system or flow it checks (`tests/unit/test_<system
 - `[LOW]` The book tests call GUT's deprecated `wait_frames()`, which prints 30 deprecation notices per run. GUT suggests `wait_physics_frames()` or `wait_process_frames()`.
 - `[LOW]` `CountingEffect` is duplicated in `test_consumable_definition_data.gd` and `test_inventory_manager_consumables.gd`, and there is no shared helper module.
 - `[LOW]` `PathManager._test_stage_override` is a test hook in production code.
-- `[LOW]` `tests/unit/test_path_manager.gd` swaps in a one-entry `AbilityManager._abilities_by_id` and never gives it back. It now restores `CyclingManager`'s index and save, as `test_cycling_manager.gd` does, and `test_fresh_save_cycling_card_wraps` rebuilds the real technique catalog for itself.
 - `[LOW]` Several tests replace `PersistenceManager.save_game_data` with a fresh `SaveGameData` and never put the original back, for example `test_adventure_encounter.gd` and `test_award_path_point_effect_data.gd`. The next script in the process starts on their save, not the run's own. Keep the original in a field and restore it in `after_each()`, as the files in the patterns table do.
 - `[LOW]` A headless `--import` in a fresh checkout empties `[dialogic] directories/*` in `project.godot` (see [the gotcha](#first-run-in-a-fresh-checkout)).

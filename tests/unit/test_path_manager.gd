@@ -28,14 +28,28 @@ func _create_test_tree(nodes: Array[PathNodeData]) -> PathTreeData:
 	tree.nodes = nodes
 	return tree
 
-## CyclingManager's real state, given back after each test so later files see
-## the real technique catalog.
+## The managers' real state, given back after each test so later files see the
+## real path trees, catalogs and saves, not this file's one-node stubs.
+var _saved_path_save_data: SaveGameData = null
+var _saved_all_trees: Dictionary = {}
+var _saved_current_tree: PathTreeData = null
+var _saved_cached_effects: PathEffectsSummary = null
+var _saved_stage_override: int = -1
 var _saved_cycling_save_data: SaveGameData = null
 var _saved_techniques_by_id: Dictionary = {}
+var _saved_ability_save_data: SaveGameData = null
+var _saved_abilities_by_id: Dictionary = {}
 
 func before_each() -> void:
+	_saved_path_save_data = PathManager._live_save_data
+	_saved_all_trees = PathManager._all_trees
+	_saved_current_tree = PathManager._current_tree
+	_saved_cached_effects = PathManager._cached_effects
+	_saved_stage_override = PathManager._test_stage_override
 	_saved_cycling_save_data = CyclingManager._live_save_data
 	_saved_techniques_by_id = CyclingManager._techniques_by_id
+	_saved_ability_save_data = AbilityManager._live_save_data
+	_saved_abilities_by_id = AbilityManager._abilities_by_id
 	_save_data = SaveGameData.new()
 	PathManager._live_save_data = _save_data
 	PathManager._all_trees = {}
@@ -54,8 +68,15 @@ func before_each() -> void:
 	AbilityManager._abilities_by_id = {"empty_palm": _empty_palm}
 
 func after_each() -> void:
+	PathManager._live_save_data = _saved_path_save_data
+	PathManager._all_trees = _saved_all_trees
+	PathManager._current_tree = _saved_current_tree
+	PathManager._cached_effects = _saved_cached_effects
+	PathManager._test_stage_override = _saved_stage_override
 	CyclingManager._live_save_data = _saved_cycling_save_data
 	CyclingManager._techniques_by_id = _saved_techniques_by_id
+	AbilityManager._live_save_data = _saved_ability_save_data
+	AbilityManager._abilities_by_id = _saved_abilities_by_id
 
 # ----- Point management -----
 

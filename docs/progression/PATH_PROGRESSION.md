@@ -666,4 +666,3 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - `add_points()` accepts negative amounts with no floor.
   - `get_node_purchase_count()`, `can_purchase_node()`, and `reset_path()` dereference `_live_save_data` without a null check.
   - `PathTreeData.validate()` doesn't check `UNLOCK_*` ids against the catalogs or that each node has a layout marker.
-- `[LOW]` **Test isolation.** `test_path_manager.gd`'s `after_each()` gives back only `CyclingManager`'s save and technique index. It leaves behind `PathManager._test_stage_override = JADE`, a throwaway `_live_save_data`, and a one-entry `AbilityManager._abilities_by_id` for later tests.
