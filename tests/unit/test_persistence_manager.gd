@@ -405,6 +405,43 @@ func test_save_option_opens_that_file() -> void:
 	assert_true(FileAccess.file_exists(option_path), "a --save file that is missing is created")
 	assert_false(FileAccess.file_exists(path), "the file the manager would have played is not touched")
 
+## A preset session starts on a fresh save that DevManager builds on next, so
+## boot reads no file, backs nothing up and takes no lock. Here the main save is
+## the file a plain boot would play.
+func test_boot_with_a_preset_reads_no_file() -> void:
+	var path := _path("preset_boot")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	var manager := _make_manager(path)
+	manager.main_save_path = path
+	var options := LaunchOptions.new()
+	options.preset_id = "merchant_open"
+	manager.boot(options)
+	assert_true(manager.is_in_memory(), "a preset session lives in memory when no --save is given")
+	assert_eq(manager.save_game_data.gold, 0.0, "the session plays a fresh save, not the file's")
+	assert_eq(manager.save_game_data.save_version, SaveGameData.CURRENT_VERSION, "the fresh save is stamped")
+	assert_eq(_read(path), original, "the file is left as it was")
+	assert_eq(manager.list_backups().size(), 0, "no backup is taken")
+	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
+	assert_eq(SaveLock.holder_pid(path), 0, "nor is the file's lock taken")
+
+## With --save as well, the preset session writes that file: it holds the
+## file's lock, but still starts on a fresh save and reads nothing from it.
+func test_a_preset_with_a_save_option_plays_a_fresh_save_there() -> void:
+	var path := _path("preset_default")
+	var option_path := _path("preset_option")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(option_path, original)
+	var manager := _make_manager(path)
+	var options := LaunchOptions.parse(PackedStringArray(["--preset=merchant_open", "--save=" + option_path, "--no-autosave"]))
+	manager.boot(options)
+	assert_eq(manager.save_path, option_path, "the session writes the --save file")
+	assert_eq(manager.save_game_data.gold, 0.0, "the session plays a fresh save, not the file's")
+	assert_false(manager.autosave_enabled, "--no-autosave still turns autosave off")
+	assert_eq(_read(option_path), original, "nothing is written at boot")
+	assert_eq(SaveLock.holder_pid(option_path), OS.get_process_id(), "the session holds the lock on the file it writes")
+	assert_false(FileAccess.file_exists(path), "the file the manager would have played is not touched")
+
 func test_no_autosave_turns_off_the_tick() -> void:
 	var path := _path("no_autosave")
 	_write(path, READABLE_SAVE_TEXT % "SpiritValley")

@@ -3,9 +3,11 @@ extends Node
 ## PersistenceManager
 ## Owns the session's save: the SaveGameData every manager holds, and the file
 ## it is written to. A run plays one session: the user's own save
-## (main_save_path), a --save file, or a save in memory that nothing writes (every
-## GUT run). Writes go through SaveFiles, which writes a temp file and renames it
-## over the save, so a crash mid-write never leaves a half-written save.
+## (main_save_path), a --save file, a preset DevManager builds on a fresh save
+## (in memory, or written to the --save file), or a save in memory that nothing
+## writes (every GUT run). Writes go through SaveFiles, which writes a temp file
+## and renames it over the save, so a crash mid-write never leaves a half-written
+## save.
 ##
 ## It never replaces a save it could not read or check. A save that fails to load
 ## (for example because a stale import cache is missing a texture an item .tres
@@ -102,13 +104,20 @@ func _notification(what: int) -> void:
 #-----------------------------------------------------------------------------
 
 ## Starts the run's session from its launch options (null reads this process's
-## own, LaunchOptions.current()). --no-autosave turns autosave off and
-## --save=<path> replaces save_path. A session on the main save backs it up
-## before anything can write it, unless another live run holds the save's lock.
-## Then open_save_file() makes save_path the session.
+## own, LaunchOptions.current()). --no-autosave turns autosave off.
+## A preset session (--preset=<id>, or the pinned preset) reads no file and backs
+## nothing up: it plays a fresh save, written to the --save path when one was
+## given and kept in memory otherwise, which DevManager builds the preset on once
+## every autoload is ready.
+## Any other session: --save=<path> replaces save_path, and a session on the main
+## save backs it up before anything can write it, unless another live run holds
+## the save's lock. Then open_save_file() makes save_path the session.
 func boot(options: LaunchOptions = null) -> void:
 	var launch: LaunchOptions = options if options != null else LaunchOptions.current()
 	autosave_enabled = not launch.no_autosave
+	if launch.preset_id != "":
+		use_save(SaveGameData.new_current(), launch.save_path)
+		return
 	if launch.save_path != "":
 		save_path = launch.save_path
 	if save_path == main_save_path:

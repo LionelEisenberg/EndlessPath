@@ -9,5 +9,8 @@
 .claude/worktrees/
 .superpowers/
 
+# The checkout's pinned save preset (LaunchOptions), one per checkout
+.dev_settings.cfg
+
 # Local preview server working directory (served copy of docs/superpowers/mockups/)
 /mockups/

@@ -2,9 +2,14 @@ class_name LaunchOptions extends RefCounted
 
 ## LaunchOptions
 ## What this run was launched with: the options after `--` on the command line
-## (`--save=<path>` and `--no-autosave`), and whether the process is a GUT test
-## run. Code reads the options through current(). parse() takes the argument
-## list as a parameter, so a test can feed it any list.
+## (`--save=<path>`, `--no-autosave` and `--preset=<id>`), the preset pinned for
+## this checkout, and whether the process is a GUT test run. Code reads the
+## options through current(). parse() takes the argument list and the pin as
+## parameters, so a test can feed it any of them.
+##
+## The pin is one preset id kept in a ConfigFile per checkout: every launch from
+## the checkout starts in that preset until it is unpinned, unless the command
+## line names another with --preset.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -12,12 +17,25 @@ class_name LaunchOptions extends RefCounted
 
 const _SAVE_OPTION_PREFIX: String = "--save="
 const _NO_AUTOSAVE_OPTION: String = "--no-autosave"
+const _PRESET_OPTION_PREFIX: String = "--preset="
 
 ## Both ways a GUT run starts put this in the engine arguments, once
 ## backslashes are slashes: the CLI's `-s res://addons/gut/gut_cmdln.gd` (typed
 ## as `addons\gut\...` on Windows) and the editor panel's
 ## `--scene res://addons/gut/gui/run_from_editor.tscn`.
 const _GUT_PATH_MARKER: String = "addons/gut/"
+
+## The pin file of a run from the editor binary: in the checkout's own folder, so
+## each worktree has its own pin. .gitignore keeps it out of commits, and the
+## editor skips files whose names start with a dot.
+const _EDITOR_PIN_PATH: String = "res://.dev_settings.cfg"
+
+## The pin file of an exported build, whose res:// is read-only.
+const _EXPORT_PIN_PATH: String = "user://dev_settings.cfg"
+
+## Where the pin is kept in the pin file.
+const _PIN_SECTION: String = "dev"
+const _PIN_KEY: String = "pinned_preset"
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -30,29 +48,48 @@ var save_path: String = ""
 ## True when `--no-autosave` was given.
 var no_autosave: bool = false
 
+## The preset to start in: from `--preset=<id>`, or the pinned preset when the
+## option was not given. Empty for neither.
+var preset_id: String = ""
+
+## True when preset_id came from the pin, not from `--preset`.
+var preset_from_pin: bool = false
+
 ## What current() parsed on its first call.
 static var _current: LaunchOptions = null
+
+## For tests only: the pin file to read and write instead of this checkout's.
+## Empty uses the checkout's (pin_file_path()).
+static var pin_path_override: String = ""
 
 #-----------------------------------------------------------------------------
 # PUBLIC API
 #-----------------------------------------------------------------------------
 
-## Reads `--save=<path>` and `--no-autosave` from the arguments. Anything else
-## is ignored, a `--save` without an `=` included.
-static func parse(user_args: PackedStringArray) -> LaunchOptions:
+## Reads `--save=<path>`, `--no-autosave` and `--preset=<id>` from the
+## arguments. Anything else is ignored, a `--save` without an `=` included, and
+## an option given twice keeps its last value. When no `--preset` names an id,
+## the preset is `pinned_preset_id` and preset_from_pin is set.
+static func parse(user_args: PackedStringArray, pinned_preset_id: String = "") -> LaunchOptions:
 	var options: LaunchOptions = LaunchOptions.new()
 	for arg: String in user_args:
 		if arg.begins_with(_SAVE_OPTION_PREFIX):
 			options.save_path = arg.trim_prefix(_SAVE_OPTION_PREFIX)
+		elif arg.begins_with(_PRESET_OPTION_PREFIX):
+			options.preset_id = arg.trim_prefix(_PRESET_OPTION_PREFIX)
 		elif arg == _NO_AUTOSAVE_OPTION:
 			options.no_autosave = true
+	if options.preset_id == "" and pinned_preset_id != "":
+		options.preset_id = pinned_preset_id
+		options.preset_from_pin = true
 	return options
 
-## The options this process was launched with: the user arguments after `--`,
-## parsed on the first call and the same object on every call after it.
+## The options this process was launched with: the user arguments after `--`
+## and the checkout's pin (read_pin()), parsed on the first call and the same
+## object on every call after it.
 static func current() -> LaunchOptions:
 	if _current == null:
-		_current = parse(OS.get_cmdline_user_args())
+		_current = parse(OS.get_cmdline_user_args(), read_pin())
 	return _current
 
 ## True when this process is a GUT run, from the command line or from the
@@ -63,3 +100,46 @@ static func is_test_run() -> bool:
 		if arg.replace("\\", "/").contains(_GUT_PATH_MARKER):
 			return true
 	return false
+
+#-----------------------------------------------------------------------------
+# THE PIN
+#-----------------------------------------------------------------------------
+
+## The file the pin is kept in: pin_path_override when a test set it. Otherwise
+## res://.dev_settings.cfg, in the checkout, for a run from the editor binary
+## (OS.has_feature("editor"), true for every run the editor starts), and
+## user://dev_settings.cfg for an exported build.
+static func pin_file_path() -> String:
+	if pin_path_override != "":
+		return pin_path_override
+	if OS.has_feature("editor"):
+		return _EDITOR_PIN_PATH
+	return _EXPORT_PIN_PATH
+
+## The pinned preset's id, or "" when nothing is pinned or the pin file is
+## missing or will not load. Reading never writes.
+static func read_pin() -> String:
+	var path: String = pin_file_path()
+	if not FileAccess.file_exists(path):
+		return ""
+	var config := ConfigFile.new()
+	if config.load(path) != OK:
+		return ""
+	return str(config.get_value(_PIN_SECTION, _PIN_KEY, ""))
+
+## Pins the preset with this id, so every launch from this checkout starts in
+## it; "" unpins, erasing the key. Anything else in the pin file is kept.
+## Returns the error of the load or the save, OK when the pin is written.
+static func write_pin(preset_id: String) -> Error:
+	var path: String = pin_file_path()
+	var config := ConfigFile.new()
+	if FileAccess.file_exists(path):
+		var load_error: Error = config.load(path)
+		if load_error != OK:
+			return load_error
+	if preset_id == "":
+		# A null value erases the key, and the section once it is empty.
+		config.set_value(_PIN_SECTION, _PIN_KEY, null)
+	else:
+		config.set_value(_PIN_SECTION, _PIN_KEY, preset_id)
+	return config.save(path)
