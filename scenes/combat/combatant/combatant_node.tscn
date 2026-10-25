@@ -7,11 +7,15 @@
 [ext_resource type="PackedScene" path="res://scenes/combat/combatant/combat_buff_manager/combat_buff_manager.tscn" id="5_buffmgr"]
 
 [ext_resource type="PackedScene" path="res://scenes/combat/combatant/combatant_visual/combatant_visual.tscn" id="6_visual"]
+[ext_resource type="PackedScene" uid="uid://ch202xod6diup" path="res://scenes/combat/combatant/combat_consumable_manager/combat_consumable_manager.tscn" id="7_consumables"]
 
 [node name="CombatantNode" type="Node2D" unique_id=162492521]
 script = ExtResource("1_jrp2a")
 
 [node name="CombatAbilityManager" parent="." unique_id=567670352 instance=ExtResource("2_e7ifb")]
+unique_name_in_owner = true
+
+[node name="CombatConsumableManager" parent="." instance=ExtResource("7_consumables")]
 unique_name_in_owner = true
 
 [node name="VitalsManager" parent="." unique_id=140792063 instance=ExtResource("3_re4bv")]
