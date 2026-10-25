@@ -974,16 +974,20 @@ func test_cast_tray_layout_matches_the_kit() -> void:
 	assert_eq(time_text.horizontal_alignment, HORIZONTAL_ALIGNMENT_RIGHT)
 	assert_eq(time_text.theme_type_variation, &"RichTextLacquer")
 
-## One shader on each icon: progress is its only uniform, each slot has its own
-## material, and it draws in whole steps (no TIME, no blending).
+## One shader on each icon: progress is the only uniform a script sets, the
+## icon's size keeps its default of 64 (a consumable socket sets 32 on its own
+## material), each slot has its own material, and it draws in whole steps (no
+## TIME, no blending).
 func test_icon_draws_the_sweep_shader() -> void:
 	var material: ShaderMaterial = (_slot_node(0, "Icon") as CanvasItem).material as ShaderMaterial
 	assert_not_null(material, "a ShaderMaterial on the icon")
 	assert_eq(material.shader.resource_path, SWEEP_SHADER_PATH)
-	var uniforms: Array = material.shader.get_shader_uniform_list()
-	assert_eq(uniforms.size(), 1, "one uniform")
-	assert_eq(uniforms[0]["name"], "progress")
-	assert_eq(uniforms[0]["type"], TYPE_FLOAT)
+	var uniforms: Dictionary = {}
+	for uniform: Dictionary in material.shader.get_shader_uniform_list():
+		uniforms[uniform["name"]] = uniform["type"]
+	assert_eq(uniforms, {"progress": TYPE_FLOAT, "icon_size": TYPE_FLOAT}, "the step, and the icon's size")
+	assert_string_contains(material.shader.code, "uniform float icon_size = 64.0;", "a 64 px icon by default")
+	assert_true(material.get_shader_parameter(&"icon_size") in [null, 64.0], "a technique slot keeps the default")
 	assert_true(material.resource_local_to_scene)
 	assert_ne(material, (_slot_node(1, "Icon") as CanvasItem).material, "each slot sweeps its own icon")
 	assert_string_contains(material.shader.code, "shader_type canvas_item;")

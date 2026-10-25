@@ -30,15 +30,18 @@ MAP = UI / 'map'
 GLYPHS = Path(AB.ASSETS) / 'sprites' / 'adventure' / 'encounter_glyphs'
 FOREST = Path(AB.ASSETS) / 'sprites' / 'tilemap' / 'hex_tiles' / 'forest'
 
-# Pieces that cast a shadow: kit name -> the zone kit's (offset, colour).
+# Pieces that cast a shadow: kit name -> the zone kit's (offset, colour). The technique dock's
+# board is the one with the consumable row (tdock_consumables); the mock's page keeps the old
+# 476x136 tdock, which the game no longer uses.
 SHADOWED = {
-    'tdock': SHADOW_BIG,
+    'tdock_consumables': SHADOW_BIG,
     'board9': SHADOW_BIG,
     'slot': SHADOW_SMALL,
+    'slot_consumable': SHADOW_SMALL,
     'keycap': SHADOW_SMALL,
 }
 # Pieces copied as drawn: kit names.
-PLAIN = ['cast_tray', 'timer', 'timer_low', 'socket_buff', 'socket_glyph',
+PLAIN = ['cast_tray', 'timer', 'timer_low', 'socket_buff', 'socket_glyph', 'seal_count9',
          'mini_health', 'mini_stamina', 'mini_hourglass'] + \
         [f'rod_{rod}_{part}' for rod in ('stamina', 'cast') for part in ('empty', 'full', 'end')]
 TOKENS = 'lacquer_marker_tokens_ai.png'         # four 52x52 coins side by side
