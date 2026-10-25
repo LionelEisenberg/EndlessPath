@@ -30,9 +30,9 @@ extends Node
 ## session that came back is the new one).
 signal session_changed
 
-## Emitted when a switch in game is refused or fails, with the reason. A refused
-## switch changes nothing. A failed one has brought back the session it left by
-## then, and session_changed follows.
+## Emitted when a switch in game is refused or fails, with the reason, which
+## get_last_switch_failure() keeps. A refused switch changes nothing. A failed one
+## has brought back the session it left by then, and session_changed follows.
 signal session_switch_failed(reason: String)
 
 #-----------------------------------------------------------------------------
@@ -76,6 +76,9 @@ var _session_kind: SessionKind = SessionKind.YOUR_SAVE
 ## The preset the session was built from, or null.
 var _session_preset: SavePresetData = null
 
+## Why the last switch was refused or failed, or "" once a switch has worked.
+var _last_switch_failure: String = ""
+
 #-----------------------------------------------------------------------------
 # LIFECYCLE
 #-----------------------------------------------------------------------------
@@ -99,6 +102,13 @@ func get_session_kind() -> SessionKind:
 ## (FALLBACK_PRESET_ID), so a preset session always has one.
 func get_session_preset() -> SavePresetData:
 	return _session_preset
+
+## Why the last switch in game was refused or failed, or "" when the last switch
+## worked (or none has run). A switch that fails midway emits
+## session_switch_failed while the main scene, and the dev panel in it, is freed, so
+## the panel built next reads the reason here.
+func get_last_switch_failure() -> String:
+	return _last_switch_failure
 
 ## Sets the session up from the launch options, as _ready() does at launch. The kind
 ## is PRESET when options.preset_id is set, FILE when only options.save_path is,
@@ -219,9 +229,10 @@ func keep_as_my_save() -> void:
 	_schedule_switch(_keep_as_your_save, what, "Kept this game as your save")
 
 ## Puts a backup (PersistenceManager.list_backups()) back as the user's own save,
-## on the next frame: the save is backed up, the backup is copied over it, and the
-## file is opened again. Refused at once in a run with no main save, for a backup
-## that is not there, and while another live run holds the save's lock.
+## on the next frame: the backup is read, the save is backed up, the backup takes
+## its place byte for byte, and the file is opened again. Refused at once in a run
+## with no main save, for a backup that is not there, and while another live run
+## holds the save's lock.
 func restore_backup(backup_path: String) -> void:
 	var what: String = "restore your save from %s" % backup_path.get_file()
 	var refusal: String = _main_save_refusal()
@@ -323,7 +334,8 @@ func _schedule_switch(start_session: Callable, what: String, started: String) ->
 ##    is, so no scene is freed or loaded again;
 ## 4. `start_session` binds the new session and returns "", or returns why it could
 ##    not. The session it left then comes back (_come_back()), and
-##    session_switch_failed is emitted with the reason;
+##    session_switch_failed is emitted with the reason, which
+##    get_last_switch_failure() keeps until a switch works;
 ## 5. the player's log is cleared and gets one [DEV] line naming the new session;
 ## 6. the main scene loads again if step 3 freed it, then session_changed is
 ##    emitted.
@@ -336,6 +348,7 @@ func _run_switch(start_session: Callable, what: String, started: String) -> void
 	var unloaded: bool = _unload_main_scene()
 	var line: String = started
 	var failure: String = start_session.call()
+	_last_switch_failure = failure
 	if failure != "":
 		Log.error("DevManager: Could not %s: %s" % [what, failure])
 		line = "Could not %s: %s. %s" % [what, failure, _come_back(left_kind, left_preset, left_save_path)]
@@ -404,10 +417,11 @@ func _come_back(kind: SessionKind, preset: SavePresetData, save_path: String) ->
 	_start_fallback_session()
 	return "Could not go back either: %s. Playing a fresh game in memory instead" % failure
 
-## Refuses a switch before anything changes: logs why and emits
-## session_switch_failed.
+## Refuses a switch before anything changes: logs why, keeps it for
+## get_last_switch_failure() and emits session_switch_failed.
 func _refuse(what: String, reason: String) -> void:
 	Log.error("DevManager: Could not %s: %s" % [what, reason])
+	_last_switch_failure = reason
 	session_switch_failed.emit(reason)
 
 ## Why a switch that needs the user's own save is refused, or "": the run has no
@@ -418,12 +432,23 @@ func _main_save_refusal() -> String:
 ## Takes the lock on the user's own save for a switch that writes it, and returns
 ## "", or why it could not: another live run holds it, and a run never writes a
 ## save under another. The switch then binds the save, and the session keeps the
-## lock as its own.
+## lock as its own; a switch that fails before that gives it back
+## (_release_unused_lock()).
 func _take_your_save_lock() -> String:
 	var main_save: String = PersistenceManager.main_save_path
 	if SaveLock.acquire(main_save):
 		return ""
 	return "Your save is in use by another run (pid %d)" % SaveLock.holder_pid(main_save)
+
+## Gives back the lock on the user's save that _take_your_save_lock() took for a
+## switch that then failed before it bound the save. Kept, the lock would keep the
+## user's other runs off the save until it goes stale. A session that plays the
+## user's save holds that lock as its own, so it keeps it; and SaveLock.release()
+## deletes only a lock that is this run's, never another run's.
+func _release_unused_lock() -> void:
+	var main_save: String = PersistenceManager.main_save_path
+	if PersistenceManager.save_path != main_save:
+		SaveLock.release(main_save)
 
 #-----------------------------------------------------------------------------
 # SESSION STEPS
@@ -478,6 +503,7 @@ func _open_file(path: String) -> String:
 func _start_new_game() -> String:
 	var refusal: String = _back_up_your_save()
 	if refusal != "":
+		_release_unused_lock()
 		return refusal
 	PersistenceManager.use_save(SaveGameData.new_current(), PersistenceManager.main_save_path)
 	return _write_your_save()
@@ -488,19 +514,29 @@ func _start_new_game() -> String:
 func _keep_as_your_save() -> String:
 	var refusal: String = _back_up_your_save()
 	if refusal != "":
+		_release_unused_lock()
 		return refusal
 	var kept: SaveGameData = PersistenceManager.save_game_data.duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL) as SaveGameData
 	PersistenceManager.use_save(kept, PersistenceManager.main_save_path)
 	return _write_your_save()
 
-## Backs up the user's save, copies the backup over it, then opens it from disk.
+## Reads the backup, backs up the user's save, puts the backup in its place byte
+## for byte, then opens it from disk. The backup is read first: backing up the
+## user's save rotates the oldest backups away once BACKUPS_KEPT are kept, and the
+## chosen one can be the oldest.
 func _restore_backup(backup_path: String) -> String:
+	var restored: PackedByteArray = FileAccess.get_file_as_bytes(backup_path)
+	if restored.is_empty():
+		_release_unused_lock()
+		return "Could not read %s" % backup_path
 	var refusal: String = _back_up_your_save()
 	if refusal != "":
+		_release_unused_lock()
 		return refusal
-	var error: Error = _copy_over(backup_path, PersistenceManager.main_save_path)
+	var error: Error = SaveFiles.write_bytes_atomically(restored, PersistenceManager.main_save_path)
 	if error != OK:
-		return "Could not copy %s over your save (error %d)" % [backup_path, error]
+		_release_unused_lock()
+		return "Could not write %s over your save (error %d)" % [backup_path, error]
 	return _open_your_save()
 
 ## Writes the session's save, which the user's save now holds, and makes it the
@@ -519,16 +555,6 @@ func _back_up_your_save() -> String:
 	if FileAccess.file_exists(PersistenceManager.main_save_path) and PersistenceManager.backup_main_save() == "":
 		return "Could not back up your save, so it was left as it was"
 	return ""
-
-## Copies the file at `from` over the file at `to` through to's temp file, as
-## SaveFiles.write_atomically() writes a save, so a copy cut short never leaves half
-## a file at `to`. The lock beside `to` is left as it is.
-func _copy_over(from: String, to: String) -> Error:
-	var temp_path: String = SaveFiles.temp_path_for(to)
-	var error: Error = DirAccess.copy_absolute(ProjectSettings.globalize_path(from), ProjectSettings.globalize_path(temp_path))
-	if error != OK:
-		return error
-	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(to))
 
 #-----------------------------------------------------------------------------
 # PRIVATE HELPERS

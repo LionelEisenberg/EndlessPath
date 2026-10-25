@@ -33,14 +33,30 @@ static func temp_path_for(path: String) -> String:
 ## it moves the temp in, so a crash inside that rename can leave only the temp,
 ## whole, which load_save() reads.
 static func write_atomically(resource: Resource, path: String) -> Error:
-	var folder_error: Error = DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
+	var folder_error: Error = _make_folder_for(path)
 	if folder_error != OK:
 		return folder_error
-	var temp_path: String = temp_path_for(path)
-	var save_error: Error = ResourceSaver.save(resource, temp_path)
+	var save_error: Error = ResourceSaver.save(resource, temp_path_for(path))
 	if save_error != OK:
 		return save_error
-	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(path))
+	return _replace_with_temp(path)
+
+## Writes `bytes` to `path` the way write_atomically() writes a resource: to
+## temp_path_for(path), which then replaces `path`. It puts a copy of a save file in
+## place of another, byte for byte, so nothing this build does not know is lost.
+## Returns the first error it meets, OK when the file is replaced.
+static func write_bytes_atomically(bytes: PackedByteArray, path: String) -> Error:
+	var folder_error: Error = _make_folder_for(path)
+	if folder_error != OK:
+		return folder_error
+	var file: FileAccess = FileAccess.open(temp_path_for(path), FileAccess.WRITE)
+	if file == null:
+		return FileAccess.get_open_error()
+	var stored: bool = file.store_buffer(bytes)
+	file.close()
+	if not stored:
+		return ERR_FILE_CANT_WRITE
+	return _replace_with_temp(path)
 
 ## Loads the save at `path`, or returns null when nothing there loads as a
 ## SaveGameData. When `path` is missing but its temp file is there, it loads the
@@ -130,6 +146,16 @@ static func list_backups(path: String, backup_dir: String) -> PackedStringArray:
 #-----------------------------------------------------------------------------
 # HELPERS
 #-----------------------------------------------------------------------------
+
+## Makes the folder `path` goes in, with its parents.
+static func _make_folder_for(path: String) -> Error:
+	return DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
+
+## Renames temp_path_for(path) over `path`, the last step of a write. Windows
+## deletes the old file before it moves the temp in, so a crash in between leaves
+## only the temp, whole, which load_save() reads.
+static func _replace_with_temp(path: String) -> Error:
+	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path_for(path)), ProjectSettings.globalize_path(path))
 
 ## The current UTC time as YYYYMMDD-HHMMSS.
 static func _utc_stamp() -> String:

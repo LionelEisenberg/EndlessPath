@@ -42,6 +42,10 @@ const BACKUP_DIR: String = "user://__test_dev_manager_sessions_backups/"
 const MAIN_SAVE_PATH: String = "user://__test_dev_manager_sessions_main.tres"
 ## The --save path the launch tests start with.
 const SAVE_OPTION_PATH: String = "user://__test_dev_manager_sessions_option.tres"
+## A file where a folder would go: a backup folder under it cannot be made.
+const BLOCKER_PATH: String = "user://__test_dev_manager_sessions_blocker"
+## A backup to restore that lives outside the backup folder.
+const SPARE_BACKUP_PATH: String = "user://__test_dev_manager_sessions_spare.tres"
 const MAIN_SAVE_TEXT: String = """[gd_resource type="Resource" script_class="SaveGameData" format=3]
 
 [ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
@@ -83,9 +87,14 @@ var _original_history: Array[String]
 var _original_session_kind: DevManager.SessionKind
 var _original_session_preset: SavePresetData
 var _original_preset_dir_override: String
+var _original_last_switch_failure: String
 
 ## The pid of the helper process standing in for another run, or 0.
 var _helper_pid: int = 0
+
+## What get_last_switch_failure() returned each time session_switch_failed was
+## emitted, while _on_switch_failed() is connected.
+var _failures_when_emitted: Array[String] = []
 
 func before_each() -> void:
 	_original_save = PersistenceManager.save_game_data
@@ -100,6 +109,8 @@ func before_each() -> void:
 	_original_session_kind = DevManager._session_kind
 	_original_session_preset = DevManager._session_preset
 	_original_preset_dir_override = DevManager.preset_dir_override
+	_original_last_switch_failure = DevManager._last_switch_failure
+	_failures_when_emitted.clear()
 	ActionManager.cancel_current_action()
 	PersistenceManager.use_save(SaveGameData.new_current(), "")
 	# The real state, whatever an earlier file left behind (as test_story_route.gd
@@ -118,11 +129,14 @@ func before_each() -> void:
 	DevManager.preset_dir_override = PRESET_DIR
 	DevManager._session_kind = SessionKind.YOUR_SAVE
 	DevManager._session_preset = null
+	DevManager._last_switch_failure = ""
 
 func after_each() -> void:
 	if _helper_pid > 0:
 		OS.kill(_helper_pid)
 		_helper_pid = 0
+	if DevManager.session_switch_failed.is_connected(_on_switch_failed):
+		DevManager.session_switch_failed.disconnect(_on_switch_failed)
 	ActionManager.cancel_current_action()
 	DialogueManager.end_dialogue_now()
 	GameSpeed.set_base_scale(1.0)
@@ -137,6 +151,7 @@ func after_each() -> void:
 	DevManager._session_kind = _original_session_kind
 	DevManager._session_preset = _original_session_preset
 	DevManager.preset_dir_override = _original_preset_dir_override
+	DevManager._last_switch_failure = _original_last_switch_failure
 	# Binding the original save again resumes its idle action, if it has one.
 	# Stop it, so its tick timer does not run on into the next test.
 	ActionManager.cancel_current_action()
@@ -196,6 +211,21 @@ func _start_on_temp_main_save() -> void:
 	DevManager._session_preset = null
 	assert_eq(ResourceManager.get_gold(), 42.0, "precondition: the session plays the temp main save")
 
+## Writes the temp main save's file again, holding this gold. The session keeps
+## what it loaded.
+func _write_main_save_with_gold(gold: float) -> void:
+	var file := FileAccess.open(MAIN_SAVE_PATH, FileAccess.WRITE)
+	file.store_string(MAIN_SAVE_TEXT.replace("gold = 42.0", "gold = %.1f" % gold))
+	file.close()
+
+## Points the backups at a folder that cannot be made, because a file has its
+## parent's name, so backing up your save fails.
+func _block_backups() -> void:
+	var file := FileAccess.open(BLOCKER_PATH, FileAccess.WRITE)
+	file.store_string("A file, not a folder")
+	file.close()
+	PersistenceManager.backup_dir = BLOCKER_PATH + "/backups/"
+
 ## Starts a helper process that lives for about five seconds, as another run does,
 ## and writes the lock it holds on the save at `path`. after_each() kills it.
 func _lock_as_another_run(path: String) -> void:
@@ -225,6 +255,9 @@ func _completions_in(save: SaveGameData, action_id: String) -> int:
 func _failure_reason() -> String:
 	var parameters: Variant = get_signal_parameters(DevManager, "session_switch_failed")
 	return String(parameters[0]) if parameters != null else ""
+
+func _on_switch_failed(_reason: String) -> void:
+	_failures_when_emitted.append(DevManager.get_last_switch_failure())
 
 ## Waits until Dialogic's late timeline_ended has reached DialogueManager (watched),
 ## or a second has passed.
@@ -482,6 +515,22 @@ func test_a_failed_build_rebuilds_the_preset_it_left() -> void:
 	if history.size() == 1:
 		assert_string_contains(history[0], "Left behind")
 
+## In a real run a failed switch emits session_switch_failed while the main scene,
+## and the dev panel in it, is freed, so the panel built next reads the reason.
+func test_the_last_failure_is_kept_for_the_panel() -> void:
+	DevManager.session_switch_failed.connect(_on_switch_failed)
+	DevManager.play_preset(_preset("test_failing", "", [_step(Kind.COMPLETE_ACTION, NPC_4)]))
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_string_contains(DevManager.get_last_switch_failure(), NPC_4, "the failed build's reason is kept")
+	assert_string_contains(DevManager.get_last_switch_failure(), "not available")
+	assert_eq(_failures_when_emitted.size(), 1, "precondition: the failure was emitted")
+	if _failures_when_emitted.size() == 1:
+		assert_string_contains(_failures_when_emitted[0], NPC_4, "it is kept before the signal goes out")
+	DevManager.play_preset(_preset("test_works", ""))
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET, "precondition: the next switch worked")
+	assert_eq(DevManager.get_last_switch_failure(), "", "a switch that works clears it")
+
 func test_a_failed_build_reopens_the_file_it_left() -> void:
 	var file := FileAccess.open(SAVE_OPTION_PATH, FileAccess.WRITE)
 	file.store_string(MAIN_SAVE_TEXT)
@@ -565,6 +614,61 @@ func test_restore_backup_brings_it_back() -> void:
 		assert_eq(_gold_in_file(backups[0]), 5.0, "the newest backup holds the save it replaced")
 	assert_eq(_gold_in_file(backup), 42.0, "the restored backup stays as it was")
 
+## Backing up your save rotates the oldest backups away once BACKUPS_KEPT are kept,
+## which is the steady state, and the oldest is the one being restored.
+func test_restoring_the_oldest_of_a_full_backup_folder() -> void:
+	_start_on_temp_main_save()
+	for gold: int in range(100, 100 + PersistenceManager.BACKUPS_KEPT):
+		_write_main_save_with_gold(gold)
+		assert_ne(PersistenceManager.backup_main_save(), "", "precondition: a backup with gold %d" % gold)
+	_write_main_save_with_gold(42.0)
+	var backups: PackedStringArray = PersistenceManager.list_backups()
+	assert_eq(backups.size(), PersistenceManager.BACKUPS_KEPT, "precondition: the backup folder is full")
+	var oldest: String = backups[backups.size() - 1]
+	assert_eq(_gold_in_file(oldest), 100.0, "precondition: the oldest backup holds gold 100")
+	watch_signals(DevManager)
+	DevManager.restore_backup(oldest)
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_signal_not_emitted(DevManager, "session_switch_failed")
+	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE)
+	assert_eq(ResourceManager.get_gold(), 100.0, "the session plays the oldest backup")
+	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 100.0, "which is your save on disk")
+	var after: PackedStringArray = PersistenceManager.list_backups()
+	assert_eq(after.size(), PersistenceManager.BACKUPS_KEPT, "the folder keeps its newest backups")
+	if not after.is_empty():
+		assert_eq(_gold_in_file(after[0]), 42.0, "the newest holds the save the restore replaced")
+
+## A switch that writes your save takes its lock when it is asked for. One that
+## fails before it binds your save gives the lock back, or the lock would keep the
+## user's other runs off the save for up to a minute.
+func test_a_switch_that_fails_before_binding_your_save_gives_its_lock_back() -> void:
+	_start_on_temp_main_save()
+	var spare := FileAccess.open(SPARE_BACKUP_PATH, FileAccess.WRITE)
+	spare.store_string(MAIN_SAVE_TEXT)
+	spare.close()
+	DevManager.play_preset(_preset("test_lock_back", "", [_step(Kind.SET_GOLD, "", 700.0)]))
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "precondition: a preset in memory holds no lock on your save")
+	_block_backups()
+	watch_signals(DevManager)
+	DevManager.keep_as_my_save()
+	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), OS.get_process_id(), "precondition: keep takes your save's lock when asked")
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_engine_error("Could not create directory", "the backup folder cannot be made")
+	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "the failed keep gave the lock back")
+	DevManager.new_game()
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_engine_error("Could not create directory")
+	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "so did the failed new game")
+	DevManager.restore_backup(SPARE_BACKUP_PATH)
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_engine_error("Could not create directory")
+	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "and the failed restore")
+	assert_signal_emit_count(DevManager, "session_switch_failed", 3, "each failed in the deferred switch")
+	assert_string_contains(_failure_reason(), "back up", "your save could not be backed up")
+	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "so it was never written")
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET, "the preset came back each time")
+
 #-----------------------------------------------------------------------------
 # REFUSALS
 #-----------------------------------------------------------------------------
@@ -636,6 +740,7 @@ func test_a_preset_that_does_not_validate_is_refused_at_once() -> void:
 	DevManager.play_story_through("no_such_beat")
 	assert_signal_emit_count(DevManager, "session_switch_failed", 1)
 	assert_string_contains(_failure_reason(), "no_such_beat")
+	assert_string_contains(DevManager.get_last_switch_failure(), "no_such_beat", "a refusal is kept for the panel too")
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_same(PersistenceManager.save_game_data, save_before, "the session keeps its save")
 	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE)

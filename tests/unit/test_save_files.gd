@@ -116,6 +116,26 @@ func test_a_failed_write_leaves_the_old_file_alone() -> void:
 	assert_ne(error, OK, "the failed save is reported")
 	assert_eq(_gold_at(path), 1.0, "the save on disk is the old one")
 
+func test_write_bytes_replaces_the_file_and_leaves_no_temp() -> void:
+	var path: String = _path("save.tres")
+	_write_text(path, "the old save")
+	assert_eq(SaveFiles.write_bytes_atomically("the new save".to_utf8_buffer(), path), OK)
+	assert_eq(_read_text(path), "the new save", "the bytes are the file now")
+	assert_eq(DirAccess.get_files_at(ROOT), PackedStringArray(["save.tres"]), "the folder holds the save and nothing else")
+
+func test_write_bytes_creates_missing_folders() -> void:
+	var path: String = _path("a/b/save.tres")
+	assert_eq(SaveFiles.write_bytes_atomically("a save".to_utf8_buffer(), path), OK)
+	assert_eq(_read_text(path), "a save")
+
+func test_a_failed_byte_write_leaves_the_old_file_alone() -> void:
+	var path: String = _path("save.tres")
+	_write_text(path, "the old save")
+	# A folder where the temp file goes makes the write to it fail.
+	DirAccess.make_dir_recursive_absolute(_global(SaveFiles.temp_path_for(path)))
+	assert_ne(SaveFiles.write_bytes_atomically("the new save".to_utf8_buffer(), path), OK, "the failed write is reported")
+	assert_eq(_read_text(path), "the old save", "the file on disk is the old one")
+
 #-----------------------------------------------------------------------------
 # LOAD
 #-----------------------------------------------------------------------------
