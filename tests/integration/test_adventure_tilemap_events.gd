@@ -387,8 +387,7 @@ func test_a_pick_on_a_resolved_tile_is_ignored() -> void:
 	assert_signal_not_emitted(_tilemap, "encounter_resolved", "the tile is resolved once")
 	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "the rest healed once")
 
-## A boss win ends the run before the fight lets go of its choice. The next
-## run's picks must still count.
+## A boss win ends the run. The next run's picks must still count.
 func test_a_new_run_takes_picks_after_a_boss_win() -> void:
 	_start()
 	await _walk_to(FIGHT)

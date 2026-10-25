@@ -30,6 +30,8 @@ var _original_condition_list: UnlockConditionList
 ## The fixture map a tilemap run plays on (see _start_a_tilemap_run()).
 var _map: Dictionary[Vector3i, AdventureEncounter] = {}
 var _tilemaps: Array[AdventureTilemap] = []
+## The player's vitals as a test that sets them found them, put back after it.
+var _saved_vitals: Dictionary[StringName, float] = {}
 
 func before_each() -> void:
 	_original_save = PersistenceManager.save_game_data
@@ -46,6 +48,9 @@ func after_each() -> void:
 		if is_instance_valid(tilemap) and is_instance_valid(tilemap.adventure_map_generator):
 			tilemap.adventure_map_generator.free()
 	_tilemaps.clear()
+	if not _saved_vitals.is_empty():
+		AdventureMapFixture.restore_vitals(_saved_vitals)
+		_saved_vitals.clear()
 	PersistenceManager.save_game_data = _original_save
 	PersistenceManager.save_data_reset.emit()
 	# Binding the original save again resumes its idle action. Stop it, so its
@@ -75,11 +80,19 @@ func _list_of(condition: UnlockConditionData) -> UnlockConditionList:
 	list.list = conditions
 	return list
 
+## The fixture map's fight choice, on FIGHT.
+func _fight() -> CombatChoice:
+	return AdventureMapFixture.fight_choice(_map)
+
+## The fixture map's boss choice, on BOSS.
+func _boss() -> CombatChoice:
+	return _map[AdventureMapFixture.BOSS].choices[0] as CombatChoice
+
 ## Starts a run on the fixture map in a real AdventureTilemap, the way the
-## adventure view starts one, and puts the fixture's fight choice under way, as
-## picking its card does. A fight is not played: the tests answer it with
-## handle_combat_result(), as AdventureView does when one ends.
-func _start_a_tilemap_run() -> AdventureTilemap:
+## adventure view starts one, and puts `choice` under way, as picking its card
+## does. A fight is not played: the tests answer it with handle_combat_result(),
+## as AdventureView does when one ends.
+func _start_a_tilemap_run(choice: CombatChoice) -> AdventureTilemap:
 	var tilemap: AdventureTilemap = AdventureTilemapScene.instantiate()
 	add_child_autofree(tilemap)
 	_tilemaps.append(tilemap)
@@ -90,7 +103,7 @@ func _start_a_tilemap_run() -> AdventureTilemap:
 	tilemap.full_map.tile_set.emit_changed()
 	await get_tree().process_frame
 	tilemap.start_adventure_on_map(ADVENTURE_ACTION, _map)
-	tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	tilemap.select_choice(choice)
 	return tilemap
 
 func _assert_empty(stats: PlayStatsData, what: String) -> void:
@@ -180,7 +193,7 @@ func test_confirming_an_adventure_counts_a_start() -> void:
 	assert_eq(_stats().adventures_started, 1, "the confirmed start is the real one")
 
 func test_a_won_fight_counts_once() -> void:
-	var tilemap: AdventureTilemap = await _start_a_tilemap_run()
+	var tilemap: AdventureTilemap = await _start_a_tilemap_run(_fight())
 	tilemap.handle_combat_result(true, 0)
 	assert_eq(_stats().fights_won, 1, "the fight is won")
 	# AdventureCombat reports a win again while its enemy sits at 0 Health, in
@@ -189,22 +202,56 @@ func test_a_won_fight_counts_once() -> void:
 	assert_eq(_stats().fights_won, 1, "the same fight's win, reported again, is not another win")
 
 func test_the_next_fight_counts_again() -> void:
-	var tilemap: AdventureTilemap = await _start_a_tilemap_run()
+	var tilemap: AdventureTilemap = await _start_a_tilemap_run(_fight())
 	tilemap.handle_combat_result(true, 0)
 	# The next run's fight: a new choice under way.
 	tilemap.stop_adventure()
 	tilemap.start_adventure_on_map(ADVENTURE_ACTION, _map)
-	tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	tilemap.select_choice(_fight())
 	tilemap.handle_combat_result(true, 0)
 	assert_eq(_stats().fights_won, 2, "each fight is counted when it is won")
 
+func test_a_won_boss_fight_counts_and_resolves_once() -> void:
+	# The boss's win heals 10 Health, so how often it is resolved shows in the Health.
+	var heal := ChangeVitalsEffectData.new()
+	heal.health_change = 10.0
+	var heal_effects: Array[EffectData] = [heal]
+	_boss().success_effects = heal_effects
+	_saved_vitals = AdventureMapFixture.swap_in_known_vitals()
+	var tilemap: AdventureTilemap = await _start_a_tilemap_run(_boss())
+	watch_signals(tilemap)
+	tilemap.handle_combat_result(true, 0)
+	assert_eq(_stats().fights_won, 1, "the boss fight is won")
+	assert_signal_emit_count(tilemap, "boss_defeated", 1)
+	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "its success effects ran")
+	# The boss's win ended the run: ActionManager.stop_action(true) has AdventureView
+	# stop the map. AdventureCombat reports the win again while its enemy takes
+	# another hit at 0 Health, before the enemy is freed.
+	tilemap.stop_adventure()
+	tilemap.handle_combat_result(true, 0)
+	assert_eq(_stats().fights_won, 1, "the same boss fight's win, reported again, is not another win")
+	assert_signal_emit_count(tilemap, "boss_defeated", 1, "the boss falls once")
+	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "its success effects ran once")
+
+func test_a_repeated_boss_win_marks_nothing_on_the_cleared_map() -> void:
+	var tilemap: AdventureTilemap = await _start_a_tilemap_run(_boss())
+	tilemap.handle_combat_result(true, 0)
+	tilemap.stop_adventure()
+	tilemap.handle_combat_result(true, 0)
+	assert_false(tilemap.is_tile_visited(AdventureMapFixture.START), "no tile is marked on the map the run cleared")
+	# What the repeat leaves on the map is what the next run starts from: a start
+	# tile already counted as visited would show the player nothing around it.
+	tilemap.start_adventure_on_map(ADVENTURE_ACTION, _map)
+	assert_true(tilemap.is_tile_revealed(AdventureMapFixture.FIGHT), "the next run opens with the tiles around its start in view")
+	assert_false(tilemap.is_tile_completed(AdventureMapFixture.START), "and its start tile unresolved")
+
 func test_a_lost_fight_is_not_a_win() -> void:
-	var tilemap: AdventureTilemap = await _start_a_tilemap_run()
+	var tilemap: AdventureTilemap = await _start_a_tilemap_run(_fight())
 	tilemap.handle_combat_result(false, 0)
 	assert_eq(_stats().fights_won, 0)
 
 func test_a_fights_gold_counts_as_earned() -> void:
-	var tilemap: AdventureTilemap = await _start_a_tilemap_run()
+	var tilemap: AdventureTilemap = await _start_a_tilemap_run(_fight())
 	tilemap.handle_combat_result(true, 15)
 	assert_eq(_stats().gold_earned, 15.0, "the gold the fight paid")
 	assert_eq(_stats().fights_won, 1)

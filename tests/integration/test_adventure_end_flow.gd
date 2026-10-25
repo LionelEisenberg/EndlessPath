@@ -77,6 +77,15 @@ func test_boss_win_ends_the_adventure_once_as_a_victory() -> void:
 	assert_eq(stats.fights_won, 1, "and the boss fight as a won fight")
 	assert_eq(stats.adventures_lost + stats.adventures_timed_out, 0, "and no loss or timeout")
 
+	# AdventureCombat reports the win again while its enemy takes another hit at 0
+	# Health, before the enemy is freed. The run is over: the boss's win counts,
+	# resolves and ends nothing a second time, and marks nothing on the cleared map.
+	_view.combat.trigger_combat_end.emit(true, 0)
+	assert_eq(_results.size(), 1, "the adventure still ended once")
+	assert_eq(stats.fights_won, 1, "the boss fight is counted once")
+	assert_eq(stats.adventures_won, 1, "and so is the win")
+	assert_eq(_view.adventure_tilemap.get_visited_tile_count(), 0, "the repeat marked nothing on the cleared map")
+
 #-----------------------------------------------------------------------------
 # HOW A STOP COUNTS
 #-----------------------------------------------------------------------------
