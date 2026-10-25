@@ -154,11 +154,9 @@ def boards():
 # the dock grows by 64 px for a row of four sockets over the techniques. Not in the mock's page,
 # which still draws the 476x136 dock.
 # ----------------------------------------------------------------------------
-def consumable_pieces():
-    bezel_socket('slot_consumable', 24)      # 48: the technique slot's lipped socket, 32 icon at +8
-    # The count seal with its worn bites kept to the outer three columns, so the middle six
-    # (12 screen px) are one vermilion and stretch: the seal grows to fit a long count.
-    seal('seal_count9', 12, 12, [(2, 0), (11, 7), (0, 8), (1, 11)], [(2, 1), (10, 7), (1, 8)])
+def technique_dock_consumables():
+    # The sockets are the kit's 48 px glyph sockets and the count seal the zone kit's (made
+    # stretchable in kit_ui.py): only the taller board is new.
     b = board_base(238, 100)
     streak(b, 52, 5, 22, ((9, 1),))          # top band, between the first two sockets
     streak(b, 118, 36, 52, ((14, -1), (37, 1)), GRAIN2)   # between the two rows
@@ -306,7 +304,7 @@ def run():
     plates()
     technique_dock()
     boards()
-    consumable_pieces()
+    technique_dock_consumables()
     scroll()
     backdrop_and_icons()
     cooldown_sweep()

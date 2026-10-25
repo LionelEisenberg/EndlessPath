@@ -37,11 +37,10 @@ SHADOWED = {
     'tdock_consumables': SHADOW_BIG,
     'board9': SHADOW_BIG,
     'slot': SHADOW_SMALL,
-    'slot_consumable': SHADOW_SMALL,
     'keycap': SHADOW_SMALL,
 }
 # Pieces copied as drawn: kit names.
-PLAIN = ['cast_tray', 'timer', 'timer_low', 'socket_buff', 'socket_glyph', 'seal_count9',
+PLAIN = ['cast_tray', 'timer', 'timer_low', 'socket_buff', 'socket_glyph',
          'mini_health', 'mini_stamina', 'mini_hourglass'] + \
         [f'rod_{rod}_{part}' for rod in ('stamina', 'cast') for part in ('empty', 'full', 'end')]
 TOKENS = 'lacquer_marker_tokens_ai.png'         # four 52x52 coins side by side

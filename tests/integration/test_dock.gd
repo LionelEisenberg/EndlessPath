@@ -175,7 +175,7 @@ func test_path_count_follows_points() -> void:
 	assert_eq(path_button.get_notification_count(), 3)
 	assert_eq(_shown_faces(path_button), ["ring"] as Array[String], "the brass ring replaces the plain face")
 	assert_true(_is_shown(path_button, "CountSeal"), "the count seal shows")
-	assert_eq((_part(path_button, "CountLabel") as Label).text, "3")
+	assert_eq((_part(path_button, "CountSeal").get_node("%CountLabel") as Label).text, "3")
 
 	_use_test_path_node(3)
 	assert_true(PathManager.purchase_node(TEST_PATH_NODE_ID), "the test node is bought with all 3 points")
@@ -192,7 +192,7 @@ func test_path_reads_balance_on_ready() -> void:
 	var path_button: SystemMenuButton = _button("PathButton")
 	assert_true(path_button.has_notification(), "a balance saved before the dock existed shows")
 	assert_eq(path_button.get_notification_count(), 2)
-	assert_eq((_part(path_button, "CountLabel") as Label).text, "2")
+	assert_eq((_part(path_button, "CountSeal").get_node("%CountLabel") as Label).text, "2")
 
 func test_abilities_ring_without_count() -> void:
 	_add_dock()

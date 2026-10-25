@@ -21,14 +21,12 @@ const VEIL_ATLAS_PATH: String = FOREST_DIR + "hex_forest_veil_atlas_ai.png"
 const FOREST_CELL: Vector2i = Vector2i(164, 190)
 
 ## Every screen piece with its size, shadow included: the tech dock (with its
-## consumable row) and the plain board carry a 4 px shadow, the two slots and
-## the keycap 2 px, and each of the four coins in the marker tokens strip its
+## consumable row) and the plain board carry a 4 px shadow, the slot and the
+## keycap 2 px, and each of the four coins in the marker tokens strip its
 ## own 2 px. The other pieces are recessed or inset, so they cast none.
 const SCREEN_PIECES: Dictionary[String, Vector2i] = {
 	"lacquer_tdock_consumables_ai.png": Vector2i(480, 204),
 	"lacquer_slot_ai.png": Vector2i(82, 82),
-	"lacquer_slot_consumable_ai.png": Vector2i(50, 50),
-	"lacquer_seal_count9_ai.png": Vector2i(24, 24),
 	"lacquer_keycap_ai.png": Vector2i(24, 24),
 	"lacquer_cast_tray_ai.png": Vector2i(476, 44),
 	"lacquer_timer_ai.png": Vector2i(88, 36),
@@ -145,11 +143,13 @@ func test_screen_pieces_sit_on_the_2x_grid() -> void:
 			continue
 		assert_eq(_count_ragged_blocks(image), 0, "%s: 2x2 blocks that are not one colour" % file_name)
 
-## The consumable sockets' count seal grows sideways to fit a long count: its
-## worn bites stay in the 6 px at each end (the NinePatchRect's margins), and
-## every row of its middle is the one vermilion, so a stretch leaves no seam.
+## The count seal (the zone kit's, which LacquerCountSeal shows for the buff
+## sockets, the dock buttons and the consumable sockets) grows sideways to fit
+## a long count: its worn bites stay in the 6 px at each end (the
+## NinePatchRect's margins), and every row of its middle is the one vermilion,
+## so a stretch leaves no seam.
 func test_the_count_seal_stretches_its_plain_middle() -> void:
-	var image: Image = _load_image(LACQUER_DIR + "lacquer_seal_count9_ai.png")
+	var image: Image = _load_image(LACQUER_DIR + "lacquer_seal_count_ai.png")
 	if image == null:
 		return
 	var vermilion := Color("#A83C30")

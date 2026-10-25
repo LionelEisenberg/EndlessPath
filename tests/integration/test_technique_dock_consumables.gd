@@ -133,6 +133,10 @@ func _slot(index: int) -> ConsumableSlot:
 func _slot_node(index: int, unique_name: String) -> Node:
 	return _slot(index).get_node("%" + unique_name)
 
+## The count on a socket's seal (a LacquerCountSeal, which owns its label).
+func _count_text(index: int) -> String:
+	return (_slot_node(index, "CountSeal").get_node("%CountLabel") as Label).text
+
 func _instance_at(slot_index: int) -> CombatConsumableInstance:
 	return _player.consumable_manager.get_instance_at_slot(slot_index)
 
@@ -196,8 +200,8 @@ func test_the_map_previews_the_hotbar() -> void:
 	for index: int in 4:
 		if index == 1:
 			assert_eq(_slot(index).get_state(), Slot.PREVIEW, "the hotbar's Crude Scale")
-			assert_eq(_slot(index).get_consumable_data(), CRUDE_SCALE)
-			assert_eq((_slot_node(index, "CountLabel") as Label).text, "3")
+			assert_eq((_slot_node(index, "Icon") as TextureRect).texture, CRUDE_SCALE.icon)
+			assert_eq(_count_text(index), "3")
 		else:
 			assert_eq(_slot(index).get_state(), Slot.EMPTY, "socket %d is empty" % index)
 		assert_null(_slot(index).get_consumable_instance(), "no instance on the map")
@@ -210,23 +214,23 @@ func test_keys_show_one_to_four() -> void:
 func test_counts_follow_the_inventory() -> void:
 	_equip_consumable(_scale, 0, 3)
 	InventoryManager.award_items(_scale, 2)
-	assert_eq((_slot_node(0, "CountLabel") as Label).text, "5", "on the map")
+	assert_eq(_count_text(0), "5", "on the map")
 
 	_start_fight()
 	assert_true(_player.consumable_manager.use_consumable_instance(_instance_at(0)), "precondition: used")
-	assert_eq((_slot_node(0, "CountLabel") as Label).text, "4", "in a fight")
+	assert_eq(_count_text(0), "4", "in a fight")
 
 func test_the_map_shows_zero_after_the_last_one() -> void:
 	_equip_consumable(_scale, 0, 1)
 	_start_fight()
 	assert_true(_player.consumable_manager.use_consumable_instance(_instance_at(0)), "precondition: the last one used")
 	assert_eq(_slot(0).get_sweep_step(), 0, "all veiled in the fight")
-	assert_eq((_slot_node(0, "CountLabel") as Label).text, "0")
+	assert_eq(_count_text(0), "0")
 
 	_dock.reset()
 
 	assert_eq(_slot(0).get_state(), Slot.PREVIEW, "the hotbar keeps it")
-	assert_eq((_slot_node(0, "CountLabel") as Label).text, "0")
+	assert_eq(_count_text(0), "0")
 	assert_eq(_slot(0).get_sweep_step(), 0, "still veiled")
 
 ## Once the last one is used and its cooldown has run out, the socket is ready
@@ -321,7 +325,7 @@ func test_a_fight_that_opens_with_none_left_refuses() -> void:
 
 	assert_eq(_slot(0).get_state(), Slot.ACTIVE)
 	assert_eq(_slot(0).get_sweep_step(), 0, "all veiled from the start")
-	assert_eq((_slot_node(0, "CountLabel") as Label).text, "0")
+	assert_eq(_count_text(0), "0")
 	_slot(0).gui_input.emit(_left_press())
 	assert_signal_not_emitted(_dock, "consumable_selected")
 	assert_true(_slot(0).is_shaking(), "refused: none left")
@@ -376,6 +380,9 @@ func test_the_tooltip_describes_a_consumable() -> void:
 	assert_eq(_tooltip_rect().position.x, _slot(1).global_position.x - 8.0, "its left 8 px left of the socket's")
 	_slot(1).mouse_exited.emit()
 	assert_false(tooltip.visible)
+	_slot(0).mouse_entered.emit()
+	assert_false(tooltip.visible, "an empty socket opens no tooltip")
+	assert_false((_slot_node(0, "HoverFrame") as Control).visible, "and shows no hover frame")
 
 func test_the_consumable_tooltip_moves_over_the_cast_tray() -> void:
 	_equip_consumable(CRUDE_SCALE, 0, 3)

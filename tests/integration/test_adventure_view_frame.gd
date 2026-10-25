@@ -817,7 +817,7 @@ func test_a_key_uses_a_consumable_in_a_real_fight() -> void:
 	_view.combat.trigger_combat_end.emit(true, 15)
 	assert_false(_view.technique_dock.consumable_selected.is_connected(_view.combat.on_player_consumable_selected), "a press reaches no fight")
 	assert_eq(socket.get_state(), ConsumableSlot.SlotState.PREVIEW, "back to the hotbar's preview")
-	assert_eq((socket.get_node("%CountLabel") as Label).text, "2")
+	assert_eq((socket.get_node("%CountSeal").get_node("%CountLabel") as Label).text, "2")
 
 ## A fight that ends while a socket recharges lets the row go before the fight's
 ## instances are freed, and nothing errors in the frames after.

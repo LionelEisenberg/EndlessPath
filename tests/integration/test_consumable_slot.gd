@@ -1,12 +1,15 @@
 extends GutTest
 
-## Integration tests for ConsumableSlot, one consumable socket on the technique
-## dock (spec: 2026-10-25-combat-consumables-lacquer-design.md). Covers its
-## states (EMPTY, PREVIEW on the map, ACTIVE in a fight), the count seal that
-## grows to fit a long count, the cooldown sweep on the 32 px icon, the socket
-## at none left (all veiled, at 0), the ready flash, presses, hover and the
-## refusal shake. The slot is tested alone, on a fresh save, with instances
-## made as CombatConsumableManager makes them.
+## Integration tests for what ConsumableSlot adds to DockSlot (spec:
+## 2026-10-25-combat-consumables-lacquer-design.md): its scene (the kit's glyph
+## socket, the 32 px icon under the sweep, the count seal off its corner), how
+## each state shows a consumable and its count, and the socket with none left
+## (all veiled at 0, no seconds, no ready flash). The key cap, hover, presses and
+## the refusal shake are DockSlot's, tested through the technique slots
+## (test_technique_dock.gd) and the dock's consumable row
+## (test_technique_dock_consumables.gd); the seal is LacquerCountSeal's
+## (test_lacquer_count_seal.gd). The slot is tested alone, on a fresh save, with
+## instances made as CombatConsumableManager makes them.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -51,6 +54,10 @@ func after_each() -> void:
 func _node(unique_name: String) -> Node:
 	return _slot.get_node("%" + unique_name)
 
+## The count on the socket's seal (a LacquerCountSeal, which owns its label).
+func _count_text() -> String:
+	return (_node("CountSeal").get_node("%CountLabel") as Label).text
+
 func _font_colour(control: Control) -> Color:
 	return control.get_theme_color(&"font_color")
 
@@ -66,12 +73,6 @@ func _make_instance(held: int) -> CombatConsumableInstance:
 	var instance := CombatConsumableInstance.new(_scale, 0)
 	add_child_autofree(instance)
 	return instance
-
-func _left_press() -> InputEventMouseButton:
-	var press := InputEventMouseButton.new()
-	press.button_index = MOUSE_BUTTON_LEFT
-	press.pressed = true
-	return press
 
 ## Ends an instance's running cooldown for real: its timer runs down in a frame
 ## or two and fires cooldown_ready.
@@ -103,35 +104,14 @@ func test_preview_shows_icon_count_and_a_tan_key() -> void:
 	assert_eq((_node("Icon") as TextureRect).texture, _scale.icon)
 	assert_true((_node("Icon") as Control).visible)
 	assert_true((_node("CountSeal") as Control).visible, "the count seal shows")
-	assert_eq((_node("CountLabel") as Label).text, "3")
-	assert_eq(_slot.get_count(), 3)
+	assert_eq(_count_text(), "3")
 	assert_eq((_node("KeyLabel") as Label).text, "3", "slot 2 is key 3")
 	assert_eq(_font_colour(_node("KeyLabel")), ThemeConstants.LACQUER_TAN, "not usable on the map")
-	assert_eq(_slot.get_sweep_step(), TechniqueSlot.SWEEP_STEPS, "the plain icon")
+	assert_eq(_slot.get_sweep_step(), ConsumableSlot.SWEEP_STEPS, "the plain icon")
 	assert_eq(_sweep_progress(), 1.0)
 
-func test_preview_with_none_left_is_veiled_at_zero() -> void:
-	_slot.show_preview(_scale, 0)
-
-	assert_eq(_slot.get_state(), Slot.PREVIEW, "it keeps its consumable")
-	assert_eq((_node("CountLabel") as Label).text, "0")
-	assert_eq(_slot.get_sweep_step(), 0, "all in the locked veil")
-	assert_eq(_sweep_progress(), 0.0)
-	assert_false((_node("SecondsLabel") as Control).visible, "no seconds")
-
-func test_bind_shows_a_cream_key() -> void:
-	var instance := _make_instance(3)
-
-	_slot.bind(instance, 0)
-
-	assert_eq(_slot.get_state(), Slot.ACTIVE)
-	assert_eq(_slot.get_consumable_instance(), instance)
-	assert_eq(_slot.get_consumable_data(), _scale)
-	assert_eq(_font_colour(_node("KeyLabel")), ThemeConstants.LACQUER_CREAM)
-	assert_eq(_slot.get_sweep_step(), TechniqueSlot.SWEEP_STEPS, "ready as the fight opens")
-
 #-----------------------------------------------------------------------------
-# COOLDOWN
+# COOLDOWN AND NONE LEFT
 #-----------------------------------------------------------------------------
 
 func test_the_sweep_follows_the_cooldown() -> void:
@@ -145,13 +125,13 @@ func test_the_sweep_follows_the_cooldown() -> void:
 	assert_eq(_slot.get_sweep_step(), 0, "all veiled as the cooldown starts")
 	assert_true(seconds.visible)
 	assert_eq(seconds.text, "10")
-	assert_eq((_node("CountLabel") as Label).text, "2", "one came off")
+	assert_eq(_count_text(), "2", "one came off")
 	instance.cooldown_updated.emit(5.0)
 	assert_eq(_slot.get_sweep_step(), 12, "half recharged: half the steps")
 	assert_eq(_sweep_progress(), 0.5)
 	assert_eq(seconds.text, "5")
 	await _finish_cooldown(instance)
-	assert_eq(_slot.get_sweep_step(), TechniqueSlot.SWEEP_STEPS, "the plain icon again")
+	assert_eq(_slot.get_sweep_step(), ConsumableSlot.SWEEP_STEPS, "the plain icon again")
 	assert_false(seconds.visible, "no seconds once ready")
 	assert_true((_node("ReadyFlash") as LacquerFrameOverlay).is_flashing(), "a brass flash says it is ready")
 
@@ -162,92 +142,12 @@ func test_using_the_last_one_leaves_it_veiled_at_zero() -> void:
 	assert_true(instance.use(), "precondition: the last one used")
 	_slot.refresh_count()
 
-	assert_eq((_node("CountLabel") as Label).text, "0")
+	assert_eq(_count_text(), "0")
 	assert_eq(_slot.get_sweep_step(), 0, "all veiled")
 	assert_false((_node("SecondsLabel") as Control).visible, "no seconds for a socket that cannot be used")
 	await _finish_cooldown(instance)
 	assert_false((_node("ReadyFlash") as LacquerFrameOverlay).is_flashing(), "nothing to be ready for: no flash")
 	assert_eq(_slot.get_sweep_step(), 0, "still veiled")
-
-#-----------------------------------------------------------------------------
-# POINTER AND REFUSAL
-#-----------------------------------------------------------------------------
-
-func test_a_left_press_emits_pressed_only_when_active() -> void:
-	InventoryManager.award_items(_scale, 1)
-	_slot.show_preview(_scale, 0)
-	watch_signals(_slot)
-
-	_slot.gui_input.emit(_left_press())
-	assert_signal_not_emitted(_slot, "pressed", "not on the map")
-
-	_slot.bind(_make_instance(0), 0)
-	_slot.gui_input.emit(_left_press())
-	assert_signal_emitted(_slot, "pressed", "in a fight")
-
-func test_hover_emits_with_the_data_and_shows_the_frame() -> void:
-	InventoryManager.award_items(_scale, 1)
-	_slot.show_preview(_scale, 0)
-	watch_signals(_slot)
-
-	_slot.mouse_entered.emit()
-	assert_signal_emitted_with_parameters(_slot, "hovered", [_scale])
-	assert_true((_node("HoverFrame") as Control).visible)
-	_slot.mouse_exited.emit()
-	assert_signal_emitted(_slot, "unhovered")
-	assert_false((_node("HoverFrame") as Control).visible)
-
-	_slot.show_empty(1)
-	_slot.mouse_entered.emit()
-	assert_signal_emit_count(_slot, "hovered", 1, "an empty socket opens no tooltip")
-	assert_false((_node("HoverFrame") as Control).visible, "and has no hover frame")
-
-func test_refuse_shakes_the_body_and_not_the_key_or_seal() -> void:
-	_slot.bind(_make_instance(1), 0)
-	var key_cap: Control = _node("KeyCap")
-	var seal: Control = _node("CountSeal")
-	var key_home: Vector2 = key_cap.position
-	var seal_home: Vector2 = seal.position
-
-	_slot.refuse()
-	simulate(_slot, 1, 0.1)
-
-	assert_true(_slot.is_shaking())
-	assert_eq((_node("Body") as Control).position, Vector2(-4.0, 0.0), "the socket is mid-shake")
-	assert_eq(key_cap.position, key_home, "the key cap stays")
-	assert_eq(seal.position, seal_home, "the seal stays")
-	simulate(_slot, 10, 0.05)
-	assert_false(_slot.is_shaking(), "the shake ends")
-	assert_eq((_node("Body") as Control).position.x, 0.0, "back home")
-
-#-----------------------------------------------------------------------------
-# THE COUNT SEAL
-#-----------------------------------------------------------------------------
-
-func test_seal_width() -> void:
-	assert_eq(ConsumableSlot.seal_width(10.0), 24.0, "a short count keeps the seal's 24 px")
-	assert_eq(ConsumableSlot.seal_width(30.0), 38.0, "a long one adds its padding")
-	assert_eq(ConsumableSlot.seal_width(31.0), 40.0, "rounded up to even")
-
-func test_a_long_count_grows_the_seal_leftward() -> void:
-	InventoryManager.award_items(_scale, 1234)
-
-	_slot.show_preview(_scale, 0)
-
-	var seal: Control = _node("CountSeal")
-	var label: Label = _node("CountLabel")
-	assert_eq(label.text, "1234")
-	assert_gt(seal.size.x, 24.0, "the seal widened")
-	assert_eq(fmod(seal.size.x, 2.0), 0.0, "to an even width")
-	assert_eq(seal.position.x + seal.size.x, ConsumableSlot.SEAL_RIGHT, "its right edge stays")
-	assert_eq(fmod(seal.position.x, 2.0), 0.0, "on the 2 px grid")
-	assert_lte(label.get_minimum_size().x, seal.size.x, "the count fits in it")
-	assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING)
-
-	InventoryManager.get_inventory().consumables[_scale] = 3
-	_slot.refresh_count()
-	assert_eq(seal.size.x, 24.0, "a short count takes the seal back to 24 px")
-	assert_eq(seal.position.x, ConsumableSlot.SEAL_RIGHT - 24.0)
 
 #-----------------------------------------------------------------------------
 # THE SCENE
@@ -257,8 +157,8 @@ func test_scene_uses_the_kit() -> void:
 	assert_eq(_slot.size, Vector2(48.0, 48.0))
 	assert_eq(_slot.theme, load(LACQUER_THEME_PATH))
 	var socket := _slot.get_node("Body/Socket") as TextureRect
-	assert_eq(socket.texture.resource_path, KIT_PATH % "slot_consumable")
-	assert_eq(socket.size, Vector2(50.0, 50.0), "at file size, its 2 px shadow beyond the socket")
+	assert_eq(socket.texture.resource_path, KIT_PATH % "socket_glyph", "the kit's 48 px glyph socket, as the Here tray's")
+	assert_eq(socket.size, Vector2(48.0, 48.0))
 	var icon: TextureRect = _node("Icon")
 	assert_eq(Rect2(icon.position, icon.size), Rect2(8.0, 8.0, 32.0, 32.0), "a 32 px icon at +8")
 	var material := icon.material as ShaderMaterial
@@ -269,13 +169,14 @@ func test_scene_uses_the_kit() -> void:
 	assert_eq(key_cap.texture.resource_path, KIT_PATH % "keycap")
 	assert_eq(key_cap.position, Vector2(-6.0, -6.0))
 	assert_eq((_node("KeyLabel") as Label).theme_type_variation, &"LabelLacquerHotkey")
-	assert_eq((_node("CountSeal") as Control).position, Vector2(28.0, 30.0), "the count seal hangs off the socket's bottom right corner")
-	assert_eq((_node("SecondsLabel") as Label).get_theme_font_size(&"font_size"), 15, "the seconds sized to the 32 px icon")
-	var seal_face := _slot.get_node("CountSeal/Seal") as NinePatchRect
-	assert_eq(seal_face.texture.resource_path, KIT_PATH % "seal_count9")
-	assert_eq([seal_face.patch_margin_left, seal_face.patch_margin_right], [6, 6], "a 9-slice that stretches its plain middle")
-	assert_eq((_node("CountLabel") as Label).theme_type_variation, &"LabelLacquerSeal")
-	assert_eq((_node("SecondsLabel") as Label).theme_type_variation, &"LabelLacquerCooldown")
+	var seal := _node("CountSeal") as LacquerCountSeal
+	assert_not_null(seal, "the count is the shared LacquerCountSeal")
+	assert_eq(seal.get_parent(), _slot, "outside the socket, so it stays put in a shake")
+	assert_eq(seal.position, Vector2(28.0, 30.0), "off the socket's bottom right corner")
+	assert_true(seal.grows_left, "a long count widens it leftward")
+	var seconds: Label = _node("SecondsLabel")
+	assert_eq(seconds.theme_type_variation, &"LabelLacquerCooldown")
+	assert_eq(seconds.get_theme_font_size(&"font_size"), 15, "the seconds sized to the 32 px icon")
 	assert_eq((_node("ReadyFlash") as Panel).get_theme_stylebox(&"panel"), load(FRAME_BRASS_PATH))
 	assert_eq((_node("HoverFrame") as Panel).get_theme_stylebox(&"panel"), load(FRAME_HOVER_PATH))
 	for node: Node in _slot.find_children("*", "Control", true, false):
