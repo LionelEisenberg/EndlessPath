@@ -60,7 +60,6 @@ func test_use_fires_the_effects_and_takes_one() -> void:
 	assert_true(instance.use(), "used")
 	assert_eq(_effect.call_count, 1, "the effects fired once")
 	assert_eq(instance.get_count(), 2, "one came off the stack")
-	assert_eq(instance.use_count, 1)
 
 func test_use_starts_the_cooldown() -> void:
 	var instance := _make_instance(_make_consumable(10.0), 3)

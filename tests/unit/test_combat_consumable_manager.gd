@@ -137,19 +137,16 @@ func test_setup_again_replaces_the_instances() -> void:
 # USE
 #-----------------------------------------------------------------------------
 
-func test_use_goes_through_the_gate_and_emits() -> void:
+func test_use_goes_through_the_gate() -> void:
 	_equip(_make_consumable("scale"), 0, 3)
 	var manager := _make_manager()
 	var instance: CombatConsumableInstance = manager.consumables[0]
-	watch_signals(manager)
 
 	assert_true(manager.use_consumable_instance(instance), "used")
-	assert_signal_emitted_with_parameters(manager, "consumable_used", [instance])
 	assert_eq(instance.get_count(), 2)
 
 	assert_false(manager.can_use_consumable_instance(instance), "recharging")
 	assert_false(manager.use_consumable_instance(instance), "refused while recharging")
-	assert_signal_emit_count(manager, "consumable_used", 1, "emitted only for the use that fired")
 	assert_eq(instance.get_count(), 2, "the refusal took nothing")
 
 func test_an_instance_from_elsewhere_is_refused() -> void:

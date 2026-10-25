@@ -32,7 +32,6 @@ signal cooldown_ready()
 var consumable_data: ConsumableDefinitionData
 var slot_index: int
 var cooldown_timer: Timer
-var use_count: int = 0
 
 #-----------------------------------------------------------------------------
 # INITIALIZATION
@@ -73,7 +72,6 @@ func use() -> bool:
 		return false
 	if not InventoryManager.use_consumable(consumable_data):
 		return false
-	use_count += 1
 	_start_cooldown(consumable_data.cooldown_seconds)
 	return true
 

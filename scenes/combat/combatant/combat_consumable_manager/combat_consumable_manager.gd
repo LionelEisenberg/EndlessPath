@@ -13,18 +13,11 @@ extends Node
 ##    - Is the instance this manager's own?
 ##    - Is it recharging?
 ##    - Is any left?
-## 3. If the checks pass, the instance fires and consumable_used is emitted.
+## 3. If the checks pass, the instance fires.
 ##
 ## Only the player uses consumables: setup() leaves an enemy's manager empty.
 ## A technique being cast never blocks a consumable, and using one never stops
 ## the cast.
-
-#-----------------------------------------------------------------------------
-# SIGNALS
-#-----------------------------------------------------------------------------
-
-## Emitted after a consumable fired.
-signal consumable_used(instance: CombatConsumableInstance)
 
 #-----------------------------------------------------------------------------
 # COMPONENTS
@@ -83,10 +76,7 @@ func can_use_consumable_instance(instance: CombatConsumableInstance) -> bool:
 func use_consumable_instance(instance: CombatConsumableInstance) -> bool:
 	if not can_use_consumable_instance(instance):
 		return false
-	if not instance.use():
-		return false
-	consumable_used.emit(instance)
-	return true
+	return instance.use()
 
 ## Returns the instance for hotbar slot slot_index, or null when that slot is
 ## empty.
