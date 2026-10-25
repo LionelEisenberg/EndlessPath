@@ -61,10 +61,12 @@ func before_each() -> void:
 	_original_vitals = [vitals.current_health, vitals.current_stamina, vitals.current_madra]
 	PersistenceManager.save_game_data = SaveGameData.new()
 	PersistenceManager.save_data_reset.emit()
-	# test_path_manager.gd leaves a one-entry ability index behind, and no tree in
-	# PathManager once its trees are cleared. Start from the real ones.
+	# test_path_manager.gd leaves a one-entry ability index behind, no tree in
+	# PathManager once its trees are cleared, and PathManager's stage override at
+	# Jade. Start from the real ones: -1 makes PathManager read the player's stage.
 	AbilityManager._build_catalog_index()
 	PathManager._current_tree = load(PURE_MADRA_TREE)
+	PathManager._test_stage_override = -1
 
 func after_each() -> void:
 	for probe: Dictionary in _probes:
@@ -332,18 +334,26 @@ func test_buy_path_node_refuses_when_no_path_is_chosen() -> void:
 	assert_ne(DevCommands.buy_path_node("pure_core_awakening"), "")
 	assert_eq(PathManager.get_point_balance(), 0, "a refusal grants no points")
 
-## The command's own checks (stage, prerequisites, points) are PathManager's rules as
-## they stand. When PathManager still says no, the command must not report a purchase
-## that did not happen. The manager's test-only stage override makes it disagree.
-func test_buy_path_node_reports_a_purchase_the_manager_refuses() -> void:
-	_use_tree_of(_node("dev_commands_test_node", 1, CultivationManager.AdvancementStage.COPPER))
-	assert_eq(DevCommands.advance_stage(), "", "precondition: the player is at Copper")
-	PathManager._test_stage_override = CultivationManager.AdvancementStage.FOUNDATION
+## A node PathManager will never sell (max_purchases 0, which a validated tree cannot
+## hold) passes every check the command makes. PathManager still says no, and the
+## command reports that instead of a purchase that did not happen.
+func test_buy_path_node_reports_a_node_the_manager_will_not_sell() -> void:
+	var node: PathNodeData = _node("dev_commands_test_node", 1)
+	node.max_purchases = 0
+	_use_tree_of(node)
 	watch_signals(LogManager)
 	var reason: String = DevCommands.buy_path_node("dev_commands_test_node")
 	assert_string_contains(reason, "could not be bought")
 	assert_eq(PathManager.get_node_purchase_count("dev_commands_test_node"), 0)
 	assert_eq(_dev_lines().size(), 0, "so no success was logged")
+
+## The command asks PathManager whether the stage is reached, so it agrees with the
+## manager even under the manager's test-only stage override.
+func test_buy_path_node_follows_the_managers_own_stage_rule() -> void:
+	_use_tree_of(_node("dev_commands_test_node", 1, CultivationManager.AdvancementStage.COPPER))
+	PathManager._test_stage_override = CultivationManager.AdvancementStage.JADE
+	assert_eq(DevCommands.buy_path_node("dev_commands_test_node"), "", "the manager counts the stage as reached")
+	assert_eq(PathManager.get_node_purchase_count("dev_commands_test_node"), 1)
 
 func test_buy_path_node_refuses_a_stage_too_low() -> void:
 	_use_tree_of(_node("dev_commands_test_node", 1, CultivationManager.AdvancementStage.COPPER))

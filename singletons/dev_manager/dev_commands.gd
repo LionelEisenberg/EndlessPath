@@ -24,16 +24,6 @@ const _DEV_TAG: String = "[color=magenta][DEV][/color]"
 ## Where the item resources live. list_item_paths() walks it.
 const _ITEMS_DIR: String = "res://resources/items/"
 
-## The actions travel may leave running. Travel makes ActionManager stop whatever
-## runs with success, which counts a completion and runs its success effects: right
-## for the idle actions a player leaves by moving on, wrong for the ones a player
-## plays through (a dialogue, a cycle, an adventure, the shop, the Tribulation),
-## which would be cashed in unplayed.
-const _TRAVEL_SAFE_ACTIONS: Array[ZoneActionData.ActionType] = [
-	ZoneActionData.ActionType.FORAGE,
-	ZoneActionData.ActionType.TRAIN_STATS,
-]
-
 #-----------------------------------------------------------------------------
 # ACTIONS AND EVENTS
 #-----------------------------------------------------------------------------
@@ -49,8 +39,7 @@ static func complete_action(action_id: String) -> String:
 	var action: ZoneActionData = _find_action(zone, action_id)
 	if action == null:
 		return "%s is not an action of %s" % [action_id, zone.zone_id]
-	var completions: int = ZoneManager.get_zone_progression(zone.zone_id).action_completion_count.get(action_id, 0)
-	if action.max_completions > 0 and completions >= action.max_completions:
+	if ZoneManager.is_action_used_up(action, zone.zone_id):
 		return ""
 	if not ZoneManager.get_available_actions(zone.zone_id).has(action):
 		return "%s is not available now" % action_id
@@ -136,11 +125,11 @@ static func buy_path_node(node_id: String) -> String:
 		return "%s is not a node of the %s path" % [node_id, tree.path_name]
 	if PathManager.get_node_purchase_count(node_id) >= 1:
 		return ""
-	if CultivationManager.get_current_advancement_stage() < node.required_stage:
+	if not PathManager.is_stage_reached(node.required_stage):
 		return "%s needs the %s stage" % [node_id, CultivationManager.get_advancement_stage_name(node.required_stage)]
-	for prerequisite: PathNodeData in node.prerequisites:
-		if PathManager.get_node_purchase_count(prerequisite.id) < 1:
-			return "%s needs %s first" % [node_id, prerequisite.id]
+	var unmet: PathNodeData = PathManager.get_unmet_prerequisite(node)
+	if unmet != null:
+		return "%s needs %s first" % [node_id, unmet.id]
 	var missing: int = maxi(node.point_cost - PathManager.get_point_balance(), 0)
 	var bought: bool = _while_paused(_grant_and_buy.bind(node_id, missing))
 	if not bought:
@@ -219,8 +208,9 @@ static func award_item(item_path: String, quantity: int) -> String:
 		return "%s is not an item" % item_path
 	if quantity < 1:
 		return "Quantity must be at least 1"
-	if item.item_type == ItemDefinitionData.ItemType.EQUIPMENT and _free_equipment_slots() < quantity:
-		return "Equipment is full"
+	if item.item_type == ItemDefinitionData.ItemType.EQUIPMENT:
+		if InventoryManager.get_inventory().free_equipment_slots().size() < quantity:
+			return "Equipment is full"
 	_while_paused(InventoryManager.award_items.bind(item, quantity))
 	return _succeed("Gave %dx %s" % [quantity, item.item_id])
 
@@ -234,12 +224,16 @@ static func grant_equipment_page() -> String:
 #-----------------------------------------------------------------------------
 
 ## Makes the zone the current one. Refuses an id that is not a zone, and travel while
-## anything but foraging or training runs.
+## anything but an idle action (foraging or training) runs: travel makes ActionManager
+## stop whatever runs with success, which counts a completion and runs its success
+## effects. That is right for the action a player leaves by moving on, and wrong for a
+## dialogue, a cycle, an adventure, the shop or the Tribulation, which would be cashed
+## in unplayed.
 static func travel_to_zone(zone_id: String) -> String:
 	if not ZoneManager.has_zone(zone_id):
 		return "Unknown zone: %s" % zone_id
 	var running: ZoneActionData = ActionManager.get_current_action()
-	if running != null and running.action_type not in _TRAVEL_SAFE_ACTIONS:
+	if running != null and not ActionManager.is_idle_action(running):
 		return "Can't travel while %s runs" % running.action_id
 	_while_paused(ZoneManager.set_current_zone_by_id.bind(zone_id))
 	return _succeed("Travelled to %s" % zone_id)
@@ -344,15 +338,6 @@ static func _unlock_every_ability() -> int:
 			AbilityManager.unlock_ability(ability.ability_id)
 			newly_unlocked += 1
 	return newly_unlocked
-
-## How many slots of the equipment grid are empty, across the pages unlocked.
-static func _free_equipment_slots() -> int:
-	var inventory: InventoryData = InventoryManager.get_inventory()
-	var free_slots: int = 0
-	for index: int in inventory.equipment_capacity():
-		if not inventory.equipment.has(index):
-			free_slots += 1
-	return free_slots
 
 ## Adds the id to the array, unless it is empty or already there.
 static func _add_id(ids: PackedStringArray, id: String) -> void:

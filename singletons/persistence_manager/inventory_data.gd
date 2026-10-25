@@ -43,12 +43,18 @@ const SLOTS_PER_PAGE := PAGE_ROWS * PAGE_COLUMNS
 func equipment_capacity() -> int:
 	return unlocked_equipment_pages * SLOTS_PER_PAGE
 
-## True while any slot below equipment_capacity() is empty.
-func has_free_equipment_slot() -> bool:
+## The empty slots below equipment_capacity(), lowest first. The one scan for a free
+## slot: an awarded item goes into the first, and the rest answer how much room is left.
+func free_equipment_slots() -> PackedInt32Array:
+	var free := PackedInt32Array()
 	for i: int in equipment_capacity():
 		if not equipment.has(i):
-			return true
-	return false
+			free.append(i)
+	return free
+
+## True while any slot below equipment_capacity() is empty.
+func has_free_equipment_slot() -> bool:
+	return not free_equipment_slots().is_empty()
 
 func _to_string() -> String:
 	return "InventoryData(materials: %s, equipment: %s, equipped_gear: %s, equipped_accessories: %s, quest_items: %s, consumables: %s, equipped_consumables: %s)" % [materials, equipment, equipped_gear, equipped_accessories, quest_items, consumables, equipped_consumables]

@@ -349,13 +349,12 @@ func _award_equipment(equipment_def: EquipmentDefinitionData, quantity: int) -> 
 	inventory_changed.emit(inventory)
 
 func _add_to_first_available_slot(inventory: InventoryData, item: ItemInstanceData) -> void:
-	var capacity := inventory.equipment_capacity()
-	for i in capacity:
-		if not inventory.equipment.has(i):
-			inventory.equipment[i] = item
-			return
+	var free_slots := inventory.free_equipment_slots()
+	if not free_slots.is_empty():
+		inventory.equipment[free_slots[0]] = item
+		return
 	var item_id := item.item_definition.item_id if item.item_definition else "?"
-	Log.warn("InventoryManager: Equipment full (%d/%d), cannot add %s" % [inventory.equipment.size(), capacity, item_id])
+	Log.warn("InventoryManager: Equipment full (%d/%d), cannot add %s" % [inventory.equipment.size(), inventory.equipment_capacity(), item_id])
 
 #-----------------------------------------------------------------------------
 # EQUIPPED-SLOT ROUTING HELPERS

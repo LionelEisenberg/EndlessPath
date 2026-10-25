@@ -97,13 +97,23 @@ func get_zone_progression(zone_id: String = get_current_zone().zone_id) -> ZoneP
 	return live_save_data.get_zone_progression_data(zone_id)
 
 ## Increments the completion count for the given action in the ZoneProgressionData.
+## Emits action_completed when the count has used the action up.
 func increment_zone_progression_for_action(action_id: String, zone_id: String = get_current_zone().zone_id, quantity = 1) -> void:
-	var _num_completions_for_action = live_save_data.increment_zone_progression_for_action(action_id, zone_id, quantity)
+	live_save_data.increment_zone_progression_for_action(action_id, zone_id, quantity)
 	var action: ZoneActionData = get_action_by_id(action_id)
 	if action == null:
 		return
-	if action.max_completions != 0 and _num_completions_for_action >= action.max_completions:
+	if is_action_used_up(action, zone_id):
 		action_completed.emit(action_id)
+
+## True when a limited action has been completed max_completions times in the zone.
+## An action with no limit (max_completions 0) is never used up. The zone's available
+## actions leave a used-up action out.
+func is_action_used_up(action_data: ZoneActionData, zone_id: String) -> bool:
+	if action_data.max_completions == 0:
+		return false
+	var completions: int = get_zone_progression(zone_id).action_completion_count.get(action_data.action_id, 0)
+	return completions >= action_data.max_completions
 
 ## Returns accumulated training ticks for the given action in the given zone (0 if unseen).
 func get_training_ticks(action_id: String, zone_id: String = get_current_zone().zone_id) -> int:
@@ -222,10 +232,7 @@ func get_available_actions(zone_id: String = get_current_zone().zone_id) -> Arra
 	if not UnlockManager.are_unlock_conditions_met(zone_data.zone_unlock_conditions):
 		return []
 	
-	# Get zone progression data
-	var zone_progression = get_zone_progression(zone_id)
-	
-	# Filter actions that are unlocked and not completed
+	# Filter actions that are unlocked and not used up
 	var available_actions: Array[ZoneActionData] = []
 	
 	for action in zone_data.all_actions:
@@ -238,12 +245,8 @@ func get_available_actions(zone_id: String = get_current_zone().zone_id) -> Arra
 		if tribulation != null and tribulation.is_passed():
 			continue
 		
-		# Check if action is not completed
-		var completion_count = zone_progression.action_completion_count.get(action.action_id, 0)
-		
-		# If max_completions == 0, action is unlimited (always available)
-		# Otherwise, check if completion_count < max_completions
-		if action.max_completions == 0 or completion_count < action.max_completions:
+		# A limited action that has reached its max_completions is not offered again
+		if not is_action_used_up(action, zone_id):
 			available_actions.append(action)
 	
 	return available_actions

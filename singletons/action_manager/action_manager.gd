@@ -136,7 +136,7 @@ func select_action(action_data: ZoneActionData) -> void:
 
 	_stop_executing_current_action()
 	_set_current_action(action_data)
-	if _is_idle_action(action_data):
+	if is_idle_action(action_data):
 		var zone_id: String = _get_current_zone_id()
 		if zone_id != "":
 			ZoneManager.set_last_idle_action_id(zone_id, action_data.action_id)
@@ -149,7 +149,7 @@ func stop_action(successful: bool = true) -> void:
 	var stopped_action := current_action
 	_stop_executing_current_action(successful)
 	clear_current_action()
-	if stopped_action != null and not _is_idle_action(stopped_action):
+	if stopped_action != null and not is_idle_action(stopped_action):
 		_resume_idle_action()
 
 ## Counts one completion of the action in zone_id, then runs its success
@@ -192,12 +192,21 @@ func resolve_idle_action(zone_id: String) -> ZoneActionData:
 	var last_idle_id: String = ZoneManager.get_last_idle_action_id(zone_id)
 	if last_idle_id != "":
 		for action: ZoneActionData in available:
-			if action.action_id == last_idle_id and _is_idle_action(action):
+			if action.action_id == last_idle_id and is_idle_action(action):
 				return action
 	for action: ZoneActionData in ZoneActionGroups.sort_actions(available):
-		if _is_idle_action(action):
+		if is_idle_action(action):
 			return action
 	return null
+
+## True for an idle action: foraging and training. It runs in the background, and the
+## zone resumes it when a session action ends. Every other action is a session the
+## player plays through.
+func is_idle_action(action_data: ZoneActionData) -> bool:
+	return action_data != null and action_data.action_type in [
+		ZoneActionData.ActionType.FORAGE,
+		ZoneActionData.ActionType.TRAIN_STATS,
+	]
 
 ## Madra per second the running action earns: the running cycle's measured rate
 ## while the cycling action runs (0 while no cycle is drawing Madra), a training
@@ -482,12 +491,6 @@ func _set_current_action(action_data: ZoneActionData) -> void:
 ## False when a save reset replaced the save since the current action started.
 func _is_current_action_in_live_save() -> bool:
 	return _current_action_save == PersistenceManager.save_game_data
-
-func _is_idle_action(action_data: ZoneActionData) -> bool:
-	return action_data != null and action_data.action_type in [
-		ZoneActionData.ActionType.FORAGE,
-		ZoneActionData.ActionType.TRAIN_STATS,
-	]
 
 ## Starts the current zone's idle action after a session action stopped and
 ## logs "Resumed", even for an idle action that unlocked during the session
