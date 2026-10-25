@@ -11,7 +11,8 @@ extends Node
 ## ready and before the main scene's own _ready(), so no view hears the build. Such
 ## a session lives in memory, or in the --save file: the user's own save is never
 ## read, and is written only when --save names it, after PersistenceManager backs
-## it up.
+## it up. "Save this game as a preset" writes the session's save into a preset
+## file, a snapshot.
 ##
 ## In game, a switch (play a preset, jump through a story beat, restart the preset,
 ## back to your save, a new game, keep the session as your save, restore a backup)
@@ -277,6 +278,54 @@ func find_preset(preset_id: String) -> SavePresetData:
 		if preset.preset_id == preset_id:
 			return preset
 	return null
+
+#-----------------------------------------------------------------------------
+# SNAPSHOTS AND THE PIN
+#-----------------------------------------------------------------------------
+
+## Saves this game as a preset: a snapshot preset that embeds a copy of the session's
+## save, written as <id>.tres to the folder _preset_save_folder() names, where
+## get_presets() finds it. A run from the editor binary writes the repository's folder,
+## so the new file shows in git status. The id is the title lowercased, each run of
+## characters outside a-z and 0-9 turned into "_", and "_" trimmed from both ends:
+## "Weird State #2!" is "weird_state_2". The copy shares the item resources the
+## inventory is keyed by and copies everything else; a copy has no file of its own,
+## so the preset's file embeds it. Returns "" once the file is written, or why it was
+## not: an empty title, a title with no letter or digit to make an id from, an id a
+## preset already has (that preset is never overwritten), or the write failed. The
+## session is left as it was.
+func save_as_preset(title: String, description: String) -> String:
+	var clean_title: String = title.strip_edges()
+	if clean_title == "":
+		return "The title is empty"
+	var preset_id: String = _preset_id_for(clean_title)
+	if preset_id == "":
+		return "The title needs a letter or a digit to make an id from"
+	if find_preset(preset_id) != null:
+		return "A preset with the id %s already exists" % preset_id
+
+	var preset := SavePresetData.new()
+	preset.preset_id = preset_id
+	preset.title = clean_title
+	preset.description = description.strip_edges()
+	preset.snapshot = PersistenceManager.save_game_data.duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL) as SaveGameData
+	var path: String = _preset_save_folder().path_join("%s.tres" % preset_id)
+	var error: Error = SaveFiles.write_atomically(preset, path)
+	if error != OK:
+		return "Could not write %s (error %d)" % [path, error]
+	_log_dev_line("Saved this game as the preset '%s' (%s)" % [clean_title, path])
+	return ""
+
+## Pins the preset with this id, so every plain launch from this checkout starts in it
+## (LaunchOptions.parse() says which launches are plain); "" unpins. Returns OK once the
+## pin file is written, or the error of writing it. The id is not looked up: a pin whose
+## preset is gone starts a fresh game in memory at launch, with a critical log line.
+func pin_preset(preset_id: String) -> Error:
+	return LaunchOptions.write_pin(preset_id)
+
+## The id of the preset pinned for this checkout, or "" when none is.
+func get_pinned_preset_id() -> String:
+	return LaunchOptions.read_pin()
 
 #-----------------------------------------------------------------------------
 # BUILDING
@@ -575,6 +624,24 @@ func _preset_folders() -> PackedStringArray:
 	if preset_dir_override != "":
 		return PackedStringArray([preset_dir_override])
 	return PackedStringArray([PRESET_DIR, EXPORT_PRESET_DIR])
+
+## The folder save_as_preset() writes to: preset_dir_override when a test set it.
+## Otherwise PRESET_DIR for a run from the editor binary (OS.has_feature("editor"),
+## true for every run the editor starts), and EXPORT_PRESET_DIR for an exported build,
+## whose res:// is read-only.
+func _preset_save_folder() -> String:
+	if preset_dir_override != "":
+		return preset_dir_override
+	if OS.has_feature("editor"):
+		return PRESET_DIR
+	return EXPORT_PRESET_DIR
+
+## The id a preset saved under this title gets: the title lowercased, each run of
+## characters outside a-z and 0-9 turned into "_", and "_" trimmed from both ends. ""
+## when the title has no letter or digit.
+func _preset_id_for(title: String) -> String:
+	var outside_the_alphabet: RegEx = RegEx.create_from_string("[^a-z0-9]+")
+	return outside_the_alphabet.sub(title.to_lower(), "_", true).lstrip("_").rstrip("_")
 
 ## True when preset `a` is listed before `b`: by title, ignoring case, then by id,
 ## so two presets with one title keep one order.

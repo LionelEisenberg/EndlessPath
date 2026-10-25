@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SavePresetData" format=3]
+
+[ext_resource type="Script" uid="uid://dgwhqtvd2nitn" path="res://scripts/resource_definitions/dev/save_preset_data.gd" id="1_preset"]
+
+[resource]
+script = ExtResource("1_preset")
+preset_id = "path_open"
+title = "First keystone"
+description = "Pure Core Awakening bought; Smooth Flow and Empty Palm equipped."
+story_through = "beat_2"
