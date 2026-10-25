@@ -9,16 +9,4 @@ script = ExtResource("1_forage")
 unique_name_in_owner = true
 size_flags_vertical = 0
 mouse_filter = 2
-theme_override_constants/separation = 8
-
-[node name="TailText" type="RichTextLabel" parent="YieldRow" unique_id=1111286446]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-size_flags_vertical = 0
-mouse_filter = 2
-theme_type_variation = &"RichTextLacquer"
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
-autowrap_mode = 0
+theme_override_constants/separation = 12

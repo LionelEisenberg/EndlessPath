@@ -364,7 +364,8 @@ void fragment() {
 
 ### Copy that held up
 
-- Short ledger lines, not sentences: `Aura Well · +1.5 Madra / s`, `5 min run · carries 120 Madra`, `haul in 3 s`. The user's review of the first adventure card: too much text "for how little it tells the user".
+- Short ledger lines, not sentences: `+1.5 Madra / s`, `haul in 3 s`. The user's review of the first adventure card: too much text "for how little it tells the user".
+- An activity card says what you get, in columns, never `text · text`: what the action gives on the left, at most one figure right-aligned under the tag (`+1.5 Madra / s` | `+1 Spirit / level`, `5 min run` | `carries 120 Madra`). Timings, ranges, levels and the gold you carry belong to the Now tray and the cabinet, not the card (the user's review, 2026-10-24).
 - Numbers carry units with spaces: `+1.5 Madra / s`, `46 / 60`, `17 / 18 XP`, `10 s`.
 - A figure beats a sentence: a rod plus `46 / 60` replaced "Needs 60 Madra · you have 46".
 - Mixed case for names and labels (`Core Density`, `Full log · L`, group labels in title case). Uppercase only in tags and seals.
