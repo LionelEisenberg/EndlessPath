@@ -263,11 +263,10 @@ func _set_cost_affordable(affordable: bool) -> void:
 	_cost_affordable = affordable
 	_cost_label.add_theme_color_override(&"font_color", ThemeConstants.LACQUER_CREAM if affordable else ThemeConstants.LACQUER_TAN)
 
-## The slot's key, read from the input map so it follows a remap.
-func _key_text() -> String:
-	if _slot_index < 0:
-		return ""
-	var action: String = "ability_slot_%d" % (_slot_index + 1)
+## Returns the key the input map binds to action, so a key cap follows a remap,
+## or fallback when the action has no key. The dock's consumable sockets read
+## their keys through it too.
+static func key_label(action: StringName, fallback: String) -> String:
 	if InputMap.has_action(action):
 		for event: InputEvent in InputMap.action_get_events(action):
 			var key_event := event as InputEventKey
@@ -279,7 +278,14 @@ func _key_text() -> String:
 			var label: String = OS.get_keycode_string(keycode)
 			if not label.is_empty():
 				return label
-	return FALLBACK_KEY_LABELS[_slot_index] if _slot_index < FALLBACK_KEY_LABELS.size() else ""
+	return fallback
+
+## The slot's key, read from the input map so it follows a remap.
+func _key_text() -> String:
+	if _slot_index < 0:
+		return ""
+	var fallback: String = FALLBACK_KEY_LABELS[_slot_index] if _slot_index < FALLBACK_KEY_LABELS.size() else ""
+	return key_label(StringName("ability_slot_%d" % (_slot_index + 1)), fallback)
 
 ## Lets go of the bound instance and forgets its cooldown and cast.
 func _unbind_instance() -> void:
