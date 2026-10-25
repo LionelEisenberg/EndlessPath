@@ -122,6 +122,17 @@ func _hug_width(plate: ZoneMapLabel, padding: float) -> float:
 	var width: float = ceilf(_text_width(plate.get_node("%NameLabel") as Label)) + padding
 	return width + fposmod(width, 2.0)
 
+## Asserts the floater rises from the left of the zone's plate: its token
+## ends 8 px left of the ring (of the plate while no ring shows), centred on
+## the plate's 52 px height before its rise.
+func _assert_floater_beside_plate(zone_id: String, context: String) -> void:
+	var plate: ZoneMapLabel = _markers().get_plate(zone_id)
+	var ring: MapActionRing = plate.get_action_ring()
+	var floater: LacquerFloater = _markers().get_floater()
+	var plate_left: float = plate.position.x + (ring.position.x if ring.visible else 0.0)
+	assert_eq(floater.position.x + floater.get_token_width(), plate_left - 8.0, "%s: the token ends 8 px left of the plate's ring" % context)
+	assert_eq(floater.position.y + floater.get_rise(), plate.position.y + 12.0, "%s: centred on the plate's height, then rising" % context)
+
 ## The screen centre of the zone's hex with the map camera as it is now.
 func _hex_centre(zone_id: String) -> Vector2:
 	var camera: Camera2D = _map.get_camera()
@@ -475,16 +486,15 @@ func test_floater_keeps_its_size_at_zoom_one() -> void:
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
 	_advance_floater(0.5)
 	await _settle()
-	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
 	var floater: LacquerFloater = _markers().get_floater()
 	assert_eq(floater.get_rise(), 20, "precondition: halfway up its 40 px rise")
 	assert_eq(floater.scale, Vector2.ONE, "the floater keeps its size")
-	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, centre.x + 25.0, 1.0, "centred 50 px right of the hex centre at zoom 2, 25 at zoom 1")
-	assert_eq(floater.position.y, centre.y - 28.0 - floater.get_rise(), "its token's foot at the hex centre's height")
+	_assert_floater_beside_plate(SPIRIT_VALLEY_ID, "zoom 1")
 	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring().scale, Vector2.ONE, "the ring on the plate keeps its size")
 
-func test_floater_stays_above_the_current_plate_at_every_zoom() -> void:
-	# Nearer zoom 1 the hex shrinks round the kit-size floater and plate.
+func test_floater_rises_beside_the_current_plate_at_every_zoom() -> void:
+	# The user's review (2026-10-24): the gain rises from the left of the
+	# plate whose ring just ticked, at every zoom.
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	var camera: Camera2D = _map.get_camera()
 	var floater: LacquerFloater = _markers().get_floater()
@@ -494,9 +504,10 @@ func test_floater_stays_above_the_current_plate_at_every_zoom() -> void:
 		camera.zoom = Vector2(zoom, zoom)
 		_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
 		await _settle()
+		_assert_floater_beside_plate(SPIRIT_VALLEY_ID, "zoom %s" % zoom)
 		var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
-		var ring_top: float = plate.position.y + plate.get_action_ring().position.y
-		assert_lte(floater.position.y + floater.get_rise() + floater.size.y, ring_top, "zoom %s: the resting floater token stays above the plate's ring" % zoom)
+		var plate_rect := Rect2(plate.position + plate.get_action_ring().position, plate.size - plate.get_action_ring().position)
+		assert_false(floater.get_rect().intersects(plate_rect), "zoom %s: the token never covers the plate or its ring" % zoom)
 
 func test_current_plate_draws_above_its_neighbours() -> void:
 	# Kit-size plates overlap their row neighbours below zoom 1.5 (164 px
@@ -670,8 +681,7 @@ func test_floater_on_training_tick() -> void:
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_MADRA, "in Madra blue")
 	assert_gt(floater.get_token_width(), 28 + 40, "the token is as wide as its text plus 28")
 	assert_eq(floater.get_token_width() % 2, 0, "on the 2 px grid")
-	assert_eq(floater.position.y, 674.0 - floater.get_rise(), "kit §0: its top at 674, then rising")
-	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, 1010.0, 1.0, "centred on x 1010")
+	_assert_floater_beside_plate(SPIRIT_VALLEY_ID, "zoom 2")
 
 func test_floater_rises_in_two_px_steps() -> void:
 	assert_eq(LacquerFloater.rise_at(0.0), 0)
@@ -685,17 +695,19 @@ func test_haul_floater_once_per_haul() -> void:
 	var forage: ForageActionData = ActionManager.get_current_action() as ForageActionData
 	assert_not_null(forage, "precondition: foraging starts on unlock")
 	var haul: Dictionary = {}
-	var parts: Array[String] = []
+	var icons: Array[Texture2D] = []
 	var quantity: int = 3
 	for entry: LootTableEntry in forage.loot_table.entries:
 		haul[entry.item] = quantity
-		parts.append("+%d %s" % [quantity, entry.item.item_name])
+		icons.append(entry.item.get_mini_icon())
 		quantity += 1
 	ActionManager.foraging_completed.emit(haul)
 	var floater: LacquerFloater = _markers().get_floater()
 	assert_true(floater.visible)
-	assert_eq(floater.get_text(), "  ".join(parts), "the haul, two spaces between items")
+	assert_eq(floater.get_text(), "+3  +4", "the counts, two spaces between items")
+	assert_eq(floater.get_icons(), icons, "each count with its item's icon, not its name (the user's review, 2026-10-24)")
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_CREAM, "in cream")
+	_assert_floater_beside_plate(SPIRIT_VALLEY_ID, "a haul")
 	_advance_floater(1.1)
 	assert_false(floater.visible, "hidden outright after its 1 s rise")
 

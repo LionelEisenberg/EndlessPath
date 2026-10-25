@@ -7,17 +7,17 @@ extends CanvasLayer
 ## - a plate (ZoneMapLabel) under every map zone;
 ## - the padlock and "?" glyphs (MapGlyph) over the locked and uncharted hexes;
 ## - the floater (LacquerFloater) that floats each tick or haul of the
-##   running idle action beside the character (the action's ring sits on the
-##   current zone's plate);
+##   running idle action up from the left of the current zone's plate, beside
+##   the action's ring on the plate's left end (the user's review, 2026-10-24);
 ## - the one map popover (ZoneMapPopover) for a locked or uncharted zone.
 ## Draw order, back to front: floater, glyphs, plates, popover (kit §6.1).
 ## Every frame each marker follows its hex through the map's canvas transform:
 ## at zoom 2 it sits at the kit's offset from the hex centre. Markers keep
 ## their kit size at every zoom, so no text drops under the 13 px floor; at
 ## another zoom only the point each one hangs from (its anchor: a plate's top
-## centre, a glyph's centre, the floater's foot, the popover's edge beside
-## the hex) moves with the hex, by zoom / 2 (Review
-## Focus 3). Below zoom 1.25 the plates show their names only (spec, Open /
+## centre, a glyph's centre, the popover's edge beside the hex) moves with the
+## hex, by zoom / 2 (Review Focus 3); the floater hangs from the current
+## zone's plate. Below zoom 1.25 the plates show their names only (spec, Open /
 ## deferred), so their lines do not crowd. The layer hides while the camera zooms
 ## into an adventure and shows again when the zone view comes back and the
 ## camera has eased back to its resting zoom.
@@ -81,25 +81,22 @@ const GLYPH_OFFSET_UNCHARTED: Vector2 = Vector2(-14, -40)
 const POPOVER_OFFSET_LOCKED_PINNED: Vector2 = Vector2(-440, -86)
 const POPOVER_OFFSET_LOCKED_PREVIEW: Vector2 = Vector2(-440, -66)
 const POPOVER_OFFSET_UNCHARTED: Vector2 = Vector2(168, -56)
-## The floater token is centred on the hex centre + 50 (snapped to even px),
-## with its top 28 above the centre before it rises.
-const FLOATER_CENTRE_X: float = 50.0
-const FLOATER_TOP: float = -28.0
+## The floater's token ends this far left of the current zone's plate (of the
+## ring on its left end while the ring shows), centred on the plate's height
+## before it rises.
+const FLOATER_PLATE_GAP: float = 8.0
 
 ## Where a marker hangs from its hex at zoom 2, from the hex centre: the point
-## that moves with the hex at other zooms while the marker keeps its size. The
-## floater hangs from the foot of its token, a popover from its edge beside
-## the hex (4 px clear of the rim); a plate from its top centre and a glyph
-## from its own centre (_plate_anchor, _glyph_anchor).
-const FLOATER_ANCHOR: Vector2 = Vector2(FLOATER_CENTRE_X, 0)
+## that moves with the hex at other zooms while the marker keeps its size. A
+## popover hangs from its edge beside the hex (4 px clear of the rim); a plate
+## from its top centre and a glyph from its own centre (_plate_anchor,
+## _glyph_anchor).
 const POPOVER_ANCHOR_LOCKED: Vector2 = Vector2(-168, 0)
 const POPOVER_ANCHOR_UNCHARTED: Vector2 = Vector2(168, 0)
 
 ## Below this map zoom the plates show their names only (spec, Open / deferred).
 const PLATE_NAME_ONLY_BELOW_ZOOM: float = 1.25
 
-## Between the items of a foraging haul on the floater.
-const HAUL_SEPARATOR: String = "  "
 
 const ZoneMapLabelScene: PackedScene = preload("res://scenes/zones/map_markers/zone_map_label/zone_map_label.tscn")
 const MapGlyphScene: PackedScene = preload("res://scenes/zones/map_markers/map_glyph/map_glyph.tscn")
@@ -399,7 +396,8 @@ static func marker_position(hex_centre: Vector2, kit_offset: Vector2, anchor: Ve
 ## Puts every marker at its kit offset from its hex's screen centre, at its
 ## kit size, its anchor following the hex (marker_position), in whole px.
 ## Below zoom 1.25 the plates show their names only, on plates that hug
-## them.
+## them. The floater rises from the left of the current zone's plate, placed
+## after the plates so it follows the plate's width in the same frame.
 func _place_markers() -> void:
 	if map == null or not map.is_inside_tree():
 		return
@@ -426,11 +424,12 @@ func _place_markers() -> void:
 	var current_id: String = _current_map_zone_id()
 	if current_id == "":
 		return
-	var centre: Vector2 = canvas * _zone_centres[current_id]
-	var floater_offset: Vector2 = Vector2(
-		snappedf(FLOATER_CENTRE_X - _floater.get_token_width() / 2.0, 2.0),
-		FLOATER_TOP - _floater.get_rise())
-	_floater.position = marker_position(centre, floater_offset, FLOATER_ANCHOR, hex_scale)
+	var plate: ZoneMapLabel = _plates[current_id]
+	var ring: MapActionRing = plate.get_action_ring()
+	var plate_left: float = plate.position.x + (ring.position.x if ring.visible else 0.0)
+	_floater.position = Vector2(
+		plate_left - FLOATER_PLATE_GAP - _floater.get_token_width(),
+		plate.position.y + (plate.size.y - LacquerFloater.TOKEN_HEIGHT) / 2.0 - _floater.get_rise()).round()
 
 ## A plate hangs from its top centre: the kit's offsets centre the plate
 ## under its hex.
@@ -591,16 +590,14 @@ func _on_training_tick_processed(training: TrainingActionData, _new_tick_count: 
 	_floater.pop("%s Madra" % LacquerText.rate(madra_per_tick), ThemeConstants.LACQUER_MADRA)
 	_place_markers()
 
-## The haul in cream ("+3 Dewdrop Tear  +4 Spirit Fern"), once per haul.
+## The haul in cream, each count with its item's icon ("+3 [dewdrop]
+## +4 [fern]"), once per haul.
 func _on_foraging_completed(items: Dictionary) -> void:
 	if _idle_action == null or not ActionManager.get_current_action() is ForageActionData:
 		return
-	var parts: Array[String] = []
-	for item: ItemDefinitionData in items:
-		parts.append("+%d %s" % [items[item], item.item_name])
-	if parts.is_empty():
+	if items.is_empty():
 		return
-	_floater.pop(HAUL_SEPARATOR.join(parts), ThemeConstants.LACQUER_CREAM)
+	_floater.pop_items(items, ThemeConstants.LACQUER_CREAM)
 	_place_markers()
 
 func _on_plate_pressed(zone_data: ZoneData) -> void:

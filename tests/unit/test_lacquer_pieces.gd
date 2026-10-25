@@ -315,6 +315,26 @@ func test_floater_pops_on_an_even_token() -> void:
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_BRASS)
 	assert_eq(LacquerFloater.rise_at(0.05), 2, "the first 2 px step comes at 50 ms")
 
+func test_floater_pops_a_haul_as_counts_and_icons() -> void:
+	var floater: LacquerFloater = FLOATER_SCENE.instantiate() as LacquerFloater
+	add_child_autofree(floater)
+	var dew := MaterialDefinitionData.new()
+	dew.item_name = "Dewdrop Tear"
+	dew.mini_icon = PlaceholderTexture2D.new()
+	var nameless := MaterialDefinitionData.new()
+	nameless.item_name = "Iconless Stone"
+	floater.pop_items({dew: 3, nameless: 1}, ThemeConstants.LACQUER_CREAM)
+	var text: RichTextLabel = floater.get_node("%Text") as RichTextLabel
+	assert_true(floater.visible, "pop_items shows the floater")
+	assert_eq(floater.get_text(), "+3  +1", "the counts, two spaces between items")
+	assert_eq(floater.get_icons(), [dew.mini_icon] as Array[Texture2D], "an item's mini icon stands for its name")
+	assert_false(text.get_parsed_text().contains("Dewdrop"), "no name beside an icon")
+	assert_string_contains(text.get_parsed_text(), "Iconless Stone", "an item with no icon keeps its name")
+	assert_eq(floater.get_token_width() % 2, 0, "on the 2 px grid")
+	assert_gt(floater.get_token_width(), LacquerFloater.TOKEN_TEXT_PADDING + LacquerFloater.ITEM_ICON_SIZE, "the icon is measured with the text")
+	floater.pop("+1.5 Madra", ThemeConstants.LACQUER_MADRA)
+	assert_true(floater.get_icons().is_empty(), "plain text clears the icons")
+
 #-----------------------------------------------------------------------------
 # TEXT
 #-----------------------------------------------------------------------------
