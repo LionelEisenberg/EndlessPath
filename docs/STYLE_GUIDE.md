@@ -224,7 +224,7 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 |---|---|---|---|
 | Rod | 10 px groove; the full rod clipped to width 2 + 2k with an end cap at x = 2k once k ≥ 2. A rod has one length; to shorten one, take the width out of its flat middle (`rod_now` is `rod_well` less 16 px) | `lacquer_rod_{now,goal,adv,stamina,cast}_{empty,full,end}_ai.png`; `lacquer_rod_well_*` (308 px) has no scene since the Now strip narrowed to 392 | `LacquerRod` (steps: Now strip 144, milestone 138, adventure 74, Stamina and cast 119; the Aura Well's `rod_well` was 152) |
 | Beads | 18 jade beads in a strip of 19 rows; r = floor(xp × 18 / need) | `lacquer_beads_xp_strip_ai.png` (222x228) | `LacquerStripRect` |
-| Ring | 13-frame jade bead ring: 56x56 (Now tray), 64x64 on a lacquer disc (map) | `lacquer_ring_strip_ai.png`, `lacquer_map_ring_strip_ai.png` | `LacquerStripRect`, `MapActionRing` |
+| Ring | 13-frame jade bead ring: 56x56 (Now tray), 64x64 on a lacquer disc (on the current zone's map plate) | `lacquer_ring_strip_ai.png`, `lacquer_map_ring_strip_ai.png` | `LacquerStripRect`, `MapActionRing` |
 | Orbs | 80x80 brass-rimmed sockets. The fill is drawn by a pixel shader (see [§8](#8-motion)) | `lacquer_orb_madra_strip_ai.png` (frame 0), `lacquer_orb_core_strip_ai.png` (column 0 pebble, column 1 socket), `lacquer_orb_health_ai.png` (the Health orb's socket) | `CultivatorPlate` with `lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader`; `VitalsPlate` (Health and Madra, the Madra shader with the crimson ramp set on the Health orb's material) |
 
 ### Lines, rails, frames, tokens

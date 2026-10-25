@@ -122,10 +122,9 @@ ZoneTilemap (Node2D)                          zone_tilemap.gd (class ZoneTilemap
 ```
 MapMarkers (CanvasLayer, layer 1)             map_markers.gd (class MapMarkers)
 ├── Root (Control)
-│   ├── ActionRing                            MapActionRing — 64×64 jade bead ring + action icon, beside the character
 │   ├── Floater                               LacquerFloater — "+1.5 Madra" / haul text on a lacquer token
 │   ├── GlyphContainer                        MapGlyph per veiled zone — padlock, or "?" with its twinkle
-│   ├── PlateContainer                        ZoneMapLabel per map zone — 248×52 plate: name + status line
+│   ├── PlateContainer                        ZoneMapLabel per map zone — 248×52 plate: name + status line; the current zone's hugs its name, with the action ring (MapActionRing) on its left end while an idle action runs
 │   └── Popover                               ZoneMapPopover — LOCKED or UNKNOWN card, preview or pinned
 └── PreviewTimer (Timer)                      150 ms hover delay before a preview popover
 ```
@@ -191,14 +190,14 @@ Each card is `scenes/zones/zone_action_button/zone_action_button.tscn` (class `Z
 - **Fog.** Every other cell out to half a viewport past the widest camera clamp (at zoom 1.0) is fog on `FogTileMapLayer`, written with `set_cell`. A cell's tier is its hex distance to the nearest charted map zone, capped at 3 (`ZoneMapMath.fog_tier`); the tier picks the atlas source (1–3, `assets/ui/lacquer/map/lacquer_fog_t{1,2,3}_atlas_ai.png`). The art follows kit §6.2's hand-placed table on its 32 cells, and about 60% of the cells past them are Basic (`ZoneMapMath.fog_art_index`).
 - **Hex states.** The current zone gets the brass rim and lacquer collar, and an open zone a dull brass hairline (`ZoneHexMarker`). A locked or uncharted zone gets a veiled tile with its dashed vermilion or dotted tan rim baked in (`LockedZoneOverlay`). Hover and pin are rim swaps, never glows: an open hex hovered gets the brighter rim; a veiled hex gets a thin inner rim on hover and a heavy one while pinned.
 - **Routes.** `ZoneRoute` draws six 4×4 map-space dots, 12 map px apart, across the shared rim of two neighbouring hexes. Routes run from the current zone, neighbour to neighbour, to the other charted map zones, and on to the uncharted ones. Hovering a zone you can travel to turns the dots on its way cream, stopping at the first zone that is not open or current.
-- **Markers.** `MapMarkers` places every marker each frame from the SubViewport's canvas transform. At zoom 2 each sits at the kit's offset from its hex centre; at other zooms only its anchor follows the hex (by zoom / 2) and the marker keeps its kit size, so no text drops under 13 px. Below zoom 1.25 a plate shows its name only and narrows to the name plus 16 px a side. The current zone's plate draws over its neighbours. The whole layer hides during the adventure zoom-in and returns once the camera is back at its resting zoom.
+- **Markers.** `MapMarkers` places every marker each frame from the SubViewport's canvas transform. At zoom 2 each sits at the kit's offset from its hex centre; at other zooms only its anchor follows the hex (by zoom / 2) and the marker keeps its kit size, so no text drops under 13 px. Below zoom 1.25 a plate shows its name only and narrows to the name plus 16 px a side. The current zone's plate has no status line, so it always hugs its name, and draws over its neighbours. The whole layer hides during the adventure zoom-in and returns once the camera is back at its resting zoom.
 - **Character.** At scale 1 with a hard shadow, its top-left at the zone centre + (0, 19) map px (screen (960, 740) in Spirit Valley). Its idle motion is a choreography of clips and whole-map-px offsets from `ZoneMapMath`, played by the character's `AnimationPlayer` (see [Character idle motion](#character-idle-motion)). The travel walk stands on whole map px every physics frame (`snap_walk_to_whole_px`), so it moves in 2 screen px steps.
 
 Plate lines (`ZoneMapLabel`):
 
 | Map state | Name | Status line |
 |---|---|---|
-| Current | Brass (cream on hover) | The running idle action: "Aura Well · +1.5 Madra / s" with the well icon, "Foraging · a haul every 5 s" with the forage icon; the name alone, centred, when nothing idle runs |
+| Current | Brass (cream on hover) | None. While an idle action runs, its ring (`MapActionRing`, 64×64: the action's icon and the beads that light over each tick or haul) hangs off the plate's left end at (−22, −6), 6 px over its top and bottom, and the name starts at x 48; the plate is the ring's 48 px, the name and 24 px (at most 248), so the right rivet stands clear of the name instead of reading as a dot after it. The ring stood beside the character until the user's review of 2026-10-24, which put it on the plate and dropped the "Aura Well · +1.5 Madra / s" line: the cabinet and the Now strip show the rate |
 | Open | Cream | "Open · N activities" in tan ("Open · 1 activity", "Open · nothing to do yet"); "Click to travel" in brass on hover |
 | Locked | Cream | Swords icon + `ZoneData.blocker_short_text` |
 | Uncharted | Tan until hovered | `blocker_short_text` in tan |
@@ -263,9 +262,9 @@ To add a variant:
 | `ZoneHexMarker` | `scenes/zones/zone_hex_marker/` (`Node2D`) | Current rim (`map/lacquer_hex_current_ai`), open hairline (`lacquer_hex_open_ai`), hover rim (`lacquer_hex_hover_ai`). `setup(state)`, `set_hovered()` |
 | `LockedZoneOverlay` | `scenes/zones/locked_zone_overlay/` (`Node2D`) | Veiled tile for LOCKED or UNCHARTED (`map/lacquer_tile_locked_ai`, `lacquer_tile_uncharted_ai`, lighter on hover), inner rims `lacquer_hex_hover_in_ai` and `lacquer_hex_pinned_in_ai`. `setup(state)`, `set_hovered()`, `set_pinned()`. The veil art bakes the demo zones' tiles |
 | `ZoneRoute` | `scenes/zones/zone_route/` (`Node2D`) | `set_points(from, to)`, `set_lit(lit)`; draws `map/lacquer_route_dot_ai` (lit: the cream dot) in `_draw()` |
-| `ZoneMapLabel` | `scenes/zones/map_markers/zone_map_label/` | The plate. `setup(zone_data, state)`, `set_hovered()`, `set_pinned()` (brass frame), `set_name_only()`, `get_line_text()`; emits `pressed` |
+| `ZoneMapLabel` | `scenes/zones/map_markers/zone_map_label/` | The plate, with the action ring as a child. `setup(zone_data, state)`, `set_hovered()`, `set_pinned()` (brass frame), `set_name_only()`, `get_line_text()`, `get_action_ring()`; emits `pressed` |
 | `MapGlyph` | `scenes/zones/map_markers/map_glyph/` | Padlock or "?" with a twinkle (frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s). `shake()` moves the icon 0, −8, 8, −6, 4, 0 px over 0.44 s, each step held. `shake_offset_at(elapsed, keyframes)` steps any keyframe set, `SHAKE_KEYFRAMES` (the lock shake) by default; `SOFT_SHAKE_KEYFRAMES`, 0, −4, 4, −2, 2, 0, is the soft shake of a refusal: the Adventure card's Madra row here, and the adventure's technique slots, Here tray and Stamina row |
-| `MapActionRing` | `scenes/zones/map_markers/map_action_ring/` | 13-frame jade ring; frame `floor(progress × 13)`, at most 12, from `action_timer`. Shown only while an idle action runs |
+| `MapActionRing` | `scenes/zones/map_markers/map_action_ring/` | 13-frame jade ring on the current zone's plate; frame `floor(progress × 13)`, at most 12, from `action_timer`. Shown only while an idle action runs |
 | `LacquerFloater` | `scenes/common/lacquer/lacquer_floater/` | `pop(text, colour)` on `token.tres`; rises 40 px over 1 s in 2 px steps, then hides. The map's floater stops when the idle action changes. The cycling view has one per zone ([CYCLING.md](../cycling/CYCLING.md)) |
 | `ZoneMapPopover` | `scenes/zones/map_markers/zone_map_popover/` | Locked card (LOCKED chop, name, requirement; pinned: ×, "Show me ›") left of the hex, uncharted card (UNKNOWN) right of it. Emits `close_pressed`, `show_me_pressed(action_id)` |
 | `MapPopoverState` | `scripts/ui/map_popover_state.gd` (`RefCounted`) | Hovered, preview and pinned zone ids. `click(zone_id, state)` returns TRAVEL, PIN, RECENTRE or CLOSE |
