@@ -112,13 +112,33 @@ offset_right = 380.0
 offset_bottom = 74.0
 mouse_filter = 2
 
-[node name="DetailSlot" type="HBoxContainer" parent="Drawer/DetailClip" unique_id=880598870]
+[node name="DetailRow" type="HBoxContainer" parent="Drawer/DetailClip" unique_id=1876342051]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 316.0
 offset_bottom = 18.0
 mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="DetailSlot" type="HBoxContainer" parent="Drawer/DetailClip/DetailRow" unique_id=880598870]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
 theme_override_constants/separation = 0
+
+[node name="DetailRight" type="RichTextLabel" parent="Drawer/DetailClip/DetailRow" unique_id=1190557308]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+bbcode_enabled = true
+text = "+1 Spirit / level"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
 
 [node name="FooterSlot" type="Control" parent="Drawer" unique_id=942721303]
 unique_name_in_owner = true

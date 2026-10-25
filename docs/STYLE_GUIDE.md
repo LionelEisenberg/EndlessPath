@@ -223,7 +223,7 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 |---|---|---|---|
 | Rod | 10 px groove; the full rod clipped to width 2 + 2k with an end cap at x = 2k once k ≥ 2. A rod has one length; to shorten one, take the width out of its flat middle (`rod_now` is `rod_well` less 16 px) | `lacquer_rod_{now,goal,adv,stamina,cast}_{empty,full,end}_ai.png`; `lacquer_rod_well_*` (308 px) has no scene since the Now strip narrowed to 392 | `LacquerRod` (steps: Now strip 144, milestone 138, adventure 74, Stamina and cast 119; the Aura Well's `rod_well` was 152) |
 | Beads | 18 jade beads in a strip of 19 rows; r = floor(xp × 18 / need) | `lacquer_beads_xp_strip_ai.png` (222x228) | `LacquerStripRect` |
-| Ring | 13-frame jade bead ring: 56x56 (Now tray), 64x64 on a lacquer disc (map) | `lacquer_ring_strip_ai.png`, `lacquer_map_ring_strip_ai.png` | `LacquerStripRect`, `MapActionRing` |
+| Ring | 13-frame jade bead ring: 56x56 (Now tray), 64x64 on a lacquer disc (on the current zone's map plate) | `lacquer_ring_strip_ai.png`, `lacquer_map_ring_strip_ai.png` | `LacquerStripRect`, `MapActionRing` |
 | Orbs | 80x80 brass-rimmed sockets. The fill is drawn by a pixel shader (see [§8](#8-motion)) | `lacquer_orb_madra_strip_ai.png` (frame 0), `lacquer_orb_core_strip_ai.png` (column 0 pebble, column 1 socket), `lacquer_orb_health_ai.png` (the Health orb's socket) | `CultivatorPlate` with `lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader`; `VitalsPlate` (Health and Madra, the Madra shader with the crimson ramp set on the Health orb's material) |
 
 ### Lines, rails, frames, tokens
@@ -363,7 +363,8 @@ void fragment() {
 
 ### Copy that held up
 
-- Short ledger lines, not sentences: `Aura Well · +1.5 Madra / s`, `5 min run · carries 120 Madra`, `haul in 3 s`. The user's review of the first adventure card: too much text "for how little it tells the user".
+- Short ledger lines, not sentences: `+1.5 Madra / s`, `haul in 3 s`. The user's review of the first adventure card: too much text "for how little it tells the user".
+- An activity card says what you get, in columns, never `text · text`: what the action gives on the left, at most one figure right-aligned under the tag (`+1.5 Madra / s` | `+1 Spirit / level`, `5 min run` | `carries 120 Madra`). Timings, ranges, levels and the gold you carry belong to the Now tray and the cabinet, not the card.
 - Numbers carry units with spaces: `+1.5 Madra / s`, `46 / 60`, `17 / 18 XP`, `10 s`.
 - A figure beats a sentence: a rod plus `46 / 60` replaced "Needs 60 Madra · you have 46".
 - Mixed case for names and labels (`Core Density`, `Full log · L`, group labels in title case). Uppercase only in tags and seals.

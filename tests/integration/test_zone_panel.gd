@@ -53,6 +53,10 @@ const LORE_GAP_UNDER: float = 12.0
 ## The art's baked shadow beyond the board's right and bottom edges.
 const BOARD_SHADOW: float = 4.0
 const FULL_CHEST_HEIGHT: float = 1032.0
+## A scrolling list keeps 40 px under its fold, and the chest snaps to the
+## bottom line when it would end within 64 px of it.
+const SCROLLING_LIST_GAP: float = 40.0
+const SNAP_DISTANCE: float = 64.0
 ## The Now strip: the kit's 88 tall and the cards' 392 wide, with each extra line
 ## of a name 22 px (18 in a detail line) and its contents ending 16 px short of
 ## the 408 it was.
@@ -356,7 +360,7 @@ func test_strip_shows_for_aura_well() -> void:
 	var texts: Array[String] = _texts(_strip())
 	assert_has(texts, "Aura Well")
 	assert_has(texts, "+1.5 Madra / s")
-	assert_has(texts, "Lv 0 → 1 · +1 Spirit")
+	assert_has(texts, "+1 Spirit at Lv 1")
 	assert_has(texts, "0 / 60")
 	assert_does_not_have(texts, "Nothing running")
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
@@ -369,7 +373,7 @@ func test_strip_follows_training_ticks() -> void:
 	var ticks: int = ZoneManager.increment_training_ticks(AURA_WELL_ID, SPIRIT_VALLEY_ID, 75)
 	ActionManager.training_tick_processed.emit(well, ticks)
 	var texts: Array[String] = _texts(_strip())
-	assert_has(texts, "Lv 1 → 2 · +1 Spirit")
+	assert_has(texts, "+1 Spirit at Lv 2")
 	assert_has(texts, "15 / 300")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), roundi(15.0 / 300.0 * 144.0))
 
@@ -553,7 +557,7 @@ func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
 	ActionManager.stop_action()
 	await wait_process_frames(2)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well resumed")
-	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 Madra / s", "Lv 0 → 1 · +1 Spirit", "0 / 60", "Now"] as Array[String])
+	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 Madra / s", "+1 Spirit at Lv 1", "0 / 60", "Now"] as Array[String])
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is the well's, empty")
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
@@ -995,11 +999,15 @@ func test_chest_height_on_a_fresh_save() -> void:
 	assert_eq(_list().position.y, LIST_TOP)
 	assert_eq(_panel.size.y, LIST_TOP + content + 24.0, "the list top under the tray, then 24 px")
 
-func test_chest_fills_for_ten_cards() -> void:
+func test_chest_folds_for_ten_cards() -> void:
 	await _add_panel()
 	_unlock_everything()
 	await wait_process_frames(2)
-	assert_eq(_panel.size.y, FULL_CHEST_HEIGHT, "a scrolling list snaps the chest to the bottom line")
+	var list: Control = _list()
+	var under_list: float = list.position.y + list.size.y + SCROLLING_LIST_GAP
+	assert_gt((list as ActivityList).get_content_height(), list.size.y, "precondition: the ten cards scroll")
+	assert_gt(FULL_CHEST_HEIGHT - under_list, SNAP_DISTANCE, "precondition: the fold ends too far above the bottom line to snap")
+	assert_eq(_panel.size.y, under_list, "a scrolling list keeps 40 px under its fold")
 	_assert_flow_matches_scenes()
 	# The list folds 8 px under its last whole drawer: no drawer is cut.
 	var view: Rect2 = _scroll().get_global_rect()
@@ -1010,6 +1018,19 @@ func test_chest_fills_for_ten_cards() -> void:
 			assert_lte(rect.end.y, view.end.y, "%s is not cut by the fold" % action.action_id)
 			last_bottom = maxf(last_bottom, rect.end.y)
 	assert_eq(view.end.y - last_bottom, FOLD_GAP)
+
+## A long Aura Well name grows the Now strip and moves the list down, so the
+## fold of the ten cards ends within 64 px of the bottom line.
+func test_chest_snaps_to_the_bottom_line() -> void:
+	_rename_action(AURA_WELL_ID, LONG_NAME)
+	await _add_panel()
+	_unlock_everything()
+	await wait_process_frames(2)
+	var list: Control = _list()
+	var under_list: float = list.position.y + list.size.y + SCROLLING_LIST_GAP
+	assert_gt((list as ActivityList).get_content_height(), list.size.y, "precondition: the list scrolls")
+	assert_lte(FULL_CHEST_HEIGHT - under_list, SNAP_DISTANCE, "precondition: the fold ends within 64 px of the bottom line")
+	assert_eq(_panel.size.y, FULL_CHEST_HEIGHT, "the chest snaps to the bottom line")
 
 func test_rail_and_lips_follow_scroll() -> void:
 	await _add_panel()

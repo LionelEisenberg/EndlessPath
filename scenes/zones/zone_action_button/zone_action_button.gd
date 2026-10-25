@@ -4,6 +4,11 @@ extends Control
 ## title, NEW seal, mode tag and one detail line (lacquer kit §5.5 › Card
 ## internals, positions local to the card). The card is a fixed 392 x 72, or
 ## 96 when tall, so long text never widens it.
+## The detail line has two columns: what the action gives on the left (the
+## detail slot), and at most one figure in the right column, right-aligned
+## under the tag ("+1 Spirit / level"). A card names what you get, never a
+## sentence joined with " · ": the timings, ranges and levels of a running
+## action are the Now strip's (the user's review, 2026-10-24).
 ##
 ## The card owns the drawer, the tag, the running state (an idle action that
 ## runs is pulled out to (-2, -2) on the running drawer and tagged RUNNING),
@@ -44,6 +49,10 @@ const TAG_RAISE: float = 1.0
 ## The detail line's width, and how many lines a long detail wraps onto.
 const DETAIL_WIDTH: float = 316.0
 const DETAIL_WRAP_LINES: int = 2
+## The right column takes at most half the line. A longer figure ends in an
+## ellipsis on an idle card and wraps in the tall drawer on any other, as the
+## left part does.
+const DETAIL_RIGHT_MAX_WIDTH: float = DETAIL_WIDTH / 2.0
 ## What a cut detail line ends in, and the joins it must not end on before it
 ## (the " · " separator, "/ s", a range dash).
 const ELLIPSIS: String = "…"
@@ -83,7 +92,9 @@ const PRESENTER_SCENES: Dictionary = {
 @onready var _new_seal: TextureRect = %NewSeal
 @onready var _tag: TextureRect = %Tag
 @onready var _tag_label: Label = %TagLabel
+@onready var _detail_row: HBoxContainer = %DetailRow
 @onready var _detail_slot: HBoxContainer = %DetailSlot
+@onready var _detail_right: RichTextLabel = %DetailRight
 @onready var _footer_slot: Control = %FooterSlot
 @onready var _ready_frame: LacquerFrameOverlay = %ReadyFrame
 @onready var _hover_frame: LacquerFrameOverlay = %HoverFrame
@@ -99,6 +110,11 @@ var _ready_frame_hold: Tween = null
 ## The tag shown while the action is not running (set_mode_tag).
 var _tag_text: String = ""
 var _tag_style: TagStyle = TagStyle.CARVED
+## The width the right column's text takes, 0 while it is hidden.
+var _detail_right_width: float = 0.0
+## True while the right column wraps onto more than one line (a non-idle card's
+## figure wider than half the line), which keeps the card in the tall drawer.
+var _detail_right_wraps: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -137,10 +153,49 @@ func set_mode_tag(text: String, style: TagStyle) -> void:
 	_tag_style = style
 	_apply_tag()
 
-## The HBoxContainer at the detail line (x+64, y+38, 316 wide): presenters put
-## their detail line here.
+## The HBoxContainer at the detail line (x+64, y+38, 316 wide less the right
+## column and its 12 px gap): presenters put the left part of their detail
+## line here.
 func get_detail_slot() -> HBoxContainer:
 	return _detail_slot
+
+## Shows text in the detail line's right column, right-aligned at the tag's
+## right edge (x+380), in tan or in color; "" hides it. The column takes at most
+## half the line: past that the text ends in an ellipsis on an idle card, and on
+## any other it wraps at half the line and the card takes the tall drawer. The
+## left part keeps what the column leaves (get_detail_room): call this before
+## fitting the left part.
+func set_detail_right(text: String, color: Color = ThemeConstants.LACQUER_TAN) -> void:
+	_detail_right.visible = text != ""
+	_detail_right.add_theme_color_override(&"default_color", color)
+	_detail_right.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_detail_right.custom_minimum_size.x = 0.0
+	_detail_right_width = 0.0
+	_detail_right_wraps = false
+	if text == "":
+		return
+	var font: Font = _detail_right.get_theme_font(&"normal_font")
+	var font_size: int = _detail_right.get_theme_font_size(&"normal_font_size")
+	if _is_idle_action() or _text_width(text, font, font_size) <= DETAIL_RIGHT_MAX_WIDTH:
+		_detail_right_width = ceilf(fit_detail_rich_text(_detail_right, text, DETAIL_RIGHT_MAX_WIDTH))
+		return
+	_detail_right.text = LacquerText.decimal_bbcode(text)
+	_detail_right.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_right.custom_minimum_size.x = DETAIL_RIGHT_MAX_WIDTH
+	_detail_right_width = DETAIL_RIGHT_MAX_WIDTH
+	_detail_right_wraps = true
+	set_tall(true)
+
+## The right column's text, "" while it is hidden.
+func get_detail_right_text() -> String:
+	return _detail_right.get_parsed_text() if _detail_right.visible else ""
+
+## The width the left part of the detail line has: the whole 316 px, or what
+## the right column and its gap leave.
+func get_detail_room() -> float:
+	if not _detail_right.visible:
+		return DETAIL_WIDTH
+	return DETAIL_WIDTH - _detail_right_width - _detail_row.get_theme_constant(&"separation")
 
 ## A Control covering the drawer: presenters put pieces here at the kit's card
 ## positions (the adventure's Madra line, rod and hint).
@@ -159,25 +214,30 @@ func set_ready_frame(shown: bool) -> void:
 	_shows_ready_frame = shown
 	_apply_ready_frame()
 
-## Fits a one-line detail Label into the 316 px detail line (kit §0). On a card
-## whose action is not idle, a line wider than 316 px wraps onto two lines in
-## the tall drawer; otherwise the line ellipsizes and the card stays short.
+## Fits a one-line detail Label into the left part of the detail line (316 px
+## less the right column, kit §0). On a card whose action is not idle, a line
+## wider than that wraps onto two lines in the tall drawer; otherwise the line
+## ellipsizes and the card stays short (unless a wrapping right column keeps it
+## tall).
 func fit_detail_label(label: Label) -> void:
 	var font: Font = label.get_theme_font(&"font")
 	var font_size: int = label.get_theme_font_size(&"font_size")
 	var width: float = font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-	var wraps: bool = not _is_idle_action() and width > DETAIL_WIDTH
+	var wraps: bool = not _is_idle_action() and width > get_detail_room()
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wraps else TextServer.AUTOWRAP_OFF
 	label.max_lines_visible = DETAIL_WRAP_LINES if wraps else -1
-	set_tall(wraps)
+	set_tall(wraps or _detail_right_wraps)
 
 ## Sets a RichTextLacquer detail line (the lines that may hold a decimal
 ## point): text with its decimal points in Yatra One, cut at a word with an
-## ellipsis when it is wider than max_width (kit §5.5: max 316 px, ellipsis),
-## since RichTextLabel has no text_overrun_behavior. Returns the width the
-## shown line takes, measured with the label's own font.
-func fit_detail_rich_text(rich: RichTextLabel, text: String, max_width: float = DETAIL_WIDTH) -> float:
+## ellipsis when it is wider than max_width, by default the left part's room
+## (get_detail_room; kit §5.5: ellipsis), since RichTextLabel has no
+## text_overrun_behavior. Returns the width the shown line takes, measured
+## with the label's own font.
+func fit_detail_rich_text(rich: RichTextLabel, text: String, max_width: float = -1.0) -> float:
+	if max_width < 0.0:
+		max_width = get_detail_room()
 	var font: Font = rich.get_theme_font(&"normal_font")
 	var font_size: int = rich.get_theme_font_size(&"normal_font_size")
 	var shown: String = ellipsize_words(text, font, font_size, max_width)
@@ -273,6 +333,7 @@ func _spawn_presenter() -> void:
 		_presenter = null
 	_clear_slot(_detail_slot)
 	_clear_slot(_footer_slot)
+	set_detail_right("")
 
 	var scene: PackedScene = PRESENTER_SCENES.get(action_data.action_type, DEFAULT_PRESENTER_SCENE) as PackedScene
 	_presenter = scene.instantiate() as ZoneActionPresenter
