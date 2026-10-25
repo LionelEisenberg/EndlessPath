@@ -49,8 +49,9 @@ const TAG_RAISE: float = 1.0
 ## The detail line's width, and how many lines a long detail wraps onto.
 const DETAIL_WIDTH: float = 316.0
 const DETAIL_WRAP_LINES: int = 2
-## The right column takes at most half the line; a longer figure ends in an
-## ellipsis.
+## The right column takes at most half the line. A longer figure ends in an
+## ellipsis on an idle card and wraps in the tall drawer on any other, as the
+## left part does.
 const DETAIL_RIGHT_MAX_WIDTH: float = DETAIL_WIDTH / 2.0
 ## What a cut detail line ends in, and the joins it must not end on before it
 ## (the " · " separator, "/ s", a range dash).
@@ -111,6 +112,9 @@ var _tag_text: String = ""
 var _tag_style: TagStyle = TagStyle.CARVED
 ## The width the right column's text takes, 0 while it is hidden.
 var _detail_right_width: float = 0.0
+## True while the right column wraps onto more than one line (a non-idle card's
+## figure wider than half the line), which keeps the card in the tall drawer.
+var _detail_right_wraps: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -157,14 +161,30 @@ func get_detail_slot() -> HBoxContainer:
 
 ## Shows text in the detail line's right column, right-aligned at the tag's
 ## right edge (x+380), in tan or in color; "" hides it. The column takes at most
-## half the line (a longer text ends in an ellipsis), and the left part keeps
-## what it leaves (get_detail_room): call this before fitting the left part.
+## half the line: past that the text ends in an ellipsis on an idle card, and on
+## any other it wraps at half the line and the card takes the tall drawer. The
+## left part keeps what the column leaves (get_detail_room): call this before
+## fitting the left part.
 func set_detail_right(text: String, color: Color = ThemeConstants.LACQUER_TAN) -> void:
 	_detail_right.visible = text != ""
 	_detail_right.add_theme_color_override(&"default_color", color)
+	_detail_right.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_detail_right.custom_minimum_size.x = 0.0
 	_detail_right_width = 0.0
-	if text != "":
+	_detail_right_wraps = false
+	if text == "":
+		return
+	var font: Font = _detail_right.get_theme_font(&"normal_font")
+	var font_size: int = _detail_right.get_theme_font_size(&"normal_font_size")
+	if _is_idle_action() or _text_width(text, font, font_size) <= DETAIL_RIGHT_MAX_WIDTH:
 		_detail_right_width = ceilf(fit_detail_rich_text(_detail_right, text, DETAIL_RIGHT_MAX_WIDTH))
+		return
+	_detail_right.text = LacquerText.decimal_bbcode(text)
+	_detail_right.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_right.custom_minimum_size.x = DETAIL_RIGHT_MAX_WIDTH
+	_detail_right_width = DETAIL_RIGHT_MAX_WIDTH
+	_detail_right_wraps = true
+	set_tall(true)
 
 ## The right column's text, "" while it is hidden.
 func get_detail_right_text() -> String:
@@ -197,7 +217,8 @@ func set_ready_frame(shown: bool) -> void:
 ## Fits a one-line detail Label into the left part of the detail line (316 px
 ## less the right column, kit §0). On a card whose action is not idle, a line
 ## wider than that wraps onto two lines in the tall drawer; otherwise the line
-## ellipsizes and the card stays short.
+## ellipsizes and the card stays short (unless a wrapping right column keeps it
+## tall).
 func fit_detail_label(label: Label) -> void:
 	var font: Font = label.get_theme_font(&"font")
 	var font_size: int = label.get_theme_font_size(&"font_size")
@@ -206,7 +227,7 @@ func fit_detail_label(label: Label) -> void:
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wraps else TextServer.AUTOWRAP_OFF
 	label.max_lines_visible = DETAIL_WRAP_LINES if wraps else -1
-	set_tall(wraps)
+	set_tall(wraps or _detail_right_wraps)
 
 ## Sets a RichTextLacquer detail line (the lines that may hold a decimal
 ## point): text with its decimal points in Yatra One, cut at a word with an

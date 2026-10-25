@@ -177,7 +177,10 @@ func test_below_the_cap_shows_the_core_figure() -> void:
 func test_at_the_cap_the_card_is_ready() -> void:
 	_set_core_level(FULL_CORE)
 	var card: ZoneActionButton = _card()
-	assert_true(_has_text_containing(card, "About 38 s · a failure costs 5 levels"), "the trial's length and its penalty")
+	assert_eq(_ready_label(card).text if _ready_label(card) else "", "About 38 s", "the trial's length on the left")
+	assert_eq(card.get_detail_right_text(), "failure costs 5 levels", "and its penalty in the right column")
+	assert_eq((card.get_node("%DetailRight") as RichTextLabel).get_theme_color(&"default_color"), ThemeConstants.LACQUER_BRASS, "in brass too")
+	assert_false(_has_text_containing(card, "·"), "two columns, not a sentence joined with a dot")
 	assert_eq(_tag_text(card), "ENTER")
 	var frame: LacquerFrameOverlay = _ready_frame(card)
 	assert_true(frame.visible, "the steady brass ready frame")
@@ -196,7 +199,8 @@ func test_at_the_cap_the_card_is_ready() -> void:
 func test_ready_line_follows_the_trial_data() -> void:
 	_set_core_level(FULL_CORE)
 	var card: ZoneActionButton = _card_for(_action_with_trial(2.0, 7))
-	assert_true(_has_text_containing(card, "About 19 s · a failure costs 7 levels"))
+	assert_true(_has_text_containing(card, "About 19 s"))
+	assert_eq(card.get_detail_right_text(), "failure costs 7 levels")
 
 ## The last level of a core, earned with XP, readies the card the player is
 ## looking at.
@@ -301,23 +305,29 @@ func test_card_follows_a_stage_change() -> void:
 # LONG TEXT
 #-----------------------------------------------------------------------------
 
-## A ready line wider than the detail line wraps in the tall drawer instead of
-## being cut, and the card is short again once it is not ready. Label.text holds the
-## whole line whatever fit_detail_label() does to it (an ellipsis, two lines at most),
-## so the label's own lines are counted once it has been laid out: every one shows.
+## A ready line too wide for the detail line wraps in the tall drawer instead of
+## being cut, and the card is short again once it is not ready. Here the penalty
+## runs past half the line, so the right column wraps; Label.text holds the whole
+## left part whatever fit_detail_label() does to it (an ellipsis, two lines at
+## most), so the label's own lines are counted once it has been laid out: every
+## one shows.
 func test_a_long_ready_line_grows_the_card_and_it_shrinks_back() -> void:
 	_set_core_level(FULL_CORE)
 	var card: ZoneActionButton = _card_for(_action_with_trial(SLOW_TEMPO, HEAVY_PENALTY))
 	await wait_process_frames(2)
 	var line: Label = _ready_label(card)
+	var right: RichTextLabel = card.get_node("%DetailRight") as RichTextLabel
 	assert_not_null(line, "the ready line sits on the detail line")
 	if line:
-		assert_gt(line.get_line_count(), 1, "the line wraps")
-		assert_eq(line.get_visible_line_count(), line.get_line_count(), "and no line of it is cut")
+		assert_eq(line.get_visible_line_count(), line.get_line_count(), "no line of the left part is cut")
+	assert_eq(card.get_detail_right_text(), "failure costs %d levels" % HEAVY_PENALTY, "the right column keeps its whole text")
+	assert_gt(right.get_line_count(), 1, "and wraps")
+	assert_lte(right.size.x, 158.0, "at half the line")
 	assert_eq(card.size.y, TALL_HEIGHT, "the line wraps in the tall drawer")
 	CultivationManager.lose_core_density_levels(5)
 	assert_eq(card.size.y, SHORT_HEIGHT, "below the cap the card is short again")
 	assert_eq(card.custom_minimum_size.y, SHORT_HEIGHT)
+	assert_eq(card.get_detail_right_text(), "", "and its right column goes")
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
