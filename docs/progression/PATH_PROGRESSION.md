@@ -185,7 +185,7 @@ An aggregated snapshot that `PathManager` rebuilds from scratch. Defaults are th
 | `path_node_purchases` | `Dictionary[String, int]` | `{}` | node `id` → purchase level |
 | `path_points` | `int` | `0` | Unspent balance |
 
-`SaveGameData.reset()` restores all three. Purchases persist through the 5 s `SaveTimer` that calls `PersistenceManager.save_data()`; see [PERSISTENCE.md](../infrastructure/PERSISTENCE.md).
+`SaveGameData.reset()` restores all three. Purchases persist with the rest of the save, through the 5 s `SaveTimer` and the save on quit; see [PERSISTENCE.md](../infrastructure/PERSISTENCE.md).
 
 ### AwardPathPointEffectData (`EffectData`)
 | Field | Type | Description |

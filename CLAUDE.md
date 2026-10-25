@@ -17,6 +17,9 @@ All commands are run from the project root.
 # Run the game from CLI
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
 
+# Run it on its own save file. A plain run (above) plays the user's real user://save.tres, backs it up at boot and takes its lock, so agents add --save=. Options: docs/infrastructure/PERSISTENCE.md
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --save=user://dev/runs/<name>.tres
+
 # Run the test suite in 6 Godot processes at once (-Processes N for another count)
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
 

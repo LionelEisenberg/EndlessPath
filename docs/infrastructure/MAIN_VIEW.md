@@ -53,7 +53,7 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 │   ├── CyclingView             z 3        cycling_view.tscn (the board in the map gap; no backdrop)
 │   ├── TribulationView         z 3        tribulation_view.tscn (the board in the map gap; no backdrop; hidden by default)
 │   └── DevPanel                z 10       dev_panel.tscn, hidden, top-left 340x400
-└── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.save_data()
+└── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.tick()
 ```
 
 The cabinet, the chest, the dock, the log and the Goals board take their places from their own scenes' roots. Their instances in `main_game.tscn` are in Anchors layout mode with top-left anchors. Don't switch them to Position mode: setting Position mode snaps a control to its parent's top-left corner, and an editor save drops the offsets that used to put it back, so every panel lands at (0, 0). `test_main_game_layout.gd` checks the places, also after an editor save. The adventure's vitals cabinet, chest and technique dock are instanced the same way in `adventure_view.tscn`, for the same reason (`test_adventure_view_layout.gd`).
@@ -343,7 +343,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | ResourceManager | `CultivatorPlate` gold row (`gold_changed`, `get_gold()`) |
 | PathManager | `Dock` Path count seal (`points_changed`, `get_point_balance()`) |
 | AbilityManager | `Dock` Abilities ring (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
-| PersistenceManager | `SaveTimer` calls `save_data()` every 5 s |
+| PersistenceManager | `SaveTimer` calls `tick()` every 5 s: the save lock's heartbeat, then the autosave ([PERSISTENCE.md](PERSISTENCE.md)) |
 | LogManager / Log | `LogWindow` shows `message_logged` and the history. `MainGame.log_print_level` → `Log.set_print_level()`. See [LOGGING.md](LOGGING.md). |
 | Dev tools | `MainGame` owns the Ctrl+Shift+D toggle for `DevPanel` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 

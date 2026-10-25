@@ -37,7 +37,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | Topic | Doc | Summary |
 |---|---|---|
 | UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, HUD boards, cycling mode, the Tribulation board, input routing, keybindings, dock |
-| Persistence | [infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | SaveGameData schema and owners, load/save/reset, auto-save, versioning |
+| Persistence | [infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | SaveGameData schema and owners, save sessions and launch options, safe writes, backups, the save lock, versioning, play stats |
 | Resources | [infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra and Gold, the two Madra caps, sources and sinks |
 | Character | [infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, derived stats, player vitals, the Character view |
 | Unlocks | [infrastructure/UNLOCKS.md](infrastructure/UNLOCKS.md) | Unlock condition types, latching, every registered condition |

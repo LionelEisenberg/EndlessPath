@@ -10,11 +10,11 @@
 | Items generator | `scripts/tools/items_md_to_resources.gd`, `items_md_parser.gd` | Headless `-s` script | Generate equipment `.tres` files from `docs/inventory/ITEMS.md`. Documented in [ITEMS.md](../inventory/ITEMS.md). |
 | Label testing scene | `tests/label_tests/label_testing_scene.tscn` | Open and run the scene (F6) | Visual comparison of Label theme variants. See [UI_STYLING.md](../UI_STYLING.md#label-testing-scene). |
 | GUT test runner | `addons/gut/` | CLI or the GUT editor panel | Unit and integration tests. See [TESTING.md](../testing/TESTING.md). |
-| Debug switches | Various exports | Edit in the Inspector or in code | See [Other debug switches](#other-debug-switches) |
+| Debug switches | Various exports, and the launch options | Edit in the Inspector or in code, or pass them after `--` | See [Other debug switches](#other-debug-switches) |
 
 ## Dev Panel
 
-A floating panel shipped in the game binary, open to anyone who presses the hotkey (no password; exported builds included). It calls existing singleton APIs, so its changes go through the same signals as gameplay and are written to `user://save.tres` by the 5 s autosave (`SaveTimer` in `main_game.tscn`). Reloading does not undo them.
+A floating panel shipped in the game binary, open to anyone who presses the hotkey (no password; exported builds included). It calls existing singleton APIs, so its changes go through the same signals as gameplay and are saved with the rest of the session's save by the autosave ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md)). Reloading does not undo them.
 
 ### Opening it
 
@@ -110,7 +110,7 @@ Output: five lines of the form `uid://...`.
 
 | Switch | Location | Current value | Effect |
 |--------|----------|---------------|--------|
-| `reset_save_data` | `PersistenceManager` (`@export` on a script autoload, so edit it in code) | `false` | When `true`, resets and saves a fresh `SaveGameData` on every launch |
+| `--save=<path>`, `--no-autosave` | The command line, after `--` (`LaunchOptions`) | Not given | Play another save file instead of `user://save.tres`, and stop the autosave and the save on quit. See [PERSISTENCE.md](../infrastructure/PERSISTENCE.md#sessions-and-launch-options) |
 | `log_print_level` | `MainGame` (`main_game.gd` export, set in `main_game.tscn`) | `0` (`Log.Event.INFO`) | Lowest `Log` event printed to the console. Every event is also written to `user://logs-<YYYY-MM-DD>.log`, which is truncated on each launch. See [LOGGING.md](../infrastructure/LOGGING.md). |
 | `is_debug_mode` | Player `CharacterBody2D` (`scenes/characters/main_character/character_body_2d.gd`) | `true` in `character_body_2d.tscn`; overridden to `false` in `zone_tilemap.tscn` and `adventure_tilemap.tscn` | When `true`, left-clicking anywhere walks the character to the cursor |
 | `preview_message` | `QuestToast` | `""` | Plays the message once when the scene runs alone (F6); skips `QuestManager` wiring |
@@ -140,7 +140,7 @@ Output: five lines of the form `uid://...`.
 
 | System | Connection |
 |--------|------------|
-| MainGame | Owns the Ctrl+Shift+D gate and `_dev_unlocked` |
+| MainGame | Owns the Ctrl+Shift+D gate |
 | ResourceManager | `set_madra()`, `set_gold()` |
 | CultivationManager | `add_core_density_xp()` |
 | PathManager | `add_points()` |

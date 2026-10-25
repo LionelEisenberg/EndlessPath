@@ -250,7 +250,7 @@ None known.
 - `[MEDIUM]` Cultivation path perks are not applied: `CORE_DENSITY_XP_MULT` (Dedicated Cultivation), `MADRA_ON_LEVEL_UP` (Breakthrough Surge) and `MADRA_CAPACITY_BONUS` (Expanded Core). `PathManager.get_effects()` has no gameplay reader.
 - `[MEDIUM]` Copper unlocks nothing. No `CULTIVATION_STAGE` unlock conditions exist, no path node requires a stage above Foundation (the Path book's Copper chapter opens empty), and Scripting and Elixir Making are not built.
 - `[MEDIUM]` Closing the game mid-trial applies nothing, so it is a way out of a failing run. The result is applied the moment the run ends, but nothing is written before then. Staking the penalty when the trial starts would close the gap, at the cost of punishing a crash.
-- `[LOW]` A save that has reached Copper, opened in a build from before the Tribulation, still hits the endless level-up loop: the guard only protects builds that have it. Saves carry no version field ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#versioning)).
+- `[LOW]` A save that has reached Copper, opened in a build from before the Tribulation, still hits the endless level-up loop: the guard only protects builds that have it. A build from before saves had a version cannot tell a newer save from its own ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#versioning)).
 - `[LOW]` `unlocking_mechanics` and `icon` on `AdvancementStageResource` are exported but never read.
 
 ### Content

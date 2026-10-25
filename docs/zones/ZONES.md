@@ -466,7 +466,7 @@ FORAGE and TRAIN_STATS are the **idle** types; every other type is a **session**
 - `increment_zone_progression_for_action(action_id, zone_id, quantity) -> int`.
 - `migrate()`, with `ZONE_ID_MIGRATIONS = {"TestZone": "SpiritValley"}`: a save standing in the now hidden Test Zone moves to Spirit Valley.
 
-On load, `PersistenceManager._ready()` calls `migrate()`, then `SaveGameData.verify()`, which fails if `current_selected_zone_id` names a zone that `ZoneManager.has_zone()` doesn't know. A failed check resets the whole save. The current action is not saved, but the load's `zone_changed` resolves and starts the zone's idle action (usually the last one). `SaveTimer` autosaves every 5 s. See [PERSISTENCE.md](../infrastructure/PERSISTENCE.md).
+On load, `PersistenceManager` calls `migrate()`, then `repair()`, which puts `current_selected_zone_id` back to `""` (the first zone) when it names a zone that `ZoneManager.has_zone()` doesn't know, after the file is copied aside. The rest of the save stays. The current action is not saved, but the load's `zone_changed` resolves and starts the zone's idle action (usually the last one). `SaveTimer` autosaves every 5 s. See [PERSISTENCE.md](../infrastructure/PERSISTENCE.md).
 
 ## Core Systems / Flows
 
@@ -840,7 +840,7 @@ Tests: `tests/unit/test_zone_*.gd` and `tests/integration/test_zone_*.gd`, among
 
 ### Tech Debt
 
-- `[MEDIUM]` Removing a zone id still wipes the whole save. `PersistenceManager._ready()` resets all data when `SaveGameData.verify()` fails; only ids listed in `SaveGameData.ZONE_ID_MIGRATIONS` are moved first. Renaming an `action_id` silently drops its completion count, last idle action and seen record, so one-time dialogues reappear.
+- `[LOW]` Removing or renaming a zone id sends a save standing in it back to the first zone (`PersistenceManager` repairs it, after copying the file aside) and strands that zone's progression under the old id; only ids listed in `SaveGameData.ZONE_ID_MIGRATIONS` move to the zone they are listed with. Renaming an `action_id` silently drops its completion count, last idle action and seen record, so one-time dialogues reappear.
 - `[LOW]` Dead code and assets:
   - `assets/sprites/ui/lock_icon.png`, the old zone view's lock icon, is no longer referenced.
   - Nothing reads `ZoneData.icon`, and nothing calls `AdventureActionData.is_valid()`.
