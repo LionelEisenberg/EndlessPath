@@ -1,5 +1,4 @@
 # Developer Tools
-Last updated: 2026-10-23
 
 ## Overview
 
@@ -25,7 +24,7 @@ Ctrl+Shift+D (MainGame._input)
   └─ panel hidden  → DevPanel.open()
 ```
 
-Until 2026-10-23 the hotkey did nothing unless `user://dev_password.txt` existed, and then asked for its contents in a `DevPasswordModal`. Both are gone; an old `dev_password.txt` is now ignored.
+The hotkey needs no password: an old `user://dev_password.txt` is ignored.
 
 ### Scene structure
 
@@ -41,7 +40,7 @@ DevPanel (PanelContainer, min width 340, mouse Stop)   dev_panel.gd (class DevPa
     └── "ZONES"       → DemoZonesCheck, HiddenZonesCheck (CheckButtons)
 ```
 
-Both scenes are children of `MainView` at z 10. `main_game.tscn` places the panel at (0, 0). Dragging the title bar moves it, and the position survives close/re-open within a session. The × button hides the panel.
+The panel is a child of `MainView` at z 10. `main_game.tscn` places the panel at (0, 0). Dragging the title bar moves it, and the position survives close/re-open within a session. The × button hides the panel.
 
 ### Controls
 
@@ -51,7 +50,7 @@ Every action writes a `[DEV]` line (magenta tag) to the in-game log through `Log
 |---------|---------|-------|----------------------|
 | Resources | Madra (`MadraSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_madra(v)` | Sets Madra to `max(0, v)` and emits `madra_changed`. Not clamped to max Madra, so it can exceed orb capacity. Unlock conditions re-evaluate. |
 | Resources | Gold (`GoldSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_gold(v)` | Sets gold to `max(0, v)` and emits `gold_changed`, which updates the cultivator cabinet's gold row and re-evaluates unlocks. |
-| Cultivation | Add CD XP (`XpSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `CultivationManager.add_core_density_xp(v)` | Normal XP path: loops level-ups, emits `core_density_level_updated` per level, and awards path points every 10 levels (1 per milestone at Foundation). The loop has no cap at level 100. |
+| Cultivation | Add CD XP (`XpSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `CultivationManager.add_core_density_xp(v)` | Normal XP path: loops level-ups, emits `core_density_level_updated` per level, and awards path points every 10 levels, once per stage (1 per milestone at Foundation). The loop stops at the stage's cap (level 100), where XP is lost, so it can fill the core to reveal the Tribulation card. |
 | Cultivation | Path Points (`PointsSpin`, 0 to 1000, integer) + Apply | `PathManager.add_points(int(v))` | Adds to the path point balance and emits `points_changed`. |
 | Unlocks | Condition (`ConditionOption`) + Trigger | `UnlockManager.force_unlock_condition(id)` | Appends the id to `unlock_progression.unlocked_condition_ids` and emits `condition_unlocked(id)`. Idempotent. The dropdown is filled once in `_ready()` from `UnlockManager.unlock_condition_list.list`, skipping null or empty ids. |
 | Unlocks | Unlock All Cycling Techniques | `CyclingManager.unlock_technique(id)` for every entry in `CyclingManager._technique_catalog.cycling_techniques` | Unlocks every catalog technique and emits `technique_unlocked` for newly unlocked ones. Idempotent. |
@@ -63,7 +62,7 @@ Every action writes a `[DEV]` line (magenta tag) to the in-game log through `Log
 
 Caveats:
 
-- **Force-Win skips victory side effects.** It bypasses `AdventureCombat._on_enemy_health_changed()`, so the gold reward and `EventManager.trigger_event("q_first_steps_enemy_defeated")` never run.
+- **Force-Win skips victory side effects.** It bypasses `AdventureCombat`'s enemy-death handling, so the gold reward and `EventManager.trigger_event("q_first_steps_enemy_defeated")` never run.
 - **Exit: Victory skips the boss's own rewards.** The boss encounter's `success_effects` and the fight's gold never run, only the adventure action's. Exiting mid-fight first closes the fight as a loss (a "Combat Defeat..." log line; no encounter has failure effects today).
 - **Forced conditions only satisfy some systems.** Zone and zone-action gates check `UnlockManager.are_unlock_conditions_met()`, so they accept forced ids. Quest steps (`QuestManager`), encounter choices and encounter eligibility call `UnlockConditionData.evaluate()` directly and ignore them. The underlying event is not triggered either.
 
@@ -77,7 +76,7 @@ An editor-only `@tool` scene for checking procedural adventure layouts without l
 2. Select the `MapPreview` root node. In the Inspector, set `adventure_data` (the scene defaults to `resources/adventure/data/shallow_woods.tres`) and `seed_value`.
 3. Press **Generate**, or **Clear** to wipe the preview. Both are `@export_tool_button`s and need Godot 4.4 or later.
 
-`_generate()` and `_clear()` return immediately outside the editor (`Engine.is_editor_hint()`), so the scene does nothing at runtime or from the CLI.
+**Generate** and **Clear** return immediately outside the editor (`Engine.is_editor_hint()`), so the scene does nothing at runtime or from the CLI.
 
 ### What it does
 
@@ -163,13 +162,14 @@ Output: five lines of the form `uid://...`.
 | `scripts/tools/map_preview.gd`, `scenes/tools/map_preview.tscn`, `scenes/tools/encounter_id_label.tscn` | Map Preview |
 | `scripts/tools/generate_uid.gd` | UID generator |
 | `scripts/tools/items_md_to_resources.gd`, `scripts/tools/items_md_parser.gd` | Items generator |
-| `tests/unit/test_unlock_manager.gd` | `force_unlock_condition()` tests (3) |
+
+Tests: `tests/unit/test_unlock_manager.gd` and `tests/integration/test_dev_panel_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
 
 ### Bugs
 
-- `[MEDIUM]` Force-Win can't advance combat-gated quest steps. `AdventureView.force_win_combat()` emits `trigger_combat_end(true, 0)` directly instead of going through `AdventureCombat._on_enemy_health_changed()`. As a result `q_first_steps_enemy_defeated` never fires, so the Foundation Beat 2 step can't be advanced with Force-Win, and the fight awards no gold.
+- `[MEDIUM]` Force-Win can't advance combat-gated quest steps. `AdventureView.force_win_combat()` emits `trigger_combat_end(true, 0)` directly instead of going through `AdventureCombat`'s enemy-death handling. As a result `q_first_steps_enemy_defeated` never fires, so the Foundation Beat 2 step can't be advanced with Force-Win, and the fight awards no gold.
 
 ### Missing Functionality
 
@@ -185,7 +185,7 @@ Output: five lines of the form `uid://...`.
 
 ### Tech Debt
 
-- `[LOW]` `DevPanel._get_adventure_view()` uses the absolute path `MainGame/MainView/AdventureView`, and `_on_unlock_all_cycling()` reads the private `CyclingManager._technique_catalog`.
+- `[LOW]` `DevPanel` finds the adventure view by the absolute path `MainGame/MainView/AdventureView`, and its Unlock All Cycling Techniques button reads the private `CyclingManager._technique_catalog`.
 - `[LOW]` `dev_panel.tscn` has a hand-written placeholder UID (`uid://dev_panel_001`). `main_game.tscn` references it by path only. `generate_uid.gd` can produce real ones.
 - `[LOW]` Pressing Generate in Map Preview and then saving rewrites the committed snapshot in `scenes/tools/map_preview.tscn` (`tile_map_data` and stats text), which makes noisy diffs.
 - `[LOW]` `generate_uid.gd` has no doc comment and a fixed count of 5.

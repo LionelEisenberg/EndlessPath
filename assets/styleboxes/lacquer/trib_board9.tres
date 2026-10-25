@@ -1,0 +1,14 @@
+[gd_resource type="StyleBoxTexture" format=3 uid="uid://betjmkgl3dodf"]
+
+[ext_resource type="Texture2D" uid="uid://q80fkowk5x0a" path="res://assets/ui/lacquer/tribulation/lacquer_trib_board9_ai.png" id="1_xqjwg"]
+
+[resource]
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 28.0
+content_margin_bottom = 24.0
+texture = ExtResource("1_xqjwg")
+texture_margin_left = 56.0
+texture_margin_top = 56.0
+texture_margin_right = 60.0
+texture_margin_bottom = 60.0

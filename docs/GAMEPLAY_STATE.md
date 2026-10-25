@@ -1,8 +1,6 @@
 # Gameplay State
 
-Last updated: 2026-10-23
-
-This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. The zone view described here is the map-first "Lacquer and brass" view (merged as PR #51, 2026-10-22), the cycling view is the lacquer board (merged as PR #57, 2026-10-23), and the adventure map and its frame are the same look as built on `feat/adventure-view-styleguide-1fc223` (2026-10-23, not merged); the content is the same as on `main`. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
+This document tracks the player experience on `main`: what a player can actually do, what content exists, and what blocks the next stage of progression. For the one-page summary and roadmap see [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md). For per-system detail see the [documentation index](README.md).
 
 ---
 
@@ -29,7 +27,9 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
 9. **Aura Well** (one per map). Choosing *Mark down the location* unlocks **Aura Well** training: an idle action giving +1.5 Madra/s and +1 Spirit per level.
 10. **Reach Core Density 10** (+1 Path Point), then **NPC dialogue 4**. This completes the quest and awards the **Refugee Camp Map**.
 11. **Refugee Camp** encounter. It appears in later runs while the player holds the map. Visiting it reveals the **Traveling Merchant**, whose shop sells six gear pieces (once each per save) and Crude Scales for gold.
-12. **End of content.** No quest is active and no further beats exist. Cycling, adventures, foraging, training, the Merchant and the path tree remain as repeatable loops. Core Density keeps rising past 100 with no breakthrough, and the stage can never change.
+12. **Fill the core.** Core Density stops at 100 and the XP beyond it is lost. The log says "Your core is full. The Tribulation waits in Spirit Valley.", the cabinet reads "Core full", cycling shows "Core full" instead of "+N XP", the Goals board reads "Face the Tribulation", and **The Tribulation** appears under Cultivate with a NEW seal. Below 100 its card shows "Core 95 / 100" and refuses a click.
+13. **Face the Tribulation.** A click at 100 opens a board in the map gap (the log, the Goals board and the dock hide). About 38 s of breathing: press Space or click as the bright sphere crosses the brass ring, and hold through the last breath. 4 cracks fail it. A pass moves the player to **Copper** (level 0, a placeholder curve, "Copper reached" on the Goals board, the card gone); a failure costs 5 Core Density levels (100 → 95), keeps the path points, and leaves the card for another try once the core is full again.
+14. **End of content.** No quest is active and no further beats exist. Cycling, adventures, foraging, training, the Merchant and the path tree remain as repeatable loops. Copper unlocks nothing: no zone, quest, path node or system is gated on it.
 
 Other views, all opened from the zone view via keyboard or the dock:
 
@@ -49,7 +49,7 @@ A five-line log board (L opens the full log), the Goals board (the current quest
 ### Zones and Actions
 | Zone | Actions | Unlock |
 |---|---|---|
-| Spirit Valley (`SpiritValley`) | 9 actions, listed below | Always |
+| Spirit Valley (`SpiritValley`) | 10 actions, listed below | Always |
 | Test Zone (`TestZone`) | None (placeholder, no description). Hidden on the map at (-1, 0), west of Spirit Valley; the dev panel can show it | Event `celestial_intervener_dialogue_1` |
 
 | Action (`action_id`) | Type | Unlock | What it does |
@@ -63,6 +63,7 @@ A five-line log board (L opens the full log), the Goals board (the current quest
 | `aura_well_training` | Training | `aura_well_discovered` | 1 s ticks: +1.5 Madra; +1 Spirit per level (60/300/600/1200 ticks, then ×2) |
 | `celestial_intervener_dialogue_4` | NPC dialogue (once) | Core Density ≥ 10 | Completes `q_reach_core_density_10` |
 | `spirit_valley_merchant` | Merchant | `merchant_discovered` | Opens the shop: 6 gear pieces (once per save) and Crude Scales for gold |
+| `spirit_valley_tribulation` | Tribulation | `core_density_full` (Core Density ≥ 100) | "Core 95 / 100" and a refusal until the core is full, then the Breath of the Core: a pass reaches Copper, a failure costs 5 levels |
 
 Details: [ZONES.md](zones/ZONES.md).
 
@@ -131,19 +132,20 @@ Details: [CYCLING.md](cycling/CYCLING.md).
 | Pure Madra (`pure_madra`) | 14: 2 keystone, 4 major, 5 minor, 3 repeatable; 22 points to max | 3 unlock nodes (Pure Core Awakening, Power Font, Torrential Flow) | Auto-selected; Tier 1 only |
 | Blackflame, Earth | — | — | Theme data only, no tree |
 
-Points come from every 10th Core Density level (+1 in Foundation) and the First Steps Out quest (+1). Details: [PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md).
+Points come from every 10th Core Density level, once per stage (+1 in Foundation, +2 in Copper), and the First Steps Out quest (+1). Details: [PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md).
 
 ### Cultivation Stages
 | Stage | Data | Status |
 |---|---|---|
-| Foundation | `foundation_advancement_stage.tres`: 10 XP base, ×1.02 per level, Madra cap 100 + 5/level | Active; the only stage that can ever be reached |
-| Copper, Iron, Jade, Silver | Enum values only | Unreachable: no breakthrough, no stage resources |
+| Foundation | `foundation_advancement_stage.tres`: 10 XP base, ×1.02 per level, Core Density cap 100, Madra cap 100 + 5/level | Active; ends at Core Density 100, where the Tribulation waits |
+| Copper | `copper_advancement_stage.tres`: 20 XP base, ×1.02 per level, Core Density cap 100, Madra cap 600 + 10/level | Reached by passing the Tribulation. Placeholder numbers; nothing is gated on it yet |
+| Iron, Jade, Silver | Enum values only | Unreachable: no stage resources |
 
 Details: [CULTIVATION.md](cultivation/CULTIVATION.md).
 
 ### Events and Unlock Conditions
 - **Events (8):** `celestial_intervener_dialogue_1`–`_4`, `q_fill_core_completed`, `q_first_steps_enemy_defeated`, `aura_well_discovered`, `merchant_discovered`.
-- **Registered unlock conditions (8):**
+- **Registered unlock conditions (9):**
   - `celestial_intervener_dialogue_1`
   - `q_fill_core_madra_full` (`RESOURCE_AMOUNT` Madra ≥ 100)
   - `q_fill_core_completed`
@@ -151,6 +153,7 @@ Details: [CULTIVATION.md](cultivation/CULTIVATION.md).
   - `q_reach_cd_10` (`CULTIVATION_LEVEL` ≥ 10)
   - `aura_well_discovered`
   - `merchant_discovered`
+  - `core_density_full` (`CULTIVATION_LEVEL` ≥ 100)
   - `test_attribute_requirement_unlock_data` (unused)
 - **Inline conditions (2):** an `ITEM_OWNED` check on the Refugee Camp Map, and a duplicate of `merchant_discovered`.
 
@@ -177,13 +180,12 @@ These systems look finished to the player but have no effect:
 
 Ranked by how much they stop the game from growing:
 
-1. **No breakthrough.** `CultivationManager.attempt_breakthrough()` is an empty stub, and the Tribulation is design-only ([breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md)). Foundation is a hard ceiling.
-2. **No stage past Foundation, and a hang waiting for it.** No Copper `AdvancementStageResource` exists. If the stage ever changes without one, `add_core_density_xp()` loops forever, because `get_xp_for_next_level()` returns 0.
-3. **No content after Beat 4.** There is no quest, NPC or event after the Merchant. Beat 5 (elite gear drop) is a stub, and Beats 6–10 (third keystone through the Zone 2 onramp) are design-only ([FOUNDATION_PLAYTHROUGH.md](progression/FOUNDATION_PLAYTHROUGH.md)).
-4. **The gold sink runs dry.** Once the six gear pieces are bought (625 gold), gold only buys Crude Scales.
-5. **No real boss.** The Shallow Woods boss fights the regular Amorphous Spirit, and clearing a run records nothing.
-6. **Inert perks.** Most of the path tree, and every stat-multiplier hook, does nothing.
-7. **Onboarding.** Unlocks are nearly silent (a static NEW seal on new cards; unspent Path Points show only on the dock), the Foundational Technique earns no XP with no clear prompt to switch, and dialogue still has placeholder text (`[INTERVENER]`).
+1. **Copper is empty.** The Tribulation ([breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md)) breaks through to a thin Copper stage, and nothing is gated on it: no zone, quest, path node, Scripting or Elixir Making. Foundation has an ending now; what follows it does not exist.
+2. **No content after Beat 4 but the Tribulation.** There is no quest, NPC or event after the Merchant. Beat 5 (elite gear drop) is a stub, and Beats 6 and 10 (third keystone, the Zone 2 onramp) are design-only ([FOUNDATION_PLAYTHROUGH.md](progression/FOUNDATION_PLAYTHROUGH.md)).
+3. **The gold sink runs dry.** Once the six gear pieces are bought (625 gold), gold only buys Crude Scales.
+4. **No real boss.** The Shallow Woods boss fights the regular Amorphous Spirit, and clearing a run records nothing.
+5. **Inert perks.** Most of the path tree, and every stat-multiplier hook, does nothing.
+6. **Onboarding.** Unlocks are nearly silent (a static NEW seal on new cards; unspent Path Points show only on the dock), the Foundational Technique earns no XP with no clear prompt to switch, and dialogue still has placeholder text (`[INTERVENER]`).
 
 ## Recommended Next Steps
 

@@ -22,6 +22,10 @@ const AURA_WELL_ID: String = "aura_well_training"
 const FORAGING_ID: String = "sprint_forest_foraging_action"
 const ADVENTURE_ID: String = "shallow_woods_adventure_action"
 const MERCHANT_ID: String = "spirit_valley_merchant"
+const TRIBULATION_ID: String = "spirit_valley_tribulation"
+
+## The unlock condition that reveals the Tribulation's card.
+const FULL_CORE_CONDITION: String = "core_density_full"
 
 const AURA_WELL_EVENT: String = "aura_well_discovered"
 const FORAGING_EVENT: String = "q_fill_core_completed"
@@ -49,6 +53,10 @@ const LORE_GAP_UNDER: float = 12.0
 ## The art's baked shadow beyond the board's right and bottom edges.
 const BOARD_SHADOW: float = 4.0
 const FULL_CHEST_HEIGHT: float = 1032.0
+## A scrolling list keeps 40 px under its fold, and the chest snaps to the
+## bottom line when it would end within 64 px of it.
+const SCROLLING_LIST_GAP: float = 40.0
+const SNAP_DISTANCE: float = 64.0
 ## The Now strip: the kit's 88 tall and the cards' 392 wide, with each extra line
 ## of a name 22 px (18 in a detail line) and its contents ending 16 px short of
 ## the 408 it was.
@@ -195,7 +203,7 @@ func _current_id() -> String:
 	var current: ZoneActionData = ActionManager.get_current_action()
 	return current.action_id if current else ""
 
-## Latches every unlock condition of every Spirit Valley action, so all nine
+## Latches every unlock condition of every Spirit Valley action, so all ten
 ## of its actions are listed, then runs the Aura Well.
 func _unlock_everything() -> void:
 	var valley: ZoneData = ZoneManager.get_zone_by_id(SPIRIT_VALLEY_ID)
@@ -933,7 +941,7 @@ func test_count_label() -> void:
 	assert_eq((_node("CountLabel") as Label).text, "1 here")
 	_unlock_everything()
 	await wait_process_frames(2)
-	assert_eq((_node("CountLabel") as Label).text, "9 here")
+	assert_eq((_node("CountLabel") as Label).text, "10 here")
 
 func test_rebuilds_on_unlock() -> void:
 	await _add_panel()
@@ -941,6 +949,18 @@ func test_rebuilds_on_unlock() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	await wait_process_frames(2)
 	assert_not_null(_panel.get_card(AURA_WELL_ID))
+
+## The Tribulation's card hides once the breakthrough has moved the stage on,
+## so the chest rebuilds when the stage changes.
+func test_rebuilds_on_stage_change() -> void:
+	await _add_panel()
+	UnlockManager.force_unlock_condition(FULL_CORE_CONDITION)
+	CultivationManager.live_save_data.core_density_level = 100.0
+	await wait_process_frames(2)
+	assert_not_null(_panel.get_card(TRIBULATION_ID), "precondition: a full core lists the Tribulation")
+	assert_true(CultivationManager.advance_to_next_stage(), "precondition: the breakthrough moves the stage on")
+	await wait_process_frames(2)
+	assert_null(_panel.get_card(TRIBULATION_ID), "the passed Tribulation is no longer listed")
 
 func test_empty_zone_shows_nothing_to_do() -> void:
 	await _add_panel()
@@ -979,11 +999,15 @@ func test_chest_height_on_a_fresh_save() -> void:
 	assert_eq(_list().position.y, LIST_TOP)
 	assert_eq(_panel.size.y, LIST_TOP + content + 24.0, "the list top under the tray, then 24 px")
 
-func test_chest_fills_for_nine_cards() -> void:
+func test_chest_folds_for_ten_cards() -> void:
 	await _add_panel()
 	_unlock_everything()
 	await wait_process_frames(2)
-	assert_eq(_panel.size.y, FULL_CHEST_HEIGHT, "a scrolling list snaps the chest to the bottom line")
+	var list: Control = _list()
+	var under_list: float = list.position.y + list.size.y + SCROLLING_LIST_GAP
+	assert_gt((list as ActivityList).get_content_height(), list.size.y, "precondition: the ten cards scroll")
+	assert_gt(FULL_CHEST_HEIGHT - under_list, SNAP_DISTANCE, "precondition: the fold ends too far above the bottom line to snap")
+	assert_eq(_panel.size.y, under_list, "a scrolling list keeps 40 px under its fold")
 	_assert_flow_matches_scenes()
 	# The list folds 8 px under its last whole drawer: no drawer is cut.
 	var view: Rect2 = _scroll().get_global_rect()
@@ -994,6 +1018,19 @@ func test_chest_fills_for_nine_cards() -> void:
 			assert_lte(rect.end.y, view.end.y, "%s is not cut by the fold" % action.action_id)
 			last_bottom = maxf(last_bottom, rect.end.y)
 	assert_eq(view.end.y - last_bottom, FOLD_GAP)
+
+## A long Aura Well name grows the Now strip and moves the list down, so the
+## fold of the ten cards ends within 64 px of the bottom line.
+func test_chest_snaps_to_the_bottom_line() -> void:
+	_rename_action(AURA_WELL_ID, LONG_NAME)
+	await _add_panel()
+	_unlock_everything()
+	await wait_process_frames(2)
+	var list: Control = _list()
+	var under_list: float = list.position.y + list.size.y + SCROLLING_LIST_GAP
+	assert_gt((list as ActivityList).get_content_height(), list.size.y, "precondition: the list scrolls")
+	assert_lte(FULL_CHEST_HEIGHT - under_list, SNAP_DISTANCE, "precondition: the fold ends within 64 px of the bottom line")
+	assert_eq(_panel.size.y, FULL_CHEST_HEIGHT, "the chest snaps to the bottom line")
 
 func test_rail_and_lips_follow_scroll() -> void:
 	await _add_panel()

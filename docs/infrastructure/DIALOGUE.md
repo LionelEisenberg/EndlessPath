@@ -1,7 +1,5 @@
 # Dialogue (DialogueManager + Dialogic)
 
-Last updated: 2026-10-23
-
 ## Overview
 
 Narrative dialogue runs on the **Dialogic** addon (`addons/dialogic/`, version `2.0-Alpha-19 (Godot 4.4+)`, autoloaded as `Dialogic`). The game wraps it in the thin `DialogueManager` autoload, which starts a timeline (optionally jumping to a label) and re-broadcasts Dialogic's `timeline_ended` as `dialogue_ended`.
@@ -25,7 +23,7 @@ DialogueManager (autoload #11, singletons/dialogue_manager/dialogue_manager.gd)
   signal dialogue_ended                              — one-shot listeners: ActionManager, AdventureTilemap
   var current_timeline_name: String                  — set on start, cleared on end; no readers
   start_timeline(timeline_name, label_or_idx = "") → Dialogic.start(...)
-  _on_timeline_ended()  ← Dialogic.timeline_ended
+  dialogue_ended.emit()  ← Dialogic.timeline_ended
 
 Dialogic (autoload #10, uid://ds2q0uclmolvu → addons/dialogic/Core/DialogicGameHandler.gd)
   Dialogic.start(timeline, label) loads the default style's layout scene, then start_timeline()
@@ -36,8 +34,8 @@ Dialogic (autoload #10, uid://ds2q0uclmolvu → addons/dialogic/Core/DialogicGam
 
 | Caller | Starts | On `dialogue_ended` |
 |---|---|---|
-| `ActionManager._execute_dialogue_action(NpcDialogueActionData)` | `DialogueManager.start_timeline(dialogue_timeline_name, dialogue_timeline_label_jump)`, after connecting `dialogue_ended → stop_action` with `CONNECT_ONE_SHOT` | `stop_action(true)`: increments zone progression for the action id (which can emit `ZoneManager.action_completed`), runs `success_effects` in order, then clears the current action |
-| `AdventureTilemap.select_choice(DialogueChoice)` | `DialogueManager.start_timeline(choice.timeline_name)` (no label) and connects `_on_dialogue_ended` with `CONNECT_ONE_SHOT` | Runs `choice.success_effects`, then `_complete_current_tile(summary)` |
+| `ActionManager`, for an `NpcDialogueActionData` | `DialogueManager.start_timeline(dialogue_timeline_name, dialogue_timeline_label_jump)`, after connecting `dialogue_ended → stop_action` with `CONNECT_ONE_SHOT` | `stop_action(true)`: increments zone progression for the action id (which can emit `ZoneManager.action_completed`), runs `success_effects` in order, then clears the current action |
+| `AdventureTilemap.select_choice(DialogueChoice)` | `DialogueManager.start_timeline(choice.timeline_name)` (no label) and connects its dialogue-end handler with `CONNECT_ONE_SHOT` | Runs `choice.success_effects`, then completes the current tile |
 
 No authored encounter uses `DialogueChoice` yet.
 
@@ -114,7 +112,7 @@ Base layout: `default_layout_base.tscn`. Layers, in `layer_list` order:
 ZoneActionButton click
   → ActionManager.select_action(npc_action)
       stops any current action (running its success_effects)
-      → _execute_dialogue_action()
+      → starts the dialogue action
           DialogueManager.dialogue_ended.connect(stop_action, CONNECT_ONE_SHOT)
           DialogueManager.start_timeline("celestial_intervener_introduction_1", "dialogue_N")
               → Dialogic.start() → style layout → jump to label "dialogue_N"
@@ -185,7 +183,7 @@ Action descriptions, shown on the action card:
 | `singletons/dialogue_manager/dialogue_manager.gd` | Dialogic wrapper |
 | `scripts/resource_definitions/zones/zone_action_data/npc_dialogue_action_data/npc_dialogue_action_data.gd` | NPC dialogue zone action data |
 | `scripts/resource_definitions/adventure/choices/dialogue_choice.gd` | Encounter choice that plays a timeline |
-| `singletons/action_manager/action_manager.gd` | `_execute_dialogue_action()` / `_stop_dialogue_action()` |
+| `singletons/action_manager/action_manager.gd` | Starts and stops NPC dialogue actions |
 | `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` | `DialogueChoice` handling |
 | `assets/dialogue/timelines/celestial_intervener_introduction_1.dtl` | The only timeline |
 | `assets/dialogue/characters/celestial_intervener/celestial_intervener.dch` / `.png` | Intervener character and portrait |

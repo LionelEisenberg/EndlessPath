@@ -147,6 +147,21 @@ func test_add_madra_does_not_log_fractional_gains() -> void:
 	assert_signal_not_emitted(LogManager, "message_logged", "per-tick cycling gains below 1 Madra stay out of the log")
 	assert_eq(_save.madra, 0.5, "the fractional gain is still applied")
 
+func test_add_madra_above_a_lowered_cap_keeps_the_pool() -> void:
+	assert_eq(CultivationManager.get_max_madra(), 100.0, "precondition: the cap is 100 at level 0")
+	_save.madra = 150.0
+	watch_signals(LogManager)
+	var added: float = ResourceManager.add_madra(20.0)
+	assert_eq(_save.madra, 150.0, "a pool above the cap is kept, not trimmed to it")
+	assert_eq(added, 0.0, "a gain lost to the cap adds nothing")
+	assert_signal_not_emitted(LogManager, "message_logged", "a gain lost to the cap logs nothing")
+
+func test_spending_above_the_cap_still_spends() -> void:
+	assert_eq(CultivationManager.get_max_madra(), 100.0, "precondition: the cap is 100 at level 0")
+	_save.madra = 150.0
+	ResourceManager.add_madra(-30.0)
+	assert_eq(_save.madra, 120.0, "a negative amount still lowers a pool above the cap")
+
 #-----------------------------------------------------------------------------
 # SPEND MADRA
 #-----------------------------------------------------------------------------

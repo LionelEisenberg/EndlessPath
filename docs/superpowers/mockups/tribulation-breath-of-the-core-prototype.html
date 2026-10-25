@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Playable prototype of the Breath of the Core Tribulation (2026-10-23). Open in a browser; it is the reference for docs/superpowers/specs/2026-10-23-tribulation-breath-of-the-core-design.md. Published copy: https://claude.ai/artifact/66fFPzShqZCNt1Kb9MQcY4 -->
+<style>[hidden]{display:none!important}body{margin:0}</style>
+<title>Breath of the Core</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&family=Pixelify+Sans:wght@400;500&family=Yatra+One&display=swap">
+<style>
+:root{
+  /* Layout: a lacquered shrine panel. The trial stage is the hero, Spirit Valley's status rail sits above it, tuning and the run log below. Palette is the game's own lacquer-and-brass kit. */
+  --ink:#150909;--socket:#110707;--deep:#230F0F;--lacquer:#2C1414;--raised:#462020;--rim-shade:#612B2B;--rim:#692F2F;
+  --brass:#D4A84A;--brass-hi:#E2BC66;--brass-shade:#A66834;--copper-hi:#F6D58A;--cream:#F0E8D8;--tan:#A89070;
+  --madra:#849BE4;--madra-deep:#3A4A8A;--crest:#E8F6FD;--jade:#5CC4A0;--ember:#E26A3E;--cloud:#46343E;--shadow:#050707;
+  --font-display:"Yatra One",Georgia,"Times New Roman",serif;
+  --font-body:"Alegreya Sans","Trebuchet MS",Verdana,sans-serif;
+  --font-pixel:"Pixelify Sans",ui-monospace,"Courier New",monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--socket);color:var(--cream);font-family:var(--font-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+.rail{display:flex;flex-wrap:wrap;align-items:center;gap:14px 28px;background:var(--lacquer);border:2px solid var(--rim);border-radius:6px;padding:14px 18px;filter:drop-shadow(4px 4px 0 var(--shadow))}
+.title{display:grid;gap:2px;margin-right:auto;min-width:0}
+.eyebrow{font-family:var(--font-pixel);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--tan)}
+h1{font-family:var(--font-display);font-weight:400;font-size:clamp(26px,4vw,36px);line-height:1.1;margin:0;color:var(--brass);text-wrap:balance}
+.meter{display:grid;gap:6px;min-width:190px}
+.meter-row{display:flex;justify-content:space-between;gap:12px;font-family:var(--font-pixel);font-size:13px;color:var(--tan)}
+.meter-row b{font-weight:500;color:var(--cream);font-variant-numeric:tabular-nums}
+.rod{height:10px;background:var(--socket);border:2px solid var(--ink);border-radius:5px;overflow:hidden}
+.rod span{display:block;height:100%;width:100%;background:var(--jade);transition:width .3s}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+button{font:inherit;font-size:15px;font-weight:500;line-height:1.3;padding:9px 16px;border-radius:5px;border:2px solid var(--rim);background:var(--raised);color:var(--cream);cursor:pointer;filter:drop-shadow(2px 2px 0 var(--ink))}
+button:hover{background:var(--rim-shade)}
+button.primary{background:var(--brass);border-color:var(--brass-shade);color:var(--ink)}
+button.primary:hover{background:var(--brass-hi)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible,.stage:focus-visible{outline:2px solid var(--crest);outline-offset:2px}
+.stage{position:relative;background:var(--ink);border:2px solid var(--brass-shade);border-radius:6px;overflow:hidden;filter:drop-shadow(4px 4px 0 var(--shadow))}
+.stage:focus{outline:none}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1000/620;touch-action:manipulation;cursor:pointer;-webkit-user-select:none;user-select:none}
+.hud{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px;pointer-events:none}
+.phase{display:grid;gap:2px;min-width:0}
+.phase-name{font-family:var(--font-display);font-size:clamp(17px,2.4vw,23px);line-height:1.15;color:var(--brass)}
+.phase-tip{font-size:clamp(13px,1.6vw,15px);color:var(--tan);max-width:46ch}
+.pips{display:flex;gap:6px;padding-top:4px;flex-shrink:0}
+.pip{width:12px;height:12px;border-radius:50%;border:2px solid var(--rim);background:var(--deep)}
+.pip.on{background:var(--ember);border-color:var(--ember)}
+.progress{position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--deep)}
+.progress span{display:block;height:100%;width:0;background:var(--brass)}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;padding:16px;pointer-events:none}
+.card{pointer-events:auto;width:min(470px,100%);background:var(--lacquer);border:2px solid var(--rim);border-radius:6px;padding:18px 20px;display:grid;gap:10px;filter:drop-shadow(4px 4px 0 var(--shadow))}
+.card h2{font-family:var(--font-display);font-weight:400;font-size:27px;line-height:1.15;margin:0;color:var(--brass);text-wrap:balance}
+.card h2.bad{color:var(--ember)}
+.card p{margin:0}
+.card .muted{color:var(--tan);font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--font-pixel);font-size:13px;padding:3px 9px;border-radius:4px;background:var(--deep);border:2px solid var(--rim);color:var(--cream);font-variant-numeric:tabular-nums}
+.chip.grade{background:var(--brass);border-color:var(--brass-shade);color:var(--ink)}
+@media (max-width:640px){.overlay{position:static;padding:12px}}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:780px){.lower{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--lacquer);border:2px solid var(--rim);border-radius:6px;padding:14px 16px;filter:drop-shadow(4px 4px 0 var(--shadow));min-width:0}
+.panel h3{font-family:var(--font-display);font-weight:400;font-size:21px;line-height:1.2;margin:0 0 6px;color:var(--brass)}
+.panel .lede{color:var(--tan);font-size:15px;margin:0 0 6px}
+fieldset{border:0;padding:0;margin:0;min-width:0}
+fieldset:disabled{opacity:.55}
+.field{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;margin-block:10px}
+.field label{font-size:15px}
+.field output{font-family:var(--font-pixel);font-size:13px;color:var(--brass);font-variant-numeric:tabular-nums}
+.field input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--brass)}
+.field small{grid-column:1/-1;color:var(--tan);font-size:13px}
+.toggle{display:flex;gap:10px;align-items:center;margin-block:8px;font-size:15px}
+.toggle input{accent-color:var(--brass);width:18px;height:18px;flex-shrink:0}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--deep);white-space:nowrap}
+th{font-family:var(--font-pixel);font-weight:400;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--tan)}
+td.ok{color:var(--jade)}
+td.bad{color:var(--ember)}
+.empty{color:var(--tan);font-size:15px;margin:4px 0 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.status{color:var(--jade);font-size:14px}
+textarea{width:100%;min-height:120px;margin-top:10px;background:var(--socket);color:var(--cream);border:2px solid var(--rim);border-radius:5px;font-family:var(--font-pixel);font-size:12px;padding:8px}
+.note{color:var(--tan);font-size:14px;margin:0;max-width:72ch}
+@media (prefers-reduced-motion:reduce){.rod span{transition:none}}
+</style>
+
+<main class="wrap">
+  <header class="rail">
+    <div class="title">
+      <span class="eyebrow">Spirit Valley · Tribulation prototype</span>
+      <h1>Breath of the Core</h1>
+    </div>
+    <div class="meter">
+      <div class="meter-row"><span>Core Density</span><b id="cdText">100 / 100</b></div>
+      <div class="rod"><span id="cdFill"></span></div>
+      <div class="meter-row"><span>Stage</span><b id="stageText">Foundation</b></div>
+    </div>
+    <div class="btns">
+      <button id="begin" class="primary" type="button">Face the Tribulation</button>
+      <button id="cycle" type="button" hidden>Cycle back to 100</button>
+      <button id="reset" type="button" hidden>Return to Foundation</button>
+    </div>
+  </header>
+
+  <section class="stage" id="stage" tabindex="-1" aria-label="Tribulation stage">
+    <canvas id="cv" aria-label="Tribulation play area. Press space, click or tap in time with the rings."></canvas>
+    <div class="hud" aria-live="polite">
+      <div class="phase"><span class="phase-name" id="phName">The Tribulation</span><span class="phase-tip" id="phTip">Your core is full. Spirit Valley's aura is thick enough to try for Copper.</span></div>
+      <div class="pips" id="pips" role="img" aria-label="Cracks"></div>
+    </div>
+    <div class="progress"><span id="prog"></span></div>
+    <div class="overlay" id="overlay">
+      <div class="card" id="card">
+        <h2>The Tribulation</h2>
+        <p>Breathe with the aura as it quickens, then draw in the last breath. Press space, click or tap as the bright aura crosses the brass ring, and hold through the last breath.</p>
+        <p class="muted" id="introRule">4 cracks end the trial and cost 5 levels of Core Density.</p>
+        <div class="btns" id="cardActions"><button id="cardBegin" class="primary" type="button">Begin</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="panel">
+      <h3>Tuning</h3>
+      <p class="lede">Changes apply from the next run and stay in this browser.</p>
+      <fieldset id="tuneSet">
+        <div class="field"><label for="perfect">Perfect window</label><output id="perfectOut" for="perfect">±70 ms</output><input id="perfect" type="range" min="30" max="120" step="5"></div>
+        <div class="field"><label for="good">Good window</label><output id="goodOut" for="good">±140 ms</output><input id="good" type="range" min="80" max="240" step="10"></div>
+        <div class="field"><label for="tempo">Tempo</label><output id="tempoOut" for="tempo">100%</output><input id="tempo" type="range" min="70" max="130" step="5"></div>
+        <div class="field"><label for="cracks">Cracks to fail</label><output id="cracksOut" for="cracks">4</output><input id="cracks" type="range" min="2" max="6" step="1"></div>
+        <div class="field"><label for="penalty">Penalty on failure</label><output id="penaltyOut" for="penalty">5 levels</output><input id="penalty" type="range" min="0" max="10" step="1"></div>
+        <div class="field"><label for="offset">Input offset</label><output id="offsetOut" for="offset">0 ms</output><input id="offset" type="range" min="-100" max="100" step="5"><small>Raise it if every press reads late on your setup.</small></div>
+        <label class="toggle"><input type="checkbox" id="sound"> Sound</label>
+        <label class="toggle"><input type="checkbox" id="cues"> Beat cues (a soft tick on each beat)</label>
+        <label class="toggle"><input type="checkbox" id="offsets"> Show timing offsets on hits</label>
+        <label class="toggle"><input type="checkbox" id="free"> Free retries (no cycle-back after a failure)</label>
+        <div class="row"><button id="defaults" type="button">Reset to defaults</button></div>
+      </fieldset>
+    </div>
+    <div class="panel">
+      <h3>Your runs</h3>
+      <p class="empty" id="runsEmpty">Your runs will appear here, with whether you tend to press early or late.</p>
+      <div class="tablewrap" id="runsWrap" hidden>
+        <table>
+          <thead><tr><th>Run</th><th>Result</th><th>Grade</th><th>Perfect / good</th><th>Missed</th><th>Timing</th></tr></thead>
+          <tbody id="runsBody"></tbody>
+        </table>
+      </div>
+      <div class="row"><button id="copy" type="button">Copy settings and runs</button><button id="clearRuns" type="button">Clear runs</button><span class="status" id="copyStatus" role="status"></span></div>
+      <textarea id="copyFallback" hidden readonly aria-label="Settings and runs as text"></textarea>
+    </div>
+  </section>
+
+  <p class="note">A throwaway prototype. In the game this would be a Spirit Valley action that unlocks at Core Density 100. Here the meter is simulated, cycling back is a timer, and a pass shows Copper even though that stage isn't built yet.</p>
+</main>
+
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const DEF={perfect:70,good:140,tempo:100,cracks:4,penalty:5,offset:0,sound:true,cues:true,offsets:true,free:false};
+const KS='bil-settings-v1',KR='bil-runs-v2';
+function readJSON(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function writeJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+const saved=readJSON(KS);
+const S=Object.assign({},DEF,saved&&typeof saved==='object'?saved:{});
+let runs=(()=>{const v=readJSON(KR);return Array.isArray(v)?v:[];})();
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const css=getComputedStyle(document.documentElement);
+const C={};
+['ink','socket','deep','lacquer','raised','rim','brass','brass-hi','brass-shade','copper-hi','cream','tan','madra','madra-deep','crest','jade','ember','cloud'].forEach(n=>{C[n]=css.getPropertyValue('--'+n).trim()||'#888888';});
+function rgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(x=>x+x).join('');const n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];}
+function mix(a,b,t){const x=rgb(a),y=rgb(b);return 'rgb('+x.map((v,i)=>Math.round(v+(y[i]-v)*t)).join(',')+')';}
+function rgba(h,a){const x=rgb(h);return 'rgba('+x[0]+','+x[1]+','+x[2]+','+a+')';}
+
+/* Geometry in a virtual 1000 x 620 space */
+const W=1000,H=620,CX=500,CY=330,RT=130,RMIN=55,RMAX=245,RAP=290,CROSS=(RMAX-RT)/(RMAX-RMIN);
+const PH={1:['Steady breath','Press as the bright aura crosses the brass ring'],2:['Heartbeat','The rhythm breaks. Follow it.'],3:['Echo','A second breath answers the first. Catch both.'],4:['Quickening','The breaths come faster. Keep up.'],5:['The last breath','Press as it crosses the ring, then hold while it pours into your core']};
+
+function makeSchedule(k){
+  const ev=[],br=[];let time=1.2*k;
+  const breath=(sid,s,p,ph)=>{const e=p*0.5,c=p*0.5;br.push({sid:sid,s:s,e:e,c:c,rmax:RMAX});ev.push({time:s+e+c*CROSS,kind:'breath',ph:ph});return s+p;};
+  for(let i=0;i<6;i++)time=breath(0,time,1.7*k,1);
+  const p2=time;
+  [1.45,0.95,1.4,0.9,1.25,0.85].forEach(p=>{time=breath(0,time,p*k,2);});
+  const p3=time;
+  let ta=time,tb=time+0.6*k;
+  for(let i=0;i<3;i++)ta=breath(0,ta,1.6*k,3);
+  for(let i=0;i<3;i++)tb=breath(1,tb,1.5*k,3);
+  const echoEnd=Math.max(ta,tb);
+  time=echoEnd+0.8*k;
+  const p4=time;
+  [1.3,1.15,1.0,0.9,0.8,0.72].forEach(p=>{time=breath(0,time,p*k,4);});
+  const p5=time+0.5*k,le=1.8*k,lc=4.5*k,lmax=330,lx=(lmax-RT)/(lmax-RMIN);
+  br.push({sid:2,s:p5,e:le,c:lc,rmax:lmax});
+  ev.push({time:p5+le+lc*lx,kind:'last',hold:lc*(1-lx),ph:5});
+  ev.sort((a,b)=>a.time-b.time);
+  ev.forEach(e=>{e.j=false;e.cued=false;});
+  return {k:k,ev:ev,br:br,p2:p2,p3:p3,echoEnd:echoEnd,p4:p4,p5:p5,end:p5+le+lc+1.2};
+}
+function phaseAt(sch,t){if(t<sch.p2)return 1;if(t<sch.p3)return 2;if(t<sch.p4)return 3;if(t<sch.p5)return 4;return 5;}
+
+/* Sound, synthesised so the page needs no files */
+let AC=null,master=null,noiseBuf=null;
+function audioInit(){
+  if(AC||!S.sound)return;
+  try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;AC=new A();master=AC.createGain();master.gain.value=0.55;master.connect(AC.destination);}catch(e){AC=null;}
+}
+function tone(f,d,type,vol,when,glide){
+  if(!AC||!S.sound)return;
+  try{const t=AC.currentTime+Math.max(0,when||0);const o=AC.createOscillator(),g=AC.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(glide)o.frequency.exponentialRampToValueAtTime(Math.max(20,f*glide),t+d);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(master);o.start(t);o.stop(t+d+0.05);}catch(e){}
+}
+function noise(d,vol,lp,when){
+  if(!AC||!S.sound)return;
+  try{
+    if(!noiseBuf){const len=AC.sampleRate*2;noiseBuf=AC.createBuffer(1,len,AC.sampleRate);const ch=noiseBuf.getChannelData(0);for(let i=0;i<len;i++)ch[i]=Math.random()*2-1;}
+    const t=AC.currentTime+Math.max(0,when||0);const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=lp||1000;const g=AC.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);s.connect(f);f.connect(g);g.connect(master);s.start(t,Math.random()*1.5);s.stop(t+d+0.05);
+  }catch(e){}
+}
+let swellNodes=[];
+function swellStart(d){
+  swellStop();if(!AC||!S.sound)return;
+  try{const t=AC.currentTime;[[220,0.14],[330,0.07]].forEach(fv=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.setValueAtTime(fv[0],t);o.frequency.exponentialRampToValueAtTime(fv[0]*2,t+d);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(fv[1],t+d*0.8);g.gain.exponentialRampToValueAtTime(0.0001,t+d+0.25);o.connect(g);g.connect(master);o.start(t);o.stop(t+d+0.3);swellNodes.push(o);});}catch(e){}
+}
+function swellStop(){swellNodes.forEach(o=>{try{o.stop();}catch(e){}});swellNodes=[];}
+const SFX={
+  perfect:()=>{tone(880,0.28,'sine',0.22);tone(1320,0.22,'sine',0.1,0.02);},
+  good:()=>tone(660,0.22,'triangle',0.18),
+  miss:()=>{tone(130,0.35,'sawtooth',0.12,0,0.5);noise(0.18,0.2,500);},
+  cue:w=>tone(420,0.05,'sine',0.05,w),
+  phase:()=>tone(196,0.9,'sine',0.12),
+  held:()=>{[523,659,784].forEach((f,i)=>tone(f,0.7,'triangle',0.12,i*0.06));},
+  win:()=>{[523,659,784,1046,1318].forEach((f,i)=>tone(f,0.9,'triangle',0.14,0.15+i*0.09));},
+  lose:()=>{tone(330,1.1,'sawtooth',0.12,0,0.33);noise(0.5,0.25,450);}
+};
+
+/* Canvas */
+const cv=$('cv'),ctx=cv.getContext('2d');let dpr=1,scl=1;
+function resize(){const r=cv.getBoundingClientRect();if(!r.width)return;dpr=Math.min(2,window.devicePixelRatio||1);cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.width*H/W*dpr);scl=cv.width/W;}
+if('ResizeObserver' in window)new ResizeObserver(resize).observe(cv);else window.addEventListener('resize',resize);
+resize();
+
+const motes=[];for(let i=0;i<46;i++)motes.push({x:Math.random()*W,y:Math.random()*H,v:6+Math.random()*14,a:0.04+Math.random()*0.1,s:2+Math.round(Math.random()*2)});
+let parts=[],flash=0,eflash=0,shake=0,fb=null,ringPulse=0,aura=0,coreGlow=0;
+
+/* Spirit Valley, simulated */
+const base={cd:100,stage:'Foundation',timer:null};
+let mode='intro',run=null,lastNow=performance.now(),resultAt=0,shownPhase=null,lastOk=null;
+
+function renderCardActions(){
+  const box=$('cardActions');if(!box)return;box.textContent='';
+  if(mode==='running')return;
+  const mk=(id,label,disabled)=>{const b=document.createElement('button');b.type='button';b.id=id;b.className='primary';b.textContent=label;b.disabled=!!disabled;box.appendChild(b);};
+  if(base.stage==='Copper'){mk('cardReset','Return to Foundation and try again');return;}
+  if(base.cd>=100){mk('cardBegin',lastOk===null?'Begin':'Try again');return;}
+  mk('cardCycle',base.timer?'Cycling… '+base.cd+' / 100':'Cycle back to 100',!!base.timer);
+}
+function renderBase(){
+  $('cdText').textContent=base.cd+' / 100';
+  $('cdFill').style.width=base.cd+'%';
+  $('stageText').textContent=base.stage==='Copper'?'Copper (simulated)':'Foundation';
+  const running=mode==='running';
+  $('begin').disabled=!(base.stage==='Foundation'&&base.cd>=100&&!running);
+  $('cycle').hidden=!(base.stage==='Foundation'&&base.cd<100);
+  $('cycle').disabled=!!base.timer||running;
+  $('cycle').textContent=base.timer?'Cycling… '+base.cd+' / 100':'Cycle back to 100';
+  $('reset').hidden=base.stage!=='Copper';
+  $('tuneSet').disabled=running;
+  renderCardActions();
+}
+function cycleBack(){
+  if(base.timer||base.cd>=100||mode==='running')return;
+  base.timer=setInterval(()=>{base.cd=Math.min(100,base.cd+1);if(base.cd>=100){clearInterval(base.timer);base.timer=null;}renderBase();},420);
+  renderBase();
+}
+function resetStage(){base.stage='Foundation';base.cd=100;lastOk=null;run=null;showIntro();renderBase();}
+function nudge(){const c=$('cycle');if(!c.hidden)c.focus();}
+
+function introRuleText(){return S.cracks+' cracks end the trial and cost '+S.penalty+(S.penalty===1?' level':' levels')+' of Core Density.';}
+function showIntro(title,text){
+  $('card').innerHTML='<h2>'+(title||'The Tribulation')+'</h2><p>'+(text||'Breathe with the aura as it quickens, then draw in the last breath. Press space, click or tap as the bright aura crosses the brass ring, and hold through the last breath.')+'</p><p class="muted" id="introRule"></p><div class="btns" id="cardActions"></div>';
+  $('introRule').textContent=introRuleText();
+  $('overlay').hidden=false;
+  $('phName').textContent='The Tribulation';
+  $('phTip').textContent="Your core is full. Spirit Valley's aura is thick enough to try for Copper.";
+  $('prog').style.width='0%';
+  renderPips();renderCardActions();
+}
+function chip(text,cls){return '<span class="chip'+(cls?' '+cls:'')+'">'+text+'</span>';}
+function timingText(ms){if(Math.abs(ms)<8)return 'on the beat';return Math.abs(ms)+' ms '+(ms<0?'early':'late');}
+function showResult(ok,grade,r,mean,before,after){
+  const stats=chip(grade,ok?'grade':'')+chip(r.nP+' perfect')+chip(r.nG+' good')+chip(r.cracks.length+' missed')+(r.offs.length?chip('avg '+timingText(mean)):'');
+  let html;
+  if(ok){
+    html='<h2>Breakthrough</h2><p>Your core condenses into Copper.</p><div class="chips">'+stats+'</div><p class="muted">In the game, this is where Copper would unlock. The stage is simulated here.</p>';
+  }else{
+    const pen=S.free?'Free retries are on, so Core Density stays at '+before+'.':(before===after?'Core Density stays at '+after+'.':'Core Density falls from '+before+' to '+after+'.');
+    html='<h2 class="bad">Your core cracks</h2><p>'+pen+'</p><div class="chips">'+stats+'</div><p class="muted">'+(S.free||after>=100?'Steady your breath and try again.':'Cycle back to 100 to try again.')+'</p>';
+  }
+  $('card').innerHTML=html+'<div class="btns" id="cardActions"></div>';
+  $('overlay').hidden=false;
+  $('phName').textContent=ok?'Copper':'Cracked';
+  $('phTip').textContent=ok?'The breakthrough holds.':'The aura scatters.';
+  renderCardActions();
+}
+function renderPips(){
+  const el=$('pips');el.textContent='';const n=S.cracks,c=run&&mode!=='intro'?run.cracks.length:0;
+  for(let i=0;i<n;i++){const s=document.createElement('span');s.className='pip'+(i<c?' on':'');el.appendChild(s);}
+  el.setAttribute('aria-label','Cracks '+c+' of '+n);
+}
+function renderRuns(){
+  const body=$('runsBody');body.textContent='';const list=runs.slice(-8).reverse();
+  $('runsEmpty').hidden=list.length>0;$('runsWrap').hidden=list.length===0;
+  for(const r of list){
+    const tr=document.createElement('tr');
+    [String(r.n),r.ok?'Passed':'Failed',r.grade,r.p+' / '+r.g,String(r.m),timingText(r.mean)].forEach((v,i)=>{const td=document.createElement('td');td.textContent=v;if(i===1)td.className=r.ok?'ok':'bad';tr.appendChild(td);});
+    body.appendChild(tr);
+  }
+}
+
+/* A run */
+function begin(){
+  if(mode==='running'||base.stage!=='Foundation'||base.cd<100)return;
+  audioInit();if(AC&&AC.state==='suspended')AC.resume();
+  const sch=makeSchedule(100/S.tempo);
+  run={sch:sch,t0:performance.now(),t:0,cracks:[],nP:0,nG:0,offs:[],holding:null,coreR:34};
+  mode='running';shownPhase=null;aura=0;parts=[];fb=null;
+  $('overlay').hidden=true;
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  $('stage').focus({preventScroll:true});
+  renderPips();renderBase();
+}
+function judgeTime(ts){return (ts-run.t0)/1000-S.offset/1000;}
+function onPress(ts){
+  if(mode!=='running'){
+    if(performance.now()-resultAt<700)return;
+    if(base.stage==='Foundation'&&base.cd>=100)begin();else nudge();
+    return;
+  }
+  const tp=judgeTime(ts),G=S.good/1000,P=S.perfect/1000,EARLY=Math.max(0.3,G+0.1);
+  let best=null,bd=0;
+  for(const e of run.sch.ev){if(e.j)continue;if(e.time-tp>EARLY)break;const d=tp-e.time;if(best===null||Math.abs(d)<Math.abs(bd)){best=e;bd=d;}}
+  if(best===null)return;
+  if(Math.abs(bd)<=G)hit(best,Math.abs(bd)<=P,bd);
+  else if(bd<0)miss(best,'Too early');
+}
+function onRelease(ts){
+  if(!run||!run.holding||mode!=='running')return;
+  const h=run.holding;run.holding=null;
+  if(judgeTime(ts)<h.time+h.hold-0.05){swellStop();showFb('Released too early','ember','');SFX.miss();addCrack();}
+  else heldDone();
+}
+function showFb(text,col,sub){fb={text:text,col:col,sub:sub,t:1};}
+function burst(col,n){
+  for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,r=RT+(Math.random()-0.5)*8,sp=60+Math.random()*140;parts.push({x:CX+Math.cos(a)*r,y:CY+Math.sin(a)*r,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.6+Math.random()*0.4,col:col,s:3});}
+}
+function hit(e,perfect,d){
+  e.j=true;const ms=Math.round(d*1000);run.offs.push(ms);
+  if(perfect){run.nP++;SFX.perfect();}else{run.nG++;SFX.good();}
+  const last=e.kind==='last';
+  showFb(last?(perfect?'Perfect. Hold!':'Good. Hold!'):(perfect?'Perfect':'Good'),perfect?'brass':'madra',S.offsets?timingText(ms):'');
+  run.coreR=Math.min(58,run.coreR+0.8);ringPulse=1;coreGlow=1;
+  burst(last?'crest':'madra',perfect?16:9);
+  if(last){run.holding=e;swellStart(e.hold);}
+}
+function miss(e,why){
+  e.j=true;SFX.miss();
+  showFb(e.kind==='last'?'The breath escapes you':'Miss','ember',why||'');
+  addCrack();
+}
+function addCrack(){
+  run.cracks.push({a:Math.random()*Math.PI*2,j1:Math.random()-0.5,j2:Math.random()-0.5});
+  if(!reduce)shake=Math.max(shake,0.3);eflash=Math.max(eflash,0.35);renderPips();
+  if(run.cracks.length>=S.cracks)finish(false);
+}
+function heldDone(){SFX.held();showFb('Held','brass','');flash=0.5;burst('crest',30);run.coreR=Math.min(58,run.coreR+2);coreGlow=1;}
+function finish(ok){
+  if(mode!=='running')return;
+  mode='result';resultAt=performance.now();lastOk=ok;swellStop();
+  const r=run;r.holding=null;
+  const n=r.offs.length,mean=n?Math.round(r.offs.reduce((a,b)=>a+b,0)/n):0;
+  const m=r.cracks.length;
+  const grade=ok?(m===0?'Flawless':m===1?'Clean':'Scraped through'):'Failed';
+  const before=base.cd;let after=before;
+  if(ok){base.stage='Copper';base.cd=0;after=0;SFX.win();r.copperT=0;burst('brass',70);flash=0.6;}
+  else{after=Math.max(0,Math.min(base.cd,100)-S.penalty);if(!S.free)base.cd=after;SFX.lose();r.dimT=0;}
+  runs.push({n:(runs.length?runs[runs.length-1].n:0)+1,ok:ok,grade:grade,p:r.nP,g:r.nG,m:m,mean:mean,tempo:S.tempo,perfectMs:S.perfect,goodMs:S.good});
+  if(runs.length>20)runs=runs.slice(-20);
+  writeJSON(KR,runs);renderRuns();
+  $('prog').style.width='100%';
+  showResult(ok,grade,r,mean,before,S.free?before:after);renderBase();
+}
+function step(now,dt){
+  const t=(now-run.t0)/1000;run.t=t;const tj=t-S.offset/1000,G=S.good/1000;
+  if(S.cues&&AC){for(const e of run.sch.ev){if(e.j||e.cued)continue;const dd=e.time-t;if(dd>0.15)break;if(dd>-0.02)SFX.cue(Math.max(0,dd));e.cued=true;}}
+  for(const e of run.sch.ev){if(e.j)continue;if(tj>e.time+G){miss(e,'Too late');if(mode!=='running')return;}else break;}
+  if(run.holding){const h=run.holding;if((tj-h.time)/h.hold>=1){run.holding=null;heldDone();}}
+  const ph=phaseAt(run.sch,t);
+  if(ph!==shownPhase){shownPhase=ph;$('phName').textContent=PH[ph][0];$('phTip').textContent=PH[ph][1];if(ph!==1)SFX.phase();}
+  $('prog').style.width=Math.min(100,t/run.sch.end*100).toFixed(1)+'%';
+  if(ph>=4)aura=Math.min(1,aura+dt*0.5);
+  if(t>run.sch.end&&!run.holding)finish(true);
+}
+
+/* Drawing */
+function path(pts){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);}
+function drawSphere(r,on,sid){
+  const col=sid===1?C.crest:C.madra;
+  ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);
+  ctx.globalAlpha=on?0.10:0.04;ctx.fillStyle=col;ctx.fill();
+  ctx.globalAlpha=on?1:0.3;ctx.lineWidth=on?(sid===2?5:3):2;ctx.strokeStyle=col;
+  if(on){ctx.shadowColor=col;ctx.shadowBlur=sid===2?28:18;}
+  ctx.stroke();ctx.shadowBlur=0;
+  if(on){ctx.globalAlpha=0.7;ctx.lineWidth=1;ctx.strokeStyle=C.crest;ctx.beginPath();ctx.arc(CX,CY,Math.max(1,r-4),0,Math.PI*2);ctx.stroke();}
+  ctx.globalAlpha=1;
+}
+function draw(now,dt){
+  if(!reduce){
+    for(const m of motes){
+      if(aura>0){const dx=CX-m.x,dy=CY-m.y,dist=Math.hypot(dx,dy)||1,sp=(30+m.v*6)*aura;m.x+=dx/dist*sp*dt;m.y+=dy/dist*sp*dt;if(dist<40){const a=Math.random()*Math.PI*2;m.x=CX+Math.cos(a)*560;m.y=CY+Math.sin(a)*560;}}
+      m.y-=m.v*dt*(1-aura);if(m.y<-10){m.y=H+10;m.x=Math.random()*W;}
+    }
+  }
+  flash=Math.max(0,flash-dt*2.2);eflash=Math.max(0,eflash-dt*2.2);shake=Math.max(0,shake-dt);ringPulse=Math.max(0,ringPulse-dt*3);coreGlow=Math.max(0,coreGlow-dt*2);
+  if(mode!=='running')aura=Math.max(0,aura-dt*0.35);
+
+  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
+  let sx=0,sy=0;if(shake>0&&!reduce){sx=(Math.random()-0.5)*14*Math.min(1,shake/0.3);sy=(Math.random()-0.5)*14*Math.min(1,shake/0.3);}
+  ctx.setTransform(scl,0,0,scl,sx*scl,sy*scl);
+
+  const bg=ctx.createRadialGradient(CX,CY,40,CX,CY,620);bg.addColorStop(0,C.lacquer);bg.addColorStop(1,C.socket);ctx.fillStyle=bg;ctx.fillRect(-20,-20,W+40,H+40);
+  if(aura>0){const ag=ctx.createRadialGradient(CX,CY,RT*0.6,CX,CY,RT*2.6);ag.addColorStop(0,rgba(C.madra,(0.22*aura).toFixed(3)));ag.addColorStop(1,rgba(C.madra,0));ctx.fillStyle=ag;ctx.fillRect(-20,-20,W+40,H+40);}
+  ctx.fillStyle=C.cream;for(const m of motes){ctx.globalAlpha=m.a;ctx.fillRect(Math.round(m.x),Math.round(m.y),m.s,m.s);}ctx.globalAlpha=1;
+
+  ctx.lineWidth=2.5+ringPulse*3;ctx.strokeStyle=C.brass;ctx.beginPath();ctx.arc(CX,CY,RT+ringPulse*6,0,Math.PI*2);ctx.stroke();
+  ctx.lineWidth=2;const spin=reduce?0:now/9000;
+  for(let i=0;i<12;i++){const a=i*Math.PI/6+spin;ctx.beginPath();ctx.moveTo(CX+Math.cos(a)*(RT+9),CY+Math.sin(a)*(RT+9));ctx.lineTo(CX+Math.cos(a)*(RT+17),CY+Math.sin(a)*(RT+17));ctx.stroke();}
+
+  if(mode==='running'){
+    const t=run.t;
+    for(const b of run.sch.br){if(t<b.s||t>=b.s+b.e+b.c)continue;const u=t-b.s;if(u<b.e)drawSphere(RMIN+(b.rmax-RMIN)*(u/b.e),false,b.sid);else drawSphere(b.rmax-(b.rmax-RMIN)*((u-b.e)/b.c),true,b.sid);}
+    if(run.holding){
+      const h=run.holding,k=Math.min(1,Math.max(0,(t-S.offset/1000-h.time)/h.hold));
+      ctx.lineWidth=8;ctx.strokeStyle=C.brass;ctx.shadowColor=C.brass;ctx.shadowBlur=16;ctx.beginPath();ctx.arc(CX,CY,RT+24,-Math.PI/2,-Math.PI/2+k*Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+    }
+  }else if(mode==='intro'){
+    drawSphere(reduce?RMIN+60:RMIN+(RMAX-RMIN)*(0.5+0.5*Math.sin(now/1400)),false,0);
+  }
+
+  ctx.lineJoin='round';ctx.lineCap='round';
+
+  const showRun=run&&mode!=='intro';
+  let R=(showRun?run.coreR:34)+coreGlow*5;if(mode==='intro'&&!reduce)R+=Math.sin(now/700)*1.5;
+  let copper=0,dim=0;
+  if(showRun&&run.copperT!==undefined){run.copperT+=dt;copper=Math.min(1,run.copperT);}
+  if(showRun&&run.dimT!==undefined){run.dimT+=dt;dim=Math.min(1,run.dimT);}
+  const glow=ctx.createRadialGradient(CX,CY,R*0.4,CX,CY,R*2.4);glow.addColorStop(0,rgba(copper>0.5?C.brass:C.madra,(0.35+coreGlow*0.3)*(1-dim*0.6)));glow.addColorStop(1,rgba(C.madra,0));
+  ctx.fillStyle=glow;ctx.beginPath();ctx.arc(CX,CY,R*2.4,0,Math.PI*2);ctx.fill();
+  const body=ctx.createRadialGradient(CX-R*0.3,CY-R*0.35,R*0.1,CX,CY,R);
+  body.addColorStop(0,mix(C.crest,C['copper-hi'],copper));body.addColorStop(0.55,mix(C.madra,C.brass,copper));body.addColorStop(1,mix(C['madra-deep'],C['brass-shade'],copper));
+  ctx.fillStyle=body;ctx.globalAlpha=1-dim*0.55;ctx.beginPath();ctx.arc(CX,CY,R,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  if(showRun&&run.cracks.length){
+    ctx.strokeStyle=C.ember;ctx.lineWidth=2.5;ctx.shadowColor=C.ember;ctx.shadowBlur=8;
+    for(const c of run.cracks){const ext=1.08+dim*0.6;path([[0,0],[0.42,c.j1],[0.78,c.j2],[ext,0]].map(q=>{const a=c.a+q[1]*0.6;return [CX+Math.cos(a)*R*q[0],CY+Math.sin(a)*R*q[0]];}));ctx.stroke();}
+    ctx.shadowBlur=0;
+  }
+
+  for(const p of parts){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=0.96;p.vy*=0.96;ctx.globalAlpha=Math.max(0,Math.min(1,p.life));ctx.fillStyle=C[p.col]||C.cream;ctx.fillRect(Math.round(p.x-1.5),Math.round(p.y-1.5),p.s,p.s);}
+  ctx.globalAlpha=1;parts=parts.filter(p=>p.life>0);
+
+  if(fb){
+    fb.t-=dt*1.1;
+    if(fb.t<=0)fb=null;
+    else{ctx.globalAlpha=Math.min(1,fb.t*1.8);ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=C[fb.col]||C.cream;ctx.font='500 28px "Pixelify Sans", monospace';ctx.fillText(fb.text,790,CY-12,195);if(fb.sub){ctx.fillStyle=C.tan;ctx.font='400 17px "Pixelify Sans", monospace';ctx.fillText(fb.sub,790,CY+20,195);}ctx.globalAlpha=1;}
+  }
+  if(flash>0){ctx.globalAlpha=Math.min(0.55,flash*0.5);ctx.fillStyle=C.crest;ctx.fillRect(-20,-20,W+40,H+40);}
+  if(eflash>0){ctx.globalAlpha=Math.min(0.35,eflash*0.4);ctx.fillStyle=C.ember;ctx.fillRect(-20,-20,W+40,H+40);}
+  ctx.globalAlpha=1;
+}
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,Math.max(0,(now-lastNow)/1000));lastNow=now;
+  if(mode==='running')step(now,dt);
+  draw(now,dt);
+}
+
+/* Input */
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space'&&e.key!==' ')return;
+  const tag=(e.target&&e.target.tagName)||'';
+  if(mode==='running'){e.preventDefault();if(!e.repeat)onPress(e.timeStamp);return;}
+  if(/^(BUTTON|INPUT|TEXTAREA|SELECT|SUMMARY|LABEL)$/.test(tag))return;
+  e.preventDefault();if(!e.repeat)onPress(e.timeStamp);
+});
+document.addEventListener('keyup',e=>{if((e.code==='Space'||e.key===' ')&&mode==='running'){e.preventDefault();onRelease(e.timeStamp);}});
+cv.addEventListener('pointerdown',e=>{e.preventDefault();$('stage').focus({preventScroll:true});onPress(e.timeStamp);});
+window.addEventListener('pointerup',e=>onRelease(e.timeStamp));
+window.addEventListener('pointercancel',e=>onRelease(e.timeStamp));
+window.addEventListener('blur',()=>onRelease(performance.now()));
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='running'){mode='intro';run=null;lastOk=null;showIntro('Interrupted','You left the page in the middle of the trial, so it stopped with no penalty.');renderBase();}});
+
+$('begin').addEventListener('click',begin);
+$('cycle').addEventListener('click',cycleBack);
+$('reset').addEventListener('click',resetStage);
+$('card').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='cardBegin')begin();else if(b.id==='cardCycle')cycleBack();else if(b.id==='cardReset')resetStage();});
+
+/* Tuning */
+const FMT={perfect:v=>'±'+v+' ms',good:v=>'±'+v+' ms',tempo:v=>v+'%',cracks:v=>String(v),penalty:v=>v+(v===1?' level':' levels'),offset:v=>(v>0?'+':'')+v+' ms'};
+function syncInputs(){
+  for(const k of Object.keys(FMT)){$(k).value=S[k];$(k+'Out').textContent=FMT[k](S[k]);}
+  for(const k of ['sound','cues','offsets','free'])$(k).checked=!!S[k];
+}
+for(const k of Object.keys(FMT)){
+  $(k).addEventListener('input',()=>{
+    S[k]=Number($(k).value);
+    if(k==='perfect'&&S.good<S.perfect+10)S.good=S.perfect+10;
+    if(k==='good'&&S.good<S.perfect+10)S.perfect=Math.max(30,S.good-10);
+    syncInputs();writeJSON(KS,S);
+    if(mode!=='running'){renderPips();const ir=$('introRule');if(ir)ir.textContent=introRuleText();}
+  });
+}
+for(const k of ['sound','cues','offsets','free']){$(k).addEventListener('change',()=>{S[k]=$(k).checked;writeJSON(KS,S);if(k==='sound'&&S.sound)audioInit();});}
+$('defaults').addEventListener('click',()=>{Object.assign(S,DEF);syncInputs();writeJSON(KS,S);if(mode!=='running'){renderPips();const ir=$('introRule');if(ir)ir.textContent=introRuleText();}});
+$('copy').addEventListener('click',()=>{
+  const txt=JSON.stringify({prototype:'Breath of the Core',settings:S,runs:runs.slice(-10)},null,2);
+  const done=()=>{$('copyStatus').textContent='Copied';setTimeout(()=>{$('copyStatus').textContent='';},2000);};
+  const fallback=()=>{const ta=$('copyFallback');ta.hidden=false;ta.value=txt;ta.focus();ta.select();$('copyStatus').textContent='Copy the selected text below';};
+  try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done,fallback);else fallback();}catch(e){fallback();}
+});
+$('clearRuns').addEventListener('click',()=>{runs=[];writeJSON(KR,runs);renderRuns();});
+
+syncInputs();
+$('introRule').textContent=introRuleText();
+renderBase();renderPips();renderRuns();
+requestAnimationFrame(loop);
+})();
+</script>

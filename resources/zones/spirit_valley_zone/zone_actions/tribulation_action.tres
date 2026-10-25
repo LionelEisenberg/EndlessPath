@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TribulationActionData" format=3 uid="uid://crr0x4xrcfjos"]
+
+[ext_resource type="Script" uid="uid://dgqh8lcx02bc1" path="res://scripts/resource_definitions/zones/zone_action_data/tribulation_action_data/tribulation_action_data.gd" id="1_action"]
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="2_cond"]
+[ext_resource type="Resource" uid="uid://b77fd2axp2c13" path="res://resources/unlocks/core_density_full.tres" id="3_full"]
+[ext_resource type="Resource" uid="uid://bnorcaroi8nx4" path="res://resources/tribulation/foundation_tribulation.tres" id="4_trib"]
+[ext_resource type="Texture2D" uid="uid://cwubwjpwdtuc1" path="res://assets/ui/lacquer/lacquer_ic_core_ai.png" id="5_icon"]
+
+[resource]
+script = ExtResource("1_action")
+tribulation = ExtResource("4_trib")
+action_id = "spirit_valley_tribulation"
+action_name = "The Tribulation"
+action_type = 7
+description = "Your core is full. Face the Tribulation and break through to Copper."
+icon = ExtResource("5_icon")
+unlock_conditions = Array[ExtResource("2_cond")]([ExtResource("3_full")])
+max_completions = 0
+metadata/_custom_type_script = "uid://dgqh8lcx02bc1"

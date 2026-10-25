@@ -1,7 +1,5 @@
 # Combat System
 
-Last updated: 2026-10-23
-
 ## Overview
 
 Combat is a real-time, one-versus-one fight that runs inside an adventure. When the player picks a `CombatChoice` on an adventure tile, the hex map hides and `AdventureCombat` builds two `CombatantNode`s: the player (attributes snapshot + equipped loadout) and the first enemy in the choice's `enemy_pool`. Each side casts abilities that cost Health, Madra or Stamina, may have a cast time, then go on cooldown. Effects deal damage, heal, apply buffs, interrupt casts, or strip buffs. The enemy is driven by `SimpleEnemyAI`. The fight ends the moment either side's Health reaches 0.
@@ -34,13 +32,13 @@ AdventureView (Control)                          adventure_view.gd (adventure-ow
 ├── CombatView (Control, hidden outside combat; fades in when a fight starts)
 │   └── CombatSubviewportContainer/SubViewport   1920x1080
 │       └── AdventureCombat (Node2D)             adventure_combat.gd
-│           ├── Atmosphere (CanvasLayer 5)       instanced in _setup_atmosphere(), moved to index 0
+│           ├── Atmosphere (CanvasLayer 5)       instanced in code, moved to index 0
 │           ├── PlayerSpot / EnemySpot (Marker2D) fighters' feet, (660, 790) / (1300, 790)
 │           ├── HudLayer (CanvasLayer 100)       above the atmosphere
-│           │   └── EnemyNameplate               placed above the enemy sprite by _place_nameplate()
+│           │   └── EnemyNameplate               placed above the enemy sprite
 │           ├── PlayerCombatant (CombatantNode)  created per fight
 │           └── EnemyCombatant (CombatantNode)   created per fight
-│               └── EnemyAI (SimpleEnemyAI)      added by _create_enemy_combatant()
+│               └── EnemyAI (SimpleEnemyAI)      added when the enemy is created
 ├── VitalsPlate                                  vitals cabinet, top left; binds the player's buffs in a fight
 ├── AdventureChest                               chest, top right; the expedition page stays up through a fight
 ├── TechniqueDock                                technique bar, bottom centre; its slots activate in combat
@@ -66,7 +64,7 @@ CombatantNode (Node2D)                 combatant_node.gd
     └── NumberLayer (CanvasLayer 100)  DamageNumber instances, above the atmosphere
 ```
 
-`CombatantNode._update_visuals()` passes `CombatantData.texture`, `scale` and `offset` to `CombatantVisual.setup()`, which scales the sprite to `display_height × scale` (280 px at 1.0) and mirrors enemies to face the player. The node then listens to its `VitalsManager.health_changed` (a loss of at least 0.5 → `play_hit()`: white flash, recoil, damage number; a gain of at least 1 → `play_heal()`) and to each ability's `executed` signal (`play_attack()` lunge for abilities with target effects, `play_buff()` gold pulse for self-only ones). The thresholds keep regen ticks from triggering reactions.
+`CombatantNode` passes `CombatantData.texture`, `scale` and `offset` to `CombatantVisual.setup()`, which scales the sprite to `display_height × scale` (280 px at 1.0) and mirrors enemies to face the player. The node then listens to its `VitalsManager.health_changed` (a loss of at least 0.5 → `play_hit()`: white flash, recoil, damage number; a gain of at least 1 → `play_heal()`) and to each ability's `executed` signal (`play_attack()` lunge for abilities with target effects, `play_buff()` gold pulse for self-only ones). The thresholds keep regen ticks from triggering reactions.
 
 ### Technique dock
 
@@ -197,8 +195,8 @@ Costs (`health_cost`, `madra_cost`, `stamina_cost`), `base_cooldown`, `cast_time
 
 | Value | Formula | Regen |
 |-------|---------|-------|
-| Max Health | `BODY × 10` (`VitalsManager.max_health_for()`; the Here tray's Health figure used to call it and was cut in review round 1) | `health_regen` (always 0) |
-| Max Stamina | `BODY × 5` | `stamina_regen`: `1.0 × AdventureActionData.stamina_regen_modifier` during an adventure, 0 otherwise (set by `AdventureView._update_stamina_regen()`) |
+| Max Health | `BODY × 10` (`VitalsManager.max_health_for()`; the Here tray's Health figure used to call it and was cut) | `health_regen` (always 0) |
+| Max Stamina | `BODY × 5` | `stamina_regen`: `1.0 × AdventureActionData.stamina_regen_modifier` during an adventure, 0 otherwise (set by `AdventureView`) |
 | Max Madra | `CharacterAttributesData.get_max_madra()` = `FOUNDATION × 10` | `madra_regen` (always 0) |
 
 - Maxima are recomputed when `character_attributes_data` is assigned. `apply_vitals_change(health, stamina, madra)` clamps each value to `[0, max]`; regen is applied in `_process`.
@@ -215,13 +213,13 @@ Costs (`health_cost`, `madra_cost`, `stamina_cost`), `base_cooldown`, `cast_time
 5. **Execute** — `execute_ability(target)`:
    - emits `executed(self)` (the caster's lunge or buff pulse);
    - starts the cooldown (`base_cooldown`), so cooldowns begin when the cast resolves;
-   - builds caster attributes with buff multipliers (`_get_modified_attributes()`);
+   - builds caster attributes with buff multipliers;
    - if `deals_damage()`, calls `buff_manager.consume_outgoing_modifier()` once per cast;
    - sends each `effects_on_target` entry to `target.receive_effect(effect, attrs, outgoing_modifier)`;
    - then sends each `effects_on_self` entry to the caster with modifier 1.0.
 6. **Cancel.** `cancel_cast()` (via `CombatAbilityManager.cancel_current_cast()`) stops the cast timer, clears `is_casting`, starts the full cooldown and emits `cast_cancelled`.
 
-Cooldown rules: `INITIAL_COOLDOWN = 1.5` s is started in `_ready`, but `_start_cooldown()` does nothing when `base_cooldown <= 0`. Abilities with a 0 s base cooldown therefore have no opening cooldown and no post-cancel cooldown. `cooldown_started` always reports `base_cooldown` as its duration.
+Cooldown rules: `INITIAL_COOLDOWN = 1.5` s is started in `_ready`, but starting a cooldown does nothing when `base_cooldown <= 0`. Abilities with a 0 s base cooldown therefore have no opening cooldown and no post-cancel cooldown. `cooldown_started` always reports `base_cooldown` as its duration.
 
 ### Effect resolution (`CombatEffectManager.process_effect`)
 
@@ -269,31 +267,31 @@ Runs every frame while `active` and both combatants exist:
 
 1. Skip if the enemy is casting.
 2. Sort a copy of the enemy's ability instances by `base_cooldown`, longest first.
-3. Take the first one where `can_cast_ability_instance()` passes and `_should_cast_ability()` is true. Heal-self abilities (`heals_self()`) only qualify when missing Health ≥ `get_total_self_heal()` (no overheal); everything else always qualifies.
+3. Take the first one where `can_cast_ability_instance()` passes and the AI wants to cast it. Heal-self abilities (`heals_self()`) only qualify when missing Health ≥ `get_total_self_heal()` (no overheal); everything else always qualifies.
 4. `use_ability_instance(ability, player)`.
 
 There is no targeting choice, priority list, or reaction to the player's casts. Because the AI checks every frame, a 0 s-cooldown ability is recast as soon as the previous cast resolves.
 
 ### Combat start and end (combat side)
 
-Start — `AdventureView._on_start_combat(choice)`:
+Start — `AdventureView`, on `start_combat(choice)`:
 1. `AdventureCombat.initialize_combat(choice, action_data)` stores the context and connects `PlayerManager.vitals_manager.health_changed` (once; never disconnected).
-2. `AdventureCombat.start()` → `_create_player_combatant()` (placed on `PlayerSpot`, `setup(data, PlayerManager.vitals_manager, true)`, `play_enter()`) then `_create_enemy_combatant()`: `enemy_pool[0]`, own vitals, placed on `EnemySpot` and slid in, `EnemyNameplate.setup()` (positioned above the sprite on the next frame), `SimpleEnemyAI` child, enemy `health_changed` connection.
+2. `AdventureCombat.start()` creates the player combatant (placed on `PlayerSpot`, `setup(data, PlayerManager.vitals_manager, true)`, `play_enter()`), then the enemy combatant: `enemy_pool[0]`, own vitals, placed on `EnemySpot` and slid in, `EnemyNameplate.setup()` (positioned above the sprite on the next frame), `SimpleEnemyAI` child, enemy `health_changed` connection.
 3. `AdventureView` calls `TechniqueDock.bind(ability_manager, vitals_manager)` (slots bound to the player's abilities, cast tray bound) and `VitalsPlate.bind_buffs(buff_manager)`, connects `ability_selected` → `on_player_ability_selected`, swaps the tilemap view for the combat view and fades it in.
 
 End:
-- Enemy Health ≤ 0 → `_calculate_gold_reward()` → `EventManager.trigger_event("q_first_steps_enemy_defeated")` (every victory; EventManager de-duplicates) → `trigger_combat_end(true, gold)`.
+- Enemy Health ≤ 0 → the gold reward (below) → `EventManager.trigger_event("q_first_steps_enemy_defeated")` (every victory; EventManager de-duplicates) → `trigger_combat_end(true, gold)`.
 - Player Health ≤ 0 → `trigger_combat_end(false, 0)`.
-- `AdventureView._on_stop_combat()` lets the dock and the cabinet go (`TechniqueDock.reset()` puts the slots back into loadout preview and hides the cast tray; `VitalsPlate.unbind_buffs()` clears the sockets), restores the map view and clears `is_in_combat`. It then calls `AdventureCombat.stop()`, which resets `EnemyNameplate`, runs `clear_all_buffs()` on both sides and `queue_free()`s both combatants. Next it calls `AdventureTilemap.handle_combat_result(successful, gold)`, and on defeat `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`. Because `is_in_combat` is already false at that point, `stop_adventure()` doesn't end the fight a second time.
+- On `trigger_combat_end`, `AdventureView` lets the dock and the cabinet go (`TechniqueDock.reset()` puts the slots back into loadout preview and hides the cast tray; `VitalsPlate.unbind_buffs()` clears the sockets), restores the map view and clears `is_in_combat`. It then calls `AdventureCombat.stop()`, which resets `EnemyNameplate`, runs `clear_all_buffs()` on both sides and `queue_free()`s both combatants. Next it calls `AdventureTilemap.handle_combat_result(successful, gold)`, and on defeat `ActionManager.stop_action(false)`. A boss win ends the adventure from inside `handle_combat_result()`. Because `is_in_combat` is already false at that point, `stop_adventure()` doesn't end the fight a second time.
 
-Gold is the static `AdventureCombat.gold_reward_for(choice, action)`: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())` for the first enemy of the pool (0 for an empty pool; the action's multiplier counts 1 with no action). `_calculate_gold_reward()` returns it and writes the log line. The chest's fight drawer used to show the same figure as "<gold> gold if you win" and no longer does (review round 1: a fight's drawer says no more than its name and tag); the opponent page's reward row (PR 2) will use the function. All three multipliers are 1.0 in current content (`get_gold_multiplier()` is a stub).
+Gold is the static `AdventureCombat.gold_reward_for(choice, action)`: `floor(base_gold_drop × CombatChoice.gold_multiplier × AdventureActionData.gold_multiplier × CharacterManager.get_gold_multiplier())` for the first enemy of the pool (0 for an empty pool; the action's multiplier counts 1 with no action). `AdventureCombat` pays it for a won fight and writes the log line. The chest's fight drawer used to show the same figure as "<gold> gold if you win" and no longer does (a fight's drawer says no more than its name and tag); the opponent page's reward row (PR 2) will use the function. All three multipliers are 1.0 in current content (`get_gold_multiplier()` is a stub).
 
 ### Signals
 
 | Emitter | Signal | Listener |
 |---------|--------|----------|
-| `AdventureTilemap` | `start_combat(choice)` | `AdventureView._on_start_combat` |
-| `AdventureCombat` | `trigger_combat_end(is_successful, gold_earned)` | `AdventureView._on_stop_combat` |
+| `AdventureTilemap` | `start_combat(choice)` | `AdventureView` |
+| `AdventureCombat` | `trigger_combat_end(is_successful, gold_earned)` | `AdventureView` |
 | `VitalsManager` | `health_changed`, `madra_changed`, `stamina_changed` | `VitalsPlate` (the player's orbs, rod and figures); `EnemyNameplate` (Health); `CombatantNode` (hit/heal reactions); `AdventureCombat` death checks (health) |
 | `CombatAbilityInstance` | `cooldown_started`, `cooldown_updated`, `cooldown_ready` | `TechniqueSlot` |
 | `CombatAbilityInstance` | `cast_started`, `cast_updated`, `cast_finished`, `cast_cancelled` | `CastBar` (enemy intent tab); `CastTray` and `TechniqueSlot` (the player's cast tray and casting frame) |
@@ -342,7 +340,7 @@ Styleboxes in use (`assets/styleboxes/combat/`, all for the enemy's plate and `R
 | `ResourceManager` | in | Adventure Madra budget becomes starting combat Madra |
 | `EventManager` | out | `q_first_steps_enemy_defeated` on victory (Foundation Beat 2 quest step) |
 | `LogManager` | out | Damage, heal, interrupt and strip lines; `AdventureView` logs encounter, victory and defeat |
-| `Atmosphere` | — | Instanced by `AdventureCombat._setup_atmosphere()` with radius 0.5, softness 0.35, 25 cyan / 8 warm motes. It is a CanvasLayer on layer 5, so mist drifts in front of the fighters; the enemy plate and damage numbers render on layer 100 above it |
+| `Atmosphere` | — | Instanced by `AdventureCombat` with radius 0.5, softness 0.35, 25 cyan / 8 warm motes. It is a CanvasLayer on layer 5, so mist drifts in front of the fighters; the enemy plate and damage numbers render on layer 100 above it |
 | Dev panel | in | `AdventureView.force_win_combat()` emits `trigger_combat_end(true, 0)` directly (no gold, no quest event) |
 
 ## Existing Content
@@ -421,9 +419,8 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 | `scripts/resource_definitions/abilities/ability_data.gd` | `AbilityData`, costs, predicates |
 | `singletons/player_manager/player_manager.gd` | Owns the persistent player `VitalsManager` |
 | `resources/combat/combatant_data/` | Enemy definitions and enemy abilities |
-| `tests/unit/test_combat_damage.gd`, `test_combat_effect_data.gd`, `test_combat_effect_types.gd`, `test_combat_buff_manager_stacking.gd`, `test_combat_buff_manager_strip.gd`, `test_combat_ability_instance_cancel.gd`, `test_adventure_combat_victory_event.gd`, `test_adventure_combat_count.gd`, `test_fight_rules.gd`, `test_buff_effect_describe.gd`, `test_technique_slot_math.gd` | Unit tests |
-| `tests/integration/test_empty_palm_interrupt.gd`, `test_power_font_buff_strip.gd` | Integration tests (real `.tres` through the effect pipeline) |
-| `tests/integration/test_technique_dock.gd`, `test_vitals_plate.gd` | Integration tests (the dock's slots, sweep, cast tray, presses and tooltip; the cabinet's figures, orbs and buff sockets) |
+
+Tests: `tests/unit/test_combat_*.gd` and `tests/unit/test_adventure_combat_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
 
@@ -431,19 +428,19 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 
 - `[MEDIUM]` Equipment never updates the player's vitals maxima. The player `VitalsManager` recomputes max Health/Stamina/Madra only on `CharacterManager.base_attribute_changed` (`vitals_manager.gd` `_ready`). Equipping Reinforced Robes (+4 BODY) or Leeching Ring (+2 FOUNDATION) leaves max Health/Madra unchanged until a base attribute changes or the game restarts, while damage and defense already use the new totals.
 - `[MEDIUM]` Defense ignores buffs. `CombatEffectManager.process_effect()` passes the target's unmodified `combatant_data.attributes` to `calculate_damage()`, so RESILIENCE/SPIRIT/WILLPOWER attribute buffs do nothing defensively.
-- `[LOW]` 0 s-cooldown abilities skip the opening cooldown and the post-interrupt cooldown (`CombatAbilityInstance._start_cooldown()` returns early when `base_cooldown <= 0`). Madra Lash and Famishing Bite start casting on frame 1, and an Empty Palm interrupt only restarts their cast.
-- `[LOW]` `AdventureCombat._on_player_health_changed` stays connected to the player `VitalsManager` after combat. A lethal non-combat Health change during an adventure (e.g. a trap's `ChangeVitalsEffectData`) is reported as a combat defeat (`_combats_fought` + 1, `handle_combat_result(false)`). Latent: `test_trap_encounter` (−10 Health) is not in any adventure.
+- `[LOW]` 0 s-cooldown abilities skip the opening cooldown and the post-interrupt cooldown (`CombatAbilityInstance` starts no cooldown when `base_cooldown <= 0`). Madra Lash and Famishing Bite start casting on frame 1, and an Empty Palm interrupt only restarts their cast.
+- `[LOW]` `AdventureCombat`'s handler for the player's Health changes stays connected to the player `VitalsManager` after combat. A lethal non-combat Health change during an adventure (e.g. a trap's `ChangeVitalsEffectData`) is reported as a combat defeat (`_combats_fought` + 1, `handle_combat_result(false)`). Latent: `test_trap_encounter` (−10 Health) is not in any adventure.
 - `[LOW]` `FloatingText._ready()` sets font size with `add_theme_constant_override("font_size", 24)`, which does not change a Label's font size (needs a font-size override).
 
 ### Missing Functionality
 
 - `[HIGH]` Attribute design pass. CONTROL and WILLPOWER have no combat effect (no ability deals `MIXED`), AGILITY is only a damage coefficient, and the `AttributeType` comments promise evasion, cooldown and cost reduction that do not exist. Current gear already grants inert stats (Cultivator's Cowl +3 WILLPOWER, Leeching Ring +2 CONTROL).
-- `[HIGH]` Only `enemy_pool[0]` is used (`_create_enemy_combatant()`, `_calculate_gold_reward()`): no random pick and no multi-enemy fights.
+- `[HIGH]` Only `enemy_pool[0]` is used (for the enemy and its gold, in `AdventureCombat`): no random pick and no multi-enemy fights.
 - `[MEDIUM]` No buff stack cap. Outgoing-damage and DoT stacks are unbounded and outgoing stacks compound; a dreadbeast that bites every 3 s doubles its damage roughly every 5 s until Power Font (a path unlock) strips it. Add a `max_stacks` field to `BuffEffectData`.
 - `[MEDIUM]` No in-combat resource economy beyond Stamina regen. No AP or Cycle skill (GDD), no Madra or Health regen, and the Iron Will path node's `stamina_recovery_mult` is never applied.
 - `[MEDIUM]` Casts are only interrupted by `CANCEL_CAST`; damage never interrupts (the Power Font spec assumed it does).
 - `[MEDIUM]` Combat feedback is visual only: hits flash and recoil, attackers lunge, numbers pop and interrupted casts shake, but there are no interrupt or strip VFX on the fighters, no death or victory beat (the fight ends the frame Health reaches 0), no screen shake and no combat audio.
-- `[LOW]` DoT ignores `dot_damage_type`, defense and modifiers and is not logged (`CombatBuffManager._apply_dot_damage`). No content uses DoTs.
+- `[LOW]` DoT ignores `dot_damage_type`, defense and modifiers and is not logged (`CombatBuffManager`). No content uses DoTs.
 - `[LOW]` `INCOMING_DAMAGE_MODIFIER` and attribute buffs only refresh, never stack. No content uses either.
 - `[LOW]` `AdventureActionData.difficulty_modifier` is never read; `CharacterManager.get_gold_multiplier()` is a stub returning 1.0.
 - `[LOW]` `SimpleEnemyAI` has no priorities beyond "longest cooldown first" and the heal gate. Its comment calls `sort_custom` stable; Godot documents it as unstable (matters once an enemy has two abilities with equal cooldowns).
@@ -451,7 +448,7 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 
 ### Content
 
-- `[HIGH]` No real boss. `manifested_spirit_encounter` (the Shallow Woods boss) fights the regular `amorphous_spirit` (100 Health, 9 damage per lash, 15 gold). The Foundation Beat 7 Tribulation Guardian does not exist.
+- `[HIGH]` No real boss. `manifested_spirit_encounter` (the Shallow Woods boss) fights the regular `amorphous_spirit` (100 Health, 9 damage per lash, 15 gold).
 - `[MEDIUM]` Coalescing Spirit (elite) has no `base_gold_drop` and its encounter has no loot.
 - `[MEDIUM]` No enemy art. Every enemy uses the placeholder `test_enemy_sprite.png` and the player uses `test_character_sprite.png`, both high-resolution images drawn with the project's nearest filter. Madra Lash and Coalesce have no icon, so the intent tab shows no icon for them.
 - `[MEDIUM]` Four enemies, all for The Shallow Woods; nothing for later Foundation beats or Copper.
@@ -463,7 +460,7 @@ All are in `resources/adventure/encounters/shallow_woods/combat_encounters/` and
 - `[LOW]` The technique tooltip's damage line covers only a first target effect that deals damage; heals (Coalesce), interrupts and strips show only through the description text.
 - `[LOW]` The enemy plate does not mark elites or bosses; the encounter type never reaches `AdventureCombat` (elites are only drawn larger).
 - `[LOW]` The enemy plate's right end runs under the chest during a fight (about x 1120 to 1460) until the opponent page replaces the plate.
-- `[LOW]` The combat backdrop is the Spirit Valley parallax background (`ZoneViewBackground`, which only the adventure view uses since the lacquer zone view dropped it) plus Atmosphere values hardcoded in `_setup_atmosphere()`; there is no per-zone backdrop.
+- `[LOW]` The combat backdrop is the Spirit Valley parallax background (`ZoneViewBackground`, which only the adventure view uses since the lacquer zone view dropped it) plus Atmosphere values hardcoded in `AdventureCombat`; there is no per-zone backdrop.
 
 ### Tech Debt
 

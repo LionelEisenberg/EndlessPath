@@ -3,8 +3,8 @@ extends GutTest
 ## Unit tests for CultivationManager's public max-Madra getter, which the
 ## cultivator plate, the cycling panel and ResourceManager.add_madra() read
 ## instead of the private stage-resource lookup. Foundation's curve is
-## 100 base + 5 per Core Density level. Also pins BREAKTHROUGH_LEVEL, which
-## the Goals board's milestone and an activity line read.
+## 100 base + 5 per Core Density level. Also pins Foundation's Core Density cap,
+## which the Goals board's milestone and the cabinet's core orb read.
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -35,8 +35,8 @@ func test_add_madra_caps_at_the_getter_value() -> void:
 	assert_eq(ResourceManager.get_madra(), 260.0)
 
 #-----------------------------------------------------------------------------
-# BREAKTHROUGH
+# CORE DENSITY CAP
 #-----------------------------------------------------------------------------
 
-func test_breakthrough_level_is_one_hundred() -> void:
-	assert_eq(CultivationManager.BREAKTHROUGH_LEVEL, 100, "the design's 0-100 per stage; Goals reads \"Raise Core Density to 100\"")
+func test_foundation_core_density_cap_is_one_hundred() -> void:
+	assert_eq(CultivationManager.get_core_density_cap(), 100, "the design's 0-100 per stage; Goals reads \"Raise Core Density to 100\"")

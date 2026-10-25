@@ -23,7 +23,8 @@ extends Control
 ## the chest hugs it like a short list. Once a cycle has ended, its result line
 ## ("Last cycle · ...", from CyclingManager) sits right under the Now tray and
 ## pushes the lore, the header and the list down 26 px.
-## It rebuilds on zone_changed, action_completed, condition_unlocked and
+## It rebuilds on zone_changed, action_completed, condition_unlocked,
+## advancement_stage_changed (a passed Tribulation's card hides) and
 ## technique_unlocked (which lights NEW on the cycling card again), and
 ## scrolls to a card when ZoneManager.action_focus_requested asks.
 
@@ -129,6 +130,7 @@ func _ready() -> void:
 	ZoneManager.action_completed.connect(_on_action_completed)
 	ZoneManager.action_focus_requested.connect(scroll_to_action)
 	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
+	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
 	CyclingManager.technique_unlocked.connect(_on_technique_unlocked)
 	CyclingManager.last_cycle_changed.connect(_on_last_cycle_changed)
 	_about_button.toggled.connect(_on_about_toggled)
@@ -390,6 +392,11 @@ func _on_action_completed(_action_id: String) -> void:
 	_queue_rebuild()
 
 func _on_condition_unlocked(_condition_id: String) -> void:
+	_queue_rebuild()
+
+## A breakthrough has moved the stage on, so the card of the Tribulation that led
+## there is no longer offered: the rebuild drops it.
+func _on_advancement_stage_changed(_new_stage: CultivationManager.AdvancementStage) -> void:
 	_queue_rebuild()
 
 ## ZoneManager has marked the cycling actions unseen by now; the rebuild shows

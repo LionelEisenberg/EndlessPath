@@ -28,6 +28,8 @@ extends Resource
 @export var core_density_xp : float = 0.0 
 @export var core_density_level : float = 0.0
 @export var current_advancement_stage : CultivationManager.AdvancementStage = CultivationManager.AdvancementStage.FOUNDATION
+## Stage (AdvancementStage) to the highest Core Density milestone already paid. Missing on old saves, so it is seeded on load.
+@export var core_density_milestones: Dictionary[int, int] = {}
 
 #-----------------------------------------------------------------------------
 # UNLOCK MANAGER
@@ -200,6 +202,7 @@ func reset() -> void:
 	core_density_xp = 0.0
 	core_density_level = 0.0
 	current_advancement_stage = CultivationManager.AdvancementStage.FOUNDATION
+	core_density_milestones = {}
 
 	# Unlock Manager
 	unlock_progression = UnlockProgressionData.new()

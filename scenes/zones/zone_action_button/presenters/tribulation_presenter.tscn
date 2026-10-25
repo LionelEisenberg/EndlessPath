@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://bbl1l3ritb643"]
+
+[ext_resource type="Script" uid="uid://fx24w7adscv0" path="res://scenes/zones/zone_action_button/presenters/tribulation_presenter.gd" id="1_trib"]
+[ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="2_rod"]
+[ext_resource type="Texture2D" uid="uid://f2i4lwwue7ps" path="res://assets/ui/lacquer/lacquer_rod_core_empty_ai.png" id="3_rod_empty"]
+[ext_resource type="Texture2D" uid="uid://dgt1v862lsj5o" path="res://assets/ui/lacquer/lacquer_rod_core_full_ai.png" id="4_rod_full"]
+[ext_resource type="Texture2D" uid="uid://cxn01d1umqedg" path="res://assets/ui/lacquer/lacquer_rod_goal_end_ai.png" id="5_rod_end"]
+
+[node name="TribulationPresenter" type="Node" unique_id=1273915846]
+script = ExtResource("1_trib")
+
+[node name="NeedGroup" type="Control" parent="." unique_id=1840276153]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 0
+offset_right = 392.0
+offset_bottom = 72.0
+mouse_filter = 2
+
+[node name="CoreRod" parent="NeedGroup" unique_id=402857391 instance=ExtResource("2_rod")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 40.0
+offset_right = 216.0
+offset_bottom = 50.0
+empty_texture = ExtResource("3_rod_empty")
+full_texture = ExtResource("4_rod_full")
+end_texture = ExtResource("5_rod_end")
+steps = 74
+
+[node name="FigureRow" type="HBoxContainer" parent="NeedGroup" unique_id=1596038224]
+layout_mode = 0
+offset_left = 226.0
+offset_top = 38.0
+offset_right = 380.0
+offset_bottom = 56.0
+mouse_filter = 2
+
+[node name="CoreFigure" type="Label" parent="NeedGroup/FigureRow" unique_id=967451082]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+text = "Core 95 / 100"
+
+[node name="ReadyLabel" type="Label" parent="." unique_id=2094617735]
+unique_name_in_owner = true
+visible = false
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.83137256, 0.65882355, 0.2901961, 1)

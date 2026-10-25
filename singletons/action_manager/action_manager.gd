@@ -33,6 +33,10 @@ signal training_level_gained(action_data: TrainingActionData, new_level: int)
 signal start_merchant(action_data: MerchantActionData)
 signal stop_merchant()
 
+## tribulation signals
+signal start_tribulation(action_data: TribulationActionData)
+signal stop_tribulation()
+
 #-----------------------------------------------------------------------------
 # INITIALIZATION
 #-----------------------------------------------------------------------------
@@ -111,7 +115,8 @@ func _on_condition_unlocked(condition_id: String) -> void:
 
 ## Select an action to execute, replacing the current one, and mark it seen.
 ## An idle action becomes its zone's last idle action. An adventure the player
-## can't afford is refused before anything stops, so the current action runs on.
+## can't afford and a Tribulation the core isn't ready for are refused before
+## anything stops, so the current action runs on.
 func select_action(action_data: ZoneActionData) -> void:
 	if not action_data:
 		Log.error("ActionManager: select_action called with null action_data")
@@ -121,6 +126,12 @@ func select_action(action_data: ZoneActionData) -> void:
 	if action_data.action_type == ZoneActionData.ActionType.ADVENTURE and not ResourceManager.can_start_adventure():
 		Log.info("ActionManager: Cannot start adventure - need %.0f Madra, have %.0f" % [
 			ResourceManager.get_adventure_madra_threshold(), ResourceManager.get_madra()])
+		return
+	var tribulation := action_data as TribulationActionData
+	if tribulation != null and not tribulation.can_attempt():
+		Log.info("ActionManager: Cannot start the Tribulation - Core Density %d / %d (%s)" % [
+			int(CultivationManager.get_core_density_level()), CultivationManager.get_core_density_cap(),
+			CultivationManager.get_current_advancement_stage_name()])
 		return
 
 	_stop_executing_current_action()
@@ -132,8 +143,8 @@ func select_action(action_data: ZoneActionData) -> void:
 	_execute_action(action_data)
 
 ## Stop the current action. When a session action (cycling, an adventure,
-## dialogue, the merchant, a zone event) stops, the zone's idle action resumes.
-## Stopping an idle action resumes nothing.
+## dialogue, the merchant, the Tribulation, a zone event) stops, the zone's idle
+## action resumes. Stopping an idle action resumes nothing.
 func stop_action(successful: bool = true) -> void:
 	var stopped_action := current_action
 	_stop_executing_current_action(successful)
@@ -205,6 +216,11 @@ func _execute_action(action_data: ZoneActionData) -> void:
 				_execute_merchant_action(action_data as MerchantActionData)
 			else:
 				Log.error("ActionManager: Merchant action data is not a MerchantActionData: %s" % action_data.action_name)
+		ZoneActionData.ActionType.TRIBULATION:
+			if action_data is TribulationActionData:
+				_execute_tribulation_action(action_data as TribulationActionData)
+			else:
+				Log.error("ActionManager: Tribulation action data is not a TribulationActionData: %s" % action_data.action_name)
 		_:
 			Log.error("ActionManager: Unknown action type: %s" % action_data.action_type)
 
@@ -231,6 +247,8 @@ func _stop_executing_current_action(successful: bool = true) -> void:
 				_stop_train_action(successful)
 			ZoneActionData.ActionType.MERCHANT:
 				_stop_merchant_action(successful)
+			ZoneActionData.ActionType.TRIBULATION:
+				_stop_tribulation_action(successful)
 			_:
 				Log.error("ActionManager: Unknown action type: %s" % current_action.action_type)
 	
@@ -333,6 +351,13 @@ func _execute_merchant_action(action_data: MerchantActionData) -> void:
 	Log.info("ActionManager: Executing merchant action: %s" % action_data.action_name)
 	start_merchant.emit(action_data)
 
+## Handle tribulation action - open the Tribulation board. select_action() has
+## already checked the core is full. The action stays current until the board
+## closes it with stop_action() (the trial ended, or Escape), the way the shop does.
+func _execute_tribulation_action(action_data: TribulationActionData) -> void:
+	Log.info("ActionManager: Executing tribulation action: %s" % action_data.action_name)
+	start_tribulation.emit(action_data)
+
 #-----------------------------------------------------------------------------
 # ACTION STOP EXECUTION HANDLERS
 #-----------------------------------------------------------------------------
@@ -376,6 +401,14 @@ func _stop_train_action(successful: bool) -> void:
 func _stop_merchant_action(successful: bool) -> void:
 	Log.info("ActionManager: Stopping merchant action")
 	stop_merchant.emit()
+	_process_completion_effects(successful)
+
+## Handle tribulation action stop - close the board, then run completion effects.
+## The breakthrough or the penalty is applied by the board before it stops the
+## action; nothing here changes Core Density.
+func _stop_tribulation_action(successful: bool) -> void:
+	Log.info("ActionManager: Stopping tribulation action")
+	stop_tribulation.emit()
 	_process_completion_effects(successful)
 
 func _process_completion_effects(successful: bool) -> void:

@@ -11,8 +11,9 @@ extends Control
 ## it under its Now tray.
 ## The cabinet on the left is the Madra and Core Density readout, so the view
 ## has none of its own: the Madra pellets fly from the ball into the cabinet's
-## Madra orb and the XP pellets from a zone into its Core orb. MainView hands
-## the cabinet over in cultivator_plate; with none, no pellet is sent.
+## Madra orb and the XP pellets from a zone into its Core orb (none while the
+## core is full, which takes no XP). MainView hands the cabinet over in
+## cultivator_plate; with none, no pellet is sent.
 ## The view shows and hides outright. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
@@ -35,8 +36,9 @@ const READY_AGAIN: String = "Click the ball for another cycle."
 const CYCLING_FORMAT: String = "Cycling · %d / %d s"
 const FOLLOW_SUFFIX: String = " · follow the ball"
 
-## The status line while a cycle runs with Madra at the cap: no Madra is drawn,
-## and a technique with zones still pays XP for them.
+## The status line while a cycle runs with Madra at the cap: no Madra is drawn.
+## MADRA_FULL_ZONES is for a technique whose zones still pay XP: it has zones and
+## the core has room for the XP (a full core takes none).
 const MADRA_FULL: String = "Madra full"
 const MADRA_FULL_ZONES: String = "Madra full · zones still pay XP"
 
@@ -157,13 +159,15 @@ func _process(_delta: float) -> void:
 ## READY_FIRST, or READY_AGAIN once a cycle has ended. While one runs it is
 ## "Cycling · 9 / 15 s" (the whole seconds gone, floored, and the cycle's
 ## length), with FOLLOW_SUFFIX added while the cursor is off the ball. With
-## Madra at the cap it says so instead (MADRA_FULL_ZONES when the technique has
-## zones, MADRA_FULL when it has none), whether or not the cursor follows.
-static func status_line(cycled_before: bool, running: bool, elapsed: float, duration: float, tracking: bool, madra_full: bool, has_zones: bool) -> String:
+## Madra at the cap it says so instead (MADRA_FULL_ZONES when `zones_pay_xp`,
+## MADRA_FULL when not), whether or not the cursor follows. `zones_pay_xp` is
+## true for a technique with zones while the core is not full: a full core takes
+## no XP, so then its zones pay none and the line must not say they do.
+static func status_line(cycled_before: bool, running: bool, elapsed: float, duration: float, tracking: bool, madra_full: bool, zones_pay_xp: bool) -> String:
 	if not running:
 		return READY_AGAIN if cycled_before else READY_FIRST
 	if madra_full:
-		return MADRA_FULL_ZONES if has_zones else MADRA_FULL
+		return MADRA_FULL_ZONES if zones_pay_xp else MADRA_FULL
 	var line: String = CYCLING_FORMAT % [floori(elapsed), roundi(duration)]
 	return line if tracking else line + FOLLOW_SUFFIX
 
@@ -213,6 +217,7 @@ func _apply_technique(technique: CyclingTechniqueData) -> void:
 ## board out again when the line changes.
 func _update_status() -> void:
 	var madra_full: bool = ResourceManager.get_madra() >= CultivationManager.get_max_madra()
+	var zones_pay_xp: bool = not _technique.cycling_zones.is_empty() and not CultivationManager.is_core_full()
 	var line: String = status_line(
 		_cycled_before,
 		_technique.is_cycling(),
@@ -220,7 +225,7 @@ func _update_status() -> void:
 		CyclingManager.get_cycle_duration(),
 		_technique.is_tracking(),
 		madra_full,
-		not _technique.cycling_zones.is_empty())
+		zones_pay_xp)
 	if line == _status_label.text:
 		return
 	_status_label.text = line
@@ -380,13 +385,19 @@ func _on_madra_particle_requested(from_pos: Vector2) -> void:
 	pellet.launch(from_pos, cultivator_plate.get_madra_orb_global_position(), MADRA_PELLET_FLIGHT, MADRA_PELLET_SPREAD)
 
 ## A zone scored: its floater pops with the hit and its XP in the tier's colour,
-## and the tier's pellets fly from the zone to the cabinet's Core orb.
+## and the tier's pellets fly from the zone to the cabinet's Core orb. A full
+## core takes no XP, so the floater says "Core full" where the XP would be
+## ("PERFECT · Core full") and no pellet flies.
 func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> void:
+	var core_full: bool = CultivationManager.is_core_full()
 	var zone_index: int = _technique.cycling_zones.find(zone)
 	if zone_index >= 0 and zone_index < _floaters.size():
-		_floaters[zone_index].pop("%s +%d XP" % [CyclingRules.tier_name(tier), xp], CyclingRules.tier_color(tier))
+		var hit_text: String = "%s +%d XP" % [CyclingRules.tier_name(tier), xp]
+		if core_full:
+			hit_text = "%s · %s" % [CyclingRules.tier_name(tier), CultivationManager.CORE_FULL_TEXT]
+		_floaters[zone_index].pop(hit_text, CyclingRules.tier_color(tier))
 		_place_floater(zone_index)
-	if cultivator_plate == null:
+	if cultivator_plate == null or core_full:
 		return
 	var target: Vector2 = cultivator_plate.get_core_orb_global_position()
 	var texture: Texture2D = _pellet_texture(tier)

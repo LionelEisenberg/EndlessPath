@@ -1,13 +1,12 @@
 # Style Guide: Lacquer and Brass
-Last updated: 2026-10-23
 
 The game's visual style, taken from the zone view rework, and the list of screens still to move to it. Read it before you rework a screen or build a new one.
 
 ## 1. What this is
 
-- **Status.** Distilled from the zone view rework (`feat/zone-view-redesign-4656b7`, built 2026-10-22, merged as PR #51). The zone view, the two HUD boards it shares with the adventure view (Log and Goals), the cycling view (merged as PR #57) and, since the adventure rework's PR 1 on `feat/adventure-view-styleguide-1fc223` (built 2026-10-23, not merged), the adventure view's map and frame (vitals cabinet, chest, technique dock) use the look today. The rest of [§13](#13-cascade-backlog) is still to do, the adventure's fight view and end card included. This doc changes no code.
+- **Status.** Distilled from the zone view rework (PR #51). The zone view, the two HUD boards it shares with the adventure view (Log and Goals), the cycling view, the adventure view's map and frame (vitals cabinet, chest, technique dock) and the Tribulation board use the look today. The rest of [§13](#13-cascade-backlog) is still to do, the adventure's fight view and end card included. This doc changes no code.
 - **Use it as a reference in other branches.** Each later branch takes one area of the backlog, applies these rules, and deletes its rows here.
-- **The kit's files come with that branch.** The textures (`assets/ui/lacquer/`), the theme (`assets/themes/lacquer/lacquer_theme.tres`), the styleboxes (`assets/styleboxes/lacquer/`), the components (`scenes/common/lacquer/`, `LacquerRail`, `LacquerText`), the two orb shaders and the generators all arrived with `feat/zone-view-redesign-4656b7` (PR #51). A branch cut from `main` before that merge does not have them. The adventure's pieces (the technique dock's slot and key cap, the buff and glyph sockets, the tooltip board, the coin tokens, the veil atlas, the cooldown sweep shader and their generators in `docs/superpowers/mockups/adventure-view-lacquer/gen/`) arrive with `feat/adventure-view-styleguide-1fc223`, which is not merged yet.
+- **The kit's files come with that branch.** The textures (`assets/ui/lacquer/`), the theme (`assets/themes/lacquer/lacquer_theme.tres`), the styleboxes (`assets/styleboxes/lacquer/`), the components (`scenes/common/lacquer/`, `LacquerRail`, `LacquerText`), the two orb shaders and the generators all arrived with PR #51, and the adventure's pieces (the technique dock's slot and key cap, the buff and glyph sockets, the tooltip board, the coin tokens, the veil atlas, the cooldown sweep shader and their generators in `docs/superpowers/mockups/adventure-view-lacquer/gen/`) with PR #58. A branch cut from `main` before those merges does not have them.
 - **How it relates to the other docs:**
 
 | Doc | What it holds | Who wins |
@@ -128,7 +127,7 @@ Sizes and fonts always come from theme variants, never from code. When a reworke
 
 **Hit tiers.** A cycling hit is PERFECT in brass, GOOD in cream and OK in tan (the user's call on 2026-10-22; green is dropped), for the floater, the stud on the zone and the XP pellets alike. `CyclingRules.tier_color()` maps the tiers to `LACQUER_BRASS`, `LACQUER_CREAM` and `LACQUER_TAN`.
 
-**Gaps.** Health and Stamina have their ramps. The palette still has no colour for damage taken, heals or gains, or the merchant's reds and greens ([open questions](#open-questions)). A fight's floaters will take the colour of the resource that changed (the adventure spec, PR 2). The one warning set in text is the Here tray's lock line, which turns the Health text colour (`ThemeConstants.LACQUER_HEALTH`, 5.9:1) for the length of a refusal's shake, because the user asked for a warm red and vermilion cannot be text (G2); whether that colour becomes the palette's warning text colour is still open.
+**Gaps.** Health and Stamina have their ramps. The palette still has no colour for damage taken, heals or gains, or the merchant's reds and greens ([open questions](#open-questions)). A fight's floaters will take the colour of the resource that changed (the adventure spec, PR 2). The one warning set in text is the Here tray's lock line, which turns the Health text colour (`ThemeConstants.LACQUER_HEALTH`, 5.9:1) for the length of a refusal's shake, because the user asked for a warm red and vermilion cannot be text (G2); whether that colour becomes the palette's warning text colour is still open. The Tribulation board's crack edges (`#A83C30` on a whole core, `#7E2A22` on a spent one) and its lit crack pip (`#A83C30`) use vermilion as a stand-in damage colour, although rule 5 keeps vermilion for seals and locked rims; which colour damage takes is an open palette question (G2).
 
 ## 5. Type
 
@@ -365,7 +364,7 @@ void fragment() {
 ### Copy that held up
 
 - Short ledger lines, not sentences: `+1.5 Madra / s`, `haul in 3 s`. The user's review of the first adventure card: too much text "for how little it tells the user".
-- An activity card says what you get, in columns, never `text · text`: what the action gives on the left, at most one figure right-aligned under the tag (`+1.5 Madra / s` | `+1 Spirit / level`, `5 min run` | `carries 120 Madra`). Timings, ranges, levels and the gold you carry belong to the Now tray and the cabinet, not the card (the user's review, 2026-10-24).
+- An activity card says what you get, in columns, never `text · text`: what the action gives on the left, at most one figure right-aligned under the tag (`+1.5 Madra / s` | `+1 Spirit / level`, `5 min run` | `carries 120 Madra`). Timings, ranges, levels and the gold you carry belong to the Now tray and the cabinet, not the card.
 - Numbers carry units with spaces: `+1.5 Madra / s`, `46 / 60`, `17 / 18 XP`, `10 s`.
 - A figure beats a sentence: a rod plus `46 / 60` replaced "Needs 60 Madra · you have 46".
 - Mixed case for names and labels (`Core Density`, `Full log · L`, group labels in title case). Uppercase only in tags and seals.
@@ -387,7 +386,7 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 
 **Fixed pieces.** A `TextureRect` at the texture's size, placed at the kit's top-left; the baked shadow lands right and bottom. Never scale it.
 
-**9-slices.** `StyleBoxTexture` with texture margins equal to the frame's thickness and nearest filtering. Overlay frames set no centre fill. When drawing a new 9-slice, keep grain and gloss out of the stretch zones, or they smear. The five in `assets/styleboxes/lacquer/`:
+**9-slices.** `StyleBoxTexture` with texture margins equal to the frame's thickness and nearest filtering. Overlay frames set no centre fill. When drawing a new 9-slice, keep grain and gloss out of the stretch zones, or they smear. The six in `assets/styleboxes/lacquer/`:
 
 | Stylebox | Texture | Margins | Fill |
 |---|---|---|---|
@@ -396,6 +395,7 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 | `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` 12x12 | top and bottom 4 | yes |
 | `token.tres` | `lacquer_token_ai.png` 26x26 | left and top 6, right and bottom 8 | yes |
 | `board9.tres` | `lacquer_board9_ai.png` 28x28 | left and top 8, right and bottom 12 (content margins 16 / 14 / 20 / 18) | yes |
+| `trib_board9.tres` | `tribulation/lacquer_trib_board9_ai.png` 164x164 | left and top 56, right and bottom 60 (content margins 24 / 20 / 28 / 24) | yes |
 
 `wrap_pad.tres` sits in the same folder but is no 9-slice: a `StyleBoxEmpty` with a 1 px bottom content margin, the `normal` style of a wrapped Label (§5, Long text). Trays and drawer faces that must grow use the texture directly on a `NinePatchRect` (trays: margins 4, 4, 2, 2; the drawer face: 4, 4, 6, 6; the zone chest's lore board: 8, 8, 10, 10, its middle tiled), not a stylebox.
 
@@ -484,10 +484,9 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 | End card | E1 | 1 | 0 | 0 | 1 |
 | Menu books | K1–K13 | 13 | 6 | 6 | 1 |
 | Project-wide | P1–P2 | 2 | 1 | 0 | 1 |
-| **Total** | | **35** | **13** | **15** | **7** |
 
 **Taking a row in another branch:**
-1. Make sure the kit's files are there (the branch is cut after PR #51, and after `feat/adventure-view-styleguide-1fc223` for the adventure's pieces).
+1. Make sure the kit's files are there (the branch is cut after PR #51, and after PR #58 for the adventure's pieces).
 2. Settle the row's open questions with the user before building.
 3. Build to §3–§11 and check the result against §12 on a 1920x1080 capture.
 4. Add any new variant or stylebox to UI_STYLING.md and `tests/unit/test_lacquer_pieces.gd`; rewrite the tests that pin the old look.
@@ -498,7 +497,7 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 | ID | Surface | What breaks the guide today | Lacquer treatment | Size | Key files |
 |---|---|---|---|---|---|
 | F1 | Palette additions | Health and Stamina have their ramps (crimson, bamboo) and `ThemeConstants.LACQUER_HEALTH` / `LACQUER_STAMINA`, built for the adventure's cabinet. Still without a kit slot: `LabelRed` `#E06060` / `LabelGreen` `#7DCE82` (merchant), `#7EA870` for Madra in item effect text, `#E86A5C` / `#7FD18B` in the old combat bars and numbers, BBCode red and blue in the timeline | The user picks ramps for damage taken and gains or heals, and the merchant's colours. Add them to kit §2, this guide and `ThemeConstants.LACQUER_*`. Madra stays the Madra ramp | S | `scripts/utils/theme_constants.gd`, `scenes/combat/combatant/combatant_visual/combatant_visual.gd`, `scenes/ui/combat/resource_bar/resource_bar.gd` |
-| F2 | Shared kit pieces (new art) | The kit has fixed-size boards and five 9-slices (`frame_brass`, `frame_hover`, `rail_thumb`, `token`, `board9`). Almost every other screen needs pieces that grow | New `_ai` art from the generators: a plain board 9-slice (`board_base()`) and a strapped one (`strap()`), a small popover or tooltip 9-slice, a text-button set (normal, hover, pressed, disabled), a dither backdrop tile, a carved slot socket, a 22x22 key cap, rods for health, stamina, cast and intent, a cooldown strip, "off" arrow caps. Grain out of stretch zones; shadows baked. Done so far (the adventure's PR 1 and its review round 1): the tooltip board (`board9.tres`), the carved slot socket, the key cap, the Stamina and cast rods, the trays as 9-slices, and the drawer's 9-slice face with its own socket | L | `docs/superpowers/mockups/zone-view-lacquer/gen/`, `assets/ui/lacquer/`, `assets/styleboxes/lacquer/` |
+| F2 | Shared kit pieces (new art) | The kit has fixed-size boards and five 9-slices (`frame_brass`, `frame_hover`, `rail_thumb`, `token`, `board9`). Almost every other screen needs pieces that grow | New `_ai` art from the generators: a plain board 9-slice (`board_base()`) and a strapped one (`strap()`), a small popover or tooltip 9-slice, a text-button set (normal, hover, pressed, disabled), a dither backdrop tile, a carved slot socket, a 22x22 key cap, rods for health, stamina, cast and intent, a cooldown strip, "off" arrow caps. Grain out of stretch zones; shadows baked. Done so far (the adventure's PR 1 and its review round 1): the tooltip board (`board9.tres`), the carved slot socket, the key cap, the Stamina and cast rods, the trays as 9-slices, and the drawer's 9-slice face with its own socket; and, for the Tribulation board, a strapped board 9-slice that grows (`trib_board9.tres`, drawn for that board, not yet a shared piece) | L | `docs/superpowers/mockups/zone-view-lacquer/gen/`, `assets/ui/lacquer/`, `assets/styleboxes/lacquer/` |
 | F3 | Lacquer base types | `lacquer_theme.tres` has only Label and RichText variants, so a Button, PanelContainer, tooltip or scrollbar in a lacquer root falls back to `pixel_theme.tres`: rounded `border_blend` buttons, tan parchment panels, the grey 8x8 pack at 1x | Add Button, PanelContainer, TooltipPanel and TooltipLabel, V/HScrollBar (rail textures, as the full log does), HSeparator (`lacquer_line_ai.png`) and ProgressBar (rod textures) to `lacquer_theme.tres`. Opt-in: only roots that set the theme get them. Keep "no defaults" | M | `assets/themes/lacquer/lacquer_theme.tres`, `tests/unit/test_lacquer_pieces.gd`, `docs/UI_STYLING.md` |
 | F4 | Render settings | The adventure's map `SubViewport` sets `canvas_item_default_texture_filter = 0` now. Still linear: the adventure's `CombatSubviewport` (PR 2 draws the fighters at 2x and sets it). Three nodes force `texture_filter = 2` (merchant TopLight and SlotGlow, the combatant Shadow). Window stretch scales fractionally | Set the filter to 0 on the combat SubViewport. Remove the forced linear filters with their screens. Decide integer `scale_mode` (open question). Re-check the merchant after the change | M | `scenes/adventure/adventure_view/adventure_view.tscn`, `project.godot`, `scenes/merchant/merchant_atmosphere/merchant_atmosphere.tscn`, `scenes/merchant/merchant_stock_row/merchant_stock_row.tscn`, `scenes/combat/combatant/combatant_visual/combatant_visual.tscn` |
 | F5 | Modal backdrop (`GreyBackground`) | A translucent teal-grey panel (`#2D3737` at 55.7%), shared by the four books, the merchant and the end card. The books and the merchant fade it in over 0.3 s and out over 0.2 s (`show_with_panel` / `hide_with_panel`); the end card toggles `visible` with no fade. The merchant hides the HUD boards (`hide_hud_boards`); the books (the user's decision, `5e8d7394`) and the end card leave them dimmed under it. Cycling uses no backdrop: its board sits in the map gap with the HUD boards up. Its alpha is left at 0 after a fade-out (MAIN_VIEW.md bug). The Dialogic background (`#2D2D2D` at 82.7%) and the dev modal (black at 60%) are translucent too | An opaque 2-step `#050707` dither tile (new `lacquer_dither_backdrop_ai.png`) shown and hidden outright for every user. For the merchant and the end card only, the alternative is no backdrop with `MainView.hide_hud_boards()` (G1). The books keep the HUD boards under their backdrop. Keep `show_with_panel` / `hide_with_panel` / `panel_hidden` / `clicked`, so no state changes. Rewrite the fade-timing tests | M | `scenes/ui/grey_background/grey_background.gd`, `assets/styleboxes/zones/grey_background.tres`, `scenes/main/main_game/main_game.tscn`, `tests/unit/test_grey_background.gd` |

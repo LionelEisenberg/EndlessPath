@@ -26,12 +26,13 @@ const _GROUP_LABELS: Dictionary = {
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## The group an action type is listed under. ZONE_EVENT goes in Visit.
+## The group an action type is listed under. The Tribulation is cultivation, so
+## it goes in Cultivate; ZONE_EVENT goes in Visit.
 static func group_of(action_type: ZoneActionData.ActionType) -> Group:
 	match action_type:
 		ActionType.NPC_DIALOGUE:
 			return Group.TALK
-		ActionType.CYCLING, ActionType.TRAIN_STATS:
+		ActionType.CYCLING, ActionType.TRAIN_STATS, ActionType.TRIBULATION:
 			return Group.CULTIVATE
 		ActionType.FORAGE:
 			return Group.GATHER
@@ -53,8 +54,8 @@ static func sort_actions(actions: Array[ZoneActionData]) -> Array[ZoneActionData
 				sorted.append(action)
 	return sorted
 
-## The card's mode tag: IDLE, ACTIVE, SHOP or STORY. The card swaps in RUNNING
-## or ENTER itself, since those depend on live state.
+## The card's mode tag: IDLE, ACTIVE, SHOP, TRIAL or STORY. The card swaps in
+## RUNNING or ENTER itself, since those depend on live state.
 static func mode_tag(action: ZoneActionData) -> String:
 	match action.action_type:
 		ActionType.FORAGE, ActionType.TRAIN_STATS:
@@ -63,4 +64,6 @@ static func mode_tag(action: ZoneActionData) -> String:
 			return "ACTIVE"
 		ActionType.MERCHANT:
 			return "SHOP"
+		ActionType.TRIBULATION:
+			return "TRIAL"
 	return "STORY"

@@ -75,6 +75,7 @@ const PRESENTER_SCENES: Dictionary = {
 	ZoneActionData.ActionType.CYCLING: preload("res://scenes/zones/zone_action_button/presenters/cycling_presenter.tscn"),
 	ZoneActionData.ActionType.TRAIN_STATS: preload("res://scenes/zones/zone_action_button/presenters/training_presenter.tscn"),
 	ZoneActionData.ActionType.MERCHANT: preload("res://scenes/zones/zone_action_button/presenters/merchant_presenter.tscn"),
+	ZoneActionData.ActionType.TRIBULATION: preload("res://scenes/zones/zone_action_button/presenters/tribulation_presenter.tscn"),
 }
 
 #-----------------------------------------------------------------------------

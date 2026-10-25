@@ -9,6 +9,7 @@ enum ActionType {
 	TRAIN_STATS,
 	CYCLING,
 	ZONE_EVENT,  # Story/scripted events
+	TRIBULATION,  # A stage's breakthrough trial. Appended: saved .tres files store the number
 }
 
 @export var action_id: String = ""

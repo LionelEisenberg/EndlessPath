@@ -1,7 +1,5 @@
 # Items
 
-Last updated: 2026-10-19
-
 > **Source-of-truth catalog for equipment content in EndlessPath.**
 >
 > The generator `scripts/tools/items_md_to_resources.gd` reads the **Equipment** tables below, using `scripts/tools/items_md_parser.gd`. It writes one `.tres` per row under `resources/items/equipment/<zone>/`. Re-running it overwrites the generated fields in those files (`item_id`, `item_name`, `description`, `slot_type`, `attribute_bonuses`, `base_value`, `icon`). **Edit equipment here, not in the `.tres`.**

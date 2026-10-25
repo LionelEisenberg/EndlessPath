@@ -35,6 +35,7 @@ func test_group_of_each_type() -> void:
 	assert_eq(ZoneActionGroups.group_of(ActionType.ADVENTURE), ZoneActionGroups.Group.VENTURE)
 	assert_eq(ZoneActionGroups.group_of(ActionType.MERCHANT), ZoneActionGroups.Group.VISIT)
 	assert_eq(ZoneActionGroups.group_of(ActionType.ZONE_EVENT), ZoneActionGroups.Group.VISIT)
+	assert_eq(ZoneActionGroups.group_of(ActionType.TRIBULATION), ZoneActionGroups.Group.CULTIVATE)
 
 func test_labels() -> void:
 	assert_eq(ZoneActionGroups.label(ZoneActionGroups.Group.TALK), "Talk")
@@ -57,6 +58,7 @@ func test_sort_puts_talk_first_and_keeps_order() -> void:
 		"celestial_intervener_dialogue_4",
 		"wilderness_cycling_action",
 		"aura_well_training",
+		"spirit_valley_tribulation",
 		"sprint_forest_foraging_action",
 		"shallow_woods_adventure_action",
 		"spirit_valley_merchant",
@@ -96,3 +98,4 @@ func test_mode_tags() -> void:
 	assert_eq(ZoneActionGroups.mode_tag(_action("e", ActionType.MERCHANT)), "SHOP")
 	assert_eq(ZoneActionGroups.mode_tag(_action("f", ActionType.NPC_DIALOGUE)), "STORY")
 	assert_eq(ZoneActionGroups.mode_tag(_action("g", ActionType.ZONE_EVENT)), "STORY")
+	assert_eq(ZoneActionGroups.mode_tag(_action("h", ActionType.TRIBULATION)), "TRIAL")
