@@ -37,7 +37,7 @@ The inventory can put four consumables on its hotbar ("carry it into combat"), b
 | Tooltip | The dock's own tooltip (the `board9` board). It shows the name, `Instant · Cooldown 10 s` (`Instant` with no cooldown), one line per effect (`EffectData.describe()`, `+20 Madra`), a divider and the description | Claude (June reused `ItemDescriptionPanel`, which has the old look) |
 | A refused press | Pressing a socket that is recharging or has none left shakes it softly (`MapGlyph.SOFT_SHAKE_KEYFRAMES`), as a refused technique does. There is no log line, because the sweep and the seal already say why. An empty socket does nothing | Claude, following the technique slot |
 | Ready again | One brass flash, as for a technique. A socket with none left does not flash | Claude, following the technique slot |
-| The count | A vermilion count seal at the socket's top right, as on the cabinet's buff sockets. It grows leftward to fit the number, so a count is never cut off | Claude (style guide rule 14) |
+| The count | A vermilion count seal hanging off the socket's bottom right corner, where the inventory's hotbar puts its stack count. It grows leftward to fit the number, so a count is never cut off. The first capture had the seal at the top right, as on the cabinet's buff sockets, but there it crowded the key cap and ran into the seconds | Claude (style guide rule 14) |
 | Log | No line when a consumable is used. Techniques log none either; the cabinet's orbs show the gain | Claude |
 
 ## Layout (1920x1080)
@@ -48,13 +48,13 @@ The inventory can put four consumables on its hotbar ("carry it into combat"), b
 | Consumable sockets | Dock-local x 46, 158, 270, 382; y 18; 48x48 | Centred on the technique slots' centres (70, 182, 294, 406). On screen: 768, 880, 992 and 1104, at y 874 |
 | · Icon | Socket +8, +8; 32x32 | The item's 64 px icon at 32 (style guide §9: on the grid at 32 or 64), with the cooldown sweep |
 | · Key cap | Socket −6, −6; 22x22 | `lacquer_keycap_ai.png`. The key is read from the input map, in `LabelLacquerHotkey` |
-| · Count seal | Right edge at socket +52, top at −6; 24x24 at least | `lacquer_seal_count9_ai.png` on a `NinePatchRect` (margins 6 left and right). Count in `LabelLacquerSeal` at 15 px, as on the other count seals. Width is max(24, the text's width + 8, rounded up to even) |
-| · Seconds | Centred on the icon | `LabelLacquerCooldown`, whole seconds rounded up, as on a technique |
+| · Count seal | Right edge at socket +52, top at +30 (4 px past the socket's right edge, 6 px below its bottom); 24x24 at least | `lacquer_seal_count9_ai.png` on a `NinePatchRect` (margins 6 left and right). Count in `LabelLacquerSeal` at 15 px, as on the other count seals. Width is max(24, the text's width + 8, rounded up to even) |
+| · Seconds | Centred on the icon | `LabelLacquerCooldown` at 15 px (a cooldown timer's direct size override, UI_STYLING's rule of thumb): the variant's 22 px filled the 32 px icon and ran into the seal. Whole seconds rounded up, as on a technique |
 | Technique slots | Dock-local x 30, 142, 254, 366; y 82 (was 18) | Key caps at y 76; cost lines at +90, as before |
 | Cast tray | Dock-local 0, −52 (screen 722, 804, 476x44) | Unchanged relative to the dock. It still grows upward, now from y 848 |
 | Tooltip | Bottom at y 848 (was 912), or 8 px over the cast tray's top while the tray shows (y 796 for its 44 px; was 860) | Left 8 px left of the hovered socket's, as for a technique |
 
-Every position and size is even. The belt sockets' bottom (dock-local y 66) clears the technique key caps (y 76) by 10 px.
+Every position and size is even. The consumable sockets' bottom (dock-local y 66) clears the technique key caps (y 76) by 10 px. A count seal reaches y 72, but at x 74 to 98 (for the first socket), between two technique key caps.
 
 ## Architecture
 

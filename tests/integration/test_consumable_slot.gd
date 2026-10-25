@@ -276,6 +276,8 @@ func test_scene_uses_the_kit() -> void:
 	assert_eq(key_cap.texture.resource_path, KIT_PATH % "keycap")
 	assert_eq(key_cap.position, Vector2(-6.0, -6.0))
 	assert_eq((_node("KeyLabel") as Label).theme_type_variation, &"LabelLacquerHotkey")
+	assert_eq((_node("CountSeal") as Control).position, Vector2(28.0, 30.0), "the count seal hangs off the socket's bottom right corner")
+	assert_eq((_node("SecondsLabel") as Label).get_theme_font_size(&"font_size"), 15, "the seconds sized to the 32 px icon")
 	var seal_face := _slot.get_node("CountSeal/Seal") as NinePatchRect
 	assert_eq(seal_face.texture.resource_path, KIT_PATH % "seal_count9")
 	assert_eq([seal_face.patch_margin_left, seal_face.patch_margin_right], [6, 6], "a 9-slice that stretches its plain middle")

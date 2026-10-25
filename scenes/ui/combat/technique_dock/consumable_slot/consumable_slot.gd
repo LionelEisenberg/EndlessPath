@@ -4,14 +4,16 @@ extends Control
 ## One consumable socket in the technique dock's top row (spec: Combat
 ## Consumables in the Lacquer Dock), over the technique slot whose key sits
 ## under its own on the keyboard: the technique slot's lipped socket at 48 px
-## with the hotbar consumable's icon at 32, its key cap (1 to 4) and a count
-## seal. The dock puts each socket in one of three states:
+## with the hotbar consumable's icon at 32, its key cap (1 to 4) at the top
+## left and a count seal at the bottom right. The dock puts each socket in one
+## of three states:
 ## - EMPTY: the socket and the key cap; no icon, no seal (no consumable on that
 ##   hotbar slot).
 ## - PREVIEW (on the map): the icon, the count and a tan key. Not usable.
 ## - ACTIVE (in a fight, bound to the player's CombatConsumableInstance): a
-##   cream key, the cooldown sweep with its whole seconds, and one brass flash
-##   when it is ready again.
+##   cream key, the cooldown sweep with its whole seconds (LabelLacquerCooldown
+##   at 15 px, sized to the 32 px icon), and one brass flash when it is ready
+##   again.
 ## A socket whose consumable has none left keeps it: the icon all in the locked
 ## veil (the sweep at step 0, a palette state, never alpha) and the seal at 0.
 ## It shows no seconds and never flashes, since it cannot be used.
@@ -41,8 +43,9 @@ enum SlotState { EMPTY, PREVIEW, ACTIVE }
 const SEAL_MIN_WIDTH: float = 24.0
 ## The seal's room around its count: 4 px on each side.
 const SEAL_PADDING: float = 8.0
-## The seal's right edge, 4 px past the socket's (as on the cabinet's buff
-## sockets); a wider seal grows leftward from it.
+## The seal's right edge, 4 px past the socket's. The seal hangs off the
+## socket's bottom right corner, where the inventory's hotbar puts its stack
+## count, and a wider seal grows leftward from that edge.
 const SEAL_RIGHT: float = 52.0
 ## The keys a socket shows when its action has no key in the input map.
 const FALLBACK_KEY_LABELS: PackedStringArray = ["1", "2", "3", "4"]
