@@ -231,3 +231,23 @@ func test_use_consumable_emits_inventory_changed() -> void:
 	InventoryManager.use_consumable(def)
 
 	assert_signal_emitted(InventoryManager, "inventory_changed", "inventory_changed should fire on successful use")
+
+#-----------------------------------------------------------------------------
+# GET_CONSUMABLE_COUNT
+#-----------------------------------------------------------------------------
+
+func test_get_consumable_count_returns_the_stack() -> void:
+	_reset_save()
+
+	var def := _make_consumable("count_stack")
+	InventoryManager.award_items(def, 4)
+
+	assert_eq(InventoryManager.get_consumable_count(def), 4, "the count is the stack held")
+
+func test_get_consumable_count_is_zero_for_unowned_and_null() -> void:
+	_reset_save()
+
+	var def := _make_consumable("count_unowned")
+
+	assert_eq(InventoryManager.get_consumable_count(def), 0, "none held counts 0")
+	assert_eq(InventoryManager.get_consumable_count(null), 0, "a null consumable counts 0")
