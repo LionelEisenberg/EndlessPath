@@ -56,7 +56,8 @@ Related docs:
      - Drag between slots to move or swap.
      - Click an equipped slot to clear it.
      - Slots show the live stack count `xN`.
-   - **Current limits:** on a real save the list is empty, because no consumable has an in-game source yet. Nothing on `main` reads the hotbar.
+   - **In a fight** the hotbar's consumables are used with keys 1 to 4 or a click on the technique dock's sockets ([COMBAT.md](../combat/COMBAT.md#consumables-in-a-fight-combatconsumablemanager)). A consumable whose stack runs out stays on the hotbar at 0: `use_consumable()` erases the stack, not the hotbar slot.
+   - **Current limits:** the Merchant's Crude Scales are the only consumables a player can get.
 6. **Materials tab.**
    - **Left page:** a 6-column grid of stacks (`xN` when N > 1). "N kinds collected" and a trash slot sit above it. The sort pill shows a disabled `All`.
    - **Right page:** clicking a material fills the detail card: name, `[Material]`, description, a "Source Zones" line, then the Source, Used in and Worth rows (`—` when `base_value` is 0). A static tip card sits underneath.
@@ -262,7 +263,8 @@ Each entry rolls independently: `randf() <= drop_chance`, then `randi_range(min,
 | `swap_accessory_slots(from_index, to_index)` | Moves or swaps accessory 0 ↔ 1 |
 | `move_equipment(from_index, to_index)` | Moves or swaps within the grid. No bounds or capacity check |
 | `has_item(item_id) -> bool` | Scans materials, grid, equipped gear, accessories, quest items and consumables (count > 0) |
-| `use_consumable(def) -> bool` | Calls `def.use()`, then decrements or erases the stack. No cooldown check. No caller on `main` |
+| `get_consumable_count(def) -> int` | How many of the consumable the player holds: 0 for none, or for null |
+| `use_consumable(def) -> bool` | Calls `def.use()`, then decrements or erases the stack. No cooldown check: in a fight `CombatConsumableInstance.use()` calls it and enforces the cooldown |
 | `restore_equipment_instance(instance, target_slot_index = -1)` | Trash restore: uses the target if it is valid, empty and below capacity, otherwise the first free slot. No log |
 | `restore_material(def, quantity)` | Trash restore for materials. No UI path reaches it |
 | `grant_equipment_page()` | Adds one page. No caller on `main` |
@@ -366,7 +368,7 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | PersistenceManager | `InventoryData` is `SaveGameData.inventory`. InventoryManager re-grabs `live_save_data` on `save_data_reset`, and a reset creates a fresh `InventoryData` |
 | LogManager | Award messages and "Discarded <name>" |
 | MerchantManager | `award_items(item, 1)` for each purchase (so gear purchases log as "Looted", Crude Scales as "Obtained"). Gear purchases first check `InventoryData.has_free_equipment_slot()`; with every slot full the shop shows "Equipment full" and takes no gold |
-| Combat (unmerged) | `equipped_consumables` and `use_consumable()` are the hooks used by the `feat/infallible-chaum-58f8ad` branch |
+| Combat (`CombatConsumableManager`, `TechniqueDock`) | A fight makes one `CombatConsumableInstance` per filled `equipped_consumables` slot, and each use goes through `use_consumable()`. The technique dock previews the hotbar on the adventure map and shows its counts through `get_consumable_count()`, refreshed on `inventory_changed` ([COMBAT.md](../combat/COMBAT.md#consumables-in-a-fight-combatconsumablemanager)) |
 
 ## Existing Content
 
@@ -467,12 +469,11 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
   - The grid tests use the bare `equipment_grid.tscn` (6 × 6), so they don't catch this.
 - `[MEDIUM]` **The Materials detail card snaps back to the first material** whenever the inventory changes. `MaterialsTab` re-creates every slot and calls `setup_from_definition(first_def)` on every `inventory_changed`, including each foraging roll (every 5 s) and every equipment move. `ConsumablesTab` resets its selection the same way whenever stacks change.
 - `[LOW]` **Equipment overflow is silently dropped.** With every slot full, `award_items()` only logs a warning, and `item_awarded` has already fired, so the adventure end card lists an item the player never received.
-- `[LOW]` **`use_consumable()` leaves an empty stack on the hotbar.** It erases the stack at zero but leaves the definition in `equipped_consumables`, so the hotbar would show `x0`. This is latent on `main` because nothing calls `use_consumable()`.
 - `[LOW]` **An item in the trash is already erased from `InventoryData`.** The SaveTimer autosave (every 5 s) persists that state, so quitting with the inventory open and an item in the trash loses the item.
 
 ### Missing Functionality
 
-- `[HIGH]` **Consumables can't be used on `main`.** The Merchant sells `crude_scale`, but no loot table or effect awards either scale, and nothing calls `use_consumable()`. Combat use exists only on the unmerged branch `feat/infallible-chaum-58f8ad` (20 commits, 2026-06-01): `CombatConsumableManager` / `CombatConsumableInstance`, `ConsumableButton`, consumable hotkeys 1–4 and `get_consumable_count()`.
+- `[HIGH]` **Consumables have no drop source.** The Merchant sells `crude_scale`, but no loot table or effect awards either scale, so the Merchant's Crude Scales are the only ones a player can use in a fight. `barely_coalesced_scale` has no source at all, and no icon.
 - `[MEDIUM]` **Gear has one source each.** The Merchant sells six pieces once per save, and the Shallow Woods loot only includes the necklace. Loot drops for the merchant gear are planned (Beat 5).
 - `[MEDIUM]` **There is no API to spend or remove items.** InventoryManager can't consume materials, take back quest items or sell equipment. The only removal path is the trash, which `EquipmentTab` implements by mutating `InventoryData` directly. Crafting (Elixir Making, Soulsmithing), merchant selling and quest hand-ins all need `remove_*` verbs. The redesign spec's `discard_*` methods were never built.
 - `[MEDIUM]` **The Materials tab's trash slot does nothing.** `MaterialsTab` has no drag source and never connects `trash_slot`. As a result, `TrashSlot`'s `[def, qty]` path and `restore_material()` are reachable only from tests.
@@ -495,7 +496,6 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 ### UI
 
 - `[MEDIUM]` **MaterialTipCard advertises a favorites feature that doesn't exist:** "Right-click a material to mark it as a favorite — favorites rise to the top of the grid…".
-- `[LOW]` **The hotbar's helper text** says "Hotkeys 1-4", but `main` has no consumable input actions.
 - `[LOW]` **The Equipment tab shows no item count or capacity.** `PaginationBar`'s count label was dropped in 8d147eb.
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
 - `[LOW]` **Banners are inconsistent.** The Materials banner is a baked image rather than a `TabBanner`. The Journal reuses the red ribbon; the redesign's gold banner never landed.

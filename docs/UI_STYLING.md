@@ -164,7 +164,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |
 | `LabelLacquerPopoverBody` | Euljiro 15 / 20 | Cream | Map popover body text |
 | `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Nothing today. `LacquerFloater` (the map's floater and the cycling zones') puts its text in a `RichTextLacquer` at 16 px instead (see below), so a decimal (`+1.5 Madra`, Madra blue) gets its Yatra point. No outline (`outline_size` set to 0): the kit's §0 dropped it when the floaters moved onto the token |
-| `LabelLacquerCooldown` | Euljiro 22, shadow | Cream | A technique's cooldown seconds, centred on its ability icon. The painted titles' 2 px ink shadow keeps the number readable over any icon. Single line only: it sets no `line_spacing`, so do not wrap it |
+| `LabelLacquerCooldown` | Euljiro 22, shadow | Cream | A technique's cooldown seconds, centred on its ability icon, and a consumable socket's at a 15 px size override (its icon is 32 px). The painted titles' 2 px ink shadow keeps the number readable over any icon. Single line only: it sets no `line_spacing`, so do not wrap it |
 
 `RichTextLacquer` (base `RichTextLabel`): BM Euljiro 15, tan, `line_separation` 1, so each line is 18 px (15/18), the first included. Use it for the few lines with a decimal number: BM Euljiro's `.` sits low and reads as a comma at 15–17 px, so `LacquerText.decimal_bbcode()` sets each decimal point in Yatra One (kit §3, glyph gaps). Set `bbcode_enabled`, `fit_content` and, for one-line text, `autowrap_mode` off.
 
