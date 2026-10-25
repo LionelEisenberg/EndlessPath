@@ -2,16 +2,17 @@
 
 [ext_resource type="Script" uid="uid://b186pkv3cuuij" path="res://scenes/ui/combat/technique_dock/technique_dock.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
-[ext_resource type="Texture2D" uid="uid://d347cu2727q8m" path="res://assets/ui/lacquer/lacquer_tdock_ai.png" id="3_board"]
+[ext_resource type="Texture2D" uid="uid://caeh1lm7dwmdo" path="res://assets/ui/lacquer/lacquer_tdock_consumables_ai.png" id="3_board"]
 [ext_resource type="PackedScene" uid="uid://dtj1yovg262ov" path="res://scenes/ui/combat/technique_dock/technique_slot/technique_slot.tscn" id="4_slot"]
 [ext_resource type="PackedScene" uid="uid://nxrwnl7h0heb" path="res://scenes/ui/combat/technique_dock/cast_tray/cast_tray.tscn" id="5_cast_tray"]
 [ext_resource type="PackedScene" uid="uid://klfmru3exit4" path="res://scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.tscn" id="6_tooltip"]
+[ext_resource type="PackedScene" uid="uid://cn2jxvg67olwf" path="res://scenes/ui/combat/technique_dock/consumable_slot/consumable_slot.tscn" id="7_consumable_slot"]
 
 [node name="TechniqueDock" type="Control" unique_id=1664570613]
 layout_mode = 3
 anchors_preset = 0
 offset_left = 722.0
-offset_top = 920.0
+offset_top = 856.0
 offset_right = 1198.0
 offset_bottom = 1056.0
 theme = ExtResource("2_theme")
@@ -20,41 +21,73 @@ script = ExtResource("1_script")
 [node name="Board" type="TextureRect" parent="." unique_id=1751810300]
 layout_mode = 0
 offset_right = 480.0
-offset_bottom = 140.0
+offset_bottom = 204.0
 mouse_filter = 2
 texture = ExtResource("3_board")
+
+[node name="ConsumableSlot1" parent="." instance=ExtResource("7_consumable_slot")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 46.0
+offset_top = 18.0
+offset_right = 94.0
+offset_bottom = 66.0
+
+[node name="ConsumableSlot2" parent="." instance=ExtResource("7_consumable_slot")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 158.0
+offset_top = 18.0
+offset_right = 206.0
+offset_bottom = 66.0
+
+[node name="ConsumableSlot3" parent="." instance=ExtResource("7_consumable_slot")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 270.0
+offset_top = 18.0
+offset_right = 318.0
+offset_bottom = 66.0
+
+[node name="ConsumableSlot4" parent="." instance=ExtResource("7_consumable_slot")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 382.0
+offset_top = 18.0
+offset_right = 430.0
+offset_bottom = 66.0
 
 [node name="Slot1" parent="." unique_id=572925637 instance=ExtResource("4_slot")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 30.0
-offset_top = 18.0
+offset_top = 82.0
 offset_right = 110.0
-offset_bottom = 98.0
+offset_bottom = 162.0
 
 [node name="Slot2" parent="." unique_id=1407853046 instance=ExtResource("4_slot")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 142.0
-offset_top = 18.0
+offset_top = 82.0
 offset_right = 222.0
-offset_bottom = 98.0
+offset_bottom = 162.0
 
 [node name="Slot3" parent="." unique_id=1079070637 instance=ExtResource("4_slot")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 254.0
-offset_top = 18.0
+offset_top = 82.0
 offset_right = 334.0
-offset_bottom = 98.0
+offset_bottom = 162.0
 
 [node name="Slot4" parent="." unique_id=1687317684 instance=ExtResource("4_slot")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 366.0
-offset_top = 18.0
+offset_top = 82.0
 offset_right = 446.0
-offset_bottom = 98.0
+offset_bottom = 162.0
 
 [node name="CastTray" parent="." unique_id=2010230545 instance=ExtResource("5_cast_tray")]
 unique_name_in_owner = true

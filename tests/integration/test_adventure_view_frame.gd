@@ -407,7 +407,7 @@ func test_boards_stand_over_the_map_where_the_zone_furniture_stands() -> void:
 	var boards: Dictionary[String, Vector2] = {
 		"VitalsPlate": Vector2(24, 24),
 		"AdventureChest": Vector2(1456, 24),
-		"TechniqueDock": Vector2(722, 920),
+		"TechniqueDock": Vector2(722, 856),
 	}
 	var combat_index: int = _view.combat_view.get_index()
 	assert_gt(combat_index, _view.tilemap_view.get_index(), "precondition: the fight draws over the map")
