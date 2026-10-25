@@ -6,11 +6,12 @@ extends Node
 ## a dev session: build_preset() binds a fresh save, or a copy of the preset's
 ## snapshot, then plays the story route through the preset's beat and the preset's
 ## own steps on it, each step through DevCommands, the one command API. A launch
-## with --preset=<id>, or with a preset pinned for the checkout (LaunchOptions),
-## builds that preset in _ready(): after every other autoload is ready and before
-## the main scene's own _ready(), so no view hears the build. Such a session lives
-## in memory, or in the --save file: the user's own save is never read, and is
-## written only when --save names it, after PersistenceManager backs it up.
+## with --preset=<id>, or a plain launch with a preset pinned for the checkout
+## (LaunchOptions), builds that preset in _ready(): after every other autoload is
+## ready and before the main scene's own _ready(), so no view hears the build. Such
+## a session lives in memory, or in the --save file: the user's own save is never
+## read, and is written only when --save names it, after PersistenceManager backs
+## it up.
 ##
 ## In game, a switch (play a preset, jump through a story beat, restart the preset,
 ## back to your save, a new game, keep the session as your save, restore a backup)

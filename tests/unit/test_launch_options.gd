@@ -69,6 +69,22 @@ func test_an_option_beats_the_pin() -> void:
 	assert_eq(options.preset_id, "y", "--preset beats the pin")
 	assert_false(options.preset_from_pin)
 
+## A run that names its own save file is a file session. The pinned preset would be
+## built over that file, which a scripted run does not expect.
+func test_a_save_option_beats_the_pin() -> void:
+	var options: LaunchOptions = LaunchOptions.parse(["--save=user://a.tres"], "x")
+	assert_eq(options.preset_id, "", "--save makes a file session, not the pinned preset")
+	assert_false(options.preset_from_pin)
+	assert_eq(options.save_path, "user://a.tres", "the --save path is kept")
+
+## --no-autosave names no save, so a plain launch that turns autosave off still starts
+## in the pinned preset.
+func test_no_autosave_keeps_the_pin() -> void:
+	var options: LaunchOptions = LaunchOptions.parse(["--no-autosave"], "x")
+	assert_eq(options.preset_id, "x", "--no-autosave alone still starts the pinned preset")
+	assert_true(options.preset_from_pin)
+	assert_true(options.no_autosave)
+
 #-----------------------------------------------------------------------------
 # THE PIN FILE
 #-----------------------------------------------------------------------------

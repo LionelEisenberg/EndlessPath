@@ -7,9 +7,11 @@ class_name LaunchOptions extends RefCounted
 ## options through current(). parse() takes the argument list and the pin as
 ## parameters, so a test can feed it any of them.
 ##
-## The pin is one preset id kept in a ConfigFile per checkout: every launch from
-## the checkout starts in that preset until it is unpinned, unless the command
-## line names another with --preset.
+## The pin is one preset id kept in a ConfigFile per checkout: every plain launch
+## from the checkout starts in that preset until it is unpinned. A launch that
+## names a preset (--preset) or a save file (--save) is not plain: --preset beats
+## the pin, and a --save run is a file session, which the pinned preset would
+## otherwise be built over.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -48,8 +50,8 @@ var save_path: String = ""
 ## True when `--no-autosave` was given.
 var no_autosave: bool = false
 
-## The preset to start in: from `--preset=<id>`, or the pinned preset when the
-## option was not given. Empty for neither.
+## The preset to start in: from `--preset=<id>`, or the pinned preset when neither
+## `--preset` nor `--save` was given. Empty for none.
 var preset_id: String = ""
 
 ## True when preset_id came from the pin, not from `--preset`.
@@ -68,8 +70,11 @@ static var pin_path_override: String = ""
 
 ## Reads `--save=<path>`, `--no-autosave` and `--preset=<id>` from the
 ## arguments. Anything else is ignored, a `--save` without an `=` included, and
-## an option given twice keeps its last value. When no `--preset` names an id,
-## the preset is `pinned_preset_id` and preset_from_pin is set.
+## an option given twice keeps its last value. When neither a `--preset` id nor a
+## `--save` path is given, the preset is `pinned_preset_id` and preset_from_pin
+## is set: a run that names its own save file is a file session, and the pinned
+## preset would be built over that file. `--no-autosave` names no save, so it
+## leaves the pin on.
 static func parse(user_args: PackedStringArray, pinned_preset_id: String = "") -> LaunchOptions:
 	var options: LaunchOptions = LaunchOptions.new()
 	for arg: String in user_args:
@@ -79,7 +84,7 @@ static func parse(user_args: PackedStringArray, pinned_preset_id: String = "") -
 			options.preset_id = arg.trim_prefix(_PRESET_OPTION_PREFIX)
 		elif arg == _NO_AUTOSAVE_OPTION:
 			options.no_autosave = true
-	if options.preset_id == "" and pinned_preset_id != "":
+	if options.preset_id == "" and options.save_path == "" and pinned_preset_id != "":
 		options.preset_id = pinned_preset_id
 		options.preset_from_pin = true
 	return options
