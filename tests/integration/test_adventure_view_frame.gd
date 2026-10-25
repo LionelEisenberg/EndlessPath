@@ -360,6 +360,21 @@ func _cast_the_first_technique() -> void:
 	assert_true(ready, "precondition: its opening cooldown ended")
 	_view.technique_dock.ability_selected.emit(instance)
 
+## Puts Crude Scale on the hotbar's first slot with held of it in the
+## inventory.
+func _put_crude_scale_on_the_hotbar(held: int) -> void:
+	InventoryManager.award_items(CRUDE_SCALE, held)
+	InventoryManager.equip_consumable(CRUDE_SCALE as ConsumableDefinitionData, 0)
+
+## Presses a key as the input map's action reaches the game: an
+## InputEventAction pushed through the viewport, so the dock hears it in
+## _unhandled_input.
+func _press_action(action: StringName) -> void:
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	get_viewport().push_input(event)
+
 func _remember_vitals() -> Dictionary[StringName, float]:
 	var saved: Dictionary[StringName, float] = {}
 	for field: StringName in VITALS_FIELDS:
@@ -774,6 +789,57 @@ func test_fight_binds_the_dock_and_buffs() -> void:
 	assert_eq(_slot_states(), _loadout_states(), "and previews the loadout again")
 	assert_false(_view.technique_dock.ability_selected.is_connected(_view.combat.on_player_ability_selected), "a press reaches no fight")
 	assert_false(_buff_socket_shows(0), "the cabinet lets the buffs go")
+
+## A real fight binds the dock's consumable row to the player's hotbar
+## consumables, key 1 uses the first one (its count drops and its Madra lands on
+## the run's vitals), and the fight's end lets the row go back to the preview.
+func test_a_key_uses_a_consumable_in_a_real_fight() -> void:
+	_put_crude_scale_on_the_hotbar(3)
+	_start_run()
+	await _walk_to(FIGHT)
+
+	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+
+	var player: CombatantNode = _view.combat.player_combatant
+	assert_not_null(player, "precondition: the fight started")
+	if player == null:
+		return
+	var socket: ConsumableSlot = _view.technique_dock.get_consumable_slot(0)
+	assert_eq(socket.get_consumable_instance(), player.consumable_manager.get_instance_at_slot(0), "the socket holds the hotbar's Crude Scale")
+	assert_true(_view.technique_dock.consumable_selected.is_connected(_view.combat.on_player_consumable_selected), "a press reaches the fight")
+	var vitals: VitalsManager = PlayerManager.vitals_manager
+	var expected_madra: float = minf(vitals.current_madra + 20.0, vitals.max_madra)
+
+	_press_action(&"consumable_slot_1")
+
+	assert_eq(InventoryManager.get_consumable_count(CRUDE_SCALE as ConsumableDefinitionData), 2, "one used")
+	assert_eq(vitals.current_madra, expected_madra, "its Madra lands on the run's vitals")
+	_view.combat.trigger_combat_end.emit(true, 15)
+	assert_false(_view.technique_dock.consumable_selected.is_connected(_view.combat.on_player_consumable_selected), "a press reaches no fight")
+	assert_eq(socket.get_state(), ConsumableSlot.SlotState.PREVIEW, "back to the hotbar's preview")
+	assert_eq((socket.get_node("%CountLabel") as Label).text, "2")
+
+## A fight that ends while a socket recharges lets the row go before the fight's
+## instances are freed, and nothing errors in the frames after.
+func test_a_fight_ending_mid_cooldown_lets_the_row_go() -> void:
+	_put_crude_scale_on_the_hotbar(3)
+	_start_run()
+	await _walk_to(FIGHT)
+	_view.adventure_tilemap.select_choice(AdventureMapFixture.fight_choice(_map))
+	var player: CombatantNode = _view.combat.player_combatant
+	assert_not_null(player, "precondition: the fight started")
+	if player == null:
+		return
+	var instance: CombatConsumableInstance = player.consumable_manager.get_instance_at_slot(0)
+	assert_true(player.consumable_manager.use_consumable_instance(instance), "precondition: used, now recharging")
+
+	_view.combat.trigger_combat_end.emit(true, 15)
+	await wait_process_frames(3)
+
+	var socket: ConsumableSlot = _view.technique_dock.get_consumable_slot(0)
+	assert_null(socket.get_consumable_instance(), "the socket let go of the fight's instance")
+	assert_false(is_instance_valid(instance), "which went with the fight")
+	assert_eq(socket.get_sweep_step(), TechniqueSlot.SWEEP_STEPS, "the preview shows it plain: the cooldown went with the fight")
 
 func test_run_stats_follow_the_run() -> void:
 	_start_run()
