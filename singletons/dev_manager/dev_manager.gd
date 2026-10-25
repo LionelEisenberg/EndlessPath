@@ -1,24 +1,39 @@
 extends Node
 
 ## DevManager
-## Keeps the dev session and builds save presets. It is the last autoload. A preset
-## (SavePresetData) is a starting point for a dev session: build_preset() binds a
-## fresh save, or a copy of the preset's snapshot, then plays the story route
-## through the preset's beat and the preset's own steps on it, each step through
-## DevCommands, the one command API. A launch with --preset=<id>, or with a preset
-## pinned for the checkout (LaunchOptions), builds that preset in _ready(): after
-## every other autoload is ready and before the main scene's own _ready(), so no
-## view hears the build. Such a session lives in memory, or in the --save file: the
-## user's own save is never read, and is written only when --save names it, after
-## PersistenceManager backs it up.
+## Keeps the dev session, builds save presets and switches sessions while the game
+## runs. It is the last autoload. A preset (SavePresetData) is a starting point for
+## a dev session: build_preset() binds a fresh save, or a copy of the preset's
+## snapshot, then plays the story route through the preset's beat and the preset's
+## own steps on it, each step through DevCommands, the one command API. A launch
+## with --preset=<id>, or with a preset pinned for the checkout (LaunchOptions),
+## builds that preset in _ready(): after every other autoload is ready and before
+## the main scene's own _ready(), so no view hears the build. Such a session lives
+## in memory, or in the --save file: the user's own save is never read, and is
+## written only when --save names it, after PersistenceManager backs it up.
+##
+## In game, a switch (play a preset, jump through a story beat, restart the preset,
+## back to your save, a new game, keep the session as your save, restore a backup)
+## runs on the next frame: the panel button that asks for it lives in the main
+## scene the switch frees. The switch saves the session it leaves when autosave is
+## on, tears down what lives outside the save, frees the main scene, binds the new
+## session and loads the main scene again, so the game comes up as a launch on that
+## save would. A switch that is refused changes nothing; one that fails midway
+## brings back the session it left.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
 #-----------------------------------------------------------------------------
 
 ## Emitted when the session has changed: at launch, once the launch options have
-## set it up.
+## set it up, and at the end of each switch in game, a failed one included (the
+## session that came back is the new one).
 signal session_changed
+
+## Emitted when a switch in game is refused or fails, with the reason. A refused
+## switch changes nothing. A failed one has brought back the session it left by
+## then, and session_changed follows.
+signal session_switch_failed(reason: String)
 
 #-----------------------------------------------------------------------------
 # ENUMS AND CONSTANTS
@@ -36,8 +51,9 @@ const PRESET_DIR: String = "res://resources/dev/save_presets/"
 ## The presets an exported build keeps: its res:// is read-only.
 const EXPORT_PRESET_DIR: String = "user://dev/save_presets/"
 
-## The id of the preset a launch falls back to when its own preset is unknown or
-## does not build: a fresh start in memory, which no preset folder holds.
+## The id of the preset a session falls back to when nothing else can be played: a
+## launch whose own preset is unknown or does not build, or a failed switch whose
+## session cannot come back. A fresh start in memory, which no preset folder holds.
 const FALLBACK_PRESET_ID: String = "fresh_fallback"
 
 ## What the panel calls the fallback preset.
@@ -96,24 +112,21 @@ func get_session_preset() -> SavePresetData:
 ## save; the [DEV] line then says why the preset did not start. Emits
 ## session_changed.
 func start_from_launch_options(options: LaunchOptions) -> void:
-	_session_preset = null
 	if options.preset_id == "":
-		_session_kind = SessionKind.FILE if options.save_path != "" else SessionKind.YOUR_SAVE
+		_set_session(SessionKind.FILE if options.save_path != "" else SessionKind.YOUR_SAVE, null)
 		session_changed.emit()
 		return
 
-	_session_kind = SessionKind.PRESET
 	var pinned: String = " (pinned)" if options.preset_from_pin else ""
 	var preset: SavePresetData = find_preset(options.preset_id)
 	var failure: String = "no preset has that id"
 	if preset != null:
 		failure = build_preset(preset, options.save_path)
-	if failure != "":
+	if failure == "":
+		_set_session(SessionKind.PRESET, preset)
+	else:
 		Log.critical("DevManager: Could not start preset %s%s: %s. Playing a fresh game in memory instead" % [options.preset_id, pinned, failure])
-		preset = _fallback_preset()
-		# A preset with no beat, no steps and no snapshot always builds.
-		build_preset(preset, "")
-	_session_preset = preset
+		_start_fallback_session()
 	# After the build and any fallback, so the log holds none of the build's lines.
 	LogManager.clear_history()
 	if failure == "":
@@ -121,6 +134,105 @@ func start_from_launch_options(options: LaunchOptions) -> void:
 	else:
 		_log_dev_line("Could not start preset '%s'%s: %s. Playing a fresh game in memory instead" % [options.preset_id, pinned, failure])
 	session_changed.emit()
+
+#-----------------------------------------------------------------------------
+# SWITCHING SESSIONS
+#-----------------------------------------------------------------------------
+
+## Plays the preset in memory, on the next frame (see the class doc). A preset
+## build_preset() refuses before it changes anything (validate() finds something
+## wrong with it) is refused at once, and nothing changes. A build that fails
+## midway brings back the session it left. Either emits session_switch_failed.
+func play_preset(preset: SavePresetData) -> void:
+	var title: String = preset.title if preset != null else ""
+	var what: String = "start preset '%s'" % title
+	var refusal: String = _build_refusal(preset, get_route())
+	if refusal != "":
+		_refuse(what, refusal)
+		return
+	_schedule_switch(_start_preset.bind(preset, ""), what, "Started preset '%s'" % title)
+
+## Plays the story route through the beat on a fresh save, as an unnamed preset
+## (play_preset()) whose preset_id is "story_through_<beat_id>" and whose title is
+## "Story through <the beat's title>", so a restart plays it again. A beat the
+## route does not have is refused at once.
+func play_story_through(beat_id: String) -> void:
+	var route: StoryRouteData = get_route()
+	var beat: StoryBeatData = route.find_beat(beat_id) if route != null else null
+	var preset := SavePresetData.new()
+	preset.preset_id = "story_through_%s" % beat_id
+	preset.title = "Story through %s" % (beat.title if beat != null else beat_id)
+	preset.story_through = beat_id
+	play_preset(preset)
+
+## Builds the session's preset again from the start, on the next frame, written
+## where the session writes: in memory for a preset played in game and for the
+## fallback, the --save file for a launch that named one. Does nothing outside a
+## preset session.
+func restart_preset() -> void:
+	if _session_kind != SessionKind.PRESET or _session_preset == null:
+		return
+	var preset: SavePresetData = _session_preset
+	var what: String = "restart preset '%s'" % preset.title
+	var refusal: String = _build_refusal(preset, get_route())
+	if refusal != "":
+		_refuse(what, refusal)
+		return
+	_schedule_switch(_start_preset.bind(preset, PersistenceManager.save_path), what, "Restarted preset '%s'" % preset.title)
+
+## Goes back to the user's own save, on the next frame: the file is opened again
+## from disk (PersistenceManager.open_save_file()). Refused at once in a run with no
+## main save.
+func back_to_my_save() -> void:
+	var what: String = "go back to your save"
+	var refusal: String = _main_save_refusal()
+	if refusal != "":
+		_refuse(what, refusal)
+		return
+	_schedule_switch(_open_your_save, what, "Back to your save")
+
+## Starts a new game on the user's own save, on the next frame: the save is backed
+## up, then a fresh save takes its place and is written at once. Refused at once in
+## a run with no main save, and while another live run holds the save's lock.
+func new_game() -> void:
+	var what: String = "start a new game on your save"
+	var refusal: String = _main_save_refusal()
+	if refusal == "":
+		refusal = _take_your_save_lock()
+	if refusal != "":
+		_refuse(what, refusal)
+		return
+	_schedule_switch(_start_new_game, what, "Started a new game on your save")
+
+## Makes the session's save the user's own, on the next frame: the user's save is
+## backed up, then a copy of the session's save takes its place, is written at once
+## and plays on as your save. Refused at once in a run with no main save, and while
+## another live run holds the save's lock.
+func keep_as_my_save() -> void:
+	var what: String = "keep this game as your save"
+	var refusal: String = _main_save_refusal()
+	if refusal == "":
+		refusal = _take_your_save_lock()
+	if refusal != "":
+		_refuse(what, refusal)
+		return
+	_schedule_switch(_keep_as_your_save, what, "Kept this game as your save")
+
+## Puts a backup (PersistenceManager.list_backups()) back as the user's own save,
+## on the next frame: the save is backed up, the backup is copied over it, and the
+## file is opened again. Refused at once in a run with no main save, for a backup
+## that is not there, and while another live run holds the save's lock.
+func restore_backup(backup_path: String) -> void:
+	var what: String = "restore your save from %s" % backup_path.get_file()
+	var refusal: String = _main_save_refusal()
+	if refusal == "" and not FileAccess.file_exists(backup_path):
+		refusal = "There is no backup at %s" % backup_path
+	if refusal == "":
+		refusal = _take_your_save_lock()
+	if refusal != "":
+		_refuse(what, refusal)
+		return
+	_schedule_switch(_restore_backup.bind(backup_path), what, "Restored your save from %s" % backup_path.get_file())
 
 #-----------------------------------------------------------------------------
 # PRESETS AND THE ROUTE
@@ -174,12 +286,10 @@ func find_preset(preset_id: String) -> SavePresetData:
 ## or "<step>: <reason>" for the first step that refused. That stops the build and
 ## leaves its save half-built: the caller decides which session comes next.
 func build_preset(preset: SavePresetData, save_path: String = "") -> String:
-	if preset == null:
-		return "There is no preset to build"
 	var route: StoryRouteData = get_route()
-	var errors: PackedStringArray = preset.validate(route)
-	if not errors.is_empty():
-		return errors[0]
+	var refusal: String = _build_refusal(preset, route)
+	if refusal != "":
+		return refusal
 
 	var save: SaveGameData = _starting_save(preset)
 	save.stats.built_from_preset = preset.preset_id
@@ -194,12 +304,239 @@ func build_preset(preset: SavePresetData, save_path: String = "") -> String:
 	return failure
 
 #-----------------------------------------------------------------------------
+# THE SWITCH
+#-----------------------------------------------------------------------------
+
+## Runs `start_session` as a switch on the next frame, once. By then the caller, a
+## panel button's handler in the main scene the switch frees, has returned:
+## SceneTree.unload_current_scene() deletes that scene at once. `what` names the
+## switch in a failure ("start preset 'X'"); `started` is the player's log line
+## once it worked.
+func _schedule_switch(start_session: Callable, what: String, started: String) -> void:
+	_run_switch.call_deferred(start_session, what, started)
+
+## The switch, in order:
+## 1. the session it leaves is saved, when autosave is on and the session writes a
+##    file (PersistenceManager.autosave());
+## 2. what lives outside the save is torn down (_tear_down());
+## 3. the main scene is freed, when it is the current scene. Under GUT the runner
+##    is, so no scene is freed or loaded again;
+## 4. `start_session` binds the new session and returns "", or returns why it could
+##    not. The session it left then comes back (_come_back()), and
+##    session_switch_failed is emitted with the reason;
+## 5. the player's log is cleared and gets one [DEV] line naming the new session;
+## 6. the main scene loads again if step 3 freed it, then session_changed is
+##    emitted.
+func _run_switch(start_session: Callable, what: String, started: String) -> void:
+	var left_kind: SessionKind = _session_kind
+	var left_preset: SavePresetData = _session_preset
+	var left_save_path: String = PersistenceManager.save_path
+	PersistenceManager.autosave()
+	_tear_down()
+	var unloaded: bool = _unload_main_scene()
+	var line: String = started
+	var failure: String = start_session.call()
+	if failure != "":
+		Log.error("DevManager: Could not %s: %s" % [what, failure])
+		line = "Could not %s: %s. %s" % [what, failure, _come_back(left_kind, left_preset, left_save_path)]
+		session_switch_failed.emit(failure)
+	LogManager.clear_history()
+	_log_dev_line(line)
+	if unloaded:
+		_load_main_scene()
+	session_changed.emit()
+
+## Stops what lives outside the save, which a launch never starts with: the running
+## action, without counting it or running its effects, and any dialogue, one an
+## adventure encounter started included, which would otherwise play on over the
+## next session; the cycle session and the last cycle's result; the player's
+## vitals; and the time scale, back to the game's base speed, which a boss hit-stop
+## freed mid-way never restores.
+func _tear_down() -> void:
+	ActionManager.cancel_current_action()
+	DialogueManager.end_dialogue_now()
+	CyclingManager.end_cycle_session()
+	CyclingManager.clear_last_cycle_result()
+	PlayerManager.reset_vitals()
+	Engine.time_scale = GameSpeed.base_scale
+
+## Frees the main scene when it is the current scene, and returns true when it did.
+## Any other current scene (GUT's runner, a scene run on its own) stays.
+func _unload_main_scene() -> bool:
+	var scene: Node = get_tree().current_scene
+	if scene == null or scene.scene_file_path != _main_scene_path():
+		return false
+	get_tree().unload_current_scene()
+	return true
+
+## Loads the main scene again. Its nodes are ready at the end of the frame, and read
+## the new session then.
+func _load_main_scene() -> void:
+	var error: Error = get_tree().change_scene_to_file(_main_scene_path())
+	if error != OK:
+		Log.error("DevManager: Could not load the main scene again (error %d)" % error)
+
+## The res:// path of the project's main scene. The setting holds its uid.
+func _main_scene_path() -> String:
+	var main_scene: String = ProjectSettings.get_setting("application/run/main_scene")
+	return ResourceUID.ensure_path(main_scene)
+
+## Brings back the session a failed switch left, the way a launch on it comes up:
+## your save opens again from disk, a preset is built again where it was written,
+## a file opens again. When that fails too, the session is the fresh fallback
+## preset in memory. Returns what the player's log says about it.
+func _come_back(kind: SessionKind, preset: SavePresetData, save_path: String) -> String:
+	var failure: String = ""
+	match kind:
+		SessionKind.YOUR_SAVE:
+			failure = _open_your_save()
+			if failure == "":
+				return "Back to your save"
+		SessionKind.FILE:
+			failure = _open_file(save_path)
+			if failure == "":
+				return "Back to %s" % save_path
+		SessionKind.PRESET:
+			failure = _start_preset(preset, save_path)
+			if failure == "":
+				return "Rebuilt preset '%s'" % preset.title
+	Log.error("DevManager: Could not bring back the session a switch left: %s. Playing a fresh game in memory instead" % failure)
+	_start_fallback_session()
+	return "Could not go back either: %s. Playing a fresh game in memory instead" % failure
+
+## Refuses a switch before anything changes: logs why and emits
+## session_switch_failed.
+func _refuse(what: String, reason: String) -> void:
+	Log.error("DevManager: Could not %s: %s" % [what, reason])
+	session_switch_failed.emit(reason)
+
+## Why a switch that needs the user's own save is refused, or "": the run has no
+## main save (every test run, unless the test points main_save_path at a file).
+func _main_save_refusal() -> String:
+	return "This run has no main save" if PersistenceManager.main_save_path == "" else ""
+
+## Takes the lock on the user's own save for a switch that writes it, and returns
+## "", or why it could not: another live run holds it, and a run never writes a
+## save under another. The switch then binds the save, and the session keeps the
+## lock as its own.
+func _take_your_save_lock() -> String:
+	var main_save: String = PersistenceManager.main_save_path
+	if SaveLock.acquire(main_save):
+		return ""
+	return "Your save is in use by another run (pid %d)" % SaveLock.holder_pid(main_save)
+
+#-----------------------------------------------------------------------------
+# SESSION STEPS
+#-----------------------------------------------------------------------------
+# The steps that make a session DevManager's, and their helpers. A step returns ""
+# once the session is its own, or why it could not be.
+
+## Records what the session plays.
+func _set_session(kind: SessionKind, preset: SavePresetData) -> void:
+	_session_kind = kind
+	_session_preset = preset
+
+## Builds the preset as the session, written to `save_path` ("" keeps it in memory).
+## A build that fails has bound its half-built save, which the caller replaces.
+func _start_preset(preset: SavePresetData, save_path: String) -> String:
+	var failure: String = build_preset(preset, save_path)
+	if failure == "":
+		_set_session(SessionKind.PRESET, preset)
+	return failure
+
+## Makes the fresh fallback preset the session, built in memory. A preset with no
+## beat, no steps and no snapshot always builds. Were it ever refused, the session
+## plays a new save in memory instead, so a half-built save never stays bound (to
+## a --save file, say).
+func _start_fallback_session() -> void:
+	var preset: SavePresetData = _fallback_preset()
+	var failure: String = build_preset(preset, "")
+	if failure != "":
+		Log.error("DevManager: Could not build the fresh fallback preset: %s. Playing a new save in memory" % failure)
+		PersistenceManager.use_save(SaveGameData.new_current(), "")
+	_set_session(SessionKind.PRESET, preset)
+
+## Opens the user's own save from disk as the session. Never in a run with no main
+## save: open_save_file("") would play an empty path as a file.
+func _open_your_save() -> String:
+	var refusal: String = _main_save_refusal()
+	if refusal != "":
+		return refusal
+	PersistenceManager.open_save_file(PersistenceManager.main_save_path)
+	_set_session(SessionKind.YOUR_SAVE, null)
+	return ""
+
+## Opens the save file at `path` as the session.
+func _open_file(path: String) -> String:
+	if path == "":
+		return "The session had no file to open"
+	PersistenceManager.open_save_file(path)
+	_set_session(SessionKind.FILE, null)
+	return ""
+
+## Backs up the user's save, then plays a fresh save as it and writes it at once.
+func _start_new_game() -> String:
+	var refusal: String = _back_up_your_save()
+	if refusal != "":
+		return refusal
+	PersistenceManager.use_save(SaveGameData.new_current(), PersistenceManager.main_save_path)
+	return _write_your_save()
+
+## Backs up the user's save, then plays a copy of the session's save as it and
+## writes it at once. The copy shares the item resources the inventory is keyed by
+## and copies everything embedded, so the session it leaves is never changed.
+func _keep_as_your_save() -> String:
+	var refusal: String = _back_up_your_save()
+	if refusal != "":
+		return refusal
+	var kept: SaveGameData = PersistenceManager.save_game_data.duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL) as SaveGameData
+	PersistenceManager.use_save(kept, PersistenceManager.main_save_path)
+	return _write_your_save()
+
+## Backs up the user's save, copies the backup over it, then opens it from disk.
+func _restore_backup(backup_path: String) -> String:
+	var refusal: String = _back_up_your_save()
+	if refusal != "":
+		return refusal
+	var error: Error = _copy_over(backup_path, PersistenceManager.main_save_path)
+	if error != OK:
+		return "Could not copy %s over your save (error %d)" % [backup_path, error]
+	return _open_your_save()
+
+## Writes the session's save, which the user's save now holds, and makes it the
+## session. Returns why when the write failed.
+func _write_your_save() -> String:
+	var error: Error = PersistenceManager.save_data()
+	if error != OK:
+		return "Could not write your save (error %d)" % error
+	_set_session(SessionKind.YOUR_SAVE, null)
+	return ""
+
+## Backs up the user's save before a switch writes over it. Returns "" once it is
+## backed up, or when there is no file yet to back up; otherwise why not, and the
+## switch writes nothing.
+func _back_up_your_save() -> String:
+	if FileAccess.file_exists(PersistenceManager.main_save_path) and PersistenceManager.backup_main_save() == "":
+		return "Could not back up your save, so it was left as it was"
+	return ""
+
+## Copies the file at `from` over the file at `to` through to's temp file, as
+## SaveFiles.write_atomically() writes a save, so a copy cut short never leaves half
+## a file at `to`. The lock beside `to` is left as it is.
+func _copy_over(from: String, to: String) -> Error:
+	var temp_path: String = SaveFiles.temp_path_for(to)
+	var error: Error = DirAccess.copy_absolute(ProjectSettings.globalize_path(from), ProjectSettings.globalize_path(temp_path))
+	if error != OK:
+		return error
+	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(to))
+
+#-----------------------------------------------------------------------------
 # PRIVATE HELPERS
 #-----------------------------------------------------------------------------
 
-## The preset a launch falls back to when its own is unknown or does not build: a
-## fresh start with no beat and no steps, named so that the session still has a
-## preset to show and to restart.
+## The preset a session falls back to (FALLBACK_PRESET_ID): a fresh start with no
+## beat and no steps, named so that the session still has a preset to show and to
+## restart.
 func _fallback_preset() -> SavePresetData:
 	var preset := SavePresetData.new()
 	preset.preset_id = FALLBACK_PRESET_ID
@@ -219,6 +556,15 @@ func _is_listed_before(a: SavePresetData, b: SavePresetData) -> bool:
 	if by_title != 0:
 		return by_title < 0
 	return a.preset_id < b.preset_id
+
+## Why build_preset() refuses the preset before it changes anything, or "" when it
+## builds: there is no preset, or validate() finds something wrong with it (the
+## first error), `route` being where its beat is looked up.
+func _build_refusal(preset: SavePresetData, route: StoryRouteData) -> String:
+	if preset == null:
+		return "There is no preset to build"
+	var errors: PackedStringArray = preset.validate(route)
+	return "" if errors.is_empty() else errors[0]
 
 ## The save a build starts from: a migrated copy of the preset's snapshot, so the
 ## snapshot itself is never changed, or a fresh save. The copy shares the item
