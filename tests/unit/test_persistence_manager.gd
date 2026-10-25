@@ -45,9 +45,9 @@ gold = 42.0
 current_selected_zone_id = "%s"
 """
 
-## A save written by a build that knows save version 99. It stands in Test Zone,
-## which this build's migrate() moves to Spirit Valley, so its zone shows whether
-## it was migrated.
+## A save written by a build that knows save version 99, standing in the zone
+## the %s names. Test Zone shows whether it was migrated (this build's migrate()
+## moves it to Spirit Valley); a zone this build does not know shows the repair.
 const NEWER_SAVE_TEXT: String = """[gd_resource type="Resource" script_class="SaveGameData" format=3]
 
 [ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
@@ -56,7 +56,7 @@ const NEWER_SAVE_TEXT: String = """[gd_resource type="Resource" script_class="Sa
 script = ExtResource("1_save")
 save_version = 99
 gold = 42.0
-current_selected_zone_id = "TestZone"
+current_selected_zone_id = "%s"
 """
 
 ## A PersistenceManager whose verify() dependencies (ZoneManager's zone list)
@@ -273,16 +273,43 @@ func test_unverifiable_save_is_not_reset() -> void:
 
 func test_a_newer_save_is_never_written() -> void:
 	var path := _path("newer")
-	_write(path, NEWER_SAVE_TEXT)
+	var original := NEWER_SAVE_TEXT % "TestZone"
+	_write(path, original)
 	var manager := _make_manager(path)
 	_boot(manager)
 	assert_true(manager.is_save_blocked(), "a save from a newer build is never written")
 	assert_string_contains(manager.get_block_reason(), "newer")
 	assert_eq(manager.save_data(), ERR_LOCKED)
-	assert_eq(_read(path), NEWER_SAVE_TEXT, "the file is still the newer build's")
+	assert_eq(_read(path), original, "the file is still the newer build's")
 	assert_eq(manager.save_game_data.gold, 42.0, "the session plays the newer save in memory")
 	assert_eq(manager.save_game_data.current_selected_zone_id, "TestZone", "this build does not migrate a newer save")
 	assert_eq(manager.save_game_data.save_version, 99, "nor stamps it with its own version")
+
+## A newer build can add a zone and save there. The session repairs it in memory,
+## so it never stands in a zone this build does not know. The file is never
+## written, so nothing is copied aside.
+func test_a_newer_save_in_an_unknown_zone_is_repaired_in_memory() -> void:
+	var path := _path("newer_unknown_zone")
+	var original := NEWER_SAVE_TEXT % "NoSuchZone"
+	_write(path, original)
+	var manager := _make_manager(path)
+	_boot(manager)
+	assert_true(manager.is_save_blocked(), "a save from a newer build is still never written")
+	assert_string_contains(manager.get_block_reason(), "newer")
+	assert_eq(manager.save_game_data.current_selected_zone_id, "", "the unknown zone is cleared in memory")
+	assert_eq(manager.save_game_data.gold, 42.0, "the rest of the save stays")
+	assert_eq(_read(path), original, "the file is still the newer build's")
+	assert_eq(_backups_of(path, "invalid").size(), 0, "nothing is copied aside: the file is not changed")
+
+## The repair asks ZoneManager, so a session that cannot check the save does not
+## repair it either. Saving stays blocked for the newer build's reason.
+func test_a_newer_save_that_cannot_be_checked_is_not_repaired() -> void:
+	var path := _path("newer_unverifiable")
+	_write(path, NEWER_SAVE_TEXT % "NoSuchZone")
+	var manager := _make_manager(path, UnverifiablePersistenceManager)
+	_boot(manager)
+	assert_string_contains(manager.get_block_reason(), "newer")
+	assert_eq(manager.save_game_data.current_selected_zone_id, "NoSuchZone", "no repair runs without the check")
 
 #-----------------------------------------------------------------------------
 # BOOT BACKUP AND LAUNCH OPTIONS

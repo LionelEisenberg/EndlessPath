@@ -105,7 +105,10 @@ func boot(options: LaunchOptions = null) -> void:
 ##   at once;
 ## - a file that will not load: copied aside and kept, and the session runs on a
 ##   new save in memory with saving blocked;
-## - a save from a newer build: played in memory, unmigrated, with saving blocked;
+## - a save from a newer build: played in memory, unmigrated, with saving
+##   blocked. It is still repaired in memory when the check can run, so the
+##   session never stands in a zone this build does not know; the file is never
+##   written, so nothing is copied aside;
 ## - any other save: migrated, then checked. Saving is blocked when the check
 ##   cannot run, and a save that fails it is repaired after the file is copied
 ##   aside.
@@ -221,6 +224,12 @@ func _load_session_save(path: String) -> void:
 	save_game_data = loaded
 	if loaded.is_from_newer_build():
 		_block_saving("%s was written by a newer build (version %d; this build knows %d)" % [read_path, loaded.save_version, SaveGameData.CURRENT_VERSION])
+		# Repaired in memory only, so the session never stands in a zone this build
+		# does not know. Nothing writes the file, so nothing is copied aside.
+		if _can_verify():
+			var repaired_in_memory: PackedStringArray = loaded.repair()
+			if not repaired_in_memory.is_empty():
+				Log.warn("PersistenceManager: Repaired %s in memory only; %s stays as the newer build wrote it" % [", ".join(repaired_in_memory), read_path])
 		return
 	loaded.migrate()
 
