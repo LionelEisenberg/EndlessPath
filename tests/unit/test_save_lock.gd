@@ -168,7 +168,7 @@ func test_refresh_rewrites_the_time_of_our_lock() -> void:
 	var path := _path("refresh_own")
 	_write_lock(path, OS.get_process_id(), _now() - 30)
 	var before := _now()
-	SaveLock.refresh(path)
+	assert_true(SaveLock.refresh(path), "the lock is still ours")
 	assert_gte(_time_in_lock(path), before, "the heartbeat moves the time to now")
 	assert_eq(SaveLock.holder_pid(path), OS.get_process_id())
 
@@ -181,9 +181,24 @@ func test_refresh_leaves_another_runs_lock_alone() -> void:
 	assert_eq(SaveLock.holder_pid(path), other_pid)
 	assert_eq(_time_in_lock(path), old_time, "another run's heartbeat is its own to keep")
 
-func test_refresh_makes_no_lock_where_there_is_none() -> void:
+## A run that hung past STALE_AFTER_SECONDS can have its lock taken over. Its
+## next heartbeat is how it finds out.
+func test_refresh_reports_a_lost_lock() -> void:
+	var path := _path("refresh_lost")
+	assert_true(SaveLock.acquire(path))
+	assert_true(SaveLock.refresh(path), "precondition: the lock is ours until it is taken over")
+	var other_pid := _start_other_run()
+	var other_time := _now() - 5
+	_write_lock(path, other_pid, other_time)
+	assert_false(SaveLock.refresh(path), "a lock another run holds now is not ours any more")
+	assert_eq(SaveLock.holder_pid(path), other_pid, "and it is left as it is")
+	assert_eq(_time_in_lock(path), other_time, "its heartbeat is not touched")
+
+## A lock file that is gone may mean another run took the save over and let go, so
+## it is no more ours than a lock another run holds, and none is made in its place.
+func test_refresh_reports_a_lock_that_is_gone() -> void:
 	var path := _path("refresh_none")
-	SaveLock.refresh(path)
+	assert_false(SaveLock.refresh(path), "no lock is not ours")
 	assert_false(FileAccess.file_exists(SaveLock.lock_path_for(path)), "only a lock that is ours is refreshed")
 
 #-----------------------------------------------------------------------------

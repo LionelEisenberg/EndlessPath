@@ -378,6 +378,22 @@ func test_boot_backs_up_nothing_for_another_file() -> void:
 	assert_eq(SaveFiles.list_backups(path, BACKUP_DIR).size(), 0, "only the main save is backed up at launch")
 	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "nothing was backed up at all")
 
+## The backup is of the save as the last run left it. A save another live run is
+## playing is that run's live state, and enough launches locked out of it would
+## rotate the first run's start-of-session backup out of the ones kept.
+func test_a_locked_out_boot_takes_no_backup() -> void:
+	var path := _path("locked_out_backup")
+	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
+	_lock_as_another_run(path)
+	var manager := _make_manager(path)
+	manager.main_save_path = path
+	_boot(manager)
+	assert_true(manager.is_save_blocked(), "precondition: another run holds the main save")
+	assert_string_contains(manager.get_block_reason(), "in use")
+	assert_eq(manager.save_game_data.gold, 42.0, "the save is still played, in memory")
+	assert_eq(manager.list_backups().size(), 0, "a run locked out of the main save takes no backup")
+	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
+
 func test_save_option_opens_that_file() -> void:
 	var path := _path("default_file")
 	var option_path := _path("option_file")
@@ -593,6 +609,67 @@ func test_moving_to_a_free_save_clears_a_lock_block() -> void:
 	assert_false(manager.is_save_blocked(), "a save nobody holds can be written")
 	assert_eq(manager.save_data(), OK)
 	assert_eq(SaveLock.holder_pid(free_path), OS.get_process_id())
+
+## A session that hung past SaveLock.STALE_AFTER_SECONDS can have its lock taken
+## over. When it wakes it must not write over what the other run saved.
+func test_a_taken_over_session_stops_writing() -> void:
+	var path := _path("taken_over")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	var manager := _make_manager(path)
+	_boot(manager)
+	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds the lock")
+	var other_pid := _lock_as_another_run(path)
+	manager.save_game_data.gold = 99.0
+	assert_eq(manager.save_data(), ERR_LOCKED, "a session that lost its lock writes nothing")
+	assert_true(manager.is_save_blocked())
+	assert_string_contains(manager.get_block_reason(), "taken over")
+	assert_string_contains(manager.get_block_reason(), str(other_pid), "the reason names the run that took it")
+	assert_eq(_read(path), original, "the file is unchanged")
+
+## The heartbeat finds out too, so a resumed run stops at its first tick even
+## when autosave would not have written.
+func test_tick_blocks_a_taken_over_session_even_without_autosave() -> void:
+	var path := _path("taken_over_tick")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	var manager := _make_manager(path)
+	manager.boot(LaunchOptions.parse(PackedStringArray(["--no-autosave"])))
+	assert_false(manager.autosave_enabled, "precondition: autosave is off")
+	assert_false(manager.is_save_blocked(), "precondition: the session holds the lock")
+	_lock_as_another_run(path)
+	manager.tick()
+	assert_true(manager.is_save_blocked(), "the heartbeat finds the lock lost, with autosave off too")
+	assert_string_contains(manager.get_block_reason(), "taken over")
+
+## Once blocked, the session never touches the lock of the run that took it over.
+func test_a_taken_over_session_leaves_the_new_lock_alone() -> void:
+	var path := _path("taken_over_close")
+	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
+	var manager := _make_manager(path)
+	_boot(manager)
+	var other_pid := _lock_as_another_run(path)
+	manager.tick()
+	assert_true(manager.is_save_blocked(), "precondition: the tick found the lock lost")
+	manager.tick()
+	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	assert_eq(SaveLock.holder_pid(path), other_pid, "the run that took the lock keeps it through the ticks and the close")
+
+## A lock file that is gone may mean another run took the save over and let go
+## while this one hung, so it is not safe to write either.
+func test_a_session_whose_lock_file_is_gone_stops_writing() -> void:
+	var path := _path("lock_gone")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	var manager := _make_manager(path)
+	_boot(manager)
+	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds the lock")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SaveLock.lock_path_for(path)))
+	assert_eq(manager.save_data(), ERR_LOCKED, "a session whose lock is gone writes nothing")
+	assert_true(manager.is_save_blocked())
+	assert_string_contains(manager.get_block_reason(), "taken over")
+	assert_eq(_read(path), original, "the file is unchanged")
+	assert_false(FileAccess.file_exists(SaveLock.lock_path_for(path)), "and no lock is made in its place")
 
 func test_close_request_releases_the_lock() -> void:
 	var path := _path("lock_close")

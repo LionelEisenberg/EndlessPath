@@ -12,9 +12,10 @@ class_name SaveLock extends RefCounted
 ## STALE_AFTER_SECONDS. A second run that finds a live lock plays the save in
 ## memory instead of overwriting the first run's progress. A lock that is not
 ## live (its run crashed or was killed, or hung) is stale, and the next run takes
-## it over. The lock is advisory: two runs that open one save within the same few
-## milliseconds can both win it. Statics only. Every path comes from the caller,
-## so a test can point it at a temp save.
+## it over. A run that hung finds out at its next heartbeat, when refresh() says
+## the lock is no longer its own. The lock is advisory: two runs that open one
+## save within the same few milliseconds can both win it. Statics only. Every
+## path comes from the caller, so a test can point it at a temp save.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -48,12 +49,17 @@ static func acquire(save_path: String) -> bool:
 	_write_lock(save_path)
 	return true
 
-## The heartbeat: moves the time in the lock on the save at `save_path` to now
-## when the lock is this run's. Another run's lock, and a save with no lock, are
-## left as they are.
-static func refresh(save_path: String) -> void:
-	if holder_pid(save_path) == OS.get_process_id():
-		_write_lock(save_path)
+## The heartbeat: moves the time in the lock on the save at `save_path` to now and
+## returns true while the lock is still this run's. Returns false when it is not,
+## and leaves things as they are: another run's lock is there now (this run hung
+## past STALE_AFTER_SECONDS and was taken over), or the lock file is gone (which
+## may mean another run took the save over and then let go). A run that gets
+## false must stop writing the save.
+static func refresh(save_path: String) -> bool:
+	if holder_pid(save_path) != OS.get_process_id():
+		return false
+	_write_lock(save_path)
+	return true
 
 ## Deletes the lock on the save at `save_path` when it is this run's. Another
 ## run's lock is never deleted.
