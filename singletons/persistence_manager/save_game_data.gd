@@ -223,9 +223,11 @@ func repair() -> PackedStringArray:
 		repaired.append("current_selected_zone_id")
 	return repaired
 
-## Brings a save written by an older build up to CURRENT_VERSION, one version
-## step at a time. Does nothing to a save from a newer build. Runs after a save
-## loads and before it is checked.
+## Brings a save written by an older build up to CURRENT_VERSION, then stamps it.
+## Does nothing to a save from a newer build. Runs after a save loads and before
+## it is checked. It does two kinds of work:
+## The version steps (_migrate_to_vN) run once per save, for a save older than N.
+## The zone id move runs on every load, whatever the save's version.
 ## A schema change bumps CURRENT_VERSION, adds a _migrate_to_vN(), and adds an
 ## "if save_version < N" line here.
 func migrate() -> void:
@@ -233,21 +235,14 @@ func migrate() -> void:
 		return
 	if save_version < 1:
 		_migrate_to_v1()
+	_apply_zone_id_migrations()
 	save_version = CURRENT_VERSION
 
-## Version 1: moves fields that point at retired or hidden content to their
-## replacements, then the accessories that older saves kept in equipped_gear.
+## Version step 1, run only for a save older than version 1: moves each accessory
+## an old save holds in equipped_gear to its slot in equipped_accessories. A slot
+## that is already taken keeps its item, and the old accessory stays in
+## equipped_gear, named in the log.
 func _migrate_to_v1() -> void:
-	if ZONE_ID_MIGRATIONS.has(current_selected_zone_id):
-		var new_zone_id: String = ZONE_ID_MIGRATIONS[current_selected_zone_id]
-		Log.info("SaveGameData: Moved the current zone from %s to %s" % [current_selected_zone_id, new_zone_id])
-		current_selected_zone_id = new_zone_id
-	_move_legacy_accessories()
-
-## Moves each accessory an old save holds in equipped_gear to its slot in
-## equipped_accessories. A slot that is already taken keeps its item, and the
-## old accessory stays in equipped_gear, named in the log.
-func _move_legacy_accessories() -> void:
 	if inventory == null:
 		return
 	for gear_key: int in LEGACY_ACCESSORY_GEAR_KEYS:
@@ -261,6 +256,16 @@ func _move_legacy_accessories() -> void:
 			continue
 		inventory.equipped_accessories[accessory_index] = item
 		inventory.equipped_gear.erase(gear_key)
+
+## Moves the current zone off an id in ZONE_ID_MIGRATIONS, such as the hidden Test
+## Zone. Not a version step: it runs on every load. The dev panel can walk a save
+## into Test Zone and its toggle resets on the next launch, so a save of any
+## version may be standing on a hex the map does not show.
+func _apply_zone_id_migrations() -> void:
+	if ZONE_ID_MIGRATIONS.has(current_selected_zone_id):
+		var new_zone_id: String = ZONE_ID_MIGRATIONS[current_selected_zone_id]
+		Log.info("SaveGameData: Moved the current zone from %s to %s" % [current_selected_zone_id, new_zone_id])
+		current_selected_zone_id = new_zone_id
 
 ## Resets every saved field to the default a new SaveGameData declares, in
 ## place, so the managers holding this object keep a valid reference. It copies

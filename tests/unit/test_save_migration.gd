@@ -62,6 +62,13 @@ func test_migrated_test_zone_save_still_verifies() -> void:
 	data.migrate()
 	assert_true(data.verify(), "a migrated save must never be wiped by verify()")
 
+func test_a_current_save_in_test_zone_still_moves() -> void:
+	var data := SaveGameData.new_current()
+	data.current_selected_zone_id = "TestZone"
+	data.migrate()
+	assert_eq(data.current_selected_zone_id, "SpiritValley", "the dev panel can leave a current save in Test Zone, so the move runs on every load")
+	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION)
+
 #-----------------------------------------------------------------------------
 # SAVE VERSION
 #-----------------------------------------------------------------------------
@@ -93,12 +100,6 @@ func test_a_newer_save_is_left_alone() -> void:
 	assert_eq(data.save_version, SaveGameData.CURRENT_VERSION + 1, "a newer build's version is never lowered")
 	assert_eq(data.current_selected_zone_id, "TestZone", "a newer build's data is not rewritten")
 	assert_true(data.is_from_newer_build())
-
-func test_a_current_save_is_not_migrated_again() -> void:
-	var data := SaveGameData.new_current()
-	data.current_selected_zone_id = "TestZone"
-	data.migrate()
-	assert_eq(data.current_selected_zone_id, "TestZone", "the zone move is a version 1 step, which this save has already had")
 
 func test_to_string_names_the_version() -> void:
 	assert_string_contains(str(SaveGameData.new_current()), "SaveVersion: %d" % SaveGameData.CURRENT_VERSION)
@@ -143,6 +144,14 @@ func test_v1_checks_each_accessory_slot_on_its_own() -> void:
 	data.migrate()
 	assert_eq(data.inventory.equipped_accessories, {0: worn, 1: movable}, "a free slot is filled even when the other is taken")
 	assert_eq(data.inventory.equipped_gear, {LEGACY_ACCESSORY_1: blocked}, "only the blocked one stays")
+
+func test_v1_skips_a_current_save() -> void:
+	var data := SaveGameData.new_current()
+	var legacy := _make_gear("test_legacy_ring", EquipmentDefinitionData.EquipmentSlot.ACCESSORY)
+	data.inventory.equipped_gear[LEGACY_ACCESSORY_1] = legacy
+	data.migrate()
+	assert_eq(data.inventory.equipped_gear, {LEGACY_ACCESSORY_1: legacy}, "the accessory move is a version 1 step, which this save has already had")
+	assert_true(data.inventory.equipped_accessories.is_empty())
 
 #-----------------------------------------------------------------------------
 # REPAIR
