@@ -122,7 +122,7 @@ The enabled GUT plugin adds a GUT bottom panel. It can run all tests, a single s
 
 ```
 tests/
-├── unit/                         one system, resource or manager per file
+├── unit/                         one system, resource or manager per file (plus `counting_effect.gd`, a shared fake GUT does not collect)
 ├── integration/                  content flows and scene-level UI behaviour (plus `adventure_map_fixture.gd`, a shared helper GUT does not collect)
 ├── run_tests.ps1                 the parallel runner
 └── label_tests/
@@ -165,7 +165,7 @@ tests/
 | Scenes with hex map layers | After `add_child_autofree()`, call `tile_set.emit_changed()` on one of the scene's layers (`test_adventure_end_flow.gd`, `test_adventure_view_frame.gd`, `test_adventure_map_zoom.gd`, `test_adventure_map_render.gd`, `test_zone_map_render.gd`) | The project's hex layer script skips the addon's `_ready()`. A layer built after the shared tileset's first `changed` therefore has no cube↔map conversion, and `cube_to_map()` errors. See [ADVENTURING.md](../adventuring/ADVENTURING.md) Tech Debt. |
 | Signals | `watch_signals(obj)` with `assert_signal_emitted`, `assert_signal_emitted_with_parameters`, `assert_signal_emit_count`, `assert_signal_not_emitted` | |
 | Expected errors | `assert_push_error("unknown technique_id")` | GUT 9.7 fails a test on unexpected engine errors and `push_error` by default, so negative-path tests must consume their `push_error` |
-| Fakes | Inner classes extending `EffectData`, such as `CountingEffect` (in 2 files); `FakeGreyBackground` extends `GreyBackground` and shows and hides at once (`test_merchant_view_state.gd`); `FakeCoveringState` stands in for a second overlay that hides the HUD boards (`test_view_state_hud_positions.gd`); `FixedMapGenerator` extends `AdventureMapGenerator` and returns the map it was given (`test_adventure_view_frame.gd` and `test_adventure_map_zoom.gd`, installed by `_start_run()`) | Don't start inner class names with `Test` |
+| Fakes | `CountingEffect` (`tests/unit/counting_effect.gd`), an `EffectData` that counts its `process()` calls, which the consumable tests preload; `FakeGreyBackground` extends `GreyBackground` and shows and hides at once (`test_merchant_view_state.gd`); `FakeCoveringState` stands in for a second overlay that hides the HUD boards (`test_view_state_hud_positions.gd`); `FixedMapGenerator` extends `AdventureMapGenerator` and returns the map it was given (`test_adventure_view_frame.gd` and `test_adventure_map_zoom.gd`, installed by `_start_run()`) | Don't start inner class names with `Test` |
 | Temporary files | `user://test_*.tres` / `user://__test_*.tres`, removed with `DirAccess.remove_absolute(ProjectSettings.globalize_path(path))` | `test_quest_progression_persistence.gd`, `test_zone_progression_data.gd` |
 | Content lock | Loads shipped `.tres` and asserts on field values | `test_crude_scale_tres.gd`, `test_path_tree_resource_loading.gd`, `test_foundation_tribulation_data.gd` (the Tribulation, the Copper stage and the action's wiring). `test_tribulation_run.gd` plays a `duplicate(true)` of the shipped trial with exact times, so the data and the judge are checked together |
 

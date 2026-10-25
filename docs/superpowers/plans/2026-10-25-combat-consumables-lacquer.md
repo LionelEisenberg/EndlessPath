@@ -28,7 +28,7 @@
 
 ## Review Focus
 
-1. **The last one used mid-fight.** The socket turns to none left at once, a second press is refused, and back on the map the preview shows `0`. Tested in Task 4 (`test_using_the_last_one_leaves_it_veiled_at_zero`) and Task 5 (`test_the_map_shows_zero_after_the_last_one`).
+1. **The last one used mid-fight.** The socket turns to none left at once, a second press is refused, and back on the map the preview shows `0`. Tested in Task 4 (`test_using_the_last_one_leaves_it_veiled_at_zero`) and Task 5 (`test_the_map_shows_zero_after_the_last_one`, `test_the_last_one_used_refuses_the_next_press`).
 2. **A fight that opens with an equipped consumable at 0.** The socket is none left from the start and refuses. Tested in Task 2 (`test_setup_builds_an_instance_for_a_slot_with_none_left`) and Task 5 (`test_a_fight_that_opens_with_none_left_refuses`).
 3. **1 to 4 on the map.** No `consumable_selected`, no shake and no error. Tested in Task 5 (`test_keys_and_clicks_do_nothing_on_the_map`).
 4. **The cast tray coming or going under an open consumable tooltip.** It moves the tooltip as it does for a technique, rather than redrawing it as a technique. Tested in Task 5 (`test_the_consumable_tooltip_moves_over_the_cast_tray`).
@@ -158,10 +158,10 @@ The scene follows the spec's Layout rows:
 - `%Body` (it shakes), holding:
   - the socket texture at file size;
   - `%Icon` 32x32 at (8, 8), with a `resource_local_to_scene` sweep material set to `icon_size = 32`;
-  - `%SecondsLabel` (`LabelLacquerCooldown`), centred on the icon and wider than it so three digits fit;
+  - `%SecondsLabel` (`LabelLacquerCooldown` at a 15 px size override, as built after the first capture), centred on the icon and wider than it so three digits fit;
   - `%HoverFrame` (`frame_hover.tres`) and `%ReadyFlash` (`LacquerFrameOverlay`, brass);
 - `%KeyCap` at (−6, −6) with `%KeyLabel`;
-- `%CountSeal` (a `Control`, right edge at 52, top at −6), holding the `NinePatchRect` seal (margins 6 and 6) and `%CountLabel` (`LabelLacquerSeal`, 15 px, centred, `offset_top` 3, 18 tall).
+- `%CountSeal` (a `Control`, right edge at 52, top at +30: off the socket's bottom right corner, as built after the first capture; the plan had the top right, at −6), holding the `NinePatchRect` seal (margins 6 and 6) and `%CountLabel` (`LabelLacquerSeal`, 15 px, centred, `offset_top` 3, 18 tall).
 
 Every child ignores the mouse.
 

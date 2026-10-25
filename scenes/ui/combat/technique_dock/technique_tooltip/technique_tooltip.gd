@@ -78,7 +78,7 @@ func _ready() -> void:
 #-----------------------------------------------------------------------------
 
 ## Shows the tooltip for data over slot, above the cast tray when
-## cast_tray_shown (its top is `cast_tray_top` on screen: y 868 for the kit's
+## cast_tray_shown (its top is `cast_tray_top` on screen: y 804 for the kit's
 ## 44 px tray, higher for one a long name has grown). The board takes the height
 ## of the new text, rounded up to even.
 func show_for_ability(data: AbilityData, slot: Control, cast_tray_shown: bool, cast_tray_top: float = CAST_TRAY_TOP_Y) -> void:

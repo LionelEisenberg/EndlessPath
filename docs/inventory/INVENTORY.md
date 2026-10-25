@@ -200,7 +200,7 @@ Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `Item
 | | `source_description` | `String` | `""` | Detail card "Source" |
 | | `used_in` | `String` | `""` | Detail card "Used in" (free text) |
 | `ConsumableDefinitionData` | `effects` | `Array[EffectData]` | `[]` | `use()` calls `process()` on each, in order |
-| | `cooldown_seconds` | `float` | 0.0 | Metadata only on `main`. Tooltip shows `EffectData.describe()` per effect plus "Cooldown: N.Ns" |
+| | `cooldown_seconds` | `float` | 0.0 | In a fight, each hotbar slot's `CombatConsumableInstance` enforces it, afresh every fight. Tooltip shows `EffectData.describe()` per effect plus "Cooldown: N.Ns" |
 | `QuestItemDefinitionData` | `from_source` | `String` | `""` | Journal "From" row |
 
 **ItemInstanceData**
