@@ -13,6 +13,11 @@ extends Node
 ## session. So is a save a newer build wrote, which this build would write back
 ## without what it does not know. A save that names a zone the game no longer has
 ## is repaired, after a copy of the file is put aside.
+##
+## One run at a time writes a save. A session on a file holds that save's lock
+## (SaveLock): refreshed on every tick and every write, and released when the
+## window closes. A save another live run holds the lock on is played in memory
+## with saving blocked, so two runs never overwrite each other's progress.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -56,12 +61,19 @@ var backup_dir: String = BACKUP_DIR
 ## save_data() still writes when it is called.
 var autosave_enabled: bool = true
 
-## Set when the session's save could not be read or checked, or a newer build
-## wrote it. Nothing writes it until another save becomes the session's.
+## Set when the session's save could not be read or checked, a newer build wrote
+## it, or another live run holds its lock. Nothing writes it until another save
+## becomes the session's.
 var _save_blocked: bool = false
 
 ## Why saving is blocked, or "" when it is not.
 var _block_reason: String = ""
+
+## The path of the save whose lock this session holds, or "" when it holds none: a
+## session in memory, or a save another run held the lock on. The heartbeat and the
+## release only ever touch this one, so a session never refreshes or deletes a
+## lock it did not take.
+var _lock_path: String = ""
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -80,6 +92,8 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		autosave()
+		# After the last write, so the lock holds until it is done.
+		_release_lock()
 
 #-----------------------------------------------------------------------------
 # SESSIONS
@@ -100,7 +114,11 @@ func boot(options: LaunchOptions = null) -> void:
 	open_save_file(save_path)
 
 ## Makes the save file at `path` the session: the one way a file becomes it, at
-## boot and when a session goes back to a file. It clears any block, then:
+## boot and when a session goes back to a file. It clears any block and moves the
+## session's lock to `path`. A save another live run holds the lock on is blocked
+## ("in use by another run") but still loaded as below, into memory. Nothing below
+## clears a block, so that one stands however the save loads: the file is never
+## written. Then:
 ## - no file there, and no temp file a cut-short write left: a new save, written
 ##   at once;
 ## - a file that will not load: copied aside and kept, and the session runs on a
@@ -117,6 +135,8 @@ func boot(options: LaunchOptions = null) -> void:
 func open_save_file(path: String) -> void:
 	save_path = path
 	_clear_block()
+	# Before the load, whose steps may write (a new save) or add a block of their own.
+	_move_lock_to(path)
 	_load_session_save(path)
 	save_data_reset.emit()
 
@@ -124,27 +144,32 @@ func open_save_file(path: String) -> void:
 ## then re-binds every manager through save_data_reset. It swaps the object in
 ## and never resets the old one in place, so ActionManager's stale-save guard
 ## stops an action still running on the old save without counting it. Any block
-## clears.
+## clears, and the session's lock moves to `path` (a session in memory holds
+## none): a save another live run holds the lock on blocks saving.
 func use_save(save: SaveGameData, path: String) -> void:
 	save_game_data = save
 	save_path = path
 	_clear_block()
+	_move_lock_to(path)
 	save_data_reset.emit()
 
 #-----------------------------------------------------------------------------
 # WRITING
 #-----------------------------------------------------------------------------
 
-## Writes the session's save to save_path, stamped with the current version.
-## Returns ERR_UNAVAILABLE for a session in memory and ERR_LOCKED while saving is
-## blocked, writing nothing; otherwise what SaveFiles.write_atomically() returns.
+## Writes the session's save to save_path, stamped with the current version, then
+## refreshes the lock. Returns ERR_UNAVAILABLE for a session in memory and
+## ERR_LOCKED while saving is blocked, writing nothing; otherwise what
+## SaveFiles.write_atomically() returns.
 func save_data() -> Error:
 	if is_in_memory():
 		return ERR_UNAVAILABLE
 	if _save_blocked:
 		return ERR_LOCKED
 	save_game_data.save_version = SaveGameData.CURRENT_VERSION
-	return SaveFiles.write_atomically(save_game_data, save_path)
+	var error: Error = SaveFiles.write_atomically(save_game_data, save_path)
+	_refresh_lock()
+	return error
 
 ## Saves the session when autosave is on and the session can write, and logs a
 ## write that fails. The SaveTimer's tick and the window's close call it.
@@ -155,8 +180,10 @@ func autosave() -> void:
 	if error != OK:
 		Log.error("PersistenceManager: Could not save to %s (error %d)" % [save_path, error])
 
-## The SaveTimer's tick, every 5 seconds.
+## The SaveTimer's tick, every 5 seconds: the lock's heartbeat, which beats with
+## autosave off too, then the autosave.
 func tick() -> void:
+	_refresh_lock()
 	autosave()
 
 #-----------------------------------------------------------------------------
@@ -171,8 +198,8 @@ func can_write() -> bool:
 func is_in_memory() -> bool:
 	return save_path == ""
 
-## True when the session's save could not be read or checked, or a newer build
-## wrote it, so nothing writes it.
+## True when the session's save could not be read or checked, a newer build wrote
+## it, or another live run holds its lock, so nothing writes it.
 func is_save_blocked() -> bool:
 	return _save_blocked
 
@@ -264,3 +291,34 @@ func _block_saving(reason: String) -> void:
 func _clear_block() -> void:
 	_save_blocked = false
 	_block_reason = ""
+
+#-----------------------------------------------------------------------------
+# SAVE LOCK
+#-----------------------------------------------------------------------------
+
+## Moves the lock this session holds to the save at `path`: the lock on the save it
+## leaves is released, and the one on `path` is taken, unless `path` is "" (a
+## session in memory has no file to guard). A save another live run holds the lock
+## on blocks saving, so this session never writes under that run. Only a new
+## session clears that block.
+func _move_lock_to(path: String) -> void:
+	if path != _lock_path:
+		_release_lock()
+	if path == "":
+		return
+	if SaveLock.acquire(path):
+		_lock_path = path
+		return
+	_lock_path = ""
+	_block_saving("in use by another run (pid %d)" % SaveLock.holder_pid(path))
+
+## The lock's heartbeat: moves its time to now, when this session holds a lock.
+func _refresh_lock() -> void:
+	if _lock_path != "":
+		SaveLock.refresh(_lock_path)
+
+## Gives up the lock this session holds, if it holds one.
+func _release_lock() -> void:
+	if _lock_path != "":
+		SaveLock.release(_lock_path)
+		_lock_path = ""
