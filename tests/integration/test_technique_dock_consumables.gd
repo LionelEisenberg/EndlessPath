@@ -229,6 +229,22 @@ func test_the_map_shows_zero_after_the_last_one() -> void:
 	assert_eq((_slot_node(0, "CountLabel") as Label).text, "0")
 	assert_eq(_slot(0).get_sweep_step(), 0, "still veiled")
 
+## Once the last one is used and its cooldown has run out, the socket is ready
+## again but has none left: the next press is refused.
+func test_the_last_one_used_refuses_the_next_press() -> void:
+	_equip_consumable(_scale, 0, 1)
+	_start_fight()
+	var instance: CombatConsumableInstance = _instance_at(0)
+	assert_true(_player.consumable_manager.use_consumable_instance(instance), "precondition: the last one used")
+	instance.cooldown_timer.start(0.01)
+	assert_true(await wait_for_signal(instance.cooldown_ready, 1.0), "precondition: recharged")
+	watch_signals(_dock)
+
+	_press_action(&"consumable_slot_1")
+
+	assert_signal_not_emitted(_dock, "consumable_selected", "none left to use")
+	assert_true(_slot(0).is_shaking(), "the socket refuses")
+
 #-----------------------------------------------------------------------------
 # A FIGHT
 #-----------------------------------------------------------------------------
@@ -317,6 +333,7 @@ func test_a_consumable_can_be_pressed_while_a_technique_casts() -> void:
 	var strike: CombatAbilityInstance = _player.ability_manager.abilities[0]
 	await _finish_cooldown(strike)
 	assert_true(_player.ability_manager.use_ability_instance(strike, _enemy), "precondition: a cast starts")
+	assert_true(_player.ability_manager.is_casting(), "precondition: casting")
 	watch_signals(_dock)
 
 	_press_action(&"consumable_slot_1")
@@ -379,6 +396,15 @@ func test_the_consumable_tooltip_moves_over_the_cast_tray() -> void:
 	await wait_for_signal(strike.cast_finished, 2.0)
 	await wait_process_frames(1)
 	assert_eq(_tooltip_rect().end.y, 848.0, "the tray goes: back above the dock")
+
+func test_a_consumable_with_no_cooldown_reads_instant() -> void:
+	var quick := CRUDE_SCALE.duplicate() as ConsumableDefinitionData
+	quick.cooldown_seconds = 0.0
+	_equip_consumable(quick, 0, 1)
+
+	_slot(0).mouse_entered.emit()
+
+	assert_eq((_tooltip_node("TimingText") as RichTextLabel).get_parsed_text(), "Instant", "no cooldown to name")
 
 func test_a_technique_tooltip_hides_the_effects_line() -> void:
 	_equip_consumable(CRUDE_SCALE, 0, 3)
