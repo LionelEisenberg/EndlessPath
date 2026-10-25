@@ -33,6 +33,8 @@ const TMP_PREFIX: String = "__test_dev_manager_build_"
 const PRESET_DIR: String = "user://__test_dev_manager_build_presets/"
 ## Stands in for the user's own save in the fallback tests.
 const MAIN_SAVE_PATH: String = "user://__test_dev_manager_build_main.tres"
+## The --save path the fallback tests launch with. Nothing may write it.
+const SAVE_OPTION_PATH: String = "user://__test_dev_manager_build_option.tres"
 const MAIN_SAVE_TEXT: String = """[gd_resource type="Resource" script_class="SaveGameData" format=3]
 
 [ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
@@ -154,6 +156,17 @@ func _use_temp_main_save() -> void:
 	file.store_string(MAIN_SAVE_TEXT)
 	file.close()
 	PersistenceManager.main_save_path = MAIN_SAVE_PATH
+
+## Asserts the session is the fresh preset a launch falls back to, built like any
+## other, so a restart and the panel still have a preset to work with.
+func _assert_fallback_session() -> void:
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET, "the fallback is a preset session")
+	var session_preset: SavePresetData = DevManager.get_session_preset()
+	assert_not_null(session_preset, "the session has a preset to restart")
+	if session_preset != null:
+		assert_eq(session_preset.preset_id, "fresh_fallback")
+		assert_eq(session_preset.title, "Fresh start (the preset could not be built)")
+	assert_eq(PersistenceManager.save_game_data.stats.built_from_preset, "fresh_fallback", "its save was built through build_preset()")
 
 ## True when some zone offers the action right now.
 func _is_available(action_id: String) -> bool:
@@ -396,11 +409,13 @@ func test_an_unknown_preset_falls_back_to_a_fresh_save_in_memory() -> void:
 	PersistenceManager.save_game_data.gold = 7.0
 	var options := LaunchOptions.new()
 	options.preset_id = "no_such_preset"
+	options.save_path = SAVE_OPTION_PATH
 	DevManager.start_from_launch_options(options)
-	assert_true(PersistenceManager.is_in_memory(), "the session lives in memory")
+	assert_true(PersistenceManager.is_in_memory(), "the session lives in memory, though --save named a file")
 	assert_eq(ResourceManager.get_gold(), 0.0, "on a fresh save, with the default gold")
 	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "the main save is never read or written")
-	assert_null(DevManager.get_session_preset(), "there is no preset to restart")
+	assert_false(FileAccess.file_exists(SAVE_OPTION_PATH), "nor is the --save file")
+	_assert_fallback_session()
 	var history: Array[String] = LogManager.get_history()
 	assert_eq(history.size(), 1, "the log starts clean, with one line")
 	if history.size() == 1:
@@ -410,11 +425,13 @@ func test_a_failed_build_falls_back_to_a_fresh_save_in_memory() -> void:
 	_use_temp_main_save()
 	var preset := _preset("test_failing_launch", "", [_step(Kind.SET_GOLD, "", 700.0), _step(Kind.COMPLETE_ACTION, NPC_4)])
 	_write_preset(preset, "failing_launch.tres")
-	DevManager.start_from_launch_options(LaunchOptions.parse(PackedStringArray(["--preset=test_failing_launch"])))
-	assert_true(PersistenceManager.is_in_memory(), "the session lives in memory")
+	DevManager.start_from_launch_options(LaunchOptions.parse(PackedStringArray(["--preset=test_failing_launch", "--save=" + SAVE_OPTION_PATH])))
+	assert_true(PersistenceManager.is_in_memory(), "the session lives in memory, though --save named a file")
 	assert_eq(ResourceManager.get_gold(), 0.0, "the half-built save gives way to a fresh one")
 	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "the main save is never read or written")
-	assert_null(DevManager.get_session_preset(), "there is no preset to restart")
+	assert_eq(SaveLock.holder_pid(SAVE_OPTION_PATH), 0, "the failed build's hold on the --save file is let go")
+	assert_false(FileAccess.file_exists(SAVE_OPTION_PATH), "and the file is never written")
+	_assert_fallback_session()
 	var history: Array[String] = LogManager.get_history()
 	assert_eq(history.size(), 1, "the half build's lines are cleared, and one line says why")
 	if history.size() == 1:

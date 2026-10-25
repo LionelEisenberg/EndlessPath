@@ -9,7 +9,8 @@ extends Node
 ## pinned for the checkout (LaunchOptions), builds that preset in _ready(): after
 ## every other autoload is ready and before the main scene's own _ready(), so no
 ## view hears the build. Such a session lives in memory, or in the --save file: the
-## user's own save is never read or written.
+## user's own save is never read, and is written only when --save names it, after
+## PersistenceManager backs it up.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -34,6 +35,13 @@ const PRESET_DIR: String = "res://resources/dev/save_presets/"
 
 ## The presets an exported build keeps: its res:// is read-only.
 const EXPORT_PRESET_DIR: String = "user://dev/save_presets/"
+
+## The id of the preset a launch falls back to when its own preset is unknown or
+## does not build: a fresh start in memory, which no preset folder holds.
+const FALLBACK_PRESET_ID: String = "fresh_fallback"
+
+## What the panel calls the fallback preset.
+const _FALLBACK_PRESET_TITLE: String = "Fresh start (the preset could not be built)"
 
 ## The prefix of the line a session's start logs, the one DevCommands' lines have.
 const _DEV_TAG: String = "[color=magenta][DEV][/color]"
@@ -70,8 +78,9 @@ func _ready() -> void:
 func get_session_kind() -> SessionKind:
 	return _session_kind
 
-## The preset the session was built from. Null outside a preset session, and after
-## a launch whose preset did not start: that session plays a fresh save instead.
+## The preset the session was built from, or null outside a preset session. A
+## launch whose preset did not start plays the fresh fallback preset
+## (FALLBACK_PRESET_ID), so a preset session always has one.
 func get_session_preset() -> SavePresetData:
 	return _session_preset
 
@@ -82,8 +91,9 @@ func get_session_preset() -> SavePresetData:
 ## (build_preset(), written to the --save path when one was given), then the
 ## player's log is cleared and gets one [DEV] line, "Started preset '<title>'", with
 ## " (pinned)" when the pin chose it. A preset id no folder has, or a preset that
-## does not build, is logged with Log.critical and the session falls back to a fresh
-## save in memory, never the user's save; the [DEV] line then says why. Emits
+## does not build, is logged with Log.critical, and the session falls back to the
+## fresh fallback preset (FALLBACK_PRESET_ID), built in memory, never on the user's
+## save; the [DEV] line then says why the preset did not start. Emits
 ## session_changed.
 func start_from_launch_options(options: LaunchOptions) -> void:
 	_session_preset = null
@@ -100,11 +110,13 @@ func start_from_launch_options(options: LaunchOptions) -> void:
 		failure = build_preset(preset, options.save_path)
 	if failure != "":
 		Log.critical("DevManager: Could not start preset %s%s: %s. Playing a fresh game in memory instead" % [options.preset_id, pinned, failure])
-		PersistenceManager.use_save(SaveGameData.new_current(), "")
+		preset = _fallback_preset()
+		# A preset with no beat, no steps and no snapshot always builds.
+		build_preset(preset, "")
+	_session_preset = preset
 	# After the build and any fallback, so the log holds none of the build's lines.
 	LogManager.clear_history()
 	if failure == "":
-		_session_preset = preset
 		_log_dev_line("Started preset '%s'%s" % [preset.title, pinned])
 	else:
 		_log_dev_line("Could not start preset '%s'%s: %s. Playing a fresh game in memory instead" % [options.preset_id, pinned, failure])
@@ -184,6 +196,15 @@ func build_preset(preset: SavePresetData, save_path: String = "") -> String:
 #-----------------------------------------------------------------------------
 # PRIVATE HELPERS
 #-----------------------------------------------------------------------------
+
+## The preset a launch falls back to when its own is unknown or does not build: a
+## fresh start with no beat and no steps, named so that the session still has a
+## preset to show and to restart.
+func _fallback_preset() -> SavePresetData:
+	var preset := SavePresetData.new()
+	preset.preset_id = FALLBACK_PRESET_ID
+	preset.title = _FALLBACK_PRESET_TITLE
+	return preset
 
 ## The folders get_presets() reads.
 func _preset_folders() -> PackedStringArray:

@@ -442,6 +442,47 @@ func test_a_preset_with_a_save_option_plays_a_fresh_save_there() -> void:
 	assert_eq(SaveLock.holder_pid(option_path), OS.get_process_id(), "the session holds the lock on the file it writes")
 	assert_false(FileAccess.file_exists(path), "the file the manager would have played is not touched")
 
+## A preset written over the user's save may be meant, so it is allowed, but never
+## without a backup: the save is backed up first, under its lock, as a launch on it
+## is. The session still reads nothing from it, and writes nothing yet.
+func test_a_preset_session_on_the_main_save_backs_it_up_first() -> void:
+	var path := _path("preset_main")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	var manager := _make_manager(path)
+	manager.main_save_path = path
+	var options := LaunchOptions.new()
+	options.preset_id = "merchant_open"
+	options.save_path = path
+	manager.boot(options)
+	var backups: PackedStringArray = manager.list_backups()
+	assert_eq(backups.size(), 1, "the main save is backed up before the preset session can write it")
+	if backups.size() == 1:
+		assert_eq(_read(backups[0]), original, "the backup holds the save as it was at launch")
+	assert_eq(manager.save_path, path, "the preset session writes the main save")
+	assert_eq(manager.save_game_data.gold, 0.0, "it plays a fresh save, not the file's")
+	assert_eq(_read(path), original, "nothing is written until the session saves")
+	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "the session holds the main save's lock")
+
+## The backup is skipped as a launch on the main save skips it: another live run
+## holds the save, so this one never writes it either.
+func test_a_locked_out_preset_on_the_main_save_takes_no_backup() -> void:
+	var path := _path("preset_main_locked")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	var other_pid := _lock_as_another_run(path)
+	var manager := _make_manager(path)
+	manager.main_save_path = path
+	var options := LaunchOptions.new()
+	options.preset_id = "merchant_open"
+	options.save_path = path
+	manager.boot(options)
+	assert_eq(manager.list_backups().size(), 0, "a run locked out of the main save takes no backup")
+	assert_true(manager.is_save_blocked(), "and never writes the save another run holds")
+	assert_string_contains(manager.get_block_reason(), "in use")
+	assert_eq(_read(path), original, "the file is unchanged")
+	assert_eq(SaveLock.holder_pid(path), other_pid, "the other run's lock is left as it was")
+
 func test_no_autosave_turns_off_the_tick() -> void:
 	var path := _path("no_autosave")
 	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
