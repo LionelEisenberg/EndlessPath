@@ -122,17 +122,8 @@ func test_has_item_ignores_consumable_with_zero_count() -> void:
 # USE_CONSUMABLE
 #-----------------------------------------------------------------------------
 
-## Counter EffectData subclass used to observe process() invocations.
-## Mirrors the helper from test_consumable_definition_data.gd; duplicated here
-## so each test file stays independently runnable.
-class CountingEffect extends EffectData:
-	var call_count: int = 0
-
-	func process() -> void:
-		call_count += 1
-
-	func _to_string() -> String:
-		return "CountingEffect"
+## Counter EffectData used to observe process() invocations.
+const CountingEffect := preload("res://tests/unit/counting_effect.gd")
 
 func _make_consumable_with_effect(id: String, effect: EffectData) -> ConsumableDefinitionData:
 	var def := _make_consumable(id)

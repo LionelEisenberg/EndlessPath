@@ -4,14 +4,7 @@ extends GutTest
 ## Verifies item_type, use() effect dispatch, and tooltip formatting.
 
 ## Counter EffectData subclass used to observe process() invocations.
-class CountingEffect extends EffectData:
-	var call_count: int = 0
-
-	func process() -> void:
-		call_count += 1
-
-	func _to_string() -> String:
-		return "CountingEffect"
+const CountingEffect := preload("res://tests/unit/counting_effect.gd")
 
 func test_init_sets_item_type_to_consumable() -> void:
 	var def := ConsumableDefinitionData.new()

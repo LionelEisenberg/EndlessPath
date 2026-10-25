@@ -11,14 +11,7 @@ extends GutTest
 #-----------------------------------------------------------------------------
 
 ## An effect that counts how often it fires, so no test touches the vitals.
-class CountingEffect extends EffectData:
-	var call_count: int = 0
-
-	func process() -> void:
-		call_count += 1
-
-	func _to_string() -> String:
-		return "CountingEffect"
+const CountingEffect := preload("res://tests/unit/counting_effect.gd")
 
 var _original_save: SaveGameData = null
 var _effect: CountingEffect = null
