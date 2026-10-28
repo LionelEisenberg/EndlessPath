@@ -454,7 +454,9 @@ func _schedule_switch(start_session: Callable, what: String, started: String) ->
 
 ## The switch, in order:
 ## 1. the session it leaves is saved, when autosave is on and the session writes a
-##    file (PersistenceManager.autosave());
+##    file (PersistenceManager.autosave()); then autosave goes back to what the run
+##    was launched with (restore_launch_autosave()), whatever that session turned
+##    it to;
 ## 2. what lives outside the save is torn down (_tear_down());
 ## 3. the main scene is freed, when it is the current scene. Under GUT the runner
 ##    is, so no scene is freed or loaded again;
@@ -473,6 +475,7 @@ func _run_switch(start_session: Callable, what: String, started: String) -> void
 	var left_preset: SavePresetData = _session_preset
 	var left_save_path: String = PersistenceManager.save_path
 	PersistenceManager.autosave()
+	PersistenceManager.restore_launch_autosave()
 	_tear_down()
 	var unloaded: bool = _unload_main_scene()
 	var line: String = started

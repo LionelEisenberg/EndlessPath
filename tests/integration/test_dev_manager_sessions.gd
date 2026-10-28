@@ -88,6 +88,7 @@ var _original_save_path: String
 var _original_main_save_path: String
 var _original_backup_dir: String
 var _original_autosave: bool
+var _original_autosave_at_launch: bool
 var _original_tree: PathTreeData
 var _original_stage_override: int
 var _original_stages: Array[AdvancementStageResource]
@@ -110,6 +111,7 @@ func before_each() -> void:
 	_original_main_save_path = PersistenceManager.main_save_path
 	_original_backup_dir = PersistenceManager.backup_dir
 	_original_autosave = PersistenceManager.autosave_enabled
+	_original_autosave_at_launch = PersistenceManager._autosave_at_launch
 	_original_tree = PathManager.get_current_tree()
 	_original_stage_override = PathManager._test_stage_override
 	_original_stages = CultivationManager.advancement_stage_resources
@@ -150,6 +152,7 @@ func after_each() -> void:
 	GameSpeed.set_base_scale(1.0)
 	CultivationManager.advancement_stage_resources = _original_stages
 	PersistenceManager.autosave_enabled = _original_autosave
+	PersistenceManager._autosave_at_launch = _original_autosave_at_launch
 	PersistenceManager.main_save_path = _original_main_save_path
 	PersistenceManager.backup_dir = _original_backup_dir
 	PersistenceManager.use_save(_original_save, _original_save_path)
@@ -524,6 +527,35 @@ func test_leaving_your_save_saves_it_first() -> void:
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET, "precondition: the switch happened")
 	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 55.0, "your save was written on the way out")
+
+## The Saves tab's Autosave switch is for the session: turned off in a preset, it
+## must not carry over to your save, which would then never be saved, on a tick or
+## on quit. A switch comes up as a launch on its save would, so autosave is back to
+## what the run was launched with. Test runs launch with it off, so the test sets
+## the launch value itself.
+func test_a_switch_puts_autosave_back_to_the_launch_value() -> void:
+	_start_on_temp_main_save()
+	PersistenceManager._autosave_at_launch = true
+	DevManager.play_preset(_preset("test_autosave_off", ""))
+	await wait_process_frames(SWITCH_FRAMES)
+	PersistenceManager.autosave_enabled = false
+	DevManager.back_to_my_save()
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "precondition: your save is the session")
+	assert_true(PersistenceManager.autosave_enabled, "autosave is on again, as the run was launched")
+	ResourceManager.set_gold(77.0)
+	PersistenceManager.tick()
+	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 77.0, "so the tick saves your save")
+
+## The other way round: a run launched with --no-autosave keeps it off in the next
+## session, whatever the last one turned it to.
+func test_a_switch_puts_no_autosave_back_too() -> void:
+	PersistenceManager._autosave_at_launch = false
+	PersistenceManager.autosave_enabled = true
+	DevManager.play_preset(_preset("test_autosave_on", ""))
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET, "precondition: the switch ran")
+	assert_false(PersistenceManager.autosave_enabled, "autosave is off again, as the run was launched")
 
 ## Review Focus 4: the session returns to your save, which holds what it held.
 func test_a_failed_build_returns_to_your_save_untouched() -> void:

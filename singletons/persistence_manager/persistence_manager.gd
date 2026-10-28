@@ -66,8 +66,13 @@ var backup_dir: String = BACKUP_DIR
 
 ## False when the session must not save on its own (--no-autosave, and every GUT
 ## run): the SaveTimer's tick and the window's close then write nothing.
-## save_data() still writes when it is called.
+## save_data() still writes when it is called. The dev panel's Saves tab turns it
+## on and off for the session; a session switch puts back the run's launch value
+## (restore_launch_autosave()).
 var autosave_enabled: bool = true
+
+## What autosave_enabled was at launch: false after --no-autosave and in a GUT run.
+var _autosave_at_launch: bool = true
 
 ## Set when the session's save could not be read or checked, a newer build wrote
 ## it, or another run holds its lock or took the lock over. Nothing writes it
@@ -93,6 +98,7 @@ func _ready() -> void:
 	if LaunchOptions.is_test_run():
 		main_save_path = ""
 		autosave_enabled = false
+		_autosave_at_launch = false
 		use_save(SaveGameData.new_current(), "")
 		return
 	boot()
@@ -120,6 +126,7 @@ func _notification(what: int) -> void:
 func boot(options: LaunchOptions = null) -> void:
 	var launch: LaunchOptions = options if options != null else LaunchOptions.current()
 	autosave_enabled = not launch.no_autosave
+	_autosave_at_launch = autosave_enabled
 	if launch.preset_id != "":
 		use_save(SaveGameData.new_current(), launch.save_path)
 		# Under the lock use_save() took, before DevManager builds the preset.
@@ -209,6 +216,13 @@ func autosave() -> void:
 func tick() -> void:
 	_heartbeat()
 	autosave()
+
+## Puts autosave_enabled back to what the run was launched with (off after
+## --no-autosave and in a GUT run), whatever the session turned it to. DevManager
+## calls it at every switch, after the session it leaves is saved and before the
+## next one binds, so a session comes up as a launch on its save would.
+func restore_launch_autosave() -> void:
+	autosave_enabled = _autosave_at_launch
 
 #-----------------------------------------------------------------------------
 # STATUS

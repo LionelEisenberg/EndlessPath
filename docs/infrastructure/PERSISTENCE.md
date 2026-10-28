@@ -115,7 +115,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `save_path` | `String` | Where the session writes. `""` is a session in memory. It starts as `SAVE_PATH`; `--save=` replaces it, and a preset session sets it to the `--save` path, or `""` |
 | `main_save_path` | `String` | The user's own save, `SAVE_PATH`. `""` in a GUT run, which has none. A session that takes it on backs it up first |
 | `backup_dir` | `String` | Where the main save's backups go. `BACKUP_DIR` |
-| `autosave_enabled` | `bool` | False after `--no-autosave` and in a GUT run: the tick and the close then write nothing |
+| `autosave_enabled` | `bool` | False after `--no-autosave` and in a GUT run: the tick and the close then write nothing. The dev panel's Saves tab turns it on and off for the session, and a session switch puts the launch value back (`restore_launch_autosave()`) |
 | `save_data_reset` | signal | Emitted when a save becomes the session's, so every manager re-binds. At boot it reaches no one |
 
 | Function | Behaviour |
@@ -126,6 +126,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `save_data() -> Error` | Stamps `save_version`, then writes the save to `save_path` through a temp file. `ERR_UNAVAILABLE` for a session in memory, `ERR_LOCKED` while saving is blocked or once the lock's heartbeat finds the lock lost, writing nothing; otherwise what `SaveFiles.write_atomically()` returns |
 | `autosave()` | Calls `save_data()` when `autosave_enabled` and `can_write()`, and logs a failed write with `Log.error` |
 | `tick()` | The `SaveTimer`'s 5 s call: the lock's heartbeat (which beats with autosave off too), then `autosave()` |
+| `restore_launch_autosave()` | Puts `autosave_enabled` back to what the run was launched with, whatever the session turned it to. `DevManager` calls it at every switch, after the session it leaves is saved and before the next one binds |
 | `can_write() -> bool` | True when the session has a file and saving is not blocked |
 | `is_in_memory() -> bool` | True when `save_path` is `""` |
 | `is_save_blocked() -> bool` | True when the save could not be read or checked, a newer build wrote it, or another run holds its lock or took it over. Nothing writes it until another save becomes the session's |
@@ -382,7 +383,7 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 | `ActionManager` | Remembers the save its current action started under (see [Switching the save](#switching-the-save)); counts an adventure start in the play stats |
 | `MainGame` / `SaveTimer` | `SaveTimer` calls `PersistenceManager.tick()` every 5 s; `MainGame._process()` adds each frame to the playtime |
 | The play stats recorders | `EventManager`, `UnlockManager`, `CyclingManager`, `AdventureView`, `AdventureTilemap` and `ResourceManager` (see [Play stats](#play-stats)) |
-| `DevManager` | Builds a preset session (`use_save()` on a save it makes), switches sessions in game (`open_save_file()`, `use_save()`, `autosave()`, `backup_main_save()`, `save_data()`), copies the session's save into a snapshot preset and sets `stats.built_from_preset`. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#devmanager) |
+| `DevManager` | Builds a preset session (`use_save()` on a save it makes), switches sessions in game (`open_save_file()`, `use_save()`, `autosave()`, `restore_launch_autosave()`, `backup_main_save()`, `save_data()`), copies the session's save into a snapshot preset and sets `stats.built_from_preset`. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#devmanager) |
 | `Log` | Boot diagnostics (`Log.info` / `Log.warn` / `Log.error` / `Log.critical`) |
 | Tests | A GUT run plays a save in memory, so no test reads or writes the real save. Test files replace `PersistenceManager.save_game_data` with `SaveGameData.new()` and emit `save_data_reset`, and several more replace the inventory or a manager's `live_save_data`. The `PersistenceManager` tests build their own instances on temporary files ([TESTING.md](../testing/TESTING.md)) |
 
