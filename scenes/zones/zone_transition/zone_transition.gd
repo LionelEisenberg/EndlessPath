@@ -12,7 +12,7 @@ extends Node
 
 ## What the drain pours from the orb to the character: an opaque Madra pellet
 ## that moves in 2 px steps (lacquer kit §1 rules 4 and 6).
-const DRAIN_PELLET_SCENE: PackedScene = preload("res://scenes/zones/zone_transition/madra_pellet.tscn")
+const DRAIN_PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 const DRAIN_MIN_PARTICLES: int = 8
 const DRAIN_MAX_PARTICLES: int = 25
 const DRAIN_SPAWN_INTERVAL: float = 0.04
@@ -117,7 +117,7 @@ func _spawn_next_drain_particle() -> void:
 
 	var from_pos: Vector2 = _cultivator_plate.get_madra_orb_global_position()
 
-	var pellet: MadraPellet = DRAIN_PELLET_SCENE.instantiate()
+	var pellet: LacquerPellet = DRAIN_PELLET_SCENE.instantiate()
 	var offset: Vector2 = Vector2(randf_range(-15, 15), randf_range(-15, 15))
 	var duration: float = randf_range(DRAIN_PARTICLE_FLIGHT_TIME * 0.7, DRAIN_PARTICLE_FLIGHT_TIME)
 	var curve_spread: float = randf_range(80.0, 150.0)

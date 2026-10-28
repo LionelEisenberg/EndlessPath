@@ -72,7 +72,7 @@ const _SCATTER_X_STEP: int = 7
 const _SCATTER_Y_STEP: int = 11
 const _SCATTER_SPAN: int = 2 * XP_PELLET_SCATTER + 1
 
-const _MADRA_PELLET_SCENE: PackedScene = preload("res://scenes/zones/zone_transition/madra_pellet.tscn")
+const _MADRA_PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 const _FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn")
 
 ## The XP pellets' art by tier: the tier's colour.
@@ -271,8 +271,8 @@ static func _fit_lines(label: Label) -> void:
 #-----------------------------------------------------------------------------
 
 ## Instances a pellet into the effects layer, which draws over the board.
-func _add_pellet() -> MadraPellet:
-	var pellet: MadraPellet = _MADRA_PELLET_SCENE.instantiate() as MadraPellet
+func _add_pellet() -> LacquerPellet:
+	var pellet: LacquerPellet = _MADRA_PELLET_SCENE.instantiate() as LacquerPellet
 	_effects_layer.add_child(pellet)
 	return pellet
 
@@ -280,7 +280,7 @@ func _add_pellet() -> MadraPellet:
 ## layer holds none even before the frees land.
 func _free_pellets() -> void:
 	for child: Node in _effects_layer.get_children():
-		if child is MadraPellet:
+		if child is LacquerPellet:
 			_effects_layer.remove_child(child)
 			child.queue_free()
 
@@ -381,7 +381,7 @@ func _on_cycle_completed(result: CycleResult) -> void:
 func _on_madra_particle_requested(from_pos: Vector2) -> void:
 	if cultivator_plate == null:
 		return
-	var pellet: MadraPellet = _add_pellet()
+	var pellet: LacquerPellet = _add_pellet()
 	pellet.launch(from_pos, cultivator_plate.get_madra_orb_global_position(), MADRA_PELLET_FLIGHT, MADRA_PELLET_SPREAD)
 
 ## A zone scored: its floater pops with the hit and its XP in the tier's colour,
@@ -402,7 +402,7 @@ func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> voi
 	var target: Vector2 = cultivator_plate.get_core_orb_global_position()
 	var texture: Texture2D = _pellet_texture(tier)
 	for k: int in CyclingRules.pellet_count(tier):
-		var pellet: MadraPellet = _add_pellet()
+		var pellet: LacquerPellet = _add_pellet()
 		pellet.set_texture(texture)
 		pellet.launch(
 			zone.global_position + xp_pellet_offset(k),

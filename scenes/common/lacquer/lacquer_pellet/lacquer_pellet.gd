@@ -1,4 +1,4 @@
-class_name MadraPellet
+class_name LacquerPellet
 extends Node2D
 
 ## One pellet of the Madra drain that runs when an adventure starts: it flies

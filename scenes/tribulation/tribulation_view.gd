@@ -110,7 +110,7 @@ const HELD_WORD: String = "Held"
 ## The result panel's counts: the perfect hits, the good ones and the cracks.
 const STATS_FORMAT: String = "%d perfect · %d good · %d missed"
 
-const _PELLET_SCENE: PackedScene = preload("res://scenes/zones/zone_transition/madra_pellet.tscn")
+const _PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 const _BRASS_PELLET: Texture2D = preload("res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_brass_ai.png")
 
 #-----------------------------------------------------------------------------
@@ -559,8 +559,8 @@ func _stream_rush(now: int) -> void:
 
 ## Instances a pellet on the stage, over the core and under the floaters, in `texture`
 ## (the Madra pellet's own art when null).
-func _add_pellet(texture: Texture2D) -> MadraPellet:
-	var pellet: MadraPellet = _PELLET_SCENE.instantiate() as MadraPellet
+func _add_pellet(texture: Texture2D) -> LacquerPellet:
+	var pellet: LacquerPellet = _PELLET_SCENE.instantiate() as LacquerPellet
 	_pellets.add_child(pellet)
 	if texture != null:
 		pellet.set_texture(texture)

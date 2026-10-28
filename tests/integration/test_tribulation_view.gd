@@ -170,24 +170,24 @@ func _shown_texts() -> Array[String]:
 	return texts
 
 ## The pellets in flight.
-func _pellets() -> Array[MadraPellet]:
-	var pellets: Array[MadraPellet] = []
+func _pellets() -> Array[LacquerPellet]:
+	var pellets: Array[LacquerPellet] = []
 	for child: Node in _node("Pellets").get_children():
-		if child is MadraPellet:
-			pellets.append(child as MadraPellet)
+		if child is LacquerPellet:
+			pellets.append(child as LacquerPellet)
 	return pellets
 
 ## How many pellets in flight wear the brass art.
 func _brass_pellet_count() -> int:
 	var count: int = 0
-	for pellet: MadraPellet in _pellets():
+	for pellet: LacquerPellet in _pellets():
 		var sprite := pellet.get_node("%Sprite") as Sprite2D
 		if sprite.texture != null and sprite.texture.resource_path == BRASS_PELLET_PATH:
 			count += 1
 	return count
 
 ## How far `pellet` stands from the core.
-func _distance_from_core(pellet: MadraPellet) -> float:
+func _distance_from_core(pellet: LacquerPellet) -> float:
 	return pellet.global_position.distance_to((_node("Stage") as TribulationStage).centre_global())
 
 ## The six crack pips, in order.
@@ -394,7 +394,7 @@ func test_hits_burst_pellets_off_the_ring() -> void:
 	_view.handle_press_event(_press())
 	assert_eq(_pellets().size(), 8, "a perfect hit sends 8 pellets")
 	var off_the_ring: int = 0
-	for pellet: MadraPellet in _pellets():
+	for pellet: LacquerPellet in _pellets():
 		if absf(_distance_from_core(pellet) - TribulationStage.RING_RADIUS_PX) <= 2.0:
 			off_the_ring += 1
 	assert_eq(off_the_ring, 8, "each starts on the ring")
@@ -473,7 +473,7 @@ func test_the_rush_streams_pellets_into_the_core() -> void:
 	assert_eq(_pellets().size(), before, "no rush before Quickening")
 	_at(24.2)
 	assert_eq(_pellets().size(), before + 1, "Quickening streams a pellet")
-	var newest: MadraPellet = _pellets()[-1]
+	var newest: LacquerPellet = _pellets()[-1]
 	assert_almost_eq(_distance_from_core(newest), 460.0, 2.0, "from 460 px out")
 	_at(24.25)
 	assert_eq(_pellets().size(), before + 1, "none before 0.1 s has passed")

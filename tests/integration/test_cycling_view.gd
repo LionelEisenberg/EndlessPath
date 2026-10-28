@@ -153,18 +153,18 @@ func _approach_zone_0(within: float) -> CyclingZone:
 	return zone
 
 ## The Madra and XP pellets in the effects layer, in the order they were sent.
-func _pellets() -> Array[MadraPellet]:
-	var found: Array[MadraPellet] = []
+func _pellets() -> Array[LacquerPellet]:
+	var found: Array[LacquerPellet] = []
 	for child: Node in _effects.get_children():
-		if child is MadraPellet:
-			found.append(child as MadraPellet)
+		if child is LacquerPellet:
+			found.append(child as LacquerPellet)
 	return found
 
 ## The pellets in the effects layer that show the texture at `path`.
-func _pellets_showing(path: String) -> Array[MadraPellet]:
+func _pellets_showing(path: String) -> Array[LacquerPellet]:
 	var texture: Texture2D = load(path)
-	var found: Array[MadraPellet] = []
-	for pellet: MadraPellet in _pellets():
+	var found: Array[LacquerPellet] = []
+	for pellet: LacquerPellet in _pellets():
 		if (pellet.get_node("%Sprite") as Sprite2D).texture == texture:
 			found.append(pellet)
 	return found
@@ -595,7 +595,7 @@ func test_madra_pellets_fly_from_the_ball() -> void:
 	_technique.start_cycle()
 	_run(0.2, 60.0, true)
 	assert_eq(_pellets().size(), 2, "two 0.08 s steps of Madra in 0.2 s")
-	for pellet: MadraPellet in _pellets():
+	for pellet: LacquerPellet in _pellets():
 		assert_eq((pellet.get_node("%Sprite") as Sprite2D).texture.resource_path, MADRA_PELLET_PATH, "Madra pellets keep the Madra-blue art")
 
 func test_madra_pellets_leave_the_drawn_ball() -> void:
@@ -613,7 +613,7 @@ func test_madra_pellets_leave_the_drawn_ball() -> void:
 func test_madra_pellets_land_in_the_madra_orb() -> void:
 	_technique.start_cycle()
 	_run(0.2, 60.0, true)
-	var pellet: MadraPellet = _pellets()[0]
+	var pellet: LacquerPellet = _pellets()[0]
 	pellet._process(CyclingView.MADRA_PELLET_FLIGHT)
 	assert_eq(pellet.global_position, _plate.get_madra_orb_global_position())
 	assert_true(pellet.is_queued_for_deletion(), "it is gone once it lands")
@@ -621,7 +621,7 @@ func test_madra_pellets_land_in_the_madra_orb() -> void:
 func test_madra_pellets_take_their_flight_time() -> void:
 	_technique.start_cycle()
 	_run(0.1, 60.0, true)
-	var pellet: MadraPellet = _pellets()[0]
+	var pellet: LacquerPellet = _pellets()[0]
 	# A Madra pellet flies for 0.6 s.
 	pellet._process(0.55)
 	assert_false(pellet.is_queued_for_deletion(), "still flying after 0.55 s")
@@ -674,7 +674,7 @@ func test_each_tier_pops_its_floater_and_sends_its_pellets() -> void:
 	]
 	for case: Array in cases:
 		_technique.stop_cycling()
-		for pellet: MadraPellet in _pellets():
+		for pellet: LacquerPellet in _pellets():
 			_effects.remove_child(pellet)
 			pellet.queue_free()
 		var zone: CyclingZone = _approach_zone_0(case[1])
@@ -691,28 +691,28 @@ func test_each_tier_pops_its_floater_and_sends_its_pellets() -> void:
 func test_xp_pellets_start_around_the_zone_and_land_in_the_core_orb() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	_technique.try_score_zone(zone)
-	var pellets: Array[MadraPellet] = _pellets()
+	var pellets: Array[LacquerPellet] = _pellets()
 	assert_gt(pellets.size(), 0, "precondition: pellets flew")
-	for pellet: MadraPellet in pellets:
+	for pellet: LacquerPellet in pellets:
 		var offset: Vector2 = pellet.global_position - zone.global_position
 		assert_true(absf(offset.x) <= 8.0 and absf(offset.y) <= 8.0, "a pellet starts within 7 px of the zone's centre (plus the 2 px grid): %s" % offset)
 		assert_eq(fposmod(pellet.global_position.x, 2.0), 0.0)
 		assert_eq(fposmod(pellet.global_position.y, 2.0), 0.0)
 	var starts: Dictionary = {}
-	for pellet: MadraPellet in pellets:
+	for pellet: LacquerPellet in pellets:
 		starts[pellet.global_position] = true
 	assert_gt(starts.size(), 1, "the pellets do not all leave from one point")
-	for pellet: MadraPellet in pellets:
+	for pellet: LacquerPellet in pellets:
 		pellet._process(10.0)
 		assert_eq(pellet.global_position, _plate.get_core_orb_global_position(), "XP pellets land in the Core orb")
 
 func test_xp_pellets_arrive_one_after_another() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	_technique.try_score_zone(zone)
-	var pellets: Array[MadraPellet] = _pellets()
+	var pellets: Array[LacquerPellet] = _pellets()
 	assert_eq(pellets.size(), 3, "an OK hit sends three pellets")
 	# Their flights are 0.55 s, 0.58 s and 0.61 s.
-	for pellet: MadraPellet in pellets:
+	for pellet: LacquerPellet in pellets:
 		pellet._process(0.56)
 	assert_true(pellets[0].is_queued_for_deletion(), "the first takes 0.55 s")
 	assert_false(pellets[1].is_queued_for_deletion(), "the second takes 0.58 s")
@@ -897,11 +897,11 @@ func test_hiding_the_view_frees_the_pellets_in_flight() -> void:
 	# board reopened within its flight.
 	var zone: CyclingZone = _approach_zone_0(0.0)
 	assert_true(_technique.try_score_zone(zone))
-	var flying: Array[MadraPellet] = _pellets()
+	var flying: Array[LacquerPellet] = _pellets()
 	assert_gt(flying.size(), 0, "precondition: the hit's pellets are in flight")
 	_view.hide()
 	assert_eq(_pellets().size(), 0, "the effects layer holds no pellet")
-	for pellet: MadraPellet in flying:
+	for pellet: LacquerPellet in flying:
 		assert_true(pellet.is_queued_for_deletion(), "each pellet is freed, not just left out of the tree")
 	assert_eq(_floaters().size(), 4, "the floaters stay for the next cycle")
 	await _await_queued_frees()
