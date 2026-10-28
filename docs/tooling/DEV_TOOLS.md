@@ -343,7 +343,7 @@ The speed is the base that a moment which slows time comes back to: the boss hit
 3. The main scene is freed when it is the current scene. It never is under GUT, where the runner is, so a test run unloads and reloads no scene.
 4. The new session binds: a build, a file opened again, or the new-game, keep and restore steps. A switch that fails here logs `Log.error` with the reason, brings back the session it left (your save opens again from disk, a preset is built again where it was written, a file opens again; when even that fails, `fresh_fallback` in memory), and emits `session_switch_failed`. A preset session comes back as its preset built again, not as it was played.
 5. The player's log is cleared and gets one `[DEV]` line naming the new session ("Started preset 'X'", "Restarted preset 'X'", "Back to your save", ...).
-6. The main scene loads again, when step 3 freed it, and `session_changed` is emitted. Views build from manager state, so the game comes up as a launch on that save would (an adventure's map is the exception: see [Work Remaining](#work-remaining)).
+6. The main scene loads again, when step 3 freed it, and `session_changed` is emitted. Views build from manager state, so the game comes up as a launch on that save would.
 
 A switch is refused at call time, before anything changes (`Log.error`, `get_last_switch_failure()`, `session_switch_failed`), when:
 
@@ -506,7 +506,6 @@ Tests: `tests/unit/test_dev_*.gd` and `tests/integration/test_dev_*.gd`, among o
 
 ### Bugs
 
-- `[HIGH]` After a session switch, an adventure draws no map and cannot be walked. A switch loads the main scene again, and the hex layers of the new scene never get the addon's set-up ([ADVENTURING.md](../adventuring/ADVENTURING.md), Code Quality): the adventure's start logs hundreds of `cube_to_map()` errors and a `SCRIPT ERROR` ("Out of bounds get index '0'", from `hexagon_tilemap.gd`), the map area stays empty and a click on a tile finds no path. A switch from the zone view is enough, and a first launch is not affected. Emitting the shared tileset's `changed` signal once after the reload makes the adventure work.
 - `[LOW]` A switch that writes the user's save takes no backup when only the save's temp file is there (a write cut short left it, and it may be the only copy), and then writes over it. The boot backup does take it.
 - `[LOW]` `StoryRouteData.validate()` and `SavePresetData.validate()` call `validate()` on each step, so an empty slot in `steps` (the Inspector adds one before a resource is chosen) is a script error, not a listed problem.
 - `[LOW]` `save_as_preset()` checks the id against the presets it can load but writes `<id>.tres`, so a file of that name holding another id is overwritten. `get_presets()` also reads a stray `<id>.tmp.tres` that a cut-short write left in a preset folder.

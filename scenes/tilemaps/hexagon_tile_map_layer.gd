@@ -34,6 +34,12 @@ func set_hovered_cell(cell: Vector2i) -> void:
 	_last_hovered_coord = cell if get_cell_source_id(cell) != -1 else _NO_HOVERED_COORD
 
 func _ready() -> void:
+	# The addon's own set-up: the cube<->map conversions, the neighbour directions
+	# and, with pathfinding on, the A* graph. Otherwise a layer gets the first two
+	# only from its tileset's `changed` signal, sent just after the tileset loads,
+	# which a layer entering the tree any later never hears (the main scene a
+	# session switch reloads).
+	super()
 	if position != HEX_TILE_OFFSET:
 		Log.warn("HexagonalTileMapLayer: TileMapLayer is not in the right position, it won't look right!")
 
