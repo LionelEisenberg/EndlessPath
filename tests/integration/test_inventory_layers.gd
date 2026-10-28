@@ -13,6 +13,11 @@ const ANIMATION_TIMEOUT: float = 2.0
 # FIXTURES
 #-----------------------------------------------------------------------------
 
+func after_each() -> void:
+	# The Equipment tab's PaginationBar.setup() frees the page buttons it
+	# replaces a frame late: let that frame pass so GUT counts no orphans.
+	await wait_process_frames(1)
+
 ## Stands in for a tab: counts open_page() calls and notes whether it was
 ## already showing when it was called.
 class OpenPageSpy:
