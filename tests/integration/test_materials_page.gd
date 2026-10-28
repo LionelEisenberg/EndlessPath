@@ -1,11 +1,11 @@
 extends GutTest
 
 ## The Materials tab pressed into the book's pages (spec: Materials). The left
-## page holds the caption "N KINDS" and the same 6 × 6 page of slots as
-## Equipment: each material in a deep slot with its count on a paper tag, the
-## rest of the page shallow, and past 36 kinds the page scrolls. The right
-## page's title is the material's name; under it the details panel says how
-## many the player has, the description and where the material is gathered.
+## page holds the same 6 × 6 page of slots as Equipment, with no caption over
+## it: each material in a deep slot with its count on a paper tag, the rest of
+## the page shallow, and past 36 kinds the page scrolls. The right page's title
+## is the material's name; under it the details panel shows how many the player
+## has on a tag at its top right, the description and the zones it is found in.
 ## The details follow the pointer and keep to the material the player picked.
 
 const InventoryViewScene: PackedScene = preload("res://scenes/inventory/inventory_view/inventory_view.tscn")
@@ -100,7 +100,7 @@ func _right_title(tab: Control) -> Label:
 	return tab.get_node("%RightTitle").get_node("%TitleLabel") as Label
 
 func _amount(tab: Control) -> String:
-	return (_details(tab).get_node("%AmountLabel") as Label).text
+	return (_details(tab).get_node("%CountTag") as Label).text
 
 func _table_rows(tab: Control) -> Array[TableRow]:
 	var rows: Array[TableRow] = []
@@ -152,7 +152,6 @@ func test_slots_carry_their_counts_on_tags() -> void:
 	var slots: Array[MaterialSlot] = _slots(tab)
 	assert_eq((slots[0].get_node("%Count") as Label).text, "×4600")
 	assert_eq((slots[1].get_node("%Count") as Label).text, "×3300")
-	assert_eq((tab.get_node("%KindsLabel") as Label).text, "2 KINDS")
 
 func test_the_page_is_a_full_six_by_six() -> void:   # spec: the same 6 × 6 page as Equipment
 	_gather_both()
@@ -173,9 +172,6 @@ func test_the_page_is_a_full_six_by_six() -> void:   # spec: the same 6 × 6 pag
 func test_pieces_sit_where_the_spec_puts_them() -> void:
 	_gather_both()
 	var tab: Control = await _open_tab()
-	var kinds: Label = tab.get_node("%KindsLabel") as Label
-	assert_eq(kinds.get_global_rect().get_center().x, 678.0, "the caption is centred on the left page")
-	assert_eq(_baseline(kinds), 316.0, "the caption row's baseline")
 	assert_eq((tab.get_node("%MaterialsInventoryGrid") as Control).get_global_rect(), Rect2(452, 334, 452, 452))
 	var slots: Array[MaterialSlot] = _slots(tab)
 	assert_eq(slots[0].get_global_rect(), Rect2(452, 334, 72, 72), "the first slot")
@@ -191,10 +187,12 @@ func test_pieces_sit_where_the_spec_puts_them() -> void:
 	assert_eq(fmod(second_tag.position.x, 2.0), 0.0, "and starts on an even x")
 	assert_eq((slots[0].get_node("%Marks") as Control).get_global_rect(), Rect2(446, 328, 84, 84), "marks 6 px outside the slot")
 
-func test_one_kind_reads_singular() -> void:
+## 2026-10-28 review: no "N KINDS" caption; the row over the grid stays empty,
+## kept for a selector.
+func test_no_caption_over_the_grid() -> void:
 	InventoryManager.award_items(SPIRIT_FERN, 3)
 	var tab: Control = _tab()
-	assert_eq((tab.get_node("%KindsLabel") as Label).text, "1 KIND")
+	assert_null(tab.find_child("KindsLabel", true, false))
 
 func test_more_than_36_kinds_scroll() -> void:
 	_stock_kinds(36)
@@ -248,12 +246,8 @@ func test_hovering_dewdrop_describes_it() -> void:
 	var slots: Array[MaterialSlot] = _slots(tab)
 	slots[1].hovered.emit(slots[1])
 	assert_eq(_right_title(tab).text, "Dewdrop Tear")
-	assert_eq(_amount(tab), "You have 3,300")
-	assert_eq(_table(tab), [
-		["GATHERED BY", "Spring Forest Foraging"],
-		["IN", "Spirit Valley"],
-		["YIELD", "1–5 every 5 s"],
-	])
+	assert_eq(_amount(tab), "×3,300")
+	assert_eq(_table(tab), [["FOUND IN", "Spirit Valley"]], "where to find it: its zones, nothing more")
 	assert_eq((_details(tab).get_node("%Description") as Label).text, DEWDROP_TEAR.description)
 	assert_eq((_details(tab).get_node("%Icon") as TextureRect).texture, DEWDROP_TEAR.icon)
 	assert_eq((_details(tab).get_node("%KindLabel") as Label).text, "MATERIAL")
@@ -289,19 +283,19 @@ func test_foraging_keeps_the_shown_material() -> void:   # Review Focus 3
 	InventoryManager.award_items(SPIRIT_FERN, 5)   # a foraging roll while the book is open
 	assert_eq(_details(tab).get_shown_material(), DEWDROP_TEAR)
 	assert_eq(_right_title(tab).text, "Dewdrop Tear")
-	assert_eq(_amount(tab), "You have 3,300")
+	assert_eq(_amount(tab), "×3,300")
 	var rebuilt: Array[MaterialSlot] = _slots(tab)
 	assert_eq((rebuilt[0].get_node("%Count") as Label).text, "×4605", "the grid was rebuilt")
 	assert_true(rebuilt[1].is_marked(), "the marks follow the material to its new slot")
 	assert_false(rebuilt[0].is_marked())
 
-func test_amount_follows_its_stack() -> void:
+func test_count_follows_its_stack() -> void:
 	_gather_both()
 	var tab: Control = _tab()
 	var slots: Array[MaterialSlot] = _slots(tab)
 	slots[1].hovered.emit(slots[1])
 	InventoryManager.award_items(DEWDROP_TEAR, 5)
-	assert_eq(_amount(tab), "You have 3,305")
+	assert_eq(_amount(tab), "×3,305")
 
 func test_a_material_leaving_the_bag_gives_way_to_the_first() -> void:   # Review Focus 4
 	_gather_both()
@@ -344,7 +338,7 @@ func test_sources_are_worked_out_when_the_page_opens() -> void:   # spec: Data t
 	_unlock_foraging()
 	tab.open_page()
 	assert_true(sources.is_visible_in_tree(), "opening the page again finds it")
-	assert_eq(_table_rows(tab).size(), 3)
+	assert_eq(_table_rows(tab).size(), 1, "its one zone")
 
 func test_a_material_without_sources_hides_the_table() -> void:
 	InventoryManager.award_items(_material("moon_moss", "Moon Moss"), 2)
@@ -395,21 +389,23 @@ func test_details_lay_spirit_fern_out_as_the_mockup_does() -> void:   # Ruling R
 	_gather_both()
 	var tab: Control = await _open_tab()
 	var details: MaterialDetails = _details(tab)
-	assert_eq(details.get_global_rect(), Rect2(1008, 300, 468, 346), "spec: (1008, 300) to (1476, 646)")
+	assert_eq(details.get_global_rect(), Rect2(1008, 300, 468, 286), "the spec's (1008, 300), one row shorter than its table of three")
 	assert_eq((details.get_node("%Icon").get_parent() as Control).get_global_rect(), Rect2(1024, 316, 72, 72), "the deep slot")
 	var kind: Label = details.get_node("%KindLabel") as Label
 	assert_eq(kind.get_global_rect().position.x, 1114.0, "MATERIAL 2 px in, its ink at the mockup's x 1114 (Ruling R22)")
 	assert_eq(_baseline(kind), 350.0, "MATERIAL")
-	var amount: Label = details.get_node("%AmountLabel") as Label
-	assert_eq(amount.get_global_rect().position.x, 1112.0)
-	assert_eq(_baseline(amount), 382.0, "You have 4,600")
+	var count: Label = details.get_node("%CountTag") as Label
+	assert_eq(count.text, "×4,600")
+	assert_eq(count.get_global_rect().end.x, 1458.0, "the count's tag at the top right, on the text's right edge")
+	assert_eq(_baseline(count), 350.0, "on MATERIAL's baseline")
+	assert_eq(fmod(count.get_global_rect().position.x, 2.0), 0.0, "and on the 2 px grid")
 	var description: Label = details.get_node("%Description") as Label
 	assert_eq(description.get_global_rect().position.x, 1024.0)
 	assert_eq(description.get_line_count(), 2)
 	assert_eq(_baseline(description), 436.0, "the description")
 	assert_eq(_gap_over_table(tab), TABLE_GAP, "the gap every material keeps over its table")
 	var rows: Array[TableRow] = _table_rows(tab)
-	assert_eq(rows.size(), 3)
+	assert_eq(rows.size(), 1, "FOUND IN, Spirit Valley")
 	for index: int in rows.size():
 		var baseline: float = 556.0 + 30.0 * index
 		assert_eq(_baseline(rows[index].get_node("%Label") as Label), baseline, "row %d's label" % index)
@@ -424,7 +420,7 @@ func test_huge_counts_fit() -> void:   # Review Focus 2
 	var tag: Label = slot.get_node("%Count") as Label
 	assert_eq(tag.text, "×1234567")
 	assert_true(slot.get_global_rect().encloses(tag.get_global_rect()), "the tag fits on its slot")
-	assert_eq(_amount(tab), "You have 1,234,567")
+	assert_eq(_amount(tab), "×1,234,567")
 	assert_eq(PageBounds.escaping_text(tab), [] as Array[String])
 
 func test_long_names_stay_inside_the_pages() -> void:   # Review Focus 1, ruling 2

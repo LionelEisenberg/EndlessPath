@@ -10,27 +10,11 @@ offset_bottom = 72.0
 theme_override_constants/separation = 16
 script = ExtResource("2_script")
 
-[node name="PageBox" type="MarginContainer" parent="."]
-layout_mode = 2
-size_flags_vertical = 4
-mouse_filter = 2
-theme_override_constants/margin_left = 48
-theme_override_constants/margin_right = 4
-
-[node name="PageLabel" type="Label" parent="PageBox"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(36, 22)
-layout_mode = 2
-size_flags_vertical = 4
-theme_type_variation = &"LabelBookCaps"
-text = "PAGE"
-vertical_alignment = 2
-
 [node name="PageButtons" type="HBoxContainer" parent="." unique_id=1459869600]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="PageButton1" parent="PageButtons" unique_id=1405629973 instance=ExtResource("4_pagebutton")]
 layout_mode = 2

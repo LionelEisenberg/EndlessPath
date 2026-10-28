@@ -3,16 +3,16 @@ extends PanelContainer
 
 ## ConsumableDetails
 ## The Hotbar page's details panel, pressed into the paper under the hotbar:
-## the consumable the player last pointed at, in a deep slot beside its name
-## and "CONSUMABLE" ("CONSUMABLE · IN SLOT n" while it sits on the hotbar), a
-## table of what it does (one TableRow per effect, then its cooldown), its
-## description and a hint. The panel grows downward with its text.
+## the consumable the player last pointed at, in a deep slot beside its name, a
+## table of what it does (one TableRow per effect, then its cooldown) and its
+## description. The panel grows downward with its text.
 ##
-## Laid out to the mockup's Crude Scale, which fills the spec's (1008, 512) to
-## (1476, 824). Down the panel's content, the name's baseline sits at 40, the
-## caption 26 px under the name's last line, the table's baselines from 112,
-## 30 px apart, the description's from 184 and the hint's at 278. The hint's
-## line runs 3 px into the panel's bottom padding, as in the mockup.
+## The name is centred on the slot: a long one wraps and stays centred. There
+## is no caption under it and no hint (2026-10-28 review): the hotbar's own
+## line says how to equip, and its slots show what is on them. Down the panel's
+## content, the table's baselines sit from 112, 30 px apart, and the
+## description's from 184; the panel ends 34 px under the description's last
+## baseline, as the Journal's item panel does.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -20,10 +20,6 @@ extends PanelContainer
 
 const _TABLE_ROW_SCENE: PackedScene = preload("res://scenes/inventory/pressed/table_row/table_row.tscn")
 
-## The caption under the name.
-const _KIND: String = "CONSUMABLE"
-## Added to the caption while the consumable sits on the hotbar.
-const _IN_SLOT: String = " · IN SLOT %d"
 ## The cooldown row's caption.
 const _COOLDOWN: String = "COOLDOWN"
 
@@ -33,7 +29,6 @@ const _COOLDOWN: String = "COOLDOWN"
 
 @onready var _icon: TextureRect = %Icon
 @onready var _name_label: Label = %NameLabel
-@onready var _kind_label: Label = %KindLabel
 @onready var _effects_block: MarginContainer = %EffectsBlock
 @onready var _effects: VBoxContainer = %Effects
 @onready var _description: Label = %Description
@@ -48,18 +43,15 @@ var _def: ConsumableDefinitionData = null
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Shows `def` and makes the panel visible. `hotbar_slot` is the hotbar slot
-## (0 to 3) holding it, or -1 when it is not on the hotbar. Showing the
-## consumable already shown only refreshes its slot. A null `def` clears the
-## panel.
-func show_consumable(def: ConsumableDefinitionData, hotbar_slot: int) -> void:
+## Shows `def` and makes the panel visible. Showing the consumable already
+## shown reprints nothing. A null `def` clears the panel.
+func show_consumable(def: ConsumableDefinitionData) -> void:
 	if def == null:
 		clear()
 		return
 	if def != _def:
 		_def = def
 		_print(def)
-	_kind_label.text = _KIND if hotbar_slot < 0 else _KIND + _IN_SLOT % (hotbar_slot + 1)
 	visible = true
 
 ## Empties the panel and hides it.

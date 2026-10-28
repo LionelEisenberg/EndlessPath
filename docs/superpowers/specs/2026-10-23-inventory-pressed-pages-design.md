@@ -1,7 +1,7 @@
 # Inventory: pressed pages for the four tabs
 
 Date: 2026-10-23
-Status: Designed from the brainstorm (mockup rounds 1 to 7) and built 2026-10-23 to 28. Where the build departs from this design or its plan, the plan's "As built" section says so.
+Status: Designed from the brainstorm (mockup rounds 1 to 7) and built 2026-10-23 to 28, then revised after the user's review of 2026-10-28. Where the build departs from this design or its plan, the plan's "As built" section says so.
 Mockup: [inventory-pressed-mockup.html](../mockups/inventory-pressed-mockup.html) (open it in a browser; images 1:1 with the 1920x1080 viewport)
 
 ## Intent

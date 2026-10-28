@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scenes/inventory/inventory_view/quest_items_tab/journal_details/journal_details.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png" id="2_well"]
 [ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="3_wrap_pad"]
+[ext_resource type="PackedScene" uid="uid://bnmg8xqwd7dp4" path="res://scenes/inventory/pressed/paper_tag/paper_tag.tscn" id="4_tag"]
 
 [node name="JournalDetails" type="VBoxContainer"]
 offset_right = 468.0
@@ -81,46 +82,30 @@ theme_override_constants/margin_top = 33
 theme_override_constants/margin_right = 2
 theme_override_constants/margin_bottom = 12
 
-[node name="Description" type="VBoxContainer" parent="ItemPanel/Flow/DescriptionBlock"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 5
-
-[node name="CapRow" type="HBoxContainer" parent="ItemPanel/Flow/DescriptionBlock/Description"]
+[node name="Description" type="Label" parent="ItemPanel/Flow/DescriptionBlock"]
 unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 10
-
-[node name="CapBox" type="MarginContainer" parent="ItemPanel/Flow/DescriptionBlock/Description/CapRow"]
-layout_mode = 2
-size_flags_vertical = 0
-mouse_filter = 2
-theme_override_constants/margin_top = -15
-theme_override_constants/margin_bottom = -7
-
-[node name="DropCap" type="Label" parent="ItemPanel/Flow/DescriptionBlock/Description/CapRow/CapBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"LabelBookDropCap"
-text = "A"
-
-[node name="NarrowText" type="Label" parent="ItemPanel/Flow/DescriptionBlock/Description/CapRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(390, 0)
-layout_mode = 2
-size_flags_vertical = 0
-theme_type_variation = &"LabelBookInk"
-text = "hand-drawn map leading to a camp of survivors hidden in the valley."
-autowrap_mode = 3
-
-[node name="RestText" type="Label" parent="ItemPanel/Flow/DescriptionBlock/Description"]
-unique_name_in_owner = true
-visible = false
 custom_minimum_size = Vector2(434, 0)
 layout_mode = 2
 theme_type_variation = &"LabelBookInk"
+text = "A hand-drawn map leading to a camp of survivors hidden in the valley."
 autowrap_mode = 3
+
+[node name="TagLayer" type="Control" parent="ItemPanel"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ZoneTag" parent="ItemPanel/TagLayer" instance=ExtResource("4_tag")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -114.0
+offset_top = 18.0
+offset_right = -2.0
+offset_bottom = 38.0
+grow_horizontal = 0
+text = "SPIRIT VALLEY"
 
 [node name="QuestPanel" type="PanelContainer" parent="."]
 unique_name_in_owner = true

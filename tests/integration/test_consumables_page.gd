@@ -221,7 +221,6 @@ func test_hovering_a_row_marks_it_and_shows_it() -> void:
 	assert_true(rows[1].is_marked())
 	assert_false(rows[0].is_marked())
 	assert_eq((_details(tab).get_node("%NameLabel") as Label).text, "Spirit Tea")
-	assert_eq((_details(tab).get_node("%KindLabel") as Label).text, "CONSUMABLE")
 
 func test_clicking_a_row_shows_it() -> void:
 	InventoryManager.award_items(CRUDE, 1)
@@ -233,11 +232,18 @@ func test_clicking_a_row_shows_it() -> void:
 	assert_eq(_details(tab).get_consumable(), tea)
 	assert_true(rows[1].is_marked())
 
-func test_details_name_the_hotbar_slot() -> void:
+## 2026-10-28 review: the name stands alone beside the icon, with no
+## "CONSUMABLE · IN SLOT n" caption, and the panel ends on the description, with
+## no hint: the hotbar shows what sits in each slot and its own line says how to
+## fill one.
+func test_details_print_no_caption_and_no_hint() -> void:
 	InventoryManager.award_items(CRUDE, 1)
 	var tab: Control = _tab()
 	InventoryManager.equip_consumable(CRUDE, 0)
-	assert_eq((_details(tab).get_node("%KindLabel") as Label).text, "CONSUMABLE · IN SLOT 1")
+	var details: ConsumableDetails = _details(tab)
+	assert_eq(details.get_consumable(), CRUDE)
+	assert_null(details.find_child("KindLabel", true, false), "no caption under the name")
+	assert_null(details.find_child("Hint", true, false), "no hint at the foot")
 
 func test_hovering_a_filled_hotbar_slot_shows_its_consumable() -> void:
 	InventoryManager.award_items(CRUDE, 1)
@@ -249,7 +255,6 @@ func test_hovering_a_filled_hotbar_slot_shows_its_consumable() -> void:
 	var slot2: HotbarSlot = _hotbar_slot(tab, 2)
 	slot2.hovered.emit(slot2)
 	assert_eq(_details(tab).get_consumable(), tea)
-	assert_eq((_details(tab).get_node("%KindLabel") as Label).text, "CONSUMABLE · IN SLOT 3")
 	assert_true(slot2.is_marked(), "the marks sit round the slot pointed at")
 	assert_false(rows[0].is_marked(), "and leave the row shown before")
 	assert_false(rows[1].is_marked())
@@ -335,7 +340,6 @@ func test_the_marks_fall_back_to_the_row_when_the_slot_loses_its_consumable() ->
 	assert_false(slot.is_marked())
 	assert_true(_rows(tab)[0].is_marked())
 	assert_eq(_details(tab).get_consumable(), CRUDE)
-	assert_eq((_details(tab).get_node("%KindLabel") as Label).text, "CONSUMABLE")
 
 func test_empty_pack_says_so() -> void:
 	var tab: Control = await _open_tab()
@@ -469,7 +473,6 @@ func test_details_print_the_effects_and_the_cooldown() -> void:   # Ruling R16
 	assert_eq((rows[1].get_node("%Value") as RichTextLabel).text, "10 s")
 	assert_eq((rows[0].get_node("%Value") as RichTextLabel).theme_type_variation, &"RichTextBookValue")
 	assert_eq((_details(tab).get_node("%Description") as Label).text, CRUDE.description)
-	assert_eq((_details(tab).get_node("%Hint") as Label).text, "Drag it onto the hotbar")
 	assert_eq((_details(tab).get_node("%Icon") as TextureRect).texture, CRUDE.icon)
 
 func test_decimal_amounts_keep_their_madra_ink() -> void:   # Rulings 1 and 2
@@ -487,13 +490,11 @@ func test_details_lay_the_crude_scale_out_as_the_mockup_does() -> void:   # Ruli
 	InventoryManager.equip_consumable(CRUDE, 0)
 	var tab: Control = await _open_tab()
 	var details: ConsumableDetails = _details(tab)
-	assert_eq(details.get_global_rect(), Rect2(1008, 512, 468, 312), "spec: (1008, 512) to (1476, 824)")
+	assert_eq(details.get_global_rect(), Rect2(1008, 512, 468, 286), "the spec's (1008, 512), ending 34 px under the description")
 	assert_eq((details.get_node("%Icon").get_parent() as Control).get_global_rect(), Rect2(1024, 528, 72, 72), "the deep slot")
 	var name_label: Label = details.get_node("%NameLabel") as Label
 	assert_eq(name_label.get_global_rect().position.x, 1112.0)
-	assert_eq(_baseline(name_label), 568.0, "the name")
-	assert_eq(_baseline(details.get_node("%KindLabel") as Label), 594.0, "CONSUMABLE · IN SLOT 1, 26 px under it")
-	assert_eq((details.get_node("%KindLabel") as Control).get_global_rect().position.x, 1114.0, "2 px in, at the mockup's x 1114 (Ruling R22)")
+	assert_eq(name_label.get_global_rect().get_center().y, 564.0, "the name, centred on the slot")
 	var rows: Array[TableRow] = _table_rows(tab)
 	for index: int in rows.size():
 		var baseline: float = 640.0 + 30.0 * index
@@ -504,7 +505,8 @@ func test_details_lay_the_crude_scale_out_as_the_mockup_does() -> void:   # Ruli
 	var description: Label = details.get_node("%Description") as Label
 	assert_eq(description.get_line_count(), 3)
 	assert_eq(_baseline(description), 712.0, "the description")
-	assert_eq(_baseline(details.get_node("%Hint") as Label), 806.0, "the hint")
+	var last_baseline: float = _baseline(description) + 26.0 * (description.get_line_count() - 1)
+	assert_eq(details.get_global_rect().end.y - last_baseline, 34.0, "the panel ends 34 px under the description's last line")
 
 func test_the_drag_preview_holds_a_64_px_icon_on_the_cursor() -> void:
 	var preview: ItemDragPreview = DragPreviewScene.instantiate() as ItemDragPreview

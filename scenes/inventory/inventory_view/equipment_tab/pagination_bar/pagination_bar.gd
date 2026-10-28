@@ -2,17 +2,16 @@ class_name PaginationBar
 extends HBoxContainer
 
 ## PaginationBar
-## The Equipment page's footer: "PAGE" and one small pressed slot per unlocked
-## page at the left (the page shown pressed deep), the count of equipment held
-## against the bag's capacity, and the discard slot at the right. The count
-## ends 16 px before the discard slot (the bar's separation). "PAGE" is an even
-## 36 px wide and set 48 px in, ending at the mockup's x 536, with the first
-## page slot 20 px after it, so the page slots stay on the 2 px art grid. The texts
-## share one baseline, 42 px down the bar: "PAGE" and the count are 22 px tall
-## with their text at the bottom, and a page's number sits 8 px down its slot,
-## so the digits look centred in it. Emits page_selected on click and
-## page_hovered on mouse-enter (used for the drag-to-flip behaviour driven by
-## the EquipmentTab controller).
+## The Equipment page's footer: one small pressed slot per unlocked page at the
+## left, the first lined up with the grid's left edge (the page shown pressed
+## deep), the count of equipment held against the bag's capacity, and the
+## discard slot at the right. The page slots sit 4 px apart, the grid's own
+## gap, and no word introduces them. The count ends 16 px before the discard
+## slot (the bar's separation). The texts share one baseline, 42 px down the
+## bar: the count is 22 px tall with its text at the bottom, and a page's number
+## sits 8 px down its slot, so the digits look centred in it. Emits
+## page_selected on click and page_hovered on mouse-enter (used for the
+## drag-to-flip behaviour driven by the EquipmentTab controller).
 
 #-----------------------------------------------------------------------------
 # SIGNALS

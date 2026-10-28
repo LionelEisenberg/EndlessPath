@@ -62,3 +62,11 @@ func test_sources_match_the_item_id() -> void:
 	var unknown: MaterialDefinitionData = MaterialDefinitionData.new()
 	unknown.item_id = "moon_moss"
 	assert_eq(MaterialSources.find(unknown).size(), 0, "no loot table lists it")
+
+func test_zone_names_list_each_zone_once() -> void:
+	_unlock_foraging()
+	assert_eq(MaterialSources.zone_names(load(SPIRIT_FERN_PATH)), ["Spirit Valley"] as Array[String])
+
+func test_zone_names_are_empty_while_nothing_yields_it() -> void:
+	assert_eq(MaterialSources.zone_names(load(SPIRIT_FERN_PATH)), [] as Array[String], "foraging is still locked")
+	assert_eq(MaterialSources.zone_names(null), [] as Array[String])

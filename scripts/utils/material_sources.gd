@@ -53,6 +53,15 @@ static func find(material: MaterialDefinitionData) -> Array[MaterialSources.Sour
 					sources.append(_source(forage, zone, entry))
 	return sources
 
+## Returns the names of the zones the player can already gather `material` in,
+## each once, in zone order: where find() puts its sources.
+static func zone_names(material: MaterialDefinitionData) -> Array[String]:
+	var names: Array[String] = []
+	for source: MaterialSources.Source in find(material):
+		if not names.has(source.zone_name):
+			names.append(source.zone_name)
+	return names
+
 #-----------------------------------------------------------------------------
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------

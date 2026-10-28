@@ -1,16 +1,12 @@
 class_name BookText
 
 ## Text helpers for the inventory book's pressed pages: stack counts, seconds,
-## yields, consumable effect lines, equipment slot and bonus captions, and the
-## split of a description around a drop cap. Everything returns plain text
-## except color_madra() and effect_line(), which return BBCode for a
-## RichTextLabel.
+## consumable effect lines, and equipment slot and bonus captions. Everything
+## returns plain text except color_madra() and effect_line(), which return
+## BBCode for a RichTextLabel.
 
 ## Marks a stack count: "×7". The multiplication sign, not the letter x.
 const _COUNT_MARK: String = "×"
-
-## Between the two ends of a range: "2–6". An en dash, not a hyphen.
-const _RANGE_DASH: String = "–"
 
 ## Between the parts of an effect line: "+20 Madra · 10 s cooldown".
 const _EFFECT_SEPARATOR: String = " · "
@@ -41,17 +37,6 @@ static func seconds(value: float) -> String:
 	if is_equal_approx(value, roundf(value)):
 		return "%d s" % roundi(value)
 	return "%.1f s" % value
-
-## Returns a quantity range: 2, 6 → "2–6", and one number when both ends match.
-static func range_text(low: int, high: int) -> String:
-	if low == high:
-		return str(low)
-	return str(low) + _RANGE_DASH + str(high)
-
-## Returns what a gathering source yields, and how often: 2, 6, 5.0 →
-## "2–6 every 5 s". Plain text, like seconds().
-static func yield_text(low: int, high: int, interval_seconds: float) -> String:
-	return "%s every %s" % [range_text(low, high), seconds(interval_seconds)]
 
 #-----------------------------------------------------------------------------
 # EFFECT LINES
@@ -118,37 +103,6 @@ static func bonus_pairs(def: EquipmentDefinitionData) -> Array[PackedStringArray
 		var attribute_name: String = CharacterAttributesData.AttributeType.find_key(attribute_type)
 		pairs.append(PackedStringArray([attribute_name, _signed(bonus)]))
 	return pairs
-
-#-----------------------------------------------------------------------------
-# DROP CAP
-#-----------------------------------------------------------------------------
-
-## Splits a description that opens with a drop cap, and returns
-## [cap, narrow, rest]. The cap is the first character. The narrow text runs
-## beside the cap: the most whole words of what follows that fit in narrow_lines
-## lines of narrow_width (measured in the font at font_size). The rest is the
-## remaining words, for the full-width lines below.
-## When the cap was a word of its own ("A map ..."), the space after it is
-## dropped. A word wider than narrow_width still takes a line of its own, so
-## no word is lost.
-static func split_for_drop_cap(text: String, font: Font, font_size: int, narrow_width: float, narrow_lines: int) -> PackedStringArray:
-	var words: PackedStringArray = text.substr(1).split(" ", false)
-	var next_word: int = 0
-	var narrow_text: PackedStringArray = PackedStringArray()
-	for _i: int in narrow_lines:
-		if next_word >= words.size():
-			break
-		# A line always takes its first word, however wide, so every pass moves on.
-		var line: String = words[next_word]
-		next_word += 1
-		while next_word < words.size():
-			var longer: String = line + " " + words[next_word]
-			if font.get_string_size(longer, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > narrow_width:
-				break
-			line = longer
-			next_word += 1
-		narrow_text.append(line)
-	return PackedStringArray([text.left(1), " ".join(narrow_text), " ".join(words.slice(next_word))])
 
 #-----------------------------------------------------------------------------
 # PRIVATE

@@ -1,11 +1,11 @@
 extends GutTest
 
 ## The Journal tab pressed into the book's pages (spec: Journal). The left page
-## lists the quest items under the caption "ITEMS OF CONSEQUENCE", one row every
+## lists the quest items under the caption "QUEST ITEMS", one row every
 ## 80 px: the item in a deep slot, its name, and its quest's name under it, with
 ## a DONE seal at the right once the quest is finished, or the step the player
 ## is on. The right page's title is the item's name; under it the item's panel
-## (where it came from, the description under a vermilion drop cap) and its
+## (where it came from, its zone on a tag at the top right, the description) and its
 ## quest's panel, shown the way the Goals board shows a quest: the quest's name,
 ## its flavour text and the steps reached so far, ticked when finished. The
 ## details follow the pointer and keep to the item the player picked.
@@ -220,7 +220,7 @@ func test_caption_and_list_sit_under_the_title() -> void:
 	_hold_map()
 	var tab: Control = await _open_tab()
 	var caption: Label = tab.get_node("%CaptionLabel") as Label
-	assert_eq(caption.text, "ITEMS OF CONSEQUENCE")
+	assert_eq(caption.text, "QUEST ITEMS")
 	assert_eq(caption.get_global_rect().get_center().x, 678.0, "centred on the left page")
 	assert_eq(_baseline(caption), 316.0, "the caption row's baseline")
 	assert_eq((tab.get_node("%JournalList") as Control).get_global_rect(), Rect2(452, 334, 452, 546), "from y 334 to the content's end at 880")
@@ -356,14 +356,11 @@ func test_details_show_where_it_came_from() -> void:
 	assert_eq(_detail_text(tab, "KindLabel"), "QUEST ITEM")
 	assert_eq(_detail_text(tab, "FromLabel"), "From Old Vesh, in the broken shrine")
 	assert_eq((_detail(tab, "Icon") as TextureRect).texture, MAP.icon)
-	assert_eq(_detail_text(tab, "DropCap"), "A")
-	var narrow: Label = _detail(tab, "NarrowText") as Label
-	assert_true(narrow.text.begins_with("hand-drawn"), narrow.text)
-	# The whole description fits beside the cap at 390 px, split as the Label wraps it.
-	assert_eq(narrow.text, "hand-drawn map leading to a camp of survivors hidden in the valley.")
-	assert_eq(narrow.get_line_count(), 2)
-	assert_eq(_detail_text(tab, "RestText"), "")
-	assert_false((_detail(tab, "RestText") as Control).visible)
+	assert_eq(_detail_text(tab, "ZoneTag"), "SPIRIT VALLEY", "its zone, on a tag")
+	assert_true((_detail(tab, "ZoneTag") as Control).visible)
+	# 2026-10-28 review: no drop cap; the description is one block of text.
+	assert_eq(_detail_text(tab, "Description"), MAP.description)
+	assert_null(_details(tab).find_child("DropCap", true, false))
 
 func test_the_items_panel_lays_the_map_out_as_the_mockup_does() -> void:   # Ruling R17
 	_hold_map()
@@ -377,40 +374,36 @@ func test_the_items_panel_lays_the_map_out_as_the_mockup_does() -> void:   # Rul
 	var from: Label = _detail(tab, "FromLabel") as Label
 	assert_eq(from.get_global_rect().position.x, 1112.0)
 	assert_eq(_baseline(from), 380.0, "where it came from")
-	var cap: Label = _detail(tab, "DropCap") as Label
-	assert_eq(cap.get_global_rect().position.x, 1024.0)
-	assert_eq(_baseline(cap), 452.0, "the drop cap stands two lines tall")
-	var narrow: Label = _detail(tab, "NarrowText") as Label
-	assert_eq(narrow.get_global_rect().position.x, 1064.0, "the narrow column beside the cap")
-	assert_eq(narrow.get_global_rect().size.x, 390.0, "390 px wide, the width the split measured")
-	assert_eq(_baseline(narrow), 436.0)
-	assert_eq(_last_baseline(narrow), 462.0)
+	var tag: Label = _detail(tab, "ZoneTag") as Label
+	assert_eq(tag.get_global_rect().end.x, 1458.0, "the zone's tag at the top right, on the text's right edge")
+	assert_eq(_baseline(tag), 350.0, "on QUEST ITEM's baseline")
+	assert_eq(fmod(tag.get_global_rect().position.x, 2.0), 0.0, "and on the 2 px grid")
+	var description: Label = _detail(tab, "Description") as Label
+	assert_eq(description.get_global_rect().position.x, 1024.0)
+	assert_eq(description.get_global_rect().size.x, 434.0, "at the panel's full text width")
+	assert_eq(_baseline(description), 436.0)
+	assert_eq(_last_baseline(description), 462.0)
 
-func test_a_long_description_runs_on_at_full_width() -> void:
+func test_a_long_description_wraps_and_the_panel_grows() -> void:
 	var bell: QuestItemDefinitionData = _quest_item("test_bell", "Tarnished Shrine Bell")
 	bell.description = LONG_DESCRIPTION
 	InventoryManager.award_items(bell, 1)
 	var tab: Control = await _open_tab()
-	var narrow: Label = _detail(tab, "NarrowText") as Label
-	var rest: Label = _detail(tab, "RestText") as Label
-	assert_eq(narrow.get_line_count(), 2, "two lines beside the cap")
-	assert_true(rest.visible)
-	assert_eq(rest.get_global_rect().position.x, 1024.0, "the rest under the cap, at full width")
-	assert_eq(rest.get_global_rect().size.x, 434.0)
-	assert_eq(_baseline(rest), _last_baseline(narrow) + 26.0, "one line pitch on from the narrow column")
-	assert_eq(narrow.text + " " + rest.text, LONG_DESCRIPTION.substr(1).strip_edges(), "no word is lost")
+	var description: Label = _detail(tab, "Description") as Label
+	assert_eq(description.text, LONG_DESCRIPTION, "every word is printed")
+	assert_gt(description.get_line_count(), 2, "it wraps at the panel's full width")
 	var panel: Rect2 = (_detail(tab, "ItemPanel") as Control).get_global_rect()
-	assert_eq(panel.end.y - _last_baseline(rest), 34.0, "the panel grows, ending as far under its last line as the map's does")
+	assert_eq(panel.end.y - _last_baseline(description), 34.0, "the panel grows, ending as far under its last line as the map's does")
+	assert_eq(panel.size.x, 468.0, "and keeps its width")
 
-func test_a_wide_capital_keeps_the_column_inside_the_panel() -> void:
+func test_an_item_with_no_known_zone_has_no_tag() -> void:
 	var bell: QuestItemDefinitionData = _quest_item("test_bell", "Tarnished Shrine Bell")
-	bell.description = "When the wind turns, the old bell rings by itself and the whole valley hears it ring."
 	InventoryManager.award_items(bell, 1)
 	var tab: Control = await _open_tab()
-	var narrow: Label = _detail(tab, "NarrowText") as Label
-	assert_lte(narrow.get_global_rect().end.x, 1458.0, "the column stops at the text's right edge")
-	assert_lte(narrow.get_line_count(), 2, "and the split wraps where the Label does")
-	assert_eq((_detail(tab, "ItemPanel") as Control).get_global_rect().size.x, 468.0, "the panel keeps its width")
+	assert_false((_detail(tab, "ZoneTag") as Control).visible, "no zone_id")
+	bell.zone_id = "NoSuchZone"
+	_details(tab).show_item(bell)
+	assert_false((_detail(tab, "ZoneTag") as Control).visible, "a zone the game does not know")
 
 #-----------------------------------------------------------------------------
 # THE QUEST'S PANEL

@@ -2,7 +2,8 @@ class_name PaperTag
 extends Label
 
 ## PaperTag
-## A count on a paper tag stuck on a slot ("×7", LabelBookTag): the paper hugs
+## A count on a paper tag stuck on a slot ("×7", LabelBookTag), or a count or
+## word at a details panel's top right ("×4,600", "SPIRIT VALLEY"): the paper hugs
 ## its text with 5 px either side. The tag keeps an even width, the text's
 ## width rounded up, so a tag anchored to a slot's right edge starts on an even
 ## x and its art stays on the 2 px grid, as the mockup draws it. The text sits
@@ -17,7 +18,12 @@ extends Label
 
 ## Prints `amount` on the tag ("×7") and keeps the tag's width even.
 func set_count(amount: int) -> void:
-	text = BookText.count(amount)
+	set_label(BookText.count(amount))
+
+## Prints `label` on the tag, as given ("×4,600", "SPIRIT VALLEY"), and keeps the
+## tag's width even.
+func set_label(label: String) -> void:
+	text = label
 	_fit_to_grid()
 
 #-----------------------------------------------------------------------------

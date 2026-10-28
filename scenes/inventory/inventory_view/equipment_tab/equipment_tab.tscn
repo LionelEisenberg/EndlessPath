@@ -62,7 +62,7 @@ layout_mode = 0
 offset_left = 748.0
 offset_top = 210.0
 offset_right = 1216.0
-offset_bottom = 478.0
+offset_bottom = 506.0
 
 [node name="EquipmentDetails" parent="." instance=ExtResource("7_details")]
 unique_name_in_owner = true

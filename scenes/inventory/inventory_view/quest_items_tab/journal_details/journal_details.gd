@@ -8,9 +8,9 @@ extends VBoxContainer
 ##
 ## The item's panel holds the quest item in a deep slot beside "QUEST ITEM" and
 ## where it came from ("From Old Vesh, in the broken shrine", left out when
-## unknown), then its description under a vermilion drop cap two lines tall:
-## the words that fit beside the cap run in a narrow column, the rest at full
-## width under it (BookText.split_for_drop_cap()).
+## unknown), the name of the zone it belongs to on a paper tag at the panel's
+## top right ("SPIRIT VALLEY", on QUEST ITEM's baseline; left out when it has
+## none), then its description.
 ##
 ## The quest's panel shows the quest the item belongs to
 ## (QuestManager.get_quest_id_for_item()) the way the Goals board shows a quest:
@@ -23,11 +23,9 @@ extends VBoxContainer
 ##
 ## Laid out to the mockup's Refugee Camp Map, whose panels fill the spec's
 ## (1008, 300) to (1476, 496) and (1008, 512) to (1476, 776). Down the item
-## panel's content, "QUEST ITEM"'s baseline sits at 34 and the source's at 64;
-## the narrow column's baselines from 120, 26 px apart, beside the cap's at 136.
-## The column is two lines tall whatever its text, and the full-width lines
-## carry on at the same pitch; the panel ends 34 px under the description's last
-## baseline. Down the quest panel's content, "QUEST"'s baseline sits at 16 and
+## panel's content, "QUEST ITEM"'s and the tag's baselines sit at 34 and the
+## source's at 64; the description's from 120, 26 px apart; the panel ends 34 px
+## under the description's last baseline. Down the quest panel's content, "QUEST"'s baseline sits at 16 and
 ## the seal 2 px over the content's top, as the mockup draws it; the name's
 ## baseline at 52, the flavour's from 82, 22 px apart; the rule 30 px under the
 ## flavour's last line, the steps from 14 px under the rule, 34 px apart, and
@@ -46,11 +44,6 @@ const _STEP_ROW_SCENE: PackedScene = preload("res://scenes/inventory/inventory_v
 
 ## Where the item came from, as the panel prints it.
 const _FROM: String = "From %s"
-## The narrow column beside the drop cap: the mockup's width, and the two lines
-## the cap stands. A capital too wide to leave the column that much room
-## narrows it, so the column never runs past the text's right edge.
-const _NARROW_WIDTH: float = 390.0
-const _NARROW_LINES: int = 2
 
 #-----------------------------------------------------------------------------
 # COMPONENTS
@@ -58,11 +51,9 @@ const _NARROW_LINES: int = 2
 
 @onready var _icon: TextureRect = %Icon
 @onready var _from_label: Label = %FromLabel
+@onready var _zone_tag: PaperTag = %ZoneTag
 @onready var _description_block: Control = %DescriptionBlock
-@onready var _cap_row: HBoxContainer = %CapRow
-@onready var _drop_cap: Label = %DropCap
-@onready var _narrow_text: Label = %NarrowText
-@onready var _rest_text: Label = %RestText
+@onready var _description: Label = %Description
 @onready var _quest_panel: Control = %QuestPanel
 @onready var _seal: Label = %Seal
 @onready var _quest_name: Label = %QuestName
@@ -105,35 +96,24 @@ func get_item() -> ItemDefinitionData:
 # THE ITEM'S PANEL
 #-----------------------------------------------------------------------------
 
-## Prints the item: its icon, where it came from and its description.
+## Prints the item: its icon, where it came from, its zone and its description.
 func _print_item(item: ItemDefinitionData) -> void:
 	_icon.texture = item.icon
-	var from_source: String = (item as QuestItemDefinitionData).from_source if item is QuestItemDefinitionData else ""
+	var quest_item: QuestItemDefinitionData = item as QuestItemDefinitionData
+	var from_source: String = quest_item.from_source if quest_item else ""
 	_from_label.text = _FROM % from_source
 	_from_label.visible = not from_source.is_empty()
-	_print_description(item.description)
+	_print_zone(quest_item.zone_id if quest_item else "")
+	_description.text = item.description
+	_description_block.visible = not item.description.is_empty()
 
-## Prints the description under its drop cap, its first letter. The words that
-## fit in two lines beside the cap fill the narrow column and the rest run on
-## at full width. The split measures the words in the column's own font, at the
-## column's own width, so it breaks where the column wraps. The description is
-## left out when there is none.
-func _print_description(description: String) -> void:
-	_description_block.visible = not description.is_empty()
-	if description.is_empty():
-		return
-	_drop_cap.text = description.left(1)
-	# The column takes what the cap leaves of the text's width, up to the mockup's.
-	var room: float = _rest_text.custom_minimum_size.x - _cap_row.get_theme_constant(&"separation") - _drop_cap.get_minimum_size().x
-	var narrow_width: float = minf(_NARROW_WIDTH, room)
-	_narrow_text.custom_minimum_size.x = narrow_width
-	_narrow_text.size.x = narrow_width
-	var parts: PackedStringArray = BookText.split_for_drop_cap(description,
-			_narrow_text.get_theme_font(&"font"), _narrow_text.get_theme_font_size(&"font_size"),
-			narrow_width, _NARROW_LINES)
-	_narrow_text.text = parts[1]
-	_rest_text.text = parts[2]
-	_rest_text.visible = not parts[2].is_empty()
+## Prints the zone's name on the tag, in capitals, or leaves the tag out when
+## the item names no zone the game knows.
+func _print_zone(zone_id: String) -> void:
+	var known: bool = not zone_id.is_empty() and ZoneManager.has_zone(zone_id)
+	_zone_tag.visible = known
+	if known:
+		_zone_tag.set_label(ZoneManager.get_zone_by_id(zone_id).zone_name.to_upper())
 
 #-----------------------------------------------------------------------------
 # THE QUEST'S PANEL

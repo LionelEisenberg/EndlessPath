@@ -29,7 +29,7 @@ offset_top = 215.0
 offset_right = 644.0
 offset_bottom = 231.0
 theme_type_variation = &"LabelBookCaps"
-text = "ITEMS OF CONSEQUENCE"
+text = "QUEST ITEMS"
 horizontal_alignment = 1
 
 [node name="ListFrame" type="Control" parent="."]

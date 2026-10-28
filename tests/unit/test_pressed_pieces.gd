@@ -65,7 +65,7 @@ const STYLEBOX_DIR: String = "res://assets/styleboxes/book/"
 ## [variant, font file, size, colour hex, line pitch] (plan Task 2 table).
 var _variants: Array[Array] = [
 	[&"LabelBookPageTitle", YATRA, 38, "33261a", 44], [&"LabelBookItemName", YATRA, 30, "33261a", 34],
-	[&"LabelBookQuestName", YATRA, 26, "33261a", 30], [&"LabelBookDropCap", YATRA, 46, "a83c30", 52],
+	[&"LabelBookQuestName", YATRA, 26, "33261a", 30],
 	[&"LabelBookInk", EULJIRO, 18, "3b2a20", 26], [&"LabelBookInkDark", EULJIRO, 18, "33261a", 26],
 	[&"LabelBookDetail", EULJIRO, 15, "765a43", 20], [&"LabelBookDetailDark", EULJIRO, 15, "33261a", 20],
 	[&"LabelBookFlavor", EULJIRO, 16, "765a43", 22], [&"LabelBookStep", EULJIRO, 16, "3b2a20", 22],
@@ -226,15 +226,17 @@ func test_a_tag_prints_its_count_where_the_mockup_does() -> void:
 	assert_eq(tag.size.y, 20.0, "the tag stays its art's height")
 	assert_eq(_baseline_in(tag), 16.0, "the count's baseline")
 
-## The mockup presses the lozenge behind the filter word in use so the word's
-## baseline is 22 px under the lozenge's top, 4 px over its foot. A word not in
-## use sits the same way, so selecting it moves nothing.
-func test_a_filter_word_sits_low_in_its_lozenge() -> void:
+## The filter word in use sits on the middle of its lozenge's floor: its
+## baseline 18 px under the lozenge's top, so its capitals run from 8 to 18 on
+## the floor's 4 to 23 (2026-10-28 review: 4 px lower, as the mockup had it,
+## read as sinking). A word not in use sits the same way, so selecting it moves
+## nothing.
+func test_a_filter_word_sits_on_the_middle_of_its_lozenge() -> void:
 	var word: Label = _make_label(&"LabelBookFilter", "ALL")
 	var word_in_use: Label = _make_label(&"LabelBookFilterOn", "ALL")
 	await wait_process_frames(2)
-	assert_eq(_baseline_in(word_in_use), 22.0, "the word in use")
-	assert_eq(_baseline_in(word), 22.0, "a word not in use")
+	assert_eq(_baseline_in(word_in_use), 18.0, "the word in use")
+	assert_eq(_baseline_in(word), 18.0, "a word not in use")
 	assert_eq(word_in_use.size.y, 26.0, "the lozenge stays its art's height")
 
 ## The same for a filter word and the 26 px lozenge behind the one in use. The

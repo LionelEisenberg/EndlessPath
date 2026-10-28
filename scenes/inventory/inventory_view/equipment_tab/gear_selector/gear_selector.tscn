@@ -8,7 +8,7 @@
 layout_mode = 3
 anchors_preset = 0
 offset_right = 468.0
-offset_bottom = 268.0
+offset_bottom = 296.0
 mouse_filter = 2
 script = ExtResource("1_3nnrq")
 
@@ -22,9 +22,10 @@ texture = ExtResource("2_plate")
 [node name="LeftColumn" type="VBoxContainer" parent="." unique_id=2107934149]
 layout_mode = 0
 offset_left = 8.0
+offset_top = 20.0
 offset_right = 80.0
-offset_bottom = 268.0
-theme_override_constants/separation = 26
+offset_bottom = 296.0
+theme_override_constants/separation = 30
 
 [node name="HeadGearSlot" parent="LeftColumn" unique_id=1769908538 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
@@ -41,9 +42,10 @@ accessory_index = 0
 [node name="RightColumn" type="VBoxContainer" parent="." unique_id=1523099243]
 layout_mode = 0
 offset_left = 392.0
+offset_top = 20.0
 offset_right = 464.0
-offset_bottom = 268.0
-theme_override_constants/separation = 26
+offset_bottom = 296.0
+theme_override_constants/separation = 30
 
 [node name="ArmorGearSlot" parent="RightColumn" unique_id=528065297 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
@@ -61,9 +63,9 @@ accessory_index = 1
 [node name="HeadLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = -6.0
-offset_top = 82.0
+offset_top = 4.0
 offset_right = 94.0
-offset_bottom = 100.0
+offset_bottom = 22.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "HEAD"
@@ -73,9 +75,9 @@ vertical_alignment = 1
 [node name="MainHandLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = -6.0
-offset_top = 180.0
+offset_top = 106.0
 offset_right = 94.0
-offset_bottom = 198.0
+offset_bottom = 124.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "MAIN HAND"
@@ -85,9 +87,9 @@ vertical_alignment = 1
 [node name="Accessory1Label" type="Label" parent="."]
 layout_mode = 0
 offset_left = -6.0
-offset_top = 278.0
+offset_top = 208.0
 offset_right = 94.0
-offset_bottom = 296.0
+offset_bottom = 226.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "ACCESSORY"
@@ -97,9 +99,9 @@ vertical_alignment = 1
 [node name="BodyLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 378.0
-offset_top = 82.0
+offset_top = 4.0
 offset_right = 478.0
-offset_bottom = 100.0
+offset_bottom = 22.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "BODY"
@@ -109,9 +111,9 @@ vertical_alignment = 1
 [node name="OffHandLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 378.0
-offset_top = 180.0
+offset_top = 106.0
 offset_right = 478.0
-offset_bottom = 198.0
+offset_bottom = 124.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "OFF HAND"
@@ -121,9 +123,9 @@ vertical_alignment = 1
 [node name="Accessory2Label" type="Label" parent="."]
 layout_mode = 0
 offset_left = 378.0
-offset_top = 278.0
+offset_top = 208.0
 offset_right = 478.0
-offset_bottom = 296.0
+offset_bottom = 226.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "ACCESSORY"

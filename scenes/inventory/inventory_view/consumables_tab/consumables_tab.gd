@@ -88,7 +88,7 @@ func _rebuild(inv: InventoryData) -> void:
 ## player pointed at, unmarking the one before.
 func _show(def: ConsumableDefinitionData, pointed: Control) -> void:
 	_mark(pointed)
-	details.show_consumable(def, _hotbar_index_of(def))
+	details.show_consumable(def)
 
 ## Shows the first stack, or clears the details and the marks when the pack is
 ## empty.
@@ -136,14 +136,6 @@ func _row_of(def: ConsumableDefinitionData) -> ConsumableRow:
 		if row.get_definition() == def:
 			return row
 	return null
-
-## The hotbar slot (0 to 3) holding `def`, or -1 when it is not on the hotbar.
-func _hotbar_index_of(def: ConsumableDefinitionData) -> int:
-	var equipped: Dictionary = InventoryManager.get_inventory().equipped_consumables
-	for slot_index: int in equipped:
-		if equipped[slot_index] == def:
-			return slot_index
-	return -1
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS

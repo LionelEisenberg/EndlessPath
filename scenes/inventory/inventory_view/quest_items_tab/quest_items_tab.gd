@@ -2,7 +2,7 @@ extends Control
 
 ## QuestItemsTab
 ## The Journal tab, pressed into the book's two pages at 1x. Left page: the
-## caption "ITEMS OF CONSEQUENCE" and the list of quest items (JournalRow), one
+## caption "QUEST ITEMS" and the list of quest items (JournalRow), one
 ## row every 80 px, each with the quest it belongs to
 ## (QuestManager.get_quest_id_for_item()): a DONE seal once that quest is
 ## finished, the step the player is on while it is under way. Past six rows the

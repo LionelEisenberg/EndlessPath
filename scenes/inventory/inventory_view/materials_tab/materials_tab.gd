@@ -2,7 +2,7 @@ extends Control
 
 ## MaterialsTab
 ## The Materials tab, pressed into the book's two pages at 1x. Left page: the
-## caption "N KINDS" and the same 6 × 6 page of slots as Equipment, a deep
+## same 6 × 6 page of slots as Equipment, in the same place, a deep
 ## MaterialSlot per material with its count on a paper tag, then shallow empty
 ## slots to the end of the page (or of the last row past it). Past 36 kinds
 ## the grid scrolls. The grid sits in GridFrame, which clips it in its place:
@@ -15,16 +15,11 @@ extends Control
 
 const _SLOT_SCENE: PackedScene = preload("res://scenes/inventory/inventory_view/materials_tab/material_slot.tscn")
 
-## The caption over the grid.
-const _KINDS: String = "%d KINDS"
-const _ONE_KIND: String = "1 KIND"
-
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
 @onready var grid: InventoryGrid = %MaterialsInventoryGrid
-@onready var kinds_label: Label = %KindsLabel
 @onready var empty_label: Label = %EmptyLabel
 @onready var right_title: PageTitle = %RightTitle
 @onready var details: MaterialDetails = %MaterialDetails
@@ -74,7 +69,6 @@ func _rebuild(materials: Dictionary[MaterialDefinitionData, int]) -> void:
 		_add_slot(def, materials[def])
 	for _empty: int in _empty_slot_count(materials.size()):
 		_add_slot(null, 0)
-	kinds_label.text = _ONE_KIND if materials.size() == 1 else _KINDS % materials.size()
 	empty_label.visible = materials.is_empty()
 	_follow_shown(materials)
 

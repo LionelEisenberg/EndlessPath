@@ -15,11 +15,16 @@ so this file does not import them:
     relief                                          gen_r3.py
     seal, tick_box                                  gen_r5.py
     dotted_line                                     gen_r1.py
-    the gear leaders and the discard cross          gen_r7.py, equipment()
+    the discard cross                               gen_r7.py, equipment()
     the placeholder map icon                        icons_ai.py
 
 Two things differ from the copies, both for the panel (see PANEL_RADIUS and panel_piece): soft_well
-takes an optional radius, and the panel's 9-slice source steadies two pixels.
+takes an optional radius, and the panel's 9-slice source steadies two pixels. The gear plate no longer
+follows gen_r7: its figure sits lower and its leaders run straight (see gear_plate_piece).
+
+To redraw one piece without touching the others, import this file and save just that one, e.g.
+
+    python -I -c "import sys; sys.path.insert(0, 'docs/superpowers/mockups/inventory-pressed/gen'); import export_pressed as e; e.save(e.gear_plate_piece(), e.PRESSED_DIR / 'gear_plate_ai.png', 2)"
 """
 from pathlib import Path
 
@@ -246,7 +251,9 @@ PANEL_RADIUS = 3
 SLOT_SIZE = 36                # art px, a 72 px slot
 CROSS_SIZE = 14               # art px, 28 px: holds gen_r7's 13 px cross when centred on a slot
 # The gear column's slots, as gen_r7.SLOTS: screen px, the top left of each 72 x 72 slot.
-GEAR_SLOTS = [(1016, 300), (1016, 398), (1016, 496), (1400, 300), (1400, 398), (1400, 496)]
+# The gear slots' top-left corners in screen px. Each slot's name is printed above it, so the rows start
+# 20 px down the plate and are 102 px apart (2026-10-28 review: the names had read as the slot below's).
+GEAR_SLOTS = [(1016, 320), (1016, 422), (1016, 524), (1400, 320), (1400, 422), (1400, 524)]
 # The gear plate's rectangle on the mockup's 960 x 540 art canvas: screen (1008, 300), 468 x 268.
 GEAR_PLATE_RECT = (504, 150, 234, 134)
 
@@ -326,20 +333,39 @@ def cross_piece():
 
 
 def gear_plate_piece():
-    """The cultivator relief and the six dotted leaders, as gen_r7.equipment() draws them.
+    """The cultivator relief and its four dotted leaders, cut out at the plate's rectangle.
 
     Drawn on the mockup's own 960 x 540 canvas and cut out at the plate's rectangle, so each pixel sits
-    where the mockup has it. The slot wells are not in it: the game draws those as nodes.
+    where the game puts it. Every leader runs straight along the art grid (2026-10-28 review: the sloped
+    ones stepped unevenly). The figure stands with its head level with the head slot's centre and its
+    sleeve ends level with the hand slots' (each within an art px), so those three leaders run dead
+    level from their slots to the silhouette. The body's runs level at the head's height, then turns
+    straight down onto the right shoulder. The accessories have no leader. Each leader stops one art px
+    short of the figure and keeps the 3 px dot rhythm round the body's corner. The slot wells are not in
+    it: the game draws those as nodes.
     """
     art = canvas(960, 540)
     pts, creases, w, h = cultivator_mask()
-    ox, oy = 622 - w // 2, 150
+    ox, oy = 622 - w // 2, 166
     relief(art, pts, creases, ox, oy)
-    targets = [(ox + 33, oy + 12), (ox + 10, oy + 62), (ox + 28, oy + 51),
-               (ox + 42, oy + 38), (ox + 60, oy + 62), (ox + 44, oy + 51)]
-    for (x, y), t in zip(GEAR_SLOTS, targets):
-        start = (x // 2 + 39, y // 2 + 18) if x < 1200 else (x // 2 - 3, y // 2 + 18)
-        dotted_line(art, start, t, INK_M, every=3)
+    head_row, hand_row, body_column = 13, 62, 52
+
+    def row(y):
+        return [x for (x, yy) in pts if yy == y]
+
+    left_start = GEAR_SLOTS[0][0] // 2 + 39       # 3 art px right of the left column's 36 art px slots
+    right_start = GEAR_SLOTS[3][0] // 2 - 3       # 3 art px left of the right column's
+    head_y, hand_y = oy + head_row, oy + hand_row
+    # The dots start at the figure and step out to the slot, so every leader stops the same 1 art px off
+    # the figure; the gap at the slot takes up the remainder.
+    dotted_line(art, (ox + min(row(head_row)) - 2, head_y), (left_start, head_y), INK_M, every=3)
+    dotted_line(art, (ox + min(row(hand_row)) - 2, hand_y), (left_start, hand_y), INK_M, every=3)
+    dotted_line(art, (ox + max(row(hand_row)) + 2, hand_y), (right_start, hand_y), INK_M, every=3)
+    corner_x = ox + body_column
+    shoulder_top = min(y for (x, y) in pts if x == body_column)
+    drop = 3 * ((oy + shoulder_top - 2 - head_y) // 3)   # whole dots, so one lands on the corner
+    dotted_line(art, (corner_x, head_y + drop), (corner_x, head_y), INK_M, every=3)
+    dotted_line(art, (corner_x, head_y), (right_start, head_y), INK_M, every=3)
     px, py, pw, ph = GEAR_PLATE_RECT
     left, top, right, bottom = art.getbbox()
     if left < px or top < py or right > px + pw or bottom > py + ph:

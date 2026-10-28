@@ -139,8 +139,8 @@ spacing_bottom = -3
 [sub_resource type="FontVariation" id="FontVariation_euljiro_filter"]
 base_font = ExtResource("6_euljiro")
 spacing_glyph = 1
-spacing_top = 5
-spacing_bottom = -5
+spacing_top = 1
+spacing_bottom = -1
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_filter"]
 content_margin_left = 10.0
@@ -182,12 +182,6 @@ LabelBookDetailDark/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelBookDetailDark/constants/line_spacing = 3
 LabelBookDetailDark/font_sizes/font_size = 15
 LabelBookDetailDark/fonts/font = ExtResource("6_euljiro")
-LabelBookDropCap/base_type = &"Label"
-LabelBookDropCap/colors/font_color = Color(0.65882355, 0.23529412, 0.1882353, 1)
-LabelBookDropCap/colors/font_shadow_color = Color(0, 0, 0, 0)
-LabelBookDropCap/constants/line_spacing = -17
-LabelBookDropCap/font_sizes/font_size = 46
-LabelBookDropCap/fonts/font = ExtResource("7_yatra")
 LabelBookFilter/base_type = &"Label"
 LabelBookFilter/colors/font_color = Color(0.4627451, 0.3529412, 0.2627451, 1)
 LabelBookFilter/colors/font_shadow_color = Color(0, 0, 0, 0)

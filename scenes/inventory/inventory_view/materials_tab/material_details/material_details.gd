@@ -4,20 +4,20 @@ extends PanelContainer
 ## MaterialDetails
 ## The Materials page's details panel, pressed into the paper under the
 ## material's name (the right page's title): the material in a deep slot
-## beside "MATERIAL" and how many the player has ("You have 4,600"), its
-## description, and a table of where it is gathered, three TableRows per
-## source (GATHERED BY, IN, YIELD), left out when there is none. The sources
-## come from MaterialSources each time a material is printed. The panel grows
-## downward with its text.
+## beside "MATERIAL", how many the player has on a paper tag at the panel's top
+## right ("×4,600", on MATERIAL's baseline), its description, and where to find
+## it: "FOUND IN" and the zones it can be gathered in, one row each, left out
+## when there is none. The zones come from MaterialSources each time a
+## material is printed. The panel grows downward with its text.
 ##
-## Laid out to the mockup's Spirit Fern, which fills the spec's (1008, 300) to
-## (1476, 646). Down the panel's content, "MATERIAL"'s baseline sits at 34,
-## the amount's at 66, the description's from 120, and the table's 94 px under
-## the description's last baseline (240 under Spirit Fern's two lines), 30 px
-## apart, with 2 px under the last rule. The description flows: a longer one
-## pushes the table down and a shorter one pulls it up, always by that gap.
-## The gap belongs to the table's block, so with no source both are left out
-## and the panel ends under the description.
+## Laid out to the mockup's Spirit Fern, which starts at the spec's (1008, 300).
+## Down the panel's content, "MATERIAL"'s and the tag's baselines sit at 34,
+## the description's from 120, and the table's 94 px under the description's
+## last baseline (240 under Spirit Fern's two lines), 30 px apart, with 2 px
+## under the last rule. The description flows: a longer one pushes the table
+## down and a shorter one pulls it up, always by that gap. The gap belongs to
+## the table's block, so with no zone both are left out and the panel ends
+## under the description.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -25,19 +25,17 @@ extends PanelContainer
 
 const _TABLE_ROW_SCENE: PackedScene = preload("res://scenes/inventory/pressed/table_row/table_row.tscn")
 
-## How many the player has, the number grouped by commas.
-const _AMOUNT: String = "You have %s"
-## The table's captions, one row each per source.
-const _GATHERED_BY: String = "GATHERED BY"
-const _IN: String = "IN"
-const _YIELD: String = "YIELD"
+## How many the player has, on the tag: the number grouped by commas.
+const _COUNT: String = "×%s"
+## The caption of the table's first row; the zones under it go uncaptioned.
+const _FOUND_IN: String = "FOUND IN"
 
 #-----------------------------------------------------------------------------
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
 @onready var _icon: TextureRect = %Icon
-@onready var _amount_label: Label = %AmountLabel
+@onready var _count_tag: PaperTag = %CountTag
 @onready var _description: Label = %Description
 @onready var _sources_block: MarginContainer = %SourcesBlock
 @onready var _sources: VBoxContainer = %Sources
@@ -53,7 +51,7 @@ var _def: MaterialDefinitionData = null
 #-----------------------------------------------------------------------------
 
 ## Shows `def` with `amount`, how many the player has, and makes the panel
-## visible. Showing the material already shown only reprints the amount. A
+## visible. Showing the material already shown only reprints the count. A
 ## null `def` clears the panel.
 func show_material(def: MaterialDefinitionData, amount: int) -> void:
 	if def == null:
@@ -62,7 +60,7 @@ func show_material(def: MaterialDefinitionData, amount: int) -> void:
 	if def != _def:
 		_def = def
 		_print(def)
-	_amount_label.text = _AMOUNT % BookText.thousands(amount)
+	_count_tag.set_label(_COUNT % BookText.thousands(amount))
 	visible = true
 
 ## Empties the panel and hides it.
@@ -78,26 +76,24 @@ func get_shown_material() -> MaterialDefinitionData:
 # PRIVATE FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Prints the material: its icon, its description and where it is gathered.
+## Prints the material: its icon, its description and where to find it.
 func _print(def: MaterialDefinitionData) -> void:
 	_icon.texture = def.icon
 	_description.text = def.description
-	_set_sources(MaterialSources.find(def))
+	_set_zones(MaterialSources.zone_names(def))
 
-## Replaces the table: for each source, the activity, its zone and its yield
-## ("2–6 every 5 s"). Hides the table and the gap over it when there is none.
-func _set_sources(sources: Array[MaterialSources.Source]) -> void:
+## Replaces the table: "FOUND IN" by the first zone, the others under it. Hides
+## the table and the gap over it when there is no zone.
+func _set_zones(zone_names: Array[String]) -> void:
 	for row: Node in _sources.get_children():
 		_sources.remove_child(row)
 		row.queue_free()
-	for source: MaterialSources.Source in sources:
-		_add_row(_GATHERED_BY, source.activity_name)
-		_add_row(_IN, source.zone_name)
-		_add_row(_YIELD, BookText.yield_text(source.min_quantity, source.max_quantity, source.interval_seconds))
-	_sources_block.visible = not sources.is_empty()
+	for index: int in zone_names.size():
+		_add_row(_FOUND_IN if index == 0 else "", zone_names[index])
+	_sources_block.visible = not zone_names.is_empty()
 
 ## Adds one row to the table. The value is plain text, so its brackets are
-## escaped and a decimal point ("every 2.5 s") is set in Yatra One.
+## escaped.
 func _add_row(label: String, value: String) -> void:
 	var row: TableRow = _TABLE_ROW_SCENE.instantiate() as TableRow
 	_sources.add_child(row)

@@ -27,10 +27,6 @@ func test_seconds_keep_whole_numbers_whole() -> void:
 	assert_eq(BookText.seconds(10.0), "10 s")
 	assert_eq(BookText.seconds(2.5), "2.5 s")
 
-func test_yield_text() -> void:
-	assert_eq(BookText.yield_text(2, 6, 5.0), "2–6 every 5 s")
-	assert_eq(BookText.yield_text(3, 3, 5.0), "3 every 5 s")
-
 #-----------------------------------------------------------------------------
 # EFFECT LINES
 #-----------------------------------------------------------------------------
@@ -117,33 +113,3 @@ func test_bonus_pairs_skip_zero_and_set_fractions_to_one_decimal() -> void:
 	assert_eq(pairs[0], PackedStringArray(["STRENGTH", "+4"]))
 	assert_eq(pairs[1], PackedStringArray(["BODY", "-2"]))
 	assert_eq(pairs[2], PackedStringArray(["WILLPOWER", "+1.5"]))
-
-#-----------------------------------------------------------------------------
-# DROP CAP
-#-----------------------------------------------------------------------------
-
-func test_drop_cap_split_keeps_every_word() -> void:
-	var font: Font = load("res://assets/fonts/BMEULJIROTTF.ttf")
-	var text: String = "A hand-drawn map leading to a camp of survivors hidden in the valley."
-	var parts: PackedStringArray = BookText.split_for_drop_cap(text, font, 18, 390.0, 2)
-	assert_eq(parts[0], "A")
-	assert_eq((parts[1] + " " + parts[2]).strip_edges(), "hand-drawn map leading to a camp of survivors hidden in the valley.")
-	assert_false(parts[1].is_empty())
-
-func test_drop_cap_split_of_a_short_text_has_no_rest() -> void:
-	var font: Font = load("res://assets/fonts/BMEULJIROTTF.ttf")
-	assert_eq(BookText.split_for_drop_cap("A small tooth.", font, 18, 390.0, 2), PackedStringArray(["A", "small tooth.", ""]))
-
-func test_drop_cap_split_continues_the_word_the_cap_starts() -> void:
-	var font: Font = load("res://assets/fonts/BMEULJIROTTF.ttf")
-	assert_eq(BookText.split_for_drop_cap("Tiny flake.", font, 18, 390.0, 2), PackedStringArray(["T", "iny flake.", ""]))
-
-func test_drop_cap_split_gives_a_word_wider_than_the_line_a_line_of_its_own() -> void:
-	var font: Font = load("res://assets/fonts/BMEULJIROTTF.ttf")
-	var long_word: String = "supercalifragilisticexpialidocious"
-	var text: String = "A " + long_word + " word here."
-	# The line is narrower than any two of these words, so each word takes a
-	# line: the long one overflows its line, and no word is dropped.
-	var parts: PackedStringArray = BookText.split_for_drop_cap(text, font, 18, 40.0, 2)
-	assert_gt(font.get_string_size(long_word, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x, 40.0, "the long word is wider than the line")
-	assert_eq(parts, PackedStringArray(["A", long_word + " word", "here."]))

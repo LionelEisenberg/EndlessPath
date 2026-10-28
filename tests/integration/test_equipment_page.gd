@@ -92,19 +92,20 @@ func test_pieces_sit_where_the_spec_puts_them() -> void:
 	var title: Label = tab.get_node("LeftTitle").get_node("%TitleLabel") as Label
 	assert_eq(title.get_global_rect().position.y, 224.0, "the title's baseline at 262")
 	var words: Control = tab.get_node("%FilterWords") as Control
-	assert_eq(_baseline(words.get_node("%Word0") as Label), 316.0, "the filter on the caption row's baseline")
-	assert_eq(_baseline(words.get_node("%Word1") as Label), 316.0, "every word, in use or not")
+	assert_eq(_baseline(words.get_node("%Word0") as Label), 312.0, "the filter, on the middle of its lozenge's floor")
+	assert_eq(_baseline(words.get_node("%Word1") as Label), 312.0, "every word, in use or not")
 	assert_eq((words.get_node("%Word0") as Control).get_global_rect(), Rect2(502, 294, 44, 26), "the word in use, its lozenge pressed where the mockup draws it: (502, 294) to (546, 320)")
 	assert_eq((tab.equipment_grid as Control).get_global_rect(), Rect2(452, 334, 452, 452))
 	assert_eq((tab.get_node("%PaginationBar") as Control).get_global_rect(), Rect2(452, 796, 452, 72))
-	assert_eq((tab.get_node("%GearSelector") as Control).get_global_rect(), Rect2(1008, 300, 468, 268))
+	# The gear slots start 20 px down the figure, under their names, 102 px apart.
+	assert_eq((tab.get_node("%GearSelector") as Control).get_global_rect(), Rect2(1008, 300, 468, 296))
 	assert_eq((tab.get_node("%EquipmentDetails") as Control).get_global_rect(), Rect2(1008, 606, 468, 272))
-	assert_eq(_gear_slot(tab, "HeadGearSlot").get_global_rect(), Rect2(1016, 300, 72, 72))
-	assert_eq(_gear_slot(tab, "MainWeaponGearSlot").get_global_rect().position, Vector2(1016, 398))
-	assert_eq(_gear_slot(tab, "Accessory1GearSlot").get_global_rect().position, Vector2(1016, 496))
-	assert_eq(_gear_slot(tab, "ArmorGearSlot").get_global_rect().position, Vector2(1400, 300))
-	assert_eq(_gear_slot(tab, "OffhandGearSlot").get_global_rect().position, Vector2(1400, 398))
-	assert_eq(_gear_slot(tab, "Accessory2GearSlot").get_global_rect().position, Vector2(1400, 496))
+	assert_eq(_gear_slot(tab, "HeadGearSlot").get_global_rect(), Rect2(1016, 320, 72, 72))
+	assert_eq(_gear_slot(tab, "MainWeaponGearSlot").get_global_rect().position, Vector2(1016, 422))
+	assert_eq(_gear_slot(tab, "Accessory1GearSlot").get_global_rect().position, Vector2(1016, 524))
+	assert_eq(_gear_slot(tab, "ArmorGearSlot").get_global_rect().position, Vector2(1400, 320))
+	assert_eq(_gear_slot(tab, "OffhandGearSlot").get_global_rect().position, Vector2(1400, 422))
+	assert_eq(_gear_slot(tab, "Accessory2GearSlot").get_global_rect().position, Vector2(1400, 524))
 
 func test_filter_words_print_the_categories_and_start_on_all() -> void:
 	var tab: Control = _tab()
@@ -196,19 +197,21 @@ func test_page_buttons_press_the_shown_page_deep() -> void:
 func test_footer_prints_on_one_baseline_with_its_slots_on_the_grid() -> void:
 	var tab: Control = await _open_tab()
 	var bar: PaginationBar = tab.get_node("%PaginationBar") as PaginationBar
-	assert_eq(_baseline(bar.get_node("%PageLabel") as Label), 838.0, "PAGE")
 	assert_eq(_baseline(bar.get_node("%CountLabel") as Label), 838.0, "the count")
 	for button: Node in bar.page_buttons.get_children():
 		var page_slot: Control = button as Control
 		assert_eq(_baseline(page_slot.get_node("PageNumber") as Label), 838.0, "page %d's number" % (page_slot.get_index() + 1))
 		assert_eq(fmod(page_slot.get_global_rect().position.x, 2.0), 0.0, "page %d's slot sits on the 2 px grid" % (page_slot.get_index() + 1))
 
-func test_footer_prints_page_where_the_mockup_does() -> void:   # Ruling R17: the spec says only "at the left"
+## 2026-10-28 review: no "PAGE", and the page slots start under the grid's
+## first column, 4 px apart like the grid's slots.
+func test_page_slots_line_up_with_the_grid() -> void:
 	var tab: Control = await _open_tab()
 	var bar: PaginationBar = tab.get_node("%PaginationBar") as PaginationBar
-	assert_eq((bar.get_node("%PageLabel") as Control).get_global_rect().end.x, 536.0, "PAGE ends at the mockup's x 536")
-	assert_eq((bar.page_buttons.get_child(0) as Control).get_global_rect().position.x, 556.0, "the first page slot 20 px after it")
-	assert_eq((bar.page_buttons.get_child(1) as Control).get_global_rect().position.x, 592.0, "the next at a 36 px pitch")
+	assert_null(bar.find_child("PageLabel", true, false), "no word before the page slots")
+	var grid_left: float = (tab.equipment_grid as Control).get_global_rect().position.x
+	assert_eq((bar.page_buttons.get_child(0) as Control).get_global_rect().position.x, grid_left, "the first page slot under the grid's first column")
+	assert_eq((bar.page_buttons.get_child(1) as Control).get_global_rect().position.x, grid_left + 32.0, "the next 4 px after it")
 
 func test_discard_slot_shows_its_cross_only_when_empty() -> void:
 	var tab: Control = _tab()
@@ -237,7 +240,7 @@ func test_main_hand_sits_left_of_the_figure() -> void:
 	assert_lt(_gear_slot(tab, "MainWeaponGearSlot").get_global_rect().get_center().x, plate_mid)
 	assert_gt(_gear_slot(tab, "ArmorGearSlot").get_global_rect().get_center().x, plate_mid)
 
-func test_each_gear_slot_is_named_under_it() -> void:
+func test_each_gear_slot_is_named_just_above_it() -> void:
 	var tab: Control = await _open_tab()
 	var names: Dictionary[String, String] = {
 		"HeadGearSlot": "HEAD", "MainWeaponGearSlot": "MAIN HAND", "Accessory1GearSlot": "ACCESSORY",
@@ -253,12 +256,13 @@ func test_each_gear_slot_is_named_under_it() -> void:
 		var found: bool = false
 		for caption: Label in captions:
 			var rect: Rect2 = caption.get_global_rect()
-			# Ruling R9: the spec's baseline, slot top + 94.
-			if is_equal_approx(rect.get_center().x, slot_rect.get_center().x) and is_equal_approx(_baseline(caption), slot_rect.position.y + 94.0):
+			# 2026-10-28 review: a name printed under its slot read as the next slot's,
+			# so it sits above, its baseline 4 px over the slot's top.
+			if is_equal_approx(rect.get_center().x, slot_rect.get_center().x) and is_equal_approx(_baseline(caption), slot_rect.position.y - 4.0):
 				found = true
 				assert_eq(caption.text, names[slot_name], slot_name)
 				assert_eq(caption.theme_type_variation, &"LabelBookCaps", slot_name)
-		assert_true(found, "%s has its name centred under it, its baseline 94 px down the slot" % slot_name)
+		assert_true(found, "%s has its name centred over it, its baseline 4 px above the slot" % slot_name)
 
 #-----------------------------------------------------------------------------
 # HOVER AND DRAG
