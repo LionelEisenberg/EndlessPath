@@ -539,7 +539,7 @@ Every stop adds 1 to `action_completion_count`, under the zone the action starte
 | `foraging_completed(items: Dictionary)` | Every forage timeout | `ZoneTilemap` (foraging round), `MapMarkers` (haul floater) |
 | `stop_foraging()` | Foraging stop | `ZoneTilemap` (character returns to its stand) |
 | `start_cycling(action_data)` | Cycling start | `CyclingViewState` (pushes the cycling view) |
-| `stop_cycling()` | Cycling stop | `CyclingViewState` (pops), `CyclingView` |
+| `stop_cycling()` | Cycling stop | `CyclingViewState` (closes the board, gives the chest, the dock and the map back, and removes only itself from the stack once the close has finished), `CyclingView` |
 | `adventure_start_requested(action_data)` | Adventure start (`select_action()`) | `ZoneViewState` (input blocker), `ZoneTransition`, `MapMarkers` (hides) |
 | `start_adventure(action_data, madra_budget)` | `confirm_adventure_start()` | `AdventureViewState` (change state), `AdventureView.start_adventure` |
 | `stop_adventure()` | Adventure stop | `AdventureView.stop_adventure` (→ `adventure_completed` → end card), `AdventureViewState` (no-op) |
