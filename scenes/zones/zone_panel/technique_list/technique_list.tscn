@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://ckbu0r7lhyi4t" path="res://scenes/zones/zone_panel/technique_list/technique_list.gd" id="1_list"]
 
 [node name="TechniqueList" type="Control" unique_id=1184058752]
+clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_right = 392.0

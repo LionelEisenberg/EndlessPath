@@ -76,6 +76,9 @@ const SCROLL_MARGIN: float = 24.0
 ## A technique drawer is 72 tall, with 8 between drawers (kit §5.5).
 const DRAWER_HEIGHT: float = 72.0
 const DRAWER_GAP: float = 8.0
+## The chest's inner right edge, where the header's clip cuts a header that
+## slides out (the chest art is 444 wide; its frame ends 8 px short of that).
+const HEADER_CLIP_WIDTH: float = 436.0
 
 ## GUT's output window's canvas layer.
 const GUT_LAYER: int = 128
@@ -1778,4 +1781,189 @@ func test_a_new_layout_from_the_technique_list_resizes_the_chest() -> void:
 	PersistenceManager.save_game_data.unlocked_cycling_technique_ids.append(SMOOTH_ID)
 	_technique_list().build()
 	assert_eq(_panel.size.y, LIST_TOP + 2.0 * DRAWER_HEIGHT + DRAWER_GAP + 24.0)
+	await _await_queued_frees()
+
+#-----------------------------------------------------------------------------
+# SLIDE SUPPORT
+#-----------------------------------------------------------------------------
+
+## The Control the Activities header sits in, which clips it.
+func _header_clip() -> Control:
+	return (_node("ActivitiesHeader") as Control).get_parent() as Control
+
+## The label row of an activity group: the row that holds its name and its groove.
+func _label_row_of(group: Node) -> Control:
+	return group.get_node("%GroupLabel").get_parent() as Control
+
+## True when every row's top is lower than the one before it.
+func _tops_increase(rows: Array[Control]) -> bool:
+	for index: int in range(1, rows.size()):
+		if rows[index].global_position.y <= rows[index - 1].global_position.y:
+			return false
+	return true
+
+func test_chest_height_for_matches_each_mode() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	var activities_height: float = _panel.size.y
+	assert_eq(_panel.chest_height_for(false), _panel.size.y, "the activities mode, which shows")
+	var untouched: Array = [_panel.size.y, _list().position.y, _list().size.y, _panel.is_techniques_mode()]
+	var technique_height: float = _panel.chest_height_for(true)
+	assert_eq([_panel.size.y, _list().position.y, _list().size.y, _panel.is_techniques_mode()], untouched,
+		"asking for the other mode's height changes nothing")
+	await _await_queued_frees()
+	_panel.set_techniques_mode(true)
+	assert_ne(_panel.size.y, activities_height, "precondition: the two modes differ")
+	assert_eq(_panel.chest_height_for(true), _panel.size.y, "the techniques mode, once the chest is there")
+	assert_eq(technique_height, _panel.size.y, "and what it was asked before it got there")
+	assert_eq(_panel.chest_height_for(false), activities_height, "the activities height again, from the techniques mode")
+	await _await_queued_frees()
+
+## The techniques unlocked before the chest was built have no drawers yet (the list
+## builds when the chest turns to it, or when a technique unlocks), but the height
+## the chest will have there is still asked for before it turns.
+func test_chest_height_for_counts_drawers_that_were_never_built() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	assert_eq(_technique_list().get_drawer_count(), 0, "precondition: the list has not built its drawers")
+	assert_eq(_panel.chest_height_for(true), LIST_TOP + 3.0 * DRAWER_HEIGHT + 2.0 * DRAWER_GAP + 24.0, "three drawers, two gaps")
+	await _await_queued_frees()
+
+## The last cycle's line counts only in the techniques mode, and the lore as it is now.
+func test_chest_height_for_counts_the_last_cycle_line_and_the_lore() -> void:
+	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
+	_renamed_techniques[technique] = technique.technique_name
+	technique.technique_name = "The Foundational Technique of the Endless Misty Bamboo Hollow, Breathed Under A Cold Moon"
+	_unlock_all_techniques()
+	await _add_panel()
+	CyclingManager.set_last_cycle_result(_last_cycle(199.47, 3, 4, 1, 75))
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	var activities_height: float = _panel.size.y
+	assert_eq(_panel.chest_height_for(false), activities_height, "the activities never count the line")
+	var technique_height: float = _panel.chest_height_for(true)
+	await _await_queued_frees()
+	_panel.set_techniques_mode(true)
+	assert_eq(technique_height, _panel.size.y, "the line, the lore and the wrapped drawer are all in")
+	assert_gt(_panel.size.y, 464.0 + LORE_PUSH + LAST_CYCLE_PUSH, "precondition: the long name made a drawer taller")
+	assert_eq(_panel.chest_height_for(false), activities_height)
+	await _await_queued_frees()
+
+func test_height_override_sizes_the_frame_and_clears() -> void:
+	await _add_panel()
+	var natural: float = _panel.size.y
+	var list_top: float = _list().position.y
+	var list_height: float = _list().size.y
+	_panel.set_height_override(400.0)
+	assert_eq(_panel.size.y, 400.0, "the chest takes the height")
+	assert_eq((_node("ChestBottom") as Control).position.y, 400.0 - ZonePanel.CHEST_BOTTOM_HEIGHT, "the bottom slice goes with it")
+	assert_eq((_node("ChestMid") as Control).size.y, 400.0 - ZonePanel.CHEST_TOP_HEIGHT - ZonePanel.CHEST_BOTTOM_HEIGHT, "and the middle tiles between")
+	assert_eq(_list().position.y, list_top, "the list keeps its place")
+	assert_eq(_list().size.y, list_height, "and its height")
+	_panel.clear_height_override()
+	assert_eq(_panel.size.y, natural, "the chest hugs the list again")
+	assert_eq((_node("ChestBottom") as Control).position.y, natural - ZonePanel.CHEST_BOTTOM_HEIGHT)
+	assert_eq((_node("ChestMid") as Control).size.y, natural - ZonePanel.CHEST_TOP_HEIGHT - ZonePanel.CHEST_BOTTOM_HEIGHT)
+
+## A layout change while the override is set (the lore opening, say) moves the
+## lists but not the frame.
+func test_a_relayout_keeps_the_height_override() -> void:
+	await _add_panel()
+	_panel.set_height_override(400.0)
+	(_node("AboutButton") as BaseButton).button_pressed = true
+	await wait_process_frames(2)
+	assert_eq(_list().position.y, LIST_TOP + _lore_push(), "the list moved down under the lore")
+	assert_eq(_panel.size.y, 400.0, "the frame stays where it was held")
+	_panel.clear_height_override()
+	assert_eq(_panel.size.y, _panel.chest_height_for(false), "and once let go it hugs the list under the lore")
+	assert_gt(_panel.size.y, 400.0, "precondition: the lore pushed the natural height past the override")
+
+func test_slide_rows_start_with_the_header() -> void:
+	await _add_panel()
+	var rows: Array[Control] = _panel.get_slide_rows()
+	assert_eq(rows.size(), 3, "the header, the Talk group's label row and its one card on a fresh save")
+	assert_same(rows[0], _node("ActivitiesHeader"), "the header comes first")
+	assert_same(rows[1], _label_row_of(_list_node("Content").get_child(0)), "then the group's label row")
+	assert_true(rows[2] is ZoneActionButton, "then its card")
+	assert_true(_tops_increase(rows), "top to bottom")
+
+func test_slide_rows_in_the_techniques_mode_are_the_drawers() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	var rows: Array[Control] = _panel.get_slide_rows()
+	assert_eq(rows.size(), 4, "the header and a drawer each")
+	assert_same(rows[0], _node("ActivitiesHeader"))
+	var technique_ids: Array[String] = [FOUNDATION_ID, SMOOTH_ID, TORRENTIAL_ID]
+	for index: int in technique_ids.size():
+		assert_same(rows[index + 1], _technique_list().get_drawer(technique_ids[index]), "%s's drawer, in unlock order" % technique_ids[index])
+	assert_true(_tops_increase(rows), "top to bottom")
+	_panel.set_techniques_mode(false)
+	assert_same(_panel.get_slide_rows()[1], _label_row_of(_list_node("Content").get_child(0)), "and the activities' rows are back")
+
+## A list that scrolls offers the rows that show at least partly in its window.
+func test_activity_slide_rows_are_the_ones_in_the_scroll_window() -> void:
+	await _add_panel()
+	_unlock_everything()
+	await wait_process_frames(2)
+	var cycling_card: Control = _panel.get_card(CYCLING_ID)
+	var merchant_card: Control = _panel.get_card(MERCHANT_ID)
+	var first_group: Node = _list_node("Content").get_child(0)
+	var first_label_row: Control = _label_row_of(first_group)
+	var first_card: Control = first_group.get_node("%Cards").get_child(0) as Control
+	var window: Rect2 = _scroll().get_global_rect()
+	var rows: Array[Control] = (_list() as ActivityList).get_slide_rows()
+	assert_has(rows, cycling_card, "the cycling card shows at the top")
+	assert_does_not_have(rows, merchant_card, "the last card is below the window")
+	assert_same(rows[0], first_label_row, "the first group's label row leads")
+	assert_true(_tops_increase(rows), "top to bottom")
+	for row: Control in rows:
+		var rect: Rect2 = row.get_global_rect()
+		assert_true(rect.end.y > window.position.y and rect.position.y < window.end.y, "%s shows in the window" % row.name)
+	var scroll: ScrollContainer = _scroll()
+	scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value - scroll.size.y)
+	await wait_process_frames(2)
+	rows = (_list() as ActivityList).get_slide_rows()
+	assert_has(rows, merchant_card, "scrolled to the bottom, the last card shows")
+	assert_does_not_have(rows, first_card, "and the first group's card has gone above the window")
+	assert_does_not_have(rows, first_label_row, "with its label row")
+
+func test_technique_slide_rows_are_the_drawers_top_to_bottom() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	assert_eq(_technique_list().get_slide_rows().size(), 0, "no drawers before the list builds them")
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	var rows: Array[Control] = _technique_list().get_slide_rows()
+	assert_eq(rows.size(), 3)
+	assert_true(_tops_increase(rows), "top to bottom")
+	for drawer: Node in _technique_list().get_node("%Drawers").get_children():
+		assert_has(rows, drawer, "every drawer of the column")
+
+func test_the_header_and_technique_list_clip() -> void:
+	await _add_panel()
+	var clip: Control = _header_clip()
+	assert_ne(clip, _panel, "the header sits in a clip of its own, not directly in the chest")
+	assert_eq(clip.name, &"HeaderClip")
+	assert_true(clip.clip_contents, "the header's clip cuts what slides past it")
+	assert_eq(clip.mouse_filter, Control.MOUSE_FILTER_IGNORE)
+	assert_eq(clip.position, Vector2.ZERO)
+	assert_eq(clip.size, Vector2(HEADER_CLIP_WIDTH, FULL_CHEST_HEIGHT), "it ends at the chest's inner right edge")
+	assert_eq(clip.get_parent(), _panel)
+	assert_true(_technique_list().clip_contents, "the technique list cuts its drawers at its edge")
+
+## At rest, the header's whole text (the count at its right too) lies inside the clip.
+func test_the_header_text_fits_its_clip_at_rest() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	var clip: Control = _header_clip()
+	for mode_on: bool in [false, true]:
+		_panel.set_techniques_mode(mode_on)
+		await wait_process_frames(2)
+		var window: Rect2 = clip.get_global_rect()
+		for label_name: String in ["HeaderLabel", "CountLabel"]:
+			var label: Label = _node(label_name) as Label
+			assert_true(window.encloses(label.get_global_rect()), "%s ('%s') lies inside the clip" % [label_name, label.text])
+		assert_true(window.encloses((_node("ActivitiesHeader") as Control).get_global_rect()), "so does the whole row")
 	await _await_queued_frees()
