@@ -10,6 +10,7 @@ mouse_filter = 2
 theme_override_constants/separation = 6
 
 [node name="LabelRow" type="HBoxContainer" parent="." unique_id=897497365]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(392, 18)
 layout_mode = 2
 mouse_filter = 2

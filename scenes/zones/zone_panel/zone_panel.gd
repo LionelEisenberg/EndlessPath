@@ -16,7 +16,8 @@ extends Control
 ## 12 px; About, Esc or a click outside closes it. The lore wraps inside its board
 ## and the board grows with it (264 tall at least, an even height). Esc closes it
 ## only while the zone view is MainView's active state: an overlay opened over the
-## zone view (the inventory, say) takes Esc first.
+## zone view (the inventory, say) takes Esc first. About hides, and the lore closes,
+## while a board stands in the map gap (set_board_mode: cycling, the Tribulation).
 ## While the player cycles (set_techniques_mode), the header reads "Techniques"
 ## with "N learned" and a TechniqueList, one drawer per unlocked cycling
 ## technique, takes the activity list's place. It does not scroll or fold, so
@@ -27,6 +28,15 @@ extends Control
 ## advancement_stage_changed (a passed Tribulation's card hides) and
 ## technique_unlocked (which lights NEW on the cycling card again), and
 ## scrolls to a card when ZoneManager.action_focus_requested asks.
+## The board transition animates the chest through four calls. chest_height_for
+## says how tall either mode makes the chest without turning it. set_height_override
+## holds the frame (its height, the middle slice, the bottom cap) to a height until
+## clear_height_override lets it hug its list again; the lists keep their own layout
+## meanwhile. get_slide_rows returns the Activities header and the rows of the list
+## that shows, which the transition slides by their position.x. The header and the
+## technique list sit in SlideClip, which ends at the chest's inner right edge, so
+## a row slid to the right is cut there and nothing is cut at rest. The activity
+## list's rows are cut by its scroll window.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -120,6 +130,14 @@ var _techniques_mode: bool = false
 ## How many activities the zone lists, from the last rebuild: the "N here" the
 ## header shows again when the techniques mode ends.
 var _activity_count: int = 0
+## While true, the chest frame is held to _height_override instead of the height
+## its list asks for.
+var _has_height_override: bool = false
+var _height_override: float = 0.0
+## True when the current zone has a description for About to open.
+var _has_lore: bool = false
+## True while a board stands in the map gap, which hides About.
+var _board_mode: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -200,10 +218,53 @@ func set_techniques_mode(on: bool) -> void:
 func is_techniques_mode() -> bool:
 	return _techniques_mode
 
+## Hides About and closes the lore while a board stands in the map gap (the
+## cycling board, the Tribulation board), or gives About back when it goes.
+func set_board_mode(on: bool) -> void:
+	_board_mode = on
+	_apply_about()
+
 ## Returns the list of technique drawers, which shows only in the techniques
 ## mode.
 func get_technique_list() -> TechniqueList:
 	return _technique_list
+
+## Returns the height the chest has in the techniques mode (true) or the
+## activities mode (false), whether or not it is in that mode now, and moves
+## nothing: the same arithmetic _relayout() uses from the Now strip down, the last
+## cycle's line counted only in the techniques mode, the lore as it is now. While
+## the techniques mode is off, asking for it builds the technique list fresh from
+## the current unlocks first, as turning the mode on does, so its drawers are
+## there to measure.
+func chest_height_for(techniques: bool) -> float:
+	if techniques and not _techniques_mode:
+		_technique_list.build()
+	return _natural_chest_height(techniques, _list_top_for(techniques))
+
+## Holds the chest frame (its height, the middle slice and the bottom cap) to
+## height instead of the height its list asks for, until clear_height_override.
+## The lists keep their own layout. The board transition steps the frame from one
+## mode's height to the other's this way.
+func set_height_override(height: float) -> void:
+	_has_height_override = true
+	_height_override = height
+	_relayout()
+
+## Lets the chest hug its list again after set_height_override.
+func clear_height_override() -> void:
+	_has_height_override = false
+	_relayout()
+
+## Returns the rows the board transition slides, top to bottom: the Activities
+## header, then the rows of the list that shows (the activity list's, or the
+## technique list's in the techniques mode). A row slides by its position.x.
+func get_slide_rows() -> Array[Control]:
+	var rows: Array[Control] = [_activities_header]
+	if _techniques_mode:
+		rows.append_array(_technique_list.get_slide_rows())
+	else:
+		rows.append_array(_activity_list.get_slide_rows())
+	return rows
 
 ## Returns the nearest MainView among the panel's ancestors, or null.
 func find_main_view() -> MainView:
@@ -238,9 +299,8 @@ func _rebuild() -> void:
 	_thumb.texture = THUMB_RIVER if zone.tile_variant_index == RIVER_TILE_VARIANT else THUMB_BASIC
 	_lore_text.text = _lore_paragraphs(zone.description)
 	_fit_lore()
-	_about_button.visible = zone.description != ""
-	if not _about_button.visible:
-		_close_lore()
+	_has_lore = zone.description != ""
+	_apply_about()
 	var actions: Array[ZoneActionData] = ZoneManager.get_available_actions(zone.zone_id)
 	_activity_count = actions.size()
 	_apply_header()
@@ -256,6 +316,13 @@ func _apply_header() -> void:
 	else:
 		_header_label.text = ACTIVITIES_HEADER
 		_count_label.text = HERE_FORMAT % _activity_count
+
+## Shows About while the zone has lore and no board stands in the map gap, and
+## closes the lore when About hides.
+func _apply_about() -> void:
+	_about_button.visible = _has_lore and not _board_mode
+	if not _about_button.visible:
+		_close_lore()
 
 ## Shows the last finished cycle's line under the Now tray while the player
 ## cycles and a cycle has ended, and hides it otherwise. The line's box is as
@@ -273,52 +340,84 @@ func _apply_last_cycle() -> void:
 ## Places the last cycle's line (when it shows), the lore (when it is open), the
 ## header and the list that shows (the techniques while the player cycles)
 ## under the Now strip's bottom, and sizes the list and the chest (kit §0). The
-## last cycle's line stands where the header would, 10 px under the strip.
+## last cycle's line stands where the header would, 10 px under the strip. A
+## height override holds the chest frame to its height; the lists are laid out
+## the same.
 func _relayout() -> void:
 	if not is_node_ready():
 		return
-	var strip_bottom: float = _now_strip.position.y + _now_strip.size.y
+	var strip_bottom: float = _strip_bottom()
 	_last_cycle_label.position.y = strip_bottom + HEADER_GAP_UNDER_STRIP
-	var last_cycle_push: float = _last_cycle_label.size.y + LAST_CYCLE_GAP if _last_cycle_label.visible else 0.0
-	_lore_panel.position.y = strip_bottom + LORE_GAP_UNDER_STRIP + last_cycle_push
-	var lore_push: float = _lore_panel.size.y + LORE_GAP_UNDER_LORE if _lore_panel.visible else 0.0
-	var header_top: float = strip_bottom + HEADER_GAP_UNDER_STRIP + last_cycle_push + lore_push
+	_lore_panel.position.y = strip_bottom + LORE_GAP_UNDER_STRIP + _last_cycle_push(_techniques_mode)
+	var header_top: float = _header_top_for(_techniques_mode)
 	var list_top: float = header_top + LIST_GAP
 	_activities_header.position.y = header_top - HEADER_TEXT_RAISE
 
-	var chest_height: float
 	if _techniques_mode:
-		chest_height = _place_technique_list(list_top)
+		_place_technique_list(list_top)
 	else:
-		chest_height = _place_activity_list(list_top)
+		_place_activity_list(list_top)
+	var chest_height: float = _height_override if _has_height_override else _natural_chest_height(_techniques_mode, list_top)
 	size.y = chest_height
 	_chest_mid.size.y = chest_height - CHEST_TOP_HEIGHT - CHEST_BOTTOM_HEIGHT
 	_chest_bottom.position.y = chest_height - CHEST_BOTTOM_HEIGHT
 
 ## Places the activity list at list_top and sizes it: a list too long for the
-## space scrolls and folds under its last whole drawer. Returns the chest
-## height that fits it.
-func _place_activity_list(list_top: float) -> float:
-	var content_height: float = _activity_list.get_content_height()
-	var max_list_height: float = LIST_BOTTOM_LIMIT - list_top
-	var list_height: float = content_height
-	var chest_height: float = maxf(MIN_CHEST_HEIGHT, list_top + content_height + GAP_UNDER_LIST)
-	if content_height > max_list_height:
-		list_height = _fold_height(max_list_height)
-		chest_height = list_top + list_height + GAP_UNDER_SCROLLING_LIST
-		if FULL_CHEST_HEIGHT - chest_height <= SNAP_DISTANCE:
-			chest_height = FULL_CHEST_HEIGHT
+## space scrolls and folds under its last whole drawer.
+func _place_activity_list(list_top: float) -> void:
 	_activity_list.position.y = list_top
-	_activity_list.size.y = list_height
-	return chest_height
+	_activity_list.size.y = _activity_list_height(list_top)
 
 ## Places the technique list at list_top and sizes it to its drawers. It never
-## scrolls or folds. Returns the chest height that hugs it.
-func _place_technique_list(list_top: float) -> float:
-	var content_height: float = _technique_list.get_content_height()
+## scrolls or folds.
+func _place_technique_list(list_top: float) -> void:
 	_technique_list.position.y = list_top
-	_technique_list.size.y = content_height
-	return maxf(MIN_CHEST_HEIGHT, list_top + content_height + GAP_UNDER_LIST)
+	_technique_list.size.y = _technique_list.get_content_height()
+
+## The Now strip's bottom edge, which the last cycle's line, the lore, the header
+## and the list stand under.
+func _strip_bottom() -> float:
+	return _now_strip.position.y + _now_strip.size.y
+
+## What the last cycle's line pushes the lore, the header and the list down by in
+## the mode: its height and the gap under it, or nothing where it hides (it shows
+## in the techniques mode only, once a cycle has ended).
+func _last_cycle_push(techniques: bool) -> float:
+	var shows: bool = techniques and CyclingManager.get_last_cycle_result() != null
+	return _last_cycle_label.size.y + LAST_CYCLE_GAP if shows else 0.0
+
+## The top of the Activities header's line in the mode: under the Now strip, the
+## last cycle's line and the lore when it is open.
+func _header_top_for(techniques: bool) -> float:
+	var lore_push: float = _lore_panel.size.y + LORE_GAP_UNDER_LORE if _lore_panel.visible else 0.0
+	return _strip_bottom() + HEADER_GAP_UNDER_STRIP + _last_cycle_push(techniques) + lore_push
+
+## The top of the list of the mode.
+func _list_top_for(techniques: bool) -> float:
+	return _header_top_for(techniques) + LIST_GAP
+
+## The height that hugs the list of the mode with its top at list_top.
+func _natural_chest_height(techniques: bool, list_top: float) -> float:
+	if techniques:
+		return maxf(MIN_CHEST_HEIGHT, list_top + _technique_list.get_content_height() + GAP_UNDER_LIST)
+	return _activity_chest_height(list_top)
+
+## The height the activity list takes with its top at list_top: its content, or
+## the fold under its last whole drawer when the content is too long for the space.
+func _activity_list_height(list_top: float) -> float:
+	var content_height: float = _activity_list.get_content_height()
+	var max_list_height: float = LIST_BOTTOM_LIMIT - list_top
+	return _fold_height(max_list_height) if content_height > max_list_height else content_height
+
+## The chest height that hugs the activity list with its top at list_top: the
+## content and 24 px, or, for a list that scrolls, the fold and 40 px, snapped to
+## the bottom line when that is within 64 px.
+func _activity_chest_height(list_top: float) -> float:
+	var content_height: float = _activity_list.get_content_height()
+	if content_height <= LIST_BOTTOM_LIMIT - list_top:
+		return maxf(MIN_CHEST_HEIGHT, list_top + content_height + GAP_UNDER_LIST)
+	var chest_height: float = list_top + _activity_list_height(list_top) + GAP_UNDER_SCROLLING_LIST
+	return FULL_CHEST_HEIGHT if FULL_CHEST_HEIGHT - chest_height <= SNAP_DISTANCE else chest_height
 
 ## The tallest list height up to max_height that folds under a whole drawer,
 ## or max_height when not even the first drawer fits.

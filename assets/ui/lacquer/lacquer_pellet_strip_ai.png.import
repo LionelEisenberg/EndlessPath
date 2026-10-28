@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2g1mqs0aed54"
-path="res://.godot/imported/lacquer_cyc_pellet_tan_ai.png-d7928bb9e323b0648b289440ea6e7549.ctex"
+uid="uid://et6050qlkmi8"
+path="res://.godot/imported/lacquer_pellet_strip_ai.png-c509d023cf49b9d66ebcb8117fb94f62.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_tan_ai.png"
-dest_files=["res://.godot/imported/lacquer_cyc_pellet_tan_ai.png-d7928bb9e323b0648b289440ea6e7549.ctex"]
+source_file="res://assets/ui/lacquer/lacquer_pellet_strip_ai.png"
+dest_files=["res://.godot/imported/lacquer_pellet_strip_ai.png-c509d023cf49b9d66ebcb8117fb94f62.ctex"]
 
 [params]
 

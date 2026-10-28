@@ -15,3 +15,11 @@ extends Resource
 @export var base_madra_per_cycle: float = 25.0  # Madra a cycle pays, in 0.08 s steps while the cursor is on the ball
 
 @export var cycling_zones: Array[CyclingZoneData] = []
+
+## Returns the Madra a second of drawing pays: base_madra_per_cycle over
+## cycle_duration, which is the top of the rate a cycle reads. 0.0 for a cycle
+## of no length.
+func get_madra_per_second() -> float:
+	if cycle_duration <= 0.0:
+		return 0.0
+	return base_madra_per_cycle / cycle_duration

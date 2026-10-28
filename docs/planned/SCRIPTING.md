@@ -48,7 +48,7 @@ Scripts are intended to be relatively cheap to produce and frequently consumed, 
 
 What exists:
 - **Consumable items:** `ConsumableDefinitionData` has `effects: Array[EffectData]`, `cooldown_seconds`, and `use()`. `InventoryManager` stacks consumables in `InventoryData.consumables`, and a 4-slot `equipped_consumables` hotbar is managed in the inventory's Consumables tab. A Script fits this as a `ConsumableDefinitionData`. See [INVENTORY.md](../inventory/INVENTORY.md).
-- **Using consumables:** nothing on `main` consumes from the hotbar. In-combat use (`CombatConsumableManager`, consumable hotkeys) exists only on the unmerged branch `feat/infallible-chaum-58f8ad`. Using one outside combat has no UI at all.
+- **Using consumables:** in a fight, keys 1 to 4 or a click on the technique dock's sockets use the hotbar's consumables, each with its own cooldown (`CombatConsumableManager`, see [COMBAT.md](../combat/COMBAT.md#consumables-in-a-fight-combatconsumablemanager)). Using one outside a fight has no UI at all.
 - **Effects:** quality tiers could pick between different `EffectData` sets. See [EFFECTS.md](../infrastructure/EFFECTS.md).
 
 What's missing:

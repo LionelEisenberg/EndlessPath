@@ -14,7 +14,7 @@ const ADVENTURE_VIEW_SCENE: PackedScene = preload("res://scenes/adventure/advent
 const PLACES: Dictionary = {
 	"VitalsPlate": Vector2(24, 24),
 	"AdventureChest": Vector2(1456, 24),
-	"TechniqueDock": Vector2(722, 920),
+	"TechniqueDock": Vector2(722, 856),
 }
 
 #-----------------------------------------------------------------------------

@@ -111,6 +111,8 @@ var _camera_bounds: Rect2 = Rect2()
 ## the free map window.
 var _clamp_zone_centres: Array[Vector2] = []
 var _frame_tween: Tween = null
+## Where the frame tween is taking the camera.
+var _frame_target: Vector2 = Vector2.ZERO
 ## The character's idle motion (the foraging round or the Aura Well's
 ## meditation and teleports).
 var _idle_motion_tween: Tween = null
@@ -232,11 +234,28 @@ func frame_zone(zone_data: ZoneData, duration: float = 0.0) -> void:
 		_camera.position = target
 		_clamp_controller.clamp_now()
 		return
+	_frame_target = target
 	_frame_tween = create_tween()
 	_frame_tween.set_trans(Tween.TRANS_CUBIC)
 	_frame_tween.set_ease(Tween.EASE_IN_OUT)
 	_frame_tween.tween_property(_camera, "position", target, duration)
 	_frame_tween.finished.connect(_clamp_controller.clamp_now)
+
+## Holds the camera still for someone else's move (a CameraPush: the board
+## transition's, or ZoneTransition's zoom into an adventure), or lets it go. Holding first ends the map's own moves under
+## way at their ends, at once: the glide to a zone (frame_zone()) where it was
+## going, clamped as its end clamps, and the zoom controller's ease at the zoom
+## the player chose. Then the zoom controller writes nothing until the camera
+## is let go.
+func hold_camera(held: bool) -> void:
+	if held:
+		if _frame_tween and _frame_tween.is_valid():
+			_frame_tween.kill()
+			_camera.position = _frame_target
+			_clamp_controller.clamp_now()
+		_frame_tween = null
+		_zoom_controller.settle()
+	_zoom_controller.set_enabled(not held)
 
 ## The fog tier (1-3) drawn on the cell, or -1 when the cell has no fog.
 func get_fog_tier_at(cell: Vector2i) -> int:
@@ -644,8 +663,13 @@ func _refresh_hover() -> void:
 
 ## Hit-tests the pointer's cell as a mouse motion would, for a camera that
 ## moved under a still pointer, and keeps both hex layers in step with it.
+## Nothing while the map's viewport takes no input (a board in the map gap is
+## up or moving, and its camera push moves the map): no motion would reach the
+## hex layers then either.
 func _rehover_pointer_cell() -> void:
 	if not is_inside_tree() or not _map_markers.is_pointer_on_map():
+		return
+	if get_viewport().gui_disable_input:
 		return
 	var cell: Vector2i = tile_map.local_to_map(tile_map.get_local_mouse_position())
 	tile_map.set_hovered_cell(cell)

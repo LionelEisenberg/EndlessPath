@@ -68,7 +68,8 @@ Related docs:
      - It grows downward with long text.
 
      On opening, the details show the first stack. While the stacks change (a purchase), they and the marks stay on the consumable you picked; when it is used up, they move to the first stack. When the hotbar slot you pointed at loses its consumable, the marks move to its row.
-   - **Current limits:** the Merchant's Crude Scale is the only consumable a player can get, and nothing on `main` reads the hotbar.
+   - **In a fight** the hotbar's consumables are used with keys 1 to 4 or a click on the technique dock's sockets ([COMBAT.md](../combat/COMBAT.md#consumables-in-a-fight-combatconsumablemanager)). A consumable whose stack runs out stays on the hotbar at 0: `use_consumable()` erases the stack, not the hotbar slot.
+   - **Current limits:** the Merchant's Crude Scales are the only consumables a player can get.
 6. **Materials tab.** Pressed into the paper like the Equipment tab.
    - **Left page:** the title "Materials", the caption `N KINDS` (`1 KIND` for one), then the same 6 × 6 page of 72 px slots as Equipment. Each material sits in a deep slot, in inventory order, with its full count on a paper tag at the slot's bottom right (`×4600`); the rest of the page is shallow empty slots. There is no filter, no discard slot and no dragging.
      - Past 36 kinds the page scrolls, and a pressed groove appears beside it.
@@ -294,7 +295,7 @@ Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `Item
 | | `source_description` | `String` | `""` | Not shown: the Materials page lists the activities that yield it (`MaterialSources`) |
 | | `used_in` | `String` | `""` | Free text. Not shown |
 | `ConsumableDefinitionData` | `effects` | `Array[EffectData]` | `[]` | `use()` calls `process()` on each, in order |
-| | `cooldown_seconds` | `float` | 0.0 | Metadata only on `main`. Tooltip shows `EffectData.describe()` per effect plus "Cooldown: N.Ns" |
+| | `cooldown_seconds` | `float` | 0.0 | In a fight, each hotbar slot's `CombatConsumableInstance` enforces it, afresh every fight. Tooltip shows `EffectData.describe()` per effect plus "Cooldown: N.Ns" |
 | `QuestItemDefinitionData` | `from_source` | `String` | `""` | The Journal's `From …` line, and the line under the name of an item that belongs to no quest |
 
 **ItemInstanceData**
@@ -357,7 +358,8 @@ Each entry rolls independently: `randf() <= drop_chance`, then `randi_range(min,
 | `swap_accessory_slots(from_index, to_index)` | Moves or swaps accessory 0 ↔ 1 |
 | `move_equipment(from_index, to_index)` | Moves or swaps within the grid. No bounds or capacity check |
 | `has_item(item_id) -> bool` | Scans materials, grid, equipped gear, accessories, quest items and consumables (count > 0) |
-| `use_consumable(def) -> bool` | Calls `def.use()`, then decrements or erases the stack. No cooldown check. No caller on `main` |
+| `get_consumable_count(def) -> int` | How many of the consumable the player holds: 0 for none, or for null |
+| `use_consumable(def) -> bool` | Calls `def.use()`, then decrements or erases the stack. No cooldown check: in a fight `CombatConsumableInstance.use()` calls it and enforces the cooldown |
 | `restore_equipment_instance(instance, target_slot_index = -1)` | Trash restore: uses the target if it is valid, empty and below capacity, otherwise the first free slot. No log |
 | `restore_material(def, quantity)` | Trash restore for materials. No UI path reaches it |
 | `grant_equipment_page()` | Adds one page. No caller on `main` |
@@ -507,7 +509,7 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | PersistenceManager | `InventoryData` is `SaveGameData.inventory`. InventoryManager re-grabs `live_save_data` on `save_data_reset`, and a reset creates a fresh `InventoryData` |
 | LogManager | Award messages and "Discarded <name>" |
 | MerchantManager | `award_items(item, 1)` for each purchase (so gear purchases log as "Looted", Crude Scales as "Obtained"). Gear purchases first check `InventoryData.has_free_equipment_slot()`; with every slot full the shop shows "Equipment full" and takes no gold |
-| Combat (unmerged) | `equipped_consumables` and `use_consumable()` are the hooks used by the `feat/infallible-chaum-58f8ad` branch |
+| Combat (`CombatConsumableManager`, `TechniqueDock`) | A fight makes one `CombatConsumableInstance` per filled `equipped_consumables` slot, and each use goes through `use_consumable()`. The technique dock previews the hotbar on the adventure map and shows its counts through `get_consumable_count()`, refreshed on `inventory_changed` ([COMBAT.md](../combat/COMBAT.md#consumables-in-a-fight-combatconsumablemanager)) |
 
 ## Existing Content
 
@@ -606,12 +608,11 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 ### Bugs
 
 - `[LOW]` **Equipment overflow is silently dropped.** With every slot full, `award_items()` only logs a warning, and `item_awarded` has already fired, so the adventure end card lists an item the player never received.
-- `[LOW]` **`use_consumable()` leaves an empty stack on the hotbar.** It erases the stack at zero but leaves the definition in `equipped_consumables`, so the hotbar would show `×0`. This is latent on `main` because nothing calls `use_consumable()`.
 - `[LOW]` **An item in the trash is already erased from `InventoryData`.** The SaveTimer autosave (every 5 s) persists that state, so quitting with the inventory open and an item in the trash loses the item.
 
 ### Missing Functionality
 
-- `[HIGH]` **Consumables can't be used on `main`.** The Merchant sells `crude_scale`, but no loot table or effect awards either scale, and nothing calls `use_consumable()`. Combat use exists only on the unmerged branch `feat/infallible-chaum-58f8ad` (20 commits, 2026-06-01): `CombatConsumableManager` / `CombatConsumableInstance`, `ConsumableButton`, consumable hotkeys 1–4 and `get_consumable_count()`.
+- `[HIGH]` **Consumables have no drop source.** The Merchant sells `crude_scale`, but no loot table or effect awards either scale, so the Merchant's Crude Scales are the only ones a player can use in a fight. `barely_coalesced_scale` has no source at all, and no icon.
 - `[MEDIUM]` **Gear has one source each.** The Merchant sells six pieces once per save, and the Shallow Woods loot only includes the necklace. Loot drops for the merchant gear are planned (Beat 5).
 - `[MEDIUM]` **There is no API to spend or remove items.** InventoryManager can't consume materials, take back quest items or sell equipment. The only removal path is the trash, which `EquipmentTab` implements by mutating `InventoryData` directly. Crafting (Elixir Making, Soulsmithing), merchant selling and quest hand-ins all need `remove_*` verbs. The redesign spec's `discard_*` methods were never built.
 - `[LOW]` **`grant_equipment_page()` has no caller**, so every player stays at 2 pages (72 slots). The trigger was deferred by the pagination spec.
@@ -630,7 +631,6 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 ### UI
 
-- `[LOW]` **The hotbar prints keys `1`–`4` under its slots**, but `main` has no consumable input actions.
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
 - `[LOW]` **The Journal reads quest progress when its page opens and when the quest items change.** A step reached while the book lies open shows the next time the page opens.
 - `[LOW]` **Tab-button icons shrink** from 0.95 to 0.75 scale in `TabButtonAnimation`. This was reported as janky before the June icon swap (c33064c, c4d3b4e) and hasn't been re-checked (unverified).
