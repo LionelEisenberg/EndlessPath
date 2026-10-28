@@ -293,7 +293,7 @@ Never glow, tint, fade or scale to show a state.
 |---|---|---|
 | Frame strips | Switch frames from a strip; never interpolate. Timing in whole steps | Rings: 13 frames over each action cycle (1 s Well, 5 s haul). Twinkle: frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s. Cycling ball swirl: 8 frames, 10 a second. The waiting ball's breath: 60, 64, 68, 64, 60 px over 2 s, in whole steps |
 | Stepped moves | Move in 2 px steps (1 map px at zoom 2) at constant speed. Compute the offset from elapsed time and quantise it | Floater: 40 px in 20 steps over 1 s, then hidden (`LacquerFloater.rise_at()`). Walk: `snap_walk_to_whole_px`. The character's idle motion: whole-map-px offsets and frame clips from `ZoneMapMath` (the Aura Well's teleport is a drawn dither dissolve, then hidden outright) |
-| Snapped paths | A curve is fine; the drawn position snaps to even px every frame | `MadraPellet` drain into the adventure; the cycling ball on its eased path and its pellets |
+| Snapped paths | A curve is fine; the drawn position snaps to even px every frame | `LacquerPellet` (the drain into the adventure, the cycling and Tribulation pellets; its condense, tail and spark are strip frames, its tail a ramp step darker per dot, never alpha); the cycling ball on its eased path |
 | Scrolling | In a few even steps | `LacquerRail.step_to()`: six even-px steps over 200 ms |
 | Flash | `steps(1)` on and off | `LacquerFrameOverlay.flash()`: 300 ms on, 300 ms off |
 | Shake | Even-px keyframes, each held. Every shake steps through `MapGlyph.shake_offset_at()` over one of its two keyframe sets and never copies the stepping; a refusal (a press, click or walk that cannot act) shakes by the soft set | `MapGlyph`: `SHAKE_KEYFRAMES`, the lock shake, 0, −8, 8, −6, 4, 0 over 0.44 s (the padlock; the adventure's boss coin reuses it as it comes into view), and `SOFT_SHAKE_KEYFRAMES`, 0, −4, 4, −2, 2, 0 over the same 0.44 s, half the travel in even px (the technique slots and consumable sockets, the Here tray, the Stamina row and the zone view's Adventure card). One shake still runs its own: the old fight HUD's cast bar, not yet in the look, shakes on a tween when a cast is interrupted |
@@ -416,7 +416,7 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 | `LacquerCountSeal` (`scenes/common/lacquer/lacquer_count_seal.tscn`) | Place it at the seal's 24x24, set `grows_left` for the edge it keeps, then `show_count(n)`: the seal widens to fit the number |
 | `LacquerRail` (`scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn`) | `bind(host)` to a `ScrollContainer` whose scrollbar is hidden; `step_to(target)` scrolls in steps |
 | `LacquerText` (`scripts/utils/lacquer_text.gd`) | `rate()`, `decimal_bbcode()` |
-| `LacquerFloater` (`scenes/common/lacquer/lacquer_floater/`), `MapGlyph`, `MadraPellet` | Stepped rise, even-px shake and twinkle, snapped flight. `LacquerFloater` and `MapGlyph` expose static functions of elapsed time (`rise_at`, `shake_offset_at`, `twinkle_frame`) that tests call directly (`shake_offset_at` steps the keyframe set it is handed, the lock shake's by default: a new shake adds a set, never a copy of the stepping); `MadraPellet` snaps its point to even px every frame, and `set_texture()` swaps its art for another 12x12 pellet (the cycling XP pellets). Copy this shape for new stepped motion |
+| `LacquerFloater` (`scenes/common/lacquer/lacquer_floater/`), `MapGlyph`, `LacquerPellet` | Stepped rise, even-px shake and twinkle, snapped flight. `LacquerFloater` and `MapGlyph` expose static functions of elapsed time (`rise_at`, `shake_offset_at`, `twinkle_frame`) that tests call directly (`shake_offset_at` steps the keyframe set it is handed, the lock shake's by default: a new shake adds a set, never a copy of the stepping); `LacquerPellet` snaps its point to even px every frame, and its `PelletFlight` and `frame_at` are functions of elapsed time too. Copy this shape for new stepped motion |
 
 **Stepped motion in code.** Drive it from `_process` with an elapsed time, quantise the result (2 px, whole frames), and set `position` or the frame. Do not use a `Tween` with an ease. Show and hide with `visible`.
 
@@ -575,7 +575,7 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 
 | Surface | Why |
 |---|---|
-| Madra drain pellets (`MadraPellet`) | Already lacquer: opaque, snapped to even px, no trail |
+| Pellets (`LacquerPellet`) | Already lacquer: opaque, snapped to even px, every look a strip frame |
 | The cycling view: board, groove, ball, zones, pellets, floaters, technique drawers | Already lacquer (built 2026-10-22 and 23) |
 | Log and Goals boards in the adventure view | Already lacquer. `LogWindow.tone_for()` maps each line's first `[color]` tag to a lacquer tone (brass, Madra, cream, or tan for anything else), so adventure and combat log lines need no change |
 | Book open, close and page-turn strips | Already stepped frame strips |

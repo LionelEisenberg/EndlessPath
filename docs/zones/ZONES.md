@@ -607,7 +607,7 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
 3. `ZoneViewState` adds a full-rect `MOUSE_FILTER_STOP` Control over `ZoneView` and ignores input actions while it exists. `MapMarkers` hides.
 4. `ZoneTransition`, on `adventure_start_requested`:
    - computes the budget, `ResourceManager.get_adventure_madra_budget()` = `min(capacity, current Madra)`;
-   - spends it through `spend_madra()` as 8–25 `MadraPellet`s (opaque Madra-blue pellets with an ink outline, on even screen px) flying from the cabinet's Madra orb to the character;
+   - spends it through `spend_madra()` as 8–25 `LacquerPellet`s ([UI_STYLING.md](../UI_STYLING.md#lacquer-pieces-scenescommonlacquer)) flying from the cabinet's Madra orb to the character. Each flies 0.6 s and leaves 0.04 s after the one before, so they land in the rhythm they left, as a `PelletFlight.stream()` whose bow sways up to 110 px (`DRAIN_BOW`) to either side;
    - zooms the camera to 3.0 on the character over 0.5 s;
    - calls `ActionManager.confirm_adventure_start(action, budget)`, which emits `start_adventure(action, budget)`.
 5. `start_adventure` triggers `AdventureViewState.change_state()`, whose `ZoneViewState.exit()` removes the blocker, and `AdventureView.start_adventure()`.
@@ -786,7 +786,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | `scenes/tribulation/`, `scripts/tribulation/tribulation_run.gd` | The Tribulation board, its state, its stage and its judge ([breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md)) |
 | `scenes/zones/cultivator_plate/` | Madra, Core Density and gold cabinet |
 | `assets/shaders/lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader` | The cabinet's flowing Madra liquid (also the adventure's Health and Madra orbs) and turning Core Density spiral |
-| `scenes/zones/zone_transition/zone_transition.gd`, `madra_pellet.gd` / `.tscn` | Adventure-start drain and zoom; `MadraPellet` also carries the cycling view's pellets |
+| `scenes/zones/zone_transition/zone_transition.gd` | Adventure-start drain and zoom (its pellets are `LacquerPellet`s) |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Zone view state, HUD placement and input blocker |
 | `scenes/tilemaps/hexagon_tile_map_layer.gd`, `tilemap_tileset.tres`, `fog_tileset.tres` | Shared hex layer and the two TileSets |
 | `scenes/camera/camera_clamp_controller/camera_clamp_controller.gd` | Clamp regions (`clamp_regions`, `clamp_centre_only`, `clamp_now()`) |
