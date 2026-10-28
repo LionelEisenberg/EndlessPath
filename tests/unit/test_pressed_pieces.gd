@@ -218,6 +218,14 @@ func test_a_seal_prints_its_word_where_the_mockup_does() -> void:
 	assert_eq(seal.size, Vector2(66, 26), "the seal stays its art's size")
 	assert_eq(_baseline_in(seal), 18.0, "the word's baseline")
 
+## Both mockups print a tag's count 16 px under the tag's top, 4 px over its
+## foot. The tag stays its art's 20 px.
+func test_a_tag_prints_its_count_where_the_mockup_does() -> void:
+	var tag: Label = _make_label(&"LabelBookTag", "×7")
+	await wait_process_frames(2)
+	assert_eq(tag.size.y, 20.0, "the tag stays its art's height")
+	assert_eq(_baseline_in(tag), 16.0, "the count's baseline")
+
 ## The same for a filter word and the 26 px lozenge behind the one in use. The
 ## two styles are the same size, so selecting a word moves nothing.
 func test_a_one_line_filter_word_is_as_tall_as_its_lozenge() -> void:

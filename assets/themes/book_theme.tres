@@ -131,6 +131,11 @@ modulate_color = Color(1, 0.88, 0.66, 1)
 base_font = ExtResource("6_euljiro")
 spacing_glyph = 1
 
+[sub_resource type="FontVariation" id="FontVariation_euljiro_tag"]
+base_font = ExtResource("6_euljiro")
+spacing_top = 3
+spacing_bottom = -3
+
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_filter"]
 content_margin_left = 10.0
 content_margin_top = 5.0
@@ -267,7 +272,7 @@ LabelBookTag/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
 LabelBookTag/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelBookTag/constants/line_spacing = 2
 LabelBookTag/font_sizes/font_size = 13
-LabelBookTag/fonts/font = ExtResource("6_euljiro")
+LabelBookTag/fonts/font = SubResource("FontVariation_euljiro_tag")
 LabelBookTag/styles/normal = ExtResource("12_paper_tag")
 LabelBookTitle/base_type = &"Label"
 LabelBookTitle/colors/font_color = Color(0.2, 0.149, 0.102, 1)

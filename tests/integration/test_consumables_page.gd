@@ -279,6 +279,7 @@ func test_the_tag_sits_flush_right_and_two_px_up() -> void:   # Ruling R17 (M4)
 	var tag_rect: Rect2 = (_hotbar_slot(tab, 0).get_node("%Count") as Control).get_global_rect()
 	assert_eq(tag_rect.end, slot_rect.end - Vector2(0, 2))
 	assert_eq(tag_rect.size.y, 20.0, "a one-line tag is as tall as its art")
+	assert_eq(_baseline(_hotbar_slot(tab, 0).get_node("%Count") as Label), 382.0, "its count on the mockup's baseline")
 
 func test_a_tag_keeps_to_even_pixels() -> void:   # the tag's art on the 2 px grid
 	InventoryManager.award_items(CRUDE, 7)

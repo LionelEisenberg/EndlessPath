@@ -185,6 +185,7 @@ func test_pieces_sit_where_the_spec_puts_them() -> void:
 	assert_eq((slots[0].get_node("%Icon") as Control).get_global_rect(), Rect2(456, 338, 64, 64), "the icon at +4, +4")
 	var tag: Rect2 = (slots[0].get_node("%Count") as Control).get_global_rect()
 	assert_eq(tag, Rect2(474, 382, 48, 20), "the mockup's tag: 2 px in from the right, 4 up from the bottom")
+	assert_eq(_baseline(slots[0].get_node("%Count") as Label), 398.0, "its count on the mockup's baseline, the slot's top + 64")
 	var second_tag: Rect2 = (slots[1].get_node("%Count") as Control).get_global_rect()
 	assert_eq(second_tag.end, Vector2(598, 402), "every tag sits the same way on its slot")
 	assert_eq(fmod(second_tag.position.x, 2.0), 0.0, "and starts on an even x")
