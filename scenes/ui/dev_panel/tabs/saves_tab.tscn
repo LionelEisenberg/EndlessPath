@@ -131,12 +131,14 @@ layout_mode = 2
 [node name="NewGameButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/YourSaveButtons"]
 unique_name_in_owner = true
 layout_mode = 2
+focus_mode = 0
 size_flags_horizontal = 3
 text = "New game on my save"
 
 [node name="KeepButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/YourSaveButtons"]
 unique_name_in_owner = true
 layout_mode = 2
+focus_mode = 0
 size_flags_horizontal = 3
 text = "Keep as my save"
 
@@ -162,6 +164,7 @@ size_flags_horizontal = 3
 [node name="RestoreButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/BackupRow"]
 unique_name_in_owner = true
 layout_mode = 2
+focus_mode = 0
 text = "Restore"
 
 [node name="OpenFolderButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer"]

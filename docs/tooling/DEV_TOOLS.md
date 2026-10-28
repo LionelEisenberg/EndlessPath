@@ -78,13 +78,13 @@ What the session plays and the saves behind it. From the top: the session line, 
 | PRESETS: a `DevPresetRow` for each | `DevManager.play_preset()`, `pin_preset()` | The preset's title and description. Play plays it in memory. Pin pins it for plain launches ([The pin](#the-pin)); on the pinned preset the button reads Unpin and unpins it, and the row says "Pinned · plain launches start here". A pin that cannot be written shows in the status line |
 | SAVE THIS GAME AS A PRESET: Title, Description, Save as a preset | `DevManager.save_as_preset()` | Writes the session's save as a snapshot preset ([Save this game as a preset](#save-this-game-as-a-preset)). A refusal shows under the button. On success it says `Saved this game as the preset '<title>'`, clears both fields and lists the new preset |
 | New game on my save | `DevManager.new_game()` | Backs your save up, then starts a fresh game on it. Needs a second click |
-| Keep as my save | `DevManager.keep_as_my_save()` | Backs your save up, then makes this session your save. Off in a session on it |
+| Keep as my save | `DevManager.keep_as_my_save()` | Backs your save up, then makes this session your save. Off in a session on it. Needs a second click |
 | Save now | `PersistenceManager.save_data()` | Writes the session's save and says what came of it: `Saved to <path>` (with a `[DEV]` line), `Not saved: this session lives in memory, so there is no file to write`, `Not saved. Saving is off: <reason>`, or `Could not write <path>: <error> (error N)` |
 | Autosave | `PersistenceManager.autosave_enabled` | Turns the tick's and the close's autosave on or off for the session, with a `[DEV]` line. A switch puts back what the run was launched with |
 | Backup picker, Restore | `PersistenceManager.list_backups()`, `DevManager.restore_backup()` | Your save's backups, newest first, each read `<name> · 2026-10-25 11:17:15 (UTC)` (`#2` after the time for the second copy made in that second). A refresh keeps the backup picked. With none, the picker reads "No backups" and Restore is off. Restore needs a second click |
 | Open save folder | `OS.shell_open()` | Opens the user data folder (`user://`) in the file manager |
 
-New game and Restore write over your save, so each needs a second click on the same button within 3 s of real time, whatever the time speed. The first click turns the button into "Click again to start a new game" or "Click again to restore". The 3 s running out, a refresh, or a click on the other button puts its own text back.
+New game, Keep and Restore write over your save, so each needs a second click on the same button within 3 s of real time, whatever the time speed. The first click turns the button into "Click again to start a new game", "Click again to keep" or "Click again to restore". The 3 s running out, a refresh, or a click on another of the three puts its own text back. None of the three takes keyboard focus, so Space (the Tribulation's press, Dialogic's advance) or Enter never confirms an armed one.
 
 The status line stands under the part that scrolls, as the Story tab's does, so it is in view wherever the tab is scrolled to: the tab is taller than the body, and a refusal from the buttons at its top must not pass for a switch that ran. It shows why a switch was refused or failed, a pin that would not write, what Save now did, and a folder that would not open.
 
@@ -520,7 +520,7 @@ Tests: `tests/unit/test_dev_*.gd` and `tests/integration/test_dev_*.gd`, among o
 ### UI
 
 - `[LOW]` The spec's `HSeparator`s between panel sections are missing.
-- `[LOW]` The panel's buttons, pickers and spin boxes keep the default focus mode, so a click gives one keyboard focus, and Space or Enter then reach it instead of the game until the focus moves.
+- `[LOW]` The panel's buttons, pickers and spin boxes, apart from the Saves tab's New game, Keep and Restore, keep the default focus mode, so a click gives one keyboard focus, and Space or Enter then reach it instead of the game until the focus moves.
 
 ### Tech Debt
 

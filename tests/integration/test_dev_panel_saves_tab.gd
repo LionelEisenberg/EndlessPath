@@ -6,13 +6,14 @@ extends GutTest
 ## playtime, stage, Core Density and gold) and the route's beats with the playtime
 ## each was reached at, or "reached, no time recorded" where a build or a save from
 ## before play stats kept no time, refreshed as the session changes, when the tab is
-## shown, and once a second for the playtime. Restart and
-## Back switch the session; a row per preset plays or pins it; "Save this game as a
-## preset" writes one; New game and Restore need a second click within 3 s; Keep,
-## Save now, Autosave and the backup picker work on your save. A refused or failed
-## switch shows its reason, also in a tab built after it. Ctrl+Shift+R restarts a
-## preset session from anywhere, and leaves the key alone outside one. Open folder
-## opens a real Explorer window, so no test presses it.
+## shown, and once a second for the playtime. Restart and Back switch the session; a
+## row per preset plays or pins it; "Save this game as a preset" writes one; New game,
+## Keep and Restore write over your save, so each needs a second click within 3 s and
+## takes no keyboard focus; Save now, Autosave and the backup picker work on your
+## save. A refused or failed switch shows its reason in a status line that does not
+## scroll, also in a tab built after it. Ctrl+Shift+R restarts a preset session from
+## anywhere, and leaves the key alone outside one. Open folder opens a real Explorer
+## window, so no test presses it.
 ##
 ## Each panel is built inside a 1920x1080 Control, as MainView holds it. Nothing here
 ## touches a real path: the presets are read from and saved into a temp folder
@@ -747,18 +748,38 @@ func test_without_backups_restore_is_off() -> void:
 	assert_true(option.disabled)
 	assert_true(_button(tab, "RestoreButton").disabled)
 
-func test_keep_makes_the_session_your_save() -> void:
+## Keep writes over your save, as New game and Restore do, so it asks for a second
+## click as they do.
+func test_keep_needs_a_second_click() -> void:
 	_start_on_temp_main_save()
 	var tab: Control = _open_saves_tab()
 	DevManager.play_preset(_preset("keep_press", "Keep test", [_step(Kind.SET_GOLD, "", 700.0)]))
 	await wait_process_frames(SWITCH_FRAMES)
-	assert_eq(_button(tab, "KeepButton").text, "Keep as my save")
+	var button: Button = _button(tab, "KeepButton")
+	assert_eq(button.text, "Keep as my save", "precondition")
+	watch_signals(DevManager)
+	_press(tab, "KeepButton")
+	assert_eq(button.text, "Click again to keep", "the first click asks for a second")
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_signal_not_emitted(DevManager, "session_changed", "and keeps nothing")
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET)
+	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 42.0, "your save is left as it was")
 	_press(tab, "KeepButton")
 	await wait_process_frames(SWITCH_FRAMES)
-	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "one click keeps the session")
+	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "the second click keeps the session")
 	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 700.0, "as your save")
-	assert_true(_button(tab, "KeepButton").disabled, "which has nothing left to keep")
+	assert_eq(PersistenceManager.list_backups().size(), 1, "after a backup of the old one")
+	assert_true(button.disabled, "which has nothing left to keep")
+	assert_eq(button.text, "Keep as my save", "and the button reads as before")
 	assert_true(_label(tab, "SessionLabel").text.begins_with("Your save · %s\n" % MAIN_SAVE_PATH), "and the tab shows it")
+
+## A click that armed one of these buttons would leave it the keyboard's focus, and
+## Space (the Tribulation's press, Dialogic's advance) or Enter would then confirm
+## the overwrite. None of them takes focus.
+func test_the_buttons_that_write_over_your_save_take_no_focus() -> void:
+	var tab: Control = _open_saves_tab()
+	for button_name: String in ["NewGameButton", "KeepButton", "RestoreButton"]:
+		assert_eq(_button(tab, button_name).focus_mode, Control.FOCUS_NONE, "%s takes no focus" % button_name)
 
 ## Keep copies the session's save onto yours, its play stats included, so your save
 ## still says which preset built it, and the beats the build passed still read as
@@ -768,6 +789,7 @@ func test_your_save_kept_from_a_preset_still_names_the_preset() -> void:
 	var tab: Control = _open_saves_tab()
 	DevManager.play_preset(_preset("kept_build", "Kept build", [_step(Kind.TRIGGER_EVENT, AWAKENING_EVENT)]))
 	await wait_process_frames(SWITCH_FRAMES)
+	_press(tab, "KeepButton")
 	_press(tab, "KeepButton")
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "precondition: the session was kept as your save")

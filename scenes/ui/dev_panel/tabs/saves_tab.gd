@@ -13,9 +13,10 @@ extends VBoxContainer
 ## Restart preset (also Ctrl+Shift+R, which DevPanel handles) and Back to my save
 ## switch the session. Then a row per preset, which plays or pins it, "Save this game
 ## as a preset", and your save: a new game, Keep as my save, Save now, the autosave
-## switch, the backups with Restore, and the save folder. New game and Restore write
-## over your save, so each needs a second click within 3 s (ConfirmTimer, in real
-## seconds whatever the time speed).
+## switch, the backups with Restore, and the save folder. New game, Keep and Restore
+## write over your save, so each needs a second click within 3 s (ConfirmTimer, in
+## real seconds whatever the time speed), and none takes keyboard focus: Space or
+## Enter would otherwise confirm the overwrite.
 ##
 ## Why a switch was refused or failed, a pin that would not write, what Save now did
 ## and a folder that would not open show in a status line that stands under the part
@@ -47,8 +48,9 @@ const _REACHED_UNTIMED: String = "reached, no time recorded"
 ## A beat with no reached_when: nothing marks it reached.
 const _NOT_TRACKED: String = "not tracked (no reached_when)"
 
-## What New game and Restore read while they wait for their second click.
+## What New game, Keep and Restore read while they wait for their second click.
 const _NEW_GAME_ARMED: String = "Click again to start a new game"
+const _KEEP_ARMED: String = "Click again to keep"
 const _RESTORE_ARMED: String = "Click again to restore"
 
 ## What the backup picker shows when your save has no backups.
@@ -87,10 +89,10 @@ const _BACKUP_STAMP_PATTERN: String = "^(\\d{4})(\\d{2})(\\d{2})-(\\d{2})(\\d{2}
 # STATE
 #-----------------------------------------------------------------------------
 
-## The button waiting for its second click, New game or Restore, or null.
+## The button waiting for its second click, New game, Keep or Restore, or null.
 var _armed_button: Button = null
 
-## What New game and Restore read when they are not waiting for a second click.
+## What New game, Keep and Restore read when they are not waiting for a second click.
 var _resting_texts: Dictionary[Button, String] = {}
 
 #-----------------------------------------------------------------------------
@@ -98,12 +100,12 @@ var _resting_texts: Dictionary[Button, String] = {}
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	_resting_texts = {_new_game_button: _new_game_button.text, _restore_button: _restore_button.text}
+	_resting_texts = {_new_game_button: _new_game_button.text, _keep_button: _keep_button.text, _restore_button: _restore_button.text}
 	_restart_button.pressed.connect(DevManager.restart_preset)
 	_back_button.pressed.connect(DevManager.back_to_my_save)
 	_save_preset_button.pressed.connect(_on_save_preset_pressed)
 	_new_game_button.pressed.connect(_on_confirm_pressed.bind(_new_game_button, _NEW_GAME_ARMED, DevManager.new_game))
-	_keep_button.pressed.connect(DevManager.keep_as_my_save)
+	_keep_button.pressed.connect(_on_confirm_pressed.bind(_keep_button, _KEEP_ARMED, DevManager.keep_as_my_save))
 	_save_now_button.pressed.connect(_on_save_now_pressed)
 	_autosave_check.toggled.connect(_on_autosave_toggled)
 	_restore_button.pressed.connect(_on_confirm_pressed.bind(_restore_button, _RESTORE_ARMED, _restore_picked_backup))
@@ -145,7 +147,7 @@ func _on_refresh_timer_timeout() -> void:
 		_show_session()
 
 ## A first click arms the button: it asks for a second, which runs `action` if it
-## comes before ConfirmTimer runs out. Arming one button disarms the other.
+## comes before ConfirmTimer runs out. Arming one button disarms the others.
 func _on_confirm_pressed(button: Button, armed_text: String, action: Callable) -> void:
 	if _armed_button == button:
 		_disarm()
