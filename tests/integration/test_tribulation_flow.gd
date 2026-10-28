@@ -21,6 +21,7 @@ const Mode := TribulationView.Mode
 
 const VIEW_SCENE_PATH: String = "res://scenes/tribulation/tribulation_view.tscn"
 const CARD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/zone_action_button.tscn")
+const TRANSITION_SCENE: PackedScene = preload("res://scenes/ui/main_view/board_transition/board_transition.tscn")
 
 const ZONE_ID: String = "SpiritValley"
 const TRIBULATION_ID: String = "spirit_valley_tribulation"
@@ -132,6 +133,20 @@ func _build_board(host: Node = null) -> void:
 	_state = TribulationViewState.new()
 	_state.scene_root = _main_view
 	add_child_autofree(_state)
+
+## A BoardTransition for the board's MainView, built from its scene with its processing off
+## so the test drives it with advance() and finish() alone. Goals and the log stand where the
+## zone view puts them. Call it after _build_board(), before the trial starts.
+func _give_main_view_a_player() -> BoardTransition:
+	_main_view.goals_panel.position = Vector2(24.0, 24.0)
+	_main_view.goals_panel.size = Vector2(408.0, 360.0)
+	_main_view.log_window.position = Vector2(24.0, 640.0)
+	_main_view.log_window.size = Vector2(520.0, 416.0)
+	var player: BoardTransition = add_child_autofree(TRANSITION_SCENE.instantiate()) as BoardTransition
+	player.set_process(false)
+	_main_view.board_transition = player
+	_main_view._bind_board_transition()
+	return player
 
 ## Sets the board's clock to `seconds` into the run and runs one frame.
 func _at(seconds: float) -> void:
@@ -419,6 +434,89 @@ func test_a_save_reset_mid_trial_closes_the_board() -> void:
 	assert_false(_main_view.state_stack.has(_state), "the state is off the stack")
 	assert_eq(CultivationManager.get_core_density_level(), 100.0, "the new save is left alone")
 	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.FOUNDATION, "and so is its stage")
+
+#-----------------------------------------------------------------------------
+# THE BOARD ON THE TRANSITION
+#-----------------------------------------------------------------------------
+
+## The action stopped from outside while the board is still opening (the dev panel's stop,
+## which is ActionManager.stop_action()). A run the board was handed is dropped, and nothing
+## of it is applied however late the clock goes while the board shrinks away; the state
+## leaves when the close has finished.
+func test_a_stop_while_the_board_opens_applies_nothing_and_closes() -> void:
+	_build_board()
+	var player: BoardTransition = _give_main_view_a_player()
+	_run_foraging()
+	_fill_core()
+	ActionManager.select_action(_tribulation())
+	player.advance(0.1)
+	assert_true(_main_view.is_board_moving(), "precondition: the board is still opening")
+	_view.begin()
+	assert_eq(_view.get_mode(), Mode.RUNNING, "precondition: a run is under way")
+	var late: float = _beat(_last_beat()) + _view.get_run().get_hold_seconds() + _view.get_run().get_duration()
+	ActionManager.stop_action(false)
+	assert_eq(_view.get_mode(), Mode.CLOSED, "the view is closed at the stop")
+	assert_null(_view.get_run(), "and the run dropped")
+	assert_true(_main_view.is_board_closing(), "the board closes")
+	assert_true(_main_view.state_stack.has(_state), "the state waits for the close to end")
+	assert_eq(_current_id(), FORAGING_ID, "foraging resumed")
+	player.advance(0.1)
+	_at(late)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0, "no level was lost")
+	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.FOUNDATION, "and no breakthrough happened")
+	player.finish()
+	assert_false(_view.visible, "the board is hidden after the close")
+	assert_false(_main_view.state_stack.has(_state), "and the state is gone")
+	assert_true(_main_view.dock.visible, "the dock is back")
+	assert_false(_main_view.zone_map_viewport.gui_disable_input, "and the map takes input again")
+
+## Escape on the intro while the board opens turns the trial down: the open turns around, and
+## the state leaves when the board has closed, with foraging back.
+func test_escape_while_the_board_opens_turns_it_around() -> void:
+	_build_board()
+	var player: BoardTransition = _give_main_view_a_player()
+	_run_foraging()
+	_fill_core()
+	ActionManager.select_action(_tribulation())
+	player.advance(0.1)
+	var escape := InputEventAction.new()
+	escape.action = &"ui_cancel"
+	escape.pressed = true
+	_state.handle_input(escape)
+	assert_eq(_current_id(), FORAGING_ID, "foraging is current again")
+	assert_true(_main_view.is_board_closing(), "the board turns around")
+	assert_true(_main_view.state_stack.has(_state), "and the state waits for the close")
+	player.finish()
+	assert_false(_main_view.state_stack.has(_state), "the state leaves when the board has closed")
+	assert_false(_view.visible, "the board is hidden")
+	assert_eq(CultivationManager.get_core_density_level(), 100.0, "nothing is lost")
+
+## A failed trial on the transition: the failure is applied once, at the crack, and Continue
+## stops the action. The board then shrinks away with the result still on it, and the state
+## leaves when it has.
+func test_a_failed_trial_closes_through_the_transition() -> void:
+	_build_board()
+	var player: BoardTransition = _give_main_view_a_player()
+	_run_foraging()
+	_fill_core()
+	ActionManager.select_action(_tribulation())
+	player.finish()
+	_state.handle_input(_space())
+	_at(_beat(3) + 0.15)
+	assert_eq(_view.get_mode(), Mode.RESULT, "precondition: the fourth crack ended the trial")
+	assert_eq(CultivationManager.get_core_density_level(), 95.0, "the failure cost five levels at the crack")
+	_continue()
+	assert_eq(_current_id(), FORAGING_ID, "foraging is current again")
+	assert_true(_main_view.is_board_closing(), "the board closes")
+	assert_true(_view.visible, "and is still drawn")
+	assert_true(_main_view.state_stack.has(_state), "the state waits for the close")
+	player.finish()
+	assert_false(_main_view.state_stack.has(_state), "the state is off the stack")
+	assert_false(_view.visible, "the board is hidden")
+	assert_eq(CultivationManager.get_core_density_level(), 95.0, "the penalty was taken once")
+	assert_has(_available_ids(), TRIBULATION_ID, "the card is still offered")
+	assert_true(_main_view.dock.visible, "the dock is back")
+	assert_false(_main_view.zone_map_viewport.gui_disable_input, "and the map takes input again")
 
 #-----------------------------------------------------------------------------
 # CLICKS ON THE ZONE CHEST (Review Focus 5)
