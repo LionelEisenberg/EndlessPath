@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dix0wccljn3jm" path="res://scenes/ui/dev_panel/tabs/player_tab.tscn" id="3_player"]
 [ext_resource type="PackedScene" uid="uid://dl7bv254fonfk" path="res://scenes/ui/dev_panel/tabs/adventure_tab.tscn" id="4_adventure"]
 [ext_resource type="PackedScene" uid="uid://bcodu6l4hn7b8" path="res://scenes/ui/dev_panel/tabs/saves_tab.tscn" id="5_saves"]
+[ext_resource type="PackedScene" uid="uid://ben0tfjikkvrr" path="res://scenes/ui/dev_panel/tabs/story_tab.tscn" id="6_story"]
 
 [node name="DevPanel" type="Control"]
 layout_mode = 3
@@ -73,6 +74,11 @@ metadata/_tab_name = "Saves"
 unique_name_in_owner = true
 layout_mode = 2
 metadata/_tab_name = "Player"
+
+[node name="StoryTab" parent="Body/VBoxContainer/Tabs" instance=ExtResource("6_story")]
+unique_name_in_owner = true
+layout_mode = 2
+metadata/_tab_name = "Story"
 
 [node name="AdventureTab" parent="Body/VBoxContainer/Tabs" instance=ExtResource("4_adventure")]
 unique_name_in_owner = true
