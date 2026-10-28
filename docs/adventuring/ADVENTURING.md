@@ -15,7 +15,7 @@ One adventure ships today: **The Shallow Woods** in Spirit Valley. It unlocks du
 1. In Spirit Valley, once event `q_fill_core_completed` has fired, the zone chest shows **The Shallow Woods** under Venture, on a normal 72 px card measured against the adventure capacity:
    - Below half the capacity, its detail row is a Madra rod with `<madra> / <threshold>` after it, and a cream `~N s` at the right while a Madra action runs. Clicking shakes the row softly (`MapGlyph.SOFT_SHAKE_KEYFRAMES`, 4 px at most) and logs "Not enough Madra! Need X, have Y"; the running idle action keeps going.
    - At half the capacity or more, a brass frame holds steady around the card, it reads "<minutes> min run · carries <capacity> Madra", and its tag reads ENTER.
-2. On click, the zone view locks input and the map's plates hide. Between 8 and 25 Madra pellets fly in 2 px steps from the cultivator cabinet's Madra orb to the character while the budget (`min(capacity, current Madra)`) is spent. The camera then zooms to 3× over 0.5 s and the adventure view opens.
+2. On click, the zone view locks input and the map's plates hide. Between 8 and 25 Madra pellets fly in 2 px steps from the cultivator cabinet's Madra orb to the character while the budget (`min(capacity, current Madra)`) is spent. The camera then pushes in to 1.5× the player's zoom over 0.5 s, and the zone view dissolves into the adventure view.
 3. A new map is generated (about 25 tiles for Shallow Woods; see [Typical Shallow Woods Map](#typical-shallow-woods-map)). HP and Stamina refill to max, and in-adventure Madra is set to the budget. Stamina regenerates at 1/s. The adventure view keeps the zone view's frame:
    - The vitals cabinet (top left) shows Health and Madra on orbs and Stamina on a rod, each with `current / max`. In a fight, up to three buff sockets sit beside the Health figures.
    - The chest (top right) is titled with the adventure's name. It holds the run clock (`M:SS`, counting down from the time limit. The seconds are cut, not rounded: a 300 s run reads `4:59` through its first second (`5:00` only on its very first frame) and `0:00` through its last. The clock's recess becomes a vermilion seal for the last 30 seconds), the Here tray for the tile the player stands on, the tile's lore and choice drawers, and the Run ledger (the fights fought of the map's fights, gold earned, tiles explored, and the run's loot). Nothing in the frame is cut off: a long name, line or hint wraps, and the tray, the drawers and the chest grow with it.
@@ -287,10 +287,10 @@ ZoneActionButton click
         └→ ZoneTransition
              budget = ResourceManager.get_adventure_madra_budget()
              pellets = lerp(8, 25, budget / capacity); each spends floor(budget / n) Madra,
-             plus one extra pellet carrying the remainder (MadraPellet, from the cabinet's Madra orb,
+             plus one extra pellet carrying the remainder (LacquerPellet, from the cabinet's Madra orb,
              one every 0.04 s on the drain's own clock, all landing on the character)
-             → from the frame the last pellet lands: camera zoom to 1.5× the player's zoom over 0.5 s
-               (cubic ease in-out), the character crossing the screen on a straight line to (960, 702)
+             → from the frame the last pellet lands: camera push (CameraPush) to 1.5× the player's
+               zoom over 0.5 s (cubic ease in-out), the character to (960, 702)
              → ActionManager.confirm_adventure_start(action, budget)
   → start_adventure(action, budget)
       ├→ AdventureViewState: ViewDissolve.play() (a still of the zoomed zone view, dissolved

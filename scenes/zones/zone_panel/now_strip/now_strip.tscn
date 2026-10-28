@@ -98,6 +98,7 @@ layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 6
+alignment = 2
 
 [node name="MadraIconMargin" type="MarginContainer" parent="TrainingContent/TopRow/RateGroup" unique_id=991498686]
 layout_mode = 2
@@ -131,7 +132,7 @@ theme_type_variation = &"RichTextLacquer"
 theme_override_colors/default_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
 theme_override_font_sizes/normal_font_size = 16
 bbcode_enabled = true
-text = "+1.5 Madra / s"
+text = "+1.5 / s"
 fit_content = true
 scroll_active = false
 autowrap_mode = 0

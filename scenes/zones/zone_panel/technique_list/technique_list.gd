@@ -70,6 +70,14 @@ func get_content_height() -> float:
 		height += drawer.custom_minimum_size.y
 	return height
 
+## Returns the rows the board transition slides: the drawers, top to bottom. A
+## drawer slides by its position.x, which the column sets only when it sorts.
+func get_slide_rows() -> Array[Control]:
+	var rows: Array[Control] = []
+	for drawer: TechniqueDrawer in _drawers:
+		rows.append(drawer)
+	return rows
+
 ## Returns the drawer of the technique, or null when the list has none.
 func get_drawer(technique_id: String) -> TechniqueDrawer:
 	for drawer: TechniqueDrawer in _drawers:

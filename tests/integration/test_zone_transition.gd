@@ -3,11 +3,12 @@ extends GutTest
 ## Integration tests for ZoneTransition, the adventure drain (spec: Cultivator
 ## plate › Lookups; lacquer kit §1 rules 4 and 6). It finds the cultivator
 ## plate and the zone map by name among its parent's descendants, pours Madra
-## pellets from the plate's orb onto the character on its own clock, zooms the
-## map's camera in from the frame the last pellet lands, the character crossing
-## to the map gap's focal point on a straight line, then confirms the
-## adventure. main_game.tscn is only read, never instanced: its SaveTimer would
-## write the real save.
+## pellets from the plate's orb onto the character on its own clock, pushes the
+## map's camera in (CameraPush) from the frame the last pellet lands, the
+## character to the map gap's focal point, then confirms the adventure. The
+## map's camera holds still from the push until the way back has put it back.
+## main_game.tscn is only read, never instanced: its SaveTimer would write the
+## real save.
 ## The drain and the pellets are taken off the frame clock and stepped by hand
 ## a frame at a time with the zoom's tween, so no check depends on how long
 ## real frames take.
@@ -81,16 +82,16 @@ func _add_transition() -> void:
 func _pellet_count() -> int:
 	var count: int = 0
 	for child: Node in _pellet_parent.get_children():
-		if child is MadraPellet:
+		if child is LacquerPellet:
 			count += 1
 	return count
 
-## The pellets still flying: sent and not yet landed (a pellet frees itself
-## when it lands, and nothing here waits for the end of a real frame).
-func _pellets_in_flight() -> Array[MadraPellet]:
-	var pellets: Array[MadraPellet] = []
+## The pellets still flying: sent and not yet landed (a pellet sparks where it
+## lands, then frees itself).
+func _pellets_in_flight() -> Array[LacquerPellet]:
+	var pellets: Array[LacquerPellet] = []
 	for child: Node in _pellet_parent.get_children():
-		if child is MadraPellet and not child.is_queued_for_deletion():
+		if child is LacquerPellet and not child.is_queued_for_deletion() and not child.has_landed():
 			pellets.append(child)
 	return pellets
 
@@ -119,6 +120,11 @@ func _run_to_the_end() -> void:
 
 func _map() -> ZoneTilemap:
 	return _transition.get_parent().find_child("ZoneTilemap", true, false) as ZoneTilemap
+
+## Whether the map's camera is free to move on its own: its zoom controller
+## works only while ZoneTilemap.hold_camera() lets it.
+func _map_camera_is_free() -> bool:
+	return (_map().get_node("%CameraZoomController") as CameraZoomController).enabled
 
 func _camera() -> Camera2D:
 	return _map().get_camera()
@@ -168,7 +174,7 @@ func test_drain_pours_pellets_then_starts_the_adventure() -> void:
 	assert_almost_eq(ResourceManager.get_madra(), 0.0, 0.01, "the whole budget drained into the pellets")
 
 ## 0.3 s in, the pellets due at 0, 0.04, ... 0.28 s have left (none has landed:
-## the shortest flight is 0.42 s), however long the frames are.
+## each flies 0.6 s), however long the frames are.
 func test_drain_sends_its_pellets_on_time_at_10_fps() -> void:
 	await _add_transition()
 	_start_drain()
@@ -186,15 +192,15 @@ func test_drain_sends_its_pellets_on_time_at_60_fps() -> void:
 func test_every_pellet_lands_on_the_character() -> void:
 	await _add_transition()
 	_start_drain()
-	var landing: Vector2 = (_character().get_global_transform_with_canvas().origin / MadraPellet.GRID).round() * MadraPellet.GRID
+	var landing: Vector2 = (_character().get_global_transform_with_canvas().origin / PelletFlight.GRID).round() * PelletFlight.GRID
 	var landed: int = 0
 	for _frame: int in MAX_FRAMES:
-		var flying: Array[MadraPellet] = _pellets_in_flight()
+		var flying: Array[LacquerPellet] = _pellets_in_flight()
 		if flying.is_empty():
 			break
 		_step_frame()
-		for pellet: MadraPellet in flying:
-			if pellet.is_queued_for_deletion():
+		for pellet: LacquerPellet in flying:
+			if pellet.has_landed():
 				landed += 1
 				assert_eq(pellet.global_position, landing, "a pellet lands on the character, not around it")
 	assert_gt(landed, 0, "pellets landed")
@@ -242,31 +248,29 @@ func test_reset_camera_puts_the_camera_back() -> void:
 	assert_almost_eq(_camera().position.x, start_position.x, 0.01, "back at the position the player left")
 	assert_almost_eq(_camera().position.y, start_position.y, 0.01, "back at the position the player left")
 
-#-----------------------------------------------------------------------------
-# ZOOM PATH
-#-----------------------------------------------------------------------------
+func test_the_map_camera_holds_from_the_zoom_until_the_way_back_ends() -> void:
+	await _add_transition()
+	_start_drain()
+	assert_true(_map_camera_is_free(), "the drain leaves the camera alone")
+	_run_to_the_end()
+	assert_false(_map_camera_is_free(), "the camera holds still through the zoom and the adventure")
+	_transition.reset_camera()
+	_step_frame()
+	assert_false(_map_camera_is_free(), "and through the way back")
+	for _frame: int in 30:
+		_step_frame()
+	assert_true(_map_camera_is_free(), "the end of the way back lets it go")
 
-func test_zoom_path_starts_where_the_camera_is() -> void:
-	var focus: Vector2 = Vector2(100.0, 50.0)
-	var camera_position: Vector2 = Vector2(-30.0, 20.0)
-	var start_screen: Vector2 = ZoneMapMath.world_to_screen(focus, camera_position, 2.0)
-	var start: Vector2 = ZoneTransition.zoom_camera_position(focus, start_screen, 2.0, 0.0)
-	assert_almost_eq(start.x, camera_position.x, 0.001)
-	assert_almost_eq(start.y, camera_position.y, 0.001)
-
-func test_zoom_path_ends_with_the_focus_at_the_focal_point() -> void:
-	var focus: Vector2 = Vector2(100.0, 50.0)
-	var start_screen: Vector2 = ZoneMapMath.world_to_screen(focus, Vector2(-30.0, 20.0), 2.0)
-	var end_position: Vector2 = ZoneTransition.zoom_camera_position(focus, start_screen, 3.0, 1.0)
-	var on_screen: Vector2 = ZoneMapMath.world_to_screen(focus, end_position, 3.0)
-	assert_almost_eq(on_screen.x, ZoneMapMath.ZONE_SCREEN_ANCHOR.x, 0.001)
-	assert_almost_eq(on_screen.y, ZoneMapMath.ZONE_SCREEN_ANCHOR.y, 0.001)
-
-func test_zoom_path_keeps_the_focus_on_a_straight_line() -> void:
-	var focus: Vector2 = Vector2(100.0, 50.0)
-	var start_screen: Vector2 = ZoneMapMath.world_to_screen(focus, Vector2(-30.0, 20.0), 2.0)
-	var halfway: Vector2 = ZoneTransition.zoom_camera_position(focus, start_screen, 2.5, 0.5)
-	var on_screen: Vector2 = ZoneMapMath.world_to_screen(focus, halfway, 2.5)
-	var midpoint: Vector2 = start_screen.lerp(ZoneMapMath.ZONE_SCREEN_ANCHOR, 0.5)
-	assert_almost_eq(on_screen.x, midpoint.x, 0.001, "halfway through, halfway along the line")
-	assert_almost_eq(on_screen.y, midpoint.y, 0.001, "halfway through, halfway along the line")
+func test_settle_camera_ends_the_way_back_at_once() -> void:
+	await _add_transition()
+	var start_zoom: Vector2 = _camera().zoom
+	var start_position: Vector2 = _camera().position
+	_start_drain()
+	_run_to_the_end()
+	_transition.reset_camera()
+	_step_frame()
+	assert_ne(_camera().zoom, start_zoom, "precondition: the way back is under way")
+	_transition.settle_camera()
+	assert_eq(_camera().zoom, start_zoom, "back at the zoom the player left, at once")
+	assert_eq(_camera().position, start_position, "and the position")
+	assert_true(_map_camera_is_free(), "and the camera let go")

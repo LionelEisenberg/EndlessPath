@@ -23,6 +23,10 @@ extends Control
 ## it must skip neither the rules nor Not yet, since a run cannot be left once it starts.
 ## The hold belongs to the kind of input that started it, key or mouse button: only that
 ## kind coming up lets it go, and a focus loss always does.
+##
+## close() stops the board and hides it at once. halt() stops it and leaves it showing,
+## for a transition to shrink it away: either drops a run in progress and applies nothing
+## of it, and get_board_rect() says where the board stands.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -48,6 +52,13 @@ const Result := TribulationRun.Result
 ## The trial's input: Space, or the left mouse button.
 const PRESS_ACTION: StringName = &"tribulation_press"
 
+## The board's height at rest, for a zone name on one line (a name that wraps grows the
+## board by a line each). The board is as tall as its content, and a board that has not
+## yet been shown for a frame has not laid its wrapping labels out: they are 1 px wide
+## and the board measures 2318 px tall. get_board_rect() reports this height so that
+## the first open is framed by the board it will show.
+const BOARD_REST_HEIGHT: float = 768.0
+
 ## Where a floater stands on the stage as it pops, before it rises: a feedback's word,
 ## and the reason line under a miss's word. Their left edge is 2 art px clear of the
 ## hold arc, whose band ends 158 px right of the centre (x 608).
@@ -60,8 +71,9 @@ const RING_LIT_FRAME: int = 1
 const RING_FLASH_USEC: int = 150_000
 
 ## A burst: pellets fly from the ring out to BURST_TO_PX, evenly round from BURST_ANGLE,
-## over BURST_SECONDS with a BURST_BOW_PX bow. A perfect hit sends PERFECT_PELLETS, a
-## good one GOOD_PELLETS, and the hold, once held, HELD_PELLETS in brass.
+## over BURST_SECONDS, each bowing BURST_BOW_PX the same way, so the burst turns like a
+## pinwheel. A perfect hit sends PERFECT_PELLETS, a good one GOOD_PELLETS, and the hold,
+## once held, HELD_PELLETS in brass.
 const BURST_TO_PX: float = 178.0
 const BURST_ANGLE: float = 0.3
 const BURST_SECONDS: float = 0.4
@@ -71,8 +83,9 @@ const GOOD_PELLETS: int = 5
 const HELD_PELLETS: int = 12
 
 ## The aura rush: a pellet every RUSH_INTERVAL_USEC flies from RUSH_FROM_PX out into the
-## core over RUSH_SECONDS with a RUSH_BOW_PX bow. Pellet k comes from the angle
-## k * RUSH_ANGLE_STEP (the golden angle), so the stream comes from all round.
+## core over RUSH_SECONDS, each bowing RUSH_BOW_PX the same way, so the rush swirls in.
+## Pellet k comes from the angle k * RUSH_ANGLE_STEP (the golden angle), so the stream
+## comes from all round.
 const RUSH_INTERVAL_USEC: int = 100_000
 const RUSH_FROM_PX: float = 460.0
 const RUSH_ANGLE_STEP: float = 2.39996
@@ -110,8 +123,7 @@ const HELD_WORD: String = "Held"
 ## The result panel's counts: the perfect hits, the good ones and the cracks.
 const STATS_FORMAT: String = "%d perfect · %d good · %d missed"
 
-const _PELLET_SCENE: PackedScene = preload("res://scenes/zones/zone_transition/madra_pellet.tscn")
-const _BRASS_PELLET: Texture2D = preload("res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_brass_ai.png")
+const _PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -288,12 +300,25 @@ func cancel() -> void:
 	if _mode == Mode.INTRO:
 		finished.emit(false)
 
-## Hides the board. A run in progress is dropped, and nothing of it is applied.
-func close() -> void:
+## Stops the board without hiding it, for a transition that shrinks it away while it stays
+## drawn. A run in progress is dropped, its effects are cleared and nothing of it is applied.
+## The mode is CLOSED, so the frames and the presses do nothing more.
+func halt() -> void:
 	_mode = Mode.CLOSED
 	_run = null
 	_clear_effects()
+
+## Hides the board: halt(), then hide().
+func close() -> void:
+	halt()
 	hide()
+
+## Returns the board's rect in the screen's space: where a transition scales the view
+## out of the cultivator to, and back into. Its height is BOARD_REST_HEIGHT, not the
+## board's own, which is wrong until a frame has run with the board shown (and the
+## transition reads it before then, while the board is still hidden).
+func get_board_rect() -> Rect2:
+	return Rect2(_board.global_position, Vector2(_board.size.x, BOARD_REST_HEIGHT))
 
 ## Takes an event of the trial's input (tribulation_press) and returns true for each one
 ## of them, false for any other event. A key's repeats are not presses. On the intro a key
@@ -426,14 +451,14 @@ func _show_judgement(judgement: Dictionary) -> void:
 		Result.HELD:
 			_held = true
 			_pop_floaters(HELD_WORD, ThemeConstants.LACQUER_BRASS, "")
-			_burst(HELD_PELLETS, _BRASS_PELLET)
+			_burst(HELD_PELLETS, LacquerPellet.Ramp.BRASS)
 
 ## A hit: its word ("· hold" after it on the last beat), the ring's flash and a burst.
 func _show_hit(word: String, color: Color, pellets: int, last: bool) -> void:
 	_pop_floaters(HOLD_FORMAT % word if last else word, color, "")
 	_ring_flash_end_usec = clock_usec.call() + RING_FLASH_USEC
 	_ring.set_frame(RING_LIT_FRAME)
-	_burst(pellets, null)
+	_burst(pellets, LacquerPellet.Ramp.MADRA)
 
 ## A crack: its word and its reason in the warning colour, and the board shakes, by the
 ## full shake for the crack that fails the run. Its pip lights with the HUD.
@@ -452,7 +477,7 @@ func _show_crack(word: String, reason: String) -> void:
 ## result panel shows the copy, the grade and the counts; the core turns brass or
 ## spent, and the stage empties. What the panel shows of the run is read before the
 ## manager is called, and the run is not touched after: a listener of the manager's
-## signals can stop the action, and the stop's close() drops the run.
+## signals can stop the action, and the stop's close() or halt() drops the run.
 func _end(passed: bool) -> void:
 	_mode = Mode.RESULT
 	_passed = passed
@@ -535,14 +560,13 @@ func _place_floaters() -> void:
 			var spot: Vector2 = WORD_AT if index % 2 == 0 else REASON_AT
 			floater.position = spot - Vector2(0, floater.get_rise())
 
-## Sends `count` pellets off the ring, evenly round, in `texture` (the Madra pellet's own
-## art when null).
-func _burst(count: int, texture: Texture2D) -> void:
+## Sends `count` pellets off the ring, evenly round, in `ramp`.
+func _burst(count: int, ramp: LacquerPellet.Ramp) -> void:
 	var centre: Vector2 = _stage.centre_global()
 	for index: int in count:
 		var direction: Vector2 = Vector2.from_angle(float(index) / count * TAU + BURST_ANGLE)
 		var start: Vector2 = centre + direction * TribulationStage.RING_RADIUS_PX
-		_add_pellet(texture).launch(start, centre + direction * BURST_TO_PX, BURST_SECONDS, BURST_BOW_PX)
+		_send_pellet(PelletFlight.arc(start, centre + direction * BURST_TO_PX, BURST_SECONDS, BURST_BOW_PX), ramp)
 
 ## Streams the next rush pellet into the core, once RUSH_INTERVAL_USEC has passed since the
 ## last. After a long frame the stream picks up from now, with no burst of catching up.
@@ -551,20 +575,19 @@ func _stream_rush(now: int) -> void:
 		return
 	var centre: Vector2 = _stage.centre_global()
 	var start: Vector2 = centre + Vector2.from_angle(_rush_count * RUSH_ANGLE_STEP) * RUSH_FROM_PX
-	_add_pellet(null).launch(start, centre, RUSH_SECONDS, RUSH_BOW_PX)
+	_send_pellet(PelletFlight.arc(start, centre, RUSH_SECONDS, RUSH_BOW_PX), LacquerPellet.Ramp.MADRA)
 	_rush_count += 1
 	_next_rush_usec += RUSH_INTERVAL_USEC
 	if _next_rush_usec <= now:
 		_next_rush_usec = now + RUSH_INTERVAL_USEC
 
-## Instances a pellet on the stage, over the core and under the floaters, in `texture`
-## (the Madra pellet's own art when null).
-func _add_pellet(texture: Texture2D) -> MadraPellet:
-	var pellet: MadraPellet = _PELLET_SCENE.instantiate() as MadraPellet
+## Instances a pellet on the stage, over the core and under the floaters, and sends it
+## along `flight` in `ramp`.
+func _send_pellet(flight: PelletFlight, ramp: LacquerPellet.Ramp) -> void:
+	var pellet: LacquerPellet = _PELLET_SCENE.instantiate() as LacquerPellet
 	_pellets.add_child(pellet)
-	if texture != null:
-		pellet.set_texture(texture)
-	return pellet
+	pellet.set_ramp(ramp)
+	pellet.fly(flight)
 
 ## Starts the board's shake over `keyframes`, now; a new shake restarts it.
 func _start_shake(keyframes: Array[int]) -> void:
