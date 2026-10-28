@@ -394,6 +394,77 @@ func test_a_locked_out_boot_takes_no_backup() -> void:
 	assert_eq(manager.list_backups().size(), 0, "a run locked out of the main save takes no backup")
 	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
 
+## A dev switch that goes back to the main save opens it as a launch does, and
+## backs it up first: with a preset pinned, every launch plays a preset, and this is
+## the only time the main save is opened before the session writes it every 5 s.
+func test_opening_the_main_save_backs_it_up_first() -> void:
+	var path := _path("open_main")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	var manager := _make_manager(_path("open_main_elsewhere"))
+	manager.main_save_path = path
+	_boot(manager)
+	assert_eq(manager.list_backups().size(), 0, "precondition: the session on another file backed nothing up")
+	manager.open_save_file(path)
+	var backups: PackedStringArray = manager.list_backups()
+	assert_eq(backups.size(), 1, "opening the main save backs it up once")
+	manager.save_game_data.gold = 99.0
+	assert_eq(manager.save_data(), OK, "precondition: the session writes the main save")
+	if backups.size() == 1:
+		assert_eq(_read(backups[0]), original, "the backup holds the save as the session found it")
+
+## A restore backs up the save it replaces before it writes the backup's bytes over
+## it, then opens the file: that open takes no second backup.
+func test_opening_the_main_save_can_skip_the_backup() -> void:
+	var path := _path("open_main_no_backup")
+	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
+	var manager := _make_manager(_path("open_main_no_backup_elsewhere"))
+	manager.main_save_path = path
+	_boot(manager)
+	manager.open_save_file(path, false)
+	assert_eq(manager.save_game_data.gold, 42.0, "the main save is the session")
+	assert_eq(manager.list_backups().size(), 0, "and nothing was backed up")
+	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
+
+## A dev switch backs the main save up through backup_main_save() before it writes
+## over it. When a cut-short write left only the temp file, that file is the save,
+## and may be its only copy, so it is the one backed up.
+func test_backup_main_save_copies_the_temp_file_when_only_it_is_left() -> void:
+	var path := _path("backup_temp_only")
+	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
+	var manager := _make_manager(path)
+	manager.main_save_path = path
+	_boot(manager)
+	var temp_path := SaveFiles.temp_path_for(path)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	_write(temp_path, (READABLE_SAVE_TEXT % "SpiritValley").replace("gold = 42.0", "gold = 7.0"))
+	assert_true(manager.has_main_save_on_disk(), "the temp file counts as the main save on disk")
+	var copy: String = manager.backup_main_save()
+	assert_ne(copy, "", "the temp file is backed up")
+	assert_eq(SaveFiles.list_backups(temp_path, BACKUP_DIR), PackedStringArray([copy]), "under the temp file's own name")
+	assert_eq(_gold_in_file(copy), 7.0, "holding what the temp file held")
+
+func test_with_no_main_save_on_disk_nothing_is_backed_up() -> void:
+	var path := _path("backup_none")
+	var manager := _make_manager(_path("backup_none_elsewhere"))
+	manager.main_save_path = path
+	_boot(manager)
+	assert_false(manager.has_main_save_on_disk())
+	assert_eq(manager.backup_main_save(), "")
+	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
+
+## The rule every backup of the main save follows, a dev switch's included: none
+## while another live run holds the save.
+func test_backup_main_save_takes_none_while_another_run_holds_the_save() -> void:
+	var path := _path("backup_locked_out")
+	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
+	var manager := _make_manager(_path("backup_locked_out_elsewhere"))
+	manager.main_save_path = path
+	_boot(manager)
+	_lock_as_another_run(path)
+	assert_eq(manager.backup_main_save(), "", "a save another run holds is not backed up")
+	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
+
 func test_save_option_opens_that_file() -> void:
 	var path := _path("default_file")
 	var option_path := _path("option_file")

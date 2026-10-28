@@ -71,7 +71,7 @@ What the session plays and the saves behind it. From the top: the session line, 
 | Session line | `DevManager.get_session_kind()`, `PersistenceManager` | `Preset: <title>`, `Your save` or `File`, then ` · ` and where it writes: the session's `save_path`, or `in memory, not saved`. Then `Saving is off: <reason>` when saving is blocked, then `Built from preset '<id>'` when the save's play stats name the preset that built it (your save after a Keep still does), then `Version N · Playtime m:ss · <stage>, Core Density L / cap · G gold` (the clock reads h:mm:ss from an hour on) |
 | Beats | `DevManager.get_route()`, the save's play stats | One line per beat of the [story route](#the-story-route), `<title> — <how far>`: the playtime at which the beat's `reached_when` first happened (`2:41`); `reached, no time recorded` when it has happened but the stats keep no time for it (a preset build records no play, and a save from before play stats kept none); `not reached`; or `not tracked (no reached_when)` for a beat with no `reached_when` (Copper) |
 | Restart preset (Ctrl+Shift+R) | `DevManager.restart_preset()` | Builds the session's preset again. Off outside a preset session |
-| Back to my save | `DevManager.back_to_my_save()` | Opens your save again from disk. Off in a session on it |
+| Back to my save | `DevManager.back_to_my_save()` | Backs your save up and opens it again from disk, as a launch on it does. Off in a session on it |
 | PRESETS: a `DevPresetRow` for each | `DevManager.play_preset()`, `pin_preset()` | The preset's title and description. Play plays it in memory. Pin pins it for plain launches ([The pin](#the-pin)); on the pinned preset the button reads Unpin and unpins it, and the row says "Pinned · plain launches start here". A pin that cannot be written shows in the status line |
 | SAVE THIS GAME AS A PRESET: Title, Description, Save as a preset | `DevManager.save_as_preset()` | Writes the session's save as a snapshot preset ([Save this game as a preset](#save-this-game-as-a-preset)). A refusal shows under the button. On success it says `Saved this game as the preset '<title>'`, clears both fields and lists the new preset |
 | New game on my save | `DevManager.new_game()` | Backs your save up, then starts a fresh game on it. Needs a second click |
@@ -302,7 +302,7 @@ A committed snapshot is built with the other presets, so one that no longer buil
 | `play_preset(preset)` | Plays the preset in memory: a switch |
 | `play_story_through(beat_id)` | Plays the route through the beat on a fresh save, as an unnamed preset (`preset_id` `story_through_<beat_id>`, title "Story through <the beat's title>"), so a restart plays it again |
 | `restart_preset()` | Builds the session's preset again from the start, written where the session writes: in memory for a preset played in game and for the fallback, the `--save` file for a launch that named one. Does nothing outside a preset session |
-| `back_to_my_save()` | Opens the user's own save again from disk |
+| `back_to_my_save()` | Backs the user's own save up and opens it again from disk, as a launch on it does |
 | `new_game()` | Backs the user's save up, then plays a fresh save as it, written at once |
 | `keep_as_my_save()` | Backs the user's save up, then plays a copy of the session's save as it, written at once |
 | `restore_backup(backup_path)` | Puts a backup (`PersistenceManager.list_backups()`) back as the user's save, then opens it from disk |
@@ -353,7 +353,7 @@ A switch is refused at call time, before anything changes (`Log.error`, `get_las
 - the backup to restore is not there ("There is no backup at <path>");
 - the preset fails `validate()`: `play_preset()`, `play_story_through()` and `restart_preset()` (the first error, such as "story_through no_such_beat is not a beat of the route").
 
-The switches that write the user's save back it up first. A save that cannot be backed up is never overwritten ("Could not back up your save, so it was left as it was"), and the switch fails. `restore_backup()` reads the chosen backup before it backs the user's save up: a backup keeps only the newest `BACKUPS_KEPT` and deletes the oldest, and the chosen one can be the oldest. It then puts the backup's bytes in place through a temp file (`SaveFiles.write_bytes_atomically()`) and opens the file again.
+Every switch onto the user's save backs it up once, through `PersistenceManager.backup_main_save()`, the one way it is backed up ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#boot-and-load)). Back to my save, and a failed switch that comes back to your save, back it up as they open it, as a launch does. New game, Keep and Restore back it up before they write over it, the temp file a cut-short write left included when only that is there. A save that cannot be backed up is never overwritten ("Could not back up your save, so it was left as it was"), and the switch fails. `restore_backup()` reads the chosen backup before it backs the user's save up: a backup keeps only the newest `BACKUPS_KEPT` and deletes the oldest, and the chosen one can be the oldest. It then puts the backup's bytes in place through a temp file (`SaveFiles.write_bytes_atomically()`) and opens the file again, with no second backup.
 
 ## Dev Commands
 
@@ -506,7 +506,6 @@ Tests: `tests/unit/test_dev_*.gd` and `tests/integration/test_dev_*.gd`, among o
 
 ### Bugs
 
-- `[LOW]` A switch that writes the user's save takes no backup when only the save's temp file is there (a write cut short left it, and it may be the only copy), and then writes over it. The boot backup does take it.
 - `[LOW]` `StoryRouteData.validate()` and `SavePresetData.validate()` call `validate()` on each step, so an empty slot in `steps` (the Inspector adds one before a resource is chosen) is a script error, not a listed problem.
 - `[LOW]` `save_as_preset()` checks the id against the presets it can load but writes `<id>.tres`, so a file of that name holding another id is overwritten. `get_presets()` also reads a stray `<id>.tmp.tres` that a cut-short write left in a preset folder.
 - `[LOW]` `LaunchOptions.read_pin()` returns `""` for a pin file that will not load, with no log line.

@@ -261,12 +261,15 @@ func _write_text(path: String, text: String) -> void:
 
 ## Starts the session on a temp file holding `text` (gold 42), standing in for your
 ## save: the main save and its backup folder point at temp paths, and the file is
-## opened as a launch on your save opens it.
+## opened as a launch on your save opens it. That open backs your save up, as a
+## launch does; the backup folder is emptied again, so each test counts only the
+## backups its own clicks take.
 func _start_on_temp_main_save(text: String = MAIN_SAVE_TEXT) -> void:
 	_write_text(MAIN_SAVE_PATH, text)
 	PersistenceManager.main_save_path = MAIN_SAVE_PATH
 	PersistenceManager.backup_dir = BACKUP_DIR
 	PersistenceManager.open_save_file(MAIN_SAVE_PATH)
+	_remove_folder(BACKUP_DIR)
 	DevManager._session_kind = SessionKind.YOUR_SAVE
 	DevManager._session_preset = null
 	assert_eq(ResourceManager.get_gold(), 42.0, "precondition: the session plays the temp main save")

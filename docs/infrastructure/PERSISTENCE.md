@@ -26,7 +26,7 @@ A run plays one **session**: the user's own save (`user://save.tres`), another f
 - A player sees no save/load screen, no save slots and no "New Game" option: progress saves silently every 5 seconds and when the window closes, and is restored on launch. The dev panel's Saves tab can start a new game, restore a backup and switch sessions ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#saves)).
 - Quitting mid-adventure loses the adventure: the map, position, vitals and timer. The Madra drained to start it, and any gold or loot already awarded, stay as they were when the window closed (or at the last 5 s tick, when the process is killed).
 - To start over, press New game on my save in the dev panel's Saves tab (it backs `save.tres` up first), or delete `save.tres`, or play another file with `--save=`: a path with no file starts a new save. `--preset=fresh` plays a new game that leaves `save.tres` alone.
-- Each launch on `save.tres` first copies it to `user://backups/`, and the newest 10 copies are kept. To go back to one, pick it in the dev panel's Saves tab and press Restore, or copy it over `save.tres` with the game closed.
+- Each launch on `save.tres` first copies it to `user://backups/`, and so does the dev panel each time it opens `save.tres` again or writes over it; the newest 10 copies are kept. To go back to one, pick it in the dev panel's Saves tab and press Restore, or copy it over `save.tres` with the game closed.
 - After pulling or merging new art, run `--headless --import` before running the game or the tests. Without it, an item `.tres` the save names can fail to load its new texture, which makes the whole save unreadable. PersistenceManager then keeps the file and turns saving off, so the run shows a fresh game, but nothing is lost: re-import and launch again.
 
 ## Architecture
@@ -90,7 +90,7 @@ The files below sit next to the save the session plays, named from its path (sho
 | `user://save.tres.lock` | The save's lock: `pid=` and `time=` lines. See [The save lock](#the-save-lock) |
 | `user://save.unreadable.<unix time>.tres` | A save that would not load, copied aside. The original is never touched |
 | `user://save.invalid.<unix time>.tres` | The file as it was before `repair()` fixed it |
-| `user://backups/save.<YYYYMMDD-HHMMSS>[-N].tres` | A boot backup of the user's own save. The time is UTC, and `-2`, `-3`, ... number copies made in the same second. The newest 10 of each stem are kept, and other files in the folder are never touched |
+| `user://backups/save.<YYYYMMDD-HHMMSS>[-N].tres` | A backup of the user's own save, taken when a session takes it on and before a dev switch writes over it ([Boot and load](#boot-and-load)). The time is UTC, and `-2`, `-3`, ... number copies made in the same second. The newest 10 of each stem are kept, and other files in the folder are never touched |
 
 ### Manager access pattern
 
@@ -113,15 +113,15 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `BACKUPS_KEPT` | `const int` | `10` |
 | `save_game_data` | `SaveGameData` | The live save shared by all managers |
 | `save_path` | `String` | Where the session writes. `""` is a session in memory. It starts as `SAVE_PATH`; `--save=` replaces it, and a preset session sets it to the `--save` path, or `""` |
-| `main_save_path` | `String` | The user's own save, `SAVE_PATH`. `""` in a GUT run, which has none. A session on it is backed up at boot |
+| `main_save_path` | `String` | The user's own save, `SAVE_PATH`. `""` in a GUT run, which has none. A session that takes it on backs it up first |
 | `backup_dir` | `String` | Where the main save's backups go. `BACKUP_DIR` |
 | `autosave_enabled` | `bool` | False after `--no-autosave` and in a GUT run: the tick and the close then write nothing |
 | `save_data_reset` | signal | Emitted when a save becomes the session's, so every manager re-binds. At boot it reaches no one |
 
 | Function | Behaviour |
 |----------|-----------|
-| `boot(options)` | Starts the run's session from its launch options (`null` reads `LaunchOptions.current()`): sets `autosave_enabled` and `save_path`, backs the main save up when the session is on it, then calls `open_save_file()`. With a preset (`options.preset_id`) it reads no file: it backs the main save up only when the `--save` path is the main save, then calls `use_save()` with a fresh save and that path (`""` for none), and `DevManager` builds the preset on it next. `_ready()` calls it, except in a GUT run |
-| `open_save_file(path)` | Makes the file at `path` the session: the one way a file becomes it. Clears any block, moves the lock to `path`, loads the save as [Boot and load](#boot-and-load) says, and ends with `save_data_reset` |
+| `boot(options)` | Starts the run's session from its launch options (`null` reads `LaunchOptions.current()`): sets `autosave_enabled` and `save_path`, then calls `open_save_file()`, which backs the main save up when that is the file. With a preset (`options.preset_id`) it reads no file: it calls `use_save()` with a fresh save and the `--save` path (`""` for none), backs the main save up only when that path is the main save, and `DevManager` builds the preset on it next. `_ready()` calls it, except in a GUT run |
+| `open_save_file(path, back_up = true)` | Makes the file at `path` the session: the one way a file becomes it. Clears any block, moves the lock to `path`, backs the main save up when `path` is it and the lock is the session's (`back_up` false skips that, for a restore, which backed the save up itself), loads the save as [Boot and load](#boot-and-load) says, and ends with `save_data_reset` |
 | `use_save(save, path)` | Makes the `SaveGameData` object `save` the session's save, written to `path` (`""` keeps it in memory), then emits `save_data_reset`. Any block clears, and the lock moves to `path` |
 | `save_data() -> Error` | Stamps `save_version`, then writes the save to `save_path` through a temp file. `ERR_UNAVAILABLE` for a session in memory, `ERR_LOCKED` while saving is blocked or once the lock's heartbeat finds the lock lost, writing nothing; otherwise what `SaveFiles.write_atomically()` returns |
 | `autosave()` | Calls `save_data()` when `autosave_enabled` and `can_write()`, and logs a failed write with `Log.error` |
@@ -130,7 +130,8 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `is_in_memory() -> bool` | True when `save_path` is `""` |
 | `is_save_blocked() -> bool` | True when the save could not be read or checked, a newer build wrote it, or another run holds its lock or took it over. Nothing writes it until another save becomes the session's |
 | `get_block_reason() -> String` | Why saving is blocked, or `""` |
-| `backup_main_save() -> String` | Copies the main save into `backup_dir` and keeps its newest `BACKUPS_KEPT`. Returns the copy's path, or `""` when there is no main save file or the copy failed. `DevManager` calls it before a switch writes the user's save |
+| `backup_main_save() -> String` | The one way the main save is backed up: copies it into `backup_dir` and keeps its newest `BACKUPS_KEPT`, only while this run holds its lock. When only the temp file a cut-short write left is there, it copies that file, under its own stem. Returns the copy's path, or `""` when nothing is on disk to copy, this run does not hold the lock, or the copy failed. `open_save_file()` calls it for the main save, and `DevManager` before a switch writes over it |
+| `has_main_save_on_disk() -> bool` | True when the main save, or the temp file a cut-short write left in its place, is on disk: what `backup_main_save()` would copy |
 | `list_backups() -> PackedStringArray` | The main save's backups in `backup_dir`, newest first. The dev panel's Saves tab lists them |
 
 ### Helper classes
@@ -223,12 +224,12 @@ to the tree in project.godot order, running each one's _ready():
       GUT run:    use_save(SaveGameData.new_current(), "")     a save in memory; nothing below runs
       otherwise:  boot()
         autosave_enabled = not --no-autosave;  save_path = --save=<path> when given
-        --preset=<id> or a pinned preset:  (back the main save up first when the --save path is the main save)
-                                           use_save(SaveGameData.new_current(), the --save path or "")
+        --preset=<id> or a pinned preset:  use_save(SaveGameData.new_current(), the --save path or "")
+                                           (then back the main save up, when that path is it and the lock was granted)
                                            no file is read; open_save_file() and the rest of this step do not run
-        a session on the main save:  take its lock, then back it up (no backup when another run holds the lock)
         open_save_file(save_path)
           move the lock to save_path      another live run holds it → saving blocked, the save still loads
+          the main save, under the lock   backed up as it is on disk (no backup when another run holds the lock)
           no save and no temp file        a new save, written at once
           the file will not load          copied aside as .unreadable., saving blocked, a new save in memory
           a newer build wrote the save    saving blocked, never migrated or written; repaired in memory only
@@ -246,12 +247,12 @@ main_game.tscn loads → MainGame._ready() (sets Log print level) → SaveTimer 
 The order inside `open_save_file()`:
 
 - **The lock comes first.** The lock on the save the session leaves is released and the one on `path` is taken. Another live run holding it blocks saving (`in use by another run (pid N)`). The save still loads below, so the session plays it, but nothing clears that block: the file is never written.
+- **Then the backup, for the main save.** When `path` is the main save and the session holds its lock, the save is copied to `user://backups/` as it is on disk, before anything can write it. That is the boot backup of a launch on the save, and the backup a switch takes when it opens the save again (Back to my save, or a failed switch coming back to it), so with a preset pinned, which makes every launch a preset session, the save is still backed up before the session writes it. `open_save_file(path, false)` skips it, for a restore, which backs up the save it replaces before it writes over it. Another live run holding the lock means no backup: that save is the other run's live state, and enough launches locked out of it would rotate the first run's start-of-session backup out of the newest 10. When only the temp file a cut-short write left is there, that file may be the only copy of the save, so it is the one backed up, under its own stem (`save.tmp.<stamp>.tres`), which `list_backups()` does not list. All of this is `backup_main_save()`, the one way the main save is backed up; the dev switches that write over it call it too ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#switching-sessions)).
 - **No save and no temp file there:** a new save (`SaveGameData.new_current()`), written at once, with an `INFO` line.
 - **The file that `load_save()` reads fails to load as a `SaveGameData`.** That is the save, or its temp file when the save is missing. It is copied aside as `<name>.unreadable.<unix time>.<extension>` and left as it was, and the session runs on `SaveGameData.new_current()` in memory with saving blocked. `Log.critical` names the copy.
 - **A save from a newer build** (`is_from_newer_build()`): saving blocked, never migrated and never written, so nothing is copied aside. When `ZoneManager` is there, `repair()` still runs on the object in memory, so the session never stands in a zone this build does not know. The file stays as the newer build wrote it.
 - **Any other save:** `migrate()` first, then the check. When `ZoneManager` did not load (a stale import cache can do that) the save cannot be checked, and saving is blocked. Otherwise `repair()` fixes an unknown zone id and, when it changed something, the file as it was is copied aside as `<name>.invalid.<unix time>.<extension>` and a `Log.warn` names it. The repaired save is written at the next autosave.
 - **Every block is logged with `Log.critical`** and keeps its reason, which `get_block_reason()` returns. Only a new session (`open_save_file()` or `use_save()`) clears a block.
-- **The boot backup** is the main save as the last run left it, copied to `user://backups/` before anything can write it. The session's lock is taken first, and another live run holding it means no backup: that save is the other run's live state, and enough launches locked out of it would rotate the first run's start-of-session backup out of the newest 10. When only the temp file a cut-short write left is there, that file may be the only copy of the save, so it is the one backed up, under its own stem (`save.tmp.<stamp>.tres`), which `list_backups()` does not list.
 
 Also at boot:
 
@@ -285,7 +286,7 @@ Windows also refuses the rename, at either step, while another process holds the
 One run at a time writes a save. A session on a file holds that save's lock, `<save>.lock`. The file has two lines: `pid=` (the holder's process id) and `time=` (the unix time of its last heartbeat).
 
 - **Live or stale.** A lock is live when its process is alive and its time is within `SaveLock.STALE_AFTER_SECONDS` (60 s). The process check asks the OS, `tasklist` on Windows (about 100 ms, so it runs only for a recent lock) and `kill -0` elsewhere, because `OS.is_process_running()` only knows the processes this one started. A stale lock (its run crashed, was killed or hung) is taken over by the next run.
-- **Taking it.** `acquire()` succeeds when there is no lock, the lock is stale, or it is already this run's. `PersistenceManager` takes it when a session starts on a file (before the boot backup, for the main save) and moves it when the session moves to another file. A refused session plays its save with saving blocked. A lock file that cannot be written is logged by `SaveLock` but still counts as taken, so the session finds its lock missing at its first write or tick and blocks (`its lock file is gone`).
+- **Taking it.** `acquire()` succeeds when there is no lock, the lock is stale, or it is already this run's. `PersistenceManager` takes it when a session starts on a file (before the main save's backup) and moves it when the session moves to another file. A refused session plays its save with saving blocked. A lock file that cannot be written is logged by `SaveLock` but still counts as taken, so the session finds its lock missing at its first write or tick and blocks (`its lock file is gone`).
 - **The heartbeat** moves `time=` to now, in `tick()` (also under `--no-autosave`) and at the start of every `save_data()`. The tick comes from the `SaveTimer`, which runs only while `main_game.tscn` does: a run of any other scene takes the lock at boot and never refreshes it, so after 60 s another run may take it over.
 - **Losing it.** A session whose lock another run took over (a different pid is in the file), or whose lock file is gone, finds out at its next tick or write. It blocks with `taken over by another run (pid N)` or `(its lock file is gone)` and writes nothing from then on.
 - **Giving it up.** The close request releases the lock after its last write. `release()` deletes only a lock that holds this run's pid, so a run never deletes another run's lock.

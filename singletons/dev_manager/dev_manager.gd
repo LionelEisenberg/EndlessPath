@@ -230,9 +230,9 @@ func restart_preset() -> void:
 		return
 	_schedule_switch(_start_preset.bind(preset, PersistenceManager.save_path), what, "Restarted preset '%s'" % preset.title)
 
-## Goes back to the user's own save, on the next frame: the file is opened again
-## from disk (PersistenceManager.open_save_file()). Refused at once in a run with no
-## main save.
+## Goes back to the user's own save, on the next frame: the file is backed up and
+## opened again from disk (PersistenceManager.open_save_file()), as a launch on it
+## does. Refused at once in a run with no main save.
 func back_to_my_save() -> void:
 	var what: String = "go back to your save"
 	var refusal: String = _pending_refusal()
@@ -617,13 +617,16 @@ func _start_fallback_session() -> void:
 		PersistenceManager.use_save(SaveGameData.new_current(), "")
 	_set_session(SessionKind.PRESET, preset)
 
-## Opens the user's own save from disk as the session. Never in a run with no main
-## save: open_save_file("") would play an empty path as a file.
-func _open_your_save() -> String:
+## Opens the user's own save from disk as the session, which backs it up first
+## (PersistenceManager.open_save_file()), unless `back_up` is false: a restore backs
+## up the save it replaces before it writes the backup over it, and that is the
+## switch's one backup. Never in a run with no main save: open_save_file("") would
+## play an empty path as a file.
+func _open_your_save(back_up: bool = true) -> String:
 	var refusal: String = _main_save_refusal()
 	if refusal != "":
 		return refusal
-	PersistenceManager.open_save_file(PersistenceManager.main_save_path)
+	PersistenceManager.open_save_file(PersistenceManager.main_save_path, back_up)
 	_set_session(SessionKind.YOUR_SAVE, null)
 	return ""
 
@@ -657,9 +660,9 @@ func _keep_as_your_save() -> String:
 	return _write_your_save()
 
 ## Reads the backup, backs up the user's save, puts the backup in its place byte
-## for byte, then opens it from disk. The backup is read first: backing up the
-## user's save rotates the oldest backups away once BACKUPS_KEPT are kept, and the
-## chosen one can be the oldest.
+## for byte, then opens it from disk, with no second backup. The backup is read
+## first: backing up the user's save rotates the oldest backups away once
+## BACKUPS_KEPT are kept, and the chosen one can be the oldest.
 func _restore_backup(backup_path: String) -> String:
 	var restored: PackedByteArray = FileAccess.get_file_as_bytes(backup_path)
 	if restored.is_empty():
@@ -673,7 +676,7 @@ func _restore_backup(backup_path: String) -> String:
 	if error != OK:
 		_release_unused_lock()
 		return "Could not write %s over your save (error %d)" % [backup_path, error]
-	return _open_your_save()
+	return _open_your_save(false)
 
 ## Writes the session's save, which the user's save now holds, and makes it the
 ## session. Returns why when the write failed.
@@ -684,11 +687,13 @@ func _write_your_save() -> String:
 	_set_session(SessionKind.YOUR_SAVE, null)
 	return ""
 
-## Backs up the user's save before a switch writes over it. Returns "" once it is
-## backed up, or when there is no file yet to back up; otherwise why not, and the
-## switch writes nothing.
+## Backs up the user's save before a switch writes over it
+## (PersistenceManager.backup_main_save(), which copies the temp file a cut-short
+## write left when only that is there). Returns "" once it is backed up, or when
+## nothing is on disk yet to back up; otherwise why not, and the switch writes
+## nothing.
 func _back_up_your_save() -> String:
-	if FileAccess.file_exists(PersistenceManager.main_save_path) and PersistenceManager.backup_main_save() == "":
+	if PersistenceManager.has_main_save_on_disk() and PersistenceManager.backup_main_save() == "":
 		return "Could not back up your save, so it was left as it was"
 	return ""
 

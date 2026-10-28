@@ -207,7 +207,9 @@ func _remove_temp_files() -> void:
 
 ## Starts the session on a temp file holding gold 42, standing in for your save:
 ## the main save and its backup folder point at temp paths, and the file is opened
-## as a launch on your save opens it.
+## as a launch on your save opens it. That open backs your save up, as a launch
+## does; the backup folder is emptied again, so each test counts only the backups
+## its own switches take.
 func _start_on_temp_main_save() -> void:
 	var file := FileAccess.open(MAIN_SAVE_PATH, FileAccess.WRITE)
 	file.store_string(MAIN_SAVE_TEXT)
@@ -215,6 +217,7 @@ func _start_on_temp_main_save() -> void:
 	PersistenceManager.main_save_path = MAIN_SAVE_PATH
 	PersistenceManager.backup_dir = BACKUP_DIR
 	PersistenceManager.open_save_file(MAIN_SAVE_PATH)
+	_remove_folder(BACKUP_DIR)
 	DevManager._session_kind = SessionKind.YOUR_SAVE
 	DevManager._session_preset = null
 	assert_eq(ResourceManager.get_gold(), 42.0, "precondition: the session plays the temp main save")
@@ -472,6 +475,44 @@ func test_back_to_my_save_reopens_it() -> void:
 	assert_null(DevManager.get_session_preset())
 	assert_eq(ResourceManager.get_gold(), 42.0, "your save comes back from disk")
 	assert_eq(PersistenceManager.save_path, MAIN_SAVE_PATH, "and is the file the session writes")
+
+## Back to my save opens your save as a launch does, so it backs it up before the
+## session writes it. With a preset pinned every launch plays a preset, and this is
+## the only way your save is opened.
+func test_back_to_my_save_backs_it_up_before_its_first_write() -> void:
+	_start_on_temp_main_save()
+	DevManager.play_preset(_preset("test_backup_away", ""))
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(PersistenceManager.list_backups().size(), 0, "precondition: playing a preset backs nothing up")
+	DevManager.back_to_my_save()
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "precondition: your save is the session")
+	var backups: PackedStringArray = PersistenceManager.list_backups()
+	assert_eq(backups.size(), 1, "going back to your save backed it up once")
+	ResourceManager.set_gold(99.0)
+	assert_eq(PersistenceManager.save_data(), OK, "precondition: the session's first write")
+	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 99.0, "precondition: your save holds the session")
+	if backups.size() == 1:
+		assert_eq(_gold_in_file(backups[0]), 42.0, "the backup holds your save as it was before that write")
+
+## A write cut short inside its rename can leave only your save's temp file, the
+## one copy of your save there is. A switch that writes your save backs that file up
+## first, as a launch does.
+func test_a_switch_backs_up_your_save_when_only_its_temp_file_is_left() -> void:
+	_start_on_temp_main_save()
+	var temp_path: String = SaveFiles.temp_path_for(MAIN_SAVE_PATH)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(MAIN_SAVE_PATH))
+	var file := FileAccess.open(temp_path, FileAccess.WRITE)
+	file.store_string(MAIN_SAVE_TEXT)
+	file.close()
+	DevManager.new_game()
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "precondition: the new game ran")
+	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 0.0, "precondition: and was written over your save")
+	var backups: PackedStringArray = SaveFiles.list_backups(temp_path, BACKUP_DIR)
+	assert_eq(backups.size(), 1, "the temp file was backed up first")
+	if backups.size() == 1:
+		assert_eq(_gold_in_file(backups[0]), 42.0, "holding your save as the temp file held it")
 
 ## Test runs turn autosave off, so only this test reaches the save a switch makes
 ## on its way out.

@@ -22,6 +22,10 @@ extends Node
 ## with saving blocked, so two runs never overwrite each other's progress. So is a
 ## save whose lock another run takes over while this one hangs: the session finds
 ## out at its next tick or write, and writes nothing from then on.
+##
+## The user's save is backed up (backup_main_save()) whenever a session takes it
+## on under its lock, at launch or when a switch opens it, and before a dev switch
+## writes over it, so nothing writes it without a copy of it as it was.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -38,7 +42,7 @@ signal save_data_reset
 ## The user's own save.
 const SAVE_PATH: String = "user://save.tres"
 
-## Where the user's save is backed up when a launch plays it.
+## Where the user's save is backed up (backup_main_save()).
 const BACKUP_DIR: String = "user://backups"
 
 ## How many backups of a save are kept.
@@ -109,30 +113,32 @@ func _notification(what: int) -> void:
 ## a fresh save, written to the --save path when one was given and kept in memory
 ## otherwise, which DevManager builds the preset on once every autoload is ready.
 ## It backs nothing up, unless its --save path is the main save: a preset written
-## over the user's save backs it up first, as a launch on the main save does.
-## Any other session: --save=<path> replaces save_path, and a session on the main
-## save backs it up before anything can write it, unless another live run holds
-## the save's lock. Then open_save_file() makes save_path the session.
+## over the user's save backs it up first, under the save's lock, as a launch on
+## the main save does.
+## Any other session: --save=<path> replaces save_path, then open_save_file() makes
+## save_path the session, backing the main save up when that is the file.
 func boot(options: LaunchOptions = null) -> void:
 	var launch: LaunchOptions = options if options != null else LaunchOptions.current()
 	autosave_enabled = not launch.no_autosave
 	if launch.preset_id != "":
-		if launch.save_path == main_save_path:
-			_back_up_at_boot(launch.save_path)
 		use_save(SaveGameData.new_current(), launch.save_path)
+		# Under the lock use_save() took, before DevManager builds the preset.
+		_back_up_if_main(launch.save_path)
 		return
 	if launch.save_path != "":
 		save_path = launch.save_path
-	if save_path == main_save_path:
-		_back_up_at_boot(save_path)
 	open_save_file(save_path)
 
 ## Makes the save file at `path` the session: the one way a file becomes it, at
 ## boot and when a session goes back to a file. It clears any block and moves the
-## session's lock to `path`. A save another live run holds the lock on is blocked
-## ("in use by another run") but still loaded as below, into memory. Nothing below
-## clears a block, so that one stands however the save loads: the file is never
-## written. Then:
+## session's lock to `path`. When `path` is the main save and the lock is this
+## session's, the save is backed up as it is on disk, before anything can write it:
+## a launch on it, Back to my save, any switch that comes back to it. `back_up` false
+## skips that for a caller that backed the save up itself before writing over it (a
+## restore), so the switch takes one backup. A save another live run holds the lock
+## on is blocked ("in use by another run"), not backed up, and still loaded as
+## below, into memory. Nothing below clears a block, so that one stands however the
+## save loads: the file is never written. Then:
 ## - no file there, and no temp file a cut-short write left: a new save, written
 ##   at once;
 ## - a file that will not load: copied aside and kept, and the session runs on a
@@ -146,11 +152,13 @@ func boot(options: LaunchOptions = null) -> void:
 ##   aside.
 ## Every path ends with save_data_reset, which re-binds the managers (at boot it
 ## reaches no one).
-func open_save_file(path: String) -> void:
+func open_save_file(path: String, back_up: bool = true) -> void:
 	save_path = path
 	_clear_block()
 	# Before the load, whose steps may write (a new save) or add a block of their own.
 	_move_lock_to(path)
+	if back_up:
+		_back_up_if_main(path)
 	_load_session_save(path)
 	save_data_reset.emit()
 
@@ -227,11 +235,30 @@ func get_block_reason() -> String:
 # BACKUPS
 #-----------------------------------------------------------------------------
 
-## Copies the main save into backup_dir, keeping its newest BACKUPS_KEPT
-## backups. Returns the copy's path, or "" when there is no main save file or the
-## copy failed.
+## Copies the main save into backup_dir, keeping its newest BACKUPS_KEPT backups:
+## the one way the main save is backed up, when a session takes it on (a launch,
+## a switch that opens it) and before a dev switch writes over it (DevManager). Only
+## while this run holds the save's lock: a save another live run holds is that
+## run's live state, and enough copies of it would rotate that run's
+## start-of-session backup out of the BACKUPS_KEPT. When only the temp file a
+## cut-short write left is there, that file may be the only copy of the save, so it
+## is the one copied, under its own stem (<name>.tmp.<stamp>.<extension>), which
+## list_backups() does not list. Returns the copy's path, or "" when nothing is on
+## disk to copy (has_main_save_on_disk()), this run does not hold the lock, or the
+## copy failed (SaveFiles logs it).
 func backup_main_save() -> String:
-	return SaveFiles.backup(main_save_path, backup_dir, BACKUPS_KEPT)
+	var source: String = _main_save_on_disk()
+	if source == "":
+		return ""
+	if SaveLock.holder_pid(main_save_path) != OS.get_process_id():
+		Log.warn("PersistenceManager: %s was not backed up: this run does not hold its lock" % main_save_path)
+		return ""
+	return SaveFiles.backup(source, backup_dir, BACKUPS_KEPT)
+
+## True when the main save is on disk: its file, or the temp file a cut-short write
+## left in its place, which load_save() reads.
+func has_main_save_on_disk() -> bool:
+	return _main_save_on_disk() != ""
 
 ## The main save's backups in backup_dir, newest first.
 func list_backups() -> PackedStringArray:
@@ -284,23 +311,24 @@ func _load_session_save(path: String) -> void:
 		var invalid_copy: String = SaveFiles.copy_aside(read_path, "invalid")
 		Log.warn("PersistenceManager: Repaired %s in %s. The file as it was is at %s" % [", ".join(repaired), path, invalid_copy])
 
-## The backup a launch makes of the main save at `path` before anything can write
-## it: a session on the main save, or a preset session written over it. The save's
-## lock is taken first, and another live run holding it means no backup: that save
-## is the other run's live state, and enough launches locked out of it would rotate
-## the first run's start-of-session backup out of the BACKUPS_KEPT.
-## open_save_file() or use_save() then asks for the lock again (a lock that is
-## already ours is always granted) or blocks the session. When only the temp file a
-## cut-short write left is there, that file may be the only copy of the save, so it
-## is the one backed up.
-func _back_up_at_boot(path: String) -> void:
-	# A session in memory has no file to lock or to back up.
-	if path == "" or not SaveLock.acquire(path):
-		return
-	var source: String = path
-	if not FileAccess.file_exists(source):
-		source = SaveFiles.temp_path_for(path)
-	SaveFiles.backup(source, backup_dir, BACKUPS_KEPT)
+## Backs the main save up (backup_main_save()) when `path` is it and this session
+## has just taken its lock: the save as the session found it, before anything can
+## write it. A session refused the lock holds none (_lock_path), so a run locked out
+## of the main save takes no backup, and one in memory has no file to back up.
+func _back_up_if_main(path: String) -> void:
+	if path != "" and path == main_save_path and _lock_path == path:
+		backup_main_save()
+
+## The file a backup of the main save copies: the main save, or the temp file a
+## cut-short write left when only that is there; "" when neither is, or in a run
+## with no main save.
+func _main_save_on_disk() -> String:
+	if main_save_path == "":
+		return ""
+	if FileAccess.file_exists(main_save_path):
+		return main_save_path
+	var temp_path: String = SaveFiles.temp_path_for(main_save_path)
+	return temp_path if FileAccess.file_exists(temp_path) else ""
 
 ## False when a manager verify() asks is missing, e.g. ZoneManager after its
 ## zone list failed to load from a stale import cache. Such a save is played but
