@@ -80,14 +80,33 @@ Point-in-time design and plan documents. Each carries a status banner. For curre
 
 ## Keeping Docs Current
 
-Several branches are usually open at once, and every line that two of them edit is a merge conflict someone resolves by hand. These rules keep a PR's doc edits to the lines that describe its own change.
+Several branches are usually open at once, and every doc line that two of them edit is a merge conflict someone resolves by hand, after which the doc is often rewritten against the merged code anyway. So a feature PR leaves the living docs alone, and a small docs PR describes the change once it has merged, against the code as it landed. The living docs are the ones indexed above, apart from the Design Records.
 
-- When a change alters behaviour, update the living doc that owns it in the same PR: its tables, its flows, and its **Work Remaining** list (delete fixed items rather than striking them through).
+### When docs are written
+
+- **A feature PR does not edit living docs.** It carries its code, its tests, and its spec, plan and mock-ups in `superpowers/` (new files, which never conflict). The exceptions:
+  - a doc the code reads, such as [ITEMS.md](inventory/ITEMS.md), which the equipment generator parses;
+  - a command or coding rule in [CLAUDE.md](../CLAUDE.md) that work on the change needs at once;
+  - a PR whose subject is the docs themselves, such as a change to these rules.
+- **The feature PR lists what its docs PR will write.** Its description ends with a `## Docs to update` section: one line per living doc that owns a changed behaviour, saying what changed, and the bugs and gaps the work found for that doc's Work Remaining. The list stays in the PR description, because a notes file in the repo would conflict like the docs do. A PR that changes no documented behaviour says "None".
+- **The docs PR follows the merge.** Once the user merges the feature PR, the session that built it (or whoever picks it up) cuts a `docs/<topic>` branch from the new `main` and works through the list:
+  - the owning doc's tables, flows and **Work Remaining** list (delete fixed items rather than striking them through);
+  - the spec's or plan's row in [superpowers/README.md](superpowers/README.md), added or set to its new status;
+  - a row in the indexes above for a new doc.
+
+  It links the feature PR and opens the same day, so `main`'s docs trail its code by hours, not days. If another docs PR merges first, merge `main` into it before its last push.
+- [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md), [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) and [CODEBASE_STATE.md](CODEBASE_STATE.md) are refreshed at milestones, in a docs PR of their own.
+- A sweep across many docs (a rename, a reformat, a cleanup) goes in a PR of its own, opened while no other PR edits those docs.
+- Merge `main` into your branch when you need its code, and once right before your PR merges, not after every merge to `main`. A doc conflict is resolved by keeping both sides' facts.
+
+### What a living doc holds
+
+A system doc says what the player gets and why, and where to start reading the code. The code and its `##` comments own the rest, so that most code changes touch no doc line.
+
+- **Keep** what the player sees and does, and the design reasons behind it; the tuning values a designer changes (costs, rates, timings, caps); and the entry points: the class or scene that owns each piece, the public functions and signals other systems call, the Data Model field tables and the Key Files table.
+- **Cut** line numbers (`main_view.gd:139`), layout geometry (positions, widths, px gaps, sizing formulas), unique node names (`%LastCycleLabel`) and constants, call-by-call chains ("X calls Y, which calls Z"), lists of a class's methods that repeat its script, and private `_helpers()` (Godot's own callbacks, such as `_ready()` and `_gui_input()`, are fine). [STYLE_GUIDE.md](STYLE_GUIDE.md) and [UI_STYLING.md](UI_STYLING.md) keep their sizes, because there the sizes are the spec.
 - **One home per fact.** Each behaviour, API or rule is described in one doc, the system doc that owns it. Other docs link to it instead of restating it, so a change edits one doc, not five. [CLAUDE.md](../CLAUDE.md) holds rules, commands and pointers, not system detail.
 - **Nothing a command can tell you.** No counts of tests, scripts, scenes, resources, shaders or lines, and no test run results or times: the test runner prints those. No `Last updated:` line and no record of which PR changed a doc: `git log -- <doc>` has both. No "Used by" lists or columns for shared widgets, components, theme variants or constants: a search finds their users, and such a list changes whenever one of them does. A data field's or method's "Used by" can stay when it says whether anything reads it at all.
-- **No test lists, review history or private helpers.** A system doc does not list its test files: their names say what they check, and [TESTING.md](testing/TESTING.md#coverage-gaps) lists what they miss. Describe behaviour as it is now, not the review or the date that changed it: that history belongs in the spec's or plan's "As built" section. Name the public functions and the classes that hold the logic, not their private `_helpers()`, which change more often (Godot's own callbacks, such as `_ready()` and `_gui_input()`, are fine).
-- **Describe `main`, not your branch.** Write each doc as it will read once the PR merges. No branch names, no "on this branch" or "not merged", no "in flight" entries. Work in progress belongs in the PR description and in its spec or plan. The one exception is a dormant branch that holds unfinished work, which the Work Remaining item that would pick it up may name.
-- New specs and plans go in `superpowers/specs/` and `superpowers/plans/`. Add a row to [superpowers/README.md](superpowers/README.md) and update its status when the work ships. A spec or plan is a point-in-time record, so these rules do not apply to it.
-- [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md), [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) and [CODEBASE_STATE.md](CODEBASE_STATE.md) are refreshed at milestones, in a pass of their own on `main`, not in feature PRs.
-- A sweep across many docs (a rename, a reformat, a cleanup) goes in a PR of its own, opened while no other PR is open.
-- Merge `main` into your branch when you need its code, and once right before your PR merges, not after every merge to `main`. A doc conflict is resolved by keeping both sides' facts.
+- **No test lists or review history.** A system doc does not list its test files: their names say what they check, and [TESTING.md](testing/TESTING.md#coverage-gaps) lists what they miss. Describe behaviour as it is now, not the review or the date that changed it: that history belongs in the spec's or plan's "As built" section.
+- **Describe `main`.** No branch names, no "not merged", no "in flight" entries: work in progress belongs in the PR description and in its spec or plan. The one exception is a dormant branch that holds unfinished work, which the Work Remaining item that would pick it up may name.
+- A spec or plan is a point-in-time record, so these rules do not apply to it.

@@ -102,6 +102,7 @@ Built systems: Cycling, Zones and idle actions, Adventuring, Combat, Inventory, 
 **Before committing:**
 - Run `git diff HEAD` to review all changes
 - Ensure no debug artifacts or `.import` cache files are staged
+- On a feature branch, ensure no living-doc edits are staged: they go in the PR's `## Docs to update` list and its docs PR (see Documentation)
 - Confirm the commit message explains *why*, not just *what*
 
 **Separate work into logical commits:**
@@ -134,11 +135,13 @@ Multiple Claude Code agents may run simultaneously on this codebase. Follow thes
 ## Documentation
 
 Living docs follow "Keeping Docs Current" in `docs/README.md`, because two open branches that edit the same doc line make a merge conflict. In short:
+- **Docs come after the merge.** A feature PR does not edit living docs. Its description ends with a `## Docs to update` list, and once the user merges it, the session that built it opens a docs PR on a `docs/<topic>` branch cut from the new `main` that writes them. Specs, plans and mock-ups stay in the feature PR, and so do docs the code reads, such as `docs/inventory/ITEMS.md`.
+- A system doc says what the player gets and why, and where to start reading the code: the owning classes, public functions and signals. No line numbers, layout geometry, unique node names, constants, call chains or private `_helpers()`.
 - Each fact has one home, the system doc that owns it. Other docs, this file included, link to it instead of restating it.
 - No counts of tests, scripts, scenes, resources, shaders or lines, no test run results or times, no `Last updated:` lines, no "Used by" lists of a shared widget's or variant's users.
-- A system doc does not list its test files, record which review changed something, or name private `_helpers()`: it names the public functions and classes.
-- A doc describes `main` as it will be once the PR merges: no branch names, no "not merged", no "in flight".
-- `docs/STATE_OF_THE_GAME.md`, `docs/GAMEPLAY_STATE.md` and `docs/CODEBASE_STATE.md` are refreshed at milestones, on `main`, not in feature PRs.
+- A system doc does not list its test files or record which review changed something.
+- A doc describes `main`: no branch names, no "not merged", no "in flight".
+- `docs/STATE_OF_THE_GAME.md`, `docs/GAMEPLAY_STATE.md` and `docs/CODEBASE_STATE.md` are refreshed at milestones, in a docs PR of their own.
 - Merge `main` into a branch when you need its code and once before the PR merges, not after every merge to `main`.
 
 ## AI-Generated Art
