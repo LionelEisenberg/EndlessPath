@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://dnkls2h5eaj10"]
+[gd_scene format=3 uid="uid://dnkls2h5eaj10"]
 
 [ext_resource type="Texture2D" uid="uid://c4hiwispu082d" path="res://assets/sprites/inventory/tab_switcher/tab_button_open.png" id="1_qf55a"]
 [ext_resource type="Texture2D" uid="uid://qg3e62j1wpfi" path="res://assets/sprites/inventory/tab_switcher/bag_icon.png" id="2_ejei4"]
@@ -11,38 +11,26 @@ length = 0.001
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("TabSprite/MarginContainer:theme_override_constants/margin_left")
+tracks/0/path = NodePath("TabSprite:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 1,
-"values": [null]
+"values": [0]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("TabSprite/MarginContainer:scale")
+tracks/1/path = NodePath("Icon:position")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [Vector2(1, 1)]
-}
-tracks/2/type = "value"
-tracks/2/imported = false
-tracks/2/enabled = true
-tracks/2/path = NodePath("TabSprite/MarginContainer:theme_override_constants/margin_top")
-tracks/2/interp = 1
-tracks/2/loop_wrap = true
-tracks/2/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
 "update": 1,
-"values": [null]
+"values": [Vector2(-19, -8)]
 }
 
 [sub_resource type="Animation" id="Animation_ik22q"]
@@ -51,50 +39,26 @@ length = 0.4
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("TabSprite/MarginContainer:theme_override_constants/margin_left")
+tracks/0/path = NodePath("TabSprite:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
-"update": 0,
-"values": [null, 6, 13, 19, 25, 32, 38, 44, 50]
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5, 6, 7]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
 tracks/1/enabled = true
-tracks/1/path = NodePath("TabSprite/MarginContainer:scale")
+tracks/1/path = NodePath("Icon:position")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
-"update": 0,
-"values": [Vector2(0.95, 0.95), Vector2(0.9, 0.9), Vector2(0.85, 0.85), Vector2(0.8, 0.8), Vector2(0.75, 0.75)]
-}
-tracks/2/type = "value"
-tracks/2/imported = false
-tracks/2/enabled = true
-tracks/2/path = NodePath("TabSprite/MarginContainer:theme_override_constants/margin_top")
-tracks/2/interp = 1
-tracks/2/loop_wrap = true
-tracks/2/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
-"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
-"update": 0,
-"values": [null, 4, 8, 12, 13]
-}
-tracks/3/type = "value"
-tracks/3/imported = false
-tracks/3/enabled = true
-tracks/3/path = NodePath("TabSprite:frame")
-tracks/3/interp = 1
-tracks/3/loop_wrap = true
-tracks/3/keys = {
-"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.20000002, 0.25, 0.3, 0.35),
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
 "update": 1,
-"values": [0, 1, 2, 3, 4, 5, 6, 7]
+"values": [Vector2(-19, -8), Vector2(-18, -8), Vector2(-16, -8), Vector2(-14, -8), Vector2(-13, -8), Vector2(-11, -8), Vector2(-11, -8), Vector2(-10, -8)]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_00gvd"]
@@ -115,39 +79,29 @@ metadata/_edit_group_ = true
 texture = ExtResource("1_qf55a")
 hframes = 8
 
-[node name="MarginContainer" type="MarginContainer" parent="TabSprite"]
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -59.0
-offset_top = -31.5
-offset_right = -13.0
-offset_bottom = -5.5
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 4
-theme_override_constants/margin_right = 20
-
-[node name="Icon" type="TextureRect" parent="TabSprite/MarginContainer"]
+[node name="Icon" type="TextureRect" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(26, 26)
-layout_mode = 2
+layout_mode = 0
+offset_left = -19.0
+offset_top = -8.0
+offset_right = -3.0
+offset_bottom = 8.0
+mouse_filter = 2
 texture = ExtResource("2_ejei4")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="LockIcon" type="TextureRect" parent="TabSprite/MarginContainer/Icon"]
+[node name="LockIcon" type="TextureRect" parent="Icon"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
-offset_left = 14.0
-offset_top = 12.0
-offset_right = 28.0
-offset_bottom = 28.0
+offset_left = 10.0
+offset_top = 9.0
+offset_right = 17.0
+offset_bottom = 17.0
 mouse_filter = 2
 texture = ExtResource("5_lock")
+expand_mode = 1
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 unique_name_in_owner = true

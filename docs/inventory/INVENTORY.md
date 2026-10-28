@@ -31,7 +31,7 @@ Related docs:
 ## Player Experience
 
 1. **Open.** In the zone view, press `I` or click INVENTORY in the zone's SystemMenu. The book plays its open animation and lands on the Equipment tab. The inventory can't be opened from the adventure view.
-2. **Switch tabs.** Four tab buttons sit on the left edge: Equipment, Consumables, Materials and Journal. The page-turn animation plays forwards when you move to a later tab and backwards when you move to an earlier one.
+2. **Switch tabs.** Four tab buttons sit on the left edge: Equipment, Consumables, Materials and Journal. The page-turn animation plays forwards when you move to a later tab and backwards when you move to an earlier one. The tab in use stands out from the book's edge; as tabs slide in and out, each icon keeps its size and steps with its tab's frames, staying centred on the part outside the page.
 3. **Equipment tab — left page.** The Equipment tab is pressed into the paper: its slots, panel and gear figure are cut into the page, and its labels are printed in ink.
    - **Layout:** the title "Equipment", the filter words (`ALL` / `WEAPONS` / `ARMOR` / `ACCESSORIES`) printed under it, then a 6 × 6 page of 72 px slots. A slot holding an item is pressed deep and an empty one shallow. The footer holds `PAGE` with one small pressed slot per page (the page shown pressed deep), the count of equipment in the bag against its capacity (`11 / 72`; worn gear isn't counted), and the discard slot.
    - **Hover:** hovering or pressing a slot that holds an item shows it in the details on the right page and puts printer's marks (red corner marks) round the slot. Hovering an empty slot changes nothing, so the details keep the last item.
@@ -633,7 +633,7 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
 - `[LOW]` **The Journal reads quest progress when its page opens and when the quest items change.** A step reached while the book lies open shows the next time the page opens.
-- `[LOW]` **Tab-button icons shrink** from 0.95 to 0.75 scale in `TabButtonAnimation`. This was reported as janky before the June icon swap (c33064c, c4d3b4e) and hasn't been re-checked (unverified).
+- `[LOW]` **The tab icons are finer than the book's grid.** The 64 px tab icons show at 32 px, one art pixel a screen pixel, beside art drawn 2 px a pixel ([STYLE_GUIDE.md](../STYLE_GUIDE.md) K3: 16 art px redraws would put them on the grid). The path book's 26 px stage icons show at the same 32 px, not a whole multiple.
 
 ### Tech Debt
 
