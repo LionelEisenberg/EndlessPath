@@ -4,7 +4,8 @@ extends GutTest
 ## save. "Another run" is a real helper process (a ping on Windows, a sleep
 ## elsewhere), because a lock is live only while its process is alive and only
 ## the OS can say. So is a process that holds a lock file shut, as an antivirus
-## scan can (PowerShell, on Windows only). Every lock sits next to a temp save in
+## scan can (PowerShell, on Windows only). A lock file that cannot be written is a
+## folder in its place, under FOLDER. Every lock sits next to a temp save in
 ## user:// and is removed after each test, so the developer's real save and its
 ## lock are never read or written. The helper is killed after each test, pass or
 ## fail.
@@ -149,7 +150,8 @@ func test_an_old_heartbeat_is_taken_over() -> void:
 	assert_true(SaveLock.acquire(path), "a lock nobody refreshed for a while is stale even if its process is alive")
 	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "the lock is ours now")
 
-func test_an_unreadable_lock_is_taken_over() -> void:
+## A garbled lock can be read, and names no run, so nobody holds the save.
+func test_a_garbled_lock_is_taken_over() -> void:
 	var path := _path("garbage")
 	var file: FileAccess = FileAccess.open(SaveLock.lock_path_for(path), FileAccess.WRITE)
 	file.store_string("this is not a lock")
@@ -157,6 +159,36 @@ func test_an_unreadable_lock_is_taken_over() -> void:
 	assert_eq(SaveLock.holder_pid(path), 0, "a lock with no pid has no holder")
 	assert_true(SaveLock.acquire(path), "a lock that names no run cannot hold the save")
 	assert_eq(SaveLock.holder_pid(path), OS.get_process_id())
+
+## A lock file this run cannot read, as while an antivirus scan holds it, may be
+## another run's: whose it is is not known, so acquire() does not take it, and
+## leaves it as it was. The lock here names a run that is gone, which acquire()
+## would take over if it could read it.
+func test_a_lock_it_cannot_read_is_refused() -> void:
+	if OS.get_name() != "Windows":
+		pass_test("the helper that holds a file shut is PowerShell")
+		return
+	var path := _path("acquire_shut")
+	_write_lock(path, DEAD_PID, _now())
+	var lock_text := _read(SaveLock.lock_path_for(path))
+	_hold_shut(SaveLock.lock_path_for(path))
+	var shut: bool = await wait_until(func() -> bool: return FileAccess.open(SaveLock.lock_path_for(path), FileAccess.READ) == null, 10.0)
+	assert_true(shut, "precondition: the lock file cannot be read")
+	assert_false(SaveLock.acquire(path), "a lock whose holder is not known is not taken")
+	OS.kill(_helper_pid)
+	_helper_pid = 0
+	var open_again: bool = await wait_until(func() -> bool: return FileAccess.open(SaveLock.lock_path_for(path), FileAccess.READ) != null, 10.0)
+	assert_true(open_again, "precondition: the lock file can be read again")
+	assert_eq(_read(SaveLock.lock_path_for(path)), lock_text, "the lock was left as it was")
+
+## A lock acquire() cannot write does not name this run, so it is not taken either.
+## A folder in the lock file's place makes one on every platform.
+func test_a_lock_it_cannot_write_is_refused() -> void:
+	# Under FOLDER, which after_each() removes with everything in it.
+	var path := FOLDER.path_join("unwritable.tres")
+	DirAccess.make_dir_recursive_absolute(_global(SaveLock.lock_path_for(path)))
+	assert_false(SaveLock.acquire(path), "a lock this run could not write is not its own")
+	assert_eq(SaveLock.holder_pid(path), 0, "and nothing names this run")
 
 ## A save given with --save may sit in a folder that does not exist yet.
 func test_acquire_makes_the_folder_of_a_new_save() -> void:
@@ -170,6 +202,25 @@ func test_acquire_makes_the_folder_of_a_new_save() -> void:
 
 func test_holder_pid_is_zero_without_a_lock() -> void:
 	assert_eq(SaveLock.holder_pid(_path("none")), 0)
+
+#-----------------------------------------------------------------------------
+# REFUSAL REASON
+#-----------------------------------------------------------------------------
+
+func test_a_refusal_names_the_run_that_holds_the_lock() -> void:
+	var path := _path("reason_live")
+	var other_pid := _start_other_run()
+	_write_lock(path, other_pid, _now())
+	assert_false(SaveLock.acquire(path), "precondition: another live run holds the save")
+	assert_eq(SaveLock.refusal_reason(path), "in use by another run (pid %d)" % other_pid)
+
+## A lock that names no run has no pid to name, so the reason never says "pid 0".
+func test_the_refusal_of_a_lock_that_names_no_run_names_no_pid() -> void:
+	# Under FOLDER, which after_each() removes with everything in it.
+	var path := FOLDER.path_join("reason_unwritable.tres")
+	DirAccess.make_dir_recursive_absolute(_global(SaveLock.lock_path_for(path)))
+	assert_false(SaveLock.acquire(path), "precondition: the lock cannot be written")
+	assert_eq(SaveLock.refusal_reason(path), "possibly in use by another run (its lock file could not be read or written)")
 
 #-----------------------------------------------------------------------------
 # REFRESH

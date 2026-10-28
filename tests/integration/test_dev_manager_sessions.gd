@@ -200,13 +200,17 @@ func _remove_folder(folder: String) -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(folder + file_name))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(folder))
 
-## Deletes every temp file (the saves, their temp files and locks) and both folders.
+## Deletes every temp file (the saves, their temp files and locks), both folders, and
+## the empty folder a test makes in place of your save's lock file.
 func _remove_temp_files() -> void:
 	_remove_folder(PRESET_DIR)
 	_remove_folder(BACKUP_DIR)
 	for file_name: String in DirAccess.get_files_at("user://"):
 		if file_name.begins_with(TMP_PREFIX):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + file_name))
+	var lock_folder: String = ProjectSettings.globalize_path(SaveLock.lock_path_for(MAIN_SAVE_PATH))
+	if DirAccess.dir_exists_absolute(lock_folder):
+		DirAccess.remove_absolute(lock_folder)
 
 ## Starts the session on a temp file holding gold 42, standing in for your save:
 ## the main save and its backup folder point at temp paths, and the file is opened
@@ -798,6 +802,36 @@ func test_writing_your_save_is_refused_while_another_run_holds_it() -> void:
 	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "your save is left as it was")
 	assert_eq(PersistenceManager.list_backups().size(), 1, "and no backup was taken")
 	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), _helper_pid, "the other run keeps its lock")
+	assert_signal_not_emitted(DevManager, "session_changed")
+
+## A lock file this run cannot write names no run, so whose your save is is not
+## known: a switch that would write it is refused at once, as for another run's
+## lock, and the refusal says why, with no pid. A folder in the lock file's place
+## makes such a lock on every platform.
+func test_writing_your_save_is_refused_while_its_lock_cannot_be_written() -> void:
+	_start_on_temp_main_save()
+	var backup: String = PersistenceManager.backup_main_save()
+	assert_ne(backup, "", "precondition: a backup to restore")
+	DevManager.play_preset(_preset("test_unwritable_lock", "", [_step(Kind.SET_GOLD, "", 700.0)]))
+	await wait_process_frames(SWITCH_FRAMES)
+	var preset_save: SaveGameData = PersistenceManager.save_game_data
+	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "precondition: a preset in memory holds no lock on your save")
+	# _remove_temp_files() removes this folder after the test.
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SaveLock.lock_path_for(MAIN_SAVE_PATH)))
+	watch_signals(DevManager)
+	DevManager.keep_as_my_save()
+	var reason: String = _failure_reason()
+	assert_string_contains(reason, "Your save is", "keep is refused at once")
+	assert_string_contains(reason, "could not be read or written", "because the lock names no run")
+	assert_false(reason.contains("pid"), "so the refusal names no pid")
+	DevManager.new_game()
+	DevManager.restore_backup(backup)
+	assert_signal_emit_count(DevManager, "session_switch_failed", 3, "so are a new game and a restore")
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_same(PersistenceManager.save_game_data, preset_save, "the preset session plays on")
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET)
+	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "your save is left as it was")
+	assert_eq(PersistenceManager.list_backups().size(), 1, "and no backup was taken")
 	assert_signal_not_emitted(DevManager, "session_changed")
 
 func test_restoring_a_missing_backup_is_refused_at_once() -> void:

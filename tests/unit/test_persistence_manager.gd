@@ -75,10 +75,17 @@ var _manager: Node = null
 ## holds a lock file shut), or 0.
 var _helper_pid: int = 0
 
+## The pid of a second helper process, for a test that needs two (another run, and
+## a process that holds that run's lock file shut), or 0.
+var _second_helper_pid: int = 0
+
 func after_each() -> void:
 	if _helper_pid > 0:
 		OS.kill(_helper_pid)
 		_helper_pid = 0
+	if _second_helper_pid > 0:
+		OS.kill(_second_helper_pid)
+		_second_helper_pid = 0
 	if is_instance_valid(_manager):
 		_manager.free()
 	_manager = null
@@ -884,6 +891,41 @@ func test_a_session_whose_lock_file_is_gone_stops_writing() -> void:
 	assert_string_contains(manager.get_block_reason(), "taken over")
 	assert_eq(_read(path), original, "the file is unchanged")
 	assert_false(FileAccess.file_exists(SaveLock.lock_path_for(path)), "and no lock is made in its place")
+
+## A lock file that cannot be read when a session starts, as while an antivirus scan
+## holds it, may be the lock of another run that is writing the save. Whose it is is
+## not known, so the session is refused the lock and blocks at once: it writes
+## nothing, backs nothing up and leaves the lock as it was. The heartbeat's grace
+## (the next test) is only for a lock the session has seen as its own.
+func test_a_second_session_blocks_on_a_lock_file_it_cannot_read() -> void:
+	if OS.get_name() != "Windows":
+		pass_test("the helper that holds a file shut is PowerShell")
+		return
+	var path := _path("lock_shut_at_start")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	_lock_as_another_run(path)
+	# The other run lives on as the second helper, since the process that holds its
+	# lock file shut takes _helper_pid.
+	_second_helper_pid = _helper_pid
+	_helper_pid = 0
+	var lock_text := _read(SaveLock.lock_path_for(path))
+	await _hold_lock_file_shut(path)
+	var manager := _make_manager(path)
+	manager.main_save_path = path
+	_boot(manager)
+	assert_true(manager.is_save_blocked(), "a lock whose holder is not known blocks the session at once")
+	assert_string_contains(manager.get_block_reason(), "could not be read or written", "the reason says why")
+	assert_false(manager.get_block_reason().contains("pid"), "and names no pid: the lock named none this run could read")
+	manager.save_game_data.gold = 99.0
+	manager.tick()
+	assert_eq(_read(path), original, "a tick writes nothing")
+	assert_eq(manager.list_backups().size(), 0, "and the save is not backed up")
+	OS.kill(_helper_pid)
+	_helper_pid = 0
+	var open_again: bool = await wait_until(func() -> bool: return FileAccess.open(SaveLock.lock_path_for(path), FileAccess.READ) != null, 10.0)
+	assert_true(open_again, "precondition: the lock file can be read again")
+	assert_eq(_read(SaveLock.lock_path_for(path)), lock_text, "the other run's lock is left as it was")
 
 ## A lock file that is there but cannot be read, as while an antivirus scan holds
 ## it, may well still be this session's, and no other run takes over a lock that

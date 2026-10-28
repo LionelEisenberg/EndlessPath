@@ -352,7 +352,7 @@ A switch is refused at call time, before anything changes (`Log.error`, `get_las
 
 - another switch is pending (`SWITCH_UNDER_WAY`): every switch, before any check of its own, so a refused request never takes your save's lock and a double click on Keep takes one backup. `restart_preset()` outside a preset session does nothing, even then;
 - the run has no main save ("This run has no main save"): `back_to_my_save()`, `new_game()`, `keep_as_my_save()` and `restore_backup()`. Every GUT run is one, unless a test points `PersistenceManager.main_save_path` at a temp file;
-- another live run holds the lock on the user's save ("Your save is in use by another run (pid N)"): `new_game()`, `keep_as_my_save()` and `restore_backup()`, which write it;
+- another live run holds the lock on the user's save ("Your save is in use by another run (pid N)"), or its lock file cannot be read or written, so another run may hold it ("Your save is possibly in use by another run (its lock file could not be read or written)"): `new_game()`, `keep_as_my_save()` and `restore_backup()`, which write it;
 - the backup to restore is not there ("There is no backup at <path>");
 - the preset fails `validate()`: `play_preset()`, `play_story_through()` and `restart_preset()` (the first error, such as "story_through no_such_beat is not a beat of the route").
 

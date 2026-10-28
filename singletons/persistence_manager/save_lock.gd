@@ -12,10 +12,12 @@ class_name SaveLock extends RefCounted
 ## STALE_AFTER_SECONDS. A second run that finds a live lock plays the save in
 ## memory instead of overwriting the first run's progress. A lock that is not
 ## live (its run crashed or was killed, or hung) is stale, and the next run takes
-## it over. A run that hung finds out at its next heartbeat, when refresh() says
-## the lock is no longer its own. The lock is advisory: two runs that open one
-## save within the same few milliseconds can both win it. Statics only. Every
-## path comes from the caller, so a test can point it at a temp save.
+## it over. A run holds a lock only while the file names it: a lock file it cannot
+## read or write is refused like a live one, since whose it is is not known. A run
+## that hung finds out at its next heartbeat, when refresh() says the lock is no
+## longer its own. The lock is advisory: two runs that open one save within the
+## same few milliseconds can both win it. Statics only. Every path comes from the
+## caller, so a test can point it at a temp save.
 
 #-----------------------------------------------------------------------------
 # ENUMS AND CONSTANTS
@@ -49,11 +51,15 @@ static func lock_path_for(save_path: String) -> String:
 	return save_path + ".lock"
 
 ## Takes the lock on the save at `save_path`: writes the lock file with this run's
-## pid and the time now. Returns true when there was no lock, the lock was stale or
-## it was already this run's. Returns false when another live run holds it, and
-## leaves that run's lock as it was. It makes the save's folder first, which a
-## --save file in a new folder does not have yet. A lock file that still cannot be
-## written is logged, and the run goes on without a lock.
+## pid and the time now, then reads it back. Returns true when the file then names
+## this run: there was no lock, the lock was stale or named no process (an empty or
+## garbled file), or it was already this run's. Returns false, and the caller holds
+## no lock, when another live run holds it, which is found before anything is
+## written, so that run's lock is never written over. Returns false too when the
+## file does not name this run once written: it cannot be read (another process,
+## such as an antivirus scan, holds it) or written, so whose it is is not known.
+## refusal_reason() says why. It makes the save's folder first, which a --save file
+## in a new folder does not have yet.
 static func acquire(save_path: String) -> bool:
 	var lock: Dictionary = _read_lock(save_path)
 	if not lock.is_empty() and int(lock["pid"]) != OS.get_process_id() and _is_live(lock):
@@ -61,7 +67,19 @@ static func acquire(save_path: String) -> bool:
 	# A folder that cannot be made shows up as the lock file that cannot be opened.
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(save_path.get_base_dir()))
 	_write_lock(save_path)
-	return true
+	# A file that cannot be read, or a write that did not land, does not name this run.
+	return holder_pid(save_path) == OS.get_process_id()
+
+## Why acquire() refused the lock on the save at `save_path`, said of the save, so a
+## caller can write "Not saving: <reason>" or "Your save is <reason>": "in use by
+## another run (pid N)" when the lock file names another run, and otherwise
+## "possibly in use by another run (its lock file could not be read or written)",
+## with no pid to name.
+static func refusal_reason(save_path: String) -> String:
+	var holder: int = holder_pid(save_path)
+	if holder > 0 and holder != OS.get_process_id():
+		return "in use by another run (pid %d)" % holder
+	return "possibly in use by another run (its lock file could not be read or written)"
 
 ## The heartbeat: moves the time in the lock on the save at `save_path` to now while
 ## the lock is still this run's (HELD), and otherwise says what it found and leaves
@@ -94,7 +112,8 @@ static func release(save_path: String) -> void:
 		Log.warn("SaveLock: Could not delete %s (error %d)" % [lock_path, error])
 
 ## The process id the lock on the save at `save_path` names, or 0 when there is no
-## lock or it names no process. It does not say whether that run is still alive.
+## lock, it cannot be read, or it names no process. It does not say whether that
+## run is still alive.
 static func holder_pid(save_path: String) -> int:
 	var lock: Dictionary = _read_lock(save_path)
 	return 0 if lock.is_empty() else int(lock["pid"])
@@ -146,12 +165,13 @@ static func _parse_lock(text: String) -> Dictionary:
 	return {"pid": int(fields["pid"]), "time": int(fields.get("time", 0))}
 
 ## Writes this run's pid and the time now to the lock file of the save at
-## `save_path`, replacing what was there.
+## `save_path`, replacing what was there. A file that cannot be opened is logged and
+## left as it was.
 static func _write_lock(save_path: String) -> void:
 	var lock_path: String = lock_path_for(save_path)
 	var file: FileAccess = FileAccess.open(lock_path, FileAccess.WRITE)
 	if file == null:
-		Log.warn("SaveLock: Could not write %s (error %d), so this run holds no lock on its save" % [lock_path, FileAccess.get_open_error()])
+		Log.warn("SaveLock: Could not write %s (error %d)" % [lock_path, FileAccess.get_open_error()])
 		return
 	file.store_string("pid=%d\ntime=%d\n" % [OS.get_process_id(), int(Time.get_unix_time_from_system())])
 	file.close()

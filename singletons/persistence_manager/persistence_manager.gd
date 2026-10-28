@@ -22,8 +22,10 @@ extends Node
 ## (SaveLock): refreshed on every tick and every write, and released when the
 ## window closes. A save another live run holds the lock on is played in memory
 ## with saving blocked, so two runs never overwrite each other's progress. So is a
-## save whose lock another run takes over while this one hangs: the session finds
-## out at its next tick or write, and writes nothing from then on.
+## save whose lock file cannot be read or written as the session starts, since
+## another run may hold it, and a save whose lock another run takes over while this
+## one hangs: the session finds out at its next tick or write, and writes nothing
+## from then on.
 ##
 ## The user's save is backed up (backup_main_save()) whenever a session takes it
 ## on under its lock, at launch or when a switch opens it, and before a dev switch
@@ -88,23 +90,26 @@ var _autosave_at_launch: bool = true
 var _plays_main_scene: bool = true
 
 ## Set when the session's save could not be read or checked, a newer build wrote
-## it, or another run holds its lock or took the lock over. Nothing writes it
-## until another save becomes the session's.
+## it, or another run holds its lock (or may: its lock file could not be read or
+## written) or took the lock over. Nothing writes it until another save becomes the
+## session's.
 var _save_blocked: bool = false
 
 ## Why saving is blocked, or "" when it is not.
 var _block_reason: String = ""
 
 ## The path of the save whose lock this session holds, or "" when it holds none: a
-## session in memory, or a save another run held the lock on. The heartbeat and the
-## release only ever touch this one, so a session never refreshes or deletes a
-## lock it did not take.
+## session in memory, or a save it was refused the lock on (another run held it, or
+## its lock file could not be read or written). The heartbeat and the release only
+## ever touch this one, so a session never refreshes or deletes a lock it did not
+## take.
 var _lock_path: String = ""
 
-## When the lock was last known to be this session's (Time.get_ticks_msec()): taken,
-## or found this run's by a heartbeat. No other run takes over a lock within
-## SaveLock.STALE_AFTER_SECONDS of that, so a heartbeat that cannot read the lock
-## file in that time loses nothing (_heartbeat()).
+## When the lock was last known to be this session's (Time.get_ticks_msec()): taken
+## (SaveLock.acquire() reads the file back as this run's), or found this run's by a
+## heartbeat. No other run takes over a lock within SaveLock.STALE_AFTER_SECONDS of
+## that, so a heartbeat that cannot read the lock file in that time loses nothing
+## (_heartbeat()).
 var _lock_confirmed_msec: int = 0
 
 #-----------------------------------------------------------------------------
@@ -175,9 +180,10 @@ func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 ## a launch on it, Back to my save, any switch that comes back to it. `back_up` false
 ## skips that for a caller that backed the save up itself before writing over it (a
 ## restore), so the switch takes one backup. A save another live run holds the lock
-## on is blocked ("in use by another run"), not backed up, and still loaded as
-## below, into memory. Nothing below clears a block, so that one stands however the
-## save loads: the file is never written. Then:
+## on, or whose lock file cannot be read or written, is blocked
+## (SaveLock.refusal_reason()), not backed up, and still loaded as below, into
+## memory. Nothing below clears a block, so that one stands however the save loads:
+## the file is never written. Then:
 ## - no file there, and no temp file a cut-short write left: a new save, written
 ##   at once;
 ## - a file that will not load: copied aside and kept, and the session runs on a
@@ -206,7 +212,8 @@ func open_save_file(path: String, back_up: bool = true) -> void:
 ## and never resets the old one in place, so ActionManager's stale-save guard
 ## stops an action still running on the old save without counting it. Any block
 ## clears, and the session's lock moves to `path` (a session in memory holds
-## none): a save another live run holds the lock on blocks saving.
+## none): a save another live run holds the lock on, or whose lock file cannot be
+## read or written, blocks saving.
 func use_save(save: SaveGameData, path: String) -> void:
 	save_game_data = save
 	save_path = path
@@ -270,7 +277,8 @@ func is_in_memory() -> bool:
 
 ## True when the session's save could not be read or checked, a newer build wrote
 ## it, or another run holds its lock or took the lock over (or may have: its lock
-## file could not be read for SaveLock.STALE_AFTER_SECONDS), so nothing writes it.
+## file could not be read or written when the session took it, or could not be read
+## for SaveLock.STALE_AFTER_SECONDS), so nothing writes it.
 func is_save_blocked() -> bool:
 	return _save_blocked
 
@@ -425,8 +433,10 @@ func _clear_block() -> void:
 ## Moves the lock this session holds to the save at `path`: the lock on the save it
 ## leaves is released, and the one on `path` is taken, unless `path` is "" (a
 ## session in memory has no file to guard). A save another live run holds the lock
-## on blocks saving, so this session never writes under that run. Only a new
-## session clears that block.
+## on blocks saving, so this session never writes under that run, and so does one
+## whose lock file cannot be read or written, which another run may hold
+## (SaveLock.refusal_reason() is the block's reason). Only a new session clears that
+## block: nothing tries the lock again.
 func _move_lock_to(path: String) -> void:
 	if path != _lock_path:
 		_release_lock()
@@ -437,7 +447,7 @@ func _move_lock_to(path: String) -> void:
 		_lock_confirmed_msec = Time.get_ticks_msec()
 		return
 	_lock_path = ""
-	_block_saving("in use by another run (pid %d)" % SaveLock.holder_pid(path))
+	_block_saving(SaveLock.refusal_reason(path))
 
 ## The lock's heartbeat: moves its time to now and returns true while this session
 ## still holds the lock, or holds none to lose (a session in memory, or one that

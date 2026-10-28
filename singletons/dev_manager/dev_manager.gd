@@ -245,7 +245,8 @@ func back_to_my_save() -> void:
 
 ## Starts a new game on the user's own save, on the next frame: the save is backed
 ## up, then a fresh save takes its place and is written at once. Refused at once in
-## a run with no main save, and while another live run holds the save's lock.
+## a run with no main save, and while another live run holds the save's lock or its
+## lock file cannot be read or written.
 func new_game() -> void:
 	var what: String = "start a new game on your save"
 	var refusal: String = _pending_refusal()
@@ -261,7 +262,8 @@ func new_game() -> void:
 ## Makes the session's save the user's own, on the next frame: the user's save is
 ## backed up, then a copy of the session's save takes its place, is written at once
 ## and plays on as your save. Refused at once in a run with no main save, and while
-## another live run holds the save's lock.
+## another live run holds the save's lock or its lock file cannot be read or
+## written.
 func keep_as_my_save() -> void:
 	var what: String = "keep this game as your save"
 	var refusal: String = _pending_refusal()
@@ -278,7 +280,7 @@ func keep_as_my_save() -> void:
 ## on the next frame: the backup is read, the save is backed up, the backup takes
 ## its place byte for byte, and the file is opened again. Refused at once in a run
 ## with no main save, for a backup that is not there, and while another live run
-## holds the save's lock.
+## holds the save's lock or its lock file cannot be read or written.
 func restore_backup(backup_path: String) -> void:
 	var what: String = "restore your save from %s" % backup_path.get_file()
 	var refusal: String = _pending_refusal()
@@ -564,15 +566,16 @@ func _main_save_refusal() -> String:
 	return "This run has no main save" if PersistenceManager.main_save_path == "" else ""
 
 ## Takes the lock on the user's own save for a switch that writes it, and returns
-## "", or why it could not: another live run holds it, and a run never writes a
-## save under another. The switch then binds the save, and the session keeps the
-## lock as its own; a switch that fails before that gives it back
-## (_release_unused_lock()).
+## "", or why it could not ("Your save is <SaveLock.refusal_reason()>"): another
+## live run holds it, or its lock file cannot be read or written, so another run
+## may, and a run never writes a save under another. The switch then binds the
+## save, and the session keeps the lock as its own; a switch that fails before that
+## gives it back (_release_unused_lock()).
 func _take_your_save_lock() -> String:
 	var main_save: String = PersistenceManager.main_save_path
 	if SaveLock.acquire(main_save):
 		return ""
-	return "Your save is in use by another run (pid %d)" % SaveLock.holder_pid(main_save)
+	return "Your save is %s" % SaveLock.refusal_reason(main_save)
 
 ## Gives back the lock on the user's save that _take_your_save_lock() took for a
 ## switch that then failed before it bound the save. Kept, the lock would keep the
