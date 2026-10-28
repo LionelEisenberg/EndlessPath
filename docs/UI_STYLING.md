@@ -358,5 +358,5 @@ There is no `assets/audio/` folder; the project has no audio files. The 2026-04-
 - `[MEDIUM]` The label testing scene is stale (see above).
 - `[LOW]` `assets/styleboxes/textures/panel_dark_texture.png` and `bamboo_panel_texture.png` are unreferenced: the styleboxes that used them were deleted as dead code. Delete or reuse the textures.
 - `[LOW]` `pixel_theme.tres` still carries Godot 3-style item names inherited from the pixel UI pack, which Godot 4 does not read. Examples: `Button/colors/font_color_hover`, `font_color_pressed`, `font_color_disabled`, and `*/constants/hseparation`. The Godot 4 names (`font_hover_color`, etc.) are also present for `Button`.
-- `[LOW]` A few UI files still set sizes inline instead of using a variant. Examples: the dev panel title (`LabelHeading` + 20px) and `scenes/tools/encounter_id_label.tscn` (bare Label + 11px).
+- `[LOW]` A few UI files still set sizes inline instead of using a variant. Example: `scenes/tools/encounter_id_label.tscn` (bare Label + 11px).
 - `[LOW]` Some non-snake_case asset names remain outside the cleanup spec's rename list: `sprites/cycling/Cycling_Technique_Background.webp`, `sprites/cycling/Madra-Ball.png`, `aseprite/Sprite-0003*.aseprite`, `aseprite/ui/resource_bar/Sprite-0001.aseprite`. Also, `sprites/tilemap/hex_selector_spritesheet.aseprite` is a source file sitting in `sprites/`.

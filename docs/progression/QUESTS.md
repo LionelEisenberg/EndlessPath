@@ -95,6 +95,7 @@ Stored as `SaveGameData.quest_progression`. `SaveGameData.reset()` replaces it w
 | `get_completed_quest_ids() -> Array[String]` | Copy, in completion order |
 | `get_current_step_index(quest_id: String) -> int` | Step index, or `-1` if not active |
 | `get_quest_data(quest_id: String) -> QuestData` | Catalog lookup, or `null` |
+| `get_all_quests() -> Array[QuestData]` | Every quest in the catalog, in catalog order |
 | `get_quest_id_for_item(item: ItemDefinitionData) -> String` | The quest a quest item belongs to, for the Journal, or `""`. First a quest that needs it (a step with an `ITEM_OWNED` condition on its `item_id`), an active one before a completed one; else the quest whose `completion_effects` award it (`AwardItemEffectData`). Only started quests (active or completed) count, in catalog order |
 
 ### Boot (`_ready`)
@@ -267,7 +268,7 @@ Tests: `tests/unit/test_quest_*.gd` and `tests/integration/test_goals_panel.gd`,
 
 ### Bugs
 
-- `[MEDIUM]` Steps are not re-checked after advancing. Advancing stores the new index but never evaluates the new step. An event step whose event already fired can never complete, and a condition step that is already true waits for an unrelated trigger. Normal Foundation play avoids this, but the dev panel can soft-lock a quest. For example, force-unlocking `q_first_steps_enemy_defeated` reveals NPC 3. Talking to NPC 3 fires `celestial_intervener_dialogue_3` while `q_first_steps` is still on step 0, so step 1 can never complete and the path point is never awarded. Fix: run the retroactive pass after every advance and once per active quest at the end of `_ready()`.
+- `[MEDIUM]` Steps are not re-checked after advancing. Advancing stores the new index but never evaluates the new step. An event step whose event already fired can never complete, and a condition step that is already true waits for an unrelated trigger. Normal Foundation play avoids this, but the dev panel can soft-lock a quest. For example, triggering `celestial_intervener_dialogue_3` from the Story tab while `q_first_steps` is still on step 0 records the event, so when step 0 completes, step 1 waits for an event that has already fired, can never complete, and the path point is never awarded. Fix: run the retroactive pass after every advance and once per active quest at the end of `_ready()`.
 
 ### Missing Functionality
 

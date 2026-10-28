@@ -16,7 +16,7 @@ The zone view itself (map, cultivator cabinet, zone chest) is documented in [ZON
 ### Scene tree (`scenes/main/main_game/main_game.tscn`)
 
 ```
-MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey, Log print level
+MainGame (Node2D)                          main_game.gd: Log print level, the playtime tick
 ├── MainView (Control, 1920x1080)          main_view.gd (class MainView): state stack, input routing, HUD board hiding, the map-gap boards' open and close
 │   │                                      theme = pixel_theme.tres, mouse_filter = Ignore
 │   ├── MainViewStateMachine (Node)        no script; container for the 10 state nodes
@@ -54,8 +54,8 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 │   ├── TribulationView         z 3        tribulation_view.tscn (the board in the map gap; no backdrop; hidden by default)
 │   ├── BoardTransition         z 9        board_transition.tscn (class BoardTransition): opens and closes the map-gap boards; full rect, mouse Ignore at rest; %BoardTransition
 │   ├── ViewDissolve            z 9        view_dissolve.tscn (full-rect still of the old view, hidden by default)
-│   └── DevPanel                z 10       dev_panel.tscn, hidden, top-left 340x400
-└── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.save_data()
+│   └── DevPanel                z 10       dev_panel.tscn: covers the screen and ignores the mouse; its body, a draggable board of tabs, is closed until Ctrl+Shift+D
+└── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.autosave()
 ```
 
 The cabinet, the chest, the dock, the log and the Goals board take their places from their own scenes' roots. Their instances in `main_game.tscn` are in Anchors layout mode with top-left anchors. Don't switch them to Position mode: setting Position mode snaps a control to its parent's top-left corner, and an editor save drops the offsets that used to put it back, so every panel lands at (0, 0). `test_main_game_layout.gd` checks the places, also after an editor save. The adventure's vitals cabinet, chest and technique dock are instanced the same way in `adventure_view.tscn`, for the same reason (`test_adventure_view_layout.gd`).
@@ -75,7 +75,7 @@ Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under 
 | `GoalsPanel` | `MainView` | (24, 276), hung on its cords under the cabinet (the 24 px cords reach 4 px above the root, to the cabinet's rings at y 272), in the zone view and in adventures (under the vitals cabinet) | 220 px tall with a quest, 150 with the milestone alone, when each text is one line; a wrapped line adds its height and the board grows with its rows. Not draggable |
 | `LogWindow` | `MainView` | Its 440x204 slot at (24, 852), the board on the slot's bottom edge (screen 1056) growing upward, in both base views | 74 + 26 px per line, up to 5 lines. The full log is a 440x560 board in the same place |
 | `QuestToast` | `MainView` | Top-centre, 350x60 at y 28 | `mouse_filter` Ignore; queues messages |
-| `DevPanel` | `MainView` | (0, 0), 340x400 | Draggable; see [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) |
+| `DevPanel` | `MainView` | Covers the screen; its body starts at (24, 24), 560x680 at least | Only the body takes the mouse, and it is draggable and always wholly on screen. The time-speed badge sits at the top right, and the warning that saving is off at the top centre. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-panel) |
 
 ## Core Systems
 
@@ -353,7 +353,7 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's id
 
 ### Input routing
 
-1. `MainGame._input()` runs before the GUI. It handles Ctrl+Shift+D and marks the event handled. `ZonePanel._input()` also sees every left press, to close the lore at the end of the frame when the press lands outside it.
+1. `DevPanel._input()` runs before the GUI. It handles Ctrl+Shift+D and Ctrl+Shift+R (see [Keybindings](#keybindings)) and marks the event handled. `ZonePanel._input()` also sees every left press, to close the lore at the end of the frame when the press lands outside it.
 2. GUI controls consume their own events, for example a focused `LineEdit`/`SpinBox`, button clicks and `gui_input` handlers. While a board in the map gap opens or closes, `BoardTransition` takes every mouse press here (see [Board transitions](#board-transitions)).
 3. `_unhandled_input` reaches the nodes in reverse tree order, then `MainView`:
    - `LogWindow` (while visible and none of a menu book, the cycling board and the Tribulation board is open): L (`toggle_log`) opens or closes the full log; Escape closes it while open. A book, the cycling board or the Tribulation board closes the full log and blocks it, so L does nothing under them and Escape goes on to the book or the board.
@@ -388,7 +388,8 @@ Other inputs:
 | Input | Handled by | Effect |
 |-------|------------|--------|
 | Escape (built-in `ui_cancel`) | `PathTreeViewState`, `AbilitiesViewState`, `CharacterViewState`, `MerchantViewState`, `TribulationViewState`; `LogWindow`, `ZonePanel`, `MapMarkers` outside the state machine | Close the overlay (the merchant does it by stopping its action; the Tribulation turns the trial down from its intro and ignores Escape once the run has begun); close the full log, the zone lore or the pinned map popover |
-| Ctrl+Shift+D (`KEY_D`, logical) | `MainGame._input()` | Dev panel toggle. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md). |
+| Ctrl+Shift+D (`KEY_D`, logical) | `DevPanel._input()` | Dev panel toggle. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#opening-it). |
+| Ctrl+Shift+R (`KEY_R`, logical) | `DevPanel._input()` | In a preset session, restarts the preset and marks the event handled, with the panel open or closed. In any other session the key is left alone and goes on as R, the fourth ability slot (`ability_slot_4`, which `TechniqueDock._unhandled_input()` reads). See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#opening-it). |
 | Right mouse drag | `CameraPanController` on the zone tilemap camera only (the adventure camera follows the player and has no pan controller) | Pan the zone map |
 | Mouse wheel | `CameraZoomController` on each map, 10% a tick, eased: the zone map 1.0 to 2.0 (default 2.0); the adventure map 1.0 to 2.0 (default 1.0, and every run opens there). Over the zone chest's list it scrolls the list instead; over an adventure board, or during a fight, it does nothing | Zoom |
 | Left drag / wheel in path tree | `PathTreeView` (the tree area's `gui_input`) | Pan / zoom the tree |
@@ -444,7 +445,7 @@ Utilities:
 | Window | 1920x1080 viewport, `stretch/mode = "viewport"` |
 | Texture filter | `default_texture_filter = 0` (Nearest, for pixel art). The zone `SubViewport` sets its own `canvas_item_default_texture_filter = 0` too |
 | Project theme | `gui/theme/custom = uid://yqkvsb5q7pab` = `res://assets/themes/pixel_theme.tres`. `MainView`, `AdventureView` and several sub-scenes also set it explicitly. The zone-view panels and the HUD boards set `assets/themes/lacquer/lacquer_theme.tres` on their roots |
-| Autoloads (18, in order) | PersistenceManager, CultivationManager, EventManager, CharacterManager, UnlockManager, ResourceManager, ZoneManager, ActionManager, InventoryManager, Dialogic, DialogueManager, PlayerManager, LogManager, CyclingManager, AbilityManager, PathManager, QuestManager, MerchantManager |
+| Autoloads (in order) | PersistenceManager, CultivationManager, EventManager, CharacterManager, UnlockManager, ResourceManager, ZoneManager, ActionManager, InventoryManager, Dialogic, DialogueManager, PlayerManager, LogManager, CyclingManager, AbilityManager, PathManager, QuestManager, MerchantManager, DevManager |
 | Enabled editor plugins | AsepriteWizard, ResourcePlus, dialogic, godot_context_exporter, gut. `hexagon_tilemaplayer` and `script-ide` are installed but not enabled (script-ide was disabled in `39f1817`). |
 
 Autoload order matters. Signal handlers run in connection order, and each manager connects in `_ready()`, so for example `CultivationManager` reacts to `PersistenceManager.save_data_reset` before `EventManager` does.
@@ -454,7 +455,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | System | Connection |
 |--------|------------|
 | ActionManager | `start_cycling`/`stop_cycling` → `CyclingViewState` push / close and remove. `start_merchant`/`stop_merchant` → `MerchantViewState` push / fade and remove. `start_tribulation`/`stop_tribulation` → `TribulationViewState` set up and push / halt, close and remove. `adventure_start_requested` → `ZoneViewState` input blocker plus `ZoneTransition` drain. `start_adventure` → `AdventureViewState.change_state()`. `stop_action()` called by `CyclingViewState`, `MerchantViewState` and `TribulationViewState` (on the board's `finished`). |
-| AdventureView | `adventure_completed(result)` → end card push. `is_in_combat`, `force_win_combat()` and `set_show_whole_map()` are used by the dev panel. |
+| AdventureView | `adventure_completed(result)` → end card push. The dev panel's Adventure tab asks `is_in_combat` and `is_adventure_running()` and calls `set_show_whole_map()`; `DevCommands` calls `force_win_combat()` and `force_end_adventure()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-panel)). |
 | AdventureEndCard | `show_results(result)`, `return_requested` → pop + `change_state(zone)` |
 | InventoryView / PathTreeView / AbilitiesView / CharacterView | `MenuBookView`: `animate_open()` / `animate_close()` called through `GreyBackground`; `close_requested` (close tab) → the state's close path; `close_finished` → `GreyBackground` finishes hiding |
 | MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
@@ -466,16 +467,16 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | ResourceManager | `CultivatorPlate` gold row (`gold_changed`, `get_gold()`) |
 | PathManager | `Dock` Path count seal (`points_changed`, `get_point_balance()`) |
 | AbilityManager | `Dock` Abilities ring (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
-| PersistenceManager | `SaveTimer` calls `save_data()` every 5 s |
+| PersistenceManager | `SaveTimer` calls `autosave()` every 5 s ([PERSISTENCE.md](PERSISTENCE.md)) |
 | LogManager / Log | `LogWindow` shows `message_logged` and the history. `MainGame.log_print_level` → `Log.set_print_level()`. See [LOGGING.md](LOGGING.md). |
-| Dev tools | `MainGame` owns the Ctrl+Shift+D toggle for `DevPanel` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
+| Dev tools | `DevPanel` owns its two hotkeys, Ctrl+Shift+D and Ctrl+Shift+R, and keeps its open state, place and tab on `DevManager`, which a session switch outlives ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `scenes/main/main_game/main_game.tscn` | Entry scene, full UI tree |
-| `scenes/main/main_game/main_game.gd` | Dev hotkey gate, `log_print_level` export |
+| `scenes/main/main_game/main_game.gd` | `log_print_level` export, the playtime tick |
 | `scenes/main/main_game/save_timer.gd` | 5 s autosave |
 | `scenes/ui/main_view/main_view.gd` | `MainView`: state stack, `push_state`/`pop_state`/`remove_state`/`change_state`, HUD board hiding, `open_board()`/`close_board()`, `set_board_mode()`, input routing |
 | `scenes/ui/main_view/board_transition/board_transition.gd` / `.tscn`, `board_transition_spec.gd` | `BoardTransition`, the map-gap boards' open and close, and `BoardTransitionSpec`, a board's description of itself |

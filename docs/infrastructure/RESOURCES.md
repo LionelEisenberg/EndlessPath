@@ -33,7 +33,7 @@ Writers                                          Readers / listeners
   ZoneTransition ── spend_madra ─┤               ActionManager.select_action() (threshold gate)
   AdventureTilemap ── add_gold ─┤                GoalsPanel (a RESOURCE_AMOUNT step's figure)
   MerchantManager ── spend_gold ─┤               MerchantView, MerchantPresenter (gold, row affordability)
-  DevPanel ── set_madra / set_gold ─┘            UnlockManager (re-evaluates all conditions on every change)
+  Dev tools ── set_madra / set_gold ─┘           UnlockManager (re-evaluates all conditions on every change)
 ```
 
 ## Data Model
@@ -71,7 +71,7 @@ The two caps are independent. The adventure threshold is half the capacity (`FOU
 |----------|-----------|
 | `add_madra(amount, quiet = false) -> float` | `madra = clampf(before + amount, 0, maxf(CultivationManager.get_max_madra(), before))`, then emits `madra_changed` (`resource_manager.gd:75-84`). The cap is the larger of the stage's and the pool already held, so a gain stops at the cap, a pool above it is kept (a gain is lost, never trimmed) and a negative amount still lowers it. Returns the amount actually added, snapped to 0.001: 0 at the cap or above it. Logs `[color=cyan]Gained %d Madra[/color]` with that amount, only when it is at least 1.0 and the award is not quiet, so a capped add is silent |
 | `spend_madra(amount) -> bool` | All or nothing: deducts and emits only if `madra >= amount` |
-| `set_madra(amount)` | `madra = max(0, amount)`, with no cap. Used by the dev panel only |
+| `set_madra(amount)` | `madra = max(0, amount)`, with no cap. Used by the dev tools only (the dev panel and `DevCommands`) |
 | `get_madra() -> float` | Read helper |
 | `get_adventure_madra_capacity() -> float` | `CharacterManager.get_total_attributes_data().get_max_madra()` |
 | `get_adventure_madra_budget() -> float` | `min(capacity, madra)` |
@@ -79,7 +79,7 @@ The two caps are independent. The adventure threshold is half the capacity (`FOU
 | `can_start_adventure() -> bool` | `madra >= threshold` |
 | `add_gold(amount, quiet = false)` | `gold += amount`, emits `gold_changed`, logs `[color=gold]Gained %d Gold[/color]` unless quiet |
 | `spend_gold(amount) -> bool` | All or nothing. Logs `Spent %d Gold` on success. `MerchantManager.purchase()` calls it |
-| `set_gold(amount)` | `gold = max(0, amount)`. Dev panel only |
+| `set_gold(amount)` | `gold = max(0, amount)`. Dev tools only (the dev panel and `DevCommands`) |
 | `get_gold() -> float` / `can_afford_gold(amount) -> bool` | Read helpers. `MerchantManager` uses both for a row's state and the "Need N more gold" shortfall |
 | `award_resource(type, amount, quiet = false)` | Dispatches to `add_madra` / `add_gold` (passing `quiet`) and calls `Log.error` on an unknown type |
 
@@ -96,7 +96,7 @@ The two caps are independent. The adventure threshold is half the capacity (`FOU
 |--------|--------|------|
 | Cycling | `base_madra_per_cycle × 0.08 / cycle_duration` per step, every `MADRA_PARTICLE_INTERVAL` (0.08 s, the remainder carried) while the cursor is inside the Madra ball. Nothing at or above the cap | `CyclingTechnique.advance()` (from `_process`) calls `ResourceManager.add_madra(amount, true)` (quiet) for each step |
 | Aura Well training | 1.5 per training tick (the tick interval defaults to 1.0 s) | `aura_well_training_action.tres` → `effects_per_tick` → `aura_well_madra_trickle_effect.tres` (`AwardResourceEffectData`, `quiet = true`), which calls `award_resource(MADRA, 1.5, true)`. `TrainingActionData.get_madra_per_second()` reads the same effect for the cabinet's and the Now strip's rate |
-| Dev panel | Sets an absolute value | `set_madra()` |
+| Dev tools | Sets an absolute value | `set_madra()` |
 
 A full cycle with the cursor on the ball the whole time pays `base_madra_per_cycle` to within one step: it pays the whole 0.08 s steps its `cycle_duration` holds, all 100 for the 8 s techniques, and 187 (199.47 Madra) for Smooth Flow, whose 15 s hold 187.5. The frame rate does not change the step count: the steps carry their remainder, the frame that ends the cycle counts only the time left in it, and a step pays to within 1e-6 s of its 0.08 s, so float error cannot drop the last one. `cycle_completed` reports what the steps really added (`CycleResult.madra_added`); it is not awarded a second time. Every step is quiet, and the finished cycle writes one log line. Per-step amounts for each technique:
 
@@ -171,7 +171,7 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | VitalsManager (via PlayerManager) | Holds combat Madra, seeded with the adventure budget |
 | PathManager | Aggregates Madra perks (`madra_capacity_bonus`, `madra_generation_mult`, `adventure_madra_return_pct`, `madra_on_level_up`), but nothing applies them (see Work Remaining) |
 | LogManager | Cyan Madra lines and gold-coloured gold lines |
-| DevPanel | `set_madra()` / `set_gold()` with `[DEV]` log lines |
+| DevPanel, DevCommands | `set_madra()` / `set_gold()` with `[DEV]` log lines |
 
 ## Existing Content
 
@@ -206,7 +206,7 @@ Tests: `tests/unit/test_resource_manager.gd` and `tests/unit/test_quiet_madra.gd
 
 ### Bugs
 
-- `[LOW]` `set_madra()` ignores the pool cap. This is dev-panel only, and the next `add_madra()` keeps the value: a gain above the cap is lost, and the pool stays where the dev panel put it until it is spent.
+- `[LOW]` `set_madra()` ignores the pool cap. This is dev-tools only, and the next `add_madra()` keeps the value: a gain above the cap is lost, and the pool stays where the dev tools put it until it is spent.
 - `[LOW]` When the current stage has no `AdvancementStageResource` the cap falls back to `0.0`, so `add_madra()` adds nothing (the pool is kept). Foundation and Copper have resources and nothing reaches another stage, but a later stage needs its resource before its Tribulation.
 - `[LOW]` The adventure threshold can exceed the pool cap. The threshold is `FOUNDATION × 5` and the Foundation-stage pool cap is `100 + 5 × level`, so once the total FOUNDATION attribute is above `20 + level` the pool can never reach the threshold and no adventure can start. Shipped content stays well below that: base FOUNDATION is 10, and only the Leeching Ring adds to it (+2). Raise the pool cap with Foundation, or base the threshold on the pool.
 

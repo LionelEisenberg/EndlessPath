@@ -143,16 +143,28 @@ func stop_adventure() -> void:
 	if LogManager:
 		LogManager.log_message("[color=cyan]Adventure Ended[/color]")
 
-	# Determine end condition from current state
+	# Determine end condition from current state. The save's play stats count a win,
+	# Health at 0 and a timeout; a retreat counts nothing. Neither does a stop with
+	# no run on: the adventure action is current while its Madra drains, before the
+	# run starts, and a save switch can stop it then, with the timer stopped and
+	# Health as the last run left it.
 	var is_victory: bool = false
 	var defeat_reason: String = ""
+	var stats: PlayStatsData = PersistenceManager.save_game_data.stats
+	var run_is_on: bool = is_adventure_running()
 
 	if _pending_victory:
 		is_victory = true
+		if run_is_on:
+			stats.count_adventure_won()
 	elif PlayerManager.vitals_manager.current_health <= 0.0:
 		defeat_reason = "Your health reached zero"
+		if run_is_on:
+			stats.count_adventure_lost()
 	elif _run_timer.is_stopped() or _run_timer.time_left <= 0.0:
 		defeat_reason = "Time ran out"
+		if run_is_on:
+			stats.count_adventure_timed_out()
 	else:
 		defeat_reason = "You retreated from the adventure"
 
@@ -183,20 +195,27 @@ func stop_adventure() -> void:
 func get_run_timer() -> Timer:
 	return _run_timer
 
-## DEV-only: immediately resolve the current combat as a win.
-## No-op if not currently in combat.
-## Used by the dev panel; do not call from gameplay code.
+## DEV-only: immediately resolve the current combat as a win, by taking all of the
+## enemy's Health, so the fight ends as in play: AdventureCombat works out the
+## fight's gold, fires q_first_steps_enemy_defeated and reports the win, then the
+## map pays the gold, and the view and the map end the fight.
+## No-op if not currently in combat, or if the enemy is gone or already down: the
+## Health setter reports 0 again, which would pay the fight's gold a second time.
+## Called by DevCommands.force_win_fight(); do not call from gameplay code.
 func force_win_combat() -> void:
 	if not is_in_combat:
 		return
 	if combat == null:
 		return
-	combat.trigger_combat_end.emit(true, 0)
+	var enemy := combat.enemy_combatant
+	if not is_instance_valid(enemy) or enemy.vitals_manager.current_health <= 0.0:
+		return
+	enemy.vitals_manager.apply_vitals_change(-enemy.vitals_manager.max_health)
 
 ## DEV-only: end the running adventure at once, as a victory (the boss-win
 ## path: success effects, the victory end card) or a defeat (failure effects,
 ## a retreat end card). No-op if no adventure is running.
-## Used by the dev panel; do not call from gameplay code.
+## Called by DevCommands.exit_adventure(); do not call from gameplay code.
 func force_end_adventure(victory: bool) -> void:
 	if current_action_data == null:
 		return

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SavePresetData" format=3]
+
+[ext_resource type="Script" uid="uid://dgwhqtvd2nitn" path="res://scripts/resource_definitions/dev/save_preset_data.gd" id="1_preset"]
+[ext_resource type="Script" uid="uid://dwfrrrp6rwaj0" path="res://scripts/resource_definitions/dev/dev_step_data.gd" id="2_step"]
+
+[sub_resource type="Resource" id="merchant_open_gold"]
+script = ExtResource("2_step")
+kind = 4
+amount = 700.0
+
+[resource]
+script = ExtResource("1_preset")
+preset_id = "merchant_open"
+title = "Merchant open"
+description = "The Traveling Merchant is in Spirit Valley, with gold for every piece."
+story_through = "beat_3b"
+steps = Array[ExtResource("2_step")]([SubResource("merchant_open_gold")])

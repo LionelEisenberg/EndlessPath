@@ -23,6 +23,11 @@ func log_message(bbcode: String) -> void:
 func get_history() -> Array[String]:
 	return _history.duplicate()
 
+## Empties the history. It emits nothing: the log board reads the history when
+## it is built and when the next line is logged, the full log when it opens.
+func clear_history() -> void:
+	_history.clear()
+
 ## Opens or closes the full log: LogWindow answers visibility_toggled the way
 ## it answers L. It does nothing while the log is hidden (under an overlay).
 func toggle_window() -> void:

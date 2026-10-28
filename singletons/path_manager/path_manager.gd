@@ -83,12 +83,29 @@ func can_purchase_node(node_id: String) -> bool:
 	if _live_save_data.path_points < node.point_cost:
 		return false
 	# Check tier gate
-	if not _is_stage_reached(node.required_stage):
+	if not is_stage_reached(node.required_stage):
 		return false
 	# Check prerequisites
-	if not _are_all_prerequisites_met(node):
+	if get_unmet_prerequisite(node) != null:
 		return false
 	return true
+
+## Returns true if the player's cultivation stage has reached `required`, the tier gate of a node.
+## Honors the test-only stage override.
+func is_stage_reached(required: CultivationManager.AdvancementStage) -> bool:
+	if _test_stage_override >= 0:
+		return _test_stage_override >= required
+	if not CultivationManager:
+		return false
+	return CultivationManager.get_current_advancement_stage() >= required
+
+## Returns the first prerequisite of the node that has not been bought, or null when every
+## prerequisite has been bought.
+func get_unmet_prerequisite(node: PathNodeData) -> PathNodeData:
+	for prereq: PathNodeData in node.prerequisites:
+		if get_node_purchase_count(prereq.id) < 1:
+			return prereq
+	return null
 
 ## Attempts to purchase a node. Returns true on success.
 func purchase_node(node_id: String) -> bool:
@@ -138,19 +155,6 @@ func reset_path() -> void:
 	effects_changed.emit(_cached_effects)
 
 # ----- Private -----
-
-func _is_stage_reached(required: CultivationManager.AdvancementStage) -> bool:
-	if _test_stage_override >= 0:
-		return _test_stage_override >= required
-	if not CultivationManager:
-		return false
-	return CultivationManager.get_current_advancement_stage() >= required
-
-func _are_all_prerequisites_met(node: PathNodeData) -> bool:
-	for prereq: PathNodeData in node.prerequisites:
-		if get_node_purchase_count(prereq.id) < 1:
-			return false
-	return true
 
 func _recalculate_effects() -> void:
 	_cached_effects = PathEffectsSummary.new()

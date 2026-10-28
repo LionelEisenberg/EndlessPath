@@ -73,6 +73,13 @@ func is_condition_unlocked(condition_id: String) -> bool:
 		return false
 	return condition_id in live_save_data.unlock_progression.unlocked_condition_ids
 
+## Returns the ids of every condition latched in the live save, in the order
+## they latched. A copy: changing it leaves the save as it is.
+func get_unlocked_condition_ids() -> Array[String]:
+	if live_save_data == null:
+		return []
+	return live_save_data.unlock_progression.unlocked_condition_ids.duplicate()
+
 #-----------------------------------------------------------------------------
 # PRIVATE UNLOCK CONDITION EVALUATION
 #-----------------------------------------------------------------------------
@@ -94,11 +101,12 @@ func _evaluate_all_conditions() -> void:
 func _unlock_condition(condition_id: String) -> void:
 	if not condition_id in live_save_data.unlock_progression.unlocked_condition_ids:
 		live_save_data.unlock_progression.unlocked_condition_ids.append(condition_id)
+		live_save_data.stats.record_condition(condition_id)
 		condition_unlocked.emit(condition_id)
 
 		Log.info("UnlockManager: Condition permanently unlocked: %s" % condition_id)
 
 ## DEV-only: force-unlock a condition by id. Idempotent.
-## Used by the dev panel; do not call from gameplay code.
+## Only tests call it; do not call from gameplay code.
 func force_unlock_condition(condition_id: String) -> void:
 	_unlock_condition(condition_id)

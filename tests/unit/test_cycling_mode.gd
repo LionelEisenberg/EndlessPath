@@ -21,7 +21,7 @@ extends GutTest
 ## needs, as test_view_state_hud_positions.gd does, with the real chest and the
 ## real log (the techniques mode and the full-log block can only be read there)
 ## and plain stand-ins for the rest. main_game.tscn is only instanced, never
-## added to the tree: its SaveTimer would write the real save.
+## added to the tree: that would start the whole game inside the test (TESTING.md).
 
 const MAIN_GAME_SCENE_PATH: String = "res://scenes/main/main_game/main_game.tscn"
 const ZONE_PANEL_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/zone_panel.tscn")

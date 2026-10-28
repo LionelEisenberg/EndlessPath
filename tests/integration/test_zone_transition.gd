@@ -7,8 +7,8 @@ extends GutTest
 ## map's camera in (CameraPush) from the frame the last pellet lands, the
 ## character to the map gap's focal point, then confirms the adventure. The
 ## map's camera holds still from the push until the way back has put it back.
-## main_game.tscn is only read, never instanced: its SaveTimer would write the
-## real save.
+## main_game.tscn is only read, never instanced: the scenes it needs are built on
+## their own instead.
 ## The drain and the pellets are taken off the frame clock and stepped by hand
 ## a frame at a time with the zoom's tween, so no check depends on how long
 ## real frames take.

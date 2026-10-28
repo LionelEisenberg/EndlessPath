@@ -142,6 +142,8 @@ Target shape, shown as a card tag:
 
 | Method | Behavior |
 |--------|----------|
+| `get_all_abilities()` | `Array[AbilityData]`, every ability in the catalog, in catalog order |
+| `has_ability(id)` | Whether the catalog has the id. An unknown id gives false, with no error |
 | `get_unlocked_abilities()` | `Array[AbilityData]` for unlocked ids, in unlock order; unknown ids skipped |
 | `get_equipped_abilities()` | `Array[AbilityData]` in slot order, empty slots and unknown ids skipped |
 | `get_ability_at_slot(i)` | id in slot `i`, or `""` (also for out-of-range) |
@@ -156,7 +158,7 @@ Target shape, shown as a card tag:
 
 Signals: `ability_unlocked(ability: AbilityData)`, `equipped_abilities_changed()`.
 
-On `_ready` and on `PersistenceManager.save_data_reset`, the manager re-reads `PersistenceManager.save_game_data` and pads `equipped_ability_ids` to 4 entries. There is no public lookup by id; the catalog is only reachable through the unlocked/equipped getters.
+On `_ready` and on `PersistenceManager.save_data_reset`, the manager re-reads `PersistenceManager.save_game_data` and pads `equipped_ability_ids` to 4 entries. The catalog is reachable through `get_all_abilities()` and `has_ability()`; there is no getter that returns one ability by id.
 
 ### Unlock flow
 
@@ -300,7 +302,7 @@ Tests: `tests/unit/test_ability_*.gd` and `tests/integration/test_abilities_*.gd
 - `[MEDIUM]` `AbilitySource.PATH` has no lifecycle. Nothing relocks or unequips path abilities on `PathManager.reset_path()`, and `AbilityManager` has no relock API.
 - `[MEDIUM]` `MadraType` has only `NONE` and `PURE`. Blackflame and Earth path themes exist with no enum values, trees or abilities.
 - `[LOW]` No validation: `AbilityData.validate()` is never called, and unknown ids in the save are silently skipped.
-- `[LOW]` No public lookup by id; `AbilitiesView` scans the unlocked list for every slot and for the details card.
+- `[LOW]` No public getter returns one ability by id (`get_all_abilities()` and `has_ability()` give the catalog): `AbilitiesView` scans the unlocked list for every slot and for the details card.
 
 ### Content
 

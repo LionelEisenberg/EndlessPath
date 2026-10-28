@@ -252,8 +252,7 @@ func start_adventure_on_map(action_data: AdventureActionData, encounters: Dictio
 	current_adventure_action_data = action_data
 	_reset_camera_zoom()
 	_encounter_tile_dictionary = encounters.duplicate()
-	# A new run has no fight or talk under way, whatever the last one ended in
-	# (a boss win ends the run before its fight lets go of its choice), so
+	# A new run has no fight or talk under way, whatever the last one ended in, so
 	# select_choice() takes its picks; and no talk left playing resolves its tiles.
 	_current_combat_choice = null
 	_current_dialogue_choice = null
@@ -300,7 +299,10 @@ func stop_adventure() -> void:
 	map_changed.emit()
 	
 
-## Handles the result of a combat encounter.
+## Handles the result of a combat encounter. Every report of a win pays the gold it
+## carries. The rest of a win is handled once: AdventureCombat can report a win
+## again (see the comments below), and the repeat finds the fight's choice already
+## cleared, so the fight counts, runs its effects and resolves its tile once.
 func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
 	
@@ -310,15 +312,30 @@ func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 			ResourceManager.add_gold(gold_earned)
 		
 		if _current_combat_choice:
+			# The save's play stats count the fight here, while its choice is still
+			# pending, and its effects run here. AdventureCombat reports a win again
+			# when its enemy takes another hit at 0 Health: the repeat finds the
+			# choice cleared (at the end of this function, or just below for the
+			# boss's), so the fight counts and resolves once.
+			PersistenceManager.save_game_data.stats.count_fight_won()
 			_apply_effects(_current_combat_choice.success_effects)
 			
 			if _current_combat_choice.is_boss:
+				# Let go of the choice before the win ends the run, so a repeat of
+				# it neither counts again, nor runs these effects again, nor ends
+				# the run again.
+				_current_combat_choice = null
 				boss_defeated.emit()
 				Log.info("AdventureTilemap: Boss defeated! Adventure Successful.")
 				ActionManager.stop_action(true)
 				return
 
-		_complete_current_tile(summary_for(_current_combat_choice, gold_earned))
+		# A win reported once the run is over (the boss's, again) has no tile to
+		# resolve: stop_adventure() cleared the map, and a tile marked on it would
+		# be the next run's start, which would then count as visited and show the
+		# player nothing around it.
+		if current_adventure_action_data != null:
+			_complete_current_tile(summary_for(_current_combat_choice, gold_earned))
 	else:
 		if _current_combat_choice:
 			_apply_effects(_current_combat_choice.failure_effects)
@@ -781,9 +798,12 @@ func _check_boss_reveal(coords: Array[Vector3i]) -> void:
 			return
 
 func _play_boss_reveal(boss_cube: Vector3i) -> void:
-	# Hit-stop: slow time briefly
-	Engine.time_scale = 0.25
-	get_tree().create_timer(0.15 * 0.25).timeout.connect(func(): Engine.time_scale = 1.0)
+	# Hit-stop: slow time to a quarter of the base speed (the dev time speeds change
+	# it) for 0.15 s of real time, then back to the base speed. The timer ignores the
+	# time scale, so the stop lasts 0.15 s at any speed, and it reads the base speed
+	# when it fires, so a speed set meanwhile is the one time returns to.
+	Engine.time_scale = 0.25 * GameSpeed.base_scale
+	get_tree().create_timer(0.15, true, false, true).timeout.connect(func() -> void: Engine.time_scale = GameSpeed.base_scale)
 
 	# Camera push toward the boss and back: 45% of the way from the camera to the
 	# boss tile as the map looks at zoom 1 (a map px is a screen px there: the boss

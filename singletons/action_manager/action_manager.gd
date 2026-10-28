@@ -136,7 +136,7 @@ func select_action(action_data: ZoneActionData) -> void:
 
 	_stop_executing_current_action()
 	_set_current_action(action_data)
-	if _is_idle_action(action_data):
+	if is_idle_action(action_data):
 		var zone_id: String = _get_current_zone_id()
 		if zone_id != "":
 			ZoneManager.set_last_idle_action_id(zone_id, action_data.action_id)
@@ -149,8 +149,38 @@ func stop_action(successful: bool = true) -> void:
 	var stopped_action := current_action
 	_stop_executing_current_action(successful)
 	clear_current_action()
-	if stopped_action != null and not _is_idle_action(stopped_action):
+	if stopped_action != null and not is_idle_action(stopped_action):
 		_resume_idle_action()
+
+## Counts one completion of the action in zone_id, then runs its success
+## effects, in that order, as a played stop does. Nothing starts or stops: an
+## action that runs goes on running. It checks nothing, so the caller makes sure
+## the action is available. The dev tools use it to reach a story moment without
+## playing the action.
+func complete_without_playing(action_data: ZoneActionData, zone_id: String) -> void:
+	if not action_data:
+		Log.error("ActionManager: complete_without_playing called with null action_data")
+		return
+	_count_completion(action_data, zone_id)
+	_run_completion_effects(action_data, true)
+
+## Stops the current action as if it had never run: no completion counts, no
+## effect runs and no idle action resumes. The rest of its stop still happens
+## (its stop_* signal closes its view, its timer stops), and a dialogue's
+## timeline ends at once. The dev tools call it before they switch sessions.
+func cancel_current_action() -> void:
+	if current_action == null:
+		return
+	if current_action.action_type == ZoneActionData.ActionType.NPC_DIALOGUE:
+		# Dialogic's timeline_ended arrives a frame late, and would stop whatever
+		# action runs by then.
+		if DialogueManager.dialogue_ended.is_connected(stop_action):
+			DialogueManager.dialogue_ended.disconnect(stop_action)
+		DialogueManager.end_dialogue_now()
+	# The stale-save guard then skips the completion and the effects.
+	_current_action_save = null
+	_stop_executing_current_action()
+	clear_current_action()
 
 ## The idle action the zone runs when nothing else does: its saved last idle
 ## action while that is still available, else the first available idle action
@@ -162,12 +192,21 @@ func resolve_idle_action(zone_id: String) -> ZoneActionData:
 	var last_idle_id: String = ZoneManager.get_last_idle_action_id(zone_id)
 	if last_idle_id != "":
 		for action: ZoneActionData in available:
-			if action.action_id == last_idle_id and _is_idle_action(action):
+			if action.action_id == last_idle_id and is_idle_action(action):
 				return action
 	for action: ZoneActionData in ZoneActionGroups.sort_actions(available):
-		if _is_idle_action(action):
+		if is_idle_action(action):
 			return action
 	return null
+
+## True for an idle action: foraging and training. It runs in the background, and the
+## zone resumes it when a session action ends. Every other action is a session the
+## player plays through.
+func is_idle_action(action_data: ZoneActionData) -> bool:
+	return action_data != null and action_data.action_type in [
+		ZoneActionData.ActionType.FORAGE,
+		ZoneActionData.ActionType.TRAIN_STATS,
+	]
 
 ## Madra per second the running action earns: the running cycle's measured rate
 ## while the cycling action runs (0 while no cycle is drawing Madra), a training
@@ -229,10 +268,7 @@ func _execute_action(action_data: ZoneActionData) -> void:
 func _stop_executing_current_action(successful: bool = true) -> void:
 	if current_action:
 		if _is_current_action_in_live_save():
-			if _current_action_zone_id != "":
-				ZoneManager.increment_zone_progression_for_action(current_action.action_id, _current_action_zone_id)
-			else:
-				ZoneManager.increment_zone_progression_for_action(current_action.action_id)
+			_count_completion(current_action, _current_action_zone_id)
 
 		match current_action.action_type:
 			ZoneActionData.ActionType.FORAGE:
@@ -292,9 +328,12 @@ func _execute_adventure_action(action_data: AdventureActionData) -> void:
 	Log.info("ActionManager: Adventure start requested: %s" % action_data.action_name)
 	adventure_start_requested.emit(action_data)
 
-## Confirm adventure start after drain animation completes.
+## Confirm adventure start after drain animation completes. This is the real
+## start, so it is the one that counts in the save's play stats: the request
+## (adventure_start_requested) can repeat.
 func confirm_adventure_start(action_data: AdventureActionData, madra_budget: float) -> void:
 	Log.info("ActionManager: Confirming adventure start: %s (budget: %.1f)" % [action_data.action_name, madra_budget])
+	PersistenceManager.save_game_data.stats.count_adventure_started()
 	start_adventure.emit(action_data, madra_budget)
 
 ## Handle cycling action - switch to cycling view.
@@ -411,11 +450,26 @@ func _stop_tribulation_action(successful: bool) -> void:
 	stop_tribulation.emit()
 	_process_completion_effects(successful)
 
+## Runs the current action's completion effects, only in the save it started
+## under.
 func _process_completion_effects(successful: bool) -> void:
 	if not _is_current_action_in_live_save():
 		return
-	var effects = current_action.success_effects if successful else current_action.failure_effects
-	for effect in effects:
+	_run_completion_effects(current_action, successful)
+
+## Counts one completion of the action in zone_id, or in the current zone when
+## zone_id is "". A stop and complete_without_playing() both count here.
+func _count_completion(action: ZoneActionData, zone_id: String) -> void:
+	if zone_id != "":
+		ZoneManager.increment_zone_progression_for_action(action.action_id, zone_id)
+	else:
+		ZoneManager.increment_zone_progression_for_action(action.action_id)
+
+## Runs the action's success effects, or its failure effects when it failed. A
+## stop and complete_without_playing() both run them here.
+func _run_completion_effects(action: ZoneActionData, successful: bool) -> void:
+	var effects: Array[EffectData] = action.success_effects if successful else action.failure_effects
+	for effect: EffectData in effects:
 		effect.process()
 
 #-----------------------------------------------------------------------------
@@ -437,12 +491,6 @@ func _set_current_action(action_data: ZoneActionData) -> void:
 ## False when a save reset replaced the save since the current action started.
 func _is_current_action_in_live_save() -> bool:
 	return _current_action_save == PersistenceManager.save_game_data
-
-func _is_idle_action(action_data: ZoneActionData) -> bool:
-	return action_data != null and action_data.action_type in [
-		ZoneActionData.ActionType.FORAGE,
-		ZoneActionData.ActionType.TRAIN_STATS,
-	]
 
 ## Starts the current zone's idle action after a session action stopped and
 ## logs "Resumed", even for an idle action that unlocked during the session

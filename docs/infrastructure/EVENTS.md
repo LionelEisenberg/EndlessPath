@@ -49,9 +49,10 @@ Stored as `SaveGameData.event_progression`. `SaveGameData.reset()` replaces it w
 | `signal event_triggered(event_id: String)` | Emitted once per id, on the first trigger only |
 | `trigger_event(event_id: String) -> void` | If `event_id` is not already in `triggered_events`, appends it and emits `event_triggered`. Otherwise does nothing. |
 | `has_event_triggered(event_id: String) -> bool` | Membership check |
+| `get_triggered_events() -> Array[String]` | The ids of every event triggered in the live save, in the order they fired. A copy: changing it leaves the save as it is |
 | `live_save_data: SaveGameData` | Bound in `_ready()`. A lambda rebinds it on `PersistenceManager.save_data_reset`. |
 
-Neither method guards against a null `live_save_data`.
+None of these methods guards against a null `live_save_data`.
 
 ### Flow
 
@@ -127,10 +128,9 @@ Tests: EventManager has no test file of its own; `tests/unit/test_quest_manager.
 ### Missing Functionality
 
 - `[MEDIUM]` Several moments that the planned beats need have no events: boss defeated, elite defeated, adventure completed, Core Density milestones, stage advanced. `AdventureTilemap.boss_defeated` exists as a signal but fires no event. Data-only option: put a `TriggerEventEffectData` in a boss or elite `CombatChoice.success_effects`, which `AdventureTilemap.handle_combat_result()` already processes on victory.
-- `[LOW]` The dev panel has no "fire event" action. It can only force-latch conditions (`UnlockManager.force_unlock_condition`), which doesn't record the event, so quest event steps and live condition checks still see it as unfired. See [UNLOCKS.md](UNLOCKS.md).
 
 ### Tech Debt
 
 - `[MEDIUM]` Event ids are magic strings repeated across `.tres` files and code. A typo silently breaks a chain. Add a data-validation test: every `completion_event_id`, and every `EVENT_TRIGGERED` condition `target_value`, must match a `TriggerEventEffectData.event_id` somewhere in `resources/` or a known code producer.
 - `[LOW]` `adventure_combat.gd` hardcodes the quest-scoped id `"q_first_steps_enemy_defeated"` inside generic combat code. Every victory calls it, even though only the first call matters. A generic `enemy_defeated` event, or effects on the encounter, would decouple combat from Beat 2.
-- `[LOW]` `trigger_event()` and `has_event_triggered()` dereference `live_save_data` without a null check. Tests set `EventManager.live_save_data = null` in `after_each`. The class also has no `##` doc comment.
+- `[LOW]` `trigger_event()`, `has_event_triggered()` and `get_triggered_events()` dereference `live_save_data` without a null check. Tests set `EventManager.live_save_data = null` in `after_each`. The class also has no `##` doc comment.

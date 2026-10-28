@@ -449,7 +449,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Bugs
 
-- `[MEDIUM]` Quests can soft-lock. QuestManager never re-checks a step after advancing, so a "return" event that fires early leaves the quest stuck. Normal play avoids this through NPC gating, but the dev panel's force-unlock reproduces it. See [QUESTS.md](QUESTS.md).
+- `[MEDIUM]` Quests can soft-lock. QuestManager never re-checks a step after advancing, so a "return" event that fires early leaves the quest stuck. Normal play avoids this through NPC gating, but the dev panel's Trigger event reproduces it when it fires an event before its step is current. See [QUESTS.md](QUESTS.md).
 - `[MEDIUM]` `dialogue_1` has malformed BBCode: `[color=blue][CORE][color]` is never closed. See [DIALOGUE.md](../infrastructure/DIALOGUE.md).
 
 ### Missing Functionality
@@ -484,4 +484,4 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Tech Debt
 
-- `[LOW]` Only Beats 3a, 3b and 9 have integration tests. The Beat 1–2 chain is untested end to end: NPC 1 → `q_fill_core` → NPC 2 → `q_first_steps` → combat event → NPC 3 → path point. The combat-to-event test is tautological.
+- `[LOW]` Only Beats 3a, 3b and 9 have integration tests of their own. The Beat 1–2 chain (NPC 1 → `q_fill_core` → NPC 2 → `q_first_steps` → combat event → NPC 3 → path point) is played end to end only by the story route ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#the-story-route)), through dev commands, not real play: each step's effects run, but not the clicks, timers and screens between them, and the combat event is fired directly. The combat-to-event test is tautological.

@@ -28,14 +28,28 @@ func _create_test_tree(nodes: Array[PathNodeData]) -> PathTreeData:
 	tree.nodes = nodes
 	return tree
 
-## CyclingManager's real state, given back after each test so later files see
-## the real technique catalog.
+## The managers' real state, given back after each test so later files see the
+## real path trees, catalogs and saves, not this file's one-node stubs.
+var _saved_path_save_data: SaveGameData = null
+var _saved_all_trees: Dictionary = {}
+var _saved_current_tree: PathTreeData = null
+var _saved_cached_effects: PathEffectsSummary = null
+var _saved_stage_override: int = -1
 var _saved_cycling_save_data: SaveGameData = null
 var _saved_techniques_by_id: Dictionary = {}
+var _saved_ability_save_data: SaveGameData = null
+var _saved_abilities_by_id: Dictionary = {}
 
 func before_each() -> void:
+	_saved_path_save_data = PathManager._live_save_data
+	_saved_all_trees = PathManager._all_trees
+	_saved_current_tree = PathManager._current_tree
+	_saved_cached_effects = PathManager._cached_effects
+	_saved_stage_override = PathManager._test_stage_override
 	_saved_cycling_save_data = CyclingManager._live_save_data
 	_saved_techniques_by_id = CyclingManager._techniques_by_id
+	_saved_ability_save_data = AbilityManager._live_save_data
+	_saved_abilities_by_id = AbilityManager._abilities_by_id
 	_save_data = SaveGameData.new()
 	PathManager._live_save_data = _save_data
 	PathManager._all_trees = {}
@@ -54,8 +68,15 @@ func before_each() -> void:
 	AbilityManager._abilities_by_id = {"empty_palm": _empty_palm}
 
 func after_each() -> void:
+	PathManager._live_save_data = _saved_path_save_data
+	PathManager._all_trees = _saved_all_trees
+	PathManager._current_tree = _saved_current_tree
+	PathManager._cached_effects = _saved_cached_effects
+	PathManager._test_stage_override = _saved_stage_override
 	CyclingManager._live_save_data = _saved_cycling_save_data
 	CyclingManager._techniques_by_id = _saved_techniques_by_id
+	AbilityManager._live_save_data = _saved_ability_save_data
+	AbilityManager._abilities_by_id = _saved_abilities_by_id
 
 # ----- Point management -----
 
@@ -144,6 +165,53 @@ func test_can_purchase_with_prerequisites_met() -> void:
 
 func test_cannot_purchase_without_no_path_set() -> void:
 	assert_false(PathManager.can_purchase_node("anything"), "should not purchase without a path set")
+
+func test_cannot_purchase_a_node_above_the_players_stage() -> void:
+	var node_a := _create_test_node("a", 1, [], 1, CultivationManager.AdvancementStage.COPPER)
+	var tree := _create_test_tree([node_a])
+	PathManager._all_trees["test_path"] = tree
+	PathManager.set_path("test_path")
+	PathManager.add_points(5)
+	PathManager._test_stage_override = CultivationManager.AdvancementStage.FOUNDATION
+	assert_false(PathManager.can_purchase_node("a"), "a Copper node is out of reach at Foundation")
+	PathManager._test_stage_override = CultivationManager.AdvancementStage.COPPER
+	assert_true(PathManager.can_purchase_node("a"), "and in reach at Copper")
+
+# ----- Stage gate and prerequisites -----
+
+func test_is_stage_reached_reads_the_players_stage_without_the_override() -> void:
+	var saved_live_save: SaveGameData = CultivationManager.live_save_data
+	CultivationManager.live_save_data = _save_data
+	PathManager._test_stage_override = -1
+	_save_data.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	assert_true(PathManager.is_stage_reached(CultivationManager.AdvancementStage.FOUNDATION), "a lower stage is reached")
+	assert_true(PathManager.is_stage_reached(CultivationManager.AdvancementStage.COPPER), "the player's own stage is reached")
+	assert_false(PathManager.is_stage_reached(CultivationManager.AdvancementStage.IRON), "a higher stage is not")
+	CultivationManager.live_save_data = saved_live_save
+
+func test_is_stage_reached_prefers_the_test_override() -> void:
+	PathManager._test_stage_override = CultivationManager.AdvancementStage.FOUNDATION
+	assert_true(PathManager.is_stage_reached(CultivationManager.AdvancementStage.FOUNDATION))
+	assert_false(PathManager.is_stage_reached(CultivationManager.AdvancementStage.COPPER), "the override stands in for the player's stage")
+	PathManager._test_stage_override = CultivationManager.AdvancementStage.JADE
+	assert_true(PathManager.is_stage_reached(CultivationManager.AdvancementStage.COPPER))
+
+func test_get_unmet_prerequisite_is_null_for_a_node_with_none() -> void:
+	assert_null(PathManager.get_unmet_prerequisite(_create_test_node("a")))
+
+func test_get_unmet_prerequisite_names_the_first_one_not_bought() -> void:
+	var node_a := _create_test_node("a")
+	var node_b := _create_test_node("b")
+	var node_c := _create_test_node("c", 1, [node_a, node_b])
+	var tree := _create_test_tree([node_a, node_b, node_c])
+	PathManager._all_trees["test_path"] = tree
+	PathManager.set_path("test_path")
+	PathManager.add_points(5)
+	assert_same(PathManager.get_unmet_prerequisite(node_c), node_a, "neither is bought: the first is named")
+	PathManager.purchase_node("a")
+	assert_same(PathManager.get_unmet_prerequisite(node_c), node_b, "a is bought: b is left")
+	PathManager.purchase_node("b")
+	assert_null(PathManager.get_unmet_prerequisite(node_c), "both are bought")
 
 # ----- Purchase execution -----
 

@@ -66,6 +66,7 @@ The game has two separate logging channels, and neither feeds the other:
 | `const HISTORY_LIMIT: int = 200` | The most messages `get_history()` keeps |
 | `log_message(bbcode: String)` | Appends to the history (dropping the oldest past `HISTORY_LIMIT`), then emits `message_logged`. No levels, no buffering |
 | `get_history() -> Array[String]` | A copy of the kept messages, oldest first. `LogWindow` reads it in `_ready()`, so lines logged before it existed still show |
+| `clear_history()` | Empties the history and emits nothing: the log board reads the history when it is built and when the next line is logged, the full log when it opens. A preset launch and a dev session switch call it, so the new session's log starts clean |
 | `toggle_window()` | Emits `visibility_toggled`: opens or closes the full log, like L. Only tests call it today |
 
 ## LogWindow
@@ -104,7 +105,7 @@ Callers format their own strings as single lines. The board strips the tags and 
 | `[color=purple]` | Equipment loot | `Looted %dx %s` (InventoryManager) |
 | `[color=yellow]` | Quest items | quest-item `Obtained %dx %s` (InventoryManager) |
 | No colour (tan) | Idle action resumes; the breakthrough | `Resumed %s`, `Travelled to %s · resumed %s`, `Travelled to %s`, `Started %s` (ActionManager); `Your core is full. The Tribulation waits in Spirit Valley.` (CultivationManager, when the core fills and a next stage waits) and `You break through to %s.` (CultivationManager, on a pass) |
-| `[color=magenta][DEV][/color]` prefix | Dev panel actions | `Set Madra to %d`, `Force-won current combat` (DevPanel) |
+| `[color=magenta][DEV][/color]` prefix | Dev tools: the commands, the session switches and the dev panel's toggles | `Set Madra to %d`, `Won the fight`, `Restarted preset '%s'` (`DevCommands.log_dev_line()`) |
 | `[b]name[/b]` | Combatant name | `[b]%s[/b] took …` (CombatEffectManager) |
 
 ## Integration Points
@@ -114,7 +115,7 @@ Callers format their own strings as single lines. The board strips the tags and 
 | `MainGame` | Sets the console print level from `log_print_level` |
 | `LogWindow` | The only listener of `message_logged` and `visibility_toggled`; reads `get_history()` |
 | `MainView` / view states | `ZoneViewState` places the log slot (the adventure leaves it there); the merchant shop and the Tribulation hide it, and a menu book, cycling or the Tribulation blocks the full log ([MAIN_VIEW.md](MAIN_VIEW.md#hud-boards)) |
-| ResourceManager, CultivationManager, InventoryManager, ActionManager, AdventureView, CyclingView, CombatEffectManager, AdventurePresenter, TribulationPresenter, TrashSlot, ZoneViewBackground, DevPanel | Send player-facing messages through `LogManager.log_message()` |
+| ResourceManager, CultivationManager, InventoryManager, ActionManager, AdventureView, CyclingView, CombatEffectManager, AdventurePresenter, TribulationPresenter, TrashSlot, ZoneViewBackground, DevCommands | Send player-facing messages through `LogManager.log_message()` |
 | Every singleton and most scenes | Developer diagnostics through `Log.*` |
 | Godot engine | `Log` is registered with `OS.add_logger()` and receives engine errors and `print()` output |
 

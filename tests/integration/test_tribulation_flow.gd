@@ -439,8 +439,8 @@ func test_a_save_reset_mid_trial_closes_the_board() -> void:
 # THE BOARD ON THE TRANSITION
 #-----------------------------------------------------------------------------
 
-## The action stopped from outside while the board is still opening (the dev panel's stop,
-## which is ActionManager.stop_action()). A run the board was handed is dropped, and nothing
+## The action stopped from outside while the board is still opening (ActionManager.stop_action();
+## a dev session switch stops it from outside too). A run the board was handed is dropped, and nothing
 ## of it is applied however late the clock goes while the board shrinks away; the state
 ## leaves when the close has finished.
 func test_a_stop_while_the_board_opens_applies_nothing_and_closes() -> void:

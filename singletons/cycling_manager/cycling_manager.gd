@@ -47,6 +47,19 @@ func _ready() -> void:
 
 # ----- Public API -----
 
+## Returns every cycling technique in the catalog, in catalog order: the ones
+## has_technique() knows.
+func get_all_techniques() -> Array[CyclingTechniqueData]:
+	var result: Array[CyclingTechniqueData] = []
+	for technique: CyclingTechniqueData in _techniques_by_id.values():
+		result.append(technique)
+	return result
+
+## Returns true if the catalog has a technique with this ID. An unknown ID gives
+## false, with no error.
+func has_technique(technique_id: String) -> bool:
+	return _techniques_by_id.has(technique_id)
+
 ## Returns full resource data for all unlocked technique IDs.
 func get_unlocked_techniques() -> Array[CyclingTechniqueData]:
 	var result: Array[CyclingTechniqueData] = []
@@ -185,9 +198,13 @@ func get_madra_rate() -> float:
 # ----- The last cycle -----
 
 ## Records `result` as the last finished cycle's, for the chest to show under the
-## Now tray. The cycling board calls it when a cycle ends.
+## Now tray, and counts it as a finished cycle in the save's play stats. The
+## cycling board calls it when a cycle ends. A null result is no cycle and counts
+## nothing.
 func set_last_cycle_result(result: CycleResult) -> void:
 	_last_cycle_result = result
+	if result != null and _live_save_data:
+		_live_save_data.stats.count_cycle_finished()
 	last_cycle_changed.emit(result)
 
 ## Forgets the last finished cycle, as the board does when it opens or switches

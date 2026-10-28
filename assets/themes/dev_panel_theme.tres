@@ -1,0 +1,133 @@
+[gd_resource type="Theme" format=3]
+
+[ext_resource type="StyleBox" path="res://assets/styleboxes/lacquer/board9.tres" id="1_board"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/lacquer/rail_thumb.tres" id="2_thumb"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/lacquer_drawer9_ai.png" id="3_drawer"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/lacquer_now_tray_ai.png" id="4_tray"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/lacquer_rail_track_ai.png" id="5_track"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/lacquer/token.tres" id="6_token"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_face"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+texture = ExtResource("3_drawer")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_face_pressed"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+texture = ExtResource("3_drawer")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_face_disabled"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+texture = ExtResource("3_drawer")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+modulate_color = Color(1, 1, 1, 0.45)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_tray"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+texture = ExtResource("4_tray")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 2.0
+texture_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_track"]
+content_margin_left = 6.0
+content_margin_right = 6.0
+texture = ExtResource("5_track")
+axis_stretch_vertical = 1
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_none"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_pad"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_title"]
+content_margin_left = 4.0
+content_margin_right = 2.0
+content_margin_bottom = 6.0
+
+[resource]
+Button/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+Button/colors/font_disabled_color = Color(0.47843137, 0.39607844, 0.29803923, 1)
+Button/colors/font_focus_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+Button/colors/font_hover_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
+Button/colors/font_hover_pressed_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
+Button/colors/font_pressed_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
+Button/font_sizes/font_size = 18
+Button/styles/disabled = SubResource("StyleBoxTexture_face_disabled")
+Button/styles/focus = SubResource("StyleBoxEmpty_none")
+Button/styles/hover = SubResource("StyleBoxTexture_face")
+Button/styles/hover_pressed = SubResource("StyleBoxTexture_face_pressed")
+Button/styles/normal = SubResource("StyleBoxTexture_face")
+Button/styles/pressed = SubResource("StyleBoxTexture_face_pressed")
+CheckBox/styles/disabled = SubResource("StyleBoxEmpty_pad")
+CheckBox/styles/focus = SubResource("StyleBoxEmpty_none")
+CheckBox/styles/hover = SubResource("StyleBoxEmpty_pad")
+CheckBox/styles/hover_pressed = SubResource("StyleBoxEmpty_pad")
+CheckBox/styles/normal = SubResource("StyleBoxEmpty_pad")
+CheckBox/styles/pressed = SubResource("StyleBoxEmpty_pad")
+CheckButton/styles/disabled = SubResource("StyleBoxEmpty_pad")
+CheckButton/styles/focus = SubResource("StyleBoxEmpty_none")
+CheckButton/styles/hover = SubResource("StyleBoxEmpty_pad")
+CheckButton/styles/hover_pressed = SubResource("StyleBoxEmpty_pad")
+CheckButton/styles/normal = SubResource("StyleBoxEmpty_pad")
+CheckButton/styles/pressed = SubResource("StyleBoxEmpty_pad")
+DevBoard/base_type = &"PanelContainer"
+DevBoard/styles/panel = ExtResource("1_board")
+DevTitleBar/base_type = &"PanelContainer"
+DevTitleBar/styles/panel = SubResource("StyleBoxEmpty_title")
+DevToken/base_type = &"PanelContainer"
+DevToken/styles/panel = ExtResource("6_token")
+LineEdit/colors/caret_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+LineEdit/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+LineEdit/colors/font_placeholder_color = Color(0.65882355, 0.5647059, 0.4392157, 1)
+LineEdit/colors/selection_color = Color(0.83137256, 0.65882355, 0.2901961, 0.35)
+LineEdit/font_sizes/font_size = 18
+LineEdit/styles/focus = SubResource("StyleBoxEmpty_none")
+LineEdit/styles/normal = SubResource("StyleBoxTexture_tray")
+LineEdit/styles/read_only = SubResource("StyleBoxTexture_tray")
+PopupMenu/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+PopupMenu/colors/font_hover_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
+PopupMenu/font_sizes/font_size = 18
+PopupMenu/styles/hover = SubResource("StyleBoxTexture_face")
+PopupMenu/styles/panel = ExtResource("1_board")
+TabContainer/colors/font_hovered_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+TabContainer/colors/font_selected_color = Color(0.83137256, 0.65882355, 0.2901961, 1)
+TabContainer/colors/font_unselected_color = Color(0.65882355, 0.5647059, 0.4392157, 1)
+TabContainer/font_sizes/font_size = 18
+TabContainer/styles/panel = SubResource("StyleBoxEmpty_none")
+TabContainer/styles/tab_focus = SubResource("StyleBoxEmpty_none")
+TabContainer/styles/tab_hovered = SubResource("StyleBoxEmpty_pad")
+TabContainer/styles/tab_selected = SubResource("StyleBoxTexture_face")
+TabContainer/styles/tab_unselected = SubResource("StyleBoxEmpty_pad")
+TabContainer/styles/tabbar_background = SubResource("StyleBoxEmpty_none")
+VScrollBar/styles/grabber = ExtResource("2_thumb")
+VScrollBar/styles/grabber_highlight = ExtResource("2_thumb")
+VScrollBar/styles/grabber_pressed = ExtResource("2_thumb")
+VScrollBar/styles/scroll = SubResource("StyleBoxTexture_track")
+VScrollBar/styles/scroll_focus = SubResource("StyleBoxTexture_track")

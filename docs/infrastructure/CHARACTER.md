@@ -96,7 +96,7 @@ The same class is used for enemy stat blocks (`CombatantData.attributes`). Until
 
 ### PlayerManager and VitalsManager
 
-`PlayerManager._ready()` creates `VitalsManager.new()` named `PlayerVitalsManager`, sets `is_player = true`, and adds it as a child. Code reaches it through `PlayerManager.vitals_manager`. None of this state is saved.
+`PlayerManager._ready()` creates `VitalsManager.new()` named `PlayerVitalsManager`, sets `is_player = true`, and adds it as a child. Code reaches it through `PlayerManager.vitals_manager`. None of this state is saved. `PlayerManager.reset_vitals()` replaces it with a new one built the same way, so nothing of a run carries over (not its Health, Stamina or Madra, nor its regen): the old one leaves the tree at once and is freed at the end of the frame, and a board that bound it follows the new one when the main scene loads again. A dev session switch calls it.
 
 | VitalsManager behaviour (player) | Detail |
 |----------------------------------|--------|
@@ -203,7 +203,7 @@ Values are read only when the book opens. Nothing updates them while it is open.
 | AdventureCombat | Snapshots `get_total_attributes_data()` into the player `CombatantData` at combat start, and passes `PlayerManager.vitals_manager` as the player's external vitals |
 | AdventureView / AdventureTilemap | Initialize vitals with the Madra budget, set stamina regen, spend 5 stamina per move, and read health for the end card |
 | ChangeVitalsEffectData | Reads total BODY and FOUNDATION and applies the result to `PlayerManager.vitals_manager` (encounters, consumables) |
-| AwardAttributeEffectData | The only caller of `add_base_attribute()` (see [EFFECTS.md](EFFECTS.md)) |
+| AwardAttributeEffectData | The only game code that calls `add_base_attribute()` (see [EFFECTS.md](EFFECTS.md)); the dev commands call it too (`DevCommands.add_attribute()`, [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-commands)) |
 | UnlockConditionData | `ATTRIBUTE_VALUE` conditions read totals. UnlockManager does not listen to `base_attribute_changed`, so these conditions are only re-checked when another signal fires (Madra, gold, event, cultivation) |
 | AbilitiesView, `TechniqueTooltip` | Damage previews from `get_total_attributes_data()` (see [ABILITIES.md](../abilities/ABILITIES.md)) |
 | AbilityManager | The Effects card lists the unlocked abilities that scale with the attribute |

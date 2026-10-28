@@ -2,6 +2,17 @@ class_name SaveGameData
 extends Resource
 
 #-----------------------------------------------------------------------------
+# SAVE VERSION
+#-----------------------------------------------------------------------------
+
+## The save format this build writes. migrate() brings an older save up to it,
+## and a save with a higher number was written by a newer build.
+const CURRENT_VERSION: int = 1
+
+## 0 means written before saves had versions. Never default this to CURRENT_VERSION: a loaded file sets only the keys it holds, so every old file would look current.
+@export var save_version: int = 0
+
+#-----------------------------------------------------------------------------
 # RESOURCE MANAGER
 #-----------------------------------------------------------------------------
 
@@ -14,6 +25,11 @@ extends Resource
 
 # Key is the item instance id, value is the item instance data
 @export var inventory : InventoryData = InventoryData.new()
+
+## Where saves from before commit 0652b49 kept their two accessories in
+## inventory.equipped_gear (the old EquipmentSlot ACCESSORY_1 and ACCESSORY_2),
+## each mapped to the slot it has in inventory.equipped_accessories now.
+const LEGACY_ACCESSORY_GEAR_KEYS: Dictionary[int, int] = {4: 0, 5: 1}
 
 #-----------------------------------------------------------------------------
 # CHARACTER MANAGER
@@ -137,6 +153,15 @@ func get_merchant_ledger(merchant_id: String) -> MerchantLedgerData:
 		merchant_ledgers[merchant_id] = ledger
 	return merchant_ledgers[merchant_id]
 
+#-----------------------------------------------------------------------------
+# PLAY STATS
+#-----------------------------------------------------------------------------
+
+## How this save has been played: its playtime, when each event fired and each
+## unlock condition latched, and a few counts. The systems that own those moments
+## record them here.
+@export var stats: PlayStatsData = PlayStatsData.new()
+
 func _to_string() -> String:
 	var zone_progression_data_str := ""
 	if typeof(zone_progression_data) == TYPE_DICTIONARY:
@@ -153,7 +178,8 @@ func _to_string() -> String:
 	else:
 		zone_progression_data_str = "N/A"
 
-	return "SaveGameData(\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
+	return "SaveGameData(\n  SaveVersion: %d\n  Madra: %.2f\n  Gold: %.2f\n  CoreDensityXP: %.2f\n  CoreDensityLevel: %.2f\n  AdvancementStage: %s\n  UnlockProgression: %s\n  EventProgression: %s\n  QuestProgression: %s\n  SelectedZone: %s\n  ZoneProgressionData: %s\n  InventoryCount: %d\n  CharacterAttributes: %s\n  UnlockedCyclingTechniques: %s\n  EquippedCyclingTechniqueId: %s\n  UnlockedAbilityIds: %s\n  EquippedAbilityIds: %s\n  CurrentPathId: %s\n  PathPoints: %d\n  PathNodePurchases: %s\n  MerchantLedgers: %s\n)" % [
+			save_version,
 			madra,
 			gold,
 			core_density_xp,
@@ -181,64 +207,85 @@ func _to_string() -> String:
 # STATE FUNCTIONS AND VERIFICATION
 #-----------------------------------------------------------------------------
 
+## A new save at the current version, for a game that starts fresh. A plain
+## SaveGameData.new() is version 0, the number an old file loads with.
+static func new_current() -> SaveGameData:
+	var save := SaveGameData.new()
+	save.save_version = CURRENT_VERSION
+	return save
+
+## True when a newer build wrote this save. This build must neither migrate it
+## nor write it back.
+func is_from_newer_build() -> bool:
+	return save_version > CURRENT_VERSION
+
 func verify() -> bool:
 	return _verify_current_selected_zone_id()
 
-## Moves fields that point at retired or hidden content to their replacements.
-## PersistenceManager runs it after loading and before verify().
+## Fixes what verify() would reject, in place, and returns the names of the
+## fields it changed (empty when there was nothing to fix). A current zone the
+## game no longer has goes back to "", which means the first zone in the list.
+func repair() -> PackedStringArray:
+	var repaired := PackedStringArray()
+	if not _verify_current_selected_zone_id():
+		current_selected_zone_id = ""
+		repaired.append("current_selected_zone_id")
+	return repaired
+
+## Brings a save written by an older build up to CURRENT_VERSION, then stamps it.
+## Does nothing to a save from a newer build. Runs after a save loads and before
+## it is checked. It does two kinds of work:
+## The version steps (_migrate_to_vN) run once per save, for a save older than N.
+## The zone id move runs on every load, whatever the save's version.
+## A schema change bumps CURRENT_VERSION, adds a _migrate_to_vN(), and adds an
+## "if save_version < N" line here.
 func migrate() -> void:
+	if is_from_newer_build():
+		return
+	if save_version < 1:
+		_migrate_to_v1()
+	_apply_zone_id_migrations()
+	save_version = CURRENT_VERSION
+
+## Version step 1, run only for a save older than version 1: moves each accessory
+## an old save holds in equipped_gear to its slot in equipped_accessories. A slot
+## that is already taken keeps its item, and the old accessory stays in
+## equipped_gear, named in the log.
+func _migrate_to_v1() -> void:
+	if inventory == null:
+		return
+	for gear_key: int in LEGACY_ACCESSORY_GEAR_KEYS:
+		if not inventory.equipped_gear.has(gear_key):
+			continue
+		var accessory_index: int = LEGACY_ACCESSORY_GEAR_KEYS[gear_key]
+		var item: ItemInstanceData = inventory.equipped_gear[gear_key]
+		if inventory.equipped_accessories.has(accessory_index):
+			var item_id: String = item.item_definition.item_id if item and item.item_definition else "an item with no definition"
+			Log.warn("SaveGameData: Accessory slot %d is taken, so %s stays in equipped_gear slot %d" % [accessory_index, item_id, gear_key])
+			continue
+		inventory.equipped_accessories[accessory_index] = item
+		inventory.equipped_gear.erase(gear_key)
+
+## Moves the current zone off an id in ZONE_ID_MIGRATIONS, such as the hidden Test
+## Zone. Not a version step: it runs on every load. The dev panel can walk a save
+## into Test Zone and its toggle resets on the next launch, so a save of any
+## version may be standing on a hex the map does not show.
+func _apply_zone_id_migrations() -> void:
 	if ZONE_ID_MIGRATIONS.has(current_selected_zone_id):
 		var new_zone_id: String = ZONE_ID_MIGRATIONS[current_selected_zone_id]
 		Log.info("SaveGameData: Moved the current zone from %s to %s" % [current_selected_zone_id, new_zone_id])
 		current_selected_zone_id = new_zone_id
 
-## Resets all save data to default values.
+## Resets every saved field to the default a new SaveGameData declares, in
+## place, so the managers holding this object keep a valid reference. It copies
+## from a fresh instance instead of listing the defaults a second time, so a new
+## field resets without being added here, and every sub-resource is a new object.
 func reset() -> void:
-	# Resource Manager
-	madra = 25.0
-	gold = 0.0
-	
-	# Cultivation Manager
-	core_density_xp = 0.0
-	core_density_level = 0.0
-	current_advancement_stage = CultivationManager.AdvancementStage.FOUNDATION
-	core_density_milestones = {}
-
-	# Unlock Manager
-	unlock_progression = UnlockProgressionData.new()
-	
-	# Event Manager
-	event_progression = EventProgressionData.new()
-
-	# Quest Manager
-	quest_progression = QuestProgressionData.new()
-
-	# Zone Manager
-	zone_progression_data = {}
-	current_selected_zone_id = ""
-	seen_action_ids = []
-	seen_actions_initialized = false
-
-	# Inventory Manager
-	inventory = InventoryData.new()
-
-	# Character Manager
-	character_attributes = CharacterAttributesData.new()
-
-	# Cycling Manager
-	unlocked_cycling_technique_ids = ["foundation_technique"]
-	equipped_cycling_technique_id = "foundation_technique"
-	seen_cycling_technique_ids = []
-	seen_cycling_techniques_initialized = false
-
-	# Ability Manager
-	unlocked_ability_ids = ["basic_strike", "enforce"]
-	equipped_ability_ids = ["basic_strike", "enforce", "", ""]
-
-	# Path Progression
-	current_path_id = ""
-	path_node_purchases = {}
-	path_points = 0
-
-	# Merchant Manager
-	merchant_ledgers = {}
+	var defaults := SaveGameData.new()
+	var script: Script = get_script()
+	for property: Dictionary in script.get_script_property_list():
+		var usage: int = property["usage"]
+		if (usage & PROPERTY_USAGE_STORAGE) != 0:
+			var property_name: String = property["name"]
+			set(property_name, defaults.get(property_name))
+	save_version = CURRENT_VERSION

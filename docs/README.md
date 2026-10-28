@@ -8,7 +8,7 @@ Start here. The living docs below describe the code on `main`, and the rules for
 |---|---|
 | [STATE_OF_THE_GAME.md](STATE_OF_THE_GAME.md) | One page: where the game stands, what's broken, what to build next, which design decisions are open |
 | [GAMEPLAY_STATE.md](GAMEPLAY_STATE.md) | What a player can do today, the full content inventory, what blocks progression |
-| [CODEBASE_STATE.md](CODEBASE_STATE.md) | Architecture: scene tree, state machine, the 17 autoloads, data-driven content, cross-cutting concerns |
+| [CODEBASE_STATE.md](CODEBASE_STATE.md) | Architecture: scene tree, state machine, the autoloads, data-driven content, cross-cutting concerns |
 | [Game Design Document](../Endless%20Path%20Game%20Design%20Document%20%5Bv0.1%5D.txt) | The original design vision (v0.1, 2025-10-26) |
 | [CLAUDE.md](../CLAUDE.md) | Coding standards, testing rules, git workflow for contributors and agents |
 
@@ -37,7 +37,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | Topic | Doc | Summary |
 |---|---|---|
 | UI shell and navigation | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) | `main_game.tscn` tree, MainView state machine, HUD boards, cycling mode, the Tribulation board, the boards' open and close transition, input routing, keybindings, dock |
-| Persistence | [infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | SaveGameData schema and owners, load/save/reset, auto-save, versioning |
+| Persistence | [infrastructure/PERSISTENCE.md](infrastructure/PERSISTENCE.md) | SaveGameData schema and owners, save sessions and launch options, safe writes, backups, versioning, play stats |
 | Resources | [infrastructure/RESOURCES.md](infrastructure/RESOURCES.md) | Madra and Gold, the two Madra caps, sources and sinks |
 | Character | [infrastructure/CHARACTER.md](infrastructure/CHARACTER.md) | Attributes, derived stats, player vitals, the Character view |
 | Unlocks | [infrastructure/UNLOCKS.md](infrastructure/UNLOCKS.md) | Unlock condition types, latching, every registered condition |
@@ -54,7 +54,7 @@ These living docs follow the same structure: Overview, Player Experience, Archit
 | Doc | Summary |
 |---|---|
 | [testing/TESTING.md](testing/TESTING.md) | Running GUT (including the first-run `--import` gotcha), the noise a passing run prints, conventions, coverage gaps |
-| [tooling/DEV_TOOLS.md](tooling/DEV_TOOLS.md) | Dev panel (Ctrl+Shift+D), map preview, UID generator, debug switches |
+| [tooling/DEV_TOOLS.md](tooling/DEV_TOOLS.md) | Save presets, the story route, `DevManager` and `DevCommands` (launch with `--preset=<id>`), dev panel (Ctrl+Shift+D), map preview, UID generator, debug switches |
 | [tooling/PUBLISHING.md](tooling/PUBLISHING.md) | One-click publish to itch.io from `main`: the workflow, the Web and Windows builds, the repository and itch.io settings |
 | [../resources/loot_tables/README.md](../resources/loot_tables/README.md) | Authoring loot tables |
 | [../scenes/combat/combat_architecture.md](../scenes/combat/combat_architecture.md) | Short orientation to the combat scene code (points to COMBAT.md) |

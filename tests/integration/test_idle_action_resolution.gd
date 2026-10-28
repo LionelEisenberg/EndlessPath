@@ -137,6 +137,40 @@ func test_resolve_returns_null_with_nothing_idle() -> void:
 	assert_null(ActionManager.resolve_idle_action(TEST_ZONE_ID), "Test Zone has no actions")
 
 #-----------------------------------------------------------------------------
+# WHICH ACTIONS ARE IDLE
+#-----------------------------------------------------------------------------
+
+## Foraging and training run on their own and are resumed when a session ends;
+## every other type is played through. A new action type is classified here too.
+func test_is_idle_action_is_foraging_and_training_only() -> void:
+	var expected: Dictionary[ZoneActionData.ActionType, bool] = {
+		ZoneActionData.ActionType.FORAGE: true,
+		ZoneActionData.ActionType.TRAIN_STATS: true,
+		ZoneActionData.ActionType.ADVENTURE: false,
+		ZoneActionData.ActionType.NPC_DIALOGUE: false,
+		ZoneActionData.ActionType.MERCHANT: false,
+		ZoneActionData.ActionType.CYCLING: false,
+		ZoneActionData.ActionType.ZONE_EVENT: false,
+		ZoneActionData.ActionType.TRIBULATION: false,
+	}
+	assert_eq(expected.size(), ZoneActionData.ActionType.size(), "every action type is classified in this test")
+	for action_type: ZoneActionData.ActionType in expected:
+		var action := ZoneActionData.new()
+		action.action_type = action_type
+		assert_eq(ActionManager.is_idle_action(action), expected[action_type], str(ZoneActionData.ActionType.find_key(action_type)))
+
+func test_is_idle_action_is_false_for_no_action() -> void:
+	assert_false(ActionManager.is_idle_action(null))
+
+func test_is_idle_action_for_the_real_actions() -> void:
+	assert_true(ActionManager.is_idle_action(_action(FORAGING_ID)))
+	assert_true(ActionManager.is_idle_action(_action(AURA_WELL_ID)))
+	assert_false(ActionManager.is_idle_action(_action(CYCLING_ID)))
+	assert_false(ActionManager.is_idle_action(_action(DIALOGUE_ID)))
+	assert_false(ActionManager.is_idle_action(_action(ADVENTURE_ID)))
+	assert_false(ActionManager.is_idle_action(_action(MERCHANT_ID)))
+
+#-----------------------------------------------------------------------------
 # RESUME AFTER A SESSION ACTION
 #-----------------------------------------------------------------------------
 

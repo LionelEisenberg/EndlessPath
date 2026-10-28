@@ -108,6 +108,7 @@ Stored as `SaveGameData.unlock_progression`. `reset()` replaces it with a fresh 
 | `signal condition_unlocked(condition_id: String)` | Emitted once per newly latched id. Also emitted with `""` on init and on save reset so that listeners refresh. |
 | `are_unlock_conditions_met(unlock_conditions: Array[UnlockConditionData]) -> bool` | True if every condition's id is latched |
 | `is_condition_unlocked(condition_id: String) -> bool` | Latched-set membership |
+| `get_unlocked_condition_ids() -> Array[String]` | The ids of every condition latched in the live save, in the order they latched. A copy: changing it leaves the save as it is. Empty while no save is bound |
 | `force_unlock_condition(condition_id: String) -> void` | Dev-only. Latches the id and emits `condition_unlocked`. Idempotent. |
 
 ### Sweep
@@ -146,7 +147,7 @@ Click "Talk to the [INTERVENER]" (celestial_intervener_dialogue_1, max_completio
 
 ### Dev tooling
 
-The dev panel opens with Ctrl+Shift+D. It fills a dropdown with every `condition_id` in `unlock_condition_list.list`. "Apply" calls `UnlockManager.force_unlock_condition(id)` and logs `[DEV] Force-triggered condition '<id>'`.
+The dev panel opens with Ctrl+Shift+D. Its Story tab fires any event the content listens to (`DevCommands.trigger_event()`, through `EventManager.trigger_event()`), so the conditions behind it latch as they do in play, and lists the events fired and the conditions latched ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#story)). No panel control forces a condition: `UnlockManager.force_unlock_condition()` is a test fixture.
 
 ## Integration Points
 
@@ -164,7 +165,7 @@ The dev panel opens with Ctrl+Shift+D. It fills a dropdown with every `condition
 | `ChoiceDrawer` (the expedition page) | `EncounterChoice.evaluate_requirements()` and `is_completed()` set each drawer's locked or completed state and label |
 | CultivationManager / ResourceManager | Sweep triggers and evaluation sources |
 | InventoryManager / CharacterManager | Evaluation sources only (not sweep triggers) |
-| DevPanel | `force_unlock_condition()` |
+| Dev panel | The Story tab reads `get_unlocked_condition_ids()` and, for an action's status, `are_unlock_conditions_met()` |
 
 ## Existing Content
 
@@ -225,15 +226,11 @@ These are evaluated live only.
 | `scenes/zones/zone_tilemap/zone_tilemap.gd` | Map rebuild on unlock: veils, fog tiers and routes |
 | `scripts/resource_definitions/adventure/encounters/adventure_encounter.gd` | `unlock_conditions` / `is_eligible()` |
 | `scripts/resource_definitions/adventure/choices/encounter_choice.gd` | `requirements` / `completion_condition` |
-| `scenes/ui/dev_panel/dev_panel.gd` | Force-unlock dropdown |
+| `scenes/ui/dev_panel/tabs/story_tab.gd` | The conditions latched, and the unmet conditions of an action |
 
 Tests: `tests/unit/test_unlock_*.gd` and `tests/integration/test_*_unlock.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover. The save reset's empty `condition_unlocked("")` does not start an idle action.
 
 ## Work Remaining
-
-### Bugs
-
-- `[MEDIUM]` Dev-panel force-unlock splits latched and live state. Forcing an `EVENT_TRIGGERED` condition shows its gated actions without recording the event, so quest event steps and live checks still treat the event as unfired. This can soft-lock quests (see [QUESTS.md](../progression/QUESTS.md) Work Remaining). For `EVENT_TRIGGERED` conditions the dev action should call `EventManager.trigger_event(target_value)` instead.
 
 ### Missing Functionality
 

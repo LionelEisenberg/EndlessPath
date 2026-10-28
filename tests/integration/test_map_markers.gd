@@ -45,8 +45,9 @@ func before_each() -> void:
 	PersistenceManager.save_data_reset.emit()
 	_map = ZoneTilemapScene.instantiate()
 	add_child_autofree(_map)
-	# The project's hex layer overrides _ready() without super(), so the addon
-	# sets up its conversions only when the shared TileSet emits `changed`.
+	# A leftover from when the project's hex layer skipped the addon's own set-up:
+	# the layer now sets itself up in its own _ready(), so this re-emit of the
+	# shared TileSet's `changed` is no longer needed. It is harmless.
 	_map.tile_map.tile_set.emit_changed()
 	await _settle()
 

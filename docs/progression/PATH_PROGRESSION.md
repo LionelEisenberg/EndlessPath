@@ -185,7 +185,7 @@ An aggregated snapshot that `PathManager` rebuilds from scratch. Defaults are th
 | `path_node_purchases` | `Dictionary[String, int]` | `{}` | node `id` → purchase level |
 | `path_points` | `int` | `0` | Unspent balance |
 
-`SaveGameData.reset()` restores all three. Purchases persist through the 5 s `SaveTimer` that calls `PersistenceManager.save_data()`; see [PERSISTENCE.md](../infrastructure/PERSISTENCE.md).
+`SaveGameData.reset()` restores all three. Purchases persist with the rest of the save, through the 5 s `SaveTimer` and the save on quit; see [PERSISTENCE.md](../infrastructure/PERSISTENCE.md).
 
 ### AwardPathPointEffectData (`EffectData`)
 | Field | Type | Description |
@@ -205,6 +205,8 @@ An aggregated snapshot that `PathManager` rebuilds from scratch. Defaults are th
 | `add_points(amount)` | `void` | No sign check. Emits `points_changed` |
 | `get_node_purchase_count(node_id)` | `int` | 0 if never purchased |
 | `can_purchase_node(node_id)` | `bool` | Checks, in order: tree set → node exists → level < `max_purchases` → points ≥ `point_cost` → stage ≥ `required_stage` → all prerequisites at level ≥ 1 |
+| `is_stage_reached(required)` | `bool` | True when the player's stage has reached `required`, a node's tier gate. Honors the test-only stage override. `can_purchase_node()` asks it |
+| `get_unmet_prerequisite(node)` | `PathNodeData` | The first prerequisite of the node that has not been bought, or `null` when all have. `can_purchase_node()` asks it |
 | `purchase_node(node_id)` | `bool` | See [Purchase Flow](#purchase-flow) |
 | `get_effects()` | `PathEffectsSummary` | Cached summary. Only tests call it |
 | `get_unlocked_abilities()` / `get_unlocked_cycling_techniques()` | `Array[String]` | Aggregated unlock ids. Tests only |
@@ -227,7 +229,7 @@ Constants and hooks:
 |--------|--------|---------|
 | Core Density milestone | `CultivationManager.PATH_POINTS_PER_STAGE[stage]`: Foundation 1, Copper 2, Iron 3, Jade 4; any other stage (Silver) falls back to 1 | Each level-up in `CultivationManager.add_core_density_xp()` where `level % PATH_POINT_LEVEL_INTERVAL (10) == 0` and the level is above the stage's entry in `SaveGameData.core_density_milestones` (`cultivation_manager.gd:248-257`). A level lost to a failed Tribulation and regained pays nothing again |
 | Quest `q_first_steps` ("First Steps Out") | 1 | `completion_effects` → `AwardPathPointEffectData` (default `amount = 1`) |
-| Dev panel "Path Points" row | 0–1000 | `DevPanel` → `add_points()` |
+| Dev panel Player tab "Path Points" row | 0–1000 | `DevCommands.add_path_points()` → `add_points()` |
 
 The quest awards its point after two steps: defeat an enemy, then return to the Celestial Intervener.
 
@@ -360,7 +362,8 @@ A layout is a `Node2D` scene with one `Marker2D` per node. Each marker is **name
 | `MainView` / `ZoneViewState` / `PathTreeViewState` | → view | `open_path` (P) opens and closes. See [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md) |
 | `Dock` `PathButton` (`SystemMenuButton`, `MenuType.PATH`) | ← PathManager, → input | Label "Path", hint "P", `star_icon.png`. The `Dock` reads `get_point_balance()` on ready and listens to `points_changed`: ring plus count seal while the balance is above 0 |
 | `GreyBackground` | ↔ PathTreeView | `show_with_panel` / `hide_with_panel` ↔ `animate_open` / `animate_close`; waits for `close_finished` |
-| `DevPanel` | → PathManager | "Path Points" SpinBox (0–1000) → `add_points()` |
+| Dev panel | → PathManager | The Player tab's "Path Points" SpinBox (0–1000) → `DevCommands.add_path_points()` → `add_points()` |
+| `DevCommands` | → PathManager | `buy_path_node()` checks `is_stage_reached()` and `get_unmet_prerequisite()`, grants only the points the balance is short of with `add_points()`, then buys with `purchase_node()`; the story route buys `pure_core_awakening` this way ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-commands)) |
 | `ResourceManager`, `CharacterManager`, `CyclingTechnique`, `AdventureView`, combat | — | **Do not read** `PathEffectsSummary`; numeric perks are inert |
 
 ## Existing Content
@@ -488,7 +491,7 @@ RGB(A) values from `resources/path_progression/themes/`. Alpha is 1 unless shown
 | `scenes/ui/grey_background/grey_background.gd` | Shared modal backdrop |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Pushes `PathTreeViewState` on `open_path` |
 | `scenes/ui/dock/dock.gd` / `scenes/ui/dock/system_menu_button/system_menu_button.gd` | The dock's Path button and its count seal |
-| `scenes/ui/dev_panel/dev_panel.gd` | Dev "Path Points" grant |
+| `scenes/ui/dev_panel/tabs/player_tab.gd` | Dev "Path Points" grant |
 
 Tests: `tests/unit/test_path_*.gd` and `tests/integration/test_path_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
@@ -666,4 +669,3 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - `add_points()` accepts negative amounts with no floor.
   - `get_node_purchase_count()`, `can_purchase_node()`, and `reset_path()` dereference `_live_save_data` without a null check.
   - `PathTreeData.validate()` doesn't check `UNLOCK_*` ids against the catalogs or that each node has a layout marker.
-- `[LOW]` **Test isolation.** `test_path_manager.gd`'s `after_each()` gives back only `CyclingManager`'s save and technique index. It leaves behind `PathManager._test_stage_override = JADE`, a throwaway `_live_save_data`, and a one-entry `AbilityManager._abilities_by_id` for later tests.

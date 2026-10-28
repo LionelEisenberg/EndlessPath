@@ -65,9 +65,9 @@ func before_each() -> void:
 	add_child_autofree(layer)
 	_view = AdventureViewScene.instantiate() as AdventureView
 	layer.add_child(_view)
-	# The project's hex layer script overrides _ready() without super(), so the
-	# addon only sets up its cube<->map conversions when the shared TileSet
-	# emits `changed`. Re-emit it so every fresh view gets initialised map layers.
+	# A leftover from when the project's hex layer skipped the addon's own set-up:
+	# the layer now sets itself up in its own _ready(), so this re-emit of the
+	# shared TileSet's `changed` is no longer needed. It is harmless.
 	_view.adventure_tilemap.full_map.tile_set.emit_changed()
 	await get_tree().process_frame
 

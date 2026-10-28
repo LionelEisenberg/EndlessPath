@@ -41,6 +41,7 @@ A moment happens in the game.
 5. **Inline one-off effects and conditions** as sub-resources. Promote them to their own `.tres` only when several owners share them. Don't duplicate a registered condition inline: reference the file.
 6. **Add new quests to `resources/quests/quest_list.tres`**, and register new timelines in `project.godot` `[dialogic] directories/dtl_directory` (the Dialogic editor does this).
 7. **Let Godot assign UIDs.** Hand-written or copied UIDs force a fallback to the path and a load warning.
+8. **A new quest or zone action needs a route step.** The story route (`resources/dev/story_route.tres`, [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#the-story-route)) is the canonical playthrough that every save preset builds on, and its coverage test fails when a quest of `quest_list.tres` does not end completed, or a zone action is never available, after the route runs. Add a step to the beat where the content plays, or list the quest in the route's `optional_quest_ids` or the action in its `excluded_action_ids`: leaving something out is always a listed decision.
 
 ## Naming
 
@@ -68,8 +69,9 @@ A moment happens in the game.
 ## Common pitfalls
 
 1. **Gate action never appears.** The condition isn't registered in `unlock_condition_list.tres`.
-2. **Quest stuck on a "return" step.** Its event fired before the step became current, for example because the NPC was reachable too early. The dev panel's force-unlock causes the same thing.
+2. **Quest stuck on a "return" step.** Its event fired before the step became current, for example because the NPC was reachable too early. The dev panel's Trigger event (Story tab) causes the same thing when it fires an event before its step is current.
 3. **Quest condition step lags.** The condition is unregistered or of a type UnlockManager doesn't sweep on (`ITEM_OWNED`, `ATTRIBUTE_VALUE` only latch on the next Madra, Gold, CD, stage, or event signal), so the step waits for an unrelated trigger.
 4. **Comparison condition always false.** `comparison_op` is empty or misspelled. Event and item conditions ignore the op; numeric conditions don't.
-5. **Dev force-unlock doesn't fire the event.** Latched gates open, but quest event steps and live checks still see the event as unfired.
+5. **A forced unlock doesn't fire the event.** `UnlockManager.force_unlock_condition()` (a test fixture) opens latched gates, but quest event steps and live checks still see the event as unfired. Fire the event instead (`DevCommands.trigger_event()`, the dev panel's Trigger event).
 6. **`ZONE_UNLOCKED` / `ADVENTURE_COMPLETED`.** Both always return `false` and log a warning on every evaluation. Use an event instead.
+7. **The route's coverage test fails after a new quest or zone action.** No route step reaches it and no list names it (rule 8).

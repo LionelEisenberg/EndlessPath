@@ -29,7 +29,7 @@
 [ext_resource type="Script" uid="uid://2yrvi0rkqcvb" path="res://scenes/character/character_view_state.gd" id="26_cvs"]
 [ext_resource type="PackedScene" uid="uid://d3i2be1iw3sso" path="res://scenes/ui/goals_panel/goals_panel.tscn" id="27_goals"]
 [ext_resource type="PackedScene" uid="uid://crqcxy8168ohk" path="res://scenes/ui/quest_toast/quest_toast.tscn" id="28_qt"]
-[ext_resource type="PackedScene" path="res://scenes/ui/dev_panel/dev_panel.tscn" id="30_dp"]
+[ext_resource type="PackedScene" uid="uid://ctyaa8ped1fow" path="res://scenes/ui/dev_panel/dev_panel.tscn" id="30_dp"]
 [ext_resource type="Script" uid="uid://bh8yinf86y3v5" path="res://scenes/merchant/merchant_view_state.gd" id="32_mvs"]
 [ext_resource type="PackedScene" path="res://scenes/merchant/merchant_view.tscn" id="33_mv"]
 [ext_resource type="Script" uid="uid://c1pcrlwd2e22g" path="res://scenes/tribulation/tribulation_view_state.gd" id="34_tvs"]
@@ -299,15 +299,11 @@ unique_name_in_owner = true
 z_index = 9
 layout_mode = 1
 
-[node name="DevPanel" parent="MainView" unique_id=841197742 instance=ExtResource("30_dp")]
+[node name="DevPanel" parent="MainView" unique_id=841197742 node_paths=PackedStringArray("adventure_view") instance=ExtResource("30_dp")]
 unique_name_in_owner = true
-visible = false
 z_index = 10
-layout_mode = 0
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 340.0
-offset_bottom = 400.0
+layout_mode = 1
+adventure_view = NodePath("../AdventureView")
 
 [node name="SaveTimer" type="Timer" parent="." unique_id=155020208]
 wait_time = 5.0

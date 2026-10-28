@@ -1,0 +1,229 @@
+[gd_scene format=3 uid="uid://dix0wccljn3jm"]
+
+[ext_resource type="Script" uid="uid://cq72260r51752" path="res://scenes/ui/dev_panel/tabs/player_tab.gd" id="1_player"]
+
+[node name="PlayerTab" type="ScrollContainer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+script = ExtResource("1_player")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PlayerStatus" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="ResourcesHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "RESOURCES"
+
+[node name="MadraRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MadraLabel" type="Label" parent="MarginContainer/VBoxContainer/MadraRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Madra"
+
+[node name="MadraSpin" type="SpinBox" parent="MarginContainer/VBoxContainer/MadraRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1000000.0
+allow_greater = true
+
+[node name="MadraSet" type="Button" parent="MarginContainer/VBoxContainer/MadraRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Set"
+
+[node name="GoldRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="GoldLabel" type="Label" parent="MarginContainer/VBoxContainer/GoldRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Gold"
+
+[node name="GoldSpin" type="SpinBox" parent="MarginContainer/VBoxContainer/GoldRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1000000.0
+allow_greater = true
+
+[node name="GoldSet" type="Button" parent="MarginContainer/VBoxContainer/GoldRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Set"
+
+[node name="CultivationHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "CULTIVATION"
+
+[node name="LevelRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="LevelLabel" type="Label" parent="MarginContainer/VBoxContainer/LevelRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Core Density"
+
+[node name="LevelSpin" type="SpinBox" parent="MarginContainer/VBoxContainer/LevelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LevelReach" type="Button" parent="MarginContainer/VBoxContainer/LevelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Reach"
+
+[node name="StageLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Stage: Foundation · Core Density 0 / 100"
+autowrap_mode = 3
+
+[node name="AdvanceStage" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Advance to the next stage"
+
+[node name="PointsRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PointsLabel" type="Label" parent="MarginContainer/VBoxContainer/PointsRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Path Points"
+
+[node name="PointsSpin" type="SpinBox" parent="MarginContainer/VBoxContainer/PointsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1000.0
+
+[node name="PointsAdd" type="Button" parent="MarginContainer/VBoxContainer/PointsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Add"
+
+[node name="AttributeRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AttributeOption" type="OptionButton" parent="MarginContainer/VBoxContainer/AttributeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+
+[node name="AttributeSpin" type="SpinBox" parent="MarginContainer/VBoxContainer/AttributeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1000.0
+
+[node name="AttributeAdd" type="Button" parent="MarginContainer/VBoxContainer/AttributeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Add"
+
+[node name="TechniquesHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "TECHNIQUES"
+
+[node name="TechniqueRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TechniqueOption" type="OptionButton" parent="MarginContainer/VBoxContainer/TechniqueRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TechniqueUnlock" type="Button" parent="MarginContainer/VBoxContainer/TechniqueRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Unlock"
+
+[node name="TechniqueEquip" type="Button" parent="MarginContainer/VBoxContainer/TechniqueRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Equip"
+
+[node name="UnlockAllTechniques" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Unlock all techniques"
+
+[node name="AbilitiesHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "ABILITIES"
+
+[node name="AbilityRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="AbilityOption" type="OptionButton" parent="MarginContainer/VBoxContainer/AbilityRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AbilityUnlock" type="Button" parent="MarginContainer/VBoxContainer/AbilityRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Unlock"
+
+[node name="AbilityEquip" type="Button" parent="MarginContainer/VBoxContainer/AbilityRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Equip"
+
+[node name="SlotRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SlotLabel" type="Label" parent="MarginContainer/VBoxContainer/SlotRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Equip in slot"
+
+[node name="AbilitySlotSpin" type="SpinBox" parent="MarginContainer/VBoxContainer/SlotRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 4.0
+value = 1.0
+
+[node name="UnlockAllAbilities" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Unlock all abilities"

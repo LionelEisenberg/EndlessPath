@@ -1,0 +1,198 @@
+[gd_scene format=3 uid="uid://bcodu6l4hn7b8"]
+
+[ext_resource type="Script" uid="uid://c6iiaj6ernx6v" path="res://scenes/ui/dev_panel/tabs/saves_tab.gd" id="1_saves"]
+
+[node name="SavesTab" type="VBoxContainer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+script = ExtResource("1_saves")
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Scroll/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SessionLabel" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Your save · user://save.tres
+Version 1 · Playtime 0:00 · Foundation, Core Density 0 / 100 · 0 gold"
+autowrap_mode = 3
+
+[node name="BeatsLabel" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+text = "Awakening — not reached"
+autowrap_mode = 3
+
+[node name="SessionButtons" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RestartButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/SessionButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Restart preset (Ctrl+Shift+R)"
+
+[node name="BackButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/SessionButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Back to my save"
+
+[node name="PresetsHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "PRESETS"
+
+[node name="PresetList" type="VBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SavePresetHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "SAVE THIS GAME AS A PRESET"
+
+[node name="TitleRow" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TitleFieldLabel" type="Label" parent="Scroll/MarginContainer/VBoxContainer/TitleRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Title"
+
+[node name="TitleEdit" type="LineEdit" parent="Scroll/MarginContainer/VBoxContainer/TitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "What the panel calls it"
+
+[node name="DescriptionRow" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DescriptionFieldLabel" type="Label" parent="Scroll/MarginContainer/VBoxContainer/DescriptionRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Description"
+
+[node name="DescriptionEdit" type="LineEdit" parent="Scroll/MarginContainer/VBoxContainer/DescriptionRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Optional"
+
+[node name="SavePresetButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save as a preset"
+
+[node name="SavePresetStatus" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="YourSaveHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "YOUR SAVE"
+
+[node name="YourSaveButtons" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NewGameButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/YourSaveButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+size_flags_horizontal = 3
+text = "New game on my save"
+
+[node name="KeepButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/YourSaveButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+size_flags_horizontal = 3
+text = "Keep as my save"
+
+[node name="SaveNowButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/YourSaveButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Save now"
+
+[node name="AutosaveCheck" type="CheckButton" parent="Scroll/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Autosave"
+
+[node name="BackupRow" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackupOption" type="OptionButton" parent="Scroll/MarginContainer/VBoxContainer/BackupRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RestoreButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer/BackupRow"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Restore"
+
+[node name="OpenFolderButton" type="Button" parent="Scroll/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Open save folder"
+
+[node name="StatusPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"PanelTooltip"
+
+[node name="SavesStatus" type="Label" parent="StatusPanel"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="ConfirmTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 3.0
+one_shot = true
+ignore_time_scale = true
+
+[node name="RefreshTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+autostart = true
+ignore_time_scale = true

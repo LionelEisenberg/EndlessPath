@@ -59,10 +59,9 @@ func before_each() -> void:
 	_rest_choice = AdventureMapFixture.rest_choice(_map)
 	_tilemap = AdventureTilemapScene.instantiate()
 	add_child_autofree(_tilemap)
-	# The project's hex layer script overrides _ready() without super(), so the
-	# addon only sets up its cube<->map conversions when the shared TileSet
-	# emits `changed`, which happens once after it first loads. Re-emit it so
-	# this fresh tilemap's map layers are initialised.
+	# A leftover from when the project's hex layer skipped the addon's own set-up:
+	# the layer now sets itself up in its own _ready(), so this re-emit of the
+	# shared TileSet's `changed` is no longer needed. It is harmless.
 	_tilemap.full_map.tile_set.emit_changed()
 	await get_tree().process_frame
 
@@ -387,8 +386,7 @@ func test_a_pick_on_a_resolved_tile_is_ignored() -> void:
 	assert_signal_not_emitted(_tilemap, "encounter_resolved", "the tile is resolved once")
 	assert_eq(PlayerManager.vitals_manager.current_health, 60.0, "the rest healed once")
 
-## A boss win ends the run before the fight lets go of its choice. The next
-## run's picks must still count.
+## A boss win ends the run. The next run's picks must still count.
 func test_a_new_run_takes_picks_after_a_boss_win() -> void:
 	_start()
 	await _walk_to(FIGHT)

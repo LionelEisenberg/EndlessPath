@@ -369,7 +369,7 @@ Styleboxes in use (`assets/styleboxes/combat/`, all for the enemy's plate and `R
 | `EventManager` | out | `q_first_steps_enemy_defeated` on victory (Foundation Beat 2 quest step) |
 | `LogManager` | out | Damage, heal, interrupt and strip lines; `AdventureView` logs encounter, victory and defeat |
 | `Atmosphere` | — | Instanced by `AdventureCombat` with radius 0.5, softness 0.35, 25 cyan / 8 warm motes. It is a CanvasLayer on layer 5, so mist drifts in front of the fighters; the enemy plate and damage numbers render on layer 100 above it |
-| Dev panel | in | `AdventureView.force_win_combat()` emits `trigger_combat_end(true, 0)` directly (no gold, no quest event) |
+| Dev panel | in | `AdventureView.force_win_combat()` takes all of the enemy's Health, so the fight ends as a real win: the gold, `q_first_steps_enemy_defeated` and `trigger_combat_end` follow from the death above ([ADVENTURING.md](../adventuring/ADVENTURING.md#dev-hooks)) |
 
 ## Existing Content
 

@@ -26,6 +26,18 @@ func start_timeline(timeline_name: String, label_or_idx:Variant = "") -> void:
 	dialogue_started.emit(timeline_name)
 	current_timeline_name = timeline_name
 
+## Ends the running timeline at once, without Dialogic's ending timeline, and
+## forgets it. Does nothing while no timeline runs. Dialogic still sends
+## timeline_ended a frame later, and dialogue_ended follows it, so a caller that
+## must not hear that end disconnects from dialogue_ended first. A timeline
+## started in this same frame has not begun yet (Dialogic begins it at the end of
+## the frame, once its new layout is ready): timeline_ended then comes at once,
+## and the timeline still plays.
+func end_dialogue_now() -> void:
+	if current_timeline_name == "":
+		return
+	current_timeline_name = ""
+	Dialogic.end_timeline(true)
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS

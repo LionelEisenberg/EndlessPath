@@ -223,6 +223,8 @@ A cycle that is stopped, or cut off by switching technique, emits nothing. After
 ### Technique Unlock and Equip (`CyclingManager`)
 | Method | Returns | Behaviour |
 |--------|---------|-----------|
+| `get_all_techniques()` | `Array[CyclingTechniqueData]` | Every technique in the catalog, in catalog order |
+| `has_technique(technique_id)` | `bool` | Whether the catalog has the ID. An unknown ID gives false, with no error |
 | `get_unlocked_techniques()` | `Array[CyclingTechniqueData]` | Resolves saved IDs against the catalog in unlock order and skips unknown IDs |
 | `get_equipped_technique()` | `CyclingTechniqueData` | `null` if none or unknown |
 | `unlock_technique(technique_id)` | `void` | Idempotent. Calls `push_error` for an unknown ID. Otherwise appends to save data and emits `technique_unlocked` |
@@ -316,7 +318,7 @@ Path perks are authored and priced in [PATH_PROGRESSION.md](../progression/PATH_
 | `PathManager` | `purchase_node()` → `CyclingManager.unlock_technique()` |
 | `PersistenceManager` | Technique IDs, seen IDs, Madra and Core Density persist in `SaveGameData`. Auto, the running cycle and the last cycle's result do not |
 | `UnlockManager` / `QuestManager` | Every `madra_changed` (about 12/s while tracking) re-evaluates unlock conditions. `q_fill_core` step 1 completes at Madra ≥ 100 (`q_fill_core_madra_full`) |
-| `DevPanel` (Ctrl+Shift+D) | "Unlock All Cycling Techniques" iterates `CyclingManager._technique_catalog`. The panel also has "Madra" and "Add CD XP" fields |
+| Dev panel (Ctrl+Shift+D) | The Player tab's technique controls call `DevCommands.unlock_technique()`, `equip_technique()` and `unlock_all_techniques()`, which use `CyclingManager`'s public `has_technique()`, `get_all_techniques()`, `unlock_technique()` and `equip_technique()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#player)) |
 | Zones | Spirit Valley's Wilderness Cycling card uses `CyclingPresenter` ("Madra and Core Density XP"; the card does not name the equipped technique). The Aura Well training action is a second, passive Madra source (+1.5 per tick); see [ZONES.md](../zones/ZONES.md) |
 
 ## Existing Content
@@ -419,7 +421,6 @@ None known.
 ### Tech Debt
 
 - `[MEDIUM]` Test gap: content integrity. Nothing checks that technique IDs are unique and non-empty, or that every path node's `UNLOCK_CYCLING_TECHNIQUE` value names a catalog technique. `test_path_manager.gd` checks `PathManager.get_unlocked_cycling_techniques()` but not that `CyclingManager` actually unlocked the technique.
-- `[LOW]` Private access across classes. `DevPanel` reads `CyclingManager._technique_catalog`.
 - `[LOW]` `CyclingManager.has_unequipped_unlocks()` has no caller.
 
 ## Related Docs

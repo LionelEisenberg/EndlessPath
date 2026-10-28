@@ -1,0 +1,74 @@
+[gd_scene format=3 uid="uid://h7o66qypo3sg"]
+
+[ext_resource type="Script" uid="uid://f4o8i0m3ojoe" path="res://scenes/ui/dev_panel/tabs/items_tab.gd" id="1_items"]
+
+[node name="ItemsTab" type="ScrollContainer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+script = ExtResource("1_items")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GiveHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "GIVE AN ITEM"
+
+[node name="ItemOption" type="OptionButton" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="QuantityRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="QuantityLabel" type="Label" parent="MarginContainer/VBoxContainer/QuantityRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Quantity"
+
+[node name="QuantitySpin" type="SpinBox" parent="MarginContainer/VBoxContainer/QuantityRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+
+[node name="GiveButton" type="Button" parent="MarginContainer/VBoxContainer/QuantityRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Give"
+
+[node name="ItemsStatus" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="PagesHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelLacquerSection"
+text = "EQUIPMENT PAGES"
+
+[node name="GrantPageButton" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Grant an equipment page"

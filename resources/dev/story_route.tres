@@ -1,0 +1,116 @@
+[gd_resource type="Resource" script_class="StoryRouteData" format=3 uid="uid://c8bf5l3hi1tut"]
+
+[ext_resource type="Script" uid="uid://dtvu8b1ub82uv" path="res://scripts/resource_definitions/dev/story_route_data.gd" id="1_route"]
+[ext_resource type="Script" uid="uid://d1hfnghmewfmc" path="res://scripts/resource_definitions/dev/story_beat_data.gd" id="2_beat"]
+[ext_resource type="Script" uid="uid://dwfrrrp6rwaj0" path="res://scripts/resource_definitions/dev/dev_step_data.gd" id="3_step"]
+
+[sub_resource type="Resource" id="beat_1_talk_1"]
+script = ExtResource("3_step")
+target_id = "celestial_intervener_dialogue_1"
+
+[sub_resource type="Resource" id="beat_1_fill_madra"]
+script = ExtResource("3_step")
+kind = 3
+amount = 100.0
+
+[sub_resource type="Resource" id="beat_1_talk_2"]
+script = ExtResource("3_step")
+target_id = "celestial_intervener_dialogue_2"
+
+[sub_resource type="Resource" id="beat_2_enemy_defeated"]
+script = ExtResource("3_step")
+kind = 1
+target_id = "q_first_steps_enemy_defeated"
+
+[sub_resource type="Resource" id="beat_2_talk_3"]
+script = ExtResource("3_step")
+target_id = "celestial_intervener_dialogue_3"
+
+[sub_resource type="Resource" id="beat_2_buy_awakening"]
+script = ExtResource("3_step")
+kind = 5
+target_id = "pure_core_awakening"
+
+[sub_resource type="Resource" id="beat_2_equip_smooth_flow"]
+script = ExtResource("3_step")
+kind = 7
+target_id = "smooth_flow"
+
+[sub_resource type="Resource" id="beat_2_equip_empty_palm"]
+script = ExtResource("3_step")
+kind = 9
+target_id = "empty_palm"
+amount = 3.0
+
+[sub_resource type="Resource" id="beat_3a_aura_well"]
+script = ExtResource("3_step")
+kind = 1
+target_id = "aura_well_discovered"
+
+[sub_resource type="Resource" id="beat_3b_core_density_10"]
+script = ExtResource("3_step")
+kind = 2
+amount = 10.0
+
+[sub_resource type="Resource" id="beat_3b_talk_4"]
+script = ExtResource("3_step")
+target_id = "celestial_intervener_dialogue_4"
+
+[sub_resource type="Resource" id="beat_3b_merchant"]
+script = ExtResource("3_step")
+kind = 1
+target_id = "merchant_discovered"
+
+[sub_resource type="Resource" id="beat_9_ready_core_density_100"]
+script = ExtResource("3_step")
+kind = 2
+amount = 100.0
+
+[sub_resource type="Resource" id="beat_9_advance"]
+script = ExtResource("3_step")
+kind = 11
+
+[sub_resource type="Resource" id="beat_1"]
+script = ExtResource("2_beat")
+beat_id = "beat_1"
+title = "Awakening"
+steps = Array[ExtResource("3_step")]([SubResource("beat_1_talk_1"), SubResource("beat_1_fill_madra"), SubResource("beat_1_talk_2")])
+reached_when = "q_fill_core_completed"
+
+[sub_resource type="Resource" id="beat_2"]
+script = ExtResource("2_beat")
+beat_id = "beat_2"
+title = "First Steps Out"
+steps = Array[ExtResource("3_step")]([SubResource("beat_2_enemy_defeated"), SubResource("beat_2_talk_3"), SubResource("beat_2_buy_awakening"), SubResource("beat_2_equip_smooth_flow"), SubResource("beat_2_equip_empty_palm")])
+reached_when = "celestial_intervener_dialogue_3"
+
+[sub_resource type="Resource" id="beat_3a"]
+script = ExtResource("2_beat")
+beat_id = "beat_3a"
+title = "Aura Well"
+steps = Array[ExtResource("3_step")]([SubResource("beat_3a_aura_well")])
+reached_when = "aura_well_discovered"
+
+[sub_resource type="Resource" id="beat_3b"]
+script = ExtResource("2_beat")
+beat_id = "beat_3b"
+title = "Merchant unlocked"
+steps = Array[ExtResource("3_step")]([SubResource("beat_3b_core_density_10"), SubResource("beat_3b_talk_4"), SubResource("beat_3b_merchant")])
+reached_when = "merchant_discovered"
+
+[sub_resource type="Resource" id="beat_9_ready"]
+script = ExtResource("2_beat")
+beat_id = "beat_9_ready"
+title = "Tribulation ready"
+steps = Array[ExtResource("3_step")]([SubResource("beat_9_ready_core_density_100")])
+reached_when = "core_density_full"
+
+[sub_resource type="Resource" id="beat_9"]
+script = ExtResource("2_beat")
+beat_id = "beat_9"
+title = "Copper"
+steps = Array[ExtResource("3_step")]([SubResource("beat_9_advance")])
+
+[resource]
+script = ExtResource("1_route")
+beats = Array[ExtResource("2_beat")]([SubResource("beat_1"), SubResource("beat_2"), SubResource("beat_3a"), SubResource("beat_3b"), SubResource("beat_9_ready"), SubResource("beat_9")])

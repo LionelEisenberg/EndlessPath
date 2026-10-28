@@ -326,6 +326,8 @@ Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `Item
 | `PAGE_ROWS`, `PAGE_COLUMNS` | 6, 6 |
 | `SLOTS_PER_PAGE` | 36 |
 | `equipment_capacity()` | `unlocked_equipment_pages * SLOTS_PER_PAGE` (72 by default) |
+| `free_equipment_slots()` | The empty slot indexes below `equipment_capacity()`, lowest first, as a `PackedInt32Array`: the one scan for a free slot. An awarded item goes into the first, and its size says how much room is left |
+| `has_free_equipment_slot()` | True while `free_equipment_slots()` is not empty |
 
 Stacked dictionaries are keyed by the definition resource itself, not by `item_id`. Two `.tres` files with the same `item_id` would therefore be two separate stacks.
 
@@ -361,7 +363,7 @@ Each entry rolls independently: `randf() <= drop_chance`, then `randi_range(min,
 | `use_consumable(def) -> bool` | Calls `def.use()`, then decrements or erases the stack. No cooldown check: in a fight `CombatConsumableInstance.use()` calls it and enforces the cooldown |
 | `restore_equipment_instance(instance, target_slot_index = -1)` | Trash restore: uses the target if it is valid, empty and below capacity, otherwise the first free slot. No log |
 | `restore_material(def, quantity)` | Trash restore for materials. No UI path reaches it |
-| `grant_equipment_page()` | Adds one page. No caller on `main` |
+| `grant_equipment_page()` | Adds one page. Only `DevCommands.grant_equipment_page()` calls it |
 | `equip_consumable(def, slot_index)` | Slots 0–3. Clears any other slot holding the same definition |
 | `unequip_consumable(slot_index)`, `swap_consumable_slots(from_slot, to_slot)` | Hotbar edits |
 
@@ -507,6 +509,7 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | PersistenceManager | `InventoryData` is `SaveGameData.inventory`. InventoryManager re-grabs `live_save_data` on `save_data_reset`, and a reset creates a fresh `InventoryData` |
 | LogManager | Award messages and "Discarded <name>" |
 | MerchantManager | `award_items(item, 1)` for each purchase (so gear purchases log as "Looted", Crude Scales as "Obtained"). Gear purchases first check `InventoryData.has_free_equipment_slot()`; with every slot full the shop shows "Equipment full" and takes no gold |
+| DevCommands | `award_item()` awards through `award_items()` and refuses equipment that has no free slot (`free_equipment_slots()`), since the inventory drops such an item and still logs "Looted". `DevCommands.grant_equipment_page()` calls `InventoryManager.grant_equipment_page()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-commands)), and the dev panel's Items tab has a button for it |
 | Combat (`CombatConsumableManager`, `TechniqueDock`) | A fight makes one `CombatConsumableInstance` per filled `equipped_consumables` slot, and each use goes through `use_consumable()`. The technique dock previews the hotbar on the adventure map and shows its counts through `get_consumable_count()`, refreshed on `inventory_changed` ([COMBAT.md](../combat/COMBAT.md#consumables-in-a-fight-combatconsumablemanager)) |
 
 ## Existing Content
@@ -613,7 +616,7 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 - `[HIGH]` **Consumables have no drop source.** The Merchant sells `crude_scale`, but no loot table or effect awards either scale, so the Merchant's Crude Scales are the only ones a player can use in a fight. `barely_coalesced_scale` has no source at all, and no icon.
 - `[MEDIUM]` **Gear has one source each.** The Merchant sells six pieces once per save, and the Shallow Woods loot only includes the necklace. Loot drops for the merchant gear are planned (Beat 5).
 - `[MEDIUM]` **There is no API to spend or remove items.** InventoryManager can't consume materials, take back quest items or sell equipment. The only removal path is the trash, which `EquipmentTab` implements by mutating `InventoryData` directly. Crafting (Elixir Making, Soulsmithing), merchant selling and quest hand-ins all need `remove_*` verbs. The redesign spec's `discard_*` methods were never built.
-- `[LOW]` **`grant_equipment_page()` has no caller**, so every player stays at 2 pages (72 slots). The trigger was deferred by the pagination spec.
+- `[LOW]` **Only the dev tools call `grant_equipment_page()`**, so every player stays at 2 pages (72 slots). The trigger was deferred by the pagination spec.
 - `[LOW]` **`stack_size` is never enforced.**
 - `[LOW]` **`UnlockManager` never re-evaluates on `inventory_changed`.** An `ITEM_OWNED` condition in `unlock_condition_list.tres` would latch only when some other signal fires. The one current use, the refugee camp, is evaluated directly and is unaffected.
 

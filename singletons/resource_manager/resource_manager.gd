@@ -117,9 +117,12 @@ func can_start_adventure() -> bool:
 # GOLD MANAGEMENT
 #-----------------------------------------------------------------------------
 
-## Adds gold. Logs "Gained N Gold" unless quiet.
+## Adds gold. Logs "Gained N Gold" unless quiet. A positive amount counts as gold
+## earned in the save's play stats; set_gold() and spend_gold() never do.
 func add_gold(amount: float, quiet: bool = false) -> void:
 	live_save_data.gold += amount
+	if amount > 0.0:
+		live_save_data.stats.add_gold_earned(amount)
 	gold_changed.emit(live_save_data.gold)
 
 	if LogManager and not quiet:

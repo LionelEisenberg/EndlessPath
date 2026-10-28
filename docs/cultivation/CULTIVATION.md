@@ -36,7 +36,7 @@ AdvancementStageResource (Resource)              — scripts/resource_definition
 AdvancementStageList (Resource, never loaded)    — advancement_stage_list.gd + resources/cycling/advancement_stages/advancement_stage_list.tres
 
 Writers:  CyclingTechnique.try_score_zone() → add_core_density_xp()
-          DevPanel "Add CD XP" → add_core_density_xp()
+          DevCommands.reach_core_density() (the dev panel's Player tab, the story route) → add_core_density_xp()
           TribulationView, at the run's end → advance_to_next_stage() on a pass, lose_core_density_levels() on a failure
 Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra()
           CultivatorPlate (zone view cabinet)   — stage name, level, XP beads, Madra cap, core orb up to the cap, "Core full"
@@ -151,7 +151,7 @@ Copper's pool cap is `600 + 10 × level`, so it starts at the 600 Foundation end
 The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not added to either cap. See [RESOURCES.md](../infrastructure/RESOURCES.md) for the pool and adventure budget.
 
 ### Advancement Stage and Breakthrough
-- `current_advancement_stage` is written by `SaveGameData.reset()` and by `advance_to_next_stage()` (`cultivation_manager.gd:167-183`), which only the Tribulation calls.
+- `current_advancement_stage` is written by `SaveGameData.reset()` and by `advance_to_next_stage()` (`cultivation_manager.gd:167-183`), which the Tribulation calls, and so does `DevCommands.advance_stage()` (the story route's `beat_9` runs it, so the `copper` preset does too).
 - `advancement_stage_changed` is emitted when the manager reads the save, in `_ready()` and on `PersistenceManager.save_data_reset` (it carries the unchanged stage), and from `advance_to_next_stage()` (the new one).
 - Stage lookups go through `advancement_stage_resources`: Foundation and Copper. Any other stage resolves to `null`, which makes `get_xp_for_next_level()` return 0, the cap 0 and `get_max_madra()` 0.0. `add_core_density_xp()` then logs and stops rather than hang, and `ResourceManager.add_madra()` adds nothing but leaves the pool as it is.
 - Foundation's `next_stage` is Copper (`foundation_advancement_stage.tres`). Copper has none, so `has_next_stage()` is false there: `advance_to_next_stage()` returns `false`, the Goals board reads "Copper reached", and a full Copper core writes no "waits in Spirit Valley" line.
@@ -185,7 +185,7 @@ The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not adde
 | UI | The zone view's `CultivatorPlate` and `GoalsPanel` read `get_core_density_cap()` and `is_core_full()` |
 | Tribulation | `TribulationActionData.can_attempt()` and `is_passed()` read the stage and `is_core_full()`; `ActionManager.select_action()` refuses a card the core is not ready for; `TribulationView` applies the result at the run's end through `advance_to_next_stage()` or `lose_core_density_levels()` (`tribulation_view.gd:480-501`). See [breakthrough-tribulation.md](breakthrough-tribulation.md) |
 | `PersistenceManager` | Fields above persist in `user://save.tres` |
-| `DevPanel` (Ctrl+Shift+D) | "Add CD XP" calls `add_core_density_xp(value)`. There is no stage control |
+| Dev panel (Ctrl+Shift+D) | The Player tab's Core Density Reach calls `DevCommands.reach_core_density(level)`, which raises the level through `add_core_density_xp()`, and Advance to the next stage calls `DevCommands.advance_stage()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#player)) |
 
 ## Existing Content
 
@@ -252,7 +252,7 @@ None known.
 - `[MEDIUM]` Cultivation path perks are not applied: `CORE_DENSITY_XP_MULT` (Dedicated Cultivation), `MADRA_ON_LEVEL_UP` (Breakthrough Surge) and `MADRA_CAPACITY_BONUS` (Expanded Core). `PathManager.get_effects()` has no gameplay reader.
 - `[MEDIUM]` Copper unlocks nothing. No `CULTIVATION_STAGE` unlock conditions exist, no path node requires a stage above Foundation (the Path book's Copper chapter opens empty), and Scripting and Elixir Making are not built.
 - `[MEDIUM]` Closing the game mid-trial applies nothing, so it is a way out of a failing run. The result is applied the moment the run ends, but nothing is written before then. Staking the penalty when the trial starts would close the gap, at the cost of punishing a crash.
-- `[LOW]` A save that has reached Copper, opened in a build from before the Tribulation, still hits the endless level-up loop: the guard only protects builds that have it. Saves carry no version field ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#versioning)).
+- `[LOW]` A save that has reached Copper, opened in a build from before the Tribulation, still hits the endless level-up loop: the guard only protects builds that have it. A build from before saves had a version cannot tell a newer save from its own ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#versioning)).
 - `[LOW]` `unlocking_mechanics` and `icon` on `AdvancementStageResource` are exported but never read.
 
 ### Content
