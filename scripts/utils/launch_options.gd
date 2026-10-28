@@ -3,9 +3,10 @@ class_name LaunchOptions extends RefCounted
 ## LaunchOptions
 ## What this run was launched with: the options after `--` on the command line
 ## (`--save=<path>`, `--no-autosave` and `--preset=<id>`), the preset pinned for
-## this checkout, and whether the process is a GUT test run. Code reads the
-## options through current(). parse() takes the argument list and the pin as
-## parameters, so a test can feed it any of them.
+## this checkout, whether the process is a GUT test run, and whether a scene is
+## the project's main scene. Code reads the options through current(). parse()
+## takes the argument list and the pin as parameters, so a test can feed it any of
+## them.
 ##
 ## The pin is one preset id kept in a ConfigFile per checkout: every plain launch
 ## from the checkout starts in that preset until it is unpinned. A launch that
@@ -105,6 +106,24 @@ static func is_test_run() -> bool:
 		if arg.replace("\\", "/").contains(_GUT_PATH_MARKER):
 			return true
 	return false
+
+#-----------------------------------------------------------------------------
+# THE MAIN SCENE
+#-----------------------------------------------------------------------------
+
+## The res:// path of the project's main scene, the one a launch of the game
+## plays. The setting holds its uid.
+static func main_scene_path() -> String:
+	var main_scene: String = ProjectSettings.get_setting("application/run/main_scene")
+	return ResourceUID.ensure_path(main_scene)
+
+## True when `scene` is the project's main scene, as the current scene of every
+## launch of the game is. False for null and for any other scene: the editor's Run
+## Current Scene, a scene named on the command line, and a script run (-s), which
+## starts none. The engine makes the run's scene the current scene before the
+## autoloads' _ready(), so PersistenceManager asks at boot which scene runs.
+static func is_main_scene(scene: Node) -> bool:
+	return scene != null and scene.scene_file_path == main_scene_path()
 
 #-----------------------------------------------------------------------------
 # THE PIN

@@ -1,9 +1,10 @@
 extends GutTest
 
-## Unit tests for PersistenceManager's sessions: boot (the launch options and the
-## boot backup), opening a save file (load, migrate, check, repair), swapping a
-## save in, writing (save_data(), the autosave tick, the save on quit) and the
-## save lock. Each test builds its own PersistenceManager (never the autoload)
+## Unit tests for PersistenceManager's sessions: boot (the launch options, the
+## backup of the main save, and a run of another scene, which reads its save into
+## memory), opening a save file (the backup, load, migrate, check, repair),
+## swapping a save in, writing (save_data(), the autosave tick, the save on quit)
+## and the save lock. Each test builds its own PersistenceManager (never the autoload)
 ## pointed at temporary user:// files and a temporary backup folder, so the
 ## developer's real save.tres, its lock and its backups are never read or
 ## written. The last test reads the autoload's state, to show this GUT run plays
@@ -585,6 +586,58 @@ func test_close_request_autosaves() -> void:
 	manager.save_game_data.gold = 99.0
 	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
 	assert_eq(_gold_in_file(path), 99.0, "closing the window saves what the last tick missed")
+
+#-----------------------------------------------------------------------------
+# A RUN OF ANOTHER SCENE
+#-----------------------------------------------------------------------------
+# _ready() tells boot() whether the run plays the main scene. Only such a run
+# writes a save: a run of another scene (the editor's Run Current Scene, a scene
+# named on the command line) or of none (a script run) reads its save into memory.
+
+## The main save is the file here, which a plain launch would lock and back up.
+func test_a_run_of_another_scene_reads_the_save_into_memory() -> void:
+	var path := _path("scene_run")
+	var original := READABLE_SAVE_TEXT % "TestZone"
+	_write(path, original)
+	var manager := _make_manager(path)
+	manager.main_save_path = path
+	manager.boot(LaunchOptions.new(), false)
+	assert_true(manager.is_in_memory(), "the session lives in memory")
+	assert_false(manager.is_save_blocked(), "which is not a block: nothing is wrong with the save")
+	assert_eq(manager.save_game_data.gold, 42.0, "it plays the save on disk")
+	assert_eq(manager.save_game_data.current_selected_zone_id, "SpiritValley", "migrated, as a launch's save is")
+	assert_eq(SaveLock.holder_pid(path), 0, "it takes no lock")
+	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "and backs nothing up")
+	manager.save_game_data.gold = 99.0
+	manager.tick()
+	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	assert_eq(_read(path), original, "it writes nothing, on a tick or on close")
+
+## A save that will not load is left for the next launch of the game, which copies
+## it aside: this run copies and writes nothing, and plays a new game in memory.
+func test_a_run_of_another_scene_leaves_an_unreadable_save_alone() -> void:
+	var path := _path("scene_run_unreadable")
+	_write(path, UNREADABLE_SAVE_TEXT)
+	var manager := _make_manager(path)
+	manager.main_save_path = path
+	manager.boot(LaunchOptions.new(), false)
+	_expect_load_errors()
+	assert_true(manager.is_in_memory())
+	assert_eq(manager.save_game_data.gold, 0.0, "a new game in memory")
+	assert_eq(_read(path), UNREADABLE_SAVE_TEXT, "the file is left as it was")
+	assert_eq(_backups_of(path, "unreadable").size(), 0, "and not copied aside")
+
+## A preset session keeps its own rules in any run, so one written to a --save file
+## holds that file's lock. Only a run of the main scene saves on quit, though.
+func test_a_run_of_another_scene_saves_nothing_on_close() -> void:
+	var path := _path("scene_run_close")
+	var manager := _make_manager(_path("scene_run_close_default"))
+	manager.boot(LaunchOptions.parse(PackedStringArray(["--preset=merchant_open", "--save=" + path])), false)
+	assert_eq(manager.save_path, path, "precondition: the preset session writes the --save file")
+	manager.save_game_data.gold = 99.0
+	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	assert_false(FileAccess.file_exists(path), "closing the window writes nothing")
+	assert_eq(SaveLock.holder_pid(path), 0, "and gives the lock up")
 
 #-----------------------------------------------------------------------------
 # USE SAVE

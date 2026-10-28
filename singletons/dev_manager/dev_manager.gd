@@ -506,11 +506,11 @@ func _tear_down() -> void:
 	PlayerManager.reset_vitals()
 	Engine.time_scale = GameSpeed.base_scale
 
-## Frees the main scene when it is the current scene, and returns true when it did.
-## Any other current scene (GUT's runner, a scene run on its own) stays.
+## Frees the main scene when it is the current scene (LaunchOptions.is_main_scene()),
+## and returns true when it did. Any other current scene (GUT's runner, a scene run
+## on its own) stays.
 func _unload_main_scene() -> bool:
-	var scene: Node = get_tree().current_scene
-	if scene == null or scene.scene_file_path != _main_scene_path():
+	if not LaunchOptions.is_main_scene(get_tree().current_scene):
 		return false
 	get_tree().unload_current_scene()
 	return true
@@ -518,14 +518,9 @@ func _unload_main_scene() -> bool:
 ## Loads the main scene again. Its nodes are ready at the end of the frame, and read
 ## the new session then.
 func _load_main_scene() -> void:
-	var error: Error = get_tree().change_scene_to_file(_main_scene_path())
+	var error: Error = get_tree().change_scene_to_file(LaunchOptions.main_scene_path())
 	if error != OK:
 		Log.error("DevManager: Could not load the main scene again (error %d)" % error)
-
-## The res:// path of the project's main scene. The setting holds its uid.
-func _main_scene_path() -> String:
-	var main_scene: String = ProjectSettings.get_setting("application/run/main_scene")
-	return ResourceUID.ensure_path(main_scene)
 
 ## Brings back the session a failed switch left, the way a launch on it comes up:
 ## your save opens again from disk, a preset is built again where it was written,

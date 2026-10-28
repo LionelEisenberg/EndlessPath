@@ -217,7 +217,7 @@ A test file's name says which system or flow it checks (`tests/unit/test_<system
 
 | Area | Not covered |
 |------|-------------|
-| PersistenceManager / SaveGameData | The autoload's own boot on a real launch (the tests boot bare instances, and the one autoload test reads the GUT-run branch); a real window close (the tests send `NOTIFICATION_WM_CLOSE_REQUEST` themselves); `SaveTimer`'s connection to `tick()`; the `kill -0` branch of `SaveLock.is_process_alive()` (the suite runs on Windows, where it asks `tasklist`) |
+| PersistenceManager / SaveGameData | The autoload's own boot on a real launch (the tests boot bare instances, and the one autoload test reads the GUT-run branch), and its check of which scene runs (the tests hand `boot()` the answer); a real window close (the tests send `NOTIFICATION_WM_CLOSE_REQUEST` themselves); `SaveTimer`'s connection to `tick()`; the `kill -0` branch of `SaveLock.is_process_alive()` (the suite runs on Windows, where it asks `tasklist`) |
 | ResourceManager | The known bugs in [RESOURCES.md](../infrastructure/RESOURCES.md#bugs): `set_madra()` ignoring the cap; the 0 cap when the stage has no resource (a gain adds nothing) |
 | CultivationManager | The missing `SILVER` entry in `PATH_POINTS_PER_STAGE` ([CULTIVATION.md](../cultivation/CULTIVATION.md)); the order of `advance_to_next_stage()`'s log line and signals |
 | Tribulation | Pixels: what the stage's draw handlers paint (the colours, the Echo swap and the draw order) was checked once against an oracle in a scratch renderer, not by a test; the live `MainView._unhandled_input()` route and the real keyboard (the playtest checks Space and Escape) |

@@ -74,6 +74,10 @@ var autosave_enabled: bool = true
 ## What autosave_enabled was at launch: false after --no-autosave and in a GUT run.
 var _autosave_at_launch: bool = true
 
+## True when the run plays the main scene, as every launch of the game does
+## (boot()). Only such a run saves when its window closes.
+var _plays_main_scene: bool = true
+
 ## Set when the session's save could not be read or checked, a newer build wrote
 ## it, or another run holds its lock or took the lock over. Nothing writes it
 ## until another save becomes the session's.
@@ -101,11 +105,15 @@ func _ready() -> void:
 		_autosave_at_launch = false
 		use_save(SaveGameData.new_current(), "")
 		return
-	boot()
+	# The engine has made the run's scene the current scene already: it adds the
+	# scene to the tree with the autoloads, and runs their _ready() first.
+	boot(null, LaunchOptions.is_main_scene(get_tree().current_scene))
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		autosave()
+		# Only a run of the main scene saves on quit, as only its SaveTimer saves.
+		if _plays_main_scene:
+			autosave()
 		# After the last write, so the lock holds until it is done.
 		_release_lock()
 
@@ -123,10 +131,16 @@ func _notification(what: int) -> void:
 ## the main save does.
 ## Any other session: --save=<path> replaces save_path, then open_save_file() makes
 ## save_path the session, backing the main save up when that is the file.
-func boot(options: LaunchOptions = null) -> void:
+## `plays_main_scene` false is a run of another scene (the editor's Run Current
+## Scene, a scene named on the command line) or of none (a script run): such a run
+## writes no save. A session other than a preset's plays save_path in memory
+## (_play_in_memory()), with no lock and no backup, and no run of another scene
+## saves when its window closes.
+func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 	var launch: LaunchOptions = options if options != null else LaunchOptions.current()
 	autosave_enabled = not launch.no_autosave
 	_autosave_at_launch = autosave_enabled
+	_plays_main_scene = plays_main_scene
 	if launch.preset_id != "":
 		use_save(SaveGameData.new_current(), launch.save_path)
 		# Under the lock use_save() took, before DevManager builds the preset.
@@ -134,6 +148,9 @@ func boot(options: LaunchOptions = null) -> void:
 		return
 	if launch.save_path != "":
 		save_path = launch.save_path
+	if not plays_main_scene:
+		_play_in_memory(save_path)
+		return
 	open_save_file(save_path)
 
 ## Makes the save file at `path` the session: the one way a file becomes it, at
@@ -324,6 +341,22 @@ func _load_session_save(path: String) -> void:
 	if not repaired.is_empty():
 		var invalid_copy: String = SaveFiles.copy_aside(read_path, "invalid")
 		Log.warn("PersistenceManager: Repaired %s in %s. The file as it was is at %s" % [", ".join(repaired), path, invalid_copy])
+
+## Plays the save at `path` in memory, for a run that does not play the main scene
+## (boot()): it is loaded, migrated and repaired in memory as open_save_file() does,
+## but no lock is taken and nothing is backed up, copied aside or written, so the
+## file stays as it is for the next launch of the game. A save that is missing, or
+## will not load, gives a new game in memory.
+func _play_in_memory(path: String) -> void:
+	var loaded: SaveGameData = SaveFiles.load_save(path)
+	if loaded == null:
+		loaded = SaveGameData.new_current()
+	# Does nothing to a save a newer build wrote, which is played as it is.
+	loaded.migrate()
+	if _can_verify():
+		loaded.repair()
+	use_save(loaded, "")
+	Log.info("PersistenceManager: This run does not play the main scene, so %s is read into memory and never written" % path)
 
 ## Backs the main save up (backup_main_save()) when `path` is it and this session
 ## has just taken its lock: the save as the session found it, before anything can

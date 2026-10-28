@@ -491,7 +491,7 @@ Output: five lines of the form `uid://...`.
 | `singletons/dev_manager/dev_commands.gd` | `DevCommands`: the command API |
 | `scripts/resource_definitions/dev/` | `DevStepData`, `StoryBeatData`, `StoryRouteData`, `SavePresetData` |
 | `resources/dev/story_route.tres`, `resources/dev/save_presets/` | The story route and the shipped presets |
-| `scripts/utils/launch_options.gd` | `--preset`, `--save`, `--no-autosave`, the pin and test-run detection |
+| `scripts/utils/launch_options.gd` | `--preset`, `--save`, `--no-autosave`, the pin, test-run detection and the main-scene check (`is_main_scene()`, `main_scene_path()`) |
 | `scripts/utils/game_speed.gd` | `GameSpeed`: the base time scale (`base_scale`, `set_base_scale()`) a switch puts the engine back to |
 | `.dev_settings.cfg` (gitignored) | A checkout's pinned preset |
 | `scenes/adventure/adventure_view/adventure_view.gd` | `force_win_combat()`, `force_end_adventure()`, `set_show_whole_map()` |

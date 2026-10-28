@@ -67,16 +67,19 @@ A run plays one session:
 
 | Session | Chosen by | `save_path` | Lock | Boot backup | Written |
 |---------|-----------|-------------|------|-------------|---------|
-| The user's own save | No `--save`, no `--preset`, no pinned preset | `user://save.tres`, which is also `main_save_path` | Yes | Yes | By the tick and the close |
-| A file | `--save=<path>`, no `--preset` | The path | Yes | No | By the tick and the close |
-| A preset | `--preset=<id>`, or a pinned preset on a plain launch; `DevManager` in game | `""`, or the `--save` path when a launch gave one | Only with `--save` | Only when the `--save` path is `main_save_path` | Only with `--save`, by the tick and the close |
+| The user's own save | A run of the main scene with no `--save`, no `--preset` and no pinned preset | `user://save.tres`, which is also `main_save_path` | Yes | Yes | By the tick and the close |
+| A file | A run of the main scene with `--save=<path>` and no `--preset` | The path | Yes | No | By the tick and the close |
+| Read into memory | A run of another scene, or of none, with no `--preset` and no pinned preset (see below) | `""`: the user's save, or the `--save` file, is read into memory | No | No | Never |
+| A preset | `--preset=<id>`, or a pinned preset on a plain launch; `DevManager` in game | `""`, or the `--save` path when a launch gave one | Only with `--save` | Only when the `--save` path is `main_save_path` | Only with `--save`, by the tick and, in a run of the main scene, the close |
 | In memory | A GUT run | `""` | No | No | Never: `save_data()` returns `ERR_UNAVAILABLE` |
 
 A preset session reads no file. `boot()` binds a fresh `SaveGameData.new_current()` to the `--save` path (`""` for none), and `DevManager` builds the preset on it in its own `_ready()`, once every other autoload is ready. A preset written over the user's own save (`--preset=<id> --save=user://save.tres`) is backed up first, under the lock, as a launch on that save is, so a preset never overwrites the user's save without a backup; it still reads nothing from it. How a preset is built, what happens when it does not build, and how `DevManager` switches sessions in game are in [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#save-presets).
 
 A GUT run is detected by `LaunchOptions.is_test_run()`: `addons/gut/` appears in the engine arguments (the CLI's `-s addons/gut/gut_cmdln.gd`, and the editor panel's `--scene res://addons/gut/gui/run_from_editor.tscn`). The user arguments are not engine arguments, so a `--save=` path cannot make a normal launch look like one. `PersistenceManager._ready()` boots a GUT run on `SaveGameData.new_current()` in memory, with `main_save_path` set to `""` (no main save to open or back up) and `autosave_enabled` false. No test run reads or writes `user://save.tres`, its lock or `user://backups/`.
 
-Any run of the project that is not a GUT run (the main scene, any other scene, a headless `-s` script) plays the user's real save unless it passes `--save=` or `--preset=`, or a preset is pinned for the checkout: it backs the save up at boot and takes its lock, and a run with a window saves it and gives up the lock when the window closes. The command for a run on its own file is in `CLAUDE.md`.
+A run of the main scene that is not a GUT run plays the user's real save unless it passes `--save=` or `--preset=`, or a preset is pinned for the checkout: it takes the save's lock and backs it up at boot, and saves it and gives up the lock when its window closes. The command for a run on its own file is in `CLAUDE.md`.
+
+Only a run of the main scene writes a save. A run of another scene (the editor's Run Current Scene, a scene named on the command line) or of none (a headless `-s` script) reads its save, the user's or the `--save` file, into memory: migrated and repaired there, with no lock and no backup, nothing copied aside and nothing written, so a single scene played on its own never changes the save or rotates its backups, and never holds a lock that would lock a launch of the game out. A save that is missing or will not load gives a new game in memory and is left for the next launch of the game. A preset session keeps its own rules in such a run, but no run of another scene saves when its window closes. `PersistenceManager._ready()` tells `boot()` which it is with `LaunchOptions.is_main_scene(get_tree().current_scene)`: the engine adds the run's scene to the tree, as the current scene, with the autoloads, and runs their `_ready()` before the scene's.
 
 ### Save file location
 
@@ -120,7 +123,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 
 | Function | Behaviour |
 |----------|-----------|
-| `boot(options)` | Starts the run's session from its launch options (`null` reads `LaunchOptions.current()`): sets `autosave_enabled` and `save_path`, then calls `open_save_file()`, which backs the main save up when that is the file. With a preset (`options.preset_id`) it reads no file: it calls `use_save()` with a fresh save and the `--save` path (`""` for none), backs the main save up only when that path is the main save, and `DevManager` builds the preset on it next. `_ready()` calls it, except in a GUT run |
+| `boot(options, plays_main_scene = true)` | Starts the run's session from its launch options (`null` reads `LaunchOptions.current()`): sets `autosave_enabled` and `save_path`, then calls `open_save_file()`, which backs the main save up when that is the file. With a preset (`options.preset_id`) it reads no file: it calls `use_save()` with a fresh save and the `--save` path (`""` for none), backs the main save up only when that path is the main save, and `DevManager` builds the preset on it next. With `plays_main_scene` false, a session other than a preset's reads `save_path` into memory instead, and the window's close saves nothing ([Sessions and launch options](#sessions-and-launch-options)). `_ready()` calls it, except in a GUT run, with whether the current scene is the main scene |
 | `open_save_file(path, back_up = true)` | Makes the file at `path` the session: the one way a file becomes it. Clears any block, moves the lock to `path`, backs the main save up when `path` is it and the lock is the session's (`back_up` false skips that, for a restore, which backed the save up itself), loads the save as [Boot and load](#boot-and-load) says, and ends with `save_data_reset` |
 | `use_save(save, path)` | Makes the `SaveGameData` object `save` the session's save, written to `path` (`""` keeps it in memory), then emits `save_data_reset`. Any block clears, and the lock moves to `path` |
 | `save_data() -> Error` | Stamps `save_version`, then writes the save to `save_path` through a temp file. `ERR_UNAVAILABLE` for a session in memory, `ERR_LOCKED` while saving is blocked or once the lock's heartbeat finds the lock lost, writing nothing; otherwise what `SaveFiles.write_atomically()` returns |
@@ -141,7 +144,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 
 | Class | File | Public functions |
 |-------|------|------------------|
-| `LaunchOptions` | `scripts/utils/launch_options.gd` | `parse(user_args, pinned_preset_id = "")` (returns an object with `save_path`, empty when `--save` was not given, `preset_id`, empty for no preset, `preset_from_pin` and `no_autosave`), `current()` (this process's own, parsed once, with the checkout's pin), `is_test_run()`, and the pin: `pin_file_path()`, `read_pin()`, `write_pin(preset_id)`. The static `pin_path_override` points the pin at another file, for tests only |
+| `LaunchOptions` | `scripts/utils/launch_options.gd` | `parse(user_args, pinned_preset_id = "")` (returns an object with `save_path`, empty when `--save` was not given, `preset_id`, empty for no preset, `preset_from_pin` and `no_autosave`), `current()` (this process's own, parsed once, with the checkout's pin), `is_test_run()`, `main_scene_path()` and `is_main_scene(scene)` (true when `scene` is the project's main scene; `PersistenceManager` and `DevManager` both ask it), and the pin: `pin_file_path()`, `read_pin()`, `write_pin(preset_id)`. The static `pin_path_override` points the pin at another file, for tests only |
 | `SaveFiles` | `singletons/persistence_manager/save_files.gd` | `temp_path_for(path)`, `write_atomically(resource, path)`, `write_bytes_atomically(bytes, path)` (the same temp-file write for raw bytes: it puts a copy of a save file in place of another, byte for byte), `load_save(path)`, `copy_aside(path, reason)`, `backup(path, backup_dir, keep)`, `list_backups(path, backup_dir)` |
 | `SaveLock` | `singletons/persistence_manager/save_lock.gd` | `lock_path_for(save_path)`, `acquire(save_path)`, `refresh(save_path)`, `release(save_path)`, `holder_pid(save_path)`, `is_process_alive(pid)`. `STALE_AFTER_SECONDS` is 60 |
 
@@ -218,16 +221,19 @@ Item definitions are not copied into the save. The keys of the `InventoryData` d
 ### Boot and load
 
 ```
-Godot instantiates every autoload (member initializers run), then adds them
-to the tree in project.godot order, running each one's _ready():
+Godot instantiates every autoload (member initializers run) and the run's scene, adds them to the root
+(the autoloads in project.godot order, then the scene, which is the current scene from then on), and
+runs their _ready() in that order:
 
  1. PersistenceManager._ready()
       GUT run:    use_save(SaveGameData.new_current(), "")     a save in memory; nothing below runs
-      otherwise:  boot()
+      otherwise:  boot(), told whether the current scene is the main scene (LaunchOptions.is_main_scene())
         autosave_enabled = not --no-autosave;  save_path = --save=<path> when given
         --preset=<id> or a pinned preset:  use_save(SaveGameData.new_current(), the --save path or "")
                                            (then back the main save up, when that path is it and the lock was granted)
                                            no file is read; open_save_file() and the rest of this step do not run
+        a run of another scene or none:    the save at save_path read into memory (migrated, repaired there);
+                                           no lock, no backup, nothing written; open_save_file() does not run
         open_save_file(save_path)
           move the lock to save_path      another live run holds it → saving blocked, the save still loads
           the main save, under the lock   backed up as it is on disk (no backup when another run holds the lock)
@@ -242,7 +248,7 @@ to the tree in project.godot order, running each one's _ready():
  3. DevManager._ready(), the last autoload (nothing in a GUT run)
       a preset launch: builds the preset on the save step 1 bound, then clears the player's log
 
-main_game.tscn loads → MainGame._ready() (sets Log print level) → SaveTimer starts
+main_game.tscn's own _ready() (MainGame sets the Log print level) → SaveTimer starts
 ```
 
 The order inside `open_save_file()`:
@@ -278,9 +284,9 @@ Windows also refuses the rename, at either step, while another process holds the
 - `SaveTimer.timeout` calls `PersistenceManager.tick()` every **5 seconds**, set as `wait_time = 5.0` with `autostart = true` on the `SaveTimer` node in `main_game.tscn`. `save_timer.gd` only connects `timeout`, and no code changes `wait_time`.
 - `tick()` beats the lock's heartbeat, then calls `autosave()`, which writes only when `autosave_enabled` and `can_write()`. A failed write is logged with `Log.error`, and the next tick tries again.
 - The whole file is written every 5 s on the main thread. While saving is blocked (an unreadable, newer, unverifiable or locked-out save), each write returns `ERR_LOCKED` and writes nothing.
-- **Save on quit.** `NOTIFICATION_WM_CLOSE_REQUEST` calls `autosave()` and then releases the lock, so a normal close of a session that can write loses nothing. It writes nothing under `--no-autosave`. The editor's Stop button kills the process without a close request, so it still loses up to 5 s.
+- **Save on quit.** In a run of the main scene, `NOTIFICATION_WM_CLOSE_REQUEST` calls `autosave()` and then releases the lock, so a normal close of a session that can write loses nothing. It writes nothing under `--no-autosave`. A run of another scene only releases the lock: it writes no save. The editor's Stop button kills the process without a close request, so it still loses up to 5 s.
 - There is no immediate save after important events.
-- `SaveTimer` exists only in `main_game.tscn`. A run of any other scene has no tick: it never autosaves on a timer and never refreshes its lock, but it still saves when its window closes.
+- `SaveTimer` exists only in `main_game.tscn`. A run of any other scene has no tick, and writes no save at all ([Sessions and launch options](#sessions-and-launch-options)).
 
 ### The save lock
 
@@ -288,7 +294,7 @@ One run at a time writes a save. A session on a file holds that save's lock, `<s
 
 - **Live or stale.** A lock is live when its process is alive and its time is within `SaveLock.STALE_AFTER_SECONDS` (60 s). The process check asks the OS, `tasklist` on Windows (about 100 ms, so it runs only for a recent lock) and `kill -0` elsewhere, because `OS.is_process_running()` only knows the processes this one started. A stale lock (its run crashed, was killed or hung) is taken over by the next run.
 - **Taking it.** `acquire()` succeeds when there is no lock, the lock is stale, or it is already this run's. `PersistenceManager` takes it when a session starts on a file (before the main save's backup) and moves it when the session moves to another file. A refused session plays its save with saving blocked. A lock file that cannot be written is logged by `SaveLock` but still counts as taken, so the session finds its lock missing at its first write or tick and blocks (`its lock file is gone`).
-- **The heartbeat** moves `time=` to now, in `tick()` (also under `--no-autosave`) and at the start of every `save_data()`. The tick comes from the `SaveTimer`, which runs only while `main_game.tscn` does: a run of any other scene takes the lock at boot and never refreshes it, so after 60 s another run may take it over.
+- **The heartbeat** moves `time=` to now, in `tick()` (also under `--no-autosave`) and at the start of every `save_data()`. The tick comes from the `SaveTimer`, which runs only while `main_game.tscn` does. A run of any other scene takes no lock on the save it reads into memory; only a preset session written to a `--save` file there takes that file's lock, and never refreshes it, so after 60 s another run may take it over.
 - **Losing it.** A session whose lock another run took over (a different pid is in the file), or whose lock file is gone, finds out at its next tick or write. It blocks with `taken over by another run (pid N)` or `(its lock file is gone)` and writes nothing from then on.
 - **Giving it up.** The close request releases the lock after its last write. `release()` deletes only a lock that holds this run's pid, so a run never deletes another run's lock.
 - **Advisory only.** Two runs that open one save within the same few milliseconds can both win it.
@@ -394,7 +400,7 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 | `singletons/persistence_manager/persistence_manager.gd` | Sessions, load, repair, write, backups, the lock |
 | `singletons/persistence_manager/save_files.gd` | Temp-file writes, loads, copies aside, backups |
 | `singletons/persistence_manager/save_lock.gd` | One writer per save |
-| `scripts/utils/launch_options.gd` | Launch options, the pin and test-run detection |
+| `scripts/utils/launch_options.gd` | Launch options, the pin, test-run detection and the main-scene check |
 | `singletons/persistence_manager/save_game_data.gd` | Root save schema, version, `migrate()`, `repair()`, `verify()`, `reset()`, zone helpers |
 | `singletons/persistence_manager/play_stats_data.gd` | Play stats sub-resource |
 | `singletons/persistence_manager/inventory_data.gd` | Inventory sub-resource |
@@ -417,7 +423,7 @@ Tests: `tests/unit/test_persistence_manager.gd` and `tests/unit/test_save_migrat
 
 - `[LOW]` In-progress adventures and action timers are not saved (see [What is not saved](#what-is-not-saved)). Quitting mid-adventure forfeits the Madra drained at its start.
 - `[LOW]` A player has one save, the user's own `user://save.tres`. Another file is reachable only through `--save=`.
-- `[LOW]` The lock's heartbeat runs only in `main_game.tscn`, the one scene with a `SaveTimer`. A run of any other scene holds its lock for 60 s at most. After that another run may take the save over, and the first run then blocks itself and writes nothing when its window closes.
+- `[LOW]` The lock's heartbeat runs only in `main_game.tscn`, the one scene with a `SaveTimer`. A preset session written to a `--save` file in a run of another scene holds that file's lock for 60 s at most, after which another run may take the file over. Such a run never writes the file, since no run of another scene saves on quit.
 
 ### Tech Debt
 

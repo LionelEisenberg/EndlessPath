@@ -2,11 +2,12 @@ extends GutTest
 
 ## Unit tests for LaunchOptions: the options after `--` on the command line
 ## (`--save=<path>`, `--no-autosave` and `--preset=<id>`), the checkout's pinned
-## preset, and the detection of a GUT test run. parse() takes its arguments and
-## the pin as parameters, so its tests do not depend on how this process was
-## started. The pin tests point pin_path_override at a temp file, so the
-## checkout's own pin file is never written. is_test_run() reads the real command
-## line, which in this suite is always a GUT run.
+## preset, the detection of a GUT test run, and the check that a scene is the
+## project's main scene. parse() takes its arguments and the pin as parameters, so
+## its tests do not depend on how this process was started. The pin tests point
+## pin_path_override at a temp file, so the checkout's own pin file is never
+## written. is_test_run() reads the real command line, which in this suite is
+## always a GUT run.
 
 ## The pin file the pin tests write. after_each() deletes it.
 const PIN_PATH: String = "user://__test_launch_options_pin.cfg"
@@ -134,3 +135,23 @@ func test_current_is_computed_once() -> void:
 
 func test_this_suite_is_a_test_run() -> void:
 	assert_true(LaunchOptions.is_test_run())
+
+#-----------------------------------------------------------------------------
+# THE MAIN SCENE
+#-----------------------------------------------------------------------------
+
+func test_the_main_scene_path_is_the_project_main_scene() -> void:
+	assert_eq(LaunchOptions.main_scene_path(), "res://scenes/main/main_game/main_game.tscn", "the setting's uid, as a res:// path")
+
+## Only a run of the main scene saves (PersistenceManager.boot()), and only the main
+## scene is freed and loaded again by a session switch (DevManager). A script run
+## (-s) starts no scene, so its current scene is null.
+func test_only_the_main_scene_is_the_main_scene() -> void:
+	var main_scene: Node = autofree(Node.new())
+	main_scene.scene_file_path = LaunchOptions.main_scene_path()
+	var other_scene: Node = autofree(Node.new())
+	other_scene.scene_file_path = "res://scenes/ui/dev_panel/dev_panel.tscn"
+	assert_true(LaunchOptions.is_main_scene(main_scene))
+	assert_false(LaunchOptions.is_main_scene(other_scene), "another scene, as the editor's Run Current Scene plays")
+	assert_false(LaunchOptions.is_main_scene(autofree(Node.new())), "a node that is no scene")
+	assert_false(LaunchOptions.is_main_scene(null), "no scene at all, as in a script run")
