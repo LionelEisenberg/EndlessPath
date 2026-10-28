@@ -52,6 +52,13 @@ const Result := TribulationRun.Result
 ## The trial's input: Space, or the left mouse button.
 const PRESS_ACTION: StringName = &"tribulation_press"
 
+## The board's height at rest, for a zone name on one line (a name that wraps grows the
+## board by a line each). The board is as tall as its content, and a board that has not
+## yet been shown for a frame has not laid its wrapping labels out: they are 1 px wide
+## and the board measures 2318 px tall. get_board_rect() reports this height so that
+## the first open is framed by the board it will show.
+const BOARD_REST_HEIGHT: float = 768.0
+
 ## Where a floater stands on the stage as it pops, before it rises: a feedback's word,
 ## and the reason line under a miss's word. Their left edge is 2 art px clear of the
 ## hold arc, whose band ends 158 px right of the centre (x 608).
@@ -306,9 +313,11 @@ func close() -> void:
 	hide()
 
 ## Returns the board's rect in the screen's space: where a transition scales the view
-## out of the cultivator to, and back into.
+## out of the cultivator to, and back into. Its height is BOARD_REST_HEIGHT, not the
+## board's own, which is wrong until a frame has run with the board shown (and the
+## transition reads it before then, while the board is still hidden).
 func get_board_rect() -> Rect2:
-	return _board.get_global_rect()
+	return Rect2(_board.global_position, Vector2(_board.size.x, BOARD_REST_HEIGHT))
 
 ## Takes an event of the trial's input (tribulation_press) and returns true for each one
 ## of them, false for any other event. A key's repeats are not presses. On the intro a key
