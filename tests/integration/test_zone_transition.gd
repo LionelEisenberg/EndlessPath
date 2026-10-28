@@ -5,7 +5,7 @@ extends GutTest
 ## plate and the zone map by name among its parent's descendants, pours Madra
 ## pellets from the plate's orb to the character, zooms the map's camera in,
 ## then confirms the adventure. main_game.tscn is only read, never instanced:
-## its SaveTimer would write the real save.
+## the scenes it needs are built on their own instead.
 
 const MAIN_GAME_SCENE_PATH: String = "res://scenes/main/main_game/main_game.tscn"
 const ZONE_TILEMAP_SCENE_PATH: String = "res://scenes/zones/zone_tilemap/zone_tilemap.tscn"

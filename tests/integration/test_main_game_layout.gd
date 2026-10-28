@@ -6,8 +6,8 @@ extends GutTest
 ## instance's properties that equal its scene's own, and a control in Position
 ## layout mode snaps to its parent's top-left corner when the mode is set on
 ## load, so in Position mode the furniture landed at (0, 0) after any save of
-## main_game.tscn. The scene is only instanced, never added to the tree: its
-## SaveTimer would write the real save.
+## main_game.tscn. The scene is only instanced, never added to the tree: that
+## would start the whole game inside the test (TESTING.md).
 
 const MAIN_GAME_SCENE: PackedScene = preload("res://scenes/main/main_game/main_game.tscn")
 ## Each panel's place on the 1920x1080 screen, by its path from the scene root.

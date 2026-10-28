@@ -299,9 +299,10 @@ func stop_adventure() -> void:
 	map_changed.emit()
 	
 
-## Handles the result of a combat encounter. A fight's win is handled once:
-## AdventureCombat can report it again (see the comments below), and the repeat
-## finds the fight's choice already cleared.
+## Handles the result of a combat encounter. Every report of a win pays the gold it
+## carries. The rest of a win is handled once: AdventureCombat can report a win
+## again (see the comments below), and the repeat finds the fight's choice already
+## cleared, so the fight counts, runs its effects and resolves its tile once.
 func handle_combat_result(successful: bool, gold_earned: int = 0) -> void:
 	Log.info("AdventureTilemap: Combat ended - Success: %s, Gold: %d" % [successful, gold_earned])
 	

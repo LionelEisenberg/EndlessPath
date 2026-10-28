@@ -195,8 +195,9 @@ func get_run_timer() -> Timer:
 	return _run_timer
 
 ## DEV-only: immediately resolve the current combat as a win, by taking all of the
-## enemy's Health, so the fight ends as in play: AdventureCombat pays the fight's
-## gold and fires q_first_steps_enemy_defeated, then the view and the map end it.
+## enemy's Health, so the fight ends as in play: AdventureCombat works out the
+## fight's gold, fires q_first_steps_enemy_defeated and reports the win, then the
+## map pays the gold, and the view and the map end the fight.
 ## No-op if not currently in combat, or if the enemy is gone or already down: the
 ## Health setter reports 0 again, which would pay the fight's gold a second time.
 ## Called by DevCommands.force_win_fight(); do not call from gameplay code.

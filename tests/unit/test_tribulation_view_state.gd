@@ -12,7 +12,7 @@ extends GutTest
 ## for the rest, and calls the state's handlers instead of emitting ActionManager's signals,
 ## since the state never enters the tree to connect them. Every test runs on a fresh save at
 ## level 100 on the real stages, with the original put back after it. main_game.tscn is only
-## read, never instanced: its SaveTimer would write the real save.
+## read, never instanced: the views it needs are built on their own instead.
 
 const VIEW_SCENE_PATH: String = "res://scenes/tribulation/tribulation_view.tscn"
 const STATE_SCRIPT_PATH: String = "res://scenes/tribulation/tribulation_view_state.gd"

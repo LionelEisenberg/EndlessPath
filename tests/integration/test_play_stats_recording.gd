@@ -96,10 +96,9 @@ func _start_a_tilemap_run(choice: CombatChoice) -> AdventureTilemap:
 	var tilemap: AdventureTilemap = AdventureTilemapScene.instantiate()
 	add_child_autofree(tilemap)
 	_tilemaps.append(tilemap)
-	# The project's hex layer script overrides _ready() without super(), so the
-	# addon only sets up its cube<->map conversions when the shared TileSet
-	# emits `changed`, which happens once after it first loads. Re-emit it so
-	# this fresh tilemap's map layers are initialised.
+	# A leftover from when the project's hex layer skipped the addon's own set-up:
+	# the layer now sets itself up in its own _ready(), so this re-emit of the
+	# shared TileSet's `changed` is no longer needed. It is harmless.
 	tilemap.full_map.tile_set.emit_changed()
 	await get_tree().process_frame
 	tilemap.start_adventure_on_map(ADVENTURE_ACTION, _map)
@@ -120,8 +119,8 @@ func _assert_empty(stats: PlayStatsData, what: String) -> void:
 #-----------------------------------------------------------------------------
 
 func test_the_main_scene_adds_its_frames_to_play_time() -> void:
-	# The script on its own, never main_game.tscn (see TESTING.md: the scene's
-	# SaveTimer writes the save).
+	# The script on its own, never main_game.tscn, which would start the whole
+	# game inside the test (TESTING.md).
 	var main_game: Node2D = autofree(MainGameScript.new())
 	simulate(main_game, 4, 0.25)
 	assert_eq(_stats().play_time, 1.0, "four frames of a quarter second")

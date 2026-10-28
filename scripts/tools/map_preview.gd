@@ -78,9 +78,9 @@ func _generate() -> void:
 		_last_used_seed = seed_value
 		seed(seed_value)
 
-	# The HexagonTileMapLayer addon only wires up its cube<->map conversion
-	# callables inside _enter_tree() when NOT in editor mode. Force the setup
-	# manually so cube_to_map / cube_to_local / cube_distance work here.
+	# The HexagonTileMapLayer addon sets up its cube<->map conversion callables in
+	# its _ready(), and returns before that in the editor, where this tool runs.
+	# Force the setup manually so cube_to_map / cube_to_local / cube_distance work.
 	_preview_tile_map._on_tileset_changed()
 
 	var generator := AdventureMapGenerator.new()

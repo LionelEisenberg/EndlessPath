@@ -151,8 +151,9 @@ static func read_pin() -> String:
 		return ""
 	return str(config.get_value(_PIN_SECTION, _PIN_KEY, ""))
 
-## Pins the preset with this id, so every launch from this checkout starts in
-## it; "" unpins, erasing the key. Anything else in the pin file is kept.
+## Pins the preset with this id, so every plain launch from this checkout (one with
+## neither --preset nor --save, see parse()) starts in it; "" unpins, erasing the
+## key. Anything else in the pin file is kept.
 ## Returns the error of the load or the save, OK when the pin is written.
 static func write_pin(preset_id: String) -> Error:
 	var path: String = pin_file_path()

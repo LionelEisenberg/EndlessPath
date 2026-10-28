@@ -12,9 +12,11 @@ extends Node
 ## It never replaces a save it could not read or check. A save that fails to load
 ## (for example because a stale import cache is missing a texture an item .tres
 ## references) is copied aside, left untouched, and saving is blocked for the
-## session. So is a save a newer build wrote, which this build would write back
-## without what it does not know. A save that names a zone the game no longer has
-## is repaired, after a copy of the file is put aside.
+## session. A save a newer build wrote is left untouched too, with saving blocked,
+## since this build would write it back without what it does not know; it is
+## played as it loads, and nothing copies it aside, since it is never written. A
+## save that names a zone the game no longer has is repaired, after a copy of the
+## file is put aside.
 ##
 ## One run at a time writes a save. A session on a file holds that save's lock
 ## (SaveLock): refreshed on every tick and every write, and released when the

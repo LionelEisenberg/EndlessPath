@@ -137,7 +137,7 @@ While no adventure runs, the tab says "No adventure running" and shows nothing e
 |---------|-------|--------|
 | FIGHT: Force-win fight | `DevCommands.force_win_fight(view)` | Shown only while the view has a fight on (asked every frame while the tab is in view). Kills the enemy through its Health, so the fight ends as in play: it pays its gold, fires `q_first_steps_enemy_defeated` and resolves its tile ([ADVENTURING.md](../adventuring/ADVENTURING.md#dev-hooks)). Refused without a fight |
 | ADVENTURE: Exit as victory, Exit as defeat | `DevCommands.exit_adventure(view, victory)` | Victory takes the boss-win path (`ActionManager.stop_action(true)`), so the adventure's success effects run, the zone completion counts and the victory end card shows. Defeat calls `stop_action(false)`: failure effects and a "You retreated from the adventure" end card. Works on the map or mid-fight. Refused without a run |
-| Show whole map | `AdventureView.set_show_whole_map(pressed)` | Visual only: lifts the fog off every map tile, shows each unvisited encounter's glyph coin and changes nothing else ([ADVENTURING.md](../adventuring/ADVENTURING.md#dev-hooks)). The flag stays on the map across adventures until toggled off, so the toggle shows the map's own state each time a run shows |
+| Show whole map | `AdventureView.set_show_whole_map(pressed)` | Lifts the fog off every map tile and shows each unvisited encounter's glyph coin ([ADVENTURING.md](../adventuring/ADVENTURING.md#dev-hooks)). It changes no game state, but the tiles it reveals can be clicked and walked to, as the fog would not allow. The flag stays on the map across adventures until toggled off, so the toggle shows the map's own state each time a run shows |
 | Refill Health and Stamina | `DevCommands.refill_vitals()` | Fills Health and Stamina and keeps the Madra the run has left |
 
 Exit as victory skips the boss's own rewards: the boss encounter's `success_effects` and the fight's gold never run, only the adventure action's. Exiting mid-fight first closes the fight as a loss (a "Combat Defeat..." log line; no encounter has failure effects today).
@@ -524,7 +524,7 @@ Tests: `tests/unit/test_dev_*.gd` and `tests/integration/test_dev_*.gd`, among o
 
 ### Tech Debt
 
-- `[LOW]` `UnlockManager.force_unlock_condition()` has no caller outside tests, and its doc comment still says the dev panel uses it.
+- `[LOW]` `UnlockManager.force_unlock_condition()` has no caller outside tests.
 - `[LOW]` Pressing Generate in Map Preview and then saving rewrites the committed snapshot in `scenes/tools/map_preview.tscn` (`tile_map_data` and stats text), which makes noisy diffs.
 - `[LOW]` `generate_uid.gd` has no doc comment and a fixed count of 5.
 - `[LOW]` The `zone-mockup` launch configuration serves `mockups/`, which is gitignored and not present in the repository.
