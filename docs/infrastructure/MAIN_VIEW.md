@@ -181,7 +181,7 @@ The Tribulation (`scenes/tribulation/`, [breakthrough-tribulation.md](../cultiva
 - **Click blocking.** The `TribulationView` root is a full-screen `Control` with `MOUSE_FILTER_STOP`, and its `_gui_input()` accepts every mouse event, so no click reaches the chest, the cabinet or the map beneath, and no other action can replace the trial (`tribulation_view.gd:239`). Every node on the board except the board itself (`PASS`) and its three buttons ignores the mouse. While the board opens or closes, the transition's shield takes the clicks before the board does.
 - **Input.** `MainView` sends input only to the top state, so `TribulationViewState.handle_input()` (`tribulation_view_state.gd:67`) hands `tribulation_press` events (Space) to `view.handle_press_event()` and turns `ui_cancel` into `view.cancel()`, which acts on the intro only. While the board opens only `ui_cancel` is handled, so Space cannot begin the run on a board still growing, and while it closes nothing is. Mouse presses reach the view's `_gui_input()` and go to the same `handle_press_event()`. On the intro only Space, or a click inside the board's rect, begins the run (`tribulation_view.gd:360`): the second click of a double click on the card that opened the trial lands outside the board and does nothing, so it cannot skip the rules or **Not yet**. While the run goes on, a press counts wherever it lands. The board's buttons set `focus_mode = FOCUS_NONE`, so Space never presses one.
 - **The hold.** The last breath's hold ends only on a release of the kind of input that started it (the key, or the mouse button), or on a focus loss; the other kind coming up leaves it alone (`tribulation_view.gd:400`; the focus loss, `_notification()`, `:243`).
-- **Closing.** Whatever stopped the action (Continue: `finished(passed)` → `ActionManager.stop_action(passed)`, only while a Tribulation action is current; Not yet or Escape on the intro; or a stop from outside mid-run, a save reset or the dev panel), `stop_tribulation` first calls `view.halt()`: a run in progress is dropped and nothing of it is applied, and the board stays drawn for the close to shrink. Then the state closes the board with `close_board()` and calls `remove_state(self)` when the close ends, and its `exit()` calls `view.close()`, which hides the board. `halt()` leaves the view's mode `CLOSED`, so a second press on Continue does nothing, and the shield takes it anyway.
+- **Closing.** Whatever stopped the action (Continue: `finished(passed)` → `ActionManager.stop_action(passed)`, only while a Tribulation action is current; Not yet or Escape on the intro; or a stop from outside mid-run, which nothing in play makes today: only the tests drive one), `stop_tribulation` first calls `view.halt()`: a run in progress is dropped and nothing of it is applied, and the board stays drawn for the close to shrink. Then the state closes the board with `close_board()` and calls `remove_state(self)` when the close ends, and its `exit()` calls `view.close()`, which hides the board. `halt()` leaves the view's mode `CLOSED`, so a second press on Continue does nothing, and the shield takes it anyway.
 
 ### Board transitions
 
@@ -189,11 +189,11 @@ The cycling board and the Tribulation board open and close through one reversibl
 
 #### The player (`BoardTransition`)
 
-`BoardTransition` (`scenes/ui/main_view/board_transition/board_transition.gd` and `.tscn`) is one full-screen `Control` under `MainView` (`%BoardTransition`, z 9) that draws nothing of its own. It holds one progress value, from 0 (closed) to 1 (open), and a phase: `CLOSED`, `OPENING`, `OPEN` or `CLOSING`. While it moves, `_process()` calls `advance(delta)`, which moves the progress in its direction at the rate that crosses the open's timeline in its length, clamped to 0..1, so a long hitch ends it in one step. Every piece is drawn from the progress, at t = progress × the open's length. Nothing else moves time, so tests drive it with `advance()` and `finish()`.
+`BoardTransition` (`scenes/ui/main_view/board_transition/board_transition.gd` and `.tscn`) is one full-screen `Control` under `MainView` (`%BoardTransition`, z 9) that draws nothing of its own. It holds one progress value, from 0 (closed) to 1 (open), and a phase: `CLOSED`, `OPENING`, `OPEN` or `CLOSING`. While it moves, `_process()` calls `advance(delta)`, which moves the progress in its direction at the rate that crosses the open's timeline in its length, clamped to 0..1, so a long hitch ends it in one step. Every piece is drawn from the progress, at t = progress × the open's length. Nothing else moves time, so tests drive it with `advance()` and `finish()`. Its scene gives it `process_priority` -1, so it moves the camera before the map's markers place themselves from it and the map hit-tests the pointer, and the plates stay on their hexes in every frame of the push.
 
 | Member | Behaviour |
 |---|---|
-| `bind(dock, zone_panel, hud_boards, camera, cultivator)` | The pieces it moves. `MainView._ready()` binds the dock, the chest, the Goals board and the log (in the order they leave), `%ZoneTilemap`'s camera and its `character_body`. Any of them may be missing: a missing or freed piece is skipped |
+| `bind(dock, zone_panel, hud_boards, camera, cultivator, camera_hold)` | The pieces it moves. `MainView._ready()` binds the dock, the chest, the Goals board and the log (in the order they leave), `%ZoneTilemap`'s camera and its `character_body`, and the camera hold ([The camera push](#the-camera-push-camerapush)). Any of them may be missing: a missing or freed piece is skipped |
 | `open(spec)` | From closed: records where the dock, the HUD boards and the board's view rest, begins the camera push, reads the chest's two heights, takes the chest's rows, and starts at 0. While the same board closes (the same spec, or one for the same view), it turns around from where it is and drops the close's callback. While it opens or is open, nothing. If another board is up or moving, that one is first snapped closed: every piece put back and its callback called |
 | `close(on_closed)` | Turns the board that is up or moving around from where it is, and calls `on_closed` once when the close ends. A later close's callback replaces it; an open before the end drops it. With no board up, it calls `on_closed` at once |
 | `advance(delta)`, `finish()` | Move the progress on by `delta` seconds; jump to the end of the current direction |
@@ -226,7 +226,12 @@ The chest shows one list at a time, so its rows go out, then come in. The open t
 - `apply(weight)` puts the camera between the start (0) and the end framing (1), zoom and position alike. The caller owns the curve.
 - `restore()` puts the camera back to exactly what `begin()` saved and forgets it. The transition calls it at the close's end, also after an open that was turned around part-way.
 
-It sets `zoom` and `position` directly, as `ZoneTransition` does, so `CameraZoomController` and `CameraClampController` leave it alone. The push is not clamped to the zone's camera window.
+It sets `zoom` and `position` directly, as `ZoneTransition` does, and nothing else may move the camera from `begin()` to `restore()`. `CameraClampController` clamps only on the other controllers' signals, but `CameraZoomController` eases the zoom on its own for about a second after a wheel tick, and the glide to a zone (`ZoneTilemap.frame_zone()`) and the way back from the adventure zoom (`ZoneTransition.reset_camera()`) are tweens. So the transition calls its camera hold with true before the push saves the camera, and with false after it restores it. The hold `MainView` binds:
+
+- ends the moves under way at their ends: `ZoneTransition.settle_camera()` puts the camera where the way back was taking it, then `ZoneTilemap.hold_camera(true)` puts it where the glide was going (clamped, as the glide's end clamps) and settles the zoom controller on the zoom the player chose (`CameraZoomController.settle()`);
+- keeps the zoom controller off (`set_enabled(false)`) until `hold_camera(false)` after the restore.
+
+So the push saves the camera where it comes to rest, the zoom holds while the board is open, and the close starts from where the open ended. The push is not clamped to the zone's camera window.
 
 #### The chest
 
@@ -280,11 +285,11 @@ A new board in the map gap needs the same three things: a view whose `get_board_
 #### Input while a board moves
 
 - **Clicks.** While a board opens or closes, the transition's `mouse_filter` is Stop and, as a full-screen `Control` after the boards in the tree, it takes every click: nothing on the board, the chest, the cabinet or the dock can be pressed mid-motion. At rest it is Ignore.
-- **The map** takes no clicks, hover or wheel zoom from the open's start to the close's end, so travel and the wheel zoom are off the whole time a board is up or moving.
+- **The map** takes no clicks, hover or wheel zoom from the open's start to the close's end, so travel and the wheel zoom are off the whole time a board is up or moving. The map hit-tests a resting pointer again when its camera moves only while its viewport takes input, so the camera push hovers no hex beside the board.
 - **Menu keys.** The board's state is the top state from `enter()` until the close ends, so I, A, C and P do nothing, and L does nothing (the full log is blocked).
 - **Esc while the board opens** turns it around: cycling stops its action, and the Tribulation does what Esc does on its intro (Not yet). Nothing else is handled while the Tribulation board opens.
 - **While the board closes** both states handle no key (`is_board_closing()`): Esc must not stop the idle action that resumed when the board's action stopped. Keys and clicks in the close are dropped, not kept for its end.
-- **A start while a board closes** cannot come from the player, since the chest takes no click under the shield. One from the dev panel turns the close into an open.
+- **A start while a board closes** cannot come from the player, since the chest takes no click under the shield, and nothing else in play makes one today. A start from outside, which only the tests drive, turns the close into an open.
 
 ### Menu books
 
@@ -308,7 +313,7 @@ Esc ─► close_cycling_view ─► ActionManager.stop_action()      (the board
    ├─► CyclingViewState: close_board(spec, remove_state(cycling)) ─► the open plays backwards
    │     └─► at its end: the map takes input ─► remove_state(cycling) ─► exit(): the full log unblocked
    └─► the zone's idle action resumes (at once, while the board closes)
-start_cycling while the board closes (the dev panel) ─► open_board(spec): the close turns around
+start_cycling while the board closes (only the tests) ─► open_board(spec): the close turns around
 
 Zone action (merchant) ─► ActionManager.start_merchant ─► MerchantViewState: merchant_view.setup(action); push_state(merchant)
 Leave / Esc ─► ActionManager.stop_action() ─► stop_merchant ─► hide_with_panel ─► panel_hidden ─► remove_state(merchant)
@@ -340,7 +345,7 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's id
                      └─► pop_state(); change_state(zone)   (ZoneTransition.reset_camera())
 ```
 
-`stop_cycling`, `stop_merchant`, `stop_tribulation` and `stop_adventure` also fire when `ActionManager.select_action()` replaces the current action, or when `ZoneManager.zone_changed` stops it. A stop from outside mid-trial (a save reset, the dev panel) closes the board through `stop_tribulation` and applies nothing.
+`stop_cycling`, `stop_merchant`, `stop_tribulation` and `stop_adventure` also fire when `ActionManager.select_action()` replaces the current action, or when `ZoneManager.zone_changed` stops it. A stop from outside mid-trial, which only the tests drive today, closes the board through `stop_tribulation` and applies nothing.
 
 ### Input routing
 
@@ -448,10 +453,10 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | AdventureEndCard | `show_results(result)`, `return_requested` → pop + `change_state(zone)` |
 | InventoryView / PathTreeView / AbilitiesView / CharacterView | `MenuBookView`: `animate_open()` / `animate_close()` called through `GreyBackground`; `close_requested` (close tab) → the state's close path; `close_finished` → `GreyBackground` finishes hiding |
 | MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
-| ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain. |
+| ZoneTransition | `reset_camera()` on zone enter; `settle_camera()` ends that way back at once when a board's camera push begins. Calls `ActionManager.confirm_adventure_start()` after the drain. |
 | GoalsPanel | Placed by `ZoneViewState` (and left in place by `AdventureViewState`); hidden under the shop and in the Tribulation; left showing beside cycling; dimmed under the menu books and the end card |
 | CultivatorPlate / ZonePanel / Dock / zone SubViewport | The board transition steps the dock down and, for cycling, swaps the chest's lists through its animation hooks; `open_board()` turns the map's input off; without a transition `open_board()` does it all at once (`set_board_mode()` for the dock and the map). The `CyclingView` flies its pellets into the cabinet |
-| ZoneTilemap | Its camera and `character_body` are bound to the board transition, whose `CameraPush` pushes the camera in on the character while a board opens and restores it on the close |
+| ZoneTilemap | Its camera and `character_body` are bound to the board transition, whose `CameraPush` pushes the camera in on the character while a board opens and restores it on the close; `hold_camera()` keeps the map's own camera moves still in between |
 | CultivationManager | The Tribulation board applies its result through `advance_to_next_stage()` and `lose_core_density_levels()` ([CULTIVATION.md](../cultivation/CULTIVATION.md)) |
 | ResourceManager | `CultivatorPlate` gold row (`gold_changed`, `get_gold()`) |
 | PathManager | `Dock` Path count seal (`points_changed`, `get_point_balance()`) |
@@ -504,8 +509,8 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 ### UI
 
 - `[LOW]` Overlays use two transition styles. The end card toggles the backdrop instantly; the menu books and the merchant fade it through `GreyBackground.show_with_panel()`/`hide_with_panel()`. Cycling and the Tribulation use no backdrop and open through the board transition. The zone-action pop-ups are the next consistency pass ("menus are books, action pop-ups are scrolls").
-- `[LOW]` The cycling chest's rows are cut at two edges as they slide: the Activities header and the technique drawers at the chest's inner edge (about screen x 1892), the activity rows at the activity list's scroll window (about x 1868), so for a tenth of a second the activity rows vanish 24 px before the header does.
-- `[LOW]` The cycling chest stands empty at its full height for about 180 ms of the open (and a little longer in the close): with a short list the activity rows are gone well before 300 ms, and the techniques start in only then.
+- `[LOW]` The cycling chest's rows are cut at two edges as they slide: the Activities header and the technique drawers at the chest's inner edge (about screen x 1892), the activity rows at the activity list's scroll window (about x 1868), so each activity row vanishes 24 px before the header would, about 7 ms early.
+- `[LOW]` The cycling chest stands empty at its full height for up to 180 ms of the open, less for a longer list (about 140 ms with a header, a label and one card): the activity rows are gone before 300 ms, and the techniques start in only then. The close plays the open's timeline backwards, so it stands empty just as long.
 - `[LOW]` A board rect read before the board lays out is off by its wrapped lines: a cycling action name that wraps grows the board after `CyclingViewState` has read its rect, and a Tribulation zone name that wraps makes the board taller than `BOARD_REST_HEIGHT`. The pivot and the camera's aim are then off by half the extra height (12 px for a three-line action name), which does not show.
 - `[LOW]` Closing a book while it is still opening makes the backdrop flash darker. `hide_with_panel()` plays `grey_fade_out`, whose first key is full alpha, so a backdrop still fading in (alpha 0.56 when seen in play) jumps to 1 before it fades out. Only Esc and the menu's key can close a book mid-open now that backdrop clicks wait for the open.
 - `[LOW]` `FloatingText._ready()` sets its size with `add_theme_constant_override("font_size", FONT_SIZE)`. Font sizes need `add_theme_font_size_override`, so `FONT_SIZE` never applies and the size comes from `LabelSubheading` (24 px). The script also uses `$Label` instead of `%Label`.
@@ -513,8 +518,10 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 
 ### Tech Debt
 
-- `[LOW]` `MainView.change_state()` clears `state_stack` without calling `exit()` on stacked overlays. This is only safe because no overlay can be open when the base changes: `ZoneViewState` blocks input during the adventure transition, and the end card is popped first. An overlay skipped this way would also never release the HUD boards. A board's close is one more window: a `change_state()` while the cycling or Tribulation board closes (reachable only from the dev panel) drops the board's state before its `exit()`, so the full log stays blocked.
+- `[LOW]` `MainView.change_state()` clears `state_stack` without calling `exit()` on stacked overlays. This is only safe because no overlay can be open when the base changes: `ZoneViewState` blocks input during the adventure transition, and the end card is popped first. An overlay skipped this way would also never release the HUD boards. A board's close is one more window: a `change_state()` while the cycling or Tribulation board closes drops the board's state before its `exit()`, so the full log stays blocked. Nothing in play reaches it today: only the adventure's start and end call `change_state()`, and the start needs a click on the chest, which is blocked while a board is up and during any close.
 - `[LOW]` `LogWindow._full_log_blocked` is a bool, not a counter. A menu book, the cycling board and the Tribulation board cannot be open together today (menu keys are inert under cycling and the Tribulation, and the dock is hidden), so nothing nests. If that ever changes, it needs a counter.
+- `[LOW]` For the idle boards: `BoardTransition.open()` snaps another board closed when it finds one up, but a board that is fully open (not closing) has no close callback pending, so its state stays on `MainView`'s stack. Unreachable while one board moves at a time.
+- `[LOW]` For the idle boards: since the full-log block is that bool, a snapped board's state lifts it in its `exit()` while the board now up still holds it.
 - `[LOW]` Some nodes are created in code despite the scene-tree UI rule: the input blocker that `ZoneViewState` adds with `Control.new()`.
 - `[LOW]` Stale doc comment: the `MainView` class comment lists 5 views (Zone, Adventure, Inventory, Cycling, Tribulation); there are 10 states.
 - `[LOW]` `MainGame.log_print_level` is set to `0` (`Log.Event.INFO`) in `main_game.tscn`; the script default is `DEBUG`. `Log.Event` orders `INFO`(0) before `DEBUG`(1), so INFO prints every level and DEBUG would hide INFO lines (see [LOGGING.md](LOGGING.md)).
