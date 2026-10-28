@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="QuestItemDefinitionData" load_steps=3 format=3 uid="uid://bitem_refugee_map"]
 
 [ext_resource type="Script" uid="uid://bka12q7hfcdd2" path="res://scripts/resource_definitions/items/quest_item_definition_data.gd" id="1_qitm"]
-[ext_resource type="Texture2D" uid="uid://bmt3ti63lgbi5" path="res://64.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/sprites/items/quest_items/refugee_camp_map_ai.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_qitm")

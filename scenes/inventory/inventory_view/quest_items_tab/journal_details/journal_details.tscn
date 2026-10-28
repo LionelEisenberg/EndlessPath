@@ -1,0 +1,207 @@
+[gd_scene format=3 uid="uid://c7r25y80nheg7"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/quest_items_tab/journal_details/journal_details.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png" id="2_well"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="3_wrap_pad"]
+
+[node name="JournalDetails" type="VBoxContainer"]
+offset_right = 468.0
+mouse_filter = 2
+theme_override_constants/separation = 16
+script = ExtResource("1_script")
+
+[node name="ItemPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PanelPressed"
+
+[node name="Flow" type="VBoxContainer" parent="ItemPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="HBoxContainer" parent="ItemPanel/Flow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="IconWell" type="TextureRect" parent="ItemPanel/Flow/Header"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("2_well")
+
+[node name="Icon" type="TextureRect" parent="ItemPanel/Flow/Header/IconWell"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 68.0
+offset_bottom = 68.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="InfoColumn" type="VBoxContainer" parent="ItemPanel/Flow/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 13
+
+[node name="KindInset" type="Control" parent="ItemPanel/Flow/Header/InfoColumn"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="KindLabel" type="Label" parent="ItemPanel/Flow/Header/InfoColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookCaps"
+text = "QUEST ITEM"
+
+[node name="FromLabel" type="Label" parent="ItemPanel/Flow/Header/InfoColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(348, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookDetail"
+theme_override_styles/normal = ExtResource("3_wrap_pad")
+text = "From Old Vesh, in the broken shrine"
+autowrap_mode = 3
+
+[node name="DescriptionBlock" type="MarginContainer" parent="ItemPanel/Flow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 33
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 12
+
+[node name="Description" type="VBoxContainer" parent="ItemPanel/Flow/DescriptionBlock"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="CapRow" type="HBoxContainer" parent="ItemPanel/Flow/DescriptionBlock/Description"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="CapBox" type="MarginContainer" parent="ItemPanel/Flow/DescriptionBlock/Description/CapRow"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_top = -15
+theme_override_constants/margin_bottom = -7
+
+[node name="DropCap" type="Label" parent="ItemPanel/Flow/DescriptionBlock/Description/CapRow/CapBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookDropCap"
+text = "A"
+
+[node name="NarrowText" type="Label" parent="ItemPanel/Flow/DescriptionBlock/Description/CapRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(390, 0)
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelBookInk"
+text = "hand-drawn map leading to a camp of survivors hidden in the valley."
+autowrap_mode = 3
+
+[node name="RestText" type="Label" parent="ItemPanel/Flow/DescriptionBlock/Description"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(434, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookInk"
+autowrap_mode = 3
+
+[node name="QuestPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PanelPressed"
+
+[node name="Flow" type="VBoxContainer" parent="QuestPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="Control" parent="QuestPanel/Flow"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="QuestCaption" type="Label" parent="QuestPanel/Flow/Header"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 5.0
+offset_right = 120.0
+offset_bottom = 21.0
+theme_type_variation = &"LabelBookCaps"
+text = "QUEST"
+
+[node name="Seal" type="Label" parent="QuestPanel/Flow/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(66, 26)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -70.0
+offset_top = -2.0
+offset_right = -4.0
+offset_bottom = 24.0
+grow_horizontal = 0
+theme_type_variation = &"LabelBookSeal"
+text = "DONE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="QuestName" type="Label" parent="QuestPanel/Flow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(436, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookQuestName"
+theme_override_styles/normal = ExtResource("3_wrap_pad")
+text = "Harden Your Core"
+autowrap_mode = 3
+
+[node name="FlavorBlock" type="MarginContainer" parent="QuestPanel/Flow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 2
+
+[node name="Flavor" type="Label" parent="QuestPanel/Flow/FlavorBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(434, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookFlavor"
+autowrap_mode = 3
+
+[node name="StepsBlock" type="MarginContainer" parent="QuestPanel/Flow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_bottom = 14
+
+[node name="StepsColumn" type="VBoxContainer" parent="QuestPanel/Flow/StepsBlock"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+
+[node name="StepsRule" type="HSeparator" parent="QuestPanel/Flow/StepsBlock/StepsColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HSeparatorPressed"
+
+[node name="Steps" type="VBoxContainer" parent="QuestPanel/Flow/StepsBlock/StepsColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8

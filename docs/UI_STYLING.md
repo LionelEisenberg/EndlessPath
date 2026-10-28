@@ -52,7 +52,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 - **Inventory chrome.** These labels set `scale = Vector2(0.5, 0.5)` to cancel the `InventoryView` root's 2x scale. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
   - `LabelInventoryCount` 24px dark ink `#33261A` — unused since the pressed Materials page dropped `GridToolbar`, whose count text it set
   - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All" etc.) on the dark pill background
-  - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Journal" etc.)
+  - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Character" etc.)
   - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
 - **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
   - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and the Goals board sit under the shop's place (the shop hides them while it is open), and their text would read through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`
@@ -120,6 +120,7 @@ The rows from `LabelBookPageTitle` down are the "pressed paper" pieces for the I
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for titles and names, BM Euljiro for everything else. "Eul+1" is one `FontVariation` of BM Euljiro with 1px letter spacing (`spacing_glyph = 1`), shared by `LabelBookCaps`, `LabelBookSeal`, `LabelBookFilter` and `LabelBookFilterOn`.
 - **Line pitch.** `line_spacing` is the pitch minus the font's height at that size, so wrapped lines step by the pitch, as in the lacquer theme. Heights: Yatra One 46 / 38 / 30 / 26 is 69 / 57 / 45 / 39px (spacing -17 / -13 / -11 / -9); BM Euljiro 20 / 18 / 16 / 15 / 13 is 23 / 21 / 19 / 17 / 16px (spacing +1 / +5 / +3 / +3 / +2). `RichTextBookDetail` and `RichTextBookValue` get their 20 and 26px pitches from `line_separation` 3 and 5, which a RichTextLabel adds under every line, the last one too.
 - **One line is only the font's height.** A single-line Label is as tall as its font (16px at 13px), not its pitch, so a style's content margins make up the rest. They are sized so a `LabelBookTag` is 20px tall (16 + 2 + 2, the paper tag's art) and a `LabelBookFilter` or `LabelBookFilterOn` 26px (16 + 5 + 5, the lozenge's art), with the text centred and no `custom_minimum_size.y` needed. Size the margins of any new styled Label from the font's height, not from the pitch. `LabelBookFilter` and `LabelBookFilterOn` are the same size, so selecting a word moves nothing.
+- **Wrapping in a stack, on even pixels.** Every pitch is even, so a stack of wrapping Labels grows by an even number of px a line, and only a block's one-line height can make it odd. A block whose one line is odd (a `LabelBookDetail` line is 17px, a `LabelBookQuestName` line 39) takes `wrap_pad.tres` as its `normal` style, a 1px pad under it, or an odd margin that evens it out; then a block under a grown one, and its art, stays on even pixels.
 
 Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, colour, base type, cleared shadow and line pitch, the letter-spaced font, the styleboxes, the rule's height, the one-line heights of tags and filter words and the text contrast.
 
@@ -145,7 +146,7 @@ The theme's other two new styleboxes are `StyleBoxEmpty` sub-resources inside `b
 ## RichTextLabel variants
 
 RichTextLabels **cannot** use Label-based variants (different base type). `pixel_theme.tres` has one RTL variant:
-- `RichTextLabelDark` — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`, `QuestJournalCard`)
+- `RichTextLabelDark` — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`)
 
 `book_theme.tres` has two more for the pressed pages, `RichTextBookDetail` and `RichTextBookValue` (see [Menu book pages](#menu-book-pages)).
 
@@ -154,8 +155,8 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 ## HSeparator variants
 
 - Base `HSeparator` (no variant) — 2px copper `#C4884A` line, inset 8px at each end.
-- `HSeparatorItemDesc` — 2px parchment `#E9CEAD`, no inset, separation 12. Top separator under the item type in `ItemDescriptionPanel` and `QuestJournalCard`.
-- `HSeparatorItemDescThin` — 1px parchment `#E9CEAD`, inset 100px at each end, separation 10. Separates the description from the effects in the same panels.
+- `HSeparatorItemDesc` — 2px parchment `#E9CEAD`, no inset, separation 12. Top separator under the item type in `ItemDescriptionPanel`.
+- `HSeparatorItemDescThin` — 1px parchment `#E9CEAD`, inset 100px at each end, separation 10. Separates the description from the effects in the same panel.
 - `HSeparatorResourcePanel` — 2px gold `#D4A84A` at 60% alpha, no inset. Unused since the lacquer cultivator cabinet replaced the zone view's old resource panel, whose orbs it divided.
 
 ## Other variants
@@ -243,7 +244,7 @@ Six `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 | `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` (12x12) | top and bottom 4 | yes | The activity list's rail thumb, any even height of 32 or more |
 | `token.tres` | `lacquer_token_ai.png` (26x26) | left and top 6, right and bottom 8 | yes | `LacquerFloater`'s token, for the map's floater and the cycling zones'. The 2 px shadow is baked into the right and bottom edges |
 | `trib_board9.tres` | `tribulation/lacquer_trib_board9_ai.png` (164x164) | left and top 56, right and bottom 60 | yes | The Tribulation board's frame: a strapped board (brass-strapped corners, one strap worn and a nail lost) whose 28 art px corners are the only part with detail, so the middle stretches cleanly to any size. The 4 px shadow is baked into the right and bottom edges |
-| `wrap_pad.tres` | none (a `StyleBoxEmpty`) | bottom content margin 1 | none | The `normal` style of a wrapping 15/18 or 18/22 Label (the Here tray's name and line, the walk hint and lock line, a drawer's detail, the Goals board's step and milestone lines, the Now strip's wrapping labels), so its lines come to 18 n or 22 n. Not for a 17/20 name (20 px a line already) or the lore label (it has a pad of its own) |
+| `wrap_pad.tres` | none (a `StyleBoxEmpty`) | bottom content margin 1 | none | The `normal` style of a wrapping 15/18 or 18/22 Label (the Here tray's name and line, the walk hint and lock line, a drawer's detail, the Goals board's step and milestone lines, the Now strip's wrapping labels), so its lines come to 18 n or 22 n. On the pressed pages, the pad of a wrapping Label whose one line is odd (see [Pressed pages](#pressed-pages)). Not for a 17/20 name (20 px a line already) or the lore label (it has a pad of its own) |
 
 `token.tres` also sets content margins 14, 4, 16 and 6 (left, top, right, bottom), so a `PanelContainer` with this style hugs one 20 px text line to the kit's token: 30 px tall (28 + the 2 px shadow), the text 14 px in and 4 px down, and text width + 30 wide (text + 28 + the shadow). A 16 px `RichTextLacquer` line is 20 px already (`test_token_hugs_a_floater_line`). A one-line `LabelLacquerFloater` is 19 px, so give it `custom_minimum_size.y = 20`. The kit rounds the token's width to even (`even(text + 28)`): the floater sets that width itself.
 

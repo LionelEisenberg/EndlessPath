@@ -19,7 +19,7 @@ The UI is a book (`InventoryView`), the red one of the four menu books that shar
 | Equipment | Paged grid, category filter, gear selector, trash hold-buffer |
 | Consumables | Stack list and a 4-slot combat hotbar |
 | Materials | A page of stacks, and where each is gathered |
-| Journal | Quest items |
+| Journal | Quest items, each with the quest it belongs to |
 
 Items arrive from three sources: foraging loot tables, adventure encounter effects and quest completion effects. Equipped gear feeds attribute bonuses into `CharacterManager`. Quest items gate content through the `ITEM_OWNED` unlock condition.
 
@@ -75,10 +75,18 @@ Related docs:
      - With nothing gathered, the page prints "Nothing gathered yet." where the grid would be, and the right page stays blank.
    - **Right page:** the material's name as the title, then the details panel under its last line: the material in a deep slot beside `MATERIAL` and `You have 4,600`, its description, then a table of where it is gathered, one block per source: `GATHERED BY` (the activity), `IN` (its zone) and `YIELD` (`2–6 every 5 s`). Only sources the player can already see are listed; with none, the table is left out. The panel grows downward with long text.
    - **Details:** hovering or clicking a slot shows its material and puts printer's marks round the slot. Hovering an empty slot changes nothing. On opening, the details show the first material. While the stacks change (a foraging roll every 5 s), they and the marks stay on the material the player picked, and its amount follows its stack.
-7. **Journal tab** ("Items of consequence").
-   - Each row shows the icon, the name, the first 60 characters of the description, and a red seal dot.
-   - Clicking a row shows the journal card: icon, name, a drop-cap description, and a `From` row.
-   - When there are no quest items it shows "No quest items yet." and hides the card.
+7. **Journal tab.** Pressed into the paper like the Equipment tab.
+   - **Left page:** the title "Journal", the caption `ITEMS OF CONSEQUENCE`, then the quest items in inventory order, one row every 80 px. Each row shows the item in a deep slot, its name, and in muted ink under it the name of the quest it belongs to. At the right sits a vermilion `DONE` seal once that quest is finished, or the step the player is on (`Step 2 of 3`) while it is under way. An item that belongs to no quest shows where it came from under its name, and nothing at the right. A pressed rule runs under every row but the last.
+     - Six rows fit. With more, the list scrolls, and a pressed groove appears beside it.
+     - A long name wraps and its row grows.
+     - With no quest items, the page prints "No quest items yet." and the right page stays blank.
+   - **Right page:** the item's name as the title, then two panels under its last line:
+     - the item's panel: the item in a deep slot beside `QUEST ITEM` and where it came from (`From Old Vesh, in the broken shrine`), then its description, opening with a two-line drop cap in vermilion;
+     - the quest's panel, which shows the quest the way the Goals board does: `QUEST`, with the `DONE` seal at its top right once the quest is finished, the quest's name, its description as flavour text, a pressed rule, then the steps reached so far in tick boxes. Finished steps are ticked. The current step is unticked, with its progress figure (`7 / 10`) at the right when it has one. Later steps are not shown. An item that belongs to no quest has no quest panel.
+
+     Both panels grow downward with long text.
+   - **The item's quest** is the started quest that needs it, else the started quest that gave it ([QUESTS.md](../progression/QUESTS.md#public-api)), so the page never names a quest the player has not met.
+   - **Details:** hovering or clicking a row shows its item and puts printer's marks round the row. On opening, the details show the first item. While the bag changes (foraging, a reward), they and the marks stay on the item the player picked; when it leaves the bag, they move to the first item.
 8. **Close.** Press `I` or `Escape`, click the close tab standing up from the top-right of the book, or click anywhere outside the book. The backdrop fades out while the book closes. On close, every trash slot flushes back into the inventory.
 
 ## Architecture
@@ -190,12 +198,30 @@ MaterialsTab (Control, 1400×900, mouse ignored) — materials_tab.gd: the grid,
 ### Journal
 
 ```
-QuestItemsTab (Control)                    — quest_items_tab.gd
-  JournalBanner (TabBanner)                — title "Journal"
-  Subtitle                                 — "Items of consequence"
-  ListPane/ScrollContainer/ListVBox        — JournalRow per item (journal_row.gd + wax_seal.tscn)
+QuestItemsTab (Control, 1400×900, mouse ignored) — quest_items_tab.gd: the list, the shown item and the marks
+  LeftTitle (PageTitle)                    — "Journal"
+  CaptionLabel                             — "ITEMS OF CONSEQUENCE", in the caption row
+  ListFrame (Control, clips)               — the list's rect grown 8 px left and up and 10 px down, so the rows' marks show whole
+    JournalList (InventoryList)            — rows 428 wide, the rail 12 px after them; on this instance the
+                                             ScrollContainer doesn't clip (ListFrame does) and the rows sit 0 px apart
+      JournalRow per quest item            — journal_row.tscn/.gd (VBoxContainer): Upper (Body ≥ 428×72: Well/Icon,
+                                             Name over SecondLine, SealBox/Seal or StepBox/StepLabel; RuleGap 4 px;
+                                             Marks round both), then Rule. The last row hides RuleGap and Rule
   EmptyLabel                               — "No quest items yet."
-  QuestJournalCard                         — quest_journal_card.gd
+  RightPage (VBoxContainer)                — keeps the details under the title's last line
+    TitleBox / RightTitle (PageTitle)      — the item's name; TitleBox's 4 px left margin centres it on the spec's x 1244
+    JournalDetails (VBoxContainer)         — journal_details.gd; its two panels 16 px apart, each PanelPressed and growing downward
+      ItemPanel
+        Flow
+          Header: IconWell (deep slot, Icon), InfoColumn (KindInset 10 px, KindLabel "QUEST ITEM", FromLabel)
+          DescriptionBlock / Description   — CapRow (CapBox / DropCap, NarrowText), then RestText at full width
+      QuestPanel                           — hidden for an item that belongs to no quest
+        Flow
+          Header (26 px)                   — QuestCaption "QUEST", Seal at the top right, 2 px over the content
+          QuestName
+          FlavorBlock / Flavor
+          StepsBlock / StepsColumn         — StepsRule, then Steps: one QuestStepRow (quest_step_row.tscn/.gd:
+                                             Tick, Text, FigureBlock / Figure) per step reached
 ```
 
 ### Shared components
@@ -264,7 +290,7 @@ Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `Item
 | | `used_in` | `String` | `""` | Free text. Not shown |
 | `ConsumableDefinitionData` | `effects` | `Array[EffectData]` | `[]` | `use()` calls `process()` on each, in order |
 | | `cooldown_seconds` | `float` | 0.0 | Metadata only on `main`. Tooltip shows `EffectData.describe()` per effect plus "Cooldown: N.Ns" |
-| `QuestItemDefinitionData` | `from_source` | `String` | `""` | Journal "From" row |
+| `QuestItemDefinitionData` | `from_source` | `String` | `""` | The Journal's `From …` line, and the line under the name of an item that belongs to no quest |
 
 **ItemInstanceData**
 
@@ -430,6 +456,16 @@ The hotbar uses Godot's built-in drag-and-drop:
 - `MaterialsTab.open_page()` clears the details, rebuilds the grid, then shows the first material, or hides the details and the title when nothing is gathered. Clearing first makes the details work out the sources again, so an activity unlocked since the page last showed is listed. `InventoryView` calls it on opening the book and on every page turn.
 - After every `inventory_changed` the tab rebuilds the grid when the stacks changed, then follows the material shown: the marks move to its new slot and its amount follows its stack. When it has left the bag, the tab shows the first material.
 
+### Journal details and marks
+
+- `JournalDetails.show_item(item)` prints a quest item and its quest and shows the details; `clear()` hides them; `get_item()` returns the item shown. Every call reads the item's quest afresh: `QuestManager.get_quest_id_for_item()` ([QUESTS.md](../progression/QUESTS.md#public-api)), then the quest's state.
+- The description's first letter is its drop cap (`LabelBookDropCap`), standing two lines tall. `BookText.split_for_drop_cap()` measures the rest in the narrow column's own font: the words that fit two lines of the column, 390 px wide (less when a wide capital leaves less room), run beside the cap, and the rest under it at the full 434 px, at the same 26 px pitch.
+- The quest's panel prints one `QuestStepRow` per step reached (`setup(text, ticked, figure)`). A finished quest ticks every step, each reading `QuestStepData.get_progress_text(true)`, its target. An active one ticks the steps before the one the player is on, which is unticked and reads `get_progress_text()`. A step that measures nothing has no figure.
+- The panels are laid out to the mockup's Refugee Camp Map, which fills the spec's (1008, 300) to (1476, 496) and (1008, 512) to (1476, 776), and grow downward with longer text.
+- `JournalRow.setup(item, second_line, done, step_text)` prints a row: under the name, the quest's name, or the item's `from_source` when it belongs to no quest; at the right, the `DONE` seal when the quest is finished, else `Step k of n` for the step the player is on. `JournalRow.set_marked()` shows a row's printer's marks, which bracket its slot and its rule as a Consumables row's do; `set_rule_visible()` hides the last row's rule.
+- `QuestItemsTab.open_page()` rebuilds the list, reading each quest afresh, then shows the first item, or hides the details and the title when the journal is empty. `InventoryView` calls it on opening the book and on every page turn.
+- After every `inventory_changed` the tab rebuilds the list when the quest items changed, then follows the item shown, reprinting it; when it has left the bag, the tab shows the first item.
+
 ### Refresh on `inventory_changed`
 
 | Listener | Behaviour |
@@ -440,7 +476,7 @@ The hotbar uses Godot's built-in drag-and-drop:
 | `ConsumablesHotbar` | Re-binds the four slots |
 | `ConsumablesTab` | Rebuilds the list only when `consumables.hash()` changed. The details and marks follow the consumable shown (see [Consumables details and marks](#consumables-details-and-marks)) |
 | `MaterialsTab` | Rebuilds the grid only when `materials.hash()` changed. The details and marks follow the material shown (see [Materials details and marks](#materials-details-and-marks)) |
-| `QuestItemsTab` | Full rebuild. Keeps the selection if the item is still owned |
+| `QuestItemsTab` | Rebuilds the list only when `quest_items.hash()` changed. The details and marks follow the item shown (see [Journal details and marks](#journal-details-and-marks)) |
 
 ### Item flow
 
@@ -461,7 +497,7 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | CharacterManager | Sums `attribute_bonuses` from `equipped_gear` and `equipped_accessories`. This feeds every attribute getter and `get_total_attributes_data()` |
 | ActionManager (foraging) | Each time the forage timer finishes, rolls `ForageActionData.loot_table` and awards the result |
 | Adventure encounters | `AwardLootTableEffectData` / `AwardItemEffectData` in choice `success_effects`. `AdventureView` listens to `item_awarded` for the end-card loot (one entry per award call; quantity ignored) |
-| QuestManager | A quest's `completion_effects` can award items (`q_reach_core_density_10` → Refugee Camp Map) |
+| QuestManager | A quest's `completion_effects` can award items (`q_reach_core_density_10` → Refugee Camp Map). The Journal shows each quest item's quest from `get_quest_id_for_item()`, and its steps' figures from `QuestStepData.get_progress_text()` |
 | UnlockConditionData `ITEM_OWNED` (5) | Returns `InventoryManager.has_item(str(target_value))`. `comparison_op` is ignored. `AdventureEncounter.is_eligible()` evaluates it directly. `UnlockManager` does not listen to `inventory_changed` |
 | PersistenceManager | `InventoryData` is `SaveGameData.inventory`. InventoryManager re-grabs `live_save_data` on `save_data_reset`, and a reset creates a fresh `InventoryData` |
 | LogManager | Award messages and "Discarded <name>" |
@@ -510,7 +546,7 @@ The two consumables also share the same description. The first scale was renamed
 
 | item_id | Name | from_source | Notes |
 |---|---|---|---|
-| `refugee_camp_map` | Refugee Camp Map | "Old Vesh, in the broken shrine" | `stack_size` 1, icon `res://64.png` |
+| `refugee_camp_map` | Refugee Camp Map | "Old Vesh, in the broken shrine" | `stack_size` 1, an agent-drawn placeholder icon at 64 px (`assets/sprites/items/quest_items/refugee_camp_map_ai.png`) |
 
 The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your Core"); step 2 completes on the event `celestial_intervener_dialogue_4`. While the player owns the map and `merchant_discovered` has not fired, the Refugee Camp special encounter is eligible.
 
@@ -553,7 +589,7 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/inventory_view/consumables_tab/` | `consumables_tab.gd`, `consumable_row.gd`, `consumable_details/consumable_details.gd`, `consumables_hotbar/consumables_hotbar.gd`, `hotbar_slot/hotbar_slot.gd` |
 | `scenes/inventory/inventory_view/materials_tab/` | `materials_tab.gd`, `material_slot.gd`, `material_details/material_details.gd` |
 | `scripts/utils/material_sources.gd` | Where a material is gathered (`MaterialSources`) |
-| `scenes/inventory/inventory_view/quest_items_tab/` | `quest_items_tab.gd`, `journal_row.gd`, `quest_journal_card.gd` |
+| `scenes/inventory/inventory_view/quest_items_tab/` | `quest_items_tab.gd`, `journal_row.gd`, `journal_details/journal_details.gd`, `quest_step_row/quest_step_row.gd` |
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
 | `scenes/inventory/pressed/` | The pressed pages' shared pieces: `PageTitle`, `TableRow`, `ItemDragPreview`, `PaperTag` |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
@@ -575,14 +611,13 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 - `[MEDIUM]` **There is no API to spend or remove items.** InventoryManager can't consume materials, take back quest items or sell equipment. The only removal path is the trash, which `EquipmentTab` implements by mutating `InventoryData` directly. Crafting (Elixir Making, Soulsmithing), merchant selling and quest hand-ins all need `remove_*` verbs. The redesign spec's `discard_*` methods were never built.
 - `[LOW]` **`grant_equipment_page()` has no caller**, so every player stays at 2 pages (72 slots). The trigger was deferred by the pagination spec.
 - `[LOW]` **`stack_size` is never enforced.**
-- `[LOW]` **The Journal's "Linked quest" row and wax-seal state are still deferred.** `quest_item_definition_data.gd` and `journal_row.gd` defer them "until a QuestManager exists", and QuestManager is now an autoload. The seal is always the red "active" dot.
 - `[LOW]` **`UnlockManager` never re-evaluates on `inventory_changed`.** An `ITEM_OWNED` condition in `unlock_condition_list.tres` would latch only when some other signal fires. The one current use, the refugee camp, is evaluated directly and is unaffected.
 
 ### Content
 
 - `[HIGH]` **The catalog is tiny:** 7 equipment items, 2 materials, 2 consumables and 1 quest item, all Foundation / Spirit Valley. There are no Copper-tier items, and only one equipment drop exists in play.
 - `[MEDIUM]` **`barely_coalesced_scale.tres` duplicates `crude_scale.tres`.** It has the same +20 Madra, 10 s cooldown, base value and description, and it has no icon, even though its commit calls it "weaker". Decide its values or delete it; there is no test for it.
-- `[MEDIUM]` **Placeholder art and text.** The Refugee Camp Map uses `res://64.png`. The two materials' icons are agent-drawn placeholders and their descriptions are the design mockup's, until the user replaces them.
+- `[MEDIUM]` **Placeholder art and text.** The Refugee Camp Map's icon and the two materials' icons are agent-drawn placeholders, and the materials' descriptions are the design mockup's, until the user replaces them.
 - `[LOW]` **Material ids break the naming convention.** `SpiritFern` and `DewdropTear` are PascalCase while every other item id is snake_case. Bringing materials into ITEMS.md later would rename them.
 - `[LOW]` **Material lore doesn't match the game.** The `used_in` strings name recipes and items that don't exist (Spirit Tea, Mirror Pill, Greenleaf Tonic). Dewdrop Tear's source text doesn't match its real source, Spring Forest Foraging.
 - `[LOW]` **Test-named data files.** The two `test_loot_table_*.tres` files and `test_treasure_encounter.tres` are leftovers, even though the forage table is live. Rename, wire up or delete them.
@@ -592,7 +627,7 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 - `[LOW]` **The hotbar prints keys `1`–`4` under its slots**, but `main` has no consumable input actions.
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
-- `[LOW]` **The Journal reuses the red ribbon banner**; the redesign's gold banner never landed.
+- `[LOW]` **The Journal reads quest progress when its page opens and when the quest items change.** A step reached while the book lies open shows the next time the page opens.
 - `[LOW]` **Tab-button icons shrink** from 0.95 to 0.75 scale in `TabButtonAnimation`. This was reported as janky before the June icon swap (c33064c, c4d3b4e) and hasn't been re-checked (unverified).
 
 ### Tech Debt
@@ -600,7 +635,6 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 - `[MEDIUM]` **`EquipmentTab` mutates `InventoryData` directly** when it erases a trashed item, and emits `InventoryManager.inventory_changed` itself. Move this into an InventoryManager verb.
 - `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, right-click quick-equip (only its trash-slot guard is tested), `GearSelector` or the generator script.
 - `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop.
-- `[LOW]` **Dead code:** `QuestJournalCard`'s `%Sub` label, which is always empty.
 - `[LOW]` **UI nodes built in code.** `SortSubBanner` creates its dot `TextureRect`s in code and frees the four authored `Dot0-3` nodes.
 - `[LOW]` **Coding-standard gaps:**
   - untyped variables (for example `var inventory = get_inventory()` in `inventory_manager.gd`)

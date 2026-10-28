@@ -45,7 +45,7 @@ MainView (scenes/main/main_game/main_game.tscn)
 |---|---|---|
 | `quest_id` | `String` | Unique id; key in `QuestList` index and save data |
 | `quest_name` | `String` | Shown on the Goals board and in toasts |
-| `description` | `String` (multiline) | Flavor text; **not displayed anywhere** |
+| `description` | `String` (multiline) | Flavor text. Only the Journal shows it, on the quest of a quest item |
 | `steps` | `Array[QuestStepData]` | Ordered steps; zero steps = completes on start |
 | `completion_effects` | `Array[EffectData]` | Processed in order when the last step advances |
 
@@ -59,6 +59,10 @@ MainView (scenes/main/main_game/main_game.tscn)
 | `completion_conditions` | `Array[UnlockConditionData]` | Condition-based step: advances when **all** evaluate true |
 
 Set exactly one of `completion_event_id` / `completion_conditions`. If both are set, the event takes precedence. If neither is set, the step auto-advances. QuestManager reports both cases with `push_error` at boot.
+
+A step's progress figure, which the Goals board and the Journal print, comes from the step itself:
+- `get_measured_condition() -> UnlockConditionData`: the first completion condition, when the step completes on conditions alone and every one of them `is_measurable()` (RESOURCE_AMOUNT or CULTIVATION_LEVEL); `null` otherwise.
+- `get_progress_text(finished: bool = false) -> String`: that condition's `get_current_value()` / `get_target_value()` as whole numbers rounded down (`"25 / 100"`), or `""` when nothing is measured. With `finished`, the current value reads as the target (`"100 / 100"`).
 
 ### QuestList (`scripts/resource_definitions/quests/quest_list.gd`)
 
@@ -91,6 +95,7 @@ Stored as `SaveGameData.quest_progression`. `SaveGameData.reset()` replaces it w
 | `get_completed_quest_ids() -> Array[String]` | Copy, in completion order |
 | `get_current_step_index(quest_id: String) -> int` | Step index, or `-1` if not active |
 | `get_quest_data(quest_id: String) -> QuestData` | Catalog lookup, or `null` |
+| `get_quest_id_for_item(item: ItemDefinitionData) -> String` | The quest a quest item belongs to, for the Journal, or `""`. First a quest that needs it (a step with an `ITEM_OWNED` condition on its `item_id`), an active one before a completed one; else the quest whose `completion_effects` award it (`AwardItemEffectData`). Only started quests (active or completed) count, in catalog order |
 
 ### Boot (`_ready`)
 
@@ -174,7 +179,7 @@ GoalsPanel (Control, 440 wide)
 ```
 
 - Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` leaves it there, cords showing, because the adventure's vitals cabinet stands where the cultivator cabinet does. The merchant shop and the Tribulation hide it; cycling leaves it showing beside its board, and the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
-- **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both wrap in the row's 358 px, the name before the figure, which stays at the right of its first line). The `current / target` figure shows only when the step completes on conditions alone (no `completion_event_id`) and every condition `is_measurable()` (RESOURCE_AMOUNT or CULTIVATION_LEVEL); it reads the first condition's `get_current_value()` / `get_target_value()`.
+- **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both wrap in the row's 358 px, the name before the figure, which stays at the right of its first line). The `current / target` figure is the step's `QuestStepData.get_progress_text()` (see the data model above), so it shows only for a step that completes on measurable conditions alone.
 - **Milestone row:** "Breakthrough", in three states, checked in this order (`goals_panel.gd:138-154`). With no next stage (Copper) it reads "<Stage> reached" on a full jade rod, with no figure. With the core full (`CultivationManager.is_core_full()`) it reads "Face the Tribulation" on a full rod, with `cap / cap` ("100 / 100"). Otherwise it reads "Raise Core Density to <cap>" (`CultivationManager.get_core_density_cap()`, 100 in Foundation), with the rod and the figure at `level / cap`. Core Density stops at the cap, and a save past it loads at it, so the figure never passes it.
 - With no active quest, the quest row and the divider hide, the milestone moves up into their place, and the board hugs its rows: 220 px tall with a quest, 150 with the milestone alone, when every text is one line.
 - **No text is cut off.** The quest's name and step and the milestone's name and line wrap in 358 px (a `wrap_pad.tres` pad under the 15/18 lines), and the rows are containers, so a wrapped line pushes what is under it down and the board, cut into a top, a tiled middle and a bottom slice, grows by it. Each row is an even number of px tall (a name's lines are 20 px, a detail line's 18), so the board is too. The row heights are re-fitted after every text change, so the board takes its height back when the text shortens.
@@ -190,7 +195,7 @@ GoalsPanel (Control, 440 wide)
 
 ### Inventory Journal tab
 
-The inventory's Quest Items ("Journal") tab lists quest **items** such as the Refugee Camp Map. It does not read QuestManager. See [INVENTORY.md](../inventory/INVENTORY.md).
+The inventory's Journal tab lists quest **items** such as the Refugee Camp Map, each with the quest `get_quest_id_for_item()` gives it: its name, a DONE seal once it is finished or the step the player is on, its description as flavour text, and its steps reached so far with their `get_progress_text()` figures. See [INVENTORY.md](../inventory/INVENTORY.md).
 
 ## Integration Points
 
@@ -214,7 +219,7 @@ The inventory's Quest Items ("Journal") tab lists quest **items** such as the Re
 | `q_first_steps` | First Steps Out | `celestial_intervener_dialogue_2.success_effects` | `AwardPathPointEffectData(amount = 1)` |
 | `q_reach_core_density_10` | Harden Your Core | `celestial_intervener_dialogue_3.success_effects` | `AwardItemEffectData(refugee_camp_map, quantity 1)` |
 
-Quest `description` values, which are not displayed:
+Quest `description` values, which only the Journal shows (on a quest item's quest):
 - `q_fill_core`: "Fill your Madra core and return to speak with the stranger."
 - `q_first_steps`: "Venture into the wilderness and test your strength."
 - `q_reach_core_density_10`: "Deepen your cultivation. Raise your Core Density to level 10, then report back to the Celestial [INTERVENER]."
@@ -268,13 +273,12 @@ Tests: `tests/unit/test_quest_*.gd` and `tests/integration/test_goals_panel.gd`,
 
 - `[MEDIUM]` The catalog is maintained by hand. A quest `.tres` that is missing from `quest_list.tres` is unknown at runtime, and `start_quest` only reports it with `push_error`. The design spec called for scanning `resources/quests/`. Either scan the folder or add a test that every `resources/quests/q_*.tres` is listed.
 - `[LOW]` Only the first active quest shows. The Goals board has one quest row, so a second active quest (none today) would be invisible until the first completes, and completed quests are not listed anywhere.
-- `[LOW]` `QuestData.description` is authored but never displayed.
-- `[LOW]` Quest items have no link back to a quest. The Journal tab's wax seal is always "active". The comments in `quest_item_definition_data.gd`, `journal_row.gd`, and `quest_journal_card.gd` that say "until a QuestManager exists" are stale.
+- `[LOW]` `QuestData.description` shows only in the Journal, on the quest of a quest item, so a quest with no quest item never shows it.
 
 ### Content
 
 - `[HIGH]` No quest exists after `q_reach_core_density_10`. Once the map is awarded, the Refugee Camp search, the Merchant, and the Tribulation have no quest on the Goals board (only its Breakthrough milestone, which reads "Face the Tribulation" at Core Density 100). Beat 5 ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md)) plans an optional `q_first_elite`, but it is not authored.
-- `[MEDIUM]` Player-facing quest text contains the placeholder "[INTERVENER]": all three "Return to the Celestial [INTERVENER]" steps and the `q_reach_core_density_10` description. The Goals board and QuestToast use plain Labels, so the brackets render literally.
+- `[MEDIUM]` Player-facing quest text contains the placeholder "[INTERVENER]": all three "Return to the Celestial [INTERVENER]" steps and the `q_reach_core_density_10` description. The Goals board, QuestToast and the Journal use plain Labels, so the brackets render literally.
 - `[MEDIUM]` The `reach_cd_10` step doesn't tell the player how to gain Core Density. The Foundational Technique has no cycling zones and yields 0 CD XP, so the player must buy Pure Core Awakening and equip Smooth Flow first. Only the dialogue hints at this.
 
 ### UI
