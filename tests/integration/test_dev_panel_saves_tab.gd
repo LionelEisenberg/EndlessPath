@@ -332,6 +332,37 @@ func test_the_long_labels_wrap() -> void:
 		assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "%s wraps by word" % label.name)
 		assert_gt(label.custom_minimum_size.x, 0.0, "%s has a width to wrap in" % label.name)
 
+## The tab is taller than the panel, and a refusal can come from the buttons at its
+## top (Restart, Back, a preset's Play) or its foot (Keep, New game, Restore). The
+## status stands outside the part that scrolls, so it is in view wherever the tab is
+## scrolled to, and nobody takes a refused switch for one that ran.
+func test_the_status_stands_outside_the_part_that_scrolls() -> void:
+	var tab: Control = _open_saves_tab()
+	var scrolling: ScrollContainer = tab.get_node("%Scroll")
+	assert_true(scrolling.is_ancestor_of(tab.get_node("%PresetList")), "precondition: the presets scroll")
+	assert_true(tab.is_ancestor_of(_status(tab)), "the status belongs to the tab")
+	assert_false(scrolling.is_ancestor_of(_status(tab)), "and does not scroll with the rest")
+
+## The status shows nothing, and takes no room, until there is something to say.
+func test_the_status_starts_hidden() -> void:
+	var tab: Control = _open_saves_tab()
+	assert_false(_status(tab).visible)
+	assert_false((tab.get_node("%StatusPanel") as Control).visible, "nor does the panel it stands in")
+
+## A refusal from the top of the tab shows inside the panel's body, with the tab
+## scrolled to the top.
+func test_a_refusal_shows_in_view() -> void:
+	var panel: DevPanel = _add_panel()
+	var tab: Control = _show_saves_tab(panel)
+	DevManager.play_preset(_preset("refused_in_view", "In view"))
+	await wait_process_frames(SWITCH_FRAMES)
+	_press(tab, "BackButton")
+	await get_tree().process_frame
+	assert_eq(_status(tab).text, "This run has no main save", "precondition: Back was refused")
+	assert_eq((tab.get_node("%Scroll") as ScrollContainer).scroll_vertical, 0, "precondition: the tab is scrolled to the top")
+	var body: Control = panel.get_node("%Body")
+	assert_true(body.get_global_rect().encloses(_status(tab).get_global_rect()), "the reason shows inside the body")
+
 #-----------------------------------------------------------------------------
 # THE SESSION
 #-----------------------------------------------------------------------------
@@ -476,6 +507,7 @@ func test_a_refused_switch_shows_its_reason() -> void:
 	assert_false(_status(tab).visible, "precondition: nothing to say yet")
 	_press(tab, "BackButton")
 	assert_true(_status(tab).visible, "the refusal shows")
+	assert_true((tab.get_node("%StatusPanel") as Control).visible, "in its panel")
 	assert_eq(_status(tab).text, "This run has no main save")
 
 ## In a real run a switch frees the panel and builds it again, and a failure midway

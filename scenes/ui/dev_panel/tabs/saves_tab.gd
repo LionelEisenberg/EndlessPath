@@ -1,4 +1,4 @@
-extends ScrollContainer
+extends VBoxContainer
 
 ## The dev panel's Saves tab: the session and the saves behind it.
 ##
@@ -16,6 +16,11 @@ extends ScrollContainer
 ## switch, the backups with Restore, and the save folder. New game and Restore write
 ## over your save, so each needs a second click within 3 s (ConfirmTimer, in real
 ## seconds whatever the time speed).
+##
+## Why a switch was refused or failed, a pin that would not write, what Save now did
+## and a folder that would not open show in a status line that stands under the part
+## that scrolls, so it is in view wherever the tab is scrolled to: the tab is taller
+## than the panel, and a refusal from its top must not pass for a switch that ran.
 ##
 ## A switch runs on the next frame (DevManager), and in a real run it frees the panel
 ## and builds it again: the tab reads the session when it is built, and shows
@@ -73,6 +78,7 @@ const _BACKUP_STAMP_PATTERN: String = "^(\\d{4})(\\d{2})(\\d{2})-(\\d{2})(\\d{2}
 @onready var _backup_option: OptionButton = %BackupOption
 @onready var _restore_button: Button = %RestoreButton
 @onready var _open_folder_button: Button = %OpenFolderButton
+@onready var _status_panel: PanelContainer = %StatusPanel
 @onready var _saves_status: Label = %SavesStatus
 @onready var _confirm_timer: Timer = %ConfirmTimer
 @onready var _refresh_timer: Timer = %RefreshTimer
@@ -374,10 +380,11 @@ func _disarm() -> void:
 	_armed_button.text = _resting_texts[_armed_button]
 	_armed_button = null
 
-## Shows the text in the status line at the foot of the tab, and hides the line while
-## the text is empty.
+## Shows the text in the status line under the tab, and hides the line, and the panel
+## it stands in, while the text is empty.
 func _show_status(text: String) -> void:
 	_show_message(_saves_status, text)
+	_status_panel.visible = text != ""
 
 ## Shows the text in the label, and hides the label while the text is empty.
 func _show_message(label: Label, text: String) -> void:

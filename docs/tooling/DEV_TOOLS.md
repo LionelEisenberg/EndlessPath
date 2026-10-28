@@ -43,7 +43,7 @@ DevPanel (Control, covers the screen, mouse Ignore)   dev_panel.gd (class DevPan
 │   └── VBoxContainer
 │       ├── TitleBar (PanelContainer, the drag handle) → TitleLabel "Dev Panel", SpeedOption (OptionButton), CloseButton "×"
 │       └── Tabs (TabContainer)
-│           ├── SavesTab      scenes/ui/dev_panel/tabs/saves_tab.tscn      ScrollContainer
+│           ├── SavesTab      scenes/ui/dev_panel/tabs/saves_tab.tscn      VBoxContainer: the scrolling part, then a status line
 │           ├── PlayerTab     tabs/player_tab.tscn                         ScrollContainer
 │           ├── StoryTab      tabs/story_tab.tscn                          VBoxContainer: the scrolling part, then a status line (class DevStoryTab)
 │           ├── ItemsTab      tabs/items_tab.tscn                          ScrollContainer
@@ -86,7 +86,7 @@ What the session plays and the saves behind it. From the top: the session line, 
 
 New game and Restore write over your save, so each needs a second click on the same button within 3 s of real time, whatever the time speed. The first click turns the button into "Click again to start a new game" or "Click again to restore". The 3 s running out, a refresh, or a click on the other button puts its own text back.
 
-The status line at the foot of the tab shows why a switch was refused or failed, a pin that would not write, what Save now did, and a folder that would not open.
+The status line stands under the part that scrolls, as the Story tab's does, so it is in view wherever the tab is scrolled to: the tab is taller than the body, and a refusal from the buttons at its top must not pass for a switch that ran. It shows why a switch was refused or failed, a pin that would not write, what Save now did, and a folder that would not open.
 
 The tab refreshes when the session changes (`DevManager.session_changed`: the status line then shows why the switch failed, if it did, and clears once one works), when it is shown, and, for the session line and the beats, once a second while it is in view. A switch that is refused or fails shows its reason (`session_switch_failed`). A switch that fails midway reports while the main scene and the panel in it are freed, so the tab built next shows `DevManager.get_last_switch_failure()`.
 
@@ -521,7 +521,6 @@ Tests: `tests/unit/test_dev_*.gd` and `tests/integration/test_dev_*.gd`, among o
 
 - `[LOW]` The spec's `HSeparator`s between panel sections are missing.
 - `[LOW]` The panel's buttons, pickers and spin boxes keep the default focus mode, so a click gives one keyboard focus, and Space or Enter then reach it instead of the game until the focus moves.
-- `[LOW]` The Saves tab is taller than the body, and its status line is at the foot, so a refusal from the buttons at the top (Restart, Back, a preset's Play) shows below the fold until the tab is scrolled. The player's log carries a failed switch's reason too.
 
 ### Tech Debt
 
