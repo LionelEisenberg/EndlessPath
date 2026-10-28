@@ -91,7 +91,10 @@ func test_pieces_sit_where_the_spec_puts_them() -> void:
 	var tab: Control = await _open_tab()
 	var title: Label = tab.get_node("LeftTitle").get_node("%TitleLabel") as Label
 	assert_eq(title.get_global_rect().position.y, 224.0, "the title's baseline at 262")
-	assert_eq((tab.get_node("%FilterWords") as Control).get_global_rect().position.y, 300.0, "the filter's baseline at 316")
+	var words: Control = tab.get_node("%FilterWords") as Control
+	assert_eq(_baseline(words.get_node("%Word0") as Label), 316.0, "the filter on the caption row's baseline")
+	assert_eq(_baseline(words.get_node("%Word1") as Label), 316.0, "every word, in use or not")
+	assert_eq((words.get_node("%Word0") as Control).get_global_rect(), Rect2(502, 294, 44, 26), "the word in use, its lozenge pressed where the mockup draws it: (502, 294) to (546, 320)")
 	assert_eq((tab.equipment_grid as Control).get_global_rect(), Rect2(452, 334, 452, 452))
 	assert_eq((tab.get_node("%PaginationBar") as Control).get_global_rect(), Rect2(452, 796, 452, 72))
 	assert_eq((tab.get_node("%GearSelector") as Control).get_global_rect(), Rect2(1008, 300, 468, 268))

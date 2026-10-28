@@ -226,6 +226,17 @@ func test_a_tag_prints_its_count_where_the_mockup_does() -> void:
 	assert_eq(tag.size.y, 20.0, "the tag stays its art's height")
 	assert_eq(_baseline_in(tag), 16.0, "the count's baseline")
 
+## The mockup presses the lozenge behind the filter word in use so the word's
+## baseline is 22 px under the lozenge's top, 4 px over its foot. A word not in
+## use sits the same way, so selecting it moves nothing.
+func test_a_filter_word_sits_low_in_its_lozenge() -> void:
+	var word: Label = _make_label(&"LabelBookFilter", "ALL")
+	var word_in_use: Label = _make_label(&"LabelBookFilterOn", "ALL")
+	await wait_process_frames(2)
+	assert_eq(_baseline_in(word_in_use), 22.0, "the word in use")
+	assert_eq(_baseline_in(word), 22.0, "a word not in use")
+	assert_eq(word_in_use.size.y, 26.0, "the lozenge stays its art's height")
+
 ## The same for a filter word and the 26 px lozenge behind the one in use. The
 ## two styles are the same size, so selecting a word moves nothing.
 func test_a_one_line_filter_word_is_as_tall_as_its_lozenge() -> void:
