@@ -10,6 +10,7 @@ extends GutTest
 ## the new session and starts the player's log again with one line. A switch that
 ## is refused changes nothing; a build that fails brings the session back it left.
 ## Under GUT the current scene is the runner, so no scene is unloaded or reloaded.
+## The time speed, the base time scale a switch keeps, is tested here too.
 ##
 ## The tests that need your save point PersistenceManager's main save and backup
 ## folder at temp paths, so the real save and its backups are never read or
@@ -31,6 +32,9 @@ const PURE_MADRA_TREE: String = "res://resources/path_progression/pure_madra/pur
 const QUEST_LIST: String = "res://resources/quests/quest_list.tres"
 const FOUNDATION_STAGE: String = "res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres"
 const COPPER_STAGE: String = "res://resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres"
+
+## The prefix of a [DEV] line in the player's log.
+const DEV_LINE: String = "[color=magenta][DEV][/color] "
 
 ## Every temp file and folder here starts with this. after_each() deletes them.
 const TMP_PREFIX: String = "__test_dev_manager_sessions_"
@@ -745,3 +749,48 @@ func test_a_preset_that_does_not_validate_is_refused_at_once() -> void:
 	assert_same(PersistenceManager.save_game_data, save_before, "the session keeps its save")
 	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE)
 	assert_signal_not_emitted(DevManager, "session_changed")
+
+#-----------------------------------------------------------------------------
+# TIME SPEED
+#-----------------------------------------------------------------------------
+# The time speed is the game's base Engine.time_scale, kept in GameSpeed. after_each()
+# sets it back to 1.0, so no test leaves a speed for the next file.
+
+func test_set_time_speed_scales_the_engine() -> void:
+	assert_eq(DevManager.get_time_speed(), 1.0, "precondition: the game runs at normal speed")
+	watch_signals(DevManager)
+	assert_eq(DevManager.set_time_speed(5.0), "", "a listed speed is set")
+	assert_eq(Engine.time_scale, 5.0, "the engine runs at ×5")
+	assert_eq(GameSpeed.base_scale, 5.0, "it is the base speed a slowed moment comes back to")
+	assert_eq(DevManager.get_time_speed(), 5.0, "and the speed reads back")
+	assert_signal_emit_count(DevManager, "time_speed_changed", 1)
+	assert_signal_emitted_with_parameters(DevManager, "time_speed_changed", [5.0])
+
+func test_set_time_speed_logs_a_dev_line() -> void:
+	LogManager.clear_history()
+	DevManager.set_time_speed(5.0)
+	assert_eq(LogManager.get_history(), [DEV_LINE + "Time speed ×5"] as Array[String], "one [DEV] line names the speed")
+
+func test_every_listed_time_speed_can_be_set() -> void:
+	assert_eq(DevManager.TIME_SPEEDS, [1.0, 2.0, 5.0, 10.0] as Array[float], "the four speeds the spec lists")
+	for speed: float in DevManager.TIME_SPEEDS:
+		assert_eq(DevManager.set_time_speed(speed), "", "speed %s is accepted" % speed)
+		assert_eq(Engine.time_scale, speed, "and the engine runs at it")
+
+## A speed that is not listed is refused with a reason that names it and the speeds
+## that are allowed, and nothing changes. 0.0 would freeze the game; the others are
+## no speed the panel offers.
+func test_an_unlisted_time_speed_is_refused() -> void:
+	var as_written: Dictionary[float, String] = {0.0: "×0", -1.0: "×-1", 3.0: "×3", 20.0: "×20"}
+	DevManager.set_time_speed(2.0)
+	LogManager.clear_history()
+	watch_signals(DevManager)
+	for speed: float in as_written:
+		var reason: String = DevManager.set_time_speed(speed)
+		assert_ne(reason, "", "%s is refused" % as_written[speed])
+		assert_string_contains(reason, as_written[speed], "the reason names the speed asked for")
+		assert_string_contains(reason, "×1, ×2, ×5, ×10", "and the speeds that are allowed")
+	assert_eq(Engine.time_scale, 2.0, "the engine keeps its speed")
+	assert_eq(DevManager.get_time_speed(), 2.0, "and so does the base speed")
+	assert_signal_not_emitted(DevManager, "time_speed_changed")
+	assert_eq(LogManager.get_history().size(), 0, "and nothing is logged")

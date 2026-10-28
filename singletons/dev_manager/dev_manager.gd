@@ -22,6 +22,9 @@ extends Node
 ## session and loads the main scene again, so the game comes up as a launch on that
 ## save would. A switch that is refused changes nothing; one that fails midway
 ## brings back the session it left.
+##
+## The time speed is the game's base Engine.time_scale, which GameSpeed keeps: one of
+## TIME_SPEEDS, set with set_time_speed(). A switch keeps it.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -36,6 +39,9 @@ signal session_changed
 ## get_last_switch_failure() keeps. A refused switch changes nothing. A failed one
 ## has brought back the session it left by then, and session_changed follows.
 signal session_switch_failed(reason: String)
+
+## Emitted when set_time_speed() has made a speed the time speed, with that speed.
+signal time_speed_changed(speed: float)
 
 #-----------------------------------------------------------------------------
 # ENUMS AND CONSTANTS
@@ -60,6 +66,10 @@ const FALLBACK_PRESET_ID: String = "fresh_fallback"
 
 ## What the panel calls the fallback preset.
 const _FALLBACK_PRESET_TITLE: String = "Fresh start (the preset could not be built)"
+
+## The time speeds the dev tools offer, as multiples of normal speed. set_time_speed()
+## accepts only these.
+const TIME_SPEEDS: Array[float] = [1.0, 2.0, 5.0, 10.0]
 
 ## The prefix of the line a session's start logs, the one DevCommands' lines have.
 const _DEV_TAG: String = "[color=magenta][DEV][/color]"
@@ -365,6 +375,28 @@ func build_preset(preset: SavePresetData, save_path: String = "") -> String:
 	return failure
 
 #-----------------------------------------------------------------------------
+# TIME SPEED
+#-----------------------------------------------------------------------------
+
+## Makes `speed` the time speed: the base Engine.time_scale (GameSpeed.base_scale),
+## which a moment that slows time, a boss hit-stop, comes back to, and which a session
+## switch keeps. Returns "" once it is set, after emitting time_speed_changed and
+## logging a [DEV] line ("Time speed ×5"). Refuses a speed TIME_SPEEDS does not have,
+## with a reason that names the speeds it does: nothing changes, and nothing is
+## emitted or logged.
+func set_time_speed(speed: float) -> String:
+	if not TIME_SPEEDS.has(speed):
+		return "Time speed %s is not one of %s" % [_time_speed_label(speed), _time_speed_labels()]
+	GameSpeed.set_base_scale(speed)
+	time_speed_changed.emit(speed)
+	_log_dev_line("Time speed %s" % _time_speed_label(speed))
+	return ""
+
+## The time speed: GameSpeed.base_scale, 1.0 until set_time_speed() sets another.
+func get_time_speed() -> float:
+	return GameSpeed.base_scale
+
+#-----------------------------------------------------------------------------
 # THE SWITCH
 #-----------------------------------------------------------------------------
 
@@ -413,8 +445,9 @@ func _run_switch(start_session: Callable, what: String, started: String) -> void
 ## action, without counting it or running its effects, and any dialogue, one an
 ## adventure encounter started included, which would otherwise play on over the
 ## next session; the cycle session and the last cycle's result; the player's
-## vitals; and the time scale, back to the game's base speed, which a boss hit-stop
-## freed mid-way never restores.
+## vitals; and the time scale, back to the game's base speed at once, rather than
+## leaving up to 0.15 s of a boss hit-stop's slowed time running into the next
+## session.
 func _tear_down() -> void:
 	ActionManager.cancel_current_action()
 	DialogueManager.end_dialogue_now()
@@ -700,3 +733,15 @@ func _mark_everything_seen() -> void:
 ## Logs the line as a [DEV] line in the player's log.
 func _log_dev_line(what: String) -> void:
 	LogManager.log_message("%s %s" % [_DEV_TAG, what])
+
+## How a time speed is written for the player: "×5", "×2.5". A whole number loses the
+## ".0" String.num() leaves on it.
+func _time_speed_label(speed: float) -> String:
+	return "×%s" % String.num(speed).trim_suffix(".0")
+
+## The speeds in TIME_SPEEDS, written as _time_speed_label() does: "×1, ×2, ×5, ×10".
+func _time_speed_labels() -> String:
+	var labels := PackedStringArray()
+	for speed: float in TIME_SPEEDS:
+		labels.append(_time_speed_label(speed))
+	return ", ".join(labels)

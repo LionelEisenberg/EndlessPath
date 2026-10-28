@@ -797,9 +797,12 @@ func _check_boss_reveal(coords: Array[Vector3i]) -> void:
 			return
 
 func _play_boss_reveal(boss_cube: Vector3i) -> void:
-	# Hit-stop: slow time briefly
-	Engine.time_scale = 0.25
-	get_tree().create_timer(0.15 * 0.25).timeout.connect(func(): Engine.time_scale = 1.0)
+	# Hit-stop: slow time to a quarter of the base speed (the dev time speeds change
+	# it) for 0.15 s of real time, then back to the base speed. The timer ignores the
+	# time scale, so the stop lasts 0.15 s at any speed, and it reads the base speed
+	# when it fires, so a speed set meanwhile is the one time returns to.
+	Engine.time_scale = 0.25 * GameSpeed.base_scale
+	get_tree().create_timer(0.15, true, false, true).timeout.connect(func() -> void: Engine.time_scale = GameSpeed.base_scale)
 
 	# Camera push toward the boss and back: 45% of the way from the camera to the
 	# boss tile as the map looks at zoom 1 (a map px is a screen px there: the boss

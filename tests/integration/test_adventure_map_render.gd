@@ -60,8 +60,9 @@ func before_each() -> void:
 	await get_tree().process_frame
 
 func after_each() -> void:
-	# The boss reveal slows time for a moment; the next test starts at full speed.
-	Engine.time_scale = 1.0
+	# The boss reveal slows time for a moment, and a test may set a dev speed; the
+	# next test starts at full speed, with the base speed put back too.
+	GameSpeed.set_base_scale(1.0)
 	AdventureMapFixture.restore_vitals(_saved_vitals)
 	_saved_vitals.clear()
 	# AdventureTilemap creates its AdventureMapGenerator node with .new() and
@@ -626,6 +627,38 @@ func test_boss_reveal_keeps_the_hit_stop() -> void:
 	# 0.3 s of real time, whatever the time scale.
 	await get_tree().create_timer(0.3, true, false, true).timeout
 	assert_eq(Engine.time_scale, 1.0, "and runs at full speed again 0.3 s later")
+
+## Under a dev time speed the hit-stop slows to a quarter of that speed, and time comes
+## back to the dev speed, not to 1.0. The base speed is put back to 1.0 by after_each().
+func test_the_hit_stop_returns_to_the_dev_speed() -> void:
+	GameSpeed.set_base_scale(2.0)
+	_start()
+	watch_signals(_tilemap)
+
+	# Read before any real frame runs, as above.
+	_click(FIGHT)
+	assert_true(_step_to_the_hop_end(), "precondition: the walk to FIGHT ends")
+
+	assert_signal_emitted(_tilemap, "boss_revealed", "precondition: visiting FIGHT reveals the boss")
+	assert_eq(Engine.time_scale, 0.5, "time slows to a quarter of the dev speed right after the reveal")
+	# 0.3 s of real time, whatever the time scale.
+	await get_tree().create_timer(0.3, true, false, true).timeout
+	assert_eq(Engine.time_scale, 2.0, "and returns to the dev speed 0.3 s later")
+
+## The hit-stop's timer runs on real time, so the stop is over after 0.15 s at any
+## speed. At ×2 a timer on the scaled clock would take 0.3 s, which the check above
+## cannot tell from 0.15 s; at 0.2 s it can.
+func test_the_hit_stop_ends_in_real_time_at_a_dev_speed() -> void:
+	GameSpeed.set_base_scale(2.0)
+	_start()
+
+	# Read before any real frame runs, as above.
+	_click(FIGHT)
+	assert_true(_step_to_the_hop_end(), "precondition: the walk to FIGHT ends")
+	assert_eq(Engine.time_scale, 0.5, "precondition: time slows to a quarter of the dev speed")
+
+	await get_tree().create_timer(0.2, true, false, true).timeout
+	assert_eq(Engine.time_scale, 2.0, "the stop is over after 0.15 s of real time, not the 0.3 s of the scaled clock")
 
 ## The reveal's camera push eases toward the boss and back while the player
 ## walks on, and leaves the camera on the character, at its offset.
