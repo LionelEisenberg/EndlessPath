@@ -60,16 +60,12 @@ func _motion(at: Vector2) -> InputEventMouseMotion:
 	event.global_position = at
 	return event
 
-## Where a one-line Label's text sits on screen: its line's top edge plus the
-## font's ascent, for text aligned to the top or to the bottom of the Label.
-func _baseline(label: Label) -> float:
-	var font: Font = label.get_theme_font(&"font")
-	var font_size: int = label.get_theme_font_size(&"font_size")
-	var style: StyleBox = label.get_theme_stylebox(&"normal")
-	var rect: Rect2 = label.get_global_rect()
-	if label.vertical_alignment == VERTICAL_ALIGNMENT_BOTTOM:
-		return rect.end.y - style.get_margin(SIDE_BOTTOM) - font.get_descent(font_size)
-	return rect.position.y + style.get_margin(SIDE_TOP) + font.get_ascent(font_size)
+## Where the line holding the character at `index` sits on screen: the top of
+## that line as the engine lays the Label out (its alignment and wrapping
+## included), plus the font's ascent.
+func _baseline(label: Label, index: int = 0) -> float:
+	var ascent: float = label.get_theme_font(&"font").get_ascent(label.get_theme_font_size(&"font_size"))
+	return label.get_global_rect().position.y + label.get_character_bounds(index).position.y + ascent
 
 func _press(button: MouseButton, at: Vector2 = Vector2.ZERO) -> InputEventMouseButton:
 	var event: InputEventMouseButton = InputEventMouseButton.new()
@@ -116,6 +112,19 @@ func test_filter_words_print_the_categories_and_start_on_all() -> void:
 	assert_eq(words.get_selected(), 0)
 	assert_eq((words.get_node("%Word0") as Label).theme_type_variation, &"LabelBookFilterOn")
 	assert_eq((words.get_node("%Word1") as Label).theme_type_variation, &"LabelBookFilter")
+
+func test_filter_words_sit_on_the_2_px_grid() -> void:
+	var tab: Control = await _open_tab()
+	var words: FilterWords = tab.get_node("%FilterWords") as FilterWords
+	var row_left: float = INF
+	var row_right: float = -INF
+	for index: int in 4:
+		var rect: Rect2 = (words.get_node("%%Word%d" % index) as Control).get_global_rect()
+		assert_eq(fmod(rect.position.x, 2.0), 0.0, "word %d, and its lozenge, starts on an even x" % index)
+		assert_eq(fmod(rect.size.x, 2.0), 0.0, "word %d is an even width" % index)
+		row_left = minf(row_left, rect.position.x)
+		row_right = maxf(row_right, rect.end.x)
+	assert_almost_eq((row_left + row_right) / 2.0, 678.0, 1.0, "the row stays centred on the left page")
 
 func test_clicking_a_word_selects_it() -> void:
 	var tab: Control = _tab()
@@ -233,11 +242,12 @@ func test_each_gear_slot_is_named_under_it() -> void:
 		var found: bool = false
 		for caption: Label in captions:
 			var rect: Rect2 = caption.get_global_rect()
-			if is_equal_approx(rect.get_center().x, slot_rect.get_center().x) and is_equal_approx(rect.position.y, slot_rect.position.y + 78.0):
+			# Ruling R9: the spec's baseline, slot top + 94.
+			if is_equal_approx(rect.get_center().x, slot_rect.get_center().x) and is_equal_approx(_baseline(caption), slot_rect.position.y + 94.0):
 				found = true
 				assert_eq(caption.text, names[slot_name], slot_name)
 				assert_eq(caption.theme_type_variation, &"LabelBookCaps", slot_name)
-		assert_true(found, "%s has its name centred under it" % slot_name)
+		assert_true(found, "%s has its name centred under it, its baseline 94 px down the slot" % slot_name)
 
 #-----------------------------------------------------------------------------
 # HOVER AND DRAG
@@ -374,10 +384,72 @@ func test_long_names_wrap_inside_the_panel_and_drop_the_hint() -> void:   # Revi
 	assert_eq(PageBounds.escaping_text(tab), [] as Array[String])
 
 func test_hint_gives_way_first() -> void:
-	assert_true(EquipmentDetails.wants_hint(2, 4, 2))
-	assert_false(EquipmentDetails.wants_hint(2, 5, 1))
-	assert_false(EquipmentDetails.wants_hint(1, 2, 3))
-	assert_false(EquipmentDetails.wants_hint(3, 2, 1))
+	# The text must end at least 24 px above the hint's line: by content y 208,
+	# where the necklace's ends. The header is the name column, 64 + 34 per extra
+	# line, but never under the 72 px icon slot; the bonuses take 16 + 26 per row
+	# + 8 between rows; the description 42 + 26 per extra line.
+	assert_true(EquipmentDetails.wants_hint(2, 2, 2), "the necklace: 98 + 42 + 68 = 208")
+	assert_true(EquipmentDetails.wants_hint(4, 0, 1), "166 + 0 + 42 = 208")
+	assert_true(EquipmentDetails.wants_hint(1, 4, 1), "72 + 76 + 42 = 190")
+	assert_true(EquipmentDetails.wants_hint(1, 2, 3), "72 + 42 + 94 = 208: one line of name less pays for one of description")
+	assert_false(EquipmentDetails.wants_hint(2, 4, 2), "98 + 76 + 68 = 242")
+	assert_false(EquipmentDetails.wants_hint(2, 3, 2), "a third bonus takes a second row: 242")
+	assert_false(EquipmentDetails.wants_hint(2, 4, 1), "98 + 76 + 42 = 216")
+	assert_false(EquipmentDetails.wants_hint(2, 2, 3), "98 + 42 + 94 = 234")
+	assert_false(EquipmentDetails.wants_hint(3, 2, 1), "132 + 42 + 42 = 216")
+	assert_false(EquipmentDetails.wants_hint(1, 2, 4), "72 + 42 + 120 = 234")
+	assert_false(EquipmentDetails.wants_hint(2, 5, 1), "98 + 110 + 42 = 250")
+
+func test_the_hint_rule_reads_the_laid_out_panel() -> void:
+	var tab: Control = await _open_tab()
+	var details: EquipmentDetails = _details(tab)
+	var four_bonuses: EquipmentDefinitionData = NECKLACE.duplicate() as EquipmentDefinitionData
+	four_bonuses.attribute_bonuses = {0: 2.0, 1: 3.0, 2: 4.0, 3: 5.0}
+	var long_name: EquipmentDefinitionData = NECKLACE.duplicate() as EquipmentDefinitionData
+	long_name.item_name = "Pill of the Thousand Quiet Mornings Beneath the Valley"
+	for def: EquipmentDefinitionData in [NECKLACE, DAGGER, BARK, four_bonuses, long_name]:
+		details.show_item(_instance(def), false)
+		await wait_process_frames(2)
+		var name_lines: int = (details.get_node("%NameLabel") as Label).get_line_count()
+		var description: Label = details.get_node("%Description") as Label
+		var expected: int = EquipmentDetails._text_height(name_lines, BookText.bonus_pairs(def).size(), description.get_line_count())
+		assert_eq(description.get_global_rect().end.y - 622.0, float(expected), "%s's text ends where wants_hint() reckons" % def.item_name)
+		for row: Node in details.get_node("%Bonuses").get_children():
+			var rule_y: float = (row.get_node("Rule") as Control).get_global_rect().position.y
+			assert_eq(fmod(rule_y, 2.0), 0.0, "%s's rule at %d is on an even pixel" % [def.item_name, rule_y])
+	assert_eq((details.get_node("%Hint") as Label).get_global_rect().position.y - 622.0, 232.0, "the hint's line")
+
+func test_details_lay_the_longest_item_out_as_the_spec_does() -> void:   # Ruling R10
+	var tab: Control = await _open_tab()
+	InventoryManager.award_items(NECKLACE, 1)
+	tab.open_page()
+	await wait_process_frames(2)
+	var details: EquipmentDetails = _details(tab)
+	var name_label: Label = details.get_node("%NameLabel") as Label
+	var row: BonusRow = details.get_node("%Bonuses").get_child(0) as BonusRow
+	assert_eq((details.get_node("%Icon").get_parent() as Control).get_global_rect(), Rect2(1024, 622, 72, 72), "the item's deep slot")
+	assert_eq(name_label.get_global_rect().position.x, 1112.0)
+	assert_eq(_baseline(name_label), 654.0, "the name's first line")
+	assert_eq(_baseline(name_label, name_label.text.find("Necklace")), 688.0, "and its second")
+	assert_eq(_baseline(details.get_node("%SlotLabel") as Label), 714.0, "the slot, 26 px under the name's last line")
+	assert_eq(_baseline(row.get_node("%LeftValue") as Label), 752.0, "the first bonus row")
+	assert_eq(_baseline(row.get_node("%LeftName") as Label), 752.0, "its attribute on the same line")
+	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 758.0, "the pressed rule under it")
+	assert_eq(_baseline(details.get_node("%Description") as Label), 798.0, "the description")
+	assert_eq(_baseline(details.get_node("%Hint") as Label), 866.0, "the hint, at the panel's foot")
+
+func test_a_shorter_item_flows_up_from_the_same_gaps() -> void:   # Ruling R10
+	var tab: Control = await _open_tab()
+	InventoryManager.award_items(DAGGER, 1)
+	tab.open_page()
+	await wait_process_frames(2)
+	var details: EquipmentDetails = _details(tab)
+	var row: BonusRow = details.get_node("%Bonuses").get_child(0) as BonusRow
+	assert_eq((details.get_node("%NameLabel") as Label).get_line_count(), 1)
+	assert_eq(_baseline(details.get_node("%SlotLabel") as Label), 680.0, "26 px under the one line of name")
+	assert_eq(_baseline(row.get_node("%LeftValue") as Label), 726.0, "16 px under the 72 px icon slot, 26 px higher than the necklace's")
+	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 732.0, "the rule stays on an even pixel")
+	assert_eq(_baseline(details.get_node("%Hint") as Label), 866.0, "the hint stays at the foot")
 
 func test_open_page_shows_the_first_item() -> void:
 	var tab: Control = _tab()

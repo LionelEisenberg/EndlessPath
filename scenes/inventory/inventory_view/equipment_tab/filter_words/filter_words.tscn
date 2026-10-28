@@ -16,6 +16,7 @@ layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"LabelBookFilterOn"
 text = "ALL"
+horizontal_alignment = 1
 
 [node name="Word1" type="Label" parent="."]
 unique_name_in_owner = true
@@ -23,6 +24,7 @@ layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"LabelBookFilter"
 text = "WEAPONS"
+horizontal_alignment = 1
 
 [node name="Word2" type="Label" parent="."]
 unique_name_in_owner = true
@@ -30,6 +32,7 @@ layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"LabelBookFilter"
 text = "ARMOR"
+horizontal_alignment = 1
 
 [node name="Word3" type="Label" parent="."]
 unique_name_in_owner = true
@@ -37,3 +40,4 @@ layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"LabelBookFilter"
 text = "ACCESSORIES"
+horizontal_alignment = 1

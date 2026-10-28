@@ -5,7 +5,10 @@ extends VBoxContainer
 ## One row of an item's bonuses in the Equipment details: two bonuses side by
 ## side, each its attribute in capitals with the value right-aligned at the
 ## column's edge, and a pressed rule under the row. The two columns keep their
-## widths, so a lone bonus sits where the first of a pair would.
+## widths, so a lone bonus sits where the first of a pair would. The text row
+## is 22 px: the values sit at its foot and the captions are centred in its
+## last 18 px, so both baselines fall 16 px down and the row (26 px with its
+## rule) keeps the rules on even pixels.
 
 #-----------------------------------------------------------------------------
 # COMPONENTS

@@ -50,7 +50,7 @@ Related docs:
    - left column: Head, Main hand, Accessory 1
    - right column: Body, Off hand, Accessory 2
 
-   Each slot's name is printed under it, and an empty gear slot is a shallow slot. The details panel sits under the figure: the item in a deep slot beside its name and slot, its bonuses two to a row, its description, and a hint at the foot (`Right-click to wear it`, or `Right-click to take it off` for a worn piece). The panel has a fixed height laid out for the longest item, the Dreadbeast Tooth Necklace, so the hint is the first thing to give way: it hides for a name over two lines, more than four bonuses or a description over two lines.
+   Each slot's name is printed under it, and an empty gear slot is a shallow slot. The details panel sits under the figure: the item in a deep slot beside its name and slot, its bonuses two to a row, its description, and a hint at the foot (`Right-click to wear it`, or `Right-click to take it off` for a worn piece). The panel has a fixed height laid out for the longest item, the Dreadbeast Tooth Necklace; shorter items flow up from the same gaps. The hint is the first thing to give way: it hides when an item's text would end lower than the necklace's.
 
    On opening, the details show the first item on the grid page, else the first worn piece (Head, Main hand, Accessory 1, Body, Off hand, Accessory 2); with neither, they hide. While the bag changes (foraging, a purchase), they and the marks stay on the item the player picked. When that item is discarded, they move to the first item.
 5. **Consumables tab.**
@@ -114,11 +114,12 @@ EquipmentTab (Control, 1400×900, mouse ignored) — equipment_tab.gd: drag/drop
                                            — gear_slot.gd (group "GearSlots")
     HeadLabel … Accessory2Label            — each slot's name, printed under it
   EquipmentDetails (PanelContainer, PanelPressed, 468×272) — equipment_details.gd
-    Content
-      Header: IconWell (deep slot, Icon), NameColumn (NameLabel, SlotLabel)
-      Bonuses                              — one BonusRow (bonus_row.tscn/.gd) per two bonuses
-      Description
-      Hint                                 — sinks to the panel's foot
+    Content (Control)
+      Flow (VBoxContainer)                 — from the content's top
+        Header: IconWell (deep slot, Icon), NameColumn (NameInset 2 px, NameLabel, SlotLabel 17 px)
+        BonusesBlock (16 px over) / Bonuses — one BonusRow (bonus_row.tscn/.gd) per two bonuses, 8 px apart
+        DescriptionBlock (21 px over) / Description
+      Hint                                 — pinned to the panel's foot, baseline 866 on screen
 ```
 
 Every `InventorySlot`, `GearSlot` and `TrashSlot` holds a hidden `Marks` panel (`PanelPrinterMarks`), 6 px outside the slot.
@@ -313,7 +314,8 @@ Right-click quick-equip ignores the trash slot: a held item is rescued only by d
 ### Equipment details and marks
 
 - `EquipmentDetails.show_item(data, worn)` prints an item and shows the panel; `clear()` hides it; `get_item()` returns the item shown. Bonuses come from `BookText.bonus_pairs()`, two to a `BonusRow` (`BonusRow.setup(left, right)`, an empty `right` hiding the right half), and the slot caption from `BookText.slot_name()`.
-- The panel never grows. `EquipmentDetails.wants_hint(name_lines, bonus_count, description_lines)` keeps the hint only for a name of at most two lines, at most four bonuses and a description of at most two lines. The name wraps at 346 px and the description at 434 px, so the line counts hold before the panel is laid out.
+- The panel never grows. It is laid out to the spec's geometry for the longest real item, the Dreadbeast Tooth Necklace: the name's baselines at screen 654 and 688, the slot caption 26 px under the name's last line, the first bonus row's baseline at 752 with a pressed rule under each row, the description from 798, and the hint at 866. Shorter items flow up from the same gaps. The header, the bonus rows and the gaps above them are even heights, so every rule lands on an even pixel.
+- `EquipmentDetails.wants_hint(name_lines, bonus_count, description_lines)` keeps the hint only while the item's text ends at least 24 px above the hint's line, as the necklace's does: 208 px or less down the panel's content. The text's height is the header (the name column, 64 px plus 34 per extra line, but never under the 72 px icon slot), then the bonus rows (16 px over them, 26 per row, 8 between rows), then the description (42 px plus 26 per extra line). The name wraps at 346 px and the description at 434 px, so the line counts hold before the panel is laid out.
 - `InventorySlot.set_marked()` shows a slot's printer's marks. The tab marks the slot that holds the item shown, and while dragging, the drop target. Picking an item up takes the marks off the slot it leaves.
 - `EquipmentTab.open_page()` refreshes the footer, then shows the first item on the grid page, else the first worn piece in the figure's order (`GearSelector.get_slots()`), else clears the details. `InventoryView` calls it on opening the book and on every page turn.
 - After every `inventory_changed` and every drop, the tab follows the item shown (deferred, once the slots have re-bound): it marks the visible slot holding it (none when it is on another page) and refreshes its hint. When the item is no longer in the bag or worn, which is how a discard ends, it runs `open_page()`. Flipping to another page follows it too.
@@ -343,7 +345,7 @@ The Materials tab has a trash slot, but nothing is wired to it. The Consumables 
   - `WEAPONS`: `MAIN_HAND`, `OFF_HAND`
   - `ARMOR`: `HEAD`, `ARMOR`
   - `ACCESSORIES`: `ACCESSORY`
-- `FilterWords.set_options(labels)` prints the words and selects the first without emitting. A left press on another word calls `FilterWords.select(index)` (`LabelBookFilterOn` for it, `LabelBookFilter` for the rest) and emits `option_changed(index)`, which calls `EquipmentGrid.set_category_filter(match)`.
+- `FilterWords.set_options(labels)` prints the words and selects the first without emitting. It gives each word an even width, and the last one 2 px more when needed, so the centred row and the pressed lozenge sit on the 2 px grid. A left press on another word calls `FilterWords.select(index)` (`LabelBookFilterOn` for it, `LabelBookFilter` for the rest) and emits `option_changed(index)`, which calls `EquipmentGrid.set_category_filter(match)`.
 - `EquipmentGrid` calls `InventorySlot.set_filtered_out()` on each slot. A left-out slot is shallow, and its icon's material is `assets/shaders/paper_fade_material.tres`: `paper_fade.gdshader` mixes each texel 70% towards the paper colour `#F7E6CA` and keeps its alpha. Empty slots count as non-matching. Nothing sets `modulate`. The fade re-applies on every page flip and inventory change.
 
 ### Consumable hotbar

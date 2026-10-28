@@ -61,65 +61,71 @@ accessory_index = 1
 [node name="HeadLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = -6.0
-offset_top = 78.0
+offset_top = 82.0
 offset_right = 94.0
-offset_bottom = 94.0
+offset_bottom = 100.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "HEAD"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="MainHandLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = -6.0
-offset_top = 176.0
+offset_top = 180.0
 offset_right = 94.0
-offset_bottom = 192.0
+offset_bottom = 198.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "MAIN HAND"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Accessory1Label" type="Label" parent="."]
 layout_mode = 0
 offset_left = -6.0
-offset_top = 274.0
+offset_top = 278.0
 offset_right = 94.0
-offset_bottom = 290.0
+offset_bottom = 296.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "ACCESSORY"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="BodyLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 378.0
-offset_top = 78.0
+offset_top = 82.0
 offset_right = 478.0
-offset_bottom = 94.0
+offset_bottom = 100.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "BODY"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="OffHandLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 378.0
-offset_top = 176.0
+offset_top = 180.0
 offset_right = 478.0
-offset_bottom = 192.0
+offset_bottom = 198.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "OFF HAND"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Accessory2Label" type="Label" parent="."]
 layout_mode = 0
 offset_left = 378.0
-offset_top = 274.0
+offset_top = 278.0
 offset_right = 478.0
-offset_bottom = 290.0
+offset_bottom = 296.0
 grow_horizontal = 2
 theme_type_variation = &"LabelBookCaps"
 text = "ACCESSORY"
 horizontal_alignment = 1
+vertical_alignment = 1
