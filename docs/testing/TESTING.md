@@ -124,6 +124,7 @@ The enabled GUT plugin adds a GUT bottom panel. It can run all tests, a single s
 tests/
 ├── unit/                         one system, resource or manager per file
 ├── integration/                  content flows and scene-level UI behaviour (plus `adventure_map_fixture.gd`, a shared helper GUT does not collect)
+├── helpers/                      shared helpers with a `class_name`, which GUT does not collect (`PageBounds`: the inventory's two page rects, and text drawn off them or at another scale)
 ├── run_tests.ps1                 the parallel runner
 └── label_tests/
     ├── label_testing_scene.tscn  visual Label-variant reference (run with F6)
@@ -188,7 +189,7 @@ A test file's name says which system or flow it checks (`tests/unit/test_<system
 | CultivationManager | The missing `SILVER` entry in `PATH_POINTS_PER_STAGE` ([CULTIVATION.md](../cultivation/CULTIVATION.md)); the order of `advance_to_next_stage()`'s log line and signals |
 | Tribulation | Pixels: what the stage's draw handlers paint (the colours, the Echo swap and the draw order) was checked once against an oracle in a scratch renderer, not by a test; the live `MainView._unhandled_input()` route and the real keyboard (the playtest checks Space and Escape) |
 | CharacterManager | The `PlayerManager` / `VitalsManager` refresh on `base_attribute_changed` |
-| Inventory UI | `InventoryView` book open/close, materials tab |
+| Inventory UI | Closing `InventoryView`: no test closes the book, so its trash flush on close runs only as `TrashSlot.flush_to_inventory()` called directly |
 | Items generator | The writer, `scripts/tools/items_md_to_resources.gd` |
 | Combat | `SimpleEnemyAI`, `VitalsManager` regen, the `CharacterManager.get_gold_multiplier()` factor (a stub returning 1.0, so the tests cannot tell it from missing) |
 | Adventure | The rest of `AdventureView` (death, result building), `AdventureEndCard` |

@@ -137,8 +137,8 @@ Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, col
 | `printer_marks.tres` | `printer_marks_ai.png` (32x32) | 10/10/10/10 | 0 | none | `PanelPrinterMarks` |
 | `paper_tag.tres` | `paper_tag_ai.png` (12x20) | 4/4/4/4 | 5/2/5/2 | yes | `LabelBookTag`. The 2px top and bottom margins make a one-line count 20px tall, the art's height |
 | `seal.tres` | `seal_ai.png` (66x26) | 0 | 0/4/0/0 | yes | `LabelBookSeal`. No 9-slice: size the Label to 66x26. The 4px top margin lowers the centred word onto the mockups' baseline, 18px under the seal's top |
-| `pressed_groove.tres` | `pressed_groove_ai.png` (10x24) | 0/6/0/6 | 0 | yes | The scroll groove, stretched between its 6px ends. No variant uses it |
-| `pressed_thumb.tres` | `pressed_thumb_ai.png` (4x8) | 0/2/0/2 | 0 | yes | The groove's thumb, stretched between its 2px ends. No variant uses it |
+| `pressed_groove.tres` | `pressed_groove_ai.png` (10x24) | 0/6/0/6 | 0 | yes | Unused. `ScrollRail` draws the groove's art itself, on a `NinePatchRect` with the same 6px ends |
+| `pressed_thumb.tres` | `pressed_thumb_ai.png` (4x8) | 0/2/0/2 | 0 | yes | Unused. `ScrollRail` draws the thumb's art itself, on a `NinePatchRect` with the same 2px ends |
 
 **A separator's style needs margins that add up to its height.** An `HSeparator` draws its style at the style's minimum height, centred in its `separation`, and a `StyleBoxTexture` has no height of its own beyond its margins. With top and bottom margins of 0 the rule is 0px tall and never draws (measured in 4.7.2), so `pressed_rule.tres` carries 2px content margins top and bottom, the 4px of its art, and `HSeparatorPressed` has `separation` 4. `test_pressed_rule_is_as_tall_as_its_separator` guards it. Any other `StyleBoxTexture` used as a separator needs the same.
 
@@ -146,10 +146,10 @@ Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, col
 
 ## RichTextLabel variants
 
-RichTextLabels **cannot** use Label-based variants (different base type). `pixel_theme.tres` has one RTL variant:
-- `RichTextLabelDark` — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`)
-
-`book_theme.tres` has two more for the pressed pages, `RichTextBookDetail` and `RichTextBookValue` (see [Menu book pages](#menu-book-pages)).
+RichTextLabels **cannot** use Label-based variants (different base type). Each theme has RichText variants of its own:
+- `RichTextLabelDark` (`pixel_theme.tres`) — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`)
+- `RichTextBookDetail` and `RichTextBookValue` (`book_theme.tres`) — the pressed pages' detail lines and table values (see [Menu book pages](#menu-book-pages))
+- `RichTextLacquer` and `RichTextLacquerLog` (`lacquer_theme.tres`) — lacquer lines with a decimal point, and the log (see [Lacquer theme](#lacquer-theme-zone-view))
 
 For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_size` directly. Match one of the Label variant sizes for visual consistency (e.g. use 22 if body text elsewhere uses `LabelBody`).
 
@@ -245,7 +245,7 @@ Six `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 | `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` (12x12) | top and bottom 4 | yes | The activity list's rail thumb, any even height of 32 or more |
 | `token.tres` | `lacquer_token_ai.png` (26x26) | left and top 6, right and bottom 8 | yes | `LacquerFloater`'s token, for the map's floater and the cycling zones'. The 2 px shadow is baked into the right and bottom edges |
 | `trib_board9.tres` | `tribulation/lacquer_trib_board9_ai.png` (164x164) | left and top 56, right and bottom 60 | yes | The Tribulation board's frame: a strapped board (brass-strapped corners, one strap worn and a nail lost) whose 28 art px corners are the only part with detail, so the middle stretches cleanly to any size. The 4 px shadow is baked into the right and bottom edges |
-| `wrap_pad.tres` | none (a `StyleBoxEmpty`) | bottom content margin 1 | none | The `normal` style of a wrapping 15/18 or 18/22 Label (the Here tray's name and line, the walk hint and lock line, a drawer's detail, the Goals board's step and milestone lines, the Now strip's wrapping labels), so its lines come to 18 n or 22 n. On the pressed pages, the pad of a wrapping Label whose one line is odd (see [Pressed pages](#pressed-pages)). Not for a 17/20 name (20 px a line already) or the lore label (it has a pad of its own) |
+| `wrap_pad.tres` | none (a `StyleBoxEmpty`) | bottom content margin 1 | none | The `normal` style of a wrapping 15/18 or 18/22 Label (the Here tray's name and line, the walk hint and lock line, a drawer's detail, the Goals board's step and milestone lines, the Now strip's wrapping labels), so its lines come to 18 n or 22 n. Not for a 17/20 name (20 px a line already) or the lore label (it has a pad of its own) |
 
 `token.tres` also sets content margins 14, 4, 16 and 6 (left, top, right, bottom), so a `PanelContainer` with this style hugs one 20 px text line to the kit's token: 30 px tall (28 + the 2 px shadow), the text 14 px in and 4 px down, and text width + 30 wide (text + 28 + the shadow). A 16 px `RichTextLacquer` line is 20 px already (`test_token_hugs_a_floater_line`). A one-line `LabelLacquerFloater` is 19 px, so give it `custom_minimum_size.y = 20`. The kit rounds the token's width to even (`even(text + 28)`): the floater sets that width itself.
 

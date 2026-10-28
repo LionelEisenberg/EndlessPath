@@ -12,14 +12,14 @@ The inventory holds what the player owns and what they have equipped:
 
 `InventoryManager` (autoload) owns every mutation and emits a single `inventory_changed` signal. The state lives in `InventoryData` inside the save file.
 
-The UI is a book (`InventoryView`), the red one of the four menu books that share `BookFrame` (see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)), with four tabs:
+The UI is a book (`InventoryView`), the red one of the four menu books that share `BookFrame` (see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)). Its four tabs are pressed paper ([design](../superpowers/specs/2026-10-23-inventory-pressed-pages-design.md)): slots, panels and the gear figure are pressed into the page and the labels printed in ink, at screen resolution. Each tab's left page holds what the player has, and its right page what they use and the details of what they last pointed at:
 
-| Tab | Contents |
-|---|---|
-| Equipment | Paged grid, category filter, gear selector, trash hold-buffer |
-| Consumables | Stack list and a 4-slot combat hotbar |
-| Materials | A page of stacks, and where each is gathered |
-| Journal | Quest items, each with the quest it belongs to |
+| Tab | Left page | Right page |
+|---|---|---|
+| Equipment | A 6 × 6 page of the bag, a category filter, the page slots and a discard slot | The gear figure with its six slots, and the item's details |
+| Consumables | The stacks, in a list | The four-slot hotbar, and the consumable's details |
+| Materials | A 6 × 6 page of stacks | The material's details and where it is gathered |
+| Journal | The quest items, in a list | The item's details and its quest |
 
 Items arrive from three sources: foraging loot tables, adventure encounter effects and quest completion effects. Equipped gear feeds attribute bonuses into `CharacterManager`. Quest items gate content through the `ITEM_OWNED` unlock condition.
 
@@ -94,20 +94,25 @@ Related docs:
 ```
 MainView
   MainViewStateMachine/InventoryViewState        — inventory_view_state.gd (BookViewState: close on I/Escape/close tab/backdrop click)
-  InventoryView (Control, scale 2x)              — inventory_view.gd (MenuBookView; page_content = [BookContent])
-    BookFrame                                    — scenes/ui/book_frame/book_frame.tscn, style inventory_book_style.tres
+  InventoryView (Control, full screen, mouse ignored, theme book_theme.tres)
+                                                 — inventory_view.gd (MenuBookView; page_content = [BookContent, PageLayer])
+    BookLayer (centred, scale 2, mouse ignored)
+      BookFrame                                  — scenes/ui/book_frame/book_frame.tscn, style inventory_book_style.tres
                                                    (book art + open/close and page-turn animations, close tab, bookmark)
-    BookContent (Control, mouse ignored)         — shown only while the book lies open
-      TabSwitcher (mouse ignored)                — tab_switcher.gd: collects its child tab buttons, signal tab_changed(index)
-        EquipmentTabButton / ConsumablesTabButton / MaterialsTabButton / QuestItemsTabButton
+      BookContent (Control, mouse ignored)       — shown only while the book lies open
+        TabSwitcher (mouse ignored)              — tab_switcher.gd: collects its child tab buttons, signal tab_changed(index)
+          EquipmentTabButton / ConsumablesTabButton / MaterialsTabButton / QuestItemsTabButton
                                                  — tab_button.tscn/.gd (icon_texture export, "TabButtonAnimation", set_locked())
+    PageLayer (centred, screen pixels, mouse ignored) — shown only while the book lies open
       EquipmentTab                               — equipment_tab.tscn/.gd
       ConsumablesTab                             — consumables_tab.tscn/.gd
       MaterialsTab                               — materials_tab.tscn/.gd
       QuestItemsTab                              — quest_items_tab.tscn/.gd (the Journal)
 ```
 
-`InventoryView` turns pages through `BookFrame.turn_page()` and shows the new tab on `page_turned`. Once the book has closed, it flushes the trash slots.
+The book's art and side tabs are drawn at 2x on `BookLayer` and the pages at screen resolution on `PageLayer`, as in the other menu books, so the pages' text renders at its own size. Each tab covers the book, 1400 × 900 from screen (260, 90), the book's top-left, and ignores the mouse, so a click outside the book reaches the backdrop. Positions inside a tab are tab-local: screen − (260, 90).
+
+`InventoryView` calls the shown tab's `open_page()` before the book opens. A tab button turns the page through `BookFrame.turn_page()`; on `page_turned` the view calls the new tab's `open_page()`, then shows the tab. Once the book has closed, it flushes the trash slots.
 
 ### Equipment tab
 
@@ -186,7 +191,7 @@ MaterialsTab (Control, 1400×900, mouse ignored) — materials_tab.gd: the grid,
                                              Count (PaperTag, 2 px in from the right, 4 up), Marks
   EmptyLabel                               — "Nothing gathered yet."
   RightPage (VBoxContainer)                — keeps the details under the title's last line
-    RightTitle (PageTitle)                 — the material's name
+    TitleBox / RightTitle (PageTitle)      — the material's name; TitleBox's 4 px left margin centres it on the spec's x 1244
     MaterialDetails (PanelContainer, PanelPressed, grows downward) — material_details.gd
       Flow
         Header: IconWell (deep slot, Icon), InfoColumn (KindInset 11 px, KindLabel "MATERIAL", AmountLabel)

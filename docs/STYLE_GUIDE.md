@@ -266,6 +266,10 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 | Glyphs: padlock, `?`, 3-frame twinkle | `lacquer_glyph_lock_ai.png`, `lacquer_glyph_unknown_ai.png`, `lacquer_glyph_twinkle_strip_ai.png` | `MapGlyph` |
 | Character shadow | `map/lacquer_char_shadow_ai.png` | Zone map and adventure map character |
 
+### Pressed paper (the books)
+
+The menu books keep paper pages rather than lacquer (K-Q1). Their pressed look, its palette and pieces, and the page frame are in the [inventory pressed pages spec](superpowers/specs/2026-10-23-inventory-pressed-pages-design.md); the book theme's pressed variants and styleboxes are in [UI_STYLING.md](UI_STYLING.md#pressed-pages).
+
 ## 7. Interaction states
 
 Never glow, tint, fade or scale to show a state.
@@ -482,7 +486,7 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 | Combat HUD | B4–B9 | 6 | 3 | 3 | 0 |
 | Adventure stage | S1–S3 | 3 | 1 | 1 | 1 |
 | End card | E1 | 1 | 0 | 0 | 1 |
-| Menu books | K1–K13 | 13 | 6 | 6 | 1 |
+| Menu books | K1–K13 | 9 | 5 | 3 | 1 |
 | Project-wide | P1–P2 | 2 | 1 | 0 | 1 |
 
 **Taking a row in another branch:**
@@ -551,7 +555,7 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 | K1 | Book shell and covers | The book art is drawn in 2x2 blocks and shown at 2x, so one art px is 4 screen px. Covers recoloured jade (Abilities: jade is reserved) and indigo (Character: off-palette). The bookmark slides on a quad ease | Keep the book. Set all four `BookStyleData` covers to the lacquer ramp (`#692F2F`, `#462020`, `#2C1414`) through `palette_swap.gdshader`, no new art. Identity only in the bookmark and border line, from §4. Bookmark in 2 px steps or shown outright. Optional brass corner caps and the kit's carved close × | S | `scenes/ui/book_frame/`, `resources/ui/book_styles/`, `assets/shaders/palette_swap.gdshader` |
 | K2 | Page chrome (`book_theme`) | Rounded key chips (radius 3); selection and the path inset shown by `modulate` tints; card, row, pill and plaque art at 4 px per art px (measured 2026-10-22: 100%, 100%, 100% and 99.9% uniform 4x4 blocks) beside 2 px slot art; odd content margins (plaque 11 / 7, key chip 1 / 2); `LabelBookPositive` green `#3E7A3A` off-palette | Selection as a frame overlay; key chips as carved key caps (`lacquer_keycap_ai.png`, built for the technique dock); even margins; benefit text in a palette colour; optional Yatra plaque titles; optional 2 px redraws of card, row, pill and plaque. These are all `_ai` files, so the redraws touch no user art | M | `assets/themes/book_theme.tres`, `assets/sprites/ui/book/` |
 | K3 | Side tabs | Interpolated margin and icon-scale tracks (0.95 → 0.75) on stepped sprite frames; 64 px icons in a 26-unit rect (1.625 px per art px); locked at 55% alpha; half-unit offsets (55.5 units = 111 px) | Discrete tracks with whole units and no scale track; icons at on-grid sizes (16 art px redraws where needed); locked as the padlock and an opaque dim from `palette_swap` | S | `scenes/inventory/inventory_view/tab_switcher/`, `scenes/inventory/inventory_view/inventory_view.tscn`, `scenes/path_progression/path_tree_view.tscn` |
-| K4 | Inventory chrome (ribbon, sort pill) | The ribbon art bakes a translucent 16% black shadow; disabled arrows and dots at 35% alpha; pager dots built in code | An `_ai` ribbon copy with an opaque 2 art px hard shadow (the user's file untouched); "off" art or hidden arrows; dots in the scene | M | `scenes/inventory/common/tab_banner/`, `scenes/inventory/common/sort_sub_banner/` |
+| K4 | Book chrome (ribbon, sort pill) | The ribbon art bakes a translucent 16% black shadow; disabled arrows and dots at 35% alpha; pager dots built in code | An `_ai` ribbon copy with an opaque 2 art px hard shadow (the user's file untouched); "off" art or hidden arrows; dots in the scene | M | `scenes/inventory/common/tab_banner/`, `scenes/inventory/common/sort_sub_banner/` |
 | K5 | Equipment tab: the Scripted Bark icon | `scripted_bark.png` is painterly (no grid) | An on-grid `_ai` redraw of `scripted_bark` | S | `assets/sprites/items/equipment/scripted_bark.png`, `resources/items/equipment/spirit_valley/scripted_bark.tres` |
 | K10 | Abilities book | A jade cover; ability icons with cyan glow auras (two with no pixel grid); icons at 36, 48, 60 and 72 px; overbright drag tint; tinted selected row; rounded key chips; a latent `pixel_theme` scrollbar | Keep the book: on-grid icon sizes; frame overlays for hover, selection and drop; carved key caps; cover per K1; `LacquerRail` or a book rail; optional `_ai` icon redraws without glow (open question G9) | M | `scenes/abilities/abilities_view.tscn`, `scenes/abilities/ability_row/`, `scenes/abilities/equip_slot/`, `assets/sprites/abilities/` |
 | K11 | Character book | Closest to the rules. A warm tint for selection; an indigo cover; `res://icon.svg` as the editor default texture | Selection as a frame overlay; cover per K1 | S | `scenes/character/character_view.tscn`, `scenes/character/attribute_tile/` |
