@@ -182,7 +182,7 @@ func start_from_launch_options(options: LaunchOptions) -> void:
 # SWITCHING SESSIONS
 #-----------------------------------------------------------------------------
 # Each switch is refused at once while another one is pending (SWITCH_UNDER_WAY),
-# before any check of its own, so a refused request never takes your save's lock.
+# before any check of its own.
 
 ## Plays the preset in memory, on the next frame (see the class doc). A preset
 ## build_preset() refuses before it changes anything (validate() finds something
@@ -245,15 +245,13 @@ func back_to_my_save() -> void:
 
 ## Starts a new game on the user's own save, on the next frame: the save is backed
 ## up, then a fresh save takes its place and is written at once. Refused at once in
-## a run with no main save, and while another live run holds the save's lock or its
-## lock file cannot be read or written.
+## a run with no main save. A save that cannot be backed up is left as it was, and
+## the switch fails.
 func new_game() -> void:
 	var what: String = "start a new game on your save"
 	var refusal: String = _pending_refusal()
 	if refusal == "":
 		refusal = _main_save_refusal()
-	if refusal == "":
-		refusal = _take_your_save_lock()
 	if refusal != "":
 		_refuse(what, refusal)
 		return
@@ -261,16 +259,13 @@ func new_game() -> void:
 
 ## Makes the session's save the user's own, on the next frame: the user's save is
 ## backed up, then a copy of the session's save takes its place, is written at once
-## and plays on as your save. Refused at once in a run with no main save, and while
-## another live run holds the save's lock or its lock file cannot be read or
-## written.
+## and plays on as your save. Refused at once in a run with no main save. A save
+## that cannot be backed up is left as it was, and the switch fails.
 func keep_as_my_save() -> void:
 	var what: String = "keep this game as your save"
 	var refusal: String = _pending_refusal()
 	if refusal == "":
 		refusal = _main_save_refusal()
-	if refusal == "":
-		refusal = _take_your_save_lock()
 	if refusal != "":
 		_refuse(what, refusal)
 		return
@@ -279,8 +274,8 @@ func keep_as_my_save() -> void:
 ## Puts a backup (PersistenceManager.list_backups()) back as the user's own save,
 ## on the next frame: the backup is read, the save is backed up, the backup takes
 ## its place byte for byte, and the file is opened again. Refused at once in a run
-## with no main save, for a backup that is not there, and while another live run
-## holds the save's lock or its lock file cannot be read or written.
+## with no main save and for a backup that is not there. A save that cannot be
+## backed up is left as it was, and the switch fails.
 func restore_backup(backup_path: String) -> void:
 	var what: String = "restore your save from %s" % backup_path.get_file()
 	var refusal: String = _pending_refusal()
@@ -288,8 +283,6 @@ func restore_backup(backup_path: String) -> void:
 		refusal = _main_save_refusal()
 	if refusal == "" and not FileAccess.file_exists(backup_path):
 		refusal = "There is no backup at %s" % backup_path
-	if refusal == "":
-		refusal = _take_your_save_lock()
 	if refusal != "":
 		_refuse(what, refusal)
 		return
@@ -565,28 +558,6 @@ func _refuse(what: String, reason: String) -> void:
 func _main_save_refusal() -> String:
 	return "This run has no main save" if PersistenceManager.main_save_path == "" else ""
 
-## Takes the lock on the user's own save for a switch that writes it, and returns
-## "", or why it could not ("Your save is <SaveLock.refusal_reason()>"): another
-## live run holds it, or its lock file cannot be read or written, so another run
-## may, and a run never writes a save under another. The switch then binds the
-## save, and the session keeps the lock as its own; a switch that fails before that
-## gives it back (_release_unused_lock()).
-func _take_your_save_lock() -> String:
-	var main_save: String = PersistenceManager.main_save_path
-	if SaveLock.acquire(main_save):
-		return ""
-	return "Your save is %s" % SaveLock.refusal_reason(main_save)
-
-## Gives back the lock on the user's save that _take_your_save_lock() took for a
-## switch that then failed before it bound the save. Kept, the lock would keep the
-## user's other runs off the save until it goes stale. A session that plays the
-## user's save holds that lock as its own, so it keeps it; and SaveLock.release()
-## deletes only a lock that is this run's, never another run's.
-func _release_unused_lock() -> void:
-	var main_save: String = PersistenceManager.main_save_path
-	if PersistenceManager.save_path != main_save:
-		SaveLock.release(main_save)
-
 #-----------------------------------------------------------------------------
 # SESSION STEPS
 #-----------------------------------------------------------------------------
@@ -643,7 +614,6 @@ func _open_file(path: String) -> String:
 func _start_new_game() -> String:
 	var refusal: String = _back_up_your_save()
 	if refusal != "":
-		_release_unused_lock()
 		return refusal
 	PersistenceManager.use_save(SaveGameData.new_current(), PersistenceManager.main_save_path)
 	return _write_your_save()
@@ -654,7 +624,6 @@ func _start_new_game() -> String:
 func _keep_as_your_save() -> String:
 	var refusal: String = _back_up_your_save()
 	if refusal != "":
-		_release_unused_lock()
 		return refusal
 	var kept: SaveGameData = PersistenceManager.save_game_data.duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL) as SaveGameData
 	PersistenceManager.use_save(kept, PersistenceManager.main_save_path)
@@ -667,15 +636,12 @@ func _keep_as_your_save() -> String:
 func _restore_backup(backup_path: String) -> String:
 	var restored: PackedByteArray = FileAccess.get_file_as_bytes(backup_path)
 	if restored.is_empty():
-		_release_unused_lock()
 		return "Could not read %s" % backup_path
 	var refusal: String = _back_up_your_save()
 	if refusal != "":
-		_release_unused_lock()
 		return refusal
 	var error: Error = SaveFiles.write_bytes_atomically(restored, PersistenceManager.main_save_path)
 	if error != OK:
-		_release_unused_lock()
 		return "Could not write %s over your save (error %d)" % [backup_path, error]
 	return _open_your_save(false)
 

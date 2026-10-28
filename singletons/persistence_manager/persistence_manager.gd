@@ -18,18 +18,9 @@ extends Node
 ## save that names a zone the game no longer has is repaired, after a copy of the
 ## file is put aside.
 ##
-## One run at a time writes a save. A session on a file holds that save's lock
-## (SaveLock): refreshed on every tick and every write, and released when the
-## window closes. A save another live run holds the lock on is played in memory
-## with saving blocked, so two runs never overwrite each other's progress. So is a
-## save whose lock file cannot be read or written as the session starts, since
-## another run may hold it, and a save whose lock another run takes over while this
-## one hangs: the session finds out at its next tick or write, and writes nothing
-## from then on.
-##
 ## The user's save is backed up (backup_main_save()) whenever a session takes it
-## on under its lock, at launch or when a switch opens it, and before a dev switch
-## writes over it, so nothing writes it without a copy of it as it was.
+## on, at launch or when a switch opens it, and before a dev switch writes over it,
+## so nothing writes it without a copy of it as it was.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -39,11 +30,11 @@ extends Node
 ## At boot it reaches no one: the managers read the save in their own _ready().
 signal save_data_reset
 
-## Emitted whenever saving becomes blocked, is unblocked, or is blocked for another
-## reason: a session that opens a save it must not write, a new session that clears
-## a block, and a takeover the heartbeat finds. Listeners read is_save_blocked() and
-## get_block_reason(). The dev panel shows "Not saving: <reason>" from it. At boot
-## it reaches no one: the panel reads the block when it is built.
+## Emitted whenever saving becomes blocked or is unblocked: a session that opens a
+## save it must not write, and a new session that clears a block. Listeners read
+## is_save_blocked() and get_block_reason(). The dev panel shows "Not saving:
+## <reason>" from it. At boot it reaches no one: the panel reads the block when it
+## is built.
 signal save_block_changed
 
 #-----------------------------------------------------------------------------
@@ -89,28 +80,13 @@ var _autosave_at_launch: bool = true
 ## (boot()). Only such a run saves when its window closes.
 var _plays_main_scene: bool = true
 
-## Set when the session's save could not be read or checked, a newer build wrote
-## it, or another run holds its lock (or may: its lock file could not be read or
-## written) or took the lock over. Nothing writes it until another save becomes the
-## session's.
+## Set when the session's save will not load, a newer build wrote it, or the
+## managers verify() needs did not load, so it cannot be checked. Nothing writes it
+## until another save becomes the session's.
 var _save_blocked: bool = false
 
 ## Why saving is blocked, or "" when it is not.
 var _block_reason: String = ""
-
-## The path of the save whose lock this session holds, or "" when it holds none: a
-## session in memory, or a save it was refused the lock on (another run held it, or
-## its lock file could not be read or written). The heartbeat and the release only
-## ever touch this one, so a session never refreshes or deletes a lock it did not
-## take.
-var _lock_path: String = ""
-
-## When the lock was last known to be this session's (Time.get_ticks_msec()): taken
-## (SaveLock.acquire() reads the file back as this run's), or found this run's by a
-## heartbeat. No other run takes over a lock within SaveLock.STALE_AFTER_SECONDS of
-## that, so a heartbeat that cannot read the lock file in that time loses nothing
-## (_heartbeat()).
-var _lock_confirmed_msec: int = 0
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -130,12 +106,9 @@ func _ready() -> void:
 	boot(null, LaunchOptions.plays_main_scene(get_tree().current_scene))
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		# Only a run of the main scene saves on quit, as only its SaveTimer saves.
-		if _plays_main_scene:
-			autosave()
-		# After the last write, so the lock holds until it is done.
-		_release_lock()
+	# Only a run of the main scene saves on quit, as only its SaveTimer saves.
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and _plays_main_scene:
+		autosave()
 
 #-----------------------------------------------------------------------------
 # SESSIONS
@@ -147,15 +120,14 @@ func _notification(what: int) -> void:
 ## a fresh save, written to the --save path when one was given and kept in memory
 ## otherwise, which DevManager builds the preset on once every autoload is ready.
 ## It backs nothing up, unless its --save path is the main save: a preset written
-## over the user's save backs it up first, under the save's lock, as a launch on
-## the main save does.
+## over the user's save backs it up first, as a launch on the main save does.
 ## Any other session: --save=<path> replaces save_path, then open_save_file() makes
 ## save_path the session, backing the main save up when that is the file.
 ## `plays_main_scene` false is a run of another scene (the editor's Run Current
 ## Scene, a scene named on the command line) or of none (a script run): such a run
 ## writes no save. A session other than a preset's plays save_path in memory
-## (_play_in_memory()), with no lock and no backup, and no run of another scene
-## saves when its window closes.
+## (_play_in_memory()), with no backup, and no run of another scene saves when its
+## window closes.
 func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 	var launch: LaunchOptions = options if options != null else LaunchOptions.current()
 	autosave_enabled = not launch.no_autosave
@@ -163,7 +135,7 @@ func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 	_plays_main_scene = plays_main_scene
 	if launch.preset_id != "":
 		use_save(SaveGameData.new_current(), launch.save_path)
-		# Under the lock use_save() took, before DevManager builds the preset.
+		# Before DevManager builds the preset, and anything can write the save.
 		_back_up_if_main(launch.save_path)
 		return
 	if launch.save_path != "":
@@ -174,16 +146,11 @@ func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 	open_save_file(save_path)
 
 ## Makes the save file at `path` the session: the one way a file becomes it, at
-## boot and when a session goes back to a file. It clears any block and moves the
-## session's lock to `path`. When `path` is the main save and the lock is this
-## session's, the save is backed up as it is on disk, before anything can write it:
-## a launch on it, Back to my save, any switch that comes back to it. `back_up` false
-## skips that for a caller that backed the save up itself before writing over it (a
-## restore), so the switch takes one backup. A save another live run holds the lock
-## on, or whose lock file cannot be read or written, is blocked
-## (SaveLock.refusal_reason()), not backed up, and still loaded as below, into
-## memory. Nothing below clears a block, so that one stands however the save loads:
-## the file is never written. Then:
+## boot and when a session goes back to a file. It clears any block. When `path` is
+## the main save, the save is backed up as it is on disk, before anything can write
+## it: a launch on it, Back to my save, any switch that comes back to it. `back_up`
+## false skips that for a caller that backed the save up itself before writing over
+## it (a restore), so the switch takes one backup. Then:
 ## - no file there, and no temp file a cut-short write left: a new save, written
 ##   at once;
 ## - a file that will not load: copied aside and kept, and the session runs on a
@@ -200,8 +167,6 @@ func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 func open_save_file(path: String, back_up: bool = true) -> void:
 	save_path = path
 	_clear_block()
-	# Before the load, whose steps may write (a new save) or add a block of their own.
-	_move_lock_to(path)
 	if back_up:
 		_back_up_if_main(path)
 	_load_session_save(path)
@@ -211,50 +176,37 @@ func open_save_file(path: String, back_up: bool = true) -> void:
 ## then re-binds every manager through save_data_reset. It swaps the object in
 ## and never resets the old one in place, so ActionManager's stale-save guard
 ## stops an action still running on the old save without counting it. Any block
-## clears, and the session's lock moves to `path` (a session in memory holds
-## none): a save another live run holds the lock on, or whose lock file cannot be
-## read or written, blocks saving.
+## clears.
 func use_save(save: SaveGameData, path: String) -> void:
 	save_game_data = save
 	save_path = path
 	_clear_block()
-	_move_lock_to(path)
 	save_data_reset.emit()
 
 #-----------------------------------------------------------------------------
 # WRITING
 #-----------------------------------------------------------------------------
 
-## Writes the session's save to save_path, stamped with the current version. The
-## lock's heartbeat comes first: a session whose lock another run took over blocks
-## itself and writes nothing. Returns ERR_UNAVAILABLE for a session in memory and
-## ERR_LOCKED while saving is blocked, or once the heartbeat finds the lock lost,
-## writing nothing; otherwise what SaveFiles.write_atomically() returns.
+## Writes the session's save to save_path, stamped with the current version.
+## Returns ERR_UNAVAILABLE for a session in memory and ERR_LOCKED while saving is
+## blocked, writing nothing; otherwise what SaveFiles.write_atomically() returns.
 func save_data() -> Error:
 	if is_in_memory():
 		return ERR_UNAVAILABLE
 	if _save_blocked:
 		return ERR_LOCKED
-	if not _heartbeat():
-		return ERR_LOCKED
 	save_game_data.save_version = SaveGameData.CURRENT_VERSION
 	return SaveFiles.write_atomically(save_game_data, save_path)
 
 ## Saves the session when autosave is on and the session can write, and logs a
-## write that fails. The SaveTimer's tick and the window's close call it.
+## write that fails. The SaveTimer's tick, every 5 seconds, and the window's close
+## call it.
 func autosave() -> void:
 	if not autosave_enabled or not can_write():
 		return
 	var error: Error = save_data()
 	if error != OK:
 		Log.error("PersistenceManager: Could not save to %s (error %d)" % [save_path, error])
-
-## The SaveTimer's tick, every 5 seconds: the lock's heartbeat, which beats with
-## autosave off too and blocks a session whose lock another run took over, then
-## the autosave.
-func tick() -> void:
-	_heartbeat()
-	autosave()
 
 ## Puts autosave_enabled back to what the run was launched with (off after
 ## --no-autosave and in a GUT run), whatever the session turned it to. DevManager
@@ -275,10 +227,8 @@ func can_write() -> bool:
 func is_in_memory() -> bool:
 	return save_path == ""
 
-## True when the session's save could not be read or checked, a newer build wrote
-## it, or another run holds its lock or took the lock over (or may have: its lock
-## file could not be read or written when the session took it, or could not be read
-## for SaveLock.STALE_AFTER_SECONDS), so nothing writes it.
+## True when the session's save will not load, a newer build wrote it, or the
+## managers verify() needs did not load, so it cannot be checked: nothing writes it.
 func is_save_blocked() -> bool:
 	return _save_blocked
 
@@ -299,21 +249,15 @@ func can_verify() -> bool:
 
 ## Copies the main save into backup_dir, keeping its newest BACKUPS_KEPT backups:
 ## the one way the main save is backed up, when a session takes it on (a launch,
-## a switch that opens it) and before a dev switch writes over it (DevManager). Only
-## while this run holds the save's lock: a save another live run holds is that
-## run's live state, and enough copies of it would rotate that run's
-## start-of-session backup out of the BACKUPS_KEPT. When only the temp file a
-## cut-short write left is there, that file may be the only copy of the save, so it
-## is the one copied, under its own stem (<name>.tmp.<stamp>.<extension>), which
-## list_backups() does not list. Returns the copy's path, or "" when nothing is on
-## disk to copy (has_main_save_on_disk()), this run does not hold the lock, or the
-## copy failed (SaveFiles logs it).
+## a switch that opens it) and before a dev switch writes over it (DevManager).
+## When only the temp file a cut-short write left is there, that file may be the
+## only copy of the save, so it is the one copied, under its own stem
+## (<name>.tmp.<stamp>.<extension>), which list_backups() does not list. Returns the
+## copy's path, or "" when nothing is on disk to copy (has_main_save_on_disk()) or
+## the copy failed (SaveFiles logs it).
 func backup_main_save() -> String:
 	var source: String = _main_save_on_disk()
 	if source == "":
-		return ""
-	if SaveLock.holder_pid(main_save_path) != OS.get_process_id():
-		Log.warn("PersistenceManager: %s was not backed up: this run does not hold its lock" % main_save_path)
 		return ""
 	return SaveFiles.backup(source, backup_dir, BACKUPS_KEPT)
 
@@ -375,9 +319,9 @@ func _load_session_save(path: String) -> void:
 
 ## Plays the save at `path` in memory, for a run that does not play the main scene
 ## (boot()): it is loaded, migrated and repaired in memory as open_save_file() does,
-## but no lock is taken and nothing is backed up, copied aside or written, so the
-## file stays as it is for the next launch of the game. A save that is missing, or
-## will not load, gives a new game in memory.
+## but nothing is backed up, copied aside or written, so the file stays as it is for
+## the next launch of the game. A save that is missing, or will not load, gives a
+## new game in memory.
 func _play_in_memory(path: String) -> void:
 	var loaded: SaveGameData = SaveFiles.load_save(path)
 	if loaded == null:
@@ -389,12 +333,11 @@ func _play_in_memory(path: String) -> void:
 	use_save(loaded, "")
 	Log.info("PersistenceManager: This run does not play the main scene, so %s is read into memory and never written" % path)
 
-## Backs the main save up (backup_main_save()) when `path` is it and this session
-## has just taken its lock: the save as the session found it, before anything can
-## write it. A session refused the lock holds none (_lock_path), so a run locked out
-## of the main save takes no backup, and one in memory has no file to back up.
+## Backs the main save up (backup_main_save()) when `path` is it: the save as the
+## session found it, before anything can write it. A session in memory ("") has no
+## file to back up, and in a run with no main save main_save_path is "" too.
 func _back_up_if_main(path: String) -> void:
-	if path != "" and path == main_save_path and _lock_path == path:
+	if path != "" and path == main_save_path:
 		backup_main_save()
 
 ## The file a backup of the main save copies: the main save, or the temp file a
@@ -425,62 +368,3 @@ func _clear_block() -> void:
 	_save_blocked = false
 	_block_reason = ""
 	save_block_changed.emit()
-
-#-----------------------------------------------------------------------------
-# SAVE LOCK
-#-----------------------------------------------------------------------------
-
-## Moves the lock this session holds to the save at `path`: the lock on the save it
-## leaves is released, and the one on `path` is taken, unless `path` is "" (a
-## session in memory has no file to guard). A save another live run holds the lock
-## on blocks saving, so this session never writes under that run, and so does one
-## whose lock file cannot be read or written, which another run may hold
-## (SaveLock.refusal_reason() is the block's reason). Only a new session clears that
-## block: nothing tries the lock again.
-func _move_lock_to(path: String) -> void:
-	if path != _lock_path:
-		_release_lock()
-	if path == "":
-		return
-	if SaveLock.acquire(path):
-		_lock_path = path
-		_lock_confirmed_msec = Time.get_ticks_msec()
-		return
-	_lock_path = ""
-	_block_saving(SaveLock.refusal_reason(path))
-
-## The lock's heartbeat: moves its time to now and returns true while this session
-## still holds the lock, or holds none to lose (a session in memory, or one that
-## was refused the lock). Returns false once the lock is lost: another run's lock is
-## there now, or the lock file is gone, as happens to a session that hung past
-## SaveLock.STALE_AFTER_SECONDS. The session then blocks, so it never writes over
-## what that run saved. A lock file that is there but cannot be read (an antivirus
-## scan holding it, say) loses nothing within STALE_AFTER_SECONDS of the last time
-## the lock was this session's, since no other run takes a lock that recent over:
-## the session goes on, and the next heartbeat reads the lock again. Past that, it
-## blocks too.
-func _heartbeat() -> bool:
-	if _lock_path == "":
-		return true
-	var found: SaveLock.Heartbeat = SaveLock.refresh(_lock_path)
-	if found == SaveLock.Heartbeat.HELD:
-		_lock_confirmed_msec = Time.get_ticks_msec()
-		return true
-	if found == SaveLock.Heartbeat.UNREADABLE:
-		if Time.get_ticks_msec() - _lock_confirmed_msec < SaveLock.STALE_AFTER_SECONDS * 1000:
-			Log.warn("PersistenceManager: Could not read the lock on %s, so the next heartbeat reads it again" % _lock_path)
-			return true
-		_lock_path = ""
-		_block_saving("its lock file could not be read for %d s, so another run may hold the save" % SaveLock.STALE_AFTER_SECONDS)
-		return false
-	var holder: int = SaveLock.holder_pid(_lock_path)
-	_lock_path = ""
-	var who: String = "pid %d" % holder if holder > 0 else "its lock file is gone"
-	_block_saving("taken over by another run (%s)" % who)
-	return false
-
-## Gives up the lock this session holds, if it holds one.
-func _release_lock() -> void:
-	if _lock_path != "":
-		SaveLock.release(_lock_path)
-		_lock_path = ""

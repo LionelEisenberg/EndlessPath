@@ -98,9 +98,6 @@ var _original_session_preset: SavePresetData
 var _original_preset_dir_override: String
 var _original_last_switch_failure: String
 
-## The pid of the helper process standing in for another run, or 0.
-var _helper_pid: int = 0
-
 ## What get_last_switch_failure() returned each time session_switch_failed was
 ## emitted, while _on_switch_failed() is connected.
 var _failures_when_emitted: Array[String] = []
@@ -142,9 +139,6 @@ func before_each() -> void:
 	DevManager._last_switch_failure = ""
 
 func after_each() -> void:
-	if _helper_pid > 0:
-		OS.kill(_helper_pid)
-		_helper_pid = 0
 	if DevManager.session_switch_failed.is_connected(_on_switch_failed):
 		DevManager.session_switch_failed.disconnect(_on_switch_failed)
 	ActionManager.cancel_current_action()
@@ -200,17 +194,13 @@ func _remove_folder(folder: String) -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(folder + file_name))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(folder))
 
-## Deletes every temp file (the saves, their temp files and locks), both folders, and
-## the empty folder a test makes in place of your save's lock file.
+## Deletes every temp file (the saves and their temp files) and both folders.
 func _remove_temp_files() -> void:
 	_remove_folder(PRESET_DIR)
 	_remove_folder(BACKUP_DIR)
 	for file_name: String in DirAccess.get_files_at("user://"):
 		if file_name.begins_with(TMP_PREFIX):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + file_name))
-	var lock_folder: String = ProjectSettings.globalize_path(SaveLock.lock_path_for(MAIN_SAVE_PATH))
-	if DirAccess.dir_exists_absolute(lock_folder):
-		DirAccess.remove_absolute(lock_folder)
 
 ## Starts the session on a temp file holding gold 42, standing in for your save:
 ## the main save and its backup folder point at temp paths, and the file is opened
@@ -243,18 +233,6 @@ func _block_backups() -> void:
 	file.store_string("A file, not a folder")
 	file.close()
 	PersistenceManager.backup_dir = BLOCKER_PATH + "/backups/"
-
-## Starts a helper process that lives for about five seconds, as another run does,
-## and writes the lock it holds on the save at `path`. after_each() kills it.
-func _lock_as_another_run(path: String) -> void:
-	if OS.get_name() == "Windows":
-		_helper_pid = OS.create_process("ping", ["-n", "6", "127.0.0.1"])
-	else:
-		_helper_pid = OS.create_process("sleep", ["5"])
-	assert_gt(_helper_pid, 0, "precondition: the helper process started")
-	var file := FileAccess.open(SaveLock.lock_path_for(path), FileAccess.WRITE)
-	file.store_string("pid=%d\ntime=%d\n" % [_helper_pid, int(Time.get_unix_time_from_system())])
-	file.close()
 
 ## The gold of the save on disk at `path`, read again from the file, or -1.0 when
 ## nothing there loads.
@@ -548,8 +526,8 @@ func test_a_switch_puts_autosave_back_to_the_launch_value() -> void:
 	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "precondition: your save is the session")
 	assert_true(PersistenceManager.autosave_enabled, "autosave is on again, as the run was launched")
 	ResourceManager.set_gold(77.0)
-	PersistenceManager.tick()
-	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 77.0, "so the tick saves your save")
+	PersistenceManager.autosave()
+	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 77.0, "so the SaveTimer's autosave saves your save")
 
 ## The other way round: a run launched with --no-autosave keeps it off in the next
 ## session, whatever the last one turned it to.
@@ -723,32 +701,27 @@ func test_restoring_the_oldest_of_a_full_backup_folder() -> void:
 	if not after.is_empty():
 		assert_eq(_gold_in_file(after[0]), 42.0, "the newest holds the save the restore replaced")
 
-## A switch that writes your save takes its lock when it is asked for. One that
-## fails before it binds your save gives the lock back, or the lock would keep the
-## user's other runs off the save for up to a minute.
-func test_a_switch_that_fails_before_binding_your_save_gives_its_lock_back() -> void:
+## New game, Keep and Restore back your save up before they write over it. When the
+## backup fails, each fails in the deferred switch and writes nothing, and the
+## session it left comes back.
+func test_a_switch_whose_backup_fails_leaves_your_save_alone() -> void:
 	_start_on_temp_main_save()
 	var spare := FileAccess.open(SPARE_BACKUP_PATH, FileAccess.WRITE)
 	spare.store_string(MAIN_SAVE_TEXT)
 	spare.close()
-	DevManager.play_preset(_preset("test_lock_back", "", [_step(Kind.SET_GOLD, "", 700.0)]))
+	DevManager.play_preset(_preset("test_backup_fails", "", [_step(Kind.SET_GOLD, "", 700.0)]))
 	await wait_process_frames(SWITCH_FRAMES)
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "precondition: a preset in memory holds no lock on your save")
 	_block_backups()
 	watch_signals(DevManager)
 	DevManager.keep_as_my_save()
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), OS.get_process_id(), "precondition: keep takes your save's lock when asked")
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_engine_error("Could not create directory", "the backup folder cannot be made")
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "the failed keep gave the lock back")
 	DevManager.new_game()
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_engine_error("Could not create directory")
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "so did the failed new game")
 	DevManager.restore_backup(SPARE_BACKUP_PATH)
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_engine_error("Could not create directory")
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "and the failed restore")
 	assert_signal_emit_count(DevManager, "session_switch_failed", 3, "each failed in the deferred switch")
 	assert_string_contains(_failure_reason(), "back up", "your save could not be backed up")
 	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "so it was never written")
@@ -776,62 +749,6 @@ func test_main_save_functions_refuse_without_a_main_save() -> void:
 	assert_same(PersistenceManager.save_game_data, save_before, "the session keeps its save")
 	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE)
 	assert_eq(_current_action_id(), FORAGING_ID, "nothing was torn down")
-	assert_signal_not_emitted(DevManager, "session_changed")
-
-## A switch that would write your save while another live run holds its lock is
-## refused before anything changes, so the session plays on as it was.
-func test_writing_your_save_is_refused_while_another_run_holds_it() -> void:
-	_start_on_temp_main_save()
-	var backup: String = PersistenceManager.backup_main_save()
-	assert_ne(backup, "", "precondition: a backup to restore")
-	DevManager.play_preset(_preset("test_locked", "", [_step(Kind.SET_GOLD, "", 700.0)]))
-	await wait_process_frames(SWITCH_FRAMES)
-	ResourceManager.set_gold(5.0)
-	var preset_save: SaveGameData = PersistenceManager.save_game_data
-	_lock_as_another_run(MAIN_SAVE_PATH)
-	watch_signals(DevManager)
-	DevManager.keep_as_my_save()
-	assert_string_contains(_failure_reason(), "in use by another run", "keep is refused")
-	DevManager.new_game()
-	DevManager.restore_backup(backup)
-	assert_signal_emit_count(DevManager, "session_switch_failed", 3, "so are a new game and a restore")
-	await wait_process_frames(SWITCH_FRAMES)
-	assert_same(PersistenceManager.save_game_data, preset_save, "the preset session plays on")
-	assert_eq(ResourceManager.get_gold(), 5.0, "with what was played in it")
-	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET)
-	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "your save is left as it was")
-	assert_eq(PersistenceManager.list_backups().size(), 1, "and no backup was taken")
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), _helper_pid, "the other run keeps its lock")
-	assert_signal_not_emitted(DevManager, "session_changed")
-
-## A lock file this run cannot write names no run, so whose your save is is not
-## known: a switch that would write it is refused at once, as for another run's
-## lock, and the refusal says why, with no pid. A folder in the lock file's place
-## makes such a lock on every platform.
-func test_writing_your_save_is_refused_while_its_lock_cannot_be_written() -> void:
-	_start_on_temp_main_save()
-	var backup: String = PersistenceManager.backup_main_save()
-	assert_ne(backup, "", "precondition: a backup to restore")
-	DevManager.play_preset(_preset("test_unwritable_lock", "", [_step(Kind.SET_GOLD, "", 700.0)]))
-	await wait_process_frames(SWITCH_FRAMES)
-	var preset_save: SaveGameData = PersistenceManager.save_game_data
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "precondition: a preset in memory holds no lock on your save")
-	# _remove_temp_files() removes this folder after the test.
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SaveLock.lock_path_for(MAIN_SAVE_PATH)))
-	watch_signals(DevManager)
-	DevManager.keep_as_my_save()
-	var reason: String = _failure_reason()
-	assert_string_contains(reason, "Your save is", "keep is refused at once")
-	assert_string_contains(reason, "could not be read or written", "because the lock names no run")
-	assert_false(reason.contains("pid"), "so the refusal names no pid")
-	DevManager.new_game()
-	DevManager.restore_backup(backup)
-	assert_signal_emit_count(DevManager, "session_switch_failed", 3, "so are a new game and a restore")
-	await wait_process_frames(SWITCH_FRAMES)
-	assert_same(PersistenceManager.save_game_data, preset_save, "the preset session plays on")
-	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET)
-	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "your save is left as it was")
-	assert_eq(PersistenceManager.list_backups().size(), 1, "and no backup was taken")
 	assert_signal_not_emitted(DevManager, "session_changed")
 
 func test_restoring_a_missing_backup_is_refused_at_once() -> void:
@@ -888,12 +805,11 @@ func test_a_second_switch_asked_for_in_the_same_frame_is_refused() -> void:
 	assert_signal_emit_count(DevManager, "session_changed", 2, "and runs")
 
 ## The refusal comes before every other check, so a request refused while a switch
-## is pending never takes your save's lock.
-func test_a_request_refused_while_a_switch_is_pending_takes_no_lock() -> void:
+## is pending never reaches your save: it neither backs it up nor writes it.
+func test_a_request_refused_while_a_switch_is_pending_leaves_your_save_alone() -> void:
 	_start_on_temp_main_save()
 	DevManager.play_preset(_preset("test_in_memory", ""))
 	await wait_process_frames(SWITCH_FRAMES)
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "precondition: a preset in memory holds no lock on your save")
 	watch_signals(DevManager)
 	DevManager.play_preset(_preset("test_pending", "", [_step(Kind.SET_GOLD, "", 321.0)]))
 	DevManager.keep_as_my_save()
@@ -901,7 +817,6 @@ func test_a_request_refused_while_a_switch_is_pending_takes_no_lock() -> void:
 	DevManager.back_to_my_save()
 	assert_signal_emit_count(DevManager, "session_switch_failed", 3, "each request after the first is refused")
 	assert_eq(_failure_reason(), SWITCH_UNDER_WAY)
-	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "and none took your save's lock")
 	await wait_process_frames(SWITCH_FRAMES)
 	assert_eq(ResourceManager.get_gold(), 321.0, "the preset asked for first is the session")
 	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET)

@@ -3,20 +3,20 @@ extends GutTest
 ## Unit tests for PersistenceManager's sessions: boot (the launch options, the
 ## backup of the main save, and a run of another scene, which reads its save into
 ## memory), opening a save file (the backup, load, migrate, check, repair),
-## swapping a save in, writing (save_data(), the autosave tick, the save on quit)
-## and the save lock. Each test builds its own PersistenceManager (never the autoload)
-## pointed at temporary user:// files and a temporary backup folder, so the
-## developer's real save.tres, its lock and its backups are never read or
-## written. The last test reads the autoload's state, to show this GUT run plays
-## a save in memory.
+## swapping a save in, writing (save_data(), the autosave, the save on quit) and
+## two sessions on one save. Each test builds its own PersistenceManager (never the
+## autoload) pointed at temporary user:// files and a temporary backup folder, so
+## the developer's real save.tres and its backups are never read or written. The
+## last test reads the autoload's state, to show this GUT run plays a save in
+## memory.
 ##
 ## The rule under test: PersistenceManager never replaces a save file it could
 ## not read or check. A save that fails to load (for example because a stale
 ## import cache is missing a texture an item .tres references) is copied aside
 ## and left untouched, and nothing writes to it for the rest of the session. A
-## save written by a newer build is played in memory and never written either,
-## nor is a save another live run holds the lock on. That other run is a real
-## helper process, killed after each test.
+## save written by a newer build is played in memory and never written either.
+## Nothing else stops a session from writing its save: two sessions on one save,
+## two bare managers here, both write it, and the last write wins.
 
 const PersistenceManagerScript: GDScript = preload("res://singletons/persistence_manager/persistence_manager.gd")
 
@@ -69,27 +69,15 @@ class UnverifiablePersistenceManager extends "res://singletons/persistence_manag
 	func can_verify() -> bool:
 		return false
 
-var _manager: Node = null
-
-## The pid of the helper process a test starts (another run, or a process that
-## holds a lock file shut), or 0.
-var _helper_pid: int = 0
-
-## The pid of a second helper process, for a test that needs two (another run, and
-## a process that holds that run's lock file shut), or 0.
-var _second_helper_pid: int = 0
+## Every manager _make_manager() built in this test. after_each() frees them.
+var _managers: Array[Node] = []
 
 func after_each() -> void:
-	if _helper_pid > 0:
-		OS.kill(_helper_pid)
-		_helper_pid = 0
-	if _second_helper_pid > 0:
-		OS.kill(_second_helper_pid)
-		_second_helper_pid = 0
-	if is_instance_valid(_manager):
-		_manager.free()
-	_manager = null
-	# The locks sit next to the temp saves, so they start with the prefix too.
+	for manager: Node in _managers:
+		if is_instance_valid(manager):
+			manager.free()
+	_managers.clear()
+	# The temp saves, their temp files and the copies aside all start with the prefix.
 	for file_name in DirAccess.get_files_at("user://"):
 		if file_name.begins_with(TMP_PREFIX):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + file_name))
@@ -117,11 +105,12 @@ func _read(path: String) -> String:
 ## file and its backups go to BACKUP_DIR, so nothing it does reaches the real
 ## save or its backups.
 func _make_manager(path: String, script: Variant = PersistenceManagerScript) -> Node:
-	_manager = script.new()
-	_manager.save_path = path
-	_manager.main_save_path = _path("main_save")
-	_manager.backup_dir = BACKUP_DIR
-	return _manager
+	var manager: Node = script.new()
+	manager.save_path = path
+	manager.main_save_path = _path("main_save")
+	manager.backup_dir = BACKUP_DIR
+	_managers.append(manager)
+	return manager
 
 ## Boots `manager` as a launch with no options does, whatever this GUT run was
 ## launched with, so no option on the command line can point a test at another
@@ -149,36 +138,6 @@ func _gold_in_file(path: String) -> float:
 func _expect_load_errors() -> void:
 	for error in get_errors():
 		error.handled = true
-
-## Starts a helper process that lives for about five seconds, as another run
-## does, and writes the lock it holds on the save at `path`. Returns its pid.
-## after_each() kills the process.
-func _lock_as_another_run(path: String) -> int:
-	if OS.get_name() == "Windows":
-		_helper_pid = OS.create_process("cmd", ["/c", "ping", "-n", "6", "127.0.0.1"])
-	else:
-		_helper_pid = OS.create_process("sleep", ["5"])
-	assert_gt(_helper_pid, 0, "precondition: the helper process started")
-	_write(SaveLock.lock_path_for(path), "pid=%d\ntime=%d\n" % [_helper_pid, int(Time.get_unix_time_from_system())])
-	return _helper_pid
-
-## Starts a process that opens the lock file of the save at `path` with no
-## sharing, as an antivirus scan can, holds it for 30 s, and waits until this run
-## can no longer read it. Windows only (PowerShell). after_each() kills it.
-func _hold_lock_file_shut(path: String) -> void:
-	var lock_path: String = SaveLock.lock_path_for(path)
-	var command: String = "$f = [System.IO.File]::Open('%s', 'Open', 'ReadWrite', 'None'); Start-Sleep -Seconds 30; $f.Close()" % ProjectSettings.globalize_path(lock_path)
-	_helper_pid = OS.create_process("powershell", ["-NoProfile", "-NonInteractive", "-Command", command])
-	assert_gt(_helper_pid, 0, "precondition: the helper process started")
-	var shut: bool = await wait_until(func() -> bool: return FileAccess.open(lock_path, FileAccess.READ) == null, 10.0)
-	assert_true(shut, "precondition: the lock file cannot be read")
-
-## The heartbeat time in the lock on the save at `path`, or -1 when it has none.
-func _time_in_lock(path: String) -> int:
-	for line: String in _read(SaveLock.lock_path_for(path)).split("\n"):
-		if line.strip_edges().begins_with("time="):
-			return line.strip_edges().trim_prefix("time=").to_int()
-	return -1
 
 #-----------------------------------------------------------------------------
 # UNREADABLE SAVE
@@ -398,22 +357,6 @@ func test_boot_backs_up_nothing_for_another_file() -> void:
 	assert_eq(SaveFiles.list_backups(path, BACKUP_DIR).size(), 0, "only the main save is backed up at launch")
 	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "nothing was backed up at all")
 
-## The backup is of the save as the last run left it. A save another live run is
-## playing is that run's live state, and enough launches locked out of it would
-## rotate the first run's start-of-session backup out of the ones kept.
-func test_a_locked_out_boot_takes_no_backup() -> void:
-	var path := _path("locked_out_backup")
-	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	_lock_as_another_run(path)
-	var manager := _make_manager(path)
-	manager.main_save_path = path
-	_boot(manager)
-	assert_true(manager.is_save_blocked(), "precondition: another run holds the main save")
-	assert_string_contains(manager.get_block_reason(), "in use")
-	assert_eq(manager.save_game_data.gold, 42.0, "the save is still played, in memory")
-	assert_eq(manager.list_backups().size(), 0, "a run locked out of the main save takes no backup")
-	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
-
 ## A dev switch that goes back to the main save opens it as a launch does, and
 ## backs it up first: with a preset pinned, every launch plays a preset, and this is
 ## the only time the main save is opened before the session writes it every 5 s.
@@ -473,17 +416,26 @@ func test_with_no_main_save_on_disk_nothing_is_backed_up() -> void:
 	assert_eq(manager.backup_main_save(), "")
 	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
 
-## The rule every backup of the main save follows, a dev switch's included: none
-## while another live run holds the save.
-func test_backup_main_save_takes_none_while_another_run_holds_the_save() -> void:
-	var path := _path("backup_locked_out")
+## The one way the main save is backed up copies it whenever it is on disk: from a
+## session on another file, as a dev switch that writes over the main save runs
+## from a preset, and while another session plays the main save.
+func test_backup_main_save_copies_it_whenever_it_is_on_disk() -> void:
+	var path := _path("backup_any_session")
 	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	var manager := _make_manager(_path("backup_locked_out_elsewhere"))
-	manager.main_save_path = path
-	_boot(manager)
-	_lock_as_another_run(path)
-	assert_eq(manager.backup_main_save(), "", "a save another run holds is not backed up")
-	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
+	var switching := _make_manager(_path("backup_any_session_elsewhere"))
+	switching.main_save_path = path
+	_boot(switching)
+	var copy: String = switching.backup_main_save()
+	assert_ne(copy, "", "a session on another file backs the main save up")
+	assert_eq(_gold_in_file(copy), 42.0, "holding what the main save holds")
+	var playing := _make_manager(path)
+	playing.main_save_path = path
+	_boot(playing)
+	playing.save_game_data.gold = 55.0
+	assert_eq(playing.save_data(), OK, "precondition: another session plays the main save and has written it")
+	var second_copy: String = switching.backup_main_save()
+	assert_ne(second_copy, "", "a main save another session plays is backed up too")
+	assert_eq(_gold_in_file(second_copy), 55.0, "as that session last wrote it")
 
 func test_save_option_opens_that_file() -> void:
 	var path := _path("default_file")
@@ -497,8 +449,8 @@ func test_save_option_opens_that_file() -> void:
 	assert_false(FileAccess.file_exists(path), "the file the manager would have played is not touched")
 
 ## A preset session starts on a fresh save that DevManager builds on next, so
-## boot reads no file, backs nothing up and takes no lock. Here the main save is
-## the file a plain boot would play.
+## boot reads no file and backs nothing up. Here the main save is the file a plain
+## boot would play.
 func test_boot_with_a_preset_reads_no_file() -> void:
 	var path := _path("preset_boot")
 	var original := READABLE_SAVE_TEXT % "SpiritValley"
@@ -514,10 +466,9 @@ func test_boot_with_a_preset_reads_no_file() -> void:
 	assert_eq(_read(path), original, "the file is left as it was")
 	assert_eq(manager.list_backups().size(), 0, "no backup is taken")
 	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "not even the backup folder is made")
-	assert_eq(SaveLock.holder_pid(path), 0, "nor is the file's lock taken")
 
-## With --save as well, the preset session writes that file: it holds the
-## file's lock, but still starts on a fresh save and reads nothing from it.
+## With --save as well, the preset session writes that file, but still starts on a
+## fresh save and reads nothing from it.
 func test_a_preset_with_a_save_option_plays_a_fresh_save_there() -> void:
 	var path := _path("preset_default")
 	var option_path := _path("preset_option")
@@ -530,12 +481,11 @@ func test_a_preset_with_a_save_option_plays_a_fresh_save_there() -> void:
 	assert_eq(manager.save_game_data.gold, 0.0, "the session plays a fresh save, not the file's")
 	assert_false(manager.autosave_enabled, "--no-autosave still turns autosave off")
 	assert_eq(_read(option_path), original, "nothing is written at boot")
-	assert_eq(SaveLock.holder_pid(option_path), OS.get_process_id(), "the session holds the lock on the file it writes")
 	assert_false(FileAccess.file_exists(path), "the file the manager would have played is not touched")
 
 ## A preset written over the user's save may be meant, so it is allowed, but never
-## without a backup: the save is backed up first, under its lock, as a launch on it
-## is. The session still reads nothing from it, and writes nothing yet.
+## without a backup: the save is backed up first, as a launch on it is. The session
+## still reads nothing from it, and writes nothing yet.
 func test_a_preset_session_on_the_main_save_backs_it_up_first() -> void:
 	var path := _path("preset_main")
 	var original := READABLE_SAVE_TEXT % "SpiritValley"
@@ -553,49 +503,29 @@ func test_a_preset_session_on_the_main_save_backs_it_up_first() -> void:
 	assert_eq(manager.save_path, path, "the preset session writes the main save")
 	assert_eq(manager.save_game_data.gold, 0.0, "it plays a fresh save, not the file's")
 	assert_eq(_read(path), original, "nothing is written until the session saves")
-	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "the session holds the main save's lock")
 
-## The backup is skipped as a launch on the main save skips it: another live run
-## holds the save, so this one never writes it either.
-func test_a_locked_out_preset_on_the_main_save_takes_no_backup() -> void:
-	var path := _path("preset_main_locked")
-	var original := READABLE_SAVE_TEXT % "SpiritValley"
-	_write(path, original)
-	var other_pid := _lock_as_another_run(path)
-	var manager := _make_manager(path)
-	manager.main_save_path = path
-	var options := LaunchOptions.new()
-	options.preset_id = "merchant_open"
-	options.save_path = path
-	manager.boot(options)
-	assert_eq(manager.list_backups().size(), 0, "a run locked out of the main save takes no backup")
-	assert_true(manager.is_save_blocked(), "and never writes the save another run holds")
-	assert_string_contains(manager.get_block_reason(), "in use")
-	assert_eq(_read(path), original, "the file is unchanged")
-	assert_eq(SaveLock.holder_pid(path), other_pid, "the other run's lock is left as it was")
-
-func test_no_autosave_turns_off_the_tick() -> void:
+func test_no_autosave_turns_autosave_off() -> void:
 	var path := _path("no_autosave")
 	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
 	var manager := _make_manager(path)
 	manager.boot(LaunchOptions.parse(PackedStringArray(["--no-autosave"])))
 	assert_false(manager.autosave_enabled)
 	manager.save_game_data.gold = 99.0
-	manager.tick()
-	assert_eq(_gold_in_file(path), 42.0, "with --no-autosave the tick writes nothing")
+	manager.autosave()
+	assert_eq(_gold_in_file(path), 42.0, "with --no-autosave the SaveTimer's autosave writes nothing")
 
 #-----------------------------------------------------------------------------
 # AUTOSAVE
 #-----------------------------------------------------------------------------
 
-func test_tick_autosaves() -> void:
-	var path := _path("tick")
+func test_autosave_writes_the_session() -> void:
+	var path := _path("autosave")
 	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
 	var manager := _make_manager(path)
 	_boot(manager)
 	manager.save_game_data.gold = 99.0
-	manager.tick()
-	assert_eq(_gold_in_file(path), 99.0, "the SaveTimer's tick writes the session")
+	manager.autosave()
+	assert_eq(_gold_in_file(path), 99.0, "the SaveTimer's autosave writes the session")
 
 func test_close_request_autosaves() -> void:
 	var path := _path("close")
@@ -613,7 +543,7 @@ func test_close_request_autosaves() -> void:
 # writes a save: a run of another scene (the editor's Run Current Scene, a scene
 # named on the command line) or of none (a script run) reads its save into memory.
 
-## The main save is the file here, which a plain launch would lock and back up.
+## The main save is the file here, which a plain launch would back up.
 func test_a_run_of_another_scene_reads_the_save_into_memory() -> void:
 	var path := _path("scene_run")
 	var original := READABLE_SAVE_TEXT % "TestZone"
@@ -625,10 +555,9 @@ func test_a_run_of_another_scene_reads_the_save_into_memory() -> void:
 	assert_false(manager.is_save_blocked(), "which is not a block: nothing is wrong with the save")
 	assert_eq(manager.save_game_data.gold, 42.0, "it plays the save on disk")
 	assert_eq(manager.save_game_data.current_selected_zone_id, "SpiritValley", "migrated, as a launch's save is")
-	assert_eq(SaveLock.holder_pid(path), 0, "it takes no lock")
-	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "and backs nothing up")
+	assert_false(DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(BACKUP_DIR)), "it backs nothing up")
 	manager.save_game_data.gold = 99.0
-	manager.tick()
+	manager.autosave()
 	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
 	assert_eq(_read(path), original, "it writes nothing, on a tick or on close")
 
@@ -646,8 +575,8 @@ func test_a_run_of_another_scene_leaves_an_unreadable_save_alone() -> void:
 	assert_eq(_read(path), UNREADABLE_SAVE_TEXT, "the file is left as it was")
 	assert_eq(_backups_of(path, "unreadable").size(), 0, "and not copied aside")
 
-## A preset session keeps its own rules in any run, so one written to a --save file
-## holds that file's lock. Only a run of the main scene saves on quit, though.
+## A preset session keeps its own rules in any run, so one given a --save file
+## plays that file. Only a run of the main scene saves on quit, though.
 func test_a_run_of_another_scene_saves_nothing_on_close() -> void:
 	var path := _path("scene_run_close")
 	var manager := _make_manager(_path("scene_run_close_default"))
@@ -656,7 +585,6 @@ func test_a_run_of_another_scene_saves_nothing_on_close() -> void:
 	manager.save_game_data.gold = 99.0
 	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
 	assert_false(FileAccess.file_exists(path), "closing the window writes nothing")
-	assert_eq(SaveLock.holder_pid(path), 0, "and gives the lock up")
 
 #-----------------------------------------------------------------------------
 # USE SAVE
@@ -708,290 +636,82 @@ func test_save_data_stamps_the_version() -> void:
 		assert_eq(written.save_version, SaveGameData.CURRENT_VERSION, "every write stamps the current version")
 
 #-----------------------------------------------------------------------------
-# SAVE LOCK
+# TWO SESSIONS ON ONE SAVE
 #-----------------------------------------------------------------------------
+# Nothing stops a second session on a save: two windows of one checkout both play
+# its save, both write it, and the last write wins. Two bare managers pointed at
+# one temp save stand in for the two windows.
 
-func test_a_session_holds_the_lock_on_its_save() -> void:
-	var path := _path("lock_held")
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "playing a save takes its lock")
-	assert_false(manager.is_save_blocked())
-
-func test_a_save_in_use_by_another_run_runs_in_memory() -> void:
-	var path := _path("in_use")
+## The second window plays the save as the first does: it is not blocked, takes a
+## boot backup of its own, and both windows' writes land, the last one winning, the
+## first window's save as it closes included.
+func test_a_second_session_on_the_main_save_is_not_blocked() -> void:
+	var path := _path("two_sessions")
 	var original := READABLE_SAVE_TEXT % "SpiritValley"
 	_write(path, original)
-	var other_pid := _lock_as_another_run(path)
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_true(manager.is_save_blocked(), "a save another run holds is never written")
-	assert_string_contains(manager.get_block_reason(), "in use")
-	assert_string_contains(manager.get_block_reason(), str(other_pid), "the reason names the run that holds it")
-	assert_eq(manager.save_game_data.gold, 42.0, "the save is still played, in memory")
-	assert_eq(manager.save_data(), ERR_LOCKED)
-	assert_eq(_read(path), original, "the file is unchanged")
-	assert_eq(SaveLock.holder_pid(path), other_pid, "the other run's lock is left as it was")
+	var first := _make_manager(path)
+	first.main_save_path = path
+	_boot(first)
+	var second := _make_manager(path)
+	second.main_save_path = path
+	_boot(second)
+	assert_false(second.is_save_blocked(), "a session on a save another session plays is not blocked")
+	assert_eq(second.save_game_data.gold, 42.0, "it plays the save on disk")
+	var backups: PackedStringArray = second.list_backups()
+	assert_eq(backups.size(), 2, "each launch on the main save backs it up")
+	for backup: String in backups:
+		assert_eq(_read(backup), original, "as it was on disk")
+	first.save_game_data.gold = 10.0
+	assert_eq(first.save_data(), OK, "the first session writes the save")
+	second.save_game_data.gold = 20.0
+	assert_eq(second.save_data(), OK, "and so does the second")
+	assert_eq(_gold_in_file(path), 20.0, "the last write wins")
+	first.save_game_data.gold = 30.0
+	first._notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	assert_eq(_gold_in_file(path), 30.0, "the first window saves as it closes")
+	second.save_game_data.gold = 40.0
+	assert_eq(second.save_data(), OK, "the second goes on writing after it")
+	assert_false(second.is_save_blocked())
+	assert_eq(_gold_in_file(path), 40.0, "and its write is the last")
 
-## A save that is not there yet is written at once, which the other run's lock
-## must stop too.
-func test_a_new_save_in_use_by_another_run_is_not_written() -> void:
-	var path := _path("in_use_missing")
-	_lock_as_another_run(path)
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_true(manager.is_save_blocked())
-	assert_false(FileAccess.file_exists(path), "no new save is written under the run that holds the lock")
-	assert_not_null(manager.save_game_data, "the session still runs, on a new save in memory")
-
-func test_a_session_refused_the_lock_leaves_it_alone() -> void:
-	var path := _path("in_use_ticks")
+## A preset written over the main save (--preset=<id> --save=<main save>) backs it up
+## before it can write it, also while another session plays that save. The build
+## binds the save again (DevManager.build_preset() calls use_save()) and takes no
+## second backup; then both sessions write the save, the last one winning.
+func test_a_preset_on_the_main_save_another_session_plays_is_backed_up_first() -> void:
+	var path := _path("preset_main_shared")
 	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	var other_pid := _lock_as_another_run(path)
-	var manager := _make_manager(path)
-	_boot(manager)
-	manager.tick()
-	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
-	assert_eq(SaveLock.holder_pid(path), other_pid, "the tick and the close leave the other run's lock where it was")
-
-func test_tick_refreshes_the_lock_even_without_autosave() -> void:
-	var path := _path("heartbeat")
-	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	var manager := _make_manager(path)
-	manager.boot(LaunchOptions.parse(PackedStringArray(["--no-autosave"])))
-	assert_false(manager.autosave_enabled, "precondition: autosave is off")
-	var stale_time := int(Time.get_unix_time_from_system()) - 30
-	_write(SaveLock.lock_path_for(path), "pid=%d\ntime=%d\n" % [OS.get_process_id(), stale_time])
-	manager.tick()
-	assert_gt(_time_in_lock(path), stale_time, "the tick is the heartbeat, with autosave off too")
-
-func test_a_write_refreshes_the_lock() -> void:
-	var path := _path("write_heartbeat")
-	var manager := _make_manager(path)
-	_boot(manager)
-	var stale_time := int(Time.get_unix_time_from_system()) - 30
-	_write(SaveLock.lock_path_for(path), "pid=%d\ntime=%d\n" % [OS.get_process_id(), stale_time])
-	assert_eq(manager.save_data(), OK)
-	assert_gt(_time_in_lock(path), stale_time, "a write is a sign of life too")
-
-func test_use_save_releases_the_old_lock() -> void:
-	var path := _path("lock_old")
-	var other_path := _path("lock_new")
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds its save's lock")
-	manager.use_save(SaveGameData.new_current(), other_path)
-	assert_eq(SaveLock.holder_pid(path), 0, "the lock on the save it left is released")
-	assert_eq(SaveLock.holder_pid(other_path), OS.get_process_id(), "and the new save's lock is taken")
-
-func test_opening_another_file_moves_the_lock() -> void:
-	var path := _path("lock_open_first")
-	var other_path := _path("lock_open_second")
-	var manager := _make_manager(path)
-	_boot(manager)
-	manager.open_save_file(other_path)
-	assert_eq(SaveLock.holder_pid(path), 0, "the first save's lock is released")
-	assert_eq(SaveLock.holder_pid(other_path), OS.get_process_id(), "the second save's lock is taken")
-
-## A session in memory has no file, so it holds no lock: leaving a save for
-## memory only releases.
-func test_an_in_memory_session_holds_no_lock() -> void:
-	var path := _path("lock_memory")
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds its save's lock")
-	manager.use_save(SaveGameData.new_current(), "")
-	manager.tick()
-	assert_eq(SaveLock.holder_pid(path), 0, "leaving for memory releases the lock, and the tick does not take it back")
-	assert_false(FileAccess.file_exists(SaveLock.lock_path_for("")), "no lock is made for a save that has no path")
-
-func test_use_save_on_a_save_in_use_by_another_run_blocks() -> void:
-	var path := _path("use_save_in_use")
-	var original := READABLE_SAVE_TEXT % "SpiritValley"
-	_write(path, original)
-	var other_pid := _lock_as_another_run(path)
-	var manager := _make_manager(_path("use_save_elsewhere"))
-	manager.use_save(SaveGameData.new_current(), path)
-	assert_true(manager.is_save_blocked(), "a refusal blocks, as it does when a save opens")
-	assert_string_contains(manager.get_block_reason(), "in use")
-	assert_eq(manager.save_data(), ERR_LOCKED)
-	assert_eq(_read(path), original, "the file is unchanged")
-	assert_eq(SaveLock.holder_pid(path), other_pid, "the other run's lock is left as it was")
-
-func test_moving_to_a_free_save_clears_a_lock_block() -> void:
-	var path := _path("block_in_use")
-	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	_lock_as_another_run(path)
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_true(manager.is_save_blocked(), "precondition: another run holds the save")
-	var free_path := _path("block_free")
-	manager.use_save(SaveGameData.new_current(), free_path)
-	assert_false(manager.is_save_blocked(), "a save nobody holds can be written")
-	assert_eq(manager.save_data(), OK)
-	assert_eq(SaveLock.holder_pid(free_path), OS.get_process_id())
-
-## A session that hung past SaveLock.STALE_AFTER_SECONDS can have its lock taken
-## over. When it wakes it must not write over what the other run saved.
-func test_a_taken_over_session_stops_writing() -> void:
-	var path := _path("taken_over")
-	var original := READABLE_SAVE_TEXT % "SpiritValley"
-	_write(path, original)
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds the lock")
-	var other_pid := _lock_as_another_run(path)
-	manager.save_game_data.gold = 99.0
-	assert_eq(manager.save_data(), ERR_LOCKED, "a session that lost its lock writes nothing")
-	assert_true(manager.is_save_blocked())
-	assert_string_contains(manager.get_block_reason(), "taken over")
-	assert_string_contains(manager.get_block_reason(), str(other_pid), "the reason names the run that took it")
-	assert_eq(_read(path), original, "the file is unchanged")
-
-## The heartbeat finds out too, so a resumed run stops at its first tick even
-## when autosave would not have written.
-func test_tick_blocks_a_taken_over_session_even_without_autosave() -> void:
-	var path := _path("taken_over_tick")
-	var original := READABLE_SAVE_TEXT % "SpiritValley"
-	_write(path, original)
-	var manager := _make_manager(path)
-	manager.boot(LaunchOptions.parse(PackedStringArray(["--no-autosave"])))
-	assert_false(manager.autosave_enabled, "precondition: autosave is off")
-	assert_false(manager.is_save_blocked(), "precondition: the session holds the lock")
-	_lock_as_another_run(path)
-	manager.tick()
-	assert_true(manager.is_save_blocked(), "the heartbeat finds the lock lost, with autosave off too")
-	assert_string_contains(manager.get_block_reason(), "taken over")
-
-## Once blocked, the session never touches the lock of the run that took it over.
-func test_a_taken_over_session_leaves_the_new_lock_alone() -> void:
-	var path := _path("taken_over_close")
-	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	var manager := _make_manager(path)
-	_boot(manager)
-	var other_pid := _lock_as_another_run(path)
-	manager.tick()
-	assert_true(manager.is_save_blocked(), "precondition: the tick found the lock lost")
-	manager.tick()
-	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
-	assert_eq(SaveLock.holder_pid(path), other_pid, "the run that took the lock keeps it through the ticks and the close")
-
-## A lock file that is gone may mean another run took the save over and let go
-## while this one hung, so it is not safe to write either.
-func test_a_session_whose_lock_file_is_gone_stops_writing() -> void:
-	var path := _path("lock_gone")
-	var original := READABLE_SAVE_TEXT % "SpiritValley"
-	_write(path, original)
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds the lock")
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(SaveLock.lock_path_for(path)))
-	assert_eq(manager.save_data(), ERR_LOCKED, "a session whose lock is gone writes nothing")
-	assert_true(manager.is_save_blocked())
-	assert_string_contains(manager.get_block_reason(), "taken over")
-	assert_eq(_read(path), original, "the file is unchanged")
-	assert_false(FileAccess.file_exists(SaveLock.lock_path_for(path)), "and no lock is made in its place")
-
-## A lock file that cannot be read when a session starts, as while an antivirus scan
-## holds it, may be the lock of another run that is writing the save. Whose it is is
-## not known, so the session is refused the lock and blocks at once: it writes
-## nothing, backs nothing up and leaves the lock as it was. The heartbeat's grace
-## (the next test) is only for a lock the session has seen as its own.
-func test_a_second_session_blocks_on_a_lock_file_it_cannot_read() -> void:
-	if OS.get_name() != "Windows":
-		pass_test("the helper that holds a file shut is PowerShell")
-		return
-	var path := _path("lock_shut_at_start")
-	var original := READABLE_SAVE_TEXT % "SpiritValley"
-	_write(path, original)
-	_lock_as_another_run(path)
-	# The other run lives on as the second helper, since the process that holds its
-	# lock file shut takes _helper_pid.
-	_second_helper_pid = _helper_pid
-	_helper_pid = 0
-	var lock_text := _read(SaveLock.lock_path_for(path))
-	await _hold_lock_file_shut(path)
-	var manager := _make_manager(path)
-	manager.main_save_path = path
-	_boot(manager)
-	assert_true(manager.is_save_blocked(), "a lock whose holder is not known blocks the session at once")
-	assert_string_contains(manager.get_block_reason(), "could not be read or written", "the reason says why")
-	assert_false(manager.get_block_reason().contains("pid"), "and names no pid: the lock named none this run could read")
-	manager.save_game_data.gold = 99.0
-	manager.tick()
-	assert_eq(_read(path), original, "a tick writes nothing")
-	assert_eq(manager.list_backups().size(), 0, "and the save is not backed up")
-	OS.kill(_helper_pid)
-	_helper_pid = 0
-	var open_again: bool = await wait_until(func() -> bool: return FileAccess.open(SaveLock.lock_path_for(path), FileAccess.READ) != null, 10.0)
-	assert_true(open_again, "precondition: the lock file can be read again")
-	assert_eq(_read(SaveLock.lock_path_for(path)), lock_text, "the other run's lock is left as it was")
-
-## A lock file that is there but cannot be read, as while an antivirus scan holds
-## it, may well still be this session's, and no other run takes over a lock that
-## was confirmed less than SaveLock.STALE_AFTER_SECONDS ago. One heartbeat that
-## cannot read it does not block the session for good: it goes on writing, and the
-## next tick reads the lock again.
-func test_a_lock_file_that_cannot_be_read_does_not_block_the_session() -> void:
-	if OS.get_name() != "Windows":
-		pass_test("the helper that holds a file shut is PowerShell")
-		return
-	var path := _path("lock_shut")
-	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds the lock")
-	await _hold_lock_file_shut(path)
-	manager.save_game_data.gold = 99.0
-	manager.tick()
-	assert_false(manager.is_save_blocked(), "a lock that cannot be read right now is not a lost one")
-	assert_eq(_gold_in_file(path), 99.0, "the tick still saves")
-	OS.kill(_helper_pid)
-	_helper_pid = 0
-	var open_again: bool = await wait_until(func() -> bool: return FileAccess.open(SaveLock.lock_path_for(path), FileAccess.READ) != null, 10.0)
-	assert_true(open_again, "precondition: the lock file can be read again")
-	var stale_time := int(Time.get_unix_time_from_system()) - 30
-	_write(SaveLock.lock_path_for(path), "pid=%d\ntime=%d\n" % [OS.get_process_id(), stale_time])
-	manager.tick()
-	assert_false(manager.is_save_blocked())
-	assert_gt(_time_in_lock(path), stale_time, "the next heartbeat refreshes the lock again")
-
-## Past SaveLock.STALE_AFTER_SECONDS since the lock was last confirmed, another run
-## may have taken it over, so a lock file that still cannot be read blocks.
-func test_a_lock_file_unreadable_past_the_stale_time_blocks() -> void:
-	if OS.get_name() != "Windows":
-		pass_test("the helper that holds a file shut is PowerShell")
-		return
-	var path := _path("lock_shut_stale")
-	var original := READABLE_SAVE_TEXT % "SpiritValley"
-	_write(path, original)
-	var manager := _make_manager(path)
-	_boot(manager)
-	await _hold_lock_file_shut(path)
-	manager._lock_confirmed_msec = Time.get_ticks_msec() - (SaveLock.STALE_AFTER_SECONDS + 1) * 1000
-	manager.save_game_data.gold = 99.0
-	manager.tick()
-	assert_true(manager.is_save_blocked(), "a lock unconfirmed for that long may be another run's")
-	assert_string_contains(manager.get_block_reason(), "could not be read")
-	assert_eq(_read(path), original, "and nothing was written")
-
-func test_close_request_releases_the_lock() -> void:
-	var path := _path("lock_close")
-	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	var manager := _make_manager(path)
-	_boot(manager)
-	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds its save's lock")
-	manager.save_game_data.gold = 99.0
-	manager._notification(NOTIFICATION_WM_CLOSE_REQUEST)
-	assert_eq(_gold_in_file(path), 99.0, "the last write still happens")
-	assert_eq(SaveLock.holder_pid(path), 0, "closing the window then releases the lock")
+	var playing := _make_manager(path)
+	playing.main_save_path = path
+	_boot(playing)
+	playing.save_game_data.gold = 55.0
+	assert_eq(playing.save_data(), OK, "precondition: the other session has written the save")
+	var preset := _make_manager(path)
+	preset.main_save_path = path
+	var options := LaunchOptions.new()
+	options.preset_id = "merchant_open"
+	options.save_path = path
+	preset.boot(options)
+	assert_false(preset.is_save_blocked(), "the preset session is not blocked")
+	var backups: PackedStringArray = preset.list_backups()
+	assert_eq(backups.size(), 2, "the preset session backed the main save up, as the other session's launch did")
+	if backups.size() == 2:
+		assert_eq(_gold_in_file(backups[0]), 55.0, "the newest backup holds the save as the other session left it")
+	preset.use_save(SaveGameData.new_current(), path)
+	assert_eq(preset.list_backups().size(), 2, "the build binds the save again and takes no second backup")
+	preset.save_game_data.gold = 700.0
+	assert_eq(preset.save_data(), OK, "the preset session writes the save")
+	assert_eq(_gold_in_file(path), 700.0)
+	playing.save_game_data.gold = 66.0
+	assert_eq(playing.save_data(), OK, "and so does the other session, whose write is now the last")
+	assert_eq(_gold_in_file(path), 66.0)
 
 #-----------------------------------------------------------------------------
 # THE BLOCK SIGNAL
 #-----------------------------------------------------------------------------
 # The dev panel shows "Not saving: <reason>" while saving is blocked, with the
-# panel closed too, so save_block_changed fires at every change: a block, a block
-# cleared, and a takeover the heartbeat finds.
+# panel closed too, so save_block_changed fires at every change: a block, and a
+# block cleared.
 
 func test_a_block_is_signalled() -> void:
 	var path := _path("signal_block")
@@ -1013,17 +733,6 @@ func test_a_cleared_block_is_signalled() -> void:
 	assert_false(manager.is_save_blocked(), "precondition: the new session can save")
 	assert_signal_emit_count(manager, "save_block_changed", 1)
 
-func test_a_takeover_the_heartbeat_finds_is_signalled() -> void:
-	var path := _path("signal_takeover")
-	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
-	var manager := _make_manager(path)
-	_boot(manager)
-	watch_signals(manager)
-	_lock_as_another_run(path)
-	manager.tick()
-	assert_true(manager.is_save_blocked(), "precondition: the tick found the lock taken over")
-	assert_signal_emit_count(manager, "save_block_changed", 1)
-
 ## A session that can save, and goes on to another that can, changes nothing the
 ## panel shows.
 func test_nothing_is_signalled_while_saving_stays_on() -> void:
@@ -1031,7 +740,7 @@ func test_nothing_is_signalled_while_saving_stays_on() -> void:
 	var manager := _make_manager(path)
 	watch_signals(manager)
 	_boot(manager)
-	manager.tick()
+	manager.autosave()
 	manager.use_save(SaveGameData.new_current(), _path("signal_none_other"))
 	assert_false(manager.is_save_blocked(), "precondition: saving was never blocked")
 	assert_signal_not_emitted(manager, "save_block_changed")

@@ -298,8 +298,8 @@ func _remove_folder(folder: String) -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(folder.path_join(file_name)))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(folder))
 
-## Deletes every temp file (the saves, their temp files, locks and backups, the
-## presets and the pin) and every temp folder.
+## Deletes every temp file (the saves, their temp files and backups, the presets
+## and the pin) and every temp folder.
 func _remove_temp_files() -> void:
 	for folder_name: String in DirAccess.get_directories_at("user://"):
 		if folder_name.begins_with(TMP_PREFIX):

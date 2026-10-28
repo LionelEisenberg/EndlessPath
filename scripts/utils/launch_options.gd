@@ -137,10 +137,9 @@ static func is_main_scene(scene: Node) -> bool:
 ## script run, or a main scene whose uid does not resolve (`main_path` ""). The two
 ## mistakes are not equal: a launch of the game counted as another scene would play
 ## its whole session in memory and lose it, while another scene counted as the main
-## one writes its save, the user's own only after the boot backup, taken under the
-## lock, which can undo the write. `engine_args` and `main_path` default to this
-## process's own, so a test can feed it each case. is_main_scene() answers the
-## strict question.
+## one writes its save, the user's own only after the boot backup, which can undo
+## the write. `engine_args` and `main_path` default to this process's own, so a
+## test can feed it each case. is_main_scene() answers the strict question.
 static func plays_main_scene(scene: Node, engine_args: PackedStringArray = OS.get_cmdline_args(), main_path: String = main_scene_path()) -> bool:
 	if engine_args.has("-s") or engine_args.has("--script"):
 		return false

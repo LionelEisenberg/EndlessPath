@@ -19,7 +19,7 @@ extends GutTest
 ## game. Each test binds a fresh save and gives back what it changed: the save and
 ## the file it writes, DevManager's panel fields, the ×1 speed and the zone toggles.
 ## The warning tests block saving on a temp save a newer build wrote, which
-## after_each() deletes with its lock.
+## after_each() deletes.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -49,7 +49,7 @@ const DEV_LINE: String = "[color=magenta][DEV][/color] "
 const RUN_CONTROLS: Array[String] = ["ForceWin", "ExitVictory", "ExitDefeat", "ShowWholeMap", "RefillVitals"]
 
 ## A save a newer build wrote, which a session plays with saving blocked. The warning
-## tests write it here; after_each() deletes it and its lock.
+## tests write it here; after_each() deletes it.
 const NEWER_SAVE_PATH: String = "user://__test_dev_panel_newer.tres"
 const NEWER_SAVE_TEXT: String = """[gd_resource type="Resource" script_class="SaveGameData" format=3]
 
@@ -101,14 +101,13 @@ func after_each() -> void:
 	DevManager.panel_tab = _original_panel_tab
 	ZoneManager.set_demo_zones_visible(_original_demo_zones)
 	ZoneManager.set_hidden_zones_visible(_original_hidden_zones)
-	# Also clears a block a warning test left, and gives up its temp save's lock.
+	# Also clears a block a warning test left.
 	PersistenceManager.use_save(_original_save, _original_save_path)
 	# Binding the original save again resumes its idle action, if it has one.
 	# Stop it, so its tick timer does not run on into the next test.
 	_stop_actions()
-	for path: String in [NEWER_SAVE_PATH, SaveLock.lock_path_for(NEWER_SAVE_PATH)]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	if FileAccess.file_exists(NEWER_SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(NEWER_SAVE_PATH))
 
 #-----------------------------------------------------------------------------
 # HELPERS
