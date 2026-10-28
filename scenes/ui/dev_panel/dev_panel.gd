@@ -12,9 +12,9 @@ extends Control
 ##
 ## The shell owns only the frame: the open state, the drag, the tab, the time
 ## speed, the badge, the warning and the two hotkeys, Ctrl+Shift+D and
-## Ctrl+Shift+R, which restarts a preset session. Each tab is a scene of its own that calls the
-## dev tools itself; the one thing the shell hands a tab is the adventure view, to
-## the Adventure tab. The panel lives in the main scene, which a session switch
+## Ctrl+Shift+R, which restarts a preset session. Each tab is a scene of its own
+## that calls the dev tools itself; the one thing the shell hands a tab is the
+## adventure view, to the Adventure tab. The panel lives in the main scene, which a session switch
 ## frees and loads again, so its open state, place and tab live on DevManager and
 ## come back when the panel is built. Exempt from the lacquer look (STYLE_GUIDE.md,
 ## G11): it takes pixel_theme.tres from MainView.
