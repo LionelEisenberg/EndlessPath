@@ -155,7 +155,7 @@ Each card is `scenes/zones/zone_action_button/zone_action_button.tscn` (class `Z
 | Singleton | File | Owns |
 |---|---|---|
 | `ZoneManager` | `singletons/zone_manager/zone_manager.gd` | Zone catalog (`ZoneDataList`), current zone id, per-zone `ZoneProgressionData`, action availability, map zones and map states, dev zone toggles, seen actions, focus requests |
-| `ActionManager` | `singletons/action_manager/action_manager.gd` | The single `current_action`, routing by `ActionType`, the shared `action_timer`, foraging and training tick handlers, the adventure and Tribulation gates, idle-action resolution and its log lines |
+| `ActionManager` | `singletons/action_manager/action_manager.gd` | The single `current_action`, routing by `ActionType`, the shared `action_timer`, foraging and training tick handlers, the adventure and Tribulation gates, idle-action resolution and its log lines, and completing or cancelling an action without playing it (the dev tools) |
 
 `ActionManager` has no queue. It holds one `current_action`, and selecting another action stops the current one.
 
@@ -386,7 +386,7 @@ The two cabinet orbs are the only shaders in the lacquer zone view. They took th
 | `icon` | `Texture2D` | `null` | The card icon, the Now strip and the map ring. Set on every Spirit Valley action (`assets/ui/lacquer/icons/ic_*_ai.png`; the adventure uses the user's `combat_icon.png`) |
 | `unlock_conditions` | `Array[UnlockConditionData]` | `[]` | Every condition must be latched |
 | `max_completions` | `int` | `0` | 0 = unlimited. N = the action is hidden once `action_completion_count >= N` |
-| `success_effects` | `Array[EffectData]` | `[]` | Run by `stop_action(true)`, and when another action replaces this one |
+| `success_effects` | `Array[EffectData]` | `[]` | Run by `stop_action(true)`, when another action replaces this one, and by `complete_without_playing()` |
 | `failure_effects` | `Array[EffectData]` | `[]` | Run by `stop_action(false)` |
 
 ### ActionType
@@ -492,6 +492,17 @@ ActionManager.stop_action(successful = true)
   ├─ stop the running action (successful): count +1, stop_* signal, success_ or failure_effects
   ├─ clear_current_action() → current_action_changed(null)
   └─ the stopped action was a session action → resume the idle action: resolve, select, log "Resumed <name>"
+
+ActionManager.complete_without_playing(action, zone_id)    # the dev tools; the action need not be current
+  ├─ ZoneManager.increment_zone_progression_for_action(action.action_id, zone_id)
+  │     └─ action_completed(action_id)                       # if max_completions > 0 and count >= max
+  └─ success_effects                                         # nothing starts, stops or resumes
+
+ActionManager.cancel_current_action()                        # a dev session switch, before it binds the next save
+  ├─ NPC dialogue → disconnect dialogue_ended from stop_action, then DialogueManager.end_dialogue_now()
+  ├─ forget the save the action started under                # so nothing counts and no effect runs
+  ├─ the type's stop: its stop_* signal closes the view, the timer stops
+  └─ clear_current_action() → current_action_changed(null)   # no idle action resumes
 ```
 
 Idle action resolution (`resolve_idle_action(zone_id)`): the zone's saved last idle action while it is still in `get_available_actions()` and idle; else the first idle action in `ZoneActionGroups.sort_actions()` order (so the Aura Well before foraging); else null. It runs:
@@ -515,8 +526,9 @@ What ends an action:
 | `AdventureView` | Time limit reached | `false` |
 | `MerchantViewState` (Leave button or Escape) | The player leaves the shop; it stops only a merchant action | `true` |
 | `TribulationViewState` (`TribulationView.finished`) | Continue on the result panel, or Not yet or Escape on the intro; it stops only a Tribulation action. A stop from outside (a save reset, the dev panel) closes the board and applies nothing | `passed` (`false` for Not yet and Escape) |
+| `ActionManager.cancel_current_action()` | A dev session switch drops what runs, before the next save is bound | None: it counts nothing and runs no effect, and no idle action resumes |
 
-Every stop adds 1 to `action_completion_count`, under the zone the action started in and only in the save it started under (a save reset swaps the save first, so that stop counts nothing). This happens whether the action succeeded, failed or was replaced, so `max_completions` counts attempts, not successes.
+Every stop but a cancel adds 1 to `action_completion_count`, under the zone the action started in and only in the save it started under (a save reset swaps the save first, so that stop counts nothing). This happens whether the action succeeded, failed or was replaced, so `max_completions` counts attempts, not successes. `cancel_current_action()` forgets the save the action started under, so the same guard skips the count and the effects. `complete_without_playing()` counts one completion in the zone it is given and runs the success effects, with nothing started or stopped.
 
 ### Signals
 
@@ -769,7 +781,7 @@ Narrative detail for each beat is in [FOUNDATION_PLAYTHROUGH.md](../progression/
 | File | Purpose |
 |---|---|
 | `singletons/zone_manager/zone_manager.gd` | Zone catalog, current zone, progression, availability, map zones and states, seen actions |
-| `singletons/action_manager/action_manager.gd` | Action routing, shared timer, foraging and training handlers, idle-action resolution, signals |
+| `singletons/action_manager/action_manager.gd` | Action routing, shared timer, foraging and training handlers, idle-action resolution, completing or cancelling an action without playing it, signals |
 | `singletons/persistence_manager/zone_progression_data.gd`, `save_game_data.gd` | Per-zone save data; seen actions and `migrate()` |
 | `scripts/resource_definitions/zones/zone_data/zone_data.gd`, `zone_data_list.gd` | Zone resources |
 | `scripts/resource_definitions/zones/zone_action_data/zone_action_data.gd` | Base action class and `ActionType` |
@@ -814,7 +826,7 @@ Tests: `tests/unit/test_zone_*.gd` and `tests/integration/test_zone_*.gd`, among
 ### Bugs
 
 - `[MEDIUM]` Dialogue 4 can appear out of order. `celestial_intervener_dialogue_4.tres` is gated only by `q_reach_cd_10` (Core Density ≥ 10). A player who reaches CD 10 before finishing dialogue 3 sees two `Return to the [INTERVENER]` cards, and can play `dialogue_4` before `q_reach_core_density_10` has started. Fix: add a second condition on the `celestial_intervener_dialogue_3` event, registered in `unlock_condition_list.tres`.
-- `[MEDIUM]` `max_completions` counts attempts, not successes. `ActionManager` adds to `action_completion_count` on every stop, including `stop_action(false)` and replacement by another action. A failed run would use up a one-shot adventure. The Tribulation sets `max_completions` 0 for this reason: a failure, Not yet and Escape each count a completion that never hides the card.
+- `[MEDIUM]` `max_completions` counts attempts, not successes. `ActionManager` adds to `action_completion_count` on every stop but a cancel (`cancel_current_action()`), including `stop_action(false)` and replacement by another action. A failed run would use up a one-shot adventure. The Tribulation sets `max_completions` 0 for this reason: a failure, Not yet and Escape each count a completion that never hides the card.
 
 ### Missing Functionality
 
@@ -851,7 +863,7 @@ Tests: `tests/unit/test_zone_*.gd` and `tests/integration/test_zone_*.gd`, among
 - `[LOW]` `FOREST_ATLAS_COLS` and `FOREST_VARIANT_COUNT` are defined in both `zone_tilemap.gd` and `HexForestAtlas`.
 - `[LOW]` `ForageActionData`, `CyclingActionData` and `NpcDialogueActionData` don't set `action_type` in `_init()`.
 - `[LOW]` `zone_changed` fires twice on load. `ActionManager` treats the repeat as a no-op (`_last_resolved_zone_id`), and the other listeners rebuild twice. `ZoneManager.get_current_zone()` writes to save data when the id is empty.
-- `[LOW]` Stopping a dialogue relies on a one-shot `DialogueManager.dialogue_ended` → `stop_action` connection. If another action became current mid-timeline, that action would be stopped instead. Today Dialogic's full-screen `DialogicNode_Input` control covers the zone UI while a timeline runs, which prevents this.
+- `[LOW]` Stopping a dialogue relies on a one-shot `DialogueManager.dialogue_ended` → `stop_action` connection. If another action became current mid-timeline, that action would be stopped instead. Today Dialogic's full-screen `DialogicNode_Input` control covers the zone UI while a timeline runs, which prevents this. `cancel_current_action()` disconnects the connection before it ends the timeline.
 - `[LOW]` `ZoneViewState` creates its input blocker `Control` in code. Project convention is that UI nodes live in `.tscn` files.
 - `[LOW]` Coding-standard gaps:
   - `ZoneManager.has_zone()` has an empty `##` comment.
