@@ -18,8 +18,22 @@ class_name SaveLock extends RefCounted
 ## path comes from the caller, so a test can point it at a temp save.
 
 #-----------------------------------------------------------------------------
-# CONSTANTS
+# ENUMS AND CONSTANTS
 #-----------------------------------------------------------------------------
+
+## What a heartbeat (refresh()) finds.
+enum Heartbeat {
+	## The lock is this run's, and its time is now.
+	HELD,
+	## The lock is not this run's any more: another run's lock is there now (this
+	## run hung past STALE_AFTER_SECONDS and was taken over), or the lock file is
+	## gone (which may mean another run took the save over and then let go).
+	LOST,
+	## The lock file is there but cannot be read, as while another process (an
+	## antivirus scan, say) holds it. Whose it is is not known: nothing is changed,
+	## and the next heartbeat reads it again.
+	UNREADABLE,
+}
 
 ## How long a lock stays live without a heartbeat, in seconds. The SaveTimer's
 ## tick, every 5 seconds, is the heartbeat, so a run that is alive keeps its lock.
@@ -49,17 +63,25 @@ static func acquire(save_path: String) -> bool:
 	_write_lock(save_path)
 	return true
 
-## The heartbeat: moves the time in the lock on the save at `save_path` to now and
-## returns true while the lock is still this run's. Returns false when it is not,
-## and leaves things as they are: another run's lock is there now (this run hung
-## past STALE_AFTER_SECONDS and was taken over), or the lock file is gone (which
-## may mean another run took the save over and then let go). A run that gets
-## false must stop writing the save.
-static func refresh(save_path: String) -> bool:
-	if holder_pid(save_path) != OS.get_process_id():
-		return false
+## The heartbeat: moves the time in the lock on the save at `save_path` to now while
+## the lock is still this run's (HELD), and otherwise says what it found and leaves
+## things as they are: LOST when another run's lock is there now, or the lock file is
+## gone, and UNREADABLE when the lock file is there but cannot be read. A run that
+## gets LOST must stop writing the save; one that gets UNREADABLE reads the lock
+## again at its next heartbeat.
+static func refresh(save_path: String) -> Heartbeat:
+	var lock_path: String = lock_path_for(save_path)
+	if not FileAccess.file_exists(lock_path):
+		return Heartbeat.LOST
+	var file: FileAccess = FileAccess.open(lock_path, FileAccess.READ)
+	if file == null:
+		return Heartbeat.UNREADABLE
+	var lock: Dictionary = _parse_lock(file.get_as_text())
+	file.close()
+	if lock.is_empty() or int(lock["pid"]) != OS.get_process_id():
+		return Heartbeat.LOST
 	_write_lock(save_path)
-	return true
+	return Heartbeat.HELD
 
 ## Deletes the lock on the save at `save_path` when it is this run's. Another
 ## run's lock is never deleted.
@@ -102,14 +124,20 @@ static func is_process_alive(pid: int) -> bool:
 #-----------------------------------------------------------------------------
 
 ## The lock on the save at `save_path` as {"pid": int, "time": int}, or {} when
-## there is no lock or it names no process (an empty or garbled file). A lock with
-## no time reads as time 0, so it is stale.
+## there is no lock, it cannot be read, or it names no process (an empty or
+## garbled file). A lock with no time reads as time 0, so it is stale.
 static func _read_lock(save_path: String) -> Dictionary:
 	var file: FileAccess = FileAccess.open(lock_path_for(save_path), FileAccess.READ)
 	if file == null:
 		return {}
+	var lock: Dictionary = _parse_lock(file.get_as_text())
+	file.close()
+	return lock
+
+## A lock file's text as {"pid": int, "time": int}, or {} when it names no process.
+static func _parse_lock(text: String) -> Dictionary:
 	var fields: Dictionary = {}
-	for line: String in file.get_as_text().split("\n"):
+	for line: String in text.split("\n"):
 		var parts: PackedStringArray = line.strip_edges().split("=", true, 1)
 		if parts.size() == 2:
 			fields[parts[0]] = parts[1].to_int()

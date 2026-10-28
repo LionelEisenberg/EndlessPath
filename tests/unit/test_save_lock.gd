@@ -3,9 +3,11 @@ extends GutTest
 ## Unit tests for SaveLock: the lock file that lets one run at a time write a
 ## save. "Another run" is a real helper process (a ping on Windows, a sleep
 ## elsewhere), because a lock is live only while its process is alive and only
-## the OS can say. Every lock sits next to a temp save in user:// and is removed
-## after each test, so the developer's real save and its lock are never read or
-## written. The helper is killed after each test, pass or fail.
+## the OS can say. So is a process that holds a lock file shut, as an antivirus
+## scan can (PowerShell, on Windows only). Every lock sits next to a temp save in
+## user:// and is removed after each test, so the developer's real save and its
+## lock are never read or written. The helper is killed after each test, pass or
+## fail.
 
 ## What a temp save's name starts with: after_each() removes every file in
 ## user:// that starts with it.
@@ -18,7 +20,8 @@ const FOLDER: String = "user://__test_save_lock_folder"
 ## processes up to 32768 unless pid_max is raised.
 const DEAD_PID: int = 999999
 
-## The pid of the helper process standing in for another run, or 0.
+## The pid of the helper process a test starts (another run, or a process that
+## holds a lock file shut), or 0.
 var _helper_pid: int = 0
 
 func after_each() -> void:
@@ -65,6 +68,14 @@ func _start_other_run() -> int:
 		_helper_pid = OS.create_process("sleep", ["5"])
 	assert_gt(_helper_pid, 0, "precondition: the helper process started")
 	return _helper_pid
+
+## Starts a process that opens the file at `path` with no sharing, as an antivirus
+## scan can, so no other process can read it, and holds it for 30 s. after_each()
+## kills it.
+func _hold_shut(path: String) -> void:
+	var command: String = "$f = [System.IO.File]::Open('%s', 'Open', 'ReadWrite', 'None'); Start-Sleep -Seconds 30; $f.Close()" % _global(path)
+	_helper_pid = OS.create_process("powershell", ["-NoProfile", "-NonInteractive", "-Command", command])
+	assert_gt(_helper_pid, 0, "precondition: the helper process started")
 
 ## Writes the lock on the save at `save_path` as a run with this pid and
 ## heartbeat time would have.
@@ -168,7 +179,7 @@ func test_refresh_rewrites_the_time_of_our_lock() -> void:
 	var path := _path("refresh_own")
 	_write_lock(path, OS.get_process_id(), _now() - 30)
 	var before := _now()
-	assert_true(SaveLock.refresh(path), "the lock is still ours")
+	assert_eq(SaveLock.refresh(path), SaveLock.Heartbeat.HELD, "the lock is still ours")
 	assert_gte(_time_in_lock(path), before, "the heartbeat moves the time to now")
 	assert_eq(SaveLock.holder_pid(path), OS.get_process_id())
 
@@ -177,7 +188,7 @@ func test_refresh_leaves_another_runs_lock_alone() -> void:
 	var other_pid := _start_other_run()
 	var old_time := _now() - 30
 	_write_lock(path, other_pid, old_time)
-	SaveLock.refresh(path)
+	assert_eq(SaveLock.refresh(path), SaveLock.Heartbeat.LOST, "it is not ours")
 	assert_eq(SaveLock.holder_pid(path), other_pid)
 	assert_eq(_time_in_lock(path), old_time, "another run's heartbeat is its own to keep")
 
@@ -186,11 +197,11 @@ func test_refresh_leaves_another_runs_lock_alone() -> void:
 func test_refresh_reports_a_lost_lock() -> void:
 	var path := _path("refresh_lost")
 	assert_true(SaveLock.acquire(path))
-	assert_true(SaveLock.refresh(path), "precondition: the lock is ours until it is taken over")
+	assert_eq(SaveLock.refresh(path), SaveLock.Heartbeat.HELD, "precondition: the lock is ours until it is taken over")
 	var other_pid := _start_other_run()
 	var other_time := _now() - 5
 	_write_lock(path, other_pid, other_time)
-	assert_false(SaveLock.refresh(path), "a lock another run holds now is not ours any more")
+	assert_eq(SaveLock.refresh(path), SaveLock.Heartbeat.LOST, "a lock another run holds now is not ours any more")
 	assert_eq(SaveLock.holder_pid(path), other_pid, "and it is left as it is")
 	assert_eq(_time_in_lock(path), other_time, "its heartbeat is not touched")
 
@@ -198,8 +209,29 @@ func test_refresh_reports_a_lost_lock() -> void:
 ## it is no more ours than a lock another run holds, and none is made in its place.
 func test_refresh_reports_a_lock_that_is_gone() -> void:
 	var path := _path("refresh_none")
-	assert_false(SaveLock.refresh(path), "no lock is not ours")
+	assert_eq(SaveLock.refresh(path), SaveLock.Heartbeat.LOST, "no lock is not ours")
 	assert_false(FileAccess.file_exists(SaveLock.lock_path_for(path)), "only a lock that is ours is refreshed")
+
+## A lock file that is there but cannot be read, as while an antivirus scan holds
+## it, says nothing about whose it is. The heartbeat reports that and changes
+## nothing, so the run can read it again at its next one.
+func test_refresh_reports_a_lock_it_cannot_read() -> void:
+	if OS.get_name() != "Windows":
+		pass_test("the helper that holds a file shut is PowerShell")
+		return
+	var path := _path("refresh_shut")
+	assert_true(SaveLock.acquire(path))
+	var lock_text := _read(SaveLock.lock_path_for(path))
+	_hold_shut(SaveLock.lock_path_for(path))
+	var shut: bool = await wait_until(func() -> bool: return FileAccess.open(SaveLock.lock_path_for(path), FileAccess.READ) == null, 10.0)
+	assert_true(shut, "precondition: the lock file cannot be read")
+	assert_eq(SaveLock.refresh(path), SaveLock.Heartbeat.UNREADABLE, "the heartbeat cannot tell whose the lock is")
+	OS.kill(_helper_pid)
+	_helper_pid = 0
+	var open_again: bool = await wait_until(func() -> bool: return FileAccess.open(SaveLock.lock_path_for(path), FileAccess.READ) != null, 10.0)
+	assert_true(open_again, "precondition: the lock file can be read again")
+	assert_eq(_read(SaveLock.lock_path_for(path)), lock_text, "the lock was left as it was")
+	assert_eq(SaveLock.refresh(path), SaveLock.Heartbeat.HELD, "and the next heartbeat finds it ours")
 
 #-----------------------------------------------------------------------------
 # RELEASE

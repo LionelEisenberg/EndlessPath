@@ -92,6 +92,12 @@ var _block_reason: String = ""
 ## lock it did not take.
 var _lock_path: String = ""
 
+## When the lock was last known to be this session's (Time.get_ticks_msec()): taken,
+## or found this run's by a heartbeat. No other run takes over a lock within
+## SaveLock.STALE_AFTER_SECONDS of that, so a heartbeat that cannot read the lock
+## file in that time loses nothing (_heartbeat()).
+var _lock_confirmed_msec: int = 0
+
 #-----------------------------------------------------------------------------
 # LIFECYCLE
 #-----------------------------------------------------------------------------
@@ -408,6 +414,7 @@ func _move_lock_to(path: String) -> void:
 		return
 	if SaveLock.acquire(path):
 		_lock_path = path
+		_lock_confirmed_msec = Time.get_ticks_msec()
 		return
 	_lock_path = ""
 	_block_saving("in use by another run (pid %d)" % SaveLock.holder_pid(path))
@@ -417,12 +424,25 @@ func _move_lock_to(path: String) -> void:
 ## was refused the lock). Returns false once the lock is lost: another run's lock is
 ## there now, or the lock file is gone, as happens to a session that hung past
 ## SaveLock.STALE_AFTER_SECONDS. The session then blocks, so it never writes over
-## what that run saved.
+## what that run saved. A lock file that is there but cannot be read (an antivirus
+## scan holding it, say) loses nothing within STALE_AFTER_SECONDS of the last time
+## the lock was this session's, since no other run takes a lock that recent over:
+## the session goes on, and the next heartbeat reads the lock again. Past that, it
+## blocks too.
 func _heartbeat() -> bool:
 	if _lock_path == "":
 		return true
-	if SaveLock.refresh(_lock_path):
+	var found: SaveLock.Heartbeat = SaveLock.refresh(_lock_path)
+	if found == SaveLock.Heartbeat.HELD:
+		_lock_confirmed_msec = Time.get_ticks_msec()
 		return true
+	if found == SaveLock.Heartbeat.UNREADABLE:
+		if Time.get_ticks_msec() - _lock_confirmed_msec < SaveLock.STALE_AFTER_SECONDS * 1000:
+			Log.warn("PersistenceManager: Could not read the lock on %s, so the next heartbeat reads it again" % _lock_path)
+			return true
+		_lock_path = ""
+		_block_saving("its lock file could not be read for %d s, so another run may hold the save" % SaveLock.STALE_AFTER_SECONDS)
+		return false
 	var holder: int = SaveLock.holder_pid(_lock_path)
 	_lock_path = ""
 	var who: String = "pid %d" % holder if holder > 0 else "its lock file is gone"

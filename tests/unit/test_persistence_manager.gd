@@ -71,7 +71,8 @@ class UnverifiablePersistenceManager extends "res://singletons/persistence_manag
 
 var _manager: Node = null
 
-## The pid of the helper process standing in for another run, or 0.
+## The pid of the helper process a test starts (another run, or a process that
+## holds a lock file shut), or 0.
 var _helper_pid: int = 0
 
 func after_each() -> void:
@@ -153,6 +154,17 @@ func _lock_as_another_run(path: String) -> int:
 	assert_gt(_helper_pid, 0, "precondition: the helper process started")
 	_write(SaveLock.lock_path_for(path), "pid=%d\ntime=%d\n" % [_helper_pid, int(Time.get_unix_time_from_system())])
 	return _helper_pid
+
+## Starts a process that opens the lock file of the save at `path` with no
+## sharing, as an antivirus scan can, holds it for 30 s, and waits until this run
+## can no longer read it. Windows only (PowerShell). after_each() kills it.
+func _hold_lock_file_shut(path: String) -> void:
+	var lock_path: String = SaveLock.lock_path_for(path)
+	var command: String = "$f = [System.IO.File]::Open('%s', 'Open', 'ReadWrite', 'None'); Start-Sleep -Seconds 30; $f.Close()" % ProjectSettings.globalize_path(lock_path)
+	_helper_pid = OS.create_process("powershell", ["-NoProfile", "-NonInteractive", "-Command", command])
+	assert_gt(_helper_pid, 0, "precondition: the helper process started")
+	var shut: bool = await wait_until(func() -> bool: return FileAccess.open(lock_path, FileAccess.READ) == null, 10.0)
+	assert_true(shut, "precondition: the lock file cannot be read")
 
 ## The heartbeat time in the lock on the save at `path`, or -1 when it has none.
 func _time_in_lock(path: String) -> int:
@@ -872,6 +884,54 @@ func test_a_session_whose_lock_file_is_gone_stops_writing() -> void:
 	assert_string_contains(manager.get_block_reason(), "taken over")
 	assert_eq(_read(path), original, "the file is unchanged")
 	assert_false(FileAccess.file_exists(SaveLock.lock_path_for(path)), "and no lock is made in its place")
+
+## A lock file that is there but cannot be read, as while an antivirus scan holds
+## it, may well still be this session's, and no other run takes over a lock that
+## was confirmed less than SaveLock.STALE_AFTER_SECONDS ago. One heartbeat that
+## cannot read it does not block the session for good: it goes on writing, and the
+## next tick reads the lock again.
+func test_a_lock_file_that_cannot_be_read_does_not_block_the_session() -> void:
+	if OS.get_name() != "Windows":
+		pass_test("the helper that holds a file shut is PowerShell")
+		return
+	var path := _path("lock_shut")
+	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
+	var manager := _make_manager(path)
+	_boot(manager)
+	assert_eq(SaveLock.holder_pid(path), OS.get_process_id(), "precondition: the session holds the lock")
+	await _hold_lock_file_shut(path)
+	manager.save_game_data.gold = 99.0
+	manager.tick()
+	assert_false(manager.is_save_blocked(), "a lock that cannot be read right now is not a lost one")
+	assert_eq(_gold_in_file(path), 99.0, "the tick still saves")
+	OS.kill(_helper_pid)
+	_helper_pid = 0
+	var open_again: bool = await wait_until(func() -> bool: return FileAccess.open(SaveLock.lock_path_for(path), FileAccess.READ) != null, 10.0)
+	assert_true(open_again, "precondition: the lock file can be read again")
+	var stale_time := int(Time.get_unix_time_from_system()) - 30
+	_write(SaveLock.lock_path_for(path), "pid=%d\ntime=%d\n" % [OS.get_process_id(), stale_time])
+	manager.tick()
+	assert_false(manager.is_save_blocked())
+	assert_gt(_time_in_lock(path), stale_time, "the next heartbeat refreshes the lock again")
+
+## Past SaveLock.STALE_AFTER_SECONDS since the lock was last confirmed, another run
+## may have taken it over, so a lock file that still cannot be read blocks.
+func test_a_lock_file_unreadable_past_the_stale_time_blocks() -> void:
+	if OS.get_name() != "Windows":
+		pass_test("the helper that holds a file shut is PowerShell")
+		return
+	var path := _path("lock_shut_stale")
+	var original := READABLE_SAVE_TEXT % "SpiritValley"
+	_write(path, original)
+	var manager := _make_manager(path)
+	_boot(manager)
+	await _hold_lock_file_shut(path)
+	manager._lock_confirmed_msec = Time.get_ticks_msec() - (SaveLock.STALE_AFTER_SECONDS + 1) * 1000
+	manager.save_game_data.gold = 99.0
+	manager.tick()
+	assert_true(manager.is_save_blocked(), "a lock unconfirmed for that long may be another run's")
+	assert_string_contains(manager.get_block_reason(), "could not be read")
+	assert_eq(_read(path), original, "and nothing was written")
 
 func test_close_request_releases_the_lock() -> void:
 	var path := _path("lock_close")
