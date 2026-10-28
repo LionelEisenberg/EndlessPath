@@ -513,11 +513,14 @@ func test_tray_reads_the_cycle_rate_to_a_tenth() -> void:
 func test_the_cycle_rate_keeps_its_place_and_the_name_its_line() -> void:
 	# The rate's slot is as wide as the technique's widest reading, from +0 up to
 	# its top rate, so as the rate climbs neither it nor the name beside it moves:
-	# "Wilderness Cycling" stays on one line and the strip keeps its height.
+	# "Wilderness Cycling" stays on one line and the strip keeps its height. The
+	# reading stands flush right in the slot, ending where the figure under it does.
 	await _add_panel()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	var name_label := _strip_node("TrainingName") as Label
 	var rate_group := _strip_node("RateGroup") as Control
+	var rate_text := _strip_node("RateText") as Control
+	var figure := _strip_node("TicksLabel") as Control
 	for technique_id: String in RATES_BY_TECHNIQUE:
 		CyclingManager.unlock_technique(technique_id)
 		CyclingManager.equip_technique(technique_id)
@@ -529,8 +532,9 @@ func test_the_cycle_rate_keeps_its_place_and_the_name_its_line() -> void:
 		for rate: float in RATES_BY_TECHNIQUE[technique_id]:
 			CyclingManager.update_cycle_session(1.0, rate)
 			await wait_process_frames(1)
-			var reading: String = (_strip_node("RateText") as RichTextLabel).get_parsed_text()
+			var reading: String = (rate_text as RichTextLabel).get_parsed_text()
 			assert_eq(rate_group.get_global_rect(), slot, "%s: %s keeps the rate's place" % [technique_id, reading])
+			assert_eq(rate_text.get_global_rect().end.x, figure.get_global_rect().end.x, "%s: %s ends where the figure under it does" % [technique_id, reading])
 			assert_eq(name_label.get_line_count(), 1, "%s: %s leaves the name one line" % [technique_id, reading])
 			assert_eq(_strip().size.y, height, "%s: %s keeps the strip's height" % [technique_id, reading])
 		CyclingManager.end_cycle_session()

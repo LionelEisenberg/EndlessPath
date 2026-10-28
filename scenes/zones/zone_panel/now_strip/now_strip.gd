@@ -14,10 +14,11 @@ extends Control
 ## read from CyclingManager's session snapshot: the ring lights over the
 ## cycle, "Wilderness Cycling" with the Madra drawn per second ("+0 / s" while
 ## none is drawn), the equipped technique with "9 / 15 s" (its length, "15 s
-## cycle", until a cycle runs) and the rod filling. The rate stands in a slot as
-## wide as its widest reading up to the technique's top rate, so as it climbs
-## neither it nor the name beside it moves. The cycling card is not in the list
-## while the player cycles, so the cycling tray takes no clicks.
+## cycle", until a cycle runs) and the rod filling. The rate stands flush right,
+## ending where the figure under it does, in a slot as wide as its widest reading
+## up to the technique's top rate, so as it climbs the name beside it never
+## moves. The cycling card is not in the list while the player cycles, so the
+## cycling tray takes no clicks.
 ## While none runs, the tray is empty: the ring dark, no icon, and one tan
 ## line, "<idle action> · paused" while a session action (the shop, an
 ## adventure, dialogue) stands in for the zone's idle action, or

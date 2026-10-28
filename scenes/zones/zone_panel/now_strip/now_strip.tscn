@@ -98,6 +98,7 @@ layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 6
+alignment = 2
 
 [node name="MadraIconMargin" type="MarginContainer" parent="TrainingContent/TopRow/RateGroup" unique_id=991498686]
 layout_mode = 2
