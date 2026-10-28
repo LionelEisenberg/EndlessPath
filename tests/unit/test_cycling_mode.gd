@@ -80,6 +80,10 @@ func after_each() -> void:
 		ActionManager.stop_action()
 	CyclingManager.end_cycle_session()
 	CyclingManager.clear_last_cycle_result()
+	# The transition reads the chest's techniques height, which rebuilds the
+	# hidden technique list: its old drawers leave the tree and are freed at the
+	# end of the frame. Let it pass before GUT counts orphans.
+	await wait_process_frames(1)
 
 func _on_closed() -> void:
 	_closed_calls += 1
