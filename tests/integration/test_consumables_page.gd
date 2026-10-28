@@ -429,6 +429,13 @@ func test_pages_have_their_titles() -> void:
 	assert_eq((tab.get_node("RightTitle").get_node("%TitleLabel") as Label).text, "Hotbar")
 	assert_eq(PageBounds.scaled_text(tab), [] as Array[String])
 
+func test_the_right_title_is_centred_on_the_page() -> void:   # the spec's "title centre 1244"
+	var tab: Control = await _open_tab()
+	var title: Control = tab.get_node("RightTitle") as Control
+	assert_eq(title.get_global_rect().get_center().x, 1244.0, "over the hotbar's middle")
+	assert_eq(fmod(title.get_global_rect().size.x, 2.0), 0.0, "an even width")
+	assert_eq((title.get_node("%Ornament") as Control).get_global_rect().get_center().x, 1244.0, "and its ornament under it")
+
 #-----------------------------------------------------------------------------
 # THE HINT AND THE DETAILS PANEL
 #-----------------------------------------------------------------------------

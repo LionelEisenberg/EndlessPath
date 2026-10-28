@@ -72,7 +72,12 @@ offset_bottom = 134.0
 mouse_filter = 2
 theme_override_constants/separation = 14
 
-[node name="RightTitle" parent="RightPage" instance=ExtResource("2_title")]
+[node name="TitleBox" type="MarginContainer" parent="RightPage"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 4
+
+[node name="RightTitle" parent="RightPage/TitleBox" instance=ExtResource("2_title")]
 unique_name_in_owner = true
 layout_mode = 2
 

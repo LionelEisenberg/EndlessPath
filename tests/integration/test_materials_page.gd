@@ -443,3 +443,12 @@ func test_pages_have_their_titles() -> void:
 	assert_eq((tab.get_node("LeftTitle").get_node("%TitleLabel") as Label).text, "Materials")
 	assert_eq(_right_title(tab).text, "Spirit Fern")
 	assert_eq(PageBounds.scaled_text(tab), [] as Array[String])
+
+func test_the_right_title_is_centred_on_the_page() -> void:   # the spec's "title centre 1244"
+	_gather_both()
+	var tab: Control = await _open_tab()
+	var title: Control = tab.get_node("%RightTitle") as Control
+	assert_eq(title.get_global_rect().get_center().x, 1244.0)
+	assert_eq(fmod(title.get_global_rect().size.x, 2.0), 0.0, "an even width")
+	assert_eq((title.get_node("%Ornament") as Control).get_global_rect().get_center().x, 1244.0, "and its ornament under it")
+	assert_eq(_baseline(_right_title(tab)), 262.0, "the page title's baseline")
