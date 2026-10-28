@@ -26,9 +26,11 @@ func add_slot(slot: Control) -> void:
 	_content.add_child(slot)
 
 ## Remove and free every child currently in the content container (including
-## any authored editor-preview placeholders).
+## any authored editor-preview placeholders). They leave the container at
+## once, so the layout and get_slots() see only what is added next.
 func clear_slots() -> void:
 	for child in _content.get_children():
+		_content.remove_child(child)
 		child.queue_free()
 
 ## Returns all children currently in the content container.

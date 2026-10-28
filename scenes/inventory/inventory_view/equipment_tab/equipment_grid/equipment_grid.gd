@@ -25,10 +25,6 @@ extends MarginContainer
 ## (num_rows * num_columns) cannot exceed this without adding more instances.
 const SLOT_POOL_SIZE := 48
 
-## Opacity for slots whose item does not match the active category filter
-## (purely visual de-emphasis; slots stay fully interactive).
-const DIM_ALPHA := 0.3
-
 #-----------------------------------------------------------------------------
 # EXPORTS (live layout tuning)
 #-----------------------------------------------------------------------------
@@ -43,12 +39,13 @@ const DIM_ALPHA := 0.3
 		num_columns = maxi(value, 1)
 		if is_node_ready():
 			_apply_grid_layout()
-@export var row_separation: int = 6:
+## The pressed page's 4 px gap: 72 px slots at a 76 px pitch.
+@export var row_separation: int = 4:
 	set(value):
 		row_separation = maxi(value, 0)
 		if is_node_ready():
 			_apply_grid_layout()
-@export var col_separation: int = 6:
+@export var col_separation: int = 4:
 	set(value):
 		col_separation = maxi(value, 0)
 		if is_node_ready():
@@ -73,7 +70,8 @@ signal slot_clicked(slot: InventorySlot, event: InputEvent)
 var current_page: int = 0
 
 ## Predicate (ItemInstanceData -> bool) for the active category filter: items
-## that fail it (and empty slots) render dimmed. Defaults to match-all.
+## that fail it (and empty slots) are faded into the paper. Defaults to
+## match-all.
 var _category_match: Callable = func(_d: ItemInstanceData) -> bool: return true
 
 #-----------------------------------------------------------------------------
@@ -116,8 +114,8 @@ func get_slots() -> Array[InventorySlot]:
 	return slots
 
 ## Set the active category filter. Slots whose item fails `match` (and empty
-## slots) render dimmed; pass a match-all predicate to clear. Re-renders so the
-## dim state is reapplied to the current page.
+## slots) are faded into the paper and stay draggable; pass a match-all
+## predicate to clear. Re-renders so the fade is reapplied to the current page.
 func set_category_filter(match: Callable) -> void:
 	_category_match = match
 	if InventoryManager:
@@ -155,7 +153,7 @@ func _update_grid(inventory: InventoryData) -> void:
 		var global_index := base + i
 		var data: ItemInstanceData = inventory.equipment.get(global_index)
 		slots[i].setup(data)
-		slots[i].modulate.a = 1.0 if _category_match.call(data) else DIM_ALPHA
+		slots[i].set_filtered_out(not _category_match.call(data))
 
 #-----------------------------------------------------------------------------
 # INPUT HANDLING

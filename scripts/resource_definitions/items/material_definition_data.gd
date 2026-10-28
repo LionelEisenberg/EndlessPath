@@ -4,7 +4,8 @@ extends ItemDefinitionData
 @export var source_zone_ids : Array[String] = []
 
 ## Free-form lore string describing where this material is found.
-## Shown on the material detail card under "Source".
+## Not shown: the Materials page lists the activities that really yield the
+## material (MaterialSources).
 @export var source_description: String = ""
 
 ## Comma-separated names of items/recipes that consume this material.

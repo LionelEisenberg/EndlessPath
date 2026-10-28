@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://bnmg8xqwd7dp4"]
+
+[ext_resource type="Script" path="res://scenes/inventory/pressed/paper_tag/paper_tag.gd" id="1_script"]
+
+[node name="PaperTag" type="Label"]
+offset_right = 24.0
+offset_bottom = 20.0
+mouse_filter = 2
+theme_type_variation = &"LabelBookTag"
+text = "×7"
+horizontal_alignment = 2
+script = ExtResource("1_script")

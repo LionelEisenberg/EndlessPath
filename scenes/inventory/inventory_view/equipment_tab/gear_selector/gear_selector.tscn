@@ -1,108 +1,133 @@
 [gd_scene format=3 uid="uid://bywdjh8pmjuev"]
 
 [ext_resource type="Script" uid="uid://dtfuro5fu4nu3" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.gd" id="1_3nnrq"]
-[ext_resource type="Texture2D" uid="uid://bptga5m4hxy5b" path="res://assets/sprites/inventory/signage/section_header.png" id="1_f2oh5"]
-[ext_resource type="Texture2D" uid="uid://c3nawmnr7g0aj" path="res://assets/sprites/inventory/gear_selector/gear_selector_portrait.png" id="2_3nnrq"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/gear_plate_ai.png" id="2_plate"]
 [ext_resource type="PackedScene" uid="uid://csm6jt2i1j477" path="res://scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_slot.tscn" id="4_3nnrq"]
-[ext_resource type="Theme" uid="uid://yqkvsb5q7pab" path="res://assets/themes/pixel_theme.tres" id="5_theme"]
 
 [node name="GearSelector" type="Control" unique_id=1615876472]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-size_flags_horizontal = 4
-size_flags_vertical = 4
+offset_right = 468.0
+offset_bottom = 296.0
+mouse_filter = 2
 script = ExtResource("1_3nnrq")
 
-[node name="Top Signage" type="TextureRect" parent="." unique_id=446469579]
+[node name="Plate" type="TextureRect" parent="."]
 layout_mode = 0
-offset_left = 43.5
-offset_top = 2.0
-offset_right = 167.5
-offset_bottom = 30.0
-texture = ExtResource("1_f2oh5")
+offset_right = 468.0
+offset_bottom = 268.0
+mouse_filter = 2
+texture = ExtResource("2_plate")
 
-[node name="Title" type="Label" parent="Top Signage" unique_id=33881144]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -17.0
-offset_top = -1.0
-offset_right = 51.0
-offset_bottom = 5.0
-grow_horizontal = 2
-grow_vertical = 2
-scale = Vector2(0.5, 0.5)
-pivot_offset = Vector2(62, 14)
-theme = ExtResource("5_theme")
-theme_type_variation = &"LabelInventorySignage"
-theme_override_font_sizes/font_size = 30
-text = "Gear Selector"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="GearSelectorPortrait" type="TextureRect" parent="." unique_id=1804800343]
+[node name="LeftColumn" type="VBoxContainer" parent="." unique_id=2107934149]
 layout_mode = 0
-offset_left = 51.5
-offset_top = 36.5
-offset_right = 159.5
-offset_bottom = 176.5
-texture = ExtResource("2_3nnrq")
+offset_left = 8.0
+offset_top = 20.0
+offset_right = 80.0
+offset_bottom = 296.0
+theme_override_constants/separation = 30
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=2107934149]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -17.0
-offset_top = 29.0
-offset_right = 23.0
-offset_bottom = 137.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 12
-
-[node name="HeadGearSlot" parent="VBoxContainer" unique_id=1769908538 instance=ExtResource("4_3nnrq")]
+[node name="HeadGearSlot" parent="LeftColumn" unique_id=1769908538 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
 
-[node name="ArmorGearSlot" parent="VBoxContainer" unique_id=528065297 instance=ExtResource("4_3nnrq")]
+[node name="MainWeaponGearSlot" parent="LeftColumn" unique_id=1774668661 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
-slot_type = 3
+slot_type = 0
 
-[node name="Accessory1GearSlot" parent="VBoxContainer" unique_id=1885838001 instance=ExtResource("4_3nnrq")]
+[node name="Accessory1GearSlot" parent="LeftColumn" unique_id=1885838001 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
 slot_type = 4
 accessory_index = 0
 
-[node name="VBoxContainer2" type="VBoxContainer" parent="." unique_id=1523099243]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = 145.0
-offset_top = 29.0
-offset_right = 185.0
-offset_bottom = 137.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 12
+[node name="RightColumn" type="VBoxContainer" parent="." unique_id=1523099243]
+layout_mode = 0
+offset_left = 392.0
+offset_top = 20.0
+offset_right = 464.0
+offset_bottom = 296.0
+theme_override_constants/separation = 30
 
-[node name="MainWeaponGearSlot" parent="VBoxContainer2" unique_id=1774668661 instance=ExtResource("4_3nnrq")]
+[node name="ArmorGearSlot" parent="RightColumn" unique_id=528065297 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
-slot_type = 0
+slot_type = 3
 
-[node name="OffhandGearSlot" parent="VBoxContainer2" unique_id=717090443 instance=ExtResource("4_3nnrq")]
+[node name="OffhandGearSlot" parent="RightColumn" unique_id=717090443 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
 slot_type = 1
 
-[node name="Accessory2GearSlot" parent="VBoxContainer2" unique_id=1052880311 instance=ExtResource("4_3nnrq")]
+[node name="Accessory2GearSlot" parent="RightColumn" unique_id=1052880311 instance=ExtResource("4_3nnrq")]
 layout_mode = 2
 slot_type = 4
 accessory_index = 1
+
+[node name="HeadLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = -6.0
+offset_top = 4.0
+offset_right = 94.0
+offset_bottom = 22.0
+grow_horizontal = 2
+theme_type_variation = &"LabelBookCaps"
+text = "HEAD"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MainHandLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = -6.0
+offset_top = 106.0
+offset_right = 94.0
+offset_bottom = 124.0
+grow_horizontal = 2
+theme_type_variation = &"LabelBookCaps"
+text = "MAIN HAND"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Accessory1Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = -6.0
+offset_top = 208.0
+offset_right = 94.0
+offset_bottom = 226.0
+grow_horizontal = 2
+theme_type_variation = &"LabelBookCaps"
+text = "ACCESSORY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BodyLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 378.0
+offset_top = 4.0
+offset_right = 478.0
+offset_bottom = 22.0
+grow_horizontal = 2
+theme_type_variation = &"LabelBookCaps"
+text = "BODY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="OffHandLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 378.0
+offset_top = 106.0
+offset_right = 478.0
+offset_bottom = 124.0
+grow_horizontal = 2
+theme_type_variation = &"LabelBookCaps"
+text = "OFF HAND"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Accessory2Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = 378.0
+offset_top = 208.0
+offset_right = 478.0
+offset_bottom = 226.0
+grow_horizontal = 2
+theme_type_variation = &"LabelBookCaps"
+text = "ACCESSORY"
+horizontal_alignment = 1
+vertical_alignment = 1

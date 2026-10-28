@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://buk2puxew18gt"]
+
+[ext_resource type="Script" path="res://scenes/inventory/pressed/page_title/page_title.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/title_ornament_ai.png" id="2_ornament"]
+
+[node name="PageTitle" type="VBoxContainer"]
+mouse_filter = 2
+theme_override_constants/separation = -9
+script = ExtResource("1_script")
+
+[node name="TitleLabel" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookPageTitle"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Ornament" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+texture = ExtResource("2_ornament")

@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://c2mdc6tgoqblu"]
+
+[ext_resource type="Script" path="res://scenes/inventory/pressed/table_row/table_row.gd" id="1_script"]
+
+[node name="TableRow" type="VBoxContainer"]
+mouse_filter = 2
+theme_override_constants/separation = -3
+script = ExtResource("1_script")
+
+[node name="Line" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Label" type="Label" parent="Line"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelBookCaps"
+text = "RESTORES"
+vertical_alignment = 2
+
+[node name="Gap" type="Control" parent="Line"]
+custom_minimum_size = Vector2(16, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Value" type="RichTextLabel" parent="Line"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"RichTextBookValue"
+bbcode_enabled = true
+text = "+20 Madra"
+fit_content = true
+scroll_active = false
+autowrap_mode = 3
+horizontal_alignment = 2
+
+[node name="Inset" type="Control" parent="Line"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Rule" type="HSeparator" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HSeparatorPressed"

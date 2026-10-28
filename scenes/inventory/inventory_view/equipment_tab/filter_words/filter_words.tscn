@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://bsdbd4id6q1j0"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/equipment_tab/filter_words/filter_words.gd" id="1_script"]
+
+[node name="FilterWords" type="HBoxContainer"]
+offset_right = 452.0
+offset_bottom = 26.0
+mouse_filter = 2
+theme_override_constants/separation = 14
+alignment = 1
+script = ExtResource("1_script")
+
+[node name="Word0" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"LabelBookFilterOn"
+text = "ALL"
+horizontal_alignment = 1
+
+[node name="Word1" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"LabelBookFilter"
+text = "WEAPONS"
+horizontal_alignment = 1
+
+[node name="Word2" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"LabelBookFilter"
+text = "ARMOR"
+horizontal_alignment = 1
+
+[node name="Word3" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 0
+theme_type_variation = &"LabelBookFilter"
+text = "ACCESSORIES"
+horizontal_alignment = 1

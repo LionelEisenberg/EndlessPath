@@ -36,6 +36,8 @@ const LACQUER_MADRA_HI: Color = Color("#E8F6FD")
 const LACQUER_MADRA: Color = Color("#BBD5E7")
 ## The lower edge of lit Madra
 const LACQUER_MADRA_MID: Color = Color("#849BE4")
+## Madra amounts in text on the book's paper: the tints above read on dark lacquer, not on cream
+const BOOK_MADRA_INK: Color = Color("#1C2F60")
 ## Seals (NEW, LOCKED, the count)
 const LACQUER_VERMILION: Color = Color("#A83C30")
 ## Health text (floaters): the second step of the crimson ramp

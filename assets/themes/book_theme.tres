@@ -5,6 +5,14 @@
 [ext_resource type="Texture2D" uid="uid://6vl2b4eb0lr0" path="res://assets/sprites/ui/book/book_pill_2x_ai.png" id="3_pill"]
 [ext_resource type="Texture2D" uid="uid://dbxc4y1fmjued" path="res://assets/sprites/ui/book/book_plaque_2x_ai.png" id="4_plaque"]
 [ext_resource type="Texture2D" uid="uid://ctkfuhss2b865" path="res://assets/sprites/ui/book/book_slot_2x_ai.png" id="5_slot"]
+[ext_resource type="FontFile" path="res://assets/fonts/BMEULJIROTTF.ttf" id="6_euljiro"]
+[ext_resource type="FontFile" path="res://assets/fonts/YatraOne-Regular.ttf" id="7_yatra"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/book/pressed_panel.tres" id="8_pressed_panel"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/book/pressed_lozenge.tres" id="9_pressed_lozenge"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/book/pressed_rule.tres" id="10_pressed_rule"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/book/printer_marks.tres" id="11_printer_marks"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/book/paper_tag.tres" id="12_paper_tag"]
+[ext_resource type="StyleBox" path="res://assets/styleboxes/book/seal.tres" id="13_seal"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_key"]
 content_margin_left = 6.0
@@ -119,11 +127,104 @@ texture_margin_right = 8.0
 texture_margin_bottom = 14.0
 modulate_color = Color(1, 0.88, 0.66, 1)
 
+[sub_resource type="FontVariation" id="FontVariation_euljiro_caps"]
+base_font = ExtResource("6_euljiro")
+spacing_glyph = 1
+spacing_top = -1
+
+[sub_resource type="FontVariation" id="FontVariation_euljiro_spaced"]
+base_font = ExtResource("6_euljiro")
+spacing_glyph = 1
+
+[sub_resource type="FontVariation" id="FontVariation_euljiro_tag"]
+base_font = ExtResource("6_euljiro")
+spacing_top = 3
+spacing_bottom = -3
+
+[sub_resource type="FontVariation" id="FontVariation_euljiro_filter"]
+base_font = ExtResource("6_euljiro")
+spacing_glyph = 1
+spacing_top = 1
+spacing_bottom = -1
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_filter"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bare"]
+
 [resource]
+HSeparatorPressed/base_type = &"HSeparator"
+HSeparatorPressed/constants/separation = 4
+HSeparatorPressed/styles/separator = ExtResource("10_pressed_rule")
 LabelBookBody/base_type = &"Label"
 LabelBookBody/colors/font_color = Color(0.231, 0.165, 0.125, 1)
 LabelBookBody/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelBookBody/font_sizes/font_size = 20
+LabelBookCaps/base_type = &"Label"
+LabelBookCaps/colors/font_color = Color(0.34509805, 0.25882354, 0.1882353, 1)
+LabelBookCaps/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookCaps/constants/line_spacing = 2
+LabelBookCaps/font_sizes/font_size = 15
+LabelBookCaps/fonts/font = SubResource("FontVariation_euljiro_caps")
+LabelBookCount/base_type = &"Label"
+LabelBookCount/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
+LabelBookCount/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookCount/constants/line_spacing = 1
+LabelBookCount/font_sizes/font_size = 20
+LabelBookCount/fonts/font = ExtResource("6_euljiro")
+LabelBookDetail/base_type = &"Label"
+LabelBookDetail/colors/font_color = Color(0.34509805, 0.25882354, 0.1882353, 1)
+LabelBookDetail/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookDetail/constants/line_spacing = 3
+LabelBookDetail/font_sizes/font_size = 15
+LabelBookDetail/fonts/font = ExtResource("6_euljiro")
+LabelBookDetailDark/base_type = &"Label"
+LabelBookDetailDark/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
+LabelBookDetailDark/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookDetailDark/constants/line_spacing = 3
+LabelBookDetailDark/font_sizes/font_size = 15
+LabelBookDetailDark/fonts/font = ExtResource("6_euljiro")
+LabelBookFilter/base_type = &"Label"
+LabelBookFilter/colors/font_color = Color(0.34509805, 0.25882354, 0.1882353, 1)
+LabelBookFilter/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookFilter/constants/line_spacing = 2
+LabelBookFilter/font_sizes/font_size = 13
+LabelBookFilter/fonts/font = SubResource("FontVariation_euljiro_filter")
+LabelBookFilter/styles/normal = SubResource("StyleBoxEmpty_filter")
+LabelBookFilterOn/base_type = &"Label"
+LabelBookFilterOn/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
+LabelBookFilterOn/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookFilterOn/constants/line_spacing = 2
+LabelBookFilterOn/font_sizes/font_size = 13
+LabelBookFilterOn/fonts/font = SubResource("FontVariation_euljiro_filter")
+LabelBookFilterOn/styles/normal = ExtResource("9_pressed_lozenge")
+LabelBookFlavor/base_type = &"Label"
+LabelBookFlavor/colors/font_color = Color(0.34509805, 0.25882354, 0.1882353, 1)
+LabelBookFlavor/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookFlavor/constants/line_spacing = 3
+LabelBookFlavor/font_sizes/font_size = 16
+LabelBookFlavor/fonts/font = ExtResource("6_euljiro")
+LabelBookInk/base_type = &"Label"
+LabelBookInk/colors/font_color = Color(0.23137255, 0.16470589, 0.1254902, 1)
+LabelBookInk/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookInk/constants/line_spacing = 5
+LabelBookInk/font_sizes/font_size = 18
+LabelBookInk/fonts/font = ExtResource("6_euljiro")
+LabelBookInkDark/base_type = &"Label"
+LabelBookInkDark/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
+LabelBookInkDark/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookInkDark/constants/line_spacing = 5
+LabelBookInkDark/font_sizes/font_size = 18
+LabelBookInkDark/fonts/font = ExtResource("6_euljiro")
+LabelBookItemName/base_type = &"Label"
+LabelBookItemName/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
+LabelBookItemName/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookItemName/constants/line_spacing = -11
+LabelBookItemName/font_sizes/font_size = 30
+LabelBookItemName/fonts/font = ExtResource("7_yatra")
 LabelBookKey/base_type = &"Label"
 LabelBookKey/colors/font_color = Color(0.969, 0.902, 0.792, 1)
 LabelBookKey/colors/font_shadow_color = Color(0, 0, 0, 0)
@@ -133,6 +234,12 @@ LabelBookMuted/base_type = &"Label"
 LabelBookMuted/colors/font_color = Color(0.49, 0.373, 0.278, 1)
 LabelBookMuted/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelBookMuted/font_sizes/font_size = 16
+LabelBookPageTitle/base_type = &"Label"
+LabelBookPageTitle/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
+LabelBookPageTitle/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookPageTitle/constants/line_spacing = -13
+LabelBookPageTitle/font_sizes/font_size = 38
+LabelBookPageTitle/fonts/font = ExtResource("7_yatra")
 LabelBookPill/base_type = &"Label"
 LabelBookPill/colors/font_color = Color(0.957, 0.863, 0.749, 1)
 LabelBookPill/colors/font_shadow_color = Color(0, 0, 0, 0)
@@ -146,6 +253,32 @@ LabelBookPositive/base_type = &"Label"
 LabelBookPositive/colors/font_color = Color(0.243, 0.478, 0.227, 1)
 LabelBookPositive/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelBookPositive/font_sizes/font_size = 18
+LabelBookQuestName/base_type = &"Label"
+LabelBookQuestName/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
+LabelBookQuestName/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookQuestName/constants/line_spacing = -9
+LabelBookQuestName/font_sizes/font_size = 26
+LabelBookQuestName/fonts/font = ExtResource("7_yatra")
+LabelBookSeal/base_type = &"Label"
+LabelBookSeal/colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+LabelBookSeal/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookSeal/constants/line_spacing = 2
+LabelBookSeal/font_sizes/font_size = 13
+LabelBookSeal/fonts/font = SubResource("FontVariation_euljiro_spaced")
+LabelBookSeal/styles/normal = ExtResource("13_seal")
+LabelBookStep/base_type = &"Label"
+LabelBookStep/colors/font_color = Color(0.23137255, 0.16470589, 0.1254902, 1)
+LabelBookStep/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookStep/constants/line_spacing = 3
+LabelBookStep/font_sizes/font_size = 16
+LabelBookStep/fonts/font = ExtResource("6_euljiro")
+LabelBookTag/base_type = &"Label"
+LabelBookTag/colors/font_color = Color(0.2, 0.14901961, 0.101960786, 1)
+LabelBookTag/colors/font_shadow_color = Color(0, 0, 0, 0)
+LabelBookTag/constants/line_spacing = 2
+LabelBookTag/font_sizes/font_size = 13
+LabelBookTag/fonts/font = SubResource("FontVariation_euljiro_tag")
+LabelBookTag/styles/normal = ExtResource("12_paper_tag")
 LabelBookTitle/base_type = &"Label"
 LabelBookTitle/colors/font_color = Color(0.2, 0.149, 0.102, 1)
 LabelBookTitle/colors/font_shadow_color = Color(0, 0, 0, 0)
@@ -158,6 +291,8 @@ LabelBookValueLarge/base_type = &"Label"
 LabelBookValueLarge/colors/font_color = Color(0.545, 0.412, 0.078, 1)
 LabelBookValueLarge/colors/font_shadow_color = Color(0, 0, 0, 0)
 LabelBookValueLarge/font_sizes/font_size = 28
+PanelBookBare/base_type = &"PanelContainer"
+PanelBookBare/styles/panel = SubResource("StyleBoxEmpty_bare")
 PanelBookCard/base_type = &"PanelContainer"
 PanelBookCard/styles/panel = SubResource("StyleBoxTexture_card")
 PanelBookInset/base_type = &"PanelContainer"
@@ -174,3 +309,17 @@ PanelBookTile/base_type = &"PanelContainer"
 PanelBookTile/styles/panel = SubResource("StyleBoxTexture_tile")
 PanelBookTileSelected/base_type = &"PanelContainer"
 PanelBookTileSelected/styles/panel = SubResource("StyleBoxTexture_tile_selected")
+PanelPressed/base_type = &"PanelContainer"
+PanelPressed/styles/panel = ExtResource("8_pressed_panel")
+PanelPrinterMarks/base_type = &"Panel"
+PanelPrinterMarks/styles/panel = ExtResource("11_printer_marks")
+RichTextBookDetail/base_type = &"RichTextLabel"
+RichTextBookDetail/colors/default_color = Color(0.34509805, 0.25882354, 0.1882353, 1)
+RichTextBookDetail/constants/line_separation = 3
+RichTextBookDetail/font_sizes/normal_font_size = 15
+RichTextBookDetail/fonts/normal_font = ExtResource("6_euljiro")
+RichTextBookValue/base_type = &"RichTextLabel"
+RichTextBookValue/colors/default_color = Color(0.2, 0.14901961, 0.101960786, 1)
+RichTextBookValue/constants/line_separation = 5
+RichTextBookValue/font_sizes/normal_font_size = 18
+RichTextBookValue/fonts/normal_font = ExtResource("6_euljiro")

@@ -5,6 +5,11 @@ const TrashSlotScene := preload("res://scenes/inventory/inventory_view/equipment
 func before_each() -> void:
 	PersistenceManager.save_game_data.inventory = InventoryData.new()
 
+func after_each() -> void:
+	# The trash and the inventory view free the item visuals and page buttons
+	# they replace a frame late: let that frame pass so GUT counts no orphans.
+	await wait_process_frames(1)
+
 func test_first_drop_is_held_no_destroy() -> void:
 	var trash := TrashSlotScene.instantiate()
 	add_child_autofree(trash)

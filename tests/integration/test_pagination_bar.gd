@@ -2,6 +2,11 @@ extends GutTest
 
 const BarScene := preload("res://scenes/inventory/inventory_view/equipment_tab/pagination_bar/pagination_bar.tscn")
 
+func after_each() -> void:
+	# setup() frees the page buttons it replaces a frame late: let that frame
+	# pass so GUT counts no orphans.
+	await wait_process_frames(1)
+
 func _bar() -> PaginationBar:
 	var bar := BarScene.instantiate()
 	add_child_autofree(bar)
@@ -38,3 +43,9 @@ func test_has_trash_slot() -> void:
 	await get_tree().process_frame
 	assert_not_null(bar.trash_slot)
 	assert_true(bar.trash_slot is TrashSlot)
+
+func test_set_count_shows_bag_against_capacity() -> void:
+	var bar := _bar()
+	await get_tree().process_frame
+	bar.set_count(11, 72)
+	assert_eq((bar.get_node("%CountLabel") as Label).text, "11 / 72")

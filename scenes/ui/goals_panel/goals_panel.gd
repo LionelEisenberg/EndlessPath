@@ -124,10 +124,10 @@ func _update_quest() -> void:
 	if has_quest:
 		_quest_name_label.text = quest.quest_name
 		_quest_step_label.text = step.description
-		var condition: UnlockConditionData = _get_measured_condition(step)
-		_quest_figure.visible = condition != null
-		if condition != null:
-			_quest_figure_label.text = "%d / %d" % [floori(condition.get_current_value()), floori(condition.get_target_value())]
+		var figure: String = step.get_progress_text()
+		_quest_figure.visible = not figure.is_empty()
+		if _quest_figure.visible:
+			_quest_figure_label.text = figure
 		_fit_quest_name()
 	_fit_height()
 
@@ -172,21 +172,6 @@ func _fit_height() -> void:
 	var rows_height: float = ceilf(_rows.get_combined_minimum_size().y / 2.0) * 2.0
 	_rows.size = Vector2(_rows.size.x, rows_height)
 	size = Vector2(size.x, _rows.position.y + rows_height + BOTTOM_PADDING)
-
-#-----------------------------------------------------------------------------
-# PRIVATE
-#-----------------------------------------------------------------------------
-
-## The condition the step's figure measures: the first completion condition,
-## when the step completes on conditions alone (an event id takes precedence
-## in QuestManager) and every one of them is measurable. Null otherwise.
-func _get_measured_condition(step: QuestStepData) -> UnlockConditionData:
-	if not step.completion_event_id.is_empty() or step.completion_conditions.is_empty():
-		return null
-	for condition: UnlockConditionData in step.completion_conditions:
-		if condition == null or not condition.is_measurable():
-			return null
-	return step.completion_conditions[0]
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS

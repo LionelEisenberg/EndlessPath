@@ -1,8 +1,11 @@
 extends Control
 
 ## A side tab on a menu book's left edge: the inventory's categories and the
-## path book's stages. Slides out when opened. A locked tab shows a padlock,
-## dims its icon, explains itself in a tooltip and ignores clicks.
+## path book's stages. Slides out when opened, through the eight frames of its
+## strip. The icon keeps one size, 20 units (40 px), and steps on the same
+## frames, in whole units, to stay centred on the tab's face outside the page:
+## between the bracket of its outline and the page's edge. A locked tab shows a
+## padlock, dims its icon, explains itself in a tooltip and ignores clicks.
 
 @export var icon_texture: Texture2D
 @onready var icon: TextureRect = %Icon

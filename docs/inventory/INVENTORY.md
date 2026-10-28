@@ -12,14 +12,14 @@ The inventory holds what the player owns and what they have equipped:
 
 `InventoryManager` (autoload) owns every mutation and emits a single `inventory_changed` signal. The state lives in `InventoryData` inside the save file.
 
-The UI is a book (`InventoryView`), the red one of the four menu books that share `BookFrame` (see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)), with four tabs:
+The UI is a book (`InventoryView`), the red one of the four menu books that share `BookFrame` (see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#menu-books)). Its four tabs are pressed paper ([design](../superpowers/specs/2026-10-23-inventory-pressed-pages-design.md)): slots, panels and the gear figure are pressed into the page and the labels printed in ink, at screen resolution. Each tab's left page holds what the player has, and its right page what they use and the details of what they last pointed at:
 
-| Tab | Contents |
-|---|---|
-| Equipment | Paged grid, category filter, gear selector, trash hold-buffer |
-| Consumables | Stack list and a 4-slot combat hotbar |
-| Materials | Grid and a detail card |
-| Journal | Quest items |
+| Tab | Left page | Right page |
+|---|---|---|
+| Equipment | A 6 × 6 page of the bag, a category filter, the page slots and a discard slot | The gear figure with its six slots, and the item's details |
+| Consumables | The stacks, in a list | The four-slot hotbar, and the consumable's details |
+| Materials | A 6 × 6 page of stacks | The material's details and where it is gathered |
+| Journal | The quest items, in a list | The item's details and its quest |
 
 Items arrive from three sources: foraging loot tables, adventure encounter effects and quest completion effects. Equipped gear feeds attribute bonuses into `CharacterManager`. Quest items gate content through the `ITEM_OWNED` unlock condition.
 
@@ -31,40 +31,63 @@ Related docs:
 ## Player Experience
 
 1. **Open.** In the zone view, press `I` or click INVENTORY in the zone's SystemMenu. The book plays its open animation and lands on the Equipment tab. The inventory can't be opened from the adventure view.
-2. **Switch tabs.** Four tab buttons sit on the left edge: Equipment, Consumables, Materials and Journal. The page-turn animation plays forwards when you move to a later tab and backwards when you move to an earlier one.
-3. **Equipment tab — left page.**
-   - **Layout:** a category pill (`All` / `Weapons` / `Armor` / `Accessories`) sits above a 7-column × 6-row page of slots. Page buttons (`1`, `2`) and a trash slot run along the bottom.
-   - **Hover:** hovering or clicking a slot moves the animated selector ring there and shows the item in the description box on the right page.
+2. **Switch tabs.** Four tab buttons sit on the left edge: Equipment, Consumables, Materials and Journal. The page-turn animation plays forwards when you move to a later tab and backwards when you move to an earlier one. The tab in use stands out from the book's edge; as tabs slide in and out, each icon keeps its size and steps with its tab's frames, staying centred on the part outside the page.
+3. **Equipment tab — left page.** The Equipment tab is pressed into the paper: its slots, panel and gear figure are cut into the page, and its labels are printed in ink.
+   - **Layout:** the title "Equipment", the filter words (`ALL` / `WEAPONS` / `ARMOR` / `ACCESSORIES`) printed under it, then a 6 × 6 page of 72 px slots. A slot holding an item is pressed deep and an empty one shallow. The footer holds one small pressed slot per page, numbered, starting under the grid's first column and 4 px apart (the page shown pressed deep), the count of equipment in the bag against its capacity (`11 / 72`; worn gear isn't counted), and the discard slot.
+   - **Hover:** hovering or pressing a slot that holds an item shows it in the details on the right page and puts printer's marks (red corner marks) round the slot. Hovering an empty slot changes nothing, so the details keep the last item.
    - **Drag:** left-drag works in these ways:
      - between grid slots: move or swap
      - onto a matching gear slot: equip, and the slot's previous item goes back where the dragged item came from
      - from a gear slot onto the grid: unequip
      - between the two accessory slots: swap them
-     - hovering a page button mid-drag flips to that page
-   - **Right-click:** on a grid item, it equips. An accessory goes to the first free accessory slot, or to slot 0 if both are full. On an equipped item, it unequips to the first free grid slot.
-   - **Category pill:** changing it dims every non-matching slot (and every empty slot) to 30% opacity. Dimmed slots stay fully interactive.
-   - **Trash:** drop an item on the trash slot to hold it there; drag it back out to restore it. Dropping a second item destroys the held one permanently and logs "Discarded <name>". Closing the book returns any held item to the inventory.
-4. **Equipment tab — right page.** The "Gear Selector" portrait has six slots:
-   - left column: Head, Armor, Accessory 1
-   - right column: Main Hand, Off Hand, Accessory 2
+     - hovering a page slot mid-drag flips to that page
 
-   Each empty slot shows a per-slot outline sprite. The item description box sits below the portrait.
-5. **Consumables tab.**
-   - **Left page:** a list of owned stacks showing the icon, the name, and `xN` when N > 1. Click a row to show it in the description box.
-   - **Right page:** "Combat Hotbar", four slots with key chips `1`–`4`.
-     - Drag a row onto a slot to equip it. A consumable can sit in only one slot.
+     The item is held by its centre at full size. While dragging, printer's marks sit on the slot the item would land in: the slot under the cursor, or for an item taken out of the discard slot, the bag's first free slot when the one under the cursor is taken. A slot that would refuse the item, and the slot it came from, get none.
+   - **Right-click:** on a grid item, it equips. An accessory goes to the first free accessory slot, or to slot 0 if both are full. On an equipped item, it unequips to the first free grid slot.
+   - **Filter:** clicking a word filters the page. The word in use is printed in dark ink in a pressed lozenge, centred on the lozenge's floor. Every visit to the page starts on `ALL`. Items outside the filter are faded into the paper (an opaque fade, never transparency) in shallow slots, and stay draggable. Empty slots count as outside it.
+   - **Discard:** drop an item on the discard slot to hold it there; drag it back out to restore it. Empty, the discard slot is shallow with a printed ×; holding an item, it is deep and shows the item. Dropping a second item destroys the held one permanently and logs "Discarded <name>". Closing the book returns any held item to the inventory.
+4. **Equipment tab — right page.** The title "Gear", then the cultivator figure pressed into the page, with six gear slots round it mirrored to the figure:
+   - left column: Head, Main hand, Accessory 1
+   - right column: Body, Off hand, Accessory 2
+
+   Each slot's name is printed just above it, and an empty gear slot is a shallow slot. Dotted leaders run straight from the head, body and hand slots to the figure (level lines, the body's turning down onto the shoulder); the accessories have none. The details panel sits under the figure: the item in a deep slot beside its name and slot, its bonuses two to a row in body-size dark ink, worded as the tooltip words them (`+2 Strength`), and its description. It prints no hint. The panel has a fixed height laid out for the longest item, the Dreadbeast Tooth Necklace; shorter items flow up from the same gaps.
+
+   On opening, the details show the first item on the grid page, else the first worn piece (Head, Main hand, Accessory 1, Body, Off hand, Accessory 2); with neither, they hide. While the bag changes (foraging, a purchase), they and the marks stay on the item the player picked. When that item is discarded, they move to the first item.
+5. **Consumables tab.** Pressed into the paper like the Equipment tab.
+   - **Left page:** the title "Consumables", then the stacks in inventory order, one row every 80 px. Each row shows the item in a deep slot, its name, and what it does in muted ink under the name (`+20 Madra · 10 s cooldown`, the Madra amount in Madra ink). How many you have (`×7`) sits at the right. A pressed rule runs under every row but the last.
+     - Seven rows fit. With more, the list scrolls, and a pressed groove with an ink thumb appears beside it.
+     - A long name wraps and its row grows.
+     - With no consumables, the page prints "No consumables yet." and the details hide.
+   - **Right page:** the title "Hotbar", four slots with their keys `1`–`4` printed under them, a printed hint, then the details panel. A filled slot is pressed deep and shows its stack count on a paper tag; an empty one is shallow.
+     - Drag a row onto a slot to equip it. A consumable can sit in only one slot. The dragged item's icon follows the cursor at full size, and printer's marks sit round the slot under it.
      - Drag between slots to move or swap.
      - Click an equipped slot to clear it.
-     - Slots show the live stack count `xN`.
+   - **Details:** hovering or clicking a row, or hovering a filled hotbar slot, shows that consumable in the details and puts printer's marks round what you pointed at.
+     - The panel shows the item in a deep slot with its name centred beside it.
+     - Under them, a table of what it does (`RESTORES` → `+20 Madra`, `COOLDOWN` → `10 s`), then the description. There is no caption and no hint: the hotbar shows each slot's consumable, and its own line says how to fill one.
+     - It grows downward with long text.
+
+     On opening, the details show the first stack. While the stacks change (a purchase), they and the marks stay on the consumable you picked; when it is used up, they move to the first stack. When the hotbar slot you pointed at loses its consumable, the marks move to its row.
    - **In a fight** the hotbar's consumables are used with keys 1 to 4 or a click on the technique dock's sockets ([COMBAT.md](../combat/COMBAT.md#consumables-in-a-fight-combatconsumablemanager)). A consumable whose stack runs out stays on the hotbar at 0: `use_consumable()` erases the stack, not the hotbar slot.
    - **Current limits:** the Merchant's Crude Scales are the only consumables a player can get.
-6. **Materials tab.**
-   - **Left page:** a 6-column grid of stacks (`xN` when N > 1). "N kinds collected" and a trash slot sit above it. The sort pill shows a disabled `All`.
-   - **Right page:** clicking a material fills the detail card: name, `[Material]`, description, a "Source Zones" line, then the Source, Used in and Worth rows (`—` when `base_value` is 0). A static tip card sits underneath.
-7. **Journal tab** ("Items of consequence").
-   - Each row shows the icon, the name, the first 60 characters of the description, and a red seal dot.
-   - Clicking a row shows the journal card: icon, name, a drop-cap description, and a `From` row.
-   - When there are no quest items it shows "No quest items yet." and hides the card.
+6. **Materials tab.** Pressed into the paper like the Equipment tab.
+   - **Left page:** the title "Materials", then the same 6 × 6 page of 72 px slots as Equipment, in the same place. The row over the grid, where Equipment prints its filter, is empty. Each material sits in a deep slot, in inventory order, with its full count on a paper tag at the slot's bottom right (`×4600`); the rest of the page is shallow empty slots. There is no filter, no discard slot and no dragging.
+     - Past 36 kinds the page scrolls, and a pressed groove appears beside it.
+     - With nothing gathered, the page prints "Nothing gathered yet." where the grid would be, and the right page stays blank.
+   - **Right page:** the material's name as the title, then the details panel under its last line: the material in a deep slot beside `MATERIAL`, how many the player has, printed at the panel's top right (`4,600`, on `MATERIAL`'s baseline), its description, then where to find it: `FOUND IN` and the zones it is gathered in, one row each. Only zones whose sources the player can already see are listed; with none, the table is left out. The panel grows downward with long text.
+   - **Details:** hovering or clicking a slot shows its material and puts printer's marks round the slot. Hovering an empty slot changes nothing. On opening, the details show the first material. While the stacks change (a foraging roll every 5 s), they and the marks stay on the material the player picked, and its count follows its stack.
+7. **Journal tab.** Pressed into the paper like the Equipment tab.
+   - **Left page:** the title "Journal", the caption `QUEST ITEMS`, then the quest items in inventory order, one row every 80 px. Each row shows the item in a deep slot, its name, and in muted ink under it the name of the quest it belongs to. At the right sits a vermilion `DONE` seal once that quest is finished, or the step the player is on (`Step 2 of 3`) while it is under way. An item that belongs to no quest shows where it came from under its name, and nothing at the right. A pressed rule runs under every row but the last.
+     - Six rows fit. With more, the list scrolls, and a pressed groove appears beside it.
+     - A long name wraps and its row grows.
+     - With no quest items, the page prints "No quest items yet." and the right page stays blank.
+   - **Right page:** the item's name as the title, then two panels under its last line:
+     - the item's panel: the item in a deep slot beside `QUEST ITEM` and where it came from (`From Old Vesh, in the broken shrine`), the zone it belongs to, printed in capitals at the panel's top right (`SPIRIT VALLEY`, on `QUEST ITEM`'s baseline; left out when it names none), then its description;
+     - the quest's panel, which shows the quest the way the Goals board does: `QUEST`, with the `DONE` seal at its top right once the quest is finished, the quest's name, its description as flavour text, a pressed rule, then the steps reached so far in tick boxes. Finished steps are ticked. The current step is unticked, with its progress figure (`7 / 10`) at the right when it has one. Later steps are not shown. An item that belongs to no quest has no quest panel.
+
+     Both panels grow downward with long text.
+   - **The item's quest** is the started quest that needs it, else the started quest that gave it ([QUESTS.md](../progression/QUESTS.md#public-api)), so the page never names a quest the player has not met.
+   - **Details:** hovering or clicking a row shows its item and puts printer's marks round the row. On opening, the details show the first item. While the bag changes (foraging, a reward), they and the marks stay on the item the player picked; when it leaves the bag, they move to the first item.
 8. **Close.** Press `I` or `Escape`, click the close tab standing up from the top-right of the book, or click anywhere outside the book. The backdrop fades out while the book closes. On close, every trash slot flushes back into the inventory.
 
 ## Architecture
@@ -72,69 +95,137 @@ Related docs:
 ```
 MainView
   MainViewStateMachine/InventoryViewState        — inventory_view_state.gd (BookViewState: close on I/Escape/close tab/backdrop click)
-  InventoryView (Control, scale 2x)              — inventory_view.gd (MenuBookView; page_content = [BookContent])
-    BookFrame                                    — scenes/ui/book_frame/book_frame.tscn, style inventory_book_style.tres
+  InventoryView (Control, full screen, mouse ignored, theme book_theme.tres)
+                                                 — inventory_view.gd (MenuBookView; page_content = [BookContent, PageLayer])
+    BookLayer (centred, scale 2, mouse ignored)
+      BookFrame                                  — scenes/ui/book_frame/book_frame.tscn, style inventory_book_style.tres
                                                    (book art + open/close and page-turn animations, close tab, bookmark)
-    BookContent (Control, mouse ignored)         — shown only while the book lies open
-      TabSwitcher (mouse ignored)                — tab_switcher.gd: collects its child tab buttons, signal tab_changed(index)
-        EquipmentTabButton / ConsumablesTabButton / MaterialsTabButton / QuestItemsTabButton
+      BookContent (Control, mouse ignored)       — shown only while the book lies open
+        TabSwitcher (mouse ignored)              — tab_switcher.gd: collects its child tab buttons, signal tab_changed(index)
+          EquipmentTabButton / ConsumablesTabButton / MaterialsTabButton / QuestItemsTabButton
                                                  — tab_button.tscn/.gd (icon_texture export, "TabButtonAnimation", set_locked())
+    PageLayer (centred, screen pixels, mouse ignored) — shown only while the book lies open
       EquipmentTab                               — equipment_tab.tscn/.gd
       ConsumablesTab                             — consumables_tab.tscn/.gd
       MaterialsTab                               — materials_tab.tscn/.gd
       QuestItemsTab                              — quest_items_tab.tscn/.gd (the Journal)
 ```
 
-`InventoryView` turns pages through `BookFrame.turn_page()` and shows the new tab on `page_turned`. Once the book has closed, it flushes the trash slots.
+The book's art and side tabs are drawn at 2x on `BookLayer` and the pages at screen resolution on `PageLayer`, as in the other menu books, so the pages' text renders at its own size. Each tab covers the book, 1400 × 900 from screen (260, 90), the book's top-left, and ignores the mouse, so a click outside the book reaches the backdrop. Positions inside a tab are tab-local: screen − (260, 90).
+
+`InventoryView` calls the shown tab's `open_page()` before the book opens. A tab button turns the page through `BookFrame.turn_page()`; on `page_turned` the view calls the new tab's `open_page()`, then shows the tab. Once the book has closed, it flushes the trash slots.
 
 ### Equipment tab
 
 ```
-EquipmentTab (Control)                     — equipment_tab.gd: drag/drop, quick-equip, category filter, trash routing
-  EquipmentTabBanner (TabBanner)           — title "Equipment" (default)
-  SortSubBanner                            — 4 categories, enabled
-  EquipmentGrid (MarginContainer, @tool)   — equipment_grid.gd; instance overrides num_columns = 7
+EquipmentTab (Control, 1400×900, mouse ignored) — equipment_tab.gd: drag/drop, quick-equip, category filter,
+                                           trash routing, the shown item and the marks
+  LeftTitle (PageTitle)                    — "Equipment"
+  FilterWords (HBoxContainer)              — filter_words.gd: Word0–Word3, centred in the caption row
+  EquipmentGrid (MarginContainer, @tool)   — equipment_grid.gd; 6 × 6 slots of 72 px at a 76 px pitch
     GridContainer
       Slot1 … Slot48 (InventorySlot)       — persistent pool (SLOT_POOL_SIZE = 48); slots past num_rows × num_columns hidden
   PaginationBar (HBoxContainer)            — pagination_bar.gd
-    PageButtons (HBoxContainer)            — one page_button.tscn (TextureButton) per unlocked page, built in setup()
-    TrashSlot                              — trash_slot.gd (group "TrashSlots")
+    PageButtons (HBoxContainer)            — one page_button.tscn (TextureButton, 28×28) per unlocked page, 4 px apart, built in setup(); the first under the grid's first column
+    Spacer
+    CountLabel                             — "held / capacity", ending 16 px before the TrashSlot
+    TrashSlot                              — trash_slot.gd (group "TrashSlots"); Cross, the printed ×
+  RightTitle (PageTitle)                   — "Gear"
   GearSelector (Control)                   — gear_selector.gd
-    Top Signage/Title ("Gear Selector"), GearSelectorPortrait
-    VBoxContainer:  HeadGearSlot, ArmorGearSlot, Accessory1GearSlot (accessory_index 0)
-    VBoxContainer2: MainWeaponGearSlot, OffhandGearSlot, Accessory2GearSlot (accessory_index 1)
+    Plate (TextureRect)                    — gear_plate_ai.png: the pressed figure and its four straight dotted leaders
+    LeftColumn:  HeadGearSlot, MainWeaponGearSlot, Accessory1GearSlot (accessory_index 0)
+    RightColumn: ArmorGearSlot, OffhandGearSlot, Accessory2GearSlot (accessory_index 1)
                                            — gear_slot.gd (group "GearSlots")
-  SelectorSprite (Node2D, top_level, z 100) — animated hover ring ("start_select")
-  ItemDescriptionBox (TextureRect)         — item_description_box.gd
-    ItemDescriptionPanel                   — scenes/common/item_description_panel/
+    HeadLabel … Accessory2Label            — each slot's name, printed just above it (the columns start 20 px down, 102 px apart)
+  EquipmentDetails (PanelContainer, PanelPressed, 468×272) — equipment_details.gd
+    Content (Control)
+      Flow (VBoxContainer)                 — from the content's top
+        Header: IconWell (deep slot, Icon), NameColumn (NameInset 2 px, NameLabel, SlotBox 2 px in / SlotLabel 17 px)
+        BonusesBlock (16 px over) / Bonuses — one BonusRow (bonus_row.tscn/.gd) per two bonuses, 6 px apart
+        DescriptionBlock (19 px over) / Description
 ```
 
-### Consumables, Materials, Journal
+Every `InventorySlot`, `GearSlot` and `TrashSlot` holds a hidden `Marks` panel (`PanelPrinterMarks`), 6 px outside the slot.
+
+### Consumables tab
 
 ```
-ConsumablesTab (Control)                   — consumables_tab.gd
-  ConsumablesBanner (TabBanner)            — title "Consumables", title_font_size 38
-  ConsumablesSortSubBanner                 — "All", disabled
-  ConsumablesInventoryList (InventoryList) — ConsumableRow per stack (consumable_row.gd);
-                                             PreviewRow1-3 are editor placeholders cleared at runtime
-  ConsumablesHotbar (VBoxContainer)        — consumables_hotbar.gd ("Combat Hotbar" + lede)
-    SlotsRow: HotbarSlot ×4 (slot_index 0-3) — hotbar_slot.gd (extends DropTargetSlot)
-  ConsumablesItemDescriptionBox            — item_description_box.gd + ItemDescriptionPanel
+ConsumablesTab (Control, 1400×900, mouse ignored) — consumables_tab.gd: the list, the hotbar's routing,
+                                           the shown consumable and the marks
+  LeftTitle (PageTitle)                    — "Consumables"
+  ListFrame (Control, clips)               — the list's rect grown 8 px left and up and 10 px down, so the rows' marks show whole
+    ConsumablesInventoryList (InventoryList) — rows 428 wide, the rail 12 px after them; on this instance the
+                                             ScrollContainer doesn't clip (ListFrame does) and the rows sit 0 px apart
+      ConsumableRow per stack              — consumable_row.tscn/.gd (VBoxContainer):
+                                             Upper (Body ≥ 428×72: Well/Icon, Name over Effect, Count; RuleGap 4 px;
+                                             Marks round both), then Rule. The last row hides RuleGap and Rule
+  EmptyLabel                               — "No consumables yet."
+  RightTitle (PageTitle)                   — "Hotbar"
+  ConsumablesHotbar (VBoxContainer)        — consumables_hotbar.gd
+    SlotsRow: HotbarSlot ×4 (slot_index 0-3) — hotbar_slot.gd (extends DropTargetSlot): Well (deep or shallow slot),
+                                             Icon, Count (PaperTag, flush right, 2 px up), Marks
+    KeysRow: Key1–Key4                     — "1"–"4", printed under the slots
+  HintLine1, HintLine2                     — the printed hint
+  HintRule (HSeparatorPressed)
+  ConsumableDetails (PanelContainer, PanelPressed, grows downward) — consumable_details.gd
+    Flow
+      Header: IconWell (deep slot, Icon), NameColumn (centred: NameLabel, padded to an even height)
+      EffectsBlock / Effects               — one TableRow per effect, then the cooldown
+      DescriptionBlock / Description       — the panel ends 34 px under its last baseline
+```
 
-MaterialsTab (Control)                     — materials_tab.gd
-  MaterialsTabBanner (TextureRect)         — baked materials_tab/banner.png (not a TabBanner)
-  MaterialsSortSubBanner                   — "All", disabled
-  MaterialsGridToolbar (GridToolbar)       — CountLabel + TrashSlot
-  MaterialsInventoryGrid (InventoryGrid)   — MaterialSlot per stack (material_slot.gd)
-  MaterialDetailCard                       — material_detail_card.gd (extends ItemDetailCard)
-  MaterialTipCard                          — static text
+### Materials tab
 
-QuestItemsTab (Control)                    — quest_items_tab.gd
-  JournalBanner (TabBanner)                — title "Journal"
-  Subtitle                                 — "Items of consequence"
-  ListPane/ScrollContainer/ListVBox        — JournalRow per item (journal_row.gd + wax_seal.tscn)
+```
+MaterialsTab (Control, 1400×900, mouse ignored) — materials_tab.gd: the grid, the shown material and the marks
+  LeftTitle (PageTitle)                    — "Materials"
+  GridFrame (Control, clips)               — the grid's rect grown 6 px left, up and down and 14 px right (the
+                                             groove's room), so the slots' marks show whole
+    MaterialsInventoryGrid (InventoryGrid) — 6 columns of 72 px slots 4 px apart; on this instance the
+                                             ScrollContainer doesn't clip (GridFrame does)
+      MaterialSlot per material, then empty slots to the end of the page (or of the last row past it)
+                                           — material_slot.tscn/.gd (TextureRect, deep or shallow): Icon,
+                                             Count (PaperTag, 2 px in from the right, 4 up), Marks
+  EmptyLabel                               — "Nothing gathered yet."
+  RightPage (VBoxContainer)                — keeps the details under the title's last line
+    TitleBox / RightTitle (PageTitle)      — the material's name; TitleBox's 4 px left margin centres it on the spec's x 1244
+    MaterialDetails (PanelContainer, PanelPressed, grows downward) — material_details.gd
+      Flow
+        Header: IconWell (deep slot, Icon), InfoColumn (KindInset 11 px, KindBox 2 px in / KindLabel "MATERIAL")
+        DescriptionBlock / Description     — flows with its text
+        SourcesBlock / Sources             — one TableRow per zone, FOUND IN by the first; the block's top margin
+                                             is the gap over the table, hidden with it
+      TagLayer / CountLabel                — the count at the top right, on MATERIAL's baseline
+```
+
+### Journal
+
+```
+QuestItemsTab (Control, 1400×900, mouse ignored) — quest_items_tab.gd: the list, the shown item and the marks
+  LeftTitle (PageTitle)                    — "Journal"
+  CaptionLabel                             — "QUEST ITEMS", in the caption row
+  ListFrame (Control, clips)               — the list's rect grown 8 px left and up and 10 px down, so the rows' marks show whole
+    JournalList (InventoryList)            — rows 428 wide, the rail 12 px after them; on this instance the
+                                             ScrollContainer doesn't clip (ListFrame does) and the rows sit 0 px apart
+      JournalRow per quest item            — journal_row.tscn/.gd (VBoxContainer): Upper (Body ≥ 428×72: Well/Icon,
+                                             Name over SecondLine, SealBox/Seal or StepBox/StepLabel; RuleGap 4 px;
+                                             Marks round both), then Rule. The last row hides RuleGap and Rule
   EmptyLabel                               — "No quest items yet."
-  QuestJournalCard                         — quest_journal_card.gd
+  RightPage (VBoxContainer)                — keeps the details under the title's last line
+    TitleBox / RightTitle (PageTitle)      — the item's name; TitleBox's 4 px left margin centres it on the spec's x 1244
+    JournalDetails (VBoxContainer)         — journal_details.gd; its two panels 16 px apart, each PanelPressed and growing downward
+      ItemPanel
+        Flow
+          Header: IconWell (deep slot, Icon), InfoColumn (KindInset 10 px, KindBox 2 px in / KindLabel "QUEST ITEM", FromLabel)
+          DescriptionBlock / Description   — at full width
+        TagLayer / ZoneLabel               — the item's zone at the top right, on QUEST ITEM's baseline
+      QuestPanel                           — hidden for an item that belongs to no quest
+        Flow
+          Header (26 px)                   — QuestCaption "QUEST", Seal at the top right, 2 px over the content
+          QuestName
+          FlavorBlock / Flavor
+          StepsBlock / StepsColumn         — StepsRule, then Steps: one QuestStepRow (quest_step_row.tscn/.gd:
+                                             Tick, Text, FigureBlock / Figure) per step reached
 ```
 
 ### Shared components
@@ -144,16 +235,18 @@ QuestItemsTab (Control)                    — quest_items_tab.gd
 | `InventoryScrollHost` (base: `add_slot` / `clear_slots` / `get_slots`, binds ScrollRail) | `scenes/inventory/common/inventory_scroll_host.gd` |
 | `InventoryGrid` (GridContainer content, `columns` export, default 6) | `scenes/inventory/common/inventory_grid/` |
 | `InventoryList` (VBoxContainer content) | `scenes/inventory/common/inventory_list/` |
-| `ScrollRail` (custom grabber; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` |
+| `ScrollRail` (a pressed groove at the host's height; its 4 px ink thumb is as long as the share of the groove's floor the host shows, never shorter than its art, and follows every scroll, by wheel or from code, on even pixels; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` |
 | `SortSubBanner` (arrows + dots, `option_changed(index)`, `enabled`) | `scenes/inventory/common/sort_sub_banner/` |
-| `GridToolbar` (count label + TrashSlot) | `scenes/inventory/common/grid_toolbar/` |
 | `TabBanner` (`@tool`; `title`, `title_font_size` exports) | `scenes/inventory/common/tab_banner/` |
-| `ItemDetailCard` | `scenes/inventory/common/item_detail_card/` |
 | `ItemDescriptionPanel` | `scenes/common/item_description_panel/` |
 | `ItemDisplaySlot` (read-only icon + hover tooltip) | `scenes/common/item_display_slot/` |
-| `DropTargetSlot` (native drag-and-drop target, hover tint) | `scenes/common/drop_target_slot.gd` |
+| `DropTargetSlot` (native drag-and-drop target; `_set_drop_hover()` shows the drop highlight, a tint unless a slot overrides it) | `scenes/common/drop_target_slot.gd` |
 | `ItemInstance` (icon visual for an `ItemInstanceData`) | `scenes/inventory/item_instance/` |
-| `InventorySlot` → `GearSlot`, `TrashSlot` | `scenes/inventory/inventory_view/equipment_tab/` |
+| `InventorySlot` → `GearSlot`, `TrashSlot` (72 px pressed slot: `DEEP_TEXTURE` / `SHALLOW_TEXTURE`, `set_marked()`, `set_filtered_out()`) | `scenes/inventory/inventory_view/equipment_tab/` |
+| `PageTitle` (`@tool`; a pressed page's title with its ornament, `title` export) | `scenes/inventory/pressed/page_title/` |
+| `TableRow` (a row of a details panel's table: a caption in capitals, a BBCode value, a pressed rule; `setup()`, `set_rule_visible()`) | `scenes/inventory/pressed/table_row/` |
+| `ItemDragPreview` (the item's 64 px icon centred on the cursor during a native drag; `set_icon()`) | `scenes/inventory/pressed/item_drag_preview/` |
+| `PaperTag` (a count on a paper tag, `LabelBookTag`; `set_count()` prints it and rounds the tag's width up to even, so a tag anchored to a slot's right edge starts on an even x) | `scenes/inventory/pressed/paper_tag/` |
 
 ## Data Model
 
@@ -186,7 +279,7 @@ All of these live under `scripts/resource_definitions/items/`. Each subclass's `
 | `mini_icon` | `Texture2D` | null | 16 px icon the zone view draws inline (forage card detail line, Now strip). `get_mini_icon()` falls back to `icon` |
 | `item_type` | `ItemType` | `MATERIAL` | |
 | `stack_size` | `int` | 99 | Not enforced anywhere |
-| `base_value` | `float` | 0.0 | Shown as "Worth" for materials only; no economy reads it |
+| `base_value` | `float` | 0.0 | Not shown; no economy reads it |
 
 Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `ItemDefinitionData` also returns the type's name ("Material", "Consumable", "Equipment" or "Quest Item") and the tooltip lines (`Array[String]`), which each subclass overrides.
 
@@ -197,11 +290,12 @@ Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `Item
 | `EquipmentDefinitionData` | `slot_type` | `EquipmentSlot` | `MAIN_HAND` | |
 | | `attribute_bonuses` | `Dictionary` (AttributeType int → float) | `{}` | Tooltip: one `+N Attribute` line per non-zero bonus |
 | `MaterialDefinitionData` | `source_zone_ids` | `Array[String]` | `[]` | Tooltip line "Source Zones: <ids>" |
-| | `source_description` | `String` | `""` | Detail card "Source" |
-| | `used_in` | `String` | `""` | Detail card "Used in" (free text) |
+| | `source_description` | `String` | `""` | Not shown: the Materials page lists the activities that yield it (`MaterialSources`) |
+| | `used_in` | `String` | `""` | Free text. Not shown |
 | `ConsumableDefinitionData` | `effects` | `Array[EffectData]` | `[]` | `use()` calls `process()` on each, in order |
 | | `cooldown_seconds` | `float` | 0.0 | In a fight, each hotbar slot's `CombatConsumableInstance` enforces it, afresh every fight. Tooltip shows `EffectData.describe()` per effect plus "Cooldown: N.Ns" |
-| `QuestItemDefinitionData` | `from_source` | `String` | `""` | Journal "From" row |
+| `QuestItemDefinitionData` | `from_source` | `String` | `""` | The Journal's `From …` line, and the line under the name of an item that belongs to no quest |
+| | `zone_id` | `String` | `""` | The zone the item belongs to: the Journal prints its name on a tag at the item panel's top right. Empty, or a zone the game does not know, shows no tag |
 
 **ItemInstanceData**
 
@@ -276,8 +370,16 @@ Each entry rolls independently: `randf() <= drop_chance`, then `randi_range(min,
 The Equipment tab uses a manual drag system, not Godot's built-in drag-and-drop:
 
 - Slots forward `gui_input` as `clicked(slot, event)`.
-- `EquipmentTab._input()` moves the floating `ItemInstance` (re-parented to the tab, 28×28) and handles the button release.
+- `EquipmentTab._input()` moves the floating `ItemInstance` (re-parented to the tab, 72×72 at `z_index` 10, centred on the cursor) and handles the button release. It reads each motion event's own `global_position`.
 - The tab hit-tests visible grid slots first, then gear slots, then the trash slot.
+- While dragging, printer's marks sit on the slot a drop would fill. The tab decides each drop once, from the target under the cursor, and both the drop and the marks act on that decision:
+  - a gear slot is marked when its `is_valid_item()` passes;
+  - the trash slot is marked unless the item came out of it;
+  - a grid slot is marked for a bag item, and for a worn item only when it is free or holds an item that fits the worn item's gear slot (the check `unequip_item_to_slot()` makes);
+  - for an item out of the trash, the grid slot `restore_equipment_instance()` would fill is marked, when it is on the page shown: the hovered slot when it is free, else the bag's first free slot;
+  - the slot the item came from is never marked.
+
+  The drop clears the marks.
 - The global index is `current_page * slots_per_page() + slot.get_index()`. The origin index is captured at pickup, so flipping pages mid-drag is safe.
 
 | Drag | Result |
@@ -295,6 +397,14 @@ The Equipment tab uses a manual drag system, not Godot's built-in drag-and-drop:
 
 Right-click quick-equip ignores the trash slot: a held item is rescued only by dragging it out. `GearSlot.is_valid_item()` passes only `EquipmentDefinitionData` whose `slot_type` matches the gear slot. `GearSelector` logs an error if a singular slot type, or accessory index 0 or 1, has no gear slot.
 
+### Equipment details and marks
+
+- `EquipmentDetails.show_item(data)` prints an item and shows the panel; `clear()` hides it; `get_item()` returns the item shown. Bonuses come from `BookText.bonus_lines()` (`+2 Strength`, as the tooltip words them), two to a `BonusRow` (`BonusRow.setup(left, right)`, an empty `right` hiding the right half), and the slot caption from `BookText.slot_name()`.
+- The panel never grows. It is laid out to the spec's geometry for the longest real item, the Dreadbeast Tooth Necklace: the name's baselines at screen 654 and 688, the slot caption 26 px under the name's last line, the first bonus row's baseline at 752 with a pressed rule 8 px under each row's baseline, and the description from 798. Shorter items flow up from the same gaps. The header, the bonus rows and the gaps above them are even heights, so every rule lands on an even pixel.
+- `InventorySlot.set_marked()` shows a slot's printer's marks. The tab marks the slot that holds the item shown, and while dragging, the drop target. Picking an item up takes the marks off the slot it leaves.
+- `EquipmentTab.open_page()` selects `ALL` and applies it, refreshes the footer, then shows the first item on the grid page, else the first worn piece in the figure's order (`GearSelector.get_slots()`), else clears the details. `InventoryView` calls it on opening the book and on every page turn.
+- After every `inventory_changed` and every drop, the tab follows the item shown (deferred, once the slots have re-bound): it marks the visible slot holding it (none when it is on another page) and refreshes its hint. When the item is no longer in the bag or worn, which is how a discard ends, it runs `open_page()`, unless the player last pointed at it in the discard slot: then the details and the marks stay on it. Flipping to another page follows it too.
+
 ### Trash hold-buffer
 
 `TrashSlot` extends `InventorySlot`. `_held` holds either an `ItemInstanceData` (equipment) or a `[definition, quantity]` pair (materials).
@@ -305,44 +415,73 @@ Right-click quick-equip ignores the trash slot: a held item is rescued only by d
 | `get_held()`, `is_holding()`, `clear_hold()` | Accessors. `clear_hold()` also clears the visual |
 | `flush_to_inventory()` | Called by `InventoryView` on close for every node in the "TrashSlots" group. Restores the held value through InventoryManager, then calls `clear_hold()` so no icon is left behind |
 
-The Materials tab has a trash slot, but nothing is wired to it. The Consumables tab has no trash slot; that path was removed in f0e3e0a.
+Only the Equipment tab has a trash slot, so the `[definition, quantity]` path is reachable only from tests: materials can't be discarded, and the Consumables tab's trash path was removed in f0e3e0a.
 
 ### Pagination and category filter
 
 **Pagination**
-- `EquipmentGrid` keeps a fixed pool of 48 slots. It shows `num_rows × num_columns` of them, capped at the pool size. `num_rows` and `num_columns` are `@tool` knobs that default to `InventoryData.PAGE_ROWS` and `PAGE_COLUMNS`.
+- `EquipmentGrid` keeps a fixed pool of 48 slots. It shows `num_rows × num_columns` of them, capped at the pool size. `num_rows` and `num_columns` are `@tool` knobs that default to `InventoryData.PAGE_ROWS` and `PAGE_COLUMNS`, so a page shows exactly `SLOTS_PER_PAGE` slots. `row_separation` and `col_separation` default to 4.
 - `set_page(p)` clamps `p` to `[0, unlocked_equipment_pages - 1]` and re-binds the slot data. It never recreates the slots.
-- `PaginationBar.setup(unlocked_pages, active_page)` rebuilds the page buttons. `page_selected(index)` fires on click and `page_hovered(index)` on mouse-enter. The tab flips pages on hover only while a drag is in progress.
+- `PaginationBar.setup(unlocked_pages, active_page)` rebuilds the page buttons: shallow pressed slots, the active one pressed deep. `PaginationBar.set_count(held, capacity)` prints `"held / capacity"`; the tab passes `inventory.equipment.size()` and `equipment_capacity()`. `page_selected(index)` fires on click and `page_hovered(index)` on mouse-enter. The tab flips pages on hover only while a drag is in progress.
 
 **Category filter (Equipment only)**
-- `EquipmentTab` builds a list of `{label, match: Callable}` entries:
-  - All: everything
-  - Weapons: `MAIN_HAND`, `OFF_HAND`
-  - Armor: `HEAD`, `ARMOR`
-  - Accessories: `ACCESSORY`
-- `SortSubBanner.option_changed(index)` calls `EquipmentGrid.set_category_filter(match)`.
-- `EquipmentGrid` sets each slot's `modulate.a` to 1.0 or `DIM_ALPHA` (0.3). Empty slots count as non-matching. The dimming re-applies on every page flip and inventory change.
+- `EquipmentTab` builds a list of `{label, match: Callable}` entries, the labels printed as they are:
+  - `ALL`: everything
+  - `WEAPONS`: `MAIN_HAND`, `OFF_HAND`
+  - `ARMOR`: `HEAD`, `ARMOR`
+  - `ACCESSORIES`: `ACCESSORY`
+- `FilterWords.set_options(labels)` prints the words and selects the first without emitting. It gives each word an even width, and the last one 2 px more when needed, so the centred row and the pressed lozenge sit on the 2 px grid. A left press on another word calls `FilterWords.select(index)` (`LabelBookFilterOn` for it, `LabelBookFilter` for the rest) and emits `option_changed(index)`, which calls `EquipmentGrid.set_category_filter(match)`.
+- `EquipmentGrid` calls `InventorySlot.set_filtered_out()` on each slot. A left-out slot is shallow, and its icon's material is `assets/shaders/paper_fade_material.tres`: `paper_fade.gdshader` mixes each texel 70% towards the paper colour `#F7E6CA` and keeps its alpha. Empty slots count as non-matching. Nothing sets `modulate`. The fade re-applies on every page flip and inventory change.
 
 ### Consumable hotbar
 
 The hotbar uses Godot's built-in drag-and-drop:
 
-1. **Drag source.** `ConsumableRow._get_drag_data()` returns `{"consumable": def}`. `HotbarSlot._get_drag_data()` returns `{"consumable": def, "from_slot": i}`.
-2. **Drop.** `HotbarSlot` (a `DropTargetSlot`) accepts any dictionary with a `consumable` key and emits `consumable_dropped(def, slot_index, from_slot)`. `ConsumablesHotbar` re-emits the signal.
+1. **Drag source.** `ConsumableRow._get_drag_data()` returns `{"consumable": def}`. `HotbarSlot._get_drag_data()` returns `{"consumable": def, "from_slot": i}`. Both set an `ItemDragPreview` as the drag preview: the item's 64 px icon, centred on the cursor. The row itself stays as it is.
+2. **Drop.** `HotbarSlot` (a `DropTargetSlot`) accepts any dictionary with a `consumable` key and emits `consumable_dropped(def, slot_index, from_slot)`. `ConsumablesHotbar` re-emits the signal. While a payload it accepts hovers it, the slot shows its printer's marks: it overrides `DropTargetSlot._set_drop_hover()`, whose default tints the slot (the Abilities loadout keeps that tint), and never touches `modulate`.
 3. **Routing.** `ConsumablesTab` calls `swap_consumable_slots()` when `from_slot >= 0`, otherwise `equip_consumable()`.
 4. **Unequip.** Releasing the left button on an equipped slot without dragging calls `unequip_consumable()`.
+
+### Consumables details and marks
+
+- `ConsumableDetails.show_consumable(def)` prints a consumable and shows the panel; `clear()` hides it; `get_consumable()` returns the consumable shown. Showing the consumable already shown reprints nothing.
+- Its table holds one `TableRow` per effect, captioned by `BookText.effect_label()`, with the effect's `describe()` as the value: its decimal point set by `LacquerText.decimal_bbcode()`, then its Madra amounts in Madra ink by `BookText.color_madra()`. A `COOLDOWN` row with `BookText.seconds()` follows when the cooldown is above 0. A row's caption and value share a baseline, its pressed rule 8 px under it, clear of descenders.
+- The panel starts at the spec's (1008, 512) and grows downward with longer text, ending 34 px under the description's last baseline. The name is centred on the icon's slot, padded to an even height (`wrap_pad.tres`).
+- `ConsumableRow.set_marked()` and `HotbarSlot.set_marked()` show a row's or a slot's printer's marks. The tab marks what the player pointed at: a row, or a filled hotbar slot. A hotbar slot's marks also show while a dragged consumable hovers it, and a drag passing over the slot the details show leaves its marks in place.
+- A row's marks bracket its slot and its rule as the mockup draws them: (444, 292) to (886, 382) round the first row. The last row has no rule, so its marks end 6 px under its slot, inside the list's frame. `ConsumableRow.set_rule_visible()` hides the rule and the 4 px gap over it together.
+- `ConsumablesTab.open_page()` rebuilds the list, then shows the first stack, or hides the details when the pack is empty. `InventoryView` calls it on opening the book and on every page turn.
+- After every `inventory_changed` the tab rebuilds the list when the stacks changed, then follows the consumable shown. It keeps the marks on the hotbar slot pointed at while that slot still holds it, otherwise on its row. When the consumable has left the pack, the tab shows the first stack.
+
+### Materials details and marks
+
+- `MaterialDetails.show_material(def, amount)` prints a material and shows the panel; `clear()` hides it; `get_shown_material()` returns the material shown (`CanvasItem.get_material()` already takes the shorter name). Showing the material already shown only reprints how many the player has, through `BookText.thousands()`, on its `CountLabel` (`LabelBookInkDark`, in an overlay at the panel's top right).
+- Its table lists `MaterialSources.zone_names(material)`, each zone once in zone order, from `MaterialSources.find(material)` (`scripts/utils/material_sources.gd`): one `MaterialSources.Source` per loot entry whose item has the material's `item_id`, in each available `ForageActionData` with a loot table, in each zone of `ZoneManager.get_map_zones()` that is neither `LOCKED` nor `UNCHARTED`. A source holds `activity_name`, `zone_name`, `min_quantity`, `max_quantity` and `interval_seconds`, The page prints one `TableRow` per zone: `FOUND IN` beside the first, the others uncaptioned. Each value goes through `LacquerText.decimal_bbcode()`.
+- The panel is laid out to the mockup's Spirit Fern, which fills the spec's (1008, 300) to (1476, 646). The description flows, and the table keeps Spirit Fern's gap over it, 94 px from the description's last baseline to the table's first: a longer description pushes the table down, a shorter one pulls it up. The gap belongs to the table's block, so with no source both are left out and the panel ends under the description. A second source or a title that wraps moves the panel's foot down too.
+- `MaterialSlot.set_marked()` shows a slot's printer's marks, 6 px outside it. The tab marks the slot of the material shown.
+- `MaterialsTab.open_page()` clears the details, rebuilds the grid, then shows the first material, or hides the details and the title when nothing is gathered. Clearing first makes the details work out the sources again, so an activity unlocked since the page last showed is listed. `InventoryView` calls it on opening the book and on every page turn.
+- After every `inventory_changed` the tab rebuilds the grid when the stacks changed, then follows the material shown: the marks move to its new slot and its count follows its stack. When it has left the bag, the tab shows the first material.
+
+### Journal details and marks
+
+- `JournalDetails.show_item(item)` prints a quest item and its quest and shows the details; `clear()` hides them; `get_item()` returns the item shown. Every call reads the item's quest afresh: `QuestManager.get_quest_id_for_item()` ([QUESTS.md](../progression/QUESTS.md#public-api)), then the quest's state.
+- The item's zone is a `LabelBookCaps` label in an overlay over the item's panel, so it moves nothing in the panel's flow. It prints the zone's `zone_name` in capitals for a `zone_id` that `ZoneManager.has_zone()` knows, and hides otherwise. The description runs at the panel's full 434 px, 26 px a line.
+- The quest's panel prints one `QuestStepRow` per step reached (`setup(text, ticked, figure)`). A finished quest ticks every step, each reading `QuestStepData.get_progress_text(true)`, its target. An active one ticks the steps before the one the player is on, which is unticked and reads `get_progress_text()`. A step that measures nothing has no figure.
+- The panels are laid out to the mockup's Refugee Camp Map, which fills the spec's (1008, 300) to (1476, 496) and (1008, 512) to (1476, 776), and grow downward with longer text.
+- `JournalRow.setup(item, second_line, done, step_text)` prints a row: under the name, the quest's name, or the item's `from_source` when it belongs to no quest; at the right, the `DONE` seal when the quest is finished, else `Step k of n` for the step the player is on. `JournalRow.set_marked()` shows a row's printer's marks, which bracket its slot and its rule as a Consumables row's do; `set_rule_visible()` hides the last row's rule.
+- `QuestItemsTab.open_page()` rebuilds the list, reading each quest afresh, then shows the first item, or hides the details and the title when the journal is empty. `InventoryView` calls it on opening the book and on every page turn.
+- After every `inventory_changed` the tab rebuilds the list when the quest items changed, then follows the item shown, reprinting it; when it has left the bag, the tab shows the first item.
 
 ### Refresh on `inventory_changed`
 
 | Listener | Behaviour |
 |---|---|
-| `EquipmentGrid` | Re-clamps the page and re-binds the visible slots (slots persist) |
-| `EquipmentTab` | `PaginationBar.setup()` rebuilds the page buttons |
+| `EquipmentGrid` | Re-clamps the page and re-binds the visible slots (slots persist), re-applying the filter's fade |
+| `EquipmentTab` | `PaginationBar.setup()` rebuilds the page buttons and `set_count()` prints the count. The details and marks follow the item shown (see [Equipment details and marks](#equipment-details-and-marks)) |
 | `GearSelector` | Re-binds the six gear slots |
 | `ConsumablesHotbar` | Re-binds the four slots |
-| `ConsumablesTab` | Rebuilds the list only when `consumables.hash()` changed. The detail box resets to the first stack |
-| `MaterialsTab` | Full rebuild every time. The detail card resets to the first material |
-| `QuestItemsTab` | Full rebuild. Keeps the selection if the item is still owned |
+| `ConsumablesTab` | Rebuilds the list only when `consumables.hash()` changed. The details and marks follow the consumable shown (see [Consumables details and marks](#consumables-details-and-marks)) |
+| `MaterialsTab` | Rebuilds the grid only when `materials.hash()` changed. The details and marks follow the material shown (see [Materials details and marks](#materials-details-and-marks)) |
+| `QuestItemsTab` | Rebuilds the list only when `quest_items.hash()` changed. The details and marks follow the item shown (see [Journal details and marks](#journal-details-and-marks)) |
 
 ### Item flow
 
@@ -363,7 +502,7 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | CharacterManager | Sums `attribute_bonuses` from `equipped_gear` and `equipped_accessories`. This feeds every attribute getter and `get_total_attributes_data()` |
 | ActionManager (foraging) | Each time the forage timer finishes, rolls `ForageActionData.loot_table` and awards the result |
 | Adventure encounters | `AwardLootTableEffectData` / `AwardItemEffectData` in choice `success_effects`. `AdventureView` listens to `item_awarded` for the end-card loot (one entry per award call; quantity ignored) |
-| QuestManager | A quest's `completion_effects` can award items (`q_reach_core_density_10` → Refugee Camp Map) |
+| QuestManager | A quest's `completion_effects` can award items (`q_reach_core_density_10` → Refugee Camp Map). The Journal shows each quest item's quest from `get_quest_id_for_item()`, and its steps' figures from `QuestStepData.get_progress_text()` |
 | UnlockConditionData `ITEM_OWNED` (5) | Returns `InventoryManager.has_item(str(target_value))`. `comparison_op` is ignored. `AdventureEncounter.is_eligible()` evaluates it directly. `UnlockManager` does not listen to `inventory_changed` |
 | PersistenceManager | `InventoryData` is `SaveGameData.inventory`. InventoryManager re-grabs `live_save_data` on `save_data_reset`, and a reset creates a fresh `InventoryData` |
 | LogManager | Award messages and "Discarded <name>" |
@@ -395,7 +534,7 @@ These live in `resources/items/materials/`.
 | `SpiritFern` | Spirit Fern | "Spirit Valley — shaded hex" | "Reinforced Robes · Greenleaf Tonic" | Spring Forest Foraging, 2–6 per roll |
 | `DewdropTear` | Dewdrop Tear | "Glade pool, dawn only" | "Spirit Tea · Mirror Pill" | Spring Forest Foraging, 1–5 per roll |
 
-Both materials have `source_zone_ids = ["SpiritValley"]`, `base_value` 0, the placeholder icon `res://64.png`, the lacquer kit's mini icon (`lacquer_mini_fern_ai.png`, `lacquer_mini_dewdrop_ai.png`) as `mini_icon`, and placeholder descriptions ("Spirit Fern Description", "Dewdrop Tear Description"). Spring Forest Foraging unlocks on the event `q_fill_core_completed`, which fires when the quest "Awaken Your Core" completes.
+Both materials have `source_zone_ids = ["SpiritValley"]`, `base_value` 0, an agent-drawn placeholder icon at 64 px (`assets/sprites/items/materials/spirit_fern_ai.png`, `dewdrop_tear_ai.png`), the lacquer kit's mini icon (`lacquer_mini_fern_ai.png`, `lacquer_mini_dewdrop_ai.png`) as `mini_icon`, and the design mockup's placeholder descriptions. Spring Forest Foraging unlocks on the event `q_fill_core_completed`, which fires when the quest "Awaken Your Core" completes.
 
 ### Consumables
 
@@ -412,7 +551,7 @@ The two consumables also share the same description. The first scale was renamed
 
 | item_id | Name | from_source | Notes |
 |---|---|---|---|
-| `refugee_camp_map` | Refugee Camp Map | "Old Vesh, in the broken shrine" | `stack_size` 1, icon `res://64.png` |
+| `refugee_camp_map` | Refugee Camp Map | "Old Vesh, in the broken shrine" | `zone_id` `SpiritValley`, `stack_size` 1, an agent-drawn placeholder icon at 64 px (`assets/sprites/items/quest_items/refugee_camp_map_ai.png`) |
 
 The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your Core"); step 2 completes on the event `celestial_intervener_dialogue_4`. While the player owns the map and `merchant_discovered` has not fired, the Refugee Camp special encounter is eligible.
 
@@ -434,7 +573,7 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scripts/resource_definitions/items/equipment/equipment_definition_data.gd` | `EquipmentSlot`, `attribute_bonuses` |
 | `scripts/resource_definitions/items/material_definition_data.gd` | Material fields |
 | `scripts/resource_definitions/items/consumable_definition_data.gd` | Effects, cooldown, `use()` |
-| `scripts/resource_definitions/items/quest_item_definition_data.gd` | `from_source` |
+| `scripts/resource_definitions/items/quest_item_definition_data.gd` | `from_source`, `zone_id` |
 | `scripts/resource_definitions/items/item_instance_data.gd` | Equipment instance wrapper |
 | `scripts/resource_definitions/loot/loot_table.gd`, `loot_table_entries.gd` | Loot rolling |
 | `scripts/resource_definitions/effects/award_item_effect_data.gd`, `award_loot_table_effect_data.gd` | Effect-driven awards |
@@ -443,17 +582,21 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/inventory_view/inventory_view.gd` | Tab switching with the page turn, trash flush on close (`MenuBookView`) |
 | `scenes/ui/book_frame/` | The shared book (`BookFrame`) and the menu views' base (`MenuBookView`) |
 | `scenes/inventory/inventory_view/tab_switcher/tab_switcher.gd`, `tab_button.gd` | Tab buttons |
-| `scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd` | Equipment drag/drop, quick-equip, filter, trash routing |
-| `scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.gd` | Paged slot pool, dimming |
-| `scenes/inventory/inventory_view/equipment_tab/pagination_bar/pagination_bar.gd` | Page buttons + trash |
+| `scenes/inventory/inventory_view/equipment_tab/equipment_tab.gd` | Equipment drag/drop, quick-equip, filter, trash routing, the shown item and the marks |
+| `scenes/inventory/inventory_view/equipment_tab/equipment_grid/equipment_grid.gd` | Paged slot pool, the filter's fade |
+| `scenes/inventory/inventory_view/equipment_tab/pagination_bar/pagination_bar.gd` | Page buttons, count + trash |
+| `scenes/inventory/inventory_view/equipment_tab/filter_words/filter_words.gd` | The printed filter words |
+| `scenes/inventory/inventory_view/equipment_tab/equipment_details/equipment_details.gd`, `bonus_row.gd` | The details panel and its bonus rows |
 | `scenes/inventory/inventory_view/equipment_tab/gear_selector/gear_selector.gd`, `gear_slot.gd` | Gear slots and validation |
-| `scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.gd` | Base slot |
+| `scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.gd` | Base slot: pressed textures, marks, filtered state |
 | `scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.gd` | Hold-buffer |
-| `scenes/inventory/inventory_view/consumables_tab/` | `consumables_tab.gd`, `consumable_row.gd`, `consumables_hotbar/consumables_hotbar.gd`, `hotbar_slot/hotbar_slot.gd` |
-| `scenes/inventory/inventory_view/materials_tab/` | `materials_tab.gd`, `material_slot.gd`, `material_detail_card.gd` |
-| `scenes/inventory/inventory_view/quest_items_tab/` | `quest_items_tab.gd`, `journal_row.gd`, `quest_journal_card.gd` |
-| `scenes/inventory/inventory_view/item_description_box.gd` | Wrapper around ItemDescriptionPanel |
+| `assets/shaders/paper_fade.gdshader`, `paper_fade_material.tres` | The filter's opaque fade into the paper |
+| `scenes/inventory/inventory_view/consumables_tab/` | `consumables_tab.gd`, `consumable_row.gd`, `consumable_details/consumable_details.gd`, `consumables_hotbar/consumables_hotbar.gd`, `hotbar_slot/hotbar_slot.gd` |
+| `scenes/inventory/inventory_view/materials_tab/` | `materials_tab.gd`, `material_slot.gd`, `material_details/material_details.gd` |
+| `scripts/utils/material_sources.gd` | Where a material is gathered, and its zones (`MaterialSources`) |
+| `scenes/inventory/inventory_view/quest_items_tab/` | `quest_items_tab.gd`, `journal_row.gd`, `journal_details/journal_details.gd`, `quest_step_row/quest_step_row.gd` |
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
+| `scenes/inventory/pressed/` | The pressed pages' shared pieces: `PageTitle`, `TableRow`, `ItemDragPreview`, `PaperTag` |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
 
 Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
@@ -462,12 +605,6 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 ### Bugs
 
-- `[MEDIUM]` **The visible page size and the data page size disagree.**
-  - `equipment_tab.tscn` sets `EquipmentGrid.num_columns = 7`, so a page shows 42 slots. `InventoryData.SLOTS_PER_PAGE` is 36, so capacity is 72.
-  - Page 2 shows global indices 42–83. Awards fill only 0–71, then log "Equipment full (72/72)" while 12 slots still look empty.
-  - `move_equipment()` and `unequip_item_to_slot()` have no capacity check, so items can be parked at 72–83, past capacity.
-  - The grid tests use the bare `equipment_grid.tscn` (6 × 6), so they don't catch this.
-- `[MEDIUM]` **The Materials detail card snaps back to the first material** whenever the inventory changes. `MaterialsTab` re-creates every slot and calls `setup_from_definition(first_def)` on every `inventory_changed`, including each foraging roll (every 5 s) and every equipment move. `ConsumablesTab` resets its selection the same way whenever stacks change.
 - `[LOW]` **Equipment overflow is silently dropped.** With every slot full, `award_items()` only logs a warning, and `item_awarded` has already fired, so the adventure end card lists an item the player never received.
 - `[LOW]` **An item in the trash is already erased from `InventoryData`.** The SaveTimer autosave (every 5 s) persists that state, so quitting with the inventory open and an item in the trash loses the item.
 
@@ -476,18 +613,15 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 - `[HIGH]` **Consumables have no drop source.** The Merchant sells `crude_scale`, but no loot table or effect awards either scale, so the Merchant's Crude Scales are the only ones a player can use in a fight. `barely_coalesced_scale` has no source at all, and no icon.
 - `[MEDIUM]` **Gear has one source each.** The Merchant sells six pieces once per save, and the Shallow Woods loot only includes the necklace. Loot drops for the merchant gear are planned (Beat 5).
 - `[MEDIUM]` **There is no API to spend or remove items.** InventoryManager can't consume materials, take back quest items or sell equipment. The only removal path is the trash, which `EquipmentTab` implements by mutating `InventoryData` directly. Crafting (Elixir Making, Soulsmithing), merchant selling and quest hand-ins all need `remove_*` verbs. The redesign spec's `discard_*` methods were never built.
-- `[MEDIUM]` **The Materials tab's trash slot does nothing.** `MaterialsTab` has no drag source and never connects `trash_slot`. As a result, `TrashSlot`'s `[def, qty]` path and `restore_material()` are reachable only from tests.
 - `[LOW]` **`grant_equipment_page()` has no caller**, so every player stays at 2 pages (72 slots). The trigger was deferred by the pagination spec.
 - `[LOW]` **`stack_size` is never enforced.**
-- `[LOW]` **The Journal's "Linked quest" row and wax-seal state are still deferred.** `quest_item_definition_data.gd` and `journal_row.gd` defer them "until a QuestManager exists", and QuestManager is now an autoload. The seal is always the red "active" dot.
-- `[LOW]` **Materials and Consumables have no category data**, so their sort banners stay a single disabled "All".
 - `[LOW]` **`UnlockManager` never re-evaluates on `inventory_changed`.** An `ITEM_OWNED` condition in `unlock_condition_list.tres` would latch only when some other signal fires. The one current use, the refugee camp, is evaluated directly and is unaffected.
 
 ### Content
 
 - `[HIGH]` **The catalog is tiny:** 7 equipment items, 2 materials, 2 consumables and 1 quest item, all Foundation / Spirit Valley. There are no Copper-tier items, and only one equipment drop exists in play.
 - `[MEDIUM]` **`barely_coalesced_scale.tres` duplicates `crude_scale.tres`.** It has the same +20 Madra, 10 s cooldown, base value and description, and it has no icon, even though its commit calls it "weaker". Decide its values or delete it; there is no test for it.
-- `[MEDIUM]` **Placeholder art and text.** Both materials and the Refugee Camp Map use `res://64.png`, and the material descriptions are placeholders.
+- `[MEDIUM]` **Placeholder art and text.** The Refugee Camp Map's icon and the two materials' icons are agent-drawn placeholders, and the materials' descriptions are the design mockup's, until the user replaces them.
 - `[LOW]` **Material ids break the naming convention.** `SpiritFern` and `DewdropTear` are PascalCase while every other item id is snake_case. Bringing materials into ITEMS.md later would rename them.
 - `[LOW]` **Material lore doesn't match the game.** The `used_in` strings name recipes and items that don't exist (Spirit Tea, Mirror Pill, Greenleaf Tonic). Dewdrop Tear's source text doesn't match its real source, Spring Forest Foraging.
 - `[LOW]` **Test-named data files.** The two `test_loot_table_*.tres` files and `test_treasure_encounter.tres` are leftovers, even though the forage table is live. Rename, wire up or delete them.
@@ -495,23 +629,18 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 ### UI
 
-- `[MEDIUM]` **MaterialTipCard advertises a favorites feature that doesn't exist:** "Right-click a material to mark it as a favorite — favorites rise to the top of the grid…".
-- `[LOW]` **The Equipment tab shows no item count or capacity.** `PaginationBar`'s count label was dropped in 8d147eb.
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
-- `[LOW]` **Banners are inconsistent.** The Materials banner is a baked image rather than a `TabBanner`. The Journal reuses the red ribbon; the redesign's gold banner never landed.
-- `[LOW]` **Tab-button icons shrink** from 0.95 to 0.75 scale in `TabButtonAnimation`. This was reported as janky before the June icon swap (c33064c, c4d3b4e) and hasn't been re-checked (unverified).
+- `[LOW]` **The Journal reads quest progress when its page opens and when the quest items change.** A step reached while the book lies open shows the next time the page opens.
+- `[LOW]` **The tab icons are off the book's grid.** The 64 px tab icons show at 40 px, 1.25 screen px an art pixel, and the path book's 26 px stage icons at the same 40 px ([STYLE_GUIDE.md](../STYLE_GUIDE.md) K3: 16 art px redraws shown at 2x would put them on the grid).
 
 ### Tech Debt
 
 - `[MEDIUM]` **`EquipmentTab` mutates `InventoryData` directly** when it erases a trashed item, and emits `InventoryManager.inventory_changed` itself. Move this into an InventoryManager verb.
-- `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, right-click quick-equip (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
-- `[LOW]` **Two item-detail widgets exist.** `ItemDescriptionPanel` serves Equipment, Consumables and the end-card tooltip; `ItemDetailCard` serves only Materials. Their setup logic is duplicated, and `ItemDetailCard`'s doc comment wrongly says Consumables and the Journal use it.
-- `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop. The drag-preview code is duplicated in `ConsumableRow` and `HotbarSlot`.
-- `[LOW]` **Dead code:** `QuestJournalCard`'s `%Sub` label, which is always empty.
+- `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData` or the generator script, nor for two paths of right-click quick-equip: which accessory slot it fills, and taking a worn piece off.
+- `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop.
 - `[LOW]` **UI nodes built in code.** `SortSubBanner` creates its dot `TextureRect`s in code and frees the four authored `Dot0-3` nodes.
 - `[LOW]` **Coding-standard gaps:**
-  - `$MarginContainer/SlotBackground` in `gear_slot.gd` should use a `%` unique name
-  - untyped variables (for example `var inventory = get_inventory()` in `inventory_manager.gd`) and an untyped `func _input(event)` in `equipment_tab.gd`
+  - untyped variables (for example `var inventory = get_inventory()` in `inventory_manager.gd`)
   - no `##` docs on `get_inventory`, `get_material_items`, `award_items`, `unequip_item` and `move_equipment`
   - `ItemDefinitionData`'s type-name and tooltip-line getters start with `_` but are called from other classes
 - `[LOW]` **`GearSelector` finds its slots through the global "GearSlots" group**, so a second GearSelector in the tree would pick up both sets.

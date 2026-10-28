@@ -1,0 +1,78 @@
+[gd_scene format=3 uid="uid://c62ha8x1jnyn4"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/consumables_tab/consumable_details/consumable_details.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png" id="2_well"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="3_wrap_pad"]
+
+[node name="ConsumableDetails" type="PanelContainer"]
+offset_right = 468.0
+mouse_filter = 2
+theme_type_variation = &"PanelPressed"
+script = ExtResource("1_script")
+
+[node name="Flow" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="HBoxContainer" parent="Flow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="IconWell" type="TextureRect" parent="Flow/Header"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("2_well")
+
+[node name="Icon" type="TextureRect" parent="Flow/Header/IconWell"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 68.0
+offset_bottom = 68.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="NameColumn" type="VBoxContainer" parent="Flow/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="NameLabel" type="Label" parent="Flow/Header/NameColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(346, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookItemName"
+theme_override_styles/normal = ExtResource("3_wrap_pad")
+autowrap_mode = 3
+
+[node name="EffectsBlock" type="MarginContainer" parent="Flow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 25
+
+[node name="Effects" type="VBoxContainer" parent="Flow/EffectsBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="DescriptionBlock" type="MarginContainer" parent="Flow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 12
+
+[node name="Description" type="Label" parent="Flow/DescriptionBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(434, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookInk"
+autowrap_mode = 3

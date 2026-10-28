@@ -1,0 +1,104 @@
+[gd_scene format=3 uid="uid://b0vxsbounujhm"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/materials_tab/material_details/material_details.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png" id="2_well"]
+
+[node name="MaterialDetails" type="PanelContainer"]
+offset_right = 468.0
+mouse_filter = 2
+theme_type_variation = &"PanelPressed"
+script = ExtResource("1_script")
+
+[node name="Flow" type="VBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="HBoxContainer" parent="Flow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="IconWell" type="TextureRect" parent="Flow/Header"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("2_well")
+
+[node name="Icon" type="TextureRect" parent="Flow/Header/IconWell"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 68.0
+offset_bottom = 68.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="InfoColumn" type="VBoxContainer" parent="Flow/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="KindInset" type="Control" parent="Flow/Header/InfoColumn"]
+custom_minimum_size = Vector2(0, 11)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="KindBox" type="MarginContainer" parent="Flow/Header/InfoColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 2
+
+[node name="KindLabel" type="Label" parent="Flow/Header/InfoColumn/KindBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookCaps"
+text = "MATERIAL"
+
+[node name="DescriptionBlock" type="MarginContainer" parent="Flow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 33
+theme_override_constants/margin_right = 2
+
+[node name="Description" type="Label" parent="Flow/DescriptionBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(434, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookInk"
+autowrap_mode = 3
+
+[node name="SourcesBlock" type="MarginContainer" parent="Flow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 73
+theme_override_constants/margin_bottom = 2
+
+[node name="Sources" type="VBoxContainer" parent="Flow/SourcesBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 3
+
+[node name="TagLayer" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CountLabel" type="Label" parent="TagLayer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -162.0
+offset_top = 19.0
+offset_right = -2.0
+offset_bottom = 40.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_type_variation = &"LabelBookInkDark"
+text = "4,600"
+horizontal_alignment = 2
