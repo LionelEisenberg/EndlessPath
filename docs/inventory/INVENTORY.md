@@ -18,7 +18,7 @@ The UI is a book (`InventoryView`), the red one of the four menu books that shar
 |---|---|
 | Equipment | Paged grid, category filter, gear selector, trash hold-buffer |
 | Consumables | Stack list and a 4-slot combat hotbar |
-| Materials | Grid and a detail card |
+| Materials | A page of stacks, and where each is gathered |
 | Journal | Quest items |
 
 Items arrive from three sources: foraging loot tables, adventure encounter effects and quest completion effects. Equipped gear feeds attribute bonuses into `CharacterManager`. Quest items gate content through the `ITEM_OWNED` unlock condition.
@@ -69,9 +69,12 @@ Related docs:
 
      On opening, the details show the first stack. While the stacks change (a purchase), they and the marks stay on the consumable you picked; when it is used up, they move to the first stack. When the hotbar slot you pointed at loses its consumable, the marks move to its row.
    - **Current limits:** the Merchant's Crude Scale is the only consumable a player can get, and nothing on `main` reads the hotbar.
-6. **Materials tab.**
-   - **Left page:** a 6-column grid of stacks (`xN` when N > 1). "N kinds collected" and a trash slot sit above it. The sort pill shows a disabled `All`.
-   - **Right page:** clicking a material fills the detail card: name, `[Material]`, description, a "Source Zones" line, then the Source, Used in and Worth rows (`—` when `base_value` is 0). A static tip card sits underneath.
+6. **Materials tab.** Pressed into the paper like the Equipment tab.
+   - **Left page:** the title "Materials", the caption `N KINDS` (`1 KIND` for one), then the same 6 × 6 page of 72 px slots as Equipment. Each material sits in a deep slot, in inventory order, with its full count on a paper tag at the slot's bottom right (`×4600`); the rest of the page is shallow empty slots. There is no filter, no discard slot and no dragging.
+     - Past 36 kinds the page scrolls, and a pressed groove appears beside it.
+     - With nothing gathered, the page prints "Nothing gathered yet." where the grid would be, and the right page stays blank.
+   - **Right page:** the material's name as the title, then the details panel under its last line: the material in a deep slot beside `MATERIAL` and `You have 4,600`, its description, then a table of where it is gathered, one block per source: `GATHERED BY` (the activity), `IN` (its zone) and `YIELD` (`2–6 every 5 s`). Only sources the player can already see are listed; with none, the table is left out. The panel grows downward with long text.
+   - **Details:** hovering or clicking a slot shows its material and puts printer's marks round the slot. Hovering an empty slot changes nothing. On opening, the details show the first material. While the stacks change (a foraging roll every 5 s), they and the marks stay on the material the player picked, and its amount follows its stack.
 7. **Journal tab** ("Items of consequence").
    - Each row shows the icon, the name, the first 60 characters of the description, and a red seal dot.
    - Clicking a row shows the journal card: icon, name, a drop-cap description, and a `From` row.
@@ -160,17 +163,32 @@ ConsumablesTab (Control, 1400×900, mouse ignored) — consumables_tab.gd: the l
       HintBlock / HintLine / Hint          — the hint's line runs 3 px into the panel's bottom padding
 ```
 
-### Materials, Journal
+### Materials tab
 
 ```
-MaterialsTab (Control)                     — materials_tab.gd
-  MaterialsTabBanner (TextureRect)         — baked materials_tab/banner.png (not a TabBanner)
-  MaterialsSortSubBanner                   — "All", disabled
-  MaterialsGridToolbar (GridToolbar)       — CountLabel + TrashSlot
-  MaterialsInventoryGrid (InventoryGrid)   — MaterialSlot per stack (material_slot.gd)
-  MaterialDetailCard                       — material_detail_card.gd (extends ItemDetailCard)
-  MaterialTipCard                          — static text
+MaterialsTab (Control, 1400×900, mouse ignored) — materials_tab.gd: the grid, the shown material and the marks
+  LeftTitle (PageTitle)                    — "Materials"
+  KindsLabel                               — "N KINDS", in the caption row
+  GridFrame (Control, clips)               — the grid's rect grown 6 px left, up and down and 14 px right (the
+                                             groove's room), so the slots' marks show whole
+    MaterialsInventoryGrid (InventoryGrid) — 6 columns of 72 px slots 4 px apart; on this instance the
+                                             ScrollContainer doesn't clip (GridFrame does)
+      MaterialSlot per material, then empty slots to the end of the page (or of the last row past it)
+                                           — material_slot.tscn/.gd (TextureRect, deep or shallow): Icon,
+                                             Count (PaperTag, 2 px in from the right, 4 up), Marks
+  EmptyLabel                               — "Nothing gathered yet."
+  RightPage (VBoxContainer)                — keeps the details under the title's last line
+    RightTitle (PageTitle)                 — the material's name
+    MaterialDetails (PanelContainer, PanelPressed, grows downward) — material_details.gd
+      Flow
+        Header: IconWell (deep slot, Icon), InfoColumn (KindInset 11 px, KindLabel "MATERIAL", AmountLabel)
+        DescriptionBlock / Description     — room for four lines
+        SourcesBlock / Sources             — three TableRows per source
+```
 
+### Journal
+
+```
 QuestItemsTab (Control)                    — quest_items_tab.gd
   JournalBanner (TabBanner)                — title "Journal"
   Subtitle                                 — "Items of consequence"
@@ -188,9 +206,7 @@ QuestItemsTab (Control)                    — quest_items_tab.gd
 | `InventoryList` (VBoxContainer content) | `scenes/inventory/common/inventory_list/` |
 | `ScrollRail` (a pressed groove at the host's height; its 4 px ink thumb is as long as the share of the groove's floor the host shows, never shorter than its art, and follows every scroll, by wheel or from code, on even pixels; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` |
 | `SortSubBanner` (arrows + dots, `option_changed(index)`, `enabled`) | `scenes/inventory/common/sort_sub_banner/` |
-| `GridToolbar` (count label + TrashSlot) | `scenes/inventory/common/grid_toolbar/` |
 | `TabBanner` (`@tool`; `title`, `title_font_size` exports) | `scenes/inventory/common/tab_banner/` |
-| `ItemDetailCard` | `scenes/inventory/common/item_detail_card/` |
 | `ItemDescriptionPanel` | `scenes/common/item_description_panel/` |
 | `ItemDisplaySlot` (read-only icon + hover tooltip) | `scenes/common/item_display_slot/` |
 | `DropTargetSlot` (native drag-and-drop target; `_set_drop_hover()` shows the drop highlight, a tint unless a slot overrides it) | `scenes/common/drop_target_slot.gd` |
@@ -232,7 +248,7 @@ All of these live under `scripts/resource_definitions/items/`. Each subclass's `
 | `mini_icon` | `Texture2D` | null | 16 px icon the zone view draws inline (forage card detail line, Now strip). `get_mini_icon()` falls back to `icon` |
 | `item_type` | `ItemType` | `MATERIAL` | |
 | `stack_size` | `int` | 99 | Not enforced anywhere |
-| `base_value` | `float` | 0.0 | Shown as "Worth" for materials only; no economy reads it |
+| `base_value` | `float` | 0.0 | Not shown; no economy reads it |
 
 Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `ItemDefinitionData` also returns the type's name ("Material", "Consumable", "Equipment" or "Quest Item") and the tooltip lines (`Array[String]`), which each subclass overrides.
 
@@ -243,8 +259,8 @@ Methods: `get_mini_icon()` returns `mini_icon`, or `icon` when it is null. `Item
 | `EquipmentDefinitionData` | `slot_type` | `EquipmentSlot` | `MAIN_HAND` | |
 | | `attribute_bonuses` | `Dictionary` (AttributeType int → float) | `{}` | Tooltip: one `+N Attribute` line per non-zero bonus |
 | `MaterialDefinitionData` | `source_zone_ids` | `Array[String]` | `[]` | Tooltip line "Source Zones: <ids>" |
-| | `source_description` | `String` | `""` | Detail card "Source" |
-| | `used_in` | `String` | `""` | Detail card "Used in" (free text) |
+| | `source_description` | `String` | `""` | Not shown: the Materials page lists the activities that yield it (`MaterialSources`) |
+| | `used_in` | `String` | `""` | Free text. Not shown |
 | `ConsumableDefinitionData` | `effects` | `Array[EffectData]` | `[]` | `use()` calls `process()` on each, in order |
 | | `cooldown_seconds` | `float` | 0.0 | Metadata only on `main`. Tooltip shows `EffectData.describe()` per effect plus "Cooldown: N.Ns" |
 | `QuestItemDefinitionData` | `from_source` | `String` | `""` | Journal "From" row |
@@ -367,7 +383,7 @@ Right-click quick-equip ignores the trash slot: a held item is rescued only by d
 | `get_held()`, `is_holding()`, `clear_hold()` | Accessors. `clear_hold()` also clears the visual |
 | `flush_to_inventory()` | Called by `InventoryView` on close for every node in the "TrashSlots" group. Restores the held value through InventoryManager, then calls `clear_hold()` so no icon is left behind |
 
-The Materials tab has a trash slot, but nothing is wired to it. The Consumables tab has no trash slot; that path was removed in f0e3e0a.
+Only the Equipment tab has a trash slot, so the `[definition, quantity]` path is reachable only from tests: materials can't be discarded, and the Consumables tab's trash path was removed in f0e3e0a.
 
 ### Pagination and category filter
 
@@ -404,6 +420,15 @@ The hotbar uses Godot's built-in drag-and-drop:
 - `ConsumablesTab.open_page()` rebuilds the list, then shows the first stack, or hides the details when the pack is empty. `InventoryView` calls it on opening the book and on every page turn.
 - After every `inventory_changed` the tab rebuilds the list when the stacks changed, then follows the consumable shown. It reprints its hotbar slot, and keeps the marks on the hotbar slot pointed at while that slot still holds it, otherwise on its row. When the consumable has left the pack, the tab shows the first stack.
 
+### Materials details and marks
+
+- `MaterialDetails.show_material(def, amount)` prints a material and shows the panel; `clear()` hides it; `get_shown_material()` returns the material shown (`CanvasItem.get_material()` already takes the shorter name). Showing the material already shown only reprints how many the player has, through `BookText.thousands()`.
+- Its table comes from `MaterialSources.find(material)` (`scripts/utils/material_sources.gd`): one `MaterialSources.Source` per loot entry whose item has the material's `item_id`, in each available `ForageActionData` with a loot table, in each zone of `ZoneManager.get_map_zones()` that is neither `LOCKED` nor `UNCHARTED`. A source holds `activity_name`, `zone_name`, `min_quantity`, `max_quantity` and `interval_seconds`, and prints as three `TableRow`s: `GATHERED BY`, `IN`, and `YIELD` from `BookText.yield_text()`. Each value goes through `LacquerText.decimal_bbcode()`.
+- The panel is laid out to the mockup's Spirit Fern, which fills the spec's (1008, 300) to (1476, 646). The description keeps room for four lines, so the table holds still as the player points from one material to the next; a longer description, a second source or a title that wraps moves the panel's foot down.
+- `MaterialSlot.set_marked()` shows a slot's printer's marks, 6 px outside it. The tab marks the slot of the material shown.
+- `MaterialsTab.open_page()` clears the details, rebuilds the grid, then shows the first material, or hides the details and the title when nothing is gathered. Clearing first makes the details work out the sources again, so an activity unlocked since the page last showed is listed. `InventoryView` calls it on opening the book and on every page turn.
+- After every `inventory_changed` the tab rebuilds the grid when the stacks changed, then follows the material shown: the marks move to its new slot and its amount follows its stack. When it has left the bag, the tab shows the first material.
+
 ### Refresh on `inventory_changed`
 
 | Listener | Behaviour |
@@ -413,7 +438,7 @@ The hotbar uses Godot's built-in drag-and-drop:
 | `GearSelector` | Re-binds the six gear slots |
 | `ConsumablesHotbar` | Re-binds the four slots |
 | `ConsumablesTab` | Rebuilds the list only when `consumables.hash()` changed. The details and marks follow the consumable shown (see [Consumables details and marks](#consumables-details-and-marks)) |
-| `MaterialsTab` | Full rebuild every time. The detail card resets to the first material |
+| `MaterialsTab` | Rebuilds the grid only when `materials.hash()` changed. The details and marks follow the material shown (see [Materials details and marks](#materials-details-and-marks)) |
 | `QuestItemsTab` | Full rebuild. Keeps the selection if the item is still owned |
 
 ### Item flow
@@ -467,7 +492,7 @@ These live in `resources/items/materials/`.
 | `SpiritFern` | Spirit Fern | "Spirit Valley — shaded hex" | "Reinforced Robes · Greenleaf Tonic" | Spring Forest Foraging, 2–6 per roll |
 | `DewdropTear` | Dewdrop Tear | "Glade pool, dawn only" | "Spirit Tea · Mirror Pill" | Spring Forest Foraging, 1–5 per roll |
 
-Both materials have `source_zone_ids = ["SpiritValley"]`, `base_value` 0, the placeholder icon `res://64.png`, the lacquer kit's mini icon (`lacquer_mini_fern_ai.png`, `lacquer_mini_dewdrop_ai.png`) as `mini_icon`, and placeholder descriptions ("Spirit Fern Description", "Dewdrop Tear Description"). Spring Forest Foraging unlocks on the event `q_fill_core_completed`, which fires when the quest "Awaken Your Core" completes.
+Both materials have `source_zone_ids = ["SpiritValley"]`, `base_value` 0, an agent-drawn placeholder icon at 64 px (`assets/sprites/items/materials/spirit_fern_ai.png`, `dewdrop_tear_ai.png`), the lacquer kit's mini icon (`lacquer_mini_fern_ai.png`, `lacquer_mini_dewdrop_ai.png`) as `mini_icon`, and the design mockup's placeholder descriptions. Spring Forest Foraging unlocks on the event `q_fill_core_completed`, which fires when the quest "Awaken Your Core" completes.
 
 ### Consumables
 
@@ -525,7 +550,8 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.gd` | Hold-buffer |
 | `assets/shaders/paper_fade.gdshader`, `paper_fade_material.tres` | The filter's opaque fade into the paper |
 | `scenes/inventory/inventory_view/consumables_tab/` | `consumables_tab.gd`, `consumable_row.gd`, `consumable_details/consumable_details.gd`, `consumables_hotbar/consumables_hotbar.gd`, `hotbar_slot/hotbar_slot.gd` |
-| `scenes/inventory/inventory_view/materials_tab/` | `materials_tab.gd`, `material_slot.gd`, `material_detail_card.gd` |
+| `scenes/inventory/inventory_view/materials_tab/` | `materials_tab.gd`, `material_slot.gd`, `material_details/material_details.gd` |
+| `scripts/utils/material_sources.gd` | Where a material is gathered (`MaterialSources`) |
 | `scenes/inventory/inventory_view/quest_items_tab/` | `quest_items_tab.gd`, `journal_row.gd`, `quest_journal_card.gd` |
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
 | `scenes/inventory/pressed/` | The pressed pages' shared pieces: `PageTitle`, `TableRow`, `ItemDragPreview`, `PaperTag` |
@@ -537,7 +563,6 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 ### Bugs
 
-- `[MEDIUM]` **The Materials detail card snaps back to the first material** whenever the inventory changes. `MaterialsTab` re-creates every slot and calls `setup_from_definition(first_def)` on every `inventory_changed`, including each foraging roll (every 5 s) and every equipment move.
 - `[LOW]` **Equipment overflow is silently dropped.** With every slot full, `award_items()` only logs a warning, and `item_awarded` has already fired, so the adventure end card lists an item the player never received.
 - `[LOW]` **`use_consumable()` leaves an empty stack on the hotbar.** It erases the stack at zero but leaves the definition in `equipped_consumables`, so the hotbar would show `×0`. This is latent on `main` because nothing calls `use_consumable()`.
 - `[LOW]` **An item in the trash is already erased from `InventoryData`.** The SaveTimer autosave (every 5 s) persists that state, so quitting with the inventory open and an item in the trash loses the item.
@@ -547,18 +572,16 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 - `[HIGH]` **Consumables can't be used on `main`.** The Merchant sells `crude_scale`, but no loot table or effect awards either scale, and nothing calls `use_consumable()`. Combat use exists only on the unmerged branch `feat/infallible-chaum-58f8ad` (20 commits, 2026-06-01): `CombatConsumableManager` / `CombatConsumableInstance`, `ConsumableButton`, consumable hotkeys 1–4 and `get_consumable_count()`.
 - `[MEDIUM]` **Gear has one source each.** The Merchant sells six pieces once per save, and the Shallow Woods loot only includes the necklace. Loot drops for the merchant gear are planned (Beat 5).
 - `[MEDIUM]` **There is no API to spend or remove items.** InventoryManager can't consume materials, take back quest items or sell equipment. The only removal path is the trash, which `EquipmentTab` implements by mutating `InventoryData` directly. Crafting (Elixir Making, Soulsmithing), merchant selling and quest hand-ins all need `remove_*` verbs. The redesign spec's `discard_*` methods were never built.
-- `[MEDIUM]` **The Materials tab's trash slot does nothing.** `MaterialsTab` has no drag source and never connects `trash_slot`. As a result, `TrashSlot`'s `[def, qty]` path and `restore_material()` are reachable only from tests.
 - `[LOW]` **`grant_equipment_page()` has no caller**, so every player stays at 2 pages (72 slots). The trigger was deferred by the pagination spec.
 - `[LOW]` **`stack_size` is never enforced.**
 - `[LOW]` **The Journal's "Linked quest" row and wax-seal state are still deferred.** `quest_item_definition_data.gd` and `journal_row.gd` defer them "until a QuestManager exists", and QuestManager is now an autoload. The seal is always the red "active" dot.
-- `[LOW]` **Materials have no category data**, so the Materials sort banner stays a single disabled "All".
 - `[LOW]` **`UnlockManager` never re-evaluates on `inventory_changed`.** An `ITEM_OWNED` condition in `unlock_condition_list.tres` would latch only when some other signal fires. The one current use, the refugee camp, is evaluated directly and is unaffected.
 
 ### Content
 
 - `[HIGH]` **The catalog is tiny:** 7 equipment items, 2 materials, 2 consumables and 1 quest item, all Foundation / Spirit Valley. There are no Copper-tier items, and only one equipment drop exists in play.
 - `[MEDIUM]` **`barely_coalesced_scale.tres` duplicates `crude_scale.tres`.** It has the same +20 Madra, 10 s cooldown, base value and description, and it has no icon, even though its commit calls it "weaker". Decide its values or delete it; there is no test for it.
-- `[MEDIUM]` **Placeholder art and text.** Both materials and the Refugee Camp Map use `res://64.png`, and the material descriptions are placeholders.
+- `[MEDIUM]` **Placeholder art and text.** The Refugee Camp Map uses `res://64.png`. The two materials' icons are agent-drawn placeholders and their descriptions are the design mockup's, until the user replaces them.
 - `[LOW]` **Material ids break the naming convention.** `SpiritFern` and `DewdropTear` are PascalCase while every other item id is snake_case. Bringing materials into ITEMS.md later would rename them.
 - `[LOW]` **Material lore doesn't match the game.** The `used_in` strings name recipes and items that don't exist (Spirit Tea, Mirror Pill, Greenleaf Tonic). Dewdrop Tear's source text doesn't match its real source, Spring Forest Foraging.
 - `[LOW]` **Test-named data files.** The two `test_loot_table_*.tres` files and `test_treasure_encounter.tres` are leftovers, even though the forage table is live. Rename, wire up or delete them.
@@ -566,17 +589,15 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 ### UI
 
-- `[MEDIUM]` **MaterialTipCard advertises a favorites feature that doesn't exist:** "Right-click a material to mark it as a favorite — favorites rise to the top of the grid…".
 - `[LOW]` **The hotbar prints keys `1`–`4` under its slots**, but `main` has no consumable input actions.
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
-- `[LOW]` **Banners are inconsistent.** The Materials banner is a baked image rather than a `TabBanner`. The Journal reuses the red ribbon; the redesign's gold banner never landed.
+- `[LOW]` **The Journal reuses the red ribbon banner**; the redesign's gold banner never landed.
 - `[LOW]` **Tab-button icons shrink** from 0.95 to 0.75 scale in `TabButtonAnimation`. This was reported as janky before the June icon swap (c33064c, c4d3b4e) and hasn't been re-checked (unverified).
 
 ### Tech Debt
 
 - `[MEDIUM]` **`EquipmentTab` mutates `InventoryData` directly** when it erases a trashed item, and emits `InventoryManager.inventory_changed` itself. Move this into an InventoryManager verb.
-- `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, right-click quick-equip (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
-- `[LOW]` **Four item-detail widgets exist.** `EquipmentDetails` and `ConsumableDetails` serve their tabs, `ItemDescriptionPanel` serves the end-card tooltip, and `ItemDetailCard` serves only Materials. The last two duplicate their setup logic, and `ItemDetailCard`'s doc comment wrongly says Consumables and the Journal use it.
+- `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, right-click quick-equip (only its trash-slot guard is tested), `GearSelector` or the generator script.
 - `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop.
 - `[LOW]` **Dead code:** `QuestJournalCard`'s `%Sub` label, which is always empty.
 - `[LOW]` **UI nodes built in code.** `SortSubBanner` creates its dot `TextureRect`s in code and frees the four authored `Dot0-3` nodes.

@@ -50,7 +50,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 - **Item description panel** (light background): `LabelDescItemName` 32px black / `LabelDescItemType` 20px gray `#606060`
 - **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators (assigned in code by `ability_stats_display.gd`, which no screen shows now)
 - **Inventory chrome.** These labels set `scale = Vector2(0.5, 0.5)` to cancel the `InventoryView` root's 2x scale. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
-  - `LabelInventoryCount` 24px dark ink `#33261A` — `GridToolbar` count text ("8 / 60" etc.) on the parchment background
+  - `LabelInventoryCount` 24px dark ink `#33261A` — unused since the pressed Materials page dropped `GridToolbar`, whose count text it set
   - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All" etc.) on the dark pill background
   - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Journal" etc.)
   - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
@@ -145,7 +145,7 @@ The theme's other two new styleboxes are `StyleBoxEmpty` sub-resources inside `b
 ## RichTextLabel variants
 
 RichTextLabels **cannot** use Label-based variants (different base type). `pixel_theme.tres` has one RTL variant:
-- `RichTextLabelDark` — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`, `ItemDetailCard`, `QuestJournalCard`)
+- `RichTextLabelDark` — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`, `QuestJournalCard`)
 
 `book_theme.tres` has two more for the pressed pages, `RichTextBookDetail` and `RichTextBookValue` (see [Menu book pages](#menu-book-pages)).
 
@@ -154,7 +154,7 @@ For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_siz
 ## HSeparator variants
 
 - Base `HSeparator` (no variant) — 2px copper `#C4884A` line, inset 8px at each end.
-- `HSeparatorItemDesc` — 2px parchment `#E9CEAD`, no inset, separation 12. Top separator under the item type in `ItemDescriptionPanel`, `ItemDetailCard`, `QuestJournalCard`.
+- `HSeparatorItemDesc` — 2px parchment `#E9CEAD`, no inset, separation 12. Top separator under the item type in `ItemDescriptionPanel` and `QuestJournalCard`.
 - `HSeparatorItemDescThin` — 1px parchment `#E9CEAD`, inset 100px at each end, separation 10. Separates the description from the effects in the same panels.
 - `HSeparatorResourcePanel` — 2px gold `#D4A84A` at 60% alpha, no inset. Unused since the lacquer cultivator cabinet replaced the zone view's old resource panel, whose orbs it divided.
 
