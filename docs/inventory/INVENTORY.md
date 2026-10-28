@@ -140,7 +140,7 @@ EquipmentTab (Control, 1400×900, mouse ignored) — equipment_tab.gd: drag/drop
   EquipmentDetails (PanelContainer, PanelPressed, 468×272) — equipment_details.gd
     Content (Control)
       Flow (VBoxContainer)                 — from the content's top
-        Header: IconWell (deep slot, Icon), NameColumn (NameInset 2 px, NameLabel, SlotLabel 17 px)
+        Header: IconWell (deep slot, Icon), NameColumn (NameInset 2 px, NameLabel, SlotBox 2 px in / SlotLabel 17 px)
         BonusesBlock (16 px over) / Bonuses — one BonusRow (bonus_row.tscn/.gd) per two bonuses, 6 px apart
         DescriptionBlock (19 px over) / Description
       Hint                                 — pinned to the panel's foot, baseline 866 on screen
@@ -170,7 +170,7 @@ ConsumablesTab (Control, 1400×900, mouse ignored) — consumables_tab.gd: the l
   HintRule (HSeparatorPressed)
   ConsumableDetails (PanelContainer, PanelPressed, grows downward) — consumable_details.gd
     Flow
-      Header: IconWell (deep slot, Icon), NameColumn (NameInset 10 px, NameLabel, KindLabel)
+      Header: IconWell (deep slot, Icon), NameColumn (NameInset 10 px, NameLabel, KindBox 2 px in / KindLabel)
       EffectsBlock / Effects               — one TableRow per effect, then the cooldown
       DescriptionBlock / Description
       HintBlock / HintLine / Hint          — the hint's line runs 3 px into the panel's bottom padding
@@ -194,7 +194,7 @@ MaterialsTab (Control, 1400×900, mouse ignored) — materials_tab.gd: the grid,
     TitleBox / RightTitle (PageTitle)      — the material's name; TitleBox's 4 px left margin centres it on the spec's x 1244
     MaterialDetails (PanelContainer, PanelPressed, grows downward) — material_details.gd
       Flow
-        Header: IconWell (deep slot, Icon), InfoColumn (KindInset 11 px, KindLabel "MATERIAL", AmountLabel)
+        Header: IconWell (deep slot, Icon), InfoColumn (KindInset 11 px, KindBox 2 px in / KindLabel "MATERIAL", AmountLabel)
         DescriptionBlock / Description     — flows with its text
         SourcesBlock / Sources             — three TableRows per source; the block's top margin is the gap over
                                              the table, hidden with it
@@ -218,7 +218,7 @@ QuestItemsTab (Control, 1400×900, mouse ignored) — quest_items_tab.gd: the li
     JournalDetails (VBoxContainer)         — journal_details.gd; its two panels 16 px apart, each PanelPressed and growing downward
       ItemPanel
         Flow
-          Header: IconWell (deep slot, Icon), InfoColumn (KindInset 10 px, KindLabel "QUEST ITEM", FromLabel)
+          Header: IconWell (deep slot, Icon), InfoColumn (KindInset 10 px, KindBox 2 px in / KindLabel "QUEST ITEM", FromLabel)
           DescriptionBlock / Description   — CapRow (CapBox / DropCap, NarrowText), then RestText at full width
       QuestPanel                           — hidden for an item that belongs to no quest
         Flow

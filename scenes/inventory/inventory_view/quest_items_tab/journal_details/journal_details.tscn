@@ -53,7 +53,12 @@ custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="KindLabel" type="Label" parent="ItemPanel/Flow/Header/InfoColumn"]
+[node name="KindBox" type="MarginContainer" parent="ItemPanel/Flow/Header/InfoColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 2
+
+[node name="KindLabel" type="Label" parent="ItemPanel/Flow/Header/InfoColumn/KindBox"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelBookCaps"

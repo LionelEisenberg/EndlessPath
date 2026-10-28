@@ -493,6 +493,7 @@ func test_details_lay_the_crude_scale_out_as_the_mockup_does() -> void:   # Ruli
 	assert_eq(name_label.get_global_rect().position.x, 1112.0)
 	assert_eq(_baseline(name_label), 568.0, "the name")
 	assert_eq(_baseline(details.get_node("%KindLabel") as Label), 594.0, "CONSUMABLE · IN SLOT 1, 26 px under it")
+	assert_eq((details.get_node("%KindLabel") as Control).get_global_rect().position.x, 1114.0, "2 px in, at the mockup's x 1114 (Ruling R22)")
 	var rows: Array[TableRow] = _table_rows(tab)
 	for index: int in rows.size():
 		var baseline: float = 640.0 + 30.0 * index

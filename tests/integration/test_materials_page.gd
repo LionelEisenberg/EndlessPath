@@ -398,7 +398,7 @@ func test_details_lay_spirit_fern_out_as_the_mockup_does() -> void:   # Ruling R
 	assert_eq(details.get_global_rect(), Rect2(1008, 300, 468, 346), "spec: (1008, 300) to (1476, 646)")
 	assert_eq((details.get_node("%Icon").get_parent() as Control).get_global_rect(), Rect2(1024, 316, 72, 72), "the deep slot")
 	var kind: Label = details.get_node("%KindLabel") as Label
-	assert_eq(kind.get_global_rect().position.x, 1112.0)
+	assert_eq(kind.get_global_rect().position.x, 1114.0, "MATERIAL 2 px in, its ink at the mockup's x 1114 (Ruling R22)")
 	assert_eq(_baseline(kind), 350.0, "MATERIAL")
 	var amount: Label = details.get_node("%AmountLabel") as Label
 	assert_eq(amount.get_global_rect().position.x, 1112.0)

@@ -1224,7 +1224,7 @@ The build departed from this plan where a ruling during the build decided it (th
 
 **Materials (Task 7)**
 - R21: The description flows with no reserved height, and the source table keeps a fixed gap over it sized from Spirit Fern; with no source the table hides with its gap.
-- `MaterialDetails.get_shown_material()` (the engine already takes `get_material()`), the mockup's tag inset, shallow empty slots, `1 KIND`, marks 6 px outside a slot, `MATERIAL` at x 1112, the rail past 36 kinds and a right title hidden on an empty page, each following the spec, the mockup or a sibling tab.
+- `MaterialDetails.get_shown_material()` (the engine already takes `get_material()`), the mockup's tag inset, shallow empty slots, `1 KIND`, marks 6 px outside a slot, the rail past 36 kinds and a right title hidden on an empty page, each following the spec, the mockup or a sibling tab.
 
 **Journal (Task 8)**
 - The step figures use `LabelBookStep`, the quest's header is positioned, a wide drop cap narrows the column beside it, the six-row list shows the top of a seventh (R15's trade-off), and a quest's progress is read when the page opens, each following the mockup or R15.
@@ -1236,3 +1236,4 @@ The build departed from this plan where a ruling during the build decided it (th
 - The footer's PAGE ends at x 536 and the page slots start at 556, as the mockup prints them, where the plan began them at the page's left edge.
 - A bonus row's rule sits 8 px under its baseline, as the mockup and the other tabs' tables rule it.
 - The hotbar hint's rule runs from x 1012 to 1474, as the mockup draws it, not across the plan's 468 px.
+- R22 (replacing Task 7's `MATERIAL` at x 1112): The capitals caption in each details panel (`ACCESSORY`, `CONSUMABLE`, `MATERIAL`, `QUEST ITEM`) starts 2 px in, its ink at x 1114 under the name's, where the mockups print it: the spec gives the name's x and no caption x, so the mockup decides (R17).

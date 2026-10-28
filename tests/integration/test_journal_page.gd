@@ -372,7 +372,7 @@ func test_the_items_panel_lays_the_map_out_as_the_mockup_does() -> void:   # Rul
 	assert_eq((_detail(tab, "Icon").get_parent() as Control).get_global_rect(), Rect2(1024, 316, 72, 72), "the deep slot")
 	assert_eq((_detail(tab, "Icon") as Control).get_global_rect(), Rect2(1028, 320, 64, 64))
 	var kind: Label = _detail(tab, "KindLabel") as Label
-	assert_eq(kind.get_global_rect().position.x, 1112.0)
+	assert_eq(kind.get_global_rect().position.x, 1114.0, "QUEST ITEM 2 px in, its ink at the mockup's x 1114 (Ruling R22)")
 	assert_eq(_baseline(kind), 350.0, "QUEST ITEM")
 	var from: Label = _detail(tab, "FromLabel") as Label
 	assert_eq(from.get_global_rect().position.x, 1112.0)

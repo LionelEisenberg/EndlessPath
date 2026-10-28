@@ -507,6 +507,7 @@ func test_details_lay_the_longest_item_out_as_the_spec_does() -> void:   # Rulin
 	assert_eq(_baseline(name_label), 654.0, "the name's first line")
 	assert_eq(_baseline(name_label, name_label.text.find("Necklace")), 688.0, "and its second")
 	assert_eq(_baseline(details.get_node("%SlotLabel") as Label), 714.0, "the slot, 26 px under the name's last line")
+	assert_eq((details.get_node("%SlotLabel") as Control).get_global_rect().position.x, 1114.0, "2 px in, its ink under the name's at the mockup's x 1114 (Ruling R22)")
 	assert_eq(_baseline(row.get_node("%LeftValue") as Label), 752.0, "the first bonus row")
 	assert_eq(_baseline(row.get_node("%LeftName") as Label), 752.0, "its attribute on the same line")
 	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 760.0, "the pressed rule 8 px under it, as the mockup rules it")
