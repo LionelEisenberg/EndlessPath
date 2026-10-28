@@ -28,6 +28,7 @@ func handle_input(_event: InputEvent) -> void:
 	pass
 
 func _on_start_adventure(_data: AdventureActionData, _madra_budget: float = 0.0) -> void:
+	_play_dissolve()
 	scene_root.change_state(scene_root.adventure_view_state)
 
 func _on_stop_adventure() -> void:
@@ -44,5 +45,12 @@ func _on_adventure_completed(result_data: AdventureResultData) -> void:
 		scene_root.adventure_end_card.return_requested.connect(_on_end_card_return, CONNECT_ONE_SHOT)
 
 func _on_end_card_return() -> void:
+	_play_dissolve()
 	scene_root.pop_state() # Remove end card overlay
 	scene_root.change_state(scene_root.zone_view_state) # Return to zone
+
+## The zone view and the adventure give way to each other through the dither
+## dissolve: a still of the view going out, over the one coming in.
+func _play_dissolve() -> void:
+	if scene_root.view_dissolve:
+		scene_root.view_dissolve.play()

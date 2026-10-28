@@ -52,13 +52,14 @@ MainGame (Node2D)                          main_game.gd: Ctrl+Shift+D dev hotkey
 │   ├── MerchantView            z 3        merchant_view.tscn (z, visible=false and the Spirit Valley theme set on the scene root)
 │   ├── CyclingView             z 3        cycling_view.tscn (the board in the map gap; no backdrop)
 │   ├── TribulationView         z 3        tribulation_view.tscn (the board in the map gap; no backdrop; hidden by default)
+│   ├── ViewDissolve            z 9        view_dissolve.tscn (full-rect still of the old view, hidden by default)
 │   └── DevPanel                z 10       dev_panel.tscn, hidden, top-left 340x400
 └── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.save_data()
 ```
 
 The cabinet, the chest, the dock, the log and the Goals board take their places from their own scenes' roots. Their instances in `main_game.tscn` are in Anchors layout mode with top-left anchors. Don't switch them to Position mode: setting Position mode snaps a control to its parent's top-left corner, and an editor save drops the offsets that used to put it back, so every panel lands at (0, 0). `test_main_game_layout.gd` checks the places, also after an editor save. The adventure's vitals cabinet, chest and technique dock are instanced the same way in `adventure_view.tscn`, for the same reason (`test_adventure_view_layout.gd`).
 
-Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under the GreyBackground (z 2), so the backdrop of the end card and of the menu books dims them; the merchant shop and the Tribulation hide them outright, and cycling, which has no backdrop, leaves them as they are (see [HUD boards](#hud-boards)). QuestToast and the dev tools (z 10) draw above every modal.
+Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under the GreyBackground (z 2), so the backdrop of the end card and of the menu books dims them; the merchant shop and the Tribulation hide them outright, and cycling, which has no backdrop, leaves them as they are (see [HUD boards](#hud-boards)). QuestToast and the dev tools (z 10) draw above every modal. `ViewDissolve` (z 9) draws over every view while it dissolves one into the next, under the toast and the dev tools.
 
 ### HUD placement
 
@@ -113,7 +114,7 @@ The log and the Goals board belong to `MainView` because both base views show th
 | State | Kind | `enter()` | `exit()` | Input handled | Leaves via |
 |-------|------|-----------|----------|---------------|------------|
 | `ZoneViewState` | Base (initial) | Shows `ZoneView`. Places the Goals board and the log. Removes the input blocker. Finds `ZoneTransition` and calls `reset_camera()` to undo the adventure zoom. | Removes the input blocker. Hides `ZoneView`. | `open_inventory` → push Inventory; `open_path` → push PathTree; `open_abilities` → push Abilities; `open_character` → push Character. Ignored while the input blocker exists. | `start_adventure` (handled by `AdventureViewState`) |
-| `AdventureViewState` | Base | Shows `AdventureView`. Connects `AdventureView.adventure_completed`. The log and the Goals board stay where they are. | Hides `AdventureView` and disconnects. | None | End card return → `change_state(zone)` |
+| `AdventureViewState` | Base | Shows `AdventureView`. Connects `AdventureView.adventure_completed`. The log and the Goals board stay where they are. | Hides `AdventureView` and disconnects. | None | End card return → `change_state(zone)`. Both ways in and out play `ViewDissolve` first. |
 | `AdventureEndCardState` | Overlay on Adventure | Shows GreyBackground. `AdventureViewState` then calls `show_results()`. | Hides `AdventureEndCard` and GreyBackground. | None (the card's own Return button) | Popped by `AdventureViewState` |
 | `InventoryViewState` | Overlay (`BookViewState`) | Connects the book's close tab and the backdrop click, then `grey_background.show_with_panel(inventory_view)`. The HUD boards stay under the backdrop; the full log is closed and blocked | Disconnects the close tab and the backdrop click (the view is already hidden), and lifts the full-log block | `close_inventory` or `open_inventory`, the close tab, or a click on the backdrop outside the book → `hide_with_panel()`. `panel_hidden` (one-shot) → `pop_state()`. | Book close and grey fade-out, whichever ends last |
 | `CyclingViewState` | Overlay | `set_cycling_mode(true)`, shows `CyclingView`, blocks the full log. No backdrop; the HUD boards stay | Lifts the full-log block, hides `CyclingView`, `set_cycling_mode(false)` | `close_cycling_view` → `ActionManager.stop_action()` | `ActionManager.stop_cycling` → `pop_state()`. `start_cycling` pushes the state only if it is not already on the stack |
@@ -216,9 +217,11 @@ Continue / Not yet / Esc on the intro ─► TribulationView.finished(passed) �
 Zone action (adventure) ─► ActionManager.adventure_start_requested
    ├─► ZoneViewState: adds a full-rect Control (mouse Stop) to ZoneView and ignores keys
    ├─► MapMarkers: hides the map's plates and glyphs
-   └─► ZoneTransition: MadraPellet drain from the cabinet's Madra orb, then camera zoom to 3x
+   └─► ZoneTransition: MadraPellet drain from the cabinet's Madra orb onto the character, then
+       from the frame the last pellet lands the camera zoom to 1.5x the player's zoom
          └─► ActionManager.confirm_adventure_start(data, budget) ─► start_adventure
-               ├─► AdventureViewState: change_state(adventure)   (zone exit removes the blocker)
+               ├─► AdventureViewState: ViewDissolve.play() (a still of the zone view),
+               │     then change_state(adventure)                (zone exit removes the blocker)
                └─► AdventureView.start_adventure()               (connected after the state)
 
 Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's idle action resumes)
@@ -226,7 +229,8 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's id
    └─► AdventureView.stop_adventure() ─► adventure_completed(result)
          └─► AdventureViewState: push_state(end_card); adventure_end_card.show_results(result)
                └─► Return button ─► close animation ─► return_requested (one-shot)
-                     └─► pop_state(); change_state(zone)   (ZoneTransition.reset_camera())
+                     └─► ViewDissolve.play() (a still of the adventure); pop_state(); change_state(zone)
+                           (ZoneTransition.reset_camera())
 ```
 
 `stop_cycling`, `stop_merchant`, `stop_tribulation` and `stop_adventure` also fire when `ActionManager.select_action()` replaces the current action, or when `ZoneManager.zone_changed` stops it. A stop from outside mid-trial (a save reset, the dev panel) closes the board through `stop_tribulation` and applies nothing.
@@ -302,6 +306,7 @@ Gold left the bar for the cultivator cabinet.
 |--------|-------|-----------------|
 | `FloatingText` | `scenes/ui/floating_text/floating_text.tscn` + `.gd` | No screen shows one now. `show_text(text, color, pos, trajectory = Vector2(0, -100))`. Moves along the trajectory over 1.5 s (cubic ease-out). In parallel it fades out over 1.5 s after a 0.45 s delay, then frees itself. The label is `LabelSubheading` with a white fill and 5 px black outline. |
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | See [GreyBackground](#greybackground-modal-backdrop) |
+| `ViewDissolve` | `scenes/ui/view_dissolve/view_dissolve.tscn` + `.gd`, `assets/shaders/dither_dissolve.gdshader` | The style guide's 2-step dither dissolve from one whole view to the next. `play()` takes a still of the screen as last drawn (none under the headless display server) and lays it full-rect over the views, which change under it the same frame; `play_over(still)` does the same with a given still. The still shows on half its 2 px art cells, on a quarter after `STEP_SECONDS` (0.1 s), and hides after 0.2 s with `finished`. The shader is inverted on the scene's material, so the still keeps the complement of the cells a view dissolving in would show, and no cell comes back. It never fades and takes no pointer. A second `play()` restarts it. `is_playing()`. `AdventureViewState` plays it into the adventure and back |
 | `LogWindow` | `scenes/ui/log_window/` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
 | `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
 | Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerCountSeal`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
@@ -337,7 +342,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | AdventureEndCard | `show_results(result)`, `return_requested` → pop + `change_state(zone)` |
 | InventoryView / PathTreeView / AbilitiesView / CharacterView | `MenuBookView`: `animate_open()` / `animate_close()` called through `GreyBackground`; `close_requested` (close tab) → the state's close path; `close_finished` → `GreyBackground` finishes hiding |
 | MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
-| ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain. |
+| ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain and the zoom. |
 | GoalsPanel | Placed by `ZoneViewState` (and left in place by `AdventureViewState`); hidden under the shop and in the Tribulation; left showing beside cycling; dimmed under the menu books and the end card |
 | CultivatorPlate / ZonePanel / Dock / zone SubViewport | `set_cycling_mode()` turns the chest, dock and map over; `set_board_mode()` turns the dock, the map and About off for the Tribulation too; the `CyclingView` flies its pellets into the cabinet |
 | CultivationManager | The Tribulation board applies its result through `advance_to_next_stage()` and `lose_core_density_levels()` ([CULTIVATION.md](../cultivation/CULTIVATION.md)) |
@@ -371,6 +376,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | `scenes/ui/goals_panel/goals_panel.gd` / `.tscn` | Goals board |
 | `scenes/ui/log_window/log_window.gd` / `.tscn` | Log board and full log |
 | `scenes/zones/zone_transition/zone_transition.gd` | Adventure-entry drain and zoom; camera reset |
+| `scenes/ui/view_dissolve/view_dissolve.gd` / `.tscn` | Dither dissolve between the zone view and the adventure |
 | `scenes/ui/floating_text/` | Shared feedback widget |
 | `project.godot` | Autoloads, input map, window, renderer, theme |
 

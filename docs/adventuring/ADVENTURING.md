@@ -287,11 +287,14 @@ ZoneActionButton click
         └→ ZoneTransition
              budget = ResourceManager.get_adventure_madra_budget()
              pellets = lerp(8, 25, budget / capacity); each spends floor(budget / n) Madra,
-             plus one extra pellet carrying the remainder (MadraPellet, from the cabinet's Madra orb)
-             → camera zoom to 3.0 over 0.5 s
+             plus one extra pellet carrying the remainder (MadraPellet, from the cabinet's Madra orb,
+             one every 0.04 s on the drain's own clock, all landing on the character)
+             → from the frame the last pellet lands: camera zoom to 1.5× the player's zoom over 0.5 s
+               (cubic ease in-out), the character crossing the screen on a straight line to (960, 702)
              → ActionManager.confirm_adventure_start(action, budget)
   → start_adventure(action, budget)
-      ├→ AdventureViewState: change_state(adventure_view_state)
+      ├→ AdventureViewState: ViewDissolve.play() (a still of the zoomed zone view, dissolved
+      │    away in two dither steps over 0.2 s), then change_state(adventure_view_state)
       └→ AdventureView.start_adventure()
            reset stats; connect InventoryManager.item_awarded
            vitals.initialize_current_values(budget)              — HP = max, Stamina = max, Madra = budget
@@ -506,7 +509,7 @@ AdventureCombat.trigger_combat_end(is_successful, gold)
 
 After that:
 - On `adventure_completed`, `AdventureViewState` pushes `AdventureEndCardState` and calls `AdventureEndCard.show_results()`. That populates the card, plays `scroll_animation` backwards to unroll it, then sets content alpha to 1.
-- **RETURN** plays the animation forwards and emits `return_requested` (connected one-shot). `AdventureViewState` then pops the overlay and changes to `ZoneViewState`, whose `enter()` calls `ZoneTransition.reset_camera()`.
+- **RETURN** plays the animation forwards and emits `return_requested` (connected one-shot). `AdventureViewState` then plays `ViewDissolve` (a still of the adventure over the zone view), pops the overlay and changes to `ZoneViewState`, whose `enter()` calls `ZoneTransition.reset_camera()`.
 
 Other ways a run stops: a `ZoneManager.zone_changed` signal stops the current action (successful = true), and `select_action()` stops the current action first. The zone view is hidden and input-blocked during a run, so the player cannot reach either path.
 
@@ -525,7 +528,7 @@ The editor-only map preview (`scenes/tools/map_preview.tscn`, `scripts/tools/map
 | `ActionManager` | `adventure_start_requested(action)`, `confirm_adventure_start(action, budget)` → `start_adventure(action, budget)`, `stop_action(successful)` → `stop_adventure` plus the action's completion effects |
 | `ResourceManager` | `get_adventure_madra_capacity/budget/threshold()`, `can_start_adventure()`, `spend_madra()` during the drain, `add_gold()` on combat wins |
 | Zones (`ZoneTransition`, `ZoneViewState`, `AdventurePresenter`, `MapMarkers`) | Madra pellet drain and camera zoom, input blocker, the adventure card's Madra line and reject shake, hiding the map markers ([ZONES.md](../zones/ZONES.md)) |
-| `MainView` state machine | `AdventureViewState` (`change_state` on `start_adventure`, pushes the end card on `adventure_completed`; the log and Goals boards stay where the zone view puts them); `AdventureEndCardState` (grey background) |
+| `MainView` state machine | `AdventureViewState` (`change_state` on `start_adventure`, pushes the end card on `adventure_completed`; the log and Goals boards stay where the zone view puts them; `ViewDissolve` into the adventure and back, see [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#shared-widgets)); `AdventureEndCardState` (grey background) |
 | `PlayerManager.vitals_manager` | `initialize_current_values(budget)`, `stamina_regen`, Stamina deducted per step, `ChangeVitalsEffectData`, HP for end conditions and the end card. `VitalsPlate` follows its three signals, and the Here tray's walk hint follows `stamina_changed` |
 | Combat (`AdventureCombat`) | `initialize_combat(choice, action)`, `start()`, `stop()`, `trigger_combat_end(is_successful, gold)`, the static `gold_reward_for()`; `TechniqueDock.bind()` and `VitalsPlate.bind_buffs()` take the player's combatant for a fight ([COMBAT.md](../combat/COMBAT.md)) |
 | `InventoryManager` | `item_awarded(item, quantity)` feeds end-card loot; loot effects call `award_items()`; `ITEM_OWNED` conditions call `has_item()` |
