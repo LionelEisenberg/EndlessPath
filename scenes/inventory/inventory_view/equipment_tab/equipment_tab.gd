@@ -191,7 +191,16 @@ func _show_slot(slot: InventorySlot) -> void:
 	if slot == _shown_slot and data == details.get_item():
 		return
 	_mark_shown(slot)
-	details.show_item(data, slot is GearSlot)
+	details.show_item(data, _hint_mode(slot))
+
+## The details' hint for the item in `slot`: take it off a gear slot, drag it
+## back out of the discard slot, else wear it.
+func _hint_mode(slot: InventorySlot) -> EquipmentDetails.HintMode:
+	if slot is GearSlot:
+		return EquipmentDetails.HintMode.WORN
+	if slot is TrashSlot:
+		return EquipmentDetails.HintMode.DISCARD
+	return EquipmentDetails.HintMode.BAG
 
 ## Marks `slot` as the one the details show and unmarks the last one. Null
 ## leaves no slot marked.
@@ -208,14 +217,19 @@ func _follow_shown_item() -> void:
 
 ## Keeps the details and the marks on `item` after the bag changed: marks the
 ## visible grid or gear slot holding it (none when it is on another page) and
-## refreshes its hint. When the item is no longer in the bag or worn, the page
-## opens on its first item instead. Waits while a drag is under way: the drop
-## follows the item again.
+## refreshes its hint. The discard slot's item, when it was the last thing
+## pointed at, keeps its details and marks as they are. Any other item no
+## longer in the bag or worn opens the page on its first item instead. Waits
+## while a drag is under way: the drop follows the item again.
 func _follow_item(item: ItemInstanceData) -> void:
 	if is_dragging:
 		return
 	if item == null:
 		open_page()
+		return
+	# Keyed on the marks, not on what the discard slot holds: right after a
+	# discard drop nothing is marked, so the details move on.
+	if _shown_slot is TrashSlot and (_shown_slot as TrashSlot).get_held() == item:
 		return
 	var inventory := InventoryManager.get_inventory()
 	var worn: bool = item in inventory.equipped_gear.values() or item in inventory.equipped_accessories.values()
@@ -223,7 +237,7 @@ func _follow_item(item: ItemInstanceData) -> void:
 		open_page()
 		return
 	_mark_shown(_visible_slot_holding(item))
-	details.show_item(item, worn)
+	details.show_item(item, EquipmentDetails.HintMode.WORN if worn else EquipmentDetails.HintMode.BAG)
 
 ## The visible grid or gear slot that holds `item`, or null.
 func _visible_slot_holding(item: ItemInstanceData) -> InventorySlot:

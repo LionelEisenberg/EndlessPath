@@ -483,7 +483,7 @@ func test_the_hint_rule_reads_the_laid_out_panel() -> void:
 	var long_name: EquipmentDefinitionData = NECKLACE.duplicate() as EquipmentDefinitionData
 	long_name.item_name = "Pill of the Thousand Quiet Mornings Beneath the Valley"
 	for def: EquipmentDefinitionData in [NECKLACE, DAGGER, BARK, four_bonuses, long_name]:
-		details.show_item(_instance(def), false)
+		details.show_item(_instance(def), EquipmentDetails.HintMode.BAG)
 		await wait_process_frames(2)
 		var name_lines: int = (details.get_node("%NameLabel") as Label).get_line_count()
 		var description: Label = details.get_node("%Description") as Label
@@ -612,6 +612,52 @@ func test_discarding_the_shown_item_moves_on() -> void:            # Review Focu
 	assert_eq(_details(tab).get_item(), cowl, "the page's first item")
 	assert_false(slots[0].is_marked() and slots[0].item_instance == null, "no marks on an empty slot")
 	assert_true(slots[1].is_marked())
+
+func test_discarding_the_shown_item_by_a_drop_moves_on() -> void:   # Review Focus 4
+	var tab: Control = await _open_tab()
+	InventoryManager.award_items(DAGGER, 1)
+	InventoryManager.award_items(COWL, 1)
+	var inventory: InventoryData = InventoryManager.get_inventory()
+	var dagger: ItemInstanceData = inventory.equipment[0]
+	var cowl: ItemInstanceData = inventory.equipment[1]
+	var slots: Array[InventorySlot] = tab.equipment_grid.get_slots()
+	var trash: TrashSlot = tab.trash_slot
+	var over_trash: Vector2 = trash.get_global_rect().get_center()
+	tab._on_slot_input(slots[0], _press(MOUSE_BUTTON_LEFT, slots[0].get_global_rect().get_center()))
+	tab._input(_motion(over_trash))
+	tab._drop_item(over_trash)
+	await wait_process_frames(2)
+	assert_eq(trash.get_held(), dagger, "the dagger is held in the discard slot")
+	assert_eq(_details(tab).get_item(), cowl, "the details move on to the page's first item, though the discard slot holds the dagger")
+	assert_true(slots[1].is_marked())
+	assert_false(trash.is_marked(), "no marks are left on the discard slot")
+
+func test_pointing_at_the_discard_slot_shows_its_item_and_how_to_keep_it() -> void:
+	var tab: Control = _tab()
+	InventoryManager.award_items(DAGGER, 1)
+	var robes: ItemInstanceData = _instance(ROBES)
+	var trash: TrashSlot = tab.trash_slot
+	trash.accept(robes)
+	tab._on_slot_input(trash, _motion(Vector2.ZERO))
+	var hint: Label = _details(tab).get_node("%Hint") as Label
+	assert_eq(_details(tab).get_item(), robes)
+	assert_true(trash.is_marked())
+	assert_eq(hint.text, "Drag it back out to keep it", "a right-click does nothing there")
+	assert_true(hint.visible, "the robes leave room for it")
+
+func test_the_discard_slots_item_stays_shown_while_the_bag_changes() -> void:   # Review Focus 3
+	var tab: Control = _tab()
+	InventoryManager.award_items(DAGGER, 1)
+	var robes: ItemInstanceData = _instance(ROBES)
+	var trash: TrashSlot = tab.trash_slot
+	trash.accept(robes)
+	tab._on_slot_input(trash, _motion(Vector2.ZERO))
+	InventoryManager.inventory_changed.emit(InventoryManager.get_inventory())   # as a foraging roll does every 5 s
+	await wait_process_frames(2)
+	assert_eq(_details(tab).get_item(), robes, "the details keep the item pointed at")
+	assert_true(trash.is_marked(), "and so do the marks")
+	assert_false(tab.equipment_grid.get_slots()[0].is_marked(), "the page's first item gets none")
+	assert_eq((_details(tab).get_node("%Hint") as Label).text, "Drag it back out to keep it")
 
 func test_pages_have_their_titles_and_draw_text_at_1x() -> void:
 	var tab: Control = await _open_tab()

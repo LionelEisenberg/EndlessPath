@@ -26,8 +26,22 @@ const _BONUS_ROW_SCENE: PackedScene = preload("res://scenes/inventory/inventory_
 ## Bonuses printed side by side on one BonusRow.
 const _BONUSES_PER_ROW: int = 2
 
-const _HINT_WEAR: String = "Right-click to wear it"
-const _HINT_TAKE_OFF: String = "Right-click to take it off"
+## Where the item shown lies, which picks the hint at the panel's foot.
+enum HintMode {
+	## In the bag: a right-click wears it.
+	BAG,
+	## On a gear slot: a right-click takes it off.
+	WORN,
+	## Held in the discard slot: dragging it back out keeps it.
+	DISCARD,
+}
+
+## The hint printed for each HintMode.
+const _HINTS: Dictionary[HintMode, String] = {
+	HintMode.BAG: "Right-click to wear it",
+	HintMode.WORN: "Right-click to take it off",
+	HintMode.DISCARD: "Drag it back out to keep it",
+}
 
 #-----------------------------------------------------------------------------
 # LAYOUT
@@ -84,17 +98,18 @@ var _item: ItemInstanceData = null
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Shows `data` and makes the panel visible. `worn` picks the hint: wear it
-## from the bag, or take it off a gear slot. Showing the item already shown
+## Shows `data` and makes the panel visible. `hint_mode`, where the item lies,
+## picks the hint: wear it from the bag, take it off a gear slot, or drag it
+## back out of the discard slot to keep it. Showing the item already shown
 ## only refreshes the hint. A null `data` clears the panel.
-func show_item(data: ItemInstanceData, worn: bool) -> void:
+func show_item(data: ItemInstanceData, hint_mode: HintMode) -> void:
 	if data == null or data.item_definition == null:
 		clear()
 		return
 	if data != _item:
 		_item = data
 		_print_item(data.item_definition)
-	_hint.text = _HINT_TAKE_OFF if worn else _HINT_WEAR
+	_hint.text = _HINTS[hint_mode]
 	visible = true
 
 ## Empties the panel and hides it.
