@@ -16,6 +16,14 @@ class_name SaveFiles extends RefCounted
 ## the timestamp and group 2 the number after the dash, when there is one.
 const _BACKUP_STAMP_PATTERN: String = "^(\\d{8}-\\d{6})(?:-(\\d+))?$"
 
+## How many times the rename that ends a write is tried, and how long it waits
+## between two tries, in milliseconds: about half a second in all. Windows refuses
+## the rename while another process holds the file, as an antivirus scan or an
+## indexer does with a file just written; Godot's own safe save retries for the
+## same reason.
+const _RENAME_TRIES: int = 20
+const _RENAME_RETRY_MSEC: int = 25
+
 #-----------------------------------------------------------------------------
 # WRITE AND LOAD
 #-----------------------------------------------------------------------------
@@ -28,10 +36,11 @@ static func temp_path_for(path: String) -> String:
 
 ## Saves `resource` to `path` without ever leaving a half-written file there: it
 ## makes the parent folder, saves to temp_path_for(path), then renames the temp
-## over `path`. Returns the first error it meets, OK when the file is replaced.
-## A save that fails leaves `path` as it was. Windows deletes the old file before
-## it moves the temp in, so a crash inside that rename can leave only the temp,
-## whole, which load_save() reads.
+## over `path`, trying the rename again for about half a second while another
+## process holds the file. Returns the first error it meets, OK when the file is
+## replaced. A save that fails leaves `path` as it was. Windows deletes the old
+## file before it moves the temp in, so a crash inside that rename can leave only
+## the temp, whole, which load_save() reads.
 static func write_atomically(resource: Resource, path: String) -> Error:
 	var folder_error: Error = _make_folder_for(path)
 	if folder_error != OK:
@@ -153,9 +162,29 @@ static func _make_folder_for(path: String) -> Error:
 
 ## Renames temp_path_for(path) over `path`, the last step of a write. Windows
 ## deletes the old file before it moves the temp in, so a crash in between leaves
-## only the temp, whole, which load_save() reads.
+## only the temp, whole, which load_save() reads. Either step fails while another
+## process holds the file, so a rename that fails is tried again, up to
+## _RENAME_TRIES times _RENAME_RETRY_MSEC apart, while the temp file is still there.
+## The second step is the one that matters: after "deleted, then the move failed"
+## the temp is the only copy of the save, and the next write would save over it in
+## place. A rename that took more than one try is logged with how many it took.
+## Returns OK, or the last try's error.
 static func _replace_with_temp(path: String) -> Error:
-	return DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path_for(path)), ProjectSettings.globalize_path(path))
+	var temp_path: String = temp_path_for(path)
+	var error: Error = OK
+	var tries: int = 0
+	while tries < _RENAME_TRIES:
+		tries += 1
+		error = DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(path))
+		if error == OK or not FileAccess.file_exists(temp_path):
+			break
+		if tries < _RENAME_TRIES:
+			OS.delay_msec(_RENAME_RETRY_MSEC)
+	if tries > 1 and error == OK:
+		Log.warn("SaveFiles: Renaming %s over %s took %d tries" % [temp_path, path, tries])
+	elif tries > 1:
+		Log.warn("SaveFiles: Could not rename %s over %s in %d tries (error %d)" % [temp_path, path, tries, error])
+	return error
 
 ## The current UTC time as YYYYMMDD-HHMMSS.
 static func _utc_stamp() -> String:

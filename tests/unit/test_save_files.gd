@@ -12,6 +12,11 @@ const ROOT: String = "user://__test_save_files"
 ## "-2", "-3", ... for copies made in the same second.
 const BACKUP_NAME_PATTERN: String = "^save\\.(\\d{8}-\\d{6})(-\\d+)?\\.tres$"
 
+## How long the reader tests hold the save open, in milliseconds: longer than a
+## small save takes to write, so the first rename meets the reader, and well inside
+## the half second a write keeps trying for.
+const HOLD_MSEC: int = 150
+
 func before_each() -> void:
 	_remove_tree(ROOT)
 
@@ -61,6 +66,15 @@ func _write_text(path: String, text: String) -> void:
 
 func _read_text(path: String) -> String:
 	return FileAccess.get_file_as_string(path)
+
+## Runs on a thread: opens the file at `path` for reading, says so on `opened`,
+## holds it for `msec` milliseconds, then lets go. While it holds the file, Windows
+## refuses to delete it, which a rename over it does first.
+func _hold_open(path: String, msec: int, opened: Semaphore) -> void:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	opened.post()
+	OS.delay_msec(msec)
+	file.close()
 
 ## The unix time of a "YYYYMMDD-HHMMSS" stamp, read as UTC.
 func _unix_of_stamp(stamp: String) -> int:
@@ -135,6 +149,58 @@ func test_a_failed_byte_write_leaves_the_old_file_alone() -> void:
 	DirAccess.make_dir_recursive_absolute(_global(SaveFiles.temp_path_for(path)))
 	assert_ne(SaveFiles.write_bytes_atomically("the new save".to_utf8_buffer(), path), OK, "the failed write is reported")
 	assert_eq(_read_text(path), "the old save", "the file on disk is the old one")
+
+## Windows refuses the rename that ends a write while another process holds the
+## save open (an antivirus scan, an indexer). A thread here holds it for a while
+## instead: the write waits it out and replaces the save. Windows only, since that
+## is where an open file cannot be deleted.
+func test_a_write_waits_out_a_reader_that_holds_the_save() -> void:
+	if OS.get_name() != "Windows":
+		pass_test("only Windows refuses to rename over a file another handle holds")
+		return
+	var path: String = _path("save.tres")
+	_write_gold(path, 1.0)
+	var opened := Semaphore.new()
+	var holder := Thread.new()
+	holder.start(_hold_open.bind(path, HOLD_MSEC, opened))
+	opened.wait()
+	var error: Error = SaveFiles.write_atomically(_gold_save(2.0), path)
+	holder.wait_to_finish()
+	assert_eq(error, OK, "the write is done once the reader lets go")
+	assert_eq(_gold_at(path), 2.0, "the save on disk is the new one")
+	assert_file_does_not_exist(SaveFiles.temp_path_for(path))
+
+## The same for a copy put in place byte for byte, as a restore does.
+func test_a_byte_write_waits_out_a_reader_that_holds_the_save() -> void:
+	if OS.get_name() != "Windows":
+		pass_test("only Windows refuses to rename over a file another handle holds")
+		return
+	var path: String = _path("save.tres")
+	_write_text(path, "the old save")
+	var opened := Semaphore.new()
+	var holder := Thread.new()
+	holder.start(_hold_open.bind(path, HOLD_MSEC, opened))
+	opened.wait()
+	var error: Error = SaveFiles.write_bytes_atomically("the new save".to_utf8_buffer(), path)
+	holder.wait_to_finish()
+	assert_eq(error, OK, "the write is done once the reader lets go")
+	assert_eq(_read_text(path), "the new save")
+	assert_file_does_not_exist(SaveFiles.temp_path_for(path))
+
+## A reader that never lets go: the write gives up, reports the rename's error and
+## leaves the old save as it was, with the new one whole in the temp file.
+func test_a_write_gives_up_on_a_reader_that_never_lets_go() -> void:
+	if OS.get_name() != "Windows":
+		pass_test("only Windows refuses to rename over a file another handle holds")
+		return
+	var path: String = _path("save.tres")
+	_write_gold(path, 1.0)
+	var reader: FileAccess = FileAccess.open(path, FileAccess.READ)
+	var error: Error = SaveFiles.write_atomically(_gold_save(2.0), path)
+	reader.close()
+	assert_ne(error, OK, "the failed rename is reported")
+	assert_eq(_gold_at(path), 1.0, "the save on disk is the old one")
+	assert_eq(_gold_at(SaveFiles.temp_path_for(path)), 2.0, "the new save is whole in its temp file")
 
 #-----------------------------------------------------------------------------
 # LOAD

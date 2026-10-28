@@ -269,6 +269,8 @@ Also at boot:
 
 `save_data()` stamps `save_version = CURRENT_VERSION` and calls `SaveFiles.write_atomically()`. That makes the save's folder, saves to the temp file (`user://save.tmp.tres`), then renames the temp over the save, so a failed save leaves the old file as it was, and a crash mid-write never leaves half a save. Windows deletes the old file before it moves the temp in, so a crash inside that rename can leave only the temp, whole. `SaveFiles.load_save()` loads the temp when the save is missing (with a `Log.warn`), and never reads a temp next to a save that exists, since a crash while saving it can leave it half-written.
 
+Windows also refuses the rename, at either step, while another process holds the file, as an antivirus scan or an indexer does with a file just written. A rename that fails is tried again while the temp file is there, 20 times 25 ms apart (about half a second, on the main thread), and a rename that needed more than one try is logged with `Log.warn` and its count. After "deleted, then the move failed" the temp is the only copy of the save, so the retry matters most there. A rename that still fails returns its error, which the caller logs.
+
 `load_save()` always ignores the resource cache (`CACHE_MODE_IGNORE`), so every call reads the file again and returns its own object. It is never `CACHE_MODE_IGNORE_DEEP`: the inventory's dictionaries are keyed by the item resources the whole game shares, and a deep reload would key them by copies that no lookup finds.
 
 - `SaveTimer.timeout` calls `PersistenceManager.tick()` every **5 seconds**, set as `wait_time = 5.0` with `autostart = true` on the `SaveTimer` node in `main_game.tscn`. `save_timer.gd` only connects `timeout`, and no code changes `wait_time`.
