@@ -130,8 +130,9 @@ func _icon(index: int) -> TextureRect:
 func _seal(index: int) -> Control:
 	return _node("BuffSeal%d" % (index + 1)) as Control
 
+## The count on a socket's seal (a LacquerCountSeal, which owns its label).
 func _count(index: int) -> Label:
-	return _node("BuffCount%d" % (index + 1)) as Label
+	return _seal(index).get_node("%CountLabel") as Label
 
 func _flash(index: int) -> LacquerFrameOverlay:
 	return _node("BuffFlash%d" % (index + 1)) as LacquerFrameOverlay

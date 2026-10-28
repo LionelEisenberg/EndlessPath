@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://6gv3mjt6jbgo" path="res://assets/ui/lacquer/lacquer_orb_health_ai.png" id="5_health_orb"]
 [ext_resource type="Texture2D" uid="uid://buchwvpdtb5iw" path="res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png" id="6_madra_strip"]
 [ext_resource type="Texture2D" uid="uid://yk2panbupqdl" path="res://assets/ui/lacquer/lacquer_socket_buff_ai.png" id="7_socket"]
-[ext_resource type="Texture2D" uid="uid://c65y2w143jytl" path="res://assets/ui/lacquer/lacquer_seal_count_ai.png" id="8_seal"]
+[ext_resource type="PackedScene" uid="uid://5ctonbrkg3fk" path="res://scenes/common/lacquer/lacquer_count_seal.tscn" id="8_seal"]
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="9_frame"]
 [ext_resource type="Texture2D" uid="uid://cvsx3a2hfquag" path="res://assets/ui/lacquer/lacquer_line_ai.png" id="10_line"]
 [ext_resource type="Texture2D" uid="uid://ctv1nbwhbqrsi" path="res://assets/ui/lacquer/lacquer_mini_stamina_ai.png" id="11_stamina_icon"]
@@ -117,7 +117,7 @@ offset_bottom = 36.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="BuffSeal1" type="Control" parent="BuffSocket1" unique_id=1695786621]
+[node name="BuffSeal1" parent="BuffSocket1" unique_id=1695786621 instance=ExtResource("8_seal")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -125,26 +125,6 @@ offset_left = 20.0
 offset_top = -6.0
 offset_right = 44.0
 offset_bottom = 18.0
-mouse_filter = 2
-
-[node name="Seal" type="TextureRect" parent="BuffSocket1/BuffSeal1" unique_id=551085706]
-layout_mode = 0
-offset_right = 24.0
-offset_bottom = 24.0
-mouse_filter = 2
-texture = ExtResource("8_seal")
-
-[node name="BuffCount1" type="Label" parent="BuffSocket1/BuffSeal1" unique_id=1695155754]
-unique_name_in_owner = true
-layout_mode = 0
-offset_top = 3.0
-offset_right = 24.0
-offset_bottom = 21.0
-theme_type_variation = &"LabelLacquerSeal"
-theme_override_font_sizes/font_size = 15
-text = "2"
-horizontal_alignment = 1
-
 [node name="BuffFlash1" parent="BuffSocket1" unique_id=1711915202 instance=ExtResource("9_frame")]
 unique_name_in_owner = true
 layout_mode = 1
@@ -175,7 +155,7 @@ offset_bottom = 36.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="BuffSeal2" type="Control" parent="BuffSocket2" unique_id=1365976582]
+[node name="BuffSeal2" parent="BuffSocket2" unique_id=1365976582 instance=ExtResource("8_seal")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -183,26 +163,6 @@ offset_left = 20.0
 offset_top = -6.0
 offset_right = 44.0
 offset_bottom = 18.0
-mouse_filter = 2
-
-[node name="Seal" type="TextureRect" parent="BuffSocket2/BuffSeal2" unique_id=1118941141]
-layout_mode = 0
-offset_right = 24.0
-offset_bottom = 24.0
-mouse_filter = 2
-texture = ExtResource("8_seal")
-
-[node name="BuffCount2" type="Label" parent="BuffSocket2/BuffSeal2" unique_id=494107229]
-unique_name_in_owner = true
-layout_mode = 0
-offset_top = 3.0
-offset_right = 24.0
-offset_bottom = 21.0
-theme_type_variation = &"LabelLacquerSeal"
-theme_override_font_sizes/font_size = 15
-text = "2"
-horizontal_alignment = 1
-
 [node name="BuffFlash2" parent="BuffSocket2" unique_id=645908154 instance=ExtResource("9_frame")]
 unique_name_in_owner = true
 layout_mode = 1
@@ -233,7 +193,7 @@ offset_bottom = 36.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="BuffSeal3" type="Control" parent="BuffSocket3" unique_id=404889757]
+[node name="BuffSeal3" parent="BuffSocket3" unique_id=404889757 instance=ExtResource("8_seal")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -241,26 +201,6 @@ offset_left = 20.0
 offset_top = -6.0
 offset_right = 44.0
 offset_bottom = 18.0
-mouse_filter = 2
-
-[node name="Seal" type="TextureRect" parent="BuffSocket3/BuffSeal3" unique_id=364723371]
-layout_mode = 0
-offset_right = 24.0
-offset_bottom = 24.0
-mouse_filter = 2
-texture = ExtResource("8_seal")
-
-[node name="BuffCount3" type="Label" parent="BuffSocket3/BuffSeal3" unique_id=1443777741]
-unique_name_in_owner = true
-layout_mode = 0
-offset_top = 3.0
-offset_right = 24.0
-offset_bottom = 21.0
-theme_type_variation = &"LabelLacquerSeal"
-theme_override_font_sizes/font_size = 15
-text = "2"
-horizontal_alignment = 1
-
 [node name="BuffFlash3" parent="BuffSocket3" unique_id=595726735 instance=ExtResource("9_frame")]
 unique_name_in_owner = true
 layout_mode = 1

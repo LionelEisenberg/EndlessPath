@@ -3,14 +3,13 @@ extends ItemDefinitionData
 
 ## ConsumableDefinitionData
 ## Definition-side data for a consumable item. use() applies the effects;
-## stacking lives on InventoryData; cooldown enforcement will live on the
-## future CombatConsumableInstance (see spec 2026-05-24-consumables-design.md).
+## stacking lives on InventoryData; in a fight, CombatConsumableInstance
+## enforces the cooldown.
 
 @export var effects: Array[EffectData] = []
 
-## Seconds before this consumable can be used again, *once cooldown is
-## enforced by the combat-side manager*. Pure metadata in this slice —
-## declared so .tres files are forward-compatible, but nothing reads it yet.
+## Seconds before this consumable can be used again in a fight. Each hotbar
+## slot's CombatConsumableInstance enforces it, afresh every fight.
 @export var cooldown_seconds: float = 0.0
 
 func _init() -> void:

@@ -69,7 +69,7 @@ Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under 
 | `Dock` | `ZoneView` | (722, 976), 476x80 | Four 108x64 buttons. Hidden with the zone view during adventures, and while cycling or in the Tribulation |
 | `VitalsPlate` | `AdventureView` | (24, 24), 440x252 | The adventure's cabinet, where `CultivatorPlate` stands in the zone view: Health, Madra, Stamina and, in a fight, buffs |
 | `AdventureChest` | `AdventureView` | (1456, 24), 440 wide, height hugs its page and its title's lines (176 minimum) | Where `ZonePanel` stands: title (it wraps), run clock, the expedition page. The page and its Here tray and drawers wrap their text and grow |
-| `TechniqueDock` | `AdventureView` | (722, 920), 476x136 | The four technique slots; its cast tray sits 52 px above it (44 px tall, 8 px clear of the dock) and grows upward when a long technique name wraps |
+| `TechniqueDock` | `AdventureView` | (722, 856), 476x200 | The four technique slots under a row of four consumable sockets (the hotbar's); its cast tray sits 52 px above it (44 px tall, 8 px clear of the dock) and grows upward when a long technique name wraps |
 | `GoalsPanel` | `MainView` | (24, 276), hung on its cords under the cabinet (the 24 px cords reach 4 px above the root, to the cabinet's rings at y 272), in the zone view and in adventures (under the vitals cabinet) | 220 px tall with a quest, 150 with the milestone alone, when each text is one line; a wrapped line adds its height and the board grows with its rows. Not draggable |
 | `LogWindow` | `MainView` | Its 440x204 slot at (24, 852), the board on the slot's bottom edge (screen 1056) growing upward, in both base views | 74 + 26 px per line, up to 5 lines. The full log is a 440x560 board in the same place |
 | `QuestToast` | `MainView` | Top-centre, 350x60 at y 28 | `mouse_filter` Ignore; queues messages |
@@ -239,7 +239,7 @@ Run ends ─► ActionManager.stop_action() ─► stop_adventure (the zone's id
    - `LogWindow` (while visible and none of a menu book, the cycling board and the Tribulation board is open): L (`toggle_log`) opens or closes the full log; Escape closes it while open. A book, the cycling board or the Tribulation board closes the full log and blocks it, so L does nothing under them and Escape goes on to the book or the board.
    - `ZonePanel`: Escape closes the lore, only while it shows and `ZoneViewState` is MainView's current state, so an overlay opened over the zone view takes Escape first.
    - Inside the zone SubViewport, `MapMarkers`: Escape closes a pinned map popover, only while `ZoneViewState` is current with no overlay pushed and the full log is closed. The `SubViewportContainer` hands keys to the SubViewport at its own place in this pass (after `LogWindow` and `ZonePanel`, which sit later in the tree), and the SubViewport has `handle_input_locally` off, so its `set_input_as_handled()` ends the event for `MainView` too. One Escape therefore closes the lore before the popover.
-   - `MainView` (routed to the current state only; the Tribulation's keys arrive this way, its mouse presses do not: the board's root takes them in `_gui_input()` and stops them), the combat `TechniqueDock` (Q/W/E/R while active and visible), and the camera controllers inside the maps (the zone tilemap's zoom and pan; the adventure tilemap's zoom, which has no pan). A wheel over an adventure board never reaches the map (the boards are `MOUSE_FILTER_STOP`), and the map is hidden during a fight, so neither zooms it.
+   - `MainView` (routed to the current state only; the Tribulation's keys arrive this way, its mouse presses do not: the board's root takes them in `_gui_input()` and stops them), the combat `TechniqueDock` (Q/W/E/R and 1 to 4 while active and visible), and the camera controllers inside the maps (the zone tilemap's zoom and pan; the adventure tilemap's zoom, which has no pan). A wheel over an adventure board never reaches the map (the boards are `MOUSE_FILTER_STOP`), and the map is hidden during a fight, so neither zooms it.
 
 Escape is bound to three actions: `close_inventory`, `close_cycling_view` and the built-in `ui_cancel`. Inside the state machine they never conflict because only the top state reads input. Menu shortcuts work only while `ZoneViewState` is current. `AdventureViewState.handle_input()` is empty, so I/A/C/P do nothing during an adventure; L still opens the full log. Under a menu book, and while cycling or in the Tribulation, L does nothing.
 
@@ -260,6 +260,7 @@ Project actions from `project.godot` `[input]`. Key bindings use physical key po
 | `tribulation_press` | Space, left mouse button (`project.godot:144`) | Keys: `TribulationViewState.handle_input()` → `TribulationView.handle_press_event()`. Mouse: `TribulationView._gui_input()` | The trial's one input. On the intro, Space or a click on the board begins the run; during the run, a press (or its release, for the hold) is judged on `Time.get_ticks_usec()` as it arrives; on the result panel it does nothing. Key repeats are not presses. Dialogic's `dialogic_default_action` shares Space and the click but acts only during a timeline. See [Tribulation board](#tribulation-board) |
 | `center_zone_map_camera` | Space | Nothing | Unused, no script reads it |
 | `ability_slot_1` to `ability_slot_4` | Q, W, E, R | `TechniqueDock._unhandled_input()` (`scenes/ui/combat/technique_dock/technique_dock.gd`), only while the dock is bound to a fight and visible | Emits `ability_selected` for that slot's ability when `can_cast_ability_instance()` accepts it, and shakes the slot when it refuses. `AdventureView` connects it to `AdventureCombat.on_player_ability_selected()` for each fight. |
+| `consumable_slot_1` to `consumable_slot_4` | 1, 2, 3, 4 | `TechniqueDock._unhandled_input()`, only while the dock is bound to a fight and visible | Emits `consumable_selected` for the consumable in that hotbar slot when `can_use_consumable_instance()` accepts it, and shakes its socket when it refuses. `AdventureView` connects it to `AdventureCombat.on_player_consumable_selected()` for each fight. |
 | `dialogic_default_action` | Enter, Space, X (logical keys), left mouse button, joypad button 0 | Dialogic addon (its plugin adds this action) | Advance dialogue |
 
 Other inputs:
@@ -276,7 +277,7 @@ Other inputs:
 
 `Dock` (`scenes/ui/dock/dock.tscn` + `dock.gd`, class `Dock`) is the lacquer kit's 476x80 recessed shelf (§5.4), a child of `ZoneView` at (722, 976), so it exists only on the zone map. It holds four `SystemMenuButton`s at x 10, 126, 242 and 358 inside the shelf (Inventory, Abilities, Character, Path) and decides which are notified:
 
-- **Path:** the brass ring and a cinnabar count seal (`lacquer_seal_count_ai`, over the top-left corner) while `PathManager.get_point_balance() > 0`, read in `_ready()` and on `points_changed`. This is how the game announces path points.
+- **Path:** the brass ring and a cinnabar count seal (a `LacquerCountSeal` over the top-left corner, widening rightward for a long count) while `PathManager.get_point_balance() > 0`, read in `_ready()` and on `points_changed`. This is how the game announces path points.
 - **Abilities:** the ring with no count while `AbilityManager.has_unequipped_unlocks()`, refreshed on `ability_unlocked` and `equipped_abilities_changed`.
 - Both are read again on `PersistenceManager.save_data_reset`.
 
@@ -303,7 +304,7 @@ Gold left the bar for the cultivator cabinet.
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | See [GreyBackground](#greybackground-modal-backdrop) |
 | `LogWindow` | `scenes/ui/log_window/` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
 | `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
-| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
+| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerCountSeal`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
 
 Utilities:
 

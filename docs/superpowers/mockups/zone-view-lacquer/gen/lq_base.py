@@ -890,7 +890,9 @@ if __name__ == '__main__':
     nameboard('nameboard')
     seal('seal_new', 26, 13, [(5, 0), (6, 0), (7, 0), (25, 5), (25, 6), (15, 12), (16, 12), (0, 9), (1, 0), (24, 12)],
          [(6, 1), (24, 6), (1, 9), (16, 11), (2, 11), (3, 11)])
-    seal('seal_count', 12, 12, [(4, 0), (5, 0), (11, 7), (0, 8), (1, 11)], [(4, 1), (10, 7), (1, 8)])
+    # The count seal keeps its worn bites in its outer 3 art px (6 screen px) so its middle
+    # stretches: LacquerCountSeal widens it to fit a long count (2026-10-25).
+    seal('seal_count', 12, 12, [(2, 0), (11, 7), (0, 8), (1, 11)], [(2, 1), (10, 7), (1, 8)])
     rod('rod_level', 84, 214 / 300, JADE_HI, JADE, JADE_SH)
     rod('rod_goal', 140, 0.32, JADE_HI, JADE, JADE_SH)
     rod('rod_madra', 98, 46 / 60, M_HI, M_PALE, M_MID)

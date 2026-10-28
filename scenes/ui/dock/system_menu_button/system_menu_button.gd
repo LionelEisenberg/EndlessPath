@@ -6,7 +6,8 @@ extends Button
 ## its label and its hotkey letter. Select a MenuType from the enum: it
 ## configures the label, hotkey, icon and input action.
 ## A notification swaps the face for the brass ring, and a count above zero
-## adds the cinnabar count seal over the top-left corner. Hover shows the
+## adds the cinnabar count seal (LacquerCountSeal) over the top-left corner,
+## widening rightward for a long count. Hover shows the
 ## hover face over either. The Dock decides who is notified.
 
 #-----------------------------------------------------------------------------
@@ -74,8 +75,7 @@ const MENU_CONFIG: Dictionary = {
 @onready var _icon_rect: TextureRect = %IconTexture
 @onready var _name_label: Label = %NameLabel
 @onready var _shortcut_label: Label = %ShortCutLabel
-@onready var _count_seal: Control = %CountSeal
-@onready var _count_label: Label = %CountLabel
+@onready var _count_seal: LacquerCountSeal = %CountSeal
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -141,7 +141,7 @@ func _update_notification_display() -> void:
 	_face_ring.visible = not _is_hovered and _is_notified
 	_face_normal.visible = not _is_hovered and not _is_notified
 	_count_seal.visible = _notification_count > 0
-	_count_label.text = str(_notification_count)
+	_count_seal.show_count(_notification_count)
 
 func _on_mouse_entered() -> void:
 	_is_hovered = true

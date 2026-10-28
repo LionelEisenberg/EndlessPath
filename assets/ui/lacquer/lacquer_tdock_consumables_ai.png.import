@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d347cu2727q8m"
-path="res://.godot/imported/lacquer_tdock_ai.png-95cce79b96831902abb1bf4be5c658d5.ctex"
+uid="uid://caeh1lm7dwmdo"
+path="res://.godot/imported/lacquer_tdock_consumables_ai.png-5e5d24ad48a2dba5a603c89692dd19bb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/lacquer/lacquer_tdock_ai.png"
-dest_files=["res://.godot/imported/lacquer_tdock_ai.png-95cce79b96831902abb1bf4be5c658d5.ctex"]
+source_file="res://assets/ui/lacquer/lacquer_tdock_consumables_ai.png"
+dest_files=["res://.godot/imported/lacquer_tdock_consumables_ai.png-5e5d24ad48a2dba5a603c89692dd19bb.ctex"]
 
 [params]
 

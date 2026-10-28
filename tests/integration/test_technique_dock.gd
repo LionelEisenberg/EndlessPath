@@ -37,8 +37,8 @@ const SLOT_ACTIONS: Array[StringName] = [&"ability_slot_1", &"ability_slot_2", &
 ## tooltip's 268.
 const LONG_TECHNIQUE: String = "Flowing River Strike of the Endless Misty Bamboo Hollow, Lit By The Cold Moon And The Hundred Silent Stars Above"
 ## Where the dock stands on screen, and its slots in it (spec: Layout).
-const DOCK_HOME: Vector2 = Vector2(722.0, 920.0)
-const SLOT_POSITIONS: Array[Vector2] = [Vector2(30.0, 18.0), Vector2(142.0, 18.0), Vector2(254.0, 18.0), Vector2(366.0, 18.0)]
+const DOCK_HOME: Vector2 = Vector2(722.0, 856.0)
+const SLOT_POSITIONS: Array[Vector2] = [Vector2(30.0, 82.0), Vector2(142.0, 82.0), Vector2(254.0, 82.0), Vector2(366.0, 82.0)]
 ## GUT's output window covers the screen on this canvas layer; a pointer test
 ## shows what it moves over above it.
 const GUT_OUTPUT_LAYER: int = 128
@@ -451,7 +451,7 @@ func test_the_cast_tray_grows_upward_from_the_dock() -> void:
 	var rod: Control = _tray_node("CastRod")
 	var time_text: Control = _tray_node("TimeText")
 	var bottom: float = tray.get_global_rect().end.y
-	assert_eq(bottom, 912.0, "precondition: 8 px over the dock at y 920")
+	assert_eq(bottom, 848.0, "precondition: 8 px over the dock at y 856")
 	_cast_long_named_technique()
 	assert_gt(tray.size.y, 44.0, "precondition: grown")
 	assert_eq(tray.get_global_rect().end.y, bottom, "the bottom edge does not move")
@@ -479,7 +479,7 @@ func test_the_tooltip_rises_over_a_grown_cast_tray() -> void:
 	_slot(0).mouse_entered.emit()
 	await wait_process_frames(2)
 	assert_eq(_tooltip_rect().end.y, tray.get_global_rect().position.y - 8.0, "8 px over the tray's top")
-	assert_lt(_tooltip_rect().end.y, 860.0, "higher than over the kit's tray")
+	assert_lt(_tooltip_rect().end.y, 796.0, "higher than over the kit's tray")
 	assert_eq(fmod(_tooltip_rect().position.y, 2.0), 0.0, "its top on the 2 px grid")
 
 ## A tray that grows under an open tooltip pushes it up.
@@ -491,7 +491,7 @@ func test_a_cast_tray_that_grows_pushes_an_open_tooltip_up() -> void:
 	var instance: CombatAbilityInstance = _instance(0)
 	_slot(0).mouse_entered.emit()
 	await wait_process_frames(2)
-	assert_eq(_tooltip_rect().end.y, 912.0, "precondition: over the dock")
+	assert_eq(_tooltip_rect().end.y, 848.0, "precondition: over the dock")
 	instance.cast_started.emit(instance, 1.0)
 	await wait_process_frames(2)
 	assert_eq(_tooltip_rect().end.y, _dock.get_cast_tray().get_global_rect().position.y - 8.0, "over the grown tray")
@@ -512,7 +512,7 @@ func test_a_showing_cast_tray_that_grows_pushes_an_open_tooltip_up_at_once() -> 
 	await wait_process_frames(2)
 	assert_true(tray.visible, "precondition: the tray is showing")
 	assert_eq(tray.size.y, 44.0, "precondition: the kit's tray")
-	assert_eq(_tooltip_rect().end.y, 860.0, "precondition: 8 px over the kit's tray")
+	assert_eq(_tooltip_rect().end.y, 796.0, "precondition: 8 px over the kit's tray")
 
 	instance.ability_data.ability_name = LONG_TECHNIQUE
 	instance.cast_started.emit(instance, 1.0)
@@ -538,7 +538,7 @@ func test_a_showing_cast_tray_that_shrinks_lets_an_open_tooltip_down_at_once() -
 	instance.cast_started.emit(instance, 1.0)
 
 	assert_eq(tray.size.y, 44.0, "precondition: the tray is the kit's again")
-	assert_eq(_tooltip_rect().end.y, 860.0, "8 px over the kit's tray at once")
+	assert_eq(_tooltip_rect().end.y, 796.0, "8 px over the kit's tray at once")
 
 ## A name longer than the tooltip's 268 px wraps there and the board grows with
 ## it, still an even height on the grid and 304 wide.
@@ -558,7 +558,7 @@ func test_a_long_technique_name_wraps_and_grows_the_tooltip() -> void:
 	assert_gt(tooltip.size.y, short_height, "the board grew")
 	assert_eq(tooltip.size.x, 304.0, "and stayed 304 wide")
 	_assert_hugs_on_the_grid(tooltip, "a long name")
-	assert_eq(_tooltip_rect().end.y, 912.0, "its bottom stays over the dock")
+	assert_eq(_tooltip_rect().end.y, 848.0, "its bottom stays over the dock")
 
 #-----------------------------------------------------------------------------
 # PRESSES
@@ -745,7 +745,7 @@ func test_hover_frames_the_slot_and_opens_the_tooltip() -> void:
 func test_tooltip_sits_above_the_dock() -> void:
 	_slot(1).mouse_entered.emit()
 	await wait_process_frames(2)
-	assert_eq(_tooltip_rect().end.y, 912.0, "its bottom 8 px above the dock")
+	assert_eq(_tooltip_rect().end.y, 848.0, "its bottom 8 px above the dock")
 	assert_eq(fmod(_tooltip_rect().position.y, 2.0), 0.0, "its top on the 2 px grid")
 	assert_eq(_tooltip_rect().position.x, _slot(1).global_position.x - 8.0, "its left 8 px left of the slot's")
 	assert_eq(_tooltip_rect().position.x, 856.0)
@@ -757,7 +757,7 @@ func test_tooltip_sits_above_the_dock() -> void:
 	assert_true(_dock.get_cast_tray().visible, "precondition: the cast tray shows")
 	_slot(0).mouse_entered.emit()
 	await wait_process_frames(2)
-	assert_eq(_tooltip_rect().end.y, 860.0, "above the cast tray while it shows")
+	assert_eq(_tooltip_rect().end.y, 796.0, "above the cast tray while it shows")
 	assert_eq(fmod(_tooltip_rect().position.y, 2.0), 0.0, "its top on the 2 px grid there too")
 	assert_eq(_tooltip_rect().position.x, 744.0)
 
@@ -770,13 +770,13 @@ func test_tooltip_moves_with_the_cast_tray() -> void:
 	await _finish_cooldown(strike)
 	_slot(0).mouse_entered.emit()
 	await wait_process_frames(2)
-	assert_eq(_tooltip_rect().end.y, 912.0, "precondition: above the dock")
+	assert_eq(_tooltip_rect().end.y, 848.0, "precondition: above the dock")
 	_player.ability_manager.use_ability_instance(strike, _enemy)
 	await wait_process_frames(1)
-	assert_eq(_tooltip_rect().end.y, 860.0, "the tray shows: the tooltip rises above it")
+	assert_eq(_tooltip_rect().end.y, 796.0, "the tray shows: the tooltip rises above it")
 	await wait_for_signal(strike.cast_finished, 2.0)
 	await wait_process_frames(1)
-	assert_eq(_tooltip_rect().end.y, 912.0, "the tray goes: back above the dock")
+	assert_eq(_tooltip_rect().end.y, 848.0, "the tray goes: back above the dock")
 
 func test_tooltip_content() -> void:
 	_equip("empty_palm", 2)
@@ -828,7 +828,7 @@ func test_tooltip_is_304_wide_and_hugs_its_height() -> void:
 	assert_gt(tooltip.size.y, short_height, "Power Font's longer description wraps onto more lines")
 	_assert_hugs_on_the_grid(tooltip, "Power Font")
 	assert_eq(tooltip.size.x, 304.0, "and the board stays 304 wide")
-	assert_eq(_tooltip_rect().end.y, 912.0, "its bottom stays put as it grows")
+	assert_eq(_tooltip_rect().end.y, 848.0, "its bottom stays put as it grows")
 	tooltip.show_for_ability(ENFORCE, _slot(0), false)
 	await wait_process_frames(2)
 	assert_false((_tooltip_node("DamageLabel") as Control).visible, "precondition: no damage line")
@@ -901,12 +901,12 @@ func test_reset_returns_to_preview() -> void:
 
 func test_dock_root_is_the_board() -> void:
 	assert_eq(_dock.position, DOCK_HOME)
-	assert_eq(_dock.size, Vector2(476.0, 136.0))
+	assert_eq(_dock.size, Vector2(476.0, 200.0), "the board with its consumable row over the techniques")
 	assert_eq(_dock.mouse_filter, Control.MOUSE_FILTER_STOP, "presses on the board do not reach the map")
 	assert_eq(_dock.theme, load(LACQUER_THEME_PATH))
 	var board: TextureRect = _dock.get_node("Board")
 	assert_eq(board.position, Vector2.ZERO)
-	assert_eq(board.texture.resource_path, KIT_PATH % "tdock")
+	assert_eq(board.texture.resource_path, KIT_PATH % "tdock_consumables")
 	for index: int in 4:
 		assert_eq(Rect2(_slot(index).position, _slot(index).size), Rect2(SLOT_POSITIONS[index], Vector2(80.0, 80.0)), "slot %d" % index)
 		assert_eq(_slot(index).mouse_filter, Control.MOUSE_FILTER_STOP, "slot %d takes the pointer" % index)
@@ -951,7 +951,7 @@ func test_slot_layout_matches_the_kit() -> void:
 func test_cast_tray_layout_matches_the_kit() -> void:
 	var tray: CastTray = _dock.get_cast_tray()
 	assert_false(tray.visible, "hidden until the player casts")
-	assert_eq(Rect2(tray.position, tray.size), Rect2(0.0, -52.0, 476.0, 44.0), "over the dock: screen (722, 868)")
+	assert_eq(Rect2(tray.position, tray.size), Rect2(0.0, -52.0, 476.0, 44.0), "over the dock: screen (722, 804)")
 	assert_eq(tray.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	var face := tray.get_node("Tray") as NinePatchRect
 	assert_eq(face.texture.resource_path, KIT_PATH % "cast_tray")
@@ -974,16 +974,20 @@ func test_cast_tray_layout_matches_the_kit() -> void:
 	assert_eq(time_text.horizontal_alignment, HORIZONTAL_ALIGNMENT_RIGHT)
 	assert_eq(time_text.theme_type_variation, &"RichTextLacquer")
 
-## One shader on each icon: progress is its only uniform, each slot has its own
-## material, and it draws in whole steps (no TIME, no blending).
+## One shader on each icon: progress is the only uniform a script sets, the
+## icon's size keeps its default of 64 (a consumable socket sets 32 on its own
+## material), each slot has its own material, and it draws in whole steps (no
+## TIME, no blending).
 func test_icon_draws_the_sweep_shader() -> void:
 	var material: ShaderMaterial = (_slot_node(0, "Icon") as CanvasItem).material as ShaderMaterial
 	assert_not_null(material, "a ShaderMaterial on the icon")
 	assert_eq(material.shader.resource_path, SWEEP_SHADER_PATH)
-	var uniforms: Array = material.shader.get_shader_uniform_list()
-	assert_eq(uniforms.size(), 1, "one uniform")
-	assert_eq(uniforms[0]["name"], "progress")
-	assert_eq(uniforms[0]["type"], TYPE_FLOAT)
+	var uniforms: Dictionary = {}
+	for uniform: Dictionary in material.shader.get_shader_uniform_list():
+		uniforms[uniform["name"]] = uniform["type"]
+	assert_eq(uniforms, {"progress": TYPE_FLOAT, "icon_size": TYPE_FLOAT}, "the step, and the icon's size")
+	assert_string_contains(material.shader.code, "uniform float icon_size = 64.0;", "a 64 px icon by default")
+	assert_true(material.get_shader_parameter(&"icon_size") in [null, 64.0], "a technique slot keeps the default")
 	assert_true(material.resource_local_to_scene)
 	assert_ne(material, (_slot_node(1, "Icon") as CanvasItem).material, "each slot sweeps its own icon")
 	assert_string_contains(material.shader.code, "shader_type canvas_item;")
