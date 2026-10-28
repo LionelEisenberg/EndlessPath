@@ -11,8 +11,8 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
 1. **Start.** The zone view opens on Spirit Valley:
    - Resources: 25 Madra (cap `100 + 5 × Core Density level`), Core Density 0, 0 Path Points.
    - Loadout: Basic Strike and Enforce equipped; the Foundational Technique equipped for cycling.
-   - The only action card is *Talk to the [INTERVENER]*. The zoom-2 map shows only Spirit Valley, framed in fog. The Goals board shows only the Breakthrough milestone (`0 / 100`).
-2. **NPC dialogue 1** (Dialogic). It unlocks Wilderness Cycling (and the empty Test Zone, which stays hidden on the map), and starts quest **Awaken Your Core** (`q_fill_core`), which the Goals board shows with a Madra figure (`25 / 100` on a new save).
+   - The only action card is *Talk to the [INTERVENER]*. The zoom-2 map shows only Spirit Valley, framed in fog. The Goals board is hidden: no quest is active, and its Breakthrough milestone waits for NPC dialogue 4.
+2. **NPC dialogue 1** (Dialogic). It unlocks Wilderness Cycling (and the empty Test Zone, which stays hidden on the map), and starts quest **Awaken Your Core** (`q_fill_core`). The Goals board appears with it, a Madra figure on its row (`25 / 100` on a new save).
 3. **Cycle.** Click the Madra Ball and keep the cursor in it as it travels its path to earn Madra. The Foundational Technique has no cycling zones, so it earns **no Core Density XP**. Reaching 100 Madra completes step 1.
 4. **NPC dialogue 2.** It completes the quest, unlocks **Spring Forest Foraging** and **The Shallow Woods** adventure, and starts **First Steps Out** (`q_first_steps`). When the dialogue ends, foraging starts on its own ("Resumed Spring Forest Foraging").
 5. **Forage** (idle). Every 5 s the player gains Spirit Fern (2–6) and Dewdrop Tear (1–5), shown in the Now strip and floated over the map. Foraging costs nothing, can't be toggled off, and the materials have no use yet. From now on an idle action always runs: it pauses for cycling, adventures, dialogue and the shop, and resumes when they end (and on load).
@@ -25,7 +25,7 @@ All content is in the **Foundation** stage, in one zone (**Spirit Valley**). A n
    - The player must equip them by hand: Abilities view (A) and the technique drawers in the zone chest while cycling. A new technique lights NEW on the Wilderness Cycling card and on its drawer.
    - Smooth Flow has cycling zones, so cycling now earns Core Density XP. The only hint is a line of dialogue.
 9. **Aura Well** (one per map). Choosing *Mark down the location* unlocks **Aura Well** training: an idle action giving +1.5 Madra/s and +1 Spirit per level.
-10. **Reach Core Density 10** (+1 Path Point), then **NPC dialogue 4**. This completes the quest and awards the **Refugee Camp Map**.
+10. **Reach Core Density 10** (+1 Path Point), then **NPC dialogue 4**. This completes the quest, awards the **Refugee Camp Map**, and puts the Breakthrough milestone ("Raise Core Density to 100") on the Goals board.
 11. **Refugee Camp** encounter. It appears in later runs while the player holds the map. Visiting it reveals the **Traveling Merchant**, whose shop sells six gear pieces (once each per save) and Crude Scales for gold.
 12. **Fill the core.** Core Density stops at 100 and the XP beyond it is lost. The log says "Your core is full. The Tribulation waits in Spirit Valley.", the cabinet reads "Core full", cycling shows "Core full" instead of "+N XP", the Goals board reads "Face the Tribulation", and **The Tribulation** appears under Cultivate with a NEW seal. Below 100 its card shows "Core 95 / 100" and refuses a click.
 13. **Face the Tribulation.** A click at 100 opens a board in the map gap (the log, the Goals board and the dock hide). About 38 s of breathing: press Space or click as the bright sphere crosses the brass ring, and hold through the last breath. 4 cracks fail it. A pass moves the player to **Copper** (level 0, a placeholder curve, "Copper reached" on the Goals board, the card gone); a failure costs 5 Core Density levels (100 → 95), keeps the path points, and leaves the card for another try once the core is full again.
@@ -40,7 +40,7 @@ Other views, all opened from the zone view via keyboard or the dock:
 | Character | C | 8 total attributes with tooltips. See [CHARACTER.md](infrastructure/CHARACTER.md) |
 | Path | P | Pure Madra skill tree. See [PATH_PROGRESSION.md](progression/PATH_PROGRESSION.md) |
 
-A five-line log board (L opens the full log), the Goals board (the current quest step and the Breakthrough milestone) and quest toasts give feedback. The zone view is described in [ZONES.md](zones/ZONES.md). Progress auto-saves every 5 s to `user://save.tres` ([PERSISTENCE.md](infrastructure/PERSISTENCE.md)).
+A five-line log board (L opens the full log), the Goals board (the current quest step and, from NPC dialogue 4, the Breakthrough milestone) and quest toasts give feedback. The zone view is described in [ZONES.md](zones/ZONES.md). Progress auto-saves every 5 s to `user://save.tres` ([PERSISTENCE.md](infrastructure/PERSISTENCE.md)).
 
 ---
 

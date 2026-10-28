@@ -43,8 +43,8 @@
 | Path points | 0, with the path set to `pure_madra` | `PathManager.DEFAULT_PATH_ID` |
 | Abilities | `basic_strike` and `enforce`, unlocked and equipped | `SaveGameData` |
 | Cycling technique | `foundation_technique` (Foundational Technique) | `SaveGameData` |
-| Quests, events, conditions | None. The Goals board shows only the Breakthrough milestone ("Raise Core Density to 100", `0 / 100`). | — |
-| HUD | The cultivator cabinet (Madra, Core Density, gold), the Goals and log boards, and the dock's Inventory, Abilities, Character, and Path buttons are visible from the first frame | — |
+| Quests, events, conditions | None. The Goals board is hidden: no quest is active, and its Breakthrough milestone waits for NPC 4 (Beat 3b). | — |
+| HUD | The cultivator cabinet (Madra, Core Density, gold), the log board, and the dock's Inventory, Abilities, Character, and Path buttons are visible from the first frame. The Goals board appears with the first quest | — |
 
 ### Beat chain at a glance
 
@@ -65,6 +65,7 @@ BEAT 3a (any Shallow Woods run) Aura Well tile ─ "Mark down the location"
 BEAT 3b CD 10 ─ cond q_reach_cd_10 ─► step 0 done, NPC 4 visible   (+1 path point from CD milestone)
   │ NPC 4 (dialogue_4) ─ event celestial_intervener_dialogue_4 ─► q_reach_core_density_10 complete
   │                    ─► Refugee Camp Map
+  │                    ─ cond celestial_intervener_dialogue_4 ─► the Goals board's Breakthrough milestone
   │ next Shallow Woods map places the Refugee Camp ─ "Approach the camp"
   │                    ─ event merchant_discovered ─► Traveling Merchant
 BEAT 4  Traveling Merchant ─ shop: gold buys 6 gear pieces (once per save each) and Crude Scales
@@ -82,7 +83,7 @@ END OF AUTHORED CONTENT
 |---|---|---|---|
 | 1 | Clicks **Talk to the [INTERVENER]** | Timeline `celestial_intervener_introduction_1` plays from label `dialogue_1` (2 lines). When it ends, the action is consumed (`max_completions` 1) and its `success_effects` run. | Action `celestial_intervener_dialogue_1` |
 | 2 | — | `TriggerEventEffectData` fires the event and the condition latches. **Wilderness Cycling** appears (with a NEW seal), and the **Test Zone** unlocks. The Test Zone has no actions and stays hidden on the map. | Event and condition `celestial_intervener_dialogue_1` |
-| 3 | — | `StartQuestEffectData` starts the quest. Toast: "Quest Started: Awaken Your Core". | Quest `q_fill_core`, step 0 `reach_max_madra` |
+| 3 | — | `StartQuestEffectData` starts the quest. Toast: "Quest Started: Awaken Your Core". The Goals board appears, with the quest alone on it. | Quest `q_fill_core`, step 0 `reach_max_madra` |
 | 4 | Cycles with the Foundational Technique | 8 s cycle and 50 base Madra per cycle, paid in 0.08 s steps while the cursor is on the ball. The technique has no cycling zones, so it gives no Core Density XP. | `foundation_technique` |
 | 5 | Reaches 100 Madra (the CD-0 cap) | The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and **Return to the [INTERVENER]** (NPC 2) appears | Condition `q_fill_core_madra_full` (RESOURCE_AMOUNT, madra ≥ 100.0) |
 | 6 | Clicks NPC 2 | Label `dialogue_2` plays, then the event fires and `q_fill_core` completes ("Quest Complete: Awaken Your Core") | Action and event `celestial_intervener_dialogue_2` |
@@ -148,7 +149,7 @@ Deviations from the original design:
 | 1 | Cycles with **Smooth Flow** | 15 s cycle, 200 base Madra, and 4 cycling zones that give Core Density XP per click (perfect / good / ok): 25/15/5, 25/15/5, 50/25/10, 25/15/5. CD 10 needs about 110 cumulative XP, roughly one perfect cycle. | `smooth_flow` |
 | 2 | Reaches CD 10 | `CultivationManager` adds +1 path point (the milestone award). The condition latches, step 0 completes ("Quest Updated: Return to the Celestial [INTERVENER]"), and NPC 4 appears. | Condition `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10) |
 | 3 | Optionally buys **Power Font** (Keystone #2) | It requires Pure Core Awakening and unlocks the `power_font` ability. The alternatives are Torrential Flow (MAJOR: a technique) and Expanded Core (MINOR: +25 Madra capacity). Nothing requires the keystone. | Node `power_font` |
-| 4 | Clicks NPC 4 | Label `dialogue_4` plays, then the event fires and `q_reach_core_density_10` completes. The quest's `completion_effects` (`AwardItemEffectData`) add the **Refugee Camp Map** and log "Obtained 1x Refugee Camp Map" ("Quest Complete: Harden Your Core"). NPC 4 itself only fires the event. The map shows in Inventory → Quest Items. | Action and event `celestial_intervener_dialogue_4`; item `refugee_camp_map` |
+| 4 | Clicks NPC 4 | Label `dialogue_4` plays, then the event fires and `q_reach_core_density_10` completes. The quest's `completion_effects` (`AwardItemEffectData`) add the **Refugee Camp Map** and log "Obtained 1x Refugee Camp Map" ("Quest Complete: Harden Your Core"). NPC 4 itself only fires the event. The map shows in Inventory → Quest Items. The event's condition latches, and the Goals board's Breakthrough milestone ("Raise Core Density to 100") takes the finished quest's place: Foundation names it as its `breakthrough_goal_condition`, so the climb to 100 has a goal once the quests run out. | Action, event and condition `celestial_intervener_dialogue_4`; item `refugee_camp_map` |
 | 5 | Starts another Shallow Woods run | The **Refugee Camp** anchor is placed: count 1, `min_distance_from_origin` 3, REST_SITE icon. Its live gate is `refugee_camp_map_owned` (ITEM_OWNED) = true and `merchant_discovered` = false. | Encounter `refugee_camp` |
 | 6 | Chooses **Approach the camp** | The event fires and the condition latches, and **Traveling Merchant** appears in Spirit Valley. The tile then reads "The camp is empty now — they must have moved on, following your map back to the valley." Later maps never place the camp. | Event and condition `merchant_discovered`; action `spirit_valley_merchant` |
 | 7 | Clicks **Traveling Merchant** | The shop opens: see [Beat 4](#beat-4-merchant-shop-implemented). | Action `spirit_valley_merchant` |
@@ -197,7 +198,7 @@ Deviations from the original design:
 
 | # | Player does | What happens | Ids |
 |---|---|---|---|
-| 1 | Cycles to level 100 | The level-up that reaches the cap drops the leftover XP, and the log writes "Your core is full. The Tribulation waits in Spirit Valley." From then on XP is lost: the cabinet's figure reads "Core full", cycling says "Core full" where it would say "+N XP", and the Goals board's milestone reads "Face the Tribulation". | `CultivationManager.core_filled`, `CORE_FULL_LOG` |
+| 1 | Cycles to level 100 | The level-up that reaches the cap drops the leftover XP, and the log writes "Your core is full. The Tribulation waits in Spirit Valley." From then on XP is lost: the cabinet's figure reads "Core full", cycling says "Core full" where it would say "+N XP", and the Goals board's milestone reads "Face the Tribulation" (a player who never talked to NPC 4 has no milestone on the board). | `CultivationManager.core_filled`, `CORE_FULL_LOG` |
 | 2 | — | The condition latches as the core fills, and **The Tribulation** appears under Cultivate with a NEW seal, already ready: the tag ENTER, the steady brass frame and, in brass, "About 38 s" with "failure costs 5 levels" in the right column. The tag TRIAL and `Core 95 / 100` show only after a failure (row 6), and then the card refuses a click until the core is full again. | Condition `core_density_full` (CULTIVATION_LEVEL ≥ 100); action `spirit_valley_tribulation` (`ActionType.TRIBULATION` = 7) |
 | 3 | Clicks the card at 100 | The board opens in the map gap: the HUD boards and the dock hide and the map takes no input. The intro panel gives the rules ("4 cracks end the trial and cost 5 levels of Core Density.") with **Begin** and **Not yet**. Space or a click on the board begins; Not yet or Escape closes it with nothing changed. | `ActionManager.start_tribulation`, `TribulationViewState`, `TribulationView` |
 | 4 | Plays the Breath of the Core | About 38 s and 25 beats in five phases (Steady breath, Heartbeat, Echo, Quickening, the last breath with its hold). Space or a click as the bright sphere crosses the ring: PERFECT within ±70 ms, GOOD within ±140 ms. Every miss is a crack, and 4 cracks end the trial at once. Once it starts there is no way out, and losing focus does not pause it. | `foundation_tribulation.tres`, `TribulationRun` |
@@ -427,6 +428,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 | `scenes/merchant/` | Beat 4 shop view, rows, atmosphere and view state |
 | `assets/themes/merchant/spirit_valley_merchant_theme.tres` | Beat 4 Spirit Valley shop look |
 | `resources/zones/spirit_valley_zone/zone_actions/tribulation_action.tres`, `resources/tribulation/foundation_tribulation.tres`, `resources/unlocks/core_density_full.tres` | Beat 9 action, trial data and unlock condition |
+| `resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres` | Foundation's cap and curve; its `breakthrough_goal_condition` (NPC 4, Beat 3b) puts the Breakthrough on the Goals board |
 | `resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres` | Beat 9 destination: the Copper stage |
 | `scenes/tribulation/`, `scripts/tribulation/tribulation_run.gd` | Beat 9 board, state, stage and judge |
 | `resources/zones/test_zone/test_zone.tres` | Empty Test Zone (unlocks at NPC 1, hidden on the map at (-1, 0), no description) |
@@ -479,7 +481,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 - `[MEDIUM]` Path points are announced only by the dock. While points are unspent, the Path button shows the brass ring and a count seal (the dock listens to `points_changed`), which is the signal Beat 6 relies on. Nothing writes a log line or shows a toast, so a CD-milestone point earned while cycling (the dock hides) or in an adventure goes unseen until the zone view returns. Playtest whether the seal is enough.
 - `[HIGH]` Beat 3b can stall a new player. The Foundational Technique gives 0 CD XP, so "Reach Core Density level 10" can't progress until the player buys Pure Core Awakening and equips Smooth Flow. The only hint is "that fancy new cycling technique" in `dialogue_3`. After the unlock the Wilderness Cycling card lights NEW and Smooth Flow's drawer shows NEW inside cycling, but nothing tells the player to equip it.
 - `[MEDIUM]` The Aura Well discovery and the Refugee Camp search have no quest on the Goals board. The map's purpose is explained only in `dialogue_4` and the item description.
-- `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The Goals board shows only the Breakthrough milestone.
+- `[LOW]` On first launch there is no objective until the player clicks the single NPC action. The Goals board stays hidden until that first quest starts.
 - `[LOW]` Merchant gear purchases log as "Looted 1x …" (Crude Scales as "Obtained 1x …"), because the shop awards items through `InventoryManager.award_items()`.
 
 ### Tech Debt

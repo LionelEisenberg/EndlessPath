@@ -220,6 +220,12 @@ func has_next_stage() -> bool:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	return res != null and res.next_stage != null
 
+## The latched condition that puts the current stage's Breakthrough on the Goals
+## board, or null when the board shows it from the stage's start.
+func get_breakthrough_goal_condition() -> UnlockConditionData:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.breakthrough_goal_condition if res else null
+
 ## Maximum Madra the player can hold: the current stage's curve at the current
 ## Core Density level. 0.0 when there is no save or stage resource.
 func get_max_madra() -> float:

@@ -106,8 +106,13 @@ func test_adventure_leaves_goals_and_the_log_in_place() -> void:
 	assert_eq(_main_view.log_window.position, ZONE_LOG_POSITION, "and after it")
 
 ## The board still hangs from the cabinet's rings, so its cords (and the hooks
-## on its top slice) stay on.
+## on its top slice) stay on. It has a goal to hang, as it does by the time
+## adventures open: a board with none hides its cords.
 func test_adventure_keeps_the_goals_cords() -> void:
+	var save := SaveGameData.new()
+	save.unlock_progression.unlocked_condition_ids.append("celestial_intervener_dialogue_4")
+	PersistenceManager.save_game_data = save
+	PersistenceManager.save_data_reset.emit()
 	var goals: GoalsPanel = add_child_autofree(GoalsPanelScene.instantiate())
 	_main_view.goals_panel = goals
 	var cords: Control = goals.get_node("%Cords")

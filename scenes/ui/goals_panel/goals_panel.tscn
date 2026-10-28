@@ -47,6 +47,7 @@ mouse_filter = 2
 texture = ExtResource("12_cords")
 
 [node name="Board" type="VBoxContainer" parent="." unique_id=483981492]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -81,6 +82,7 @@ mouse_filter = 2
 texture = SubResource("AtlasTexture_board_bottom")
 
 [node name="TitleLabel" type="Label" parent="." unique_id=445241107]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = 18.0
 offset_top = 27.0

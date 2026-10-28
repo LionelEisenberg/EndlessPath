@@ -40,7 +40,7 @@ Writers:  CyclingTechnique.try_score_zone() → add_core_density_xp()
           TribulationView, at the run's end → advance_to_next_stage() on a pass, lose_core_density_levels() on a failure
 Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra()
           CultivatorPlate (zone view cabinet)   — stage name, level, XP beads, Madra cap, core orb up to the cap, "Core full"
-          GoalsPanel                            — the Breakthrough milestone: level / cap, "Face the Tribulation", "<Stage> reached"
+          GoalsPanel                            — the Breakthrough milestone, once get_breakthrough_goal_condition() has latched: level / cap, "Face the Tribulation", "<Stage> reached"
           CyclingTechnique, CyclingView         — is_core_full(): "Core full" in place of "+N XP", no XP pellets
           TribulationActionData                 — can_attempt() (full core, stage before the target) and is_passed()
           UnlockConditionData.evaluate()        — CULTIVATION_STAGE / CULTIVATION_LEVEL
@@ -74,6 +74,7 @@ Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra(
 | `max_madra_per_core_density_level` | `float` | `0.0` | Yes |
 | `icon` | `Texture2D` | `null` | No |
 | `next_stage` | `AdvancementStageResource` | `null` | Yes (`has_next_stage()`, `advance_to_next_stage()`) |
+| `breakthrough_goal_condition` | `UnlockConditionData` | `null` | Yes (`get_breakthrough_goal_condition()`). The latched condition, registered in `unlock_condition_list.tres`, that puts the stage's Breakthrough on the Goals board; `null` shows it from the stage's start. Foundation's is `celestial_intervener_dialogue_4` (NPC 4, Beat 3b); Copper names none |
 
 | Method | Formula |
 |--------|---------|
@@ -98,6 +99,7 @@ Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra(
 | `get_core_density_cap()` | `int` | The current stage's `max_core_density_level`. `0` without save data or a stage resource |
 | `is_core_full()` | `bool` | `cap > 0 and level >= cap` |
 | `has_next_stage()` | `bool` | The current stage resource has a `next_stage` |
+| `get_breakthrough_goal_condition()` | `UnlockConditionData` | The current stage's `breakthrough_goal_condition`, which `GoalsPanel` waits on before it shows the milestone. `null` without save data or a stage resource, or when the stage names none |
 | `get_xp_for_next_level()` | `float` | `get_xp_for_level(level + 1)`, i.e. `base × factor^level`. Returns `0.0` if there is no save or no stage resource |
 | `get_xp_for_level(level: int)` | `float` | What reaching `level` costs in the current stage, `stage.get_xp_for_level(level)`. `0.0` without a stage resource. The cultivator cabinet steps back through it to show the core without the XP still flying to it |
 | `get_core_density_xp()` / `get_core_density_level()` | `float` | `0.0` without save data |
@@ -182,7 +184,7 @@ The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not adde
 | `PathManager` | Receives `add_points()` for each new milestone. `can_purchase_node()` compares node `required_stage` with the current stage (tests use `_test_stage_override`) |
 | `UnlockManager` / `UnlockConditionData` | Re-evaluates on `core_density_level_updated` and `advancement_stage_changed`. `CULTIVATION_STAGE` and `CULTIVATION_LEVEL` conditions query the manager. `core_density_full` (`CULTIVATION_LEVEL` ≥ 100) latches the Tribulation's card |
 | `QuestManager` | `q_reach_core_density_10` step 1 completes when `q_reach_cd_10` unlocks |
-| UI | The zone view's `CultivatorPlate` and `GoalsPanel` read `get_core_density_cap()` and `is_core_full()` |
+| UI | The zone view's `CultivatorPlate` and `GoalsPanel` read `get_core_density_cap()` and `is_core_full()`; `GoalsPanel` also waits on `get_breakthrough_goal_condition()` |
 | Tribulation | `TribulationActionData.can_attempt()` and `is_passed()` read the stage and `is_core_full()`; `ActionManager.select_action()` refuses a card the core is not ready for; `TribulationView` applies the result at the run's end through `advance_to_next_stage()` or `lose_core_density_levels()` (`tribulation_view.gd:480-501`). See [breakthrough-tribulation.md](breakthrough-tribulation.md) |
 | `PersistenceManager` | Fields above persist in `user://save.tres` |
 | Dev panel (Ctrl+Shift+D) | The Player tab's Core Density Reach calls `DevCommands.reach_core_density(level)`, which raises the level through `add_core_density_xp()`, and Advance to the next stage calls `DevCommands.advance_stage()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#player)) |
@@ -236,7 +238,7 @@ Pacing derived from the authored values, counting cycle time only:
 | `singletons/persistence_manager/save_game_data.gd` | Persisted cultivation fields, with the milestone ledger |
 | `singletons/resource_manager/resource_manager.gd` | Applies the Madra cap |
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Stage, level, XP beads and Madra cap (zone view cabinet), "Core full" |
-| `scenes/ui/goals_panel/goals_panel.gd` | Breakthrough milestone (level / cap, "Face the Tribulation", "<Stage> reached") |
+| `scenes/ui/goals_panel/goals_panel.gd` | Breakthrough milestone (shown once the stage's goal condition latches; level / cap, "Face the Tribulation", "<Stage> reached") |
 | `scripts/tribulation/`, `scenes/tribulation/`, `resources/tribulation/` | The Tribulation: judge, board and data. See [breakthrough-tribulation.md](breakthrough-tribulation.md) |
 
 Tests: `tests/unit/test_cultivation_*.gd` and `tests/integration/test_tribulation_flow.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.

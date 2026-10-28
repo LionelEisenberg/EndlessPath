@@ -12,11 +12,11 @@ Quests are linear, multi-step narrative signposts that tell the player what to d
 
 ## Player Experience
 
-1. At first launch no quest is active. The Goals board under the cultivator cabinet shows only its Breakthrough milestone ("Raise Core Density to 100", `0 / 100`).
-2. Talking to the Celestial Intervener for the first time starts **Awaken Your Core**. A toast reads "Quest Started: Awaken Your Core", and the Goals board gains its quest row: the quest name, the current step ("Fill your Madra by cycling") and, because that step completes on a measurable condition, a figure on the name row (`25 / 100`) that follows Madra.
+1. At first launch no quest is active, and the Goals board under the cultivator cabinet is hidden: its Breakthrough milestone waits for NPC 4, the end of the Intervener's chain ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md), Beat 3b).
+2. Talking to the Celestial Intervener for the first time starts **Awaken Your Core**. A toast reads "Quest Started: Awaken Your Core", and the Goals board appears with its quest row alone: the quest name, the current step ("Fill your Madra by cycling") and, because that step completes on a measurable condition, a figure on the name row (`25 / 100`) that follows Madra.
 3. Each time a step advances, a toast shows "Quest Updated: <next step description>" and the row shows the new step. On completion the toast reads "Quest Complete: <quest name>", and the quest's rewards apply (a path point, an item, or an event that unlocks new zone actions).
 4. Back-to-back updates queue and play one after another, about 3.1 s each.
-5. After **Harden Your Core** completes, no quest is active. The quest row and its divider hide, the milestone moves up, and the board shrinks to fit. Completed quests are not listed anywhere.
+5. **Harden Your Core** completes at NPC 4, and no quest is active after it. The same talk puts the Breakthrough milestone ("Raise Core Density to 100") on the board in the quest row's place. Completed quests are not listed anywhere.
 
 The board is shared with the adventure view, which leaves it where the zone view hangs it, under the vitals cabinet; the merchant shop and the Tribulation hide it, cycling leaves it showing beside its board, and the menu books leave it under their backdrop. At Core Density 100 its milestone reads "Face the Tribulation", and after a pass "Copper reached".
 
@@ -166,13 +166,13 @@ Quest state lives in `SaveGameData.quest_progression` and is written with the re
 
 ### GoalsPanel (`scenes/ui/goals_panel/goals_panel.tscn`, class `GoalsPanel`)
 
-The lacquer Goals board (kit §5.2), which replaced the old collapsible quest tracker in the map-first zone view. `theme = lacquer_theme.tres`, `mouse_filter` STOP.
+The lacquer Goals board (kit §5.2), which replaced the old collapsible quest tracker in the map-first zone view. `theme = lacquer_theme.tres`, `mouse_filter` STOP while it shows a goal and IGNORE while it has none.
 
 ```
 GoalsPanel (Control, 440 wide)
   Cords %                       the two cords it hangs from (a 20 px strip, CORDS_HEIGHT, above the body)
-  Board (VBoxContainer)         BoardTop % / BoardMid (tiled) / BoardBottom: slices of lacquer_goals_ai.png
-  TitleLabel "Goals"            LabelLacquerPanelTitle
+  Board % (VBoxContainer)       BoardTop % / BoardMid (tiled) / BoardBottom: slices of lacquer_goals_ai.png
+  TitleLabel % "Goals"          LabelLacquerPanelTitle
   Rows % (VBoxContainer)
     QuestRow %                  MarginContainer: IconSlot (QuestIcon) + TextColumn (NameRow: QuestNameLabel %, QuestFigure % with QuestFigureLabel %; QuestStepLabel %)
     Divider %
@@ -181,8 +181,8 @@ GoalsPanel (Control, 440 wide)
 
 - Instanced under `MainView` in `main_game.tscn` with z_index 1. `ZoneViewState` hangs it at (24, 276), under the cultivator cabinet, on 24 px cords (`lacquer_goals_cords_ai.png`) that reach 4 px above its root to the cabinet's rings. `AdventureViewState` leaves it there, cords showing, because the adventure's vitals cabinet stands where the cultivator cabinet does. The merchant shop and the Tribulation hide it; cycling leaves it showing beside its board, and the menu books leave it showing under their backdrop ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#hud-boards)).
 - **Quest row:** the first id of `QuestManager.get_active_quest_ids()`, its `quest_name` and the current step's `description` (both wrap in the row's 358 px, the name before the figure, which stays at the right of its first line). The `current / target` figure is the step's `QuestStepData.get_progress_text()` (see the data model above), so it shows only for a step that completes on measurable conditions alone.
-- **Milestone row:** "Breakthrough", in three states, checked in this order (`goals_panel.gd:138-154`). With no next stage (Copper) it reads "<Stage> reached" on a full jade rod, with no figure. With the core full (`CultivationManager.is_core_full()`) it reads "Face the Tribulation" on a full rod, with `cap / cap` ("100 / 100"). Otherwise it reads "Raise Core Density to <cap>" (`CultivationManager.get_core_density_cap()`, 100 in Foundation), with the rod and the figure at `level / cap`. Core Density stops at the cap, and a save past it loads at it, so the figure never passes it.
-- With no active quest, the quest row and the divider hide, the milestone moves up into their place, and the board hugs its rows: 220 px tall with a quest, 150 with the milestone alone, when every text is one line.
+- **Milestone row:** hidden until the current stage's `breakthrough_goal_condition` (`CultivationManager.get_breakthrough_goal_condition()`) has latched, which the board hears through `UnlockManager.condition_unlocked`. Foundation's is `celestial_intervener_dialogue_4`, NPC 4's talk; Copper names none, so its row always shows. Then "Breakthrough", in three states, checked in this order. With no next stage (Copper) it reads "<Stage> reached" on a full jade rod, with no figure. With the core full (`CultivationManager.is_core_full()`) it reads "Face the Tribulation" on a full rod, with `cap / cap` ("100 / 100"). Otherwise it reads "Raise Core Density to <cap>" (`CultivationManager.get_core_density_cap()`, 100 in Foundation), with the rod and the figure at `level / cap`. Core Density stops at the cap, and a save past it loads at it, so the figure never passes it.
+- The divider shows only between the two rows. With one row hidden the other moves into its place, and the board hugs its rows: 220 px tall with both, 150 with the milestone alone and 146 with the quest alone (the least the board art's top and bottom slices take), when every text is one line. With neither row, on a fresh save before its first quest, the board hides its art, title and cords and lets clicks through to the map. Its root stays visible, since `MainView` hides and restores the root under the overlays.
 - **No text is cut off.** The quest's name and step and the milestone's name and line wrap in 358 px (a `wrap_pad.tres` pad under the 15/18 lines), and the rows are containers, so a wrapped line pushes what is under it down and the board, cut into a top, a tiled middle and a bottom slice, grows by it. Each row is an even number of px tall (a name's lines are 20 px, a detail line's 18), so the board is too. The row heights are re-fitted after every text change, so the board takes its height back when the text shortens.
 - It re-reads on `quest_started`, `quest_step_advanced`, `quest_completed`, `PersistenceManager.save_data_reset`, `CultivationManager.core_density_level_updated`, `CultivationManager.advancement_stage_changed` (the breakthrough), and `ResourceManager.madra_changed` / `gold_changed` (for a RESOURCE_AMOUNT figure). `refresh()` is public and does nothing before the board is ready.
 - Only the first active quest shows; completed quests are not listed.
@@ -284,7 +284,7 @@ Tests: `tests/unit/test_quest_*.gd` and `tests/integration/test_goals_panel.gd`,
 
 ### UI
 
-- `[LOW]` On a fresh save the Goals board shows only the Breakthrough milestone until the first dialogue starts a quest, so the first objective ("talk to the Intervener") is never written down.
+- `[LOW]` On a fresh save the Goals board stays hidden until the first dialogue starts a quest, so the first objective ("talk to the Intervener") is never written down.
 
 ### Tech Debt
 
