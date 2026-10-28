@@ -1,215 +1,137 @@
 class_name DevPanel
-extends PanelContainer
+extends Control
 
-## Floating draggable dev panel.
-## Routes input widgets to existing manager APIs.
-## Always-on-top (z_index set in main scene).
+## The dev panel: a floating board of tabs over the game, which Ctrl+Shift+D opens
+## and closes. The panel covers the screen and lets the mouse through; only its
+## body, the title bar and the tabs under it, takes the mouse. The title bar drags
+## the body, which always stays wholly on screen, and holds the time-speed picker.
+## Closing the panel hides the body only, so the badge in the top right still shows
+## any time speed but ×1.
+##
+## The shell owns only the frame: the open state, the drag, the tab, the time
+## speed, the badge and the hotkey. Each tab is a scene of its own that calls the
+## dev tools itself. The panel lives in the main scene, which a session switch
+## frees and loads again, so its open state, place and tab live on DevManager and
+## come back when the panel is built. Exempt from the lacquer look (STYLE_GUIDE.md,
+## G11): it takes pixel_theme.tres from MainView.
+
+#-----------------------------------------------------------------------------
+# EXPORTS
+#-----------------------------------------------------------------------------
+
+## The adventure view, for the tab that acts on a run.
+@export var adventure_view: AdventureView
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
+@onready var _body: PanelContainer = %Body
 @onready var _title_bar: PanelContainer = %TitleBar
+@onready var _speed_option: OptionButton = %SpeedOption
 @onready var _close_button: Button = %CloseButton
-
-@onready var _madra_spin: SpinBox = %MadraSpin
-@onready var _madra_apply: Button = %MadraApply
-@onready var _gold_spin: SpinBox = %GoldSpin
-@onready var _gold_apply: Button = %GoldApply
-
-@onready var _xp_spin: SpinBox = %XpSpin
-@onready var _xp_apply: Button = %XpApply
-@onready var _points_spin: SpinBox = %PointsSpin
-@onready var _points_apply: Button = %PointsApply
-
-@onready var _condition_option: OptionButton = %ConditionOption
-@onready var _condition_apply: Button = %ConditionApply
-@onready var _unlock_cycling_button: Button = %UnlockCyclingButton
-
-@onready var _force_win_button: Button = %ForceWinButton
-@onready var _show_whole_map_check: CheckButton = %ShowWholeMapCheck
-@onready var _exit_adventure_row: HBoxContainer = %ExitAdventureRow
-@onready var _exit_victory_button: Button = %ExitVictoryButton
-@onready var _exit_defeat_button: Button = %ExitDefeatButton
-
-@onready var _demo_zones_check: CheckButton = %DemoZonesCheck
-@onready var _hidden_zones_check: CheckButton = %HiddenZonesCheck
+@onready var _tabs: TabContainer = %Tabs
+@onready var _speed_badge: Label = %SpeedBadge
 
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
 
-var _is_dragging: bool = false
+## Where the pointer took hold of the body, from the body's top-left corner.
 var _drag_offset: Vector2 = Vector2.ZERO
-var _adventure_view: Node = null
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
 #-----------------------------------------------------------------------------
 
 func _ready() -> void:
-	_close_button.pressed.connect(_on_close_pressed)
-	_title_bar.gui_input.connect(_on_titlebar_input)
+	for speed: float in DevManager.TIME_SPEEDS:
+		_speed_option.add_item(DevManager.time_speed_label(speed))
+		_speed_option.set_item_metadata(_speed_option.item_count - 1, speed)
+	_body.visible = DevManager.panel_open
+	_body.position = _kept_on_screen(DevManager.panel_position)
+	_tabs.current_tab = clampi(DevManager.panel_tab, 0, _tabs.get_tab_count() - 1)
+	_show_speed(DevManager.get_time_speed())
+	_title_bar.gui_input.connect(_on_title_bar_input)
+	_close_button.pressed.connect(set_open.bind(false))
+	_tabs.tab_changed.connect(_on_tab_changed)
+	_speed_option.item_selected.connect(_on_speed_selected)
+	DevManager.time_speed_changed.connect(_show_speed)
 
-	_madra_apply.pressed.connect(_on_apply_madra)
-	_gold_apply.pressed.connect(_on_apply_gold)
-	_xp_apply.pressed.connect(_on_apply_xp)
-	_points_apply.pressed.connect(_on_apply_points)
-	_condition_apply.pressed.connect(_on_apply_condition)
-	_unlock_cycling_button.pressed.connect(_on_unlock_all_cycling)
-	_force_win_button.pressed.connect(_on_force_win)
-	_show_whole_map_check.toggled.connect(_on_show_whole_map_toggled)
-	_exit_victory_button.pressed.connect(_on_exit_adventure.bind(true))
-	_exit_defeat_button.pressed.connect(_on_exit_adventure.bind(false))
-	_demo_zones_check.toggled.connect(_on_demo_zones_toggled)
-	_hidden_zones_check.toggled.connect(_on_hidden_zones_toggled)
+## Ctrl+Shift+D opens and closes the panel, whatever view the game is in.
+func _input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo:
+		if key.ctrl_pressed and key.shift_pressed and key.keycode == KEY_D:
+			toggle()
+			get_viewport().set_input_as_handled()
 
-	_populate_condition_dropdown()
-	_force_win_button.visible = false
-	_exit_adventure_row.visible = false
+#-----------------------------------------------------------------------------
+# PUBLIC API
+#-----------------------------------------------------------------------------
 
-func _process(_delta: float) -> void:
-	if not visible:
+## Opens the panel when it is closed, and closes it when it is open.
+func toggle() -> void:
+	set_open(not is_open())
+
+## Opens or closes the panel: shows or hides its body, and keeps the choice on
+## DevManager for the panel built after a session switch. The badge stays.
+func set_open(open: bool) -> void:
+	_body.visible = open
+	DevManager.panel_open = open
+
+## True while the panel's body shows.
+func is_open() -> bool:
+	return _body.visible
+
+#-----------------------------------------------------------------------------
+# SIGNAL HANDLERS
+#-----------------------------------------------------------------------------
+
+## Drags the body by its title bar: a left press takes hold of it where the pointer
+## is, and each move with the left button held carries it along.
+func _on_title_bar_input(event: InputEvent) -> void:
+	var press := event as InputEventMouseButton
+	if press != null and press.pressed and press.button_index == MOUSE_BUTTON_LEFT:
+		_drag_offset = press.global_position - _body.global_position
 		return
-	_force_win_button.visible = _get_is_in_combat()
-	_exit_adventure_row.visible = _get_is_adventure_running()
+	var motion := event as InputEventMouseMotion
+	if motion != null and (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		_body.position = _kept_on_screen(motion.global_position - _drag_offset - global_position)
+		DevManager.panel_position = _body.position
+
+## Keeps the tab on DevManager for the panel built after a session switch.
+func _on_tab_changed(tab: int) -> void:
+	DevManager.panel_tab = tab
+
+## Sets the picked speed. DevManager then emits time_speed_changed, which shows it.
+## A speed it refused (no speed the picker offers) leaves the one in force showing.
+func _on_speed_selected(index: int) -> void:
+	var speed: float = _speed_option.get_item_metadata(index)
+	var refusal: String = DevManager.set_time_speed(speed)
+	if refusal != "":
+		Log.warn("DevPanel: %s" % refusal)
+		_show_speed(DevManager.get_time_speed())
 
 #-----------------------------------------------------------------------------
-# PUBLIC FUNCTIONS
+# PRIVATE HELPERS
 #-----------------------------------------------------------------------------
 
-## Opens the panel (called from main_game after unlock).
-func open() -> void:
-	visible = true
+## Shows the time speed in the picker, and in the badge, which hides at ×1.
+func _show_speed(speed: float) -> void:
+	_speed_option.select(_speed_index(speed))
+	_speed_badge.text = DevManager.time_speed_label(speed)
+	_speed_badge.visible = speed != 1.0
 
-#-----------------------------------------------------------------------------
-# PRIVATE: dropdown population
-#-----------------------------------------------------------------------------
+## The index of the picker's item for the speed, or -1 when it offers none.
+func _speed_index(speed: float) -> int:
+	for index: int in _speed_option.item_count:
+		if _speed_option.get_item_metadata(index) == speed:
+			return index
+	return -1
 
-func _populate_condition_dropdown() -> void:
-	_condition_option.clear()
-	if UnlockManager == null or UnlockManager.unlock_condition_list == null:
-		return
-	for c: UnlockConditionData in UnlockManager.unlock_condition_list.list:
-		if c == null or c.condition_id.is_empty():
-			continue
-		_condition_option.add_item(c.condition_id)
-		_condition_option.set_item_metadata(_condition_option.item_count - 1, c.condition_id)
-
-#-----------------------------------------------------------------------------
-# PRIVATE: drag behavior (drag the title bar)
-#-----------------------------------------------------------------------------
-
-func _on_titlebar_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_is_dragging = true
-			_drag_offset = event.global_position - global_position
-		else:
-			_is_dragging = false
-	elif event is InputEventMouseMotion and _is_dragging:
-		global_position = event.global_position - _drag_offset
-
-#-----------------------------------------------------------------------------
-# PRIVATE: action handlers
-#-----------------------------------------------------------------------------
-
-func _on_close_pressed() -> void:
-	visible = false
-
-func _on_apply_madra() -> void:
-	var v: float = _madra_spin.value
-	ResourceManager.set_madra(v)
-	LogManager.log_message("[color=magenta][DEV][/color] Set Madra to %d" % int(v))
-
-func _on_apply_gold() -> void:
-	var v: float = _gold_spin.value
-	ResourceManager.set_gold(v)
-	LogManager.log_message("[color=magenta][DEV][/color] Set Gold to %d" % int(v))
-
-func _on_apply_xp() -> void:
-	var v: float = _xp_spin.value
-	CultivationManager.add_core_density_xp(v)
-	LogManager.log_message("[color=magenta][DEV][/color] Added %d Core Density XP" % int(v))
-
-func _on_apply_points() -> void:
-	var v: int = int(_points_spin.value)
-	PathManager.add_points(v)
-	LogManager.log_message("[color=magenta][DEV][/color] Granted %d Path Points" % v)
-
-func _on_apply_condition() -> void:
-	var idx: int = _condition_option.selected
-	if idx < 0:
-		return
-	var id: String = _condition_option.get_item_metadata(idx)
-	UnlockManager.force_unlock_condition(id)
-	LogManager.log_message("[color=magenta][DEV][/color] Force-triggered condition '%s'" % id)
-
-func _on_unlock_all_cycling() -> void:
-	if CyclingManager == null or CyclingManager._technique_catalog == null:
-		return
-	var count: int = 0
-	for t: CyclingTechniqueData in CyclingManager._technique_catalog.cycling_techniques:
-		if t and not t.id.is_empty():
-			CyclingManager.unlock_technique(t.id)
-			count += 1
-	LogManager.log_message("[color=magenta][DEV][/color] Unlocked all %d cycling techniques" % count)
-
-func _on_force_win() -> void:
-	var av: Node = _get_adventure_view()
-	if av == null:
-		return
-	av.force_win_combat()
-	LogManager.log_message("[color=magenta][DEV][/color] Force-won current combat")
-
-## Ends the running adventure as a victory or a defeat, with its end card.
-func _on_exit_adventure(victory: bool) -> void:
-	var av: Node = _get_adventure_view()
-	if av == null:
-		return
-	av.force_end_adventure(victory)
-	var result_text := "victory" if victory else "defeat"
-	LogManager.log_message("[color=magenta][DEV][/color] Exited adventure as a %s" % result_text)
-
-func _on_show_whole_map_toggled(pressed: bool) -> void:
-	var av: Node = _get_adventure_view()
-	if av == null:
-		return
-	av.set_show_whole_map(pressed)
-	var state_text := "ON" if pressed else "OFF"
-	LogManager.log_message("[color=magenta][DEV][/color] Show Whole Map: %s" % state_text)
-
-## Shows or hides the two demo zones (a locked Advancement Zone and an
-## Uncharted hex) on the zone map. They live outside zone_data_list.tres and
-## never enter the save.
-func _on_demo_zones_toggled(pressed: bool) -> void:
-	ZoneManager.set_demo_zones_visible(pressed)
-	var state_text := "ON" if pressed else "OFF"
-	LogManager.log_message("[color=magenta][DEV][/color] Demo zones: %s" % state_text)
-
-## Shows or hides the zones the map hides (Test Zone).
-func _on_hidden_zones_toggled(pressed: bool) -> void:
-	ZoneManager.set_hidden_zones_visible(pressed)
-	var state_text := "ON" if pressed else "OFF"
-	LogManager.log_message("[color=magenta][DEV][/color] Show hidden zones: %s" % state_text)
-
-#-----------------------------------------------------------------------------
-# PRIVATE: adventure view lookup
-#-----------------------------------------------------------------------------
-
-func _get_adventure_view() -> Node:
-	if _adventure_view == null or not is_instance_valid(_adventure_view):
-		_adventure_view = get_tree().root.get_node_or_null("MainGame/MainView/AdventureView")
-	return _adventure_view
-
-func _get_is_in_combat() -> bool:
-	var av: Node = _get_adventure_view()
-	if av == null:
-		return false
-	return av.is_in_combat
-
-func _get_is_adventure_running() -> bool:
-	var av: Node = _get_adventure_view()
-	if av == null:
-		return false
-	return av.is_adventure_running()
+## The body's place moved as little as it takes for the whole body to stand inside
+## the panel, which covers the screen: a place kept at a larger window, or a drag
+## past an edge, never leaves the title bar out of reach.
+func _kept_on_screen(place: Vector2) -> Vector2:
+	return place.clamp(Vector2.ZERO, (size - _body.size).max(Vector2.ZERO))

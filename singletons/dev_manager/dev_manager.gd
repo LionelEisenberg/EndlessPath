@@ -25,6 +25,10 @@ extends Node
 ##
 ## The time speed is the game's base Engine.time_scale, which GameSpeed keeps: one of
 ## TIME_SPEEDS, set with set_time_speed(). A switch keeps it.
+##
+## The dev panel's open state, place and tab live here too (panel_open,
+## panel_position, panel_tab): the panel lives in the main scene a switch frees, and
+## the panel built next comes back as the last one was.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -81,6 +85,18 @@ const _DEV_TAG: String = "[color=magenta][DEV][/color]"
 ## For tests only: the one folder to read presets from, in place of both
 ## PRESET_DIR and EXPORT_PRESET_DIR. Empty reads those two.
 var preset_dir_override: String = ""
+
+## Whether the dev panel is open. The panel writes it when it opens or closes, and
+## reads it when it is built.
+var panel_open: bool = false
+
+## Where the dev panel's body stands: its top-left corner, in screen pixels. The
+## panel writes it when its title bar is dragged, and reads it when it is built.
+var panel_position: Vector2 = Vector2(24, 24)
+
+## The index of the dev panel's tab. The panel writes it when the tab changes, and
+## reads it when it is built.
+var panel_tab: int = 0
 
 ## What the session plays. A GUT run keeps the default: its tests set up their own.
 var _session_kind: SessionKind = SessionKind.YOUR_SAVE
@@ -386,15 +402,21 @@ func build_preset(preset: SavePresetData, save_path: String = "") -> String:
 ## emitted or logged.
 func set_time_speed(speed: float) -> String:
 	if not TIME_SPEEDS.has(speed):
-		return "Time speed %s is not one of %s" % [_time_speed_label(speed), _time_speed_labels()]
+		return "Time speed %s is not one of %s" % [time_speed_label(speed), _time_speed_labels()]
 	GameSpeed.set_base_scale(speed)
 	time_speed_changed.emit(speed)
-	_log_dev_line("Time speed %s" % _time_speed_label(speed))
+	_log_dev_line("Time speed %s" % time_speed_label(speed))
 	return ""
 
 ## The time speed: GameSpeed.base_scale, 1.0 until set_time_speed() sets another.
 func get_time_speed() -> float:
 	return GameSpeed.base_scale
+
+## How a time speed is written for the player, in the [DEV] lines and in the dev
+## panel's speed picker and badge: "×5", "×2.5". A whole number loses the ".0"
+## String.num() leaves on it.
+func time_speed_label(speed: float) -> String:
+	return "×%s" % String.num(speed).trim_suffix(".0")
 
 #-----------------------------------------------------------------------------
 # THE SWITCH
@@ -734,14 +756,9 @@ func _mark_everything_seen() -> void:
 func _log_dev_line(what: String) -> void:
 	LogManager.log_message("%s %s" % [_DEV_TAG, what])
 
-## How a time speed is written for the player: "×5", "×2.5". A whole number loses the
-## ".0" String.num() leaves on it.
-func _time_speed_label(speed: float) -> String:
-	return "×%s" % String.num(speed).trim_suffix(".0")
-
-## The speeds in TIME_SPEEDS, written as _time_speed_label() does: "×1, ×2, ×5, ×10".
+## The speeds in TIME_SPEEDS, written as time_speed_label() does: "×1, ×2, ×5, ×10".
 func _time_speed_labels() -> String:
 	var labels := PackedStringArray()
 	for speed: float in TIME_SPEEDS:
-		labels.append(_time_speed_label(speed))
+		labels.append(time_speed_label(speed))
 	return ", ".join(labels)

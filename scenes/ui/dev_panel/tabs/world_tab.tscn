@@ -1,0 +1,71 @@
+[gd_scene format=3 uid="uid://eub13kywnbop"]
+
+[ext_resource type="Script" uid="uid://cid4o7ldubcao" path="res://scenes/ui/dev_panel/tabs/world_tab.gd" id="1_world"]
+
+[node name="WorldTab" type="ScrollContainer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+script = ExtResource("1_world")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TravelHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "TRAVEL"
+
+[node name="TravelRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ZoneLabel" type="Label" parent="MarginContainer/VBoxContainer/TravelRow"]
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Zone"
+
+[node name="TravelOption" type="OptionButton" parent="MarginContainer/VBoxContainer/TravelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TravelButton" type="Button" parent="MarginContainer/VBoxContainer/TravelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Travel"
+
+[node name="TravelStatus" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="ZoneMapHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "ZONE MAP"
+
+[node name="DemoZonesCheck" type="CheckButton" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Demo zones (locked, uncharted)"
+
+[node name="HiddenZonesCheck" type="CheckButton" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Show hidden zones (Test Zone)"

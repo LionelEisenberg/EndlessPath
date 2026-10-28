@@ -1,222 +1,81 @@
-[gd_scene load_steps=2 format=3 uid="uid://dev_panel_001"]
+[gd_scene format=3 uid="uid://ctyaa8ped1fow"]
 
-[ext_resource type="Script" path="res://scenes/ui/dev_panel/dev_panel.gd" id="1_devp"]
+[ext_resource type="Script" uid="uid://bbaaosc4u22vv" path="res://scenes/ui/dev_panel/dev_panel.gd" id="1_devp"]
+[ext_resource type="PackedScene" uid="uid://eub13kywnbop" path="res://scenes/ui/dev_panel/tabs/world_tab.tscn" id="2_world"]
 
-[node name="DevPanel" type="PanelContainer"]
+[node name="DevPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("1_devp")
-custom_minimum_size = Vector2(340, 0)
-offset_left = 40.0
-offset_top = 40.0
-offset_right = 380.0
-offset_bottom = 440.0
-size_flags_horizontal = 0
-size_flags_vertical = 0
+
+[node name="Body" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 680)
+layout_mode = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 584.0
+offset_bottom = 704.0
 mouse_filter = 0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="Body"]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="TitleBar" type="PanelContainer" parent="VBoxContainer"]
+[node name="TitleBar" type="PanelContainer" parent="Body/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TitleBar"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Body/VBoxContainer/TitleBar"]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer/TitleBar/HBoxContainer"]
+[node name="TitleLabel" type="Label" parent="Body/VBoxContainer/TitleBar/HBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelHeading"
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"LabelSubheading"
 text = "Dev Panel"
 
-[node name="Spacer" type="Control" parent="VBoxContainer/TitleBar/HBoxContainer"]
+[node name="Spacer" type="Control" parent="Body/VBoxContainer/TitleBar/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 
-[node name="CloseButton" type="Button" parent="VBoxContainer/TitleBar/HBoxContainer"]
+[node name="SpeedOption" type="OptionButton" parent="Body/VBoxContainer/TitleBar/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+
+[node name="CloseButton" type="Button" parent="Body/VBoxContainer/TitleBar/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
 text = "×"
 flat = true
 
-[node name="ResourcesHeader" type="Label" parent="VBoxContainer"]
+[node name="Tabs" type="TabContainer" parent="Body/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 3
+clip_tabs = false
+
+[node name="WorldTab" parent="Body/VBoxContainer/Tabs" instance=ExtResource("2_world")]
+unique_name_in_owner = true
+layout_mode = 2
+metadata/_tab_name = "World"
+
+[node name="SpeedBadge" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -120.0
+offset_right = -24.0
+offset_bottom = 30.0
+grow_horizontal = 0
 theme_type_variation = &"LabelSubheading"
-text = "RESOURCES"
-
-[node name="MadraRow" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/MadraRow"]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-theme_type_variation = &"LabelBody"
-text = "Madra"
-
-[node name="MadraSpin" type="SpinBox" parent="VBoxContainer/MadraRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-max_value = 1000000.0
-allow_greater = true
-
-[node name="MadraApply" type="Button" parent="VBoxContainer/MadraRow"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Apply"
-
-[node name="GoldRow" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/GoldRow"]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-theme_type_variation = &"LabelBody"
-text = "Gold"
-
-[node name="GoldSpin" type="SpinBox" parent="VBoxContainer/GoldRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-max_value = 1000000.0
-allow_greater = true
-
-[node name="GoldApply" type="Button" parent="VBoxContainer/GoldRow"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Apply"
-
-[node name="CultHeader" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_type_variation = &"LabelSubheading"
-text = "CULTIVATION"
-
-[node name="XpRow" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/XpRow"]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-theme_type_variation = &"LabelBody"
-text = "Add CD XP"
-
-[node name="XpSpin" type="SpinBox" parent="VBoxContainer/XpRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-max_value = 1000000.0
-allow_greater = true
-
-[node name="XpApply" type="Button" parent="VBoxContainer/XpRow"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Apply"
-
-[node name="PointsRow" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/PointsRow"]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-theme_type_variation = &"LabelBody"
-text = "Path Points"
-
-[node name="PointsSpin" type="SpinBox" parent="VBoxContainer/PointsRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-max_value = 1000.0
-rounded = true
-
-[node name="PointsApply" type="Button" parent="VBoxContainer/PointsRow"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Apply"
-
-[node name="UnlocksHeader" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_type_variation = &"LabelSubheading"
-text = "UNLOCKS"
-
-[node name="ConditionRow" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/ConditionRow"]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-theme_type_variation = &"LabelBody"
-text = "Condition"
-
-[node name="ConditionOption" type="OptionButton" parent="VBoxContainer/ConditionRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ConditionApply" type="Button" parent="VBoxContainer/ConditionRow"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Trigger"
-
-[node name="UnlockCyclingButton" type="Button" parent="VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Unlock All Cycling Techniques"
-
-[node name="CombatHeader" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_type_variation = &"LabelSubheading"
-text = "COMBAT"
-
-[node name="ForceWinButton" type="Button" parent="VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Force-Win Current Combat"
-
-[node name="AdventureHeader" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_type_variation = &"LabelSubheading"
-text = "ADVENTURE"
-
-[node name="ShowWholeMapCheck" type="CheckButton" parent="VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Show Whole Map"
-
-[node name="ExitAdventureRow" type="HBoxContainer" parent="VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/ExitAdventureRow"]
-custom_minimum_size = Vector2(100, 0)
-layout_mode = 2
-theme_type_variation = &"LabelBody"
-text = "Exit"
-
-[node name="ExitVictoryButton" type="Button" parent="VBoxContainer/ExitAdventureRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Victory"
-
-[node name="ExitDefeatButton" type="Button" parent="VBoxContainer/ExitAdventureRow"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Defeat"
-
-[node name="ZonesHeader" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_type_variation = &"LabelSubheading"
-text = "ZONES"
-
-[node name="DemoZonesCheck" type="CheckButton" parent="VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Demo zones (locked, uncharted)"
-
-[node name="HiddenZonesCheck" type="CheckButton" parent="VBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Show hidden zones (Test Zone)"
+text = "×5"
+horizontal_alignment = 2
