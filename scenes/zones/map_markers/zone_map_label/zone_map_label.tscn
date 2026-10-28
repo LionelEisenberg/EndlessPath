@@ -10,10 +10,9 @@
 [ext_resource type="Texture2D" uid="uid://dbedn51xr7t5j" path="res://assets/ui/lacquer/lacquer_plate_locked_hover_ai.png" id="8_locked_hover"]
 [ext_resource type="Texture2D" uid="uid://13le5oe06x3d" path="res://assets/ui/lacquer/lacquer_plate_uncharted_ai.png" id="9_uncharted"]
 [ext_resource type="Texture2D" uid="uid://5jgo8ew5s1fw" path="res://assets/ui/lacquer/lacquer_plate_uncharted_hover_ai.png" id="10_uncharted_hover"]
-[ext_resource type="Texture2D" uid="uid://bunmjp88jq5f0" path="res://assets/ui/lacquer/lacquer_mini_well_ai.png" id="11_mini_well"]
-[ext_resource type="Texture2D" uid="uid://b8nx3e2h16v0c" path="res://assets/ui/lacquer/lacquer_mini_forage_ai.png" id="12_mini_forage"]
 [ext_resource type="Texture2D" uid="uid://dpk2a4saepmy6" path="res://assets/ui/lacquer/lacquer_mini_swords_ai.png" id="13_mini_swords"]
 [ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="14_frame"]
+[ext_resource type="PackedScene" uid="uid://bct65erp7bgms" path="res://scenes/zones/map_markers/map_action_ring/map_action_ring.tscn" id="15_ring"]
 
 [node name="ZoneMapLabel" type="Control" unique_id=1618011952]
 layout_mode = 3
@@ -31,8 +30,6 @@ locked_texture = ExtResource("7_locked")
 locked_hover_texture = ExtResource("8_locked_hover")
 uncharted_texture = ExtResource("9_uncharted")
 uncharted_hover_texture = ExtResource("10_uncharted_hover")
-training_icon = ExtResource("11_mini_well")
-forage_icon = ExtResource("12_mini_forage")
 blocker_icon = ExtResource("13_mini_swords")
 
 [node name="PlateTexture" type="NinePatchRect" parent="." unique_id=1051036854]
@@ -109,7 +106,7 @@ theme_override_constants/margin_bottom = 0
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-texture = ExtResource("11_mini_well")
+texture = ExtResource("13_mini_swords")
 
 [node name="LineName" type="Label" parent="LineArea/LineRow" unique_id=969246376]
 unique_name_in_owner = true
@@ -117,19 +114,14 @@ layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
 theme_type_variation = &"LabelLacquerPlateLine"
-text = "Aura Well"
+text = "Tribulation Guardian"
 clip_text = true
 text_overrun_behavior = 3
 
-[node name="LineRate" type="RichTextLabel" parent="LineArea/LineRow" unique_id=696295032]
+[node name="ActionRing" parent="." unique_id=1402957713 instance=ExtResource("15_ring")]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 0
-mouse_filter = 2
-theme_type_variation = &"RichTextLacquer"
-theme_override_font_sizes/normal_font_size = 14
-bbcode_enabled = true
-text = " · +1.5 Madra / s"
-fit_content = true
-scroll_active = false
-autowrap_mode = 0
+layout_mode = 0
+offset_left = -22.0
+offset_top = -6.0
+offset_right = 42.0
+offset_bottom = 58.0

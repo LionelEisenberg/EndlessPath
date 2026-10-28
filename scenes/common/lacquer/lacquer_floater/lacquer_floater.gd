@@ -3,10 +3,12 @@ extends Control
 
 ## LacquerFloater
 ## A short gain rising on a small lacquer token (kit §0, §6.3): a few words
-## such as "+1.5 Madra" in Madra blue, or a foraging haul in cream. The token
-## is 28 px tall and even(text width + 28) wide, its 2 px shadow baked into the
-## 9-slice. It rises 40 px over 1 s in 2 px steps, then hides outright. It does
-## not move itself: the placer positions it each frame and raises it by
+## such as "+1.5 Madra" in Madra blue (pop), or a foraging haul in cream, each
+## count followed by its item's 16 px icon, "+3 [dewdrop]  +4 [fern]"
+## (pop_items: the user's review, 2026-10-24, icons over names). The token
+## is 28 px tall and even(content width + 28) wide, its 2 px shadow baked into
+## the 9-slice. It rises 40 px over 1 s in 2 px steps, then hides outright. It
+## does not move itself: the placer positions it each frame and raises it by
 ## get_rise() (MapMarkers for the map's floater, the cycling view for the
 ## floater of each zone).
 
@@ -27,6 +29,10 @@ const TOKEN_HEIGHT: int = 28
 const TOKEN_TEXT_PADDING: int = 28
 const TOKEN_SHADOW: int = 2
 
+## A haul's item icons are drawn at 16 px; two spaces stand between its items.
+const ITEM_ICON_SIZE: int = 16
+const ITEM_SEPARATOR: String = "  "
+
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
@@ -39,6 +45,8 @@ const TOKEN_SHADOW: int = 2
 #-----------------------------------------------------------------------------
 
 var _plain_text: String = ""
+## The item icons of the haul shown, in order; empty for plain text.
+var _icons: Array[Texture2D] = []
 var _color: Color = ThemeConstants.LACQUER_CREAM
 var _elapsed: float = 0.0
 var _token_width: int = 0
@@ -62,27 +70,45 @@ func _process(delta: float) -> void:
 ## Shows text in color on the token and starts its rise from the bottom.
 func pop(text: String, color: Color) -> void:
 	_plain_text = text
-	_color = color
+	_icons.clear()
 	_text.text = LacquerText.decimal_bbcode(text)
-	_text.add_theme_color_override("default_color", color)
-	var text_width: int = ceili(_text.get_content_width())
-	_token_width = text_width + TOKEN_TEXT_PADDING
-	_token_width += _token_width % 2
-	_token.size = Vector2(_token_width + TOKEN_SHADOW, TOKEN_HEIGHT + TOKEN_SHADOW)
-	_text.size = Vector2(_token_width, _text.size.y)
-	size = _token.size
-	_elapsed = 0.0
-	show()
-	set_process(true)
+	_start(color)
+
+## Shows a haul in color on the token and starts its rise: each count followed
+## by its item's mini icon ("+3 [dewdrop]  +4 [fern]"), in the order given;
+## an item with no icon shows its name. items maps each ItemDefinitionData to
+## how many came in.
+func pop_items(items: Dictionary, color: Color) -> void:
+	var counts: Array[String] = []
+	_icons.clear()
+	_text.clear()
+	for item: ItemDefinitionData in items:
+		if not counts.is_empty():
+			_text.add_text(ITEM_SEPARATOR)
+		var count: String = "+%d" % items[item]
+		counts.append(count)
+		_text.add_text(count + " ")
+		var icon: Texture2D = item.get_mini_icon()
+		if icon == null:
+			_text.add_text(item.item_name)
+			continue
+		_icons.append(icon)
+		_text.add_image(icon, ITEM_ICON_SIZE, ITEM_ICON_SIZE)
+	_plain_text = ITEM_SEPARATOR.join(counts)
+	_start(color)
 
 ## Hides the floater outright.
 func stop() -> void:
 	hide()
 	set_process(false)
 
-## The text shown, without BBCode.
+## The text shown, without BBCode; a haul's counts alone ("+3  +4").
 func get_text() -> String:
 	return _plain_text
+
+## The item icons of the haul shown, in order; empty for plain text.
+func get_icons() -> Array[Texture2D]:
+	return _icons.duplicate()
 
 ## The text colour.
 func get_color() -> Color:
@@ -102,3 +128,21 @@ static func rise_at(elapsed: float) -> int:
 	var steps: int = clampi(floori(elapsed / step_seconds + _RISE_STEP_EPSILON), 0, RISE_STEPS)
 	@warning_ignore("integer_division")
 	return steps * (RISE_PX / RISE_STEPS)
+
+#-----------------------------------------------------------------------------
+# PRIVATE
+#-----------------------------------------------------------------------------
+
+## Colours the content, sizes the token to it and starts the rise.
+func _start(color: Color) -> void:
+	_color = color
+	_text.add_theme_color_override("default_color", color)
+	var text_width: int = ceili(_text.get_content_width())
+	_token_width = text_width + TOKEN_TEXT_PADDING
+	_token_width += _token_width % 2
+	_token.size = Vector2(_token_width + TOKEN_SHADOW, TOKEN_HEIGHT + TOKEN_SHADOW)
+	_text.size = Vector2(_token_width, _text.size.y)
+	size = _token.size
+	_elapsed = 0.0
+	show()
+	set_process(true)

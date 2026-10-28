@@ -7,7 +7,7 @@ extends Control
 ## While an idle action (FORAGE or TRAIN_STATS) runs, a jade bead ring lights
 ## over each timer cycle (one Aura Well tick, one foraging haul), around the
 ## action's icon. The Aura Well variant shows its Madra rate,
-## "Lv n → n+1 · +1 Spirit", the ticks into the level and a rod; the foraging
+## "+1 Spirit at Lv n+1", the ticks into the level and a rod; the foraging
 ## variant shows each loot entry's range and "haul in N s". Clicking the tray
 ## emits strip_pressed (the chest scrolls to the running card and flashes it).
 ## While the player cycles, the tray shows the cycle in the Aura Well's layout,
@@ -43,7 +43,6 @@ const RING_LAST_FRAME: int = 12
 const RING_FRAME_COUNT: int = 13
 ## The tray flashes once when its running card is clicked.
 const FLASH_TIMES: int = 1
-const SEPARATOR: String = " · "
 ## The empty tray's line: the idle action that resumes, or none.
 const PAUSED_FORMAT: String = "%s · paused"
 const NOTHING_RUNNING: String = "Nothing running"
@@ -56,6 +55,10 @@ const CYCLE_READY_FORMAT: String = "%d s cycle"
 const RATE_SHOWN_FROM: float = CyclingManager.RATE_STEP / 2.0
 ## The foraging haul's countdown.
 const HAUL_FORMAT: String = "haul in %d s"
+## The training level line: what the next level grants ("+1 Spirit at Lv 2"),
+## or the levels alone for an action whose levels grant no attribute.
+const LEVEL_REWARD_FORMAT: String = "%s at Lv %d"
+const LEVEL_FORMAT: String = "Lv %d → %d"
 
 ## The strip is the kit's 88 tall at least. Under the text of each look the room
 ## is what makes one line of each exactly that: the Aura Well's content starts 12
@@ -175,8 +178,8 @@ func _update_empty_line() -> void:
 	_empty_label.text = PAUSED_FORMAT % idle.action_name if idle != null else NOTHING_RUNNING
 	_fit()
 
-## "+1.5 Madra / s", "Lv 1 → 2 · +1 Spirit", "214 / 300" and the rod toward
-## the next level.
+## "+1.5 Madra / s", "+1 Spirit at Lv 2", "214 / 300" and the rod toward the
+## next level.
 func _show_training(training: TrainingActionData) -> void:
 	_training_name.text = training.action_name
 	var madra_per_second: float = training.get_madra_per_second()
@@ -192,11 +195,8 @@ func _update_training_progress() -> void:
 	var level: int = training.get_current_level(ticks)
 	var ticks_in_level: int = training.get_ticks_in_level(ticks)
 	var ticks_for_next: int = training.get_ticks_for_next_level(ticks)
-	var level_line: String = "Lv %d → %d" % [level, level + 1]
 	var reward: String = _level_reward_text(training)
-	if reward != "":
-		level_line += SEPARATOR + reward
-	_level_label.text = level_line
+	_level_label.text = LEVEL_REWARD_FORMAT % [reward, level + 1] if reward != "" else LEVEL_FORMAT % [level, level + 1]
 	_ticks_label.text = "%d / %d" % [ticks_in_level, ticks_for_next]
 	_well_rod.set_fraction(float(ticks_in_level) / ticks_for_next if ticks_for_next > 0 else 0.0)
 	_fit_training_labels()
@@ -308,7 +308,7 @@ func _show_forage(forage: ForageActionData) -> void:
 		var icon_rect: TextureRect = yield_item.get_node("%Icon") as TextureRect
 		icon_rect.texture = entry.item.get_mini_icon()
 		icon_rect.visible = icon_rect.texture != null
-		(yield_item.get_node("%RangeText") as RichTextLabel).text = _range_text(entry)
+		(yield_item.get_node("%YieldText") as RichTextLabel).text = _range_text(entry)
 
 ## Gives the haul countdown the width of its widest reading ("haul in N s" for any
 ## N of a cycle), so the yields wrapping beside it keep the room they have as the

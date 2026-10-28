@@ -3,16 +3,18 @@ extends ZoneActionPresenter
 ## Presenter for TRIBULATION cards:
 ##   below the cap: the Core row, the core rod (level / cap) and "Core <level> /
 ##     <cap>" in tan; tag TRIAL.
-##   at the cap: "About <n> s · a failure costs <levels> levels" in brass on the
-##     detail line, the card's steady brass ready frame and the ENTER tag.
+##   at the cap: "About <n> s" in brass on the left of the detail line and
+##     "failure costs <levels> levels" in brass in its right column, the card's
+##     steady brass ready frame and the ENTER tag.
 ## The card is ready while TribulationActionData.can_attempt(): the stage before
 ## the trial's target with a full core. It follows the core's level and the
 ## stage, and gates activation on the same question. A rejected click shakes the
 ## Core row softly in even-px steps (MapGlyph's soft shake) and logs why.
-## The card is the normal 72 px drawer unless the ready line wraps. The ready line
-## is one Label fitted by ZoneActionButton.fit_detail_label(), so a line wider than
-## the detail slot wraps in the tall drawer instead of being cut; the card is short
-## again once it is not ready.
+## The card is the normal 72 px drawer unless a part of the ready line wraps. Its
+## left part is one Label fitted by ZoneActionButton.fit_detail_label() and its
+## right column wraps past half the line (set_detail_right), so neither is cut: a
+## part too wide for its room wraps in the tall drawer. The card is short again
+## once it is not ready.
 
 @onready var _need_group: Control = %NeedGroup
 @onready var _core_rod: LacquerRod = %CoreRod
@@ -66,11 +68,14 @@ func _update_state() -> void:
 	_ready_label.visible = is_ready
 	button.set_ready_frame(is_ready)
 	if is_ready:
+		var trial: TribulationData = (action_data as TribulationActionData).tribulation
 		button.set_mode_tag("ENTER", ZoneActionButton.TagStyle.ENTER)
-		_ready_label.text = _ready_line()
+		button.set_detail_right("failure costs %d levels" % trial.failure_level_loss, ThemeConstants.LACQUER_BRASS)
+		_ready_label.text = "About %d s" % roundi(TribulationRun.new(trial).get_duration())
 		button.fit_detail_label(_ready_label)
 	else:
 		button.set_mode_tag(ZoneActionGroups.mode_tag(action_data), ZoneActionButton.TagStyle.CARVED)
+		button.set_detail_right("")
 		# A ready line that wrapped made the card tall; the Core row sits on the short one.
 		button.set_tall(false)
 		_update_need()
@@ -80,13 +85,6 @@ func _update_need() -> void:
 	var cap: int = CultivationManager.get_core_density_cap()
 	_core_figure.text = "Core %d / %d" % [level, cap]
 	_core_rod.set_fraction(float(level) / cap if cap > 0 else 0.0)
-
-## How long the trial takes and what a failure costs. Only read while the card
-## is ready, which needs a trial.
-func _ready_line() -> String:
-	var trial: TribulationData = (action_data as TribulationActionData).tribulation
-	var seconds: int = roundi(TribulationRun.new(trial).get_duration())
-	return "About %d s · a failure costs %d levels" % [seconds, trial.failure_level_loss]
 
 ## Shakes the Core row left and right in whole even-px steps (no easing, no
 ## scale): the soft shake a refused technique shakes its slot by, the map lock's

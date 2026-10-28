@@ -1,9 +1,10 @@
 extends GutTest
 
 ## The zone map's markers (Task 12 of the map-first zone view): a plate under
-## each map zone with its name and status line, the lock and "?" glyphs over
-## the veiled hexes, the dotted routes between zones, and the action ring and
-## floaters that repeat the running idle action on the map. Positions are the
+## each map zone with its name and status line, the action ring on the current
+## zone's plate (the user's review, 2026-10-24), the lock and "?" glyphs over
+## the veiled hexes, the dotted routes between zones, and the floater that
+## repeats the running idle action's ticks and hauls. Positions are the
 ## lacquer kit's screen px at zoom 2 (kit §0, §6.3-6.5, §6.7); away from zoom
 ## 2 the markers keep to their hexes (Review Focus 3), and a dev toggle or a
 ## save reset leaves no orphan plate behind (Review Focus 5).
@@ -115,6 +116,28 @@ func _text_width(label: Label) -> float:
 	var font: Font = label.get_theme_font("font")
 	return font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label.get_theme_font_size("font_size")).x
 
+## The width of a plate that hugs its name: the name plus `padding`, on the
+## 2 px grid.
+func _hug_width(plate: ZoneMapLabel, padding: float) -> float:
+	var width: float = ceilf(_text_width(plate.get_node("%NameLabel") as Label)) + padding
+	return width + fposmod(width, 2.0)
+
+## Asserts the floater rises from the left of the zone's plate: its token
+## ends 8 px left of the ring (of the plate while no ring shows), centred on
+## the plate's 52 px height before its rise.
+func _assert_floater_beside_plate(zone_id: String, context: String) -> void:
+	var plate: ZoneMapLabel = _markers().get_plate(zone_id)
+	var ring: MapActionRing = plate.get_action_ring()
+	var floater: LacquerFloater = _markers().get_floater()
+	var plate_left: float = plate.position.x + (ring.position.x if ring.visible else 0.0)
+	assert_eq(floater.position.x + floater.get_token_width(), plate_left - 8.0, "%s: the token ends 8 px left of the plate's ring" % context)
+	assert_eq(floater.position.y + floater.get_rise(), plate.position.y + 12.0, "%s: centred on the plate's height, then rising" % context)
+
+## The screen centre of the zone's hex with the map camera as it is now.
+func _hex_centre(zone_id: String) -> Vector2:
+	var camera: Camera2D = _map.get_camera()
+	return ZoneMapMath.world_to_screen(_map.get_zone_world_centre(_zone(zone_id)), camera.position, camera.zoom.x)
+
 #-----------------------------------------------------------------------------
 # PLATES
 #-----------------------------------------------------------------------------
@@ -130,27 +153,64 @@ func test_plate_per_map_zone() -> void:
 
 func test_current_plate_sits_under_its_hex() -> void:
 	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
-	assert_eq(plate.position, Vector2(836, 800), "kit §6.5: Spirit Valley's plate top-left")
+	assert_eq(plate.size, Vector2(_hug_width(plate, 32.0), 52), "no status line: the plate hugs its name, 16 px a side")
+	assert_eq(plate.position.x + plate.size.x / 2.0, 960.0, "kit §6.5: centred under the valley's hex")
+	assert_eq(plate.position.y, 800.0, "its top 98 px under the hex centre")
 	assert_eq(plate.scale, Vector2.ONE, "shown at file size at zoom 2")
-	assert_eq(plate.size, Vector2(248, 52))
 	assert_string_contains(plate.get_plate_texture().resource_path, "lacquer_plate_current_ai")
 
-func test_current_plate_line_follows_action() -> void:
-	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_line_text(), "", "nothing runs on a fresh save: name only")
-	assert_false(_markers().get_plate(SPIRIT_VALLEY_ID).is_line_shown())
-
+func test_current_plate_has_no_status_line() -> void:
+	# The user's review (2026-10-24): the ring is the running action on the
+	# map; its "Aura Well · +1.5 Madra / s" line went (the cabinet and the Now
+	# strip show the rate).
+	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_line_text(), "", "nothing runs on a fresh save")
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_true(ActionManager.get_current_action() is TrainingActionData, "precondition: the Aura Well runs")
 	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
-	assert_eq(plate.get_line_text(), "Aura Well · +1.5 Madra / s")
-	assert_true(plate.is_line_shown())
+	assert_eq(plate.get_line_text(), "", "the Aura Well adds no line")
+	assert_false(plate.is_line_shown())
+	assert_false((plate.get_node("%LineArea") as Control).visible)
 
+func test_current_plate_ring_follows_action() -> void:
+	var ring: MapActionRing = _markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring()
+	assert_false(ring.visible, "nothing idle runs on a fresh save")
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	ring = _markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring()
+	assert_true(ring.visible, "the Aura Well shows the ring")
+	assert_eq(ring.get_action().action_id, AURA_WELL_ID)
 	EventManager.trigger_event(FORAGING_UNLOCK_EVENT)
 	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
-	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_line_text(), "Foraging · a haul every 5 s")
-
+	ring = _markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring()
+	assert_eq(ring.get_action().action_id, FORAGING_ID, "foraging takes the ring over")
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	assert_false(_markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring().visible, "cycling is not an idle action")
 	ActionManager.stop_action()
-	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_line_text(), "", "nothing runs: name only again")
+
+func test_ring_sits_on_the_plates_left_end() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	await _settle()
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var ring: MapActionRing = plate.get_action_ring()
+	var name_label: Label = plate.get_node("%NameLabel") as Label
+	var ring_rect: Rect2 = _rect_in_plate(plate, ring)
+	assert_eq(ring_rect, Rect2(-22, -6, 64, 64), "hanging off the left end, centred on the plate's 52 px height")
+	assert_eq(plate.size, Vector2(_hug_width(plate, 48.0 + 24.0), 52), "the ring's room, the name and 24 px")
+	assert_eq(plate.position.x + plate.size.x / 2.0, 960.0, "still centred under its hex")
+	var name_rect: Rect2 = _rect_in_plate(plate, name_label)
+	var name_left: float = name_rect.position.x + (name_rect.size.x - _text_width(name_label)) / 2.0
+	assert_almost_eq(name_left, 48.0, 1.0, "the name starts 6 px past the ring")
+	assert_almost_eq(name_left + _text_width(name_label), plate.size.x - 24.0, 1.0, "and ends 24 px before the right edge, well clear of the rivet")
+	assert_false(plate.get_line_text().contains("·"), "no status line beside it")
+
+func test_ring_stays_on_a_name_only_plate() -> void:
+	EventManager.trigger_event(AURA_WELL_EVENT)
+	var camera: Camera2D = _map.get_camera()
+	camera.zoom = Vector2.ONE
+	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
+	await _settle()
+	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	assert_true(plate.get_action_ring().is_visible_in_tree(), "zoomed out, the ring stays")
+	assert_eq(plate.size, Vector2(_hug_width(plate, 48.0 + 24.0), 52), "with the same room")
 
 func test_current_plate_name_brightens_on_hover() -> void:
 	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
@@ -235,47 +295,23 @@ func test_long_zone_name_stays_on_the_plate() -> void:
 	assert_lte(name_label.position.x + name_label.size.x, 248.0, "the name stays inside the plate")
 	assert_ne(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "and ellipsizes")
 
-func test_long_action_name_ellipsizes_and_keeps_icon_and_rate() -> void:
-	# Review Focus 4: on the current plate only the action's name gives way;
-	# the icon and the rate stay whole inside the line's slot.
+func test_long_zone_name_beside_the_ring_stays_on_the_plate() -> void:
+	# Review Focus 4: beside the ring a long name ellipsizes, and the plate
+	# stops at the kit's 248 px.
 	EventManager.trigger_event(AURA_WELL_EVENT)
-	var training: TrainingActionData = ActionManager.get_current_action() as TrainingActionData
-	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
-	var name_part: Label = plate.get_node_or_null("%LineName") as Label
-	var rate_part: RichTextLabel = plate.get_node_or_null("%LineRate") as RichTextLabel
-	var icon: Control = plate.get_node_or_null("%LineIcon") as Control
-	assert_not_null(name_part, "the line's text is a Label of its own")
-	assert_not_null(rate_part, "and its rate a RichTextLabel")
-	if name_part == null or rate_part == null:
-		return
-	# In memory only, and put back before any assert: the plate reads the
-	# running action's name.
-	var original_name: String = training.action_name
-	training.action_name = "Great Aura Well of the Ancestors of the Endless Path"
-	plate.refresh()
+	var plate: ZoneMapLabel = ZoneMapLabelScene.instantiate()
+	add_child_autofree(plate)
+	var zone := ZoneData.new()
+	zone.zone_id = "LongCurrentZone"
+	zone.zone_name = "The Exceedingly Long and Winding Valley of a Thousand Whispering Names"
+	plate.setup(zone, ZoneManager.ZoneMapState.CURRENT)
 	await _settle()
-	var line_text: String = plate.get_line_text()
-	var name_text_width: float = _text_width(name_part)
-	var name_rect: Rect2 = _rect_in_plate(plate, name_part)
-	var rate_rect: Rect2 = _rect_in_plate(plate, rate_part)
-	var icon_rect: Rect2 = _rect_in_plate(plate, icon)
-	var rate_shown: bool = rate_part.is_visible_in_tree()
-	var icon_shown: bool = icon.is_visible_in_tree()
-	var rate_text: String = rate_part.get_parsed_text()
-	var rate_content_width: float = rate_part.get_content_width()
-	training.action_name = original_name
-	plate.refresh()
-
-	assert_eq(line_text, "Great Aura Well of the Ancestors of the Endless Path · +1.5 Madra / s", "the line in full")
-	assert_eq(name_part.text_overrun_behavior, TextServer.OVERRUN_TRIM_ELLIPSIS, "the name ellipsizes")
-	assert_lt(name_rect.size.x, name_text_width, "a long name is cut short")
-	assert_true(icon_shown, "the mini_well stays")
-	assert_gte(icon_rect.position.x, LINE_LEFT, "with the icon inside the slot")
-	assert_lte(name_rect.end.x, rate_rect.position.x + 0.5, "the name ends before the rate")
-	assert_true(rate_shown)
-	assert_eq(rate_text, " +1.5 Madra / s", "the rate whole, the name's ellipsis standing in for the separator: one dot run, not two")
-	assert_gte(rate_rect.size.x, rate_content_width, "never squeezed")
-	assert_lte(rate_rect.end.x, LINE_RIGHT, "and inside the slot")
+	var name_label: Label = plate.get_node("%NameLabel") as Label
+	assert_true(plate.get_action_ring().visible, "precondition: the ring shows")
+	assert_eq(plate.size, Vector2(248, 52), "the plate never widens past the kit's")
+	assert_gte(name_label.position.x, 48.0, "the name starts past the ring")
+	assert_lte(name_label.position.x + name_label.size.x, 248.0 - 6.0, "and stays inside the plate")
+	assert_ne(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "and ellipsizes")
 
 func test_long_blocker_ellipsizes_inside_the_plate() -> void:
 	# Review Focus 4: a locked plate's long blocker ellipsizes after its icon.
@@ -287,41 +323,28 @@ func test_long_blocker_ellipsizes_inside_the_plate() -> void:
 	zone.blocker_short_text = "Tribulation Guardian of the Far North and of Every Peak Beyond"
 	plate.setup(zone, ZoneManager.ZoneMapState.LOCKED)
 	await _settle()
-	var name_part: Label = plate.get_node_or_null("%LineName") as Label
-	var rate_part: RichTextLabel = plate.get_node_or_null("%LineRate") as RichTextLabel
-	assert_not_null(name_part, "the line's text is a Label of its own")
-	assert_not_null(rate_part, "and its rate a RichTextLabel")
-	if name_part == null or rate_part == null:
-		return
+	var name_part: Label = plate.get_node("%LineName") as Label
 	var icon: Control = plate.get_node("%LineIcon") as Control
 	assert_eq(name_part.text, zone.blocker_short_text, "the Label holds the whole blocker and trims it")
 	assert_lt(_rect_in_plate(plate, name_part).size.x, _text_width(name_part), "cut short")
 	assert_lte(_rect_in_plate(plate, name_part).end.x, LINE_RIGHT, "inside the slot")
 	assert_true(icon.is_visible_in_tree(), "the swords stay")
 	assert_gte(_rect_in_plate(plate, icon).position.x, LINE_LEFT)
-	assert_false(rate_part.visible, "no rate on a blocker")
 
 func test_status_line_is_centred_as_a_group() -> void:
-	# Kit §6.5: icon, name and rate centred together; a short name is not cut.
-	EventManager.trigger_event(AURA_WELL_EVENT)
+	# Kit §6.5: icon and text centred together; a short blocker is not cut.
+	ZoneManager.set_demo_zones_visible(true)
 	await _settle()
-	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
-	var name_part: Label = plate.get_node_or_null("%LineName") as Label
-	var rate_part: RichTextLabel = plate.get_node_or_null("%LineRate") as RichTextLabel
-	assert_not_null(name_part, "the line's text is a Label of its own")
-	assert_not_null(rate_part, "and its rate a RichTextLabel")
-	if name_part == null or rate_part == null:
-		return
+	var plate: ZoneMapLabel = _markers().get_plate(ADVANCEMENT_DEMO_ID)
+	var name_part: Label = plate.get_node("%LineName") as Label
 	var icon: Control = plate.get_node("%LineIcon") as Control
-	assert_eq(name_part.text, "Aura Well")
-	assert_gte(_rect_in_plate(plate, name_part).size.x, _text_width(name_part), "a short name is whole")
-	assert_eq(rate_part.get_parsed_text(), " · +1.5 Madra / s", "with its separator")
+	assert_eq(name_part.text, "Tribulation Guardian")
+	assert_gte(_rect_in_plate(plate, name_part).size.x, _text_width(name_part), "a short line is whole")
 	var left_gap: float = _rect_in_plate(plate, icon).position.x - LINE_LEFT
-	var right_gap: float = LINE_RIGHT - _rect_in_plate(plate, rate_part).end.x
+	var right_gap: float = LINE_RIGHT - _rect_in_plate(plate, name_part).end.x
 	assert_almost_eq(left_gap, right_gap, 1.0, "centred as a group")
 	assert_eq(_rect_in_plate(plate, name_part).position.x - _rect_in_plate(plate, icon).end.x, 6.0, "the icon 6 px before the text")
 	assert_eq(name_part.get_theme_color("font_color"), ThemeConstants.LACQUER_CREAM, "the line is cream")
-	assert_eq(rate_part.get_theme_color("default_color"), ThemeConstants.LACQUER_CREAM, "rate included")
 
 #-----------------------------------------------------------------------------
 # DEMO ZONES: PLATES AND GLYPHS
@@ -455,7 +478,7 @@ func test_glyphs_follow_hexes_when_panned_to_the_clamp_edge() -> void:
 	assert_almost_eq(glyph.position.x, lock_centre.x - 22.0, 1.0, "centred on its hex")
 	assert_almost_eq(glyph.position.y, lock_centre.y - 35.0 * 0.75 - 26.0, 1.0, "its centre's height above the hex scales with the hex")
 
-func test_ring_and_floater_keep_their_size_at_zoom_one() -> void:
+func test_floater_keeps_its_size_at_zoom_one() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	var camera: Camera2D = _map.get_camera()
 	camera.zoom = Vector2.ONE
@@ -463,26 +486,17 @@ func test_ring_and_floater_keep_their_size_at_zoom_one() -> void:
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
 	_advance_floater(0.5)
 	await _settle()
-	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
-	var ring: MapActionRing = _markers().get_action_ring()
 	var floater: LacquerFloater = _markers().get_floater()
 	assert_eq(floater.get_rise(), 20, "precondition: halfway up its 40 px rise")
-	var plate_top: float = _markers().get_plate(SPIRIT_VALLEY_ID).position.y
-	assert_eq(plate_top, centre.y + 49.0, "precondition: the plate's top 49 px under the hex centre")
-	assert_eq(ring.scale, Vector2.ONE, "the ring keeps its size")
-	assert_eq(ring.position.x, roundf(centre.x + 19.0), "its left at the kit's 38 scaled to the hex")
-	assert_eq(ring.position.y, plate_top - 66.0, "lifted 19 px off its kit spot (centre + 2) to sit 2 px above the plate")
 	assert_eq(floater.scale, Vector2.ONE, "the floater keeps its size")
-	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, centre.x + 25.0, 1.0, "centred 50 px right of the hex centre at zoom 2, 25 at zoom 1")
-	assert_eq(floater.position.y, centre.y - 28.0 - floater.get_rise() - 19.0, "its token lifted with the ring, off the hex centre's height")
+	_assert_floater_beside_plate(SPIRIT_VALLEY_ID, "zoom 1")
+	assert_eq(_markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring().scale, Vector2.ONE, "the ring on the plate keeps its size")
 
-func test_ring_clears_the_current_plate_at_every_zoom() -> void:
-	# At zoom 2 the ring sits 30 px above the plate; nearer zoom 1 the hex
-	# shrinks round the kit-size ring and plate, and the ring would slide
-	# under the plate and lose its lower beads.
+func test_floater_rises_beside_the_current_plate_at_every_zoom() -> void:
+	# The user's review (2026-10-24): the gain rises from the left of the
+	# plate whose ring just ticked, at every zoom.
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	var camera: Camera2D = _map.get_camera()
-	var ring: MapActionRing = _markers().get_action_ring()
 	var floater: LacquerFloater = _markers().get_floater()
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
 	_advance_floater(0.5)
@@ -490,9 +504,10 @@ func test_ring_clears_the_current_plate_at_every_zoom() -> void:
 		camera.zoom = Vector2(zoom, zoom)
 		_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
 		await _settle()
-		var plate_top: float = _markers().get_plate(SPIRIT_VALLEY_ID).position.y
-		assert_lte(ring.position.y + ring.size.y + 2.0, plate_top, "zoom %s: the ring clears the plate by 2 px or more" % zoom)
-		assert_lte(floater.position.y + floater.get_rise() + floater.size.y - 2.0, ring.position.y, "zoom %s: the resting floater token stays above the ring" % zoom)
+		_assert_floater_beside_plate(SPIRIT_VALLEY_ID, "zoom %s" % zoom)
+		var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+		var plate_rect := Rect2(plate.position + plate.get_action_ring().position, plate.size - plate.get_action_ring().position)
+		assert_false(floater.get_rect().intersects(plate_rect), "zoom %s: the token never covers the plate or its ring" % zoom)
 
 func test_current_plate_draws_above_its_neighbours() -> void:
 	# Kit-size plates overlap their row neighbours below zoom 1.5 (164 px
@@ -511,23 +526,30 @@ func test_overlapping_plates_hover_the_one_on_top() -> void:
 	# Standing in Test Zone, its plate is drawn over the valley's, which
 	# comes first in map order.
 	_open_test_zone()
+	# In memory only, put back before any assert: the current plate hugs its
+	# name, so a long one makes it meet the valley's 248 px plate.
+	var test_zone: ZoneData = _zone(TEST_ZONE_ID)
+	var original_name: String = test_zone.zone_name
+	test_zone.zone_name = "The Test Zone of the Long and Winding Name"
 	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
-	# At zoom 1.25 the full plates (248 wide) are 205 px apart.
+	# At zoom 1.25 the hexes are 205 px apart.
 	var camera: Camera2D = _map.get_camera()
 	camera.zoom = Vector2(1.25, 1.25)
-	_map.frame_zone(_zone(TEST_ZONE_ID))
+	_map.frame_zone(test_zone)
 	await _settle()
 	var valley_rect: Rect2 = _markers().get_plate(SPIRIT_VALLEY_ID).get_global_rect()
 	var test_rect: Rect2 = _markers().get_plate(TEST_ZONE_ID).get_global_rect()
 	var overlap: Rect2 = valley_rect.intersection(test_rect)
+	var owner_id: String = _markers().get_plate_zone_id_at(overlap.get_center())
+	test_zone.zone_name = original_name
 	assert_true(overlap.has_area(), "precondition: at zoom 1.25 the two plates overlap")
-	assert_eq(_markers().get_plate_zone_id_at(overlap.get_center()), TEST_ZONE_ID, "the point belongs to the plate drawn on top")
+	assert_eq(owner_id, TEST_ZONE_ID, "the point belongs to the plate drawn on top")
 
 func test_plate_shows_name_only_below_zoom_1_25() -> void:
 	# Spec, Open / deferred: plates are reduced to the name below zoom 1.25.
-	EventManager.trigger_event(AURA_WELL_EVENT)
+	_open_test_zone()
 	var camera: Camera2D = _map.get_camera()
-	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var plate: ZoneMapLabel = _markers().get_plate(TEST_ZONE_ID)
 	var line_area: Control = plate.get_node("%LineArea") as Control
 	camera.zoom = Vector2(1.25, 1.25)
 	await _settle()
@@ -537,7 +559,7 @@ func test_plate_shows_name_only_below_zoom_1_25() -> void:
 	await _settle()
 	assert_false(plate.is_line_shown(), "below 1.25 the plate shows its name only")
 	assert_false(line_area.visible)
-	assert_eq(plate.get_line_text(), "Aura Well · +1.5 Madra / s", "the status is kept for when the map zooms back in")
+	assert_eq(plate.get_line_text(), "Open · nothing to do yet", "the status is kept for when the map zooms back in")
 	camera.zoom = Vector2(2.0, 2.0)
 	await _settle()
 	assert_true(plate.is_line_shown(), "zoomed back in, the line returns")
@@ -546,18 +568,15 @@ func test_plate_shows_name_only_below_zoom_1_25() -> void:
 func test_name_only_plate_hugs_its_name() -> void:
 	# Below zoom 1.25 a plate is the name plus 16 px a side (even), centred on
 	# its hex, so row neighbours 164 px apart at zoom 1 no longer overlap.
-	EventManager.trigger_event(AURA_WELL_EVENT)
+	_open_test_zone()
 	var camera: Camera2D = _map.get_camera()
-	var plate: ZoneMapLabel = _markers().get_plate(SPIRIT_VALLEY_ID)
+	var plate: ZoneMapLabel = _markers().get_plate(TEST_ZONE_ID)
 	var name_label: Label = plate.get_node("%NameLabel") as Label
 	camera.zoom = Vector2.ONE
 	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
 	await _settle()
-	var expected_width: float = ceilf(_text_width(name_label)) + 32.0
-	expected_width += fposmod(expected_width, 2.0)
-	assert_eq(plate.size.x, expected_width, "the name plus 32, on the 2 px grid")
-	var centre: Vector2 = ZoneMapMath.world_to_screen(Vector2.ZERO, camera.position, 1.0)
-	assert_eq(plate.position.x + plate.size.x / 2.0, roundf(centre.x), "centred on its hex")
+	assert_eq(plate.size.x, _hug_width(plate, 32.0), "the name plus 32, on the 2 px grid")
+	assert_eq(plate.position.x + plate.size.x / 2.0, roundf(_hex_centre(TEST_ZONE_ID).x), "centred on its hex")
 	var name_rect: Rect2 = _rect_in_plate(plate, name_label)
 	assert_gte(name_rect.position.x, 6.0, "the name clears the left rivet")
 	assert_lte(name_rect.end.x, plate.size.x - 6.0, "and the right one")
@@ -566,7 +585,7 @@ func test_name_only_plate_hugs_its_name() -> void:
 	_map.frame_zone(_zone(SPIRIT_VALLEY_ID))
 	await _settle()
 	assert_eq(plate.size, Vector2(248, 52), "back at kit size with the status line")
-	assert_eq(plate.position, Vector2(836, 800), "kit §6.5")
+	assert_eq(plate.position, Vector2(508, 800), "kit §6.5")
 
 func test_row_neighbour_plates_do_not_overlap_at_zoom_one() -> void:
 	_open_test_zone()
@@ -637,17 +656,11 @@ func test_routes_start_from_the_current_zone() -> void:
 # ACTION RING AND FLOATERS
 #-----------------------------------------------------------------------------
 
-func test_ring_hidden_without_idle_action() -> void:
-	var ring: MapActionRing = _markers().get_action_ring()
-	assert_false(ring.visible, "nothing idle runs on a fresh save")
+func test_only_the_current_plate_shows_a_ring() -> void:
+	_open_test_zone()
 	EventManager.trigger_event(AURA_WELL_EVENT)
-	await _settle()
-	assert_true(ring.visible, "the Aura Well shows the ring")
-	assert_eq(ring.get_action().action_id, AURA_WELL_ID)
-	assert_eq(ring.position, Vector2(998, 706), "kit §0: the ring beside the character")
-	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
-	assert_false(ring.visible, "cycling is not an idle action")
-	ActionManager.stop_action()
+	assert_true(_markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring().visible, "precondition: the valley's ring shows")
+	assert_false(_markers().get_plate(TEST_ZONE_ID).get_action_ring().visible, "an open zone's plate has none")
 
 func test_ring_frame_steps() -> void:
 	assert_eq(MapActionRing.frame_for(0.0), 0)
@@ -668,8 +681,7 @@ func test_floater_on_training_tick() -> void:
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_MADRA, "in Madra blue")
 	assert_gt(floater.get_token_width(), 28 + 40, "the token is as wide as its text plus 28")
 	assert_eq(floater.get_token_width() % 2, 0, "on the 2 px grid")
-	assert_eq(floater.position.y, 674.0 - floater.get_rise(), "kit §0: its top at 674, then rising")
-	assert_almost_eq(floater.position.x + floater.get_token_width() / 2.0, 1010.0, 1.0, "centred on x 1010")
+	_assert_floater_beside_plate(SPIRIT_VALLEY_ID, "zoom 2")
 
 func test_floater_rises_in_two_px_steps() -> void:
 	assert_eq(LacquerFloater.rise_at(0.0), 0)
@@ -683,17 +695,19 @@ func test_haul_floater_once_per_haul() -> void:
 	var forage: ForageActionData = ActionManager.get_current_action() as ForageActionData
 	assert_not_null(forage, "precondition: foraging starts on unlock")
 	var haul: Dictionary = {}
-	var parts: Array[String] = []
+	var icons: Array[Texture2D] = []
 	var quantity: int = 3
 	for entry: LootTableEntry in forage.loot_table.entries:
 		haul[entry.item] = quantity
-		parts.append("+%d %s" % [quantity, entry.item.item_name])
+		icons.append(entry.item.get_mini_icon())
 		quantity += 1
 	ActionManager.foraging_completed.emit(haul)
 	var floater: LacquerFloater = _markers().get_floater()
 	assert_true(floater.visible)
-	assert_eq(floater.get_text(), "  ".join(parts), "the haul, two spaces between items")
+	assert_eq(floater.get_text(), "+3  +4", "the counts, two spaces between items")
+	assert_eq(floater.get_icons(), icons, "each count with its item's icon, not its name (the user's review, 2026-10-24)")
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_CREAM, "in cream")
+	_assert_floater_beside_plate(SPIRIT_VALLEY_ID, "a haul")
 	_advance_floater(1.1)
 	assert_false(floater.visible, "hidden outright after its 1 s rise")
 
@@ -709,7 +723,7 @@ func test_floater_stops_when_the_idle_action_changes() -> void:
 	assert_true(floater.visible, "precondition: its tick's floater rises")
 	ActionManager.select_action(ZoneManager.get_action_by_id(FORAGING_ID))
 	assert_true(ActionManager.get_current_action() is ForageActionData, "precondition: foraging runs now")
-	assert_true(_markers().get_action_ring().visible, "the ring shows foraging")
+	assert_true(_markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring().visible, "the ring shows foraging")
 	assert_false(floater.visible, "the Aura Well's floater went with it")
 
 func test_floater_keeps_rising_through_a_map_rebuild() -> void:
@@ -723,7 +737,7 @@ func test_ring_and_floater_hide_when_the_idle_action_stops() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	ActionManager.training_tick_processed.emit(ActionManager.get_current_action() as TrainingActionData, 1)
 	ActionManager.stop_action()
-	assert_false(_markers().get_action_ring().visible)
+	assert_false(_markers().get_plate(SPIRIT_VALLEY_ID).get_action_ring().visible)
 	assert_false(_markers().get_floater().visible)
 
 #-----------------------------------------------------------------------------

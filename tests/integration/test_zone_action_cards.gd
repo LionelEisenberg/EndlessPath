@@ -2,7 +2,8 @@ extends GutTest
 
 ## Integration tests for the lacquer activity cards (ZoneActionButton and its
 ## presenters): mode tags, the running drawer, the NEW seal, each presenter's
-## detail line, the adventure's Madra states and ready frame, the tall drawer
+## detail line and its right column (no " · " sentences: the user's review,
+## 2026-10-24), the adventure's Madra states and ready frame, the tall drawer
 ## for long details, and long text never widening a card (Review Focus 4).
 ## Cards are built with setup_action on a fresh save, as the zone panel builds
 ## them.
@@ -29,12 +30,6 @@ const DETAIL_WIDTH: float = 316.0
 const ELLIPSIS: String = "…"
 const EULJIRO_PATH: String = "res://assets/fonts/BMEULJIROTTF.ttf"
 
-const FIXTURE_TECHNIQUE_ID: String = "test_zone_action_cards_technique"
-
-## CyclingManager's technique index while a test swaps or rebuilds it.
-var _saved_technique_index: Dictionary = {}
-var _technique_index_swapped: bool = false
-
 ## Player-log lines since the test started.
 var _logged: Array[String] = []
 
@@ -52,9 +47,6 @@ func after_each() -> void:
 	LogManager.message_logged.disconnect(_on_message_logged)
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
-	if _technique_index_swapped:
-		CyclingManager._techniques_by_id = _saved_technique_index
-		_technique_index_swapped = false
 
 func _on_message_logged(bbcode_message: String) -> void:
 	_logged.append(bbcode_message)
@@ -116,26 +108,6 @@ func _run_aura_well() -> void:
 	EventManager.trigger_event(AURA_WELL_EVENT)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well runs")
 
-## Equips a fixture cycling technique with this name (the index is restored
-## after the test).
-func _equip_technique_named(technique_name: String) -> void:
-	var technique := CyclingTechniqueData.new()
-	technique.id = FIXTURE_TECHNIQUE_ID
-	technique.technique_name = technique_name
-	_saved_technique_index = CyclingManager._techniques_by_id
-	_technique_index_swapped = true
-	var index: Dictionary = _saved_technique_index.duplicate()
-	index[FIXTURE_TECHNIQUE_ID] = technique
-	CyclingManager._techniques_by_id = index
-	PersistenceManager.save_game_data.equipped_cycling_technique_id = FIXTURE_TECHNIQUE_ID
-
-## Gives CyclingManager its real technique index for the test (the index is
-## restored after it).
-func _use_real_technique_catalog() -> void:
-	_saved_technique_index = CyclingManager._techniques_by_id.duplicate()
-	_technique_index_swapped = true
-	CyclingManager._build_catalog_index()
-
 ## The rich text labels of the card's detail line (training and foraging),
 ## left to right.
 func _detail_rich_texts(card: ZoneActionButton) -> Array[RichTextLabel]:
@@ -146,15 +118,28 @@ func _detail_rich_texts(card: ZoneActionButton) -> Array[RichTextLabel]:
 			found.append(rich)
 	return found
 
-## Spring Forest Foraging with a long tail: "every 12.25 s · 12.5 Madra / s".
+## Spring Forest Foraging finding three materials whose names run far past
+## the line, at a Madra cost (the right column).
 func _long_forage_fixture() -> ForageActionData:
+	var table := LootTable.new()
+	var entries: Array[LootTableEntry] = []
+	for index: int in 3:
+		var item := MaterialDefinitionData.new()
+		item.item_id = "test_zone_action_cards_long_material_%d" % index
+		item.item_name = "Exceedingly Rare Moonlit Dew %d" % index
+		var entry := LootTableEntry.new()
+		entry.item = item
+		entry.min_quantity = 1
+		entry.max_quantity = 2
+		entries.append(entry)
+	table.entries = entries
 	var action := ZoneManager.get_action_by_id(FORAGING_ID).duplicate() as ForageActionData
-	action.foraging_interval_in_sec = 12.25
+	action.loot_table = table
 	action.madra_cost_per_second = 12.5
 	return action
 
-## A training action whose detail runs far past 316 px:
-## "+15000000 Madra / s · each level +123456789 Spirit".
+## A training action whose detail runs far past 316 px: "+15000000 Madra / s"
+## on the left and "+123456789 Spirit / level" in the right column.
 func _long_training_fixture() -> TrainingActionData:
 	var action := ZoneManager.get_action_by_id(AURA_WELL_ID).duplicate() as TrainingActionData
 	var madra := AwardResourceEffectData.new()
@@ -179,6 +164,14 @@ func _equip_foundation_ring(foundation: float) -> void:
 	var instance := ItemInstanceData.new()
 	instance.item_definition = ring
 	InventoryManager.equip_item(instance, EquipmentDefinitionData.EquipmentSlot.ACCESSORY, -1, 0)
+
+## The right column of the card's detail line.
+func _right_column(card: ZoneActionButton) -> RichTextLabel:
+	return card.get_node("%DetailRight") as RichTextLabel
+
+## A story card whose description wraps in the tall drawer.
+func _long_story_card() -> ZoneActionButton:
+	return _card_for(_story_fixture("The Intervener", "word ".repeat(40).strip_edges()))
 
 func _story_fixture(action_name: String, description: String) -> ZoneActionData:
 	var action := ZoneActionData.new()
@@ -305,13 +298,19 @@ func test_new_seal_clears_when_selected() -> void:
 #-----------------------------------------------------------------------------
 
 func test_training_detail() -> void:
-	assert_true(_has_text_containing(_card(AURA_WELL_ID), "+1.5 Madra / s · each level +1 Spirit"))
+	var card: ZoneActionButton = _card(AURA_WELL_ID)
+	assert_has(_texts(card.get_detail_slot()), "+1.5 Madra / s", "the Madra rate on the left")
+	assert_eq(card.get_detail_right_text(), "+1 Spirit / level", "the level's attribute in the right column")
 
-func test_foraging_detail_has_ranges_interval_and_cost() -> void:
+func test_foraging_detail_names_what_it_finds() -> void:
 	var card: ZoneActionButton = _card(FORAGING_ID)
-	assert_true(_has_text_containing(card, "1–5"), "Dewdrop Tear range")
-	assert_true(_has_text_containing(card, "2–6"), "Spirit Fern range")
-	assert_true(_has_text_containing(card, "every 5 s · free"))
+	var texts: Array[String] = _texts(card.get_detail_slot())
+	assert_has(texts, "Dewdrop Tear")
+	assert_has(texts, "Spirit Fern")
+	assert_false(_has_text_containing(card, "–"), "the ranges are the Now strip's")
+	assert_false(_has_text_containing(card, "every"), "and so is the haul's timing")
+	assert_false(_has_text_containing(card, "free"), "a free action says nothing about its cost")
+	assert_eq(card.get_detail_right_text(), "", "no right column")
 
 func test_foraging_icons_are_the_items_mini_icons() -> void:
 	var card: ZoneActionButton = _card(FORAGING_ID)
@@ -342,26 +341,48 @@ func test_foraging_icon_comes_from_the_item_data() -> void:
 	var icon: TextureRect = card.get_detail_slot().find_child("Icon", true, false) as TextureRect
 	assert_eq(icon.texture, item.mini_icon)
 
-func test_foraging_cost_replaces_free() -> void:
+func test_foraging_cost_shows_in_the_right_column() -> void:
 	var action := ZoneManager.get_action_by_id(FORAGING_ID).duplicate() as ForageActionData
 	action.madra_cost_per_second = 2.0
 	var card: ZoneActionButton = _card_for(action)
-	assert_true(_has_text_containing(card, "every 5 s · 2 Madra / s"))
-	assert_false(_has_text_containing(card, "free"))
+	assert_eq(card.get_detail_right_text(), "costs 2 Madra / s")
+	assert_has(_texts(card.get_detail_slot()), "Dewdrop Tear", "the finds stay on the left")
 
-func test_cycling_detail_names_the_technique() -> void:
-	_equip_technique_named("Calm")
-	assert_true(_has_text_containing(_card(CYCLING_ID), "Calm · Madra and Core Density XP"))
+func test_cycling_detail_names_what_it_gives() -> void:
+	var card: ZoneActionButton = _card(CYCLING_ID)
+	assert_eq(_texts(card.get_detail_slot()), ["Madra and Core Density XP"] as Array[String])
+	assert_false(_has_text_containing(card, "Technique"), "the technique is the cycling board's to name")
+	assert_eq(card.size.y, SHORT_HEIGHT, "the line fits the short drawer")
 
 func test_merchant_detail() -> void:
 	ResourceManager.set_gold(120.0)
-	var expected: String = "7 wares · you have 120 gold"
-	assert_true(_has_text_containing(_card(MERCHANT_ID), expected))
-
-func test_merchant_detail_follows_gold() -> void:
 	var card: ZoneActionButton = _card(MERCHANT_ID)
-	ResourceManager.set_gold(42.0)
-	assert_true(_has_text_containing(card, "you have 42 gold"))
+	assert_eq(_texts(card.get_detail_slot()), ["7 wares"] as Array[String])
+	assert_false(_has_text_containing(card, "gold"), "the gold you carry is the cabinet's")
+
+func test_no_card_joins_its_detail_with_dots() -> void:
+	# The user's review (2026-10-24): "text · text" lines read as run-on
+	# sentences; a card shows what you get, in two columns at most.
+	_run_aura_well()
+	ResourceManager.set_madra(60.0)
+	for action_id: String in [CYCLING_ID, AURA_WELL_ID, FORAGING_ID, ADVENTURE_ID, MERCHANT_ID]:
+		assert_false(_has_text_containing(_card(action_id), "·"), "%s: no ' · ' in the card" % action_id)
+
+func test_right_column_ends_under_the_tag() -> void:
+	var card: ZoneActionButton = _card(AURA_WELL_ID)
+	await wait_process_frames(2)
+	var right: RichTextLabel = _right_column(card)
+	var tag: Control = card.get_node("%Tag") as Control
+	var left: Control = _detail_rich_texts(card)[0]
+	assert_true(right.is_visible_in_tree(), "precondition: the Aura Well has a right column")
+	assert_eq(right.get_global_rect().end.x, tag.get_global_rect().end.x, "the column's right edge is the tag's")
+	assert_gte(right.get_global_rect().size.x, float(right.get_content_width()), "the figure is whole")
+	assert_lte(left.get_global_rect().end.x + 12.0, right.get_global_rect().position.x + 0.5, "the left part ends 12 px or more before it")
+
+func test_right_column_hides_with_nothing_to_show() -> void:
+	assert_false(_right_column(_card(MERCHANT_ID)).visible)
+	assert_false(_right_column(_card(CYCLING_ID)).visible)
+	assert_eq(_card(MERCHANT_ID).get_detail_room(), DETAIL_WIDTH, "the left part has the whole line")
 
 func test_story_detail_is_the_description() -> void:
 	var card: ZoneActionButton = _card_for(_story_fixture("The Intervener", "Your next story step"))
@@ -442,8 +463,10 @@ func test_adventure_rod_follows_madra() -> void:
 func test_adventure_ready_copy_and_enter() -> void:
 	var card: ZoneActionButton = _card(ADVENTURE_ID)
 	ResourceManager.set_madra(60.0)
-	assert_true(_has_text_containing(card, "5 min run · carries 100 Madra"))
-	assert_false(_has_text_containing(card, "Ready ·"), "no Ready prefix: the frame and ENTER say it")
+	assert_has(_texts(card.get_detail_slot()), "5 min run", "the run's length on the left")
+	assert_eq(card.get_detail_right_text(), "carries 100 Madra", "the Madra it carries in the right column")
+	assert_eq(_right_column(card).get_theme_color(&"default_color"), ThemeConstants.LACQUER_BRASS, "in brass, as the ready line")
+	assert_false(_has_text_containing(card, "Ready"), "no Ready prefix: the frame and ENTER say it")
 	assert_eq(_tag_text(card), "ENTER")
 	assert_false(_has_text_containing(card, "/ 50"), "the Madra row hides at the threshold")
 
@@ -485,6 +508,7 @@ func test_adventure_drops_back_below_threshold() -> void:
 	assert_eq(_tag_text(card), "ACTIVE")
 	assert_true(_has_text_containing(card, "10 / 50"))
 	assert_false(_has_text_containing(card, "min run"), "the ready line hides")
+	assert_eq(card.get_detail_right_text(), "", "and so does its right column")
 
 #-----------------------------------------------------------------------------
 # LONG TEXT (Review Focus 4)
@@ -511,37 +535,15 @@ func test_card_keeps_its_width_in_a_wider_column() -> void:
 	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT))
 
 func test_long_detail_wraps_in_tall_drawer() -> void:
-	_equip_technique_named("word ".repeat(40).strip_edges())
-	var card: ZoneActionButton = _card(CYCLING_ID)
+	var card: ZoneActionButton = _long_story_card()
 	assert_eq(card.size.y, TALL_HEIGHT)
 	assert_eq(card.custom_minimum_size.y, TALL_HEIGHT)
 	assert_eq(card.size.x, CARD_WIDTH)
 
-func test_fresh_save_cycling_card_wraps() -> void:
-	# Kit §0: the fresh save's own technique, from the real catalog, makes
-	# "Foundational Technique · Madra and Core Density XP", wider than 316 px.
-	_use_real_technique_catalog()
-	assert_eq(PersistenceManager.save_game_data.equipped_cycling_technique_id, "foundation_technique",
-		"precondition: the fresh save's own technique")
-	var card: ZoneActionButton = _card(CYCLING_ID)
-	assert_has(_texts(card.get_detail_slot()), "Foundational Technique · Madra and Core Density XP")
-	assert_eq(card.size.y, TALL_HEIGHT)
-
 func test_short_detail_keeps_the_short_drawer() -> void:
-	_equip_technique_named("Calm")
-	assert_eq(_card(CYCLING_ID).size.y, SHORT_HEIGHT)
-
-func test_cycling_card_follows_the_equipped_technique() -> void:
-	_equip_technique_named("Calm")
-	var card: ZoneActionButton = _card(CYCLING_ID)
-	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
-	technique.technique_name = "Foundational Technique"
-	CyclingManager.equipped_technique_changed.emit(technique)
-	assert_true(_has_text_containing(card, "Foundational Technique · Madra and Core"))
-	assert_eq(card.size.y, TALL_HEIGHT, "the longer line wraps in the tall drawer")
+	assert_eq(_card_for(_story_fixture("The Intervener", "Short")).size.y, SHORT_HEIGHT)
 
 func test_short_card_centres_its_icon_and_socket() -> void:
-	_equip_technique_named("Calm")
 	var card: ZoneActionButton = _card(CYCLING_ID)
 	assert_eq(_icon_centre_y(card), SHORT_HEIGHT / 2.0, "the icon sits on the drawer's middle row")
 	assert_eq(_socket_centre_y(card), SHORT_HEIGHT / 2.0, "the socket sits on the drawer's middle row")
@@ -549,24 +551,19 @@ func test_short_card_centres_its_icon_and_socket() -> void:
 func test_tall_card_centres_its_icon() -> void:
 	# The user's review (2026-10-22): the icon sat at the top of the tall
 	# drawer, with 32 px of empty drawer under it.
-	_equip_technique_named("word ".repeat(40).strip_edges())
-	var card: ZoneActionButton = _card(CYCLING_ID)
+	var card: ZoneActionButton = _long_story_card()
 	assert_eq(card.size.y, TALL_HEIGHT, "precondition: the tall drawer")
 	assert_eq(_icon_centre_y(card), TALL_HEIGHT / 2.0)
 
 func test_tall_drawer_centres_its_socket_on_the_icon() -> void:
-	_equip_technique_named("word ".repeat(40).strip_edges())
-	var card: ZoneActionButton = _card(CYCLING_ID)
+	var card: ZoneActionButton = _long_story_card()
 	assert_eq(_socket_centre_y(card), TALL_HEIGHT / 2.0, "the socket sits on the drawer's middle row")
 	assert_eq(_socket_centre_y(card), _icon_centre_y(card), "the icon sits in the socket")
 
 func test_card_back_to_short_moves_its_icon_back_up() -> void:
-	_equip_technique_named("word ".repeat(40).strip_edges())
-	var card: ZoneActionButton = _card(CYCLING_ID)
-	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
-	technique.technique_name = "Calm"
-	CyclingManager.equipped_technique_changed.emit(technique)
-	assert_eq(card.size.y, SHORT_HEIGHT, "precondition: the short line fits the short drawer")
+	var card: ZoneActionButton = _long_story_card()
+	card.set_tall(false)
+	assert_eq(card.size.y, SHORT_HEIGHT, "precondition: back in the short drawer")
 	assert_eq(_icon_centre_y(card), SHORT_HEIGHT / 2.0)
 
 func test_long_idle_detail_does_not_grow_the_card() -> void:
@@ -578,7 +575,7 @@ func test_long_idle_detail_does_not_grow_the_card() -> void:
 
 func test_ellipsize_words_keeps_text_that_fits() -> void:
 	var font: Font = load(EULJIRO_PATH)
-	assert_eq(ZoneActionButton.ellipsize_words("every 5 s · free", font, 15, DETAIL_WIDTH), "every 5 s · free")
+	assert_eq(ZoneActionButton.ellipsize_words("Madra and Core Density XP", font, 15, DETAIL_WIDTH), "Madra and Core Density XP")
 
 func test_ellipsize_words_cuts_at_a_word() -> void:
 	var font: Font = load(EULJIRO_PATH)
@@ -601,23 +598,28 @@ func test_long_forage_detail_ends_in_an_ellipsis() -> void:
 	var card: ZoneActionButton = _card_for(_long_forage_fixture())
 	await wait_process_frames(1)
 	var texts: Array[RichTextLabel] = _detail_rich_texts(card)
-	var last: String = texts[-1].get_parsed_text()
-	assert_true(last.begins_with("2–6 · every 12.25 s"), "the line keeps its start")
-	assert_true(last.ends_with(ELLIPSIS), "and ends in an ellipsis")
-	assert_lte(card.get_detail_slot().get_combined_minimum_size().x, DETAIL_WIDTH, "inside 316 px")
+	assert_eq(texts.size(), 1, "the cut name ends the line: its ellipsis stands for the rest")
+	assert_true(texts[0].get_parsed_text().begins_with("Exceedingly Rare"), "the line keeps its start")
+	assert_true(texts[0].get_parsed_text().ends_with(ELLIPSIS), "and ends in an ellipsis")
+	assert_eq(card.get_detail_right_text(), "costs 12.5 Madra / s", "the cost whole in the right column")
+	assert_lte(card.get_detail_slot().get_combined_minimum_size().x, card.get_detail_room(), "the finds stay in what the column leaves")
+	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT), "an idle card stays short")
 
 func test_long_training_detail_ends_in_an_ellipsis() -> void:
 	var card: ZoneActionButton = _card_for(_long_training_fixture())
 	await wait_process_frames(1)
 	var text: RichTextLabel = _detail_rich_texts(card)[0]
-	assert_true(text.get_parsed_text().begins_with("+15000000 Madra / s"))
-	assert_true(text.get_parsed_text().ends_with(ELLIPSIS))
-	assert_lte(text.get_content_width(), int(DETAIL_WIDTH))
+	var right: String = card.get_detail_right_text()
+	assert_true(right.begins_with("+123456789"), "the right column keeps its start: %s" % right)
+	assert_true(right.ends_with(ELLIPSIS), "and ends in an ellipsis past half the line")
+	assert_lte(_right_column(card).get_content_width(), int(DETAIL_WIDTH / 2.0))
+	assert_true(text.get_parsed_text().begins_with("+15000000"), "the left part keeps its start")
+	assert_lte(text.get_content_width(), int(card.get_detail_room()), "in what the column leaves")
 	assert_eq(card.size, Vector2(CARD_WIDTH, SHORT_HEIGHT), "an idle card stays short")
 
 func test_long_ready_line_ends_in_an_ellipsis() -> void:
-	# 6e18 s is 1e17 min: "100000000000000000 min run · carries 100 Madra" is
-	# wider than 316 px.
+	# 6e18 s is 1e17 min: "100000000000000000 min run" is wider than what
+	# "carries 100 Madra" leaves it.
 	var action := ZoneManager.get_action_by_id(ADVENTURE_ID).duplicate() as AdventureActionData
 	action.time_limit_seconds = 6000000000000000000
 	var card: ZoneActionButton = _card_for(action)
@@ -626,9 +628,9 @@ func test_long_ready_line_ends_in_an_ellipsis() -> void:
 	var ready_text: RichTextLabel = card.find_child("ReadyText", true, false) as RichTextLabel
 	var shown: String = ready_text.get_parsed_text()
 	assert_true(shown.begins_with("100000000000000"), "the line keeps its start: %s" % shown)
-	assert_string_contains(shown, " min run")
 	assert_true(shown.ends_with(ELLIPSIS), "and ends in an ellipsis: %s" % shown)
-	assert_lte(ready_text.get_content_width(), int(DETAIL_WIDTH))
+	assert_lte(ready_text.get_content_width(), int(card.get_detail_room()))
+	assert_eq(card.get_detail_right_text(), "carries 100 Madra", "the right column stays whole")
 	assert_eq(card.size.y, SHORT_HEIGHT, "a long ready line never grows the card")
 
 #-----------------------------------------------------------------------------
