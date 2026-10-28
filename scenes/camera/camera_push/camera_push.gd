@@ -6,15 +6,15 @@ extends RefCounted
 ## the player left the camera and works out the end framing, apply() puts the
 ## camera between the two for a weight from 0 to 1 (the caller owns the curve;
 ## this only lerps), and restore() puts the camera back exactly as it was.
-## The end zoom is a parameter, so the board transition (1.5 times the player's
-## zoom) and a later adventure zoom (a fixed 3) share it.
-## It sets camera.zoom and camera.position directly, as ZoneTransition does, and
-## counts on nothing else moving the camera from begin() to restore(). The
-## clamp controller clamps only on the other controllers' signals, but the zoom
-## controller eases the zoom on its own for about a second after a wheel tick,
-## and the glide to a zone and the way back from the adventure zoom are tweens
-## of their own: the caller ends such moves before begin() and keeps them still
-## until restore(), as the board transition does through its camera hold.
+## The board transition and ZoneTransition's zoom into an adventure share it,
+## each at 1.5 times the player's zoom, aimed at its own screen point.
+## It sets camera.zoom and camera.position directly, and counts on nothing else
+## moving the camera from begin() to restore(). The clamp controller clamps
+## only on the other controllers' signals, but the zoom controller eases the
+## zoom on its own for about a second after a wheel tick, and the glide to a
+## zone and the way back from the adventure zoom are tweens of their own: the
+## caller ends such moves before begin() and keeps them still until restore(),
+## as both callers do by holding the map's camera (ZoneTilemap.hold_camera()).
 
 #-----------------------------------------------------------------------------
 # STATE

@@ -116,7 +116,7 @@ ZoneTransition, on adventure_start_requested
   budget = get_adventure_madra_budget()
   8–25 LacquerPellets (scaled by budget / capacity) from the cabinet's orb; each spawn calls
   spend_madra(floor(budget / count)), plus one final pellet for the remainder
-  → camera zooms in (3x, 0.5 s)
+  → as the last pellet lands, camera zooms in (1.5x the player's zoom, 0.5 s)
 ActionManager.confirm_adventure_start(action_data, budget) → start_adventure(action_data, budget)
 AdventureView → PlayerManager.vitals_manager.initialize_current_values(budget)
 ```

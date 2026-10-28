@@ -5,6 +5,15 @@ extends Node
 ## Handles the animated transition out of the zone view into an adventure.
 ## Coordinates the Madra pellet drain, camera zoom, and Madra spending
 ## before the adventure view opens.
+## The drain runs on its own clock in _process, so it takes as long at any
+## frame rate: the pellets leave the orb DRAIN_SPAWN_INTERVAL apart and all of
+## them land on the character. The zoom starts as the last one lands (its
+## delivered signal): a CameraPush, as the board transition's, to ZOOM_FACTOR
+## times the zoom the player left it at, with the character at the map gap's
+## focal point (ZoneMapMath.ZONE_SCREEN_ANCHOR). The map's camera holds still
+## (ZoneTilemap.hold_camera()) from the push's start until reset_camera() or
+## settle_camera() has put it back. MainView's ViewDissolve then takes the zone
+## view away over the adventure (AdventureViewState).
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -22,7 +31,9 @@ const DRAIN_SPAWN_INTERVAL: float = 0.04
 const DRAIN_PARTICLE_FLIGHT_TIME: float = 0.6
 const DRAIN_BOW: float = 110.0
 const ZOOM_DURATION: float = 0.5
-const ZOOM_TARGET: float = 3.0
+## The zoom pushes the camera to this many times the zoom the player left it
+## at: 2 to 3 at the zone view's opening zoom.
+const ZOOM_FACTOR: float = 1.5
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -45,9 +56,12 @@ var _drain_total_particles: int = 0  # includes the extra deficit particle when 
 var _drain_madra_per_particle: float = 0.0  # whole-madra amount per "base" particle
 var _drain_deficit_particle_amount: float = 0.0  # leftover carried by one extra particle; 0 if none
 var _drain_target_pos: Vector2 = Vector2.ZERO
-var _has_saved_camera: bool = false
-var _saved_camera_zoom: Vector2 = Vector2.ZERO
-var _saved_camera_position: Vector2 = Vector2.ZERO
+## Whether the drain's clock runs, from the first pellet leaving to the last.
+var _is_draining: bool = false
+## Seconds since the first pellet left, on the drain's clock.
+var _drain_elapsed: float = 0.0
+## The adventure zoom: active from its start until the camera is put back.
+var _camera_push: CameraPush = CameraPush.new()
 ## The way back from the adventure zoom (reset_camera()), while it runs.
 var _reset_tween: Tween = null
 
@@ -60,6 +74,12 @@ func _ready() -> void:
 	_zone_tilemap = get_parent().find_child("ZoneTilemap", true, false)
 	ActionManager.adventure_start_requested.connect(_on_adventure_start_requested)
 
+func _process(delta: float) -> void:
+	if not _is_draining:
+		return
+	_drain_elapsed += delta
+	_spawn_due_drain_particles()
+
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
@@ -68,32 +88,26 @@ func _ready() -> void:
 func is_transitioning() -> bool:
 	return _is_transitioning
 
-## Reset camera to pre-transition state (called when returning to zone view).
+## Eases the camera back from the adventure zoom to where the player left it
+## over duration seconds (called when returning to zone view), then lets the
+## map's camera go. Does nothing without an adventure zoom to undo, or while
+## the way back already runs.
 func reset_camera(duration: float = 0.3) -> void:
-	if not _has_saved_camera:
+	if not _camera_push.is_active() or _is_resetting():
 		return
-	var camera: Camera2D = _get_camera()
-	if not camera:
-		return
-	_reset_tween = create_tween().set_parallel(true)
-	_reset_tween.tween_property(camera, "zoom", _saved_camera_zoom, duration) \
+	_reset_tween = create_tween()
+	_reset_tween.tween_method(_camera_push.apply, 1.0, 0.0, duration) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	_reset_tween.tween_property(camera, "position", _saved_camera_position, duration) \
-		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	_has_saved_camera = false
+	_reset_tween.finished.connect(_end_camera_push)
 
 ## Ends the way back from the adventure zoom (reset_camera()) at once, at its
-## end: the camera at the zoom and position it had before the adventure. Does
-## nothing while no way back runs.
+## end: the camera at the zoom and position it had before the adventure, and
+## the map's camera let go. Does nothing while no way back runs.
 func settle_camera() -> void:
-	if _reset_tween == null or not _reset_tween.is_valid():
+	if not _is_resetting():
 		return
 	_reset_tween.kill()
-	_reset_tween = null
-	var camera: Camera2D = _get_camera()
-	if is_instance_valid(camera):
-		camera.zoom = _saved_camera_zoom
-		camera.position = _saved_camera_position
+	_end_camera_push()
 
 #-----------------------------------------------------------------------------
 # ADVENTURE TRANSITION — PARTICLE DRAIN
@@ -127,18 +141,29 @@ func _on_adventure_start_requested(action_data: AdventureActionData) -> void:
 	else:
 		_drain_target_pos = get_viewport().get_visible_rect().size * 0.5
 
-	_spawn_next_drain_particle()
+	# The first pellet leaves at once; _process sends the rest.
+	_drain_elapsed = 0.0
+	_is_draining = true
+	_spawn_due_drain_particles()
 
-func _spawn_next_drain_particle() -> void:
-	if _drain_particles_spawned >= _drain_total_particles:
-		get_tree().create_timer(DRAIN_PARTICLE_FLIGHT_TIME + 0.1).timeout.connect(_on_drain_complete)
-		return
+## Sends every pellet whose time has come on the drain's clock, and stops the
+## clock once the last one has left.
+func _spawn_due_drain_particles() -> void:
+	while _drain_particles_spawned < _drain_total_particles \
+			and _drain_particles_spawned * DRAIN_SPAWN_INTERVAL <= _drain_elapsed:
+		_spawn_drain_particle()
+	_is_draining = _drain_particles_spawned < _drain_total_particles
 
+func _spawn_drain_particle() -> void:
 	var from_pos: Vector2 = _cultivator_plate.get_madra_orb_global_position()
 
 	var pellet: LacquerPellet = DRAIN_PELLET_SCENE.instantiate()
 	_get_pellet_parent().add_child(pellet)
 	pellet.fly(PelletFlight.stream(from_pos, _drain_target_pos, DRAIN_PARTICLE_FLIGHT_TIME, DRAIN_BOW, _drain_particles_spawned))
+	# Every pellet flies as long and they leave in turn, so the last one sent
+	# lands last: the zoom starts as it lands.
+	if _drain_particles_spawned == _drain_total_particles - 1:
+		pellet.delivered.connect(_on_drain_complete, CONNECT_ONE_SHOT)
 
 	# The final particle carries the leftover deficit (when budget doesn't
 	# divide evenly by base count). Every other particle spends the whole-
@@ -152,31 +177,30 @@ func _spawn_next_drain_particle() -> void:
 
 	_drain_particles_spawned += 1
 
-	get_tree().create_timer(DRAIN_SPAWN_INTERVAL).timeout.connect(_spawn_next_drain_particle)
-
 #-----------------------------------------------------------------------------
 # ADVENTURE TRANSITION — CAMERA ZOOM
 #-----------------------------------------------------------------------------
 
 func _on_drain_complete() -> void:
-	if _pending_adventure_data == null:
+	# A pellet also delivers as it leaves the tree, which it can do with this
+	# node as the game quits.
+	if _pending_adventure_data == null or not is_inside_tree():
 		return
 
 	# Zoom camera into player
 	var camera: Camera2D = _get_camera()
 	var character: Node2D = _get_character()
 	if camera and character:
-		_has_saved_camera = true
-		_saved_camera_zoom = camera.zoom
-		_saved_camera_position = camera.position
+		# Holding first ends the map's own camera moves under way, so the push
+		# saves the camera where it comes to rest.
+		_hold_map_camera(true)
+		# The camera is a child of the map, so the push aims in the map's space.
+		var focus: Vector2 = _zone_tilemap.to_local(character.global_position)
+		_camera_push.begin(camera, focus, ZoneMapMath.ZONE_SCREEN_ANCHOR, camera.zoom.x * ZOOM_FACTOR)
 
-		var target_pos: Vector2 = character.global_position + _zone_tilemap.tile_map.position / 2
-
-		var tween: Tween = create_tween().set_parallel(true)
-		tween.tween_property(camera, "zoom", Vector2(ZOOM_TARGET, ZOOM_TARGET), ZOOM_DURATION) \
-			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
-		tween.tween_property(camera, "position", target_pos, ZOOM_DURATION) \
-			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		var tween: Tween = create_tween()
+		tween.tween_method(_camera_push.apply, 0.0, 1.0, ZOOM_DURATION) \
+			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
 		tween.finished.connect(_on_zoom_complete)
 	else:
 		_on_zoom_complete()
@@ -199,3 +223,19 @@ func _get_character() -> Node2D:
 
 func _get_pellet_parent() -> Node:
 	return pellet_parent if pellet_parent != null else get_tree().current_scene
+
+## Whether the way back from the adventure zoom runs.
+func _is_resetting() -> bool:
+	return _reset_tween != null and _reset_tween.is_valid()
+
+## Puts the camera back where the adventure zoom found it and lets the map's
+## camera go.
+func _end_camera_push() -> void:
+	_reset_tween = null
+	_camera_push.restore()
+	_hold_map_camera(false)
+
+## Holds the map's camera still for the adventure zoom, or lets it go.
+func _hold_map_camera(held: bool) -> void:
+	if _zone_tilemap:
+		_zone_tilemap.hold_camera(held)

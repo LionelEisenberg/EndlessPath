@@ -42,6 +42,9 @@ extends Control
 ## The Goals board, shared by the zone and adventure views; each view state
 ## places it.
 @onready var goals_panel: Control = %GoalsPanel
+## The dither dissolve from the zone view into an adventure and back
+## (AdventureViewState).
+@onready var view_dissolve: ViewDissolve = %ViewDissolve
 
 ## State machine states
 @onready var zone_view_state: MainViewState = %MainViewStateMachine/ZoneViewState

@@ -241,8 +241,8 @@ func frame_zone(zone_data: ZoneData, duration: float = 0.0) -> void:
 	_frame_tween.tween_property(_camera, "position", target, duration)
 	_frame_tween.finished.connect(_clamp_controller.clamp_now)
 
-## Holds the camera still for someone else's move (the board transition's
-## camera push), or lets it go. Holding first ends the map's own moves under
+## Holds the camera still for someone else's move (a CameraPush: the board
+## transition's, or ZoneTransition's zoom into an adventure), or lets it go. Holding first ends the map's own moves under
 ## way at their ends, at once: the glide to a zone (frame_zone()) where it was
 ## going, clamped as its end clamps, and the zoom controller's ease at the zoom
 ## the player chose. Then the zoom controller writes nothing until the camera
