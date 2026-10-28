@@ -1448,6 +1448,41 @@ func test_mouse_wheel_keeps_lore_open() -> void:
 	await wait_process_frames(1)
 	assert_true((_node("LorePanel") as Control).visible, "scrolling is not a click")
 
+## A board in the map gap (cycling, the Tribulation) hides About and closes the lore;
+## About comes back when the board goes, with the lore still shut.
+func test_board_mode_hides_about_and_closes_the_lore() -> void:
+	await _add_panel()
+	var about: BaseButton = _node("AboutButton") as BaseButton
+	var lore: Control = _node("LorePanel") as Control
+	var header: Control = _node("ActivitiesHeader") as Control
+	var header_y: float = header.position.y
+	about.button_pressed = true
+	assert_true(lore.visible, "precondition: the lore is open")
+	_panel.set_board_mode(true)
+	assert_false(about.visible, "About hides")
+	assert_false(about.button_pressed, "About is no longer pressed in")
+	assert_false(lore.visible, "the lore closes")
+	assert_eq(header.position.y, header_y, "the header moves back up")
+	_panel.set_board_mode(false)
+	assert_true(about.visible, "About is back")
+	assert_false(lore.visible, "the lore stays shut")
+
+## A rebuild while the board stands (here a technique unlocking) leaves About hidden.
+func test_a_rebuild_in_board_mode_keeps_about_hidden() -> void:
+	await _add_panel()
+	_panel.set_board_mode(true)
+	CyclingManager.unlock_technique(SMOOTH_ID)
+	await wait_process_frames(2)
+	assert_false((_node("AboutButton") as Control).visible)
+
+func test_leaving_board_mode_keeps_about_hidden_without_lore() -> void:
+	await _add_panel()
+	ZoneManager.set_current_zone_by_id(TEST_ZONE_ID)
+	await wait_process_frames(2)
+	_panel.set_board_mode(true)
+	_panel.set_board_mode(false)
+	assert_false((_node("AboutButton") as Control).visible, "Test Zone has no lore")
+
 #-----------------------------------------------------------------------------
 # TECHNIQUES MODE
 #-----------------------------------------------------------------------------

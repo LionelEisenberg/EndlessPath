@@ -7,7 +7,8 @@ extends GutTest
 ## input. CyclingViewState switches it on in enter() and off in exit(), shows
 ## the board, blocks the full log as a menu book does, and leaves the Goals and
 ## log boards where the zone view put them. set_board_mode() is the part of the
-## switch the Tribulation board shares (the dock and the map, not the chest).
+## switch the Tribulation board shares (the dock, the map and the chest's About,
+## not the techniques).
 ## The MainView is never added to the tree: each test fills in the views it
 ## needs, as test_view_state_hud_positions.gd does, with the real chest and the
 ## real log (the techniques mode and the full-log block can only be read there)
@@ -64,6 +65,10 @@ func _left_press() -> InputEventMouseButton:
 	press.global_position = press.position
 	return press
 
+## The chest's About, which Spirit Valley's lore shows outside the board modes.
+func _about() -> Control:
+	return _main_view.zone_panel.get_node("%AboutButton") as Control
+
 #-----------------------------------------------------------------------------
 # THE SWITCH
 #-----------------------------------------------------------------------------
@@ -73,10 +78,12 @@ func test_cycling_mode_on_and_off() -> void:
 	assert_true(_main_view.zone_panel.is_techniques_mode(), "the chest lists the techniques")
 	assert_false(_main_view.dock.visible, "the dock hides")
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map takes no input")
+	assert_false(_about().visible, "About hides")
 	_main_view.set_cycling_mode(false)
 	assert_false(_main_view.zone_panel.is_techniques_mode(), "the chest lists the activities again")
 	assert_true(_main_view.dock.visible, "the dock is back")
 	assert_false(_main_view.zone_map_viewport.gui_disable_input, "the map takes input again")
+	assert_true(_about().visible, "About is back")
 
 ## The view-state tests run cycling on a MainView with none of the zone view's
 ## furniture, and each piece is switched whether or not the others exist.
@@ -99,15 +106,18 @@ func test_cycling_mode_turns_the_chest_when_the_dock_and_map_are_missing() -> vo
 	assert_true(bare.zone_panel.is_techniques_mode())
 
 ## The Tribulation board stands in the same map gap but has no use for the techniques: the
-## chest keeps listing the zone's activities, and only the dock and the map are turned off.
+## chest keeps listing the zone's activities and hides only About, and the dock and the
+## map are turned off.
 func test_board_mode_leaves_the_chest() -> void:
 	_main_view.set_board_mode(true)
 	assert_false(_main_view.dock.visible, "the dock hides")
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map takes no input")
 	assert_false(_main_view.zone_panel.is_techniques_mode(), "the chest keeps listing the activities")
+	assert_false(_about().visible, "About hides")
 	_main_view.set_board_mode(false)
 	assert_true(_main_view.dock.visible, "the dock is back")
 	assert_false(_main_view.zone_map_viewport.gui_disable_input, "the map takes input again")
+	assert_true(_about().visible, "About is back")
 
 ## Each piece is switched whether or not the other exists, as on the MainViews the
 ## view-state tests build.
