@@ -21,7 +21,9 @@ extends Node
 ## on, tears down what lives outside the save, frees the main scene, binds the new
 ## session and loads the main scene again, so the game comes up as a launch on that
 ## save would. A switch that is refused changes nothing; one that fails midway
-## brings back the session it left.
+## brings back the session it left. One switch runs at a time: a switch asked for
+## while another is pending is refused before anything else is checked, so a
+## double click never runs two (SWITCH_UNDER_WAY).
 ##
 ## The time speed is the game's base Engine.time_scale, which GameSpeed keeps: one of
 ## TIME_SPEEDS, set with set_time_speed(). A switch keeps it.
@@ -75,6 +77,9 @@ const _FALLBACK_PRESET_TITLE: String = "Fresh start (the preset could not be bui
 ## accepts only these.
 const TIME_SPEEDS: Array[float] = [1.0, 2.0, 5.0, 10.0]
 
+## Why a switch asked for while another is pending is refused.
+const SWITCH_UNDER_WAY: String = "A session switch is already under way"
+
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
@@ -103,6 +108,9 @@ var _session_preset: SavePresetData = null
 
 ## Why the last switch was refused or failed, or "" once a switch has worked.
 var _last_switch_failure: String = ""
+
+## True from the moment a switch is scheduled until it runs, on the next frame.
+var _switch_pending: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -173,6 +181,8 @@ func start_from_launch_options(options: LaunchOptions) -> void:
 #-----------------------------------------------------------------------------
 # SWITCHING SESSIONS
 #-----------------------------------------------------------------------------
+# Each switch is refused at once while another one is pending (SWITCH_UNDER_WAY),
+# before any check of its own, so a refused request never takes your save's lock.
 
 ## Plays the preset in memory, on the next frame (see the class doc). A preset
 ## build_preset() refuses before it changes anything (validate() finds something
@@ -181,7 +191,9 @@ func start_from_launch_options(options: LaunchOptions) -> void:
 func play_preset(preset: SavePresetData) -> void:
 	var title: String = preset.title if preset != null else ""
 	var what: String = "start preset '%s'" % title
-	var refusal: String = _build_refusal(preset, get_route())
+	var refusal: String = _pending_refusal()
+	if refusal == "":
+		refusal = _build_refusal(preset, get_route())
 	if refusal != "":
 		_refuse(what, refusal)
 		return
@@ -203,13 +215,16 @@ func play_story_through(beat_id: String) -> void:
 ## Builds the session's preset again from the start, on the next frame, written
 ## where the session writes: in memory for a preset played in game and for the
 ## fallback, the --save file for a launch that named one. Does nothing outside a
-## preset session.
+## preset session, where there is nothing to restart, even while a switch is
+## pending.
 func restart_preset() -> void:
 	if _session_kind != SessionKind.PRESET or _session_preset == null:
 		return
 	var preset: SavePresetData = _session_preset
 	var what: String = "restart preset '%s'" % preset.title
-	var refusal: String = _build_refusal(preset, get_route())
+	var refusal: String = _pending_refusal()
+	if refusal == "":
+		refusal = _build_refusal(preset, get_route())
 	if refusal != "":
 		_refuse(what, refusal)
 		return
@@ -220,7 +235,9 @@ func restart_preset() -> void:
 ## main save.
 func back_to_my_save() -> void:
 	var what: String = "go back to your save"
-	var refusal: String = _main_save_refusal()
+	var refusal: String = _pending_refusal()
+	if refusal == "":
+		refusal = _main_save_refusal()
 	if refusal != "":
 		_refuse(what, refusal)
 		return
@@ -231,7 +248,9 @@ func back_to_my_save() -> void:
 ## a run with no main save, and while another live run holds the save's lock.
 func new_game() -> void:
 	var what: String = "start a new game on your save"
-	var refusal: String = _main_save_refusal()
+	var refusal: String = _pending_refusal()
+	if refusal == "":
+		refusal = _main_save_refusal()
 	if refusal == "":
 		refusal = _take_your_save_lock()
 	if refusal != "":
@@ -245,7 +264,9 @@ func new_game() -> void:
 ## another live run holds the save's lock.
 func keep_as_my_save() -> void:
 	var what: String = "keep this game as your save"
-	var refusal: String = _main_save_refusal()
+	var refusal: String = _pending_refusal()
+	if refusal == "":
+		refusal = _main_save_refusal()
 	if refusal == "":
 		refusal = _take_your_save_lock()
 	if refusal != "":
@@ -260,7 +281,9 @@ func keep_as_my_save() -> void:
 ## holds the save's lock.
 func restore_backup(backup_path: String) -> void:
 	var what: String = "restore your save from %s" % backup_path.get_file()
-	var refusal: String = _main_save_refusal()
+	var refusal: String = _pending_refusal()
+	if refusal == "":
+		refusal = _main_save_refusal()
 	if refusal == "" and not FileAccess.file_exists(backup_path):
 		refusal = "There is no backup at %s" % backup_path
 	if refusal == "":
@@ -423,8 +446,10 @@ func time_speed_label(speed: float) -> String:
 ## panel button's handler in the main scene the switch frees, has returned:
 ## SceneTree.unload_current_scene() deletes that scene at once. `what` names the
 ## switch in a failure ("start preset 'X'"); `started` is the player's log line
-## once it worked.
+## once it worked. The switch is pending until it runs, and every switch asked for
+## in that time is refused (_pending_refusal()).
 func _schedule_switch(start_session: Callable, what: String, started: String) -> void:
+	_switch_pending = true
 	_run_switch.call_deferred(start_session, what, started)
 
 ## The switch, in order:
@@ -440,7 +465,10 @@ func _schedule_switch(start_session: Callable, what: String, started: String) ->
 ## 5. the player's log is cleared and gets one [DEV] line naming the new session;
 ## 6. the main scene loads again if step 3 freed it, then session_changed is
 ##    emitted.
+## The switch stops being pending as it starts, so a request made after it, a
+## restart from the panel the switch builds included, is not refused.
 func _run_switch(start_session: Callable, what: String, started: String) -> void:
+	_switch_pending = false
 	var left_kind: SessionKind = _session_kind
 	var left_preset: SavePresetData = _session_preset
 	var left_save_path: String = PersistenceManager.save_path
@@ -518,6 +546,12 @@ func _come_back(kind: SessionKind, preset: SavePresetData, save_path: String) ->
 	Log.error("DevManager: Could not bring back the session a switch left: %s. Playing a fresh game in memory instead" % failure)
 	_start_fallback_session()
 	return "Could not go back either: %s. Playing a fresh game in memory instead" % failure
+
+## Why a switch is refused because another one is pending (SWITCH_UNDER_WAY), or ""
+## when none is. Each switch asks this before any check of its own: a double click
+## on Keep would otherwise take two backups, and one on Play two rebuilds.
+func _pending_refusal() -> String:
+	return SWITCH_UNDER_WAY if _switch_pending else ""
 
 ## Refuses a switch before anything changes: logs why, keeps it for
 ## get_last_switch_failure() and emits session_switch_failed.

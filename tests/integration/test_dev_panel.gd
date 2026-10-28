@@ -4,9 +4,10 @@ extends GutTest
 ## body; the open state, the body's place and the tab live on DevManager, so a panel
 ## built again (a session switch frees the main scene and the panel in it) comes back
 ## as it was; the body is dragged by its title bar and always stays on screen, also
-## when a wider tab makes it grow; the title bar's picker sets DevManager's time
-## speed, and the badge shows any speed but ×1, even with the panel closed. The title
-## reads against its bar. The panel hands its adventure view to the Adventure tab.
+## when a wider tab makes it grow, and shrinks back on a narrower tab; the title
+## bar's picker sets DevManager's time speed, and the badge shows any speed but ×1,
+## even with the panel closed. The title reads against its bar. The panel hands its
+## adventure view to the Adventure tab.
 ##
 ## The World tab travels through DevCommands and shows a refusal, and its zone-map
 ## checks start from ZoneManager. The Player tab's controls each reach their command
@@ -299,14 +300,18 @@ func test_the_body_stays_on_screen() -> void:
 
 ## A wider tab makes the body grow from its top-left corner, which can push its right
 ## edge off the screen. The body is moved back on, and DevManager keeps where it
-## stands, as it does for a drag.
+## stands, as it does for a drag. Back on a narrow tab, the body shrinks back to its
+## own width where it was moved to.
 func test_the_body_stays_on_screen_when_a_wider_tab_makes_it_grow() -> void:
 	DevManager.panel_position = Vector2(SCREEN_SIZE.x - 600.0, 100.0)
 	var panel: DevPanel = _add_panel(true)
 	panel.set_open(true)
 	var body: Control = panel.get_node("%Body")
 	var tabs: TabContainer = panel.get_node("%Tabs")
+	await wait_process_frames(2)
 	assert_true(_body_on_screen(panel), "precondition: the body stands near the right edge, on screen")
+	var narrow_tab: int = tabs.current_tab
+	var narrow_width: float = body.size.x
 	var wide: Control = tabs.get_node("Spare")
 	wide.custom_minimum_size = Vector2(1000, 0)
 	tabs.current_tab = tabs.get_tab_idx_from_control(wide)
@@ -314,6 +319,39 @@ func test_the_body_stays_on_screen_when_a_wider_tab_makes_it_grow() -> void:
 	assert_gt(body.size.x, 1000.0, "precondition: the wider tab made the body grow")
 	assert_true(_body_on_screen(panel), "the body was moved back onto the screen")
 	assert_eq(DevManager.panel_position, body.position, "and DevManager keeps where it stands")
+	var moved_to: Vector2 = body.position
+	tabs.current_tab = narrow_tab
+	await wait_process_frames(2)
+	assert_eq(body.size.x, narrow_width, "back on a narrow tab, the body shrinks back")
+	assert_eq(body.position, moved_to, "and stays where it was moved to")
+	assert_eq(DevManager.panel_position, moved_to, "which DevManager keeps")
+
+## A wider tab that leaves the whole body on screen does not move it. The body shrinks
+## back with the tab, also after a drag while it was wide: a body whose place is set
+## while it is grown must not keep the grown size.
+func test_a_body_the_growth_leaves_on_screen_shrinks_back_after_a_drag() -> void:
+	var panel: DevPanel = _add_panel(true)
+	panel.set_open(true)
+	var body: Control = panel.get_node("%Body")
+	var tabs: TabContainer = panel.get_node("%Tabs")
+	await wait_process_frames(2)
+	var start: Vector2 = body.position
+	var narrow_tab: int = tabs.current_tab
+	var narrow_width: float = body.size.x
+	var wide: Control = tabs.get_node("Spare")
+	wide.custom_minimum_size = Vector2(1000, 0)
+	tabs.current_tab = tabs.get_tab_idx_from_control(wide)
+	await wait_process_frames(2)
+	assert_gt(body.size.x, 1000.0, "precondition: the wider tab made the body grow")
+	assert_true(_body_on_screen(panel), "precondition: and it still stands on screen")
+	assert_eq(body.position, start, "so it was not moved")
+	assert_eq(DevManager.panel_position, start, "and DevManager keeps its place")
+	_drag_title_bar(panel, start + Vector2(16, 8), start + Vector2(66, 108))
+	assert_eq(body.position, start + Vector2(50, 100), "precondition: the wide body was dragged")
+	tabs.current_tab = narrow_tab
+	await wait_process_frames(2)
+	assert_eq(body.size.x, narrow_width, "back on a narrow tab, the body shrinks back")
+	assert_eq(body.position, start + Vector2(50, 100), "where it was dragged to")
 
 func test_open_state_position_and_tab_survive_a_rebuild() -> void:
 	var panel: DevPanel = _add_panel(true)

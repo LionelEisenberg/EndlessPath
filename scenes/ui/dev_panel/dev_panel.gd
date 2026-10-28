@@ -51,7 +51,7 @@ func _ready() -> void:
 		_speed_option.add_item(DevManager.time_speed_label(speed))
 		_speed_option.set_item_metadata(_speed_option.item_count - 1, speed)
 	_body.visible = DevManager.panel_open
-	_body.position = _kept_on_screen(DevManager.panel_position)
+	_move_body(_kept_on_screen(DevManager.panel_position))
 	_tabs.current_tab = clampi(DevManager.panel_tab, 0, _tabs.get_tab_count() - 1)
 	_show_speed(DevManager.get_time_speed())
 	_adventure_tab.set_adventure_view(adventure_view)
@@ -101,14 +101,18 @@ func _on_title_bar_input(event: InputEvent) -> void:
 		return
 	var motion := event as InputEventMouseMotion
 	if motion != null and (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
-		_body.position = _kept_on_screen(motion.global_position - _drag_offset - global_position)
+		_move_body(_kept_on_screen(motion.global_position - _drag_offset - global_position))
 		DevManager.panel_position = _body.position
 
 ## Keeps the body wholly on screen when it changes size. A wider tab makes it grow
 ## from its top-left corner, which could push its right or bottom edge past the
-## screen's. The place it moves to is kept on DevManager, as a drag's is.
+## screen's. Only a body that would stand past an edge is moved, and the place it
+## moves to is kept on DevManager, as a drag's is.
 func _on_body_resized() -> void:
-	_body.position = _kept_on_screen(_body.position)
+	var kept: Vector2 = _kept_on_screen(_body.position)
+	if kept == _body.position:
+		return
+	_move_body(kept)
 	DevManager.panel_position = _body.position
 
 ## Keeps the tab on DevManager for the panel built after a session switch.
@@ -146,3 +150,13 @@ func _speed_index(speed: float) -> int:
 ## past an edge, never leaves the title bar out of reach.
 func _kept_on_screen(place: Vector2) -> Vector2:
 	return place.clamp(Vector2.ZERO, (size - _body.size).max(Vector2.ZERO))
+
+## Moves the body's top-left corner to `place` and keeps its own size, the size its
+## offsets give it. Setting `position` alone sizes the offsets to the body's size
+## now, which a wider tab may have grown, and the body would then stay that wide on
+## a narrower tab. The end offsets come back to the resting size, which the grown
+## content still overrides while it is there.
+func _move_body(place: Vector2) -> void:
+	var resting_size: Vector2 = Vector2(_body.offset_right - _body.offset_left, _body.offset_bottom - _body.offset_top)
+	_body.position = place
+	_body.set_end(place + resting_size)

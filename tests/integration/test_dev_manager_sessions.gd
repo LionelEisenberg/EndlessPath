@@ -9,7 +9,9 @@ extends GutTest
 ## action and any dialogue, the cycle, the vitals, a hit-stop's time scale), binds
 ## the new session and starts the player's log again with one line. A switch that
 ## is refused changes nothing; a build that fails brings the session back it left.
-## Under GUT the current scene is the runner, so no scene is unloaded or reloaded.
+## A switch asked for while another is pending is refused, so a double click never
+## runs two. Under GUT the current scene is the runner, so no scene is unloaded or
+## reloaded.
 ## The time speed, the base time scale a switch keeps, is tested here too.
 ##
 ## The tests that need your save point PersistenceManager's main save and backup
@@ -62,6 +64,8 @@ gold = 42.0
 
 ## A switch runs on the next frame. Two frames leave it done.
 const SWITCH_FRAMES: int = 2
+## Why a switch asked for while another is pending is refused.
+const SWITCH_UNDER_WAY: String = "A session switch is already under way"
 
 const ZONE_ID: String = "SpiritValley"
 const FORAGING_ID: String = "sprint_forest_foraging_action"
@@ -749,6 +753,69 @@ func test_a_preset_that_does_not_validate_is_refused_at_once() -> void:
 	assert_same(PersistenceManager.save_game_data, save_before, "the session keeps its save")
 	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE)
 	assert_signal_not_emitted(DevManager, "session_changed")
+
+#-----------------------------------------------------------------------------
+# ONE SWITCH AT A TIME
+#-----------------------------------------------------------------------------
+# A double click on a panel button asks for two switches in one frame. The second
+# is refused at call time, before any other check, and the first still runs.
+
+func test_a_second_switch_asked_for_in_the_same_frame_is_refused() -> void:
+	watch_signals(DevManager)
+	DevManager.play_preset(_preset("test_first", "", [_step(Kind.SET_GOLD, "", 321.0)]))
+	DevManager.play_preset(_preset("test_second", "", [_step(Kind.SET_GOLD, "", 654.0)]))
+	assert_signal_emit_count(DevManager, "session_switch_failed", 1, "the second request is refused at once")
+	assert_eq(_failure_reason(), SWITCH_UNDER_WAY)
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET)
+	var session_preset: SavePresetData = DevManager.get_session_preset()
+	assert_not_null(session_preset)
+	if session_preset != null:
+		assert_eq(session_preset.preset_id, "test_first", "the first request ran")
+	assert_eq(ResourceManager.get_gold(), 321.0, "and only the first")
+	assert_signal_emit_count(DevManager, "session_changed", 1, "one switch ran")
+	assert_eq(DevManager.get_last_switch_failure(), "", "the switch that ran worked, which clears the refusal")
+	DevManager.restart_preset()
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_signal_emit_count(DevManager, "session_switch_failed", 1, "once the switch has run, the next request is not refused")
+	assert_signal_emit_count(DevManager, "session_changed", 2, "and runs")
+
+## The refusal comes before every other check, so a request refused while a switch
+## is pending never takes your save's lock.
+func test_a_request_refused_while_a_switch_is_pending_takes_no_lock() -> void:
+	_start_on_temp_main_save()
+	DevManager.play_preset(_preset("test_in_memory", ""))
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "precondition: a preset in memory holds no lock on your save")
+	watch_signals(DevManager)
+	DevManager.play_preset(_preset("test_pending", "", [_step(Kind.SET_GOLD, "", 321.0)]))
+	DevManager.keep_as_my_save()
+	DevManager.new_game()
+	DevManager.back_to_my_save()
+	assert_signal_emit_count(DevManager, "session_switch_failed", 3, "each request after the first is refused")
+	assert_eq(_failure_reason(), SWITCH_UNDER_WAY)
+	assert_eq(SaveLock.holder_pid(MAIN_SAVE_PATH), 0, "and none took your save's lock")
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(ResourceManager.get_gold(), 321.0, "the preset asked for first is the session")
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET)
+	assert_eq(FileAccess.get_file_as_string(MAIN_SAVE_PATH), MAIN_SAVE_TEXT, "your save was never written")
+	assert_eq(PersistenceManager.list_backups().size(), 0, "nor backed up")
+
+## A double click on Keep took two backups of your save.
+func test_a_double_keep_backs_your_save_up_once() -> void:
+	_start_on_temp_main_save()
+	DevManager.play_preset(_preset("test_double_keep", "", [_step(Kind.SET_GOLD, "", 700.0)]))
+	await wait_process_frames(SWITCH_FRAMES)
+	watch_signals(DevManager)
+	DevManager.keep_as_my_save()
+	DevManager.keep_as_my_save()
+	assert_signal_emit_count(DevManager, "session_switch_failed", 1, "the second keep is refused")
+	assert_eq(_failure_reason(), SWITCH_UNDER_WAY)
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "the first keep ran")
+	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 700.0, "and wrote your save")
+	assert_eq(PersistenceManager.list_backups().size(), 1, "after one backup, not two")
+	assert_signal_emit_count(DevManager, "session_changed", 1)
 
 #-----------------------------------------------------------------------------
 # TIME SPEED
