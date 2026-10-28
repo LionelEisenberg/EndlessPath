@@ -194,15 +194,21 @@ func stop_adventure() -> void:
 func get_run_timer() -> Timer:
 	return _run_timer
 
-## DEV-only: immediately resolve the current combat as a win.
-## No-op if not currently in combat.
+## DEV-only: immediately resolve the current combat as a win, by taking all of the
+## enemy's Health, so the fight ends as in play: AdventureCombat pays the fight's
+## gold and fires q_first_steps_enemy_defeated, then the view and the map end it.
+## No-op if not currently in combat, or if the enemy is gone or already down: the
+## Health setter reports 0 again, which would pay the fight's gold a second time.
 ## Used by the dev panel; do not call from gameplay code.
 func force_win_combat() -> void:
 	if not is_in_combat:
 		return
 	if combat == null:
 		return
-	combat.trigger_combat_end.emit(true, 0)
+	var enemy := combat.enemy_combatant
+	if not is_instance_valid(enemy) or enemy.vitals_manager.current_health <= 0.0:
+		return
+	enemy.vitals_manager.apply_vitals_change(-enemy.vitals_manager.max_health)
 
 ## DEV-only: end the running adventure at once, as a victory (the boss-win
 ## path: success effects, the victory end card) or a defeat (failure effects,

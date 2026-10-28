@@ -248,6 +248,24 @@ static func refill_vitals() -> String:
 	_while_paused(vitals.initialize_current_values.bind(vitals.current_madra))
 	return _succeed("Refilled Health and Stamina")
 
+## Wins the fight that is on by killing its enemy through its Health, so the fight
+## ends as in play: it pays its gold, fires q_first_steps_enemy_defeated and resolves
+## its tile. Refuses without a view or a fight.
+static func force_win_fight(view: AdventureView) -> String:
+	if not is_instance_valid(view) or not view.is_in_combat:
+		return "No fight is on"
+	_while_paused(view.force_win_combat)
+	return _succeed("Won the fight")
+
+## Ends the adventure that runs at once, as a victory (the boss-win path: its success
+## effects and the victory end card) or as a defeat (its failure effects and a retreat
+## end card). Refuses without a view or a run.
+static func exit_adventure(view: AdventureView, victory: bool) -> String:
+	if not is_instance_valid(view) or not view.is_adventure_running():
+		return "No adventure is running"
+	_while_paused(view.force_end_adventure.bind(victory))
+	return _succeed("Ended the adventure as a %s" % ("victory" if victory else "defeat"))
+
 #-----------------------------------------------------------------------------
 # CATALOGS
 #-----------------------------------------------------------------------------
