@@ -23,6 +23,10 @@ extends Control
 ## it must skip neither the rules nor Not yet, since a run cannot be left once it starts.
 ## The hold belongs to the kind of input that started it, key or mouse button: only that
 ## kind coming up lets it go, and a focus loss always does.
+##
+## close() stops the board and hides it at once. halt() stops it and leaves it showing,
+## for a transition to shrink it away: either drops a run in progress and applies nothing
+## of it, and get_board_rect() says where the board stands.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -288,12 +292,23 @@ func cancel() -> void:
 	if _mode == Mode.INTRO:
 		finished.emit(false)
 
-## Hides the board. A run in progress is dropped, and nothing of it is applied.
-func close() -> void:
+## Stops the board without hiding it, for a transition that shrinks it away while it stays
+## drawn. A run in progress is dropped, its effects are cleared and nothing of it is applied.
+## The mode is CLOSED, so the frames and the presses do nothing more.
+func halt() -> void:
 	_mode = Mode.CLOSED
 	_run = null
 	_clear_effects()
+
+## Hides the board: halt(), then hide().
+func close() -> void:
+	halt()
 	hide()
+
+## Returns the board's rect in the screen's space: where a transition scales the view
+## out of the cultivator to, and back into.
+func get_board_rect() -> Rect2:
+	return _board.get_global_rect()
 
 ## Takes an event of the trial's input (tribulation_press) and returns true for each one
 ## of them, false for any other event. A key's repeats are not presses. On the intro a key
@@ -452,7 +467,7 @@ func _show_crack(word: String, reason: String) -> void:
 ## result panel shows the copy, the grade and the counts; the core turns brass or
 ## spent, and the stage empties. What the panel shows of the run is read before the
 ## manager is called, and the run is not touched after: a listener of the manager's
-## signals can stop the action, and the stop's close() drops the run.
+## signals can stop the action, and the stop's close() or halt() drops the run.
 func _end(passed: bool) -> void:
 	_mode = Mode.RESULT
 	_passed = passed
