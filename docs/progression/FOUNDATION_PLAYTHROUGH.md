@@ -449,7 +449,7 @@ Template: **ASSUMPTION** / **IMPACT** / **IF WRONG** / **VALIDATE** / **STATUS**
 
 ### Bugs
 
-- `[MEDIUM]` Quests can soft-lock. QuestManager never re-checks a step after advancing, so a "return" event that fires early leaves the quest stuck. Normal play avoids this through NPC gating, but the dev panel's force-unlock reproduces it. See [QUESTS.md](QUESTS.md).
+- `[MEDIUM]` Quests can soft-lock. QuestManager never re-checks a step after advancing, so a "return" event that fires early leaves the quest stuck. Normal play avoids this through NPC gating, but the dev panel's Trigger event reproduces it when it fires an event before its step is current. See [QUESTS.md](QUESTS.md).
 - `[MEDIUM]` `dialogue_1` has malformed BBCode: `[color=blue][CORE][color]` is never closed. See [DIALOGUE.md](../infrastructure/DIALOGUE.md).
 
 ### Missing Functionality

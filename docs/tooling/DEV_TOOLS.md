@@ -4,8 +4,8 @@
 
 | Tool | Where | How to use | Purpose |
 |------|-------|------------|---------|
-| Dev Panel | `scenes/ui/dev_panel/` (in `main_game.tscn`) | Ctrl+Shift+D in game | Change Madra/Gold, CD XP, path points and unlocks; force combat wins; end adventures as a victory or defeat; reveal adventure maps; show the demo and hidden zones on the zone map |
-| Save presets | `resources/dev/save_presets/`, `resources/dev/story_route.tres`, `singletons/dev_manager/` (`DevManager`) | `--preset=<id>` after `--`, or a pinned preset | Start the game at a built moment of the story (the Tribulation ready, the Merchant open, Copper) in a session that leaves the user's save alone, and switch between presets and the user's save while the game runs. See [Save Presets](#save-presets) |
+| Dev Panel | `scenes/ui/dev_panel/` (in `main_game.tscn`) | Ctrl+Shift+D in game; Ctrl+Shift+R restarts the preset | A floating panel of tabs (Saves, Player, Story, Items, Adventure, World): switch between presets and your save, set resources, progress and techniques, jump the story and fire its events, give items, drive an adventure, travel and show hidden zones; set the time speed. See [Dev Panel](#dev-panel) |
+| Save presets | `resources/dev/save_presets/`, `resources/dev/story_route.tres`, `singletons/dev_manager/` (`DevManager`) | `--preset=<id>` after `--`, or a pinned preset | Start the game at a built moment of the story (the Tribulation ready, the Merchant open, Copper) in a session that leaves the user's save alone, and switch between presets and the user's save while the game runs, from the dev panel's Saves tab. See [Save Presets](#save-presets) |
 | Dev commands | `singletons/dev_manager/dev_commands.gd` (`DevCommands`) | Called from code and tests | One command API over the managers' public functions: complete an action, trigger an event, reach a Core Density level, buy a path node, award an item. See [Dev Commands](#dev-commands) |
 | Map Preview | `scenes/tools/map_preview.tscn` + `scripts/tools/map_preview.gd` | Open in the editor and press **Generate** in the Inspector | Preview procedural adventure maps without running the game |
 | UID generator | `scripts/tools/generate_uid.gd` | Headless `-s` script | Print fresh `uid://` strings for hand-written `.tscn`/`.tres` |
@@ -16,57 +16,136 @@
 
 ## Dev Panel
 
-A floating panel shipped in the game binary, open to anyone who presses the hotkey (no password; exported builds included). It calls existing singleton APIs, so its changes go through the same signals as gameplay and are saved with the rest of the session's save by the autosave when the session has a file ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md); a preset session lives in memory). Reloading does not undo them.
+A floating board of tabs shipped in the game binary, open to anyone who presses the hotkey (no password; exported builds included). Its tabs call the [dev commands](#dev-commands) and the managers' public functions, so their changes go through the same signals as gameplay and are saved with the rest of the session's save by the autosave when the session has a file ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md); a preset session lives in memory). Reloading does not undo them. The panel is exempt from the lacquer look ([STYLE_GUIDE.md](../STYLE_GUIDE.md), G11): it takes `pixel_theme.tres` from `MainView`, and its labels use the `LabelSubheading`, `LabelBody` and `LabelBodySmall` variants.
 
 ### Opening it
 
 ```
-Ctrl+Shift+D (MainGame._input)
-  └─ panel visible → hide panel
-  └─ panel hidden  → DevPanel.open()
+Ctrl+Shift+D (DevPanel._input, whatever view the game is in)
+  └─ panel closed → open it
+  └─ panel open   → close it
+Ctrl+Shift+R (DevPanel._input, with the panel open or closed)
+  └─ a preset session   → DevManager.restart_preset(), and the event is marked handled
+  └─ any other session  → left alone: the key goes on as plain R, the fourth ability slot
 ```
 
-The hotkey needs no password: an old `user://dev_password.txt` is ignored.
+The hotkeys need no password: an old `user://dev_password.txt` is ignored. The panel starts closed. Closing it, with the × or the hotkey, hides the body only, so the time-speed badge stays.
+
+A session switch frees the main scene, and the panel with it, so the panel's open state, the place of its body and its tab live on `DevManager` (`panel_open`, `panel_position` and `panel_tab`): the panel built next comes back as the last one was. Nothing is saved to disk, so a new launch starts with the panel closed, on the first tab, with the body at (24, 24).
 
 ### Scene structure
 
 ```
-DevPanel (PanelContainer, min width 340, mouse Stop)   dev_panel.gd (class DevPanel)
-└── VBoxContainer
-    ├── TitleBar (PanelContainer: drag handle) → TitleLabel "Dev Panel", CloseButton "×"
-    ├── "RESOURCES"   → MadraRow (MadraSpin, MadraApply), GoldRow (GoldSpin, GoldApply)
-    ├── "CULTIVATION" → XpRow (XpSpin, XpApply), PointsRow (PointsSpin, PointsApply)
-    ├── "UNLOCKS"     → ConditionRow (ConditionOption, ConditionApply "Trigger"), UnlockCyclingButton
-    ├── "COMBAT"      → ForceWinButton
-    ├── "ADVENTURE"   → ShowWholeMapCheck (CheckButton), ExitAdventureRow (ExitVictoryButton, ExitDefeatButton)
-    └── "ZONES"       → DemoZonesCheck, HiddenZonesCheck (CheckButtons)
+DevPanel (Control, covers the screen, mouse Ignore)   dev_panel.gd (class DevPanel)
+├── Body (PanelContainer, min size 560x680, mouse Stop)
+│   └── VBoxContainer
+│       ├── TitleBar (PanelContainer, the drag handle) → TitleLabel "Dev Panel", SpeedOption (OptionButton), CloseButton "×"
+│       └── Tabs (TabContainer)
+│           ├── SavesTab      scenes/ui/dev_panel/tabs/saves_tab.tscn      ScrollContainer
+│           ├── PlayerTab     tabs/player_tab.tscn                         ScrollContainer
+│           ├── StoryTab      tabs/story_tab.tscn                          VBoxContainer: the scrolling part, then a status line (class DevStoryTab)
+│           ├── ItemsTab      tabs/items_tab.tscn                          ScrollContainer
+│           ├── AdventureTab  tabs/adventure_tab.tscn                      ScrollContainer (class DevAdventureTab)
+│           └── WorldTab      tabs/world_tab.tscn                          ScrollContainer
+└── SpeedBadge (Label, top right, hidden at ×1)
 ```
 
-The panel is a child of `MainView` at z 10. `main_game.tscn` places the panel at (0, 0). Dragging the title bar moves it, and the position survives close/re-open within a session. The × button hides the panel.
+The panel is a child of `MainView` at z 10. Only its body takes the mouse: the rest of the panel, and the badge, let clicks through to the game.
+
+Each tab is a scene of its own with one script, which calls the dev tools itself. The shell owns only the frame: the open state, the drag, the tab, the time speed and the hotkeys. The one thing it hands a tab is the adventure view: `main_game.tscn` sets the panel's `adventure_view` export to the sibling `AdventureView`, and `DevPanel._ready()` passes it to the Adventure tab. The Saves tab's preset list is made of `DevPresetRow`s (`rows/dev_preset_row.tscn`), the Story tab's action list of `DevActionRow`s (`rows/dev_action_row.tscn`).
+
+Dragging the title bar moves the body, which always stays wholly on screen: a wider tab makes it grow from its top-left corner, and it is moved back in when that pushes it past an edge, then shrinks back to its own size on a narrower tab. The place is kept on `DevManager`.
+
+The title bar's picker sets the [time speed](#time-speed), ×1, ×2, ×5 or ×10. The badge in the top right shows any speed but ×1, with the panel open or closed. The picker and the badge follow `DevManager.time_speed_changed`.
 
 ### Controls
 
-Every action writes a `[DEV]` line (magenta tag) to the in-game log through `LogManager.log_message()`.
+A command, a switch or a toggle writes a `[DEV]` line (magenta tag) to the in-game log through `DevCommands.log_dev_line()`. A command that refuses shows its reason in the tab, in a status line that stays until a command works. The tabs, in order:
 
-| Section | Control | Calls | Effect on game state |
-|---------|---------|-------|----------------------|
-| Resources | Madra (`MadraSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_madra(v)` | Sets Madra to `max(0, v)` and emits `madra_changed`. Not clamped to max Madra, so it can exceed orb capacity. Unlock conditions re-evaluate. |
-| Resources | Gold (`GoldSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `ResourceManager.set_gold(v)` | Sets gold to `max(0, v)` and emits `gold_changed`, which updates the cultivator cabinet's gold row and re-evaluates unlocks. |
-| Cultivation | Add CD XP (`XpSpin`, 0 to 1,000,000, `allow_greater`) + Apply | `CultivationManager.add_core_density_xp(v)` | Normal XP path: loops level-ups, emits `core_density_level_updated` per level, and awards path points every 10 levels, once per stage (1 per milestone at Foundation). The loop stops at the stage's cap (level 100), where XP is lost, so it can fill the core to reveal the Tribulation card. |
-| Cultivation | Path Points (`PointsSpin`, 0 to 1000, integer) + Apply | `PathManager.add_points(int(v))` | Adds to the path point balance and emits `points_changed`. |
-| Unlocks | Condition (`ConditionOption`) + Trigger | `UnlockManager.force_unlock_condition(id)` | Appends the id to `unlock_progression.unlocked_condition_ids` and emits `condition_unlocked(id)`. Idempotent. The dropdown is filled once in `_ready()` from `UnlockManager.unlock_condition_list.list`, skipping null or empty ids. |
-| Unlocks | Unlock All Cycling Techniques | `CyclingManager.unlock_technique(id)` for every entry in `CyclingManager._technique_catalog.cycling_techniques` | Unlocks every catalog technique and emits `technique_unlocked` for newly unlocked ones. Idempotent. |
-| Combat | Force-Win Current Combat | `AdventureView.force_win_combat()` | Only shown while `AdventureView.is_in_combat`; `_process()` polls it every frame while the panel is visible. Emits `AdventureCombat.trigger_combat_end(true, 0)`, which ends the fight as a win with 0 gold. |
-| Adventure | Show Whole Map (toggle) | `AdventureView.set_show_whole_map(pressed)` → `AdventureTilemap.set_dev_reveal_all()` | Visual only: lifts the fog off every map tile, paints every tile in forest art (no veils) and shows each unvisited encounter tile's glyph coin (the boss its boss coin). The visited/highlight dictionaries, stats and encounter resolution are unchanged, and switching it off puts the normal coins and fog back. The flag stays on `AdventureTilemap` across adventures until toggled off. |
-| Adventure | Exit: Victory / Defeat | `AdventureView.force_end_adventure(victory)` | Only shown while an adventure runs (`AdventureView.is_adventure_running()`, polled like Force-Win). Victory takes the boss-win path: `ActionManager.stop_action(true)` with `_pending_victory` set, so the adventure's success effects run, the zone completion counts and the victory end card shows. Defeat calls `stop_action(false)`: failure effects and a "You retreated from the adventure" end card. Works on the map or mid-fight. |
-| Zones | Demo zones (locked, uncharted) (toggle) | `ZoneManager.set_demo_zones_visible(pressed)` | Adds the two demo zones in `resources/zones/dev/` to the zone map: a locked Advancement Zone north-east of Spirit Valley and an Uncharted hex due north of Spirit Valley, beyond it, with their plates, glyphs, popovers and routes. They are loaded outside `zone_data_list.tres`, never enter the save, and are gone on the next launch. Emits `map_zones_changed`. |
-| Zones | Show hidden zones (Test Zone) (toggle) | `ZoneManager.set_hidden_zones_visible(pressed)` | Draws the zones marked `hidden_on_map` (Test Zone, west of Spirit Valley). Once it is unlocked you can travel there. Emits `map_zones_changed`. The flag is not saved and resets on the next launch; a save standing in Test Zone moves back to Spirit Valley on load (`SaveGameData.migrate()`). |
+#### Saves
 
-Caveats:
+What the session plays and the saves behind it. From the top: the session line, the story's beats, the two session buttons, the presets, saving this game as a preset, and your save.
 
-- **Force-Win skips victory side effects.** It bypasses `AdventureCombat`'s enemy-death handling, so the gold reward and `EventManager.trigger_event("q_first_steps_enemy_defeated")` never run.
-- **Exit: Victory skips the boss's own rewards.** The boss encounter's `success_effects` and the fight's gold never run, only the adventure action's. Exiting mid-fight first closes the fight as a loss (a "Combat Defeat..." log line; no encounter has failure effects today).
-- **Forced conditions only satisfy some systems.** Zone and zone-action gates check `UnlockManager.are_unlock_conditions_met()`, so they accept forced ids. Quest steps (`QuestManager`), encounter choices and encounter eligibility call `UnlockConditionData.evaluate()` directly and ignore them. The underlying event is not triggered either.
+| Control | Calls | Effect |
+|---------|-------|--------|
+| Session line | `DevManager.get_session_kind()`, `PersistenceManager` | `Preset: <title>`, `Your save` or `File`, then ` · ` and where it writes: the session's `save_path`, or `in memory, not saved`. Then `Saving is off: <reason>` when saving is blocked, then `Built from preset '<id>'` when the save's play stats name the preset that built it (your save after a Keep still does), then `Version N · Playtime m:ss · <stage>, Core Density L / cap · G gold` (the clock reads h:mm:ss from an hour on) |
+| Beats | `DevManager.get_route()`, the save's play stats | One line per beat of the [story route](#the-story-route), `<title> — <how far>`: the playtime at which the beat's `reached_when` first happened (`2:41`); `reached, no time recorded` when it has happened but the stats keep no time for it (a preset build records no play, and a save from before play stats kept none); `not reached`; or `not tracked (no reached_when)` for a beat with no `reached_when` (Copper) |
+| Restart preset (Ctrl+Shift+R) | `DevManager.restart_preset()` | Builds the session's preset again. Off outside a preset session |
+| Back to my save | `DevManager.back_to_my_save()` | Opens your save again from disk. Off in a session on it |
+| PRESETS: a `DevPresetRow` for each | `DevManager.play_preset()`, `pin_preset()` | The preset's title and description. Play plays it in memory. Pin pins it for plain launches ([The pin](#the-pin)); on the pinned preset the button reads Unpin and unpins it, and the row says "Pinned · plain launches start here". A pin that cannot be written shows in the status line |
+| SAVE THIS GAME AS A PRESET: Title, Description, Save as a preset | `DevManager.save_as_preset()` | Writes the session's save as a snapshot preset ([Save this game as a preset](#save-this-game-as-a-preset)). A refusal shows under the button. On success it says `Saved this game as the preset '<title>'`, clears both fields and lists the new preset |
+| New game on my save | `DevManager.new_game()` | Backs your save up, then starts a fresh game on it. Needs a second click |
+| Keep as my save | `DevManager.keep_as_my_save()` | Backs your save up, then makes this session your save. Off in a session on it |
+| Save now | `PersistenceManager.save_data()` | Writes the session's save and says what came of it: `Saved to <path>` (with a `[DEV]` line), `Not saved: this session lives in memory, so there is no file to write`, `Not saved. Saving is off: <reason>`, or `Could not write <path>: <error> (error N)` |
+| Autosave | `PersistenceManager.autosave_enabled` | Turns the tick's and the close's autosave on or off for the session, with a `[DEV]` line |
+| Backup picker, Restore | `PersistenceManager.list_backups()`, `DevManager.restore_backup()` | Your save's backups, newest first, each read `<name> · 2026-10-25 11:17:15 (UTC)` (`#2` after the time for the second copy made in that second). A refresh keeps the backup picked. With none, the picker reads "No backups" and Restore is off. Restore needs a second click |
+| Open save folder | `OS.shell_open()` | Opens the user data folder (`user://`) in the file manager |
+
+New game and Restore write over your save, so each needs a second click on the same button within 3 s of real time, whatever the time speed. The first click turns the button into "Click again to start a new game" or "Click again to restore". The 3 s running out, a refresh, or a click on the other button puts its own text back.
+
+The status line at the foot of the tab shows why a switch was refused or failed, a pin that would not write, what Save now did, and a folder that would not open.
+
+The tab refreshes when the session changes (`DevManager.session_changed`: the status line then shows why the switch failed, if it did, and clears once one works), when it is shown, and, for the session line and the beats, once a second while it is in view. A switch that is refused or fails shows its reason (`session_switch_failed`). A switch that fails midway reports while the main scene and the panel in it are freed, so the tab built next shows `DevManager.get_last_switch_failure()`.
+
+#### Player
+
+The player's resources and progress. A refusal shows above the controls.
+
+| Control | Calls | Effect |
+|---------|-------|--------|
+| Madra (0 to 1,000,000, and more) + Set | `DevCommands.set_madra()` | Sets Madra to the value and emits `madra_changed`. Not clamped to the cap, so it can exceed the orb's capacity. Unlock conditions re-evaluate |
+| Gold (0 to 1,000,000, and more) + Set | `DevCommands.set_gold()` | Sets gold and emits `gold_changed`, which updates the cabinet's gold row and re-evaluates unlocks |
+| Core Density (0 to 100) + Reach | `DevCommands.reach_core_density()` | Raises Core Density to the level, or to the stage's cap, through real XP: the milestones pay and the core fills as in play. At or above the level nothing happens |
+| Stage line | `CultivationManager` | "Stage: Foundation · Core Density 42 / 100". It follows `core_density_level_updated` and `advancement_stage_changed` |
+| Advance to the next stage | `DevCommands.advance_stage()` | Breaks through as a passed Tribulation does. Refused at the last stage |
+| Path Points (0 to 1000) + Add | `DevCommands.add_path_points()` | Adds to the Path Point balance and emits `points_changed` |
+| Attribute picker (the eight), amount (0 to 1000) + Add | `DevCommands.add_attribute()` | Adds the amount to the attribute's base value |
+| Technique picker + Unlock, Equip | `DevCommands.unlock_technique()`, `equip_technique()` | Every cycling technique of the catalog. Equip refuses a locked one |
+| Unlock all techniques | `DevCommands.unlock_all_techniques()` | Unlocks every technique, and logs how many were new |
+| Ability picker + Unlock, Equip; Equip in slot (1 to 4) | `DevCommands.unlock_ability()`, `equip_ability()` | Every combat ability. Equip puts it in the slot picked, replacing what is there, and refuses a locked one |
+| Unlock all abilities | `DevCommands.unlock_all_abilities()` | Unlocks every ability, and logs how many were new |
+
+#### Story
+
+Where the story stands, and the controls that move it. The status line stands under the part that scrolls, so a refusal from Jump, Trigger or a row's Complete is in view wherever the tab is scrolled to, and the next command that works clears it.
+
+| Control | Calls | Effect |
+|---------|-------|--------|
+| JUMP STORY TO: beat picker + Jump | `DevManager.play_story_through()` | Plays the story route through the beat on a fresh save, as a preset session ([Switching sessions](#switching-sessions)). The picker reads `<title> (<beat_id>)`. A refused jump shows its reason |
+| QUESTS | `QuestManager` | One line per active quest, `<quest> — step N: <what the step asks>` (N counts from 1), then `Done: <titles>`. "No quests started yet" while there is nothing to show |
+| TRIGGER EVENT: picker + Trigger | `DevCommands.trigger_event()` | Fires an event the content listens to (`known_event_ids()`), unless it has fired |
+| `ACTIONS · <zone>`: a `DevActionRow` for each action of the current zone, with Complete | `DevCommands.complete_action()` | The action's name and id, and its status: `Available` (the zone manager offers it), `Used up (n/n)`, `Passed` (a Tribulation the player has passed) or `Locked: needs <ids>`, the unlock conditions that are not latched (a locked zone's own come first). Complete is on only while the action is Available, and counts one completion and runs the effects without playing the action |
+| EVENTS AND CONDITIONS | `EventManager`, `UnlockManager` | `Events: <ids>` and `Conditions: <ids>`, in the order they fired and latched, or "none" |
+
+The tab refreshes when an event fires, a condition latches, a quest starts, advances or completes, an action is completed, the current zone or the stage changes, or the session does, and when it is shown. It shows `DevManager.get_last_switch_failure()` when it is built, and the reason of any switch that is refused or fails while it lives, as the Saves tab does.
+
+#### Items
+
+| Control | Calls | Effect |
+|---------|-------|--------|
+| GIVE AN ITEM: item picker, Quantity (1 to 99) + Give | `DevCommands.award_item()` | The picker lists every item resource under `res://resources/items/` by its `item_name`; two items with one name also read their file name (`Crude Scale (crude_scale.tres)`). A refusal, such as "Equipment is full", shows under the Give row |
+| EQUIPMENT PAGES: Grant an equipment page | `DevCommands.grant_equipment_page()` | One more equipment page. A refusal shows in the same status line |
+
+#### Adventure
+
+While no adventure runs, the tab says "No adventure running" and shows nothing else. It follows the run through `ActionManager`'s `start_adventure` and `stop_adventure` signals. A refusal shows above the controls.
+
+| Control | Calls | Effect |
+|---------|-------|--------|
+| FIGHT: Force-win fight | `DevCommands.force_win_fight(view)` | Shown only while the view has a fight on (asked every frame while the tab is in view). Kills the enemy through its Health, so the fight ends as in play: it pays its gold, fires `q_first_steps_enemy_defeated` and resolves its tile ([ADVENTURING.md](../adventuring/ADVENTURING.md#dev-hooks)). Refused without a fight |
+| ADVENTURE: Exit as victory, Exit as defeat | `DevCommands.exit_adventure(view, victory)` | Victory takes the boss-win path (`ActionManager.stop_action(true)`), so the adventure's success effects run, the zone completion counts and the victory end card shows. Defeat calls `stop_action(false)`: failure effects and a "You retreated from the adventure" end card. Works on the map or mid-fight. Refused without a run |
+| Show whole map | `AdventureView.set_show_whole_map(pressed)` | Visual only: lifts the fog off every map tile, shows each unvisited encounter's glyph coin and changes nothing else ([ADVENTURING.md](../adventuring/ADVENTURING.md#dev-hooks)). The flag stays on the map across adventures until toggled off, so the toggle shows the map's own state each time a run shows |
+| Refill Health and Stamina | `DevCommands.refill_vitals()` | Fills Health and Stamina and keeps the Madra the run has left |
+
+Exit as victory skips the boss's own rewards: the boss encounter's `success_effects` and the fight's gold never run, only the adventure action's. Exiting mid-fight first closes the fight as a loss (a "Combat Defeat..." log line; no encounter has failure effects today).
+
+#### World
+
+| Control | Calls | Effect |
+|---------|-------|--------|
+| TRAVEL: zone picker + Travel | `DevCommands.travel_to_zone()` | Every zone, the hidden ones included. A refusal (travel while anything but foraging or training runs) shows under the picker |
+| Demo zones (locked, uncharted) | `ZoneManager.set_demo_zones_visible(pressed)` | Adds the two demo zones in `resources/zones/dev/` to the zone map: a locked Advancement Zone north-east of Spirit Valley and an Uncharted hex due north of Spirit Valley, beyond it, with their plates, glyphs, popovers and routes. They are loaded outside `zone_data_list.tres`, never enter the save, and are gone on the next launch. Emits `map_zones_changed` |
+| Show hidden zones (Test Zone) | `ZoneManager.set_hidden_zones_visible(pressed)` | Draws the zones marked `hidden_on_map` (Test Zone, west of Spirit Valley). Once it is unlocked you can travel there. Emits `map_zones_changed`. The flag is not saved and resets on the next launch; a save standing in Test Zone moves back to Spirit Valley on load (`SaveGameData.migrate()`). Both checks start from `ZoneManager`'s own state without toggling it |
 
 ## Save Presets
 
@@ -176,6 +255,7 @@ A preset can be pinned for a checkout, so that plain launches (the editor's Play
 - It is one preset id in a `ConfigFile` (section `dev`, key `pinned_preset`): `res://.dev_settings.cfg` for a run from the editor binary, in the checkout's own folder, so each worktree has its own pin and `.gitignore` keeps it out of commits; `user://dev_settings.cfg` in an exported build, whose `res://` is read-only.
 - Only a plain launch uses it: one with neither `--preset` nor `--save`. A launch with `--preset` starts that preset, and a launch with `--save` is a file session, which the pinned preset would otherwise be built over. `--no-autosave` names no save, so it leaves the pin on.
 - A pin whose preset is gone starts the fresh fallback in memory, with the critical log line above.
+- From the panel, each preset row of the Saves tab has Pin, and Unpin on the pinned one. The pinned row reads "Pinned · plain launches start here". The pin takes effect at the next plain launch, not in the running game.
 
 ### Save this game as a preset
 
@@ -184,12 +264,13 @@ A preset can be pinned for a checkout, so that plain launches (the editor's Play
 - The id is the title lowercased, each run of characters outside `a-z` and `0-9` turned into `_`, and `_` trimmed from both ends: "Weird State #2!" is `weird_state_2`.
 - The snapshot is a copy of the session's save that shares the item resources the inventory is keyed by and copies everything else. The session is left as it was, and one `[DEV]` line names the file.
 - It returns `""` once the file is written, or why it was not: an empty title, a title with no letter or digit, an id some preset already has (an existing preset is never overwritten), or a failed write.
+- From the panel, the Saves tab's SAVE THIS GAME AS A PRESET section has a Title (required), an optional Description and the Save as a preset button. It says which preset it saved and lists it, or shows why it refused.
 
 A committed snapshot is built with the other presets, so one that no longer builds fails a test.
 
 ## DevManager
 
-`singletons/dev_manager/dev_manager.gd`, the last autoload. It keeps the dev session, builds presets and switches sessions while the game runs. It builds nothing in a test run (its `_ready()` returns), so a test calls its functions itself.
+`singletons/dev_manager/dev_manager.gd`, the last autoload. It keeps the dev session, builds presets, switches sessions while the game runs, sets the [time speed](#time-speed), and keeps the dev panel's state across a switch. It builds nothing in a test run (its `_ready()` returns), so a test calls its functions itself.
 
 `enum SessionKind { YOUR_SAVE, PRESET, FILE }` names what a session plays: the user's own save, a preset, or a `--save` file.
 
@@ -199,11 +280,14 @@ A committed snapshot is built with the other presets, so one that no longer buil
 | `PRESET_DIR` | `res://resources/dev/save_presets/` |
 | `EXPORT_PRESET_DIR` | `user://dev/save_presets/`, the presets an exported build keeps |
 | `FALLBACK_PRESET_ID` | `fresh_fallback` |
+| `TIME_SPEEDS` | `[1.0, 2.0, 5.0, 10.0]`, the speeds `set_time_speed()` accepts |
+| `SWITCH_UNDER_WAY` | `"A session switch is already under way"`, why a switch asked for while another is pending is refused |
 
 | Signal | Emitted |
 |--------|---------|
 | `session_changed` | At launch, once the launch options have set the session up, and at the end of each switch in game, a failed one included |
 | `session_switch_failed(reason: String)` | When a switch is refused or fails. A refused switch changed nothing; after a failed one the session it left is back, and `session_changed` follows |
+| `time_speed_changed(speed: float)` | When `set_time_speed()` has set a speed |
 
 | Function | Behaviour |
 |----------|-----------|
@@ -224,8 +308,11 @@ A committed snapshot is built with the other presets, so one that no longer buil
 | `restore_backup(backup_path)` | Puts a backup (`PersistenceManager.list_backups()`) back as the user's save, then opens it from disk |
 | `save_as_preset(title, description) -> String` | See [Save this game as a preset](#save-this-game-as-a-preset) |
 | `pin_preset(preset_id) -> Error`, `get_pinned_preset_id() -> String` | See [The pin](#the-pin) |
+| `set_time_speed(speed) -> String`, `get_time_speed() -> float`, `time_speed_label(speed) -> String` | See [Time speed](#time-speed) |
 
 `preset_dir_override` is a test-only variable: the one folder to read presets from and to save them to, in place of `PRESET_DIR` and `EXPORT_PRESET_DIR`.
+
+`panel_open`, `panel_position` and `panel_tab` are the dev panel's open state, the top-left corner of its body and the index of its tab. They live here because the panel is in the main scene, which a switch frees and loads again: the panel writes them as they change and reads them when it is built.
 
 ### Building a preset
 
@@ -241,19 +328,26 @@ Nothing the build sets off counts as play: the save's play stats stay paused for
 
 Restarting a preset in game leaves the managers in the same state as launching with `--preset`: nothing a build sets lives outside the save. A test builds a preset, writes the save, plays the loaded file and compares what the managers hold.
 
+### Time speed
+
+`set_time_speed(speed)` makes the speed the game's base `Engine.time_scale` (`GameSpeed.base_scale`, `scripts/utils/game_speed.gd`). It emits `time_speed_changed`, logs a `[DEV]` line (`Time speed ×5`) and returns `""`. A speed `TIME_SPEEDS` does not list is refused with a reason that names the speeds it does list (`Time speed ×3 is not one of ×1, ×2, ×5, ×10`), and nothing changes, is emitted or is logged. Setting the speed already set sets it again: the signal and the line repeat. `get_time_speed()` reads `GameSpeed.base_scale`, so `DevManager` keeps no second copy of the speed. `time_speed_label(speed)` writes a speed as the `[DEV]` lines, the panel's picker and its badge do (`×5`).
+
+The speed is the base that a moment which slows time comes back to: the boss hit-stop slows the engine to a quarter of it for 0.15 s of real time, then returns to it ([ADVENTURING.md](../adventuring/ADVENTURING.md)). A session switch keeps the speed (its teardown puts the engine back to `GameSpeed.base_scale`, not to 1). The playtime counts the scaled frame time, so ×10 counts ten times as fast ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md)). The speed is not saved: a new launch runs at ×1.
+
 ### Switching sessions
 
-`play_preset()`, `play_story_through()`, `restart_preset()`, `back_to_my_save()`, `new_game()`, `keep_as_my_save()` and `restore_backup()` are switches. Each runs on the next frame, because a caller such as a panel button lives in the main scene the switch frees, and the scene is deleted at once. The switch runs in this order:
+`play_preset()`, `play_story_through()`, `restart_preset()`, `back_to_my_save()`, `new_game()`, `keep_as_my_save()` and `restore_backup()` are switches. From the panel, the Saves tab starts them (Play on a preset row, Restart preset, Back to my save, New game on my save, Keep as my save and Restore), Ctrl+Shift+R restarts the preset, and the Story tab's Jump plays the story through a beat. Each runs on the next frame, because a caller such as a panel button lives in the main scene the switch frees, and the scene is deleted at once. One switch runs at a time: while one is pending, from its call until it runs, another is refused. The switch runs in this order:
 
 1. The session it leaves is saved, when autosave is on and the session writes a file.
 2. What lives outside the save is torn down, which a launch never starts with: the running action stops, uncounted and with no effects; any dialogue ends (one an adventure encounter started included); the cycle session and the last cycle's result clear; the player's vitals are replaced (`PlayerManager.reset_vitals()`); the engine's time scale goes back to `GameSpeed.base_scale`, the base speed (`scripts/utils/game_speed.gd`), so a slowed moment cannot carry over.
 3. The main scene is freed when it is the current scene. It never is under GUT, where the runner is, so a test run unloads and reloads no scene.
 4. The new session binds: a build, a file opened again, or the new-game, keep and restore steps. A switch that fails here logs `Log.error` with the reason, brings back the session it left (your save opens again from disk, a preset is built again where it was written, a file opens again; when even that fails, `fresh_fallback` in memory), and emits `session_switch_failed`. A preset session comes back as its preset built again, not as it was played.
 5. The player's log is cleared and gets one `[DEV]` line naming the new session ("Started preset 'X'", "Restarted preset 'X'", "Back to your save", ...).
-6. The main scene loads again, when step 3 freed it, and `session_changed` is emitted. Views build from manager state, so the game comes up as a launch on that save would.
+6. The main scene loads again, when step 3 freed it, and `session_changed` is emitted. Views build from manager state, so the game comes up as a launch on that save would (an adventure's map is the exception: see [Work Remaining](#work-remaining)).
 
 A switch is refused at call time, before anything changes (`Log.error`, `get_last_switch_failure()`, `session_switch_failed`), when:
 
+- another switch is pending (`SWITCH_UNDER_WAY`): every switch, before any check of its own, so a refused request never takes your save's lock and a double click on Keep takes one backup. `restart_preset()` outside a preset session does nothing, even then;
 - the run has no main save ("This run has no main save"): `back_to_my_save()`, `new_game()`, `keep_as_my_save()` and `restore_backup()`. Every GUT run is one, unless a test points `PersistenceManager.main_save_path` at a temp file;
 - another live run holds the lock on the user's save ("Your save is in use by another run (pid N)"): `new_game()`, `keep_as_my_save()` and `restore_backup()`, which write it;
 - the backup to restore is not there ("There is no backup at <path>");
@@ -289,8 +383,12 @@ A command with nothing to do (an action used up, an event already fired, a node 
 | `grant_equipment_page()` | Grants one more equipment page | |
 | `travel_to_zone(zone_id)` | Makes the zone the current one | An unknown zone; travel while anything but foraging or training runs, since travel stops what runs as a success, which counts a completion and runs its effects: right for an action a player leaves by moving on, wrong for a dialogue, a cycle, an adventure, the shop or the Tribulation |
 | `refill_vitals()` | Fills Health and Stamina and keeps the Madra the run has left | Unless an adventure runs |
+| `force_win_fight(view)` | Wins the fight that is on by killing its enemy through its Health, so it pays its gold, fires `q_first_steps_enemy_defeated` and resolves its tile, as a real win does | A view that is not there; no fight on |
+| `exit_adventure(view, victory)` | Ends the running adventure as a victory (its success effects, the victory end card) or a defeat (its failure effects, a retreat end card) | A view that is not there; no run |
 | `known_event_ids() -> PackedStringArray` | The events the content listens to, sorted, each once: the event every `EVENT_TRIGGERED` condition waits for, and every quest step's `completion_event_id`. Firing any other event changes nothing in the game | |
 | `list_item_paths() -> PackedStringArray` | The path of every item resource under `res://resources/items/`, nested folders included, sorted | |
+
+`log_dev_line(what)` is not a command: it writes `what` as a `[DEV]` line in the player's log, the one place that writes the tag. Every command logs its success through it, and so do the dev tools that are not commands (`DevManager`'s session lines, the dev panel's toggles).
 
 ## Map Preview
 
@@ -367,18 +465,18 @@ Output: five lines of the form `uid://...`.
 
 | System | Connection |
 |--------|------------|
-| MainGame | Owns the Ctrl+Shift+D gate |
+| MainView / MainGame | `DevPanel` is `MainView`'s last child, and `main_game.tscn` hands it the `AdventureView`. `MainGame._process()` adds the scaled frame time to the playtime, so the time speed counts |
 | ResourceManager | `set_madra()`, `set_gold()` |
-| CultivationManager | `add_core_density_xp()` |
+| CultivationManager | `add_core_density_xp()` (behind `reach_core_density()`), `advance_to_next_stage()` (behind `advance_stage()`). The Player tab's stage line reads the stage, the level and the cap, and follows `core_density_level_updated` and `advancement_stage_changed` |
 | PathManager | `add_points()` |
-| UnlockManager | `unlock_condition_list` (dropdown), `force_unlock_condition()` (dev-only wrapper) |
-| CyclingManager | `_technique_catalog` (private read), `unlock_technique()` |
-| AdventureView / AdventureTilemap | `is_in_combat`, `force_win_combat()`, `set_show_whole_map()` → `set_dev_reveal_all()` |
+| UnlockManager / EventManager / QuestManager | The Story tab reads `get_unlocked_condition_ids()`, `get_triggered_events()` and the quests' getters, and follows their signals. `unlock_condition_list` feeds `known_event_ids()`. `force_unlock_condition()` is a test fixture: no panel control calls it |
+| CyclingManager | `get_all_techniques()`, `unlock_technique()`, `equip_technique()` |
+| AdventureView / AdventureTilemap | The Adventure tab asks `is_in_combat` and `is_adventure_running()`, calls `set_show_whole_map()` → `set_dev_reveal_all()` and reads `is_dev_reveal_all()`. `force_win_combat()` and `force_end_adventure()` are behind `force_win_fight()` and `exit_adventure()` |
 | LogManager | `[DEV]` audit lines; a switch clears the history (`clear_history()`) and writes one `[DEV]` line |
-| PersistenceManager | `DevManager` binds a preset's save (`use_save()`), opens a file again (`open_save_file()`), saves the session it leaves (`autosave()`), backs the user's save up (`backup_main_save()`) and writes it (`save_data()`). `LaunchOptions` carries `--preset` and the pin |
+| PersistenceManager | `DevManager` binds a preset's save (`use_save()`), opens a file again (`open_save_file()`), saves the session it leaves (`autosave()`), backs the user's save up (`backup_main_save()`) and writes it (`save_data()`). The Saves tab reads the session (`save_path`, `is_in_memory()`, `is_save_blocked()`, `get_block_reason()`), lists `list_backups()`, sets `autosave_enabled` and calls `save_data()`. `LaunchOptions` carries `--preset` and the pin |
 | ActionManager | `complete_without_playing()` behind `complete_action()`, `is_idle_action()` behind `travel_to_zone()`, `cancel_current_action()` in a switch's teardown |
 | DialogueManager / CyclingManager / PlayerManager | A switch's teardown: `end_dialogue_now()`, `end_cycle_session()` with `clear_last_cycle_result()`, `reset_vitals()` |
-| ZoneManager / PathManager / InventoryData | `is_action_used_up()`, `is_stage_reached()` with `get_unmet_prerequisite()`, `free_equipment_slots()`: the rules `DevCommands` shares with the managers |
+| ZoneManager / PathManager / InventoryData | `is_action_used_up()`, `is_stage_reached()` with `get_unmet_prerequisite()`, `free_equipment_slots()`: the rules `DevCommands` shares with the managers. The Story tab also reads `ZoneManager.get_available_actions()` and `TribulationActionData.is_passed()` for an action's status, and the World tab `ZoneManager`'s zone list and its two zone-map switches |
 | AbilityManager / CyclingManager / QuestManager | Catalog lookups behind the commands and `validate()`: `has_ability()`, `get_all_abilities()`, `has_technique()`, `get_all_techniques()`, `get_all_quests()` |
 | AdventureMapGenerator / HexForestAtlas / EncounterIcon | Reused by Map Preview |
 
@@ -386,8 +484,9 @@ Output: five lines of the form `uid://...`.
 
 | File | Purpose |
 |------|---------|
-| `scenes/main/main_game/main_game.gd` | Ctrl+Shift+D hotkey |
-| `scenes/ui/dev_panel/dev_panel.gd` / `.tscn` | `DevPanel` controls and drag |
+| `scenes/ui/dev_panel/dev_panel.gd` / `.tscn` | `DevPanel`: the shell (open state, drag, tab, time speed, the two hotkeys) |
+| `scenes/ui/dev_panel/tabs/` | One scene and script per tab: `saves_tab`, `player_tab`, `story_tab` (`DevStoryTab`), `items_tab`, `adventure_tab` (`DevAdventureTab`), `world_tab` |
+| `scenes/ui/dev_panel/rows/` | `dev_preset_row` (`DevPresetRow`) and `dev_action_row` (`DevActionRow`) |
 | `singletons/dev_manager/dev_manager.gd` | `DevManager`: the session, building presets, switching sessions, snapshots and the pin |
 | `singletons/dev_manager/dev_commands.gd` | `DevCommands`: the command API |
 | `scripts/resource_definitions/dev/` | `DevStepData`, `StoryBeatData`, `StoryRouteData`, `SavePresetData` |
@@ -395,21 +494,19 @@ Output: five lines of the form `uid://...`.
 | `scripts/utils/launch_options.gd` | `--preset`, `--save`, `--no-autosave`, the pin and test-run detection |
 | `scripts/utils/game_speed.gd` | `GameSpeed`: the base time scale (`base_scale`, `set_base_scale()`) a switch puts the engine back to |
 | `.dev_settings.cfg` (gitignored) | A checkout's pinned preset |
-| `singletons/unlock_manager/unlock_manager.gd` | `force_unlock_condition()` |
 | `scenes/adventure/adventure_view/adventure_view.gd` | `force_win_combat()`, `force_end_adventure()`, `set_show_whole_map()` |
 | `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` | `set_dev_reveal_all()`, `_dev_reveal_all` rendering paths |
 | `scripts/tools/map_preview.gd`, `scenes/tools/map_preview.tscn`, `scenes/tools/encounter_id_label.tscn` | Map Preview |
 | `scripts/tools/generate_uid.gd` | UID generator |
 | `scripts/tools/items_md_to_resources.gd`, `scripts/tools/items_md_parser.gd` | Items generator |
 
-Tests: `tests/unit/test_unlock_manager.gd` and `tests/integration/test_dev_panel_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
+Tests: `tests/unit/test_dev_*.gd` and `tests/integration/test_dev_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
 
 ### Bugs
 
-- `[MEDIUM]` Force-Win can't advance combat-gated quest steps. `AdventureView.force_win_combat()` emits `trigger_combat_end(true, 0)` directly instead of going through `AdventureCombat`'s enemy-death handling. As a result `q_first_steps_enemy_defeated` never fires, so the Foundation Beat 2 step can't be advanced with Force-Win, and the fight awards no gold.
-- `[LOW]` Two switches asked in one frame both run: `DevManager` keeps no pending flag. A second `new_game()`, `keep_as_my_save()` or `restore_backup()` takes a second backup, of the session the first one made.
+- `[HIGH]` After a session switch, an adventure draws no map and cannot be walked. A switch loads the main scene again, and the hex layers of the new scene never get the addon's set-up ([ADVENTURING.md](../adventuring/ADVENTURING.md), Code Quality): the adventure's start logs hundreds of `cube_to_map()` errors and a `SCRIPT ERROR` ("Out of bounds get index '0'", from `hexagon_tilemap.gd`), the map area stays empty and a click on a tile finds no path. A switch from the zone view is enough, and a first launch is not affected. Emitting the shared tileset's `changed` signal once after the reload makes the adventure work.
 - `[LOW]` A switch that writes the user's save takes no backup when only the save's temp file is there (a write cut short left it, and it may be the only copy), and then writes over it. The boot backup does take it.
 - `[LOW]` `StoryRouteData.validate()` and `SavePresetData.validate()` call `validate()` on each step, so an empty slot in `steps` (the Inspector adds one before a resource is chosen) is a script error, not a listed problem.
 - `[LOW]` `save_as_preset()` checks the id against the presets it can load but writes `<id>.tres`, so a file of that name holding another id is overwritten. `get_presets()` also reads a stray `<id>.tmp.tres` that a cut-short write left in a preset folder.
@@ -417,20 +514,17 @@ Tests: `tests/unit/test_unlock_manager.gd` and `tests/integration/test_dev_panel
 
 ### Missing Functionality
 
-- `[MEDIUM]` No tests cover the panel's actions or the hotkey gate. The spec's planned `test_dev_panel_actions.gd` integration test was never written; only `force_unlock_condition()` and the two Zones toggles are tested.
-- `[LOW]` "Trigger" for a condition does not help with quest steps, encounter choices or encounter eligibility, which evaluate conditions themselves. It also does not trigger the backing event.
-- `[LOW]` The spec's v2 list has no panel controls yet. Commands for most of it exist in `DevCommands` and `DevManager`: stage change, item grants, ability and technique unlock and equip, zone travel, new game and back to your save.
 - `[LOW]` Map Preview has none of the follow-ups the spec mentions: no batch statistics mode (NG3) and no overlays such as MST edges or distance labels (G5).
 
 ### UI
 
 - `[LOW]` The spec's `HSeparator`s between panel sections are missing.
-- `[LOW]` "Unlock All Cycling Techniques" logs the catalog size, not the number of newly unlocked techniques.
+- `[LOW]` The panel's buttons, pickers and spin boxes keep the default focus mode, so a click gives one keyboard focus, and Space or Enter then reach it instead of the game until the focus moves.
+- `[LOW]` The Saves tab is taller than the body, and its status line is at the foot, so a refusal from the buttons at the top (Restart, Back, a preset's Play) shows below the fold until the tab is scrolled. The player's log carries a failed switch's reason too.
 
 ### Tech Debt
 
-- `[LOW]` `DevPanel` finds the adventure view by the absolute path `MainGame/MainView/AdventureView`, and its Unlock All Cycling Techniques button reads the private `CyclingManager._technique_catalog`.
-- `[LOW]` `dev_panel.tscn` has a hand-written placeholder UID (`uid://dev_panel_001`). `main_game.tscn` references it by path only. `generate_uid.gd` can produce real ones.
+- `[LOW]` `UnlockManager.force_unlock_condition()` has no caller outside tests, and its doc comment still says the dev panel uses it.
 - `[LOW]` Pressing Generate in Map Preview and then saving rewrites the committed snapshot in `scenes/tools/map_preview.tscn` (`tile_map_data` and stats text), which makes noisy diffs.
 - `[LOW]` `generate_uid.gd` has no doc comment and a fixed count of 5.
 - `[LOW]` The `zone-mockup` launch configuration serves `mockups/`, which is gitignored and not present in the repository.

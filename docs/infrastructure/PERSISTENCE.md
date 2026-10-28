@@ -23,10 +23,10 @@ A run plays one **session**: the user's own save (`user://save.tres`), another f
 
 ## Player Experience
 
-- There is no save/load UI, no save slots, and no "New Game" option. Progress saves silently every 5 seconds and when the window closes, and is restored on launch.
+- A player sees no save/load screen, no save slots and no "New Game" option: progress saves silently every 5 seconds and when the window closes, and is restored on launch. The dev panel's Saves tab can start a new game, restore a backup and switch sessions ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#saves)).
 - Quitting mid-adventure loses the adventure: the map, position, vitals and timer. The Madra drained to start it, and any gold or loot already awarded, stay as they were when the window closed (or at the last 5 s tick, when the process is killed).
-- To start over, delete `save.tres`, or play another file with `--save=`: a path with no file starts a new save. `--preset=fresh` plays a new game that leaves `save.tres` alone.
-- Each launch on `save.tres` first copies it to `user://backups/`, and the newest 10 copies are kept. To go back to one, copy it over `save.tres` with the game closed.
+- To start over, press New game on my save in the dev panel's Saves tab (it backs `save.tres` up first), or delete `save.tres`, or play another file with `--save=`: a path with no file starts a new save. `--preset=fresh` plays a new game that leaves `save.tres` alone.
+- Each launch on `save.tres` first copies it to `user://backups/`, and the newest 10 copies are kept. To go back to one, pick it in the dev panel's Saves tab and press Restore, or copy it over `save.tres` with the game closed.
 - After pulling or merging new art, run `--headless --import` before running the game or the tests. Without it, an item `.tres` the save names can fail to load its new texture, which makes the whole save unreadable. PersistenceManager then keeps the file and turns saving off, so the run shows a fresh game, but nothing is lost: re-import and launch again.
 
 ## Architecture
@@ -61,7 +61,7 @@ MainGame (main_game.tscn)
 | `--save=<path>` | Play and write that file instead of `user://save.tres`. A path with no file starts a new save there. With `--preset`, the built session is written there |
 | `--no-autosave` | The `SaveTimer`'s tick and the window's close write nothing. `save_data()` still writes when something calls it, and the save lock still holds |
 
-A preset pinned for the checkout stands in for `--preset` on a **plain** launch, one with neither `--preset` nor `--save`: a launch with `--save` is a file session, which the pinned preset would otherwise be built over, and `--preset` names its own. `--no-autosave` names no save, so it leaves the pin on. The pin is one preset id in `res://.dev_settings.cfg` (gitignored, one per checkout) for a run from the editor binary, or `user://dev_settings.cfg` in an exported build ([The pin](../tooling/DEV_TOOLS.md#the-pin)).
+A preset pinned for the checkout stands in for `--preset` on a **plain** launch, one with neither `--preset` nor `--save`. [The pin](../tooling/DEV_TOOLS.md#the-pin) has the rule in full.
 
 A run plays one session:
 
@@ -131,7 +131,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `is_save_blocked() -> bool` | True when the save could not be read or checked, a newer build wrote it, or another run holds its lock or took it over. Nothing writes it until another save becomes the session's |
 | `get_block_reason() -> String` | Why saving is blocked, or `""` |
 | `backup_main_save() -> String` | Copies the main save into `backup_dir` and keeps its newest `BACKUPS_KEPT`. Returns the copy's path, or `""` when there is no main save file or the copy failed. `DevManager` calls it before a switch writes the user's save |
-| `list_backups() -> PackedStringArray` | The main save's backups in `backup_dir`, newest first. Nothing in the game calls it today |
+| `list_backups() -> PackedStringArray` | The main save's backups in `backup_dir`, newest first. The dev panel's Saves tab lists them |
 
 ### Helper classes
 
@@ -315,7 +315,8 @@ A save becomes the session's through `open_save_file()` (boot, and any later swi
 | An in-progress adventure (map, tile, visited tiles, timer) | `AdventureView` / `AdventureTilemap` nodes |
 | Player vitals (health, stamina, combat Madra) | `PlayerManager.vitals_manager`. These are re-initialized at each adventure start |
 | The current action and its timers (cycling, foraging, training ticks in flight) | `ActionManager`, `CyclingTechnique` (the running cycle, with its snapshot and the last finished cycle's result on `CyclingManager`; the Auto toggle is `CyclingView`'s). Completed training ticks are saved in `training_tick_progress`, and each zone's `last_idle_action_id` is, so the load restarts that idle action (nothing accrues while the game is closed) |
-| The log history (`LogManager`, 200 lines), the dev panel's position, the dev zone toggles | `LogManager`, the `DevPanel` node, `ZoneManager` |
+| The log history (`LogManager`, 200 lines), the dev zone toggles | `LogManager`, `ZoneManager` |
+| The dev panel's open state, place and tab, and the time speed | `DevManager` (`panel_open`, `panel_position`, `panel_tab`) and `GameSpeed` (`base_scale`). They outlast a session switch, which loads the main scene again, but not a relaunch |
 | Which session is running, why saving is blocked, and the lock | `PersistenceManager` (`save_path`, `is_save_blocked()`, `get_block_reason()`) and the lock file. `DevManager` keeps what the session plays (`get_session_kind()`, `get_session_preset()`); a save names its preset only in `stats.built_from_preset` |
 | `PlayStatsData.recording_paused` | The `PlayStatsData` instance: a plain `var`, not an `@export` |
 | Dialogic state | Not used. Nothing calls `Dialogic.Save` |
@@ -353,7 +354,7 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 
 | Field | What it holds | Recorded by |
 |-------|---------------|-------------|
-| `play_time` | Seconds of game time while `main_game.tscn` runs, scaled by `Engine.time_scale`, so a dev time speed of ×10 counts ten times as fast | `MainGame._process()` (`add_play_time()`) |
+| `play_time` | Seconds of game time while `main_game.tscn` runs, scaled by `Engine.time_scale`, so a dev time speed ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#time-speed)) of ×10 counts ten times as fast | `MainGame._process()` (`add_play_time()`) |
 | `event_first_times` | Event id → the `play_time` at which it first fired. A repeat keeps the first time | `EventManager.trigger_event()`, in its first-time branch |
 | `condition_first_times` | Unlock condition id → the `play_time` at which it first latched. A repeat keeps the first time. An empty id is skipped: `UnlockManager` announces `""` on every save switch | `UnlockManager`, when a condition first unlocks |
 | `cycles_finished` | Cycles that ran to their end | `CyclingManager.set_last_cycle_result()`, which the cycling board calls when a cycle ends. A null result is no cycle |
@@ -406,11 +407,10 @@ Tests: `tests/unit/test_persistence_manager.gd` and `tests/unit/test_save_migrat
 
 ### Bugs
 
-- `[LOW]` Saving that is off is silent to the player. An unreadable save, a save from a newer build, and a save another run holds the lock on (or took over) all run with saving blocked, and only the console and the log file say why (`Log.critical`). `get_block_reason()` returns it, but no screen shows it.
+- `[LOW]` Saving that is off is silent to the player. An unreadable save, a save from a newer build, and a save another run holds the lock on (or took over) all run with saving blocked, and only the console, the log file and the dev panel's Saves tab say why (`Log.critical`, and the tab's session line). `get_block_reason()` returns it, but no screen a player sees shows it.
 
 ### Missing Functionality
 
-- `[MEDIUM]` No screen starts a new game, restores a backup or goes back to the user's save. `DevManager` has the switches (`new_game()`, `restore_backup()`, `back_to_my_save()`), and nothing calls them yet. Starting over still means deleting the save file, playing another one with `--save=`, or `--preset=fresh`. Nothing calls `SaveGameData.reset()` or `list_backups()`.
 - `[LOW]` In-progress adventures and action timers are not saved (see [What is not saved](#what-is-not-saved)). Quitting mid-adventure forfeits the Madra drained at its start.
 - `[LOW]` A player has one save, the user's own `user://save.tres`. Another file is reachable only through `--save=`.
 - `[LOW]` The lock's heartbeat runs only in `main_game.tscn`, the one scene with a `SaveTimer`. A run of any other scene holds its lock for 60 s at most. After that another run may take the save over, and the first run then blocks itself and writes nothing when its window closes.

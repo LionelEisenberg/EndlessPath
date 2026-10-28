@@ -263,7 +263,7 @@ Tests: `tests/unit/test_quest_*.gd` and `tests/integration/test_goals_panel.gd`,
 
 ### Bugs
 
-- `[MEDIUM]` Steps are not re-checked after advancing. Advancing stores the new index but never evaluates the new step. An event step whose event already fired can never complete, and a condition step that is already true waits for an unrelated trigger. Normal Foundation play avoids this, but the dev panel can soft-lock a quest. For example, force-unlocking `q_first_steps_enemy_defeated` reveals NPC 3. Talking to NPC 3 fires `celestial_intervener_dialogue_3` while `q_first_steps` is still on step 0, so step 1 can never complete and the path point is never awarded. Fix: run the retroactive pass after every advance and once per active quest at the end of `_ready()`.
+- `[MEDIUM]` Steps are not re-checked after advancing. Advancing stores the new index but never evaluates the new step. An event step whose event already fired can never complete, and a condition step that is already true waits for an unrelated trigger. Normal Foundation play avoids this, but the dev panel can soft-lock a quest. For example, triggering `celestial_intervener_dialogue_3` from the Story tab while `q_first_steps` is still on step 0 records the event, so when step 0 completes, step 1 waits for an event that has already fired, can never complete, and the path point is never awarded. Fix: run the retroactive pass after every advance and once per active quest at the end of `_ready()`.
 
 ### Missing Functionality
 

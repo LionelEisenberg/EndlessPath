@@ -36,7 +36,7 @@ AdvancementStageResource (Resource)              — scripts/resource_definition
 AdvancementStageList (Resource, never loaded)    — advancement_stage_list.gd + resources/cycling/advancement_stages/advancement_stage_list.tres
 
 Writers:  CyclingTechnique.try_score_zone() → add_core_density_xp()
-          DevPanel "Add CD XP" → add_core_density_xp()
+          DevCommands.reach_core_density() (the dev panel's Player tab, the story route) → add_core_density_xp()
           TribulationView, at the run's end → advance_to_next_stage() on a pass, lose_core_density_levels() on a failure
 Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra()
           CultivatorPlate (zone view cabinet)   — stage name, level, XP beads, Madra cap, core orb up to the cap, "Core full"
@@ -183,7 +183,7 @@ The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not adde
 | UI | The zone view's `CultivatorPlate` and `GoalsPanel` read `get_core_density_cap()` and `is_core_full()` |
 | Tribulation | `TribulationActionData.can_attempt()` and `is_passed()` read the stage and `is_core_full()`; `ActionManager.select_action()` refuses a card the core is not ready for; `TribulationView` applies the result at the run's end through `advance_to_next_stage()` or `lose_core_density_levels()` (`tribulation_view.gd:456-477`). See [breakthrough-tribulation.md](breakthrough-tribulation.md) |
 | `PersistenceManager` | Fields above persist in `user://save.tres` |
-| `DevPanel` (Ctrl+Shift+D) | "Add CD XP" calls `add_core_density_xp(value)`. There is no stage control |
+| Dev panel (Ctrl+Shift+D) | The Player tab's Core Density Reach calls `DevCommands.reach_core_density(level)`, which raises the level through `add_core_density_xp()`, and Advance to the next stage calls `DevCommands.advance_stage()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#player)) |
 
 ## Existing Content
 

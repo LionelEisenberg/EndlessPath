@@ -128,7 +128,6 @@ Tests: EventManager has no test file of its own; `tests/unit/test_quest_manager.
 ### Missing Functionality
 
 - `[MEDIUM]` Several moments that the planned beats need have no events: boss defeated, elite defeated, adventure completed, Core Density milestones, stage advanced. `AdventureTilemap.boss_defeated` exists as a signal but fires no event. Data-only option: put a `TriggerEventEffectData` in a boss or elite `CombatChoice.success_effects`, which `AdventureTilemap.handle_combat_result()` already processes on victory.
-- `[LOW]` The dev panel has no "fire event" action. It can only force-latch conditions (`UnlockManager.force_unlock_condition`), which doesn't record the event, so quest event steps and live condition checks still see it as unfired. See [UNLOCKS.md](UNLOCKS.md).
 
 ### Tech Debt
 

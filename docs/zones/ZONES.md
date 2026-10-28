@@ -647,7 +647,7 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
   A condition used by a zone or action must be registered in that list, or it never unlocks. The demo zones rely on this: their `dev_never_unlocked_condition.tres` is deliberately left out of the list. See [QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md](../progression/QUESTS_EVENTS_UNLOCKS_CONVENTIONS.md) and [UNLOCKS.md](../infrastructure/UNLOCKS.md).
 - Latches are permanent. For example, the Madra-100 gate on dialogue 2 stays open after the Madra is spent.
 - The `ZONE_UNLOCKED` and `ADVENTURE_COMPLETED` condition types log a warning and return false. Zone gates must use events, cultivation level or stage, resources, items or attributes instead.
-- The dev panel's `UnlockManager.force_unlock_condition()` latches any listed condition, and the map and chest refresh.
+- A condition that latches refreshes the map and the chest, however it came about: an event firing (the dev panel's Story tab can fire one) or `UnlockManager.force_unlock_condition()`, which tests use.
 
 ## Integration Points
 
@@ -668,7 +668,7 @@ The full sequence and the Madra numbers are in [ADVENTURING.md § Starting an Ad
 | `LogManager` | "Resumed", "Travelled to", "Started" lines; adventure rejection messages |
 | `MerchantViewState` / `MerchantView` / `MerchantManager` | Driven by `start_merchant` and `stop_merchant`. The shop calls `stop_action()` on Leave or Escape and buys through `MerchantManager` |
 | `TribulationViewState` / `TribulationView` | Driven by `start_tribulation` and `stop_tribulation`. The board calls `CultivationManager` for the result and, through its `finished` signal, `stop_action()` ([MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md#tribulation-board)) |
-| Dev panel | `UnlockManager.force_unlock_condition()`; the Zones toggles call `ZoneManager.set_demo_zones_visible()` and `set_hidden_zones_visible()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
+| Dev panel | The World tab's Zones toggles call `ZoneManager.set_demo_zones_visible()` and `set_hidden_zones_visible()`; the Story tab lists the current zone's actions with `get_available_actions()` and `is_action_used_up()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 | `DevCommands` / `DevManager` | `complete_action()` counts a completion and runs the effects through `ActionManager.complete_without_playing()` and reads `ZoneManager.is_action_used_up()` and `get_available_actions()`; `travel_to_zone()` uses `is_idle_action()` and `set_current_zone_by_id()`; a session switch calls `cancel_current_action()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-commands)) |
 
 ## Existing Content

@@ -511,8 +511,9 @@ Other ways a run stops: a `ZoneManager.zone_changed` signal stops the current ac
 
 ### Dev Hooks
 
-The dev panel calls two `AdventureView` methods; see [DEV_TOOLS.md](../tooling/DEV_TOOLS.md):
-- `force_win_combat()` emits `trigger_combat_end(true, 0)`.
+The dev panel's Adventure tab acts on a run through `DevCommands`, which call two `AdventureView` methods, and through one toggle on the view; see [DEV_TOOLS.md](../tooling/DEV_TOOLS.md):
+- `force_win_combat()` wins the fight that is on by taking all of the enemy's Health (`apply_vitals_change(-max_health)`), so the fight ends through the real death path: `AdventureCombat` fires `q_first_steps_enemy_defeated` and `trigger_combat_end(true, gold)`, and the map pays the gold and resolves the tile. It does nothing outside a fight, or when the enemy is gone or already down. `DevCommands.force_win_fight()` calls it.
+- `force_end_adventure(victory)` ends the run at once as a victory (the boss-win path) or a defeat. `DevCommands.exit_adventure()` calls it.
 - `set_show_whole_map(enabled)` → `AdventureTilemap.set_dev_reveal_all()` lifts the fog off every map tile, paints every tile in forest art (no veils) and gives every unvisited encounter tile its glyph coin (the boss its boss coin). Visited and highlight state are untouched, and toggling it off puts the normal coins and fog back.
 
 The editor-only map preview (`scenes/tools/map_preview.tscn`, `scripts/tools/map_preview.gd`) renders `AdventureMapGenerator` output for any `AdventureData`, with an optional seed. It is also documented in [DEV_TOOLS.md](../tooling/DEV_TOOLS.md).
@@ -704,8 +705,8 @@ Tests: `tests/unit/test_adventure_*.gd` and `tests/integration/test_adventure_*.
 #### Code Quality
 - `[MEDIUM]` **Hex layers skip the addon's own setup.**
   - `scenes/tilemaps/hexagon_tile_map_layer.gd` overrides `_ready()` without calling `super()`, so the addon's `_ready()` never runs. That `_ready()` is what sets up the cube↔map conversion methods and pathfinding.
-  - A layer only gets its conversions when the shared `tilemap_tileset.tres` emits `changed`, which happens once after the tileset first loads. The game works because its single zone and adventure maps exist at that moment.
-  - Any hex layer created later (a second adventure view, a new map scene, a test that builds the view twice) fails `cube_to_map()` with "conversion method was not properly set up". `test_adventure_end_flow.gd` re-emits the tileset's `changed` to work around it.
+  - A layer only gets its conversions when the shared `tilemap_tileset.tres` emits `changed`, which happens once after the tileset first loads. A launch works because its single zone and adventure maps exist at that moment.
+  - Any hex layer created later (a second adventure view, a new map scene, a test that builds the view twice, the main scene a dev session switch loads again) fails `cube_to_map()` with "conversion method was not properly set up". After a session switch an adventure therefore draws no map and cannot be walked ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#work-remaining)). `test_adventure_end_flow.gd` re-emits the tileset's `changed` to work around it.
   - Fix: call `super()` in that `_ready()`, then check both maps in play.
 - `[LOW]` `HexagonTileMapLayer.set_cell_with_source_and_variant()` rebuilds the whole A* graph (`pathfinding_generate_points()`) and debug drawing for every cell set. The map's repaint redraws every visible tile on each arrival, so each refresh is O(N²). `AdventureFullMap` also has `pathfinding_enabled = true`, although only the visible map pathfinds. This is negligible at about 25 tiles.
 - `[LOW]` Stale `ext_resource` UIDs:

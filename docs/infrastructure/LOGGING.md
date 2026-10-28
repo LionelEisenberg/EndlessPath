@@ -105,7 +105,7 @@ Callers format their own strings as single lines. The board strips the tags and 
 | `[color=purple]` | Equipment loot | `Looted %dx %s` (InventoryManager) |
 | `[color=yellow]` | Quest items | quest-item `Obtained %dx %s` (InventoryManager) |
 | No colour (tan) | Idle action resumes; the breakthrough | `Resumed %s`, `Travelled to %s · resumed %s`, `Travelled to %s`, `Started %s` (ActionManager); `Your core is full. The Tribulation waits in Spirit Valley.` (CultivationManager, when the core fills and a next stage waits) and `You break through to %s.` (CultivationManager, on a pass) |
-| `[color=magenta][DEV][/color]` prefix | Dev panel actions | `Set Madra to %d`, `Force-won current combat` (DevPanel) |
+| `[color=magenta][DEV][/color]` prefix | Dev tools: the commands, the session switches and the dev panel's toggles | `Set Madra to %d`, `Won the fight`, `Restarted preset '%s'` (`DevCommands.log_dev_line()`) |
 | `[b]name[/b]` | Combatant name | `[b]%s[/b] took …` (CombatEffectManager) |
 
 ## Integration Points
@@ -115,7 +115,7 @@ Callers format their own strings as single lines. The board strips the tags and 
 | `MainGame` | Sets the console print level from `log_print_level` |
 | `LogWindow` | The only listener of `message_logged` and `visibility_toggled`; reads `get_history()` |
 | `MainView` / view states | `ZoneViewState` places the log slot (the adventure leaves it there); the merchant shop and the Tribulation hide it, and a menu book, cycling or the Tribulation blocks the full log ([MAIN_VIEW.md](MAIN_VIEW.md#hud-boards)) |
-| ResourceManager, CultivationManager, InventoryManager, ActionManager, AdventureView, CyclingView, CombatEffectManager, AdventurePresenter, TribulationPresenter, TrashSlot, ZoneViewBackground, DevPanel | Send player-facing messages through `LogManager.log_message()` |
+| ResourceManager, CultivationManager, InventoryManager, ActionManager, AdventureView, CyclingView, CombatEffectManager, AdventurePresenter, TribulationPresenter, TrashSlot, ZoneViewBackground, DevCommands | Send player-facing messages through `LogManager.log_message()` |
 | Every singleton and most scenes | Developer diagnostics through `Log.*` |
 | Godot engine | `Log` is registered with `OS.add_logger()` and receives engine errors and `print()` output |
 
