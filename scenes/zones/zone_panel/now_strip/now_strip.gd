@@ -12,10 +12,12 @@ extends Control
 ## emits strip_pressed (the chest scrolls to the running card and flashes it).
 ## While the player cycles, the tray shows the cycle in the Aura Well's layout,
 ## read from CyclingManager's session snapshot: the ring lights over the
-## cycle, "Wilderness Cycling" with the Madra drawn per second, the equipped
-## technique with "9 / 15 s" (its length, "15 s cycle", until a cycle runs)
-## and the rod filling. The cycling card is not in the list while the player
-## cycles, so the cycling tray takes no clicks.
+## cycle, "Wilderness Cycling" with the Madra drawn per second ("+0 / s" while
+## none is drawn), the equipped technique with "9 / 15 s" (its length, "15 s
+## cycle", until a cycle runs) and the rod filling. The rate stands in a slot as
+## wide as its widest reading up to the technique's top rate, so as it climbs
+## neither it nor the name beside it moves. The cycling card is not in the list
+## while the player cycles, so the cycling tray takes no clicks.
 ## While none runs, the tray is empty: the ring dark, no icon, and one tan
 ## line, "<idle action> · paused" while a session action (the shop, an
 ## adventure, dialogue) stands in for the zone's idle action, or
@@ -50,9 +52,9 @@ const NOTHING_RUNNING: String = "Nothing running"
 ## runs, the length alone until one does.
 const CYCLE_TIME_FORMAT: String = "%d / %d s"
 const CYCLE_READY_FORMAT: String = "%d s cycle"
-## The cycle's rate is read to CyclingManager.RATE_STEP, as on the cabinet, and
-## shows from half that step: below it the rate reads +0.
-const RATE_SHOWN_FROM: float = CyclingManager.RATE_STEP / 2.0
+## The Madra rate beside the Madra icon, as the cabinet reads it: "+1.5 / s".
+## The cycle's rate is read to CyclingManager.RATE_STEP.
+const RATE_FORMAT: String = "%s / s"
 ## The foraging haul's countdown.
 const HAUL_FORMAT: String = "haul in %d s"
 ## The training level line: what the next level grants ("+1 Spirit at Lv 2"),
@@ -178,13 +180,15 @@ func _update_empty_line() -> void:
 	_empty_label.text = PAUSED_FORMAT % idle.action_name if idle != null else NOTHING_RUNNING
 	_fit()
 
-## "+1.5 Madra / s", "+1 Spirit at Lv 2", "214 / 300" and the rod toward the
-## next level.
+## "+1.5 / s", "+1 Spirit at Lv 2", "214 / 300" and the rod toward the next
+## level. The well's rate never changes, so it takes only its own width, not the
+## cycle's slot.
 func _show_training(training: TrainingActionData) -> void:
 	_training_name.text = training.action_name
 	var madra_per_second: float = training.get_madra_per_second()
 	_rate_group.visible = madra_per_second > 0.0
-	_rate_text.text = LacquerText.decimal_bbcode("%s Madra / s" % LacquerText.rate(madra_per_second))
+	_rate_group.custom_minimum_size.x = 0.0
+	_rate_text.text = LacquerText.decimal_bbcode(RATE_FORMAT % LacquerText.rate(madra_per_second))
 	_update_training_progress()
 
 func _update_training_progress() -> void:
@@ -210,21 +214,42 @@ func _level_reward_text(training: TrainingActionData) -> String:
 			return "%s %s" % [LacquerText.rate(award.amount), CharacterManager.get_attribute_display_name(award.attribute_type)]
 	return ""
 
-## The cycling action in the Aura Well's layout: its name, and the equipped
-## technique where the level line goes. The figure, the rod and the rate follow
-## the session snapshot every frame. The tray takes no clicks while cycling, so
-## no hover frame stays from the idle action's tray. The name and the technique
-## wrap in the Aura Well's rows, so they get their room as the well's do.
+## The cycling action in the Aura Well's layout: its name, the rate, and the
+## equipped technique where the level line goes. The figure, the rod and the rate
+## follow the session snapshot every frame. The tray takes no clicks while
+## cycling, so no hover frame stays from the idle action's tray. The name and the
+## technique wrap in the Aura Well's rows, so they get their room as the well's do.
 func _show_cycling() -> void:
 	_hover_frame.hide()
 	_training_name.text = _action.action_name
+	_rate_group.show()
 	_update_technique()
 	_fit_training_labels()
 
-## The equipped technique's name, where the Aura Well shows its level line.
+## The equipped technique's name, where the Aura Well shows its level line, and
+## the rate's slot sized for the technique's top rate.
 func _update_technique() -> void:
 	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
 	_level_label.text = technique.technique_name if technique != null else ""
+	_fit_rate_slot(technique.get_madra_per_second() if technique != null else 0.0)
+
+## Gives the rate's slot the width of its widest reading up to `top_rate`, so the
+## name wrapping beside it has the same room at +0 as at the top. The font's
+## digits differ in width, and a reading is widest when each of its digits is the
+## widest one, so the slot is the widest of ten readings that repeat one digit,
+## with as many whole digits as the top rate read to a tenth. The rate's text is
+## left as it was.
+func _fit_rate_slot(top_rate: float) -> void:
+	var shown: String = _rate_text.text
+	var whole_digits: int = str(floori(snappedf(top_rate, CyclingManager.RATE_STEP))).length()
+	var widest: float = 0.0
+	_rate_group.custom_minimum_size.x = 0.0
+	for digit: int in 10:
+		var reading: String = "+%s.%d" % [str(digit).repeat(whole_digits), digit]
+		_rate_text.text = LacquerText.decimal_bbcode(RATE_FORMAT % reading)
+		widest = maxf(widest, _rate_group.get_combined_minimum_size().x)
+	_rate_group.custom_minimum_size.x = widest
+	_rate_text.text = shown
 
 ## The ring, the figure, the rod and the rate, read from the session snapshot.
 ## The name wraps beside the rate and the technique beside the figure, so when
@@ -235,11 +260,10 @@ func _update_cycle_display() -> void:
 	_light_ring(progress)
 	_well_rod.set_fraction(progress)
 	var figure_before: String = _ticks_label.text
-	var rate_before: String = _rate_text.text if _rate_group.visible else ""
+	var rate_before: String = _rate_text.text
 	_update_cycle_figure()
 	_update_cycle_rate()
-	var rate_after: String = _rate_text.text if _rate_group.visible else ""
-	if _ticks_label.text != figure_before or rate_after != rate_before:
+	if _ticks_label.text != figure_before or _rate_text.text != rate_before:
 		_fit_training_labels()
 		_fit()
 
@@ -252,13 +276,11 @@ func _update_cycle_figure() -> void:
 	var technique: CyclingTechniqueData = CyclingManager.get_equipped_technique()
 	_ticks_label.text = CYCLE_READY_FORMAT % roundi(technique.cycle_duration) if technique != null else ""
 
-## "+13.3 Madra / s" while the cycle draws Madra; hidden otherwise. The rate
-## is read to a tenth, so a rate that reads +0 hides instead of showing "+0".
+## "+13.3 / s", the Madra drawn per second read to a tenth: "+0 / s" while none
+## is drawn, so the rate never comes and goes.
 func _update_cycle_rate() -> void:
-	var rate: float = CyclingManager.get_madra_rate()
-	_rate_group.visible = rate >= RATE_SHOWN_FROM
-	if _rate_group.visible:
-		_rate_text.text = LacquerText.decimal_bbcode("%s Madra / s" % LacquerText.rate(snappedf(rate, CyclingManager.RATE_STEP)))
+	var rate: float = snappedf(CyclingManager.get_madra_rate(), CyclingManager.RATE_STEP)
+	_rate_text.text = LacquerText.decimal_bbcode(RATE_FORMAT % LacquerText.rate(rate))
 
 ## Sizes the strip to what shows in it (an even height, 88 at least): the Aura
 ## Well's rows, the forage's name and yields, or the empty tray's line.

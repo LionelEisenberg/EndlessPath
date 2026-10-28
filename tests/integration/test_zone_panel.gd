@@ -35,6 +35,14 @@ const FOUNDATION_ID: String = "foundation_technique"
 const SMOOTH_ID: String = "smooth_flow"
 const TORRENTIAL_ID: String = "torrential_flow"
 
+## Each technique's readings, from +0 to its top rate (its Madra per cycle over
+## its cycle's seconds): Smooth Flow tops out at 13.3, Torrential Flow at 31.3.
+## The readings between are of wide digits, the widest at their length.
+const RATES_BY_TECHNIQUE: Dictionary[String, Array] = {
+	SMOOTH_ID: [0.0, 0.4, 8.8, 10.4, 200.0 / 15.0],
+	TORRENTIAL_ID: [0.0, 8.8, 20.4, 28.8, 250.0 / 8.0],
+}
+
 const THUMB_RIVER: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_ai.png")
 const THUMB_BASIC: Texture2D = preload("res://assets/ui/lacquer/lacquer_thumb_basic_ai.png")
 
@@ -64,9 +72,13 @@ const STRIP_HEIGHT: float = 88.0
 const STRIP_WIDTH: float = 392.0
 const NAME_LINE: float = 22.0
 const DETAIL_LINE: float = 18.0
-## Long enough to need three lines in the strip's name (about 150 px beside the
+## Long enough to need three lines in the strip's name (about 210 px beside the
 ## rate) and its forage name (292 px), and two in its detail lines.
 const LONG_NAME: String = "The Aura Well of the Endless Misty Bamboo Hollow, Lit By The Cold Moon And A Hundred Silent Stars"
+## Longer than LONG_NAME, so the strip's name takes more lines and the strip grows
+## far enough to bring the fold of the ten cards within 64 px of the chest's
+## bottom line.
+const SNAP_NAME: String = LONG_NAME + " Over The Sleeping Valley"
 ## A lore of three long paragraphs: many more lines than the shipped one, which takes
 ## about ten.
 const LONG_LORE: String = "The old road climbs out of the valley between two shoulders of grey stone, and every pilgrim who walks it says each step is paid for in breath. Those who reach the first ridge look back at a sea of mist and understand why the cradle was built where it was.\n\nBeyond the ridge the aura thins and then thickens again, pooling in hollows where the bamboo grows thicker than a man can reach around. Sacred artists have sat in those hollows for ten thousand years, and the stones remember every one of them.\n\nOnly the patient are shown the third path, the one that leaves no footprints and ends where it began."
@@ -359,7 +371,7 @@ func test_strip_shows_for_aura_well() -> void:
 	await wait_process_frames(2)
 	var texts: Array[String] = _texts(_strip())
 	assert_has(texts, "Aura Well")
-	assert_has(texts, "+1.5 Madra / s")
+	assert_has(texts, "+1.5 / s")
 	assert_has(texts, "+1 Spirit at Lv 1")
 	assert_has(texts, "0 / 60")
 	assert_does_not_have(texts, "Nothing running")
@@ -418,17 +430,17 @@ func test_strip_shows_each_items_mini_icon() -> void:
 
 func test_tray_shows_the_cycle_ready() -> void:
 	# Cycling is a session action, but the tray shows it instead of pausing: the
-	# action, the equipped technique and its cycle time, with the ring dark, the
-	# rod empty and no rate until a cycle draws Madra. The cycling card is not in
-	# the list while the player cycles, so the tray takes no clicks.
+	# action, the rate, the equipped technique and its cycle time, with the ring
+	# dark, the rod empty and the rate at +0 until a cycle draws Madra. The
+	# cycling card is not in the list while the player cycles, so the tray takes
+	# no clicks.
 	await _add_panel()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	await wait_process_frames(2)
-	assert_eq(_texts(_strip()), ["Wilderness Cycling", "Foundational Technique", "8 s cycle", "Now"] as Array[String])
+	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "8 s cycle", "Now"] as Array[String])
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark")
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(CYCLING_ID).icon, "the action's icon")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is empty")
-	assert_false((_strip_node("RateGroup") as Control).is_visible_in_tree(), "no Madra is drawn yet")
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	_assert_list_under_tray()
 
@@ -445,7 +457,7 @@ func test_tray_follows_the_running_cycle() -> void:
 	assert_eq((_strip_node("TicksLabel") as Label).text, "9 / 15 s")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 86)
 	assert_true((_strip_node("RateGroup") as Control).is_visible_in_tree())
-	assert_eq((_strip_node("RateText") as RichTextLabel).get_parsed_text(), "+13.3 Madra / s")
+	assert_eq((_strip_node("RateText") as RichTextLabel).get_parsed_text(), "+13.3 / s")
 	assert_has(_texts(_strip()), "Foundational Technique", "the detail stays the technique's name")
 
 func test_tray_counts_whole_seconds_into_the_cycle() -> void:
@@ -479,25 +491,49 @@ func test_tray_goes_back_to_ready_when_the_cycle_ends() -> void:
 	assert_gt((_strip_node("Ring") as LacquerStripRect).get_frame().x, 0, "precondition: the ring is lit")
 	CyclingManager.end_cycle_session()
 	await wait_process_frames(1)
-	assert_eq(_texts(_strip()), ["Wilderness Cycling", "Foundational Technique", "8 s cycle", "Now"] as Array[String])
+	assert_eq(_texts(_strip()), ["Wilderness Cycling", "+0 / s", "Foundational Technique", "8 s cycle", "Now"] as Array[String], "the rate back at +0")
 	assert_eq((_strip_node("Ring") as LacquerStripRect).get_frame(), Vector2i.ZERO, "the ring is dark again")
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "and the rod empty")
-	assert_false((_strip_node("RateGroup") as Control).is_visible_in_tree(), "no Madra is drawn")
 
-func test_tray_shows_the_cycle_rate_from_a_twentieth() -> void:
-	# The rate reads to a tenth, as on the cabinet: 0.049 reads +0 and hides, and
-	# 0.05 reads +0.1.
+func test_tray_reads_the_cycle_rate_to_a_tenth() -> void:
+	# The rate reads to a tenth, as on the cabinet: 0.049 reads +0, and 0.05
+	# reads +0.1.
 	await _add_panel()
 	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
 	CyclingManager.start_cycle_session(8.0)
-	var rate_group: Control = _strip_node("RateGroup") as Control
+	var rate_text := _strip_node("RateText") as RichTextLabel
 	CyclingManager.update_cycle_session(1.0, 0.049)
 	await wait_process_frames(1)
-	assert_false(rate_group.is_visible_in_tree(), "0.049 reads +0")
+	assert_true(rate_text.is_visible_in_tree(), "the rate shows while nothing is drawn")
+	assert_eq(rate_text.get_parsed_text(), "+0 / s", "0.049 reads +0")
 	CyclingManager.update_cycle_session(2.0, 0.05)
 	await wait_process_frames(1)
-	assert_true(rate_group.is_visible_in_tree(), "0.05 reads +0.1")
-	assert_eq((_strip_node("RateText") as RichTextLabel).get_parsed_text(), "+0.1 Madra / s")
+	assert_eq(rate_text.get_parsed_text(), "+0.1 / s", "0.05 reads +0.1")
+
+func test_the_cycle_rate_keeps_its_place_and_the_name_its_line() -> void:
+	# The rate's slot is as wide as the technique's widest reading, from +0 up to
+	# its top rate, so as the rate climbs neither it nor the name beside it moves:
+	# "Wilderness Cycling" stays on one line and the strip keeps its height.
+	await _add_panel()
+	ActionManager.select_action(ZoneManager.get_action_by_id(CYCLING_ID))
+	var name_label := _strip_node("TrainingName") as Label
+	var rate_group := _strip_node("RateGroup") as Control
+	for technique_id: String in RATES_BY_TECHNIQUE:
+		CyclingManager.unlock_technique(technique_id)
+		CyclingManager.equip_technique(technique_id)
+		CyclingManager.start_cycle_session(8.0)
+		CyclingManager.update_cycle_session(1.0, 0.0)
+		await wait_process_frames(1)
+		var slot: Rect2 = rate_group.get_global_rect()
+		var height: float = _strip().size.y
+		for rate: float in RATES_BY_TECHNIQUE[technique_id]:
+			CyclingManager.update_cycle_session(1.0, rate)
+			await wait_process_frames(1)
+			var reading: String = (_strip_node("RateText") as RichTextLabel).get_parsed_text()
+			assert_eq(rate_group.get_global_rect(), slot, "%s: %s keeps the rate's place" % [technique_id, reading])
+			assert_eq(name_label.get_line_count(), 1, "%s: %s leaves the name one line" % [technique_id, reading])
+			assert_eq(_strip().size.y, height, "%s: %s keeps the strip's height" % [technique_id, reading])
+		CyclingManager.end_cycle_session()
 
 func test_tray_names_the_equipped_technique() -> void:
 	# The detail line and the ready figure follow the equipped technique at once,
@@ -557,7 +593,7 @@ func test_tray_gives_the_cycle_back_to_the_aura_well() -> void:
 	ActionManager.stop_action()
 	await wait_process_frames(2)
 	assert_eq(_current_id(), AURA_WELL_ID, "precondition: the Aura Well resumed")
-	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 Madra / s", "+1 Spirit at Lv 1", "0 / 60", "Now"] as Array[String])
+	assert_eq(_texts(_strip()), ["Aura Well", "+1.5 / s", "+1 Spirit at Lv 1", "0 / 60", "Now"] as Array[String])
 	assert_eq((_strip_node("ActionIcon") as TextureRect).texture, ZoneManager.get_action_by_id(AURA_WELL_ID).icon)
 	assert_eq((_strip_node("WellRod") as LacquerRod).get_step(), 0, "the rod is the well's, empty")
 	assert_eq(_strip().mouse_filter, Control.MOUSE_FILTER_STOP, "the running tray takes clicks again")
@@ -1022,7 +1058,7 @@ func test_chest_folds_for_ten_cards() -> void:
 ## A long Aura Well name grows the Now strip and moves the list down, so the
 ## fold of the ten cards ends within 64 px of the bottom line.
 func test_chest_snaps_to_the_bottom_line() -> void:
-	_rename_action(AURA_WELL_ID, LONG_NAME)
+	_rename_action(AURA_WELL_ID, SNAP_NAME)
 	await _add_panel()
 	_unlock_everything()
 	await wait_process_frames(2)
