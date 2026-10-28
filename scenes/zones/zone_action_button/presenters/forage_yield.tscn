@@ -12,7 +12,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="RangeText" type="RichTextLabel" parent="." unique_id=253570825]
+[node name="YieldText" type="RichTextLabel" parent="." unique_id=253570825]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0

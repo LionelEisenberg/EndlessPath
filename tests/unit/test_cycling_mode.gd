@@ -6,12 +6,13 @@ extends GutTest
 ## chest lists the techniques, the dock hides and the map's SubViewport takes no
 ## input. CyclingViewState switches it on in enter() and off in exit(), shows
 ## the board, blocks the full log as a menu book does, and leaves the Goals and
-## log boards where the zone view put them. The MainView is never added to the
-## tree: each test fills in the views it needs, as test_view_state_hud_positions.gd
-## does, with the real chest and the real log (the techniques mode and the
-## full-log block can only be read there) and plain stand-ins for the rest.
-## main_game.tscn is only instanced, never added to the tree: its SaveTimer
-## would write the real save.
+## log boards where the zone view put them. set_board_mode() is the part of the
+## switch the Tribulation board shares (the dock and the map, not the chest).
+## The MainView is never added to the tree: each test fills in the views it
+## needs, as test_view_state_hud_positions.gd does, with the real chest and the
+## real log (the techniques mode and the full-log block can only be read there)
+## and plain stand-ins for the rest. main_game.tscn is only instanced, never
+## added to the tree: its SaveTimer would write the real save.
 
 const MAIN_GAME_SCENE_PATH: String = "res://scenes/main/main_game/main_game.tscn"
 const ZONE_PANEL_SCENE: PackedScene = preload("res://scenes/zones/zone_panel/zone_panel.tscn")
@@ -96,6 +97,33 @@ func test_cycling_mode_turns_the_chest_when_the_dock_and_map_are_missing() -> vo
 	bare.zone_panel = _main_view.zone_panel
 	bare.set_cycling_mode(true)
 	assert_true(bare.zone_panel.is_techniques_mode())
+
+## The Tribulation board stands in the same map gap but has no use for the techniques: the
+## chest keeps listing the zone's activities, and only the dock and the map are turned off.
+func test_board_mode_leaves_the_chest() -> void:
+	_main_view.set_board_mode(true)
+	assert_false(_main_view.dock.visible, "the dock hides")
+	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map takes no input")
+	assert_false(_main_view.zone_panel.is_techniques_mode(), "the chest keeps listing the activities")
+	_main_view.set_board_mode(false)
+	assert_true(_main_view.dock.visible, "the dock is back")
+	assert_false(_main_view.zone_map_viewport.gui_disable_input, "the map takes input again")
+
+## Each piece is switched whether or not the other exists, as on the MainViews the
+## view-state tests build.
+func test_board_mode_switches_the_pieces_that_exist() -> void:
+	var dock_only: MainView = autofree(MainView.new())
+	dock_only.dock = _main_view.dock
+	dock_only.set_board_mode(true)
+	assert_false(dock_only.dock.visible, "the dock hides when there is no map")
+	var map_only: MainView = autofree(MainView.new())
+	map_only.zone_map_viewport = _main_view.zone_map_viewport
+	map_only.set_board_mode(true)
+	assert_true(map_only.zone_map_viewport.gui_disable_input, "the map stops when there is no dock")
+	var bare: MainView = autofree(MainView.new())
+	bare.set_board_mode(true)
+	bare.set_board_mode(false)
+	assert_engine_error_count(0, "a MainView with no furniture is left alone")
 
 ## The switch leans on the engine: a SubViewportContainer pushes the press it
 ## gets into its SubViewport with push_input(), and a viewport with its input

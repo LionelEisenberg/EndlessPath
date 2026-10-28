@@ -1,0 +1,75 @@
+[gd_scene format=3 uid="uid://nxrwnl7h0heb"]
+
+[ext_resource type="Script" uid="uid://c0fm4so3v1d85" path="res://scenes/ui/combat/technique_dock/cast_tray/cast_tray.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://c66c2qqavopmq" path="res://assets/ui/lacquer/lacquer_cast_tray_ai.png" id="3_tray"]
+[ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="4_rod"]
+[ext_resource type="Texture2D" uid="uid://dveudch06qobi" path="res://assets/ui/lacquer/lacquer_rod_cast_empty_ai.png" id="5_rod_empty"]
+[ext_resource type="Texture2D" uid="uid://bpri6jdba6rr0" path="res://assets/ui/lacquer/lacquer_rod_cast_full_ai.png" id="6_rod_full"]
+[ext_resource type="Texture2D" uid="uid://cyytaq6b5j8eh" path="res://assets/ui/lacquer/lacquer_rod_cast_end_ai.png" id="7_rod_end"]
+
+[node name="CastTray" type="Control" unique_id=2017067881]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 476.0
+offset_bottom = 44.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="Tray" type="NinePatchRect" parent="." unique_id=678782252]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_tray")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 2
+patch_margin_bottom = 2
+
+[node name="NameLabel" type="Label" parent="." unique_id=1421786535]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 20)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 166.0
+offset_bottom = 32.0
+theme_type_variation = &"LabelLacquerName"
+text = "Basic Strike"
+autowrap_mode = 3
+
+[node name="CastRod" parent="." unique_id=1456945863 instance=ExtResource("4_rod")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 170.0
+offset_top = 17.0
+offset_right = 410.0
+offset_bottom = 27.0
+empty_texture = ExtResource("5_rod_empty")
+full_texture = ExtResource("6_rod_full")
+end_texture = ExtResource("7_rod_end")
+steps = 119
+
+[node name="TimeText" type="RichTextLabel" parent="." unique_id=1255748347]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 300.0
+offset_top = 12.0
+offset_right = 460.0
+offset_bottom = 32.0
+mouse_filter = 2
+theme_type_variation = &"RichTextLacquer"
+theme_override_colors/default_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+theme_override_font_sizes/normal_font_size = 17
+bbcode_enabled = true
+text = "0.5 s"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+horizontal_alignment = 2

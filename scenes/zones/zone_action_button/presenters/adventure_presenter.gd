@@ -4,17 +4,15 @@ extends ZoneActionPresenter
 ##   below the threshold: the Madra row, `mini_madra`, the Madra rod (Madra /
 ##     threshold) and "<madra> / <threshold>" in tan, then "~<n> s" in cream,
 ##     right-aligned, only while a Madra action runs; tag ACTIVE.
-##   at the threshold: "<minutes> min run · carries <capacity> Madra" in
-##     brass on the detail line (an ellipsis past 316 px), the card's steady
-##     brass ready frame and the ENTER tag.
+##   at the threshold: "<minutes> min run" in brass on the left of the detail
+##     line and "carries <capacity> Madra" in brass in its right column (each
+##     ends in an ellipsis past its room), the card's steady brass ready frame
+##     and the ENTER tag.
 ## Capacity is the total max Madra and the threshold half of it, so gear that
 ## adds Foundation changes both: the card follows equipment changes too.
 ## Gates activation on ResourceManager.can_start_adventure(); a rejected click
-## shakes the Madra row in even-px steps and logs why.
-
-## The reject shake: x offsets of the Madra row, one key every SHAKE_STEP s.
-const SHAKE_KEYS: Array[float] = [-8.0, 8.0, -6.0, 4.0, 0.0]
-const SHAKE_STEP_SECONDS: float = 0.088
+## shakes the Madra row softly in even-px steps (MapGlyph's soft shake) and logs
+## why.
 
 @onready var _need_group: Control = %NeedGroup
 @onready var _madra_rod: LacquerRod = %MadraRod
@@ -72,9 +70,11 @@ func _update_state() -> void:
 	button.set_ready_frame(_is_affordable)
 	if _is_affordable:
 		button.set_mode_tag("ENTER", ZoneActionButton.TagStyle.ENTER)
-		button.fit_detail_rich_text(_ready_text, _ready_line())
+		button.set_detail_right("carries %d Madra" % floori(ResourceManager.get_adventure_madra_capacity()), ThemeConstants.LACQUER_BRASS)
+		button.fit_detail_rich_text(_ready_text, _run_length_text())
 	else:
 		button.set_mode_tag(ZoneActionGroups.mode_tag(action_data), ZoneActionButton.TagStyle.CARVED)
+		button.set_detail_right("")
 		_update_need()
 
 func _update_need() -> void:
@@ -87,23 +87,22 @@ func _update_need() -> void:
 	if rate > 0.0:
 		_hint_label.text = "~%d s" % ceili(maxf(threshold - madra, 0.0) / rate)
 
-func _ready_line() -> String:
-	var capacity: int = floori(ResourceManager.get_adventure_madra_capacity())
+## "5 min run": the run's time limit.
+func _run_length_text() -> String:
 	var adventure := action_data as AdventureActionData
 	var minutes: float = adventure.time_limit_seconds / 60.0 if adventure else 0.0
-	return "%s min run · carries %d Madra" % [LacquerText.rate(minutes).trim_prefix("+"), capacity]
+	return "%s min run" % LacquerText.rate(minutes).trim_prefix("+")
 
 ## Shakes the Madra row left and right in whole even-px steps (no easing, no
-## scale), the map lock's 0, -8, 8, -6, 4, 0 over 0.44 s.
+## scale): the soft shake a refused technique shakes its slot by, the map lock's
+## rhythm at half its travel, 0, -4, 4, -2, 2, 0 over 0.44 s.
 func _shake_reject() -> void:
 	_stop_shake()
-	_need_group.position.x = 0.0
 	_shake_tween = create_tween()
-	for key: float in SHAKE_KEYS:
-		_shake_tween.tween_callback(_set_need_offset.bind(key)).set_delay(SHAKE_STEP_SECONDS)
+	_shake_tween.tween_method(_apply_shake, 0.0, MapGlyph.SHAKE_SECONDS, MapGlyph.SHAKE_SECONDS)
 
-func _set_need_offset(x: float) -> void:
-	_need_group.position.x = x
+func _apply_shake(elapsed: float) -> void:
+	_need_group.position.x = MapGlyph.shake_offset_at(elapsed, MapGlyph.SOFT_SHAKE_KEYFRAMES)
 
 func _stop_shake() -> void:
 	if _shake_tween != null and _shake_tween.is_valid():

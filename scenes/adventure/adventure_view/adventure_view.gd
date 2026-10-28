@@ -1,11 +1,30 @@
 class_name AdventureView
 extends Control
 
-signal adventure_completed(result_data: AdventureResultData)
-
 ## AdventureView
 ## Main controller for the adventure mode, managing transitions between
-## tilemap exploration and combat encounters
+## tilemap exploration and combat encounters, and the lacquer frame around
+## them: the vitals cabinet (VitalsPlate) at the top left, the chest
+## (AdventureChest: the run's name, the run clock, the expedition page) at the
+## top right and the technique dock (TechniqueDock) at the bottom centre, where
+## the zone view keeps its cabinet, chest and dock. The boards draw over the
+## map and the fight and take the pointer, so a press on a board never reaches
+## the hexes under it (the map's viewport hears the pointer only through its
+## container).
+## The view passes the map's news to the boards (an arrival, a resolution, a
+## refused walk) and the chest's picks to the map, binds the dock and the
+## cabinet's buff sockets to the player's combatant for a fight, and keeps the
+## run's Timer and the figures the Run ledger and the end card show.
+
+#-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
+signal adventure_completed(result_data: AdventureResultData)
+## The run's figures changed (fights, gold, tiles explored, loot): after the map
+## changes, a fight ends or an item is awarded, while a run is on. The chest's
+## Run ledger shows them.
+signal run_stats_changed
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -17,9 +36,12 @@ signal adventure_completed(result_data: AdventureResultData)
 @onready var tilemap_view: Control = %TilemapView
 @onready var combat_view: Control = %CombatView
 
-@onready var player_hud: PlayerHud = %PlayerHud
+@onready var vitals_plate: VitalsPlate = %VitalsPlate
+@onready var adventure_chest: AdventureChest = %AdventureChest
+@onready var technique_dock: TechniqueDock = %TechniqueDock
 
-@onready var timer_panel: TimerPanel = %TimerPanel
+@onready var _expedition_page: ExpeditionPage = adventure_chest.get_expedition_page()
+@onready var _run_timer: Timer = %RunTimer
 
 #-----------------------------------------------------------------------------
 # STATE VARIABLES
@@ -50,15 +72,20 @@ func _ready() -> void:
 	
 	if adventure_tilemap:
 		adventure_tilemap.start_combat.connect(_on_start_combat)
+		# Listen for boss victory from tilemap
+		adventure_tilemap.boss_defeated.connect(_on_boss_defeated)
+		# The map's news for the boards
+		adventure_tilemap.tile_entered.connect(_on_tile_entered)
+		adventure_tilemap.encounter_resolved.connect(_on_encounter_resolved)
+		adventure_tilemap.walk_refused.connect(_on_walk_refused)
+		adventure_tilemap.map_changed.connect(_on_map_changed)
+		# The chest's picks for the map
+		_expedition_page.choice_selected.connect(adventure_tilemap.select_choice)
 	else:
 		Log.error("AdventureView: AdventureTilemap reference is missing!")
 	
-	# Setup Timer
-	timer_panel.timer.timeout.connect(_on_adventure_timer_timeout)
-
-	# Listen for boss victory from tilemap
-	if adventure_tilemap:
-		adventure_tilemap.boss_defeated.connect(_on_boss_defeated)
+	run_stats_changed.connect(_on_run_stats_changed)
+	_run_timer.timeout.connect(_on_adventure_timer_timeout)
 
 #-----------------------------------------------------------------------------
 # PUBLIC METHODS
@@ -73,7 +100,7 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 
 	current_action_data = action_data
 
-	# Reset result tracking
+	# Reset result tracking (the map's first redraw below shows them in the ledger)
 	_combats_fought = 0
 	_gold_earned = 0
 	_madra_budget = madra_budget
@@ -91,11 +118,12 @@ func start_adventure(action_data: AdventureActionData, madra_budget: float = -1.
 	if PlayerManager.vitals_manager:
 		_update_stamina_regen(action_data.stamina_regen_modifier)
 
+	adventure_chest.set_title(action_data.action_name)
 	
-	# Start Timer
-	var time_limit = action_data.time_limit_seconds if action_data.time_limit_seconds > 0 else 10
-	timer_panel.start(time_limit)
-	timer_panel.visible = true
+	# Start the run's clock
+	var time_limit: float = action_data.time_limit_seconds if action_data.time_limit_seconds > 0 else 10
+	_run_timer.start(time_limit)
+	adventure_chest.get_run_clock().bind_timer(_run_timer)
 	
 	adventure_tilemap.start_adventure(action_data)
 	
@@ -122,7 +150,7 @@ func stop_adventure() -> void:
 		is_victory = true
 	elif PlayerManager.vitals_manager.current_health <= 0.0:
 		defeat_reason = "Your health reached zero"
-	elif timer_panel.timer.is_stopped() or timer_panel.timer.time_left <= 0.0:
+	elif _run_timer.is_stopped() or _run_timer.time_left <= 0.0:
 		defeat_reason = "Time ran out"
 	else:
 		defeat_reason = "You retreated from the adventure"
@@ -134,17 +162,25 @@ func stop_adventure() -> void:
 	if InventoryManager and InventoryManager.item_awarded.is_connected(_on_item_awarded):
 		InventoryManager.item_awarded.disconnect(_on_item_awarded)
 
-	adventure_tilemap.stop_adventure()
-	timer_panel.stop()
-	timer_panel.visible = false
+	# The run is over before the map clears: its teardown, and a fight it cuts
+	# short, change no figure of the run's (the ledger keeps the run's last ones)
+	# and end no run again.
 	current_action_data = null
+	adventure_tilemap.stop_adventure()
+	_run_timer.stop()
 	_update_stamina_regen(0.0)
 	if is_in_combat:
 		_on_stop_combat()
+	_release_fight_boards()
 
 	_pending_victory = false
 
 	adventure_completed.emit(result_data)
+
+## Returns the run's Timer: one shot, started at the run's time limit when a
+## run starts; the chest's clock reads it and its timeout ends the run.
+func get_run_timer() -> Timer:
+	return _run_timer
 
 ## DEV-only: immediately resolve the current combat as a win.
 ## No-op if not currently in combat.
@@ -155,6 +191,20 @@ func force_win_combat() -> void:
 	if combat == null:
 		return
 	combat.trigger_combat_end.emit(true, 0)
+
+## DEV-only: end the running adventure at once, as a victory (the boss-win
+## path: success effects, the victory end card) or a defeat (failure effects,
+## a retreat end card). No-op if no adventure is running.
+## Used by the dev panel; do not call from gameplay code.
+func force_end_adventure(victory: bool) -> void:
+	if current_action_data == null:
+		return
+	_pending_victory = victory
+	ActionManager.stop_action(victory)
+
+## Whether an adventure is running.
+func is_adventure_running() -> bool:
+	return current_action_data != null
 
 ## DEV-only: toggle a visual fog-of-war override that reveals every tile
 ## on the current adventure map. Purely visual — progression state is
@@ -182,11 +232,12 @@ func _on_start_combat(choice: CombatChoice) -> void:
 			current_action_data # Pass adventure action data for gold multiplier
 		)
 		combat.start()
-		# Show the action bar, cast bar and buffs for the player
+		# The dock takes the player's techniques and the cabinet their buffs
 		if combat.player_combatant:
-			player_hud.setup_combatant(combat.player_combatant)
-			if not player_hud.ability_selected.is_connected(combat.on_player_ability_selected):
-				player_hud.ability_selected.connect(combat.on_player_ability_selected)
+			technique_dock.bind(combat.player_combatant.ability_manager, PlayerManager.vitals_manager)
+			vitals_plate.bind_buffs(combat.player_combatant.buff_manager)
+			if not technique_dock.ability_selected.is_connected(combat.on_player_ability_selected):
+				technique_dock.ability_selected.connect(combat.on_player_ability_selected)
 		
 	is_in_combat = true
 	
@@ -212,11 +263,10 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 	_combats_fought += 1
 	if successful:
 		_gold_earned += gold_earned
+	_announce_run_stats()
 
-	# Disconnect player ability signal and hide the combat HUD
-	if combat and player_hud.ability_selected.is_connected(combat.on_player_ability_selected):
-		player_hud.ability_selected.disconnect(combat.on_player_ability_selected)
-	player_hud.reset_combat()
+	# The dock and the cabinet let go of the fight
+	_release_fight_boards()
 	
 	tilemap_view.visible = true
 	combat_view.visible = false
@@ -235,19 +285,56 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 		if not successful:
 			ActionManager.stop_action(successful)
 
+## The dock and the cabinet let go of the fight: no press reaches it, the dock
+## previews the loadout again (its cast tray hidden) and the buff sockets clear.
+## Safe to call when no fight is bound.
+func _release_fight_boards() -> void:
+	if combat and technique_dock.ability_selected.is_connected(combat.on_player_ability_selected):
+		technique_dock.ability_selected.disconnect(combat.on_player_ability_selected)
+	technique_dock.reset()
+	vitals_plate.unbind_buffs()
+
 func _fade_in_combat_view() -> void:
 	combat_view.modulate.a = 0.0
 	create_tween().tween_property(combat_view, "modulate:a", 1.0, 0.25)
 
 #-----------------------------------------------------------------------------
+# PRIVATE METHODS - The map's news for the boards
+#-----------------------------------------------------------------------------
+
+## The chest shows the tile the player arrived on.
+func _on_tile_entered(_coord: Vector3i, encounter: AdventureEncounter, _first_visit: bool, summary: String) -> void:
+	_expedition_page.show_tile(encounter, summary, current_action_data)
+
+## The chest shows the tile resolved, when it is the one the player stands on.
+func _on_encounter_resolved(coord: Vector3i, summary: String) -> void:
+	if coord == adventure_tilemap.get_current_tile():
+		_expedition_page.show_resolved(summary)
+
+## A refused walk shakes the board that says why: the cabinet's Stamina row
+## when the player is too tired, the chest's Here tray while a choice waits.
+func _on_walk_refused(reason: StringName) -> void:
+	match reason:
+		AdventureTilemap.REFUSED_STAMINA:
+			vitals_plate.shake_stamina()
+		AdventureTilemap.REFUSED_ENCOUNTER:
+			_expedition_page.shake_here()
+		_:
+			Log.warn("AdventureView: Unknown walk refusal '%s'" % reason)
+
+func _on_map_changed() -> void:
+	_announce_run_stats()
+
+#-----------------------------------------------------------------------------
 # PRIVATE METHODS - Resource Management
 #-----------------------------------------------------------------------------
 
-## Initialize resource values. Madra already spent by the drain animation in ZoneTransition.
+## Initialize resource values. Madra already spent by the drain animation in
+## ZoneTransition. The cabinet shows them and the dock previews the loadout.
 func _initialize_combat_resources(madra_budget: float) -> void:
 	PlayerManager.vitals_manager.initialize_current_values(madra_budget)
-	player_hud.setup_vitals(PlayerManager.vitals_manager)
-	player_hud.show_loadout()
+	vitals_plate.setup_vitals(PlayerManager.vitals_manager)
+	technique_dock.show_loadout()
 	Log.info("AdventureView: Adventure budget: %.1f Madra" % madra_budget)
 
 ## Builds the adventure result data from accumulated stats.
@@ -267,11 +354,32 @@ func _build_result_data(is_victory: bool, defeat_reason: String) -> AdventureRes
 	result.loot_items = _loot_items.duplicate()
 	return result
 
+## Tells the boards the run's figures changed, while a run is on.
+func _announce_run_stats() -> void:
+	if current_action_data != null:
+		run_stats_changed.emit()
+
+## The chest's Run ledger shows the run so far: the fights fought (a lost one
+## ends the run) of the map's fights, gold earned, tiles explored of the map's
+## tiles, and the run's loot, newest last.
+func _on_run_stats_changed() -> void:
+	var loot: Array[ItemDefinitionData] = []
+	loot.assign(_loot_items)
+	_expedition_page.set_run_stats(
+		_combats_fought,
+		adventure_tilemap.get_total_combat_count(),
+		_gold_earned,
+		adventure_tilemap.get_visited_tile_count(),
+		adventure_tilemap.get_total_tile_count(),
+		loot
+	)
+
 func _on_boss_defeated() -> void:
 	_pending_victory = true
 
 func _on_item_awarded(item: ItemDefinitionData, _quantity: int) -> void:
 	_loot_items.append(item)
+	_announce_run_stats()
 
 ## Updates the stamina regeneration based on the given modifier
 ## TODO: This will be expanded later to include more complex calculation logic

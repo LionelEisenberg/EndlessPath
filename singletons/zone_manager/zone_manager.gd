@@ -202,6 +202,7 @@ func is_action_seen(action_id: String) -> bool:
 
 ## Returns a list of actions that are both unlocked and not completed for the given zone.
 ## Checks action unlock_conditions and compares max_completions with action_completion_count.
+## A Tribulation the player has passed is no longer offered: its stage is reached.
 func get_available_actions(zone_id: String = get_current_zone().zone_id) -> Array[ZoneActionData]:
 	var zone_data = get_zone_by_id(zone_id)
 	if zone_data == null:
@@ -221,6 +222,11 @@ func get_available_actions(zone_id: String = get_current_zone().zone_id) -> Arra
 	for action in zone_data.all_actions:
 		# Check if action is unlocked
 		if not UnlockManager.are_unlock_conditions_met(action.unlock_conditions):
+			continue
+		
+		# A passed Tribulation is not offered again
+		var tribulation := action as TribulationActionData
+		if tribulation != null and tribulation.is_passed():
 			continue
 		
 		# Check if action is not completed

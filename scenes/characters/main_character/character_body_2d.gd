@@ -4,10 +4,14 @@ signal movement_completed # Emitted when the character reaches their target
 
 @export var is_debug_mode: bool = false
 ## Walks in whole px steps: the walk keeps its exact position to itself and
-## stands the character on the nearest whole px every frame, at the same pace.
-## The zone map turns it on, so at its zoom 2 the walk moves in the lacquer
+## stands the character on the nearest multiple of walk_snap_px every frame,
+## at the same pace. Both maps turn it on, so the walk moves in the lacquer
 ## kit's 2 screen px steps. Off, the character slides smoothly.
 @export var snap_walk_to_whole_px: bool = false
+## The step a whole-px walk stands the character on, in map px: 1 on the zone
+## map, whose zoom 2 draws a map px as 2 screen px; 2 on the adventure map,
+## whose zoom 1 draws the character at scale 2.
+@export var walk_snap_px: float = 1.0
 
 # Movement constants
 const DEFAULT_MOVE_SPEED = 200.0
@@ -28,7 +32,8 @@ const ANGLE_FULL_CIRCLE = 360.0
 var target_position: Vector2 = Vector2.ZERO
 var move_speed: float = 0.0
 var is_moving: bool = false
-## Where a whole-px walk really is; the character stands on it rounded.
+## Where a whole-px walk really is; the character stands on it rounded to
+## walk_snap_px.
 var _exact_position: Vector2 = Vector2.ZERO
 
 @onready var animation_player: AnimationPlayer = %AnimationPlayer
@@ -77,14 +82,14 @@ func _update_movement() -> void:
 	move_and_slide()
 
 ## One frame of a whole-px walk: the exact position moves on at the walk's
-## pace and the character stands on it rounded to whole px.
+## pace and the character stands on it rounded to walk_snap_px.
 func _update_whole_px_movement(delta: float) -> void:
 	if _exact_position.distance_to(target_position) <= MOVEMENT_THRESHOLD:
 		global_position = target_position
 		_stop_movement()
 		return
 	_exact_position = _exact_position.move_toward(target_position, move_speed * delta)
-	global_position = _exact_position.round()
+	global_position = (_exact_position / walk_snap_px).round() * walk_snap_px
 
 ## Plays the walk animation that corresponds to the movement direction.
 ## Supports all 8 cardinal directions (N, NE, E, SE, S, SW, W, NW).
@@ -141,3 +146,17 @@ func _stop_movement() -> void:
 func stop_moving() -> void:
 	if is_moving:
 		_stop_movement()
+
+## Plays one of the idle-motion clips the zone map runs (meditate,
+## teleport_in, teleport_out, forage_search, forage_present, or a walk),
+## starting at_seconds in so it joins its segment in step. The clip already
+## playing runs on untouched, so calling this every frame is safe.
+func show_pose(animation: StringName, at_seconds: float = 0.0) -> void:
+	if animation_player.current_animation == animation:
+		return
+	animation_player.play(animation)
+	animation_player.seek(at_seconds, true)
+
+## Stands the character still on its idle frame.
+func stand() -> void:
+	animation_player.play("RESET")

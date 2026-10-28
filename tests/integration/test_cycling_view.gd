@@ -256,6 +256,19 @@ func test_the_status_label_says_madra_is_full() -> void:
 	_view._process(0.0)
 	assert_eq(_view.get_status_text(), CyclingView.MADRA_FULL_ZONES)
 
+## A full core takes no XP, so a technique's zones pay none and the line must not
+## say they do. The board was built with room in the core: the line follows the
+## core as it stands this frame.
+func test_the_status_label_stops_promising_xp_at_a_full_core() -> void:
+	PersistenceManager.save_game_data.core_density_level = 100.0
+	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
+	assert_false(_technique.cycling_zones.is_empty(), "precondition: the technique has zones")
+	ResourceManager.set_madra(CultivationManager.get_max_madra())
+	_technique.start_cycle()
+	_technique.advance(FRAME, _technique.get_ball_global_position())
+	_view._process(0.0)
+	assert_eq(_view.get_status_text(), CyclingView.MADRA_FULL)
+
 func test_the_status_label_says_madra_is_full_for_a_technique_with_no_zones() -> void:
 	CyclingManager.equip_technique(FOUNDATION_ID)
 	assert_true(_technique.cycling_zones.is_empty(), "precondition: the foundation technique has no zones")
@@ -637,6 +650,17 @@ func test_scoring_pops_the_zone_floater_and_pellets() -> void:
 	assert_eq(_pellets().size(), CyclingRules.pellet_count(tier), "and no others")
 	for other: LacquerFloater in _floaters().slice(1):
 		assert_false(other.visible, "only the scored zone's floater shows")
+
+func test_a_full_core_floater_sends_no_pellets() -> void:
+	PersistenceManager.save_game_data.core_density_level = 100.0
+	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_true(_technique.try_score_zone(zone))
+	var floater: LacquerFloater = _floaters()[0]
+	assert_true(floater.visible)
+	assert_eq(floater.get_text(), "OK · Core full", "the tier and the core's state in place of the XP")
+	assert_eq(floater.get_color(), CyclingRules.tier_color(CyclingRules.Tier.OK))
+	assert_eq(_pellets().size(), 0, "a full core takes no XP, so none flies to it")
 
 func test_each_tier_pops_its_floater_and_sends_its_pellets() -> void:
 	var scored: Array = []

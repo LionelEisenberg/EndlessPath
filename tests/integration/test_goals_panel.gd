@@ -2,8 +2,12 @@ extends GutTest
 
 ## Integration tests for the lacquer Goals board (GoalsPanel, lacquer kit
 ## §5.2): the first active quest's current step with a progress figure only for
-## measurable steps, the Breakthrough milestone, the milestone moving up when
-## no quest is active, and the board hugging its rows (spec: Goals).
+## measurable steps, the Breakthrough milestone in its three states (Core
+## Density towards the stage's cap, a full core that faces the Tribulation, a
+## stage with no next stage), the milestone moving up when no quest is active,
+## and the board hugging its rows (spec: Goals). No text is cut off (the
+## developer's rule): a name, a step or a milestone line that needs more than
+## its 358 px wraps there, and the board grows to hold it.
 
 const GOALS_SCENE_PATH: String = "res://scenes/ui/goals_panel/goals_panel.tscn"
 const QUEST_CATALOG_PATH: String = "res://resources/quests/quest_list.tres"
@@ -30,20 +34,31 @@ const MILESTONE_ROD_STEPS: int = 138
 const FULL_HEIGHT: float = 220.0
 const MILESTONE_ONLY_HEIGHT: float = 150.0
 const SHADOW: float = 4.0
+## The quest row's two text lines and the milestone's: one line of a name is 20
+## px, of a step or a milestone line 18.
+const NAME_LINE: float = 20.0
+const DETAIL_LINE: float = 18.0
+## Long enough to need several lines in 358 px, and in the 300 px a figure leaves
+## a name.
+const LONG_NAME: String = "A Quest Whose Name Runs Far Past The Board's Edge And Then Wraps Round Again"
+const LONG_STEP: String = "Walk the long road through the misty bamboo hollow and back again before the moon sets over the valley"
 
 var _goals: GoalsPanel = null
+var _original_stage_resources: Array[AdvancementStageResource] = []
 
 #-----------------------------------------------------------------------------
 # SETUP
 #-----------------------------------------------------------------------------
 
 func before_each() -> void:
+	_original_stage_resources = CultivationManager.advancement_stage_resources
 	_restore_quest_catalog()
 	_use_fresh_save()
 
 func after_each() -> void:
 	while ActionManager.get_current_action() != null:
 		ActionManager.stop_action()
+	CultivationManager.advancement_stage_resources = _original_stage_resources
 	_restore_quest_catalog()
 
 #-----------------------------------------------------------------------------
@@ -59,6 +74,20 @@ func _restore_quest_catalog() -> void:
 func _use_fresh_save(save: SaveGameData = SaveGameData.new()) -> void:
 	PersistenceManager.save_game_data = save
 	PersistenceManager.save_data_reset.emit()
+
+## Swaps in a Foundation that fills at `cap`, with a Copper after it. Call it
+## before the save loads; after_each() restores the real stages.
+func _use_a_short_stage(cap: int) -> void:
+	var copper := AdvancementStageResource.new()
+	copper.stage_id = CultivationManager.AdvancementStage.COPPER
+	copper.stage_name = "Test Copper"
+	var short_stage := AdvancementStageResource.new()
+	short_stage.stage_id = CultivationManager.AdvancementStage.FOUNDATION
+	short_stage.stage_name = "Short Foundation"
+	short_stage.max_core_density_level = cap
+	short_stage.next_stage = copper
+	var stages: Array[AdvancementStageResource] = [short_stage, copper]
+	CultivationManager.advancement_stage_resources = stages
 
 func _add_goals() -> GoalsPanel:
 	var scene: PackedScene = load(GOALS_SCENE_PATH)
@@ -260,13 +289,60 @@ func test_milestone_figure_and_rod() -> void:
 	assert_eq(_text("MilestoneFigureLabel"), "32 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), roundi(0.32 * MILESTONE_ROD_STEPS))
 
-func test_milestone_figure_caps_at_breakthrough() -> void:
+## Core Density has a cap: a save past it loads at it, and the full core asks to
+## face the Tribulation.
+func test_milestone_at_the_cap_asks_for_the_tribulation() -> void:
 	var save := SaveGameData.new()
 	save.core_density_level = 120.0
 	_use_fresh_save(save)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0, "precondition: the save loaded at the cap")
 	_add_goals()
-	assert_eq(_text("MilestoneFigureLabel"), "100 / 100", "Core Density has no cap, the milestone does")
+	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
+	assert_true(_is_shown("MilestoneFigureLabel"))
+	assert_eq(_text("MilestoneFigureLabel"), "100 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
+
+## Copper has no next stage: the milestone is met, so the rod stays full and the
+## figure goes.
+func test_milestone_after_the_breakthrough() -> void:
+	var save := SaveGameData.new()
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	_use_fresh_save(save)
+	_add_goals()
+	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
+	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
+	assert_false(_is_shown("MilestoneFigureLabel"), "nothing is left to raise")
+
+## A stage with no next stage has no Tribulation to face, even with its core full.
+func test_a_full_copper_core_still_reads_reached() -> void:
+	var save := SaveGameData.new()
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	save.core_density_level = 100.0
+	_use_fresh_save(save)
+	_add_goals()
+	assert_true(CultivationManager.is_core_full(), "precondition: the Copper core is full")
+	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
+	assert_false(_is_shown("MilestoneFigureLabel"))
+
+## The full figure never reads past the cap. The manager clamps a level on load,
+## so only a signal can leave one past the cap on the board.
+func test_the_full_figure_never_passes_the_cap() -> void:
+	_add_goals()
+	var save: SaveGameData = PersistenceManager.save_game_data
+	save.core_density_level = 120.0
+	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
+	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
+	assert_eq(_text("MilestoneFigureLabel"), "100 / 100")
+	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), MILESTONE_ROD_STEPS)
+
+## The line names the stage the save stands on, not a fixed word.
+func test_the_reached_line_names_the_stage() -> void:
+	_use_a_short_stage(40)
+	var save := SaveGameData.new()
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	_use_fresh_save(save)
+	_add_goals()
+	assert_eq(_text("MilestoneTextLabel"), "Test Copper reached")
 
 func test_milestone_follows_level_up() -> void:
 	_add_goals()
@@ -276,23 +352,63 @@ func test_milestone_follows_level_up() -> void:
 	assert_eq(_text("MilestoneFigureLabel"), "50 / 100")
 	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), 69)
 
+## The stage changes under a board that is already up, and only
+## advancement_stage_changed says so.
+func test_milestone_follows_the_stage_change() -> void:
+	_add_goals()
+	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100", "precondition: Foundation")
+	var save: SaveGameData = PersistenceManager.save_game_data
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	CultivationManager.advancement_stage_changed.emit(save.current_advancement_stage)
+	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
+
+## A new save under a board that stood on Copper brings the figure back.
+func test_the_figure_returns_with_a_new_save() -> void:
+	var copper_save := SaveGameData.new()
+	copper_save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	_use_fresh_save(copper_save)
+	_add_goals()
+	assert_false(_is_shown("MilestoneFigureLabel"), "precondition: no figure on Copper")
+	_use_fresh_save()
+	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100")
+	assert_true(_is_shown("MilestoneFigureLabel"))
+	assert_eq(_text("MilestoneFigureLabel"), "0 / 100")
+
+## The cap is the stage's own: a stage that fills at 40 asks for 40, and its full
+## core reads 40 / 40.
+func test_milestone_reads_the_stages_cap() -> void:
+	_use_a_short_stage(40)
+	var save := SaveGameData.new()
+	save.core_density_level = 20.0
+	_use_fresh_save(save)
+	_add_goals()
+	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 40")
+	assert_eq(_text("MilestoneFigureLabel"), "20 / 40")
+	assert_eq((_node("MilestoneRod") as LacquerRod).get_step(), roundi(0.5 * MILESTONE_ROD_STEPS))
+	save.core_density_level = 40.0
+	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
+	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
+	assert_eq(_text("MilestoneFigureLabel"), "40 / 40")
+
 #-----------------------------------------------------------------------------
 # LONG TEXT (Review Focus 4)
 #-----------------------------------------------------------------------------
 
-func test_long_step_text_does_not_widen_board() -> void:
+func test_long_step_text_wraps_and_does_not_widen_board() -> void:
 	var long_text: String = "Walk the long road ".repeat(16).substr(0, 300)
 	assert_eq(long_text.length(), 300, "precondition: a 300-character step")
 	var quest_id: String = _use_single_quest("A Quest Whose Name Runs Far Past The Board's Edge", long_text)
 	_add_goals()
 	QuestManager.start_quest(quest_id)
-	await wait_process_frames(1)
-	assert_eq(_goals.size, Vector2(440.0, 220.0), "the board keeps its size")
+	await wait_process_frames(2)
+	assert_eq(_goals.size.x, 440.0, "the board keeps its width")
 	var step_label: Label = _node("QuestStepLabel")
-	assert_eq(step_label.text, long_text, "the full text is kept; the label trims it")
+	assert_eq(step_label.text, long_text, "the full text is kept: the label wraps it, never trims it")
+	assert_gt(step_label.get_line_count(), 3, "precondition: the step takes many lines")
 	assert_lte(step_label.size.x, STEP_SLOT_WIDTH, "the step line stays in its slot")
 	var name_label: Label = _node("QuestNameLabel")
 	assert_lte(name_label.size.x, STEP_SLOT_WIDTH, "the name stays in its slot")
+	assert_gt(_goals.size.y, FULL_HEIGHT, "and the board grows")
 
 func test_long_name_leaves_room_for_the_figure() -> void:
 	var conditions: Array[UnlockConditionData] = [_madra_condition()]
@@ -317,6 +433,128 @@ func test_step_with_an_unmeasurable_condition_has_no_figure() -> void:
 	QuestManager.start_quest(quest_id)
 	assert_true(_is_shown("QuestRow"), "precondition: the quest shows")
 	assert_false(_is_shown("QuestFigureLabel"), "every condition must be measurable")
+
+#-----------------------------------------------------------------------------
+# NO TEXT IS CUT OFF (the board grows)
+#-----------------------------------------------------------------------------
+
+## The quest row under the title, with a quest whose texts are the given ones.
+func _start_quest_with(quest_name: String, step: String, measurable: bool = false) -> void:
+	var conditions: Array[UnlockConditionData] = []
+	if measurable:
+		conditions.append(_madra_condition())
+	var quest_id: String = _use_single_quest(quest_name, step, conditions)
+	_add_goals()
+	QuestManager.start_quest(quest_id)
+
+func test_a_long_step_adds_its_lines_to_the_board() -> void:
+	_start_quest_with("Short", LONG_STEP)
+	await wait_process_frames(2)
+	var step := _node("QuestStepLabel") as Label
+	assert_gt(step.get_line_count(), 1, "precondition: the step wraps")
+	assert_eq(step.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING)
+	assert_eq(step.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART)
+	assert_eq(_goals.size.y, FULL_HEIGHT + DETAIL_LINE * (step.get_line_count() - 1), "each line after the first adds the detail's 18 px")
+	assert_eq(_milestone_top(), MILESTONE_TOP_WITH_QUEST + DETAIL_LINE * (step.get_line_count() - 1), "and pushes the milestone down by as much")
+	assert_eq(_board_art_bottom(), _goals.size.y + SHADOW, "the board art follows")
+
+func test_a_long_quest_name_wraps_beside_the_figure() -> void:
+	_start_quest_with(LONG_NAME, "Fill your Madra", true)
+	await wait_process_frames(2)
+	var name_label := _node("QuestNameLabel") as Label
+	var figure := _node("QuestFigureLabel") as Label
+	assert_true(figure.is_visible_in_tree(), "precondition: the figure shows")
+	assert_gt(name_label.get_line_count(), 1, "precondition: the name wraps")
+	assert_eq(name_label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING)
+	assert_lte(name_label.get_global_rect().end.x, figure.get_global_rect().position.x, "the name wraps before the figure")
+	assert_eq(figure.get_global_rect().end.x, _goals.global_position.x + 422.0, "the figure stays at the right")
+	assert_eq(figure.get_global_rect().position.y, name_label.get_global_rect().position.y + 1.0, "on the name's first line")
+	assert_eq(_goals.size.y, FULL_HEIGHT + NAME_LINE * (name_label.get_line_count() - 1), "each line after the first adds the name's 20 px")
+
+func test_a_long_name_and_step_grow_the_board_together() -> void:
+	_start_quest_with(LONG_NAME, LONG_STEP)
+	await wait_process_frames(2)
+	var name_label := _node("QuestNameLabel") as Label
+	var step := _node("QuestStepLabel") as Label
+	assert_eq(_goals.size.y, FULL_HEIGHT + NAME_LINE * (name_label.get_line_count() - 1) + DETAIL_LINE * (step.get_line_count() - 1))
+
+## The milestone's own lines wrap too, and the rod and its figure stay under the
+## text, wherever it ends. (The milestone's texts are the board's own and never
+## long, so a long one is put on the label and the board asked to fit again.)
+func test_a_long_milestone_line_wraps_and_pushes_the_rod_down() -> void:
+	_add_goals()
+	await wait_process_frames(2)
+	var text := _node("MilestoneTextLabel") as Label
+	var rod := _node("MilestoneRod") as Control
+	var figure := _node("MilestoneFigureLabel") as Label
+	var rod_top: float = rod.global_position.y - _goals.global_position.y
+	assert_eq(rod_top, MILESTONE_TOP_WITH_QUEST - MILESTONE_SHIFT + 52.0, "precondition: the rod 52 under the milestone's top")
+	text.text = LONG_STEP
+	_goals._fit_height()
+	await wait_process_frames(2)
+	assert_gt(text.get_line_count(), 1, "precondition: the line wraps")
+	assert_eq(text.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING)
+	var extra: float = DETAIL_LINE * (text.get_line_count() - 1)
+	assert_eq(rod.global_position.y - _goals.global_position.y, rod_top + extra, "the rod moves down by the lines added")
+	assert_eq(figure.global_position.y - _goals.global_position.y, rod_top - 4.0 + extra, "and its figure with it")
+	assert_eq(_goals.size.y, MILESTONE_ONLY_HEIGHT + extra)
+
+## A quest of two steps, the first one long and the second short.
+func test_the_board_takes_its_height_back_for_short_text() -> void:
+	var first := QuestStepData.new()
+	first.step_id = "long_step"
+	first.description = LONG_STEP
+	first.completion_event_id = "test_goals_next"
+	var second := QuestStepData.new()
+	second.step_id = "short_step"
+	second.description = "Brief"
+	second.completion_event_id = "test_goals_never_fires"
+	var quest := QuestData.new()
+	quest.quest_id = "test_goals_two_steps"
+	quest.quest_name = LONG_NAME
+	var steps: Array[QuestStepData] = [first, second]
+	quest.steps = steps
+	var catalog := QuestList.new()
+	var quests: Array[QuestData] = [quest]
+	catalog.quests = quests
+	QuestManager._quest_catalog = catalog
+	QuestManager._build_catalog_index()
+	_add_goals()
+	QuestManager.start_quest("test_goals_two_steps")
+	await wait_process_frames(2)
+	assert_gt(_goals.size.y, FULL_HEIGHT, "precondition: grown for the long step")
+
+	EventManager.trigger_event("test_goals_next")
+	await wait_process_frames(2)
+
+	var name_label := _node("QuestNameLabel") as Label
+	assert_eq(_text("QuestStepLabel"), "Brief", "precondition: the second step shows")
+	assert_eq(_goals.size.y, FULL_HEIGHT + NAME_LINE * (name_label.get_line_count() - 1), "only the long name still adds its lines")
+
+func test_every_grown_height_is_even() -> void:
+	var texts: Array = [
+		["Short", LONG_STEP],
+		[LONG_NAME, "Short"],
+		[LONG_NAME, LONG_STEP],
+		["Awaken " + "Your Core ".repeat(12), "Step " + "and then ".repeat(30)],
+	]
+	for pair: Array in texts:
+		_use_fresh_save()
+		_start_quest_with(pair[0], pair[1], true)
+		await wait_process_frames(2)
+		assert_eq(fposmod(_goals.size.y, 2.0), 0.0, "an even height for %s" % str(pair[0]).left(20))
+		assert_eq(fposmod(_milestone_top(), 2.0), 0.0, "the milestone on an even row")
+		_goals.queue_free()
+		await wait_process_frames(1)
+
+## No Label on the board ellipsizes.
+func test_nothing_on_the_board_keeps_an_ellipsis() -> void:
+	_add_goals()
+	var checked: int = 0
+	for node: Node in _goals.find_children("*", "Label", true, false):
+		assert_eq((node as Label).text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "%s does not trim its text" % node.name)
+		checked += 1
+	assert_gt(checked, 5, "precondition: the walk met the board's labels")
 
 #-----------------------------------------------------------------------------
 # HEIGHT (spec: Goals hugs its content)

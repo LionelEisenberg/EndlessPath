@@ -86,6 +86,18 @@ func start() -> void:
 
 	_create_combatants()
 
+## Returns the gold a win over the choice's enemy pays: the enemy's base gold
+## drop (enemy_pool[0], the one the fight is against) x the choice's gold
+## multiplier x the adventure action's (1 when there is no action) x the
+## character's, rounded down. 0 for a choice with nobody in its pool. The fight
+## pays this, and the adventure chest quotes it before the fight, so both read
+## the one rule.
+static func gold_reward_for(choice: CombatChoice, adventure_action: AdventureActionData) -> int:
+	if choice == null or choice.enemy_pool.is_empty() or choice.enemy_pool[0] == null:
+		return 0
+	var base_gold: int = choice.enemy_pool[0].base_gold_drop
+	return floori(base_gold * choice.gold_multiplier * _adventure_gold_multiplier(adventure_action) * CharacterManager.get_gold_multiplier())
+
 ## Stops the combat and cleans up.
 func stop() -> void:
 	enemy_nameplate.reset()
@@ -198,20 +210,22 @@ func _calculate_gold_reward() -> int:
 		Log.warn("AdventureCombat: No enemy data in combat choice")
 		return 0
 	
-	# Get all multipliers
+	# The formula is gold_reward_for(); the factors are read here for the log line
 	var base_gold: int = enemy_data.base_gold_drop
 	var combat_mult: float = current_combat_choice.gold_multiplier
-	var adventure_mult: float = current_adventure_action.gold_multiplier if current_adventure_action else 1.0
+	var adventure_mult: float = _adventure_gold_multiplier(current_adventure_action)
 	var char_mult: float = CharacterManager.get_gold_multiplier()
-	
-	# Calculate final gold
-	var final_gold: int = int(floor(base_gold * combat_mult * adventure_mult * char_mult))
-	
+	var final_gold: int = gold_reward_for(current_combat_choice, current_adventure_action)
+
 	Log.info("AdventureCombat: Gold calculated - Base: %d, Combat×%.1f, Adv×%.1f, Char×%.1f = %d" % [
 		base_gold, combat_mult, adventure_mult, char_mult, final_gold
 	])
 	
 	return final_gold
+
+## The adventure action's gold multiplier, 1 when there is no action.
+static func _adventure_gold_multiplier(adventure_action: AdventureActionData) -> float:
+	return adventure_action.gold_multiplier if adventure_action else 1.0
 
 #-----------------------------------------------------------------------------
 # UI HANDLERS

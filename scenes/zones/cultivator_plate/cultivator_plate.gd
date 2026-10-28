@@ -4,7 +4,8 @@ extends Control
 ## The cultivator cabinet at the zone view's top left (lacquer kit §5.1).
 ## Three rows on the lacquer board: the Madra orb with Madra / max and, while
 ## the running action earns Madra, its rate; the Core Density orb with the
-## stage, level and XP beads; gold, at the right of the bottom row.
+## stage, level and XP beads (all lit, with "Core full" for the XP figure, at the
+## stage's Core Density cap); gold, at the right of the bottom row.
 ## The orbs are frames of the kit's strips under two pixel-art shaders that
 ## animate the fill on their own (lacquer_madra_orb: flowing liquid,
 ## lacquer_core_orb: a turning spiral); this script only hands them the fill.
@@ -99,22 +100,28 @@ func _update_rate() -> void:
 	if _rate_label.visible:
 		_rate_label.text = LacquerText.decimal_bbcode(LacquerText.rate(rate) + " / s")
 
-## Stage, level, the core orb's spiral at min(level, 100) / 100 (the dormant
-## pebble at level 0) and the XP beads. A bead lights only once its share of
-## the XP is earned, floor(xp × 18 / need), so the beads never run ahead of
-## the floored "xp / need XP" figure.
+## Stage, level, the core orb's spiral at min(level, cap) / cap (0 with no cap;
+## the dormant pebble at level 0) and the XP beads. A bead lights only once its
+## share of the XP is earned, floor(xp × 18 / need), so the beads never run
+## ahead of the floored "xp / need XP" figure. A full core takes no XP: the
+## beads show their whole row and the figure reads "Core full".
 func _update_core_density() -> void:
 	var level: int = floori(CultivationManager.get_core_density_level())
-	var xp: float = CultivationManager.get_core_density_xp()
-	var need: float = CultivationManager.get_xp_for_next_level()
+	var cap: int = CultivationManager.get_core_density_cap()
 	_stage_label.text = CultivationManager.get_current_advancement_stage_name()
 	_level_label.text = "Level %d" % level
-	var level_fraction: float = float(clampi(level, 0, CultivationManager.BREAKTHROUGH_LEVEL)) / CultivationManager.BREAKTHROUGH_LEVEL
+	var level_fraction: float = float(clampi(level, 0, cap)) / cap if cap > 0 else 0.0
 	_core_orb.set_frame(CORE_ORB_SOCKET_COLUMN if level > 0 else CORE_ORB_DORMANT_COLUMN)
 	_core_fill.set_shader_parameter(FILL_PARAMETER, level_fraction)
-	var lit_beads: int = floori(xp * XP_BEADS_LAST_ROW / need) if need > 0.0 else 0
-	_xp_beads.set_frame(0, clampi(lit_beads, 0, XP_BEADS_LAST_ROW))
-	_xp_label.text = "%d / %d XP" % [floori(xp), floori(need)]
+	if CultivationManager.is_core_full():
+		_xp_beads.set_frame(0, XP_BEADS_LAST_ROW)
+		_xp_label.text = CultivationManager.CORE_FULL_TEXT
+	else:
+		var xp: float = CultivationManager.get_core_density_xp()
+		var need: float = CultivationManager.get_xp_for_next_level()
+		var lit_beads: int = floori(xp * XP_BEADS_LAST_ROW / need) if need > 0.0 else 0
+		_xp_beads.set_frame(0, clampi(lit_beads, 0, XP_BEADS_LAST_ROW))
+		_xp_label.text = "%d / %d XP" % [floori(xp), floori(need)]
 
 func _update_gold() -> void:
 	_gold_value_label.text = "%d " % floori(ResourceManager.get_gold())

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AdvancementStageResource" format=3 uid="uid://bsl0hdrpu3pe4"]
+
+[ext_resource type="Script" uid="uid://civ7jgpmmaoro" path="res://scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd" id="1_k4cpr"]
+
+[resource]
+script = ExtResource("1_k4cpr")
+stage_name = "Copper"
+stage_id = 1
+core_density_base_xp_cost = 20.0
+core_xp_scaling_factor = 1.02
+max_core_density_level = 100
+max_madra_base = 600.0
+max_madra_per_core_density_level = 10.0
+metadata/_custom_type_script = "uid://civ7jgpmmaoro"

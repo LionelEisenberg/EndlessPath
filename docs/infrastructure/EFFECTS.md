@@ -1,7 +1,5 @@
 # Effects (EffectData)
 
-Last updated: 2026-10-22
-
 ## Overview
 
 `EffectData` is the game's world-side "do something" primitive. It is an abstract `Resource` with a `process()` method. Subclasses award resources, items, attributes, or path points, fire [events](EVENTS.md), start [quests](../progression/QUESTS.md), or change vitals. Effects are authored in `.tres` files, usually as inline sub-resources inside the action, quest, encounter, or item that owns them. Each owner keeps them in an `Array[EffectData]`, and runners call `process()` on each entry in order.
@@ -33,19 +31,19 @@ EffectData (@abstract, Resource)                 scripts/resource_definitions/ef
 └── ChangeVitalsEffectData                       change_vitals_effect_data.gd
 ```
 
-Execution is synchronous and context-free. `process()` takes no arguments; `AdventureTilemap._apply_effects()` has a `# TODO: Pass context if needed`. Effects reach global state through autoloads. An effect that fires an event finishes its whole cascade (UnlockManager latch, quest advances, UI refresh) before the next effect in the array runs.
+Execution is synchronous and context-free. `process()` takes no arguments; `AdventureTilemap`'s effect runner has a `# TODO: Pass context if needed`. Effects reach global state through autoloads. An effect that fires an event finishes its whole cascade (UnlockManager latch, quest advances, UI refresh) before the next effect in the array runs.
 
 ### Owners and runners
 
 | Owner field | Runner | When it runs |
 |---|---|---|
-| `ZoneActionData.success_effects` / `failure_effects` | `ActionManager._process_completion_effects(successful)` | When the current action stops: `stop_action(successful)`, or when `select_action()` replaces it (which counts as success). NPC dialogue stops on `DialogueManager.dialogue_ended`; the Merchant stops when the player leaves the shop; adventures stop with `false` on time-out. |
-| `TrainingActionData.effects_per_tick` | `ActionManager._on_train_timer_finished()` | Every `tick_interval_seconds` while the training action is selected |
+| `ZoneActionData.success_effects` / `failure_effects` | `ActionManager` | When the current action stops: `stop_action(successful)`, or when `select_action()` replaces it (which counts as success). NPC dialogue stops on `DialogueManager.dialogue_ended`; the Merchant stops when the player leaves the shop; adventures stop with `false` on time-out. |
+| `TrainingActionData.effects_per_tick` | `ActionManager`'s training timer | Every `tick_interval_seconds` while the training action is selected |
 | `TrainingActionData.effects_on_level` | Same | Once for each training level crossed. `TrainingPresenter` and the Now strip also read the first `AwardAttributeEffectData` here for "each level +1 Spirit" and "Lv n → n+1 · +1 Spirit". |
-| `QuestData.completion_effects` | `QuestManager._complete_quest()` | After the last step advances, before `quest_completed` |
-| `EncounterChoice.success_effects` | `AdventureTilemap._on_choice_selected()` (plain choices), `_on_dialogue_ended()` (`DialogueChoice`) | Choice picked, or its timeline ended |
+| `QuestData.completion_effects` | `QuestManager` | After the last step advances, before `quest_completed` |
+| `EncounterChoice.success_effects` | `AdventureTilemap.select_choice()` (plain choices), or `AdventureTilemap` when the timeline ends (`DialogueChoice`) | Choice picked, or its timeline ended |
 | `CombatChoice.success_effects` / `failure_effects` | `AdventureTilemap.handle_combat_result()` | Combat won (after gold is added) or lost |
-| `ConsumableDefinitionData.effects` | `ConsumableDefinitionData.use()`, called from `InventoryManager.use_consumable()` | Consumable used. `_get_item_effects()` renders `describe()` lines in tooltips. |
+| `ConsumableDefinitionData.effects` | `ConsumableDefinitionData.use()`, called from `InventoryManager.use_consumable()` | Consumable used. Its tooltip lines render each effect's `describe()`. |
 
 ## Data Model
 
@@ -78,7 +76,7 @@ Four subclasses set `effect_type` in `_init()`: StartQuest, AwardAttribute, Awar
 | `amount` | `float` | `0.0` |
 | `quiet` | `bool` | `false`. True skips the player-facing log line (the Aura Well trickle) |
 
-`process()`: `ResourceManager.award_resource(resource_type, amount, quiet)` → `add_madra()` or `add_gold()`. Madra is clamped to `[0, stage max]`, where the Foundation max is 100 + 5 × Core Density level. Unless the award is quiet, a Madra award logs `Gained <N> Madra` with the amount actually added, only when that is at least 1, and a gold award logs `Gained <N> Gold`.
+`process()`: `ResourceManager.award_resource(resource_type, amount, quiet)` → `add_madra()` or `add_gold()`. A Madra gain stops at the stage max (Foundation 100 + 5 × Core Density level, Copper 600 + 10 × level), and a pool already above it is kept: `add_madra()` never lowers it. Unless the award is quiet, a Madra award logs `Gained <N> Madra` with the amount actually added, only when that is at least 1, and a gold award logs `Gained <N> Gold`.
 
 ### AwardItemEffectData
 
@@ -152,7 +150,7 @@ Attributes come from `CharacterManager.get_total_attributes_data()`.
 | InventoryManager | Target of item and loot-table effects; consumables run their effects through `use()` |
 | EventManager | Target of `TriggerEventEffectData` |
 | ResourceManager / CharacterManager / PathManager / PlayerManager | Targets of the award and vitals effects |
-| Item tooltips | `ConsumableDefinitionData._get_item_effects()` calls `describe()` |
+| Item tooltips | `ConsumableDefinitionData`'s tooltip lines call `describe()` |
 | TrainingPresenter / NowStrip | Read `AwardAttributeEffectData` from `effects_on_level` for the level reward text; `TrainingActionData.get_madra_per_second()` reads the MADRA `AwardResourceEffectData` in `effects_per_tick` for the rate |
 
 ## Existing Content
@@ -193,22 +191,11 @@ Authoring conventions:
 | `scripts/resource_definitions/effects/*.gd` | The eight subclasses |
 | `singletons/action_manager/action_manager.gd` | Zone action and training effect runner |
 | `singletons/quest_manager/quest_manager.gd` | Quest completion effect runner |
-| `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` | Encounter and combat choice effect runner (`_apply_effects`) |
+| `scenes/adventure/adventure_tilemap/adventure_tilemap.gd` | Encounter and combat choice effect runner |
 | `scripts/resource_definitions/items/consumable_definition_data.gd` | Consumable effect runner and tooltip lines |
 | `resources/effects/` | The two standalone effect files |
 
-## Tests
-
-| File | Covers |
-|---|---|
-| `tests/unit/test_award_attribute_effect_data.gd` | +1.0 SPIRIT, +2.5 BODY; `effect_type` set in `_init` |
-| `tests/unit/test_award_path_point_effect_data.gd` | Adds points; zero and negative amounts do nothing; `effect_type` |
-| `tests/unit/test_change_vitals_effect_data.gd` | Final-value getters: flat, BODY and FOUNDATION multipliers, combined, unscaled stamina, default multipliers |
-| `tests/unit/test_start_quest_effect_data.gd` | Starts the quest; empty id causes `push_error` |
-| `tests/unit/test_consumable_definition_data.gd` | `use()` processes effects in order; tooltip lines (uses a stub effect) |
-| `tests/unit/test_crude_scale_tres.gd` | Crude Scale's single ChangeVitals effect is +20 Madra |
-
-`AwardResourceEffectData`'s `quiet` flag is covered by `tests/unit/test_quiet_madra.gd`. Untested: `TriggerEventEffectData`, the rest of `AwardResourceEffectData`, `AwardItemEffectData`, `AwardLootTableEffectData`, `ChangeVitalsEffectData.process()` and `describe()`.
+Tests: `tests/unit/test_*_effect_data.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
 
@@ -219,7 +206,7 @@ Authoring conventions:
 ### Missing Functionality
 
 - `[MEDIUM]` Effects receive no context: `process()` takes no source, target, or combatant. Effects that target a specific combatant, or scale with the source, would require an API change.
-- `[MEDIUM]` No effect can advance the cultivation stage or unlock a zone. The planned breakthrough (Beat 9) needs a stage-advance path. `CultivationManager.attempt_breakthrough()` is an empty stub.
+- `[MEDIUM]` No effect can advance the cultivation stage, change Core Density or unlock a zone. The Tribulation (Beat 9) does not use one: `TribulationView` calls `CultivationManager.advance_to_next_stage()` or `lose_core_density_levels()` itself the moment the run ends. An action's `success_effects` and `failure_effects` run in `stop_action()`, when the player presses Continue, so closing the game on the result panel would have skipped the penalty (`tribulation_view.gd:456-477`).
 - `[LOW]` Only `ChangeVitalsEffectData` overrides `describe()`. Any other effect shown in a tooltip, for example a consumable that awards a resource, would display the multi-line debug `_to_string()` text.
 
 ### Content

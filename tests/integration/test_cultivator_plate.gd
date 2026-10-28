@@ -16,12 +16,14 @@ const CYCLING_ID: String = "wilderness_cycling_action"
 const AURA_WELL_EVENT: String = "aura_well_discovered"
 
 var _plate: CultivatorPlate = null
+var _original_stage_resources: Array[AdvancementStageResource] = []
 
 #-----------------------------------------------------------------------------
 # SETUP
 #-----------------------------------------------------------------------------
 
 func before_each() -> void:
+	_original_stage_resources = CultivationManager.advancement_stage_resources
 	_use_fresh_save()
 	_plate = _add_plate()
 
@@ -30,6 +32,7 @@ func after_each() -> void:
 		ActionManager.stop_action()
 	# A cycle session left running would leak into later files.
 	CyclingManager.end_cycle_session()
+	CultivationManager.advancement_stage_resources = _original_stage_resources
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -62,6 +65,16 @@ func _load_core_density(level: float, xp: float) -> void:
 	save.core_density_level = level
 	save.core_density_xp = xp
 	_use_fresh_save(save)
+
+## Swaps in a Foundation that fills at `cap`. Call it before the save loads;
+## after_each() restores the real stages.
+func _use_a_short_stage(cap: int) -> void:
+	var short_stage := AdvancementStageResource.new()
+	short_stage.stage_id = CultivationManager.AdvancementStage.FOUNDATION
+	short_stage.stage_name = "Short Foundation"
+	short_stage.max_core_density_level = cap
+	var stages: Array[AdvancementStageResource] = [short_stage]
+	CultivationManager.advancement_stage_resources = stages
 
 #-----------------------------------------------------------------------------
 # MADRA
@@ -209,9 +222,60 @@ func test_core_fill_follows_a_level_up() -> void:
 	assert_eq((_node("CoreOrb") as LacquerStripRect).get_frame(), Vector2i(1, 0))
 	assert_almost_eq(_fill("CoreOrb"), 0.01, 0.0001)
 
-func test_core_fill_stops_at_breakthrough_level() -> void:
+## A save from before the cap loads at it (CultivationManager clamps it), so the
+## cabinet shows a full core at level 100, not a level past it.
+func test_a_save_past_the_cap_loads_full() -> void:
 	_load_core_density(140.0, 0.0)
 	assert_almost_eq(_fill("CoreOrb"), 1.0, 0.0001)
+	assert_eq(_text("LevelLabel"), "Level 100")
+
+## XP is lost at the cap, so the figure says the core is full instead, and the
+## beads show their whole row.
+func test_a_full_core_reads_core_full() -> void:
+	_load_core_density(100.0, 0.0)
+	assert_eq(_text("XpLabel"), "Core full")
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 18))
+
+## The core fills against the stage's own cap, not a fixed 100.
+func test_core_fill_reads_the_stages_cap() -> void:
+	_use_a_short_stage(40)
+	_load_core_density(20.0, 0.0)
+	assert_almost_eq(_fill("CoreOrb"), 0.5, 0.0001, "20 of the stage's 40 levels")
+	assert_ne(_text("XpLabel"), "Core full", "precondition: not full at 20 of 40")
+	_load_core_density(40.0, 0.0)
+	assert_almost_eq(_fill("CoreOrb"), 1.0, 0.0001)
+	assert_eq(_text("XpLabel"), "Core full")
+
+## The orb never overfills. The manager clamps a level on load, so only a signal
+## can leave one past the cap on the cabinet; it still draws a full core.
+func test_core_fill_never_passes_full() -> void:
+	var save: SaveGameData = PersistenceManager.save_game_data
+	save.core_density_level = 140.0
+	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
+	assert_almost_eq(_fill("CoreOrb"), 1.0, 0.0001)
+	assert_eq(_text("XpLabel"), "Core full")
+
+## A stage with no resource has no cap (0): the orb stays empty instead of
+## dividing by it.
+func test_a_stage_without_a_cap_leaves_the_orb_empty() -> void:
+	var no_stages: Array[AdvancementStageResource] = []
+	CultivationManager.advancement_stage_resources = no_stages
+	_load_core_density(20.0, 0.0)
+	assert_eq(CultivationManager.get_core_density_cap(), 0, "precondition: no stage, no cap")
+	assert_eq(_text("LevelLabel"), "Level 20")
+	assert_almost_eq(_fill("CoreOrb"), 0.0, 0.0001)
+
+## A failed Tribulation takes levels back: the core is no longer full, and the
+## figure and the beads go back to counting XP.
+func test_losing_levels_ends_core_full() -> void:
+	_load_core_density(100.0, 0.0)
+	assert_eq(_text("XpLabel"), "Core full", "precondition: the core is full")
+	CultivationManager.lose_core_density_levels(5)
+	var need: float = CultivationManager.get_xp_for_next_level()
+	assert_eq(_text("LevelLabel"), "Level 95")
+	assert_eq(_text("XpLabel"), "0 / %d XP" % int(need))
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0))
+	assert_almost_eq(_fill("CoreOrb"), 0.95, 0.0001)
 
 func test_beads_follow_xp() -> void:
 	# Level 0 needs 10 XP for level 1: 5 XP lights half the 18 beads.

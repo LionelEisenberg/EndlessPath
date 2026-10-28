@@ -31,7 +31,7 @@ func show_for_buff(buff: ActiveBuff) -> void:
 
 	_buff_icon.texture = data.buff_icon
 	_buff_name.text = data.buff_id.capitalize()
-	_description.text = _build_description(data)
+	_description.text = data.describe()
 	_update_meta()
 
 	visible = true
@@ -73,20 +73,3 @@ func _update_meta() -> void:
 			_stacks_label.visible = true
 		else:
 			_stacks_label.visible = false
-
-func _build_description(data: BuffEffectData) -> String:
-	match data.buff_type:
-		BuffEffectData.BuffType.ATTRIBUTE_MODIFIER_MULTIPLICATIVE:
-			var parts: PackedStringArray = []
-			for attr_type: CharacterAttributesData.AttributeType in data.attribute_modifiers:
-				var mult: float = data.attribute_modifiers[attr_type]
-				var attr_name: String = CharacterAttributesData.AttributeType.keys()[attr_type].capitalize()
-				parts.append("%s x%.1f" % [attr_name, mult])
-			return ", ".join(parts)
-		BuffEffectData.BuffType.DAMAGE_OVER_TIME:
-			return "%.1f damage per second" % data.dot_damage_per_tick
-		BuffEffectData.BuffType.OUTGOING_DAMAGE_MODIFIER:
-			return "Outgoing damage x%.1f" % data.damage_multiplier
-		BuffEffectData.BuffType.INCOMING_DAMAGE_MODIFIER:
-			return "Incoming damage x%.1f" % data.damage_multiplier
-	return ""

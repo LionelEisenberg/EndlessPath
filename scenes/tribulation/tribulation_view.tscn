@@ -1,0 +1,469 @@
+[gd_scene format=3 uid="uid://cncex23qq8b18"]
+
+[ext_resource type="Script" uid="uid://b1l1317fihvhf" path="res://scenes/tribulation/tribulation_view.gd" id="1_view"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="StyleBox" uid="uid://betjmkgl3dodf" path="res://assets/styleboxes/lacquer/trib_board9.tres" id="3_board"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="4_wrap_pad"]
+[ext_resource type="Script" uid="uid://bdh57v3j03yyh" path="res://scenes/tribulation/tribulation_stage.gd" id="5_stage"]
+[ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="6_strip"]
+[ext_resource type="Texture2D" uid="uid://rrfbmuf5h73p" path="res://assets/ui/lacquer/tribulation/lacquer_trib_ring_strip_ai.png" id="7_ring"]
+[ext_resource type="Texture2D" uid="uid://0eytvt37xfby" path="res://assets/ui/lacquer/tribulation/lacquer_trib_core_strip_ai.png" id="8_core"]
+[ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn" id="9_floater"]
+[ext_resource type="Texture2D" uid="uid://b12ec7dcq4rp2" path="res://assets/ui/lacquer/lacquer_drawer9_ai.png" id="10_drawer"]
+[ext_resource type="Texture2D" uid="uid://b3k8fa8wbun8t" path="res://assets/ui/lacquer/lacquer_about_ai.png" id="11_button"]
+[ext_resource type="Texture2D" uid="uid://bol0dgd52c2ql" path="res://assets/ui/lacquer/lacquer_about_open_ai.png" id="12_button_pressed"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="13_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="14_frame_hover"]
+[ext_resource type="Texture2D" uid="uid://82qrsy60y6df" path="res://assets/ui/lacquer/tribulation/lacquer_trib_pip_strip_ai.png" id="15_pip"]
+[ext_resource type="PackedScene" uid="uid://382kuwn7r4m8" path="res://scenes/common/lacquer/lacquer_rod.tscn" id="16_rod"]
+[ext_resource type="Texture2D" uid="uid://dxpnc8htanohg" path="res://assets/ui/lacquer/lacquer_rod_goal_empty_ai.png" id="17_rod_empty"]
+[ext_resource type="Texture2D" uid="uid://bsra35lmu7jxc" path="res://assets/ui/lacquer/lacquer_rod_goal_full_ai.png" id="18_rod_full"]
+[ext_resource type="Texture2D" uid="uid://cxn01d1umqedg" path="res://assets/ui/lacquer/lacquer_rod_goal_end_ai.png" id="19_rod_end"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_drawer"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lore"]
+content_margin_top = 2.0
+content_margin_bottom = 1.0
+
+[node name="TribulationView" type="Control" unique_id=1270220129]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_view")
+
+[node name="Board" type="PanelContainer" parent="." unique_id=155863878]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(952, 0)
+layout_mode = 0
+offset_left = 484.0
+offset_top = 24.0
+offset_right = 1436.0
+offset_bottom = 24.0
+mouse_filter = 1
+theme_override_styles/panel = ExtResource("3_board")
+
+[node name="BoardVBox" type="VBoxContainer" parent="Board" unique_id=784964823]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderVBox" type="VBoxContainer" parent="Board/BoardVBox" unique_id=182935998]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="ActionLabel" type="Label" parent="Board/BoardVBox/HeaderVBox" unique_id=766730031]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+text = "Spirit Valley"
+autowrap_mode = 3
+
+[node name="TitleLabel" type="Label" parent="Board/BoardVBox/HeaderVBox" unique_id=592686745]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerPanelTitle"
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+text = "The Tribulation"
+autowrap_mode = 3
+
+[node name="StageFrame" type="Control" parent="Board/BoardVBox" unique_id=1419262738]
+custom_minimum_size = Vector2(900, 600)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Stage" type="Control" parent="Board/BoardVBox/StageFrame" unique_id=1951867625]
+unique_name_in_owner = true
+clip_contents = true
+custom_minimum_size = Vector2(900, 600)
+layout_mode = 0
+offset_right = 900.0
+offset_bottom = 600.0
+mouse_filter = 2
+script = ExtResource("5_stage")
+
+[node name="Ring" type="TextureRect" parent="Board/BoardVBox/StageFrame/Stage" unique_id=179929126]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 314.0
+offset_top = 164.0
+offset_right = 586.0
+offset_bottom = 436.0
+mouse_filter = 2
+script = ExtResource("6_strip")
+strip = ExtResource("7_ring")
+frame_size = Vector2i(272, 272)
+
+[node name="SphereLayer" type="Control" parent="Board/BoardVBox/StageFrame/Stage" unique_id=1634960019]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Core" type="TextureRect" parent="Board/BoardVBox/StageFrame/Stage" unique_id=1994215258]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 386.0
+offset_top = 236.0
+offset_right = 514.0
+offset_bottom = 364.0
+mouse_filter = 2
+script = ExtResource("6_strip")
+strip = ExtResource("8_core")
+frame_size = Vector2i(128, 128)
+
+[node name="ArcLayer" type="Control" parent="Board/BoardVBox/StageFrame/Stage" unique_id=296458545]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Pellets" type="Node2D" parent="Board/BoardVBox/StageFrame/Stage" unique_id=150365939]
+unique_name_in_owner = true
+
+[node name="Floaters" type="Control" parent="Board/BoardVBox/StageFrame/Stage" unique_id=1821278115]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Floater1" parent="Board/BoardVBox/StageFrame/Stage/Floaters" unique_id=1371946084 instance=ExtResource("9_floater")]
+layout_mode = 0
+
+[node name="Floater2" parent="Board/BoardVBox/StageFrame/Stage/Floaters" unique_id=976499421 instance=ExtResource("9_floater")]
+layout_mode = 0
+
+[node name="Floater3" parent="Board/BoardVBox/StageFrame/Stage/Floaters" unique_id=1322679967 instance=ExtResource("9_floater")]
+layout_mode = 0
+
+[node name="Floater4" parent="Board/BoardVBox/StageFrame/Stage/Floaters" unique_id=1816917478 instance=ExtResource("9_floater")]
+layout_mode = 0
+
+[node name="IntroPanel" type="PanelContainer" parent="Board/BoardVBox/StageFrame" unique_id=1726178203]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -24.0
+offset_right = 280.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_drawer")
+
+[node name="IntroFace" type="NinePatchRect" parent="Board/BoardVBox/StageFrame/IntroPanel" unique_id=28434402]
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("10_drawer")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 6
+patch_margin_bottom = 6
+
+[node name="IntroMargin" type="MarginContainer" parent="Board/BoardVBox/StageFrame/IntroPanel" unique_id=1839517414]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
+
+[node name="IntroVBox" type="VBoxContainer" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin" unique_id=1963511973]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="IntroTitle" type="Label" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox" unique_id=1590847487]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerPanelTitle"
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+text = "The Tribulation"
+autowrap_mode = 3
+
+[node name="IntroText" type="Label" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox" unique_id=1172108561]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerLore"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_lore")
+text = "Your core is full. Breathe with the aura as it gathers, and let it pour into you."
+autowrap_mode = 3
+
+[node name="RulesLabel" type="Label" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox" unique_id=352433580]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+text = "4 cracks end the trial and cost 5 levels of Core Density."
+autowrap_mode = 3
+
+[node name="ButtonRow" type="HBoxContainer" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox" unique_id=435160136]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="BeginButton" type="TextureButton" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox/ButtonRow" unique_id=1332890742]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 36)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("11_button")
+texture_pressed = ExtResource("12_button_pressed")
+ignore_texture_size = true
+stretch_mode = 2
+
+[node name="BeginLabel" type="Label" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox/ButtonRow/BeginButton" unique_id=1985410847]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1.0
+offset_right = 89.0
+offset_bottom = 36.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+text = "Begin"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BeginHover" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox/ButtonRow/BeginButton" unique_id=924298461 instance=ExtResource("13_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("14_frame_hover")
+
+[node name="NotYetButton" type="TextureButton" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox/ButtonRow" unique_id=597926138]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 36)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("11_button")
+texture_pressed = ExtResource("12_button_pressed")
+ignore_texture_size = true
+stretch_mode = 2
+
+[node name="NotYetLabel" type="Label" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox/ButtonRow/NotYetButton" unique_id=235316316]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1.0
+offset_right = 89.0
+offset_bottom = 36.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+text = "Not yet"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NotYetHover" parent="Board/BoardVBox/StageFrame/IntroPanel/IntroMargin/IntroVBox/ButtonRow/NotYetButton" unique_id=1704095787 instance=ExtResource("13_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("14_frame_hover")
+
+[node name="ResultPanel" type="PanelContainer" parent="Board/BoardVBox/StageFrame" unique_id=968749557]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -24.0
+offset_right = 280.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_drawer")
+
+[node name="ResultFace" type="NinePatchRect" parent="Board/BoardVBox/StageFrame/ResultPanel" unique_id=258084506]
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("10_drawer")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 6
+patch_margin_bottom = 6
+
+[node name="ResultMargin" type="MarginContainer" parent="Board/BoardVBox/StageFrame/ResultPanel" unique_id=120878988]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
+
+[node name="ResultVBox" type="VBoxContainer" parent="Board/BoardVBox/StageFrame/ResultPanel/ResultMargin" unique_id=1876774616]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="ResultTitle" type="Label" parent="Board/BoardVBox/StageFrame/ResultPanel/ResultMargin/ResultVBox" unique_id=1578007140]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerPanelTitle"
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+text = "Breakthrough"
+autowrap_mode = 3
+
+[node name="ResultText" type="Label" parent="Board/BoardVBox/StageFrame/ResultPanel/ResultMargin/ResultVBox" unique_id=1839000772]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerLore"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_lore")
+text = "Your core condenses into Copper."
+autowrap_mode = 3
+
+[node name="GradeLabel" type="Label" parent="Board/BoardVBox/StageFrame/ResultPanel/ResultMargin/ResultVBox" unique_id=1518333406]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerName"
+text = "Flawless"
+autowrap_mode = 3
+
+[node name="StatsLabel" type="Label" parent="Board/BoardVBox/StageFrame/ResultPanel/ResultMargin/ResultVBox" unique_id=1818694836]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+text = "25 perfect · 0 good · 0 missed"
+autowrap_mode = 3
+
+[node name="ContinueButton" type="TextureButton" parent="Board/BoardVBox/StageFrame/ResultPanel/ResultMargin/ResultVBox" unique_id=1265888658]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 36)
+layout_mode = 2
+size_flags_horizontal = 0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("11_button")
+texture_pressed = ExtResource("12_button_pressed")
+ignore_texture_size = true
+stretch_mode = 2
+
+[node name="ContinueLabel" type="Label" parent="Board/BoardVBox/StageFrame/ResultPanel/ResultMargin/ResultVBox/ContinueButton" unique_id=781498156]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1.0
+offset_right = 89.0
+offset_bottom = 36.0
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_colors/font_color = Color(0.9411765, 0.9098039, 0.84705883, 1)
+text = "Continue"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ContinueHover" parent="Board/BoardVBox/StageFrame/ResultPanel/ResultMargin/ResultVBox/ContinueButton" unique_id=878007092 instance=ExtResource("13_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("14_frame_hover")
+
+[node name="HudHBox" type="HBoxContainer" parent="Board/BoardVBox" unique_id=1759639365]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="PhaseVBox" type="VBoxContainer" parent="Board/BoardVBox/HudHBox" unique_id=584152277]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="PhaseNameLabel" type="Label" parent="Board/BoardVBox/HudHBox/PhaseVBox" unique_id=596438925]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerName"
+text = "Steady breath"
+autowrap_mode = 3
+
+[node name="PhaseTipLabel" type="Label" parent="Board/BoardVBox/HudHBox/PhaseVBox" unique_id=459657091]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("4_wrap_pad")
+text = "Press as the bright aura crosses the brass ring"
+autowrap_mode = 3
+
+[node name="CrackPips" type="HBoxContainer" parent="Board/BoardVBox/HudHBox" unique_id=1082656128]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Pip1" type="TextureRect" parent="Board/BoardVBox/HudHBox/CrackPips" unique_id=1797110578]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("6_strip")
+strip = ExtResource("15_pip")
+frame_size = Vector2i(20, 20)
+
+[node name="Pip2" type="TextureRect" parent="Board/BoardVBox/HudHBox/CrackPips" unique_id=913670260]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("6_strip")
+strip = ExtResource("15_pip")
+frame_size = Vector2i(20, 20)
+
+[node name="Pip3" type="TextureRect" parent="Board/BoardVBox/HudHBox/CrackPips" unique_id=2108219250]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("6_strip")
+strip = ExtResource("15_pip")
+frame_size = Vector2i(20, 20)
+
+[node name="Pip4" type="TextureRect" parent="Board/BoardVBox/HudHBox/CrackPips" unique_id=643350171]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("6_strip")
+strip = ExtResource("15_pip")
+frame_size = Vector2i(20, 20)
+
+[node name="Pip5" type="TextureRect" parent="Board/BoardVBox/HudHBox/CrackPips" unique_id=635327789]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("6_strip")
+strip = ExtResource("15_pip")
+frame_size = Vector2i(20, 20)
+
+[node name="Pip6" type="TextureRect" parent="Board/BoardVBox/HudHBox/CrackPips" unique_id=965503513]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("6_strip")
+strip = ExtResource("15_pip")
+frame_size = Vector2i(20, 20)
+
+[node name="ProgressRod" parent="Board/BoardVBox" unique_id=2080535542 instance=ExtResource("16_rod")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+empty_texture = ExtResource("17_rod_empty")
+full_texture = ExtResource("18_rod_full")
+end_texture = ExtResource("19_rod_end")
+steps = 138

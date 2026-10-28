@@ -184,6 +184,28 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Show Whole Map"
 
+[node name="ExitAdventureRow" type="HBoxContainer" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/ExitAdventureRow"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Exit"
+
+[node name="ExitVictoryButton" type="Button" parent="VBoxContainer/ExitAdventureRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Victory"
+
+[node name="ExitDefeatButton" type="Button" parent="VBoxContainer/ExitAdventureRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Defeat"
+
 [node name="ZonesHeader" type="Label" parent="VBoxContainer"]
 layout_mode = 2
 theme_type_variation = &"LabelSubheading"

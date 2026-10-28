@@ -74,6 +74,30 @@ func validate() -> bool:
 	return true
 
 #-----------------------------------------------------------------------------
+# DESCRIPTION
+#-----------------------------------------------------------------------------
+
+## The buff's effect in words, for a tooltip: "Strength x1.5" (one entry per
+## attribute, joined with commas), "2.0 damage per second", "Outgoing damage
+## x1.5" or "Incoming damage x0.8".
+func describe() -> String:
+	match buff_type:
+		BuffType.ATTRIBUTE_MODIFIER_MULTIPLICATIVE:
+			var parts: PackedStringArray = []
+			for attr_type: CharacterAttributesData.AttributeType in attribute_modifiers:
+				var mult: float = attribute_modifiers[attr_type]
+				var attr_name: String = CharacterAttributesData.AttributeType.keys()[attr_type].capitalize()
+				parts.append("%s x%.1f" % [attr_name, mult])
+			return ", ".join(parts)
+		BuffType.DAMAGE_OVER_TIME:
+			return "%.1f damage per second" % dot_damage_per_tick
+		BuffType.OUTGOING_DAMAGE_MODIFIER:
+			return "Outgoing damage x%.1f" % damage_multiplier
+		BuffType.INCOMING_DAMAGE_MODIFIER:
+			return "Incoming damage x%.1f" % damage_multiplier
+	return ""
+
+#-----------------------------------------------------------------------------
 # STRING REPRESENTATION
 #-----------------------------------------------------------------------------
 

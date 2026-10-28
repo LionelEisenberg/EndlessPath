@@ -72,6 +72,13 @@ func test_result_lines() -> void:
 func test_log_line() -> void:
 	assert_eq(_result(186.4, 3, 4, 1, 75).log_line(), "Cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · +75 XP")
 
+## A full core takes no XP, so both lines say so where they would give the figure.
+func test_a_full_core_line_says_so() -> void:
+	var result: CycleResult = _result(186.4, 3, 4, 1, 75)
+	result.core_full = true
+	assert_eq(result.log_line(), "Cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · Core full")
+	assert_eq(result.result_line(), "Last cycle · +186 Madra · 3 / 4 zones · 1 PERFECT · Core full")
+
 ## The parts are joined by a space, U+00B7 (a middle dot) and a space. The
 ## codepoint is built here, so a look-alike dot typed into both CycleResult and
 ## the lines asserted above would still fail.

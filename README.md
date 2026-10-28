@@ -81,7 +81,7 @@ scenes/
   zones/                      Zone map (fog, markers, popovers, routes), cultivator cabinet, zone
                               chest (Now strip, activity list), activity cards + presenters
   cycling/                    Cycling mini-game
-  adventure/                  Adventure view, tilemap, map generator, encounter UI, end card
+  adventure/                  Adventure view, tilemap, map generator, coins, vitals cabinet, chest, run clock, end card
   combat/                     Combatants, ability/buff/effect managers, enemy AI
   inventory/                  Book-style inventory (4 tabs) and shared grid/list chrome
   abilities/                  Abilities view (cards, loadout slots, stats display)
@@ -89,8 +89,8 @@ scenes/
   path_progression/           Path tree view
   common/                     Shared item display / description components, DropTargetSlot,
                               lacquer pieces (strip rect, rod, frame overlay)
-  atmosphere/                 Vignette + mist + motes overlay (adventure view)
-  tilemaps/                   Hex tilemap extensions, hover selector, fog tileset
+  atmosphere/                 Vignette + mist + motes overlay (the adventure's fight)
+  tilemaps/                   Hex tilemap extensions, fog tileset
   camera/                     Camera clamp/pan/zoom controllers
   characters/                 Player character body
   tools/                      Map preview scene

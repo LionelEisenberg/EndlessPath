@@ -1,13 +1,12 @@
 # Style Guide: Lacquer and Brass
-Last updated: 2026-10-23
 
 The game's visual style, taken from the zone view rework, and the list of screens still to move to it. Read it before you rework a screen or build a new one.
 
 ## 1. What this is
 
-- **Status.** Distilled from the zone view rework on `feat/zone-view-redesign-4656b7` (built 2026-10-22, not merged). The zone view, the two HUD boards it shares with the adventure view (Log and Goals) and the cycling view (built 2026-10-22 and 23 on `feat/cycling-view-styleguide-ea3170`) use the look today. Everything in [§13](#13-cascade-backlog) is still to do. This doc changes no code.
+- **Status.** Distilled from the zone view rework (PR #51). The zone view, the two HUD boards it shares with the adventure view (Log and Goals), the cycling view, the adventure view's map and frame (vitals cabinet, chest, technique dock) and the Tribulation board use the look today. The rest of [§13](#13-cascade-backlog) is still to do, the adventure's fight view and end card included. This doc changes no code.
 - **Use it as a reference in other branches.** Each later branch takes one area of the backlog, applies these rules, and deletes its rows here.
-- **The kit's files come with that branch.** The textures (`assets/ui/lacquer/`), the theme (`assets/themes/lacquer/lacquer_theme.tres`), the styleboxes (`assets/styleboxes/lacquer/`), the components (`scenes/common/lacquer/`, `LacquerRail`, `LacquerText`), the two orb shaders and the generators all arrive with `feat/zone-view-redesign-4656b7`. A branch cut from `main` before it merges does not have them.
+- **The kit's files come with that branch.** The textures (`assets/ui/lacquer/`), the theme (`assets/themes/lacquer/lacquer_theme.tres`), the styleboxes (`assets/styleboxes/lacquer/`), the components (`scenes/common/lacquer/`, `LacquerRail`, `LacquerText`), the two orb shaders and the generators all arrived with PR #51, and the adventure's pieces (the technique dock's slot and key cap, the buff and glyph sockets, the tooltip board, the coin tokens, the veil atlas, the cooldown sweep shader and their generators in `docs/superpowers/mockups/adventure-view-lacquer/gen/`) with PR #58. A branch cut from `main` before those merges does not have them.
 - **How it relates to the other docs:**
 
 | Doc | What it holds | Who wins |
@@ -48,6 +47,7 @@ The user saw the finished zone view on 2026-10-22 and asked for the look to be c
 | 11 | **No text under 13 px.** | A pixel font at 1080p stops reading below that. |
 | 12 | **The user's own art first.** Use the user's files from their own paths. Agent-made art ends in `_ai`. Never edit a user file: write an `_ai` file next to it (CLAUDE.md, AI-Generated Art). | The user must be able to tell their art from agent art. |
 | 13 | **UI lives in scenes.** Nodes go in `.tscn` files, styling in theme variants and shared `.tres` styleboxes. Scripts set data, textures, visibility and state colours. | The user's standing rule. It keeps the UI inspectable in the editor. |
+| 14 | **Text is never cut off.** A Label that can run long wraps by word at a width the scene gives it, and the board it stands on grows with it. No ellipsis (`text_overrun_behavior`), no `clip_text`, no clipping container. A board that must grow stands on a 9-slice (or a stack of slices), never on a fixed texture. See [Long text](#5-type) | A name that ends in `…` hides what it names, and the game's text is open-ended (authored names, quest steps, lore). The user's standing rule from review round 1 of the adventure rework (2026-10-23), for the whole game |
 
 ### What to use instead
 
@@ -65,7 +65,8 @@ The user saw the finished zone view on 2026-10-22 and asked for the look to be c
 | Alpha for disabled or locked | Palette state: tan text, carved "off" art, a seal | Rail caps off, LOCKED seal |
 | Rounded pill | Carved tag or cinnabar seal | Mode tags, NEW |
 | Glowing particles | Opaque pellets moving in 2 px steps | Madra drain pellets, the cycling view's Madra and XP pellets |
-| Vignette, mists, motes | Nothing: the opaque boards frame the view | Zone view (all dropped) |
+| Vignette, mists, motes | Nothing: the opaque boards frame the view | Zone view and adventure map (dropped; combat's are still to go) |
+| Ellipsis or clipped text | Wrap to the next line and grow the board (rule 14) | Here tray, choice drawers, Goals board, Now strip, cast tray |
 
 ## 4. Palette
 
@@ -89,21 +90,23 @@ The kit's §2, unchanged. Hex values are exact.
 | `#94806A` | dim | The oldest log lines (4.56:1 on lacquer, the contrast floor) |
 | `#AAECCE` `#5CC4A0` `#2F6B4A` `#102C1E` | jade ramp | Progress fills only |
 | `#E8F6FD` `#BBD5E7` `#849BE4` `#1C2F60` `#16283E` | Madra ramp | Madra orb, adventure rod, core swirl, Madra text |
+| `#FFD9D2` `#E8737A` `#B8304A` `#5A1626` `#3A0E18` | crimson ramp | Health: the Health orb, Health text (`#E8737A`, 5.9:1 on lacquer), and the Here tray's lock line while a refusal shakes the tray |
+| `#EEF5C8` `#C9DB86` `#8FAE3E` `#3E5418` `#1E2A0C` | bamboo ramp | Stamina: the Stamina rod, Stamina text (`#C9DB86`, 11.5:1 on lacquer) |
 | `#A83C30` `#7E2A22` | vermilion | Seals (NEW, LOCKED, count), locked rims |
 | `#341E0E` `#E3B95A` `#C4884A` | coin gold | Coin and star icons |
 | `#090E0E` | map ground | Screen background, grout between hexes |
 | `#0C1312` `#111A19` `#16211F` `#1D2B28` | fog tier 1 | Tier-1 fog pixels |
 | `#182423` `#0F1716` `#111A19` `#131D1C` | fog tier 2 | Tier-2 fog (etched lines) |
 | `#0D1514` | fog tier 3 | Flat silhouettes |
-| `#151A18` `#39423E` `#4B5550` `#5F6A65` `#76827C` | locked veil | Locked tile (hover: one step up) |
-| `#0B1211` `#16211F` `#1C2927` `#243431` `#2D3F3B` | uncharted veil | Uncharted tile (hover: one step up) |
+| `#151A18` `#39423E` `#4B5550` `#5F6A65` `#76827C` | locked veil | Locked tile (hover: one step up), a cooling technique's icon (the cooldown sweep), a cleared encounter's glyph |
+| `#0B1211` `#16211F` `#1C2927` `#243431` `#2D3F3B` | uncharted veil | Uncharted tile, the adventure's revealed tiles (hover: one step up) |
 | `#FFD1AB` `#E7A581` `#CF7957` `#17111A` | skin | Sampled from the user's `ability_icon.png` |
 | `#FFFFFF` `#BFDDD1` `#95ADB4` `#86718C` `#2E1C2C` | armour | Sampled from the user's `character_icon.png` |
 | `#050707` | shadow | 4 px hard shadows |
 
 **Contrast.** Text on lacquer stays at 4.56:1 or more (dim is the floor). Kit §3 lists the contrast of every text role.
 
-**From code.** `scripts/utils/theme_constants.gd` exposes ten lacquer colours for code that sets a colour at runtime (log tones, plate hover, floater colour, the cycling groove):
+**From code.** `scripts/utils/theme_constants.gd` exposes twelve lacquer colours for code that sets a colour at runtime (log tones, plate hover, floater colour, the cycling groove, the Health and Stamina tones):
 
 | Constant | Value |
 |---|---|
@@ -117,18 +120,20 @@ The kit's §2, unchanged. Hex values are exact.
 | `ThemeConstants.LACQUER_MADRA` | `#BBD5E7` |
 | `ThemeConstants.LACQUER_MADRA_MID` | `#849BE4` |
 | `ThemeConstants.LACQUER_VERMILION` | `#A83C30` |
+| `ThemeConstants.LACQUER_HEALTH` | `#E8737A` |
+| `ThemeConstants.LACQUER_STAMINA` | `#C9DB86` |
 
 Sizes and fonts always come from theme variants, never from code. When a reworked screen needs another palette colour from code, add a `LACQUER_*` constant with the kit's name.
 
 **Hit tiers.** A cycling hit is PERFECT in brass, GOOD in cream and OK in tan (the user's call on 2026-10-22; green is dropped), for the floater, the stud on the zone and the XP pellets alike. `CyclingRules.tier_color()` maps the tiers to `LACQUER_BRASS`, `LACQUER_CREAM` and `LACQUER_TAN`.
 
-**Gaps.** The palette has no colour for health, stamina, damage taken, heals or gains. Combat and the merchant need them. The user must add them before those screens are reworked ([open questions](#open-questions)).
+**Gaps.** Health and Stamina have their ramps. The palette still has no colour for damage taken, heals or gains, or the merchant's reds and greens ([open questions](#open-questions)). A fight's floaters will take the colour of the resource that changed (the adventure spec, PR 2). The one warning set in text is the Here tray's lock line, which turns the Health text colour (`ThemeConstants.LACQUER_HEALTH`, 5.9:1) for the length of a refusal's shake, because the user asked for a warm red and vermilion cannot be text (G2); whether that colour becomes the palette's warning text colour is still open. The Tribulation board's crack edges (`#A83C30` on a whole core, `#7E2A22` on a spent one) and its lit crack pip (`#A83C30`) use vermilion as a stand-in damage colour, although rule 5 keeps vermilion for seals and locked rims; which colour damage takes is an open palette question (G2).
 
 ## 5. Type
 
 Two fonts, both in `assets/fonts/`:
 - **Yatra One** (`YatraOne-Regular.ttf`) for painted titles only, with a hard 2 px `#150909` shadow.
-- **BM Euljiro** (`BMEULJIROTTF.ttf`) for everything else, with no shadow and no outline.
+- **BM Euljiro** (`BMEULJIROTTF.ttf`) for everything else, with no shadow and no outline. The one exception is `LabelLacquerCooldown`, the seconds painted over a technique's icon, which takes the painted titles' hard 2 px `#150909` shadow (offset 2, 2) so the number reads over any icon.
 
 No text is smaller than 13 px. The lacquer theme's variants (full table in [UI_STYLING.md](UI_STYLING.md#lacquer-theme-zone-view)):
 
@@ -163,12 +168,24 @@ No text is smaller than 13 px. The lacquer theme's variants (full table in [UI_S
 - The LOCKED seal's word is left-aligned after its `mini_lock`: put the `LabelLacquerSeal` at seal-local x 25, so the indent lands the word on +26 (UI_STYLING.md, "The LOCKED seal is the exception").
 - The count seal's number is 15 px (15/18), centred across the seal's 24 px at top +3 (kit §3 and §5.4; the dock's `CountLabel`).
 
-**Long text.**
-- No text is cut off. A label that runs out of room wraps, and the board, drawer or tray around it grows to fit. The cycling board, the technique drawers and the last cycle's line do so (CYCLING.md). The older pieces in the bullets below still ellipsize and are due the same change.
-- A Label that can overflow sets `text_overrun_behavior` to ellipsis at a fixed width: log lines at 384 px, card details at 316 px, plate lines at 228 px.
-- A card's title ellipsizes where its NEW seal or tag starts; a technique drawer's wraps there instead, and with no tag its row runs on to the detail line's 316 px. `ZoneActionButton.layout_title_row()` lays the row out for both, so their title rows line up.
-- Icons and figures stay whole: a plate line drops its name text, never its icon or rate.
-- A `RichTextLabel` cannot ellipsize. Use `ZoneActionButton.fit_detail_rich_text()`: drop whole words until the line fits, end it in `…` with no separator left before it, then apply `decimal_bbcode()`.
+**Long text.** Text is never cut off (§3 rule 14): no ellipsis, no `clip_text`. A Label that can run long wraps, and its board grows. The cycling board, the technique drawers and the last cycle's line do so too ([CYCLING.md](cycling/CYCLING.md)).
+- **Wrap by word at a width the scene gives.** Set `autowrap_mode` to word smart (3) and a `custom_minimum_size.x`. The width is the room the neighbours leave: the Here tray's name 250 px (238 beside the BOSS seal) and its line 332, a choice drawer's title 250 (238 beside the LOCKED seal) and its detail 332, the walk hint and the lock line 408, the chest's title 312, the Goals board's text 358, the cast tray's name 150, the technique tooltip's name 268. A tag, seal or figure beside a title stays on its first line.
+- **A width that changes is set twice.** Give the Label the new width as its minimum and as its size, then call `update_minimum_size()`. A Label whose width changes (a name beside a seal that comes and goes) otherwise leaves its last height cached for the boxes above it.
+- **The board follows the lines.** Rows are containers (a `VBoxContainer` column, a `MarginContainer` row), so each box above asks again. Round a grown height up to an even number (`ceilf(h / 2) * 2`). Boards grow down, and what stands under them moves with them (the chest's page slot, the zone chest's header and list); the cast tray grows up from its bottom edge, because the dock stands under it. The icon, socket, plate, tag and seal stay at the top and the face stretches behind them.
+- **Pad a wrapped row.** `assets/styleboxes/lacquer/wrap_pad.tres` (a `StyleBoxEmpty`, 1 px bottom content margin) is the Label's `normal` style. A 15/18 or 18/22 Label is 17 or 21 px for one line, so n wrapped lines come to 18 n − 1 or 22 n − 1; with the pad they are 18 n and 22 n and every row stays on an even y. A 17/20 name is 20 px already and needs none.
+- **A `RichTextLabel`** wraps by itself (`fit_content`, `autowrap_mode` word): give it a width. It cannot ellipsize, which is why the zone cards' detail lines still drop words (see Where text still trims, below).
+- **A title row shared by cards and technique drawers.** `ZoneActionButton.layout_title_row()` lays out both, so their title rows line up: a technique drawer's title wraps where its NEW seal or tag starts (with no tag it runs on to the detail line's 316 px); a card's still ellipsizes there (see the table below).
+- **Test it.** `tests/integration/test_boards_never_trim_text.gd` walks every Label of the reworked boards and fails on an overrun behaviour or `clip_text`, on a scene file that sets either, and on a Label that could run long without wrapping. A new board's scene goes in its `BOARD_SCENES`; its own test file checks that it grows. The same file also reads every `.tscn` and `.gd` under `res://scenes` and fails for any file that sets a trimming overrun behaviour or `clip_text` and is not on its `KNOWN_TRIMMERS` list, so new text anywhere in the game wraps; it fails the other way too, for a listed file that no longer trims.
+
+**Where text still trims.** Not every screen follows rule 14 yet. These end in `…` today; the branch that reworks one applies the rule, rewrites the test that pins its ellipsis and takes its files off `KNOWN_TRIMMERS`. That allowlist, in `tests/integration/test_boards_never_trim_text.gd`, pins this list: the files in the last column are the only ones under `res://scenes` that trim or clip text, and the test fails for a file that is missing from it as well as for one that has stopped trimming, so the list only shrinks.
+
+| Surface | What trims | Test that pins it | Files on `KNOWN_TRIMMERS` |
+|---|---|---|---|
+| Log board | The five `LineLabel`s, one line each at 384 px, on a board texture per line count (`lacquer_log1_ai.png` to `_log5_ai.png`), so a wrapped line means a redesign of the board | `test_log_board.gd`, `test_long_line_ellipsizes` | `log_window.tscn` |
+| Zone chest title | `ZoneNameLabel` | `test_zone_panel.gd`, `test_long_zone_name_ellipsizes` | `zone_panel.tscn` |
+| Zone cards | The card title, where its NEW seal or tag starts; the detail lines at 316 px (`ZoneActionButton.fit_detail_rich_text()` drops whole words and ends in `…`) | `test_zone_action_cards.gd` | `zone_action_button.tscn` and `.gd`, and the adventure, cycling, default and merchant presenters (`presenters/*_presenter.tscn`) |
+| Map plates and popovers | The plates' name and line (228 px slot, the icon and the rate stay whole); the popovers' titles and bodies | `test_map_markers.gd`, `test_zone_travel.gd` | `zone_map_label.tscn`, `zone_map_popover.tscn` |
+| Abilities view | `DetailBadges`, `DetailTags` and `PrimaryValue` in `abilities_view.tscn` | None but the list | `abilities_view.tscn` |
 
 **New sizes.** A screen that needs a size the theme lacks (an orb value, a combat number, an end-card title) adds a `LabelLacquer*` variant to `lacquer_theme.tres`, a row to UI_STYLING.md and a check to `tests/unit/test_lacquer_pieces.gd`. It does not add an inline size override.
 
@@ -180,16 +197,18 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 
 | Component | Look | Kit files | Godot piece |
 |---|---|---|---|
-| Anchor furniture | Lacquer board with chunky brass corner straps, hand-placed grain, a gloss dash, 4 px shadow | `lacquer_cult_ai.png` (440x252); `lacquer_chest_top_ai.png`, `_mid_ai.png` (tiled), `_bot_ai.png` (440 wide) | `CultivatorPlate` (`scenes/zones/cultivator_plate/`), `ZonePanel` (`scenes/zones/zone_panel/`) |
+| Anchor furniture | Lacquer board with chunky brass corner straps, hand-placed grain, a gloss dash, 4 px shadow | `lacquer_cult_ai.png` (440x252); `lacquer_chest_top_ai.png`, `_mid_ai.png` (tiled), `_bot_ai.png` (440 wide) | `CultivatorPlate` (`scenes/zones/cultivator_plate/`), `ZonePanel` (`scenes/zones/zone_panel/`); the adventure's `VitalsPlate` (the cabinet's board) and `AdventureChest` (the chest's slices) |
 | Board in the map gap | A strapped board centred between the columns with a figure carved into it, 4 px shadow, laid out in absolute px | `lacquer_cyc_board_ai.png` (560x1032), `lacquer_cyc_body_carved_ai.png` (524x872) | `CyclingView` (`scenes/cycling/cycling_view/`) |
-| Plain board | Same lacquer, no caps, chamfered corners, 4 px shadow. Each board's gloss dash sits in a different place | `lacquer_goals_ai.png` (cut into slices), `lacquer_log1_ai.png` to `lacquer_log5_ai.png`, `lacquer_lore_ai.png`, `lacquer_dock_ai.png` | `GoalsPanel`, `LogWindow`, `Dock` |
-| Recessed tray | A carved-in field in deep `#230F0F` with a lit lower lip | `lacquer_now_tray_ai.png` (408x88), with `lacquer_now_plate_ai.png` (brass `Now` legend) on its top edge | `NowStrip` (`scenes/zones/zone_panel/now_strip/`) |
+| Plain board | Same lacquer, no caps, chamfered corners, 4 px shadow. Each board's gloss dash sits in a different place | `lacquer_goals_ai.png` (cut into slices), `lacquer_log1_ai.png` to `lacquer_log5_ai.png`, `lacquer_lore_ai.png` (the zone chest's lore board in `ZonePanel`, a 9-slice that tiles its middle), `lacquer_dock_ai.png`, `lacquer_tdock_ai.png` (476x136) | `GoalsPanel`, `LogWindow`, `Dock`, `TechniqueDock` |
+| Tooltip board | A plain 9-slice that hugs its content, 4 px shadow baked in (texture margins 8 left and top, 12 right and bottom) | `lacquer_board9_ai.png` | `board9.tres` on `TechniqueTooltip` and `BuffTooltip` |
+| Recessed tray | A carved-in field in deep `#230F0F` with a lit lower lip. A clean 9-slice (4 px of ink on the top and left, a 2 px lit rim on the bottom and right, one flat fill, no baked shadow: `NinePatchRect` margins 4, 4, 2, 2), so a tray grows to hold its text | `lacquer_now_tray_ai.png` (408x88), with `lacquer_now_plate_ai.png` (brass `Now` legend) on its top edge; `lacquer_cast_tray_ai.png` (476x44) | `NowStrip` (`scenes/zones/zone_panel/now_strip/`, 392 wide so its edges are the cards', 88 tall at least); the Here tray of `ExpeditionPage` (the same tray with `Here` on its plate, 408 wide, 88 tall at least); `CastTray` (44 tall at least, grows upward) |
 
 ### Drawers, tags, seals, buttons
 
 | Component | Look | Kit files | Godot piece |
 |---|---|---|---|
 | Drawer (card) | 392x72 raised face with a carved 48x48 icon socket at (8, 12); icon 32x32 at x+16, y+20 | `lacquer_drawer_ai.png` | `ZoneActionButton` (`scenes/zones/zone_action_button/`), `TechniqueDrawer` (`scenes/cycling/technique_drawer/`) |
+| Choice drawer | The same drawer, 408 wide to match the Here tray and 72 tall at least, growing with its text. The face is a 9-slice without the socket; the carved socket is a piece of its own, 8 px in and centred on the face, with the icon 8 px inside it. At 72 px it is the card's drawer pixel for pixel. Its tag and seal stand where the tray's do (x 320 and 308), its title at x 64 stops 6 px short of them, and its detail runs to x 396 | `lacquer_drawer9_ai.png` (22x22, margins 4, 4, 6, 6 with the 2 px shadow baked in), `lacquer_socket_drawer_ai.png` (48x48) | `ChoiceDrawer` (`scenes/adventure/adventure_chest/choice_drawer/`) |
 | Running drawer | Pulled out to (−2, −2) with brass corner caps and the 4 px shadow; tag RUNNING (IN USE on a technique drawer) in cream | `lacquer_drawer_run_ai.png` | `ZoneActionButton` running state; `TechniqueDrawer` in use |
 | Tall drawer | 392x96, socket at (8, 24), icon at y+32, for a detail that wraps to two lines | `lacquer_drawer_tall_ai.png` | `ZoneActionButton.set_tall()` |
 | Mode tag | Carved recess, 76x22; brass plate for ENTER; 88x22 for UNKNOWN | `lacquer_tag_ai.png`, `lacquer_tag_enter_ai.png`, `lacquer_tag_wide_ai.png` | `LabelLacquerTag` |
@@ -202,10 +221,10 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 
 | Component | Look | Kit files | Godot piece |
 |---|---|---|---|
-| Rod | 10 px groove; the full rod clipped to width 2 + 2k with an end cap at x = 2k once k ≥ 2 | `lacquer_rod_{well,goal,adv}_{empty,full,end}_ai.png` | `LacquerRod` (steps: Aura Well 152, milestone 138, adventure 74) |
+| Rod | 10 px groove; the full rod clipped to width 2 + 2k with an end cap at x = 2k once k ≥ 2. A rod has one length; to shorten one, take the width out of its flat middle (`rod_now` is `rod_well` less 16 px) | `lacquer_rod_{now,goal,adv,stamina,cast}_{empty,full,end}_ai.png`; `lacquer_rod_well_*` (308 px) has no scene since the Now strip narrowed to 392 | `LacquerRod` (steps: Now strip 144, milestone 138, adventure 74, Stamina and cast 119; the Aura Well's `rod_well` was 152) |
 | Beads | 18 jade beads in a strip of 19 rows; r = floor(xp × 18 / need) | `lacquer_beads_xp_strip_ai.png` (222x228) | `LacquerStripRect` |
-| Ring | 13-frame jade bead ring: 56x56 (Now tray), 64x64 on a lacquer disc (map) | `lacquer_ring_strip_ai.png`, `lacquer_map_ring_strip_ai.png` | `LacquerStripRect`, `MapActionRing` |
-| Orbs | 80x80 brass-rimmed sockets. The fill is drawn by a pixel shader (see [§8](#8-motion)) | `lacquer_orb_madra_strip_ai.png` (frame 0), `lacquer_orb_core_strip_ai.png` (column 0 pebble, column 1 socket) | `CultivatorPlate` with `lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader` |
+| Ring | 13-frame jade bead ring: 56x56 (Now tray), 64x64 on a lacquer disc (on the current zone's map plate) | `lacquer_ring_strip_ai.png`, `lacquer_map_ring_strip_ai.png` | `LacquerStripRect`, `MapActionRing` |
+| Orbs | 80x80 brass-rimmed sockets. The fill is drawn by a pixel shader (see [§8](#8-motion)) | `lacquer_orb_madra_strip_ai.png` (frame 0), `lacquer_orb_core_strip_ai.png` (column 0 pebble, column 1 socket), `lacquer_orb_health_ai.png` (the Health orb's socket) | `CultivatorPlate` with `lacquer_madra_orb.gdshader`, `lacquer_core_orb.gdshader`; `VitalsPlate` (Health and Madra, the Madra shader with the crimson ramp set on the Health orb's material) |
 
 ### Lines, rails, frames, tokens
 
@@ -222,17 +241,30 @@ Kit sizes below are display sizes. Project files with a baked shadow are 4 or 2 
 | Carved path | A channel carved into a board and drawn per art pixel (2x2 px cells in ink, a rim lip below), lit cell by cell in the Madra ramp behind whatever travels it, and lit whole when nothing does, so the path stands out from the carving. No texture file | none | `CyclingGroove` (`scenes/cycling/cycling_groove/`) |
 | Strip pieces for play | A ball with an 8-frame swirl in three breathing sizes (68x68 cells, the ball 60, 64 and 68 px), its four rings (88x88: the ready ring, the solid tracking ring and the ready ring grown twice), a zone socket in six states (48x48, its idle rim a solid loop), an Auto tablet raised and pressed in (120x36) | `lacquer_cyc_{ball_strip,ball_rings,zone_strip,auto,auto_on}_ai.png` | `CyclingTechnique`, `CyclingZone`, `CyclingView` (`LacquerStripRect`, `TextureButton`) |
 
-### Map pieces (zone map; reusable for the adventure map)
+### The adventure's pieces
+
+| Component | Look | Kit files | Godot piece |
+|---|---|---|---|
+| Technique slot | An 80x80 carved socket with a raised lip and the icon at 64x64 inside; a 22x22 key cap at (−6, −6); the cost under it with a mini icon | `lacquer_slot_ai.png` (82x82), `lacquer_keycap_ai.png` (24x24), `lacquer_mini_{health,stamina}_ai.png` | `TechniqueSlot` |
+| Cooldown sweep | The part of the icon still to recharge shows in the locked veil, uncovered clockwise from 12 o'clock in 24 whole steps, with the whole seconds in the centre (`LabelLacquerCooldown`) | `lacquer_cooldown_sweep.gdshader` (no texture) | `TechniqueSlot` |
+| Buff socket | A 40x40 carved socket with the buff's icon at 32x32, a count seal for stacks and a brass flash when it lands | `lacquer_socket_buff_ai.png`, `lacquer_seal_count_ai.png` | `VitalsPlate` |
+| Glyph socket | A 48x48 carved socket for the Here tray's glyph, at the tray's (8, 20) with the glyph at (16, 28), the columns the choice drawers use (the text column starts at x 64 in both). It is the recessed piece (interior `#110707`); a drawer's socket is the card's (`lacquer_socket_drawer_ai.png`, interior `#230F0F`), the same size in another texture | `lacquer_socket_glyph_ai.png` | `ExpeditionPage` |
+| Run clock | An 88x36 carved recess with a mini hourglass and `M:SS`; the vermilion seal at 30 s or less | `lacquer_timer_ai.png`, `lacquer_timer_low_ai.png`, `lacquer_mini_hourglass_ai.png` | `RunClock` |
+| Encounter coin | A 52 px coin in a 54x54 frame: glyph (brass rim), carved `?`, carved cleared, boss (vermilion inner ring), with the glyph at 32x32 and spent glyphs for cleared tiles | `lacquer_marker_tokens_ai.png`, `adv_glyph_*_spent_light_ai.png` | `EncounterCoin` |
+
+### Map pieces (zone map and adventure map)
 
 | Component | Kit files | Godot piece |
 |---|---|---|
-| Hex rims: current (brass rim and lacquer collar), open (hairline), hover, inner hover and pinned rims for veiled hexes | `assets/ui/lacquer/map/lacquer_hex_{current,open,hover,hover_in,pinned_in}_ai.png` | `ZoneHexMarker`, `LockedZoneOverlay` |
+| Hex rims: current (brass rim and lacquer collar), open (hairline), hover, inner hover and pinned rims for veiled hexes | `assets/ui/lacquer/map/lacquer_hex_{current,open,hover,hover_in,pinned_in}_ai.png` | `ZoneHexMarker`, `LockedZoneOverlay`; the adventure's `HoverRim` |
+| The adventure's current rim, heavier than the zone's: four px of brass where the zone rim has two. Six rings counted from the inside: two of brass just inside the hex's edge (the tile's outer 2 px of plain ground), the zone rim's two brass rings, its ink and its lacquer collar. The ink and the collar lie where the zone rim's do, so the file stays the tile's 164x190 (six rings do not fit outside a hex: a tile leaves a 4 px margin). The cream highlight and the shaded brass follow the zone rim's light side and shadow side | `map/lacquer_hex_current_heavy_ai.png`, made by `gen/hex_rim.py` and halved into `map/` by the import | The adventure's `CurrentRim`. The zone map keeps `lacquer_hex_current_ai.png` |
 | Veiled tiles (locked, uncharted) | `map/lacquer_tile_{locked,uncharted}{,_hover}_ai.png` | `LockedZoneOverlay` |
-| Fog tiers | `map/lacquer_fog_t{1,2,3}_atlas_ai.png` | `FogTileMapLayer`, `ZoneMapMath.fog_tier()` |
-| Route dots | `map/lacquer_route_dot_ai.png`, `_lit_ai.png` | `ZoneRoute` |
+| The forest atlas in the uncharted veil (the adventure's revealed tiles) | `assets/sprites/tilemap/hex_tiles/forest/hex_forest_veil_atlas_ai.png` (the forest atlas's 23 tiles, rim baked in) | Tileset source 9, `AdventureTilemap` |
+| Fog tiers | `map/lacquer_fog_t{1,2,3}_atlas_ai.png` | `FogTileMapLayer`, `ZoneMapMath.fog_tier()`; the adventure's `AdventureFogMap` |
+| Route dots | `map/lacquer_route_dot_ai.png`, `_lit_ai.png` | `ZoneRoute`, `AdventureRoute` |
 | Plates (248x52) and popovers (264 card + 8 notch) | `lacquer_plate_*_ai.png`, `lacquer_pop_*_ai.png` | `ZoneMapLabel`, `ZoneMapPopover` |
 | Glyphs: padlock, `?`, 3-frame twinkle | `lacquer_glyph_lock_ai.png`, `lacquer_glyph_unknown_ai.png`, `lacquer_glyph_twinkle_strip_ai.png` | `MapGlyph` |
-| Character shadow | `map/lacquer_char_shadow_ai.png` | Zone map character |
+| Character shadow | `map/lacquer_char_shadow_ai.png` | Zone map and adventure map character |
 
 ## 7. Interaction states
 
@@ -245,11 +277,12 @@ Never glow, tint, fade or scale to show a state.
 | Selected or pinned | A steady brass frame, a heavier rim, brass caps | `LacquerFrameOverlay` (brass), shown steadily | Pinned plates and popovers, the pinned veiled hex |
 | Running (the one current thing) | The drawer pulls out 2 px with brass caps and the 4 px shadow, tag RUNNING in cream | `lacquer_drawer_run_ai.png` | The running idle card; the technique in use (tag IN USE) |
 | Ready (can act now) | A steady brass frame, the brass ENTER tag, a brass detail line. Never animate a steady frame | `ZoneActionButton.set_ready_frame()` | The adventure card at its threshold |
-| Disabled, locked, unaffordable | Palette, never alpha: tan text, carved "off" art, the LOCKED seal, a desaturated veil | Texture swap, `LabelLacquerSeal` | Rail caps off, locked hex and popover |
+| Disabled, locked, unaffordable | Palette, never alpha: tan text, carved "off" art, the LOCKED seal, a desaturated veil | Texture swap, `LabelLacquerSeal` | Rail caps off, locked hex and popover, a locked choice drawer, an unaffordable technique cost in tan |
 | New or unseen | The NEW seal inline after the title; cleared on first hover or use (a technique drawer's when the pointer leaves it, since the drawers can turn up under the cursor) | `lacquer_seal_new_s_ai.png` | New activity cards, new technique drawers |
 | Notification | A 2 px brass ring on the button, plus a count seal when there is a number | `lacquer_btn_ring_ai.png`, `lacquer_seal_count_ai.png` | Path (points), Abilities (unequipped unlock) |
-| Flash (look here, done) | The brass frame on for 300 ms and off for 300 ms, N times; ends hidden. A steady frame hides while a flash runs | `LacquerFrameOverlay.flash(times)` | Card twice, Now tray once |
-| Rejected | A shake in even-px keyframes 0, −8, 8, −6, 4, 0, each held 0.088 s, plus a log line | `MapGlyph.shake_offset_at()` pattern | Locked padlock; the adventure card's Madra row |
+| Flash (look here, done) | The brass frame on for 300 ms and off for 300 ms, N times; ends hidden. A steady frame hides while a flash runs | `LacquerFrameOverlay.flash(times)` | Card twice, Now tray once, a buff socket when a buff lands, a technique slot when its cooldown ends |
+| Cooling down | The part of the icon still to recharge in the locked veil, uncovered clockwise in 24 whole steps, with the whole seconds in the centre | `lacquer_cooldown_sweep.gdshader` | Technique slots |
+| Rejected | A shake in even-px keyframes, each held 0.088 s: the soft shake 0, −4, 4, −2, 2, 0 for a refused press, click or walk, which comes again and again, or the lock shake 0, −8, 8, −6, 4, 0 (the same rhythm at twice the travel) for the locked padlock, plus a log line (not for a refused technique press: the sweep, the cast tray and the tan cost already say why). A line that explains the refusal may take the warning colour for the length of the shake, then go back outright | `MapGlyph.shake_offset_at()` pattern | Locked padlock (the lock shake); the soft shake for the rest: the adventure card's Madra row, a refused walk (the Stamina row, or the Here tray, whose lock line "Choose what to do here before you walk on" turns warm red while it shakes) and a refused technique press (the slot) |
 | Empty | One tan line in the space the content would take; the space stays | `LabelLacquerDetail` | `Nothing running`, `Nothing to do here yet.` |
 | Ageing | Colour steps, never opacity: tone → tan → dim | `ThemeConstants.LACQUER_*` | Log lines by age |
 
@@ -258,13 +291,13 @@ Never glow, tint, fade or scale to show a state.
 | Pattern | Rule | Zone view reference |
 |---|---|---|
 | Frame strips | Switch frames from a strip; never interpolate. Timing in whole steps | Rings: 13 frames over each action cycle (1 s Well, 5 s haul). Twinkle: frames 1, 2, 1 for 0.1, 0.2, 0.1 s every 4 s. Cycling ball swirl: 8 frames, 10 a second. The waiting ball's breath: 60, 64, 68, 64, 60 px over 2 s, in whole steps |
-| Stepped moves | Move in 2 px steps (1 map px at zoom 2) at constant speed. Compute the offset from elapsed time and quantise it | Floater: 40 px in 20 steps over 1 s, then hidden (`LacquerFloater.rise_at()`). Walk: `snap_walk_to_whole_px`. Well bob: 0, −1, −2, −1 map px every 0.6 s |
+| Stepped moves | Move in 2 px steps (1 map px at zoom 2) at constant speed. Compute the offset from elapsed time and quantise it | Floater: 40 px in 20 steps over 1 s, then hidden (`LacquerFloater.rise_at()`). Walk: `snap_walk_to_whole_px`. The character's idle motion: whole-map-px offsets and frame clips from `ZoneMapMath` (the Aura Well's teleport is a drawn dither dissolve, then hidden outright) |
 | Snapped paths | A curve is fine; the drawn position snaps to even px every frame | `MadraPellet` drain into the adventure; the cycling ball on its eased path and its pellets |
 | Scrolling | In a few even steps | `LacquerRail.step_to()`: six even-px steps over 200 ms |
 | Flash | `steps(1)` on and off | `LacquerFrameOverlay.flash()`: 300 ms on, 300 ms off |
-| Shake | Even-px keyframes, each held | `MapGlyph`: 0, −8, 8, −6, 4, 0 over 0.44 s |
+| Shake | Even-px keyframes, each held. Every shake steps through `MapGlyph.shake_offset_at()` over one of its two keyframe sets and never copies the stepping; a refusal (a press, click or walk that cannot act) shakes by the soft set | `MapGlyph`: `SHAKE_KEYFRAMES`, the lock shake, 0, −8, 8, −6, 4, 0 over 0.44 s (the padlock; the adventure's boss coin reuses it as it comes into view), and `SOFT_SHAKE_KEYFRAMES`, 0, −4, 4, −2, 2, 0 over the same 0.44 s, half the travel in even px (the technique slots, the Here tray, the Stamina row and the zone view's Adventure card). One shake still runs its own: the old fight HUD's cast bar, not yet in the look, shakes on a tween when a cast is interrupted |
 | Show and hide | `visible`, never `modulate.a`. A crossfade, if ever needed, is a short 2-step dither dissolve (the mock's 200 ms; not built in the game) | Popovers, floaters, lore |
-| Camera | The one eased motion the zone view keeps: the recentre after travel (0.3 s, `TRANS_CUBIC` / `EASE_IN_OUT`) and the zoom from 2 to 3 into an adventure. Whether other screens keep eased camera moves is an [open question](#open-questions) | `ZoneTilemap.frame_zone()`, `ZoneTransition` |
+| Camera | The eased motions that are kept: the zone view's recentre after travel (0.3 s, `TRANS_CUBIC` / `EASE_IN_OUT`), the zoom from 2 to 3 into an adventure, the wheel zoom of both maps (`CameraZoomController`, 1 to 2, 10% a tick, eased; the adventure opens at 1) and the adventure's boss-reveal push (45% of the way to the boss and back, 0.5 s and 0.7 s). The push is in screen px, laid on top of the zoom's own camera offset: it moves the view 74 px for a boss one hex away at every zoom, and a zoom that starts meanwhile neither cancels it nor is undone by it. Nothing else eases a camera | `ZoneTilemap.frame_zone()`, `ZoneTransition`, `CameraZoomController`, `AdventureTilemap._play_boss_reveal()` |
 
 ### Making something feel alive: the pixel-grid shader pattern
 
@@ -274,7 +307,7 @@ In the user's review the first orbs read as static, so the cabinet's orbs got tw
 2. **Quantise to the art grid.** Work out each colour per 2 px art cell: `floor(local_px / 2.0)` from `VERTEX`, never per screen pixel or per UV.
 3. **Kit palette only.** Colours are constants from one kit ramp. No mixing, no alpha blending, no `smoothstep` edges.
 4. **Stepped time.** `t = floor(TIME * steps_per_second) / steps_per_second`, 10 steps a second.
-5. **One input.** The script sets one uniform (`progress`) and nothing else. Each `ShaderMaterial` is `resource_local_to_scene`.
+5. **One input.** The script sets one uniform (`progress`) and nothing else. Each `ShaderMaterial` is `resource_local_to_scene`. The orb shader's three colour uniforms (`light`, `pale`, `blue`, defaulting to the Madra ramp) are set in the scene, on a material, never by a script: the Health orb's material holds the crimson ramp.
 
 ```glsl
 shader_type canvas_item;
@@ -293,7 +326,7 @@ void fragment() {
 }
 ```
 
-`assets/shaders/lacquer_madra_orb.gdshader` and `lacquer_core_orb.gdshader` are the worked examples. Both assume the 80x80 orb frame (centre at cell 20, socket radius² 249); a different size needs those constants parameterised. See [ZONES.md, Orb shaders](zones/ZONES.md#orb-shaders).
+`assets/shaders/lacquer_madra_orb.gdshader` and `lacquer_core_orb.gdshader` are the worked examples. Both assume the 80x80 orb frame (centre at cell 20, socket radius² 249); a different size needs those constants parameterised. `lacquer_cooldown_sweep.gdshader` is a third, for a stepped state: it veils the part of a 64x64 icon still to recharge in the locked-veil colours, per 2 px cell, in 24 whole steps (its `progress` is k / 24). See [ZONES.md, Orb shaders](zones/ZONES.md#orb-shaders).
 
 ## 9. Icons and art
 
@@ -302,11 +335,12 @@ void fragment() {
 | Icon sizes | 16 art px icons show at 32x32. `ic_*_ai.png` placeholders are 16x16 files shown at 2x. Mini icons inside text lines are 16x16 files (8 art px) shown at file size. |
 | The user's 64 px icons | `gold_icon`, `star_icon`, `combat_icon` and `character_icon` show at 32x32 (kit §0). Measured on 2026-10-22, these and most 64 px item icons are drawn in 2x2 blocks throughout and mostly in 4x4 blocks (83–96% of blocks), so 32x32 drops some 2 px detail and 64x64 keeps all of it. `scripted_bark.png` and `dreadbeast_tooth_necklace.png` have no pixel grid. The icons are on the grid only at 32 or 64. Never show them at 24, 26, 28, 36, 40, 48, 52, 56, 60, 72, 75, 84 or 96, as screens outside the zone view do today. |
 | 32 art px art | Shows at 64. If it must sit at 32, redraw it at 16 art px as an `_ai` file, as the kit did with `ability_icon.png` → `lacquer_ic_abilities_ai.png`. |
+| Ability icons | The user's painted icons (cyan glow, off the grid) stay as they are, shown at 64x64 in a carved socket, as the technique dock does (decision G9, for the adventure). An on-grid redraw without glow is a separate art task. |
 | User art first | Use the user's file from its own path. Never copy, edit or overwrite it. A change goes to a new `_ai` file next to it. |
 | The `_ai` rule | Every agent-made image ends in `_ai` (`lacquer_slot_ai.png`), kept when moved. List new `_ai` files in the PR. |
 | Shadows | Bake the hard shadow into the file (§3 rule 6). Icons inside sockets get none. Glyphs over the map carry their own (`lacquer_glyph_lock_ai.png`). |
-| Map space | Map overlays are drawn at 2x for the screen, then stored halved in `assets/ui/lacquer/map/` because the zone camera's zoom 2 doubles them again. `import_kit.py` checks every 2x2 block is uniform before halving. |
-| Filtering | Nearest everywhere. The project default is nearest, but a `SubViewport` defaults to linear: set `canvas_item_default_texture_filter = 0` on every SubViewport (the zone one does). Never set `texture_filter = 2`. |
+| Map space | Map overlays are drawn at 2x for the screen, then stored halved in `assets/ui/lacquer/map/` because the zone camera's zoom 2 doubles them again. The adventure map shows them 1x when it opens and up to 2x when the wheel zooms in. `import_kit.py` checks every 2x2 block is uniform before halving. |
+| Filtering | Nearest everywhere. The project default is nearest, but a `SubViewport` defaults to linear: set `canvas_item_default_texture_filter = 0` on every SubViewport (the zone one and the adventure map's do; the adventure's combat one is still to do, F4). Never set `texture_filter = 2`. |
 | Non-pixel art | Painted, vector or downscaled high-res art does not belong: it is a second visual language. Replace it with grid art (`_ai`, or the user draws it); leave the user's file in place. |
 | Placeholders | `res://64.png` and `res://icon.svg` (the Godot logo) are not icons. Use a kit icon (`ic_story_ai.png` and friends) until real art exists. |
 
@@ -319,20 +353,24 @@ void fragment() {
 | Canvas | 1920x1080, stretch mode `viewport` |
 | Margins | 24 px from every edge. The left column starts at x 24, the right at x 1456 (1920 − 24 − 440), the bottom line is y 1056 |
 | Columns | Left and right columns are 440 wide. The open map runs from x 464 to 1456, centred on x 960 |
-| Dock | 722, 976, 476x80, bottom centre |
+| Dock | 722, 976, 476x80, bottom centre (the adventure's technique dock: 722, 920, 476x136; its cast tray stands 8 px over it and grows upward) |
+| The adventure view | The same frame: the vitals cabinet at (24, 24), the chest at (1456, 24) and the technique dock at (722, 920), with Goals and the Log where the zone view puts them |
 | Overlays on the zone view | Fit in the map gap, about x 488 to 1432 (24 px inside each column), so the cabinet and the chest stay readable |
 | Insets | Content sits 16–18 px inside a board's edge (chest content at x 1472; the cabinet's orbs and the Goals and Log titles at x 42). The cabinet's text column after the orbs is at x 138 |
 | HUD boards under an overlay | On the zone view the Goals and Log boards are furniture, like the cabinet and the chest. The menu books leave them showing under the backdrop with the rest of the view, by the user's decision (commit `5e8d7394`, "keep the Goals board and the log under an open book"). Cycling leaves them showing beside its board and blocks the full log, as a book does. Only the merchant hides them today (`MainView.hide_hud_boards()`); whether it keeps doing so is part of G1 |
 | Grid | Every position and size even |
-| Height | Boards hug their content: the chest is max(176, list top + list height + 24); the Log grows upward 26 px a line; Goals loses 70 px when no quest is active |
+| Height | Boards hug their content: the chest is max(176, list top + list height + 24); the Log grows upward 26 px a line; Goals loses 70 px when no quest is active. They grow with wrapped text too (rule 14): the adventure chest is max(176, 82 + the lines the title adds + the page + 24), the Here tray and a choice drawer add a line's height (18, 20 or 22 px) per extra line, a Goals row and the Now strip likewise, the cast tray grows upward. Every grown height is even |
 
 ### Copy that held up
 
-- Short ledger lines, not sentences: `Aura Well · +1.5 Madra / s`, `5 min run · carries 120 Madra`, `haul in 3 s`. The user's review of the first adventure card: too much text "for how little it tells the user".
+- Short ledger lines, not sentences: `+1.5 Madra / s`, `haul in 3 s`. The user's review of the first adventure card: too much text "for how little it tells the user".
+- An activity card says what you get, in columns, never `text · text`: what the action gives on the left, at most one figure right-aligned under the tag (`+1.5 Madra / s` | `+1 Spirit / level`, `5 min run` | `carries 120 Madra`). Timings, ranges, levels and the gold you carry belong to the Now tray and the cabinet, not the card.
 - Numbers carry units with spaces: `+1.5 Madra / s`, `46 / 60`, `17 / 18 XP`, `10 s`.
 - A figure beats a sentence: a rod plus `46 / 60` replaced "Needs 60 Madra · you have 46".
 - Mixed case for names and labels (`Core Density`, `Full log · L`, group labels in title case). Uppercase only in tags and seals.
 - Empty states say what is true: `Nothing running`, `Aura Well · paused`, `Nothing to do here yet.`
+- The chest says what a tile is and what a choice does, and no more. The Here tray's line for a fight is `Fight · Amorphous Spirit`, with no enemy Health; a fight's drawer carries its name and the FIGHT tag, with no list of techniques and no gold, unless the choice authors a tooltip (the user's review round 1; Health may come back as an unlockable). A drawer with no detail centres its name.
+- Say what holds the player, up front: while an encounter on the tile waits for a choice, one line above the drawers reads `Choose what to do here before you walk on`.
 
 ### Copy question still open
 
@@ -348,7 +386,7 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 
 **Fixed pieces.** A `TextureRect` at the texture's size, placed at the kit's top-left; the baked shadow lands right and bottom. Never scale it.
 
-**9-slices.** `StyleBoxTexture` with texture margins equal to the frame's thickness and nearest filtering. Overlay frames set no centre fill. When drawing a new 9-slice, keep grain and gloss out of the stretch zones, or they smear. The four in `assets/styleboxes/lacquer/`:
+**9-slices.** `StyleBoxTexture` with texture margins equal to the frame's thickness and nearest filtering. Overlay frames set no centre fill. When drawing a new 9-slice, keep grain and gloss out of the stretch zones, or they smear. The six in `assets/styleboxes/lacquer/`:
 
 | Stylebox | Texture | Margins | Fill |
 |---|---|---|---|
@@ -356,11 +394,16 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 | `frame_hover.tres` | `lacquer_frame_hover_ai.png` 16x16 | 4 | none |
 | `rail_thumb.tres` | `lacquer_rail_thumb_ai.png` 12x12 | top and bottom 4 | yes |
 | `token.tres` | `lacquer_token_ai.png` 26x26 | left and top 6, right and bottom 8 | yes |
+| `board9.tres` | `lacquer_board9_ai.png` 28x28 | left and top 8, right and bottom 12 (content margins 16 / 14 / 20 / 18) | yes |
+| `trib_board9.tres` | `tribulation/lacquer_trib_board9_ai.png` 164x164 | left and top 56, right and bottom 60 (content margins 24 / 20 / 28 / 24) | yes |
+
+`wrap_pad.tres` sits in the same folder but is no 9-slice: a `StyleBoxEmpty` with a 1 px bottom content margin, the `normal` style of a wrapped Label (§5, Long text). Trays and drawer faces that must grow use the texture directly on a `NinePatchRect` (trays: margins 4, 4, 2, 2; the drawer face: 4, 4, 6, 6; the zone chest's lore board: 8, 8, 10, 10, its middle tiled), not a stylebox.
 
 **Baked shadows and stacked slices.**
 - A piece with a shadow is 4 or 2 px larger than its kit size. Place it at the kit top-left.
 - **The column-shadow trick.** A board that grows is a column of slices (top, tiled middle, bottom) in one wrapper. Each slice carries only its part of the column's shadow: the right-hand strip all the way down, and the bottom strip only on the last slice. So the middle tiles cleanly and only the bottom slice is taller (`import_kit.py`, `bake_column`; the zone chest).
-- **Slicing an existing board.** A fixed board can be cut into slices with no new art: `GoalsPanel` cuts `lacquer_goals_ai.png` into cords, top, tiled middle and bottom, so the board can shrink.
+- **Slicing an existing board.** A fixed board can be cut into slices with no new art: `GoalsPanel` cuts `lacquer_goals_ai.png` into cords, top, tiled middle and bottom, so the board can shrink and, since review round 1, grow with its wrapped text.
+- **Growing a face that has something baked in.** Audit the texture first: a clean 9-slice has flat edges between its corners and one flat middle, with no grain, gloss or socket in the stretch zones. The trays are clean as drawn. The choice drawer's face was not (its carved socket is baked in at (8, 12)), so it was split into the face without the socket (`lacquer_drawer9_ai.png`) and the socket on its own (`lacquer_socket_drawer_ai.png`); stretched to 392x72 with the socket put back, the pair equals the zone kit's drawer pixel for pixel. `gen/kit_chest9.py` runs the audit and asserts that equality. The lore board's art (`lacquer_lore_ai.png`, 412x268) has gloss dashes in its middle, so it is not clean either, but its edges are flat (margins 8, 8, 10, 10) and a `NinePatchRect` can tile the middle instead of stretching it (`axis_stretch_horizontal` and `axis_stretch_vertical` set to tile): the dashes keep their size, a board narrower than the art is cropped on the right of its middle (no dash is there, which `test_adventure_kit_assets.gd` checks) and a taller one repeats the middle.
 
 **Components.**
 
@@ -371,7 +414,7 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 | `LacquerFrameOverlay` (`scenes/common/lacquer/lacquer_frame_overlay.tscn`) | Full-rect frame over its parent, hidden, mouse ignored, brass by default. Override the panel style with `frame_hover.tres` for hover. `flash(times)` for a flash; show it for a steady frame |
 | `LacquerRail` (`scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn`) | `bind(host)` to a `ScrollContainer` whose scrollbar is hidden; `step_to(target)` scrolls in steps |
 | `LacquerText` (`scripts/utils/lacquer_text.gd`) | `rate()`, `decimal_bbcode()` |
-| `LacquerFloater` (`scenes/common/lacquer/lacquer_floater/`), `MapGlyph`, `MadraPellet` | Stepped rise, even-px shake and twinkle, snapped flight. `LacquerFloater` and `MapGlyph` expose static functions of elapsed time (`rise_at`, `shake_offset_at`, `twinkle_frame`) that tests call directly; `MadraPellet` snaps its point to even px every frame, and `set_texture()` swaps its art for another 12x12 pellet (the cycling XP pellets). Copy this shape for new stepped motion |
+| `LacquerFloater` (`scenes/common/lacquer/lacquer_floater/`), `MapGlyph`, `MadraPellet` | Stepped rise, even-px shake and twinkle, snapped flight. `LacquerFloater` and `MapGlyph` expose static functions of elapsed time (`rise_at`, `shake_offset_at`, `twinkle_frame`) that tests call directly (`shake_offset_at` steps the keyframe set it is handed, the lock shake's by default: a new shake adds a set, never a copy of the stepping); `MadraPellet` snaps its point to even px every frame, and `set_texture()` swaps its art for another 12x12 pellet (the cycling XP pellets). Copy this shape for new stepped motion |
 
 **Stepped motion in code.** Drive it from `_process` with an elapsed time, quantise the result (2 px, whole frames), and set `position` or the frame. Do not use a `Tween` with an ease. Show and hide with `visible`.
 
@@ -388,6 +431,8 @@ The design review wanted the mode tags (IDLE, ACTIVE, SHOP, STORY) and the "·"-
 | `look.py` | Tiles kit files onto one image for review |
 
 Their output paths point at the authoring session's scratch folder (`SCRATCH` and `OUT` in `lq_base.py`, `A` in `look.py`): change them to rebuild. The cycling pieces come from `docs/superpowers/mockups/cycling-view-lacquer/gen/`: `kit_cycling.py` draws them with these primitives, and `import_cycling.py` copies the used ones into `assets/ui/lacquer/cycling/` (the technique icons into `assets/ui/lacquer/icons/`) and bakes their shadows. The four pieces the game draws differently from the approved mock (the ball strip, the ball rings, the zone strip and the carved figure) are written to the mock folder's `game/` subfolder by `game_kit()`, and the import copies those from there. Draw new pieces for the cascade with these primitives, so new boards share the same rims, grain and palette, and name them `_ai`.
+
+The adventure's pieces come from `docs/superpowers/mockups/adventure-view-lacquer/gen/` (`kit_adventure.py`, `map_render.py`, `veil_atlas.py`, `hex_rim.py`, `stage.py`): `python build_all.py` draws them and `python import_adventure_kit.py` copies them into `assets/`, baking the shadows with the zone kit's `bake_shadow()` and halving the map-space rim into `assets/ui/lacquer/map/`. `kit_chest9.py` stands alone (it imports only the zone kit's `bake_shadow`): `python kit_chest9.py` audits the trays, draws the drawer's 9-slice face and socket and the Now strip's shorter rod, bakes the shadow and copies them into `assets/ui/lacquer/`.
 
 **Scenes, not code.** Every node goes in a `.tscn`. No `Node.new()`, `StyleBoxFlat.new()`, `ShaderMaterial.new()` or `add_theme_*_override()` for styling in scripts. Scripts may set text, textures, frames, visibility, a shader's `progress`, and a state colour from `ThemeConstants.LACQUER_*` (as `LogWindow` and `ZoneMapLabel` do).
 
@@ -409,7 +454,7 @@ Check every reworked screen against this list, ideally on a capture at 1920x1080
 - [ ] The root sets `lacquer_theme.tres`; every Label uses a `LabelLacquer*` variant; numbers with a decimal use `RichTextLacquer`.
 - [ ] Text is 13 px or larger and at least 4.56:1 on its background.
 - [ ] Panels hug their content.
-- [ ] No text is cut off: a line too long for its width wraps, and its board grows.
+- [ ] No text is cut off: a Label that can run long wraps by word, its board grows with it, and every grown height is even.
 - [ ] New art is `_ai`; the user's files are untouched; nearest filtering everywhere, SubViewports included.
 - [ ] UI nodes are in the `.tscn`; scripts set data only.
 
@@ -421,28 +466,27 @@ Check every reworked screen against this list, ideally on a capture at 1920x1080
 - [ ] No `GradientTexture2D`, `smoothstep` falloff, `exp()` glow or continuous `TIME` in a shader.
 - [ ] No GPU particles, mists or vignettes.
 - [ ] No text outlines (painted titles get the 2 px shadow instead).
+- [ ] No ellipsis (`text_overrun_behavior`) and no `clip_text` on a Label of a reworked board, and no fixed-size texture behind text that can grow.
 - [ ] No decimal point in BM Euljiro at 15–17 px.
 - [ ] No placeholder icons (`res://64.png`, `res://icon.svg`).
 
 ## 13. Cascade backlog
 
-Every surface the 2026-10-22 survey found outside the zone view, grouped by area. Surfaces that several surveys found (the backdrop, the floater) are one row each. F1–F3 are shared prerequisites drawn from the surveys' notes, not surfaces. IDs are for reference in branches and PRs. Sizes are rough: **S** a day or less, **M** a few days, **L** a week or more, or a lot of new art.
+Every surface the 2026-10-22 survey found outside the zone view, grouped by area. Surfaces that several surveys found (the backdrop, the floater) are one row each. F1–F3 are shared prerequisites drawn from the surveys' notes, not surfaces. IDs are for reference in branches and PRs. The adventure's map and frame (A1–A9, B1–B3) are built and their rows deleted; the combat and stage rows say what its fight rework (PR 2) still has to do. Sizes are rough: **S** a day or less, **M** a few days, **L** a week or more, or a lot of new art.
 
 | Area | IDs | Rows | S | M | L |
 |---|---|---|---|---|---|
 | Foundations (shared) | F1–F7 | 7 | 1 | 5 | 1 |
 | Zone view overlays | Z1–Z2 | 2 | 1 | 0 | 1 |
 | Dialogue | D1 | 1 | 0 | 0 | 1 |
-| Combat HUD | B1–B9 | 9 | 2 | 6 | 1 |
-| Adventure map | A1–A9 | 9 | 5 | 3 | 1 |
+| Combat HUD | B4–B9 | 6 | 3 | 3 | 0 |
 | Adventure stage | S1–S3 | 3 | 1 | 1 | 1 |
 | End card | E1 | 1 | 0 | 0 | 1 |
 | Menu books | K1–K13 | 13 | 6 | 6 | 1 |
 | Project-wide | P1–P2 | 2 | 1 | 0 | 1 |
-| **Total** | | **47** | **17** | **21** | **9** |
 
 **Taking a row in another branch:**
-1. Make sure the kit's files are there (the branch includes `feat/zone-view-redesign-4656b7`).
+1. Make sure the kit's files are there (the branch is cut after PR #51, and after PR #58 for the adventure's pieces).
 2. Settle the row's open questions with the user before building.
 3. Build to §3–§11 and check the result against §12 on a 1920x1080 capture.
 4. Add any new variant or stylebox to UI_STYLING.md and `tests/unit/test_lacquer_pieces.gd`; rewrite the tests that pin the old look.
@@ -452,12 +496,12 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 
 | ID | Surface | What breaks the guide today | Lacquer treatment | Size | Key files |
 |---|---|---|---|---|---|
-| F1 | Palette additions | Combat and the merchant use colours with no kit slot: `#E86A5C` / `#7FD18B` (bars, orbs, damage numbers), `LabelRed` `#E06060` / `LabelGreen` `#7DCE82` (merchant), `#7EA870` for Madra in item effect text, BBCode red and blue in the timeline | The user picks ramps for health, stamina, damage taken and gains or heals. Add them to kit §2, this guide and `ThemeConstants.LACQUER_*`. Madra stays the Madra ramp | S | `scripts/utils/theme_constants.gd`, `scenes/combat/combatant/combatant_visual/combatant_visual.gd`, `scenes/ui/combat/resource_bar/resource_bar.gd` |
-| F2 | Shared kit pieces (new art) | The kit has fixed-size boards and four 9-slices (`frame_brass`, `frame_hover`, `rail_thumb`, `token`). Almost every other screen needs pieces that grow | New `_ai` art from the generators: a plain board 9-slice (`board_base()`) and a strapped one (`strap()`), a small popover or tooltip 9-slice, a text-button set (normal, hover, pressed, disabled), a dither backdrop tile, a carved slot socket, a 22x22 key cap, rods for health, stamina, cast and intent, a cooldown strip, "off" arrow caps. Grain out of stretch zones; shadows baked | L | `docs/superpowers/mockups/zone-view-lacquer/gen/`, `assets/ui/lacquer/`, `assets/styleboxes/lacquer/` |
+| F1 | Palette additions | Health and Stamina have their ramps (crimson, bamboo) and `ThemeConstants.LACQUER_HEALTH` / `LACQUER_STAMINA`, built for the adventure's cabinet. Still without a kit slot: `LabelRed` `#E06060` / `LabelGreen` `#7DCE82` (merchant), `#7EA870` for Madra in item effect text, `#E86A5C` / `#7FD18B` in the old combat bars and numbers, BBCode red and blue in the timeline | The user picks ramps for damage taken and gains or heals, and the merchant's colours. Add them to kit §2, this guide and `ThemeConstants.LACQUER_*`. Madra stays the Madra ramp | S | `scripts/utils/theme_constants.gd`, `scenes/combat/combatant/combatant_visual/combatant_visual.gd`, `scenes/ui/combat/resource_bar/resource_bar.gd` |
+| F2 | Shared kit pieces (new art) | The kit has fixed-size boards and five 9-slices (`frame_brass`, `frame_hover`, `rail_thumb`, `token`, `board9`). Almost every other screen needs pieces that grow | New `_ai` art from the generators: a plain board 9-slice (`board_base()`) and a strapped one (`strap()`), a small popover or tooltip 9-slice, a text-button set (normal, hover, pressed, disabled), a dither backdrop tile, a carved slot socket, a 22x22 key cap, rods for health, stamina, cast and intent, a cooldown strip, "off" arrow caps. Grain out of stretch zones; shadows baked. Done so far (the adventure's PR 1 and its review round 1): the tooltip board (`board9.tres`), the carved slot socket, the key cap, the Stamina and cast rods, the trays as 9-slices, and the drawer's 9-slice face with its own socket; and, for the Tribulation board, a strapped board 9-slice that grows (`trib_board9.tres`, drawn for that board, not yet a shared piece) | L | `docs/superpowers/mockups/zone-view-lacquer/gen/`, `assets/ui/lacquer/`, `assets/styleboxes/lacquer/` |
 | F3 | Lacquer base types | `lacquer_theme.tres` has only Label and RichText variants, so a Button, PanelContainer, tooltip or scrollbar in a lacquer root falls back to `pixel_theme.tres`: rounded `border_blend` buttons, tan parchment panels, the grey 8x8 pack at 1x | Add Button, PanelContainer, TooltipPanel and TooltipLabel, V/HScrollBar (rail textures, as the full log does), HSeparator (`lacquer_line_ai.png`) and ProgressBar (rod textures) to `lacquer_theme.tres`. Opt-in: only roots that set the theme get them. Keep "no defaults" | M | `assets/themes/lacquer/lacquer_theme.tres`, `tests/unit/test_lacquer_pieces.gd`, `docs/UI_STYLING.md` |
-| F4 | Render settings | The adventure's `TilemapSubviewport` and `CombatSubviewport` set no `canvas_item_default_texture_filter`, so they render linear. Three nodes force `texture_filter = 2` (merchant TopLight and SlotGlow, the combatant Shadow). Window stretch scales fractionally | Set the filter to 0 on both SubViewports. Remove the forced linear filters with their screens. Decide integer `scale_mode` (open question). Re-check the fog shader and smoke veils after the change | M | `scenes/adventure/adventure_view/adventure_view.tscn`, `project.godot`, `scenes/merchant/merchant_atmosphere/merchant_atmosphere.tscn`, `scenes/merchant/merchant_stock_row/merchant_stock_row.tscn`, `scenes/combat/combatant/combatant_visual/combatant_visual.tscn` |
+| F4 | Render settings | The adventure's map `SubViewport` sets `canvas_item_default_texture_filter = 0` now. Still linear: the adventure's `CombatSubviewport` (PR 2 draws the fighters at 2x and sets it). Three nodes force `texture_filter = 2` (merchant TopLight and SlotGlow, the combatant Shadow). Window stretch scales fractionally | Set the filter to 0 on the combat SubViewport. Remove the forced linear filters with their screens. Decide integer `scale_mode` (open question). Re-check the merchant after the change | M | `scenes/adventure/adventure_view/adventure_view.tscn`, `project.godot`, `scenes/merchant/merchant_atmosphere/merchant_atmosphere.tscn`, `scenes/merchant/merchant_stock_row/merchant_stock_row.tscn`, `scenes/combat/combatant/combatant_visual/combatant_visual.tscn` |
 | F5 | Modal backdrop (`GreyBackground`) | A translucent teal-grey panel (`#2D3737` at 55.7%), shared by the four books, the merchant and the end card. The books and the merchant fade it in over 0.3 s and out over 0.2 s (`show_with_panel` / `hide_with_panel`); the end card toggles `visible` with no fade. The merchant hides the HUD boards (`hide_hud_boards`); the books (the user's decision, `5e8d7394`) and the end card leave them dimmed under it. Cycling uses no backdrop: its board sits in the map gap with the HUD boards up. Its alpha is left at 0 after a fade-out (MAIN_VIEW.md bug). The Dialogic background (`#2D2D2D` at 82.7%) and the dev modal (black at 60%) are translucent too | An opaque 2-step `#050707` dither tile (new `lacquer_dither_backdrop_ai.png`) shown and hidden outright for every user. For the merchant and the end card only, the alternative is no backdrop with `MainView.hide_hud_boards()` (G1). The books keep the HUD boards under their backdrop. Keep `show_with_panel` / `hide_with_panel` / `panel_hidden` / `clicked`, so no state changes. Rewrite the fade-timing tests | M | `scenes/ui/grey_background/grey_background.gd`, `assets/styleboxes/zones/grey_background.tres`, `scenes/main/main_game/main_game.tscn`, `tests/unit/test_grey_background.gd` |
-| F6 | Shared floater (`FloatingText`) | Half done. The map's floater was promoted to `LacquerFloater` (`scenes/common/lacquer/lacquer_floater/`: a token with a 16 px `RichTextLacquer`, 40 px in 20 steps, hidden outright), and the map and each cycling zone use it. Still on `FloatingText`: the combat bars and orbs, with 24 px text, a 5 px black outline, engine colours, a 100 px cubic-eased rise and an alpha fade; its `font_size` override is a no-op | Point the combat bars and orbs at `LacquerFloater` with palette colours; delete `FloatingText` | M | `scenes/ui/floating_text/`, `scenes/ui/combat/resource_bar/resource_bar.gd`, `scenes/ui/combat/resource_orb/resource_orb.gd` |
+| F6 | Shared floater (`FloatingText`) | Half done. The map's floater was promoted to `LacquerFloater` (`scenes/common/lacquer/lacquer_floater/`: a token with a 16 px `RichTextLacquer`, 40 px in 20 steps, hidden outright), and the map and each cycling zone use it. `FloatingText` (24 px text, a 5 px black outline, engine colours, a 100 px cubic-eased rise and an alpha fade; its `font_size` override is a no-op) has no live user: `ResourceBar` can use it, but the one bar left (the enemy's Health) has it off | Point the fight's bars at `LacquerFloater` with palette colours when the fight is reworked (PR 2); delete `FloatingText` | M | `scenes/ui/floating_text/`, `scenes/ui/combat/resource_bar/resource_bar.gd` |
 | F7 | Item hover tooltip (`ItemDisplaySlot`) | A parchment card stretched non-uniformly to 424x264 slides up 15 px with a cubic ease and fades in; black and grey text; tan and green effect lines at 2.5–2.8:1 on cream. Shows over the merchant and the end card | Over lacquer screens, a lacquer popover board (F2): `LabelLacquerPopoverTitle` name, `LabelLacquerDetail` type, `LabelLacquerPopoverBody` text, effects in `RichTextLacquer` via `decimal_bbcode()`. Even px; shown outright | M | `scenes/common/item_display_slot/`, `scenes/common/item_description_panel/` |
 
 ### Zone view overlays
@@ -477,36 +521,19 @@ Every surface the 2026-10-22 survey found outside the zone view, grouped by area
 
 | ID | Surface | What breaks the guide today | Lacquer treatment | Size | Key files |
 |---|---|---|---|---|---|
-| B1 | Player HUD dock and stamina bar | A 700 px navy `StyleBoxFlat` (93%, gold border at 45%, 14 and 6 px corners, 5 px soft shadow); translucent track, ghost (55%) and cost preview (45% white, alpha pulse); eased value tween; white text with black outlines; `pixel_theme` root | A recessed lacquer shelf like the dock (new wider `_ai` art, 4 px shadow). Stamina as a `LacquerRod` (F2, colour per F1); the ghost a second rod one step lighter; the cost preview a stepped blink. `LabelLacquerDetail` labels; `lacquer_theme` root | M | `scenes/ui/combat/player_hud/`, `scenes/ui/combat/resource_bar/`, `assets/styleboxes/combat/` |
-| B2 | Resource orbs (Health, Madra) | 130 px orbs on `liquid_wave` (continuous time, smooth waves); translucent liquid, ghost and shine; a `StyleBoxFlat` ring with a soft shadow; an overbright red low-health pulse; lerped fills | Madra: the cabinet's orb (strip frame 0 + `lacquer_madra_orb.gdshader`). Health: a rim frame and a health version of the shader in the F1 ramp. The shaders assume 80x80: keep 80 or parameterise. Values `LabelLacquerBig` with a tan `/ max`; low health as a stepped frame flash or a seal; the ghost as a stepped second level | L | `scenes/ui/combat/resource_orb/`, `assets/shaders/liquid_wave.gdshader`, `assets/shaders/lacquer_madra_orb.gdshader` |
-| B3 | Ability bar slots | A gold glow ring (3 px border plus a 6 px shadow at 35%) pulsing in alpha while casting; hover scale 1.06 and brightness 1.2; ready pulse 1.1; 35% alpha for unaffordable and empty; translucent key chips; `5.0s` in Euljiro; off-palette cost pips; mixed icon densities | Carved slot sockets (F2, about 80x80, 2 px shadow). Hover `frame_hover`; casting a steady `frame_brass`; ready `flash(1)`. Key cap (F2) with `LabelLacquerHotkey`. Costs with mini icons and `LabelLacquerDetail`. Cooldown as a stepped strip with whole seconds or a Yatra point. Unaffordable and empty as palette states | M | `scenes/ui/combat/ability_button/`, `assets/styleboxes/combat/slot_cast_glow.tres`, `assets/styleboxes/combat/panel_keyhint.tres` |
-| B4 | Player cast bar and enemy intent bar | Navy panels (82–94%) with rounded corners and faint borders; rounded fills; fades in and out; overbright pulses (1.8) and a 2.2 release flash; `1.9s` in Euljiro; black outlines | A recessed tray like the Now tray (narrower `_ai` art), a 32 px icon in a socket, the cast as a `LacquerRod` (player and enemy rods, F2), the time via `decimal_bbcode()`. Shown outright; release as `frame_brass` `flash(1)`; interrupt as an even-px shake | M | `scenes/ui/combat/cast_bar/`, `assets/styleboxes/combat/cast_bar_fill.tres`, `assets/styleboxes/combat/panel_intent.tres` |
-| B5 | Enemy nameplate and health bar | A 360 px navy plate at 82% with a 22% gold border, 4 px corners and a soft shadow; rounded red fill; translucent ghost and track; outlines on every label | A lacquer plate in the map-plate family (new `_ai`, about 360 wide; a boss version with brass caps). Name `LabelLacquerName` (brass for a boss); health as a `LacquerRod` with a stepped ghost | M | `scenes/ui/combat/enemy_nameplate/`, `assets/styleboxes/combat/panel_nameplate.tres`, `assets/styleboxes/combat/bar_fill_health.tres` |
-| B6 | Buff bar and buff icons | The 64 px ability icon squeezed to 32x32 (halving 1x-detail art); a translucent duration overlay; `5.0s` in Euljiro; a pale frame and black outlines | A carved 40x40 socket, 16 art px buff icons (`_ai`, or the user's), a stepped duration strip (`LacquerStripRect`), the stack count on `lacquer_seal_count_ai.png`, whole seconds | S | `scenes/ui/combat/buff_bar/`, `scenes/ui/combat/buff_icon/` |
-| B7 | Combat tooltips (ability, buff) | A 600 px brown `StyleBoxFlat` with 8 px corners and an 8 px soft shadow; the 64 px icon at 96; rounded stat pills; placeholder `res://64.png` | A lacquer board that sizes to its content (F2 9-slice); icon at 64 or 32; `LabelLacquerPopoverTitle` / `PopoverBody`; `LabelLacquerDetail` figures; `lacquer_line_ai.png` dividers; stats as carved tags (B8) | M | `scenes/ui/combat/combat_ability_tooltip/`, `scenes/ui/combat/combat_buff_tooltip/`, `assets/styleboxes/abilities/tooltip_panel.tres` |
-| B8 | Ability stat pills and `StatTooltip` | Translucent rounded pills (60% fill, 50% border); a gold border pulsing forever on DMG; a colour per stat (red, green, blue, purple, teal, pink); a tooltip built in code with a soft shadow; cubic count-up; overbright hover | Carved tags (`lacquer_tag_ai.png`, `lacquer_tag_wide_ai.png`) with `LabelLacquerTag`; values `LabelLacquerDetail`; attribute icons instead of colours; the tooltip as a lacquer board in a `.tscn`; values set outright; no pulse | M | `scenes/abilities/ability_stats_display/`, `scenes/abilities/stat_label/`, `scenes/abilities/stat_tooltip/stat_tooltip.gd`, `assets/styleboxes/abilities/stat_pill.tres` |
-| B9 | Damage numbers | 34 px Euljiro with an 8 px near-black outline; off-palette red and green; a scale pop from 0.4 with a back ease; a cubic rise with random drift; a fade out | The shared floater (F6), or bare Euljiro with the kit's 2 px ink outline (A-Q9; an exception to §12's "No text outlines"); rising in 2 px steps, hidden outright, no scale pop; colours from F1 | S | `scenes/combat/combatant/combatant_visual/damage_number.tscn`, `scenes/combat/combatant/combatant_visual/combatant_visual.gd` |
-
-### Adventure map
-
-| ID | Surface | What breaks the guide today | Lacquer treatment | Size | Key files |
-|---|---|---|---|---|---|
-| A1 | Map camera, tile density, character | Tiles at zoom 1.0, half the zone map's density; wheel zoom 0.3–1.3 with easing, so most zooms are fractional; the character at scale 2.5 with no `snap_walk_to_whole_px` | Match the zone map: zoom 2 (or its 1–2 range), the character at scale 1 with `snap_walk_to_whole_px` and `lacquer_char_shadow_ai.png`, clamped like the zone map | M | `scenes/adventure/adventure_tilemap/adventure_tilemap.tscn`, `scenes/camera/camera_zoom_controller/camera_zoom_controller.gd`, `scenes/characters/main_character/character_body_2d.tscn` |
-| A2 | Fog of war | A full-screen shader: navy at 85% with a soft `smoothstep` edge round the visited tiles (a green halo in captures); painted smoke veils at 1.5x, 92% opaque, fading out over 0.25 s; an orange-to-magenta `?`; visited tiles darkened by a 35% overlay tile | Rebuild as the zone map's lattice: a fog `TileMapLayer` with `lacquer_fog_t{1,2,3}_atlas_ai.png` tiered by `ZoneMapMath.fog_tier()` on the map ground. Unknown neighbours as veiled tiles with a dotted tan rim and the tan `?` (`MapGlyph`), shown outright. Visited tiles without alpha (open question). New art: veils for the adventure's forest variants | L | `assets/shaders/fog_of_war.gdshader`, `scenes/adventure/adventure_tilemap/adventure_tilemap.gd`, `scenes/adventure/fog_veil_sprite.tscn`, `scenes/tilemaps/tilemap_tileset.tres` |
-| A3 | Hover selector and current tile | An 8-frame pale-yellow bracket strip: the brackets the zone view dropped as reticle-like. No mark on the player's own hex | Rim swaps from `assets/ui/lacquer/map/`: `hex_current` on the player's hex, `hex_open` on reachable neighbours, `hex_hover` on hover, `hover_in` / `pinned_in` in veiled hexes. Retire `HexHoverSelector` (the adventure is its only user) | S | `scenes/tilemaps/hex_hover_selector.tscn`, `scenes/adventure/adventure_tilemap/adventure_tilemap.tscn` |
-| A4 | Encounter icons | Glyphs scaled to 84 px (1.31x of 64, 2.63x of the 32 px trap); mixed 2x and 1x art; completed at 90% alpha with a smooth green tick; pop-in from scale 0.3 with a back ease and a fade; placeholder `res://64.png` | An `_ai` glyph set at 16 or 24 art px (32 or 48 on screen), ink outline, 2 px shadow, kit colours. Reuse `combat_icon.png` at 32 and `lacquer_mini_swords_ai.png`. The boss as a stepped strip. Completed as a seal or a "spent" palette (open question). Shown outright | M | `scenes/adventure/encounter_icon/`, `assets/sprites/adventure/encounter_glyphs/` |
-| A5 | `AdventureMarker` | A 280 px smooth teal map pin with a white outline at scale 0.5, the glyph at 0.7 | A lacquer pin (new `_ai`, brass rim, ink outline, 2 px shadow) holding the glyph at file size, or no pin: the current-hex rim and a map plate (open question) | S | `scenes/adventure/adventure_marker/` |
-| A6 | `PathPreview` | A 20 px `Line2D` with a 1x stone texture, round caps and joints, and an alpha gradient fading the part behind the character | The zone map's dotted route (`lacquer_route_dot_ai.png`, `_lit_ai.png`), laid hex to hex like `ZoneRoute`; dots behind the character hide one at a time | S | `scenes/adventure/path_preview/` |
-| A7 | Boss reveal | A full-screen light-blue flash at 60% fading over 0.4 s; a cubic-eased camera push | Drop the flash. The pinned inner rim shown outright, the boss glyph shaken in even px, a vermilion seal or plate naming the boss. Keep the hit-stop | S | `scenes/adventure/adventure_tilemap/adventure_tilemap.gd`, `scenes/adventure/adventure_tilemap/adventure_tilemap.tscn` |
-| A8 | `EncounterInfoPanel` and choices | A fixed 376x400 navy panel at 92% with a gold stripe at 60% and a 1 px gold line at 40%; choice buttons on the old round-3 card styleboxes (80% fill, 8% white border); fades; disabled at 40% alpha; does not hug a one-choice encounter | A lacquer board that hugs its content, or a popover pinned beside the hex (`ZoneMapPopover` pattern). `LabelLacquerPanelTitle`, `LabelLacquerLore`, `lacquer_line_ai.png`; choices as drawers with `frame_hover`; disabled as tan text and the LOCKED seal; shown outright. Retires `action_card_normal.tres` / `_hover.tres` | M | `scenes/adventure/adventure_tilemap/encounter_info_panel.tscn`, `scenes/adventure/adventure_tilemap/encounter_choice_button.gd`, `assets/styleboxes/adventure/panel_encounter.tres` |
-| A9 | Adventure timer | A 140x44 navy pill (88%, 6 px corners, gold border at 45%, 3 px soft shadow); the 32 px hourglass at 28x28; black-outlined gold text; red `#e86a5c` and a 1.08 scale pop each second under 30 s | A small lacquer plate (new `_ai`, 2 px shadow), the hourglass redrawn at 16 art px shown at 32, cream text with no outline; low time as the cream time on a vermilion plate or seal, plus a `frame_brass` flash each second (never vermilion text on lacquer: 2.76:1) | S | `scenes/adventure/adventure_view/timer_panel.gd`, `scenes/adventure/adventure_view/adventure_view.tscn`, `assets/styleboxes/adventure/panel_timer.tres` |
+| B4 | Enemy intent bar | The player's cast bar is done (the technique dock's cast tray). What is left is the enemy's intent tab: navy panels (82–94%) with rounded corners and faint borders; rounded fills; fades in and out; overbright pulses (1.8) and a 2.2 release flash; `1.9s` in Euljiro; black outlines | The adventure spec's opponent page: a Casting tray in the chest (a recessed tray with the `Casting` plate, the cast's name, the time via `decimal_bbcode()`, a jade `lacquer_rod_intent_*`), shown outright; a tan "Gathering its madra" line between casts; an interrupt as "Interrupted" with the even-px shake (PR 2) | M | `scenes/ui/combat/cast_bar/`, `assets/styleboxes/combat/cast_bar_fill_enemy.tres`, `assets/styleboxes/combat/panel_intent.tres` |
+| B5 | Enemy nameplate and health bar | A 360 px navy plate at 82% with a 22% gold border, 4 px corners and a soft shadow; rounded red fill; translucent ghost and track; outlines on every label | Decided in the adventure spec: no plate. The opponent page in the chest takes over (a Health row on a `LacquerRod`, the Casting tray (B4), a Buffs row, a Techniques list and the reward row; PR 2), and the plate, `panel_nameplate.tres` and `bar_fill_health.tres` go with it | M | `scenes/ui/combat/enemy_nameplate/`, `assets/styleboxes/combat/panel_nameplate.tres`, `assets/styleboxes/combat/bar_fill_health.tres` |
+| B6 | Enemy buff bar and buff icons | The player's buffs are done (the vitals cabinet's carved sockets, with a count seal and a brass flash when a buff lands). What is left is the enemy plate's `BuffBar` and `BuffIcon`: the 64 px ability icon squeezed to 32x32; a translucent duration overlay; `5.0s` in Euljiro; a pale frame and black outlines | The opponent page's Buffs row, shown only while the enemy has a buff: sockets like the cabinet's, with the same `BuffTooltip` (PR 2) | S | `scenes/ui/combat/buff_bar/`, `scenes/ui/combat/buff_icon/` |
+| B7 | Enemy buff tooltip | The technique tooltip and the player's buff tooltip are done (both on `board9.tres`). What is left is the enemy plate's `CombatBuffTooltip`: a 600 px brown `StyleBoxFlat` with 8 px corners and an 8 px soft shadow | The opponent page's `BuffTooltip` (the cabinet's scene), so `CombatBuffTooltip` can go (PR 2) | S | `scenes/ui/combat/combat_buff_tooltip/` |
+| B8 | Ability stat pills and `StatTooltip` | Unused by the game now: the old ability tooltip was their only user (removed with the adventure frame), and the Abilities book has its own stat list. Still in the project: translucent rounded pills (60% fill, 50% border); a gold border pulsing forever on DMG; a colour per stat (red, green, blue, purple, teal, pink); a tooltip built in code with a soft shadow; cubic count-up; overbright hover | Delete the three scenes, or restyle them if the Abilities book (K10) takes them: carved tags (`lacquer_tag_ai.png`, `lacquer_tag_wide_ai.png`) with `LabelLacquerTag`; values `LabelLacquerDetail`; attribute icons instead of colours; the tooltip as a lacquer board in a `.tscn`; values set outright; no pulse | M | `scenes/abilities/ability_stats_display/`, `scenes/abilities/stat_label/`, `scenes/abilities/stat_tooltip/stat_tooltip.gd`, `assets/styleboxes/abilities/stat_pill.tres` |
+| B9 | Damage numbers | 34 px Euljiro with an 8 px near-black outline; off-palette red and green; a scale pop from 0.4 with a back ease; a cubic rise with random drift; a fade out | The shared floater (F6) on a lacquer token (decided, A-Q9); rising in 2 px steps, hidden outright, no scale pop; damage dealt cream, damage taken and heals Health crimson, Madra changes Madra blue, Stamina bamboo (F1) | S | `scenes/combat/combatant/combatant_visual/damage_number.tscn`, `scenes/combat/combatant/combatant_visual/combatant_visual.gd` |
 
 ### Adventure stage
 
 | ID | Surface | What breaks the guide today | Lacquer treatment | Size | Key files |
 |---|---|---|---|---|---|
-| S1 | Parallax forest backdrop | 12 layers at 3.5x (the sky at 15x) drifting at fractional speeds; a teal-green cast over the map and combat; the painting the zone view dropped; layers built in code | Map: drop it; the map ground `#090E0E` under the fog lattice. Combat: a new stage at exactly 2x in kit ramps, static or frame-strip motion. If kept anywhere, an even integer scale with integer parallax steps. `ZoneViewBackground` has no other user | M | `scenes/zones/zone_view_background/`, `scenes/adventure/adventure_view/adventure_view.tscn`, `assets/sprites/zones/backgrounds/spirit_valley/` |
-| S2 | `Atmosphere` layer | A `smoothstep` vignette; mists at 4–5x tinted pale blue at 56% on sine tweens; cyan and green GPU motes fading on an alpha curve; combat builds its own instance in code | Depends on A-Q2. If the rules hold: remove it from the adventure tilemap and from `AdventureCombat._setup_atmosphere()`, as the zone view did; if life is wanted, a few opaque 2x-grid motes in kit colours, switching frames and moving in 2 px steps. If the user keeps it as a declared exception to §3 rule 9, leave it and record the exception here | S | `scenes/atmosphere/`, `assets/shaders/vignette.gdshader`, `scenes/combat/adventure_combat/adventure_combat.gd` |
+| S1 | Parallax forest backdrop (combat) | The map is done: its opaque ground `#090E0E` and the fog lattice cover the backdrop. What is left is combat: 12 layers at 3.5x (the sky at 15x) drifting at fractional speeds; a teal-green cast; the painting the zone view dropped; layers built in code | A static stage at exactly 2x in kit ramps (the adventure spec: `AdventureData.combat_stage`, a moonlit bamboo grove for the Shallow Woods; PR 2). `ZoneViewBackground` has no other user | M | `scenes/zones/zone_view_background/`, `scenes/adventure/adventure_view/adventure_view.tscn`, `assets/sprites/zones/backgrounds/spirit_valley/` |
+| S2 | `Atmosphere` layer (combat) | The map dropped it. Combat still builds its own instance in code: a `smoothstep` vignette; mists at 4–5x tinted pale blue at 56% on sine tweens; cyan and green GPU motes fading on an alpha curve | Decided (A-Q2): none. Remove it from `AdventureCombat._setup_atmosphere()`, as the zone view did, with `vignette.gdshader` (PR 2) | S | `scenes/atmosphere/`, `assets/shaders/vignette.gdshader`, `scenes/combat/adventure_combat/adventure_combat.gd` |
 | S3 | Combat stage and combatants | Third-party painted placeholder sprites scaled to 280 px tall by arbitrary factors; radial-gradient blob shadows, linear filtered; cubic, quad and elastic tweens, a sine bob, alpha fades, eased hit flashes, a 1.06 buff pulse; the combat view fades in | New combatant art at a fixed size shown at exactly 2x (the user's or `_ai`), with a hard ink shadow sprite. Slide in 2 px steps at constant speed; bob as held steps; attack and recoil as even-px keyframes; flashes as one or two whole frames; buffs as a frame flash on the nameplate; the view shown outright | L | `scenes/combat/adventure_combat/`, `scenes/combat/combatant/combatant_visual/`, `assets/shaders/hit_flash.gdshader`, `resources/combat/combatant_data/` |
 
 ### End card
@@ -522,7 +549,7 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 | ID | Surface | What breaks the guide today | Lacquer treatment | Size | Key files |
 |---|---|---|---|---|---|
 | K1 | Book shell and covers | The book art is drawn in 2x2 blocks and shown at 2x, so one art px is 4 screen px. Covers recoloured jade (Abilities: jade is reserved) and indigo (Character: off-palette). The bookmark slides on a quad ease | Keep the book. Set all four `BookStyleData` covers to the lacquer ramp (`#692F2F`, `#462020`, `#2C1414`) through `palette_swap.gdshader`, no new art. Identity only in the bookmark and border line, from §4. Bookmark in 2 px steps or shown outright. Optional brass corner caps and the kit's carved close × | S | `scenes/ui/book_frame/`, `resources/ui/book_styles/`, `assets/shaders/palette_swap.gdshader` |
-| K2 | Page chrome (`book_theme`) | Rounded key chips (radius 3); selection and the path inset shown by `modulate` tints; card, row, pill and plaque art at 4 px per art px (measured 2026-10-22: 100%, 100%, 100% and 99.9% uniform 4x4 blocks) beside 2 px slot art; odd content margins (plaque 11 / 7, key chip 1 / 2); `LabelBookPositive` green `#3E7A3A` off-palette | Selection as a frame overlay; key chips as carved key caps (F2) shared with combat (B3); even margins; benefit text in a palette colour; optional Yatra plaque titles; optional 2 px redraws of card, row, pill and plaque. These are all `_ai` files, so the redraws touch no user art | M | `assets/themes/book_theme.tres`, `assets/sprites/ui/book/` |
+| K2 | Page chrome (`book_theme`) | Rounded key chips (radius 3); selection and the path inset shown by `modulate` tints; card, row, pill and plaque art at 4 px per art px (measured 2026-10-22: 100%, 100%, 100% and 99.9% uniform 4x4 blocks) beside 2 px slot art; odd content margins (plaque 11 / 7, key chip 1 / 2); `LabelBookPositive` green `#3E7A3A` off-palette | Selection as a frame overlay; key chips as carved key caps (`lacquer_keycap_ai.png`, built for the technique dock); even margins; benefit text in a palette colour; optional Yatra plaque titles; optional 2 px redraws of card, row, pill and plaque. These are all `_ai` files, so the redraws touch no user art | M | `assets/themes/book_theme.tres`, `assets/sprites/ui/book/` |
 | K3 | Side tabs | Interpolated margin and icon-scale tracks (0.95 → 0.75) on stepped sprite frames; 64 px icons in a 26-unit rect (1.625 px per art px); locked at 55% alpha; half-unit offsets (55.5 units = 111 px) | Discrete tracks with whole units and no scale track; icons at on-grid sizes (16 art px redraws where needed); locked as the padlock and an opaque dim from `palette_swap` | S | `scenes/inventory/inventory_view/tab_switcher/`, `scenes/inventory/inventory_view/inventory_view.tscn`, `scenes/path_progression/path_tree_view.tscn` |
 | K4 | Inventory chrome (ribbon, sort pill, toolbar, scroll rail) | The ribbon art bakes a translucent 16% black shadow; disabled arrows and dots at 35% alpha; `ScrollRail` stretches its art 4.5x and about 2.6x with an unsnapped grabber; pager dots built in code | An `_ai` ribbon copy with an opaque 2 art px hard shadow (the user's file untouched); "off" art or hidden arrows; `LacquerRail` or an on-grid book rail; dots in the scene | M | `scenes/inventory/common/tab_banner/`, `scenes/inventory/common/sort_sub_banner/`, `scenes/inventory/common/scroll_rail/` |
 | K5 | Equipment tab | 64 px item icons at 40 px; the hover selector at scale 2.2; half-unit offsets; filtered items at 30% alpha; gear silhouettes at 36% alpha; `scripted_bark.png` is painterly (no grid) | Icons at 64 (larger `_ai` slot art) or 32 (open question G4); selector at scale 2 or a frame overlay; whole-unit offsets; the filter as an opaque `palette_swap` dim; opaque `_ai` silhouettes; an on-grid `_ai` redraw of `scripted_bark` | M | `scenes/inventory/inventory_view/equipment_tab/`, `scenes/inventory/item_instance/item_instance.tscn` |
@@ -551,19 +578,18 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 | Log and Goals boards in the adventure view | Already lacquer. `LogWindow.tone_for()` maps each line's first `[color]` tag to a lacquer tone (brass, Madra, cream, or tan for anything else), so adventure and combat log lines need no change |
 | Book open, close and page-turn strips | Already stepped frame strips |
 | `palette_swap.gdshader`, the attribute icons | Reusable as they are |
-| Dev panel and dev password modal | Players never see them. Exempt (confirm, G11); they change for free if P1 lands |
+| Dev panel | Players never see them. Exempt (confirm, G11); they change for free if P1 lands |
 
 ### Suggested order
 
 | Step | Rows | Why this order |
 |---|---|---|
-| 0. Decide | G1, G2, G4, K-Q1 | They block the most rows: the backdrop (every overlay), the palette (combat, merchant), icon sizes (inventory, merchant, end card, hotbars) and the books |
+| 0. Decide | G1, G2, G4, K-Q1 | They block the most rows: the backdrop (every overlay), the rest of the palette (damage, gains, the merchant), icon sizes (inventory, merchant, end card, hotbars) and the books |
 | 1. Foundations | F1–F7 | Shared art and theme types every later area needs. The render fix is cheap and global. The backdrop and the floater have three or more users each |
 | 2. Zone view overlays | Z1, Z2 | They sit on top of the finished zone view, so the clash is most visible there. The merchant is the first real user of the new board, button and tooltip pieces |
 | 3. Dialogue | D1 | Shown over the zone view and from encounters. One timeline today, so the risk is small, but it needs a custom Dialogic layer |
-| 4. Combat HUD | B1–B9 | Needs the palette decision. Large reuse (orb shader, rods, frames, tags) |
-| 5. Adventure map | A1–A9 | Reuses the zone map's machinery (fog tiers, rims, routes, glyphs, popovers). Depends on the zoom decision (A-Q4) |
-| 6. Adventure stage | S1–S3 | Needs new art, the combatant-art decision (A-Q8) and the ambient decision (A-Q2) |
+| 4. Combat HUD | B4–B9 | The player's side is done (the adventure's PR 1). What is left is the enemy's plate, tooltip and numbers, which the adventure spec replaces with the opponent page (PR 2) |
+| 5. Adventure stage | S1–S3 | Needs new art and the combatant art (A-Q8). The ambient decision (A-Q2) is made: none |
 | 7. End card | E1 | Needs its metaphor decision and the item tooltip (F7) |
 | 8. Menu books | K1–K13 | Last or partly never, per K-Q1. **K8 and K9 are broken in the running game: fix them at any time on the book material, whatever the look decision** |
 | 9. Project-wide | P1, P2 | Switching the project theme last, once every area has opted in, keeps the blast radius small |
@@ -577,13 +603,12 @@ The user decides these. "Lean" is the survey's suggestion, not a decision.
 | # | Question | Options | Lean | Blocks |
 |---|---|---|---|---|
 | G1 | What dims the game behind a modal? | An opaque 2-step dither; translucency allowed for backdrops only; for the merchant and the end card only, no backdrop with the HUD boards hidden (cycling already runs with no backdrop and the HUD boards up). Not for the books: the user decided they leave the Goals board and the log showing under the backdrop (`5e8d7394`), and that option would reverse it | Opaque dither | F5, Z1, D1, E1, books |
-| G2 | Which palette colours mean health, stamina, damage taken, heals and gains? Is there a warning or danger text colour? | New ramps (vermilion is for seals, jade for progress fills, brass for rewards). Vermilion cannot be text: `#A83C30` is 2.76:1 on lacquer and 2.25:1 on the raised face, under the 4.56:1 floor, so until a text colour exists warnings go on a vermilion seal or plate | — | F1, B1–B9, F6, Z1, A9 |
+| G2 | Which palette colours mean health, stamina, damage taken, heals and gains? Is there a warning or danger text colour? | Decided for the adventure: Health crimson (`#FFD9D2 #E8737A #B8304A #5A1626 #3A0E18`, text `#E8737A`, 5.9:1 on lacquer) and Stamina bamboo (`#EEF5C8 #C9DB86 #8FAE3E #3E5418 #1E2A0C`, text `#C9DB86`, 11.5:1); a fight's floaters take the colour of the resource that changed, signed (PR 2). Still open: damage taken, heals and gains outside the adventure, the merchant's reds and greens, and a warning text colour. Vermilion cannot be text: `#A83C30` is 2.76:1 on lacquer and 2.25:1 on the raised face, under the 4.56:1 floor, so until one exists warnings go on a vermilion seal or plate. The one text warning built, the Here tray's lock line while it shakes, borrows the Health text colour `#E8737A` (5.9:1) at the user's review round 1; whether that is the warning text colour is still open | — | F1, B4–B9, F6, Z1 |
 | G4 | Item icon size? | The user's 64 px icons at 64 (bigger slots); at 32 like the cabinet's gold icon (some 2 px detail lost); `_ai` redraws at 16 art px | — | K5, K6, K7, Z1, E1, F7 |
 | G5 | Project theme: one cascade or opt in? | Make base types lacquer project-wide; each area opts in by setting `lacquer_theme` on its root. Are the cream book pages a sanctioned second material? | Opt in, decide P1 last | F3, P1 |
 | G6 | Integer window scaling? | `scale_mode` integer (letterboxes 2560x1440 and 1366x768); fractional | — | F4 |
-| G7 | Eased camera moves? | Keep them (the zone view does: recentre, adventure zoom-in); step them | Keep | A7, the adventure zoom-in |
 | G8 | Mode tags and "·"-joined lines? | Keep (spec); drop (design review) | Kept for now | Every reworked screen |
-| G9 | The painted ability icons with cyan glow? | Keep the user's icons in a carved socket; `_ai` redraws on the grid without glow | — | B3, B6, K10 |
+| G9 | The painted ability icons with cyan glow? | Decided for the adventure: the user's icons stay as they are, in carved sockets (the technique dock); an on-grid redraw without glow is a separate art task. Still open for the Abilities book: the same, or `_ai` redraws on the grid | — | K10 |
 | G10 | Title, pause or settings screens planned? Replace Godot's splash now? | — | — | P2 |
 | G11 | Is the dev panel exempt? | Yes; restyle | Exempt | — |
 
@@ -600,17 +625,10 @@ The user decides these. "Lean" is the survey's suggestion, not a decision.
 
 | # | Question | Options | Blocks |
 |---|---|---|---|
-| A-Q1 | The painted forest behind the adventure? | Keep it on the grid; the map ground for the map and a new lacquer stage for combat | S1, A2 |
-| A-Q2 | Ambient motion in the adventure? | None; a stepped pixel ambient (fireflies, falling leaves); keep the `Atmosphere` (vignette, mists, motes) in the adventure as a declared exception to §3 rule 9 | S2 |
-| A-Q3 | Visited but not current hexes, without a translucent overlay? | Unchanged; a darker veil step; marked only by rims and route dots | A2 |
-| A-Q4 | Adventure map zoom? | 2, like the zone map (needs panning on a 21+ tile map); a zoom-1 overview (half the density) | A1–A7 |
-| A-Q5 | Encounter glyphs? | 32 or 48 px on the map; completed as a seal or a palette change | A4, A5 |
-| A-Q6 | "You are here"? | A floating lacquer pin; the brass current-hex rim plus a plate | A5 |
-| A-Q7 | Encounter panel? | A side board at a fixed spot; a popover anchored to the hex | A8 |
-| A-Q8 | Combatant art? | Who draws it (the user or `_ai` placeholders) and at what size (for example 64x96 art px shown at 128x192) | S3 |
-| A-Q9 | Damage numbers? | On the lacquer token like map floaters; bare Euljiro with the kit's 2 px ink outline. The outline is an exception to §12 ("No text outlines"), taken from kit §3 as it stood before revision 2 dropped it (kit §0) | B9 |
-| A-Q10 | Combat orb size? | The kit's 80 px; a new even size (parameterise the shader) | B2 |
-| A-Q11 | Buff icons? | Their own small icons; the ability icon in a socket | B6 |
+| A-Q1 | The painted forest behind the adventure? | Decided (adventure spec): the map ground for the map (built), a new static lacquer stage for combat (PR 2) | S1 |
+| A-Q2 | Ambient motion in the adventure? | Decided (adventure spec): none. The `Atmosphere` left the map and leaves combat in PR 2 | S2 |
+| A-Q8 | Combatant art? | Decided (adventure spec): `_ai` placeholders drawn in Aseprite at exactly 2x, about 210 px tall on screen (about 104 art px), bosses larger; the user's own art can replace them | S3 |
+| A-Q9 | Damage numbers? | Decided (adventure spec): on the lacquer token, like the map floaters (the shared floater, F6) | B9, F6 |
 | A-Q12 | End card metaphor? | A pixel-art scroll redrawn at 2x; a lacquer board | E1 |
 | A-Q13 | Item tooltip? | Lacquer everywhere; lacquer over the merchant, paper on a scroll end card | F7, E1 |
 
@@ -631,13 +649,15 @@ The user decides these. "Lean" is the survey's suggestion, not a decision.
 | Zone view spec (art direction, decisions, review notes) | [superpowers/specs/2026-10-21-zone-view-map-first-design.md](superpowers/specs/2026-10-21-zone-view-map-first-design.md) |
 | Menu books spec | [superpowers/specs/2026-10-21-menu-books-design.md](superpowers/specs/2026-10-21-menu-books-design.md) |
 | Merchant v1 spec ("Ethereal shop") | [superpowers/specs/2026-10-19-merchant-v1-design.md](superpowers/specs/2026-10-19-merchant-v1-design.md) |
-| Reference renders (open in a browser) | [zone view](superpowers/mockups/zone-view-map-first-mockup.html), [cycling view](superpowers/mockups/cycling-view-lacquer-mockup.html) |
-| Generators | `docs/superpowers/mockups/zone-view-lacquer/gen/`, `docs/superpowers/mockups/cycling-view-lacquer/gen/` |
+| Reference renders (open in a browser) | [zone view](superpowers/mockups/zone-view-map-first-mockup.html), [cycling view](superpowers/mockups/cycling-view-lacquer-mockup.html), [adventure view](superpowers/mockups/adventure-view-lacquer-mockup.html) |
+| Adventure view spec (decisions, layout, tests) | [superpowers/specs/2026-10-22-adventure-view-lacquer-design.md](superpowers/specs/2026-10-22-adventure-view-lacquer-design.md) |
+| Generators | `docs/superpowers/mockups/zone-view-lacquer/gen/`, `docs/superpowers/mockups/cycling-view-lacquer/gen/`, `docs/superpowers/mockups/adventure-view-lacquer/gen/` |
 | Theme variants, lacquer styleboxes and pieces | [UI_STYLING.md](UI_STYLING.md) |
 | The built zone view (map, chest, cards, orb shaders) | [zones/ZONES.md](zones/ZONES.md) |
+| The built adventure view (map, coins, cabinet, chest, dock) | [adventuring/ADVENTURING.md](adventuring/ADVENTURING.md), [combat/COMBAT.md](combat/COMBAT.md) |
 | UI shell, HUD boards, `GreyBackground`, dock | [infrastructure/MAIN_VIEW.md](infrastructure/MAIN_VIEW.md) |
 | The built cycling view (board, groove, pellets, technique drawers) | [cycling/CYCLING.md](cycling/CYCLING.md) |
 | Cycling view spec (layout, hit tiers, the choices behind them) | [superpowers/specs/2026-10-22-cycling-view-lacquer-design.md](superpowers/specs/2026-10-22-cycling-view-lacquer-design.md) |
-| Built pieces | `assets/themes/lacquer/lacquer_theme.tres`, `assets/ui/lacquer/`, `assets/styleboxes/lacquer/`, `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd`, `scripts/utils/theme_constants.gd`, `assets/shaders/lacquer_madra_orb.gdshader`, `assets/shaders/lacquer_core_orb.gdshader` |
-| Piece tests | `tests/unit/test_lacquer_pieces.gd` |
+| Built pieces | `assets/themes/lacquer/lacquer_theme.tres`, `assets/ui/lacquer/`, `assets/styleboxes/lacquer/`, `scenes/common/lacquer/`, `scenes/zones/zone_panel/lacquer_rail/`, `scripts/utils/lacquer_text.gd`, `scripts/utils/theme_constants.gd`, `assets/shaders/lacquer_madra_orb.gdshader`, `assets/shaders/lacquer_core_orb.gdshader`, `assets/shaders/lacquer_cooldown_sweep.gdshader`, `scenes/adventure/` (`VitalsPlate`, `AdventureChest`, `ExpeditionPage`, `RunClock`, `AdventureMapMarkers`, `AdventureRoute`), `scenes/ui/combat/technique_dock/` |
+| Piece tests | `tests/unit/test_lacquer_pieces.gd`; `tests/integration/test_boards_never_trim_text.gd` (rule 14 on the reworked boards); `tests/unit/test_adventure_kit_assets.gd`, `tests/unit/test_hex_rim_assets.gd` (the adventure's textures) |
 | Rules for agent-made art and scene-tree UI | [../CLAUDE.md](../CLAUDE.md) (AI-Generated Art, GDScript Coding Standards) |

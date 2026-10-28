@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="TribulationData" format=3 uid="uid://bnorcaroi8nx4"]
+
+[ext_resource type="Script" uid="uid://belwkiinq657i" path="res://scripts/resource_definitions/tribulation/tribulation_data.gd" id="1_tribdata"]
+[ext_resource type="Script" uid="uid://cdmcvkw0kg7e3" path="res://scripts/resource_definitions/tribulation/tribulation_phase_data.gd" id="2_tribphase"]
+
+[sub_resource type="Resource" id="Phase_steady"]
+script = ExtResource("2_tribphase")
+phase_name = "Steady breath"
+tip = "Press as the bright aura crosses the brass ring"
+breath_periods = PackedFloat32Array(1.7, 1.7, 1.7, 1.7, 1.7, 1.7)
+metadata/_custom_type_script = "uid://cdmcvkw0kg7e3"
+
+[sub_resource type="Resource" id="Phase_heartbeat"]
+script = ExtResource("2_tribphase")
+phase_name = "Heartbeat"
+tip = "The rhythm breaks. Follow it."
+breath_periods = PackedFloat32Array(1.45, 0.95, 1.4, 0.9, 1.25, 0.85)
+metadata/_custom_type_script = "uid://cdmcvkw0kg7e3"
+
+[sub_resource type="Resource" id="Phase_echo"]
+script = ExtResource("2_tribphase")
+phase_name = "Echo"
+tip = "A second breath answers the first. Catch both."
+breath_periods = PackedFloat32Array(1.6, 1.6, 1.6)
+echo_periods = PackedFloat32Array(1.5, 1.5, 1.5)
+echo_offset = 0.6
+metadata/_custom_type_script = "uid://cdmcvkw0kg7e3"
+
+[sub_resource type="Resource" id="Phase_quickening"]
+script = ExtResource("2_tribphase")
+phase_name = "Quickening"
+tip = "The breaths come faster. Keep up."
+gap_before = 0.8
+breath_periods = PackedFloat32Array(1.3, 1.15, 1, 0.9, 0.8, 0.72)
+aura_rush = true
+metadata/_custom_type_script = "uid://cdmcvkw0kg7e3"
+
+[resource]
+script = ExtResource("1_tribdata")
+target_stage = 1
+title = "The Tribulation"
+intro_text = "Your core is full. Breathe with the aura as it gathers, and let it pour into you."
+rules_text = "{cracks} cracks end the trial and cost {levels} levels of Core Density."
+last_breath_name = "The last breath"
+last_breath_tip = "Press as it crosses the ring, then hold while it pours into your core"
+pass_title = "Breakthrough"
+pass_text = "Your core condenses into Copper."
+fail_title = "Your core cracks"
+fail_text = "Core Density falls from {before} to {after}."
+tempo = 1.0
+lead_in = 1.2
+phases = Array[ExtResource("2_tribphase")]([SubResource("Phase_steady"), SubResource("Phase_heartbeat"), SubResource("Phase_echo"), SubResource("Phase_quickening")])
+last_breath_gap = 0.5
+last_breath_in = 1.8
+last_breath_out = 4.5
+last_breath_max_ratio = 2.54
+end_pause = 1.2
+sphere_min_ratio = 0.42
+sphere_max_ratio = 1.88
+perfect_window = 0.07
+good_window = 0.14
+early_reach_min = 0.3
+release_tolerance = 0.05
+cracks_to_fail = 4
+failure_level_loss = 5
+metadata/_custom_type_script = "uid://belwkiinq657i"

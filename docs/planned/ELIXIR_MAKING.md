@@ -1,10 +1,8 @@
 # Elixir Making System
 
-Last updated: 2026-10-18
-
 > **Status: Planned, not started.** No code exists for this system. This document records the design intent from the Game Design Document.
 >
-> **Blocked on Copper:** Elixir Making unlocks at the Copper stage, and the game can't reach Copper yet. There is no breakthrough, and no Copper `AdvancementStageResource`. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
+> **Unlocks at Copper, which nothing is gated on yet:** Elixir Making unlocks at the Copper stage. The Foundation → Copper breakthrough is built (the Tribulation) and Copper has a thin `AdvancementStageResource`, but no unlock condition, zone, path node or action checks for the stage. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
 
 ## Design Intent
 

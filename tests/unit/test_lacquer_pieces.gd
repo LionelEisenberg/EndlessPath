@@ -2,13 +2,17 @@ extends GutTest
 
 ## Unit tests for the lacquer theme and its shared pieces: the frame strip
 ## rect, the stepped rod, the brass frame overlay's flash, the floater, the
-## text helpers, the theme variants (kit §3) and the 9-slice styleboxes
-## (kit §4).
+## text helpers, the theme variants (kit §3), the 9-slice styleboxes (kit §4),
+## the wrapped Label's 1 px pad and the Madra orb shader's colour uniforms.
 
 const THEME_PATH: String = "res://assets/themes/lacquer/lacquer_theme.tres"
+const MADRA_ORB_SHADER_PATH: String = "res://assets/shaders/lacquer_madra_orb.gdshader"
+const WRAP_PAD_PATH: String = "res://assets/styleboxes/lacquer/wrap_pad.tres"
 const ROD_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_rod.tscn")
 const FRAME_OVERLAY_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_frame_overlay.tscn")
 const FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn")
+## One 60 FPS frame, for stepping the flash's tween by hand.
+const FRAME: float = 1.0 / 60.0
 
 const CORE_STRIP: Texture2D = preload("res://assets/ui/lacquer/lacquer_orb_core_strip_ai.png")
 const MADRA_STRIP: Texture2D = preload("res://assets/ui/lacquer/lacquer_orb_madra_strip_ai.png")
@@ -104,6 +108,31 @@ func _make_well_rod() -> LacquerRod:
 	rod.steps = 152
 	add_child_autofree(rod)
 	return rod
+
+## The default a shader declares for a colour uniform, read from its code
+## (`uniform vec4 name : source_color = vec4(r, g, b, a);`), or null when the
+## code declares none. Headless Godot returns no parameter defaults from the
+## RenderingServer, so the declaration is the only place to read one.
+func _declared_colour(code: String, uniform_name: String) -> Variant:
+	var declaration := RegEx.new()
+	declaration.compile("uniform\\s+vec4\\s+" + uniform_name + "\\s*:\\s*source_color\\s*=\\s*vec4\\(([^)]*)\\)\\s*;")
+	var found: RegExMatch = declaration.search(code)
+	if found == null:
+		return null
+	var channels: PackedStringArray = found.get_string(1).split(",")
+	if channels.size() != 4:
+		return null
+	return Color(channels[0].to_float(), channels[1].to_float(), channels[2].to_float(), channels[3].to_float())
+
+## Every .tscn under a folder, subfolders included.
+func _scene_files(folder: String) -> Array[String]:
+	var found: Array[String] = []
+	for subfolder: String in DirAccess.get_directories_at(folder):
+		found.append_array(_scene_files(folder.path_join(subfolder)))
+	for file: String in DirAccess.get_files_at(folder):
+		if file.ends_with(".tscn"):
+			found.append(folder.path_join(file))
+	return found
 
 #-----------------------------------------------------------------------------
 # STRIP RECT
@@ -226,17 +255,33 @@ func test_frame_overlay_starts_hidden_and_ignores_the_mouse() -> void:
 	assert_not_null(style, "the overlay draws a 9-slice texture")
 	assert_false(style.draw_center, "the frame has no fill")
 
+## Moves every running tween in the tree on by `seconds`, a 60 FPS frame at a
+## time, as frames would.
+func _run_tweens(seconds: float) -> void:
+	for _frame: int in roundi(seconds / FRAME):
+		for tween: Tween in get_tree().get_processed_tweens():
+			if tween.is_valid() and tween.is_running():
+				tween.custom_step(FRAME)
+
+## Runs 60 FPS frames of tweens until `done` returns true or `limit` seconds
+## pass.
+func _run_tweens_until(done: Callable, limit: float) -> void:
+	for _frame: int in roundi(limit / FRAME):
+		if done.call():
+			return
+		_run_tweens(FRAME)
+
 func test_flash_toggles_and_ends_hidden() -> void:
 	var overlay: LacquerFrameOverlay = FRAME_OVERLAY_SCENE.instantiate() as LacquerFrameOverlay
 	add_child_autofree(overlay)
 	overlay.flash(2)
 	assert_true(overlay.visible, "shown at once")
 	assert_true(overlay.is_flashing())
-	await wait_seconds(0.45)
+	_run_tweens(0.45)
 	assert_false(overlay.visible, "hidden in the first off phase (0.3 to 0.6 s)")
-	await wait_seconds(0.3)
+	_run_tweens(0.3)
 	assert_true(overlay.visible, "shown again for the second flash (0.6 to 0.9 s)")
-	await wait_until(func() -> bool: return not overlay.is_flashing(), 2.0)
+	_run_tweens_until(func() -> bool: return not overlay.is_flashing(), 2.0)
 	assert_false(overlay.is_flashing())
 	assert_false(overlay.visible, "the flash ends hidden")
 
@@ -246,12 +291,12 @@ func test_flash_restarts_cleanly() -> void:
 	var overlay: LacquerFrameOverlay = FRAME_OVERLAY_SCENE.instantiate() as LacquerFrameOverlay
 	add_child_autofree(overlay)
 	overlay.flash(3)
-	await wait_seconds(0.45)
+	_run_tweens(0.45)
 	overlay.flash(1)
 	assert_true(overlay.visible, "a new flash shows the frame at once")
-	await wait_until(func() -> bool: return not overlay.is_flashing(), 2.0)
+	_run_tweens_until(func() -> bool: return not overlay.is_flashing(), 2.0)
 	assert_false(overlay.visible)
-	await wait_seconds(0.3)
+	_run_tweens(0.3)
 	assert_false(overlay.visible, "the first flash's tween is gone")
 
 #-----------------------------------------------------------------------------
@@ -269,6 +314,26 @@ func test_floater_pops_on_an_even_token() -> void:
 	assert_eq(floater.get_token_width() % 2, 0, "the token is an even width, on the 2 px grid")
 	assert_eq(floater.get_color(), ThemeConstants.LACQUER_BRASS)
 	assert_eq(LacquerFloater.rise_at(0.05), 2, "the first 2 px step comes at 50 ms")
+
+func test_floater_pops_a_haul_as_counts_and_icons() -> void:
+	var floater: LacquerFloater = FLOATER_SCENE.instantiate() as LacquerFloater
+	add_child_autofree(floater)
+	var dew := MaterialDefinitionData.new()
+	dew.item_name = "Dewdrop Tear"
+	dew.mini_icon = PlaceholderTexture2D.new()
+	var nameless := MaterialDefinitionData.new()
+	nameless.item_name = "Iconless Stone"
+	floater.pop_items({dew: 3, nameless: 1}, ThemeConstants.LACQUER_CREAM)
+	var text: RichTextLabel = floater.get_node("%Text") as RichTextLabel
+	assert_true(floater.visible, "pop_items shows the floater")
+	assert_eq(floater.get_text(), "+3  +1", "the counts, two spaces between items")
+	assert_eq(floater.get_icons(), [dew.mini_icon] as Array[Texture2D], "an item's mini icon stands for its name")
+	assert_false(text.get_parsed_text().contains("Dewdrop"), "no name beside an icon")
+	assert_string_contains(text.get_parsed_text(), "Iconless Stone", "an item with no icon keeps its name")
+	assert_eq(floater.get_token_width() % 2, 0, "on the 2 px grid")
+	assert_gt(floater.get_token_width(), LacquerFloater.TOKEN_TEXT_PADDING + LacquerFloater.ITEM_ICON_SIZE, "the icon is measured with the text")
+	floater.pop("+1.5 Madra", ThemeConstants.LACQUER_MADRA)
+	assert_true(floater.get_icons().is_empty(), "plain text clears the icons")
 
 #-----------------------------------------------------------------------------
 # TEXT
@@ -406,6 +471,23 @@ func test_floater_has_no_outline() -> void:
 	assert_true(theme.has_constant(&"outline_size", &"LabelLacquerFloater"), "the floater sets its outline size")
 	assert_eq(theme.get_constant(&"outline_size", &"LabelLacquerFloater"), 0)
 
+func test_cooldown_variant() -> void:
+	# A technique's cooldown seconds sit on its icon: Euljiro 22 in cream with the
+	# painted titles' hard 2 px ink shadow, so the number reads over any icon.
+	var theme := _theme()
+	var variant: StringName = &"LabelLacquerCooldown"
+	assert_eq(theme.get_type_variation_base(variant), &"Label", "a Label variant")
+	assert_true(theme.has_font_size(&"font_size", variant), "sets its own size")
+	assert_eq(theme.get_font_size(&"font_size", variant), 22, "size")
+	assert_true(theme.has_font(&"font", variant), "sets its own font")
+	assert_eq(_font_path(theme.get_font(&"font", variant)), EULJIRO_PATH, "font")
+	assert_eq(theme.get_color(&"font_color", variant), ThemeConstants.LACQUER_CREAM, "colour")
+	assert_eq(theme.get_color(&"font_shadow_color", variant), ThemeConstants.LACQUER_INK, "shadow colour")
+	assert_eq(theme.get_constant(&"shadow_offset_x", variant), 2, "shadow x")
+	assert_eq(theme.get_constant(&"shadow_offset_y", variant), 2, "shadow y")
+	assert_true(theme.has_constant(&"shadow_outline_size", variant), "sets its shadow outline")
+	assert_eq(theme.get_constant(&"shadow_outline_size", variant), 0, "the shadow is a hard copy, not grown")
+
 func test_rich_text_variant() -> void:
 	var theme := _theme()
 	assert_eq(theme.get_type_variation_base(&"RichTextLacquer"), &"RichTextLabel")
@@ -463,6 +545,56 @@ func test_token_hugs_a_floater_line() -> void:
 	assert_eq(panel.size.y, 30.0, "28 px token + 2 px shadow")
 	assert_eq(panel.size.x, line.size.x + 30.0, "text + 28, + 2 px shadow")
 
+func test_board9_margins() -> void:
+	# The plain board under the tooltips: a 24x24 board with its 4 px shadow baked
+	# into the right and bottom of a 28x28 file, so the slices are 8 px on the
+	# left and top and 12 px on the right and bottom. The content margins keep the
+	# text 16 px in and 14 px down, with the shadow's 4 px added on the far sides.
+	var board: StyleBoxTexture = load("res://assets/styleboxes/lacquer/board9.tres") as StyleBoxTexture
+	assert_not_null(board, "board9.tres loads as a StyleBoxTexture")
+	if board == null:
+		return
+	assert_eq(board.texture.resource_path, "res://assets/ui/lacquer/lacquer_board9_ai.png")
+	assert_eq(board.texture.get_size(), Vector2(28, 28), "a 24x24 board plus its 4 px shadow")
+	assert_eq(board.texture_margin_left, 8.0, "texture margin left")
+	assert_eq(board.texture_margin_top, 8.0, "texture margin top")
+	assert_eq(board.texture_margin_right, 12.0, "texture margin right skips the shadow")
+	assert_eq(board.texture_margin_bottom, 12.0, "texture margin bottom skips the shadow")
+	assert_eq(board.content_margin_left, 16.0, "content margin left")
+	assert_eq(board.content_margin_top, 14.0, "content margin top")
+	assert_eq(board.content_margin_right, 20.0, "content margin right")
+	assert_eq(board.content_margin_bottom, 18.0, "content margin bottom")
+	assert_true(board.draw_center)
+
+func test_wrap_pad_is_a_one_pixel_bottom_pad() -> void:
+	# The `normal` style of a wrapped 15/18 or 18/22 Label: n lines come to 18 n or
+	# 22 n instead of 18 n - 1 or 22 n - 1, so every row stays on an even y. It draws
+	# nothing, adds one pixel under the text and nothing on the other three sides.
+	var pad: StyleBox = load(WRAP_PAD_PATH) as StyleBox
+	assert_not_null(pad, "wrap_pad.tres loads as a StyleBox")
+	if pad == null:
+		return
+	assert_true(pad is StyleBoxEmpty, "it draws nothing")
+	assert_eq(pad.get_margin(SIDE_BOTTOM), 1.0, "one pixel under the text")
+	for side: int in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT]:
+		assert_eq(pad.get_margin(side), 0.0, "nothing on side %d" % side)
+	assert_eq(pad.get_minimum_size(), Vector2(0, 1), "so a Label grows by a pixel and no width")
+
+## A scene that uses wrap_pad.tres names it by the uid the file declares, in the
+## text Godot writes (an id written with another alphabet decodes to the same
+## number but is not what the editor saves, and the next save rewrites it).
+func test_every_scene_names_wrap_pad_by_its_own_uid() -> void:
+	var id: int = ResourceLoader.get_resource_uid(WRAP_PAD_PATH)
+	assert_ne(id, ResourceUID.INVALID_ID, "precondition: wrap_pad.tres declares a uid")
+	var uid_text: String = ResourceUID.id_to_text(id)
+	var named: int = 0
+	for path: String in _scene_files("res://scenes"):
+		for line: String in FileAccess.get_file_as_string(path).split("\n"):
+			if line.begins_with("[ext_resource") and line.contains("path=\"%s\"" % WRAP_PAD_PATH):
+				named += 1
+				assert_true(line.contains("uid=\"%s\"" % uid_text), "%s names wrap_pad.tres as %s" % [path.get_file(), uid_text])
+	assert_gte(named, 4, "precondition: the walk met the scenes that use it (the drawer, the page, the Goals board, the Now strip)")
+
 #-----------------------------------------------------------------------------
 # THEME CONSTANTS
 #-----------------------------------------------------------------------------
@@ -478,3 +610,37 @@ func test_lacquer_palette_matches_the_kit() -> void:
 	assert_eq(ThemeConstants.LACQUER_MADRA, Color("#BBD5E7"))
 	assert_eq(ThemeConstants.LACQUER_MADRA_MID, Color("#849BE4"))
 	assert_eq(ThemeConstants.LACQUER_VERMILION, Color("#A83C30"))
+
+func test_vitals_colours() -> void:
+	# The text colours of the Health crimson and Stamina bamboo ramps.
+	assert_eq(ThemeConstants.LACQUER_HEALTH, Color("#E8737A"))
+	assert_eq(ThemeConstants.LACQUER_STAMINA, Color("#C9DB86"))
+
+#-----------------------------------------------------------------------------
+# MADRA ORB SHADER
+#-----------------------------------------------------------------------------
+
+func test_orb_colours_default_to_madra() -> void:
+	# The liquid's ramp is three colour uniforms so the Health orb can set its own
+	# crimson on its material. Their defaults are the Madra ramp, which keeps the
+	# cultivator cabinet's orb as it was without setting anything but `progress`.
+	var shader: Shader = load(MADRA_ORB_SHADER_PATH) as Shader
+	assert_not_null(shader, "the Madra orb shader loads")
+	if shader == null:
+		return
+	var uniform_types: Dictionary = {}
+	for uniform: Dictionary in shader.get_shader_uniform_list():
+		uniform_types[uniform["name"]] = uniform["type"]
+	var madra_ramp: Dictionary = {
+		"light": Color("#E8F6FD"),
+		"pale": Color("#BBD5E7"),
+		"blue": Color("#849BE4"),
+	}
+	for uniform_name: String in madra_ramp:
+		assert_true(uniform_types.has(uniform_name), "%s is a shader uniform" % uniform_name)
+		assert_eq(uniform_types.get(uniform_name), TYPE_COLOR, "%s is a colour" % uniform_name)
+		var declared: Variant = _declared_colour(shader.code, uniform_name)
+		assert_not_null(declared, "%s declares its default in the shader code" % uniform_name)
+		if declared != null:
+			var expected: Color = madra_ramp[uniform_name]
+			assert_true((declared as Color).is_equal_approx(expected), "%s defaults to %s, the shader declares %s" % [uniform_name, expected, declared])

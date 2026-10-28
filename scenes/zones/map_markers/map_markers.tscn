@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://0k6rbof0p2ve"]
 
 [ext_resource type="Script" uid="uid://bk67aggyfbnqu" path="res://scenes/zones/map_markers/map_markers.gd" id="1_script"]
-[ext_resource type="PackedScene" uid="uid://bct65erp7bgms" path="res://scenes/zones/map_markers/map_action_ring/map_action_ring.tscn" id="2_ring"]
 [ext_resource type="PackedScene" uid="uid://sl04evwu81v5" path="res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn" id="3_floater"]
 [ext_resource type="PackedScene" uid="uid://dqgl61edrme6l" path="res://scenes/zones/map_markers/zone_map_popover/zone_map_popover.tscn" id="4_popover"]
 
@@ -17,14 +16,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-
-[node name="ActionRing" parent="Root" unique_id=585929260 instance=ExtResource("2_ring")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 998.0
-offset_top = 706.0
-offset_right = 1062.0
-offset_bottom = 770.0
 
 [node name="Floater" parent="Root" unique_id=925425858 instance=ExtResource("3_floater")]
 unique_name_in_owner = true

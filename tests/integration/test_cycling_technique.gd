@@ -275,7 +275,8 @@ func test_no_madra_or_pellets_at_the_cap() -> void:
 	assert_eq(_technique.get_current_result().madra_added, 0.0)
 
 func test_madra_above_the_cap_is_left_alone() -> void:
-	# add_madra() would clamp it down and report a negative correction.
+	# Over the cap the technique's own _madra_full() guard skips every step, so
+	# the pool stays where it is and the result counts no Madra.
 	ResourceManager.set_madra(150.0)
 	_technique.start_cycle()
 	_run(1.0, 60.0, true)
@@ -657,6 +658,24 @@ func test_a_scored_zone_shows_in_the_result() -> void:
 	assert_eq(result.perfect_count, 1)
 	assert_eq(result.xp, 25)
 	assert_eq(result.result_line(), "Last cycle · +0 Madra · 1 / 4 zones · 1 PERFECT · +25 XP")
+
+func test_a_zone_scored_at_the_cap_marks_the_result() -> void:
+	PersistenceManager.save_game_data.core_density_level = 100.0
+	assert_true(CultivationManager.is_core_full(), "precondition: the core is full")
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_false(_technique.get_current_result().core_full, "precondition: the flag comes with a scored zone, not with the cycle")
+	assert_true(_technique.try_score_zone(zone))
+	assert_true(_technique.get_current_result().core_full)
+
+func test_the_zone_that_fills_the_core_marks_the_result() -> void:
+	# One XP short of the last level, so any zone's XP fills the core.
+	PersistenceManager.save_game_data.core_density_level = 99.0
+	PersistenceManager.save_game_data.core_density_xp = CultivationManager.get_xp_for_next_level() - 1.0
+	assert_false(CultivationManager.is_core_full(), "precondition: one level short of the cap")
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_true(_technique.try_score_zone(zone))
+	assert_true(CultivationManager.is_core_full(), "precondition: the zone's XP filled the core")
+	assert_true(_technique.get_current_result().core_full, "the flag is read after the XP is in")
 
 func test_pointer_over_the_ball_while_a_press_would_do_something() -> void:
 	var ball: Vector2 = _technique.get_ball_global_position()

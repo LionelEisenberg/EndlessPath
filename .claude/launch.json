@@ -18,6 +18,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "3791", "--bind", "127.0.0.1"],
       "port": 3791
+    },
+    {
+      "name": "adventure-mockup",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3790", "--bind", "127.0.0.1", "--directory", "."],
+      "port": 3790
     }
   ]
 }

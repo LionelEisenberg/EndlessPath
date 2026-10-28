@@ -7,7 +7,7 @@ extends Control
 ## While an idle action (FORAGE or TRAIN_STATS) runs, a jade bead ring lights
 ## over each timer cycle (one Aura Well tick, one foraging haul), around the
 ## action's icon. The Aura Well variant shows its Madra rate,
-## "Lv n → n+1 · +1 Spirit", the ticks into the level and a rod; the foraging
+## "+1 Spirit at Lv n+1", the ticks into the level and a rod; the foraging
 ## variant shows each loot entry's range and "haul in N s". Clicking the tray
 ## emits strip_pressed (the chest scrolls to the running card and flashes it).
 ## While the player cycles, the tray shows the cycle in the Aura Well's layout,
@@ -20,6 +20,16 @@ extends Control
 ## line, "<idle action> · paused" while a session action (the shop, an
 ## adventure, dialogue) stands in for the zone's idle action, or
 ## "Nothing running" when the zone has none. The empty tray takes no clicks.
+## The strip is 392 wide, as the activity cards are (they keep their width beside
+## the list's rail), so its edges and theirs line up, and its contents end 16 px
+## short of where they ended in the 408 it was. No text in it is cut off: the
+## action's name, the level line, the forage name and the empty tray's line wrap
+## in what room their neighbours leave them, and the strip grows to hold them,
+## 88 tall at least and an even number of px. The foraging yields wrap onto
+## further rows of 20 px when a loot table has more than the row holds. The ring
+## and the action's icon stay at the top. The tray's face is a NinePatchRect on
+## the tray's art (a clean 9-slice). The zone chest listens to resized, and stands
+## the Activities header, the list and the lore under the strip's bottom.
 
 ## Emitted when the player clicks the tray.
 signal strip_pressed
@@ -33,7 +43,6 @@ const RING_LAST_FRAME: int = 12
 const RING_FRAME_COUNT: int = 13
 ## The tray flashes once when its running card is clicked.
 const FLASH_TIMES: int = 1
-const SEPARATOR: String = " · "
 ## The empty tray's line: the idle action that resumes, or none.
 const PAUSED_FORMAT: String = "%s · paused"
 const NOTHING_RUNNING: String = "Nothing running"
@@ -44,6 +53,23 @@ const CYCLE_READY_FORMAT: String = "%d s cycle"
 ## The cycle's rate is read to CyclingManager.RATE_STEP, as on the cabinet, and
 ## shows from half that step: below it the rate reads +0.
 const RATE_SHOWN_FROM: float = CyclingManager.RATE_STEP / 2.0
+## The foraging haul's countdown.
+const HAUL_FORMAT: String = "haul in %d s"
+## The training level line: what the next level grants ("+1 Spirit at Lv 2"),
+## or the levels alone for an action whose levels grant no attribute.
+const LEVEL_REWARD_FORMAT: String = "%s at Lv %d"
+const LEVEL_FORMAT: String = "Lv %d → %d"
+
+## The strip is the kit's 88 tall at least. Under the text of each look the room
+## is what makes one line of each exactly that: the Aura Well's content starts 12
+## down and is 62 tall (14 under), the forage's starts 18 down and is 50 tall (20
+## under), and the empty tray's line starts 36 down and is 18 tall (34 under).
+const MIN_HEIGHT: float = 88.0
+const TRAINING_BOTTOM_ROOM: float = 14.0
+const FORAGE_BOTTOM_ROOM: float = 20.0
+const EMPTY_BOTTOM_ROOM: float = 34.0
+## The gap between the level line and the ticks in the bottom row.
+const ROW_GAP: float = 8.0
 
 const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_button/presenters/forage_yield.tscn")
 
@@ -62,7 +88,7 @@ const FORAGE_YIELD_SCENE: PackedScene = preload("res://scenes/zones/zone_action_
 @onready var _well_rod: LacquerRod = %WellRod
 @onready var _forage_content: Control = %ForageContent
 @onready var _forage_name: Label = %ForageName
-@onready var _yield_row: HBoxContainer = %YieldRow
+@onready var _yield_row: HFlowContainer = %YieldRow
 @onready var _haul_label: Label = %HaulLabel
 @onready var _empty_label: Label = %EmptyLabel
 @onready var _hover_frame: LacquerFrameOverlay = %HoverFrame
@@ -88,6 +114,7 @@ func _ready() -> void:
 	gui_input.connect(_on_gui_input)
 	mouse_entered.connect(_hover_frame.show)
 	mouse_exited.connect(_hover_frame.hide)
+	_yield_row.sort_children.connect(_on_yield_row_sorted)
 	_show_action(ActionManager.get_current_action())
 
 func _process(_delta: float) -> void:
@@ -131,6 +158,7 @@ func _show_action(action: ZoneActionData) -> void:
 	elif cycling:
 		_show_cycling()
 	_update_timer_display()
+	_fit()
 
 ## The empty tray: the ring at its dark frame, no icon, no content, and the
 ## one line.
@@ -148,9 +176,10 @@ func _update_empty_line() -> void:
 	var zone: ZoneData = ZoneManager.get_current_zone()
 	var idle: ZoneActionData = ActionManager.resolve_idle_action(zone.zone_id) if zone != null else null
 	_empty_label.text = PAUSED_FORMAT % idle.action_name if idle != null else NOTHING_RUNNING
+	_fit()
 
-## "+1.5 Madra / s", "Lv 1 → 2 · +1 Spirit", "214 / 300" and the rod toward
-## the next level.
+## "+1.5 Madra / s", "+1 Spirit at Lv 2", "214 / 300" and the rod toward the
+## next level.
 func _show_training(training: TrainingActionData) -> void:
 	_training_name.text = training.action_name
 	var madra_per_second: float = training.get_madra_per_second()
@@ -166,13 +195,12 @@ func _update_training_progress() -> void:
 	var level: int = training.get_current_level(ticks)
 	var ticks_in_level: int = training.get_ticks_in_level(ticks)
 	var ticks_for_next: int = training.get_ticks_for_next_level(ticks)
-	var level_line: String = "Lv %d → %d" % [level, level + 1]
 	var reward: String = _level_reward_text(training)
-	if reward != "":
-		level_line += SEPARATOR + reward
-	_level_label.text = level_line
+	_level_label.text = LEVEL_REWARD_FORMAT % [reward, level + 1] if reward != "" else LEVEL_FORMAT % [level, level + 1]
 	_ticks_label.text = "%d / %d" % [ticks_in_level, ticks_for_next]
 	_well_rod.set_fraction(float(ticks_in_level) / ticks_for_next if ticks_for_next > 0 else 0.0)
+	_fit_training_labels()
+	_fit()
 
 ## "+1 Spirit": the first attribute award each level grants.
 func _level_reward_text(training: TrainingActionData) -> String:
@@ -185,11 +213,13 @@ func _level_reward_text(training: TrainingActionData) -> String:
 ## The cycling action in the Aura Well's layout: its name, and the equipped
 ## technique where the level line goes. The figure, the rod and the rate follow
 ## the session snapshot every frame. The tray takes no clicks while cycling, so
-## no hover frame stays from the idle action's tray.
+## no hover frame stays from the idle action's tray. The name and the technique
+## wrap in the Aura Well's rows, so they get their room as the well's do.
 func _show_cycling() -> void:
 	_hover_frame.hide()
 	_training_name.text = _action.action_name
 	_update_technique()
+	_fit_training_labels()
 
 ## The equipped technique's name, where the Aura Well shows its level line.
 func _update_technique() -> void:
@@ -197,12 +227,21 @@ func _update_technique() -> void:
 	_level_label.text = technique.technique_name if technique != null else ""
 
 ## The ring, the figure, the rod and the rate, read from the session snapshot.
+## The name wraps beside the rate and the technique beside the figure, so when
+## either changes the rows get their room again and the strip fits; on the
+## frames between, nothing is laid out.
 func _update_cycle_display() -> void:
 	var progress: float = CyclingManager.get_cycle_progress()
 	_light_ring(progress)
 	_well_rod.set_fraction(progress)
+	var figure_before: String = _ticks_label.text
+	var rate_before: String = _rate_text.text if _rate_group.visible else ""
 	_update_cycle_figure()
 	_update_cycle_rate()
+	var rate_after: String = _rate_text.text if _rate_group.visible else ""
+	if _ticks_label.text != figure_before or rate_after != rate_before:
+		_fit_training_labels()
+		_fit()
 
 ## "9 / 15 s" while a cycle runs; until one does, the equipped technique's
 ## length, "15 s cycle".
@@ -221,10 +260,41 @@ func _update_cycle_rate() -> void:
 	if _rate_group.visible:
 		_rate_text.text = LacquerText.decimal_bbcode("%s Madra / s" % LacquerText.rate(snappedf(rate, CyclingManager.RATE_STEP)))
 
+## Sizes the strip to what shows in it (an even height, 88 at least): the Aura
+## Well's rows, the forage's name and yields, or the empty tray's line.
+func _fit() -> void:
+	var bottom: float = MIN_HEIGHT
+	if _training_content.visible:
+		bottom = _training_content.position.y + _training_content.get_combined_minimum_size().y + TRAINING_BOTTOM_ROOM
+	elif _forage_content.visible:
+		bottom = _forage_content.position.y + _forage_content.get_combined_minimum_size().y + FORAGE_BOTTOM_ROOM
+	elif _empty_label.visible:
+		bottom = _empty_label.position.y + _empty_label.get_combined_minimum_size().y + EMPTY_BOTTOM_ROOM
+	size.y = ceilf(maxf(MIN_HEIGHT, bottom) / 2.0) * 2.0
+
+## The action's name wraps in the row's room less the Madra rate beside it, and the
+## level line in its room less the ticks beside it. (A Label that shares its row
+## is given its width as a minimum and as the size, so its lines are counted at
+## that width at once.)
+func _fit_training_labels() -> void:
+	var rate_width: float = _rate_group.get_combined_minimum_size().x if _rate_group.visible else 0.0
+	_set_wrap_width(_training_name, _training_content.size.x - rate_width)
+	_set_wrap_width(_level_label, _training_content.size.x - ROW_GAP - _ticks_label.get_combined_minimum_size().x)
+
+## Gives `label` that width (at least 1 px) as its minimum and as its size, and has
+## the boxes above it ask again for its height: a change of width otherwise leaves
+## the last height cached.
+func _set_wrap_width(label: Label, width: float) -> void:
+	var room: float = maxf(width, 1.0)
+	label.custom_minimum_size.x = room
+	label.size.x = room
+	label.update_minimum_size()
+
 ## The action's name and one yield per loot entry (its 16 px icon and
 ## "min–max"). The haul countdown follows the timer every frame.
 func _show_forage(forage: ForageActionData) -> void:
 	_forage_name.text = forage.action_name
+	_fit_haul_column(forage)
 	for child: Node in _yield_row.get_children():
 		_yield_row.remove_child(child)
 		child.queue_free()
@@ -238,7 +308,19 @@ func _show_forage(forage: ForageActionData) -> void:
 		var icon_rect: TextureRect = yield_item.get_node("%Icon") as TextureRect
 		icon_rect.texture = entry.item.get_mini_icon()
 		icon_rect.visible = icon_rect.texture != null
-		(yield_item.get_node("%RangeText") as RichTextLabel).text = _range_text(entry)
+		(yield_item.get_node("%YieldText") as RichTextLabel).text = _range_text(entry)
+
+## Gives the haul countdown the width of its widest reading ("haul in N s" for any
+## N of a cycle), so the yields wrapping beside it keep the room they have as the
+## digits change from one second to the next (a digit is a pixel or two wider than
+## another, and a yield that fits by less would jump between rows).
+func _fit_haul_column(forage: ForageActionData) -> void:
+	var font: Font = _haul_label.get_theme_font(&"font")
+	var font_size: int = _haul_label.get_theme_font_size(&"font_size")
+	var widest: float = 0.0
+	for seconds: int in range(1, ceili(forage.foraging_interval_in_sec) + 1):
+		widest = maxf(widest, font.get_string_size(HAUL_FORMAT % seconds, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+	_haul_label.custom_minimum_size.x = widest
 
 func _range_text(entry: LootTableEntry) -> String:
 	if entry.min_quantity == entry.max_quantity:
@@ -262,7 +344,7 @@ func _update_timer_display() -> void:
 	_light_ring(progress)
 	if _forage_content.visible:
 		var seconds_left: int = ceili(timer.time_left) if not timer.is_stopped() else ceili(timer.wait_time)
-		_haul_label.text = "haul in %d s" % seconds_left
+		_haul_label.text = HAUL_FORMAT % seconds_left
 
 ## Lights floor(progress × 13) beads of the ring, at most 12.
 func _light_ring(progress: float) -> void:
@@ -293,6 +375,12 @@ func _on_condition_unlocked(_condition_id: String) -> void:
 	if _action == null:
 		_update_empty_line()
 
+## The yields wrap in the room the haul countdown leaves them, and how many rows
+## they make is known only once the flow has sorted at that width (the strip's
+## first fit comes before it), so the strip fits again when the flow has sorted.
+func _on_yield_row_sorted() -> void:
+	_fit()
+
 func _on_training_tick_processed(training: TrainingActionData, _new_tick_count: int) -> void:
 	if training == _action:
 		_update_training_progress()
@@ -307,6 +395,8 @@ func _on_equipped_technique_changed(_technique: CyclingTechniqueData) -> void:
 	if _is_cycling(_action):
 		_update_technique()
 		_update_cycle_figure()
+		_fit_training_labels()
+		_fit()
 
 func _on_gui_input(event: InputEvent) -> void:
 	var press := event as InputEventMouseButton

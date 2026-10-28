@@ -1,18 +1,16 @@
 # Path Progression System
 
-Last updated: 2026-10-23
-
 ## Overview
 
 Path Progression is a per-path skill tree. The player earns **Path Points** and spends them on nodes in the **Pure Madra** tree, which `PathManager` selects automatically on a new save. One node purchase can unlock combat abilities and cycling techniques, or add numeric perks (Madra generation, max Madra, Core Density XP, and so on).
 
 Status at a glance:
 
-| Area | State on this branch |
+| Area | State |
 |------|----------------------|
 | Trees | 1 (`pure_madra`), Tier 1 / Foundation only. 14 nodes, 22 points to max everything |
 | Node mix | 2 keystone, 4 major, 5 minor, 3 repeatable |
-| Point sources | Every 10th Core Density level (1/2/3/4 points by stage); quest "First Steps Out" (+1); dev panel |
+| Point sources | Every 10th Core Density level, once per stage (1/2/3/4 points by stage); quest "First Steps Out" (+1); dev panel |
 | Perks that work in play | 3 unlock nodes. They grant 2 abilities (Empty Palm, Power Font) and 2 cycling techniques (Smooth Flow, Torrential Flow) |
 | Perks that do nothing yet | 7 numeric nodes: aggregated into `PathEffectsSummary`, but no system reads it. 4 nodes have no effects at all |
 | Tier gates | Enforced in `PathManager.can_purchase_node()`, with no UI. Every node is Foundation |
@@ -161,7 +159,7 @@ Methods:
 | 9 | `UNLOCK_CYCLING_TECHNIQUE` | `unlocked_cycling_techniques` | Appended once | `pure_core_awakening`, `torrential_flow` | Yes. `purchase_node()` → `CyclingManager.unlock_technique()` |
 
 ### PathEffectsSummary (`RefCounted`)
-An aggregated snapshot that `PathManager._recalculate_effects()` rebuilds from scratch. Defaults are the "no bonus" values:
+An aggregated snapshot that `PathManager` rebuilds from scratch. Defaults are the "no bonus" values:
 - `attribute_bonuses: Dictionary = {}`
 - the three `*_mult: float` fields = `1.0`
 - the other float fields = `0.0`
@@ -214,10 +212,10 @@ An aggregated snapshot that `PathManager._recalculate_effects()` rebuilds from s
 
 | Signal | Emitted by | Listeners |
 |--------|-----------|-----------|
-| `node_purchased(node_id: String, new_level: int)` | `purchase_node()` | `PathTreeView._on_node_purchased` |
-| `points_changed(new_balance: int)` | `add_points()`, `purchase_node()`, `reset_path()`, `_restore_current_path()` | `PathTreeView._on_points_changed` |
-| `path_set(path_tree: PathTreeData)` | `set_path()`, `_restore_current_path()` | `PathTreeView._on_path_set` |
-| `effects_changed(effects: PathEffectsSummary)` | `_recalculate_effects()`, `reset_path()` | None |
+| `node_purchased(node_id: String, new_level: int)` | `purchase_node()` | `PathTreeView` |
+| `points_changed(new_balance: int)` | `add_points()`, `purchase_node()`, `reset_path()`, the path restore | `PathTreeView` |
+| `path_set(path_tree: PathTreeData)` | `set_path()`, the path restore | `PathTreeView` |
+| `effects_changed(effects: PathEffectsSummary)` | Each rebuild of the summary, `reset_path()` | None |
 
 Constants and hooks:
 - `DEFAULT_PATH_ID = "pure_madra"`.
@@ -227,65 +225,65 @@ Constants and hooks:
 
 | Source | Amount | Trigger |
 |--------|--------|---------|
-| Core Density milestone | `CultivationManager.PATH_POINTS_PER_STAGE[stage]`: Foundation 1, Copper 2, Iron 3, Jade 4; any other stage (Silver) falls back to 1 | Each level-up in `CultivationManager.add_core_density_xp()` where `level % PATH_POINT_LEVEL_INTERVAL (10) == 0` |
+| Core Density milestone | `CultivationManager.PATH_POINTS_PER_STAGE[stage]`: Foundation 1, Copper 2, Iron 3, Jade 4; any other stage (Silver) falls back to 1 | Each level-up in `CultivationManager.add_core_density_xp()` where `level % PATH_POINT_LEVEL_INTERVAL (10) == 0` and the level is above the stage's entry in `SaveGameData.core_density_milestones` (`cultivation_manager.gd:248-257`). A level lost to a failed Tribulation and regained pays nothing again |
 | Quest `q_first_steps` ("First Steps Out") | 1 | `completion_effects` → `AwardPathPointEffectData` (default `amount = 1`) |
-| Dev panel "Path Points" row | 0–1000 | `DevPanel._on_apply_points()` → `add_points()` |
+| Dev panel "Path Points" row | 0–1000 | `DevPanel` → `add_points()` |
 
 The quest awards its point after two steps: defeat an enemy, then return to the Celestial Intervener.
 
 Budget facts:
-- The player can't leave Foundation: `CultivationManager.attempt_breakthrough()` is a stub, nothing writes `current_advancement_stage`, and only the Foundation `AdvancementStageResource` exists. Every milestone therefore pays 1 point.
+- The player leaves Foundation only through the Tribulation (`CultivationManager.advance_to_next_stage()`, [breakthrough-tribulation.md](../cultivation/breakthrough-tribulation.md)). Until then every milestone pays Foundation's 1 point. Copper pays 2 per milestone, counted from its own level 10: the ledger has one entry per stage.
 - Through CD 100 a Foundation player can earn 11 points: 10 milestones plus the quest. The tree costs 22 to max, so that is 50% completion.
-- Core Density has no level cap in code, and Breakthrough is unimplemented, so milestone points keep coming past CD 100. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
+- Core Density stops at 100 in each stage, so the milestones are finite: a stage pays at most 10, and a level regained after a failed Tribulation pays nothing. See [CULTIVATION.md](../cultivation/CULTIVATION.md).
 - There are no refunds, respecs, or point sinks outside the tree.
 
 ### Purchase Flow
 
 ```
 PathNodeUI.pressed → node_clicked(node_id)
-  → PathTreeView._on_node_clicked(node_id) → PathManager.purchase_node(node_id)
+  → PathTreeView → PathManager.purchase_node(node_id)
        can_purchase_node(node_id)? else return false (silent)
        path_points -= point_cost; path_node_purchases[node_id] = level + 1
-       _recalculate_effects()                    → effects_changed (no listeners)
-       points_changed(balance)                   → PathTreeView._refresh_all_nodes()
-       node_purchased(node_id, level)            → _refresh_all_nodes() + BenefitsArea.rebuild()
+       rebuild the summary                       → effects_changed (no listeners)
+       points_changed(balance)                   → PathTreeView refreshes every node
+       node_purchased(node_id, level)            → refresh every node + BenefitsArea.rebuild()
        for each UNLOCK_CYCLING_TECHNIQUE effect  → CyclingManager.unlock_technique(string_value)
        for each UNLOCK_ABILITY effect            → AbilityManager.unlock_ability(string_value)
-  → PathNodeUI: if the node went from level 0 to ≥ 1 → _spawn_purchase_particles()
+  → PathNodeUI: if the node went from level 0 to ≥ 1 → the purchase particle burst
 ```
 
 Both unlock calls are idempotent and `push_error` on unknown ids. Abilities and techniques go into their own save fields (`unlocked_ability_ids`, `unlocked_cycling_technique_ids`). Nothing equips them automatically.
 
 ### Effect Aggregation
 
-`_recalculate_effects()` builds a new `PathEffectsSummary`. For every node at level ≥ 1, it calls `_apply_effect(effect, level)` once per effect:
+`PathManager` builds a new `PathEffectsSummary`. For every node at level ≥ 1, it applies each effect once, at the node's level:
 - **Additive** types add `float_value × level`. `ADVENTURE_MADRA_RETURN_PCT` is clamped to `1.0` after each add.
 - **Multiplicative** types multiply by `pow(float_value, level)`, compounding across nodes. Madra Surge at 3/3 gives `1.1³ = 1.331`.
 - **Unlock** types append `string_value` once (non-empty, deduplicated).
 
-It runs from `set_path()`, `purchase_node()`, and `_restore_current_path()`.
+It runs from `set_path()`, `purchase_node()`, and the path restore.
 
 ### Startup, Persistence, Reset
 
 ```
 PathManager._ready()
   _live_save_data = PersistenceManager.save_game_data
-  PersistenceManager.save_data_reset → _on_save_data_reset()
-  _load_all_path_trees()      — PathTreeList entries that pass validate(), keyed by path_id
-  _restore_current_path()
-    current_path_id known    → _current_tree = tree; _recalculate_effects(); path_set
-    current_path_id empty    → auto-select DEFAULT_PATH_ID (points untouched); _recalculate_effects(); path_set
+  connects PersistenceManager.save_data_reset (below)
+  loads all path trees        — PathTreeList entries that pass validate(), keyed by path_id
+  the path restore:
+    current_path_id known    → _current_tree = tree; rebuild the summary; path_set
+    current_path_id empty    → auto-select DEFAULT_PATH_ID (points untouched); rebuild the summary; path_set
     current_path_id unknown  → no tree (view shows "NO PATH")
     always                   → points_changed(path_points)
 
-_on_save_data_reset()       — re-point _live_save_data, clear tree and summary, _restore_current_path()
+on save_data_reset          — re-point _live_save_data, clear tree and summary, run the path restore
 ```
 
-`_restore_current_path()` and `_recalculate_effects()` never re-apply `UNLOCK_*` effects. Unlock state lives only in the AbilityManager and CyclingManager save fields.
+The path restore and the summary rebuild never re-apply `UNLOCK_*` effects. Unlock state lives only in the AbilityManager and CyclingManager save fields.
 
 ### Path Tree View
 
-**Chapters.** `PathTreeView.STAGES` lists Foundation, Copper, Iron and Jade, one side tab each. `is_stage_unlocked(stage)` compares the stage with `CultivationManager.get_current_advancement_stage()`. `_before_open()` re-locks the tabs (so a stage reached between openings unlocks next time), opens the highest reached stage with `open_stage()` (no page turn), and shows the path info. A tab click (`StageTabs.tab_changed`) hides the pages and title ribbon, plays `BookFrame.turn_page()` forwards or backwards by direction, and rebuilds the tree for the new stage on `page_turned`.
+**Chapters.** `PathTreeView.STAGES` lists Foundation, Copper, Iron and Jade, one side tab each. `is_stage_unlocked(stage)` compares the stage with `CultivationManager.get_current_advancement_stage()`. Before the book opens, the view re-locks the tabs (so a stage reached between openings unlocks next time), opens the highest reached stage with `open_stage()` (no page turn), and shows the path info. A tab click (`StageTabs.tab_changed`) hides the pages and title ribbon, plays `BookFrame.turn_page()` forwards or backwards by direction, and rebuilds the tree for the new stage on `page_turned`.
 
 **Build.** `PathTreeView._ready()` connects to `node_purchased`, `points_changed`, and `path_set`, then calls `build_tree()`. `build_tree()` builds the open chapter:
 1. Clears the container (nodes are freed at once).
@@ -293,9 +291,9 @@ _on_save_data_reset()       — re-point _live_save_data, clear tree and summary
 3. Reads the chapter's layout from `stage_layouts` (`read_layout_positions()` maps Marker2D **name** → position).
 4. Instantiates one `PathNodeUI` per node of the open stage (`PathTreeData.get_nodes_for_stage()`), centered on its marker. A node with no marker lands at (0, 0).
 5. Registers a connection for every prerequisite → dependent pair; links to another chapter's nodes are skipped by the container.
-6. Refreshes all nodes, rebuilds the benefits list and the points badge, and fits the tree: `_fit_tree()` zooms and centres the chapter's node bounds (marker positions ± 36 px) in `%TreeArea` with a 12 px margin, clamped to [0.4, 1.5]. It runs again when `%TreeArea` resizes and after the book has opened.
+6. Refreshes all nodes, rebuilds the benefits list and the points badge, and fits the tree: the fit zooms and centres the chapter's node bounds (marker positions ± 36 px) in `%TreeArea` with a 12 px margin, clamped to [0.4, 1.5]. It runs again when `%TreeArea` resizes and after the book has opened.
 
-**Refresh.** `_refresh_all_nodes()` runs on `points_changed` and `node_purchased`. It updates the balance label, calls `PathNodeUI.refresh(level, PathManager.can_purchase_node(id))` on every node, redraws the lines, and rebuilds the energy `Line2D`s.
+**Refresh.** A refresh of every node runs on `points_changed` and `node_purchased`. It updates the balance label, calls `PathNodeUI.refresh(level, PathManager.can_purchase_node(id))` on every node, redraws the lines, and rebuilds the energy `Line2D`s.
 
 **Node visuals.**
 
@@ -320,11 +318,11 @@ The shader `state` uniform is 0 / 1 / 2; purchased and maxed both use 2. Border 
 
 Fallback constants apply without a theme. When the tree has a theme, `rebuild_energy_lines()` adds a 4 px `Line2D` with `path_connection_energy.gdshader` to each both-purchased connection: `line_color = line_purchased`, `energy_color = line_energy_color`.
 
-**Pan and zoom.** `_on_tree_area_gui_input()` handles input:
+**Pan and zoom.** The view handles `%TreeArea`'s `gui_input`:
 - A left press on empty `%TreeArea` space starts a pan that moves `%NodeContainer.position`. Nodes are `TextureButton`s, so presses on them don't pan.
 - The wheel steps `_zoom_level` by ±0.1 within [0.4, 1.5] and keeps the point under the cursor fixed.
 
-**Right page.** `_on_node_hovered()` calls `show_node_details()`: the plaque takes the node's name and `PathDetailsCard.show_node()` fills the card. The details stay until another node or the path plaque is pointed at. `PathDetailsCard.format_effect()` renders one `▲` line per effect:
+**Right page.** Hovering a node calls `show_node_details()`: the plaque takes the node's name and `PathDetailsCard.show_node()` fills the card. The details stay until another node or the path plaque is pointed at. `PathDetailsCard.format_effect()` renders one `▲` line per effect:
 - `+15 Cycling Accuracy`
 - `+10% Madra Generation` (multipliers display as `(value − 1) × 100`)
 - `+10% Madra Return`
@@ -332,7 +330,7 @@ Fallback constants apply without a theme. When the tree has a theme, `rebuild_en
 
 Hovering `%PathPlaque` calls `show_path_info()`, which shows the path's description and its Strengths, Weaknesses, Cycling and Combat lines from `PathTreeData`.
 
-**Benefits.** `BenefitsArea.rebuild()` writes one `"▲ " + benefit_summary` line (the description when the summary is empty) per purchased node of every stage, in `tree.nodes` order, into `%BenefitsLabel`; with none it shows `%BenefitsEmpty` instead. `get_purchased_count()` counts nodes at level ≥ 1. The points badge shows `PathManager.get_point_balance()` only; the spend total was dropped on 2026-10-21. The row-per-node `BenefitCard` scene was removed the same day.
+**Benefits.** `BenefitsArea.rebuild()` writes one `"▲ " + benefit_summary` line (the description when the summary is empty) per purchased node of every stage, in `tree.nodes` order, into `%BenefitsLabel`; with none it shows `%BenefitsEmpty` instead. `get_purchased_count()` counts nodes at level ≥ 1. The points badge shows `PathManager.get_point_balance()` only; the spend total was dropped. The row-per-node `BenefitCard` scene was removed.
 
 **Open/close.** `PathTreeViewState` is a `BookViewState`: `enter()` calls `GreyBackground.show_with_panel(path_tree_view)` (the log and the Goals board stay under the backdrop); `ui_cancel`, `open_path`, the book's close tab or a backdrop click call `hide_with_panel()`, and `panel_hidden` pops the state once both the grey fade and the book's close animation have finished.
 - **Entry points.** `ZoneViewState.handle_input()` pushes the state on `open_path` (P). The dock's `PathButton` (`SystemMenuButton.MenuType.PATH`) fires `open_path` through `Input.parse_input_event()`, then releases it.
@@ -353,12 +351,12 @@ A layout is a `Node2D` scene with one `Marker2D` per node. Each marker is **name
 
 | System | Direction | Interaction |
 |--------|-----------|-------------|
-| `CultivationManager` | → PathManager | `add_core_density_xp()` calls `PathManager.add_points(PATH_POINTS_PER_STAGE[stage])` on each level that is a multiple of 10 |
-| `CultivationManager` | ← PathManager | `_is_stage_reached()` reads `get_current_advancement_stage()`. `AdvancementStage` types `required_stage` |
+| `CultivationManager` | → PathManager | `add_core_density_xp()` calls `PathManager.add_points(PATH_POINTS_PER_STAGE[stage])` on each level that is a multiple of 10 and that the stage has not paid before |
+| `CultivationManager` | ← PathManager | `can_purchase_node()` reads `get_current_advancement_stage()`. `AdvancementStage` types `required_stage` |
 | `QuestManager` / `AwardPathPointEffectData` | → PathManager | `q_first_steps` completion → `add_points(1)` ([FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md) Beat 2) |
 | `AbilityManager` | ← PathManager | `purchase_node()` → `unlock_ability(id)`. The dock's Abilities ring reflects new unlocks ([ABILITIES.md](../abilities/ABILITIES.md)) |
 | `CyclingManager` | ← PathManager | `purchase_node()` → `unlock_technique(id)` ([CYCLING.md](../cycling/CYCLING.md)) |
-| `PersistenceManager` / `SaveGameData` | ↔ | Three save fields. `save_data_reset` → `_on_save_data_reset()` |
+| `PersistenceManager` / `SaveGameData` | ↔ | Three save fields. `save_data_reset` re-points the save and restores the path |
 | `MainView` / `ZoneViewState` / `PathTreeViewState` | → view | `open_path` (P) opens and closes. See [MAIN_VIEW.md](../infrastructure/MAIN_VIEW.md) |
 | `Dock` `PathButton` (`SystemMenuButton`, `MenuType.PATH`) | ← PathManager, → input | Label "Path", hint "P", `star_icon.png`. The `Dock` reads `get_point_balance()` on ready and listens to `points_changed`: ring plus count seal while the balance is above 0 |
 | `GreyBackground` | ↔ PathTreeView | `show_with_panel` / `hide_with_panel` ↔ `animate_open` / `animate_close`; waits for `close_finished` |
@@ -469,8 +467,8 @@ RGB(A) values from `resources/path_progression/themes/`. Alpha is 1 unless shown
 | `scripts/resource_definitions/path_progression/path_effects_summary.gd` | `PathEffectsSummary` (RefCounted) |
 | `scripts/resource_definitions/path_progression/path_theme_data.gd` | `PathThemeData` |
 | `scripts/resource_definitions/effects/award_path_point_effect_data.gd` | `AwardPathPointEffectData` |
-| `singletons/cultivation_manager/cultivation_manager.gd` | `PATH_POINTS_PER_STAGE`, `PATH_POINT_LEVEL_INTERVAL`, milestone award |
-| `singletons/persistence_manager/save_game_data.gd` | `current_path_id`, `path_node_purchases`, `path_points` |
+| `singletons/cultivation_manager/cultivation_manager.gd` | `PATH_POINTS_PER_STAGE`, `PATH_POINT_LEVEL_INTERVAL`, the milestone award |
+| `singletons/persistence_manager/save_game_data.gd` | `current_path_id`, `path_node_purchases`, `path_points`; and `core_density_milestones`, the ledger of paid milestones (owned by `CultivationManager`) |
 | `resources/path_progression/path_tree_list.tres` | Registry (Pure Madra only) |
 | `resources/path_progression/pure_madra/pure_madra_tree.tres` | Pure Madra tree |
 | `resources/path_progression/pure_madra/nodes/*.tres` | 14 node resources (effects as sub-resources) |
@@ -487,22 +485,12 @@ RGB(A) values from `resources/path_progression/themes/`. Alpha is 1 unless shown
 | `assets/shaders/path_node_keystone.gdshader`, `path_node_border.gdshader`, `path_connection_energy.gdshader` | Node and line shaders |
 | `assets/sprites/path_progression/node_frames/{keystone,major,minor}.png` | Node-type icons in the details card |
 | `assets/sprites/ui/book/stage_{foundation,copper,iron,jade}_ai.png`, `stage_lock_ai.png` | Chapter tab icons and padlock |
-| `tests/integration/test_path_book.gd`, `test_tab_switcher.gd` | Chapters and locking, per-stage tree, right page (stays put between nodes), benefits (marked lines in one card, no scrollbar or tooltips), points badge, level labels under their nodes, tree fit; side tabs |
 | `scenes/ui/grey_background/grey_background.gd` | Shared modal backdrop |
 | `scenes/ui/main_view/states/zone_view_state.gd` | Pushes `PathTreeViewState` on `open_path` |
 | `scenes/ui/dock/dock.gd` / `scenes/ui/dock/system_menu_button/system_menu_button.gd` | The dock's Path button and its count seal |
 | `scenes/ui/dev_panel/dev_panel.gd` | Dev "Path Points" grant |
 
-## Tests
-
-| File | Tests | Covers |
-|------|-------|--------|
-| `tests/unit/test_path_manager.gd` | 25 | Point balance and signal; `set_path` (valid, invalid, clears state); purchase validation (points, max level, prerequisites, no path); purchase execution (deduct, level up, signal, failure); aggregation (additive, a single multiplicative level, repeatable additive stacking, 100% return cap); unlock tracking and dedupe; `reset_path` |
-| `tests/unit/test_award_path_point_effect_data.gd` | 4 | `process()` adds `amount`; 0 and negative are no-ops; `effect_type` is `AWARD_PATH_POINT` |
-| `tests/integration/test_path_tree_resource_loading.gd` | 3 | `pure_madra_tree.tres` loads and validates; `focused_strike` → `power_font` prerequisite ref; `madra_surge` has two prerequisites |
-| `tests/integration/test_dock.gd` | 12 | The dock's Path count seal follows `points_changed` and reads the balance on ready; the Path button fires `open_path`, then releases it |
-
-Untested gaps are listed under [Tech Debt](#tech-debt).
+Tests: `tests/unit/test_path_*.gd` and `tests/integration/test_path_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Planned Design (not built)
 
@@ -591,26 +579,26 @@ The built system merges the advancement tree and Paths into one per-path tree av
 
 ### Bugs
 - `[LOW]` **Zoom starts out of sync.**
-  - `PathTreeView._zoom_level` starts at `0.8`, but `%NodeContainer.scale` starts at `1.0` and is only set inside `_apply_zoom()`.
+  - `PathTreeView._zoom_level` starts at `0.8`, but `%NodeContainer.scale` starts at `1.0` and is only set when a zoom is applied.
   - The first wheel-up therefore shrinks the tree (1.0 → 0.9), and the cursor anchoring uses the wrong old zoom for that step.
 - `[LOW]` **Renamed nodes orphan old purchases.**
-  - `path_node_purchases` is keyed by node `id`. The 2026-04-21 renames (`madra_strike` → `power_font`, `torrent_flow` → `torrential_flow`) left stale keys in older saves, and the points spent on them are not refunded.
-  - `_restore_current_path()` doesn't migrate or prune unknown keys.
+  - `path_node_purchases` is keyed by node `id`. The renames (`madra_strike` → `power_font`, `torrent_flow` → `torrential_flow`) left stale keys in older saves, and the points spent on them are not refunded.
+  - The path restore doesn't migrate or prune unknown keys.
   - A saved `current_path_id` that is missing from `path_tree_list.tres` leaves no tree loaded, with no fallback to `DEFAULT_PATH_ID`.
 - `[LOW]` **Energy pulses may not travel along the line (unverified).**
-  - `path_connection_energy.gdshader` animates along `UV.x`, but `PathNodeContainer._add_energy_line()` creates `Line2D`s with the default `texture_mode` (none). Godot may not generate UVs in that mode, so the pulse would flash uniformly instead of flowing.
+  - `path_connection_energy.gdshader` animates along `UV.x`, but `PathNodeContainer` creates the energy `Line2D`s with the default `texture_mode` (none). Godot may not generate UVs in that mode, so the pulse would flash uniformly instead of flowing.
   - Needs an in-game check.
 
 ### Missing Functionality
 - `[HIGH]` **Numeric perks do nothing.** `PathManager.get_effects()` and `effects_changed` have no callers outside tests. That makes 7 nodes (11 of 22 tree points) inert. Where each effect should plug in:
-  - `MADRA_GENERATION_MULT` (Madra Surge): the cycling Madra step, `CyclingTechnique._madra_per_step()` (paid by `_draw_madra_step()` through `ResourceManager.add_madra(amount, true)`).
+  - `MADRA_GENERATION_MULT` (Madra Surge): the cycling Madra step in `CyclingTechnique` (paid through `ResourceManager.add_madra(amount, true)`).
   - `MADRA_CAPACITY_BONUS` (Expanded Core): the max-Madra calculation. `CultivationManager.get_max_madra()` (the stage's `AdvancementStageResource.get_max_madra()`) is read by `ResourceManager.add_madra()`, the zone view's `CultivatorPlate` and `CyclingTechnique`'s cap check, so the bonus belongs there.
   - `CORE_DENSITY_XP_MULT` (Dedicated Cultivation): `CultivationManager.add_core_density_xp()`.
   - `MADRA_ON_LEVEL_UP` (Breakthrough Surge): the level-up loop in `CultivationManager.add_core_density_xp()`.
-  - `CYCLING_ACCURACY_BONUS` (Cycling Focus): the zone radius, `CyclingRules.ZONE_RADIUS` (20). `CyclingRules.tier_for_distance()` and `CyclingTechnique._update_zones()` read it. The zones have no shape of their own.
+  - `CYCLING_ACCURACY_BONUS` (Cycling Focus): the zone radius, `CyclingRules.ZONE_RADIUS` (20). `CyclingRules.tier_for_distance()` and `CyclingTechnique` read it. The zones have no shape of their own.
   - `ADVENTURE_MADRA_RETURN_PCT` (Madra Reclamation): `AdventureView.stop_adventure()`, by refunding a share of `PlayerManager.vitals_manager.current_madra`.
-  - `STAMINA_RECOVERY_MULT` (Iron Will): `AdventureView._update_stamina_regen()`.
-  - `ATTRIBUTE_BONUS` (no content uses it): `CharacterManager._get_attribute_bonuses()`, which only sums equipment.
+  - `STAMINA_RECOVERY_MULT` (Iron Will): the stamina regeneration in `AdventureView`.
+  - `ATTRIBUTE_BONUS` (no content uses it): the attribute bonuses in `CharacterManager`, which only sum equipment.
 - `[MEDIUM]` **Path points are announced only by the dock.**
   - The dock's Path button shows a ring and a count seal while points are unspent, which is the signal FOUNDATION_PLAYTHROUGH Beat 6 relies on.
   - Neither `CultivationManager` nor `PathManager.add_points()` writes to the in-game `LogManager`, and nothing shows a toast, so a point earned while cycling (the dock hides) or in an adventure (the zone view is hidden) goes unseen until the zone view shows again.
@@ -633,9 +621,9 @@ The built system merges the advancement tree and Paths into one per-path tree av
 - `[MEDIUM]` **Madra Surge sits behind two stubs.** `madra_surge`, a cycling repeatable, requires both `efficient_palm` and `lingering_silence`, so reaching it costs 2 points that buy nothing.
 - `[MEDIUM]` **Foundation budget doesn't match the targets.**
   - 11 points through CD 100 against a 22-point tree is 50% completion; the target is 60–70%.
-  - With no CD cap, points keep accruing indefinitely.
+  - Core Density stops at 100, so Foundation pays no more than those 11. Copper's milestones pay 2 each but no Copper node exists to spend them on.
 - `[MEDIUM]` **Keystone #3 is missing.** The Beat 6 burst/finisher ability from [FOUNDATION_PLAYTHROUGH.md](FOUNDATION_PLAYTHROUGH.md) isn't authored.
-- `[MEDIUM]` **Only Tier 1 exists.** All 14 nodes are `FOUNDATION`; there are no Copper nodes.
+- `[MEDIUM]` **Only Tier 1 exists.** All 14 nodes are `FOUNDATION`; there are no Copper nodes. A player who passes the Tribulation opens the Path book's Copper chapter (`is_stage_unlocked()` reads the current stage) onto an empty tree, and Copper's path points pile up unspent.
 - `[LOW]` **One tree only.** `path_tree_list.tres` lists only Pure Madra. `blackflame_theme.tres` and `earth_theme.tres` are referenced by nothing.
 - `[LOW]` **Text mismatches:**
   - `power_font.benefit_summary` reads "Madra Strike unlocked"; the ability is Power Font.
@@ -650,14 +638,13 @@ The built system merges the advancement tree and Paths into one per-path tree av
 - `[MEDIUM]` **ACTIVE BENEFITS shows inert perks as active**, for example "Lingering Silence — +2s Silence Duration" and "Expanded Core — +25 Max Madra".
 - `[LOW]` **Unlock lines use ids, not names.** Abilities read "Unlocks: Empty Palm" from the capitalized file name and techniques read "Unlocks: smooth_flow", instead of `AbilityData.ability_name` / `CyclingTechniqueData.technique_name`.
 - `[LOW]` **Repeatables show per-level values only.** The details card's effect line and the Active Benefits line never show the stacked total or the level; Madra Surge at 3/3 still reads "+10% Madra Gen".
-- `[LOW]` **Little purchase feedback.** A failed purchase gives no feedback and there are no SFX. The particle burst plays only on a node's first purchase (`PathNodeUI._on_pressed()` checks `was_purchased`).
+- `[LOW]` **Little purchase feedback.** A failed purchase gives no feedback and there are no SFX. The particle burst plays only on a node's first purchase (`PathNodeUI` checks `was_purchased` on the press).
 - `[LOW]` **No pan bounds or reset-view control.** The tree is fitted when a chapter opens, but a pan can push it out of the card until the book is reopened.
 
 ### Tech Debt
 - `[MEDIUM]` **Missing tests:**
-  - The Core Density milestone award in `CultivationManager.add_core_density_xp()` (tested nowhere).
   - Tier gates (`_test_stage_override` is always `JADE`).
-  - `_restore_current_path()` auto-select and restore.
+  - The path restore's auto-select and restore.
   - The unlock calls `purchase_node()` makes to AbilityManager and CyclingManager.
   - Multiplicative stacking above level 1.
   - A content test that every `UNLOCK_*` id resolves and every node has a layout marker.
@@ -670,10 +657,10 @@ The built system merges the advancement tree and Paths into one per-path tree av
   - `PathThemeData.panel_accent_color` and `PathNodeContainer._node_radii` are never read.
   - The `PathNodeUI` `%Border` panel is always hidden.
   - The `open_path_tree` input action duplicates `open_path` (both bound to P) and is unused.
-- `[LOW]` **Duplicated values:** `_create_node_ui()` duplicates the shape radii from `PathNodeUI._draw()`.
+- `[LOW]` **Duplicated values:** `PathTreeView`'s node creation duplicates the shape radii from `PathNodeUI._draw()`.
 - `[LOW]` **UI nodes are built in code** instead of following the scene-first convention:
   - `PathNodeUI` builds its swirl, border, and particle `ColorRect`s.
-  - `PathNodeContainer._add_energy_line()` builds `Line2D`s.
+  - `PathNodeContainer` builds the energy `Line2D`s.
 - `[LOW]` **Path state and unlock state can drift.** UNLOCK effects are applied only at purchase time. Saves that bought Pure Core Awakening before the CyclingManager/AbilityManager wiring (PRs #21/#22) never received Smooth Flow or Empty Palm, and nothing reconciles them on load.
 - `[LOW]` **Robustness gaps:**
   - `add_points()` accepts negative amounts with no floor.

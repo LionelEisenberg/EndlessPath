@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="AdvancementStageList" load_steps=4 format=3 uid="uid://ba6xylybid6x2"]
+[gd_resource type="Resource" script_class="AdvancementStageList" load_steps=5 format=3 uid="uid://ba6xylybid6x2"]
 
 [ext_resource type="Script" uid="uid://civ7jgpmmaoro" path="res://scripts/resource_definitions/cycling/advancement_stage/advancement_stage.gd" id="1_oiy8i"]
 [ext_resource type="Resource" uid="uid://xg1ddackcqj8" path="res://resources/cycling/advancement_stages/foundation_advancement_stage/foundation_advancement_stage.tres" id="2_lmvm1"]
 [ext_resource type="Script" uid="uid://q3qcnpa0py6j" path="res://scripts/resource_definitions/cycling/advancement_stage/advancement_stage_list.gd" id="2_npujb"]
+[ext_resource type="Resource" uid="uid://bsl0hdrpu3pe4" path="res://resources/cycling/advancement_stages/copper_advancement_stage/copper_advancement_stage.tres" id="3_k4cpr"]
 
 [resource]
 script = ExtResource("2_npujb")
-advancement_stages = Array[ExtResource("1_oiy8i")]([ExtResource("2_lmvm1")])
+advancement_stages = Array[ExtResource("1_oiy8i")]([ExtResource("2_lmvm1"), ExtResource("3_k4cpr")])
 metadata/_custom_type_script = "uid://q3qcnpa0py6j"

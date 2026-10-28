@@ -5,9 +5,9 @@ extends Control
 ## The running idle action on the zone map (kit §0, §6.3): a 64x64 jade bead
 ## ring on its own lacquer disc with the action's icon in the middle. The
 ## beads light over each timer cycle (one Aura Well tick, one foraging haul),
-## the same stepping as the Now strip's ring. It stands beside the character
-## in the current zone and stays with the zone, not the character; MapMarkers
-## places it and shows it only while an idle action runs there.
+## the same stepping as the Now strip's ring. It sits on the left end of the
+## current zone's plate (ZoneMapLabel), which shows it only while an idle
+## action runs there.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS

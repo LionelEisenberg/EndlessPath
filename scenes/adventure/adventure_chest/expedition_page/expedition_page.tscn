@@ -1,0 +1,542 @@
+[gd_scene format=3 uid="uid://dy8qoiqaofoi2"]
+
+[ext_resource type="Script" uid="uid://cny3chdu71hg" path="res://scenes/adventure/adventure_chest/expedition_page/expedition_page.gd" id="1_page"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://cf7fxxu8dkpho" path="res://assets/ui/lacquer/lacquer_now_tray_ai.png" id="3_tray"]
+[ext_resource type="Texture2D" uid="uid://i77lc785l1ls" path="res://assets/ui/lacquer/lacquer_now_plate_ai.png" id="4_plate"]
+[ext_resource type="Texture2D" uid="uid://4ufn4i5ogj3x" path="res://assets/ui/lacquer/lacquer_socket_glyph_ai.png" id="5_socket"]
+[ext_resource type="Script" uid="uid://5ch3ygltgcrb" path="res://scenes/common/lacquer/lacquer_strip_rect.gd" id="6_strip_rect"]
+[ext_resource type="Texture2D" uid="uid://dda0vvh4sqo74" path="res://assets/ui/lacquer/lacquer_tag_ai.png" id="7_tag"]
+[ext_resource type="Texture2D" uid="uid://ojxggfpipf2d" path="res://assets/ui/lacquer/lacquer_seal_locked_ai.png" id="8_seal"]
+[ext_resource type="Texture2D" uid="uid://cvsx3a2hfquag" path="res://assets/ui/lacquer/lacquer_line_ai.png" id="9_line"]
+[ext_resource type="PackedScene" uid="uid://cfcaeouoiyxlc" path="res://scenes/adventure/adventure_chest/choice_drawer/choice_drawer.tscn" id="10_drawer"]
+[ext_resource type="Texture2D" uid="uid://crbpnry223q5u" path="res://assets/ui/lacquer/lacquer_groove_ai.png" id="11_groove"]
+[ext_resource type="Texture2D" uid="uid://bg5qs5hmfl0jb" path="res://assets/ui/lacquer/lacquer_groove_end_ai.png" id="12_groove_end"]
+[ext_resource type="Texture2D" uid="uid://wjirmswchanp" path="res://assets/sprites/ui/stat_icons/combat_icon.png" id="13_combat"]
+[ext_resource type="Texture2D" uid="uid://dqj0587wkvb1m" path="res://assets/sprites/ui/resources/gold_icon.png" id="14_gold"]
+[ext_resource type="Texture2D" uid="uid://fr1ueqq6cg6y" path="res://assets/sprites/ui/stat_icons/map_icon.png" id="15_map"]
+[ext_resource type="Texture2D" uid="uid://yk2panbupqdl" path="res://assets/ui/lacquer/lacquer_socket_buff_ai.png" id="16_loot_socket"]
+[ext_resource type="StyleBox" uid="uid://bj00pnis00337" path="res://assets/styleboxes/lacquer/wrap_pad.tres" id="17_wrap_pad"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_lore"]
+content_margin_top = 2.0
+content_margin_bottom = 1.0
+
+[node name="ExpeditionPage" type="Control" unique_id=1599000076]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 408.0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_page")
+
+[node name="HereTray" type="Control" parent="." unique_id=1518320476]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(408, 88)
+layout_mode = 0
+offset_right = 408.0
+offset_bottom = 88.0
+mouse_filter = 2
+
+[node name="Tray" type="NinePatchRect" parent="HereTray" unique_id=1358363550]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_tray")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 2
+patch_margin_bottom = 2
+
+[node name="Socket" type="TextureRect" parent="HereTray" unique_id=1792358578]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 8.0
+offset_top = 20.0
+offset_right = 56.0
+offset_bottom = 68.0
+mouse_filter = 2
+texture = ExtResource("5_socket")
+
+[node name="Glyph" type="TextureRect" parent="HereTray" unique_id=1694783289]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 28.0
+offset_right = 48.0
+offset_bottom = 60.0
+mouse_filter = 2
+expand_mode = 1
+script = ExtResource("6_strip_rect")
+
+[node name="TextColumn" type="VBoxContainer" parent="HereTray" unique_id=1710553071]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 64.0
+offset_top = 18.0
+offset_right = 396.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="NameLabel" type="Label" parent="HereTray/TextColumn" unique_id=1009232570]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(250, 22)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"LabelLacquerNowName"
+theme_override_styles/normal = ExtResource("17_wrap_pad")
+text = "Open ground"
+autowrap_mode = 3
+
+[node name="LineLabel" type="Label" parent="HereTray/TextColumn" unique_id=1726513862]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(332, 18)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("17_wrap_pad")
+text = "Click a hex to walk · 5 Stamina a step"
+autowrap_mode = 3
+
+[node name="Tag" type="TextureRect" parent="HereTray" unique_id=1166198171]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 320.0
+offset_top = 17.0
+offset_right = 396.0
+offset_bottom = 39.0
+mouse_filter = 2
+texture = ExtResource("7_tag")
+
+[node name="TagLabel" type="Label" parent="HereTray/Tag" unique_id=448185444]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"LabelLacquerTag"
+text = "FIGHT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BossSeal" type="TextureRect" parent="HereTray" unique_id=704194667]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 308.0
+offset_top = 17.0
+offset_right = 396.0
+offset_bottom = 39.0
+mouse_filter = 2
+texture = ExtResource("8_seal")
+
+[node name="BossSealLabel" type="Label" parent="HereTray/BossSeal" unique_id=1157926837]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"LabelLacquerSeal"
+text = "BOSS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HerePlate" type="TextureRect" parent="HereTray" unique_id=513973622]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 8.0
+offset_top = -11.0
+offset_right = 70.0
+offset_bottom = 13.0
+mouse_filter = 2
+texture = ExtResource("4_plate")
+
+[node name="HereLabel" type="Label" parent="HereTray/HerePlate" unique_id=881865447]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1.0
+offset_right = 61.0
+offset_bottom = 22.0
+theme_type_variation = &"LabelLacquerLegend"
+text = "Here"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Flow" type="VBoxContainer" parent="." unique_id=873362362]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 104.0
+offset_right = 408.0
+offset_bottom = 104.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="LoreLabel" type="Label" parent="Flow" unique_id=1977849978]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(408, 0)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerLore"
+theme_override_styles/normal = SubResource("StyleBoxEmpty_lore")
+text = "The encounter's lore."
+autowrap_mode = 3
+
+[node name="HintRow" type="MarginContainer" parent="Flow" unique_id=773743207]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 10
+
+[node name="WalkHint" type="Label" parent="Flow/HintRow" unique_id=1034314087]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(408, 18)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("17_wrap_pad")
+text = "Click a hex to walk · 5 Stamina a step · 16 steps left"
+autowrap_mode = 3
+
+[node name="LockLine" type="Label" parent="Flow/HintRow" unique_id=1431906442]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(408, 18)
+layout_mode = 2
+theme_type_variation = &"LabelLacquerDetail"
+theme_override_styles/normal = ExtResource("17_wrap_pad")
+text = "Choose what to do here before you walk on"
+autowrap_mode = 3
+
+[node name="DividerRow" type="MarginContainer" parent="Flow" unique_id=560787016]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 14
+
+[node name="Divider" type="TextureRect" parent="Flow/DividerRow" unique_id=200275327]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("9_line")
+
+[node name="DrawerRows" type="MarginContainer" parent="Flow" unique_id=563788013]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 12
+
+[node name="Drawers" type="VBoxContainer" parent="Flow/DrawerRows" unique_id=102842587]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="ChoiceDrawer1" parent="Flow/DrawerRows/Drawers" unique_id=1137558292 instance=ExtResource("10_drawer")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ChoiceDrawer2" parent="Flow/DrawerRows/Drawers" unique_id=171558525 instance=ExtResource("10_drawer")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ChoiceDrawer3" parent="Flow/DrawerRows/Drawers" unique_id=1891026534 instance=ExtResource("10_drawer")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="LedgerRow" type="MarginContainer" parent="Flow" unique_id=588092885]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 28
+
+[node name="RunLedger" type="Control" parent="Flow/LedgerRow" unique_id=1207946668]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(408, 128)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RunHeader" type="HBoxContainer" parent="Flow/LedgerRow/RunLedger" unique_id=1075092015]
+layout_mode = 0
+offset_top = -3.0
+offset_right = 408.0
+offset_bottom = 27.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="RunLabel" type="Label" parent="Flow/LedgerRow/RunLedger/RunHeader" unique_id=291065503]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"LabelLacquerSection"
+text = "Run"
+
+[node name="GrooveMargin" type="MarginContainer" parent="Flow/LedgerRow/RunLedger/RunHeader" unique_id=1865155464]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 13
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 0
+
+[node name="GrooveRow" type="HBoxContainer" parent="Flow/LedgerRow/RunLedger/RunHeader/GrooveMargin" unique_id=114727259]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Groove" type="TextureRect" parent="Flow/LedgerRow/RunLedger/RunHeader/GrooveMargin/GrooveRow" unique_id=1873380215]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("11_groove")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="GrooveEnd" type="TextureRect" parent="Flow/LedgerRow/RunLedger/RunHeader/GrooveMargin/GrooveRow" unique_id=680929601]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("12_groove_end")
+
+[node name="FightsIcon" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=1331196728]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 36.0
+offset_right = 32.0
+offset_bottom = 68.0
+mouse_filter = 2
+texture = ExtResource("13_combat")
+expand_mode = 1
+
+[node name="FightsValue" type="Label" parent="Flow/LedgerRow/RunLedger" unique_id=448339047]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 40.0
+offset_top = 34.0
+offset_right = 128.0
+offset_bottom = 54.0
+theme_type_variation = &"LabelLacquerName"
+text = "0 / 0"
+
+[node name="FightsCaption" type="Label" parent="Flow/LedgerRow/RunLedger" unique_id=1076657150]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 40.0
+offset_top = 54.0
+offset_right = 128.0
+offset_bottom = 72.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "fights"
+
+[node name="GoldIcon" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=950479932]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 140.0
+offset_top = 36.0
+offset_right = 172.0
+offset_bottom = 68.0
+mouse_filter = 2
+texture = ExtResource("14_gold")
+expand_mode = 1
+
+[node name="GoldValue" type="Label" parent="Flow/LedgerRow/RunLedger" unique_id=1510689022]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 180.0
+offset_top = 34.0
+offset_right = 268.0
+offset_bottom = 54.0
+theme_type_variation = &"LabelLacquerName"
+text = "0"
+
+[node name="GoldCaption" type="Label" parent="Flow/LedgerRow/RunLedger" unique_id=1689687458]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 180.0
+offset_top = 54.0
+offset_right = 268.0
+offset_bottom = 72.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "gold"
+
+[node name="ExploredIcon" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=1534489953]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 280.0
+offset_top = 36.0
+offset_right = 312.0
+offset_bottom = 68.0
+mouse_filter = 2
+texture = ExtResource("15_map")
+expand_mode = 1
+
+[node name="ExploredValue" type="Label" parent="Flow/LedgerRow/RunLedger" unique_id=1212105083]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 320.0
+offset_top = 34.0
+offset_right = 408.0
+offset_bottom = 54.0
+theme_type_variation = &"LabelLacquerName"
+text = "0 / 0"
+
+[node name="ExploredCaption" type="Label" parent="Flow/LedgerRow/RunLedger" unique_id=1399890580]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 320.0
+offset_top = 54.0
+offset_right = 408.0
+offset_bottom = 72.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "explored"
+
+[node name="LootCaption" type="Label" parent="Flow/LedgerRow/RunLedger" unique_id=486541609]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 96.0
+offset_right = 44.0
+offset_bottom = 114.0
+theme_type_variation = &"LabelLacquerDetail"
+text = "Loot"
+
+[node name="LootSocket1" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=1933381712]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 48.0
+offset_top = 86.0
+offset_right = 88.0
+offset_bottom = 126.0
+mouse_filter = 2
+texture = ExtResource("16_loot_socket")
+
+[node name="LootIcon1" type="TextureRect" parent="Flow/LedgerRow/RunLedger/LootSocket1" unique_id=300539730]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 36.0
+offset_bottom = 36.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="LootSocket2" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=951879457]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 94.0
+offset_top = 86.0
+offset_right = 134.0
+offset_bottom = 126.0
+mouse_filter = 2
+texture = ExtResource("16_loot_socket")
+
+[node name="LootIcon2" type="TextureRect" parent="Flow/LedgerRow/RunLedger/LootSocket2" unique_id=1555166179]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 36.0
+offset_bottom = 36.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="LootSocket3" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=1503678296]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 140.0
+offset_top = 86.0
+offset_right = 180.0
+offset_bottom = 126.0
+mouse_filter = 2
+texture = ExtResource("16_loot_socket")
+
+[node name="LootIcon3" type="TextureRect" parent="Flow/LedgerRow/RunLedger/LootSocket3" unique_id=1829609325]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 36.0
+offset_bottom = 36.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="LootSocket4" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=683796105]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 186.0
+offset_top = 86.0
+offset_right = 226.0
+offset_bottom = 126.0
+mouse_filter = 2
+texture = ExtResource("16_loot_socket")
+
+[node name="LootIcon4" type="TextureRect" parent="Flow/LedgerRow/RunLedger/LootSocket4" unique_id=1816787626]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 36.0
+offset_bottom = 36.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="LootSocket5" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=1835583751]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 232.0
+offset_top = 86.0
+offset_right = 272.0
+offset_bottom = 126.0
+mouse_filter = 2
+texture = ExtResource("16_loot_socket")
+
+[node name="LootIcon5" type="TextureRect" parent="Flow/LedgerRow/RunLedger/LootSocket5" unique_id=308107901]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 36.0
+offset_bottom = 36.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="LootSocket6" type="TextureRect" parent="Flow/LedgerRow/RunLedger" unique_id=899023890]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 278.0
+offset_top = 86.0
+offset_right = 318.0
+offset_bottom = 126.0
+mouse_filter = 2
+texture = ExtResource("16_loot_socket")
+
+[node name="LootIcon6" type="TextureRect" parent="Flow/LedgerRow/RunLedger/LootSocket6" unique_id=400367525]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 36.0
+offset_bottom = 36.0
+mouse_filter = 2
+expand_mode = 1
