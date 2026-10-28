@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://bbaaosc4u22vv" path="res://scenes/ui/dev_panel/dev_panel.gd" id="1_devp"]
 [ext_resource type="PackedScene" uid="uid://eub13kywnbop" path="res://scenes/ui/dev_panel/tabs/world_tab.tscn" id="2_world"]
+[ext_resource type="PackedScene" uid="uid://dix0wccljn3jm" path="res://scenes/ui/dev_panel/tabs/player_tab.tscn" id="3_player"]
+[ext_resource type="PackedScene" uid="uid://dl7bv254fonfk" path="res://scenes/ui/dev_panel/tabs/adventure_tab.tscn" id="4_adventure"]
 
 [node name="DevPanel" type="Control"]
 layout_mode = 3
@@ -30,6 +32,7 @@ theme_override_constants/separation = 6
 [node name="TitleBar" type="PanelContainer" parent="Body/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"PanelTooltip"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Body/VBoxContainer/TitleBar"]
 layout_mode = 2
@@ -59,6 +62,16 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 clip_tabs = false
+
+[node name="PlayerTab" parent="Body/VBoxContainer/Tabs" instance=ExtResource("3_player")]
+unique_name_in_owner = true
+layout_mode = 2
+metadata/_tab_name = "Player"
+
+[node name="AdventureTab" parent="Body/VBoxContainer/Tabs" instance=ExtResource("4_adventure")]
+unique_name_in_owner = true
+layout_mode = 2
+metadata/_tab_name = "Adventure"
 
 [node name="WorldTab" parent="Body/VBoxContainer/Tabs" instance=ExtResource("2_world")]
 unique_name_in_owner = true

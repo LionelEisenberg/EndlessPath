@@ -1,0 +1,91 @@
+[gd_scene format=3 uid="uid://dl7bv254fonfk"]
+
+[ext_resource type="Script" uid="uid://drq2os8oj72pf" path="res://scenes/ui/dev_panel/tabs/adventure_tab.gd" id="1_adventure"]
+
+[node name="AdventureTab" type="ScrollContainer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+script = ExtResource("1_adventure")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NoRunLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "No adventure running"
+
+[node name="RunControls" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AdventureStatus" type="Label" parent="MarginContainer/VBoxContainer/RunControls"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="FightBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/RunControls"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FightHeader" type="Label" parent="MarginContainer/VBoxContainer/RunControls/FightBox"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "FIGHT"
+
+[node name="ForceWin" type="Button" parent="MarginContainer/VBoxContainer/RunControls/FightBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Force-win fight"
+
+[node name="AdventureHeader" type="Label" parent="MarginContainer/VBoxContainer/RunControls"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "ADVENTURE"
+
+[node name="ExitRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/RunControls"]
+layout_mode = 2
+
+[node name="ExitVictory" type="Button" parent="MarginContainer/VBoxContainer/RunControls/ExitRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Exit as victory"
+
+[node name="ExitDefeat" type="Button" parent="MarginContainer/VBoxContainer/RunControls/ExitRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Exit as defeat"
+
+[node name="ShowWholeMap" type="CheckButton" parent="MarginContainer/VBoxContainer/RunControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Show whole map"
+
+[node name="RefillVitals" type="Button" parent="MarginContainer/VBoxContainer/RunControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refill Health and Stamina"

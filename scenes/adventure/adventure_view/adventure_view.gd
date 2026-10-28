@@ -199,7 +199,7 @@ func get_run_timer() -> Timer:
 ## gold and fires q_first_steps_enemy_defeated, then the view and the map end it.
 ## No-op if not currently in combat, or if the enemy is gone or already down: the
 ## Health setter reports 0 again, which would pay the fight's gold a second time.
-## Used by the dev panel; do not call from gameplay code.
+## Called by DevCommands.force_win_fight(); do not call from gameplay code.
 func force_win_combat() -> void:
 	if not is_in_combat:
 		return
@@ -213,7 +213,7 @@ func force_win_combat() -> void:
 ## DEV-only: end the running adventure at once, as a victory (the boss-win
 ## path: success effects, the victory end card) or a defeat (failure effects,
 ## a retreat end card). No-op if no adventure is running.
-## Used by the dev panel; do not call from gameplay code.
+## Called by DevCommands.exit_adventure(); do not call from gameplay code.
 func force_end_adventure(victory: bool) -> void:
 	if current_action_data == null:
 		return

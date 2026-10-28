@@ -10,7 +10,8 @@ extends Control
 ##
 ## The shell owns only the frame: the open state, the drag, the tab, the time
 ## speed, the badge and the hotkey. Each tab is a scene of its own that calls the
-## dev tools itself. The panel lives in the main scene, which a session switch
+## dev tools itself; the one thing the shell hands a tab is the adventure view, to
+## the Adventure tab. The panel lives in the main scene, which a session switch
 ## frees and loads again, so its open state, place and tab live on DevManager and
 ## come back when the panel is built. Exempt from the lacquer look (STYLE_GUIDE.md,
 ## G11): it takes pixel_theme.tres from MainView.
@@ -19,7 +20,7 @@ extends Control
 # EXPORTS
 #-----------------------------------------------------------------------------
 
-## The adventure view, for the tab that acts on a run.
+## The adventure view, which _ready() hands to the Adventure tab.
 @export var adventure_view: AdventureView
 
 #-----------------------------------------------------------------------------
@@ -31,6 +32,7 @@ extends Control
 @onready var _speed_option: OptionButton = %SpeedOption
 @onready var _close_button: Button = %CloseButton
 @onready var _tabs: TabContainer = %Tabs
+@onready var _adventure_tab: DevAdventureTab = %AdventureTab
 @onready var _speed_badge: Label = %SpeedBadge
 
 #-----------------------------------------------------------------------------
@@ -52,7 +54,9 @@ func _ready() -> void:
 	_body.position = _kept_on_screen(DevManager.panel_position)
 	_tabs.current_tab = clampi(DevManager.panel_tab, 0, _tabs.get_tab_count() - 1)
 	_show_speed(DevManager.get_time_speed())
+	_adventure_tab.set_adventure_view(adventure_view)
 	_title_bar.gui_input.connect(_on_title_bar_input)
+	_body.resized.connect(_on_body_resized)
 	_close_button.pressed.connect(set_open.bind(false))
 	_tabs.tab_changed.connect(_on_tab_changed)
 	_speed_option.item_selected.connect(_on_speed_selected)
@@ -99,6 +103,13 @@ func _on_title_bar_input(event: InputEvent) -> void:
 	if motion != null and (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
 		_body.position = _kept_on_screen(motion.global_position - _drag_offset - global_position)
 		DevManager.panel_position = _body.position
+
+## Keeps the body wholly on screen when it changes size. A wider tab makes it grow
+## from its top-left corner, which could push its right or bottom edge past the
+## screen's. The place it moves to is kept on DevManager, as a drag's is.
+func _on_body_resized() -> void:
+	_body.position = _kept_on_screen(_body.position)
+	DevManager.panel_position = _body.position
 
 ## Keeps the tab on DevManager for the panel built after a session switch.
 func _on_tab_changed(tab: int) -> void:
