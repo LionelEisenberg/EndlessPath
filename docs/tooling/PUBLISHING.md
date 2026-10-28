@@ -7,7 +7,7 @@ The game is published to [itch.io](https://lionelshnizel.itch.io/endless-path) b
 | Build | Export preset | itch.io channel | What the player gets |
 |-------|---------------|-----------------|----------------------|
 | Web | `Web` | `web` | The game playable in the browser on the itch.io page |
-| Windows | `Windows Desktop` | `windows` | A download holding one `EndlessPath.exe`, with the game's data inside it |
+| Windows | `Windows Desktop` | `windows` | A download holding `EndlessPath.exe` and the game's data in `EndlessPath.pck` beside it |
 
 Publishing is manual by choice: merging to `main` publishes nothing, so a merged PR reaches players only when someone decides it should.
 
@@ -38,7 +38,7 @@ A failing test stops the publish. A test that depends on frame timing can fail o
 The presets live in `export_presets.cfg` and export to the gitignored `build/` folder.
 
 - **Web** is single-threaded, so itch.io needs no SharedArrayBuffer setting. Saves go to the browser's storage for the itch.io site and carry over from one published build to the next.
-- **Windows** embeds the game's data in the exe, so players download one file. The exe is not code-signed, so Windows SmartScreen warns on first launch.
+- **Windows** keeps the game's data in a `.pck` next to the exe rather than inside it. The exe is Godot's unmodified engine and is identical in every build, so when players update through the itch.io app, the download is only the game data that changed. The exe is not code-signed, so Windows SmartScreen warns on first launch.
 
 Both presets leave out what players don't need: `tests/`, the GUT addon, `docs/` and `.aseprite` sources. They also leave out `.mcp.json` (local tool paths) and `.gutconfig.json`, which Godot would otherwise export because it treats `.json` files as resources. Dialogic's `.dtl` timelines and `.dch` characters are included by name.
 
