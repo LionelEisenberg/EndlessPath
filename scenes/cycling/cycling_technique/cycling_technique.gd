@@ -41,8 +41,9 @@ signal cycling_started
 ## stopped, or cut off by switching technique, emits nothing.
 signal cycle_completed(result: CycleResult)
 ## Emitted each time the cursor draws a step of Madra, with the drawn ball's
-## global centre, for the view to fly a pellet from.
-signal madra_particle_requested(from_pos: Vector2)
+## global centre, for the view to fly a pellet from, and the Madra the step
+## added, which the pellet carries.
+signal madra_particle_requested(from_pos: Vector2, amount: float)
 ## Emitted when a press scores a zone, with how well and the Core Density XP the
 ## zone was worth. The XP has gone to Core Density by then (a full core takes
 ## none), so a listener reading the core finds it as this hit left it.
@@ -348,8 +349,9 @@ func _draw_madra_step() -> void:
 	# What the pool gained, not add_madra()'s figure: that is snapped to 0.001,
 	# and the snaps add up (Smooth Flow's 187 steps sum to 199.53 for the 199.47
 	# they add, which the result line would round to +200).
-	_result.madra_added += ResourceManager.get_madra() - before
-	madra_particle_requested.emit(_ball_drawn)
+	var added: float = ResourceManager.get_madra() - before
+	_result.madra_added += added
+	madra_particle_requested.emit(_ball_drawn, added)
 
 ## Returns the Madra one step adds: the technique's Madra per cycle spread over
 ## the steps of a cycle.

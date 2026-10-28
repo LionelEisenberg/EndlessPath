@@ -216,7 +216,7 @@ Continue / Not yet / Esc on the intro ─► TribulationView.finished(passed) �
 Zone action (adventure) ─► ActionManager.adventure_start_requested
    ├─► ZoneViewState: adds a full-rect Control (mouse Stop) to ZoneView and ignores keys
    ├─► MapMarkers: hides the map's plates and glyphs
-   └─► ZoneTransition: MadraPellet drain from the cabinet's Madra orb, then camera zoom to 3x
+   └─► ZoneTransition: LacquerPellet drain from the cabinet's Madra orb, then camera zoom to 3x
          └─► ActionManager.confirm_adventure_start(data, budget) ─► start_adventure
                ├─► AdventureViewState: change_state(adventure)   (zone exit removes the blocker)
                └─► AdventureView.start_adventure()               (connected after the state)
@@ -304,7 +304,7 @@ Gold left the bar for the cultivator cabinet.
 | `GreyBackground` | `scenes/ui/grey_background/grey_background.gd` | See [GreyBackground](#greybackground-modal-backdrop) |
 | `LogWindow` | `scenes/ui/log_window/` | Placement only here. It listens to `LogManager.message_logged` and `visibility_toggled` and reads `LogManager.get_history()`. See [LOGGING.md](LOGGING.md). |
 | `GoalsPanel`, `QuestToast` | `scenes/ui/goals_panel/`, `scenes/ui/quest_toast/` | Placement only here. See [QUESTS.md](../progression/QUESTS.md). |
-| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerCountSeal`, `LacquerFloater`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
+| Lacquer pieces | `scenes/common/lacquer/` (`LacquerStripRect`, `LacquerRod`, `LacquerFrameOverlay`, `LacquerCountSeal`, `LacquerFloater`, `LacquerPellet` and its `PelletFlight`), `scenes/zones/zone_panel/lacquer_rail/` (`LacquerRail`) | See [UI_STYLING.md](../UI_STYLING.md#lacquer-theme-zone-view) |
 
 Utilities:
 

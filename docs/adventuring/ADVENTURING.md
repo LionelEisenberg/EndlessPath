@@ -287,7 +287,7 @@ ZoneActionButton click
         └→ ZoneTransition
              budget = ResourceManager.get_adventure_madra_budget()
              pellets = lerp(8, 25, budget / capacity); each spends floor(budget / n) Madra,
-             plus one extra pellet carrying the remainder (MadraPellet, from the cabinet's Madra orb)
+             plus one extra pellet carrying the remainder (LacquerPellet, from the cabinet's Madra orb)
              → camera zoom to 3.0 over 0.5 s
              → ActionManager.confirm_adventure_start(action, budget)
   → start_adventure(action, budget)

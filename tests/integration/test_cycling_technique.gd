@@ -105,7 +105,7 @@ func _await_queued_frees() -> void:
 ## Counts the Madra pellets the technique requests from now on.
 func _count_pellets() -> Array[int]:
 	var count: Array[int] = [0]
-	_technique.madra_particle_requested.connect(func(_from_pos: Vector2) -> void: count[0] += 1)
+	_technique.madra_particle_requested.connect(func(_from_pos: Vector2, _amount: float) -> void: count[0] += 1)
 	return count
 
 ## Swaps the fixture's technique for a new one playing foundation_technique: an 8 s
@@ -245,7 +245,7 @@ func test_tracking_draws_madra_quietly() -> void:
 func test_pellets_start_at_the_drawn_ball() -> void:
 	var origins: Array[Vector2] = []
 	var balls: Array[Vector2] = []
-	_technique.madra_particle_requested.connect(func(from_pos: Vector2) -> void:
+	_technique.madra_particle_requested.connect(func(from_pos: Vector2, _amount: float) -> void:
 		origins.append(from_pos)
 		balls.append(_technique.get_ball_global_position()))
 	_technique.start_cycle()
@@ -253,6 +253,20 @@ func test_pellets_start_at_the_drawn_ball() -> void:
 	assert_gt(origins.size(), 0, "precondition: the cursor drew Madra")
 	assert_eq(origins, balls, "each pellet leaves the drawn ball's centre")
 	assert_ne(origins[0], origins[origins.size() - 1], "the ball moved between the first pellet and the last")
+
+## Each request carries the Madra its step added, so the pellets carry the whole
+## of what the cycle drew.
+func test_pellets_carry_the_madra_their_step_added() -> void:
+	var amounts: Array[float] = []
+	_technique.madra_particle_requested.connect(func(_from_pos: Vector2, amount: float) -> void: amounts.append(amount))
+	_technique.start_cycle()
+	_run(0.5, 60.0, true)
+	assert_gt(amounts.size(), 0, "precondition: the cursor drew Madra")
+	var carried: float = 0.0
+	for amount: float in amounts:
+		assert_almost_eq(amount, MADRA_STEP, 0.001, "a full step")
+		carried += amount
+	assert_almost_eq(carried, _technique.get_current_result().madra_added, 0.0001, "the pellets carry all the Madra drawn")
 
 func test_madra_steps_carry_their_remainder() -> void:
 	# The old timer reset to 0 at each step, which paid 10 steps a second at 30 FPS.

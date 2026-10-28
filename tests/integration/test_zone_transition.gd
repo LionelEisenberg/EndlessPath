@@ -70,7 +70,7 @@ func _add_transition() -> void:
 func _pellet_count() -> int:
 	var count: int = 0
 	for child: Node in _pellet_parent.get_children():
-		if child is MadraPellet:
+		if child is LacquerPellet:
 			count += 1
 	return count
 

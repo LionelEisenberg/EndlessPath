@@ -98,12 +98,14 @@ Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra(
 | `get_core_density_cap()` | `int` | The current stage's `max_core_density_level`. `0` without save data or a stage resource |
 | `is_core_full()` | `bool` | `cap > 0 and level >= cap` |
 | `has_next_stage()` | `bool` | The current stage resource has a `next_stage` |
-| `get_xp_for_next_level()` | `float` | `stage.get_xp_for_level(level + 1)`, i.e. `base × factor^level`. Returns `0.0` if there is no save or no stage resource |
+| `get_xp_for_next_level()` | `float` | `get_xp_for_level(level + 1)`, i.e. `base × factor^level`. Returns `0.0` if there is no save or no stage resource |
+| `get_xp_for_level(level: int)` | `float` | What reaching `level` costs in the current stage, `stage.get_xp_for_level(level)`. `0.0` without a stage resource. The cultivator cabinet steps back through it to show the core without the XP still flying to it |
 | `get_core_density_xp()` / `get_core_density_level()` | `float` | `0.0` without save data |
 | `get_current_advancement_stage()` | `AdvancementStage` | `FOUNDATION` without save data |
 | `get_current_advancement_stage_name()` | `String` | `"Unknown"` if the stage has no resource |
 | `get_advancement_stage_name(stage)` | `String` | `"Unknown"` if the stage has no resource |
-| `get_max_madra()` | `float` | The Madra pool cap: the current stage's `get_max_madra(level)`. `0.0` without a stage resource. `ResourceManager`, `CyclingTechnique` (its cap check) and `CultivatorPlate` read it |
+| `get_max_madra()` | `float` | The Madra pool cap: `get_max_madra_at(level)`. `0.0` without a stage resource. `ResourceManager` and `CyclingTechnique` (its cap check) read it |
+| `get_max_madra_at(level: int)` | `float` | The current stage's `get_max_madra(level)` at any level. `0.0` without a stage resource. The cultivator cabinet's max, at the level it shows |
 
 ## Core Systems
 
