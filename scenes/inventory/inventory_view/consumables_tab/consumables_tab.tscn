@@ -28,7 +28,7 @@ layout_mode = 0
 offset_left = 184.0
 offset_top = 202.0
 offset_right = 644.0
-offset_bottom = 770.0
+offset_bottom = 772.0
 mouse_filter = 2
 
 [node name="ConsumablesInventoryList" parent="ListFrame" unique_id=164163359 instance=ExtResource("3_list")]

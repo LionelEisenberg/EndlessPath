@@ -162,6 +162,18 @@ func test_the_last_rows_marks_bracket_its_slot_inside_the_frame() -> void:   # R
 	assert_eq(marks, Rect2(444, 772, 442, 86), "no rule to bracket: 6 px out round the slot, ending at 858")
 	assert_true((tab.get_node("ListFrame") as Control).get_global_rect().encloses(marks), "inside the frame, so they show whole")
 
+func test_the_seventh_rows_marks_fit_the_frame_over_a_longer_list() -> void:   # Ruling R20
+	for index: int in 8:
+		InventoryManager.award_items(_consumable("pill_%d" % index, "Pill %d" % index), 1)
+	var tab: Control = await _open_tab()
+	var seventh: ConsumableRow = _rows(tab)[6]
+	seventh.hovered.emit(seventh)
+	await wait_process_frames(1)
+	var marks: Rect2 = (seventh.get_node("%Marks") as Control).get_global_rect()
+	assert_true((seventh.get_node("%Rule") as Control).visible, "an eighth row follows, so the seventh keeps its rule")
+	assert_eq(marks, Rect2(444, 772, 442, 90), "its marks take in the rule, ending at 862")
+	assert_true((tab.get_node("ListFrame") as Control).get_global_rect().encloses(marks), "the frame reaches 862, so they show whole")
+
 func test_the_groove_sits_beside_the_list() -> void:   # Rulings R3, R15, R17, R19
 	for index: int in 8:
 		InventoryManager.award_items(_consumable("pill_%d" % index, "Pill %d" % index), 1)
@@ -189,7 +201,7 @@ func test_the_list_frame_lets_the_marks_show_whole() -> void:   # Ruling R15
 	var tab: Control = await _open_tab()
 	var frame: Control = tab.get_node("ListFrame") as Control
 	assert_true(frame.clip_contents, "the frame clips the rows")
-	assert_eq(frame.get_global_rect(), Rect2(444, 292, 460, 568))
+	assert_eq(frame.get_global_rect(), Rect2(444, 292, 460, 570))
 	var scroll: Control = tab.get_node("%ConsumablesInventoryList").get_node("%ScrollContainer") as Control
 	assert_false(scroll.clip_contents, "the list itself does not")
 	var row: ConsumableRow = _rows(tab)[0]

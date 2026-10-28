@@ -138,7 +138,7 @@ Every `InventorySlot`, `GearSlot` and `TrashSlot` holds a hidden `Marks` panel (
 ConsumablesTab (Control, 1400×900, mouse ignored) — consumables_tab.gd: the list, the hotbar's routing,
                                            the shown consumable and the marks
   LeftTitle (PageTitle)                    — "Consumables"
-  ListFrame (Control, clips)               — the list's rect grown 8 px left, up and down, so the rows' marks show whole
+  ListFrame (Control, clips)               — the list's rect grown 8 px left and up and 10 px down, so the rows' marks show whole
     ConsumablesInventoryList (InventoryList) — rows 428 wide, the rail 12 px after them; on this instance the
                                              ScrollContainer doesn't clip (ListFrame does) and the rows sit 0 px apart
       ConsumableRow per stack              — consumable_row.tscn/.gd (VBoxContainer):
