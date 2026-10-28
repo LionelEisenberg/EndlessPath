@@ -6,7 +6,7 @@
 
 - Menu overlays (Inventory, Path, Abilities, Character) open from the keyboard or the dock at the bottom of the zone view. Both routes produce the same input action. All four are books built on one shared `BookFrame` scene and open and close the same way (see [Menu books](#menu-books)).
 - Cycling, the merchant shop, the Tribulation, adventures and the end card are driven by `ActionManager` and `AdventureView` signals.
-- Cycling and the Tribulation are the overlays with no backdrop. Their boards sit in the map gap with the zone view up around them. `MainView.set_cycling_mode()` turns the zone view's chest, dock and map over to cycling (see [Cycling mode](#cycling-mode)), and `MainView.set_board_mode()` turns the dock and the map off for either board (see [Tribulation board](#tribulation-board)).
+- Cycling and the Tribulation are the overlays with no backdrop. Their boards sit in the map gap with the zone view up around them. `MainView.set_cycling_mode()` turns the zone view's chest, dock and map over to cycling (see [Cycling mode](#cycling-mode)), and `MainView.set_board_mode()` turns the dock, the map and the chest's About off for either board (see [Tribulation board](#tribulation-board)).
 - Only the top state receives input. Everything else that reads input (the full log on L, the zone chest's lore and the map popover on Escape, combat hotkeys, camera pan/zoom, the dev hotkey, Dialogic) is handled outside the state machine.
 
 The zone view itself (map, cultivator cabinet, zone chest) is documented in [ZONES.md](../zones/ZONES.md). Related docs: [UI_STYLING.md](../UI_STYLING.md) (themes, including the lacquer theme), [DEV_TOOLS.md](../tooling/DEV_TOOLS.md) (dev panel), [TESTING.md](../testing/TESTING.md).
@@ -94,7 +94,7 @@ Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under 
 | `cultivator_plate`, `zone_panel`, `dock`, `zone_map_viewport` | The zone view's cabinet, chest, dock and map SubViewport (`%CultivatorPlate`, `%ZonePanel`, `%Dock`, `%SubViewport`). Cycling mode turns the last three over (the Tribulation, the dock and the map); the cabinet goes to the `CyclingView`. |
 | `tribulation_view`, `tribulation_view_state` | The Tribulation board (`%TribulationView`, a `TribulationView`) and its state. |
 | `set_cycling_mode(on)` | See [Cycling mode](#cycling-mode). |
-| `set_board_mode(on)` | Hides the dock and turns the map's SubViewport input off for a board in the map gap (`main_view.gd:149`). Each piece is skipped when missing. `set_cycling_mode()` calls it after the chest; `TribulationViewState` calls it on its own. See [Tribulation board](#tribulation-board). |
+| `set_board_mode(on)` | Hides the dock and the chest's About (`ZonePanel.set_board_mode(on)`, which closes the lore) and turns the map's SubViewport input off for a board in the map gap (`main_view.gd:151`). Each piece is skipped when missing. `set_cycling_mode()` calls it after the chest; `TribulationViewState` calls it on its own. See [Tribulation board](#tribulation-board). |
 | `_unhandled_input(event)` | Forwards to the current state's `handle_input(event)`. |
 
 In practice at most one overlay is open at a time. Overlay states never push other overlays, and while an overlay is open the GreyBackground covers the dock (cycling and the Tribulation hide the dock instead).
@@ -153,11 +153,11 @@ Cycling is one of two overlays with no backdrop (the other is the [Tribulation b
 
 | Piece | While cycling | How |
 |-------|---------------|-----|
-| Zone chest | Lists the learned techniques ("Techniques", "N learned") instead of the activities, with the last cycle's line under the Now tray once a cycle has ended | `ZonePanel.set_techniques_mode(on)` |
+| Zone chest | Lists the learned techniques ("Techniques", "N learned") instead of the activities, with the last cycle's line under the Now tray once a cycle has ended. About hides and an open lore closes | `ZonePanel.set_techniques_mode(on)`; About is `ZonePanel.set_board_mode(on)` |
 | Dock | Hidden (the board covers its place) | `dock.visible = not on` |
 | Map | Takes no clicks, hover or wheel zoom | `zone_map_viewport.gui_disable_input = on`. The `SubViewportContainer` hands a press to its SubViewport with `push_input()`, which a viewport with its input off drops |
 
-- The dock and map rows are `MainView.set_board_mode(on)`, which `set_cycling_mode()` calls after the chest (`main_view.gd:138-153`); the Tribulation calls it directly (see [Tribulation board](#tribulation-board)).
+- The dock and map rows and About are `MainView.set_board_mode(on)`, which `set_cycling_mode()` calls after the chest (`main_view.gd:139-157`); the Tribulation calls it directly (see [Tribulation board](#tribulation-board)).
 - Each piece is skipped when its reference is missing, as it is on the `MainView`s the view-state tests build.
 - `MapMarkers` still hears presses at the window level, so a click on the map beside the board closes a pinned popover. Nothing travels.
 - The cabinet, the Goals board and the log are left alone. The full log is blocked, so L does nothing and Escape reaches the board.
@@ -174,7 +174,7 @@ The Tribulation (`scenes/tribulation/`, [breakthrough-tribulation.md](../cultiva
 | Dock | Hidden | `set_board_mode(true)`: `dock.visible = not on` |
 | Map | Takes no clicks, hover or wheel zoom | `set_board_mode(true)`: `zone_map_viewport.gui_disable_input = on` |
 | Full log | Closed and blocked, so L does nothing and Escape reaches the board | `LogWindow.set_full_log_blocked(true)`, through `MainViewState` |
-| Cabinet and chest | Stay up. The chest keeps its activity list, but no card can be pressed (see Click blocking) | — |
+| Cabinet and chest | Stay up. The chest keeps its activity list, but no card can be pressed (see Click blocking). About hides and an open lore closes | `set_board_mode(true)`: `ZonePanel.set_board_mode(on)` |
 
 - **Click blocking.** The `TribulationView` root is a full-screen `Control` with `MOUSE_FILTER_STOP`, and its `_gui_input()` accepts every mouse event, so no click reaches the chest, the cabinet or the map beneath, and no other action can replace the trial (`tribulation_view.gd:228`). Every node on the board except the board itself (`PASS`) and its three buttons ignores the mouse.
 - **Input.** `MainView` sends input only to the top state, so `TribulationViewState.handle_input()` (`tribulation_view_state.gd:50`) hands `tribulation_press` events (Space) to `view.handle_press_event()` and turns `ui_cancel` into `view.cancel()`, which acts on the intro only. Mouse presses reach the view's `_gui_input()` and go to the same `handle_press_event()`. On the intro only Space, or a click inside the board's rect, begins the run (`tribulation_view.gd:336`): the second click of a double click on the card that opened the trial lands outside the board and does nothing, so it cannot skip the rules or **Not yet**. While the run goes on, a press counts wherever it lands. The board's buttons set `focus_mode = FOCUS_NONE`, so Space never presses one.
@@ -339,7 +339,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | MerchantView | `animate_open()` / `animate_close()`, called through `GreyBackground` |
 | ZoneTransition | `reset_camera()` on zone enter. Calls `ActionManager.confirm_adventure_start()` after the drain. |
 | GoalsPanel | Placed by `ZoneViewState` (and left in place by `AdventureViewState`); hidden under the shop and in the Tribulation; left showing beside cycling; dimmed under the menu books and the end card |
-| CultivatorPlate / ZonePanel / Dock / zone SubViewport | `set_cycling_mode()` turns the chest, dock and map over; `set_board_mode()` turns the dock and map off for the Tribulation too; the `CyclingView` flies its pellets into the cabinet |
+| CultivatorPlate / ZonePanel / Dock / zone SubViewport | `set_cycling_mode()` turns the chest, dock and map over; `set_board_mode()` turns the dock, the map and About off for the Tribulation too; the `CyclingView` flies its pellets into the cabinet |
 | CultivationManager | The Tribulation board applies its result through `advance_to_next_stage()` and `lose_core_density_levels()` ([CULTIVATION.md](../cultivation/CULTIVATION.md)) |
 | ResourceManager | `CultivatorPlate` gold row (`gold_changed`, `get_gold()`) |
 | PathManager | `Dock` Path count seal (`points_changed`, `get_point_balance()`) |

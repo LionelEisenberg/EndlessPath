@@ -16,7 +16,8 @@ extends Control
 ## 12 px; About, Esc or a click outside closes it. The lore wraps inside its board
 ## and the board grows with it (264 tall at least, an even height). Esc closes it
 ## only while the zone view is MainView's active state: an overlay opened over the
-## zone view (the inventory, say) takes Esc first.
+## zone view (the inventory, say) takes Esc first. About hides, and the lore closes,
+## while a board stands in the map gap (set_board_mode: cycling, the Tribulation).
 ## While the player cycles (set_techniques_mode), the header reads "Techniques"
 ## with "N learned" and a TechniqueList, one drawer per unlocked cycling
 ## technique, takes the activity list's place. It does not scroll or fold, so
@@ -120,6 +121,10 @@ var _techniques_mode: bool = false
 ## How many activities the zone lists, from the last rebuild: the "N here" the
 ## header shows again when the techniques mode ends.
 var _activity_count: int = 0
+## True when the current zone has a description for About to open.
+var _has_lore: bool = false
+## True while a board stands in the map gap, which hides About.
+var _board_mode: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -200,6 +205,12 @@ func set_techniques_mode(on: bool) -> void:
 func is_techniques_mode() -> bool:
 	return _techniques_mode
 
+## Hides About and closes the lore while a board stands in the map gap (the
+## cycling board, the Tribulation board), or gives About back when it goes.
+func set_board_mode(on: bool) -> void:
+	_board_mode = on
+	_apply_about()
+
 ## Returns the list of technique drawers, which shows only in the techniques
 ## mode.
 func get_technique_list() -> TechniqueList:
@@ -238,9 +249,8 @@ func _rebuild() -> void:
 	_thumb.texture = THUMB_RIVER if zone.tile_variant_index == RIVER_TILE_VARIANT else THUMB_BASIC
 	_lore_text.text = _lore_paragraphs(zone.description)
 	_fit_lore()
-	_about_button.visible = zone.description != ""
-	if not _about_button.visible:
-		_close_lore()
+	_has_lore = zone.description != ""
+	_apply_about()
 	var actions: Array[ZoneActionData] = ZoneManager.get_available_actions(zone.zone_id)
 	_activity_count = actions.size()
 	_apply_header()
@@ -256,6 +266,13 @@ func _apply_header() -> void:
 	else:
 		_header_label.text = ACTIVITIES_HEADER
 		_count_label.text = HERE_FORMAT % _activity_count
+
+## Shows About while the zone has lore and no board stands in the map gap, and
+## closes the lore when About hides.
+func _apply_about() -> void:
+	_about_button.visible = _has_lore and not _board_mode
+	if not _about_button.visible:
+		_close_lore()
 
 ## Shows the last finished cycle's line under the Now tray while the player
 ## cycles and a cycle has ended, and hides it otherwise. The line's box is as

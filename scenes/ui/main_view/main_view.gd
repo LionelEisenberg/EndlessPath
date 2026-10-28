@@ -23,7 +23,7 @@ extends Control
 ## The zone view's furniture the boards in the map gap work with. The cabinet takes
 ## the cycling board's pellets (it is handed to the CyclingView in _ready()); the
 ## chest, the dock and the map's SubViewport are turned over by set_cycling_mode(),
-## and the dock and the SubViewport by set_board_mode().
+## and the dock, the SubViewport and the chest's About by set_board_mode().
 @onready var cultivator_plate: CultivatorPlate = %CultivatorPlate
 @onready var zone_panel: ZonePanel = %ZonePanel
 @onready var dock: Control = %Dock
@@ -132,25 +132,29 @@ func release_hud_boards(holder: MainViewState) -> void:
 	_hud_board_visibility.clear()
 
 ## Turns the zone view's furniture over to the cycling board, or gives it back.
-## While cycling, the chest lists the techniques, and the dock and the map are
-## turned off as for any board in the map gap (see set_board_mode()). The chest is
-## skipped when it is missing, as it is on the MainViews the view-state tests build.
+## While cycling, the chest lists the techniques, and the dock, the map and the
+## chest's About are turned off as for any board in the map gap (see
+## set_board_mode()). The chest is skipped when it is missing, as it is on the
+## MainViews the view-state tests build.
 func set_cycling_mode(on: bool) -> void:
 	if zone_panel != null:
 		zone_panel.set_techniques_mode(on)
 	set_board_mode(on)
 
-## Turns the zone view's dock and map off for a board that stands in the map gap
-## (the cycling board, the Tribulation board), or gives them back. The dock hides
-## and the map's SubViewport takes no input: the SubViewportContainer pushes a
-## press into it with push_input(), which a viewport with its input off drops, so
-## a click on the map beside the board travels nowhere. Each piece is skipped when
-## it is missing, as it is on the MainViews the view-state tests build.
+## Turns the zone view's dock and map and the chest's About off for a board that
+## stands in the map gap (the cycling board, the Tribulation board), or gives them
+## back. The dock hides and the map's SubViewport takes no input: the
+## SubViewportContainer pushes a press into it with push_input(), which a viewport
+## with its input off drops, so a click on the map beside the board travels
+## nowhere. About hides and the lore closes. Each piece is skipped when it is
+## missing, as it is on the MainViews the view-state tests build.
 func set_board_mode(on: bool) -> void:
 	if dock != null:
 		dock.visible = not on
 	if zone_map_viewport != null:
 		zone_map_viewport.gui_disable_input = on
+	if zone_panel != null:
+		zone_panel.set_board_mode(on)
 
 ## Change the base state, clearing the stack.
 func change_state(new_state: MainViewState) -> void:

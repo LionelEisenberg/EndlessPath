@@ -257,8 +257,8 @@ A cycle that is stopped, or cut off by switching technique, emits nothing. After
 - A left press on a drawer not in use equips its technique, marks it seen, and flashes the brass frame twice. A press on the drawer in use does nothing. Hover shows the thin frame. The pointer leaving the drawer marks the technique seen, which clears its NEW seal; the pointer arriving does not, because the drawers can turn up under a cursor that has just clicked the cycling card.
 - `is_in_use()`, `is_new_shown()` and `flash()` are public for the list and the tests. The drawer does not listen to `CyclingManager`: the list calls `refresh()` on every drawer when the equipped technique changes.
 - `TechniqueList` has `build()`, `get_content_height()` (the drawers' heights and the gaps), `get_drawer(technique_id)`, `get_drawer_count()` and the signal `layout_changed`, which it also emits when a drawer's height changes, so the chest grows or shrinks with the drawer. It rebuilds on `technique_unlocked` whether shown or not, so it is current the moment the chest turns to it, and refreshes the drawers on `equipped_technique_changed`.
-- The lore panel stays as the player left it when cycling opens.
-- **The last cycle's line.** Once a cycle has ended, `%LastCycleLabel` shows `CycleResult.result_line()` right under the Now tray, in the techniques mode only. It is a `LabelLacquerDetail` (tan) at (16, 180), 408 wide, and ignores the mouse. A line too long for the tray wraps (a cycle of 12345 Madra and 99999 XP takes two lines). It pushes the lore panel, the header and the list down by its height on even px (18 px a line) and `LAST_CYCLE_GAP` (8 px): 26 px for one line (`LORE_TOP` 182 → 208), 44 for two, and the chest grows as much. `ZonePanel` follows `CyclingManager.last_cycle_changed`: the line shows or hides and the chest lays out again at once, with no rebuild. It goes when the board opens, the technique switches or the save resets, and when the chest turns back to its activities.
+- About hides while cycling, and an open lore panel closes when cycling opens (`MainView.set_board_mode()`, as for the Tribulation).
+- **The last cycle's line.** Once a cycle has ended, `%LastCycleLabel` shows `CycleResult.result_line()` right under the Now tray, in the techniques mode only. It is a `LabelLacquerDetail` (tan) at (16, 180), 408 wide, and ignores the mouse. A line too long for the tray wraps (a cycle of 12345 Madra and 99999 XP takes two lines). It pushes the header and the list down by its height on even px (18 px a line) and `LAST_CYCLE_GAP` (8 px): 26 px for one line, 44 for two, and the chest grows as much. `ZonePanel` follows `CyclingManager.last_cycle_changed`: the line shows or hides and the chest lays out again at once, with no rebuild. It goes when the board opens, the technique switches or the save resets, and when the chest turns back to its activities.
 - The detail is in [ZONES.md](../zones/ZONES.md#zone-chest-zonepanel).
 
 ### Path Tree Hook Points
@@ -402,7 +402,7 @@ None known.
 - `[MEDIUM]` No combo or streak reward for consecutive PERFECT/GOOD presses.
 - `[LOW]` No penalty for mis-timed presses. A press while no zone is active is ignored, and the first press while one is active scores it at OK or better, so pressing the ball as it passes a zone guarantees at least OK.
 - `[LOW]` Auto Cycle is free from the start and only chains cycles. The GDD frames auto-cycling as a Copper Scripting reward, and there is no idle or offline cycling.
-- `[LOW]` The technique list neither scrolls nor folds. The chest fits 10 drawers (9 while the last cycle's line shows, 6 while the lore is open) and the catalog has 3. A longer catalog needs the activity list's fold and scroll.
+- `[LOW]` The technique list neither scrolls nor folds. The chest fits 10 drawers (9 while the last cycle's line shows) and the catalog has 3. A longer catalog needs the activity list's fold and scroll.
 
 ### Content
 
