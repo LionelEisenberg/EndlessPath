@@ -3,16 +3,13 @@ extends GutTest
 ## Unit tests for the cycling view's lacquer art, the textures the later cycling
 ## work loads by path. Each texture has the size its scene is laid out for, and its
 ## art is opaque or clear: no halo, glow or soft edge (docs/STYLE_GUIDE.md rules 3
-## and 9). The pellets also keep to their palettes.
+## and 9). The pellets are LacquerPellet's strip, tested with it.
 
 const BOARD_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_board_ai.png"
 const BODY_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_body_carved_ai.png"
 const BALL_STRIP_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_ball_strip_ai.png"
 const BALL_RINGS_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_ball_rings_ai.png"
 const ZONE_STRIP_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_zone_strip_ai.png"
-const PELLET_BRASS_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_brass_ai.png"
-const PELLET_CREAM_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_cream_ai.png"
-const PELLET_TAN_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_tan_ai.png"
 const AUTO_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_auto_ai.png"
 const AUTO_ON_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_auto_on_ai.png"
 const TECH_FOUNDATION_PATH: String = "res://assets/ui/lacquer/icons/lacquer_ic_tech_foundation_ai.png"
@@ -35,18 +32,11 @@ const RING_CELL: int = 88
 const TAN_HTML: String = "a89070"
 ## Six frames of 48: idle, active, spent, perfect, good, ok.
 const ZONE_STRIP_SIZE: Vector2i = Vector2i(288, 48)
-const PELLET_SIZE: Vector2i = Vector2i(12, 12)
 ## The raised toggle's 120x36 art plus its 2 px drop shadow. The pressed one has no
 ## shadow and is padded with clear px to the same size.
 const AUTO_SIZE: Vector2i = Vector2i(122, 38)
 const TECH_ICON_SIZE: Vector2i = Vector2i(32, 32)
 
-## The only colours each pellet may use: its ramp and the ink outline.
-const BRASS_PELLET_PALETTE: Array[String] = ["f0e8d8", "d4a84a", "a66834", "341e0e", "150909"]
-const CREAM_PELLET_PALETTE: Array[String] = ["f0e8d8", "a89070", "7a654c", "150909"]
-const TAN_PELLET_PALETTE: Array[String] = ["f0e8d8", "a89070", "7a654c", "341e0e", "150909"]
-
-const PELLET_PATHS: Array[String] = [PELLET_BRASS_PATH, PELLET_CREAM_PATH, PELLET_TAN_PATH]
 const TECH_ICON_PATHS: Array[String] = [TECH_FOUNDATION_PATH, TECH_SMOOTH_PATH, TECH_TORRENT_PATH]
 
 ## How many stray pixels a failure lists. The board has over half a million pixels, so a
@@ -108,10 +98,6 @@ func test_ball_strips_hold_their_frames() -> void:
 func test_zone_strip_holds_its_six_frames() -> void:
 	_assert_size(ZONE_STRIP_PATH, ZONE_STRIP_SIZE)
 
-func test_pellets_are_twelve_px_square() -> void:
-	for path: String in PELLET_PATHS:
-		_assert_size(path, PELLET_SIZE)
-
 ## The pressed state swaps in for the raised one without a resize.
 func test_auto_toggle_states_are_the_same_size() -> void:
 	_assert_size(AUTO_PATH, AUTO_SIZE)
@@ -172,15 +158,6 @@ func test_the_tracking_ring_and_the_idle_rim_are_unbroken() -> void:
 	assert_eq(_ring_gaps(rings, Vector2i(RING_CELL, 0), Vector2(44.0, 44.0), 33.0, 36.0), 0, "the tracking ring")
 	var zones: Image = _load_texture(ZONE_STRIP_PATH).get_image()
 	assert_eq(_ring_gaps(zones, Vector2i(0, 0), Vector2(24.0, 24.0), 19.0, 22.0), 0, "the idle rim")
-
-func test_brass_pellet_is_opaque_and_in_its_palette() -> void:
-	_assert_opaque_or_clear(PELLET_BRASS_PATH, BRASS_PELLET_PALETTE)
-
-func test_cream_pellet_is_opaque_and_in_its_palette() -> void:
-	_assert_opaque_or_clear(PELLET_CREAM_PATH, CREAM_PELLET_PALETTE)
-
-func test_tan_pellet_is_opaque_and_in_its_palette() -> void:
-	_assert_opaque_or_clear(PELLET_TAN_PATH, TAN_PELLET_PALETTE)
 
 func test_board_and_body_are_opaque_or_clear() -> void:
 	_assert_opaque_or_clear(BOARD_PATH)

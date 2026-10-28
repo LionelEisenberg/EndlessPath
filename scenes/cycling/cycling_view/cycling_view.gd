@@ -51,34 +51,20 @@ const AUTO_OFF_TEXT: String = "Auto · off"
 const FLOATER_LIFT: float = 56.0
 
 ## A Madra pellet's flight to the cabinet's Madra orb in seconds, and how far
-## its path may bow off the straight line in px.
+## its path bows off the straight line in px: the stream sways from that far to
+## one side to that far to the other (PelletFlight.stream).
 const MADRA_PELLET_FLIGHT: float = 0.6
-const MADRA_PELLET_SPREAD: float = 60.0
+const MADRA_PELLET_BOW: float = 60.0
 
-## The first XP pellet's flight to the Core orb in seconds and its bow in px.
-## Each pellet after it flies longer and bows wider by the steps.
-const XP_PELLET_FLIGHT: float = 0.55
-const XP_PELLET_SPREAD: float = 40.0
-const XP_PELLET_FLIGHT_STEP: float = 0.03
-const XP_PELLET_SPREAD_STEP: float = 10.0
+## A hit's XP pellets pop out of the zone up to XP_BURST_REACH px, then home into
+## the Core orb (PelletFlight.burst): the first lands XP_PELLET_FLIGHT s after
+## the hit, each next one XP_PELLET_FLIGHT_STEP s after the one before.
+const XP_PELLET_FLIGHT: float = 0.6
+const XP_PELLET_FLIGHT_STEP: float = 0.04
+const XP_BURST_REACH: float = 36.0
 
-## An XP pellet starts up to this many px off the zone's centre on each axis.
-const XP_PELLET_SCATTER: int = 7
-
-## How the start of pellet k is scattered: (k * 7) % 15 - 7 across and
-## (k * 11) % 15 - 7 down, 15 being the 2 * 7 + 1 offsets from -7 to 7. The
-## steps are coprime to 15, so the eight pellets of a PERFECT hit all differ.
-const _SCATTER_X_STEP: int = 7
-const _SCATTER_Y_STEP: int = 11
-const _SCATTER_SPAN: int = 2 * XP_PELLET_SCATTER + 1
-
-const _MADRA_PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
+const _PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 const _FLOATER_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn")
-
-## The XP pellets' art by tier: the tier's colour.
-const _PELLET_BRASS: Texture2D = preload("res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_brass_ai.png")
-const _PELLET_CREAM: Texture2D = preload("res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_cream_ai.png")
-const _PELLET_TAN: Texture2D = preload("res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_tan_ai.png")
 
 ## The Auto label sits this many px lower while the toggle is pressed in.
 const _AUTO_PRESS_DROP: float = 2.0
@@ -126,6 +112,9 @@ var _cycled_before: bool = false
 ## One floater for each zone of the technique, in the order of the zones.
 var _floaters: Array[LacquerFloater] = []
 
+## How many Madra pellets the view has sent: the index that sways the stream.
+var _madra_pellets_sent: int = 0
+
 #-----------------------------------------------------------------------------
 # LIFECYCLE
 #-----------------------------------------------------------------------------
@@ -170,14 +159,6 @@ static func status_line(cycled_before: bool, running: bool, elapsed: float, dura
 		return MADRA_FULL_ZONES if zones_pay_xp else MADRA_FULL
 	var line: String = CYCLING_FORMAT % [floori(elapsed), roundi(duration)]
 	return line if tracking else line + FOLLOW_SUFFIX
-
-## Returns where XP pellet `index` starts, as an offset from its zone's centre:
-## up to XP_PELLET_SCATTER px either way on each axis, a different spot for each
-## index.
-static func xp_pellet_offset(index: int) -> Vector2:
-	return Vector2(
-		(index * _SCATTER_X_STEP) % _SCATTER_SPAN - XP_PELLET_SCATTER,
-		(index * _SCATTER_Y_STEP) % _SCATTER_SPAN - XP_PELLET_SCATTER)
 
 ## Returns the status line's text.
 func get_status_text() -> String:
@@ -270,11 +251,13 @@ static func _fit_lines(label: Label) -> void:
 # PELLETS AND FLOATERS
 #-----------------------------------------------------------------------------
 
-## Instances a pellet into the effects layer, which draws over the board.
-func _add_pellet() -> LacquerPellet:
-	var pellet: LacquerPellet = _MADRA_PELLET_SCENE.instantiate() as LacquerPellet
+## Instances a pellet into the effects layer, which draws over the board, and
+## sends it along `flight` in `ramp`.
+func _send_pellet(flight: PelletFlight, ramp: LacquerPellet.Ramp) -> void:
+	var pellet: LacquerPellet = _PELLET_SCENE.instantiate() as LacquerPellet
 	_effects_layer.add_child(pellet)
-	return pellet
+	pellet.set_ramp(ramp)
+	pellet.fly(flight)
 
 ## Frees every pellet in flight. Each leaves the effects layer at once, so the
 ## layer holds none even before the frees land.
@@ -284,15 +267,15 @@ func _free_pellets() -> void:
 			_effects_layer.remove_child(child)
 			child.queue_free()
 
-## Returns the XP pellets' art for a hit of `tier`.
-static func _pellet_texture(tier: CyclingRules.Tier) -> Texture2D:
+## Returns the XP pellets' ramp for a hit of `tier`: the tier's colour.
+static func _pellet_ramp(tier: CyclingRules.Tier) -> LacquerPellet.Ramp:
 	match tier:
 		CyclingRules.Tier.PERFECT:
-			return _PELLET_BRASS
+			return LacquerPellet.Ramp.BRASS
 		CyclingRules.Tier.GOOD:
-			return _PELLET_CREAM
+			return LacquerPellet.Ramp.CREAM
 		_:
-			return _PELLET_TAN
+			return LacquerPellet.Ramp.TAN
 
 ## Replaces the floaters with one for each zone of the technique, all hidden.
 func _rebuild_floaters() -> void:
@@ -377,17 +360,19 @@ func _on_cycle_completed(result: CycleResult) -> void:
 	LogManager.log_message("[color=cyan]%s[/color]" % result.log_line())
 	_cycled_before = true
 
-## A step of Madra left the ball: a pellet flies to the cabinet's Madra orb.
+## A step of Madra left the ball: the stream's next pellet flies to the
+## cabinet's Madra orb.
 func _on_madra_particle_requested(from_pos: Vector2) -> void:
 	if cultivator_plate == null:
 		return
-	var pellet: LacquerPellet = _add_pellet()
-	pellet.launch(from_pos, cultivator_plate.get_madra_orb_global_position(), MADRA_PELLET_FLIGHT, MADRA_PELLET_SPREAD)
+	var orb: Vector2 = cultivator_plate.get_madra_orb_global_position()
+	_send_pellet(PelletFlight.stream(from_pos, orb, MADRA_PELLET_FLIGHT, MADRA_PELLET_BOW, _madra_pellets_sent), LacquerPellet.Ramp.MADRA)
+	_madra_pellets_sent += 1
 
 ## A zone scored: its floater pops with the hit and its XP in the tier's colour,
-## and the tier's pellets fly from the zone to the cabinet's Core orb. A full
-## core takes no XP, so the floater says "Core full" where the XP would be
-## ("PERFECT · Core full") and no pellet flies.
+## and the tier's pellets burst out of the zone and home into the cabinet's Core
+## orb. A full core takes no XP, so the floater says "Core full" where the XP
+## would be ("PERFECT · Core full") and no pellet flies.
 func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> void:
 	var core_full: bool = CultivationManager.is_core_full()
 	var zone_index: int = _technique.cycling_zones.find(zone)
@@ -399,16 +384,15 @@ func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> voi
 		_place_floater(zone_index)
 	if cultivator_plate == null or core_full:
 		return
-	var target: Vector2 = cultivator_plate.get_core_orb_global_position()
-	var texture: Texture2D = _pellet_texture(tier)
-	for k: int in CyclingRules.pellet_count(tier):
-		var pellet: LacquerPellet = _add_pellet()
-		pellet.set_texture(texture)
-		pellet.launch(
-			zone.global_position + xp_pellet_offset(k),
-			target,
-			XP_PELLET_FLIGHT + XP_PELLET_FLIGHT_STEP * k,
-			XP_PELLET_SPREAD + XP_PELLET_SPREAD_STEP * k)
+	var flights: Array[PelletFlight] = PelletFlight.burst(
+		zone.global_position,
+		cultivator_plate.get_core_orb_global_position(),
+		CyclingRules.pellet_count(tier),
+		XP_PELLET_FLIGHT,
+		XP_PELLET_FLIGHT_STEP,
+		XP_BURST_REACH)
+	for flight: PelletFlight in flights:
+		_send_pellet(flight, _pellet_ramp(tier))
 
 func _on_auto_toggled(on: bool) -> void:
 	_technique.auto_cycle = on

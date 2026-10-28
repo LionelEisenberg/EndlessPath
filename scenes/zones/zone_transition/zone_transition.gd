@@ -11,12 +11,16 @@ extends Node
 #-----------------------------------------------------------------------------
 
 ## What the drain pours from the orb to the character: an opaque Madra pellet
-## that moves in 2 px steps (lacquer kit §1 rules 4 and 6).
+## that moves in 2 px steps (lacquer kit §1 rules 4 and 6). One leaves every
+## DRAIN_SPAWN_INTERVAL s and flies DRAIN_PARTICLE_FLIGHT_TIME s, so they land in
+## the rhythm they left, as a stream that sways up to DRAIN_BOW px to either side
+## (PelletFlight.stream).
 const DRAIN_PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 const DRAIN_MIN_PARTICLES: int = 8
 const DRAIN_MAX_PARTICLES: int = 25
 const DRAIN_SPAWN_INTERVAL: float = 0.04
 const DRAIN_PARTICLE_FLIGHT_TIME: float = 0.6
+const DRAIN_BOW: float = 110.0
 const ZOOM_DURATION: float = 0.5
 const ZOOM_TARGET: float = 3.0
 
@@ -118,11 +122,8 @@ func _spawn_next_drain_particle() -> void:
 	var from_pos: Vector2 = _cultivator_plate.get_madra_orb_global_position()
 
 	var pellet: LacquerPellet = DRAIN_PELLET_SCENE.instantiate()
-	var offset: Vector2 = Vector2(randf_range(-15, 15), randf_range(-15, 15))
-	var duration: float = randf_range(DRAIN_PARTICLE_FLIGHT_TIME * 0.7, DRAIN_PARTICLE_FLIGHT_TIME)
-	var curve_spread: float = randf_range(80.0, 150.0)
 	_get_pellet_parent().add_child(pellet)
-	pellet.launch(from_pos + offset, _drain_target_pos + offset, duration, curve_spread)
+	pellet.fly(PelletFlight.stream(from_pos, _drain_target_pos, DRAIN_PARTICLE_FLIGHT_TIME, DRAIN_BOW, _drain_particles_spawned))
 
 	# The final particle carries the leftover deficit (when budget doesn't
 	# divide evenly by base count). Every other particle spends the whole-

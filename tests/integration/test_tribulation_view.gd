@@ -18,7 +18,6 @@ extends GutTest
 
 const VIEW_SCENE_PATH: String = "res://scenes/tribulation/tribulation_view.tscn"
 const DATA_PATH: String = "res://resources/tribulation/foundation_tribulation.tres"
-const BRASS_PELLET_PATH: String = "res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_brass_ai.png"
 
 const Mode := TribulationView.Mode
 const Stage := CultivationManager.AdvancementStage
@@ -177,12 +176,11 @@ func _pellets() -> Array[LacquerPellet]:
 			pellets.append(child as LacquerPellet)
 	return pellets
 
-## How many pellets in flight wear the brass art.
+## How many pellets in flight are in the brass ramp.
 func _brass_pellet_count() -> int:
 	var count: int = 0
 	for pellet: LacquerPellet in _pellets():
-		var sprite := pellet.get_node("%Sprite") as Sprite2D
-		if sprite.texture != null and sprite.texture.resource_path == BRASS_PELLET_PATH:
+		if pellet.get_ramp() == LacquerPellet.Ramp.BRASS:
 			count += 1
 	return count
 
