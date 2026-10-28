@@ -335,6 +335,23 @@ func test_a_snapshot_is_migrated() -> void:
 	assert_eq(ZoneManager.get_current_zone().zone_id, "SpiritValley", "migrate() moves it off the hidden Test Zone")
 	assert_eq(snapshot.save_version, 0, "the snapshot itself is left as it was")
 
+## A snapshot taken in a zone the game has since dropped would stand in no zone at
+## all. The build repairs its copy after the migration, as opening a save file
+## does, so the session starts in the first zone with the rest of the snapshot.
+func test_a_snapshot_in_a_removed_zone_is_repaired() -> void:
+	var snapshot := SaveGameData.new_current()
+	snapshot.current_selected_zone_id = "NoSuchZoneForBuildTest"
+	snapshot.gold = 5.0
+	var preset := _preset("test_lost_zone_snapshot", "")
+	preset.snapshot = snapshot
+	assert_eq(DevManager.build_preset(preset), "", "precondition: the preset builds")
+	var zone: ZoneData = ZoneManager.get_current_zone()
+	assert_not_null(zone, "the session stands in a zone")
+	if zone != null:
+		assert_eq(zone.zone_id, "SpiritValley", "the first zone, as for any repaired save")
+	assert_eq(ResourceManager.get_gold(), 5.0, "the rest of the snapshot stays")
+	assert_eq(snapshot.current_selected_zone_id, "NoSuchZoneForBuildTest", "the preset's snapshot itself is left as it was")
+
 func test_building_writes_nothing() -> void:
 	assert_eq(DevManager.build_preset(_preset("test_in_memory", "beat_1")), "", "precondition: the preset builds")
 	assert_true(PersistenceManager.is_in_memory(), "a preset built with no save path lives in memory")

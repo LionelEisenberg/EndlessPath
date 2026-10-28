@@ -157,7 +157,7 @@ A **save preset** is a starting point for a dev session: the game starts in it a
 A preset is a `SavePresetData`, one of two kinds:
 
 - **A recipe** names a beat of the [story route](#the-story-route) (`story_through`) and adds steps of its own. Building it plays the route's beats through that one on a fresh save, then the preset's steps, each through [`DevCommands`](#dev-commands). A recipe picks up a quest added in front of its beat and never holds stale save data.
-- **A snapshot** embeds a whole save (`snapshot`), for an odd state found by playing that no recipe describes. It usually names no beat: the route is written for a fresh save, and its steps can refuse on a save that is already past them. Building it plays a migrated copy of the embedded save, so a format change needs a migration step as for any save ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#versioning)).
+- **A snapshot** embeds a whole save (`snapshot`), for an odd state found by playing that no recipe describes. It usually names no beat: the route is written for a fresh save, and its steps can refuse on a save that is already past them. Building it plays a migrated and repaired copy of the embedded save, so a format change needs a migration step as for any save ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#versioning)), and a snapshot taken in a zone the game has since dropped starts in the first zone.
 
 ### Data
 
@@ -322,7 +322,7 @@ A committed snapshot is built with the other presets, so one that no longer buil
 `build_preset()` runs at launch and in game alike:
 
 1. A preset that `validate()` finds anything wrong with is refused with its first error, before anything changes: a beat the route lacks would otherwise play no route steps at all.
-2. The save is a migrated copy of the preset's snapshot, or a fresh save, and its play stats name the preset (`built_from_preset`). The snapshot itself is never changed.
+2. The save is a copy of the preset's snapshot, migrated and then repaired as a save file opened is (`SaveGameData.repair()`, which puts an unknown current zone back to the first, with a `Log.warn`; skipped when `PersistenceManager.can_verify()` says the managers it asks did not load), or a fresh save, and its play stats name the preset (`built_from_preset`). The snapshot itself is never changed.
 3. `PersistenceManager.use_save()` makes it the session's save, so every manager re-binds.
 4. The route's steps through the preset's beat run in order, then the preset's own. The first step that refuses stops the build and leaves its save half-built: the caller decides which session comes next.
 5. Every action available in every zone, and every unlocked technique, is marked seen, as on a save played to that point, so no NEW seal shows.

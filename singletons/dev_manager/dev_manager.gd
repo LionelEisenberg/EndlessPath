@@ -749,14 +749,22 @@ func _build_refusal(preset: SavePresetData, route: StoryRouteData) -> String:
 	var errors: PackedStringArray = preset.validate(route)
 	return "" if errors.is_empty() else errors[0]
 
-## The save a build starts from: a migrated copy of the preset's snapshot, so the
-## snapshot itself is never changed, or a fresh save. The copy shares the item
-## resources the inventory is keyed by and copies everything embedded.
+## The save a build starts from: a migrated and repaired copy of the preset's
+## snapshot, so the snapshot itself is never changed, or a fresh save. The repair is
+## the one opening a save file runs (SaveGameData.repair()), so a snapshot taken in
+## a zone the game has since dropped starts in the first zone; it is skipped when
+## the managers the check asks did not load (PersistenceManager.can_verify()). The
+## copy shares the item resources the inventory is keyed by and copies everything
+## embedded.
 func _starting_save(preset: SavePresetData) -> SaveGameData:
 	if preset.snapshot == null:
 		return SaveGameData.new_current()
 	var save: SaveGameData = preset.snapshot.duplicate_deep(Resource.DEEP_DUPLICATE_INTERNAL) as SaveGameData
 	save.migrate()
+	if PersistenceManager.can_verify():
+		var repaired: PackedStringArray = save.repair()
+		if not repaired.is_empty():
+			Log.warn("DevManager: Repaired %s in a copy of the snapshot of preset '%s'; the preset file is left as it is" % [", ".join(repaired), preset.preset_id])
 	return save
 
 ## The steps a build applies: the route's through the preset's beat, then the

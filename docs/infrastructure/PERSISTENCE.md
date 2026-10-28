@@ -135,6 +135,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `is_in_memory() -> bool` | True when `save_path` is `""` |
 | `is_save_blocked() -> bool` | True when the save could not be read or checked, a newer build wrote it, or another run holds its lock or took it over. Nothing writes it until another save becomes the session's |
 | `get_block_reason() -> String` | Why saving is blocked, or `""` |
+| `can_verify() -> bool` | False when a manager `verify()` and `repair()` ask is missing (`ZoneManager` after its zone list failed to load): such a save is played but never checked, repaired or written. `DevManager` asks it before it repairs a snapshot preset's copy |
 | `backup_main_save() -> String` | The one way the main save is backed up: copies it into `backup_dir` and keeps its newest `BACKUPS_KEPT`, only while this run holds its lock. When only the temp file a cut-short write left is there, it copies that file, under its own stem. Returns the copy's path, or `""` when nothing is on disk to copy, this run does not hold the lock, or the copy failed. `open_save_file()` calls it for the main save, and `DevManager` before a switch writes over it |
 | `has_main_save_on_disk() -> bool` | True when the main save, or the temp file a cut-short write left in its place, is on disk: what `backup_main_save()` would copy |
 | `list_backups() -> PackedStringArray` | The main save's backups in `backup_dir`, newest first. The dev panel's Saves tab lists them |

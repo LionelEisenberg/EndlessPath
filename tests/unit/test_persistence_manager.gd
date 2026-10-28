@@ -66,7 +66,7 @@ current_selected_zone_id = "%s"
 ## A PersistenceManager whose verify() dependencies (ZoneManager's zone list)
 ## failed to load, as they do when the zone action icons are not imported.
 class UnverifiablePersistenceManager extends "res://singletons/persistence_manager/persistence_manager.gd":
-	func _can_verify() -> bool:
+	func can_verify() -> bool:
 		return false
 
 var _manager: Node = null

@@ -275,6 +275,13 @@ func is_save_blocked() -> bool:
 func get_block_reason() -> String:
 	return _block_reason
 
+## False when a manager verify() and repair() ask is missing, e.g. ZoneManager after
+## its zone list failed to load from a stale import cache. Such a save is played but
+## never checked, repaired or written. DevManager asks it before it repairs a
+## snapshot preset's copy.
+func can_verify() -> bool:
+	return is_instance_valid(ZoneManager)
+
 #-----------------------------------------------------------------------------
 # BACKUPS
 #-----------------------------------------------------------------------------
@@ -340,14 +347,14 @@ func _load_session_save(path: String) -> void:
 		_block_saving("%s was written by a newer build (version %d; this build knows %d)" % [read_path, loaded.save_version, SaveGameData.CURRENT_VERSION])
 		# Repaired in memory only, so the session never stands in a zone this build
 		# does not know. Nothing writes the file, so nothing is copied aside.
-		if _can_verify():
+		if can_verify():
 			var repaired_in_memory: PackedStringArray = loaded.repair()
 			if not repaired_in_memory.is_empty():
 				Log.warn("PersistenceManager: Repaired %s in memory only; %s stays as the newer build wrote it" % [", ".join(repaired_in_memory), read_path])
 		return
 	loaded.migrate()
 
-	if not _can_verify():
+	if not can_verify():
 		_block_saving("the managers verify() needs did not load, so the save cannot be checked")
 		return
 	var repaired: PackedStringArray = loaded.repair()
@@ -366,7 +373,7 @@ func _play_in_memory(path: String) -> void:
 		loaded = SaveGameData.new_current()
 	# Does nothing to a save a newer build wrote, which is played as it is.
 	loaded.migrate()
-	if _can_verify():
+	if can_verify():
 		loaded.repair()
 	use_save(loaded, "")
 	Log.info("PersistenceManager: This run does not play the main scene, so %s is read into memory and never written" % path)
@@ -390,11 +397,6 @@ func _main_save_on_disk() -> String:
 	var temp_path: String = SaveFiles.temp_path_for(main_save_path)
 	return temp_path if FileAccess.file_exists(temp_path) else ""
 
-## False when a manager verify() asks is missing, e.g. ZoneManager after its
-## zone list failed to load from a stale import cache. Such a save is played but
-## never checked, repaired or written.
-func _can_verify() -> bool:
-	return is_instance_valid(ZoneManager)
 
 ## Blocks saving for the session, for `reason`, and says so (save_block_changed)
 ## unless it was blocked for that reason already.
