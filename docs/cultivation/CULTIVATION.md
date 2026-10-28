@@ -98,12 +98,14 @@ Readers:  ResourceManager.add_madra()           — Madra cap via get_max_madra(
 | `get_core_density_cap()` | `int` | The current stage's `max_core_density_level`. `0` without save data or a stage resource |
 | `is_core_full()` | `bool` | `cap > 0 and level >= cap` |
 | `has_next_stage()` | `bool` | The current stage resource has a `next_stage` |
-| `get_xp_for_next_level()` | `float` | `stage.get_xp_for_level(level + 1)`, i.e. `base × factor^level`. Returns `0.0` if there is no save or no stage resource |
+| `get_xp_for_next_level()` | `float` | `get_xp_for_level(level + 1)`, i.e. `base × factor^level`. Returns `0.0` if there is no save or no stage resource |
+| `get_xp_for_level(level: int)` | `float` | What reaching `level` costs in the current stage, `stage.get_xp_for_level(level)`. `0.0` without a stage resource. The cultivator cabinet steps back through it to show the core without the XP still flying to it |
 | `get_core_density_xp()` / `get_core_density_level()` | `float` | `0.0` without save data |
 | `get_current_advancement_stage()` | `AdvancementStage` | `FOUNDATION` without save data |
 | `get_current_advancement_stage_name()` | `String` | `"Unknown"` if the stage has no resource |
 | `get_advancement_stage_name(stage)` | `String` | `"Unknown"` if the stage has no resource |
-| `get_max_madra()` | `float` | The Madra pool cap: the current stage's `get_max_madra(level)`. `0.0` without a stage resource. `ResourceManager`, `CyclingTechnique` (its cap check) and `CultivatorPlate` read it |
+| `get_max_madra()` | `float` | The Madra pool cap: `get_max_madra_at(level)`. `0.0` without a stage resource. `ResourceManager` and `CyclingTechnique` (its cap check) read it |
+| `get_max_madra_at(level: int)` | `float` | The current stage's `get_max_madra(level)` at any level. `0.0` without a stage resource. The cultivator cabinet's max, at the level it shows |
 
 ## Core Systems
 
@@ -181,7 +183,7 @@ The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not adde
 | `UnlockManager` / `UnlockConditionData` | Re-evaluates on `core_density_level_updated` and `advancement_stage_changed`. `CULTIVATION_STAGE` and `CULTIVATION_LEVEL` conditions query the manager. `core_density_full` (`CULTIVATION_LEVEL` ≥ 100) latches the Tribulation's card |
 | `QuestManager` | `q_reach_core_density_10` step 1 completes when `q_reach_cd_10` unlocks |
 | UI | The zone view's `CultivatorPlate` and `GoalsPanel` read `get_core_density_cap()` and `is_core_full()` |
-| Tribulation | `TribulationActionData.can_attempt()` and `is_passed()` read the stage and `is_core_full()`; `ActionManager.select_action()` refuses a card the core is not ready for; `TribulationView` applies the result at the run's end through `advance_to_next_stage()` or `lose_core_density_levels()` (`tribulation_view.gd:456-477`). See [breakthrough-tribulation.md](breakthrough-tribulation.md) |
+| Tribulation | `TribulationActionData.can_attempt()` and `is_passed()` read the stage and `is_core_full()`; `ActionManager.select_action()` refuses a card the core is not ready for; `TribulationView` applies the result at the run's end through `advance_to_next_stage()` or `lose_core_density_levels()` (`tribulation_view.gd:480-501`). See [breakthrough-tribulation.md](breakthrough-tribulation.md) |
 | `PersistenceManager` | Fields above persist in `user://save.tres` |
 | Dev panel (Ctrl+Shift+D) | The Player tab's Core Density Reach calls `DevCommands.reach_core_density(level)`, which raises the level through `add_core_density_xp()`, and Advance to the next stage calls `DevCommands.advance_stage()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#player)) |
 

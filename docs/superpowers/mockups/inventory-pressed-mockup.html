@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EndlessPath - Inventory, pressed pages (mockup)</title>
+<!--
+  The inventory's four tabs in the "pressed" page language (2026-10-23). The book stays; slots,
+  panels and the gear figure are pressed into the paper and labels are printed in ink. Spec:
+  docs/superpowers/specs/2026-10-23-inventory-pressed-pages-design.md
+
+  Images are 1:1 with the 1920x1080 game viewport. "Now" shows the game on 2026-10-23 (main at
+  190ac1e6). The images were composed by the scripts in inventory-pressed/gen/ (PIL), from the
+  "now" captures, the user's book and item art, and agent-drawn pressed pieces.
+-->
+<style>
+  :root { --bg:#090E0E; --cream:#F0E8D8; --tan:#A89070; --brass:#D4A84A; --verm:#C8604F; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--cream); font:15px/1.45 system-ui, sans-serif; }
+  header { padding:16px 20px 8px; }
+  h1 { font-size:20px; margin:0 0 4px; color:var(--brass); font-weight:600; }
+  .sub { color:var(--tan); margin:0; max-width:1100px; }
+  .bar { display:flex; gap:8px; padding:10px 20px 0; flex-wrap:wrap; align-items:center; }
+  .bar button { background:#2C1414; color:var(--tan); border:2px solid #150909; padding:6px 14px; font:inherit; cursor:pointer; }
+  .bar button.on { color:var(--cream); border-color:var(--brass); }
+  .bar .lbl { color:var(--tan); font-size:13px; margin-right:4px; }
+  .stage { padding:10px 20px 0; }
+  .stage img { width:100%; max-width:1920px; display:block; cursor:zoom-in; border:2px solid #150909; }
+  .stage.zoom { overflow:auto; max-height:80vh; }
+  .stage.zoom img { width:1920px; max-width:none; cursor:zoom-out; image-rendering:pixelated; }
+  .notes { padding:12px 20px 30px; max-width:1150px; }
+  .notes b { color:var(--brass); }
+  .notes .ph { color:var(--verm); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Inventory: pressed pages</h1>
+  <p class="sub">The four tabs as designed, how they looked before, and the directions tried on the way. Arrow keys flip
+  the tabs, N switches between new and now, a click shows the picture at full size.</p>
+</header>
+<div class="bar" id="tabs">
+  <span class="lbl">Tab</span>
+  <button data-t="equipment" class="on">Equipment</button>
+  <button data-t="consumables">Consumables</button>
+  <button data-t="materials">Materials</button>
+  <button data-t="journal">Journal</button>
+  <span class="lbl" style="margin-left:16px">Show</span>
+  <button data-m="pressed" class="on">New</button>
+  <button data-m="now">Now</button>
+</div>
+<div class="bar">
+  <span class="lbl">Directions tried</span>
+  <button data-x="round1_inked">Inked (round 1)</button>
+  <button data-x="round1_pressed">Pressed (round 1)</button>
+  <button data-x="round1_lacquer">Lacquer board (round 1)</button>
+  <button data-x="round3_pressed_letters">Pressed letters (round 3)</button>
+</div>
+<div class="stage" id="stage"><img id="shot" src="inventory-pressed/pressed_equipment_ai.png" alt="mockup"></div>
+<div class="notes" id="notes"></div>
+<script>
+  const notes = {
+    equipment: '<b>Equipment.</b> 6 &times; 6 pressed slots (owned deep, empty shallow), the printed filter with the one in use pressed in, pages, count and discard. The robed cultivator pressed in with six gear slots and printed leader lines; the details in a pressed panel.',
+    consumables: '<b>Consumables.</b> A list (item, what it does, how many), the hotbar with key numbers and stack tags, the details panel. <span class="ph">Six of the eight consumables are placeholders.</span>',
+    materials: '<b>Materials.</b> The pressed grid with count tags; the material\'s name, how many you have, its description and where it really comes from. <span class="ph">Descriptions and icons are placeholders.</span>',
+    journal: '<b>Journal.</b> Quest items with their quest; the item\'s entry with a red drop cap, then its quest the way the Goals board shows one, with the quest\'s flavour text. <span class="ph">The Shrine Bell row is invented.</span>',
+    round1_inked: '<b>Rejected: inked.</b> Everything drawn on the page in ink, a sketched figure, red-pencil loops.',
+    round1_pressed: '<b>Round 1 pressed.</b> The direction chosen, before it was refined.',
+    round1_lacquer: '<b>Rejected: lacquer board.</b> No book; a strapped board in the map gap. Dark sockets swallow the icons\' dark outlines.',
+    round3_pressed_letters: '<b>Rejected: pressed letters.</b> Every word pressed into the paper; the pressed panel was chosen instead.'
+  };
+  let t = 'equipment', mode = 'pressed', extra = null;
+  function render() {
+    const img = document.getElementById('shot');
+    if (extra) {
+      img.src = 'inventory-pressed/' + extra + '_ai.png';
+      document.getElementById('notes').innerHTML = notes[extra];
+    } else {
+      img.src = 'inventory-pressed/' + mode + '_' + t + '_ai.png';
+      document.getElementById('notes').innerHTML = notes[t];
+    }
+    document.querySelectorAll('button[data-t]').forEach(b => b.classList.toggle('on', !extra && b.dataset.t === t));
+    document.querySelectorAll('button[data-m]').forEach(b => b.classList.toggle('on', !extra && b.dataset.m === mode));
+    document.querySelectorAll('button[data-x]').forEach(b => b.classList.toggle('on', b.dataset.x === extra));
+  }
+  const order = ['equipment', 'consumables', 'materials', 'journal'];
+  document.querySelectorAll('button[data-t]').forEach(b => b.addEventListener('click', () => { t = b.dataset.t; extra = null; render(); }));
+  document.querySelectorAll('button[data-m]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.m; extra = null; render(); }));
+  document.querySelectorAll('button[data-x]').forEach(b => b.addEventListener('click', () => { extra = b.dataset.x; render(); }));
+  document.getElementById('shot').addEventListener('click', () => document.getElementById('stage').classList.toggle('zoom'));
+  document.addEventListener('keydown', e => {
+    const i = order.indexOf(t);
+    if (e.key === 'ArrowRight') { t = order[(i + 1) % 4]; extra = null; render(); }
+    if (e.key === 'ArrowLeft') { t = order[(i + 3) % 4]; extra = null; render(); }
+    if (e.key === 'n' || e.key === 'N') { mode = mode === 'pressed' ? 'now' : 'pressed'; extra = null; render(); }
+  });
+  render();
+</script>
+</body>
+</html>

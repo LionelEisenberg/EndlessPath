@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://bvr6gchantbut"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_details/bonus_row.gd" id="1_script"]
+
+[node name="BonusRow" type="VBoxContainer"]
+mouse_filter = 2
+theme_override_constants/separation = 2
+script = ExtResource("1_script")
+
+[node name="Pairs" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 18
+
+[node name="LeftBonus" type="Label" parent="Pairs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(208, 22)
+layout_mode = 2
+theme_type_variation = &"LabelBookInkDark"
+text = "+2 Strength"
+vertical_alignment = 2
+
+[node name="RightBonus" type="Label" parent="Pairs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(208, 22)
+layout_mode = 2
+theme_type_variation = &"LabelBookInkDark"
+text = "+2 Agility"
+vertical_alignment = 2
+
+[node name="Rule" type="HSeparator" parent="."]
+layout_mode = 2
+theme_type_variation = &"HSeparatorPressed"

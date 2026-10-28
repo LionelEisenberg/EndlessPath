@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://dehbknqndo8xx"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/quest_items_tab/quest_step_row/quest_step_row.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/tick_box_ticked_ai.png" id="2_tick"]
+
+[node name="QuestStepRow" type="HBoxContainer"]
+offset_right = 436.0
+offset_bottom = 26.0
+mouse_filter = 2
+theme_override_constants/separation = 16
+script = ExtResource("1_script")
+
+[node name="Tick" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("2_tick")
+
+[node name="TextBlock" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/margin_top = 7
+
+[node name="Text" type="Label" parent="TextBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookStep"
+text = "Reach Core Density level 10"
+autowrap_mode = 3
+
+[node name="FigureBlock" type="MarginContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 2
+
+[node name="Figure" type="Label" parent="FigureBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBookStep"
+text = "10 / 10"
+horizontal_alignment = 2

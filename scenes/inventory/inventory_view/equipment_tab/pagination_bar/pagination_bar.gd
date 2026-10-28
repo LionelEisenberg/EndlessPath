@@ -2,10 +2,16 @@ class_name PaginationBar
 extends HBoxContainer
 
 ## PaginationBar
-## Bottom bar of the Equipment tab: one button per unlocked page (center) and
-## the discard/trash slot (right). Emits page_selected on click and
-## page_hovered on mouse-enter (used for the drag-to-flip behaviour driven by
-## the EquipmentTab controller).
+## The Equipment page's footer: one small pressed slot per unlocked page at the
+## left, the first lined up with the grid's left edge (the page shown pressed
+## deep), the count of equipment held against the bag's capacity, and the
+## discard slot at the right. The page slots sit 4 px apart, the grid's own
+## gap, and no word introduces them. The count ends 16 px before the discard
+## slot (the bar's separation). The texts share one baseline, 42 px down the
+## bar: the count is 22 px tall with its text at the bottom, and a page's number
+## sits 8 px down its slot, so the digits look centred in it. Emits
+## page_selected on click and page_hovered on mouse-enter (used for the
+## drag-to-flip behaviour driven by the EquipmentTab controller).
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -19,6 +25,7 @@ signal page_hovered(index: int)    # 0-based page index, on mouse-enter
 #-----------------------------------------------------------------------------
 
 @onready var page_buttons: HBoxContainer = %PageButtons
+@onready var count_label: Label = %CountLabel
 @onready var trash_slot: TrashSlot = %TrashSlot
 
 const PAGE_BUTTON_SCENE: PackedScene = preload("res://scenes/inventory/inventory_view/equipment_tab/page_button/page_button.tscn")
@@ -50,6 +57,10 @@ func setup(unlocked_pages: int, active_page: int) -> void:
 func set_active_page(page: int) -> void:
 	_active_page = page
 	_refresh_active_visuals()
+
+## Prints the equipment held against the bag's capacity: "11 / 72".
+func set_count(held: int, capacity: int) -> void:
+	count_label.text = "%d / %d" % [held, capacity]
 
 #-----------------------------------------------------------------------------
 # INTERNAL

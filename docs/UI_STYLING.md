@@ -49,11 +49,11 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 - **Ability tooltip and stat pill text** (all with a 2px `#1A1208` outline for legibility — don't substitute general variants): `LabelAbilityBody` 18px beige (the stat pills, which no screen shows now, and the enemy plate's buff tooltip) / `LabelAbilityMuted` 16px tan (that tooltip). `LabelAbilityTitle` 34px beige is unused since the ability cards were replaced by the Abilities book's rows
 - **Item description panel** (light background): `LabelDescItemName` 32px black / `LabelDescItemType` 20px gray `#606060`
 - **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators (assigned in code by `ability_stats_display.gd`, which no screen shows now)
-- **Inventory chrome.** These labels set `scale = Vector2(0.5, 0.5)` to cancel the `InventoryView` root's 2x scale. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
-  - `LabelInventoryCount` 24px dark ink `#33261A` — `GridToolbar` count text ("8 / 60" etc.) on the parchment background
-  - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All", "Weapons" etc.) on the dark pill background
-  - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Equipment" etc.); `GearSelector`'s "Gear Selector" title uses it with a 30px size override
-  - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
+- **Book chrome.** These labels stand on a menu book's `BookLayer`, which draws at 2x, and set `scale = Vector2(0.5, 0.5)` to cancel it. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
+  - `LabelInventoryCount` 24px dark ink `#33261A` — unused since the pressed Materials page dropped `GridToolbar`, whose count text it set
+  - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All" etc.) on the dark pill background
+  - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Character" etc.)
+  - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the book chrome on a `BookLayer`.
 - **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
   - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and the Goals board sit under the shop's place (the shop hides them while it is open), and their text would read through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`
   - `MerchantRow` (PanelContainer) — translucent stock row with a thin luminous edge
@@ -66,7 +66,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 
 ## Menu book pages
 
-The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md#menu-books)) have cream pages, where the general Label variants (light text for dark panels) don't read. The Abilities, Character and Path views set `assets/themes/book_theme.tres` as their root `theme`; it holds only the variants below, and every other lookup falls back to `pixel_theme.tres`. Each variant sets its own font size and clears the base Label's drop shadow.
+The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md#menu-books)) have cream pages, where the general Label variants (light text for dark panels) don't read. The four views set `assets/themes/book_theme.tres` as their root `theme`; it holds only the variants below, and every other lookup falls back to `pixel_theme.tres`. Each variant sets its own font size and clears the base Label's drop shadow.
 
 | Variant | Base type | Style | Use |
 |---------|-----------|-------|-----|
@@ -85,23 +85,78 @@ The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](i
 | `PanelBookSlot` | PanelContainer | The inventory's slot art | Icon slots and loadout slots |
 | `PanelBookPill` | PanelContainer | The inventory's dark category pill | Small status pills (the path points badge) |
 | `PanelBookInset` | PanelContainer | The dark pill art, darkened | The path tree's map window |
+| `LabelBookPageTitle` | Label | Yatra One 38px dark ink `#33261A`, line pitch 44 | Page titles: "Equipment", "Gear", a material's or quest item's name |
+| `LabelBookItemName` | Label | Yatra One 30px dark ink `#33261A`, pitch 34 | The item's name in a details panel |
+| `LabelBookQuestName` | Label | Yatra One 26px dark ink `#33261A`, pitch 30 | A quest's name |
+| `LabelBookInk` | Label | BM Euljiro 18px ink `#3B2A20`, pitch 26 | Body text and descriptions |
+| `LabelBookInkDark` | Label | BM Euljiro 18px dark ink `#33261A`, pitch 26 | Row names, values, the hotbar's key numbers |
+| `LabelBookDetail` | Label | BM Euljiro 15px muted ink `#584230`, pitch 20 | Row details, hints, the equipment count |
+| `LabelBookDetailDark` | Label | BM Euljiro 15px dark ink `#33261A`, pitch 20 | The number printed in a page button |
+| `LabelBookFlavor` | Label | BM Euljiro 16px muted ink `#584230`, pitch 22 | A quest's flavour text |
+| `LabelBookStep` | Label | BM Euljiro 16px ink `#3B2A20`, pitch 22 | A quest's steps |
+| `LabelBookCount` | Label | BM Euljiro 20px dark ink `#33261A`, pitch 24 | The count in a list row (`×7`) |
+| `LabelBookCaps` | Label | Eul+1 15px on the 13px line (see below), muted ink `#584230`, pitch 18 | Labels in capitals: `HEAD`, `FOUND IN`, a quest item's zone. The page writes the text in capitals |
+| `LabelBookTag` | Label | BM Euljiro 13px set 3px low in its line (see below), dark ink `#33261A`, pitch 18, `normal` = `paper_tag.tres` | The count on a paper tag (`×4600`). Use it through `PaperTag` (`scenes/inventory/pressed/paper_tag/`), which rounds the tag's width up to even so its art stays on the 2px grid |
+| `LabelBookSeal` | Label | Eul+1 13px seal text `#F0E8D8`, pitch 18, `normal` = `seal.tres` | The word on a seal (`DONE`). Give the Label the seal's 66x26 size and centre the text |
+| `LabelBookFilter` | Label | Eul+1 13px set 1px low in its line (see below), muted ink `#584230`, pitch 18, `normal` = an empty style with 10/6/10/4 content margins | A filter word that is not in use |
+| `LabelBookFilterOn` | Label | Eul+1 13px set 1px low in its line (see below), dark ink `#33261A`, pitch 18, `normal` = `pressed_lozenge.tres` | The filter word in use. Its margins match `LabelBookFilter`'s, so swapping the two moves nothing |
+| `RichTextBookDetail` | RichTextLabel | BM Euljiro 15px muted ink `#584230` (`default_color`), `line_separation` 3, pitch 20 | Detail lines with BBCode: what a consumable does, under its name in the list |
+| `RichTextBookValue` | RichTextLabel | BM Euljiro 18px dark ink `#33261A` (`default_color`), `line_separation` 5, pitch 26 | The value in a row of a details panel's table, with BBCode: `+20 Madra` in Madra ink, `10 s` |
+| `PanelPressed` | PanelContainer | `pressed_panel.tres`: the pressed panel, 16px content margins | The details panels |
+| `PanelBookBare` | PanelContainer | An empty style: draws nothing | A `PanelContainer` that must show no panel (the base type draws `panel_tan.tres`) |
+| `PanelPrinterMarks` | Panel | `printer_marks.tres`: four vermilion corner marks, no fill | The printer's marks around the item the player picked, laid over it |
+| `HSeparatorPressed` | HSeparator | `pressed_rule.tres`: a pressed 4px rule, `separation` 4 | Rules between sections and under rows |
 
 The panel art is drawn at the book's own pixel density (one art pixel = 2 screen pixels). Their 9-slice styleboxes use 2x nearest-neighbour copies in `assets/sprites/ui/book/` (`book_card_2x_ai.png`, `book_row_2x_ai.png`, `book_pill_2x_ai.png`, `book_plaque_2x_ai.png`, `book_slot_2x_ai.png`) of the inventory originals, so stretched panels keep crisp, matching edges. Separators on cards use `HSeparatorItemDesc` from `pixel_theme.tres`.
 
 Each book's own colours are not theme items: a `BookStyleData` resource per book (`resources/ui/book_styles/`) recolours the cover edge, page border, turning page and bookmark through `assets/shaders/palette_swap.gdshader`.
 
+### Pressed pages
+
+The rows from `LabelBookPageTitle` down are the "pressed paper" pieces for the Inventory's four tabs ([design](superpowers/specs/2026-10-23-inventory-pressed-pages-design.md)). They follow the rules above (their own size, no drop shadow) and add these:
+
+- **One muted ink.** Every new muted variant is `#584230`: 7.66:1 on the paper and 6.99:1 on a panel's floor (`#EFDCBB`). The pages first used `#765A43` (4.72:1 on a panel), which the user's review of 2026-10-28 found too faint. Capitals print at 15px on the line 13px gave them: their font, Eul+1 with `spacing_top` -1, keeps the line 16px and the baseline 11px down it (BM Euljiro's ascent is 12 at 15px and 11 at 13px), so no layout moved. `LabelBookMuted` keeps `#7D5F47` for the other books, which is 4.34:1 on a panel.
+- **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for titles and names, BM Euljiro for everything else. "Eul+1" is BM Euljiro with 1px letter spacing (`spacing_glyph = 1`): one `FontVariation` shared by `LabelBookCaps` and `LabelBookSeal`, and another, set low (below), shared by `LabelBookFilter` and `LabelBookFilterOn`.
+- **Line pitch.** `line_spacing` is the pitch minus the font's height at that size, so wrapped lines step by the pitch, as in the lacquer theme. Heights: Yatra One 46 / 38 / 30 / 26 is 69 / 57 / 45 / 39px (spacing -17 / -13 / -11 / -9); BM Euljiro 20 / 18 / 16 / 15 / 13 is 23 / 21 / 19 / 17 / 16px (spacing +1 / +5 / +3 / +3 / +2). `RichTextBookDetail` and `RichTextBookValue` get their 20 and 26px pitches from `line_separation` 3 and 5, which a RichTextLabel adds under every line, the last one too.
+- **One line is only the font's height.** A single-line Label is as tall as its font (16px at 13px), not its pitch, so a style's content margins make up the rest. They are sized so a `LabelBookTag` is 20px tall (16 + 2 + 2, the paper tag's art) and a `LabelBookFilter` or `LabelBookFilterOn` 26px (16 + 6 + 4, the lozenge's art), with no `custom_minimum_size.y` needed. Size the margins of any new styled Label from the font's height, not from the pitch. `LabelBookFilter` and `LabelBookFilterOn` are the same size, so selecting a word moves nothing.
+- **Text set low on its art.** A content margin cannot lower a one-line Label's text without making the Label taller by as much. Where the mockups print text below the middle of its art, the font moves it down inside its own line instead: `LabelBookTag`'s font is a `FontVariation` of BM Euljiro with `spacing_top` 3 and `spacing_bottom` -3, so a tag's count sits 16px under the tag's top and the tag stays 20px. The filter words' font, Eul+1 with `spacing_top` 1 and `spacing_bottom` -1, sets a word 1px low, which with their styles' 6px top and 4px bottom margins puts its baseline 18px under its lozenge's top: its capitals sit on the middle of the lozenge's floor. The mockup set them 4px lower, which read as sinking (review, 2026-10-28).
+- **Wrapping in a stack, on even pixels.** Every pitch is even, so a stack of wrapping Labels grows by an even number of px a line, and only a block's one-line height can make it odd. A block whose one line is odd (a `LabelBookDetail` line is 17px, a `LabelBookQuestName` line 39) takes `wrap_pad.tres` as its `normal` style, a 1px pad under it, or an odd margin that evens it out; then a block under a grown one, and its art, stays on even pixels.
+
+Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, colour, base type, cleared shadow and line pitch, the letter-spaced font, the styleboxes, the rule's height, the one-line heights of tags and filter words and the text contrast.
+
+### Pressed pieces (`assets/styleboxes/book/`)
+
+`StyleBoxTexture` 9-slices of the pressed art in `assets/sprites/ui/book/pressed/`, drawn with nearest filtering at their file scale. Every content margin is set, 0 included: a content margin left unset falls back to the texture margin, which would inset the content by up to 10px on `printer_marks.tres`.
+
+| File | Texture | Texture margins L/T/R/B | Content margins L/T/R/B | Fill | Use |
+|------|---------|-------------------------|-------------------------|------|-----|
+| `pressed_panel.tres` | `pressed_panel_ai.png` (32x32) | 8/8/8/8 | 16/16/16/16 | yes | `PanelPressed` |
+| `pressed_lozenge.tres` | `pressed_lozenge_ai.png` (24x26) | 8/0/8/0 | 10/6/10/4 | yes | `LabelBookFilterOn`, the filter in use. The 6px top and 4px bottom margins make a one-line word 26px tall, the art's height (see Text set low on its art for where the word sits) |
+| `pressed_rule.tres` | `pressed_rule_ai.png` (8x4) | 2/0/2/0 | 0/2/0/2 | yes | `HSeparatorPressed`. Its 2px top and bottom content margins give the rule its 4px height (see below) |
+| `printer_marks.tres` | `printer_marks_ai.png` (32x32) | 10/10/10/10 | 0 | none | `PanelPrinterMarks` |
+| `paper_tag.tres` | `paper_tag_ai.png` (12x20) | 4/4/4/4 | 5/2/5/2 | yes | `LabelBookTag`. The 2px top and bottom margins make a one-line count 20px tall, the art's height |
+| `seal.tres` | `seal_ai.png` (66x26) | 0 | 0/4/0/0 | yes | `LabelBookSeal`. No 9-slice: size the Label to 66x26. The 4px top margin lowers the centred word onto the mockups' baseline, 18px under the seal's top |
+| `pressed_groove.tres` | `pressed_groove_ai.png` (10x24) | 0/6/0/6 | 0 | yes | Unused. `ScrollRail` draws the groove's art itself, on a `NinePatchRect` with the same 6px ends |
+| `pressed_thumb.tres` | `pressed_thumb_ai.png` (4x8) | 0/2/0/2 | 0 | yes | Unused. `ScrollRail` draws the thumb's art itself, on a `NinePatchRect` with the same 2px ends |
+
+**A separator's style needs margins that add up to its height.** An `HSeparator` draws its style at the style's minimum height, centred in its `separation`, and a `StyleBoxTexture` has no height of its own beyond its margins. With top and bottom margins of 0 the rule is 0px tall and never draws (measured in 4.7.2), so `pressed_rule.tres` carries 2px content margins top and bottom, the 4px of its art, and `HSeparatorPressed` has `separation` 4. `test_pressed_rule_is_as_tall_as_its_separator` guards it. Any other `StyleBoxTexture` used as a separator needs the same.
+
+`book_theme.tres` also holds `StyleBoxEmpty` sub-resources: the one `PanelBookBare` draws, and `LabelBookFilter`'s, with the same 10/6/10/4 content margins as `pressed_lozenge.tres`.
+
 ## RichTextLabel variants
 
-RichTextLabels **cannot** use Label-based variants (different base type). Only one RTL variant exists:
-- `RichTextLabelDark` — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`, `ItemDetailCard`, `QuestJournalCard`)
+RichTextLabels **cannot** use Label-based variants (different base type). Each theme has RichText variants of its own:
+- `RichTextLabelDark` (`pixel_theme.tres`) — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`)
+- `RichTextBookDetail` and `RichTextBookValue` (`book_theme.tres`) — the pressed pages' detail lines and table values (see [Menu book pages](#menu-book-pages))
+- `RichTextLacquer` and `RichTextLacquerLog` (`lacquer_theme.tres`) — lacquer lines with a decimal point, and the log (see [Lacquer theme](#lacquer-theme-zone-view))
 
 For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_size` directly. Match one of the Label variant sizes for visual consistency (e.g. use 22 if body text elsewhere uses `LabelBody`).
 
 ## HSeparator variants
 
 - Base `HSeparator` (no variant) — 2px copper `#C4884A` line, inset 8px at each end.
-- `HSeparatorItemDesc` — 2px parchment `#E9CEAD`, no inset, separation 12. Top separator under the item type in `ItemDescriptionPanel`, `ItemDetailCard`, `QuestJournalCard`.
-- `HSeparatorItemDescThin` — 1px parchment `#E9CEAD`, inset 100px at each end, separation 10. Separates the description from the effects in the same panels.
+- `HSeparatorItemDesc` — 2px parchment `#E9CEAD`, no inset, separation 12. Top separator under the item type in `ItemDescriptionPanel`.
+- `HSeparatorItemDescThin` — 1px parchment `#E9CEAD`, inset 100px at each end, separation 10. Separates the description from the effects in the same panel.
 - `HSeparatorResourcePanel` — 2px gold `#D4A84A` at 60% alpha, no inset. Unused since the lacquer cultivator cabinet replaced the zone view's old resource panel, whose orbs it divided.
 
 ## Other variants
@@ -164,7 +219,7 @@ Colours: brass `#D4A84A`, cream `#F0E8D8`, tan `#A89070`, ink `#150909`.
 | `LabelLacquerPopoverTitle` | Euljiro 18 / 22 | Cream | Map popover titles |
 | `LabelLacquerPopoverBody` | Euljiro 15 / 20 | Cream | Map popover body text |
 | `LabelLacquerFloater` | Euljiro 16 / 20 | Cream | Nothing today. `LacquerFloater` (the map's floater and the cycling zones') puts its text in a `RichTextLacquer` at 16 px instead (see below), so a decimal (`+1.5 Madra`, Madra blue) gets its Yatra point. No outline (`outline_size` set to 0): the kit's §0 dropped it when the floaters moved onto the token |
-| `LabelLacquerCooldown` | Euljiro 22, shadow | Cream | A technique's cooldown seconds, centred on its ability icon. The painted titles' 2 px ink shadow keeps the number readable over any icon. Single line only: it sets no `line_spacing`, so do not wrap it |
+| `LabelLacquerCooldown` | Euljiro 22, shadow | Cream | A technique's cooldown seconds, centred on its ability icon, and a consumable socket's at a 15 px size override (its icon is 32 px). The painted titles' 2 px ink shadow keeps the number readable over any icon. Single line only: it sets no `line_spacing`, so do not wrap it |
 
 `RichTextLacquer` (base `RichTextLabel`): BM Euljiro 15, tan, `line_separation` 1, so each line is 18 px (15/18), the first included. Use it for the few lines with a decimal number: BM Euljiro's `.` sits low and reads as a comma at 15–17 px, so `LacquerText.decimal_bbcode()` sets each decimal point in Yatra One (kit §3, glyph gaps). Set `bbcode_enabled`, `fit_content` and, for one-line text, `autowrap_mode` off.
 
@@ -202,8 +257,11 @@ Six `StyleBoxTexture` 9-slices of kit textures, drawn with nearest filtering at 
 - **`LacquerStripRect`** (`lacquer_strip_rect.gd`, a `TextureRect` script): set `strip` and `frame_size`, then `set_frame(column, row)` shows that frame through the rect's own `AtlasTexture` (orbs, XP beads, timer rings). Frames clamp to the strip. It is `@tool`, so a placed rect shows frame 0 in the editor. Its `texture` is derived and read-only, and is never saved into the scene: `strip` and `frame_size` are.
 - **`LacquerRod`** (`lacquer_rod.tscn`): set `empty_texture`, `full_texture`, `end_texture` and `steps`, then `set_fraction(f)`. It shows the full rod clipped to width 2 + 2k with the end cap at x = 2k once k ≥ 2, k = round(f × steps) (kit §4.3). Steps: Now strip 144 (`lacquer_rod_now_*`, 292 px), milestone 138, adventure 74, Stamina and cast 119. The Aura Well's 152-step, 308 px `lacquer_rod_well_*` has no scene now. It is `@tool`: in the editor a placed rod is the groove's size and shows empty. Its minimum size comes from `empty_texture`, so leave its size and `custom_minimum_size` alone.
 - **`LacquerFrameOverlay`** (`lacquer_frame_overlay.tscn`, a `Panel`): a full-rect frame over its parent, hidden, mouse ignored, brass by default. Override its `theme_override_styles/panel` with `frame_hover.tres` for the hover frame. `flash(times)` shows it 300 ms and hides it 300 ms, `times` times, and ends hidden. The ready adventure card shows one steadily (`ZoneActionButton.set_ready_frame()`); never animate a steady frame.
+- **`LacquerCountSeal`** (`lacquer_count_seal.tscn`): the kit's cinnabar count seal (`lacquer_seal_count_ai.png`) as a `NinePatchRect` with margins 6 and 6 (its worn bites stay in the outer 6 px, so its middle stretches), with the number in `LabelLacquerSeal` at 15 px. Place it at the seal's 24x24, set `grows_left` (true keeps its right edge, false its left), then call `show_count(n)`: it widens to `width_for()` the number (the number's width plus 8, rounded up to even, 24 at least), so no count is cut off. It never takes the pointer.
 - **`LacquerText`** (`scripts/utils/lacquer_text.gd`): `rate(1.5)` → `"+1.5"`, `rate(2.0)` → `"+2"`; `decimal_bbcode(text)` for `RichTextLacquer`.
 - **`LacquerFloater`** (`scenes/common/lacquer/lacquer_floater/lacquer_floater.tscn`, promoted from the map's floater when the cycling view needed one per zone): a short gain on a lacquer token (`token.tres`). `pop(text, color)` shows it and `stop()` hides it. It rises 40 px over 1 s in 2 px steps (`rise_at(elapsed)`, `get_rise()`), then hides outright. It does not move itself: the placer positions it each frame and raises it by `get_rise()` (`MapMarkers` for the map's floater, `CyclingView` for each zone's). Its text is a `RichTextLacquer` at 16 px (a `normal_font_size` override) through `decimal_bbcode()`, in the colour given to `pop()`, not a `LabelLacquerFloater` Label, so a decimal point gets its Yatra point. The token is 28 px tall and `even(text width + 28)` wide, plus the baked 2 px shadow.
+- **`LacquerPellet`** (`scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn`): one opaque pellet that flies a `PelletFlight` and frees itself: the adventure's Madra drain, the cycling view's Madra and XP pellets and the Tribulation's bursts and rush. Add it to the tree, then `set_ramp(ramp)` (`Ramp.MADRA`, the default, or the hit tiers' `BRASS`, `CREAM`, `TAN`) and `fly(flight)`; `has_landed()` tells a landed one. Every look is a frame of `lacquer_pellet_strip_ai.png` (8 frames of 20x20 across, a row per ramp; `docs/superpowers/mockups/lacquer-pellet/gen/pellet_strip.py` draws it), so it never fades: it condenses from a 2 art px seed to a 4 art px pellet to the full pellet (0.04 s each, `frame_at()`), flies with a two-dot tail at its own points 0.03 and 0.06 s back, each smaller and a ramp step darker, and lands with a three-frame spark (flash, burst, scatter; 0.05 s each), then frees itself. It emits `delivered` once, as it lands, or as it leaves the tree if it has not landed yet, so a caller can show what it carries when it arrives (the cycling view releases the cabinet's held Madra and XP on it). The pellet and its tail stand on even px every frame.
+- **`PelletFlight`** (`scenes/common/lacquer/lacquer_pellet/pellet_flight.gd`, a `RefCounted`): a pellet's path as a function of the time since launch (`point_at(elapsed)`, on even px; `has_landed_at(elapsed)`), so tests ask for any moment. An optional pop out to a point, slowing to a stop, then a curve into the target that speeds up the whole way. Build one per kind of group: `arc(from, to, seconds, bow)` bows `bow` px to one side (a negative bow to the other); `stream(from, to, seconds, bow, index)` sways its bow with the pellet's index (`SWAY_STEP` radians a pellet), so a steady stream reads as one ribbon; `burst(from, to, count, seconds, seconds_step, reach)` pops `count` pellets out to `reach` px, fanned over 200° away from the target, lets them hang a moment, then lands them `seconds_step` apart.
 - **Cycling pieces.** The cycling board sets `lacquer_theme.tres` on its root ([CYCLING.md](cycling/CYCLING.md)). Its action name and `Auto` label are `LabelLacquerDetail`, the technique's name `LabelLacquerPanelTitle`, `Esc` `LabelLacquerHotkey`, and the status line `LabelLacquerName`. The board has no result line: the zone chest shows the last cycle's under its Now tray, in a `LabelLacquerDetail` (`%LastCycleLabel`). Its Madra is a whole number, so it needs no `RichTextLacquer`. A `TechniqueDrawer` in the zone chest uses `LabelLacquerName` for the title, `LabelLacquerDetail` for the line, `LabelLacquerSeal` for NEW and `LabelLacquerTag` for IN USE (cream), with `frame_hover.tres` and `frame_brass.tres` overlays. `CyclingGroove` draws its cells in code from the `LACQUER_*` constants and needs no theme.
 - **Tribulation pieces.** The Tribulation board sets `lacquer_theme.tres` on its root ([breakthrough-tribulation.md](cultivation/breakthrough-tribulation.md)). Its zone name, the rules line, the buttons' words, the stats line and the phase tip are `LabelLacquerDetail`, its title and the panels' titles `LabelLacquerPanelTitle`, the panels' lore lines `LabelLacquerLore`, and the grade and the phase name `LabelLacquerName`; a wrapping 15/18 label takes `wrap_pad.tres`. The board's frame is `trib_board9.tres`, and the panels over the stage are a `PanelContainer` with an empty style stacking a `NinePatchRect` face on `lacquer_drawer9_ai.png` (patch margins 4, 4, 6, 6). The ring, the core and the crack pips are `LacquerStripRect` strips (`assets/ui/lacquer/tribulation/`), the board's progress rod is a `LacquerRod` on the goal rod's art (138 steps), the zone card's Core rod a `LacquerRod` on `lacquer_rod_core_*_ai.png` (74 steps), the buttons `TextureButton`s on the About button's art, and the word floaters `LacquerFloater`s. The spheres and the hold arc have no art: `TribulationStage` draws them per 2 px cell from the same band rule the ring art follows.
 - **`LacquerRail`** (`scenes/zones/zone_panel/lacquer_rail/lacquer_rail.tscn`): the brass scroll rail (kit §4.4) that stands in for a `ScrollContainer`'s hidden scrollbar. `bind(host)` follows the host's scroll; it shows only while the content overflows, lights each end cap only when the list can scroll that way, sizes its thumb (`rail_thumb.tres`) from the visible share, and `step_to(target)` scrolls in six even-px steps over 200 ms. The zone chest's activity list uses it; the full log styles its own scrollbar's caps with the same textures.
@@ -271,6 +329,7 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | `LACQUER_RIM` | `#692F2F` | — | The lip under the cycling groove |
 | `LACQUER_DIM` / `LACQUER_VERMILION` | `#94806A` / `#A83C30` | — | Old log lines, seals |
 | `LACQUER_MADRA_HI` / `LACQUER_MADRA` / `LACQUER_MADRA_MID` | `#E8F6FD` / `#BBD5E7` / `#849BE4` | — | The lit cycling groove (top edge, body, bottom edge). `LACQUER_MADRA` is also Madra text |
+| `BOOK_MADRA_INK` | `#1C2F60` | — | Madra amounts in the text of the book's paper pages. A Label variant colours a whole label, so the amount takes this colour in BBCode. The lacquer Madra tints read on dark lacquer, not on cream |
 | `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | The text steps of the Health crimson and Stamina bamboo ramps, kept for the fight's floaters. Nothing reads them yet |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code, and keep each value in step with its theme.
@@ -283,8 +342,8 @@ Use the Label variants for sizes. Use `ThemeConstants` only for colours that mus
 | `assets/themes/book_theme.tres` | Menu book page variants ([Menu book pages](#menu-book-pages)) |
 | `assets/themes/lacquer/lacquer_theme.tres` | Zone view theme: the `LabelLacquer*` variants and `RichTextLacquer` (see Lacquer theme) |
 | `assets/themes/pixel_ui_theme/` | Third-party pixel UI pack: `8x8_ui_elements*.png` and `8x8_ui_icons.png` atlases, `m5x7.ttf`, 8 colour-variant `PixelTheme-*.tres`, `TabContainer.tscn`. `pixel_theme.tres` uses only the two base atlases; the variant themes are not referenced by the game. |
-| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `buttons` (+`scroll`), `combat`, `common`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
-| `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `YatraOne-Regular.ttf` (the lacquer theme's painted titles). `Korean_Calligraphy.ttf`, `pixelmix.ttf` and `Ubage-woA3P.otf` are loaded only by the label testing scene. |
+| `assets/styleboxes/` | StyleBox `.tres` grouped by area: `abilities`, `book` (the pressed pieces), `buttons` (+`scroll`), `combat`, `common`, `inventory`, `lacquer`, `merchant`, `textures`, `ui`, `zones` |
+| `assets/fonts/` | `BMEULJIROTTF.ttf` (theme font). `YatraOne-Regular.ttf` (the lacquer theme's painted titles and the book theme's pressed-page titles). `Korean_Calligraphy.ttf`, `pixelmix.ttf` and `Ubage-woA3P.otf` are loaded only by the label testing scene. |
 | `assets/sprites/` | Exported PNGs by system: `abilities`, `adventure`, `atmosphere`, `character`, `combat`, `cycling`, `inventory`, `items`, `path_progression`, `tilemap`, `ui` (`ability_button`, `action_buttons`, `attribute_icons`, `buff_icon`, `resource_bar`, `resources`, `stat_icons`, `system_menu`, `book` (menu book bookmark, close tab, stage icons, padlock, 2x panel art), `lock_icon.png`), `zones/backgrounds/spirit_valley` (`layer_00..11.png`) |
 | `assets/aseprite/` | Aseprite sources: `abilities`, `character_profiles`, `cycling`, `ui/{ability_button,buff_icon,resource_bar}`, `zones`, plus root `madra_circle.aseprite`, `Sprite-0003*.aseprite` and a stray `Sprite-0003.gif` |
 | `assets/shaders/` | 10 `.gdshader` files (`palette_swap.gdshader` recolours the menu books) |

@@ -118,6 +118,33 @@ func get_all_quests() -> Array[QuestData]:
 		result.append(quest)
 	return result
 
+## Returns the id of the quest a quest item belongs to, as the Journal shows it,
+## or "" when it belongs to none. First choice is a quest that needs the item:
+## one of its steps completes on owning it (an ITEM_OWNED condition on the
+## item's item_id), and an active quest wins over a completed one. Otherwise it
+## is the quest that gave the item (an AwardItemEffectData for it among its
+## completion_effects). Only quests the player has started, active or
+## completed, count, so the Journal spoils nothing. Quests are searched in
+## catalog order.
+func get_quest_id_for_item(item: ItemDefinitionData) -> String:
+	if item == null:
+		return ""
+	var completed_need: String = ""
+	var giver: String = ""
+	for quest_id: String in _quests_by_id:
+		var active: bool = has_active_quest(quest_id)
+		if not active and not has_completed_quest(quest_id):
+			continue
+		var quest: QuestData = _quests_by_id[quest_id]
+		if _quest_needs_item(quest, item.item_id):
+			if active:
+				return quest_id
+			if completed_need.is_empty():
+				completed_need = quest_id
+		elif giver.is_empty() and _quest_awards_item(quest, item.item_id):
+			giver = quest_id
+	return completed_need if not completed_need.is_empty() else giver
+
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------
@@ -145,6 +172,27 @@ func _validate_catalog() -> void:
 				push_error("QuestManager: quest '%s' step '%s' has both completion_event_id and completion_conditions — event will take precedence" % [quest.quest_id, step.step_id])
 			elif not has_event and not has_conditions:
 				push_error("QuestManager: quest '%s' step '%s' has no completion criteria — will auto-advance" % [quest.quest_id, step.step_id])
+
+## True when one of the quest's steps completes on owning the item with
+## `item_id` (an ITEM_OWNED condition).
+static func _quest_needs_item(quest: QuestData, item_id: String) -> bool:
+	for step: QuestStepData in quest.steps:
+		if step == null:
+			continue
+		for condition: UnlockConditionData in step.completion_conditions:
+			if condition != null \
+					and condition.condition_type == UnlockConditionData.ConditionType.ITEM_OWNED \
+					and str(condition.target_value) == item_id:
+				return true
+	return false
+
+## True when completing the quest awards the item with `item_id`.
+static func _quest_awards_item(quest: QuestData, item_id: String) -> bool:
+	for effect: EffectData in quest.completion_effects:
+		var award: AwardItemEffectData = effect as AwardItemEffectData
+		if award != null and award.item != null and award.item.item_id == item_id:
+			return true
+	return false
 
 func _on_save_data_reset() -> void:
 	_live_save_data = PersistenceManager.save_game_data

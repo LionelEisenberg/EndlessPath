@@ -4,6 +4,8 @@ extends GutTest
 ## zoom the camera actually has, after every eased step and the final snap, while
 ## zoom_changed announces the target the camera is easing to. Whatever must keep
 ## step with what is drawn (the adventure map's camera offset) follows the first.
+## Also settle(), which ends an ease at once, for a move that needs the camera
+## at rest first (the board transition's camera push).
 
 const ZoomControllerScene: PackedScene = preload("res://scenes/camera/camera_zoom_controller/camera_zoom_controller.tscn")
 
@@ -115,3 +117,41 @@ func test_a_long_frame_zooming_out_lands_on_the_target_and_not_past_it() -> void
 	assert_almost_eq(camera.zoom.x, 1.0, 0.0001, "it lands on the target")
 	assert_gte(camera.zoom.x, controller.zoom_min - 0.0001, "and never falls under the smallest zoom (past it the zoom is zero, then turns negative)")
 	assert_gt(camera.zoom.y, 0.0, "the camera keeps a zoom it can draw with")
+
+#-----------------------------------------------------------------------------
+# SETTLE
+#-----------------------------------------------------------------------------
+
+## settle() ends an ease at once on its target, as its last step would, and
+## the controller rests: the frames after it change nothing.
+func test_settle_ends_an_ease_on_its_target() -> void:
+	var pair: Array = _camera_with_controller()
+	var camera: Camera2D = pair[0]
+	var controller: CameraZoomController = pair[1]
+	simulate(controller, 1, 0.1)
+	controller.set_zoom_level(2.0)
+	simulate(controller, 1, 0.05)
+	assert_almost_eq(camera.zoom.x, 1.5, 0.0001, "precondition: half way")
+	watch_signals(controller)
+
+	controller.settle()
+
+	assert_eq(camera.zoom, Vector2(2, 2), "the camera takes the target")
+	assert_false(controller.is_zoom_active(), "the ease is over")
+	assert_eq(_announced_zooms(controller), [2.0] as Array[float], "zoom_applied carries the zoom it settled on")
+	simulate(controller, 3, 0.05)
+	assert_signal_emit_count(controller, "zoom_applied", 1, "and the frames after it change nothing")
+
+## At rest there is nothing to end: a zoom another node set is left alone.
+func test_settle_at_rest_leaves_the_camera_alone() -> void:
+	var pair: Array = _camera_with_controller()
+	var camera: Camera2D = pair[0]
+	var controller: CameraZoomController = pair[1]
+	simulate(controller, 1, 0.1)
+	camera.zoom = Vector2(1.5, 1.5)
+	watch_signals(controller)
+
+	controller.settle()
+
+	assert_eq(camera.zoom, Vector2(1.5, 1.5), "the zoom another node set stays")
+	assert_signal_not_emitted(controller, "zoom_applied", "nothing was eased")

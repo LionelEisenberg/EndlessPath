@@ -99,6 +99,15 @@ func is_zoom_active() -> bool:
 func set_enabled(value: bool) -> void:
 	enabled = value
 
+## Ends an ease under way at once: the camera takes the target zoom and the
+## controller stops easing. Does nothing while it rests.
+func settle() -> void:
+	if not is_zooming or not camera:
+		return
+	is_zooming = false
+	camera.zoom = target_zoom
+	zoom_applied.emit(camera.zoom)
+
 #-----------------------------------------------------------------------------
 # PRIVATE METHODS
 #-----------------------------------------------------------------------------

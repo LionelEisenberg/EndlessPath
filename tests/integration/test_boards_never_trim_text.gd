@@ -147,7 +147,7 @@ func test_the_labels_that_can_run_long_wrap() -> void:
 		"res://scenes/adventure/adventure_chest/expedition_page/expedition_page.tscn": ["NameLabel", "LineLabel", "LoreLabel", "WalkHint", "LockLine"],
 		"res://scenes/adventure/adventure_chest/choice_drawer/choice_drawer.tscn": ["Title", "Detail"],
 		"res://scenes/ui/combat/technique_dock/cast_tray/cast_tray.tscn": ["NameLabel"],
-		"res://scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.tscn": ["NameLabel", "DescriptionLabel"],
+		"res://scenes/ui/combat/technique_dock/technique_tooltip/technique_tooltip.tscn": ["NameLabel", "EffectsLabel", "DescriptionLabel"],
 		"res://scenes/ui/goals_panel/goals_panel.tscn": ["QuestNameLabel", "QuestStepLabel", "MilestoneNameLabel", "MilestoneTextLabel"],
 		"res://scenes/zones/zone_panel/now_strip/now_strip.tscn": ["TrainingName", "LevelLabel", "ForageName", "EmptyLabel"],
 	}

@@ -114,9 +114,9 @@ ActionManager.select_action()              ── re-checks can_start_adventure(
   → adventure_start_requested(action_data)
 ZoneTransition, on adventure_start_requested
   budget = get_adventure_madra_budget()
-  8–25 MadraPellets (scaled by budget / capacity) from the cabinet's orb; each spawn calls
+  8–25 LacquerPellets (scaled by budget / capacity) from the cabinet's orb; each spawn calls
   spend_madra(floor(budget / count)), plus one final pellet for the remainder
-  → camera zooms in (3x, 0.5 s)
+  → as the last pellet lands, camera zooms in (1.5x the player's zoom, 0.5 s)
 ActionManager.confirm_adventure_start(action_data, budget) → start_adventure(action_data, budget)
 AdventureView → PlayerManager.vitals_manager.initialize_current_values(budget)
 ```
@@ -194,7 +194,7 @@ Every check runs before gold moves, so a blocked purchase changes nothing. `INVA
 | `scripts/resource_definitions/character/character_attributes_data.gd` | `get_max_madra()` (`FOUNDATION × 10`) |
 | `scripts/resource_definitions/effects/award_resource_effect_data.gd` | Data-driven resource award |
 | `scenes/cycling/cycling_technique/cycling_technique.gd` | Madra steps while the cursor follows the ball |
-| `scenes/zones/zone_transition/zone_transition.gd`, `madra_pellet.gd` | Adventure-start drain |
+| `scenes/zones/zone_transition/zone_transition.gd` | Adventure-start drain |
 | `scenes/zones/zone_action_button/presenters/adventure_presenter.gd` | Adventure card's Madra line, rod and threshold UX |
 | `scenes/zones/cultivator_plate/cultivator_plate.gd` | Zone Madra orb, Madra rate and gold display |
 | `singletons/cultivation_manager/cultivation_manager.gd` | `get_max_madra()` (pool cap) |

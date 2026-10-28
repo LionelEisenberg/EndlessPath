@@ -34,6 +34,8 @@
 [ext_resource type="PackedScene" path="res://scenes/merchant/merchant_view.tscn" id="33_mv"]
 [ext_resource type="Script" uid="uid://c1pcrlwd2e22g" path="res://scenes/tribulation/tribulation_view_state.gd" id="34_tvs"]
 [ext_resource type="PackedScene" uid="uid://cncex23qq8b18" path="res://scenes/tribulation/tribulation_view.tscn" id="35_tv"]
+[ext_resource type="PackedScene" uid="uid://cbt4rn5wq2k7h" path="res://scenes/ui/main_view/board_transition/board_transition.tscn" id="36_bt"]
+[ext_resource type="PackedScene" uid="uid://dt1g35yptbrw5" path="res://scenes/ui/view_dissolve/view_dissolve.tscn" id="36_vd"]
 
 [sub_resource type="Animation" id="Animation_grey_RESET"]
 resource_name = "RESET"
@@ -157,6 +159,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ZoneTransition" type="Node" parent="MainView/ZoneView" unique_id=1866892530]
+unique_name_in_owner = true
 script = ExtResource("8_ohlfh")
 metadata/_custom_type_script = "uid://dfwnxr83f5s5n"
 
@@ -184,6 +187,7 @@ size = Vector2i(1920, 1080)
 render_target_update_mode = 4
 
 [node name="ZoneTilemap" parent="MainView/ZoneView/SubViewportContainer/SubViewport" unique_id=903827960 instance=ExtResource("3_1i3v0")]
+unique_name_in_owner = true
 
 [node name="CultivatorPlate" parent="MainView/ZoneView" unique_id=719653768 instance=ExtResource("11_plate")]
 unique_name_in_owner = true
@@ -284,6 +288,15 @@ layout_mode = 1
 unique_name_in_owner = true
 visible = false
 z_index = 3
+layout_mode = 1
+
+[node name="BoardTransition" parent="MainView" unique_id=1087264419 instance=ExtResource("36_bt")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="ViewDissolve" parent="MainView" unique_id=1604218838 instance=ExtResource("36_vd")]
+unique_name_in_owner = true
+z_index = 9
 layout_mode = 1
 
 [node name="DevPanel" parent="MainView" unique_id=841197742 node_paths=PackedStringArray("adventure_view") instance=ExtResource("30_dp")]

@@ -5,21 +5,20 @@ extends InventorySlot
 ## Discard target. Holds one item at a time in a transient hold-buffer.
 ## Dropping a new item onto a non-empty TrashSlot destroys the previously
 ## held item permanently. Pulling the held item out (drag back to grid)
-## restores it via InventoryManager.
+## restores it via InventoryManager. Empty, it is a shallow slot with a
+## printed cross (%Cross); holding an item, a deep slot showing the item.
 ##
 ## The hold-buffer stores either:
 ##   - an ItemInstanceData (for equipment), or
 ##   - a [definition, quantity] pair for materials / consumables.
 
-const SLOT_TEXTURE := preload("res://assets/sprites/inventory/inventory_slot/UI_NoteBook_Slot04a.png")
+@onready var _cross: TextureRect = %Cross
 
 ## When non-null, the slot is currently holding something.
 ## Either an ItemInstanceData OR an Array [def, quantity].
 var _held: Variant = null
 
 func _ready() -> void:
-	empty_texture = SLOT_TEXTURE
-	full_texture = SLOT_TEXTURE
 	super._ready()
 	add_to_group("TrashSlots")
 
@@ -68,6 +67,10 @@ func flush_to_inventory() -> void:
 	# Clear the visual too: a leftover icon would let the player pick up and
 	# restore the same instance a second time on reopen.
 	clear_hold()
+
+func _update_slot() -> void:
+	super._update_slot()
+	_cross.visible = item_instance == null
 
 func _held_display_name(value: Variant) -> String:
 	if value is ItemInstanceData:

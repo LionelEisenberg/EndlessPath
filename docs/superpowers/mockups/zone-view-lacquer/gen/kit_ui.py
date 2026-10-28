@@ -740,7 +740,9 @@ def run():
     # kept from the swatch, regenerated with the same code (byte-identical pixels)
     B.cultivator()
     B.goals_board()
-    B.seal('seal_count', 12, 12, [(4, 0), (5, 0), (11, 7), (0, 8), (1, 11)], [(4, 1), (10, 7), (1, 8)])
+    # The count seal keeps its worn bites in its outer 3 art px (6 screen px) so its middle
+    # stretches: LacquerCountSeal widens it to fit a long count (2026-10-25).
+    B.seal('seal_count', 12, 12, [(2, 0), (11, 7), (0, 8), (1, 11)], [(2, 1), (10, 7), (1, 8)])
     B.carved_line('line', 204)
     B.char_shadow()
     # revision 2: the coin, star and swords icons are the user's own (gold_icon, star_icon,

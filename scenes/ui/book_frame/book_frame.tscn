@@ -128,6 +128,7 @@ libraries/ = SubResource("AnimationLibrary_book")
 
 [node name="PageTurningRect" type="TextureRect" parent="."]
 unique_name_in_owner = true
+z_index = 1
 material = SubResource("ShaderMaterial_page")
 layout_mode = 1
 anchors_preset = 15

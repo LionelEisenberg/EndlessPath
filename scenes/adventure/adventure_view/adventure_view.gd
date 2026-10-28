@@ -12,9 +12,10 @@ extends Control
 ## the hexes under it (the map's viewport hears the pointer only through its
 ## container).
 ## The view passes the map's news to the boards (an arrival, a resolution, a
-## refused walk) and the chest's picks to the map, binds the dock and the
-## cabinet's buff sockets to the player's combatant for a fight, and keeps the
-## run's Timer and the figures the Run ledger and the end card show.
+## refused walk) and the chest's picks to the map, binds the dock (techniques
+## and hotbar consumables) and the cabinet's buff sockets to the player's
+## combatant for a fight, and keeps the run's Timer and the figures the Run
+## ledger and the end card show.
 
 #-----------------------------------------------------------------------------
 # SIGNALS
@@ -251,12 +252,15 @@ func _on_start_combat(choice: CombatChoice) -> void:
 			current_action_data # Pass adventure action data for gold multiplier
 		)
 		combat.start()
-		# The dock takes the player's techniques and the cabinet their buffs
+		# The dock takes the player's techniques and consumables, and the cabinet
+		# their buffs
 		if combat.player_combatant:
-			technique_dock.bind(combat.player_combatant.ability_manager, PlayerManager.vitals_manager)
+			technique_dock.bind(combat.player_combatant.ability_manager, PlayerManager.vitals_manager, combat.player_combatant.consumable_manager)
 			vitals_plate.bind_buffs(combat.player_combatant.buff_manager)
 			if not technique_dock.ability_selected.is_connected(combat.on_player_ability_selected):
 				technique_dock.ability_selected.connect(combat.on_player_ability_selected)
+			if not technique_dock.consumable_selected.is_connected(combat.on_player_consumable_selected):
+				technique_dock.consumable_selected.connect(combat.on_player_consumable_selected)
 		
 	is_in_combat = true
 	
@@ -305,11 +309,13 @@ func _on_stop_combat(successful: bool = false, gold_earned: int = 0) -> void:
 			ActionManager.stop_action(successful)
 
 ## The dock and the cabinet let go of the fight: no press reaches it, the dock
-## previews the loadout again (its cast tray hidden) and the buff sockets clear.
-## Safe to call when no fight is bound.
+## previews the loadout and the hotbar again (its cast tray hidden) and the buff
+## sockets clear. Safe to call when no fight is bound.
 func _release_fight_boards() -> void:
 	if combat and technique_dock.ability_selected.is_connected(combat.on_player_ability_selected):
 		technique_dock.ability_selected.disconnect(combat.on_player_ability_selected)
+	if combat and technique_dock.consumable_selected.is_connected(combat.on_player_consumable_selected):
+		technique_dock.consumable_selected.disconnect(combat.on_player_consumable_selected)
 	technique_dock.reset()
 	vitals_plate.unbind_buffs()
 

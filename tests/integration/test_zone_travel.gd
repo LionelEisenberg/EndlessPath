@@ -653,6 +653,33 @@ func test_camera_move_under_a_still_pointer_clears_a_hover_left_behind() -> void
 	assert_false(map.get_route_to(TEST_ZONE_ID).is_lit(), "the route goes out")
 	await _move_pointer_to_window_point(Vector2.ZERO)
 
+## While the map takes no input (a board in the map gap is up or moving), a
+## camera move under a still pointer hovers nothing: the board's camera push
+## must not light a rim or a route, or start a locked zone's preview, beside
+## the board. With its input back, the next camera move hovers as before.
+func test_camera_move_while_the_map_takes_no_input_hovers_nothing() -> void:
+	var map: ZoneTilemap = await _hosted_map()
+	_open_test_zone()
+	await _settle()
+	var state: MapPopoverState = map.get_map_markers().get_popover_state()
+	await _move_pointer_to(map, _hosted_screen_point(map, TEST_ZONE_ID))
+	map.get_camera().position += Vector2(-400, 0)
+	await _settle()
+	await _settle()
+	assert_eq(state.get_hovered_zone_id(), "", "precondition: fog is under the pointer")
+	map.get_viewport().gui_disable_input = true
+	map.get_camera().position += Vector2(400, 0)
+	await _settle()
+	await _settle()
+	assert_eq(state.get_hovered_zone_id(), "", "the hex the camera brought under the pointer is not hovered")
+	assert_false(map.get_route_to(TEST_ZONE_ID).is_lit(), "and its route stays dark")
+	map.get_viewport().gui_disable_input = false
+	map.get_camera().position += Vector2(2, 0)
+	await _settle()
+	await _settle()
+	assert_eq(state.get_hovered_zone_id(), TEST_ZONE_ID, "with the map's input back, the next camera move hovers it")
+	await _move_pointer_to_window_point(Vector2.ZERO)
+
 func test_no_preview_while_pinned() -> void:
 	ZoneManager.set_demo_zones_visible(true)
 	_map.click_zone(_zone(UNCHARTED_DEMO_ID))

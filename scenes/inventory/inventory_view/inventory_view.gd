@@ -40,9 +40,15 @@ func _on_tab_changed(index: int) -> void:
 	book_frame.turn_page(index > _last_tab_index)
 	_last_tab_index = index
 
-## Show the new tab content when page turn animation finishes.
+## Show the new tab content when page turn animation finishes. The tab opens its
+## page first, so it never shows what it last held.
 func _on_page_turned() -> void:
+	tabs[_pending_tab_index].open_page()
 	tabs[_pending_tab_index].visible = true
+
+## Open the page of the tab the book will lie open at, before the pages show.
+func _before_open() -> void:
+	tabs[_last_tab_index].open_page()
 
 ## Return anything held in a trash slot to the inventory once the book closes.
 func _after_close() -> void:

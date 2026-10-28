@@ -212,10 +212,17 @@ func has_item(item_id: String) -> bool:
 			return true
 	return false
 
+## Returns how many of the given consumable the player holds: 0 for none, or
+## for a null definition.
+func get_consumable_count(def: ConsumableDefinitionData) -> int:
+	if def == null:
+		return 0
+	return get_inventory().consumables.get(def, 0)
+
 ## Fire the consumable's effects and decrement the player's stack by one.
 ## Returns true on success, false if the definition is null or the player
 ## has none in stock. Does NOT check cooldown — that's the caller's job
-## (the future CombatConsumableInstance handles it).
+## (CombatConsumableInstance handles it in a fight).
 func use_consumable(def: ConsumableDefinitionData) -> bool:
 	if def == null:
 		Log.error("InventoryManager.use_consumable: null definition")

@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://xg1hgwpebr0k"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_details/equipment_details.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png" id="2_well"]
+
+[node name="EquipmentDetails" type="PanelContainer"]
+offset_right = 468.0
+offset_bottom = 272.0
+mouse_filter = 2
+theme_type_variation = &"PanelPressed"
+script = ExtResource("1_script")
+
+[node name="Content" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Flow" type="VBoxContainer" parent="Content"]
+layout_mode = 0
+offset_right = 434.0
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="HBoxContainer" parent="Content/Flow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="IconWell" type="TextureRect" parent="Content/Flow/Header"]
+layout_mode = 2
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("2_well")
+
+[node name="Icon" type="TextureRect" parent="Content/Flow/Header/IconWell"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 68.0
+offset_bottom = 68.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="NameColumn" type="VBoxContainer" parent="Content/Flow/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="NameInset" type="Control" parent="Content/Flow/Header/NameColumn"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="Content/Flow/Header/NameColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(346, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookItemName"
+autowrap_mode = 3
+
+[node name="SlotBox" type="MarginContainer" parent="Content/Flow/Header/NameColumn"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 2
+
+[node name="SlotLabel" type="Label" parent="Content/Flow/Header/NameColumn/SlotBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 17)
+layout_mode = 2
+theme_type_variation = &"LabelBookCaps"
+
+[node name="BonusesBlock" type="MarginContainer" parent="Content/Flow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 16
+
+[node name="Bonuses" type="VBoxContainer" parent="Content/Flow/BonusesBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="DescriptionBlock" type="MarginContainer" parent="Content/Flow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 19
+
+[node name="Description" type="Label" parent="Content/Flow/DescriptionBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(434, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookInk"
+autowrap_mode = 3

@@ -237,3 +237,11 @@ func on_player_ability_selected(instance: CombatAbilityInstance) -> void:
 		player_combatant.ability_manager.use_ability_instance(instance, enemy_combatant)
 	else:
 		Log.warn("AdventureCombat: No enemy to target!")
+
+## Uses a hotbar consumable the player pressed on the technique dock. A
+## consumable needs no target.
+func on_player_consumable_selected(instance: CombatConsumableInstance) -> void:
+	if player_combatant:
+		player_combatant.consumable_manager.use_consumable_instance(instance)
+	else:
+		Log.warn("AdventureCombat: No player to use a consumable!")

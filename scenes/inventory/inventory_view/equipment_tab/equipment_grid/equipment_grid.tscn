@@ -4,15 +4,15 @@
 [ext_resource type="PackedScene" uid="uid://ceypk3nhatnfw" path="res://scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.tscn" id="2_slot"]
 
 [node name="EquipmentGrid" type="MarginContainer" unique_id=829708921]
-offset_right = 236.0
-offset_bottom = 220.0
+offset_right = 452.0
+offset_bottom = 452.0
 script = ExtResource("1_5kgqq")
 
 [node name="GridContainer" type="GridContainer" parent="." unique_id=2102296340]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
 columns = 6
 
 [node name="Slot1" parent="GridContainer" unique_id=1476249060 instance=ExtResource("2_slot")]

@@ -1,64 +1,77 @@
 [gd_scene format=3 uid="uid://dmx5iukydwvil"]
 
 [ext_resource type="Script" uid="uid://budyxvcrbpvo1" path="res://scenes/inventory/inventory_view/materials_tab/materials_tab.gd" id="1_2y5o7"]
-[ext_resource type="Texture2D" uid="uid://3w4d3der8ula" path="res://assets/sprites/inventory/materials_tab/banner.png" id="2_ndr45"]
-[ext_resource type="PackedScene" uid="uid://b8s1f1ssbnr01" path="res://scenes/inventory/common/sort_sub_banner/sort_sub_banner.tscn" id="3_cbsr0"]
-[ext_resource type="PackedScene" uid="uid://b7gtbr4yvm21q" path="res://scenes/inventory/common/grid_toolbar/grid_toolbar.tscn" id="4_mn000"]
-[ext_resource type="PackedScene" uid="uid://b7e8nap4xrlnq" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="5_bmjvd"]
-[ext_resource type="PackedScene" uid="uid://bm8mdc2t4qx3a" path="res://scenes/inventory/inventory_view/materials_tab/material_detail_card.tscn" id="6_le5a0"]
-[ext_resource type="PackedScene" uid="uid://btpcreamtipx2" path="res://scenes/inventory/inventory_view/materials_tab/material_tip_card.tscn" id="7_07lrm"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/pressed/page_title/page_title.tscn" id="2_title"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/common/inventory_grid/inventory_grid.tscn" id="3_grid"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/inventory_view/materials_tab/material_details/material_details.tscn" id="4_details"]
 
 [node name="MaterialsTab" type="Control" unique_id=47492188]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_right = 1400.0
+offset_bottom = 900.0
+mouse_filter = 2
 script = ExtResource("1_2y5o7")
 
-[node name="MaterialsTabBanner" type="TextureRect" parent="." unique_id=809524323]
+[node name="LeftTitle" parent="." instance=ExtResource("2_title")]
 layout_mode = 0
-offset_left = 109.0
-offset_top = 63.0
-offset_right = 305.0
-offset_bottom = 129.0
-texture = ExtResource("2_ndr45")
+offset_left = 192.0
+offset_top = 134.0
+offset_right = 644.0
+offset_bottom = 196.0
+title = "Materials"
 
-[node name="MaterialsSortSubBanner" parent="." unique_id=1122666677 instance=ExtResource("3_cbsr0")]
+[node name="GridFrame" type="Control" parent="."]
+clip_contents = true
+layout_mode = 0
+offset_left = 186.0
+offset_top = 238.0
+offset_right = 658.0
+offset_bottom = 702.0
+mouse_filter = 2
+
+[node name="MaterialsInventoryGrid" parent="GridFrame" unique_id=1469197411 instance=ExtResource("3_grid")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 124.0
-offset_top = 128.0
-offset_right = 284.0
-offset_bottom = 168.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = 458.0
+offset_bottom = 458.0
 
-[node name="MaterialsGridToolbar" parent="." unique_id=1727561648 instance=ExtResource("4_mn000")]
+[node name="ScrollContainer" parent="GridFrame/MaterialsInventoryGrid" index="0"]
+clip_contents = false
+
+[node name="EmptyLabel" type="Label" parent="."]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 82.0
-offset_top = 165.0
-offset_right = 318.0
-offset_bottom = 195.0
+offset_left = 192.0
+offset_top = 244.0
+offset_right = 644.0
+offset_bottom = 262.0
+theme_type_variation = &"LabelBookDetail"
+text = "Nothing gathered yet."
+autowrap_mode = 3
 
-[node name="MaterialsInventoryGrid" parent="." unique_id=1469197411 instance=ExtResource("5_bmjvd")]
-unique_name_in_owner = true
+[node name="RightPage" type="VBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 82.0
-offset_top = 187.0
-offset_right = 318.0
-offset_bottom = 400.0
+offset_left = 748.0
+offset_top = 134.0
+offset_right = 1216.0
+offset_bottom = 134.0
+mouse_filter = 2
+theme_override_constants/separation = 14
 
-[node name="MaterialDetailCard" parent="." unique_id=1457964030 instance=ExtResource("6_le5a0")]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 387.0
-offset_top = 110.0
-offset_right = 620.0
-offset_bottom = 280.0
+[node name="TitleBox" type="MarginContainer" parent="RightPage"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 4
 
-[node name="MaterialTipCard" parent="." unique_id=380313957 instance=ExtResource("7_07lrm")]
+[node name="RightTitle" parent="RightPage/TitleBox" instance=ExtResource("2_title")]
 unique_name_in_owner = true
-layout_mode = 0
-offset_left = 387.0
-offset_top = 290.0
-offset_right = 620.0
-offset_bottom = 360.0
+layout_mode = 2
+
+[node name="MaterialDetails" parent="RightPage" instance=ExtResource("4_details")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[editable path="GridFrame/MaterialsInventoryGrid"]

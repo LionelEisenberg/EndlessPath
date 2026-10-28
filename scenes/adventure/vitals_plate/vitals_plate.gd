@@ -46,8 +46,7 @@ const TOOLTIP_GAP: float = 8.0
 @onready var _stamina_max_label: Label = %StaminaMaxLabel
 @onready var _buff_sockets: Array[Control] = [%BuffSocket1, %BuffSocket2, %BuffSocket3]
 @onready var _buff_icons: Array[TextureRect] = [%BuffIcon1, %BuffIcon2, %BuffIcon3]
-@onready var _buff_seals: Array[Control] = [%BuffSeal1, %BuffSeal2, %BuffSeal3]
-@onready var _buff_counts: Array[Label] = [%BuffCount1, %BuffCount2, %BuffCount3]
+@onready var _buff_seals: Array[LacquerCountSeal] = [%BuffSeal1, %BuffSeal2, %BuffSeal3]
 @onready var _buff_flashes: Array[LacquerFrameOverlay] = [%BuffFlash1, %BuffFlash2, %BuffFlash3]
 @onready var _buff_tooltip: BuffTooltip = %BuffTooltip
 
@@ -210,7 +209,7 @@ func _refresh_buff_sockets() -> void:
 			continue
 		_buff_icons[index].texture = buff.buff_data.buff_icon
 		_buff_seals[index].visible = buff.stack_count > 1
-		_buff_counts[index].text = str(buff.stack_count)
+		_buff_seals[index].show_count(buff.stack_count)
 
 func _hide_buff_tooltip() -> void:
 	_tooltip_buff = null

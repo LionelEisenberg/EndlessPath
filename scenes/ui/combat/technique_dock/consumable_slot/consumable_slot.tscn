@@ -1,0 +1,105 @@
+[gd_scene format=3 uid="uid://cn2jxvg67olwf"]
+
+[ext_resource type="Script" path="res://scenes/ui/combat/technique_dock/consumable_slot/consumable_slot.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" uid="uid://4ufn4i5ogj3x" path="res://assets/ui/lacquer/lacquer_socket_glyph_ai.png" id="3_socket"]
+[ext_resource type="Shader" uid="uid://cp84etdr6lub4" path="res://assets/shaders/lacquer_cooldown_sweep.gdshader" id="4_sweep"]
+[ext_resource type="PackedScene" uid="uid://mtjmtsaag6uw" path="res://scenes/common/lacquer/lacquer_frame_overlay.tscn" id="5_frame"]
+[ext_resource type="StyleBox" uid="uid://cr1tdhlwb832o" path="res://assets/styleboxes/lacquer/frame_hover.tres" id="6_frame_hover"]
+[ext_resource type="Texture2D" uid="uid://b48eg06y2loyo" path="res://assets/ui/lacquer/lacquer_keycap_ai.png" id="7_keycap"]
+[ext_resource type="PackedScene" uid="uid://5ctonbrkg3fk" path="res://scenes/common/lacquer/lacquer_count_seal.tscn" id="8_seal"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sweep"]
+resource_local_to_scene = true
+shader = ExtResource("4_sweep")
+shader_parameter/progress = 1.0
+shader_parameter/icon_size = 32.0
+
+[node name="ConsumableSlot" type="Control"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 48.0
+offset_bottom = 48.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="Body" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 48.0
+offset_bottom = 48.0
+mouse_filter = 2
+
+[node name="Socket" type="TextureRect" parent="Body"]
+layout_mode = 0
+offset_right = 48.0
+offset_bottom = 48.0
+mouse_filter = 2
+texture = ExtResource("3_socket")
+
+[node name="Icon" type="TextureRect" parent="Body"]
+unique_name_in_owner = true
+visible = false
+material = SubResource("ShaderMaterial_sweep")
+layout_mode = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="SecondsLabel" type="Label" parent="Body"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = -8.0
+offset_top = 14.0
+offset_right = 56.0
+offset_bottom = 34.0
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerCooldown"
+theme_override_font_sizes/font_size = 15
+text = "10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HoverFrame" parent="Body" instance=ExtResource("5_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+theme_override_styles/panel = ExtResource("6_frame_hover")
+
+[node name="ReadyFlash" parent="Body" instance=ExtResource("5_frame")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="KeyCap" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -6.0
+offset_top = -6.0
+offset_right = 18.0
+offset_bottom = 18.0
+mouse_filter = 2
+texture = ExtResource("7_keycap")
+
+[node name="KeyLabel" type="Label" parent="KeyCap"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 2.0
+offset_right = 22.0
+offset_bottom = 20.0
+mouse_filter = 2
+theme_type_variation = &"LabelLacquerHotkey"
+text = "1"
+horizontal_alignment = 1
+
+[node name="CountSeal" parent="." instance=ExtResource("8_seal")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 28.0
+offset_top = 30.0
+offset_right = 52.0
+offset_bottom = 54.0

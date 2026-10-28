@@ -150,6 +150,24 @@ def boards():
 
 
 # ----------------------------------------------------------------------------
+# Consumables on the technique dock (spec 2026-10-25-combat-consumables-lacquer-design.md):
+# the dock grows by 64 px for a row of four sockets over the techniques. Not in the mock's page,
+# which still draws the 476x136 dock.
+# ----------------------------------------------------------------------------
+def technique_dock_consumables():
+    # The sockets are the kit's 48 px glyph sockets and the count seal the zone kit's (made
+    # stretchable in kit_ui.py): only the taller board is new.
+    b = board_base(238, 100)
+    streak(b, 52, 5, 22, ((9, 1),))          # top band, between the first two sockets
+    streak(b, 118, 36, 52, ((14, -1), (37, 1)), GRAIN2)   # between the two rows
+    streak(b, 16, 92, 60, ((22, 1), (41, -1)))
+    streak(b, 226, 60, 9, ())
+    gloss(b, 4, [(132, 168, RAISED), (172, 174, RAISED)])
+    gloss(b, 4, [(140, 146, RIM_S)])
+    save(b, 'tdock_consumables')             # 476x200
+
+
+# ----------------------------------------------------------------------------
 # End card: round 1's paper scroll, kept as the reference for when the end card is taken up
 # (the user took the end card out of this rework, 2026-10-22)
 # ----------------------------------------------------------------------------
@@ -286,6 +304,7 @@ def run():
     plates()
     technique_dock()
     boards()
+    technique_dock_consumables()
     scroll()
     backdrop_and_icons()
     cooldown_sweep()

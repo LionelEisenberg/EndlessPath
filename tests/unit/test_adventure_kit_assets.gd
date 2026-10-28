@@ -20,12 +20,12 @@ const VEIL_ATLAS_PATH: String = FOREST_DIR + "hex_forest_veil_atlas_ai.png"
 ## grid of these, 23 of them used.
 const FOREST_CELL: Vector2i = Vector2i(164, 190)
 
-## Every screen piece with its size, shadow included: the tech dock and the
-## plain board carry a 4 px shadow, the slot and keycap 2 px, and each of the
-## four coins in the marker tokens strip its own 2 px. The other pieces are
-## recessed or inset, so they cast none.
+## Every screen piece with its size, shadow included: the tech dock (with its
+## consumable row) and the plain board carry a 4 px shadow, the slot and the
+## keycap 2 px, and each of the four coins in the marker tokens strip its
+## own 2 px. The other pieces are recessed or inset, so they cast none.
 const SCREEN_PIECES: Dictionary[String, Vector2i] = {
-	"lacquer_tdock_ai.png": Vector2i(480, 140),
+	"lacquer_tdock_consumables_ai.png": Vector2i(480, 204),
 	"lacquer_slot_ai.png": Vector2i(82, 82),
 	"lacquer_keycap_ai.png": Vector2i(24, 24),
 	"lacquer_cast_tray_ai.png": Vector2i(476, 44),
@@ -142,6 +142,23 @@ func test_screen_pieces_sit_on_the_2x_grid() -> void:
 			fail_test("%s is %s: not a whole number of 2x2 blocks" % [file_name, image.get_size()])
 			continue
 		assert_eq(_count_ragged_blocks(image), 0, "%s: 2x2 blocks that are not one colour" % file_name)
+
+## The count seal (the zone kit's, which LacquerCountSeal shows for the buff
+## sockets, the dock buttons and the consumable sockets) grows sideways to fit
+## a long count: its worn bites stay in the 6 px at each end (the
+## NinePatchRect's margins), and every row of its middle is the one vermilion,
+## so a stretch leaves no seam.
+func test_the_count_seal_stretches_its_plain_middle() -> void:
+	var image: Image = _load_image(LACQUER_DIR + "lacquer_seal_count_ai.png")
+	if image == null:
+		return
+	var vermilion := Color("#A83C30")
+	for y: int in image.get_height():
+		for x: int in range(6, image.get_width() - 6):
+			if not _same_colour(image.get_pixel(x, y), vermilion):
+				fail_test("the seal's middle is not vermilion at (%d, %d)" % [x, y])
+				return
+	pass_test("the middle stretches cleanly")
 
 #-----------------------------------------------------------------------------
 # 9-SLICES (the boards that grow)
