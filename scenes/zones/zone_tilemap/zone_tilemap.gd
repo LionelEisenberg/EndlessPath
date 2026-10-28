@@ -663,8 +663,13 @@ func _refresh_hover() -> void:
 
 ## Hit-tests the pointer's cell as a mouse motion would, for a camera that
 ## moved under a still pointer, and keeps both hex layers in step with it.
+## Nothing while the map's viewport takes no input (a board in the map gap is
+## up or moving, and its camera push moves the map): no motion would reach the
+## hex layers then either.
 func _rehover_pointer_cell() -> void:
 	if not is_inside_tree() or not _map_markers.is_pointer_on_map():
+		return
+	if get_viewport().gui_disable_input:
 		return
 	var cell: Vector2i = tile_map.local_to_map(tile_map.get_local_mouse_position())
 	tile_map.set_hovered_cell(cell)
