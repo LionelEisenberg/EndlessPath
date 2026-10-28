@@ -2,15 +2,23 @@ extends GutTest
 
 ## Unit tests for LaunchOptions: the options after `--` on the command line
 ## (`--save=<path>`, `--no-autosave` and `--preset=<id>`), the checkout's pinned
-## preset, the detection of a GUT test run, and the check that a scene is the
-## project's main scene. parse() takes its arguments and the pin as parameters, so
-## its tests do not depend on how this process was started. The pin tests point
-## pin_path_override at a temp file, so the checkout's own pin file is never
-## written. is_test_run() reads the real command line, which in this suite is
-## always a GUT run.
+## preset, the detection of a GUT test run, and the two checks of the main scene:
+## whether a scene is the project's main scene (is_main_scene()), and whether a run
+## plays it (plays_main_scene()). parse() and plays_main_scene() take their
+## arguments as parameters, so their tests do not depend on how this process was
+## started. The pin tests point pin_path_override at a temp file, so the checkout's
+## own pin file is never written. is_test_run() reads the real command line, which
+## in this suite is always a GUT run.
 
 ## The pin file the pin tests write. after_each() deletes it.
 const PIN_PATH: String = "user://__test_launch_options_pin.cfg"
+
+## A scene that is not the main scene.
+const OTHER_SCENE: String = "res://scenes/ui/dev_panel/dev_panel.tscn"
+
+## The engine arguments of a launch of the game from the command line, which names
+## no script.
+const LAUNCH_ARGS: PackedStringArray = ["--path", "."]
 
 func after_each() -> void:
 	LaunchOptions.pin_path_override = ""
@@ -143,15 +151,54 @@ func test_this_suite_is_a_test_run() -> void:
 func test_the_main_scene_path_is_the_project_main_scene() -> void:
 	assert_eq(LaunchOptions.main_scene_path(), "res://scenes/main/main_game/main_game.tscn", "the setting's uid, as a res:// path")
 
-## Only a run of the main scene saves (PersistenceManager.boot()), and only the main
-## scene is freed and loaded again by a session switch (DevManager). A script run
-## (-s) starts no scene, so its current scene is null.
+## DevManager's question: only the main scene is freed and loaded again by a session
+## switch, so another scene, a node that is no scene and no scene at all are not the
+## main scene. A script run (-s) starts no scene, so its current scene is null.
 func test_only_the_main_scene_is_the_main_scene() -> void:
 	var main_scene: Node = autofree(Node.new())
 	main_scene.scene_file_path = LaunchOptions.main_scene_path()
 	var other_scene: Node = autofree(Node.new())
-	other_scene.scene_file_path = "res://scenes/ui/dev_panel/dev_panel.tscn"
+	other_scene.scene_file_path = OTHER_SCENE
 	assert_true(LaunchOptions.is_main_scene(main_scene))
 	assert_false(LaunchOptions.is_main_scene(other_scene), "another scene, as the editor's Run Current Scene plays")
 	assert_false(LaunchOptions.is_main_scene(autofree(Node.new())), "a node that is no scene")
 	assert_false(LaunchOptions.is_main_scene(null), "no scene at all, as in a script run")
+
+#-----------------------------------------------------------------------------
+# PLAYS THE MAIN SCENE
+#-----------------------------------------------------------------------------
+# PersistenceManager's question at boot: only a run of the main scene writes a save.
+# The answer is no only on positive evidence. Each test passes the engine arguments,
+# since this GUT run's own contain -s, and the main scene's path.
+
+func test_a_run_of_the_main_scene_plays_it() -> void:
+	var main_scene: Node = autofree(Node.new())
+	main_scene.scene_file_path = LaunchOptions.main_scene_path()
+	assert_true(LaunchOptions.plays_main_scene(main_scene, LAUNCH_ARGS, LaunchOptions.main_scene_path()))
+	assert_true(LaunchOptions.plays_main_scene(main_scene, LAUNCH_ARGS), "the main scene's path defaults to the project's")
+
+func test_a_run_of_another_scene_does_not_play_it() -> void:
+	var other_scene: Node = autofree(Node.new())
+	other_scene.scene_file_path = OTHER_SCENE
+	assert_false(LaunchOptions.plays_main_scene(other_scene, LAUNCH_ARGS, LaunchOptions.main_scene_path()), "the editor's Run Current Scene, or a scene named on the command line")
+
+## A run with no current scene that is no script run cannot be told apart, so it
+## counts as the main scene: it writes its save (the user's own after the boot
+## backup), where the other answer would lose a real launch's whole session.
+func test_a_run_with_no_scene_and_no_script_plays_it() -> void:
+	assert_true(LaunchOptions.plays_main_scene(null, LAUNCH_ARGS, LaunchOptions.main_scene_path()))
+
+## A script run starts no scene.
+func test_a_script_run_does_not_play_it() -> void:
+	var main_path: String = LaunchOptions.main_scene_path()
+	assert_false(LaunchOptions.plays_main_scene(null, PackedStringArray(["--headless", "-s", "res://tools/a_script.gd"]), main_path), "-s")
+	assert_false(LaunchOptions.plays_main_scene(null, PackedStringArray(["--headless", "--script", "res://tools/a_script.gd"]), main_path), "--script")
+
+## A main scene whose uid does not resolve (a checkout with no uid cache, say) gives
+## an empty path, so no scene can be told apart from it: the run counts as the main
+## scene's. The path is passed in: an unknown uid in the project setting can push an
+## engine error.
+func test_a_run_whose_main_scene_is_not_known_plays_it() -> void:
+	var other_scene: Node = autofree(Node.new())
+	other_scene.scene_file_path = OTHER_SCENE
+	assert_true(LaunchOptions.plays_main_scene(other_scene, LAUNCH_ARGS, ""))

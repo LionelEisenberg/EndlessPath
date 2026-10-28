@@ -3,10 +3,10 @@ class_name LaunchOptions extends RefCounted
 ## LaunchOptions
 ## What this run was launched with: the options after `--` on the command line
 ## (`--save=<path>`, `--no-autosave` and `--preset=<id>`), the preset pinned for
-## this checkout, whether the process is a GUT test run, and whether a scene is
-## the project's main scene. Code reads the options through current(). parse()
-## takes the argument list and the pin as parameters, so a test can feed it any of
-## them.
+## this checkout, whether the process is a GUT test run, whether the run plays the
+## project's main scene, and whether a scene is that scene. Code reads the options
+## through current(). parse() takes the argument list and the pin as parameters, so
+## a test can feed it any of them.
 ##
 ## The pin is one preset id kept in a ConfigFile per checkout: every plain launch
 ## from the checkout starts in that preset until it is unpinned. A launch that
@@ -120,10 +120,33 @@ static func main_scene_path() -> String:
 ## True when `scene` is the project's main scene, as the current scene of every
 ## launch of the game is. False for null and for any other scene: the editor's Run
 ## Current Scene, a scene named on the command line, and a script run (-s), which
-## starts none. The engine makes the run's scene the current scene before the
-## autoloads' _ready(), so PersistenceManager asks at boot which scene runs.
+## starts none. It answers DevManager's question before a switch frees the current
+## scene: is it the main scene, so free it? plays_main_scene() answers
+## PersistenceManager's question at boot instead, whether the run plays the main
+## scene, where a run it cannot tell counts as the main scene's.
 static func is_main_scene(scene: Node) -> bool:
 	return scene != null and scene.scene_file_path == main_scene_path()
+
+## True when this run plays the main scene, as every launch of the game does:
+## PersistenceManager asks it at boot, with the current scene (the engine makes the
+## run's scene the current scene before the autoloads' _ready()), and only such a
+## run writes a save. It answers false only on positive evidence: a current `scene`
+## that is not the main scene, when the main scene's path (`main_path`) is known, or
+## a script run, with -s or --script in `engine_args`, which starts no scene.
+## Anything else counts as the main scene: no current scene in a run that is no
+## script run, or a main scene whose uid does not resolve (`main_path` ""). The two
+## mistakes are not equal: a launch of the game counted as another scene would play
+## its whole session in memory and lose it, while another scene counted as the main
+## one writes its save, the user's own only after the boot backup, taken under the
+## lock, which can undo the write. `engine_args` and `main_path` default to this
+## process's own, so a test can feed it each case. is_main_scene() answers the
+## strict question.
+static func plays_main_scene(scene: Node, engine_args: PackedStringArray = OS.get_cmdline_args(), main_path: String = main_scene_path()) -> bool:
+	if engine_args.has("-s") or engine_args.has("--script"):
+		return false
+	if scene == null or main_path == "":
+		return true
+	return scene.scene_file_path == main_path
 
 #-----------------------------------------------------------------------------
 # THE PIN

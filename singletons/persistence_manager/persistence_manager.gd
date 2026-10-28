@@ -127,7 +127,7 @@ func _ready() -> void:
 		return
 	# The engine has made the run's scene the current scene already: it adds the
 	# scene to the tree with the autoloads, and runs their _ready() first.
-	boot(null, LaunchOptions.is_main_scene(get_tree().current_scene))
+	boot(null, LaunchOptions.plays_main_scene(get_tree().current_scene))
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
