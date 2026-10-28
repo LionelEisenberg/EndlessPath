@@ -49,11 +49,11 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 - **Ability tooltip and stat pill text** (all with a 2px `#1A1208` outline for legibility — don't substitute general variants): `LabelAbilityBody` 18px beige (the stat pills, which no screen shows now, and the enemy plate's buff tooltip) / `LabelAbilityMuted` 16px tan (that tooltip). `LabelAbilityTitle` 34px beige is unused since the ability cards were replaced by the Abilities book's rows
 - **Item description panel** (light background): `LabelDescItemName` 32px black / `LabelDescItemType` 20px gray `#606060`
 - **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators (assigned in code by `ability_stats_display.gd`, which no screen shows now)
-- **Inventory chrome.** These labels set `scale = Vector2(0.5, 0.5)` to cancel the `InventoryView` root's 2x scale. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
+- **Book chrome.** These labels stand on a menu book's `BookLayer`, which draws at 2x, and set `scale = Vector2(0.5, 0.5)` to cancel it. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
   - `LabelInventoryCount` 24px dark ink `#33261A` — unused since the pressed Materials page dropped `GridToolbar`, whose count text it set
   - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All" etc.) on the dark pill background
   - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Character" etc.)
-  - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
+  - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the book chrome on a `BookLayer`.
 - **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
   - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and the Goals board sit under the shop's place (the shop hides them while it is open), and their text would read through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`
   - `MerchantRow` (PanelContainer) — translucent stock row with a thin luminous edge
@@ -66,7 +66,7 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 
 ## Menu book pages
 
-The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md#menu-books)) have cream pages, where the general Label variants (light text for dark panels) don't read. The Abilities, Character and Path views set `assets/themes/book_theme.tres` as their root `theme`; it holds only the variants below, and every other lookup falls back to `pixel_theme.tres`. Each variant sets its own font size and clears the base Label's drop shadow.
+The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](infrastructure/MAIN_VIEW.md#menu-books)) have cream pages, where the general Label variants (light text for dark panels) don't read. The four views set `assets/themes/book_theme.tres` as their root `theme`; it holds only the variants below, and every other lookup falls back to `pixel_theme.tres`. Each variant sets its own font size and clears the base Label's drop shadow.
 
 | Variant | Base type | Style | Use |
 |---------|-----------|-------|-----|
