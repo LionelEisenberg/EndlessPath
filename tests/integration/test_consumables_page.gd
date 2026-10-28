@@ -455,7 +455,8 @@ func test_the_hint_prints_two_lines_on_the_spec_baselines() -> void:   # Ruling 
 	assert_eq(_baseline(second), 478.0)
 	var rule: Control = tab.get_node("HintRule") as Control
 	assert_eq(rule.get_global_rect().position.y + (rule.size.y - 4.0) / 2.0, 498.0, "the pressed rule draws at y 498")
-	assert_eq(rule.get_global_rect().size.x, 468.0)
+	assert_eq(rule.get_global_rect().position.x, 1012.0, "the mockup's rule: 1012 to 1474, centred under the hint")
+	assert_eq(rule.get_global_rect().size.x, 462.0)
 
 func test_details_print_the_effects_and_the_cooldown() -> void:   # Ruling R16
 	InventoryManager.award_items(CRUDE, 1)
