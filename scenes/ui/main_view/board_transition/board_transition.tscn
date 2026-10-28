@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://c52ysoebqwnqq" path="res://scenes/ui/main_view/board_transition/board_transition.gd" id="1_player"]
 
 [node name="BoardTransition" type="Control" unique_id=1712093344]
+process_priority = -1
 z_index = 9
 layout_mode = 3
 anchors_preset = 15

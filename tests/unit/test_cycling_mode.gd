@@ -664,3 +664,15 @@ func test_main_game_names_the_zone_furniture_for_main_view() -> void:
 	assert_gt(transition.get_index(), main_view.get_node("%TribulationView").get_index(), "the shield is after the boards")
 	assert_gt(transition.get_index(), main_view.get_node("%CyclingView").get_index(), "and after the cycling board")
 	assert_lt(transition.get_index(), main_view.get_node("%DevPanel").get_index(), "and before the dev panel")
+
+## The map's markers place themselves from the camera in their _process(), and
+## the zone map hit-tests the pointer there when the camera has moved. The
+## player moves the camera in its own _process(), after both in tree order, so
+## it must come first by priority, or the plates trail the push by a frame.
+func test_the_player_moves_the_camera_before_the_map_reads_it() -> void:
+	var game: Node = autofree((load(MAIN_GAME_SCENE_PATH) as PackedScene).instantiate())
+	var main_view: Node = game.get_node("MainView")
+	var transition: Node = main_view.get_node("%BoardTransition")
+	var zone_map: Node = main_view.get_node("%ZoneTilemap")
+	assert_lt(transition.process_priority, zone_map.get_node("%MapMarkers").process_priority, "before the markers place themselves")
+	assert_lt(transition.process_priority, zone_map.process_priority, "and before the map hit-tests the pointer")

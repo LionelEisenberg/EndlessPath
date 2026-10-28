@@ -11,7 +11,9 @@ extends Control
 ## the progress in its direction at the rate that crosses the open's timeline
 ## (BoardTransitionTiming.duration_ms) in its length, clamped to 0..1, and draws
 ## every piece from it. _process() calls advance() while it moves; nothing else
-## moves time, so tests drive it with advance() and finish().
+## moves time, so tests drive it with advance() and finish(). Its scene gives it
+## process_priority -1: it moves the camera before the zone map's markers place
+## themselves from it and the map hit-tests the pointer, in the same frame.
 ##
 ## Reversal. A close while it opens, or an open while it closes, only turns the
 ## direction around: every piece plays back from where the progress is, and
