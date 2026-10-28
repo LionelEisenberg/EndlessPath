@@ -48,6 +48,8 @@ var _drain_target_pos: Vector2 = Vector2.ZERO
 var _has_saved_camera: bool = false
 var _saved_camera_zoom: Vector2 = Vector2.ZERO
 var _saved_camera_position: Vector2 = Vector2.ZERO
+## The way back from the adventure zoom (reset_camera()), while it runs.
+var _reset_tween: Tween = null
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -73,12 +75,25 @@ func reset_camera(duration: float = 0.3) -> void:
 	var camera: Camera2D = _get_camera()
 	if not camera:
 		return
-	var tween: Tween = create_tween().set_parallel(true)
-	tween.tween_property(camera, "zoom", _saved_camera_zoom, duration) \
+	_reset_tween = create_tween().set_parallel(true)
+	_reset_tween.tween_property(camera, "zoom", _saved_camera_zoom, duration) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(camera, "position", _saved_camera_position, duration) \
+	_reset_tween.tween_property(camera, "position", _saved_camera_position, duration) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	_has_saved_camera = false
+
+## Ends the way back from the adventure zoom (reset_camera()) at once, at its
+## end: the camera at the zoom and position it had before the adventure. Does
+## nothing while no way back runs.
+func settle_camera() -> void:
+	if _reset_tween == null or not _reset_tween.is_valid():
+		return
+	_reset_tween.kill()
+	_reset_tween = null
+	var camera: Camera2D = _get_camera()
+	if is_instance_valid(camera):
+		camera.zoom = _saved_camera_zoom
+		camera.position = _saved_camera_position
 
 #-----------------------------------------------------------------------------
 # ADVENTURE TRANSITION — PARTICLE DRAIN

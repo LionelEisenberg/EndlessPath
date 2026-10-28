@@ -206,7 +206,7 @@ Tests: `tests/unit/test_*_effect_data.gd`, among others named after what they ch
 ### Missing Functionality
 
 - `[MEDIUM]` Effects receive no context: `process()` takes no source, target, or combatant. Effects that target a specific combatant, or scale with the source, would require an API change.
-- `[MEDIUM]` No effect can advance the cultivation stage, change Core Density or unlock a zone. The Tribulation (Beat 9) does not use one: `TribulationView` calls `CultivationManager.advance_to_next_stage()` or `lose_core_density_levels()` itself the moment the run ends. An action's `success_effects` and `failure_effects` run in `stop_action()`, when the player presses Continue, so closing the game on the result panel would have skipped the penalty (`tribulation_view.gd:456-477`).
+- `[MEDIUM]` No effect can advance the cultivation stage, change Core Density or unlock a zone. The Tribulation (Beat 9) does not use one: `TribulationView` calls `CultivationManager.advance_to_next_stage()` or `lose_core_density_levels()` itself the moment the run ends. An action's `success_effects` and `failure_effects` run in `stop_action()`, when the player presses Continue, so closing the game on the result panel would have skipped the penalty (`tribulation_view.gd:480-501`).
 - `[LOW]` Only `ChangeVitalsEffectData` overrides `describe()`. Any other effect shown in a tooltip, for example a consumable that awards a resource, would display the multi-line debug `_to_string()` text.
 
 ### Content

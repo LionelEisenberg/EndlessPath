@@ -733,6 +733,21 @@ func test_close_mid_run_applies_nothing() -> void:
 	assert_eq(CultivationManager.get_core_density_level(), 100.0)
 	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.FOUNDATION)
 
+## A stop plays the board shrinking away, so the board must stay drawn while nothing of the
+## run is applied. The clock is stepped past the run's end: a run still going would have
+## failed on the beats nobody pressed, and cost five levels.
+func test_halt_mid_run_applies_nothing_and_keeps_the_board_up() -> void:
+	_view.begin()
+	_at(3.0)
+	var duration: float = _view.get_run().get_duration()
+	_view.halt()
+	_at(duration + PAST)
+	assert_eq(CultivationManager.get_core_density_level(), 100.0, "no level is lost")
+	assert_eq(CultivationManager.get_current_advancement_stage(), Stage.FOUNDATION, "and no breakthrough")
+	assert_eq(_view.get_mode(), Mode.CLOSED)
+	assert_null(_view.get_run(), "the run is dropped")
+	assert_true(_view.visible, "the board is still showing")
+
 #-----------------------------------------------------------------------------
 # DRAWING AND LAYOUT
 #-----------------------------------------------------------------------------
@@ -756,6 +771,23 @@ func test_the_stage_draws_without_errors() -> void:
 	await wait_process_frames(2)
 	assert_gt(drawn["SphereLayer"], 0, "the spheres were drawn")
 	assert_gt(drawn["ArcLayer"], 0, "the arc was drawn")
+
+## A transition scales the view out of the cultivator into the board, so it asks the view
+## where the board stands.
+func test_board_rect_is_the_board() -> void:
+	await wait_process_frames(3)
+	var rect: Rect2 = _view.get_board_rect()
+	assert_eq(rect, (_node("Board") as Control).get_global_rect(), "it is the board's global rect")
+	assert_eq([rect.position.x, rect.position.y, rect.size.x], [484.0, 24.0, 952.0])
+
+## The transition reads the rect as the board opens, before a frame has run with the view
+## shown, and a board that has not laid out yet measures 2318 px tall, so the camera aimed
+## below the screen and the board grew out of its bottom edge. The rect it reports then is
+## the one the board settles to.
+func test_board_rect_before_the_first_frame_is_the_settled_board() -> void:
+	var first: Rect2 = _view.get_board_rect()
+	await wait_process_frames(3)
+	assert_eq(first, (_node("Board") as Control).get_global_rect(), "the same rect as once the board has laid out")
 
 ## Ruling O: the stage's cells and the board's art land on the 2 px grid only if
 ## the pieces stand on even global px.

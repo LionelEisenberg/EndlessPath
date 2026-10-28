@@ -329,6 +329,12 @@ func test_esc_label_is_right_aligned_before_the_close_button() -> void:
 	assert_eq(esc.position.y + esc.size.y, 63.0)
 	assert_eq(esc.horizontal_alignment, HORIZONTAL_ALIGNMENT_RIGHT)
 
+## A transition scales the view out of the cultivator into the board, so it asks the view
+## where the board stands. The fixture's text fits its lines, so the board has its art's size.
+func test_board_rect_is_the_board() -> void:
+	assert_eq(_view.get_board_rect(), Rect2(680.0, 24.0, 564.0, 1036.0))
+	assert_eq(_view.get_board_rect(), (_node("Board") as Control).get_global_rect(), "it is the board's global rect")
+
 func test_board_shows_its_art_at_file_size() -> void:
 	var board := _node("Board") as NinePatchRect
 	assert_eq(board.texture.get_size(), Vector2(564.0, 1036.0))

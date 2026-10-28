@@ -16,7 +16,8 @@ extends Control
 ## out of its readout until the pellet lands, so its orbs fill as the pellets
 ## arrive. MainView hands the cabinet over in cultivator_plate; with none, no
 ## pellet is sent.
-## The view shows and hides outright. While it shows it updates the status
+## The view shows and hides outright, or a transition scales it out of the cultivator
+## into the board's rect (get_board_rect()) and back. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
 ## the pellets in flight are freed. Opening it again forgets the last cycle's
@@ -165,6 +166,11 @@ static func status_line(cycled_before: bool, running: bool, elapsed: float, dura
 ## Returns the status line's text.
 func get_status_text() -> String:
 	return _status_label.text
+
+## Returns the board's rect in the screen's space, as laid out now: where a transition
+## scales the view out of the cultivator to, and back into.
+func get_board_rect() -> Rect2:
+	return _board.get_global_rect()
 
 #-----------------------------------------------------------------------------
 # THE TECHNIQUE

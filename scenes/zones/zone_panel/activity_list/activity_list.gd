@@ -110,6 +110,21 @@ func get_content_height() -> float:
 func get_fold_heights() -> Array[float]:
 	return _compute_flow().folds
 
+## Returns the rows the board transition slides, top to bottom: each group's
+## label row and its cards that show at least partly in the scroll window. A row
+## slides by its position.x, which its container sets only when it sorts.
+func get_slide_rows() -> Array[Control]:
+	var rows: Array[Control] = []
+	var window: Rect2 = _scroll.get_global_rect()
+	for group: Node in _content.get_children():
+		var label_row: Control = group.get_node("%LabelRow") as Control
+		if _shows_in(label_row, window):
+			rows.append(label_row)
+		for card: Node in (group.get_node("%Cards") as Control).get_children():
+			if _shows_in(card as Control, window):
+				rows.append(card as Control)
+	return rows
+
 ## Scrolls only as far as needed to show the whole card with 24 px around it
 ## (not at all when it already shows), then flashes it.
 func scroll_to_action(action_id: String) -> void:
@@ -165,6 +180,11 @@ func _restore_scroll(scroll: int) -> void:
 
 func _card_height(card: Control) -> float:
 	return card.get_combined_minimum_size().y
+
+## True when the row shows at least partly inside the window (global rects).
+func _shows_in(row: Control, window: Rect2) -> bool:
+	var rect: Rect2 = row.get_global_rect()
+	return rect.end.y > window.position.y and rect.position.y < window.end.y
 
 ## Walks the flow the containers lay out (kit §5.5) and returns the content
 ## height, the fold heights, and each card's top, keyed by action id.
