@@ -4,6 +4,8 @@
 *.tscn.tmp
 *.tmp
 *.exe
+# Exported builds (export_presets.cfg writes here)
+/build/
 .agent/implementation_plan.md
 .worktrees/
 .claude/worktrees/

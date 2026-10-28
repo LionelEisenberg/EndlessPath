@@ -1,0 +1,156 @@
+# Builds EndlessPath and publishes it to itch.io.
+#
+# Publish: Actions → "Publish to itch.io" → Run workflow, on main. It runs the tests, exports the
+# Web and Windows presets in export_presets.cfg, and pushes them to the itch.io channels "web" and
+# "windows". Run on any other branch, or on a pull request that changes this pipeline, it builds
+# and tests the game and publishes nothing; the builds are kept as the run's artifacts.
+#
+# One-time setup, in the repository's Settings → Secrets and variables → Actions:
+#   - secret BUTLER_API_KEY: an itch.io API key (itch.io → Settings → API keys).
+#   - variable ITCH_GAME: the itch.io page as "user/game", e.g. "someone/endless-path".
+
+name: Publish to itch.io
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/publish-itch.yml
+      - export_presets.cfg
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Two publishes queue instead of racing. A pull request's newer push replaces its older run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # The Godot release every job uses: keep it the version the project is edited in.
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  test:
+    name: Tests
+    # The suite runs on Windows, as it does on the development machine, through the same runner.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Godot
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $url = "https://github.com/godotengine/godot-builds/releases/download/${env:GODOT_VERSION}-stable/Godot_v${env:GODOT_VERSION}-stable_win64.exe.zip"
+          Invoke-WebRequest $url -OutFile "$env:RUNNER_TEMP\godot.zip"
+          Expand-Archive "$env:RUNNER_TEMP\godot.zip" -DestinationPath "$env:RUNNER_TEMP\godot"
+          "GODOT=$env:RUNNER_TEMP\godot\Godot_v${env:GODOT_VERSION}-stable_win64_console.exe" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Import the project
+        run: '& $env:GODOT --headless --import'
+
+      - name: Run the tests
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1 -Godot $env:GODOT -Processes 2
+
+  export:
+    name: Export
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Restore Godot and its export templates
+        id: godot-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-${{ env.GODOT_VERSION }}-web-windows
+
+      - name: Download Godot and its export templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o "$RUNNER_TEMP/godot.zip" "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+          # The full template set is over a gigabyte: keep only the web and 64-bit Windows ones.
+          curl -fsSL -o "$RUNNER_TEMP/templates.tpz" "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          templates=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p "$templates"
+          unzip -q -j "$RUNNER_TEMP/templates.tpz" 'templates/version.txt' 'templates/web_nothreads_*' 'templates/windows_*_x86_64*' -d "$templates"
+
+      - name: Import the project
+        run: ~/godot/godot --headless --import
+
+      - name: Export the Web build
+        run: |
+          mkdir -p build/web
+          ~/godot/godot --headless --export-release "Web" build/web/index.html
+          test -s build/web/index.pck
+
+      - name: Export the Windows build
+        run: |
+          mkdir -p build/windows
+          ~/godot/godot --headless --export-release "Windows Desktop" build/windows/EndlessPath.exe
+          test -s build/windows/EndlessPath.exe
+          test -s build/windows/EndlessPath.pck
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: build/windows/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish
+    needs: [test, export]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+      ITCH_GAME: ${{ vars.ITCH_GAME }}
+    steps:
+      - name: Check the itch.io settings
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "::error::Add the secret BUTLER_API_KEY (an itch.io API key) in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          if [ -z "$ITCH_GAME" ]; then
+            echo "::error::Add the variable ITCH_GAME (the itch.io page as user/game) in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: build
+
+      - name: Install butler
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/butler.zip" https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q "$RUNNER_TEMP/butler.zip" -d ~/butler
+          chmod +x ~/butler/butler
+          ~/butler/butler -V
+
+      - name: Push to itch.io
+        run: |
+          version="$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}"
+          for channel in web windows; do
+            ~/butler/butler push "build/$channel" "$ITCH_GAME:$channel" --userversion "$version" --if-changed
+          done
+          user="${ITCH_GAME%%/*}"
+          game="${ITCH_GAME#*/}"
+          echo "Published $version to https://$user.itch.io/$game" >> "$GITHUB_STEP_SUMMARY"
