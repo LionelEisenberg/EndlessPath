@@ -6,7 +6,8 @@ extends HBoxContainer
 ## page at the left (the page shown pressed deep), the count of equipment held
 ## against the bag's capacity, and the discard slot at the right. The count
 ## ends 16 px before the discard slot (the bar's separation). "PAGE" is an even
-## 36 px wide, so the page slots after it stay on the 2 px art grid. The texts
+## 36 px wide and set 48 px in, ending at the mockup's x 536, with the first
+## page slot 20 px after it, so the page slots stay on the 2 px art grid. The texts
 ## share one baseline, 42 px down the bar: "PAGE" and the count are 22 px tall
 ## with their text at the bottom, and a page's number sits 8 px down its slot,
 ## so the digits look centred in it. Emits page_selected on click and

@@ -196,12 +196,19 @@ func test_page_buttons_press_the_shown_page_deep() -> void:
 func test_footer_prints_on_one_baseline_with_its_slots_on_the_grid() -> void:
 	var tab: Control = await _open_tab()
 	var bar: PaginationBar = tab.get_node("%PaginationBar") as PaginationBar
-	assert_eq(_baseline(bar.get_node("PageLabel") as Label), 838.0, "PAGE")
+	assert_eq(_baseline(bar.get_node("%PageLabel") as Label), 838.0, "PAGE")
 	assert_eq(_baseline(bar.get_node("%CountLabel") as Label), 838.0, "the count")
 	for button: Node in bar.page_buttons.get_children():
 		var page_slot: Control = button as Control
 		assert_eq(_baseline(page_slot.get_node("PageNumber") as Label), 838.0, "page %d's number" % (page_slot.get_index() + 1))
 		assert_eq(fmod(page_slot.get_global_rect().position.x, 2.0), 0.0, "page %d's slot sits on the 2 px grid" % (page_slot.get_index() + 1))
+
+func test_footer_prints_page_where_the_mockup_does() -> void:   # Ruling R17: the spec says only "at the left"
+	var tab: Control = await _open_tab()
+	var bar: PaginationBar = tab.get_node("%PaginationBar") as PaginationBar
+	assert_eq((bar.get_node("%PageLabel") as Control).get_global_rect().end.x, 536.0, "PAGE ends at the mockup's x 536")
+	assert_eq((bar.page_buttons.get_child(0) as Control).get_global_rect().position.x, 556.0, "the first page slot 20 px after it")
+	assert_eq((bar.page_buttons.get_child(1) as Control).get_global_rect().position.x, 592.0, "the next at a 36 px pitch")
 
 func test_discard_slot_shows_its_cross_only_when_empty() -> void:
 	var tab: Control = _tab()

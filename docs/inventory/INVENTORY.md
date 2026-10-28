@@ -120,7 +120,7 @@ EquipmentTab (Control, 1400×900, mouse ignored) — equipment_tab.gd: drag/drop
     GridContainer
       Slot1 … Slot48 (InventorySlot)       — persistent pool (SLOT_POOL_SIZE = 48); slots past num_rows × num_columns hidden
   PaginationBar (HBoxContainer)            — pagination_bar.gd
-    PageLabel ("PAGE")
+    PageBox / PageLabel ("PAGE")           — 48 px in, so "PAGE" ends at x 536 and the page slots start at 556
     PageButtons (HBoxContainer)            — one page_button.tscn (TextureButton, 28×28) per unlocked page, built in setup()
     Spacer
     CountLabel                             — "held / capacity", ending 16 px before the TrashSlot
