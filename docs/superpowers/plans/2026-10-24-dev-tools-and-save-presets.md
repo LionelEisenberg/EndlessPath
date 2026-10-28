@@ -12,6 +12,8 @@
 
 **Tech Stack:** Godot 4.7.2, GDScript, GUT 9.7.1.
 
+**As built:** `SaveLock` was built as planned, then removed before the branch merged. Every worktree now has a save folder of its own. The spec's As built section says why.
+
 **Spec:** [docs/superpowers/specs/2026-10-24-dev-tools-and-save-presets-design.md](../specs/2026-10-24-dev-tools-and-save-presets-design.md). Read it first: its Decisions, Save system, Presets, DevManager and Dev panel sections are the requirements, and this plan is how to build them.
 
 ## Global Constraints

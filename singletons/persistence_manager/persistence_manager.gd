@@ -125,9 +125,9 @@ func _notification(what: int) -> void:
 ## save_path the session, backing the main save up when that is the file.
 ## `plays_main_scene` false is a run of another scene (the editor's Run Current
 ## Scene, a scene named on the command line) or of none (a script run): such a run
-## writes no save. A session other than a preset's plays save_path in memory
-## (_play_in_memory()), with no backup, and no run of another scene saves when its
-## window closes.
+## saves nothing by itself. A session other than a preset's plays save_path in
+## memory (_play_in_memory()), with no backup, and no run of another scene saves
+## when its window closes; only the dev panel, in a scene that hosts it, writes.
 func boot(options: LaunchOptions = null, plays_main_scene: bool = true) -> void:
 	var launch: LaunchOptions = options if options != null else LaunchOptions.current()
 	autosave_enabled = not launch.no_autosave

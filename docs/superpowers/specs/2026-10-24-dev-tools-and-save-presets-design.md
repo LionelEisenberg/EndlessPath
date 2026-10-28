@@ -318,6 +318,10 @@ Each stage leaves the game working, updates the docs for what it changes, and ca
 - The final route steps, verified against the content, and the marker for `beat_9`.
 - The teardown details of a restart, as long as boot equivalence holds.
 
+## As built
+
+- **The save lock was built as Stage 1 specified, then removed before the branch merged.** The worktree hook (`.claude/hooks/godot_project_list.ps1`) now gives every worktree but the main checkout a `user://` folder of its own, through an `override.cfg` that Godot reads in every run but the editor's. So no worktree's build, on any branch, plays the user's real save. The lock was then guarding only two windows of one checkout, and most of the branch's late bugs were in it. Two windows of one checkout now both write their save, and the backup each launch takes covers that ([PERSISTENCE.md](../../infrastructure/PERSISTENCE.md)).
+
 ## Later
 
 - **Gameplay checks**, next: bot playthroughs against the pacing targets, the signposting check, an AI playtester. This design gives them `--preset` with a private `--save`, the `DevManager` API and play stats.

@@ -159,7 +159,7 @@ func test_unreadable_save_blocks_later_saves() -> void:
 	_boot(manager)
 	_expect_load_errors()
 	assert_true(manager.is_save_blocked())
-	assert_ne(manager.save_data(), OK, "the SaveTimer's save_data() must refuse to write")
+	assert_ne(manager.save_data(), OK, "save_data() must refuse to write while saving is blocked")
 	assert_eq(_read(path), UNREADABLE_SAVE_TEXT, "the file is still the original after a save attempt")
 
 func test_unreadable_save_is_copied_aside() -> void:
@@ -540,8 +540,9 @@ func test_close_request_autosaves() -> void:
 # A RUN OF ANOTHER SCENE
 #-----------------------------------------------------------------------------
 # _ready() tells boot() whether the run plays the main scene. Only such a run
-# writes a save: a run of another scene (the editor's Run Current Scene, a scene
-# named on the command line) or of none (a script run) reads its save into memory.
+# saves by itself: a run of another scene (the editor's Run Current Scene, a scene
+# named on the command line) or of none (a script run) reads its save into memory,
+# and only the dev panel, in a scene that hosts it, writes there.
 
 ## The main save is the file here, which a plain launch would back up.
 func test_a_run_of_another_scene_reads_the_save_into_memory() -> void:

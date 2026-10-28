@@ -130,9 +130,10 @@ static func is_main_scene(scene: Node) -> bool:
 ## True when this run plays the main scene, as every launch of the game does:
 ## PersistenceManager asks it at boot, with the current scene (the engine makes the
 ## run's scene the current scene before the autoloads' _ready()), and only such a
-## run writes a save. It answers false only on positive evidence: a current `scene`
-## that is not the main scene, when the main scene's path (`main_path`) is known, or
-## a script run, with -s or --script in `engine_args`, which starts no scene.
+## run saves by itself, at its SaveTimer's tick and its close. It answers false only
+## on positive evidence: a current `scene` that is not the main scene, when the main
+## scene's path (`main_path`) is known, or a script run, with -s or --script in
+## `engine_args`, which starts no scene.
 ## Anything else counts as the main scene: no current scene in a run that is no
 ## script run, or a main scene whose uid does not resolve (`main_path` ""). The two
 ## mistakes are not equal: a launch of the game counted as another scene would play
