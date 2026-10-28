@@ -101,7 +101,8 @@ The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](i
 | `LabelBookSeal` | Label | Eul+1 13px seal text `#F0E8D8`, pitch 18, `normal` = `seal.tres` | The word on a seal (`DONE`). Give the Label the seal's 66x26 size and centre the text |
 | `LabelBookFilter` | Label | Eul+1 13px muted ink `#765A43`, pitch 18, `normal` = an empty style with 10/5/10/5 content margins | A filter word that is not in use |
 | `LabelBookFilterOn` | Label | Eul+1 13px dark ink `#33261A`, pitch 18, `normal` = `pressed_lozenge.tres` | The filter word in use. Its margins match `LabelBookFilter`'s, so swapping the two moves nothing |
-| `RichTextBookDetail` | RichTextLabel | BM Euljiro 15px muted ink `#765A43` (`default_color`), `line_separation` 3, pitch 20 | Detail lines with BBCode: a consumable's effect, a bonus's value |
+| `RichTextBookDetail` | RichTextLabel | BM Euljiro 15px muted ink `#765A43` (`default_color`), `line_separation` 3, pitch 20 | Detail lines with BBCode: what a consumable does, under its name in the list |
+| `RichTextBookValue` | RichTextLabel | BM Euljiro 18px dark ink `#33261A` (`default_color`), `line_separation` 5, pitch 26 | The value in a row of a details panel's table, with BBCode: `+20 Madra` in Madra ink, `10 s` |
 | `PanelPressed` | PanelContainer | `pressed_panel.tres`: the pressed panel, 16px content margins | The details panels |
 | `PanelBookBare` | PanelContainer | An empty style: draws nothing | A `PanelContainer` that must show no panel (the base type draws `panel_tan.tres`) |
 | `PanelPrinterMarks` | Panel | `printer_marks.tres`: four vermilion corner marks, no fill | The printer's marks around the item the player picked, laid over it |
@@ -117,7 +118,7 @@ The rows from `LabelBookPageTitle` down are the "pressed paper" pieces for the I
 
 - **One muted ink.** Every new muted variant is `#765A43`: 5.17:1 on the paper and 4.72:1 on a panel's floor (`#EFDCBB`). `LabelBookMuted` keeps `#7D5F47` for the other books, which is 4.34:1 on a panel.
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for titles and names, BM Euljiro for everything else. "Eul+1" is one `FontVariation` of BM Euljiro with 1px letter spacing (`spacing_glyph = 1`), shared by `LabelBookCaps`, `LabelBookSeal`, `LabelBookFilter` and `LabelBookFilterOn`.
-- **Line pitch.** `line_spacing` is the pitch minus the font's height at that size, so wrapped lines step by the pitch, as in the lacquer theme. Heights: Yatra One 46 / 38 / 30 / 26 is 69 / 57 / 45 / 39px (spacing -17 / -13 / -11 / -9); BM Euljiro 20 / 18 / 16 / 15 / 13 is 23 / 21 / 19 / 17 / 16px (spacing +1 / +5 / +3 / +3 / +2). `RichTextBookDetail` gets its 20px pitch from `line_separation` 3.
+- **Line pitch.** `line_spacing` is the pitch minus the font's height at that size, so wrapped lines step by the pitch, as in the lacquer theme. Heights: Yatra One 46 / 38 / 30 / 26 is 69 / 57 / 45 / 39px (spacing -17 / -13 / -11 / -9); BM Euljiro 20 / 18 / 16 / 15 / 13 is 23 / 21 / 19 / 17 / 16px (spacing +1 / +5 / +3 / +3 / +2). `RichTextBookDetail` and `RichTextBookValue` get their 20 and 26px pitches from `line_separation` 3 and 5, which a RichTextLabel adds under every line, the last one too.
 - **One line is only the font's height.** A single-line Label is as tall as its font (16px at 13px), not its pitch, so a style's content margins make up the rest. They are sized so a `LabelBookTag` is 20px tall (16 + 2 + 2, the paper tag's art) and a `LabelBookFilter` or `LabelBookFilterOn` 26px (16 + 5 + 5, the lozenge's art), with the text centred and no `custom_minimum_size.y` needed. Size the margins of any new styled Label from the font's height, not from the pitch. `LabelBookFilter` and `LabelBookFilterOn` are the same size, so selecting a word moves nothing.
 
 Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, colour, base type, cleared shadow and line pitch, the letter-spaced font, the styleboxes, the rule's height, the one-line heights of tags and filter words and the text contrast.
@@ -143,8 +144,10 @@ The theme's other two new styleboxes are `StyleBoxEmpty` sub-resources inside `b
 
 ## RichTextLabel variants
 
-RichTextLabels **cannot** use Label-based variants (different base type). Only one RTL variant exists:
+RichTextLabels **cannot** use Label-based variants (different base type). `pixel_theme.tres` has one RTL variant:
 - `RichTextLabelDark` — dark brown default color `#2A1A12` for light backgrounds (`ItemDescriptionPanel`, `ItemDetailCard`, `QuestJournalCard`)
+
+`book_theme.tres` has two more for the pressed pages, `RichTextBookDetail` and `RichTextBookValue` (see [Menu book pages](#menu-book-pages)).
 
 For RTLs that need a custom size, set `theme_override_font_sizes/normal_font_size` directly. Match one of the Label variant sizes for visual consistency (e.g. use 22 if body text elsewhere uses `LabelBody`).
 

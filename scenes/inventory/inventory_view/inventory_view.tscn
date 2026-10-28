@@ -144,9 +144,8 @@ visible = false
 layout_mode = 1
 offset_left = -700.0
 offset_top = -450.0
-offset_right = -660.0
-offset_bottom = -410.0
-scale = Vector2(2, 2)
+offset_right = 700.0
+offset_bottom = 450.0
 mouse_filter = 2
 
 [node name="MaterialsTab" parent="PageLayer" unique_id=47492188 instance=ExtResource("8_asm34")]

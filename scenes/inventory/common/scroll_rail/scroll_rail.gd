@@ -2,10 +2,11 @@ class_name ScrollRail
 extends Control
 
 ## ScrollRail
-## Visual rail bound to a host ScrollContainer's vertical scrollbar. Moves the
-## grabber as the host scrolls (mirrors the equipment grid's scroll behaviour)
-## and hides the whole rail when there is nothing to scroll (content fits), so
-## it never floats over a near-empty grid.
+## Visual rail bound to a host ScrollContainer's vertical scrollbar: a pressed
+## groove, 10 px wide, at the host's full height, with a 4 px ink thumb lying
+## in the groove's floor. Moves the thumb as the host scrolls and hides the
+## whole rail when there is nothing to scroll (content fits), so it never
+## floats beside a short list.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -18,7 +19,7 @@ const SCROLL_MAX_Y: float = 0.90
 # COMPONENTS
 #-----------------------------------------------------------------------------
 
-@onready var grabber: TextureRect = %Grabber
+@onready var grabber: NinePatchRect = %Grabber
 
 #-----------------------------------------------------------------------------
 # STATE

@@ -139,12 +139,13 @@ func test_variants_have_their_base_types() -> void:
 	for row: Array in _variants:
 		assert_eq(BOOK_THEME.get_type_variation_base(row[0]), &"Label", str(row[0]))
 	assert_eq(BOOK_THEME.get_type_variation_base(&"RichTextBookDetail"), &"RichTextLabel")
+	assert_eq(BOOK_THEME.get_type_variation_base(&"RichTextBookValue"), &"RichTextLabel")
 	assert_eq(BOOK_THEME.get_type_variation_base(&"PanelPressed"), &"PanelContainer")
 	assert_eq(BOOK_THEME.get_type_variation_base(&"PanelBookBare"), &"PanelContainer")
 	assert_eq(BOOK_THEME.get_type_variation_base(&"PanelPrinterMarks"), &"Panel")
 	assert_eq(BOOK_THEME.get_type_variation_base(&"HSeparatorPressed"), &"HSeparator")
 
-## The one RichTextLabel variant: Euljiro 15, muted ink, a 20 px line pitch.
+## The detail RichTextLabel variant: Euljiro 15, muted ink, a 20 px line pitch.
 func test_rich_text_detail_variant() -> void:
 	var font: Font = BOOK_THEME.get_font(&"normal_font", &"RichTextBookDetail")
 	assert_eq(font.resource_path, EULJIRO)
@@ -152,6 +153,16 @@ func test_rich_text_detail_variant() -> void:
 	assert_eq(BOOK_THEME.get_color(&"default_color", &"RichTextBookDetail").to_html(false), "765a43")
 	var pitch: int = roundi(font.get_height(15)) + BOOK_THEME.get_constant(&"line_separation", &"RichTextBookDetail")
 	assert_eq(pitch, 20, "line pitch")
+
+## The value RichTextLabel variant, for a table row's value: Euljiro 18 in
+## dark ink, as the spec prints a row's value, with a 26 px line pitch.
+func test_rich_text_value_variant() -> void:
+	var font: Font = BOOK_THEME.get_font(&"normal_font", &"RichTextBookValue")
+	assert_eq(font.resource_path, EULJIRO)
+	assert_eq(BOOK_THEME.get_font_size(&"normal_font_size", &"RichTextBookValue"), 18)
+	assert_eq(BOOK_THEME.get_color(&"default_color", &"RichTextBookValue").to_html(false), "33261a")
+	var pitch: int = roundi(font.get_height(18)) + BOOK_THEME.get_constant(&"line_separation", &"RichTextBookValue")
+	assert_eq(pitch, 26, "line pitch")
 
 ## pixel_theme's base Label draws a 1 px ink shadow: a variant that does not set
 ## its own transparent one would print it onto the paper.

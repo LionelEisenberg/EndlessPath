@@ -1,22 +1,37 @@
 class_name ConsumableRow
-extends Control
+extends VBoxContainer
 
 ## ConsumableRow
-## One full-width row in the Consumables list: icon + name + stack count.
-## Drag a row onto a combat hotbar slot to equip; left-click selects it for the
-## detail panel (the row emits `clicked` on left-release when not dragging).
+## One row of the Consumables list, pressed into the page: the item in a deep
+## slot, its name with what it does under it, how many the player has at the
+## right, and a pressed rule under the row (4 px under the slot). The name and
+## what it does wrap, and the row grows with them. A row whose rule is hidden,
+## the last, takes no room for it. Printer's marks sit round the row while the
+## details show it.
+##
+## Drag a row onto a combat hotbar slot to equip it. The row emits hovered
+## when the pointer enters it, and clicked on a left release that does not end
+## a drag.
 
 signal clicked(row: ConsumableRow, event: InputEvent)
+## Emitted when the pointer enters the row.
+signal hovered(row: ConsumableRow)
+
+const _DRAG_PREVIEW_SCENE: PackedScene = preload("res://scenes/inventory/pressed/item_drag_preview/item_drag_preview.tscn")
 
 @onready var _icon: TextureRect = %Icon
 @onready var _name: Label = %Name
+@onready var _effect: RichTextLabel = %Effect
 @onready var _count: Label = %Count
+@onready var _marks: Panel = %Marks
+@onready var _rule: HSeparator = %Rule
 
 var _def: ConsumableDefinitionData = null
 var _qty: int = 0
 
 func _ready() -> void:
 	gui_input.connect(_on_gui_input)
+	mouse_entered.connect(_on_mouse_entered)
 	_refresh()
 
 ## Populate the row with a consumable definition + stack count.
@@ -30,50 +45,53 @@ func setup(def: ConsumableDefinitionData, qty: int) -> void:
 func get_definition() -> ConsumableDefinitionData:
 	return _def
 
+## Shows or hides the printer's marks round the row.
+func set_marked(marked: bool) -> void:
+	_marks.visible = marked
+
+## True while the printer's marks sit round the row.
+func is_marked() -> bool:
+	return _marks.visible
+
+## Shows or hides the pressed rule under the row. Hidden, the rule takes no
+## room, so the row ends at its slot.
+func set_rule_visible(rule_visible: bool) -> void:
+	_rule.visible = rule_visible
+
 #-----------------------------------------------------------------------------
 # DRAG AND DROP
 #-----------------------------------------------------------------------------
 
 ## Drag the consumable onto a combat hotbar slot to equip it (native Godot
-## drag-and-drop, mirroring the abilities loadout). Empty rows aren't draggable.
+## drag-and-drop, mirroring the abilities loadout). The row stays as it is
+## while its icon follows the cursor. Empty rows aren't draggable.
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if _def == null:
 		return null
-	var preview: TextureRect = TextureRect.new()
-	preview.texture = _def.icon
-	preview.custom_minimum_size = Vector2(36, 36)
-	preview.size = Vector2(36, 36)
-	preview.position = Vector2(-18, -18)
-	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var holder: Control = Control.new()
-	holder.add_child(preview)
-	set_drag_preview(holder)
-	# Grey out the source row while it is being dragged (the icon preview above
-	# follows the cursor for the "picked up" feedback).
-	modulate = Color(0.5, 0.5, 0.5, 0.5)
+	var preview: ItemDragPreview = _DRAG_PREVIEW_SCENE.instantiate() as ItemDragPreview
+	preview.set_icon(_def.icon)
+	set_drag_preview(preview)
 	return {"consumable": _def}
 
-## Restore the row's appearance when the drag ends (dropped or cancelled).
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_DRAG_END:
-		modulate = Color.WHITE
-
-## Left-click on release (when not finishing a drag) selects the row for the
-## detail panel. Click on release keeps the press free for drag detection.
+## Left-click on release (when not finishing a drag) emits clicked. Click on
+## release keeps the press free for drag detection.
 func _on_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if get_viewport().gui_is_dragging():
 			return
 		clicked.emit(self, event)
 
+func _on_mouse_entered() -> void:
+	hovered.emit(self)
+
 func _refresh() -> void:
 	if _def == null:
 		_icon.texture = null
 		_name.text = ""
+		_effect.text = ""
 		_count.text = ""
 		return
 	_icon.texture = _def.icon
 	_name.text = _def.item_name
-	_count.text = "x%d" % _qty if _qty > 1 else ""
+	_effect.text = BookText.effect_line(_def)
+	_count.text = BookText.count(_qty)

@@ -53,14 +53,22 @@ Related docs:
    Each slot's name is printed under it, and an empty gear slot is a shallow slot. The details panel sits under the figure: the item in a deep slot beside its name and slot, its bonuses two to a row, its description, and a hint at the foot (`Right-click to wear it`, or `Right-click to take it off` for a worn piece). The panel has a fixed height laid out for the longest item, the Dreadbeast Tooth Necklace; shorter items flow up from the same gaps. The hint is the first thing to give way: it hides when an item's text would end lower than the necklace's.
 
    On opening, the details show the first item on the grid page, else the first worn piece (Head, Main hand, Accessory 1, Body, Off hand, Accessory 2); with neither, they hide. While the bag changes (foraging, a purchase), they and the marks stay on the item the player picked. When that item is discarded, they move to the first item.
-5. **Consumables tab.**
-   - **Left page:** a list of owned stacks showing the icon, the name, and `xN` when N > 1. Click a row to show it in the description box.
-   - **Right page:** "Combat Hotbar", four slots with key chips `1`–`4`.
-     - Drag a row onto a slot to equip it. A consumable can sit in only one slot.
+5. **Consumables tab.** Pressed into the paper like the Equipment tab.
+   - **Left page:** the title "Consumables", then the stacks in inventory order, one row every 80 px. Each row shows the item in a deep slot, its name, and what it does in muted ink under the name (`+20 Madra · 10 s cooldown`, the Madra amount in Madra ink). How many you have (`×7`) sits at the right. A pressed rule runs under every row but the last.
+     - Seven rows fit. With more, the list scrolls, and a pressed groove with an ink thumb appears beside it.
+     - A long name wraps and its row grows.
+     - With no consumables, the page prints "No consumables yet." and the details hide.
+   - **Right page:** the title "Hotbar", four slots with their keys `1`–`4` printed under them, a printed hint, then the details panel. A filled slot is pressed deep and shows its stack count on a paper tag; an empty one is shallow.
+     - Drag a row onto a slot to equip it. A consumable can sit in only one slot. The dragged item's icon follows the cursor at full size, and printer's marks sit round the slot under it.
      - Drag between slots to move or swap.
      - Click an equipped slot to clear it.
-     - Slots show the live stack count `xN`.
-   - **Current limits:** on a real save the list is empty, because no consumable has an in-game source yet. Nothing on `main` reads the hotbar.
+   - **Details:** hovering or clicking a row, or hovering a filled hotbar slot, shows that consumable in the details and puts printer's marks round what you pointed at.
+     - The panel shows the item in a deep slot, its name, and `CONSUMABLE` (`CONSUMABLE · IN SLOT n` while it is on the hotbar).
+     - Under them, a table of what it does (`RESTORES` → `+20 Madra`, `COOLDOWN` → `10 s`), then the description and the hint `Drag it onto the hotbar`.
+     - It grows downward with long text.
+
+     On opening, the details show the first stack. While the stacks change (a purchase), they and the marks stay on the consumable you picked; when it is used up, they move to the first stack. When the hotbar slot you pointed at loses its consumable, the marks move to its row.
+   - **Current limits:** the Merchant's Crude Scale is the only consumable a player can get, and nothing on `main` reads the hotbar.
 6. **Materials tab.**
    - **Left page:** a 6-column grid of stacks (`xN` when N > 1). "N kinds collected" and a trash slot sit above it. The sort pill shows a disabled `All`.
    - **Right page:** clicking a material fills the detail card: name, `[Material]`, description, a "Source Zones" line, then the Source, Used in and Worth rows (`—` when `base_value` is 0). A static tip card sits underneath.
@@ -124,18 +132,36 @@ EquipmentTab (Control, 1400×900, mouse ignored) — equipment_tab.gd: drag/drop
 
 Every `InventorySlot`, `GearSlot` and `TrashSlot` holds a hidden `Marks` panel (`PanelPrinterMarks`), 6 px outside the slot.
 
-### Consumables, Materials, Journal
+### Consumables tab
 
 ```
-ConsumablesTab (Control)                   — consumables_tab.gd
-  ConsumablesBanner (TabBanner)            — title "Consumables", title_font_size 38
-  ConsumablesSortSubBanner                 — "All", disabled
-  ConsumablesInventoryList (InventoryList) — ConsumableRow per stack (consumable_row.gd);
-                                             PreviewRow1-3 are editor placeholders cleared at runtime
-  ConsumablesHotbar (VBoxContainer)        — consumables_hotbar.gd ("Combat Hotbar" + lede)
-    SlotsRow: HotbarSlot ×4 (slot_index 0-3) — hotbar_slot.gd (extends DropTargetSlot)
-  ConsumablesItemDescriptionBox            — item_description_box.gd + ItemDescriptionPanel
+ConsumablesTab (Control, 1400×900, mouse ignored) — consumables_tab.gd: the list, the hotbar's routing,
+                                           the shown consumable and the marks
+  LeftTitle (PageTitle)                    — "Consumables"
+  ListFrame (Control, clips)               — the list's rect grown 8 px left, up and down, so the rows' marks show whole
+    ConsumablesInventoryList (InventoryList) — rows 428 wide, the rail 12 px after them; on this instance the
+                                             ScrollContainer doesn't clip (ListFrame does) and the rows sit 0 px apart
+      ConsumableRow per stack              — consumable_row.tscn/.gd (VBoxContainer):
+                                             Body (≥ 428×72: Well/Icon, Name over Effect, Count; Marks), then Rule 4 px under it
+  EmptyLabel                               — "No consumables yet."
+  RightTitle (PageTitle)                   — "Hotbar"
+  ConsumablesHotbar (VBoxContainer)        — consumables_hotbar.gd
+    SlotsRow: HotbarSlot ×4 (slot_index 0-3) — hotbar_slot.gd (extends DropTargetSlot): Well (deep or shallow slot),
+                                             Icon, Count (paper tag), Marks
+    KeysRow: Key1–Key4                     — "1"–"4", printed under the slots
+  HintLine1, HintLine2                     — the printed hint
+  HintRule (HSeparatorPressed)
+  ConsumableDetails (PanelContainer, PanelPressed, grows downward) — consumable_details.gd
+    Flow
+      Header: IconWell (deep slot, Icon), NameColumn (NameInset 10 px, NameLabel, KindLabel)
+      EffectsBlock / Effects               — one TableRow per effect, then the cooldown
+      DescriptionBlock / Description
+      HintBlock / HintLine / Hint          — the hint's line runs 3 px into the panel's bottom padding
+```
 
+### Materials, Journal
+
+```
 MaterialsTab (Control)                     — materials_tab.gd
   MaterialsTabBanner (TextureRect)         — baked materials_tab/banner.png (not a TabBanner)
   MaterialsSortSubBanner                   — "All", disabled
@@ -159,17 +185,19 @@ QuestItemsTab (Control)                    — quest_items_tab.gd
 | `InventoryScrollHost` (base: `add_slot` / `clear_slots` / `get_slots`, binds ScrollRail) | `scenes/inventory/common/inventory_scroll_host.gd` |
 | `InventoryGrid` (GridContainer content, `columns` export, default 6) | `scenes/inventory/common/inventory_grid/` |
 | `InventoryList` (VBoxContainer content) | `scenes/inventory/common/inventory_list/` |
-| `ScrollRail` (custom grabber; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` |
+| `ScrollRail` (a pressed groove at the host's height with a 4 px ink thumb; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` |
 | `SortSubBanner` (arrows + dots, `option_changed(index)`, `enabled`) | `scenes/inventory/common/sort_sub_banner/` |
 | `GridToolbar` (count label + TrashSlot) | `scenes/inventory/common/grid_toolbar/` |
 | `TabBanner` (`@tool`; `title`, `title_font_size` exports) | `scenes/inventory/common/tab_banner/` |
 | `ItemDetailCard` | `scenes/inventory/common/item_detail_card/` |
 | `ItemDescriptionPanel` | `scenes/common/item_description_panel/` |
 | `ItemDisplaySlot` (read-only icon + hover tooltip) | `scenes/common/item_display_slot/` |
-| `DropTargetSlot` (native drag-and-drop target, hover tint) | `scenes/common/drop_target_slot.gd` |
+| `DropTargetSlot` (native drag-and-drop target; `_set_drop_hover()` shows the drop highlight, a tint unless a slot overrides it) | `scenes/common/drop_target_slot.gd` |
 | `ItemInstance` (icon visual for an `ItemInstanceData`) | `scenes/inventory/item_instance/` |
 | `InventorySlot` → `GearSlot`, `TrashSlot` (72 px pressed slot: `DEEP_TEXTURE` / `SHALLOW_TEXTURE`, `set_marked()`, `set_filtered_out()`) | `scenes/inventory/inventory_view/equipment_tab/` |
 | `PageTitle` (`@tool`; a pressed page's title with its ornament, `title` export) | `scenes/inventory/pressed/page_title/` |
+| `TableRow` (a row of a details panel's table: a caption in capitals, a BBCode value, a pressed rule; `setup()`, `set_rule_visible()`) | `scenes/inventory/pressed/table_row/` |
+| `ItemDragPreview` (the item's 64 px icon centred on the cursor during a native drag; `set_icon()`) | `scenes/inventory/pressed/item_drag_preview/` |
 
 ## Data Model
 
@@ -359,10 +387,19 @@ The Materials tab has a trash slot, but nothing is wired to it. The Consumables 
 
 The hotbar uses Godot's built-in drag-and-drop:
 
-1. **Drag source.** `ConsumableRow._get_drag_data()` returns `{"consumable": def}`. `HotbarSlot._get_drag_data()` returns `{"consumable": def, "from_slot": i}`.
-2. **Drop.** `HotbarSlot` (a `DropTargetSlot`) accepts any dictionary with a `consumable` key and emits `consumable_dropped(def, slot_index, from_slot)`. `ConsumablesHotbar` re-emits the signal.
+1. **Drag source.** `ConsumableRow._get_drag_data()` returns `{"consumable": def}`. `HotbarSlot._get_drag_data()` returns `{"consumable": def, "from_slot": i}`. Both set an `ItemDragPreview` as the drag preview: the item's 64 px icon, centred on the cursor. The row itself stays as it is.
+2. **Drop.** `HotbarSlot` (a `DropTargetSlot`) accepts any dictionary with a `consumable` key and emits `consumable_dropped(def, slot_index, from_slot)`. `ConsumablesHotbar` re-emits the signal. While a payload it accepts hovers it, the slot shows its printer's marks: it overrides `DropTargetSlot._set_drop_hover()`, whose default tints the slot (the Abilities loadout keeps that tint), and never touches `modulate`.
 3. **Routing.** `ConsumablesTab` calls `swap_consumable_slots()` when `from_slot >= 0`, otherwise `equip_consumable()`.
 4. **Unequip.** Releasing the left button on an equipped slot without dragging calls `unequip_consumable()`.
+
+### Consumables details and marks
+
+- `ConsumableDetails.show_consumable(def, hotbar_slot)` prints a consumable and shows the panel (`hotbar_slot` is -1 when it is not on the hotbar); `clear()` hides it; `get_consumable()` returns the consumable shown. Showing the consumable already shown only reprints its caption, `CONSUMABLE · IN SLOT n`.
+- Its table holds one `TableRow` per effect, captioned by `BookText.effect_label()`, with the effect's `describe()` as the value: its decimal point set by `LacquerText.decimal_bbcode()`, then its Madra amounts in Madra ink by `BookText.color_madra()`. A `COOLDOWN` row with `BookText.seconds()` follows when the cooldown is above 0. A row's caption and value share a baseline, its pressed rule 8 px under it, clear of descenders.
+- The panel is laid out to the mockup's Crude Scale, which fills the spec's (1008, 512) to (1476, 824), and grows downward with longer text.
+- `ConsumableRow.set_marked()` and `HotbarSlot.set_marked()` show a row's or a slot's printer's marks. The tab marks what the player pointed at: a row, or a filled hotbar slot. A hotbar slot's marks also show while a dragged consumable hovers it, and a drag passing over the slot the details show leaves its marks in place.
+- `ConsumablesTab.open_page()` rebuilds the list, then shows the first stack, or hides the details when the pack is empty. `InventoryView` calls it on opening the book and on every page turn.
+- After every `inventory_changed` the tab rebuilds the list when the stacks changed, then follows the consumable shown. It reprints its hotbar slot, and keeps the marks on the hotbar slot pointed at while that slot still holds it, otherwise on its row. When the consumable has left the pack, the tab shows the first stack.
 
 ### Refresh on `inventory_changed`
 
@@ -372,7 +409,7 @@ The hotbar uses Godot's built-in drag-and-drop:
 | `EquipmentTab` | `PaginationBar.setup()` rebuilds the page buttons and `set_count()` prints the count. The details and marks follow the item shown (see [Equipment details and marks](#equipment-details-and-marks)) |
 | `GearSelector` | Re-binds the six gear slots |
 | `ConsumablesHotbar` | Re-binds the four slots |
-| `ConsumablesTab` | Rebuilds the list only when `consumables.hash()` changed. The detail box resets to the first stack |
+| `ConsumablesTab` | Rebuilds the list only when `consumables.hash()` changed. The details and marks follow the consumable shown (see [Consumables details and marks](#consumables-details-and-marks)) |
 | `MaterialsTab` | Full rebuild every time. The detail card resets to the first material |
 | `QuestItemsTab` | Full rebuild. Keeps the selection if the item is still owned |
 
@@ -484,11 +521,11 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/inventory_view/equipment_tab/inventory_slot/inventory_slot.gd` | Base slot: pressed textures, marks, filtered state |
 | `scenes/inventory/inventory_view/equipment_tab/trash_slot/trash_slot.gd` | Hold-buffer |
 | `assets/shaders/paper_fade.gdshader`, `paper_fade_material.tres` | The filter's opaque fade into the paper |
-| `scenes/inventory/inventory_view/consumables_tab/` | `consumables_tab.gd`, `consumable_row.gd`, `consumables_hotbar/consumables_hotbar.gd`, `hotbar_slot/hotbar_slot.gd` |
+| `scenes/inventory/inventory_view/consumables_tab/` | `consumables_tab.gd`, `consumable_row.gd`, `consumable_details/consumable_details.gd`, `consumables_hotbar/consumables_hotbar.gd`, `hotbar_slot/hotbar_slot.gd` |
 | `scenes/inventory/inventory_view/materials_tab/` | `materials_tab.gd`, `material_slot.gd`, `material_detail_card.gd` |
 | `scenes/inventory/inventory_view/quest_items_tab/` | `quest_items_tab.gd`, `journal_row.gd`, `quest_journal_card.gd` |
-| `scenes/inventory/inventory_view/item_description_box.gd` | Wrapper around ItemDescriptionPanel |
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
+| `scenes/inventory/pressed/` | The pressed pages' shared pieces: `PageTitle`, `TableRow`, `ItemDragPreview` |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
 
 Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
@@ -497,9 +534,9 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 ### Bugs
 
-- `[MEDIUM]` **The Materials detail card snaps back to the first material** whenever the inventory changes. `MaterialsTab` re-creates every slot and calls `setup_from_definition(first_def)` on every `inventory_changed`, including each foraging roll (every 5 s) and every equipment move. `ConsumablesTab` resets its selection the same way whenever stacks change.
+- `[MEDIUM]` **The Materials detail card snaps back to the first material** whenever the inventory changes. `MaterialsTab` re-creates every slot and calls `setup_from_definition(first_def)` on every `inventory_changed`, including each foraging roll (every 5 s) and every equipment move.
 - `[LOW]` **Equipment overflow is silently dropped.** With every slot full, `award_items()` only logs a warning, and `item_awarded` has already fired, so the adventure end card lists an item the player never received.
-- `[LOW]` **`use_consumable()` leaves an empty stack on the hotbar.** It erases the stack at zero but leaves the definition in `equipped_consumables`, so the hotbar would show `x0`. This is latent on `main` because nothing calls `use_consumable()`.
+- `[LOW]` **`use_consumable()` leaves an empty stack on the hotbar.** It erases the stack at zero but leaves the definition in `equipped_consumables`, so the hotbar would show `×0`. This is latent on `main` because nothing calls `use_consumable()`.
 - `[LOW]` **An item in the trash is already erased from `InventoryData`.** The SaveTimer autosave (every 5 s) persists that state, so quitting with the inventory open and an item in the trash loses the item.
 
 ### Missing Functionality
@@ -511,7 +548,7 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 - `[LOW]` **`grant_equipment_page()` has no caller**, so every player stays at 2 pages (72 slots). The trigger was deferred by the pagination spec.
 - `[LOW]` **`stack_size` is never enforced.**
 - `[LOW]` **The Journal's "Linked quest" row and wax-seal state are still deferred.** `quest_item_definition_data.gd` and `journal_row.gd` defer them "until a QuestManager exists", and QuestManager is now an autoload. The seal is always the red "active" dot.
-- `[LOW]` **Materials and Consumables have no category data**, so their sort banners stay a single disabled "All".
+- `[LOW]` **Materials have no category data**, so the Materials sort banner stays a single disabled "All".
 - `[LOW]` **`UnlockManager` never re-evaluates on `inventory_changed`.** An `ITEM_OWNED` condition in `unlock_condition_list.tres` would latch only when some other signal fires. The one current use, the refugee camp, is evaluated directly and is unaffected.
 
 ### Content
@@ -527,7 +564,7 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 ### UI
 
 - `[MEDIUM]` **MaterialTipCard advertises a favorites feature that doesn't exist:** "Right-click a material to mark it as a favorite — favorites rise to the top of the grid…".
-- `[LOW]` **The hotbar's helper text** says "Hotkeys 1-4", but `main` has no consumable input actions.
+- `[LOW]` **The hotbar prints keys `1`–`4` under its slots**, but `main` has no consumable input actions.
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
 - `[LOW]` **Banners are inconsistent.** The Materials banner is a baked image rather than a `TabBanner`. The Journal reuses the red ribbon; the redesign's gold banner never landed.
 - `[LOW]` **Tab-button icons shrink** from 0.95 to 0.75 scale in `TabButtonAnimation`. This was reported as janky before the June icon swap (c33064c, c4d3b4e) and hasn't been re-checked (unverified).
@@ -536,8 +573,8 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 - `[MEDIUM]` **`EquipmentTab` mutates `InventoryData` directly** when it erases a trashed item, and emits `InventoryManager.inventory_changed` itself. Move this into an InventoryManager verb.
 - `[MEDIUM]` **Test gaps.** There are no tests for `LootTable`, `AwardLootTableEffectData`, `AwardItemEffectData`, right-click quick-equip (only its trash-slot guard is tested), `GearSelector`, `MaterialsTab` or the generator script.
-- `[LOW]` **Three item-detail widgets exist.** `EquipmentDetails` serves the Equipment tab, `ItemDescriptionPanel` serves Consumables and the end-card tooltip, and `ItemDetailCard` serves only Materials. The last two duplicate their setup logic, and `ItemDetailCard`'s doc comment wrongly says Consumables and the Journal use it.
-- `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop. The drag-preview code is duplicated in `ConsumableRow` and `HotbarSlot`.
+- `[LOW]` **Four item-detail widgets exist.** `EquipmentDetails` and `ConsumableDetails` serve their tabs, `ItemDescriptionPanel` serves the end-card tooltip, and `ItemDetailCard` serves only Materials. The last two duplicate their setup logic, and `ItemDetailCard`'s doc comment wrongly says Consumables and the Journal use it.
+- `[LOW]` **Two drag systems coexist.** Equipment uses a manual one (`_input` plus hit-testing); consumables use Godot's built-in drag-and-drop.
 - `[LOW]` **Dead code:** `QuestJournalCard`'s `%Sub` label, which is always empty.
 - `[LOW]` **UI nodes built in code.** `SortSubBanner` creates its dot `TextureRect`s in code and frees the four authored `Dot0-3` nodes.
 - `[LOW]` **Coding-standard gaps:**
