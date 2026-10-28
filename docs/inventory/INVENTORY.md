@@ -136,8 +136,8 @@ EquipmentTab (Control, 1400×900, mouse ignored) — equipment_tab.gd: drag/drop
     Content (Control)
       Flow (VBoxContainer)                 — from the content's top
         Header: IconWell (deep slot, Icon), NameColumn (NameInset 2 px, NameLabel, SlotLabel 17 px)
-        BonusesBlock (16 px over) / Bonuses — one BonusRow (bonus_row.tscn/.gd) per two bonuses, 8 px apart
-        DescriptionBlock (21 px over) / Description
+        BonusesBlock (16 px over) / Bonuses — one BonusRow (bonus_row.tscn/.gd) per two bonuses, 6 px apart
+        DescriptionBlock (19 px over) / Description
       Hint                                 — pinned to the panel's foot, baseline 866 on screen
 ```
 
@@ -394,8 +394,8 @@ Right-click quick-equip ignores the trash slot: a held item is rescued only by d
 ### Equipment details and marks
 
 - `EquipmentDetails.show_item(data, worn)` prints an item and shows the panel; `clear()` hides it; `get_item()` returns the item shown. Bonuses come from `BookText.bonus_pairs()`, two to a `BonusRow` (`BonusRow.setup(left, right)`, an empty `right` hiding the right half), and the slot caption from `BookText.slot_name()`.
-- The panel never grows. It is laid out to the spec's geometry for the longest real item, the Dreadbeast Tooth Necklace: the name's baselines at screen 654 and 688, the slot caption 26 px under the name's last line, the first bonus row's baseline at 752 with a pressed rule under each row, the description from 798, and the hint at 866. Shorter items flow up from the same gaps. The header, the bonus rows and the gaps above them are even heights, so every rule lands on an even pixel.
-- `EquipmentDetails.wants_hint(name_lines, bonus_count, description_lines)` keeps the hint only while the item's text ends at least 24 px above the hint's line, as the necklace's does: 208 px or less down the panel's content. The text's height is the header (the name column, 64 px plus 34 per extra line, but never under the 72 px icon slot), then the bonus rows (16 px over them, 26 per row, 8 between rows), then the description (42 px plus 26 per extra line). The name wraps at 346 px and the description at 434 px, so the line counts hold before the panel is laid out.
+- The panel never grows. It is laid out to the spec's geometry for the longest real item, the Dreadbeast Tooth Necklace: the name's baselines at screen 654 and 688, the slot caption 26 px under the name's last line, the first bonus row's baseline at 752 with a pressed rule 8 px under each row's baseline, the description from 798, and the hint at 866. Shorter items flow up from the same gaps. The header, the bonus rows and the gaps above them are even heights, so every rule lands on an even pixel.
+- `EquipmentDetails.wants_hint(name_lines, bonus_count, description_lines)` keeps the hint only while the item's text ends at least 24 px above the hint's line, as the necklace's does: 208 px or less down the panel's content. The text's height is the header (the name column, 64 px plus 34 per extra line, but never under the 72 px icon slot), then the bonus rows (16 px over them, 28 per row with its rule, 6 between rows), then the description (40 px plus 26 per extra line). The name wraps at 346 px and the description at 434 px, so the line counts hold before the panel is laid out.
 - `InventorySlot.set_marked()` shows a slot's printer's marks. The tab marks the slot that holds the item shown, and while dragging, the drop target. Picking an item up takes the marks off the slot it leaves.
 - `EquipmentTab.open_page()` refreshes the footer, then shows the first item on the grid page, else the first worn piece in the figure's order (`GearSelector.get_slots()`), else clears the details. `InventoryView` calls it on opening the book and on every page turn.
 - After every `inventory_changed` and every drop, the tab follows the item shown (deferred, once the slots have re-bound): it marks the visible slot holding it (none when it is on another page) and refreshes its hint. When the item is no longer in the bag or worn, which is how a discard ends, it runs `open_page()`. Flipping to another page follows it too.

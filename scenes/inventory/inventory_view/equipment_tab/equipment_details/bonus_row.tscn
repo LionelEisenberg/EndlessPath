@@ -4,7 +4,7 @@
 
 [node name="BonusRow" type="VBoxContainer"]
 mouse_filter = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 2
 script = ExtResource("1_script")
 
 [node name="Pairs" type="HBoxContainer" parent="."]

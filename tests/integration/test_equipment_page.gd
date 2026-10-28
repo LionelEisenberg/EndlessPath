@@ -454,19 +454,19 @@ func test_long_names_wrap_inside_the_panel_and_drop_the_hint() -> void:   # Revi
 func test_hint_gives_way_first() -> void:
 	# The text must end at least 24 px above the hint's line: by content y 208,
 	# where the necklace's ends. The header is the name column, 64 + 34 per extra
-	# line, but never under the 72 px icon slot; the bonuses take 16 + 26 per row
-	# + 8 between rows; the description 42 + 26 per extra line.
-	assert_true(EquipmentDetails.wants_hint(2, 2, 2), "the necklace: 98 + 42 + 68 = 208")
-	assert_true(EquipmentDetails.wants_hint(4, 0, 1), "166 + 0 + 42 = 208")
-	assert_true(EquipmentDetails.wants_hint(1, 4, 1), "72 + 76 + 42 = 190")
-	assert_true(EquipmentDetails.wants_hint(1, 2, 3), "72 + 42 + 94 = 208: one line of name less pays for one of description")
-	assert_false(EquipmentDetails.wants_hint(2, 4, 2), "98 + 76 + 68 = 242")
+	# line, but never under the 72 px icon slot; the bonuses take 16 + 28 per row
+	# + 6 between rows; the description 40 + 26 per extra line.
+	assert_true(EquipmentDetails.wants_hint(2, 2, 2), "the necklace: 98 + 44 + 66 = 208")
+	assert_true(EquipmentDetails.wants_hint(4, 0, 1), "166 + 0 + 40 = 206")
+	assert_true(EquipmentDetails.wants_hint(1, 4, 1), "72 + 78 + 40 = 190")
+	assert_true(EquipmentDetails.wants_hint(1, 2, 3), "72 + 44 + 92 = 208: one line of name less pays for one of description")
+	assert_false(EquipmentDetails.wants_hint(2, 4, 2), "98 + 78 + 66 = 242")
 	assert_false(EquipmentDetails.wants_hint(2, 3, 2), "a third bonus takes a second row: 242")
-	assert_false(EquipmentDetails.wants_hint(2, 4, 1), "98 + 76 + 42 = 216")
-	assert_false(EquipmentDetails.wants_hint(2, 2, 3), "98 + 42 + 94 = 234")
-	assert_false(EquipmentDetails.wants_hint(3, 2, 1), "132 + 42 + 42 = 216")
-	assert_false(EquipmentDetails.wants_hint(1, 2, 4), "72 + 42 + 120 = 234")
-	assert_false(EquipmentDetails.wants_hint(2, 5, 1), "98 + 110 + 42 = 250")
+	assert_false(EquipmentDetails.wants_hint(2, 4, 1), "98 + 78 + 40 = 216")
+	assert_false(EquipmentDetails.wants_hint(2, 2, 3), "98 + 44 + 92 = 234")
+	assert_false(EquipmentDetails.wants_hint(3, 2, 1), "132 + 44 + 40 = 216")
+	assert_false(EquipmentDetails.wants_hint(1, 2, 4), "72 + 44 + 118 = 234")
+	assert_false(EquipmentDetails.wants_hint(2, 5, 1), "98 + 112 + 40 = 250")
 
 func test_the_hint_rule_reads_the_laid_out_panel() -> void:
 	var tab: Control = await _open_tab()
@@ -502,7 +502,7 @@ func test_details_lay_the_longest_item_out_as_the_spec_does() -> void:   # Rulin
 	assert_eq(_baseline(details.get_node("%SlotLabel") as Label), 714.0, "the slot, 26 px under the name's last line")
 	assert_eq(_baseline(row.get_node("%LeftValue") as Label), 752.0, "the first bonus row")
 	assert_eq(_baseline(row.get_node("%LeftName") as Label), 752.0, "its attribute on the same line")
-	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 758.0, "the pressed rule under it")
+	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 760.0, "the pressed rule 8 px under it, as the mockup rules it")
 	assert_eq(_baseline(details.get_node("%Description") as Label), 798.0, "the description")
 	assert_eq(_baseline(details.get_node("%Hint") as Label), 866.0, "the hint, at the panel's foot")
 
@@ -516,7 +516,7 @@ func test_a_shorter_item_flows_up_from_the_same_gaps() -> void:   # Ruling R10
 	assert_eq((details.get_node("%NameLabel") as Label).get_line_count(), 1)
 	assert_eq(_baseline(details.get_node("%SlotLabel") as Label), 680.0, "26 px under the one line of name")
 	assert_eq(_baseline(row.get_node("%LeftValue") as Label), 726.0, "16 px under the 72 px icon slot, 26 px higher than the necklace's")
-	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 732.0, "the rule stays on an even pixel")
+	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 734.0, "the rule 8 px under it, on an even pixel")
 	assert_eq(_baseline(details.get_node("%Hint") as Label), 866.0, "the hint stays at the foot")
 
 func test_open_page_shows_the_first_item() -> void:

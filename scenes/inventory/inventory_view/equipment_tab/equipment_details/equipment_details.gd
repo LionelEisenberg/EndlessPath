@@ -46,12 +46,13 @@ const _ONE_LINE_NAME_COLUMN: int = 2 + 45 + 17
 const _NAME_LINE_PITCH: int = 34
 ## %BonusesBlock's top margin, the gap over the first bonus row.
 const _BONUS_GAP: int = 16
-## One BonusRow: its 22 px text row and the 4 px pressed rule.
-const _BONUS_ROW_HEIGHT: int = 26
+## One BonusRow: its 22 px text row, a 2 px gap and the 4 px pressed rule,
+## which then sits 8 px under the row's baseline, as the mockup rules it.
+const _BONUS_ROW_HEIGHT: int = 22 + 2 + 4
 ## %Bonuses' separation, between two bonus rows.
-const _BONUS_ROW_GAP: int = 8
-## The description's top margin (21) and first line (BM Euljiro 18 is 21 tall).
-const _ONE_LINE_DESCRIPTION: int = 21 + 21
+const _BONUS_ROW_GAP: int = 6
+## The description's top margin (19) and first line (BM Euljiro 18 is 21 tall).
+const _ONE_LINE_DESCRIPTION: int = 19 + 21
 ## Each further line of the description: LabelBookInk's pitch.
 const _DESCRIPTION_LINE_PITCH: int = 26
 ## Where the hint's line starts, 8 px above the content's foot: its baseline
