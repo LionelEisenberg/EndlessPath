@@ -269,7 +269,8 @@ func is_in_memory() -> bool:
 	return save_path == ""
 
 ## True when the session's save could not be read or checked, a newer build wrote
-## it, or another run holds its lock or took the lock over, so nothing writes it.
+## it, or another run holds its lock or took the lock over (or may have: its lock
+## file could not be read for SaveLock.STALE_AFTER_SECONDS), so nothing writes it.
 func is_save_blocked() -> bool:
 	return _save_blocked
 
@@ -398,7 +399,6 @@ func _main_save_on_disk() -> String:
 		return main_save_path
 	var temp_path: String = SaveFiles.temp_path_for(main_save_path)
 	return temp_path if FileAccess.file_exists(temp_path) else ""
-
 
 ## Blocks saving for the session, for `reason`, and says so (save_block_changed)
 ## unless it was blocked for that reason already.
