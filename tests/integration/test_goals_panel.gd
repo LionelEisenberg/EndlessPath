@@ -5,7 +5,9 @@ extends GutTest
 ## measurable steps, the Breakthrough milestone in its three states (Core
 ## Density towards the stage's cap, a full core that faces the Tribulation, a
 ## stage with no next stage), the milestone moving up when no quest is active,
-## and the board hugging its rows (spec: Goals). No text is cut off (the
+## the milestone waiting for NPC 4 (the end of Beat 3b's chain) in Foundation,
+## the board hiding while it has no goal at all, and the board hugging its rows
+## (spec: Goals). No text is cut off (the
 ## developer's rule): a name, a step or a milestone line that needs more than
 ## its 358 px wraps there, and the board grows to hold it.
 
@@ -21,6 +23,9 @@ const FIRST_STEPS_QUEST_ID: String = "q_first_steps"
 const FIRST_STEPS_ENEMY_EVENT: String = "q_first_steps_enemy_defeated"
 const FIRST_STEPS_RETURN_EVENT: String = "celestial_intervener_dialogue_3"
 const CORE_DENSITY_QUEST_ID: String = "q_reach_core_density_10"
+## NPC 4's event, and the condition that wraps it: Foundation's Breakthrough
+## goes on the board once it latches.
+const NPC_4_EVENT: String = "celestial_intervener_dialogue_4"
 
 ## Board-local top of the milestone name with a quest row above it (kit §5.2:
 ## screen 408 − 272), and the 70 px it moves up without one.
@@ -33,6 +38,10 @@ const MILESTONE_ROD_STEPS: int = 138
 ## milestone alone (70 px shorter). The board art carries a 4 px shadow below.
 const FULL_HEIGHT: float = 220.0
 const MILESTONE_ONLY_HEIGHT: float = 150.0
+## The quest row alone. The full board less the milestone row's 62 px and the
+## divider's 16 is 142, but the board art's top and bottom slices (130 px, from
+## the board's body at 20 to 4 px under it) take 146.
+const QUEST_ONLY_HEIGHT: float = 146.0
 const SHADOW: float = 4.0
 ## The quest row's two text lines and the milestone's: one line of a name is 20
 ## px, of a step or a milestone line 18.
@@ -71,7 +80,11 @@ func _restore_quest_catalog() -> void:
 	QuestManager._quest_catalog = load(QUEST_CATALOG_PATH)
 	QuestManager._build_catalog_index()
 
-func _use_fresh_save(save: SaveGameData = SaveGameData.new()) -> void:
+## Loads `save`, which has talked to NPC 4 unless `npc_4_talked` is false, so the
+## milestone tests find Foundation's Breakthrough on the board.
+func _use_fresh_save(save: SaveGameData = SaveGameData.new(), npc_4_talked: bool = true) -> void:
+	if npc_4_talked:
+		save.unlock_progression.unlocked_condition_ids.append(NPC_4_EVENT)
 	PersistenceManager.save_game_data = save
 	PersistenceManager.save_data_reset.emit()
 
@@ -389,6 +402,68 @@ func test_milestone_reads_the_stages_cap() -> void:
 	CultivationManager.core_density_level_updated.emit(save.core_density_xp, save.core_density_level)
 	assert_eq(_text("MilestoneTextLabel"), "Face the Tribulation")
 	assert_eq(_text("MilestoneFigureLabel"), "40 / 40")
+
+#-----------------------------------------------------------------------------
+# THE BREAKTHROUGH WAITS FOR NPC 4
+#-----------------------------------------------------------------------------
+
+## A fresh save has no goal before its first talk: the board hides all of
+## itself, its cords too, and lets clicks through to the map. Its root stays
+## visible, since MainView hides and restores the root under the overlays.
+func test_a_board_with_no_goal_hides() -> void:
+	_use_fresh_save(SaveGameData.new(), false)
+	_add_goals()
+	assert_false(_is_shown("QuestRow"))
+	assert_false(_is_shown("MilestoneRow"), "the Breakthrough waits for NPC 4")
+	for piece: String in ["Board", "TitleLabel", "Cords"]:
+		assert_false(_is_shown(piece), "%s hides" % piece)
+	_goals.set_cords_visible(true)
+	assert_false(_is_shown("Cords"), "no cords hang to an empty board")
+	assert_true(_goals.visible, "the root is MainView's to hide")
+	assert_eq(_goals.mouse_filter, Control.MOUSE_FILTER_IGNORE, "clicks reach the map")
+
+## Before NPC 4 a quest stands alone: no divider under it, no milestone, and the
+## board hugs the quest row.
+func test_a_quest_before_npc_4_stands_alone() -> void:
+	_use_fresh_save(SaveGameData.new(), false)
+	_add_goals()
+	QuestManager.start_quest(FILL_CORE_QUEST_ID)
+	await wait_process_frames(1)
+	assert_true(_is_shown("QuestRow"))
+	assert_false(_is_shown("Divider"), "no divider under a lone row")
+	assert_false(_is_shown("MilestoneRow"))
+	for piece: String in ["Board", "TitleLabel", "Cords"]:
+		assert_true(_is_shown(piece), "%s shows with the first goal" % piece)
+	assert_eq(_goals.mouse_filter, Control.MOUSE_FILTER_STOP)
+	assert_eq(_goals.size, Vector2(440.0, QUEST_ONLY_HEIGHT))
+	assert_eq(_board_art_bottom(), QUEST_ONLY_HEIGHT + SHADOW, "the board art ends with the board")
+
+## NPC 4 completes Harden Your Core, the last quest, and its talk puts the
+## Breakthrough on the board in the quest's place, for the climb to the cap.
+func test_npc_4_hands_the_board_to_the_breakthrough() -> void:
+	var save := SaveGameData.new()
+	save.quest_progression.active_quests[CORE_DENSITY_QUEST_ID] = 1
+	_use_fresh_save(save, false)
+	_add_goals()
+	assert_eq(_text("QuestStepLabel"), "Return to the Celestial [INTERVENER]", "precondition: NPC 4 is next")
+	assert_false(_is_shown("MilestoneRow"), "precondition: no Breakthrough yet")
+	EventManager.trigger_event(NPC_4_EVENT)
+	await wait_process_frames(1)
+	assert_true(QuestManager.has_completed_quest(CORE_DENSITY_QUEST_ID), "precondition: the quest completed")
+	assert_false(_is_shown("QuestRow"))
+	assert_true(_is_shown("MilestoneRow"))
+	assert_eq(_text("MilestoneTextLabel"), "Raise Core Density to 100")
+	assert_eq(_goals.size, Vector2(440.0, MILESTONE_ONLY_HEIGHT))
+
+## The wait is Foundation's: Copper has no condition, so its line shows on a save
+## that never talked to NPC 4.
+func test_copper_shows_its_milestone_without_npc_4() -> void:
+	var save := SaveGameData.new()
+	save.current_advancement_stage = CultivationManager.AdvancementStage.COPPER
+	_use_fresh_save(save, false)
+	_add_goals()
+	assert_true(_is_shown("MilestoneRow"))
+	assert_eq(_text("MilestoneTextLabel"), "Copper reached")
 
 #-----------------------------------------------------------------------------
 # LONG TEXT (Review Focus 4)

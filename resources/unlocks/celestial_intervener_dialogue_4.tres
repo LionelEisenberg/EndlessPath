@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UnlockConditionData" format=3]
+
+[ext_resource type="Script" uid="uid://bk5wuop0jogg4" path="res://scripts/resource_definitions/unlocks/unlock_condition_data.gd" id="1_cid4"]
+
+[resource]
+script = ExtResource("1_cid4")
+condition_id = "celestial_intervener_dialogue_4"
+condition_type = 4
+target_value = "celestial_intervener_dialogue_4"
+comparison_op = ""
+metadata/_custom_type_script = "uid://bk5wuop0jogg4"

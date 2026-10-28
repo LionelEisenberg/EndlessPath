@@ -9,11 +9,17 @@ extends Control
 ## Row 2 is the Breakthrough milestone on a jade rod, in three states: Core
 ## Density towards the stage's cap (level / cap), "Face the Tribulation" once the
 ## core is full, and "<Stage> reached" on a full rod, with no figure, once the
-## stage has no next stage. With no active quest, row 1 and the divider hide and
-## the milestone row moves up into their place (the Rows container does the move).
+## stage has no next stage. The milestone waits for the stage's
+## breakthrough_goal_condition to latch (Foundation's: NPC 4 talked, the end of
+## Beat 3b's chain). With one row hidden the divider hides too and the other row
+## takes its place (the Rows container does the move). With neither row, on a
+## fresh save before its first quest, the board hides all of itself, its cords
+## too, and lets clicks through to the map; its root stays visible, since MainView
+## hides and restores the root under the overlays.
 ## The board hugs its rows (spec: Goals): lacquer_goals_ai.png is cut into a
-## top, a tiled middle and a bottom slice, so the board is 220 px tall with a
-## quest and 150 px with the milestone alone. The cords are their own node and
+## top, a tiled middle and a bottom slice, so the board is 220 px tall with both
+## rows, 150 px with the milestone alone and 146 px with the quest alone (the
+## least the top and bottom slices take). The cords are their own node and
 ## texture, which set_cords_visible() can hide; their two brass hooks are drawn
 ## on the top slice, which then swaps for a hookless copy.
 ## No text is cut off: the quest's name and step and the milestone's name and
@@ -53,6 +59,8 @@ const NAME_FIGURE_GAP: float = 8.0
 #-----------------------------------------------------------------------------
 
 @onready var _cords: Control = %Cords
+@onready var _board: Control = %Board
+@onready var _title_label: Label = %TitleLabel
 @onready var _board_top: TextureRect = %BoardTop
 @onready var _top_with_hooks: Texture2D = _board_top.texture
 @onready var _rows: Control = %Rows
@@ -62,9 +70,18 @@ const NAME_FIGURE_GAP: float = 8.0
 @onready var _quest_figure: Control = %QuestFigure
 @onready var _quest_figure_label: Label = %QuestFigureLabel
 @onready var _quest_step_label: Label = %QuestStepLabel
+@onready var _milestone_row: Control = %MilestoneRow
 @onready var _milestone_text_label: Label = %MilestoneTextLabel
 @onready var _milestone_rod: LacquerRod = %MilestoneRod
 @onready var _milestone_figure_label: Label = %MilestoneFigureLabel
+
+#-----------------------------------------------------------------------------
+# STATE
+#-----------------------------------------------------------------------------
+
+## Whether the view hangs the board on its cords (set_cords_visible()). They
+## show only while the board does.
+var _cords_wanted: bool = true
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -77,6 +94,7 @@ func _ready() -> void:
 	PersistenceManager.save_data_reset.connect(_on_save_data_reset)
 	CultivationManager.core_density_level_updated.connect(_on_core_density_level_updated)
 	CultivationManager.advancement_stage_changed.connect(_on_advancement_stage_changed)
+	UnlockManager.condition_unlocked.connect(_on_condition_unlocked)
 	ResourceManager.madra_changed.connect(_on_resource_changed)
 	ResourceManager.gold_changed.connect(_on_resource_changed)
 	refresh()
@@ -99,7 +117,8 @@ func refresh() -> void:
 func set_cords_visible(cords_visible: bool) -> void:
 	if not is_node_ready():
 		return
-	_cords.visible = cords_visible
+	_cords_wanted = cords_visible
+	_cords.visible = cords_visible and _board.visible
 	var hookless: bool = not cords_visible and top_without_hooks != null
 	_board_top.texture = top_without_hooks if hookless else _top_with_hooks
 
@@ -107,8 +126,7 @@ func set_cords_visible(cords_visible: bool) -> void:
 # DISPLAY UPDATES
 #-----------------------------------------------------------------------------
 
-## Row 1 from the first active quest, or hidden (with the divider) when there
-## is none.
+## Row 1 from the first active quest, or hidden when there is none.
 func _update_quest() -> void:
 	var quest: QuestData = null
 	var step: QuestStepData = null
@@ -120,7 +138,6 @@ func _update_quest() -> void:
 			step = quest.steps[step_index]
 	var has_quest: bool = step != null
 	_quest_row.visible = has_quest
-	_divider.visible = has_quest
 	if has_quest:
 		_quest_name_label.text = quest.quest_name
 		_quest_step_label.text = step.description
@@ -129,13 +146,16 @@ func _update_quest() -> void:
 		if _quest_figure.visible:
 			_quest_figure_label.text = figure
 		_fit_quest_name()
-	_fit_height()
+	_fit_rows()
 
-## The milestone row, in one of three states. A stage with no next stage reads
+## The milestone row, hidden until the stage's breakthrough_goal_condition has
+## latched, then in one of three states. A stage with no next stage reads
 ## "<Stage> reached" on a full rod, with no figure. A full core reads "Face the
 ## Tribulation" on a full rod, with the figure at cap / cap. Otherwise it asks to
 ## "Raise Core Density to <cap>", with the rod and the figure at level / cap.
 func _update_milestone() -> void:
+	var condition: UnlockConditionData = CultivationManager.get_breakthrough_goal_condition()
+	_milestone_row.visible = condition == null or UnlockManager.is_condition_unlocked(condition.condition_id)
 	var cap: int = CultivationManager.get_core_density_cap()
 	var reached: bool = not CultivationManager.has_next_stage()
 	if reached:
@@ -151,7 +171,7 @@ func _update_milestone() -> void:
 		_milestone_rod.set_fraction(float(level) / cap)
 		_milestone_figure_label.text = "%d / %d" % [level, cap]
 	_milestone_figure_label.visible = not reached
-	_fit_height()
+	_fit_rows()
 
 ## The quest name wraps in the row's 358 px, less the figure and its gap while the
 ## figure shows. The width is set as a minimum and as the size, so the name's lines
@@ -166,12 +186,26 @@ func _fit_quest_name() -> void:
 	_quest_name_label.size.x = room
 	_quest_name_label.update_minimum_size()
 
+## The divider stands only between two rows. With neither row the board has no
+## goal to show and hides all of itself but its root, and lets clicks through.
+## Then the board fits its rows.
+func _fit_rows() -> void:
+	_divider.visible = _quest_row.visible and _milestone_row.visible
+	var has_goal: bool = _quest_row.visible or _milestone_row.visible
+	_board.visible = has_goal
+	_title_label.visible = has_goal
+	_cords.visible = has_goal and _cords_wanted
+	mouse_filter = MOUSE_FILTER_STOP if has_goal else MOUSE_FILTER_IGNORE
+	_fit_height()
+
 ## Sizes the board to its visible rows, an even height; the board art's slices
-## follow.
+## follow. The top and bottom slices are the least it can be, which the quest row
+## alone needs 4 px short of.
 func _fit_height() -> void:
 	var rows_height: float = ceilf(_rows.get_combined_minimum_size().y / 2.0) * 2.0
 	_rows.size = Vector2(_rows.size.x, rows_height)
-	size = Vector2(size.x, _rows.position.y + rows_height + BOTTOM_PADDING)
+	var art_height: float = _board.get_combined_minimum_size().y + _board.offset_top - _board.offset_bottom
+	size = Vector2(size.x, maxf(_rows.position.y + rows_height + BOTTOM_PADDING, art_height))
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -195,6 +229,11 @@ func _on_core_density_level_updated(_xp: float, _level: float) -> void:
 ## or that it has been reached.
 func _on_advancement_stage_changed(_stage: CultivationManager.AdvancementStage) -> void:
 	refresh()
+
+## The stage's breakthrough_goal_condition latching puts the milestone on the
+## board.
+func _on_condition_unlocked(_condition_id: String) -> void:
+	_update_milestone()
 
 ## Madra and gold feed the figure of a RESOURCE_AMOUNT step.
 func _on_resource_changed(_amount: float) -> void:
