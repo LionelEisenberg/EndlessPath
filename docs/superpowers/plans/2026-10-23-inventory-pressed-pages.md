@@ -1178,3 +1178,61 @@ func test_refugee_camp_map_belongs_to_harden_your_core() -> void:  # real catalo
   - Fix what differs, re-run the tests, and commit each fix on its own.
 - [ ] **Step 4: Update the docs as listed.**
 - [ ] **Step 5: Commit**: `docs(inventory): describe the pressed pages as built`
+
+---
+
+## As built
+
+The build departed from this plan where a ruling during the build decided it (the R-numbered rulings are the ones the tests' comments cite) and where the in-game check matched the approved mockups. Each line says what was built differently, and why.
+
+**Every task**
+- R1: `test_sort_sub_banner.gd` stays and `test_item_detail_card.gd` went with `ItemDetailCard`: the spec's list of tests to rewrite predates knowing that the Abilities book shares `SortSubBanner` and that nothing else used `ItemDetailCard`.
+- R6: The docs follow main's "Keeping Docs Current" rules, which postdate the plan: no CLAUDE.md, STATE_OF_THE_GAME.md or CODEBASE_STATE.md edits, no test list or counts in INVENTORY.md, TESTING.md changed only in its Coverage Gaps and its Directory Layout (`tests/helpers/`), and QUESTS.md lost its "no link back to a quest" item once `get_quest_id_for_item()` existed.
+- R8: The whole-suite gate is `tests/run_tests.ps1`, not the one-process command, which exits 0 when a test script fails to parse.
+
+**Art and theme (Tasks 1 to 3)**
+- `printed_cross_ai.png` draws the mockup's discard cross (13 px strokes), not a cross inset 2 art px: the approved mockup is the reference.
+- R4: Every new muted variant is `#765A43`, on paper and in panels, instead of the spec's `#7D5F47` on paper: one ink, above the 4.56:1 floor on both.
+- `pressed_rule.tres` has 2 px top and bottom content margins, not 0: an `HSeparator` draws its style at the style's minimum height, so with 0 the rule never drew.
+- One-line tag and filter Labels are as tall as their art (20 and 26 px) through their styles' content margins, not a `custom_minimum_size` on each node.
+- Every new Label variant sets a transparent `font_shadow_color`: `pixel_theme`'s base Label draws a shadow the pages must not have.
+- R16: `book_theme.tres` gained `RichTextBookValue` (BM Euljiro 18, dark ink) for a table row's value, as the spec's type table prints it.
+- R7: `BookText.effect_line()` sets the decimal point before the Madra ink, and `color_madra()` accepts the decimal point's BBCode, since the plan's order escaped the colour tags.
+- UI_STYLING.md keeps a ThemeConstants row for `BOOK_MADRA_INK`, as the home of ThemeConstants.
+
+**Page layer (Task 4)**
+- `PageTitle` keeps its autowrap, the only way a long title stays on its page, and its `@tool`, so the editor shows the title.
+
+**Equipment (Task 5)**
+- R2: The count ends at screen x 816, 16 px before the discard slot, as the spec says, through the bar's separation.
+- R9: The gear captions' baseline is the slot's top + 94, as the spec says, not the brief's + 78, which left 2 px between a marked slot's marks and its caption.
+- R10: The details panel follows the spec's Dreadbeast Tooth Necklace geometry, shorter items flowing up from its gaps, and the hint shows only while an item's text ends clear of the hint's line: the spec's geometry and its "more than four bonuses" threshold cannot both hold.
+- R11, R12 (replacing R5's two-line name cap): The clearance is the necklace's 24 px, whatever the name's line count, so `wants_hint(1, 2, 3)` and `wants_hint(4, 0, 1)` keep the hint.
+- R13: A drag-target mark sits on the slot a drop would fill, as `_drop_item()` decides it: over an occupied grid slot only when the swap succeeds, and for an item out of the discard slot where `restore_equipment_instance()` would put it, when that slot is on the page shown.
+- Label boxes may start on an odd y, and the slot caption's minimum height and the description's top margin may be odd, where an even spec baseline and the font's metrics force them; every piece of art and every baseline stays even.
+- STYLE_GUIDE's K5 row was trimmed to the Scripted Bark icon instead of deleted, since the tab fixed only the rest of the row.
+
+**Consumables (Task 6)**
+- R3: The scroll groove sits at screen x 892 to 902, as the spec says, through the list's separation.
+- R14: `ConsumableRow` is a container (a 428 × 72 body over its rule, the last row without one), so seven rows fill the spec's 552 px exactly and a wrapped name grows its row.
+- R15, R20: A clipping `ListFrame` (460 × 570) holds the list instead of its `ScrollContainer` clipping, so a visible row's printer's marks show whole; a scrolled row can show up to 8 px past the list's top and 10 past its bottom.
+- R17: Where the brief's numbers and the approved mockup disagree and the spec is silent, the mockup wins: the row rule at row y 76 to 80, the hotbar's count tag flush right and 2 px up, and the hint as two one-line labels.
+- R18: A row's marks reproduce the mockup's rect, (444, 292) to (886, 382) round the first row; the last row's end 6 px under its slot, inside the frame.
+- R19: The scroll thumb is proportional, as in the mockup, and travels the groove's floor on even pixels, following both the wheel and scrolls from code.
+- A table row's rule sits 8 px under its value's baseline, the Materials mockup's spacing, since at the Consumables mockup's 4 px the descenders touch it.
+- `InventoryScrollHost.clear_slots()` removes rows at once, since a rebuild otherwise draws the list a frame off.
+
+**Materials (Task 7)**
+- R21: The description flows with no reserved height, and the source table keeps a fixed gap over it sized from Spirit Fern; with no source the table hides with its gap.
+- `MaterialDetails.get_shown_material()` (the engine already takes `get_material()`), the mockup's tag inset, shallow empty slots, `1 KIND`, marks 6 px outside a slot, `MATERIAL` at x 1112, the rail past 36 kinds and a right title hidden on an empty page, each following the spec, the mockup or a sibling tab.
+
+**Journal (Task 8)**
+- The step figures use `LabelBookStep`, the quest's header is positioned, a wide drop cap narrows the column beside it, the six-row list shows the top of a seventh (R15's trade-off), and a quest's progress is read when the page opens, each following the mockup or R15.
+
+**The in-game check (Task 9)**
+- The right page's titles of Equipment, Consumables and Materials are centred on the spec's x 1244, as the Journal's was, not on screen x 1242, the middle of the plan's box.
+- A paper tag's count sits 16 px under the tag's top and a seal's word 18 px under the seal's, as both mockups print them: `LabelBookTag`'s font moves the count 3 px down in its line (a larger top margin would grow the tag), and `seal.tres` has a 4 px top margin.
+- The filter's lozenge is pressed from y 294 to 320, as the mockup draws it, with the words still on baseline 316: their font sits 5 px low in its line, and their styles' margins take 6 px over it and 4 under.
+- The footer's PAGE ends at x 536 and the page slots start at 556, as the mockup prints them, where the plan began them at the page's left edge.
+- A bonus row's rule sits 8 px under its baseline, as the mockup and the other tabs' tables rule it.
+- The hotbar hint's rule runs from x 1012 to 1474, as the mockup draws it, not across the plan's 468 px.
