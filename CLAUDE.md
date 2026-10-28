@@ -17,7 +17,7 @@ All commands are run from the project root.
 # Run the game from CLI
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn
 
-# Run it on its own save file. A plain run (above) plays the user's real user://save.tres, backs it up at boot and takes its lock, so agents add --save=. Options: docs/infrastructure/PERSISTENCE.md
+# Run it on its own save file. A plain run (above) plays the checkout's user://save.tres, the user's real save in the main checkout (a worktree has its own copy), backs it up at boot and takes its lock, so agents add --save=. Options: docs/infrastructure/PERSISTENCE.md
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64.exe" --path . scenes/main/main_game/main_game.tscn -- --save=user://dev/runs/<name>.tres
 
 # Run it in a save preset, a starting point of the story (the list: docs/tooling/DEV_TOOLS.md). The session lives in memory and never reads or writes the user's save; an agent adds --save=user://dev/runs/<name>.tres to keep the run's file
@@ -121,7 +121,7 @@ Built systems: Cycling, Zones and idle actions, Adventuring, Combat, Inventory, 
 
 Use `/ship` to review, commit, and get a summary in one step.
 
-**Worktrees in Godot's project list:** the SessionStart hook in `.claude/settings.json` runs `.claude/hooks/godot_project_list.ps1 sync`. It lists every live worktree in Godot's project manager through a junction in `C:\worktrees\EndlessPath-godot\` named after a one-liner of its feature, which Godot shows on the path line under the "EndlessPath" title. It drops worktrees that are gone or merged into main, and never touches the main checkout's entry. New entries are named after their branch: once you know what your session is building, rename yours to a one-liner of the feature, and again if the work changes direction:
+**Worktrees in Godot's project list:** the SessionStart hook in `.claude/settings.json` runs `.claude/hooks/godot_project_list.ps1 sync`. It lists every live worktree in Godot's project manager through a junction in `C:\worktrees\EndlessPath-godot\` named after a one-liner of its feature, which Godot shows on the path line under the "EndlessPath" title. It drops worktrees that are gone or merged into main, and never touches the main checkout's entry. It also gives every worktree but the main checkout a `user://` folder of its own, so no worktree's build, on any branch, can write the user's real save: an `override.cfg`, kept out of git, points the worktree's game runs at `%APPDATA%\Godot\app_userdata\EndlessPath-checkouts\<worktree folder>`, which starts with a copy of the main checkout's save (`docs/infrastructure/PERSISTENCE.md`, Save file location). Its test: `powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/test_godot_project_list.ps1`. New entries are named after their branch: once you know what your session is building, rename yours to a one-liner of the feature, and again if the work changes direction:
 ```bash
 powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/godot_project_list.ps1 label "Zone view redesign"
 ```

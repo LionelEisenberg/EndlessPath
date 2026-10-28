@@ -10,11 +10,18 @@ the path line under the title, and its search box matches it.
 
   sync          Give every live worktree a junction (named after its branch until a session
                 labels it), and remove the junctions and Godot entries of worktrees that are gone
-                or merged into main. The SessionStart hook in .claude/settings.json runs this.
+                or merged into main. Give every worktree but the main checkout a user:// folder of
+                its own (below). The SessionStart hook in .claude/settings.json runs this.
   label <text>  Rename the current worktree's entry to <text>, then sync.
 
 Only entries under -LinksRoot are touched: the main checkout's entry and other projects stay as
 they are. Godot reads projects.cfg when the project manager starts, so reopen it to see changes.
+
+Godot names a project's user:// folder after its config/name, so every checkout would play and
+write the main checkout's save. sync writes an override.cfg into every worktree but the main
+checkout, which points its game runs at %APPDATA%\Godot\app_userdata\EndlessPath-checkouts\<worktree folder>, starts that
+folder with a copy of the main save, and lists override.cfg in the common git dir's info/exclude.
+Godot reads override.cfg in every run but the editor's own, whatever code the worktree's branch has.
 #>
 param(
     [Parameter(Position = 0)]
@@ -30,13 +37,22 @@ param(
     [string]$LinksRoot = 'C:\worktrees\EndlessPath-godot',
 
     # Defaults to Godot's own list, %APPDATA%\Godot\projects.cfg.
-    [string]$ProjectsCfg = ''
+    [string]$ProjectsCfg = '',
+
+    # Defaults to Godot's user folders, %APPDATA%\Godot\app_userdata. The override.cfg files always
+    # name a folder under that one, so only a test passes another.
+    [string]$UserDataRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $Utf8 = New-Object System.Text.UTF8Encoding($false)
 $LabelMaxLength = 60
 $RenameHint = 'powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/godot_project_list.ps1 label "<one-liner>"'
+# The main checkout's user:// folder, named after project.godot's config/name, and the folder that
+# holds each worktree's own, both under -UserDataRoot.
+$MainUserFolder = 'EndlessPath'
+$CheckoutsFolder = 'EndlessPath-checkouts'
+$ExcludeLine = '/override.cfg'
 
 #-----------------------------------------------------------------------------
 # PATHS AND LABELS
@@ -256,6 +272,64 @@ function Update-Cfg($Links, $Renamed) {
 }
 
 #-----------------------------------------------------------------------------
+# USER FOLDERS
+#-----------------------------------------------------------------------------
+
+## The override.cfg that points a worktree's game runs at a user:// folder of their own,
+## $CheckoutsFolder\<FolderName> under Godot's user folders.
+function Get-OverrideText([string]$FolderName) {
+    return "[application]`n`nconfig/use_custom_user_dir=true`nconfig/custom_user_dir_name=`"Godot/app_userdata/$CheckoutsFolder/$FolderName`"`n"
+}
+
+## Keeps override.cfg out of git in every worktree, those on branches whose .gitignore predates
+## it included: the common git dir's info/exclude applies to all of them.
+function Add-OverrideExclude {
+    $common = Invoke-Git @('rev-parse', '--git-common-dir')
+    if (-not $common.Ok) { throw 'git rev-parse --git-common-dir failed.' }
+    $commonDir = $common.Lines[0]
+    if (-not [System.IO.Path]::IsPathRooted($commonDir)) { $commonDir = Join-Path $script:RepoTop $commonDir }
+    $exclude = Join-Path (ConvertTo-FullPath $commonDir) 'info\exclude'
+    $text = ''
+    if (Test-Path -LiteralPath $exclude) { $text = [System.IO.File]::ReadAllText($exclude, $Utf8) }
+    if (($text -split '\r?\n') -ccontains $ExcludeLine) { return }
+    [void][System.IO.Directory]::CreateDirectory((Split-Path $exclude))
+    $separator = if ($text -and -not $text.EndsWith("`n")) { "`n" } else { '' }
+    [System.IO.File]::AppendAllText($exclude, "$separator$ExcludeLine`n", $Utf8)
+}
+
+## Gives every worktree but the main checkout a user:// folder of its own, so no game run there
+## reads or writes the main checkout's save. Writes the worktree's override.cfg when it has none,
+## and copies the main checkout's save into its folder when that folder holds no save (no
+## save.tres, and no save.tmp.tres that a cut-short write left). An override.cfg the hook did not
+## write is left as it is, and its folder too. Nothing is ever deleted, and nothing is written
+## into the main checkout or its folder. A worktree that fails is reported and skipped.
+function Sync-UserFolders($Worktrees) {
+    $mainSave = Join-Path (Join-Path $UserDataRoot $MainUserFolder) 'save.tres'
+    foreach ($worktree in ($Worktrees | Select-Object -Skip 1)) {
+        if ($worktree.Bare) { continue }
+        if (-not (Test-Path -LiteralPath (Join-Path $worktree.Path 'project.godot'))) { continue }
+        try {
+            $name = (Split-Path $worktree.Path -Leaf) -replace '[^A-Za-z0-9._-]', '-'
+            $override = Join-Path $worktree.Path 'override.cfg'
+            $text = Get-OverrideText $name
+            if (Test-Path -LiteralPath $override) {
+                if ([System.IO.File]::ReadAllText($override, $Utf8) -cne $text) { continue }
+            } else {
+                [System.IO.File]::WriteAllText($override, $text, $Utf8)
+            }
+            $folder = Join-Path (Join-Path $UserDataRoot $CheckoutsFolder) $name
+            if (Test-Path -LiteralPath (Join-Path $folder 'save.tres')) { continue }
+            if (Test-Path -LiteralPath (Join-Path $folder 'save.tmp.tres')) { continue }
+            if (-not (Test-Path -LiteralPath $mainSave)) { continue }
+            [void][System.IO.Directory]::CreateDirectory($folder)
+            Copy-Item -LiteralPath $mainSave -Destination (Join-Path $folder 'save.tres')
+        } catch {
+            [Console]::Error.WriteLine("godot_project_list: Could not give $($worktree.Path) its own user folder: $($_.Exception.Message)")
+        }
+    }
+}
+
+#-----------------------------------------------------------------------------
 # SYNC
 #-----------------------------------------------------------------------------
 
@@ -311,6 +385,11 @@ function Sync-List([string]$NewLabel) {
 
     Update-Cfg @($kept.Values) $renamed
 
+    # A failure from here on is reported, and the list above stands.
+    try { Add-OverrideExclude }
+    catch { [Console]::Error.WriteLine("godot_project_list: Could not list override.cfg in info/exclude: $($_.Exception.Message)") }
+    Sync-UserFolders $worktrees
+
     $defaultLabel = ''
     if ($here) { $defaultLabel = Get-DefaultLabel $wanted[$hereKey] }
     return [pscustomobject]@{ Link = $here; DefaultLabel = $defaultLabel }
@@ -324,6 +403,10 @@ try {
     if (-not $ProjectsCfg) {
         if (-not $env:APPDATA) { exit 0 }
         $ProjectsCfg = Join-Path $env:APPDATA 'Godot\projects.cfg'
+    }
+    if (-not $UserDataRoot) {
+        if (-not $env:APPDATA) { exit 0 }
+        $UserDataRoot = Join-Path $env:APPDATA 'Godot\app_userdata'
     }
     if (-not $RepoDir) {
         $RepoDir = if ($env:CLAUDE_PROJECT_DIR) { $env:CLAUDE_PROJECT_DIR } else { (Get-Location).Path }

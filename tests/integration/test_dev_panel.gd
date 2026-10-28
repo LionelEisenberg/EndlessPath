@@ -474,10 +474,10 @@ func _play_a_save_that_blocks_saving() -> void:
 	PersistenceManager.open_save_file(NEWER_SAVE_PATH)
 	assert_true(PersistenceManager.is_save_blocked(), "precondition: a newer build's save blocks saving")
 
-## Every worktree shares one save, so a second run of the game, or a forgotten
-## window, can leave a session that saves nothing. While saving is blocked the
-## warning says so and why, with the panel closed too, as the badge does, and a
-## session that can save hides it again.
+## Two runs of one checkout share its save, so a second run of the game, or a
+## forgotten window, can leave a session that saves nothing. While saving is
+## blocked the warning says so and why, with the panel closed too, as the badge
+## does, and a session that can save hides it again.
 func test_the_warning_shows_while_saving_is_blocked() -> void:
 	var panel: DevPanel = _add_panel()
 	var warning: Control = panel.get_node("%SaveWarning")

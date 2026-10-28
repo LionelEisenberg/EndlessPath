@@ -12,5 +12,8 @@
 # The checkout's pinned save preset (LaunchOptions), one per checkout
 .dev_settings.cfg
 
+# A worktree's own user:// folder, which .claude/hooks/godot_project_list.ps1 points it at
+/override.cfg
+
 # Local preview server working directory (served copy of docs/superpowers/mockups/)
 /mockups/
