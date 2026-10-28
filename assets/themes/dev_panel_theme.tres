@@ -1,0 +1,7 @@
+[gd_resource type="Theme" format=3]
+
+[resource]
+Button/font_sizes/font_size = 18
+LineEdit/font_sizes/font_size = 18
+PopupMenu/font_sizes/font_size = 18
+TabContainer/font_sizes/font_size = 18

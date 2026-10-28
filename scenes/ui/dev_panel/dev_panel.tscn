@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://bcodu6l4hn7b8" path="res://scenes/ui/dev_panel/tabs/saves_tab.tscn" id="5_saves"]
 [ext_resource type="PackedScene" uid="uid://ben0tfjikkvrr" path="res://scenes/ui/dev_panel/tabs/story_tab.tscn" id="6_story"]
 [ext_resource type="PackedScene" uid="uid://h7o66qypo3sg" path="res://scenes/ui/dev_panel/tabs/items_tab.tscn" id="7_items"]
+[ext_resource type="Theme" path="res://assets/themes/dev_panel_theme.tres" id="8_theme"]
 
 [node name="DevPanel" type="Control"]
 layout_mode = 3
@@ -16,16 +17,17 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("8_theme")
 script = ExtResource("1_devp")
 
 [node name="Body" type="PanelContainer" parent="."]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(560, 680)
 layout_mode = 0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = 584.0
-offset_bottom = 704.0
+offset_left = 680.0
+offset_top = 60.0
+offset_right = 1240.0
+offset_bottom = 740.0
 mouse_filter = 0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Body"]
@@ -35,6 +37,7 @@ theme_override_constants/separation = 6
 [node name="TitleBar" type="PanelContainer" parent="Body/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+mouse_default_cursor_shape = 13
 theme_type_variation = &"PanelTooltip"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Body/VBoxContainer/TitleBar"]
@@ -96,24 +99,7 @@ unique_name_in_owner = true
 layout_mode = 2
 metadata/_tab_name = "World"
 
-[node name="SpeedBadge" type="Label" parent="."]
-unique_name_in_owner = true
-visible = false
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -120.0
-offset_right = -24.0
-offset_bottom = 30.0
-grow_horizontal = 0
-theme_type_variation = &"LabelSubheading"
-text = "×5"
-horizontal_alignment = 2
-
-[node name="SaveWarning" type="PanelContainer" parent="."]
-unique_name_in_owner = true
-visible = false
+[node name="Notices" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -121,12 +107,35 @@ anchor_right = 0.5
 offset_left = -360.0
 offset_top = 8.0
 offset_right = 360.0
-offset_bottom = 48.0
+offset_bottom = 8.0
 grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="SpeedBadge" type="PanelContainer" parent="Notices"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
 mouse_filter = 2
 theme_type_variation = &"PanelTooltip"
 
-[node name="SaveWarningLabel" type="Label" parent="SaveWarning"]
+[node name="SpeedBadgeLabel" type="Label" parent="Notices/SpeedBadge"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "×5"
+horizontal_alignment = 1
+
+[node name="SaveWarning" type="PanelContainer" parent="Notices"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_type_variation = &"PanelTooltip"
+
+[node name="SaveWarningLabel" type="Label" parent="Notices/SaveWarning"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(680, 0)
 layout_mode = 2

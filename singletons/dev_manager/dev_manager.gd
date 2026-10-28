@@ -80,6 +80,11 @@ const TIME_SPEEDS: Array[float] = [1.0, 2.0, 5.0, 10.0]
 ## Why a switch asked for while another is pending is refused.
 const SWITCH_UNDER_WAY: String = "A session switch is already under way"
 
+## Where the dev panel's body first stands: centred at the top of the screen, under
+## the time-speed badge, so it covers the map rather than the cabinet, the Goals,
+## the activity chest or the log the dev tools change.
+const PANEL_DEFAULT_POSITION: Vector2 = Vector2(680, 60)
+
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
@@ -94,7 +99,7 @@ var panel_open: bool = false
 
 ## Where the dev panel's body stands: its top-left corner, in screen pixels. The
 ## panel writes it when its title bar is dragged, and reads it when it is built.
-var panel_position: Vector2 = Vector2(24, 24)
+var panel_position: Vector2 = PANEL_DEFAULT_POSITION
 
 ## The index of the dev panel's tab. The panel writes it when the tab changes, and
 ## reads it when it is built.

@@ -5,8 +5,8 @@ extends Control
 ## and closes. The panel covers the screen and lets the mouse through; only its
 ## body, the title bar and the tabs under it, takes the mouse. The title bar drags
 ## the body, which always stays wholly on screen, and holds the time-speed picker.
-## Closing the panel hides the body only, so the badge in the top right still shows
-## any time speed but ×1, and the warning at the top centre still shows
+## Closing the panel hides the body only, so the badge at the top centre still shows
+## any time speed but ×1, and the warning stacked under it still shows
 ## "Not saving: <reason>" while saving is blocked (PersistenceManager), which no
 ## other screen says.
 ##
@@ -17,7 +17,8 @@ extends Control
 ## adventure view, to the Adventure tab. The panel lives in the main scene, which a session switch
 ## frees and loads again, so its open state, place and tab live on DevManager and
 ## come back when the panel is built. Exempt from the lacquer look (STYLE_GUIDE.md,
-## G11): it takes pixel_theme.tres from MainView.
+## G11): it takes pixel_theme.tres from MainView, and its own dev_panel_theme.tres
+## sizes its controls' text to match its labels.
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -36,7 +37,8 @@ extends Control
 @onready var _close_button: Button = %CloseButton
 @onready var _tabs: TabContainer = %Tabs
 @onready var _adventure_tab: DevAdventureTab = %AdventureTab
-@onready var _speed_badge: Label = %SpeedBadge
+@onready var _speed_badge: PanelContainer = %SpeedBadge
+@onready var _speed_badge_label: Label = %SpeedBadgeLabel
 @onready var _save_warning: PanelContainer = %SaveWarning
 @onready var _save_warning_label: Label = %SaveWarningLabel
 
@@ -108,7 +110,7 @@ func is_open() -> bool:
 #-----------------------------------------------------------------------------
 
 ## Drags the body by its title bar: a left press takes hold of it where the pointer
-## is, and each move with the left button held carries it along.
+## is, and each move with the left button held carries it along, on whole pixels.
 func _on_title_bar_input(event: InputEvent) -> void:
 	var press := event as InputEventMouseButton
 	if press != null and press.pressed and press.button_index == MOUSE_BUTTON_LEFT:
@@ -116,7 +118,7 @@ func _on_title_bar_input(event: InputEvent) -> void:
 		return
 	var motion := event as InputEventMouseMotion
 	if motion != null and (motion.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
-		_move_body(_kept_on_screen(motion.global_position - _drag_offset - global_position))
+		_move_body(_kept_on_screen((motion.global_position - _drag_offset - global_position).round()))
 		DevManager.panel_position = _body.position
 
 ## Keeps the body wholly on screen when it changes size. A wider tab makes it grow
@@ -150,7 +152,7 @@ func _on_speed_selected(index: int) -> void:
 ## Shows the time speed in the picker, and in the badge, which hides at ×1.
 func _show_speed(speed: float) -> void:
 	_speed_option.select(_speed_index(speed))
-	_speed_badge.text = DevManager.time_speed_label(speed)
+	_speed_badge_label.text = DevManager.time_speed_label(speed)
 	_speed_badge.visible = speed != 1.0
 
 ## Shows "Not saving: <reason>" while PersistenceManager has saving blocked, with

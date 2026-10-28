@@ -31,9 +31,9 @@ Ctrl+Shift+R (DevPanel._input, with the panel open or closed)
 
 The hotkeys need no password: an old `user://dev_password.txt` is ignored. The panel starts closed. Closing it, with the × or the hotkey, hides the body only, so the time-speed badge and the save warning stay.
 
-While saving is blocked (`PersistenceManager.is_save_blocked()`), a warning at the top centre of the screen reads `Not saving: <reason>` (`get_block_reason()`), with the panel open or closed: a save a newer build wrote, or one that would not load or could not be checked ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#boot-and-load)). So a session that will not save is never silent: without the warning, it would play a whole session that is lost on quit without a word. The warning follows `PersistenceManager.save_block_changed`, and a panel built after a switch shows it at once. A session in memory writes nothing by design and is not blocked, so it shows none; the Saves tab says where the session writes. The warning wraps a long reason, stands clear of the badge in the top right, and lets clicks through to the game.
+While saving is blocked (`PersistenceManager.is_save_blocked()`), a warning at the top centre of the screen reads `Not saving: <reason>` (`get_block_reason()`), with the panel open or closed: a save a newer build wrote, or one that would not load or could not be checked ([PERSISTENCE.md](../infrastructure/PERSISTENCE.md#boot-and-load)). So a session that will not save is never silent: without the warning, it would play a whole session that is lost on quit without a word. The warning follows `PersistenceManager.save_block_changed`, and a panel built after a switch shows it at once. A session in memory writes nothing by design and is not blocked, so it shows none; the Saves tab says where the session writes. The warning wraps a long reason, stacks under the time-speed badge when both show, and lets clicks through to the game.
 
-A session switch frees the main scene, and the panel with it, so the panel's open state, the place of its body and its tab live on `DevManager` (`panel_open`, `panel_position` and `panel_tab`): the panel built next comes back as the last one was. Nothing is saved to disk, so a new launch starts with the panel closed, on the first tab, with the body at (24, 24).
+A session switch frees the main scene, and the panel with it, so the panel's open state, the place of its body and its tab live on `DevManager` (`panel_open`, `panel_position` and `panel_tab`): the panel built next comes back as the last one was. Nothing is saved to disk, so a new launch starts with the panel closed, on the first tab, with the body centred at the top of the screen under the badge (`DevManager.PANEL_DEFAULT_POSITION`, (680, 60)). There it covers the map rather than the cabinet, the Goals, the activity chest or the log, which the dev tools change.
 
 ### Scene structure
 
@@ -49,17 +49,18 @@ DevPanel (Control, covers the screen, mouse Ignore)   dev_panel.gd (class DevPan
 │           ├── ItemsTab      tabs/items_tab.tscn                          ScrollContainer
 │           ├── AdventureTab  tabs/adventure_tab.tscn                      ScrollContainer (class DevAdventureTab)
 │           └── WorldTab      tabs/world_tab.tscn                          ScrollContainer
-├── SpeedBadge (Label, top right, hidden at ×1)
-└── SaveWarning (PanelContainer, PanelTooltip, top centre, mouse Ignore, hidden unless saving is blocked) → SaveWarningLabel "Not saving: <reason>"
+└── Notices (VBoxContainer, top centre, mouse Ignore): what shows stacks, the badge first
+    ├── SpeedBadge (PanelContainer, PanelTooltip, mouse Ignore, hidden at ×1) → SpeedBadgeLabel "×10"
+    └── SaveWarning (PanelContainer, PanelTooltip, mouse Ignore, hidden unless saving is blocked) → SaveWarningLabel "Not saving: <reason>"
 ```
 
-The panel is a child of `MainView` at z 10. Only its body takes the mouse: the rest of the panel, the badge and the save warning let clicks through to the game.
+The panel is a child of `MainView` at z 10. Only its body takes the mouse: the rest of the panel, the badge and the save warning let clicks through to the game. The panel takes `pixel_theme.tres` from `MainView`, with its own theme on top (`assets/themes/dev_panel_theme.tres`, on the root). That theme sets only the font size of buttons (dropdowns and switches included), text and number fields, dropdown lists and tab titles, to 18 px, where the game's theme leaves them at its 14 px default; labels keep their variants' sizes.
 
 Each tab is a scene of its own with one script, which calls the dev tools itself. The shell owns only the frame: the open state, the drag, the tab, the time speed, the save warning and the hotkeys. The one thing it hands a tab is the adventure view: `main_game.tscn` sets the panel's `adventure_view` export to the sibling `AdventureView`, and `DevPanel._ready()` passes it to the Adventure tab. The Saves tab's preset list is made of `DevPresetRow`s (`rows/dev_preset_row.tscn`), the Story tab's action list of `DevActionRow`s (`rows/dev_action_row.tscn`).
 
-Dragging the title bar moves the body, which always stays wholly on screen: a wider tab makes it grow from its top-left corner, and it is moved back in when that pushes it past an edge, then shrinks back to its own size on a narrower tab. The place is kept on `DevManager`.
+Dragging the title bar moves the body, on whole pixels. The title bar shows the move cursor. The body always stays wholly on screen: a wider tab makes it grow from its top-left corner, and it is moved back in when that pushes it past an edge, then shrinks back to its own size on a narrower tab. The place is kept on `DevManager`.
 
-The title bar's picker sets the [time speed](#time-speed), ×1, ×2, ×5 or ×10. The badge in the top right shows any speed but ×1, with the panel open or closed. The picker and the badge follow `DevManager.time_speed_changed`.
+The title bar's picker sets the [time speed](#time-speed), ×1, ×2, ×5 or ×10. The badge at the top centre shows any speed but ×1, with the panel open or closed. The picker and the badge follow `DevManager.time_speed_changed`.
 
 ### Controls
 

@@ -305,6 +305,60 @@ func test_dragging_the_title_bar_moves_the_body() -> void:
 	assert_eq(body.position, start + Vector2(200, 100), "the body follows the pointer")
 	assert_eq(DevManager.panel_position, body.position, "and DevManager keeps its place")
 
+## A pointer between pixels still leaves the body on whole pixels, so the place
+## DevManager keeps is one too.
+func test_a_drag_lands_on_whole_pixels() -> void:
+	var panel: DevPanel = _add_panel()
+	panel.set_open(true)
+	var body: Control = panel.get_node("%Body")
+	var start: Vector2 = body.position
+	_drag_title_bar(panel, start + Vector2(16, 8), start + Vector2(216.5, 108.5))
+	assert_eq(body.position, body.position.round(), "the body stands on whole pixels")
+	assert_eq(DevManager.panel_position, body.position, "and DevManager keeps that place")
+
+## The title bar, which drags the body, shows the move cursor.
+func test_the_title_bar_shows_the_move_cursor() -> void:
+	var panel: DevPanel = _add_panel()
+	assert_eq((panel.get_node("%TitleBar") as Control).mouse_default_cursor_shape, Control.CURSOR_MOVE)
+
+## A new launch opens the panel centred at the top of the screen, under the badge,
+## over the map rather than the cabinet, the Goals, the activity chest or the log.
+func test_the_panel_first_stands_at_the_top_centre() -> void:
+	# A DevManager that was never added to the tree holds the place a launch starts with.
+	var fresh: Node = DevManager.get_script().new()
+	DevManager.panel_position = fresh.panel_position
+	fresh.free()
+	assert_eq(DevManager.set_time_speed(10.0), "", "precondition: the badge shows")
+	var panel: DevPanel = _add_panel()
+	panel.set_open(true)
+	await get_tree().process_frame
+	var body: Rect2 = (panel.get_node("%Body") as Control).get_global_rect()
+	var badge: Rect2 = (panel.get_node("%SpeedBadge") as Control).get_global_rect()
+	assert_almost_eq(body.get_center().x, SCREEN_SIZE.x / 2.0, 1.0, "the body is centred")
+	assert_lt(body.position.y, SCREEN_SIZE.y / 2.0, "at the top")
+	assert_true(badge.end.y <= body.position.y, "under the badge")
+
+#-----------------------------------------------------------------------------
+# LEGIBILITY
+#-----------------------------------------------------------------------------
+
+## The panel's controls read at the size of its smaller labels: its own theme
+## (dev_panel_theme.tres) sets every button, field, dropdown list and tab title to
+## 18 px, where the game's theme leaves them at its 14 px default. Labels keep the
+## sizes of their variants.
+func test_the_controls_read_at_18_px() -> void:
+	var panel: DevPanel = _add_panel()
+	var option: OptionButton = panel.get_node("%SpeedOption")
+	var spin_box: SpinBox = panel.find_children("*", "SpinBox", true, false)[0]
+	var check: CheckButton = panel.find_children("*", "CheckButton", true, false)[0]
+	assert_eq((panel.get_node("%CloseButton") as Button).get_theme_font_size("font_size"), 18, "a button")
+	assert_eq(option.get_theme_font_size("font_size"), 18, "a dropdown")
+	assert_eq(option.get_popup().get_theme_font_size("font_size"), 18, "and its list")
+	assert_eq(spin_box.get_line_edit().get_theme_font_size("font_size"), 18, "a number field")
+	assert_eq(check.get_theme_font_size("font_size"), 18, "a switch")
+	assert_eq((panel.get_node("%Tabs") as TabContainer).get_theme_font_size("font_size"), 18, "the tab titles")
+	assert_eq((panel.find_child("TitleLabel", true, false) as Label).get_theme_font_size("font_size"), 24, "while the title keeps its variant's size")
+
 ## A place kept at a larger window, or a drag past an edge, never leaves any of the
 ## body, its title bar included, off screen.
 func test_the_body_stays_on_screen() -> void:
@@ -447,15 +501,16 @@ func test_speed_option_sets_the_speed() -> void:
 func test_badge_shows_only_above_x1() -> void:
 	assert_eq(DevManager.set_time_speed(10.0), "", "precondition: the game runs at ×10")
 	var panel: DevPanel = _add_panel()
-	var badge: Label = panel.get_node("%SpeedBadge")
+	var badge: Control = panel.get_node("%SpeedBadge")
+	var badge_label: Label = panel.get_node("%SpeedBadgeLabel")
 	var option: OptionButton = panel.get_node("%SpeedOption")
 	assert_false(panel.is_open(), "precondition: the panel is closed")
 	assert_true(badge.is_visible_in_tree(), "a panel built at ×10 shows the badge, closed")
-	assert_eq(badge.text, "×10")
+	assert_eq(badge_label.text, "×10")
 	assert_eq(option.get_item_text(option.selected), "×10", "and its picker reads ×10")
 	DevManager.set_time_speed(2.0)
 	assert_true(badge.is_visible_in_tree(), "the badge stays at ×2")
-	assert_eq(badge.text, "×2", "and reads it")
+	assert_eq(badge_label.text, "×2", "and reads it")
 	assert_eq(option.get_item_text(option.selected), "×2", "and so does the picker")
 	DevManager.set_time_speed(1.0)
 	assert_false(badge.visible, "at ×1 the badge hides")
@@ -519,8 +574,8 @@ func test_the_warning_wraps_clear_of_the_badge() -> void:
 	assert_gt(label.get_line_count(), 1, "precondition: the reason takes several lines")
 	var badge: Control = panel.get_node("%SpeedBadge")
 	assert_true(badge.is_visible_in_tree(), "precondition: the badge shows at ×10")
-	assert_false(warning.get_rect().intersects(badge.get_rect()), "the warning never covers the badge")
-	assert_true(Rect2(Vector2.ZERO, panel.size).encloses(warning.get_rect()), "it stands wholly on screen")
+	assert_false(warning.get_global_rect().intersects(badge.get_global_rect()), "the warning never covers the badge")
+	assert_true(panel.get_global_rect().encloses(warning.get_global_rect()), "it stands wholly on screen")
 	assert_eq(warning.mouse_filter, Control.MOUSE_FILTER_IGNORE, "and lets clicks through to the game")
 
 #-----------------------------------------------------------------------------
