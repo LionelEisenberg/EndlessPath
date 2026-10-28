@@ -246,8 +246,9 @@ func test_the_story_tab_comes_right_after_player() -> void:
 func test_the_long_labels_wrap() -> void:
 	var tab: DevStoryTab = _open_story_tab()
 	var row: Node = _rows(tab)[0]
+	# The actions header names the current zone, so it runs as long as the zone's name.
 	var labels: Array[Label] = [
-		_label(tab, "QuestsLabel"), _label(tab, "EventsLabel"), _status(tab),
+		_label(tab, "QuestsLabel"), _label(tab, "EventsLabel"), _status(tab), _label(tab, "ActionsHeader"),
 		_label(row, "NameLabel"), _label(row, "StatusLabel"),
 	]
 	for label: Label in labels:
