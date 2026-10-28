@@ -133,14 +133,14 @@ mouse_filter = 2
 theme_type_variation = &"LabelLacquerDetail"
 autowrap_mode = 3
 
-[node name="HeaderClip" type="Control" parent="." unique_id=1038477251]
+[node name="SlideClip" type="Control" parent="." unique_id=1038477251]
 clip_contents = true
 layout_mode = 0
 offset_right = 436.0
 offset_bottom = 1032.0
 mouse_filter = 2
 
-[node name="ActivitiesHeader" type="HBoxContainer" parent="HeaderClip" unique_id=797303341]
+[node name="ActivitiesHeader" type="HBoxContainer" parent="SlideClip" unique_id=797303341]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 16.0
@@ -150,14 +150,14 @@ offset_bottom = 207.0
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="HeaderLabel" type="Label" parent="HeaderClip/ActivitiesHeader" unique_id=838217074]
+[node name="HeaderLabel" type="Label" parent="SlideClip/ActivitiesHeader" unique_id=838217074]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 0
 theme_type_variation = &"LabelLacquerSection"
 text = "Activities"
 
-[node name="GrooveMargin" type="MarginContainer" parent="HeaderClip/ActivitiesHeader" unique_id=264818110]
+[node name="GrooveMargin" type="MarginContainer" parent="SlideClip/ActivitiesHeader" unique_id=264818110]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
@@ -167,12 +167,12 @@ theme_override_constants/margin_top = 13
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 0
 
-[node name="GrooveRow" type="HBoxContainer" parent="HeaderClip/ActivitiesHeader/GrooveMargin" unique_id=737243866]
+[node name="GrooveRow" type="HBoxContainer" parent="SlideClip/ActivitiesHeader/GrooveMargin" unique_id=737243866]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 0
 
-[node name="Groove" type="TextureRect" parent="HeaderClip/ActivitiesHeader/GrooveMargin/GrooveRow" unique_id=1301525753]
+[node name="Groove" type="TextureRect" parent="SlideClip/ActivitiesHeader/GrooveMargin/GrooveRow" unique_id=1301525753]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -182,13 +182,13 @@ texture = ExtResource("12_groove")
 expand_mode = 1
 stretch_mode = 1
 
-[node name="GrooveEnd" type="TextureRect" parent="HeaderClip/ActivitiesHeader/GrooveMargin/GrooveRow" unique_id=1694796323]
+[node name="GrooveEnd" type="TextureRect" parent="SlideClip/ActivitiesHeader/GrooveMargin/GrooveRow" unique_id=1694796323]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
 texture = ExtResource("13_groove_end")
 
-[node name="CountMargin" type="MarginContainer" parent="HeaderClip/ActivitiesHeader" unique_id=1047469226]
+[node name="CountMargin" type="MarginContainer" parent="SlideClip/ActivitiesHeader" unique_id=1047469226]
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
@@ -197,11 +197,20 @@ theme_override_constants/margin_top = 7
 theme_override_constants/margin_right = 0
 theme_override_constants/margin_bottom = 0
 
-[node name="CountLabel" type="Label" parent="HeaderClip/ActivitiesHeader/CountMargin" unique_id=1040916315]
+[node name="CountLabel" type="Label" parent="SlideClip/ActivitiesHeader/CountMargin" unique_id=1040916315]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"LabelLacquerDetail"
 text = "1 here"
+
+[node name="TechniqueList" parent="SlideClip" unique_id=1695010446 instance=ExtResource("16_techniques")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 208.0
+offset_right = 408.0
+offset_bottom = 280.0
 
 [node name="ActivityList" parent="." unique_id=593821855 instance=ExtResource("14_list")]
 unique_name_in_owner = true
@@ -210,15 +219,6 @@ offset_left = 12.0
 offset_top = 208.0
 offset_right = 424.0
 offset_bottom = 308.0
-
-[node name="TechniqueList" parent="." unique_id=1695010446 instance=ExtResource("16_techniques")]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_left = 16.0
-offset_top = 208.0
-offset_right = 408.0
-offset_bottom = 280.0
 
 [node name="LorePanel" type="Control" parent="." unique_id=187218867]
 unique_name_in_owner = true

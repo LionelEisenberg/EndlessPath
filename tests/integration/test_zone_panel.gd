@@ -76,9 +76,12 @@ const SCROLL_MARGIN: float = 24.0
 ## A technique drawer is 72 tall, with 8 between drawers (kit §5.5).
 const DRAWER_HEIGHT: float = 72.0
 const DRAWER_GAP: float = 8.0
-## The chest's inner right edge, where the header's clip cuts a header that
-## slides out (the chest art is 444 wide; its frame ends 8 px short of that).
-const HEADER_CLIP_WIDTH: float = 436.0
+## The chest's inner right edge, where the slide clip cuts a header or a drawer
+## that slides out (the chest art is 444 wide; its frame ends 8 px short of that).
+const SLIDE_CLIP_WIDTH: float = 436.0
+## What a drawer's art reaches beyond its 392 x 72 rect: its baked shadow on the
+## right and bottom, and the in-use drawer's pulled-out frame on the left and top.
+const DRAWER_ART_OVERHANG: float = 2.0
 
 ## GUT's output window's canvas layer.
 const GUT_LAYER: int = 128
@@ -1787,8 +1790,9 @@ func test_a_new_layout_from_the_technique_list_resizes_the_chest() -> void:
 # SLIDE SUPPORT
 #-----------------------------------------------------------------------------
 
-## The Control the Activities header sits in, which clips it.
-func _header_clip() -> Control:
+## The Control the Activities header and the technique list sit in, which clips
+## whatever slides past the chest's inner right edge.
+func _slide_clip() -> Control:
 	return (_node("ActivitiesHeader") as Control).get_parent() as Control
 
 ## The label row of an activity group: the row that holds its name and its groove.
@@ -1941,23 +1945,52 @@ func test_technique_slide_rows_are_the_drawers_top_to_bottom() -> void:
 	for drawer: Node in _technique_list().get_node("%Drawers").get_children():
 		assert_has(rows, drawer, "every drawer of the column")
 
-func test_the_header_and_technique_list_clip() -> void:
+func test_the_header_and_the_technique_list_sit_in_one_clip() -> void:
 	await _add_panel()
-	var clip: Control = _header_clip()
+	var clip: Control = _slide_clip()
 	assert_ne(clip, _panel, "the header sits in a clip of its own, not directly in the chest")
-	assert_eq(clip.name, &"HeaderClip")
-	assert_true(clip.clip_contents, "the header's clip cuts what slides past it")
+	assert_eq(clip.name, &"SlideClip")
+	assert_true(clip.clip_contents, "the clip cuts what slides past it")
 	assert_eq(clip.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 	assert_eq(clip.position, Vector2.ZERO)
-	assert_eq(clip.size, Vector2(HEADER_CLIP_WIDTH, FULL_CHEST_HEIGHT), "it ends at the chest's inner right edge")
+	assert_eq(clip.size, Vector2(SLIDE_CLIP_WIDTH, FULL_CHEST_HEIGHT), "it ends at the chest's inner right edge")
 	assert_eq(clip.get_parent(), _panel)
-	assert_true(_technique_list().clip_contents, "the technique list cuts its drawers at its edge")
+	assert_eq(_technique_list().get_parent(), clip, "the technique list sits in the same clip")
+	assert_false(_technique_list().clip_contents, "and does not cut its own drawers")
+
+## The part of the screen a node's clipping ancestors leave it: the overlap of
+## every ancestor's rect that has clip_contents on.
+func _visible_window(node: Control) -> Rect2:
+	var window := Rect2(Vector2(-100000.0, -100000.0), Vector2(200000.0, 200000.0))
+	var ancestor := node.get_parent() as Control
+	while ancestor != null:
+		if ancestor.clip_contents:
+			window = window.intersection(ancestor.get_global_rect())
+		ancestor = ancestor.get_parent() as Control
+	return window
+
+## At rest, nothing of a drawer is cut: its whole art (its rect grown by what the
+## baked shadow and the in-use frame reach beyond it) lies inside the window the
+## drawer's clipping ancestors leave it.
+func test_every_drawer_lies_inside_the_clip_at_rest() -> void:
+	_unlock_all_techniques()
+	await _add_panel()
+	_panel.set_techniques_mode(true)
+	await wait_process_frames(2)
+	var drawers: Array[Control] = _technique_list().get_slide_rows()
+	assert_eq(drawers.size(), 3, "precondition: three drawers")
+	assert_true((drawers[0] as TechniqueDrawer).is_in_use(), "precondition: the foundation drawer is pulled out")
+	for row: Control in drawers:
+		var drawer: TechniqueDrawer = row as TechniqueDrawer
+		var window: Rect2 = _visible_window(drawer)
+		assert_true(window.encloses(drawer.get_global_rect().grow(DRAWER_ART_OVERHANG)), "%s's drawer and its overhang lie inside the clip" % drawer.technique.id)
+		assert_true(window.encloses((drawer.get_node("%Face") as Control).get_global_rect()), "%s's face lies inside the clip" % drawer.technique.id)
 
 ## At rest, the header's whole text (the count at its right too) lies inside the clip.
 func test_the_header_text_fits_its_clip_at_rest() -> void:
 	_unlock_all_techniques()
 	await _add_panel()
-	var clip: Control = _header_clip()
+	var clip: Control = _slide_clip()
 	for mode_on: bool in [false, true]:
 		_panel.set_techniques_mode(mode_on)
 		await wait_process_frames(2)

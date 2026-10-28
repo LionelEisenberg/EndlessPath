@@ -32,9 +32,10 @@ extends Control
 ## holds the frame (its height, the middle slice, the bottom cap) to a height until
 ## clear_height_override lets it hug its list again; the lists keep their own layout
 ## meanwhile. get_slide_rows returns the Activities header and the rows of the list
-## that shows, which the transition slides by their position.x. The header sits in
-## HeaderClip, which ends at the chest's inner right edge, and the technique list
-## clips at its own edge, so a row slid to the right is cut where its clip ends.
+## that shows, which the transition slides by their position.x. The header and the
+## technique list sit in SlideClip, which ends at the chest's inner right edge, so
+## a row slid to the right is cut there and nothing is cut at rest. The activity
+## list's rows are cut by its scroll window.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
