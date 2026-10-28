@@ -13,9 +13,22 @@
 [ext_resource type="Texture2D" uid="uid://wuphpnbcq6g3" path="res://assets/sprites/inventory/tab_switcher/consumables_tab_icon.png" id="33_consicon"]
 [ext_resource type="Texture2D" uid="uid://b2uhfp6uhvrjt" path="res://assets/sprites/inventory/tab_switcher/materials_tab.png" id="34_maticon"]
 [ext_resource type="Texture2D" uid="uid://g2by347othvt" path="res://assets/sprites/inventory/tab_switcher/quest_items_tab_icon.png" id="35_qicon"]
+[ext_resource type="Theme" path="res://assets/themes/book_theme.tres" id="36_booktheme"]
 
 [node name="InventoryView" type="Control" unique_id=212600376 node_paths=PackedStringArray("page_content")]
 layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("36_booktheme")
+script = ExtResource("1_43eln")
+page_content = [NodePath("BookLayer/BookContent"), NodePath("PageLayer")]
+
+[node name="BookLayer" type="Control" parent="."]
+layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
@@ -24,10 +37,9 @@ anchor_bottom = 0.5
 grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(2, 2)
-script = ExtResource("1_43eln")
-page_content = [NodePath("BookContent")]
+mouse_filter = 2
 
-[node name="BookFrame" parent="." instance=ExtResource("2_bookframe")]
+[node name="BookFrame" parent="BookLayer" instance=ExtResource("2_bookframe")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -43,7 +55,7 @@ grow_horizontal = 2
 grow_vertical = 2
 style = ExtResource("2_bookstyle")
 
-[node name="BookContent" type="Control" parent="." unique_id=717265145]
+[node name="BookContent" type="Control" parent="BookLayer" unique_id=717265145]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -59,7 +71,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="TabSwitcher" type="Control" parent="BookContent" unique_id=8363853]
+[node name="TabSwitcher" type="Control" parent="BookLayer/BookContent" unique_id=8363853]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -70,7 +82,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4_tabsw")
 
-[node name="EquipmentTabButton" parent="BookContent/TabSwitcher" unique_id=615165500 instance=ExtResource("3_eyvfv")]
+[node name="EquipmentTabButton" parent="BookLayer/BookContent/TabSwitcher" unique_id=615165500 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -79,7 +91,7 @@ offset_right = 55.5
 offset_bottom = 95.0
 icon_texture = ExtResource("32_eqicon")
 
-[node name="ConsumablesTabButton" parent="BookContent/TabSwitcher" unique_id=321563705 instance=ExtResource("3_eyvfv")]
+[node name="ConsumablesTabButton" parent="BookLayer/BookContent/TabSwitcher" unique_id=321563705 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -88,7 +100,7 @@ offset_right = 55.5
 offset_bottom = 144.0
 icon_texture = ExtResource("33_consicon")
 
-[node name="MaterialsTabButton" parent="BookContent/TabSwitcher" unique_id=1287899700 instance=ExtResource("3_eyvfv")]
+[node name="MaterialsTabButton" parent="BookLayer/BookContent/TabSwitcher" unique_id=1287899700 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -97,7 +109,7 @@ offset_right = 55.5
 offset_bottom = 193.0
 icon_texture = ExtResource("34_maticon")
 
-[node name="QuestItemsTabButton" parent="BookContent/TabSwitcher" unique_id=931205040 instance=ExtResource("3_eyvfv")]
+[node name="QuestItemsTabButton" parent="BookLayer/BookContent/TabSwitcher" unique_id=931205040 instance=ExtResource("3_eyvfv")]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 55.5
@@ -106,19 +118,56 @@ offset_right = 55.5
 offset_bottom = 242.0
 icon_texture = ExtResource("35_qicon")
 
-[node name="EquipmentTab" parent="BookContent" unique_id=697996180 instance=ExtResource("6_k51tu")]
+[node name="PageLayer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="EquipmentTab" parent="PageLayer" unique_id=697996180 instance=ExtResource("6_k51tu")]
 unique_name_in_owner = true
 layout_mode = 1
+offset_left = -700.0
+offset_top = -450.0
+offset_right = -660.0
+offset_bottom = -410.0
+scale = Vector2(2, 2)
+mouse_filter = 2
 
-[node name="ConsumablesTab" parent="BookContent" unique_id=923432901 instance=ExtResource("31_constab")]
+[node name="ConsumablesTab" parent="PageLayer" unique_id=923432901 instance=ExtResource("31_constab")]
 unique_name_in_owner = true
 visible = false
+layout_mode = 1
+offset_left = -700.0
+offset_top = -450.0
+offset_right = -660.0
+offset_bottom = -410.0
+scale = Vector2(2, 2)
+mouse_filter = 2
 
-[node name="MaterialsTab" parent="BookContent" unique_id=47492188 instance=ExtResource("8_asm34")]
+[node name="MaterialsTab" parent="PageLayer" unique_id=47492188 instance=ExtResource("8_asm34")]
 unique_name_in_owner = true
 visible = false
-layout_mode = 0
+layout_mode = 1
+offset_left = -700.0
+offset_top = -450.0
+offset_right = -660.0
+offset_bottom = -410.0
+scale = Vector2(2, 2)
+mouse_filter = 2
 
-[node name="QuestItemsTab" parent="BookContent" unique_id=1012340856 instance=ExtResource("24_qtab")]
+[node name="QuestItemsTab" parent="PageLayer" unique_id=1012340856 instance=ExtResource("24_qtab")]
 unique_name_in_owner = true
 visible = false
+layout_mode = 1
+offset_left = -700.0
+offset_top = -450.0
+offset_right = -660.0
+offset_bottom = -410.0
+scale = Vector2(2, 2)
+mouse_filter = 2
