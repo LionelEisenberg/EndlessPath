@@ -42,7 +42,7 @@ Related docs:
      - between the two accessory slots: swap them
      - hovering a page slot mid-drag flips to that page
 
-     The item is held by its centre at full size. While dragging, printer's marks sit on the slot under the cursor if it would take the item, and on no slot that would refuse it.
+     The item is held by its centre at full size. While dragging, printer's marks sit on the slot the item would land in: the slot under the cursor, or for an item taken out of the discard slot, the bag's first free slot when the one under the cursor is taken. A slot that would refuse the item, and the slot it came from, get none.
    - **Right-click:** on a grid item, it equips. An accessory goes to the first free accessory slot, or to slot 0 if both are full. On an equipped item, it unequips to the first free grid slot.
    - **Filter:** clicking a word filters the page. The word in use is printed in dark ink in a pressed lozenge. Items outside it are faded into the paper (an opaque fade, never transparency) in shallow slots, and stay draggable. Empty slots count as outside it.
    - **Discard:** drop an item on the discard slot to hold it there; drag it back out to restore it. Empty, the discard slot is shallow with a printed ×; holding an item, it is deep and shows the item. Dropping a second item destroys the held one permanently and logs "Discarded <name>". Closing the book returns any held item to the inventory.
@@ -293,7 +293,14 @@ The Equipment tab uses a manual drag system, not Godot's built-in drag-and-drop:
 - Slots forward `gui_input` as `clicked(slot, event)`.
 - `EquipmentTab._input()` moves the floating `ItemInstance` (re-parented to the tab, 72×72 at `z_index` 10, centred on the cursor) and handles the button release. It reads each motion event's own `global_position`.
 - The tab hit-tests visible grid slots first, then gear slots, then the trash slot.
-- While dragging, the slot under the cursor gets printer's marks when the drop would be taken: a grid slot other than the origin, the trash slot, or a gear slot whose `is_valid_item()` passes. The drop clears them.
+- While dragging, printer's marks sit on the slot a drop would fill. The tab decides each drop once, from the target under the cursor, and both the drop and the marks act on that decision:
+  - a gear slot is marked when its `is_valid_item()` passes;
+  - the trash slot is marked unless the item came out of it;
+  - a grid slot is marked for a bag item, and for a worn item only when it is free or holds an item that fits the worn item's gear slot (the check `unequip_item_to_slot()` makes);
+  - for an item out of the trash, the grid slot `restore_equipment_instance()` would fill is marked, when it is on the page shown: the hovered slot when it is free, else the bag's first free slot;
+  - the slot the item came from is never marked.
+
+  The drop clears the marks.
 - The global index is `current_page * slots_per_page() + slot.get_index()`. The origin index is captured at pickup, so flipping pages mid-drag is safe.
 
 | Drag | Result |

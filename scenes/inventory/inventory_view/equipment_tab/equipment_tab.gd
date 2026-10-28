@@ -6,9 +6,10 @@ extends Control
 ## slots, the count, the discard slot). Right page: the gear figure
 ## (GearSelector) and the details panel (EquipmentDetails), which shows the
 ## item last pointed at and keeps to it while the bag changes. Printer's marks
-## sit round the slot the details show and, while dragging, round the slot that
-## would take the item. Handles drag/drop between grid slots (paged → global
-## index), gear slots, and the trash slot (hold-buffer).
+## sit round the slot the details show and, while dragging, round the slot a
+## drop would fill (never one that would refuse the item, never the slot it
+## came from). Handles drag/drop between grid slots (paged → global index),
+## gear slots, and the trash slot (hold-buffer).
 
 @onready var equipment_grid: EquipmentGrid = %EquipmentGrid
 @onready var gear_selector: Control = %GearSelector
@@ -27,6 +28,25 @@ const POSITION_OFFSET = Vector2(-36, -36)
 const DRAGGED_ITEM_SIZE := Vector2(72, 72)
 ## Draws the dragged item over the pages.
 const DRAGGED_ITEM_Z_INDEX := 10
+
+## What a drop does with the dragged item. _drop_item() acts on it and the
+## drag-target marks read it, so a slot is marked only where a drop would land.
+enum DropAction {
+	## Refused, or onto the slot it came from: the item goes back.
+	RETURN,
+	## Into the discard slot's hold.
+	DISCARD,
+	## Onto a gear slot of its type, from the bag or out of the discard slot.
+	EQUIP,
+	## From one accessory slot to the other.
+	SWAP_ACCESSORIES,
+	## From a gear slot into a grid slot, swapping with an item that fits.
+	UNEQUIP,
+	## From one grid slot to another, swapping with what is there.
+	MOVE,
+	## Out of the discard slot back into the bag.
+	RESTORE,
+}
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -224,7 +244,7 @@ func _input(event: InputEvent) -> void:
 		if event is InputEventMouseMotion:
 			var motion := event as InputEventMouseMotion
 			dragged_item.global_position = motion.global_position + POSITION_OFFSET
-			_mark_drag_target(_get_slot_under_mouse(motion.global_position))
+			_mark_drag_target(_landing_slot(_get_slot_under_mouse(motion.global_position)))
 		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_drop_item(get_global_mouse_position())
 
@@ -273,94 +293,114 @@ func _hold_dragged_item(global_mouse_pos: Vector2) -> void:
 	dragged_item.scale = Vector2(1.0, 1.0)
 	dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-## Marks `slot` while a drop there would be taken, and unmarks the last target.
-## Null, or a slot that would refuse the item, leaves no target marked.
+## Marks `slot`, the one a drop would fill, and unmarks the last target. Null
+## leaves no target marked.
 func _mark_drag_target(slot: InventorySlot) -> void:
-	var target: InventorySlot = slot if slot != null and _would_take_drop(slot) else null
-	if target == _drag_target:
+	if slot == _drag_target:
 		return
 	if _drag_target != null:
 		_drag_target.set_marked(false)
-	_drag_target = target
-	if target != null:
-		target.set_marked(true)
+	_drag_target = slot
+	if slot != null:
+		slot.set_marked(true)
 
-## True when dropping the dragged item on `slot` would be taken: the trash, a
-## grid slot other than the origin, or a gear slot of the item's type.
-func _would_take_drop(slot: InventorySlot) -> bool:
-	if slot is TrashSlot:
+## What a drop on `target` would do with the dragged item. Null, the slot it
+## came from, a gear slot of another type, or a grid slot a worn item can't go
+## into, sends it back.
+func _drop_action(target: InventorySlot) -> DropAction:
+	if target == null:
+		return DropAction.RETURN
+	if target is TrashSlot:
+		# Back into the discard slot it came out of is going back, not a discard.
+		return DropAction.RETURN if original_slot is TrashSlot else DropAction.DISCARD
+	if _drag_target_is_origin(target):
+		return DropAction.RETURN
+	if target is GearSlot:
+		if not (target as GearSlot).is_valid_item(dragged_item.item_instance_data):
+			return DropAction.RETURN
+		return DropAction.SWAP_ACCESSORIES if original_slot is GearSlot else DropAction.EQUIP
+	if original_slot is TrashSlot:
+		return DropAction.RESTORE
+	if original_slot is GearSlot:
+		if not _worn_item_fits(original_slot as GearSlot, _grid_global_index(target)):
+			return DropAction.RETURN
+		return DropAction.UNEQUIP
+	return DropAction.MOVE
+
+## The slot a drop on `target` would fill, for the drag-target marks: the
+## target itself, or for an item out of the discard slot, the grid slot
+## InventoryManager.restore_equipment_instance() would put it in. Null when the
+## drop sends the item back, or fills a slot on another page.
+func _landing_slot(target: InventorySlot) -> InventorySlot:
+	match _drop_action(target):
+		DropAction.RETURN:
+			return null
+		DropAction.RESTORE:
+			return _visible_grid_slot(_restore_index(_grid_global_index(target)))
+	return target
+
+## True when a worn item from `gear` can go into grid slot `index`: the slot is
+## free, or its item fits `gear` and the two swap. The same check
+## InventoryManager.unequip_item_to_slot() makes.
+func _worn_item_fits(gear: GearSlot, index: int) -> bool:
+	var equipment: Dictionary = InventoryManager.get_inventory().equipment
+	if not equipment.has(index):
 		return true
-	if slot is GearSlot:
-		return (slot as GearSlot).is_valid_item(dragged_item.item_instance_data)
-	return not _drag_target_is_origin(slot)
+	var occupant: ItemDefinitionData = (equipment[index] as ItemInstanceData).item_definition
+	return occupant is EquipmentDefinitionData and (occupant as EquipmentDefinitionData).slot_type == gear.slot_type
+
+## Where InventoryManager.restore_equipment_instance() puts an item dropped on
+## grid slot `index`: there when the slot is free and inside the bag, else the
+## bag's first free slot; -1 when the bag is full.
+func _restore_index(index: int) -> int:
+	var inventory: InventoryData = InventoryManager.get_inventory()
+	if index >= 0 and index < inventory.equipment_capacity() and not inventory.equipment.has(index):
+		return index
+	for free_index: int in inventory.equipment_capacity():
+		if not inventory.equipment.has(free_index):
+			return free_index
+	return -1
+
+## The grid slot showing global inventory `index` on the page shown, or null.
+func _visible_grid_slot(index: int) -> InventorySlot:
+	var slots: Array[InventorySlot] = equipment_grid.get_slots()
+	var local: int = index - equipment_grid.current_page * equipment_grid.slots_per_page()
+	if index < 0 or local < 0 or local >= slots.size():
+		return null
+	return slots[local]
 
 func _drop_item(global_mouse_pos: Vector2) -> void:
-	var target_slot = _get_slot_under_mouse(global_mouse_pos)
+	var target_slot: InventorySlot = _get_slot_under_mouse(global_mouse_pos)
 	dragged_item.scale = Vector2(1.0, 1.0)
-
-	# Trash drop short-circuits everything else.
-	if target_slot is TrashSlot:
-		_handle_trash_drop(target_slot as TrashSlot)
-		_cleanup_drag()
-		return
-
-	# Restoring from trash back into inventory.
-	if original_slot is TrashSlot:
-		if target_slot == null:
-			_return_to_original()
-			_cleanup_drag()
-			return
-		var inst: ItemInstanceData = dragged_item.item_instance_data
-		if target_slot is GearSlot:
+	var item_data: ItemInstanceData = dragged_item.item_instance_data
+	match _drop_action(target_slot):
+		DropAction.DISCARD:
+			_handle_trash_drop(target_slot as TrashSlot)
+		DropAction.EQUIP:
 			var gear: GearSlot = target_slot as GearSlot
-			if not gear.is_valid_item(inst):
-				_return_to_original()
-				_cleanup_drag()
-				return
-			InventoryManager.equip_item(inst, gear.slot_type, -1, gear.accessory_index)
-		else:
-			InventoryManager.restore_equipment_instance(inst, _grid_global_index(target_slot))
-		dragged_item.queue_free()
-		_cleanup_drag()
-		return
-
-	if target_slot and not _drag_target_is_origin(target_slot):
-		var item_data = dragged_item.item_instance_data
-
-		if target_slot is GearSlot:
-			if not target_slot.is_valid_item(item_data):
-				_return_to_original()
-				_cleanup_drag()
-				return
-
-		if target_slot is GearSlot:
-			# Dropping ONTO a gear slot (Equipping)
-			if not (original_slot is GearSlot):
-				var from_index = original_grid_index
-				InventoryManager.equip_item(item_data, target_slot.slot_type, from_index, target_slot.accessory_index)
-				dragged_item.queue_free()
-			else:
-				InventoryManager.swap_accessory_slots(original_slot.accessory_index, target_slot.accessory_index)
-				dragged_item.queue_free()
-
-		elif original_slot is GearSlot:
-			# Dropping FROM GearSlot TO Grid (Unequipping to a specific slot). If
-			# the target holds an item that can't go into this gear slot, the swap
-			# is rejected — return the dragged item to its slot rather than lose it.
-			var target_index = _grid_global_index(target_slot)
-			if InventoryManager.unequip_item_to_slot(original_slot.slot_type, target_index, original_slot.accessory_index):
-				dragged_item.queue_free()
-			else:
-				_return_to_original()
-		else:
-			# Grid -> Grid (Reordering)
-			var from_index = original_grid_index
-			var to_index = _grid_global_index(target_slot)
-			InventoryManager.move_equipment(from_index, to_index)
+			# An item out of the discard slot leaves no grid slot behind.
+			var from_index: int = -1 if original_slot is TrashSlot else original_grid_index
+			InventoryManager.equip_item(item_data, gear.slot_type, from_index, gear.accessory_index)
 			dragged_item.queue_free()
-	else:
-		_return_to_original()
-
+		DropAction.SWAP_ACCESSORIES:
+			InventoryManager.swap_accessory_slots((original_slot as GearSlot).accessory_index, (target_slot as GearSlot).accessory_index)
+			dragged_item.queue_free()
+		DropAction.UNEQUIP:
+			# _drop_action() checked the target fits; should the manager refuse
+			# all the same, the item goes back rather than being lost.
+			var worn: GearSlot = original_slot as GearSlot
+			if InventoryManager.unequip_item_to_slot(worn.slot_type, _grid_global_index(target_slot), worn.accessory_index):
+				dragged_item.queue_free()
+			else:
+				_return_to_original()
+		DropAction.MOVE:
+			InventoryManager.move_equipment(original_grid_index, _grid_global_index(target_slot))
+			dragged_item.queue_free()
+		DropAction.RESTORE:
+			InventoryManager.restore_equipment_instance(item_data, _grid_global_index(target_slot))
+			dragged_item.queue_free()
+		DropAction.RETURN:
+			_return_to_original()
 	_cleanup_drag()
 
 #-----------------------------------------------------------------------------

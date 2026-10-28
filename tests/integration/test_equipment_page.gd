@@ -12,6 +12,7 @@ const COWL: EquipmentDefinitionData = preload("res://resources/items/equipment/s
 const ROBES: EquipmentDefinitionData = preload("res://resources/items/equipment/spirit_valley/reinforced_robes.tres")
 const NECKLACE: EquipmentDefinitionData = preload("res://resources/items/equipment/spirit_valley/dreadbeast_tooth_necklace.tres")
 const BARK: EquipmentDefinitionData = preload("res://resources/items/equipment/spirit_valley/scripted_bark.tres")
+const SWORD: EquipmentDefinitionData = preload("res://resources/items/equipment/spirit_valley/iron_shortsword.tres")
 
 var _saved_inventory: InventoryData = null
 var _view: MenuBookView = null
@@ -300,6 +301,70 @@ func test_drag_marks_only_a_slot_that_would_take_the_item() -> void:
 	assert_false(tab.trash_slot.is_marked(), "the drop clears the target")
 	await wait_process_frames(2)
 	assert_true(slots[0].is_marked(), "the marks are back on the dagger")
+
+func test_worn_gear_over_a_mismatched_item_marks_nothing() -> void:   # Ruling R13
+	var tab: Control = await _open_tab()
+	for def: EquipmentDefinitionData in [DAGGER, COWL, SWORD]:
+		InventoryManager.award_items(def, 1)
+	var inventory: InventoryData = InventoryManager.get_inventory()
+	var dagger: ItemInstanceData = inventory.equipment[0]
+	InventoryManager.equip_item(dagger, EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, 0)
+	var slots: Array[InventorySlot] = tab.equipment_grid.get_slots()
+	var main_hand: GearSlot = _gear_slot(tab, "MainWeaponGearSlot")
+	tab._on_slot_input(main_hand, _press(MOUSE_BUTTON_LEFT, main_hand.get_global_rect().get_center()))
+	assert_true(tab.is_dragging, "the worn dagger is picked up")
+	tab._input(_motion(slots[1].get_global_rect().get_center()))
+	assert_false(slots[1].is_marked(), "the cowl can't go to the main hand, so a drop there is refused")
+	tab._input(_motion(slots[2].get_global_rect().get_center()))
+	assert_true(slots[2].is_marked(), "the shortsword fits the main hand: the two would swap")
+	tab._input(_motion(slots[0].get_global_rect().get_center()))
+	assert_true(slots[0].is_marked(), "an empty slot takes it")
+	tab._drop_item(slots[1].get_global_rect().get_center())
+	assert_eq(inventory.equipped_gear.get(EquipmentDefinitionData.EquipmentSlot.MAIN_HAND), dagger, "dropped on the cowl, the dagger goes back to the main hand")
+	assert_eq((inventory.equipment.get(1) as ItemInstanceData).item_definition, COWL, "and the cowl stays put")
+
+func test_a_gear_origin_drag_back_over_its_own_slot_marks_nothing() -> void:   # Ruling R13
+	var tab: Control = await _open_tab()
+	InventoryManager.award_items(DAGGER, 1)
+	InventoryManager.equip_item(InventoryManager.get_inventory().equipment[0], EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, 0)
+	var main_hand: GearSlot = _gear_slot(tab, "MainWeaponGearSlot")
+	var centre: Vector2 = main_hand.get_global_rect().get_center()
+	tab._on_slot_input(main_hand, _press(MOUSE_BUTTON_LEFT, centre))
+	tab._input(_motion(tab.equipment_grid.get_slots()[3].get_global_rect().get_center()))
+	tab._input(_motion(centre))
+	assert_false(main_hand.is_marked(), "the slot it came from is never a target")
+
+func test_an_item_out_of_the_discard_slot_marks_the_slot_it_would_fill() -> void:   # Ruling R13
+	var tab: Control = await _open_tab()
+	InventoryManager.award_items(DAGGER, 1)
+	InventoryManager.award_items(COWL, 1)
+	var robes: ItemInstanceData = _instance(ROBES)
+	var trash: TrashSlot = tab.trash_slot
+	trash.accept(robes)
+	var slots: Array[InventorySlot] = tab.equipment_grid.get_slots()
+	tab._on_slot_input(trash, _press(MOUSE_BUTTON_LEFT, trash.get_global_rect().get_center()))
+	assert_true(tab.is_dragging, "the robes are picked up out of the discard slot")
+	tab._input(_motion(slots[0].get_global_rect().get_center()))
+	assert_false(slots[0].is_marked(), "the dagger holds that slot: the robes wouldn't land there")
+	assert_true(slots[2].is_marked(), "they would land in the bag's first free slot")
+	tab._input(_motion(slots[7].get_global_rect().get_center()))
+	assert_true(slots[7].is_marked(), "dropped on an empty slot, they land in it")
+	assert_false(slots[2].is_marked())
+	tab._input(_motion(trash.get_global_rect().get_center()))
+	assert_false(trash.is_marked(), "nor is the discard slot they came out of a target")
+	tab._drop_item(slots[0].get_global_rect().get_center())
+	assert_eq(InventoryManager.get_inventory().equipment.get(2), robes, "dropped on the dagger, the robes land in the first free slot")
+
+func test_an_item_out_of_the_discard_slot_marks_nothing_when_it_would_land_out_of_sight() -> void:   # Ruling R13
+	var tab: Control = await _open_tab()
+	InventoryManager.award_items(DAGGER, InventoryData.SLOTS_PER_PAGE)   # the page shown is full
+	var trash: TrashSlot = tab.trash_slot
+	trash.accept(_instance(ROBES))
+	var slots: Array[InventorySlot] = tab.equipment_grid.get_slots()
+	tab._on_slot_input(trash, _press(MOUSE_BUTTON_LEFT, trash.get_global_rect().get_center()))
+	tab._input(_motion(slots[0].get_global_rect().get_center()))
+	var marked: Array[InventorySlot] = slots.filter(func(slot: InventorySlot) -> bool: return slot.is_marked())
+	assert_eq(marked.size(), 0, "the first free slot is on the next page, so nothing on this one is marked")
 
 func test_a_drop_moves_the_marks_to_where_the_item_lands() -> void:
 	var tab: Control = await _open_tab()
