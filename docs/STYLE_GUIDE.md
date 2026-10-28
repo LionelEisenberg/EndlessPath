@@ -584,7 +584,7 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 
 | Step | Rows | Why this order |
 |---|---|---|
-| 0. Decide | G1, G2, G4 | They block the most rows: the backdrop (every overlay), the rest of the palette (damage, gains, the merchant) and icon sizes (merchant, end card, hotbars) |
+| 0. Decide | G1, G2, G4 | They block the most rows: the backdrop (every overlay), the rest of the palette (damage, gains, the merchant) and icon sizes (merchant, end card, item tooltip) |
 | 1. Foundations | F1–F7 | Shared art and theme types every later area needs. The render fix is cheap and global. The backdrop and the floater have three or more users each |
 | 2. Zone view overlays | Z1, Z2 | They sit on top of the finished zone view, so the clash is most visible there. The merchant is the first real user of the new board, button and tooltip pieces |
 | 3. Dialogue | D1 | Shown over the zone view and from encounters. One timeline today, so the risk is small, but it needs a custom Dialogic layer |
