@@ -10,7 +10,7 @@
 | **Unlock condition** | A named predicate (`UnlockConditionData`) over events, levels, resources, attributes, or items | `resources/unlocks/*.tres`, plus inline sub-resources | **Latched** once registered in `unlock_condition_list.tres` and true. **Live** when a consumer calls `evaluate()`. |
 | **Quest step** | One stage of a linear quest | `QuestStepData` inside `resources/quests/q_*.tres` | Advances once, on its event **or** when all of its conditions are true |
 
-Events are signals; conditions are predicates. Zone tiles and zone actions gate only on **latched** conditions. Quest steps, encounter eligibility, and choice requirements evaluate conditions **live**.
+Events are signals; conditions are predicates. Zone tiles, zone actions and the Goals board's Breakthrough milestone gate only on **latched** conditions. Quest steps, encounter eligibility, and choice requirements evaluate conditions **live**.
 
 ## Decision tree
 
@@ -59,7 +59,8 @@ A moment happens in the game.
 | NPC 2 talked | `celestial_intervener_dialogue_2` | *(none)* | Only `q_fill_core` step 1 consumes it |
 | `q_fill_core` completes | `q_fill_core_completed` (from `completion_effects`) | `q_fill_core_completed` (registered) | Adventure and Foraging gate on it |
 | First combat won | `q_first_steps_enemy_defeated` (code, `AdventureCombat`) | `q_first_steps_enemy_defeated` (registered) | Quest step 0 advances on the event; NPC 3 gates on the condition |
-| NPC 3 / NPC 4 talked | `celestial_intervener_dialogue_3` / `_4` | *(none)* | Only the quests' `return_to_npc` steps consume them |
+| NPC 3 talked | `celestial_intervener_dialogue_3` | *(none)* | Only `q_first_steps`' `return_to_npc` step consumes it |
+| NPC 4 talked | `celestial_intervener_dialogue_4` | `celestial_intervener_dialogue_4` (EVENT_TRIGGERED, registered) | `q_reach_core_density_10`'s `return_to_npc` step advances on the event; Foundation's `breakthrough_goal_condition` puts the Breakthrough on the Goals board (latched) |
 | Core Density reaches 10 | *(none: a state)* | `q_reach_cd_10` (CULTIVATION_LEVEL ≥ 10, registered) | Quest step 0 and NPC 4 visibility |
 | Core Density reaches 100 (the core is full) | *(none: a state)* | `core_density_full` (CULTIVATION_LEVEL ≥ 100, registered) | Gates the Tribulation card (latched, so the card stays after a failure costs levels) |
 | Aura Well "Mark down the location" | `aura_well_discovered` | `aura_well_discovered` (registered) | Gates the training action (latched). Also the choice's `requirements` (expected `false`) and `completion_condition` (live). |
