@@ -142,7 +142,8 @@ ConsumablesTab (Control, 1400×900, mouse ignored) — consumables_tab.gd: the l
     ConsumablesInventoryList (InventoryList) — rows 428 wide, the rail 12 px after them; on this instance the
                                              ScrollContainer doesn't clip (ListFrame does) and the rows sit 0 px apart
       ConsumableRow per stack              — consumable_row.tscn/.gd (VBoxContainer):
-                                             Body (≥ 428×72: Well/Icon, Name over Effect, Count; Marks), then Rule 4 px under it
+                                             Upper (Body ≥ 428×72: Well/Icon, Name over Effect, Count; RuleGap 4 px;
+                                             Marks round both), then Rule. The last row hides RuleGap and Rule
   EmptyLabel                               — "No consumables yet."
   RightTitle (PageTitle)                   — "Hotbar"
   ConsumablesHotbar (VBoxContainer)        — consumables_hotbar.gd
@@ -185,7 +186,7 @@ QuestItemsTab (Control)                    — quest_items_tab.gd
 | `InventoryScrollHost` (base: `add_slot` / `clear_slots` / `get_slots`, binds ScrollRail) | `scenes/inventory/common/inventory_scroll_host.gd` |
 | `InventoryGrid` (GridContainer content, `columns` export, default 6) | `scenes/inventory/common/inventory_grid/` |
 | `InventoryList` (VBoxContainer content) | `scenes/inventory/common/inventory_list/` |
-| `ScrollRail` (a pressed groove at the host's height with a 4 px ink thumb; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` |
+| `ScrollRail` (a pressed groove at the host's height; its 4 px ink thumb is as long as the share of the groove's floor the host shows, never shorter than its art, and follows every scroll, by wheel or from code, on even pixels; hides itself when content fits) | `scenes/inventory/common/scroll_rail/` |
 | `SortSubBanner` (arrows + dots, `option_changed(index)`, `enabled`) | `scenes/inventory/common/sort_sub_banner/` |
 | `GridToolbar` (count label + TrashSlot) | `scenes/inventory/common/grid_toolbar/` |
 | `TabBanner` (`@tool`; `title`, `title_font_size` exports) | `scenes/inventory/common/tab_banner/` |
@@ -399,6 +400,7 @@ The hotbar uses Godot's built-in drag-and-drop:
 - Its table holds one `TableRow` per effect, captioned by `BookText.effect_label()`, with the effect's `describe()` as the value: its decimal point set by `LacquerText.decimal_bbcode()`, then its Madra amounts in Madra ink by `BookText.color_madra()`. A `COOLDOWN` row with `BookText.seconds()` follows when the cooldown is above 0. A row's caption and value share a baseline, its pressed rule 8 px under it, clear of descenders.
 - The panel is laid out to the mockup's Crude Scale, which fills the spec's (1008, 512) to (1476, 824), and grows downward with longer text.
 - `ConsumableRow.set_marked()` and `HotbarSlot.set_marked()` show a row's or a slot's printer's marks. The tab marks what the player pointed at: a row, or a filled hotbar slot. A hotbar slot's marks also show while a dragged consumable hovers it, and a drag passing over the slot the details show leaves its marks in place.
+- A row's marks bracket its slot and its rule as the mockup draws them: (444, 292) to (886, 382) round the first row. The last row has no rule, so its marks end 6 px under its slot, inside the list's frame. `ConsumableRow.set_rule_visible()` hides the rule and the 4 px gap over it together.
 - `ConsumablesTab.open_page()` rebuilds the list, then shows the first stack, or hides the details when the pack is empty. `InventoryView` calls it on opening the book and on every page turn.
 - After every `inventory_changed` the tab rebuilds the list when the stacks changed, then follows the consumable shown. It reprints its hotbar slot, and keeps the marks on the hotbar slot pointed at while that slot still holds it, otherwise on its row. When the consumable has left the pack, the tab shows the first stack.
 

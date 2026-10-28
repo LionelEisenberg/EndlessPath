@@ -6,8 +6,13 @@ extends VBoxContainer
 ## slot, its name with what it does under it, how many the player has at the
 ## right, and a pressed rule under the row (4 px under the slot). The name and
 ## what it does wrap, and the row grows with them. A row whose rule is hidden,
-## the last, takes no room for it. Printer's marks sit round the row while the
-## details show it.
+## the last, takes no room for it.
+##
+## Printer's marks sit round the row while the details show it, as the mockup
+## draws them: 8 px out at the top and left and 6 px past the right end. At
+## the bottom they take in the rule, ending 10 px under the slot, or 6 px under
+## it when the rule is hidden. They frame the slot area with %RuleGap, the 4 px
+## over the rule, which hides with the rule.
 ##
 ## Drag a row onto a combat hotbar slot to equip it. The row emits hovered
 ## when the pointer enters it, and clicked on a left release that does not end
@@ -24,6 +29,7 @@ const _DRAG_PREVIEW_SCENE: PackedScene = preload("res://scenes/inventory/pressed
 @onready var _effect: RichTextLabel = %Effect
 @onready var _count: Label = %Count
 @onready var _marks: Panel = %Marks
+@onready var _rule_gap: Control = %RuleGap
 @onready var _rule: HSeparator = %Rule
 
 var _def: ConsumableDefinitionData = null
@@ -53,9 +59,10 @@ func set_marked(marked: bool) -> void:
 func is_marked() -> bool:
 	return _marks.visible
 
-## Shows or hides the pressed rule under the row. Hidden, the rule takes no
-## room, so the row ends at its slot.
+## Shows or hides the pressed rule under the row. Hidden, the rule and the gap
+## over it take no room, so the row and its marks end at its slot.
 func set_rule_visible(rule_visible: bool) -> void:
+	_rule_gap.visible = rule_visible
 	_rule.visible = rule_visible
 
 #-----------------------------------------------------------------------------

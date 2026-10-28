@@ -149,17 +149,40 @@ func test_rows_sit_where_the_spec_puts_them() -> void:   # Rulings R14, R17
 	assert_eq(count.get_global_rect().end.x, 876.0, "the count's right edge")
 	assert_eq(_baseline(count), 346.0, "the count, baseline +46")
 	assert_eq((first.get_node("%Rule") as Control).get_global_rect(), Rect2(452, 376, 428, 4), "the rule 4 px under the slot, touching the next one")
-	assert_eq((first.get_node("%Marks") as Control).get_global_rect(), Rect2(444, 292, 440, 84), "the marks reach 8 px out at the top left and 4 px at the bottom right")
+	assert_eq((first.get_node("%Marks") as Control).get_global_rect(), Rect2(444, 292, 442, 90), "the marks bracket the slot and its rule, as in the mockup: (444, 292) to (886, 382)")
 
-func test_the_groove_sits_beside_the_list() -> void:   # Rulings R3, R15, R17
+func test_the_last_rows_marks_bracket_its_slot_inside_the_frame() -> void:   # Ruling R18
+	for index: int in 7:
+		InventoryManager.award_items(_consumable("pill_%d" % index, "Pill %d" % index), 1)
+	var tab: Control = await _open_tab()
+	var last: ConsumableRow = _rows(tab)[6]
+	last.hovered.emit(last)
+	await wait_process_frames(1)
+	var marks: Rect2 = (last.get_node("%Marks") as Control).get_global_rect()
+	assert_eq(marks, Rect2(444, 772, 442, 86), "no rule to bracket: 6 px out round the slot, ending at 858")
+	assert_true((tab.get_node("ListFrame") as Control).get_global_rect().encloses(marks), "inside the frame, so they show whole")
+
+func test_the_groove_sits_beside_the_list() -> void:   # Rulings R3, R15, R17, R19
 	for index: int in 8:
 		InventoryManager.award_items(_consumable("pill_%d" % index, "Pill %d" % index), 1)
 	var tab: Control = await _open_tab()
 	assert_eq((tab.get_node("%ConsumablesInventoryList") as Control).get_global_rect(), Rect2(452, 300, 452, 552))
 	assert_eq(_rail(tab).get_global_rect(), Rect2(892, 300, 10, 552), "x 892 to 902, y 300 to 852")
 	var thumb: Control = _rail(tab).get_node("%Grabber") as Control
-	assert_eq(thumb.size, Vector2(4, 48))
-	assert_eq(thumb.position.x, 2.0, "the thumb lies in the groove's floor, as in the mockup")
+	assert_eq(thumb.position, Vector2(2, 2), "at rest the thumb starts at the top of the groove's floor")
+	assert_eq(thumb.size, Vector2(4, 478), "seven rows of eight in view: the 548 px floor times 552 / 632, to even pixels")
+
+func test_the_thumb_follows_the_scroll_on_even_pixels() -> void:   # Ruling R19
+	for index: int in 8:
+		InventoryManager.award_items(_consumable("pill_%d" % index, "Pill %d" % index), 1)
+	var tab: Control = await _open_tab()
+	var scroll: ScrollContainer = tab.get_node("%ConsumablesInventoryList").get_node("%ScrollContainer") as ScrollContainer
+	var thumb: Control = _rail(tab).get_node("%Grabber") as Control
+	scroll.scroll_vertical = 1000   # past the end: the list stops at its last row
+	assert_eq(thumb.position.y, 72.0, "at full scroll it ends 2 px above the groove's foot: 552 - 2 - 478")
+	scroll.scroll_vertical = 40
+	assert_eq(thumb.position.y, 38.0, "set from code, half way: 2 + 35, to even pixels")
+	assert_eq(thumb.size.y, 478.0, "its length holds while it moves")
 
 func test_the_list_frame_lets_the_marks_show_whole() -> void:   # Ruling R15
 	InventoryManager.award_items(CRUDE, 1)
