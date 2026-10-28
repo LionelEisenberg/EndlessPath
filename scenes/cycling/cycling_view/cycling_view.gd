@@ -12,8 +12,10 @@ extends Control
 ## The cabinet on the left is the Madra and Core Density readout, so the view
 ## has none of its own: the Madra pellets fly from the ball into the cabinet's
 ## Madra orb and the XP pellets from a zone into its Core orb (none while the
-## core is full, which takes no XP). MainView hands the cabinet over in
-## cultivator_plate; with none, no pellet is sent.
+## core is full, which takes no XP). The cabinet holds what each pellet carries
+## out of its readout until the pellet lands, so its orbs fill as the pellets
+## arrive. MainView hands the cabinet over in cultivator_plate; with none, no
+## pellet is sent.
 ## The view shows and hides outright. While it shows it updates the status
 ## line, the zone floaters and the cursor every frame and the technique plays;
 ## once it hides both stop, the running cycle ends, every floater is hidden and
@@ -253,11 +255,12 @@ static func _fit_lines(label: Label) -> void:
 
 ## Instances a pellet into the effects layer, which draws over the board, and
 ## sends it along `flight` in `ramp`.
-func _send_pellet(flight: PelletFlight, ramp: LacquerPellet.Ramp) -> void:
+func _send_pellet(flight: PelletFlight, ramp: LacquerPellet.Ramp) -> LacquerPellet:
 	var pellet: LacquerPellet = _PELLET_SCENE.instantiate() as LacquerPellet
 	_effects_layer.add_child(pellet)
 	pellet.set_ramp(ramp)
 	pellet.fly(flight)
+	return pellet
 
 ## Frees every pellet in flight. Each leaves the effects layer at once, so the
 ## layer holds none even before the frees land.
@@ -360,19 +363,23 @@ func _on_cycle_completed(result: CycleResult) -> void:
 	LogManager.log_message("[color=cyan]%s[/color]" % result.log_line())
 	_cycled_before = true
 
-## A step of Madra left the ball: the stream's next pellet flies to the
-## cabinet's Madra orb.
-func _on_madra_particle_requested(from_pos: Vector2) -> void:
+## A step of Madra left the ball: the stream's next pellet carries it to the
+## cabinet's Madra orb, which shows it once the pellet lands.
+func _on_madra_particle_requested(from_pos: Vector2, amount: float) -> void:
 	if cultivator_plate == null:
 		return
 	var orb: Vector2 = cultivator_plate.get_madra_orb_global_position()
-	_send_pellet(PelletFlight.stream(from_pos, orb, MADRA_PELLET_FLIGHT, MADRA_PELLET_BOW, _madra_pellets_sent), LacquerPellet.Ramp.MADRA)
+	var pellet: LacquerPellet = _send_pellet(PelletFlight.stream(from_pos, orb, MADRA_PELLET_FLIGHT, MADRA_PELLET_BOW, _madra_pellets_sent), LacquerPellet.Ramp.MADRA)
 	_madra_pellets_sent += 1
+	cultivator_plate.hold_madra(amount)
+	pellet.delivered.connect(cultivator_plate.release_madra.bind(amount))
 
 ## A zone scored: its floater pops with the hit and its XP in the tier's colour,
 ## and the tier's pellets burst out of the zone and home into the cabinet's Core
-## orb. A full core takes no XP, so the floater says "Core full" where the XP
-## would be ("PERFECT · Core full") and no pellet flies.
+## orb, each carrying an even share of the XP, which the cabinet shows as each
+## lands. A full core takes no XP, so the floater says "Core full" where the XP
+## would be ("PERFECT · Core full") and no pellet flies. Short of full the core
+## took every XP of the hit, so the shares add up to what it gained.
 func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> void:
 	var core_full: bool = CultivationManager.is_core_full()
 	var zone_index: int = _technique.cycling_zones.find(zone)
@@ -391,8 +398,11 @@ func _on_zone_scored(zone: CyclingZone, tier: CyclingRules.Tier, xp: int) -> voi
 		XP_PELLET_FLIGHT,
 		XP_PELLET_FLIGHT_STEP,
 		XP_BURST_REACH)
+	var share: float = float(xp) / flights.size()
 	for flight: PelletFlight in flights:
-		_send_pellet(flight, _pellet_ramp(tier))
+		var pellet: LacquerPellet = _send_pellet(flight, _pellet_ramp(tier))
+		cultivator_plate.hold_core_xp(share)
+		pellet.delivered.connect(cultivator_plate.release_core_xp.bind(share))
 
 func _on_auto_toggled(on: bool) -> void:
 	_technique.auto_cycle = on

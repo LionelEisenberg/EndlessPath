@@ -308,6 +308,121 @@ func test_bead_lights_at_its_share() -> void:
 	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 1), "one bead's share")
 
 #-----------------------------------------------------------------------------
+# PELLETS IN FLIGHT
+#-----------------------------------------------------------------------------
+
+## The cost of each level of the fresh Foundation stage, for rewind_core.
+func _cost(level: int) -> float:
+	return CultivationManager.get_xp_for_level(level)
+
+## Madra on its way to the orb is left out of the figure and the fill until it
+## lands.
+func test_held_madra_shows_once_released() -> void:
+	ResourceManager.set_madra(46.0)
+	_plate.hold_madra(6.0)
+	assert_eq(_text("MadraValueLabel"), "40", "the 6 in flight is not in the orb yet")
+	assert_almost_eq(_fill("MadraOrb"), 0.40, 0.0001)
+	_plate.release_madra(4.0)
+	assert_eq(_text("MadraValueLabel"), "44")
+	_plate.release_madra(2.0)
+	assert_eq(_text("MadraValueLabel"), "46", "all of it landed")
+	assert_almost_eq(_fill("MadraOrb"), 0.46, 0.0001)
+
+## Madra drawn while pellets fly still shows less what is in flight.
+func test_held_madra_follows_the_madra_signal() -> void:
+	_plate.hold_madra(5.0)
+	ResourceManager.set_madra(60.0)
+	assert_eq(_text("MadraValueLabel"), "55")
+
+## Thirds of a step released three times leave float dust, which counts as none,
+## so the figure ends on the Madra itself.
+func test_releasing_what_was_held_leaves_nothing_held() -> void:
+	ResourceManager.set_madra(50.0)
+	for third: int in 3:
+		_plate.hold_madra(1.0 / 3.0)
+	for third: int in 3:
+		_plate.release_madra(1.0 / 3.0)
+	assert_eq(_text("MadraValueLabel"), "50")
+	assert_almost_eq(_fill("MadraOrb"), 0.5, 0.0000001)
+
+func test_held_madra_never_shows_below_zero() -> void:
+	ResourceManager.set_madra(3.0)
+	_plate.hold_madra(5.0)
+	assert_eq(_text("MadraValueLabel"), "0")
+	assert_almost_eq(_fill("MadraOrb"), 0.0, 0.0001)
+
+## XP on its way to the Core orb is left out of the figure and the beads.
+func test_held_xp_shows_once_released() -> void:
+	CultivationManager.add_core_density_xp(5.0)
+	_plate.hold_core_xp(5.0)
+	assert_eq(_text("XpLabel"), "0 / 10 XP")
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 0))
+	_plate.release_core_xp(2.5)
+	assert_eq(_text("XpLabel"), "2 / 10 XP")
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 4), "a pellet's share lights its beads")
+	_plate.release_core_xp(2.5)
+	assert_eq(_text("XpLabel"), "5 / 10 XP")
+	assert_eq((_node("XpBeads") as LacquerStripRect).get_frame(), Vector2i(0, 9))
+
+## A hit that levels the core up shows the old level, its beads filling, until
+## enough of its pellets land to cross it. 8.5 XP, so float dust in the sums
+## still floors to 8.
+func test_held_xp_holds_back_a_level_up() -> void:
+	_load_core_density(5.0, 8.5)
+	var need: float = CultivationManager.get_xp_for_next_level()
+	CultivationManager.add_core_density_xp(need)
+	assert_eq(_text("LevelLabel"), "Level 6", "precondition: the hit levelled the core up")
+	_plate.hold_core_xp(need)
+	assert_eq(_text("LevelLabel"), "Level 5", "still the old level while the XP flies")
+	assert_eq(_text("XpLabel"), "8 / %d XP" % floori(need))
+	assert_almost_eq(_fill("CoreOrb"), 0.05, 0.0001, "and the old level's spiral")
+	_plate.release_core_xp(need - 8.0)
+	assert_eq(_text("LevelLabel"), "Level 6", "crossed once enough has landed")
+	_plate.release_core_xp(8.0)
+	assert_eq(_text("XpLabel"), "8 / %d XP" % floori(CultivationManager.get_xp_for_next_level()))
+
+## The Madra max is the shown level's, so it does not run ahead of a level-up
+## still in flight.
+func test_held_xp_shows_the_madra_max_of_the_level_shown() -> void:
+	_load_core_density(5.0, 8.5)
+	CultivationManager.add_core_density_xp(CultivationManager.get_xp_for_next_level())
+	assert_eq(_text("MadraMaxLabel"), "/ 130", "precondition: level 6's max")
+	_plate.hold_core_xp(9.0)
+	assert_eq(_text("LevelLabel"), "Level 5", "precondition: 9 XP back is under level 6")
+	assert_eq(_text("MadraMaxLabel"), "/ 125", "level 5's while the level-up flies")
+	_plate.release_core_xp(9.0)
+	assert_eq(_text("MadraMaxLabel"), "/ 130")
+
+## The XP that fills the core flies no pellets, but held XP over a full core
+## shows the core short of full.
+func test_held_xp_shows_a_full_core_short_of_full() -> void:
+	_load_core_density(100.0, 0.0)
+	_plate.hold_core_xp(3.0)
+	assert_eq(_text("LevelLabel"), "Level 99")
+	assert_ne(_text("XpLabel"), "Core full")
+	_plate.release_core_xp(3.0)
+	assert_eq(_text("XpLabel"), "Core full")
+
+func test_rewind_core_within_a_level() -> void:
+	assert_eq(CultivatorPlate.rewind_core(4, 7.0, 3.0, _cost), Vector2(4, 4.0))
+	assert_eq(CultivatorPlate.rewind_core(4, 7.0, 0.0, _cost), Vector2(4, 7.0))
+	assert_eq(CultivatorPlate.rewind_core(4, 7.0, 7.0, _cost), Vector2(4, 0.0), "the start of the level is still the level")
+
+## XP back past the start of a level comes off the level below's cost, and on
+## down through as many levels as it takes.
+func test_rewind_core_steps_back_through_levels() -> void:
+	var back: Vector2 = CultivatorPlate.rewind_core(4, 2.0, 5.0, _cost)
+	assert_eq(back.x, 3.0)
+	assert_almost_eq(back.y, _cost(4) - 3.0, 0.0001, "3 short of level 4")
+	back = CultivatorPlate.rewind_core(4, 2.0, 2.0 + _cost(4) + _cost(3) + 1.0, _cost)
+	assert_eq(back.x, 1.0, "levels 4 and 3 undone, and 1 XP into level 2's cost")
+	assert_almost_eq(back.y, _cost(2) - 1.0, 0.0001)
+
+func test_rewind_core_stops_at_nothing() -> void:
+	assert_eq(CultivatorPlate.rewind_core(1, 2.0, 500.0, _cost), Vector2(0, 0.0))
+	assert_eq(CultivatorPlate.rewind_core(0, 2.0, 5.0, _cost), Vector2(0, 0.0))
+
+#-----------------------------------------------------------------------------
 # GOLD
 #-----------------------------------------------------------------------------
 

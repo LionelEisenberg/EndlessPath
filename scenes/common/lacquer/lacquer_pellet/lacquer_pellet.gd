@@ -16,6 +16,16 @@ extends Node2D
 ##   tail, and at a standstill the tail hides under it;
 ## - it lands with a spark at the target, SPARK_STEP s a frame (flash, burst,
 ##   scatter), and frees itself once the spark is over.
+## It emits delivered once, as it lands, so what it carries can show up where it
+## lands just then; a pellet taken out of the tree before it lands delivers as it
+## goes, so nothing it carries is lost.
+
+#-----------------------------------------------------------------------------
+# SIGNALS
+#-----------------------------------------------------------------------------
+
+## Emitted once: when the pellet lands, or when it leaves the tree before it has.
+signal delivered
 
 #-----------------------------------------------------------------------------
 # ENUMS
@@ -63,6 +73,7 @@ const SPARK_SECONDS: float = SPARK_STEP * 3.0
 var _flight: PelletFlight = null
 var _elapsed: float = 0.0
 var _ramp: Ramp = Ramp.MADRA
+var _delivered: bool = false
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -73,8 +84,14 @@ func _process(delta: float) -> void:
 		return
 	_elapsed += delta
 	_show()
+	if has_landed():
+		_deliver()
 	if _elapsed >= _flight.duration + SPARK_SECONDS:
 		queue_free()
+
+func _exit_tree() -> void:
+	if _flight != null:
+		_deliver()
 
 #-----------------------------------------------------------------------------
 # PUBLIC FUNCTIONS
@@ -115,6 +132,13 @@ func has_landed() -> bool:
 #-----------------------------------------------------------------------------
 # PRIVATE
 #-----------------------------------------------------------------------------
+
+## Emits delivered, the first time only.
+func _deliver() -> void:
+	if _delivered:
+		return
+	_delivered = true
+	delivered.emit()
 
 ## Stands the pellet at its point for _elapsed and shows its frame, and puts each
 ## half of the tail at its past point while the pellet flies full-sized.

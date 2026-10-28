@@ -157,6 +157,10 @@ func _pellets() -> Array[LacquerPellet]:
 			found.append(child as LacquerPellet)
 	return found
 
+## The text of the cabinet's Label `unique_name`.
+func _plate_text(unique_name: String) -> String:
+	return (_plate.get_node("%" + unique_name) as Label).text.strip_edges()
+
 ## The pellets in the effects layer in `ramp`.
 func _pellets_in(ramp: LacquerPellet.Ramp) -> Array[LacquerPellet]:
 	var found: Array[LacquerPellet] = []
@@ -596,7 +600,7 @@ func test_madra_pellets_leave_the_drawn_ball() -> void:
 	var origins: Array[Vector2] = []
 	var starts: Array[Vector2] = []
 	# Connected after the view's own handler, so the pellet is already there.
-	_technique.madra_particle_requested.connect(func(from_pos: Vector2) -> void:
+	_technique.madra_particle_requested.connect(func(from_pos: Vector2, _amount: float) -> void:
 		origins.append(from_pos)
 		starts.append(_pellets().back().global_position))
 	_technique.start_cycle()
@@ -623,6 +627,20 @@ func test_madra_pellets_take_their_flight_time() -> void:
 	assert_false(pellet.has_landed(), "still flying after 0.55 s")
 	pellet._process(0.06)
 	assert_true(pellet.has_landed(), "landed by 0.61 s")
+
+## The cabinet shows each step's Madra as its pellet lands, not as it leaves.
+func test_the_madra_orb_fills_as_the_pellets_land() -> void:
+	_technique.start_cycle()
+	_run(0.2, 60.0, true)
+	var pellets: Array[LacquerPellet] = _pellets()
+	assert_eq(pellets.size(), 2, "precondition: two steps in flight")
+	var drawn: float = ResourceManager.get_madra()
+	assert_gt(drawn, 27.0, "precondition: the cursor drew two steps of Madra")
+	assert_eq(_plate_text("MadraValueLabel"), "25", "none of it has landed")
+	pellets[0]._process(CyclingView.MADRA_PELLET_FLIGHT)
+	assert_eq(_plate_text("MadraValueLabel"), "26", "the first step has landed")
+	pellets[1]._process(CyclingView.MADRA_PELLET_FLIGHT)
+	assert_eq(_plate_text("MadraValueLabel"), str(floori(drawn)), "and the second")
 
 func test_no_madra_pellets_without_the_cabinet() -> void:
 	_view.cultivator_plate = null
@@ -704,6 +722,32 @@ func test_xp_pellets_burst_from_the_zone_and_land_in_the_core_orb() -> void:
 	for pellet: LacquerPellet in pellets:
 		pellet._process(10.0)
 		assert_eq(pellet.global_position, _plate.get_core_orb_global_position(), "XP pellets land in the Core orb")
+
+## The Core row shows the hit's XP as its pellets land: as it stood before the
+## hit while they fly, and as the hit left it once the last one is in.
+func test_the_core_shows_the_xp_as_its_pellets_land() -> void:
+	var before: String = _plate_text("XpLabel")
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_true(_technique.try_score_zone(zone))
+	var pellets: Array[LacquerPellet] = _pellets()
+	assert_gt(CultivationManager.get_core_density_xp() + CultivationManager.get_core_density_level(), 0.0, "precondition: the hit paid XP")
+	assert_eq(_plate_text("XpLabel"), before, "none of the XP has landed")
+	for pellet: LacquerPellet in pellets:
+		pellet._process(10.0)
+	assert_eq(_plate_text("LevelLabel"), "Level %d" % floori(CultivationManager.get_core_density_level()))
+	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), floori(CultivationManager.get_xp_for_next_level())], "all of it has landed")
+
+## A hidden board frees its pellets, and what they carried shows at once.
+func test_hiding_the_view_shows_what_its_pellets_carried() -> void:
+	_technique.start_cycle()
+	_run(0.2, 60.0, true)
+	var zone: CyclingZone = _approach_zone_0(0.0)
+	assert_true(_technique.try_score_zone(zone))
+	assert_gt(_pellets().size(), 0, "precondition: pellets in flight")
+	_view.hide()
+	assert_eq(_plate_text("MadraValueLabel"), str(floori(ResourceManager.get_madra())))
+	assert_eq(_plate_text("XpLabel"), "%d / %d XP" % [floori(CultivationManager.get_core_density_xp()), floori(CultivationManager.get_xp_for_next_level())])
+	await _await_queued_frees()
 
 func test_xp_pellets_arrive_one_after_another() -> void:
 	var zone: CyclingZone = _approach_zone_0(0.0)

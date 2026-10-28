@@ -235,6 +235,38 @@ func test_pellet_frees_itself_once_the_spark_is_over() -> void:
 	pellet._process(FRAME * 1.5)
 	assert_true(pellet.is_queued_for_deletion(), "gone once the spark is over")
 
+#-----------------------------------------------------------------------------
+# DELIVERY
+#-----------------------------------------------------------------------------
+
+func test_delivers_once_as_it_lands() -> void:
+	var pellet: LacquerPellet = _flying_pellet()
+	watch_signals(pellet)
+	pellet._process(DURATION - FRAME)
+	assert_signal_not_emitted(pellet, "delivered", "not while it flies")
+	pellet._process(FRAME * 1.5)
+	assert_signal_emit_count(pellet, "delivered", 1, "as it lands")
+	pellet._process(LacquerPellet.SPARK_STEP)
+	assert_signal_emit_count(pellet, "delivered", 1, "and never again while it sparks")
+
+## A pellet freed in flight (a hidden cycling board frees its pellets) still
+## delivers, so what it carried is not lost.
+func test_delivers_when_taken_out_before_it_lands() -> void:
+	var pellet: LacquerPellet = _flying_pellet()
+	watch_signals(pellet)
+	pellet._process(0.2)
+	remove_child(pellet)
+	assert_signal_emit_count(pellet, "delivered", 1)
+	pellet.free()
+
+func test_a_landed_pellet_does_not_deliver_again_as_it_goes() -> void:
+	var pellet: LacquerPellet = _flying_pellet()
+	watch_signals(pellet)
+	pellet._process(DURATION + FRAME)
+	remove_child(pellet)
+	assert_signal_emit_count(pellet, "delivered", 1)
+	pellet.free()
+
 ## Added to the tree but never sent, the pellet stays where it is.
 func test_a_pellet_with_no_flight_waits() -> void:
 	var pellet: LacquerPellet = _add_pellet()
