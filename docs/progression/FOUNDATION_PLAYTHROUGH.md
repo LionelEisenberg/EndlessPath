@@ -302,7 +302,7 @@ On 2026-10-23 the user replaced the Tribulation Guardian (Beat 7) and the Advanc
 | Pure Madra tree capacity | 14 nodes at 1 point each = 22 purchases (repeatables max 3 / 5 / 3) | `resources/path_progression/pure_madra/nodes/` |
 | Aura Well training | +1.5 Madra per 1 s tick; +1 SPIRIT per level; 60 / 300 / 600 / 1200 ticks, then ×2 | `aura_well_training_action.tres`, `TrainingActionData` defaults |
 | Aura Well rest | +5 × BODY HP, +2 × FOUNDATION Madra | `aura_well_encounter.tres` |
-| Consumables | Crude Scale and Barely Coalesced Scale: +20 Madra (10 s cooldown, not enforced) | `resources/items/consumables/` |
+| Consumables | Crude Scale and Barely Coalesced Scale: +20 Madra (10 s cooldown) | `resources/items/consumables/` |
 | Merchant prices | Crude Scale 10, Cultivator's Cowl 40, Makeshift Dagger 60, Scripted Bark 75, Leeching Ring 120, Iron Shortsword 150, Reinforced Robes 180 (starting values; all gear 625) | Item `base_value`; stock in `spirit_valley_merchant_stock.tres` |
 
 **Pacing reality (computed):** No Core Density XP multiplier is applied in code. `PathEffectsSummary.core_density_xp_mult` and `CyclingActionData.xp_multiplier` are never read. With Smooth Flow, CD 10 takes about 1 perfect cycle (≈15 s), CD 30 about 4 cycles, and CD 100 about 25 perfect or 45 good cycles, which is roughly 6–11 minutes of cycling. That is far ahead of the [pacing targets](#progression-pacing-targets) (Beat 3b at 6–15 min, Beat 6 at 20–30 min, Beat 9 at 35–60 min). The curve must be retuned before Beat 6 and the Tribulation reach players. It also sets what the Tribulation's penalty weighs: the 5 levels from 96 to 100 cost about 342 XP, which is 40–75 s of Smooth Flow cycling today.

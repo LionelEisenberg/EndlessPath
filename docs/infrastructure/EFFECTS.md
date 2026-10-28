@@ -173,7 +173,7 @@ Every authored effect instance:
 | `aura_well_encounter.tres` "Mark down the location" choice | ChangeVitals (same sub-resource as Rest) → TriggerEvent | `aura_well_discovered` |
 | `refugee_camp_encounter.tres` "Approach the camp" choice | TriggerEvent | `merchant_discovered` |
 | `ravenous_dreadbeast_encounter.tres` "Attack the Dreadbeast" (`CombatChoice.success_effects`) | AwardLootTable | Inline table: `dreadbeast_tooth_necklace`, `drop_chance` 0.25 |
-| `resources/items/consumables/crude_scale.tres` | ChangeVitals | `madra_change` 20.0 (`cooldown_seconds` 10.0, not enforced) |
+| `resources/items/consumables/crude_scale.tres` | ChangeVitals | `madra_change` 20.0 (`cooldown_seconds` 10.0) |
 | `resources/items/consumables/barely_coalesced_scale.tres` | ChangeVitals | `madra_change` 20.0 (`cooldown_seconds` 10.0) |
 | `test_rest_encounter.tres`, `test_trap_encounter.tres`, `test_treasure_encounter.tres` | ChangeVitals / AwardLootTable | Test encounters that no `AdventureData` places |
 | `resources/effects/award_resource/award_madra_5_effect_data.tres` | AwardResource | MADRA, 5.0. Not referenced anywhere. |
