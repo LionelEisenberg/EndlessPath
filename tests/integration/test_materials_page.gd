@@ -15,6 +15,11 @@ const DEWDROP_TEAR: MaterialDefinitionData = preload("res://resources/items/mate
 const FORAGING_UNLOCK_ID: String = "q_fill_core_completed"
 ## Forty characters: two lines of the right page's title.
 const LONG_NAME: String = "Dew of the Thousand Quiet Valley Morning"
+## From the description's last baseline to the table's first: the mockup's
+## Spirit Fern, 462 to 556. Every material keeps it (Ruling R21).
+const TABLE_GAP: float = 94.0
+## More than two lines at the description's 434 px.
+const LONG_DESCRIPTION: String = "A fern that drinks the valley's aura. Its fronds curl toward a cultivator's core, and its roots remember every storm that has crossed the valley since the old sect fell."
 
 var _saved_save: SaveGameData = null
 var _view: MenuBookView = null
@@ -109,6 +114,15 @@ func _table(tab: Control) -> Array:
 	for row: TableRow in _table_rows(tab):
 		pairs.append([(row.get_node("%Label") as Label).text, (row.get_node("%Value") as RichTextLabel).text])
 	return pairs
+
+## The description's last baseline on screen.
+func _description_end(tab: Control) -> float:
+	var description: Label = _details(tab).get_node("%Description") as Label
+	return _baseline(description, description.text.length() - 1)
+
+## From the description's last baseline to the table's first, on screen.
+func _gap_over_table(tab: Control) -> float:
+	return _baseline(_table_rows(tab)[0].get_node("%Label") as Label) - _description_end(tab)
 
 ## Where the line holding the character at `index` sits on screen: the top of
 ## that line as the engine lays the Label out, plus the font's ascent.
@@ -339,6 +353,43 @@ func test_a_material_without_sources_hides_the_table() -> void:
 	assert_false((_details(tab).get_node("%Sources") as Control).is_visible_in_tree(), "but not the table")
 	assert_eq(_table_rows(tab).size(), 0)
 
+func test_a_material_without_sources_ends_under_its_description() -> void:   # Ruling R21
+	InventoryManager.award_items(_material("moon_moss", "Moon Moss"), 2)
+	var tab: Control = await _open_tab()
+	var below: float = _details(tab).get_global_rect().end.y - _description_end(tab)
+	assert_lte(below, 26.0, "the table's gap goes with it: no blank lines under the description")
+
+func test_dewdrop_keeps_the_same_gap_over_its_table() -> void:   # Ruling R21
+	_gather_both()
+	var tab: Control = await _open_tab()
+	var slots: Array[MaterialSlot] = _slots(tab)
+	slots[1].hovered.emit(slots[1])
+	await wait_process_frames(2)
+	assert_eq(_details(tab).get_shown_material(), DEWDROP_TEAR)
+	assert_eq(_gap_over_table(tab), TABLE_GAP, "Spirit Fern's gap, under Dewdrop's own description")
+
+func test_the_table_follows_the_description_at_the_same_gap() -> void:   # Ruling R21
+	# Two materials Spring Forest Foraging lists, since they share Spirit
+	# Fern's item_id: one with a one-line description, one with a long one.
+	var short: MaterialDefinitionData = _material("SpiritFern", "Short Fern")
+	short.description = "A fern."
+	var long: MaterialDefinitionData = _material("SpiritFern", "Long Fern")
+	long.description = LONG_DESCRIPTION
+	InventoryManager.award_items(short, 1)
+	InventoryManager.award_items(long, 1)
+	var tab: Control = await _open_tab()
+	var description: Label = _details(tab).get_node("%Description") as Label
+	assert_eq(description.get_line_count(), 1)
+	assert_eq(_gap_over_table(tab), TABLE_GAP, "a shorter description pulls the table up")
+	var short_end: float = _details(tab).get_global_rect().end.y
+	var slots: Array[MaterialSlot] = _slots(tab)
+	slots[1].hovered.emit(slots[1])
+	await wait_process_frames(2)
+	var long_lines: int = description.get_line_count()
+	assert_gt(long_lines, 2, "the long description wraps past two lines")
+	assert_eq(_gap_over_table(tab), TABLE_GAP, "and a longer one pushes it down")
+	assert_eq(_details(tab).get_global_rect().end.y - short_end, 26.0 * (long_lines - 1), "the panel grows by the extra lines' pitch")
+
 func test_details_lay_spirit_fern_out_as_the_mockup_does() -> void:   # Ruling R17
 	_gather_both()
 	var tab: Control = await _open_tab()
@@ -355,6 +406,7 @@ func test_details_lay_spirit_fern_out_as_the_mockup_does() -> void:   # Ruling R
 	assert_eq(description.get_global_rect().position.x, 1024.0)
 	assert_eq(description.get_line_count(), 2)
 	assert_eq(_baseline(description), 436.0, "the description")
+	assert_eq(_gap_over_table(tab), TABLE_GAP, "the gap every material keeps over its table")
 	var rows: Array[TableRow] = _table_rows(tab)
 	assert_eq(rows.size(), 3)
 	for index: int in rows.size():

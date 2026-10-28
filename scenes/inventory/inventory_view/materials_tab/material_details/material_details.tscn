@@ -66,7 +66,7 @@ theme_override_constants/margin_right = 2
 
 [node name="Description" type="Label" parent="Flow/DescriptionBlock"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(434, 99)
+custom_minimum_size = Vector2(434, 0)
 layout_mode = 2
 theme_type_variation = &"LabelBookInk"
 autowrap_mode = 3
@@ -75,7 +75,7 @@ autowrap_mode = 3
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_top = 21
+theme_override_constants/margin_top = 73
 theme_override_constants/margin_bottom = 2
 
 [node name="Sources" type="VBoxContainer" parent="Flow/SourcesBlock"]

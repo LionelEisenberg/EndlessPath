@@ -12,10 +12,12 @@ extends PanelContainer
 ##
 ## Laid out to the mockup's Spirit Fern, which fills the spec's (1008, 300) to
 ## (1476, 646). Down the panel's content, "MATERIAL"'s baseline sits at 34,
-## the amount's at 66, the description's from 120 and the table's from 240,
-## 30 px apart, with 2 px under the last rule. The description keeps room for
-## four lines, so the table holds still as the player points from one
-## material to the next; a longer description pushes it down.
+## the amount's at 66, the description's from 120, and the table's 94 px under
+## the description's last baseline (240 under Spirit Fern's two lines), 30 px
+## apart, with 2 px under the last rule. The description flows: a longer one
+## pushes the table down and a shorter one pulls it up, always by that gap.
+## The gap belongs to the table's block, so with no source both are left out
+## and the panel ends under the description.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS

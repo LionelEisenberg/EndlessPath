@@ -182,8 +182,9 @@ MaterialsTab (Control, 1400×900, mouse ignored) — materials_tab.gd: the grid,
     MaterialDetails (PanelContainer, PanelPressed, grows downward) — material_details.gd
       Flow
         Header: IconWell (deep slot, Icon), InfoColumn (KindInset 11 px, KindLabel "MATERIAL", AmountLabel)
-        DescriptionBlock / Description     — room for four lines
-        SourcesBlock / Sources             — three TableRows per source
+        DescriptionBlock / Description     — flows with its text
+        SourcesBlock / Sources             — three TableRows per source; the block's top margin is the gap over
+                                             the table, hidden with it
 ```
 
 ### Journal
@@ -424,7 +425,7 @@ The hotbar uses Godot's built-in drag-and-drop:
 
 - `MaterialDetails.show_material(def, amount)` prints a material and shows the panel; `clear()` hides it; `get_shown_material()` returns the material shown (`CanvasItem.get_material()` already takes the shorter name). Showing the material already shown only reprints how many the player has, through `BookText.thousands()`.
 - Its table comes from `MaterialSources.find(material)` (`scripts/utils/material_sources.gd`): one `MaterialSources.Source` per loot entry whose item has the material's `item_id`, in each available `ForageActionData` with a loot table, in each zone of `ZoneManager.get_map_zones()` that is neither `LOCKED` nor `UNCHARTED`. A source holds `activity_name`, `zone_name`, `min_quantity`, `max_quantity` and `interval_seconds`, and prints as three `TableRow`s: `GATHERED BY`, `IN`, and `YIELD` from `BookText.yield_text()`. Each value goes through `LacquerText.decimal_bbcode()`.
-- The panel is laid out to the mockup's Spirit Fern, which fills the spec's (1008, 300) to (1476, 646). The description keeps room for four lines, so the table holds still as the player points from one material to the next; a longer description, a second source or a title that wraps moves the panel's foot down.
+- The panel is laid out to the mockup's Spirit Fern, which fills the spec's (1008, 300) to (1476, 646). The description flows, and the table keeps Spirit Fern's gap over it, 94 px from the description's last baseline to the table's first: a longer description pushes the table down, a shorter one pulls it up. The gap belongs to the table's block, so with no source both are left out and the panel ends under the description. A second source or a title that wraps moves the panel's foot down too.
 - `MaterialSlot.set_marked()` shows a slot's printer's marks, 6 px outside it. The tab marks the slot of the material shown.
 - `MaterialsTab.open_page()` clears the details, rebuilds the grid, then shows the first material, or hides the details and the title when nothing is gathered. Clearing first makes the details work out the sources again, so an activity unlocked since the page last showed is listed. `InventoryView` calls it on opening the book and on every page turn.
 - After every `inventory_changed` the tab rebuilds the grid when the stacks changed, then follows the material shown: the marks move to its new slot and its amount follows its stack. When it has left the bag, the tab shows the first material.
