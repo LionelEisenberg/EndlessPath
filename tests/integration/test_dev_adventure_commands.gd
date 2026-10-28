@@ -116,12 +116,14 @@ func _start_run() -> void:
 	ActionManager._set_current_action(_action)
 	ActionManager.confirm_adventure_start(_action, RUN_MADRA)
 
-## Starts a run and puts a fight against one Amorphous Spirit under way, as picking
-## its combat card does: the tilemap remembers the choice and the view starts the
-## fight. Returns the choice.
-func _start_a_fight() -> CombatChoice:
+## Starts a run and puts a fight under way, as picking its combat card does: the
+## tilemap remembers the choice and the view starts the fight. The fight is the
+## fixture map's, against one Amorphous Spirit, unless a choice is given. Returns the
+## choice.
+func _start_a_fight(fight: CombatChoice = null) -> CombatChoice:
 	_start_run()
-	var fight: CombatChoice = AdventureMapFixture.fight_choice(_map)
+	if fight == null:
+		fight = AdventureMapFixture.fight_choice(_map)
 	_view.adventure_tilemap._current_combat_choice = fight
 	_view._on_start_combat(fight)
 	return fight
@@ -203,6 +205,27 @@ func test_dev_force_win_is_not_play() -> void:
 	assert_eq(stats.gold_earned, 0.0, "nor its gold as earned")
 	assert_false(stats.event_first_times.has(ENEMY_DEFEATED_EVENT), "nor the event's first time recorded")
 	assert_false(stats.recording_paused, "and recording is on again")
+
+## The boss's fall ends the whole run inside the one command: the fight, the win and
+## the gold come from the real death path, and none of them counts as play.
+func test_force_win_of_the_boss_wins_the_adventure() -> void:
+	var boss: CombatChoice = _start_a_fight(_map[AdventureMapFixture.BOSS].choices[0] as CombatChoice)
+	var reward: int = AdventureCombat.gold_reward_for(boss, _action)
+	assert_gt(reward, 0, "precondition: the boss pays gold")
+	var gold_before: float = ResourceManager.get_gold()
+
+	assert_eq(DevCommands.force_win_fight(_view), "")
+
+	assert_false(_view.is_adventure_running(), "the boss's fall ended the adventure")
+	assert_eq(_results.size(), 1, "once")
+	if _results.size() == 1:
+		assert_true(_results[0].is_victory, "as a victory")
+		assert_eq(_results[0].gold_earned, reward, "and the end card shows the boss's gold")
+	assert_eq(ResourceManager.get_gold(), gold_before + reward, "the boss paid its gold once")
+	var stats: PlayStatsData = _stats()
+	assert_eq(stats.fights_won, 0, "the fight is not counted as won")
+	assert_eq(stats.adventures_won, 0, "nor the adventure")
+	assert_eq(stats.gold_earned, 0.0, "nor the gold as earned")
 
 func test_force_win_logs_a_dev_line() -> void:
 	_start_a_fight()
