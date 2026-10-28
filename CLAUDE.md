@@ -23,8 +23,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1
 # Run the test suite in one process, to confirm a failure from the parallel run
 "C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/,res://tests/integration/ -gexit
 
-# Export (example: Linux). Requires an export preset; no export_presets.cfg is committed yet
-"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --export-release "Linux" build/endlesspath.x86_64
+# Export the Web build ("Windows Desktop" for the exe). Needs the 4.7.2 export templates installed
+"C:\Program Files (x86)\Godot\Godot_v4.7.2-stable_win64_console.exe" --headless --export-release "Web" build/web/index.html
+
+# Publish main to itch.io (the Actions tab's "Run workflow" does the same). See docs/tooling/PUBLISHING.md
+gh workflow run publish-itch.yml --ref main
 ```
 
 ## Testing
