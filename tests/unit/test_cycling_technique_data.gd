@@ -1,8 +1,8 @@
 extends GutTest
 
 ## Unit tests for the data the cycling view's technique drawers read: the icon on
-## every technique in the catalog, and the SaveGameData fields that remember which
-## techniques the player has already seen.
+## every technique in the catalog, the Madra a second of drawing pays, and the
+## SaveGameData fields that remember which techniques the player has already seen.
 
 const TECHNIQUE_LIST_PATH: String = "res://resources/cycling/cycling_techniques/cycling_technique_list.tres"
 const TMP_SAVE_PATH: String = "user://test_seen_techniques.tres"
@@ -55,6 +55,22 @@ func test_every_catalog_technique_has_an_icon() -> void:
 func test_icons_match_the_techniques() -> void:
 	for technique_id: String in ICON_PATHS_BY_ID:
 		assert_eq(_icon_path_of(technique_id), ICON_PATHS_BY_ID[technique_id], "%s icon" % technique_id)
+
+#-----------------------------------------------------------------------------
+# MADRA PER SECOND
+#-----------------------------------------------------------------------------
+
+func test_madra_per_second_spreads_the_cycles_madra_over_its_seconds() -> void:
+	var technique := CyclingTechniqueData.new()
+	technique.base_madra_per_cycle = 200.0
+	technique.cycle_duration = 15.0
+	assert_almost_eq(technique.get_madra_per_second(), 200.0 / 15.0, 0.0001)
+
+func test_a_cycle_of_no_length_pays_no_madra_per_second() -> void:
+	var technique := CyclingTechniqueData.new()
+	technique.base_madra_per_cycle = 200.0
+	technique.cycle_duration = 0.0
+	assert_eq(technique.get_madra_per_second(), 0.0)
 
 #-----------------------------------------------------------------------------
 # SEEN TECHNIQUES IN THE SAVE
