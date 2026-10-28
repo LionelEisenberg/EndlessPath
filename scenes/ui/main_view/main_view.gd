@@ -193,16 +193,6 @@ func is_board_moving() -> bool:
 func is_board_closing() -> bool:
 	return board_transition != null and board_transition.is_closing()
 
-## Turns the zone view's furniture over to the cycling board, or gives it back.
-## While cycling, the chest lists the techniques, and the dock and the map are
-## turned off as for any board in the map gap (see set_board_mode()). The chest is
-## skipped when it is missing, as it is on the MainViews the view-state tests build.
-## CyclingViewState still switches the furniture this way; open_board() replaces it.
-func set_cycling_mode(on: bool) -> void:
-	if zone_panel != null:
-		zone_panel.set_techniques_mode(on)
-	set_board_mode(on)
-
 ## Turns the zone view's dock and map off for a board that stands in the map gap
 ## (the cycling board, the Tribulation board), or gives them back. The dock hides
 ## and the map's SubViewport takes no input: the SubViewportContainer pushes a
