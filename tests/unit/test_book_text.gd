@@ -91,25 +91,18 @@ func test_slot_names_of_the_off_hand_and_head() -> void:
 	assert_eq(BookText.slot_name(EquipmentDefinitionData.EquipmentSlot.OFF_HAND), "OFF HAND")
 	assert_eq(BookText.slot_name(EquipmentDefinitionData.EquipmentSlot.HEAD), "HEAD")
 
-func test_bonus_pairs_follow_attribute_order() -> void:
+func test_bonus_lines_follow_attribute_order() -> void:
 	var dagger: EquipmentDefinitionData = load("res://resources/items/equipment/spirit_valley/makeshift_dagger.tres")
-	var pairs: Array[PackedStringArray] = BookText.bonus_pairs(dagger)
-	assert_eq(pairs.size(), 2)
-	assert_eq(pairs[0], PackedStringArray(["STRENGTH", "+3"]))
-	assert_eq(pairs[1], PackedStringArray(["AGILITY", "+2"]))
+	assert_eq(BookText.bonus_lines(dagger), ["+3 Strength", "+2 Agility"] as Array[String])
 
-func test_bonus_pairs_skip_zero_and_set_fractions_to_one_decimal() -> void:
+func test_bonus_lines_skip_zero_and_set_fractions_to_one_decimal() -> void:
 	var charm := EquipmentDefinitionData.new()
-	# Written out of attribute order on purpose: the pairs must still come
-	# back STRENGTH, BODY, WILLPOWER.
+	# Written out of attribute order on purpose: the lines must still come
+	# back Strength, Body, Willpower.
 	charm.attribute_bonuses = {
 		CharacterAttributesData.AttributeType.WILLPOWER: 1.5,
 		CharacterAttributesData.AttributeType.SPIRIT: 0.0,
 		CharacterAttributesData.AttributeType.BODY: -2.0,
 		CharacterAttributesData.AttributeType.STRENGTH: 4.0,
 	}
-	var pairs: Array[PackedStringArray] = BookText.bonus_pairs(charm)
-	assert_eq(pairs.size(), 3)
-	assert_eq(pairs[0], PackedStringArray(["STRENGTH", "+4"]))
-	assert_eq(pairs[1], PackedStringArray(["BODY", "-2"]))
-	assert_eq(pairs[2], PackedStringArray(["WILLPOWER", "+1.5"]))
+	assert_eq(BookText.bonus_lines(charm), ["+4 Strength", "-2 Body", "+1.5 Willpower"] as Array[String])

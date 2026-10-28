@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://scenes/inventory/inventory_view/materials_tab/material_details/material_details.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_deep_ai.png" id="2_well"]
-[ext_resource type="PackedScene" uid="uid://bnmg8xqwd7dp4" path="res://scenes/inventory/pressed/paper_tag/paper_tag.tscn" id="3_tag"]
 
 [node name="MaterialDetails" type="PanelContainer"]
 offset_right = 468.0
@@ -88,15 +87,18 @@ theme_override_constants/separation = 3
 layout_mode = 2
 mouse_filter = 2
 
-[node name="CountTag" parent="TagLayer" instance=ExtResource("3_tag")]
+[node name="CountLabel" type="Label" parent="TagLayer"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -54.0
-offset_top = 18.0
+offset_left = -162.0
+offset_top = 19.0
 offset_right = -2.0
-offset_bottom = 38.0
+offset_bottom = 40.0
 grow_horizontal = 0
-text = "×4,600"
+mouse_filter = 2
+theme_type_variation = &"LabelBookInkDark"
+text = "4,600"
+horizontal_alignment = 2

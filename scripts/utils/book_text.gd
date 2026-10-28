@@ -1,7 +1,7 @@
 class_name BookText
 
 ## Text helpers for the inventory book's pressed pages: stack counts, seconds,
-## consumable effect lines, and equipment slot and bonus captions. Everything
+## consumable effect lines, equipment slot captions and bonus lines. Everything
 ## returns plain text except color_madra() and effect_line(), which return
 ## BBCode for a RichTextLabel.
 
@@ -91,18 +91,18 @@ static func slot_name(slot: EquipmentDefinitionData.EquipmentSlot) -> String:
 	Log.error("BookText: Unknown equipment slot %s" % slot)
 	return ""
 
-## Returns one [name, value] pair for each attribute the equipment changes, in
-## CharacterAttributesData.AttributeType order: ["STRENGTH", "+3"] or
-## ["SPIRIT", "+1.5"]. A bonus of zero is left out.
-static func bonus_pairs(def: EquipmentDefinitionData) -> Array[PackedStringArray]:
-	var pairs: Array[PackedStringArray] = []
+## Returns one line for each attribute the equipment changes, worded as its
+## tooltip words it, in CharacterAttributesData.AttributeType order: "+3
+## Strength" or "+1.5 Spirit". A bonus of zero is left out.
+static func bonus_lines(def: EquipmentDefinitionData) -> Array[String]:
+	var lines: Array[String] = []
 	for attribute_type: int in CharacterAttributesData.AttributeType.values():
 		var bonus: float = def.attribute_bonuses.get(attribute_type, 0.0)
 		if is_zero_approx(bonus):
 			continue
 		var attribute_name: String = CharacterAttributesData.AttributeType.find_key(attribute_type)
-		pairs.append(PackedStringArray([attribute_name, _signed(bonus)]))
-	return pairs
+		lines.append("%s %s" % [_signed(bonus), attribute_name.capitalize()])
+	return lines
 
 #-----------------------------------------------------------------------------
 # PRIVATE

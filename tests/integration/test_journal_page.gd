@@ -5,7 +5,7 @@ extends GutTest
 ## 80 px: the item in a deep slot, its name, and its quest's name under it, with
 ## a DONE seal at the right once the quest is finished, or the step the player
 ## is on. The right page's title is the item's name; under it the item's panel
-## (where it came from, its zone on a tag at the top right, the description) and its
+## (where it came from, its zone at the top right, the description) and its
 ## quest's panel, shown the way the Goals board shows a quest: the quest's name,
 ## its flavour text and the steps reached so far, ticked when finished. The
 ## details follow the pointer and keep to the item the player picked.
@@ -356,8 +356,8 @@ func test_details_show_where_it_came_from() -> void:
 	assert_eq(_detail_text(tab, "KindLabel"), "QUEST ITEM")
 	assert_eq(_detail_text(tab, "FromLabel"), "From Old Vesh, in the broken shrine")
 	assert_eq((_detail(tab, "Icon") as TextureRect).texture, MAP.icon)
-	assert_eq(_detail_text(tab, "ZoneTag"), "SPIRIT VALLEY", "its zone, on a tag")
-	assert_true((_detail(tab, "ZoneTag") as Control).visible)
+	assert_eq(_detail_text(tab, "ZoneLabel"), "SPIRIT VALLEY", "its zone, in capitals")
+	assert_true((_detail(tab, "ZoneLabel") as Control).visible)
 	# 2026-10-28 review: no drop cap; the description is one block of text.
 	assert_eq(_detail_text(tab, "Description"), MAP.description)
 	assert_null(_details(tab).find_child("DropCap", true, false))
@@ -374,10 +374,11 @@ func test_the_items_panel_lays_the_map_out_as_the_mockup_does() -> void:   # Rul
 	var from: Label = _detail(tab, "FromLabel") as Label
 	assert_eq(from.get_global_rect().position.x, 1112.0)
 	assert_eq(_baseline(from), 380.0, "where it came from")
-	var tag: Label = _detail(tab, "ZoneTag") as Label
-	assert_eq(tag.get_global_rect().end.x, 1458.0, "the zone's tag at the top right, on the text's right edge")
-	assert_eq(_baseline(tag), 350.0, "on QUEST ITEM's baseline")
-	assert_eq(fmod(tag.get_global_rect().position.x, 2.0), 0.0, "and on the 2 px grid")
+	# 2026-10-28 review: printed in ink, with no tag.
+	var zone: Label = _detail(tab, "ZoneLabel") as Label
+	assert_eq(zone.get_global_rect().end.x, 1458.0, "the zone at the top right, on the text's right edge")
+	assert_eq(_baseline(zone), 350.0, "on QUEST ITEM's baseline")
+	assert_eq(zone.theme_type_variation, &"LabelBookCaps")
 	var description: Label = _detail(tab, "Description") as Label
 	assert_eq(description.get_global_rect().position.x, 1024.0)
 	assert_eq(description.get_global_rect().size.x, 434.0, "at the panel's full text width")
@@ -400,10 +401,10 @@ func test_an_item_with_no_known_zone_has_no_tag() -> void:
 	var bell: QuestItemDefinitionData = _quest_item("test_bell", "Tarnished Shrine Bell")
 	InventoryManager.award_items(bell, 1)
 	var tab: Control = await _open_tab()
-	assert_false((_detail(tab, "ZoneTag") as Control).visible, "no zone_id")
+	assert_false((_detail(tab, "ZoneLabel") as Control).visible, "no zone_id")
 	bell.zone_id = "NoSuchZone"
 	_details(tab).show_item(bell)
-	assert_false((_detail(tab, "ZoneTag") as Control).visible, "a zone the game does not know")
+	assert_false((_detail(tab, "ZoneLabel") as Control).visible, "a zone the game does not know")
 
 #-----------------------------------------------------------------------------
 # THE QUEST'S PANEL

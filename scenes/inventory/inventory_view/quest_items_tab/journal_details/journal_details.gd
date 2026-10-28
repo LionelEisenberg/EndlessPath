@@ -8,9 +8,9 @@ extends VBoxContainer
 ##
 ## The item's panel holds the quest item in a deep slot beside "QUEST ITEM" and
 ## where it came from ("From Old Vesh, in the broken shrine", left out when
-## unknown), the name of the zone it belongs to on a paper tag at the panel's
-## top right ("SPIRIT VALLEY", on QUEST ITEM's baseline; left out when it has
-## none), then its description.
+## unknown), the name of the zone it belongs to printed in capitals at the
+## panel's top right ("SPIRIT VALLEY", on QUEST ITEM's baseline; left out when
+## it has none), then its description.
 ##
 ## The quest's panel shows the quest the item belongs to
 ## (QuestManager.get_quest_id_for_item()) the way the Goals board shows a quest:
@@ -23,7 +23,7 @@ extends VBoxContainer
 ##
 ## Laid out to the mockup's Refugee Camp Map, whose panels fill the spec's
 ## (1008, 300) to (1476, 496) and (1008, 512) to (1476, 776). Down the item
-## panel's content, "QUEST ITEM"'s and the tag's baselines sit at 34 and the
+## panel's content, "QUEST ITEM"'s and the zone's baselines sit at 34 and the
 ## source's at 64; the description's from 120, 26 px apart; the panel ends 34 px
 ## under the description's last baseline. Down the quest panel's content, "QUEST"'s baseline sits at 16 and
 ## the seal 2 px over the content's top, as the mockup draws it; the name's
@@ -51,7 +51,7 @@ const _FROM: String = "From %s"
 
 @onready var _icon: TextureRect = %Icon
 @onready var _from_label: Label = %FromLabel
-@onready var _zone_tag: PaperTag = %ZoneTag
+@onready var _zone_label: Label = %ZoneLabel
 @onready var _description_block: Control = %DescriptionBlock
 @onready var _description: Label = %Description
 @onready var _quest_panel: Control = %QuestPanel
@@ -107,13 +107,13 @@ func _print_item(item: ItemDefinitionData) -> void:
 	_description.text = item.description
 	_description_block.visible = not item.description.is_empty()
 
-## Prints the zone's name on the tag, in capitals, or leaves the tag out when
-## the item names no zone the game knows.
+## Prints the zone's name in capitals, or leaves it out when the item names no
+## zone the game knows.
 func _print_zone(zone_id: String) -> void:
 	var known: bool = not zone_id.is_empty() and ZoneManager.has_zone(zone_id)
-	_zone_tag.visible = known
+	_zone_label.visible = known
 	if known:
-		_zone_tag.set_label(ZoneManager.get_zone_by_id(zone_id).zone_name.to_upper())
+		_zone_label.text = ZoneManager.get_zone_by_id(zone_id).zone_name.to_upper()
 
 #-----------------------------------------------------------------------------
 # THE QUEST'S PANEL

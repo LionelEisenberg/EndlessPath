@@ -67,11 +67,11 @@ var _variants: Array[Array] = [
 	[&"LabelBookPageTitle", YATRA, 38, "33261a", 44], [&"LabelBookItemName", YATRA, 30, "33261a", 34],
 	[&"LabelBookQuestName", YATRA, 26, "33261a", 30],
 	[&"LabelBookInk", EULJIRO, 18, "3b2a20", 26], [&"LabelBookInkDark", EULJIRO, 18, "33261a", 26],
-	[&"LabelBookDetail", EULJIRO, 15, "765a43", 20], [&"LabelBookDetailDark", EULJIRO, 15, "33261a", 20],
-	[&"LabelBookFlavor", EULJIRO, 16, "765a43", 22], [&"LabelBookStep", EULJIRO, 16, "3b2a20", 22],
-	[&"LabelBookCount", EULJIRO, 20, "33261a", 24], [&"LabelBookCaps", EULJIRO, 13, "765a43", 18],
+	[&"LabelBookDetail", EULJIRO, 15, "584230", 20], [&"LabelBookDetailDark", EULJIRO, 15, "33261a", 20],
+	[&"LabelBookFlavor", EULJIRO, 16, "584230", 22], [&"LabelBookStep", EULJIRO, 16, "3b2a20", 22],
+	[&"LabelBookCount", EULJIRO, 20, "33261a", 24], [&"LabelBookCaps", EULJIRO, 15, "584230", 18],
 	[&"LabelBookTag", EULJIRO, 13, "33261a", 18], [&"LabelBookSeal", EULJIRO, 13, "f0e8d8", 18],
-	[&"LabelBookFilter", EULJIRO, 13, "765a43", 18], [&"LabelBookFilterOn", EULJIRO, 13, "33261a", 18],
+	[&"LabelBookFilter", EULJIRO, 13, "584230", 18], [&"LabelBookFilterOn", EULJIRO, 13, "33261a", 18],
 ]
 
 func test_pressed_label_variants() -> void:
@@ -83,6 +83,14 @@ func test_pressed_label_variants() -> void:
 		assert_eq(BOOK_THEME.get_color(&"font_color", row[0]).to_html(false), row[3], str(row[0]))
 		var pitch: int = roundi(font.get_height(row[2])) + BOOK_THEME.get_constant(&"line_spacing", row[0])
 		assert_eq(pitch, row[4], "%s line pitch" % row[0])
+
+## The capitals print at 15 px on the 13 px line they had (2026-10-28 font
+## pass): their font sits 1 px higher, so a caption's line stays 16 px and its
+## baseline 11 px down it, and no layout moves.
+func test_capitals_grow_inside_their_old_line() -> void:
+	var font: Font = BOOK_THEME.get_font(&"font", &"LabelBookCaps")
+	assert_eq(font.get_ascent(15), 11.0, "the baseline 11 px down the line, as at 13 px")
+	assert_eq(font.get_height(15), 16.0, "a 16 px line, as at 13 px")
 
 func test_capital_variants_space_their_letters() -> void:
 	for variant: StringName in [&"LabelBookCaps", &"LabelBookSeal", &"LabelBookFilter", &"LabelBookFilterOn"]:
@@ -113,8 +121,9 @@ func test_pressed_styleboxes() -> void:
 func test_text_reads_on_paper_and_panels() -> void:
 	var paper := Color("#F7E6CA")
 	var panel := Color("#EFDCBB")
-	assert_gte(_contrast(Color("#765A43"), paper), 4.56, "muted on paper")
-	assert_gte(_contrast(Color("#765A43"), panel), 4.56, "muted on a panel")
+	# 2026-10-28 font pass: the muted ink darkened from #765A43 (4.7:1 on a panel).
+	assert_gte(_contrast(Color("#584230"), paper), 7.0, "muted on paper")
+	assert_gte(_contrast(Color("#584230"), panel), 6.9, "muted on a panel")
 	assert_gte(_contrast(Color("#3B2A20"), panel), 4.56, "ink on a panel")
 	assert_gte(_contrast(Color("#1C2F60"), panel), 4.56, "Madra ink on a panel")
 	assert_gte(_contrast(Color("#F0E8D8"), Color("#A83C30")), 4.56, "seal text")
@@ -150,7 +159,7 @@ func test_rich_text_detail_variant() -> void:
 	var font: Font = BOOK_THEME.get_font(&"normal_font", &"RichTextBookDetail")
 	assert_eq(font.resource_path, EULJIRO)
 	assert_eq(BOOK_THEME.get_font_size(&"normal_font_size", &"RichTextBookDetail"), 15)
-	assert_eq(BOOK_THEME.get_color(&"default_color", &"RichTextBookDetail").to_html(false), "765a43")
+	assert_eq(BOOK_THEME.get_color(&"default_color", &"RichTextBookDetail").to_html(false), "584230")
 	var pitch: int = roundi(font.get_height(15)) + BOOK_THEME.get_constant(&"line_separation", &"RichTextBookDetail")
 	assert_eq(pitch, 20, "line pitch")
 

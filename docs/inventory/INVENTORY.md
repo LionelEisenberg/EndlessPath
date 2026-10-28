@@ -44,13 +44,13 @@ Related docs:
 
      The item is held by its centre at full size. While dragging, printer's marks sit on the slot the item would land in: the slot under the cursor, or for an item taken out of the discard slot, the bag's first free slot when the one under the cursor is taken. A slot that would refuse the item, and the slot it came from, get none.
    - **Right-click:** on a grid item, it equips. An accessory goes to the first free accessory slot, or to slot 0 if both are full. On an equipped item, it unequips to the first free grid slot.
-   - **Filter:** clicking a word filters the page. The word in use is printed in dark ink in a pressed lozenge, centred on the lozenge's floor. Items outside it are faded into the paper (an opaque fade, never transparency) in shallow slots, and stay draggable. Empty slots count as outside it.
+   - **Filter:** clicking a word filters the page. The word in use is printed in dark ink in a pressed lozenge, centred on the lozenge's floor. Every visit to the page starts on `ALL`. Items outside the filter are faded into the paper (an opaque fade, never transparency) in shallow slots, and stay draggable. Empty slots count as outside it.
    - **Discard:** drop an item on the discard slot to hold it there; drag it back out to restore it. Empty, the discard slot is shallow with a printed ×; holding an item, it is deep and shows the item. Dropping a second item destroys the held one permanently and logs "Discarded <name>". Closing the book returns any held item to the inventory.
 4. **Equipment tab — right page.** The title "Gear", then the cultivator figure pressed into the page, with six gear slots round it mirrored to the figure:
    - left column: Head, Main hand, Accessory 1
    - right column: Body, Off hand, Accessory 2
 
-   Each slot's name is printed just above it, and an empty gear slot is a shallow slot. Dotted leaders run straight from the head, body and hand slots to the figure (level lines, the body's turning down onto the shoulder); the accessories have none. The details panel sits under the figure: the item in a deep slot beside its name and slot, its bonuses two to a row, its description, and a hint at the foot (`Right-click to wear it`, `Right-click to take it off` for a worn piece, or `Drag it back out to keep it` for the item in the discard slot). The panel has a fixed height laid out for the longest item, the Dreadbeast Tooth Necklace; shorter items flow up from the same gaps. The hint is the first thing to give way: it hides when an item's text would end lower than the necklace's.
+   Each slot's name is printed just above it, and an empty gear slot is a shallow slot. Dotted leaders run straight from the head, body and hand slots to the figure (level lines, the body's turning down onto the shoulder); the accessories have none. The details panel sits under the figure: the item in a deep slot beside its name and slot, its bonuses two to a row in body-size dark ink, worded as the tooltip words them (`+2 Strength`), and its description. It prints no hint. The panel has a fixed height laid out for the longest item, the Dreadbeast Tooth Necklace; shorter items flow up from the same gaps.
 
    On opening, the details show the first item on the grid page, else the first worn piece (Head, Main hand, Accessory 1, Body, Off hand, Accessory 2); with neither, they hide. While the bag changes (foraging, a purchase), they and the marks stay on the item the player picked. When that item is discarded, they move to the first item.
 5. **Consumables tab.** Pressed into the paper like the Equipment tab.
@@ -74,7 +74,7 @@ Related docs:
    - **Left page:** the title "Materials", then the same 6 × 6 page of 72 px slots as Equipment, in the same place. The row over the grid, where Equipment prints its filter, is empty. Each material sits in a deep slot, in inventory order, with its full count on a paper tag at the slot's bottom right (`×4600`); the rest of the page is shallow empty slots. There is no filter, no discard slot and no dragging.
      - Past 36 kinds the page scrolls, and a pressed groove appears beside it.
      - With nothing gathered, the page prints "Nothing gathered yet." where the grid would be, and the right page stays blank.
-   - **Right page:** the material's name as the title, then the details panel under its last line: the material in a deep slot beside `MATERIAL`, how many the player has on a paper tag at the panel's top right (`×4,600`, on `MATERIAL`'s baseline), its description, then where to find it: `FOUND IN` and the zones it is gathered in, one row each. Only zones whose sources the player can already see are listed; with none, the table is left out. The panel grows downward with long text.
+   - **Right page:** the material's name as the title, then the details panel under its last line: the material in a deep slot beside `MATERIAL`, how many the player has, printed at the panel's top right (`4,600`, on `MATERIAL`'s baseline), its description, then where to find it: `FOUND IN` and the zones it is gathered in, one row each. Only zones whose sources the player can already see are listed; with none, the table is left out. The panel grows downward with long text.
    - **Details:** hovering or clicking a slot shows its material and puts printer's marks round the slot. Hovering an empty slot changes nothing. On opening, the details show the first material. While the stacks change (a foraging roll every 5 s), they and the marks stay on the material the player picked, and its count follows its stack.
 7. **Journal tab.** Pressed into the paper like the Equipment tab.
    - **Left page:** the title "Journal", the caption `QUEST ITEMS`, then the quest items in inventory order, one row every 80 px. Each row shows the item in a deep slot, its name, and in muted ink under it the name of the quest it belongs to. At the right sits a vermilion `DONE` seal once that quest is finished, or the step the player is on (`Step 2 of 3`) while it is under way. An item that belongs to no quest shows where it came from under its name, and nothing at the right. A pressed rule runs under every row but the last.
@@ -82,7 +82,7 @@ Related docs:
      - A long name wraps and its row grows.
      - With no quest items, the page prints "No quest items yet." and the right page stays blank.
    - **Right page:** the item's name as the title, then two panels under its last line:
-     - the item's panel: the item in a deep slot beside `QUEST ITEM` and where it came from (`From Old Vesh, in the broken shrine`), the zone it belongs to on a paper tag at the panel's top right (`SPIRIT VALLEY`, on `QUEST ITEM`'s baseline; left out when it names none), then its description;
+     - the item's panel: the item in a deep slot beside `QUEST ITEM` and where it came from (`From Old Vesh, in the broken shrine`), the zone it belongs to, printed in capitals at the panel's top right (`SPIRIT VALLEY`, on `QUEST ITEM`'s baseline; left out when it names none), then its description;
      - the quest's panel, which shows the quest the way the Goals board does: `QUEST`, with the `DONE` seal at its top right once the quest is finished, the quest's name, its description as flavour text, a pressed rule, then the steps reached so far in tick boxes. Finished steps are ticked. The current step is unticked, with its progress figure (`7 / 10`) at the right when it has one. Later steps are not shown. An item that belongs to no quest has no quest panel.
 
      Both panels grow downward with long text.
@@ -143,7 +143,6 @@ EquipmentTab (Control, 1400×900, mouse ignored) — equipment_tab.gd: drag/drop
         Header: IconWell (deep slot, Icon), NameColumn (NameInset 2 px, NameLabel, SlotBox 2 px in / SlotLabel 17 px)
         BonusesBlock (16 px over) / Bonuses — one BonusRow (bonus_row.tscn/.gd) per two bonuses, 6 px apart
         DescriptionBlock (19 px over) / Description
-      Hint                                 — pinned to the panel's foot, baseline 866 on screen
 ```
 
 Every `InventorySlot`, `GearSlot` and `TrashSlot` holds a hidden `Marks` panel (`PanelPrinterMarks`), 6 px outside the slot.
@@ -196,7 +195,7 @@ MaterialsTab (Control, 1400×900, mouse ignored) — materials_tab.gd: the grid,
         DescriptionBlock / Description     — flows with its text
         SourcesBlock / Sources             — one TableRow per zone, FOUND IN by the first; the block's top margin
                                              is the gap over the table, hidden with it
-      TagLayer / CountTag (PaperTag)       — the count at the top right, on MATERIAL's baseline
+      TagLayer / CountLabel                — the count at the top right, on MATERIAL's baseline
 ```
 
 ### Journal
@@ -219,7 +218,7 @@ QuestItemsTab (Control, 1400×900, mouse ignored) — quest_items_tab.gd: the li
         Flow
           Header: IconWell (deep slot, Icon), InfoColumn (KindInset 10 px, KindBox 2 px in / KindLabel "QUEST ITEM", FromLabel)
           DescriptionBlock / Description   — at full width
-        TagLayer / ZoneTag (PaperTag)      — the item's zone at the top right, on QUEST ITEM's baseline
+        TagLayer / ZoneLabel               — the item's zone at the top right, on QUEST ITEM's baseline
       QuestPanel                           — hidden for an item that belongs to no quest
         Flow
           Header (26 px)                   — QuestCaption "QUEST", Seal at the top right, 2 px over the content
@@ -400,11 +399,10 @@ Right-click quick-equip ignores the trash slot: a held item is rescued only by d
 
 ### Equipment details and marks
 
-- `EquipmentDetails.show_item(data, hint_mode)` prints an item and shows the panel, with the hint for where the item lies (`EquipmentDetails.HintMode`: in the bag, worn, or in the discard slot); `clear()` hides it; `get_item()` returns the item shown. Bonuses come from `BookText.bonus_pairs()`, two to a `BonusRow` (`BonusRow.setup(left, right)`, an empty `right` hiding the right half), and the slot caption from `BookText.slot_name()`.
-- The panel never grows. It is laid out to the spec's geometry for the longest real item, the Dreadbeast Tooth Necklace: the name's baselines at screen 654 and 688, the slot caption 26 px under the name's last line, the first bonus row's baseline at 752 with a pressed rule 8 px under each row's baseline, the description from 798, and the hint at 866. Shorter items flow up from the same gaps. The header, the bonus rows and the gaps above them are even heights, so every rule lands on an even pixel.
-- `EquipmentDetails.wants_hint(name_lines, bonus_count, description_lines)` keeps the hint only while the item's text ends at least 24 px above the hint's line, as the necklace's does: 208 px or less down the panel's content. The text's height is the header (the name column, 64 px plus 34 per extra line, but never under the 72 px icon slot), then the bonus rows (16 px over them, 28 per row with its rule, 6 between rows), then the description (40 px plus 26 per extra line). The name wraps at 346 px and the description at 434 px, so the line counts hold before the panel is laid out.
+- `EquipmentDetails.show_item(data)` prints an item and shows the panel; `clear()` hides it; `get_item()` returns the item shown. Bonuses come from `BookText.bonus_lines()` (`+2 Strength`, as the tooltip words them), two to a `BonusRow` (`BonusRow.setup(left, right)`, an empty `right` hiding the right half), and the slot caption from `BookText.slot_name()`.
+- The panel never grows. It is laid out to the spec's geometry for the longest real item, the Dreadbeast Tooth Necklace: the name's baselines at screen 654 and 688, the slot caption 26 px under the name's last line, the first bonus row's baseline at 752 with a pressed rule 8 px under each row's baseline, and the description from 798. Shorter items flow up from the same gaps. The header, the bonus rows and the gaps above them are even heights, so every rule lands on an even pixel.
 - `InventorySlot.set_marked()` shows a slot's printer's marks. The tab marks the slot that holds the item shown, and while dragging, the drop target. Picking an item up takes the marks off the slot it leaves.
-- `EquipmentTab.open_page()` refreshes the footer, then shows the first item on the grid page, else the first worn piece in the figure's order (`GearSelector.get_slots()`), else clears the details. `InventoryView` calls it on opening the book and on every page turn.
+- `EquipmentTab.open_page()` selects `ALL` and applies it, refreshes the footer, then shows the first item on the grid page, else the first worn piece in the figure's order (`GearSelector.get_slots()`), else clears the details. `InventoryView` calls it on opening the book and on every page turn.
 - After every `inventory_changed` and every drop, the tab follows the item shown (deferred, once the slots have re-bound): it marks the visible slot holding it (none when it is on another page) and refreshes its hint. When the item is no longer in the bag or worn, which is how a discard ends, it runs `open_page()`, unless the player last pointed at it in the discard slot: then the details and the marks stay on it. Flipping to another page follows it too.
 
 ### Trash hold-buffer
@@ -456,7 +454,7 @@ The hotbar uses Godot's built-in drag-and-drop:
 
 ### Materials details and marks
 
-- `MaterialDetails.show_material(def, amount)` prints a material and shows the panel; `clear()` hides it; `get_shown_material()` returns the material shown (`CanvasItem.get_material()` already takes the shorter name). Showing the material already shown only reprints how many the player has: `×` and the number through `BookText.thousands()`, on its `PaperTag` (`set_label()`).
+- `MaterialDetails.show_material(def, amount)` prints a material and shows the panel; `clear()` hides it; `get_shown_material()` returns the material shown (`CanvasItem.get_material()` already takes the shorter name). Showing the material already shown only reprints how many the player has, through `BookText.thousands()`, on its `CountLabel` (`LabelBookInkDark`, in an overlay at the panel's top right).
 - Its table lists `MaterialSources.zone_names(material)`, each zone once in zone order, from `MaterialSources.find(material)` (`scripts/utils/material_sources.gd`): one `MaterialSources.Source` per loot entry whose item has the material's `item_id`, in each available `ForageActionData` with a loot table, in each zone of `ZoneManager.get_map_zones()` that is neither `LOCKED` nor `UNCHARTED`. A source holds `activity_name`, `zone_name`, `min_quantity`, `max_quantity` and `interval_seconds`, The page prints one `TableRow` per zone: `FOUND IN` beside the first, the others uncaptioned. Each value goes through `LacquerText.decimal_bbcode()`.
 - The panel is laid out to the mockup's Spirit Fern, which fills the spec's (1008, 300) to (1476, 646). The description flows, and the table keeps Spirit Fern's gap over it, 94 px from the description's last baseline to the table's first: a longer description pushes the table down, a shorter one pulls it up. The gap belongs to the table's block, so with no source both are left out and the panel ends under the description. A second source or a title that wraps moves the panel's foot down too.
 - `MaterialSlot.set_marked()` shows a slot's printer's marks, 6 px outside it. The tab marks the slot of the material shown.
@@ -466,7 +464,7 @@ The hotbar uses Godot's built-in drag-and-drop:
 ### Journal details and marks
 
 - `JournalDetails.show_item(item)` prints a quest item and its quest and shows the details; `clear()` hides them; `get_item()` returns the item shown. Every call reads the item's quest afresh: `QuestManager.get_quest_id_for_item()` ([QUESTS.md](../progression/QUESTS.md#public-api)), then the quest's state.
-- The item's zone tag is a `PaperTag` in an overlay over the item's panel, so it moves nothing in the panel's flow. It prints the zone's `zone_name` in capitals for a `zone_id` that `ZoneManager.has_zone()` knows, and hides otherwise. The description runs at the panel's full 434 px, 26 px a line.
+- The item's zone is a `LabelBookCaps` label in an overlay over the item's panel, so it moves nothing in the panel's flow. It prints the zone's `zone_name` in capitals for a `zone_id` that `ZoneManager.has_zone()` knows, and hides otherwise. The description runs at the panel's full 434 px, 26 px a line.
 - The quest's panel prints one `QuestStepRow` per step reached (`setup(text, ticked, figure)`). A finished quest ticks every step, each reading `QuestStepData.get_progress_text(true)`, its target. An active one ticks the steps before the one the player is on, which is unticked and reads `get_progress_text()`. A step that measures nothing has no figure.
 - The panels are laid out to the mockup's Refugee Camp Map, which fills the spec's (1008, 300) to (1476, 496) and (1008, 512) to (1476, 776), and grow downward with longer text.
 - `JournalRow.setup(item, second_line, done, step_text)` prints a row: under the name, the quest's name, or the item's `from_source` when it belongs to no quest; at the right, the `DONE` seal when the quest is finished, else `Step k of n` for the step the player is on. `JournalRow.set_marked()` shows a row's printer's marks, which bracket its slot and its rule as a Consumables row's do; `set_rule_visible()` hides the last row's rule.

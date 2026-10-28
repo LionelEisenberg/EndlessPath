@@ -5,7 +5,7 @@ extends GutTest
 ## it: each material in a deep slot with its count on a paper tag, the rest of
 ## the page shallow, and past 36 kinds the page scrolls. The right page's title
 ## is the material's name; under it the details panel shows how many the player
-## has on a tag at its top right, the description and the zones it is found in.
+## has, printed at its top right, the description and the zones it is found in.
 ## The details follow the pointer and keep to the material the player picked.
 
 const InventoryViewScene: PackedScene = preload("res://scenes/inventory/inventory_view/inventory_view.tscn")
@@ -100,7 +100,7 @@ func _right_title(tab: Control) -> Label:
 	return tab.get_node("%RightTitle").get_node("%TitleLabel") as Label
 
 func _amount(tab: Control) -> String:
-	return (_details(tab).get_node("%CountTag") as Label).text
+	return (_details(tab).get_node("%CountLabel") as Label).text
 
 func _table_rows(tab: Control) -> Array[TableRow]:
 	var rows: Array[TableRow] = []
@@ -246,7 +246,7 @@ func test_hovering_dewdrop_describes_it() -> void:
 	var slots: Array[MaterialSlot] = _slots(tab)
 	slots[1].hovered.emit(slots[1])
 	assert_eq(_right_title(tab).text, "Dewdrop Tear")
-	assert_eq(_amount(tab), "×3,300")
+	assert_eq(_amount(tab), "3,300")
 	assert_eq(_table(tab), [["FOUND IN", "Spirit Valley"]], "where to find it: its zones, nothing more")
 	assert_eq((_details(tab).get_node("%Description") as Label).text, DEWDROP_TEAR.description)
 	assert_eq((_details(tab).get_node("%Icon") as TextureRect).texture, DEWDROP_TEAR.icon)
@@ -283,7 +283,7 @@ func test_foraging_keeps_the_shown_material() -> void:   # Review Focus 3
 	InventoryManager.award_items(SPIRIT_FERN, 5)   # a foraging roll while the book is open
 	assert_eq(_details(tab).get_shown_material(), DEWDROP_TEAR)
 	assert_eq(_right_title(tab).text, "Dewdrop Tear")
-	assert_eq(_amount(tab), "×3,300")
+	assert_eq(_amount(tab), "3,300")
 	var rebuilt: Array[MaterialSlot] = _slots(tab)
 	assert_eq((rebuilt[0].get_node("%Count") as Label).text, "×4605", "the grid was rebuilt")
 	assert_true(rebuilt[1].is_marked(), "the marks follow the material to its new slot")
@@ -295,7 +295,7 @@ func test_count_follows_its_stack() -> void:
 	var slots: Array[MaterialSlot] = _slots(tab)
 	slots[1].hovered.emit(slots[1])
 	InventoryManager.award_items(DEWDROP_TEAR, 5)
-	assert_eq(_amount(tab), "×3,305")
+	assert_eq(_amount(tab), "3,305")
 
 func test_a_material_leaving_the_bag_gives_way_to_the_first() -> void:   # Review Focus 4
 	_gather_both()
@@ -394,11 +394,11 @@ func test_details_lay_spirit_fern_out_as_the_mockup_does() -> void:   # Ruling R
 	var kind: Label = details.get_node("%KindLabel") as Label
 	assert_eq(kind.get_global_rect().position.x, 1114.0, "MATERIAL 2 px in, its ink at the mockup's x 1114 (Ruling R22)")
 	assert_eq(_baseline(kind), 350.0, "MATERIAL")
-	var count: Label = details.get_node("%CountTag") as Label
-	assert_eq(count.text, "×4,600")
-	assert_eq(count.get_global_rect().end.x, 1458.0, "the count's tag at the top right, on the text's right edge")
+	# 2026-10-28 review: printed in ink, with no tag and no ×.
+	var count: Label = details.get_node("%CountLabel") as Label
+	assert_eq(count.text, "4,600")
+	assert_eq(count.get_global_rect().end.x, 1458.0, "the count at the top right, on the text's right edge")
 	assert_eq(_baseline(count), 350.0, "on MATERIAL's baseline")
-	assert_eq(fmod(count.get_global_rect().position.x, 2.0), 0.0, "and on the 2 px grid")
 	var description: Label = details.get_node("%Description") as Label
 	assert_eq(description.get_global_rect().position.x, 1024.0)
 	assert_eq(description.get_line_count(), 2)
@@ -420,7 +420,7 @@ func test_huge_counts_fit() -> void:   # Review Focus 2
 	var tag: Label = slot.get_node("%Count") as Label
 	assert_eq(tag.text, "×1234567")
 	assert_true(slot.get_global_rect().encloses(tag.get_global_rect()), "the tag fits on its slot")
-	assert_eq(_amount(tab), "×1,234,567")
+	assert_eq(_amount(tab), "1,234,567")
 	assert_eq(PageBounds.escaping_text(tab), [] as Array[String])
 
 func test_long_names_stay_inside_the_pages() -> void:   # Review Focus 1, ruling 2

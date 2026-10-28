@@ -97,11 +97,13 @@ func _ready() -> void:
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Opens the page on its first item: the first one on the grid page shown,
-## else the first worn piece in the figure's order (Head, Main hand,
+## Opens the page unfiltered, on its first item: the first one on the grid page
+## shown, else the first worn piece in the figure's order (Head, Main hand,
 ## Accessory 1, Body, Off hand, Accessory 2). With neither, the details hide.
-## Called whenever the page is opened.
+## Called whenever the page is opened, so every visit starts from ALL.
 func open_page() -> void:
+	filter_words.select(0)
+	_on_filter_changed(0)
 	_refresh_pagination()
 	for slot in equipment_grid.get_slots():
 		if slot.item_instance != null:
@@ -191,16 +193,7 @@ func _show_slot(slot: InventorySlot) -> void:
 	if slot == _shown_slot and data == details.get_item():
 		return
 	_mark_shown(slot)
-	details.show_item(data, _hint_mode(slot))
-
-## The details' hint for the item in `slot`: take it off a gear slot, drag it
-## back out of the discard slot, else wear it.
-func _hint_mode(slot: InventorySlot) -> EquipmentDetails.HintMode:
-	if slot is GearSlot:
-		return EquipmentDetails.HintMode.WORN
-	if slot is TrashSlot:
-		return EquipmentDetails.HintMode.DISCARD
-	return EquipmentDetails.HintMode.BAG
+	details.show_item(data)
 
 ## Marks `slot` as the one the details show and unmarks the last one. Null
 ## leaves no slot marked.
@@ -216,8 +209,8 @@ func _follow_shown_item() -> void:
 	_follow_item(details.get_item())
 
 ## Keeps the details and the marks on `item` after the bag changed: marks the
-## visible grid or gear slot holding it (none when it is on another page) and
-## refreshes its hint. The discard slot's item, when it was the last thing
+## visible grid or gear slot holding it (none when it is on another page). The
+## discard slot's item, when it was the last thing
 ## pointed at, keeps its details and marks as they are. Any other item no
 ## longer in the bag or worn opens the page on its first item instead. Waits
 ## while a drag is under way: the drop follows the item again.
@@ -237,7 +230,7 @@ func _follow_item(item: ItemInstanceData) -> void:
 		open_page()
 		return
 	_mark_shown(_visible_slot_holding(item))
-	details.show_item(item, EquipmentDetails.HintMode.WORN if worn else EquipmentDetails.HintMode.BAG)
+	details.show_item(item)
 
 ## The visible grid or gear slot that holds `item`, or null.
 func _visible_slot_holding(item: ItemInstanceData) -> InventorySlot:

@@ -1248,3 +1248,11 @@ The build departed from this plan where a ruling during the build decided it (th
 - The Journal's caption reads `QUEST ITEMS`. The item's description has no drop cap (`LabelBookDropCap` and `BookText.split_for_drop_cap()` went), and a `PaperTag` at the item panel's top right names the zone the item belongs to, from the new `QuestItemDefinitionData.zone_id` (`SpiritValley` on the map).
 - The side tabs' icons keep one size, 16 units (32 px), and step with the tab's eight frames on discrete, whole-unit position keys; the scale track (0.95 to 0.75) and the interpolated margins are gone. The icons had slid and shrunk out of step with the frames. The padlock is 7 × 8 units.
 - `PaperTag.set_label()` prints any text on a tag, for the two corner tags.
+
+**The user's second review (2026-10-28)**
+- The Materials count and the Journal item's zone print in ink at their panels' top right, on the caption's baseline (`4,600` in body-size dark ink, `SPIRIT VALLEY` in capitals), replacing the first review's paper tags: the bright tags and the × read badly in a panel. `PaperTag.set_label()` went with them.
+- Font pass: the muted ink darkened from `#765A43` to `#584230` (6.99:1 on a panel, from 4.72:1, replacing R4's ink), and the capitals print at 15 px instead of 13 on the line they had, through a font 1 px higher in its line, so no baseline moved.
+- The Equipment details print their bonuses as the tooltip words them, `+2 Strength`, in body-size dark ink, two to a row, instead of a small capital name and its value at the column's edge; `BookText.bonus_lines()` replaced `bonus_pairs()`. The panel prints no hint: `EquipmentDetails.HintMode`, `wants_hint()` and the geometry behind them went (replacing R10 to R12's hint rules; the panel keeps R10's layout).
+- The Equipment filter resets to `ALL` whenever the page opens (`open_page()`), so a tab switch or a reopened book starts unfiltered.
+- The side tabs' icons are 20 units (40 px), centred on the tab's face between its outline's bracket and the page's edge, 1 to 1.5 units right of where the first review put them.
+- The turning page draws one z-level over the books' content (`BookFrame`'s `PageTurningRect`), since its last frames land on the left page where the side tabs, drawn after the book, cut it off.

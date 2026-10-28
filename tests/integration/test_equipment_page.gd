@@ -142,6 +142,19 @@ func test_clicking_a_word_selects_it() -> void:
 	assert_eq(word2.theme_type_variation, &"LabelBookFilterOn")
 	assert_eq((words.get_node("%Word0") as Label).theme_type_variation, &"LabelBookFilter")
 
+## 2026-10-28 review: every visit to the page starts unfiltered.
+func test_opening_the_page_resets_the_filter() -> void:
+	var tab: Control = _tab()
+	InventoryManager.award_items(DAGGER, 1)
+	var words: FilterWords = tab.get_node("%FilterWords") as FilterWords
+	(words.get_node("%Word2") as Label).gui_input.emit(_press(MOUSE_BUTTON_LEFT))   # ARMOR
+	var slots: Array[InventorySlot] = tab.equipment_grid.get_slots()
+	assert_true(slots[0].is_filtered_out(), "the dagger is not armour")
+	tab.open_page()
+	assert_eq(words.get_selected(), 0, "back on ALL")
+	assert_eq((words.get_node("%Word0") as Label).theme_type_variation, &"LabelBookFilterOn")
+	assert_false(slots[0].is_filtered_out(), "nothing is faded")
+
 func test_a_shorter_filter_hides_the_words_it_does_not_use() -> void:
 	var tab: Control = _tab()
 	var words: FilterWords = tab.get_node("%FilterWords") as FilterWords
@@ -403,13 +416,14 @@ func test_wearing_the_shown_item_moves_its_marks_to_the_gear_slot() -> void:
 	await wait_process_frames(2)
 	assert_true(_gear_slot(tab, "MainWeaponGearSlot").is_marked())
 	assert_false(slots[0].is_marked())
-	assert_eq((_details(tab).get_node("%Hint") as Label).text, "Right-click to take it off")
 
 #-----------------------------------------------------------------------------
 # THE DETAILS
 #-----------------------------------------------------------------------------
 
-func test_details_print_the_slot_the_bonuses_and_the_hint() -> void:
+## 2026-10-28 review: the bonuses read as the tooltip words them, two to a
+## row, and the panel prints no hint.
+func test_details_print_the_slot_and_the_bonuses_as_the_tooltip_does() -> void:
 	var tab: Control = _tab()
 	InventoryManager.award_items(DAGGER, 1)
 	tab.open_page()
@@ -419,23 +433,21 @@ func test_details_print_the_slot_the_bonuses_and_the_hint() -> void:
 	var rows: Node = details.get_node("%Bonuses")
 	assert_eq(rows.get_child_count(), 1, "two bonuses share a row")
 	var row: BonusRow = rows.get_child(0) as BonusRow
-	assert_eq((row.get_node("%LeftName") as Label).text, "STRENGTH")
-	assert_eq((row.get_node("%LeftValue") as Label).text, "+3")
-	assert_eq((row.get_node("%RightName") as Label).text, "AGILITY")
-	assert_eq((row.get_node("%RightValue") as Label).text, "+2")
+	assert_eq((row.get_node("%LeftBonus") as Label).text, "+3 Strength")
+	assert_eq((row.get_node("%RightBonus") as Label).text, "+2 Agility")
+	assert_eq((row.get_node("%LeftBonus") as Label).theme_type_variation, &"LabelBookInkDark", "body-size dark ink")
 	assert_eq((details.get_node("%Description") as Label).text, DAGGER.description)
-	assert_eq((details.get_node("%Hint") as Label).text, "Right-click to wear it")
+	assert_null(details.find_child("Hint", true, false), "no hint")
 
 func test_a_lone_bonus_leaves_the_right_half_empty() -> void:
 	var tab: Control = _tab()
 	InventoryManager.award_items(BARK, 1)
 	tab.open_page()
 	var row: BonusRow = _details(tab).get_node("%Bonuses").get_child(0) as BonusRow
-	assert_eq((row.get_node("%LeftName") as Label).text, "BODY")
-	assert_false((row.get_node("%RightName") as Label).visible)
-	assert_false((row.get_node("%RightValue") as Label).visible)
+	assert_eq((row.get_node("%LeftBonus") as Label).text, "+2 Body")
+	assert_false((row.get_node("%RightBonus") as Label).visible)
 
-func test_longest_item_fits_with_its_hint() -> void:
+func test_longest_item_fits() -> void:
 	var tab: Control = await _open_tab()
 	InventoryManager.award_items(NECKLACE, 1)
 	tab.open_page()
@@ -445,11 +457,10 @@ func test_longest_item_fits_with_its_hint() -> void:
 	assert_eq(name_label.text, "Dreadbeast Tooth Necklace")
 	assert_eq(name_label.get_line_count(), 2)
 	assert_eq(details.get_node("%Bonuses").get_child_count(), 1)
-	assert_true((details.get_node("%Hint") as Label).visible)
 	assert_eq(details.size.y, 272.0, "the panel keeps its height")
 	assert_eq(PageBounds.escaping_text(tab), [] as Array[String])
 
-func test_long_names_wrap_inside_the_panel_and_drop_the_hint() -> void:   # Review Focus 1
+func test_long_names_wrap_inside_the_panel() -> void:   # Review Focus 1
 	var tab: Control = await _open_tab()
 	var long_def: EquipmentDefinitionData = NECKLACE.duplicate() as EquipmentDefinitionData
 	long_def.item_name = "Pill of the Thousand Quiet Mornings Beneath the Valley"
@@ -458,28 +469,10 @@ func test_long_names_wrap_inside_the_panel_and_drop_the_hint() -> void:   # Revi
 	await wait_process_frames(2)
 	var details: EquipmentDetails = _details(tab)
 	assert_gt((details.get_node("%NameLabel") as Label).get_line_count(), 2, "the name wraps")
-	assert_false((details.get_node("%Hint") as Label).visible, "the hint gives way")
 	assert_eq(details.size.y, 272.0, "the panel keeps its height")
 	assert_eq(PageBounds.escaping_text(tab), [] as Array[String])
 
-func test_hint_gives_way_first() -> void:
-	# The text must end at least 24 px above the hint's line: by content y 208,
-	# where the necklace's ends. The header is the name column, 64 + 34 per extra
-	# line, but never under the 72 px icon slot; the bonuses take 16 + 28 per row
-	# + 6 between rows; the description 40 + 26 per extra line.
-	assert_true(EquipmentDetails.wants_hint(2, 2, 2), "the necklace: 98 + 44 + 66 = 208")
-	assert_true(EquipmentDetails.wants_hint(4, 0, 1), "166 + 0 + 40 = 206")
-	assert_true(EquipmentDetails.wants_hint(1, 4, 1), "72 + 78 + 40 = 190")
-	assert_true(EquipmentDetails.wants_hint(1, 2, 3), "72 + 44 + 92 = 208: one line of name less pays for one of description")
-	assert_false(EquipmentDetails.wants_hint(2, 4, 2), "98 + 78 + 66 = 242")
-	assert_false(EquipmentDetails.wants_hint(2, 3, 2), "a third bonus takes a second row: 242")
-	assert_false(EquipmentDetails.wants_hint(2, 4, 1), "98 + 78 + 40 = 216")
-	assert_false(EquipmentDetails.wants_hint(2, 2, 3), "98 + 44 + 92 = 234")
-	assert_false(EquipmentDetails.wants_hint(3, 2, 1), "132 + 44 + 40 = 216")
-	assert_false(EquipmentDetails.wants_hint(1, 2, 4), "72 + 44 + 118 = 234")
-	assert_false(EquipmentDetails.wants_hint(2, 5, 1), "98 + 112 + 40 = 250")
-
-func test_the_hint_rule_reads_the_laid_out_panel() -> void:
+func test_every_bonus_rule_lands_on_an_even_pixel() -> void:
 	var tab: Control = await _open_tab()
 	var details: EquipmentDetails = _details(tab)
 	var four_bonuses: EquipmentDefinitionData = NECKLACE.duplicate() as EquipmentDefinitionData
@@ -487,16 +480,11 @@ func test_the_hint_rule_reads_the_laid_out_panel() -> void:
 	var long_name: EquipmentDefinitionData = NECKLACE.duplicate() as EquipmentDefinitionData
 	long_name.item_name = "Pill of the Thousand Quiet Mornings Beneath the Valley"
 	for def: EquipmentDefinitionData in [NECKLACE, DAGGER, BARK, four_bonuses, long_name]:
-		details.show_item(_instance(def), EquipmentDetails.HintMode.BAG)
+		details.show_item(_instance(def))
 		await wait_process_frames(2)
-		var name_lines: int = (details.get_node("%NameLabel") as Label).get_line_count()
-		var description: Label = details.get_node("%Description") as Label
-		var expected: int = EquipmentDetails._text_height(name_lines, BookText.bonus_pairs(def).size(), description.get_line_count())
-		assert_eq(description.get_global_rect().end.y - 622.0, float(expected), "%s's text ends where wants_hint() reckons" % def.item_name)
 		for row: Node in details.get_node("%Bonuses").get_children():
 			var rule_y: float = (row.get_node("Rule") as Control).get_global_rect().position.y
 			assert_eq(fmod(rule_y, 2.0), 0.0, "%s's rule at %d is on an even pixel" % [def.item_name, rule_y])
-	assert_eq((details.get_node("%Hint") as Label).get_global_rect().position.y - 622.0, 232.0, "the hint's line")
 
 func test_details_lay_the_longest_item_out_as_the_spec_does() -> void:   # Ruling R10
 	var tab: Control = await _open_tab()
@@ -512,11 +500,10 @@ func test_details_lay_the_longest_item_out_as_the_spec_does() -> void:   # Rulin
 	assert_eq(_baseline(name_label, name_label.text.find("Necklace")), 688.0, "and its second")
 	assert_eq(_baseline(details.get_node("%SlotLabel") as Label), 714.0, "the slot, 26 px under the name's last line")
 	assert_eq((details.get_node("%SlotLabel") as Control).get_global_rect().position.x, 1114.0, "2 px in, its ink under the name's at the mockup's x 1114 (Ruling R22)")
-	assert_eq(_baseline(row.get_node("%LeftValue") as Label), 752.0, "the first bonus row")
-	assert_eq(_baseline(row.get_node("%LeftName") as Label), 752.0, "its attribute on the same line")
+	assert_eq(_baseline(row.get_node("%LeftBonus") as Label), 752.0, "the first bonus row")
+	assert_eq(_baseline(row.get_node("%RightBonus") as Label), 752.0, "the second bonus on the same line")
 	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 760.0, "the pressed rule 8 px under it, as the mockup rules it")
 	assert_eq(_baseline(details.get_node("%Description") as Label), 798.0, "the description")
-	assert_eq(_baseline(details.get_node("%Hint") as Label), 866.0, "the hint, at the panel's foot")
 
 func test_a_shorter_item_flows_up_from_the_same_gaps() -> void:   # Ruling R10
 	var tab: Control = await _open_tab()
@@ -527,9 +514,8 @@ func test_a_shorter_item_flows_up_from_the_same_gaps() -> void:   # Ruling R10
 	var row: BonusRow = details.get_node("%Bonuses").get_child(0) as BonusRow
 	assert_eq((details.get_node("%NameLabel") as Label).get_line_count(), 1)
 	assert_eq(_baseline(details.get_node("%SlotLabel") as Label), 680.0, "26 px under the one line of name")
-	assert_eq(_baseline(row.get_node("%LeftValue") as Label), 726.0, "16 px under the 72 px icon slot, 26 px higher than the necklace's")
+	assert_eq(_baseline(row.get_node("%LeftBonus") as Label), 726.0, "16 px under the 72 px icon slot, 26 px higher than the necklace's")
 	assert_eq((row.get_node("Rule") as Control).get_global_rect().position.y, 734.0, "the rule 8 px under it, on an even pixel")
-	assert_eq(_baseline(details.get_node("%Hint") as Label), 866.0, "the hint stays at the foot")
 
 func test_open_page_shows_the_first_item() -> void:
 	var tab: Control = _tab()
@@ -568,7 +554,6 @@ func test_open_page_takes_worn_gear_in_the_figures_order() -> void:
 	InventoryManager.equip_item(dagger, EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, 1)
 	tab.open_page()
 	assert_eq(_details(tab).get_item(), dagger, "the main hand comes before the body")
-	assert_eq((_details(tab).get_node("%Hint") as Label).text, "Right-click to take it off")
 
 func test_details_keep_to_the_picked_item_when_the_bag_changes() -> void:   # Review Focus 3
 	var tab: Control = _tab()
@@ -636,18 +621,15 @@ func test_discarding_the_shown_item_by_a_drop_moves_on() -> void:   # Review Foc
 	assert_true(slots[1].is_marked())
 	assert_false(trash.is_marked(), "no marks are left on the discard slot")
 
-func test_pointing_at_the_discard_slot_shows_its_item_and_how_to_keep_it() -> void:
+func test_pointing_at_the_discard_slot_shows_its_item() -> void:
 	var tab: Control = _tab()
 	InventoryManager.award_items(DAGGER, 1)
 	var robes: ItemInstanceData = _instance(ROBES)
 	var trash: TrashSlot = tab.trash_slot
 	trash.accept(robes)
 	tab._on_slot_input(trash, _motion(Vector2.ZERO))
-	var hint: Label = _details(tab).get_node("%Hint") as Label
 	assert_eq(_details(tab).get_item(), robes)
 	assert_true(trash.is_marked())
-	assert_eq(hint.text, "Drag it back out to keep it", "a right-click does nothing there")
-	assert_true(hint.visible, "the robes leave room for it")
 
 func test_the_discard_slots_item_stays_shown_while_the_bag_changes() -> void:   # Review Focus 3
 	var tab: Control = _tab()
@@ -661,7 +643,6 @@ func test_the_discard_slots_item_stays_shown_while_the_bag_changes() -> void:   
 	assert_eq(_details(tab).get_item(), robes, "the details keep the item pointed at")
 	assert_true(trash.is_marked(), "and so do the marks")
 	assert_false(tab.equipment_grid.get_slots()[0].is_marked(), "the page's first item gets none")
-	assert_eq((_details(tab).get_node("%Hint") as Label).text, "Drag it back out to keep it")
 
 func test_pages_have_their_titles_and_draw_text_at_1x() -> void:
 	var tab: Control = await _open_tab()

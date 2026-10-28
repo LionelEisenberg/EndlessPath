@@ -90,17 +90,17 @@ The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](i
 | `LabelBookQuestName` | Label | Yatra One 26px dark ink `#33261A`, pitch 30 | A quest's name |
 | `LabelBookInk` | Label | BM Euljiro 18px ink `#3B2A20`, pitch 26 | Body text and descriptions |
 | `LabelBookInkDark` | Label | BM Euljiro 18px dark ink `#33261A`, pitch 26 | Row names, values, the hotbar's key numbers |
-| `LabelBookDetail` | Label | BM Euljiro 15px muted ink `#765A43`, pitch 20 | Row details, hints ("Right-click to wear it"), the equipment count |
+| `LabelBookDetail` | Label | BM Euljiro 15px muted ink `#584230`, pitch 20 | Row details, hints, the equipment count |
 | `LabelBookDetailDark` | Label | BM Euljiro 15px dark ink `#33261A`, pitch 20 | The number printed in a page button |
-| `LabelBookFlavor` | Label | BM Euljiro 16px muted ink `#765A43`, pitch 22 | A quest's flavour text |
+| `LabelBookFlavor` | Label | BM Euljiro 16px muted ink `#584230`, pitch 22 | A quest's flavour text |
 | `LabelBookStep` | Label | BM Euljiro 16px ink `#3B2A20`, pitch 22 | A quest's steps |
 | `LabelBookCount` | Label | BM Euljiro 20px dark ink `#33261A`, pitch 24 | The count in a list row (`×7`) |
-| `LabelBookCaps` | Label | Eul+1 13px muted ink `#765A43`, pitch 18 | Labels in capitals: `HEAD`, `STRENGTH`, `FOUND IN`. The page writes the text in capitals |
-| `LabelBookTag` | Label | BM Euljiro 13px set 3px low in its line (see below), dark ink `#33261A`, pitch 18, `normal` = `paper_tag.tres` | The count on a paper tag (`×4600`), or a count or zone at a details panel's top right (`×4,600`, `SPIRIT VALLEY`). Use it through `PaperTag` (`scenes/inventory/pressed/paper_tag/`), which rounds the tag's width up to even so its art stays on the 2px grid |
+| `LabelBookCaps` | Label | Eul+1 15px on the 13px line (see below), muted ink `#584230`, pitch 18 | Labels in capitals: `HEAD`, `FOUND IN`, a quest item's zone. The page writes the text in capitals |
+| `LabelBookTag` | Label | BM Euljiro 13px set 3px low in its line (see below), dark ink `#33261A`, pitch 18, `normal` = `paper_tag.tres` | The count on a paper tag (`×4600`). Use it through `PaperTag` (`scenes/inventory/pressed/paper_tag/`), which rounds the tag's width up to even so its art stays on the 2px grid |
 | `LabelBookSeal` | Label | Eul+1 13px seal text `#F0E8D8`, pitch 18, `normal` = `seal.tres` | The word on a seal (`DONE`). Give the Label the seal's 66x26 size and centre the text |
-| `LabelBookFilter` | Label | Eul+1 13px set 1px low in its line (see below), muted ink `#765A43`, pitch 18, `normal` = an empty style with 10/6/10/4 content margins | A filter word that is not in use |
+| `LabelBookFilter` | Label | Eul+1 13px set 1px low in its line (see below), muted ink `#584230`, pitch 18, `normal` = an empty style with 10/6/10/4 content margins | A filter word that is not in use |
 | `LabelBookFilterOn` | Label | Eul+1 13px set 1px low in its line (see below), dark ink `#33261A`, pitch 18, `normal` = `pressed_lozenge.tres` | The filter word in use. Its margins match `LabelBookFilter`'s, so swapping the two moves nothing |
-| `RichTextBookDetail` | RichTextLabel | BM Euljiro 15px muted ink `#765A43` (`default_color`), `line_separation` 3, pitch 20 | Detail lines with BBCode: what a consumable does, under its name in the list |
+| `RichTextBookDetail` | RichTextLabel | BM Euljiro 15px muted ink `#584230` (`default_color`), `line_separation` 3, pitch 20 | Detail lines with BBCode: what a consumable does, under its name in the list |
 | `RichTextBookValue` | RichTextLabel | BM Euljiro 18px dark ink `#33261A` (`default_color`), `line_separation` 5, pitch 26 | The value in a row of a details panel's table, with BBCode: `+20 Madra` in Madra ink, `10 s` |
 | `PanelPressed` | PanelContainer | `pressed_panel.tres`: the pressed panel, 16px content margins | The details panels |
 | `PanelBookBare` | PanelContainer | An empty style: draws nothing | A `PanelContainer` that must show no panel (the base type draws `panel_tan.tres`) |
@@ -115,7 +115,7 @@ Each book's own colours are not theme items: a `BookStyleData` resource per book
 
 The rows from `LabelBookPageTitle` down are the "pressed paper" pieces for the Inventory's four tabs ([design](superpowers/specs/2026-10-23-inventory-pressed-pages-design.md)). They follow the rules above (their own size, no drop shadow) and add these:
 
-- **One muted ink.** Every new muted variant is `#765A43`: 5.17:1 on the paper and 4.72:1 on a panel's floor (`#EFDCBB`). `LabelBookMuted` keeps `#7D5F47` for the other books, which is 4.34:1 on a panel.
+- **One muted ink.** Every new muted variant is `#584230`: 7.66:1 on the paper and 6.99:1 on a panel's floor (`#EFDCBB`). The pages first used `#765A43` (4.72:1 on a panel), which the user's review of 2026-10-28 found too faint. Capitals print at 15px on the line 13px gave them: their font, Eul+1 with `spacing_top` -1, keeps the line 16px and the baseline 11px down it (BM Euljiro's ascent is 12 at 15px and 11 at 13px), so no layout moved. `LabelBookMuted` keeps `#7D5F47` for the other books, which is 4.34:1 on a panel.
 - **Fonts.** Yatra One (`assets/fonts/YatraOne-Regular.ttf`) for titles and names, BM Euljiro for everything else. "Eul+1" is BM Euljiro with 1px letter spacing (`spacing_glyph = 1`): one `FontVariation` shared by `LabelBookCaps` and `LabelBookSeal`, and another, set low (below), shared by `LabelBookFilter` and `LabelBookFilterOn`.
 - **Line pitch.** `line_spacing` is the pitch minus the font's height at that size, so wrapped lines step by the pitch, as in the lacquer theme. Heights: Yatra One 46 / 38 / 30 / 26 is 69 / 57 / 45 / 39px (spacing -17 / -13 / -11 / -9); BM Euljiro 20 / 18 / 16 / 15 / 13 is 23 / 21 / 19 / 17 / 16px (spacing +1 / +5 / +3 / +3 / +2). `RichTextBookDetail` and `RichTextBookValue` get their 20 and 26px pitches from `line_separation` 3 and 5, which a RichTextLabel adds under every line, the last one too.
 - **One line is only the font's height.** A single-line Label is as tall as its font (16px at 13px), not its pitch, so a style's content margins make up the rest. They are sized so a `LabelBookTag` is 20px tall (16 + 2 + 2, the paper tag's art) and a `LabelBookFilter` or `LabelBookFilterOn` 26px (16 + 6 + 4, the lozenge's art), with no `custom_minimum_size.y` needed. Size the margins of any new styled Label from the font's height, not from the pitch. `LabelBookFilter` and `LabelBookFilterOn` are the same size, so selecting a word moves nothing.
