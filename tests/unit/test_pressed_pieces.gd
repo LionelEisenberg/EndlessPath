@@ -199,6 +199,25 @@ func test_a_one_line_tag_is_as_tall_as_its_art() -> void:
 	await wait_process_frames(2)
 	assert_eq(tag.get_combined_minimum_size().y, 20.0, "tag height")
 
+## Where a one-line Label's baseline sits under its own top: the top of its
+## line as the engine lays the Label out (alignment included), plus the
+## font's ascent.
+func _baseline_in(label: Label) -> float:
+	var ascent: float = label.get_theme_font(&"font").get_ascent(label.get_theme_font_size(&"font_size"))
+	return label.get_character_bounds(0).position.y + ascent
+
+## The mockups print a seal's word 18 px under the seal's top. A seal Label is
+## the seal's 66x26 with its word centred, so the style's top margin sets how
+## low the word sits.
+func test_a_seal_prints_its_word_where_the_mockup_does() -> void:
+	var seal: Label = _make_label(&"LabelBookSeal", "DONE")
+	seal.custom_minimum_size = Vector2(66, 26)
+	seal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seal.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	await wait_process_frames(2)
+	assert_eq(seal.size, Vector2(66, 26), "the seal stays its art's size")
+	assert_eq(_baseline_in(seal), 18.0, "the word's baseline")
+
 ## The same for a filter word and the 26 px lozenge behind the one in use. The
 ## two styles are the same size, so selecting a word moves nothing.
 func test_a_one_line_filter_word_is_as_tall_as_its_lozenge() -> void:

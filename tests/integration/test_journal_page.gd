@@ -201,6 +201,7 @@ func test_rows_sit_where_the_spec_puts_them() -> void:   # Rulings R14, R17, R18
 	assert_eq(second.get_global_rect().position.x, 540.0)
 	assert_eq(_baseline(second), 390.0, "the quest's name, baseline +56")
 	assert_eq((first.get_node("%Seal") as Control).get_global_rect(), Rect2(810, 356, 66, 26), "the mockup's seal, its right edge at x 876")
+	assert_eq(_baseline(first.get_node("%Seal") as Label), 374.0, "DONE on the mockup's baseline, 18 px under the seal's top")
 	assert_eq((first.get_node("%Rule") as Control).get_global_rect(), Rect2(452, 410, 428, 4), "the rule 4 px under the slot, touching the next one")
 	assert_eq((first.get_node("%Marks") as Control).get_global_rect(), Rect2(444, 326, 442, 90), "the mockup's marks: (444, 326) to (886, 416)")
 	var step: Label = rows[1].get_node("%StepLabel") as Label
@@ -441,6 +442,7 @@ func test_the_quest_panel_lays_out_as_the_mockup_does() -> void:   # Ruling R17
 	assert_eq(caption.get_global_rect().position.x, 1024.0)
 	assert_eq(_baseline(caption), 544.0, "QUEST")
 	assert_eq((_detail(tab, "Seal") as Control).get_global_rect(), Rect2(1390, 526, 66, 26), "the mockup's seal at the top right")
+	assert_eq(_baseline(_detail(tab, "Seal") as Label), 544.0, "DONE on QUEST's baseline, as the mockup prints it")
 	var quest_name: Label = _detail(tab, "QuestName") as Label
 	assert_eq(quest_name.get_global_rect().position.x, 1024.0)
 	assert_eq(_baseline(quest_name), 580.0, "the quest's name")

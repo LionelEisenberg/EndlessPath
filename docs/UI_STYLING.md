@@ -135,7 +135,7 @@ Tests: `tests/unit/test_pressed_pieces.gd` checks each variant's font, size, col
 | `pressed_rule.tres` | `pressed_rule_ai.png` (8x4) | 2/0/2/0 | 0/2/0/2 | yes | `HSeparatorPressed`. Its 2px top and bottom content margins give the rule its 4px height (see below) |
 | `printer_marks.tres` | `printer_marks_ai.png` (32x32) | 10/10/10/10 | 0 | none | `PanelPrinterMarks` |
 | `paper_tag.tres` | `paper_tag_ai.png` (12x20) | 4/4/4/4 | 5/2/5/2 | yes | `LabelBookTag`. The 2px top and bottom margins make a one-line count 20px tall, the art's height |
-| `seal.tres` | `seal_ai.png` (66x26) | 0 | 0 | yes | `LabelBookSeal`. No 9-slice: size the Label to 66x26 |
+| `seal.tres` | `seal_ai.png` (66x26) | 0 | 0/4/0/0 | yes | `LabelBookSeal`. No 9-slice: size the Label to 66x26. The 4px top margin lowers the centred word onto the mockups' baseline, 18px under the seal's top |
 | `pressed_groove.tres` | `pressed_groove_ai.png` (10x24) | 0/6/0/6 | 0 | yes | The scroll groove, stretched between its 6px ends. No variant uses it |
 | `pressed_thumb.tres` | `pressed_thumb_ai.png` (4x8) | 0/2/0/2 | 0 | yes | The groove's thumb, stretched between its 2px ends. No variant uses it |
 
