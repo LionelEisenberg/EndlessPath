@@ -8,6 +8,9 @@
 [ext_resource type="PackedScene" uid="uid://ben0tfjikkvrr" path="res://scenes/ui/dev_panel/tabs/story_tab.tscn" id="6_story"]
 [ext_resource type="PackedScene" uid="uid://h7o66qypo3sg" path="res://scenes/ui/dev_panel/tabs/items_tab.tscn" id="7_items"]
 [ext_resource type="Theme" path="res://assets/themes/dev_panel_theme.tres" id="8_theme"]
+[ext_resource type="Theme" uid="uid://c536aax1tw67s" path="res://assets/themes/lacquer/lacquer_theme.tres" id="9_lacquer"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/lacquer_close_ai.png" id="10_close"]
+[ext_resource type="Texture2D" path="res://assets/ui/lacquer/lacquer_close_hover_ai.png" id="11_close_hover"]
 
 [node name="DevPanel" type="Control"]
 layout_mode = 3
@@ -29,6 +32,8 @@ offset_top = 60.0
 offset_right = 1240.0
 offset_bottom = 740.0
 mouse_filter = 0
+theme = ExtResource("9_lacquer")
+theme_type_variation = &"DevBoard"
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Body"]
 layout_mode = 2
@@ -38,14 +43,14 @@ theme_override_constants/separation = 6
 unique_name_in_owner = true
 layout_mode = 2
 mouse_default_cursor_shape = 13
-theme_type_variation = &"PanelTooltip"
+theme_type_variation = &"DevTitleBar"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="Body/VBoxContainer/TitleBar"]
 layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="Body/VBoxContainer/TitleBar/HBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerPanelTitle"
 text = "Dev Panel"
 
 [node name="Spacer" type="Control" parent="Body/VBoxContainer/TitleBar/HBoxContainer"]
@@ -57,11 +62,12 @@ mouse_filter = 2
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="CloseButton" type="Button" parent="Body/VBoxContainer/TitleBar/HBoxContainer"]
+[node name="CloseButton" type="TextureButton" parent="Body/VBoxContainer/TitleBar/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "×"
-flat = true
+size_flags_vertical = 4
+texture_normal = ExtResource("10_close")
+texture_hover = ExtResource("11_close_hover")
 
 [node name="Tabs" type="TabContainer" parent="Body/VBoxContainer"]
 unique_name_in_owner = true
@@ -118,7 +124,7 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 2
-theme_type_variation = &"PanelTooltip"
+theme_type_variation = &"DevToken"
 
 [node name="SpeedBadgeLabel" type="Label" parent="Notices/SpeedBadge"]
 unique_name_in_owner = true
@@ -133,7 +139,7 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 2
-theme_type_variation = &"PanelTooltip"
+theme_type_variation = &"DevBoard"
 
 [node name="SaveWarningLabel" type="Label" parent="Notices/SaveWarning"]
 unique_name_in_owner = true

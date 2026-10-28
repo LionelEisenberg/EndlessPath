@@ -16,9 +16,9 @@ extends Control
 ## that calls the dev tools itself; the one thing the shell hands a tab is the
 ## adventure view, to the Adventure tab. The panel lives in the main scene, which a session switch
 ## frees and loads again, so its open state, place and tab live on DevManager and
-## come back when the panel is built. Exempt from the lacquer look (STYLE_GUIDE.md,
-## G11): it takes pixel_theme.tres from MainView, and its own dev_panel_theme.tres
-## sizes its controls' text to match its labels.
+## come back when the panel is built. Its own dev_panel_theme.tres dresses it in the
+## game's lacquer and brass with the kit's pieces, over the pixel_theme.tres it takes
+## from MainView, and the body takes lacquer_theme.tres for its brass labels.
 
 #-----------------------------------------------------------------------------
 # EXPORTS
@@ -34,7 +34,7 @@ extends Control
 @onready var _body: PanelContainer = %Body
 @onready var _title_bar: PanelContainer = %TitleBar
 @onready var _speed_option: OptionButton = %SpeedOption
-@onready var _close_button: Button = %CloseButton
+@onready var _close_button: BaseButton = %CloseButton
 @onready var _tabs: TabContainer = %Tabs
 @onready var _adventure_tab: DevAdventureTab = %AdventureTab
 @onready var _speed_badge: PanelContainer = %SpeedBadge

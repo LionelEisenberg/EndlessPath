@@ -31,6 +31,9 @@ const ADVENTURE_VIEW_SCENE: PackedScene = preload("res://scenes/adventure/advent
 ## The size MainView gives the panel in the game.
 const SCREEN_SIZE: Vector2 = Vector2(1920, 1080)
 
+## The lacquer of the game's boards (STYLE_GUIDE.md, Palette), behind the panel's title.
+const LACQUER: Color = Color("2C1414")
+
 const ZONE_ID: String = "SpiritValley"
 ## The zone the map hides, which the travel picker still offers.
 const HIDDEN_ZONE_ID: String = "TestZone"
@@ -265,7 +268,7 @@ func test_toggle_opens_and_closes_the_body() -> void:
 	assert_false(DevManager.panel_open, "and DevManager keeps it closed")
 	assert_true(panel.visible, "the panel itself stays, for the speed badge")
 	panel.set_open(true)
-	(panel.get_node("%CloseButton") as Button).pressed.emit()
+	(panel.get_node("%CloseButton") as BaseButton).pressed.emit()
 	assert_false(panel.is_open(), "the close button closes it too")
 
 ## The panel covers the screen, so it must let the game have the mouse: only the
@@ -351,13 +354,13 @@ func test_the_controls_read_at_18_px() -> void:
 	var option: OptionButton = panel.get_node("%SpeedOption")
 	var spin_box: SpinBox = panel.find_children("*", "SpinBox", true, false)[0]
 	var check: CheckButton = panel.find_children("*", "CheckButton", true, false)[0]
-	assert_eq((panel.get_node("%CloseButton") as Button).get_theme_font_size("font_size"), 18, "a button")
+	assert_eq((panel.find_child("MadraSet", true, false) as Button).get_theme_font_size("font_size"), 18, "a button")
 	assert_eq(option.get_theme_font_size("font_size"), 18, "a dropdown")
 	assert_eq(option.get_popup().get_theme_font_size("font_size"), 18, "and its list")
 	assert_eq(spin_box.get_line_edit().get_theme_font_size("font_size"), 18, "a number field")
 	assert_eq(check.get_theme_font_size("font_size"), 18, "a switch")
 	assert_eq((panel.get_node("%Tabs") as TabContainer).get_theme_font_size("font_size"), 18, "the tab titles")
-	assert_eq((panel.find_child("TitleLabel", true, false) as Label).get_theme_font_size("font_size"), 24, "while the title keeps its variant's size")
+	assert_eq((panel.find_child("TitleLabel", true, false) as Label).get_theme_font_size("font_size"), 22, "while the title keeps its variant's size")
 
 ## A place kept at a larger window, or a drag past an edge, never leaves any of the
 ## body, its title bar included, off screen.
@@ -469,18 +472,18 @@ func test_the_player_and_adventure_tabs_are_titled_and_come_before_world() -> vo
 # TITLE
 #-----------------------------------------------------------------------------
 
-## The title keeps LabelSubheading's tan, which is faint on a tan bar (about 1.2 to 1)
-## and reads on the dark brown panel the pixel theme gives its tooltips (about 4 to 1).
-## 3 to 1 is what WCAG asks of large text, which the title's 24 px is.
-func test_the_title_reads_against_its_bar() -> void:
+## The panel is a lacquer board (board9.tres), and its title is painted on it in
+## brass, as the game's boards' titles are: the title bar draws nothing, so the
+## board's lacquer is behind the title. 3 to 1 is what WCAG asks of large text;
+## brass on lacquer is about 7.5 to 1.
+func test_the_title_reads_on_the_board() -> void:
 	var panel: DevPanel = _add_panel()
 	var title: Label = panel.get_node("%TitleBar/HBoxContainer/TitleLabel")
-	var bar: StyleBoxFlat = (panel.get_node("%TitleBar") as Control).get_theme_stylebox("panel") as StyleBoxFlat
-	assert_not_null(bar, "precondition: the bar is a flat panel with a colour")
-	if bar == null:
-		return
-	var ratio: float = _contrast(title.get_theme_color("font_color"), bar.bg_color)
-	assert_gte(ratio, 3.0, "the title's contrast with its bar is %.2f to 1" % ratio)
+	var board: StyleBox = (panel.get_node("%Body") as Control).get_theme_stylebox("panel")
+	assert_eq(board.resource_path, "res://assets/styleboxes/lacquer/board9.tres", "the body is a lacquer board")
+	assert_true((panel.get_node("%TitleBar") as Control).get_theme_stylebox("panel") is StyleBoxEmpty, "the title bar draws nothing over it")
+	var ratio: float = _contrast(title.get_theme_color("font_color"), LACQUER)
+	assert_gte(ratio, 3.0, "the title's contrast with the board is %.2f to 1" % ratio)
 
 #-----------------------------------------------------------------------------
 # TIME SPEED

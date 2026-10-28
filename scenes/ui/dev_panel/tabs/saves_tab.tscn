@@ -64,7 +64,7 @@ text = "Back to my save"
 
 [node name="PresetsHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "PRESETS"
 
 [node name="PresetList" type="VBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
@@ -74,7 +74,7 @@ theme_override_constants/separation = 8
 
 [node name="SavePresetHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "SAVE THIS GAME AS A PRESET"
 
 [node name="TitleRow" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
@@ -122,7 +122,7 @@ autowrap_mode = 3
 
 [node name="YourSaveHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "YOUR SAVE"
 
 [node name="YourSaveButtons" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]

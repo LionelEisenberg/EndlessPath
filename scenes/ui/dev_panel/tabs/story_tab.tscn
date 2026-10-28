@@ -32,7 +32,7 @@ theme_override_constants/separation = 8
 
 [node name="JumpHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "JUMP STORY TO"
 
 [node name="JumpRow" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
@@ -50,7 +50,7 @@ text = "Jump"
 
 [node name="QuestsHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "QUESTS"
 
 [node name="QuestsLabel" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
@@ -63,7 +63,7 @@ autowrap_mode = 3
 
 [node name="TriggerHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "TRIGGER EVENT"
 
 [node name="TriggerRow" type="HBoxContainer" parent="Scroll/MarginContainer/VBoxContainer"]
@@ -83,7 +83,7 @@ text = "Trigger"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(480, 0)
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "ACTIONS"
 autowrap_mode = 3
 
@@ -94,7 +94,7 @@ theme_override_constants/separation = 8
 
 [node name="EventsHeader" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "EVENTS AND CONDITIONS"
 
 [node name="EventsLabel" type="Label" parent="Scroll/MarginContainer/VBoxContainer"]

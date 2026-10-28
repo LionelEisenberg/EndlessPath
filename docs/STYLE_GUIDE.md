@@ -581,7 +581,7 @@ The survey's recommendation: keep the paper books, bind them in lacquer, and mak
 | Log and Goals boards in the adventure view | Already lacquer. `LogWindow.tone_for()` maps each line's first `[color]` tag to a lacquer tone (brass, Madra, cream, or tan for anything else), so adventure and combat log lines need no change |
 | Book open, close and page-turn strips | Already stepped frame strips |
 | `palette_swap.gdshader`, the attribute icons | Reusable as they are |
-| Dev panel | Players never see them. Exempt (confirm, G11); they change for free if P1 lands |
+| Dev panel | Already lacquer (2026-10-28), through its own theme, which reuses the kit's board, token, drawer face, tray and rail ([DEV_TOOLS.md](tooling/DEV_TOOLS.md#scene-structure)) |
 
 ### Suggested order
 
@@ -613,7 +613,7 @@ The user decides these. "Lean" is the survey's suggestion, not a decision.
 | G8 | Mode tags and "·"-joined lines? | Keep (spec); drop (design review) | Kept for now | Every reworked screen |
 | G9 | The painted ability icons with cyan glow? | Decided for the adventure: the user's icons stay as they are, in carved sockets (the technique dock); an on-grid redraw without glow is a separate art task. Still open for the Abilities book: the same, or `_ai` redraws on the grid | — | K10 |
 | G10 | Title, pause or settings screens planned? Replace Godot's splash now? | — | — | P2 |
-| G11 | Is the dev panel exempt? | Yes; restyle | Exempt | — |
+| G11 | Is the dev panel exempt? | Yes; restyle | Restyled with the kit's pieces (2026-10-28) | — |
 
 **Zone view overlays and dialogue**
 

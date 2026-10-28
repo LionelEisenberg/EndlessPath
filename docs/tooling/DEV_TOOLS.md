@@ -39,9 +39,9 @@ A session switch frees the main scene, and the panel with it, so the panel's ope
 
 ```
 DevPanel (Control, covers the screen, mouse Ignore)   dev_panel.gd (class DevPanel)
-├── Body (PanelContainer, min size 560x680, mouse Stop)
+├── Body (PanelContainer, DevBoard: the lacquer board, min size 560x680, mouse Stop)
 │   └── VBoxContainer
-│       ├── TitleBar (PanelContainer, the drag handle) → TitleLabel "Dev Panel", SpeedOption (OptionButton), CloseButton "×"
+│       ├── TitleBar (PanelContainer, DevTitleBar, the drag handle) → TitleLabel "Dev Panel" (LabelLacquerPanelTitle), SpeedOption (OptionButton), CloseButton (TextureButton, the carved ×)
 │       └── Tabs (TabContainer)
 │           ├── SavesTab      scenes/ui/dev_panel/tabs/saves_tab.tscn      VBoxContainer: the scrolling part, then a status line
 │           ├── PlayerTab     tabs/player_tab.tscn                         ScrollContainer
@@ -50,11 +50,18 @@ DevPanel (Control, covers the screen, mouse Ignore)   dev_panel.gd (class DevPan
 │           ├── AdventureTab  tabs/adventure_tab.tscn                      ScrollContainer (class DevAdventureTab)
 │           └── WorldTab      tabs/world_tab.tscn                          ScrollContainer
 └── Notices (VBoxContainer, top centre, mouse Ignore): what shows stacks, the badge first
-    ├── SpeedBadge (PanelContainer, PanelTooltip, mouse Ignore, hidden at ×1) → SpeedBadgeLabel "×10"
-    └── SaveWarning (PanelContainer, PanelTooltip, mouse Ignore, hidden unless saving is blocked) → SaveWarningLabel "Not saving: <reason>"
+    ├── SpeedBadge (PanelContainer, DevToken, mouse Ignore, hidden at ×1) → SpeedBadgeLabel "×10"
+    └── SaveWarning (PanelContainer, DevBoard, mouse Ignore, hidden unless saving is blocked) → SaveWarningLabel "Not saving: <reason>"
 ```
 
-The panel is a child of `MainView` at z 10. Only its body takes the mouse: the rest of the panel, the badge and the save warning let clicks through to the game. The panel takes `pixel_theme.tres` from `MainView`, with its own theme on top (`assets/themes/dev_panel_theme.tres`, on the root). That theme sets only the font size of buttons (dropdowns and switches included), text and number fields, dropdown lists and tab titles, to 18 px, where the game's theme leaves them at its 14 px default; labels keep their variants' sizes.
+The panel is a child of `MainView` at z 10. Only its body takes the mouse: the rest of the panel, the badge and the save warning let clicks through to the game. The panel is dressed in the game's lacquer and brass ([STYLE_GUIDE.md](../STYLE_GUIDE.md)) by its own theme, `assets/themes/dev_panel_theme.tres` on the root, over the `pixel_theme.tres` it takes from `MainView`. The theme reuses the kit's pieces and adds no art:
+- the body and the save warning are a lacquer board (`DevBoard`, `board9.tres`), and the badge sits on a token (`DevToken`, `token.tres`);
+- buttons, dropdowns and the open tab are raised drawer faces (`lacquer_drawer9_ai.png`), with cream text, brass on hover;
+- text and number fields are carved trays (`lacquer_now_tray_ai.png`);
+- scrollbars are the brass rail thumb on its carved track;
+- the other tabs and the switches are bare text on the board.
+
+The body also takes `lacquer_theme.tres`, so the title is painted in brass (`LabelLacquerPanelTitle`) on a bar that draws nothing, and the tabs' section headers are `LabelLacquerSection`. Every button, field, dropdown list and tab title reads at 18 px, where the game's theme leaves them at its 14 px default; labels keep their variants' sizes.
 
 Each tab is a scene of its own with one script, which calls the dev tools itself. The shell owns only the frame: the open state, the drag, the tab, the time speed, the save warning and the hotkeys. The one thing it hands a tab is the adventure view: `main_game.tscn` sets the panel's `adventure_view` export to the sibling `AdventureView`, and `DevPanel._ready()` passes it to the Adventure tab. The Saves tab's preset list is made of `DevPresetRow`s (`rows/dev_preset_row.tscn`), the Story tab's action list of `DevActionRow`s (`rows/dev_action_row.tscn`).
 

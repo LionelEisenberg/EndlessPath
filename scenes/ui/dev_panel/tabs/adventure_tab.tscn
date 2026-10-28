@@ -52,7 +52,7 @@ theme_override_constants/separation = 8
 
 [node name="FightHeader" type="Label" parent="MarginContainer/VBoxContainer/RunControls/FightBox"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "FIGHT"
 
 [node name="ForceWin" type="Button" parent="MarginContainer/VBoxContainer/RunControls/FightBox"]
@@ -62,7 +62,7 @@ text = "Force-win fight"
 
 [node name="AdventureHeader" type="Label" parent="MarginContainer/VBoxContainer/RunControls"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "ADVENTURE"
 
 [node name="ExitRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/RunControls"]

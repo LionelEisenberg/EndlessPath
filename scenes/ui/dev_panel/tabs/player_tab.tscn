@@ -34,7 +34,7 @@ autowrap_mode = 3
 
 [node name="ResourcesHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "RESOURCES"
 
 [node name="MadraRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
@@ -81,7 +81,7 @@ text = "Set"
 
 [node name="CultivationHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "CULTIVATION"
 
 [node name="LevelRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
@@ -157,7 +157,7 @@ text = "Add"
 
 [node name="TechniquesHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "TECHNIQUES"
 
 [node name="TechniqueRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
@@ -185,7 +185,7 @@ text = "Unlock all techniques"
 
 [node name="AbilitiesHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "ABILITIES"
 
 [node name="AbilityRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]

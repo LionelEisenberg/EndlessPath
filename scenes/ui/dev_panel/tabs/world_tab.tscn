@@ -26,7 +26,7 @@ theme_override_constants/separation = 8
 
 [node name="TravelHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "TRAVEL"
 
 [node name="TravelRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
@@ -57,7 +57,7 @@ autowrap_mode = 3
 
 [node name="ZoneMapHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_type_variation = &"LabelSubheading"
+theme_type_variation = &"LabelLacquerSection"
 text = "ZONE MAP"
 
 [node name="DemoZonesCheck" type="CheckButton" parent="MarginContainer/VBoxContainer"]
