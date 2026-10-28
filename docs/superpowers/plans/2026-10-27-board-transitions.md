@@ -162,8 +162,9 @@ Expected: parse failure, `BoardTransitionTiming` not found.
 ### Task 3: The chest's slide support
 
 **Files:**
-- Modify: `scenes/zones/zone_panel/zone_panel.gd` (`_relayout`, `_place_activity_list`, `_place_technique_list`), `scenes/zones/zone_panel/zone_panel.tscn` (wrap `ActivitiesHeader` in a `HeaderClip` Control: `clip_contents = true`, `mouse_filter = 2`, at (0, 0) and 436 × 1032 so it clips at the chest's inner right edge; `ActivitiesHeader` keeps its unique name)
-- Modify: `scenes/zones/zone_panel/activity_list/activity_list.gd`, `scenes/zones/zone_panel/technique_list/technique_list.gd`, `scenes/zones/zone_panel/technique_list/technique_list.tscn` (root `clip_contents = true`)
+- Modify: `scenes/zones/zone_panel/zone_panel.gd` (`_relayout`, `_place_activity_list`, `_place_technique_list`), `scenes/zones/zone_panel/zone_panel.tscn` (wrap `ActivitiesHeader` and `TechniqueList` in a `SlideClip` Control: `clip_contents = true`, `mouse_filter = 2`, at (0, 0) and 436 × 1032 so it clips at the chest's inner right edge; both keep their unique names)
+- Modify: `scenes/zones/zone_panel/activity_list/activity_list.gd`, `scenes/zones/zone_panel/technique_list/technique_list.gd`
+- *As built:* the plan named the clip `HeaderClip` and clipped the technique list at its own root (`technique_list.tscn`, `clip_contents = true`). That root clip cut the drawers' baked shadow and the in-use frame at rest, so the technique list moved into the header's clip, renamed `SlideClip`, and its own root does not clip.
 - Test: `tests/integration/test_zone_panel.gd` (add tests)
 
 **Interfaces:**
@@ -179,7 +180,7 @@ Expected: parse failure, `BoardTransitionTiming` not found.
   - `test_chest_height_for_matches_each_mode`: `chest_height_for(false) == size.y` in the activities mode; after `set_techniques_mode(true)`, `chest_height_for(true) == size.y` and `chest_height_for(false)` equals the activities height read before.
   - `test_height_override_sizes_the_frame_and_clears`: `set_height_override(400.0)` → `size.y == 400.0` and the bottom slice at `400.0 - ZonePanel.CHEST_BOTTOM_HEIGHT`; `clear_height_override()` → back to the natural height.
   - `test_slide_rows_start_with_the_header`: `get_slide_rows()[0]` is the `%ActivitiesHeader` node, and the rest are the activity cards and group labels in top-to-bottom order (assert increasing `global_position.y`). In the techniques mode, the rest are the technique drawers.
-  - `test_the_header_and_technique_list_clip`: the header's parent and the technique list both have `clip_contents == true`.
+  - `test_the_header_and_technique_list_clip`: the header's parent and the technique list both have `clip_contents == true`. *As built:* the header and the technique list share the parent `SlideClip`, which clips, and the technique list does not clip itself.
 - [ ] **Step 2: Run and see them fail** (`-gdir=res://tests/integration/ -gtest=res://tests/integration/test_zone_panel.gd`).
 - [ ] **Step 3: Implement** the Interfaces block. Update the class doc comment of `ZonePanel` for the override and the slide rows.
 - [ ] **Step 4: Run `test_zone_panel.gd`, `test_cycling_mode.gd` and the technique and activity list tests**, and see them pass.
@@ -195,7 +196,7 @@ Expected: parse failure, `BoardTransitionTiming` not found.
 
 **Interfaces:**
 - Produces:
-  - `CyclingView.get_board_rect() -> Rect2` and `TribulationView.get_board_rect() -> Rect2`: `%Board`'s global rect.
+  - `CyclingView.get_board_rect() -> Rect2` and `TribulationView.get_board_rect() -> Rect2`: `%Board`'s global rect. *As built (Task 9's fix):* `TribulationView.get_board_rect()` reports the board's top-left and width with `BOARD_REST_HEIGHT` (768) for its height. On its first open the board has not laid out (its wrapping labels are 1 px wide and it measures 2318 px tall), so its own rect aimed the camera below the screen.
   - `TribulationView.halt() -> void`: drops a run in progress and its effects (mode `CLOSED`, `_run = null`, `_clear_effects()`), applying nothing, but leaves the board showing. `close()` becomes `halt()` then `hide()`.
 
 - [ ] **Step 1: Write the failing tests:** `test_board_rect_is_the_board` in both files (cycling: `Rect2(680, 24, 564, 1036)` with the scene's default text; Tribulation: x 484, y 24, width 952). In `test_tribulation_view.gd`: `test_halt_mid_run_applies_nothing_and_keeps_the_board_up`, which begins a run, calls `halt()`, advances the test clock past the run's end, and asserts the stage and the core density are unchanged, `get_mode() == TribulationView.Mode.CLOSED`, and `visible` is still true.
@@ -227,8 +228,8 @@ Expected: parse failure, `BoardTransitionTiming` not found.
 - What each frame applies, at `t = progress × duration`:
   - camera: `apply(camera_weight(t))`
   - dock: y = rest + `dock_offset(t, 1080 − rest y)`, hidden once the offset reaches the travel
-  - view: `visible = is_board_shown(t)`, `pivot_offset = cultivator_target(board_rect) − view.global_position`, `scale = Vector2.ONE × board_scale(t)`
-  - chest (if `swaps_chest`): the techniques mode on iff `t >= CHEST_SWAP_MS`. On a mode switch, restore the old rows' x, call `set_techniques_mode()`, and collect the new rows. Activity rows use `row_out_offset`, technique rows `row_in_offset`, with travel `zone_panel.size.x`. The height override is `chest_height(t, h_activities, h_techniques)` while `CHEST_SWAP_MS < t < CHEST_END_MS`, and cleared otherwise.
+  - view: `visible = is_board_shown(t)`, `pivot_offset = cultivator_target(board_rect) − view.global_position`, `scale = Vector2.ONE × board_scale(t)`. *As built:* a scaled Control's global position moves, so the pivot is taken from the view's full-size top-left, recorded when the open starts from closed.
+  - chest (if `swaps_chest`): the techniques mode on iff `t >= CHEST_SWAP_MS`. On a mode switch, restore the old rows' x, call `set_techniques_mode()`, and collect the new rows. *As built:* the switch also reads both chest heights again (the last cycle's line goes when the cycling board shows, after the run's start); rows are taken again when a close starts from open; and because the rows' containers lay them out again at the end of a frame, which put the rows back at rest, the player listens to each container's `sort_children` and slides the rows back there. Activity rows use `row_out_offset`, technique rows `row_in_offset`, with travel `zone_panel.size.x`. The height override is `chest_height(t, h_activities, h_techniques)` while `CHEST_SWAP_MS < t < CHEST_END_MS`, and cleared otherwise.
   - HUD boards (if `moves_hud_boards`): x = rest − `hud_offset(t, k, rest x + width)`
   - `mouse_filter = STOP` while moving, `IGNORE` otherwise
 - At progress 1: scale 1, rows at rest, override cleared, emit `opened`. At progress 0: the view hidden, scale 1 and `pivot_offset` zero, dock and HUD boards and rows at rest, the dock shown, override cleared, `CameraPush.restore()`, then the pending callback (once), then `closed`. A freed row (`is_instance_valid`) is skipped.
@@ -270,7 +271,7 @@ Expected: parse failure, `BoardTransitionTiming` not found.
   - `func is_board_moving() -> bool` and `func is_board_closing() -> bool` (false with no player)
 - With a player: `open_board()` turns the map's input off at once (`zone_map_viewport.gui_disable_input = true`) and calls `board_transition.open(spec)`. `close_board()` calls `board_transition.close()` with a callback that turns the map's input back on and then calls `on_closed`.
 - With no player (the tests' bare `MainView`s): `open_board()` does today's instant open: `set_board_mode(true)`, `zone_panel.set_techniques_mode(true)` if `swaps_chest` and there is a chest, `hide_hud_boards(spec.holder)` if `moves_hud_boards`, then `spec.view.visible = true`. `close_board()` undoes all of it in reverse order and calls `on_closed`.
-- `set_cycling_mode()` is removed, since no production code calls it now. `set_board_mode()` stays for the fallback.
+- `set_cycling_mode()` is removed, since no production code calls it now. `set_board_mode()` stays for the fallback. *As built:* Task 6 kept `set_cycling_mode()`, because `CyclingViewState` still called it until Task 7, and Task 7 removed it.
 
 - [ ] **Step 1: Rework the failing tests** in `test_cycling_mode.gd`: the `set_cycling_mode(true/false)` tests become `open_board(spec)` / `close_board(spec, cb)` tests on the bare `MainView`, with a cycling spec (`swaps_chest = true`). Same assertions: the chest in the techniques mode, the dock hidden, the map without input, and all of it back after the close, with `cb` called once. Keep the missing-piece tests.
 - [ ] **Step 2: Run and see them fail** (`open_board` not found).
@@ -294,6 +295,7 @@ Expected: parse failure, `BoardTransitionTiming` not found.
   - `_on_stop_cycling()`: `close_board(spec, remove_state(self))`.
   - `_on_start_cycling()`: pushes the state when it is not on the stack; when it is (a close in progress), calls `open_board(spec)`, which reverses the close.
   - `handle_input()`: `close_cycling_view` calls `ActionManager.stop_action()` unless `is_board_closing()`; nothing else.
+  - *As built:* the state keeps one spec, and refreshes its view and board rect only when the board opens from closed (`enter()`), not when a start turns a close around: the transition keeps the first spec object of a run, and a board that is scaling reports a scaled rect. `_on_stop_cycling()` does nothing while the state is not on the stack, because the transition closes whichever board is up. This task also removed `set_cycling_mode()`. Task 8's state does the same.
 
 - [ ] **Step 1: Write the failing tests**, on a `MainView` that has a real `BoardTransition` (added with `add_child_autofree`, `set_process(false)`, and bound to the test's stand-ins), using `_on_start_cycling` / `_on_stop_cycling` and `board_transition.advance()`:
   - `test_the_state_stays_until_the_close_has_finished`: after a stop, the state is still in `state_stack` and the full log is still blocked; after `finish()`, it is gone and the block is lifted.
@@ -354,6 +356,7 @@ Expected: parse failure, `BoardTransitionTiming` not found.
 - Modify: `docs/STYLE_GUIDE.md` §8 (a row next to Camera: "Board open and close: the board scales smoothly out of the cultivator (0.32 s, ease-out cubic) and back", named as an exception)
 - Modify: `docs/cycling/CYCLING.md` and `docs/cultivation/breakthrough-tribulation.md` (one line each linking to the section, where they describe how the board opens)
 - Modify: `docs/superpowers/specs/2026-10-27-board-transitions-design.md` (the chest rows of the opening timeline: out 0–300, swap at 300, in and height 300–540, with the shrinking stagger, and why)
+- *As built:* also `docs/zones/ZONES.md` and every other living doc that named `set_cycling_mode()` (the milestone docs aside), the line references the build moved, this plan's "As built" notes, and the row in `docs/superpowers/README.md`.
 
 - [ ] **Step 1: Write the doc changes.** Check the rules in "Keeping Docs Current": no counts, no test file lists, no private helpers named.
 - [ ] **Step 2: Commit** — `docs(ui): describe the board transitions`

@@ -46,11 +46,13 @@ Times are from the start of the open. Every "step" moves in 2 px steps at consta
 | 0–480 ms | The zone map's camera eases (ease in-out, cubic) from the player's current zoom to 1.5× that zoom, and moves so the cultivator ends at the board's horizontal centre, 70 px below the board's vertical centre (screen (962, 612) for the cycling board). |
 | 0–140 ms | The dock steps straight down off the bottom edge of the screen. |
 | 200–520 ms | The board scales from 3% to full size about the point where the camera brings the cultivator (not tracking them frame by frame), ease-out cubic, every frame. Everything on the board scales with it. |
-| 0–365 ms | Chest, cycling only: the activities header and then each activity row step out to the right, row *i* starting at *i* × 25 ms and taking 140 ms to cross the chest's width. They are clipped at the chest's inner edge, so they slide under the frame and are gone. |
-| 150–450 ms | Chest, cycling only: the chest's bottom edge steps from the activity list's height to the technique list's height. |
-| 260–540 ms | Chest, cycling only: the techniques header and then each technique row step in from the right, row *j* starting at 260 + *j* × 30 ms and taking 160 ms. |
+| 0–300 ms | Chest, cycling only: the activities header and then each activity row step out to the right, row *i* starting at *i* × 20 ms and taking 120 ms to cross the chest's width. For a long list the stagger shrinks, so the last row is still out by 300 ms. They are clipped, so they slide under the frame and are gone. |
+| 300 ms | Chest, cycling only: the swap. The chest turns from the activity list to the technique list. |
+| 300–540 ms | Chest, cycling only: the techniques header and then each technique row step in from the right, row *j* starting at 300 + *j* × 25 ms and taking 140 ms; the stagger shrinks for a long list, so the last row is in by 540 ms. Over the same time the chest's bottom edge steps from the activity list's height to the technique list's height. |
 
 The open takes about 0.54 s with the chest swap and 0.52 s without it.
+
+The chest rows were first drawn overlapping (out 0–365 ms, in 260–540 ms, the height 150–450 ms), as the mockup drew both lists at once. The chest shows one list at a time, so the rows go out, the chest swaps at 300 ms, and the rows come in, inside the same 540 ms.
 
 ### Closing
 
