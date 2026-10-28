@@ -2,9 +2,11 @@ extends GutTest
 
 ## The dev panel's Saves tab and the restart key, against the real DevManager and
 ## PersistenceManager. The tab shows the session (what it plays, where it writes, why
-## saving is off, and the save's version, playtime, stage, Core Density and gold) and
-## the route's beats with the playtime each was reached at, refreshed as the session
-## changes, when the tab is shown, and once a second for the playtime. Restart and
+## saving is off, the preset its save was built from, and the save's version,
+## playtime, stage, Core Density and gold) and the route's beats with the playtime
+## each was reached at, or "reached, no time recorded" where a build or a save from
+## before play stats kept no time, refreshed as the session changes, when the tab is
+## shown, and once a second for the playtime. Restart and
 ## Back switch the session; a row per preset plays or pins it; "Save this game as a
 ## preset" writes one; New game and Restore need a second click within 3 s; Keep,
 ## Save now, Autosave and the backup picker work on your save. A refused or failed
@@ -63,6 +65,39 @@ gold = 42.0
 ## Locked on a fresh save: it needs Core Density 10. A preset that completes it fails
 ## midway through its build.
 const NPC_4: String = "celestial_intervener_dialogue_4"
+
+## Beat 1's reached_when: the event q_fill_core fires when it completes, which is
+## also the id of the unlock condition that latches on that event.
+const AWAKENING_EVENT: String = "q_fill_core_completed"
+
+## Beat 2's reached_when: an event no unlock condition shares, the completion event
+## of a q_first_steps step.
+const FIRST_STEPS_EVENT: String = "celestial_intervener_dialogue_3"
+
+## A save from before play stats existed, as the developer's own save is: the events
+## of beats 1 and 2 have fired and beat 1's condition has latched, and no first time
+## was kept for any of them.
+const PRE_STATS_SAVE_TEXT: String = """[gd_resource type="Resource" script_class="SaveGameData" format=3]
+
+[ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
+[ext_resource type="Script" path="res://singletons/persistence_manager/event_progression_data.gd" id="2_events"]
+[ext_resource type="Script" path="res://singletons/persistence_manager/unlock_progression_data.gd" id="3_unlocks"]
+
+[sub_resource type="Resource" id="Resource_events"]
+script = ExtResource("2_events")
+triggered_events = Array[String](["q_fill_core_completed", "celestial_intervener_dialogue_3"])
+
+[sub_resource type="Resource" id="Resource_unlocks"]
+script = ExtResource("3_unlocks")
+unlocked_condition_ids = Array[String](["q_fill_core_completed"])
+
+[resource]
+script = ExtResource("1_save")
+save_version = 1
+gold = 42.0
+event_progression = SubResource("Resource_events")
+unlock_progression = SubResource("Resource_unlocks")
+"""
 
 #-----------------------------------------------------------------------------
 # SETUP
@@ -224,11 +259,11 @@ func _write_text(path: String, text: String) -> void:
 	file.store_string(text)
 	file.close()
 
-## Starts the session on a temp file holding gold 42, standing in for your save:
-## the main save and its backup folder point at temp paths, and the file is opened
-## as a launch on your save opens it.
-func _start_on_temp_main_save() -> void:
-	_write_text(MAIN_SAVE_PATH, MAIN_SAVE_TEXT)
+## Starts the session on a temp file holding `text` (gold 42), standing in for your
+## save: the main save and its backup folder point at temp paths, and the file is
+## opened as a launch on your save opens it.
+func _start_on_temp_main_save(text: String = MAIN_SAVE_TEXT) -> void:
+	_write_text(MAIN_SAVE_PATH, text)
 	PersistenceManager.main_save_path = MAIN_SAVE_PATH
 	PersistenceManager.backup_dir = BACKUP_DIR
 	PersistenceManager.open_save_file(MAIN_SAVE_PATH)
@@ -328,12 +363,14 @@ func test_the_session_line_names_a_file_and_why_saving_is_off() -> void:
 		assert_string_contains(lines[1], "newer build")
 		assert_true(lines[2].begins_with("Version 99 · Playtime 0:00 · "), lines[2])
 
+## In real play a beat's event fires, or its condition latches, and the stats keep
+## the playtime it happened at: the line shows that time.
 func test_the_beats_show_when_each_was_reached() -> void:
 	var stats: PlayStatsData = PersistenceManager.save_game_data.stats
 	stats.add_play_time(161.0)
-	stats.record_event("q_fill_core_completed")
+	EventManager.trigger_event(AWAKENING_EVENT)
 	stats.add_play_time(3725.0 - 161.0)
-	stats.record_condition("core_density_full")
+	UnlockManager.force_unlock_condition("core_density_full")
 	var tab: Control = _open_saves_tab()
 	var lines: PackedStringArray = _label(tab, "BeatsLabel").text.split("\n")
 	assert_eq(lines.size(), DevManager.get_route().beats.size(), "one line per beat of the route")
@@ -341,6 +378,42 @@ func test_the_beats_show_when_each_was_reached() -> void:
 	assert_has(lines, "Tribulation ready — 1:02:05", "an hour on, the clock shows hours")
 	assert_has(lines, "First Steps Out — not reached", "a beat whose event never fired")
 	assert_has(lines, "Copper — not tracked (no reached_when)", "a beat with nothing to mark it reached")
+
+## A build records no play, so the beats it passed keep no time. Their events fired
+## and their conditions latched, so they read as reached, and the session line names
+## the preset the save was built from: its figures are not a playtest's.
+func test_a_preset_build_shows_its_beats_reached_and_names_the_preset() -> void:
+	var tab: Control = _open_saves_tab()
+	DevManager.play_preset(_preset("built_beats", "Built beats", [
+		_step(Kind.TRIGGER_EVENT, AWAKENING_EVENT),
+		_step(Kind.TRIGGER_EVENT, FIRST_STEPS_EVENT),
+		_step(Kind.REACH_CORE_DENSITY, "", 100.0),
+	]))
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.PRESET, "precondition: the preset was built")
+	var beats: PackedStringArray = _label(tab, "BeatsLabel").text.split("\n")
+	assert_has(beats, "Awakening — reached, no time recorded", "the build fired the beat's event: %s" % [beats])
+	assert_has(beats, "First Steps Out — reached, no time recorded", "an event no condition shares")
+	assert_has(beats, "Tribulation ready — reached, no time recorded", "and latched the beat's condition")
+	assert_has(beats, "Aura Well — not reached", "a beat the build did not pass")
+	var lines: PackedStringArray = _label(tab, "SessionLabel").text.split("\n")
+	assert_has(lines, "Built from preset 'built_beats'", "the line names the preset: %s" % [lines])
+
+## A save from before play stats existed has the events it fired but no times for
+## them. Its beats read as reached, not as not reached, and nothing says a preset
+## built it.
+func test_a_save_from_before_play_stats_shows_its_beats_reached() -> void:
+	_start_on_temp_main_save(PRE_STATS_SAVE_TEXT)
+	var stats: PlayStatsData = PersistenceManager.save_game_data.stats
+	for event_id: String in [AWAKENING_EVENT, FIRST_STEPS_EVENT]:
+		assert_true(EventManager.has_event_triggered(event_id), "precondition: the save fired %s" % event_id)
+		assert_eq(stats.first_time_of(event_id), -1.0, "precondition: and kept no time for it")
+	var tab: Control = _open_saves_tab()
+	var beats: PackedStringArray = _label(tab, "BeatsLabel").text.split("\n")
+	assert_has(beats, "Awakening — reached, no time recorded", "%s" % [beats])
+	assert_has(beats, "First Steps Out — reached, no time recorded", "an event no condition shares")
+	assert_has(beats, "Aura Well — not reached")
+	assert_false(_label(tab, "SessionLabel").text.contains("Built from preset"), "no preset built this save")
 
 ## The playtime goes on while the tab is in view, so the line follows it once a
 ## second, in real seconds whatever the time speed.
@@ -651,6 +724,22 @@ func test_keep_makes_the_session_your_save() -> void:
 	assert_eq(_gold_in_file(MAIN_SAVE_PATH), 700.0, "as your save")
 	assert_true(_button(tab, "KeepButton").disabled, "which has nothing left to keep")
 	assert_true(_label(tab, "SessionLabel").text.begins_with("Your save · %s\n" % MAIN_SAVE_PATH), "and the tab shows it")
+
+## Keep copies the session's save onto yours, its play stats included, so your save
+## still says which preset built it, and the beats the build passed still read as
+## reached with no time.
+func test_your_save_kept_from_a_preset_still_names_the_preset() -> void:
+	_start_on_temp_main_save()
+	var tab: Control = _open_saves_tab()
+	DevManager.play_preset(_preset("kept_build", "Kept build", [_step(Kind.TRIGGER_EVENT, AWAKENING_EVENT)]))
+	await wait_process_frames(SWITCH_FRAMES)
+	_press(tab, "KeepButton")
+	await wait_process_frames(SWITCH_FRAMES)
+	assert_eq(DevManager.get_session_kind(), SessionKind.YOUR_SAVE, "precondition: the session was kept as your save")
+	var lines: PackedStringArray = _label(tab, "SessionLabel").text.split("\n")
+	assert_eq(lines[0], "Your save · " + MAIN_SAVE_PATH)
+	assert_has(lines, "Built from preset 'kept_build'", "your save still says what built it: %s" % [lines])
+	assert_has(_label(tab, "BeatsLabel").text.split("\n"), "Awakening — reached, no time recorded")
 
 func test_save_now_says_what_happened() -> void:
 	var tab: Control = _open_saves_tab()

@@ -4,8 +4,12 @@ extends ScrollContainer
 ##
 ## At the top, what the session plays (a preset, your save or a --save file), where it
 ## writes ("in memory, not saved" when nothing does), why saving is off when it is,
-## and the save's version, playtime, stage, Core Density and gold. Under it, each beat
-## of the story route with the playtime at which its reached_when first happened.
+## the preset that built the save when one did (your save after a Keep included, so
+## its figures are never taken for a playtest's), and the save's version, playtime,
+## stage, Core Density and gold. Under it, each beat of the story route with the
+## playtime at which its reached_when first happened, or "reached, no time recorded"
+## where it happened with no time kept: a build records no play, and saves from
+## before play stats kept none.
 ## Restart preset (also Ctrl+Shift+R, which DevPanel handles) and Back to my save
 ## switch the session. Then a row per preset, which plays or pins it, "Save this game
 ## as a preset", and your save: a new game, Keep as my save, Save now, the autosave
@@ -29,8 +33,11 @@ const PRESET_ROW_SCENE: PackedScene = preload("res://scenes/ui/dev_panel/rows/de
 ## Where the session line says a session in memory writes.
 const _IN_MEMORY: String = "in memory, not saved"
 
-## A beat whose reached_when has not happened in this save's play.
+## A beat whose reached_when has not happened in this save.
 const _NOT_REACHED: String = "not reached"
+
+## A beat whose reached_when has happened with no first time kept for it.
+const _REACHED_UNTIMED: String = "reached, no time recorded"
 
 ## A beat with no reached_when: nothing marks it reached.
 const _NOT_TRACKED: String = "not tracked (no reached_when)"
@@ -200,7 +207,8 @@ func _show_session() -> void:
 	_beats_label.text = _beats_text()
 
 ## "Preset: Tribulation ready · in memory, not saved", "Your save · user://save.tres"
-## or "File · <path>"; then "Saving is off: <why>" when it is; then the save's
+## or "File · <path>"; then "Saving is off: <why>" when it is; then "Built from preset
+## '<id>'" when the save's play stats name the preset that built it; then the save's
 ## "Version 1 · Playtime 12:34 · Foundation, Core Density 42 / 100 · 120 gold".
 func _session_text() -> String:
 	var where: String = _IN_MEMORY if PersistenceManager.is_in_memory() else PersistenceManager.save_path
@@ -208,6 +216,8 @@ func _session_text() -> String:
 	if PersistenceManager.is_save_blocked():
 		lines.append("Saving is off: %s" % PersistenceManager.get_block_reason())
 	var save: SaveGameData = PersistenceManager.save_game_data
+	if save.stats.built_from_preset != "":
+		lines.append("Built from preset '%s'" % save.stats.built_from_preset)
 	lines.append("Version %d · Playtime %s · %s, Core Density %d / %d · %d gold" % [
 		save.save_version,
 		_clock(save.stats.play_time),
@@ -227,8 +237,7 @@ func _session_name() -> String:
 		return "File"
 	return "Your save"
 
-## One line per beat of the route: "Awakening — 2:41", "Awakening — not reached", or
-## "not tracked" for a beat whose reached_when is empty.
+## One line per beat of the route, "<title> — <how far>" (_beat_progress()).
 func _beats_text() -> String:
 	var route: StoryRouteData = DevManager.get_route()
 	if route == null:
@@ -236,12 +245,24 @@ func _beats_text() -> String:
 	var stats: PlayStatsData = PersistenceManager.save_game_data.stats
 	var lines := PackedStringArray()
 	for beat: StoryBeatData in route.beats:
-		var reached: String = _NOT_TRACKED
-		if beat.reached_when != "":
-			var at: float = stats.first_time_of(beat.reached_when)
-			reached = _NOT_REACHED if at < 0.0 else _clock(at)
-		lines.append("%s — %s" % [beat.title, reached])
+		lines.append("%s — %s" % [beat.title, _beat_progress(beat.reached_when, stats)])
 	return "\n".join(lines)
+
+## How far the save has come to a beat, read from the event or unlock condition that
+## marks it reached (its reached_when): the playtime it first happened at ("2:41");
+## "reached, no time recorded" when it has happened (the event fired, or the condition
+## latched) and the stats keep no time for it, as after a preset build, which records
+## no play, or in a save from before play stats; "not reached"; or "not tracked (no
+## reached_when)" when nothing marks the beat.
+func _beat_progress(reached_when: String, stats: PlayStatsData) -> String:
+	if reached_when == "":
+		return _NOT_TRACKED
+	var at: float = stats.first_time_of(reached_when)
+	if at >= 0.0:
+		return _clock(at)
+	if EventManager.has_event_triggered(reached_when) or UnlockManager.is_condition_unlocked(reached_when):
+		return _REACHED_UNTIMED
+	return _NOT_REACHED
 
 ## Seconds of playtime as a clock: "2:41", and "1:02:05" from an hour on.
 func _clock(seconds: float) -> String:
