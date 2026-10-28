@@ -322,6 +322,7 @@ Until it is refreshed, trust `pixel_theme.tres` and the tables above over the sc
 | `LACQUER_RIM` | `#692F2F` | — | The lip under the cycling groove |
 | `LACQUER_DIM` / `LACQUER_VERMILION` | `#94806A` / `#A83C30` | — | Old log lines, seals |
 | `LACQUER_MADRA_HI` / `LACQUER_MADRA` / `LACQUER_MADRA_MID` | `#E8F6FD` / `#BBD5E7` / `#849BE4` | — | The lit cycling groove (top edge, body, bottom edge). `LACQUER_MADRA` is also Madra text |
+| `BOOK_MADRA_INK` | `#1C2F60` | — | Madra amounts in the text of the book's paper pages. A Label variant colours a whole label, so the amount takes this colour in BBCode. The lacquer Madra tints read on dark lacquer, not on cream |
 | `LACQUER_HEALTH` / `LACQUER_STAMINA` | `#E8737A` / `#C9DB86` | — | The text steps of the Health crimson and Stamina bamboo ramps, kept for the fight's floaters. Nothing reads them yet |
 
 Use the Label variants for sizes. Use `ThemeConstants` only for colours that must be set from code, and keep each value in step with its theme.
