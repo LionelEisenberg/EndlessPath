@@ -721,3 +721,11 @@ func test_a_refusal_logs_no_dev_line() -> void:
 	assert_ne(DevCommands.complete_action(NPC_2), "")
 	assert_ne(DevCommands.equip_ability("empty_palm", 0), "")
 	assert_eq(_dev_lines().size(), 0)
+
+## The one public way to write a [DEV] line, which the dev panel's tabs and DevManager
+## use for the lines that are not a command's: the tag, a space, what happened. The
+## player's log keys its tone off the tag, so the exact string is pinned.
+func test_log_dev_line_writes_the_tagged_line() -> void:
+	watch_signals(LogManager)
+	DevCommands.log_dev_line("Show Whole Map: ON")
+	assert_eq(_logged_lines(), [DEV_LINE + "Show Whole Map: ON"] as Array[String])

@@ -75,9 +75,6 @@ const _FALLBACK_PRESET_TITLE: String = "Fresh start (the preset could not be bui
 ## accepts only these.
 const TIME_SPEEDS: Array[float] = [1.0, 2.0, 5.0, 10.0]
 
-## The prefix of the line a session's start logs, the one DevCommands' lines have.
-const _DEV_TAG: String = "[color=magenta][DEV][/color]"
-
 #-----------------------------------------------------------------------------
 # STATE
 #-----------------------------------------------------------------------------
@@ -752,9 +749,9 @@ func _mark_everything_seen() -> void:
 	for technique: CyclingTechniqueData in CyclingManager.get_unlocked_techniques():
 		CyclingManager.mark_technique_seen(technique.id)
 
-## Logs the line as a [DEV] line in the player's log.
+## Logs the line as a [DEV] line in the player's log, as the commands' lines are.
 func _log_dev_line(what: String) -> void:
-	LogManager.log_message("%s %s" % [_DEV_TAG, what])
+	DevCommands.log_dev_line(what)
 
 ## The speeds in TIME_SPEEDS, written as time_speed_label() does: "×1, ×2, ×5, ×10".
 func _time_speed_labels() -> String:

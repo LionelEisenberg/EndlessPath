@@ -11,6 +11,9 @@ const ADVANCEMENT_DEMO_ID: String = "AdvancementZoneDemo"
 const UNCHARTED_DEMO_ID: String = "UnchartedZoneDemo"
 const TEST_ZONE_ID: String = "TestZone"
 
+## The prefix of every [DEV] line, which the player's log keys its tone off.
+const DEV_LINE: String = "[color=magenta][DEV][/color] "
+
 var _panel: DevPanel = null
 var _original_save: SaveGameData
 
@@ -61,8 +64,7 @@ func test_demo_toggle_logs_a_dev_line() -> void:
 	watch_signals(LogManager)
 	_check("DemoZonesCheck").button_pressed = true
 	var line: String = get_signal_parameters(LogManager, "message_logged")[0]
-	assert_string_contains(line, "[DEV]")
-	assert_string_contains(line, "Demo zones: ON")
+	assert_eq(line, DEV_LINE + "Demo zones: ON")
 
 #-----------------------------------------------------------------------------
 # HIDDEN ZONES
@@ -80,5 +82,4 @@ func test_hidden_toggle_logs_a_dev_line() -> void:
 	watch_signals(LogManager)
 	_check("HiddenZonesCheck").button_pressed = true
 	var line: String = get_signal_parameters(LogManager, "message_logged")[0]
-	assert_string_contains(line, "[DEV]")
-	assert_string_contains(line, "Show hidden zones: ON")
+	assert_eq(line, DEV_LINE + "Show hidden zones: ON")

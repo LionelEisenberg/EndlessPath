@@ -6,13 +6,6 @@ extends ScrollContainer
 ## toggle sets ZoneManager's own switch and writes a [DEV] line to the player's log.
 
 #-----------------------------------------------------------------------------
-# CONSTANTS
-#-----------------------------------------------------------------------------
-
-## The prefix of the lines the toggles log, the one DevCommands' lines have.
-const _DEV_TAG: String = "[color=magenta][DEV][/color]"
-
-#-----------------------------------------------------------------------------
 # NODE REFERENCES
 #-----------------------------------------------------------------------------
 
@@ -56,9 +49,9 @@ func _on_travel_pressed() -> void:
 ## never enter the save.
 func _on_demo_zones_toggled(pressed: bool) -> void:
 	ZoneManager.set_demo_zones_visible(pressed)
-	LogManager.log_message("%s Demo zones: %s" % [_DEV_TAG, "ON" if pressed else "OFF"])
+	DevCommands.log_dev_line("Demo zones: %s" % ("ON" if pressed else "OFF"))
 
 ## Shows or hides the zones the map hides (Test Zone).
 func _on_hidden_zones_toggled(pressed: bool) -> void:
 	ZoneManager.set_hidden_zones_visible(pressed)
-	LogManager.log_message("%s Show hidden zones: %s" % [_DEV_TAG, "ON" if pressed else "OFF"])
+	DevCommands.log_dev_line("Show hidden zones: %s" % ("ON" if pressed else "OFF"))

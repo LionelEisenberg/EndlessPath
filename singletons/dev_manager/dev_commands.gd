@@ -18,7 +18,8 @@ class_name DevCommands extends RefCounted
 # CONSTANTS
 #-----------------------------------------------------------------------------
 
-## The prefix of every line a command logs.
+## The prefix of every [DEV] line. The player's log keys its tone off it, and
+## log_dev_line() is the one place that writes it.
 const _DEV_TAG: String = "[color=magenta][DEV][/color]"
 
 ## Where the item resources live. list_item_paths() walks it.
@@ -293,6 +294,16 @@ static func list_item_paths() -> PackedStringArray:
 	return paths
 
 #-----------------------------------------------------------------------------
+# THE DEV LINE
+#-----------------------------------------------------------------------------
+
+## Logs `what` as a [DEV] line in the player's log: the tag, a space, then the text.
+## Every command logs its success through it, and so do the dev tools that are not
+## commands (DevManager's session lines, the dev panel's toggles).
+static func log_dev_line(what: String) -> void:
+	LogManager.log_message("%s %s" % [_DEV_TAG, what])
+
+#-----------------------------------------------------------------------------
 # PRIVATE HELPERS
 #-----------------------------------------------------------------------------
 
@@ -312,7 +323,7 @@ static func _while_paused(work: Callable) -> Variant:
 ## Logs what a command did as a [DEV] line, and returns "": the value every command
 ## that worked returns.
 static func _succeed(what: String) -> String:
-	LogManager.log_message("%s %s" % [_DEV_TAG, what])
+	log_dev_line(what)
 	return ""
 
 ## The zone's action with this id, or null when it has none.
