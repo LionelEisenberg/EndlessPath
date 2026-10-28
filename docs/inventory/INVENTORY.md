@@ -633,7 +633,7 @@ Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.
 
 - `[LOW]` **The material tooltip shows the raw zone id** ("Source Zones: SpiritValley").
 - `[LOW]` **The Journal reads quest progress when its page opens and when the quest items change.** A step reached while the book lies open shows the next time the page opens.
-- `[LOW]` **The tab icons are finer than the book's grid.** The 64 px tab icons show at 32 px, one art pixel a screen pixel, beside art drawn 2 px a pixel ([STYLE_GUIDE.md](../STYLE_GUIDE.md) K3: 16 art px redraws would put them on the grid). The path book's 26 px stage icons show at the same 32 px, not a whole multiple.
+- `[LOW]` **The tab icons are off the book's grid.** The 64 px tab icons show at 40 px, 1.25 screen px an art pixel, and the path book's 26 px stage icons at the same 40 px ([STYLE_GUIDE.md](../STYLE_GUIDE.md) K3: 16 art px redraws shown at 2x would put them on the grid).
 
 ### Tech Debt
 

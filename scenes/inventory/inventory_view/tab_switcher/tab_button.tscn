@@ -30,7 +30,7 @@ tracks/1/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 1,
-"values": [Vector2(-19, -8)]
+"values": [Vector2(-19, -10)]
 }
 
 [sub_resource type="Animation" id="Animation_ik22q"]
@@ -58,7 +58,7 @@ tracks/1/keys = {
 "times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
 "update": 1,
-"values": [Vector2(-19, -8), Vector2(-18, -8), Vector2(-16, -8), Vector2(-14, -8), Vector2(-13, -8), Vector2(-11, -8), Vector2(-11, -8), Vector2(-10, -8)]
+"values": [Vector2(-19, -10), Vector2(-18, -10), Vector2(-16, -10), Vector2(-14, -10), Vector2(-13, -10), Vector2(-11, -10), Vector2(-11, -10), Vector2(-10, -10)]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_00gvd"]
@@ -83,9 +83,9 @@ hframes = 8
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = -19.0
-offset_top = -8.0
-offset_right = -3.0
-offset_bottom = 8.0
+offset_top = -10.0
+offset_right = 1.0
+offset_bottom = 10.0
 mouse_filter = 2
 texture = ExtResource("2_ejei4")
 expand_mode = 1
@@ -95,10 +95,10 @@ stretch_mode = 5
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
-offset_left = 10.0
-offset_top = 9.0
-offset_right = 17.0
-offset_bottom = 17.0
+offset_left = 14.0
+offset_top = 13.0
+offset_right = 21.0
+offset_bottom = 21.0
 mouse_filter = 2
 texture = ExtResource("5_lock")
 expand_mode = 1

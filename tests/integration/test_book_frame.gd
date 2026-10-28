@@ -97,6 +97,13 @@ func test_turning_back_emits_page_turned() -> void:
 	await wait_for_signal(_frame.page_turned, ANIMATION_TIMEOUT)
 	assert_signal_emitted(_frame, "page_turned")
 
+## A page landing on the left page passes over the side tabs on the book's left
+## edge (2026-10-28 review: the tabs, drawn after the book, cut it off). The
+## strip's first and last frames are empty, so at rest it covers nothing.
+func test_the_turning_page_draws_over_the_side_tabs() -> void:
+	var page: CanvasItem = _frame.find_child("PageTurningRect", true, false) as CanvasItem
+	assert_gt(page.z_index, 0, "over the books' content, the side tabs included")
+
 func test_close_tab_requests_a_close() -> void:
 	watch_signals(_frame)
 	var close_tab: TextureButton = _frame.find_child("CloseTab", true, false)
