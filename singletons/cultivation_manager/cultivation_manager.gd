@@ -185,9 +185,14 @@ func advance_to_next_stage() -> bool:
 func get_xp_for_next_level() -> float:
 	if live_save_data == null:
 		return 0.0
-	var cur_level = live_save_data.core_density_level + 1
-	var res = _get_current_stage_resource()
-	return res.get_xp_for_level(cur_level) if res else 0.0
+	return get_xp_for_level(int(live_save_data.core_density_level) + 1)
+
+## The XP that reaching Core Density `level` costs in the current stage (0 with
+## no stage resource). The cultivator cabinet steps back through these to show
+## the core without the XP still flying to it.
+func get_xp_for_level(level: int) -> float:
+	var res: AdvancementStageResource = _get_current_stage_resource()
+	return res.get_xp_for_level(level) if res else 0.0
 
 func get_core_density_xp() -> float:
 	if live_save_data == null:
@@ -218,10 +223,16 @@ func has_next_stage() -> bool:
 ## Maximum Madra the player can hold: the current stage's curve at the current
 ## Core Density level. 0.0 when there is no save or stage resource.
 func get_max_madra() -> float:
+	return get_max_madra_at(int(get_core_density_level()))
+
+## Maximum Madra at Core Density `level` in the current stage, for a readout that
+## shows the core at another level than its own (the cultivator cabinet while XP
+## flies to it). 0.0 when there is no save or stage resource.
+func get_max_madra_at(level: int) -> float:
 	var res: AdvancementStageResource = _get_current_stage_resource()
 	if res == null:
 		return 0.0
-	return res.get_max_madra(int(get_core_density_level()))
+	return res.get_max_madra(level)
 
 func get_current_advancement_stage() -> AdvancementStage:
 	if live_save_data == null:

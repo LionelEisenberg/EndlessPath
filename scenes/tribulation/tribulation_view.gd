@@ -71,8 +71,9 @@ const RING_LIT_FRAME: int = 1
 const RING_FLASH_USEC: int = 150_000
 
 ## A burst: pellets fly from the ring out to BURST_TO_PX, evenly round from BURST_ANGLE,
-## over BURST_SECONDS with a BURST_BOW_PX bow. A perfect hit sends PERFECT_PELLETS, a
-## good one GOOD_PELLETS, and the hold, once held, HELD_PELLETS in brass.
+## over BURST_SECONDS, each bowing BURST_BOW_PX the same way, so the burst turns like a
+## pinwheel. A perfect hit sends PERFECT_PELLETS, a good one GOOD_PELLETS, and the hold,
+## once held, HELD_PELLETS in brass.
 const BURST_TO_PX: float = 178.0
 const BURST_ANGLE: float = 0.3
 const BURST_SECONDS: float = 0.4
@@ -82,8 +83,9 @@ const GOOD_PELLETS: int = 5
 const HELD_PELLETS: int = 12
 
 ## The aura rush: a pellet every RUSH_INTERVAL_USEC flies from RUSH_FROM_PX out into the
-## core over RUSH_SECONDS with a RUSH_BOW_PX bow. Pellet k comes from the angle
-## k * RUSH_ANGLE_STEP (the golden angle), so the stream comes from all round.
+## core over RUSH_SECONDS, each bowing RUSH_BOW_PX the same way, so the rush swirls in.
+## Pellet k comes from the angle k * RUSH_ANGLE_STEP (the golden angle), so the stream
+## comes from all round.
 const RUSH_INTERVAL_USEC: int = 100_000
 const RUSH_FROM_PX: float = 460.0
 const RUSH_ANGLE_STEP: float = 2.39996
@@ -121,8 +123,7 @@ const HELD_WORD: String = "Held"
 ## The result panel's counts: the perfect hits, the good ones and the cracks.
 const STATS_FORMAT: String = "%d perfect · %d good · %d missed"
 
-const _PELLET_SCENE: PackedScene = preload("res://scenes/zones/zone_transition/madra_pellet.tscn")
-const _BRASS_PELLET: Texture2D = preload("res://assets/ui/lacquer/cycling/lacquer_cyc_pellet_brass_ai.png")
+const _PELLET_SCENE: PackedScene = preload("res://scenes/common/lacquer/lacquer_pellet/lacquer_pellet.tscn")
 
 #-----------------------------------------------------------------------------
 # NODE REFERENCES
@@ -450,14 +451,14 @@ func _show_judgement(judgement: Dictionary) -> void:
 		Result.HELD:
 			_held = true
 			_pop_floaters(HELD_WORD, ThemeConstants.LACQUER_BRASS, "")
-			_burst(HELD_PELLETS, _BRASS_PELLET)
+			_burst(HELD_PELLETS, LacquerPellet.Ramp.BRASS)
 
 ## A hit: its word ("· hold" after it on the last beat), the ring's flash and a burst.
 func _show_hit(word: String, color: Color, pellets: int, last: bool) -> void:
 	_pop_floaters(HOLD_FORMAT % word if last else word, color, "")
 	_ring_flash_end_usec = clock_usec.call() + RING_FLASH_USEC
 	_ring.set_frame(RING_LIT_FRAME)
-	_burst(pellets, null)
+	_burst(pellets, LacquerPellet.Ramp.MADRA)
 
 ## A crack: its word and its reason in the warning colour, and the board shakes, by the
 ## full shake for the crack that fails the run. Its pip lights with the HUD.
@@ -559,14 +560,13 @@ func _place_floaters() -> void:
 			var spot: Vector2 = WORD_AT if index % 2 == 0 else REASON_AT
 			floater.position = spot - Vector2(0, floater.get_rise())
 
-## Sends `count` pellets off the ring, evenly round, in `texture` (the Madra pellet's own
-## art when null).
-func _burst(count: int, texture: Texture2D) -> void:
+## Sends `count` pellets off the ring, evenly round, in `ramp`.
+func _burst(count: int, ramp: LacquerPellet.Ramp) -> void:
 	var centre: Vector2 = _stage.centre_global()
 	for index: int in count:
 		var direction: Vector2 = Vector2.from_angle(float(index) / count * TAU + BURST_ANGLE)
 		var start: Vector2 = centre + direction * TribulationStage.RING_RADIUS_PX
-		_add_pellet(texture).launch(start, centre + direction * BURST_TO_PX, BURST_SECONDS, BURST_BOW_PX)
+		_send_pellet(PelletFlight.arc(start, centre + direction * BURST_TO_PX, BURST_SECONDS, BURST_BOW_PX), ramp)
 
 ## Streams the next rush pellet into the core, once RUSH_INTERVAL_USEC has passed since the
 ## last. After a long frame the stream picks up from now, with no burst of catching up.
@@ -575,20 +575,19 @@ func _stream_rush(now: int) -> void:
 		return
 	var centre: Vector2 = _stage.centre_global()
 	var start: Vector2 = centre + Vector2.from_angle(_rush_count * RUSH_ANGLE_STEP) * RUSH_FROM_PX
-	_add_pellet(null).launch(start, centre, RUSH_SECONDS, RUSH_BOW_PX)
+	_send_pellet(PelletFlight.arc(start, centre, RUSH_SECONDS, RUSH_BOW_PX), LacquerPellet.Ramp.MADRA)
 	_rush_count += 1
 	_next_rush_usec += RUSH_INTERVAL_USEC
 	if _next_rush_usec <= now:
 		_next_rush_usec = now + RUSH_INTERVAL_USEC
 
-## Instances a pellet on the stage, over the core and under the floaters, in `texture`
-## (the Madra pellet's own art when null).
-func _add_pellet(texture: Texture2D) -> MadraPellet:
-	var pellet: MadraPellet = _PELLET_SCENE.instantiate() as MadraPellet
+## Instances a pellet on the stage, over the core and under the floaters, and sends it
+## along `flight` in `ramp`.
+func _send_pellet(flight: PelletFlight, ramp: LacquerPellet.Ramp) -> void:
+	var pellet: LacquerPellet = _PELLET_SCENE.instantiate() as LacquerPellet
 	_pellets.add_child(pellet)
-	if texture != null:
-		pellet.set_texture(texture)
-	return pellet
+	pellet.set_ramp(ramp)
+	pellet.fly(flight)
 
 ## Starts the board's shake over `keyframes`, now; a new shake restarts it.
 func _start_shake(keyframes: Array[int]) -> void:

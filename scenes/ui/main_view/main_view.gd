@@ -29,7 +29,8 @@ extends Control
 ## The zone view's furniture the boards in the map gap work with. The cabinet takes
 ## the cycling board's pellets (it is handed to the CyclingView in _ready()); the
 ## chest, the dock and the map's SubViewport are turned over by open_board() when
-## there is no transition, and the dock and the SubViewport by set_board_mode().
+## there is no transition, and the dock, the SubViewport and the chest's About by
+## set_board_mode().
 @onready var cultivator_plate: CultivatorPlate = %CultivatorPlate
 @onready var zone_panel: ZonePanel = %ZonePanel
 @onready var dock: Control = %Dock
@@ -152,19 +153,19 @@ func release_hud_boards(holder: MainViewState) -> void:
 	_hud_board_visibility.clear()
 
 ## Opens the board `spec` describes (it must not be null). With a transition, the
-## map's input goes off at once and the transition plays the board in; MainView
-## turns nothing else over. Without one, the open is instant: the dock hides and the
-## map takes no input (see set_board_mode()), the chest lists the techniques for a
-## board that swaps it, the log and Goals hide, through spec.holder, for a board that
-## moves them, and the board's view shows. Each piece is skipped when it is missing,
-## as it is on the MainViews the view-state tests build.
+## map's input and the chest's About go off at once and the transition plays the
+## board in; MainView turns nothing else over. Without one, the open is instant: the
+## dock and About hide and the map takes no input (see set_board_mode()), the chest
+## lists the techniques for a board that swaps it, the log and Goals hide, through
+## spec.holder, for a board that moves them, and the board's view shows. Each piece
+## is skipped when it is missing, as it is on the MainViews the view-state tests
+## build.
 func open_board(spec: BoardTransitionSpec) -> void:
 	if board_transition != null:
 		board_transition.open(spec)
 		# After open(): opening this board snaps closed one that is up, whose
-		# callback gives the map its input back.
-		if zone_map_viewport != null:
-			zone_map_viewport.gui_disable_input = true
+		# callback gives the map and About back.
+		_take_map_gap(true)
 		return
 	set_board_mode(true)
 	if spec.swaps_chest and zone_panel != null:
@@ -175,8 +176,8 @@ func open_board(spec: BoardTransitionSpec) -> void:
 		spec.view.visible = true
 
 ## Closes the board `spec` describes (it must not be null), then calls on_closed
-## once. With a transition, the board plays out and the map takes input again when
-## it has: on_closed is called after that. Without one, the close is instant and
+## once. With a transition, the board plays out, and the map takes input again and
+## About comes back when it has: on_closed is called after that. Without one, the close is instant and
 ## undoes open_board() in reverse.
 func close_board(spec: BoardTransitionSpec, on_closed: Callable) -> void:
 	if board_transition != null:
@@ -200,17 +201,20 @@ func is_board_moving() -> bool:
 func is_board_closing() -> bool:
 	return board_transition != null and board_transition.is_closing()
 
-## Turns the zone view's dock and map off for a board that stands in the map gap
-## (the cycling board, the Tribulation board), or gives them back. The dock hides
-## and the map's SubViewport takes no input: the SubViewportContainer pushes a
-## press into it with push_input(), which a viewport with its input off drops, so
-## a click on the map beside the board travels nowhere. Each piece is skipped when
-## it is missing, as it is on the MainViews the view-state tests build.
+## Turns the zone view's dock and map and the chest's About off for a board that
+## stands in the map gap (the cycling board, the Tribulation board), or gives them
+## back. The dock hides and the map's SubViewport takes no input: the
+## SubViewportContainer pushes a press into it with push_input(), which a viewport
+## with its input off drops, so a click on the map beside the board travels
+## nowhere. About hides and the lore closes. Each piece is skipped when it is
+## missing, as it is on the MainViews the view-state tests build.
 func set_board_mode(on: bool) -> void:
 	if dock != null:
 		dock.visible = not on
 	if zone_map_viewport != null:
 		zone_map_viewport.gui_disable_input = on
+	if zone_panel != null:
+		zone_panel.set_board_mode(on)
 
 ## Change the base state, clearing the stack.
 func change_state(new_state: MainViewState) -> void:
@@ -259,6 +263,15 @@ func _hold_zone_camera(held: bool) -> void:
 	if zone_map != null:
 		zone_map.hold_camera(held)
 
+## Turns the map's input and the chest's About off while a board moves or stands in
+## the map gap (taken), or gives them back. The transition moves the dock, so this
+## is set_board_mode() without it. Each piece is skipped when missing.
+func _take_map_gap(taken: bool) -> void:
+	if zone_map_viewport != null:
+		zone_map_viewport.gui_disable_input = taken
+	if zone_panel != null:
+		zone_panel.set_board_mode(taken)
+
 ## The HUD boards the overlays hide: the log and the Goals board.
 func _get_hud_boards() -> Array[Control]:
 	var boards: Array[Control] = []
@@ -276,10 +289,9 @@ func _get_current_state() -> MainViewState:
 # SIGNAL HANDLERS
 #-----------------------------------------------------------------------------
 
-## A board's close has reached its end: the map takes input again, then whoever
-## closed the board hears of it.
+## A board's close has reached its end: the map takes input again and About comes
+## back, then whoever closed the board hears of it.
 func _on_board_closed(on_closed: Callable) -> void:
-	if zone_map_viewport != null:
-		zone_map_viewport.gui_disable_input = false
+	_take_map_gap(false)
 	if on_closed.is_valid():
 		on_closed.call()

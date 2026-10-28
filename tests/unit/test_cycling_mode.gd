@@ -6,15 +6,17 @@ extends GutTest
 ## board that stands in the map gap, through BoardTransition when MainView has
 ## one and instantly when it has none. Instantly, the zone view's furniture is
 ## turned over to the board: the chest lists the techniques (a board that swaps
-## it), the dock hides, the map's SubViewport takes no input, the log and Goals
-## hide (a board that moves them) and the board's view shows; the close undoes
-## all of it in reverse and calls back once. With the transition, the map's input
-## goes off at once and comes back, before the callback, when the close ends.
+## it), the dock and the chest's About hide, the map's SubViewport takes no input,
+## the log and Goals hide (a board that moves them) and the board's view shows;
+## the close undoes all of it in reverse and calls back once. With the transition,
+## the map's input and About go off at once, About before the transition measures
+## the chest, and come back, before the callback, when the close ends.
 ## CyclingViewState opens its board with open_board() and closes it with
 ## close_board(), and stays on MainView's stack until the close has finished. It
 ## blocks the full log, as a menu book does, and leaves the Goals and log boards
 ## where the zone view put them. set_board_mode() is the part of the instant switch
-## the Tribulation board shares (the dock and the map, not the chest).
+## the Tribulation board shares (the dock, the map and the chest's About, not the
+## techniques).
 ## The MainView is never added to the tree: each test fills in the views it
 ## needs, as test_view_state_hud_positions.gd does, with the real chest and the
 ## real log (the techniques mode and the full-log block can only be read there)
@@ -156,6 +158,10 @@ func _left_press() -> InputEventMouseButton:
 	press.global_position = press.position
 	return press
 
+## The chest's About, which Spirit Valley's lore shows outside the board modes.
+func _about() -> Control:
+	return _main_view.zone_panel.get_node("%AboutButton") as Control
+
 #-----------------------------------------------------------------------------
 # THE INSTANT BOARD
 #-----------------------------------------------------------------------------
@@ -166,11 +172,13 @@ func test_open_and_close_board_without_a_transition() -> void:
 	assert_true(_main_view.zone_panel.is_techniques_mode(), "the chest lists the techniques")
 	assert_false(_main_view.dock.visible, "the dock hides")
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map takes no input")
+	assert_false(_about().visible, "About hides")
 	assert_true(spec.view.visible, "the board shows")
 	_main_view.close_board(spec, _on_closed)
 	assert_false(_main_view.zone_panel.is_techniques_mode(), "the chest lists the activities again")
 	assert_true(_main_view.dock.visible, "the dock is back")
 	assert_false(_main_view.zone_map_viewport.gui_disable_input, "the map takes input again")
+	assert_true(_about().visible, "About is back")
 	assert_false(spec.view.visible, "the board hides")
 	assert_eq(_closed_calls, 1, "the callback was called once")
 
@@ -193,11 +201,13 @@ func test_the_instant_open_hides_the_hud_boards_for_a_board_that_moves_them() ->
 	assert_false(_main_view.goals_panel.visible, "Goals hides")
 	assert_false(_main_view.zone_panel.is_techniques_mode(), "the chest keeps listing the activities")
 	assert_false(_main_view.dock.visible, "the dock hides")
+	assert_false(_about().visible, "About hides")
 	assert_true(spec.view.visible, "the board shows")
 	_main_view.close_board(spec, _on_closed)
 	assert_true(_main_view.log_window.visible, "the log is back")
 	assert_true(_main_view.goals_panel.visible, "Goals is back")
 	assert_true(_main_view.dock.visible, "the dock is back")
+	assert_true(_about().visible, "About is back")
 	assert_false(spec.view.visible, "the board hides")
 	assert_eq(_closed_calls, 1, "the callback was called once")
 
@@ -246,15 +256,18 @@ func test_the_instant_open_and_close_skip_what_is_missing() -> void:
 	assert_eq(_closed_calls, 1)
 
 ## The Tribulation board stands in the same map gap but has no use for the techniques: the
-## chest keeps listing the zone's activities, and only the dock and the map are turned off.
+## chest keeps listing the zone's activities and hides only About, and the dock and the
+## map are turned off.
 func test_board_mode_leaves_the_chest() -> void:
 	_main_view.set_board_mode(true)
 	assert_false(_main_view.dock.visible, "the dock hides")
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map takes no input")
 	assert_false(_main_view.zone_panel.is_techniques_mode(), "the chest keeps listing the activities")
+	assert_false(_about().visible, "About hides")
 	_main_view.set_board_mode(false)
 	assert_true(_main_view.dock.visible, "the dock is back")
 	assert_false(_main_view.zone_map_viewport.gui_disable_input, "the map takes input again")
+	assert_true(_about().visible, "About is back")
 
 ## Each piece is switched whether or not the other exists, as on the MainViews the
 ## view-state tests build.
@@ -299,6 +312,7 @@ func test_open_board_with_a_transition_stops_the_map_and_starts_the_player() -> 
 	var spec: BoardTransitionSpec = _cycling_spec()
 	_main_view.open_board(spec)
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map takes no input at once")
+	assert_false(_about().visible, "About hides at once")
 	assert_same(player.get_spec(), spec, "the player was handed the board")
 	assert_true(_main_view.is_board_moving(), "the board is opening")
 	assert_false(_main_view.is_board_closing())
@@ -307,7 +321,7 @@ func test_open_board_with_a_transition_stops_the_map_and_starts_the_player() -> 
 	player.finish()
 	assert_false(_main_view.is_board_moving(), "the board is open")
 
-## The map stays off through the whole close, and comes back, before the
+## The map and About stay off through the whole close, and come back, before the
 ## callback, at its end.
 func test_close_board_with_a_transition_gives_the_map_back_when_it_ends() -> void:
 	var player: BoardTransition = _give_main_view_a_player()
@@ -318,11 +332,14 @@ func test_close_board_with_a_transition_gives_the_map_back_when_it_ends() -> voi
 	assert_true(_main_view.is_board_closing(), "the board is closing")
 	assert_true(_main_view.is_board_moving())
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map is still off while it closes")
+	assert_false(_about().visible, "About is still hidden while it closes")
 	assert_eq(_closed_calls, 0, "the callback waits for the end")
 	player.advance(0.1)
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "and mid-way")
+	assert_false(_about().visible, "About too")
 	player.finish()
 	assert_false(_main_view.zone_map_viewport.gui_disable_input, "the map takes input again at the end")
+	assert_true(_about().visible, "About is back at the end")
 	assert_eq(_closed_calls, 1, "the callback was called once")
 	assert_false(_main_view.is_board_moving())
 
@@ -343,7 +360,7 @@ func test_opening_again_during_the_close_keeps_the_map_off() -> void:
 	assert_eq(_closed_calls, 0, "the dropped close never calls back")
 
 ## Another board opening snaps the one that is up closed, whose callback gives the
-## map its input back: the new board has to turn it off again.
+## map its input and About back: the new board has to turn them off again.
 func test_opening_another_board_keeps_the_map_off() -> void:
 	var player: BoardTransition = _give_main_view_a_player()
 	var first: BoardTransitionSpec = _cycling_spec()
@@ -357,6 +374,24 @@ func test_opening_another_board_keeps_the_map_off() -> void:
 	assert_same(player.get_spec(), second, "the second board is up")
 	assert_eq(_closed_calls, 1, "the first board's close was called back")
 	assert_true(_main_view.zone_map_viewport.gui_disable_input, "the map is off for the second board")
+	assert_false(_about().visible, "About is hidden for the second board")
+
+## An open lore pushes the chest's list down. It closes as the board opens, so
+## the chest steps from its height without the lore to the techniques' height.
+func test_the_lore_closes_as_the_board_opens() -> void:
+	var player: BoardTransition = _give_main_view_a_bound_player()
+	var lore: Control = _main_view.zone_panel.get_node("%LorePanel") as Control
+	(_about() as BaseButton).button_pressed = true
+	assert_true(lore.visible, "precondition: the lore is open")
+	var height_with_lore: float = _main_view.zone_panel.chest_height_for(false)
+	_main_view.open_board(_cycling_spec())
+	assert_false(lore.visible, "the lore closes as the board opens")
+	var height_without_lore: float = _main_view.zone_panel.chest_height_for(false)
+	assert_lt(height_without_lore, height_with_lore, "precondition: the lore made the chest taller")
+	player.advance(0.42)
+	var techniques_height: float = _main_view.zone_panel.chest_height_for(true)
+	var expected: float = BoardTransitionTiming.chest_height(420.0, height_without_lore, techniques_height)
+	assert_eq(_main_view.zone_panel.size.y, expected, "mid-way, the chest steps from its height without the lore")
 
 ## With nothing up the player calls back at once, and the map is given back.
 func test_closing_with_nothing_up_gives_the_map_back_at_once() -> void:
