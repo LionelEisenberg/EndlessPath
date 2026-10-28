@@ -642,8 +642,8 @@ func test_handing_over_the_cabinet_skips_a_plain_control() -> void:
 # MAIN_GAME.TSCN
 #-----------------------------------------------------------------------------
 
-## MainView finds the cabinet, the chest, the dock, the map's viewport and the
-## zone map by unique name, and the board transition too. open_board() skips a
+## MainView finds the cabinet, the chest, the dock, the map's viewport, the
+## zone map and ZoneTransition by unique name, and the board transition too. open_board() skips a
 ## missing piece without a word, so a scene that lost a name would quietly stop
 ## turning that piece over. The transition's shield must come after the boards
 ## among MainView's children, to catch the clicks on them while it moves (Godot
@@ -657,6 +657,7 @@ func test_main_game_names_the_zone_furniture_for_main_view() -> void:
 	assert_same(main_view.get_node_or_null("%Dock"), zone_view.get_node("Dock"), "the dock")
 	assert_same(main_view.get_node_or_null("%SubViewport"), zone_view.get_node("SubViewportContainer/SubViewport"), "the map's viewport")
 	assert_same(main_view.get_node_or_null("%ZoneTilemap"), zone_view.get_node("SubViewportContainer/SubViewport/ZoneTilemap"), "the zone map")
+	assert_same(main_view.get_node_or_null("%ZoneTransition"), zone_view.get_node("ZoneTransition"), "the adventure entry, whose way back the push settles")
 	var transition: Node = main_view.get_node_or_null("%BoardTransition")
 	assert_true(transition is BoardTransition, "the board transition")
 	assert_same(transition.get_parent(), main_view, "the transition is a child of MainView")

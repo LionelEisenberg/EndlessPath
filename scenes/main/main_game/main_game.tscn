@@ -158,6 +158,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="ZoneTransition" type="Node" parent="MainView/ZoneView" unique_id=1866892530]
+unique_name_in_owner = true
 script = ExtResource("8_ohlfh")
 metadata/_custom_type_script = "uid://dfwnxr83f5s5n"
 

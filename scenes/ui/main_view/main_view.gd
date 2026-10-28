@@ -67,6 +67,11 @@ var _hud_board_visibility: Dictionary[Control, bool] = {}
 ## null when there is none: the MainViews the view-state tests build never run
 ## _ready(), so they have none and their boards open and close at once.
 var board_transition: BoardTransition = null
+## The zone map and the adventure entry's drain and zoom, whose camera moves the
+## board transition's camera push holds still while it runs, or null when
+## missing, as on the MainViews the view-state tests build.
+var zone_map: ZoneTilemap = null
+var zone_transition: ZoneTransition = null
 
 func _ready() -> void:
 	zone_view_state.scene_root = self
@@ -82,6 +87,8 @@ func _ready() -> void:
 
 	_hand_cabinet_to_cycling_view()
 	board_transition = get_node_or_null("%BoardTransition") as BoardTransition
+	zone_map = get_node_or_null("%ZoneTilemap") as ZoneTilemap
+	zone_transition = get_node_or_null("%ZoneTransition") as ZoneTransition
 	_bind_board_transition()
 
 	# Initialize view visibility based on initial state
@@ -230,16 +237,27 @@ func _hand_cabinet_to_cycling_view() -> void:
 
 ## Hands the transition the pieces it moves: the dock, the chest, the HUD boards
 ## (the Goals board first, then the log: the order they step off the screen in),
-## the zone map's camera and the cultivator the camera pushes in on. Does nothing
+## the zone map's camera and the cultivator the camera pushes in on, and the hold
+## that keeps the camera's other movers still during the push. Does nothing
 ## without a transition, and binds no camera or cultivator without a zone map.
 func _bind_board_transition() -> void:
 	if board_transition == null:
 		return
-	var zone_map: ZoneTilemap = get_node_or_null("%ZoneTilemap") as ZoneTilemap
 	var camera: Camera2D = zone_map.get_camera() if zone_map != null else null
 	var cultivator: Node2D = zone_map.character_body if zone_map != null else null
 	var hud_boards: Array[Control] = [goals_panel, log_window]
-	board_transition.bind(dock, zone_panel, hud_boards, camera, cultivator)
+	board_transition.bind(dock, zone_panel, hud_boards, camera, cultivator, _hold_zone_camera)
+
+## Holds the zone map's camera still while the board transition pushes it (held),
+## or lets it go once the push has restored it. Holding first ends the camera
+## moves under way at their ends, so the push saves the camera where it comes to
+## rest: the way back from the adventure zoom (ZoneTransition), then the map's
+## own glide and zoom ease (ZoneTilemap). Each piece is skipped when missing.
+func _hold_zone_camera(held: bool) -> void:
+	if held and zone_transition != null:
+		zone_transition.settle_camera()
+	if zone_map != null:
+		zone_map.hold_camera(held)
 
 ## The HUD boards the overlays hide: the log and the Goals board.
 func _get_hud_boards() -> Array[Control]:

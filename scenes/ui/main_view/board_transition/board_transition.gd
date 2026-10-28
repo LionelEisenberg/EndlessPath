@@ -17,6 +17,15 @@ extends Control
 ## direction around: every piece plays back from where the progress is, and
 ## nothing jumps. The close plays the open's timeline backwards.
 ##
+## The camera. The push saves the camera when a run starts and puts it back at
+## the run's end, and nothing else may move the camera in between. So a run
+## starts by calling the camera hold bind() is given with true, which ends
+## every other camera move under way at its end (a zoom ease after a wheel
+## tick, a glide to a zone, the way back from the adventure zoom) and keeps
+## those movers still, and the push saves the camera where it comes to rest;
+## the run's end calls the hold with false after the push has restored the
+## camera.
+##
 ## Each frame, at t = progress x duration (ms of the open's timeline), it applies:
 ## - the camera: the push on the cultivator (CameraPush) to camera_weight(t),
 ##   1.5 times the player's zoom with the cultivator under the board at 1;
@@ -69,6 +78,9 @@ var _zone_panel: ZonePanel = null
 var _hud_boards: Array[Control] = []
 var _camera: Camera2D = null
 var _cultivator: Node2D = null
+## Called with true before the push saves the camera, with false after it
+## restores it: see the class doc.
+var _camera_hold: Callable = Callable()
 
 ## The board that is up or moving, or null while closed.
 var _spec: BoardTransitionSpec = null
@@ -115,14 +127,17 @@ func _process(delta: float) -> void:
 
 ## Hands it the pieces it moves: the dock, the zone chest, the HUD boards (the
 ## Goals board, then the log), the zone map's camera and the cultivator the
-## camera pushes in on. Any of them may be null, and the list empty: a missing
-## piece is skipped. Bind before the first open().
-func bind(dock: Control, zone_panel: ZonePanel, hud_boards: Array[Control], camera: Camera2D, cultivator: Node2D) -> void:
+## camera pushes in on, and the camera hold, a callable taking a bool that
+## holds the camera's other movers still (true) and lets them go (false). Any
+## of them may be null or empty: a missing piece is skipped. Bind before the
+## first open().
+func bind(dock: Control, zone_panel: ZonePanel, hud_boards: Array[Control], camera: Camera2D, cultivator: Node2D, camera_hold: Callable = Callable()) -> void:
 	_dock = dock
 	_zone_panel = zone_panel
 	_hud_boards = hud_boards
 	_camera = camera
 	_cultivator = cultivator
+	_camera_hold = camera_hold
 
 ## Opens the board spec describes. From closed, it records where the dock and
 ## the HUD boards rest, begins the camera push on the cultivator, reads the
@@ -269,7 +284,10 @@ func _end_close() -> void:
 	_restore_rows()
 	_let_go_of_rows()
 	_release_height()
+	var was_pushed: bool = _camera_push.is_active()
 	_camera_push.restore()
+	if was_pushed and _camera_hold.is_valid():
+		_camera_hold.call(false)
 	_spec = null
 	_phase = Phase.CLOSED
 	_progress = 0.0
@@ -297,11 +315,14 @@ func _record_rests() -> void:
 		# The close leaves the view at full size, so this is its top-left then.
 		_view_origin = _screen_position(_spec.view)
 
-## Saves the camera and aims the push so the cultivator ends under the board,
-## at 1.5 times the zoom the player had. Skipped without a camera or a cultivator.
+## Holds the camera's other movers still, then saves the camera where it has
+## come to rest and aims the push so the cultivator ends under the board, at
+## 1.5 times the zoom the player had. Skipped without a camera or a cultivator.
 func _begin_camera_push() -> void:
 	if not is_instance_valid(_camera) or not is_instance_valid(_cultivator):
 		return
+	if _camera_hold.is_valid():
+		_camera_hold.call(true)
 	var cultivator_world: Vector2 = _cultivator.global_position if _cultivator.is_inside_tree() else _cultivator.position
 	var end_zoom: float = _camera.zoom.x * BoardTransitionTiming.CAMERA_ZOOM_FACTOR
 	_camera_push.begin(_camera, cultivator_world, BoardTransitionTiming.cultivator_target(_spec.board_rect), end_zoom)
