@@ -368,7 +368,7 @@ award_items() ─▶ item_awarded ─▶ AdventureView._loot_items ─▶ Advent
 | PersistenceManager | `InventoryData` is `SaveGameData.inventory`. InventoryManager re-grabs `live_save_data` on `save_data_reset`, and a reset creates a fresh `InventoryData` |
 | LogManager | Award messages and "Discarded <name>" |
 | MerchantManager | `award_items(item, 1)` for each purchase (so gear purchases log as "Looted", Crude Scales as "Obtained"). Gear purchases first check `InventoryData.has_free_equipment_slot()`; with every slot full the shop shows "Equipment full" and takes no gold |
-| DevCommands | `award_item()` awards through `award_items()` and refuses equipment that has no free slot (`free_equipment_slots()`), since the inventory drops such an item and still logs "Looted". `grant_equipment_page()` calls `grant_equipment_page()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-commands)) |
+| DevCommands | `award_item()` awards through `award_items()` and refuses equipment that has no free slot (`free_equipment_slots()`), since the inventory drops such an item and still logs "Looted". `DevCommands.grant_equipment_page()` calls `InventoryManager.grant_equipment_page()` ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-commands)), and the dev panel's Items tab has a button for it |
 | Combat (unmerged) | `equipped_consumables` and `use_consumable()` are the hooks used by the `feat/infallible-chaum-58f8ad` branch |
 
 ## Existing Content

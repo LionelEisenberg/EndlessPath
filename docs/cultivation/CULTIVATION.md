@@ -149,7 +149,7 @@ Copper's pool cap is `600 + 10 × level`, so it starts at the 600 Foundation end
 The `MADRA_CAPACITY_BONUS` path perk is aggregated by `PathManager` but not added to either cap. See [RESOURCES.md](../infrastructure/RESOURCES.md) for the pool and adventure budget.
 
 ### Advancement Stage and Breakthrough
-- `current_advancement_stage` is written by `SaveGameData.reset()` and by `advance_to_next_stage()` (`cultivation_manager.gd:167-183`), which only the Tribulation calls.
+- `current_advancement_stage` is written by `SaveGameData.reset()` and by `advance_to_next_stage()` (`cultivation_manager.gd:167-183`), which the Tribulation calls, and so does `DevCommands.advance_stage()` (the story route's `beat_9` runs it, so the `copper` preset does too).
 - `advancement_stage_changed` is emitted when the manager reads the save, in `_ready()` and on `PersistenceManager.save_data_reset` (it carries the unchanged stage), and from `advance_to_next_stage()` (the new one).
 - Stage lookups go through `advancement_stage_resources`: Foundation and Copper. Any other stage resolves to `null`, which makes `get_xp_for_next_level()` return 0, the cap 0 and `get_max_madra()` 0.0. `add_core_density_xp()` then logs and stops rather than hang, and `ResourceManager.add_madra()` adds nothing but leaves the pool as it is.
 - Foundation's `next_stage` is Copper (`foundation_advancement_stage.tres`). Copper has none, so `has_next_stage()` is false there: `advance_to_next_stage()` returns `false`, the Goals board reads "Copper reached", and a full Copper core writes no "waits in Spirit Valley" line.
