@@ -53,7 +53,7 @@ MainGame (Node2D)                          main_game.gd: Log print level, the pl
 │   ├── CyclingView             z 3        cycling_view.tscn (the board in the map gap; no backdrop)
 │   ├── TribulationView         z 3        tribulation_view.tscn (the board in the map gap; no backdrop; hidden by default)
 │   └── DevPanel                z 10       dev_panel.tscn: covers the screen and ignores the mouse; its body, a draggable board of tabs, is closed until Ctrl+Shift+D
-└── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.tick()
+└── SaveTimer (Timer)                      save_timer.gd: 5 s, autostart → PersistenceManager.autosave()
 ```
 
 The cabinet, the chest, the dock, the log and the Goals board take their places from their own scenes' roots. Their instances in `main_game.tscn` are in Anchors layout mode with top-left anchors. Don't switch them to Position mode: setting Position mode snaps a control to its parent's top-left corner, and an editor save drops the offsets that used to put it back, so every panel lands at (0, 0). `test_main_game_layout.gd` checks the places, also after an editor save. The adventure's vitals cabinet, chest and technique dock are instanced the same way in `adventure_view.tscn`, for the same reason (`test_adventure_view_layout.gd`).
@@ -344,7 +344,7 @@ Autoload order matters. Signal handlers run in connection order, and each manage
 | ResourceManager | `CultivatorPlate` gold row (`gold_changed`, `get_gold()`) |
 | PathManager | `Dock` Path count seal (`points_changed`, `get_point_balance()`) |
 | AbilityManager | `Dock` Abilities ring (`ability_unlocked`, `equipped_abilities_changed`, `has_unequipped_unlocks()`) |
-| PersistenceManager | `SaveTimer` calls `tick()` every 5 s: the save lock's heartbeat, then the autosave ([PERSISTENCE.md](PERSISTENCE.md)) |
+| PersistenceManager | `SaveTimer` calls `autosave()` every 5 s ([PERSISTENCE.md](PERSISTENCE.md)) |
 | LogManager / Log | `LogWindow` shows `message_logged` and the history. `MainGame.log_print_level` → `Log.set_print_level()`. See [LOGGING.md](LOGGING.md). |
 | Dev tools | `DevPanel` owns its two hotkeys, Ctrl+Shift+D and Ctrl+Shift+R, and keeps its open state, place and tab on `DevManager`, which a session switch outlives ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md)) |
 
