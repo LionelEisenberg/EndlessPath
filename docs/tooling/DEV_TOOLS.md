@@ -29,7 +29,9 @@ Ctrl+Shift+R (DevPanel._input, with the panel open or closed)
   └─ any other session  → left alone: the key goes on as plain R, the fourth ability slot
 ```
 
-The hotkeys need no password: an old `user://dev_password.txt` is ignored. The panel starts closed. Closing it, with the × or the hotkey, hides the body only, so the time-speed badge stays.
+The hotkeys need no password: an old `user://dev_password.txt` is ignored. The panel starts closed. Closing it, with the × or the hotkey, hides the body only, so the time-speed badge and the save warning stay.
+
+While saving is blocked (`PersistenceManager.is_save_blocked()`), a warning at the top centre of the screen reads `Not saving: <reason>` (`get_block_reason()`), with the panel open or closed: another run of the game holding the save, its lock taken over, a save a newer build wrote, or one that would not load or could not be checked. Every worktree shares one save, so a second run, or a forgotten window, would otherwise play a whole session that is lost on quit without a word. The warning follows `PersistenceManager.save_block_changed`, and a panel built after a switch shows it at once. A session in memory writes nothing by design and is not blocked, so it shows none; the Saves tab says where the session writes. The warning wraps a long reason, stands clear of the badge in the top right, and lets clicks through to the game.
 
 A session switch frees the main scene, and the panel with it, so the panel's open state, the place of its body and its tab live on `DevManager` (`panel_open`, `panel_position` and `panel_tab`): the panel built next comes back as the last one was. Nothing is saved to disk, so a new launch starts with the panel closed, on the first tab, with the body at (24, 24).
 
@@ -47,12 +49,13 @@ DevPanel (Control, covers the screen, mouse Ignore)   dev_panel.gd (class DevPan
 │           ├── ItemsTab      tabs/items_tab.tscn                          ScrollContainer
 │           ├── AdventureTab  tabs/adventure_tab.tscn                      ScrollContainer (class DevAdventureTab)
 │           └── WorldTab      tabs/world_tab.tscn                          ScrollContainer
-└── SpeedBadge (Label, top right, hidden at ×1)
+├── SpeedBadge (Label, top right, hidden at ×1)
+└── SaveWarning (PanelContainer, PanelTooltip, top centre, mouse Ignore, hidden unless saving is blocked) → SaveWarningLabel "Not saving: <reason>"
 ```
 
-The panel is a child of `MainView` at z 10. Only its body takes the mouse: the rest of the panel, and the badge, let clicks through to the game.
+The panel is a child of `MainView` at z 10. Only its body takes the mouse: the rest of the panel, the badge and the save warning let clicks through to the game.
 
-Each tab is a scene of its own with one script, which calls the dev tools itself. The shell owns only the frame: the open state, the drag, the tab, the time speed and the hotkeys. The one thing it hands a tab is the adventure view: `main_game.tscn` sets the panel's `adventure_view` export to the sibling `AdventureView`, and `DevPanel._ready()` passes it to the Adventure tab. The Saves tab's preset list is made of `DevPresetRow`s (`rows/dev_preset_row.tscn`), the Story tab's action list of `DevActionRow`s (`rows/dev_action_row.tscn`).
+Each tab is a scene of its own with one script, which calls the dev tools itself. The shell owns only the frame: the open state, the drag, the tab, the time speed, the save warning and the hotkeys. The one thing it hands a tab is the adventure view: `main_game.tscn` sets the panel's `adventure_view` export to the sibling `AdventureView`, and `DevPanel._ready()` passes it to the Adventure tab. The Saves tab's preset list is made of `DevPresetRow`s (`rows/dev_preset_row.tscn`), the Story tab's action list of `DevActionRow`s (`rows/dev_action_row.tscn`).
 
 Dragging the title bar moves the body, which always stays wholly on screen: a wider tab makes it grow from its top-left corner, and it is moved back in when that pushes it past an edge, then shrinks back to its own size on a narrower tab. The place is kept on `DevManager`.
 
@@ -473,7 +476,7 @@ Output: five lines of the form `uid://...`.
 | CyclingManager | `get_all_techniques()`, `unlock_technique()`, `equip_technique()` |
 | AdventureView / AdventureTilemap | The Adventure tab asks `is_in_combat` and `is_adventure_running()`, calls `set_show_whole_map()` → `set_dev_reveal_all()` and reads `is_dev_reveal_all()`. `force_win_combat()` and `force_end_adventure()` are behind `force_win_fight()` and `exit_adventure()` |
 | LogManager | `[DEV]` audit lines; a switch clears the history (`clear_history()`) and writes one `[DEV]` line |
-| PersistenceManager | `DevManager` binds a preset's save (`use_save()`), opens a file again (`open_save_file()`), saves the session it leaves (`autosave()`), puts autosave back to the launch value (`restore_launch_autosave()`), backs the user's save up (`backup_main_save()`) and writes it (`save_data()`). The Saves tab reads the session (`save_path`, `is_in_memory()`, `is_save_blocked()`, `get_block_reason()`), lists `list_backups()`, sets `autosave_enabled` and calls `save_data()`. `LaunchOptions` carries `--preset` and the pin |
+| PersistenceManager | `DevManager` binds a preset's save (`use_save()`), opens a file again (`open_save_file()`), saves the session it leaves (`autosave()`), puts autosave back to the launch value (`restore_launch_autosave()`), backs the user's save up (`backup_main_save()`) and writes it (`save_data()`). The Saves tab reads the session (`save_path`, `is_in_memory()`, `is_save_blocked()`, `get_block_reason()`), lists `list_backups()`, sets `autosave_enabled` and calls `save_data()`. The shell's save warning reads `is_save_blocked()` and `get_block_reason()` and follows `save_block_changed`. `LaunchOptions` carries `--preset` and the pin |
 | ActionManager | `complete_without_playing()` behind `complete_action()`, `is_idle_action()` behind `travel_to_zone()`, `cancel_current_action()` in a switch's teardown |
 | DialogueManager / CyclingManager / PlayerManager | A switch's teardown: `end_dialogue_now()`, `end_cycle_session()` with `clear_last_cycle_result()`, `reset_vitals()` |
 | ZoneManager / PathManager / InventoryData | `is_action_used_up()`, `is_stage_reached()` with `get_unmet_prerequisite()`, `free_equipment_slots()`: the rules `DevCommands` shares with the managers. The Story tab also reads `ZoneManager.get_available_actions()` and `TribulationActionData.is_passed()` for an action's status, and the World tab `ZoneManager`'s zone list and its two zone-map switches |
@@ -484,7 +487,7 @@ Output: five lines of the form `uid://...`.
 
 | File | Purpose |
 |------|---------|
-| `scenes/ui/dev_panel/dev_panel.gd` / `.tscn` | `DevPanel`: the shell (open state, drag, tab, time speed, the two hotkeys) |
+| `scenes/ui/dev_panel/dev_panel.gd` / `.tscn` | `DevPanel`: the shell (open state, drag, tab, time speed, the save warning, the two hotkeys) |
 | `scenes/ui/dev_panel/tabs/` | One scene and script per tab: `saves_tab`, `player_tab`, `story_tab` (`DevStoryTab`), `items_tab`, `adventure_tab` (`DevAdventureTab`), `world_tab` |
 | `scenes/ui/dev_panel/rows/` | `dev_preset_row` (`DevPresetRow`) and `dev_action_row` (`DevActionRow`) |
 | `singletons/dev_manager/dev_manager.gd` | `DevManager`: the session, building presets, switching sessions, snapshots and the pin |

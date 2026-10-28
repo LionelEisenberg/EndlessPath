@@ -120,6 +120,7 @@ Because `SaveGameData` is a `Resource`, a write by one manager is immediately vi
 | `backup_dir` | `String` | Where the main save's backups go. `BACKUP_DIR` |
 | `autosave_enabled` | `bool` | False after `--no-autosave` and in a GUT run: the tick and the close then write nothing. The dev panel's Saves tab turns it on and off for the session, and a session switch puts the launch value back (`restore_launch_autosave()`) |
 | `save_data_reset` | signal | Emitted when a save becomes the session's, so every manager re-binds. At boot it reaches no one |
+| `save_block_changed` | signal | Emitted whenever saving becomes blocked, is unblocked, or is blocked for another reason: a session that opens a save it must not write, a new session that clears a block, a takeover the heartbeat finds. Listeners read `is_save_blocked()` and `get_block_reason()`. The dev panel shows its warning from it |
 
 | Function | Behaviour |
 |----------|-----------|
@@ -259,7 +260,7 @@ The order inside `open_save_file()`:
 - **The file that `load_save()` reads fails to load as a `SaveGameData`.** That is the save, or its temp file when the save is missing. It is copied aside as `<name>.unreadable.<unix time>.<extension>` and left as it was, and the session runs on `SaveGameData.new_current()` in memory with saving blocked. `Log.critical` names the copy.
 - **A save from a newer build** (`is_from_newer_build()`): saving blocked, never migrated and never written, so nothing is copied aside. When `ZoneManager` is there, `repair()` still runs on the object in memory, so the session never stands in a zone this build does not know. The file stays as the newer build wrote it.
 - **Any other save:** `migrate()` first, then the check. When `ZoneManager` did not load (a stale import cache can do that) the save cannot be checked, and saving is blocked. Otherwise `repair()` fixes an unknown zone id and, when it changed something, the file as it was is copied aside as `<name>.invalid.<unix time>.<extension>` and a `Log.warn` names it. The repaired save is written at the next autosave.
-- **Every block is logged with `Log.critical`** and keeps its reason, which `get_block_reason()` returns. Only a new session (`open_save_file()` or `use_save()`) clears a block.
+- **Every block is logged with `Log.critical`** and keeps its reason, which `get_block_reason()` returns. Only a new session (`open_save_file()` or `use_save()`) clears a block. Each change fires `save_block_changed`, and the dev panel shows `Not saving: <reason>` on screen, open or closed, for as long as the block lasts ([DEV_TOOLS.md](../tooling/DEV_TOOLS.md#opening-it)).
 
 Also at boot:
 
@@ -415,10 +416,6 @@ Some managers tolerate stale ids in their own way, which covers what no migratio
 Tests: `tests/unit/test_persistence_manager.gd` and `tests/unit/test_save_migration.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.
 
 ## Work Remaining
-
-### Bugs
-
-- `[LOW]` Saving that is off is silent to the player. An unreadable save, a save from a newer build, and a save another run holds the lock on (or took over) all run with saving blocked, and only the console, the log file and the dev panel's Saves tab say why (`Log.critical`, and the tab's session line). `get_block_reason()` returns it, but no screen a player sees shows it.
 
 ### Missing Functionality
 

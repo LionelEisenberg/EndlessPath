@@ -73,7 +73,7 @@ Draw order is controlled by `z_index`. LogWindow and GoalsPanel (z 1) sit under 
 | `GoalsPanel` | `MainView` | (24, 276), hung on its cords under the cabinet (the 24 px cords reach 4 px above the root, to the cabinet's rings at y 272), in the zone view and in adventures (under the vitals cabinet) | 220 px tall with a quest, 150 with the milestone alone, when each text is one line; a wrapped line adds its height and the board grows with its rows. Not draggable |
 | `LogWindow` | `MainView` | Its 440x204 slot at (24, 852), the board on the slot's bottom edge (screen 1056) growing upward, in both base views | 74 + 26 px per line, up to 5 lines. The full log is a 440x560 board in the same place |
 | `QuestToast` | `MainView` | Top-centre, 350x60 at y 28 | `mouse_filter` Ignore; queues messages |
-| `DevPanel` | `MainView` | Covers the screen; its body starts at (24, 24), 560x680 at least | Only the body takes the mouse, and it is draggable and always wholly on screen. The time-speed badge sits at the top right. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-panel) |
+| `DevPanel` | `MainView` | Covers the screen; its body starts at (24, 24), 560x680 at least | Only the body takes the mouse, and it is draggable and always wholly on screen. The time-speed badge sits at the top right, and the warning that saving is off at the top centre. See [DEV_TOOLS.md](../tooling/DEV_TOOLS.md#dev-panel) |
 
 ## Core Systems
 

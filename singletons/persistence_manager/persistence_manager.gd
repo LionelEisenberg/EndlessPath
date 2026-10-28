@@ -35,6 +35,13 @@ extends Node
 ## At boot it reaches no one: the managers read the save in their own _ready().
 signal save_data_reset
 
+## Emitted whenever saving becomes blocked, is unblocked, or is blocked for another
+## reason: a session that opens a save it must not write, a new session that clears
+## a block, and a takeover the heartbeat finds. Listeners read is_save_blocked() and
+## get_block_reason(). The dev panel shows "Not saving: <reason>" from it. At boot
+## it reaches no one: the panel reads the block when it is built.
+signal save_block_changed
+
 #-----------------------------------------------------------------------------
 # CONSTANTS
 #-----------------------------------------------------------------------------
@@ -389,14 +396,23 @@ func _main_save_on_disk() -> String:
 func _can_verify() -> bool:
 	return is_instance_valid(ZoneManager)
 
+## Blocks saving for the session, for `reason`, and says so (save_block_changed)
+## unless it was blocked for that reason already.
 func _block_saving(reason: String) -> void:
+	var changed: bool = not _save_blocked or _block_reason != reason
 	_save_blocked = true
 	_block_reason = reason
 	Log.critical("PersistenceManager: Saving is off for this session: %s" % reason)
+	if changed:
+		save_block_changed.emit()
 
+## Clears a block, and says so (save_block_changed) when there was one.
 func _clear_block() -> void:
+	if not _save_blocked:
+		return
 	_save_blocked = false
 	_block_reason = ""
+	save_block_changed.emit()
 
 #-----------------------------------------------------------------------------
 # SAVE LOCK

@@ -110,3 +110,27 @@ grow_horizontal = 0
 theme_type_variation = &"LabelSubheading"
 text = "×5"
 horizontal_alignment = 2
+
+[node name="SaveWarning" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -360.0
+offset_top = 8.0
+offset_right = 360.0
+offset_bottom = 48.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"PanelTooltip"
+
+[node name="SaveWarningLabel" type="Label" parent="SaveWarning"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(680, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Not saving: in use by another run (pid 1234)"
+horizontal_alignment = 1
+autowrap_mode = 3

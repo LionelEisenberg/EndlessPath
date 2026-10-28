@@ -6,8 +6,9 @@ extends GutTest
 ## as it was; the body is dragged by its title bar and always stays on screen, also
 ## when a wider tab makes it grow, and shrinks back on a narrower tab; the title
 ## bar's picker sets DevManager's time speed, and the badge shows any speed but ×1,
-## even with the panel closed. The title reads against its bar. The panel hands its
-## adventure view to the Adventure tab.
+## even with the panel closed. While saving is blocked a warning says so and why,
+## open or closed, clear of the badge. The title reads against its bar. The panel
+## hands its adventure view to the Adventure tab.
 ##
 ## The World tab travels through DevCommands and shows a refusal, and its zone-map
 ## checks start from ZoneManager. The Player tab's controls each reach their command
@@ -15,8 +16,10 @@ extends GutTest
 ## until a run starts, follows the run, and shows the fight button only in a fight.
 ##
 ## Each panel is built inside a 1920x1080 Control, as MainView holds it in the
-## game. Each test binds a fresh save and gives back what it changed: the save,
-## DevManager's panel fields, the ×1 speed and the zone toggles.
+## game. Each test binds a fresh save and gives back what it changed: the save and
+## the file it writes, DevManager's panel fields, the ×1 speed and the zone toggles.
+## The warning tests block saving on a temp save a newer build wrote, which
+## after_each() deletes with its lock.
 
 #-----------------------------------------------------------------------------
 # CONSTANTS
@@ -45,11 +48,25 @@ const DEV_LINE: String = "[color=magenta][DEV][/color] "
 ## The controls that act on a run, which the Adventure tab shows only while one runs.
 const RUN_CONTROLS: Array[String] = ["ForceWin", "ExitVictory", "ExitDefeat", "ShowWholeMap", "RefillVitals"]
 
+## A save a newer build wrote, which a session plays with saving blocked. The warning
+## tests write it here; after_each() deletes it and its lock.
+const NEWER_SAVE_PATH: String = "user://__test_dev_panel_newer.tres"
+const NEWER_SAVE_TEXT: String = """[gd_resource type="Resource" script_class="SaveGameData" format=3]
+
+[ext_resource type="Script" path="res://singletons/persistence_manager/save_game_data.gd" id="1_save"]
+
+[resource]
+script = ExtResource("1_save")
+save_version = 99
+gold = 42.0
+"""
+
 #-----------------------------------------------------------------------------
 # SETUP
 #-----------------------------------------------------------------------------
 
 var _original_save: SaveGameData
+var _original_save_path: String
 var _original_panel_open: bool
 var _original_panel_position: Vector2
 var _original_panel_tab: int
@@ -58,6 +75,7 @@ var _original_hidden_zones: bool
 
 func before_each() -> void:
 	_original_save = PersistenceManager.save_game_data
+	_original_save_path = PersistenceManager.save_path
 	_original_panel_open = DevManager.panel_open
 	_original_panel_position = DevManager.panel_position
 	_original_panel_tab = DevManager.panel_tab
@@ -83,11 +101,14 @@ func after_each() -> void:
 	DevManager.panel_tab = _original_panel_tab
 	ZoneManager.set_demo_zones_visible(_original_demo_zones)
 	ZoneManager.set_hidden_zones_visible(_original_hidden_zones)
-	PersistenceManager.save_game_data = _original_save
-	PersistenceManager.save_data_reset.emit()
+	# Also clears a block a warning test left, and gives up its temp save's lock.
+	PersistenceManager.use_save(_original_save, _original_save_path)
 	# Binding the original save again resumes its idle action, if it has one.
 	# Stop it, so its tick timer does not run on into the next test.
 	_stop_actions()
+	for path: String in [NEWER_SAVE_PATH, SaveLock.lock_path_for(NEWER_SAVE_PATH)]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 #-----------------------------------------------------------------------------
 # HELPERS
@@ -440,6 +461,69 @@ func test_badge_shows_only_above_x1() -> void:
 	DevManager.set_time_speed(1.0)
 	assert_false(badge.visible, "at ×1 the badge hides")
 	assert_eq(option.get_item_text(option.selected), "×1")
+
+#-----------------------------------------------------------------------------
+# NOT SAVING
+#-----------------------------------------------------------------------------
+
+## Writes a save a newer build wrote and plays it, which blocks saving.
+func _play_a_save_that_blocks_saving() -> void:
+	var file := FileAccess.open(NEWER_SAVE_PATH, FileAccess.WRITE)
+	file.store_string(NEWER_SAVE_TEXT)
+	file.close()
+	PersistenceManager.open_save_file(NEWER_SAVE_PATH)
+	assert_true(PersistenceManager.is_save_blocked(), "precondition: a newer build's save blocks saving")
+
+## Every worktree shares one save, so a second run of the game, or a forgotten
+## window, can leave a session that saves nothing. While saving is blocked the
+## warning says so and why, with the panel closed too, as the badge does, and a
+## session that can save hides it again.
+func test_the_warning_shows_while_saving_is_blocked() -> void:
+	var panel: DevPanel = _add_panel()
+	var warning: Control = panel.get_node("%SaveWarning")
+	var label: Label = panel.get_node("%SaveWarningLabel")
+	assert_false(warning.visible, "precondition: nothing blocks saving yet")
+	_play_a_save_that_blocks_saving()
+	assert_false(panel.is_open(), "precondition: the panel is closed")
+	assert_true(warning.is_visible_in_tree(), "the warning shows with the panel closed")
+	assert_eq(label.text, "Not saving: " + PersistenceManager.get_block_reason(), "and names the reason")
+	PersistenceManager.use_save(SaveGameData.new_current(), "")
+	assert_false(warning.visible, "a session with nothing blocked hides it")
+
+## A switch frees the panel and builds it again: the panel built shows the warning
+## at once.
+func test_a_panel_built_while_saving_is_blocked_shows_the_warning() -> void:
+	_play_a_save_that_blocks_saving()
+	var panel: DevPanel = _add_panel()
+	assert_true((panel.get_node("%SaveWarning") as Control).is_visible_in_tree())
+
+## A session in memory writes nothing by design, which is no block: the Saves tab
+## says where it writes.
+func test_a_session_in_memory_shows_no_warning() -> void:
+	PersistenceManager.use_save(SaveGameData.new_current(), "")
+	assert_true(PersistenceManager.is_in_memory(), "precondition: nothing writes the session")
+	var panel: DevPanel = _add_panel()
+	assert_false((panel.get_node("%SaveWarning") as Control).visible)
+
+## A reason can be long (an unreadable save's names the path of its copy): the
+## warning wraps it, stays on screen, never covers the badge, and lets the mouse
+## through to the game.
+func test_the_warning_wraps_clear_of_the_badge() -> void:
+	assert_eq(DevManager.set_time_speed(10.0), "", "precondition: the badge shows")
+	_play_a_save_that_blocks_saving()
+	var panel: DevPanel = _add_panel()
+	var warning: Control = panel.get_node("%SaveWarning")
+	var label: Label = panel.get_node("%SaveWarningLabel")
+	label.text = "Not saving: " + "a reason long enough to need more than one line ".repeat(5)
+	await get_tree().process_frame
+	assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_WORD_SMART, "it wraps by word")
+	assert_gt(label.custom_minimum_size.x, 0.0, "in a width of its own")
+	assert_gt(label.get_line_count(), 1, "precondition: the reason takes several lines")
+	var badge: Control = panel.get_node("%SpeedBadge")
+	assert_true(badge.is_visible_in_tree(), "precondition: the badge shows at ×10")
+	assert_false(warning.get_rect().intersects(badge.get_rect()), "the warning never covers the badge")
+	assert_true(Rect2(Vector2.ZERO, panel.size).encloses(warning.get_rect()), "it stands wholly on screen")
+	assert_eq(warning.mouse_filter, Control.MOUSE_FILTER_IGNORE, "and lets clicks through to the game")
 
 #-----------------------------------------------------------------------------
 # WORLD TAB

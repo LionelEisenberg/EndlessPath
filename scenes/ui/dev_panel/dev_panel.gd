@@ -6,11 +6,13 @@ extends Control
 ## body, the title bar and the tabs under it, takes the mouse. The title bar drags
 ## the body, which always stays wholly on screen, and holds the time-speed picker.
 ## Closing the panel hides the body only, so the badge in the top right still shows
-## any time speed but ×1.
+## any time speed but ×1, and the warning at the top centre still shows
+## "Not saving: <reason>" while saving is blocked (PersistenceManager), which no
+## other screen says.
 ##
 ## The shell owns only the frame: the open state, the drag, the tab, the time
-## speed, the badge and the two hotkeys, Ctrl+Shift+D and Ctrl+Shift+R, which
-## restarts a preset session. Each tab is a scene of its own that calls the
+## speed, the badge, the warning and the two hotkeys, Ctrl+Shift+D and
+## Ctrl+Shift+R, which restarts a preset session. Each tab is a scene of its own that calls the
 ## dev tools itself; the one thing the shell hands a tab is the adventure view, to
 ## the Adventure tab. The panel lives in the main scene, which a session switch
 ## frees and loads again, so its open state, place and tab live on DevManager and
@@ -35,6 +37,8 @@ extends Control
 @onready var _tabs: TabContainer = %Tabs
 @onready var _adventure_tab: DevAdventureTab = %AdventureTab
 @onready var _speed_badge: Label = %SpeedBadge
+@onready var _save_warning: PanelContainer = %SaveWarning
+@onready var _save_warning_label: Label = %SaveWarningLabel
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -55,6 +59,7 @@ func _ready() -> void:
 	_move_body(_kept_on_screen(DevManager.panel_position))
 	_tabs.current_tab = clampi(DevManager.panel_tab, 0, _tabs.get_tab_count() - 1)
 	_show_speed(DevManager.get_time_speed())
+	_show_save_block()
 	_adventure_tab.set_adventure_view(adventure_view)
 	_title_bar.gui_input.connect(_on_title_bar_input)
 	_body.resized.connect(_on_body_resized)
@@ -62,6 +67,7 @@ func _ready() -> void:
 	_tabs.tab_changed.connect(_on_tab_changed)
 	_speed_option.item_selected.connect(_on_speed_selected)
 	DevManager.time_speed_changed.connect(_show_speed)
+	PersistenceManager.save_block_changed.connect(_show_save_block)
 
 ## The two hotkeys, whatever view the game is in: Ctrl+Shift+D opens and closes the
 ## panel, and Ctrl+Shift+R restarts the preset in a preset session, open panel or
@@ -146,6 +152,13 @@ func _show_speed(speed: float) -> void:
 	_speed_option.select(_speed_index(speed))
 	_speed_badge.text = DevManager.time_speed_label(speed)
 	_speed_badge.visible = speed != 1.0
+
+## Shows "Not saving: <reason>" while PersistenceManager has saving blocked, with
+## the panel open or closed, and hides it otherwise. A session in memory is not
+## blocked: it writes nothing by design, and the Saves tab says so.
+func _show_save_block() -> void:
+	_save_warning_label.text = "Not saving: %s" % PersistenceManager.get_block_reason()
+	_save_warning.visible = PersistenceManager.is_save_blocked()
 
 ## The index of the picker's item for the speed, or -1 when it offers none.
 func _speed_index(speed: float) -> int:

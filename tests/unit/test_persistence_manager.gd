@@ -945,6 +945,56 @@ func test_close_request_releases_the_lock() -> void:
 	assert_eq(SaveLock.holder_pid(path), 0, "closing the window then releases the lock")
 
 #-----------------------------------------------------------------------------
+# THE BLOCK SIGNAL
+#-----------------------------------------------------------------------------
+# The dev panel shows "Not saving: <reason>" while saving is blocked, with the
+# panel closed too, so save_block_changed fires at every change: a block, a block
+# cleared, and a takeover the heartbeat finds.
+
+func test_a_block_is_signalled() -> void:
+	var path := _path("signal_block")
+	_write(path, NEWER_SAVE_TEXT % "SpiritValley")
+	var manager := _make_manager(path)
+	watch_signals(manager)
+	_boot(manager)
+	assert_true(manager.is_save_blocked(), "precondition: a newer build's save blocks saving")
+	assert_signal_emit_count(manager, "save_block_changed", 1)
+
+func test_a_cleared_block_is_signalled() -> void:
+	var path := _path("signal_clear")
+	_write(path, NEWER_SAVE_TEXT % "SpiritValley")
+	var manager := _make_manager(path)
+	_boot(manager)
+	assert_true(manager.is_save_blocked(), "precondition: saving is blocked")
+	watch_signals(manager)
+	manager.use_save(SaveGameData.new_current(), _path("signal_clear_free"))
+	assert_false(manager.is_save_blocked(), "precondition: the new session can save")
+	assert_signal_emit_count(manager, "save_block_changed", 1)
+
+func test_a_takeover_the_heartbeat_finds_is_signalled() -> void:
+	var path := _path("signal_takeover")
+	_write(path, READABLE_SAVE_TEXT % "SpiritValley")
+	var manager := _make_manager(path)
+	_boot(manager)
+	watch_signals(manager)
+	_lock_as_another_run(path)
+	manager.tick()
+	assert_true(manager.is_save_blocked(), "precondition: the tick found the lock taken over")
+	assert_signal_emit_count(manager, "save_block_changed", 1)
+
+## A session that can save, and goes on to another that can, changes nothing the
+## panel shows.
+func test_nothing_is_signalled_while_saving_stays_on() -> void:
+	var path := _path("signal_none")
+	var manager := _make_manager(path)
+	watch_signals(manager)
+	_boot(manager)
+	manager.tick()
+	manager.use_save(SaveGameData.new_current(), _path("signal_none_other"))
+	assert_false(manager.is_save_blocked(), "precondition: saving was never blocked")
+	assert_signal_not_emitted(manager, "save_block_changed")
+
+#-----------------------------------------------------------------------------
 # THIS RUN
 #-----------------------------------------------------------------------------
 
