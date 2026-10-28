@@ -51,8 +51,8 @@ These are size-based and drop into any scene. Colours: Beige `#F0E8D8`, Gold `#D
 - **Ability stats display:** `LabelSeparatorDot` 26px copper `#C4884A` — dot separators (assigned in code by `ability_stats_display.gd`, which no screen shows now)
 - **Inventory chrome.** These labels set `scale = Vector2(0.5, 0.5)` to cancel the `InventoryView` root's 2x scale. The text then rasterizes at native resolution instead of being upscaled and blurred, so the variant size is the on-screen size.
   - `LabelInventoryCount` 24px dark ink `#33261A` — `GridToolbar` count text ("8 / 60" etc.) on the parchment background
-  - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All", "Weapons" etc.) on the dark pill background
-  - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Equipment" etc.); `GearSelector`'s "Gear Selector" title uses it with a 30px size override
+  - `LabelInventorySort` 30px beige — `SortSubBanner` pill label ("All" etc.) on the dark pill background
+  - `LabelInventorySignage` 48px dark ink `#33261A` — `TabBanner` signage title ("Journal" etc.)
   - These are scoped: they only render correctly when their Label has `scale = 0.5` and an appropriate `pivot_offset`. Don't use them outside the inventory chrome.
 - **Merchant shop (zone themes).** These variants are not in `pixel_theme.tres`. Each zone's merchant theme defines them, for example `assets/themes/merchant/spirit_valley_merchant_theme.tres` (styleboxes in `assets/styleboxes/merchant/`). `MerchantView` sets the merchant's `shop_theme` as its root `theme`; everything else (the Label type scale, red and green states, gold values) falls back to `pixel_theme.tres`. A new zone adds one Theme file with the same entries.
   - `MerchantPanel` (PanelContainer) — dark tinted shop panel with a glowing edge. It is 95% opaque: the log and the Goals board sit under the shop's place (the shop hides them while it is open), and their text would read through a lighter panel. Its content margins are left at the border width, so `MerchantAtmosphere` reaches the border; the 16px / 12px padding lives in `MerchantView`'s `ContentMargin`

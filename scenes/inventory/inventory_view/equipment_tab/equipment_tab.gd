@@ -1,19 +1,32 @@
 extends Control
 
 ## EquipmentTab
-## Left page is the paginated equipment grid + sort sub-banner; the bottom
-## PaginationBar holds the count, page buttons, and trash slot. Right page is
-## the gear selector + item detail card. Handles drag/drop between grid slots
-## (paged → global index), gear slots, and the trash slot (hold-buffer).
+## The Equipment tab, pressed into the book's two pages at 1x. Left page: the
+## filter words, a 6x6 page of the bag, and the footer (PaginationBar: page
+## slots, the count, the discard slot). Right page: the gear figure
+## (GearSelector) and the details panel (EquipmentDetails), which shows the
+## item last pointed at and keeps to it while the bag changes. Printer's marks
+## sit round the slot the details show and, while dragging, round the slot that
+## would take the item. Handles drag/drop between grid slots (paged → global
+## index), gear slots, and the trash slot (hold-buffer).
 
 @onready var equipment_grid: EquipmentGrid = %EquipmentGrid
 @onready var gear_selector: Control = %GearSelector
-@onready var selector_sprite: Node2D = %SelectorSprite
-@onready var selector_anim: AnimationPlayer = %AnimationPlayer
-@onready var item_description_box : TextureRect = %ItemDescriptionBox
-@onready var sort_banner: SortSubBanner = %SortSubBanner
+@onready var details: EquipmentDetails = %EquipmentDetails
+@onready var filter_words: FilterWords = %FilterWords
 @onready var pagination_bar: PaginationBar = %PaginationBar
 @onready var trash_slot : TrashSlot = pagination_bar.trash_slot
+
+#-----------------------------------------------------------------------------
+# CONSTANTS
+#-----------------------------------------------------------------------------
+
+## Centres the 72 px dragged item on the cursor.
+const POSITION_OFFSET = Vector2(-36, -36)
+## The dragged item's size: a full slot.
+const DRAGGED_ITEM_SIZE := Vector2(72, 72)
+## Draws the dragged item over the pages.
+const DRAGGED_ITEM_Z_INDEX := 10
 
 #-----------------------------------------------------------------------------
 # STATE
@@ -27,12 +40,14 @@ var original_slot: InventorySlot = null
 ## longer reflects where the dragged item actually came from.
 var original_grid_index: int = -1
 var is_dragging: bool = false
-## Category filters for the sort banner: each entry is { label: String,
+## Category filters for the filter words: each entry is { label: String,
 ## match: Callable } where match(ItemInstanceData) -> bool decides which items
-## stay at full opacity. Built in _ready.
+## stay in. Built in _ready.
 var _categories: Array = []
-const POSITION_OFFSET = Vector2(0, -15)
-const SELECTOR_OFFSET = Vector2(28, 28)
+## The slot holding the item the details show, marked; null when none is.
+var _shown_slot: InventorySlot = null
+## The slot a drop would land in while dragging, marked; null when none is.
+var _drag_target: InventorySlot = null
 
 #-----------------------------------------------------------------------------
 # LIFECYCLE
@@ -47,16 +62,12 @@ func _ready() -> void:
 	pagination_bar.page_selected.connect(_on_page_selected)
 	pagination_bar.page_hovered.connect(_on_page_hovered)
 
-	item_description_box.reset()
-	selector_sprite.visible = false
-
 	_build_categories()
 	var labels := PackedStringArray()
 	for cat in _categories:
 		labels.append(cat["label"])
-	sort_banner.set_options(labels)
-	sort_banner.enabled = true
-	sort_banner.option_changed.connect(_on_filter_changed)
+	filter_words.set_options(labels)
+	filter_words.option_changed.connect(_on_filter_changed)
 
 	if InventoryManager:
 		InventoryManager.inventory_changed.connect(_on_inventory_changed)
@@ -66,9 +77,22 @@ func _ready() -> void:
 # PUBLIC FUNCTIONS
 #-----------------------------------------------------------------------------
 
-## Shows the tab's first item; called whenever the page is opened.
+## Opens the page on its first item: the first one on the grid page shown,
+## else the first worn piece in the figure's order (Head, Main hand,
+## Accessory 1, Body, Off hand, Accessory 2). With neither, the details hide.
+## Called whenever the page is opened.
 func open_page() -> void:
-	pass
+	_refresh_pagination()
+	for slot in equipment_grid.get_slots():
+		if slot.item_instance != null:
+			_show_slot(slot)
+			return
+	for slot in gear_selector.get_slots():
+		if slot.item_instance != null:
+			_show_slot(slot)
+			return
+	_mark_shown(null)
+	details.clear()
 
 #-----------------------------------------------------------------------------
 # SIGNAL HANDLERS
@@ -76,14 +100,19 @@ func open_page() -> void:
 
 func _on_inventory_changed(_inventory: InventoryData) -> void:
 	_refresh_pagination()
+	_follow_shown_item.call_deferred()
 
 func _refresh_pagination() -> void:
 	var inventory := InventoryManager.get_inventory()
 	pagination_bar.setup(inventory.unlocked_equipment_pages, equipment_grid.current_page)
+	pagination_bar.set_count(inventory.equipment.size(), inventory.equipment_capacity())
 
 func _on_page_selected(index: int) -> void:
 	equipment_grid.set_page(index)
 	pagination_bar.set_active_page(equipment_grid.current_page)
+	# Deferred: following can open the page, whose PaginationBar.setup() frees
+	# the page button still emitting this signal.
+	_follow_shown_item.call_deferred()
 
 func _on_page_hovered(index: int) -> void:
 	if is_dragging:
@@ -99,13 +128,14 @@ func _grid_global_index(slot: InventorySlot) -> int:
 #-----------------------------------------------------------------------------
 
 ## Build the category list. Each match closure takes an ItemInstanceData (or
-## null) and returns whether it belongs to the category.
+## null) and returns whether it belongs to the category. The labels are
+## printed as they are, in capitals.
 func _build_categories() -> void:
 	_categories = [
-		{ "label": "All", "match": func(_d: ItemInstanceData) -> bool: return true },
-		{ "label": "Weapons", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, EquipmentDefinitionData.EquipmentSlot.OFF_HAND]) },
-		{ "label": "Armor", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.HEAD, EquipmentDefinitionData.EquipmentSlot.ARMOR]) },
-		{ "label": "Accessories", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.ACCESSORY]) },
+		{ "label": "ALL", "match": func(_d: ItemInstanceData) -> bool: return true },
+		{ "label": "WEAPONS", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.MAIN_HAND, EquipmentDefinitionData.EquipmentSlot.OFF_HAND]) },
+		{ "label": "ARMOR", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.HEAD, EquipmentDefinitionData.EquipmentSlot.ARMOR]) },
+		{ "label": "ACCESSORIES", "match": func(d: ItemInstanceData) -> bool: return _item_in_slots(d, [EquipmentDefinitionData.EquipmentSlot.ACCESSORY]) },
 	]
 
 ## True when `data` is equipment whose slot_type is in `slot_types`.
@@ -115,7 +145,7 @@ func _item_in_slots(data: ItemInstanceData, slot_types: Array) -> bool:
 	var def := data.item_definition
 	return def is EquipmentDefinitionData and (def as EquipmentDefinitionData).slot_type in slot_types
 
-## Apply the selected category as a visual dim filter on the grid.
+## Apply the selected category to the grid: items outside it fade into the paper.
 func _on_filter_changed(index: int) -> void:
 	if index >= 0 and index < _categories.size():
 		equipment_grid.set_category_filter(_categories[index]["match"])
@@ -131,13 +161,70 @@ func _drag_target_is_origin(target: InventorySlot) -> bool:
 	return _grid_global_index(target) == original_grid_index
 
 #-----------------------------------------------------------------------------
+# THE SHOWN ITEM
+#-----------------------------------------------------------------------------
+
+## Shows the item in `slot` in the details and marks the slot. Pointing again
+## at the slot already shown changes nothing.
+func _show_slot(slot: InventorySlot) -> void:
+	var data: ItemInstanceData = slot.item_instance.item_instance_data
+	if slot == _shown_slot and data == details.get_item():
+		return
+	_mark_shown(slot)
+	details.show_item(data, slot is GearSlot)
+
+## Marks `slot` as the one the details show and unmarks the last one. Null
+## leaves no slot marked.
+func _mark_shown(slot: InventorySlot) -> void:
+	if _shown_slot != null and _shown_slot != slot:
+		_shown_slot.set_marked(false)
+	_shown_slot = slot
+	if slot != null:
+		slot.set_marked(true)
+
+## Follows whatever the details show by the time the call runs.
+func _follow_shown_item() -> void:
+	_follow_item(details.get_item())
+
+## Keeps the details and the marks on `item` after the bag changed: marks the
+## visible grid or gear slot holding it (none when it is on another page) and
+## refreshes its hint. When the item is no longer in the bag or worn, the page
+## opens on its first item instead. Waits while a drag is under way: the drop
+## follows the item again.
+func _follow_item(item: ItemInstanceData) -> void:
+	if is_dragging:
+		return
+	if item == null:
+		open_page()
+		return
+	var inventory := InventoryManager.get_inventory()
+	var worn: bool = item in inventory.equipped_gear.values() or item in inventory.equipped_accessories.values()
+	if not worn and item not in inventory.equipment.values():
+		open_page()
+		return
+	_mark_shown(_visible_slot_holding(item))
+	details.show_item(item, worn)
+
+## The visible grid or gear slot that holds `item`, or null.
+func _visible_slot_holding(item: ItemInstanceData) -> InventorySlot:
+	for slot in equipment_grid.get_slots():
+		if slot.item_instance != null and slot.item_instance.item_instance_data == item:
+			return slot
+	for slot in gear_selector.get_slots():
+		if slot.item_instance != null and slot.item_instance.item_instance_data == item:
+			return slot
+	return null
+
+#-----------------------------------------------------------------------------
 # INPUT HANDLING
 #-----------------------------------------------------------------------------
 
-func _input(event):
+func _input(event: InputEvent) -> void:
 	if is_dragging and dragged_item:
 		if event is InputEventMouseMotion:
-			dragged_item.global_position = get_global_mouse_position() + POSITION_OFFSET
+			var motion := event as InputEventMouseMotion
+			dragged_item.global_position = motion.global_position + POSITION_OFFSET
+			_mark_drag_target(_get_slot_under_mouse(motion.global_position))
 		elif event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_drop_item(get_global_mouse_position())
 
@@ -146,13 +233,9 @@ func _input(event):
 #-----------------------------------------------------------------------------
 
 func _on_slot_input(slot: InventorySlot, event: InputEvent) -> void:
-	if event is InputEventMouseMotion or (event is InputEventMouseButton and event.pressed):
-		_update_selector(slot)
-		if not is_dragging:
-			if slot.item_instance:
-				item_description_box.setup(slot.item_instance.item_instance_data)
-			else:
-				item_description_box.reset()
+	var pointed: bool = event is InputEventMouseMotion or (event is InputEventMouseButton and event.pressed)
+	if pointed and not is_dragging and slot.item_instance != null:
+		_show_slot(slot)
 
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if not is_dragging:
@@ -166,14 +249,6 @@ func _on_slot_input(slot: InventorySlot, event: InputEvent) -> void:
 		if not is_dragging and slot.item_instance != null:
 			_quick_equip(slot)
 
-func _update_selector(slot: InventorySlot) -> void:
-	selector_sprite.global_position = slot.global_position + SELECTOR_OFFSET
-	if not selector_sprite.visible:
-		selector_sprite.visible = true
-		selector_anim.play("start_select")
-	elif selector_anim.current_animation != "start_select":
-		selector_anim.play("start_select")
-
 func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 	var item = slot.grab_item()
 	if item:
@@ -182,15 +257,42 @@ func _pick_up_item(slot: InventorySlot, global_mouse_pos: Vector2) -> void:
 		original_slot = slot
 		# Remember the source page's global index now (gear origins use -1).
 		original_grid_index = -1 if slot is GearSlot else _grid_global_index(slot)
-		if dragged_item.item_instance_data:
-			item_description_box.setup(dragged_item.item_instance_data)
-		add_child(dragged_item)
-		dragged_item.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		dragged_item.custom_minimum_size = Vector2(28, 28)
-		dragged_item.size = Vector2(28, 28)
-		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
-		dragged_item.scale = Vector2(1.0, 1.0)
-		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# The item is in hand now, so its emptied slot loses the marks.
+		_mark_shown(null)
+		_hold_dragged_item(global_mouse_pos)
+
+## Re-parents the dragged item to the tab as a full slot drawn over the pages,
+## centred on the cursor.
+func _hold_dragged_item(global_mouse_pos: Vector2) -> void:
+	add_child(dragged_item)
+	dragged_item.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	dragged_item.custom_minimum_size = DRAGGED_ITEM_SIZE
+	dragged_item.size = DRAGGED_ITEM_SIZE
+	dragged_item.z_index = DRAGGED_ITEM_Z_INDEX
+	dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
+	dragged_item.scale = Vector2(1.0, 1.0)
+	dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+## Marks `slot` while a drop there would be taken, and unmarks the last target.
+## Null, or a slot that would refuse the item, leaves no target marked.
+func _mark_drag_target(slot: InventorySlot) -> void:
+	var target: InventorySlot = slot if slot != null and _would_take_drop(slot) else null
+	if target == _drag_target:
+		return
+	if _drag_target != null:
+		_drag_target.set_marked(false)
+	_drag_target = target
+	if target != null:
+		target.set_marked(true)
+
+## True when dropping the dragged item on `slot` would be taken: the trash, a
+## grid slot other than the origin, or a gear slot of the item's type.
+func _would_take_drop(slot: InventorySlot) -> bool:
+	if slot is TrashSlot:
+		return true
+	if slot is GearSlot:
+		return (slot as GearSlot).is_valid_item(dragged_item.item_instance_data)
+	return not _drag_target_is_origin(slot)
 
 func _drop_item(global_mouse_pos: Vector2) -> void:
 	var target_slot = _get_slot_under_mouse(global_mouse_pos)
@@ -312,6 +414,8 @@ func _return_to_original() -> void:
 	dragged_item.queue_free()
 	equipment_grid.set_page(equipment_grid.current_page)
 
+## Ends a drag: unmarks the drop target, then marks wherever the shown item
+## landed once the slots have re-bound.
 func _cleanup_drag() -> void:
 	if dragged_item:
 		dragged_item.z_index = 0
@@ -320,6 +424,8 @@ func _cleanup_drag() -> void:
 	original_slot = null
 	original_grid_index = -1
 	is_dragging = false
+	_mark_drag_target(null)
+	_follow_shown_item.call_deferred()
 
 func _get_slot_under_mouse(global_pos: Vector2) -> InventorySlot:
 	for slot in equipment_grid.get_slots():
@@ -370,11 +476,5 @@ func _pick_up_from_trash(trash: TrashSlot, global_mouse_pos: Vector2) -> void:
 		dragged_item = visual
 		is_dragging = true
 		original_slot = trash
-		add_child(dragged_item)
-		dragged_item.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		dragged_item.custom_minimum_size = Vector2(28, 28)
-		dragged_item.size = Vector2(28, 28)
-		dragged_item.global_position = global_mouse_pos + POSITION_OFFSET
-		dragged_item.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if item_description_box:
-			item_description_box.setup(held)
+		_mark_shown(null)
+		_hold_dragged_item(global_mouse_pos)

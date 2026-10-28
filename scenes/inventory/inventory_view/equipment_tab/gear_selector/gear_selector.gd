@@ -1,5 +1,11 @@
 extends Control
 
+## GearSelector
+## The Gear page's figure: the pressed cultivator plate with six gear slots
+## round it, mirrored to the figure. The left column holds Head, Main hand and
+## Accessory 1; the right column Body, Off hand and Accessory 2. Each slot's
+## name is printed under it.
+
 signal slot_clicked(slot: GearSlot, event: InputEvent)
 
 var slots: Array[GearSlot] = []
@@ -59,6 +65,9 @@ func _update_slots(inventory: InventoryData) -> void:
 			item_data = inventory.equipped_gear.get(slot.slot_type, null)
 		slot.setup(item_data)
 
-## Returns all gear slots managed by this selector.
+## Returns all gear slots managed by this selector, in the figure's order: the
+## left column top to bottom (Head, Main hand, Accessory 1), then the right
+## (Body, Off hand, Accessory 2). The "GearSlots" group lists its nodes in
+## scene hierarchy order.
 func get_slots() -> Array[GearSlot]:
 	return slots

@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://cvh0rexotv77s"]
+
+[ext_resource type="Shader" path="res://assets/shaders/paper_fade.gdshader" id="1_fade"]
+
+[resource]
+resource_local_to_scene = false
+shader = ExtResource("1_fade")

@@ -1,0 +1,54 @@
+[gd_scene format=3 uid="uid://bvr6gchantbut"]
+
+[ext_resource type="Script" path="res://scenes/inventory/inventory_view/equipment_tab/equipment_details/bonus_row.gd" id="1_script"]
+
+[node name="BonusRow" type="VBoxContainer"]
+mouse_filter = 2
+theme_override_constants/separation = 0
+script = ExtResource("1_script")
+
+[node name="Pairs" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="LeftName" type="Label" parent="Pairs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"LabelBookCaps"
+text = "STRENGTH"
+
+[node name="LeftValue" type="Label" parent="Pairs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookInkDark"
+text = "+2"
+horizontal_alignment = 2
+
+[node name="Gap" type="Control" parent="Pairs"]
+custom_minimum_size = Vector2(18, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RightName" type="Label" parent="Pairs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"LabelBookCaps"
+text = "AGILITY"
+
+[node name="RightValue" type="Label" parent="Pairs"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBookInkDark"
+text = "+2"
+horizontal_alignment = 2
+
+[node name="Rule" type="HSeparator" parent="."]
+layout_mode = 2
+theme_type_variation = &"HSeparatorPressed"
