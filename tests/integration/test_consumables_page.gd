@@ -245,6 +245,15 @@ func test_the_tag_sits_flush_right_and_two_px_up() -> void:   # Ruling R17 (M4)
 	assert_eq(tag_rect.end, slot_rect.end - Vector2(0, 2))
 	assert_eq(tag_rect.size.y, 20.0, "a one-line tag is as tall as its art")
 
+func test_a_tag_keeps_to_even_pixels() -> void:   # the tag's art on the 2 px grid
+	InventoryManager.award_items(CRUDE, 7)
+	InventoryManager.equip_consumable(CRUDE, 0)
+	var tab: Control = await _open_tab()
+	var tag_rect: Rect2 = (_hotbar_slot(tab, 0).get_node("%Count") as Control).get_global_rect()
+	assert_eq(tag_rect.size.x, 24.0, "×7 is 13 px of text and 10 of paper, 23, rounded up")
+	assert_eq(fmod(tag_rect.position.x, 2.0), 0.0, "so the tag starts on an even x")
+	assert_eq(tag_rect.end.x, 1112.0, "and stays flush with the slot's right edge")
+
 func test_hotbar_keys_are_printed_under_the_slots() -> void:
 	var tab: Control = await _open_tab()
 	var keys: Node = tab.get_node("%ConsumablesHotbar").get_node("KeysRow")

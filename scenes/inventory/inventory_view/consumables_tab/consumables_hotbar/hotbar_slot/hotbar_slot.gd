@@ -25,7 +25,7 @@ const _DRAG_PREVIEW_SCENE: PackedScene = preload("res://scenes/inventory/pressed
 
 @onready var _well: TextureRect = %Well
 @onready var _icon: TextureRect = %Icon
-@onready var _count: Label = %Count
+@onready var _count: PaperTag = %Count
 @onready var _marks: Panel = %Marks
 
 var _def: ConsumableDefinitionData = null
@@ -48,7 +48,7 @@ func setup(def: ConsumableDefinitionData, count: int) -> void:
 	_icon.texture = _def.icon if filled else null
 	_count.visible = filled
 	if filled:
-		_count.text = BookText.count(count)
+		_count.set_count(count)
 
 ## Returns the consumable definition currently held by this slot.
 func get_definition() -> ConsumableDefinitionData:

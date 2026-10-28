@@ -147,7 +147,7 @@ ConsumablesTab (Control, 1400×900, mouse ignored) — consumables_tab.gd: the l
   RightTitle (PageTitle)                   — "Hotbar"
   ConsumablesHotbar (VBoxContainer)        — consumables_hotbar.gd
     SlotsRow: HotbarSlot ×4 (slot_index 0-3) — hotbar_slot.gd (extends DropTargetSlot): Well (deep or shallow slot),
-                                             Icon, Count (paper tag), Marks
+                                             Icon, Count (PaperTag, flush right, 2 px up), Marks
     KeysRow: Key1–Key4                     — "1"–"4", printed under the slots
   HintLine1, HintLine2                     — the printed hint
   HintRule (HSeparatorPressed)
@@ -198,6 +198,7 @@ QuestItemsTab (Control)                    — quest_items_tab.gd
 | `PageTitle` (`@tool`; a pressed page's title with its ornament, `title` export) | `scenes/inventory/pressed/page_title/` |
 | `TableRow` (a row of a details panel's table: a caption in capitals, a BBCode value, a pressed rule; `setup()`, `set_rule_visible()`) | `scenes/inventory/pressed/table_row/` |
 | `ItemDragPreview` (the item's 64 px icon centred on the cursor during a native drag; `set_icon()`) | `scenes/inventory/pressed/item_drag_preview/` |
+| `PaperTag` (a count on a paper tag, `LabelBookTag`; `set_count()` prints it and rounds the tag's width up to even, so a tag anchored to a slot's right edge starts on an even x) | `scenes/inventory/pressed/paper_tag/` |
 
 ## Data Model
 
@@ -525,7 +526,7 @@ The map is awarded on completing quest `q_reach_core_density_10` ("Harden Your C
 | `scenes/inventory/inventory_view/materials_tab/` | `materials_tab.gd`, `material_slot.gd`, `material_detail_card.gd` |
 | `scenes/inventory/inventory_view/quest_items_tab/` | `quest_items_tab.gd`, `journal_row.gd`, `quest_journal_card.gd` |
 | `scenes/inventory/common/` | Shared inventory chrome (see table above) |
-| `scenes/inventory/pressed/` | The pressed pages' shared pieces: `PageTitle`, `TableRow`, `ItemDragPreview` |
+| `scenes/inventory/pressed/` | The pressed pages' shared pieces: `PageTitle`, `TableRow`, `ItemDragPreview`, `PaperTag` |
 | `scenes/common/item_description_panel/`, `item_display_slot/`, `drop_target_slot.gd` | Cross-system item UI |
 
 Tests: `tests/unit/test_inventory_*.gd` and `tests/integration/test_equipment_*.gd`, among others named after what they check; [TESTING.md](../testing/TESTING.md#coverage-gaps) lists what they do not cover.

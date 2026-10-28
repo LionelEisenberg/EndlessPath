@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://cikyet8m3a1nw" path="res://scenes/inventory/inventory_view/consumables_tab/consumables_hotbar/hotbar_slot/hotbar_slot.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/book/pressed/pressed_slot_shallow_ai.png" id="2_shallow"]
+[ext_resource type="PackedScene" path="res://scenes/inventory/pressed/paper_tag/paper_tag.tscn" id="3_tag"]
 
 [node name="HotbarSlot" type="PanelContainer" unique_id=1921980364]
 custom_minimum_size = Vector2(72, 72)
@@ -24,7 +25,7 @@ offset_bottom = 68.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="Count" type="Label" parent="Well"]
+[node name="Count" parent="Well" instance=ExtResource("3_tag")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -33,13 +34,12 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 0.0
 offset_top = -2.0
+offset_right = 0.0
 offset_bottom = -2.0
 grow_horizontal = 0
 grow_vertical = 0
-mouse_filter = 2
-theme_type_variation = &"LabelBookTag"
-text = "×7"
 
 [node name="Marks" type="Panel" parent="Well"]
 unique_name_in_owner = true

@@ -97,7 +97,7 @@ The four menu books (Inventory, Abilities, Character, Path; see [MAIN_VIEW.md](i
 | `LabelBookStep` | Label | BM Euljiro 16px ink `#3B2A20`, pitch 22 | A quest's steps |
 | `LabelBookCount` | Label | BM Euljiro 20px dark ink `#33261A`, pitch 24 | The count in a list row (`×7`) |
 | `LabelBookCaps` | Label | Eul+1 13px muted ink `#765A43`, pitch 18 | Labels in capitals: `HEAD`, `STRENGTH`, `CONSUMABLE · IN SLOT 1`. The page writes the text in capitals |
-| `LabelBookTag` | Label | BM Euljiro 13px dark ink `#33261A`, pitch 18, `normal` = `paper_tag.tres` | The count on a paper tag (`×4600`) |
+| `LabelBookTag` | Label | BM Euljiro 13px dark ink `#33261A`, pitch 18, `normal` = `paper_tag.tres` | The count on a paper tag (`×4600`). Use it through `PaperTag` (`scenes/inventory/pressed/paper_tag/`), which rounds the tag's width up to even so its art stays on the 2px grid |
 | `LabelBookSeal` | Label | Eul+1 13px seal text `#F0E8D8`, pitch 18, `normal` = `seal.tres` | The word on a seal (`DONE`). Give the Label the seal's 66x26 size and centre the text |
 | `LabelBookFilter` | Label | Eul+1 13px muted ink `#765A43`, pitch 18, `normal` = an empty style with 10/5/10/5 content margins | A filter word that is not in use |
 | `LabelBookFilterOn` | Label | Eul+1 13px dark ink `#33261A`, pitch 18, `normal` = `pressed_lozenge.tres` | The filter word in use. Its margins match `LabelBookFilter`'s, so swapping the two moves nothing |
