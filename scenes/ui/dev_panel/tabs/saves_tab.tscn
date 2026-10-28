@@ -1,0 +1,183 @@
+[gd_scene format=3 uid="uid://bcodu6l4hn7b8"]
+
+[ext_resource type="Script" uid="uid://c6iiaj6ernx6v" path="res://scenes/ui/dev_panel/tabs/saves_tab.gd" id="1_saves"]
+
+[node name="SavesTab" type="ScrollContainer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+script = ExtResource("1_saves")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SessionLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Your save · user://save.tres
+Version 1 · Playtime 0:00 · Foundation, Core Density 0 / 100 · 0 gold"
+autowrap_mode = 3
+
+[node name="BeatsLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+text = "Awakening — not reached"
+autowrap_mode = 3
+
+[node name="SessionButtons" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RestartButton" type="Button" parent="MarginContainer/VBoxContainer/SessionButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Restart preset (Ctrl+Shift+R)"
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/SessionButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Back to my save"
+
+[node name="PresetsHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "PRESETS"
+
+[node name="PresetList" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SavePresetHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "SAVE THIS GAME AS A PRESET"
+
+[node name="TitleRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TitleFieldLabel" type="Label" parent="MarginContainer/VBoxContainer/TitleRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Title"
+
+[node name="TitleEdit" type="LineEdit" parent="MarginContainer/VBoxContainer/TitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "What the panel calls it"
+
+[node name="DescriptionRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DescriptionFieldLabel" type="Label" parent="MarginContainer/VBoxContainer/DescriptionRow"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Description"
+
+[node name="DescriptionEdit" type="LineEdit" parent="MarginContainer/VBoxContainer/DescriptionRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Optional"
+
+[node name="SavePresetButton" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save as a preset"
+
+[node name="SavePresetStatus" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="YourSaveHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_type_variation = &"LabelSubheading"
+text = "YOUR SAVE"
+
+[node name="YourSaveButtons" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NewGameButton" type="Button" parent="MarginContainer/VBoxContainer/YourSaveButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "New game on my save"
+
+[node name="KeepButton" type="Button" parent="MarginContainer/VBoxContainer/YourSaveButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Keep as my save"
+
+[node name="SaveNowButton" type="Button" parent="MarginContainer/VBoxContainer/YourSaveButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Save now"
+
+[node name="AutosaveCheck" type="CheckButton" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Autosave"
+
+[node name="BackupRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="BackupOption" type="OptionButton" parent="MarginContainer/VBoxContainer/BackupRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RestoreButton" type="Button" parent="MarginContainer/VBoxContainer/BackupRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Restore"
+
+[node name="OpenFolderButton" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Open save folder"
+
+[node name="SavesStatus" type="Label" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="ConfirmTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 3.0
+one_shot = true
+ignore_time_scale = true
+
+[node name="RefreshTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+autostart = true
+ignore_time_scale = true

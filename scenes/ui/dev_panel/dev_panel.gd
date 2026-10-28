@@ -9,7 +9,8 @@ extends Control
 ## any time speed but ×1.
 ##
 ## The shell owns only the frame: the open state, the drag, the tab, the time
-## speed, the badge and the hotkey. Each tab is a scene of its own that calls the
+## speed, the badge and the two hotkeys, Ctrl+Shift+D and Ctrl+Shift+R, which
+## restarts a preset session. Each tab is a scene of its own that calls the
 ## dev tools itself; the one thing the shell hands a tab is the adventure view, to
 ## the Adventure tab. The panel lives in the main scene, which a session switch
 ## frees and loads again, so its open state, place and tab live on DevManager and
@@ -62,13 +63,21 @@ func _ready() -> void:
 	_speed_option.item_selected.connect(_on_speed_selected)
 	DevManager.time_speed_changed.connect(_show_speed)
 
-## Ctrl+Shift+D opens and closes the panel, whatever view the game is in.
+## The two hotkeys, whatever view the game is in: Ctrl+Shift+D opens and closes the
+## panel, and Ctrl+Shift+R restarts the preset in a preset session, open panel or
+## not. Outside a preset session Ctrl+Shift+R is left alone and goes on as plain R,
+## the fourth ability slot; a key the panel handles never reaches it (TechniqueDock
+## reads it in _unhandled_input).
 func _input(event: InputEvent) -> void:
 	var key := event as InputEventKey
-	if key != null and key.pressed and not key.echo:
-		if key.ctrl_pressed and key.shift_pressed and key.keycode == KEY_D:
-			toggle()
-			get_viewport().set_input_as_handled()
+	if key == null or not key.pressed or key.echo or not (key.ctrl_pressed and key.shift_pressed):
+		return
+	if key.keycode == KEY_D:
+		toggle()
+		get_viewport().set_input_as_handled()
+	elif key.keycode == KEY_R and DevManager.get_session_kind() == DevManager.SessionKind.PRESET:
+		DevManager.restart_preset()
+		get_viewport().set_input_as_handled()
 
 #-----------------------------------------------------------------------------
 # PUBLIC API

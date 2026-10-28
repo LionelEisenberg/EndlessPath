@@ -1,0 +1,49 @@
+[gd_scene format=3 uid="uid://djkhg4htm64gx"]
+
+[ext_resource type="Script" uid="uid://dr8unufbbi025" path="res://scenes/ui/dev_panel/rows/dev_preset_row.gd" id="1_row"]
+
+[node name="DevPresetRow" type="HBoxContainer"]
+theme_override_constants/separation = 8
+script = ExtResource("1_row")
+
+[node name="TextBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="TitleLabel" type="Label" parent="TextBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBody"
+text = "Preset"
+autowrap_mode = 3
+
+[node name="DescriptionLabel" type="Label" parent="TextBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+autowrap_mode = 3
+
+[node name="PinnedLabel" type="Label" parent="TextBox"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_type_variation = &"LabelBodySmall"
+text = "Pinned · plain launches start here"
+autowrap_mode = 3
+
+[node name="PlayButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+text = "Play"
+
+[node name="PinButton" type="Button" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+size_flags_vertical = 4
+text = "Pin"

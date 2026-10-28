@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://eub13kywnbop" path="res://scenes/ui/dev_panel/tabs/world_tab.tscn" id="2_world"]
 [ext_resource type="PackedScene" uid="uid://dix0wccljn3jm" path="res://scenes/ui/dev_panel/tabs/player_tab.tscn" id="3_player"]
 [ext_resource type="PackedScene" uid="uid://dl7bv254fonfk" path="res://scenes/ui/dev_panel/tabs/adventure_tab.tscn" id="4_adventure"]
+[ext_resource type="PackedScene" uid="uid://bcodu6l4hn7b8" path="res://scenes/ui/dev_panel/tabs/saves_tab.tscn" id="5_saves"]
 
 [node name="DevPanel" type="Control"]
 layout_mode = 3
@@ -62,6 +63,11 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 clip_tabs = false
+
+[node name="SavesTab" parent="Body/VBoxContainer/Tabs" instance=ExtResource("5_saves")]
+unique_name_in_owner = true
+layout_mode = 2
+metadata/_tab_name = "Saves"
 
 [node name="PlayerTab" parent="Body/VBoxContainer/Tabs" instance=ExtResource("3_player")]
 unique_name_in_owner = true
