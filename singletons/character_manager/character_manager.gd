@@ -23,6 +23,11 @@ static func get_attribute_display_name(attr_type: AttributeType) -> String:
 
 signal base_attribute_changed(attribute_type: AttributeType, new_value: float)
 
+## Emitted when the total attributes (base + gear) may have changed: after a
+## base attribute changes, and after any inventory change, since equipping or
+## removing gear moves the bonuses. Listeners re-read get_total_attributes_data().
+signal total_attributes_changed
+
 #-----------------------------------------------------------------------------
 # PLAYER DATA (Held by this manager)
 #-----------------------------------------------------------------------------
@@ -43,6 +48,7 @@ func _ready() -> void:
 		_update_resources()
 	else:
 		Log.critical("CharacterManager: Could not get save_game_data from PersistenceManager on ready!")
+	InventoryManager.inventory_changed.connect(_on_inventory_changed)
 
 func _update_resources() -> void:
 	Log.info("CharacterManager: Updating resources from save data")
@@ -57,8 +63,12 @@ func _update_resources() -> void:
 		var value = live_save_data.character_attributes.get_attribute(attr_type)
 		base_attribute_changed.emit(attr_type, value)
 		attributes_updated += 1
-	
+	total_attributes_changed.emit()
+
 	Log.info("CharacterManager: Updated %d attributes" % attributes_updated)
+
+func _on_inventory_changed(_inventory: InventoryData) -> void:
+	total_attributes_changed.emit()
 
 
 #-----------------------------------------------------------------------------
@@ -155,6 +165,7 @@ func add_base_attribute(attr_type: AttributeType, amount: float) -> void:
 	var new_value = live_save_data.character_attributes.get_attribute(attr_type)
 	
 	base_attribute_changed.emit(attr_type, new_value)
+	total_attributes_changed.emit()
 	Log.info("CharacterManager: Modified %s: %.1f -> %.1f (change: %+.1f)" % [get_attribute_display_name(attr_type), old_value, new_value, amount])
 
 

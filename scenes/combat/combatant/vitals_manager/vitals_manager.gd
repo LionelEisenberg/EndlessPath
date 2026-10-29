@@ -61,9 +61,8 @@ func _ready() -> void:
 		Log.warn("VitalsManager: is_player and character_attributes_data should never be set at the same time")
 	
 	if is_player:
-		var f = func(_attr_type, _new_value): character_attributes_data = CharacterManager.get_total_attributes_data()
-		CharacterManager.base_attribute_changed.connect(f)
-		f.call(null, 0.0)
+		CharacterManager.total_attributes_changed.connect(_on_total_attributes_changed)
+		_on_total_attributes_changed()
 
 func _process(delta: float) -> void:
 	if health_regen != 0:
@@ -102,6 +101,11 @@ static func max_health_for(attributes: CharacterAttributesData) -> float:
 #-----------------------------------------------------------------------------
 # PRIVATE HELPER FUNCTIONS
 #-----------------------------------------------------------------------------
+
+## The player's maxima follow the total attributes, so gear counts as well as
+## the base.
+func _on_total_attributes_changed() -> void:
+	character_attributes_data = CharacterManager.get_total_attributes_data()
 
 ## Adds or subtracts health, clamping to 0 and max health
 func _apply_health_change(amount: float) -> void:

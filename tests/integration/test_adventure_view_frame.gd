@@ -23,6 +23,7 @@ const AdventureMapFixture := preload("res://tests/integration/adventure_map_fixt
 const AMORPHOUS_SPIRIT_ENCOUNTER: AdventureEncounter = preload("res://resources/adventure/encounters/shallow_woods/combat_encounters/regular/amorphous_spirit_encounter.tres")
 const CRUDE_SCALE: ItemDefinitionData = preload("res://resources/items/consumables/crude_scale.tres")
 const ENFORCE_ICON: Texture2D = preload("res://assets/sprites/abilities/enforce.png")
+const REINFORCED_ROBES: EquipmentDefinitionData = preload("res://resources/items/equipment/spirit_valley/reinforced_robes.tres")
 const ADVENTURE_ACTION := AdventureMapFixture.ADVENTURE_ACTION
 
 # The fixture map's tiles (see AdventureMapFixture).
@@ -463,6 +464,20 @@ func test_start_fills_the_frame() -> void:
 	assert_false(_view.technique_dock.is_active(), "the dock takes no presses on the map")
 	assert_eq(_slot_states(), [Slot.PREVIEW, Slot.PREVIEW, Slot.PREVIEW, Slot.EMPTY], "it previews the loadout as the run starts")
 	assert_eq(_page_text("NameLabel"), "Open ground", "the chest stands on the start tile")
+
+func test_gear_equipped_before_the_run_raises_the_cabinets_max_health() -> void:
+	# Body armour put on in the zone, between runs, as the inventory book does it.
+	InventoryManager.award_items(REINFORCED_ROBES, 1)
+	var robes: ItemInstanceData = InventoryManager.get_inventory().equipment[0]
+	InventoryManager.equip_item(robes, REINFORCED_ROBES.slot_type, 0)
+
+	_start_run()
+	await wait_process_frames(1)
+
+	var body: float = 10.0 + REINFORCED_ROBES.attribute_bonuses[CharacterAttributesData.AttributeType.BODY]
+	var max_health: int = floori(body * 10.0)
+	assert_eq(_plate_text("HealthMaxLabel"), "/ %d" % max_health, "the run's max Health counts the robes' Body")
+	assert_eq(_plate_text("HealthValueLabel"), str(max_health), "and the run starts at that maximum")
 
 #-----------------------------------------------------------------------------
 # THE MAP AND THE CHEST

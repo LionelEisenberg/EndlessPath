@@ -291,3 +291,32 @@ func test_add_base_attribute_emits_new_base_value() -> void:
 	CharacterManager.add_base_attribute(AttributeType.BODY, -3.0)
 	assert_signal_emit_count(CharacterManager, "base_attribute_changed", 1)
 	assert_signal_emitted_with_parameters(CharacterManager, "base_attribute_changed", [AttributeType.BODY, 7.0])
+
+#-----------------------------------------------------------------------------
+# TOTAL ATTRIBUTES CHANGED SIGNAL
+#-----------------------------------------------------------------------------
+
+func test_add_base_attribute_emits_total_attributes_changed() -> void:
+	watch_signals(CharacterManager)
+	CharacterManager.add_base_attribute(AttributeType.BODY, 2.0)
+	assert_signal_emit_count(CharacterManager, "total_attributes_changed", 1)
+
+func test_equipping_gear_emits_total_attributes_changed() -> void:
+	var armor := _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
+	_inventory().equipment[0] = armor
+	watch_signals(CharacterManager)
+	InventoryManager.equip_item(armor, EquipmentSlot.ARMOR, 0)
+	assert_signal_emitted(CharacterManager, "total_attributes_changed")
+
+func test_unequipping_gear_emits_total_attributes_changed() -> void:
+	var armor := _make_gear(EquipmentSlot.ARMOR, {AttributeType.BODY: 4.0})
+	_inventory().equipment[0] = armor
+	InventoryManager.equip_item(armor, EquipmentSlot.ARMOR, 0)
+	watch_signals(CharacterManager)
+	InventoryManager.unequip_item(EquipmentSlot.ARMOR)
+	assert_signal_emitted(CharacterManager, "total_attributes_changed")
+
+func test_save_reset_emits_total_attributes_changed_once() -> void:
+	watch_signals(CharacterManager)
+	PersistenceManager.save_data_reset.emit()
+	assert_signal_emit_count(CharacterManager, "total_attributes_changed", 1)
