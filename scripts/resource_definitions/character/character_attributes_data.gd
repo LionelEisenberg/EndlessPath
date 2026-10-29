@@ -98,9 +98,29 @@ func add_to_attribute(attr_type: AttributeType, amount: float) -> void:
 		get_attribute(attr_type),
 	])
 
-## Maximum madra pool derived from the Foundation attribute.
+#-----------------------------------------------------------------------------
+# DERIVED VITALS
+#-----------------------------------------------------------------------------
+# The one home of the vitals formulas: every VitalsManager (the player's through
+# CharacterManager.get_stat()) and the character sheet's formula lines read
+# these.
+
+const HEALTH_PER_BODY: float = 10.0
+const STAMINA_PER_BODY: float = 5.0
+const MADRA_PER_FOUNDATION: float = 10.0
+
+## Maximum Health: Body x 10.
+func get_max_health() -> float:
+	return body * HEALTH_PER_BODY
+
+## Maximum Stamina: Body x 5.
+func get_max_stamina() -> float:
+	return body * STAMINA_PER_BODY
+
+## Maximum Madra in an adventure (the Madra a run can carry): Foundation x 10.
+## Not the core's Madra pool cap, which CultivationManager.get_max_madra() gives.
 func get_max_madra() -> float:
-	return foundation * 10.0
+	return foundation * MADRA_PER_FOUNDATION
 
 #-----------------------------------------------------------------------------
 # STRING REPRESENTATION

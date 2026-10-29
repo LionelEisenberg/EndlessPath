@@ -162,7 +162,7 @@ func test_reset_vitals_gives_a_fresh_vitals_manager() -> void:
 	assert_eq(vitals.stamina_regen, 0.0, "nor its regen")
 	assert_true(vitals.is_player, "it is built as at boot: the player's")
 	assert_eq(vitals.get_parent(), PlayerManager, "under PlayerManager")
-	assert_almost_eq(vitals.max_health, VitalsManager.max_health_for(CharacterManager.get_total_attributes_data()), 0.001,
+	assert_almost_eq(vitals.max_health, CharacterManager.get_total_attributes_data().get_max_health(), 0.001,
 		"it follows the attributes, as at boot")
 	await wait_process_frames(1)
 	assert_freed(old_vitals, "the old VitalsManager")

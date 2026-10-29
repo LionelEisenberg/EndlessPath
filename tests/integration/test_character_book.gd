@@ -109,7 +109,7 @@ func test_effects_stay_put_between_attributes() -> void:
 #-----------------------------------------------------------------------------
 
 func test_body_effects_match_the_vitals_formulas() -> void:
-	# VitalsManager: max health is Body x 10 and max stamina Body x 5, no flat bonus.
+	# CharacterAttributesData: max health is Body x 10 and max stamina Body x 5, no flat bonus.
 	_view.select_attribute(CharacterAttributesData.AttributeType.BODY)
 	var effects: String = _label("EffectsLabel").text
 	assert_string_contains(effects, "Max Health = Body × 10")
